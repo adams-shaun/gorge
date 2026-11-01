@@ -15,7 +15,7 @@ package rules
 // A test that PASSES is regression coverage. A test that FAILS is a
 // finding: it asserts the CR-correct behaviour, cites the rule, and is
 // guarded with GORGE_SET_AUDIT so the ordinary suite stays green until
-// the follow-up ticket lands.
+// the follow-up fix lands.
 
 import (
 	"os"

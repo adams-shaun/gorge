@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Phyrexian Tower's stage-1 wheel (fb-20260923T033148Z-877b8f8f,
-// fb-20260924T180813Z-bbe4fd8f): "{T}: Add {C}" and "{T}, Sacrifice a
+// Phyrexian Tower's stage-1 wheel: "{T}: Add {C}" and "{T}, Sacrifice a
 // creature: Add {B}{B}" rendered as "Add C" and "Add B", so the player who
 // wanted to sacrifice a creature saw no option that said so, and the {B}{B}
 // read as one pip. The paid option must name its sacrifice and both pips.

@@ -1,4 +1,4 @@
-// RepeatEach's ChangeZoneTable$ True (task agent-20260922T090929Z-07378594).
+// RepeatEach's ChangeZoneTable$ True.
 //
 // Forge's RepeatEachEffect creates a CardZoneTable when the parameter is
 // present, accumulates every iteration's zone changes and calls

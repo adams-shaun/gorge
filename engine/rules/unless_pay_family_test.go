@@ -12,7 +12,7 @@ import (
 
 // unless_pay_family_test.go pins the ONE shared UnlessCost$ gate
 // (effects.Resolve's unlessProceed dispatch) on the four SA kinds the
-// unless-pay family ticket names besides Counter/CopySpellAbility/Sacrifice:
+// unless-pay family has besides Counter/CopySpellAbility/Sacrifice:
 // Tap (Blood Crypt / Hallowed Fountain's shock-land ETB), DealDamage (Mogis,
 // God of Slaughter's upkeep), LoseLife (Isolation Cell) and ChangeZone
 // (Meathook Massacre II's opponent-death return). The census

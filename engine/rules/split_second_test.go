@@ -9,7 +9,7 @@ package rules
 // (PresentZone$ Stack), with the unkicked cast as the control proving the
 // gate keys on the keyword and not on the card's presence.
 //
-// V.A.T.S. is the deck carrier named in the ticket (Hail, Caesar pip
+// V.A.T.S. is the deck carrier (Hail, Caesar pip
 // census); no repo deck plays any of the 22 K:Split second carriers, so the
 // chain heads and the support ratchet are untouched by construction.
 

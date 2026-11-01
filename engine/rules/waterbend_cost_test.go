@@ -101,7 +101,7 @@ func TestWaterbendCostCensus(t *testing.T) {
 				}
 				// Precondition: the cost really carries the head, and it
 				// parses to a modelled waterbend part. A `Waterbend` Unknown
-				// here is the defect this ticket closed.
+				// here is the defect.
 				c := ParseCost(raw)
 				if len(c.Unknown) != 0 {
 					t.Errorf("%s ability Cost$ %q still reports Unknown %v", f.Name, raw, c.Unknown)

@@ -10,10 +10,7 @@ import (
 )
 
 // This file pins Count$UrzaLands through the ACTUAL corpus card scripts, not
-// an inline re-authoring of them (engine/rules/urza_lands_test.go). The report
-// (fb-20260927T094209Z-0983012f) said automan miscalculated the three Urza
-// lands while playing the Eldrazi deck; the count head is fixed at current
-// main, but every existing pool test authored its own copy of the scripts.
+// an inline re-authoring of them (engine/rules/urza_lands_test.go).
 // This one loads cards/cardsfolder/u/urzas_{mine,tower,power_plant}.txt via
 // the registry, so the real Types line (the hyphenated "Urza's Power-Plant"
 // subtype) and the real Count$UrzaLands SVar indirection are what the

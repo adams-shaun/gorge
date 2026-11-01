@@ -690,7 +690,7 @@ func TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers(t *testing.T) 
 		t.Fatal("control: a truncated log should diverge, but diffGames found no difference")
 	}
 
-	// Control 2, aimed at this task's own claim: the ORDER of the TriggerPush
+	// Control 2, aimed at the claim itself: the ORDER of the TriggerPush
 	// events is what carries the ordering choice. Swap the first two and the
 	// replay must diverge.
 	swapped := append([]events.Event(nil), e.L.Events...)
@@ -778,9 +778,7 @@ func TestOrderingDecisionInTheDrawStepDoesNotDrawTwice(t *testing.T) {
 	}
 }
 
-// --- Fix round 1 -----------------------------------------------------------
-
-// TestPriorityIsNeverGrantedWithTriggersStillQueued is CR 117.5, and review
+// TestPriorityIsNeverGrantedWithTriggersStillQueued is CR 117.5.
 // grantPriority is reachable from inside handle,
 // which runs BEFORE Submit's tail checkStateBased -- so a creature that a
 // state-based action is about to sweep was still alive when the drain
@@ -1118,8 +1116,6 @@ func TestTriggerDrainInvariantsUnderRandomizedPlay(t *testing.T) {
 	t.Logf("games=%d decisions=%d orderings=%d optionals=%d eliminations=%d",
 		games, decisions, orders, optionals, eliminations)
 }
-
-// --- Fix round 2 -----------------------------------------------------------
 
 // TestASpellWhoseTargetDecisionWasReleasedDoesNotResolve:
 // widening the release hook turned a stall

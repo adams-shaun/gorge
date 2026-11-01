@@ -12,9 +12,8 @@ import (
 
 // The ability-level `XMin$ N` parameter is a floor on
 // the announced X of the activated ability's own cost, beside the already
-// modelled cost-embedded XMin<N>/X1+ carriers. Before this ticket xAsk read
-// only pc.cost.XMin and pc.suspendMinX, so an SA with a bare announced-X
-// cost part and XMin$ 1 offered X = 0. The parameter folds by MAXIMUM with
+// modelled cost-embedded XMin<N>/X1+ carriers: an SA with a bare announced-X
+// cost part and XMin$ 1 must not offer X = 0. The parameter folds by MAXIMUM with
 // the other two floors, resolved through pcAbility (the ability actually
 // being activated, granted or not).
 
@@ -255,8 +254,7 @@ func TestCorpseweftXMinParamOffersNoZeroExileX(t *testing.T) {
 	}
 	// The ability resolved at the announced X: the mint event for the script
 	// named token ran. (The minted token's P/T is the ExiledCards$Amount/Twice
-	// SVar's business, a separate effect-resolution concern this ticket does
-	// not touch -- see the report.)
+	// SVar's business, a separate effect-resolution concern.)
 	minted := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.TokenCreate && ev.Text == "b_x_x_zombie_horror" {

@@ -1,12 +1,9 @@
 package rules
 
-// aph-combo-chosen-identity: the finite choice-shaped mana producers a V1
-// payment witness may activate. Spec §3.2 admits "Add R or G" (Produced$
-// Combo), a recorded as-enters colour (Produced$ Chosen / Combo … Chosen),
-// and the commander colour identity (Produced$ ColorIdentity), each as one
-// concrete alternative per producible colour. This file is the ticket's own
-// test file; the census proofs it ports live on throwaway branches and are
-// never cherry-picked (brief Standing rules).
+// The finite choice-shaped mana producers a V1 payment witness may activate:
+// "Add R or G" (Produced$ Combo), a recorded as-enters colour (Produced$
+// Chosen / Combo … Chosen), and the commander colour identity (Produced$
+// ColorIdentity), each as one concrete alternative per producible colour.
 
 import (
 	"reflect"
@@ -75,7 +72,7 @@ func choicePlanUses(p decision.PaymentPlan, id state.ObjID) (decision.PaymentAct
 	return decision.PaymentActivation{}, false
 }
 
-// TestPaymentPlanChoiceSources is the ticket's Done-means group. Each subtest
+// TestPaymentPlanChoiceSources covers each producer. Each subtest
 // asserts its own precondition (the source really is on the battlefield and
 // the plan really exercised it) so an empty plan cannot pass silently.
 func TestPaymentPlanChoiceSources(t *testing.T) {

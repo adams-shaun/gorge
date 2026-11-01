@@ -408,7 +408,7 @@ func TestDeterminizeFromSeatHandUntouched(t *testing.T) {
 }
 
 // TestDeterminizeFromSeatLibraryPermutes — breaks if fromSeat's own library is
-// left in its original order (the "helpful" bug the task warns against).
+// left in its original order (the "helpful" bug).
 func TestDeterminizeFromSeatLibraryPermutes(t *testing.T) {
 	g := determFixture(t)
 	var orders []string

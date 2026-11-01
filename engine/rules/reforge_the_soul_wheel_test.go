@@ -9,12 +9,11 @@ import (
 )
 
 // The whole-hand wheel (Discard Mode$ Hand) pinned end to end on the REAL
-// corpus cards. Feedback fb-20260918T072140Z-4ca8e286 ("reforge the soul
-// --played by my enemy... I never discarded my hand, now have like 12
-// cards"): the pre-fix engine had no Mode$ Hand case in effDiscard, so the
-// wheel fell into the default front-card arm, discarded ONE card per player,
-// kept the rest of the hand, and drew seven — everyone ended up with
-// old-hand + 7.
+// corpus cards. A player report ("reforge the soul --played by my enemy... I
+// never discarded my hand, now have like 12 cards") came from effDiscard having
+// no Mode$ Hand case: the wheel fell into the default front-card arm, discarded
+// ONE card per player, kept the rest of the hand, and drew seven, so everyone
+// ended up with old-hand + 7.
 //
 // The helpers come from search_library_test.go (searchTestRegistry,
 // searchCorpusCard, searchMoveByName), cast_test.go (addMana, submitChoices,

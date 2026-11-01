@@ -684,7 +684,7 @@ func TestDoesntUntapLeavesNoUntapToReplace(t *testing.T) {
 }
 
 // TestCommandZoneReplacementSourcesAreDiscovered pins the replacement-only
-// command-zone scan on one real source for each ticket event that exists
+// command-zone scan on one real source for each replacement event that exists
 // there. Trigger discovery remains on the ordinary object walk.
 func TestCommandZoneReplacementSourcesAreDiscovered(t *testing.T) {
 	t.Parallel()

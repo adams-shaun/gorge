@@ -19,18 +19,18 @@ func TestPlayerVoteNoHostRecordsTheStandInNote(t *testing.T) {
 	c := &Ctx{Controller: 0}
 	Resolve(h, c, sa(t, "SP$ Vote | Defined$ Player | VotePlayer$ Other | StoreVoteNum$ True"))
 
-	r9 := 0
+	noHostNotes := 0
 	reveal := 0
 	for _, ev := range h.log {
 		switch {
 		case ev.Kind == events.Note && strings.Contains(ev.Text, "(no engine host to ask)"):
-			r9++
+			noHostNotes++
 		case ev.Kind == events.Note && strings.HasPrefix(ev.Text, "votes for "):
 			reveal++
 		}
 	}
-	if r9 != 2 {
-		t.Fatalf("no-host Notes = %d, want one per voter (2)", r9)
+	if noHostNotes != 2 {
+		t.Fatalf("no-host Notes = %d, want one per voter (2)", noHostNotes)
 	}
 	if reveal != 2 {
 		t.Fatalf("reveal Notes = %d, want one per voter (2)", reveal)

@@ -15,7 +15,7 @@ import (
 // TestInertKeysAreScopedNotGlobal pins the eight API-scoped entries and
 // the sibling primitives' silence on the same keys. A key moved into the
 // key-global ignoredParamKeys makes the sibling primitive's genuine read
-// disappear (M1: ETB on api:SetState), so the still-read probes fail.
+// disappear (ETB on api:SetState, for one), so the still-read probes fail.
 func TestInertKeysAreScopedNotGlobal(t *testing.T) {
 	t.Parallel()
 	scoped := []struct{ prim, key string }{
@@ -46,7 +46,7 @@ func TestInertKeysAreScopedNotGlobal(t *testing.T) {
 	}
 	for _, c := range stillRead {
 		// Each sibling primitive genuinely reads the key, so the census must
-		// keep it live here. M1 (moving ETB into ignoredParamKeys) fails the
+		// keep it live here. Moving ETB into ignoredParamKeys fails the
 		// api:SetState probe because the global table answers every bucket.
 		if ignoredParam(c.prim, c.key) {
 			t.Errorf("ignoredParam(%q, %q) = true, want false: the entry leaked into the global table or another API's scope", c.prim, c.key)

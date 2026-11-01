@@ -74,7 +74,7 @@ func TestPayFailsCleanly(t *testing.T) {
 }
 
 // TestHybridAndPhyrexianAlternativePayments pins the CR 107.4e / 107.4f
-// alternative-payment representation that replaced the old M1 approximation
+// alternative-payment representation. It replaces an approximation
 // (which flattened a hybrid and a Phyrexian symbol to one generic each and so
 // mispriced Dismember and Gitaxian Probe, accepting regular mana for a
 // Phyrexian pip). A two-colour hybrid is a choice of one of its two colours; a

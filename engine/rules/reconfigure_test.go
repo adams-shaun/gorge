@@ -298,8 +298,8 @@ func TestReconfigureUnattachedSelfNeverInItsOwnTargetPool(t *testing.T) {
 	// The lone-creature board (the review's worst case): with the source
 	// excluded from its own pool the attach half has no legal target at all.
 	// The offer gate excludes the source exactly as the ask does
-	// (abilityTargetsAvailable's attach self-exclusion, cardfuzz batch5
-	// line 1), so the activation is never offered -- CR 602.2b: an ability
+	// (abilityTargetsAvailable's attach self-exclusion), so the activation is
+	// never offered -- CR 602.2b: an ability
 	// with no legal target cannot be activated -- the {2} stays in the pool
 	// and nothing attaches. (Before the offer-gate fix it was offered and
 	// then aborted before payment, CR 733.1; before the ask fix the self

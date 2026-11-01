@@ -287,7 +287,7 @@ func TestSasayaRevealHandAbilityIsOfferedWithSevenLands(t *testing.T) {
 // excluded the source unconditionally, so the only matching card could never
 // pay and such abilities were never offered. (The corpus's forecast cards
 // additionally need Forecast$ zone/timing support to be offered from the
-// hand; that mechanic is outside this ticket -- the synthetic card carries
+// hand; that mechanic is not under test -- the synthetic card carries
 // ActivationZone$ Hand so the COST semantics are what is under test.)
 func TestRevealHandSelfAbilityPaysByRevealingItself(t *testing.T) {
 	t.Parallel()

@@ -49,7 +49,7 @@ func trapStunCounters(e *Engine, bears state.ObjID) int {
 }
 
 // TestTrapTheTrespassersOneStunCounterPerVote is the card-ballot pin for
-// StoreVoteNum$ + RememberVotedObjects$ (report issue #5, review round 2):
+// StoreVoteNum$ + RememberVotedObjects$:
 // SP$ Vote | VoteCard$ Creature.YouDontCtrl | StoreVoteNum$ True |
 // RememberVotedObjects$ True | SubAbility$ DBRepeatStun.
 //

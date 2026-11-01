@@ -24,7 +24,7 @@ import (
 // this comparison never resolved, numericPred returned its
 // recognised-shape-but-unresolved no-match, and legalTargetCandidates offered
 // zero candidates -- the trigger resolved silently with no target and the
-// graveyard card never moved (agent-20260922T221917Z-aa93a144).
+// graveyard card never moved.
 //
 // 7454592e ("fix(rules): resolve trigger target X from source SVar") made
 // SpecContext read the source face's SVar table, evaluating any non-xPaid

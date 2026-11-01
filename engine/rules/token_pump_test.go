@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The api:Token PumpKeywords$/PumpDuration$ rider (task
-// agent-20260919T185907Z-1c13f0f9): a token's script-driver line may grant
+// The api:Token PumpKeywords$/PumpDuration$ rider: a token's script-driver line may grant
 // the created token a keyword for a bounded lifetime ("That token gains haste
 // until end of turn"). effToken previously created the token and ignored
 // the rider, so every such token silently lost its keyword. These tests pin

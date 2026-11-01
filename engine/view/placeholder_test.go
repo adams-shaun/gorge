@@ -186,7 +186,7 @@ func TestStackViewAbilityCardNilWhenSourceAbsent(t *testing.T) {
 	}
 }
 
-// TestDecisionOptionLabelSubstitutesCardName pins fb-20260923T033148Z's
+// TestDecisionOptionLabelSubstitutesCardName pins the
 // label half: the engine builds an activated ability's offer label as
 // "<face name>: <SpellDescription$>" with the raw description, so Mount
 // Doom's damage ability reached the seat as "Mount Doom: CARDNAME deals 1

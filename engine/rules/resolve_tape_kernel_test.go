@@ -97,7 +97,7 @@ func TestKernelCardAndPlayerBallots(t *testing.T) {
 	}
 }
 
-// The c21c390de scenario: a root target, a targeting link, an intervening
+// A root target, a targeting link, an intervening
 // TgtChoose discard and a ParentTarget reader; ParentTarget reads the right
 // link after the served discard.
 func TestKernelParentTargetChain(t *testing.T) {
@@ -184,7 +184,7 @@ func TestKernelMayAskExemptsAskFreeResolutions(t *testing.T) {
 // A predicate miss (forced here by exempting everything): the resolution
 // takes no checkpoint, so its ask reaches Engine.Ask with no run serving it.
 // It is refused with one replay-visible Note and the asking primitive takes
-// its deterministic default (the R-9 degrade), reported to the legacy-ask
+// its deterministic default, reported to the legacy-ask
 // observer; the spell still finishes resolving.
 func TestKernelMayAskMissDegradesInPlace(t *testing.T) {
 	tapeExemptAll = true

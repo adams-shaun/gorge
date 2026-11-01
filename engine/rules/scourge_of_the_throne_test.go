@@ -20,10 +20,10 @@ import (
 // the player with the most life or tied for most life, untap all attacking
 // creatures. After this phase, there is an additional combat phase."
 //
-// FirstAttack$ was already gated (engine/rules/trigmatch/combat.go firstAttackOK,
-// commit 8fb7d1d2); the intervening-if on the ATTACKED player's life was the
-// unread half -- before the read, the trigger fired on EVERY attack of the
-// first declaration regardless of the defender's standing.
+// FirstAttack$ is gated in engine/rules/trigmatch/combat.go firstAttackOK; the
+// intervening-if on the ATTACKED player's life is the other half, without which
+// the trigger fires on EVERY attack of the first declaration regardless of the
+// defender's standing.
 
 // scourgeSeat builds a three-seat table with the real corpus Scourge of the
 // Throne on seat 1, ready to attack, active on seat 1 in the

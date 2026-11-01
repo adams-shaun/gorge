@@ -72,13 +72,13 @@ Oracle:x
 // shape: a broad "if a card would be put into a
 // graveyard from anywhere, [do something else] instead" replacement, with
 // no ValidCard$ narrowing beyond "any card" and no ReplacementResult$ (so
-// today's ReplacementResult$-absent code path, unchanged by this task,
+// today's ReplacementResult$-absent code path, unchanged,
 // still discards the original Move). Its ReplaceWith$ uses Defined$
-// ReplacedCard, which engine/effects/context.go:51 DOES model, and since the
-// Origin$ All fix (fx28) engine/effects/zone.go's ParseZones treats All as a real
+// ReplacedCard, which engine/effects/context.go:51 DOES model, and
+// engine/effects/zone.go's ParseZones treats All as a real
 // wildcard, so this replacement genuinely relocates the intercepted card to
 // exile. It remains a totality hazard for the case this test covers,
-// because it also matches the GUARD'S OWN cleanup move -- the I-1 fix runs
+// because it also matches the GUARD'S OWN cleanup move -- the guard runs
 // that move with applyingReplacement held true so the guard cannot be
 // intercepted by the very replacement it is rescuing an object from.
 //

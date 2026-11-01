@@ -1,9 +1,7 @@
 package rules
 
 // trigger_blocks_blocker_test.go pins the blocker half of Forge Mode$
-// AttackerBlockedByCreature (level-B census ticket cli-20261009T105445Z:
-// D8b stack-content class, Skewer Slinger's combat#0.block divergence row and
-// its trigger#0.0 generation skip). "Whenever CARDNAME blocks or becomes
+// AttackerBlockedByCreature. "Whenever CARDNAME blocks or becomes
 // blocked by a creature" used to fire only the become-blocked half: the
 // queue's hard pr[0]==source gate made every blocker-side line inert, so
 // Skewer Slinger's damage, Witherscale Wurm's wither and Wooden Stake's

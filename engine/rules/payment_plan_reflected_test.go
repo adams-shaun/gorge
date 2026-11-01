@@ -1,11 +1,11 @@
 package rules
 
-// agent-20261012T222541Z-ceca6383 (Free:Tier slice 1): the payment planner
-// withheld every AB$ ManaReflected source (Exotic Orchard, Fellwar Stone) at
-// its tier gate ("source:special_production"), so an auto-pay seat whose only
-// mana for a spell was an Orchard got no PaymentAction plan for it. The one
-// opponent-reflecting shape (pay.PaymentPlanReflectedShape) is now planned as
-// a finite colour choice over the resolution's own candidates.
+// The payment planner withholds AB$ ManaReflected sources (Exotic Orchard,
+// Fellwar Stone) at its tier gate ("source:special_production") unless they
+// have the one opponent-reflecting shape (pay.PaymentPlanReflectedShape), which
+// is planned as a finite colour choice over the resolution's own candidates, so
+// an auto-pay seat whose only mana for a spell is an Orchard still gets a
+// PaymentAction plan for it.
 
 import (
 	"slices"

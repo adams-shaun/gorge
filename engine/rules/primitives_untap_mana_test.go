@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The five primitives this ticket implements, each proven on a real card
+// Five primitives, each proven on a real card
 // script (the exact Forge lines, inlined per the licensing rule -- never a
 // .cards .txt):
 //
@@ -22,7 +22,7 @@ import (
 //	kw:Cumulative upkeep   Mystic Remora
 //
 // The monolith/vault R:Event$ Untap replacement is a separate, unsupported
-// primitive and is intentionally not retired by this ticket.
+// primitive and is not covered here.
 
 const basaltMonolithScript = "Name:Basalt Monolith\nManaCost:3\nTypes:Artifact\n" +
 	"R:Event$ Untap | ValidCard$ Card.Self | ValidStepTurnToController$ You | Layer$ CantHappen | Description$ This artifact doesn't untap during your untap step.\n" +
@@ -718,11 +718,9 @@ func TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature(t *testing.T
 	}
 }
 
-// TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger (trigcost1) replaces the
-// old TestUnrelatedTriggeredEffectCostIsNotIntercepted, which pinned the
-// pre-ticket free-executor semantics: every trigger body whose API was not in
-// the Untap/ImmediateTrigger/Draw allowlist ran its effect WITHOUT charging
-// its Cost$. Forge's `Cost$ <cost>` on a trigger body is the "you may pay
+// TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger pins the charge on a trigger
+// body: no body runs its effect WITHOUT charging its Cost$. Forge's
+// `Cost$ <cost>` on a trigger body is the "you may pay
 // <cost>. If you do, ..." idiom, so the widened gate routes Keldon Raider's
 // mandatory ETB body (`AB$ Draw | Cost$ Discard<1/Card>`) through the same
 // window: the Discard component is unpriceable, so the window poses a
@@ -764,7 +762,7 @@ func TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger(t *testing.T) {
 // the pay election and the charge untaps the vault and drains the pool. (The
 // old offer-then-fail shape -- pay offered over an empty pool and declined at
 // the charge -- was closed by the pool-coverability gate
-// triggeredCostManaHalfPayable, ticket agent-20260922T232740Z-cf0357bb: an
+// triggeredCostManaHalfPayable: an
 // unpayable window is decline-only now, and the unpayable direction is
 // pinned by TestMonstrosityOfTheLakeUnpayableIsDeclinedAtSettle and
 // TestAleshaHybridTriggerWillNotPayUnpayable.)

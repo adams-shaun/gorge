@@ -255,10 +255,9 @@ func TestGravelighterBranchCountsCreaturesThatDiedThisTurn(t *testing.T) {
 		t.Fatalf("draws after Gravelighter entered with a creature dead this turn = %d, want 1", got)
 	}
 
-	// False arm: nothing died, so each player sacrifices a creature. Since
-	// this ticket's sacrifice-asks-its-player fix (CR 701.21a), the lone
-	// eligible player answers a real KChoose instead of the old deterministic
-	// stand-in silently taking the Bear.
+	// False arm: nothing died, so each player sacrifices a creature. The lone
+	// eligible player answers a real KChoose (CR 701.21a), rather than a
+	// deterministic stand-in silently taking the Bear.
 	e2 := mk(16)
 	alive := place(e2, bear)
 	draws2 := countDraws(e2, 0)

@@ -1,12 +1,10 @@
 package rules
 
 // stat:SurveilNum — "You may look at an additional two cards each time you
-// surveil" (Enhanced Surveillance). Before this ticket the mode was unread:
-// effects.Supported() did not report it, nothing collected the static, and
-// effects' effSurveil always used the surveil instruction's own count. The
-// reader is rules.Engine.SurveilLookExtra (the canonical activeStatics walk,
-// exposed to effects through the Host interface), the election is a real
-// yes/no ask, and the no-host path declines deterministically (R-9).
+// surveil" (Enhanced Surveillance). The reader is
+// rules.Engine.SurveilLookExtra (the canonical activeStatics walk, exposed to
+// effects through the Host interface), the election is a real yes/no ask, and
+// the no-host path declines deterministically.
 
 import (
 	"strings"

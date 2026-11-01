@@ -27,10 +27,10 @@ import (
 //   - The DECLINE path needs no forget and keeps none: an empty answer
 //     leaves ctx.Play at 0, so the guard `id != 0` never fires and the
 //     Treasure is created exactly when nothing was played (the second test).
-//   - The R-9 no-host branch (bottom of effPlay: a fuzz/no-engine host
+//   - The no-host branch (bottom of effPlay: a fuzz/no-engine host
 //     "plays" the first candidate without beginning any cast) is deliberately
 //     LEFT UNTOUCHED: no cast was begun there, the card never moves, and the
-//     pre-existing stand-in divergence is not this ticket's business; a
+//     stand-in divergence is out of scope; a
 //     forget on that path would also move fuzz-only event streams.
 //   - An Amount$ Play that begins SEVERAL cards would only forget the first
 //     (ctx.Play holds one card) — measured corpus-unreachable: every

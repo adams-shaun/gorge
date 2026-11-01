@@ -1,6 +1,6 @@
 package rules
 
-// Ticket aph-interference-scope (spec §3.2 as amended 2026-09-26): a trigger
+// A trigger
 // or replacement on source S affects only S's tier, a trigger/replacement on
 // another object defers exactly the sources its filter can match, and only an
 // unprovable global effect declines every plan of the affected player.
@@ -475,8 +475,8 @@ func TestPaymentPlanInterferenceRestrictingManaConvertIsGlobal(t *testing.T) {
 // player adds an additional {B}", which lives as a state.Game.Delayed
 // EffectRepeat entry, not on any face or static -- defers exactly the sources
 // its matcher sees: the Swamp, not the Island. Before the delayed walk the
-// planner priced the Swamp at {B} while its tap added {B}{B} (round-5
-// cardfuzz mirror seed 14886721532440673633, wrong_production).
+// planner priced the Swamp at {B} while its tap added {B}{B} (cardfuzz mirror
+// seed 14886721532440673633, wrong_production).
 func TestPaymentPlanInterferenceDelayedTapTriggerDefersItsSources(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9915, interferenceOneInstant)

@@ -144,12 +144,12 @@ func TestPaymentPlanRankRemainderDiversity(t *testing.T) {
 	}
 }
 
-// Done-means 5: PP-03 still prefers the Mountain for the generic, and
+// The rank prefers the Mountain for the generic, and
 // flexibility is the number of DISTINCT mana types a source's eligible
 // alternatives produce, not the number of alternatives.
 func TestPaymentPlanRankFlexCountsDistinctTypes(t *testing.T) {
 	t.Parallel()
-	t.Run("PP-03 prefers the Mountain", func(t *testing.T) {
+	t.Run("prefers the Mountain", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9905, "Name:Grixis Plan\nManaCost:1 U B\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 		island := onBoard(t, e, 0, ppIsland)
 		swamp := onBoard(t, e, 0, ppSwamp)

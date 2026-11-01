@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The ARGUMENTED !CastSaSource count forms (task castprov2), pinned end to
+// The ARGUMENTED !CastSaSource count forms, pinned end to
 // end on their two real corpus carriers:
 //
 //   - Thunder Salvo's `Count$ThisTurnCast_Card.YouCtrl+!CastSaSource/Plus.2`:

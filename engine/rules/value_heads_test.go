@@ -18,7 +18,7 @@ import (
 // modelled exactly when at least one of its corpus bodies resolves. A head
 // that resolves but is unlisted keeps playable cards out of the pool; a
 // listed head that never resolves puts cards with an unreadable gate into
-// it (the fuzz-cov3 audit's registration gap). Both are named.
+// it. Both are named.
 func TestValueHeadRegistryMatchesEvaluator(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

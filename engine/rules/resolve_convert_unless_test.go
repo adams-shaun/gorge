@@ -1,12 +1,11 @@
 package rules
 
-// W3 step 3 (batch d, the unless-pay window): an UnlessCost$ election is
+// The unless-pay window: an UnlessCost$ election is
 // served from the tape and settled in line -- an immediate pay or decline,
 // the next payer after a decline, and the CR 601.2g mana window as a
 // multi-intent answer (one served intent per source activated, then Done).
-// The choice-bearing component continuation is driven in line too (W3 step
-// 4e). Every case runs on
-// legacy and on the kernel and must stay byte-identical.
+// The choice-bearing component continuation is driven in line too. Every case
+// runs on legacy and on the kernel and must stay byte-identical.
 
 import (
 	"testing"

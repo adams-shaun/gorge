@@ -1,11 +1,11 @@
 package rules
 
-// CV-7: focused, ordinary-suite coverage for the three FDN sacrifice cards
+// Focused, ordinary-suite coverage for the three FDN sacrifice cards
 // the cold-start card-value spike rated far below 17Lands (Hungry Ghoul,
 // Vampire Gourmand, Fake Your Own Death). The data-driven oracle audit
 // (engine/rules/testdata/oracle/...) already drives each of them end to end; these
 // leaves pin the same rules text natively so a regression names the card in
-// the ordinary suite and the engine half of the ticket stands on its own.
+// the ordinary suite.
 //
 // Every leaf asserts its own precondition first (the carrier and its fodder
 // are on the battlefield, the ability is offered exactly when it should be),

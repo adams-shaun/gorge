@@ -1,7 +1,6 @@
 // The lifetime half of Sivitri, Dragon Master's delivered CantAttackUnless.
 //
-// bb2f5ec9d closed both omissions (effEffect's restriction switch and
-// attackPairCharge's delivered walk). engine/rules/delivered_cantattackunless_test.go
+// engine/rules/delivered_cantattackunless_test.go
 // proves the charge end to end and that the tax is gone once seat 0's next
 // turn begins, but it reads only the registry ENTRY COUNT at the boundary.
 // This file pins the registration's actual lifetime fields -- Duration$

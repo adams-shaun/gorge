@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Shire Shirriff is the ticket's own example of the "you may <pay>. When you
+// Shire Shirriff is an example of the "you may <pay>. When you
 // do, <effect>" idiom: its ETB trigger's Execute is
 // `AB$ ImmediateTrigger | Cost$ Sac<1/Card.token/token> | Execute$ TrigExile`,
 // and the chained DB$ ChangeZone carries Duration$ UntilHostLeavesPlay. The

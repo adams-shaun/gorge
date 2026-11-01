@@ -83,7 +83,7 @@ func TestPaymentPlanSeeksSacrificeOffer(t *testing.T) {
 	}
 }
 
-// TestPaymentPlanSacrificeStalenessRejectedAtSubmit is the PP-14 half: a plan
+// TestPaymentPlanSacrificeStalenessRejectedAtSubmit pins staleness: a plan
 // offered while a legal sacrifice candidate exists must NOT be committed once
 // that candidate has left the battlefield. The submit is rejected by
 // ValidateCastPayment with a clear error and nothing half-executes -- no mana

@@ -9,10 +9,9 @@ package view
 // CR 605: a mana ability's restriction ("spend this mana only to ...") binds
 // the mana, not the pool display.
 //
-// This file pins the projection added for the Cavern of Souls feedback report
-// (fb-20260922T145544Z): the engine correctly refuses to offer a cast against
-// a {B} restricted to the chosen creature type, but the seat's view showed a
-// bare chip with no trace of the restriction.
+// This file pins the projection behind a Cavern of Souls report: the engine
+// refuses to offer a cast against a {B} restricted to the chosen creature type,
+// so the seat's view must show the restriction, not a bare chip.
 
 import (
 	"encoding/json"

@@ -55,7 +55,7 @@ func countPlayerDamage(e *Engine, p state.PlayerID) int {
 }
 
 // TestEngineVexingDevilAcceptanceDealsDamageAndSacrifices is the engine-level
-// half of the fb-20260916T070855Z-0532c816 regression: a REAL cast of Vexing
+// half of this regression: a REAL cast of Vexing
 // Devil resolves, its ETB trigger asks seat 1 (the opponent) through rules'
 // resume machinery, the acceptance emits the Damage event FROM RULES (the
 // split: effects never emits the payment) and then

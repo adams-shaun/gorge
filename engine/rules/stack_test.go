@@ -206,7 +206,7 @@ func TestFizzleWhenNoLegalTargets(t *testing.T) {
 // --- CR 608.2b: target legality is rechecked at resolution, not just at
 // cast time (TestFizzleWhenNoLegalTargets above). These two tests build the
 // stack object directly rather than through castSpell/askTarget, because
-// M1's askTarget only ever asks for a single target (Min/Max 1) -- there is
+// askTarget only ever asks for a single target (Min/Max 1) -- there is
 // no way to reach a spell with two chosen targets, one legal and one not,
 // through the public casting path the way real Magic's TargetMin/TargetMax
 // would allow. Constructing the scenario directly and calling resolveTop is
@@ -284,8 +284,7 @@ func TestResolveDoesAsMuchAsItCanWhenSomeTargetsAreStillLegal(t *testing.T) {
 //
 // legal_test.go and fix1_test.go's Submit-driven tests (TestPlayLandReplay-
 // ThroughSubmit, TestActivateManaAbilityReplayThroughSubmit) could not cover
-// the "cast" branch or activate's mana-pool effect, because castSpell and
-// resolveAbility were still this task's empty stubs when they were written.
+// the "cast" branch or activate's mana-pool effect.
 // The two tests below close that gap, following the same shape as their
 // fix1_test.go siblings: drive the action through Submit only, then replay
 // the resulting log alone (no Engine, no rules code involved) and confirm it
@@ -745,9 +744,8 @@ func putLands(t *testing.T, e *Engine, p state.PlayerID, n int) []state.ObjID {
 // unmodified fixture (a bare `T:Mode$ SpellCast` with no TriggerZones$): the
 // spell's own source sits ON the stack when its cast trigger fires, and
 // zoneGate's default trigger zone is Battlefield, so a spell-on-stack source
-// never qualifies and the trigger would not fire at all -- the same pre-
-// existing gap the d2e2bf4 commit records for Ulamog/World Breaker, outside
-// this task's file scope. Naming the Stack zone explicitly is what lets this
+// never qualifies and the trigger would not fire at all. Naming the Stack zone
+// explicitly is what lets this
 // test drive the cast-trigger-takes-two-targets behaviour at all.
 func TestStackZoneCastTriggerAsksForTwoTargetsAndExilesBoth(t *testing.T) {
 	t.Parallel()

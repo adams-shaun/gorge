@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 2a(ctr): dual-run tests for the counter family and the
+// Dual-run tests for the counter family and the
 // per-target/per-player loop primitives converted onto the resolution
 // kernel's tape (PutCounter's elections and picks, RemoveCounter's pick,
 // AddOrRemoveCounter, MoveCounter, Proliferate, Empower, TimeTravel, Blight,

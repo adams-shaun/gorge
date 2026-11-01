@@ -1,8 +1,7 @@
 package rules
 
-// The repl:Draw / repl:DrawCards replacement class (task
-// cli-20261004T233421Z-ff9b2344). The matching and application machinery has
-// existed since the Draw-replacement lane (engine/rules/draw_replacement_test.go),
+// The repl:Draw / repl:DrawCards replacement class. The matching and
+// application machinery is exercised by engine/rules/draw_replacement_test.go,
 // but neither primitive was ever registered with effects.RegisterNonAPI, so
 // every carrier's coverage walk reported "unsupported [repl:Draw]" and the
 // Standard compliance audit skipped the card whole -- Bard, King of Dale

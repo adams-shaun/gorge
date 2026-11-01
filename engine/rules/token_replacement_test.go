@@ -344,8 +344,7 @@ func TestHalvingSeasonRoundsOpponentTokensDownToZero(t *testing.T) {
 }
 
 // TestTokenReplacementOptionalDeclines pins the DECLINE answer of the
-// Optional$ True election Flitwing Lyev poses (task tokrepl1 replaced the
-// old silent decline with a real KChoose): the decline option leaves the
+// Optional$ True election Flitwing Lyev poses: the decline option leaves the
 // token created verbatim. The accept arm and the ask itself are pinned in
 // token_replacement_standins_test.go.
 func TestTokenReplacementOptionalDeclines(t *testing.T) {

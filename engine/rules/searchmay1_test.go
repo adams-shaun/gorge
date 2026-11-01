@@ -13,7 +13,7 @@ import (
 // (mandatory) carrier. (The library-search fail-to-find shuffle is pinned in
 // cr701_search_shuffle_test.go.) The flag-bearing tail is covered by a direct
 // effects test; SP-parented DB carriers ask their own graveyard targeting at
-// resolution since task spcz1 and reach that tail in live play (engine/rules/
+// resolution and reach that tail in live play (engine/rules/
 // pins the live path on Put Away and Cathartic Parting).
 //
 // The corpus scripts are loaded through the gitignored registry; no Forge

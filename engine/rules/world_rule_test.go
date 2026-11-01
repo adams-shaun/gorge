@@ -1,4 +1,4 @@
-// Ticket agent-20260923T065617Z-9b7a6efa: the CR 704.5k world rule. If two or
+// The CR 704.5k world rule. If two or
 // more permanents have the supertype world, all except the one that has had
 // the world supertype for the shortest amount of time are put into their
 // owners' graveyards; on a tie for the shortest amount of time, all of them
@@ -7,8 +7,8 @@
 // it is an automatic SBA (engine/rules/sba.go worldRule) and the survivor is the most
 // recently entered (largest Object.Timestamp) permanent.
 //
-// The first version of this ticket implemented the rule as a per-controller
-// controller choice -- the legend rule's twin -- which the CR text flatly contradicts. These tests pin the CR text.
+// The rule is no per-controller controller choice like the legend rule's twin:
+// the CR text flatly contradicts that. These tests pin the CR text.
 package rules
 
 import (

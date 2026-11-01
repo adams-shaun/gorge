@@ -34,8 +34,9 @@ func quietGrantBase(t *testing.T, reg *cards.Registry, extras []*cards.Card) *En
 	return e
 }
 
-// TestQuietGrantScopePerSeat is the Q3c table: the three board flags that used
-// to fire for any grant anywhere (§2.2 flags 1, 3, 5) are per seat. Every row
+// TestQuietGrantScopePerSeat is the per-seat grant table: the three board flags
+// that could fire for any grant anywhere (quiet-seat design §2.2 flags 1, 3, 5)
+// are per seat. Every row
 // builds the SAME board twice, once with the grant source under the opponent
 // (seat 1) and once under p (seat 0); the opponent's copy must not block p and
 // p's own copy must, so a row passes vacuously only if the flag never fires at

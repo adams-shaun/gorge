@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// TestPregameBlindRedactsOwnSecretDraws is the redaction half of E3-fx3
+// TestPregameBlindRedactsOwnSecretDraws is the redaction half of the choice
 // (CR 103.5): while the CR 103.1 starting-player choice is pending, the
 // opening-hand deal reaches the log as each seat's own Secret Draw events,
 // which rule (1) of the redactor passes through for the owner

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The PlayCost$ gate (task playcost1): a DB$ Play's PlayCost$ parameter is
+// The PlayCost$ gate: a DB$ Play's PlayCost$ parameter is
 // the "rather than paying its mana cost" alternative (CR 118.9), priced per
 // chosen card with the ConvertedManaCost placeholder substituted by the
 // card's own mana value. Pinned on the real corpus carriers in both

@@ -22,8 +22,8 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		kinds []events.Kind // nil means conservatively retain every event
 	}{
 		// A token mint (TokenCreate/CardToken) is a battlefield entry the
-		// ChangesZone/ChangesZoneAll matchers must see (token-entry ticket:
-		// trigmatch_zone.go models the mint as Library -> Battlefield).
+		// ChangesZone/ChangesZoneAll matchers must see (trigmatch_zone.go models
+		// the mint as Library -> Battlefield).
 		{"ChangesZone", []events.Kind{events.MoveZone, events.Draw, events.PutOnStack, events.TokenCreate, events.CardToken}},
 		{"SpellCast", []events.Kind{events.PutOnStack}},
 		{"AbilityCast", []events.Kind{events.AbilityPush, events.DelayedPush}},
@@ -149,13 +149,13 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// it carried while no mode matched it.
 			want = cards.TriggerInterestMonarch
 		case events.TurnFaceUp:
-			// agent-20260919T183249Z-0fb8ed97: the turn-up marker is
+			// The turn-up marker is
 			// trigger-relevant (trig:TurnFaceUp matches it through the full
 			// matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the Investigate shape).
 			want = cards.TriggerInterestAny
 		case events.Specialize:
-			// agent-20260925T053724Z-5196df96: the specialize marker is
+			// The specialize marker is
 			// trigger-relevant (Mode$ Specializes matches it through the full
 			// matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the TurnFaceUp shape).
@@ -179,7 +179,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// mapping (the SearchedLibrary shape).
 			want = cards.TriggerInterestAny
 		case events.ElementalBend:
-			// agent-20260929T010346Z-ae55d89d: the completed-bend marker is
+			// The completed-bend marker is
 			// trigger-relevant (trig:ElementalBend matches it through the full
 			// matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the Proliferate/Evolved shape).
@@ -187,7 +187,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 		case events.TokenCreate, events.CardToken:
 			// A token mint folds straight onto the battlefield (engine/events/
 			// apply_copy.go), so its entry is a zone change the ChangesZone/
-			// ChangesZoneAll matchers see (token-entry ticket). CopyToken stays
+			// ChangesZoneAll matchers see. CopyToken stays
 			// zero-mapped: its entry is the separate MoveZone that follows.
 			want = cards.TriggerInterestZoneChange
 		case events.SkipTurn, events.ControlPlayerChange:

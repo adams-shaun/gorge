@@ -27,7 +27,7 @@ import (
 // opponent-pick ask the replacement's body poses. The entry runs as a
 // resolution-kernel probe (enterDevourerAsk's shape): an ask a replacement
 // body poses is posable only inside a kernel run, which poses the decision
-// and unwinds to its checkpoint instead of applying the R-9 stand-in.
+// and unwinds to its checkpoint instead of applying the stand-in.
 func enterTributee(t *testing.T, e *Engine, name string) *decision.Decision {
 	t.Helper()
 	id := searchMoveByName(t, e, name, state.ZHand)

@@ -33,8 +33,8 @@ func planeswalkElectionIDX(d *decision.Decision, kind string) int {
 // caller to answer. TARDIS' own attack trigger cannot fire end to end in this
 // build: kw:Crew is unsupported (a Vehicle never attacks), and the trigger's
 // intervening-if spec `Card.Time Lord+YouCtrl` names a two-word subtype this
-// engine's predicate classifier does not recognise (see the Issue filed with
-// this ticket). So the test drives the body a live TriggerPush would mint --
+// engine's predicate classifier does not recognise. So the test drives the
+// body a live TriggerPush would mint --
 // the real `TrigEffect` SVar, the one the trigger's `Execute$` names -- onto
 // the stack through a real LOGGED event, `KeywordTriggerPush`, whose Apply
 // resolves its Counter as an SVar on the source face. That keeps log-only

@@ -7,12 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestCastOriginAdmitsYourLibrary pins task xp-b19-melek: the
+// TestCastOriginAdmitsYourLibrary pins this: the
 // wasCastFromYourLibrary origin token (Melek, Izzet Paragon's copy trigger,
 // Wickerwing Effigy's Bird grant) is stripped by the rules-side origin chain
-// and holds only for a library cast made by the evaluating you. Before the
-// token joined castOriginTokens it reached the effects filter unstripped and
-// failed closed, so Melek never copied a spell cast off the library top.
+// and holds only for a library cast made by the evaluating you. Outside
+// castOriginTokens it reaches the effects filter unstripped and fails closed,
+// so Melek never copies a spell cast off the library top.
 func TestCastOriginAdmitsYourLibrary(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t, flashFixture))

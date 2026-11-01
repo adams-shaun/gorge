@@ -8,8 +8,8 @@
 // live engine: Rendmaw's ETB (ChangesZone Card.Self), its SpellCast arm on
 // a cast two-type card, its LandPlayed arm on a played two-type land, and
 // the single-type negative on both action arms. The "each player creates"
-// rider rides TokenOwner$ Player (engine/effects/token.go), which this task also
-// implemented — every assertion below depends on the per-seat mint, so the
+// rider rides TokenOwner$ Player (engine/effects/token.go): every assertion
+// below depends on the per-seat mint, so the
 // owner distribution is asserted, not just the count.
 package rules
 

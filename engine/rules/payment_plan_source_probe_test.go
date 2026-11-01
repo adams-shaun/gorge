@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPaymentPlanWithholdsCastWhoseSourceGateLeavesWithTheCard pins the
-// round-10 paymirror finding (random2 seed 11828 seq 4243, "Vorinclex, Voice
+// TestPaymentPlanWithholdsCastWhoseSourceGateLeavesWithTheCard pins a
+// paymirror finding (random2 seed 11828 seq 4243, "Vorinclex, Voice
 // of Hunger": a_fallback=source_changed, cast aborted "cost no longer
 // payable"). The plan tapped Fanatic of Rhonas for {G}{G}{G}{G} ("Activate
 // only if you control a creature with power 4 or greater"); the only such

@@ -1,6 +1,6 @@
 // ConditionCheckSVar/CheckSVar and Sacrifice Optional:
-// corpus-carried behaviour tests for the gates the task taught the engine to
-// read. The cards are pulled from the real compiled corpus (choiceCorpusCard)
+// corpus-carried behaviour tests for the gates the engine reads. The cards are
+// pulled from the real compiled corpus (choiceCorpusCard)
 // so the fixtures pin the cards' ACTUAL script shapes, not a paraphrase; the
 // per-test comment states which measured population each represents.
 //

@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Text quality is a server contract (client-table UI rework spec §4,
-// archived 2026-09-28-client-table-ui-rework-design.md (docs/design/ARCHIVE.md)): a
+// Text quality is a server contract: a
 // decision's Prompt -- the question title a client displays -- and its option
 // labels must never carry raw Forge cost or filter syntax. Players saw
 // "Pay Sac<1/Creature.Other/another creature>"; this file is the gate that

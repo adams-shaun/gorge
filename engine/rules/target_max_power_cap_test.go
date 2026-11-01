@@ -1,8 +1,6 @@
 package rules
 
-// The TargetMax$-aware MaxTotalTargetPower$ prune (task
-// cli-20260922T225142Z-0ab0cb60, closing the AGENTS.md "Known approximations"
-// row "(maxpower1)").
+// The TargetMax$-aware MaxTotalTargetPower$ prune.
 //
 // totalPowerCappedCandidates' negative-offset argument originally drew on
 // EVERY negative candidate in the census, i.e. it assumed a selection could

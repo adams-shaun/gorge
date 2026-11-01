@@ -2,7 +2,7 @@ package rules
 
 // One api:Token resolution that creates several tokens is ONE simultaneous
 // batch (CR 603.2c) for Mode$ ChangesZoneAll: Woodland Champion triggers once
-// and TriggerCount$Amount is the number of tokens (task xp-b13-tokenbatch).
+// and TriggerCount$Amount is the number of tokens.
 
 import (
 	"testing"

@@ -1,10 +1,8 @@
 package rules
 
-// AttachedTo$-on-Token / Attach-Remembered census (task
-// cli-20261004T233422Z-deefaac3, filed from the std3 XMage-compliance re-audit's
-// WOE Role-cycle and MSH U.S.Agent findings).
+// AttachedTo$-on-Token / Attach-Remembered census.
 //
-// Two mechanisms were fixed at the root this ticket:
+// Two mechanisms:
 //
 //   1. `DB$ Token | AttachedTo$ (ThisTargetedCard|Targeted)` on a sub-ability
 //      that carries its OWN ValidTgts$: the attach destination is the targets
@@ -170,7 +168,7 @@ func TestAttachedToTokenCensusNamesCarriers(t *testing.T) {
 		t.Fatal("census found no AttachedTo$ Token carriers at all; the corpus walk is broken")
 	}
 
-	// The four ThisTargetedCard carriers are the shape this ticket fixed: each
+	// The four ThisTargetedCard carriers are this shape: each
 	// carries its own ValidTgts$. Compare both directions so new carriers fail
 	// loudly instead of silently joining the untested class.
 	wantThisTargeted := map[string]bool{

@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestStateTriggerRemembersItsSourceNotTheCheckingEvent pins the round-10
+// TestStateTriggerRemembersItsSourceNotTheCheckingEvent pins a
 // paymirror finding (random4 seed 12468 seq 7211, Homarid Spawning Bed:
 // state_differs on G.Objs[*].Remembered[*].Obj, eventA/eventB trigger_push).
 // A CR 603.8 state trigger (Mode$ Always) has no triggering event; the engine

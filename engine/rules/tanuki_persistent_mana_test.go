@@ -8,11 +8,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Regressions for the cardfuzz batch13 rejected-intent failure (all real
-// corpus cards).
+// Regressions for a rejected-intent failure cardfuzz found (all real corpus
+// cards).
 
-// TestTanukiPersistentArtifactManaSpendMovesTheTally (cardfuzz batch13 line
-// 1): Tanuki Transplanter is an artifact, so its attack trigger's
+// TestTanukiPersistentArtifactManaSpendMovesTheTally: Tanuki Transplanter is
+// an artifact, so its attack trigger's
 // "PersistentMana$ True" {G} lands in the pool as TYPED artifact mana
 // ("ArtifactG") that is also persistent. The payment path attributed only
 // the PLAIN share of a spend ordinary-first and emitted the typed share

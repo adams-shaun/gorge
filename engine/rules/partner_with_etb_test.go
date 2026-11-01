@@ -13,8 +13,8 @@ import (
 
 // partnerWithFaceTrigger returns the ETB trigger the kw:Partner with expansion
 // synthesizes on a face, identified by its Keyword$ tag. A face that carries
-// the keyword but no such trigger is the unexpanded state -- the defect this
-// ticket fixes -- so the helper lets the test assert the precondition the
+// the keyword but no such trigger is the unexpanded state, so the helper lets
+// the test assert the precondition the
 // whole test depends on rather than assuming it.
 func partnerWithFaceTrigger(c *cards.Card) (cards.Trigger, bool) {
 	for _, f := range c.Faces {

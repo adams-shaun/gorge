@@ -1,6 +1,6 @@
 package rules
 
-// Saddle (CR 702.171, task agent-20260929T014717Z-0f0a84be).
+// Saddle (CR 702.171).
 //
 // The printed `K:Saddle:<N>` line expands (engine/cards/kw_saddle.go) into one
 // AB$ AlterAttribute ability whose cost is the same tap-any-number group
@@ -68,9 +68,7 @@ func saddleElection(t *testing.T, e *Engine, id state.ObjID, minSum int) *decisi
 // TestSaddleVenomsacLagacAttackTrigger drives the REAL corpus Saddle carrier
 // end to end. Venomsac Lagac is a 2/1 Deathtouch Mount with `K:Saddle:2` and
 // "Whenever this creature attacks while saddled, it gets +0/+3 until end of
-// turn." Before this task the printed keyword minted no ability at all
-// (kw:Saddle unsupported), so it could never be saddled and the attack
-// trigger could never fire. This exercises the expander, the designation
+// turn." This exercises the expander, the designation
 // fold, the IsSaddled predicate and the attack trigger in one path.
 func TestSaddleVenomsacLagacAttackTrigger(t *testing.T) {
 	t.Parallel()

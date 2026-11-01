@@ -11,9 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Thing pins `DB$ MultiplyCounter` end to end on the original report's
-// corpus carrier (agent-20260918T232250Z-d339a2a3). The registration itself
-// landed on main in 9ecaecec; Lily Bowen's pin (engine/rules/multiply_counter_test.go)
+// The Thing pins `DB$ MultiplyCounter` end to end on a real corpus carrier.
+// Lily Bowen's pin (engine/rules/multiply_counter_test.go)
 // covers the named-kind `CounterType$ P1P1 | Defined$ Self` shape. The Thing
 // exercises the two shapes Lily does not:
 //

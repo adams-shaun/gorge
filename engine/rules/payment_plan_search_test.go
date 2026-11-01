@@ -180,7 +180,7 @@ func srchDuals(plan *decision.PaymentPlan, duals map[state.ObjID]bool) int {
 	return n
 }
 
-// Done-means 1 (research probe P10, spec 5's PP-26 boards): basics plus as
+// Basics plus as
 // many typed duals, the duals seated FIRST so battlefield order favours them.
 // Enough Islands exist every time, so the rank-best plan taps no dual; the
 // old walk hit the node limit and tapped 1, 3 and 4 duals.

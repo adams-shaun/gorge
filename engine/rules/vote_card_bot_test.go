@@ -1,14 +1,13 @@
 package rules
 
-// vote_card1 (round 2): the card-ballot bot vote must reach the ballot
-// facts in a REAL match. Round 1 gave botpolicy.Decide a vote_card arm that
-// votes for the highest-worth offered permanent, but both Board adapters
-// (botpolicy.BoardFromGameInto, seat's boardFromView) filled b.Cards from
-// the deciding seat's own zones alone — a Council's Judgment ballot offers
-// only permanents the CASTER does not control, so every entry read as a
-// zero Card and the strict `>` comparison always retained option 0: the
-// bot voted the ballot's first entry in every real match while the round-1
-// unit test injected the facts by hand and hid exactly that. The adapter
+// The card-ballot bot vote must reach the ballot facts in a REAL match.
+// botpolicy.Decide's vote_card arm votes for the highest-worth offered
+// permanent, so both Board adapters (botpolicy.BoardFromGameInto, seat's
+// boardFromView) must fill b.Cards beyond the deciding seat's own zones. A
+// Council's Judgment ballot offers only permanents the CASTER does not
+// control, so otherwise every entry reads as a zero Card and the strict `>`
+// comparison retains option 0, the ballot's first entry, in every real match.
+// A unit test injecting the facts by hand hides exactly that. The adapter
 // widening is under test in engine/seat/integration_test.go's agreement pins; this
 // file pins the behaviour end to end on the real corpus card, answered
 // through the production bot path (testBot.answer = botpolicy.Decide over

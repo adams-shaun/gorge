@@ -20,10 +20,8 @@ import (
 //
 // This is the `applyLibrarySearch` half of the AGENTS.md row that named
 // `GainControl$`, `ExileFaceDown$` and `Imprint$` together. The
-// `ExileFaceDown$` half was already honoured by the shared
-// applyFaceDownMarker call on the library-origin mover (commit 8425e563 added
-// it to applyLibrarySearch, 387fbeec folded it into the shared helper), but
-// no test drove it through this mover -- facedown_changezone_test.go covers
+// `ExileFaceDown$` half is honoured by the shared applyFaceDownMarker call on
+// the library-origin mover -- facedown_changezone_test.go covers
 // the bare FaceDown$ battlefield-entry spelling and foretell_adjacent_test.go
 // the hand/stack routes. This test pins the library-search carrier end to end
 // against a real compiled corpus card, so a future change that drops the

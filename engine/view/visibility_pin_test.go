@@ -1,11 +1,8 @@
 package view
 
-// Task c7: pin what each visibility reveals. All the invariants below are
-// individually verified live against a running server (the brief), but almost
-// none of them were pinned by a test -- the single pre-existing zone test
-// projected for viewer 0 and then inspected player 0's OWN zones, so it would
-// still pass if an opponent's graveyard were redacted to empty. This file is
-// the missing pin.
+// Pin what each visibility reveals. A zone test that projects for viewer 0 and
+// then inspects player 0's OWN zones would still pass if an opponent's
+// graveyard were redacted to empty, so these pins read other seats' zones.
 //
 // The board is built so that EVERY player has a non-empty hand, graveyard,
 // exile and library with DIFFERENT counts per player (per zone), so no
@@ -248,8 +245,7 @@ func TestOmniscientRevealsEveryHandAndPoolNeverTheLibrary(t *testing.T) {
 // The one deliberate exception is a real seat's OWN library in Seat mode:
 // `own_library_list` (reward-loop spec §6) exposes the viewer's own library as
 // an UNORDERED []CardView, gated on "is this the viewer's own seat" exactly
-// like Hand (CR 400.2). That is an amendment to D12's "library order is
-// hidden (count only)": the ORDER stays hidden (view.unorderedLibrary
+// like Hand (CR 400.2). The ORDER stays hidden (view.unorderedLibrary
 // canonicalises it by name then object id, so the emitted order is a pure
 // function of the CONTENTS), and every spectator mode -- Public and
 // Omniscient -- still list no library at all. The secret order is asserted

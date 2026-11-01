@@ -299,7 +299,7 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// offers seats through its bare Player alternative (the unhandled
 	// NotDefinedParentTarget clause contributes nothing), so it is classified
 	// by behaviour, not by its first alternative.
-	// Player.!EnchantedBy offers seats since fuzz-cov3's after-the-dot
+	// Player.!EnchantedBy offers seats through the after-the-dot
 	// negation (effects' matchesPlayerSingleSpec): no seat is enchanted
 	// here, so every seat qualifies. Player.!CardOwner offers for the same
 	// after-the-dot reason once a source object is bound -- this census

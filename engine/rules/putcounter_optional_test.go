@@ -8,7 +8,7 @@
 // chain is owned by Resolve, never skipped by a decline -- the oracle texts
 // agree; the chain-skip mechanism is the DIFFERENT UnlessCost$ +
 // UnlessResolveSubs$ pair none of these lines carry), and the no-host
-// fallback takes the deterministic decline (R-9) with option 0 = "yes" so
+// fallback takes the deterministic decline with option 0 = "yes" so
 // the bot clamp keeps bot games byte-identical to the silent always-put.
 //
 // These are the engine-side end-to-end pins on REAL corpus cards, driven
@@ -106,8 +106,7 @@ func talusPaladinGame(t *testing.T, seed uint64) (*Engine /*cfg*/, Config, state
 
 // TestZimonesHypothesisMayPutElectionWrapsThePick: the bare-Choices$ spell
 // carrier asks the ELECTION FIRST (accept -> the recipient pick ask; decline
-// -> neither), now that the bare-Choices$ pick machinery (task vow1) is
-// merged. The chained DBGenericChoice runs on BOTH paths (the chain is owned
+// -> neither). The chained DBGenericChoice runs on BOTH paths (the chain is owned
 // by Resolve): api:GenericChoice is a registered primitive since it was
 // routed to effCharm (engine/effects/misc.go, pinned in
 // engine/rules/generic_choice_test.go), so after either answer the chain poses the

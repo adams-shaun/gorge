@@ -1,11 +1,11 @@
 package rules
 
-// vote_card_self1 (round 3): a card ballot's bot vote must not exile the
+// A card ballot's bot vote must not exile the
 // VOTER's own permanent when a foreign one is offered. Council's Judgment's
 // VoteCard$ excludes only the CASTER's permanents ("a nonland permanent you
 // don't control"), so at 3+ seats every other seat's permanents — including
-// the voter's OWN — are on the ballot. The round-2 policy ranked every
-// offered option by worth and so had a voter pick its own highest-worth
+// the voter's OWN — are on the ballot. A policy ranking every
+// offered option by worth has a voter pick its own highest-worth
 // permanent over an opponent's lower-worth one; the option carried no
 // controller, so the policy could not tell them apart. `askCardVote` now
 // stamps each option's subject controller on Option.Player (public under CR
@@ -73,7 +73,7 @@ func voteThreeSeatEngine(t *testing.T, reg *cards.Registry, hand0, board1, board
 // TestCouncilsJudgmentBotDoesNotVoteItsOwnPermanent: seat 1 owns the
 // highest-worth permanent on the ballot (Ancient Brontodon, 9 power); seat 2
 // owns a lower-worth one (Grizzly Bears, 2 power). Voter 1's own Brontodon
-// and seat 2's Bear are BOTH on the ballot. The round-2 policy would exile
+// and seat 2's Bear are BOTH on the ballot. A policy ranking by worth would exile
 // seat 1's own Brontodon (the global highest); the fixed policy votes the
 // foreign Bear, and the caster (seat 0) and seat 2 — whose own Bear is the
 // lower one — still vote the best FOREIGN permanent, the Brontodon.
@@ -198,7 +198,7 @@ func TestCouncilsJudgmentBotDoesNotVoteItsOwnPermanent(t *testing.T) {
 		}
 	}
 	// The tally: Brontodon 2 (seats 0 and 2), Bear 1 (seat 1), so exile hits
-	// the Brontodon — the same permanent the round-2 unanimous vote exiled,
+	// the Brontodon — the same permanent a unanimous worth vote exiles,
 	// which is why this defect is observable in the VOTES, not the outcome.
 	if o := e.G.Obj(brontodon); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("the brontodon = %+v, want exile (2 of 3 votes)", o)

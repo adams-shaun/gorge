@@ -169,7 +169,7 @@ func TestTriggerDeliriumValueFailsClosed(t *testing.T) {
 // named deck card end to end: Winter, Cynical Opportunist's Delirium end-step
 // trigger is on the stack only once the controller's graveyard holds four
 // distinct core card types. With four cards but only three distinct types it
-// must not queue at all (the over-fire direction the ticket closes); a fresh
+// must not queue at all (the over-fire direction); a fresh
 // board whose graveyard holds four distinct types queues it.
 func TestWinterDeliriumEndStepTriggerGatesOnGraveyardTypes(t *testing.T) {
 	t.Parallel()

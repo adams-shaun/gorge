@@ -47,7 +47,7 @@ func TestTargetsForEachPlayerUsesDecisionGroups(t *testing.T) {
 
 // TestHavocEaterGoadsOneCreaturePerOpponentAndCountsThePower pins the
 // TargetsForEachPlayer$ target shape on Havoc Eater's real corpus card
-// (task pfpe1): its ETB trigger's DB$ Goad carries TargetMin$ 0,
+// : its ETB trigger's DB$ Goad carries TargetMin$ 0,
 // TargetMax$ X (SVar:X:PlayerCountOpponents$Amount) and
 // TargetsForEachPlayer$ True — the ask is over the OPPONENTS' creatures with
 // at most one per controller, the maximum is the OPPONENT COUNT (a dynamic
@@ -245,11 +245,10 @@ func targetCounterN(o *state.Object, kind string) int {
 // Tolarian Contempt writes its end-step bound INLINE --
 // TargetMax$ PlayerCountOpponents$Amount, no SVar name and no Count$ prefix
 // -- where Havoc Eater reaches the same body through
-// SVar:X:PlayerCountOpponents$Amount behind TargetMax$ X. Before the fix
-// NumResolved answered the bare inline form (0, false), the bound degraded
-// to the default 1, and "for each opponent, choose up to one target creature
-// they control" collapsed to a single target -- the exact symptom the ticket
-// was filed for, surviving on one of the three dynamic-bound carriers.
+// SVar:X:PlayerCountOpponents$Amount behind TargetMax$ X. If NumResolved cannot
+// answer the bare inline form, the bound degrades to the default 1, and "for
+// each opponent, choose up to one target creature they control" collapses to a
+// single target.
 func TestTolarianContemptBareInlineBoundAsksOnePerOpponent(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

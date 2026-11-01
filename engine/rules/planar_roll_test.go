@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The planar die (CR 901.3, task rollplanar1) pinned end to end on the REAL
+// The planar die (CR 901.3) pinned end to end on the REAL
 // corpus cards: Fractured Powerstone's activated roll and Ichor Elixir's
 // roll-plus-one-ignore-one replacement. These are the only two carriers in
 // the corpus (measured with /usr/bin/grep over .cards/cardsfolder: 1 AB$

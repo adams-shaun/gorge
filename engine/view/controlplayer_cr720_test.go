@@ -1,7 +1,7 @@
 // This file is package view_test (like visibility_test.go), so it can drive a
-// real game through heuristic.Bot's playSome helper. It is the CR 720.4 projection
-// half of the control ticket: a player controlling another seat must be shown
-// that seat's hidden information, keyed on state.Game.ControlledBy.
+// real game through heuristic.Bot's playSome helper. It is the CR 720.4
+// projection half of player control: a player controlling another seat must be
+// shown that seat's hidden information, keyed on state.Game.ControlledBy.
 package view_test
 
 import (

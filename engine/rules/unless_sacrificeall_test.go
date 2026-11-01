@@ -60,8 +60,8 @@ func assertNoReask(t *testing.T, e *Engine) {
 	}
 }
 
-// TestFlashUnlessDeclineSacrificesOnce is the cardfuzz batch1 livelock
-// (lines 2/21/4): SacrificeAll's body posed its OWN unless ask after the
+// TestFlashUnlessDeclineSacrificesOnce is a cardfuzz livelock: SacrificeAll's
+// body posed its OWN unless ask after the
 // shared gate (effects.unlessProceed) had already asked, consumed and
 // cleared the answer, so every answered re-entry asked again forever. A
 // decline must sacrifice the creature and end the resolution.

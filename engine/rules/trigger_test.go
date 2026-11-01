@@ -619,7 +619,7 @@ Oracle:x
 	}
 }
 
-// --- Fix round 1: Findings 1-4. These specifically verify the effect of a
+// --- These specifically verify the effect of a
 // resolved trigger lands on the *correct* object -- Defined$ You/Player (as
 // every test above uses) read c.Controller and are immune to both
 // Ctx.Source and Ctx.Remembered, which is exactly why the

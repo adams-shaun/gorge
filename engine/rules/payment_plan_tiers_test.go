@@ -53,8 +53,7 @@ func TestPaymentPlanTiers(t *testing.T) {
 		// Chrome Mox's production is AB$ ManaReflected (a reflected-colour
 		// read of the imprinted card). The reflected shape admits the
 		// Defined.Imprinted selector (no payment step can shrink an imprint),
-		// so it now classifies as a normal tap-only source.
-		// (agent-20261013T014220Z-46d44d41)
+		// so it classifies as a normal tap-only source.
 		{"Chrome Mox", pay.TierNormal, "", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
 		{"Ashnod's Altar", pay.TierDeferred, "source:last_resort", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
 		{"Cavern of Souls", pay.TierDeferred, "source:special_production", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
@@ -382,10 +381,9 @@ func TestPaymentPlanTiersFPTriggersWhenSpent(t *testing.T) {
 	}
 }
 
-// TestPaymentPlanTiersMirrorTombFixture is the mirror audit's authored fixture
-// (commit 0da6e8e59): a Tomb-shaped IR card whose ability carries SubAbility$
-// DBHurt next to two Swamps. The witness used to select the Tomb (fewest
-// sources); now it uses the Swamps.
+// TestPaymentPlanTiersMirrorTombFixture is the mirror audit's authored
+// fixture: a Tomb-shaped IR card whose ability carries SubAbility$ DBHurt next
+// to two Swamps. The witness uses the Swamps, not the Tomb (fewest sources).
 func TestPaymentPlanTiersMirrorTombFixture(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9845, "Name:Two Generic Test\nManaCost:2\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")

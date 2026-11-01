@@ -9,14 +9,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The four token-replacement stand-ins task tokrepl1 closes:
+// Four token-replacement stand-ins closed:
 //   (a) an Optional$ True R: line now poses its apply/decline election
 //       instead of silently declining (Flitwing Lyev, Detective);
 //   (b) Type$ ReplaceController now rewrites the created token's controller
 //       (an authored printed carrier; the corpus's only carrier, Crafty
 //       Cutpurse, delivers its replacement through a DB$ Effect whose
-//       CreateToken body engine/effects/misc.go does not yet register live -- see
-//       the report's Issues);
+//       CreateToken body engine/effects/misc.go does not yet register live);
 //   (c) an SVar-backed Amount$ resolves through the shared numeric grammar
 //       instead of the loud Note;
 //   (d) effToken's per-token riders now land on EVERY mint a CreateToken

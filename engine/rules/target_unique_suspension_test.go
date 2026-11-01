@@ -2,11 +2,10 @@ package rules
 
 // The TargetUnique$ accumulator ("every target this resolution chooses must be
 // different", CR 601.2c) must ride EVERY suspension, not only the shared
-// target pre-ask. These carriers put an intervening ask of a DIFFERENT kind --
-// the row names a dig/scry/arrange ask -- between two TargetUnique$ riders:
-// the resumed Ctx rebuilt from the pending ask's ride (and, before that
-// ticket, an ask that did not stamp that ride) dropped the accumulator, so
-// the later rider re-offered the earlier rider's pick.
+// target pre-ask. These carriers put an intervening ask of a DIFFERENT kind (a
+// dig/scry/arrange ask) between two TargetUnique$ riders:
+// a resumed Ctx rebuilt from the pending ask's ride must keep the accumulator,
+// or the later rider re-offers the earlier rider's pick.
 //
 // The carriers are TRIGGERED abilities whose two rider links are now announced
 // at the trigger's placement (CR 603.3d, KTarget/trig_sub) -- the second rider
@@ -150,7 +149,7 @@ func TestTargetUniqueSurvivesADifferentAskKindBetweenRiders(t *testing.T) {
 }
 
 // scryBetweenRidersScript is the same shape with a Scry (the "arrange" ask
-// kind the row names) between the riders, so the class is covered for a
+// kind) between the riders, so the class is covered for a
 // second ask kind than Dig.
 func scryBetweenRidersScript() string {
 	return "Name:Scry Between Riders\nManaCost:1\nTypes:Creature Bear\nPT:1/1\n" +

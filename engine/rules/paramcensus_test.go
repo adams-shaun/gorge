@@ -199,8 +199,8 @@ var baseBuckets = map[string]bucket{
 	"ma.ability": bSA,
 	// rider is payment_plan.go's resolved SubAbility$ rider (the
 	// paymentPlanDamageRider / paymentPlanRiderHasTarget /
-	// paymentPlanParadiseRider classifier helpers of ticket
-	// aph-producer-tiers resolve it with cards.ResolveSVar and inspect its
+	// paymentPlanParadiseRider classifier helpers resolve it with
+	// cards.ResolveSVar and inspect its
 	// shape): a *cards.SA like the ma it was reached from, read for the
 	// DealDamage$ You / Pump$ Self rider shapes the tier classifier
 	// recognises and for the ValidTgts$/target keys that defer the source.
@@ -1040,7 +1040,7 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 				// charsBoard (engine/rules/chars_board.go): the same adapter edge.
 				callee = "charsBoard." + fun.Sel.Name
 			} else if id.Name == "pay" && pkg == "rules" && s.filePkg == "rules" {
-				// rules -> engine/rules/pay (W5 E7): the payment layer's files are
+				// rules -> engine/rules/pay: the payment layer's files are
 				// scanned into the rules namespace under their own function
 				// names, so a moved planner probe or cost-part walk stays an
 				// attribution edge from the rules path that calls it.
@@ -1058,8 +1058,8 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 				// it -- the same shape as the trigmatch/pay/combat/chars cases.
 				callee = fun.Sel.Name
 			} else if id.Name == "params" && (pkg == "effects" || pkg == "rules") {
-				// engine/effects/params, the leaf compiled-parameter package (W5
-				// E7): its files are scanned into the effects namespace
+				// engine/effects/params, the leaf compiled-parameter package: its files
+				// are scanned into the effects namespace
 				// (sourceFilesUnder walks ../effects recursively), so an
 				// effects call into it is a local callee. A rules-side
 				// (engine/rules/pay) call is cross-package, like effects.X.
@@ -1742,11 +1742,11 @@ var stringMapParams = map[string]string{
 	// engine/effects/misc.go replacementLinePrevents: params is the map
 	// parseReplacementLine built from one SVar replacement body -- the
 	// bodyless Prevent$ True DamageDone recognition (Selfless Squire's
-	// RPrevent, task dponce1) reads the same SVar body shape, not a card
+	// RPrevent) reads the same SVar body shape, not a card
 	// Params map.
 	"effects:replacementLinePrevents:params": "keys of a parseReplacementLine-built replacement line (an SVar body), not a card Params map",
-	// engine/effects/misc.go redirectExileBody / selfExileIdiom (cardfuzz batch5
-	// line 7): body and sub are replacementBodyParams-built maps of an
+	// engine/effects/misc.go redirectExileBody / selfExileIdiom: body and sub
+	// are replacementBodyParams-built maps of an
 	// Effect's ReplaceWith$ SVar body and its SubAbility$ line, svars the
 	// face's SVar table the SubAbility$ name is looked up in -- recognitions
 	// of the Effect-created "exile it instead" redirect, not card Params maps.
@@ -1978,7 +1978,7 @@ var handEffectsRoots = []string{
 // one that no longer reads SA params); a NEW api-specialised path must be
 // added here or its reads over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
-	// The mana-ability chain. Since W4 step 3 a mana ability's production
+	// The mana-ability chain. A mana ability's production
 	// parameters (Produced$, Amount$, RestrictValid$, the riders) are read
 	// once, by effects.compileMana, reached through effMana; the entries below
 	// are the remaining mana-only rules functions that still read the
@@ -2039,8 +2039,8 @@ var apiSpecificRulesSA = map[string][]string{
 	// for the delayed-trigger shape) -- left in the generic union they
 	// would mask every other API's unread Destination$ (measured:
 	// api:Counter on Force of Will and Remand). applyOpeningEffect's own
-	// reads (the counter rider's CounterNum$/CounterType$) moved onto
-	// effects.PutCounterOf's compiled struct (W4 step 3).
+	// reads (the counter rider's CounterNum$/CounterType$) live on
+	// effects.PutCounterOf's compiled struct.
 	"Engine.registerOpeningEffectTriggers": {"ChangeZone", "PutCounter", "Effect"},
 	"Engine.handleOpening":                 {"ChangeZone", "PutCounter", "Effect"},
 	// The token-creation replacement dispatch: these read the ReplaceWith$
@@ -2067,10 +2067,10 @@ var apiSpecificRulesSA = map[string][]string{
 	"tokenReplacementsCommute": {"ReplaceToken"},
 	"tokenReplApplies":         {"ReplaceToken"},
 	// The body-defined entry-counter fold (engine/rules/entry_counters.go,
-	// entryBodyAbsorbable) carries no read of its own: W4 step 3 moved its
-	// ETB$/CounterNum$/CounterType$ and withheld-modifier reads onto
-	// effects.PutCounterOf's compiled struct, and W4 step 4 its Defined$
-	// Self read onto effects.DefinedOf's compiled Ref (the generic
+	// entryBodyAbsorbable) carries no read of its own: its
+	// ETB$/CounterNum$/CounterType$ and withheld-modifier reads live on
+	// effects.PutCounterOf's compiled struct, and its Defined$ Self read on
+	// effects.DefinedOf's compiled Ref (the generic
 	// Defined-reference tier every API reads).
 
 	// The DB$ ReplaceSplitDamage redirect body (engine/rules/replacement_splitdamage.go)
@@ -3549,12 +3549,11 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // 5. The ratchet and its probes
 // ---------------------------------------------------------------------------
 
-// knownUnsupportedParams is the PARAMETER ratchet (task
-// inbox-engine-ratchet-parameter-census), checked in both directions by
+// knownUnsupportedParams is the PARAMETER ratchet, checked in both directions by
 // TestEveryRepoDeckParamsAreRead exactly like knownUnsupported. It lives one
 // file per card, testdata/paramcensus/<slug>.json, {"card": "<Card>",
-// "labels": [...]} (spec 2026-10-03-rules-engine-layering-design.md W2): a
-// shared table made every ticket that retired a label conflict with every
+// "labels": [...]}: a
+// shared table would make every change that retires a label conflict with every
 // other. Why a label left goes in the commit message, never a file. Label
 // grammar:
 //
@@ -3872,7 +3871,7 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 }
 
 // TestParamCensusIgnoresValidCardsDesc pins the ValidCardsDesc$
-// classification (issue agent-20260920T073130Z-724f9676). ValidCardsDesc$
+// classification. ValidCardsDesc$
 // is the UI description of a ValidCards$ spec -- Forge reads it only to
 // render text (forge-game/src/main/java/forge/game/card/Card.java), the same
 // consumer as the already-ignored ValidDescription -- so it is a key-global
@@ -3913,8 +3912,8 @@ func TestParamCensusIgnoresValidCardsDesc(t *testing.T) {
 	}
 }
 
-// TestParamCensusPinsTheImportReviewExamples pins the examples the task
-// brief was written from: Daze's Return<1/Island> alternative cost (ParseCost
+// TestParamCensusPinsTheImportReviewExamples pins the import-review
+// examples: Daze's Return<1/Island> alternative cost (ParseCost
 // silently substituting generic mana), Chandra's SubCounter<X/LOYALTY>,
 // Relic of Progenitus's bare Exile<1/Card.YouOwn> and Vexing Devil's
 // DamageYou<1> -- all unmodelled heads when the pin was written. The cost
@@ -4116,9 +4115,9 @@ func censusProbeCaller2(sa *cards.SA) string {
 // Charm mode paths' Choices$/CharmNum$ to api:Charm -- so a generic rules
 // path never masks another API's genuinely unread parameter.
 //
-// api:Sacrifice.Amount is no longer in the "should stay unread" set: the
-// replacement-damage-counter ticket's effSacrifice (engine/effects/zone.go) reads
-// Amount$ for real now -- Dralnu, Dread Lord of the Accursed's DB$
+// api:Sacrifice.Amount is not in the "should stay unread" set:
+// effSacrifice (engine/effects/zone.go) reads Amount$ for
+// Dralnu, Dread Lord of the Accursed's DB$
 // ReplaceDamage-driven "sacrifice that many permanents" redirect, gated on
 // Ctx.ReplacementAmount > 0. That is effSacrifice's OWN registered read, not
 // generic machinery bleeding across APIs (the class apiSpecificRulesSA
@@ -4294,7 +4293,7 @@ func TestParamCensusCatchesFaceOwnedCosts(t *testing.T) {
 	t.Parallel()
 	// Precondition: the ManaCost fixture token is genuinely unmodelled, so its
 	// cost:Mana label can only come from the face-owned walk. If a future
-	// ticket models Mana<...>, re-point the fixture (Waterbend<X> held this
+	// change models Mana<...>, re-point the fixture (Waterbend<X> held this
 	// slot until ParseCost learned the Waterbend head) rather than
 	// deleting the label.
 	if got := ParseCost("Mana<1>").Unknown; !sameSet(got, []string{"Mana"}) {
@@ -4367,7 +4366,7 @@ func TestParamCensusCatchesSVarBodyGaps(t *testing.T) {
 	}
 	// The body's cost token is genuinely unmodelled (CR 701.67a's Waterbend<X>
 	// held this slot until ParseCost learned the Waterbend head); re-point it
-	// if a future ticket models Mana<...>.
+	// if a future change models Mana<...>.
 	if got := ParseCost("Mana<1>").Unknown; !sameSet(got, []string{"Mana"}) {
 		t.Fatalf("fixture token Mana<1> now parses to Unknown %v -- re-point this fixture at a genuinely unmodelled cost token", got)
 	}
@@ -4466,7 +4465,7 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"ExiledMoveToGrave<1/Card.OppOwn/card an opponent owns>", nil},
 		{"ExiledMoveToGrave<2/Card.OppOwn>", nil},
 		{"ExiledMoveToGrave<99999999999999999999/Creature>", []string{"ExiledMoveToGrave"}},
-		// XMin<N> (task cost-xmin1) is the announced-X LOWER BOUND, "X can't
+		// XMin<N> is the announced-X LOWER BOUND, "X can't
 		// be 0": modelled as Cost.XMin with no phantom generic pip and no
 		// Unknown entry, for both corpus values (XMin1 and XMin4).
 		{"XMin1 X", nil},

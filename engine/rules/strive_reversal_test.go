@@ -1,7 +1,7 @@
 package rules
 
-// Strive reversal (cardfuzz batch2 lines 19/22/30/41/45, batch3 1/6/7/10/15/
-// 19/22): a bot fired a Strive spell (Phalanx Formation, Setessan Tactics,
+// Strive reversal (found by cardfuzz): a bot fired a Strive spell (Phalanx
+// Formation, Setessan Tactics,
 // Silence the Believers ...) at every legal creature, the extra-target
 // payments were unpayable, and the cast reversed (CR 733.1). The target
 // choice had already queued a "becomes the target of a spell" trigger

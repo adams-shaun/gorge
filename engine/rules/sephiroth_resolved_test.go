@@ -208,8 +208,8 @@ func TestSephirothResolvedTallyReplaysExactly(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSephirothResolvedTallyResetsAtTurnChange closes the round-1 review's
-// MINOR: the per-ability resolution tally is a per-turn fact, so TurnChange
+// TestSephirothResolvedTallyResetsAtTurnChange: the per-ability resolution
+// tally is a per-turn fact, so TurnChange
 // must clear it — asserted both directly (the map is gone at the boundary)
 // and behaviourally (three resolutions on the FRESH turn leave the face
 // front, where a carried-over count of 1 would have made the first of them

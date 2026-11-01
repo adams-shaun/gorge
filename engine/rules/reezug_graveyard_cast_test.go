@@ -8,9 +8,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Regressions for the cardfuzz batch12 livelock (all real corpus cards).
+// Regressions for a livelock cardfuzz found (all real corpus cards).
 
-// TestReezugGraveyardCastDoesNotFollowTheCardBack (cardfuzz batch12 line 1):
+// TestReezugGraveyardCastDoesNotFollowTheCardBack:
 // Reezug, the Bonecobbler's "{T}: ... You may cast that card this turn"
 // remembers the targeted graveyard card in an Effect whose may-play grant
 // carries no ForgetOnMoved$. The remembered ObjID is stable across zones, so

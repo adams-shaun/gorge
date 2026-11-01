@@ -1,7 +1,7 @@
 package rules
 
 // trigger_blocks_attackerblocked_test.go pins Forge Mode$ AttackerBlocked's
-// ValidBlocker$ read (ticket agent-20261009T123507Z-34cad6da). The candidate
+// ValidBlocker$ read. The candidate
 // walk used to read only ValidCard$ against each attacker, so a
 // blocker-anchored line ("Whenever CARDNAME blocks a creature", Wall of
 // Frost) fired for every block declaration whoever blocked, an

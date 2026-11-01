@@ -44,12 +44,10 @@ func TestRevealChosenCostHeadsParse(t *testing.T) {
 		}
 	}
 	// Neither near-miss head is a designation reveal: neither may produce a
-	// RevealChosen part. RevealOrChoose<1/Dragon> (Dragon's Fire) is now
-	// modelled -- as an ORDINARY reveal cost, the either-or cost's reveal
-	// branch, priced with no generic substitution and no Unknown census entry
-	// (agent-20260925T025423Z-461c879a, which re-pins this loop: the original
-	// one-generic-fallback pin here predated that grammar and contradicted
-	// Monstrous Emergence's brief-mandated reveal branch). The full pricing
+	// RevealChosen part. RevealOrChoose<1/Dragon> (Dragon's Fire) is
+	// modelled as an ORDINARY reveal cost, the either-or cost's reveal
+	// branch, priced with no generic substitution and no Unknown census entry.
+	// The full pricing
 	// pin is TestMonstrousEmergenceRevealOrChooseParsesAsARevealCost; here the
 	// assertion is only that the designation-reveal machinery stays out.
 	if c := ParseCost("RevealOrChoose<1/Dragon>"); len(c.RevealChosen) != 0 || c.Generic != 0 || len(c.Unknown) != 0 {

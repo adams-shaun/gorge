@@ -1,6 +1,6 @@
 package rules
 
-// agent-20261013T014220Z-46d44d41 (Free:Tier slice 2): the planner now plans
+// The planner plans
 // AB$ ManaReflected sources that reflect the payer's OWN permanents
 // (Reflecting Pool, Gond Gate), read colours ("Is": Mox Amber), and the
 // Defined.* sets no step can shrink (Chrome Mox's imprint). An own reflected

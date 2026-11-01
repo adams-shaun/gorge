@@ -410,7 +410,7 @@ func TestRemoveFromCombatGustcloakSaviorRemovesItsOwnAttacker(t *testing.T) {
 
 // TestRemoveFromCombatIllusionistsGambitRemembersAndUntaps resolves the real
 // corpus Illusionist's Gambit's compiled SA directly (its ActivationPhases$
-// cast gate is a separate ticket): `Defined$ Valid Creature.attacking`
+// cast gate is not under test): `Defined$ Valid Creature.attacking`
 // removes EVERY attacking creature, `RememberRemovedFromCombat$ True` feeds
 // both halves of the remembered state, and the chained
 // `DB$ Untap | Defined$ Remembered` untaps exactly that set.

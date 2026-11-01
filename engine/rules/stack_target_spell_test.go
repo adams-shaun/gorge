@@ -444,7 +444,7 @@ func TestOriginGraveyardInstantSorceryTargetsGraveyard(t *testing.T) {
 // every shape the fix deliberately does NOT establish (Any/All, unknown or
 // multi-zone origins, a player-targeted spec, a non-ChangeZone API) keeps
 // the existing battlefield default -- including the player-targeted
-// ChangeZone route this task must not turn into an object-target decision.
+// ChangeZone route this rule must not turn into an object-target decision.
 func TestTargetZonesChangeZoneOriginTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

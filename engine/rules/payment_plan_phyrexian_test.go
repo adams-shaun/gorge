@@ -8,9 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// fb-20261006T065812Z-2782e8eb: a Phyrexian-cost cast (Dismember) got no
-// PaymentAction because PlanCostDetail declined "cost:phyrexian", so the web
-// had no CAST affordance. The witness binds only the mana half; the pips are
+// A Phyrexian-cost cast (Dismember) gets a PaymentAction, so the web has a CAST
+// affordance for it. The witness binds only the mana half; the pips are
 // answered afterwards through the CR 601.2b pip ask.
 
 const phyrexianDismemberSrc = "Name:Dismember\nManaCost:1 BP BP\nTypes:Instant\n" +

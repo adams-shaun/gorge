@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// endStepRememberedNumberProbe is an inline (never corpus) card for the
-// consolidated acceptance clause of task rememberedcapture1: a trigger body
+// endStepRememberedNumberProbe is an inline (never corpus) card: a trigger body
 // reading Count$RememberedNumber under a ConditionCheckSVar$ gate must not
 // count the trigger's own fire-time capture. Shaped after
 // endStepCaptureProbe, but the gating SVar is Count$RememberedNumber

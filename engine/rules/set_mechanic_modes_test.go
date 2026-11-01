@@ -1,6 +1,6 @@
 package rules
 
-// The set-mechanic / keyword-action trigger modes (task triage-478c51d1).
+// The set-mechanic / keyword-action trigger modes.
 //
 // Nine Forge `T:Mode$` trigger modes that Standard cards print had no entry
 // in the trigger registry, so their abilities silently never fired. This file

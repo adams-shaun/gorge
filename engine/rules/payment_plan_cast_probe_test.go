@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPaymentPlanWithholdsCastWhoseTargetsLeaveWithTheCard pins the round-9
-// cardfuzz explore finding (seed 9606575608234985872, planrev "cast aborted:
+// TestPaymentPlanWithholdsCastWhoseTargetsLeaveWithTheCard pins a
+// cardfuzz finding (seed 9606575608234985872, planrev "cast aborted:
 // no legal target (plan-only) {Guiding Bolt}"): Empyrial Armor ("+1/+1 for
 // each card in your hand") on an opponent's creature lifted it to the power
 // Guiding Bolt's "target creature with power 4 or greater" needs only while

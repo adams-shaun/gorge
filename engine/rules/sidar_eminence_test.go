@@ -12,7 +12,7 @@ import (
 )
 
 // This file pins the command-zone object traversal defect behind Sidar
-// Jabari of Zhalfir's Eminence (fb-20260927T160557Z-b958ef31): the ordinary
+// Jabari of Zhalfir's Eminence: the ordinary
 // printed-trigger walk used to stop at ZStack, and ZCommand is appended
 // AFTER ZStack (engine/state/ids.go), so a trigger declaring TriggerZones$ Command
 // was never scanned from the zone it functions in. The regression uses the

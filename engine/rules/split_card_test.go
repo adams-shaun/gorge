@@ -387,8 +387,8 @@ func TestNonFuseSplitOffersBothHalvesButNoFusedCast(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets is review round 2's
-// MAJOR 1 pin: the two halves' target stages record their own slices at
+// TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets pins this:
+// the two halves' target stages record their own slices at
 // payment (Engine.fuseTargets), so a fused cast whose halves' ValidTgts
 // specs OVERLAP resolves each half against exactly the target chosen for it.
 // On the real corpus card Turn // Burn (Turn `ValidTgts$ Creature`, Burn
@@ -489,8 +489,8 @@ func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSplitInstantHalfOfferedAtInstantTiming is review round 2's MAJOR 2
-// pin: the split offers stand above the front-face spellTimingOK gate, so a
+// TestSplitInstantHalfOfferedAtInstantTiming: the split offers stand above the
+// front-face spellTimingOK gate, so a
 // front-Sorcery / alternate-Instant split card offers its instant half at
 // instant timing (CR 709.4 -- each half's own timing; carriers
 // incubation_incongruity, discovery_dispersal, said_done, spring_mind). On

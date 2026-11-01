@@ -708,7 +708,7 @@ func TestPotentialActionsJitteThaliaCorpusScriptIsNotCastable(t *testing.T) {
 }
 
 // TestPotentialActionsMountDoomDamageAbility pins the engine half of
-// fb-20260923T033148Z-877b8f8f ("mount doom -- can only play tap for mana").
+// a player report ("mount doom -- can only play tap for mana").
 // Measured then: with Mount Doom untapped beside enough other mana, the
 // empty-pool priority window offered Mount Doom ONLY its mana activation (the
 // float-then-cast model). The window now also offers the damage ability as an

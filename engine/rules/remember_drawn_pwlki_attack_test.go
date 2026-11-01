@@ -1,6 +1,6 @@
 package rules
 
-// Corpus-backed engine proofs for the two readers this ticket fixed:
+// Corpus-backed engine proofs for two readers:
 //
 //   - engine/effects/cardflow.go effDraw's RememberDrawn$ read. The old read treated
 //     the parameter as a boolean True/False, so the corpus's other spelling

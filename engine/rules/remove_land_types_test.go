@@ -38,7 +38,7 @@ func landTypesEngine(t *testing.T, reg *cards.Registry, extras0, extras1 []*card
 	return e, cfg
 }
 
-// TestZhaoMoonSlayerStripsLandTypes pins the ticket's own Level-B row:
+// TestZhaoMoonSlayerStripsLandTypes pins the corpus row:
 // Zhao, the Moon Slayer's third static (AddType$ Mountain |
 // RemoveLandTypes$ True | IsPresent$ Card.Self+counters_GE1_CONQUEROR)
 // makes an opponent's nonbasic Dryad Arbor a Mountain AND strips its

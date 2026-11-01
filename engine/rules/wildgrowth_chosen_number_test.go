@@ -342,8 +342,8 @@ const wgBaubleSrc = "Name:Fixture Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n
 // TestVoidChooseNumberReadsTheLoggedChoice pins the OTHER side of the
 // Count$ChosenNumber verdict: on a non-effect shape (void's SP$ ChooseNumber
 // chain) the chosen number lives on the SOURCE object (engine/effects/choose.go's
-// logged Choose fold), never on Ctx. Before fuzz-cov3 the unbound head stayed
-// UNRESOLVED, so void's cmcEQX never matched and Void destroyed nothing
+// logged Choose fold), never on Ctx. An unbound head stays
+// UNRESOLVED, so void's cmcEQX never matches and Void destroys nothing
 // whatever number was chosen; the head now falls back to the source's own
 // recorded answer, so the comparison reads the number the player actually
 // chose -- never Ctx's meaningless zero (the first wildgrowth draft's bug,

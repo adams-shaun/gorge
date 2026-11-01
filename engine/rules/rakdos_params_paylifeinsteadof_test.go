@@ -168,12 +168,12 @@ func krrikWindowEngine(t *testing.T) (*Engine, state.ObjID, state.ObjID, state.O
 	return e, bolt.ID, bear.ID, swamp.ID
 }
 
-// TestKrrikGrantPosesManaWindowWhenSourceCanPay is the krrik-paylife ticket's
-// regression. Before the fix, manaWindowAsk's "the pool already pays" gate
-// read the SAME resolveMana the payment does, so K'rrik's PayLifeInsteadOf:B
-// grant made a {B} pip count as paid: with an empty pool and an untapped
-// Swamp the CR 601.2g window was skipped and the cast silently spent 2 life
-// with the Swamp still untapped. The window's gate now suspends the grant, so
+// TestKrrikGrantPosesManaWindowWhenSourceCanPay: manaWindowAsk's "the pool
+// already pays" gate must not read the SAME resolveMana the payment does.
+// K'rrik's PayLifeInsteadOf:B grant would make a {B} pip count as paid: with
+// an empty pool and an untapped Swamp the CR 601.2g window would be skipped
+// and the cast would silently spend 2 life with the Swamp still untapped. The
+// window's gate suspends the grant, so
 // the payer is offered the Swamp and may choose the mana; "done" still spends
 // the life through the ordinary payment.
 func TestKrrikGrantPosesManaWindowWhenSourceCanPay(t *testing.T) {

@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 2's dual-run tests for the zone movers' converted asks: the
+// Dual-run tests for the zone movers' converted asks: the
 // library search (pick, Optional$ confirmation, may-shuffle), the Defined$
 // library fetch's election, the hidden-hand walk (pick and confirmation,
 // one and several owners), the public-origin hidden pick (pick and

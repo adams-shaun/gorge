@@ -145,7 +145,7 @@ func TestPaymentPlanStatsSinkChangesNothing(t *testing.T) {
 	}
 }
 
-// Clone never carries the sink (spec §7), and planning on the clone never
+// Clone never carries the sink, and planning on the clone never
 // counts into the original's.
 func TestPaymentPlanStatsNotCloned(t *testing.T) {
 	t.Parallel()

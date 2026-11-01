@@ -11,9 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Tests for the TargetingPlayer$ Opponent controller-selection ask added by
-// agent-20260925T085158Z-c861188d. See the file-level comments for the full
-// rationale.
+// Tests for the TargetingPlayer$ Opponent controller-selection ask.
 
 // oppSelectBoard deals a `seats`-seat table (seat 0 is the controller) whose
 // deck opens with the named corpus carrier plus one Grizzly Bears and basics;

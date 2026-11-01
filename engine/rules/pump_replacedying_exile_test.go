@@ -11,7 +11,7 @@ import (
 // TestPumpReplaceDyingDefinedTargetedExiles pins Gnashing of Teeth's first
 // mode end to end: its -5/-5 makes the targeted bear lethal, and the
 // ReplaceDyingDefined$ Targeted rider exiles it instead of sending it to the
-// graveyard. Before 73c9cc2e5, Pump did not register that replacement.
+// graveyard.
 func TestPumpReplaceDyingDefinedTargetedExiles(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

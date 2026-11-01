@@ -16,7 +16,7 @@ package rules
 // body -- `PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
 // Zombie GE1` -- this build does not evaluate, so the trigger is suppressed
 // at EVERY step by triggerMatches' CR 603.4 gate. That condition is orthogonal
-// to the Phase/PhaseCount gate this ticket fixes: the first test measures the
+// to the Phase/PhaseCount gate: the first test measures the
 // gate directly on the real compiled trigger, and the second drops only the
 // unread condition param to show the whole trigger (Phase gate + ValidPlayer$
 // + zone gate) matching at the second main phase and nowhere else. Ninja

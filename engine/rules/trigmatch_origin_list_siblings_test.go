@@ -1,13 +1,12 @@
 package rules
 
-// Origin$ zone-set coverage for the two remaining single-word readers of the
-// parent ticket's class (agent-20260930T010244Z-9cd73a28):
+// Origin$ zone-set coverage for two more single-word readers:
 //
 //   - engine/rules/replacement_match.go replacementConditionMatches, case "Moved"
 //   - engine/rules/statics.go panharmoniconEchoes
 //
-// The parent (agent-20260930T005535Z-b621b37a) fixed the ChangesZone trigger
-// matcher to read Origin$ with effects.ParseZones. Both sites here read it
+// The ChangesZone trigger matcher reads Origin$ with effects.ParseZones. Both
+// sites here read it
 // with the single-word effects.ParseZone, which resolves a comma list like
 // "Hand,Graveyard" to state.ZGraveyard -- so a list would silently degrade to
 // graveyard-origin-only. Zero corpus carriers exist today, so this is a
