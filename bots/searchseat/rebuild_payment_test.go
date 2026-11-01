@@ -116,8 +116,8 @@ func TestRebuildFeedRecordsPaymentPlanAnswers(t *testing.T) {
 			// only for i < n): its frame key must exist. The slice itself may
 			// legitimately be empty -- this game's payment intents are
 			// priority passes carrying a plan and no choices -- so key
-			// presence is the assertion: pre-fix, RecordAnswer errored before
-			// anything was recorded.
+			// presence is the assertion: an erroring RecordAnswer records
+			// nothing.
 			last := -1
 			for k := range ans {
 				if k > last {

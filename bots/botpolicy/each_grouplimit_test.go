@@ -20,8 +20,8 @@ import (
 // TestBotFillHonoursPerGroupCapOnSearch runs the search arm's group-aware
 // fill: options [three of group "0", two of group "1"], Max 4, GroupLimit 2
 // ("EACH Forest & Plains", ChangeNum$ 2, 3 Forests and 2 Plains). The answer
-// takes the first two of EACH group and Validate accepts it; the pre-fix
-// blind fill ([0,1,2,3]) is rejected by the cap the engine enforces.
+// takes the first two of EACH group and Validate accepts it; a blind fill
+// ([0,1,2,3]) is rejected by the cap the engine enforces.
 func TestBotFillHonoursPerGroupCapOnSearch(t *testing.T) {
 	b := Board{Cards: TableOf(map[state.ObjID]Card{})}
 	d := decision.Decision{

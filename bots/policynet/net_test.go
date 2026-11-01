@@ -338,9 +338,9 @@ func tiedExample(rng *rand.Rand) (*Model, Example) {
 // TestValueTermSkipsTiedDecisions pins the anti-collapse contract at the loss
 // level: a decision whose labelled values are all tied contributes zero value
 // loss and zero gradient, so training it cannot drive option-discriminating
-// features toward zero. A raw-target value term (the pre-fix behaviour) gives
-// this example a nonzero loss and a nonzero output-bias gradient, which is
-// precisely the collapse the trainer fix removes.
+// features toward zero. A raw-target value term would give this example a
+// nonzero loss and a nonzero output-bias gradient, which is precisely the
+// collapse this guards against.
 func TestValueTermSkipsTiedDecisions(t *testing.T) {
 	rng := rand.New(rand.NewPCG(31, 31+1))
 	m, ex := tiedExample(rng)
@@ -510,10 +510,10 @@ func TestResidualIsAFixedBotPrior(t *testing.T) {
 
 // TestLossFiniteOnDivergedScores pins the numerical-stability contract: the
 // loss and its score gradient stay finite even when the forward pass hands
-// back ±Inf/NaN scores (a diverged run). The pre-fix loss fed the raw scores
-// to logSumExp, so an Inf made `LSE(labelled) − LSE(preferred)` compute
-// Inf − Inf = NaN, which then poisoned every weight; the score clamp plus the
-// max-subtracting log-sum-exp keep the whole term finite.
+// back ±Inf/NaN scores (a diverged run). Raw scores fed to logSumExp would
+// let an Inf make `LSE(labelled) − LSE(preferred)` compute Inf − Inf = NaN,
+// which then poisons every weight; the score clamp plus the max-subtracting
+// log-sum-exp keep the whole term finite.
 func TestLossFiniteOnDivergedScores(t *testing.T) {
 	ex := Example{Kind: "attackers", Margin: 0.3, TeacherChoice: 1, BotIndex: 0,
 		State: State{Dense: make([]float32, DenseWidth)}}

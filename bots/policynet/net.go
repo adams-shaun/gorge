@@ -55,9 +55,9 @@ const (
 //     per-example weight is RankWeight alone — NOT scaled by Margin, so a
 //     tiny-margin decision trains at full imitation strength. This is what
 //     the closest published analogue (LOCM PIMC distillation) trains.
-//   - LossHybrid — the pre-fix behaviour: value term + margin-weighted rank
+//   - LossHybrid — value term + margin-weighted rank
 //     term (RankWeight·Margin). LossConfig's zero Mode means hybrid, so
-//     every existing caller and test keeps today's geometry.
+//     every existing caller and test keeps this geometry.
 //   - LossValue — the value term only (the diagnosis arm: the collapse
 //     reproduced with the rank term removed).
 type LossMode string
@@ -81,9 +81,8 @@ const (
 )
 
 // ParseLossMode maps the trainer flag's spelling onto a LossMode. An empty
-// string is the LossConfig zero value and means hybrid (the pre-fix
-// default); anything else is an error so a typo'd flag cannot silently train
-// the wrong loss.
+// string is the LossConfig zero value and means hybrid; anything else is an
+// error so a typo'd flag cannot silently train the wrong loss.
 func ParseLossMode(s string) (LossMode, error) {
 	switch LossMode(s) {
 	case "":
@@ -240,16 +239,15 @@ func (m *Model) Value(st State) float32 {
 
 // LossConfig carries the loss weights and the mode. HuberDelta is the Huber
 // loss's transition point in value units (the teacher's candidate means live
-// in [0,1]); RankWeight scales the ranking term against the value term —
-// in hybrid mode through the per-example margin (RankWeight · Example.Margin,
-// a decision the teacher covered with a large margin pulls harder), in CE
-// mode directly (RankWeight per example, margin not applied). OverrideWeight
+// in [0,1]); RankWeight scales the ranking term against the value term — in
+// hybrid mode through the per-example margin (RankWeight · Example.Margin, a
+// decision the teacher covered with a large margin pulls harder), in CE mode
+// directly (RankWeight per example, margin not applied). OverrideWeight
 // multiplies every example whose label records a teacher OVERRIDE of the bot
 // (Example.TeacherChoice != Example.BotIndex): those are the decisions that
 // carry the information, while agreeing examples only teach "do what the bot
-// does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is
-// treated as 1. Mode selects the term mix (see LossMode); the zero value is
-// hybrid — the pre-fix geometry — so existing callers keep today's loss.
+// does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is treated
+// as 1. Mode selects the term mix (see LossMode); the zero value is hybrid.
 //
 // RankWeight is a TERM-MIX weight, not a step-size knob. In hybrid mode it
 // trades the rank term against the value term — two different gradient
@@ -299,7 +297,7 @@ type LossConfig struct {
 
 // modeFor resolves the loss mode for one example: the per-kind override when
 // present, else the config's global Mode (with the "" zero value meaning
-// hybrid, the pre-fix geometry).
+// hybrid).
 func (lc LossConfig) modeFor(ex Example) LossMode {
 	m := lc.Mode
 	if o, ok := lc.KindModes[ex.Kind]; ok {

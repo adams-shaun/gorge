@@ -19,9 +19,9 @@ import (
 
 // TestSearchBudgetArmStatedQualityDeclines: a stated-quality budget search
 // (Min 0 -- CR 701.23b's fail-to-find allowance) is answered with the empty
-// intent, the mirror of the stand-in's legitimate fail-to-find. The pre-fix
-// arm took the first offer regardless of MaxSum, diverging from the
-// stand-in it mirrors.
+// intent, the mirror of the stand-in's legitimate fail-to-find. Taking the
+// first offer regardless of MaxSum would diverge from the stand-in it
+// mirrors.
 func TestSearchBudgetArmStatedQualityDeclines(t *testing.T) {
 	b := Board{Cards: TableOf(map[state.ObjID]Card{})}
 	d := decision.Decision{

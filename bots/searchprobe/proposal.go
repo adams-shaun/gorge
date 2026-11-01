@@ -150,10 +150,11 @@ func (s *exclusionStore) merge(other *exclusionStore) {
 	}
 }
 
-// forEpoch returns the exclusions that apply when key's library is planned. The
-// slice is owned by the caller's plan cache (getWithExclusions copies it) and
-// must stay nil when nothing was excluded, so an unaffected game's constraint
-// problem -- and its weight -- is byte-identical to the pre-fix sampler.
+// forEpoch returns the exclusions that apply when key's library is planned.
+// The slice is owned by the caller's plan cache (getWithExclusions copies it)
+// and must stay nil when nothing was excluded, so an unaffected game's
+// constraint problem -- and its weight -- is byte-identical to one with no
+// exclusions.
 func (s *exclusionStore) forEpoch(player state.PlayerID, ordinal int) []exclusionConstraint {
 	if s == nil {
 		return nil

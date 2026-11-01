@@ -2,14 +2,14 @@ package heuristic
 
 // Test for autopay-bot-dead-counter-blocks-fallback: a payment plan the
 // policy will never take (C8's dead counter) must not suppress the manual
-// path. Before the fix, `paymentIntent` built `payable` from every offered
-// plan, so a window whose ONLY plan was a counter with no foreign spell
-// looked plannable: the private candidate carried that plan, chooseCast
-// refused it (C8), the pick fell through to pass, and the adapter returned a
-// manual pass -- hiding the mana activations the manual policy would have
-// spent tapping toward an unplanned instant. With the fix the dead counter's
-// plan is excluded from `payable`, leaving it empty, and the window falls
-// back to the manual policy as a window with no plans does.
+// path. Were `paymentIntent` to build `payable` from every offered plan, a
+// window whose ONLY plan was a counter with no foreign spell would look
+// plannable: the private candidate carried that plan, chooseCast refused it
+// (C8), the pick fell through to pass, and the adapter returned a manual pass
+// -- hiding the mana activations the manual policy would have spent tapping
+// toward an unplanned instant. With the fix the dead counter's plan is
+// excluded from `payable`, leaving it empty, and the window falls back to the
+// manual policy as a window with no plans does.
 
 import (
 	"testing"

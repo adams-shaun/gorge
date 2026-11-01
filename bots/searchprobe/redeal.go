@@ -632,12 +632,14 @@ func sortByName(e *rules.Engine, ids []state.ObjID) {
 	})
 }
 
-// withVisibleCards is k plus every hidden card the last frame shows the seat
-// by name, each of which a redeal must keep exactly where it is, because
-// re-dealing one would change the observation:
+// withVisibleCards is k plus every hidden card the last frame shows the seat,
+// each of which a redeal must keep exactly where it is, because re-dealing one
+// would change the observation:
 //   - the seat's own pending decision offers it: a library search's or a
 //     look-at-the-top pile split's options, the cards of a looked-at hand;
-//   - a stack entry names it as its source (view.StackView.Name);
+//   - a stack entry names it as its source (view.StackView.Source, which the
+//     view zeroes for a source in a hidden zone; the entry's Name never shows
+//     a hidden source's name);
 //   - it is the top of a library the seat may look at, or of one played with
 //     its top card revealed (CR 401.5).
 //

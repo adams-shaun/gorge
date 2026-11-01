@@ -77,11 +77,11 @@ func activate(idx int, id state.ObjID) decision.Option {
 // side of the production-honesty fix: a source that demonstrably produces
 // mana (here one red), even a colour the intended card does not need, is
 // tapped before a source that demonstrably produces nothing -- the empty
-// production the projection now reports for an Indeterminate (non-literal
-// Amount$) source, which might add zero mana. The pre-fix tap gate ranked
-// by fewest distinct colours and so tapped the zero-flex empty source first,
-// trusting mana that never arrives; the tiering puts a demonstrable producer
-// first whatever its colour, so a tap always buys something.
+// production the projection reports for an Indeterminate (non-literal
+// Amount$) source, which might add zero mana. A tap gate ranking by fewest
+// distinct colours would tap the zero-flex empty source first, trusting mana
+// that never arrives; the tiering puts a demonstrable producer first whatever
+// its colour, so a tap always buys something.
 func TestChooseTapPrefersDemonstrableOverEmpty(t *testing.T) {
 	b := priorityCards(map[state.ObjID]Card{
 		1:  {CMC: 1, ManaCost: "2", Castable: true}, // a generic one-cost spell
