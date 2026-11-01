@@ -38,8 +38,8 @@ gorged -engine dirac -vsbot -addr 127.0.0.1:8091 -dir /tmp/gorge-data
 
 - The derived log has no reveal or roll notes, so a ManaBrew client gets no reveal or
   dice prompt. Those prompts only acknowledge.
-- A v2 observation reads no trigger amount, and a colour from a card's printing off
-  the battlefield. An object that moves twice between two decisions counts as moved.
+- A v2 observation reads no trigger amount, a colour from a card's printing off the
+  battlefield, and no key for a planeswalker under attack.
 - A hosted bot reads a target's damage amount only when it is literal. An unless-pay
   option says "Pay the cost" and not which.
 

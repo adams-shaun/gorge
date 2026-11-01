@@ -138,8 +138,7 @@ func (t *Tracker) Sync(src Source) error {
 }
 
 // syncBoard takes the shadow and the move counts from src, then records references
-// from the events appended since the last call. Several moves of one object between
-// two calls read as its last.
+// from the events appended since the last call, all as of the board now.
 func (t *Tracker) syncBoard(src Source, c zoneCounter) {
 	n := len(t.shadow.Objs)
 	objs := src.Board().Objs
