@@ -123,6 +123,10 @@ func (g *Game) addPending(i int) {
 		if g.triggerOptional(card, gi) {
 			pt.Optional, pt.Decider = true, state.PlayerID(ctrl)
 		}
+		// a delayed trigger has no line of its own: gorge labels it with the card's first
+		if gi == 255 {
+			gi = 0x80
+		}
 		if d := g.triggerText(card, gi); d != "" {
 			pt.Label += ": " + d
 		}

@@ -162,6 +162,9 @@ func decisionDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *d
 		if g.Kind != s.Kind || ref.InstRef(g.Obj) != a.RefOf(s.Obj) {
 			return append(out, "options or their order")
 		}
+		if g.Required != s.Required || g.MinBlockers != s.MinBlockers {
+			out = append(out, "required or minimum blockers")
+		}
 	}
 	return out
 }

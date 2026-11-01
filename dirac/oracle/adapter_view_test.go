@@ -69,10 +69,12 @@ func toJSONAny(v any) any {
 type viewDiffs struct {
 	n      map[string]int
 	sample map[string]string
+	// shown counts, by field name, the values gorge's view set to something.
+	shown map[string]int
 }
 
 func newViewDiffs() *viewDiffs {
-	return &viewDiffs{n: map[string]int{}, sample: map[string]string{}}
+	return &viewDiffs{n: map[string]int{}, sample: map[string]string{}, shown: map[string]int{}}
 }
 
 func (d *viewDiffs) add(path, owner string, a, b any) {
@@ -125,9 +127,23 @@ func (d *viewDiffs) walk(path, owner string, a, b any) {
 		}
 		return
 	}
+	if a != nil && a != false && a != float64(0) && a != "" {
+		d.shown[fieldOf(path)]++
+	}
 	if fmt.Sprint(a) != fmt.Sprint(b) {
 		d.add(path, owner, a, b)
 	}
+}
+
+// fieldOf is a path's last field, without its list marks and side notes.
+func fieldOf(path string) string {
+	if strings.Contains(path, ".counters.") {
+		return "counters"
+	}
+	f := path[strings.LastIndex(path, ".")+1:]
+	f, _, _ = strings.Cut(f, " ")
+	f, _, _ = strings.Cut(f, "[")
+	return f
 }
 
 // departedBlockers fills in gorge's blockers that have left the game, which its ids no
@@ -359,4 +375,65 @@ func gapKey(path string) string {
 		return path[i:]
 	}
 	return path[strings.LastIndex(path, ".")+1:]
+}
+
+// servedFields are the view's fields a kernel read fills, each compared on its own, and
+// shown to have been read at all: a stubbed read fails its field and no other.
+var servedFields = []struct {
+	field string
+	// absent: nothing in these pools sets the field, so only silence is checked.
+	absent bool
+}{
+	{field: "land_drop_spent"},
+	{field: "life_gained_this_turn"},
+	{field: "life_lost_this_turn"},
+	{field: "effective_mana_cost"},
+	{field: "activated_this_turn"},
+	{field: "summon_sick"},
+	{field: "counters"},
+	{field: "blocked_by"},
+	{field: "keywords"},
+	{field: "power"},
+	{field: "toughness"},
+	{field: "types"},
+	{field: "optional"},
+	{field: "spells_cast_this_turn"},
+	{field: "tokens_created_this_turn"},
+	{field: "label"},
+	{field: "source"},
+	{field: "decider"},
+	{field: "library_top", absent: true},
+	{field: "pool_restrictions", absent: true},
+}
+
+// TestServedFieldsMatchGorge reads the fields over one shared run of FDN and BLB games,
+// so the whole table costs a game pool once.
+func TestServedFieldsMatchGorge(t *testing.T) {
+	d := newViewDiffs()
+	positions, seen := 0, 0
+	check := viewCheck(d, &positions)
+	for _, name := range []string{"fdn", "blb"} {
+		adapterRun(t, name, 0, envPairs(25), 1, Config{GorgeAutopaySurface: true}, func(ref *GorgeSide, a *adapter.Game) {
+			seen++
+			if seen%viewSampling == 0 {
+				check(ref, a)
+			}
+		})
+	}
+	differs := map[string]int{}
+	sample := map[string]string{}
+	for path, n := range d.n {
+		differs[fieldOf(path)] += n
+		sample[fieldOf(path)] = d.sample[path]
+	}
+	for _, f := range servedFields {
+		t.Run(f.field, func(t *testing.T) {
+			if n := differs[f.field]; n > 0 {
+				t.Errorf("%d differences: %s", n, sample[f.field])
+			}
+			if shown := d.shown[f.field]; f.absent != (shown == 0) {
+				t.Errorf("gorge's view set it %d times over %d positions", shown, positions)
+			}
+		})
+	}
 }
