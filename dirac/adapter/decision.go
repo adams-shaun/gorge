@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -95,6 +96,10 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		e.key = zidx << 8
 	case canon.ActActivate:
 		e.opt.Kind, e.opt.Ability = "ability", int(c.Mode())
+		if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
+			e.opt.Cost = offerCost(sa)
+			e.opt.Loyalty = loyaltyOf(sa, e.opt.Cost)
+		}
 		e.key = 3<<40 | abilityZoneKey(po)<<36 | abilitySeat(po)<<32 | zidx<<8 | uint64(mode)
 	case canon.ActSpecial:
 		e.opt.Kind = canon.SpecialKinds[c.Mode()&15]
@@ -431,6 +436,7 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 	me := g.d.Player
 	k := c.Kind()
 	o.Obj = g.ids.ref(c.Src(), &g.kp)
+	o.Player = state.PlayerID(me)
 	key = i
 	switch {
 	case k == canon.ActAttack:
@@ -460,6 +466,7 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		switch {
 		case t >= canon.RefPlayer:
 			o.Kind, o.Player, o.Obj = "player", state.PlayerID(t-canon.RefPlayer), 0
+			o.Controller = o.Player
 			key = uint32(t - canon.RefPlayer)
 			o.Label = "Player " + strconv.Itoa(int(o.Player)+1)
 		case t >= canon.RefStack:
@@ -533,7 +540,7 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 
 // chooseOption reads a KChoose pick.
 func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uint32) {
-	o := decision.Option{Obj: g.ids.ref(c.Src(), &g.kp), Kind: "other"}
+	o := decision.Option{Obj: g.ids.ref(c.Src(), &g.kp), Kind: "other", Player: state.PlayerID(g.d.Player)}
 	if i := int(c.Kind() - canon.ActChoose); i < len(canon.ChooseKinds) {
 		o.Kind = canon.ChooseKinds[i]
 	}
@@ -541,16 +548,21 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		o.Player = state.PlayerID(c.Tgt() - canon.RefPlayer)
 	}
 	switch o.Kind {
-	case "x", "number":
+	case "x", "number", "altaddcost":
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
-	case "mana", "color":
+	case "mana":
 		if int(c.Mode()) < len(canon.ManaSyms) {
 			o.ManaSymbol = canon.ManaSyms[c.Mode() : c.Mode()+1]
 			o.Label = o.ManaSymbol
 		}
+	case "color":
+		if int(c.Mode()) < len(canon.ManaSyms) {
+			o.Label = canon.ManaSyms[c.Mode() : c.Mode()+1]
+		}
 	case "pay":
 		o.Kind = "pay_" + [8]string{"W", "U", "B", "R", "G", "C", "generic", "life"}[c.Mode()&7]
+		o.Amount = 1
 	}
 	if o.Label == "" {
 		if o.Obj != 0 {
@@ -632,6 +644,9 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 		d.Source = g.ids.obj(uint8(src))
 	}
 	if !building {
+		if top := int(g.kp.NStack) - 1; top >= 0 {
+			targetSet(d, g.stackSA(&g.kp.Stack[top]))
+		}
 		return
 	}
 	if top := int(g.kp.NStack) - 1; top >= 0 && g.kp.Stack[top].Kind == 2 {
@@ -656,6 +671,56 @@ func (g *Game) fillTargetEffect(d *decision.Decision) {
 	}
 }
 
+// targetSet writes what a target ask's whole answer must satisfy: Decision.Validate
+// holds an answer to one option of a Group.
+func targetSet(d *decision.Decision, sa *cards.SA) {
+	if sa == nil {
+		return
+	}
+	t := effects.TargetsOf(sa)
+	d.TargetsWithSameController = t.Has(effects.TgtSameController)
+	if t.Flags&(effects.TgtForEachPlayer|effects.TgtDifferentControllers) == 0 {
+		return
+	}
+	for i := range d.Options {
+		d.Options[i].Group = "target-controller-" + strconv.Itoa(int(d.Options[i].Controller))
+	}
+}
+
+// costDesc matches a cost part with a display name after its count and type, and
+// costHybrid a hybrid symbol as a script spells it.
+var (
+	costDesc   = regexp.MustCompile(`<([^/>]+/[^/>]+)/[^>]*>`)
+	costHybrid = regexp.MustCompile(`\b([WUBRG2])([WUBRG])\b`)
+)
+
+// offerCost is an ability's cost as the wire writes it.
+func offerCost(sa *cards.SA) string {
+	return costHybrid.ReplaceAllString(costDesc.ReplaceAllString(sa.ParamStr(cards.PKCost), "<$1>"), "$1/$2")
+}
+
+// loyaltyRe reads a loyalty cost's counters from an ability's cost text.
+var loyaltyRe = regexp.MustCompile(`(?i)(Add|Sub)Counter<(\w+)/LOYALTY>`)
+
+// loyaltyOf is the facts a bot ranks a loyalty ability by, nil for any other ability.
+func loyaltyOf(sa *cards.SA, cost string) *decision.Loyalty {
+	m := loyaltyRe.FindStringSubmatch(cost)
+	if m == nil {
+		return nil
+	}
+	l := &decision.Loyalty{Ultimate: strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKUltimate)), "True")}
+	n, err := strconv.Atoi(m[2])
+	switch {
+	case err != nil:
+		l.X = true
+	case strings.EqualFold(m[1], "Add"):
+		l.Delta = int32(n)
+	default:
+		l.Delta = -int32(n)
+	}
+	return l
+}
+
 func (g *Game) chooseTargetEffect(d *decision.Decision, card dirac.CardID, sa *cards.SA) {
 	var chain []*cards.SA
 	f := g.face(card)
@@ -672,6 +737,11 @@ func (g *Game) chooseTargetEffect(d *decision.Decision, card dirac.CardID, sa *c
 			continue
 		}
 		chain = append(chain, x)
+		if x.API == "ImmediateTrigger" && f != nil {
+			for m := cards.ResolveSVar(f.SVars, x.Params["Execute"]); m != nil; m = m.Sub {
+				chain = append(chain, m)
+			}
+		}
 	}
 	k := 0
 	for i, x := range chain {
@@ -682,12 +752,14 @@ func (g *Game) chooseTargetEffect(d *decision.Decision, card dirac.CardID, sa *c
 		}
 		if k >= g.targets.slot && slotFits(x, d) || i == len(chain)-1 {
 			d.TargetEffect = targetEffect(x)
+			targetSet(d, x)
 			return
 		}
 		k++
 	}
 	if sa != nil {
 		d.TargetEffect = targetEffect(sa)
+		targetSet(d, sa)
 	}
 }
 

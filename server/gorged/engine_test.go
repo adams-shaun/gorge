@@ -19,7 +19,7 @@ import (
 const benchDecks = "../../dirac/testdata/bench/fdn"
 
 func diracConfig() config {
-	return config{engine: adapter.Name, diracSets: "fdn", seats: 2, autoMana: true, formatsRaw: "constructed", decks: benchDecks}
+	return config{engine: adapter.Name, diracSets: "fdn", seats: 2, autoMana: true, botAutoPayMana: true, formatsRaw: "constructed", decks: benchDecks}
 }
 
 func TestDiracRequiresTwoSeats(t *testing.T) {
@@ -38,6 +38,7 @@ func TestDiracFlagsRefuseCommander(t *testing.T) {
 	}{
 		{"commander", func(c *config) { c.formatsRaw = "constructed,commander" }, "-format commander"},
 		{"manual mana", func(c *config) { c.autoMana = false }, "-auto-mana=false"},
+		{"a bot's manual mana", func(c *config) { c.botAutoPayMana = false }, "-bot-auto-mana=false"},
 		{"events", func(c *config) { c.events = true }, "-events"},
 		{"v2 wire", func(c *config) { c.sbv2 = true }, "-sbv2"},
 		{"network bot", func(c *config) { c.nets = []netPolicy{{policy: "az", net: "n"}} }, "-az-net"},

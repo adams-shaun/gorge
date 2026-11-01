@@ -105,7 +105,15 @@ func decisionCheck(t *testing.T, name string, pairs int, autopay bool) {
 	samples := map[string]string{}
 	check := func(ref *GorgeSide, a *adapter.Game) {
 		gd, ad := ref.Pending(), a.Pending()
-		if gd == nil || ad == nil || gd.Kind == decision.KPriority {
+		if gd == nil || ad == nil {
+			return
+		}
+		if gd.Kind == decision.KPriority {
+			for _, what := range abilityDiffs(ref, gd, a, ad) {
+				k := "priority " + what
+				diffs[k]++
+				samples[k] = what
+			}
 			return
 		}
 		gd = withoutManualRoutes(gd)
@@ -164,6 +172,54 @@ func decisionDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *d
 		}
 		if g.Required != s.Required || g.MinBlockers != s.MinBlockers {
 			out = append(out, "required or minimum blockers")
+		}
+		// a blocker's group names its object, whose id differs
+		if strings.HasPrefix(g.Group, "target-") && g.Group != s.Group || (g.Group == "") != (s.Group == "") {
+			out = append(out, fmt.Sprintf("group gorge %q served %q", g.Group, s.Group))
+		}
+		if gd.Kind == decision.KTarget && g.Controller != s.Controller {
+			out = append(out, "target controller")
+		}
+		if g.ManaSymbol != s.ManaSymbol || g.Kind != "division" && g.Amount != s.Amount {
+			out = append(out, fmt.Sprintf("%s symbol or amount", g.Kind))
+		}
+	}
+	if gd.TargetsWithSameController != ad.TargetsWithSameController {
+		out = append(out, "same controller")
+	}
+	if (gd.TargetEffect == nil) != (ad.TargetEffect == nil) || gd.TargetEffect != nil && gd.TargetEffect.API != ad.TargetEffect.API {
+		out = append(out, "target effect")
+	}
+	return out
+}
+
+// abilityDiffs compares what a seat reads of each activated ability it may play: its
+// cost, as a set of parts because gorge orders them, and the loyalty facts served.
+func abilityDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *decision.Decision) []string {
+	var out []string
+	parts := func(c string) []string {
+		f := strings.Fields(c)
+		slices.Sort(f)
+		return f
+	}
+	for i := range gd.Options {
+		g := &gd.Options[i]
+		if g.Kind != "ability" {
+			continue
+		}
+		for j := range ad.Options {
+			s := &ad.Options[j]
+			if s.Kind != "ability" || s.Ability != g.Ability || ref.InstRef(g.Obj) != a.RefOf(s.Obj) {
+				continue
+			}
+			if !slices.Equal(parts(g.Cost), parts(s.Cost)) {
+				out = append(out, fmt.Sprintf("cost of %s: gorge %q served %q", g.Label, g.Cost, s.Cost))
+			}
+			if (g.Loyalty == nil) != (s.Loyalty == nil) {
+				out = append(out, "loyalty of "+g.Label)
+			} else if g.Loyalty != nil && (g.Loyalty.Delta != s.Loyalty.Delta || g.Loyalty.X != s.Loyalty.X || g.Loyalty.Ultimate != s.Loyalty.Ultimate) {
+				out = append(out, "loyalty of "+g.Label)
+			}
 		}
 	}
 	return out

@@ -36,6 +36,8 @@ func (c config) checkDiracFlags() error {
 		return errors.New("-format commander: dirac plays constructed only")
 	case !c.autoMana:
 		return errors.New("-auto-mana=false: dirac pays for every cast and has no manual mana")
+	case !c.botAutoPayMana:
+		return errors.New("-bot-auto-mana=false: dirac pays for every cast and has no manual mana")
 	case c.events:
 		return errors.New("-events: a draft event's decks need the gorge engine")
 	case c.sbv2:
@@ -97,6 +99,51 @@ func checkDecks(e *adapter.Engine, reg *cards.Registry, dir string, pool []strin
 		first = append(first, id+": "+refused[id])
 	}
 	return nil, nil, fmt.Errorf("-engine dirac: no deck in %s is playable; for example %s", dir, strings.Join(first, "; "))
+}
+
+// rotationDecks is the pool a bot table's rotation can play: match k seats decks k and
+// k+1, so each deck kept can follow the one before it, and the last can come before
+// the first. A deck that cannot is skipped, with a log line; a pool with no legal pair
+// is a startup error.
+func rotationDecks(pool []string, accepts func(a, b string) error) ([]string, error) {
+	var kept []string
+	for _, id := range pool {
+		if len(kept) > 0 {
+			if err := accepts(kept[len(kept)-1], id); err != nil {
+				log.Printf("dirac: deck %s skipped in the rotation after %s: %v", id, kept[len(kept)-1], err)
+				continue
+			}
+		}
+		kept = append(kept, id)
+	}
+	for len(kept) > 1 {
+		last := kept[len(kept)-1]
+		err := accepts(last, kept[0])
+		if err == nil {
+			return kept, nil
+		}
+		log.Printf("dirac: deck %s skipped in the rotation before %s: %v", last, kept[0], err)
+		kept = kept[:len(kept)-1]
+	}
+	if err := accepts(kept[0], kept[0]); err != nil {
+		return nil, fmt.Errorf("-engine dirac: no legal pair of decks to rotate: %w", err)
+	}
+	return kept, nil
+}
+
+// pairAccepts says whether e plays two of dir's decks against each other.
+func pairAccepts(e *adapter.Engine, reg *cards.Registry, dir string) func(a, b string) error {
+	return func(a, b string) error {
+		_, da, err := deck.Load(reg, filepath.Join(dir, a+".json"))
+		if err != nil {
+			return err
+		}
+		_, db, err := deck.Load(reg, filepath.Join(dir, b+".json"))
+		if err != nil {
+			return err
+		}
+		return e.Accepts(game.Config{Decks: [][]*cards.Card{da, db}})
+	}
 }
 
 // markRefused writes each refused deck's reason into the catalogue.
