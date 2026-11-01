@@ -212,6 +212,21 @@ func IsMill(ev Event) bool {
 	return ev.Kind == MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && ev.Text == milledText
 }
 
+// ceasedText marks a token or spell copy ceasing to exist off the battlefield
+// and stack (CR 704.5d-e).
+const ceasedText = "ceased to exist"
+
+// Cease returns the event for a token or spell copy ceasing to exist in from.
+func Cease(obj state.ObjID, from state.Zone) Event {
+	return Event{Kind: MoveZone, Obj: obj, From: from, To: state.ZCeased, Text: ceasedText}
+}
+
+// IsCease reports a token or spell copy ceasing to exist. The object stops
+// existing where it is, so nothing has left that zone (CR 111.8).
+func IsCease(ev Event) bool {
+	return ev.Kind == MoveZone && ev.To == state.ZCeased && ev.Text == ceasedText
+}
+
 // exiledAsCostText marks a card exiled to pay a cost (CR 118.3).
 const exiledAsCostText = "exiled as a cost"
 

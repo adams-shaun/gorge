@@ -60,6 +60,11 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			return false
 		}
 	}
+	// A token or copy ceasing to exist has not left its zone (CR 111.8), so
+	// "creature cards leave your graveyard" stays silent for it.
+	if events.IsCease(ev) {
+		return false
+	}
 	from, to := ev.From, ev.To
 	if ev.Kind == events.TokenCreate || ev.Kind == events.CardToken {
 		// A mint whose entry was fully replaced (Hallowed Moonlight's

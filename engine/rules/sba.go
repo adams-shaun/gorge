@@ -1272,8 +1272,7 @@ func (e *Engine) ceaseDeadTokens(b *sbaBatch, tried *sbaAttempts) {
 				continue
 			}
 			markTried(&tried.tokens, o.ID)
-			b.add(events.Event{Kind: events.MoveZone, Obj: o.ID,
-				From: o.Zone, To: state.ZCeased, Text: "ceased to exist"})
+			b.add(events.Cease(o.ID, o.Zone))
 		}
 	}
 }
