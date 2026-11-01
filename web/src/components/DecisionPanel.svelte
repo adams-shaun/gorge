@@ -4,6 +4,7 @@
   import { seatColour } from '../lib/colours';
   import { pointerRelease } from '../lib/pointer';
   import SearchTable from './SearchTable.svelte';
+  import { promptWords } from '../lib/prompts/words';
   import {
     duplicateLabels,
     entryIndexAt,
@@ -162,13 +163,13 @@
         <span class="kind">{kindLabel(e.kind)}</span>
         {#if override}<span class="flag" title="The seat chose differently from its own heuristic bot">overrode the bot</span>{/if}
       </p>
-      {#if e.prompt}<p class="prompt">{e.prompt}</p>{/if}
+      {#if e.prompt}<p class="prompt">{promptWords(e.prompt)}</p>{/if}
 
       <ol class="options" aria-label="Options offered">
         {#each e.options as o (o.index)}
           <li class:chosen={chosen.has(o.index)} class:bot={bot.has(o.index)} data-option={o.index}>
             <span class="ix" title="Option index">{o.index}</span>
-            <span class="label">{o.label}</span>
+            <span class="label">{promptWords(o.label)}</span>
             {#if chosen.has(o.index)}<span class="tag tag-chosen">chosen</span>{/if}
             {#if bot.has(o.index) && override}<span class="tag tag-bot">bot</span>{/if}
           </li>

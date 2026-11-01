@@ -4,6 +4,7 @@ import { sourceStackOf } from '../prompt';
 import { arrangeDestination } from '../arrange';
 import { mulliganPhase } from './decision';
 import { rendererFor, type RendererKind } from './renderer';
+import { promptWords } from './words';
 
 /**
  * anatomy.ts is the prompt anatomy's words: the source
@@ -107,7 +108,7 @@ function effectSentence(d: Decision): string | null {
 
 /** sentence tidies server text into one line ending with a full stop. */
 function sentence(text: string | null | undefined): string | null {
-  const t = (text ?? '').trim();
+  const t = promptWords(text ?? '').trim();
   if (t === '') return null;
   return /[.?!]$/.test(t) ? t : `${t}.`;
 }
@@ -124,7 +125,7 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
   const source = promptSource(d, view);
   const srcName = source?.card?.name ?? null;
   const stackText = sourceStackOf(d, view)?.text?.trim() || null;
-  let title = d.prompt;
+  let title = promptWords(d.prompt);
   let plain: string | null = null;
   switch (renderer) {
     case 'target': {
@@ -163,7 +164,7 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
     }
     case 'discard':
       title = `Choose ${countPhrase(d, 'card')} to discard`;
-      plain = sentence(d.prompt);
+      plain = /^Choose [\w ]+ to discard$/.test(promptWords(d.prompt)) ? null : sentence(d.prompt);
       break;
     case 'search':
       title = 'Search your library';
@@ -215,7 +216,6 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
         default:
           // choose and any kind this module does not know: the server's
           // prompt IS the question.
-          title = d.prompt;
           plain = d.max > 1 || d.min !== 1 ? `Choose ${countPhrase(d, 'option')}.` : null;
       }
       break;

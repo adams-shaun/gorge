@@ -272,7 +272,7 @@ describe('Table.svelte — the empty-answer safety net reaches the seated Pendin
     expect(pendingAt, 'the rail renders its Pending section').toBeGreaterThan(-1);
     const tray = html.slice(pendingAt);
     expect(tray).toContain('data-stuck');
-    expect(tray).toContain('Search a library: choose up to 0 card(s)');
+    expect(tray).toContain('Search a library: choose up to 0 cards');
     // The Continue renders only when Table wired an onContinue, which it
     // does only for a seated panel whose decision is answerable empty.
     expect(tray).toContain('data-continue');

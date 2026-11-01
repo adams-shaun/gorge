@@ -9,6 +9,7 @@
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
   import ResolvedCard from './ResolvedCard.svelte';
+  import { promptWords } from '../lib/prompts/words';
 
   /**
    * The rail starts with ONE compact summary across seats, then the stack,
@@ -155,7 +156,7 @@
   {#if decision}
     <p class="decision">
       <span class="who">{decisionWho}</span>
-      {decision.prompt}
+      {promptWords(decision.prompt)}
     </p>
   {/if}
 

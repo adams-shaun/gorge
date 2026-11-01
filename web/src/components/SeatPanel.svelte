@@ -9,6 +9,7 @@
   import { pointerRelease } from '../lib/pointer';
   import PromptBody from './prompts/PromptBody.svelte';
   import { dockAnswers } from '../lib/prompts/renderer';
+  import { promptWords } from '../lib/prompts/words';
 
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
@@ -295,9 +296,9 @@
     {/if}
 
     {#if decision && deferred}
-      <p class="prompt pointer" data-dock-pointer>{decision.prompt} — answer in the prompt panel</p>
+      <p class="prompt pointer" data-dock-pointer>{promptWords(decision.prompt)} — answer in the prompt panel</p>
     {:else if decision}
-      <p class="prompt" data-prompt>{decision.prompt}</p>
+      <p class="prompt" data-prompt>{promptWords(decision.prompt)}</p>
       {#if ctxText !== null}
         <p class="ctx" data-prompt-ctx>{ctxText}</p>
       {/if}

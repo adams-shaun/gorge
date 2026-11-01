@@ -133,4 +133,14 @@ describe('combat summaries', () => {
     expect(blockOptionText(blocks, v, blocker)).toBe("Dark Confidant blocks Thragtusk (can't block alone)");
     expect(blockOptionText(blocks, v, blocks.options[0])).toBe('Dark Confidant blocks Thragtusk');
   });
+
+  it('a discard says nothing twice, and the engine\'s words are tidied where they are the question', () => {
+    const v = { viewer: 0, players: [player(0, 'A')], stack: [] } as unknown as View;
+    const ask = (prompt: string, kind = 'choose', options: Option[] = [{ index: 0, kind: 'discard', label: 'Discard Island', obj: 3, player: 0 } as Option]) =>
+      ({ seq: 1, player: 0, kind, prompt, min: 2, max: 2, options }) as Decision;
+    expect(promptAnatomy(ask('Choose 2 card(s) to discard', 'modes'), v).plain).toBeNull();
+    expect(promptAnatomy(ask('Discard up to 2 card(s)?', 'modes'), v).plain).toBe('Discard up to 2 cards?');
+    const division = ask("turn 7 — divide Grizzly Bears's combat damage among its blockers", 'choose', [{ index: 0, kind: 'division', label: '0 to A,2 to B', player: 0 } as Option]);
+    expect(promptAnatomy({ ...division, min: 1, max: 1 }, v).title).toBe("Divide Grizzly Bears's combat damage among its blockers");
+  });
 });

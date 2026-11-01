@@ -488,6 +488,17 @@ func discardChooser(c *Ctx, mode string) state.PlayerID {
 	return c.Controller
 }
 
+// countRange words a pick count for a prompt: "2", "1 to 3" or "up to 2".
+func countRange(min, max int) string {
+	switch {
+	case min == max:
+		return strconv.Itoa(max)
+	case min == 0:
+		return "up to " + strconv.Itoa(max)
+	}
+	return strconv.Itoa(min) + " to " + strconv.Itoa(max)
+}
+
 func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, chooser state.PlayerID, min, max, target int) *decision.Decision {
 	opts := make([]decision.Option, 0, len(eligible))
 	for _, id := range eligible {
@@ -499,7 +510,7 @@ func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, cho
 	}
 	return &decision.Decision{Player: chooser, Kind: decision.KModes, Min: min, Max: max, Source: c.Source,
 		ResumeKind: "discard", ResumeSA: sa, ResumeTarget: target,
-		Prompt: "Choose " + strconv.Itoa(min) + ".." + strconv.Itoa(max) + " card(s) to discard", Options: opts}
+		Prompt: "Choose " + countRange(min, max) + " card(s) to discard", Options: opts}
 }
 
 // discardRevealNumber applies RevealNumber$ for one target: the target
@@ -790,7 +801,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 			d := &decision.Decision{Player: p, Kind: decision.KModes,
 				Min: askMin, Max: askMax, Source: c.Source,
 				ResumeKind: "discard", ResumeSA: sa, ResumeTarget: targetIndex,
-				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
+				Prompt:  "Choose " + countRange(askMin, askMax) + " card(s) to discard",
 				Options: opts}
 			if ans, ok := AskTape(h, d); ok {
 				// Answered in place: discard exactly the chosen cards that
@@ -1456,9 +1467,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 					opts = append(opts, decision.Option{Index: len(opts), Kind: "reveal",
 						Label: "Reveal " + name, Obj: id, Player: p})
 				}
-				prompt := "Choose " + strconv.Itoa(int(minPick)) + ".." + strconv.Itoa(int(maxPick)) + " card(s) to reveal"
+				prompt := "Choose " + countRange(int(minPick), int(maxPick)) + " card(s) to reveal"
 				if minPick == 0 {
-					prompt = "You may reveal 0.." + strconv.Itoa(int(maxPick)) + " card(s)"
+					prompt = "You may reveal " + countRange(0, int(maxPick)) + " card(s)"
 				}
 				d := &decision.Decision{Player: p, Kind: decision.KChoose,
 					Min: int(minPick), Max: int(maxPick), Source: c.Source,

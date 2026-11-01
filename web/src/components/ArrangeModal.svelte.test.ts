@@ -41,7 +41,7 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     expect(html).toContain('data-arrange-modal');
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
-    expect(html).toContain('Rearrange the top 5 card(s)');
+    expect(html).toContain('Rearrange the top 5 cards');
     // the keep pile, in seed order, with its ordinals
     expect(html).toContain('data-arrange-keep');
     expect(html).toContain('data-arrange-keep-card="3"');

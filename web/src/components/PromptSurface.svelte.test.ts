@@ -206,7 +206,7 @@ describe('ArrangeModal (via the seat panel)', () => {
     // apart in lib/images) finishing their layout-affecting resolution.
     await page.waitForFunction(() => document.querySelectorAll('[data-arrange-modal]').length === 0, null, { timeout: 10_000 });
     await page.waitForTimeout(1500);
-    expect(await page.locator('[data-answer-surface] [data-prompt]').textContent()).toContain('Rearrange the top 3 card(s)');
+    expect(await page.locator('[data-answer-surface] [data-prompt]').textContent()).toContain('Rearrange the top 3 cards');
 
     // Reopening is the NEW ask, fresh: three decision-B cards in offered
     // order — none of decision A's edits — and the posted intent is B's.
@@ -640,7 +640,7 @@ describe('PendingTray empty-answer safety net', () => {
     const stuck = page.locator('[data-stuck]');
     await stuck.waitFor();
     expect(await stuck.isVisible()).toBe(true);
-    expect(await stuck.textContent()).toContain('Search a library: choose up to 0 card(s)');
+    expect(await stuck.textContent()).toContain('Search a library: choose up to 0 cards');
     // "Nothing waiting" is gone: the seat is NOT idle, it is blocked on a
     // decision the tray now names.
     expect(await page.locator('.empty').count()).toBe(0);
@@ -661,7 +661,7 @@ describe('PendingTray empty-answer safety net', () => {
     await page.goto(tray('stuck-unanswerable'));
     const stuck = page.locator('[data-stuck]');
     await stuck.waitFor();
-    expect(await stuck.textContent()).toContain('Search a library: choose 1 card(s)');
+    expect(await stuck.textContent()).toContain('Search a library: choose 1 card');
     // There is no minimum legal answer to submit (Min 1 over nothing), so the
     // tray names the decision and says so instead of offering a control that
     // could never succeed.
