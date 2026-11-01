@@ -7,6 +7,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// blockSearchBudget bounds one required-block search's nodes, about a second of
+// work. A board past it answers with the best legal team found, which may obey
+// fewer requirements than CR 509.1c's maximum, rather than hanging the game. A
+// declaration obeying more is still accepted.
+const blockSearchBudget = 1 << 20
+
+// blocker is one unit of the required-block search: a creature and the pairs it
+// may declare.
+type blocker struct {
+	id       state.ObjID
+	opts     []int
+	required bool
+}
+
 // blockRequiredCore finds the largest legal team of required blockers (CR
 // 509.1c). Unlike a pairwise matching, a block of a Min$ N attacker is legal
 // only when the rest of the team can join it. The same result supplies the
@@ -20,15 +34,14 @@ import (
 // requirements, so a declaration that satisfies one of each always beats one
 // that satisfies only the other; ties take the shortest team.
 func (d *Decision) blockRequiredCore() []int {
+	return d.blockRequiredSearch(blockSearchBudget)
+}
+
+func (d *Decision) blockRequiredSearch(budget int) []int {
 	// No requirement of either orientation: no candidate blocker, so the
 	// search below returns nil -- skip building its tables.
 	if !d.hasRequiredBlocks() {
 		return nil
-	}
-	type blocker struct {
-		id       state.ObjID
-		opts     []int
-		required bool
 	}
 	var blocks []blocker
 	pos := make(map[state.ObjID]int)
@@ -99,32 +112,56 @@ func (d *Decision) blockRequiredCore() []int {
 	// Where only the blockers per attacker can matter later, a node reached a
 	// second time holds nothing the first visit didn't try, and the first best
 	// team found stays the answer. Teams of a Min$ attacker reach most nodes
-	// many times over.
-	var attackers []state.ObjID
+	// many times over. Attackers offered identically are interchangeable, so a
+	// node is the same whichever of them holds which count.
+	var classes [][]state.ObjID
 	var seen map[string]bool
 	var key []byte
+	var tally []uint64
 	if d.blockSearchMemoizable(lifeBound) {
 		seen = make(map[string]bool)
-		for _, o := range d.Options {
-			if !slices.Contains(attackers, o.Attacker) {
-				attackers = append(attackers, o.Attacker)
-			}
-		}
+		classes = interchangeableAttackers(d, candidates)
 	}
+	// Each attacker's team minimum, for the bound below.
+	var attackers []state.ObjID
+	var teamNeeds []int
+	teamMin := make(map[state.ObjID]int)
+	if len(minAttackers) > 0 {
+		for _, o := range d.Options {
+			m, ok := teamMin[o.Attacker]
+			if !ok {
+				attackers = append(attackers, o.Attacker)
+				m = o.MinBlockers
+			}
+			teamMin[o.Attacker] = min(m, o.MinBlockers)
+		}
+		teamNeeds = make([]int, 0, len(attackers))
+	}
+	nodes := 0
 	var search func(int, int, int, int32)
 	search = func(at, satisfied, spent int, spentLife int32) {
 		if bestRequired == requiredCount+len(atkReq) {
 			return
 		}
+		if nodes++; nodes > budget {
+			return
+		}
 		if seen != nil && at < len(candidates) {
 			key = binary.AppendUvarint(key[:0], uint64(at))
 			key = binary.AppendUvarint(key, uint64(satisfied))
-			for _, a := range attackers {
-				n := uint64(counts[a]) << 1
-				if satAtk[a] {
-					n |= 1
+			for _, class := range classes {
+				tally = tally[:0]
+				for _, a := range class {
+					n := uint64(counts[a]) << 1
+					if satAtk[a] {
+						n |= 1
+					}
+					tally = append(tally, n)
 				}
-				key = binary.AppendUvarint(key, n)
+				slices.Sort(tally)
+				for _, n := range tally {
+					key = binary.AppendUvarint(key, n)
+				}
 			}
 			if seen[string(key)] {
 				return
@@ -139,6 +176,13 @@ func (d *Decision) blockRequiredCore() []int {
 		// enumerate every assignment.
 		left := max(requiredCount-at, 0)
 		unsat := min(len(atkReq)-len(satAtk), len(candidates)-at)
+		if len(minAttackers) > 0 {
+			served, ok := teamsWithin(attackers, teamMin, counts, atkReq, satAtk, len(candidates)-at, teamNeeds)
+			if !ok {
+				return
+			}
+			unsat = min(unsat, served)
+		}
 		need := bestRequired - satisfied
 		if need > left+unsat {
 			return
@@ -246,6 +290,78 @@ func (d *Decision) blockRequiredCore() []int {
 	}
 	search(0, 0, 0, 0)
 	return best
+}
+
+// teamsWithin bounds how many unsatisfied required attackers free blockers can
+// still serve, after first completing every team already begun, and reports false
+// when they can't complete those.
+func teamsWithin(attackers []state.ObjID, teamMin, counts map[state.ObjID]int, atkReq, satAtk map[state.ObjID]bool, free int, needs []int) (int, bool) {
+	needs = needs[:0]
+	served := 0
+	for _, a := range attackers {
+		c, m := counts[a], teamMin[a]
+		if c > 0 && c < m {
+			if free -= m - c; free < 0 {
+				return 0, false
+			}
+		}
+		if !atkReq[a] || satAtk[a] {
+			continue
+		}
+		if c > 0 {
+			served++
+		} else {
+			needs = append(needs, max(m, 1))
+		}
+	}
+	slices.Sort(needs)
+	for _, n := range needs {
+		if free -= n; free < 0 {
+			break
+		}
+		served++
+	}
+	return served, true
+}
+
+// interchangeableAttackers partitions the attackers by what the candidates offer
+// against each: within a class, swapping two attackers maps every team onto one
+// satisfying as many requirements with as many blockers.
+func interchangeableAttackers(d *Decision, candidates []blocker) [][]state.ObjID {
+	offers := make(map[state.ObjID][]byte)
+	for at, b := range candidates {
+		for _, ci := range b.opts {
+			o := &d.Options[ci]
+			sig := binary.AppendUvarint(offers[o.Attacker], uint64(at))
+			sig = binary.AppendUvarint(sig, uint64(o.MinBlockers))
+			sig = binary.AppendUvarint(sig, uint64(o.MaxBlockers))
+			var flags uint64
+			for bit, set := range [...]bool{o.AttackMust, o.BlockMust, o.Required} {
+				if set {
+					flags |= 1 << bit
+				}
+			}
+			offers[o.Attacker] = binary.AppendUvarint(sig, flags)
+		}
+	}
+	var classes [][]state.ObjID
+	class := make(map[string]int)
+	placed := make(map[state.ObjID]bool)
+	for _, o := range d.Options {
+		if placed[o.Attacker] {
+			continue
+		}
+		placed[o.Attacker] = true
+		sig := string(offers[o.Attacker])
+		i, ok := class[sig]
+		if !ok {
+			i = len(classes)
+			class[sig] = i
+			classes = append(classes, nil)
+		}
+		classes[i] = append(classes[i], o.Attacker)
+	}
+	return classes
 }
 
 // blockSearchMemoizable reports that what's still legal in the team search reads
