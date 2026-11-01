@@ -94,3 +94,27 @@ func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
 // FeatBlockOrder is where blocking permanent o was declared among its attacker's
 // blockers.
 func (s *State) FeatBlockOrder(o Obj) uint8 { return s.perms[s.objs[o].slot].bord }
+
+// FeatDamageOp is what the n-th damage instruction of the ability being built or
+// resolved deals now, read for a target ask: X and kicks are known by then (CR 601.2b).
+func (s *State) FeatDamageOp(n int) (int, bool) {
+	e := s.curEntry()
+	if e == nil {
+		return 0, false
+	}
+	k := s.k()
+	if int(e.card) >= len(k.t.Cards) || int(e.ab) >= len(k.t.Cards[e.card].Abilities) {
+		return 0, false
+	}
+	prog := k.t.Cards[e.card].Abilities[e.ab].Prog
+	for i := range prog {
+		switch prog[i].Op {
+		case kop.OpDealDamage, kop.OpDealDamageEx, kop.OpDealDamageDivided, kop.OpDealDamageFrom, kop.OpDamageAll:
+			if n == 0 {
+				return s.evalV(k, prog[i].A, s.ctxCur()), true
+			}
+			n--
+		}
+	}
+	return 0, false
+}

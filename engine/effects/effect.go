@@ -1607,3 +1607,37 @@ var effectCombatTriggerModes = map[string]bool{
 // EffectDeliversCombatTrigger reports whether mode is a combat-declaration
 // trigger an Effect registers for real (see effectCombatTriggerModes).
 func EffectDeliversCombatTrigger(mode string) bool { return effectCombatTriggerModes[mode] }
+
+// GrantedStaticModes is the Mode$ of each static an Effect SA's StaticAbilities$ names,
+// resolved against svars, in the order written.
+func GrantedStaticModes(sa *cards.SA, svars map[string]string) []string {
+	if sa == nil || sa.API != "Effect" || svars == nil {
+		return nil
+	}
+	names := strings.FieldsFunc(EffectOf(sa).StaticAbilities, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+	if len(names) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(names))
+	for _, name := range names {
+		body := strings.TrimSpace(svars[name])
+		if body == "" {
+			continue
+		}
+		statics, ok := cards.ParseStaticLines(body)
+		if !ok {
+			continue
+		}
+		for _, st := range statics {
+			if st.Mode != "" {
+				out = append(out, st.Mode)
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}

@@ -94,9 +94,22 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 	if d.Prompt == "" {
 		return Frame{}, nil, fmt.Errorf("%s decision has no prompt", d.Kind)
 	}
-	for _, o := range d.Options {
-		// An option naming an object shows that object.
-		if o.Label == "" && o.Obj == 0 {
+	var asked struct {
+		Decision *decision.Decision `json:"decision"`
+		Players  []struct {
+			Potential []decision.PotentialAction `json:"potential_actions"`
+		} `json:"players"`
+	}
+	if err := json.Unmarshal(raw.Seats[d.Player], &asked); err != nil {
+		return Frame{}, nil, fmt.Errorf("seat %d view: %w", d.Player, err)
+	}
+	if asked.Decision == nil {
+		return Frame{}, nil, fmt.Errorf("%s decision is missing from seat %d's view", d.Kind, d.Player)
+	}
+	// The seat's view is what a client reads: it names a card option from what that
+	// seat can see (view.fillVisibleOptionLabels).
+	for _, o := range asked.Decision.Options {
+		if o.Label == "" {
 			return Frame{}, nil, fmt.Errorf("%s decision: option %d (%s) has no label", d.Kind, o.Index, o.Kind)
 		}
 	}
@@ -104,14 +117,6 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 	if d.Kind != decision.KPriority {
 		f.Answers = selections(&d)
 		return f, names, nil
-	}
-	var asked struct {
-		Players []struct {
-			Potential []decision.PotentialAction `json:"potential_actions"`
-		} `json:"players"`
-	}
-	if err := json.Unmarshal(raw.Seats[d.Player], &asked); err != nil {
-		return Frame{}, nil, fmt.Errorf("seat %d view: %w", d.Player, err)
 	}
 	potential := asked.Players[d.Player].Potential
 	if raw.OfferedOnly {

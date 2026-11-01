@@ -13,7 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
@@ -96,27 +95,23 @@ func TestManaBrewServesADiracGame(t *testing.T) {
 //     game.
 //   - Each player's available, a census no client reads that the kernel does not keep,
 //     and potential_actions, which gorge also fills for a seat without priority.
-//   - A card's keywords off the battlefield, on the stack included: gorge's derived
-//     keywords list a battlefield-only static's grant on them (CR 109.2).
-//   - A card's keywords order, and blocked_by as anything but a count: gorge zeroes a
-//     blocker that has left.
+//   - A card's keywords order.
 //   - An option's player when it names no player: gorge leaves it zero in most asks,
 //     and nothing reads it there.
-//   - Facts the adapter does not read yet, which change no answer: a target effect's
-//     damage amount unless it is literal, and its statics; an unless-pay option's
-//     wording; a hand card's effective_mana_cost.
 //   - The last frame but for its result: a player who lost leaves the game with
 //     their objects (CR 800.4a) on gorge, and dirac stops at the result.
 type acrossEngines struct{ Native }
 
 func (w acrossEngines) Open(t testing.TB, e game.Engine, c game.Config) Session {
-	return &acrossSession{Session: w.Native.Open(t, e, c), t: t, asks: e.Caps().StartingAsk}
+	caps := e.Caps()
+	return &acrossSession{Session: w.Native.Open(t, e, c), t: t, asks: caps.StartingAsk, manual: caps.ManualMana}
 }
 
 type acrossSession struct {
 	Session
-	t    testing.TB
-	asks bool
+	t      testing.TB
+	asks   bool
+	manual bool
 }
 
 // resultKeys and playerResultKeys are what the last frame compares.
@@ -143,16 +138,12 @@ func (s *acrossSession) Next() (Frame, bool) {
 		}
 	}
 	f, more := s.Session.Next()
+	if !s.manual && len(f.Unplanned) > 0 {
+		s.t.Fatalf("%s: an engine without manual mana lists plays it cannot answer: %v", f.Key, f.Unplanned)
+	}
 	for _, viewer := range f.State {
 		v, _ := viewer.(map[string]any)
-		card := func(zone string, c map[string]any) {
-			if zone != "battlefield" {
-				delete(c, "keywords")
-			}
-			delete(c, "effective_mana_cost")
-			if b, ok := c["blocked_by"].([]any); ok {
-				c["blocked_by"] = len(b)
-			}
+		card := func(_ string, c map[string]any) {
 			if k, ok := c["keywords"].([]any); ok {
 				slices.SortFunc(k, func(a, b any) int { return cmp.Compare(a.(string), b.(string)) })
 			}
@@ -168,18 +159,11 @@ func (s *acrossSession) Next() (Frame, bool) {
 			keepOnly(v, resultKeys)
 		}
 		if d, ok := v["decision"].(map[string]any); ok {
-			if te, ok := d["target_effect"].(map[string]any); ok {
-				delete(te, "damage")
-				delete(te, "statics")
-			}
 			options, _ := d["options"].([]any)
 			for _, o := range options {
 				m := o.(map[string]any)
 				if m["kind"] != "player" {
 					delete(m, "player")
-				}
-				if m["mode"] == decision.ModeUnlessPay {
-					delete(m, "label")
 				}
 			}
 		}
@@ -198,6 +182,14 @@ func (s *acrossSession) Next() (Frame, bool) {
 
 // TestNativeWireMatchesGorge plays games on gorge and on dirac through the native wire:
 // same seed, same answers, every frame compared.
+//
+// OfferedOnly stands for one capability, game.Caps.ManualMana. Gorge also lists in
+// potential_actions a play its planner has no plan for, which its seat reaches by tapping
+// sources by hand; dirac declares no manual mana and offers every play with its plan, so
+// a play only gorge's manual route reaches is left out of what both are answered with.
+// What gorge lists this way is mostly a cast the seat cannot afford. Dirac lists nothing
+// of the kind: acrossSession fails if a seat without manual mana lists a play it cannot
+// answer.
 func TestNativeWireMatchesGorge(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := diracEngine(t, reg, dirac.SurfaceFull)

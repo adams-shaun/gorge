@@ -1588,11 +1588,11 @@ var stringMapParams = map[string]string{
 	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
 	// card Params map.
 	"effects:parseStaticLine:svars": "SVars table lookup by static-line name, not a card Params map",
-	// engine/rules/stack.go staticModesFromSVars: svars is the face's SVar table
+	// engine/effects/effect.go GrantedStaticModes: svars is the face's SVar table
 	// (ctx.SVars / abFace.SVars), read by NAME -- the StaticAbilities$ list
 	// from the SA's own Params -- to fetch each granted static line's Mode$
 	// value; not a card Params map.
-	"rules:staticModesFromSVars:svars":       "SVars table lookup by StaticAbilities$ name, not a card Params map",
+	"effects:GrantedStaticModes:svars":       "SVars table lookup by StaticAbilities$ name, not a card Params map",
 	"effects:CloneStaticGrantReadable:svars": "SVars table lookup by named Clone static, not a card Params map",
 	// engine/effects/clone.go CloneNamedGrantsReadable: the face SVar table read by
 	// the AddSVars$/AddTriggers$ grant names, not card Params.
@@ -1962,6 +1962,10 @@ var handEffectsRoots = []string{
 	// predicates the rules cast path calls directly, outside any
 	// Register'd implementation.
 	"readPump",
+	// engine/effects/land_return.go: the rules' landWontStay and dirac's adapter call
+	// it directly on a land's own enters trigger, for a play_land option's
+	// LandWontStay; its reads inspect that trigger's return shape.
+	"EntryLandReturn",
 }
 
 // apiSpecificRulesSA names the rules functions whose SA (bSA) reads execute
@@ -1978,10 +1982,6 @@ var handEffectsRoots = []string{
 // one that no longer reads SA params); a NEW api-specialised path must be
 // added here or its reads over-suppress every other API's real gaps.
 var apiSpecificRulesSA = map[string][]string{
-	// The enters-trigger readers behind a play_land option's LandWontStay:
-	// each is called only on a trigger effect of that API (EntryLandReturn).
-	"entryReturnFilter":       {"ChangeZone"},
-	"entryUnlessReturnFilter": {"Sacrifice"},
 	// The mana-ability chain. A mana ability's production
 	// parameters (Produced$, Amount$, RestrictValid$, the riders) are read
 	// once, by effects.compileMana, reached through effMana; the entries below

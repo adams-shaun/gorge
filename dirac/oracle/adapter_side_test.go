@@ -207,6 +207,13 @@ func abilityDiffs(ref *GorgeSide, gd *decision.Decision, a *adapter.Game, ad *de
 	}
 	for i := range gd.Options {
 		g := &gd.Options[i]
+		if g.Kind == "play_land" {
+			for j := range ad.Options {
+				if s := &ad.Options[j]; s.Kind == "play_land" && s.Mode == g.Mode && ref.InstRef(g.Obj) == a.RefOf(s.Obj) && s.LandWontStay != g.LandWontStay {
+					out = append(out, "land_wont_stay of "+g.Label)
+				}
+			}
+		}
 		if g.Kind != "ability" {
 			continue
 		}

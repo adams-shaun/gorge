@@ -1,6 +1,9 @@
-package cost
+package effects
 
-import "github.com/adams-shaun/gorge/engine/cards"
+import (
+	"github.com/adams-shaun/gorge/engine/cards"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
+)
 
 // EntryLandReturn is the filter of the land a land's own enters trigger makes
 // its controller return to hand, "" for every other face. Two script shapes
@@ -40,7 +43,7 @@ func entryReturnFilter(sa *cards.SA) string {
 // entryUnlessReturnFilter is the filter of the permanent a sacrifice asks to
 // have returned instead, "" for a sacrifice with no such price.
 func entryUnlessReturnFilter(sa *cards.SA) string {
-	cost, ok := ParseUnlessCost(sa.ParamStr(cards.PKUnlessCost))
+	cost, ok := costvocab.ParseUnlessCost(sa.ParamStr(cards.PKUnlessCost))
 	if !ok || len(cost.Return) != 1 {
 		return ""
 	}

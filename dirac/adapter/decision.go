@@ -12,7 +12,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
-	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -514,10 +513,11 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		key = uint32(c.Mode())
 		if g.d.Sub == dirac.ChWardPay || g.d.Sub == dirac.ChGenPayMode {
 			unless = true
+			pay, decline := g.unlessWords()
 			if x.Mode() == 1 {
-				o.Mode, o.Label = decision.ModeUnlessPay, "Pay the cost"
+				o.Mode, o.Label = decision.ModeUnlessPay, pay
 			} else {
-				o.Mode, o.Label = decision.ModeUnlessDecline, "Don't pay"
+				o.Mode, o.Label = decision.ModeUnlessDecline, decline
 			}
 		}
 	case k == canon.ActOrder:
@@ -587,6 +587,34 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	return o, g.chooseKey(x)
 }
 
+// unlessWords words the two options of a cost asked inside a resolution: ward's, read
+// off the permanent it protects, or the resolving ability's UnlessCost$.
+func (g *Game) unlessWords() (pay, decline string) {
+	src := g.s.FeatSource()
+	var f *cards.Face
+	if src != dirac.NoObj {
+		f = g.face(g.kp.Objs[src].Card)
+	}
+	if g.d.Sub == dirac.ChWardPay && f != nil {
+		if cost, ok := f.KeywordParam("Ward"); ok {
+			return effects.UnlessPayPhrase(cost), "Don't pay"
+		}
+	}
+	if top := int(g.kp.NStack) - 1; top >= 0 {
+		for sa := g.stackSA(&g.kp.Stack[top]); sa != nil; sa = sa.Sub {
+			if cost := effects.ActivationOf(sa).UnlessCost; cost != "" {
+				name := "The permanent"
+				if f != nil {
+					name = f.Name
+				}
+				_, pay, decline = effects.UnlessWording(sa, cost, name)
+				return pay, decline
+			}
+		}
+	}
+	return "Pay the cost", "Don't pay"
+}
+
 // colorNames words a colour choice, in canon.ManaSyms' order.
 var colorNames = [...]string{"White", "Blue", "Black", "Red", "Green"}
 
@@ -596,7 +624,7 @@ func (g *Game) landWontStay(p uint8, f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
-	filter := cost.EntryLandReturn(f)
+	filter := effects.EntryLandReturn(f)
 	if filter == "" {
 		return false
 	}
@@ -863,14 +891,14 @@ func (g *Game) chooseTargetEffect(d *decision.Decision, card dirac.CardID, sa *c
 			}
 		}
 		if k >= g.targets.slot && slotFits(x, d) || i == len(chain)-1 {
-			d.TargetEffect = targetEffect(x)
+			d.TargetEffect = g.targetEffect(x, f, chain[:i])
 			targetSet(d, x)
 			return
 		}
 		k++
 	}
 	if sa != nil {
-		d.TargetEffect = targetEffect(sa)
+		d.TargetEffect = g.targetEffect(sa, f, nil)
 		targetSet(d, sa)
 	}
 }
@@ -916,9 +944,10 @@ func slotFits(x *cards.SA, d *decision.Decision) bool {
 	return true
 }
 
-// targetEffect describes sa for a seat choosing its target: the API, the removal shape
-// and a literal damage amount.
-func targetEffect(sa *cards.SA) *decision.TargetEffect {
+// targetEffect describes sa for a seat choosing its target: the API, the removal shape,
+// the damage it deals as things stand, and what an Effect grants. before is the chain
+// ahead of sa, which says which of the ability's damage instructions is sa's.
+func (g *Game) targetEffect(sa *cards.SA, f *cards.Face, before []*cards.SA) *decision.TargetEffect {
 	te := &decision.TargetEffect{API: sa.API}
 	switch sa.APIKind() {
 	case cards.APIDestroy, cards.APIDestroyAll:
@@ -938,13 +967,40 @@ func targetEffect(sa *cards.SA) *decision.TargetEffect {
 		}
 	case cards.APIDealDamage, cards.APIDamageAll:
 		te.Damage = &decision.DamageEffect{}
-		if amt := effects.DamageAmount(sa); amt.Present {
-			if n, err := strconv.Atoi(strings.TrimSpace(amt.Text)); err == nil && n >= 0 {
-				te.Damage.Amount = &n
-			}
+		if n, ok := g.damageAmount(sa, f, before); ok && n >= 0 {
+			te.Damage.Amount = &n
 		}
 	}
+	if sa.API == "Effect" && f != nil {
+		te.Statics = effects.GrantedStaticModes(sa, f.SVars)
+	}
 	return te
+}
+
+// damageAmount is what sa deals: a literal, or the kernel's reading of its damage
+// instruction. An amount that reads the target being chosen, or what a cost will name,
+// has no value yet.
+func (g *Game) damageAmount(sa *cards.SA, f *cards.Face, before []*cards.SA) (int, bool) {
+	amt := effects.DamageAmount(sa)
+	if !amt.Present {
+		return 0, false
+	}
+	raw := strings.TrimSpace(amt.Text)
+	if n, err := strconv.Atoi(raw); err == nil {
+		return n, true
+	}
+	if f != nil {
+		if body := f.SVars[strings.TrimLeft(raw, "+-")]; strings.Contains(body, "Targeted$") || effects.AmountAwaitsCost(body) {
+			return 0, false
+		}
+	}
+	n := 0
+	for _, x := range before {
+		if k := x.APIKind(); k == cards.APIDealDamage || k == cards.APIDamageAll {
+			n++
+		}
+	}
+	return g.s.FeatDamageOp(n)
 }
 
 func removalKind(dest string) string {

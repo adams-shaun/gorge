@@ -40,8 +40,6 @@ gorged -engine dirac -vsbot -addr 127.0.0.1:8091 -dir /tmp/gorge-data
   dice prompt. Those prompts only acknowledge.
 - A v2 observation reads no trigger amount, a colour from a card's printing off the
   battlefield, and no key for a planeswalker under attack.
-- A hosted bot reads a target's damage amount only when it is literal. An unless-pay
-  option says "Pay the cost" and not which.
 
 ## What it refuses
 

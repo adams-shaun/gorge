@@ -36,9 +36,6 @@ func (g *Game) objFacts(i uint8, id state.ObjID) {
 		if p, t, ok := g.s.FeatCDAPT(ob); ok {
 			f.power, f.tough = int32(p), int32(t)
 		}
-		dp, dt, _, _ := g.s.FeatStaticPT(ob)
-		f.power += int32(dp)
-		f.tough += int32(dt)
 		granted, rep := g.s.FeatGrantedOffRep(ob)
 		f.keywords = appendGranted(f.keywords, granted, &rep)
 		if po.Zone == kop.ZoneHand {
@@ -74,6 +71,11 @@ func (g *Game) handCost(o dirac.Obj, po *dirac.ProjObj) string {
 	c, changed := g.s.FeatHandCost(po.Owner, o)
 	if !changed || c.X != 0 {
 		return ""
+	}
+	if f := g.face(po.Card); f != nil {
+		if sa := f.SpellAbility(); sa != nil && (sa.ParamStr(cards.PKAlternativeCost) != "" || sa.ParamStr(cards.PKCost) != "") {
+			return ""
+		}
 	}
 	out := cost.Cost{Generic: int32(c.Generic)}
 	for k, n := range c.Pips {
@@ -323,18 +325,10 @@ func (b *board) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 	}
 	for i := range d.PaymentActions {
 		a := &d.PaymentActions[i]
-		mode := planMode(a.Cast.Origin)
+		mode := a.Cast.CastMode()
 		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: castLabel(a.Label, mode), Mode: mode})
 	}
 	return out
-}
-
-// planMode is a planned cast's origin as a potential action spells it.
-func planMode(origin string) string {
-	if origin == decision.OriginFlashback {
-		return "flashback"
-	}
-	return ""
 }
 
 // castLabel words a cast, with the cost it is cast for.
