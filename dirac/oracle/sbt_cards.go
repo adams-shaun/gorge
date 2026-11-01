@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots/spellbench/builtins"
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -258,17 +259,5 @@ func (c *SBTCards) gorgeSA(card dirac.CardID, gi uint8) *cards.SA {
 	if sc == nil || sc.gc == nil {
 		return nil
 	}
-	f := sc.gc.Faces[0]
-	switch {
-	case gi == 255:
-		return f.SpellAbility()
-	case gi&0x80 != 0:
-		i := int(gi &^ 0x80)
-		if i < len(f.Triggers) {
-			return f.Triggers[i].Effect
-		}
-	case int(gi) < len(f.Abilities):
-		return f.Abilities[gi]
-	}
-	return nil
+	return canon.FaceSA(sc.gc.Faces[0], gi)
 }

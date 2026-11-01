@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -33,24 +34,13 @@ func (g *Game) face(c dirac.CardID) *cards.Face {
 	return gc.Faces[0]
 }
 
-// faceSA is the spell ability a face index names: Face.Abilities, Face.Triggers'
-// effect (0x80|i), or the card's spell ability (255).
+// faceSA is the spell ability a face index names on table card c.
 func (g *Game) faceSA(c dirac.CardID, gi uint8) *cards.SA {
 	f := g.face(c)
 	if f == nil {
 		return nil
 	}
-	switch {
-	case gi == 255:
-		return f.SpellAbility()
-	case gi&0x80 != 0:
-		if i := int(gi &^ 0x80); i < len(f.Triggers) {
-			return f.Triggers[i].Effect
-		}
-	case int(gi) < len(f.Abilities):
-		return f.Abilities[gi]
-	}
-	return nil
+	return canon.FaceSA(f, gi)
 }
 
 // cardName is a kernel object's display name.

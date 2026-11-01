@@ -4,6 +4,7 @@ import (
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/feat"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -51,16 +52,7 @@ func sbtPhase(s kop.Step) string {
 	return "combat"
 }
 
-// sbtCounterNames are gorge's counter kinds for the kernel's counter array.
-var sbtCounterNames = func() [kop.NumCounterKinds2]string {
-	var n [kop.NumCounterKinds2]string
-	n[kop.CtrP1P1], n[kop.CtrM1M1], n[kop.CtrLoyalty], n[kop.CtrStun] = "P1P1", "M1M1", "LOYALTY", "STUN"
-	n[kop.CtrShield], n[kop.CtrFlying], n[kop.CtrOther] = "SHIELD", "Flying", "OTHER"
-	n[kop.CtrIncubation], n[kop.CtrBait], n[kop.CtrSoul] = "INCUBATION", "BAIT", "SOUL"
-	n[kop.CtrFellowship], n[kop.CtrRevival], n[kop.CtrStash] = "FELLOWSHIP", "REVIVAL", "STASH"
-	return n
-}()
-
+// canon.CounterNames are gorge's counter kinds for the kernel's counter array.
 var sbtManaSyms = [6]string{"W", "U", "B", "R", "G", "C"}
 
 // card fills cv for object o (its projection po).
@@ -138,13 +130,13 @@ func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
 		cv.Keywords = kws
 	}
 	for k, n := range po.Counters {
-		if n == 0 || k >= len(sbtCounterNames) || sbtCounterNames[k] == "" {
+		if n == 0 || k >= len(canon.CounterNames) || canon.CounterNames[k] == "" {
 			continue
 		}
 		if cv.Counters == nil {
 			cv.Counters = map[string]int32{}
 		}
-		cv.Counters[sbtCounterNames[k]] = int32(n)
+		cv.Counters[canon.CounterNames[k]] = int32(n)
 	}
 	for x, n := range po.CountersX {
 		if n == 0 {

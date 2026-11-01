@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -337,7 +338,7 @@ var decisionKinds = map[decision.Kind]DKind{
 
 // kernelCounterKind is the kernel counter kind of gorge's counter name.
 func kernelCounterKind(name string) (kop.CounterKind, bool) {
-	for c, n := range sbtCounterNames {
+	for c, n := range canon.CounterNames {
 		if n != "" && n == name && kop.CounterKind(c) != kop.CtrOther {
 			return kop.CounterKind(c), true
 		}

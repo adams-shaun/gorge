@@ -54,15 +54,6 @@ var stepOf = [...]state.Step{
 	kop.StepMain2: state.StepMain2, kop.StepEnd: state.StepEnd, kop.StepCleanup: state.StepCleanup,
 }
 
-var counterNames = func() [kop.NumCounterKinds2]string {
-	var n [kop.NumCounterKinds2]string
-	n[kop.CtrP1P1], n[kop.CtrM1M1], n[kop.CtrLoyalty], n[kop.CtrStun] = "P1P1", "M1M1", "LOYALTY", "STUN"
-	n[kop.CtrShield], n[kop.CtrFlying], n[kop.CtrOther] = "SHIELD", "Flying", "OTHER"
-	n[kop.CtrIncubation], n[kop.CtrBait], n[kop.CtrSoul] = "INCUBATION", "BAIT", "SOUL"
-	n[kop.CtrFellowship], n[kop.CtrRevival], n[kop.CtrStash] = "FELLOWSHIP", "REVIVAL", "STASH"
-	return n
-}()
-
 // materialise rebuilds the board from the position settle read.
 func (g *Game) materialise() {
 	b := &g.board
@@ -375,15 +366,15 @@ func (g *Game) boardObject(i uint8) {
 		o.SummonSick = true
 	}
 	for k, n := range po.Counters {
-		if n != 0 && counterNames[k] != "" {
-			o.AddCounter(counterNames[k], int32(n))
+		if n != 0 && canon.CounterNames[k] != "" {
+			o.AddCounter(canon.CounterNames[k], int32(n))
 		}
 	}
 	// a kind removed to none stays listed at zero while the permanent stays
 	listed := g.s.FeatCountersListed(dirac.Obj(i), &po.Counters)
 	for k := range po.Counters {
-		if listed&(1<<k) != 0 && po.Counters[k] == 0 && counterNames[k] != "" {
-			o.Counters = append(o.Counters, state.Counter{Kind: counterNames[k]})
+		if listed&(1<<k) != 0 && po.Counters[k] == 0 && canon.CounterNames[k] != "" {
+			o.Counters = append(o.Counters, state.Counter{Kind: canon.CounterNames[k]})
 		}
 	}
 	for x, n := range po.CountersX {
