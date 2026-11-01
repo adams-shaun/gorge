@@ -112,8 +112,10 @@ type knownLoc struct {
 //     membership only.
 //   - An arrange decision posed to the actor names the top k cards of its
 //     library, top first.
-//   - A "revealed ... as a cost" note names cards that stay in their owner's
-//     hand.
+//   - A public reveal that states its zone names cards that stay in their
+//     owner's hand: "revealed ... as a cost", "beheld ... as a cost" (a
+//     beheld permanent is then taken back out by the board), and a miracle
+//     reveal, until its cast moves the card.
 //   - At the end of every frame the public board wins: a card shown in a
 //     public zone or on the stack is in no hidden zone, the actor's own hand
 //     is exactly what the board shows, and a player whose zone sizes disagree
@@ -281,7 +283,7 @@ func (t *KnownCardTracker) event(ev ObservedEvent) {
 			t.unknownMove(ev)
 		}
 	case events.Note:
-		if !ev.Secret && strings.HasPrefix(ev.Text, "revealed ") && strings.HasSuffix(ev.Text, " as a cost") {
+		if !ev.Secret && revealStaysInHand(ev.Text) {
 			for _, ref := range ev.IDs {
 				identity, ok := t.ids[ref]
 				if !ok || identity.Owner != ev.Player {
@@ -292,6 +294,16 @@ func (t *KnownCardTracker) event(ev ObservedEvent) {
 			}
 		}
 	}
+}
+
+func revealStaysInHand(text string) bool {
+	switch {
+	case strings.HasPrefix(text, "revealed "), strings.HasPrefix(text, "beheld "):
+		return strings.HasSuffix(text, " as a cost")
+	case strings.HasPrefix(text, "reveals "):
+		return strings.HasSuffix(text, " (miracle)")
+	}
+	return false
 }
 
 // clearPositionsOf forgets a player's known library order; an out-of-range

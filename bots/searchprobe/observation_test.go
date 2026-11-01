@@ -285,11 +285,53 @@ func TestActionMatchesAcrossWorldsAndDistinguishesCopies(t *testing.T) {
 	}
 }
 
-func TestObservationRejectsUnknownIdentityNote(t *testing.T) {
-	e := observationEngine(t, 17)
-	_, err := NewCollector(0).Capture(e, []events.Event{{Kind: events.Note, IDs: []state.ObjID{e.G.Zone(state.ZLibrary, 1)[0]}, Text: "unknown identity semantics"}})
-	if err == nil {
-		t.Fatal("unknown identity-bearing note accepted")
+// A Note's Secret bit decides who learns a card, whatever its text says. Each
+// text is one the engine emits with cards in hidden zones.
+func TestObservationNoteIdentityFollowsSecret(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		secret bool
+		text   string
+	}{
+		{"miracle reveal", false, "reveals Terminus (miracle)"},
+		{"cascade exile", false, "cascades, exiling cards from the top of the library"},
+		{"beheld hand card", false, "beheld Dragon as a cost"},
+		{"id-only reveal", false, ""},
+		{"private look", true, "looks at the top two cards of the library"},
+		{"private bottom look", true, "looks at the bottom of the library"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := observationEngine(t, 17)
+			hidden := e.G.Zone(state.ZLibrary, 1)[0]
+			note := events.Event{Kind: events.Note, Player: 1, IDs: []state.ObjID{hidden}, Text: tc.text, Secret: tc.secret}
+			for _, seat := range []state.PlayerID{0, 1} {
+				frame, err := NewCollector(seat).Capture(e, []events.Event{note})
+				if err != nil {
+					t.Fatalf("seat %d: the feed stopped: %v", seat, err)
+				}
+				told := !tc.secret || seat == note.Player
+				if len(frame.Events) != 1 {
+					t.Fatalf("seat %d: events %+v", seat, frame.Events)
+				}
+				ev := frame.Events[0]
+				named := len(ev.IDs) == 1 && ev.Text == tc.text
+				if named != told {
+					t.Fatalf("seat %d: told=%v, event %+v", seat, told, ev)
+				}
+				if !told && (ev.Text != "" || ev.IDs != nil || !ev.Secret) {
+					t.Fatalf("seat %d: a look by another seat kept its payload: %+v", seat, ev)
+				}
+				introduced := false
+				for _, identity := range frame.Identities {
+					if len(ev.IDs) == 1 && identity.ID == ev.IDs[0] {
+						introduced = true
+					}
+				}
+				if introduced != told {
+					t.Fatalf("seat %d: told=%v, identities %+v", seat, told, frame.Identities)
+				}
+			}
+		})
 	}
 }
 
