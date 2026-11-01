@@ -644,9 +644,6 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	if d.ResumeKind == "copy_targets" {
-		return
-	}
 	if d.ResumeKind == "charm_targets" {
 		groups, ordered := charmTargetGroups(d, chosen)
 		if e.cast != nil {
