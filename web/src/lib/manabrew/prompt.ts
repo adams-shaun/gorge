@@ -265,7 +265,8 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
       d = { ...base, kind: 'choose', min: 1, max: 1, options: opts };
       break;
     case 'chooseColor':
-      for (const c of input.validColors) add({ kind: 'color', label: COLOR_NAME[c] ?? c, mana_symbol: c }, { t: 'color', color: c });
+      // The wire doesn't order them; the panel numbers colours in WUBRG on every wire.
+      for (const c of [...input.validColors].sort((x, y) => MANA_SLOTS.indexOf(x) - MANA_SLOTS.indexOf(y))) add({ kind: 'color', label: COLOR_NAME[c] ?? c, mana_symbol: c }, { t: 'color', color: c });
       d = { ...base, kind: 'choose', min: input.amount, max: input.amount, options: opts, ...(input.repeatAllowed ? { repeatable: true } : {}) };
       break;
     case 'reorder':

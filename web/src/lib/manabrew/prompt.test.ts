@@ -164,7 +164,7 @@ describe('bindPrompt (captured from a real gorged -manabrew)', () => {
     expect(num.respond({ seq: 5, player: 0, choices: [2] })).toMatchObject({ action: { output: { type: 'numberDecision', chosenNumber: 3 } } });
 
     const col = bindPrompt(synth({ type: 'chooseColor', validColors: ['G', 'R'], amount: 2, repeatAllowed: true }), { view: null });
-    expect(col.respond({ seq: 5, player: 0, choices: [1, 1] })).toMatchObject({ action: { output: { type: 'colorDecision', chosenColors: { R: 2 } } } });
+    expect(col.respond({ seq: 5, player: 0, choices: [0, 0] })).toMatchObject({ action: { output: { type: 'colorDecision', chosenColors: { R: 2 } } } });
 
     const ord = bindPrompt(synth({ type: 'reorder', items: [{ id: 'opt-0', oracle: 'A' }, { id: 'opt-1', oracle: 'B' }] }), { view: null });
     // The panel puts B on the stack first (B resolves last): ManaBrew wants A first.
@@ -198,6 +198,13 @@ describe('the announced mana window', () => {
     expect(window('2 U G', {}).decision!.mana_payment).toEqual({ card: 9, cost: { generic: 2, mana: [0, 1, 0, 0, 1, 0] }, owed: { generic: 2, mana: [0, 1, 0, 0, 1, 0] }, pool: [0, 0, 0, 0, 0, 0] });
     // A green pays its pip; the red and the second green pay the generic.
     expect(window('2 U G', { G: 2, R: 1 }).decision!.mana_payment!.owed).toEqual({ generic: 0, mana: [0, 1, 0, 0, 0, 0] });
+  });
+});
+
+describe('a colour ask', () => {
+  it('numbers the colours in WUBRG whatever order the wire sends', () => {
+    const p = { promptId: 7, decidingPlayerId: 'player-0', input: { type: 'chooseColor', amount: 1, validColors: ['B', 'G', 'R', 'U', 'W'], presentation: { title: 'Choose a colour', targets: [] } } } as unknown as AgentPrompt;
+    expect(bindPrompt(p, { view: null }).decision!.options.map((o) => o.mana_symbol)).toEqual(['W', 'U', 'B', 'R', 'G']);
   });
 });
 
