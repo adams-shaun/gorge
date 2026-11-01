@@ -356,7 +356,7 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			return n2, true, true
 		case evalCountBodyDottedWasCastFromYourHand:
 			// The BARE (no "ByYou") hand-provenance branch head
-			// (see_the_truth's SVar:X:Count$wasCastFromYourHand.1.3 —
+			// (See the Truth's Count$wasCastFromYourHand.1.3 —
 			// "put one of those cards into your hand ... If this spell was cast
 			// from anywhere other than your hand, put each of those cards into
 			// your hand instead"): the resolving source's latest cast came from

@@ -6,8 +6,8 @@ package effects
 // the resolving controller's hand -- so the Face of Boe's
 // `Valid$ Card.withSuspend` AB, which states a population and no zone, can
 // pose its selection. That default must be bound to a STATED population: 13
-// raw corpus `Play` lines carry no population param at all (Syrix's
-// `SVar:TrigPlay:DB$ Play | Optional$ True`, thunderblade_charge,
+// raw corpus `Play` lines carry no population param at all (Syrix's,
+// thunderblade_charge,
 // tibalt_the_chaotic, jhoira_of_the_ghitu_avatar x2, the_duke_of_midrange,
 // mysterious_confluence, ersta_friend_to_all, really_charming_prince,
 // discord_lord_of_disharmony's ST$). Their real bodies are

@@ -559,7 +559,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		}
 		// Forge's literal "Number$<int>" SVar body -- the "this is just the
 		// number" spelling (Vraska, Betrayal's Sting's
-		// SVar:Difference:Number$9/Minus.X, Kokusho's Number$7/Minus.Y,
+		// Number$9/Minus.X, Kokusho's Number$7/Minus.Y,
 		// Krang's Number$4/Minus.X, and the bookkeeping Number$0 bodies)
 		// evaluates the literal, with the shared /Op suffix resolved through
 		// the same operand grammar the Count$ branch applies (so

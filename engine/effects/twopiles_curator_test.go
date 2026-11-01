@@ -12,8 +12,8 @@ import (
 
 // This is the Curator of Destinies ETB pin. Curator's real
 // script splits the top five into a pile that leaves through ChangeZone
-// (ChosenPile$ DBHand) and a pile that leaves through ChangeZoneAll
-// (UnchosenPile$ DBGraveyard, `ChangeType$ Card.IsRemembered | Origin$
+// (ChosenPile$ ToHand) and a pile that leaves through ChangeZoneAll
+// (UnchosenPile$ ToYard, `ChangeType$ Card.IsRemembered | Origin$
 // Library`). noShuffleBody forces NoShuffle$ True onto BOTH bodies; ChangeZone
 // read it, ChangeZoneAll did not, so the unchosen-pile sweep reported
 // "ChangeZoneAll ignores unread parameter(s) NoShuffle$" once per resolution.
@@ -57,22 +57,20 @@ func (h *curatorTapeHost) TapeAnswer(d *decision.Decision) (decision.Intent, boo
 	}
 }
 
-// curatorSA parses Curator of Destinies' real TwoPiles sub-ability and its two
-// pile bodies (its Forge script's Separate/DBHand/DBGraveyard SVars).
+// curatorSA parses a TwoPiles sub-ability in the shape of Curator of Destinies'
+// ETB; curatorSVars holds its pile bodies.
 func curatorSA(t *testing.T) *cards.SA {
 	t.Helper()
 	src := "Name:Curator of Destinies\nTypes:Creature Sphinx\nPT:5/5\nOracle:x\n" +
-		"SVar:Separate:DB$ TwoPiles | Defined$ You | Separator$ You | Chooser$ Opponent | DefinedCards$ Remembered | ChosenPile$ DBHand | UnchosenPile$ DBGraveyard | Zone$ Library | FaceDown$ One\n" +
-		"SVar:DBHand:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand\n" +
-		"SVar:DBGraveyard:DB$ ChangeZoneAll | ChangeType$ Card.IsRemembered | Origin$ Library | Destination$ Graveyard\n"
+		"SVar:Piles:DB$ TwoPiles | Defined$ You | Separator$ You | Chooser$ Opponent | DefinedCards$ Remembered | ChosenPile$ ToHand | UnchosenPile$ ToYard | Zone$ Library | FaceDown$ One\n"
 	c, d := cards.ParseBytes("curator.txt", []byte(src))
 	if len(d) != 0 {
 		t.Fatalf("diags: %v", d)
 	}
 	c.Link()
-	sa := cards.ResolveSVar(c.Faces[0].SVars, "Separate")
+	sa := cards.ResolveSVar(c.Faces[0].SVars, "Piles")
 	if sa == nil {
-		t.Fatalf("Separate did not resolve")
+		t.Fatalf("Piles did not resolve")
 	}
 	return sa
 }
@@ -80,8 +78,8 @@ func curatorSA(t *testing.T) *cards.SA {
 // curatorSVars is the SVar table curatorSA resolves its pile bodies through.
 func curatorSVars() map[string]string {
 	return map[string]string{
-		"DBHand":      "DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand",
-		"DBGraveyard": "DB$ ChangeZoneAll | ChangeType$ Card.IsRemembered | Origin$ Library | Destination$ Graveyard",
+		"ToHand": "DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand",
+		"ToYard": "DB$ ChangeZoneAll | ChangeType$ Card.IsRemembered | Origin$ Library | Destination$ Graveyard",
 	}
 }
 

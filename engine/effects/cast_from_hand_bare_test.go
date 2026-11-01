@@ -1,7 +1,7 @@
 // The BARE wasCastFromYourHand predicate family, unit-tested
 // at the effects-side eval level the ByYou twin uses: the Count$
-// branch head's dotted grammar (see_the_truth's
-// SVar:X:Count$wasCastFromYourHand.1.3), the ConditionPresent$ gate helper
+// branch head's dotted grammar (See the Truth's
+// Count$wasCastFromYourHand.1.3), the ConditionPresent$ gate helper
 // (otterball_antics' `Card.wasCast+!wasCastFromYourHand`), and the
 // UnknownPredicates guard reading the token-STRIPPED spec. The provenance
 // itself is Host.WasCastFromHand's log scan — pinned end to end on the real

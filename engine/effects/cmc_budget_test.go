@@ -121,11 +121,11 @@ func TestMandatoryBudgetHiddenPickLowersMin(t *testing.T) {
 	}
 }
 
-// proteanHulkSearch is Protean Hulk's real TrigChangeZone SVar line verbatim;
-// its ChangeNum$ X resolves through the card's own
-// SVar:X:Count$ValidLibrary Creature.YouCtrl, supplied in the Ctx here.
+// proteanHulkSearch is a library search budgeted by WithTotalCMC$, the shape of
+// Protean Hulk's trigger; its ChangeNum$ X resolves through the
+// Count$ValidLibrary body supplied in the Ctx here.
 const proteanHulkSearch = "DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | " +
-	"ChangeNum$ X | WithTotalCMC$ 6 | ChangeType$ Creature.YouCtrl"
+	"ChangeType$ Creature.YouCtrl | ChangeNum$ X | WithTotalCMC$ 6"
 
 // TestProteanHulkSearchBudgetNarrowsEligible: the library search narrows to
 // the affordable pool and carries the budget on the wire. Library

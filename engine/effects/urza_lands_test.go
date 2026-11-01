@@ -25,14 +25,14 @@ func urzaFixture(t *testing.T, ctrls ...state.PlayerID) (*state.Game, map[string
 		return 0
 	}
 	mineSrc := "Name:Urza's Mine\nTypes:Land Urza's Mine\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount | SpellDescription$ Add {C}. If you control an Urza's Power-Plant and an Urza's Tower, add {C}{C} instead.\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.2.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ N\n" +
+		"SVar:N:Count$UrzaLands.2.1\nOracle:x\n"
 	towerSrc := "Name:Urza's Tower\nTypes:Land Urza's Tower\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount | SpellDescription$ Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.3.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ N\n" +
+		"SVar:N:Count$UrzaLands.3.1\nOracle:x\n"
 	plantSrc := "Name:Urza's Power Plant\nTypes:Land Urza's Power-Plant\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount | SpellDescription$ Add {C}. If you control an Urza's Mine and an Urza's Tower, add {C}{C} instead.\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.2.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ N\n" +
+		"SVar:N:Count$UrzaLands.2.1\nOracle:x\n"
 
 	mk := func(order int, src string) state.ObjID {
 		c, d := cards.ParseBytes("t.txt", []byte(src))

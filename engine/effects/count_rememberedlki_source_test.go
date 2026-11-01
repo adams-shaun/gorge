@@ -17,15 +17,11 @@ import (
 //
 // Two real corpus shapes depend on the source being kept:
 //
-//   - Cosima, God of the Voyage // The Omenkeel, SVar:DBReturn:
-//     `ChangeZone | Defined$ Self | Origin$ Exile | Destination$ Battlefield |
-//     RememberLKI$ True`, with `SVar:X:RememberedLKI$CardCounters.VOYAGE`.
-//     The exiled god returns to the battlefield and its own X reads the
-//     voyage counters the source carried in exile.
-//   - Riders of the Mark, SVar:TrigChangeZone:
-//     `ChangeZone | Defined$ Self | Origin$ Battlefield | Destination$ Hand |
-//     RememberChanged$ True`, with `SVar:Y:RememberedLKI$CardToughness`.
-//     It returns to its owner's hand and makes tokens equal to its toughness.
+//   - Cosima, God of the Voyage // The Omenkeel: the exiled god returns to the
+//     battlefield and its own X reads the voyage counters the source carried
+//     in exile.
+//   - Riders of the Mark: it returns to its owner's hand and makes tokens equal
+//     to its toughness.
 //
 // Both move the SOURCE (Defined$ Self), so the moved object id == Ctx.Source,
 // and a bare rememberedWithSource read answers zero for either. The fixture

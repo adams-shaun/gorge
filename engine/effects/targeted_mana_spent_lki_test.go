@@ -13,7 +13,7 @@ import (
 // mana spent to cast that spell was less than its mana value, you draw a
 // card."
 //
-// The chained DBDraw condition reads SVar:X:Targeted$CastTotalManaSpent AFTER
+// The chained DBDraw condition reads Targeted$CastTotalManaSpent AFTER
 // the Counter has moved the target spell off the stack. events.Apply zeroes
 // the cast-time captures on that move (CR 400.7), so the live read is a
 // legitimate-looking 0 and the gate wrongly fires. This file pins the

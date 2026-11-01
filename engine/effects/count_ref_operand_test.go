@@ -8,9 +8,7 @@ import (
 
 // TestRefPropertyOpResolvesNamedSVarOperand pins the <Ref>$<Property>/Op
 // suffix's SVar-named operand (Doran, Besieged by
-// Time): "SVar:X1:SVar$Y1/Abs", "SVar:Y1:TriggeredAttacker$CardPower/Minus.Z1",
-// "SVar:Z1:TriggeredAttacker$CardToughness" — the pump amount is
-// |power - toughness|, read through a two-deep SVar chain whose /Minus
+// Time) — the pump amount is |power - toughness|, read through a two-deep SVar chain whose /Minus
 // operand is another SVar. Before the operand-aware read the numeric-only
 // applyCountOp parsed no number in "Minus.Z1", left the base value standing
 // and turned the difference into "+power/+power": a 0/5 Doran pumped +0/+0,

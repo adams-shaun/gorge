@@ -229,7 +229,7 @@ type TriggerContext struct {
 	// RolledDieOnce trigger fired on (the canonical batch roll Note's Pairs
 	// max, effects.DieRollBatchResult). It is what the TriggerCountMax$Result
 	// head answers -- Farideh, Devil's Chosen's "if any of those results was
-	// 10 or higher" (ConditionCheckSVar$ DiceResult, SVar:DiceResult:TriggerCountMax$Result),
+	// 10 or higher" (a ConditionCheckSVar$ on that head),
 	// which must survive the roll resolution like TriggerResult. Zero outside
 	// a RolledDie/RolledDieOnce trigger; a real result is always >= 1.
 	TriggerResultMax int32

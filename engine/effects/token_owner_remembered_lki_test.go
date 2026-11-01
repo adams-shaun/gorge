@@ -10,14 +10,14 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// gatekeeperScript is Unyielding Gatekeeper's real chain (TrigExile ..
-// DBCleanup, copied from the corpus line for line) as one spell-ability root,
-// so the whole TokenOwner$ / ConditionPresent$ shape runs, not a reduction.
+// gatekeeperScript exiles a permanent, returns it if you controlled it, and
+// otherwise gives its last controller a Detective: Unyielding Gatekeeper's chain
+// as one spell-ability root, so TokenOwner$ and ConditionPresent$ both run.
 const gatekeeperScript = "Name:Fixture Gatekeeper\nManaCost:1 W\nTypes:Creature Cleric\nPT:3/2\n" +
-	"A:SP$ ChangeZone | IsCurse$ True | ValidTgts$ Permanent.nonLand+Other | Origin$ Battlefield | Destination$ Exile | RememberLKI$ True | SubAbility$ DBReturn\n" +
-	"SVar:DBReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | ConditionDefined$ Remembered | GainControl$ True | ConditionPresent$ Card.YouCtrl | Destination$ Battlefield | SubAbility$ DBToken\n" +
-	"SVar:DBToken:DB$ Token | TokenScript$ wu_2_2_detective | TokenOwner$ RememberedController | ConditionDefined$ Remembered | ConditionPresent$ Card.YouCtrl | ConditionCompare$ EQ0 | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
+	"A:SP$ ChangeZone | ValidTgts$ Permanent.nonLand+Other | Origin$ Battlefield | Destination$ Exile | RememberLKI$ True | SubAbility$ Back\n" +
+	"SVar:Back:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield | GainControl$ True | ConditionDefined$ Remembered | ConditionPresent$ Card.YouCtrl | SubAbility$ Detective\n" +
+	"SVar:Detective:DB$ Token | TokenScript$ wu_2_2_detective | TokenOwner$ RememberedController | ConditionDefined$ Remembered | ConditionPresent$ Card.YouCtrl | ConditionCompare$ EQ0 | SubAbility$ Forget\n" +
+	"SVar:Forget:DB$ Cleanup | ClearRemembered$ True\n" +
 	"Oracle:x\n"
 
 type gatekeeperRun struct {

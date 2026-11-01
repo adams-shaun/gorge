@@ -22,8 +22,8 @@ const cryptoplasmCarrier = "Name:Cryptoplasm\n" +
 	"ManaCost:1 U U\n" +
 	"Types:Creature Shapeshifter\n" +
 	"PT:2/2\n" +
-	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ CryptoplasmCopy | OptionalDecider$ You | TriggerDescription$ At the beginning of your upkeep, you may have CARDNAME become a copy of another target creature, except it has this ability.\n" +
-	"SVar:CryptoplasmCopy:DB$ Clone | ValidTgts$ Creature.Other | TgtPrompt$ Select another target creature to copy. | Optional$ True | GainThisAbility$ True | AddSVars$ CryptoplasmCopy | AILogic$ CloneBestCreature\n" +
+	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | Execute$ CopyBody | OptionalDecider$ You\n" +
+	"SVar:CopyBody:DB$ Clone | ValidTgts$ Creature.Other | Optional$ True | GainThisAbility$ True | AddSVars$ CopyBody\n" +
 	"Oracle:x\n"
 
 // cloneTriggerFixture puts the Cryptoplasm-like carrier (the become operand and

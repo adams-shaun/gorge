@@ -11,12 +11,8 @@ import (
 // The `Defined$`-named hidden-library mover (moveDefinedLibraryObjects) routes
 // its per-object movement through the shared settle helper, which did not
 // carry the `Imprint$ True` persistent association the library-search mover
-// did. Dakra Mystic's DBPutRevealed is the real carrier:
-//
-//	SVar:DBPutRevealed:DB$ ChangeZone | Defined$ Remembered | Origin$ Library
-//	  | Destination$ Graveyard | Optional$ True | Imprint$ True | SubAbility$ DBDraw
-//	SVar:DBDraw:DB$ Draw | Defined$ Player | ConditionDefined$ Imprinted
-//	  | ConditionPresent$ Card | ConditionCompare$ EQ0 | SubAbility$ DBCleanup
+// did. Dakra Mystic is the real carrier: each revealed card it may mill is such
+// a move, followed by a draw.
 //
 // The follow-up draw is gated on the source having imprinted NOTHING (EQ0).
 // If the moved card missed the source's Imprinted association, the gate would

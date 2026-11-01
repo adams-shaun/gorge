@@ -11,10 +11,10 @@ import (
 // PlayerCountRemembered$Valid semantic against the corpus carriers. It is a
 // CARD count that takes a filter argument, NOT a count of remembered players:
 //
-//	Pox              SVar:E:PlayerCountRemembered$Valid Creature.RememberedPlayerCtrl/ThirdUp
-//	Pox Plague       SVar:Z:PlayerCountRemembered$Valid Permanent.RememberedPlayerCtrl/HalfDown
-//	Fraying Omnipotence SVar:E:PlayerCountRemembered$Valid Creature.RememberedPlayerCtrl/HalfUp
-//	Batwing Brume    SVar:X:PlayerCountRemembered$Valid Creature.YouCtrl+attacking
+//	Pox                  Creature.RememberedPlayerCtrl/ThirdUp
+//	Pox Plague           Permanent.RememberedPlayerCtrl/HalfDown
+//	Fraying Omnipotence  Creature.RememberedPlayerCtrl/HalfUp
+//	Batwing Brume        Creature.YouCtrl+attacking
 //
 // The Pox family sizes "a third/half of the creatures/permanents they
 // control"; Batwing Brume sizes "each player loses 1 life for each attacking

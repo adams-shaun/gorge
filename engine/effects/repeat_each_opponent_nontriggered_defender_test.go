@@ -36,10 +36,10 @@ func TestRepeatEachOppNonTriggeredDefenderCopiesAndRegistersImprint(t *testing.T
 	const script = `Name:Shredder Fixture
 Types:Creature
 PT:5/5
-A:SP$ RepeatEach | RepeatPlayers$ OppNonTriggeredDefender | RepeatSubAbility$ DBCopy | ChangeZoneTable$ True | SubAbility$ DelTrig
-SVar:DBCopy:DB$ CopyPermanent | Defined$ TriggeredAttackerLKICopy | TokenAttacking$ Remembered | TokenTapped$ True | ImprintTokens$ True | NonLegendary$ True
-SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End Of Turn | Execute$ TrigExile | RememberObjects$ ImprintedLKI
-SVar:TrigExile:DB$ ChangeZone | Defined$ DelayTriggerRememberedLKI | Origin$ Battlefield | Destination$ Exile
+A:SP$ RepeatEach | RepeatPlayers$ OppNonTriggeredDefender | RepeatSubAbility$ CopyAttacker | ChangeZoneTable$ True | SubAbility$ DelTrig
+SVar:CopyAttacker:DB$ CopyPermanent | Defined$ TriggeredAttackerLKICopy | TokenAttacking$ Remembered | TokenTapped$ True | ImprintTokens$ True
+SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End Of Turn | Execute$ ExileCopies | RememberObjects$ ImprintedLKI
+SVar:ExileCopies:DB$ ChangeZone | Defined$ DelayTriggerRememberedLKI | Origin$ Battlefield | Destination$ Exile
 Oracle:x
 `
 	card, diags := cards.ParseBytes("repeat-each-carrier.txt", []byte(script))

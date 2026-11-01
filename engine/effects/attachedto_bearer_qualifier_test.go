@@ -11,9 +11,8 @@ import (
 // "<class>.<qual>" form of the two-token AttachedTo grammar, where the
 // qualifier names a property of the ATTACHED BEARER. With Great Power . . .
 // ("Enchanted creature gets +2/+2 for each Aura and Equipment attached to
-// it") is the headline carrier:
-//
-//	SVar:X:Count$Valid Aura.AttachedTo Creature.EnchantedBy,Equipment.AttachedTo Creature.EnchantedBy/Times.2
+// it") is the headline carrier, counting Aura.AttachedTo Creature.EnchantedBy
+// and the same for Equipment.
 //
 // Before this change attachedToArg accepted only YouCtrl as a dotted
 // qualifier, so the token failed closed as an unknown predicate and the

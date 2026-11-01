@@ -195,9 +195,8 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		return n, true, true
 	}
 
-	// TargetedByTarget$Valid <spec> (Forge; 2 corpus carriers -- Not of This
-	// World's SVar:CheckTgt:TargetedByTarget$Valid Card.powerGE7+YouCtrl and
-	// Bane's Contingency's ...IsCommander+YouCtrl+inZoneBattlefield): the
+	// TargetedByTarget$Valid <spec> (Forge; 2 corpus carriers, Not of This
+	// World and Bane's Contingency): the
 	// number of objects, among the targets of the spell/ability(ies) that the
 	// resolving source targets, that match <spec> -- the NESTED read one
 	// level past spellIsTargetingMatches' own .Targets walk. The resolving

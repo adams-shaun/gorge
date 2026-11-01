@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// exiled_cards_count_test.go pins Corpseweft's `SVar:Y:ExiledCards$Amount/Twice`
+// exiled_cards_count_test.go pins Corpseweft's `ExiledCards$Amount/Twice`
 // count source (engine/effects/count.go refTargets' `ExiledCards` referent). Forge's
 // `ExiledCards` amount is the cast-cost PAID list -- the cards the resolving
 // cast or activation actually exiled as a cost -- not Object.ExiledCards (a

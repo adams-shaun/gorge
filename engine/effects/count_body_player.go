@@ -22,7 +22,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// one way per card. The read is a plain read of Player.Counters, which
 	// events.PlayerCounterChange folds, so it is event-backed and
 	// replay-derivable; no new event or provenance is needed. Razorfield
-	// Ripper's SVar:X:Count$YourCountersEnergy drives its attack pump,
+	// Ripper's Count$YourCountersEnergy drives its attack pump,
 	// Localized Destruction's and Aether Refinery's DB$ ChooseNumber
 	// Max$ Count$YourCountersEnergy bounds their may-pay-{E} ask. A
 	// controller out of range (no resolution in flight) reads 0.
@@ -246,9 +246,8 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// PlayerCountPropertyYou$<Property> — the supported members of Forge's
 	// PlayerCountProperty<group>$<Property> family. HasPropertyActive reads 1
 	// when the resolving controller is active, else 0 — Starting Town's
-	// ETB gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and
-	// feeds Count$Compare Y GE1.Z.4, so X is YourTurns on your turn and 4
-	// off it, tapped only when X > 3. The per-turn properties below read the
+	// ETB gate reads it and feeds Count$Compare Y GE1.Z.4, so X is YourTurns on
+	// your turn and 4 off it, tapped only when X > 3. The per-turn properties below read the
 	// existing replay-derived host tallies or the event-backed LandsPlayed
 	// state. Unsupported properties and all other group spellings retain the
 	// fail-closed unresolvable verdict.

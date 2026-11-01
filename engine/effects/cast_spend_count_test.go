@@ -44,7 +44,7 @@ func TestCastTotalManaSpentHeadReadsTheCapturedSpend(t *testing.T) {
 // resolve from their own captures (tested below), and an
 // unknown producer type fails closed to 0 rather than returning the
 // unfiltered total. Pinned on the real corpus card the Snow family uses
-// (Berg Strider's SVar:S:Count$CastTotalManaSpent Snow).
+// (Berg Strider's Count$CastTotalManaSpent Snow).
 func TestCastTotalManaSpentHeadFiltersByType(t *testing.T) {
 	h, c := fixtureHost(t)
 	o := h.g.Obj(c.Source)

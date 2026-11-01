@@ -346,8 +346,8 @@ func registerAnimateContinuousGrant(h Host, c *Ctx, id state.ObjID, params stati
 // grantedSVarsFor (engine/rules/layers.go's AddSVar$ machinery, which pileSVars
 // layers under the printed table). It is reached only from the Animate site
 // (registerAnimateEffects). A body whose own value is a nested
-// "SVar:<Name>:<Value>" declaration (Whip of Erebos's
-// SVar:WhipMustAttack:SVar:MustAttack:True) is granted under BOTH names --
+// "SVar:<Name>:<Value>" declaration (Whip of Erebos's,
+// whose value is SVar:MustAttack:True) is granted under BOTH names --
 // the verbatim Forge grant and the expanded marker the nested form
 // declares -- one level per body, the corpus's own depth; no corpus body
 // nests deeper. The granted marker bodies today (MustAttack, MustBeBlocked,
@@ -410,8 +410,8 @@ func leaveExileLifetime(id state.ObjID, value string) (remembered []state.ObjID,
 }
 
 // parseNestedSVar parses the "SVar:<Name>:<Value>" body an sVars$ grant's
-// own value carries (the nested declaration Whip of Erebos's
-// SVar:WhipMustAttack:SVar:MustAttack:True marks). ok is false for any other
+// own value carries (the nested declaration in Whip of Erebos's
+// grant). ok is false for any other
 // shape.
 func parseNestedSVar(raw string) (name, value string, ok bool) {
 	rest, ok := strings.CutPrefix(raw, "SVar:")
