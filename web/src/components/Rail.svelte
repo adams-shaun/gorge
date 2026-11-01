@@ -199,7 +199,7 @@
    * sized except the stack frame, which takes the leftover height and
    * scrolls history AND live stack together. The detail pane and pending
    * tray are capped and scroll inside themselves, so neither history nor
-   * stack tiles can push Pending off the bottom (U2).
+   * stack tiles can push Pending off the bottom.
    */
   .rail-inner {
     display: flex;

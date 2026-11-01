@@ -133,7 +133,7 @@ func (w *legalWalk) handWalk() {
 		// like room_alt) and, when the card carries K:Fuse, BOTH halves may be
 		// cast as one fused spell (mode fuse, paying the combined cost and
 		// resolving both halves). The split_alt offer reads the half's OWN
-		// timing (review MAJOR 2), targets and cost through
+		// timing, targets and cost through
 		// splitCastTargetsAvailable, so a half with no legal target -- or one
 		// the seat cannot pay for -- is withheld independently of the front
 		// face. It stands ABOVE the front-face spellTimingOK gate below on

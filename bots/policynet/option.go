@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// Option is one encoded offered option (R1 §1.4's per-option block): its
+// Option is one encoded offered option: its
 // categorical one-hot slots, its hashed ids into the shared TableRows table,
 // its 24 dense scalars, and (filled by the loader) its label target.
 type Option struct {
@@ -22,10 +22,9 @@ type Option struct {
 	Slots []Feature
 	// Hashed are the hashed ids into the shared TableRows table, emitted in
 	// the fixed order: [0] card identity, [1] card identity × target
-	// descriptor, [2] option-kind identity. (R1 §1.4 names the first two;
-	// the third is this build's addition — the option-kind one-hot list is
-	// R1's measured 23 kinds plus "other", and the hashed kind id keeps an
-	// unseen kind distinguishable instead of collapsing into "other".)
+	// descriptor, [2] option-kind identity. (The option-kind one-hot list is a
+	// measured 23 kinds plus "other"; the hashed kind id keeps an unseen kind
+	// distinguishable instead of collapsing into "other".)
 	Hashed []Feature
 	// Dense is the fixed 24-wide scalar vector documented at EncodeOption.
 	Dense []float32
@@ -84,7 +83,7 @@ type OptionTarget struct {
 	Value float64
 }
 
-// Option slot layout (R1 §1.4's block table, in its order). The widths and
+// Option slot layout. The widths and
 // offsets are a pinned contract (golden test).
 const (
 	OptionSlotWidth = 128
@@ -108,7 +107,7 @@ const (
 	numZoneSlots    = 8
 )
 
-// optionKinds is R1 §1.4's measured option-kind one-hot vocabulary (23,
+// optionKinds is the measured option-kind one-hot vocabulary (23,
 // measured over all 9 decision kinds, 660 games). The live engine vocabulary
 // has since grown to 85 distinct kinds; anything outside this list sets the
 // "other" slot AND the hashed "optkind|<kind>" id, so an unseen kind stays
@@ -131,8 +130,8 @@ var cardTypeBits = [...]string{
 // cost, then the named alternates, plus "other".
 var modeValues = [...]string{"", "kicked", "surged", "flashback", "miracle"}
 
-// keywordBits is the fixed 31-keyword block (R1 §1.4: 31 registered kw:
-// primitives + "other"); membership is matched case-insensitively against
+// keywordBits is the fixed 31-keyword block (31 registered kw: primitives +
+// "other"); membership is matched case-insensitively against
 // the card's projected keyword heads. The exact 31 are this build's
 // combat/cast set; any other keyword a card carries sets "other".
 var keywordBits = [...]string{
@@ -233,11 +232,11 @@ const (
 	odGroup     = 23 // Option.Group != ""
 )
 
-// EncodeOption encodes one offered option (R1 §1.4). d is the decision kind
+// EncodeOption encodes one offered option. d is the decision kind
 // being answered (the record's view carries no decision), idx the option's
 // index in the offered list and n the list length.
 //
-// Slot blocks, in emission order: option-kind one-hot (23 R1 kinds + other),
+// Slot blocks, in emission order: option-kind one-hot (23 kinds + other),
 // decision-kind one-hot (decision.Kinds + other), card-type bits, colour
 // bits (WUBRG + colourless from the card's mana cost), mana-value bucket
 // (0..7, 8+), Option.Mode one-hot (5 + other), alt-cost-present bit, keyword

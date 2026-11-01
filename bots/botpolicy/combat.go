@@ -1513,13 +1513,12 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// AR4: hold back a best blocker if attacking leaves nobody to block
 	// with. Zero remaining after the attack (attackers tap without
 	// Vigilance) plus an opponent that could attack back is the trigger;
-	// A4's armed aggro posture releases the hold when the whole crack-back
-	// cannot kill us (posture.go's aggroReleasesBlocker).
 	// only blockable attackers are candidates, since an unblockable one is
 	// the way a defensive board still wins. This generalizes the
 	// check from the single defender to ANY opponent: "leave the board
 	// undefended" is a fact about the whole table, and any opponent with a
-	// threat creature can punish it.
+	// threat creature can punish it. An armed aggro posture releases the hold
+	// when the whole crack-back cannot kill us (posture.go's aggroReleasesBlocker).
 	canStillBlock := 0
 	attackingSet := make(map[state.ObjID]bool, len(chosen))
 	for _, oi := range chosen {

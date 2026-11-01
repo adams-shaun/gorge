@@ -681,8 +681,8 @@ func (e *Engine) payCast() {
 	}
 	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
 	e.installPaidCostLists(pc)
-	// A Fuse cast publishes its per-stage target split for resolution
-	// (review MAJOR 1): resolveFused reads it instead of re-deriving the
+	// A Fuse cast publishes its per-stage target split for resolution:
+	// resolveFused reads it instead of re-deriving the
 	// split from the flat target list. Engine-only scratch like
 	// sacrificedLKI — rebuilt by replay because payCast re-executes, and
 	// removed with the stack object by the shared MoveZone cleanup.

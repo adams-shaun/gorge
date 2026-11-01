@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// The checkpoint is the versioned binary serialization of a trained Model
-// (R1 §3.6): magic, schema version, the ENCODER's golden hash id, the
+// The checkpoint is the versioned binary serialization of a trained Model:
+// magic, schema version, the ENCODER's golden hash id, the
 // geometry, then the float32 weight blocks little-endian. The encoder hash
 // is the load-bearing field: a checkpoint trained against one encoder
 // contract must refuse to load against a drifted one, because a silent

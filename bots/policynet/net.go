@@ -12,7 +12,7 @@ import (
 // hashed embedding table over the encoder's
 // sparse rows, a dense projection of the state's dense vector, and a
 // one-hidden-layer ReLU MLP that scores [state ‖ option]. Forward and
-// backward are HAND-DERIVED — there is no autodiff (R1 §3.4); the gradients
+// backward are HAND-DERIVED — there is no autodiff; the gradients
 // are pinned by a finite-difference test (net_test.go).
 //
 // Shape (all widths fixed by the encoder contract in policynet.go/option.go):
@@ -24,11 +24,11 @@ import (
 //	score        y = w_o·a + b_o  (scalar — one per offered option)
 //
 // The option's one-hot slots and 24 dense scalars enter RAW (concatenated),
-// not embedded: they are already a fixed-width learned-input space (R1 §1.4's
+// not embedded: they are already a fixed-width learned-input space (the
 // 106 categorical slots + 24 dense), and giving each its own embedding row
 // would duplicate them. The hashed ids share the STATE's table, so a card
 // seen in the state bag and the same card offered as an option land on the
-// same embedding row — that is the R1 §1.4 sharing.
+// same embedding row.
 //
 // Everything is float32; the LOSS arithmetic is float64 (softmax/LSE
 // stability), which does not affect weight determinism. No map iteration

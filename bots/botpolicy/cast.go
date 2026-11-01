@@ -861,7 +861,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
-	// A4's R4: the reserve's weight by deck posture (posture.go).
+	// The reserve's weight by deck posture (posture.go).
 	resScale := b.reserveScale(w)
 	// The foreign-spell census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.

@@ -739,7 +739,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		// targets are already recorded (its first target must then APPEND).
 		stageBase := len(pc.targets)
 		pc.targets = append(pc.targets, targetOptions(chosen)...)
-		// A Fuse cast records the stage's own slice (review MAJOR 1): the flat
+		// A Fuse cast records the stage's own slice: the flat
 		// list on the stack object cannot express which half chose which
 		// target, and re-deriving the split through each half's ValidTgts spec
 		// mis-assigns every target that half's spec merely overlaps (Turn //

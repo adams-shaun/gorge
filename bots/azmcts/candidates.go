@@ -63,7 +63,7 @@ func (c cand) scoreChoices() ([]int, bool) {
 }
 
 // enumerate builds the candidates of the searching seat's decision d, the
-// bot's answer bot first (spec §1), over the exported searchprobe
+// bot's answer first, over the exported searchprobe
 // enumerators the search seat also uses:
 //
 //   - attackers: searchprobe.AttackCandidates;
@@ -898,7 +898,7 @@ func payActionsKey(acts []searchprobe.Action) Key {
 	return Key(searchprobe.AppendActionsKey(b, acts))
 }
 
-// priors is the candidates' prior (spec §2): uniform without a network;
+// priors is the candidates' prior: uniform without a network;
 // otherwise a softmax, across candidates, of policynet.CandidateScore over
 // the head's option scores on the deciding seat's redacted view -- the
 // subset log-likelihood for attackers and blockers, the single option's
