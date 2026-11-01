@@ -65,16 +65,16 @@ func TestRoomLKIAbility(t *testing.T) {
 	state := find("room:Defiled Crypt#03") // same printed face, both doors unlocked
 	other := find("room:Meat Locker#03")   // a different Room's state def
 
-	if got := rs.lkiAbility(state, plain, 0); got != 128 {
+	if got := rs.translator().LKIAbility(state, plain, 0); got != 128 {
 		t.Errorf("lkiAbility(room:Defiled Crypt#03, Defiled Crypt, 0) = %d, want 128", got)
 	}
-	if got := rs.lkiAbility(other, plain, 0); got != 255 {
+	if got := rs.translator().LKIAbility(other, plain, 0); got != 255 {
 		t.Errorf("lkiAbility(room:Meat Locker#03, Defiled Crypt, 0) = %d, want 255", got)
 	}
-	if got := rs.lkiAbility(plain, plain, 0); got != 128 {
+	if got := rs.translator().LKIAbility(plain, plain, 0); got != 128 {
 		t.Errorf("lkiAbility(Defiled Crypt, Defiled Crypt, 0) = %d, want 128", got)
 	}
-	if got := rs.lkiAbility(state, state, 1); got != 255 {
+	if got := rs.translator().LKIAbility(state, state, 1); got != 255 {
 		t.Errorf("lkiAbility(room:Defiled Crypt#03, room:Defiled Crypt#03, 1) = %d, want 255", got)
 	}
 	// The same assertions through the branch decision Project calls, so

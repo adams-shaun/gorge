@@ -1,4 +1,4 @@
-package oracle
+package canon
 
 import (
 	"github.com/adams-shaun/gorge/dirac"
@@ -21,34 +21,34 @@ var (
 
 // The face route codes the kernel casts (dirac/face_castface.go).
 const (
-	faceCodeModal       = 1
-	faceCodeAdventure   = 2
-	faceCodeRecast      = 3
-	faceCodeSplit       = 4
-	faceCodeMorphed     = 8
-	faceCodeMegamorphed = 9
-	faceCodeDisguised   = 10
-	faceCodePrepared    = 12 // a prepared permanent's exile copy (face_prepare.go; gorge "prepared_copy")
-	faceCodeRoomAlt     = 13 // a Room's other door (gorge "room_alt", rules legal_walk_hand.go; the face nibble is 0: the route names it)
-	faceCodeSneak       = 14 // a hand cast for its sneak cost (gorge "sneak", rules kw_sneak.go; kernel AkSneak, kw_sneak.go): castModes is full
-	faceCodeOmen        = 15 // an Omen card's face cast from the hand (gorge "omen_alt", rules legal_walk_hand.go; dirac/face_omen.go)
+	FaceCodeModal       = 1
+	FaceCodeAdventure   = 2
+	FaceCodeRecast      = 3
+	FaceCodeSplit       = 4
+	FaceCodeMorphed     = 8
+	FaceCodeMegamorphed = 9
+	FaceCodeDisguised   = 10
+	FaceCodePrepared    = 12 // a prepared permanent's exile copy (face_prepare.go; gorge "prepared_copy")
+	FaceCodeRoomAlt     = 13 // a Room's other door (gorge "room_alt", rules legal_walk_hand.go; the face nibble is 0: the route names it)
+	FaceCodeSneak       = 14 // a hand cast for its sneak cost (gorge "sneak", rules kw_sneak.go; kernel AkSneak, kw_sneak.go): castModes is full
+	FaceCodeOmen        = 15 // an Omen card's face cast from the hand (gorge "omen_alt", rules legal_walk_hand.go; dirac/face_omen.go)
 )
 
-// followedFaceRoute reports whether the kernel follows the planner for a
+// FollowedFaceRoute reports whether the kernel follows the planner for a
 // face route's potential play (prices every face route the kernel
 // casts; the face-down routes are not face casts of this table).
-func followedFaceRoute(fc uint8) bool {
+func FollowedFaceRoute(fc uint8) bool {
 	switch fc & 15 {
-	case faceCodeModal, faceCodeAdventure, faceCodeRecast, faceCodeSplit,
-		faceCodeOmen, faceCodePrepared, faceCodeSneak, faceCodeRoomAlt:
+	case FaceCodeModal, FaceCodeAdventure, FaceCodeRecast, FaceCodeSplit,
+		FaceCodeOmen, FaceCodePrepared, FaceCodeSneak, FaceCodeRoomAlt:
 		return true
 	}
 	return false
 }
 
-// faceCastCode is the ActCastFace mode of a face route's Option.Mode; ok
+// FaceCastCode is the ActCastFace mode of a face route's Option.Mode; ok
 // is false for every other mode.
-func faceCastCode(mode string) (uint8, bool) {
+func FaceCastCode(mode string) (uint8, bool) {
 	for i := 1; i < len(faceCastModes); i++ {
 		if faceCastModes[i] == mode {
 			return faceCastFaces[i]<<4 | uint8(i), true
@@ -57,10 +57,10 @@ func faceCastCode(mode string) (uint8, bool) {
 	return 0, false
 }
 
-// castOptCanon is a "cast" option's canonical action: ActCastFace for a
+// CastOptCanon is a "cast" option's canonical action: ActCastFace for a
 // face route, else ActCast with the cast mode and the AltCostIndex.
-func castOptCanon(src Ref, mode string, alt int) Canon {
-	if fc, ok := faceCastCode(mode); ok {
+func CastOptCanon(src Ref, mode string, alt int) Canon {
+	if fc, ok := FaceCastCode(mode); ok {
 		return Pack(ActCastFace, src, RefNone, fc)
 	}
 	if mode == "casualty" {
@@ -72,41 +72,41 @@ func castOptCanon(src Ref, mode string, alt int) Canon {
 	if mode == "impended" {
 		return Pack(ActCastImpended, src, RefNone, uint8(alt)<<4)
 	}
-	mc, _ := castModeCode(mode)
+	mc, _ := CastModeCode(mode)
 	return Pack(ActCast, src, RefNone, mc|uint8(alt)<<4)
 }
 
 // faceCastCanon is the ActCastFace mode of the kernel's face cast of
 // object src as face i (dirac.FeatCastFace): the route follows from the
 // card's layout and the face.
-func faceDownCastCanon(fam uint8) uint8 {
-	code := uint8(faceCodeMorphed)
+func FaceDownCastCanon(fam uint8) uint8 {
+	code := uint8(FaceCodeMorphed)
 	switch fam {
 	case 2:
-		code = faceCodeMegamorphed
+		code = FaceCodeMegamorphed
 	case 3:
-		code = faceCodeDisguised
+		code = FaceCodeDisguised
 	}
 	return faceCastFaces[code]<<4 | code
 }
 
-func (r *realSide) faceCastCanon(src, i uint8) uint8 {
+func (r *Translator) faceCastCanon(src, i uint8) uint8 {
 	code := uint8(0)
-	switch cd := &r.tbl.Cards[r.s.ObjCard(dirac.Obj(src))]; {
+	switch cd := &r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]; {
 	case cd.FaceMode == kop.FaceModal && i == 1:
-		code = faceCodeModal
+		code = FaceCodeModal
 	case cd.FaceMode == kop.FaceAdventure && i == 1:
-		code = faceCodeAdventure
+		code = FaceCodeAdventure
 	case cd.FaceMode == kop.FaceAdventure:
-		code = faceCodeRecast
+		code = FaceCodeRecast
 	case cd.FaceMode == kop.FaceSplit && i == 1:
-		code = faceCodeSplit
+		code = FaceCodeSplit
 	case cd.FaceMode == kop.FacePrepare && i == 1:
-		code = faceCodePrepared
+		code = FaceCodePrepared
 	case cd.FaceMode == kop.FaceRoom && i != cd.Face:
-		code = faceCodeRoomAlt
+		code = FaceCodeRoomAlt
 	case cd.FaceMode == kop.FaceOmen && i == 1:
-		code = faceCodeOmen
+		code = FaceCodeOmen
 	}
 	return faceCastFaces[code]<<4 | code
 }

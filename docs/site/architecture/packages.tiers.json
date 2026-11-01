@@ -566,6 +566,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/canon": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/cardset": {
       "tier": "dirac",
       "status": "EXT"

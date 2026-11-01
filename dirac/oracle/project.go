@@ -21,18 +21,6 @@ const (
 	MaxTgts  = 4 // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
 )
 
-// Ref is a canonical reference, the source/target byte of a Canon and the
-// reference fields of a Projection: 0..MaxInst-1 a card instance (doc.go,
-// "Card identity"), RefStack+i the i-th stack object from the bottom (an
-// ability, which is no card), RefPlayer+p seat p, RefNone nothing.
-type Ref = uint8
-
-const (
-	RefStack  Ref = 0xE0
-	RefPlayer Ref = 0xF0
-	RefNone   Ref = 0xFF
-)
-
 // Zone codes (gorge's state.Zone numbering).
 const (
 	ZoneLibrary uint8 = iota

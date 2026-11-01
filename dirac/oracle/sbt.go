@@ -85,8 +85,7 @@ func NewSBT(c *SBTCards) *SBT {
 	a := &SBT{c: c, w: builtins.DefaultTacticalWeights()}
 	a.rs.tbl = c.tbl
 	a.rs.origin = c.gorgeAbility
-	a.rs.choose = fdnChoose
-	a.rs.gdk = fdnDKind
+	a.rs.generated = true
 	a.NewGame([2]uint64{1, 2})
 	return a
 }
