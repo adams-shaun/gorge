@@ -1249,7 +1249,7 @@ func (e *Engine) foldEntryMove(ev *events.Event, tally bool) []string {
 		// an entry emitted inside a replacement body, or a TokenCreate/
 		// CardToken mint. There the ordinary counter path owns its park and
 		// resume, and the placements follow the move (the pre-staging
-		// behaviour this task's pre-pass replaces for ordinary entries).
+		// behaviour the pre-pass replaces for ordinary entries).
 		// No body is absorbed here: its own placement run owns the park.
 		stripEntryRequests(ev)
 		events.EmitPtr(e.G, e.L, ev)

@@ -411,8 +411,8 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	}
 	// Any other property is NOT resolvable: (0, false), the documented
 	// fail-closed verdict. The HighestValid/LowestValid zone-count extremes
-	// of playerCountExtreme are deliberately not offered on this group (the
-	// brief names exactly the three properties above, and no corpus carrier
+	// of playerCountExtreme are deliberately not offered on this group (only
+	// the three properties above are in scope, and no corpus carrier
 	// reaches a zone-count extreme here); only the two LifeLostThisTurn
 	// extremes route into playerCountExtreme, above.
 	return 0, false

@@ -427,7 +427,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// Requiring ExtraTurn$ True is what keeps Time Vault out: its R:
 		// Event$ BeginTurn line skips a NORMAL turn (Optional$ True, a
 		// ReplaceWith$ body, IsPresent$ Card.Self+tapped, no ExtraTurn$), a
-		// different shape this task deliberately does not implement -- a
+		// different shape deliberately not implemented -- a
 		// matcher without the requirement would change that card's behaviour
 		// without implementing it.
 		if r.ParamStr(cards.PKExtraTurn) != "True" {

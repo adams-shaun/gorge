@@ -386,8 +386,8 @@ func ObjectPhrase(part CostPart, defNoun string) string {
 	if part.Announced {
 		count = "X "
 	} else if part.N != 1 || part.Desc == "" {
-		// The synthesized path keeps the count as digits (even 1), per the
-		// brief; only the embedded-description path drops a count of one,
+		// The synthesized path keeps the count as digits (even 1);
+		// only the embedded-description path drops a count of one,
 		// so "another creature" is not prefixed with "1 ".
 		count = strconv.FormatInt(int64(part.N), 10) + " "
 	}

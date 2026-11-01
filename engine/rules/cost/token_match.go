@@ -3,7 +3,7 @@ package cost
 import "strings"
 
 // This file is the cost-token grammar ParseCost and ParseUnlessCost read,
-// compiled by hand from the regexps that used to spell it (operator perf
+// compiled by hand from the regexps that used to spell it (the perf
 // rule: hot paths compile strings, never run a regexp engine). Every matcher
 // is the exact language of the regexp named in its doc comment, and returns
 // that regexp's FindStringSubmatch groups in a fixed-size array (index 0 the

@@ -45,10 +45,8 @@ type Config struct {
 	// an empty Archetype. A short or nil slice leaves the extra seats' archetype
 	// empty.
 	Archetypes []string
-	// Format names the construction format. Zero means Constructed; the other
-	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
-	// read it. This task is plumbing: it reads Commanders and StartingLife
-	// only.
+	// Format names the construction format. Zero means Constructed;
+	// Commander rules (the tax, CR 903.9, commander damage) read it.
 	Format Format
 	// StartingLife is a game's opening life total. 0 (the zero value) means
 	// the existing 20, so every Config that never sets it observes exactly

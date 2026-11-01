@@ -859,8 +859,8 @@ func (m *Model) forwardExampleEnt(ex Example) (labelled []int, trunk []float32, 
 //
 // The ranking term is a softmax cross-entropy over the LABELLED options
 // toward the teacher-preferred set (LSE(labelled) − LSE(preferred)) — for a
-// single preferred candidate exactly the argmax CE logsumexp(z) − z_pref the
-// L9b-fix2 brief names. Its preferred-side gradient is the uniform −w used
+// single preferred candidate exactly the argmax CE logsumexp(z) − z_pref.
+// Its preferred-side gradient is the uniform −w used
 // since the trainer's first version: for a multi-option preferred set (the
 // attackers decisions, where the teacher's answer commits several
 // creatures) the exact softmax-over-preferred gradient concentrates on the

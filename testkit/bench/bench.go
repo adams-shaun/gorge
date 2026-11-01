@@ -239,7 +239,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	// adapter) attach after the live engine exists and before the first
 	// decision, exactly as the host does. A seat that does not implement
 	// bots.MatchSeat is unaffected. Bench games run unbounded (DeadlineMS 0),
-	// the brief's default for benches.
+	// the default for benches.
 	gameID := fmt.Sprintf("bench-%016x", cfg.Seed)
 	format := "constructed"
 	if cfg.Format == rules.FormatCommander {

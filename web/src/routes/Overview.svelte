@@ -51,7 +51,7 @@
          path. The server decides whether the flow is enabled; a server that
          did not arm -vsbot answers 404 and the panel renders it. -->
     <div class="playstrip"><PlayVsBot /></div>
-    <!-- Draft events : the pod entry point sits beside play-vs-bot; it
+    <!-- Draft events: the pod entry point sits beside play-vs-bot; it
          hides itself on a server without -events, and .playstrip:empty below
          then drops its padding so no gap remains. -->
     <div class="playstrip"><DraftEntry /></div>

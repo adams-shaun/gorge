@@ -1342,7 +1342,7 @@ func svarBodyForObject(o *state.Object, name string) string {
 // identical count. Clone deep-copies the slice (state goes through
 // Game.Clone) so the O(1) tax read (commanderTaxFor) survives a clone; the
 // number itself comes from the event stream alone. No event of its own is
-// needed, and engine/events/ is outside this task's boundary.
+// needed, so engine/events/ stays untouched.
 func (e *Engine) recordCmdCast(p state.PlayerID, id state.ObjID) {
 	if e.format != FormatCommander {
 		return

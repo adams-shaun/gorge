@@ -17,8 +17,7 @@ import (
 // big as the match was at that point — measured ~5-8 MB retained per
 // 4-seat match's worth of snapshots, unbounded on t.history. A follow-up
 // (slim snapshots keeping only the chain head + counts, finished matches
-// shedding snapshots once persisted) is dispatched separately; this task
-// takes the straightforward Clone the brief specifies.
+// shedding snapshots once persisted) would shrink that.
 func (r *Registry) afterBurst(t *table, m *match, before int) error {
 	if len(turnStartsIn(m.g.Log().Events, before)) > 0 {
 		m.snaps = append(m.snaps, snapshot{intent: m.intents, seq: m.bounds[len(m.bounds)-1] - 1, g: m.g.Fork()})

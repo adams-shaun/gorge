@@ -1103,7 +1103,7 @@ func PhaseOf(s state.Step) string {
 // StackDescription$ (and, like NICKNAME, is always the uppercase token in
 // those fields), NICKNAME occurs in about a thousand of them, and the "~"
 // shorthand does not occur in any of them (it appears only in Forge SVar
-// arithmetic, which is never rendered) -- see the task report for the grep.
+// arithmetic, which is never rendered).
 func substitutePlaceholders(text, name string) string {
 	if text == "" || name == "" {
 		return text

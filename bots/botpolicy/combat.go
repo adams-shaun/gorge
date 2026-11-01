@@ -1041,7 +1041,7 @@ func (b Board) chooseAttackers(d *decision.Decision) []int {
 
 // ar8MaxAttackers is the subset search's ceiling: beyond this many offered
 // attackers against one defender the 2^n enumeration is abandoned and AR8
-// degrades to AR7's per-attacker test (2^12 = 4096 subsets, the brief's
+// degrades to AR7's per-attacker test (2^12 = 4096 subsets, the
 // cap). Deterministic, so the fallback is a function of the offered count
 // alone.
 const ar8MaxAttackers = 12
@@ -1060,7 +1060,7 @@ type ar8Attacker struct {
 // via canBlockLike) and not a PURE CHUMP -- the blocker survives the strike
 // (its remaining toughness exceeds the attacker's power) or kills the
 // attacker outright (its power reaches the attacker's remaining toughness).
-// This is the policy's reading of the brief's "minimum legal blocking
+// This is the policy's reading of "minimum legal blocking
 // response": the defender makes the blocks it wants (a trade or a
 // survive) and does not throw a creature away to a strictly bigger
 // attacker with nothing back. A pure chump therefore does NOT reduce the
@@ -1390,8 +1390,8 @@ func (b Board) chooseAttackersMode(d *decision.Decision, lethalPressure, combine
 	// One offered pair set per defender, in a DETERMINISTIC defender order:
 	// first-seen option order (never map order), so which defender wins an
 	// attacker offered against several is a function of the offer list
-	// alone. Attackers are sorted by power desc then ObjID asc (the brief's
-	// order); options keep offered order for the ObjID tiebreak. Shared by
+	// alone. Attackers are sorted by power desc then ObjID asc;
+	// options keep offered order for the ObjID tiebreak. Shared by
 	// AR8 (opt-in) and AR9 (always on).
 	defAtks := make(map[state.PlayerID][]ar8Attacker, len(d.Options))
 	var defOrder []state.PlayerID

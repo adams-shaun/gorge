@@ -499,7 +499,7 @@ func parityPredicate(name string) (field numericFieldCode, wantOdd, ok bool) {
 // sameNameContextBase recognises only the three base-prefix forms which
 // carry sameName's referent. Keeping this rewrite name-specific is important:
 // Remembered.*, Targeted.*, and Triggered.* have many unrelated predicates
-// whose grammar and behaviour this task must not expand.
+// whose grammar and behaviour this must not expand.
 func sameNameContextBase(base, rest string) bool {
 	if !strings.HasPrefix(base, "Remembered") &&
 		!strings.HasPrefix(base, "Targeted") &&

@@ -10,7 +10,7 @@ package sanity
 // Doom Blade, Fatal Push, Ghost Quarter, Hero's Downfall, Karn Liberated, Path
 // to Exile, Swords to Plowshares, Wasteland):
 //
-//   - Ghost Quarter: thinning your own land is a real line (operator ruling).
+//   - Ghost Quarter: thinning your own land is a real line.
 //
 // Wasteland (172 of the default bot's 291 self-hits), Swords, Path, Fatal Push,
 // Downfall, Doom Blade and Karn were judged mistakes and stay guarded.

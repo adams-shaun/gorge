@@ -50,7 +50,7 @@
     options: [opt(0, 'player', 'Mira', { player: 1 }), opt(1, 'permanent', 'Tarmogoyf (Mira)', { obj: 20 })],
   } as unknown as Decision;
 
-  // The long-list ask : the overlap needs a tall dock whose
+  // The long-list ask: the overlap needs a tall dock whose
   // numbered rows reach down over the board. min 1 / max 3 keeps a row click
   // a toggle, so the fixture never posts.
   const long: Decision = {

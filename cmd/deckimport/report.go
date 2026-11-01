@@ -134,7 +134,7 @@ func commanderEligibility(p *parsedDeck, r *cards.Registry) (bool, []string) {
 	if len(p.Commanders) > 0 {
 		f.Commander = p.Commanders[0]
 	}
-	// The eligibility check itself (IsCommanderEligible) is what the brief
+	// The eligibility check itself (IsCommanderEligible) is what this report
 	// asks about; ValidateCommander is its superset (it also checks 100-card
 	// / singleton / colour identity) and names the offender. Run both so the
 	// report can say where the commander falls short. A commander the corpus

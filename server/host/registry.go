@@ -120,7 +120,7 @@ type Options struct {
 	// stall did ~10000 decisions per turn without the turn advancing; the
 	// largest LEGITIMATE single turn across this repo's whole gate
 	// population (2/4/6/8-seat sample-deck and legacy and Commander
-	// repo-deck matches, 40+ games, measured for this task's sizing) is 244
+	// repo-deck matches, 40+ games, measured for this sizing) is 244
 	// decisions.
 	//
 	// DefaultMaxDecisionsPerTurn (25000) is the recommended production value

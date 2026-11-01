@@ -223,7 +223,7 @@ func (e *Engine) castRestrictedCostAs(statics []staticView, p state.PlayerID, id
 		// and at recheckIllegal only: the other restrictionGateHolds callers
 		// -- CantBeActivated, AssignCombatDamageAsUnblocked,
 		// CombatDamageToughness -- keep their pre-existing gate set, so no
-		// out-of-scope consumer's semantics move with this task. It subsumes
+		// other consumer's semantics move. It subsumes
 		// the checkSVarHolds the caller used to run separately, and the
 		// duplicate ClassBand$/Condition$ reads inside restrictionGateHolds
 		// below are pure state reads with identical semantics.

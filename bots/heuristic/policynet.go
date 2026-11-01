@@ -40,7 +40,7 @@ package heuristic
 //     seed 10000000, 1000 games per arm; control bot-vs-bot 50.1%
 //     [47.0%, 53.2%], 15.4 turns): priority scored UNGATED on a ResidualW 0
 //     checkpoint wins 0/1000 at 13.3 turns, reproducing the historical
-//     0/1000 (bce-big.gpol, merge e9945e79). Every one of its ~13
+//     0/1000 (bce-big.gpol). Every one of its ~13
 //     disagreements per game with the bot was OUT of distribution — a
 //     one-castable-object window or a play_land answer — where the scored
 //     argmax (which cannot pick the untrained tap/land surface) passed

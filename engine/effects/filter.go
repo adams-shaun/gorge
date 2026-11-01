@@ -3213,7 +3213,7 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 		// Remembered.sameName, Targeted.Permanent+sameName, and
 		// Triggered.sameName. Rewrite only those name-predicate alternatives;
 		// a global rewrite would activate unrelated Remembered/Targeted/
-		// Triggered filters outside this task's scope.
+		// Triggered filters.
 		if contextualSameName {
 			ref, bound := sameNameContextReferent(g, base, asc)
 			if !bound {

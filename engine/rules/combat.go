@@ -1760,7 +1760,7 @@ func (e *Engine) askNextCombatAsk() bool {
 // controller's only when the card says "may", and a mandatory reading
 // assigns as-unblocked unconditionally. No printed corpus static omits
 // Optional$, so the mandatory arm is dead code kept for the shape's
-// correctness (documented, deliberately untested -- out of scope per brief).
+// correctness (documented, deliberately untested).
 // Battlefield order, deterministic.
 func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
 	var out []state.ObjID
@@ -2481,8 +2481,7 @@ func (e *Engine) runCombatAssignments() {
 			// which must not add to the tally). Reusing `prevented` here also
 			// makes the shared lifelink rider below skip a prevented
 			// player-hit, consistent with the Obj branch. Non-Commander games
-			// take the original single-emit path untouched, so this task
-			// changes nothing about them.
+			// take the original single-emit path untouched.
 			dam := events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount}
 			if x.infect {
 				// CR 702.90b: that many poison counters instead of life loss;
@@ -2759,7 +2758,7 @@ func setMaxHandSizeSVar(h effects.Host, sv staticView, raw string) (int, bool) {
 // and returns with the decision pending, suspending the cleanup step until
 // the answer arrives (discardCleanup). With a hand of maxHandSize or fewer
 // there is nothing to discard and no decision is asked at all -- a zero-option
-// or zero-count decision must never reach a seat (brief decision 5). Only the
+// or zero-count decision must never reach a seat. Only the
 // ACTIVE player discards (CR 514.1); nobody else is asked during their turn's
 // cleanup.
 func (e *Engine) cleanupStep() {
@@ -2942,7 +2941,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 	e.finishCleanupStep()
 }
 
-// Registered here: exactly the eight keywords this task actually implements
+// Registered here: exactly the eight implemented keywords
 // (Flying/Reach gate blocking in combat.CanBlock; Haste and Vigilance gate/modify
 // attacking in combat.CanAttack/handleAttackers; Deathtouch, Trample, Lifelink and
 // First Strike are all read directly in damageStep above and

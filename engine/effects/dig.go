@@ -82,7 +82,7 @@ import (
 //     private look when a real choice follows the reveal.
 //   - NoReveal$ True suppresses that window reveal. A guard, not a
 //     behaviour change: the corpus's 84 NoReveal lines carry no Reveal$, and
-//     the dig's moves were already Secret before this task (Impulse).
+//     the dig's moves are already Secret (Impulse).
 //   - ForceRevealToController$ True reveals each MOVED card publicly before
 //     its Secret move -- Ancient Stirrings' "you may reveal a colorless card
 //     from among them and put it into your hand" (the window itself stays

@@ -880,7 +880,7 @@ func absentDurationMeansThisTurn(mode string) bool {
 
 // IsNextTurnDuration reports whether a Duration$ value names the
 // controller's NEXT-turn lifetime (UntilYourNextTurn, UntilTheEndOfYourNextTurn)
-// -- the two largest non-Permanent durations the wave survey measured. Such
+// -- the two largest non-Permanent durations a corpus survey measured. Such
 // an effect is neither UntilEOT (which would expire it a full turn early, at
 // the end of the current turn) nor source-leaves (which never expires it);
 // it gets a real turn-boundary lifetime via ContinuousEffect.UntilTurn,

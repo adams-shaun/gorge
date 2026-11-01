@@ -47,7 +47,7 @@ var errIncompatibleProposal = errors.New("incompatible hypothetical proposal")
 // 53-card library), and a hard constraint would turn every attempt into an
 // incompatible proposal rather than a redraw. The relaxation keeps the
 // guarantee where it is affordable (a single-copy spell, the
-// PolicyCompetition shape the brief targets) and degrades a multi-copy
+// PolicyCompetition shape) and degrades a multi-copy
 // card's exclusion instead of wedging the counter. Copies already fixed into
 // the early positions are still counted by the constraint matcher, which is
 // why the relaxation compares against the whole deck slice, not the free

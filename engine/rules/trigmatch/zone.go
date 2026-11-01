@@ -19,7 +19,7 @@ import (
 )
 
 // ZoneChangeMatches implements Mode$ ChangesZone. The two keyword triggers
-// this task expands through it are both handled here (engine/cards/keywords.go):
+// expanded through it are both handled here (engine/cards/keywords.go):
 // Undying's Origin$ Graveyard -> Destination$ Battlefield return is an
 // ordinary ChangeZone, and its ValidCard$ Card.Self+counters_EQ0_P1P1 "no
 // counters when it died" is read against the LKI; Evolve's Evolve$ True

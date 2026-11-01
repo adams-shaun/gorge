@@ -4,10 +4,7 @@ package rules
 // families. This implements the classic protection cycle end to end:
 // a protected permanent cannot be targeted, blocked, or dealt damage by a
 // source it is protected from, and cannot be enchanted/equipped/fortified
-// by one (CR 702.16b-g). The two cards that pinned the ratchet at the very
-// end of the table were both protection-bearers — Goblin Piledriver
-// (Protection from blue) and Knight of Infamy (Protection from white) — so
-// this task retires them and empties knownUnsupported outright.
+// by one (CR 702.16b-g).
 //
 // The file carries the five registrations the coverage gate needs to call a
 // "Protection from <colour>" bearer fully supported, the protectedFrom

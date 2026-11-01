@@ -444,7 +444,7 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 // by construction for any Min/Max the wire format allows, not only today's.
 // Every access into d.Options remains guarded against the list being empty.
 func Decide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
-	// main's 9be52252 promoted AR7 lethal pressure into the default bot, so the
+	// AR7 lethal pressure is part of the default bot, so the
 	// default carries lethalPressure; the AR8 combined-lethal test stays opt-in
 	// (CombinedLethalDecide only), per this branch's 162a8acc.
 	return decide(b, d, r, true, false, false)
@@ -920,7 +920,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		case "discard":
 			in.Choices = b.chooseDiscard(d)
 		case "exile":
-			// Preserve the existing exile policy: this task adds sacrifice
+			// Keep the existing exile policy: this branch adds sacrifice
 			// choices, not a new policy for unrelated exile effects.
 			in.Choices = b.chooseWorst(d)
 		case "sacrifice":
