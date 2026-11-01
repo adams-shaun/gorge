@@ -34,7 +34,7 @@ func (w *legalWalk) mayPlayLandWalk() {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		w.add("play_land", "Play "+o.Face().Name, id)
+		w.addLandPlay("Play "+o.Face().Name, id, o.Face())
 	}
 }
 
@@ -57,7 +57,7 @@ func (w *legalWalk) mayhemLandWalk() {
 		if hasPlayLandOption(*out, id) {
 			continue
 		}
-		w.add("play_land", "Play "+o.Face().Name, id)
+		w.addLandPlay("Play "+o.Face().Name, id, o.Face())
 	}
 }
 
@@ -746,7 +746,7 @@ func (w *legalWalk) exileCastsWalk() {
 			// A may-play grant over the same exile card already offered the
 			// play; never yield two identical options for one land.
 			if !hasPlayLandOption(*out, id) {
-				w.add("play_land", w.playLabel(f), id)
+				w.addLandPlay(w.playLabel(f), id, f)
 			}
 		}
 		// Foretell cast (CR 702.126a): a card exiled face down by the {2}

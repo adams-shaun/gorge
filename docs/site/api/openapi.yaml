@@ -1835,6 +1835,9 @@ components:
           type: "string"
         label:
           type: "string"
+        land_wont_stay:
+          description: "LandWontStay, on a play_land option, reports that the land would not stay on the battlefield: its enters trigger asks for a land to return to hand and the seat controls no other land that qualifies, so it returns itself or is sacrificed. The play stays legal."
+          type: "boolean"
         mana_symbol:
           description: "ManaSymbol is the exact mana symbol selected by a colour option. Labels remain presentation-only; omitempty keeps unrelated options unchanged."
           type: "string"

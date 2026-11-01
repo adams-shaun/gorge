@@ -185,6 +185,11 @@ type Option struct {
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
+	// LandWontStay, on a play_land option, reports that the land would not
+	// stay on the battlefield: its enters trigger asks for a land to return to
+	// hand and the seat controls no other land that qualifies, so it returns
+	// itself or is sacrificed. The play stays legal.
+	LandWontStay bool `json:"land_wont_stay,omitempty"`
 	// Attacker tells a block option's client which attacker this blocker
 	// would block, so a human can see the pairing an in-process bot already
 	// can (the declare-blockers step is otherwise guessing). omitempty

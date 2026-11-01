@@ -34,7 +34,7 @@ func LegacyDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 		}
 		for _, want := range [...]string{"play_land", "cast"} {
 			for _, o := range d.Options {
-				if o.Kind == want {
+				if o.Kind == want && !o.LandWontStay {
 					in.Choices = []int{o.Index}
 					return Clamp(d, in)
 				}

@@ -987,6 +987,13 @@ export interface Option {
    */
   player: number;
   /**
+   * LandWontStay, on a play_land option, reports that the land would not
+   * stay on the battlefield: its enters trigger asks for a land to return to
+   * hand and the seat controls no other land that qualifies, so it returns
+   * itself or is sacrificed. The play stays legal.
+   */
+  land_wont_stay?: boolean;
+  /**
    * Attacker tells a block option's client which attacker this blocker
    * would block, so a human can see the pairing an in-process bot already
    * can (the declare-blockers step is otherwise guessing). omitempty

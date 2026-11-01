@@ -1317,6 +1317,16 @@ func (e *canonEncoder) encdecision_Option(v *decision.Option) error {
 		e.appendString(string(v.Counter))
 	}
 	e.buf = binary.AppendUvarint(e.buf, uint64(v.Player))
+	if !v.LandWontStay {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.LandWontStay {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
 	if v.Attacker == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

@@ -64,7 +64,7 @@ func (w *legalWalk) handWalk() {
 		}
 		if f.IsLand() {
 			if sorcery && !playLandForbidden(e, p, state.ZHand, id) && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
-				w.add("play_land", w.playLabel(f), id)
+				w.addLandPlay(w.playLabel(f), id, f)
 				// A Modal DFC may also be played as its back land, even
 				// when its front face is itself a land (CR 712.8).
 				if back := modalLandBack(o); back != nil {

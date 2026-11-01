@@ -1373,6 +1373,11 @@ func (b Board) setEfficiency(entries []castEntry, first castEntry, budget int32)
 //   - L4 (deterministic tie): two lands still equal (empty coverage, equal
 //     basic-ness, equal flexibility) tie on option index.
 //
+// A land that would not stay (Option.LandWontStay) is never picked, even when it
+// is all that is offered: holding it costs nothing the play would have gained,
+// the land drop then produces no mana either way, and a sacrifice-unless land
+// keeps the card.
+//
 // It consumes no rng and ranges no map: the pick is a pure function of the
 // offered options plus the board facts, so no map iteration order reaches it.
 func (b Board) chooseLand(d *decision.Decision) int {
@@ -1391,7 +1396,7 @@ func (b Board) chooseLand(d *decision.Decision) int {
 	bestFlex := 0
 	for oi := range d.Options {
 		o := &d.Options[oi]
-		if o.Kind != "play_land" {
+		if o.Kind != "play_land" || o.LandWontStay {
 			continue
 		}
 		c := b.Cards.Get(o.Obj) // zero facts read as no coverage/nonbasic/flex 0, never a crash
