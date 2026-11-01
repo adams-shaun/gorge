@@ -876,7 +876,7 @@ exactly as they do without the flag, every ask included, and no v2 request opens
   starting with the decision already parked: the read that attaches can return `null`, and the request follows on the
   stream or the next read. The host answers a mana ability's colour ask, a triggered cost's pay-or-decline and the
   division of combat damage on an attached seat, even when a native client started that action.
-- **An answer on another wire hands the seat back, unless a `stream` connection of that seat is open.** The native
+- **An answer or undo on another wire hands the seat back, unless a `stream` connection of that seat is open.** The native
   routes and ManaBrew count as another wire. The open request closes and every later decision goes natively, until the
   next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next
   decision opens one. A client posts a tap natively that way.
@@ -906,7 +906,7 @@ carries the board with the mana floating. A 409 from the state route plays the t
 | 401 | `{"error":"unauthorized"}` | no token, or an unknown one |
 | 403 | `{"error":"forbidden"}` | a token for another table |
 | 404 | `{"error":"not_found"}` | the table no longer exists |
-| 409 | `{"error":"unsupported"}` | the table isn't two-seat, constructed and automatic-mana. Use the native routes |
+| 409 | `{"error":"unsupported"}` | the table isn't two-seat, constructed and automatic-mana, or a match of it ran on an engine with no v2 reader. Use the native routes |
 | 409 | `{"error":"stale"}` | the `request_id` is absent or isn't the open request, the `candidate_id` is absent or out of range, or the action no longer applies. Nothing changed |
 | 404, 405 | plain text | another path under the prefix, or the wrong method |
 

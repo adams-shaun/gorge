@@ -428,6 +428,17 @@ func (s *HumanSeat) submitAdmittedWait(in decision.Intent, admit func(decision.D
 	return s.submitVia(in, admit, auto, wait, false)
 }
 
+// tellTapNativeAnswer tells the tap, if any, that an answer or an undo from
+// another wire took the seat's decision.
+func (s *HumanSeat) tellTapNativeAnswer() {
+	s.mu.Lock()
+	tap := s.tap
+	s.mu.Unlock()
+	if tap != nil {
+		tap.NativeAnswer()
+	}
+}
+
 // submitVia is submitAdmittedWait saying whether the answer is the tap's own. Any
 // other answer tells the tap once it has claimed the slot, before the match
 // goroutine can receive it.
@@ -453,10 +464,9 @@ func (s *HumanSeat) submitVia(in decision.Intent, admit func(decision.Decision, 
 	// racing submit is rejected above instead of parking on a verdict that can
 	// never come.
 	s.slot = nil
-	tap := s.tap
 	s.mu.Unlock()
-	if tap != nil && !viaTap {
-		tap.NativeAnswer()
+	if !viaTap {
+		s.tellTapNativeAnswer()
 	}
 	ans := slotAnswer{in: in, auto: auto}
 	if wait {

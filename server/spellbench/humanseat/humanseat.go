@@ -306,7 +306,7 @@ func (s *Seat) Attach() {
 }
 
 // NativeAnswer implements host.HumanTap: another wire answered the parked
-// decision. Whatever was open for it is void, so the v2 request closes now, and
+// decision or asked for an undo. Whatever was open for it is void, so the v2 request closes now, and
 // unless a v2 client holds the seat it goes back to being passive.
 func (s *Seat) NativeAnswer() {
 	held := s.held != nil && s.held()

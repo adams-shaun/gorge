@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/humanseat"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
@@ -298,11 +299,20 @@ func (s *seatState) answer(requestID uint64, candidateID int) bool {
 type Hub struct {
 	mu    sync.Mutex
 	seats map[seatKey]*seatState
+	// noReader holds the tables whose engine a v2 seat cannot read.
+	noReader map[host.TableID]bool
 }
 
 // NewHub returns an empty hub.
 func NewHub() *Hub {
-	return &Hub{seats: map[seatKey]*seatState{}}
+	return &Hub{seats: map[seatKey]*seatState{}, noReader: map[host.TableID]bool{}}
+}
+
+// unreadable reports whether a match of table ran on an engine with no v2 reader.
+func (h *Hub) unreadable(table host.TableID) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.noReader[table]
 }
 
 func (h *Hub) seat(key seatKey) *seatState {
@@ -320,13 +330,20 @@ func (h *Hub) seat(key seatKey) *seatState {
 // two-seat, constructed, AutoMana table it returns the v2 codec wired to this
 // hub, passive until a v2 client reads the seat's state or stream; every other
 // table gets nil, so no tap is installed and the seat is an ordinary native
-// human seat. The host's attach path already refuses a tapped manual-mana
+// human seat. That includes a table whose engine has no v2 reader, which the
+// routes then answer as unsupported. The host's attach path already refuses a tapped manual-mana
 // table, which is why the AutoMana check is part of "covers".
 func (h *Hub) Tap(table host.TableID, match int, autoPayMana bool, mc *bots.MatchContext) (host.HumanTap, error) {
 	if mc == nil {
 		return nil, errors.New("sbv2: nil match context")
 	}
 	if !autoPayMana || mc.Seats != 2 || mc.Format != "constructed" {
+		return nil, nil
+	}
+	if mc.Game != nil && gamecfg.Readable(mc.Game) != nil {
+		h.mu.Lock()
+		h.noReader[table] = true
+		h.mu.Unlock()
 		return nil, nil
 	}
 	s := h.seat(seatKey{table: table, match: match, seat: state.PlayerID(mc.Seat)})

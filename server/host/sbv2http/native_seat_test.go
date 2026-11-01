@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
@@ -258,6 +260,34 @@ func TestThinkTimeoutAnswersAPassiveAndAnAttachedSeat(t *testing.T) {
 	hub := NewHub()
 	hub.seat(seatKey{table: "t", match: 1, seat: 0}).attach()
 	finish(nativeSeatTable(t, reg, hub, think, 11, 0))
+}
+
+// readerlessGame is an engine's game that a v2 seat cannot read.
+type readerlessGame struct{ game.Game }
+
+func (readerlessGame) Caps() game.Caps { return game.Caps{Engine: "other"} }
+
+// A table on an engine with no v2 reader plays natively under -sbv2, and its
+// routes say v2 doesn't cover it.
+func TestEngineWithNoV2ReaderStaysNative(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	hub := NewHub()
+	r := nativeSeatTable(t, reg, hub, 0, 11, 0)
+	srv := httptest.NewServer(http.StripPrefix("/api/sbv2/v1/tables", NewHandler(r, hub, Options{Seat: func(*http.Request) (SeatClaim, bool) {
+		return SeatClaim{Table: "t", Seat: 0}, true
+	}})))
+	t.Cleanup(srv.Close)
+	const route = "/api/sbv2/v1/tables/t/matches/1/state"
+	if status, _ := getSBV2State(t, srv.URL, route, "tok"); status != http.StatusOK {
+		t.Fatalf("state on a readable engine: %d", status)
+	}
+	tap, err := hub.Tap("t", 1, true, &bots.MatchContext{Context: t.Context(), Seats: 2, Format: "constructed", Game: readerlessGame{}})
+	if err != nil || tap != nil {
+		t.Fatalf("Tap = %v, %v, want no tap and no error", tap, err)
+	}
+	if status, _ := getSBV2State(t, srv.URL, route, "tok"); status != http.StatusConflict {
+		t.Fatalf("state on an engine with no reader: %d", status)
+	}
 }
 
 // waitV2Request waits for an open request other than the one numbered not.

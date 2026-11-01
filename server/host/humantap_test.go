@@ -126,6 +126,45 @@ func TestHumanTapHearsANativeAnswerBeforeTheNextPark(t *testing.T) {
 	}
 }
 
+// An accepted undo tells the tap, so a client coming back over the native wire
+// takes the seat with it; a refused one doesn't.
+func TestHumanTapHearsANativeUndo(t *testing.T) {
+	tap := &nativeTap{}
+	names := testutil.RepoDeckNames()
+	o := testOptions(t)
+	o.LoadDeck = repoDeckLoader(t)
+	o.TapHuman = func(TableID, int, bool, *bots.MatchContext) (HumanTap, error) { return tap, nil }
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	const id = TableID("undo")
+	if err := r.AddTable(TableConfig{ID: id, Name: "undo", Seats: 2, Decks: []string{names[0], names[1]}, Seed: 7,
+		Spectator: view.Omniscient, AutoMana: true, BotAutoPayMana: true, Humans: []int{0}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start(id); err != nil {
+		t.Fatal(err)
+	}
+	d := waitPending(t, r, id, 1, 0)
+	if err := r.Undo(id, 1, 0); err == nil {
+		t.Fatal("an undo with nothing to undo was accepted")
+	}
+	if n := tap.native.Load(); n != 0 {
+		t.Fatalf("a refused undo told the tap %d times", n)
+	}
+	if err := r.SubmitIntent(id, 1, 0, legalIntent(d)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Undo(id, 1, 0); err != nil {
+		t.Fatal(err)
+	}
+	if n := tap.native.Load(); n != 2 {
+		t.Fatalf("an answer and an undo told the tap %d times, want 2", n)
+	}
+}
+
 // nativeTap watches decisions park and answers none of them.
 type nativeTap struct {
 	fakeTap

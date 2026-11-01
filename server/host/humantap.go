@@ -34,9 +34,10 @@ type HumanTap interface {
 	// undo. The engine is then about to move, so the tap must not read it.
 	Parked(ctx context.Context, v view.View, d decision.Decision, answer func(decision.Intent) error, gone <-chan struct{})
 	// NativeAnswer is called when an answer from anywhere but the tap's own
-	// answer func claimed the parked decision. It runs on the submitter's
-	// goroutine before the match goroutine receives that answer, so it comes
-	// before the next Parked. It must not block.
+	// answer func claimed the parked decision, and when an undo is accepted. It
+	// runs on the caller's goroutine before the match goroutine receives that
+	// answer or services that undo, so it comes before the next Parked. It must
+	// not block.
 	NativeAnswer()
 }
 

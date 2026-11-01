@@ -181,17 +181,26 @@ func (r *Registry) Undo(id TableID, k int, player state.PlayerID) error {
 	}
 	// humanSeat validates the range, the live state and that the seat is a
 	// real HumanSeat — the same fence Pending/SubmitIntent use.
-	if _, err := r.humanSeat(id, k, player); err != nil {
+	hs, err := r.humanSeat(id, k, player)
+	if err != nil {
 		return err
 	}
+	if err := reserveUndo(m, k, player); err != nil {
+		return err
+	}
+	hs.tellTapNativeAnswer()
+	return nil
+}
+
+// reserveUndo holds m.mu across the reservation. rewindToLastIntent takes it for
+// writing and completes one reservation only after truncating the log, so
+// concurrent requests always count intents in the matching prefix.
+func reserveUndo(m *match, k int, player state.PlayerID) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.state != protocol.MatchLive {
 		return fmt.Errorf("host: match %d is %s, nothing to undo", k, m.state)
 	}
-	// Hold m.mu across the reservation. rewindToLastIntent takes it for
-	// writing and completes one reservation only after truncating the log,
-	// so concurrent requests always count intents in the matching prefix.
 	available := intentCountOf(m.g.Log().Intents, player)
 	if err := m.undo.request(player, available); err != nil {
 		return fmt.Errorf("host: match %d: %w", k, err)

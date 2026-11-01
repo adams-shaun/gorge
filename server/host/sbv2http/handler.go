@@ -91,7 +91,7 @@ func (h *handler) covers(w http.ResponseWriter, table host.TableID) bool {
 		if t.ID != string(table) {
 			continue
 		}
-		if t.Seats != 2 || t.Format != "constructed" || !t.AutoMana {
+		if t.Seats != 2 || t.Format != "constructed" || !t.AutoMana || h.hub.unreadable(table) {
 			writeError(w, http.StatusConflict, "unsupported")
 			return false
 		}
