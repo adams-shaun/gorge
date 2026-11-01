@@ -40,7 +40,7 @@
     mulliganPhase,
     toneOf,
   } from '../lib/seatpanel.svelte';
-  import { laterByObj, optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
+  import { laterByObj, offHandPlays, optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
   import { isPlainManualTap, manualManaHidden, paymentRouteHidden } from '../lib/manualmana';
   import { castableActions } from '../lib/announcepay';
   import { rematchDecks, startRematch } from '../lib/playvsbot';
@@ -401,6 +401,8 @@
   // active decision, is what makes one index serve both 'cards with valid
   // options' and 'valid targets' (the client only regroups options
   // the server already sent, and posts each one by its own index).
+  const handPayments = $derived(castableActions(panel?.active ?? null, panel?.autoManaAvailable ?? false, panel?.autoPayMana ?? false));
+  const offHand = $derived(seated && ownPlayer ? offHandPlays(m.view, ownPlayer.seat, panel?.active ?? null, handPayments) : []);
   const boardOptions = $derived.by((): CardOptions | null => {
     if (!seated || panel === null) return null;
     const d = panel.active;
@@ -437,8 +439,9 @@
       tone: toneOf(d),
       autoOpenObj: autoOpenCardDecision?.seq === d.seq ? autoOpenCardDecision.obj : undefined,
       // Float-gated actions from the seat's own potential_actions, regrouped
-      // onto their tiles (including eligible hand casts not live or plan-backed).
-      later: laterByObj(d, ownPlayer?.potential_actions, ownPlayer?.hand?.map((card) => card.id)),
+      // onto their tiles (including eligible casts not live or plan-backed,
+      // from the hand and from the cards the fan shows beside it).
+      later: laterByObj(d, ownPlayer?.potential_actions, [...(ownPlayer?.hand ?? []), ...offHand.map((play) => play.card)].map((card) => card.id)),
       post: (index: number, _expectFollowUp = false, holdPriority = false) => {
         // The tile path shares the arm site with the panel: panel.click arms
         // the card-follow-up expectation itself, so this route no longer
@@ -650,7 +653,7 @@
              card-options index the board does (one mechanism, one index, one
              post path). -->
         {#if ownPlayer}
-          <HandFan player={ownPlayer} {cardWidth} {visible} {raise} options={boardOptions} paymentActions={castableActions(panel?.active ?? null, panel?.autoManaAvailable ?? false, panel?.autoPayMana ?? false)} autoPay={panel?.autoPayMana ?? false} onCastPayment={(action, holdPriority) => panel?.castAction(action, holdPriority)} />
+          <HandFan player={ownPlayer} {cardWidth} {visible} {raise} options={boardOptions} {offHand} paymentActions={handPayments} autoPay={panel?.autoPayMana ?? false} onCastPayment={(action, holdPriority) => panel?.castAction(action, holdPriority)} />
         {/if}
       {/snippet}
       <aside class="rail" data-rail-side={railSide}>

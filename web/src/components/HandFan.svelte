@@ -2,7 +2,7 @@
   import type { CardView, PaymentAction, PlayerView } from '../protocol';
   import { visibleHand } from '../lib/board';
   import { handFanLayout, PLAY_CARD_WIDTH, type HandFanSpec } from '../lib/handfan';
-  import type { CardOptions } from '../lib/cardoptions';
+  import type { CardOptions, OffHandPlay } from '../lib/cardoptions';
   import { ACTION_GLYPHS, actionAccessibleLabel, laterLabel, singleActionIcon, tileScenario, tileOptions } from '../lib/cardoptions';
   import CardImage from './CardImage.svelte';
   import CardDetail from './CardDetail.svelte';
@@ -72,6 +72,9 @@
      *  decision offers something to is marked and carries the same options
      *  menu as a board tile (each item posts the option's own index). */
     options = null,
+    /** cards playable from outside the hand (cardoptions.offHandPlays), shown
+     *  after the hand with the same controls and a tag naming their zone. */
+    offHand = [],
     paymentActions = [],
     /** autoPay is the seat's Auto-pay preference: it only changes the CAST
      *  shortcut's wording ("with suggested mana" vs "then choose mana"); the
@@ -91,9 +94,10 @@
     visible = 0.5,
     /** whether a face rises to full height on hover (the profile's hand.raise); keyboard focus always raises. */
     raise = true,
-  }: { cardWidth?: number; visible?: number; raise?: boolean; player: PlayerView; width?: number; options?: CardOptions | null; open0?: number | null; paymentActions?: PaymentAction[]; autoPay?: boolean; onCastPayment?: ((action: PaymentAction, holdPriority: boolean) => void) | null } = $props();
+  }: { cardWidth?: number; visible?: number; raise?: boolean; player: PlayerView; width?: number; options?: CardOptions | null; offHand?: OffHandPlay[]; open0?: number | null; paymentActions?: PaymentAction[]; autoPay?: boolean; onCastPayment?: ((action: PaymentAction, holdPriority: boolean) => void) | null } = $props();
 
-  const hand = $derived(visibleHand(player) ?? []);
+  const hand = $derived([...(visibleHand(player) ?? []), ...offHand.map((play) => play.card)]);
+  const zoneOf = $derived(new Map(offHand.map((play) => [play.card.id, play.zone])));
 
   const GAP = 10;
   // The constraint is the room the BOARD has, so the fan never grows past the
@@ -300,6 +304,9 @@
               </ul>
             {/if}
           </div>
+        {/if}
+        {#if zoneOf.has(c.id)}
+          <span class="zone-tag data" data-offhand-zone={zoneOf.get(c.id)}>{zoneOf.get(c.id)}</span>
         {/if}
         <!-- Gate on the object ID, never object identity: every live view
              refresh hands this keyed each a FRESH CardView for the same id,
@@ -588,6 +595,21 @@
      glyph: it is the card's primary action and should stay legible in a
      densely fanned hand.  Land plays use the same direct affordance so a
      hand land never requires opening the ACTIONS panel. */
+  /* Names where a card beside the hand really sits, below the title bar so
+     the card's top-edge controls stay clear. */
+  .zone-tag {
+    position: absolute;
+    top: 1.5rem;
+    left: 1px;
+    z-index: 21;
+    padding: 0 0.25rem;
+    border-radius: 3px;
+    background: var(--offered);
+    color: var(--felt-sunk);
+    font-size: var(--t-10);
+    font-weight: 700;
+    pointer-events: none;
+  }
   .payment-shortcut {
     position: absolute;
     top: 1px;
