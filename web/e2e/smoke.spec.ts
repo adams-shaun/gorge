@@ -519,7 +519,7 @@ async function driveFixtureUntil(
     }
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
-  throw new Error(`ui24 fixture did not reach the requested decision after ${Date.now() - startedAt}ms (server ${base})`);
+  throw new Error(`board fixture did not reach the requested decision after ${Date.now() - startedAt}ms (server ${base})`);
 }
 
 // How long a page may sit in its loading state before we call it a hang.
@@ -810,7 +810,7 @@ for (const [mode, base] of [
 // Join paths: the `-vsbot` flow (POST /api/games) always seats the human at
 // seat 0 of a fresh table; the `-humans 1` startup table (t1) seats the
 // human at seat 1. Both come from the ONE SMOKE_SEATED server (see
-// scripts/smoke.sh, which seeds the seat-1 token to `ui19seat1`).
+// scripts/smoke.sh, which seeds the seat-1 token to `seatedfixture`).
 //
 // Assertions (all measured, never read off CSS):
 //  1. the seated player's own identity bar does not overlap their own hand
@@ -993,11 +993,11 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       try {
         const page = await ctx.newPage();
         // Seat 1 of the -humans 1 startup table t1; its token is fixed by
-        // smoke.sh's -seat-token ui19seat1. Settle its toss and mulligan over
+        // smoke.sh's -seat-token seatedfixture. Settle its toss and mulligan over
         // the API first, so the page mounts on the live board.
         const t1match = await matchOfTable(request, b, 't1');
-        await settleMulliganKeep(request, b, 't1', t1match, 1, 'ui19seat1');
-        await assertSeatedJoin(b, page, '/t/t1?seat=1&token=ui19seat1', 1, label, 'live-board');
+        await settleMulliganKeep(request, b, 't1', t1match, 1, 'seatedfixture');
+        await assertSeatedJoin(b, page, '/t/t1?seat=1&token=seatedfixture', 1, label, 'live-board');
         await page.close();
       } finally {
         await ctx.close();
@@ -1126,7 +1126,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
       // the startup t1 table with smoke.sh's fixed seat token. A fixed answer
       // policy against a fixed seed is reproducible, which is why the guard
       // uses the seeded game rather than a random POST /api/games table.
-      const join = '/t/t1?seat=1&token=ui19seat1';
+      const join = '/t/t1?seat=1&token=seatedfixture';
       const seat = 1;
       const ctx = await browser.newContext();
       try {
@@ -1139,7 +1139,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         await page.locator('.handtrack .handfan').waitFor({ state: 'visible', timeout: WAIT_MS });
         const c = watch(page, b);
 
-        const target = await driveToCardOptionsWindow(page, request, b, 't1', seat, 'ui19seat1');
+        const target = await driveToCardOptionsWindow(page, request, b, 't1', seat, 'seatedfixture');
 
         // The target is the seat's first card-options window. Pick a CARD
         // option at a NON-ZERO index (zero would be the first wire entry,and
@@ -1227,7 +1227,7 @@ for (const [mode, base] of [['seated', SEATED]] as const) {
         await page.keyboard.press('Escape');
         await popover.waitFor({ state: 'detached', timeout: WAIT_MS });
 
-        expectClean(c, `${label} R-E4-1 card menu`);
+        expectClean(c, `${label} card menu`);
         await page.close();
       } finally {
         await ctx.close();
@@ -1494,7 +1494,7 @@ test.describe('gorged constructed board fixture', () => {
     try {
       await page.goto(`${b}/t/t1?seat=0&token=${fixtureToken(0)}`, { waitUntil: 'domcontentloaded', timeout: WAIT_MS });
       await page.locator('.quadrant[data-seat="0"] .card-tile[data-options]').first().waitFor({ state: 'visible', timeout: WAIT_MS });
-      await dockPromptInRail(page, '[ui24]');
+      await dockPromptInRail(page, 'board fixture');
 
       // The collapsed pile aggregates one attacker option per member. Pick a
       // NON-ZERO wire option from its seven-row menu; using the menu position

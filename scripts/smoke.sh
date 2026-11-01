@@ -292,7 +292,7 @@ start_seated_server() {
   local port="$1" dir="$2" log="$3"
   ./bin/gorged -addr "127.0.0.1:$port" -dir "$dir" -spectator omniscient \
     -decks testkit/testutil/decks -tables 2 -seats 2 -pace 1.5s -seed 1 \
-    -format constructed -vsbot -humans 1 -seat-token ui19seat1 >"$log" 2>&1 &
+    -format constructed -vsbot -humans 1 -seat-token seatedfixture >"$log" 2>&1 &
   SERVER_PIDS+=("$!")
 }
 
