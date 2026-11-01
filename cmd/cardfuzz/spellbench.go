@@ -729,7 +729,8 @@ func playSBLane(reg *cards.Registry, decks []genDeck, seed uint64, o sbOptions, 
 	seats := make([]seat.Seat, len(decks))
 	agents := make([]*sbseat.Agent, len(decks))
 	for i := range seats {
-		opt := bots.Options{Seed: seed ^ (0x9e3779b97f4a7c15 * uint64(i+1)), AutoPayMana: o.autopay}
+		// A seed the wire can carry: a seat starts on one RNG stream in both lanes.
+		opt := bots.Options{Seed: (seed ^ (0x9e3779b97f4a7c15 * uint64(i+1))) & uint64(wire.MaxInt), AutoPayMana: o.autopay}
 		if !v2[i] {
 			s, err := bots.New(o.policy, opt)
 			if err != nil {
@@ -754,6 +755,7 @@ func playSBLane(reg *cards.Registry, decks []genDeck, seed uint64, o sbOptions, 
 			res.err = err.Error()
 			return
 		}
+		a.SeedAgent(opt.Seed)
 		agents[i], seats[i] = a, a
 	}
 	cfg := rules.Config{Names: names, Decks: dk, Tokens: reg.Tokens, Seed: seed, NameUniverse: reg.Universe(), LoopGuard: objectCapGuard(o.maxObjects)}
