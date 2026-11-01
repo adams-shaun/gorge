@@ -89,7 +89,7 @@ func TestUnblockableBlockerIsNotRestrictedAsABlocker(t *testing.T) {
 		"Name:Fixture Bear\nTypes:Creature Bear\nPT:2/2\n",
 		"Name:Fixture Squire\nTypes:Creature Human Soldier\nPT:1/1\n",
 		"Name:Fixture Phantom\nTypes:Creature Illusion Warrior\nPT:2/2\n"+
-			"S:Mode$ CantBlockBy | ValidAttacker$ Creature.Self | Description$ CARDNAME can't be blocked.\n")
+			"S:Mode$ CantBlockBy | ValidAttacker$ Creature.Self\n")
 	att := obsRef("o-att", "Fixture Bear", "p0")
 	cur := obsRef("o-cur", "Fixture Squire", "p1")
 	obs := testObservation("p1", "declare_blockers",
@@ -135,7 +135,7 @@ func TestConditionalCantAttackKeepsTheCreatureAttackable(t *testing.T) {
 		"Name:Fixture Bears\nTypes:Creature Bear\nPT:2/2\n",
 		"Name:Fixture Knight\nTypes:Creature Human Knight\nPT:2/2\n",
 		"Name:Fixture Falcon\nTypes:Creature Bird\nPT:2/1\n"+
-			"S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Knight.YouCtrl,Soldier.YouCtrl | PresentCompare$ EQ0 | Description$ CARDNAME can't attack unless you control a Knight or Soldier.\n")
+			"S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Knight.YouCtrl,Soldier.YouCtrl | PresentCompare$ EQ0\n")
 	if s.cantAttack(view.CardView{Name: "Fixture Falcon"}, nil) {
 		t.Fatal("a conditional CantAttack was read as unconditional")
 	}

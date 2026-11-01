@@ -1,6 +1,4 @@
-bots/botpolicy/removalnow_adapter_test.go
 bots/botpolicy/timing_drawtoken_adapter_test.go
-bots/botpolicy/timing_pump_adapter_test.go
 bots/searchprobe/proposal_test.go
 docs/site/architecture/gorge/cards.md
 engine/cards/hiddenkeyword_test.go
@@ -437,9 +435,7 @@ engine/view/identity_test.go
 engine/view/into_internal_test.go
 engine/view/placeholder_test.go
 server/matchrecord/record_test.go
-server/spellbench/neutral/attack_grant_test.go
 server/spellbench/neutral/restrictions_test.go
 server/spellbench/neutral/twin_block_projection_test.go
-server/spellbench/neutral/twin_repeatable_activation_s53_test.go
 server/spellbench/neutral/twin_residue_s53_test.go
 testkit/paymirror/paymirror_test.go
