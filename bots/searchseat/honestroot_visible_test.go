@@ -61,6 +61,46 @@ func playWithFeeds(t *testing.T, decks [][]*cards.Card, seeds int, visit func(e 
 	}
 }
 
+// A library top the seat can see is part of what it observes, so an honest
+// root keeps that card on top: Courser of Kruphix reveals its controller's top
+// to both seats (CR 401.5), Vizier of the Menagerie shows it to its controller
+// alone.
+func TestHonestRootKeepsAVisibleLibraryTop(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	decks := [][]*cards.Card{
+		twoCardDeck(t, reg, "Forest", "Courser of Kruphix"),
+		twoCardDeck(t, reg, "Forest", "Vizier of the Menagerie"),
+	}
+	setup := searchprobe.PublicGame{Names: []string{"a", "b"}, Decks: decks}
+	revealed, private := 0, 0
+	playWithFeeds(t, decks, 6, func(e *rules.Engine, f *Feed, seed uint64, step int) {
+		actor := e.Pending().Player
+		for pi := range e.G.Players {
+			p := state.PlayerID(pi)
+			lib := e.G.Zone(state.ZLibrary, p)
+			public, own := e.LibraryTopRevealed(p), p == actor && e.MayLookAtLibraryTop(p)
+			if len(lib) == 0 || (!public && !own) {
+				continue
+			}
+			if public {
+				revealed++
+			} else {
+				private++
+			}
+			root, why := HonestRoot(setup, f, e, [2]uint64{seed, uint64(step)})
+			if root == nil {
+				t.Fatalf("seed %d step %d: seat %d sees player %d's top: %s", seed, step, actor, p, why)
+			}
+			if got := root.G.Zone(state.ZLibrary, p)[0]; got != lib[0] {
+				t.Fatalf("seed %d step %d: the root's top of player %d is object %d, the seat sees %d", seed, step, p, got, lib[0])
+			}
+		}
+	})
+	if revealed == 0 || private == 0 {
+		t.Fatalf("precondition: %d revealed and %d private tops seen", revealed, private)
+	}
+}
+
 // The monarch's end-step draw names a hidden library card as its source, so an
 // honest root keeps that card where it is and the seats get their answer with
 // the trigger on the stack.

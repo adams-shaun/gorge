@@ -204,6 +204,16 @@ func (noPotentialChars) SuppressOwnLibrary() bool { return true }
 // changes.
 func (noPotentialChars) SuppressCardTokens() bool { return true }
 
+// LibraryTopRevealed is view.Project's optional read of a "play with the top
+// card revealed" grant (CR 401.5). The wrapper must pass it on: without it no
+// seat observes another player's revealed top, though every wire shows it.
+func (c noPotentialChars) LibraryTopRevealed(p state.PlayerID) bool {
+	r, ok := c.Chars.(interface {
+		LibraryTopRevealed(state.PlayerID) bool
+	})
+	return ok && r.LibraryTopRevealed(p)
+}
+
 func NewCollector(actor state.PlayerID) *Collector {
 	return &Collector{actor: actor, byRef: []state.ObjID{0}}
 }

@@ -637,9 +637,11 @@ func sortByName(e *rules.Engine, ids []state.ObjID) {
 // re-dealing one would change the observation:
 //   - the seat's own pending decision offers it: a library search's or a
 //     look-at-the-top pile split's options, the cards of a looked-at hand;
-//   - a stack entry names it as its source (view.StackView.Name).
+//   - a stack entry names it as its source (view.StackView.Name);
+//   - it is the top of a library the seat may look at, or of one played with
+//     its top card revealed (CR 401.5).
 //
-// The card's zone is a public fact, read from the base engine
+// The card's zone and position are public facts, read from the base engine
 // only for cards whose identity the seat already holds. A card the seat holds
 // no identity for is left out, and NewRedealer's unpinned-reference check
 // still refuses it.
@@ -654,7 +656,8 @@ func (k KnownCards) withVisibleCards(h History, e *rules.Engine, c *Collector) K
 	for _, s := range last.Board.Stack {
 		refs = append(refs, s.Source)
 	}
-	if len(refs) == 0 {
+	tops := visibleLibraryTops(e, h.Actor)
+	if len(refs) == 0 && len(tops) == 0 {
 		return k
 	}
 	names := make(map[uint32]Identity)
@@ -687,7 +690,20 @@ func (k KnownCards) withVisibleCards(h History, e *rules.Engine, c *Collector) K
 		known[ref] = true
 		add = append(add, identity)
 	}
-	if len(add) == 0 {
+	var topAdd []Identity
+	for _, id := range tops {
+		identity, ok := names[c.ref(id)]
+		obj := e.G.Obj(id)
+		if !ok || obj == nil || obj.Owner != identity.Owner {
+			continue
+		}
+		topAdd = append(topAdd, identity)
+		if !known[identity.ID] {
+			known[identity.ID] = true
+			add = append(add, identity)
+		}
+	}
+	if len(add) == 0 && len(topAdd) == 0 {
 		return k
 	}
 	out := KnownCards{Actor: k.Actor, Hands: slices.Clone(k.Hands), Libraries: slices.Clone(k.Libraries)}
@@ -712,9 +728,30 @@ func (k KnownCards) withVisibleCards(h History, e *rules.Engine, c *Collector) K
 		i := library(identity.Owner)
 		out.Libraries[i].Members = insertIdentity(out.Libraries[i].Members, identity)
 	}
+	for _, identity := range topAdd {
+		// A tracked top that already starts with this card stays as it is; one
+		// that disagrees is the projection's own error, for holds to refuse.
+		if i := library(identity.Owner); len(out.Libraries[i].Top) == 0 {
+			out.Libraries[i].Top = []Identity{identity}
+		}
+	}
 	sort.Slice(out.Hands, func(i, j int) bool { return out.Hands[i].Player < out.Hands[j].Player })
 	sort.Slice(out.Libraries, func(i, j int) bool { return out.Libraries[i].Player < out.Libraries[j].Player })
 	return out
+}
+
+// visibleLibraryTops is the top card of each library whose top the actor can
+// see now, in player order: the same two grants view.Project reads to show
+// PlayerView.LibraryTop.
+func visibleLibraryTops(e *rules.Engine, actor state.PlayerID) []state.ObjID {
+	var tops []state.ObjID
+	for pi := range e.G.Players {
+		p := state.PlayerID(pi)
+		if lib := e.G.Zone(state.ZLibrary, p); len(lib) > 0 && ((p == actor && e.MayLookAtLibraryTop(p)) || e.LibraryTopRevealed(p)) {
+			tops = append(tops, lib[0])
+		}
+	}
+	return tops
 }
 
 // insertIdentity is list (sorted by reference, never written) with identity
