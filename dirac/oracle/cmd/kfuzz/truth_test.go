@@ -298,7 +298,7 @@ func TestFuzzVanillaHangIsAFailure(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
 	code, stdout := capture(t, func() int {
-		return vanillaSweep(0, 3, 4, 7, 200*time.Millisecond, oracle.RunConfig{}, "", "gorge", nil, func(g int) played {
+		return vanillaSweep(0, 3, 4, 7, time.Second, oracle.RunConfig{}, "", "gorge", nil, func(g int) played {
 			if g == 1 {
 				return lockstepStub(release)
 			}
@@ -308,7 +308,7 @@ func TestFuzzVanillaHangIsAFailure(t *testing.T) {
 	if code != 1 {
 		t.Errorf("exit %d, want 1\n%s", code, stdout)
 	}
-	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after 200ms", "vanilla: 3 games, 2 without divergence (lead gorge); first divergences: hang=1"} {
+	for _, want := range []string{"game 1 (vanilla 1 vs", "hang: no result after 1s", "vanilla: 3 games, 2 without divergence (lead gorge); first divergences: hang=1"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("no %q in\n%s", want, stdout)
 		}
