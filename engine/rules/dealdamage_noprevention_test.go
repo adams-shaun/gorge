@@ -26,8 +26,8 @@ const (
 		"A:SP$ PreventDamage | ValidTgts$ Any | Amount$ 5\nOracle:x\n"
 	npHellion = "Name:NPHellion\nManaCost:2 R R\nTypes:Creature Hellion\nPT:6/5\n" +
 		"SVar:DBDmg:DB$ DealDamage | ValidTgts$ Creature | NumDmg$ 3 | NoPrevention$ True | DamageMap$ True | SubAbility$ DmgYou\n" +
-		"SVar:DmgYou:DB$ DealDamage | Defined$ You | NumDmg$ 3 | NoPrevention$ True | SubAbility$ DmgResolve\n" +
-		"SVar:DmgResolve:DB$ DamageResolve\nOracle:x\n"
+		"SVar:DmgYou:DB$ DealDamage | Defined$ You | NumDmg$ 3 | NoPrevention$ True | SubAbility$ ResolveDamage\n" +
+		"SVar:ResolveDamage:DB$ DamageResolve\nOracle:x\n"
 	npWhiteProRed = "Name:NPKnight\nManaCost:1 W\nTypes:Creature Human Knight\nPT:2/3\nK:Protection from red\nOracle:x\n"
 )
 

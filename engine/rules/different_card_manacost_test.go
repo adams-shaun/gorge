@@ -3,7 +3,7 @@ package rules
 // End-to-end pin on the real corpus carrier: Eris, Roar of
 // the Storm carries
 //   S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All ...
-//   SVar:X:Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn$DifferentCardManaCost/Times.2
+//   X = Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn$DifferentCardManaCost/Times.2
 // -- "This spell costs {2} less to cast for each different mana value among
 // instant and sorcery cards in your graveyard." Before the DifferentCardManaCost
 // head existed the SVar evaluated to 0, so Eris always cost full price.

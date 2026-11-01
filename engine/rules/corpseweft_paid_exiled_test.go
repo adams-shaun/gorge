@@ -16,7 +16,7 @@ import (
 //	AB$ Token | Cost$ 1 B ExileFromGrave<X/Creature> | XMin$ 1
 //	  | TokenScript$ b_x_x_zombie_horror | TokenPower$ Y | TokenToughness$ Y
 //	  | TokenTapped$ True
-//	SVar:Y:ExiledCards$Amount/Twice
+//	Y = ExiledCards$Amount/Twice
 //
 // so with exactly one creature exiled as the cost, the tapped Zombie Horror
 // must be 2/2 and survive state-based actions. The count reads the activation's

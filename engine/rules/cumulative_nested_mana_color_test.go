@@ -21,9 +21,9 @@ import (
 // luckGrotto is a test-local land with the Gemstone Caverns mana-ability
 // shape: the colour choice is on the conditional sub-ability.
 const luckGrotto = "Name:Luck Grotto\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | ConditionCheckSVar$ CheckCounter | ConditionSVarCompare$ EQ0 | SubAbility$ DBMana | SpellDescription$ Add {C}, or any colour with a luck counter.\n" +
-	"SVar:DBMana:DB$ Mana | Produced$ Any | ConditionCheckSVar$ CheckCounter | ConditionSVarCompare$ GE1\n" +
-	"SVar:CheckCounter:Count$CardCounters.LUCK\nOracle:x\n"
+	"A:AB$ Mana | Cost$ T | Produced$ C | ConditionCheckSVar$ HasLuck | ConditionSVarCompare$ EQ0 | SubAbility$ ThenMana | SpellDescription$ Add {C}, or any colour with a luck counter.\n" +
+	"SVar:ThenMana:DB$ Mana | Produced$ Any | ConditionCheckSVar$ HasLuck | ConditionSVarCompare$ GE1\n" +
+	"SVar:HasLuck:Count$CardCounters.LUCK\nOracle:x\n"
 
 // lifeSpring adds {U} and then gains its controller 1 life on a sub-ability.
 const lifeSpring = "Name:Life Spring\nManaCost:no cost\nTypes:Land\n" +

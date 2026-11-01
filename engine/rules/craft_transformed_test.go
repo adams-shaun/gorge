@@ -13,20 +13,20 @@ import (
 // battlefield transformed (never front face up first).
 const (
 	craftNetSource = "Name:Craft Net\nManaCost:2 U\nTypes:Artifact\nK:etbCounter:NET:3\n" +
-		"K:Craft:1 U ExileCtrlOrGrave<1/Artifact.Other>\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
+		"K:Craft:U ExileCtrlOrGrave<1/Artifact.Other>\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
 		"ALTERNATE\nName:Craft Quipu\nManaCost:no cost\nColors:blue\nTypes:Artifact\nOracle:x\n"
 	craftBladeSource = "Name:Craft Blade\nManaCost:1 B\nTypes:Artifact\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | TriggerDescription$ When CARDNAME enters, each opponent sacrifices a creature.\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac\n" +
 		"SVar:TrigSac:DB$ Sacrifice | Defined$ Opponent | SacValid$ Creature\n" +
-		"K:Craft:4 B ExileCtrlOrGrave<1/Creature.Other>\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
+		"K:Craft:3 B ExileCtrlOrGrave<1/Creature.Other>\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
 		"ALTERNATE\nName:Craft Sepulcher\nManaCost:no cost\nColors:black\nTypes:Artifact\nOracle:x\n"
 	craftLatticeSource = "Name:Craft Lattice\nManaCost:1 R\nTypes:Artifact\n" +
-		"K:Craft:4 R XMin1 ExileCtrlOrGrave<X/Dinosaur.Other>\nSVar:X:Count$xPaid\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
+		"K:Craft:3 R XMin1 ExileCtrlOrGrave<X/Dinosaur.Other>\nSVar:X:Count$xPaid\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
 		"ALTERNATE\nName:Craft Raptor\nManaCost:no cost\nColors:red\nTypes:Artifact Creature Dinosaur\nPT:*/4\n" +
 		"S:Mode$ Continuous | CharacteristicDefining$ True | SetPower$ X | Description$ power is the total power of the exiled cards used to craft it.\n" +
 		"SVar:X:ExiledWith$CardPower\nOracle:x\n"
 	craftStandardSource = "Name:Craft Standard\nManaCost:3\nTypes:Artifact\n" +
-		"K:Craft:5 XMin1 ExileCtrlOrGrave<X/Permanent.Other/permanent>\nSVar:X:Count$xPaid\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
+		"K:Craft:5 XMin1 ExileCtrlOrGrave<X/Permanent.Other>\nSVar:X:Count$xPaid\nAlternateMode:DoubleFaced\nOracle:x\n\n" +
 		"ALTERNATE\nName:Craft Effigy\nManaCost:no cost\nTypes:Artifact Creature\nPT:2/2\nOracle:x\n"
 	craftDreadmaw = "Name:Craft Dreadmaw\nManaCost:4 G G\nTypes:Creature Dinosaur\nPT:6/6\nOracle:x\n"
 	craftSolRing  = "Name:Craft Sol Ring\nManaCost:1\nTypes:Artifact\nOracle:x\n"

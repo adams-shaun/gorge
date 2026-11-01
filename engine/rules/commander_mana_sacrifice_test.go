@@ -15,7 +15,7 @@ import (
 const altarFixtureSrc = `Name:Fixture Altar
 ManaCost:3
 Types:Artifact
-A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ Any | SpellDescription$ Add one mana of any color.
+A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ Any
 Oracle:Sacrifice a creature: Add one mana of any color.
 `
 

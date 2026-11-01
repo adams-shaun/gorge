@@ -17,42 +17,42 @@ import (
 )
 
 const steelshaperSrc = "Name:Auriok Steelshaper\nManaCost:1 W\nTypes:Creature Human Soldier\nPT:1/1\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card | ValidSpell$ Activated.Equip | Activator$ You | Amount$ 1 | Description$ Equip costs you pay cost {1} less.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card | ValidSpell$ Activated.Equip | Activator$ You | Amount$ 1\n" +
 	"Oracle:Equip costs you pay cost {1} less.\n"
 
 const equiperSrc = "Name:Kyoshi Battle Fan\nManaCost:3\nTypes:Artifact Creature Kitsune\nPT:1/3\n" +
 	"K:Equip:2\nOracle:Equip {2}\n"
 
 const thaliaRv2cSrc = "Name:Thalia, Guardian of Thraben\nManaCost:1 W\nTypes:Legendary Creature Human Soldier\nPT:2/1\n" +
-	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ Noncreature spells cost {1} more to cast.\n" +
+	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1\n" +
 	"Oracle:Noncreature spells cost {1} more to cast.\n"
 
 const rakdosSrc = "Name:Rakdos, Lord of Riots\nManaCost:B B R R\nTypes:Legendary Creature Demon\nPT:6/6\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Creature | Type$ Spell | Activator$ You | Amount$ X | Description$ Creature spells you cast cost {1} less to cast for each 1 life your opponents have lost this turn.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Creature | Type$ Spell | Activator$ You | Amount$ X\n" +
 	"SVar:X:Count$LifeOppsLostThisTurn\n" +
 	"Oracle:Creature spells you cast cost {1} less to cast for each 1 life your opponents have lost this turn.\n"
 
 const heraldRv2cSrc = "Name:Herald of War\nManaCost:3 W W\nTypes:Creature Angel\nPT:3/3\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Angel,Human | Type$ Spell | Activator$ You | Amount$ X | Description$ Angels and Humans you cast cost 1 less for each +1/+1 counter on CARDNAME.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Angel,Human | Type$ Spell | Activator$ You | Amount$ X\n" +
 	"SVar:X:Count$CardCounters.P1P1\n" +
 	"Oracle:Angel spells and Human spells you cast cost {1} less to cast for each +1/+1 counter on Herald of War.\n"
 
 const ghaltaSrc = "Name:Ghalta, Primal Hunger\nManaCost:10 G G\nTypes:Legendary Creature Elder Dinosaur\nPT:12/12\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All | Description$ This spell costs {X} less to cast, where X is the total power of creatures you control.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Amount$ X | EffectZone$ All\n" +
 	"SVar:X:Count$Valid Creature.YouCtrl$CardPower\n" +
 	"Oracle:This spell costs {X} less to cast, where X is the total power of creatures you control.\n"
 
 const hydraRv2cSrc = "Name:Khalni Hydra\nManaCost:G G G G G G G G\nTypes:Creature Hydra\nPT:8/8\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Color$ G | Amount$ X | EffectZone$ All | Description$ This spell costs {G} less to cast for each green creature you control.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card.Self | Type$ Spell | Color$ G | Amount$ X | EffectZone$ All\n" +
 	"SVar:X:Count$Valid Creature.Green+YouCtrl\n" +
 	"Oracle:This spell costs {G} less to cast for each green creature you control.\n"
 
 const heartstoneSrc = "Name:Heartstone\nManaCost:3\nTypes:Artifact\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Creature | Type$ Ability | Amount$ 1 | MinMana$ 1 | AffectedZone$ Battlefield | Description$ Activated abilities of creatures cost {1} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Creature | Type$ Ability | Amount$ 1 | MinMana$ 1 | AffectedZone$ Battlefield\n" +
 	"Oracle:Activated abilities of creatures cost {1} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n"
 
 const biomancersFamiliarSrc = "Name:Biomancer's Familiar\nManaCost:G U\nTypes:Creature Mutant\nPT:2/2\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Creature.YouCtrl | Type$ Ability | Amount$ 2 | MinMana$ 1 | AffectedZone$ Battlefield | Description$ Activated abilities of creatures you control cost {2} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Creature.YouCtrl | Type$ Ability | Amount$ 2 | MinMana$ 1 | AffectedZone$ Battlefield\n" +
 	"Oracle:Activated abilities of creatures you control cost {2} less to activate. This effect can't reduce the mana in that cost to less than one mana.\n"
 
 const costlyCreatureAbilitySrc = "Name:Costly Creature\nManaCost:3 G\nTypes:Creature Beast\nPT:3/3\n" +
@@ -64,7 +64,7 @@ const trinisphereSrc = "Name:Trinisphere\nManaCost:3\nTypes:Artifact\n" +
 	"Oracle:As long as Trinisphere is untapped, each spell that would cost less than three mana to cast costs three mana to cast.\n"
 
 const spectralProcessionSrc = "Name:Spectral Procession\nManaCost:2W 2W 2W\nTypes:Sorcery\n" +
-	"A:SP$ Token | TokenAmount$ 3 | TokenScript$ w_1_1_spirit_flying | TokenOwner$ You | SpellDescription$ Create three 1/1 white Spirit creature tokens with flying.\n" +
+	"A:SP$ Token | TokenAmount$ 3 | TokenScript$ w_1_1_spirit_flying | TokenOwner$ You\n" +
 	"Oracle:Create three 1/1 white Spirit creature tokens with flying.\n"
 
 const icehideGolemSrc = "Name:Icehide Golem\nManaCost:S\nTypes:Snow Artifact Creature Golem\nPT:2/2\n" +
@@ -75,7 +75,7 @@ const snowWastesSrc = "Name:Snow-Covered Wastes\nManaCost:no cost\nTypes:Basic S
 	"Oracle:{T}: Add {C}.\n"
 
 const borealCentaurSrc = "Name:Boreal Centaur\nManaCost:1 G\nTypes:Snow Creature Centaur Warrior\nPT:2/2\n" +
-	"A:AB$ Pump | Cost$ S | Defined$ Self | NumAtt$ +1 | NumDef$ +1 | ActivationLimit$ 1 | SpellDescription$ CARDNAME gets +1/+1 until end of turn. Activate only once each turn.\n" +
+	"A:AB$ Pump | Cost$ S | Defined$ Self | NumAtt$ +1 | NumDef$ +1 | ActivationLimit$ 1\n" +
 	"Oracle:{S}: Boreal Centaur gets +1/+1 until end of turn. Activate only once each turn.\n"
 
 const ajaniSleeperSrc = "Name:Ajani Sleeper Agent\nManaCost:1 G GWP W\nTypes:Legendary Planeswalker Ajani\nLoyalty:4\n" +
@@ -857,7 +857,7 @@ func TestAffectedZoneScopesAbilityModifier(t *testing.T) {
 func TestCheckSVarGatesTheReduction(t *testing.T) {
 	t.Parallel()
 	dualcastSrc := "Name:Dualcast\nManaCost:2\nTypes:Enchantment\n" +
-		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 1 | CheckSVar$ YouCastThisTurn | SVarCompare$ EQ1 | Description$ The second spell you cast each turn costs {1} less to cast.\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 1 | CheckSVar$ YouCastThisTurn | SVarCompare$ EQ1\n" +
 		"SVar:YouCastThisTurn:Count$ThisTurnCast_Card.YouCtrl\n" +
 		"Oracle:The second spell you cast each turn costs {1} less to cast.\n"
 	boltSrc := "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n"
@@ -902,7 +902,7 @@ func TestCheckSVarGatesTheReduction(t *testing.T) {
 func TestConditionPlayerTurnGatesTheReduction(t *testing.T) {
 	t.Parallel()
 	discontinuitySrc := "Name:Discontinuity\nManaCost:2 U U\nTypes:Instant\n" +
-		"S:Mode$ ReduceCost | Condition$ PlayerTurn | ValidCard$ Card.Self | Amount$ 1 | Color$ 2 U U | Type$ Spell | EffectZone$ All | Description$ During your turn, CARDNAME costs {2}{U}{U} less to cast.\n" +
+		"S:Mode$ ReduceCost | Condition$ PlayerTurn | ValidCard$ Card.Self | Amount$ 1 | Color$ 2 U U | Type$ Spell | EffectZone$ All\n" +
 		"Oracle:During your turn, CARDNAME costs {2}{U}{U} less to cast.\n"
 	e, cfg, disc := newFixtureDeck(t, 79, discontinuitySrc)
 	// Discontinuity's `Color$ 2 U U` has four reduction slots, not three:
@@ -1176,8 +1176,8 @@ func TestRaiseCostManaShapeAddsPips(t *testing.T) {
 	t.Parallel()
 	blightSrc := "Name:Blight\nManaCost:B\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 	leechSrc := "Name:Andradite Leech\nManaCost:2 B\nTypes:Creature Leech\nPT:2/2\n" +
-		"A:AB$ Pump | Cost$ B | Defined$ Self | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ CARDNAME gets +1/+1 until end of turn.\n" +
-		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B | Description$ Black spells you cast cost {B} more to cast.\n" +
+		"A:AB$ Pump | Cost$ B | Defined$ Self | NumAtt$ +1 | NumDef$ +1\n" +
+		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B\n" +
 		"Oracle:x\n"
 	e, cfg, _ := newFixtureDeck(t, 80, blightSrc, leechSrc)
 	putCreature(t, e, 0, leechSrc)
@@ -1201,7 +1201,7 @@ func TestRaiseCostManaShapeAddsPips(t *testing.T) {
 	replayCheck(t, e, cfg)
 	// A non-black spell is untouched by the ValidCard$ Card.Black raise.
 	leech2Src := "Name:Andradite Leech\nManaCost:2 B\nTypes:Creature Leech\nPT:2/2\n" +
-		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B | Description$ Black spells you cast cost {B} more to cast.\n" +
+		"S:Mode$ RaiseCost | ValidCard$ Card.Black | Activator$ You | Type$ Spell | Cost$ B\n" +
 		"Oracle:x\n"
 	e2, _, _ := newFixtureDeck(t, 81, "Name:Filler\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n", leech2Src)
 	putCreature(t, e2, 0, leech2Src)

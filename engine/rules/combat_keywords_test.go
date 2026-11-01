@@ -460,7 +460,7 @@ func TestAttackersMaxExposesTheCeiling(t *testing.T) {
 	e.G.Active = 0
 	e.G.Step = state.StepDeclareAttackers
 	onBoard(t, e, 0, "Name:Arbiter\nManaCost:4\nTypes:Artifact Creature Construct\nPT:1/5\n"+
-		"S:Mode$ AttackRestrict | MaxAttackers$ 1 | Description$ No more than one creature can attack each combat.\nOracle:x\n")
+		"S:Mode$ AttackRestrict | MaxAttackers$ 1\nOracle:x\n")
 	onBoardReady(t, e, 0, "Name:Rusher A\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	onBoardReady(t, e, 0, "Name:Rusher B\nTypes:Creature\nPT:2/2\nOracle:x\n")
 	e.askAttackers()

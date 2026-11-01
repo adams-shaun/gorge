@@ -13,13 +13,13 @@ import (
 // DelayTriggerRememberedLKI one. The ETB exiles a target with RememberChanged$
 // True (writing both the resolution ctx and the source's persistent list), the
 // DelayedTrigger registers a Mode$ Phase | Phase$ End of Turn firing, and
-// TrigReturn returns the remembered card from exile with `Defined$ Remembered`.
+// OnReturn returns the remembered card from exile with `Defined$ Remembered`.
 // Written inline, never a .txt from .cards/ (GPL).
 const delayedRememberedSrc = "Name:DelayedReturner\nManaCost:1 W\nTypes:Creature\nPT:2/2\n" +
 	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | Execute$ TrigExile\n" +
 	"SVar:TrigExile:DB$ ChangeZone | ValidTgts$ Creature.Other | Mandatory$ True | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ DelTrig\n" +
-	"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigReturn\n" +
-	"SVar:TrigReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield\n" +
+	"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ OnReturn\n" +
+	"SVar:OnReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield\n" +
 	"Oracle:x\n"
 
 // delayedRememberedFixture builds a 2-seat game with the inline delayed-return

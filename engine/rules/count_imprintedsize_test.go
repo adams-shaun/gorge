@@ -1,6 +1,6 @@
 // Count$ImprintedSize — the source-object imprint count head. Three corpus faces carry it: TDM
 // Unexpected Conversion and Grizzled Huntmaster write `SVar:Y:Count$ImprintedSize`
-// directly, and DSK Oblivious Bookworm writes `SVar:Condition:Count$ImprintedSize/Plus.Y`.
+// directly, and DSK Oblivious Bookworm writes `Condition = Count$ImprintedSize/Plus.Y`.
 // Forge reads c.getImprintedCards().size() -- the cards Imprint$/ImprintCards$
 // associated with the ability's host -- which this engine records on
 // state.Object.Imprinted through the events.Imprint fold. Before the head

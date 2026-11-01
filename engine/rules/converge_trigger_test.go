@@ -21,8 +21,8 @@ import (
 )
 
 const magmabloodReaderSrc = "Name:Magmablood Archaic\nManaCost:3 R\nTypes:Creature Avatar\nPT:2/2\n" +
-	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigPumpAll | TriggerDescription$ Whenever you cast an instant or sorcery spell, creatures you control get +1/+0 until end of turn for each color of mana spent to cast that spell.\n" +
-	"SVar:TrigPumpAll:DB$ PumpAll | ValidCards$ Creature.YouCtrl | NumAtt$ +Y\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ OnPumpAll\n" +
+	"SVar:OnPumpAll:DB$ PumpAll | ValidCards$ Creature.YouCtrl | NumAtt$ +Y\n" +
 	"SVar:X:Count$Converge\n" +
 	"SVar:Y:TriggeredCard$Converge\n" +
 	"Oracle:x\n"

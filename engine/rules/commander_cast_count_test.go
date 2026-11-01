@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// commanderCastCountDrakeSrc is Thunderclap Drake's verbatim corpus shape:
+// commanderCastCountDrakeSrc is Thunderclap Drake's shape:
 // the AB$ DelayedTrigger registers a one-shot SpellCast delayed trigger whose
 // Execute$ copies the cast instant/sorcery `Amount$ X` times, with
 // SVar:X:Count$TotalCommanderCastFromCommandZone. Before the head existed the
@@ -19,8 +19,8 @@ ManaCost:1 U
 Types:Creature Drake
 PT:2/1
 K:Flying
-A:AB$ DelayedTrigger | Cost$ 2 U Sac<1/CARDNAME> | AILogic$ SpellCopy | Execute$ EffTrigCopy | ThisTurn$ True | Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | SpellDescription$ When you cast your next instant or sorcery spell this turn, copy it for each time you've cast your commander from the command zone this game.
-SVar:EffTrigCopy:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ X | MayChooseTarget$ True
+A:AB$ DelayedTrigger | Cost$ 2 U Sac<1/CARDNAME> | AILogic$ SpellCopy | Execute$ CopyIt | ThisTurn$ True | Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | SpellDescription$ When you cast your next instant or sorcery spell this turn, copy it for each time you've cast your commander from the command zone this game.
+SVar:CopyIt:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | Amount$ X | MayChooseTarget$ True
 SVar:X:Count$TotalCommanderCastFromCommandZone
 Oracle:x
 `
@@ -31,7 +31,7 @@ Oracle:x
 const commanderCastCountBoltSrc = `Name:Count Quell
 ManaCost:U
 Types:Instant
-A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.
+A:SP$ Draw | NumCards$ 1
 Oracle:x
 `
 

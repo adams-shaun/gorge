@@ -9,7 +9,7 @@ import (
 )
 
 // Chaos Warp's exact sub-ability shape, pinned end to end.
-// The root poses the target ask (ValidTgts$ Permanent) and chains a DBDig
+// The root poses the target ask (ValidTgts$ Permanent) and chains a ThenDig
 // sub carrying `Defined$ TargetedOwner` and NO ValidTgts of its own -- the
 // shape where, before the grammar learned the spelling, the Dig's player
 // list fell back to the resolving SOURCE (the caster) and the caster dug
@@ -18,8 +18,8 @@ import (
 // TapOrUntap would pose a mid-resolution tap/untap ask); the
 // targeting-and-sub-Dig skeleton is the carrier's.
 const chaosWarpOwnerDigSrc = "Name:Digw\nManaCost:R\nTypes:Instant\n" +
-	"A:SP$ Tap | ValidTgts$ Permanent | SubAbility$ DBDig | SpellDescription$ The owner of target permanent digs.\n" +
-	"SVar:DBDig:DB$ Dig | Defined$ TargetedOwner | DigNum$ 1 | Reveal$ True | DestinationZone$ Battlefield | DestinationZone2$ Library | LibraryPosition2$ 0 | ChangeNum$ All | ChangeValid$ Permanent\n" +
+	"A:SP$ Tap | ValidTgts$ Permanent | SubAbility$ ThenDig | SpellDescription$ The owner of target permanent digs.\n" +
+	"SVar:ThenDig:DB$ Dig | Defined$ TargetedOwner | DigNum$ 1 | Reveal$ True | DestinationZone$ Battlefield | DestinationZone2$ Library | LibraryPosition2$ 0 | ChangeNum$ All | ChangeValid$ Permanent\n" +
 	"Oracle:x\n"
 
 // TestDigTargetedOwnerDigsTheTargetOwnersLibrary: the targeted permanent is

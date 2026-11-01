@@ -22,8 +22,8 @@ import (
 func unravelProbeSrc() string {
 	return "Name:Unravel Probe\nManaCost:0\nTypes:Instant\n" +
 		"A:SP$ Counter | TargetType$ Spell | ValidTgts$ Card | SubAbility$ DBPut | SpellDescription$ Counter it.\n" +
-		"SVar:DBPut:DB$ PutCounter | Choices$ Artifact.YouCtrl | CounterType$ CHARGE | CounterNum$ X\n" +
-		"SVar:X:Targeted$CastTotalManaSpent\n" +
+		"SVar:DBPut:DB$ PutCounter | Choices$ Artifact.YouCtrl | CounterType$ CHARGE | CounterNum$ Spent\n" +
+		"SVar:Spent:Targeted$CastTotalManaSpent\n" +
 		"Oracle:x\n"
 }
 

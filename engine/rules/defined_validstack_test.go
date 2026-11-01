@@ -29,8 +29,8 @@ import (
 // and ability, remember each, and create one token per countered object.
 const answerSrc = "Name:Answer\nManaCost:2 U U\nTypes:Instant\n" +
 	"A:SP$ Counter | Defined$ ValidStack Spell.OppCtrl,Activated.OppCtrl,Triggered.OppCtrl | " +
-	"RememberCounteredSA$ True | SubAbility$ DBToken\n" +
-	"SVar:DBToken:DB$ Token | TokenAmount$ X | TokenScript$ ub_1_1_faerie_flying | SubAbility$ DBCleanup\n" +
+	"RememberCounteredSA$ True | SubAbility$ ThenToken\n" +
+	"SVar:ThenToken:DB$ Token | TokenAmount$ X | TokenScript$ ub_1_1_faerie_flying | SubAbility$ DBCleanup\n" +
 	"SVar:X:Count$RememberedSize\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
 	"Oracle:x\n"
@@ -49,8 +49,8 @@ const silenceSrc = "Name:Silence\nManaCost:2 W U U\nTypes:Instant\n" +
 // `Defined$ ValidStack Spell.Other`. The mode is announced at cast time
 // (CR 601.2b) and resolution executes it without asking again.
 const polaritySrc = "Name:Polarity\nManaCost:1 U U\nTypes:Instant\n" +
-	"A:SP$ Charm | Choices$ DBCounter,DBPump\n" +
-	"SVar:DBCounter:DB$ Counter | Defined$ ValidStack Spell.Other | SpellDescription$ Counter all other spells.\n" +
+	"A:SP$ Charm | Choices$ Counter,DBPump\n" +
+	"SVar:Counter:DB$ Counter | Defined$ ValidStack Spell.Other\n" +
 	"SVar:DBPump:DB$ PumpAll | ValidCards$ Creature | KW$ HIDDEN CARDNAME's power and toughness are switched\n" +
 	"Oracle:x\n"
 
@@ -244,7 +244,7 @@ func TestPolarityCounterModeCountersAllOtherSpells(t *testing.T) {
 	e.askPriority(0)
 	submitChoices(t, e, passToCast(t, e, pol.ID))
 	// CR 601.2b: the modal spell announces its mode right after reaching the
-	// stack. DBCounter is Choices$' first mode.
+	// stack. Counter is Choices$' first mode.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KModes || d.Player != 0 {
 		t.Fatalf("expected seat 0's cast-time mode announcement, got %+v", d)

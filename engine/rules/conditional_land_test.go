@@ -26,8 +26,8 @@ import (
 // two-type YouCtrl spec.
 const fastLandSrc = `Name:Fast Marsh
 Types:Land
-R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ LandTapped | ReplacementResult$ Updated | Description$ enters tapped unless you control two or fewer other lands
-SVar:LandTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Land.YouCtrl | ConditionCompare$ GT2
+R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ EntersTapped | ReplacementResult$ Updated | Description$ enters tapped unless you control two or fewer other lands
+SVar:EntersTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Land.YouCtrl | ConditionCompare$ GT2
 Oracle:x
 `
 
@@ -36,8 +36,8 @@ Oracle:x
 // count of Plains/Islands you control).
 const checkLandSrc = `Name:Check Fortress
 Types:Land
-R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ LandTapped | ReplacementResult$ Updated | Description$ enters tapped unless you control a Plains or an Island
-SVar:LandTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Plains.YouCtrl,Island.YouCtrl | ConditionCompare$ EQ0
+R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ EntersTapped | ReplacementResult$ Updated | Description$ enters tapped unless you control a Plains or an Island
+SVar:EntersTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionPresent$ Plains.YouCtrl,Island.YouCtrl | ConditionCompare$ EQ0
 Oracle:x
 `
 

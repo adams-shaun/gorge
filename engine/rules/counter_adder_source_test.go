@@ -167,7 +167,7 @@ func TestCounterAdderFailClosedWithoutPublishedAdder(t *testing.T) {
 func TestCounterAdderPublishesAtCostSite(t *testing.T) {
 	t.Parallel()
 	walkerSrc := "Name:Test Walker\nTypes:Planeswalker Test\nLoyalty:3\n" +
-		"A:AB$ GainLife | Cost$ AddCounter<1/LOYALTY> | LifeAmount$ 2 | Planeswalker$ True | SpellDescription$ You gain 2 life.\n" +
+		"A:AB$ GainLife | Cost$ AddCounter<1/LOYALTY> | LifeAmount$ 2 | Planeswalker$ True\n" +
 		"Oracle:x\n"
 
 	// Control: without Vorinclex the walker gains exactly one loyalty (3 -> 4).
@@ -203,13 +203,13 @@ func TestCounterAdderPublishesAtCostSite(t *testing.T) {
 // separate, still-missing expansion, so the real card dies to the toughness
 // SBA before any counter is placed and its ActiveZones$ Battlefield gate then
 // fails closed -- "the real card stays unplayable on the separate
-// kw:Modular gap". This fixture carries Zabaz's R: line and both SVars
-// verbatim, on a survivable 2/2, so the ValidCause$ Triggered.Modular arm is
+// kw:Modular gap". This fixture follows Zabaz's R: line and both SVars,
+// on a survivable 2/2, so the ValidCause$ Triggered.Modular arm is
 // exercised on the real compiled shape without the unrelated blocker.
 func zabazReplFixtureSrc() string {
 	return "Name:Zabaz Fixture\nTypes:Legendary Artifact Creature Insect\nPT:2/2\n" +
-		"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCause$ Triggered.Modular | ValidCard$ Creature.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ AddOneMoreCounter | Description$ If a modular triggered ability would put one or more +1/+1 counters on a creature you control, that many plus one +1/+1 counters are put on it instead.\n" +
-		"SVar:AddOneMoreCounter:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ X\n" +
+		"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCause$ Triggered.Modular | ValidCard$ Creature.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ OneMore\n" +
+		"SVar:OneMore:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ X\n" +
 		"SVar:X:ReplaceCount$CounterNum/Plus.1\n" +
 		"Oracle:x\n"
 }
@@ -233,7 +233,7 @@ func modularFixtureSrc(withKeyword bool) string {
 
 // TestCounterModularCauseTriggered is Zabaz's arm: a modular triggered ability
 // putting +1/+1 counters on a creature you control is doubled by
-// AddOneMoreCounter. The fixture's own ETB trigger carries K:Modular, so the
+// OneMore. The fixture's own ETB trigger carries K:Modular, so the
 // wrapper's source satisfies ValidCause$ Triggered.Modular; the 1-counter put
 // becomes 2.
 func TestCounterModularCauseTriggered(t *testing.T) {

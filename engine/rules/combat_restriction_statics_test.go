@@ -203,7 +203,7 @@ func TestFealtyToTheRealmEnchantedMustAttackEachCombat(t *testing.T) {
 // active player, so `Target$ You` has nothing to bite) — so the scoping is
 // pinned on the other real corpus carrier of the same whitelisted shape, the
 // Vow cycle: Vow of Lightning's
-// `S:Mode$ CantAttack | ValidCard$ Creature.EnchantedBy | Target$ You,Planeswalker.YouCtrl`.
+// CantAttack static on the enchanted creature with Target$ You,Planeswalker.YouCtrl.
 // In a three-seat game the vow's bearer (seat 1's bear, the vow's controller
 // seat 0) may attack seat 2 but is never offered (and never declares) a pair
 // against seat 0 — the "You" half of the comma list, with the unreadable
