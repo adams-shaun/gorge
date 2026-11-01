@@ -95,7 +95,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 115.4 | follows | `engine/rules/target_legal.go#Engine.legalTargetCandidates` | - | any target |
 | 115.5 | follows | `engine/rules/target_legal.go#Engine.candidatesForLimitInto` `engine/rules/cast_targets.go#Engine.targetAsk` | - | spell not its own target |
 | 115.6 | follows | `engine/rules/target_legal.go#Engine.resolvedTargetMin` | - | TargetMin$ 0 |
-| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` `engine/rules/target_sub_offer.go#Engine.RetargetLink` `engine/rules/target_legal.go#Engine.stackKindAdmits` | `TestTargetTypeQualifiersReadAllNamedQualifiers` `TestRedirectChainLink` | "a single target" counts the whole chain; a redirect changes the root and then each chain link; gorge redirect not all-or-none; copies root-only |
+| 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` `engine/rules/target_sub_offer.go#Engine.RetargetLink` `engine/rules/target_legal.go#Engine.stackKindAdmits` | `TestTargetTypeQualifiersReadAllNamedQualifiers` `TestRedirectChainLink` `TestChangeTheTargetOffersAnotherTarget` `TestChooseNewTargetsMayLeaveTheTarget` | "a single target" counts the whole chain; a redirect changes the root and then each chain link; a script without Optional$ reads as "change the targets", so a mandatory "choose new targets" (Emissary of Grudges) and a "may change" (Goblin Flectomancer) are all-or-none and asked; copies root-only |
 | 115.8 | unknown | - | - | not reached |
 | 115.9-115.9c | unknown | - | - | not reached |
 | 115.10-115.10b | follows | `engine/effects/context.go#Defined` | - | Defined$ / Ref affect without targeting |

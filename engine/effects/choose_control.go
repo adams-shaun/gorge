@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1738,6 +1739,11 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 // subject spell's legality. Fixed magnets and random redirects use the same
 // intersection. Every answer is applied after the last ask, so a re-entry on
 // a later ask has recorded nothing.
+//
+// Optional$ is "you may choose new targets" (CR 115.7d): any target may stay. Without
+// it the effect changes the targets (CR 115.7a): each must move to another legal
+// target, and unless every one can, none does. ChangeSingleTarget$ is "change a
+// target" (CR 115.7b), which moves one. A random reselect may land where it was.
 func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 	var target *state.Object
 	for _, t := range Defined(h, c, sa) {
@@ -1764,6 +1770,42 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 	}
 	magnet := strings.TrimSpace(sa.ParamStr(cards.PKDefinedMagnet))
 	single := strings.EqualFold(sa.ParamStr(cards.PKChangeSingleTarget), "True")
+	mustChange := !random && !strings.EqualFold(sa.ParamStr(cards.PKOptional), "True")
+	allOrNone := mustChange && !single
+
+	declared := func(link *cards.SA) []state.Target {
+		if link == subject {
+			return target.Targets
+		}
+		return h.AnnouncedLinkTargets(target.ID, link)
+	}
+	offered := func(link *cards.SA, old, parent []state.Target) []state.Target {
+		var candidates []state.Target
+		for _, t := range h.LegalRetargets(target.ID, link, parent) {
+			if targetAllowed(h, c, restriction, t) && !(mustChange && targetIn(old, t)) {
+				candidates = append(candidates, t)
+			}
+		}
+		return candidates
+	}
+	if allOrNone {
+		// Spare the chooser asks whose answers could not all land. A later
+		// declaration's census can still read the answer to an earlier one.
+		var parent []state.Target
+		for link := subject; link != nil; link = link.Sub {
+			old := declared(link)
+			if len(old) == 0 {
+				if link == subject {
+					parent = []state.Target{}
+				}
+				continue
+			}
+			if len(offered(link, old, parent)) < len(old) {
+				return
+			}
+			parent = old
+		}
+	}
 
 	type retarget struct {
 		link *cards.SA // nil for the root's own targets
@@ -1772,22 +1814,14 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 	var changes []retarget
 	var parent []state.Target // nil while judging the root
 	for link := subject; link != nil; link = link.Sub {
-		old := target.Targets
-		if link != subject {
-			old = h.AnnouncedLinkTargets(target.ID, link)
-		}
+		old := declared(link)
 		if len(old) == 0 {
 			if link == subject {
 				parent = []state.Target{}
 			}
 			continue
 		}
-		var candidates []state.Target
-		for _, t := range h.LegalRetargets(target.ID, link, parent) {
-			if targetAllowed(h, c, restriction, t) {
-				candidates = append(candidates, t)
-			}
-		}
+		candidates := offered(link, old, parent)
 		count := len(old)
 		if single {
 			count = 1
@@ -1811,12 +1845,12 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 		default:
 			picked = askNewTargets(h, c, sa, chooser, candidates, count)
 		}
+		if allOrNone && len(picked) < count {
+			return
+		}
 		parent = old
 		if len(picked) > 0 {
-			// A shorter answer keeps the remaining old targets.
-			if len(picked) < len(old) {
-				picked = append(picked, old[len(picked):]...)
-			}
+			picked = retargeted(old, picked)
 			r := retarget{ts: picked}
 			if link != subject {
 				r.link = link
@@ -1835,6 +1869,24 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 			h.RetargetLink(target.ID, r.link, r.ts)
 		}
 	}
+}
+
+// retargeted is a declaration's final targets after picked: a pick that is already
+// one of its targets stays where it is, the others take the remaining places in
+// order, and a place no pick reaches keeps its target. Only the final set has to be
+// legal (CR 115.7e), so no target ends up twice.
+func retargeted(old, picked []state.Target) []state.Target {
+	out := slices.Clone(old)
+	moved := slices.DeleteFunc(slices.Clone(picked), func(t state.Target) bool { return targetIn(old, t) })
+	for i := range out {
+		if len(moved) == 0 {
+			break
+		}
+		if !targetIn(picked, old[i]) {
+			out[i], moved = moved[0], moved[1:]
+		}
+	}
+	return out
 }
 
 // askNewTargets poses one declaration's "choose new target" ask. An empty

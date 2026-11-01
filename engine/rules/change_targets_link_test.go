@@ -56,6 +56,26 @@ func TestRedirectChainLink(t *testing.T) {
 			expect: `[{"card":"p1:Elvish Mystic","zone":"graveyard"},{"card":"p1:Craw Wurm","damage":0}]`,
 		},
 		{
+			// CR 115.7a: the root could move, the link could not, so neither does.
+			name:  "changing the targets is all or none",
+			setup: `{"p0":{"battlefield":["Grizzly Bears","Hill Giant"],"hand":["Bite Down"]},"p1":{"battlefield":["Goblin Flectomancer","Craw Wurm"]}}`,
+			steps: `{"op":"cast","seat":0,"card":"p0:Bite Down","targets":["p0:Hill Giant"],"mana":"CG","answers":[{"kind":"target","pick":["p1:Craw Wurm"]}]},
+				{"op":"pass","seat":0},
+				{"op":"activate","seat":1,"card":"p1:Goblin Flectomancer","targets":["p0:Bite Down"],"ability_index":0},
+				{"op":"pass","seat":1},{"op":"resolve"}`,
+			expect: `[{"card":"p1:Craw Wurm","damage":3},{"card":"p0:Bite Down","zone":"graveyard"}]`,
+		},
+		{
+			// CR 115.7d leaves any number in place, and the two asks answer separately.
+			name:  "a new root target keeps the link",
+			setup: `{"p0":{"battlefield":["Grizzly Bears","Hill Giant"],"hand":["Bite Down"]},"p1":{"battlefield":["Craw Wurm"],"hand":["Deflecting Swat"]}}`,
+			steps: `{"op":"cast","seat":0,"card":"p0:Bite Down","targets":["p0:Grizzly Bears"],"mana":"CG","answers":[{"kind":"target","pick":["p1:Craw Wurm"]}]},
+				{"op":"pass","seat":0},
+				{"op":"cast","seat":1,"card":"p1:Deflecting Swat","targets":["p0:Bite Down"],"mana":"CCR"},
+				{"op":"resolve","answers":[{"kind":"choose","pick":["p0:Hill Giant"]},{"kind":"choose","pick":[]}]}`,
+			expect: `[{"card":"p1:Craw Wurm","damage":3},{"card":"p0:Bite Down","zone":"graveyard"}]`,
+		},
+		{
 			// Legality is the blue spell's, whatever colour the redirect is.
 			name:  "a red redirect can move a blue spell onto protection from red",
 			setup: `{"p0":{"battlefield":["Grizzly Bears","Auriok Champion"],"hand":["Redirect Lightning"]},"p1":{"hand":["Unsummon"]}}`,
