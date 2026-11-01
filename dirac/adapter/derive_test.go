@@ -370,3 +370,38 @@ func TestTranscriptSample(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestAnnouncedCastIsPaidByItsPlan answers a cast the way the web client's hand does,
+// by announcing it, and gets what its plan pays.
+func TestAnnouncedCastIsPaidByItsPlan(t *testing.T) {
+	e, cs := benchGames(t, "fdn", 1)
+	gm, err := e.New(cs[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := gm.(*Game)
+	r := rand.New(rand.NewPCG(1, 2))
+	for i := 0; g.Pending() != nil && i < 2000; i++ {
+		d := g.Pending()
+		if d.Kind == decision.KPriority && len(d.PaymentActions) > 0 {
+			f := g.Fork().(*Game)
+			a := &d.PaymentActions[0]
+			if err := g.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Announce: &decision.AnnounceSelection{ActionID: a.ID}}); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}); err != nil {
+				t.Fatal(err)
+			}
+			if g.Log().Head() != f.Log().Head() {
+				t.Fatalf("announced %s, paid %s", g.Log().Head(), f.Log().Head())
+			}
+			return
+		}
+		if err := g.Submit(randomIntent(d, r)); err != nil {
+			if err := g.Submit(fewestPicks(g, d)); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	t.Fatal("no payment action in the game")
+}

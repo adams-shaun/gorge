@@ -144,6 +144,8 @@ export interface DeckInfo {
   format: 'constructed' | 'commander';
   archetype: string;
   commander?: string;
+  /** Why this server's engine cannot play the deck, naming the card. */
+  refused?: string;
 }
 
 export const fetchDecks = () => getJSON<DeckInfo[]>(decksURL());

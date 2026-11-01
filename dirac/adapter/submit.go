@@ -21,7 +21,8 @@ func (g *Game) Submit(in decision.Intent) error {
 	if err := d.Validate(in); err != nil {
 		return err
 	}
-	if d.Kind == decision.KPriority && in.Payment == nil && d.Options[in.Choices[0]].Kind == "concede" {
+	kind := chosenKind(d, in)
+	if kind == "concede" {
 		g.log.Intents = append(g.log.Intents, in)
 		g.concede(uint8(d.Player))
 		return nil
@@ -32,9 +33,17 @@ func (g *Game) Submit(in decision.Intent) error {
 	}
 	g.s.CopyFrom(g.ws)
 	g.log.Intents = append(g.log.Intents, in)
-	g.passed = d.Kind == decision.KPriority && in.Payment == nil && d.Options[in.Choices[0]].Kind == "pass"
+	g.passed = kind == "pass"
 	g.settle()
 	return nil
+}
+
+// chosenKind is the kind of priority option an answer chose, "" for any other answer.
+func chosenKind(d *decision.Decision, in decision.Intent) string {
+	if d.Kind != decision.KPriority || len(in.Choices) == 0 {
+		return ""
+	}
+	return d.Options[in.Choices[0]].Kind
 }
 
 // scratch puts the dry-run position at the live one.
@@ -59,14 +68,15 @@ func (g *Game) concede(p uint8) {
 
 // playAnswer plays a whole valid answer on the scratch position.
 func (g *Game) playAnswer(in decision.Intent) error {
-	if in.Payment != nil {
+	// a cast announced to be paid by hand has no window here: the plan pays it
+	if id, ok := paymentID(in); ok {
 		for i := range g.pend.PaymentActions {
-			if g.pend.PaymentActions[i].ID == in.Payment.ActionID {
+			if g.pend.PaymentActions[i].ID == id {
 				g.ws.Apply(g.paid[i])
 				return nil
 			}
 		}
-		return fmt.Errorf("dirac: no payment action %q", in.Payment.ActionID)
+		return fmt.Errorf("dirac: no payment action %q", id)
 	}
 	if !g.multi {
 		g.ws.Apply(g.acts[in.Choices[0]])
@@ -86,6 +96,17 @@ func (g *Game) playAnswer(in decision.Intent) error {
 		rest = g.complement(in.Choices)
 	}
 	return g.playRest(rest)
+}
+
+// paymentID is the payment action an answer names.
+func paymentID(in decision.Intent) (string, bool) {
+	switch {
+	case in.Payment != nil:
+		return in.Payment.ActionID, true
+	case in.Announce != nil:
+		return in.Announce.ActionID, true
+	}
+	return "", false
 }
 
 // closes reports whether n picks leave the kernel waiting for its Done: a combat

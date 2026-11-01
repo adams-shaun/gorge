@@ -107,7 +107,7 @@
       <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused} title={d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>
@@ -116,7 +116,7 @@
       <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused} title={d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>
