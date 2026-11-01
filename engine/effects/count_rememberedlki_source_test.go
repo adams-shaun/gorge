@@ -7,8 +7,7 @@ import (
 )
 
 // TestRememberedLKIGroupKeepsExplicitlyRememberedSource pins the source-kept
-// half of the RememberedLKI ref-group fix (task agent-20260919T194848Z-a720129d,
-// t2). The plain-Remembered resolver (rememberedWithSource) drops every
+// half of the RememberedLKI ref group. The plain-Remembered resolver (rememberedWithSource) drops every
 // remembered entry whose object IS the resolving source; that guard was this
 // build's stand-in for keeping a trigger's fire-time capture (the trigger's
 // own source) out of a plain Remembered read. For RememberedLKI the

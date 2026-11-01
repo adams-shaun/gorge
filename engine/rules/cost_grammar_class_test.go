@@ -11,7 +11,7 @@ import (
 )
 
 // cost_grammar_class_test.go: the variable and compound cost grammar class
-// (wave-5 class C). Four mechanisms, each with an end-to-end pin through the
+// Four mechanisms, each with an end-to-end pin through the
 // oracle runner and one corpus census:
 //
 //   - the open-ended group exile ("exile one or more ... with total mana

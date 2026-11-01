@@ -63,7 +63,7 @@ func corpusMegatronTransformSA(t *testing.T) *cards.SA {
 // withoutSub strips the compiled body's SubAbility$ chain link. The compiled
 // chain (Megatron: DBMana -> DBCleanup ClearRemembered$ True) empties the Ctx
 // list at its own end, so the pin wants the MID-CHAIN list this body produced;
-// driving DBMana's mana production is out of scope for this ticket (its
+// driving DBMana's mana production is out of scope here (its
 // Amount$ X SVar machinery is not what the param read serves). Every other
 // byte of the compiled body is untouched.
 func withoutSub(sa *cards.SA) *cards.SA {

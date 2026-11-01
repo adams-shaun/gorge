@@ -19,7 +19,7 @@ const endureSpiritFixture = "Name:Spirit Token\nTypes:Creature Spirit\nPT:0/0\nC
 type endureTapeHost struct {
 	*fakeHost
 	// answer is the option index TapeAnswer serves for every ask; -1 makes
-	// the seam report "unserved", exercising the R-9 stand-in path.
+	// the seam report "unserved", exercising the stand-in path.
 	answer int
 	asks   int
 }
@@ -161,7 +161,7 @@ func TestEndureDepartedPermanentCreatesTokenOnly(t *testing.T) {
 	}
 }
 
-// TestEndureNoTapeTakesCounterStandIn pins the R-9 no-tape fallback: a host
+// TestEndureNoTapeTakesCounterStandIn pins the no-tape fallback: a host
 // that serves no answer still gets a deterministic counter branch (never a
 // silent no-op and never a livelock).
 func TestEndureNoTapeTakesCounterStandIn(t *testing.T) {

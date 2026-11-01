@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mid-resolution ChooseType ask (task ct1): a resolution-time
+// The mid-resolution ChooseType ask: a resolution-time
 // "Choose a creature type" poses a real KChoose over the shared creature-type
 // enumeration (engine/rules/cast.go's creatureTypeOptions, the same list the
 // cast-time "as this enters" ask builds), and the answered type is what the

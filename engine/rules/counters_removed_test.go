@@ -1,6 +1,5 @@
 // Count$CountersRemovedThisTurn <KIND> <Player> — the paid-or-lost counter
-// count head (ticket count-countersremovedthisturn). Before the fix the head
-// did not exist in evalCountBody and degraded to 0 through the
+// count head. Without it the head does not exist in evalCountBody and degrades to 0 through the
 // unresolvable-value rule, so Blaster Hulk's per-{E} cast discount was never
 // applied and Izzet Generatorium's paid-or-lost-four gate read 0 (which the
 // gate's unresolvable read then failed OPEN on, over-offering the draw).
@@ -119,8 +118,7 @@ func TestBlasterHulkDiscountTracksEnergyPaid(t *testing.T) {
 	for _, paid := range []int32{0, 1, 2, 3} {
 		t.Run("paid "+string(rune('0'+paid)), func(t *testing.T) {
 			e := handEngine(t, yourCountersCard(t, "Blaster Hulk"))
-			// Precondition: the static's Amount is the head this ticket
-			// implements, and the pool is exactly what discriminates.
+			// Precondition: the static's Amount is this head, and the pool is exactly what discriminates.
 			for _, id := range e.G.Zone(state.ZHand, 0) {
 				f := e.G.Obj(id).Face()
 				if f.Name != "Blaster Hulk" {

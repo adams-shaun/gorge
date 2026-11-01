@@ -55,7 +55,7 @@ func fdnBrinebornEngine(t *testing.T, reg *cards.Registry) (*Engine, Config, sta
 // TestBrinebornCutthroatOpponentTurnGate is the two-direction pin: on the
 // controller's OWN turn the SpellCast trigger must not fire (no counter), and
 // on the opponent's turn it must (one counter). The own-turn half is the
-// regression the ticket fixes; the opponent-turn half proves the gate is not
+// regression; the opponent-turn half proves the gate is not
 // simply denying every spell.
 func TestBrinebornCutthroatOpponentTurnGate(t *testing.T) {
 	t.Parallel()
@@ -214,8 +214,8 @@ func TestCryptFeasterThresholdAttacksGate(t *testing.T) {
 	})
 }
 
-// TestTriggerOpponentTurnAndThresholdAreRead pins the parameter census the
-// ticket's "Done means" names: the derived read set for the modes the corpus
+// TestTriggerOpponentTurnAndThresholdAreRead pins the parameter census:
+// the derived read set for the modes the corpus
 // carries the two params on must include them, so a later deletion of either
 // read makes the census flag the param again. Brineborn's own card is not in a
 // repo deck, so the deck-level ratchet cannot see this; this pins the

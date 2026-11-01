@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Alania, Divergent Storm's cast trigger (task castprov2), pinned end to end
+// Alania, Divergent Storm's cast trigger, pinned end to end
 // on the real corpus card:
 //
 //	T:Mode$ SpellCast | ValidCard$ Instant,Sorcery,Otter.!CastSaSource |

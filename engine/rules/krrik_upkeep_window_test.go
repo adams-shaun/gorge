@@ -7,8 +7,7 @@
 // and the payment spent 2 life with an untapped Swamp on the battlefield.
 // The gate now asks costPayableClassLife with the grant suspended (the pool
 // alone must pay); the payment itself and every offer gate keep the grant, so
-// answering "done" still spends the 2 life. Kept in its own file so the
-// ticket cannot conflict on a shared test file.
+// answering "done" still spends the 2 life.
 package rules
 
 import (

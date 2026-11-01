@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The AddsCounters$ mana-spend rider, corpus-shape coverage (task opalp2).
+// The AddsCounters$ mana-spend rider, corpus-shape coverage.
 // The sibling Opal Palace suite (engine/rules/opal_palace_test.go) pins the commander
 // shape and engine/rules/adds_counters_ability_test.go pins the per-unit and
 // per-ability attribution with synthetic fixtures. This file pins the three

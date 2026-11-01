@@ -1,7 +1,7 @@
 package cards_test
 
 // Corpus-level regression guard for the byName priority change the
-// CopyFaceFrom resolution forced (ticket agent-20260928T215303Z-ab37989c).
+// CopyFaceFrom resolution forced.
 //
 // A resolved CopyFaceFrom back face carries the REAL referenced spell's name.
 // The referring card can sort before the referenced one (e/emeritus_of_conflict

@@ -320,7 +320,7 @@ func TestLogCloneAppendsDiverge(t *testing.T) {
 }
 
 // TestGrowEventsReturnsExactlyTheNamedLength pins the invariant events.Append
-// relies on with Task c3's custom growth (loggerAppend -> growEvents): for
+// relies on with custom growth (loggerAppend -> growEvents): for
 // every append along a log's growth, Append writes the new event at index
 // len-1, which is only safe if growEvents returns a slice whose length is
 // exactly need. A regression that forgets the s[:need] slice on the no-realloc
@@ -528,8 +528,7 @@ func TestLogReserveDoesNotLeakSpareCapacityToClone(t *testing.T) {
 // own backing array even while the parent and the clone are appended to from
 // different goroutines. A clone that shared the parent's reserved spare
 // capacity would be two goroutines writing one backing array, which -race
-// detects; this is the condition the brief's "if the change is about reuse
-// or sharing, write the concurrent test" asks for.
+// detects.
 func TestLogReserveCloneConcurrentAppendsAreIndependent(t *testing.T) {
 	parent := NewLog(7)
 	parent.Reserve(4096) // the reserved backing a buggy clone would share

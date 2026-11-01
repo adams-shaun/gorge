@@ -11,8 +11,7 @@ import (
 )
 
 // corpusCounterSA returns the REAL compiled Counter sub-ability of a named
-// corpus card (Mana Leak, Counterspell, Runeboggle). The brief insists on
-// real compiled SAs rather than a synthetic map[string]string fixture --
+// corpus card (Mana Leak, Counterspell, Runeboggle), real compiled SAs rather than a synthetic map[string]string fixture --
 // the exact opposite of what shipped two bugs this week -- so the payer
 // resolution and the ask/re-entry contract are asserted against the real
 // card parameters (UnlessCost$ 3, no UnlessPayer$, a SubAbility$ chain),
@@ -90,9 +89,7 @@ func TestCounterWithoutUnlessCostCountersUnconditionally(t *testing.T) {
 // (fakeHost.Ask returns false -- the effects-package test double, or a
 // rules context with no engine to drive) falls back to the deterministic
 // decline: the spell is countered, and a Note records that the pay was never
-// actually posed (R-9). The stand-in sits behind `if h.Ask(d) { return }`.
-// On the unmodified tree effCounter never reached the ask branch, so no
-// Note was emitted -- that is what makes this fail there.
+// actually posed. The stand-in sits behind `if h.Ask(d) { return }`.
 func TestCounterNoAskHostDeclinesDeterministically(t *testing.T) {
 	h := newHost(t, 2)
 	src := counterSource(t, h, 0)
@@ -180,8 +177,7 @@ func corpusUnlessCounterSA(t *testing.T, name string, extra func(*cards.SA) bool
 // the guard, not asserted.
 // TestCounterUnlessSwitchedAppliesOrientation pins the REAL switched
 // semantics the shared unlessProceed gate gives every Counter carrying
-// UnlessSwitched$ True: the ask IS posed (the pre-gate build suppressed it
-// and countered unconditionally — an approximation this task closes), a
+// UnlessSwitched$ True: the ask IS posed, a
 // recorded "pay" CAUSES the counter, and a "decline" lets the spell resolve.
 // The five corpus carriers are Brain Gorgers, Dash Hopes, Ice Cave,
 // Phantasmagorian and Temporal Extortion (5 compiled SAs; none in a repo

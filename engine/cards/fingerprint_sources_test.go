@@ -25,7 +25,7 @@ type fingerprintFile struct {
 // other file only reads compiled IR at runtime (rules queries and coverage
 // reports) or manages the cache file without shaping its
 // content, and editing it must not cost every process on the box a corpus
-// recompile (audit 2026-10-12: 73 engine/cards/*.go commits in 7 days, each a new
+// recompile (one audit counted 73 engine/cards/*.go commits in 7 days, each a new
 // cache, each a herd of recompiles).
 //
 // The split was measured, not guessed: a probe binary calling only CompileDir
@@ -33,7 +33,7 @@ type fingerprintFile struct {
 // table read per file; the files with no reachable function were then
 // checked for types, consts and vars that reachable code or IR struct fields
 // reference (go/ast). image.go and image_build.go are load-time only today
-// but stay in because the pointer-free spec's S5 persists the Image itself. A file whose only reachable lines were package var
+// but stay in because the pointer-free image persists the Image itself. A file whose only reachable lines were package var
 // initializers (fetch.go, mayask.go, breakdown.go) counts as unreachable.
 //
 // WHEN UNSURE, MARK IT IR-AFFECTING. A false "true" costs one extra

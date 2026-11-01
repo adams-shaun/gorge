@@ -10,7 +10,7 @@ import (
 )
 
 // chooseColorHost is a scripted-ask double for the mid-resolution ChooseColor
-// ask (task cli-20260923T060000Z-choose-color): Ask records every posed
+// ask: Ask records every posed
 // decision and reports suspended, so the test can drive the engine's two
 // passes (ask, then answer through Ctx.ChosenColor) the way rules'
 // resumeResolution does.

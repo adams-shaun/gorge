@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trig:Discover / trig:SeekAll halves (task trigdisc1): the
+// The trig:Discover / trig:SeekAll halves: the
 // events.Discover / events.Seek records are what the modes match. The
 // emitting primitives (api:Discover, api:Seek) are still unimplemented, so
 // like the pre-api matcher probes this file drives the markers directly

@@ -176,8 +176,8 @@ func TestRemoveCounterExoticShapesStayLoud(t *testing.T) {
 	if len(h.log) != before+1 || h.log[len(h.log)-1].Kind != events.Note {
 		t.Fatalf("expected exactly one Note for the exotic shape, got %+v", h.log[before:])
 	}
-	// Choices$ is now a real card election. fakeHost cannot pose its ask, so
-	// the R-9 fallback takes the first eligible object and removes one.
+	// Choices$ is a real card election. fakeHost cannot pose its ask, so
+	// the no-host fallback takes the first eligible object and removes one.
 	Resolve(h, &Ctx{Controller: 0, Source: ids["myBear"]},
 		sa(t, "DB$ RemoveCounter | Choices$ Creature.YouCtrl+counters_GE1_P1P1 | CounterType$ P1P1 | CounterNum$ 1"))
 	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 1 {

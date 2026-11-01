@@ -1,7 +1,7 @@
 package rules
 
 // cantdraw_census_test.go — the corpus census for the CR 121.6 CantDraw
-// static (task cantdraw1). The set-audit test
+// static. The set-audit test
 // (setaudit_ecl_test.go TestSetAudit_ecl_MornsongAria_CantDrawStopsDrawStep)
 // proves the behaviour end to end; this file proves the registration and
 // names the other corpus carriers, so a carrier that drifts (or a dropped

@@ -80,7 +80,7 @@ func moveNamedToBattlefield(t *testing.T, e *Engine, p state.PlayerID, name stri
 
 // heraldOnBattlefield is the shared precondition: the object is on seat 0's
 // battlefield, controlled by seat 0, and its parsed face carries the GameLoss
-// CantHappen line this ticket implements. A test whose setup silently produced
+// CantHappen line. A test whose setup silently produced
 // none of those must fail here instead of passing vacuously.
 func heraldOnBattlefield(t *testing.T, e *Engine, id state.ObjID) {
 	t.Helper()

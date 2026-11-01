@@ -1,7 +1,6 @@
 package effects
 
-// Charm mode labels follow the printed SpellDescription$ (task
-// agent-20260928T074145Z-c832b15a). The rule: a mode's label is the mode
+// Charm mode labels follow the printed SpellDescription$. The rule: a mode's label is the mode
 // body's own SpellDescription$, else the first SpellDescription$ found
 // walking the body's SubAbility$ chain, else the raw SVar name. The
 // corpus's three chain-only carriers are What Must Be Done's Release Juno

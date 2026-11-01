@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Enlist (CR 702.160, task enlist1) pinned end to end on real corpus cards.
+// Enlist (CR 702.160) pinned end to end on real corpus cards.
 // Aradesh, the Founder is the deck carrier (its attack
 // trigger gates on `ValidCard$ Creature.YouCtrl+enlistedThisCombat`, an
 // intervening-if that was an unknown predicate and failed closed); Guardian

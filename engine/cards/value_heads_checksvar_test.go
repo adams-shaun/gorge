@@ -62,8 +62,8 @@ func TestValueHeadAbilityLineCheckSVar(t *testing.T) {
 		}
 	}
 
-	// A gate on a static's Params is outside the attr walk's scope (the
-	// follow-up ticket); it must stay unattributed here.
+	// A gate on a static's Params is outside the attr walk's scope; it must stay
+	// unattributed here.
 	static := &Face{
 		Statics: []Static{{Params: map[string]string{"CheckSVar": "Count$CommittedCrimeThisTurn"}}},
 	}

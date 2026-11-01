@@ -94,7 +94,7 @@ func TestDragonsDiscipleDeclinedRevealPosesNoPick(t *testing.T) {
 			submitChoices(t, e, 1) // decline
 			declined = true
 		case "reveal_pick":
-			t.Fatalf("fx45 regression: a DECLINED may-reveal posed a mandatory reveal_pick: %+v", d)
+			t.Fatalf("a DECLINED may-reveal posed a mandatory reveal_pick: %+v", d)
 		default:
 			t.Fatalf("unexpected mid-resolution ask: kind=%s resume=%q %+v", d.Kind, d.ResumeKind, d)
 		}

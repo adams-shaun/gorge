@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Fix round for the AGENTS.md "Known approximations" row about api:Effect's
-// general registration (cli-20260922T225138Z-504a0e97):
+// api:Effect's general registration:
 //
 //   1. parseStaticEffectGrant advertised AddPower$/AddToughness$ (the layer-7c
 //      ADDITIVE parameters) but registered no LPT/SubModify effect, so an

@@ -65,7 +65,7 @@ func lyndeBoard3(t *testing.T, reg *cards.Registry, names ...string) (*Engine, m
 // attached to a player (the trigger's own resolution) or the loop budget is
 // exhausted, answering the decisions the chain poses. It reports whether the
 // `Curse.AttachedTo You` ChooseCard ask and the PlayerChoices$ opponent ask
-// were each POSED -- the two reader surfaces this ticket wires -- and the hand
+// were each POSED -- the two reader surfaces -- and the hand
 // size at the moment the card choice was answered (so the draw-2 rider can be
 // measured across exactly the trigger's resolution).
 func answerLyndeUpkeep(t *testing.T, e *Engine, curse state.ObjID) (sawCardAsk, sawPlayerAsk bool, handAtCardAsk int) {
@@ -338,12 +338,11 @@ func TestWitchbaneOrbDestroysCurseAttachedToYou(t *testing.T) {
 	t.Fatal("Witchbane Orb never destroyed the Curse attached to its controller")
 }
 
-// TestEnchantOpponentAuraCastAttachesToOpponent covers the absorbed
-// ticket's K:Enchant:Opponent clause through the same player-destination
-// branch: an Aura whose printed Enchant spec is Opponent attaches to the
-// opponent it targeted. Before the branch accepted `Opponent` the cast fell
-// through to the object walker, which drops players, and the Aura entered
-// unattached (then swept by the CR 704.5m SBA).
+// TestEnchantOpponentAuraCastAttachesToOpponent covers K:Enchant:Opponent through
+// the same player-destination branch: an Aura whose printed Enchant spec is
+// Opponent attaches to the opponent it targeted. Falling through to the object
+// walker would drop players, and the Aura would enter unattached (then swept
+// by the CR 704.5m SBA).
 func TestEnchantOpponentAuraCastAttachesToOpponent(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

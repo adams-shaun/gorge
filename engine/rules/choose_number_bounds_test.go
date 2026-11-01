@@ -8,16 +8,15 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The bounded mid-resolution ChooseNumber ask (task bounded1, absorbing
-// agent-20260922T091245Z-d777f1b6): a card's own Max$ bound, resolved against
-// the current resolution context, and its ListTitle$ prompt now shape the
+// The bounded mid-resolution ChooseNumber ask: a card's own Max$ bound, resolved against
+// the current resolution context, and its ListTitle$ prompt shape the
 // number ask -- no more hard-coded 0..12 offer under a literal "Choose a
 // number". The primitive-level pins live effects-side
 // (engine/effects/choose_number_bounds_test.go); these are the REAL-corpus end-to-end
 // pins on the carriers: Pia Nalaar, Chief Mechanic (direct
 // Max$ Count$YourCountersEnergy, driving the full trigger -> ask -> pay ->
 // X/X token chain), Localized Destruction and Aether Refinery (the Creative
-// Energy may-pay carriers, absorbing the d777f1b6 ticket: one KChoose bounded
+// Energy may-pay carriers: one KChoose bounded
 // by the current energy with each card's exact ListTitle$ prompt, the
 // answered value folded into one Choose{number} event), and Rampaging
 // Aetherhood (the SVar-indirect Max$ Max spelling).

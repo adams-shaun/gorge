@@ -13,8 +13,7 @@ import (
 // The CounterType$ EachFromSource PutCounter shape (task eachfromsource):
 // the copy-each-kind-of-counter body -- "put those counters on target
 // permanent" -- over the corpus's three referents (TriggeredCardLKICopy,
-// Self, Remembered). Resourceful Defense is the deck carrier that filed the
-// ticket; The Ozolith, Denry Klin and Heroic Sacrifice pin the other
+// Self, Remembered). Resourceful Defense is the deck carrier; The Ozolith, Denry Klin and Heroic Sacrifice pin the other
 // referent/destination combinations; every test drives the REAL corpus card
 // end to end.
 

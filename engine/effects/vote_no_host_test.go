@@ -7,14 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// TestPlayerVoteNoHostRecordsTheR9Note pins the no-host fallback of
-// effPlayerVote's per-voter ask (review round 2, MINOR): the deterministic
-// first-ballot-entry pick is the R-9 degradation and carries the
+// TestPlayerVoteNoHostRecordsTheStandInNote pins the no-host fallback of
+// effPlayerVote's per-voter ask: the deterministic
+// first-ballot-entry pick is the no-host degradation and carries the
 // "(no engine host to ask)" Note every other asking site records, so the
 // transcript keeps the marker. The picks themselves still land (both voters
 // take the first admissible entry, the same one the pre-ask stand-in made),
 // the tally is published, and the reveal Notes carry the honest picks.
-func TestPlayerVoteNoHostRecordsTheR9Note(t *testing.T) {
+func TestPlayerVoteNoHostRecordsTheStandInNote(t *testing.T) {
 	h := newHost(t, 2)
 	c := &Ctx{Controller: 0}
 	Resolve(h, c, sa(t, "SP$ Vote | Defined$ Player | VotePlayer$ Other | StoreVoteNum$ True"))
@@ -30,7 +30,7 @@ func TestPlayerVoteNoHostRecordsTheR9Note(t *testing.T) {
 		}
 	}
 	if r9 != 2 {
-		t.Fatalf("R-9 no-host Notes = %d, want one per voter (2)", r9)
+		t.Fatalf("no-host Notes = %d, want one per voter (2)", r9)
 	}
 	if reveal != 2 {
 		t.Fatalf("reveal Notes = %d, want one per voter (2)", reveal)

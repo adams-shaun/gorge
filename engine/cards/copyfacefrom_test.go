@@ -1,12 +1,12 @@
 package cards
 
-// CopyFaceFrom resolution tests (ticket agent-20260928T215303Z-ab37989c).
+// CopyFaceFrom resolution tests.
 //
 // A `CopyFaceFrom:<Card>` face directive carries no printed characteristics of
 // its own: the face IS the named card's front face. The Forge corpus uses it
 // for 21 of the 54 AlternateMode:Prepare inset spells and for both faces of
-// two AlternateMode:Split cards (bind_liberate.txt, start_fire.txt). Before
-// this ticket the parser dropped the key, so those backs parsed as a
+// two AlternateMode:Split cards (bind_liberate.txt, start_fire.txt). A parser
+// that drops the key parses those backs as a
 // zero-value Face (no name, cost, types, abilities or SVars) and the two
 // split cards had no named face at all.
 
@@ -18,7 +18,7 @@ import (
 // TestParseCopyFaceFromRecordsTheDirective pins the parse half: the raw
 // `CopyFaceFrom:` value is retained on the face that carries it, per face, and
 // ALTERNATE starts a new face so the second directive lands on Faces[1]. A
-// parser that dropped the key (the pre-ticket behaviour) leaves both empty and
+// parser that drops the key leaves both empty and
 // this fails.
 func TestParseCopyFaceFromRecordsTheDirective(t *testing.T) {
 	src := "Name:Stub Host\nTypes:Creature\nPT:2/2\nOracle:x\n" +

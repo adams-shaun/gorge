@@ -7,7 +7,7 @@ import (
 )
 
 // TestTargetedControllerRefProperty pins the TargetedController$<Property>
-// count head (agent-20260928T043626Z-b7e271c1): before the fix the ref fell
+// count head: unhandled, the ref falls
 // through evalPlayerRefProperty's default arm, whose property confinement
 // (LifeTotal only) returned (0, false) for every property, so Lullmage's
 // Domination's ReduceCost static read Count$Compare ... GE8 as 0 and never

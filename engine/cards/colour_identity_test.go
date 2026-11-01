@@ -90,7 +90,7 @@ func TestColourIdentityPinnedTrapCards(t *testing.T) {
 	}
 
 	// Ghoulcaller Gisa: costs {3}{B}{B} and its activated ability costs {B},
-	// {T}. The brief calls this the trap: at least one {B} must survive from
+	// {T}. This is the trap: at least one {B} must survive from
 	// the ability's Cost$ even though the mana cost already has {B}, and the
 	// word "Sacrifice" in the cost is not a colour. A parser that only ever
 	// read the mana cost would be fine here, so the gate is the ability text.

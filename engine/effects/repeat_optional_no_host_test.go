@@ -40,7 +40,7 @@ func adNauseamRepeatSA(t *testing.T) *cards.SA {
 
 // TestAdNauseamRepeatOptionalNoHostRunsOneIterationThenStops is the
 // deterministic no-host half: on a host whose Ask reports no channel (the
-// engine's R-9 degradation), a RepeatOptional$ do/while runs the body EXACTLY
+// engine's no-host degradation), a RepeatOptional$ do/while runs the body EXACTLY
 // once and stops -- it neither spins to the 1000-iteration guard nor skips
 // the body entirely.
 //

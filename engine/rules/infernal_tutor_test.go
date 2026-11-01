@@ -1,6 +1,6 @@
 package rules
 
-// The engine-level end to end for Infernal Tutor (task infernaltutor1), using
+// The engine-level end to end for Infernal Tutor, using
 // the REAL compiled corpus card: effReveal used to take pool[:1] for a hand
 // reveal with no choice, so "Reveal a card from your hand" showed the FIRST
 // hand card and the chained search looked for THAT name. Here the pick is

@@ -55,11 +55,11 @@ func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 }
 
 // The shared settle path and the movers that route through it: a hand-origin
-// settle emits the tapped entry (the retired loud Note's replacement), and
+// settle emits the tapped entry, and
 // the hidden-pick and Defined-library movers -- both routed through shared
-// code that now applies the classified rider -- deliver the attacking entry on
+// code that applies the classified rider -- deliver the attacking entry on
 // top of their own Tap. The fake host cannot ask, so every pick runs through
-// the R-9 deterministic stand-in; the entry rider is what is under test.
+// the deterministic no-host stand-in; the entry rider is what is under test.
 func TestAttackingEntryRidesTheSharedSettleAndMovers(t *testing.T) {
 	// (a) hidden-pick mover: effHiddenPick's settle call carries the entry.
 	h, c := fixtureHost(t)

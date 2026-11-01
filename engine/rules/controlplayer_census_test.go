@@ -13,7 +13,7 @@ package rules
 // controlRedirectClass. A new corpus card that grants control of a player
 // fails here, so whoever bumps FORGE_REF checks it reaches one of the two
 // redirects (a new delivery shape would answer as the controller and act for
-// the wrong seat -- the cardfuzz "no activatable mana ability" class); a card
+// the wrong seat -- the fuzzer's "no activatable mana ability" class); a card
 // that leaves the class fails as stale.
 
 import (

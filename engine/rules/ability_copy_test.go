@@ -91,7 +91,7 @@ const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTyp
 // VERBATIM -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
 // commander. The main copy's Defined$ ValidStack Spell.YouCtrl resolves
 // through effCopySpellAbility's ValidStack arm; the SubAbility$'s
-// Ability.YouCtrl+otherAbility half now parses too (task abcopy3: the
+// Ability.YouCtrl+otherAbility half parses too (the
 // `Ability` base, the otherAbility exclusion anchored on Ctx.ResolvingObj
 // and its same-printed-ability family) -- see the paid leaf and the
 // sub-copy pin below. The arm stays SINGLE-TARGET: with several matches it

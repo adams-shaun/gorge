@@ -1,5 +1,5 @@
 // altcast_test.go — one proof test per alternative-cost keyword, each driven
-// by a real card script from the ticket's table (the corpus .cards/cardsfolder
+// by a real card script (the corpus .cards/cardsfolder
 // entry, never a name-sharing fixture): Nulldrifter and Fury for evoke (mana
 // and ExileFromHand costs), Ragavan for dash, Impulsive Pilferer for encore,
 // Cyclonic Rift for overload, Timeline Culler for warp, Emrakul, the World

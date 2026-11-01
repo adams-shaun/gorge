@@ -128,7 +128,7 @@ func TestHeatWaveInsufficientLifeIsNeverOffered(t *testing.T) {
 // TestHollowWarriorBlockTapsAnUntappedNonblocker pins the tapXType
 // component end to end: declaring the block taps one untapped creature the
 // defender controls that is not part of the declaration (the first
-// deterministic candidate in zone order, R-9 -- the build never asks which
+// deterministic candidate in zone order -- the build never asks which
 // permanent to tap), via the same Tap event every cost payment emits.
 func TestHollowWarriorBlockTapsAnUntappedNonblocker(t *testing.T) {
 	t.Parallel()

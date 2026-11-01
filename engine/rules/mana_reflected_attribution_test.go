@@ -6,8 +6,7 @@
 // snow mana is the same producer-side definition), and the producer of a
 // ManaReflected body's mana is the permanent whose ability resolved the body
 // -- never the object the body reflects FROM, and never changed by the
-// recipient the body pays TO. Kept in its own file so the ticket cannot
-// conflict on a shared test file.
+// recipient the body pays TO.
 package rules
 
 import (

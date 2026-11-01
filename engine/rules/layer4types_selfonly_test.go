@@ -11,7 +11,7 @@ import (
 
 // selfOnlyBoard is a token board (n vanilla goblins) plus a Vehicle crewed
 // into a creature by a registered `Affected$ Card.Self` layer-4 effect --
-// the shape of the cardfuzz hang seed 6181111140895991800, where Clown Car's
+// the shape of the fuzzer hang seed 6181111140895991800, where Clown Car's
 // crew effects kept the layer-4 table live while a Krenko doubling put 8k-16k
 // goblins on the battlefield, and every emitted event (each token's
 // creation, each attacker's tap) rebuilt the table by running the full

@@ -12,7 +12,7 @@ import (
 )
 
 // corpusInfectCard parses the live GPL corpus at test time so the
-// kw:Infect primitives this ticket registers are exercised against the
+// kw:Infect primitives are exercised against the
 // exact Forge scripts whose coverage entries they retire, the way
 // combat_keywords_test.go's corpusKeywordCard does for its keywords.
 func corpusInfectCard(t *testing.T, name string) *cards.Card {

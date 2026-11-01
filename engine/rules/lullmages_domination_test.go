@@ -9,7 +9,7 @@ import (
 )
 
 // TestLullmagesDominationTargetControllerDiscount pins the real-corpus
-// reduction (agent-20260928T043626Z-b7e271c1): Lullmage's Domination's
+// reduction: Lullmage's Domination's
 // ReduceCost static carries its discount entirely in an SVar chain
 // (`Amount$ XGrave`, `SVar:XGrave:Count$Compare CheckTgt GE8.3.0`,
 // `SVar:CheckTgt:TargetedController$CardsInGraveyard`). Before the fix the

@@ -14,8 +14,7 @@ import (
 //     Count$wasCastFromYourHandByYou branch head (Host.WasCastFromHandByYou's
 //     log scan over the cast's PutOnStack): a cast-from-hand Myojin enters
 //     with its divinity counter, one cheated into play does not. Before the
-//     head was registered the gate resolved to 0 and NEVER held — the
-//     round-2 regression this file pins the fix for.
+//     head was registered the gate would resolve to 0 and NEVER hold.
 //   - Hotheaded Giant and Freestrider Commando carry a
 //     `CheckSVar$ <name> | SVarCompare$ <op><N>` gate field: the split into
 //     CheckSVar + SVarCompare params is what makes the gate readable at all

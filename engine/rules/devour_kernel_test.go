@@ -89,14 +89,14 @@ func TestThunderThrashElderDevourThreeCountsSixPerCreature(t *testing.T) {
 	_ = fodder
 }
 
-// TestThromokDevourXSquaresTheCount pins the X amount (count-plus-svar-operand,
-// round 3): `Times.X` NOW resolves the SVar operand, and Forge's own script
+// TestThromokDevourXSquaresTheCount pins the X amount (count-plus-svar-operand):
+// `Times.X` resolves the SVar operand, and Forge's own script
 // is `SVar:X:Count$RememberedSize` -- so the expansion's
 // Count$RememberedSize/Times.X reads n², which is the card oracle: "This
 // creature enters with X +1/+1 counters on it for each of those creatures"
 // = n per devoured creature (X = the number devoured). The old
 // pin (2 for 2 devoured) held only while the operand parser left Times.X
-// unresolved -- a silent zero contribution, the defect this ticket fixes.
+// unresolved, a silent zero contribution.
 func TestThromokDevourXSquaresTheCount(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t,

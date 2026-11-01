@@ -16,8 +16,7 @@ import (
 // PLAYER gets a one-time boon (`ValidActivatingPlayer$ You` inside the boon
 // resolves to that player). The synthetic card mirrors the corpus trigger
 // line because all six real EffectOwner$ carriers ride a longer Effect
-// lifetime the separate lifetime ticket (agent-20260923T034553Z-5e9f663a)
-// still withholds.
+// lifetime that stays withheld.
 func TestEffectTriggerOwnerTriggeredTarget(t *testing.T) {
 	t.Parallel()
 	promise := card(t, "Name:BatriderPromise\nManaCost:U\nTypes:Sorcery\n"+

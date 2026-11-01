@@ -5,7 +5,7 @@ package rules
 // budget as Decision.MaxSum over the options' Value (the same wire contract
 // Dig's WithTotalCMC$ uses). Two halves of the cap are pinned: the budget
 // NARROWS THE POOL (a creature whose own power exceeds the cap is never
-// offered -- the divergence the ticket names) and the budget BINDS THE SUM
+// offered) and the budget BINDS THE SUM
 // (Decision.Validate's MaxSum contract rejects a pick whose total power
 // exceeds the cap). The chained SacrificeAll Creature.!ChosenCard then
 // sacrifices everything the chooser did not keep, so the cap is visible on
@@ -147,7 +147,7 @@ func TestSlaughterTheStrongTotalPowerCapNarrowsThePool(t *testing.T) {
 	// cap reads even at 0), the pick is optional (Min 0, corpus Amount
 	// default 1 -> Max 1), and the pool is the affordable creatures ONLY --
 	// the 5-power Giant is on the battlefield but exceeds the cap alone, so
-	// offering it would be the exact divergence the ticket names.
+	// offering it would be wrong.
 	d := passUntilAskKind(t, e, decision.KChoose, 200)
 	if d.ResumeKind != "choice" || d.Player != 0 || d.Min != 0 || d.Max != 1 {
 		t.Fatalf("seat 0 ask = %+v, want an optional single choice for seat 0", d)
@@ -227,7 +227,7 @@ func TestChooseCardTotalPowerMandatoryTwoPickValidatesTheSum(t *testing.T) {
 
 	// The sum rule's one home (Decision.Validate) rejects a pick whose total
 	// power exceeds the budget and accepts one that fits: 3+2 = 5 > 4 is the
-	// exact over-the-cap answer the ticket names, 3+1 = 4 is legal.
+	// exact over-the-cap answer, 3+1 = 4 is legal.
 	illegal := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0, 1}}
 	if err := d.Validate(illegal); err == nil || !strings.Contains(err.Error(), "budget") {
 		t.Fatalf("Validate(3+2 = 5) = %v, want a budget rejection", err)

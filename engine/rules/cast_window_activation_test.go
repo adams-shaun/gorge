@@ -444,7 +444,7 @@ func TestCastWindowRestrictedAbilityStaysFailClosed(t *testing.T) {
 	}
 	// The boundary is fail-closed, not a removal of the offer: the live window
 	// still offers the restricted source's tap (untappedManaSource ignores
-	// RestrictValid), so a later ticket that widens the matcher must add its
+	// RestrictValid), so widening the matcher must add its
 	// own pricing rather than rely on this probe.
 	offered := false
 	for _, z := range []state.Zone{state.ZBattlefield, state.ZHand, state.ZGraveyard} {

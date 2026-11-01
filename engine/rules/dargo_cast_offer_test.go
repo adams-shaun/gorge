@@ -1,11 +1,11 @@
 package rules
 
-// fb-20260923T005805Z-1301f55a: the cast-offer affordability gate for a cost
+// The cast-offer affordability gate for a cost
 // whose announced Sac<X/Spec> count drives a ReduceCost static. Dargo, the
 // Shipwrecker is the named corpus carrier (SVar:X:Count$xPaid over
-// SVar:Y:SVar$X/Times.2). Before the fix the ordinary cast option was priced
-// with the pre-announcement modifier snapshot (X=0), so a player who could
-// only afford the cast AFTER sacrificing got no option at all.
+// SVar:Y:SVar$X/Times.2). Pricing the ordinary cast option with the
+// pre-announcement modifier snapshot (X=0) would leave a player who can only
+// afford the cast AFTER sacrificing with no option at all.
 
 import (
 	"testing"

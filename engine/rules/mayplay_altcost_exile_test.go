@@ -1,7 +1,7 @@
 package rules
 
 // mayplay_altcost_exile_test.go pins the may-play alternative-cost class
-// (wave-5 group X, CR 118.9 / 601.2b,f): a MayPlay static that carries
+// (CR 118.9 / 601.2b,f): a MayPlay static that carries
 // MayPlayAltManaCost$ either OPENS the zone permission and is that
 // permission's only price (Valgavoth, Terror Eater: "During your turn, you
 // may play cards exiled with Valgavoth. If you cast a spell this way, pay

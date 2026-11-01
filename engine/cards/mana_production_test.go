@@ -84,9 +84,9 @@ func TestManaProductionAnyIsHonest(t *testing.T) {
 	}
 }
 
-// TestManaProductionComboCountsOnlyItsTokens pins the fb-windgrace fix: a
-// "Combo R G" choice counts ONLY the colours its tokens name -- the rune
-// walk of the word "Combo" itself (five phantom colourless) is gone. It
+// TestManaProductionComboCountsOnlyItsTokens: a "Combo R G" choice counts ONLY
+// the colours its tokens name, with no rune walk of the word "Combo" itself
+// (which would add five phantom colourless). It
 // remains Any because a Combo production is a script-level choice, never a
 // plain colour string.
 func TestManaProductionComboMirrorsExecutor(t *testing.T) {
@@ -109,10 +109,9 @@ func TestManaProductionChosenMirrorsExecutor(t *testing.T) {
 
 // TestProducedCounts pins cards.ProducedCounts, the one Produced$ parse the
 // per-face projection (ManaProduction.add) and rules' addAvailable both
-// fold through, on the shapes the fb-windgrace feedback report measured:
-// the corpus-real "Combo ColorIdentity" (Command Tower / Arcane Signet) that
-// counted 18 phantom colourless, the "Combo B R" dual (Blackcleave Cliffs)
-// that counted 5, and the token grammar itself.
+// fold through, on the corpus-real "Combo ColorIdentity" (Command Tower /
+// Arcane Signet) that once counted 18 phantom colourless, the "Combo B R" dual
+// (Blackcleave Cliffs) that counted 5, and the token grammar itself.
 func TestProducedCounts(t *testing.T) {
 	cases := []struct {
 		name string
@@ -129,7 +128,7 @@ func TestProducedCounts(t *testing.T) {
 		{"five-colour literal", "W U B R G", [6]int32{1, 1, 1, 1, 1, 0}, false},
 		{"colourless token", "C", [6]int32{0, 0, 0, 0, 0, 1}, false},
 		{"braces are stripped", "{B}{R}", [6]int32{0, 0, 1, 1, 0, 0}, false},
-		// The fb-windgrace shapes:
+		// The corpus shapes:
 		{"Combo dual names its colours only", "Combo B R", [6]int32{0, 0, 1, 1, 0, 0}, true},
 		{"Combo triple", "Combo W U B", [6]int32{1, 1, 1, 0, 0, 0}, true},
 		{"ColorIdentity claims nothing", "Combo ColorIdentity", [6]int32{}, true},

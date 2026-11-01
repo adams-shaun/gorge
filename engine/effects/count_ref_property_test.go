@@ -83,10 +83,10 @@ func mkPlayerZoneCard(t *testing.T, g *state.Game, owner state.PlayerID, zone st
 }
 
 // TestTargetedPlayerRefProperty pins the player-valued half of the
-// <Ref>$<Property> count family (task tgtplayer1): before the evaluator,
-// TargetedPlayer$/ThisTargetedPlayer$ bodies fell through every head and
-// answered zero, so Knollspine Dragon drew nothing and The Mouth of Sauron
-// always amassed 0. The referenced player is the filter's You for the Valid
+// <Ref>$<Property> count family: without the evaluator,
+// TargetedPlayer$/ThisTargetedPlayer$ bodies fall through every head and
+// answer zero, so Knollspine Dragon draws nothing and The Mouth of Sauron
+// always amasses 0. The referenced player is the filter's You for the Valid
 // family -- The Mouth of Sauron's `Instant.YouOwn,Sorcery.YouOwn` must count
 // the TARGET's own graveyard cards, not the resolving controller's.
 func TestTargetedPlayerRefProperty(t *testing.T) {

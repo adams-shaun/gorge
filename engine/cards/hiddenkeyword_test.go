@@ -76,11 +76,11 @@ func TestCanonicalKeywordLinePreservesUnknownSentencePrimitive(t *testing.T) {
 
 // TestMustBeBlockedCensus names every corpus card whose printed K: sentence
 // "CARDNAME must be blocked if able." (CR 509.1a) is canonicalised to the
-// MustBlock head. This is the census the ticket asked for: the 16 printed
+// MustBlock head. The census: the 16 printed
 // carriers, plus Bumper Cars, which supplies the same requirement at runtime
 // through a Pump SVar's `KW$ HIDDEN CARDNAME must be blocked if able.` and so
 // never passes through the K: parser (it is read by the sentence arm of
-// rules' parseHiddenKeyword). Raphael, Ninja Destroyer is the ticket's TMT
+// rules' parseHiddenKeyword). Raphael, Ninja Destroyer is the TMT
 // carrier.
 //
 // The count is exact on purpose: a new upstream carrier or a dropped
@@ -137,8 +137,7 @@ func TestMustBeBlockedCensus(t *testing.T) {
 	// be blocked if able.` supplies the same requirement without passing
 	// through the K: parser's canonicalisation, so rules reads it through the
 	// sentence arm of parseHiddenKeyword. Measured 6 carriers (naming the
-	// mechanism class the ticket asked for); the ticket's single named
-	// producer, Bumper Cars, is the first.
+	// mechanism class); Bumper Cars is the first.
 	const sentence = "HIDDEN CARDNAME must be blocked if able."
 	var pump []string
 	for _, c := range r.AllCards() {
@@ -172,7 +171,7 @@ func TestMustBeBlockedCensus(t *testing.T) {
 }
 
 // TestCardNameSentenceKeywordClass pins the whole parser-artefact class the
-// ticket named: every printed `K:CARDNAME <english sentence>` head. A sentence
+// census covers: every printed `K:CARDNAME <english sentence>` head. A sentence
 // head has no colon, so KeywordHead returns the whole sentence; only the
 // heads in canonicalKeywordHeads are translated (the must-be-blocked one),
 // and every other sentence stays an honest unknown primitive. This census
@@ -180,7 +179,7 @@ func TestMustBeBlockedCensus(t *testing.T) {
 // sibling sentence, which is the failure mode a per-card fix would hide.
 //
 // Counted on faces (a modal DFC prints the sentence on one face); the class
-// is 44 printed lines across 44 files at the corpus pin this ticket measured.
+// is 44 printed lines across 44 files at the corpus pin measured.
 func TestCardNameSentenceKeywordClass(t *testing.T) {
 	r := compiledCorpus(t)
 	heads := map[string]int{}

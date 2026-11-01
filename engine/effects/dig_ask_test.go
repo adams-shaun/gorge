@@ -35,9 +35,9 @@ func digAskFixture(t *testing.T) (*askHost, []state.ObjID) {
 
 const digAskSA = "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"
 
-// TestDigNoHostFallbackKeepsTheFirstEligibleWithANote pins the R-9 fallback:
-// a host that cannot answer keeps today's behaviour -- the first ChangeNum
-// eligible cards in zone order -- with the Note that records why the richer
+// TestDigNoHostFallbackKeepsTheFirstEligibleWithANote pins the no-host fallback:
+// a host that cannot answer keeps the first ChangeNum
+// eligible cards in zone order, with the Note that records why the richer
 // path did not run (after the look Note the ask itself emitted).
 func TestDigNoHostFallbackKeepsTheFirstEligibleWithANote(t *testing.T) {
 	h := newHost(t, 2)

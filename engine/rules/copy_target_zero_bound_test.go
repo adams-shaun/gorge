@@ -12,9 +12,9 @@ import (
 // SVar:MaxTgts:PlayerCountPlayers$Amount/Plus.MaxPermanents -- a Count$-less
 // PlayerCount body with an /Op suffix. The bare-body branch of the count
 // evaluator never cut that suffix, so the body read as an unmodelled zero,
-// NumResolved reported the zero as resolved, and the spell could never
-// target anything; a copy of it (Increasing Vengeance, fuzz batch4 lines 3
-// and 8) then posed a Min 0 Max 0 target ask and panicked the engine.
+// NumResolved reports the zero as resolved, and the spell can never target
+// anything; a copy of it (Increasing Vengeance) must not pose a Min 0 Max 0
+// target ask and panic the engine.
 func TestAvacynsJudgmentTargetBoundCountsPlayersAndPermanents(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

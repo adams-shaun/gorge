@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Entry-characteristic counters (task addcounter1/2) are the counters a
+// Entry-characteristic counters are the counters a
 // permanent gives ITSELF as it enters the battlefield -- a planeswalker's
 // starting loyalty (CR 306.5b), a Battle's defense counters (CR 310.6), a
 // Saga's lore counter (CR 702.151a), Riot's and Unleash's +1/+1 election
@@ -57,19 +57,16 @@ func entryCounterWalker(t testing.TB) *cards.Card {
 // entryCounterEtbCreature is the authored "enters with two +1/+1 counters"
 // carrier: K:etbCounter expands to a Moved replacement whose ReplaceWith$ is
 // a DB$ PutCounter | ETB$ True body, so the placement runs INSIDE a
-// replacement body -- the exact in-flight-replacement window this task
-// closes a hole in.
+// replacement body -- the in-flight-replacement window.
 func entryCounterEtbCreature(t testing.TB) *cards.Card {
 	return card(t, "Name:Entry Etb\nTypes:Creature Bear\nPT:2/2\n"+
 		"K:etbCounter:P1P1:2:no Condition:CARDNAME enters with two +1/+1 counters on it.\n")
 }
 
-// TestEntryCounterMoveFoldIsReplacementVisible is the replacement half of
-// task addcounter1/2: a planeswalker's starting loyalty is a real
+// TestEntryCounterMoveFoldIsReplacementVisible is the replacement half:
+// a planeswalker's starting loyalty is a real
 // CounterChange, so an all-kinds AddCounter replacement (Vorinclex,
-// Monstrous Raider) doubles it. Before the fix the fold inside events.Move
-// placed the counters with no event, so the replacement never ran and the
-// entry stayed at the printed 4.
+// Monstrous Raider) doubles it.
 func TestEntryCounterMoveFoldIsReplacementVisible(t *testing.T) {
 	t.Parallel()
 	// Precondition: with no replacement on the board the walker still enters
@@ -110,11 +107,10 @@ func TestEntryCounterMoveFoldIsReplacementVisible(t *testing.T) {
 }
 
 // TestReplacementBodyCounterIsBlockedByCantPutCounter is the prohibition
-// half of task addcounter1/2: a counter placed from INSIDE a replacement
+// half: a counter placed from INSIDE a replacement
 // body (the K:etbCounter PutCounter|ETB$ True body) must still obey a
-// CantPutCounter restriction. The engine used to skip applyReplacements --
-// and with it the prohibition -- while the body was in flight, so Solemnity
-// was ignored and the creature entered with its two counters anyway.
+// CantPutCounter restriction, so Solemnity holds and the creature does not
+// enter with its two counters.
 func TestReplacementBodyCounterIsBlockedByCantPutCounter(t *testing.T) {
 	t.Parallel()
 	// Precondition: without Solemnity the body really does place 2 counters

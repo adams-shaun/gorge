@@ -1,6 +1,6 @@
 package rules
 
-// Tests for the M2d-3 "concede" priority option (controller R-M3). The shape
+// Tests for the "concede" priority option. The shape
 // is the least new surface that satisfies the determinism constraints: a
 // "concede" option served last on every priority decision whose taken path
 // emits the EXISTING PlayerLost event with Text "conceded" (CR 104.3a) --
@@ -9,7 +9,7 @@ package rules
 // permanents, and checkGameOver ends the game with the last remaining seat
 // the winner (CR 104.2a) -- exactly the life-loss path, which is the point.
 //
-// Scope (R-M3, consciously): a seat can concede only when it holds the
+// Scope, consciously: a seat can concede only when it holds the
 // engine's one decision path that offers the option -- its own priority
 // decision. There is no off-priority concede in this build; a forged intent
 // against a decision the seat does not hold is rejected by Validate.
@@ -75,12 +75,12 @@ func TestConcedeAtPriorityEndsTheGameForTheOtherSeat(t *testing.T) {
 	replayCheck(t, e, cfg) // the conceded game replays to the same head
 }
 
-// TestConcedeIsTheLastOptionAfterPass pins the option ORDERING (R-M3:
-// "always last"): the final option on a priority decision is "concede" and
+// TestConcedeIsTheLastOptionAfterPass pins the option ORDERING
+// ("always last"): the final option on a priority decision is "concede" and
 // the option before it is "pass". legalActions' "Pass is last so a client
-// can safely default to the final option" contract stops being true the
-// moment concede exists -- a default-to-final client would concede on every
-// priority -- so the new ordering must be explicit and pinned, not implicit.
+// can safely default to the final option" contract cannot hold once concede
+// exists -- a default-to-final client would concede on every
+// priority -- so the ordering must be explicit and pinned, not implicit.
 func TestConcedeIsTheLastOptionAfterPass(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 132, "Name:Bear\nManaCost:1 G\nTypes:Creature\nPT:2/2\nOracle:x\n")
@@ -102,7 +102,7 @@ func TestConcedeIsTheLastOptionAfterPass(t *testing.T) {
 // concede" -- (a) the pending priority decision always offers "concede" to
 // ITS OWN player, and (b) an intent forged against a decision the seat does
 // not hold is rejected by Validate with the game untouched, so there is no
-// off-priority concede path at all in this build (R-M3's out-of-scope note:
+// off-priority concede path at all in this build:
 // real Magic allows concession any time; this fixture offers it exactly at
 // the conceding seat's own priority, which the engine grants every living
 // seat at least once per turn).
@@ -142,7 +142,7 @@ func TestConcedeOnlyOnThePriorityHolder(t *testing.T) {
 }
 
 // TestConcedeIsNotOfferedOnANonPriorityDecision: the mulligan round offers
-// every living seat a decision that is NOT priority (KMulligan, R-8.4's
+// every living seat a decision that is NOT priority (KMulligan, the
 // round between the deal and turn 1). A seat holding that decision must not
 // be offered "concede" -- the option lives only on the priority decision.
 // The round completes normally (keep, keep) and turn 1's first priority

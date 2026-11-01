@@ -203,7 +203,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 703.4j | follows | `engine/rules/combat.go#Engine.askBlockers` `engine/rules/combat.go#Engine.handleBlockers` | - |  |
 | 703.4k | follows | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/combat.go#Engine.askNextDivision` | - | damage assignment asked per attacker before dealing |
 | 703.4m | follows | `engine/rules/combat.go#Engine.dealCombatDamage` `engine/rules/combat.go#Engine.damageStep` | - | all combat damage dealt in one pass |
-| 703.4n | follows | `engine/rules/combat.go#Engine.cleanupBody` `engine/rules/combat.go#Engine.discardCleanup` `engine/rules/combat.go#Engine.maxHandSizeFor` | `Test3141DiscardDownToSevenIsAsked` `Test3141OnlyActivePlayerDiscards` `Test3141ExactlyMaxHandSizeAsksNothing` |  |
+| 703.4n | follows | `engine/rules/combat.go#Engine.cleanupBody` `engine/rules/combat.go#Engine.discardCleanup` `engine/rules/combat.go#Engine.maxHandSizeFor` | `TestCleanupDiscardDownToSevenIsAsked` `TestCleanupOnlyActivePlayerDiscards` `TestCleanupExactlyMaxHandSizeAsksNothing` |  |
 | 703.4p | follows | `engine/rules/combat.go#Engine.cleanupBody` | `TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects` `TestCleanupDamageRemovalIsNotDamageDone` |  |
 | 703.4q | follows | `engine/rules/turn.go#Engine.finishStepBoundary` | `TestFirebendingManaSurvivesCombatStepsAndEmptiesAtEndOfCombat` | stat:UnspentMana exemptions honoured in gorge |
 | 704.1 | follows | `engine/rules/sba.go#Engine.checkStateBased` | `TestSBALoopsUntilStable` | SBAs applied directly, never stacked |

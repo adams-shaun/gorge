@@ -47,7 +47,7 @@ func TestETBReplacementFilterFieldReachesValidCard(t *testing.T) {
 	}
 }
 
-// TestETBReplacementFilterFieldEmptyZoneStillReadsFilter pins the brief's
+// TestETBReplacementFilterFieldEmptyZoneStillReadsFilter pins the
 // field-position edge: an EMPTY valid-zone field still puts the filter at
 // Split index 2. metathran_transport's shape
 // ("...:Mandatory::Card.Self+escaped").

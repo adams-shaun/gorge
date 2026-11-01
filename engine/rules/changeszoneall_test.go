@@ -13,8 +13,7 @@ import (
 
 // trig:ChangesZoneAll, the batch "whenever one or more ... enter/die" trigger
 // mode, pinned end to end on its two report carriers (Tocasia's Welcome,
-// Morbid Opportunist -- issues agent-20260918T213615Z-a44e8e5d and
-// agent-20260918T213615Z-e9b0fa3b). Both are real corpus cards, so no Forge
+// Morbid Opportunist). Both are real corpus cards, so no Forge
 // script text is committed here (the search_library_test.go convention).
 //
 // The engine implements the mode BATCH-OF-ONE: it evaluates per emitted
@@ -272,7 +271,7 @@ func TestMorbidOpportunistDrawsOncePerTurn(t *testing.T) {
 }
 
 // TestMerryWardenOfIsengardBathesArtifactsOncePerTurn is the deck card the
-// original report named (issue agent-20260918T202223Z-7054b9c3): "Whenever
+// original report named: "Whenever
 // one or more artifacts you control enter, create a 1/1 white Soldier
 // creature token with lifelink. This ability triggers only once each
 // turn." -- ValidCards$ Artifact.YouCtrl | Destination$ Battlefield with

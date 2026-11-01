@@ -1,7 +1,6 @@
 package rules
 
-// api:Clone's PumpKeywords$/PumpDuration$ riders (ticket
-// api-clone-pump-riders). The two real corpus carriers are Loose in the Park
+// api:Clone's PumpKeywords$/PumpDuration$ riders. The two real corpus carriers are Loose in the Park
 // (A:AB$ Clone | ... | PumpKeywords$ Haste | AddTypes$ Land | Duration$
 // UntilEndOfTurn) and The Fourteenth Doctor (SVar:DBCopy:DB$ Clone | ...
 // | PumpKeywords$ Haste | PumpDuration$ EOT). Both carry Haste, which the

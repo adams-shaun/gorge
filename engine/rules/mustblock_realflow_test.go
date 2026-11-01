@@ -1,8 +1,8 @@
 package rules
 
-// Real-flow MustBlock carrier tests (task cli-20261006T023257Z-ec7b4d90).
+// Real-flow MustBlock carrier tests.
 //
-// 858182dc8 certified all 27 api:MustBlock carriers at the SHAPE level, but
+// The census certifies all 27 api:MustBlock carriers at the SHAPE level, but
 // several target filters and gates had no end-to-end test: a regression in
 // them would still pass every census. Each test below drives the real card
 // through the engine -- the ability is activated (or the spell cast), the

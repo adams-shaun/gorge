@@ -7,8 +7,7 @@ import (
 )
 
 // TestPotentialTargetCostPricesOneCandidateNotTheUnion is the regression for
-// the offer gate's target-relative Amount$ read (finding on commit
-// 56a9cf895): the potential-target retry holds the list of EVERY legal
+// the offer gate's target-relative Amount$ read: the potential-target retry holds the list of EVERY legal
 // candidate target, and a target-count reduction must be priced as ONE
 // possible announcement (the best single candidate), never the union of all
 // candidates. Battlefield Thaumaturge is the real corpus carrier

@@ -58,7 +58,7 @@ func killCreature(t *testing.T, e *Engine, id state.ObjID, amount int32) {
 	drainStack(t, e, 30)
 }
 
-// TestYedoraReturnsADeadCreatureAsAFaceDownForestLand is the ticket's carrier
+// TestYedoraReturnsADeadCreatureAsAFaceDownForestLand is the carrier
 // end to end: Yedora's death trigger returns the dying creature face down and
 // its folded FaceDownSetType$ makes it exactly a Forest land -- no creature
 // type, no printed abilities, derived 0/0, and (CR 305.6) tapping for {G}.

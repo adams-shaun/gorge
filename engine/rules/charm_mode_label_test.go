@@ -1,7 +1,7 @@
 package rules
 
 // Charm mode labels follow the printed SpellDescription$ on the trigger
-// placement path (task agent-20260928T074145Z-c832b15a). Varchild's
+// placement path. Varchild's
 // War-Riders is one of the corpus's three sub-chain-only carriers and the
 // only one whose Charm is a TRIGGER body: at the beginning of its
 // controller's upkeep its cumulative-upkeep trigger poses the placement

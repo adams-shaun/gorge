@@ -18,8 +18,8 @@ import (
 // Predators was merely an enchantment (no opposing power-4 creature at all),
 // and once it was animated -- no longer an enchantment -- re-fired on the
 // opposing creature alone after every resolution, stacking one Permanent
-// Animate continuous effect per loop. cardfuzz batch3 lines 4/21 reached 500+
-// active continuous effects and a 60s wall-clock "hang" in the layer walk.
+// Animate continuous effect per loop: 500+ active continuous effects and a 60s
+// wall-clock "hang" in the layer walk.
 func TestHiddenPredatorsIsPresent2IsAnAndClause(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

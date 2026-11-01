@@ -1,12 +1,10 @@
-// Ticket mana-checksvar-gate: an activated mana ability's CheckSVar$/
+// An activated mana ability's CheckSVar$/
 // SVarCompare$ "Activate only if ..." gate (Glistening Sphere's Corrupted
 // "{T}: Add three mana of any one color. Activate only if an opponent has
 // three or more poison counters.") is evaluated by the shared sVarGateOK
 // evaluator inside the mana gate, so the priority offer, the payment windows
 // and the V1 planner all withhold the ability while its condition is false.
-// fpCorpus/fpPlanUses are ported from the throwaway proof branch
-// wt/autopay-census-proofs (never merged); censusContains lives in
-// rules/autopay_census_test.go.
+// censusContains lives in rules/autopay_census_test.go.
 
 package rules
 

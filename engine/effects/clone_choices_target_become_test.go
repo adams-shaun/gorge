@@ -1,6 +1,6 @@
 package effects
 
-// Clone with Choices$ + ValidTgts$ and no CloneTarget$ (ticket lb-clonetgt).
+// Clone with Choices$ + ValidTgts$ and no CloneTarget$.
 //
 // Forge's CloneEffect reads the Choices$ pick as the copy SOURCE and, on a
 // targeting ability with no CloneTarget$, the SA's own target as the BECOME

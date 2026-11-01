@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The monstrosity suite (task agent-20260919T190014Z): the Monstrosity$ read
+// The monstrosity suite: the Monstrosity$ read
 // on AB$ PutCounter, the monstrous mark behind the events.AlterAttribute
 // fold, the CR 701.31b once-only offer gate, the IsMonstrous filter
 // predicate and the trig:BecomeMonstrous listener. Every end-to-end pin is a

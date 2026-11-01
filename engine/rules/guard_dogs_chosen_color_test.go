@@ -7,10 +7,10 @@ package rules
 // a target creature, and register the prevention only when the target shares
 // a colour with the chosen permanent.
 //
-// Before this ticket the predicate `Card.SharesColorWith ChosenCard` was
-// unrecognised, so effects.conditionMet returned UNRESOLVED and the registry's
-// documented fail-open convention ran the sub unconditionally: the card
-// over-prevented (it registered the prevention regardless of colour).
+// Without the predicate `Card.SharesColorWith ChosenCard`,
+// effects.conditionMet returns UNRESOLVED and the registry's
+// documented fail-open convention runs the sub unconditionally: the card
+// over-prevents (it registers the prevention regardless of colour).
 // Recognising the predicate alone was not enough -- the DB sub's own
 // ValidTgts$ ask is posed by chosenTargetsFor INSIDE the body dispatch, AFTER
 // the gate, so on the empty group the recognised predicate resolved the gate

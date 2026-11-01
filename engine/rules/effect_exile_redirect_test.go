@@ -10,11 +10,10 @@ import (
 )
 
 // Effect-delivered Event$ Moved redirects whose ReplaceWith$ body carries a
-// SubAbility$ rider or RememberChanged$ (ticket lb-lilah): Lilah, Feather,
+// SubAbility$ rider or RememberChanged$: Lilah, Feather,
 // Gandalf of the Secret Fire, Forger's Foundry and Soulfire Grand Master.
-// Before, effects.replacementRedirectsToExile admitted only the bare exile
-// body, so each of these emitted the loud "unsupported" Note and the
-// resolving spell went to the graveyard.
+// A bare-exile-only effects.replacementRedirectsToExile would emit the loud
+// "unsupported" Note for each and send the resolving spell to the graveyard.
 
 // lbResolve drains the stack, answering nothing.
 func lbResolve(t *testing.T, e *Engine) {

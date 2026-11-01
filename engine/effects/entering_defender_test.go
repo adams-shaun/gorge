@@ -22,7 +22,7 @@ func enteringDefenderWalker(t *testing.T, h *fakeHost) state.ObjID {
 
 // TestEnteringDefenderAsksWithAWalkerAndFallsBackToTheTriggerDefender: an
 // unnamed defender with two candidates poses one entering_defender ask,
-// fallback first; the fake host serves no answer, so the R-9 stand-in is
+// fallback first; the fake host serves no answer, so the no-host stand-in is
 // the trigger's defending player.
 func TestEnteringDefenderAsksWithAWalkerAndFallsBackToTheTriggerDefender(t *testing.T) {
 	h, c, id := attackingFixture(t)

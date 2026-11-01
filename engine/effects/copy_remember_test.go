@@ -89,7 +89,7 @@ func TestCopySpellAbilityRememberCopiesAppendsMintedCopy(t *testing.T) {
 	}
 }
 
-// TestCopySpellAbilityRememberCopiesGateFlips is the ticket's purpose: the
+// TestCopySpellAbilityRememberCopiesGateFlips pins the
 // exact "if you didn't copy a spell this way" shape Shiko and Narset,
 // Unified's DBDraw uses --
 // ConditionDefined$ Remembered | ConditionPresent$ Spell | ConditionCompare$ EQ0.

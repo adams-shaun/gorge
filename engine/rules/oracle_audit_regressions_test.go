@@ -1,8 +1,6 @@
 package rules
 
-// Engine divergences found by the second FRA hand-written Oracle audit
-// (engine/rules/testdata/oracle, branch wt/xo-hand2). Each test was written RED
-// against the unfixed engine.
+// Engine divergences found by a hand-written Oracle audit (engine/rules/testdata/oracle).
 
 import (
 	"strings"

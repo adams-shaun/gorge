@@ -259,7 +259,7 @@ func TestPlayerSpecs(t *testing.T) {
 // TestPlayerSpecIsMonarchStateLocal pins the monarch qualifier (CR 716.2)
 // in the shared player-spec grammar: Player.isMonarch (the base the static
 // GainControl$ value and every other consumer resolve through) matches only
-// the seat holding the monarch designation, and the fx20 qualifiers that
+// the seat holding the monarch designation, and the qualifiers that
 // need player-state machinery this grammar does not carry still fail closed.
 func TestPlayerSpecIsMonarchStateLocal(t *testing.T) {
 	g, _ := board(t)
@@ -280,7 +280,7 @@ func TestPlayerSpecIsMonarchStateLocal(t *testing.T) {
 		t.Error("Player.isMonarch with no monarch must match nobody")
 	}
 	g.HasMonarch, g.Monarch = true, 1
-	// A qualified You/Opponent/Other base still fails closed (the fx20
+	// A qualified You/Opponent/Other base still fails closed (the
 	// convention -- narrow is the contract, never silently widened).
 	if MatchesPlayerSpec(g, "You.isMonarch", 1, 1) {
 		t.Error("You.isMonarch must still fail closed")

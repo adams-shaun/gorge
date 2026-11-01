@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// End-to-end connive tests (task connive1, api:Connive / CR 702.59) on REAL
+// End-to-end connive tests (api:Connive / CR 702.59) on REAL
 // corpus cards:
 //
 //   - Lethal Scheme's `DB$ Connive | Defined$ Convoked` sub: each creature

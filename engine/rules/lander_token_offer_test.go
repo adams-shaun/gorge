@@ -10,8 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file pins the Horizon Explorer Lander-token defect
-// (fb-20260916T023150Z-3bf587db) at both ends of the rv2c architecture.
+// This file pins the Horizon Explorer Lander-token defect at both ends of the architecture.
 //
 // The Lander token (Horizon Explorer's attack trigger, token script
 // c_a_lander_sac_search) carries an activated ability whose cost is

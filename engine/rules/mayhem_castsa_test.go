@@ -1,6 +1,6 @@
 package rules
 
-// The Card.CastSa Spell.Mayhem provenance (review round 3 finding): the
+// The Card.CastSa Spell.Mayhem provenance: the
 // mayhem cast's pay-time CastInfo stamps state.FlagMayhem, and the
 // ConditionPresent$ Card.CastSa/!CastSa Spell.Mayhem gates evaluate it —
 // pinned end to end on the real corpus carrier, Sandman's Quicksand

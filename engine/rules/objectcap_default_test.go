@@ -2,7 +2,7 @@ package rules
 
 import "testing"
 
-// CV-8: the default object cap. WithDefaultObjectCap is the ONE helper every
+// The default object cap. WithDefaultObjectCap is the ONE helper every
 // harness/host config goes through (testkit/bench's drive loop, the host's
 // match config, cmd/mtgsim), so these pins are the contract every caller
 // inherits: a caller with no budget gets DefaultMaxObjs, an explicit budget
@@ -52,9 +52,9 @@ func TestWithDefaultObjectCapDisabledUnchanged(t *testing.T) {
 
 func TestDefaultObjectCapIsAVolumeBound(t *testing.T) {
 	t.Parallel()
-	// The default cap must sit at or above the big-board population CV-2
+	// The default cap must sit at or above the big-board population that
 	// fixed the runaway reason at, and far above the measured ordinary
-	// high-water (554, CV-8's probe) -- otherwise ordinary games trip it.
+	// high-water (554) -- otherwise ordinary games trip it.
 	if DefaultMaxObjs < RunawayBigBoardObjs {
 		t.Fatalf("DefaultMaxObjs %d below the big-board population %d", DefaultMaxObjs, RunawayBigBoardObjs)
 	}

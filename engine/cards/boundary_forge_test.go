@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// TestForgeBoundary is the licence guard from the Forge oracle design (§11,
-// design decision P1-7). Forge is GPL-3.0; gorge is Apache-2.0. Nothing that
+// TestForgeBoundary is the licence guard. Forge is GPL-3.0; gorge is
+// Apache-2.0. Nothing that
 // belongs to Forge — its Java source, its oracle driver tree, its result rows
 // or request files — may be tracked in this repository. The existing
 // engine/cards/boundary_test.go guards the card-script corpus by content; this guard
@@ -191,7 +191,7 @@ func TestForgeBoundary(t *testing.T) {
 	}
 }
 
-// TestForgeBoundaryDetection is the negative case the brief requires: each
+// TestForgeBoundaryDetection is the negative case: each
 // shape this guard exists to catch is planted in a throwaway git repository
 // under t.TempDir, and the guard must flag it. The allowlist is exercised too,
 // so the escape hatch is proven to work rather than assumed.

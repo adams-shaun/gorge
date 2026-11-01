@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The ExiledWith$Colors ref property (ticket levelb-static-count-attachments):
+// The ExiledWith$Colors ref property:
 // Sunbird Effigy's characteristic-defining P/T ("power and toughness are each
 // equal to the number of colors among the exiled cards used to craft it")
 // counts DISTINCT colours among the cards the source exiled, the same

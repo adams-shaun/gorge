@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Real corpus card (WOE 125). Pins commit 42df82652 (the XMage driver's
-// per-target binding for a two-target cast): the root's 4 damage must go to
+// Real corpus card (WOE 125). Pins per-target binding for a two-target cast: the root's 4 damage must go to
 // the FIRST listed target and the Role's bearer is the SECOND, so the dead
 // Grizzly lands in its owner's graveyard and the Role attaches to the
 // surviving one. The old driver joined both targets into one

@@ -1,5 +1,4 @@
-// The player-facing cost-text ticket (costlabel1). Feedback
-// fb-20260921T022723Z-96e6db91 reported that a decision prompt showed the
+// Player-facing cost text: a decision prompt must not show the
 // engine's own cost token ("pay Sac<1/Creature.Other/another creature>?").
 // engine/rules/mana.go's costPhrase renders a parsed cost as prose for a prompt or
 // option label -- using Forge's embedded "/description" verbatim when the

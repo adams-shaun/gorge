@@ -42,7 +42,7 @@ func olscFixture(t *testing.T) (*askHost, state.ObjID, []state.ObjID) {
 	return h, src.ID, ids
 }
 
-// TestOptionalLibrarySearchNoHost pins R-9: a host with no decision channel
+// TestOptionalLibrarySearchNoHost pins the no-host path: a host with no decision channel
 // plays the may as do (accept), then the search path's existing no-host pick
 // policy runs.
 func TestOptionalLibrarySearchNoHost(t *testing.T) {

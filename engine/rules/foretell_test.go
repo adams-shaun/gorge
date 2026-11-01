@@ -20,9 +20,9 @@ import (
 //
 // Two measured boundaries this file documents rather than hides:
 //
-//   - Haunting Voyage's mid-resolution SP$ ChooseType now poses a real
-//     KChoose type ask (task ct1); the drives below answer it (the graveyard
-//     stocking is built so "Elf" is a real option). The pre-ct1 behaviour --
+//   - Haunting Voyage's mid-resolution SP$ ChooseType poses a real
+//     KChoose type ask; the drives below answer it (the graveyard
+//     stocking is built so "Elf" is a real option). The older behaviour --
 //     a deterministic fallback type read off the controller's objects, never
 //     asked -- is pinned by the effects-side fallback tests, not here.
 //   - handEngine's fixture runs no genesis TurnChange, so a turn-1 note

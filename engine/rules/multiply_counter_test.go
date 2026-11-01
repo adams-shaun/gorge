@@ -10,8 +10,7 @@ import (
 )
 
 // api:MultiplyCounter pinned end to end on the in-deck real corpus carrier
-// Lily Bowen, Raging Grandma. The brief (agent-20260919T185012Z-e1d44eb1):
-// `DB$ MultiplyCounter` was unregistered, so Lily's power<=16 upkeep branch
+// Lily Bowen, Raging Grandma: without `DB$ MultiplyCounter`, Lily's power<=16 upkeep branch
 // (SVar:DBPump:DB$ MultiplyCounter | CounterType$ P1P1 | Defined$ Self) did
 // nothing -- the "double the number of +1/+1 counters" half of the card.
 //
@@ -77,7 +76,7 @@ func TestLilyBowenMultiplyCounterDoublesAtUpkeep(t *testing.T) {
 		t.Fatalf("Lily has %d P1P1 after the upkeep trigger, want 4 (2 doubled)", ec)
 	}
 
-	// The brief requires the counter CHANGE on the event stream, not only the
+	// This requires the counter CHANGE on the event stream, not only the
 	// final count: one MORE +2 P1P1 CounterChange than the entry logged.
 	doublingAdds := 0
 	for _, ev := range e.L.Events {

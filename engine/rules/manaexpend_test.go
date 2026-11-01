@@ -285,8 +285,7 @@ func TestManaExpendUnknownAmountFailsClosed(t *testing.T) {
 	e.resolveTop()
 }
 
-// TestTeapotSlingerExpendCarrierEntryTurnCrossesOnPreEntrySpend pins the
-// MAJOR defect the round-2 review found: the tally is a fact of the TURN, not
+// TestTeapotSlingerExpendCarrierEntryTurnCrossesOnPreEntrySpend: the tally is a fact of the TURN, not
 // of "casts made while the carrier was already out". A carrier that enters
 // mid-turn MUST see the casts made before it entered. Here 3 mana is spent on
 // a cast with no carrier out (emitting no wake-up event), Teapot Slinger then

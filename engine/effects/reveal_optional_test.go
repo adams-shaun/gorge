@@ -27,8 +27,8 @@ func revealBoard(t *testing.T) (*fakeHost, []state.ObjID) {
 	return h, ids
 }
 
-// TestRevealOptionalNoHostKeepsTheMandatoryReveal pins the R-9 fallback: a
-// host that cannot ask keeps the pre-ask behaviour — the mandatory reveal,
+// TestRevealOptionalNoHostKeepsTheMandatoryReveal pins the no-host fallback: a
+// host that cannot ask keeps the mandatory reveal,
 // RememberRevealed$ fired — deterministically.
 func TestRevealOptionalNoHostKeepsTheMandatoryReveal(t *testing.T) {
 	h, ids := revealBoard(t)

@@ -9,12 +9,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Entry-counter staging (task agent-20260923T084704Z-b2386c25): when an
+// Entry-counter staging: when an
 // entry-characteristic counter grant competes under non-commuting AddCounter
 // replacements, CR 616.1's order choice must be answered BEFORE the entry
 // folds -- the move carries the finalized amounts in its Pairs payload and
-// no observer ever sees the un-replaced entry. Before the staging, the move
-// folded first and the counters landed after the answer, unmarked.
+// no observer ever sees the un-replaced entry.
 
 func entryStagingAnswerFirst(t *testing.T, e *Engine) {
 	t.Helper()

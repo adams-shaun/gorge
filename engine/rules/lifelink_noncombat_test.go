@@ -284,9 +284,8 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 		t.Fatalf("logged %d lifelink LifeChange(0, +2) events, want 1", n)
 	}
 	// The rider is not a trigger: the LifeChange is logged immediately after
-	// the Damage it rides, in the same resolution. Since the game-long
-	// damage-provenance record (the_fallen, diseased_vermin,
-	// task agent-20260923T114033Z-a57ee463) every landed Damage through
+	// the Damage it rides, in the same resolution. With the game-long
+	// damage-provenance record (the_fallen, diseased_vermin), every landed Damage through
 	// Engine.emit also emits one DamageProvenance bookkeeping event between
 	// the Damage and the rider, so "immediately after" skips those.
 	lastDamage, lastLife := -1, -1

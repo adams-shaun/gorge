@@ -4,9 +4,8 @@
 // emitManaTap, before the mana effect runs, so its context's TriggerMana was
 // historically empty and ManaReflected resolved no candidates and emitted a
 // "found no mana to reflect" Note. engine/rules/mana_activation.go's
-// stampTriggeredManaProduced now binds the activation's ManaAdd batch to the
-// trigger batch at CR 605.3b resolution. Kept in its own file so the ticket
-// cannot conflict on a shared test file.
+// stampTriggeredManaProduced binds the activation's ManaAdd batch to the
+// trigger batch at CR 605.3b resolution.
 package rules
 
 import (

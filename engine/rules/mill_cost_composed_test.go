@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file is the regression suite for the Mill<N> cost component
-// (task agent-20260918T230554Z-2b1a0e21). Ordinary activated abilities and
+// This file is the regression suite for the Mill<N> cost component. Ordinary activated abilities and
 // spells must settle their parsed Mill cost parts as real zone moves.
 
 const composedMillManaScript = "Name:Composed Mill Rock\nManaCost:0\nTypes:Artifact\n" +

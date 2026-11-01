@@ -83,8 +83,8 @@ func copyLog(orig *events.Log) *events.Log {
 	return &c
 }
 
-// TestReplayReproducesTheChain is the brief's test 1: play a 4-seat game,
-// replay it from (seed, intents), and assert equal Head, equal event count
+// TestReplayReproducesTheChain plays a 4-seat game,
+// replays it from (seed, intents), and asserts equal Head, equal event count
 // and equal RNG draw count.
 func TestReplayReproducesTheChain(t *testing.T) {
 	cfg, orig := playGame(t, 1)
@@ -104,7 +104,7 @@ func TestReplayReproducesTheChain(t *testing.T) {
 	}
 }
 
-// TestReplayToPrefixMatchesHeadAt is the brief's test 2: ReplayTo(l, cfg, n)
+// TestReplayToPrefixMatchesHeadAt: ReplayTo(l, cfg, n)
 // for a midpoint n produces a log whose Head equals the original log's
 // HeadAt the same number of events -- "playback to N" is verifiable against
 // the full log without needing the rest of it replayed.
@@ -226,8 +226,8 @@ func decisionMadeSeqs(l *events.Log) []uint64 {
 	return seqs
 }
 
-// TestDivergenceNamesTheFirstBadEvent is the brief's test 4: alter one
-// recorded Intent's choices and confirm Replay reports a *Divergence naming
+// TestDivergenceNamesTheFirstBadEvent alters one
+// recorded Intent's choices and confirms Replay reports a *Divergence naming
 // the first event that actually differs.
 //
 // The DecisionMade event Engine.Submit emits encodes in.Choices directly in
@@ -556,7 +556,7 @@ func TestReplayVerifiesANoHashLog(t *testing.T) {
 	}
 }
 
-// TestRoundFoldsIdenticallyAcrossReplay is ui13's replay-equality proof. The
+// TestRoundFoldsIdenticallyAcrossReplay is the replay-equality proof. The
 // exact round-trip count must be identical on a live game and on a log-only
 // reconstruction of the same game -- the property the AGENTS.md row says
 // matters most. view.RoundOf is a pure function of the ordered TurnChange

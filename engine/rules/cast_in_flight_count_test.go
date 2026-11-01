@@ -21,7 +21,7 @@ const (
 )
 
 // TestInFlightCastIsNotYetCastThisTurn pins CR 601.2i for a cost read of the
-// this-turn cast counts (round-8 cardfuzz mirror seed 12687133153333408407,
+// this-turn cast counts (fuzzer mirror seed 12687133153333408407,
 // a_witness pool_after, Gust of Wind beside Leapfrog; story
 // thisturncast-counts-spell-in-progress). With no instant or sorcery cast yet,
 // the sorcery's own push (CR 601.2a) must not count while its cost is

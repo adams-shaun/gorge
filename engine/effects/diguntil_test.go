@@ -7,12 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The diguntil1 reveal-until tests (api:DigUntil, Forge's DigUntilEffect —
+// The reveal-until tests (api:DigUntil, Forge's DigUntilEffect —
 // a DIFFERENT primitive from Dig with its own param family). The ask-side
 // leaves use the askHost double (primitives_test.go) whose Ask captures the
 // posed decision and suspends — the effects-package stand-in for
 // rules.Engine; the no-host leaves use the plain fakeHost, whose Ask
-// reports false (the R-9 deterministic decline).
+// reports false (the deterministic no-host decline).
 
 // digUntilFixture builds seat 0's library as [land, aura, land, land] — the
 // match is the SECOND card, so a first-card match cannot pass by
@@ -136,7 +136,7 @@ func TestDigUntilDefaultDestinationsFollowTheRevealedPile(t *testing.T) {
 	}
 }
 
-// TestDigUntilNoHostDeclinesToTheRevealedPile is the R-9 no-host stand-in
+// TestDigUntilNoHostDeclinesToTheRevealedPile is the no-host stand-in
 // for the corpus's OptionalFoundMove$ carriers that carry NO
 // OptionalNoDestination$ (Genesis Storm, Hei Bai, Aurora Awakener): the
 // decline sends the found card to the revealed pile — the oracles say

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// This is the item-2 census pin (ticket CV-3): noShuffleBody forces
+// This is the census pin: noShuffleBody forces
 // NoShuffle$ True onto EVERY pile body, so every pile-body API that carries an
 // unread-report path must read the key. ChangeZone and ChangeZoneAll do; Effect
 // did not, so Fight or Flight's chosen pile (ChosenPile$ DBEffect, a

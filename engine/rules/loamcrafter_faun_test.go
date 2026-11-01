@@ -10,9 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Loamcrafter Faun's "when you do" chain end to end (task
-// agent-20260918T195920Z-2fd3b568, the ticket that registered
-// api:ImmediateTrigger originally filed under):
+// Loamcrafter Faun's "when you do" chain end to end:
 //
 //	When CARDNAME enters, you may discard one or more land cards. When you do,
 //	return up to that many target nonland permanent cards from your graveyard
@@ -25,8 +23,7 @@ import (
 //
 // These tests run on the REAL compiled corpus card only -- no Forge script
 // text is committed here (the licensing rule) -- fetched by name through
-// searchCorpusCard. The ticket's residual defect was that TriggerRemembered
-// was not a count ref at all, so X read zero, changeZoneChosenTargets' explicit
+// searchCorpusCard. TriggerRemembered must be a count ref: otherwise X reads zero, changeZoneChosenTargets' explicit
 // zero bound skipped the ask entirely, and the graveyard cards never came
 // back. The first test pins the whole flow; the second pins the empty-discard
 // no-op (0 discarded -> X = 0 -> no ask, no wedge).
@@ -193,8 +190,7 @@ func TestLoamcrafterFaunWhenYouDoReturnsThatMany(t *testing.T) {
 	// graveyard nonland permanents, with Max EXACTLY the number of lands
 	// discarded -- the capture-excluded TriggerRemembered$Amount. Max 3 here
 	// would be the fire-time capture (Loamcrafter Faun itself) leaking into
-	// the count; the sibling ticket's plain Ctx.Remembered mapping is exactly
-	// that bug.
+	// the count.
 	ret := passUntilAsk(t, e)
 	if ret == nil {
 		t.Fatal("no return ask after the discard: TriggerRemembered$Amount read zero and changeZoneChosenTargets skipped the ask")

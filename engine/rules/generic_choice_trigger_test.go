@@ -1,8 +1,7 @@
 package rules
 
-// The api:GenericChoice TRIGGER-BODY per-Defined$-player path (ticket
-// agent-20260922T214711Z-24c67764). The spell half landed in commit c0a04453;
-// this file pins the trigger half: a triggered ability whose body is
+// The api:GenericChoice TRIGGER-BODY per-Defined$-player path.
+// This file pins the trigger half: a triggered ability whose body is
 // `DB$ GenericChoice` and whose Defined$ names a player other than the
 // trigger's controller must NOT get a CR 603.3c placement ask to the trigger
 // controller, and its chosen body must run exactly once per chooser with that

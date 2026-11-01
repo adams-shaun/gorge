@@ -2,7 +2,7 @@ package rules
 
 // The max-speed player property (D8): two DFT cards read "max speed" as a
 // property of a PLAYER rather than as a `Condition$ MaxSpeed` static, and
-// gorge read neither spelling before this ticket.
+// gorge reads both spellings.
 //
 //   - Hazoret, Godseeker's
 //     `S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self |

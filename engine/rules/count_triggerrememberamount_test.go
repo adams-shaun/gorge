@@ -1,5 +1,5 @@
-// Count$TriggerRememberAmount — the reflexive trigger's remembered Integer
-// (ticket cli-20261006T024354Z-3345d0e0, Count$ heads part 2). TDM New Way
+// Count$TriggerRememberAmount — the reflexive trigger's remembered Integer.
+// TDM New Way
 // Forward's ImmediateTrigger rider `RememberSVarAmount$ X` evaluates X
 // (`SVar:X:ReplaceCount$DamageAmount`, the prevented damage) and the
 // reflexive half reads it back through `SVar:Y:Count$TriggerRememberAmount`

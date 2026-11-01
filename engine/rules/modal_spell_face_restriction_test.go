@@ -1,7 +1,6 @@
 package rules
 
-// agent-20260923T132455Z-3f6a9ab9 review round 3 MAJOR: the CR 712.8
-// modal_spell offer used to sit behind the card-level castRestricted gate,
+// The CR 712.8 modal_spell offer must not sit behind the card-level castRestricted gate,
 // which evaluates the FRONT face, while its affordability probe priced the
 // BACK face. Two prohibition directions regressed together:
 //

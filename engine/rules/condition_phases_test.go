@@ -11,7 +11,7 @@ import (
 
 // condition_phases_test.go pins the ConditionPlayerTurn$ / ConditionPhases$
 // condition keys on the shared Condition* gate (effects.conditionMet), the
-// Unbreakable Formation task agent-20260918T200326Z-10b49320: the Addendum
+// Unbreakable Formation shape: the Addendum
 // family (ConditionPlayerTurn$ True | ConditionPhases$ Main1,Main2 |
 // ConditionDefined$ Self | ConditionPresent$ Card.wasCast) used to report
 // the whole gate unsupported and run unconditionally on EVERY cast.

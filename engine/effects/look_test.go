@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The round-2 review's class fix (Gitaxian Probe's Look$ leak): every
+// The class of Gitaxian Probe's Look$ leak: every
 // looker-scoped effect records its private look through effects' emitLook —
 // one Secret Note per looker, Player = that looker. This file pins that
 // contract across ALL of them, table-driven, so the next look-shaped effect

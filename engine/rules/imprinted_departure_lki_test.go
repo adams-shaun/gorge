@@ -8,7 +8,7 @@ import (
 )
 
 // TestPoolTriggerMatchesImprintedCardLeavingExile is the regression for the
-// DISTINCT-source ChangesZone route (the review round-2 finding): the trigger
+// DISTINCT-source ChangesZone route: the trigger
 // lives on a battlefield permanent (Knowledge Pool's shape — the measured 22
 // `Origin$ Exile` carriers, Mimic Vat among them) and fires on a DIFFERENT
 // object's departure from exile:
@@ -47,8 +47,7 @@ Oracle:probe
 	e.G.SetZone(state.ZExile, bystander.Owner, []state.ObjID{bystander.ID})
 
 	// The association lives on the SOURCE (pool.Imprinted names the linked
-	// card) — the ordinary imprint shape, unlike the round-1 test's artificial
-	// self-imprint.
+	// card) — the ordinary imprint shape.
 	poolObj := e.G.Obj(pool)
 	poolObj.Imprinted = []state.ObjID{linked.ID}
 

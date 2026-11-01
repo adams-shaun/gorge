@@ -15,7 +15,7 @@ import (
 // the turn"). The gate lives in triggerMatches as a SHARED gate, so one real
 // carrier pins every mode that rides the key; Finest Hour is the cleanest
 // because its own trigger's Execute$ grants the extra combat the gate must
-// then stay silent in -- the fire/silence pair the ticket asks for, end to
+// then stay silent in -- the fire/silence pair, end to
 // end on the real corpus card.
 
 // TestFinestHourFirstCombatTriggerFiresOncePerTurn (real corpus Finest

@@ -1,5 +1,4 @@
-// Count$Valid <spec>$CardCounters.<KIND> — the summed counter property
-// (ticket count-cardcounters-prop).
+// Count$Valid <spec>$CardCounters.<KIND> — the summed counter property.
 //
 // engine/effects/count.go's zone-count head recognised CardPower/CardToughness/
 // CardManaCost/CardTypes/Colors as `$<Property>` suffixes but not

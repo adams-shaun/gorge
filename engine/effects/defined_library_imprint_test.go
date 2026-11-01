@@ -97,7 +97,7 @@ func TestDefinedLibraryFetchImprintsMovedCards(t *testing.T) {
 	// association before the chain ends, and the assertion is about the
 	// association the follow-up DBDraw gate reads at resolution time.
 	// Optional$ True has no decision channel on this host, so it takes the
-	// deterministic "yes" (R-9).
+	// deterministic "yes".
 	effChangeZone(h, ctx, put)
 
 	o := h.g.Obj(revealed.ID)

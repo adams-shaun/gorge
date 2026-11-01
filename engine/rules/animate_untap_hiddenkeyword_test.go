@@ -23,8 +23,8 @@ import (
 )
 
 // animateUntapSrc is a freely-authored fixture sorcery (never a corpus .txt)
-// whose single SpellAbility is the exact Animate + HiddenKeywords$ shape this
-// ticket arms. It carries no P/T/type rider, so the only behaviour it
+// whose single SpellAbility is the exact Animate + HiddenKeywords$ shape.
+// It carries no P/T/type rider, so the only behaviour it
 // registers is the keyword grant -- the layer-6 list and the grant-time
 // stamp.
 const animateUntapSrc = "Name:Animate Untap Test\nManaCost:1 U\nTypes:Sorcery\n" +

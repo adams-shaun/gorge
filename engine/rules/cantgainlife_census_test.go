@@ -1,7 +1,7 @@
 package rules
 
 // cantgainlife_census_test.go — the corpus census for the Effect-delivered
-// CR 614.1 CantGainLife static (task cantgainlife1). The registered
+// CR 614.1 CantGainLife static. The registered
 // restriction is pinned behaviourally in effect_cantgainlife_test.go and the
 // Screaming Nemesis oracle scenario covers the real chain; this file proves
 // the class by naming every corpus carrier, so a carrier that drifts (or a

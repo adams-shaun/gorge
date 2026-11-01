@@ -54,7 +54,7 @@ func chosenNameEvent(log []events.Event) string {
 // random NameCard whose ValidCards$ right-hand side is the resolution's paid
 // X. All six corpus carriers spell it `Creature.cmcEQX`; before the resolving
 // context was threaded through the universe walk the predicate failed every
-// card, the strict path returned nil and effNameCard's R-9 legacy fallback
+// card, the strict path returned nil and effNameCard's no-universe fallback
 // silently named the top of the caster's library.
 func TestRandomNameCardResolvesPaidXFilter(t *testing.T) {
 	h := &askHost{}

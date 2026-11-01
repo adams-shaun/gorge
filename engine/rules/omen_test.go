@@ -478,8 +478,8 @@ func omenCorpusNames(t *testing.T) []string {
 // primitive unrelated to the Omen cast itself. Divining Dive's GenericChoice
 // carries Secretly$ True, which api:GenericChoice has never read: the choice
 // is private to its chooser at the decision layer, but the ModeChosen marker
-// is public, so honouring Secretly$ is a view-redaction change outside this
-// ticket. The census still fails on every OTHER gap Note, and the report names
+// is public, so honouring Secretly$ is a view-redaction change.
+// The census still fails on every OTHER gap Note, and the report names
 // this one.
 var omenPreExistingGapNotes = map[string]bool{
 	"GenericChoice ignores unread parameter(s) Secretly$": true,

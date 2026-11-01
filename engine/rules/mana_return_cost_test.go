@@ -15,8 +15,8 @@ import (
 // part must be PAID: the Ignus goes to its owner's hand as the {C}{C}{R}
 // arrives. The mana path used to pay only the mana/tap/sacrifice/discard/
 // exile/mill/counter parts and silently skip the return, so the Ignus stayed
-// on the battlefield and a bot re-activated it forever (cardfuzz batch1
-// line 10: +2 colourless per cycle, never a state the loop could leave).
+// on the battlefield and a bot re-activated it forever (+2 colourless per
+// cycle, never a state the loop could leave).
 func TestGrinningIgnusManaAbilityReturnsItself(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -79,8 +79,7 @@ func delayedRegistersFor(e *Engine, id state.ObjID) int {
 // turn, sacrifice it at the beginning of the next end step" gates its
 // DB$ Pump | AtEOT$ Sacrifice sub on ConditionActivationLimit$ GE4. The
 // gate used to be an unknown Condition key, so the sub ran on EVERY
-// activation: the first {1} already scheduled the sacrifice (cardfuzz
-// batch1 line 3's delayed_register on each cycle). The first three
+// activation: the first {1} already scheduled the sacrifice. The first three
 // activations must register nothing; the fourth registers the sacrifice.
 func TestFarrelitePriestSacrificeOnlyFromFourthActivation(t *testing.T) {
 	t.Parallel()

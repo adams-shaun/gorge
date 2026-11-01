@@ -1,6 +1,5 @@
-// fb_softlock_reverify_test.go — re-verification of the reported
-// fb-20260914T220605Z-0aadcdb8 soft-lock ("boomerang -> valkavoth = game
-// lock") after the class fix in inbox-engine-empty-choose-softlock merged.
+// softlock_reverify_test.go — re-verification of a reported
+// soft-lock ("boomerang -> valkavoth = game lock").
 // The class fix (effects.Ask's shared empty-answer guard, backed by
 // Engine.ask's boundary tripwire) resolves a decision whose only legal
 // answer is the empty one silently; these tests re-run the report's own
@@ -148,7 +147,7 @@ func TestFBSoftlockKeenVsValgavothPlays(t *testing.T) {
 		return Config{Seed: s, Names: []string{"keen", "valgavoth"},
 			Decks:  [][]*cards.Card{hero, foe},
 			Tokens: reg.Tokens,
-			// R-M1: mulligans on, as the acceptance games run them, so the
+			// Mulligans on, as the acceptance games run them, so the
 			// keep/mulligan and bottoming round is exercised too.
 			Mulligans: 1}
 	}

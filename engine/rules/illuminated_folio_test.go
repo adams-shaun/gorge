@@ -1,7 +1,7 @@
 package rules
 
 // Illuminated Folio's {1}, {T}, Reveal two cards from your hand that share a
-// color: Draw a card. (ticket agent-20260928T173851Z-05a69598). SameColor is
+// color: Draw a card. SameColor is
 // a relation BETWEEN the revealed cards, not a card filter: read as one, no
 // hand card ever matched, nonManaCastable returned false for every board and
 // the ability was withheld forever. The fix reads the part relationally

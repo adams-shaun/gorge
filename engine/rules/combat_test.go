@@ -146,7 +146,7 @@ func submitDivision(t *testing.T, e *Engine, want []int32) {
 
 // submitAttackers finds the KAttackers options naming each of ids and submits
 // exactly those. Order does not matter for attackers (every one of them ends
-// up sharing the same M1-fixed defender), unlike submitBlockers below.
+// up sharing the same defender), unlike submitBlockers below.
 func submitAttackersOnly(t *testing.T, e *Engine, ids ...state.ObjID) {
 	t.Helper()
 	d := e.Pending()
@@ -813,7 +813,7 @@ func TestCleanupClearsCombatDamageDeathtouchAndUntilEOTEffects(t *testing.T) {
 	}
 }
 
-// --- Fix round 1 (code review) ---------------------------------------------
+// --- Combat edge cases -------------------------------------------------------
 
 // TestFirstStrikeAttackerTakesSurvivingBlockersRegularDamage:
 // damageStep must not gate the "blockers hit back" section
@@ -933,7 +933,7 @@ func TestAskBlockersSkipsAnAttackerWithNoFace(t *testing.T) {
 // for the rest of combat even if every creature blocking it is removed
 // before damage is dealt -- it deals no combat damage at all (absent
 // Trample), not full damage to the defending player as though it had never
-// been blocked. M1 offers no priority window between blocks being declared
+// been blocked. The engine offers no priority window between blocks being declared
 // and damage being dealt, so this is dormant in ordinary play today; it is
 // reachable from a tampered log, and will stop being dormant the moment
 // instant-speed removal exists.
@@ -1120,12 +1120,9 @@ func TestReplayReconstructsPostCombatStateExactly(t *testing.T) {
 // Free-for-all attack targeting -- every attacker may choose its
 // own defender (CR 506.2 / CR 903.14).
 
-// TestSplitAttackAcrossTwoDefenders is the behaviour this task exists to
-// add: in a four-seat game one combat declares an attacker against seat 2
-// and a different attacker against seat 3, and BOTH deal damage. No
-// pre-m34 build could express this -- askAttackers stamped the next living
-// seat onto every option, so an attack could never point at two opponents
-// at once, let alone land on both.
+// TestSplitAttackAcrossTwoDefenders: in a four-seat game one combat declares an
+// attacker against seat 2 and a different attacker against seat 3, and BOTH
+// deal damage.
 func TestSplitAttackAcrossTwoDefenders(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 4)
@@ -1230,7 +1227,7 @@ func TestSameAttackerCannotAttackTwoDefenders(t *testing.T) {
 // attacker against every LIVING opponent, defender-major, in ascending seat
 // order, and never against the active player or a departed seat. In a
 // two-player game the same construction is exactly one option per attacker
-// -- the M1 shape -- which is what keeps pre-m34 two-player behaviour
+// -- which is what keeps two-player behaviour
 // byte-identical (the 2-seat acceptance chain head does not move under this
 // task).
 func TestAttackersOfferEveryLivingOpponentOnce(t *testing.T) {

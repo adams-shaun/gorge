@@ -77,7 +77,7 @@ func mobVerdictEngine(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 }
 
 // TestMobVerdictPlayerBallotDamageAndDrawPerVote is the end-to-end pin for
-// api:Vote's PLAYER ballot (task votepb1): SP$ Vote | Defined$ Player |
+// api:Vote's PLAYER ballot: SP$ Vote | Defined$ Player |
 // Secret$ True | VotePlayer$ Other | StoreVoteNum$ True | SubAbility$
 // DBRepeatOpp, whose two AmountFromVotes$ RepeatEach bodies read the per-player
 // tally (SVar$Votes/Times.2 damage, NumCards$ Votes draw).

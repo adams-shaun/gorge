@@ -49,8 +49,8 @@ func nextCopyElection(t *testing.T, e *Engine, pickTarget func(*decision.Decisio
 // player. The first election (the ORIGINAL spell) is an ordinary election;
 // the election the copy then poses back to the caster copies a COPY, and the
 // engine marks it CopyOfCopy -- the runtime fact the unattended bot declines
-// so two bots cannot hand the chain back and forth forever (cardfuzz batch1
-// lines 13/15/20: 20000 intents of Chain of Smog on empty hands).
+// so two bots cannot hand the chain back and forth forever (a fuzzer found
+// 20000 intents of Chain of Smog on empty hands).
 func TestChainOfSmogMarksCopyOfCopyElection(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -97,10 +97,9 @@ func TestChainOfSmogMarksCopyOfCopyElection(t *testing.T) {
 
 // TestBarroomBrawlCopyGoesToNextOpponent: Barroom Brawl's "Then that player
 // [the opponent to your left] may copy this spell" (Controller$
-// NextOpponentToYourLeft). The selector was unknown to the copy-controller
-// resolver, which fell back to the resolving controller: the CASTER was
-// offered its own copy, and each copy's copy, forever (cardfuzz batch1
-// line 1). The election belongs to the next seat.
+// NextOpponentToYourLeft). A resolver falling back to the resolving controller
+// would offer the CASTER its own copy, and each copy's copy, forever. The
+// election belongs to the next seat.
 func TestBarroomBrawlCopyGoesToNextOpponent(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

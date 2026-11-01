@@ -1,7 +1,7 @@
 package rules
 
-// The cross-mode "Each mode must target a different player" Charm family
-// (task agent-20260918T232601Z-47783205): Optional$ True on a Charm lowers
+// The cross-mode "Each mode must target a different player" Charm family:
+// Optional$ True on a Charm lowers
 // the mode minimum to 0, and a Charm whose chosen modes include two or more
 // single-target player-kind target-bearing modes asks ONE combined KTarget
 // with per-player Option.Group exclusivity, so two chosen modes can never act

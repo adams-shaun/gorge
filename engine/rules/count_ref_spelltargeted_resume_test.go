@@ -10,8 +10,7 @@ import (
 )
 
 // These tests pin the RESUME carriage of the resolution-start stack-kind
-// snapshot the SpellTargeted count ref reads (task
-// agent-20260920T120233Z-357a4f24, round t2). effects.Resolve captures which
+// snapshot the SpellTargeted count ref reads. effects.Resolve captures which
 // object targets were spells at Ctx.TargetSpellLKI entry; a mid-resolution ask
 // suspends the chain, and the resumed Ctx is rebuilt from the stack object's
 // targets whose live zone a completed Counter has already changed. Without

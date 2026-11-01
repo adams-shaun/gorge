@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Count$CastTotalManaSpent branch head (task castprov1): the TOTAL mana
+// The Count$CastTotalManaSpent branch head: the TOTAL mana
 // actually spent to cast the resolving spell, carried by the pay-time
 // CastInfo's FlagManaSpent Amount (engine/rules/cast.go's payCast capture -- the
 // converge/replicate/multikick pattern). Unit-tested at the eval level the
@@ -38,7 +38,7 @@ func TestCastTotalManaSpentHeadReadsTheCapturedSpend(t *testing.T) {
 	}
 }
 
-// The FILTERED Count$CastTotalManaSpent <Type> form (task castfilter1).
+// The FILTERED Count$CastTotalManaSpent <Type> form.
 // Snow resolves from the parallel snow tally the pool has always carried
 // (Object.ManaSnowSpent, CR 107.4h); the typed Treasure/Cave/Desert forms
 // resolve from their own captures (castfilter2, tested below), and an
@@ -100,7 +100,7 @@ func TestCastTotalManaSpentSnowReadsTheRealCorpusSVar(t *testing.T) {
 	}
 }
 
-// The TYPED Count$CastTotalManaSpent <Type> forms (task castfilter2):
+// The TYPED Count$CastTotalManaSpent <Type> forms:
 // Treasure/Cave/Desert resolve from the per-tag pay-time captures
 // (Object.ManaTreasureSpent / ManaCaveSpent / ManaDesertSpent, the
 // ManaSnowSpent pattern); an unknown producer type still fails closed to 0

@@ -2,7 +2,7 @@ package effects
 
 // api:Clone GainThisAbility$ True under a TRIGGER: the copy must keep exactly
 // the ROOT trigger of the resolving chain, not the become object's whole
-// ability/trigger list and not nothing (ticket agent-20260923T090459Z-a4d7eb3b).
+// ability/trigger list and not nothing.
 // Forge's CloneEffect.getCloneStates appends root.getTrigger().copy(...) when
 // the root is a trigger; the DB$-under-trigger carriers (Cryptoplasm, Lazav,
 // Crystalline Resonance, ...) are recurring copies whose trigger is what makes

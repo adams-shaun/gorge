@@ -1,7 +1,6 @@
 package rules
 
-// Mount Velus Manticore, end to end on the real compiled corpus (task
-// cli-20260924T092757Z-74f4f54a): "At the beginning of combat on your turn,
+// Mount Velus Manticore, end to end on the real compiled corpus: "At the beginning of combat on your turn,
 // you may discard a card. When you do, CARDNAME deals X damage to any
 // target, where X is the number of card types the discarded card has."
 //

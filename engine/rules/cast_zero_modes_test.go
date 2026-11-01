@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestUpToModalCastWithNoLegalModeAnnouncesZero is the cardfuzz batch1 line 7
+// TestUpToModalCastWithNoLegalModeAnnouncesZero pins a fuzzer-found
 // panic: Call Damage Control ("Choose up to two" -- MinCharmNum$ 0 -- over
 // four graveyard-targeting modes) cast with an empty graveyard left no legal
 // mode, and castModeAsk posted a Min 0 / Max 0 / 0-option KModes, which

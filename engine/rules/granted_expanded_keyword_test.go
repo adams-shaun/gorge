@@ -129,10 +129,8 @@ func TestGrantedCrewIsOfferedAndCrews(t *testing.T) {
 	}
 }
 
-// TestGrantedSaddleJandorMintsSaddleAbility is the ticket's headline: Jandor,
-// Fortuned Traveler grants `Saddle:2` to a Beast (making it a Mount). Before
-// this route existed the grant landed but no Saddle ability was ever offered,
-// so the Beast could never be saddled. This activates the GRANTED Saddle and
+// TestGrantedSaddleJandorMintsSaddleAbility: Jandor,
+// Fortuned Traveler grants `Saddle:2` to a Beast (making it a Mount). This activates the GRANTED Saddle and
 // proves the Beast becomes saddled.
 func TestGrantedSaddleJandorMintsSaddleAbility(t *testing.T) {
 	t.Parallel()

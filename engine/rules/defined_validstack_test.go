@@ -302,8 +302,8 @@ func TestDismissalCountersAbilitiesOfBothSeats(t *testing.T) {
 	}
 }
 
-// TestStackKindTokenOfAbilityBase pins the state-side grammar addition
-// (task abcopy3): `Ability` parses to the Activated+Triggered kind set --
+// TestStackKindTokenOfAbilityBase pins the state-side grammar:
+// `Ability` parses to the Activated+Triggered kind set --
 // the mirror of SpellAbility minus Spell -- and admits an ability wrapper
 // of either kind while never admitting a spell. Near-miss bases stay
 // unknown (ok=false), which is what keeps copy.go's known-token guard

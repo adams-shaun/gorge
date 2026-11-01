@@ -14,7 +14,7 @@
 //	SVarCompare$ GE6 | NoResolvingCheck$ True
 //
 // Its body (DB$ SetState | Mode$ TurnFaceUp) needs the face-down
-// turn-face-up subsystem, which is a separate ticket; what this file pins is
+// turn-face-up subsystem, tested elsewhere; what this file pins is
 // the param's read at the ONE resolution-side recheck site (resolveTop).
 package rules
 
@@ -142,7 +142,7 @@ func TestNoResolvingCheckControlWithoutTheParamStillFizzles(t *testing.T) {
 	ev := fizzleMove(t, e, trigID)
 	if ev == nil {
 		t.Fatal("control without NoResolvingCheck$ did not fizzle -- the resolution " +
-			"recheck this ticket's fix scopes is not live")
+			"the scoped recheck is not live")
 	}
 	resolved := false
 	for _, r := range e.L.Events {

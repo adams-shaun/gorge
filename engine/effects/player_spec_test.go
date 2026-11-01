@@ -6,10 +6,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPlayerSpecGrammar pins the fx20 player-spec qualifiers this build
-// now resolves: Player.EnchantedController, Player.TriggeredDefendingPlayer
+// TestPlayerSpecGrammar pins the player-spec qualifiers this build resolves:
+// Player.EnchantedController, Player.TriggeredDefendingPlayer
 // and the Player.counters_<CMP><n>_<KIND> comparison, each read from the
-// event-backed state the rule needs. The two the row still leaves
+// event-backed state the rule needs. The two that stay
 // fail-closed -- Player.EnchantedBy (the engine has no player attachment)
 // and Player.descended (no descend state) -- are asserted to stay closed.
 func TestPlayerSpecGrammar(t *testing.T) {

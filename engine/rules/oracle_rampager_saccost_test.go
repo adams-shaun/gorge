@@ -22,8 +22,7 @@ import (
 )
 
 // oracleScenarioByName returns one scenario from the per-card Oracle scenario
-// files by card and scenario name. The three hand-oracle fix tickets share it
-// so each can assert its card's real scenario directly.
+// files by card and scenario name, so a test can assert its card's real scenario directly.
 func oracleScenarioByName(t *testing.T, card, name string) (oracleScenario, bool) {
 	t.Helper()
 	for _, f := range loadOracleFiles(t) {

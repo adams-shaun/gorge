@@ -1,7 +1,6 @@
 package rules
 
-// Regressions for the engine gaps the cardfuzz ability-coverage audit
-// (fuzz-cov2) separated from genuinely rare game states, each pinned on real
+// Regressions for the engine gaps an ability-coverage audit separated from genuinely rare game states, each pinned on real
 // corpus cards:
 //
 //   - a printed Mode$ Phase trigger resolved with its own SOURCE as its

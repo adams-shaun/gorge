@@ -1,6 +1,6 @@
 package rules
 
-// agent-20260925T031327Z-d7cbb90c: pin the independent two-face cast offer of
+// Pin the independent two-face cast offer of
 // a Modal DFC's hand loop (CR 712.8) with a real corpus card. The offer walk
 // in (*Engine).legalActionsPriced appends the front-face cast offer AND a
 // separate modal_spell offer for a nonland spell back face; both carries are

@@ -1,6 +1,5 @@
 package cards
 
-// Task agent-20261009T085207Z-2ef0d22c / agent-20261010T044009Z-8af5f286:
 // CR 605.1a -- an ability that requires a target is not a mana ability.
 // IsManaAbilitySA gates on a ValidTgts$ anywhere in the ability's SubAbility$
 // chain, so the printed AB$ Mana carriers that target -- on the head (Radiant
@@ -16,7 +15,7 @@ import (
 )
 
 // headTargetingManaCarriers are the printed activated Mana abilities whose own
-// parameters declare ValidTgts$ (measured 2026-10-09 over the pinned corpus;
+// parameters declare ValidTgts$ (measured over the pinned corpus;
 // AB$ ManaReflected has none).
 var headTargetingManaCarriers = []string{"Radiant Lotus", "The Warring Triad", "Jetfire, Ingenious Scientist"}
 

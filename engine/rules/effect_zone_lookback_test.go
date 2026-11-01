@@ -128,7 +128,7 @@ func TestEffectZoneLookbackSeesCapturedMemory(t *testing.T) {
 		t.Fatalf("unremembered source's move fired the Effect: %+v", e.pendingTriggers)
 	}
 
-	// Positive arm (review round 2): the REMEMBERED object's own departure
+	// Positive arm: the REMEMBERED object's own departure
 	// must fire. Without this the test above is a negative-only pin -- an
 	// empty SpecContext.Remembered never matches Card.IsRemembered either,
 	// so it would pass with the memory overlay removed entirely; this arm

@@ -1,7 +1,7 @@
 package rules
 
-// The batch discard trigger mode, end to end on the real compiled corpus
-// (task agent-20260919T183145Z-c6610d46): Mode$ DiscardedAll fires once for
+// The batch discard trigger mode, end to end on the real compiled corpus:
+// Mode$ DiscardedAll fires once for
 // the WHOLE discard action, with ValidCard$/ValidPlayer$ filtering the batch
 // and the number of matching cards bound to the trigger's
 // TriggerCount$Amount (Magmakin Artillerist's X), plus its FirstTime$/ and

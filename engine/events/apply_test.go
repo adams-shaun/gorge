@@ -716,7 +716,7 @@ func TestApplyIsPure(t *testing.T) {
 		// rather than only exercising the no-abilities guard.
 		Emit(g, l, Event{Kind: MoveZone, Obj: lib0[5], From: state.ZLibrary, To: state.ZBattlefield})
 		Emit(g, l, Event{Kind: AbilityPush, Obj: lib0[5], Player: 0, Amount: 0})
-		Emit(g, l, Event{Kind: ModeChosen, Obj: lib1[1], Player: 1, Text: "mode one"}) // M2d-2 marker
+		Emit(g, l, Event{Kind: ModeChosen, Obj: lib1[1], Player: 1, Text: "mode one"}) // marker
 
 		Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, IDs: []state.ObjID{lib0[0]}})
 		Emit(g, l, Event{Kind: DeclareBlockers, Pairs: [][2]state.ObjID{{lib1[0], lib0[0]}}})
@@ -1383,7 +1383,7 @@ func TestKeywordTriggerPushKindString(t *testing.T) {
 	}
 }
 
-// TestModeChosenIsAMarkerOnly is M2d-2's purity append for the new kind: the
+// TestModeChosenIsAMarkerOnly pins the kind's purity: the
 // event records nothing on state — no object field, no player field — so a
 // valid targeted application and an invalid player application both leave
 // every object and player untouched, and a replay applies it identically.
@@ -1413,7 +1413,7 @@ func TestModeChosenIsAMarkerOnly(t *testing.T) {
 	}
 }
 
-// TestTypedManaTallyMovesWithThePool (task castfilter2): the typed
+// TestTypedManaTallyMovesWithThePool: the typed
 // "<Tag><colour>" ManaAdd Counter form moves the pool slot and the parallel
 // Player.TypedMana tally through one event, spend events (the negative
 // forms) move both back, and ManaClear empties the tally with the pool.
@@ -1449,7 +1449,7 @@ func TestTypedManaTallyMovesWithThePool(t *testing.T) {
 	}
 }
 
-// TestCastInfoTypedFlagsRouteNewestFirst (task castfilter2): one CastInfo per
+// TestCastInfoTypedFlagsRouteNewestFirst: one CastInfo per
 // captured total, each later event carrying all earlier flags, so the Apply
 // switch checks the NEWEST flag first (Desert, Cave, Treasure, Snow, then the
 // total) and every Amount lands in its own field.

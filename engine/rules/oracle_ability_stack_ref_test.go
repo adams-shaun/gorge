@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Level-B ability-on-stack targets (ticket agent-20261009T085207Z-c99a362b):
+// Level-B ability-on-stack targets:
 // a scenario step must be able to NAME a pending ability object on the stack
 // as a target ref -- `pN:ability:<source name>` (engine/rules/oracle_run.go splitRef
 // + resolve) -- and the engine's offer must admit the pending ability to the
@@ -48,7 +48,7 @@ func TestOracleAbilityOnStackRefActivated(t *testing.T) {
 		t.Fatalf("precondition: stack after the prelude = %+v, want exactly the pending ping ability", pending)
 	}
 	// The Gogo ask OFFERED the pending ability (the option's ref is the
-	// pN:ability ref this ticket introduced) and the step picked it.
+	// pN:ability ref) and the step picked it.
 	offered := false
 	for _, d := range res.Decisions {
 		if d.Step != 1 || d.Kind != "target" {

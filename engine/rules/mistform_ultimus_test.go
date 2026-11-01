@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Mistform Ultimus's characteristic-defining "is every creature type" static
-// (task mistform-cda1). The ability is the card's OWN AddAllCreatureTypes$
+// Mistform Ultimus's characteristic-defining "is every creature type" static.
+// The ability is the card's OWN AddAllCreatureTypes$
 // True on a CharacteristicDefining$ True, Affected$ Card.Self line, so — like
 // Changeling's keyword — it must answer every creature-subtype filter in
 // EVERY zone (CR 604.3/613.4a: characteristic-defining abilities function in

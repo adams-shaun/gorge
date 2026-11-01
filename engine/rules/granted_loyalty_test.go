@@ -31,7 +31,7 @@ func grantedRowanOption(e *Engine, pw state.ObjID) (decision.Option, bool) {
 // ability of the recipient, so CR 606.3's once-per-permanent-per-turn gate
 // applies to it. The SVar-grant offer loop used to exempt every AddAbility$
 // body from the loyalty gate, and a bot activated the [+1] 20000 times in one
-// main phase (cardfuzz batch1 line 18). After one activation, neither the
+// main phase. After one activation, neither the
 // granted [+1] nor any printed loyalty ability of the same permanent is
 // offered again this turn.
 func TestGrantedLoyaltyAbilityIsOncePerTurn(t *testing.T) {

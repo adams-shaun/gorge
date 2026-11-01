@@ -11,8 +11,8 @@ import (
 )
 
 // api:MoveCounter end to end on the REAL corpus carriers.
-// Before this task `DB$ MoveCounter` / `AB$ MoveCounter` was unregistered, so
-// every such line was one "unimplemented API MoveCounter" Note and moved
+// Unregistered, `DB$ MoveCounter` / `AB$ MoveCounter` would make every such line
+// one "unimplemented API MoveCounter" Note and move
 // nothing -- and the ACTIVATED carriers (Weapon Rack, Diamond City,
 // Explorer's Cache) were not even offered. These leaves drive the real
 // compiled SAs: the origin's count falls, the destination's rises, and the
@@ -159,8 +159,7 @@ func TestAetherbornMarauderMovesAnyNumberOntoItself(t *testing.T) {
 
 // TestWeaponRackAbilityIsOfferedAndMovesACounter pins the activated
 // `Source$ Self | ValidTgts$ Creature` shape: registering the API is what
-// makes the ability appear in the offered options at all (before this task the
-// offer gate skipped it and Weapon Rack's second line was dead), and the
+// makes the ability appear in the offered options at all, and the
 // chosen activation moves one counter from the Rack onto the target creature.
 func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 	t.Parallel()

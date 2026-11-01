@@ -6,8 +6,6 @@
 // Count$CastTotalManaSpent <Type> head. The count head's own grammar is
 // driven from state.TypedManaTags, so a modelled type counts and an unknown
 // one stays the fail-closed 0.
-//
-// Kept in its own file so the ticket cannot conflict on a shared test file.
 package rules
 
 import (

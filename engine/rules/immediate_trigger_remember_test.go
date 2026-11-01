@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The ImmediateTrigger `RememberObjects$ Targeted` ticket (itr1). The
+// The ImmediateTrigger `RememberObjects$ Targeted` shape. The
 // "when you do" body of an ImmediateTrigger that names the resolution's own
 // target previously fell into effImmediateTrigger's catch-all Note arm: it
 // handed the body the capture-excluded parent remembered set (empty for a
@@ -58,8 +58,7 @@ func itrFullEngine(t *testing.T, reg *cards.Registry, fixtures ...string) (*Engi
 	return e, cfg
 }
 
-// TestImmediateTriggerRememberObjectsTargetedPaysAndDestroys is the whole
-// ticket: with the real Behemoth of Vault 0, the death trigger offers its
+// TestImmediateTriggerRememberObjectsTargetedPaysAndDestroys: with the real Behemoth of Vault 0, the death trigger offers its
 // nonland-permanent target, the unless-pay election pays the {E} cost, and the
 // targeted permanent is actually destroyed.
 func TestImmediateTriggerRememberObjectsTargetedPaysAndDestroys(t *testing.T) {

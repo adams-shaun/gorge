@@ -247,8 +247,8 @@ func TestMonoColorPredicate(t *testing.T) {
 // failed closed): Ultimate Price's ValidTgts$ Creature.MonoColor read from
 // the compiled registry card itself — it now matches a monocoloured creature
 // and rejects a multicoloured one, and UnknownPredicates no longer reports
-// the word. Tarnation Vista is the carrier the ticket's fix needed; Ultimate
-// Price is one of the ~16 other corpus files the same predicate widened.
+// the word. Tarnation Vista is the carrier; Ultimate Price is one of the ~16
+// other corpus files the same predicate widened.
 func TestMonoColorWidensRealCorpusSpecs(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

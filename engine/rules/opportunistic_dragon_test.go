@@ -4,16 +4,16 @@
 //	SVar:TrigGainControl:DB$ GainControl | ValidTgts$ Human.OppCtrl,Artifact.OppCtrl | LoseControl$ LeavesPlay | SubAbility$ DBPump
 //	SVar:DBPump:DB$ Animate | Defined$ Targeted | HiddenKeywords$ CARDNAME can't attack or block. | RemoveAllAbilities$ True | Duration$ UntilHostLeavesPlay
 //
-// Before this ticket effects.parseAnimateGrant never read RemoveAllAbilities$,
-// so the stolen permanent kept every printed ability while the Dragon
+// If effects.parseAnimateGrant does not read RemoveAllAbilities$,
+// the stolen permanent keeps every printed ability while the Dragon
 // remained. The grant is now a layer-6 removal on the shared animation path,
 // its Duration$ UntilHostLeavesPlay anchored to the ANIMATING source through
 // ContinuousEffect.DurationSource, so the abilities return when the Dragon
 // leaves the battlefield.
 //
 // The HiddenKeywords$ half of the same line ("it can't attack or block") is a
-// DIFFERENT, still-unread Animate parameter and is filed as a separate ticket;
-// this test asserts the RemoveAllAbilities$ half the ticket names.
+// DIFFERENT, still-unread Animate parameter;
+// this test asserts the RemoveAllAbilities$ half.
 package rules
 
 import (

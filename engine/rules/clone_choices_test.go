@@ -1,9 +1,8 @@
 package rules
 
-// DB$ Clone Choices$ <filter> end-to-end pins (ticket approx-clone-choices).
+// DB$ Clone Choices$ <filter> end-to-end pins.
 //
-// The row this file closes said Choices$ "takes the deterministic first-eligible
-// object under a Note (R-9)". These tests pin the replacement: a real
+// These tests pin Choices$: a real
 // mid-resolution KChoose over the eligible pool, whose answer the effect uses
 // (so the SECOND creature of two is copied, not the first), and whose answer
 // survives a later Optional$ may-copy ask in the same walk (the

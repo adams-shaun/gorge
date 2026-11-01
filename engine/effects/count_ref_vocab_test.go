@@ -7,10 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// These tests pin the count-reference vocabulary fix (task
-// agent-20260920T120233Z-357a4f24, absorbing agent-20260923T161220Z-c9e65f56's
-// SpellTargeted ref gap and agent-20260919T195359Z-b6f18d60's vocabulary
-// report).
+// These tests pin the count-reference vocabulary.
 //
 // Two things changed in engine/effects/count.go's refTargets:
 //
@@ -203,12 +200,12 @@ func TestCountRefTargetedObjects(t *testing.T) {
 	}
 }
 
-// TestCountRefSpellTargetedCardManaCostLKI pins the consolidated ticket's named
-// acceptance: SpellTargeted$CardManaCostLKI reads the targeted SPELL's mana
+// TestCountRefSpellTargetedCardManaCostLKI pins the
+// SpellTargeted$CardManaCostLKI reads the targeted SPELL's mana
 // value on the real carrier Reject Imperfection ("Counter target spell. If
 // that spell's mana value was 3 or less, proliferate." -- SVar:X is exactly
-// this spelling). Before the ref existed, refTargets failed closed and the
-// intervening-if gate's X was permanently 0, so the proliferate never ran.
+// this spelling). Without the ref, refTargets fails closed and the
+// intervening-if gate's X is permanently 0, so the proliferate never runs.
 func TestCountRefSpellTargetedCardManaCostLKI(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Reject Imperfection")

@@ -4,12 +4,12 @@ package rules
 // Commander game per interim deck, each deck once as seat 0 (the seat whose
 // commander the assert requires to actually be cast from the command zone).
 // Matchups and seeds are pinned, not arbitrary: seeds are what made each
-// game representative when this task measured them (a game that reaches a
+// game representative when measured (a game that reaches a
 // winner with the deck's commander cast). In particular the green deck —
 // whose commander's own cost-reduction static this build does not read (see
 // the AGENTS.md Known approximations / the m38 report), so Ghalta costs a
 // flat 12 — is seated against the slowest of the five (Wretched Ranks).
-// Fix round 1 measured under m34 free-for-all combat that whether one
+// Under free-for-all combat, whether one
 // seeded game assembles twelve mana before it ends is close to a coin flip
 // (pre-fix ~2/9 of seeds 1000-1040 cast Ghalta; post-fix the majority of
 // seeds 1005-1015 cast it, but 1005-1015 still contains no-cast seeds), so

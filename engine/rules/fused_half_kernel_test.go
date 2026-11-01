@@ -127,8 +127,8 @@ func TestFusedFarAwayAlternateHalfSuspensionAsksOnlyTheSacrifice(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets is review round 3's
-// MAJOR pin: a SUB-ABILITY of a fused half must read the half's own targets
+// TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets:
+// a SUB-ABILITY of a fused half must read the half's own targets
 // as its parent list, never the stack object's whole flat target list. On the
 // real corpus card Flesh // Blood, Flesh's DBPutCounter SubAbility puts
 // X +1/+1 counters where X = ParentTargeted$CardPower -- the power of the
@@ -248,7 +248,7 @@ func TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFusedBloodSubAbilityReadsItsOwnHalfTargets is review round 3's MAJOR
+// TestFusedBloodSubAbilityReadsItsOwnHalfTargets is the
 // second pin, taken on the ALTERNATE half of the same real corpus card.
 // Blood's BloodDamage SubAbility asks its own ValidTgts$ Any target and deals
 // NumDmg$ Y, where SVar:Y:ParentTargeted$CardPower reads the half's own

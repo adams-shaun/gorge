@@ -5,8 +5,7 @@ import (
 	"testing"
 )
 
-// Keyword expansion used to be one switch in keywords.go, which made every
-// ticket touching a keyword edit the same file. It is now a table the
+// Keyword expansion is a table the
 // per-keyword kw_*.go files register into. These tests pin the two properties
 // that replace what the compiler used to give for free: no head silently loses
 // its expander, and no two files claim the same head.
@@ -43,9 +42,9 @@ var expandedHeads = []string{
 	// Craft (CR 702.167, Slice 1) expands uniform ExileCtrlOrGrave carriers.
 	"Craft",
 	// Appended after the split (each is a keyword whose expansion the
-	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
+	// pre-split switch never had): Exploit (CR 702.58).
 	"Exploit",
-	// Offspring (CR 702.175, task offspring1): the corpus carries only the
+	// Offspring (CR 702.175): the corpus carries only the
 	// K:Offspring:<cost> line, so the expansion supplies the ETB trigger
 	// that creates one 1/1 token copy when the additional cost was paid
 	// (Count$OffspringPaid).
@@ -56,7 +55,7 @@ var expandedHeads = []string{
 	// Ravenous (CR 702.148): the {X} +1/+1-counter ETB plus the X>=5 draw,
 	// expanded into an ETB trigger (task kw-ravenous).
 	"Ravenous",
-	// Fabricate (CR 702.121, task fabricate1): a ChangesZone ETB trigger
+	// Fabricate (CR 702.121): a ChangesZone ETB trigger
 	// whose Charm elects N +1/+1 counters or N Servo tokens.
 	"Fabricate",
 	// Graft (CR 702.57): enters-with counters plus an optional move trigger.
@@ -101,7 +100,7 @@ var expandedHeads = []string{
 	"Prevent all combat damage that would be dealt to CARDNAME.",
 	"Prevent all combat damage that would be dealt to and dealt by CARDNAME.",
 	"Prevent all damage that would be dealt to CARDNAME.",
-	// Renown (CR 702.112, task agent-20260920T061844Z-01de2bee): the
+	// Renown (CR 702.112): the
 	// combat-damage trigger places N +1/+1 counters and marks its source renowned.
 	"Renown",
 	// Sunburst (CR 702.47, task kw:Sunburst): a bare K:Sunburst line expanded
@@ -123,7 +122,7 @@ var expandedHeads = []string{
 	// Animate to artifact creature (engine/cards/kw_crew.go). Added after the split;
 	// the pre-split switch never had it.
 	"Crew",
-	// Saddle (CR 702.171, task agent-20260929T014717Z-0f0a84be): the printed
+	// Saddle (CR 702.171): the printed
 	// K:Saddle:<N> line expands into an AlterAttribute designation ability.
 	// Added after the split; the pre-split switch never expanded it.
 	"Saddle",
@@ -136,7 +135,7 @@ var expandedHeads = []string{
 	// the end-step exile, and redirect any departure to exile. Added after
 	// the split; the pre-split switch never expanded it.
 	"Unearth",
-	// Outlast (CR 702.107, task agent-20260920T061844Z-8c4b9690): the
+	// Outlast (CR 702.107): the
 	// printed K:Outlast:<cost> line expanded into one ordinary sorcery-speed
 	// PutCounter activation -- Cost$ T <mana> (the CR 702.107a {T} plus the
 	// printed mana), one P1P1 counter on Self (engine/cards/kw_outlast.go). Added

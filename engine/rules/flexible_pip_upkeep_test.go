@@ -6,8 +6,7 @@
 // flexible upkeep cost was treated as unpayable and the pay option was
 // omitted (sacrifice only). No corpus card carries such a cost (measured
 // zero), so the fixtures here are inline synthetic cards; the engine under
-// test is the real one, driven through the real resolution window. Kept in
-// its own file so the ticket cannot conflict on a shared test file.
+// test is the real one, driven through the real resolution window.
 package rules
 
 import (

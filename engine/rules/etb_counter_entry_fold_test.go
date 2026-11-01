@@ -12,8 +12,8 @@ import (
 // CR 614.12: a permanent's "enters the battlefield with N counters" ability
 // (K:etbCounter, and every other bare DB$ PutCounter | ETB$ True Updated
 // replacement body) is a replacement effect whose counter placement is part
-// of the ENTRY. Before this ticket engine/rules/replacement.go folded the entry
-// MoveZone first and ran the PutCounter body after it, so the counters were
+// of the ENTRY. Folding the entry
+// MoveZone first and running the PutCounter body after it would make the counters
 // absent from the entry's own fold: a log-only replay, an ETB trigger and
 // the state-based actions saw the permanent enter without them, and a
 // body placement whose AddCounter competition needed CR 616.1's order answer
@@ -76,7 +76,7 @@ func etbCounterEntryTriggered(e *Engine, id state.ObjID) bool {
 
 // etbCounterEntryAnswerOrder submits the pending CR 616.1 AddCounter order
 // ask, choosing the option that names want. It also asserts the ENTRY has not
-// folded while the ask is outstanding -- the atomicity this ticket exists for.
+// folded while the ask is outstanding -- that atomicity is the point.
 func etbCounterEntryAnswerOrder(t *testing.T, e *Engine, id state.ObjID, want string) {
 	t.Helper()
 	d := e.Pending()

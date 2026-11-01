@@ -37,7 +37,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 401.6 | follows | `engine/view/view.go#projectInto` | - |  |
 | 401.7 | follows | `engine/effects/zone_library.go#libraryOrderPlacementAt` | - |  |
 | 402.1 | follows | `engine/rules/engine.go#Engine.drawCard` | - |  |
-| 402.2 | follows | `engine/rules/combat.go#Engine.maxHandSizeFor` | `Test3141ExactlyMaxHandSizeAsksNothing` |  |
+| 402.2 | follows | `engine/rules/combat.go#Engine.maxHandSizeFor` | `TestCleanupExactlyMaxHandSizeAsksNothing` |  |
 | 402.3 | follows | `engine/state/ids.go#Zone.Hidden` `engine/view/redact.go#visibleTo` | - |  |
 | 403.1 | follows | `engine/events/apply_zone.go#move` | - |  |
 | 403.2 | follows | `engine/effects/zone.go#ParseZone` | - | default zone is battlefield |

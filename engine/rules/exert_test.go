@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Exert (CR 702.100, task exert1) pinned end to end on real corpus cards.
+// Exert (CR 702.100) pinned end to end on real corpus cards.
 // Combat Celebrant drives the main flow: its static is the corpus's one
 // gated carrier (`IsPresent$ Creature.Self+notExertedThisTurn`) and its
 // rider chains UntapAll (StrictlyOther) into DB$ AddPhase, both already

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// granted_activation_cost_test.go is task grantcost1's leaf: a granted
+// granted_activation_cost_test.go is the leaf for this rule: a granted
 // activation (engine/rules/speed.go's beginGrantedActivation, the max-speed
 // "granted" option and beginActivation's SVar branch) used to pay ONLY its
 // mana/life/{T} parts -- every Sac/Discard/SubCounter/AddCounter/Exile/...

@@ -453,7 +453,7 @@ func TestCountTimesMutatedDrivesTheRealReader(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestEssenceSymbioteWatchesATeamMutation is the round-3 regression for the
+// TestEssenceSymbioteWatchesATeamMutation is the regression for the
 // ONLY non-Card.Self Mutates carrier in the corpus: Essence Symbiote's
 // "Whenever a creature you control mutates, put a +1/+1 counter on that
 // creature and you gain 2 life." (ValidCard$ Creature.YouCtrl). The scanning

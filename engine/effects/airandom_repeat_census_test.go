@@ -11,7 +11,7 @@ import (
 
 // aiRandomAskAPIs are the APIs whose ask carries AILogic$ Random as
 // decision.Decision.AIRandom (engine/effects/charm.go): the bots draw such a pick
-// from their seeded rng and the R-9 no-ask answer draws from the engine rng
+// from their seeded rng and the no-ask answer draws from the engine rng
 // (aiRandomNoAskPick).
 var aiRandomAskAPIs = map[string]bool{"GenericChoice": true, "Charm": true}
 

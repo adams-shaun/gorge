@@ -1,7 +1,6 @@
 package rules
 
-// Corpus-carrier census for the three oracle fix mechanisms
-// (cli-20261005T035645Z-da38b1fc). Each repair was structural -- the
+// Corpus-carrier census for three oracle fix mechanisms. Each repair was structural -- the
 // triggered-cost LKI capture serves every `Sacrificed$...` reader, the
 // cost-time Remembered binding serves every `TriggeredCard$...` read inside a
 // trigger Cost$, and the graveyard player scan serves every zone-qualified
@@ -38,8 +37,8 @@ const (
 	censusLabelTurnEntered       = "filter:ThisTurnEnteredFrom_Battlefield"
 	censusLabelTriggeredCardMana = "trigger-cost:TriggeredCard$CastTotalManaSpent"
 	// censusLabelEvidenceTrigger names the trigger-BODY family whose Cost$
-	// carries CollectEvidence<N> (the class agent-20261005T062256Z-dadd85ba
-	// fixed: the window free-settled an evidence-only cost). It walks the
+	// carries CollectEvidence<N> (the window must not free-settle an evidence-only
+	// cost). It walks the
 	// TRIGGER effect chains only, never f.Abilities -- an activated/spell
 	// ability pays evidence through the cast flow's evidenceAsk stage and is
 	// already correct.
@@ -236,7 +235,7 @@ func TestCorpusTriggeredCardManaCensus(t *testing.T) {
 }
 
 // TestCorpusEvidenceTriggerCensus is the ratchet for the trigger-body
-// CollectEvidence family whose free settlement this ticket fixed.
+// CollectEvidence family.
 func TestCorpusEvidenceTriggerCensus(t *testing.T) {
 	checkCensus(t, censusLabelEvidenceTrigger, "corpus-evidence-trigger", "Izoni, Center of the Web")
 }

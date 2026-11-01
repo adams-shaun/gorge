@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mid-resolution ChooseNumber ask (task cli-20260923T060000Z-choose-number):
+// The mid-resolution ChooseNumber ask:
 // a resolution-time "choose a number" poses a real KChoose over the
 // deterministic number list, and the ANSWERED number is what events.Apply
 // records on the resolving object (o.ChosenNumber) -- the value every

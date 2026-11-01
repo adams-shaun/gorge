@@ -1,7 +1,7 @@
 package rules
 
-// Round-2 review regressions for CR 724 (the monarch) and Palace Jailer's
-// command-zone return promise. Two defects the first round shipped:
+// Regressions for CR 724 (the monarch) and Palace Jailer's
+// command-zone return promise:
 //
 //  1. Palace Jailer's `ValidPlayer$ Player.OpponentOf Remembered` was read as
 //     "the new monarch controls the remembered exiled creature", which is the

@@ -1,7 +1,7 @@
 package rules
 
 // effect_cantgainlife_test.go — the READER half of the Effect-delivered
-// CR 614.1 CantGainLife static (task cantgainlife1): lifeGainForbidden must
+// CR 614.1 CantGainLife static: lifeGainForbidden must
 // consult the REGISTERED CantGainLife restrictions the Effect route creates
 // (engine/rules/replacement_life.go), beside the printed battlefield statics it
 // already read. Each test asserts its own precondition (the lock binds the

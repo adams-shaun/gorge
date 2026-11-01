@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The trig:Blocks ticket (agent-20260918T202223Z-efca418d): Forge's
+// trig:Blocks: Forge's
 // "whenever [this creature] blocks" trigger mode, pinned end to end on real
 // corpus cards in the msh_commander_trigger_test.go style -- the real
 // decision chain (askAttackers / submitAttackersOnly / drainCombatPriority /
@@ -38,9 +38,9 @@ func blocksCombatEngine(t *testing.T, active state.PlayerID) *Engine {
 	return e
 }
 
-// TestSavvyHunterBlocksCreatesFood is the ticket's carrier: Savvy Hunter's
+// TestSavvyHunterBlocksCreatesFood pins Savvy Hunter's
 // "Whenever Savvy Hunter attacks or blocks, create a Food token." The attack
-// half (trig:Attacks) worked before this ticket; the block half was dead.
+// half is trig:Attacks.
 // One combat: the Hunter attacks, a Memnite blocks it -- the drain resolves
 // the Attacks trigger (pushed at the attacker submission) and the blocker
 // declaration queues the Blocks trigger on top, so each half creates one
@@ -63,7 +63,7 @@ func TestSavvyHunterBlocksCreatesFood(t *testing.T) {
 		t.Fatalf("Food tokens after the ATTACK half = %d, want 1 (the control arm)", n)
 	}
 	_ = b
-	// The BLOCK half (the ticket's subject): the sides flip -- the Memnite
+	// The BLOCK half: the sides flip -- the Memnite
 	// attacks, the Hunter blocks, the pair (Memnite, Hunter) admits the
 	// Blocks line's ValidCard$ Card.Self, and the trigger resolves to a
 	// Food.

@@ -11,8 +11,7 @@ import (
 )
 
 // The DB$ AddPhase turn-walk tests for the shapes engine/effects/addphase.go's
-// multi-step resolution mints (ticket ap1: the multi-step-set half of the
-// row, plus the two deliberate consumer behaviours the row called untested).
+// multi-step resolution mints, plus two deliberate consumer behaviours.
 // engine/effects/addphase_multistep_test.go owns the parse side; these drive the
 // real step machinery through the spliced ranges and replay-check the log.
 //

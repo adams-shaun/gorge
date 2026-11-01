@@ -24,7 +24,7 @@ import (
 // eligible, and both discard asks with an empty target hand) against an
 // ASKABLE host (askHost records and returns true). Each leaf asserts three
 // things: no decision was posed, the resolution completed, and -- for the
-// sites that record an R-9 note on a genuine no-host run -- that note is
+// sites that record a no-host note on a genuine no-host run -- that note is
 // ABSENT, because skipping an unanswerable ask is the correct resolution,
 // not a degradation.
 
@@ -42,7 +42,7 @@ type askEmptyCase struct {
 	// wantLibraryOrder: the KArrange stand-in still records the unchanged
 	// order (0 cards).
 	wantLibraryOrder bool
-	// noteFree asserts no "(no engine host to ask)" R-9 note was recorded:
+	// noteFree asserts no "(no engine host to ask)" note was recorded:
 	// the ask was skipped because the decision was unanswerable, not because
 	// the host could not ask.
 	noteFree bool
@@ -92,7 +92,7 @@ func (tc askEmptyCase) runCase(t *testing.T) {
 		t.Fatalf("%s: no LibraryOrder event; the arrange stand-in still records the (unchanged) order: %+v", tc.name, h.log)
 	}
 	if tc.noteFree && notes != 0 {
-		t.Fatalf("%s: %d Note event(s) recorded; a skipped empty ask is silent, not an R-9 no-host degradation: %+v", tc.name, notes, h.log)
+		t.Fatalf("%s: %d Note event(s) recorded; a skipped empty ask is silent, not a no-host degradation: %+v", tc.name, notes, h.log)
 	}
 }
 
@@ -220,7 +220,7 @@ func TestAskingSitesResolveAnEmptyCandidateSetSilently(t *testing.T) {
 			// ChangeNum$ 0 over a hand holding eligible cards: more eligible
 			// cards than ChangeNum, so the pick would be a Min == Max == 0
 			// KChoose -- the empty-answer-only shape. It moves nothing and
-			// records no R-9 note.
+			// records no no-host note.
 			name:     "hand move ChangeNum$ 0, eligible cards in hand",
 			noteFree: true,
 			run: func(t *testing.T, h *askHost, c *Ctx) {

@@ -1,7 +1,6 @@
 package effects
 
-// The NoteCards$/NoteCardsFor$ player-notation family (task
-// agent-20260918T230450Z-c3e84a8e): a DB$ Pump body records "seat X chose
+// The NoteCards$/NoteCardsFor$ player-notation family: a DB$ Pump body records "seat X chose
 // branch <label>" through events.PlayerNoted (Forge's NoteCardsEffect), and a
 // later resolution reads it back through the shared player filter's
 // `Player.NotedFor<label>` qualifier -- so RepeatEach's RepeatPlayers$, a
@@ -17,7 +16,7 @@ package effects
 // so the two fame/fortune branches split a two-opponent table (one fame, one
 // fortune) exactly as the card's oracle text does. The per-chooser ASK that
 // fills `Defined$ Remembered` with each chooser is the separate
-// api:GenericChoice `Defined$` family, out of this ticket's scope: the tests
+// api:GenericChoice `Defined$` family, out of scope here: the tests
 // below bind Ctx.Remembered to the chooser directly, which is exactly the
 // binding that ask will provide on landing.
 

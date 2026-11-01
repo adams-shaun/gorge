@@ -12,7 +12,7 @@ import (
 )
 
 // These corpus ratchets pin every file carrying one of the selection rider
-// parameters this ticket made readable. A carrier that disappears means the
+// parameters. A carrier that disappears means the
 // corpus moved the card text; a new one means the mechanism's blast radius
 // grew and needs review, not a silent allow-list edit.
 func TestSelectionRiderCorpusCarriers(t *testing.T) {

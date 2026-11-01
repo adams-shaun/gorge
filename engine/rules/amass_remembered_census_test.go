@@ -1,11 +1,10 @@
 package rules
 
-// Amass-remembered census (task agent-20260928T215010Z-bea05a4b, filed from
-// the Goblin Plate Mail finding).
+// Amass-remembered census.
 //
 // `DB$ Amass | ... | RememberAmass$ True` records the amassed Army in the
 // resolution's Remembered list (engine/effects/amass.go, amassRiders). The Goblin
-// Plate Mail finding this ticket came from was that the FOLLOWING
+// Plate Mail finding was that the FOLLOWING
 // `DB$ Attach | Defined$ Remembered` sub did not see that entry, so the
 // Equipment stayed unattached (AttachedTo == 0). The mechanism is fixed in
 // the base this branched from: the shared resolution Ctx carries the amass

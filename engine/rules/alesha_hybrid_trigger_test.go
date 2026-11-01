@@ -145,8 +145,7 @@ func TestAleshaHybridTriggerPaysEitherFace(t *testing.T) {
 
 // TestAleshaHybridTriggerWillNotPayUnpayable is the negative half: with an
 // empty pool and no untapped mana sources, the window must not falsely offer
-// the payment. Since the pool-coverability gate
-// (triggeredCostManaHalfPayable, ticket agent-20260922T232740Z-cf0357bb) the
+// the payment. With the pool-coverability gate (triggeredCostManaHalfPayable) the
 // pay/decline ask is DECLINE-ONLY when neither the pool nor any activatable
 // mana source can cover the announced cost -- the CR 601.2b pip announcement
 // is still posed (it is a choice, not a solvency claim), but the pay option

@@ -14,7 +14,7 @@ import (
 // production ("Add B" / "Add R"), so the player picking a colour never saw
 // the 1 life the ability charges -- the cost prefix was applied to the
 // single-option label but not to the flattened per-colour options
-// (fb-20260924T180813Z-bbe4fd8f). Each flattened option must name the life.
+// Each flattened option must name the life.
 const mountDoomSrc = "Name:Mount Doom\nManaCost:no cost\nTypes:Legendary Land\n" +
 	"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R | SpellDescription$ Add {B} or {R}.\n" +
 	"Oracle:{T}, Pay 1 life: Add {B} or {R}.\n"

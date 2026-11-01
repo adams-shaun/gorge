@@ -9,7 +9,7 @@ import (
 )
 
 // The two DFT max-speed AddReplacementEffect$ grants, driven directly at the
-// engine (ticket agent-20261009T094023Z-cd4b2f74): a granted replacement must
+// engine: a granted replacement must
 // land on the ordinary replacement path (engine/rules/replacement_granted.go), with
 // the granting permanent as its host and source. Each test asserts its own
 // precondition (the host is on the battlefield the ActiveZones$ Battlefield

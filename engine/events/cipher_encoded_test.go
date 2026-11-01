@@ -35,7 +35,7 @@ func cipherEncodeEvents(card, creature state.ObjID) []Event {
 	}
 }
 
-// assertCipherAssociation checks both ends of the association the brief pins:
+// assertCipherAssociation checks both ends of the association:
 // the creature-side link (state.Object.EncodedCards) and the encoded card's
 // own zone. The caller's want decides which shape is expected.
 func assertCipherAssociation(t *testing.T, g *state.Game, creature, card state.ObjID, want []state.ObjID) {

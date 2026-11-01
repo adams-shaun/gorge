@@ -9,14 +9,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The additional-land-drops grant (fb-20260916T201051Z): an S:Mode$
+// The additional-land-drops grant: an S:Mode$
 // Continuous static carrying a plain integer AdjustLandPlays$ (Azusa, Lost
 // but Seeking's "You may play two additional lands on each of your turns",
 // Oracle of Mul Daya, Exploration, Icetill Explorer) registers a rules-mod
 // on the ContinuousEffect, and the land-play gates in engine/rules/legal.go offer
-// 1+adjust drops per turn instead of the hardcoded one. The feedback
-// snapshot this task came from DIVERGES against the current corpus (it was
-// captured before a corpus pin bump), so every fixture here is synthetic:
+// 1+adjust drops per turn instead of the hardcoded one. Every fixture here is synthetic:
 // real compiled statics copied out of the named cards' scripts, hand-built
 // decks, no recorded replay.
 

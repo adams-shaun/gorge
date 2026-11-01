@@ -1,9 +1,6 @@
 package rules
 
-// Derived, compiled-registry corpus census for the eight "std3" parameter
-// shapes (ticket agent-20261005T011820Z-734eaec3; the shapes were fixed by
-// cli-20261004T233421Z-7517756b, merge ff64dcd32, whose carrier ratchets
-// landed in e5cdd8350).
+// Derived, compiled-registry corpus census for eight parameter shapes.
 //
 // The existing engine/effects/ ratchets (engine/effects/unread_param_corpus_test.go
 // TestUnreadEffectParamCorpusCarriers and engine/effects/count_pow_test.go
@@ -155,12 +152,12 @@ func std3ParamCarriers(reg *cards.Registry) map[string]map[string]bool {
 	return out
 }
 
-// checkStd3Census compares the measured carrier set for one label against the
+// checkFixedParamCensus compares the measured carrier set for one label against the
 // per-card table in both directions, with a loud precondition that the walk
 // reached the class and a named card is a measured member. A registry that
 // failed to load, or a walk whose Sub/SVar traversal stopped, must FAIL rather
 // than pass vacuously.
-func checkStd3Census(t *testing.T, label, dir, mustCarry string) {
+func checkFixedParamCensus(t *testing.T, label, dir, mustCarry string) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	got := std3ParamCarriers(reg)[label]
@@ -216,43 +213,43 @@ func TestFixedParamCensusFilesWellFormed(t *testing.T) {
 
 // TestFixedParamCensusPump pins Pump's ReplaceDyingDefined$ carriers.
 func TestFixedParamCensusPump(t *testing.T) {
-	checkStd3Census(t, std3LabelPumpReplaceDying, "corpus-std3-pump-replacedying", "Gnashing of Teeth")
+	checkFixedParamCensus(t, std3LabelPumpReplaceDying, "corpus-std3-pump-replacedying", "Gnashing of Teeth")
 }
 
 // TestFixedParamCensusChangeZone pins ChangeZone's ThisDefinedAndTgts$ carriers.
 func TestFixedParamCensusChangeZone(t *testing.T) {
-	checkStd3Census(t, std3LabelChangeZoneThisAndTgts, "corpus-std3-changezone-thisdefinedandtgts", "Mangara of Corondor")
+	checkFixedParamCensus(t, std3LabelChangeZoneThisAndTgts, "corpus-std3-changezone-thisdefinedandtgts", "Mangara of Corondor")
 }
 
 // TestFixedParamCensusDigUntil pins DigUntil's MinTotalCMC$ carriers.
 func TestFixedParamCensusDigUntil(t *testing.T) {
-	checkStd3Census(t, std3LabelDigUntilMinTotalCMC, "corpus-std3-diguntil-mintotalcmc", "Dream Harvest")
+	checkFixedParamCensus(t, std3LabelDigUntilMinTotalCMC, "corpus-std3-diguntil-mintotalcmc", "Dream Harvest")
 }
 
 // TestFixedParamCensusCopyPermanent pins CopyPermanent's DefinedName$ carriers.
 func TestFixedParamCensusCopyPermanent(t *testing.T) {
-	checkStd3Census(t, std3LabelCopyPermanentDefName, "corpus-std3-copypermanent-definedname", "Mutable Explorer")
+	checkFixedParamCensus(t, std3LabelCopyPermanentDefName, "corpus-std3-copypermanent-definedname", "Mutable Explorer")
 }
 
 // TestFixedParamCensusPutCounter pins PutCounter's CounterTypes$ carriers.
 func TestFixedParamCensusPutCounter(t *testing.T) {
-	checkStd3Census(t, std3LabelPutCounterTypes, "corpus-std3-putcounter-countertypes", "Abigale, Eloquent First-Year")
+	checkFixedParamCensus(t, std3LabelPutCounterTypes, "corpus-std3-putcounter-countertypes", "Abigale, Eloquent First-Year")
 }
 
 // TestFixedParamCensusAnimate pins the Animate Colors$ ChosenColor carriers.
 func TestFixedParamCensusAnimate(t *testing.T) {
-	checkStd3Census(t, std3LabelAnimateColors, "corpus-std3-animate-chosencolor", "Puca's Eye")
+	checkFixedParamCensus(t, std3LabelAnimateColors, "corpus-std3-animate-chosencolor", "Puca's Eye")
 }
 
 // TestFixedParamCensusChooseType pins the ChooseType ValidTypes$/InvalidTypes$
 // carriers (both spellings share one table and one label).
 func TestFixedParamCensusChooseType(t *testing.T) {
-	checkStd3Census(t, std3LabelChooseTypeTypes, "corpus-std3-choosetype-validinvalidtypes", "Dawn-Blessed Pennant")
+	checkFixedParamCensus(t, std3LabelChooseTypeTypes, "corpus-std3-choosetype-validinvalidtypes", "Dawn-Blessed Pennant")
 }
 
 // TestFixedParamCensusNumberPow pins the Number$/Pow. carriers.
 func TestFixedParamCensusNumberPow(t *testing.T) {
-	checkStd3Census(t, std3LabelNumberPow, "corpus-std3-number-pow", "Mathemagics")
+	checkFixedParamCensus(t, std3LabelNumberPow, "corpus-std3-number-pow", "Mathemagics")
 }
 
 // std3CensusDirForLabel maps a label back to its table directory so

@@ -7,7 +7,7 @@ import (
 )
 
 // TestRefPropertyOpResolvesNamedSVarOperand pins the <Ref>$<Property>/Op
-// suffix's SVar-named operand (task d8b-permanents, Doran, Besieged by
+// suffix's SVar-named operand (Doran, Besieged by
 // Time): "SVar:X1:SVar$Y1/Abs", "SVar:Y1:TriggeredAttacker$CardPower/Minus.Z1",
 // "SVar:Z1:TriggeredAttacker$CardToughness" — the pump amount is
 // |power - toughness|, read through a two-deep SVar chain whose /Minus

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestExploreNumSurvivesTheDestinationAsk pins the round-10 cardfuzz mirror
+// TestExploreNumSurvivesTheDestinationAsk pins a fuzzer mirror
 // livelock (seed 12282246443002902452, Jadelight Spelunker: "When this
 // enters, it explores X times", X = 6; the cycle note / choose / counter /
 // explore repeated until the livelock detector fired). Every nonland explore

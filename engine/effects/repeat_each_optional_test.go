@@ -31,7 +31,7 @@ func repeatEachOptionalSPrecondition(t *testing.T) {
 	}
 }
 
-// TestRepeatEachOptionalForEachPlayerNoAskDeclines is the R-9 contract: a
+// TestRepeatEachOptionalForEachPlayerNoAskDeclines is the no-host contract: a
 // host with no decision channel (the effects double's Ask reports false)
 // declines each subject, never parks a suspension and never runs a body.
 func TestRepeatEachOptionalForEachPlayerNoAskDeclines(t *testing.T) {

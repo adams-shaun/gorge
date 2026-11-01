@@ -12,7 +12,7 @@ import (
 )
 
 // led1Board seats the corpus card c and one plain Mountain on seat 0's
-// battlefield at a main1 priority window — the fb-led1 shape: a mana source
+// battlefield at a main1 priority window — the shape: a mana source
 // whose activation costs more than a bare tap beside a plain land, at the
 // window the client's empty-priority-window floor decides about.
 func led1Board(t *testing.T, c *cards.Card) (*Engine, Config, state.ObjID, state.ObjID) {
@@ -44,13 +44,12 @@ func led1Board(t *testing.T, c *cards.Card) (*Engine, Config, state.ObjID, state
 	return e, cfg, led, mtn
 }
 
-// TestCostlyManaActivationCarriesCostMarker pins the wire marker the
-// fb-led1 fix adds: a priority window's "activate" option carries the
+// TestCostlyManaActivationCarriesCostMarker pins the wire marker: a priority window's "activate" option carries the
 // activation cost whenever the offered mana ability costs more than a bare
 // tap (Lion's Eye Diamond's {T}, Sacrifice), and carries none for a plain
 // tap (a Mountain), so every existing land window serialises byte-identically.
 // The marker is what lets the client's empty-priority-window floor stop on
-// the LED window instead of auto-passing it away (fb-20260917T192520Z-26136705).
+// the LED window instead of auto-passing it away.
 func TestCostlyManaActivationCarriesCostMarker(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -74,7 +73,7 @@ func TestCostlyManaActivationCarriesCostMarker(t *testing.T) {
 		t.Fatal("legalActions did not offer Lion's Eye Diamond's mana activation")
 	}
 	if ledOpt.Cost == "" {
-		t.Fatal("LED activate option carries no cost marker: the empty-priority-window floor swallows every window whose only action is this activation (fb-20260917T192520Z-26136705)")
+		t.Fatal("LED activate option carries no cost marker: the empty-priority-window floor swallows every window whose only action is this activation")
 	}
 	if !strings.Contains(ledOpt.Cost, "Sac<1/") {
 		t.Fatalf("LED cost marker %q does not name the sacrifice component", ledOpt.Cost)

@@ -7,8 +7,8 @@ import (
 )
 
 // TestRememberedNumberCaptureExcluded pins the capture exclusion on
-// Count$RememberedNumber (task rememberedcapture1, the consolidated acceptance
-// clause). It is the same defect class as Remembered$Amount: rules seeds a
+// Count$RememberedNumber.
+// It is the same defect class as Remembered$Amount: rules seeds a
 // firing trigger's ctx with Remembered == Captured == its fire-time event
 // capture, and a raw len(Ctx.Remembered) counts that capture as something the
 // resolution remembered, so a trigger body gated on "remembered nothing" can

@@ -14,8 +14,7 @@ import (
 // the priority walk and the payment planner's candidate walk read) skipped
 // every TargetUnique$ link and never walked a Charm mode's chain at all, so
 // it offered casts whose announcement the cast flow (subTargetAsk) then
-// reversed with "no legal target for a chained ability" -- cardfuzz
-// fuzz-1003's planrev class: Stand Together, Rookie Mistake, Incremental
+// reversed with "no legal target for a chained ability": Stand Together, Rookie Mistake, Incremental
 // Growth (too few distinct creatures for the unique chain), Swift Kick (no
 // creature its unique link may name at all) and Compel Brutality (a Charm
 // mode whose chained link has no candidate).

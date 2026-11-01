@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// These fixtures pin Mode$ AttackerUnblocked (task trigunblk2) end to end on
+// These fixtures pin Mode$ AttackerUnblocked end to end on
 // the real corpus cards. The mode is a dedicated round-complete hook,
 // checkAttackerUnblockedTriggers, that queues ONE instance per matching
 // UNBLOCKED attacker -- unlike its AttackerUnblockedOnce sibling (Coveted

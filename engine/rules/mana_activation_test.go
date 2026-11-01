@@ -420,7 +420,7 @@ func TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor(t *testing.T) {
 			t.Fatalf("colour option %d = %+v, want Add %c on source", i, opt, "WUBRG"[i])
 		}
 		// The life/card cost the ability charges must be on the colour
-		// option: a bare "Add W" hid the discard and sacrifice (fb-bbe4fd8f).
+		// option: a bare "Add W" hid the discard and sacrifice.
 		if !strings.Contains(opt.Label, "discard your hand") {
 			t.Fatalf("colour option %d omits the discard cost: %q", i, opt.Label)
 		}

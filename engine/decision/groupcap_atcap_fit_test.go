@@ -13,8 +13,8 @@ import (
 // answer is returned in the client's submitted order rather than repaired,
 // and Validate must accept it. One option past the cap is refused by both.
 //
-// This is the regression for the round-2 MAJOR: the r1 refactor called
-// GroupAdmits AFTER the increment in groupCapExceeded only, so an
+// A refactor that calls GroupAdmits AFTER the increment in groupCapExceeded
+// only is the regression this catches: an
 // exactly-at-cap answer with a Required pick present took the repair path
 // and came back reordered ([3 0 1] below) — a silent misrepair of a legal
 // answer, reachable on every raised GroupLimits minted by

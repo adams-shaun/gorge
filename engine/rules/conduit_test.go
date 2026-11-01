@@ -14,8 +14,7 @@ import (
 // and AffectedZone$ Graveyard -- the exact grant the reported card's "You may
 // play lands from your graveyard." compiles to. The card's A:AB$ Play
 // activated ability (api:Play, still in knownUnsupported) is deliberately
-// absent here; it is separate, unwired feature work and out of this task's
-// scope.
+// absent here; it is separate, unwired feature work.
 const conduitGrantSrc = "Name:Conduit of Worlds\nManaCost:2 G G\nTypes:Artifact\n" +
 	"S:Mode$ Continuous | Affected$ Land.YouOwn | MayPlay$ True | AffectedZone$ Graveyard | Description$ You may play lands from your graveyard.\nOracle:x\n"
 

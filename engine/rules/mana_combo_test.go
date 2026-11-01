@@ -194,7 +194,7 @@ func TestKarplusanForestAddsOneChosenColourAndDealsOneDamage(t *testing.T) {
 	activateMana(t, e, id)
 	// Two distinct mana abilities share one tap cost, so the engine asks
 	// which one before the tap -- and the explicit Combo ability is FLATTENED
-	// into per-colour options (task fb-20260917T232800Z): the wheel offers
+	// into per-colour options: the wheel offers
 	// "Add C", "Add R", "Add G", and the flattened "Add G" answer pays the
 	// tap once with no second decision.
 	d := e.Pending()

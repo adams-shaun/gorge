@@ -1,5 +1,4 @@
-// Count$YouDrewThisTurn — the per-turn draw count head (ticket
-// count-youdrewthisturn). Before the fix the head did not exist in
+// Count$YouDrewThisTurn — the per-turn draw count head. Without it the head does not exist in
 // evalCountBody and degraded to 0 through the unresolvable-count convention,
 // so Elenda and Azor's `SVar:Y:Count$YouDrewThisTurn` fed `TokenAmount$ Y`
 // with Y = 0 and the end-step body created nothing no matter how many cards
@@ -50,7 +49,7 @@ func TestYouDrewThisTurnHeadFoldsTheTurnsDraws(t *testing.T) {
 	elenda := onBoardCard(t, e, 0, corpusCard(t, "Elenda and Azor"))
 	ctx := &effects.Ctx{Controller: 0, Source: elenda}
 
-	// Precondition: the corpus SVar is the head this ticket implements.
+	// Precondition: the corpus SVar is this head.
 	body, ok := e.G.Obj(elenda).Face().SVars["Y"]
 	if !ok || body != "Count$YouDrewThisTurn" {
 		t.Fatalf("test precondition: Elenda and Azor SVar Y = %q (ok %v)", body, ok)

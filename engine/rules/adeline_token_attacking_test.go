@@ -1,8 +1,7 @@
 package rules
 
 // Adeline, Resplendent Cathar's real corpus AttackersDeclared trigger is the
-// pin for the non-True TokenAttacking$ selector forms (task
-// agent-20260920T064028Z-a7f115d7):
+// pin for the non-True TokenAttacking$ selector forms:
 //
 //	T:Mode$ AttackersDeclared | AttackingPlayer$ You | Execute$ DBRepeat
 //	SVar:DBRepeat:DB$ RepeatEach | RepeatPlayers$ Opponent | ChangeZoneTable$ True | RepeatSubAbility$ DBToken

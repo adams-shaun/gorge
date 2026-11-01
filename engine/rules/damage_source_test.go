@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The round-2 review's damage findings, executable: DamageSource$ resolution
+// Damage rules: DamageSource$ resolution
 // (the named object is the damaging one for the lifelink rider, for emit-side
 // protection and for DamageDone trigger matching), the DamageAll ValidPlayers$
 // arm, walker damage as a real Damage event with its CR 306.8 conversion
@@ -445,7 +445,7 @@ func TestCreaturePlaneswalkerTakesMarkedDamageAndLoyaltyLoss(t *testing.T) {
 	}
 	// The conversion itself must fold into the Damage event's events.Apply
 	// (no CounterChange of its own). The walker's ENTRY loyalty is a real
-	// CounterChange since task addcounter1/2 -- every entry counter rides one
+	// CounterChange -- every entry counter rides one
 	// so the CR 614 replacement class sees it -- but that placement precedes
 	// the damage entirely, so the scan starts at the Damage event: a
 	// CounterChange at or after it could only be the conversion leaking out
@@ -793,12 +793,12 @@ func TestRefPropertyCountsUseDerivedPT(t *testing.T) {
 	}
 }
 
-// TestNamedDamageSourceRealCastGainsOpponentController is the round-2 review's
+// TestNamedDamageSourceRealCastGainsOpponentController is the
 // opponent-owned lifelink probe, driven through the REAL cast-and-resolution
 // path (not a direct effects.Resolve): a spell with DamageSource$ Targeted at
 // an OPPONENT-controlled lifelink creature makes that creature deal 2 to
 // itself, and the lifelink rider must pay the CREATURE's controller (seat 1),
-// never the caster. Pre-fix (controller := c.Controller) the +2 went to seat 0.
+// never the caster.
 func TestNamedDamageSourceRealCastGainsOpponentController(t *testing.T) {
 	t.Parallel()
 	spell := "Name:Redirector\nManaCost:R\nTypes:Instant\n" +
@@ -829,7 +829,7 @@ func TestNamedDamageSourceRealCastGainsOpponentController(t *testing.T) {
 	}
 }
 
-// TestPrintedCreatureWalkerCleanupKeepsLoyalty is the round-2 review's
+// TestPrintedCreatureWalkerCleanupKeepsLoyalty is the
 // printed-creature-walker clean-up probe: a face that is BOTH Creature and
 // Planeswalker takes marked damage AND loses loyalty, and the end-of-step
 // clean-up's negative Damage event must clear ONLY the marked damage -- it
@@ -854,7 +854,7 @@ func TestPrintedCreatureWalkerCleanupKeepsLoyalty(t *testing.T) {
 	}
 }
 
-// TestBatchLifelinkClearedAfterRegeneratedBatchMember is the round-2 review's
+// TestBatchLifelinkClearedAfterRegeneratedBatchMember is the
 // stale-snapshot probe: a destroy-all batch in which a lifelink-bearing member
 // is REGENERATED (stays) never consumes its pre-batch lifelink snapshot. The
 // TestDepartedStolenSourceCreditsLastController exercises the independently

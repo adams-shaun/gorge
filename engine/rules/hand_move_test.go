@@ -15,7 +15,7 @@ import (
 // engine (opponent plays a land, the optional trigger accepted) poses the
 // hand-choice KChoose, the answer moves exactly the picked card, and the
 // whole game replays from the log. The effects-package halves (the ask shape,
-// the re-entry contract, the R-9 no-host fallback, the fx42 scoping) live in
+// the re-entry contract, the no-host fallback, the scoping) live in
 // effects/hand_move_test.go.
 
 // burgeoningSrc is Burgeoning's own script shape: an optional trigger on an

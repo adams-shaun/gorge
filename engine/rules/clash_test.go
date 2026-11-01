@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// These fixtures pin api:Clash and trig:Clashed (CR 701.31, task clash1) on the
+// These fixtures pin api:Clash and trig:Clashed (CR 701.31) on the
 // real corpus carrier Marvo, Deep Operative, plus the trigger mode's own
 // Won$ orientation gate.
 //

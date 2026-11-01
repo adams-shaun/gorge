@@ -9,9 +9,8 @@ import (
 )
 
 // testCommanderSrc is a minimal, behaviour-free commander: a no-ability
-// artifact that this task's genesis simply parks in the command zone. The
-// Commander milestone's other tasks (the tax, CR 903.9, commander damage)
-// make the commander actually do things; here it only has to be a
+// artifact that genesis simply parks in the command zone. The tax, CR 903.9
+// and commander damage are tested elsewhere; here it only has to be a
 // distinguishable object in the right zone.
 const testCommanderSrc = `Name:Crown
 ManaCost:0

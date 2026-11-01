@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The exotic <Ref>$<Property> count heads (task rv2b-countheads). Each head
+// The exotic <Ref>$<Property> count heads. Each head
 // reads the state the property names, off the object or player the ref
 // resolves, instead of degrading to the fail-closed zero. The tests below
 // drive the REAL corpus spellings (TriggeredCard$CardNumColors,

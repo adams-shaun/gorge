@@ -2,9 +2,8 @@
 // activation route (CR 613.1f): the granted cycling ability is OFFERED,
 // activatable through the ordinary cast flow, and its cost discard carries
 // the cycling provenance events.DiscardCostCycling -- so a Mode$ Cycled
-// trigger fires. The review round 2 finding this closes: tagging the discard
-// (round 1) is not enough when legalActionsPriced never offered a granted
-// Cycling ability, so no granted activation could ever produce one.
+// trigger fires. Tagging the discard is not enough when legalActionsPriced does
+// not offer a granted Cycling ability: no granted activation could ever produce one.
 package rules
 
 import (

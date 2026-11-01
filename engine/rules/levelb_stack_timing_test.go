@@ -1,10 +1,9 @@
 package rules
 
-// levelb_stack_timing_test.go pins the gorge side of the level-B census
-// stack-content class (ticket cli-20261009T105445Z, D8b rows file): the two
-// multi-row mechanism families this ticket triaged whose gorge side is
-// correct and whose divergences are XMage-side timing, plus the one gorge
-// side this ticket fixed (Skewer Slinger, engine/rules/trigger_blocks_blocker_test.go).
+// levelb_stack_timing_test.go pins the gorge side of a stack-content class
+// of cross-engine divergences: two multi-row mechanism families whose gorge side is
+// correct and whose divergences are XMage-side timing, plus one gorge
+// side (Skewer Slinger, engine/rules/trigger_blocks_blocker_test.go).
 //
 // - Starfield Vocalist's static#0.0 probe: gorge doubles the probe creature's
 //   ETB trigger exactly once, and the doubled pair is placed on the stack

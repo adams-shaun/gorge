@@ -261,7 +261,7 @@ func TestBareExileCostExilesTheSource(t *testing.T) {
 // resolves. A spec naming a trigger-only role has no binding in the cast
 // flow and the ability is never offered. Riddlesmith's own Draw<1/You> lives
 // on a trigger Execute$ body (whose costs this build's executor does not
-// charge -- see the task report), so the payment path is pinned on a fixture
+// charge), so the payment path is pinned on a fixture
 // with the same printed token.
 func TestDrawCostDrawsThePayer(t *testing.T) {
 	t.Parallel()

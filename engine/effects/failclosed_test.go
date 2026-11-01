@@ -13,7 +13,7 @@ import (
 // widens a filter. The families chosen are the remaining pc1 stragglers this
 // build left unknown; the row's named object/game-context families
 // (ExiledWithSource, wasDealtDamageThisTurn, IsImprinted, NotDefinedTargeted,
-// DefenderCtrl, Opponent) were implemented by task pc1ctx and are asserted in
+// DefenderCtrl, Opponent) are implemented and asserted in
 // contextword_test.go instead. A card that uses e.g. `Card.DefinedTargeted`
 // must fail closed: the predicate matches nothing, so those clauses stay
 // inert rather than firing against every card.

@@ -3,8 +3,8 @@ package effects
 // Targeting ordering: a sub-ability that carries its OWN ValidTgts$ and a
 // ConditionDefined$ Targeted gate must be RUNNABLE before its target ask has
 // been posed. effects.Resolve evaluates the condition gate BEFORE
-// chosenTargetsFor poses the SA's own ValidTgts$ ask, so before this ticket
-// the empty group read as a RESOLVED zero and the whole sub -- target ask
+// chosenTargetsFor poses the SA's own ValidTgts$ ask, so otherwise
+// the empty group reads as a RESOLVED zero and the whole sub -- target ask
 // included -- was skipped. Guard Dogs' DBPrevent (a DB sub of an ACTIVATED
 // ability, reached by no placement or charm ask) is the one measured corpus
 // carrier; the ordinary Execute/Choices carriers have their Ctx.Targets /
@@ -34,8 +34,8 @@ func targetedGateProbe(t *testing.T) *int {
 	return runs
 }
 
-// TestTargetedGateWithoutValidTgtsStaysResolvedZero pins the pre-existing
-// contract this ticket must not widen: an SA with ConditionDefined$ Targeted
+// TestTargetedGateWithoutValidTgtsStaysResolvedZero pins the
+// contract not to widen: an SA with ConditionDefined$ Targeted
 // and NO ValidTgts$ of its own has a genuinely definite (empty) target list,
 // so the empty group is the resolved zero that skips it -- not the pre-ask
 // UNRESOLVED state. The ordinary "target the parent already chose" subs

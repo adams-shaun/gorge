@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The cast-provenance gate family (task castprov2), pinned on real corpus
+// The cast-provenance gate family, pinned on real corpus
 // cards in both directions:
 //
 //   - Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$

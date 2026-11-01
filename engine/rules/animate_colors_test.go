@@ -220,7 +220,7 @@ func TestAnimateColorlessWithoutOverwriteKeepsColoursAndNotes(t *testing.T) {
 }
 
 // TestDerivedColorsSkipsMalformedColourElements pins the layer-5 walk's
-// robustness leaf from review round 2: state.ContinuousEffect is exported,
+// robustness leaf: state.ContinuousEffect is exported,
 // so a malformed AddColors element (empty, or not a WUBRG letter) must be
 // skipped -- never an index panic. Valid elements in the same list still
 // land.

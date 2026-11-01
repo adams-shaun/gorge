@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// cantchangelife_test.go pins task ds1017-cantchangelife:
+// cantchangelife_test.go pins the static
 // `S:Mode$ CantChangeLife | ValidPlayer$ You` (Platinum Emperion's "Your life
 // total can't change" -- CR 119.7's "can't gain life" and CR 119.8's "can't
 // lose life" as ONE static). The fix has two homes and both are asserted:

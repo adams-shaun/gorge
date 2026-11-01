@@ -455,9 +455,7 @@ func drainEntryTriggers(t *testing.T, e *Engine, wants ...state.ObjID) {
 }
 
 // stunCountersOn is the named-counter read the stun assertions use. The
-// kind is "STUN" (the canonical spelling): main's counter-kind fold
-// (961484894, trig:FullyUnlock task) resolves Forge's case-insensitive
-// `CounterType$ Stun` onto STUN, which the untap replacement and
+// kind is "STUN" (the canonical spelling): the counter-kind fold resolves Forge's case-insensitive
 // ValidCounterType$ STUN read.
 func stunCountersOn(e *Engine, id state.ObjID) int32 {
 	if o := e.G.Obj(id); o != nil {
@@ -469,9 +467,7 @@ func stunCountersOn(e *Engine, id state.ObjID) int32 {
 // TestGiftPrimitivesRegistered pins that kw:Gift and trig:GiveGift are
 // registered with real behaviour, so the coverage census (make report) counts
 // every carrier as playable. Perch Protection is the one carrier whose main
-// effect still needs stat:CantChangeLife (its phase-out rider's api:Phases
-// was registered by main's agent-20260919T181525Z-3cba0676 merge, b81d636ef,
-// after this branch cut); its gift half works.
+// effect still needs stat:CantChangeLife; its gift half works.
 func TestGiftPrimitivesRegistered(t *testing.T) {
 	t.Parallel()
 	supported := effects.Supported()

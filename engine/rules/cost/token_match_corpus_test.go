@@ -70,7 +70,7 @@ func corpusTextValues(reg *cards.Registry) []string {
 
 var braces = strings.NewReplacer("{", " ", "}", " ")
 
-// TestTokenMatchersAgreeOverTheCorpus is the W5 E1 proof that compiling the
+// TestTokenMatchersAgreeOverTheCorpus is the proof that compiling the
 // cost-token regexps by hand changed no parse: every token ParseCost or
 // ParseUnlessCost can see in the corpus -- each value tokenized raw and
 // brace-normalized exactly as the parsers do -- and a deterministic

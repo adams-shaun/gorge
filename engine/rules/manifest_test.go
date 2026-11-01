@@ -130,7 +130,7 @@ func noUnimplementedManifest(t *testing.T, e *Engine) {
 	}
 }
 
-// TestRealityShiftManifestsFaceDown is the ticket's carrier end to end:
+// TestRealityShiftManifestsFaceDown is the carrier end to end:
 // Reality Shift exiles its target creature and its controller manifests the
 // top card of their library — the real card object (captured off the library
 // before the cast), face down, derived 2/2 and Creature-only, redacted to

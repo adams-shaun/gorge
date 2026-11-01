@@ -11,7 +11,7 @@ import (
 )
 
 // This file pins the characteristic-modification half of DB$ CopyPermanent on
-// real corpus cards (task copyp1's follow-up): SetCreatureTypes$, NonLegendary$,
+// real corpus cards: SetCreatureTypes$, NonLegendary$,
 // AddKeywords$, PumpKeywords$ (+PumpDuration$), RemoveKeywords$ and
 // RemoveCardTypes$ are applied to the mint as tracked continuous effects, and
 // are no longer named by the per-call skip Note. Every test asserts the
@@ -384,9 +384,7 @@ func drainToTargetAsk(t *testing.T, e *Engine, limit int) *decision.Decision {
 // TestEleventhHourChapterIIIPrisonerZeroLegendaryAlien pins the reported card
 // end to end: chapter III's copy of a targeted creature IS legendary
 // (AddTypes$ Legendary) and an Alien (SetCreatureTypes$), and no longer a
-// Bear. NewName$ Prisoner Zero is NOT asserted: name machinery is the
-// api:Clone ticket agent-20260920T071934Z-aafa7993; extend this assertion when
-// that ticket lands.
+// Bear. NewName$ Prisoner Zero is NOT asserted: name machinery belongs to api:Clone.
 func TestEleventhHourChapterIIIPrisonerZeroLegendaryAlien(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

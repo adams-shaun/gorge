@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Source-type-qualified ability targets (ticket agent-20261009T162200Z-851f90cb):
+// Source-type-qualified ability targets:
 // Echo, Perceptive Prodigy's `ValidTgts$ Card.Creature` and Scientist Supreme
 // of A.I.M.'s bare `ValidTgts$ Artifact` judge a pending ability's SOURCE card
 // type (CR 113.7a), end to end through the oracle runner.

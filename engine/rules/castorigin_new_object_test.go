@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestCastOriginEndsOnAnyZoneChangeAfterTheCast extends b5974a42e's CR 400.7
+// TestCastOriginEndsOnAnyZoneChangeAfterTheCast extends the CR 400.7
 // rule to the remaining provenance reads: WasCast (Forge's castFrom != null)
 // and latestCastOrigin (Object.HasLatestCast, behind WasCastFromHand,
 // WasCastFromExile and the wasCastFrom<zone> filter family). After its latest

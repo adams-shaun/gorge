@@ -1,4 +1,4 @@
-// api:Dig's zone-batch bracket (task agent-20260930T010244Z-5813227f).
+// api:Dig's zone-batch bracket.
 //
 // ONE api:Dig resolution is ONE zone-change action even when it moves
 // several cards, so Mode$ ChangesZoneAll's "one or more" reading must

@@ -12,7 +12,7 @@ import (
 // canonical head the printed CR 509.1a sentence is rewritten to
 // (engine/cards/hiddenkeyword.go "MustBlock") must itself be in the engine's
 // supported set, or the coverage walk still reports every printed carrier
-// as unsupported -- the ticket's headline symptom. The engine genuinely
+// as unsupported. The engine genuinely
 // reads the head through parseHiddenKeyword/hasMustBeBlockedKeyword (proved
 // by TestRealCorpusMustBeBlockedKeywordIsRead), so the registration is
 // honest.
@@ -49,15 +49,14 @@ func TestMustBlockKeywordIsRegistered(t *testing.T) {
 	}
 }
 
-// TestMustBlockCensusCarriersAreNotBlockedByTheKeyword is the census half of
-// the ticket ("a census test or count names the other affected cards"): no
+// TestMustBlockCensusCarriersAreNotBlockedByTheKeyword is the census half: no
 // printed carrier of the canonical MustBlock head may be unsupported
 // BECAUSE of that keyword primitive. A carrier left with kw:MustBlock (or
 // the old phantom sentence primitive) in its unsupported list would mean the
 // canonicalisation moved the phantom primitive without registering the real
 // one -- the reviewer's MAJOR, caught per card. A carrier may still be
 // unsupported for an unrelated primitive (Gorm the Great also needs the
-// two-or-more-creatures MinMaxBlocker shape), which is not this ticket's.
+// two-or-more-creatures MinMaxBlocker shape).
 func TestMustBlockCensusCarriersAreNotBlockedByTheKeyword(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

@@ -153,7 +153,7 @@ func definedPlayerTrigger(t *testing.T, e *Engine, id state.ObjID) cards.Trigger
 	return cards.Trigger{}
 }
 
-// TestCheckDefinedPlayerServantOfTheStingerCrime is the ticket's carrier: the
+// TestCheckDefinedPlayerServantOfTheStingerCrime pins the carrier: the
 // DamageDone trigger's "if you've committed a crime this turn" reads the
 // controller's crime ledger, and only the controller's, for this turn only.
 func TestCheckDefinedPlayerServantOfTheStingerCrime(t *testing.T) {

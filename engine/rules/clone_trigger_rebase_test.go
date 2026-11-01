@@ -1,7 +1,7 @@
 package rules
 
-// The overlap re-base path for the TRIGGER form of api:Clone GainThisAbility$
-// (ticket agent-20260923T090459Z-a4d7eb3b): when a clone unit expires while a
+// The overlap re-base path for the TRIGGER form of api:Clone GainThisAbility$:
+// when a clone unit expires while a
 // surviving unit whose root is a TRIGGER remains on the same permanent,
 // settleExpiredClones must re-emit the survivor as Counter
 // "gain-this-trigger" with its one-based trigger index, not the ability form

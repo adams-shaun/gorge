@@ -1,6 +1,6 @@
 package rules
 
-// The bare `Condition$ Delirium` gate (task agent-20260918T222201Z-c613f1f2):
+// The bare `Condition$ Delirium` gate:
 // engine/effects/conditions.go's bare `Condition$` branch used to evaluate only
 // Kicked/Foretold/Revolt/Blessing, so a bare `Condition$ Delirium` sub-effect
 // was UNRESOLVED and ran UNCONDITIONALLY — Descend upon the Sinful's

@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The FILTERED Count$CastTotalManaSpent <Type> form (task castfilter1),
+// The FILTERED Count$CastTotalManaSpent <Type> form,
 // pinned end to end on real corpus cards.
 //
 // Snow is the tractable family: the pool has always carried a PARALLEL snow
@@ -80,7 +80,7 @@ func TestCastTotalManaSpentSnowCountsOnlySnowEndToEnd(t *testing.T) {
 	}
 }
 
-// TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the ticket's
+// TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the
 // named carrier against PLAIN mana: Cataclysmic Prospecting creates a tapped
 // Treasure for each mana from a DESERT spent to cast it
 // (SVar:Y:Count$CastTotalManaSpent Desert), and an X=1 cast paid from three

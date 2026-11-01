@@ -78,8 +78,8 @@ func TestTriggerLineMayAsk(t *testing.T) {
 	}
 }
 
-// TestSAChainMayAskAttachAndAbilitySubTargets pins the miss classes closed
-// in W3 step 2: an Equipment whose own "as this becomes attached" choice
+// TestSAChainMayAskAttachAndAbilitySubTargets pins three miss classes: an
+// Equipment whose own "as this becomes attached" choice
 // (an R:Event$ Attached replacement) asks as it equips, an Attach of a
 // non-Self object (whose face is board-dependent), and an ability's
 // sub-ability target set (asked mid-resolution; a spell's is asked at cast).

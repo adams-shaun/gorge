@@ -1,6 +1,6 @@
 package rules
 
-// Regressions for four cardfuzz batch-3 failure classes, each pinned on
+// Regressions for four fuzzer failure classes, each pinned on
 // real corpus cards:
 //
 //   - a ceased ability object reaching a graveyard's card list and a mana
@@ -24,7 +24,7 @@ import (
 )
 
 // TestManaExileCostNeverOffersACeasedAbility: a resolved ability that a
-// later exile->graveyard move names (the cardfuzz shape) must not join the
+// later exile->graveyard move names (the fuzzer's shape) must not join the
 // graveyard's card list, so Rubble Rouser's "{T}, Exile a card from your
 // graveyard: Add {R}" offers only real cards and never panics on a nil Face.
 func TestManaExileCostNeverOffersACeasedAbility(t *testing.T) {
@@ -101,10 +101,10 @@ func declareAndAskBlockers(e *Engine, attacker state.ObjID) *decision.Decision {
 	return e.Pending()
 }
 
-// TestMenaceFloorIsPublishedAndBotNeverSubmitsALoneBlocker: the cardfuzz
+// TestMenaceFloorIsPublishedAndBotNeverSubmitsALoneBlocker: the fuzzer's
 // shape. Of the defender's two blockers one (Hollow Warrior) carries a tap
-// block cost the bot's guard drops, which used to leave a lone blocker on a
-// Menace attacker. The engine now publishes Menace as MinBlockers 2 on the
+// block cost the bot's guard drops, leaving a lone blocker on a
+// Menace attacker. The engine publishes Menace as MinBlockers 2 on the
 // option, and the bot's answer always validates.
 func TestMenaceFloorIsPublishedAndBotNeverSubmitsALoneBlocker(t *testing.T) {
 	t.Parallel()

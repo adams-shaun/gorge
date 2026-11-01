@@ -1,5 +1,4 @@
-// Count$IsPrime — the arithmetic branch head (ticket
-// cli-20261005T092134Z-fed167ca, part 1). DSK Zimone, All-Questioning gates
+// Count$IsPrime — the arithmetic branch head. DSK Zimone, All-Questioning gates
 // its end-step token on `SVar:X:Count$IsPrime Y.Z.0`: X is nonzero only when
 // Y (the number of lands its controller controls) is prime, and then it
 // carries Z (the number that entered this turn). Before this head existed the
@@ -28,7 +27,7 @@ func TestIsPrimeHeadOnZimone(t *testing.T) {
 	zimone := onBoardCard(t, e, 0, corpusCard(t, "Zimone, All-Questioning"))
 	face := e.G.Obj(zimone).Face()
 
-	// Precondition: the corpus face carries the body this ticket implements,
+	// Precondition: the corpus face carries this body,
 	// and the head is MODELLED (ok true), not the unresolvable fallthrough.
 	body, ok := face.SVars["X"]
 	if !ok || body != "Count$IsPrime Y.Z.0" {

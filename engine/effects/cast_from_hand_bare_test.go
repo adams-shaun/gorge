@@ -1,5 +1,5 @@
-// The BARE wasCastFromYourHand predicate family (task castprov3), unit-tested
-// at the effects-side eval level the ByYou twin (castprov1) uses: the Count$
+// The BARE wasCastFromYourHand predicate family, unit-tested
+// at the effects-side eval level the ByYou twin uses: the Count$
 // branch head's dotted grammar (see_the_truth's
 // SVar:X:Count$wasCastFromYourHand.1.3), the ConditionPresent$ gate helper
 // (otterball_antics' `Card.wasCast+!wasCastFromYourHand`), and the

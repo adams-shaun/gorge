@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The suspected-designation suite (task alterattr1). The end-to-end pin is
+// The suspected-designation suite. The end-to-end pin is
 // the real corpus carrier Nelly Borca, Impulsive Accuser; the status
 // mechanics are unit pins on the events.AlterAttribute fold the primitive
 // shares with every carrier.

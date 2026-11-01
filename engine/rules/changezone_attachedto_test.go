@@ -124,8 +124,7 @@ func attachDrain(t *testing.T, e *Engine, limit int) *decision.Decision {
 }
 
 // TestRetetherReturnsAurasAttached is the mass-return carrier of ChangeZone's
-// AttachedTo$ (the issue agent-20260918T195920Z-7554f14f's second named
-// carrier, never pinned by the merged fix -- its pin covered only Forum
+// AttachedTo$ (its second named carrier; the first is Forum
 // Filibuster's ValidTgts$ target-ask shape): `SP$ ChangeZone | Origin$
 // Graveyard | Destination$ Battlefield | Defined$ ValidGraveyard Aura.YouOwn
 // | AttachedTo$ Creature`. Every Aura returned from the graveyard enters the

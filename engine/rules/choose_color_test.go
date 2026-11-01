@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mid-resolution ChooseColor ask (task cli-20260923T060000Z-choose-color):
+// The mid-resolution ChooseColor ask:
 // a resolution-time "choose a color" poses a real KChoose over the fixed
 // WUBRG colour list, and the ANSWERED colour is what the downstream
 // Count$Devotion.Chosen reader counts -- the reader Hotel of Fears' "Praise
@@ -16,8 +16,7 @@ import (
 // exact downstream shape (PutCounter X = Count$Devotion.Chosen): the corpus
 // SP$ ChooseColor carriers' own downstreams (Wash Out's ChangeType$
 // Permanent.ChosenColor, Akroma's Blessing's Gains$ ChosenColor) are
-// unregistered filter vocabulary -- a separate, pre-existing gap reported in
-// the ticket, not this ask's.
+// unregistered filter vocabulary, a separate gap.
 
 // devotionRite is the fixture spell: choose a color, then put X +1/+1
 // counters on itself, where X is the caster's devotion to the chosen colour

@@ -89,8 +89,7 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 // loss arrives from the state-based action at the priority boundary --
 // never during the payment.
 //
-// The payment is driven MANUALLY. Ancient Tomb is a last-resort source (spec
-// §3.2, aph-producer-tiers): the planner never funds a plan with it, so the
+// The payment is driven MANUALLY. Ancient Tomb is a last-resort source: the planner never funds a plan with it, so the
 // auto-pay offer carries no witness for this cast and the planned-payment
 // executor cannot reach the shape. The test asserts that first, then begins
 // the cast directly (the pool-only offer gate never offers a cast the empty
@@ -106,7 +105,7 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 // loses before the Island can be tapped -- a separate CR 704.3 deviation of
 // the manual window that this test deliberately does not pin.
 //
-// The log is walked to pin the ordering the ticket names: the tomb's
+// The log is walked to pin the ordering: the tomb's
 // production and damage precede the pool deduction, and no PlayerLost
 // appears before the spell is paid for.
 func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
@@ -177,7 +176,7 @@ func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
 		t.Fatalf("the window did not offer Ancient Tomb: %+v", e.Pending())
 	}
 
-	// Walk the log once and pin every event the ticket names by index, then
+	// Walk the log once and pin every event by index, then
 	// assert the ordering.
 	//
 	// CR ordering: the spell is put on the stack when announced (601.2a),

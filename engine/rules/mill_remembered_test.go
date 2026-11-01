@@ -1,7 +1,7 @@
 package rules
 
-// The Mill-remember fix (task agent-20260918T201731Z-86b4ef09): effMill never
-// recorded which cards it milled, so a chained "put a card from among them
+// Mill's remember rider: effMill must
+// record which cards it milled, so a chained "put a card from among them
 // into your hand" pickup -- filtered on Card.IsRemembered -- found nothing and
 // silently no-oped after the mill. Six is the shape end to end: it mills
 // three on attack (RememberMilled$ True), picks a milled land into hand

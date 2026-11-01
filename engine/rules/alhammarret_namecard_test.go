@@ -25,7 +25,7 @@ func sVarHasToken(t *testing.T, raw, key, want string) {
 func TestAlhammarretNameCardChooseFromDefinedCards(t *testing.T) {
 	t.Parallel()
 	e, reg := nameCardEngine(t, "Alhammarret, High Arbiter")
-	// Script precondition (the ticket's coverage target): the ETB reveal
+	// Script precondition: the ETB reveal
 	// remembers the revealed cards and chains into a NameCard sub-ability
 	// whose choices are drawn from that memory, filtered to nonlands.
 	card, ok := reg.Lookup("Alhammarret, High Arbiter")

@@ -1,6 +1,6 @@
 package effects
 
-// The three level-B spell-cast filter predicates this ticket added, each
+// The three level-B spell-cast filter predicates, each
 // pinned through the SAME table the matcher and the UnknownPredicates census
 // classify through, so the two cannot disagree (engine/effects/filter.go's
 // predicates map; never edited separately).

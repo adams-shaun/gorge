@@ -7,9 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Issue agent-20260918T234402Z-b031583b: `Defined$ Player.<state-qualifier>`
-// at resolution time resolved to nobody, and the controlsCreature./
-// controlsPermanent. qualifier grammar did not exist. These are the pure-
+// `Defined$ Player.<state-qualifier>` at resolution time, and the
+// controlsCreature./controlsPermanent. qualifier grammar. These are the pure-
 // grammar leaves; the end-to-end corpus-card pins live in
 // rules/defined_player_state_qualifier_test.go.
 

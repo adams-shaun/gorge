@@ -1,4 +1,4 @@
-// Ticket cli-20260922T225140Z-68ca4d95: the CR 704.5j legend rule now poses a
+// The CR 704.5j legend rule poses a
 // decision instead of keeping the battlefield-order first duplicate. An SBA
 // that needs a controller choice has a decision channel: destroyLethalDamage
 // parks the whole batch (the duplicate set, the lethal-damage casualties found

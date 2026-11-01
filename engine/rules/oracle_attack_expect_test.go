@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestOracleAttackExpectPreSubmit pins the attack op's pre-submit expect read
-// (agent-20261009T172754Z-e2838eed): a scenario step that declares attackers
+// TestOracleAttackExpectPreSubmit pins the attack op's pre-submit expect read:
+// a scenario step that declares attackers
 // AND asserts expectations evaluates them against the still-pending
 // declare-attackers decision, before the declaration goes in. Juggernaut is
 // the corpus's must-attack shape; Savannah Lions is the plain probe beside
@@ -104,8 +104,7 @@ func TestOracleAttackExpectPreSubmit(t *testing.T) {
 }
 
 // TestOracleAttackExpectPostStepStillChecked pins the per-expect split of the
-// attack op's expect handling (agent-20261009T172754Z-e2838eed, review round
-// 1): only the decision-dependent expects (attack_required / can_attack) are
+// attack op's expect handling: only the decision-dependent expects (attack_required / can_attack) are
 // evaluated pre-submit; a board read on the same step (here `tapped:true`,
 // true only AFTER the declaration) must still be evaluated on the ordinary
 // post-step path, and a WRONG board read must fail there. Before the fix the
@@ -146,7 +145,7 @@ func TestOracleAttackExpectPostStepStillChecked(t *testing.T) {
 
 	// Wrong board read: the probe was never declared, so it stays untapped.
 	// This must fail on the POST-step path -- if the step were skipped
-	// wholesale the wrong read would pass silently (the round-1 regression).
+	// wholesale the wrong read would pass silently.
 	wrong := base(oracleExpect{Card: "p0:Savannah Lions", Tapped: &trueVal})
 	fails, transcript, run := runOracleScenario(reg, wrong)
 	if len(fails) == 0 {

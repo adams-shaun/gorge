@@ -20,7 +20,7 @@ import (
 // but the effects package drives the primitive directly so each precondition
 // (nothing moved / the compared zone actually differs) is asserted here and
 // the mandatory object-path and fail-to-find corpus paths are pinned in
-// rules. Since task spcz1 SP-parented DB subs ask their own graveyard
+// rules. SP-parented DB subs ask their own graveyard
 // targeting at resolution (changeZoneChosenTargets no longer inherits the
 // parent's targets), so they DO reach this tail in live play; engine/rules/
 // searchmay-style pins cover that live path end to end.

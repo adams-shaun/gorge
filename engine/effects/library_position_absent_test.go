@@ -144,13 +144,13 @@ func TestChangeZoneAllAbsentLibraryPositionIsTop(t *testing.T) {
 }
 
 // searchedAbsentCount pins the measured census of the SEARCHED-LIBRARY
-// absent-spelling class (agent-20260928T191540Z): API ChangeZone; Origin$
+// absent-spelling class: API ChangeZone; Origin$
 // names Library; Destination$ names Library; LibraryPosition$ absent. Every
 // such carrier routes its placement through placeLibraryObjects (the search's
 // shuffle-and-place tail, or the object-valued Defined$ fetch list), which now
 // defaults the absent spelling to TOP the same way Forge's
 // changeKnownOriginResolve (ChangeZoneEffect.java:484) and
-// changeHiddenOriginResolve (:994) do. Measured 2026-09-28 over the compiled
+// changeHiddenOriginResolve (:994) do. Measured over the compiled
 // registry with the same walk as TestAbsentLibraryPositionCensus: 42 carriers
 // (Knowledge Exploitation, Kodama's Reach, Cultivate, Gifts Ungiven,
 // Intuition, Nissa's Pilgrimage, Sphinx Ambassador, Sword of Hearth and Home,
@@ -170,7 +170,7 @@ const searchedAbsentCount = 42
 //	ValidTgts$ or Defined$ non-empty; NO LibraryPosition$;
 //	no Shuffle$ True; no DestinationAlternative$ / AlternativeDecider$.
 //
-// Measured 2026-09-28: 44 ChangeZone carriers (Golgari Thug, Academy Ruins,
+// Measured: 44 ChangeZone carriers (Golgari Thug, Academy Ruins,
 // Volrath's Stronghold, Mystic Sanctuary, Unholy Grotto, Champion of Stray
 // Souls, ...) and 4 ChangeZoneAll carriers (Guiding Spirit, Head Games,
 // Jester's Mask, Mirror of Fate). One ChangeZone carrier is Origin$ Library
@@ -206,7 +206,7 @@ func TestAbsentLibraryPositionCensus(t *testing.T) {
 						!strings.Contains(sa.Params["Destination"], "Library") {
 						continue
 					}
-					// The searched-library class (agent-20260928T191540Z): an Origin$
+					// The searched-library class: an Origin$
 					// naming Library routes the placement through placeLibraryObjects
 					// whatever the object selectors say, so its census is keyed on the
 					// origin alone, before the ValidTgts$/Defined$ filter below (most

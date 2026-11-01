@@ -10,9 +10,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Regressions for the cardfuzz batch10 livelock (all real corpus cards).
+// Regressions for a livelock (all real corpus cards).
 
-// TestAbortedCastDoesNotRefireAttackerUnblocked (cardfuzz batch10 line 1):
+// TestAbortedCastDoesNotRefireAttackerUnblocked:
 // Senu, Keen-Eyed Protector sits in exile with "when a legendary creature you
 // control attacks and isn't blocked, put it onto the battlefield attacking"
 // (Mode$ AttackerUnblocked). After the declare-blockers round completed, its

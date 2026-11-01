@@ -10,7 +10,7 @@ import (
 )
 
 // Registered keywords must each have a behaviour test naming them; this
-// pins the M2r registrations against the tests that prove them.
+// pins the registrations against the tests that prove them.
 func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 	t.Parallel()
 	sup := effects.Supported()

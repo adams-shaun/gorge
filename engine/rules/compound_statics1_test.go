@@ -1,8 +1,8 @@
 package rules
 
-// compound-statics1: the compound `S:Mode$ CantAttack,CantBlock` split landed
-// as commit f81f996e (engine/cards/parse.go splitStaticModes), so each mode reaches
-// the runtime as its OWN static sharing one Params map. That made a
+// The compound `S:Mode$ CantAttack,CantBlock` split (engine/cards/parse.go
+// splitStaticModes): each mode reaches
+// the runtime as its OWN static sharing one Params map. That makes a
 // condition-bearing compound line reachable to attackBlocked: Bast, Panther
 // Goddess prints
 //
@@ -34,9 +34,9 @@ func TestBastCompoundModeStaticGates(t *testing.T) {
 	if !ok {
 		t.Fatal("corpus missing Bast, Panther Goddess")
 	}
-	// Precondition: the corpus card still prints the compound shape this
-	// ticket splits -- both halves present after the parse-time split, and
-	// the CantAttack half carries the present gate this ticket makes readable.
+	// Precondition: the corpus card still prints the compound shape, with both
+	// halves present after the parse-time split, and the CantAttack half carries
+	// the present gate.
 	var hasAttack, hasBlock, attackHasGate bool
 	for _, f := range bast.Faces {
 		for _, st := range f.Statics {

@@ -9,7 +9,7 @@ import (
 )
 
 // chooseTypeHost is a scripted-ask double for the mid-resolution ChooseType
-// ask (task ct1): TypeChoices serves the configured typeChoices list and Ask
+// ask: TypeChoices serves the configured typeChoices list and Ask
 // records every posed decision and reports suspended, so the test can drive
 // the engine's two passes (ask, then answer through Ctx.ChosenType) the way
 // rules' resumeResolution does.
@@ -47,7 +47,7 @@ func chooseTypeAsks(h *fakeHost) []events.Event {
 // TestChooseTypeSingleOptionTakesTheFallbackWithoutAsking pins the
 // strict-supersets gate: with zero or one offerable type the choice is
 // forced (or empty), so no decision is posed and the deterministic fallback
-// records the choice exactly as before (R-9 byte-identical contract).
+// records the choice byte-identically.
 func TestChooseTypeSingleOptionTakesTheFallbackWithoutAsking(t *testing.T) {
 	h := &chooseTypeHost{}
 	h.g = state.NewGame(names(2))

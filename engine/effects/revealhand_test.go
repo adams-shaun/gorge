@@ -96,7 +96,7 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	}
 	r9 := notes[1]
 	if r9.Player != 0 || r9.Text != "moves the first matching card(s) from hand (no engine host to ask)" {
-		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) R-9 stand-in", r9)
+		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) no-host stand-in", r9)
 	}
 	// The sub-ability now really moves the first eligible nonland card from
 	// the revealed hand to exile (the pre-fix silent no-op is gone).

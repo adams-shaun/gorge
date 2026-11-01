@@ -15,7 +15,7 @@ import (
 // window on TOP (the explicit position is not overwritten by the omitted
 // zone's bottom default); seat 0 -- the controller -- gets the private look
 // and is asked the top order (KArrange, Option.Kind "top", options owned by
-// seat 1); and the R-9 no-host stand-in keeps the offered order, emitting no
+// seat 1); and the no-host stand-in keeps the offered order, emitting no
 // LibraryOrder.
 func TestDigOpponentTopRemainderAsksTheControllerAndNoHostKeepsOrder(t *testing.T) {
 	h := &askHost{}

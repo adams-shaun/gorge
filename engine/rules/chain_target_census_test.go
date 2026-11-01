@@ -47,7 +47,7 @@ func chainTargetCensusSubject(c *cards.Card) bool {
 }
 
 // TestChainTargetOfferCensusAgreesWithCastFlow<k> is the class census behind
-// cardfuzz fuzz-1003's planrev "no legal target for a chained ability"
+// the fuzzer's reversal "no legal target for a chained ability"
 // (Stand Together, Rookie Mistake, Incremental Growth, Swift Kick, Compel
 // Brutality): every corpus spell that announces chained targets on cast is
 // dealt onto small boards (no creature, one on either side, one on each, two

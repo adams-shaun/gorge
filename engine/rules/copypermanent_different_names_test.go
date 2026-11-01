@@ -104,7 +104,7 @@ func noDifferentNamesNote(t *testing.T, e *Engine) {
 	}
 }
 
-// TestCopyPermanentWithDifferentNamesBretagard is the ticket's headline probe:
+// TestCopyPermanentWithDifferentNamesBretagard is the headline probe:
 // seat 0 controls the chapter I Human Warrior token, the chapter II Elf
 // Warrior token and a Treasure token; chapter III offers all three, seat 0
 // picks all three, and one copy of each is created with no skip Note.

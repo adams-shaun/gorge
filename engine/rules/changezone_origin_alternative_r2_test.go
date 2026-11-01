@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Round-2 pins for the ChangeZone OriginAlternative$ work (review findings):
+// Pins for the ChangeZone OriginAlternative$ parameter:
 //
 //   - the widened cross-zone search fires ONLY when OriginAlternative$ is
 //     present, so a compound `Origin$` WITHOUT one keeps its object

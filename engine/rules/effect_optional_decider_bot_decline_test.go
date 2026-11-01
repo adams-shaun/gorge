@@ -11,7 +11,7 @@ import (
 // the unattended bot path. Printed triggers and Miracle retain their former
 // accept policy.
 //
-// The carrier is the same corpus card Beck // Call round 1's test drives, but
+// The carrier is the same corpus card Beck // Call's other test drives, but
 // the election here is answered by the BOT's own answer path, never an
 // explicit intent.
 func TestEffectOptionalDeciderBotDeclines(t *testing.T) {

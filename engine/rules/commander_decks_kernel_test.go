@@ -53,7 +53,7 @@ func TestRepoCommanderDecksPlayAndCastTheirCommanderKernel(t *testing.T) {
 						{cmdr1},
 					},
 					// Mulligans: 1 runs the London keep/mulligan round, as every
-					// acceptance game does (R-M1); a commander game that cannot
+					// acceptance game does; a commander game that cannot
 					// survive its own mulligan round is a deck nobody plays.
 					Mulligans: 1,
 				}

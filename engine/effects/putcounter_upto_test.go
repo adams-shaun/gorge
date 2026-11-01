@@ -9,7 +9,7 @@ import (
 )
 
 // upToHost serves one scripted "counter_upto" answer (an Amount) through the
-// ask seam; with none, the ask is observed and the R-9 stand-in applies.
+// ask seam; with none, the ask is observed and the no-host stand-in applies.
 type upToHost struct {
 	*fakeHost
 	answer *int
@@ -47,7 +47,7 @@ func upToSaga(t *testing.T, ans *int) (*upToHost, state.ObjID, *Ctx) {
 }
 
 // TestPutCounterUpToNoAnswerPlacesTheMaximum: with no answer served (the
-// no-host R-9 stand-in) UpTo$ keeps today's behaviour, the full CounterNum$.
+// no-host stand-in) UpTo$ places the full CounterNum$.
 func TestPutCounterUpToNoAnswerPlacesTheMaximum(t *testing.T) {
 	h, saga, _ := upToSaga(t, nil)
 	if len(h.asks) != 1 {

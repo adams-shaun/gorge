@@ -108,7 +108,7 @@ func TestDiscardedAllMultiCardCostIsOneBatch(t *testing.T) {
 		}
 	}
 	// A two-card cost discard is ONE discard action, so it queues ONE trigger.
-	// A per-event latch (before this ticket) queues two, which the trigger
+	// A per-event latch would queue two, which the trigger
 	// drain surfaces as a KTriggerOrder ask over both; name that directly here
 	// rather than letting the drain report it obliquely.
 	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOrder {

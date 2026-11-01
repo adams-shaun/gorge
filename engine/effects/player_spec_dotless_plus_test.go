@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// agent-20261009T174731Z-42d5e0f4: a dotless clause after `+` is a qualifier
+// A dotless clause after `+` is a qualifier
 // on the same candidate, not an independent spec with a base of its own.
 // Before the fix every dotless clause compiled to an unknown base
 // ("Active"/"isMonarch"/"lifeGE5"...) that matched nobody, so

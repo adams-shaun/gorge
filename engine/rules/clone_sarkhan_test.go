@@ -1,7 +1,7 @@
 package rules
 
 // Sarkhan, Soul Aflame is the corpus-pinned carrier for api:Clone's
-// trigger-driven, RESOLVING shape (ticket api-clone-trigger-copy): a Dragon
+// trigger-driven, RESOLVING shape: a Dragon
 // entering under your control fires the ChangesZone trigger whose Execute$
 // is `DB$ Clone | Defined$ TriggeredCardLKICopy | NewName$ Sarkhan, Soul
 // Aflame | AddTypes$ Legendary | Duration$ UntilEndOfTurn | Optional$ True`.

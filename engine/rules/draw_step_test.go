@@ -421,7 +421,7 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 	if overIdx < 0 {
 		t.Fatal("e.G.Over is true but no GameOver event was logged")
 	}
-	// Fix round 1 (review Important #1a): Advance's own `for !e.G.Over` loop
+	// Advance's own `for !e.G.Over` loop
 	// already suppresses any DecisionAsk once the game ends, so the scan
 	// above passes whether or not advanceStep's own `if e.G.Over { return }`
 	// (turn.go, right after the draw) is even there -- deleting that guard
@@ -442,7 +442,7 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 
 // TestReplayFoldsADrawTriggerFaithfully pins that replay folds it (see
 // TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers) applied to
-// this task: a game whose log contains a draw-step trigger firing folds,
+// the draw step: a game whose log contains a draw-step trigger firing folds,
 // from the log alone via events.Apply, into exactly the live game. The draw
 // moving from priorityRound to advanceStep changes the ORDER two event kinds
 // appear in relative to each other (Draw now precedes the step's own

@@ -27,8 +27,8 @@ const combatAtomicFixture = "Name:Atomic Tax\nTypes:Enchantment\n" +
 // TestAtomicallyUnpayableGenericAndPipPairIsNeverOffered pins the atomicity
 // fix: `2 WP` needs three mana units (two generic plus the pip's white) and
 // the payer has only two white and one life, so NEITHER branch is payable.
-// The pair must not be offered at all -- the round-1 read checked the generic
-// against the budget and the pip against the pool separately and admitted it.
+// The pair must not be offered at all: checking the generic against the budget
+// and the pip against the pool separately would admit it.
 func TestAtomicallyUnpayableGenericAndPipPairIsNeverOffered(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
@@ -364,8 +364,8 @@ const combatTapVsManaFixture = "Name:Tap Versus Mana Tax\nTypes:Enchantment\n" +
 // TestTapObligationCannotAlsoPayTheMana pins the double-tap fix: a permanent
 // reserved for the charge's tapXType obligation must be withheld from the
 // mana window, so a board where one creature-land is both the only source
-// and the only tapper cannot pay -- the round-1 code tapped it for mana and
-// then tapped it again as the cost.
+// and the only tapper cannot pay, rather than tapping it for mana and then
+// again as the cost.
 func TestTapObligationCannotAlsoPayTheMana(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)

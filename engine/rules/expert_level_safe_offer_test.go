@@ -12,8 +12,8 @@ import (
 // TestExpertLevelSafeActivatedAbilityIsOffered pins the REAL corpus card
 // Expert-Level Safe's activated ability (A:AB$ Pump | Cost$ 1 T |
 // ValidTgts$ Opponent | SubAbility$ ChooseNumber) through the priority walk,
-// against triage report agent-20261001T025544Z-442a77e8, which claimed the
-// ability "is not offered at all" -- a claim audited against an Oracle text
+// against a claim that the
+// ability "is not offered at all" -- audited against an Oracle text
 // that exists nowhere in the corpus (the real card's Oracle is the
 // secret-choose-1-2-3 safe, not an exile-and-return {T} ability). On the
 // real card the {1},{T} ability is an ordinary activated ability: seat 0's
@@ -23,8 +23,7 @@ import (
 // The card's one genuine gap -- the secret ChooseNumber ask (Secretly$ True,
 // MatchedAbility$ DBSacrifice, UnmatchedAbility$ DBFillSafe) is never posed
 // -- is ratcheted in engine/rules/paramcensus_test.go's knownUnsupportedParams and
-// is deliberately NOT touched here; closing it is M4 choice/cost-grammar
-// work with its own ticket.
+// is deliberately NOT touched here.
 func TestExpertLevelSafeActivatedAbilityIsOffered(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 34, "Name:Blank\nTypes:Sorcery\nOracle:x\n")

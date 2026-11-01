@@ -97,7 +97,7 @@ func blightCounters(t *testing.T, e *Engine) map[state.ObjID]int32 {
 }
 
 // blightSVar resolves a face's named SVar into its SA (the trigger bodies
-// this task's carriers execute).
+// the carriers execute).
 func blightSVar(t *testing.T, reg *cards.Registry, cardName, svar string) *cards.SA {
 	t.Helper()
 	c := searchCorpusCard(t, reg, cardName)

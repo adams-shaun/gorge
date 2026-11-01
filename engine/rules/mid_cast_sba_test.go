@@ -8,8 +8,7 @@
 // mana_negative_life_test.go: there the Island is tapped first and the tomb
 // last, so the loss fires on the same Submit that settles the payment and the
 // pre-fix bug stayed hidden. Here the tomb is tapped FIRST, crossing a Submit
-// boundary at life -1 while the cast is still mid-window -- the gap this
-// ticket closes. A loss recorded before the Island is tapped is the failure
+// boundary at life -1 while the cast is still mid-window. A loss recorded before the Island is tapped is the failure
 // the test asserts against; the loss at the priority boundary after the cast
 // completes is the contract.
 //
@@ -26,7 +25,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMidCastSBADoesNotEndGameDuringManaWindow is the ticket's repro: at 1
+// TestMidCastSBADoesNotEndGameDuringManaWindow: at 1
 // life the caster pays a {2}{U} instant with Ancient Tomb tapped FIRST ({C}{C}
 // plus its own 2 damage, life 1 -> -1) and the Island LAST, both inside the
 // CR 601.2g payment window. The tomb's damage lands on the first Submit; the

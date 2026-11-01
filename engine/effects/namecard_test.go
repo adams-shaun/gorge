@@ -61,13 +61,13 @@ func TestNameChoicesFiltersBySpec(t *testing.T) {
 	}
 }
 
-// TestNameCardWithoutUniverseKeepsTheR9StandIn pins the no-host degradation
+// TestNameCardWithoutUniverseKeepsTheStandIn pins the no-host degradation
 // AND its replay contract: a host with no corpus universe completes
 // deterministically by naming the top of the caster's own library -- the exact
 // pre-feature NameCard behaviour, so a log an older binary wrote reproduces
 // byte for byte (server/host/persist.go sidecar.NameUniverse). It must never post an
 // unanswerable ask.
-func TestNameCardWithoutUniverseKeepsTheR9StandIn(t *testing.T) {
+func TestNameCardWithoutUniverseKeepsTheStandIn(t *testing.T) {
 	h := newHost(t, 2)
 	src := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Sorcery\nOracle:x\n"), 0).ID
 	// The precondition the assertion depends on: a real library top whose
@@ -128,7 +128,7 @@ func TestNameDescriptionOnlyStaysUnrestrictedButSafetyMaps(t *testing.T) {
 		t.Fatalf("ValidDescription$ nonartifact, nonland = %v, want [Bear]", got)
 	}
 	// A description whose predicate matches NOTHING in the universe is the
-	// totality case (R-9): the ask is never emptied, it falls back to the
+	// totality case: the ask is never emptied, it falls back to the
 	// full universe. "noncreature, nonland" excludes all three cards here
 	// (Bear is a creature, the other two are lands).
 	if got := NameChoices(g, "", "noncreature, nonland"); len(got) != 3 {

@@ -21,8 +21,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost is the
-// ticket's primary symptom: a disguised Fugitive Codebreaker on the
+// TestFugitiveCodebreakerDisguiseTurnFaceUpOffersAndChargesFullCost: a disguised Fugitive Codebreaker on the
 // battlefield offers the turn_face_up special action once the full printed
 // {5}{R} is payable, and choosing it pays exactly {5}{R} and flips the card
 // face up. The ReduceCost$ rider ("{1} less per instant/sorcery in your

@@ -47,9 +47,9 @@ func land(t *testing.T, name string) *cards.Card {
 	return mkCard(t, "Name:"+name+"\nTypes:Land\nOracle:x\n")
 }
 
-// TestDiscardRevealYouChooseFallsBackToFrontCardWhenHostCannotAsk is R-9's
+// TestDiscardRevealYouChooseFallsBackToFrontCardWhenHostCannotAsk is the
 // no-engine contract: a host whose Ask returns false must still resolve
-// deterministically — the old front-of-hand stand-in — rather than dropping
+// deterministically — the front-of-hand stand-in — rather than dropping
 // the answer and discarding nothing. The Note records why the richer path did
 // not run.
 func TestDiscardRevealYouChooseFallsBackToFrontCardWhenHostCannotAsk(t *testing.T) {

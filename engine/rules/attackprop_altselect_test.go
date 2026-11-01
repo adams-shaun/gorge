@@ -1,10 +1,10 @@
 // The attack/block prop payment windows must resolve the EXACT alternative a
-// tap answer selected. Round 1 widened the window to one option per priceable
-// ability but identified every option only by its Obj: a permanent with two
+// tap answer selected. The window offers one option per priceable
+// ability, and identifying an option only by its Obj fails: a permanent with two
 // free abilities producing DIFFERENT quantities (one {C}, one {C}{C}) had its
 // budget counted at the maximum (2), a {2} charge was offered, and selecting
 // the second option still activated the FIRST ability -- the payer came up
-// short and the declaration aborted. The window now stores the posed tap list
+// short and the declaration aborted. The window stores the posed tap list
 // and resolves the chosen option's Index, and each option's label names its
 // production, so the alternatives are distinguishable on the wire and the
 // handler activates the ability that was selected.

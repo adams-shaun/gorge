@@ -9,10 +9,9 @@ import (
 
 // CR 603.5 / 608.2d: a known-origin ChangeZone that carries Optional$ asks
 // its chooser (Chooser$, else the controller) before each move; a decline
-// drops that object only, and with no host "may" plays as "do" (R-9). The
-// hand, hidden-pick and search walkers already posed the confirmation; the
-// object path (Intimidation Campaign, Mistbreath Elder, Clash of Elements)
-// never read the marker.
+// drops that object only, and with no host "may" plays as "do". The
+// hand, hidden-pick, search and object walkers (Intimidation Campaign, Mistbreath
+// Elder, Clash of Elements) all pose the confirmation.
 
 func runCZOptional(t *testing.T, sc string) OracleResult {
 	t.Helper()
@@ -76,7 +75,7 @@ func TestChangeZoneOptionalKnownOriginNoHostMoves(t *testing.T) {
 		t.Fatalf("p1 life = %d, want 18 (Shock resolved)", fin.Players[1].Life)
 	}
 	if !czOptionalHas(fin.Players[0].Hand, "Intimidation Campaign") {
-		t.Fatalf("no answer: Campaign not in hand (R-9 plays may as do): %v", fin.Players[0].Hand)
+		t.Fatalf("no answer: Campaign not in hand (no host plays may as do): %v", fin.Players[0].Hand)
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestTitanOfLittjaraDrawXCost drives the ticket's canonical carrier end to
+// TestTitanOfLittjaraDrawXCost drives the canonical carrier end to
 // end through the real trigger window, with the shared creature type
 // CONFIGURED: Titan enters over a Grizzly Bears, its as-enters ChooseType is
 // answered "Bear", so `SVar:X:Count$Valid
@@ -56,8 +56,8 @@ func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 
 	// Paying: the window settles exactly one election's draw and then runs
 	// the Discard body. The very next non-priority ask must be that body's
-	// discard — a second pay ask here is a duplicate cost window (round 1's
-	// finding), a priority ask means the body never ran.
+	// discard — a second pay ask here is a duplicate cost window, a priority
+	// ask means the body never ran.
 	mark := len(e.L.Events)
 	submitChoices(t, e, payIdx)
 	discard := passUntilNonPriority(t, e, 40)

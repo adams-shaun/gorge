@@ -14,8 +14,8 @@ import (
 // it routes through Engine.emit: a doubled creation reports both minted ids
 // to EmitTokenCreate's sink, and the ETB watcher queues exactly one trigger
 // per minted token (the plan's mints are observed once, not once per
-// re-drive). Since the token-entry fix (agent-20261001T043732Z-8f099a06) a
-// token mint fires a ChangesZone trigger, so the plan now contributes one
+// re-drive). A
+// token mint fires a ChangesZone trigger, so the plan contributes one
 // watcher trigger per mint instead of none; the assertion counts the delta
 // over whatever the watcher's own earlier entry already queued.
 func TestTokenPlanMintIsObservedOnce(t *testing.T) {

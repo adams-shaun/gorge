@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The wave-4 D1/D7 class: XMage's addCard(Zone.BATTLEFIELD) places a setup
+// XMage's addCard(Zone.BATTLEFIELD) places a setup
 // permanent without "entering", so no enters-the-battlefield trigger fires
 // at the setup checkpoint. Two shapes escaped placeSetupCard's drop window:
 //

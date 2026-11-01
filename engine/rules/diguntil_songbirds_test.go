@@ -12,7 +12,7 @@ import (
 
 // The diguntil1 end-to-end pin on Songbirds' Blessing's REAL compiled corpus
 // card: enchanted creature attacks → the reveal-until trigger resolves → the
-// optional put/hand ask is posed → the answer (or the R-9 decline on a
+// optional put/hand ask is posed → the answer (or the decline on a
 // no-host is the effects-side leaf's business; here the answered branches)
 // moves the found Aura, the revealed rest go to the bottom, and the
 // library's tail order is asserted exactly. Songbirds' Blessing is in NO

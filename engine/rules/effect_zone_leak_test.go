@@ -1,5 +1,4 @@
-// effect_zone_leak_test.go pins the recurring-Effect matching scope's
-// LIFETIME, review round 2 of the trigmatch-zone look-back ticket.
+// effect_zone_leak_test.go pins the recurring-Effect matching scope's LIFETIME.
 //
 // checkEventDelayedTriggers armed the read-only matching overlay before each
 // registration's own matching but, before the fix, cleared it only there --

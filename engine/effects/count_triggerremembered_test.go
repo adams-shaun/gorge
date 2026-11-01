@@ -7,8 +7,7 @@ import (
 )
 
 // TestTriggerRememberedRefProperty pins the TriggerRemembered$<Property>
-// count-reference family (task triggerremembered1) and, specifically, its
-// capture-excluded referent mapping (task agent-20260918T195920Z-2fd3b568).
+// count-reference family and, specifically, its capture-excluded referent mapping.
 //
 // Forge's TriggerRemembered names the trigger's own RememberObjects$ capture
 // -- Forge's host remembered list, which never contains the event object the
@@ -124,7 +123,7 @@ func TestTriggerRememberedRefProperty(t *testing.T) {
 		t.Errorf("instance ctx TriggerRemembered$Amount = %d, want 2 (exclusion not idempotent)", got)
 	}
 
-	// The regression that the ticket is about: with the head unread, the
+	// With the head unread, the
 	// DynamicAmount form a TargetMax$ X rider consumes answers zero. Assert
 	// the whole expression the corpus writes, not just the raw head, so the
 	// path EvalCountOK -> evalRefProperty is exercised.

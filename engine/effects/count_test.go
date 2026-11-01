@@ -492,7 +492,7 @@ var _ = cards.Card{}
 // fail-direction fix on the PlayerCount wrapper: the two life extremes
 // (LowestLifeTotal/HighestLifeTotal) and the count/counted-quantity extremes
 // (HighestValid/LowestValid over any Count$ zone, plus the
-// HighestLifeLostThisTurn pair, and since fuzz-cov3 the per-player zone
+// HighestLifeLostThisTurn pair, and the per-player zone
 // sizes/tallies HighestCardsInHand et al.) are evaluated; ANY other property
 // -- e.g. HighestSpeed -- reports (0, false), so a gate over one fails per
 // its caller's documented direction instead of silently enforcing a fake
@@ -587,7 +587,7 @@ func TestNumResolvedReadsBareInlineCountBody(t *testing.T) {
 }
 
 // TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
-// head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
+// head: the head reads Ctx.ChosenNumber -- the
 // Effect-created replacement's SetChosenNumber$ binding rules' replCtx
 // threads in -- and its VERDICT is the bound flag. A bound context evaluates
 // (including a bound zero, torgal with no Dogs); an UNBOUND context stays

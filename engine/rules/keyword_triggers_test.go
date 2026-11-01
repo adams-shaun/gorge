@@ -26,7 +26,6 @@ import (
 // priority in newFixtureDeck) untouched, so e.Advance() returns immediately
 // without ever running putTriggersOnStack. e.priorityRound() is the same
 // refresh existing helpers (addMana, putCreature) use for this exact reason.
-// See the task report.
 
 func TestUndyingReturnsOnceWithACounter(t *testing.T) {
 	t.Parallel()

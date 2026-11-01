@@ -3,7 +3,7 @@ package rules
 // The compound `S:Mode$ CantAttack,CantBlock,CantBeActivated |
 // ValidCard$ Card.EnchantedBy | ValidSA$ Activated.!ManaAbility` line on
 // Realmbreaker's Grasp and Intercessor's Arrest. The parse-time split
-// (engine/cards/parse.go, commit f81f996e) gives each mode its own static but
+// (engine/cards/parse.go) gives each mode its own static but
 // shares ONE Params map, so the CantAttack half carries ValidSA$, which belongs
 // to the sibling CantBeActivated mode. CantAttackParamsReadableForRules now
 // admits ValidSA$ as INERT (Forge's StaticAbilityCantAttackBlock never reads
@@ -24,7 +24,7 @@ import (
 )
 
 // compoundCantAttackCarrier asserts the corpus card still prints the compound
-// split this ticket fixes: one CantAttack, one CantBlock and one
+// split: one CantAttack, one CantBlock and one
 // CantBeActivated static, with the CantAttack half carrying the sibling mode's
 // ValidSA$ value through the shared Params map.
 func compoundCantAttackCarrier(t *testing.T, c *cards.Card) {

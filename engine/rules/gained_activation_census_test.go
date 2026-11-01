@@ -10,7 +10,7 @@ import (
 
 // TestGainedActivationCountsOnTheRecipientsCensus pins the per-source
 // activation census (state.Object.ActivatedThisTurn) for a has-all-abilities-of
-// activation on the real corpus pair from fuzz batch4 line 5: Myr Welder
+// activation on the real corpus pair: Myr Welder
 // imprints a Knowledge Vault from the graveyard and so gains its
 // "{0}: Sacrifice CARDNAME ..." ability. The GainedAbilityPush mint never
 // folded onto the census AbilityPush keeps, so the bot's repeatability

@@ -10,9 +10,9 @@ import (
 )
 
 // TestSteamVentsPayLifeElectionNamesTheLife pins the wording of the shock
-// land's pay/decline election on Steam Vents' REAL compiled replacement body
-// (task fb-20260917T233137Z). The player report: the election's prompt read
-// "Pay the cost, or decline" without naming the cost, and it presented as the
+// land's pay/decline election on Steam Vents' REAL compiled replacement body.
+// The election's prompt must name the cost, not read
+// "Pay the cost, or decline", and it must not present as the
 // mana bubble. This test pins the engine half -- unlessCostLabel must render
 // UnlessCost$ PayLife<2> as "2 life", so the ask the seat receives is
 //

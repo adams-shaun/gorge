@@ -156,7 +156,7 @@ func spiritSistersCallEngine(t *testing.T, reg *cards.Registry) (*Engine, Config
 	return e, cfg, callID, target
 }
 
-// TestSpiritSistersCallGrantedReplacementExilesPermanent is the ticket's
+// TestSpiritSistersCallGrantedReplacementExilesPermanent is the
 // flagship regression: the permanent Spirit-Sister's Call returns gains the
 // named Replacements$ replacement, so when it would leave the battlefield it
 // is exiled instead -- it must NOT reach the graveyard, its real dies trigger

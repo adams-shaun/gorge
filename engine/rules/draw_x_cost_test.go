@@ -20,12 +20,12 @@ import (
 // Dyn names the source SVar, and resolved at payment by drawCostCount /
 // drawCostCountTrig (the twin of fixLifeXCost for PayLife<X>).
 //
-// These tests pin the three legs the ticket names:
+// These tests pin three legs:
 //
 //   - the fold (a resolvable SVar:X resolves to its count) and the
 //     fail-closed withhold (an absent/unresolvable body is not offered);
 //   - the end-to-end real-corpus trigger window on Titan of Littjara, the
-//     ticket's canonical carrier, with the shared creature type actually
+//     canonical carrier, with the shared creature type actually
 //     configured (the entry ChooseType answered) and the positive exact
 //     draw count asserted.
 //
@@ -46,7 +46,7 @@ func drawCostPart() CostPart { return CostPart{Dyn: "X", Spec: "You"} }
 // only e.pending leaves that frame armed with nothing pending — the next
 // answered KChoose is then hijacked by the stale frame (handleChoose's
 // mid-resolution arm runs before the e.choosing switch), which is exactly the
-// duplicate-pay-ask shape round 1 measured and this round's finding named.
+// duplicate-pay-ask shape.
 func cleanMoveByName(t *testing.T, e *Engine, name string, to state.Zone) (state.ObjID, *decision.Decision) {
 	t.Helper()
 	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {

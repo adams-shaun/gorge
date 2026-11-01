@@ -1,6 +1,6 @@
 package rules
 
-// Regressions for the engine gaps the cardfuzz coverage audit (fuzz-cov3)
+// Regressions for the engine gaps a corpus coverage audit
 // found behind cards that sat in the "supported" pool while a check they
 // carry could never pass, each pinned on real corpus cards:
 //

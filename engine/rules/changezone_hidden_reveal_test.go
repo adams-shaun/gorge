@@ -19,7 +19,7 @@ package rules
 //     card's identity in this chain -- a public reveal published it, or an
 //     earlier named ask this player answered offered it. Forge's NoLooking$
 //     protects a player who never looked, not one who already saw the cards
-//     (task fb-20260922T235033Z). The placement legs of the Cultivate family
+//     The placement legs of the Cultivate family
 //     are the named case; a genuinely unseen card stays blind.
 //   - ForgetChanged$ True drops each moved card from the remembered state
 //     (ctx and the source's event-backed list, Choose "forget-remembered").
@@ -346,7 +346,7 @@ func TestChangeZoneWishFindsSideboard(t *testing.T) {
 }
 
 // TestChangeZoneNoLookingLegsSeeRevealedCards is the NoLooking$ concern
-// refined (task fb-20260922T235033Z): NoLooking$ is Forge's "do not look
+// refined: NoLooking$ is Forge's "do not look
 // again", not a command to erase what the chooser already saw. Cultivate's
 // head publicly reveals its finds and offers them by name, so the same
 // resolution's NoLooking$ placement legs MUST carry the real basic-land
@@ -416,7 +416,7 @@ func TestChangeZoneForgetChangedDropsTheMovedCard(t *testing.T) {
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	// Leg 1 (battlefield, NoLooking$ + ForgetChanged$): the head Reveal$ed
-	// these finds, so the leg is named (task fb-20260922T235033Z); picking one
+	// these finds, so the leg is named; picking one
 	// then forgets it.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "search" {
@@ -537,8 +537,7 @@ func TestChangeZoneDifferentNamesRestrictsToOnePerName(t *testing.T) {
 	}
 	submitChoices(t, e, forest.Index, mountain.Index)
 	// Leg 1: the OPPONENT chooses which two go to the graveyard. The head
-	// Reveal$ed the finds, so the opponent's NoLooking$ leg is named too
-	// (task fb-20260922T235033Z).
+	// Reveal$ed the finds, so the opponent's NoLooking$ leg is named too.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Player != 1 {
 		t.Fatalf("leg1 pending = %+v, want the opponent's search ask", d)

@@ -180,7 +180,7 @@ func TestEffectDeliveredNumLoyaltyActChainVeilActivatedAbility(t *testing.T) {
 	}
 	before := len(e.L.Events)
 	// Resolve the real ability body without the {4}, {T} payment gates --
-	// the registration path is what this ticket changes.
+	// the registration path is what this pins.
 	e.resolveAbility(veilID, 0, nil, sa, veil.Faces[0].SVars)
 	for _, ev := range e.L.Events[before:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {

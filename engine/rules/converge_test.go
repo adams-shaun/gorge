@@ -1,6 +1,6 @@
 package rules
 
-// CR 107.4f-family converge (task converge1): "enters with a +1/+1 counter
+// CR 107.4f-family converge: "enters with a +1/+1 counter
 // on it for each color of mana spent to cast it" and its mid-spell siblings
 // (Radiant Flames' damage, Painful Truths' draw) read Count$Converge. Before
 // the fix that head fell off engine/effects/count.go's expression evaluator to the

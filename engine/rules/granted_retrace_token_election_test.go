@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Regressions for the cardfuzz batch6 livelocks, hang and panic (all real
-// corpus cards).
+// Regressions for fuzzer-found livelocks, a hang and a panic (all real corpus cards).
 
 // handLands counts the land cards in seat p's hand.
 func handLands(e *Engine, p state.PlayerID) int {
@@ -23,7 +22,7 @@ func handLands(e *Engine, p state.PlayerID) int {
 	return n
 }
 
-// TestGrantedRetraceChargesTheLandDiscard (cardfuzz batch6 line 1): Six
+// TestGrantedRetraceChargesTheLandDiscard: Six
 // grants retrace to the nonland permanent cards in its controller's
 // graveyard during their turn. The offer gate read the DERIVED keyword and
 // offered the graveyard cast, but beginCast's "retrace" cost fold read the
@@ -65,7 +64,7 @@ func TestGrantedRetraceChargesTheLandDiscard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestTokenElectionSuspendsTheResolvingAbility (cardfuzz batch6 line 4):
+// TestTokenElectionSuspendsTheResolvingAbility:
 // Mirrormind Crown's "the first time you would create one or more tokens
 // each turn, you may instead create copies of equipped creature" is an
 // election posed from inside the token event. It was posed with a bare ask,
@@ -128,12 +127,10 @@ func TestTokenElectionSuspendsTheResolvingAbility(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestOpeningEntryChoiceDoesNotOverwriteTheOpeningRound (cardfuzz batch6
-// line 8): beginning the game with Leyline of Transformation on the
+// TestOpeningEntryChoiceDoesNotOverwriteTheOpeningRound: beginning the game with Leyline of Transformation on the
 // battlefield poses its "as this enters, choose a creature type" through
-// Engine.Ask. The opening round then posed the NEXT "begin the game with"
-// ask on top of it and ask's overwrite guard panicked at intent 0. The round
-// now waits for the entry choice and steps on once it is answered.
+// Engine.Ask. The opening round must wait for the entry choice, not pose the NEXT
+// "begin the game with" ask on top of it (ask's overwrite guard panics).
 func TestOpeningEntryChoiceDoesNotOverwriteTheOpeningRound(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -192,7 +189,7 @@ func TestOpeningEntryChoiceDoesNotOverwriteTheOpeningRound(t *testing.T) {
 	t.Fatal("could not construct an opening hand with two Leylines of Transformation")
 }
 
-// TestCleanupDamageRemovalIsNotDamageDone (cardfuzz batch6 line 9): the
+// TestCleanupDamageRemovalIsNotDamageDone: the
 // cleanup step removes marked damage with a negative Damage event
 // (CR 514.2). Two Ghosts of the Innocent's DamageDone halving replacements
 // matched that removal: each cleanup posed a CR 616.1 order ask per damaged

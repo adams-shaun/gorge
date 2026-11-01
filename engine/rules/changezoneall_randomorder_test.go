@@ -77,9 +77,8 @@ func TestSunbirdsInvocationRestRandomOrderShufflesLibraryBottom(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestTriumphOfSaintKatherineRandomOrderOnTop pins the defect the
-// ticket-20260918T221252Z-064ef40a review found in mordorparams1's
-// RandomOrder$ branch: the branch returned BEFORE the shared post-placement
+// TestTriumphOfSaintKatherineRandomOrderOnTop pins this defect in the
+// RandomOrder$ branch: returning BEFORE the shared post-placement
 // tail, so `LibraryPosition$ 0` was ignored and a RandomOrder$ sweep always
 // landed at the BOTTOM. Triumph of Saint Katherine's real compiled
 // DBChangeLibrary is `... | Destination$ Library | LibraryPosition$ 0 |

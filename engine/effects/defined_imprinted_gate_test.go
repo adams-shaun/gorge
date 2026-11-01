@@ -6,8 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestDefinedImprintedKeepsTheExileGate pins the scoping the r2 review of
-// cli-20260923T060000Z-rv2b-damagesource demanded: the ungated raw imprint
+// TestDefinedImprintedKeepsTheExileGate pins the scoping: the ungated raw imprint
 // read (Forge's getImprintedCards shape, no CR 607.2a zone gate) belongs ONLY
 // to the damage-source and count consumers that need it (damage.go's
 // damageSourceSpecTargets, count.go's refTargets Imprinted case). The shared

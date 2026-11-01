@@ -17,14 +17,14 @@ import (
 // ask (the put_optional/attach_optional precedent): the answer is applied in
 // place, the decline changes nothing while the chained SubAbility$
 // still runs (the chain is owned by Resolve, never skipped by a decline), and
-// the no-host fallback takes the deterministic decline (R-9) with option 0 =
+// the no-host fallback takes the deterministic decline with option 0 =
 // "yes" so the bot clamp keeps bot games byte-identical to the silent
 // always-transform.
 //
 // These are the effects-package unit pins, against the REAL compiled corpus
 // SAs (a synthetic map[string]string fixture has shipped bugs here before):
 // the ask's shape, both answered re-entries, the no-ask gate, and the no-host
-// deterministic decline stand-in (R-9). The engine-side end-to-end pins live
+// deterministic decline stand-in. The engine-side end-to-end pins live
 // in rules/setstate_optional_test.go.
 
 // corpusSetStateSA returns the REAL compiled SetState sub-ability of a named
@@ -142,7 +142,7 @@ func TestSetStateOptionalNothingToChangeNeverAsks(t *testing.T) {
 	}
 }
 
-// TestSetStateOptionalNoAskHostDeclinesAndRunsTheChain pins the R-9 stand-in
+// TestSetStateOptionalNoAskHostDeclinesAndRunsTheChain pins the no-host stand-in
 // AND the decline-runs-the-chain semantics on High Marshal Arguel's real
 // DBTransform (Defined$ Remembered, Mode$ Transform, Optional$ True,
 // SubAbility$ DBCleanup): a host that cannot ask takes the deterministic

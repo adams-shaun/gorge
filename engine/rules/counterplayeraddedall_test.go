@@ -1,7 +1,7 @@
 // trig:CounterPlayerAddedAll — "Whenever you put one or more counters on
 // a(n) <spec>" (Generous Patron, Rikku Resourceful Guardian, Kros Defense
-// Contractor, All Will Be One). Pinned end to end on the two corpus cards
-// the ticket names: the Patron's support-then-draw chain (one draw per
+// Contractor, All Will Be One). Pinned end to end on the two corpus cards:
+// the Patron's support-then-draw chain (one draw per
 // counter-PLACING EVENT, never per counter) and Rikku's CantBlockBy window.
 
 package rules

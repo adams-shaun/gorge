@@ -339,9 +339,8 @@ func TestCountersAddedThisTurnLedgerReplays(t *testing.T) {
 // TestCountersAddedThisTurnMalformedStaysUnresolvable pins the fail-closed
 // read: a malformed (two-part) body stays unresolvable -- CheckSVar
 // distinguishes that from an evaluated zero. This is a CONVENTION pin, not a
-// fix-sensitive test: an unknown head is unresolvable with or without this
-// ticket's dispatch arm (the sibling CountersRemovedThisTurn behaves
-// identically), so it does not belong in the failure proof. The
+// fix-sensitive test: an unknown head is unresolvable either way (the sibling
+// CountersRemovedThisTurn behaves identically), so it does not belong in the failure proof. The
 // fix-sensitive proof for the dispatch arm is
 // TestCountersAddedThisTurn/TestLastingTarfire (plus the Brynhildr
 // EffectSource and replay pins above), and for the emit-gate marker

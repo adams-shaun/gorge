@@ -424,7 +424,7 @@ func TestNornsAnnexPhyrexianColourVersusLifeChoice(t *testing.T) {
 
 // blockSacFixture charges every blocker one sacrificed land; blockPhyrexian
 // and blockReturn exercise the sibling components, none of which has a corpus
-// combat carrier (the block-side grammar is the target of this ticket).
+// combat carrier.
 const blockSacFixture = "Name:Block Sac Tax\nTypes:Enchantment\n" +
 	"S:Mode$ CantBlockUnless | ValidCard$ Creature | Cost$ Sac<1/Land> | Description$x\n" +
 	"Oracle:x\n"

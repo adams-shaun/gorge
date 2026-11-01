@@ -148,7 +148,7 @@ func TestActivationLimitLiteralStillEnforcedExactly(t *testing.T) {
 // IS the inline Count$ expression, so only the direct-raw arm can resolve it.
 // Deleting the arm makes resolveActivationLimit fall through to a failed SVar
 // lookup, report ok=false, and silently leave the limit unenforced -- which is
-// exactly the divergence this task exists to remove.
+// exactly the divergence to avoid.
 func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -201,8 +201,7 @@ func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 }
 
 // TestManaAbilityActivationLimitOfferedOnceThenWithheld pins the mana
-// activation half of the ActivationLimit$ gate (the vivi-ornitier-cedh deck
-// import, 2026-09-14): availableManaAbilities is a mana ability's ONLY
+// activation half of the ActivationLimit$ gate: availableManaAbilities is a mana ability's ONLY
 // eligibility walk -- offer, payment window and chosen activation all go
 // through it -- and it used to skip the parameter entirely, so Vivi
 // Ornitier's "only once each turn" mana ability stayed offerable without

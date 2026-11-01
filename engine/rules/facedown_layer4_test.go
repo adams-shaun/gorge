@@ -53,7 +53,7 @@ func facedownLayer4Engine(t *testing.T, reg *cards.Registry, seat0, seat1 []*car
 	return e, cfg
 }
 
-// TestMaskwoodNexusGrantsEveryCreatureTypeToAFaceDownCreature is the ticket's
+// TestMaskwoodNexusGrantsEveryCreatureTypeToAFaceDownCreature is the
 // carrier end to end. Seat 0 controls a Maskwood Nexus and (after Reality
 // Shift exiles seat 0's own creature) a face-down manifested Forest. The
 // manifested 2/2 must derive every creature type through the layer-4 walk --

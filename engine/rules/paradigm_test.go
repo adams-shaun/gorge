@@ -109,7 +109,7 @@ func paradigmCopyOffer(t *testing.T, e *Engine, id state.ObjID) int {
 // to exile, so the lone physical card stands in for the rules text's "cast a
 // copy ... while the card remains there". After that cast the offer is gone
 // for the rest of the phase: an offer that survived its own resolution was an
-// unbounded free loop (cardfuzz fuzz-1003: Restoration Seminar recurring an
+// unbounded free loop (the fuzzer found Restoration Seminar recurring an
 // Aura with nothing to enchant, Germination Practicum, Improvisation Capstone
 // and Echocasting Symposium each livelocked or hit the intent cap).
 func TestParadigmOffersFreeCopyFromExile(t *testing.T) {

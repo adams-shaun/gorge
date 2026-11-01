@@ -8,10 +8,7 @@ package rules
 // The sweep itself is engine/rules/layers.go's effectMoveSweep, wired from
 // Engine.emit for every MoveZone and PutOnStack; effEffect (engine/effects/misc.go)
 // carries the param onto the registered ContinuousEffect. The census label
-// param:api:Effect.ForgetOnMoved had already been deleted from
-// knownUnsupportedParams (commit 06769b73, with the Rakdos deck import's
-// sweep) when this task started, so these tests are the per-card proof the
-// removal stands on: the two genuinely different move triggers the census
+// param:api:Effect.ForgetOnMoved is read by the sweep, so these tests are the per-card proof: the two genuinely different move triggers the census
 // cards carry, on the real corpus cards.
 //
 //   - Incinerate forgets on a BATTLEFIELD departure (the CantRegenerate

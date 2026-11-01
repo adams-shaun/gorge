@@ -3,8 +3,7 @@
 // requirement (CR 702.24a / CR 107.4h), and a dynamically granted cumulative
 // upkeep (a layer-6 AddKeyword$ or an A:AB$ Pump's KW$ grant) must run through
 // the same engine/rules/cumulative.go machinery a printed K:Cumulative upkeep line
-// does. Kept in its own file so the ticket cannot conflict on a shared test
-// file.
+// does.
 package rules
 
 import (
@@ -19,7 +18,7 @@ import (
 
 // coverOfWinterEngine seeds seat 0's library with the REAL corpus Cover of
 // Winter (K:Cumulative upkeep:S) and returns the engine and its id once it is
-// on the battlefield. The brief names no specific card; this is the corpus's
+// on the battlefield. This is the corpus's
 // snow cumulative-upkeep carrier.
 func coverOfWinterEngine(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()

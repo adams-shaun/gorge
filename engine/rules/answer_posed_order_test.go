@@ -30,8 +30,7 @@ import (
 //     pair (this path reuses the same replChoice, so inResolution rides it).
 //
 // Answering the inner ask must resume the suspended resolution exactly once,
-// not leave the spell on the stack to re-resolve on every priority pass (the
-// round-7 defect the entry-stage fix closed for replChoiceEntryOrder only).
+// not leave the spell on the stack to re-resolve on every priority pass.
 // answerPosedBoard seats Scales + Evolution (the non-commuting AddCounter
 // pair) and a spare creature to sacrifice, plus the two custom move
 // rewriters: one whose body places a +1/+1 counter (the inner AddCounter the

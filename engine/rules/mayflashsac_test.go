@@ -452,7 +452,7 @@ func TestNecromancySorceryCastIsNotSacrificed(t *testing.T) {
 }
 
 // TestMayFlashSacLeaveAndReturnIsNotSacrificed is the CR 400.7 incarnation
-// pin (round-2 MAJOR): the delayed sacrifice is registered against the EXACT
+// pin: the delayed sacrifice is registered against the EXACT
 // permanent that entered. One that leaves the battlefield and returns before
 // that cleanup is a new incarnation; the stale promise must expire without
 // acting on the returned permanent -- which stays on the battlefield.
@@ -511,7 +511,7 @@ func TestMayFlashSacLeaveAndReturnIsNotSacrificed(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// --- CR 514.3b repeat (review round 3 MAJOR) --------------------------------
+// --- CR 514.3b repeat ---------------------------------------------------------
 //
 // The cleanup step is not "run once and leave". CR 514.3b: when a triggered
 // ability is put on the stack during cleanup, the cleanup procedure REPEATS
@@ -842,7 +842,7 @@ func TestCleanupEmptyStackPassRepeatsCleanup(t *testing.T) {
 	}
 }
 
-// --- CR 707.10: a COPY is never cast (review round 4 MAJOR) -----------------
+// --- CR 707.10: a COPY is never cast ------------------------------------------
 
 // countMayFlashSacRegisters counts the keyword's cleanup registrations in the
 // log, by object. One off-sorcery cast must produce exactly one, naming the

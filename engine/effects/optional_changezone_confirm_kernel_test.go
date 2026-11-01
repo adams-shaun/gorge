@@ -1,7 +1,7 @@
 package effects
 
-// The no-host (R-9) leaves of the deleted Optional$ confirm-before-pick
-// tests: with no decision channel the confirmation gate and the Min-0 pick
+// The no-host leaves of the Optional$ confirm-before-pick
+// behaviour: with no decision channel the confirmation gate and the Min-0 pick
 // are both built and answered deterministically in the player's place --
 // "may" played as "do" -- so the first eligible card moves. (The answered
 // leaves are re-hosted on a real engine in

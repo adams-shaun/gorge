@@ -131,7 +131,7 @@ func TestChangeZoneConditionalDestinationNoHostUsesAlternate(t *testing.T) {
 	c.SVars = map[string]string{"X": "Number$ 5"}
 	Resolve(h, c, sa(t, "DB$ ChangeZone | Defined$ Remembered | Destination$ Hand | DestinationAlternative$ Battlefield | DestAltSVar$ X | DestAltSVarCompare$ GE5"))
 	if got := h.g.Obj(id).Zone; got != state.ZBattlefield {
-		t.Fatalf("R-9 fallback zone=%s, want battlefield", got)
+		t.Fatalf("no-host fallback zone=%s, want battlefield", got)
 	}
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "no destination answer") {

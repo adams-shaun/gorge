@@ -108,9 +108,8 @@ var costNonFilterSpecs = map[string]string{
 	"NICKNAME": "self-reference by object id (normalised to CARDNAME by sacrificeMatchSpec)",
 	// LEFT: genuinely relational type slots the build does not model. Both are
 	// recorded here so a reviewer can see them; the census's job is to make
-	// them visible, not to silently treat them as filters. (Filed per the
-	// dispatch's new-ticket process.)
-	// SameColor is no longer LEFT: Reveal<2/SameColor> (Illuminated Folio,
+	// them visible, not to silently treat them as filters.
+	// SameColor is handled: Reveal<2/SameColor> (Illuminated Folio,
 	// "reveal two cards from your hand that share a color") is read as a
 	// RELATIONAL part by isSameColorRevealSpec at the offer gate
 	// (nonManaCastable) and the payment (revealCostAsk). The ask carries
@@ -125,7 +124,7 @@ var costNonFilterSpecs = map[string]string{
 	// whole-hand reveal it is NOT payable empty -- the token still demands
 	// part.N (written 1) cards. Read by isWholeZoneExileSpec at the triggered
 	// offer gate, the triggered settle walk, the cast/activation gate and
-	// payment, and (task exil1) the unless-pay gate and continuation
+	// payment, and the unless-pay gate and continuation
 	// (Grip of Amnesia's ExileFromGrave<1/All>, an UnlessCost$ the census's
 	// own Cost$ walk does not visit). The census walks Cost$ params only, so
 	// Herigast is its only measured carrier.
@@ -410,7 +409,7 @@ func TestCostTokenCensusAlternativeCostStatic(t *testing.T) {
 				// mana and the real cost never happens. Enforced for the census
 				// heads (costHeadRe); any OTHER unparsed head is logged below
 				// and reported as an issue, since it is a different class from
-				// the type-slot bug this ticket fixes (GainLife<N/Player...>).
+				// the type-slot bug (GainLife<N/Player...>).
 				parsed := ParseCost(cost)
 				for _, u := range parsed.Unknown {
 					if costHeadRe[u] {

@@ -371,7 +371,7 @@ func TestLastMulliganThenOnlyKeepOffered(t *testing.T) {
 // driven: a round that mixed a mulligan (seat 0, once) and a keep (seat 1)
 // replayed from its own recorded (Config, Log) -- the same value replay is
 // handed -- reaches the same chain head as the live run. This is the
-// R-8.4's determinism invariant: Config.Mulligans must travel with the
+// determinism invariant: Config.Mulligans must travel with the
 // Config replay reads.
 func TestKeptPregameRoundReplaysExactly(t *testing.T) {
 	t.Parallel()
@@ -487,9 +487,9 @@ func TestKeepMulliganPromptHasNoEngineSpeak(t *testing.T) {
 	}
 }
 
-// TestPregameSkippedWhenMulligansZero pins R-8.4's inert default: a Config
-// that never sets Mulligans (the zero value) skips the round entirely and
-// behaves exactly as before -- the engine begins the first turn immediately.
+// TestPregameSkippedWhenMulligansZero pins the inert default: a Config
+// that never sets Mulligans (the zero value) skips the round entirely
+// -- the engine begins the first turn immediately.
 func TestPregameSkippedWhenMulligansZero(t *testing.T) {
 	t.Parallel()
 	cfg := twoSeatConfig(t, 40, 0)

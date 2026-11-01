@@ -1,8 +1,7 @@
 package rules
 
 // A card a may-play permission covers in the graveyard or exile gets the same
-// one-click (announce) cast from an empty pool as a hand card (ticket
-// fb-20261006T100041Z-ec09a3af): paymentActionsForPriority admits the untyped
+// one-click (announce) cast from an empty pool as a hand card: paymentActionsForPriority admits the untyped
 // "mayplay" option with Origin "graveyard"/"exile", the planner prices it as
 // the offer walk and beginCast do, and the announced cast begins as Mode
 // "mayplay". A typed MayPlayText$ permission (Muldrotha) stays withheld.

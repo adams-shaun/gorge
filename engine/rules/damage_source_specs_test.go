@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The DamageSource$ spec families the rv2b-damagesource ticket closes:
+// The DamageSource$ spec families:
 // specs newDamageRider's resolver could not model kept the RESOLVING source
 // instead of redirecting (CR 609.7). Real corpus cards where the corpus
 // reaches the shape (Halana's Spawner> chain, Crush Underfoot's ChosenCard,

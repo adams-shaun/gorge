@@ -1,6 +1,6 @@
 package rules
 
-// The corpus pin 91402ac51 adds Mandatory$ True to the ChooseCard lines of
+// The corpus adds Mandatory$ True to the ChooseCard lines of
 // cards whose Oracle says "choose" (Card-Forge/forge#12481). Fireglass
 // Mentor's real second-main trigger must therefore pose its pick with Min 1:
 // no empty or decline answer is legal.

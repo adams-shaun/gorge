@@ -1,6 +1,6 @@
 package rules
 
-// trig:Forage / trig:ManifestDread / trig:CollectEvidence (cli-20261006T024353Z-ce4a0d59):
+// trig:Forage / trig:ManifestDread / trig:CollectEvidence:
 // each keyword action emits a marker carrying the acting player, and the
 // matcher reads ValidPlayer$ against it.
 

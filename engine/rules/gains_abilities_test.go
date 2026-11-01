@@ -279,7 +279,7 @@ func gainedAbilitiesOn(e *Engine, obj state.ObjID) []decision.Option {
 
 // gainsAbilitiesOnlySrc is the REAL corpus carrier Territory Forge, whose
 // static names GainsAbilitiesOf$ and NO GainsTriggerAbsOf$ -- the
-// Mairsil-the-Pretender class shape the round-2 review broke (a
+// Mairsil-the-Pretender class shape (a
 // GainsAbilitiesOf-only carrier must never fire the foreign card's phase
 // triggers, because Forge's parameter grants activated abilities only).
 func gainsForgeSrc(t *testing.T) *cards.Card {

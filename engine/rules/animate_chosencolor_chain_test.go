@@ -18,8 +18,8 @@ import (
 //
 // The unit pin (effects.TestAnimateChosenColorGrantsTheChosenColour) pre-sets
 // o.ChosenColor; this test is the one that proves the colour the animation
-// grants comes from a real ChooseColor answer recorded via the Choose event,
-// which is the chain fixed in commit 73c9cc2e5 (parseAnimateGrant's
+// grants comes from a real ChooseColor answer recorded via the Choose event
+// (parseAnimateGrant's
 // ChosenColor guard). ChosenColor is NOT pre-set here.
 func TestAnimateChosenColorResolvesTheRealChooseColorAnswer(t *testing.T) {
 	t.Parallel()

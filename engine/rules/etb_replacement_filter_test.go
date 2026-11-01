@@ -2,9 +2,9 @@
 // replacement's real ValidCard$ spec, and the trailing ZONE field (4th) is
 // the source's ActiveZones$ — the follow-up pins the named carriers
 // on top of the zone file's Dearly Departed / Bramblewood Paragon pins
-// (engine/rules/etbreplacement_zone_test.go). Before the expansion read the fields
-// (commit dcfa4d4a) every expanded repl carried the Card.Self placeholder,
-// so a filter carrier like Venser, Visionary Traveler admitted ONLY its own
+// (engine/rules/etbreplacement_zone_test.go). If the expansion did not read the fields,
+// every expanded repl would carry the Card.Self placeholder,
+// so a filter carrier like Venser, Visionary Traveler would admit ONLY its own
 // entry and Metallic Mimic pumped itself instead of later creatures of the
 // chosen type.
 //
@@ -27,7 +27,7 @@ import (
 //     Creature.!token+YouCtrl+!wasCastFromYourHand),
 //   - a raw-move creature he controls takes 2 P1P1 (never cast),
 //   - a creature CAST from his hand takes nothing (the !wasCastFromYourHand
-//     provenance, task castprov3, evaluated through the Moved matcher),
+//     provenance, evaluated through the Moved matcher),
 //   - an opponent's creature takes nothing (YouCtrl).
 func TestVenserVisionaryTravelerFilterGate(t *testing.T) {
 	t.Parallel()

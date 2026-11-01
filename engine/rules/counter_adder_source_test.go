@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The source-scoped half of the counter-placement replacement class
-// (task addcounter2): ValidSource$ names WHO is putting the counters, a role
+// The source-scoped half of the counter-placement replacement class:
+// ValidSource$ names WHO is putting the counters, a role
 // the CounterChange event does not carry, so the matcher reads it from the
 // engine's in-flight adder scratch (counterAdder, published at cost/turn-based
 // sites) or from the resolving ability's controller. Vorinclex, Monstrous

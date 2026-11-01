@@ -1,4 +1,4 @@
-// The Card.wasCastFromHandByYou trigger-side split (task castprov1), pinned
+// The Card.wasCastFromHandByYou trigger-side split, pinned
 // end to end on real corpus carriers in both directions:
 //
 //   - Banish into Fable's `T:Mode$ SpellCast | ValidCard$

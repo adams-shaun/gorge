@@ -2,8 +2,8 @@ package cards
 
 import "testing"
 
-// TestManaProductionSeesReflectedAbilities is the collector half of the
-// api:ManaReflected ticket: a reflected-mana ability (AB$ ManaReflected) is a
+// TestManaProductionSeesReflectedAbilities is the collector half of
+// api:ManaReflected: a reflected-mana ability (AB$ ManaReflected) is a
 // mana ability, so the per-face ManaProduction summary must account for it.
 // Its colours are computed at resolution, so the honest summary is the
 // conditional "Any" shape (mirroring a "Produced$ Any" source) rather than

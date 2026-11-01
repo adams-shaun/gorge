@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Issue agent-20260918T234402Z-b031583b: `Defined$ Player.<state-qualifier>`
-// at resolution time resolved to NOBODY. A compound state-qualifier spelling
+// `Defined$ Player.<state-qualifier>` at resolution time must not resolve to
+// nobody. A compound state-qualifier spelling
 // such as Player.controlsCreature.powerGE4_GE1 or Player.lifeEQ13 fell through
 // engine/effects/context.go's definedSpec catch-all to the chosen-targets fallback
 // (nil for these effects), so "each player who controls a creature with power

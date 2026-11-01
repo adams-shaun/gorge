@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Animate Dead / Dance of the Dead end-to-end pins (the
-// api:Animate.RemoveKeywords ticket). The graveyard-enchant Aura family casts
+// The Animate Dead / Dance of the Dead end-to-end pins (api:Animate.RemoveKeywords).
+// The graveyard-enchant Aura family casts
 // at a creature card in a graveyard (K:Enchant:Creature.inZoneGraveyard), its
 // ETB trigger reanimates the enchanted card, and the reanimate chain's
 // `DB$ Animate | RemoveKeywords$ ... | Keywords$ ...` swaps the stale graveyard

@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Round-2 regressions for the UntilYourNextTurn / UntilTheEndOfYourNextTurn
+// Regressions for the UntilYourNextTurn / UntilTheEndOfYourNextTurn
 // next-turn boundary scheduler, all on REAL corpus cards:
 //
 //   - a pending extra turn an R:Event$ BeginTurn | ExtraTurn$ True | Skip$

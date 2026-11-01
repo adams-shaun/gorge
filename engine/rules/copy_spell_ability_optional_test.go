@@ -27,7 +27,7 @@ import (
 // graveyard-origin cast) so a vacuous setup fails loudly rather than passing.
 
 // sevinneOptionalCopyClause reports whether the compiled corpus card carries
-// the Optional$ True CopySpellAbility this task reads. It is the precondition
+// the Optional$ True CopySpellAbility. It is the precondition
 // that separates the real carrier from a synthetic look-alike.
 func sevinneOptionalCopyClause(t *testing.T, sf *cards.Card) bool {
 	t.Helper()

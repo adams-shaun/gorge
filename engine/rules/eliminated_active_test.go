@@ -14,8 +14,8 @@ import (
 // receives priority, or the top object on the stack resolves, or the phase or
 // step ends, whichever is appropriate."
 //
-// This task writes tests only. It pins the behaviors that make 800.4j true in
-// gorge, and it exists so that a future edit which ends an eliminated active
+// This file pins the behaviors that make 800.4j true in
+// gorge, so that a future edit which ends an eliminated active
 // player's turn early (the parked-but-discarded endTurnForEliminatedActivePlayer
 // approach, or any re-derivation of it) is caught by a named test rather than
 // silently degrading real magic: the turn MUST continue, the departed seat MUST
@@ -198,8 +198,7 @@ func TestEliminatedActivePlayersTurnContinuesToCleanup(t *testing.T) {
 //
 // (A separate defect — advanceStep emitting a bare events.Priority naming the
 // still-nominal active seat on each step transition of the continuing turn —
-// is reported loudly in the dispatch report's cover note and NOT fixed here;
-// this task adds no production code. That bare event carries no DecisionAsk
+// is left as it is. That bare event carries no DecisionAsk
 // behind it: grantPriority re-points the actual grant to NextAlive, so the
 // departed seat is never asked to act. This test pins the decision-level
 // guarantee — the thing a client asking "do I need a live response from seat

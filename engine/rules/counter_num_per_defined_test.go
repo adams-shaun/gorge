@@ -20,7 +20,7 @@ import (
 // Sovereign Okinec Ahau remains unpinned: it needs `Count$CardBasePower`
 // (a derived base characteristic after layer-7b SetPower statics) AND its
 // `Defined$ Valid Creature.YouCtrl+powerGTbasePower` spec cannot resolve the
-// non-literal `basePower` predicate RHS today (separate filter ticket), so
+// non-literal `basePower` predicate RHS, so
 // its Defined set is empty regardless — not silently papered over here.
 
 func TestCanopyGargantuanPutsToughnessCountersOnEachOtherCreature(t *testing.T) {

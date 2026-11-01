@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The shared-stack sweep guards (task sharedstack1). state.Game.Zone returns
+// The shared-stack sweep guards. state.Game.Zone returns
 // g.Stack for EVERY player (engine/state/game.go Zone), so any effect that loops
 // AliveFrom(0) and calls g.Zone(z, p) over a zone list containing ZStack
 // visits the same stack objects once per alive seat. The count fix

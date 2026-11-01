@@ -210,8 +210,8 @@ func TestIronMastiffUsesOnlyItsHighestRoll(t *testing.T) {
 	}
 	// The corpus's NbAttackedPlayers SVar is populated by its attack trigger;
 	// supply the real two-player-attacked result here while retaining the real
-	// RollDice SA and its result ranges. (The Count evaluator does not yet
-	// parse Forge's bare PlayerCountOpponents$... body; see this task's report.)
+	// RollDice SA and its result ranges. (The Count evaluator does not parse
+	// Forge's bare PlayerCountOpponents$... body.)
 	g := state.NewGame([]string{"a", "b", "c"})
 	h := &scriptedRollHost{seq: []int{19, 0}} // dice 20, 1
 	h.g = g

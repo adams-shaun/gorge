@@ -8,11 +8,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Optional$ True CopySpellAbility election's no-host stand-in (R-9): the
+// The Optional$ True CopySpellAbility election's no-host stand-in: the
 // double has no decision channel, so the deterministic pre-ask behaviour --
 // THE COPY IS MADE -- applies, exactly as effCopySpellAbility's doc comment
-// records. findings-r2 found the round-1 code ignoring Ask's outcome and
-// silently declining instead; this test pins the documented contract.
+// records. Ignoring Ask's outcome and silently declining would be wrong; this
+// test pins the documented contract.
 //
 // The same no-host ask on the unless PAY gate resolves to a deterministic
 // DECLINE (poseUnlessAsk), so the Optional$+UnlessCost$ carriers keep their
@@ -30,7 +30,7 @@ func TestCopySpellAbilityOptionalNoHostMakesTheCopy(t *testing.T) {
 		t.Fatal("no may-copy election was even attempted: the Optional$ read did not run")
 	}
 	if got := copyEvents(h); got != 1 {
-		t.Fatalf("%d StackCopy events on a no-host election, want 1 (the R-9 stand-in makes the copy)", got)
+		t.Fatalf("%d StackCopy events on a no-host election, want 1 (the no-host stand-in makes the copy)", got)
 	}
 	copies := 0
 	for _, ob := range h.g.Objs {

@@ -25,8 +25,8 @@ var altCastModeLiteralResidue = []string{
 
 // TestAltCastModeLiteralsLiveInTheDescriptor freezes the string literals
 // naming an alt-cast mode outside the descriptor file, so the family cannot
-// grow back a per-site spelling (the Impending ticket added its word to four
-// tables and cloned bestow's offer block twice before the descriptor).
+// grow back a per-site spelling (one mechanism once added its word to four
+// tables and cloned bestow's offer block twice).
 func TestAltCastModeLiteralsLiveInTheDescriptor(t *testing.T) {
 	words := map[string]bool{}
 	for i := range altCastModes {

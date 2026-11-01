@@ -11,10 +11,10 @@ import (
 )
 
 // realTgtChooseSA loads a REAL compiled corpus card and returns the first
-// Discard SA on it whose Mode$ is TgtChoose. The brief forbids hand-written
-// map[string]string fixtures because one silently passed while the real
-// Wrath of God failed on an unread parameter; these tests therefore pin the
-// behaviour on an SA the corpus actually compiles, and name the card.
+// Discard SA on it whose Mode$ is TgtChoose. Hand-written map[string]string
+// fixtures are out because one silently passed while the real Wrath of God
+// failed on an unread parameter; these tests pin the behaviour on an SA the
+// corpus actually compiles, and name the card.
 func realTgtChooseSA(t *testing.T, cardName string) *cards.SA {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -100,7 +100,7 @@ func countLifeLoss(h *fakeHost, p state.PlayerID) int {
 	return n
 }
 
-// TestDiscardTgtChooseFallsBackToFrontEligibleWhenHostCannotAsk is R-9's
+// TestDiscardTgtChooseFallsBackToFrontEligibleWhenHostCannotAsk is the
 // no-engine contract for the TgtChoose shape: a host whose Ask returns false
 // must still resolve deterministically — take the FRONT OF THE FILTERED hand
 // (the eligible cards), not an arbitrary card — and record the Note that

@@ -26,8 +26,7 @@ func saWithSubs(t *testing.T, line string, svars ...string) *cards.SA {
 	return c.Faces[0].Abilities[0]
 }
 
-// The bare private look's pacing gate (lookack, task
-// fb-20260917T232325Z-35cfca4b): effReveal's two bare arms — NoReveal$ True
+// The bare private look's pacing gate: effReveal's two bare arms — NoReveal$ True
 // (Mishra's Bauble) and the mandatory Look$ True arm (Gitaxian Probe) — used
 // to land their Secret Note with NO decision attached, so a client's
 // auto-passing priority streamed the line past before the player could read
@@ -39,9 +38,9 @@ func saWithSubs(t *testing.T, line string, svars ...string) *cards.SA {
 // the note lands below the modal. The ask gates only the pacing — there is
 // no decline.
 
-// TestBareNoRevealLookAckNoHostEmitsImmediately pins the R-9 fallback: a
-// host that cannot ask keeps the pre-gate behaviour — the look emitted
-// immediately, no decision, deterministically.
+// TestBareNoRevealLookAckNoHostEmitsImmediately pins the no-host fallback: a
+// host that cannot ask emits the look emitted
+// immediately, with no decision, deterministically.
 func TestBareNoRevealLookAckNoHostEmitsImmediately(t *testing.T) {
 	h, ids := revealBoard(t)
 	ctx := &Ctx{Controller: 0, Source: ids[2]}

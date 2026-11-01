@@ -13,8 +13,7 @@ import (
 // would) and asserts the target's Power/Toughness -- read through the layer
 // system, not any internal field -- actually changed. This is what turns
 // "the layer system exists and is unit-tested" into "a card that calls Pump
-// really works," which is the whole reason this task exists: before this
-// wiring, effPump only emitted a Note and the target's stats never moved.
+// really works."
 func TestPumpSpellChangesPowerAndToughnessThroughTheLayerSystem(t *testing.T) {
 	t.Parallel()
 	growth := card(t, "Name:Giant Growth\nManaCost:G\nTypes:Instant\n"+

@@ -10,8 +10,7 @@ import (
 // is not overwritten: ChooseType on an object that already carries a
 // ChosenType emits nothing (a valid type answer is never empty, so the
 // non-empty field IS the answered marker and the entry/cast-time ask already
-// recorded it). ChooseNumber is deliberately NOT in this test any more (task
-// cli-20260923T060000Z-choose-number): a number already on the object is an
+// recorded it). ChooseNumber is deliberately not in this test: a number already on the object is an
 // EARLIER answer, not this ask's own, so a fresh resolution-time ask re-asks
 // -- see engine/effects/choose_number_ask_test.go for that rule, including the
 // entry-body exemption.

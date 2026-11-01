@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This is the Curator of Destinies ETB pin (ticket CV-3). Curator's real
+// This is the Curator of Destinies ETB pin. Curator's real
 // script splits the top five into a pile that leaves through ChangeZone
 // (ChosenPile$ DBHand) and a pile that leaves through ChangeZoneAll
 // (UnchosenPile$ DBGraveyard, `ChangeType$ Card.IsRemembered | Origin$
@@ -146,11 +146,11 @@ func TestCuratorOfDestiniesETBMovesPilesWithoutShuffleOrNote(t *testing.T) {
 }
 
 // TestTwoPilesSplitExcludesTriggerCapture pins the rememberedExcludingCapture
-// read (ticket CV-3). A real ETB trigger seeds Ctx.Captured and Ctx.Remembered
+// read. A real ETB trigger seeds Ctx.Captured and Ctx.Remembered
 // with the event object, then RememberPeeked$ appends the peeked cards, so the
-// raw Remembered list holds the entering source FIRST. Before this read the
-// split offered the source as a pile card, and the R-9 default (and the oracle
-// generator) picked it. The split must offer only the peeked cards.
+// raw Remembered list holds the entering source FIRST. Without this read the
+// split offers the source as a pile card, and the no-host default (and the oracle
+// generator) picks it. The split must offer only the peeked cards.
 func TestTwoPilesSplitExcludesTriggerCapture(t *testing.T) {
 	t.Parallel()
 	h, ids := twopilesBoard(t)

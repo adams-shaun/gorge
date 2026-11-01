@@ -88,7 +88,7 @@ func TestTwoPilesEmptyCardSetIsSilent(t *testing.T) {
 	}
 }
 
-// TestTwoPilesNoHostStandIn pins the R-9 stand-in: with a host that cannot
+// TestTwoPilesNoHostStandIn pins the no-host stand-in: with a host that cannot
 // ask, pile A is the FIRST card of the set, the chooser takes pile A, no
 // Note records it, and nothing wedges.
 func TestTwoPilesNoHostStandIn(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 )
 
 // caseSolvedReadCensus is the measured population of every corpus "Solved"
-// read, by the reader that now models it (cli-20261006T024354Z-e5dc4abb):
+// read, by the reader that models it:
 //
 //   - grant: `AlterAttribute | Attributes$ Solved`, the "To solve --"
 //     body (effects.effAlterAttribute -> events.AlterAttribute -> Object.Solved);

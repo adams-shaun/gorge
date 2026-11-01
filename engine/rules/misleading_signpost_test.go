@@ -11,7 +11,7 @@ import (
 )
 
 // TestMisleadingSignpostRetargetsAttackAfterAnsweredChoice is the end-to-end
-// corpus regression for api:ChangeCombatants (task changecombat1): Misleading
+// corpus regression for api:ChangeCombatants: Misleading
 // Signpost's real TrigChangeAttacker SA — "you may reselect which player ...
 // target attacking creature is attacking" — must ask which DEFENDER the
 // attacker is re-pointed at, and the answered choice must re-point

@@ -8,11 +8,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// agent-20261009T174731Z-42d5e0f4: The Beamtown Bullies' real corpus
+// The Beamtown Bullies' real corpus
 // activation targets "target opponent whose turn it is"
-// (ValidTgts$ Player.Opponent+Active). Before the dotless `+` fix the
-// matcher read the bare `Active` clause as an independent spec with an
-// unknown base and offered nobody.
+// (ValidTgts$ Player.Opponent+Active). Reading the bare `Active` clause as an
+// independent spec with an unknown base would offer nobody.
 
 // TestBeamtownBulliesTargetOfferIsTheActiveOpponent: with the Bullies on
 // seat 0's battlefield and seat 1's turn under way, seat 0's activation ask

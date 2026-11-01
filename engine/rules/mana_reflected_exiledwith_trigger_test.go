@@ -5,8 +5,7 @@
 // stamp the reverse Object.ExiledWith scalar, because the script never names
 // ExiledWithSource. The reflect scan must read both spellings (the shared
 // exiledBySource association), or the ability is never offered even with a
-// card exiled by it. Kept in its own file so the ticket cannot conflict on a
-// shared test file.
+// card exiled by it.
 package rules
 
 import (

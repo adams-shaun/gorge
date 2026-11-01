@@ -142,7 +142,7 @@ func TestParamSetRanksAcrossWords(t *testing.T) {
 }
 
 // TestParamKeyRoomRemains: the vocabulary keeps at least a mask word of
-// headroom under its budget, so W4's typed-parameter work can add keys
+// headroom under its budget, so typed-parameter work can add keys
 // without first re-planning the representation.
 func TestParamKeyRoomRemains(t *testing.T) {
 	if unsafe.Sizeof(ParamKey(0)) != 2 {
