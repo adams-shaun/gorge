@@ -22,8 +22,8 @@ import (
 // Counters.Y SVar is exactly the corpus line.
 const vastwoodSrc = "Name:Vastwood Hydra\nManaCost:X G G\nTypes:Creature Hydra\nPT:0/0\n" +
 	"K:etbCounter:P1P1:X\nSVar:X:Count$xPaid\n" +
-	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Battlefield | Destination$ Graveyard | Execute$ TrigCounterDist | OptionalDecider$ TriggeredCardController | TriggerDescription$ x\n" +
-	"SVar:TrigCounterDist:DB$ PutCounter | Choices$ Creature.YouCtrl | ChoiceTitle$ Choose any number of creatures you control to distribute counters to | CounterType$ P1P1 | CounterNum$ Y | ChoiceAmount$ Y | MinChoiceAmount$ 1 | DividedAsYouChoose$ Y\n" +
+	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Battlefield | Destination$ Graveyard | Execute$ OnCounterDist | OptionalDecider$ TriggeredCardController | TriggerDescription$ x\n" +
+	"SVar:OnCounterDist:DB$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ Y | ChoiceAmount$ Y | MinChoiceAmount$ 1 | DividedAsYouChoose$ Y\n" +
 	"SVar:Y:TriggeredCard$CardCounters.P1P1\n" +
 	"Oracle:Vastwood Hydra enters with X +1/+1 counters on it.\n"
 

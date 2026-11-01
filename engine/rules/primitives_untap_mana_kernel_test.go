@@ -16,7 +16,7 @@ func TestFellwarStoneAndChromeMoxReflectedShapesKernel(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	onBoard(t, e, 0, "Name:Fellwar Stone\nManaCost:2\nTypes:Artifact\n"+
-		"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Color | Valid$ Land.OppCtrl | ReflectProperty$ Produce | SpellDescription$ Add one mana of any color that a land an opponent controls could produce.\nOracle:x\n")
+		"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Color | Valid$ Land.OppCtrl | ReflectProperty$ Produce\nOracle:x\n")
 	onBoard(t, e, 1, mountainScript())
 	e.priorityRound()
 	if optionKinds(e.Pending())["activate"] != 1 {

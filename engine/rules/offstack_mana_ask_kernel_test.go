@@ -261,8 +261,8 @@ func TestOffStackManaArrangeAskResumesManaRider(t *testing.T) {
 	const bearSrc = "Name:Stack Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	e, _, bear := newFixtureDeck(t, 9344, bearSrc)
 	engine := onBoard(t, e, 0, "Name:Engine Seer\nTypes:Artifact\n"+
-		"A:AB$ Mana | Cost$ T | Produced$ B | Amount$ 4 | SubAbility$ DBScry | SpellDescription$ Engine fixture.\n"+
-		"SVar:DBScry:DB$ Scry | ScryNum$ 3\nOracle:x\n")
+		"A:AB$ Mana | Cost$ T | Produced$ B | Amount$ 4 | SubAbility$ ThenScry | SpellDescription$ Engine fixture.\n"+
+		"SVar:ThenScry:DB$ Scry | ScryNum$ 3\nOracle:x\n")
 	if e.G.Obj(engine).Zone != state.ZBattlefield {
 		t.Fatal("mana source is not on the battlefield")
 	}

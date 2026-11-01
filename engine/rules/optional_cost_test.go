@@ -4,7 +4,7 @@
 //
 //   - Burning Curiosity's `Blight<1>`: the paid offer exists beside the
 //     plain cast, paying it stamps the pay-time CastInfo's optionalcostpaid
-//     flag, and the spell's own `SVar:X:Count$OptionalGenericCostPaid.3.2`
+//     flag, and the spell's own `X = Count$OptionalGenericCostPaid.3.2`
 //     makes its Dig exile 3 rather than 2; the plain/declined cast exiles 2
 //     and stamps nothing.
 //   - Voltage Surge's `Sac<1/Artifact>`: a NON-Blight optional part is paid

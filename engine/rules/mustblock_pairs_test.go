@@ -30,7 +30,7 @@ import (
 // CantBlockUnless).
 const pricedMustBlockSrc = "Name:Fixture Watchdog\nManaCost:3\n" +
 	"Types:Artifact Creature Dog\nPT:1/2\n" +
-	"S:Mode$ MustBlock | ValidCreature$ Card.Self | Description$ CARDNAME blocks each combat if able.\n" +
+	"S:Mode$ MustBlock | ValidCreature$ Card.Self\n" +
 	"S:Mode$ CantBlockUnless | ValidCard$ Card.Self | Cost$ 3\n" +
 	"Oracle:x\n"
 

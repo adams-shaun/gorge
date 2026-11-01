@@ -17,11 +17,11 @@ import (
 // seed 1526572289851508430: "Cloudpost planned C got CC").
 
 const planLocusPost = "Name:Plan Locus Post\nTypes:Land Locus\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ X | SpellDescription$ Add {C} for each Locus on the battlefield.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ X\n" +
 	"SVar:X:Count$Valid Locus\nOracle:x\n"
 
 const planEveryTypeLand = "Name:Plan Every Type Land\nTypes:Land\n" +
-	"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | AddType$ AllNonBasicLandType | Description$ CARDNAME is every nonbasic land type.\n" +
+	"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | AddType$ AllNonBasicLandType\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n"
 
 const planTwoSpell = "Name:Plan Two\nManaCost:2\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n"

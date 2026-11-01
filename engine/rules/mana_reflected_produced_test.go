@@ -20,8 +20,8 @@ import (
 // reads. ValidCard$ Permanent.nonLand is the nonland filter the
 // "Kinnan + Forest = {G} only" case pins.
 const kinnanTriggerScript = "Name:Kinnan, Bonder Prodigy\nManaCost:G U\nTypes:Legendary Creature Human Druid\nPT:2/2\n" +
-	"T:Mode$ TapsForMana | ValidCard$ Permanent.nonLand | Activator$ You | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever you tap a nonland permanent for mana, add one mana of any type that permanent produced.\n" +
-	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ You\n" +
+	"T:Mode$ TapsForMana | ValidCard$ Permanent.nonLand | Activator$ You | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True\n" +
+	"SVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ You\n" +
 	"Oracle:x\n"
 
 // manaRockScript is a {T}: Add {C} artifact -- the nonland permanent Kinnan

@@ -756,7 +756,7 @@ func paymentPlanPendingSummary(d *decision.Decision) string {
 // defers a land an unconditional Contamination matches before it is ever
 // tapped) cannot foresee it, and it changes the production only DURING the
 // first planned activation -- the post-activation check's own territory.
-const paymentPlanTappedContamination = "Name:Tapped Contamination\nTypes:Enchantment\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | IsPresent$ Land.tapped | ReplaceWith$ ProduceB | Description$ Fixture: once a land is tapped, a land tapped for mana produces B instead.\nSVar:ProduceB:DB$ ReplaceMana | ReplaceMana$ B\nOracle:x\n"
+const paymentPlanTappedContamination = "Name:Tapped Contamination\nTypes:Enchantment\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | IsPresent$ Land.tapped | ReplaceWith$ AsB | Description$ Fixture: once a land is tapped, a land tapped for mana produces B instead.\nSVar:AsB:DB$ ReplaceMana | ReplaceMana$ B\nOracle:x\n"
 
 // After each planned activation the executor compares the mana it
 // actually added with the witness step. A ProduceMana replacement arriving

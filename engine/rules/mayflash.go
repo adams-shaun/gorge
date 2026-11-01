@@ -23,9 +23,9 @@ func init() {
 //	K:MayFlashCost:2
 //	  "You may cast Breaking Wave as though it had flash if you pay {2} more
 //	   to cast it." (Rout, Ghitu Fire, Saproling Symbiosis, ...)
-//	K:MayFlashCost:tapXType<3/Creature.withFlying/creatures with flying>
+//	MayFlashCost tapXType<3/Creature.withFlying>
 //	  Tegwyll's Scouring: "... if you tap three creatures with flying."
-//	K:MayFlashCost:Behold<1/Dragon>
+//	MayFlashCost Behold<1/Dragon>
 //	  Molten Exhale: "... if you behold a Dragon."
 //
 // The colon parameter is that extra cost, NOT a replacement for the printed

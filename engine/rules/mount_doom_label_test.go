@@ -16,7 +16,7 @@ import (
 // single-option label but not to the flattened per-colour options
 // Each flattened option must name the life.
 const mountDoomSrc = "Name:Mount Doom\nManaCost:no cost\nTypes:Legendary Land\n" +
-	"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R | SpellDescription$ Add {B} or {R}.\n" +
+	"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R\n" +
 	"Oracle:{T}, Pay 1 life: Add {B} or {R}.\n"
 
 func TestMountDoomColorOptionsNameTheLifePayment(t *testing.T) {

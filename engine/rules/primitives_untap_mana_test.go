@@ -25,52 +25,52 @@ import (
 // primitive and is not covered here.
 
 const basaltMonolithScript = "Name:Basalt Monolith\nManaCost:3\nTypes:Artifact\n" +
-	"R:Event$ Untap | ValidCard$ Card.Self | ValidStepTurnToController$ You | Layer$ CantHappen | Description$ This artifact doesn't untap during your untap step.\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 3 | SpellDescription$ Add {C}{C}{C}.\n" +
+	"R:Event$ Untap | ValidCard$ Card.Self | ValidStepTurnToController$ You | Layer$ CantHappen\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 3\n" +
 	"A:AB$ Untap | Cost$ 3 | SpellDescription$ Untap this artifact.\nOracle:x\n"
 
 const exoticOrchardScript = "Name:Exotic Orchard\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Color | Valid$ Land.OppCtrl | ReflectProperty$ Produce | SpellDescription$ Add one mana of any color that a land an opponent controls could produce.\n" +
+	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Color | Valid$ Land.OppCtrl | ReflectProperty$ Produce\n" +
 	"Oracle:x\n"
 
 const chromaticOrreryScript = "Name:Chromatic Orrery\nManaCost:7\nTypes:Legendary Artifact\n" +
-	"S:Mode$ ManaConvert | ValidPlayer$ You | ManaConversion$ AnyType->AnyColor | Description$ You may spend mana as though it were mana of any color.\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 5 | SpellDescription$ Add {C}{C}{C}{C}{C}.\n" +
-	"A:AB$ Draw | Cost$ 5 T | NumCards$ X | SpellDescription$ Draw a card for each color among permanents you control.\n" +
+	"S:Mode$ ManaConvert | ValidPlayer$ You | ManaConversion$ AnyType->AnyColor\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 5\n" +
+	"A:AB$ Draw | Cost$ 5 T | NumCards$ X\n" +
 	"SVar:X:Count$Valid Permanent.YouCtrl$Colors\nOracle:x\n"
 
 const quicksilverElementalScript = "Name:Quicksilver Elemental\nManaCost:3 U U\nTypes:Creature Elemental\nPT:3/4\n" +
-	"S:Mode$ ManaConvert | ValidPlayer$ You | ValidCard$ Card.Self | ValidSA$ Activated | ManaConversion$ Blue->AnyColor | Description$ You may spend blue mana as though it were mana of any color to pay the activation costs of CARDNAME's abilities.\n" +
-	"A:AB$ Effect | Cost$ U | ValidTgts$ Creature | TgtZone$ Battlefield | TgtPrompt$ Select target creature card | StaticAbilities$ STSteal | RememberLKI$ Targeted | Duration$ UntilHostLeavesPlayOrEOT | SpellDescription$ CARDNAME gains all activated abilities of target creature until end of turn.\n" +
-	"SVar:STSteal:Mode$ Continuous | Affected$ Card.EffectSource | GainsAbilitiesOfDefined$ RememberedLKI | Description$ EFFECTSOURCE gains all activated abilities of that card until end of turn.\nOracle:x\n"
+	"S:Mode$ ManaConvert | ValidPlayer$ You | ValidCard$ Card.Self | ValidSA$ Activated | ManaConversion$ Blue->AnyColor\n" +
+	"A:AB$ Effect | Cost$ U | ValidTgts$ Creature | TgtZone$ Battlefield | StaticAbilities$ STSteal | RememberLKI$ Targeted | Duration$ UntilHostLeavesPlayOrEOT\n" +
+	"SVar:STSteal:Mode$ Continuous | Affected$ Card.EffectSource | GainsAbilitiesOfDefined$ RememberedLKI\nOracle:x\n"
 
 const endbringerScript = "Name:Endbringer\nManaCost:5 C\nTypes:Creature Eldrazi\nPT:5/5\n" +
-	"S:Mode$ UntapOtherPlayer | ValidCard$ Card.Self | Description$ Untap CARDNAME during each other player's untap step.\n" +
-	"A:AB$ DealDamage | Cost$ T | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ CARDNAME deals 1 damage to any target.\nOracle:x\n"
+	"S:Mode$ UntapOtherPlayer | ValidCard$ Card.Self\n" +
+	"A:AB$ DealDamage | Cost$ T | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 
 const mysticRemoraScript = "Name:Mystic Remora\nManaCost:U\nTypes:Enchantment\n" +
 	"K:Cumulative upkeep:1\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ Whenever an opponent casts a noncreature spell, you may draw a card unless that player pays {4}.\n" +
-	"SVar:TrigDraw:DB$ Draw | Defined$ You | UnlessCost$ 4 | UnlessPayer$ TriggeredActivator | NumCards$ 1 | OptionalDecider$ You\nOracle:x\n"
+	"T:Mode$ SpellCast | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ OnDraw\n" +
+	"SVar:OnDraw:DB$ Draw | Defined$ You | UnlessCost$ 4 | UnlessPayer$ TriggeredActivator | NumCards$ 1 | OptionalDecider$ You\nOracle:x\n"
 
 const chromeMoxScript = "Name:Chrome Mox\nManaCost:0\nTypes:Artifact\n" +
-	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | OptionalDecider$ You | Execute$ TrigExile | TriggerDescription$ Imprint — When CARDNAME enters, you may exile a nonartifact, nonland card from your hand.\n" +
-	"SVar:TrigExile:DB$ ChangeZone | Imprint$ True | Origin$ Hand | Destination$ Exile | ChangeType$ Card.nonArtifact+nonLand | ChangeNum$ 1\n" +
-	"A:AB$ ManaReflected | Cost$ T | Valid$ Defined.Imprinted | ColorOrType$ Color | ReflectProperty$ Is | SpellDescription$ Add one mana of any of the exiled card's colors.\nOracle:x\n"
+	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | OptionalDecider$ You | Execute$ OnExile\n" +
+	"SVar:OnExile:DB$ ChangeZone | Imprint$ True | Origin$ Hand | Destination$ Exile | ChangeType$ Card.nonArtifact+nonLand | ChangeNum$ 1\n" +
+	"A:AB$ ManaReflected | Cost$ T | Valid$ Defined.Imprinted | ColorOrType$ Color | ReflectProperty$ Is\nOracle:x\n"
 
 const manaFlareScript = "Name:Mana Flare\nManaCost:2 R\nTypes:Enchantment\n" +
-	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n" +
-	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
+	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True\n" +
+	"SVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
 
 const incubationDruidScript = "Name:Incubation Druid\nManaCost:1 G\nTypes:Creature Elf Druid\nPT:0/2\n" +
-	"A:AB$ PutCounter | Cost$ 3 G G | Adapt$ 3\n" +
-	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | Amount$ IncubationAmount | ReflectProperty$ Produce | SpellDescription$ Add one mana of any type that a land you control could produce. If CARDNAME has a +1/+1 counter on it, add three mana of that type instead.\n" +
-	"SVar:Y:Count$Valid Card.Self+counters_GE1_P1P1\n" +
-	"SVar:IncubationAmount:Count$Compare Y GE1.3.1\nOracle:x\n"
+	"A:AB$ PutCounter | Cost$ 1 | Adapt$ 3\n" +
+	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | Amount$ Counters | ReflectProperty$ Produce\n" +
+	"SVar:HasCounter:Count$Valid Card.Self+counters_GE1_P1P1\n" +
+	"SVar:Counters:Count$Compare HasCounter GE1.3.1\nOracle:x\n"
 
 const tazriStalwartSurvivorScript = "Name:Tazri, Stalwart Survivor\nManaCost:W U B R G\nTypes:Legendary Creature Human Warrior\nPT:3/3\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAbility$ Mana | Description$ Each creature you control has {T}: Add one mana of any of this creature's colors. Spend this mana only to activate an ability of a creature. Activate only if this creature has another activated ability.\n" +
-	"SVar:Mana:AB$ ManaReflected | Cost$ T | Valid$ Defined.Self | ColorOrType$ Color | ReflectProperty$ Is | RestrictValid$ Activated.Creature+inZoneBattlefield | IsPresent$ Card.Self+hasAbility Activated.otherAbility | SpellDescription$ Add one mana of any of this creature's colors. Spend this mana only to activate an ability of a creature. Activate only if this creature has another activated ability.\n" +
+	"SVar:Mana:AB$ ManaReflected | Cost$ T | Valid$ Defined.Self | ColorOrType$ Color | ReflectProperty$ Is | RestrictValid$ Activated.Creature+inZoneBattlefield | IsPresent$ Card.Self+hasAbility Activated.otherAbility\n" +
 	"A:AB$ Mill | Cost$ W U B R G T | NumCards$ 5 | RememberMilled$ True\nOracle:x\n"
 
 const ancestralRecallScript = "Name:Ancestral Recall\nManaCost:U\nTypes:Instant\n" +
@@ -160,8 +160,8 @@ func TestBasaltMonolithUntap(t *testing.T) {
 func TestCloudOfFaeriesUntapUpToSelection(t *testing.T) {
 	t.Parallel()
 	const cloud = "Name:Cloud of Faeries\nManaCost:1 U\nTypes:Creature Faerie\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigUntap\n" +
-		"SVar:TrigUntap:DB$ Untap | UntapUpTo$ True | UntapType$ Land | Amount$ 2\nOracle:x\n"
+		"T:Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnUntap\n" +
+		"SVar:OnUntap:DB$ Untap | UntapUpTo$ True | UntapType$ Land | Amount$ 2\nOracle:x\n"
 	e := handEngine(t)
 	lands := []state.ObjID{onBoard(t, e, 0, mountainScript()), onBoard(t, e, 0, forestScript()), onBoard(t, e, 0, mountainScript())}
 	for _, id := range lands {
@@ -282,7 +282,7 @@ func TestReflectingPoolTypeReflectsOnlyProducedColourless(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	pool := onBoard(t, e, 0, "Name:Reflecting Pool\nManaCost:no cost\nTypes:Land\n"+
-		"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | ReflectProperty$ Produce | SpellDescription$ Add one mana of any type that a land you control could produce.\nOracle:x\n")
+		"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | ReflectProperty$ Produce\nOracle:x\n")
 	sa := e.G.Obj(pool).Face().Abilities[0]
 	ctx := &effects.Ctx{Source: pool, Controller: 0, SVars: e.G.Obj(pool).Face().SVars}
 	if got := effects.ManaReflectedCandidates(e, ctx, sa); len(got) != 0 {
@@ -416,7 +416,7 @@ func TestManaFlareReflectsTheProducedManaType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	flare := onBoard(t, e, 0, manaFlareScript)
-	sa := cards.ResolveSVar(e.G.Obj(flare).Face().SVars, "TrigMana")
+	sa := cards.ResolveSVar(e.G.Obj(flare).Face().SVars, "OnMana")
 	if sa == nil || sa.Params["ReflectProperty"] != "Produced" {
 		t.Fatalf("Mana Flare's real reflected-mana SVar changed: %+v", sa)
 	}
@@ -527,7 +527,7 @@ func TestQuestForRenewalNeedsFourQuestCounters(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	quest := onBoard(t, e, 1, "Name:Quest for Renewal\nManaCost:1 G\nTypes:Enchantment\n"+
-		"S:Mode$ UntapOtherPlayer | ValidCard$ Creature.YouCtrl | IsPresent$ Card.Self+counters_GE4_QUEST | Description$ As long as there are four or more quest counters on CARDNAME, untap all creatures you control during each other player's untap step.\nOracle:x\n")
+		"S:Mode$ UntapOtherPlayer | ValidCard$ Creature.YouCtrl | IsPresent$ Card.Self+counters_GE4_QUEST\nOracle:x\n")
 	creature := onBoard(t, e, 1, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.emit(events.Event{Kind: events.Tap, Obj: creature})
 	e.G.Turn = 2
@@ -547,7 +547,7 @@ func TestDrumbellowerUntapsItsCreaturesForEachOtherPlayer(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	drum := onBoard(t, e, 1, "Name:Drumbellower\nManaCost:2 W\nTypes:Creature Spirit\nPT:2/1\nK:Flying\n"+
-		"S:Mode$ UntapOtherPlayer | ValidCard$ Creature.YouCtrl | Description$ Untap all creatures you control during each other player's untap step.\nOracle:x\n")
+		"S:Mode$ UntapOtherPlayer | ValidCard$ Creature.YouCtrl\nOracle:x\n")
 	creature := onBoard(t, e, 1, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	land := onBoard(t, e, 1, mountainScript())
 	e.emit(events.Event{Kind: events.Tap, Obj: drum})
@@ -654,7 +654,7 @@ func TestCumulativeUpkeepRecognizesEveryCorpusActionCost(t *testing.T) {
 func TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature(t *testing.T) {
 	t.Parallel()
 	const soulgorgerScript = "Name:Phyrexian Soulgorger\nManaCost:3\nTypes:Snow Artifact Creature Phyrexian Construct\nPT:8/8\n" +
-		"K:Cumulative upkeep:Sac<1/Creature>:Sacrifice a creature.\nOracle:x\n"
+		"K:Cumulative upkeep:Sac<1/Creature>\nOracle:x\n"
 	e := handEngine(t)
 	soulgorger := onBoard(t, e, 0, soulgorgerScript)
 	bear := onBoard(t, e, 0, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
@@ -729,7 +729,7 @@ func TestPhyrexianSoulgorgerPaysCumulativeUpkeepWithAChosenCreature(t *testing.T
 func TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger(t *testing.T) {
 	t.Parallel()
 	const keldonRaiderScript = "Name:Keldon Raider\nManaCost:2 R R\nTypes:Creature Human Warrior\nPT:4/3\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDiscard | TriggerDescription$ When CARDNAME enters, you may discard a card. If you do, draw a card.\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDiscard\n" +
 		"SVar:TrigDiscard:AB$ Draw | Cost$ Discard<1/Card>\nOracle:x\n"
 	e := handEngine(t)
 	raider := e.G.AddObject(card(t, keldonRaiderScript), 0)
@@ -770,8 +770,8 @@ func TestManaVaultTriggerChargesItsRealCost(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
 	vault := onBoard(t, e, 0, "Name:Mana Vault\nManaCost:1\nTypes:Artifact\n"+
-		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | OptionalDecider$ You | Execute$ TrigUntap\n"+
-		"SVar:TrigUntap:AB$ Untap | Cost$ 4 | Defined$ Self\nOracle:x\n")
+		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | OptionalDecider$ You | Execute$ OnUntap\n"+
+		"SVar:OnUntap:AB$ Untap | Cost$ 4 | Defined$ Self\nOracle:x\n")
 	e.emit(events.Event{Kind: events.Tap, Obj: vault})
 	// The pool covers the announced {4} exactly: the precondition the pay
 	// offer (and the charge below) depends on.

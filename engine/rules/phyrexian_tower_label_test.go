@@ -15,7 +15,7 @@ import (
 // read as one pip. The paid option must name its sacrifice and both pips.
 const phyrexianTowerSrc = "Name:Phyrexian Tower\nTypes:Legendary Land\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-	"A:AB$ Mana | Cost$ T Sac<1/Creature> | Produced$ B | Amount$ 2 | SpellDescription$ Add {B}{B}.\n" +
+	"A:AB$ Mana | Cost$ T Sac<1/Creature> | Produced$ B | Amount$ 2\n" +
 	"Oracle:{T}: Add {C}.\\n{T}, Sacrifice a creature: Add {B}{B}.\n"
 
 func TestPhyrexianTowerWheelNamesTheSacrificeAndBothPips(t *testing.T) {

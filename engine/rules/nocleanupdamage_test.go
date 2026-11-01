@@ -23,7 +23,7 @@ import (
 
 const noCleanupDamageSrc = "Name:Test Adamantoise\nManaCost:5 G G G\n" +
 	"Types:Creature Turtle\nPT:8/20\n" +
-	"S:Mode$ NoCleanupDamage | ValidCard$ Card.Self | Description$ Damage isn't removed from this creature during cleanup steps.\n" +
+	"S:Mode$ NoCleanupDamage | ValidCard$ Card.Self\n" +
 	"Oracle:x\n"
 
 func TestNoCleanupDamageStaticKeepsMarkedDamage(t *testing.T) {

@@ -31,7 +31,7 @@ const (
 		"S:Mode$ Continuous | Affected$ Instant.YouCtrl,Sorcery.YouCtrl | Condition$ PlayerTurn | MayPlay$ True | RaiseCost$ Sac<1/Creature> | MayPlayLimit$ 1 | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\nOracle:x\n"
 	// mrgCounterSrc is the fixture counterspell seat 1 answers the may-play Bolt
 	// with; the countered spell must still be exiled by the rider.
-	mrgCounterSrc  = "Name:Test Dismiss\nManaCost:U\nTypes:Instant\nA:SP$ Counter | TargetType$ Spell | ValidTgts$ Card | SpellDescription$ Counter target spell.\nOracle:x\n"
+	mrgCounterSrc  = "Name:Test Dismiss\nManaCost:U\nTypes:Instant\nA:SP$ Counter | TargetType$ Spell | ValidTgts$ Card\nOracle:x\n"
 	mrgCounterName = "Test Dismiss"
 )
 

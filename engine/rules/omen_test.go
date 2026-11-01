@@ -41,7 +41,7 @@ const omenTaxSrc = "Name:Dusk Ledger\nManaCost:1 B\nTypes:Sorcery\n" +
 
 // omenTaxWardenSrc: Thalia's shape -- noncreature spells cost {1} more.
 const omenTaxWardenSrc = "Name:Omen Tax Warden\nManaCost:1 W\nTypes:Creature Human Soldier\nPT:2/1\n" +
-	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ Noncreature spells cost {1} more to cast.\nOracle:x\n"
+	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1\nOracle:x\n"
 
 // omenOption returns the cast option for id whose Mode is exactly mode, or
 // nil when none is offered.

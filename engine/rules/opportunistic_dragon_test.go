@@ -1,8 +1,8 @@
 // Opportunistic Dragon (Temur Roar deck) pins animate:RemoveAllAbilities$ end
-// to end on the real corpus card. Its ETB rider is the control-theft shape:
-//
-//	SVar:TrigGainControl:DB$ GainControl | ValidTgts$ Human.OppCtrl,Artifact.OppCtrl | LoseControl$ LeavesPlay | SubAbility$ DBPump
-//	SVar:DBPump:DB$ Animate | Defined$ Targeted | HiddenKeywords$ CARDNAME can't attack or block. | RemoveAllAbilities$ True | Duration$ UntilHostLeavesPlay
+// to end on the real corpus card. Its ETB rider is the control-theft shape: a
+// GainControl of a target Human or artifact, then a DB$ Animate on that target with
+// RemoveAllAbilities$ True and a can't-attack-or-block hidden keyword, lasting until
+// the Dragon leaves play.
 //
 // If effects.parseAnimateGrant does not read RemoveAllAbilities$,
 // the stolen permanent keeps every printed ability while the Dragon

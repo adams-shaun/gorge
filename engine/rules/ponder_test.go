@@ -14,9 +14,9 @@ import (
 // (arrange_mayshuffle, applied in place) emits the Shuffle event, and the
 // chained SubAbility$ (Ponder's draw) runs after the shuffle.
 
-// ponderSrc is Ponder's real script shape (the SP$ line verbatim).
+// ponderSrc is Ponder's real script shape (the SP$ line).
 const ponderSrc = "Name:Ponder\nManaCost:U\nTypes:Sorcery\n" +
-	"A:SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3 | MayShuffle$ True | SubAbility$ DBDraw | SpellDescription$ Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.\n" +
+	"A:SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3 | MayShuffle$ True | SubAbility$ DBDraw\n" +
 	"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"
 
 // TestPonderMayShuffleAsksAndShuffles drives the full three-ask sequence:

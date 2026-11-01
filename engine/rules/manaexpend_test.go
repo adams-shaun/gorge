@@ -268,7 +268,7 @@ func TestManaExpendSilentWithoutTheCarrierOut(t *testing.T) {
 // threshold into them.
 func TestManaExpendUnknownAmountFailsClosed(t *testing.T) {
 	t.Parallel()
-	fake := card(t, "Name:Expend Twin Broken\nTypes:Creature Raccoon Warrior\nPT:2/2\nT:Mode$ ManaExpend | Amount$ X | Player$ You | TriggerZones$ Battlefield | Execute$ DealDamage | TriggerDescription$ x\nSVar:DealDamage:DB$ DealDamage | NumDmg$ 2 | Defined$ Opponent\nOracle:x\n")
+	fake := card(t, "Name:Expend Twin Broken\nTypes:Creature Raccoon Warrior\nPT:2/2\nT:Mode$ ManaExpend | Amount$ X | Player$ You | TriggerZones$ Battlefield | Execute$ Hit | TriggerDescription$ x\nSVar:Hit:DB$ DealDamage | NumDmg$ 2 | Defined$ Opponent\nOracle:x\n")
 	e := handEngine(t, fake)
 	twin := e.G.Zone(state.ZHand, 0)[0]
 	placeOnBattlefield(t, e, twin)

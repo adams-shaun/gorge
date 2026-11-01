@@ -32,7 +32,7 @@ var jitteHandSrcs = []string{
 }
 
 const thaliaSrc = "Name:Thalia, Guardian of Thraben\nManaCost:1 W\nTypes:Legendary Creature Human Soldier\nPT:2/1\nK:First Strike\n" +
-	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1 | Description$ Noncreature spells cost {1} more to cast.\n" +
+	"S:Mode$ RaiseCost | ValidCard$ Card.nonCreature | Type$ Spell | Amount$ 1\n" +
 	"Oracle:First strike. Noncreature spells cost {1} more to cast.\n"
 
 const jitteSnapshotPlains = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"
@@ -204,7 +204,7 @@ func TestPotentialActionsReduceCostOffered(t *testing.T) {
 	e.G.Players[0].LandsPlayed = 1
 	onBoard(t, e, 0, jitteSnapshotPlains) // untapped: PotentialMana W:1
 	onBoard(t, e, 0, "Name:Pearl Medallion\nManaCost:2\nTypes:Artifact\n"+
-		"S:Mode$ ReduceCost | ValidCard$ Card.White | Type$ Spell | Activator$ You | Amount$ 1 | Description$ White spells you cast cost {1} less to cast.\n"+
+		"S:Mode$ ReduceCost | ValidCard$ Card.White | Type$ Spell | Activator$ You | Amount$ 1\n"+
 		"Oracle:White spells you cast cost {1} less to cast.\n")
 	spell := onHand(t, e, 0, "Name:Divine Verdict\nManaCost:1 W\nTypes:Instant\nOracle:W {1}\n")
 
@@ -724,8 +724,8 @@ func TestPotentialActionsMountDoomDamageAbility(t *testing.T) {
 	e.G.SetZone(state.ZHand, 0, nil)
 	e.G.Players[0].LandsPlayed = 1
 	doom := onBoard(t, e, 0, "Name:Mount Doom\nTypes:Legendary Land\n"+
-		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R | SpellDescription$ Add {B} or {R}.\n"+
-		"A:AB$ DealDamage | Cost$ 1 B R T | Defined$ Opponent | NumDmg$ 1 | SpellDescription$ CARDNAME deals 1 damage to each opponent.\n"+
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Combo B R\n"+
+		"A:AB$ DealDamage | Cost$ 1 B R T | Defined$ Opponent | NumDmg$ 1\n"+
 		"Oracle:x\n")
 	onBoard(t, e, 0, "Name:Badlands\nTypes:Land Swamp Mountain\n"+
 		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n"+

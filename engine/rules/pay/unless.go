@@ -53,7 +53,7 @@ func CostAnnouncesSacX(c costvocab.Cost) bool {
 //     unchanged.
 //   - any other resolvable body (Murderous Betrayal's
 //     SVar:X:Count$YourLifeTotal/HalfUp, Tornado's
-//     SVar:X:Count$CardCounters.VELOCITY/Times.3): the value is FIXED -- the
+//     X = Count$CardCounters.VELOCITY/Times.3): the value is FIXED -- the
 //     payer announces nothing, and the settle pays exactly the evaluated
 //     amount. Each such part is folded into Cost.Life, the fixed additional
 //     cost both the payable gates (resolveManaWith's life check) and the

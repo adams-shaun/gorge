@@ -115,8 +115,8 @@ func TestSteelLeafChampionCantBeBlockedBySmallPower(t *testing.T) {
 func TestAngelicSkirmisherChoosesCombatKeyword(t *testing.T) {
 	t.Parallel()
 	angelic := "Name:Angelic Skirmisher\nManaCost:4 W W\nTypes:Creature Angel\nPT:4/4\nK:Flying\n" +
-		"T:Mode$ Phase | Phase$ BeginCombat | TriggerZones$ Battlefield | Execute$ TrigChoose\n" +
-		"SVar:TrigChoose:DB$ Pump | Defined$ Valid Creature.YouCtrl | KWChoice$ First Strike,Vigilance,Lifelink\n" +
+		"T:Mode$ Phase | Phase$ BeginCombat | TriggerZones$ Battlefield | Execute$ OnChoose\n" +
+		"SVar:OnChoose:DB$ Pump | Defined$ Valid Creature.YouCtrl | KWChoice$ First Strike,Vigilance,Lifelink\n" +
 		"Oracle:x\n"
 	bear := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	e, cfg, _ := newFixtureDeck(t, 6201, angelic, bear)
@@ -209,8 +209,8 @@ func etbSeed(t *testing.T, want uint64, s0, s1 []string) uint64 {
 func TestPlanetaryAnnihilationRevealsKeptLands(t *testing.T) {
 	t.Parallel()
 	pa := "Name:Planetary Annihilation\nManaCost:3 R R\nTypes:Sorcery\n" +
-		"A:SP$ ChooseCard | Defined$ Player | Choices$ Land | ControlledByPlayer$ Chooser | Amount$ 6 | Mandatory$ True | Reveal$ True | SubAbility$ DBSac\n" +
-		"SVar:DBSac:DB$ SacrificeAll | ValidCards$ Land.nonChosenCard | SubAbility$ DBDamageAll\n" +
+		"A:SP$ ChooseCard | Defined$ Player | Choices$ Land | ControlledByPlayer$ Chooser | Amount$ 6 | Mandatory$ True | Reveal$ True | SubAbility$ Sac\n" +
+		"SVar:Sac:DB$ SacrificeAll | ValidCards$ Land.nonChosenCard | SubAbility$ DBDamageAll\n" +
 		"SVar:DBDamageAll:DB$ DamageAll | ValidCards$ Creature | NumDmg$ 6\nOracle:x\n"
 	land := "Name:Plains\nManaCost:no cost\nTypes:Basic Land Plains\nOracle:x\n"
 	e, cfg, _ := etbConfig(t, etbSeed(t, 6202, []string{pa, land, land}, []string{land, land}), []string{pa, land, land}, []string{land, land})

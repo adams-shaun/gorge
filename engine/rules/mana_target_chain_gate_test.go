@@ -133,7 +133,7 @@ func TestChandraBoldPyromancerPlusOneTargetsThroughItsSubAbility(t *testing.T) {
 func TestChainTargetingManaRiderStaysDeferredWhenPlannedDirectly(t *testing.T) {
 	t.Parallel()
 	const src = "Name:Chain Engine\nManaCost:5 B\nTypes:Creature Horror\nPT:4/4\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ B | Amount$ 4 | SubAbility$ ChangeControl | SpellDescription$ Add {B}{B}{B}{B}.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ B | Amount$ 4 | SubAbility$ ChangeControl\n" +
 		"SVar:ChangeControl:DB$ GainControl | Defined$ Self | ValidTgts$ Opponent | SpellDescription$ Target opponent gains control of CARDNAME.\n" +
 		"Oracle:x\n"
 	e, _, _ := newFixtureDeck(t, 9843, src)
