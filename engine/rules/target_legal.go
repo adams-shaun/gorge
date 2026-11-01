@@ -1219,7 +1219,7 @@ zoneLoop:
 // World: "Counter target spell or ability that targets a permanent you
 // control", TargetValidTargeting$ Permanent.YouCtrl+inRealZoneBattlefield):
 // the candidate stack object QUALIFIES only when its own chosen targets
-// include an object matching the spec, evaluated from the targeting
+// include an object or player matching the spec, evaluated from the targeting
 // ability's controller (the counter's "you" is its controller, not the
 // countered spell's). Every OBJECT candidate carries its targets the same
 // way -- the census labels a stack spell kind "spell", not "permanent", but
@@ -1248,10 +1248,8 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 			continue
 		}
 		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
-			if t.IsPlayer || t.Obj == 0 {
-				continue
-			}
-			if e.matchesSpec(spec, t.Obj, sc) {
+			if t.IsPlayer && effects.MatchesPlayerSpec(e.G, spec, t.Player, sc.You) ||
+				!t.IsPlayer && t.Obj != 0 && e.matchesSpec(spec, t.Obj, sc) {
 				out = append(out, cand)
 				break
 			}

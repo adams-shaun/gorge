@@ -422,13 +422,12 @@ func noteCopy(h Host, c *Ctx, remember bool, spell, id state.ObjID, addTypes []s
 // it could target" (CopyForEachCanTarget$ <spec>): one copy per legal target
 // of the spell's targeting clause that the spec admits (the copier is "You")
 // and the spell does not already target, each copy's first target replaced by
-// its candidate through the StackCopy IDs override, in ObjID order. A spell whose
-// targets all sit on a chain link (Wild Slash) moves the copy's link target instead.
-// ChooseOnlyOne$ True (Beamsplitter Mage) asks the copier for one candidate
-// and makes one copy. A player candidate cannot ride StackCopy's object-only
-// IDs, so it yields no copy under one loud Note. It reports false when the
-// host cannot enumerate candidates or the spell has a target this override
-// cannot carry, leaving the historical single inherited-target copy.
+// its candidate through the StackCopy IDs override, in ObjID order, then one
+// per player candidate. A spell whose targets all sit on a chain link (Wild
+// Slash) moves the copy's link target instead. ChooseOnlyOne$ True (Beamsplitter
+// Mage) asks the copier for one candidate and makes one copy. It reports false
+// when the host cannot enumerate candidates or the spell has no target to
+// replace, leaving the historical single inherited-target copy.
 func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, controller state.PlayerID, spec string, remember bool, payload string, addTypes []string) bool {
 	ch, ok := h.(copyTargetCandidatesHost)
 	if !ok {
@@ -454,30 +453,23 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 	} else {
 		offered = ch.CopyTargetCandidates(controller, spell)
 	}
-	for _, t := range targets {
-		if t.IsPlayer {
-			return false
-		}
-	}
 	var cands []state.ObjID
-	playerCand := false
+	var players []state.PlayerID
 	for _, t := range offered {
+		if t == targets[0] {
+			continue
+		}
 		if t.IsPlayer {
 			if MatchesPlayerSpec(g, spec, t.Player, controller) {
-				playerCand = true
+				players = append(players, t.Player)
 			}
 			continue
 		}
-		if t.Obj == targets[0].Obj || !MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(controller)) {
-			continue
+		if MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(controller)) {
+			cands = append(cands, t.Obj)
 		}
-		cands = append(cands, t.Obj)
 	}
 	slices.Sort(cands)
-	if playerCand {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "copy: CopyForEachCanTarget$ player candidates not copied (a copy cannot override a target with a player)"})
-	}
 	if len(cands) > 0 && strings.EqualFold(strings.TrimSpace(sa.Params["ChooseOnlyOne"]), "True") {
 		d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "copy_for_each_can_target", ResumeSA: sa,
@@ -491,8 +483,9 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 				Kind: "copy_target", Label: name, Obj: id, Player: controller})
 		}
 		// No answer (an effects-package double): the first candidate, the
-		// pick the bot's clamp fallback answers.
-		cands = cands[:1]
+		// pick the bot's clamp fallback answers. The one carrier, Beamsplitter
+		// Mage, names creatures, so no player competes for the single copy.
+		cands, players = cands[:1], nil
 		if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
 			cands = []state.ObjID{ans[0].Obj}
 		}
@@ -511,6 +504,18 @@ func copyForEachCanTarget(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, contr
 			ids = append(ids, t.Obj)
 		}
 		emitCopy(h, c, remember, events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: ids, Counter: payload}, addTypes)
+	}
+	// A StackCopy's IDs name objects only, so a copy aimed at a player takes
+	// its target from a TargetsChosen after the mint.
+	for _, p := range players {
+		for _, id := range h.EmitStackCopy(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, Counter: payload}) {
+			noteCopy(h, c, remember, spell, id, addTypes)
+			if link != nil {
+				h.RetargetLink(id, link, append([]state.Target{{Player: p, IsPlayer: true}}, targets[1:]...))
+			} else {
+				h.Emit(events.Event{Kind: events.TargetsChosen, Obj: id, Amount: 1, Player: p})
+			}
+		}
 	}
 	return true
 }
