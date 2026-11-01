@@ -416,7 +416,7 @@ func (p *sparePool) get(e *rules.Engine) rules.Spare {
 
 // resumeSlack is the spare event capacity a Resume reserves past a history
 // of n events when no pooled array fit it: enough for the walk's appends
-// (under 128 in 99% of simulations, measured on the az-c6 cached-worlds
+// (under 128 in 99% of simulations, measured on a cached-worlds
 // bench) and for the next trees' resumes, whose histories run a few
 // hundred events past this one as the game goes on.
 func resumeSlack(n int) int { return max(512, n/8) }

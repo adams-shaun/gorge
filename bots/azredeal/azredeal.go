@@ -44,23 +44,9 @@ func init() {
 		Label:       "az-redeal (AlphaZero search)",
 		Description: "The az search seat in its honest world: at every searched decision it runs 100 MCTS simulations over freshly redealt worlds rebuilt from its own observations, and plays the production bot everywhere else.",
 		Tier:        bots.Experimental,
-		Strength: []bots.Measurement{
-			{
-				Claim:   "70.5% [68.5, 72.5] vs bot (+20.5pp over the 50.0% control)",
-				Versus:  "bot",
-				Setting: "gorge botbench, az100 redeal (gen 0), 2,000 games, uw-tempo vs the 5 mono decks, true lists visible",
-				Source:  "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
-			},
-			{
-				Claim:   "az-redeal-sims25 rated 1382 [1320, 1455] vs bot 1264 on the Pauper kernel",
-				Versus:  "bot",
-				Setting: "gorge botbench -spellbench, SB's eight-deck seat-swapped mirror pool, Bradley-Terry rating",
-				Source:  "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
-			},
-		},
 		Cost: bots.Cost{
 			MeanMS: 247, P95MS: 465, Scope: "per searched decision",
-			Note:   "216-278 ms mean uncontended at 100 sims (p95 380-550); contention raises it, the host never cuts the search",
+			Note:   "at 100 simulations, uncontended; contention raises it, and the host never cuts the search",
 			Source: "docs/design/2026-09-28-spellbench-agent-design.md §12.5",
 		},
 		Env: true, Search: true,

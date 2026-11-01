@@ -11,7 +11,7 @@
         "702.108a",
         "603.2"
       ],
-      "why": "Equipped creature has prowess, so a noncreature spell makes the equipped 2/2 Grizzly Bears 3/3 until end of turn.",
+      "why": "Equipped creature has prowess and the Staff makes its triggers trigger an additional time, so a noncreature spell makes the equipped 2/2 Grizzly Bears 4/4 until end of turn.",
       "setup": {
         "p0": {
           "battlefield": [
@@ -58,7 +58,7 @@
       "expect": [
         {
           "card": "p0:Grizzly Bears",
-          "pt": "3/3"
+          "pt": "4/4"
         }
       ]
     },

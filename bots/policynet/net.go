@@ -261,7 +261,7 @@ func (m *Model) Value(st State) float32 {
 // converges to — tune lr and the clip cap instead. RankWeight 0 remains
 // meaningful in CE mode: it switches the term (and the training) off
 // entirely. The trainer warns when a non-trivial RankWeight is set in CE
-// mode (four-yay cmd/policytrain Train's log).
+// mode (the trainer's log).
 type LossConfig struct {
 	Mode           LossMode
 	HuberDelta     float64
@@ -890,7 +890,7 @@ func lossFromScores(lc LossConfig, ex Example, labelled []int, ys []float64) (pa
 	// the max, so exp never overflows and the CE is computed as
 	// logsumexp(z) − z_pref with max subtraction. Together they make every
 	// term NaN-free across the rank-weight/lr grid the trainer is run at (see
-	// four-yay cmd/policytrain's TestTrainerStableAcrossRankGrid,
+	// the trainer's TestTrainerStableAcrossRankGrid,
 	// TestTrainerCENoNaNGrid and this package's
 	// TestLossFiniteOnDivergedScores).
 	clamped := make([]float64, n)

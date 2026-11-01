@@ -1,6 +1,6 @@
 package mbtest
 
-// MBX-7's vote fixtures need a seat that can BUILD the mana for a spell and
+// The vote fixtures need a seat that can BUILD the mana for a spell and
 // cast it. The wire-only mock client cannot express that policy: the
 // priority prompt carries no phase, so from the prompt alone a client cannot
 // tell a (pool-wasting) upkeep activation from a main-phase one -- and the
@@ -70,7 +70,7 @@ func CastSeekerPolicy(spells ...string) PickPolicy {
 			return mb.ActOutput{ActionID: fmt.Sprintf("opt-%d", act)}, true
 		}
 		// Everything else: the pass output (never an act on the pass option,
-		// which the translator rejects -- §6.3).
+		// which the translator rejects).
 		return mb.PassOutput{}, true
 	}
 }

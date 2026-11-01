@@ -18,7 +18,7 @@ import (
 //     activated ability's targets and costs before pushing it: sourceprobe);
 //  4. nil.
 func ResolveSource(env *Env, d *decision.Decision) (*protocol.ObjectRef, error) {
-	g := env.G.E.G
+	g := env.G.R.Board()
 	if d.Source != 0 {
 		a := env.Action
 		announcing := a != nil && a.Seat == d.Player && a.Obj == d.Source

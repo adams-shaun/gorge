@@ -94,7 +94,7 @@ func ParseFeatureSet(s string) (FeatureSet, error) {
 func (fs FeatureSet) Diagnostic() bool { return fs == FeaturesMZOppHand || fs == FeaturesMZOracle }
 
 // Diag is the hidden information a diagnostic feature set reads: recorded by
-// four-yay cmd/searchteacher -label-extras (LabelExtras) and never available to a
+// the search teacher (-label-extras) (LabelExtras) and never available to a
 // seat.
 type Diag struct {
 	OppHand       []view.CardView
@@ -106,7 +106,7 @@ type Diag struct {
 // view.Omniscient, viewer = seat) into what a diagnostic training record
 // holds: the seat's view with every OTHER seat's hand removed, plus a Diag
 // whose OppHand is those hands concatenated in player order -- the order
-// four-yay cmd/searchteacher's label extras record them in. The state encoders read
+// the search teacher's label extras record them in. The state encoders read
 // only the seat's own hand, so the removal changes no base feature; it keeps
 // the returned view's hands shaped like a Seat projection's. Library tops are
 // not in any view (an omniscient projection never shows library order), so

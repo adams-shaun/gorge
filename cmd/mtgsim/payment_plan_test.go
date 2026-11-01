@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -91,7 +92,7 @@ func TestDriveMatchBuildsPaymentPlansForAgentSeat(t *testing.T) {
 	}
 	rec := &planRecordingSeat{Agent: a}
 	mc := &bots.MatchContext{
-		Context: context.Background(), Engine: e, GameID: "g-payment-plan",
+		Context: context.Background(), Game: gorgegame.Game{E: e}, GameID: "g-payment-plan",
 		Seat: 0, Seats: 2, Format: "constructed", Seed: []byte("7"),
 		OwnDeck: e.OwnDeck(state.PlayerID(0)), Mulligan: "none",
 		StartingSeat: int(e.G.Active), Logf: t.Logf, Registry: reg,

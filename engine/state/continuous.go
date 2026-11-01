@@ -201,6 +201,9 @@ type ContinuousEffect struct {
 	// CR 613.1d, the Blood Moon / Zhao static family. The Land card type
 	// and the Basic supertype survive.
 	RemoveLandTypes bool
+	// RemoveArtifactTypes and RemoveEnchantmentTypes strip every subtype of
+	// that set before this effect's AddTypes apply; the card type survives.
+	RemoveArtifactTypes, RemoveEnchantmentTypes bool
 	// SetCreatureTypes strips only creature subtypes, preserving land and
 	// other subtype words; its replacement types live in AddTypes.
 	SetCreatureTypes bool
@@ -230,12 +233,10 @@ type ContinuousEffect struct {
 	CDAAllCreatureTypes bool
 	// RemoveCardTypes is the S:Mode$ Continuous RemoveCardTypes$ True strip
 	// (Darksteel Mutation, Kenrith's Transformation, Witness Protection):
-	// while this effect applies, the affected object loses every card type
-	// AND every subtype -- subtypes are tied to their card types (CR
-	// 205.2-family), so the object keeps only its supertypes -- BEFORE this
-	// same effect's AddTypes apply (strip-before-add, like
-	// RemoveCreatureTypes). Set only by the static scanner today; the Animate
-	// primitive does not read RemoveCardTypes$ yet.
+	// while this effect applies, the affected object loses every card type,
+	// BEFORE this same effect's AddTypes apply (strip-before-add, like
+	// RemoveCreatureTypes). Its supertypes stay, and so do the subtypes of a
+	// card type AddTypes names (CR 205.1a, effects.SubtypesKeptBy).
 	RemoveCardTypes bool
 	// RemoveLegendary is Forge's CopyPermanent NonLegendary$ True (the
 	// "except it isn't legendary" clause, e.g. Multiversal Recruitment): while

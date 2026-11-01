@@ -13,7 +13,7 @@ import (
 
 var updateContracts = flag.Bool("update-contracts", false, "rewrite bots/policynet/testdata/contracts goldens")
 
-// TestContractVisitRecord pins contract azvisits (four-yay contracts/registry.json):
+// TestContractVisitRecord pins contract azvisits (a companion module's contract registry):
 // one visit record's JSON line, every field set. A new field is additive
 // (rewrite with -update-contracts, rehash the registry, CHANGELOG line); a
 // renamed, retyped or removed one is VisitSchemaVersion 2.

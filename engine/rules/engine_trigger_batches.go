@@ -111,6 +111,10 @@ type engineTriggerBatches struct {
 	// entryHeld is CR 603.6a's entering batch: while a zone batch is open, each battlefield entry's trigger check (a MoveZone onto the battlefield from another zone, or a token mint) is held here in emit order instead of running at the event, and closeZoneBatch runs every held check, in order, once the batch's last member has entered, so each entrant's "whenever another ... enters" sees the whole batch. Deep like the zone batch it rides: a RepeatEach ChangeZoneTable bracket can stay open across a pending decision. entryFlushing is set while those held checks run, so they are not held again.
 	entryHeld     []heldEntryCheck `clone:"deep,copy=cloneHeldEntryChecks"`
 	entryFlushing bool             `clone:"reset"`
+	// exileReturnHeld lists, in departure order, the sources that left the
+	// battlefield inside the open zone batch with cards to return.
+	// closeZoneBatch runs their returns (flushExileReturns).
+	exileReturnHeld []state.ObjID `clone:"deep"`
 	// millBatch is the shared "one or more" ACTION batch: one api:Mill
 	// resolution (Mode$ MilledAll), one api TapAll/UntapAll resolution or
 	// turn-based tapping/untapping action (Mode$ TapAll/UntapAll, task

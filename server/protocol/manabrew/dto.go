@@ -360,7 +360,7 @@ type OwnDeckRow struct {
 }
 
 // OwnDeckExtension is the payload of gorge's additive `x_gorge_own_deck_v1`
-// gameView extension (seat-deck-manifest spec, "Interface mapping" item 4).
+// gameView extension.
 // It is the authenticated seat's OWN genesis deck manifest -- the same
 // immutable, counted list the native view's `own_deck` member carries --
 // rendered as name/count rows. It never describes another seat's deck and
@@ -404,7 +404,7 @@ type GameViewDto struct {
 // AvailableAction is one legal action in a chooseAction prompt. The published
 // spec defines it as a union on `type` (cast | activateAbility | undoMana),
 // but only `kind`, `input.type`, `output.type` and `visibility` carry union
-// codecs in this package (the MB-1 brief's required discriminators), so it is
+// codecs in this package (the discriminators gorge reads), so it is
 // decoded into one flat struct with optional fields. The doc inconsistency
 // where the example sends `modeLabel` while the interface says `label` shows
 // up as a reported unknown path ("actions[].modeLabel"), never as a decode

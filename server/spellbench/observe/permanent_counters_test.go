@@ -73,11 +73,11 @@ func TestObservePermanentCounters(t *testing.T) {
 		t.Fatalf("precondition: walker zone %v, LOYALTY %d, types %v", o.Zone, o.Counter("LOYALTY"), o.Face().Types)
 	}
 
-	tr := identity.New(g.E, g.Secret)
-	if err := tr.Sync(g.E); err != nil {
+	tr := identity.New(g.R, g.Secret)
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	for _, c := range []struct {
 		id   state.ObjID
 		kind string

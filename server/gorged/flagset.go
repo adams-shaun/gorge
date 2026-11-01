@@ -9,8 +9,8 @@ import (
 // ServeFlagSet returns a fresh copy of the flag set Main parses, set to
 // ContinueOnError with no output, so a caller outside this module can check
 // an argument list against the real flags and read back the parsed values by
-// name (fs.Lookup(name).Value). four-yay's deploy test uses it to prove that
-// what its demo deploy script passes is accepted by the server it starts.
+// name (fs.Lookup(name).Value): a deployment's test can prove that what its
+// script passes is accepted by the server it starts.
 func ServeFlagSet() *flag.FlagSet { return ServeFlagSetFor(Extensions{}) }
 
 // ServeFlagSetFor is ServeFlagSet for a binary that links ext: its flag set

@@ -15,8 +15,8 @@
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
 # Runner: pull_request jobs ALWAYS run on GitHub-hosted runners. Push, schedule
-# and dispatch jobs run on the operator's ephemeral k8s runners (label
-# gorge-box, bm-infra docs/gh-runner.md) when the repository variable
+# and dispatch jobs run on the maintainers' ephemeral k8s runners (label
+# gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
 # approval policy is all_external_contributors, so a fork cannot retarget a
 # job onto gorge-box without the owner approving that run.
@@ -61,7 +61,7 @@ jobs:
           restore-keys: gocache-lint-
       - name: gofmt
         run: |
-          out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees -o -name .ds4 -o -name .superpowers \) -prune -o -type f -name '*.go' -print))
+          out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
           if [ -n "$out" ]; then echo "gofmt: files need formatting:"; echo "$out"; exit 1; fi
       - name: go vet
         run: go vet ./...
@@ -166,11 +166,47 @@ jobs:
       - name: Play the examples
         run: scripts/examples-smoke.sh 8097
 
+  # Each engine / wire / consumer cell that has a test (docs/site/architecture/wires.md).
+  wire-matrix:
+    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Run the commit tier
+        run: scripts/wire-matrix.sh commit
+      - name: Run the nightly chunks, fuzz and parity
+        if: github.event_name == 'schedule'
+        run: scripts/wire-nightly.sh
+
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [lint, test, examples]
+    needs: [lint, test, examples, wire-matrix]
     runs-on: ubuntu-24.04
     steps:
       - run: |
-          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }}"; exit 1; }
+          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }}"; exit 1; }

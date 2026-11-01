@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package mbtest
 
 import (
@@ -20,9 +18,8 @@ import (
 const (
 	censusMaxTurns   = 60
 	censusMaxIntents = 20000
-	// censusGamesPerSeatCount keeps the whole run smoke-sized (box rule:
-	// "one go test at a time", "smoke-sized"): 10 games at 2 seats + 10 at 4
-	// seats = 20 total, the ticket's "at most 20" cap.
+	// censusGamesPerSeatCount keeps the whole run smoke-sized: 10 games at 2
+	// seats + 10 at 4 seats = 20 total.
 	censusGamesPerSeatCount = 10
 )
 
@@ -57,8 +54,7 @@ func playCensusGame(t *testing.T, reg *cards.Registry, seats int, seed uint64, c
 }
 
 // TestManaBrewCensusNoUnmapped plays a smoke-sized set of seeded repo-deck
-// games, one at a time, through the ManaBrew mapping (scoping spec §8 item
-// 4) and asserts the census recorded no unmapped decision: every decision
+// games, one at a time, through the ManaBrew mapping and asserts the census recorded no unmapped decision: every decision
 // gorge's engine posed across every one of these games built a prompt
 // through server/manabrew's Translator.
 func TestManaBrewCensusNoUnmapped(t *testing.T) {
@@ -85,8 +81,7 @@ func TestManaBrewCensusNoUnmapped(t *testing.T) {
 // every answer this deterministic client produced was drawn from the
 // prompt's own advertised options, so a rejection would mean the
 // translator's Prompt and TranslateResponse halves disagree about what is
-// legal (scoping spec §8 item 4's "the test fails ... on any rejected count
-// for the first-legal client").
+// legal.
 func TestFirstLegalNeverRefused(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	census := NewCensus()

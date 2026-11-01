@@ -4,12 +4,10 @@ package gorged
 // decklist (bots.Info.Env) is never offered on gorged's public
 // /api/bot-policies list and is never the vs-bot default, because every
 // request the offered set feeds always seats a human. The server's own
-// bot-only tables (today only the az-c3 demo table) may run one behind the
-// explicit -allow-decklist-bots opt-in; az-c3 cannot be served without it
-// and is unreachable from the vs-bot flow either way.
+// bot-only tables may run one behind the explicit -allow-decklist-bots opt-in;
+// it cannot be served without it and is unreachable from the vs-bot flow either way.
 
 import (
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -134,42 +132,27 @@ func TestBotPoliciesNamingDecklistBotIsAnError(t *testing.T) {
 	}
 }
 
-func TestAZC3NeedsAllowDecklistBots(t *testing.T) {
-	dir, err := os.MkdirTemp("", "gorged-dlb-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.RemoveAll(dir) })
-	path, err := writeStubNet(dir, "net.dzgw")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Precondition: az-c3 is registered (this test or azc3_test's enableAZ
-	// enabled it over the synthetic network).
-	if _, ok := bots.Lookup(policyAZC3); !ok {
-		if err := (config{az3Net: path, az3Decks: dir, autoMana: true, botAutoPayMana: true, allowDecklistBots: true}).enableAZC3(); err != nil {
-			t.Fatalf("with -allow-decklist-bots the flags should pass and register: %v", err)
-		}
-	}
-	if _, ok := bots.Lookup(policyAZC3); !ok {
-		t.Fatal("az-c3 is not registered")
-	}
-	// Without the opt-in the flags are refused, naming the rule, even though
-	// the policy is registered: serving az-c3 requires -allow-decklist-bots.
-	err = (config{az3Net: path, az3Decks: dir, autoMana: true, botAutoPayMana: true}).enableAZC3()
+// Without the opt-in a decklist reader's flags are refused, naming the rule.
+func TestDecklistReaderNeedsAllowDecklistBots(t *testing.T) {
+	c := withNet(config{autoMana: true, botAutoPayMana: true}, testOpenPolicy, netPolicy{net: "n", decks: "d"})
+	err := c.checkNetFlags()
 	if err == nil {
-		t.Fatal("enableAZC3 accepted -az-c3-net without -allow-decklist-bots")
+		t.Fatal("a decklist reader's -net was accepted without -allow-decklist-bots")
 	}
 	if !strings.Contains(err.Error(), "-allow-decklist-bots") {
 		t.Fatalf("error %v, want one naming -allow-decklist-bots", err)
 	}
+	c.allowDecklistBots = true
+	if err := c.checkNetFlags(); err != nil {
+		t.Fatalf("with -allow-decklist-bots: %v", err)
+	}
 }
 
-func TestAZC3NotReachableFromVsBot(t *testing.T) {
-	enableAZ(t)
+func TestDecklistReaderNotReachableFromVsBot(t *testing.T) {
+	enableOpen(t)
 	// The opt-in itself is set, to prove the refusal is not just the missing
 	// flag: the vs-bot flow seats a HUMAN at seat 0, and no opt-in buys that.
-	c := azConfig()
+	c := openConfig()
 	c.allowDecklistBots = true
 	r, gate := freshGameLock(t)
 	create := c.createGame(r, gate, nil, []string{"c", "d"}, view.Omniscient)
@@ -177,14 +160,14 @@ func TestAZC3NotReachableFromVsBot(t *testing.T) {
 		name string
 		req  httpapi.CreateGameOptions
 	}{
-		{"explicit pick", httpapi.CreateGameOptions{Format: host.FormatConstructed, BotPolicy: policyAZC3}},
-		// An FDN deck reserved for az-c3 used to pick the policy; now it
-		// must refuse rather than seat a human against it.
+		{"explicit pick", httpapi.CreateGameOptions{Format: host.FormatConstructed, BotPolicy: testOpenPolicy}},
+		// A deck reserved for the policy must refuse rather than seat a human
+		// against it.
 		{"reserved-deck pick", httpapi.CreateGameOptions{Format: host.FormatConstructed, HumanDeck: "a"}},
 	} {
 		_, err := create(tc.req)
 		if err == nil {
-			t.Errorf("%s: the vs-bot flow seated az-c3", tc.name)
+			t.Errorf("%s: the vs-bot flow seated a decklist reader", tc.name)
 		} else if !strings.Contains(err.Error(), "reads opponents' decklists") {
 			t.Errorf("%s: error %v, want the decklist refusal", tc.name, err)
 		}

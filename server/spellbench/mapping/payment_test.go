@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 )
 
@@ -98,7 +99,7 @@ func TestUnlessPayPreservesNativeManaWindowChoices(t *testing.T) {
 				if mapping.Route(n) != "choose/mana_window" {
 					t.Fatalf("elected payment cannot enter its native mana window: %+v", n)
 				}
-				g.E = cl
+				g = gamecfg.Wrap(cl, g.Secret)
 				seenCompletion := false
 				for step := 0; step < 16; step++ {
 					n = g.E.Pending()
@@ -150,7 +151,7 @@ func TestUnlessPayPreservesNativeManaWindowChoices(t *testing.T) {
 							t.Fatal(err)
 						}
 					}
-					g.E = cl
+					g = gamecfg.Wrap(cl, g.Secret)
 				}
 				if !seenCompletion {
 					t.Fatal("funding the native payment never reached its Done-only completion")

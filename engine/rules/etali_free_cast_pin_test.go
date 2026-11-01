@@ -7,17 +7,14 @@ import (
 )
 
 // TestEtaliFreeCastElectionEmptyWithOnlyAnInfeasibleSpellExiled pins the
-// lockstep pair 23256 divergence triage at decision 695 (kernel-land): Etali,
+// lockstep pair 23256 divergence triage at decision 695 (dirac): Etali,
 // Primal Storm's attack trigger exiles the top of each library and then may
 // cast any number of the remembered spells without paying their mana costs.
 // With an opposing side that controls no creature, the only remembered
 // non-land spell is Felling Blow, whose mandatory second target ("target
 // creature an opponent controls", CR 601.2c) cannot be chosen, so the
 // Optional$ election is empty: the trigger resolves without posing a cast ask
-// and Felling Blow stays in exile. The dirty-dirac kernel's OpCastFree
-// (kernel/interp_gen.go) keeps every remembered non-land card in its free
-// list and poses the raGenCastFree ask instead; this test is the gorge-side
-// pin that the kernel round must meet, not a gorge change.
+// and Felling Blow stays in exile.
 func TestEtaliFreeCastElectionEmptyWithOnlyAnInfeasibleSpellExiled(t *testing.T) {
 	t.Parallel()
 	run := runInlineOracle(t, `{

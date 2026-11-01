@@ -347,8 +347,8 @@ func CheckValidateEquivalent(d *Decision, ins []Intent) error {
 		}
 	}
 	if len(d.Options) <= 16 { // the block team search is exponential
-		if got, want := d.requiredCore(), d.requiredCoreRef(); !reflect.DeepEqual(got, want) {
-			return fmt.Errorf("decision %s %+v: requiredCore %#v, reference %#v", d.Kind, d.Options, got, want)
+		if got, want := d.requiredPicks(), d.requiredCoreRef(); !reflect.DeepEqual(got, want) {
+			return fmt.Errorf("decision %s %+v: requiredPicks %#v, reference %#v", d.Kind, d.Options, got, want)
 		}
 		if got, want := d.blockRequiredCore(), d.blockRequiredCoreRef(); !reflect.DeepEqual(got, want) {
 			return fmt.Errorf("decision %s %+v: blockRequiredCore %#v, reference %#v", d.Kind, d.Options, got, want)

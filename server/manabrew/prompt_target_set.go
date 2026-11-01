@@ -12,9 +12,9 @@ import (
 // The set-level target constraints -- Decision.TargetsWithSameController,
 // Decision.SetPropMode (the TargetsWithSameCardType$/DifferentCMC$ families)
 // and Option.Group exclusivity -- are invisible per candidate on the ManaBrew
-// wire (spec gap G-4): TargetRef carries no controller and no property
+// wire: TargetRef carries no controller and no property
 // tokens, so a rules-ignorant client cannot evaluate the constraint itself.
-// The remedy the scope spec sanctions for G-4 -- a human-readable constraint
+// The remedy -- a human-readable constraint
 // in presentation.description, Decision.Validate as the fence, rejections
 // counted in the census -- is made ANSWERABLE here by ordering:
 // orderTargetOptions reorders the candidate list so the first Decision.Min

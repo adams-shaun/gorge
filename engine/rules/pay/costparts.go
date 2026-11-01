@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -91,7 +92,7 @@ func RevealOrChooseCandidates(e Engine, p state.PlayerID, source state.ObjID, pa
 		// battlefield is indexed by controller.
 		for _, id := range e.Game().Zone(state.ZBattlefield, p) {
 			o := e.Game().Obj(id)
-			if o != nil && o.Controller == p && ExistsOnBattlefield(o) && o.EffectiveIsCreature() {
+			if o != nil && o.Controller == p && ExistsOnBattlefield(o) && slices.Contains(e.Chars().DerivedTypes(id), "Creature") {
 				battlefield = append(battlefield, id)
 			}
 		}

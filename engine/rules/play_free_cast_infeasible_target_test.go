@@ -11,7 +11,7 @@ import (
 // not. Felling Blow ("target creature you control ... target creature an
 // opponent controls") with no creature on the opponent's side cannot be cast
 // by Epic Experiment's Play any more than from hand; the Play must not begin
-// it, ask its first target and drop the second (dirty-dirac K1m pair 23256,
+// it, ask its first target and drop the second (dirac pair 23256,
 // Etali, Primal Conqueror).
 func TestFreeCastWithAnUnsatisfiableTargetIsNotOffered(t *testing.T) {
 	t.Parallel()

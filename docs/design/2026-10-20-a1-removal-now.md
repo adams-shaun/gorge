@@ -1,8 +1,6 @@
 # A1 removal-now rule: opt-in, with firing evidence
 
 Date: 2026-10-20.
-Ticket: A1 of four-yay's
-`docs/design/2026-10-19-forge-heuristics-go-port-design.md`.
 Outcome: **implemented and armed only on the experimental `forge-heuristic`
 policy.** The default `bot` is unchanged and no win rate is claimed.
 

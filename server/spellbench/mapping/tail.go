@@ -59,7 +59,7 @@ func tailSelect(purp string, withSource bool) Builder {
 		for _, o := range d.Options {
 			switch {
 			case o.Obj != 0:
-				obj := env.G.E.G.Obj(o.Obj)
+				obj := env.G.R.Board().Obj(o.Obj)
 				if obj == nil {
 					return nil, fmt.Errorf("%w:%s option %d has no object", ErrUnmapped, purp, o.Index)
 				}

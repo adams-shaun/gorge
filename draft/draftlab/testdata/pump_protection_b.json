@@ -1,0 +1,108 @@
+{
+ "name": "b",
+ "format": "limited",
+ "archetype": "",
+ "commander": "",
+ "cards": [
+  {
+   "name": "Giada, Font of Hope",
+   "count": 1
+  },
+  {
+   "name": "Banner of Kinship",
+   "count": 1
+  },
+  {
+   "name": "Dazzling Angel",
+   "count": 1
+  },
+  {
+   "name": "Vanguard Seraph",
+   "count": 1
+  },
+  {
+   "name": "Fiendish Panda",
+   "count": 1
+  },
+  {
+   "name": "Heraldic Banner",
+   "count": 1
+  },
+  {
+   "name": "Painful Quandary",
+   "count": 1
+  },
+  {
+   "name": "Mischievous Pup",
+   "count": 1
+  },
+  {
+   "name": "Elenda, Saint of Dusk",
+   "count": 1
+  },
+  {
+   "name": "Tinybones, Bauble Burglar",
+   "count": 1
+  },
+  {
+   "name": "Tragic Banshee",
+   "count": 1
+  },
+  {
+   "name": "Macabre Waltz",
+   "count": 1
+  },
+  {
+   "name": "Prideful Parent",
+   "count": 1
+  },
+  {
+   "name": "Burglar Rat",
+   "count": 1
+  },
+  {
+   "name": "Infernal Vessel",
+   "count": 1
+  },
+  {
+   "name": "Burnished Hart",
+   "count": 1
+  },
+  {
+   "name": "Stab",
+   "count": 1
+  },
+  {
+   "name": "Gutless Plunderer",
+   "count": 1
+  },
+  {
+   "name": "Cat Collector",
+   "count": 1
+  },
+  {
+   "name": "Hare Apparent",
+   "count": 1
+  },
+  {
+   "name": "Exsanguinate",
+   "count": 1
+  },
+  {
+   "name": "Fake Your Own Death",
+   "count": 1
+  },
+  {
+   "name": "Revenge of the Rats",
+   "count": 1
+  },
+  {
+   "name": "Plains",
+   "count": 6
+  },
+  {
+   "name": "Swamp",
+   "count": 11
+  }
+ ]
+}

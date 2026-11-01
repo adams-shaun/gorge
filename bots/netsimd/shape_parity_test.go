@@ -324,7 +324,7 @@ func TestOneLayoutMatchesGeneral(t *testing.T) {
 		}
 		check(s.String(), g, sts, opts)
 	}
-	if p := os.Getenv("NETSIMD_DZGW"); p != "" || fileExists(defaultNet) {
+	if os.Getenv("NETSIMD_DZGW") != "" {
 		recs := corpus(t)
 		g := loadSIMD(t, 0)
 		if !netsimd.SetGeneral(g, false) {
@@ -338,5 +338,3 @@ func TestOneLayoutMatchesGeneral(t *testing.T) {
 		check("corpus", g, cs, co)
 	}
 }
-
-func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }

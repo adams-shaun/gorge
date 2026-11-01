@@ -6,9 +6,8 @@ strategy to the engine in a language other than Go. Both are single files
 with no dependencies beyond the language's standard library, and both are
 structured so that you replace one function, `choose`, with your own
 strategy. CI plays one complete game with each against a throwaway `gorged`
-([`scripts/examples-smoke.sh`](https://github.com/adams-shaun/gorge/blob/main/scripts/examples-smoke.sh));
-the transcripts below were captured on 2026-10-20 (`ad3777023`), and the
-smoke script passed again at `513a2a0c3` on 2026-10-21.
+([`scripts/examples-smoke.sh`](https://github.com/adams-shaun/gorge/blob/main/scripts/examples-smoke.sh)).
+The transcripts below are from 2026-10-31.
 
 Source:
 [`examples/bots/python/gorge_agent.py`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/python/gorge_agent.py)
@@ -23,10 +22,9 @@ Both agents use the [HTTP seat](http.md), not the [SpellBench v2
 protocol](spellbench.md). v2's transport is a child process's stdin and
 stdout: the server must start the agent itself, on its own machine, once per
 match. The HTTP seat works from any machine that can reach the server, keeps
-one agent process across as many games as it likes, and is the same surface
-the browser client plays through, so anything the agent does can be watched
-in a browser. An agent that already speaks v2 should use `-sb-agent`
-instead.
+one agent process across as many games as it likes, and is the surface the
+browser client plays through, so anything the agent does can be watched in a
+browser. An agent that already speaks v2 should use `-sb-agent` instead.
 
 ## Run them
 
@@ -34,7 +32,7 @@ Start a server with the play-vs-bot flow armed (see
 [Start a server](http.md#start-a-server-that-has-a-seat-for-you)):
 
 ```console
-$ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+$ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
     -tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot
 ```
 
@@ -48,64 +46,40 @@ and prints a summary. `-v` prints every answer. `--policy random` or
 === "Python"
 
     ```console
-    $ python3 gorge_agent.py --server http://127.0.0.1:8092 --policy simple \
-        --deck mono-green-stompy --bot-deck mono-red-goblins -v
-    created table g209 match 1, seat 0 vs bot
-    seq 22    mulligan         -> [0]
-    seq 53    priority         -> [0]
-    ...
-    seq 2878  priority         -> [10]
-    seq 2887  priority         -> pay plan
-    seq 2897  priority         -> [8]
-    seq 2907  priority         -> [8]
-    seq 2916  priority         -> [8]
-    seq 2924  attackers        -> [0, 1, 2, 3, 4, 5, 6]
-    seq 2935  priority         -> [6]
-    seq 2945  priority         -> [6]
-    decisions answered: 276 (0 answers refused and retried)
-    by kind: attackers=9, blockers=2, choose=1, mulligan=1, priority=259, target=4
-    intent POST round trip: median 0.14 ms, p95 0.20 ms
-    match finished after 24 turns in 0.7 s: winner us (seat 0, mono-green-stompy)
-
-    $ python3 gorge_agent.py --server http://127.0.0.1:8092 --policy random --seed 7
-    created table g210 match 1, seat 0 vs bot
-    decisions answered: 130 (0 answers refused and retried)
-    by kind: choose=3, mulligan=1, priority=126
-    intent POST round trip: median 0.12 ms, p95 0.18 ms
-    match finished after 13 turns in 0.4 s: winner opponent (seat 1, boros-moxite-burn)
-    ```
-
-=== "Java"
-
-    ```console
-    $ java Agent.java --server http://127.0.0.1:8093 --policy simple \
+    $ cd examples/bots/python
+    $ python3 gorge_agent.py --server http://127.0.0.1:8080 --policy simple \
         --deck mono-green-stompy --bot-deck mono-red-goblins -v
     created table g1 match 1, seat 0 vs bot
     seq 18    starting_player  -> [0]
     seq 20    mulligan         -> [0]
     ...
-    seq 3596  priority         -> [11]
-    seq 3605  priority         -> [11]
-    seq 3620  priority         -> [11]
-    seq 3630  priority         -> [11]
-    seq 3634  blockers         -> []
-    seq 3642  priority         -> [11]
-    decisions answered: 347 (0 answers refused and retried)
-    by kind: attackers=14, blockers=4, choose=2, mulligan=1, priority=321, starting_player=1, target=4
-    intent POST round trip: median 0.26 ms, p95 0.87 ms
-    match finished after 30 turns in 1.1 s: winner opponent (seat 1, mono-red-goblins)
-
-    $ java Agent.java --server http://127.0.0.1:8093 --policy random --seed 7
-    created table g2 match 1, seat 0 vs bot
-    decisions answered: 223 (0 answers refused and retried)
-    by kind: attackers=1, blockers=1, choose=5, mulligan=1, priority=213, starting_player=1, target=1
-    intent POST round trip: median 0.28 ms, p95 0.62 ms
-    match finished after 18 turns in 0.6 s: winner opponent (seat 1, tron)
+    seq 1345  priority         -> [3]
+    seq 1355  priority         -> [3]
+    decisions answered: 126 (0 answers refused and retried)
+    by kind: attackers=5, mulligan=1, priority=118, starting_player=1, target=1
+    intent POST round trip: median 0.30 ms, p95 0.54 ms
+    match finished after 11 turns in 0.5 s: winner us (seat 0, mono-green-stompy)
     ```
 
-    `java Agent.java` compiles the file in memory (Java 11+ source-launcher;
-    tested on OpenJDK 21.0.11). The Java default server is port 8093; pass
-    `--server` for another.
+=== "Java"
+
+    ```console
+    $ cd examples/bots/java
+    $ java Agent.java --server http://127.0.0.1:8080 --policy simple \
+        --deck mono-green-stompy --bot-deck mono-red-goblins -v
+    created table g3 match 1, seat 0 vs bot
+    seq 18    starting_player  -> [0]
+    seq 20    mulligan         -> [0]
+    ...
+    seq 2052  priority         -> [10]
+    decisions answered: 193 (0 answers refused and retried)
+    by kind: attackers=6, blockers=4, choose=1, mulligan=1, priority=178, starting_player=1, target=2
+    intent POST round trip: median 0.49 ms, p95 1.31 ms
+    match finished after 16 turns in 0.8 s: winner opponent (seat 1, mono-red-goblins)
+    ```
+
+    `java Agent.java` compiles the file in memory; the example uses Java 21 features, tested on OpenJDK 21.0.11.
+    Both agents default to `http://127.0.0.1:8080`, `gorged`'s default address; pass `--server` for another.
 
 ## How they are built
 
@@ -314,8 +288,7 @@ falls back.
     ```
 
     Then pass an instance to `play(client, BurnFace())`, or add it to the
-    `--policy` choices in `main()`. (Tested 2026-10-20: a Burn deck, 152
-    decisions, none refused.)
+    `--policy` choices in `main()`.
 
 === "Java"
 
@@ -336,32 +309,11 @@ falls back.
     }
     ```
 
-    Then select it in `main()` where `policy` is chosen. (Tested
-    2026-10-20 in a copy of `Agent.java` with a `--policy burn` branch: 164
-    decisions, none refused.)
+    Then select it in `main()` where `policy` is chosen.
 
 The decision kinds and what an answer to each means are on
 [Playing a seat over HTTP](http.md#answering-each-decision-kind).
 
-## How well they play
-
-Neither is meant to be strong; they are scaffolding. Measured on 2026-10-20
-against the hosted `bot` playing UW Control, our deck dealt at random, one
-game per seed:
-
-| Agent | Games | Wins | Answers refused |
-|---|---:|---:|---:|
-| Python `simple` | 40 | 20 | 0 |
-| Python `random` | 40 | 3 | 2 |
-| Java `simple` | 20 | 9 | 0 |
-| Java `random` | 20 | 3 | 0 |
-
-```console
-$ for i in $(seq 1 40); do python3 gorge_agent.py --policy simple --seed $i --bot-deck uw-control | tail -1; done
-```
-
-All 120 games ran to a result. Over whole games the agents spend 1.6 ms
-(random, no view) to 3.2 ms (simple, a view per decision) per decision,
-mostly in polling back-off; [Latency](http.md#latency) breaks that down.
-For fair comparisons between strategies (seats traded, seeded deck pairs,
-enough games), see [Bot-vs-bot games](../guide/bot-games.md).
+Neither strategy is meant to be strong; they are scaffolding. For fair comparisons between strategies, with seats traded
+and enough games, see [Bot-vs-bot games](../guide/bot-games.md). Over whole games the agents spend a few milliseconds per
+decision, mostly in polling back-off; [Latency](http.md#latency) breaks that down.

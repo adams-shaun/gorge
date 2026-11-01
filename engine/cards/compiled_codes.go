@@ -676,7 +676,7 @@ var triggerModeInterests = func() (t [TriggerModeCount]TriggerInterest) {
 	set(TriggerInterestStackPut, TriggerSpellCast)
 	set(TriggerInterestAbilityPush, TriggerAbilityCast)
 	// The spell-or-activate union (targetsvalid1): the activation arm
-	// matches an AbilityPush, the spell arm a PutOnStack.
+	// matches an activation mint, the spell arm a PutOnStack.
 	set(TriggerInterestAbilityPush|TriggerInterestStackPut, TriggerSpellAbilityCast)
 	set(TriggerInterestAttackDeclaration, TriggerAttacks, TriggerAttackersDeclaredOneTarget, TriggerAttackersDeclared, TriggerAttackerBlocked, TriggerAttackerBlockedByCreature, TriggerBlocks)
 	set(TriggerInterestTargetsChosen, TriggerCommitCrime, TriggerBecomesTarget, TriggerBecomesTargetOnce)

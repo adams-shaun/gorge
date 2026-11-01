@@ -1,0 +1,2 @@
+# Games a nightly run found a diff in, replayed by TestFoundPairs for good.
+# wire<TAB>set<TAB>seed<TAB>pair, as scripts/wire-nightly.sh writes them.

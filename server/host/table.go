@@ -3,11 +3,16 @@ package host
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -232,6 +237,22 @@ type TableConfig struct {
 	// hook says stop. Requires Event. false — every other table — changes
 	// nothing.
 	Series bool `json:"series,omitempty"`
+	// Engine names the Options.Engines entry every match of this table runs
+	// on. "" is gorge, and validation normalizes gorge's name to "", so a
+	// gorge table's persisted form never names an engine.
+	Engine string `json:"engine,omitempty"`
+}
+
+// LookupEngine returns the engine a table config or sidecar names, "" reading
+// as gorge. A name engines does not hold is an error listing the names it does.
+func LookupEngine(engines map[string]game.Engine, name string) (game.Engine, error) {
+	if name == "" {
+		name = gorgegame.Name
+	}
+	if e, ok := engines[name]; ok {
+		return e, nil
+	}
+	return nil, fmt.Errorf("engine %q is not linked into this server (available: %s)", name, strings.Join(slices.Sorted(maps.Keys(engines)), ", "))
 }
 
 // autoPayManaEnabled is the effective hosted-bot setting. BotAutoPayMana is
@@ -258,13 +279,13 @@ var errDecklistBotRefusal = errors.New("reads opponents' decklists")
 // validated normalizes a table configuration before it is retained by the
 // registry. Keeping normalization beside validation means a name cannot be
 // persisted as an ambiguous empty value or reach a running table unchecked.
-func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, error) {
+func (c TableConfig) validated(load func(string) (Deck, error), engines map[string]game.Engine) (TableConfig, error) {
 	policy, err := NormalizeBotPolicy(c.BotPolicy)
 	if err != nil {
 		return TableConfig{}, fmt.Errorf("host: table %s: %w", c.ID, err)
 	}
 	c.BotPolicy = policy
-	// A policy with no manual-tap mode (az-c3) cannot be built on a table
+	// A policy with no manual-tap mode cannot be built on a table
 	// without payment plans: the factory refuses, and a refusal at the first
 	// seat would crash the match. Refuse the table instead.
 	if e, ok := bots.Lookup(policy); ok && e.NeedsAutoPay && !c.autoPayManaEnabled() {
@@ -281,7 +302,7 @@ func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, er
 	// binary without the opt-in) from a validation failure it must still
 	// fail the start over — an unknown policy name, bad seats, missing decks.
 	//
-	// A closed-list policy (bots.Info.ClosedLists, az-c4) is an Env policy
+	// A closed-list policy (bots.Info.ClosedLists) is an Env policy
 	// that does not read decklists: it needs no opt-in and may seat against
 	// a human. The declaration alone is not trusted -- at a table with a
 	// human, play checks every built seat at match start and envData
@@ -305,6 +326,16 @@ func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, er
 		return TableConfig{}, fmt.Errorf("host: table %s: no decks", c.ID)
 	case c.Spectator != view.Public && c.Spectator != view.Omniscient:
 		return TableConfig{}, fmt.Errorf("host: table %s: spectator visibility must be public or omniscient", c.ID)
+	}
+	engine, err := LookupEngine(engines, c.Engine)
+	if err != nil {
+		return TableConfig{}, fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	if e, ok := bots.Lookup(policy); ok && e.Search && !engine.Caps().SearchRoots {
+		return TableConfig{}, fmt.Errorf("host: table %s: bot policy %q searches, and engine %q deals no search roots", c.ID, policy, engine.Name())
+	}
+	if c.Engine == gorgegame.Name {
+		c.Engine = ""
 	}
 	// Task M2c-2: a human-seated table is single-shot by definition, so an
 	// explicit Perpetual: true alongside Humans is a caller contradicting
@@ -332,7 +363,7 @@ func (c TableConfig) validated(load func(string) (Deck, error)) (TableConfig, er
 			seen[h] = true
 		}
 	}
-	if c, err = c.validatedSeatPolicies(); err != nil {
+	if c, err = c.validatedSeatPolicies(engine); err != nil {
 		return TableConfig{}, err
 	}
 	for _, d := range c.Decks {
@@ -447,7 +478,7 @@ func (t *table) info() protocol.TableInfo {
 	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
 		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, Mulligans: t.cfg.Mulligans, AutoMana: t.cfg.AutoMana,
-		Series: t.cfg.Series, Event: t.cfg.Event != "", Review: t.review}
+		Series: t.cfg.Series, Event: t.cfg.Event != "", Review: t.review, Engine: t.cfg.Engine}
 	// SeatNames come from the live match's own seat list — the same
 	// []protocol.SeatInfo that MatchStart carries — so the two can never
 	// drift. cur is guarded by t.mu, which we already hold; reading its

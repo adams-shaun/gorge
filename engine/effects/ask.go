@@ -58,6 +58,13 @@ func askCount(h Host) uint64 {
 	return 0
 }
 
+// tapeUnwinding reports whether h's tape run is unwinding at a posed ask. A
+// deferred close that would log checks it (resolve.Kernel.Unwinding).
+func tapeUnwinding(h Host) bool {
+	u, ok := h.(interface{ TapeUnwinding() bool })
+	return ok && u.TapeUnwinding()
+}
+
 // eventMarker is the optional host seam exposing the event log's length and
 // whether any state-changing event (anything but a Note) was logged after a
 // mark. effRepeat's RepeatOptional$ loop reads it to recognise an iteration

@@ -114,13 +114,88 @@ func (e *Engine) convokeAsk() bool {
 	// mana. It nevertheless makes every creature a possible generic payment;
 	// the subsequent xAsk prices the selected contributions against the real
 	// X total.
+	minTaps := 0
+	if isWaterbend && !isConvoke && !isHarmonize && !isImprovise && !creatureMana {
+		minTaps = e.waterbendTapsNeeded(pc)
+	}
 	return pay.ConvokeAsk(asPayer(e), &pc.CastPayment, &pc.PaidCost, pay.ConvokeOffer{
-		Player: pc.player, Card: pc.card,
+		Player: pc.player, Card: pc.card, MinTaps: minTaps,
 		Convoke: isConvoke, Harmonize: isHarmonize, Improvise: isImprovise, Waterbend: isWaterbend,
 		CreatureMana: creatureMana, SourceTaps: pc.cost.Tap,
 		Mana: e.manaToPay(pc), HasX: pc.cost.X > 0,
 		WaterbendN: pc.mods.Waterbend, WaterbendOpen: pc.mods.RaiseX != 0 || pc.mods.WaterbendX,
 	})
+}
+
+// waterbendTapsNeeded is the fewest taps a fixed waterbend announcement can make
+// and still leave the mana window able to finish (CR 601.2g-h, 701.67a): an answer
+// below it strands the payment. It counts a helper's own mana abilities as if the
+// helper stayed untapped, so it never demands a tap the payment could do without.
+// An unknown amount or an incomplete census asks for none.
+func (e *Engine) waterbendTapsNeeded(pc *pendingCast) int {
+	if pc.cost.X > 0 || pc.mods.WaterbendX || pc.mods.RaiseX != 0 {
+		return 0
+	}
+	units := e.castWindowUnits(pc)
+	if !e.castWindowCensusComplete(pc, units) {
+		return 0
+	}
+	cost := e.manaToPay(pc)
+	for n := range min(pc.mods.Waterbend, cost.Generic) + 1 {
+		c := cost
+		c.Generic -= n
+		if e.castWindowPays(pc, c, units) {
+			return int(n)
+		}
+	}
+	return 0
+}
+
+// castWindowPays reports whether the floating pool and the window's sources
+// units can pay cost.
+func (e *Engine) castWindowPays(pc *pendingCast, cost Cost, units []windowManaUnit) bool {
+	pl := &e.G.Players[pc.player]
+	desc := paymentForCast(pc, cost)
+	av := pay.AvailableFor(asPayer(e), pc.player, desc)
+	conv := asEval(e).Conv(pc.player, desc.ID, desc.Class == paymentActivated)
+	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
+	return e.castWindowReachable(pc.player, cost, av.Pool, pl.Snow, av.Typed, pl.Life, conv, rider, units)
+}
+
+// reverseStrandedPayment reverses a cast or activation whose helpers or tap-cost
+// election left a mana payment the window can't finish. A permanent so committed
+// can't also tap for mana (CR 601.2g-h, 602.2b), and the ask's Min can't say which
+// picks leave too little, so that answer is an illegal action, undone before any
+// mana is activated (CR 733.1). An announced cast keeps its window, whose Cancel is
+// the same reversal. It reports whether it reversed pc.
+func (e *Engine) reverseStrandedPayment(pc *pendingCast) bool {
+	if pc.Announced || pc.WindowChecked || (len(pc.Convoke) == 0 && len(pc.Taps) == 0) {
+		return false
+	}
+	pc.WindowChecked = true
+	if !e.paymentStranded(pc) {
+		return false
+	}
+	text := "cast aborted: cost no longer payable"
+	if pc.isAbility() {
+		text = "activation aborted: cost no longer payable"
+	}
+	e.abortCast(pc, text, true)
+	return true
+}
+
+// paymentStranded reports whether no way through the window pays pc's mana, which
+// only a complete census can say.
+func (e *Engine) paymentStranded(pc *pendingCast) bool {
+	mana := e.castPaymentMana(pc)
+	if !mana.HasManaPayment() {
+		return false
+	}
+	units := e.castWindowUnits(pc)
+	if !e.castWindowCensusComplete(pc, units) {
+		return false
+	}
+	return !e.castWindowPays(pc, mana, units)
 }
 
 func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
@@ -208,8 +283,9 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// Gitaxian Probe with an Island offered only "Pay 2 life".  Probe the same
 	// concrete source alternatives that manaWindowAsk can subsequently offer,
 	// after composing exactly the modifiers, commander tax, and Delve credit
-	// that payCast will charge.  This is an offer-side read only; the chosen
-	// face still reaches the ordinary mana window and is paid there.
+	// that payCast will charge, activation fees included.  This is an offer-side
+	// read only; the chosen face still reaches the ordinary mana window and is
+	// paid there.
 	charged := pc.mods.Apply(c)
 	charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
 	charged.Generic -= delve
@@ -220,9 +296,9 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 		return false
 	}
 	av := pay.AvailableFor(asPayer(e), pc.player, payment)
-	return pay.ManaReachable(asPayer(e), pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
-		av.Typed, e.G.Players[pc.player].Life, rider,
-		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), e.castWindowUnits(pc))
+	return e.castWindowReachable(pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
+		av.Typed, e.G.Players[pc.player].Life,
+		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), rider, e.castWindowUnits(pc))
 }
 
 // hasRemainingManaComponent reports whether c still demands a mana payment

@@ -10,11 +10,11 @@ so it can stay out of every turn's context.
 | `go run ./cmd/pkgmap` (classification: `docs/site/architecture/packages.tiers.json`) | Every package with its purpose, LOC, reverse importers, tier and status, plus the tier-dependency graph; `-check` fails on an unclassified package. |
 | [invariants.md](invariants.md) | Before changing engine code. It lists each design invariant, what enforces it, and the legitimate way to change it, and ends with the contributor workflow. |
 | [do-not.md](do-not.md) | Before you touch git, run a server, or merge. Every entry has happened here. |
-| [heads-history.md](heads-history.md) | Frozen: why the acceptance chain heads moved before 2026-10-03. New head-move rationale goes in the commit message. |
 | [runtime-behavior.md](runtime-behavior.md) | When changing trigger-relative filters, cast provenance, host observer hooks, or seat privacy/session handling. |
+| [repro.md](repro.md) | Turning a player's bug report into a failing test. |
 | [README § Bot player training and adoption](../../README.md#bot-player-training-and-adoption-guidelines) | Building, training or evaluating a bot policy. |
 | [`docs/design/2026-09-22-engine-contracts.md`](../design/2026-09-22-engine-contracts.md) | Behaviour that looks like a bug but is a deliberate contract. |
-| [`docs/design/`](../design/ARCHIVE.md) and [`docs/decisions/`](../decisions/0001-repo-layout.md) | Living designs (flat, date-prefixed) and architecture decisions. Historical records were parked; `docs/design/ARCHIVE.md` indexes them. |
+| [`docs/design/`](../design/ARCHIVE.md) and [`docs/decisions/`](../decisions/0001-repo-layout.md) | Living designs (flat, date-prefixed) and architecture decisions. Finished records were parked; `docs/design/ARCHIVE.md` indexes them. |
 
 ## The six rules that matter most
 
@@ -27,6 +27,6 @@ so it can stay out of every turn's context.
    hosted or rated game.
 5. Work in a git worktree that has `.cards/` linked, and leave `main`'s
    checkout alone.
-6. Ratchets fail both ways, the Known-approximations table only shrinks, and
+6. Ratchets fail both ways, the Known-approximations register only shrinks, and
    golden heads move only with a named cause.
 

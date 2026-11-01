@@ -13,12 +13,14 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/spellbench/catalog"
+	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -259,7 +261,7 @@ func attachTestSeatArgv(t *testing.T, e *rules.Engine, idx int, argv []string, d
 	agent := raw.(*Agent)
 	mc := &bots.MatchContext{
 		Context:      context.Background(),
-		Engine:       e,
+		Game:         gorgegame.Game{E: e},
 		GameID:       "g-0000000000000001",
 		Seat:         idx,
 		Seats:        2,
@@ -408,3 +410,50 @@ func goRun(t *testing.T) []string {
 	}
 	return []string{p, "run"}
 }
+
+// After a host undo the seat reads the replayed game: its environment holds the
+// new board, what it had open is gone, and it answers the rewound decision.
+func TestAgentFollowsARewind(t *testing.T) {
+	e, cfg, _ := testEngine(t)
+	agent, fallback := attachTestSeatScript(t, e, 0, script(t, "minimal_bot.py"), 0)
+	defer endTestMatch([]engineseat.Seat{agent})
+	var at int
+	for range 3 {
+		_, in, err := nextAgentDecision(t, e, agent, fallback)
+		if err != nil {
+			t.Fatal(err)
+		}
+		at = len(e.L.Intents)
+		if err := e.Submit(in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rewound, err := replay.ReplayTo(e.L.Clone(), cfg, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent.tx = stuckTransaction{}
+	agent.MatchRewound(gorgegame.Game{E: rewound})
+	if agent.tx != nil {
+		t.Fatal("a transaction survived the rewind")
+	}
+	if agent.env.G.R.Board() != rewound.G {
+		t.Fatal("the seat still reads the game it attached to")
+	}
+
+	d := rewound.Pending()
+	v := view.Project(rewound.G, rewound, d.Player, d)
+	in, err := agent.Decide(context.Background(), v, *d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if agent.Forfeit() != "" {
+		t.Fatalf("forfeit %s after the rewind", agent.Forfeit())
+	}
+	if err := rewound.Submit(in); err != nil {
+		t.Fatalf("the rewound game refused the seat's answer: %v", err)
+	}
+}
+
+// stuckTransaction stands for a transaction left open across a rewind.
+type stuckTransaction struct{ mapping.Transaction }

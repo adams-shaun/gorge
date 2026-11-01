@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -66,5 +67,43 @@ func TestUnravelCapturesTargetedCastTotalManaSpentAfterCounter(t *testing.T) {
 	// which differs from the paid total and incorrectly adds one card.
 	if got, want := len(e.G.Zone(state.ZHand, 0)), handBeforeUnravel-1; got != want {
 		t.Fatalf("hand size after Unravel = %d, want %d (Unravel spent 7 for a mana-value-7 target and should not draw)", got, want)
+	}
+}
+
+// A targeted reader in hand declines no plan: a spell cast through one spends
+// and records the same total a manual payment would, and Unravel reads it.
+func TestPlannedCastBesideUnravelRecordsItsSpend(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	unravel, ok := reg.Lookup("Unravel")
+	if !ok {
+		t.Fatal("corpus missing Unravel")
+	}
+	target := card(t, "Name:Three Spell\nManaCost:2 U\nTypes:Sorcery\nOracle:x\n")
+	e, _ := tokenReplGameSeats(t, 949, []*cards.Card{unravel, target}, nil)
+	unravelID := moveSeededCard(t, e, 0, unravel, state.ZHand)
+	targetID := moveSeededCard(t, e, 0, target, state.ZHand)
+	for range 3 {
+		onBoard(t, e, 0, apIsland)
+	}
+	e.pending = nil
+	e.priorityRound()
+	d, a := announceAction(t, e, targetID)
+	if len(a.Plans) == 0 {
+		t.Fatalf("no plan beside the reader: %+v", a)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}); err != nil {
+		t.Fatal(err)
+	}
+	if o := e.G.Obj(targetID); o.Zone != state.ZStack || o.ManaSpent != 3 {
+		t.Fatalf("planned spell = zone %s, ManaSpent %d; want on the stack having spent 3", o.Zone, o.ManaSpent)
+	}
+	addMana(t, e, 0, "1UU")
+	hand := len(e.G.Zone(state.ZHand, 0))
+	submitChoices(t, e, castModeOption(t, e, unravelID, ""))
+	targetObject(t, e, targetID)
+	passUntilStackEmpty(t, e, 30)
+	if got, want := len(e.G.Zone(state.ZHand, 0)), hand-1; got != want {
+		t.Fatalf("hand = %d, want %d: 3 spent is the target's mana value, so Unravel draws nothing", got, want)
 	}
 }

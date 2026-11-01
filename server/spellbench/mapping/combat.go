@@ -208,15 +208,15 @@ func EngineOrderSplit(power int32, lethal []int32) []int32 {
 // large to ask with the same rule (rules/combat.go), so every combat follows
 // one declared rule and no distribute decision is ever posed.
 func engineOrderDivision(env *Env, d *decision.Decision) (decision.Intent, error) {
-	e := env.G.E
-	a := e.G.Obj(d.Source)
+	r := env.G.R
+	a := r.Board().Obj(d.Source)
 	if a == nil || len(d.Options) == 0 {
 		return decision.Intent{}, fmt.Errorf("%w:division_without_attacker", ErrUnmapped)
 	}
 	power := int32(d.Options[len(d.Options)-1].Amount)
 	var live []state.ObjID
 	for _, b := range a.BlockedBy {
-		if o := e.G.Obj(b); o != nil && o.Zone == state.ZBattlefield {
+		if o := r.Board().Obj(b); o != nil && o.Zone == state.ZBattlefield {
 			live = append(live, b)
 		}
 	}
@@ -241,7 +241,7 @@ func engineOrderDivision(env *Env, d *decision.Decision) (decision.Intent, error
 			if j > 0 {
 				want = append(want, ',')
 			}
-			want = fmt.Appendf(want, "%d to %s", splits[i][j], e.G.Obj(bid).Face().Name)
+			want = fmt.Appendf(want, "%d to %s", splits[i][j], r.Board().Obj(bid).Face().Name)
 		}
 		if int32(o.Amount) != splits[i][0] || o.Label != string(want) {
 			return decision.Intent{}, fmt.Errorf("%w:division_layout", ErrUnmapped)
@@ -249,8 +249,8 @@ func engineOrderDivision(env *Env, d *decision.Decision) (decision.Intent, error
 	}
 	lethal := make([]int32, len(live))
 	for i, b := range live {
-		lethal[i] = e.Toughness(b)
-		if e.HasKeyword(a.ID, "Deathtouch") {
+		lethal[i] = r.Toughness(b)
+		if r.HasKeyword(a.ID, "Deathtouch") {
 			lethal[i] = 1
 		}
 	}

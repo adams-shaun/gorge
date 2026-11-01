@@ -10,11 +10,9 @@ import (
 // factory. internal/archtest additionally forbids host from linking
 // bots/azmcts at all.
 //
-// The real L10 teacher (`search`, BP-11) is the deliberate exception: it is a
-// hosted policy ONLY when its package is linked into the binary, and it lives
-// in four-yay now (bots/search), so gorge's host never links it: the factory
-// refuses it here. four-yay bots/hosttest TestSearchIsHostedWhenLinked is the
-// linked half (the factory accepts it and builds an EnvSeat + BoardSeat).
+// A search policy (`search`) is the deliberate exception: it is a hosted policy
+// ONLY when its package is linked into the binary, and gorge's host never links
+// it: the factory refuses it here.
 func TestHostedVocabularyRefusesSearchPolicies(t *testing.T) {
 	for _, name := range []string{"az", "policynet", "legacy", "explore"} {
 		if _, err := NormalizeBotPolicy(name); err == nil {
@@ -28,7 +26,7 @@ func TestHostedVocabularyRefusesSearchPolicies(t *testing.T) {
 		}
 	}
 
-	// search is not linked into gorge (it moved to four-yay).
+	// search is not linked into gorge.
 	const searchPolicy = "search"
 	if _, err := NormalizeBotPolicy(searchPolicy); err == nil {
 		t.Errorf("NormalizeBotPolicy(%q) accepted an unlinked policy", searchPolicy)

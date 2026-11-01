@@ -77,6 +77,10 @@ func (d *Decision) ChargeTapPoolFit(choices []int) bool {
 	return d.ChargeTapPool-consumed >= owed
 }
 
+// tapPoolDraw is what choosing the option takes from a published tap pool: the
+// candidate it occupies and the taps it owes.
+func (o *Option) tapPoolDraw() int { return o.TapPoolCost + o.CostTaps }
+
 // ChargeOptionConstraints applies the published-field half of the non-mana
 // combat-charge answer rule shared by the KAttackers and KBlockers arms. It
 // is the ONE home for the rule so the bot's policy and any other answer

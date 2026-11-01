@@ -76,7 +76,7 @@ func benchRoot(tb testing.TB) benchFixture {
 }
 
 func benchSampleOptions() SampleOptions {
-	// four-yay cmd/searchteacher's defaults: the knobs the 521 ms figure was taken at.
+	// the search teacher's defaults: the knobs the 521 ms figure was taken at.
 	return SampleOptions{Seed: 54321, Attempts: 64, Worlds: 8, MaxSubmits: 5000}
 }
 

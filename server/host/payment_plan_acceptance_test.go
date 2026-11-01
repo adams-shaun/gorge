@@ -224,7 +224,7 @@ func runPaymentPlanHumanSeat(t *testing.T, seats int, decks []string, seed uint6
 		t.Fatal("completed match was not retained")
 	}
 	fm.mu.RLock()
-	log, cfg := fm.e.L.Clone(), fm.cfg
+	log, cfg := fm.e.L.Clone(), fm.rulesConfig()
 	fm.mu.RUnlock()
 	replayed, err := replay.Replay(log, cfg)
 	if err != nil {

@@ -120,7 +120,7 @@ func Route(d *decision.Decision) string {
 		// A pure vote ask is choose/vote above. A vote mixed with another kind
 		// stays on the unmapped fallback because chooseObjectRoute reads Obj,
 		// and a vote encodes its ballot index in Obj (index+1), not an object
-		// id. twopiles is a multi-pick owned by sbp-unmapped-dig-division and
+		// id. twopiles is a multi-pick and
 		// keeps its own route.
 		//
 		// A cumulative floor (MinSum) or budget (MaxSum/Budgeted, including

@@ -53,7 +53,7 @@ func keepCeasedCopyTarget(env *Env, d *decision.Decision, o decision.Option) boo
 	if d.ResumeKind != "copy_targets" || d.Min != 1 || d.Max != 1 || o.Kind == "player" {
 		return false
 	}
-	source, target := env.G.E.G.Obj(d.Source), env.G.E.G.Obj(o.Obj)
+	source, target := env.G.R.Board().Obj(d.Source), env.G.R.Board().Obj(o.Obj)
 	return source != nil && source.IsCopy && source.Zone == state.ZStack &&
 		len(source.Targets) == 1 && !source.Targets[0].IsPlayer && source.Targets[0].Obj == o.Obj &&
 		target != nil && target.IsToken && target.Zone == state.ZCeased
@@ -104,7 +104,7 @@ func newCost(env *Env, d *decision.Decision) (Transaction, error) {
 		return NewPick(env, spec), nil
 	}
 	purp := costPurposes[kind]
-	if kind == "exile" && env.G.E.G.Obj(d.Options[0].Obj).Zone == state.ZGraveyard {
+	if kind == "exile" && env.G.R.Board().Obj(d.Options[0].Obj).Zone == state.ZGraveyard {
 		purp = "delve"
 	}
 	spec.Context.Purpose = &purp

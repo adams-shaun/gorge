@@ -1,9 +1,7 @@
 package host
 
-// Closed-list hosted policies through the host. The hosted closed-list
-// policies (az-c4, az-c5) live in four-yay, which runs the same contract and
-// gate rows on them (four-yay bots/hosttest); gorge runs them here on
-// closedTestPolicy, a test-only registration of az-redeal's search closed
+// Closed-list hosted policies through the host. gorge runs the
+// contract and gate rows on closedTestPolicy, a test-only registration of az-redeal's search closed
 // under a belief (azmcts.WorldRedealClosed) at a small simulation budget, so
 // the exported harness (RunClosedPrivacyContract, contract_privacy.go) and
 // the host's closed-list gate and guard stay exercised in this module.
@@ -43,7 +41,7 @@ import (
 const closedTestPolicy = "test-closed-az"
 
 // closedTestBeliefDecks is the belief corpus: the five Foundations repo
-// decks (az-c4's test belief).
+// decks.
 var closedTestBeliefDecks = []string{
 	"foundations-calling-all-angels", "foundations-keen-engineering", "foundations-reign-of-dragons",
 	"foundations-tramplesaurus-rex", "foundations-wretched-ranks",

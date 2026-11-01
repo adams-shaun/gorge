@@ -134,7 +134,7 @@ func TestMorphFaceDownCastOfferedFromTheCommandZone(t *testing.T) {
 // (K:Disguise) is offered its face-down cast from the command zone, that it
 // resolves face-down with the disguise family flag and the cloak entry
 // marker, and that {3} was spent. (No replayCheck: replay genesis drops
-// commander state -- filed as .ds4/new-tickets/commander-replay-drops-commanders.md.)
+// commander state.)
 func TestDisguiseFaceDownCastOfferedFromTheCommandZone(t *testing.T) {
 	t.Parallel()
 	e := morphCommanderEngine(t, 942, "Bayek of Siwa")

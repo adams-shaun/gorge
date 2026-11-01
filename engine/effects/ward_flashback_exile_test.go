@@ -11,7 +11,7 @@ import (
 // A spell cast with flashback (or aftermath, jump-start, harmonize) that
 // ward counters is exiled, not put into the graveyard (CR 702.34a: exiled
 // "instead of putting it anywhere else any time it would leave the stack"),
-// as effCounter's default path already did (kernel lockstep pair 13142).
+// as effCounter's default path already did (dirac lockstep pair 13142).
 func TestWardCounterExilesAFlashbackSpell(t *testing.T) {
 	for _, tc := range []struct {
 		flags uint64

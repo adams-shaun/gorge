@@ -18,7 +18,8 @@ package main
 //	  native seats and once with seat 0 (or both seats, -sb-v2-seats both) a v2
 //	  neutral agent behind server/spellbench/seat, the path mtgsim -sb-agent
 //	  takes, run in process. Prints win, turn and length per pair and the
-//	  win-rate parity.
+//	  win-rate gap read pair by pair; exit status 1 on any forfeit or past
+//	  -max-outcome-gap.
 //
 // -autopay off|all applies to both: all is the real v2 configuration (the v2
 // environment offers engine_autopay; the native bot seats auto-pay). The
@@ -77,9 +78,9 @@ type sbOptions struct {
 	// not rebuild the pick for more than this percentage of the run's
 	// decisions (0 allows none). Ignored without -min-agree.
 	maxRebuildFail float64
-	// maxOutcomeGap fails the outcome run when the 95% CI of (v2 - native)
-	// seat-0 win rate excludes 0 and |gap| exceeds this many percentage
-	// points (0 disables the check).
+	// maxOutcomeGap fails the outcome run when the paired 95% interval of
+	// (v2 - native) seat-0 win rate excludes 0 and |gap| exceeds this many
+	// percentage points (0 disables the check; a forfeit always fails).
 	maxOutcomeGap float64
 }
 
@@ -790,36 +791,42 @@ func wilson(k, n int) (lo, hi float64) {
 	return c - h, c + h
 }
 
-// sbOutcomeParity is the (v2 - native) seat-0 win-rate gap and its 95% normal
-// interval, in percentage points. ok is false when a lane finished no game.
+// sbOutcomeParity is the (v2 - native) seat-0 win-rate gap read pair by pair,
+// in percentage points: both lanes of a pair share a seed and decks, so only
+// the pairs where exactly one lane won carry a difference. ok is false when no
+// pair finished in both lanes.
 type sbOutcomeParity struct {
-	nativeWin, nativeDone, v2Win, v2Done int
-	gapPP, loPP, hiPP                    float64
-	ok                                   bool
+	nativeOnly, v2Only int // pairs only that lane's seat 0 won
+	pairs, dropped     int // pairs both lanes finished, pairs one did not
+	forfeits           int // pairs whose v2 seat forfeited
+	gapPP, halfPP      float64
+	ok                 bool
 }
 
-// sbOutcomeParityOf computes the outcome parity from each lane's seat-0 wins
-// over its finished games.
-func sbOutcomeParityOf(nativeWin, nativeDone, v2Win, v2Done int) sbOutcomeParity {
-	p := sbOutcomeParity{nativeWin: nativeWin, nativeDone: nativeDone, v2Win: v2Win, v2Done: v2Done}
-	if nativeDone == 0 || v2Done == 0 {
+// sbOutcomeParityOf computes the paired gap and its 95% half-width from the
+// discordant counts among the pairs both lanes finished.
+func sbOutcomeParityOf(nativeOnly, v2Only, pairs, dropped, forfeits int) sbOutcomeParity {
+	p := sbOutcomeParity{nativeOnly: nativeOnly, v2Only: v2Only, pairs: pairs, dropped: dropped, forfeits: forfeits}
+	if pairs == 0 {
 		return p
 	}
-	pn, pv := float64(nativeWin)/float64(nativeDone), float64(v2Win)/float64(v2Done)
-	se := math.Sqrt(pn*(1-pn)/float64(nativeDone) + pv*(1-pv)/float64(v2Done))
-	d := pv - pn
-	p.gapPP, p.loPP, p.hiPP = 100*d, 100*(d-1.959964*se), 100*(d+1.959964*se)
+	n := float64(pairs)
+	p.gapPP = 100 * float64(v2Only-nativeOnly) / n
+	p.halfPP = 100 * 1.959964 * math.Sqrt(float64(nativeOnly+v2Only)) / n
 	p.ok = true
 	return p
 }
 
-// fails reports whether the interval excludes zero and the gap exceeds
-// maxGapPP percentage points. maxGapPP <= 0 disables the check.
+// fails reports a forfeit, or an interval that excludes zero around a gap over
+// maxGapPP percentage points. maxGapPP <= 0 disables the gap check.
 func (p sbOutcomeParity) fails(maxGapPP float64) bool {
+	if p.forfeits > 0 {
+		return true
+	}
 	if maxGapPP <= 0 || !p.ok {
 		return false
 	}
-	return (p.loPP > 0 || p.hiPP < 0) && math.Abs(p.gapPP) > maxGapPP
+	return math.Abs(p.gapPP) > p.halfPP && math.Abs(p.gapPP) > maxGapPP
 }
 
 func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOutcomeParity {
@@ -848,7 +855,7 @@ func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOu
 		})
 	fmt.Fprintf(out, "== spellbench outcome: policy=%s autopay=%s seed=%d pairs=%d v2 seats=%s ==\n", o.policy,
 		map[bool]string{true: "all", false: "off"}[o.autopay], o.seed, len(jobs), map[bool]string{true: "both", false: "first"}[o.v2Both])
-	var nDone, nWin, vDone, vWin, same, both, forfeits int
+	var nDone, nWin, vDone, vWin, same, both, forfeits, nOnly, vOnly int
 	var nTurns, vTurns, nLen, vLen int
 	for i, pr := range pairs {
 		fmt.Fprintf(out, "pair %3d seed %d\n  native: %s\n  v2:     %s\n", jobs[i].idx, jobs[i].seed, pr.native, pr.v2)
@@ -873,6 +880,12 @@ func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOu
 			if pr.native.winner == pr.v2.winner {
 				same++
 			}
+			switch nw, vw := pr.native.winner == 0, pr.v2.winner == 0; {
+			case nw && !vw:
+				nOnly++
+			case vw && !nw:
+				vOnly++
+			}
 		}
 		if pr.v2.forfeit[0] != "" || pr.v2.forfeit[1] != "" {
 			forfeits++
@@ -890,15 +903,16 @@ func runSBOutcome(reg *cards.Registry, p *pool, o sbOptions, out io.Writer) sbOu
 	}
 	fmt.Fprintf(out, "seat 0 win-rate, native seats: %s\n", rate(nWin, nDone))
 	fmt.Fprintf(out, "seat 0 win-rate, v2 seats:     %s\n", rate(vWin, vDone))
-	parity := sbOutcomeParityOf(nWin, nDone, vWin, vDone)
+	parity := sbOutcomeParityOf(nOnly, vOnly, both, len(pairs)-both, forfeits)
 	if parity.ok {
 		mark := ""
 		if parity.fails(o.maxOutcomeGap) {
 			mark = "  FAIL"
 		}
-		fmt.Fprintf(out, "outcome parity: v2 - native = %+.1f pp, 95%% CI [%+.1f, %+.1f] pp (unpaired normal)%s\n", parity.gapPP, parity.loPP, parity.hiPP, mark)
+		fmt.Fprintf(out, "outcome parity: v2 - native = %+.1f pp, 95%% CI [%+.1f, %+.1f] pp (paired: %d native-only, %d v2-only of %d pairs, %d dropped)%s\n",
+			parity.gapPP, parity.gapPP-parity.halfPP, parity.gapPP+parity.halfPP, nOnly, vOnly, both, parity.dropped, mark)
 	} else {
-		fmt.Fprintln(out, "outcome parity: n/a (no finished games)")
+		fmt.Fprintln(out, "outcome parity: n/a (no pair finished in both lanes)")
 	}
 	fmt.Fprintf(out, "same winner on %d/%d pairs both lanes finished; v2 lane forfeits: %d pairs\n", same, both, forfeits)
 	fmt.Fprintf(out, "mean turns: native %s, v2 %s; mean intents: native %s, v2 %s\n", mean(nTurns, nDone), mean(vTurns, vDone), mean(nLen, nDone), mean(vLen, vDone))
@@ -931,7 +945,7 @@ func runSpellbench(reg *cards.Registry, p *pool, o sbOptions, failPath string, o
 	case "outcome":
 		parity := runSBOutcome(reg, p, o, out)
 		if parity.fails(o.maxOutcomeGap) {
-			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench outcome gap %+.1f pp exceeds -max-outcome-gap %.1f pp (95%% CI [%+.1f, %+.1f])\n", parity.gapPP, o.maxOutcomeGap, parity.loPP, parity.hiPP)
+			fmt.Fprintf(os.Stderr, "cardfuzz: spellbench outcome gap %+.1f pp +/- %.1f, %d forfeits (-max-outcome-gap %.1f pp)\n", parity.gapPP, parity.halfPP, parity.forfeits, o.maxOutcomeGap)
 			return 1
 		}
 		return 0

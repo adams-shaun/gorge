@@ -11,8 +11,8 @@ import (
 
 // connKey names one seat's connection state, shared between a GET stream and
 // any POST send for the same seat of the same match — they are ordinarily
-// different HTTP requests (a client may send without a stream open at all,
-// per §5.2's poll-only agents), so this is the only place the two meet.
+// different HTTP requests (a poll-only client sends without a stream open at
+// all), so this is the only place the two meet.
 type connKey struct {
 	table host.TableID
 	match int
@@ -20,12 +20,11 @@ type connKey struct {
 }
 
 // seatConn is one seat's cross-request state: the auto-pass policy a pass
-// response installs (§6.5 — internal/manabrew.PassPolicy carries the rule,
+// response installs (internal/manabrew.PassPolicy carries the rule,
 // this struct is only where the transport keeps the live instance between
-// requests), whether a concede directive is queued behind a non-priority ask
-// (G-2), and the currently open stream's push channel, if any, so a
-// rejected /send response can be pushed onto it (§5.2: "also pushed on the
-// stream as an error message"). It is never removed once created — the
+// requests), whether a concede directive is queued behind a non-priority ask,
+// and the currently open stream's push channel, if any, so a
+// rejected /send response can be pushed onto it. It is never removed once created — the
 // population is bounded by the table's real seats across its real matches,
 // which is small and finite, unlike a per-request allocation.
 type seatConn struct {
@@ -40,7 +39,7 @@ type seatConn struct {
 	// must never blank a newer stream's live channel).
 	push chan mb.EngineMessage
 
-	// Synthetic-prompt state (MBX-2). synSeq is the seat's event watermark:
+	// Synthetic-prompt state. synSeq is the seat's event watermark:
 	// the first event Seq not yet scanned for synthetic prompts, so a prompt
 	// is minted and delivered exactly once per seat no matter how many times
 	// the stream's refresh or a /state poll re-reads the match. synOpen maps
@@ -112,7 +111,7 @@ func (c *seatConn) getPolicy() *manabrew.PassPolicy {
 }
 
 // queueConcede marks a concede directive pending the seat's next priority
-// decision (G-2).
+// decision.
 func (c *seatConn) queueConcede() {
 	c.mu.Lock()
 	c.concedeQueued = true
@@ -182,7 +181,7 @@ func (c *seatConn) ackSynthetic(id int64) {
 }
 
 // markGameOver reports whether THIS seat's terminal gameOver prompt is still
-// owed, latching it so exactly one is ever delivered (MBX-2). The latch is
+// owed, latching it so exactly one is ever delivered. The latch is
 // seat-wide, not per-connection: a stream refresh, a /state poll and a
 // reconnect all consult the same latch, so whichever observes Over first
 // consumes it and every later path for that seat is state-only. A stream

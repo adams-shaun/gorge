@@ -52,7 +52,8 @@
          did not arm -vsbot answers 404 and the panel renders it. -->
     <div class="playstrip"><PlayVsBot /></div>
     <!-- Draft events (E2): the pod entry point sits beside play-vs-bot; it
-         hides itself on a server without -events. -->
+         hides itself on a server without -events, and .playstrip:empty below
+         then drops its padding so no gap remains. -->
     <div class="playstrip"><DraftEntry /></div>
     <div class="playstrip"><DeckLeaderboard /></div>
     <div class="sections">
@@ -142,6 +143,9 @@
   .playstrip {
     flex: none;
     padding: 0 var(--sp-4) var(--sp-2);
+  }
+  .playstrip:empty {
+    display: none;
   }
   /* Spare height is shared between sections in proportion to how many tables
      each holds, so a one-table Commander section beside a five-table

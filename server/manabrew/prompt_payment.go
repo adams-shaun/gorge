@@ -10,7 +10,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptPayment (scoping spec §6.3): the mid-cast mana window -> payManaCost,
+// promptPayment: the mid-cast mana window -> payManaCost,
 // for BOTH shapes gorge poses (engine/rules/announce_pay.go's announcedManaWindowAsk
 // and engine/rules/cast.go's legacy manaWindowAsk). Both are a KChoose decision
 // whose Source is the card being paid for; they are told apart only by
@@ -35,8 +35,8 @@ import (
 // Cancel is not separately advertised (there is no wire field for it): a
 // client may always SEND cancel, and the parser below answers with the
 // engine's own truth -- the legacy window never offers "cancel_cast", so a
-// legacy cancel comes back invalidShape, which is exactly G-3's documented
-// behaviour ("payManaCost.cancel is refused on non-AutoMana tables").
+// legacy cancel comes back invalidShape: payManaCost.cancel is refused on
+// non-AutoMana tables.
 func (t *Translator) promptPayment(d *decision.Decision, v *view.View) (mb.PromptMessage, error) {
 	card := findCard(v, d.Source)
 	name, cost := "", ""
@@ -147,10 +147,10 @@ func matchPaymentActionID(d *decision.Decision, id string, kinds ...string) (int
 	return -1, false
 }
 
-// parsePayManaCost maps the payManaCost outputs (§6.4): act names an
+// parsePayManaCost maps the payManaCost outputs: act names an
 // advertised per-step activation by id; pay{auto} selects "autofill" (true)
 // or "done" (false) by Kind, whichever the window actually offers; cancel
-// selects "cancel_cast" when offered, or invalidShape when not (G-3).
+// selects "cancel_cast" when offered, or invalidShape when not.
 func (t *Translator) parsePayManaCost(out mb.PromptOutputValue, p *Pending) Outcome {
 	d := p.Decision
 	cur := p.Prompt.PromptID

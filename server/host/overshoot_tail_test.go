@@ -301,11 +301,11 @@ func TestParkedOvershootViewAtHeadServesTheDecision(t *testing.T) {
 	// agree at the tail seqs — the genesis path carries ReplayTo's own
 	// byte-compare, the snapshot path viewAt's tail verification.
 	for _, seq := range []uint64{askSeq, head} {
-		fast, err := viewAt(m.cfg, m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
+		fast, err := viewAt(m.replaySource(), m.e.L, m.snaps, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("viewAt(%d) snapshot path: %v", seq, err)
 		}
-		slow, err := viewAt(m.cfg, m.e.L, nil, seq, view.NoSeat, view.Omniscient, nil)
+		slow, err := viewAt(m.replaySource(), m.e.L, nil, seq, view.NoSeat, view.Omniscient, nil)
 		if err != nil {
 			t.Fatalf("viewAt(%d) genesis path: %v", seq, err)
 		}
@@ -346,7 +346,7 @@ func TestParkedOvershootSnapshotForFeedbackIsComplete(t *testing.T) {
 	// The head is the chain over the captured events, and the log replays
 	// byte-exactly to it — the contract cmd/repro verifies a capture with.
 	m.mu.RLock()
-	cfg := m.cfg
+	cfg := m.rulesConfig()
 	m.mu.RUnlock()
 	if want := snap.Log.HeadAt(len(snap.Log.Events)); snap.Log.Head != want {
 		t.Fatalf("captured head %q, chain over its own events %q", snap.Log.Head, want)

@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbp-unmapped-choose-option review: the named-option catch-alls must not
+// The named-option catch-alls must not
 // claim an ask whose whole-answer rule their one-pick candidates cannot
 // express (MinSum, MaxSum/Budgeted, AllowNone); those keep the old unmapped
 // fallback so the native bot answers them.

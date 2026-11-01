@@ -168,8 +168,7 @@ func TestReforgeTheSoulWheelDiscardsWholeHandsAndDrawsSeven(t *testing.T) {
 // countZone there only knows the single-zone head spellings, so the
 // comma-joined multi-zone form degrades to 0 and the draw emits Amount 0 per
 // player (measured live: 14 draw events, every one Amount 0). That is a
-// separate defect (filed:
-// .ds4/new-tickets/windfall-multizone-count-svar-unresolvable.md, population
+// separate defect (population
 // 3 corpus files: windfall, whispering_madness, jaces_archivist) — pinning a
 // 0-draw hand size here would enshrine it. The RememberDiscarded$ rider is
 // pinned at the unit level in engine/effects/cardflow_discard_hand_test.go

@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -10,8 +8,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Committed pins for the two option-kind mappings the MBX-6 cardfuzz lane's
-// seed sweep found (report-r2 MAJOR), so the suite no longer depends on a
+// Committed pins for the two option-kind mappings the cardfuzz lane's
+// seed sweep found, so the suite does not depend on a
 // seed-dependent smoke run to reach them.
 
 // TestMoveCounterMapsToChooseNumber pins the MoveCounter CounterNum$ Any
@@ -130,11 +128,11 @@ func TestChangeTextWordHalvesMapsToChooseFromSelection(t *testing.T) {
 }
 
 // TestCastContributionMappingIsPinned pins the convoke announcement mapping
-// (engine/rules/cast.go convokeAsk, MBX-6 round 1): a KChoose whose options are all
+// (engine/rules/cast.go convokeAsk): a KChoose whose options are all
 // contribution kinds ("convoke_<color>"/"convoke_generic"/...) maps onto
 // chooseFromSelection over the labels, with the ask's own 0..outstanding
-// slot bounds. The payment GROUPS are not wire-expressible (spec G-4;
-// Validate is the fence), but the branch itself must stay live: the reviewer
+// slot bounds. The payment GROUPS are not wire-expressible (Validate is the fence),
+// but the branch itself must stay live: the reviewer
 // round-2 sweep proved this was the one mapping no committed test reached.
 func TestCastContributionMappingIsPinned(t *testing.T) {
 	d := newDec(17, 0, decision.KChoose,
@@ -163,8 +161,8 @@ func TestCastContributionMappingIsPinned(t *testing.T) {
 	}
 }
 
-// TestProliferateRecipientPickMapsToChooseFromSelection pins the MBX-6
-// round-3 MAJOR: engine/effects/counters.go effProliferate's CR 701.27 any-number
+// TestProliferateRecipientPickMapsToChooseFromSelection pins
+// engine/effects/counters.go effProliferate's CR 701.27 any-number
 // recipient pick (ResumeKind "proliferate") is a uniform-Kind ("proliferate")
 // labelled multi-select whose options are NOT uniformly objects -- permanent
 // recipients carry Obj, player recipients carry only Player with Obj 0 and

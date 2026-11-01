@@ -49,9 +49,7 @@ const (
 	// Forge's Card.canReceiveCounters <kind>: the object can have a counter of
 	// <kind> placed on it. key is the counter kind. The corpus's only use is
 	// the +1/+1 spelling on Experimental Lab // Staff Room's DBPutCounter
-	// presence gate; a +1/+1 counter is hostable by a creature
-	// (state.Object.EffectiveIsCreature, CR 708.5-aware), any other counter
-	// kind by any battlefield permanent.
+	// presence gate; any battlefield permanent can hold any kind.
 	wordCanReceiveCounters
 	// Forge's Card.canBeTurnedFaceUp: the face-down battlefield permanent
 	// has a real card face to reveal (CR 708.6). The corpus's only use is
@@ -821,7 +819,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// player -- the seat whose turn it is, g.Active.
 		return o.Controller == g.Active
 	case wordCanReceiveCounters:
-		return canReceiveCounter(key, o)
+		return canReceiveCounter(o)
 	case wordCanBeTurnedFaceUp:
 		// Forge's Card.canBeTurnedFaceUp: a face-down battlefield permanent
 		// with a real card face to reveal (CR 708.6) -- morph/megamorph/

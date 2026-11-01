@@ -97,8 +97,7 @@ func TestSVarCountUnknownPredicateIsUnknown(t *testing.T) {
 
 // TestSVarCountKeepsNamedAcrossAllGraveyards is the control: Feast of Flesh's
 // body has no scope word, so it still counts both graveyards and applies its
-// Plus.1 suffix. Without this the target-effect fix the ticket shipped would
-// regress.
+// Plus.1 suffix. Without this the target-effect evaluation would regress.
 func TestSVarCountKeepsNamedAcrossAllGraveyards(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	s := &Session{B: NewBuilder(reg)}

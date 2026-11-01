@@ -547,6 +547,9 @@ func (e *Engine) targetAsk() bool {
 			lim = len(candidates)
 		}
 		d.AffordableTargets = e.striveAffordableTargets(pc, lim)
+		if d.AffordableTargets == 0 {
+			d.AffordableTargets = e.targetCountAffordable(pc, candidates, lim)
+		}
 	}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
@@ -1260,8 +1263,7 @@ func (e *Engine) castTargetCandidates(pc *pendingCast, excludeSelf state.ObjID, 
 }
 
 // activationPushEvent names the replayable activation boundary for both
-// printed and keyword-granted abilities. Use it for spend riders too: a
-// synthetic AbilityPush with ability=-1 cannot describe a granted body.
+// printed and keyword-granted abilities.
 //
 // A K:Ninjutsu activation's captured defender no longer rides this event: the
 // push (CR 602.2a) precedes the Return cost that captures it, so
@@ -1324,7 +1326,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.activationPaid {
 		e.cast = pc
-		e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
+		e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 		e.cast = nil
 	}
 	if e.drainAwaitsTarget {
@@ -1363,7 +1365,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.mode == "foretell" || pc.isAbility() {
+	if pc == nil || pc.isSpecialAction() || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {
@@ -1498,7 +1500,7 @@ func (pc *pendingCast) activationMintEvent(e *Engine) events.Event {
 	if pc.grantSVar != "" {
 		if pc.grantSource == pc.card {
 			return events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
-				Amount: -1, Counter: pc.grantSVar, Text: "granted ability"}
+				Amount: -1, Counter: pc.grantSVar, Text: events.TextGrantedAbility}
 		}
 		return events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
 			Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}}

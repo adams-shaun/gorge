@@ -75,16 +75,12 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		return false, true
 	}
 	if spec, ok := sv.Param(cards.PKValidCard); ok {
-		// The provenance-keyed ValidCard$ (castprov3: Bilbo's
-		// "!wasCastFromYourHand" ReduceCost) is unresolvable while the priced
-		// object has no cast in the log yet — the offer walk and the
-		// option-selection snapshot both evaluate pre-push, where the negated
-		// spelling would wrongly hold for the hand cast it must not cover.
-		// Deny the modifier (full price, this gate chain's documented
-		// fail-closed direction); continueCast re-prices the pending cast
-		// right after CR 601.2a's push, once the PutOnStack is in the log.
-		// The capture (noCounterSpend's shape) tells the pending-cast flow a
-		// re-price is owed; the read stays inside the attributed cost-static
+		// A provenance-keyed ValidCard$ (Bilbo's "!wasCastFromYourHand"
+		// ReduceCost) reads the cast being priced from the object while it is
+		// off the stack, and the log after CR 601.2a's push, which also knows
+		// a caster other than the object's controller. The capture
+		// (noCounterSpend's shape) has continueCast re-price the pending cast
+		// after that push; the read stays inside the attributed cost-static
 		// pass, so the param census sees no new Params site.
 		if strings.Contains(spec, "wasCastFromYourHand") || strings.Contains(spec, "wasCastByYou") {
 			e.CostProvenanceSeen = true
@@ -151,17 +147,19 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 	if !e.costTurnGateHolds(sv) {
 		return false, true
 	}
-	if spec, ok := sv.Param(cards.PKIsPresent); ok && !e.presentGate(sv, spec) {
+	sub := newCostSubject(p, id, scope)
+	uncounted := e.costUncounted(sub)
+	if spec, ok := sv.Param(cards.PKIsPresent); ok && !e.presentGateSkipping(sv, spec, uncounted) {
 		// The shared IsPresent$ gate: PresentZone$ picks the zone counted
 		// (Igneous Elemental's graveyard, Forceful Cultivator's hand) and
 		// PresentCompare$ the threshold (default GE1; Hour of Revelation's
 		// GE10, Saiba Syphoner's EQ0 "no ... cards in your hand").
 		return false, true
 	}
-	if !e.costConditionHolds(sv, p) {
+	if !e.costConditionHolds(sv, p, uncounted) {
 		return false, true
 	}
-	if !e.checkSVarHoldsFor(sv, newCostSubject(p, id, scope), targets) {
+	if !e.checkSVarHoldsFor(sv, sub, targets) {
 		return false, false
 	}
 	if spec, ok := sv.Param(cards.PKValidTarget); ok {
@@ -366,7 +364,7 @@ func (e *Engine) costTurnGateHolds(sv staticView) bool {
 // cycle). An unimplementable condition (Night) DENIES: a conditional
 // discount that silently always applies is a wrong cost, the same fail-closed
 // direction the ValidSpell$ shapes take.
-func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
+func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID, uncounted state.ObjID) bool {
 	cond, ok := sv.Param(cards.PKCondition)
 	if !ok {
 		return true
@@ -381,7 +379,7 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID) bool {
 	case costConditionHoldsDelirium:
 		// The same shared census the Continuous gate and the ability-offer
 		// gate (engine/rules/legal.go's activationConditionOK) read.
-		return e.graveyardCardTypeCount(p) >= 4
+		return e.graveyardCardTypeCountSkipping(p, uncounted) >= 4
 	}
 	return false
 }
@@ -457,6 +455,7 @@ func (e *Engine) checkSVarHoldsRaw(sv staticView, raw, cmp string, sub costSubje
 	}
 	ctx := effects.NewCtxPtr(sv.Source, sv.Controller, effects.CtxInit{SVars: svars, Targets: targets})
 	ctx.AffectedObj, ctx.AffectedAbility = sub.id, sub.ab
+	ctx.PricedSpell = e.costUncounted(sub)
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, raw, cmp)
 	if !evaluated {
 		return false

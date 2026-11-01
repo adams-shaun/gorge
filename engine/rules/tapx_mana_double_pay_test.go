@@ -78,24 +78,17 @@ func TestTapXCostNotDoubleUsedForMana(t *testing.T) {
 		elfChoice := tapxOption(t, d, "tapcost", elf)
 		tapxOption(t, d, "tapcost", bear)
 
+		// The rock alone can't pay {2} once the Elves are committed to the tap
+		// cost, so the election is an illegal action undone before any mana
+		// taps (CR 733.1), with no window to walk first.
 		submitChoices(t, e, elfChoice)
 		d = e.Pending()
-		if d == nil || d.Kind != decision.KChoose || d.PaymentFallback == nil ||
-			d.PaymentFallback.Reason != paymentFallbackSourceChanged {
-			t.Fatalf("pending after electing the planned Elves = %+v, want the manual window with source_changed", d)
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("pending after electing the planned Elves = %+v, want priority after the reversal", d)
 		}
-		// The elected creature is committed to the tap cost, so the manual
-		// window must not offer it for mana as well.
-		for _, o := range d.Options {
-			if o.Kind == "activate" && o.Obj == elf {
-				t.Fatalf("manual window re-offered the elected Elves for mana: %+v", d.Options)
-			}
+		if e.G.Obj(rock).Tapped {
+			t.Fatal("the rock tapped for an activation that can't be paid")
 		}
-		// Tap the rock too: even every remaining source cannot pay {2}, so
-		// the activation is genuinely unpayable and reverses (CR 733.1).
-		submitChoices(t, e, tapxOption(t, d, "activate", rock))
-		d = e.Pending()
-		submitChoices(t, e, tapxOption(t, d, "done", 0))
 
 		if len(e.G.Stack) != 0 {
 			t.Fatalf("activation stayed on the stack: %d objects", len(e.G.Stack))

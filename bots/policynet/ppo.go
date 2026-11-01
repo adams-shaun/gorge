@@ -2,17 +2,16 @@ package policynet
 
 import "math"
 
-// This file is the on-policy PPO objective (ticket pn13): the clipped
+// This file is the on-policy PPO objective: the clipped
 // surrogate plus a KL anchor, trained on the DEPLOYED seat's own games
-// (heuristic.PolicyNetBot recording, four-yay cmd/botbench -onpolicy-corpus). It is the
-// gorge port of the one multi-round recipe that compounded in mtgbld
-// ("self-distillation PPO"): corpus = the argmax policy's own decisions,
+// (heuristic.PolicyNetBot recording, a bench runner's -onpolicy-corpus). It is the
+// port of a multi-round recipe ("self-distillation PPO"): corpus = the argmax policy's own decisions,
 // π_old = the probability the policy gave the answer it actually played,
 // advantage = outcome − V(s) normalised per batch, small steps.
 //
 // A PPO example carries its target in Example.PPO; the supervised path
 // (lossFromScores) never sees one, so a corpus without PPO examples trains
-// exactly as before (four-yay cmd/policytrain's TestSupervisedIsBitIdenticalToPrePPOTrainer).
+// exactly as before.
 //
 // The action distribution is defined over the example's LABELLED options
 // (the loader marks the decision's action space Labelled) and takes one of
@@ -40,7 +39,7 @@ import "math"
 // before exp (a clamped ratio carries no gradient, like the clip).
 
 // PPOLogRatioClamp bounds the log-ratio before exponentiation (ratio in
-// [e^-3, e^3] ≈ [0.05, 20], the mtgbld trainer's ratio clamp).
+// [e^-3, e^3] ≈ [0.05, 20], the trainer's ratio clamp).
 const PPOLogRatioClamp = 3.0
 
 // PPOTarget is one on-policy decision's PPO target: what the deployed policy

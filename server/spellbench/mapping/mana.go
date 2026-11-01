@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
@@ -30,16 +30,16 @@ func ManaSymbol(o decision.Option) (string, bool) {
 
 var costKinds = map[string]bool{"tapcost": true, "sacrifice": true, "discard": true, "exile_cost": true, "returncost": true}
 
-func sameSeatChoose(c *rules.Engine, seat state.PlayerID) *decision.Decision {
+func sameSeatChoose(c gamecfg.Reader, seat state.PlayerID) *decision.Decision {
 	n := c.Pending()
-	if n == nil || c.G.Over || n.Player != seat || n.Kind != decision.KChoose || len(n.Options) == 0 {
+	if n == nil || c.Board().Over || n.Player != seat || n.Kind != decision.KChoose || len(n.Options) == 0 {
 		return nil
 	}
 	return n
 }
 
 func expandActivate(env *Env, d *decision.Decision, o decision.Option, src protocol.ObjectRef) ([]Cand, map[string]*decision.Decision, error) {
-	c, err := env.G.Probe(Intent(d, o.Index))
+	c, err := env.G.R.Probe(Intent(d, o.Index))
 	if err != nil {
 		return nil, nil, nil // the engine refuses this activation now: not offered
 	}
@@ -67,7 +67,7 @@ func expandActivate(env *Env, d *decision.Decision, o decision.Option, src proto
 					Op: NativeOp{Op: "choose", Option: o.Index, Followup: []int{co.Index}}})
 				continue
 			}
-			c2, err := env.G.Probe(Intent(d, o.Index), Intent(next, co.Index))
+			c2, err := env.G.R.Probe(Intent(d, o.Index), Intent(next, co.Index))
 			if err != nil {
 				continue // the engine refuses this ability now: not offered
 			}
@@ -95,7 +95,7 @@ func expandActivate(env *Env, d *decision.Decision, o decision.Option, src proto
 				return nil, nil, fmt.Errorf("%w:cost_target_hidden", ErrUnmapped)
 			}
 			ct := protocol.ObjectTarget(*target)
-			c2, err := env.G.Probe(Intent(d, o.Index), Intent(next, co.Index))
+			c2, err := env.G.R.Probe(Intent(d, o.Index), Intent(next, co.Index))
 			if err != nil {
 				continue
 			}

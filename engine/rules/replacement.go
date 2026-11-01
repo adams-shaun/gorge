@@ -125,6 +125,9 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		// their own continuation is implemented.
 		return ev, false
 	}
+	if e.moveAlreadyParked(ev) {
+		return ev, true
+	}
 	event, eventKind, ok := replacementEventDetails(ev)
 	if !ok {
 		return ev, false

@@ -678,7 +678,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 					// pc.stackObj); recording them here as well would emit a
 					// second TargetsChosen set for one activation.
 					e.cast = pc
-					e.fireManaSpentTriggers(pc.activationPushEvent(e), nil)
+					e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 					e.cast = nil
 				}
 			}

@@ -18,7 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
-	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/game"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -44,6 +44,10 @@ const (
 	// archtest clock rule allows only the host and named tools to read it).
 	startupMS     = 300000
 	startupBudget = startupMS * 1_000_000
+
+	// gameOverGrace bounds how long a finished match waits for the agent to
+	// read game_over and answer, in nanoseconds like startupBudget.
+	gameOverGrace = 1_000_000_000
 )
 
 var (
@@ -66,7 +70,7 @@ type Agent struct {
 	mc                *bots.MatchContext
 	gameID            string
 	secret            []byte
-	e                 *rules.Engine
+	g                 game.Game
 	env               *mapping.Env
 	tx                mapping.Transaction
 	native            *decision.Decision
@@ -89,6 +93,9 @@ type Agent struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	reader *wire.Reader
+	// abort unblocks a write or read in flight when a round trip's deadline
+	// passes, even if a process the agent started still holds the pipes.
+	abort func()
 }
 
 // New builds a v2 agent seat. argv is the agent command line; the first
@@ -127,8 +134,9 @@ func (a *Agent) logf(format string, args ...any) {
 
 // AttachMatch starts the agent process and performs the v2 hello/game_start
 // handshake. A spawn, hello or game_start failure is recorded as a forfeit
-// cause and returns nil: the seat's first decision concedes. A requirement
-// the engine cannot meet, or a table wider than two seats, refuses the match.
+// cause and returns nil: the seat's first decision concedes. An engine the
+// adapter cannot read, a requirement the engine cannot meet, or a table wider
+// than two seats refuses the match.
 func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -138,8 +146,11 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 	if mc == nil {
 		return errors.New("spellbench seat: nil match context")
 	}
-	if mc.Engine == nil {
-		return errors.New("spellbench seat: match context has no engine")
+	if mc.Game == nil {
+		return errors.New("spellbench seat: match context has no game")
+	}
+	if err := gamecfg.Readable(mc.Game); err != nil {
+		return fmt.Errorf("spellbench seat: %w", err)
 	}
 	if mc.OwnDeck == nil {
 		return errors.New("spellbench seat: match context has no own deck")
@@ -164,17 +175,7 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 		base = context.Background()
 	}
 	a.ctx, a.cancel = context.WithCancel(base)
-	sec := secrets.NewGame(a.secret)
-	a.e = mc.Engine
-	tracker := identity.New(mc.Engine, sec)
-	a.env = &mapping.Env{
-		AutoPay: true,
-		G:       &gamecfg.Game{E: mc.Engine, Secret: sec},
-		IDs:     tracker,
-		Obs:     &observe.Projector{E: mc.Engine, IDs: tracker},
-		Domain:  nameSet(domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)),
-		Slots:   map[string]uint32{},
-	}
+	a.attachEnv(mc.Game)
 
 	if err := a.start(); err != nil {
 		a.forfeit = forfeitTransport
@@ -202,6 +203,38 @@ func (a *Agent) AttachMatch(mc *bots.MatchContext) error {
 	return nil
 }
 
+// attachEnv (re)builds the mapping environment against g.
+func (a *Agent) attachEnv(g game.Game) {
+	a.g = g
+	gc := gamecfg.Over(g, secrets.NewGame(a.secret))
+	tracker := identity.New(g, gc.Secret)
+	a.env = &mapping.Env{
+		AutoPay: true,
+		G:       gc,
+		IDs:     tracker,
+		Obs:     &observe.Projector{R: gc.R, IDs: tracker},
+		Domain:  nameSet(domainNames(g.Board().NameUniverseNames, a.mc.OwnDeck, a.mc.OpponentDeck)),
+		Slots:   map[string]uint32{},
+	}
+}
+
+// MatchRewound follows a host undo to the replayed game. The host calls it on
+// the match goroutine, where Decide also runs, so no decision is in flight. The
+// agent is not told: its next choose carries the rewound board under fresh ids.
+func (a *Agent) MatchRewound(v any) {
+	g, ok := v.(game.Game)
+	if !ok {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.env == nil {
+		return
+	}
+	a.tx, a.native, a.queue = nil, nil, nil
+	a.attachEnv(g)
+}
+
 func (a *Agent) start() error {
 	if a.serve != nil {
 		inR, inW := io.Pipe()
@@ -209,6 +242,7 @@ func (a *Agent) start() error {
 		go func() { outW.CloseWithError(a.serve(inR, outW)); inR.Close() }()
 		a.stdin = inW
 		a.reader = wire.NewReader(outR)
+		a.abort = func() { inW.Close(); outR.Close() }
 		return nil
 	}
 	cmd := exec.CommandContext(a.ctx, a.argv[0], a.argv[1:]...)
@@ -228,6 +262,7 @@ func (a *Agent) start() error {
 	a.cmd = cmd
 	a.stdin = stdin
 	a.reader = wire.NewReader(stdout)
+	a.abort = func() { _ = cmd.Process.Kill(); _ = stdin.Close(); _ = stdout.Close() }
 	return nil
 }
 
@@ -269,7 +304,7 @@ func (a *Agent) gameStart() error {
 	if own == nil {
 		own = &deck.Manifest{}
 	}
-	names := domainNames(mc.Engine.G.NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)
+	names := domainNames(mc.Game.Board().NameUniverseNames, mc.OwnDeck, mc.OpponentDeck)
 	mana := "engine_autopay"
 	combat := "engine_order"
 	profile := engineProfile{
@@ -287,7 +322,7 @@ func (a *Agent) gameStart() error {
 		RulesSupported: map[string][]string{"mulligan": {"london", "none"}, "starting_player": {"host_assigned", "toss_winner_chooses"}},
 	}
 	startingPlayer, startingSeat := "host_assigned", fmt.Sprintf("p%d", mc.StartingSeat)
-	if mc.Engine != nil && mc.Engine.StartingChoicePending() {
+	if s, ok := mc.Game.Chars().(interface{ StartingChoicePending() bool }); ok && s.StartingChoicePending() {
 		startingPlayer, startingSeat = "toss_winner_chooses", ""
 	}
 	var startSeat *string
@@ -389,12 +424,10 @@ func (a *Agent) roundTrip(ctx context.Context, req any) ([]byte, error) {
 	}
 	// The deadline covers the WRITE as well as the read: a child that never
 	// drains its stdin blocks Write, not ReadBytes, and the handshake budget
-	// must still end it. Killing the process unblocks both sides.
-	if ctx != nil {
-		if cmd := a.cmd; cmd != nil && cmd.Process != nil {
-			stopKill := context.AfterFunc(ctx, func() { _ = cmd.Process.Kill() })
-			defer stopKill()
-		}
+	// must still end it.
+	if ctx != nil && a.abort != nil {
+		stopAbort := context.AfterFunc(ctx, a.abort)
+		defer stopAbort()
 	}
 	if _, err := a.stdin.Write(append(b, '\n')); err != nil {
 		if ctx != nil && ctx.Err() != nil {
@@ -425,7 +458,7 @@ func (a *Agent) stop() {
 	if a.cmd != nil {
 		_ = a.cmd.Wait()
 	}
-	a.stdin, a.reader, a.cmd = nil, nil, nil
+	a.stdin, a.reader, a.cmd, a.abort = nil, nil, nil, nil
 }
 
 // Decide answers one gorge decision. Once the agent has forfeited, a priority
@@ -440,11 +473,11 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 	if a.forfeit != "" {
 		return a.forfeitAnswer(ctx, v, d), nil
 	}
-	if a.mc == nil || a.e == nil || a.env == nil {
+	if a.mc == nil || a.g == nil || a.env == nil {
 		return decision.Intent{}, errors.New("spellbench seat: Decide before AttachMatch")
 	}
 	var syncErr error
-	a.projected(func() { syncErr = a.env.IDs.Sync(a.e) })
+	a.projected(func() { syncErr = a.env.IDs.Sync(a.g) })
 	if syncErr != nil {
 		a.forfeit = forfeitAgent
 		return a.forfeitAnswer(ctx, v, d), nil
@@ -523,7 +556,7 @@ func (a *Agent) Decide(ctx context.Context, v view.View, d decision.Decision) (d
 		op := p.Candidates[i].Op
 		if p.Context.Kind == "priority" {
 			if obj := a.actionObject(op); obj != 0 {
-				a.env.Action = &mapping.ActionContext{Seat: p.Seat, Obj: obj, Since: a.e.G.NextID}
+				a.env.Action = &mapping.ActionContext{Seat: p.Seat, Obj: obj, Since: a.g.Board().NextID}
 			}
 		}
 		var (
@@ -771,8 +804,10 @@ func (a *Agent) fallbackAnswer(ctx context.Context, v view.View, d decision.Deci
 	return mapping.Intent(&d)
 }
 
-// EndMatch sends the v2 game_over notice (when the process is still alive)
-// and stops the agent process. A forfeited seat reports classification
+// EndMatch sends the v2 game_over notice (when the process is still alive),
+// waits at most gameOverGrace for any answer, and stops the agent process. The
+// answer can't change a finished match, so it isn't checked, and a cancelled
+// match context ends the wait at once. A forfeited seat reports classification
 // "forfeit" with its cause, overriding the host's natural result.
 func (a *Agent) EndMatch(result bots.MatchResult) {
 	a.mu.Lock()
@@ -815,9 +850,9 @@ func (a *Agent) EndMatch(result bots.MatchResult) {
 				Winner:         wp,
 			},
 		}
-		if b, err := json.Marshal(req); err == nil {
-			_, _ = a.stdin.Write(append(b, '\n'))
-		}
+		ctx, cancel := context.WithTimeout(a.ctx, gameOverGrace)
+		defer cancel()
+		_, _ = a.roundTrip(ctx, req)
 	}
 	a.stop()
 }

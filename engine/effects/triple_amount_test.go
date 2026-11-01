@@ -54,7 +54,7 @@ func TestTripleAmountScalarDegradesToZero(t *testing.T) {
 	if got := Num(h, &Ctx{}, sa(t, "SP$ Pump | NumAtt$ Triple"), "NumAtt", 7); got != 0 {
 		t.Fatalf("scalar NumAtt$ Triple = %d, want 0", got)
 	}
-	if got := NumForObject(h, &Ctx{}, sa(t, "SP$ Pump | NumAtt$ Triple"), "NumAtt", 0, 0); got != 0 {
+	if got := NumForObject(h, sa(t, "SP$ Pump | NumAtt$ Triple"), "NumAtt", 0, 0); got != 0 {
 		t.Fatalf("NumForObject NumAtt$ Triple with no object = %d, want 0", got)
 	}
 }

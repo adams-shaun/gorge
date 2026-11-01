@@ -9,9 +9,8 @@ import (
 func init() {
 	bots.Register(bots.Entry{Info: bots.Info{
 		Name: "lethal-pressure", Label: "Lethal Pressure", Description: "The manual hosted bot policy; on auto-pay tables it uses its own decision rules rather than the production bot's combat-simulation arm.", Tier: bots.Experimental,
-		Strength: []bots.Measurement{{Claim: "51.65% [50.10, 53.20] vs the pre-AR7 bot", Versus: "pre-AR7 bot", Setting: "gorge botbench, mono suite, held-out, manual mana", Source: "archived 2026-09-19-bot-policy-decision-trace-and-ar7.md (docs/design/ARCHIVE.md) — Held-out gate"}},
-		Cost:     bots.Cost{Scope: "per decision", Note: "as bot", Source: "docs/design/2026-09-28-hosted-bot-packages.md §3.1"},
-		Formats:  []string{"constructed", "commander"}, Caretaker: "bot",
+		Cost:    bots.Cost{Scope: "per decision", Note: "as bot", Source: "docs/design/2026-09-28-hosted-bot-packages.md §3.1"},
+		Formats: []string{"constructed", "commander"}, Caretaker: "bot",
 	}, New: newLethalPressure})
 }
 

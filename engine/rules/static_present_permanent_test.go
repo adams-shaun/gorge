@@ -132,7 +132,7 @@ func TestPresentZonePermanentCardCounts(t *testing.T) {
 	}
 	static := staticView{Source: e.G.Zone(state.ZGraveyard, 0)[0], Controller: 0, Params: map[string]string{"PresentZone": "Battlefield,Graveyard"}}
 	wantMixed := e.countPresentCtx("Permanent", static.Source, 0, e.staticSpecCtx(static)) + 2
-	if got := e.countStaticPresent(static, "Permanent"); got != wantMixed {
+	if got := e.countStaticPresent(static, "Permanent", 0); got != wantMixed {
 		t.Fatalf("mixed Battlefield/Graveyard count=%d want %d without double counting", got, wantMixed)
 	}
 	if e.matchesSpec("Permanent", e.G.Zone(state.ZGraveyard, 0)[0], ctx) {

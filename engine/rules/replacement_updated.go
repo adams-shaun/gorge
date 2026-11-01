@@ -204,6 +204,29 @@ func updatedBodyClass(m replMatch) string {
 	}
 }
 
+// entersUntappedApplies reports whether an "enters untapped" replacement applies
+// to id's entry. An effect's "tapped" is the state the permanent would enter with,
+// which the replacement modifies (CR 614.12), so that entry's replacements decide
+// and the effect adds nothing. Forge taps the card ahead of its move for this reason.
+func (e *Engine) entersUntappedApplies(id state.ObjID) bool {
+	ev := events.Event{Kind: events.MoveZone, Obj: id, To: state.ZBattlefield}
+	applies := false
+	e.forEachReplacementSourceFor(replEventBits[cards.ReplMoved], func(src state.ObjID) {
+		f := e.replacementFace(src, ev)
+		if applies || f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.EventKind() == cards.ReplMoved && updatedBodyClass(replMatch{repl: r}) == "untap" && e.replacementMatches(*r, src, ev) {
+				applies = true
+				return
+			}
+		}
+	})
+	return applies
+}
+
 // updatedReplacementsCommute reports whether the all-Updated competition's
 // bodies compose order-insensitively: taps, untaps and PutCounter riders
 // touch disjoint or purely additive characteristics (two "enters tapped"

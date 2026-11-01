@@ -33,8 +33,8 @@ func scanManaTaps(t *testing.T, res minihost.Result) (taps, windows int) {
 }
 
 // TestAutoPayNeverOffersManaTaps is split one top-level test per catalog deck
-// so each stays inside the repo's one-minute test wall. The brief's 10 seeded
-// games per deck pair are unchanged; only the grouping is. The exact test name
+// so each stays inside the repo's one-minute test wall, keeping 10 seeded
+// games per deck pair. The exact test name
 // is kept for Burn, and -run 'TestAutoPayNeverOffersManaTaps' still selects the
 // whole set. The two slowest decks split their seeds across two tests.
 func TestAutoPayNeverOffersManaTaps(t *testing.T) {

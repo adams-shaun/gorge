@@ -328,7 +328,7 @@ func TestImproviseArtifactCreatureQualifies(t *testing.T) {
 	creature := e.G.AddObject(card(t, "Name:Gear Golem\nManaCost:4\nTypes:Artifact Creature Golem\nPT:4/4\nOracle:x\n"), 0)
 	creature.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), creature.ID))
-	if !creature.EffectiveIsArtifact() {
+	if !e.IsArtifact(creature.ID) {
 		t.Fatal("artifact creature did not read as an artifact")
 	}
 	spell := e.G.Zone(state.ZHand, 0)[0]

@@ -76,6 +76,33 @@ func TestGrantedAbilityPaysNonManaCosts(t *testing.T) {
 	}
 }
 
+// TestSelfGrantedActivationIsAnActivatedAbility: CR 602.2. An ability a permanent
+// grants itself goes on the stack as the activated ability it is, so "target
+// activated ability" and the view read it the same as any other activation.
+func TestSelfGrantedActivationIsAnActivatedAbility(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	sliver := mustCorpusCard(t, reg, "Acidic Sliver")
+	e := printedAddabilityEngine(t, sliver, mustCorpusCard(t, reg, "Mountain"))
+	id := moveCardToBattlefield(t, e, sliver)
+	addMana(t, e, 0, "CC")
+
+	opt, ok := findSVarOption(t, e, id, "Damage")
+	if !ok {
+		t.Fatalf("Acidic Sliver's granted damage ability not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	submitChoices(t, e, indexOfPlayerOption(e.Pending(), 1))
+
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack holds %d objects, want the one activation", len(e.G.Stack))
+	}
+	top := e.G.Obj(e.G.Stack[0])
+	if got := state.StackKindOf(e.G, top); got != state.StackKindActivated {
+		t.Fatalf("self-granted activation has stack kind %v, want activated", got)
+	}
+}
+
 // TestGrantedActivationChargesLoyaltySubCounter covers Done-means (b) and the
 // CROSS-OBJECT mint: Ichormoon Gauntlet's real corpus grant gives planeswalkers
 // `[-12]: Take an extra turn after this one`, whose `Cost$ SubCounter<12/LOYALTY>`

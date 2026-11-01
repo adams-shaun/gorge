@@ -16,6 +16,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -50,16 +52,19 @@ const defaultExpectedEvents = 80000
 
 // match is one game on a table: the engine, the intent boundaries and
 // turn starts a view request needs, and the outcome. mu guards everything
-// below cfg: the run loop holds it for the duration of each Submit and its
+// below gc: the run loop holds it for the duration of each Submit and its
 // bookkeeping; readers (ViewAt, Events, fan-out) hold it for reads only and
 // never drive the engine.
 type match struct {
 	table *table
 	k     int
 	seed  uint64
-	cfg   rules.Config
-	seats []protocol.SeatInfo
-	decks []string
+	// engine built g and rebuilds its past boards. gc is the config it was
+	// built from, without the live log's capacity hint.
+	engine game.Engine
+	gc     game.Config
+	seats  []protocol.SeatInfo
+	decks  []string
 	// slots is the actual []seat.Seat the current match built in play().
 	// Registry methods that must reach a per-seat *HumanSeat (Pending,
 	// SubmitIntent, Task M2b-2) go through it. Installed once at the top
@@ -68,7 +73,10 @@ type match struct {
 	slots []seat.Seat
 
 	mu sync.RWMutex
-	e  *rules.Engine
+	// g is the running game. e is its rules engine, for what only exists on
+	// that engine; setGame keeps the two together.
+	g game.Game
+	e *rules.Engine
 	// files is the live match's append-only logs; nil in memory mode and
 	// after the match is archived (Task 12).
 	files *matchFiles
@@ -109,6 +117,9 @@ type match struct {
 	// each rewind until the queue is empty. Created at match build, never
 	// reassigned, and dies with the match.
 	undo *undoQueue
+	// seatContexts are the contexts the seats attached with. An undo re-points
+	// them at the replayed game. Touched only on the match goroutine.
+	seatContexts []*bots.MatchContext
 	// ledger is HD-2's per-intent provenance ledger (server/host/divergence_ledger.go):
 	// one byte per accepted intent, bit 0 caretaker, bit 1 client-auto. Host
 	// metadata like m.snaps — never replay input, never an event. Appended in
@@ -118,18 +129,19 @@ type match struct {
 	// feeds owns the live observation feed of every non-human bots.EnvSeat on
 	// this match (server/host/botenv.go, spec §5.2 Create/Observe/Record). Nil when
 	// no seat implements bots.EnvSeat — the allocation-free fast path every
-	// pure-bot table takes today. Installed once at the top of play, after
-	// the seats are final, and never reassigned. The match goroutine is its
-	// only writer; every read (projectNext's Observe, the Submit section's
-	// Record, and the tests' post-match inspection) is under m.mu.
+	// pure-bot table takes today — and on an engine that deals no search roots.
+	// Installed once at the top of play, after the seats are final, and never
+	// reassigned. The match goroutine is its only writer; every read
+	// (projectNext's Observe, the Submit section's Record, and the tests'
+	// post-match inspection) is under m.mu.
 	feeds *matchFeeds
 }
 
-// snapshot is a cloned engine at an intent boundary that began a turn.
+// snapshot is a forked game at an intent boundary that began a turn.
 type snapshot struct {
 	intent int
 	seq    uint64 // Task 12: the persisted burst boundary this snapshot lines up with on disk.
-	e      *rules.Engine
+	g      game.Game
 }
 
 // newMatch is the pre-E3 constructor, still called directly by tests and
@@ -139,16 +151,66 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	return r.newMatchWith(t, k, nil)
 }
 
-// newMatchWith resolves decks, seeds and builds the engine through genesis
-// and the first Advance, so the returned match is at intent boundary 0.
-// When persistence is on it also opens the match's files, writes the live
-// sidecar and appends the genesis events; any error halts the table. A
-// non-nil plan (E3-2) replaces the rotated deck list with the series hook's
-// per-seat decks and, when plan.Chooser >= 0, poses CR 103.1's
-// starting-player choice to that seat in place of the toss winner.
+// newMatchWith resolves decks, seeds and builds the game through genesis and
+// the first Advance, so the returned match is at intent boundary 0. When
+// persistence is on it also opens the match's files, writes the live sidecar
+// and appends the genesis events; any error halts the table. A non-nil plan
+// replaces the rotated deck list with the series hook's per-seat decks and,
+// when plan.Chooser >= 0, poses CR 103.1's starting-player choice to that seat
+// in place of the toss winner.
 func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, error) {
 	c := t.cfg
-	seed := MatchSeed(c.Seed, k)
+	engine, err := LookupEngine(r.opts.Engines, c.Engine)
+	if err != nil {
+		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+	}
+	gc, infos, deckNames, err := r.matchConfig(c, k, plan)
+	if err != nil {
+		return nil, err
+	}
+	// Events growEvents was the top allocator in ./server/host (2.87 GB of the test
+	// binary's profile: every live match log reallocated ~2x its final length
+	// on the way up). Preallocating the live log to just above a real match's
+	// event count makes the common case grow without reallocating at all, and
+	// the one make costs less than the doubling series it replaces. The value
+	// is a hint, sized from the measured top of a real match (the 4-seat
+	// repo-deck match runs ~74k events; stays under defaultMaxIntents); a match
+	// that overruns it doubles once and is still correct. It is a pure capacity
+	// hint on the live log and cannot leak spare capacity to a clone (Clone
+	// truncates to len), so the clone-sharing invariant is intact.
+	live := gc
+	live.ExpectedEvents = defaultExpectedEvents
+	g, err := engine.New(live)
+	if err != nil {
+		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+	}
+	m := &match{table: t, k: k, seed: gc.Seed, engine: engine, gc: gc, seats: infos, decks: deckNames, state: protocol.MatchLive,
+		undo: newUndoQueue()}
+	m.setGame(g)
+	m.bounds = []uint64{uint64(len(m.g.Log().Events))}
+	m.turnStarts = turnStartsIn(m.g.Log().Events, 0)
+	m.snapshotGenesis()
+	if r.opts.Dir != "" {
+		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
+		if err != nil {
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := writeSidecar(r.opts.Dir, m.sidecar(), r.opts.Sync); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		if err := m.files.append(m.g.Log().Events, nil); err != nil {
+			m.files.close()
+			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
+		}
+		m.persisted = len(m.g.Log().Events) // genesis is durable once appended
+	}
+	return m, nil
+}
+
+// matchConfig resolves match k of table c: the game's config, each seat's wire
+// summary and each seat's deck id.
+func (r *Registry) matchConfig(c TableConfig, k int, plan *SeriesGame) (game.Config, []protocol.SeatInfo, []string, error) {
 	names := make([]string, c.Seats)
 	decks := make([][]*cards.Card, c.Seats)
 	sideboards := make([][]*cards.Card, c.Seats)
@@ -177,13 +239,13 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	for i := 0; i < c.Seats; i++ {
 		dn := c.Decks[(i+k)%len(c.Decks)]
 		if plan != nil {
-			// E3-2: a series plan indexes decks by SEAT — the hook decides
-			// who plays what this match; no k rotation.
+			// A series plan indexes decks by SEAT — the hook decides who plays
+			// what this match; no k rotation.
 			dn = plan.Decks[i]
 		}
 		d, err := r.opts.LoadDeck(dn)
 		if err != nil {
-			return nil, fmt.Errorf("host: table %s match %d: deck %q: %w", c.ID, k, dn, err)
+			return game.Config{}, nil, nil, fmt.Errorf("host: table %s match %d: deck %q: %w", c.ID, k, dn, err)
 		}
 		if d.Name == "" {
 			d.Name = dn
@@ -201,95 +263,58 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 			}
 		}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: c.Mulligans, WindowDiagnostics: c.WindowDiagnostics}
-	// The engine's own livelock watcher (engine/rules/livelock.go) is the same
-	// non-terminating-loop protection as this file's per-turn decision
-	// guard, one level down: an embedder that opted out of the host guard
-	// (MaxDecisionsPerTurn == 0, the supervised-infinite-loop shape the
-	// stall tests drive) must not have the engine crash the match instead
-	// at its own 400-event cycle threshold. Propagate the opt-out; every
-	// Config with the host guard at its default keeps the watcher on.
-	if r.opts.MaxDecisionsPerTurn == 0 {
-		cfg.LoopGuard = &rules.LoopGuard{Disabled: true}
-	} else {
-		// The default object cap (CV-8): a hosted table's degenerate token
-		// storm ends as a recorded stalled match (the play recover below
-		// re-classifies it) instead of growing the arena and event log
-		// until the process OOMs. The same volume bound the shared harness
-		// drive loop (testkit/bench) arms; an explicit caller guard would
-		// win, and no host path sets one.
-		cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
-	}
+	gc := game.Config{Seed: MatchSeed(c.Seed, k), Names: names, PlayerNames: playerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: c.Mulligans, WindowDiagnostics: c.WindowDiagnostics,
+		// An engine's own livelock watcher is the same non-terminating-loop
+		// protection as this package's per-turn decision guard, one level
+		// down: an embedder that opted out of the host guard (the
+		// supervised-infinite-loop shape the stall tests drive) must not have
+		// the engine crash the match instead at its own 400-event cycle
+		// threshold.
+		GuardDisabled: r.opts.MaxDecisionsPerTurn == 0}
 	// The format the table was configured with is threaded into the engine
-	// once, here, so the match's rules.Config is the single value both the
-	// live game and its replay are built from (R-8.4). A commander table
-	// also resolves its starting life — CR 903.6's 40 (TableConfig's
-	// 0-means-format-default convention) — and its per-seat commanders
-	// from the loaded decks; validate has already rejected a commander
-	// table whose deck names no commander, so a seat can never silently
-	// play without a command zone.
+	// once, here, so the match's config is the single value both the live
+	// game and its replay are built from. A commander table also
+	// resolves its starting life — CR 903.6's 40 (TableConfig's
+	// 0-means-format-default convention) — and its per-seat commanders from
+	// the loaded decks; validate has already rejected a commander table whose
+	// deck names no commander, so a seat can never silently play without a
+	// command zone.
 	switch c.Format {
 	case FormatCommander:
-		cfg.Format = rules.FormatCommander
+		gc.Format = game.FormatCommander
 		life := c.StartingLife
 		if life == 0 {
 			life = 40
 		}
-		cfg.StartingLife = life
-		cfg.Commanders = make([][]int, c.Seats)
-		for i := range cfg.Commanders {
-			cfg.Commanders[i] = append([]int(nil), cmds[i]...)
+		gc.StartingLife = life
+		gc.Commanders = make([][]int, c.Seats)
+		for i := range gc.Commanders {
+			gc.Commanders[i] = append([]int(nil), cmds[i]...)
 		}
-	default: // FormatConstructed: the zero rules.Config, every field stays unset.
+	default: // FormatConstructed: the zero game.Config, every field stays unset.
 	}
 	if plan != nil && plan.Chooser >= 0 {
-		// E3-2: the series hook chose the seat posed CR 103.1's
-		// starting-player choice in place of the toss winner (rules.
-		// Config.StartChooser). A fresh int, so the plan can never be
+		// The series hook chose the seat posed CR 103.1's
+		// starting-player choice in place of the toss winner
+		// (game.Config.StartChooser). A fresh int, so the plan can never be
 		// aliased into the match's Config.
 		chooser := plan.Chooser
-		cfg.StartChooser = &chooser
+		gc.StartChooser = &chooser
 	}
-	e := rules.NewStartingPlayerChoice(cfg)
-	// Events growEvents was the top allocator in ./server/host (2.87 GB of the test
-	// binary's profile: every live match log reallocated ~2x its final length
-	// on the way up). Preallocating the live log to just above a real match's
-	// event count makes the common case grow without reallocating at all, and
-	// the one make at Reserve time costs less than the doubling series it
-	// replaces. The value is a hint, sized from the measured top of a real
-	// match (the 4-seat repo-deck match runs ~74k events; stays under defaultMaxIntents);
-	// a match that overruns it doubles once and is still correct. Reserve is a
-	// pure capacity hint on the live log and cannot leak spare capacity to a
-	// clone (Clone truncates to len), so the clone-sharing invariant is intact.
-	e.L.Reserve(defaultExpectedEvents)
-	// CR 103.1's second half: the toss winner chooses who takes the first
-	// turn. Pose that choice BEFORE advancing so the play loop's parking
-	// conveys it to the winner's seat; a caller with no decision channel
-	// gets the deterministic fallback from Advance instead.
-	e.AskStartingPlayer()
-	e.Advance()
-	m := &match{table: t, k: k, seed: seed, cfg: cfg, seats: infos, decks: deckNames, e: e, state: protocol.MatchLive,
-		undo: newUndoQueue()}
-	m.bounds = []uint64{uint64(len(e.L.Events))}
-	m.turnStarts = turnStartsIn(e.L.Events, 0)
-	m.snapshotGenesis()
-	if r.opts.Dir != "" {
-		var err error
-		m.files, err = openMatchFiles(r.opts.Dir, t.cfg.ID, k, r.opts.Sync)
-		if err != nil {
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		if err := writeSidecar(r.opts.Dir, m.sidecar(), r.opts.Sync); err != nil {
-			m.files.close()
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		if err := m.files.append(e.L.Events, nil); err != nil {
-			m.files.close()
-			return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
-		}
-		m.persisted = len(e.L.Events) // genesis is durable once appended
+	return gc, infos, deckNames, nil
+}
+
+// setGame installs g as the match's game, at build or under m.mu.
+func (m *match) setGame(g game.Game) {
+	m.g, m.e = g, gorgegame.Rules(g)
+}
+
+// ensurePaymentActions builds the pending decision's payment plans. A game
+// that is no PaymentPlanner has none to build.
+func (m *match) ensurePaymentActions() {
+	if pp, ok := m.g.(game.PaymentPlanner); ok {
+		pp.EnsurePaymentActions()
 	}
-	return m, nil
 }
 
 // turnStartsIn lists the seq of every TurnChange in evs[from:].
@@ -327,15 +352,15 @@ func (m *match) projection(f func()) {
 // Called with m.mu held.
 func (m *match) afterSubmit(before int) {
 	m.intents++
-	m.bounds = append(m.bounds, uint64(len(m.e.L.Events)))
-	m.turnStarts = append(m.turnStarts, turnStartsIn(m.e.L.Events, before)...)
+	m.bounds = append(m.bounds, uint64(len(m.g.Log().Events)))
+	m.turnStarts = append(m.turnStarts, turnStartsIn(m.g.Log().Events, before)...)
 }
 
 // info is the sidecar/wire summary. Called with m.mu held for reading.
 func (m *match) info() protocol.MatchInfo {
 	return protocol.MatchInfo{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats,
 		State: m.state, Result: m.result, Winner: m.winner, Head: m.head,
-		Events: len(m.e.L.Events), Turns: m.e.G.Turn, BotPolicy: m.table.cfg.BotPolicy}
+		Events: len(m.g.Log().Events), Turns: m.g.Board().Turn, BotPolicy: m.table.cfg.BotPolicy}
 }
 
 // sidecar is the on-disk summary of the match. Called with m.mu held.
@@ -343,19 +368,19 @@ func (m *match) info() protocol.MatchInfo {
 // in-memory tail: crash() recorded m.head over it, and Events here is the
 // persisted count (fix round 1).
 func (m *match) sidecar() sidecar {
-	events := len(m.e.L.Events)
+	events := len(m.g.Log().Events)
 	if m.files != nil && m.state == protocol.MatchCrashed {
 		events = m.persisted
 	}
-	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
-		PlayerNames: m.cfg.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
-		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
-		NameUniverse:      m.cfg.NameUniverse.Len() > 0,
-		NameUniverseNames: append([]string(nil), m.e.G.NameUniverseNames...),
-		PaidManaCensus:    !m.cfg.DisablePaidManaCensus,
-		Format:            Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders, BotPolicy: m.table.cfg.BotPolicy,
-		StartChooser: m.cfg.StartChooser,
-		Refusals:     m.refusals, Fallbacks: m.fallbacks, RootRefusals: m.rootRefusals}
+	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.gc.Names,
+		PlayerNames: m.gc.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
+		Head: m.head, Events: events, Turns: m.g.Board().Turn, Reason: m.reason, Mulligans: m.gc.Mulligans,
+		NameUniverse:      m.gc.NameUniverse.Len() > 0,
+		NameUniverseNames: append([]string(nil), m.g.Board().NameUniverseNames...),
+		PaidManaCensus:    !m.gc.DisablePaidManaCensus,
+		Format:            Format(m.gc.Format), StartingLife: m.gc.StartingLife, Commanders: m.gc.Commanders, BotPolicy: m.table.cfg.BotPolicy,
+		StartChooser: m.gc.StartChooser, Engine: m.table.cfg.Engine, EngineKey: m.gc.Key,
+		Refusals: m.refusals, Fallbacks: m.fallbacks, RootRefusals: m.rootRefusals}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.
@@ -554,7 +579,7 @@ func projectNext(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData 
 // Everything below the observe is shared with the ordinary path unchanged:
 // one body, two entries. Call on the match goroutine, under m.mu.
 func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedData {
-	d := m.e.Pending()
+	d := m.g.Pending()
 	if d == nil {
 		return nil
 	}
@@ -564,10 +589,12 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 		wantsPlans = true
 	}
 	if wantsPlans {
-		m.e.EnsurePaymentActions()
+		m.ensurePaymentActions()
 	}
 	if c, ok := seats[d.Player].(seat.TargetHintConsumer); ok && c.WantsTargetHints() {
-		m.e.EnsureTargetHints()
+		if pp, ok := m.g.(game.PaymentPlanner); ok {
+			pp.EnsureTargetHints()
+		}
 	}
 	dc := *d.Clone()
 	// Payment plans are an opt-in human interface. Keep the engine's pending
@@ -610,16 +637,16 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 		return &parkedData{
 			p:       d.Player,
 			dc:      dc,
-			brd:     botpolicy.BoardFromGameInto(m.e.G, m.e, d.Player, brd).Detached(),
+			brd:     botpolicy.BoardFromGameInto(m.g.Board(), m.g.Chars(), d.Player, brd).Detached(),
 			isBoard: true,
 		}
 	}
-	v := view.ProjectForControlled(m.e.G, m.e, d.Player, view.Seat, controlledSeats(m.e.G, d.Player), &dc)
+	v := view.ProjectForControlled(m.g.Board(), m.g.Chars(), d.Player, view.Seat, controlledSeats(m.g.Board(), d.Player), &dc)
 	// The seat's view is built at head, so its round is the exact round-trip
 	// count (view.RoundOf over the live log), not the snapshot-only roundOf
 	// approximation Project fills in (ui13). A human seat renders this view,
 	// so it must agree with the board clock the same match fans out.
-	v.Round = view.RoundOf(m.e.G, m.e.L.Events)
+	v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
 	return &parkedData{p: d.Player, v: v, dc: dc}
 }
 
@@ -747,15 +774,15 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	if r.opts.BotUnboundedDecisions {
 		budget = 0
 	}
-	seats := defaultSeatsWithAutoPayMana(t.cfg.BotPolicy, autoPayMana, t.cfg.BotCommonSense, m.cfg.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
+	seats := defaultSeatsWithAutoPayMana(t.cfg.BotPolicy, autoPayMana, t.cfg.BotCommonSense, m.gc.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
 	if len(t.cfg.SeatBotPolicies) > 0 {
 		// E1-2: a table with per-seat bot policies rebuilds its bots from
 		// SeatBotPolicies (seat i plays seatBotPolicy(i)); the embedder's
 		// r.opts.Seats override below still wins over it.
-		seats = seatPolicySeats(t.cfg, autoPayMana, m.cfg.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
+		seats = seatPolicySeats(t.cfg, autoPayMana, m.gc.Names, m.seed, r.opts.BotSearchParallelism, r.opts.BotDeps, budget, r.opts.BotConfig)
 	}
 	if r.opts.Seats != nil {
-		seats = r.opts.Seats(m.cfg.Names, m.seed)
+		seats = r.opts.Seats(m.gc.Names, m.seed)
 	}
 	// Task M2c-2: honor the TableConfig.Humans plan — every listed slot is a
 	// real person, so replace the bot that Options.Seats built for it (by
@@ -771,9 +798,12 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	m.slots = seats
 	// Create the per-seat observation feeds once the seats are final (after
 	// the Humans replacement above, which can swap a bot for a HumanSeat and
-	// so must precede the EnvSeat scan). A table with no EnvSeat gets nil, and
-	// every Observe/Record below is a nil-receiver no-op (§5.2 Create).
-	m.feeds = newMatchFeeds(seats)
+	// so must precede the EnvSeat scan). A table with no EnvSeat, or on an engine
+	// that deals no search roots, gets nil, and every Observe/Record below is a
+	// nil-receiver no-op (§5.2 Create).
+	if m.g.Caps().SearchRoots {
+		m.feeds = newMatchFeeds(seats)
+	}
 	m.mu.Unlock()
 	// Decklist privacy (server/host/closedlist.go): at a table with a human, every
 	// search seat must close its opponents' lists, checked on the seats
@@ -828,26 +858,29 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	for i, s := range seats {
 		mc := &bots.MatchContext{
 			Context:      ctx,
+			Game:         m.g,
 			Engine:       m.e,
 			Projection:   m.projection,
+			Registry:     r.opts.BotDeps.Cards,
 			GameID:       gameID,
 			Seat:         i,
 			Seats:        len(seats),
-			Format:       tableFormatName(m.cfg.Format),
+			Format:       tableFormatName(m.gc.Format),
 			Seed:         []byte(fmt.Sprintf("%d/%d", m.seed, m.k)),
 			Secret:       secret,
-			OwnDeck:      m.e.OwnDeck(state.PlayerID(i)),
-			Mulligan:     mulliganName(m.cfg.Mulligans),
-			StartingSeat: int(m.e.G.Active),
+			OwnDeck:      m.g.Chars().OwnDeck(state.PlayerID(i)),
+			Mulligan:     mulliganName(m.gc.Mulligans),
+			StartingSeat: int(m.g.Board().Active),
 			DeadlineMS:   budget,
 			Logf: func(format string, args ...any) {
 				log.Printf("match %s seat %d: "+format, append([]any{gameID, i}, args...)...)
 			},
 		}
 		if t.cfg.AllowDecklistBots && len(seats) == 2 {
-			mc.OpponentDeck = m.e.OwnDeck(state.PlayerID(1 - i))
+			mc.OpponentDeck = m.g.Chars().OwnDeck(state.PlayerID(1 - i))
 			mc.OpponentVisible = mc.OpponentDeck != nil
 		}
+		m.seatContexts = append(m.seatContexts, mc)
 		if err := bots.AttachMatch(s, mc); err != nil {
 			return r.crash(t, m, fmt.Errorf("seat %d: attach match: %w", i, err))
 		}
@@ -882,7 +915,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// Options.MaxDecisionsPerTurn for why the determinism the engine is
 	// built on forbids a wall clock here. 0 — the zero value — disables the
 	// guard entirely.
-	lastTurn := m.e.G.Turn
+	lastTurn := m.g.Board().Turn
 	decisionsThisTurn := 0
 	perTurnLimit := r.opts.MaxDecisionsPerTurn
 	// BP-10 (spec §7): the registry's FIFO search-slot gate. Non-nil only
@@ -918,9 +951,9 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	// it in DecideBoard outside the lock; it is never read after the next
 	// decision's refill (botpolicy.BoardFromGameInto's doc comment states the
 	// contract, and botpolicy.TestBoardOwnership pins that Decide never
-	// retains the Board). Sized to len(m.e.G.Players) like BoardFromGame's own
+	// retains the Board). Sized to len(m.g.Board().Players) like BoardFromGame's own
 	// Life map, once per match — three small maps, nothing per decision.
-	brd := botpolicy.NewBoard(len(m.e.G.Players))
+	brd := botpolicy.NewBoard(len(m.g.Board().Players))
 playLoop:
 	for n := 0; ; n++ {
 		select {
@@ -953,11 +986,11 @@ playLoop:
 			// continue executes the for-loop post statement (n++), so seed n
 			// one behind the rewound intent count. At the next body entry n once
 			// again equals the number of intents already submitted.
-			n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+			n, lastTurn, decisionsThisTurn = m.intents-1, m.g.Board().Turn, 0
 			continue
 		}
 		if n >= maxIntents {
-			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.e.G.Turn))
+			return r.crash(t, m, fmt.Errorf("did not terminate after %d intents (turn %d)", n, m.g.Board().Turn))
 		}
 		// Park the decision if this is the first live iteration, or the
 		// previous iteration's end-of-loop park produced nothing because the
@@ -979,6 +1012,9 @@ playLoop:
 				return r.crash(t, m, fmt.Errorf("engine stalled: game not over and no decision pending"))
 			}
 			parked = parkSeat(ctx, seats, data, m.undo.signal, gate, t.stop)
+			// onMatchStart's frames went out before this park and no Submit has
+			// run yet, so nothing else tells a waiting client about this decision.
+			r.fanout(t, m, len(m.g.Log().Events))
 		}
 		// Await the answer to the parked decision (parked at the first live
 		// iteration or at the end of the previous one). A bot seat resolved
@@ -1003,7 +1039,7 @@ playLoop:
 					if uerr != nil {
 						return r.crash(t, m, uerr)
 					}
-					n, lastTurn, decisionsThisTurn = m.intents-1, m.e.G.Turn, 0
+					n, lastTurn, decisionsThisTurn = m.intents-1, m.g.Board().Turn, 0
 					continue playLoop
 				}
 				// BP-10 (spec §7): a SEARCH decision (one that parked on the
@@ -1045,7 +1081,7 @@ playLoop:
 					}
 				}()
 				err = m.locked(func() error {
-					before = len(m.e.L.Events)
+					before = len(m.g.Log().Events)
 					// d is the decision this intent answers. It is read before the
 					// Submit because a successful Submit consumes it; on a refusal
 					// the pending decision survives and the ladder's next rung
@@ -1053,7 +1089,7 @@ playLoop:
 					// arena generation d lives in before it returns
 					// (decision_arena_live.go), so the feed's post-Submit record
 					// needs an owned copy taken here, while d is still valid.
-					d := m.e.Pending()
+					d := m.g.Pending()
 					var drec *decision.Decision
 					if d != nil && m.feeds != nil {
 						// A payment-plan answer (in.Payment / in.Announce) names
@@ -1066,11 +1102,11 @@ playLoop:
 						// stopped for the rest of the game. Build them first: a
 						// pure derived read, no event, no RNG.
 						if in.Payment != nil || in.Announce != nil {
-							m.e.EnsurePaymentActions()
+							m.ensurePaymentActions()
 						}
 						drec = d.Clone()
 					}
-					if e := m.e.Submit(in); e != nil {
+					if e := m.g.Submit(in); e != nil {
 						refused = true
 						return e
 					}
@@ -1152,11 +1188,11 @@ playLoop:
 			// consumed before the next decision refills it.
 			var dc decision.Decision
 			var v view.View
-			if d := m.e.Pending(); d != nil {
+			if d := m.g.Pending(); d != nil {
 				dc = *d.Clone()
-				v = view.Project(m.e.G, m.e, dc.Player, &dc)
-				v.Round = view.RoundOf(m.e.G, m.e.L.Events)
-				botpolicy.BoardFromGameInto(m.e.G, m.e, dc.Player, &brd)
+				v = view.Project(m.g.Board(), m.g.Chars(), dc.Player, &dc)
+				v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
+				botpolicy.BoardFromGameInto(m.g.Board(), m.g.Chars(), dc.Player, &brd)
 			}
 			m.mu.Unlock()
 			// Rung 1: the seat's retry, outside the lock.
@@ -1205,13 +1241,13 @@ playLoop:
 		// only writer, and readers holding RLock see a stable boundary
 		// either side of this section.
 		if perTurnLimit > 0 {
-			if m.e.G.Turn > lastTurn {
-				lastTurn = m.e.G.Turn
+			if m.g.Board().Turn > lastTurn {
+				lastTurn = m.g.Board().Turn
 				decisionsThisTurn = 0
 			} else {
 				decisionsThisTurn++
 				if decisionsThisTurn >= perTurnLimit {
-					return r.crash(t, m, fmt.Errorf("stalled: %d decisions answered with no turn advance in turn %d (limit %d)", decisionsThisTurn, m.e.G.Turn, perTurnLimit))
+					return r.crash(t, m, fmt.Errorf("stalled: %d decisions answered with no turn advance in turn %d (limit %d)", decisionsThisTurn, m.g.Board().Turn, perTurnLimit))
 				}
 			}
 		}
@@ -1246,7 +1282,7 @@ playLoop:
 // The match goroutine is the sole engine writer, so the preliminary G.Over read
 // is stable until this function either services an undo or records the finish.
 func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, bool, string) {
-	if m.e.G.Over && r.opts.beforeFinish != nil {
+	if m.g.Board().Over && r.opts.beforeFinish != nil {
 		r.opts.beforeFinish()
 	}
 
@@ -1257,17 +1293,17 @@ func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, b
 		return req, true, ""
 	default:
 	}
-	if !m.e.G.Over {
+	if !m.g.Board().Over {
 		m.mu.Unlock()
 		return 0, false, ""
 	}
 	m.state = protocol.MatchFinished
-	m.head = m.e.L.Head()
-	if m.e.G.Draw {
+	m.head = m.g.Log().Head()
+	if m.g.Board().Draw {
 		m.result = "draw"
 	} else {
 		m.result = "win"
-		w := uint8(m.e.G.Winner)
+		w := uint8(m.g.Board().Winner)
 		m.winner = &w
 	}
 	m.mu.Unlock()
@@ -1281,7 +1317,7 @@ func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, b
 func (r *Registry) abort(m *match) string {
 	m.mu.Lock()
 	m.state = protocol.MatchAborted
-	m.head = m.e.L.Head()
+	m.head = m.g.Log().Head()
 	m.mu.Unlock()
 	r.onMatchEnd(m.table, m)
 	r.observeMatchEnd(m.table, m) // Task M2c-1
@@ -1301,9 +1337,9 @@ func (r *Registry) crash(t *table, m *match, err error) string {
 	m.state = protocol.MatchCrashed
 	m.reason = err.Error()
 	if m.files != nil {
-		m.head = m.e.L.HeadAt(m.persisted)
+		m.head = m.g.Log().HeadAt(m.persisted)
 	} else {
-		m.head = m.e.L.Head()
+		m.head = m.g.Log().Head()
 	}
 	m.mu.Unlock()
 	r.writeCrashReport(t, m, err.Error())
@@ -1321,8 +1357,8 @@ func matchIdentity(seed uint64, k int) (gameID string, secret []byte) {
 	return gameID, sum[:]
 }
 
-func tableFormatName(f rules.Format) string {
-	if f == rules.FormatCommander {
+func tableFormatName(f game.Format) string {
+	if f == game.FormatCommander {
 		return "commander"
 	}
 	return "constructed"

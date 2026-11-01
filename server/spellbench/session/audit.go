@@ -74,7 +74,7 @@ func LeakHits(sd []byte, hidden map[string]bool) int {
 // triggers) or in known. A stack ability names its source even after the
 // source went into a library (Lembas), and that name is public.
 func (s *Game) hiddenNames(seat state.PlayerID, obs protocol.Observation) map[string]bool {
-	g := s.g.E.G
+	g := s.g.R.Board()
 	hidden, seen := map[string]bool{}, map[string]bool{}
 	for i := range g.Objs {
 		o := &g.Objs[i]
@@ -301,7 +301,7 @@ func (s *Game) sameObject(seat state.PlayerID, ref any, obj state.ObjID, player 
 		}
 		return ""
 	}
-	o := s.g.E.G.Obj(obj)
+	o := s.g.R.Board().Obj(obj)
 	switch {
 	case obj == 0 || m["trigger"] != nil:
 		return "" // no native object to compare, or a trigger item

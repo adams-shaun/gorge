@@ -2,8 +2,7 @@
 # Shared by pre-commit and pre-merge-commit: a change that adds, deletes or
 # renames a Go file, or edits the classification itself, must leave every
 # package classified in docs/site/architecture/packages.tiers.json. Without
-# this, TestClassificationIsComplete only fails post-merge and pauses the
-# pipeline (three times on 2026-10-14). Checks the working tree, which for a
+# this, TestClassificationIsComplete only fails post-merge. Checks the working tree, which for a
 # merge is the merge result.
 classfile=docs/site/architecture/packages.tiers.json
 changed=$(git diff --cached --name-only --diff-filter=ADR -- '*.go'; git diff --cached --name-only -- "$classfile")

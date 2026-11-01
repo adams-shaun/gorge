@@ -466,7 +466,7 @@ func LethalPressureDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // per-attacker lethal test (LethalPressureDecide), a combat attack whose
 // ATTACKING SET is lethal once the defender's minimum blocking response is
 // subtracted is made even when no single attacker would be. It is exposed to
-// four-yay cmd/botbench as the "ar8" policy and is NEVER wired into the hosted or
+// a bench runner as the "ar8" policy and is NEVER wired into the hosted or
 // production bot (the default Decide carries only AR7 lethal pressure, never
 // the combined-lethal test).
 func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
@@ -476,7 +476,7 @@ func CombinedLethalDecide(b Board, d *decision.Decision, r *rand.Rand) decision.
 // BlocksDecide is the opt-in BLK bench policy: identical to Decide except
 // that KBlockers is answered by the whole-assignment heuristic in
 // blocks.go (chooseBlockAssignment, rules B0-B3) instead of the per-blocker
-// chooseBlockers. It is exposed to four-yay cmd/botbench as the "blocks" policy and
+// chooseBlockers. It is exposed to a bench runner as the "blocks" policy and
 // is NEVER wired into the hosted or production bot.
 func BlocksDecide(b Board, d *decision.Decision, r *rand.Rand) decision.Intent {
 	return decide(b, d, r, true, false, true)
@@ -908,6 +908,9 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
+		case "tapcost", "waterbend_generic", "improvise_generic", "activation_creature", "convoke_generic",
+			"convoke_W", "convoke_U", "convoke_B", "convoke_R", "convoke_G":
+			in.Choices = b.tapHelperChoices(d)
 		case "harmonize":
 			in.Choices = []int{chooseHarmonize(d)}
 		case "discard":
@@ -1316,6 +1319,30 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 	}
 	return Clamp(d, in)
+}
+
+// tapHelperChoices answers an ask that taps permanents to help pay a cost: the
+// first offers (Min of them, at least one, as any other ask's first offer) that make
+// no mana, since one that does may be needed for the rest of the payment and can't
+// do both. Clamp tops an answer short of Min up in offer order.
+func (b Board) tapHelperChoices(d *decision.Decision) []int {
+	want := max(d.Min, 1)
+	var picks []int
+	used := map[string]bool{} // membership only -- never ranged.
+	for _, o := range d.Options {
+		if len(picks) == want {
+			break
+		}
+		if !b.Cards.Get(o.Obj).Produces.IsZero() || (o.Group != "" && used[o.Group]) {
+			continue
+		}
+		used[o.Group] = true
+		picks = append(picks, o.Index)
+	}
+	if len(picks) == 0 {
+		return []int{d.Options[0].Index}
+	}
+	return picks
 }
 
 // chooseHarmonize returns the index of the harmonize option to take. CR

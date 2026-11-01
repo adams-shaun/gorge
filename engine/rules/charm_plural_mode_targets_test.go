@@ -380,3 +380,46 @@ func TestChooseOnePluralCharmKeepsFlatAsk(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestCharmAllModesIllegalDoesNotResolve pins CR 608.2b: each mode's target is
+// judged by that mode. Here both are illegal, one gone and one no longer tapped,
+// so the spell does not resolve, even though the second object still fits the
+// first mode's description.
+func TestCharmAllModesIllegalDoesNotResolve(t *testing.T) {
+	t.Parallel()
+	const charm = "Name:Two Blasts\nManaCost:B\nTypes:Instant\n" +
+		"A:SP$ Charm | CharmNum$ 2 | Choices$ KillAny,KillTapped\n" +
+		"SVar:KillAny:DB$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\n" +
+		"SVar:KillTapped:DB$ Destroy | ValidTgts$ Creature.tapped | SpellDescription$ Destroy target tapped creature.\n" +
+		"Oracle:x\n"
+	e, _, id := newFixtureDeck(t, 6311, charm)
+	first := onBoard(t, e, 1, vanillaCreatureScript)
+	second := onBoard(t, e, 1, otherCreatureScript)
+	e.emit(events.Event{Kind: events.Tap, Obj: second})
+	addMana(t, e, 0, "B")
+	if d := castFixture(t, e, id, -1); d == nil || d.Kind != decision.KModes {
+		t.Fatalf("pending = %+v, want the mode announcement", d)
+	}
+	submitChoices(t, e, 0, 1)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Max != 2 {
+		t.Fatalf("pending = %+v, want the combined target ask", d)
+	}
+	asSecond := charmModeOptions(d, second)
+	submitChoices(t, e, charmModeOptions(d, first)[0], asSecond[len(asSecond)-1])
+	if e.G.Obj(id).Zone != state.ZStack {
+		t.Fatalf("the charm is not on the stack: %+v", e.Pending())
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: first, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.emit(events.Event{Kind: events.Untap, Obj: second})
+	before := len(e.L.Events)
+	passUntilStackEmpty(t, e, 20)
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Resolve && ev.Obj == id {
+			t.Fatal("the charm resolved with every target illegal")
+		}
+	}
+	if z := e.G.Obj(second).Zone; z != state.ZBattlefield {
+		t.Fatalf("second creature zone %s, want it on the battlefield", z)
+	}
+}

@@ -1,0 +1,1 @@
+{"v":1,"type":"batch","batch":18,"items":[{"id":42,"kind":"build","seed":987654321,"set":"FDN","pool":[{"id":"c1","name":"Boreal Gravewalker","set":"FDN","number":"1","rarity":"C","mana_cost":"1W","mana_value":1,"colors":"B","type_line":"Creature — Zombie"},{"id":"c2","name":"Rubblebelt","set":"FDN","number":"1","rarity":"C","mana_cost":"1W","type_line":"Land"}],"deck_size":40}]}

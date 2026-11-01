@@ -12,6 +12,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/server/protocol"
 )
@@ -20,9 +22,8 @@ import (
 // that burst's events (the slice appended since the previous burst), in is
 // the intent that drove it (nil for the genesis burst, which has no
 // decision). t is the producing table and k the match number, so one sink
-// can serve many tables and matches (Task M2c-1, FL-81: mtgserve runs the
-// registry in-process and persists every match to SQLite through this
-// hook).
+// can serve many tables and matches (an embedder can run the registry in-process and persist every match to its
+// own store through this hook).
 //
 // The callback runs on the match's own goroutine, while the table's match
 // lock is held — so it must NOT call back into the Registry (that re-enters
@@ -64,6 +65,9 @@ type Options struct {
 	// alike, for the same reason Tokens is (the replay must offer the same
 	// options the live match did).
 	NameUniverse *cards.Universe
+	// Engines holds the engines a table may name in TableConfig.Engine, by the
+	// name each reports. Nil is gorge alone.
+	Engines map[string]game.Engine
 	// Sleep is the table's only clock read (PL-11): run calls it between
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes
@@ -225,8 +229,7 @@ type Options struct {
 
 	// OnBurst, when non-nil, is invoked after every recorded burst of every
 	// match created by this registry, including the genesis burst, so an
-	// embedder sees the whole chain from its first event (Task M2c-1). It is
-	// the SQLite-persistence hook for mtgserve. See OnBurstFunc for the
+	// embedder sees the whole chain from its first event. See OnBurstFunc for the
 	// contract — most importantly, the callback runs on the match goroutine
 	// holding the match lock and must not re-enter the Registry.
 	OnBurst OnBurstFunc
@@ -320,6 +323,9 @@ func New(o Options) (*Registry, error) {
 	if o.BotSearchParallelism < 0 {
 		return nil, fmt.Errorf("host: BotSearchParallelism %d, want >= 0", o.BotSearchParallelism)
 	}
+	if o.Engines == nil {
+		o.Engines = map[string]game.Engine{gorgegame.Name: gorgegame.Engine{}}
+	}
 	var gate *searchSlots
 	if o.SearchSlots > 0 {
 		gate = newSearchSlots(o.SearchSlots)
@@ -336,9 +342,17 @@ func New(o Options) (*Registry, error) {
 // AddTable registers (and persists) a table without starting it.
 func (r *Registry) AddTable(c TableConfig) error {
 	var err error
-	c, err = c.validated(r.opts.LoadDeck)
+	c, err = c.validated(r.opts.LoadDeck, r.opts.Engines)
 	if err != nil {
 		return err
+	}
+	// A deck the engine cannot play fails here, not as a halted table at its
+	// first match. A series table's decks are the hook's, chosen match by match,
+	// and gorge accepts every config, so its tables skip the deck loads.
+	if c.Engine != "" && !c.Series {
+		if err := r.checkAccepted(c); err != nil {
+			return err
+		}
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -399,6 +413,23 @@ func (r *Registry) AddTable(c TableConfig) error {
 	}
 	r.tables[c.ID] = newTable(r, c)
 	return r.saveLocked() // Task 12; a no-op in memory mode
+}
+
+// checkAccepted asks a validated table's engine whether it can play the table's
+// first match.
+func (r *Registry) checkAccepted(c TableConfig) error {
+	engine, err := LookupEngine(r.opts.Engines, c.Engine)
+	if err != nil {
+		return fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	gc, _, _, err := r.matchConfig(c, 1, nil)
+	if err != nil {
+		return err
+	}
+	if err := engine.Accepts(gc); err != nil {
+		return fmt.Errorf("host: table %s: %w", c.ID, err)
+	}
+	return nil
 }
 
 // searchGateFor returns the registry's search-slot gate for t's decisions, or
@@ -749,23 +780,23 @@ func (r *Registry) retire(t *table, m *match) {
 // snapshot engine it copied out from under the read lock (viewAt).
 // Called with m.mu held for writing, after the match's last event.
 func (m *match) trimLog() {
-	old := m.e.L.Events
+	old := m.g.Log().Events
 	if len(old) == 0 || cap(old) == len(old) {
 		return
 	}
 	evs := make([]events.Event, len(old)) // exact capacity; slices.Clone rounds up
 	copy(evs, old)
-	m.e.L.Events = evs
+	m.g.Log().Events = evs
 	snaps := make([]snapshot, len(m.snaps))
 	for i, s := range m.snaps {
 		snaps[i] = s
-		se := s.e.L.Events
+		se := s.g.Log().Events
 		if len(se) == 0 || len(se) > len(evs) || &se[0] != &old[0] {
 			continue
 		}
-		ne := s.e.Clone()
-		ne.L.Events = evs[:len(se):len(se)]
-		snaps[i].e = ne
+		ne := s.g.Fork()
+		ne.Log().Events = evs[:len(se):len(se)]
+		snaps[i].g = ne
 	}
 	m.snaps = snaps
 }

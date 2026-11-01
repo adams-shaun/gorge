@@ -6,10 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestTwinSeed41TargetsResidueFixed pins the targeting/selection disagreements
-// the held-out run seed 41 (-games 100, -autopay all) measured before
-// sbp-twin-targets-s41c rebuilt the neutral world's target groups, hand moves
-// and target-effect SVars:
+// TestTwinSeed41TargetsResidueFixed pins targeting and selection disagreements
+// from run seed 41 (-games 100, -autopay all), which turn on the neutral world's
+// target groups, hand moves and target-effect SVars:
 //
 //   - up-to-two targets: Unexplained Absence's TargetsForEachPlayer$ ask lost
 //     its per-controller grouping, so the neutral seat finished after one pick

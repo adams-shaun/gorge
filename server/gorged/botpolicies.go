@@ -148,16 +148,8 @@ func botPolicyInfo(e bots.Entry) protocol.BotPolicyInfo {
 		Search:      e.Search,
 		Formats:     append([]string(nil), e.Formats...),
 	}
-	for _, m := range e.Strength {
-		info.Strength = append(info.Strength, protocol.BotMeasurement{
-			Claim: m.Claim, Versus: m.Versus, Setting: m.Setting, Source: m.Source,
-		})
-	}
 	if info.Formats == nil {
 		info.Formats = []string{}
-	}
-	if info.Strength == nil {
-		info.Strength = []protocol.BotMeasurement{}
 	}
 	return info
 }

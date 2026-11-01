@@ -7,7 +7,7 @@ import (
 )
 
 // dispatch routes one decision onto its per-kind prompt builder. The second
-// return value is the MBX-7 fallback flag: true exactly when the prompt is
+// return value is the fallback flag: true exactly when the prompt is
 // the generic chooseFromSelection fallback (an ask mapped by label only,
 // answered by native option index) rather than a kind-specific prompt. The
 // default arm is still an explicit ErrUnmapped -- the decision.Kind

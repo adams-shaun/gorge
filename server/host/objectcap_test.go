@@ -148,7 +148,7 @@ func TestTheDefaultObjectCapIsArmedOnEveryTableWithThePerTurnGuard(t *testing.T)
 	tb.mu.RLock()
 	m := tb.cur
 	m.mu.RLock()
-	g := m.cfg.LoopGuard
+	g := m.rulesConfig().LoopGuard
 	m.mu.RUnlock()
 	tb.mu.RUnlock()
 	r.Close()
@@ -185,7 +185,7 @@ func TestTheObjectCapOptOutIsPropagatedUnchanged(t *testing.T) {
 	tb.mu.RLock()
 	m := tb.cur
 	m.mu.RLock()
-	g := m.cfg.LoopGuard
+	g := m.rulesConfig().LoopGuard
 	m.mu.RUnlock()
 	tb.mu.RUnlock()
 	r.Close()

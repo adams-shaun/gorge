@@ -1193,7 +1193,7 @@ func prewarmArt(ctx context.Context, ac *artCache, dir string, logf func(string,
 // failed name, a tripped bound, a cancel, an unreadable deck dir or an
 // unwritable cache dir — exits 1 after one loud ART FILL INCOMPLETE line
 // carrying the summary, so an operator running the fill by hand
-// (`gorged -prewarm-art-only`; four-yay's `make prewarm-art`) sees a strict
+// (`gorged -prewarm-art-only`) sees a strict
 // result, and the deploy (which starts its servers regardless)
 // leaves the reason in its log.
 func runPrewarmArtOnly(ctx context.Context, c config, stderr io.Writer) int {

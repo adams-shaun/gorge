@@ -49,13 +49,15 @@ type staticGrant struct {
 	removeCreatureTypes bool
 	removeCardTypes     bool
 	removeLandTypes     bool // RemoveLandTypes$ (strip every land subtype, layer 4)
-	addColors           []string
-	setColors           []string // SetColor$ overwrites (layer 5)
-	addKeywords         []string
-	abilities           []string // AddAbility$/AddAbilities$ SVar names
-	removeAbilities     bool
-	powerExpr, toughExp string
-	hasPower, hasTough  bool
+	// RemoveArtifactTypes$ and RemoveEnchantmentTypes$ (the same strip, layer 4)
+	removeArtifactTypes, removeEnchantmentTypes bool
+	addColors                                   []string
+	setColors                                   []string // SetColor$ overwrites (layer 5)
+	addKeywords                                 []string
+	abilities                                   []string // AddAbility$/AddAbilities$ SVar names
+	removeAbilities                             bool
+	powerExpr, toughExp                         string
+	hasPower, hasTough                          bool
 	// addPowerExpr/addToughExpr are the layer-7c ADDITIVE P/T parameters
 	// (AddPower$/AddToughness$), distinct from the layer-7b SET parameters
 	// above. They ride the continuous effect's expression fields so the layer
@@ -115,6 +117,8 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 	g.removeCreatureTypes = strings.EqualFold(strings.TrimSpace(params["RemoveCreatureTypes"]), "True")
 	g.removeCardTypes = strings.EqualFold(strings.TrimSpace(params["RemoveCardTypes"]), "True")
 	g.removeLandTypes = strings.EqualFold(strings.TrimSpace(params["RemoveLandTypes"]), "True")
+	g.removeArtifactTypes = strings.EqualFold(strings.TrimSpace(params["RemoveArtifactTypes"]), "True")
+	g.removeEnchantmentTypes = strings.EqualFold(strings.TrimSpace(params["RemoveEnchantmentTypes"]), "True")
 	if raw, isAdd := params["AddColor"]; isAdd || params["AddColors"] != "" {
 		if !isAdd {
 			raw = params["AddColors"]
@@ -408,7 +412,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			types = append(types, o.ChosenType)
 		}
 	}
-	if len(types) > 0 || g.removeCardTypes || g.removeLandTypes || g.removeCreatureTypes || g.allCreatureTypes {
+	if len(types) > 0 || g.removeCardTypes || g.removeLandTypes || g.removeArtifactTypes || g.removeEnchantmentTypes || g.removeCreatureTypes || g.allCreatureTypes {
 		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:               state.LType,
@@ -417,8 +421,9 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			RemoveCreatureTypes: g.removeCreatureTypes,
 			RemoveCardTypes:     g.removeCardTypes,
 			RemoveLandTypes:     g.removeLandTypes,
-			AffectedZone:        g.affectedZone,
-			Duration:            g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
+			RemoveArtifactTypes: g.removeArtifactTypes, RemoveEnchantmentTypes: g.removeEnchantmentTypes,
+			AffectedZone: g.affectedZone,
+			Duration:     g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
 			SVars: c.SVars,
 		})
 	}
@@ -523,4 +528,4 @@ func AffectedXStaticAmount(expr string) bool {
 	return expr == "AffectedX"
 }
 
-var effectStaticGrantReadableKeys = state.NewNameSet("Mode", "Affected", "AffectedZone", "Description", "AddTypes", "AddType", "AddAllCreatureTypes", "RemoveCreatureTypes", "RemoveCardTypes", "RemoveLandTypes", "AddColor", "AddColors", "SetColor", "SetColors", "AddKeyword", "AddAbility", "AddAbilities", "RemoveAllAbilities", "SetPower", "SetToughness", "AddPower", "AddToughness")
+var effectStaticGrantReadableKeys = state.NewNameSet("Mode", "Affected", "AffectedZone", "Description", "AddTypes", "AddType", "AddAllCreatureTypes", "RemoveCreatureTypes", "RemoveCardTypes", "RemoveLandTypes", "RemoveArtifactTypes", "RemoveEnchantmentTypes", "AddColor", "AddColors", "SetColor", "SetColors", "AddKeyword", "AddAbility", "AddAbilities", "RemoveAllAbilities", "SetPower", "SetToughness", "AddPower", "AddToughness")

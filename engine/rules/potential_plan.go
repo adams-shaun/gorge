@@ -689,6 +689,15 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		cost.Phyrexian = nil
 	}
 	composed := e.offerCostFor(p, id, cost, abilityScope(ab))
+	out := e.planComposedCost(p, id, composed, true, true)
+	if out.Reason != "insufficient" || cost.Waterbend <= 0 {
+		return out
+	}
+	// A Waterbend<N> part's taps pay its generic (CR 701.67a): what the sources
+	// cannot fund, the offer's credit may, and the ask requires those taps.
+	for _, red := range e.withWaterbendOfferCredit(p, id, cost.Tap, cost.XMin, costMods{Waterbend: cost.Waterbend}).Reduces {
+		composed.Generic -= red.Generic
+	}
 	return e.planComposedCost(p, id, composed, true, true)
 }
 
@@ -734,13 +743,25 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	if selfSource && (composed.Tap || composed.Untap) {
 		tapped = append(tapped, id)
 	}
-	var parts []planCostPart
-	for _, part := range composed.TapPermanent {
+	parts, selfKept := planCostParts(composed, id, selfSource)
+	kept = append(kept, selfKept...)
+	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
+	desc := pay.DescriptorFor(id, ability, composed)
+	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
+	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
+		return pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+	})
+}
+
+// planCostParts is the fixed-count tap and sacrifice parts of cost a mana plan
+// may compete for, and the source itself when the cost sacrifices it.
+func planCostParts(cost Cost, id state.ObjID, selfSource bool) (parts []planCostPart, kept []state.ObjID) {
+	for _, part := range cost.TapPermanent {
 		if part.Dyn == "" && part.N > 0 {
 			parts = append(parts, planCostPart{part: part, tap: true})
 		}
 	}
-	for _, part := range composed.Sac {
+	for _, part := range cost.Sac {
 		switch {
 		case part.Announced || part.N <= 0:
 		case selfSource && pay.PlanSelfCost(part, id):
@@ -749,34 +770,36 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 			parts = append(parts, planCostPart{part: part})
 		}
 	}
-	manaOnly := Cost{Colored: mana.Colored, Generic: mana.Generic}
-	desc := pay.DescriptorFor(id, ability, composed)
-	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
-	got := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, tapped, nil, kept)
+	return parts, kept
+}
+
+// planReserving asks plan for a mana plan with nothing reserved, and when that
+// plan spends a permanent the cost itself must tap or sacrifice (Heap Gate's
+// "{1}, {T}, tap an untapped Gate": the other Gate tapped for the {1}; Makeshift
+// Munitions' "{1}, Sacrifice an artifact": the only other artifact a Treasure
+// sacrificed for the {1}), tries each assignment of candidates to those parts:
+// a tap candidate withheld from tapping for mana, a sacrifice candidate from
+// being consumed.
+func (e *Engine) planReserving(p state.PlayerID, id state.ObjID, cost Cost, ability, selfSource bool, parts []planCostPart, plan func(tapR, keptR []state.ObjID) PaymentPlanOutcome) PaymentPlanOutcome {
+	got := plan(nil, nil)
 	if got.Plan == nil {
 		// No plan even with every other source is a proof.
 		return got
 	}
-	if e.planLeavesCostPayable(p, id, composed, ability, selfSource, *got.Plan, nil) {
+	if e.planLeavesCostPayable(p, id, cost, ability, selfSource, *got.Plan, nil) {
 		return got
 	}
-	// The plan spends a permanent the cost itself must tap or sacrifice
-	// (Heap Gate's "{1}, {T}, tap an untapped Gate": the other Gate tapped
-	// for the {1}; Makeshift Munitions' "{1}, Sacrifice an artifact": the
-	// only other artifact a Treasure sacrificed for the {1}). Try each
-	// assignment of candidates to those parts: a tap candidate withheld
-	// from tapping for mana, a sacrifice candidate from being consumed.
 	exhaustive, allInsufficient := true, true
 	var found *PaymentPlanOutcome
-	e.planEachReservation(p, id, composed, ability, parts, func(tapR, keptR []state.ObjID) bool {
-		retry := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+	e.planEachReservation(p, id, cost, ability, parts, func(tapR, keptR []state.ObjID) bool {
+		retry := plan(tapR, keptR)
 		if retry.Plan == nil {
 			if retry.Reason != "insufficient" {
 				allInsufficient = false
 			}
 			return true
 		}
-		if e.planLeavesCostPayable(p, id, composed, ability, selfSource, *retry.Plan, tapR) {
+		if e.planLeavesCostPayable(p, id, cost, ability, selfSource, *retry.Plan, tapR) {
 			found = &retry
 			return false
 		}

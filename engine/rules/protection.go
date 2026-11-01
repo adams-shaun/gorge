@@ -20,6 +20,7 @@ package rules
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -261,8 +262,8 @@ func protectionOpponentOfPlayerUID(q string) (int64, bool) {
 
 // sourceHasQuality reports whether the object source carries the given
 // protection quality. "everything" is short for "a source that has any
-// characteristics"; everything else is matched against the source's colours
-// or its face's types (never a player: source==0 already returned at the
+// characteristics"; everything else is matched against the source's current
+// colours and types (never a player: source==0 already returned at the
 // protectedFrom gate).
 func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "everything") {
@@ -335,23 +336,18 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		col := e.objColors(e.G.Obj(source))
 		return col != "" && strings.ContainsRune(col, c)
 	}
-	if o.Face() == nil {
-		return false
-	}
-	f := o.Face()
+	types := e.derivedTypesOf(source)
 	switch sourceQualityPluralCodes.Code(string(strings.ToLower(q))) {
 	case sourceQualityPluralArtifacts:
-		return f.IsArtifact()
+		return slices.Contains(types, "Artifact")
 	case sourceQualityPluralCreatures:
-		// CR 702.114e: a bestowed-attached card is an Aura, not a creature.
-		// CR 702.150c: an attached Reconfigure card is not a creature either.
-		return o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached()
+		return slices.Contains(types, "Creature")
 	case sourceQualityPluralEnchantments:
-		return f.IsEnchantment()
+		return slices.Contains(types, "Enchantment")
 	case sourceQualityPluralInstants:
-		return f.IsInstant()
+		return slices.Contains(types, "Instant")
 	case sourceQualityPluralSorceries:
-		return f.IsSorcery()
+		return slices.Contains(types, "Sorcery")
 	}
 	return false
 }

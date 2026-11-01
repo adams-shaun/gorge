@@ -71,7 +71,7 @@ func (e *Engine) altCostEnter(ev events.Event) {
 	}
 	if o.CastFlags&state.FlagPromisedGift != 0 && o.Face().IsPermanent() &&
 		cards.ResolveSVar(o.Face().SVars, "GiftAbility") != nil {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source: ev.Obj, Controller: o.Controller, Gift: true,
 			// CR 702.168c: the promised receiver is snapshotted NOW, while
 			// the entering object still carries GiftPromisedTo. The trigger
@@ -82,15 +82,15 @@ func (e *Engine) altCostEnter(ev events.Event) {
 			// resolution.
 			GiftTo: o.GiftPromisedTo,
 			Ctx:    effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
-		})
+		}, ev, nil)
 	}
 	if o.CastFlags&state.FlagEvoked != 0 {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     ev.Obj,
 			Controller: o.Controller,
 			Evoke:      true,
 			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
-		})
+		}, ev, nil)
 	}
 	for _, g := range o.ManaAddsKeywordGrants {
 		e.applyManaKeywordGrant(ev.Obj, o.Controller, g)
@@ -492,16 +492,7 @@ func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool 
 		if ev.Kind == events.TurnChange {
 			return false
 		}
-		if ev.Kind != events.MoveZone || ev.Obj != id || !events.IsDiscard(ev) {
-			continue
-		}
-		if events.IsDiscardCost(ev) {
-			if o := e.G.Obj(id); o != nil && o.Owner == p {
-				return true
-			}
-			continue
-		}
-		if ev.Player == p {
+		if ev.Obj == id && events.IsDiscard(ev) && events.Discarder(e.G, ev) == p {
 			return true
 		}
 	}

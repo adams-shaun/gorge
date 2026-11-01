@@ -293,7 +293,7 @@ const (
 )
 
 // Exported relative seats, for front ends built outside this package (front
-// end V lives in four-yay training/v2front so the wire types it reads stay
+// end V lives in a companion module so the wire types it reads stay
 // out of every binary that links policynet).
 const (
 	V2SeatNone  = v2SeatNone

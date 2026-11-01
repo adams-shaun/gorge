@@ -1,8 +1,6 @@
 # A3 Forge AI hints: parsed as card facts, read by an opt-in cast rule
 
 Date: 2026-10-20.
-Ticket: A3 of four-yay's
-`docs/design/2026-10-19-forge-heuristics-go-port-design.md`.
 Outcome: **implemented and armed only on the experimental `forge-heuristic`
 policy.** The default `bot` is unchanged and no win rate is claimed.
 

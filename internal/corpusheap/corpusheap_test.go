@@ -35,7 +35,7 @@ const (
 	// Lowered at S4 (the imaged lazy registry): measured 1.4 MB scan,
 	// 40.5 MB heap, 18,405 objects. S4 set the heap ceiling to 35.6 MB from
 	// the design's ESTIMATE ("~35-40 MB") rather than from the measurement
-	// it logged, so it landed just above the ceiling; four-yay cmd/botbench failed
+	// it logged, so it landed just above the ceiling; a bench runner failed
 	// first in the same batch run and masked it.
 	//
 	// Re-pinned 2026-10-07 (agent-20261007T001003Z-312ebafa) when the census

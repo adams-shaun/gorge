@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbp-unmapped-choose-vote: a fixed-list Vote (Forge Choices$ on SP$ Vote /
+// A fixed-list Vote (Forge Choices$ on SP$ Vote /
 // DB$ Vote) routes to the v2 choose_option vocabulary as choose/vote instead
 // of unmapped:choose/vote. Selection is by Option.Index; the engine reads the
 // chosen Option's Obj (index+1), never its Label (an internal SVar name).
@@ -155,8 +155,8 @@ func TestChooseVoteAnswersTheEngineBallot(t *testing.T) {
 
 // TestRouteKeepsTheMixedVoteFallback pins the !k["vote"] guard: a vote
 // beside another kind must not reach chooseObjectRoute, whose Obj test would
-// read the vote's ballot index+1 as an object id. twopiles no longer serves
-// as the second kind because sbp-unmapped-dig-division gives it its own
+// read the vote's ballot index+1 as an object id. twopiles cannot serve
+// as the second kind because it has its own
 // earlier route, so this uses an unclaimed kind with distinct Obj values.
 func TestRouteKeepsTheMixedVoteFallback(t *testing.T) {
 	d := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1,

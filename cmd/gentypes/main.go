@@ -30,7 +30,7 @@ func Render() (string, error) {
 		{protoPkg, "TableStateBody"},
 		{protoPkg, "Overflow"}, {protoPkg, "ErrorBody"}, {protoPkg, "MatchInfo"},
 		{protoPkg, "Subscribe"}, {protoPkg, "Unsubscribe"},
-		{protoPkg, "BotPolicyList"},
+		{protoPkg, "BotPolicyList"}, {protoPkg, "Capabilities"},
 		// Draft-event wire types (E1-1). The four frame bodies are roots;
 		// the request/reply types below are also roots because nothing
 		// reaches them transitively.

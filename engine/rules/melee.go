@@ -63,11 +63,11 @@ func (e *Engine) checkGrantedMeleeTriggers(observer *Engine, id state.ObjID, o *
 		}
 		e.triggerFireCount[key]++
 		r := e.meleeRemembered(ev)
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(observer, pendingTrigger{
 			Source: id, Controller: o.Controller, Idx: -1, Melee: true,
 			cause: causeOf(boardOf(observer), t, id, ev, 0),
 			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: r,
 				Captured: r, LKI: objLKI, TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}),
-		})
+		}, ev, []state.ObjID{id})
 	}
 }

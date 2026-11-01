@@ -109,6 +109,10 @@ type Ctx struct {
 	// shares with the cards exiled with the Prowler. Zero means unbound; a
 	// head that reads it falls back to Source (Forge's host card).
 	AffectedObj state.ObjID
+	// PricedSpell is the spell a cost static is pricing while the card still
+	// sits in the zone it is cast from. CR 601.2a puts it on the stack before
+	// CR 601.2f determines the total cost, so a zone count skips it.
+	PricedSpell state.ObjID
 	// AffectedAbility is the activated ability being priced when AffectedObj
 	// is an ability's source (nil for a spell): the in-flight activation a
 	// Count$ThisTurnActivated_ gate counts alongside this turn's earlier ones.
@@ -739,8 +743,11 @@ func CloneTargetCountersLKI(m map[state.ObjID][]state.Counter) map[state.ObjID][
 }
 
 // TargetPT is one TargetPTLKI entry: a departed target's last battlefield
-// power and toughness.
-type TargetPT struct{ Power, Toughness int32 }
+// power and toughness, and the tapped and attacking status its move clears.
+type TargetPT struct {
+	Power, Toughness  int32
+	Tapped, Attacking bool
+}
 
 // CloneTargetPTLKI returns an independent copy of a target P/T LKI map
 // threaded across a suspension (rules' resumePoint), for the reason
@@ -1101,6 +1108,24 @@ func prefetchRememberedChangeZoneTarget(h Host, c *Ctx, sa *cards.SA) ([]state.T
 	return ts, true, false
 }
 
+// rememberObjectMask holds the params that write objects or players to the
+// source's memory. The numeric writers (RememberAmount$ and its like) store
+// counts and are left out.
+var rememberObjectMask = cards.ParamMaskOf(
+	cards.PKRememberAffected, cards.PKRememberAltered, cards.PKRememberAmass, cards.PKRememberAnimated,
+	cards.PKRememberAttached, cards.PKRememberCards, cards.PKRememberChanged, cards.PKRememberChosen,
+	cards.PKRememberClasher, cards.PKRememberCloaked, cards.PKRememberControlled, cards.PKRememberCopies,
+	cards.PKRememberCountered, cards.PKRememberDamaged, cards.PKRememberDestroyed, cards.PKRememberDiscarded,
+	cards.PKRememberDiscardingPlayers, cards.PKRememberDiscovered, cards.PKRememberDrawn, cards.PKRememberExchanged,
+	cards.PKRememberFound, cards.PKRememberGoaded, cards.PKRememberInvestigatingPlayers, cards.PKRememberKept,
+	cards.PKRememberLKI, cards.PKRememberLoser, cards.PKRememberManifested, cards.PKRememberMilled,
+	cards.PKRememberMoved, cards.PKRememberNewCard, cards.PKRememberObjects, cards.PKRememberOriginalTokens,
+	cards.PKRememberPeeked, cards.PKRememberPlayed, cards.PKRememberPumped, cards.PKRememberPut,
+	cards.PKRememberRemovedCards, cards.PKRememberRemovedFromCombat, cards.PKRememberRevealed, cards.PKRememberSacrificed,
+	cards.PKRememberSearched, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
+	cards.PKRememberUntapped, cards.PKRememberVotedObjects,
+)
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// One resolution is one Mode$ TokenCreatedOnce batch (CR 603.2c), however
 	// many tokens its body creates. Nested Resolve calls share the outer
@@ -1180,7 +1205,8 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 					if c.Snap.TargetPT == nil {
 						c.Snap.TargetPT = make(map[state.ObjID]TargetPT)
 					}
-					c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj)}
+					c.Snap.TargetPT[target.Obj] = TargetPT{Power: h.Power(target.Obj), Toughness: h.Toughness(target.Obj),
+						Tapped: object.Tapped, Attacking: object.IsAttacking}
 				}
 			}
 		}
@@ -1200,9 +1226,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// the Ctx (a body resolving its own sub-chain) must not leave its links
 		// behind as "parents" of the enclosing chain's later links.
 		defer func(n int) { c.parentLinks = c.parentLinks[:n] }(len(c.parentLinks))
+		defer func(above bool) { c.RememberWriterAbove = above }(c.RememberWriterAbove)
 	}
 	reg := registry.load()
+	var above *cards.SA
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
+		if above != nil && above.HasAnyParam(rememberObjectMask) {
+			c.RememberWriterAbove = true
+		}
+		above = sa
 		// Earlier bodies in this chain may emit events that change the
 		// derived characteristics. Refresh at each body boundary, not only at
 		// Resolve entry, so the next body's filters see the current snapshot.

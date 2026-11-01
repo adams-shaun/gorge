@@ -28,7 +28,7 @@ func TestBlockingIsInvertedFromBlockedBy(t *testing.T) {
 		}
 		return false
 	})
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	obs, err := p.Observation(g.E.Pending().Player, observe.State{})
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestStackEntryForASpell(t *testing.T) {
 	if !testgame.RunUntil(t, g, testgame.Bots(3), func(e *rules.Engine) bool { return len(e.G.Stack) > 0 }, 20000) {
 		t.Fatal("nothing was cast")
 	}
-	p := &observe.Projector{E: g.E, IDs: identity.New(g.E, g.Secret)}
+	p := &observe.Projector{R: g.R, IDs: identity.New(g.R, g.Secret)}
 	obs, err := p.Observation(0, observe.State{})
 	if err != nil {
 		t.Fatal(err)
@@ -142,9 +142,9 @@ func tracked(t *testing.T, decks []string, pred func(*rules.Engine, *identity.Tr
 	for _, deck := range decks {
 		for s := byte(1); s <= 20; s++ {
 			g := testgame.New(t, reg, deck, deck, s, "none")
-			tr := identity.New(g.E, g.Secret)
+			tr := identity.New(g.R, g.Secret)
 			if testgame.RunUntil(t, g, testgame.Bots(uint64(s)), func(e *rules.Engine) bool {
-				if err := tr.Sync(e); err != nil {
+				if err := tr.Sync(g.R); err != nil {
 					t.Fatal(err)
 				}
 				return pred(e, tr)
@@ -159,7 +159,7 @@ func tracked(t *testing.T, decks []string, pred func(*rules.Engine, *identity.Tr
 
 // entry returns the viewer's stack entry for stack object id.
 func entry(t *testing.T, g *gamecfg.Game, tr *identity.Tracker, id state.ObjID) protocol.StackEntry {
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	obs, err := p.Observation(0, observe.State{})
 	if err != nil {
 		t.Fatal(err)
@@ -257,7 +257,7 @@ func TestBlockerStaysBlockingAfterItsAttackerLeaves(t *testing.T) {
 		}
 		return false
 	})
-	rec, err := (&observe.Projector{E: g.E, IDs: tr}).Record(0, blocker)
+	rec, err := (&observe.Projector{R: g.R, IDs: tr}).Record(0, blocker)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,7 +394,7 @@ func TestEnterTriggerKeepsItsBattlefieldSource(t *testing.T) {
 func TestInternalCounterMarkersAreSkipped(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 5, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	id := g.E.G.Zone(state.ZHand, 0)[0]
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
 	for _, c := range []struct {
@@ -403,10 +403,10 @@ func TestInternalCounterMarkersAreSkipped(t *testing.T) {
 	}{{"Shield", 1}, {"Deathtouched", 1}, {"P1P1", 2}} {
 		events.Emit(g.E.G, g.E.L, events.Event{Kind: events.CounterChange, Obj: id, Counter: c.kind, Amount: c.n})
 	}
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	rec, err := (&observe.Projector{E: g.E, IDs: tr}).Record(0, id)
+	rec, err := (&observe.Projector{R: g.R, IDs: tr}).Record(0, id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -439,7 +439,7 @@ func TestPendingTriggerSourceIsPopulatedWhenVisible(t *testing.T) {
 	if src == nil || src.Face() == nil {
 		t.Fatal("pending trigger source is gone")
 	}
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	obs, err := p.Observation(0, observe.State{})
 	if err != nil {
 		t.Fatal(err)
@@ -488,10 +488,10 @@ func TestPendingTriggerFromAHiddenHandIsOmitted(t *testing.T) {
 	}
 	viewer := 1 - src.Owner
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.MoveZone, Obj: pt.Source, From: src.Zone, To: state.ZHand})
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	obs, err := p.Observation(viewer, observe.State{})
 	if err != nil {
 		t.Fatal(err)

@@ -28,9 +28,8 @@ var BenchmarkPool = []string{"Wildfire", "Rally", "Affinity", "Elves", "Spy", "B
 // RepoConstructed is the repo-constructed catalog directory: byte copies of
 // the 15 supported 60-card constructed repo decks from
 // testkit/testutil/decks (format "custom", exactly 60 main-deck cards).
-// The copies are deliberate: four-yay training/spellbench must never import
-// testkit/testutil, and four-yay cmd/botbench's byte-equality guard pins the copies
-// against drift.
+// The copies are deliberate: SpellBench code does not import
+// testkit/testutil.
 const RepoConstructed = "decks/repo-constructed"
 
 // RepoPool is the repo-constructed rotating deck pool: the 14 fully

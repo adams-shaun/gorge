@@ -22,7 +22,7 @@ func frame(t FrameType, tab *table, k int, seq uint64, body any) protocol.Frame 
 
 // head is the seq of the last event, or 0 for an empty log.
 func head(m *match) uint64 {
-	if n := len(m.e.L.Events); n > 0 {
+	if n := len(m.g.Log().Events); n > 0 {
 		return uint64(n - 1)
 	}
 	return 0
@@ -67,13 +67,13 @@ func (r *Registry) projectLive(m *match, fn func()) {
 // It projects the live engine, so every caller must reach it through
 // projectLive (exclusive m.mu) — never directly under a read lock.
 func (r *Registry) snapshotBody(t *table, m *match) protocol.Snapshot {
-	v := view.ProjectFor(m.e.G, m.e, view.NoSeat, t.cfg.Spectator, nil)
+	v := view.ProjectFor(m.g.Board(), m.g.Chars(), view.NoSeat, t.cfg.Spectator, nil)
 	// The board clock reads v.Round, so it must be the EXACT round-trip count
 	// (view.RoundOf, folded over the ordered event stream), not the
 	// snapshot-only roundOf approximation that ProjectFor fills in (ui13): the
 	// log is right here at head and holds the death times the snapshot lacks,
 	// so a seat eliminated mid-round does not make the displayed round jump.
-	v.Round = view.RoundOf(m.e.G, m.e.L.Events)
+	v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
 	// TurnStarts must never marshal as null on the wire (its protocol tag has
 	// no omitempty, and web/src/protocol.ts types it as a plain number[]): a
 	// nil slice would break every client before the first TurnChange — e.g.
@@ -103,7 +103,7 @@ func (r *Registry) snapshotFrame(t *table, m *match) protocol.Frame {
 // m.mu.RLock (fanout/onMatchEnd) or the exclusive m.mu projectLive takes
 // (onMatchStart/pushRewind build a widget inside its closure).
 func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
-	g := m.e.G
+	g := m.g.Board()
 	w := protocol.Widget{Turn: g.Turn, Step: g.Step.String(), Phase: view.PhaseOf(g.Step),
 		Active: uint8(g.Active), Priority: uint8(g.Priority), StackDepth: len(g.Stack), Last: last, State: m.state}
 	for _, p := range g.Players {
@@ -128,8 +128,8 @@ func (r *Registry) widgetFrame(t *table, m *match, last string) protocol.Frame {
 // caller-controlled since that can span the entire log — can copy g
 // (Clone) and evs (a slice copy) under a brief read lock and format them
 // afterwards. fanout/onMatchStart/onMatchEnd still call this under their
-// own already-held lock, passing m.e.G and m.e.L.Events[from:] directly:
-// no clone needed there, since they never release the lock mid-call.
+// own already-held lock, passing m.g.Board() and m.g.Log().Events[from:]
+// directly: no clone needed there, since they never release the lock mid-call.
 //
 // hideOwnSecret is the CR 103.5 pregame blind (E3-fx3): when true, each
 // event is redacted through view.RedactEventForPregameBlind, so the seat's
@@ -174,7 +174,7 @@ func lastLine(bodies []protocol.EventBody, prev string) string {
 // regardless of how long the match ran, rather than redacting/describing
 // the whole log again.
 func tailFrom(m *match, n int) int {
-	if total := len(m.e.L.Events); total > n {
+	if total := len(m.g.Log().Events); total > n {
 		return total - n
 	}
 	return 0
@@ -209,7 +209,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 	m.mu.RLock()
 	var evFrames []protocol.Frame
 	var widget protocol.Frame
-	bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events[before:], false)
+	bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.g.Board(), m.g.Log().Events[before:], false)
 	if focus {
 		evFrames = make([]protocol.Frame, 0, len(bodies))
 		for _, b := range bodies {
@@ -222,7 +222,7 @@ func (r *Registry) fanout(t *table, m *match, before int) {
 	}
 	var decision *protocol.Frame
 	if focus {
-		if d := m.e.Pending(); d != nil {
+		if d := m.g.Pending(); d != nil {
 			f := frame(protocol.TDecision, t, m.k, head(m), protocol.DecisionBody{Player: uint8(d.Player), Kind: string(d.Kind), Prompt: d.Prompt})
 			decision = &f
 		}
@@ -280,7 +280,7 @@ func (r *Registry) onMatchStart(t *table, m *match) {
 				snap = r.snapshotFrame(t, m)
 			}
 			if overview {
-				bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events, false)
+				bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.g.Board(), m.g.Log().Events, false)
 				t.lastLine = lastLine(bodies, t.lastLine)
 				widget = r.widgetFrame(t, m, t.lastLine)
 			}
@@ -315,7 +315,7 @@ func (r *Registry) onMatchEnd(t *table, m *match) {
 	end := frame(protocol.TMatchEnd, t, m.k, head(m), protocol.MatchEnd{Result: m.result, Winner: m.winner, Head: m.head})
 	var widget protocol.Frame
 	if overview {
-		bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.e.G, m.e.L.Events[tailFrom(m, 64):], false)
+		bodies := eventBodiesFor(view.NoSeat, t.cfg.Spectator, m.g.Board(), m.g.Log().Events[tailFrom(m, 64):], false)
 		t.lastLine = lastLine(bodies, t.lastLine)
 		widget = r.widgetFrame(t, m, t.lastLine)
 	}

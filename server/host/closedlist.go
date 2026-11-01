@@ -17,7 +17,7 @@ import (
 //
 // Table validation refuses, by name, every policy that reads decklists
 // (bots.Info.ReadsDecklists: Env without ClosedLists). A closed-list policy
-// (bots.Info.ClosedLists, az-c4) passes validation on its declaration, and
+// (bots.Info.ClosedLists) passes validation on its declaration, and
 // these two checks make the server, not the declaration, the guarantee:
 //
 //   - closedListGuard runs once per match, after the seats are final: every
@@ -29,8 +29,7 @@ import (
 //     a seat at a human table must be closed (searchseat.SeatSetup gave it a
 //     belief). If not, the seat gets its own list only and no root.
 //
-// What "closed" buys is spelled out in docs/design/
-// 2026-10-14-az-c4-hosted.md (the leak audit): the seat's Setup holds only
+// What "closed" buys: the seat's Setup holds only
 // its own list; its honest root, and every world its search deals from that
 // root, re-identify the opponent's unknown hand and library cards from the
 // belief and carry only the seat's own deck manifest

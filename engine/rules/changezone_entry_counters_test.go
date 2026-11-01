@@ -14,7 +14,7 @@ import (
 // greater enters" looks at it. Infernal Vessel dies, its own trigger returns
 // it with two counters, and Garruk's Uprising draws a card. Before the fix
 // the counters were a separate CounterChange after the move and the Uprising
-// saw a 2/1 (dirty-dirac census pairs 1664 3312 3457 9536).
+// saw a 2/1 (dirac census pairs 1664 3312 3457 9536).
 func TestReturnWithCountersEntersWithThem(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

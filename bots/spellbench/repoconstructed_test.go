@@ -10,9 +10,7 @@ import (
 // corpus-free: the directory is the 15 supported 60-card constructed repo
 // decks, RepoPool is exactly the catalog minus mono-green-stompy (the Terror
 // precedent: in the dir, out of the pool), every deck parses as a 60-card
-// custom-format main deck, and CatalogByID serves the catalog. The
-// byte-equality guard on the copies lives in four-yay cmd/botbench (which imports both
-// four-yay training/spellbench and testkit/testutil).
+// custom-format main deck, and CatalogByID serves the catalog.
 func TestRepoConstructedCatalogDecks(t *testing.T) {
 	entries, err := decksFS.ReadDir(RepoConstructed)
 	if err != nil {

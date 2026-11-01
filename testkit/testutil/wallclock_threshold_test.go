@@ -58,8 +58,7 @@ func TestNoNewSubSecondWallClockThresholdInTests(t *testing.T) {
 			return err
 		}
 		if d.IsDir() {
-			switch d.Name() {
-			case ".git", ".cards", ".ds4", ".worktrees", "node_modules", "testdata":
+			if n := d.Name(); p != root && strings.HasPrefix(n, ".") || n == "node_modules" || n == "testdata" {
 				return filepath.SkipDir
 			}
 			return nil

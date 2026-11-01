@@ -45,7 +45,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 204.1 | n/a | - | - | layout |
 | 204.2 | follows | `engine/effects/colors.go#ColorMaskOf` | - | - |
 | 205.1 | n/a | - | - | layout |
-| 205.1a | partial | `engine/rules/chars/types.go#bestowedTypeSwitch` `engine/rules/chars/types.go#applyTypeEffect` | - | gorge: RemoveTypes keeps orphan subtypes; no instant/sorcery retention |
+| 205.1a | partial | `engine/rules/chars/types.go#bestowedTypeSwitch` `engine/rules/chars/types.go#applyTypeEffect` `engine/effects/card_type_loss.go#SubtypesKeptBy` | `TestCardTypeLossKeepsSubtypesOfRemainingTypes` `TestCardTypeRemovalAllCreatureMarker` `TestCopyExceptionCardTypeLossKeepsCorrelatedSubtypes` `TestBludgeonBrawlReplacesArtifactSubtypes` `TestTakklemaggotAnimationStripsAura` | gorge: RemoveTypes keeps orphan subtypes; no instant/sorcery retention |
 | 205.1b | follows | `engine/rules/chars/types.go#appendTypeOnce` | - | - |
 | 205.2 | definition | - | - | heading |
 | 205.2a | follows | `engine/effects/creature_types.go#cardTypeWords` `engine/rules/chars/types.go#cardTypeWords` | `TestEvalCountCardTypesCountsKindred` `TestKindredIsACardType` | Kindred and the retired Tribal both count as card types |

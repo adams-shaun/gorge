@@ -20,8 +20,9 @@ import (
 // on the match struct; the match goroutine is its only writer and every
 // access is under m.mu (Observe is called from projectNext, Record from the
 // Submit critical section). A nil *matchFeeds — the case of a match with no
-// EnvSeat, including every pure-bot table today — is the allocation-free fast
-// path: observe and record return immediately without building anything.
+// EnvSeat, including every pure-bot table today, and of every match on an
+// engine that deals no search roots — is the allocation-free fast path:
+// observe and record return immediately without building anything.
 //
 // This is the Create/Observe/Record half of spec
 // 2026-09-28-hosted-bot-packages §5.2, plus the Undo rebuild (BP-09): this
@@ -145,6 +146,10 @@ func (f *matchFeeds) rebuild(cfg rules.Config, l *events.Log, n int) error {
 	return nil
 }
 
+// noSearchRootsRefusal is envData's refusal reason on an engine whose games
+// report no game.Caps.SearchRoots.
+const noSearchRootsRefusal = "this engine deals no search roots"
+
 // envData builds the parkedData of one bots.EnvSeat decision — BP-08's Env
 // dispatch (spec 2026-09-28-hosted-bot-packages §5.1). It runs inside
 // projectNext's exclusive m.mu section and is the ONLY place a match builds
@@ -165,6 +170,9 @@ func (f *matchFeeds) rebuild(cfg rules.Config, l *events.Log, n int) error {
 //     slot plus one, the same derivation seats use for their own RNG) and
 //     the decision's seq, so a root is a pure function of the feed, the seat
 //     and the decision index — never of the real hidden cards.
+//   - An engine that deals no search roots refuses every root
+//     (noSearchRootsRefusal), and nothing here touches m.e. Validation has
+//     already kept search policies off such a table.
 //   - A refused or failed deal returns a nil engine; its fail-closed reason
 //     becomes env.RootRefused, m.rootRefusals counts one, and the seat
 //     answers from env.Board (or env.View) — never from the live engine
@@ -178,11 +186,11 @@ func (f *matchFeeds) rebuild(cfg rules.Config, l *events.Log, n int) error {
 func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.Board, es bots.EnvSeat) *parkedData {
 	slot := int(p)
 	seed := bots.RootSeed(m.seed^uint64(slot+1), dc.Seq)
-	// A closed-list seat (searchseat.ClosedListSeat, az-c3 with a belief)
+	// A closed-list seat (searchseat.ClosedListSeat)
 	// sees the game without its opponents' lists: its honest root and the
 	// Setup its search reads are both closed.
 	setup := searchseat.SeatSetup(searchprobe.PublicGame{
-		Names: m.cfg.Names, Decks: m.cfg.Decks, Tokens: m.cfg.Tokens, StartingLife: m.cfg.StartingLife,
+		Names: m.gc.Names, Decks: m.gc.Decks, Tokens: m.gc.Tokens, StartingLife: m.gc.StartingLife,
 	}, es, p)
 	// At a table with a human the Setup must be closed (server/host/closedlist.go);
 	// an open one is cut to the actor's own list and gets no root.
@@ -203,7 +211,9 @@ func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.
 	}
 	var root *rules.Engine
 	reason := openListRefusal
-	if closedOK {
+	if !m.g.Caps().SearchRoots {
+		reason = noSearchRootsRefusal
+	} else if closedOK {
 		reason = closedRootRefusal(m.table.cfg, m.e)
 	}
 	if reason == "" {
@@ -212,9 +222,9 @@ func (m *match) envData(p state.PlayerID, dc *decision.Decision, brd *botpolicy.
 	if root == nil {
 		m.rootRefusals++
 	}
-	v := view.ProjectForControlled(m.e.G, m.e, p, view.Seat, controlledSeats(m.e.G, p), dc)
-	v.Round = view.RoundOf(m.e.G, m.e.L.Events)
-	b := botpolicy.BoardFromGameInto(m.e.G, m.e, p, brd).Detached()
+	v := view.ProjectForControlled(m.g.Board(), m.g.Chars(), p, view.Seat, controlledSeats(m.g.Board(), p), dc)
+	v.Round = view.RoundOf(m.g.Board(), m.g.Log().Events)
+	b := botpolicy.BoardFromGameInto(m.g.Board(), m.g.Chars(), p, brd).Detached()
 	// BP-10 (spec §7): a search table's Env decisions queue on the registry's
 	// FIFO search-slot gate. The flag rides parkedData (set here, under the
 	// match's exclusive lock, exactly where env above is set) so parkSeat

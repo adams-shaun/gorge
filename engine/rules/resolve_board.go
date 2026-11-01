@@ -46,8 +46,9 @@ type engineResolveKernel struct {
 	// ask whose continuation is a resume point, never a boundary decision.
 	hostAsking int `clone:"reset"`
 	// tapeOffStackAsking is set while an off-stack mana ability's colour
-	// choice asks through the kernel (askOffStackMana): its own frame is open
-	// by design, so Busy looks past it.
+	// choice, or an activation its unless window makes, asks through the
+	// kernel (askOffStackMana, tapeManaWindow): its own frame is open by
+	// design, so Busy looks past it.
 	tapeOffStackAsking bool `clone:"reset"`
 	// tapeEpoch counts the kernel's restores of this engine. A restore
 	// rewinds the engine's state in place under the same Game and Log
@@ -75,6 +76,9 @@ func asResolve(e *Engine) *resolveBoard { return (*resolveBoard)(e) }
 func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
 	return e.tape.Answer(asResolve(e), d)
 }
+
+// TapeUnwinding implements effects' tapeUnwinding seam.
+func (e *Engine) TapeUnwinding() bool { return e.tape.Unwinding() }
 
 // SetTapeAnswerer installs (nil removes) e's synchronous answerer: an engine
 // whose every seat is a policy answers a converted mid-resolution ask inline,

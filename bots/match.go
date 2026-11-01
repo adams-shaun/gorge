@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
 )
@@ -14,10 +15,16 @@ import (
 // after the live engine exists, through MatchSeat.AttachMatch. A seat that
 // does not implement MatchSeat is unaffected.
 //
-// Engine is the live engine the seat will answer for. It must be read, never
-// written: the host owns every mutation through events.Apply.
+// Game is the game the seat will answer for, on whichever engine runs it. A
+// host always sets it; a bench or command driving the rules engine itself may
+// leave it nil. Engine is that game's rules engine, nil on any other engine; a
+// seat that needs it refuses the match from AttachMatch. Both must be read,
+// never written: the host owns every mutation through events.Apply. A host undo
+// replaces both on the match goroutine under the Projection lock, before any
+// seat's MatchRewound, so read them there or under Projection.
 type MatchContext struct {
 	Context context.Context
+	Game    game.Game
 	Engine  *rules.Engine
 	// Projection serializes a seat's engine reads against the host's view
 	// projections when the host supplies one. The host projects subscriber
@@ -27,8 +34,8 @@ type MatchContext struct {
 	// blocking agent round-trip. Nil means the caller has no concurrent
 	// projector and the read runs directly.
 	Projection func(f func())
-	// Registry is the card corpus when the caller has one. Bench and command
-	// callers may leave it nil; the host does not hold a full registry.
+	// Registry is the card corpus when the caller has one; the host passes its
+	// BotDeps.Cards. Bench callers may leave it nil.
 	Registry *cards.Registry
 
 	GameID string

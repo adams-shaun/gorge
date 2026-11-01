@@ -25,7 +25,7 @@ func tapeWindowFlow(e *Engine, flow chooseFor) bool {
 		// A mana activation's ability wheel and colour choice inside a tape
 		// run: posed from a window the kernel drives (or a resolution's own
 		// mana activation); the turn.go arm's continuation runs in line.
-		return e.tape.InRun()
+		return e.tape.Serving()
 	case chooseUnlessCost, chooseUnlessMana:
 		// Only the tape-driven unless payment (tapeUnlessComponents); the
 		// legacy one parks its frame.

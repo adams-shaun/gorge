@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Shared fixtures for the dirty-dirac FDN census regressions: a corpusEngine
+// Shared fixtures for the dirac FDN census regressions: a corpusEngine
 // over named real corpus cards for seat 0, and a stack drain that passes
 // priority and answers any other ask with its first option.
 

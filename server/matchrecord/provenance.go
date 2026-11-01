@@ -18,8 +18,7 @@ const module = "github.com/adams-shaun/gorge"
 //   - in a binary built from the gorge module itself, the vcs.revision
 //     stamp, suffixed "+dirty" when vcs.modified says the tree had local
 //     changes;
-//   - in a binary of another module that depends on gorge (four-yay's
-//     botbench and dzgorge), the gorge dependency's module version, whose
+//   - in a binary of another module that depends on gorge, the gorge dependency's module version, whose
 //     pseudo-version carries the pinned commit.
 //
 // It is empty when no stamp exists (`go test` binaries carry no vcs

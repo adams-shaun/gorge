@@ -7,7 +7,7 @@ import (
 )
 
 // TestPipCounts pins the v2 pip slots against known costs, including the
-// generic clamp and the hybrid/twobrid faces the four-yay encoder shares.
+// generic clamp and the hybrid/twobrid faces dirac's encoder shares.
 func TestPipCounts(t *testing.T) {
 	cases := []struct {
 		cost string

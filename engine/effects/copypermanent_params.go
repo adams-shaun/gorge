@@ -308,7 +308,7 @@ var copyPermanentKnownKeys = [...]string{
 	"TokenRemembered",
 	"TokenScript",
 	"TokenTapped",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",

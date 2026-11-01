@@ -7,9 +7,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The id mint (scoping spec §6.1): every ManaBrew identifier this translator
+// The id mint: every ManaBrew identifier this translator
 // emits goes through one of these functions, so a client-visible id can never
-// drift from the mapping the spec pins.
+// drift from the mapping.
 //
 // All of them are pure functions of their argument: the same gorge object or
 // player mints the same ManaBrew id for the whole match (ObjID and PlayerID
@@ -51,18 +51,18 @@ func actionID(index int) string {
 }
 
 // payActionID mints the actionId of an announce-able cast's PaymentAction:
-// "pay-<PaymentAction.ID>" (spec §6.1).
+// "pay-<PaymentAction.ID>".
 func payActionID(id string) string {
 	return "pay-" + id
 }
 
-// promptID mints a ManaBrew promptId from the decision's Seq (spec §6.1):
+// promptID mints a ManaBrew promptId from the decision's Seq:
 // stable across reconnect and caretaker, and a stale answer is simply a
 // different Seq. A gorge Seq is far below 2^53 (a JS safe integer).
 func promptID(d *decision.Decision) int64 { return int64(d.Seq) }
 
 // The exported aliases below are the SAME mints, re-exposed for the mbtest
-// reachability helper (MBX-3: server/manabrew/mbtest/reach.go), which must
+// reachability helper (server/manabrew/mbtest/reach.go), which must
 // build the inverse of TranslateResponse -- the client message that selects
 // a given native option -- and therefore needs to name options with exactly
 // the ids the prompt minted. A helper that re-implemented the mint by its own

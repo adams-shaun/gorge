@@ -6,12 +6,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// paymentPlanBoardSpendReaderOut is the board half of the shape gate's
-// mana-spent-reader arm: a battlefield trigger reading a cast's converge
-// or total mana spent, a permanent granting sunburst, or a targeted-spend
-// reader in any zone. Targeted readers can be instants in hand/library, so
-// their potential referent's paid spend must be captured before the reader is
-// cast. One query scope scans these sources once instead of once per candidate.
 // targetedCastSpendReaderOut scans all live object zones because a
 // Targeted$CastTotalManaSpent ability need not be a battlefield permanent: it
 // may be a spell in hand that later counters a spell already cast. Capturing
@@ -37,9 +31,15 @@ func targetedCastSpendReaderOut(g *state.Game, reads func(*cards.Face) bool) boo
 	return false
 }
 
+// paymentPlanBoardSpendReaderOut is the board half of the shape gate's
+// mana-spent-reader arm: a battlefield trigger reading a cast's converge or
+// total mana spent, or a permanent granting sunburst. A targeted reader
+// (targetedCastSpendReaderOut) declines nothing: it reads the total mana a spell
+// spent, which payCast captures the same way however the mana got into the pool.
+// One query scope scans these sources once instead of once per candidate.
 func (e *Engine) paymentPlanBoardSpendReaderOut() bool {
 	scan := func() bool {
-		return e.triggeredConvergeReaderOut() || e.triggeredCastSpendReaderOut() || e.paymentPlanSunburstGrantOut() || targetedCastSpendReaderOut(e.G, func(f *cards.Face) bool { return e.faceScanHas(f, faceScanTargetedCastSpend) })
+		return e.triggeredConvergeReaderOut() || e.triggeredCastSpendReaderOut() || e.paymentPlanSunburstGrantOut()
 	}
 	q := e.PlanQuery
 	if !q.Valid(e.L) {

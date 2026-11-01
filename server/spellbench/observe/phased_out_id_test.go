@@ -27,8 +27,8 @@ func battlefieldMountain(obs protocol.Observation) *protocol.ObjectRecord {
 func TestPhasedOutPermanentReturnsWithAFreshID(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 1, "none")
-	tr := identity.New(g.E, g.Secret)
-	p := &observe.Projector{E: g.E, IDs: tr}
+	tr := identity.New(g.R, g.Secret)
+	p := &observe.Projector{R: g.R, IDs: tr}
 	var mtn state.ObjID
 	for _, id := range g.E.G.Zone(state.ZHand, 0) {
 		if o := g.E.G.Obj(id); o.Face() != nil && o.Face().Name == "Mountain" {
@@ -41,7 +41,7 @@ func TestPhasedOutPermanentReturnsWithAFreshID(t *testing.T) {
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.MoveZone, Obj: mtn, Player: 0,
 		From: state.ZHand, To: state.ZBattlefield})
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	obs1, err := p.Observation(0, observe.State{})
@@ -53,7 +53,7 @@ func TestPhasedOutPermanentReturnsWithAFreshID(t *testing.T) {
 		t.Fatal("precondition: the Mountain is not in the first observation")
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PhaseOut, Obj: mtn, Amount: 1})
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	obs2, err := p.Observation(0, observe.State{})
@@ -64,7 +64,7 @@ func TestPhasedOutPermanentReturnsWithAFreshID(t *testing.T) {
 		t.Fatal("precondition: the phased-out permanent is still listed")
 	}
 	events.Emit(g.E.G, g.E.L, events.Event{Kind: events.PhaseOut, Obj: mtn, Amount: -1})
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	obs3, err := p.Observation(0, observe.State{})

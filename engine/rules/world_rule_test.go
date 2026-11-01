@@ -8,9 +8,7 @@
 // recently entered (largest Object.Timestamp) permanent.
 //
 // The first version of this ticket implemented the rule as a per-controller
-// controller choice -- the legend rule's twin -- which the CR text at
-// .superpowers/research/cr/MagicCompRules-20260807.txt:10492-10495 flatly
-// contradicts. These tests pin the CR text.
+// controller choice -- the legend rule's twin -- which the CR text flatly contradicts. These tests pin the CR text.
 package rules
 
 import (

@@ -106,18 +106,18 @@ func (sl *pendingSlot) closeAbandoned() {
 	sl.closeOnce.Do(func() { close(sl.abandoned) })
 }
 
-// MatchRewound forwards a host undo's engine swap to a tap that keeps a
-// reference to the live engine (the v2 human codec does). The host calls it on
-// the match goroutine after swapping the replayed engine in and before
-// re-parking the rewound decision. The engine is passed as any so this
-// exported hook does not put rules.Engine in the host's public signature
+// MatchRewound forwards a host undo's game swap to a tap that keeps a reference
+// to the live game (the v2 human codec does). The host calls it on the match
+// goroutine after swapping the replayed game in and before re-parking the
+// rewound decision. The game is passed as any so this exported hook does not
+// put an engine's game in the host's public signature
 // (TestNoExportLeaksAnEngineGame).
-func (s *HumanSeat) MatchRewound(e any) {
+func (s *HumanSeat) MatchRewound(g any) {
 	s.mu.Lock()
 	tap := s.tap
 	s.mu.Unlock()
 	if rw, ok := tap.(interface{ MatchRewound(any) }); ok {
-		rw.MatchRewound(e)
+		rw.MatchRewound(g)
 	}
 }
 

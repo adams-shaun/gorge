@@ -19,7 +19,7 @@ import (
 //
 // A HumanSeat without a tap (every seat today) pays one nil check in park.
 type HumanTap interface {
-	// AttachMatch is bots.MatchSeat: the tap receives the live engine and the
+	// AttachMatch is bots.MatchSeat: the tap receives the live game and the
 	// Projection lock exactly as a bot seat does. An error crashes the match.
 	bots.MatchSeat
 	// Parked is called on the match goroutine, from park, each time the seat

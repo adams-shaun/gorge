@@ -13,7 +13,7 @@ import (
 // view.View.OwnDeck): NewManifest stamps it, Clone preserves it, and it
 // marshals only when declared. Without the Manifest.Archetype field this
 // test cannot compile -- the field's absence is the failure the botobs
-// ratchet (four-yay's internal/botobs since 2026-10-16) measures from the type.
+// ratchet (a companion module) measures from the type.
 func TestManifestCarriesArchetype(t *testing.T) {
 	alpha := parseManifestCard(t, "Alpha")
 	m := NewManifest("deck", "control", []*cards.Card{alpha}, nil, nil)

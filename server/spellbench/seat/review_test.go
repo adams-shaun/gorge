@@ -14,6 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -241,9 +242,9 @@ func TestAttachMatchRequiresEngineAndOwnDeck(t *testing.T) {
 	}
 	agent := raw.(*Agent)
 	if err := agent.AttachMatch(&bots.MatchContext{Seats: 2, OwnDeck: &deck.Manifest{}}); err == nil {
-		t.Fatal("AttachMatch accepted a nil engine")
+		t.Fatal("AttachMatch accepted a nil game")
 	}
-	if err := agent.AttachMatch(&bots.MatchContext{Seats: 2, Engine: &rules.Engine{}}); err == nil {
+	if err := agent.AttachMatch(&bots.MatchContext{Seats: 2, Game: gorgegame.Game{E: &rules.Engine{}}}); err == nil {
 		t.Fatal("AttachMatch accepted a nil own deck")
 	}
 }
@@ -284,7 +285,7 @@ func attachTestSeatContext(t *testing.T, e *rules.Engine, idx int, argv []string
 	agent := raw.(*Agent)
 	mc := &bots.MatchContext{
 		Context:      ctx,
-		Engine:       e,
+		Game:         gorgegame.Game{E: e},
 		GameID:       "g-0000000000000001",
 		Seat:         idx,
 		Seats:        2,

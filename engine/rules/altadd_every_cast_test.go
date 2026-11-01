@@ -11,7 +11,7 @@ import (
 // {3}{B}") is paid however the spell is cast: flashback replaces only the
 // mana cost (CR 702.34a), and a cast "without paying its mana cost" skips
 // only the mana cost (CR 118.9d), so both still sacrifice the creature.
-// gorge used to charge it on the plain and may-play casts only (dirty-dirac
+// gorge used to charge it on the plain and may-play casts only (dirac
 // census pairs 2359 flashback granted by Sphinx of Forgotten Lore; 616 and
 // 9954 Etali, Primal Storm's free cast).
 func TestEitherOrAdditionalCostOnEveryCast(t *testing.T) {

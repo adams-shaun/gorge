@@ -5,10 +5,9 @@ interface it implements, registering it with options, playing it against the
 default bot in-process, testing it with the harness gorge runs on its own
 policies, and serving it from a `gorged` binary. The code is in
 [`examples/bots/go`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/go),
-and every command below was run on 2026-10-21 at `513a2a0c3`.
+and every command below was run on 2026-10-31.
 
-A native seat is the fastest way to play (tens of microseconds per decision,
-engine included) and the only one that can search, because it lives in the
+A native seat is the fastest way to play and the only one that can search, because it lives in the
 same process as the engine.
 
 ## The interface
@@ -144,7 +143,7 @@ build's first test rather than a server start. The fields that matter:
 | `Env`, `ClosedLists`, `Search` | an Env policy builds search over every seat's real decklist and is never seated against a human; `ClosedLists` marks one that closes opponents' lists and may be; `Search` lets the host bound concurrent searches |
 | `NeedsAutoPay` | the policy has no manual-tap mode; a table without payment plans refuses it |
 | `Caretaker` | a registered, non-`Env` policy named as this one's stand-in (`bots.Validate` checks it); a human seat's timeout caretaker is the table's own policy, not this field |
-| `Strength`, `Cost` | measurement metadata `GET /api/bot-policies` publishes |
+| `Cost` | the per-decision cost `GET /api/bot-policies` publishes |
 | `Options` | the keys the factory reads (next section) |
 
 ### Options
@@ -199,28 +198,20 @@ dependencies, so that is the whole dependency graph.
 
 ## Play it against the default bot
 
-`cmd/duel` plays seeded games between two registered policies on real decks,
-seats traded each game. It is the in-process path: the engine, both seats and
-the loop in one process, no network, no clock in any decision. It needs the
-card corpus (`make fetch-cards compile-cards` in the repository root).
+`cmd/duel` plays seeded games between two registered policies on real decks, seats traded each game. It is the
+in-process path: the engine, both seats and the loop in one process, no network, no clock in any decision. It needs the
+card corpus (`make fetch-cards` in the repository root).
 
 ```console
 $ cd examples/bots/go
-$ go run ./cmd/duel -cards ../../../.cards -a allin -b bot -games 40
-allin (mono-green-stompy) 17 - 23 bot (mono-red-goblins), 0 draws, 0 stalls
-40 games, 12279 decisions in 0.63s: 51.7 µs per decision, both seats, engine included
 $ go run ./cmd/duel -cards ../../../.cards -a bot -b bot -games 40
 bot (mono-green-stompy) 28 - 12 bot (mono-red-goblins), 0 draws, 0 stalls
-40 games, 14045 decisions in 0.45s: 32.3 µs per decision, both seats, engine included
+40 games, 14045 decisions in 0.44s: 31.1 µs per decision, both seats, engine included
 ```
 
-Always run the control: on the same seeds and decks, `bot` takes 28 of 40
-with the green deck and `allin` only 17, so attacking with everything is
-worse than `bot`'s combat simulation. (These timings were taken on a shared
-machine under load; unloaded, on 2026-10-20, the same two runs took 34 and
-21 µs per decision.) Forty games is a smoke test
-(about ±15 percentage points); [Bot-vs-bot games](../guide/bot-games.md)
-covers how many games a real comparison needs.
+That is the control: `bot` against itself on these seeds and decks, showing what the deck pairing alone does. Run your
+policy as `-a allin -b bot` over the same seeds and compare. Forty games is a smoke test, about ±15 percentage points;
+[Bot-vs-bot games](../guide/bot-games.md#reading-the-result) covers how many games a real comparison needs.
 
 `duel` is a thin loop over
 [`testkit/bench.PlayGame`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go),
@@ -252,17 +243,13 @@ $ go test -v ./allin/
 --- PASS: TestRegistered (0.00s)
 === RUN   TestPlaysAgainstTheBot
     allin_test.go:58: allin won 0 of 10 against bot
---- PASS: TestPlaysAgainstTheBot (1.15s)
+--- PASS: TestPlaysAgainstTheBot (1.01s)
 === RUN   TestHostContract
-    allin_test.go:67: allin: finished turn 20 intents 634 events 3310 rootRefusals 0 feeds false reason ""
---- PASS: TestHostContract (0.03s)
+    allin_test.go:67: allin: finished turn 20 intents 629 events 3283 rootRefusals 0 feeds false reason ""
+--- PASS: TestHostContract (0.05s)
 PASS
-ok  	github.com/adams-shaun/gorge/examples/bots/go/allin	1.189s
+ok  	github.com/adams-shaun/gorge/examples/bots/go/allin	1.062s
 ```
-
-(Inside the gorge repository, run tests under the
-[test budget](../contributing/testing.md): one package, capped memory and
-CPUs.)
 
 ## Serve it
 
@@ -284,10 +271,10 @@ func main() { os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{})) }
 
 ```console
 $ go build -o gorged-allin ./cmd/gorged-allin
-$ ./gorged-allin -addr 127.0.0.1:8093 -cards ../../../.cards -decks ../../../testkit/testutil/decks \
+$ ./gorged-allin -addr 127.0.0.1:8080 -cards ../../../.cards -decks ../../../testkit/testutil/decks \
     -dir /tmp/gorge-allin -feedback /tmp/gorge-allin/feedback -tables 0 -vsbot -pace 0 -prewarm=false \
     -bot-policy bot -bot-opt allin.min-power=2
-$ curl -s http://127.0.0.1:8093/api/bot-policies | jq -r '.policies[].name'
+$ curl -s http://127.0.0.1:8080/api/bot-policies | jq -r '.policies[].name'
 bot
 allin
 forge-heuristic
@@ -295,37 +282,21 @@ forge-heuristic-hold
 lethal-pressure
 ```
 
-(Re-run 2026-10-27 at `25d71cadc`: `forge-heuristic-hold` was registered
-after the run above.)
-
 `allin` is now offered to `POST /api/games` (`"bot_policy": "allin"`) and to
 the browser's play-vs-bot picker. The Python example agent played it:
 
 ```console
-$ python3 gorge_agent.py --server http://127.0.0.1:8093 --bot-policy allin --policy simple
-created table g2 match 1, seat 0 vs allin
-decisions answered: 446 (0 answers refused and retried)
+$ python3 gorge_agent.py --server http://127.0.0.1:8080 --bot-policy allin --policy simple
+created table g1 match 1, seat 0 vs allin
 ...
-match finished after 34 turns in 2.0 s: winner us (seat 0, mono-black-aggro)
+match finished after 13 turns in 0.7 s: winner us (seat 0, mono-red-prowess)
 ```
 
-`gorged.Extensions` also carries extra flags (`Flags`), a draft-event
-runtime (`Events`) and a match-review loader (`Review`); `gorged.Serve` runs the same server on a listener you
-supply, which is how a test drives it. The full Go embedding surface is on
+`gorged.Extensions` also carries extra flags (`Flags`), a draft-event runtime (`Events`) and a match-review loader
+(`Review`); `gorged.Serve` runs the same server on a listener you supply, which is how a test drives it. The full Go embedding surface is on
 the [Go API reference](../api/go.md).
 
-## Rules for bot code that will ship
+## Bot code that will ship
 
-- **Determinism.** Seeded `math/rand/v2` only, no `map` order in anything
-  that reaches a decision or a checkpoint, no `time` in library code: inject
-  a clock hook the way `searchseat` and `azmcts` do. Only the host may read
-  the clock, and a search seat's deadline arrives as its `ctx`.
-- **Pure Go.** No cgo and no third-party modules in anything gorge links.
-- **Honesty.** A policy that plays people reads the redacted View, or an
-  honest root, and nothing else. Clairvoyant worlds and oracle feature sets
-  are for diagnostic ceilings in benches.
-- **Measure before you claim.** Record the command, seeds, game count and a
-  confidence interval against a same-seed control.
-
-[Training and adoption](training-and-adoption.md) covers the gates a policy
-passes on its way from a bench to the default bot.
+A bot that will ship follows the [rules for bot code](training-and-adoption.md#rules-for-bot-code),
+and that page covers the gates a policy passes on its way from a bench to the default bot.

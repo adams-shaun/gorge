@@ -1,6 +1,6 @@
 package mapping_test
 
-// Regression tests for the sbp-unmapped-edge-cases refusals: the
+// Regression tests for refusals: the
 // duplicate_candidates shape (one ability, two payable costs), the repeatable
 // modal ask beyond its printed mode count, an arrange over another player's
 // library, a Dig whose remainder goes back on top, and a max-speed granted

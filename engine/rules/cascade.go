@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -52,12 +53,12 @@ func (e *Engine) queueCascadeTriggers(stackObj state.ObjID, p state.PlayerID) {
 		return
 	}
 	for i := 0; i < n; i++ {
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     stackObj,
 			Controller: p,
 			Idx:        -1,
 			Cascade:    true,
 			Ctx:        effects.NewCtx(stackObj, p, effects.CtxInit{}),
-		})
+		}, events.Event{Kind: events.PutOnStack, Obj: stackObj, Player: p}, nil)
 	}
 }

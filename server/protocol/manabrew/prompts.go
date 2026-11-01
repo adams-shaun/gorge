@@ -53,7 +53,7 @@ type PromptBase struct {
 	Presentation PromptPresentation `json:"presentation"`
 }
 
-// --- inputs, in the Appendix A.4 order ---
+// --- inputs, in the protocol's order ---
 
 // ChooseNumberInput: chooseNumber.
 type ChooseNumberInput struct {
@@ -243,10 +243,12 @@ type AttackTargetDto struct {
 	Kind string `json:"kind"`
 }
 
-// ChooseAttackersInput: chooseAttackers.
+// ChooseAttackersInput: chooseAttackers. Presentation is an addition to the
+// published shape, set only when a creature here can't attack alone.
 type ChooseAttackersInput struct {
 	Attackers     []AttackerOptionDto `json:"attackers"`
 	AttackTargets []AttackTargetDto   `json:"attackTargets"`
+	Presentation  *PromptPresentation `json:"presentation,omitempty"`
 }
 
 func (ChooseAttackersInput) isPromptInput()     {}
@@ -262,11 +264,13 @@ type BlockableAttackerDto struct {
 }
 
 // ChooseBlockersInput: chooseBlockers. Error carries a previous assignment's
-// rejection reason when the engine re-asks.
+// rejection reason when the engine re-asks. Presentation is an addition to the
+// published shape, set only when a creature here can't block alone.
 type ChooseBlockersInput struct {
 	Attackers           []BlockableAttackerDto `json:"attackers"`
 	AvailableBlockerIDs []string               `json:"availableBlockerIds"`
 	Error               string                 `json:"error,omitempty"`
+	Presentation        *PromptPresentation    `json:"presentation,omitempty"`
 }
 
 func (ChooseBlockersInput) isPromptInput()     {}
@@ -319,7 +323,7 @@ type GameOverInput struct{}
 func (GameOverInput) isPromptInput()     {}
 func (GameOverInput) PromptType() string { return "gameOver" }
 
-// --- outputs, in the Appendix A.4 order ---
+// --- outputs, in the protocol's order ---
 
 // NumberDecision: chooseNumber's answer. Nil ChosenNumber is the null that is
 // legal only where cancel is legal.

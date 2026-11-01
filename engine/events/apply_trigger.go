@@ -21,7 +21,19 @@ import (
 // face>0 encodings remain byte-identical; a reserved face code represents
 // face 0 without aliasing a plain live-face index. Oversized values yield -1
 // (Apply degrades them to a no-op).
-const triggerPushFrontFaceCode = (1 << (mergedTriggerShift - 1)) - 1
+const (
+	triggerPushFrontFaceCode    = (1 << (mergedTriggerShift - 1)) - 1
+	triggerPushLeftCopyFaceCode = triggerPushFrontFaceCode - 1
+)
+
+// TriggerPushLeftCopyAmount names a trigger of the copy the source was when it
+// left the battlefield (state.Object.LeftCopyFace).
+func TriggerPushLeftCopyAmount(trigIdx int) int32 {
+	if trigIdx < 0 || trigIdx >= 1<<mergedTriggerShift {
+		return -1
+	}
+	return int32(triggerPushLeftCopyFaceCode<<mergedTriggerShift | trigIdx)
+}
 
 func TriggerPushFaceAmount(face, trigIdx int) int32 {
 	if face == 0 {
@@ -36,6 +48,10 @@ func TriggerPushFaceAmount(face, trigIdx int) int32 {
 	return MergedTriggerAmount(face, trigIdx)
 }
 
+// triggerPushLeftCopyFace is triggerPushIndexes's face for
+// TriggerPushLeftCopyAmount.
+const triggerPushLeftCopyFace = -3
+
 // triggerPushIndexes unpacks TriggerPushFaceAmount. A plain index names the
 // source's live face; packed values name a specific card face. -1 (the
 // sentinel Dethrone grant) passes through as idx -1.
@@ -48,8 +64,11 @@ func triggerPushIndexes(amount int32) (face, idx int) {
 	}
 	code := int(amount >> mergedTriggerShift)
 	idx = int(amount & (1<<mergedTriggerShift - 1))
-	if code == triggerPushFrontFaceCode {
+	switch code {
+	case triggerPushFrontFaceCode:
 		return -1, idx
+	case triggerPushLeftCopyFaceCode:
+		return triggerPushLeftCopyFace, idx
 	}
 	return code, idx
 }
@@ -83,7 +102,10 @@ func foldTriggerPush(g *state.Game, e *Event) {
 	}
 	face, idx := triggerPushIndexes(e.Amount)
 	f := src.Face()
-	if face != 0 {
+	leftCopy := face == triggerPushLeftCopyFace
+	if leftCopy {
+		f = src.LeftCopyFace
+	} else if face != 0 {
 		f = nil
 		faceIdx := face
 		if face == -1 { // face-specific encoding for the front face
@@ -113,6 +135,9 @@ func foldTriggerPush(g *state.Game, e *Event) {
 		}}
 	} else {
 		o.Ability = f.Triggers[idx].Effect
+	}
+	if leftCopy {
+		o.AbilityFace = f
 	}
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 	o.Source = e.Obj
@@ -505,6 +530,7 @@ func foldAbilityPush(g *state.Game, e *Event) {
 	o := g.AddObject(nil, e.Player)
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.Ability = pa.SA
+	o.AbilityFace = pa.Face
 	o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 	o.Source = e.Obj
 	// Same PlayerRef decode as TriggerPush above (FL-41): an activated

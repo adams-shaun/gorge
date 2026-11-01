@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/gamecfg"
 	"github.com/adams-shaun/gorge/server/spellbench/observe"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
@@ -94,10 +94,10 @@ func (t *arrangeTx) look(how string) error {
 		// library, which is the one whose top-down distance the Known entry
 		// records.
 		owner := t.d.Player
-		if o := t.env.G.E.G.Obj(id); o != nil {
+		if o := t.env.G.R.Board().Obj(id); o != nil {
 			owner = o.Owner
 		}
-		lib := t.env.G.E.G.Zone(state.ZLibrary, owner)
+		lib := t.env.G.R.Board().Zone(state.ZLibrary, owner)
 		at := slices.Index(lib, id)
 		if at < 0 {
 			return fmt.Errorf("%w:looked_at_card %d is not in the library", ErrUnmapped, id)
@@ -285,9 +285,9 @@ func newScryLike(env *Env, d *decision.Decision) (Transaction, error) {
 }
 
 // digBottom returns the dig_bottom ask pending on c for seat, if any.
-func digBottom(c *rules.Engine, seat state.PlayerID) *decision.Decision {
+func digBottom(c gamecfg.Reader, seat state.PlayerID) *decision.Decision {
 	n := c.Pending()
-	if n == nil || c.G.Over || n.Player != seat || n.Kind != decision.KArrange || len(n.Options) == 0 || n.Options[0].Kind != "dig_bottom" {
+	if n == nil || c.Board().Over || n.Player != seat || n.Kind != decision.KArrange || len(n.Options) == 0 || n.Options[0].Kind != "dig_bottom" {
 		return nil
 	}
 	return n
@@ -296,9 +296,9 @@ func digBottom(c *rules.Engine, seat state.PlayerID) *decision.Decision {
 // digTopOrder returns the rest-on-top order ask pending on c for seat, if
 // any. It is digBottom's counterpart for a Dig whose second destination is
 // the top of the library (LibraryPosition2$ 0, Mobile Homestead).
-func digTopOrder(c *rules.Engine, seat state.PlayerID) *decision.Decision {
+func digTopOrder(c gamecfg.Reader, seat state.PlayerID) *decision.Decision {
 	n := c.Pending()
-	if n == nil || c.G.Over || n.Player != seat || n.Kind != decision.KArrange || len(n.Options) == 0 || n.Options[0].Kind != "top" {
+	if n == nil || c.Board().Over || n.Player != seat || n.Kind != decision.KArrange || len(n.Options) == 0 || n.Options[0].Kind != "top" {
 		return nil
 	}
 	return n
@@ -406,7 +406,7 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	if len(d.Options) > 0 {
 		owner = d.Options[0].Player
 	}
-	lib := env.G.E.G.Zone(state.ZLibrary, owner)
+	lib := env.G.R.Board().Zone(state.ZLibrary, owner)
 	window := slices.Clone(lib[:min(n, len(lib))])
 	eligible := map[state.ObjID]int{}
 	for _, o := range d.Options {
@@ -444,7 +444,7 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 	if rest == "top" {
 		orderKey = "dig_top"
 	}
-	orderAsk := func(c *rules.Engine) *decision.Decision {
+	orderAsk := func(c gamecfg.Reader) *decision.Decision {
 		if rest == "top" {
 			return digTopOrder(c, d.Player)
 		}
@@ -544,7 +544,7 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		if randomRest || (rest != "bottom" && rest != "top") || len(sentTo(rest)) < 2 {
 			return nil // a random or non-library remainder has no order ask; a lone card has none either
 		}
-		c, err := env.G.Probe(Intent(d, t.nativeOf(sentTo(primary))...))
+		c, err := env.G.R.Probe(Intent(d, t.nativeOf(sentTo(primary))...))
 		if err != nil {
 			return err
 		}
@@ -585,7 +585,7 @@ func newDig(env *Env, d *decision.Decision) (Transaction, error) {
 		if randomRest || (rest != "bottom" && rest != "top") || len(order) < 2 {
 			return []decision.Intent{dig}, nil
 		}
-		c, err := env.G.Probe(dig)
+		c, err := env.G.R.Probe(dig)
 		if err != nil {
 			return nil, err
 		}
@@ -642,7 +642,7 @@ func newExplore(env *Env, d *decision.Decision) (Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	lib := env.G.E.G.Zone(state.ZLibrary, d.Player)
+	lib := env.G.R.Board().Zone(state.ZLibrary, d.Player)
 	if len(lib) == 0 {
 		return nil, fmt.Errorf("%w:explore_empty_library", ErrUnmapped)
 	}

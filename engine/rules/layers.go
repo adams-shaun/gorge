@@ -445,8 +445,10 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							ty.RemoveCreatureTypes = st.HasParam(cards.PKRemoveCreatureTypes)
 							ty.RemoveTypes = statList(st, "RemoveType")
 							ty.RemoveLandTypes = st.HasParam(cards.PKRemoveLandTypes)
+							ty.RemoveArtifactTypes = st.HasParam(cards.PKRemoveArtifactTypes)
+							ty.RemoveEnchantmentTypes = st.HasParam(cards.PKRemoveEnchantmentTypes)
 							ty.AffectedZone = strings.TrimSpace(st.ParamStr(cards.PKAffectedZone))
-							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes || ty.AddAllCreatureTypes || ty.RemoveLandTypes || len(ty.RemoveTypes) > 0 {
+							if len(ty.AddTypes) > 0 || ty.RemoveCardTypes || ty.RemoveCreatureTypes || ty.AddAllCreatureTypes || ty.RemoveLandTypes || ty.RemoveArtifactTypes || ty.RemoveEnchantmentTypes || len(ty.RemoveTypes) > 0 {
 								out = append(out, ty)
 							}
 						}

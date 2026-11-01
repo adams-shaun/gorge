@@ -57,7 +57,7 @@ func (t *Translator) promptModes(d *decision.Decision, v *view.View) (mb.PromptM
 			}
 			input = mb.ChooseFromSelectionInput{PromptBase: pres, Options: opts, MinTotal: d.Min, MaxTotal: d.Max}
 		} else if labelledAlternatives(d) {
-			// The labelled pick-one fallback (MBX-6 fix round, seed 20260929):
+			// The labelled pick-one fallback (seed 20260929):
 			// a KModes ask whose options are NOT all modal picks but are a
 			// Min==Max==1 election over plain labelled alternatives --
 			// engine/effects/cardflow.go drawFor's dredge election (ResumeKind

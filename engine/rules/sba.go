@@ -341,6 +341,9 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).attach && e.attachmentSBAs() {
 			changed = true
 		}
+		if e.sbaFacts(facts).paired && e.unpairNoncreatures() {
+			changed = true
+		}
 		// CR 704.5z / 303.7a: Role exclusivity per Role controller. It runs
 		// after attachmentSBAs so a Role whose bearer just left the
 		// battlefield goes by CR 704.5m first.
@@ -377,6 +380,22 @@ func (e *Engine) checkStateBased() {
 	}
 	e.checkGameOver()
 	e.releasePendingDecisionOfDepartedPlayer()
+}
+
+// unpairNoncreatures ends the Soulbond pairing of a permanent that has stopped
+// being a creature (CR 702.95e). It stays ended if the permanent becomes a
+// creature again. A phased-out permanent keeps its pairing.
+func (e *Engine) unpairNoncreatures() bool {
+	changed := false
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if o := e.G.Obj(id); o != nil && o.Paired != 0 && !o.PhasedOut && !e.IsCreature(id) {
+				e.emit(events.Event{Kind: events.Pair, Obj: id})
+				changed = true
+			}
+		}
+	}
+	return changed
 }
 
 // legendGroup is one CR 704.5j duplicate set: two or more legendary permanents

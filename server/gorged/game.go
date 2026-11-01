@@ -42,7 +42,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if name == "" {
 			// The client names no policy (the web picker's empty "server
 			// default" choice), so a deck reserved for one is what picks it:
-			// choose an FDN deck and you play az-c3. Both decks omitted keeps
+			// choosing that deck chooses that opponent. Both decks omitted keeps
 			// the server's default.
 			name = c.botPolicy
 			for _, id := range []string{req.HumanDeck, req.BotDeck} {
@@ -79,12 +79,12 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if !containsString(entry.Formats, req.Format.String()) {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("bot policy %q does not support the %s format (formats: %s)", policy, req.Format, strings.Join(entry.Formats, ", "))
 		}
-		// Operator ruling 2026-10-13: a policy that reads opponents'
+		// A policy that reads opponents'
 		// decklists (bots.Info.Env) never plays a vs-bot table — this
 		// request always seats a human. It covers both an explicit client
 		// pick and the reserved-pool picker above, whose reservedPick hit
-		// would otherwise name az-c3 here. A closed-list policy (az-c4,
-		// bots.Info.ClosedLists) does not read decklists and passes; the
+		// would otherwise name it here. A closed-list policy
+		// (bots.Info.ClosedLists) does not read decklists and passes; the
 		// host checks its seats at match start (server/host/closedlist.go).
 		if bots.ReadsDecklists(policy) {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("bot policy %q reads opponents' decklists and cannot play at a table with a human", policy)
@@ -95,7 +95,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			pool, otherPool = cmdPool, conPool
 			otherFormat = host.FormatConstructed
 		}
-		// A policy with a reserved pool (az-c3) deals from it and from nothing
+		// A policy with a reserved pool deals from it and from nothing
 		// else, for both seats: the network saw only those decks, and the
 		// human's deck shapes the states it reads as much as its own does.
 		reservedPool, hasPool := c.policyPools[policy]
@@ -161,7 +161,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
 			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: mulligans,
 			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
-			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true,
+			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, Engine: c.engine,
 		}
 		if err := r.AddTable(cfg); err != nil {
 			return httpapi.CreateGameResponse{}, err

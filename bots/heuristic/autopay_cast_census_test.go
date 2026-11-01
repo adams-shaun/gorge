@@ -2,8 +2,8 @@ package heuristic
 
 // Regressions for botmanual (2026-10-14): why the auto-pay bot still answered
 // priority with manual mana taps while payment plans were on offer. Measured
-// over a 420-game constructed repo-deck auto-pay mirror and a 100-game az-c4
-// vs sb-tactical sample, the classes these tests pin were:
+// over a 420-game constructed repo-deck auto-pay mirror and a 100-game network
+// bot vs sb-tactical sample, the classes these tests pin were:
 //
 //   - the tap gate aiming at a card the engine already knew was not castable
 //     this window (absent from the offer builder's cast census:

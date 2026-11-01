@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package gorged
 
 import (
@@ -15,19 +13,11 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestManaBrewAddrRefusesDemoPorts pins the -manabrew-addr validation
-// (scoping spec §5.4): 8080 and 8081 are the shared demo's ports
-// (AGENTS.md's port table) and must never be handed to a second listener,
-// while an ordinary address is accepted and implies -manabrew. This needs
-// no corpus: applyManaBrew is pure config validation.
-func TestManaBrewAddrRefusesDemoPorts(t *testing.T) {
+// TestManaBrewAddrValidates pins the -manabrew-addr validation: an address
+// implies -manabrew. This needs no corpus: applyManaBrew is pure config
+// validation.
+func TestManaBrewAddrValidates(t *testing.T) {
 	t.Parallel()
-	for _, addr := range []string{":8080", ":8081", "127.0.0.1:8080", "0.0.0.0:8081"} {
-		c := &config{manabrewAddr: addr}
-		if err := c.applyManaBrew(); err == nil {
-			t.Fatalf("-manabrew-addr %q: expected refusal, got none", addr)
-		}
-	}
 	c := &config{manabrewAddr: ":8091"}
 	if err := c.applyManaBrew(); err != nil {
 		t.Fatalf("-manabrew-addr :8091: unexpected error: %v", err)
@@ -35,8 +25,7 @@ func TestManaBrewAddrRefusesDemoPorts(t *testing.T) {
 	if !c.manabrew {
 		t.Fatal("a non-empty -manabrew-addr should imply -manabrew")
 	}
-	// A malformed address (no port at all) is also refused, distinctly from
-	// the demo-port case.
+	// A malformed address (no port at all) is refused.
 	bad := &config{manabrewAddr: "not-an-address"}
 	if err := bad.applyManaBrew(); err == nil {
 		t.Fatal("a malformed -manabrew-addr should fail validation")

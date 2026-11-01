@@ -75,8 +75,8 @@ func (e *Engine) paidManaAbility(p state.PlayerID, id state.ObjID, o *state.Obje
 	return e.paidCostShape(p, id, cost, lifeLeft)
 }
 
-// windowManaUnitsPaid is the census the attack-tax, unless-cost and tap-list
-// readers share: windowManaUnits, plus -- unless Config.DisablePaidManaCensus
+// windowManaUnitsPaid is the census the attack-tax and unless-cost readers
+// share: windowManaUnits, plus -- unless Config.DisablePaidManaCensus
 // -- the paid-cost layer. With the census disabled it IS windowManaUnits.
 func (e *Engine) windowManaUnitsPaid(p state.PlayerID) []windowManaUnit {
 	units := e.windowManaUnits(p)
@@ -137,12 +137,20 @@ func (e *Engine) paidManaAlts(id state.ObjID, ma *cards.SA, life int32) []window
 		// The executor's deterministic one-colourless default.
 		return []windowManaAlt{alt}
 	}
+	return pinnedManaAlts(alt, mf.Counts)
+}
+
+// pinnedManaAlts splits a choice-shaped production over the colours in counts
+// into one alt per colour, each pinned so that its activation poses no colour
+// ask. An ability carrying an activation limit is left out.
+func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
+	ma := alt.Ma
 	if _, limited := ma.Param(cards.PKActivationLimit); limited || ma.ParamStr(cards.PKGameActivationLimit) != "" ||
 		pay.ChainGatesOnActivationCount(ma) {
 		return nil
 	}
 	var out []windowManaAlt
-	for c, n := range mf.Counts {
+	for c, n := range counts {
 		if n == 0 {
 			continue
 		}
@@ -154,6 +162,50 @@ func (e *Engine) paidManaAlts(id state.ObjID, ma *cards.SA, life int32) []window
 		out = append(out, a)
 	}
 	return out
+}
+
+// unlessWindowUnits is the census the unless-cost windows read:
+// windowManaUnitsPaid plus the free abilities whose colour is chosen on
+// activation (CR 605.3a), which that census withholds. They arrive pinned, one
+// alt per colour: the shape the reach search prices, and a tap in the
+// component window that poses no colour ask.
+func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
+	units := e.windowManaUnitsPaid(p)
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
+	ids := pay.AppendBattlefieldManaSourceIDs(e.G, e.idsBorrow(), p)
+	defer e.idsRelease(ids)
+	for _, id := range ids {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+			mf := e.manaStaticOf(ma)
+			if !mf.Any || !mf.FreeCost || mf.RestrictValid || mf.Amount <= 0 ||
+				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
+				continue
+			}
+			mp := effects.ManaOf(ma)
+			counts := mf.Counts
+			if mp.NeedsChosen {
+				chosen := pay.ChosenProducedColour(e.G, id)
+				if chosen == "" {
+					continue
+				}
+				counts, _ = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+			}
+			// A lone colourless slot is the executor's default, which the
+			// shared census already counts.
+			if counts == ([6]int32{5: 1}) {
+				continue
+			}
+			for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
+				units = pay.AppendUnitAlt(units, id, a)
+			}
+		}
+	}
+	return units
 }
 
 // availablePaidAbilities is AvailableMana's paid-cost extension: the

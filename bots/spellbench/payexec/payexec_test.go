@@ -252,6 +252,24 @@ func TestPetalAnyColour(t *testing.T) {
 	}
 }
 
+// TestManyManaOfOneColourSource: a colour ask names one pip however much mana
+// the ability adds, so GGG lowers onto its "Add G" option, for a non-literal
+// amount (Wirewood Channeler counts three Elves) and a literal one (Black Lotus).
+func TestManyManaOfOneColourSource(t *testing.T) {
+	for name, battlefield := range map[string][]string{
+		"counted": {"Wirewood Channeler", "Elvish Warrior", "Elvish Warrior"},
+		"literal": {"Black Lotus"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			b := newBoard(t, "Leatherback Baloth", battlefield, nil)
+			x := b.run(t)
+			if x.Status() != Done || !b.onStack() {
+				t.Fatalf("status %v reason %s %s", x.Status(), x.Reason, x.Detail)
+			}
+		})
+	}
+}
+
 // TestDivergenceAbortsCleanly: the surface diverging from the plan stops
 // the lowering without an answer -- a source tapped behind its back, a
 // pool that is not the predicted one, an unexpected decision -- and a
@@ -348,6 +366,28 @@ func TestMatchManaLabels(t *testing.T) {
 	}
 	if c, ok := matchMana(three, decision.PaymentActivation{Source: 5, Produces: decision.ManaAmount{0, 0, 0, 0, 3, 0}}); !ok || c[0] != 0 {
 		t.Fatalf("GGG: %v %v", c, ok)
+	}
+	gg := decision.ManaAmount{0, 0, 0, 0, 2, 0}
+	colourAsk := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add W", ManaSymbol: "W"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add G", ManaSymbol: "G"},
+	}}
+	if c, ok := matchMana(colourAsk, decision.PaymentActivation{Source: 5, Produces: gg}); !ok || c[0] != 1 {
+		t.Fatalf("GG from a colour ask: %v %v", c, ok)
+	}
+	countedWheel := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add C"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add G"},
+	}}
+	if c, ok := matchMana(countedWheel, decision.PaymentActivation{Source: 5, Produces: gg}); !ok || c[0] != 1 {
+		t.Fatalf("GG from a counted wheel option: %v %v", c, ok)
+	}
+	anyBeforePip := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add G", ManaSymbol: "G"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add any color"},
+	}}
+	if c, ok := matchMana(anyBeforePip, decision.PaymentActivation{Source: 5, Produces: gg}); !ok || c[0] != 1 {
+		t.Fatalf("GG with a one-mana pip beside an any-colour ability: %v %v", c, ok)
 	}
 	alloc := &decision.Decision{Kind: decision.KChoose, Min: 2, Max: 2, Options: []decision.Option{
 		{Index: 0, Kind: "mana", Obj: 5, ManaSymbol: "R"}, {Index: 1, Kind: "mana", Obj: 5, ManaSymbol: "G"},

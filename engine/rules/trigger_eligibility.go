@@ -245,14 +245,14 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerSpellCast, 1 << events.PutOnStack},
 	{cards.TriggerSpellCastOrCopy, 1<<events.PutOnStack | 1<<events.StackCopy},
 	{cards.TriggerSpellCopy, 1 << events.StackCopy},
-	// KeywordAbilityPush lies past this mask's 64-bit bound and fails
-	// open to the matcher, which reads its replayable Counter body.
-	{cards.TriggerAbilityCast, 1 << events.AbilityPush},
+	// An activation mints through one of events.Event.IsActivationMint's
+	// kinds. DelayedPush (a self-grant) is the only other one inside this
+	// mask's 64-bit bound; the rest fail open to the matcher.
+	{cards.TriggerAbilityCast, 1<<events.AbilityPush | 1<<events.DelayedPush},
 	// The spell-or-activate union (targetsvalid1): the activation arm
-	// matches an AbilityPush or KeywordAbilityPush, the spell arm a
-	// PutOnStack. AbilityCast stays narrow above -- its oracle text is
-	// activation-only.
-	{cards.TriggerSpellAbilityCast, 1<<events.AbilityPush | 1<<events.PutOnStack},
+	// matches an activation mint, the spell arm a PutOnStack. AbilityCast
+	// stays narrow above -- its oracle text is activation-only.
+	{cards.TriggerSpellAbilityCast, 1<<events.AbilityPush | 1<<events.DelayedPush | 1<<events.PutOnStack},
 	{cards.TriggerAttacks, 1 << events.DeclareAttackers},
 	{cards.TriggerAttackersDeclaredOneTarget, 1 << events.DeclareAttackers},
 	{cards.TriggerAttackersDeclared, 1 << events.DeclareAttackers},

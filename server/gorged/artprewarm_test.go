@@ -133,7 +133,7 @@ func TestArtCacheDirDefaultsUnderDir(t *testing.T) {
 	if got := (config{dir: "/data"}).artCacheDir(); got != filepath.Join("/data", "art") {
 		t.Errorf("empty -art-dir: got %q, want <dir>/art", got)
 	}
-	if got := (config{dir: "/data", artDir: "/mnt/sata/gorge-data/art"}).artCacheDir(); got != "/mnt/sata/gorge-data/art" {
+	if got := (config{dir: "/data", artDir: "/srv/art"}).artCacheDir(); got != "/srv/art" {
 		t.Errorf("set -art-dir: got %q, want the flag's value", got)
 	}
 }

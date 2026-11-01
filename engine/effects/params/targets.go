@@ -1,7 +1,9 @@
 package params
 
 import (
+	"maps"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -99,6 +101,9 @@ type TargetParams struct {
 
 	// ValidTgts is ValidTgts$, trimmed ("" when absent).
 	ValidTgts string
+	// AnyX is the ability declaring its targets without ValidTgts$'s X-bounded
+	// predicates (nil when it has none): the census while X is unannounced.
+	AnyX *cards.SA
 	// Prompt is TgtPrompt$, trimmed.
 	Prompt string
 	// Desc is ValidTgtsDesc$, trimmed: the script's noun for the legal set.
@@ -214,6 +219,7 @@ func compileTargets(sa *cards.SA) *TargetParams {
 		}
 		if SpecNamesXBound(p.ValidTgts) {
 			p.Flags |= TgtValidXBound
+			p.AnyX = withoutXBound(sa, p.ValidTgts)
 		}
 	}
 	p.Prompt = strings.TrimSpace(sa.ParamStr(cards.PKTgtPrompt))
@@ -493,6 +499,29 @@ var xBoundRe = regexp.MustCompile(`(?i)(power|toughness|cmc)(LE|GE|EQ|LT|GT)X|to
 // SpecNamesXBound reports whether spec carries an X-bounded numeric
 // predicate (xBoundRe).
 func SpecNamesXBound(spec string) bool { return xBoundRe.MatchString(spec) }
+
+// specWithoutXBound is spec with every X-bounded predicate removed: what an
+// object must be whatever X is announced.
+func specWithoutXBound(spec string) string {
+	alts := strings.Split(spec, ",")
+	for i, alt := range alts {
+		head, props, _ := strings.Cut(alt, ".")
+		kept := slices.DeleteFunc(strings.Split(props, "+"), xBoundRe.MatchString)
+		alts[i] = head
+		if rest := strings.Join(kept, "+"); rest != "" {
+			alts[i] += "." + rest
+		}
+	}
+	return strings.Join(alts, ",")
+}
+
+// withoutXBound is sa declaring its targets through specWithoutXBound.
+func withoutXBound(sa *cards.SA, spec string) *cards.SA {
+	cp := *sa
+	cp.Params = maps.Clone(sa.Params)
+	cp.SetParam(cards.PKValidTgts, specWithoutXBound(spec))
+	return &cp
+}
 
 type targetZoneDeclCode uint16
 

@@ -1,16 +1,9 @@
 # SpellBench v2 agents
 
-This page is for people who have, or want, an agent for the SpellBench
-benchmark, and for anyone who wants to run a gorge bot inside it. It explains
-what SpellBench is, the messages its v2 protocol exchanges, and the three ways
-gorge speaks it: seating an external v2 agent at a gorge table, serving a
-gorge bot as a v2 agent, and serving gorge as a v2 environment. Message and
-field reference: [SpellBench v2 reference](../api/spellbench-v2.md).
-Everything shown was run on 2026-10-20 at `ad3777023`; the `mtgsim` and
-environment examples, the policy listing and the fidelity check below were
-run again on 2026-10-21 at `513a2a0c3` with the same results. The two
-policy listings were updated on 2026-10-27 at `25d71cadc` for
-`forge-heuristic-hold`, registered since.
+This page is for people who have, or want, an agent for the SpellBench benchmark, and for anyone who wants to run a gorge bot inside
+it. It explains what SpellBench is, the messages its v2 protocol exchanges, and the ways gorge speaks it: seating an external v2 agent
+at a gorge table, serving a gorge bot as a v2 agent, serving gorge as a v2 environment, and offering v2 seats over HTTP. Message and field
+reference: [SpellBench v2 reference](../api/spellbench-v2.md). Commands were run on 2026-10-31.
 
 ## What SpellBench is
 
@@ -40,6 +33,8 @@ The framing rules
   so framing resynchronises at the next line.
 - **Strict JSON**: integers only (no floats), within ±(2^53 − 1); no
   duplicate keys; nesting at most 64 deep; precomposed (NFC) card names.
+  gorge's engine role enforces this; its agent and seat adapters read lines
+  more loosely, and upstream's hosts and engines are strict.
 - **Every message** carries `"protocol": "spellbench/v2"` and a
   `request_id`, echoed in the response.
 - **Canonical JSON** (RFC 8785, for this integer-only subset) is what the
@@ -57,7 +52,7 @@ always answers candidate 0) through a relay that logged every line:
 | `hello` | once, at process start | `hello_ok`, naming the bot and any observation or extension requirements |
 | `game_start` | once per match | `ack` |
 | `choose` | every decision | `choice` with a `selection.candidate_id` |
-| `game_over` | at the end, best effort | `ack` |
+| `game_over` | at the end | `ack` |
 
 ```json
 {"request_type":"hello","protocol":"spellbench/v2","protocol_minor":0,"request_id":"r-1"}
@@ -127,7 +122,7 @@ for line in sys.stdin.buffer:
 `name`, in `mtgsim` and in `gorged`. The path is executed directly with no
 arguments and no shell, so wrap any arguments in a script. The adapter
 ([`server/spellbench/seat`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat))
-starts one process per match, handshakes, translates every gorge decision
+starts one process per seat per match, handshakes, translates every gorge decision
 into v2 candidates and the answer back into an intent.
 
 ```console
@@ -141,12 +136,10 @@ In `gorged` the agent becomes one more offered policy, so a play-vs-bot
 game, or an [HTTP bot](http.md), can play against it:
 
 ```console
-$ ./gorged -addr 127.0.0.1:8093 ... -vsbot -sb-agent sb-gorge-bot=/path/to/gorge-as-v2.sh
-$ curl -s http://127.0.0.1:8093/api/bot-policies | jq -c '[.policies[] | [.name, .label]]'
+$ ./gorged -addr 127.0.0.1:8080 ... -vsbot -sb-agent sb-gorge-bot=/path/to/gorge-as-v2.sh
+$ curl -s http://127.0.0.1:8080/api/bot-policies | jq -c '[.policies[] | [.name, .label]]'
 [["bot","Bot"],["forge-heuristic","Forge heuristic"],["forge-heuristic-hold","Forge heuristic + hold"],["lethal-pressure","Lethal Pressure"],["sb-gorge-bot","SpellBench v2 agent"]]
-$ python3 gorge_agent.py --server http://127.0.0.1:8093 --bot-policy sb-gorge-bot
-...
-match finished after 21 turns in 1.5 s: winner us (seat 0, tron)
+$ python3 examples/bots/python/gorge_agent.py --server http://127.0.0.1:8080 --bot-policy sb-gorge-bot
 ```
 
 A v2 seat is two-player and constructed-only, and plays only on tables with
@@ -158,8 +151,8 @@ forfeit cause (`timeout`, `transport_error`, `agent_error`,
 `invalid_selection`), concedes at its next priority decision, and answers
 with the default bot until then. The decision budget is the host's: 2 s per
 decision in `gorged`, unbounded in `mtgsim` and the benches. `game_over` is
-written and the process stopped immediately, so an agent must not rely on
-receiving it.
+written and the agent gets 1 s to answer it before its process is killed. An
+agent that has died or timed out doesn't receive it.
 
 ## Serve a gorge bot as a v2 agent
 
@@ -187,9 +180,9 @@ It has two worlds:
   candidates of *any* v2 engine, and needs the card corpus (`-corpus .cards`)
   or a frozen registry (`-registry file -registry-sha256 digest`). It
   translates the candidate kinds gorge's own engine never poses
-  (`choose_cast_method`, `choose_option`, `choose_cost_option`, `distribute`,
-  `choose_pile`) onto the nearest gorge decision, so only a genuinely
-  unmappable kind reaches the agent's fallback.
+  (`choose_cast_method`, `choose_cost_option`, `distribute`, `choose_pile`)
+  onto the nearest gorge decision, so only a genuinely unmappable kind reaches
+  the agent's fallback.
 
 Because `-sb-agent` passes no arguments, wrap the command:
 
@@ -202,19 +195,13 @@ exec /path/to/spellbench-gorge-agent -policy bot -world neutral -corpus /path/to
 $ go run ./cmd/mtgsim -seats 2 -games 20 -a sb-gorge -sb-agent sb-gorge=./gorge-as-v2.sh
 ```
 
-That runs gorge's `bot` through the full v2 round trip against gorge's own
-`bot`. It is a useful fidelity check: over seeds 0–19 with Death & Taxes
-against Dimir Tempo, the bot wins **17 of 20 games natively** (`-a bot`) and
-**17 of 20 through the neutral v2 translation** (2026-10-28 at `315962169`
-with the `cmd/mtgsim` payment-plan guard; 20 games took 17 s). Before that
-guard the neutral seat received no payment plans and won 1 of 20: it could
-still pick the engine's manual cast options, but could never apply a planned
-payment.
+That runs gorge's `bot` through the full v2 round trip against gorge's own `bot`, which makes it a fidelity check: on the same seeds,
+compare it with a native `-a bot` run.
 
 ### Latency
 
-Timed by a relay between `mtgsim` and the agent that logged each request's
-round trip (3 games per agent, 2026-10-20):
+Timed by a relay between `mtgsim` and the agent that logged each request's round trip (3 games per agent, 2026-10-20, on the machine
+named on [Latency](http.md#latency)):
 
 | Agent | `hello` | `game_start` | `choose` median | `choose` p95 |
 |---|---|---|---|---|
@@ -251,3 +238,9 @@ Errors are `response_type: "error"` with a code from a closed list
 …; [`server/spellbench/protocol/errors.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/protocol/errors.go)).
 Mana is paid by the engine's planner by default (`-manual-mana` offers
 interactive taps instead).
+
+## Offer v2 seats over HTTP
+
+`gorged -sbv2` (with `-vsbot` or `-humans`) mounts `/api/sbv2/v1/tables/{t}/matches/{k}/` with `state`, `stream` and `send` routes. These
+give a seat the same `choose` content as the stdio protocol, without its `clock`, under the native wire's bearer token. It is two-player,
+constructed and automatic-mana only; a table outside that answers 409 and a client falls back to native. [SpellBench v2 reference](../api/spellbench-v2.md) has the details.

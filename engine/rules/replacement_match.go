@@ -1175,9 +1175,14 @@ func (e *Engine) thresholdHolds(controller state.PlayerID) bool {
 }
 
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
+	return e.graveyardCardTypeCountSkipping(controller, 0)
+}
+
+// graveyardCardTypeCountSkipping is graveyardCardTypeCount without one card.
+func (e *Engine) graveyardCardTypeCountSkipping(controller state.PlayerID, skip state.ObjID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && id != skip {
 			for _, typ := range o.Face().Types {
 				switch graveyardCardTypeCountCodes.Code(string(typ)) {
 				case graveyardCardTypeCountCardType:

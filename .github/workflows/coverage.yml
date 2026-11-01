@@ -4,11 +4,8 @@
 # committed here: the job fetches it at the FORGE_REF pin into the gitignored
 # .cards/ and throws it away with the runner.
 #
-# The tables are generated, NEVER committed (W2 of the 2026-10-03 lasagna
-# spec). This job used to commit README.md and docs/coverage.md back to main
-# -- 90 bot commits in 14 days that every live branch rebased across. It now
-# publishes on the run page instead: .coverage/summary.md plus the full
-# .coverage/coverage.md as the job summary, and .coverage/ as the
+# The tables are generated, NEVER committed. It publishes on the run page:
+# .coverage/summary.md plus the full .coverage/coverage.md as the job summary, and .coverage/ as the
 # `card-coverage` artifact. Only counts and percentages are published, no card
 # text. It needs no secrets and only read access to the repository.
 name: card coverage

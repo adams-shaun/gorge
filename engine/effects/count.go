@@ -48,8 +48,9 @@ var statAddMultiplier = map[string]int32{
 	"Triple": 2,
 }
 
-// NumForObject is NumResolved for an amount that depends on WHICH object it
-// is applied to. Forge's bare "Double" / "Triple" P/T amounts (NumAtt$ Double,
+// NumForObject is an amount for one affected object: scalar, the caller's single
+// reading of the parameter (CR 608.2h), unless the amount depends on WHICH object
+// it is applied to. Forge's bare "Double" / "Triple" P/T amounts (NumAtt$ Double,
 // NumDef$ Triple, ...) are the whole reason: "Double" means "add this
 // object's current characteristic back to itself" and "Triple" adds it twice
 // (see statAddMultiplier), so a scalar resolver that reads the first
@@ -70,11 +71,8 @@ var statAddMultiplier = map[string]int32{
 // later needs a per-object amount names its P/T key in statIsPowerKey and
 // calls NumForObject instead of Num; until it does, its scalar read of
 // "Double" or "Triple" degrades to zero via Num below (fail-closed), never to
-// another object's stat. Every other value falls through to Num, so NumForObject
-// is a drop-in superset: a literal, an SVar reference or a Count$ body behaves
-// identically whether or not the caller has an object to hand, including Num's
-// degrade-to-zero for an unmodelled body.
-func NumForObject(h Host, c *Ctx, sa *cards.SA, key string, def int32, obj state.ObjID) int32 {
+// another object's stat.
+func NumForObject(h Host, sa *cards.SA, key string, scalar int32, obj state.ObjID) int32 {
 	if m, ok := statAddMultiplier[strings.TrimSpace(sa.Params[key])]; ok && obj != 0 {
 		if p, ok := statIsPowerKey(key); ok {
 			if !p {
@@ -83,7 +81,7 @@ func NumForObject(h Host, c *Ctx, sa *cards.SA, key string, def int32, obj state
 			return m * h.Power(obj)
 		}
 	}
-	return Num(h, c, sa, key, def)
+	return scalar
 }
 
 // statIsPowerKey maps a P/T amount parameter to the characteristic it names:

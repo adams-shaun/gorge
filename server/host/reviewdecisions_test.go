@@ -25,11 +25,11 @@ func TestReviewDecisionsOnlyOnAReviewTable(t *testing.T) {
 	explain := make([]json.RawMessage, n)
 	explain[2] = json.RawMessage(`{"seat":0,"source":"forced"}`)
 	explain[3] = json.RawMessage(`null`)
-	if err := r.AddReviewTable("rv", ReviewMatch{Config: m.cfg, Log: m.e.L.Clone(), Explain: explain}); err != nil {
+	if err := r.AddReviewTable("rv", ReviewMatch{Config: m.rulesConfig(), Log: m.e.L.Clone(), Explain: explain}); err != nil {
 		t.Fatal(err)
 	}
 	// A misaligned sidecar is ignored by the host too (the loader warns).
-	if err := r.AddReviewTable("rv2", ReviewMatch{Config: m.cfg, Log: m.e.L.Clone(), Explain: explain[:n-1]}); err != nil {
+	if err := r.AddReviewTable("rv2", ReviewMatch{Config: m.rulesConfig(), Log: m.e.L.Clone(), Explain: explain[:n-1]}); err != nil {
 		t.Fatal(err)
 	}
 	ds, err := r.ReviewDecisions("rv", 1)

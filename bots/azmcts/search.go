@@ -142,10 +142,10 @@ func (o Options) Validate(net *policynet.Model) error {
 	}
 	if net != nil {
 		if !net.HasValue() {
-			return errors.New("azmcts: checkpoint has no value head; the value head is the search's leaf (spec §1), so a policy-only checkpoint cannot drive it")
+			return errors.New("azmcts: checkpoint has no value head; the value head is the search's leaf, so a policy-only checkpoint cannot drive it")
 		}
 		if net.Features.Diagnostic() {
-			return fmt.Errorf("azmcts: checkpoint feature set %s reads hidden information; the network must read the searching seat's redacted view (spec §1)", net.Features)
+			return fmt.Errorf("azmcts: checkpoint feature set %s reads hidden information; the network must read the searching seat's redacted view", net.Features)
 		}
 	}
 	return nil

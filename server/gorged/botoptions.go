@@ -132,8 +132,8 @@ func resolveBotOptionsFor(all []bots.Entry, optArgs, configArgs []string, getenv
 	}
 
 	// Required options are checked across every registered policy, not just
-	// the offered set: this runs before the offered set is resolved (az-c3/
-	// c4/c5 register during serve), and a policy a table names must already
+	// the offered set: this runs before the offered set is resolved (network
+	// policies register during serve), and a policy a table names must already
 	// be buildable. A linked policy that declares Required must therefore be
 	// configurable on every server that links it.
 	for _, e := range all {

@@ -214,6 +214,12 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.Phase != ev.Step {
 			continue
 		}
+		if dt.FirstCombat && e.G.CombatsThisTurn != 1 {
+			continue
+		}
+		if dt.CheckSVar != "" && !e.checkSVarHoldsRaw(staticView{Source: dt.Source, Controller: dt.Controller}, dt.CheckSVar, dt.SVarCompare, costSubject{}, nil) {
+			continue
+		}
 		// CR 603.7 + CR 500.7 (engine/rules/saga.go, events.ExtraTurn): a delayed
 		// trigger an extra-turn grant registered carries the granted turn's
 		// number as MinTurn, so the granting turn's own occurrence of the
@@ -281,13 +287,10 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			remove = append(remove, dt.ID)
 			continue
 		}
-		f := src.Face()
-		if f == nil {
-			remove = append(remove, dt.ID)
-			continue
-		}
-		sa := cards.ResolveSVar(f.SVars, dt.Execute)
-		if sa == nil {
+		// The creating face need not be the current one: an Adventure card is
+		// back to its creature face once the spell has resolved.
+		sa := events.ResolveSVarAcrossFaces(src, dt.Execute)
+		if src.Face() == nil || sa == nil {
 			remove = append(remove, dt.ID)
 			continue
 		}

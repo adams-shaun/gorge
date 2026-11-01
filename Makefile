@@ -4,20 +4,16 @@ BIN_DIR    := bin
 # transitive npm deps) or .worktrees (sibling task checkouts): go's ./...
 # skips dot-directories and stops at web/go.mod, but find/gofmt do not.
 #
-# .ds4 and .superpowers are pruned for the same reason: both are agent scratch
-# trees, neither carries a single TRACKED .go file (verified: `git ls-files
-# '.ds4/**/*.go' '.superpowers/**/*.go'` is empty), and both are gitignored.
-# Without the prune `make lint` fails on the formatting of files nobody can
-# commit -- an archived agent's scratch main.go was enough to turn the lane
-# red -- and GO_SRC picks them up as build dependencies, so dropping a stray
-# .go file into a scratch directory needlessly rebuilds every binary.
+# .ds4 and .superpowers are pruned for the same reason: both are gitignored
+# local scratch trees with no tracked .go file. Without the prune `make lint`
+# fails on the formatting of files nobody can commit, and GO_SRC picks them up
+# as build dependencies.
 GO_FILES   := find . \( -name node_modules -o -name .worktrees -o -name .ds4 -o -name .superpowers \) -prune -o -type f -name '*.go' -print
 GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 
 # Resource caps for every Go invocation below. `go test ./...` defaults -p to
-# GOMAXPROCS (32 on this box), so the full tree can hold 32 test binaries
-# resident at once; with a second worktree gating at the same time and the
-# local agent fleet on the machine, that OOMed and locked the box. -p bounds
+# GOMAXPROCS, so the full tree can hold that many test binaries resident at
+# once, which has run a machine out of memory. -p bounds
 # how many package binaries run concurrently, and GOMEMLIMIT gives each one's
 # GC a soft ceiling to collect against instead of growing until the kernel
 # steps in (server/host/ peaks at 8.5G unbounded, 5.2G under this limit, and
@@ -33,12 +29,12 @@ GO_SRC     := $(shell $(GO_FILES) 2>/dev/null) go.mod
 #
 # Both ?= so a caller can raise them for a deliberate one-off measurement.
 export GOMEMLIMIT ?= 5GiB
-# -trimpath (operator, 2026-10-05): without it each worktree's absolute path
+# -trimpath: without it each worktree's absolute path
 # keys every compile, so no worktree reuses another's build cache.
 export GOFLAGS ?= -p=2 -trimpath
 GO_TEST_FLAGS ?= -p=2
 
-# seat-check's two structural test runs. systemd-run bounds them when this box
+# seat-check's two structural test runs. systemd-run bounds them when the machine
 # offers it; otherwise they fall back to the plain env caps (and -p 1 limits
 # them to one package binary at a time).
 SEAT_CAP ?= $(shell systemd-run --user --scope -q true >/dev/null 2>&1 && echo 'systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400%')
@@ -49,8 +45,7 @@ CARDS_DIR  ?= .cards
 # gorge's fork of Card-Forge/forge: its `gorge` branch is upstream plus
 # script corrections against the printed card, each also sent upstream.
 FORGE_REPO ?= https://github.com/adams-shaun/forge.git
-# Pinned to the lock's commit for M2r; a corpus bump is a deliberate,
-# ledgered change, not a side effect of Forge's master moving.
+# Pinned to the lock's commit; a corpus bump is a deliberate change, not a side effect of Forge's master moving.
 # 25a608a4f = fb4d80911 (Card-Forge master 2026-10-02) + Card-Forge/forge#12153
 # (Bard's Company P/T, Voice of Victory type, Yip Yip! target) + #12160
 # (Demonic Pact's discard mode targets an opponent).
@@ -83,8 +78,9 @@ help:
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
 	@echo "  make sim            — build mtgsim and play 20 verified 4-seat games"
+	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
-	@echo "  make gorged         — run the M2a table server (browser client at the addr)"
+	@echo "  make gorged         — run the table server (browser client at the addr)"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"
@@ -92,8 +88,9 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
-	@echo "  make seat-check     — structural seat gate: gofmt, gentypes -check, archtest, codeshape"
+	@echo "  make seat-check     — fast structural gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
+	@echo "  make wire-matrix    — run every engine / wire / consumer cell of the commit tier (docs/site/architecture/wires.md)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -112,7 +109,7 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 	CGO_ENABLED=0 go build -o $@ ./cmd/gorged
 
 .PHONY: gorged
-# gorged runs the M2a table server: perpetual bot tables served to a browser
+# gorged runs the table server: perpetual bot tables served to a browser
 # at the listen address. make web builds the Svelte client it embeds first.
 # -vsbot arms the landing page's play-a-human-vs-bot entry point; without it
 # the server is spectator-only, exactly as before the feature existed.
@@ -122,6 +119,13 @@ gorged: $(BIN_DIR)/gorged
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
 	$(BIN_DIR)/mtgsim -seats 4 -games 20 -verify
+
+# draftsim runs two seeded FDN draft events through the in-memory event host
+# and verifies each one replays from its log.
+.PHONY: draftsim
+draftsim:
+	go build -trimpath -o $(BIN_DIR)/draftsim ./cmd/draftsim
+	$(BIN_DIR)/draftsim -set FDN -seed 1 -events 2 -verify
 
 .PHONY: fetch-cards
 # A worktree's corpus tests open the main checkout's .cards, which is outside
@@ -170,6 +174,10 @@ conformance:
 	@echo "== CR 601/733 conformance: all audited leaves fixed; ordinary-suite assertions =="
 	go test $(GO_TEST_FLAGS) -count=1 ./engine/rules -run TestCR -v
 
+.PHONY: wire-matrix
+wire-matrix:
+	scripts/wire-matrix.sh commit
+
 # The Oracle-text card audit (scenarios written from printed card text and
 # the CR, docs/design/2026-09-27-oracle-text-card-audit.md) and the XMage
 # ports live in gorge-compliance (github.com/adams-shaun/gorge-compliance,
@@ -196,14 +204,7 @@ gc-gate:
 # test` and CI; run by hand or at night.
 .PHONY: fuzz
 fuzz:
-	go test $(GO_TEST_FLAGS) -tags fuzz,manabrew -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
-
-# test-manabrew runs the ManaBrew wire/translator tests (build tag `manabrew`).
-# ManaBrew work is deprioritised (operator, 2026-10-02), so these test files
-# are excluded from `go test ./...`, `make test` and CI.
-.PHONY: test-manabrew
-test-manabrew:
-	go test $(GO_TEST_FLAGS) -tags manabrew -count=1 ./server/protocol/manabrew ./server/manabrew/... ./server/host/manabrewhttp ./cmd/gorged ./cmd/cardfuzz
+	go test $(GO_TEST_FLAGS) -tags fuzz -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
 
 # Engine-speed benchmarking (cmd/enginebench; scripts in scripts/enginebench-*.sh,
 # workload decks committed in cmd/enginebench/testdata/decks). Every run is
@@ -246,8 +247,7 @@ tidy:
 # "eslint: not found" / "vite: not found".
 web/node_modules/.package-lock.json: web/package-lock.json
 	@# REFUSE to install through a symlink. Task worktrees may get web/node_modules
-	@# as a symlink to the main checkout's install (four-yay's
-	@# ops/scripts/agent-worktree.sh --web moved there 2026-10-16), so
+	@# as a symlink to the main checkout's install, so
 	@# ~166MB is shared instead of copied. `npm ci` DELETES node_modules before
 	@# installing, and through a symlink that delete lands on the SHARED
 	@# directory -- wiping web tooling for the main checkout and every other
@@ -306,10 +306,10 @@ lint: lint-web
 	go vet ./...
 	go run ./cmd/gentypes -check
 
-# seat-check is the fast structural gate a seat runs before DONE: formatting,
-# the generated wire types, and the two architecture/shape ratchets. It
-# deliberately leaves out `go vet ./...` and `lint-web` (make lint), which the
-# daemon's gates cover; it must stay a ~10 s check.
+# seat-check is the fast structural gate to run before finishing a change:
+# formatting, the generated wire types, and the two architecture/shape ratchets.
+# It deliberately leaves out `go vet ./...` and `lint-web` (make lint); it must
+# stay a ~10 s check.
 .PHONY: seat-check
 seat-check:
 	@out=$$(gofmt -l $$($(GO_FILES)) 2>&1); \

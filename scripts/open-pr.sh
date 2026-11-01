@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # open-pr.sh — open (or refresh) a GitHub pull request for the current branch,
-# with a generated overview of what changed. Shared verbatim by gorge, four-yay
-# and gorge-compliance; `make pr` is the entry point in each.
+# with a generated overview of what changed. `make pr` is the entry point.
 #
 #   make pr                      # current branch -> origin's default branch
 #   make pr BASE=main HEAD=develop

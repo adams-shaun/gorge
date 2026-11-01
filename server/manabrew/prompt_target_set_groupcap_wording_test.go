@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 // Tests for the RAISED-CAP wording of targetSetSentences' group sentence

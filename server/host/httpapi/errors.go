@@ -1,7 +1,7 @@
 // Package httpapi serves a host.Registry over plain net/http: JSON GETs for
 // tables, matches, views and events; POSTs for subscriptions; one SSE
 // stream per client; and the embedded web client. cmd/gorged mounts it;
-// mtgserve can too (spec D9, PL-4).
+// an embedding server can too.
 package httpapi
 
 import (

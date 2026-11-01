@@ -16,9 +16,9 @@ import (
 // according to the labels offered, and every candidate passes the validator's
 // V1 candidate check (which is what rejected a creature type under card_type).
 func TestChooseTypePurposeByFamily(t *testing.T) {
-	// ResolveSource touches only Env.G.E.G for a source-less choice, so a
+	// ResolveSource touches only the board for a source-less choice, so a
 	// zero engine is enough: this test is about projection, not game state.
-	env := &mapping.Env{G: &gamecfg.Game{E: &rules.Engine{}}}
+	env := &mapping.Env{G: gamecfg.Wrap(&rules.Engine{}, nil)}
 	cases := []struct {
 		name, purpose, wantValue string
 		labels                   []string

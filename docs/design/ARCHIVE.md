@@ -13,18 +13,12 @@ their original file names. Everything listed below was parked.
   parent of the commit that removed them. Read one with
   `git show 6d95c6a54:docs/superpowers/<path>`, where `<path>` is the File
   column below.
-- On the operator's box: a copy of every file, with the same relative
-  layout, is in the gitignored `.superpowers/archive/` directory of the main
-  checkout (agentctl links `.superpowers` into each worktree).
 
 A reference in code or docs to a parked file now reads
 `archived <file name> (docs/design/ARCHIVE.md)`.
 
-The 15 lab-only design docs that lived in `docs/design/` (the XMage
-compliance oracle and Level B, the XMage scenario port, the draft-events
-design and its E1/E3/E5/E5-d plans, draft RL, the az-c3/az-c4/az-c5 hosting
-notes and the PlayLines pl-3/pl-4/pl-8 notes) moved to four-yay's
-`docs/design/` (private) on 2026-10-16, under the same file names; see
+The 15 lab-only design docs that lived in `docs/design/` moved out of this
+repository on 2026-10-16; see
 [ADR 0001](../decisions/0001-repo-layout.md)'s amendment.
 
 Outcomes are one-line summaries taken from each document's own status,
@@ -52,7 +46,6 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `specs/2026-09-17-search-probe-profile-optimization-design.md` | 2026-09-17 | Search-probe profile optimization design | Search-probe profile optimisation design; executed. |
 | `specs/2026-09-17-search-proposal-coverage-design.md` | 2026-09-17 | History-Conditioned Proposal Coverage Design | History-conditioned proposal coverage; implemented. |
 | `specs/2026-09-17-search-world-sampler-design.md` | 2026-09-17 | History-conditioned search probe design | History-conditioned search probe design; implemented. |
-| `specs/2026-09-18-agentctl-library-design.md` | 2026-09-18 | agentctl — moved | Stub: agentctl design moved to its own repo (`~/projects/agentctl`). |
 | `specs/2026-09-18-botbench-decision-trace-design.md` | 2026-09-18 | Botbench decision-trace design | Botbench JSONL decision trace; implemented. |
 | `specs/2026-09-18-compiled-predicate-cost-design.md` | 2026-09-18 | Compiled Predicate and Cost Design | Compiled filter/cost predicates; implemented. |
 | `specs/2026-09-19-hosted-bot-policy-selection-design.md` | 2026-09-19 | Hosted bot policy selection | Hosted bot selection by name; implemented, then extended by hosted-bot-packages. |
@@ -68,9 +61,9 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `specs/2026-10-06-legal-walk-design.md` | 2026-10-06 | Priority legal-action walk: design and implementation plan | Priority legal-action walk design; steps S0-S4 landed. |
 | `specs/2026-10-06-pointer-free-corpus-design.md` | 2026-10-06 | Pointer-free card corpus: design and implementation plan | Pointer-free card corpus to shrink GC scan set; `internal/corpusheap` guards it. |
 | `specs/2026-10-07-mana-member-carry-design.md` | 2026-10-07 | Mana-member carry (legal-walk §S4) — design | Legal-walk S4 mana-member carry; landed (eb31d3f1a). |
-| `specs/2026-10-07-mzenc-design.md` | 2026-10-07 | mzenc: a byte-identical Go port of MageZero v0.2's `StateEncoder` | Byte-identical Go port of MageZero's StateEncoder; now four-yay's `training/mzenc` (private). |
+| `specs/2026-10-07-mzenc-design.md` | 2026-10-07 | mzenc: a byte-identical Go port of MageZero v0.2's `StateEncoder` | Byte-identical Go port of MageZero's StateEncoder; since moved out of this repository. |
 | `specs/2026-10-07-searchprobe-engine-reset-design.md` | 2026-10-07 | Search-probe engine reset: pooled replay instead of clone | Pooled replay instead of clone; landed. |
-| `specs/2026-10-07-smoke-perf-target-design.md` | 2026-10-07 | Smoke perf target design | Opt-in base-vs-candidate smoke perf target (`scripts/smoke-perf.sh`, since moved to four-yay). |
+| `specs/2026-10-07-smoke-perf-target-design.md` | 2026-10-07 | Smoke perf target design | Opt-in base-vs-candidate smoke perf target (`scripts/smoke-perf.sh`, since moved out of this repository). |
 
 ## Plans
 
@@ -99,12 +92,12 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `plans/2026-09-28-ui-prompts.md` | 2026-09-28 | Prompt System (Lane C) Implementation Plan | Client lane C plan (prompt system); landed in `web/`. |
 | `plans/2026-09-30-searchbench-replication.md` | 2026-09-30 | Gorge-native replication of DraftZero experiment #3 (search benchmark) | Executed; results in the 2026-10-01 searchbench report. |
 | `plans/2026-10-02-magezero-style-training-checklist.md` | 2026-10-02 | Checklist: MageZero-style training on gorge | Checklist only; nothing scheduled (the work moved to the side branch `mzrepro`). |
-| `plans/2026-10-02-xmage-oracle-foundation.md` | 2026-10-02 | XMage Compliance Oracle — Foundation (X0–X3) Implementation Plan | Executed X0-X3; the oracle now lives in four-yay's `oracle/` (private). |
+| `plans/2026-10-02-xmage-oracle-foundation.md` | 2026-10-02 | XMage Compliance Oracle — Foundation (X0–X3) Implementation Plan | Executed X0-X3; the oracle now lives in gorge-compliance. |
 | `plans/2026-10-07-mana-member-carry.md` | 2026-10-07 | Mana-member carry (legal-walk §S4) Implementation Plan | Executed: legal-walk step S4 landed (eb31d3f1a). |
-| `plans/2026-10-07-mzenc-hash-port.md` | 2026-10-07 | mzenc hash-port Implementation Plan (Milestone 1) | Executed milestone 1: the mzenc hash port (now four-yay's `training/mzenc`). |
+| `plans/2026-10-07-mzenc-hash-port.md` | 2026-10-07 | mzenc hash-port Implementation Plan (Milestone 1) | Executed milestone 1: the mzenc hash port (since moved out of this repository). |
 | `plans/2026-10-07-mzenc-state-walkers.md` | 2026-10-07 | mzenc StateEncoder walkers Implementation Plan (Milestones 2–3) | mzenc StateEncoder walkers (milestones 2-3); mzenc is used only for ablations. |
 | `plans/2026-10-07-searchprobe-engine-reset.md` | 2026-10-07 | Search-Probe Engine Reset Implementation Plan | Executed; see the 2026-10-07 measured-outcome report. |
-| `plans/autopay-v1-hardening/README.md` | 2026-09-26 | Auto-pay V1 hardening wave (2026-09-26) | Auto-pay V1 hardening wave of 17 ticket briefs (below); wave filed through agentctl. |
+| `plans/autopay-v1-hardening/README.md` | 2026-09-26 | Auto-pay V1 hardening wave (2026-09-26) | Auto-pay V1 hardening wave of 17 ticket briefs (below). |
 | `plans/autopay-v1-hardening/aph-cast-shape-gate.md` | 2026-09-24 | Auto-pay: withhold plans from casts whose cost the witness cannot bind | Ticket brief in the auto-pay V1 hardening wave. |
 | `plans/autopay-v1-hardening/aph-combo-chosen-identity.md` | 2026-09-24 | Auto-pay: admit "Add {X} or {Y}" (Combo), recorded-colour (Chosen) and commander colour-identity producers | Ticket brief in the auto-pay V1 hardening wave. |
 | `plans/autopay-v1-hardening/aph-hand-reserve.md` | 2026-09-24 | Auto-pay: hand-aware tie-break (keep the colours the rest of your own hand needs) | Ticket brief in the auto-pay V1 hardening wave. |
@@ -173,7 +166,7 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `reports/2026-10-09-bot-consolidation-plan.md` | 2026-10-09 | Bot policy consolidation plan | Plan to consolidate heuristic bots into four tiers; not implemented. |
 | `reports/2026-10-09-common-sense-rules-evaluation.md` | 2026-10-09 | Common-sense rules for the heuristic bots: evaluation | A shared common-sense layer removes one large class of bad actions; became the opt-in `bots/sanity`. |
 | `reports/2026-10-09-dumb-choice-census.md` | 2026-10-09 | Dumb-choice census for the heuristic bots | Dumb-choice census of the heuristic bots; stopped early by the operator. |
-| `reports/2026-10-10-corpus-coverage-census.md` | 2026-10-10 | Corpus coverage census (2026-10-10) | Which (card, ability) pairs bot play reaches; `cmd/corpuscov` (now four-yay's `cmd/corpuscov`). |
+| `reports/2026-10-10-corpus-coverage-census.md` | 2026-10-10 | Corpus coverage census (2026-10-10) | Which (card, ability) pairs bot play reaches; `cmd/corpuscov` (since moved out of this repository). |
 | `reports/2026-10-10-encoding-ablation.md` | 2026-10-10 | Encoding ablation: which state symbols carry signal (2026-10-10) | Ablation of which state symbols carry signal for the policy net. |
 | `reports/2026-10-10-mana-model-gap.md` | 2026-10-10 | Mana-model gap: how often the source census withholds a payable cast | How often the source census withheld a payable cast. |
 | `reports/2026-10-12-mana-model-ab.md` | 2026-10-12 | Mana-model A/B: do bots choose the newly offered options, and does the flag change results? | Bots do choose the newly offered mana options (5-23% of exposed windows). |
@@ -187,8 +180,16 @@ The `evidence/token-art/` directory also held 8 screenshots
 |---|---|---|---|
 | `evidence/token-art/REPORT.md` | 2026-10-15 | Token card art renders blank in the web UI — root cause, fix, and proof | Token art rendered blank in the web UI; root cause and fix with before/after screenshots (8 PNGs archived alongside). |
 
+## Parked in `docs/design/`
+
+These stay in the tree, under this directory.
+
+| File | Date | Title | Outcome |
+|---|---|---|---|
+| `v2-default-interface.md` | 2026-10-28 | SpellBench v2 as gorge's default two-player bot interface | Designed and measured, not switched: the adapter agrees with native but costs about 3x; native `seat.Seat` stays the default. |
+
 ## Agent guide
 
 | File | Date | Title | Outcome |
 |---|---|---|---|
-| `agent-seats.md` | 2026-09-19 | Agent seats available for gorge work | Seat roster as of 2026-09-19; superseded by the `[[tiers]]` in `.agentctl/config.toml` (2026-09-24). |
+| `agent-seats.md` | 2026-09-19 | Agent seats available for gorge work | Seat roster as of 2026-09-19; superseded 2026-09-24. |

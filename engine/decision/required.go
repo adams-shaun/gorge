@@ -1,6 +1,7 @@
 package decision
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/engine/state"
@@ -41,11 +42,33 @@ import (
 // FitRequired, so the bot re-declared a whole declaration the engine's
 // combined-charge check rejects -- the crash this rule exists to prevent. The
 // per-Obj pick prefers the lower-life option on a Value tie so the core is as
-// charge-cheap as the wire allows. A tapXType obligation is not priced here:
-// ChargeOptionConstraints drops such an option outright (the wire cannot
-// verify it), while the required set leaves it to the engine's board-aware
-// payment -- the pre-existing contract.
+// charge-cheap as the wire allows. With a published tap pool the core also fits
+// ChargeTapPoolFit: the required creatures that draw most on the pool leave
+// first, which keeps the most in. With none, a tapXType obligation stays with the
+// engine's board-aware payment.
+//
+// A lone required attacker that can't attack alone (CR 506.5) binds only while
+// it has a partner: with none, no declaration obeys the requirement without
+// breaking the restriction (CR 508.1d).
 func (d *Decision) requiredCore() []int {
+	core := d.requiredPicks()
+	for len(core) > 0 && !d.ChargeTapPoolFit(core) {
+		worst := 0
+		for i, c := range core {
+			if d.Options[c].tapPoolDraw() >= d.Options[core[worst]].tapPoolDraw() {
+				worst = i
+			}
+		}
+		core = slices.Delete(slices.Clip(core), worst, worst+1)
+	}
+	if len(core) == 1 && d.Kind == KAttackers && d.Options[core[0]].AloneRestricted && d.alonePartner(core[0]) < 0 {
+		return nil
+	}
+	return core
+}
+
+// requiredPicks is requiredCore before the alone restriction.
+func (d *Decision) requiredPicks() []int {
 	// No Required option: both the greedy and the knapsack below pick
 	// nothing and return nil, so skip building their tables.
 	if !d.anyRequired() {
@@ -334,8 +357,19 @@ func (d *Decision) requiredAt(c int) bool {
 // stays within budget (one option per Obj: an attacker attacks one defender),
 // any other choice is appended while the budget, Max and option Groups allow.
 // Neither step can lower the count of Required Objs, so the rebuilt answer
-// keeps the quota.
+// keeps the quota. A required attacker left alone that can't attack alone gets
+// its partner (CR 506.5, alonePartner).
 func (d *Decision) FitRequired(choices []int) []int {
+	out := d.fitRequiredPreferred(choices)
+	if len(out) == 1 && d.Kind == KAttackers && d.requiredAt(out[0]) && d.Options[out[0]].AloneRestricted {
+		if p := d.alonePartner(out[0]); p >= 0 {
+			return []int{out[0], p}
+		}
+	}
+	return out
+}
+
+func (d *Decision) fitRequiredPreferred(choices []int) []int {
 	if d.Kind == KBlockers && d.hasRequiredBlocks() {
 		core := d.blockRequiredCoreChargeFeasible()
 		// An already legal preferred declaration retains its damage-order
@@ -453,7 +487,8 @@ func (d *Decision) FitRequired(choices []int) []int {
 		}
 		if (o.Group != "" && groups[o.Group] >= d.GroupCapFor(o.Group)) || !fits(o.Value, o.Value2) ||
 			!chargeFits(c, -1) ||
-			!SetPropAdmits(d.SetPropMode, setAcc, o.SetProps) {
+			!SetPropAdmits(d.SetPropMode, setAcc, o.SetProps) ||
+			(d.ChargeTapPool > 0 && !d.ChargeTapPoolFit(append(slices.Clip(out), c))) {
 			continue
 		}
 		if cost := o.chargeLifeCost(); cost > 0 {

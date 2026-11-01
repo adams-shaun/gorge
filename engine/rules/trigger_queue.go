@@ -1341,7 +1341,7 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 	// intervening-if recheck and label every consumer reads -- is that foreign
 	// face, not the recipient's. Measured against the minted provenance first
 	// -- the resolving wrapper sits on the stack carrying the exact foreign
-	// face events.Apply stamped (gainedOwnedFace), which survives the
+	// face events.Apply stamped (abilityOwnedFace), which survives the
 	// granting static ending between the queue and the resolution, the case
 	// the live-grant scan below cannot answer -- and only then against the
 	// live grants (a grant that ended with its static is no owner), in
@@ -1356,7 +1356,7 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 		if wo == nil || wo.Ability != sa || wo.Source != source {
 			continue
 		}
-		if f := gainedOwnedFace(wo); f != nil {
+		if f := abilityOwnedFace(wo); f != nil {
 			for i := range f.Triggers {
 				if f.Triggers[i].Effect == sa {
 					return f.Triggers[i], f, true

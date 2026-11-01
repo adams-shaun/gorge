@@ -62,7 +62,7 @@ func main() {
 		pkg      = flag.String("pkg", "./server/host", "package whose test binary to run")
 		procs    = flag.Int("maxprocs", 4, "GOMAXPROCS for the run; pinned so the budget is a property of the code, not the box")
 		budget   = flag.Float64("budget", 0.30, "maximum fraction of consumed CPU that may be spent in the garbage collector")
-		memLimit = flag.String("memlimit", "5GiB", "GOMEMLIMIT for the run (FL-89)")
+		memLimit = flag.String("memlimit", "5GiB", "GOMEMLIMIT for the run")
 		run      = flag.String("run", "", "optional -test.run filter")
 		compul   = flag.Bool("compulsory-only", false, "exclude idle-mark CPU, budgeting only GC work the scheduler could not avoid")
 		verbose  = flag.Bool("v", false, "echo the test binary's own output")

@@ -273,8 +273,21 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	if pc.Payment != nil {
-		if reason, units, step, ready := e.paymentPlanCheckUnits(pc); reason != "" {
-			e.paymentPlanFallback(pc, reason)
+		reason, units, step, ready := e.paymentPlanCheckUnits(pc)
+		if reason != "" && e.rearmAutoPay(pc) {
+			reason, units, step, ready = e.paymentPlanCheckUnits(pc)
+		}
+		if reason != "" {
+			if e.reverseStrandedPayment(pc) {
+				return true
+			}
+			if e.autoPayArmedOnly(pc) {
+				// The ordinary window armAbilityAutoPay leaves when the planner
+				// declines; no seat chose this witness, so nothing fell back.
+				pc.Payment = nil
+			} else {
+				e.paymentPlanFallback(pc, reason)
+			}
 		} else if pc.PaymentNext < len(pc.Payment.Plan.Activations) && e.executePlannedManaActivationUnits(pc, units, step, ready) {
 			return true
 		}
@@ -295,6 +308,9 @@ func (e *Engine) manaWindowAsk() bool {
 	if pay.CostPayableClassLife(asPayer(e), pc.player, paymentForCast(pc, mana),
 		pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, mana, false) {
 		return false
+	}
+	if e.reverseStrandedPayment(pc) {
+		return true
 	}
 	if pc.Announced {
 		// Announce then pay: the "select mana" window, posed even with no
@@ -371,9 +387,10 @@ func (e *Engine) manaWindowAsk() bool {
 // tap election (pc.taps -- the election records the creatures before payCast's
 // pay.EmitChoiceCosts taps them, so an elected creature must be excluded from the
 // mana window and from a later convoke announcement, or it could be activated
-// for mana and then tapped a second time).
+// for mana and then tapped a second time), or the source of an activation
+// whose own cost has {T}.
 func (e *Engine) convokeCommitted(pc *pendingCast, id state.ObjID) bool {
-	return pc.Committed(&pc.PaidCost, id)
+	return pc.Committed(&pc.PaidCost, id) || (pc.cost.Tap && id == pc.card)
 }
 
 // untappedManaSource reports whether id is an untapped permanent under

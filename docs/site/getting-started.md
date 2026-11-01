@@ -1,39 +1,39 @@
 # Getting started
 
-The shortest path from a fresh clone to verified games, a local server and a
-focused test run. It is for anyone trying gorge for the first time; the
-[User's guide](guide/index.md) goes further on running and playing, and
+This page takes you from a fresh clone to verified bot games, a local server and a
+focused test run, in about five minutes plus one download. The
+[User's guide](guide/index.md) goes further on hosting and playing;
 [Contributing](contributing/index.md) on changing the code.
 
-gorge needs Go (the version in `go.mod`, `go 1.25.8`), `make`, `git` and
-`bash`. Node is needed only to build the browser client.
-
-*Commands checked on `develop` @ `25d71cadc`, 2026-10-27.*
+[Install and build](guide/install.md#prerequisites) lists the prerequisites.
 
 ## 1. Fetch and compile the card corpus
 
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
-make fetch-cards      # one-time: Forge card + token scripts at FORGE_REF into .cards/ (about 140 MB on disk)
-make compile-cards    # parse the scripts into the IR cache (.cards/ir-<fingerprint>.gob.gz)
-make report           # corpus coverage against the implemented primitives
+make fetch-cards      # one-time: Forge's card and token scripts into .cards/ (about 140 MB)
+make compile-cards    # parse them into the IR cache, .cards/ir-<fingerprint>.gob.gz
+make report           # coverage against the implemented primitives
 ```
 
-`make fetch-cards` builds `bin/forgec` and does a sparse checkout of the Forge
-card scripts at the commit pinned by `FORGE_REF` in the `Makefile`
-(`FORGE_REPO` points at gorge's fork of Card-Forge/forge). Coverage numbers
-are always relative to that pin. `make report` begins:
+`make fetch-cards` builds `bin/forgec` and checks out the scripts at the commit
+`FORGE_REF` pins in the `Makefile`, so every number is relative to that pin. The scripts
+are GPL-3.0 and gorge is Apache-2.0, so they stay in the gitignored `.cards/` and are never
+committed ([why](repos/index.md#licensing-and-the-forge-card-scripts)).
+`make compile-cards` prints a couple of diagnostics for rider text it doesn't support;
+those are expected.
+
+`make report` begins like this (2026-10-31, `FORGE_REF` `91402ac5`):
 
 ```text
 corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32337 (94.9%)
+cards: 34074  playable: 32390 (95.1%)
 tokens: 854
 ```
 
-and continues with the missing primitives ranked by how many cards each
-would unlock. `make coverage` writes the same measurement as markdown tables
-into the gitignored `.coverage/`, broken down by card type, colour and mana
-value.
+A card is *playable* when every primitive its script names is implemented, which doesn't
+promise it behaves correctly; [Card support](support/sets.md) says what does. The report goes
+on to rank the missing primitives by how many cards each would unlock.
 
 ## 2. Play verified games
 
@@ -41,87 +41,74 @@ value.
 make sim
 ```
 
-This builds `bin/mtgsim` and plays 20 four-seat games between the built-in
-bot, replaying each one and checking that the rebuilt event chain matches the
-live run. Every game prints `replay OK`. `mtgsim` also takes its flags
-directly (`-seats`, `-games`, `-seed`, `-decks`, `-a`/`-b` for the two seats'
-bot policies, `-verify`, `-v`):
+This builds `bin/mtgsim` and plays 20 four-seat games between the built-in bots, replaying
+each and checking that the rebuilt event chain matches the live run. Every game prints
+`replay OK`. To choose the game yourself, call `mtgsim` directly (`bin/mtgsim -h` lists its
+flags):
 
 ```sh
-bin/mtgsim -seats 2 -games 3 -seed 42 -verify
+bin/mtgsim -seats 2 -games 2 -seed 42 -verify
 ```
 
 ```text
 seed 42: 2 seats,    661 intents,   3423 events,  19 turns, winner=death-n-taxes, chain=99228a9168f4832f
   replay OK (chain 99228a9168f4832f)
-...
+seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=b7b28c0af06c5ddd
+  replay OK (chain b7b28c0af06c5ddd)
 ```
+
+An *intent* is one answer to a decision, and `chain` is the hash of the game's whole event
+log. The numbers move when a change alters what the games do.
 
 ## 3. Run a local server
 
-`gorged` hosts perpetual bot tables and a play-against-a-bot flow over HTTP
-(JSON plus server-sent events) and serves the browser client.
-
 ```sh
-make web                                   # optional: build the Svelte client (needs Node)
-go build -o bin/gorged ./cmd/gorged
-bin/gorged -addr :8090 -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
+make web                                     # optional: build the browser client
+go build -trimpath -o bin/gorged ./cmd/gorged
+bin/gorged -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
 
-Then open `http://localhost:8090/`. Without the web build the root answers
-`503`, but the REST endpoints such as `/api/tables` still work. `gorged -h`
-lists every flag (`-tables`, `-seats`, `-format`, `-pace`, `-humans`,
-`-bot-policy`, ...). The [User's guide](guide/index.md) walks through them.
+This runs two perpetual four-seat bot tables and arms the play-against-a-bot flow. Open
+`http://localhost:8080/`. The client is embedded when `gorged` is built, so build it first;
+without it the web root answers `503 web build missing`, and the API still works:
 
-!!! tip "Pick your own port and data directory"
-    `make gorged` and a bare `gorged` use `:8080` and `gorged-data/`. Pass
-    your own `-addr` and `-dir` if anything else might use those. Two servers
-    must never share one `-dir`: they silently corrupt each other's persisted
-    matches.
+```sh
+curl localhost:8080/api/tables
+```
+
+`bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
+must never share one `-dir`, because they silently corrupt each other's matches. At startup the
+server fetches card art for the dealt decks into `<dir>/art`; pass `-prewarm=false` to skip that
+when you are offline. [Play in the browser](guide/play.md) walks through the rest.
 
 ## 4. Run the tests
 
-Run tests focused: one package and a `-run` pattern at a time.
-
 ```sh
-go test -run 'TestHeads$' ./engine/rules/
+go test -run '^TestHeads$' ./engine/rules/
 go test -run 'TestOracleRunnerContract' ./engine/rules/
 ```
 
-Avoid `make test` (`go test ./...`) as an everyday command: the full suite
-has over 12,000 top-level tests and runs in CI and after merge. Never add
-`-count=1`; it only defeats the test cache. Tests that need the corpus
-**skip** when `.cards/` is missing, so a fast green run without the corpus
-has tested very little. Every test must fit 4 GB RSS, 4 vCPU and one minute
-of wall time.
-
-[Testing](contributing/testing.md) explains the helpers, the oracle scenarios
-and what each ratchet failure means. `make conformance` runs the focused
-CR 601/733 conformance audit on its own.
+`TestHeads` plays one golden bot game at each of 2, 4, 6 and 8 seats and compares each game's
+chain head with a committed value. [Testing](contributing/testing.md#focused-runs) has how to run
+tests without the whole suite, how to tell a skipped corpus test from a pass, and what each failure
+means.
 
 ## 5. Reproduce a reported game
 
-Every game is replayable from its configuration plus the recorded answers. A
-feedback snapshot (`match.json`, `log.json`, the seat's `view.json`) replays
-exactly and turns into a failing test:
+A player's bug report from a server carries a replayable snapshot. This one is committed:
 
 ```sh
-go run ./cmd/repro cmd/repro/testdata/feedback/20260914T120000Z-fb01   # a committed example
-go run ./cmd/repro -list <feedback-dir>             # the timeline of recorded answers
-go run ./cmd/repro -at N <feedback-dir>             # stop at answer N
-go run ./cmd/repro -emit-test <pkg> <feedback-dir>  # copy the snapshot and write a failing test skeleton
+go run ./cmd/repro cmd/repro/testdata/feedback/20260914T120000Z-fb01
 ```
 
-Exit status 0 means the rebuilt event stream matched the recording event for
-event. A `DIVERGED` result names the first mismatching event; a corpus pin
-change since the snapshot was taken is an expected cause.
+```text
+== feedback report 20260914T120000Z-fb01 (table t1, match 1) ==
+snapshot: captured: match.json log.json view.json
+replayed 26 of 26 recorded intents (151 events); recorded head 67b55d2eb519629d
+turn 2, round 1, main1 (step main1) — active: seat 0, priority: seat 0
+...
+```
 
-## Licensing
-
-gorge is Apache-2.0. Forge's card scripts are GPL-3.0, so they are **never
-committed** to this repository: they live in the gitignored `.cards/`, and
-`engine/cards/boundary_test.go` fails the build if a script is tracked in the
-working tree, the index or `HEAD`. Replay fixtures strip embedded token-script
-text before they are committed, and published coverage tables contain only
-counts. The full story, including how the companion repositories handle it,
-is on [The three repositories](repos/index.md#licensing-and-the-forge-card-scripts).
+Exit status 0 means the rebuilt event stream matched the recording, event for event. A
+`DIVERGED` result names the first mismatching event. [Contributing](contributing/index.md#reproduce-a-feedback-report)
+has the other flags, including the one that writes a failing test from a snapshot.

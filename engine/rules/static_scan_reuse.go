@@ -15,8 +15,8 @@ import "github.com/adams-shaun/gorge/engine/state"
 //     staticSourceIDs (the static-hot subsequence of a summarized zone, the
 //     whole stack and command zone), or each alive seat's battlefield;
 //   - per visited object, its face and pile statics, zone, controller,
-//     phased-out and face-down status -- and an object contributes only when
-//     it is static-hot (walk_objclass.go: staticOn on the battlefield,
+//     phased-out and face-down status, and door designations -- and an object
+//     contributes only when it is static-hot (walk_objclass.go: staticOn on the battlefield,
 //     staticOff elsewhere; a cold object is skipped by every arm of both
 //     scans, see static_zoneskip.go).
 //

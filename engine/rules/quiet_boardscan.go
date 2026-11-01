@@ -69,7 +69,7 @@ func (e *Engine) quietBoardStaticScan(p state.PlayerID, all bool) quietBoardHit 
 				if f == nil {
 					continue
 				}
-				if len(o.MergedCards) != 0 {
+				if len(o.MergedCards) != 0 || o.Unlocked {
 					for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
 						pst, ok := o.PileStaticAt(si)
 						if !ok {

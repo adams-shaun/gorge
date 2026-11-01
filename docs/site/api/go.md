@@ -1,19 +1,10 @@
 # Go embedding API
 
-This page is for Go developers who import gorge as a library: to play games
-in their own program, to write a bot policy, or to build their own server
-around gorge's host. It walks the entry points package by package, with
-signatures copied from the code, two programs that were compiled and run, and
-an honest account of which parts of the surface are pinned by tests and which
-can change in any commit. Terms such as *seat*, *decision*, *intent*, *view*
-and *chain head* are defined in the [glossary](../contributing/glossary.md).
-
-!!! note "Verified against"
-    Every signature below was checked against the source at commit
-    `513a2a0c3` (2026-10-21) and again at `25d71cadc` (2026-10-27), and the
-    first program was re-run at both with Go 1.26.3 (same output). The bot example and its contract test were run at `ad3777023`
-    (2026-10-20).
-    gorge has no tagged releases, so pin a commit (see [Stability](#stability)).
+This page is for Go developers who import gorge as a library: to play games in their own program, to write a bot policy, or
+to build their own server around gorge's host. It walks the entry points package by package, with signatures from the code, a
+program that was compiled and run, and an account of which parts of the surface are pinned by tests. Terms such as *seat*,
+*decision*, *intent*, *view* and *chain head* are in the [glossary](../contributing/glossary.md). gorge has no tagged releases, so pin a
+commit ([Stability](#stability)).
 
 ## The layers you touch
 
@@ -157,7 +148,7 @@ cannot make an illegal play, because it can only pick from the list.
 | `func (d *Decision) Clone() *Decision` | A deep copy that outlives the next `Submit`. |
 | `type Kind string`, `var Kinds = []Kind{...}` | The decision kinds. |
 
-`Kinds` at this commit, in declaration order:
+`Kinds`, in declaration order:
 
 | Kind | Wire name | Asked when |
 |---|---|---|
@@ -371,11 +362,9 @@ func main() {
 }
 ```
 
-It was built as its own module whose `go.mod` requires
-`github.com/adams-shaun/gorge` with a `replace` pointing at a local gorge
-checkout (an embedder without a checkout would `go get
-github.com/adams-shaun/gorge@<commit>` instead). Run on 2026-10-21 at
-`513a2a0c3`, from the gorge checkout, with `$P` the program's directory:
+Build it as its own module whose `go.mod` requires `github.com/adams-shaun/gorge` with a `replace` pointing at a local gorge
+checkout, or `go get github.com/adams-shaun/gorge@<commit>` without one. Run on 2026-10-31 from the gorge checkout, with `$P` the
+program's directory:
 
 ```console
 $ go -C "$P" run . -cards "$PWD/.cards" \
@@ -386,10 +375,16 @@ turns: 8  intents: 189  events: 1092  head: fa3bb1cf9402af98
 replay head: fa3bb1cf9402af98
 ```
 
-A second run printed the same three lines: the game is a pure function of the
-seed, the decks and the seats. The head will differ at another commit
-whenever an engine or corpus change alters any event of this game, which is
-exactly what the chain head is for.
+A second run prints the same three lines: the game is a pure function of the seed, the decks and the seats. The head differs at
+another commit whenever an engine or corpus change alters any event of this game, which is what the chain head is for.
+
+### Running any engine: `engine/game`
+
+[source](https://github.com/adams-shaun/gorge/tree/main/engine/game)
+
+`engine/game` is the seam a host runs an engine through, so a server isn't tied to `rules.Engine`.
+`engine/game/gorgegame` adapts gorge's engine to it, and `gorged -engine` selects among the engines a binary links; a plain build
+links only `gorge`.
 
 !!! tip "A ready-made loop"
     [`testkit/bench.PlayGame`](https://pkg.go.dev/github.com/adams-shaun/gorge/testkit/bench)
@@ -433,7 +428,7 @@ is what makes the policy exist; `bots/all` links every built-in one.
 | `NeedsAutoPay bool` | The policy only plays through payment plans; the host refuses a table without them. |
 | `Caretaker string` | A registered, non-`Env` policy declared as this one's stand-in; `bots.Validate` checks it exists and is not an `Env` policy. The host does not read it: a human seat's think-timeout caretaker is built from the table's own `BotPolicy`. |
 | `Env, Search, ClosedLists bool` | For search policies that build an engine from the decklists. A policy with `Env` and without `ClosedLists` reads every seat's real decklist, so the host never seats it against a human. |
-| `Strength []Measurement`, `Cost Cost` | Published claims about strength and per-decision cost, shown by `/api/bot-policies`. |
+| `Cost Cost` | The published per-decision cost, shown by `/api/bot-policies`. |
 
 `Options` is what a factory receives: `Seed`, `AutoPayMana` (play through
 payment plans), `SearchParallelism`, `DecisionDeadlineMS`, `CommonSense`,
@@ -462,86 +457,10 @@ Two building blocks most Go bots use:
   (`DecideBoard(ctx, b botpolicy.Board, d decision.Decision)`) is handed a
   `Board` instead of a `View`, which saves the host the projection.
 
-### A minimal bot, registered and served
+### What a server offers
 
-```go title="passbot/passbot.go"
-// Package passbot registers a minimal bot policy, "pass-bot", with gorge's
-// bot registry. Linking the package (a blank import) is what registers it.
-package passbot
-
-import (
-	"context"
-
-	"github.com/adams-shaun/gorge/bots"
-	"github.com/adams-shaun/gorge/bots/botpolicy"
-	"github.com/adams-shaun/gorge/engine/decision"
-	"github.com/adams-shaun/gorge/engine/seat"
-	"github.com/adams-shaun/gorge/engine/view"
-)
-
-func init() {
-	bots.Register(bots.Entry{
-		Info: bots.Info{
-			Name:        "pass-bot",
-			Label:       "Pass bot",
-			Description: "Passes whenever it may; otherwise gives the smallest legal answer.",
-			Tier:        bots.Experimental,
-			Formats:     []string{"constructed", "commander"},
-			Options: []bots.OptionSpec{
-				{Key: "concede-turn", Type: "int", Default: "0", Help: "unused example option"},
-			},
-		},
-		New: newSeat,
-	})
-}
-
-// newSeat is the bots.Factory: it reads the declared option (bots.New has
-// already filled in its default) and returns a seat.
-func newSeat(o bots.Options) (seat.Seat, error) {
-	return &passSeat{concedeTurn: o.Int("concede-turn")}, nil
-}
-
-type passSeat struct{ concedeTurn int }
-
-// Decide implements seat.Seat. It sees only the asked seat's view.View and
-// the decision; the engine rejects anything it did not offer.
-func (s *passSeat) Decide(_ context.Context, _ view.View, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.Clamp(&d, decision.Intent{Seq: d.Seq, Player: d.Player}), nil
-}
-
-// WantsPaymentActions implements seat.PaymentPlanConsumer. This seat never
-// reads a payment plan, so it opts out.
-func (s *passSeat) WantsPaymentActions() bool { return false }
-```
-
-```go title="main.go"
-// Command mygorged is gorged with one extra bot policy linked in.
-package main
-
-import (
-	"os"
-
-	_ "example.com/mybot/passbot"             // registers "pass-bot"
-	_ "github.com/adams-shaun/gorge/bots/all" // the built-in policies
-	"github.com/adams-shaun/gorge/server/gorged"
-)
-
-func main() { os.Exit(gorged.Main(os.Args[1:], gorged.Extensions{})) }
-```
-
-That is the whole binary. Built and started on 2026-10-20 at `ad3777023`
-(from the gorge checkout, so the default `-cards` and `-decks` paths resolve):
-
-```console
-$ ./mygorged -h 2>&1 | tail -3
-Bot policy options (set with -bot-opt <policy>.<key>=<value>, -bot-config <policy>=<file.json>, or GORGED_BOT_<POLICY>_<KEY>):
-  pass-bot (Pass bot):
-    pass-bot.concede-turn (int; default "0")  unused example option
-$ ./mygorged -addr 127.0.0.1:8095 -dir /tmp/gorge-mybot -tables 0 -vsbot \
-    -bot-policy bot -bot-policies bot,pass-bot &
-$ curl -s 127.0.0.1:8095/api/bot-policies
-{"default":"bot","policies":[{"name":"bot",...},{"name":"pass-bot","label":"Pass bot","description":"Passes whenever it may; otherwise gives the smallest legal answer.","tier":"experimental","strength":[],"mean_ms":0,"p95_ms":0,"cost_scope":"","cost_note":"","search":false,"formats":["constructed","commander"]}]}
-```
+[Writing a native Go bot](../bots/native-go.md) has a complete policy, registered and served from a one-line `main` over
+`gorged.Main`.
 
 How gorged decides what to offer:
 
@@ -551,11 +470,9 @@ How gorged decides what to offer:
   duplicated name, or a decklist reader, is a startup error.
 - `-bot-policy` is the default for a request that names none
   (`lethal-pressure` unless set). It must be in the offered set and support
-  both `constructed` and `commander`, which is why the run above passes
-  `-bot-policy bot` alongside a narrowed list.
-- Option values resolve, highest first, from `-bot-opt pass-bot.concede-turn=3`,
-  the environment (`GORGED_BOT_PASS_BOT_CONCEDE_TURN`), `-bot-config
-  pass-bot=file.json`, then the declared default.
+  both `constructed` and `commander`.
+- Option values resolve, highest first, from `-bot-opt`, the environment, `-bot-config`, then the declared default
+  ([Options](../bots/native-go.md#options)).
 
 ## 3. The server: `server/gorged`
 
@@ -566,8 +483,7 @@ How gorged decides what to offer:
 [`cmd/gorged`](https://github.com/adams-shaun/gorge/blob/main/cmd/gorged/main.go)
 is a one-line `main` over it that links `bots/all` and passes only the
 `gorged review` loader.
-A binary that wants more (a bot, a plugin) is the same one line with
-something extra linked in, as above.
+A binary that wants more (a bot, a plugin) is the same one line with something extra linked in.
 
 | Signature | Purpose |
 |---|---|
@@ -576,8 +492,7 @@ something extra linked in, as above.
 | `func ServeReview(ctx context.Context, args []string, ln net.Listener, ext Extensions) error` | `gorged review` (which `Main` runs when `args[0]` is `review`) without signal handling or the bind: serves saved games read-only on `ln` until `ctx` is done. Needs `ext.Review`. |
 | `func ServeFlagSet() *flag.FlagSet` | A fresh copy of the flag set `Main` parses (`ContinueOnError`, no output), so a caller can check an argument list against the real flags. |
 | `func ServeFlagSetFor(ext Extensions) *flag.FlagSet` | The same, including the extensions' own flags. |
-| `func RegisterNetBot(policy string, nb NetBot)` | Links the implementation of a network-backed policy that gorged already names (its flags and deck-list handling live in gorged). Call before `Main`. |
-| `func RegisterClosedNetBot(policy, netHelp string, enable func(path string, closed *searchprobe.Belief) error)` | Links a network-backed policy gorged does not name; gorged gives it its own `-<policy>-net` and related flags. Call before `Main`. |
+| `func RegisterNetBot(policy string, nb NetBot)` | Links a network-backed policy into this binary; gorged gives it `-<policy>-net`, `-decks`, `-belief`, `-belief-pool` and `-demo-table`. Call before `Main`. |
 
 ```go
 type Extensions struct {
@@ -594,12 +509,15 @@ type Extensions struct {
 }
 ```
 
-The zero `Extensions` is the live server without review mode; gorge's own
-`cmd/gorged` sets only `Review`. `EventsPlugin`, `EventsWiring`,
-`EventsEnv` and `EventRuntime` are the interfaces a draft-event runtime
-implements to be served under `/api/events`. A private companion module of
-the maintainers' links its draft events and network-backed policies through
-exactly these seams; gorge itself ships neither.
+The zero `Extensions` is the live server with no draft events and no review
+mode, so `-events` is refused at startup. gorge's own `cmd/gorged` sets `Review`
+and sets `Events` to `gorgedevents.Plugin{}` from
+[`draft/gorgedevents`](https://pkg.go.dev/github.com/adams-shaun/gorge/draft/gorgedevents).
+`server/gorged` cannot import that package itself, because it imports
+`server/gorged`. `EventsPlugin`, `EventsWiring`, `EventsEnv` and `EventRuntime`
+are the interfaces a draft-event runtime implements to be served under
+`/api/events`. The maintainers' private companion module links its network-backed policies through `RegisterNetBot`; gorge's own binary links
+none.
 
 ## 4. The host: `server/host`
 
@@ -680,49 +598,7 @@ own `_test.go` files.
 | `func RunShadowParityContract(t ContractT, o Options, policy string, seed uint64, maxIntents int)` | The host's shadow scan of a policy's own seat reports zero divergences. |
 | `func RunCaretakerLifePlanContract(t ContractT, policy string)` | A human seat's caretaker answers a life-paying payment plan from the ordinary options, while the hosted bot of the same policy submits the plan. |
 
-`RunContractTable` on the `pass-bot` above, as an embedder's test (run
-2026-10-20 at `ad3777023`, `go test -run TestPassBotHostContract -v`):
-
-```go title="passbot/contract_test.go"
-func TestPassBotHostContract(t *testing.T) {
-	dir := os.Getenv("GORGE_CARDS_DIR") // a fetched gorge .cards directory
-	decks := os.Getenv("GORGE_DECKS_DIR")
-	if dir == "" || decks == "" {
-		t.Skip("set GORGE_CARDS_DIR and GORGE_DECKS_DIR")
-	}
-	reg, err := cards.SharedCorpus(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	load := func(name string) (host.Deck, error) {
-		f, list, err := deck.Load(reg, filepath.Join(decks, name+".json"))
-		if err != nil {
-			return host.Deck{}, err
-		}
-		return host.Deck{Name: f.Name, Cards: list}, nil
-	}
-	run := host.RunContractTable(t,
-		host.Options{
-			LoadDeck: load, Tokens: reg.Tokens, NameUniverse: reg.Universe(),
-			Sleep: func(time.Duration, <-chan struct{}) {}, // no pacing in a test
-		},
-		host.TableConfig{
-			ID: "t1", Name: "contract", Seats: 2, Seed: 7,
-			Decks:     []string{"mono-red-goblins", "mono-green-stompy"},
-			BotPolicy: "pass-bot", Spectator: view.Public,
-		})
-	t.Logf("state %s, %d events, head %s", run.Info.State, len(run.Log.Events), run.Info.Head)
-}
-```
-
-```console
-=== RUN   TestPassBotHostContract
-    contract_test.go:36: contract: finished turn 108 intents 1819 events 8856 rootRefusals 0 feeds false reason ""
-    contract_test.go:46: state finished, 8856 events, head 42b675aee965ed05
---- PASS: TestPassBotHostContract (0.52s)
-```
-
-(Two passing bots play until a library runs out, hence turn 108.)
+[Writing a native Go bot](../bots/native-go.md#test-it) shows `RunContractTable` in an embedder's test.
 
 ## 5. Test support: `testkit/`
 
@@ -753,13 +629,9 @@ layering table), so these stay out of production binaries.
 
 ## Stability
 
-gorge is a young engine under daily change, and its Go API is **not
-versioned**. State the promise exactly:
+gorge's Go API is **not versioned**:
 
-- **No releases.** The module has no semver tags (`git tag -l 'v*'` is empty,
-  and `go list -m -versions github.com/adams-shaun/gorge` lists none, checked
-  2026-10-21). Depend on a commit's pseudo-version and move it deliberately.
-  gorge's two companion modules do exactly that: they pin gorge by commit SHA.
+- **No releases.** The module has no semver tags. Depend on a commit's pseudo-version and move it deliberately.
 - **Go signatures can change in any commit.** Nothing checks exported Go
   signatures against a previous version. Field additions to `rules.Config`
   have so far been zero-value compatible (each field's doc says so), but that
@@ -777,29 +649,7 @@ What *is* pinned, and by which test:
 | Event log and replay | `events.Kind` is append-only (documented on the type). Renumbering a kind changes every chain head, so the golden heads catch it; the acceptance games must also replay byte for byte. | `TestHeads`, [`engine/rules/heads_test.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/heads_test.go) against `engine/rules/testdata/heads/{2,4,6,8}.txt`; `TestRepoDeckGamesReplayExactly`, [`engine/rules/acceptance_test.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/acceptance_test.go); `TestEveryKindHasADescriptor`, `engine/events/kindinfo_test.go` |
 | Decision kinds | `decision.Kinds` lists every declared kind exactly once. Adding a kind is a breaking change for every client, but no test forbids it. | `TestKindsListsEveryKindOnce`, [`engine/decision/decision_test.go`](https://github.com/adams-shaun/gorge/blob/main/engine/decision/decision_test.go) |
 | Hosted-policy gates | The `Run*Contract` harnesses above are the same functions gorge's own host tests call. | `server/host/hosted_policies_test.go`, `hosted_closed_test.go`, `shadowscan_test.go`, `caretaker_life_plan_test.go` |
-| Import layering | The rows below. | [`internal/archtest`](https://github.com/adams-shaun/gorge/tree/main/internal/archtest) |
-
-The layering rules `internal/archtest` enforces (non-test imports; "reach"
-means directly or transitively):
-
-| Rule | Test |
-|---|---|
-| `engine/effects`, `engine/view` and `engine/deck` never reach `engine/rules`; `engine/cards` never reaches `engine/state` | `TestDependencyOrderHolds`, `arch_test.go` |
-| `bots/botpolicy` never reaches `engine/view`, `engine/rules` or `engine/seat` | `TestDependencyOrderHolds` |
-| No `bots/...` package reaches `server/host` or `testkit/testutil` | `TestDependencyOrderHolds` |
-| `server/protocol` never reaches `engine/rules` or `bots` | `TestDependencyOrderHolds` |
-| `server/host`, `server/host/httpapi` and `server/gorged` never reach `testkit/testutil` | `TestDependencyOrderHolds` |
-| The rules sub-packages (`engine/rules/cost`, `combat`, `trigmatch`, `scriptfacts`, `pay`, `chars`, `resolve`) stay below `engine/rules` | `TestDependencyOrderHolds` and the `layering_*_test.go` files |
-| Only `server/host`, `server/host/httpapi`, `server/host/manabrewhttp`, `server/gorged` and three developer tools (`cmd/cardfuzz`, `cmd/paymirror`, `cmd/enginebench`) import `time` | `TestTimeIsImportedOnlyByTheHost`, `arch_test.go` |
-| No exported function of `server/host` or `server/host/httpapi` has `*state.Game` or `*rules.Engine` in its signature | `TestNoExportLeaksAnEngineGame`, `arch_test.go` |
-| Nothing imports `math/rand` (v1); randomness is `math/rand/v2` with a seeded source | `TestNoLegacyMathRand`, `arch_test.go` |
-| The root `go.mod` has no `require`: the whole module builds from the standard library | `TestRootModuleHasNoRequires`, `gomod_test.go` |
-| The module builds for a 32-bit word (`GOARCH=386`) | `TestEngineCompilesFor32Bit`, `arch_test.go` |
-
-One rule that holds but is not a test row: `engine/` imports nothing outside
-`engine/` (ADR 0001). At `513a2a0c3`, `go list -deps ./engine/...` names no
-gorge package outside `engine/`, but no single `archtest` test asserts it
-as a blanket rule; it follows from the rows above plus review.
+| Import layering | Which tier may import which, and that the root `go.mod` has no `require`. | [`internal/archtest`](https://github.com/adams-shaun/gorge/tree/main/internal/archtest); [Invariants](../architecture/invariants.md) |
 
 See [Invariants](../architecture/invariants.md) for the design rules behind
 these tests and [Repository layout](../contributing/repo-layout.md) for where

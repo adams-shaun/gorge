@@ -178,6 +178,7 @@ func facts(v view.View) []string {
 }
 
 func TestViewMatchesGorgeViewOnGorgeGames(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	reqs := gorgeGames(t, 5)
 	builders := map[string]*neutral.Builder{}
@@ -233,6 +234,7 @@ func TestViewMatchesGorgeViewOnGorgeGames(t *testing.T) {
 }
 
 func TestDecisionsMatchGorgeOnGorgeGames(t *testing.T) {
+	t.Parallel()
 	reg := testcorpus.Registry(t)
 	kinds := map[string]bool{}
 	for _, k := range env.DecisionKinds {

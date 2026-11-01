@@ -30,54 +30,14 @@ package replay
 import (
 	"fmt"
 
+	"github.com/adams-shaun/gorge/engine/eventdiff"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 )
 
 // Divergence is returned by Replay (and can be returned by ReplayTo) when
-// the rebuilt event stream does not match the recorded one. It is the
-// specific diagnosis Ruling P3 asks for: "the engine changed under this
-// log" as a one-line answer, not an investigation.
-type Divergence struct {
-	// Seq is the index of the first event that differs. Every stored event's
-	// own Seq equals its slice index (events.Log.Append assigns it that way),
-	// so this doubles as an index into both event slices when Missing is
-	// false.
-	Seq uint64
-	// Want and Got are the recorded and replayed events at Seq. They are the
-	// zero events.Event (Kind GameStart) when Missing is true; use Missing,
-	// never a zero-value check on Want, to tell the two cases apart.
-	Want, Got events.Event
-	// Missing is true when the replay produced an event at Seq but the
-	// recorded log has nothing there at all -- the replay ran further than
-	// the recording did. Want is meaningless in that case; Error says so in
-	// words instead of printing a zero events.Event (whose Kind reads
-	// "game_start" and would mislead) as if it were a real recorded event.
-	Missing bool
-	// Short is Missing's mirror image (M12, final whole-branch review): true
-	// when every event the replay DID produce matched the recording byte for
-	// byte, but the recorded log has more events at the end that the replay,
-	// having run out of recorded Intents to submit, never reached. Got is
-	// meaningless in that case, for the same reason Want is meaningless when
-	// Missing is true -- there is nothing the replay actually produced at
-	// Seq to name.
-	Short bool
-}
-
-// Error names the first differing event. Ruling P3: a missing counterpart in
-// the recorded log gets its own wording, not a misleading zero-value event.
-func (d *Divergence) Error() string {
-	if d.Missing {
-		return fmt.Sprintf("replay diverged at event %d: recorded log ends at event %d; replay produced %s",
-			d.Seq, d.Seq, d.Got.Kind)
-	}
-	if d.Short {
-		return fmt.Sprintf("replay diverged at event %d: replay ended there; the recorded log continues with %s",
-			d.Seq, d.Want.Kind)
-	}
-	return fmt.Sprintf("replay diverged at event %d: recorded %s, replayed %s",
-		d.Seq, d.Want.Kind, d.Got.Kind)
-}
+// the rebuilt event stream does not match the recorded one.
+type Divergence = eventdiff.Divergence
 
 // Replay rebuilds the whole match named by (cfg, l) and verifies it against
 // l: every recorded Intent is submitted, in order, to a freshly-created
@@ -316,17 +276,11 @@ func compare(e *rules.Engine, l *events.Log, checked int) (int, error) {
 		if i >= len(l.Events) {
 			return i, &Divergence{Seq: uint64(i), Missing: true, Got: got[i]}
 		}
-		if !sameEvent(l.Events[i], got[i]) {
+		if !eventdiff.Same(l.Events[i], got[i]) {
 			return i, &Divergence{Seq: uint64(i), Want: l.Events[i], Got: got[i]}
 		}
 	}
 	return len(got), nil
-}
-
-// sameEvent is compare's byte-for-byte event equality (Event.Append, the
-// encoding the Head chain folds).
-func sameEvent(want, got events.Event) bool {
-	return string(want.Append(nil)) == string(got.Append(nil))
 }
 
 // FirstDivergence compares two complete event streams -- want the reference,
@@ -337,17 +291,5 @@ func sameEvent(want, got events.Event) bool {
 // games of two builds this way). A got that runs past want's end is Missing;
 // a got that ends early with every event matching is Short.
 func FirstDivergence(want, got []events.Event) *Divergence {
-	n := min(len(want), len(got))
-	for i := 0; i < n; i++ {
-		if !sameEvent(want[i], got[i]) {
-			return &Divergence{Seq: uint64(i), Want: want[i], Got: got[i]}
-		}
-	}
-	switch {
-	case len(got) > n:
-		return &Divergence{Seq: uint64(n), Missing: true, Got: got[n]}
-	case len(want) > n:
-		return &Divergence{Seq: uint64(n), Short: true, Want: want[n]}
-	}
-	return nil
+	return eventdiff.First(want, got)
 }

@@ -43,11 +43,11 @@ func TestObservePoisonUsesTheDedicatedField(t *testing.T) {
 		t.Fatalf("precondition: the engine uses the POISON spelling, not Poison: %d", got)
 	}
 
-	tr := identity.New(g.E, g.Secret)
-	if err := tr.Sync(g.E); err != nil {
+	tr := identity.New(g.R, g.Secret)
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	p := &observe.Projector{E: g.E, IDs: tr}
+	p := &observe.Projector{R: g.R, IDs: tr}
 	obs, err := p.Observation(0, observe.State{})
 	if err != nil {
 		t.Fatal(err)

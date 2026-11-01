@@ -1,11 +1,9 @@
 // Package codeshape measures the shape of the rules engine's code: how long
 // its functions are, how wide its interfaces and context structs are, and how
 // much of its behaviour is still keyed on string literals. It is the metric
-// behind the W0 shrink-only ratchets of the rules-engine refactor spec
-// (docs/design/2026-10-03-rules-engine-lasagna-design.md, section
-// 4) and behind the steward axis of the maintainers' reward loop (four-yay's
-// ops/scripts/reward_collect.py, moved there 2026-10-16), which replaced
-// the old file-size count: a long FUNCTION is a concern without a seam, while
+// behind the shrink-only ratchets of the rules-engine refactor
+// (docs/design/2026-10-03-rules-engine-lasagna-design.md). It replaced the old
+// file-size count: a long FUNCTION is a concern without a seam, while
 // a long FILE says nothing about boundaries and rewarded size-only splits.
 //
 // It is stdlib only (go/ast, go/parser) and deterministic: every list it
@@ -368,8 +366,8 @@ type Func struct {
 // file's directory and the receiver-qualified name ("rules (*Engine).payCast").
 func (f Func) CeilingKey() string { return path.Dir(f.File) + " " + f.Name }
 
-// Metrics is one measurement. The JSON names are the contract four-yay's
-// ops/scripts/reward_collect.py reads; extend, never rename.
+// Metrics is one measurement. Tooling outside this repo reads the JSON names;
+// extend, never rename.
 type Metrics struct {
 	// FuncsOver300 counts non-test FuncDecls in engine/rules/ and engine/effects/ spanning
 	// more than LongFuncLines lines.

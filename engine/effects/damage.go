@@ -54,7 +54,7 @@ func roundRobinSplit(n int, total int32) []int32 {
 // the same Defined$ ReplacedCard exile the Kumano-family R: lines carry. A
 // list name this grammar does not know is loud rather than silently inert.
 func registerReplaceDying(h Host, c *Ctx, die string, damaged []state.Target) {
-	if die == "" || len(damaged) == 0 {
+	if die == "" || len(damaged) == 0 || tapeUnwinding(h) {
 		return
 	}
 	base, qualifier, _ := strings.Cut(die, ".")

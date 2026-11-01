@@ -4,4 +4,4 @@
 
 **Where.** `engine/effects/effect.go` (`effEffect`), `engine/effects/effect_ignorehexproof.go`, `engine/rules/trigmatch` (`Lookup`), `engine/rules/layers_restrict.go`, `engine/state/continuous.go`
 
-**Removed by.** M4 (the named modes)
+**Removed by.** The named modes.

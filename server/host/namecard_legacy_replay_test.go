@@ -86,8 +86,8 @@ func TestLegacyETBNameCardsReplayWithoutUniverse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pre-feature ETB NameCard log did not replay: %v", err)
 	}
-	if replayed.cfg.NameUniverse != nil || replayed.cfg.NameUniverseNames != nil {
-		t.Fatalf("legacy replay injected a name universe: %+v", replayed.cfg)
+	if replayed.gc.NameUniverse != nil || replayed.gc.NameUniverseNames != nil {
+		t.Fatalf("legacy replay injected a name universe: %+v", replayed.rulesConfig())
 	}
 	if got, want := replayed.e.L.Head(), m.e.L.Head(); got != want {
 		t.Fatalf("legacy replay head %s, live head %s", got, want)

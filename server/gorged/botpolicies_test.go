@@ -153,7 +153,6 @@ func TestBuildBotPolicyListFiltersAndOrders(t *testing.T) {
 	got := list.Policies[1]
 	if !got.Search || got.Tier != string(bots.Experimental) ||
 		len(got.Formats) != 1 || got.Formats[0] != "constructed" ||
-		len(got.Strength) == 0 || got.Strength[0].Claim == "" ||
 		got.CostScope == "" || got.MeanMS == 0 {
 		t.Fatalf("az-redeal entry lost fields in conversion: %+v", got)
 	}

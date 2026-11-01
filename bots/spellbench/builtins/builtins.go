@@ -3,7 +3,7 @@
 // python/spellbench/arena/bots/*.py for protocol v1 and
 // python/spellbench/builtins/*.py on branch protocol-v2) -- onto gorge's
 // decision model, so gorge can run a SpellBench-style workup natively
-// (four-yay cmd/botbench -spellbench).
+// (a bench runner -spellbench).
 //
 // # What the originals do
 //
@@ -69,7 +69,7 @@
 //     prices).
 //
 //     Activated abilities with a mana cost (both AutoPay and Planned): when
-//     the seat has a Planner (SetPlanner; four-yay cmd/botbench hands it the engine,
+//     the seat has a Planner (SetPlanner; a bench runner hands it the engine,
 //     rules.Engine.PotentialPaymentPlans), a potential ability the planner
 //     can pay is lowered from its witness exactly like a Planned cast, and a
 //     potential play the planner PROVES unpayable is not a candidate at all
@@ -151,7 +151,7 @@
 // cannot see is repaired rather than submitted. Constraints the wire does
 // not publish (for example a lone blocker on a menace attacker) can still be
 // refused by the engine; the runner then substitutes a fallback and counts
-// it (four-yay cmd/botbench's spellbench mode).
+// it (a bench runner's spellbench mode).
 //
 // Determinism: a seat's answers are a pure function of its seed and the
 // decisions and views it is shown. The only maps are lookup sets, never

@@ -11,7 +11,7 @@ import (
 )
 
 // spellbenchRungs is the inline ladder lifted verbatim from
-// four-yay cmd/botbench/spellbench.go's sbSubmitWithFallback (the minimal rung, then
+// a bench runner/spellbench.go's sbSubmitWithFallback (the minimal rung, then
 // the default-bot rung), so TestFallbacksMatchTheSpellbenchRunner proves
 // bots.Fallbacks is that code and not a parallel re-implementation that can
 // drift from the bench.

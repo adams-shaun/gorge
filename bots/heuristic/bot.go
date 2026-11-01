@@ -268,7 +268,7 @@ func NewLethalPressureBot(seed uint64) *Bot {
 
 // NewCombinedLethalBot returns the opt-in AR8 bench policy: the AR7
 // per-attacker lethal test plus the combined-attacker subset search
-// (botpolicy.CombinedLethalDecide). It is constructed only by four-yay cmd/botbench's
+// (botpolicy.CombinedLethalDecide). It is constructed only by a bench runner's
 // "ar8" policy entry -- it is deliberately absent from the hosted policy
 // vocabulary (host.NormalizeBotPolicy), so it can never reach a live table.
 func NewCombinedLethalBot(seed uint64) *Bot {
@@ -277,7 +277,7 @@ func NewCombinedLethalBot(seed uint64) *Bot {
 
 // NewBlocksBot returns the opt-in BLK bench policy: the default policy with
 // KBlockers answered by the whole-assignment heuristic (botpolicy.
-// BlocksDecide). It is constructed only by four-yay cmd/botbench's "blocks" policy
+// BlocksDecide). It is constructed only by a bench runner's "blocks" policy
 // entry -- it is deliberately absent from the hosted policy vocabulary
 // (host.NormalizeBotPolicy), so it can never reach a live table.
 func NewBlocksBot(seed uint64) *Bot {
@@ -298,7 +298,7 @@ func NewExploreBot(seed uint64) *Bot {
 // by a static evaluator. Same PCG derivation as NewBot, and the attacker
 // consumes no rng, so every other decision draws exactly the default bot's
 // stream. With auto-pay enabled it is the hosted default auto-pay bot
-// (host.NewBotPolicySeatWithAutoPayMana); four-yay cmd/botbench also builds it
+// (host.NewBotPolicySeatWithAutoPayMana); a bench runner also builds it
 // without auto-pay as the "attack-sim" arm.
 func NewAttackSimBot(seed uint64, p botpolicy.AttackSimParams) *Bot {
 	return &Bot{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)), lethalPressure: true, attackSim: &p}

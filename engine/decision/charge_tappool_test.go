@@ -90,3 +90,26 @@ func TestChargeOptionConstraintsVerifiesPublishedTapPool(t *testing.T) {
 		t.Fatalf("ChargeOptionConstraints without a pool = %v, want [0]", got)
 	}
 }
+
+// TestRequiredCoreFitsTheTapPool pins CR 508.1d against a tap obligation: two
+// required creatures, one of which must tap another untapped creature to attack,
+// and no third to tap. Both can't attack, so one requirement is the most a legal
+// declaration obeys, and the repair must not hand back both.
+func TestRequiredCoreFitsTheTapPool(t *testing.T) {
+	d := &Decision{Kind: KAttackers, Min: 0, Max: 2, ChargeTapPool: 2, Options: []Option{
+		{Index: 0, Kind: "attacker", Obj: 1, Required: true, TapPoolCost: 1},
+		{Index: 1, Kind: "attacker", Obj: 2, Required: true, CostTaps: 1, TapPoolCost: 1},
+	}}
+	if got := d.RequiredQuota(); got != 1 {
+		t.Fatalf("quota %d, want 1", got)
+	}
+	for _, pref := range [][]int{nil, {0}, {1}, {0, 1}, {1, 0}} {
+		got := d.FitRequired(pref)
+		if !d.ChargeTapPoolFit(got) || d.RequiredChosen(got) != 1 {
+			t.Fatalf("FitRequired(%v) = %v, want one creature within the pool", pref, got)
+		}
+		if err := d.Validate(Intent{Seq: d.Seq, Player: d.Player, Choices: got}); err != nil {
+			t.Fatalf("FitRequired(%v) = %v: %v", pref, got, err)
+		}
+	}
+}

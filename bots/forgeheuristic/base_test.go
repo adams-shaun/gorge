@@ -40,7 +40,7 @@ func TestForgeHeuristicUsesCombatSimOnAutoPay(t *testing.T) {
 	}
 	p, ok := hb.AttackSimParams()
 	if !ok || p != simParams() {
-		t.Errorf("AttackSimParams() = %+v, %v; want simParams() (the production params plus the A7 combat rules), true", p, ok)
+		t.Errorf("AttackSimParams() = %+v, %v; want simParams() (the production params plus the combat rules), true", p, ok)
 	}
 
 	s, err = New(bots.Options{Seed: 7})

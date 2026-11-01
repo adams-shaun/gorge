@@ -10,7 +10,7 @@ import (
 // Only a player, a planeswalker or a battle can be attacked (CR 506.3,
 // 508.1b), judged by the object's CURRENT types: a planeswalker Imprisoned
 // in the Moon ("is a colorless land ... loses all other card types", layer
-// 4) is no longer one. gorge offered it by its printed face (kernel lockstep
+// 4) is no longer one. gorge offered it by its printed face (dirac lockstep
 // pairs 4159, 7216).
 func TestImprisonedPlaneswalkerIsNotAnAttackTarget(t *testing.T) {
 	t.Parallel()

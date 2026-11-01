@@ -26,7 +26,6 @@ players[].graveyard[].keywords[]
 players[].graveyard[].summon_sick
 players[].graveyard[].token
 players[].graveyard_size
-players[].hand[].activated_this_turn
 players[].hand[].effective_mana_cost
 players[].hand[].id
 players[].hand[].keywords[]
@@ -54,4 +53,3 @@ stack[].targets[]
 stack[].targets[].label
 stack[].targets[].obj
 stack[].text
-stack[].x

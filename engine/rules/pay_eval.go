@@ -37,8 +37,7 @@ func (v *payEval) MatchesSpec(spec string, id state.ObjID, sc effects.SpecContex
 }
 
 func (v *payEval) WindowUnits(p state.PlayerID) []pay.WindowUnit {
-	e := (*Engine)(v)
-	return e.windowManaUnitsPaid(p)
+	return (*Engine)(v).unlessWindowUnits(p)
 }
 
 // paySession is pay.Session under an unexported name, so the embedded field

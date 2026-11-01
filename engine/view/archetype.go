@@ -8,7 +8,7 @@ import (
 )
 
 // This file is the CR-visible half of the observability checklist's
-// opp_archetype_posterior fact (four-yay's internal/botobs/checklist.json): a per-seat
+// opp_archetype_posterior fact: a per-seat
 // posterior over what an opponent's deck is trying to do, inferred purely
 // from the cards REVEALED about that seat.
 //
@@ -25,8 +25,7 @@ import (
 // speed and spell-class signals, normalised to a probability vector. It is
 // the same idea bots/spellbench/builtins/tactical_archetype.go applies
 // inside the SpellBench type-gauntlet, reimplemented here because the view
-// tier is BELOW that package in the dependency order (view may not import
-// four-yay training/spellbench) and because a view-shaped posterior must not depend
+// tier is BELOW that package in the dependency order (view may not import it) and because a view-shaped posterior must not depend
 // on a policy tier that can be switched off.
 
 // Archetype names, dense and stable. The wire string is the name itself; no

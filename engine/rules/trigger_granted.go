@@ -67,7 +67,7 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(observer, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				// The Ward shape: the body rides the push's __kwConspire:
@@ -82,7 +82,7 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 					LKI:            objLKI,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				}),
-			})
+			}, ev, nil)
 		}
 	}
 }
@@ -130,7 +130,7 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(observer, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				// The Conspire shape: the body rides the push's
@@ -145,7 +145,7 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 					LKI:            objLKI,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 				}),
-			})
+			}, ev, nil)
 		}
 	}
 }
@@ -201,14 +201,14 @@ func (e *Engine) checkCipherTriggers(ev events.Event) {
 			return // cascade bound: see maxTriggerFires.
 		}
 		e.triggerFireCount[key]++
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     id,
 			Controller: o.Controller,
 			Cipher:     card,
 			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 				Remembered: []state.Target{{Obj: card}},
 			}),
-		})
+		}, ev, nil)
 	}
 }
 
@@ -260,14 +260,14 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 		return // cascade bound: see maxTriggerFires.
 	}
 	e.triggerFireCount[key]++
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+	e.queueTrigger(observer, pendingTrigger{
 		Source:     id,
 		Controller: o.Controller,
 		Exploit:    true,
 		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 		}),
-	})
+	}, ev, nil)
 }
 
 // checkGrantedOffspringTriggers synthesizes Offspring's ETB trigger
@@ -328,14 +328,14 @@ func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID,
 		return // cascade bound: see maxTriggerFires.
 	}
 	e.triggerFireCount[key]++
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+	e.queueTrigger(observer, pendingTrigger{
 		Source:     id,
 		Controller: o.Controller,
 		Offspring:  true,
 		Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 		}),
-	})
+	}, ev, nil)
 }
 
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger
@@ -373,10 +373,10 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+			e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
 				cause: causeOf(boardOf(observer), t, id, ev, 0),
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 		}
 	}
 }
@@ -419,10 +419,10 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+			e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
 				cause: causeOf(boardOf(observer), t, id, ev, 0),
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 		}
 	}
 }
@@ -466,10 +466,10 @@ func (e *Engine) checkGrantedMentorTriggers(observer *Engine, id state.ObjID, o 
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Mentor: true, SA: t.Effect,
+			e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Mentor: true, SA: t.Effect,
 				cause: causeOf(boardOf(observer), t, id, ev, 0),
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 		}
 	}
 }
@@ -531,10 +531,10 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 			}
 			if e.triggerFireCount[key] < maxTriggerFires {
 				e.triggerFireCount[key]++
-				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Decayed: true,
+				e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Decayed: true,
 					cause: causeOf(boardOf(observer), t, id, ev, 0),
 					Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-						TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 			}
 		}
 	}
@@ -586,10 +586,10 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 		t.Effect = &cards.SA{Kind: "DB", API: "Mana", Params: map[string]string{
 			"Produced": "R", "Amount": param, "PersistentUntilEndOfCombat": "True",
 		}}
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Firebending: param, SA: t.Effect,
+		e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Firebending: param, SA: t.Effect,
 			cause: causeOf(boardOf(observer), t, id, ev, 0),
 			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-				TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})})
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 	}
 }
 
@@ -688,7 +688,7 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 		}
 		for _, amount := range amounts {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(e, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				// The Ward shape: the body rides the push's __kwAfflict:
@@ -706,7 +706,7 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 						DefendingPlayer: defender,
 					},
 				}),
-			})
+			}, ev, nil)
 		}
 	}
 }
@@ -759,7 +759,7 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 			continue
 		}
 		e.triggerFireCount[key]++
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(observer, pendingTrigger{
 			Source:     id,
 			Controller: o.Controller,
 			Ward:       param,
@@ -770,7 +770,7 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 				Snap:           effects.LKISnapshots{Power: lkiPower, Toughness: lkiToughness, PTValid: objLKI != nil && lkiPTValid},
 				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 			}),
-		})
+		}, ev, nil)
 	}
 }
 
@@ -905,13 +905,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 						TriggerContext: tc,
 					}),
 				}
-				if t.ModeKind() == cards.TriggerAttacks {
-					if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
-						e.appendReservedTriggers(key, insts)
-						continue
-					}
-				}
-				e.appendReservedTriggers(key, []pendingTrigger{pt})
+				e.appendReservedTriggers(key, e.grantedTriggerInstances(observer, &t, id, ev, pt))
 			}
 		}
 	}
@@ -996,13 +990,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				TriggerContext: tc,
 			}),
 		}
-		if t.ModeKind() == cards.TriggerAttacks {
-			if insts := attacksTriggerInstances(boardOf(observer), &t, id, ev, pt, nil); len(insts) > 0 {
-				e.appendReservedTriggers(key, insts)
-				continue
-			}
-		}
-		e.appendReservedTriggers(key, []pendingTrigger{pt})
+		e.appendReservedTriggers(key, e.grantedTriggerInstances(observer, &t, id, ev, pt))
 	}
 	// A keyword-granted triggered ability (CR 613.1f): a layer-6 AddKeyword$
 	// grant of a keyword whose rules text is a triggered ability (Prowess --
@@ -1043,7 +1031,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				continue // cascade bound: see maxTriggerFires.
 			}
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			e.queueTrigger(observer, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
 				Granted:    true,
@@ -1054,7 +1042,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					LKI:            objLKI,
 					TriggerContext: observer.triggerReferents(*t, id, ev, objLKI),
 				}),
-			})
+			}, ev, nil)
 		}
 	}
 }
@@ -1254,7 +1242,7 @@ func (e *Engine) checkGrantedAtEOTTriggers(observer *Engine, id state.ObjID, o *
 		return // cascade bound: see maxTriggerFires.
 	}
 	e.triggerFireCount[key]++
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+	e.queueTrigger(observer, pendingTrigger{
 		Source:     id,
 		Controller: o.Controller,
 		Granted:    true,
@@ -1265,7 +1253,7 @@ func (e *Engine) checkGrantedAtEOTTriggers(observer *Engine, id state.ObjID, o *
 			LKI:            objLKI,
 			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 		}),
-	})
+	}, ev, nil)
 }
 
 // cumulativeUpkeepPhase is the synthesized cumulative-upkeep trigger's
@@ -1303,7 +1291,7 @@ func (e *Engine) checkGrantedCumulativeUpkeepTriggers(observer *Engine, id state
 			return // cascade bound: see maxTriggerFires.
 		}
 		e.triggerFireCount[key]++
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(observer, pendingTrigger{
 			Source:     id,
 			Controller: o.Controller,
 			Cumulative: cost,
@@ -1311,7 +1299,7 @@ func (e *Engine) checkGrantedCumulativeUpkeepTriggers(observer *Engine, id state
 				LKI:            objLKI,
 				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 			}),
-		})
+		}, ev, nil)
 	}
 }
 

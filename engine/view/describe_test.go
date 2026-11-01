@@ -11,6 +11,7 @@
 package view
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -280,6 +281,46 @@ func TestDescribeCoversEveryKind(t *testing.T) {
 		if got == "" || got == "unknown event" {
 			t.Errorf("kind %s (%d) has no description: give its engine/events/kindinfo.go entry a Describe template, "+
 				"or a case in engine/view/describe.go if the line needs more than the event's own fields", k, k)
+		}
+	}
+}
+
+func TestDescribeAddressesYou(t *testing.T) {
+	g, bear, bolt := describeFixture(t)
+	g.Players[0].PlayerName = "You"
+	for _, tc := range []struct {
+		ev   events.Event
+		want string
+	}{
+		{events.Event{Kind: events.Draw, Player: 0}, "You draw a card"},
+		{events.Event{Kind: events.Draw, Player: 0, Obj: bolt}, "You draw Bolt #2"},
+		{events.Event{Kind: events.Shuffle, Player: 0}, "You shuffle your library"},
+		{events.Event{Kind: events.DecisionAsk, Player: 0, Text: "priority"}, "You are asked: priority"},
+		{events.Event{Kind: events.Priority, Player: 0}, "You have priority"},
+		{events.Event{Kind: events.Draw, Player: 1}, "Bob draws a card"},
+		{events.Event{Kind: events.SearchedLibrary, Player: 0, Amount: 2}, "Bob searches your library"},
+		{events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard}, "Bear #1 moves from battlefield to graveyard"},
+	} {
+		if got := Describe(g, tc.ev); got != tc.want {
+			t.Errorf("Describe(%s) = %q, want %q", tc.ev.Kind, got, tc.want)
+		}
+	}
+	if got := addressYou(g, "You See a Guard Approach #4 resolves"); got != "You See a Guard Approach #4 resolves" {
+		t.Errorf("a card named You was rewritten: %q", got)
+	}
+	singular := regexp.MustCompile(`^You (?:secretly |no longer )?(?:is|has|[a-z-]*[^s]s)\b`)
+	for k := events.GameStart; int(k) < events.NumKinds; k++ {
+		for _, amount := range []int32{-1, 0, 1, 2} {
+			ev := events.Event{Kind: k, Player: 0, Obj: bear, Amount: amount, IDs: []state.ObjID{bear}, Pairs: [][2]state.ObjID{{bear, bear}}}
+			if got := Describe(g, ev); singular.MatchString(got) || strings.Contains(got, "You's") {
+				t.Errorf("kind %s amount %d: %q", k, amount, got)
+			}
+		}
+	}
+	for verb, want := range map[string]string{"copies": "copy", "scries": "scry", "searches": "search", "passes": "pass",
+		"reverses": "reverse", "elemental-bends": "elemental-bend", "won": "won", "would": "would"} {
+		if got := baseVerb(verb); got != want {
+			t.Errorf("baseVerb(%q) = %q, want %q", verb, got, want)
 		}
 	}
 }

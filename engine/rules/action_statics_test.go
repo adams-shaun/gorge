@@ -151,9 +151,9 @@ func TestActionStaticMembershipKeepsDynamicMatches(t *testing.T) {
 	}
 }
 
-// A different seat/static traversal changes mana-choice indices. Expanding
-// an unlocked Room's alternate face here would also change legacy legality:
-// activeStatics (unlike staticEffects) reads only the current active face.
+// A different seat/static traversal changes mana-choice indices. A Room's two
+// unlocked doors both function (CR 709.5), the current face's first, and the
+// other seat's grant comes last.
 func TestActionStaticMembershipPreservesOrderAndActiveFace(t *testing.T) {
 	target := card(t, "Name:Grant recipient\nTypes:Artifact\nOracle:x\n")
 	spell := card(t, "Name:Room probe\nManaCost:0\nTypes:Sorcery\nOracle:x\n")
@@ -177,8 +177,9 @@ func TestActionStaticMembershipPreservesOrderAndActiveFace(t *testing.T) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
 	}
 	e.emit(events.Event{Kind: events.ControlChange, Obj: ids[3], Player: 1})
+	e.emit(events.Event{Kind: events.DoorUnlock, Obj: ids[2], Amount: 1})
 	e.emit(events.Event{Kind: events.DoorUnlock, Obj: ids[2]})
-	for face, want := range [][]string{{"W", "U", "R"}, {"B", "R"}} {
+	for face, want := range [][]string{{"W", "U", "B", "R"}, {"B", "W", "U", "R"}} {
 		e.emit(events.Event{Kind: events.FlipFace, Obj: ids[2], Amount: int32(face)})
 		statics := actionStaticSource{e: e}
 		for _, abilities := range [][]*cards.SA{
@@ -193,8 +194,8 @@ func TestActionStaticMembershipPreservesOrderAndActiveFace(t *testing.T) {
 				t.Fatalf("face %d: mana order = %v, want %v", face, got, want)
 			}
 		}
-		if castable := hasCastOption(e.legalActions(0), ids[1]); castable != (face == 0) {
-			t.Fatalf("face %d: room probe castable = %v, want %v", face, castable, face == 0)
+		if hasCastOption(e.legalActions(0), ids[1]) {
+			t.Fatalf("face %d: the unlocked Back grant's CantBeCast let the probe be cast", face)
 		}
 	}
 }

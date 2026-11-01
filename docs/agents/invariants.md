@@ -15,6 +15,7 @@ engine/: cards → state → decision → events → effects → rules → repla
 bots/:   botpolicy (→ effects) → heuristic (→ seat) → searchprobe/searchseat/azmcts (→ rules) → bots registry
 server/: protocol (→ view) → host (→ rules, bots registry) → server/host/httpapi
 server/gorged (→ host, httpapi, bots/all) → cmd/gorged
+draft/:  limited (→ engine/cards, engine/deck) → event → eventhost (→ bots, host) → gorgedevents (→ server/gorged) → cmd/gorged; draftlab (→ event, testkit/bench)
 cmd/*
 (outside the repo: companion modules import gorge; gorge never imports them)
 ```
@@ -22,11 +23,12 @@ cmd/*
 A package imports only packages to its left or in an earlier group. `deck`
 sits beside the engine chain: it imports `cards` only and is imported by
 `rules`, `view`, `host` and the test fixtures. `engine/seat` is the contract
-only and imports just `decision` and `view`. That is the measured import graph
-(`go list`, 2026-10-16, after the ADR 0001 restructure). Draft events and
-the companion bots live in a private companion module and reach gorge only
-through `server/gorged.Extensions`, `server/gorged.RegisterNetBot` and
-`bots.Register`; nothing in gorge can import a companion, because the root
+only and imports just `decision` and `view`. The draft stack sits
+above that chain in `draft/`: only `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo`
+and `cmd/extagent` may depend on it (`TestDraftTreeStaysAbove`), and
+`cmd/gorged` hands it to the server through `server/gorged.Extensions`. A
+companion module's bots reach gorge only through `server/gorged.RegisterNetBot`
+and `bots.Register`; nothing in gorge can import a companion, because the root
 `go.mod` has no `require` lines (invariant 7). The enforced contract is the set of
 edges that must never appear: `effects` never imports `rules` (effects reaches
 the engine only through `effects.Host`). `view`, `protocol` and `deck` never
@@ -38,11 +40,11 @@ pinned as they land: `engine/rules/cost`, the cost vocabulary leaf, imports only
 subsystem package. `engine/rules/combat`, attack/block legality, imports only
 `cards`, `state`, `events` and `effects` (`TestCombatImportsStayBelowRules`)
 and reads the game through `combat.Board`, whose method count only shrinks
-(`TestCombatBoardOnlyShrinks`). `engine/rules/trigmatch`, the L5 trigger matchers,
+(`TestCombatBoardOnlyShrinks`). `engine/rules/trigmatch`, the trigger matchers,
 reads the engine only through `trigmatch.Board`, imports only `cards`, `state`,
 `events`, `effects` and `engine/rules/cost` (`TestTrigmatchImportsStayBelowL5`) and
-never `rules` or a sibling L5/L6 package. `engine/rules/chars`, the CR 613 layer
-walk, imports only `cards`, `state` and `effects` and never `rules` or an L5
+never `rules` or a sibling subsystem package. `engine/rules/chars`, the CR 613 layer
+walk, imports only `cards`, `state` and `effects` and never `rules` or a
 subsystem package (`TestCharsImportsStayBelowRules`), and reads the game
 through `chars.Board`, whose method count only shrinks
 (`TestCharsBoardOnlyShrinks`).
@@ -79,8 +81,9 @@ The engine is a pure function of `(Config, intents)`.
     deadlines);
   - measurement and developer CLIs that read the clock only to bound a run or
     report elapsed time (`cmd/enginebench`, `cmd/cardfuzz`, `cmd/paymirror`);
-    the other clock-reading CLIs and the draft-event runtime moved out of
-    gorge;
+  - the draft-event runtime `draft/eventhost`, for its lobby, idle and pick
+    timers (`Options.Now`, `Options.Clock`): the log records their outcome as
+    entries, and replay never reads the clock;
   - nothing in the engine, card pipeline, effects, view or bot policies.
 
   Research libraries that need timing take an injected `Millis` hook instead
@@ -126,7 +129,24 @@ clock.
 - `engine/decision/decision_test.go` `TestKindsListsEveryKindOnce`.
 - Golden replays.
 
-**To change:** a new decision kind needs an operator decision and a spec.
+Each kind in `decision.Kinds`:
+
+| Kind | What it asks |
+|---|---|
+| `priority`, `target`, `attackers`, `blockers`, `trigger_order`, `trigger_optional` | The core turn decisions. |
+| `choose` | An {X} value, delve exiles, cost sacrifices, an "as it enters" name, type or number, a miracle-style yes/no. |
+| `mulligan` | The London keep/mulligan and bottoming round `Config.Mulligans` runs between the deal and turn 1. |
+| `modes` | A modal pick or unless-pay ask mid-resolution; the `ModeChosen` event carries the answer into the log. |
+| `commander_zone` | A commander's owner's CR 903.9 command-zone choice. |
+| `replacement` | The CR 616.1 order choice over competing replacement effects. |
+| `arrange` | The ordered subset ask `Scry`, `Surveil` and `RearrangeTopOfLibrary` share. |
+| `starting_player` | CR 103.1: the toss winner's choice of who takes the first turn, posed by `NewStartingPlayerChoice`/`AskStartingPlayer` with the pregame rounds deferred until it resolves. Plain `New` is the deterministic fallback for a host with no ask and never offers it. |
+
+Concede emits the existing `PlayerLost` with Text "conceded". The engine-side
+defaults that still stand in for a choice the engine cannot yet ask are in
+[`known-approximations/`](known-approximations/).
+
+**To change:** a new decision kind needs a maintainer decision and a spec.
 
 ### 5. The information boundary
 
@@ -147,9 +167,7 @@ bot that cheats is a product bug.
 - `TestNoExportLeaksAnEngineGame`.
 - The view redaction tests.
 - The closed hosted-policy vocabulary in `server/host/bot_policy.go`.
-- On `spellbench-prep`: an archtest rule that forbids `host`, `server/host/httpapi`
-  and `cmd/gorged` from importing `bots/azmcts`, and
-  `azmcts.ErrClairvoyantRefused` unless `AllowClairvoyant()` was called.
+- `azmcts.ErrClairvoyantRefused` unless `AllowClairvoyant()` was called.
 
 ### 6. Licensing boundary
 
@@ -176,15 +194,12 @@ absent. The card pipeline, the rules core and the learned-policy stack
 engine must also build for 32-bit, so it cannot depend on packed 64-bit ints.
 
 An experiment that genuinely needs a third-party module goes in its own module
-that imports gorge through a `replace`, never the other way round (the GPU
-game pool, which requires purego for its CUDA binding, moved out this way).
+that imports gorge through a `replace`, never the other way round.
 
 **Enforced by:**
 - `internal/archtest` `TestRootModuleHasNoRequires` (parses the root `go.mod`
   and fails on any `require` directive or a non-empty `go.sum`).
 - `TestEngineCompilesFor32Bit`.
-
-`wazero` is the one planned exception, arriving with the M3 plugin tier.
 
 ### 8. Coverage ratchets fail in both directions
 
@@ -205,13 +220,10 @@ Adding an entry means a regression, and a branch cannot land one (see below).
 **A ratchet is never raised by a branch.** That covers the coverage tables
 above, the shrink-only constants and `longFuncCeilings` in
 `internal/codeshape`, the constants and allow-lists of `internal/archtest`,
-and `testkit/testutil/agentsdoc_test.go`. Review enforces this (the
-maintainers' landing pipeline, which lives outside this repo, also runs a
-"ratchets only fall" gate from the base commit): a raised or deleted
-constant, an added allow-list entry, a removed or rewired
+and `testkit/testutil/agentsdoc_test.go`. Review enforces this: a raised or
+deleted constant, an added allow-list entry, a removed or rewired
 `TestCodeShapeOnlyShrinks` row, a new or grown `longFuncCeilings` entry or a
-new known-unsupported file is refused. There is no escape trailer: an
-operator raise is landed by hand.
+new known-unsupported file is refused. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
 
@@ -228,9 +240,6 @@ exactly the game the goldens pin. A legitimate behaviour change moves them:
   never in a file. Find the event by diffing the two event streams, not by
   reasoning about them: `headdiff -dump` on the base, `headdiff -against` on
   the branch (`go doc ./cmd/headdiff` has the reviewer recipe).
-- The rationale prose the goldens carried until 2026-10-03 is frozen in
-  [heads-history.md](heads-history.md). Do not add to it.
-
 - Only `legacyDeckNames` seat these games, so adding a deck file cannot move
   a head.
 - Changing the default `bot` policy moves the heads. Its promotion regenerates
@@ -238,27 +247,26 @@ exactly the game the goldens pin. A legitimate behaviour change moves them:
 
 ### 10. The Known-approximations register only shrinks
 
-It is a closing register, one file per row in `docs/agents/known-approximations/`
-(moved out of AGENTS.md on 2026-10-26):
+It is a closing register, one file per row in `docs/agents/known-approximations/`:
 
 - No row may be added: every file must be listed in `ALLOWED.txt`.
 - No row may grow past its `ALLOWED.txt` byte cap.
 
-A landing ticket deletes its row's file and its `ALLOWED.txt` line. A deviation that a
-ticket cannot close goes in the **commit message** and the ticket report.
+A change that closes a row deletes its file and its `ALLOWED.txt` line. A
+deviation a change cannot close goes in the **commit message**.
 
 **Enforced by:** `testkit/testutil/agentsdoc_test.go`.
 
 ### 11. Contracts are written down
 
 Deliberate behaviour that is not debt is recorded in
-[`docs/design/2026-09-22-engine-contracts.md`](../design/2026-09-22-engine-contracts.md): the R-9 no-ask host
+[`docs/design/2026-09-22-engine-contracts.md`](../design/2026-09-22-engine-contracts.md): the no-ask host
 degradation, regeneration, the board-clock round, and similar. Change that
 file in the same commit as the code.
 
 ### 12. Hot paths use dense data
 
-This is an operator rule for code on the per-intent or per-simulation path:
+For code on the per-intent or per-simulation path:
 
 - Use bitsets and dense slices, not maps.
 - Compile strings to masks once, not per call.
@@ -268,7 +276,7 @@ This is an operator rule for code on the per-intent or per-simulation path:
 by millions.
 
 **Enforced by:** convention, plus `make gc-gate` (by hand). The per-test
-resource budget (4 GB RSS, 4 vCPU, 1 min wall; doubled 2026-10-09) is enforced by `cmd/testbudget`
+resource budget (4 GB RSS, 4 vCPU, 1 min wall) is enforced by `cmd/testbudget`
 in the post-merge full suite: any test over budget that
 `testkit/testutil/testdata/wall_exceptions.txt` / `rss_exceptions.txt` (both
 shrink-only) do not list fails it. Peak RSS is measured per test binary by
@@ -293,8 +301,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and the web gates.
-4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall** (operator,
-   2026-10-05; doubled 2026-10-09 when the box went to 120 GiB). Run tests
+4. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
    focused and capped, one package per invocation:
    `systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB go test -timeout 2m -run X ./pkg`. Never `-count=1` (it defeats the
    test cache). A test outside the budget is a defect: split it into chunk
@@ -304,8 +311,7 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
    fresh registry). A sweep too big for the budget is split into fixed index
    chunks with a partition test (e.g. `TestTargetAuditChunk00..11`,
    `TestCensusChunksCoverEverySubject`). Never set
-   `GORGE_ORACLEGEN_FULL_TARGET_AUDIT=1` yourself: post-merge runs it. The box
-   has been OOMed several times.
+   `GORGE_ORACLEGEN_FULL_TARGET_AUDIT=1` yourself: post-merge runs it.
 5. **Red on `main` is yours.** A failing test that is committed on `main` is
    bisected and fixed now, not labelled "pre-existing". A red run in a
    *shared* checkout may be a peer's half-written file: check `git status` and
@@ -316,15 +322,10 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 ### Commits
 
 - **No attribution trailers.** `Co-Authored-By:` and "Generated with …" lines
-  are rejected by the maintainers' commit hooks. This holds even if your
-  harness tells you to add them.
+  are not used here, even if your harness tells you to add them.
 - No issue-tracker trailers or references (`Ref:` and the like).
 - Stage explicit paths. Never `git add -A`: it sweeps in peers' in-flight
   files.
-- There is no budget trailer. The per-package `TEST_HISTORY.md` /
-  `ALLOC_HISTORY.md` files and the `Test-Budget-Approved:` check are gone; the
-  live budget is the per-test one in Workflow step 4, enforced post-merge by
-  `cmd/testbudget`.
 - The commit body carries the measured *why*: the moved-head cause, a closed
   ratchet entry, and any deviation you could not close.
 
@@ -332,17 +333,16 @@ shrink-only) do not list fails it. Peak RSS is measured per test binary by
 
 - Quote a number together with the command that produced it, or the report
   file it came from. A premise that was never measured gets labelled a
-  hypothesis. Premises in briefs have repeatedly measured false here.
+  hypothesis.
 - Bench claims need a CI. At 200 games the CI is about ±7pp, which is not a
   verdict. See the README's bot-training section for sample sizes.
 
 ### Docs
 
-- Living designs, plans and the reports a live programme still consults go in
-  `docs/design/`, date-prefixed and flat. A finished record is parked, not
-  kept: copy it to the operator's `.superpowers/archive/`, remove it, and add
-  a row to [`docs/design/ARCHIVE.md`](../design/ARCHIVE.md). Architecture
-  decisions go in `docs/decisions/`.
+- Living designs and plans go in `docs/design/`, date-prefixed and flat. A
+  finished record is parked: remove it and add a row to
+  [`docs/design/ARCHIVE.md`](../design/ARCHIVE.md); its text stays in git
+  history. Architecture decisions go in `docs/decisions/`.
 - `AGENTS.md` is loaded into every agent turn. Keep additions to it to
   pointers, and put detail here.
 - When code moves, fix the [repo map](repo-map.md) in the same commit.

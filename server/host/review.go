@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/view"
@@ -133,9 +134,10 @@ func (r *Registry) AddReviewTable(id string, m ReviewMatch) error {
 		}
 		seats[i] = protocol.SeatInfo{Name: name, Deck: deck, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 	}
-	mt := &match{table: t, k: 1, seed: cfg.Seed, cfg: cfg, seats: seats, decks: tc.Decks, e: e,
+	mt := &match{table: t, k: 1, seed: cfg.Seed, engine: gorgegame.Engine{}, gc: gorgegame.GameConfig(cfg), seats: seats, decks: tc.Decks,
 		bounds: boundsOf(e.L.Events), turnStarts: turnStartsIn(e.L.Events, 0), snaps: snaps,
 		intents: len(e.L.Intents), head: e.L.Head()}
+	mt.setGame(gorgegame.Game{E: e})
 	// A recording that ends before game over (a feedback capture taken
 	// mid-game) is served as aborted: nothing will ever extend it.
 	mt.state = protocol.MatchAborted
@@ -183,7 +185,7 @@ func reviewWalk(l *events.Log, cfg rules.Config, explain []json.RawMessage) ([]s
 			return nil
 		}
 		if i == 0 || len(turnStartsIn(e.L.Events[:n], prev)) > 0 {
-			snaps = append(snaps, snapshot{intent: i, seq: uint64(n) - 1, e: e.Clone()})
+			snaps = append(snaps, snapshot{intent: i, seq: uint64(n) - 1, g: gorgegame.Game{E: e.Clone()}})
 		}
 		prev = n
 		if i < len(l.Intents) {

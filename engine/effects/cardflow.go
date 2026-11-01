@@ -263,6 +263,9 @@ func objName(g *state.Game, id state.ObjID) string {
 type discardRiders struct {
 	rememberCards   bool
 	rememberPlayers bool
+	// held, when set, collects the discards instead of emitting them: effDiscard
+	// moves every player's cards after the last player has chosen.
+	held *[]events.Event
 }
 
 func discardRidersOf(sa *cards.SA) discardRiders {
@@ -324,6 +327,10 @@ func resolveOptionalHandDiscard(h Host, c *Ctx, r discardRiders, hand []state.Ob
 // discard). Apply moves Obj, while the event records both the RNG outcome and
 // its consequence for log-only replay without exposing an unlogged choice.
 func discardAndRememberEvent(h Host, c *Ctx, r discardRiders, ev events.Event) {
+	if r.held != nil {
+		*r.held = append(*r.held, ev)
+		return
+	}
 	h.Emit(ev)
 	id, p := ev.Obj, ev.Player
 	if r.rememberCards {
@@ -532,31 +539,21 @@ func discardRevealNumber(h Host, c *Ctx, sa *cards.SA, g *state.Game, p state.Pl
 	return revealed, true
 }
 
+// effDiscard follows CR 101.4: every player chooses in turn, then what they chose
+// is discarded at once, so a later player chooses with the earlier cards still in
+// hand.
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
-	g := h.Game()
 	riders := discardRidersOf(sa)
+	var held []events.Event
+	riders.held = &held
+	chooseDiscards(h, c, sa, riders)
+	riders.held = nil
+	flushDiscards(h, c, riders, held)
+}
 
-	// Discard-batch bracket (Mode$ DiscardedAll): one api:Discard resolution
-	// is ONE discard action, so the batch trigger fires once for the whole
-	// resolution rather than once per discarded card. Every ask is answered
-	// in place, so the bracket opens here and closes when this call returns.
-	// A host double without the bracket interface simply fires DiscardedAll
-	// per card rather than failing to compile (the mill bracket's shape), and
-	// a non-api:Discard producer (a cost or cleanup discard) never opens the
-	// bracket, so each is its own batch-of-one exactly as before this gate.
-	if b, ok := h.(interface {
-		BeginDiscardBatch()
-		EndDiscardBatch()
-	}); ok {
-		b.BeginDiscardBatch()
-		defer b.EndDiscardBatch()
-	}
-	// Zone bracket (Mode$ ChangesZoneAll): one api:Discard resolution is one
-	// batched zone change into the graveyard (Forge's DiscardEffect fires
-	// triggerChangesZoneAll once from its one CardZoneTable). Asks are
-	// answered in place, so it closes when this call returns.
-	h.BeginZoneBatch()
-	defer h.EndZoneBatch()
+// chooseDiscards asks every acting player and holds what they will discard.
+func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
+	g := h.Game()
 	mode := sa.ParamStr(cards.PKMode)
 	valid := sa.ParamStr(cards.PKDiscardValid)
 	if valid == "" {
@@ -882,16 +879,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if t.IsPlayer {
 						continue
 					}
-					// Re-read the hand per named card: events.remove
-					// rebuilds the zone slice, so the captured one goes
-					// stale the moment this arm discards anything, and a
-					// DefinedCards$ list naming two cards would test the
-					// second against a hand that still shows the first.
-					// The move goes through discardAndRemember so a
-					// Defined discard applies RememberDiscarded$ /
-					// RememberDiscardingPlayers$ exactly like every other
-					// mode -- emitting events.Discard directly here would
-					// silently drop both riders.
+					// The move goes through discardAndRemember so a Defined
+					// discard applies RememberDiscarded$ and
+					// RememberDiscardingPlayers$ like every other mode.
 					if containsID(zoneOf(g, state.ZHand, p), t.Obj) {
 						discardAndRemember(h, c, riders, t.Obj, p)
 					}
@@ -905,21 +895,38 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// a choice, but the clean-up step and Delve-style costs have no
 			// player to ask and must stay exactly as they were; "first in hand"
 			// is deterministic and adequate there.
-			n := Num(h, c, sa, "NumCards", 1)
-			for i := int32(0); i < n; i++ {
-				// Re-read the hand each iteration (B2): events.remove rebuilds
-				// the zone slice rather than mutating it in place, so a hand
-				// captured once — as this primitive used to — never sees the
-				// card it just moved, and a NumCards$ >= 2 discard emits the
-				// SAME front card N times instead of N distinct cards. Reading
-				// the zone per iteration is what the original pre-hoist code
-				// did, and is what makes the N-card discard honest.
-				cur := zoneOf(g, state.ZHand, p)
-				if len(cur) == 0 {
-					break
-				}
-				discardAndRemember(h, c, riders, cur[0], p)
+			n := int(Num(h, c, sa, "NumCards", 1))
+			for _, id := range hand[:max(min(n, len(hand)), 0)] {
+				discardAndRemember(h, c, riders, id, p)
 			}
+		}
+	}
+}
+
+// flushDiscards moves held, one discard action. Mode$ DiscardedAll fires once for
+// it, and it is one batched zone change for Mode$ ChangesZoneAll (Forge's
+// DiscardEffect fires triggerChangesZoneAll once from its one CardZoneTable).
+// The brackets open after the last answer, so a tape re-execution never closes
+// them mid-run. A host double without the discard bracket fires DiscardedAll per
+// card, and a producer that is not api:Discard (a cost or cleanup discard) never
+// opens it, so each of those is its own batch of one.
+func flushDiscards(h Host, c *Ctx, r discardRiders, held []events.Event) {
+	if len(held) == 0 {
+		return
+	}
+	if b, ok := h.(interface {
+		BeginDiscardBatch()
+		EndDiscardBatch()
+	}); ok {
+		b.BeginDiscardBatch()
+		defer b.EndDiscardBatch()
+	}
+	h.BeginZoneBatch()
+	defer h.EndZoneBatch()
+	g := h.Game()
+	for _, ev := range held {
+		if containsID(zoneOf(g, state.ZHand, ev.Player), ev.Obj) {
+			discardAndRememberEvent(h, c, r, ev)
 		}
 	}
 }

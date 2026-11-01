@@ -13,7 +13,7 @@ import (
 // The host's human-seat caretaker is built with SkipLifePlans (spec §6): for
 // every hosted policy, offered only a life-paying plan, it answers from the
 // ordinary options, while the same policy's hosted bot submits the plan
-// (RunCaretakerLifePlanContract; four-yay runs it for cast-profile).
+// (RunCaretakerLifePlanContract).
 func TestCaretakerNeverSelectsLifePayingPlan(t *testing.T) {
 	for _, policy := range []string{BotPolicy, LethalPressurePolicy} {
 		t.Run(policy, func(t *testing.T) { RunCaretakerLifePlanContract(t, policy) })

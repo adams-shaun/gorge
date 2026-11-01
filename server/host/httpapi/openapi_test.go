@@ -338,6 +338,7 @@ var schemaRoots = []struct{ pkg, name string }{
 	{"github.com/adams-shaun/gorge/server/protocol", "Subscribe"},
 	{"github.com/adams-shaun/gorge/server/protocol", "Unsubscribe"},
 	{"github.com/adams-shaun/gorge/server/protocol", "BotPolicyList"},
+	{"github.com/adams-shaun/gorge/server/protocol", "Capabilities"},
 	{"github.com/adams-shaun/gorge/server/protocol", "DeckTally"},
 	{"github.com/adams-shaun/gorge/server/protocol", "EventState"},
 	{"github.com/adams-shaun/gorge/server/protocol", "DraftPack"},

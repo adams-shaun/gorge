@@ -72,9 +72,6 @@ func TestHostedAZEntryIsRegistered(t *testing.T) {
 	if e.MaxSeats != 2 {
 		t.Errorf("MaxSeats = %d, want 2 (spec §3.1)", e.MaxSeats)
 	}
-	if len(e.Strength) == 0 || e.Strength[0].Claim == "" || e.Strength[0].Source == "" {
-		t.Errorf("Strength = %+v, want measured claims with a source", e.Strength)
-	}
 	if e.Cost.MeanMS == 0 || e.Cost.Scope != "per searched decision" {
 		t.Errorf("Cost = %+v, want the measured ~250 ms mean per searched decision", e.Cost)
 	}

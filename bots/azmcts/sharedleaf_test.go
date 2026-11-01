@@ -86,7 +86,7 @@ func TestSharedLeafMatchesLeafValue(t *testing.T) {
 }
 
 // TestSharedLeafMatchesSeparate pins engineEnv.leafV at the search level: a
-// network search in az-c6's shape (re-dealt worlds, opponent points,
+// network search (re-dealt worlds, opponent points,
 // auto-pay, top-k), with and without the node cache over cached worlds,
 // returns the same Result -- visits, values, choice and every counter --
 // whether a point's leaf is read off its prior or projected and encoded

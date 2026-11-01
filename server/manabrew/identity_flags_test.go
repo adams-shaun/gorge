@@ -1,5 +1,3 @@
-//go:build manabrew
-
 package manabrew
 
 import (
@@ -10,11 +8,9 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestIdentityFlagsRideTheWire pins MBX-1: CardIdentity.IsToken comes from
-// the view's projected state.Object flag, and CardDto.IsCopy with it. Before
-// the view carried the flags, the translator derived isToken from
-// view.CardView.Token -- the "#<id>" display tag EVERY card carries -- so
-// every card went out on the ManaBrew wire marked isToken=true.
+// TestIdentityFlagsRideTheWire: CardIdentity.IsToken comes from the view's
+// projected state.Object flag, and CardDto.IsCopy with it, never from
+// view.CardView.Token, the "#<id>" display tag every card carries.
 func TestIdentityFlagsRideTheWire(t *testing.T) {
 	v := view.View{Viewer: 0, Turn: 1, Step: "main1", Active: 0, Priority: 0, Players: []view.PlayerView{
 		{ID: 0, Name: "Alice", Life: 20, HandSize: 0, LibrarySize: 30, Battlefield: []view.CardView{

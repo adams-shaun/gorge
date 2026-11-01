@@ -3,9 +3,11 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // PotentialPaymentPlans (engine/rules/potential_plan.go): the planner's verdict on
@@ -428,4 +430,41 @@ func TestPotentialPaymentPlansScriptsAFilter(t *testing.T) {
 		}
 	}
 	ppChoose(t, e, func(o decision.Option) bool { return o.Kind == "cast" && o.Obj == spell })
+}
+
+// A spell's sacrifice cost and its mana plan compete like an ability's: the mana
+// abilities run first (CR 601.2g-h), so Lotus Petal can't pay for what it must be
+// sacrificed to.
+func TestCastPlanLeavesTheArtifactItsCostSacrifices(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Kuldotha Rebirth"), lookup(t, reg, "Lotus Petal")}, nil)
+	if e.G.Active != 0 {
+		passUntil(t, e, func() bool { return e.G.Active == 0 && e.G.Step == state.StepMain1 })
+	}
+	spell := moveByName(t, e, 0, "Kuldotha Rebirth", state.ZHand)
+	petal := moveByName(t, e, 0, "Lotus Petal", state.ZBattlefield)
+	planFor := func() *decision.PaymentPlan {
+		e.pending = nil
+		e.priorityRound()
+		for _, a := range e.EnsurePaymentActions() {
+			if a.Cast.Object == spell && len(a.Plans) > 0 {
+				return &a.Plans[0]
+			}
+		}
+		return nil
+	}
+	if plan := planFor(); plan != nil {
+		t.Fatalf("the Petal alone was planned to pay and be sacrificed: %+v", plan)
+	}
+	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+	plan := planFor()
+	if plan == nil {
+		t.Fatal("no plan with a Mountain to pay and the Petal to sacrifice")
+	}
+	for _, a := range plan.Activations {
+		if a.Source != mountain {
+			t.Fatalf("plan activated %d, want only the Mountain %d (Petal %d)", a.Source, mountain, petal)
+		}
+	}
 }

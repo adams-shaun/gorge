@@ -50,13 +50,13 @@ func (s *Game) halt(c string) { s.terminal("halted", "halted", "engine_contract_
 func (s *Game) truncate(cap string) { s.terminal("truncated", "truncated", cap, nil) }
 
 func (s *Game) natural() {
-	e := s.g.E
-	if e.G.Draw {
+	g := s.g.R.Board()
+	if g.Draw {
 		s.terminal("draw", "natural", "draw", nil)
 		return
 	}
-	w := observe.Seat(e.G.Winner)
-	s.terminal(w+"_win", "natural", lossReason(e.L.Events, 1-e.G.Winner), &w)
+	w := observe.Seat(g.Winner)
+	s.terminal(w+"_win", "natural", lossReason(s.g.R.Log().Events, 1-g.Winner), &w)
 }
 
 func lossReason(evs []events.Event, loser state.PlayerID) string {

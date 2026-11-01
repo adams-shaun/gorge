@@ -9,10 +9,9 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Synthetic ack-only prompts (scoping spec §6.3's "ManaBrew prompts gorge
-// never emits" list, gap G-5, ticket MB-14): a public reveal and a dice roll
+// Synthetic ack-only prompts: a public reveal and a dice roll
 // have no ManaBrew prompt or state carrier of their own in the ordinary
-// mapping -- Appendix A's `revealCards`/`diceRolled` prompt TYPES exist, but
+// mapping -- the `revealCards`/`diceRolled` prompt TYPES exist, but
 // nothing in GameViewDto shows what was revealed or rolled, so a spec
 // client sees nothing happened. This file turns the two Note shapes that
 // record those actions into ack-only prompts a ManaBrew client can render:
@@ -21,8 +20,7 @@ import (
 // prompt can never reach the engine and answering it (or not) can never
 // change a replay.
 //
-// The Note shapes recognised here are not a heuristic invented for this
-// ticket -- they are the SAME predicates the engine already treats as
+// The Note shapes recognised here are not a heuristic -- they are the SAME predicates the engine already treats as
 // canonical:
 //   - Public reveal: Kind Note, Text=="", len(IDs)>0, !Secret. This is
 //     exactly engine/view/describe.go's own Note case ("<player> reveals <ids>"):
@@ -42,15 +40,15 @@ import (
 //     not a guess.
 //
 // Known gap: RevealCardsInput.Cards is a full CardDto, but the pure
-// translator sees only what the connected seat's OWN view carries (spec
-// §5.1: no *state.Game, no rules import). A reveal from a zone the view
+// translator sees only what the connected seat's OWN view carries
+// (no *state.Game, no rules import). A reveal from a zone the view
 // exposes to every seat (battlefield, graveyard, exile, the stack) or to
 // this seat in particular (its own hand, its own visible library top)
 // resolves to a real CardDto; a reveal from a zone the view still redacts
 // for this seat (an opponent's hand, a library card that is not on top)
 // resolves to a blank-identity CardDto carrying only the id -- the same
-// degrade the protocol itself already uses for a face-down permanent
-// (Appendix A.2). The synthetic ack still fires; it is honest about what
+// degrade the protocol itself already uses for a face-down permanent.
+// The synthetic ack still fires; it is honest about what
 // it could not show, rather than inventing a name.
 
 // dieRollNotePrefix and dieRollBatchNotePrefix mirror engine/effects/dice.go's
@@ -61,7 +59,7 @@ const (
 	dieRollBatchNotePrefix = "rolls dice: "
 )
 
-// SyntheticNamespaceShift is G-5's separate promptId namespace: a synthetic
+// SyntheticNamespaceShift is the separate promptId namespace: a synthetic
 // promptId is -((event.Seq << SyntheticNamespaceShift) | n) - 1, n counting
 // the synthetic prompts minted from that one event (always 0 today -- one
 // event mints at most one synthetic prompt -- the shift leaves room for more
@@ -69,7 +67,7 @@ const (
 // disjoint rather than merely "far apart": an ordinary promptId is a bare
 // decision.Seq (ids.go's promptID), which is always >= 0, while every
 // synthetic id is < 0 -- so a later ordinary prompt can never reuse an
-// earlier synthetic id (MBX-2), no matter how the two magnitudes grow.
+// earlier synthetic id, no matter how the two magnitudes grow.
 // Within the negative side the encoding is injective in (eventSeq, n) for
 // any eventSeq below 2^55, where the shift cannot overflow int64; a match
 // with 2^55 events is not a reachable magnitude. (gameover.go's terminal
@@ -272,7 +270,7 @@ func findPublicCard(v *view.View, id state.ObjID) (*view.CardView, mb.ZoneKind) 
 // blankRevealCard is the degrade for a revealed id the connected seat's own
 // view still redacts (an opponent's hand, a library card not on top): the
 // same "carries only the id" shape the protocol already uses for a
-// face-down permanent (Appendix A.2), applied here because RevealCardsInput
+// face-down permanent, applied here because RevealCardsInput
 // has no hidden-card union member of its own.
 func blankRevealCard(id state.ObjID) mb.CardDto {
 	return mb.CardDto{

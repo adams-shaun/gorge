@@ -11,7 +11,7 @@ import (
 
 // TestForgeHeuristicHoldOption pins the declared hold-instant option: unset
 // and explicit false leave the armed timing rules exactly as they were, and
-// true arms HoldInstant without disarming any other A6 rule.
+// true arms HoldInstant without disarming any other timing rule.
 func TestForgeHeuristicHoldOption(t *testing.T) {
 	for _, tc := range []struct {
 		name   string

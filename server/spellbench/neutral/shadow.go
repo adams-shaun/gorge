@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/server/spellbench/mapping"
 	"github.com/adams-shaun/gorge/server/spellbench/protocol"
 )
 
@@ -35,6 +36,7 @@ type placement struct {
 	zone  state.Zone
 	owner state.PlayerID
 	card  *cards.Card // nil for a token
+	face  int         // the face the observed name is printed on
 	stem  string      // the token script, for a token
 	stack *protocol.StackEntry
 	obj   state.ObjID // the shadow object, once assigned
@@ -129,7 +131,8 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 				return nil
 			}
 		} else {
-			if p.card = b.ref(r.CardName).Card; p.card == nil {
+			ref := b.ref(r.CardName)
+			if p.card, p.face = ref.Card, ref.Face; p.card == nil {
 				return nil
 			}
 			decks[owner] = append(decks[owner], p.card)
@@ -265,6 +268,9 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 		if p.zone != state.ZBattlefield || pm == nil || p.obj == 0 {
 			continue
 		}
+		if p.face != 0 {
+			emit(events.Event{Kind: events.FlipFace, Obj: p.obj, Amount: int32(p.face)})
+		}
 		if !pm.SummoningSick {
 			emit(events.Event{Kind: events.SetupSettled, Obj: p.obj})
 		}
@@ -301,6 +307,66 @@ func (b *Builder) rebuild(o *protocol.Observation, handLike map[string]bool, pha
 		return nil, fmt.Errorf("the rebuilt game does not pose the seat's priority")
 	}
 	return sh, nil
+}
+
+// census reports the cast census of the parked priority decision, read after
+// Engine.EnsurePaymentActions has built it.
+func (sh *shadow) census() castCensus {
+	d := sh.e.Pending()
+	if !d.PotentialCastsKnown {
+		return castCensus{}
+	}
+	return castCensus{known: true, casts: sh.mapIDs(d.PotentialCasts), unpayable: sh.mapIDs(d.PotentialUnpayableCasts)}
+}
+
+// abilityPlace names an ability the way the wire does: its object, in the
+// builder's ids, and its ability_index.
+type abilityPlace struct {
+	obj state.ObjID
+	idx int
+}
+
+// abilityOptions is the parked decision's "ability" options by place, in the
+// builder's ids. An offer's first option at a place answers for it, as the
+// pose's does.
+func (sh *shadow) abilityOptions() map[abilityPlace]decision.Option {
+	d := sh.e.Pending()
+	indexer := mapping.AbilityIndexer{
+		Observed: func(obj state.ObjID) []decision.Option { return rules.ObservedAbilities(sh.e, d.Player, obj) },
+		Object:   sh.e.G.Obj,
+	}
+	out := map[abilityPlace]decision.Option{}
+	for _, o := range d.Options {
+		if o.Kind != "ability" && o.Kind != "granted" {
+			continue
+		}
+		n, err := indexer.Index(o)
+		id, ok := sh.ids[o.Obj]
+		if err != nil || !ok {
+			continue
+		}
+		place := abilityPlace{id, int(n)}
+		if _, dup := out[place]; dup {
+			continue
+		}
+		o.Obj = id
+		o.GrantSource = sh.ids[o.GrantSource]
+		o.GainedSource = sh.ids[o.GainedSource]
+		out[place] = o
+	}
+	return out
+}
+
+// mapIDs turns shadow objects into the builder's ids, dropping any the
+// observation did not place.
+func (sh *shadow) mapIDs(objs []state.ObjID) []state.ObjID {
+	out := make([]state.ObjID, 0, len(objs))
+	for _, o := range objs {
+		if id, ok := sh.ids[o]; ok {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // shadowOpeningSeeds bounds the shuffles shadowEngine tries.

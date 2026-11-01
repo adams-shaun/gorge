@@ -237,11 +237,13 @@ func init() {
 	schemaChooseAttackersInput.fields = map[string]*schema{
 		"attackTargets": &schema{kind: schemaList, elem: schemaAttackTargetDto},
 		"attackers":     &schema{kind: schemaList, elem: schemaAttackerOptionDto},
+		"presentation":  schemaPromptPresentation,
 	}
 	schemaChooseBlockersInput.fields = map[string]*schema{
 		"attackers":           &schema{kind: schemaList, elem: schemaBlockableAttackerDto},
 		"availableBlockerIds": nil,
 		"error":               nil,
+		"presentation":        schemaPromptPresentation,
 	}
 	schemaChooseBoardTargetsInput.fields = map[string]*schema{
 		"cancellable":   nil,

@@ -1,0 +1,8 @@
+{
+  "format": "draftlab agent fingerprints v1",
+  "draft_seed": 7,
+  "hashes": {
+    "builder:best23@1": "0c11cb94b5eaa319",
+    "drafter:rating-colour@1": "05d33e3bcab0ca26"
+  }
+}

@@ -73,8 +73,9 @@ widens the gate.
 ## Trigger remembered readers intentionally differ
 
 For a trigger body, `Defined$ Remembered` is a card-selection read: when the
-source has no persistent `Remembered` list, it falls back to the firing
-trigger's event referent carried in `Ctx.Remembered`. Numeric and condition
+source has no persistent `Remembered` list and no earlier link of the chain
+remembers objects, it falls back to the firing trigger's event referent carried
+in `Ctx.Remembered`. Numeric and condition
 readers instead count only explicit memory, excluding the seeded event capture
 through `rememberedExcludingCapture`: this includes
 `Count$RememberedNumber`, `ConditionDefined$ Remembered`,

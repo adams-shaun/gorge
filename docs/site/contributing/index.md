@@ -6,9 +6,6 @@ change merged. It is written for a Go developer who does not yet know Magic
 engine internals or Forge. Unfamiliar words (IR, primitive, ratchet, chain
 head) are in the [glossary](glossary.md).
 
-*Commands on this page were run on `develop` @ `25d71cadc`, 2026-10-27,
-unless marked otherwise.*
-
 ```mermaid
 flowchart LR
   setup["clone +<br/>fetch-cards"] --> wt["worktree<br/>(.cards linked)"]
@@ -19,18 +16,9 @@ flowchart LR
   pr --> ci["ci green,<br/>review, merge"]
 ```
 
-## Prerequisites
-
-| Need | Version | Why |
-|---|---|---|
-| Go | the `go` line in `go.mod` (`go 1.25.8`) | with an older Go installed, `GOTOOLCHAIN=go1.25.8` fetches the right one |
-| `git`, `make`, `bash` | any recent | the Makefile and scripts |
-| Node | 22.12 or newer, **only** for `web/` | the browser client build and its tests (`web/README.md`) |
-
-No cgo and no C toolchain are needed; gorge has no third-party Go
-dependencies.
-
 ## Clone and fetch the card corpus
+
+[Install and build](../guide/install.md#prerequisites) lists the prerequisites.
 
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
@@ -85,39 +73,10 @@ cd ../gorge-myfix
     `SKIP ... no .cards/ corpus present`. CI refuses to run without the
     corpus for exactly this reason.
 
-## Run tests focused, inside the budget
+## Run tests
 
-Run **one package and one `-run` pattern at a time**:
-
-```sh
-go test -run 'TestOmniscienceInHandGrantsNothing' ./engine/rules/
-go test -v -run '^TestHeads$/^2seats$' ./engine/rules/
-```
-
-On a shared Linux machine with systemd, the maintainers cap every run at the
-per-test budget, and you can do the same:
-
-```sh
-systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% \
-  env GOMAXPROCS=4 GOMEMLIMIT=3GiB \
-  go test -timeout 2m -run 'TestEveryRepoDeckIsFullySupported' -v ./engine/rules/
-```
-
-- **The budget.** Every single test fits **4 GB RSS, 4 vCPU and 1 minute of
-  wall time**. A test outside it is a defect: split it into chunk tests that
-  share fixtures, never trim what it checks. `cmd/testbudget` enforces it in
-  the post-merge suite ([invariant 11](../architecture/invariants.md#every-test-fits-the-budget)).
-- **Do not use `go test ./...` as your inner loop.** `make test` runs exactly
-  that (with `-p=2`): the full suite, over 12,000 top-level tests, which CI and
-  the post-merge run cover.
-- **Never `-count=1`.** It defeats the test cache and buys nothing: Go
-  already reruns a test whose inputs changed.
-- **Load the corpus only through `testutil.CorpusRegistry(t)`**, never
-  `cards.LoadRegistry`: the shared registry opens once per test binary,
-  while a fresh one costs hundreds of MB.
-
-[Testing](testing.md) covers the test helpers, oracle scenarios, and what
-each ratchet failure means.
+Run one package and one `-run` pattern at a time, inside the per-test budget.
+[Testing](testing.md#focused-runs) has the rules and the capped command.
 
 ## Lint
 
@@ -139,25 +98,14 @@ now a stale entry that fails too. You delete the entry in the same commit;
 you never add one. The why behind each is on
 [Invariants](../architecture/invariants.md#ratchets-only-shrink).
 
-| Fails as | Means | Do |
-|---|---|---|
-| `TestEveryRepoDeckIsFullySupported` | a card in the 30 repo decks (`testkit/testutil/decks/`) needs a primitive this build lacks, or a card listed in `engine/rules/testdata/known-unsupported/` is now supported | fix the regression, or delete the stale file |
-| `TestEveryRepoDeckParamsAreRead` | the same, for script parameters no code reads (`engine/rules/testdata/paramcensus/`) | same |
-| `TestValueHeadRegistryMatchesEvaluator` | a `count:` value head is in the evaluator but not `modelledValueHeads`, or the reverse | add it to both |
-| `TestHeads` | the golden bot games at 2/4/6/8 seats ended with a different chain head | if intended, re-pin with `GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'` and name the first diverging event (`cmd/headdiff`) in the commit message |
-| `TestRepoDeckGamesReplayExactly` | a game's replay diverged from the live run | something wrote state outside `events.Apply`, or something nondeterministic reached an event |
-| `internal/archtest` (`TestDependencyOrderHolds`, `TestTimeIsImportedOnlyByTheHost`, `TestRootModuleHasNoRequires`, the `layering_*` tests) | a forbidden import edge, a `time` import outside the allowlist, or a `require` in `go.mod` | restructure the code; do not edit the allowlists |
-| `TestClassificationIsComplete` / `go run ./cmd/pkgmap -check` | a package has no entry in `packages.tiers.json` | classify it ([Repository layout](repo-layout.md#tiers-and-import-direction)) |
-| `TestKnownApproximationsOnlyShrinks` | `AGENTS.md`'s *Known approximations* table grew | it only shrinks; put a deviation in the commit message |
-| `internal/codeshape` (`TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`) | function length and interface width ceilings in `engine/rules`, `engine/effects` | currently skipped (since 2026-10-06), but keep functions under 300 lines; `go run ./cmd/codeshape -table` measures |
-| `TestNoForgeScriptsTracked` | a Forge script is tracked in git | remove it |
+[Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each one, what its failure means and
+what to do.
 
 ## Commits and pull requests
 
-**Branches.** Changes land on `develop` by pull request. The maintainers'
-pipeline periodically opens a `develop → main` snapshot pull request and
-merges it when its checks are green; nothing is pushed to `main` directly. Open your PR
-**against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
+**Branches.** Changes land on `develop` by pull request. The maintainers
+periodically merge a `develop → main` snapshot when its checks are green; nothing
+is pushed to `main` directly. Open your PR **against `develop`**. ([Branch flow](../repos/index.md#branch-flow).)
 
 **Commit messages.**
 
@@ -175,7 +123,7 @@ merges it when its checks are green; nothing is pushed to `main` directly. Open 
 for an overview, the changes by area, how you tested, and notes for
 reviewers. `make pr PR_BASE=develop` pushes your branch and opens (or
 refreshes) the PR with a generated change overview; it needs an
-authenticated `gh`. *(Not run for this page: it pushes.)*
+authenticated `gh`, and `DRY=1` prints the body without pushing.
 
 **Checklist.** Modelled on the first outside contribution,
 [`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f):
@@ -192,15 +140,16 @@ authenticated `gh`. *(Not run for this page: it pushes.)*
 - [ ] Any ratchet entry your change closed is deleted in the same commit.
 
 **What CI runs on your PR.** `lint` (`gofmt`, `go vet ./...`,
-`gentypes -check`) and `test`: the corpus is fetched at `FORGE_REF`, the
+`gentypes -check`); `test`: the corpus is fetched at `FORGE_REF`, the
 packages are split across six shards, Go's test cache from the base branch
 lets unchanged packages report `(cached)`, and `TestHeads` runs as its own
-step. A PR that touches `docs/site/` or `mkdocs.yml` also gets a strict
+step; `examples` (`scripts/examples-smoke.sh`, the Python and Java agents); and
+`wire-matrix` ([Wires](../architecture/wires.md)). A PR that touches `docs/site/` or `mkdocs.yml` also gets a strict
 docs build.
 
 ## Reproduce a feedback report
 
-A player bug report filed from a game on a gorge server carries a replayable
+A player bug report filed from a game on `gorged` carries a replayable
 snapshot (`match.json`, `log.json`, the seat's `view.json`). `cmd/repro`
 turns it into a failing test:
 
@@ -240,10 +189,12 @@ This site is `docs/site/`, built by MkDocs Material from the root
 
 ```sh
 go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md   # the generated package tables
+python3 scripts/docs_sets.py --dirac docs/site/support/dirac-sets.json # the set tables, without gorge's columns
 uvx --with mkdocs-material==9.7.7 mkdocs serve                        # or: pip install -r docs/site/requirements.txt
 ```
 
-The build is `--strict`: a broken link fails it. CI also parses every
+[Regenerating the tables](../support/regenerating.md) has the full set tables. The
+build is `--strict`: a broken link fails it. CI also parses every
 Mermaid diagram in a headless browser (`scripts/docs_mermaid_check.py`),
 because `--strict` does not. Link between pages with relative `.md` paths,
 and to code as `https://github.com/adams-shaun/gorge/blob/main/<path>`.

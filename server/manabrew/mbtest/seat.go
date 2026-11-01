@@ -14,8 +14,8 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// Census is the conformance counter set §8 item 4 asks for: posed:<prompt>,
-// enumerated:<Kind>:<optkinds>, rejected:<code>, unmapped:<Kind>, and (MBX-7)
+// Census is the conformance counter set: posed:<prompt>,
+// enumerated:<Kind>:<optkinds>, rejected:<code>, unmapped:<Kind>, and
 // fallback:<Kind> -- a prompt that IS answerable (the generic
 // chooseFromSelection over the native option labels, answered by native
 // option index) because the ask had no specific mapping. The fallback and
@@ -122,7 +122,7 @@ func (c *Census) TotalUnmapped() int {
 	return n
 }
 
-// TotalFallback sums every fallback:<Kind> count (MBX-7): prompts that were
+// TotalFallback sums every fallback:<Kind> count: prompts that were
 // answerable only through the generic chooseFromSelection fallback. A
 // non-zero count is not a failure -- it is the register that keeps the
 // class visible after promptChoose stopped erroring on an unmapped shape --
@@ -243,9 +243,9 @@ func optionKinds(opts []decision.Option) []string {
 // TranslatingSeat is a seat.Seat that answers every engine decision by
 // routing it through the ManaBrew mapping in-process: decision -> Translator
 // .Prompt -> MockClient.Answer -> Translator.TranslateResponse -> intent
-// (scoping spec §5.1's "used by MB-8" line). It never touches HTTP or a
+// It never touches HTTP or a
 // host.Session; it is the pure in-process bijection the replay-equivalence
-// proof (§8 item 5) needs.
+// proof needs.
 //
 // A Census, when set, is updated on every decision; nil skips counting
 // without changing behaviour.
@@ -270,8 +270,8 @@ func NewTranslatingSeat(table string, match int64, client *MockClient, census *C
 	}
 }
 
-// PickPolicy is the optional seat-level answer policy a vote fixture needs
-// (MBX-7): it is consulted at each Decided decision BEFORE the mock client,
+// PickPolicy is the optional seat-level answer policy a vote fixture needs.
+// It is consulted at each Decided decision BEFORE the mock client,
 // and returns the prompt output to answer (exactly the wire shape a client
 // response's PromptOutput carries -- an act on "opt-<i>", a pass output) or
 // ok=false to hand the decision to the client as usual. The policy sees the
@@ -281,7 +281,7 @@ func NewTranslatingSeat(table string, match int64, client *MockClient, census *C
 // mana for a spell and cast it, which the wire-only mock cannot express (the
 // priority prompt carries no phase, so a client cannot tell a wasted upkeep
 // activation from a needed main-phase one). A pick is never the pass/concede
-// OPTION -- those are answered as the pass output/directive (§6.3), which the
+// OPTION -- those are answered as the pass output/directive, which the
 // policy reaches with a PassOutput pick, never with an act.
 type PickPolicy func(v view.View, d *decision.Decision) (mb.PromptOutputValue, bool)
 
@@ -300,7 +300,7 @@ func (s *TranslatingSeat) Decide(_ context.Context, v view.View, d decision.Deci
 			d.Kind, d.Seq, d.ResumeKind, len(d.Options), optionKinds(d.Options), err)
 	}
 	if fellBack {
-		// MBX-7: the ask had no specific mapping, so the prompt is the
+		// The ask had no specific mapping, so the prompt is the
 		// generic chooseFromSelection fallback. It is answerable (that is the
 		// point) -- count it as fallback, NOT as unmapped, so the census keeps
 		// showing the class without ever producing an unanswerable prompt.
@@ -317,10 +317,9 @@ func (s *TranslatingSeat) Decide(_ context.Context, v view.View, d decision.Deci
 		return decision.Intent{}, fmt.Errorf("mbtest: mock client could not answer %s prompt (seq %d): %w",
 			msg.Input.Value.PromptType(), d.Seq, err)
 	}
-	// Round-trip the client's answer through the real wire codec (MB-11's
-	// mb.Encode/mb.Decode) before translating it: the mock client builds an
-	// mb.ClientMessage as a Go value (§5.1's in-process contract -- HTTP is
-	// out of this ticket's scope), but sending it through Encode then Decode
+	// Round-trip the client's answer through the real wire codec
+	// (mb.Encode/mb.Decode) before translating it: the mock client builds an
+	// mb.ClientMessage as a Go value, but sending it through Encode then Decode
 	// here means TranslateResponse sees exactly what a real transport would
 	// hand it off the wire, not a value the mock happened to construct by
 	// hand. A codec bug (a lossy field, a union that decodes to the wrong
@@ -339,7 +338,7 @@ func (s *TranslatingSeat) Decide(_ context.Context, v view.View, d decision.Deci
 // exactly the path a client answer takes (the same mb.Encode/Decode
 // round-trip and TranslateResponse -- census pose already recorded by
 // Decide). A pass pick is the wire pass output, not an act on the pass
-// option (§6.3) -- the translator maps it itself; an act naming the
+// option -- the translator maps it itself; an act naming the
 // pass/concede option is a fixture bug, failed loudly here rather than
 // surfacing as a rejected answer.
 func (s *TranslatingSeat) decidePick(v view.View, d decision.Decision, msg mb.PromptMessage, out mb.PromptOutputValue) (decision.Intent, error) {

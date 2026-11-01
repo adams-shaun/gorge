@@ -112,7 +112,7 @@ func main() {
 	out := flag.String("out", "", "append the JSON result line here (default stdout)")
 	cpuprof := flag.String("cpuprofile", "", "write a CPU profile of the run (after the corpus loads) here")
 	memprof := flag.String("memprofile", "", "write an allocation profile of the run (after the corpus loads; MemProfileRate 64KiB) here")
-	walkstats := flag.Bool("walkstats", false, "random/bot rows: also print the priority legal-walk reuse table (spec 2026-10-06-legal-walk-design §1.5) to stderr")
+	walkstats := flag.Bool("walkstats", false, "random/bot rows: also print the priority legal-walk reuse table to stderr")
 	quietstats := flag.Bool("quietstats", false, "print the quiet-seat proof counters at exit (needs -ldflags \"-X github.com/adams-shaun/gorge/engine/rules.quietStatsFlag=1\")")
 	flag.Parse()
 	walkStatsFlag = *walkstats

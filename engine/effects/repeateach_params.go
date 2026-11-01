@@ -234,7 +234,7 @@ var repeatEachKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"Type",
 	"Ultimate",
 	"UnlessAI",

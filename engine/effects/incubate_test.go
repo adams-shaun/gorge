@@ -108,9 +108,11 @@ func TestIncubateUnknownTokenScriptNotesAndCreatesNothing(t *testing.T) {
 	}
 }
 
-func TestIncubateDefinedTargetedControllerMintsForTheTargetPlayer(t *testing.T) {
+func TestIncubateDefinedTargetedControllerMintsForTheTargetsController(t *testing.T) {
 	h, c := incubatorHost(t)
-	c.Targets = []state.Target{{Player: 1, IsPlayer: true}}
+	target := h.g.AddObject(mkCard(t, "Name:Exiled Permanent\nTypes:Artifact\nOracle:x\n"), 1)
+	target.Zone = state.ZExile
+	c.Targets = []state.Target{{Obj: target.ID}}
 	Resolve(h, c, sa(t, "DB$ Incubate | Defined$ TargetedController | Amount$ 1"))
 	var owned int
 	for _, id := range h.g.Zone(state.ZBattlefield, 1) {
@@ -119,7 +121,7 @@ func TestIncubateDefinedTargetedControllerMintsForTheTargetPlayer(t *testing.T) 
 		}
 	}
 	if owned != 1 {
-		t.Fatalf("targeted player's incubate minted %d tokens under seat 1, want 1", owned)
+		t.Fatalf("the controller's incubate minted %d tokens under seat 1, want 1", owned)
 	}
 	if toks := battlefieldTokens(h); len(toks) != 0 {
 		t.Fatalf("seat 0 should hold none, holds %d", len(toks))

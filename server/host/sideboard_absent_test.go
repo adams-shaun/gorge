@@ -87,7 +87,7 @@ func TestNewMatchDropsAnAllEmptySideboard(t *testing.T) {
 			}
 			m := tb.history[0]
 			m.mu.RLock()
-			gotNil := m.cfg.Sideboards == nil
+			gotNil := m.gc.Sideboards == nil
 			// The live match's own sideboard zone must agree with the
 			// Config: no cards means an empty zone, one card means the
 			// card is really seated there.
@@ -95,7 +95,7 @@ func TestNewMatchDropsAnAllEmptySideboard(t *testing.T) {
 			m.mu.RUnlock()
 			if gotNil != tc.wantNil {
 				t.Errorf("Config.Sideboards nil = %v, want %v (got %#v)",
-					gotNil, tc.wantNil, m.cfg.Sideboards)
+					gotNil, tc.wantNil, m.gc.Sideboards)
 			}
 			wantZone := 0
 			if tc.withSideboard {

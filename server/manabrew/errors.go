@@ -11,13 +11,13 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// The response half of the ManaBrew mapping (scoping spec §6.4, §6.5). The
+// The response half of the ManaBrew mapping. The
 // prompt half lives in the prompt_*.go files; this file carries the
-// TranslateResponse entry point, the §6.4 error mapping, the Pending carry,
+// TranslateResponse entry point, the error mapping, the Pending carry,
 // and the shared helpers the prompt builders reuse (view lookup, source card,
 // mana production).
 //
-// The §6.4 table is the one home of the error mapping: a ManaBrew check and
+// The table is the one home of the error mapping: a ManaBrew check and
 // its gorge equivalent are listed here and nowhere else. Every response is
 // translated through Validate (engine/decision/decision.go), never a parallel
 // rules-side reimplementation, so a rejection is exactly what the engine's
@@ -26,7 +26,7 @@ import (
 // Pending is what the transport holds between a Prompt and its
 // TranslateResponse: the prompt it sent, the decision it was built from, and
 // the seat view it was sent with (the pass policy's exhaustStack snapshot
-// reads the view's stack; the §6.4 "current prompt" is the prompt's id).
+// reads the view's stack; the "current prompt" is the prompt's id).
 // A transport that refreshes its view mid-prompt may refresh Pending.View
 // with it.
 type Pending struct {
@@ -47,11 +47,11 @@ type Pending struct {
 type UndoRequest struct{}
 
 // Outcome is one translated response. Exactly one arm is meaningful:
-//   - Err set: the §6.4 error mapping produced a ProtocolError; the prompt
+//   - Err set: the error mapping produced a ProtocolError; the prompt
 //     stays open and the client may answer again (gorge does not re-send it).
 //   - Undo set: restoreSnapshot; the caller submits a undo request.
 //   - Queued: the concede directive could not be answered now (no priority
-//     decision open for this seat) and is queued (G-2); the caller answers
+//     decision open for this seat) and is queued; the caller answers
 //     the seat's next priority decision with ConcedeIntent.
 //   - Intent set: the response is a legal answer; the caller submits it. A
 //     pass response also sets Policy.
@@ -67,7 +67,7 @@ type Outcome struct {
 	Err    *mb.ProtocolError
 }
 
-// errCode is the §6.4 error mapping's one constructor: a closed-vocabulary
+// errCode is the error mapping's one constructor: a closed-vocabulary
 // code, a human message and the id of the prompt that stays open (nil when
 // nothing is pending -- the very thing a stalePrompt error reports).
 func errCode(code mb.ErrorCode, msg string, promptID *int64) *mb.ProtocolError {
@@ -82,7 +82,7 @@ func idPtr(i int64) *int64 { return &i }
 // reject it before this runs).
 //
 // seat is the connection's bound seat. On a claim-bound connection it always
-// matches the pending decision's player (the §6.4 row calls the check
+// matches the pending decision's player (the row calls the check
 // defensive), but it is kept because an unboken claim must never become an
 // intent.
 func (t *Translator) TranslateResponse(msg mb.ClientMessage, p *Pending, seat state.PlayerID) Outcome {
@@ -96,7 +96,7 @@ func (t *Translator) TranslateResponse(msg mb.ClientMessage, p *Pending, seat st
 	}
 }
 
-// translateDirective maps the out-of-band concede directive (G-2): an
+// translateDirective maps the out-of-band concede directive: an
 // immediate priority decision for this seat is answered now with the
 // concede option; anything else queues the concession for the seat's next
 // priority decision.
@@ -116,7 +116,7 @@ func (t *Translator) translateDirective(d mb.ClientDirective, p *Pending, seat s
 	return Outcome{Queued: true}
 }
 
-// translateResponse is the §6.4 checks in order: something pending, the
+// translateResponse is the checks in order: something pending, the
 // prompt id, the seat, then the prompt-type/action-type pairing, then the
 // per-kind parser (which ends every leg in Decision.Validate).
 func (t *Translator) translateResponse(r mb.ClientResponse, p *Pending, seat state.PlayerID) Outcome {
@@ -238,8 +238,7 @@ func (t *Translator) translateResponse(r mb.ClientResponse, p *Pending, seat sta
 	case "gameOver":
 		return Outcome{Err: errCode(mb.CodeWrongPromptType, "gameOver carries no response", idPtr(cur))}
 	default:
-		// A prompt kind whose MB ticket has not landed: its own stub never
-		// emits one, so a response to it cannot be mapped.
+		// A prompt kind no builder emits, so a response to it cannot be mapped.
 		return Outcome{Err: errCode(mb.CodeWrongPromptType,
 			fmt.Sprintf("prompt %s has no response mapping", in.PromptType()), idPtr(cur))}
 	}
@@ -375,7 +374,7 @@ func (t *Translator) sourceCard(v *view.View, id state.ObjID) *mb.CardDto {
 }
 
 // ConcedeIntent is the intent that answers a priority decision with its
-// concede option (G-2's answer half, shared by the directive arm above and
+// concede option (shared by the directive arm above and
 // by a transport replaying a queued concession). It goes through
 // Decision.Validate like every other answer, so a queue replayed at the
 // wrong moment is a reject, not a rules bypass.

@@ -1,28 +1,24 @@
 # User guide
 
-This guide is for people who want to **use** gorge rather than change it: to
-play Magic against its bots (or friends) in a browser, or to run bot-vs-bot
-games that compare bot strategies. It walks from a fresh clone to a running
-game, explains what each tool is for, and collects the failures you are
-likely to hit. If you want to change the engine itself, start at
-[Contributing](../contributing/index.md); if you want to connect a bot
-written in another language, see [External bots](../bots/index.md).
+This guide is for people who want to use gorge rather than change it: to play Magic against
+its bots or friends in a browser, host draft events, or run bot-vs-bot games. To change the
+engine, start at [Contributing](../contributing/index.md). To connect a bot written in
+another language, see [Bots](../bots/index.md).
 
-## From clone to playing in five commands
+## From clone to playing
 
 ```sh
 git clone https://github.com/adams-shaun/gorge && cd gorge
-make fetch-cards   # pinned Forge card scripts into .cards/
-make web           # the browser client (needs Node 20+)
-go run ./cmd/gorged -addr 127.0.0.1:8090 -dir /tmp/gorge-play \
+make fetch-cards   # the pinned Forge card scripts, into .cards/
+make web           # the browser client; must come before the next line
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
   -feedback /tmp/gorge-play-feedback -vsbot
-# open http://127.0.0.1:8090/ and press "Start game"
+# open http://127.0.0.1:8080/ and press "Start game"
 ```
 
-You need Go (1.25.8 or newer), git and make; Node only for `make web`.
-[Install and build](install.md) explains each step and what to do when one
-fails. For bot games instead, the first command after `make fetch-cards` is
-`make sim`, which plays 20 verified bot games in a few seconds.
+[Install and build](install.md) lists the prerequisites and explains
+each step. For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
+it plays 20 verified bot games in a few seconds.
 
 ## What runs where
 
@@ -98,26 +94,24 @@ inside the same process, answering their seats' decisions directly.
 <figcaption>One <code>gorged</code> process serves every browser. Human seats wait for a browser's answer; bot seats answer in-process.</figcaption>
 </figure>
 
-Three properties follow from this design and come up again in the guide:
+Two properties of this design come up again in the guide:
 
-- **The server decides what each viewer sees.** A seat's view is redacted on
-  the server; a spectator gets either the public view or the omniscient one,
-  as the operator chose. The client cannot ask for more.
-- **Every game replays.** The engine is deterministic: a match is its seed,
-  its decks and the list of answers. That is what makes undo, the replay
-  pages, bug-report snapshots and bot-match verification work.
-- **Bots are cheap.** A heuristic bot answers in well under a millisecond
-  in-process: four cores played 1,320 two-seat bot games in about 10 seconds
-  ([measured](bot-games.md#a-fair-matchup-with-testkitbench)).
+- **The server decides what each viewer sees.** A seat's view is redacted on the server, and a
+  spectator gets the public view or the omniscient one, as the operator chose. The client
+  can't ask for more.
+- **Every game replays.** The engine is deterministic: a match is its seed, its decks and the
+  list of answers. That is what makes undo, the replay pages, bug-report snapshots and
+  bot-match verification work.
 
 ## Where to go next
 
 | You want to | Read |
 |---|---|
-| install Go tools, the corpus and the client | [Install and build](install.md) |
+| install the tools, the corpus and the client | [Install and build](install.md) |
 | play against a bot, or against friends on a LAN | [Play in the browser](play.md) |
+| host or simulate a four-seat draft | [Draft events](draft.md) |
 | compare two bot strategies, or watch bots play | [Bot-vs-bot games](bot-games.md) |
 | replay a game, or read why a bot made each choice | [Replays](replays.md) |
-| connect a bot written in Python, Java or over HTTP | [External bots](../bots/index.md) |
+| connect a bot written in Python, Java or over HTTP | [Bots](../bots/index.md) |
 | fix something that went wrong | [Troubleshooting](troubleshooting.md) |
 | look up a term | [Glossary](../contributing/glossary.md) |

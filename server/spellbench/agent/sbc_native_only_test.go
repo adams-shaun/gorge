@@ -1,6 +1,6 @@
 package agent_test
 
-// sbc-native-only-shrink: a dig to a non-library primary destination (Matter
+// A dig to a non-library primary destination (Matter
 // Reshaper's battlefield-or-hand shape) marks each partition candidate with
 // Inside, because neither "battlefield" nor "hand" follows the legacy
 // top/hand destination convention.

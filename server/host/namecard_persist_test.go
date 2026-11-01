@@ -136,7 +136,7 @@ func TestNameUniverseModeGatesReplay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("universe-backed match does not replay: %v", err)
 	}
-	if sm.cfg.NameUniverse == nil {
+	if sm.gc.NameUniverse == nil {
 		t.Fatal("matchForLog dropped the universe the sidecar recorded")
 	}
 	if got, want := sm.e.L.Head(), liveHead; got != want {

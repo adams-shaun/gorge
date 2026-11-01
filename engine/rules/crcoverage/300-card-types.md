@@ -35,7 +35,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 303.4c | follows | `engine/rules/attach.go#Engine.attachmentSBAs` `engine/rules/attach.go#Engine.auraStillMatchesEnchant` | `TestCR704AuraBecomesIllegalAfterProtection` | - |
 | 303.4d | not-impl | - | - | SILENT; no self-attach check |
 | 303.4e | unknown | - | - | - |
-| 303.4f-303.4g | follows | `engine/rules/aura_entry.go#auraEntryChoice` `engine/rules/aura_entry.go#auraEntryGate` | `TestCopiedAuraEntryAsksEnchant` `TestAuraTokenWithNothingToEnchantIsNotCreated` | - |
+| 303.4f-303.4g | follows | `engine/rules/aura_entry.go#auraEntryChoice` `engine/rules/aura_entry.go#auraEntryGate` | `TestCopiedAuraEntryAsksEnchant` `TestAuraTokenWithNothingToEnchantIsNotCreated` `TestCR610_3AuraReturnFindsTheBoardAfterTheDestroyAll` | - |
 | 303.4h | unknown | - | - | - |
 | 303.4i | follows | `engine/rules/aura_entry.go#auraEntryGate` | - | - |
 | 303.4j | partial | `engine/effects/attach.go#Attachable` | - | Aura moved then SBA bins it |
@@ -55,7 +55,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 305.3 | follows | `engine/rules/cast_begin.go#Engine.effectLandPlayRefusal` `engine/rules/host_read.go#Engine.CastProhibited` | `TestCR305_3EffectLandPlayNeedsOwnTurn` | effect plays need the player's own turn; the Play election filters the same gate |
 | 305.4 | follows | `engine/events/apply_zone.go#foldLandPlayed` | - | - |
 | 305.5 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
-| 305.6 | follows | `engine/cards/intrinsic.go#IntrinsicManaAbility` `engine/rules/mana_activation.go#Engine.appendAvailableManaAbilitiesGateCompute` | - |  |
+| 305.6 | follows | `engine/cards/intrinsic.go#IntrinsicManaAbility` `engine/rules/mana_activation.go#Engine.appendAvailableManaAbilitiesGateCompute` | `TestImprisonedLandHasNoIntrinsicManaAbility` |  |
 | 305.7 | follows | `engine/rules/chars/types.go#TypesAndLandSubtypeSet` `engine/rules/abilityloss.go#Engine.abilityLoss` `engine/effects/combatfx.go#parseAnimateGrant` | `TestBloodMoonStripsMutavaultRulesTextAbilities` `TestAddedBasicLandTypeKeepsRulesText` `TestCRAnimateRemoveLandTypesSetsBasicType` `TestCRAnimateAllRemoveLandTypesSetsBasicType` `TestCRAnimateChosenTypeResolvesStrips` `TestCRAnimateChosenTypeWithoutChoiceFailsClosed` | REVISED: set land type strips rules-text abilities (cr-g40 merged); Animate/AnimateAll RemoveLandTypes$ strips too, with a ChosenType element resolved against the source's recorded choice and no-choice failing closed (cr-g48); no Blood Moon in pools |
 | 305.8-305.9 | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | - |
 | 306.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | sorcery-speed cast |

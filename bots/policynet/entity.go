@@ -774,7 +774,7 @@ const pipMax = 5
 // pipCounts counts a mana cost's pips per colour (WUBRG then generic), from
 // the same token walk manaCostBits takes so the two cannot disagree. A hybrid
 // pip counts for every colour it names; {X} counts for nothing. Deliberately
-// mirrors four-yay kernel/feat's costPips: both encoders write the same slots
+// mirrors dirac/feat's costPips: both encoders write the same slots
 // and the oracle compares them.
 //
 // The token walk is local rather than strings.Split/TrimSpace/EqualFold so

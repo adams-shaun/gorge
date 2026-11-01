@@ -2,7 +2,7 @@
 #
 # Every knob is an environment variable with a default:
 #   BENCH_DIR   binaries, source snapshots, results, profiles
-#               (default /mnt/sata/gorge-training/enginebench: rebuildable scratch)
+#               (default ${TMPDIR:-/tmp}/gorge-enginebench: rebuildable scratch)
 #   DECKS       workload deck directory (default: the committed testdata/decks)
 #   CARDS       corpus directory (default: the repo's .cards)
 #   HEAVY_LOCK  optional flock file serialising heavy jobs; unset (the
@@ -12,14 +12,13 @@
 #   BENCH_GOMEMLIMIT  GOMEMLIMIT inside the scope (default 16GiB)
 #   NO_SCOPE    set to run without a systemd scope
 #   BUDGET      wall seconds for ONE script's whole measured phase -- every row
-#               and rep together, builds excluded (default 60, operator
-#               2026-10-06). Each run's -secs is derived from it (budget_secs),
+#               and rep together, builds excluded (default 60). Each run's -secs is derived from it (budget_secs),
 #               and a run that would start past the deadline is skipped.
 #   LOAD_S      per-run startup estimate (corpus load) budget_secs reserves
 #               (default 3)
 
 REPO=$(git rev-parse --show-toplevel)
-BENCH_DIR=${BENCH_DIR:-/mnt/sata/gorge-training/enginebench}
+BENCH_DIR=${BENCH_DIR:-${TMPDIR:-/tmp}/gorge-enginebench}
 DECKS=${DECKS:-$REPO/cmd/enginebench/testdata/decks}
 CARDS=${CARDS:-$REPO/.cards}
 CARDS=$(cd "$CARDS" && pwd -P)

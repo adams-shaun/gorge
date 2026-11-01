@@ -116,12 +116,12 @@ func (w *legalWalk) castWithFlashAsFace(p state.PlayerID, id state.ObjID, f *car
 }
 
 // spellTimingOK is the walk's spellTimingOK: the same predicate
-// (spellTimingPre is the shared home), with w.castWithFlash replacing the
+// (spellTimingPre is the shared home), with w.castWithFlashAsFace replacing the
 // per-card activeStatics/withSelfStatics lookup.
 func (w *legalWalk) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) bool {
 	ok, needFlash := w.e.spellTimingPre(p, id, f, sorcery)
 	if !ok {
 		return false
 	}
-	return !needFlash || w.castWithFlash(p, id) || mayPlayFlashGranted(w.e.activeStatics, w.e.mayPlayGrantedBy, w.e.G.Obj(id), p)
+	return !needFlash || w.castWithFlashAsFace(p, id, f) || mayPlayFlashGranted(w.e.activeStatics, w.e.mayPlayGrantedBy, w.e.G.Obj(id), p)
 }

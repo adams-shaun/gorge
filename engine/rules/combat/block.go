@@ -316,10 +316,9 @@ func LegalBlockerCount(b Board, attacker state.ObjID, defender state.PlayerID) i
 // Min$ All blocking declaration impossible (only the unblocked declaration is
 // legal). Creature-ness is the same derived test CanBlock uses.
 func DefenderCreatureCount(b Board, defender state.PlayerID) int {
-	g := b.Game()
 	n := 0
-	for _, id := range g.Zone(state.ZBattlefield, defender) {
-		if o := g.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() {
+	for _, id := range b.Game().Zone(state.ZBattlefield, defender) {
+		if b.IsCreature(id) {
 			n++
 		}
 	}

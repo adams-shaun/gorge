@@ -55,7 +55,7 @@ func (e *Engine) checkGrantedStormTriggers(observer *Engine, id state.ObjID, o *
 		return
 	}
 	e.triggerFireCount[key]++
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+	e.queueTrigger(observer, pendingTrigger{
 		Source:     id,
 		Controller: o.Controller,
 		Storm:      true,
@@ -64,7 +64,7 @@ func (e *Engine) checkGrantedStormTriggers(observer *Engine, id state.ObjID, o *
 			LKI:            objLKI,
 			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
 		}),
-	})
+	}, ev, nil)
 }
 
 // stormGrantedBody is the printed K:Storm expansion's body

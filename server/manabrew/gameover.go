@@ -7,22 +7,20 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// GameOverPromptID is the fixed promptId of the terminal gameOver prompt
-// (MBX-2). The three id spaces a ManaBrew client sees are disjoint:
+// GameOverPromptID is the fixed promptId of the terminal gameOver prompt.
+// The three id spaces a ManaBrew client sees are disjoint:
 //
 //   - ordinary decision prompts: a bare decision.Seq, always >= 0
-//     (ids.go's promptID, spec §6.1);
+//     (ids.go's promptID);
 //   - synthetic ack-only prompts (synthetic.go): always < 0;
 //   - the terminal gameOver prompt: this one constant.
 //
 // math.MaxInt64 is reachable by no decision.Seq a real match mints (a Seq is
-// an event count; the spec's own id-safety argument caps realistic ids far
-// below 2^53, and the terminal prompt's id is never echoed in an answer
+// an event count, so realistic ids stay far below 2^53, and the terminal prompt's id is never echoed in an answer
 // because gameOver carries no response), so the three spaces cannot collide
 // in practice; the disjointness is asserted over the reachable range in
 // synthetic_test.go. GameOver is delivered exactly once per seat, after the
-// final state (the scoping spec's Appendix A row "end of match (View.Over)
-// -> gameOver prompt, no response: sent after the final state"), and the
+// final state, and the
 // response side already refuses any answer to it (errors.go's "gameOver
 // carries no response" branch).
 const GameOverPromptID int64 = math.MaxInt64

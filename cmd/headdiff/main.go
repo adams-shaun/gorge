@@ -22,7 +22,7 @@
 // directory, dump the base's streams, then compare on the branch. Run both
 // from the branch checkout so `-dir .cards` resolves to the shared corpus:
 //
-//	tmp=$(mktemp -d /mnt/sata/gorge-training/gotmp/headdiff.XXXXXX)
+//	tmp=$(mktemp -d)
 //	mkdir "$tmp/src" && git archive main | tar -x -C "$tmp/src"
 //	(cd "$tmp/src" && go build -o "$tmp/headdiff" ./cmd/headdiff)
 //	"$tmp/headdiff" -dir .cards -dump "$tmp/main.json"

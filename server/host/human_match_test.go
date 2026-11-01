@@ -196,7 +196,7 @@ func TestHumanSeatPlaysAFullBotTableAndReplaysIdentically(t *testing.T) {
 	if fm == nil {
 		t.Fatal("the finished match never landed in table history")
 	}
-	e, err := replay.Replay(fm.e.L, fm.cfg)
+	e, err := replay.Replay(fm.e.L, fm.rulesConfig())
 	if err != nil {
 		t.Fatalf("replay of the human-driven game diverged: %v", err)
 	}

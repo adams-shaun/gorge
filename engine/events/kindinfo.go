@@ -126,7 +126,7 @@ var kindInfo = [NumKinds]KindInfo{
 	ModeChosen:            {Name: "mode_chosen", Trigger: TriggerNone},
 	CmdDamage:             {Name: "commander_damage", Trigger: TriggerNone},
 	DelayedRegister:       {Name: "delayed_register", Trigger: TriggerNone},
-	DelayedPush:           {Name: "delayed_push", Trigger: TriggerNone},
+	DelayedPush:           {Name: "delayed_push", Trigger: TriggerAbilityPush}, // a self-granted activation mints through it
 	LibraryOrder:          {Name: "library_order", Trigger: TriggerNone, Describe: "{player} rearranges the top of their library"},
 	ExtraTurn:             {Name: "extra_turn", Trigger: TriggerNone},
 	DoorUnlock:            {Name: "door_unlock", Trigger: TriggerNone, Describe: "{obj}'s locked door is unlocked"},
@@ -155,7 +155,7 @@ var kindInfo = [NumKinds]KindInfo{
 	CombatRetarget:        {Name: "combat_retarget", Trigger: TriggerNone},
 	RingTemptsYou:         {Name: "ring_tempts_you", Trigger: TriggerNone},
 	RingEmblemPush:        {Name: "ring_emblem_push", Trigger: TriggerNone},
-	GrantAbilityPush:      {Name: "grant_ability_push", Trigger: TriggerNone},
+	GrantAbilityPush:      {Name: "grant_ability_push", Trigger: TriggerAbilityPush},
 	Investigate:           {Name: "investigate", Trigger: TriggerFullMatch},
 	BlessingChange:        {Name: "blessing_change", Trigger: TriggerNone, Describe: "{player} gets the city's blessing"},
 	ClonePermanent:        {Name: "clone_permanent", Trigger: TriggerNone}, // a characteristic change, not an event a mode fires on
@@ -167,7 +167,7 @@ var kindInfo = [NumKinds]KindInfo{
 	Enlist:                {Name: "enlist", Trigger: TriggerNone}, // trig:Enlisted matches through the full matcher via the past-the-mask fail-open path
 	Exploit:               {Name: "exploit", Trigger: TriggerFullMatch},
 	AlterAttribute:        {Name: "alter_attribute", Trigger: TriggerNone}, // read through filter predicates (Creature.IsSuspected), never a mode
-	GainedAbilityPush:     {Name: "gained_ability_push", Trigger: TriggerNone},
+	GainedAbilityPush:     {Name: "gained_ability_push", Trigger: TriggerAbilityPush},
 	GainedTriggerPush:     {Name: "gained_trigger_push", Trigger: TriggerNone},
 	Surveil:               {Name: "surveil", Trigger: TriggerFullMatch},
 	Unattached:            {Name: "unattached", Trigger: TriggerNone},

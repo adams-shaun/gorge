@@ -101,6 +101,12 @@ func (h *handler) botPolicies(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list)
 }
 
+// capabilities serves GET /api/capabilities. Events reads the same field
+// mountEvents does, so the answer cannot disagree with the mounted routes.
+func (h *handler) capabilities(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, protocol.Capabilities{Events: h.opts.Events != nil, Engine: h.opts.Engine})
+}
+
 // defaultMinGames is the leaderboard's floor when ?min_games is absent.
 const defaultMinGames = 10
 

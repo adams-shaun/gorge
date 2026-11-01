@@ -2,7 +2,7 @@
 # xengine-bench.sh [ENGINE...]: whole-game throughput of gorge against other
 # Magic rules engines on one box, on the same decks, one pinned core per run.
 #
-# ENGINE is any of gorge xmage forge dirty-dirac mtg-kernel (default: every engine that
+# ENGINE is any of gorge xmage forge dirac mtg-kernel (default: every engine that
 # is set up; gorge always is). Each engine plays FDN pair A
 # (FDN_top_04956_UG vs FDN_top_20626_WG) and pair B (FDN_top_07961_WR vs
 # FDN_top_02581_UR) from cmd/enginebench/testdata/decks, under each policy it
@@ -18,7 +18,7 @@
 # when the GC runs during corpus load and setup, so one row's reps can sit in
 # two clusters. $OUT/summary.jsonl holds the same table as JSON.
 #
-# The engines that read gorge's card corpus (gorge, dirty-dirac) never use
+# The engines that read gorge's card corpus (gorge, dirac) never use
 # CARDS itself: each invocation makes a private copy of it (a hardlink farm of
 # cardsfolder/ and tokenscripts/ plus cards.lock, under $OUT/work; a plain copy
 # when OUT is on another filesystem) and warms each engine's IR cache there
@@ -35,7 +35,7 @@
 #   CORES    one core per concurrent rep (default "24 26 28"; REPS = their count)
 #   SECS     measured seconds per run (default 30)
 #   WARM     JVM warm-up seconds before measuring, XMage and Forge (default 30)
-#   PAIRS    deck pairs (default "A B"; "burn" is the Burn mirror, which dirty-dirac cannot play)
+#   PAIRS    deck pairs (default "A B"; "burn" is the Burn mirror, which dirac cannot play)
 #   JAVA     java binary for XMage and Forge (default: java on PATH)
 #   JAVA_HEAP  -Xmx for both JVMs (default 2g)
 #   CARDS    the fetched corpus to copy privately (default .cards)
@@ -51,7 +51,7 @@
 #            FORGE_RES     Forge's forge-gui/res directory
 #            FORGE_SRC     the forge-oracle driver sources (src/main/java with
 #                          forge.oracle.GameReplay)
-#   dirty-dirac: KPLAY     a kplay binary (private module; skipped when unset)
+#   dirac:   KPLAY     a kplay binary (dirac's game runner; skipped when unset)
 #   mtg-kernel: MTGKERNEL_BENCH  bench_kernel built with the xengine mode
 #            (cmd/enginebench/scripts/xengine/mtgkernel/); MK_PAIRS (default A),
 #            MK_WARM warm-up CPU-seconds (default 5), MK_ROW the row label
@@ -179,7 +179,7 @@ batch() {
 # ---- gorge (cmd/enginebench) -------------------------------------------------
 gorge_bin=$OUT/work/enginebench
 gorge_setup() {
-	(cd "$REPO" && go build -ldflags "-X main.commit=$(git rev-parse HEAD)" -o "$gorge_bin" ./cmd/enginebench)
+	(cd "$REPO" && go build -trimpath -ldflags "-X main.commit=$(git rev-parse HEAD)" -o "$gorge_bin" ./cmd/enginebench)
 }
 gorge_run() { # ROW PAIR FLAGS REP CORE
 	local row=$1 pair=$2 flags=$3 rep=$4 core=$5
@@ -288,27 +288,27 @@ forge_all() {
 	done
 }
 
-# ---- dirty-dirac (the private kernel's kplay) --------------------------------
+# ---- dirac (its game runner, kplay) ---------------------------------------
 kplay_run() { # POLICY PAIR REP CORE
 	local pol=$1 pair=$2 rep=$3 core=$4
-	local w=$OUT/work/dirty-dirac-$pol-$pair-$rep l0
+	local w=$OUT/work/dirac-$pol-$pair-$rep l0
 	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --kplay-decks "$DK" "$(deck_a "$pair")" "$(deck_b "$pair")" \
 		"$w.decks.jsonl" "$w.pairs.tsv" $((1 + 1000003 * rep))
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	pinned "$core" "$w.time" env GOMAXPROCS=1 "$KPLAY" -cards "$PRIV_CARDS" -deckfile "$w.decks.jsonl" -pairs-file "$w.pairs.tsv" \
 		-pairs 0 -a "$pol" -b "$pol" -wall "${SECS}s" -out "$w.jsonl" >"$w.log" 2>&1
-	record dirty-dirac "$pol" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.jsonl.summary.json" kplay
+	record dirac "$pol" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.jsonl.summary.json" kplay
 }
 kplay_all() {
-	local w=$OUT/work/dirty-dirac-warm
+	local w=$OUT/work/dirac-warm
 	cards_private
 	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --kplay-decks "$DK" "$(deck_a A)" "$(deck_b A)" \
 		"$w.decks.jsonl" "$w.pairs.tsv" 1
-	cards_warm dirty-dirac env GOMAXPROCS=1 "$KPLAY" -cards "$PRIV_CARDS" -deckfile "$w.decks.jsonl" \
+	cards_warm dirac env GOMAXPROCS=1 "$KPLAY" -cards "$PRIV_CARDS" -deckfile "$w.decks.jsonl" \
 		-pairs-file "$w.pairs.tsv" -pairs 0 -a random -b random -wall 1s -out "$w.jsonl"
 	for pair in "${PAIR_LIST[@]}"; do
-		batch "dirty-dirac random $pair" kplay_run random "$pair"
-		batch "dirty-dirac hbot $pair" kplay_run hbot "$pair"
+		batch "dirac random $pair" kplay_run random "$pair"
+		batch "dirac hbot $pair" kplay_run hbot "$pair"
 	done
 }
 
@@ -339,7 +339,7 @@ if [ ${#engines[@]} -eq 0 ]; then
 	engines=(gorge)
 	xmage_ready && engines+=(xmage)
 	forge_ready && engines+=(forge)
-	[ -n "${KPLAY:-}" ] && engines+=(dirty-dirac)
+	[ -n "${KPLAY:-}" ] && engines+=(dirac)
 	[ -n "${MTGKERNEL_BENCH:-}" ] && engines+=(mtg-kernel)
 fi
 {
@@ -353,9 +353,9 @@ for e in "${engines[@]}"; do
 	gorge) gorge_all ;;
 	xmage) xmage_ready || die "xmage: set XMAGE_TESTS, XMAGE_CP and XMAGE_BENCH"; xmage_all ;;
 	forge) forge_ready || die "forge: set FORGE_CP, FORGE_RES and FORGE_SRC"; forge_all ;;
-	dirty-dirac) [ -n "${KPLAY:-}" ] || die "dirty-dirac: set KPLAY"; kplay_all ;;
+	dirac) [ -n "${KPLAY:-}" ] || die "dirac: set KPLAY"; kplay_all ;;
 	mtg-kernel) [ -n "${MTGKERNEL_BENCH:-}" ] || die "mtg-kernel: set MTGKERNEL_BENCH"; mtgkernel_all ;;
-	*) die "unknown engine $e (gorge xmage forge dirty-dirac mtg-kernel)" ;;
+	*) die "unknown engine $e (gorge xmage forge dirac mtg-kernel)" ;;
 	esac
 done
 python3 -I "$REPO/scripts/xengine-bench-summarize.py" --json "$RUNS" > "$OUT/summary.jsonl"

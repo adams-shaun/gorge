@@ -59,7 +59,7 @@ func (e *Engine) checkDungeonRoomTriggers(ev events.Event) {
 	if sa == nil {
 		return
 	}
-	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+	e.queueTrigger(e, pendingTrigger{
 		Source:     ev.Obj,
 		Controller: o.Owner,
 		Delayed:    true,
@@ -67,7 +67,7 @@ func (e *Engine) checkDungeonRoomTriggers(ev events.Event) {
 		Execute:    ev.Text,
 		SA:         sa,
 		Ctx:        effects.NewCtx(ev.Obj, o.Owner, effects.CtxInit{}),
-	})
+	}, ev, nil)
 }
 
 // dungeonCompletion is CR 704.5t: if a player's venture marker is on the

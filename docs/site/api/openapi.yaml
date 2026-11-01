@@ -196,26 +196,8 @@ components:
         - "name"
         - "image_uris"
       type: "object"
-    BotMeasurement:
-      description: "BotMeasurement is one measured claim of a hosted bot policy. It is the wire twin of bots.Measurement: a single label with the setting and source it was measured under, never a number the client is expected to interpret."
-      properties:
-        claim:
-          type: "string"
-        setting:
-          type: "string"
-        source:
-          type: "string"
-        versus:
-          type: "string"
-      required:
-        - "claim"
-        - "setting"
-        - "source"
-        - "versus"
-      type: "object"
-      x-go-type: "github.com/adams-shaun/gorge/server/protocol.BotMeasurement"
     BotPolicyInfo:
-      description: "BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies). It is the wire twin of bots.Info, carrying only what a client needs to render a picker and disclose the measurement; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go)."
+      description: "BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies). It is the wire twin of bots.Info, carrying what a client needs to render a picker; protocol never imports bots, so gorged converts one to the other at startup (server/gorged/botpolicies.go)."
       properties:
         cost_note:
           type: "string"
@@ -239,12 +221,6 @@ components:
           type: "number"
         search:
           type: "boolean"
-        strength:
-          items:
-            $ref: "#/components/schemas/BotMeasurement"
-          type:
-            - "array"
-            - "null"
         tier:
           type: "string"
       required:
@@ -257,7 +233,6 @@ components:
         - "name"
         - "p95_ms"
         - "search"
-        - "strength"
         - "tier"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.BotPolicyInfo"
@@ -277,6 +252,18 @@ components:
         - "policies"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.BotPolicyList"
+    Capabilities:
+      description: "Capabilities is GET /api/capabilities: which optional surfaces this server serves, so a client can decide what to draw without probing a route that 404s when the surface is off. Additive, and always 200. Events is true when the /api/events routes are mounted."
+      properties:
+        engine:
+          description: "Engine names the engine this server creates tables on; absent for gorge."
+          type: "string"
+        events:
+          type: "boolean"
+      required:
+        - "events"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.Capabilities"
     CardFacts:
       description: "A card's six printed facts, cached from Scryfall beside its art (server/gorged/art.go cardFacts). Empty facts are omitted."
       properties:
@@ -1763,6 +1750,9 @@ components:
           description: "Ability anchors an \"ability\" option to its exact activated ability: the index into the source Face().Abilities being offered (Task 10), so a client can pop that ability's own text up beside the right ability on the card. The engine reads it in beginActivation, where a stale index degrades to a no-op. omitempty: options that are not ability options carry no field, and on an ability option a missing field is index 0 (the first ability), the one value that omits."
           format: "int64"
           type: "integer"
+        alone_restricted:
+          description: "AloneRestricted marks a KAttackers or KBlockers option whose creature is restricted from being declared ALONE (CR 506.5): declaring it is legal only when at least one other creature is declared as an attacker (a KAttackers option) or as a blocker (a KBlockers option) in the same declaration. The engine REJECTS a lone declaration (combat.DeclaresAlone, read by both declaration validators), so a rules-ignorant client -- the bot policy included -- needs the fact on the wire to build a legal declaration rather than have one refused. Decision.Validate enforces it and the shared repair (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from this same field, so the published fact cannot drift from the check. omitempty: an unrestricted option emits no field, so every ordinary option list serialises byte-identically."
+          type: "boolean"
         alt_cost_index:
           description: "AltCostIndex says which cost a \"cast\" option pays: 0 is the card's own (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i] -- an AlternativeCost static's cost instead -- so a client can show which of several costs the option pays. An \"ability\" option uses the same field for the same purpose: 0 is the ability's printed Cost$, 1 is its own AlternateCost$ rider (engine/rules/activate.go's abilityAlternateCost, the K:Equip expansion's fourth colon field), so an equip offering its alternate cost is distinguishable from the printed-cost option without parsing the label. omitempty mirrors Obj: an option paying the card's own cost (the common case, and the default every other Option literal in the tree relies on) carries no field, so today's payloads are unchanged for it."
           format: "int64"
@@ -2759,6 +2749,9 @@ components:
         bot_policy:
           description: "BotPolicy is the effective hosted policy for bot seats and human-seat caretakers. It is public table configuration, never private game state."
           type: "string"
+        engine:
+          description: "Engine names the engine this table runs on; absent for gorge."
+          type: "string"
         event:
           description: "Event marks a table owned by a draft event (TableConfig.Event): its games are the event's to schedule, so the client offers no restart (a fresh vs-bot game) from it. omitempty, like Series: a non-event table is byte-identical to a table before the field existed."
           type: "boolean"
@@ -3153,6 +3146,27 @@ paths:
       summary: "List the offered bot policies"
       tags:
         - "lobby"
+  "/api/capabilities":
+    get:
+      description: "Which optional surfaces this server serves, so a client can decide what to draw without probing a route that 404s when the surface is off. Pure configuration: always 200. events is true when the /api/events routes are mounted (gorged -events)."
+      operationId: "getCapabilities"
+      responses:
+        "200":
+          content:
+            "application/json":
+              examples:
+                plain:
+                  summary: "a server started without -events"
+                  value:
+                    events: false
+              schema:
+                $ref: "#/components/schemas/Capabilities"
+          description: "The server's capabilities."
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+      summary: "Report the server's optional surfaces"
+      tags:
+        - "lobby"
   "/api/decks":
     get:
       description: "Every deck the server loaded; `id` is what POST /api/games takes as human_deck/bot_deck. With `policy`, only the decks a game against that bot policy may use: its reserved pool when it has one, else the unreserved decks."
@@ -3216,7 +3230,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3256,7 +3270,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3291,7 +3305,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3328,7 +3342,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3363,7 +3377,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3408,7 +3422,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3451,7 +3465,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3494,7 +3508,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3529,7 +3543,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3566,7 +3580,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3611,7 +3625,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3646,7 +3660,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3691,7 +3705,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3734,7 +3748,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -3773,7 +3787,7 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "No such event, or draft events are not served by this binary."
+          description: "No such event, or this server is not running with -events."
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
         default:
@@ -5846,7 +5860,7 @@ tags:
     name: "stream"
   - description: "On-demand play-vs-bot games (gorged -vsbot)."
     name: "games"
-  - description: "Draft events. Served only by a gorged binary that links a draft-event runtime (server/gorged.Extensions.Events) and runs with -events; gorge's own binary refuses -events, and every path here is then the JSON 404."
+  - description: "Draft events. Served only by a gorged running with -events, which is off by default; without it every path here is the JSON 404."
     name: "draft-events"
   - description: "gorged's same-origin card art and printed-text cache (fetched from Scryfall on first request)."
     name: "cards"

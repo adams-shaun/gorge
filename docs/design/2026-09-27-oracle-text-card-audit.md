@@ -38,7 +38,7 @@ card, whichever side is wrong.
 | `internal/testutil.CorpusRegistry` | Loads the corpus once per process. It SKIPS when `.cards` is absent, so a worktree without the corpus reads green. |
 | `engine/rules/acceptance_test.go` `knownUnsupported`, `engine/rules/paramcensus_test.go` `knownUnsupportedParams` | Ratchets on "is every primitive registered / every param read". They measure **coverage, not correctness**. Purphoros's `RemoveType$` has been listed as unread in `paramcensus` all along, yet Purphoros ships in `valgavoth-endless-punishment` and behaves as an always-on 6/5 (§8). |
 | `cmd/repro`, `feedback.EngineAt` | Turns a player report into a failing test at the exact board. It is reactive and per report; it does not audit a card. |
-| `.ds4/issues`, `feedback/` | 1572 tickets and 125 player reports (classified in §3). |
+| The issue queue, `feedback/` | 1572 tickets and 125 player reports (classified in §3). |
 
 ## 3. Bug classes in the issue history
 

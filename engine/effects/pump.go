@@ -115,6 +115,9 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// ReplaceDyingDefined$ rider below (the same []state.Target shape
 	// DealDamage's registration takes).
 	var pumpedTargets []state.Target
+	// Read before the walk (CR 608.2h): a pump registered below must not change
+	// the amount the next object gets.
+	numAtt, numDef := numText(h, c, p.NumAtt, 0), numText(h, c, p.NumDef, 0)
 	for _, t := range pumpSet(h, c, sa, p) {
 		if t.IsPlayer {
 			continue
@@ -155,11 +158,11 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			c.Remembered = append(c.Remembered, t)
 			eventRemember(h, c, t.Obj)
 		}
-		// Resolve amounts PER OBJECT: Double reads this object's own
-		// layer-derived power/toughness, so a multi-object Defined$ must not
-		// apply one creature's stat to every creature.
-		att := numForObjectText(h, c, p.NumAtt, true, 0, o.ID)
-		def := numForObjectText(h, c, p.NumDef, false, 0, o.ID)
+		// Double reads this object's own layer-derived power/toughness, so a
+		// multi-object Defined$ must not apply one creature's stat to every
+		// creature.
+		att := numForObjectText(h, p.NumAtt, true, numAtt, o.ID)
+		def := numForObjectText(h, p.NumDef, false, numDef, o.ID)
 		registerPumpEffects(h, c, o.ID, att, def, false, false, grant, zone, chosenKW)
 		pumpedTargets = append(pumpedTargets, t)
 		if atEOTInclude(h, c, sa, o.ID) {

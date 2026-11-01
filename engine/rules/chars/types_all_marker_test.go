@@ -52,6 +52,38 @@ func TestTypesAllCreatureMarkerClearedByLaterSubtypeRemoval(t *testing.T) {
 	}
 }
 
+func TestCardTypeRemovalAllCreatureMarker(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		added []string
+		want  bool
+	}{
+		{"creature types go with Creature", []string{"Land"}, false},
+		{"creature types stay with Creature", []string{"Artifact", "Creature"}, true},
+		{"an added creature subtype replaces the set", []string{"Creature", "Insect"}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			card := &cards.Card{Faces: []*cards.Face{{Name: "Test Bear", Types: []string{"Creature", "Bear"}}}}
+			game := state.NewGame([]string{"A"})
+			id := game.AddObject(card, 0).ID
+			board := allTypesTestBoard{
+				game: game,
+				active: []state.ContinuousEffect{
+					{Layer: state.LType, AddAllCreatureTypes: true},
+					{Layer: state.LType, RemoveCardTypes: true, AddTypes: tc.added},
+				},
+			}
+			types, all := TypesAndAllCreatureTypes(board, board.active, id, 0)
+			if all != tc.want {
+				t.Fatalf("all-creature-types marker = %v, want %v (types %v)", all, tc.want, types)
+			}
+			if containsType(types, "Bear") != tc.want {
+				t.Fatalf("Bear kept = %v, want %v (types %v)", !tc.want, tc.want, types)
+			}
+		})
+	}
+}
+
 func containsType(types []string, want string) bool {
 	for _, typ := range types {
 		if strings.EqualFold(typ, want) {

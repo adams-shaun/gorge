@@ -166,7 +166,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 		if sa == nil {
 			continue
 		}
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		e.queueTrigger(e, pendingTrigger{
 			Source:     ev.Obj,
 			Controller: o.Controller,
 			Delayed:    true,
@@ -175,7 +175,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 			Execute:    name,
 			SA:         sa,
 			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
-		})
+		}, ev, nil)
 	}
 }
 

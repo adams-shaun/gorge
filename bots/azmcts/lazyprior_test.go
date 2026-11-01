@@ -12,8 +12,7 @@ import (
 )
 
 // TestLazyPriorMatchesEager pins walkConfig.lazyPrior: a network search over
-// re-dealt worlds, with opponent points, auto-pay and a top-k prior (az-c6's
-// shape), returns the same Result -- visits, values, choice and every
+// re-dealt worlds, with opponent points, auto-pay and a top-k prior, returns the same Result -- visits, values, choice and every
 // counter -- whether in-walk priors are deferred or computed at every point.
 // AZMCTS_TEST_NET=<a .dzgw> runs it on a real network instead of the
 // gonettest one.

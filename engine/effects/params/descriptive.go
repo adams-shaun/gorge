@@ -9,8 +9,7 @@ import "slices"
 // rule the engine does not implement, and a caption never is one.
 //
 // Contents are sorted for slices.BinarySearch (zero allocation: no map on the
-// compile hot path). Sources, all in the pinned Forge checkout
-// (~/projects/ref/forge):
+// compile hot path). Sources, all in a Forge checkout:
 //
 //   - Description, SpellDescription, StackDescription, TriggerDescription,
 //     ChangeTypeDesc and ValidTgtsDesc are Forge's CardTraitBase.descriptiveKeys

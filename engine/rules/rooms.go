@@ -142,7 +142,9 @@ func (e *Engine) queueUnlockTriggers(o *state.Object, face *cards.Face) {
 		if exec == "" || t.Effect == nil {
 			continue
 		}
-		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		// The unlock is the cause even when it happens on entry, so a static scoped
+		// to entering permanents reads a DoorUnlock, not the move.
+		e.queueTrigger(e, pendingTrigger{
 			Source:     o.ID,
 			Controller: o.Controller,
 			Delayed:    true,
@@ -150,7 +152,7 @@ func (e *Engine) queueUnlockTriggers(o *state.Object, face *cards.Face) {
 			Execute:    exec,
 			SA:         t.Effect,
 			Ctx:        effects.NewCtx(o.ID, o.Controller, effects.CtxInit{}),
-		})
+		}, events.Event{Kind: events.DoorUnlock, Obj: o.ID}, nil)
 	}
 }
 

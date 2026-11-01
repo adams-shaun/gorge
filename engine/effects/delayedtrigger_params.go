@@ -237,7 +237,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"TgtZone",
 	"ThisTurn",
 	"TokenScript",
-	"TriggerDescription",
+	"TriggerController", "TriggerDescription",
 	"TriggerZones",
 	"Type",
 	"Ultimate",

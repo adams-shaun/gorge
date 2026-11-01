@@ -69,6 +69,27 @@ func (d *Decision) aloneVerb() string {
 	return "attack"
 }
 
+// alonePartner returns the cheapest option (ties: lowest index) naming another
+// creature that can be declared beside attacker option c, or -1.
+func (d *Decision) alonePartner(c int) int {
+	best := -1
+	if d.maxChoices() < 2 {
+		return best
+	}
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Obj == d.Options[c].Obj || (best >= 0 && o.Value >= d.Options[best].Value) {
+			continue
+		}
+		pair := []int{c, i}
+		if d.BudgetsFit(d.Options[c].Value+o.Value, d.Options[c].Value2+o.Value2) &&
+			d.ChargeOptionsFit(pair) && !d.groupCapExceeded(pair) {
+			best = i
+		}
+	}
+	return best
+}
+
 // FitAlone repairs a chosen set that declares an AloneRestricted creature
 // alone (CR 506.5) by dropping that creature from the answer -- to declare
 // nothing at all is always legal (the restriction constrains HOW the creature
@@ -81,9 +102,10 @@ func (d *Decision) aloneVerb() string {
 //
 // Only an alone-restricted creature is ever dropped: dropping an unrestricted
 // partner can never make a legal answer legal, and dropping the restricted one
-// is always safe because the empty declaration is legal (KAttackers/KBlockers
-// are Min 0). The answer handed back is therefore the empty set whenever the
-// drop happens, which is exactly the shape AloneLegal re-checks.
+// is safe because the empty declaration is legal (KAttackers/KBlockers are Min
+// 0, and FitRequired has already partnered a creature the quota requires). The
+// answer handed back is therefore the empty set whenever the drop happens,
+// which is exactly the shape AloneLegal re-checks.
 func (d *Decision) FitAlone(choices []int) []int {
 	if d.AloneLegal(choices) {
 		return choices

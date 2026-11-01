@@ -52,6 +52,9 @@ func (e *Engine) scanCostStatics() costStaticViews {
 			if !ok {
 				continue
 			}
+			if o.Zone == state.ZBattlefield && isRoom(o) && pst.Face == o.Face() && !o.DoorUnlocked(int(o.FaceIdx)) {
+				continue
+			}
 			st := pst.Static
 			var dst *[]staticView
 			switch st.ModeKind() {

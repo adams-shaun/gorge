@@ -11,7 +11,7 @@ package bench_test
 //     2026-10-05. A SparePool hands each worker its own spare, so the
 //     per-game log heads match the single-worker run exactly.
 //
-// The helper is a pure refactor of the pool four-yay cmd/botbench already ran, so
+// The helper is a pure refactor of the pool a bench runner already ran, so
 // "same output with and without" is the regression bar. The worker test is
 // the one to run under -race (the controller runs it; seats do not).
 

@@ -13,7 +13,7 @@ Every behaviour on this page is read from
 [`server/host/httpapi/sse.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/httpapi/sse.go),
 [`server/host/session.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/session.go)
 and [`server/host/fanout.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/fanout.go).
-The excerpts are real frames, captured on 2026-10-20 from a live server at commit `ad3777023`.
+The excerpts are real frames from a live server.
 
 ## Why a stream and two POSTs
 
@@ -122,12 +122,15 @@ data: {"v":1,"t":"match_end","id":2085,"table":"t2","match":5,"seq":1788,"body":
 | `match_start` | yes | yes | A match begins on the table |
 | `snapshot` | | yes | At once on a focus subscribe, when the table has a live match; at every match start |
 | `event` | | yes | One per engine event, in seq order |
-| `decision` | | yes | After each burst, when a decision is pending, for any seat, bot or human. It names the seat, kind and prompt only. |
+| `decision` | | yes | When a match first parks on a decision, then after each burst when a decision is pending, for any seat, bot or human. It names the seat, kind and prompt only. |
 | `rewind` | | yes | An undo rolled the live match back (see below) |
 | `match_end` | yes | yes | A match ends: `result`, `winner`, chain `head` |
 | `table_state` | yes | yes | A **series** table's lifecycle state changed (`idle`, `live`, `between_games`); ordinary tables never send it |
 | `table_halted` | yes | yes | The table crashed and stopped, with the reason |
 | `overflow` | yes | yes | The last frame of a session whose buffer filled |
+
+Draft events send their own frames (`event_state`, `draft_pack`, `pod_progress`, `series_update`) to a session after
+`POST /api/events/{id}/subscribe`.
 
 `table` `*` subscribes every public table, present and future, in overview mode. Private
 play-vs-bot tables are included only for a session whose seat token claims them; a client
@@ -180,8 +183,7 @@ curl -sN -H 'Last-Event-ID: s00cc29e285fc2d3aab2b299e97fab509:2085' $GORGE/api/s
 
 - If the session is still alive and its ring still holds every frame after that id, the
   server replays those frames and then continues live. There is **no** `hello`, and your
-  subscriptions are intact. When this was captured, a resume a few seconds after a disconnect
-  replayed `match_start`, `snapshot`, `event`… straight away.
+  subscriptions are intact.
 - Otherwise the server starts a **fresh** session with a new `hello`, and you must subscribe
   again. That happens when the session is unknown or expired (the 30 s grace has passed), the
   header is malformed, or the id is older than the ring. A stale session that cannot be served

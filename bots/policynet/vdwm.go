@@ -2,8 +2,7 @@ package policynet
 
 import "math"
 
-// VDWM — the value-disagreement-weighted margin loss (mtgbld's
-// "novel synthesis", the pn13 addendum's second arm), trained on the same
+// VDWM — the value-disagreement-weighted margin loss, trained on the same
 // on-policy corpus as PPO. The label y is the RECORDED answer (the deployed
 // seat's own play); the loss is a margin (hinge) on the logits instead of a
 // probability ratio, weighted towards the rows where the old policy was
@@ -22,7 +21,7 @@ import "math"
 // (VDWMRowWeight is the Σ_k (1 − q_k) factor it normalises with); there is no
 // KL anchor and no ratio. m ≤ 0 means DefaultVDWMMargin.
 
-// DefaultVDWMMargin is mtgbld's margin m = 1.
+// DefaultVDWMMargin is the margin m = 1.
 const DefaultVDWMMargin = 1.0
 
 // vdwmFactors returns, per labelled option (parallel to labelled), the

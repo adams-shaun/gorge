@@ -81,7 +81,7 @@ func (e *Engine) pileFaceForSA(source state.ObjID, sa *cards.SA) (*cards.Face, b
 	// card's face, so its owning SVar table is that face's, not the
 	// recipient's. Measured against the minted provenance first -- the
 	// resolving wrapper sits on the stack carrying the exact foreign face
-	// events.Apply stamped (gainedOwnedFace), which survives the granting
+	// events.Apply stamped (abilityOwnedFace), which survives the granting
 	// static ending between the activation and the resolution, the case the
 	// live-grant scan below cannot answer -- and only then against the live
 	// grants (a grant that ended with its static is no owner), in active()'s
@@ -94,7 +94,7 @@ func (e *Engine) pileFaceForSA(source state.ObjID, sa *cards.SA) (*cards.Face, b
 		if wo == nil || wo.Ability != sa || wo.Source != source {
 			continue
 		}
-		if f := gainedOwnedFace(wo); f != nil {
+		if f := abilityOwnedFace(wo); f != nil {
 			for _, ab := range f.Abilities {
 				if ab == sa {
 					return f, true
@@ -115,26 +115,18 @@ func (e *Engine) pileFaceForSA(source state.ObjID, sa *cards.SA) (*cards.Face, b
 	return nil, false
 }
 
-// gainedOwnedFace returns the foreign face a HAS-ALL-ABILITIES-OF ability
-// wrapper was minted from: the per-stack-instance provenance events.Apply
-// folds onto the wrapper at GainedAbilityPush/GainedTriggerPush time (r3).
-// The granting static can END between the push and the resolution -- the
-// foreign card leaves the scoped zone, the static's named set re-derives --
-// and findTriggerForAbilityFace / this file's live-grant scan then find no
-// owner and fall back to the recipient's face, whose SVar table the foreign
-// body never meant. The wrapper's own field is the answer: immutable, set by
-// events.Apply from the exact face that provided the compiled SA, and
-// reproduced by every replay because Apply re-runs. A nil return means "not a
-// gained wrapper" (every ordinary wrapper leaves the field nil) or a face
-// that no longer carries the pointer, and the caller keeps its existing
-// chain. The identity scan is a guard, not a search: Apply only ever stamps
-// the face it took the pointer from, so the hit is the first element at
-// worst.
-func gainedOwnedFace(o *state.Object) *cards.Face {
-	if o == nil || o.GainedFace == nil || o.Ability == nil {
+// abilityOwnedFace returns the face an ability wrapper was minted from, which
+// events.Apply folds onto the wrapper at the push. The source's own face or a
+// granting static can be gone by the resolution, and then the scans over the
+// live board find no owner, or a table the body never meant. A nil return means
+// no stamp, or a face that no longer carries the pointer, and the caller keeps
+// its existing chain. The identity scan is a guard, not a search: Apply only
+// ever stamps the face it took the pointer from.
+func abilityOwnedFace(o *state.Object) *cards.Face {
+	if o == nil || o.AbilityFace == nil || o.Ability == nil {
 		return nil
 	}
-	f := o.GainedFace
+	f := o.AbilityFace
 	for _, ab := range f.Abilities {
 		if ab == o.Ability {
 			return f

@@ -87,6 +87,7 @@ type walkObjFP struct {
 	textFace *cards.Face
 	faceIdx  uint8
 	flags    uint8
+	doors    uint8
 	zone     state.Zone
 	ctl      state.PlayerID
 	merged   int32
@@ -103,7 +104,7 @@ const (
 )
 
 func walkObjFPOf(o *state.Object) walkObjFP {
-	fp := walkObjFP{card: o.Card, copyFace: o.CopyFace, textFace: o.TextFace(), faceIdx: o.FaceIdx, zone: o.Zone, ctl: o.Controller,
+	fp := walkObjFP{card: o.Card, copyFace: o.CopyFace, textFace: o.TextFace(), faceIdx: o.FaceIdx, doors: o.LockedDoors << 2, zone: o.Zone, ctl: o.Controller,
 		merged: int32(len(o.MergedCards)), keywords: int32(len(o.IntrinsicKeywords)), counters: int32(len(o.Counters))}
 	if o.FaceDown {
 		fp.flags |= fpFaceDown
@@ -119,6 +120,12 @@ func walkObjFPOf(o *state.Object) walkObjFP {
 	}
 	if o.SuspendGranted {
 		fp.flags |= fpSuspendGranted
+	}
+	if o.CastDoor {
+		fp.doors |= 1
+	}
+	if o.Unlocked {
+		fp.doors |= 2
 	}
 	return fp
 }

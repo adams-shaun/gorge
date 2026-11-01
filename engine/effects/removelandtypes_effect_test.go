@@ -39,6 +39,30 @@ func TestEffectDeliveredRemoveLandTypesRegisters(t *testing.T) {
 	}
 }
 
+// The artifact and enchantment subtype strips reach the layer-4 effect through
+// an Effect-delivered body too.
+func TestEffectDeliveredRemoveSubtypeSetsRegister(t *testing.T) {
+	h, c := fixtureHost(t)
+	c.SVars = map[string]string{
+		"Animate": "Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Artifact | RemoveArtifactTypes$ True | RemoveEnchantmentTypes$ True | Description$ Fixture.",
+	}
+	Resolve(h, c, sa(t, "DB$ Effect | StaticAbilities$ Animate | Duration$ Permanent"))
+	var got *state.ContinuousEffect
+	for i := range h.continuous {
+		if h.continuous[i].Layer == state.LType {
+			got = &h.continuous[i]
+		}
+	}
+	if got == nil || !got.RemoveArtifactTypes || !got.RemoveEnchantmentTypes {
+		t.Fatalf("type effect = %+v, want both subtype strips", got)
+	}
+	for _, n := range notesOf(h) {
+		if strings.Contains(n, "unimplemented") || strings.Contains(n, "not implemented") {
+			t.Fatalf("unexpected unimplemented Note: %q", n)
+		}
+	}
+}
+
 // TestRemoveLandTypesAloneStillEmits: a strip-only body (Ultima's blight
 // static) must emit the layer-4 effect without an AddType$.
 func TestRemoveLandTypesAloneStillEmits(t *testing.T) {

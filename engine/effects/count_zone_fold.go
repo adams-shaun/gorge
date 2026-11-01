@@ -119,6 +119,7 @@ type zoneCountFold struct {
 	h           Host
 	g           *state.Game
 	spec        string
+	pricedSpell state.ObjID
 	prop        string
 	extreme     bool
 	isLeast     bool
@@ -159,6 +160,9 @@ type zoneCountFold struct {
 // distinct-set accumulation).
 func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecContext) {
 	if zone == state.ZBattlefield && id == specCtx.ExcludeFromBattlefieldCount && id != 0 {
+		return
+	}
+	if id == f.pricedSpell && id != 0 {
 		return
 	}
 	matchSpec := f.spec

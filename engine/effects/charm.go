@@ -63,7 +63,7 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 // option's Option.Value (and Decision.Budgeted, so a PRESENT zero budget
 // stays live), so Decision.Validate's cumulative-budget rule --
 // the shared repair and the bot arm derive the same rule from those
-// published fields -- is the {P} legality check (four-yay's kernel, which
+// published fields -- is the {P} legality check (dirac, which
 // re-pins against gorge, copies this shape).
 func CharmPawprints(h Host, source state.ObjID, sa *cards.SA, svars map[string]string, names []string) (budget int, values []int, ok bool) {
 	p := CharmOf(sa)

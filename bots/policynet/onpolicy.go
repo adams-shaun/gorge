@@ -14,7 +14,7 @@ import (
 // The on-policy corpus (ticket pn13): one JSONL record per decision the
 // deployed policynet seat actually SCORED (heuristic.PolicyNetBot; a decision the
 // seat delegated to the default bot is not recorded), written by
-// four-yay cmd/botbench -onpolicy-corpus and read by LoadOnPolicy for four-yay cmd/policytrain
+// a bench runner's -onpolicy-corpus and read by LoadOnPolicy for the trainer
 // -ppo. Unlike the label corpus it stores the ENCODED state and options
 // (the exact floats the seat scored, so a checkpoint's old scores can be
 // recomputed bit for bit — the trainer's π_old consistency check), guarded

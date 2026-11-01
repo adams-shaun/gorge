@@ -163,7 +163,7 @@ func TestHostFeedEqualsRebuildFeed(t *testing.T) {
 	}
 
 	actor := state.PlayerID(0)
-	rebuilt, err := searchseat.RebuildFeed(m.cfg, engine.L, len(engine.L.Intents), actor)
+	rebuilt, err := searchseat.RebuildFeed(m.rulesConfig(), engine.L, len(engine.L.Intents), actor)
 	if err != nil {
 		t.Fatalf("RebuildFeed: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestHostFeedEqualsRebuildFeed(t *testing.T) {
 	// The same equality must hold at every prefix, not only at the end: the
 	// live feed truncated to boundary n is RebuildFeed(n).
 	for _, n := range []int{1, len(engine.L.Intents) / 2, len(engine.L.Intents) - 1} {
-		prefix, err := searchseat.RebuildFeed(m.cfg, engine.L, n, actor)
+		prefix, err := searchseat.RebuildFeed(m.rulesConfig(), engine.L, n, actor)
 		if err != nil {
 			t.Fatalf("RebuildFeed(%d): %v", n, err)
 		}
@@ -334,7 +334,7 @@ func TestHostedEnvSeatsNeverSeeTheLiveEngine(t *testing.T) {
 	// honest root redeals it -- see the test's doc comment).
 	liveOpp, liveActor := map[uint64][]string{}, map[uint64][]string{}
 	choicePending := map[uint64]bool{}
-	if _, err := replay.Walk(engine.L, m.cfg, len(engine.L.Intents), func(e *rules.Engine, i int) error {
+	if _, err := replay.Walk(engine.L, m.rulesConfig(), len(engine.L.Intents), func(e *rules.Engine, i int) error {
 		if d := e.Pending(); d != nil && d.Player == 0 {
 			liveOpp[d.Seq] = zoneNames(e.G.Zone(state.ZHand, 1), e)
 			liveActor[d.Seq] = zoneNames(e.G.Zone(state.ZHand, 0), e)

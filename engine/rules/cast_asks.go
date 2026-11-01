@@ -942,7 +942,7 @@ func (e *Engine) moveGraveAsk() bool {
 // askTriggerModes.
 func (e *Engine) castModeAsk() bool {
 	pc := e.cast
-	if pc == nil || pc.isAbility() || pc.modesDone {
+	if pc == nil || pc.isAbility() || pc.isSpecialAction() || pc.modesDone {
 		return false
 	}
 	pc.modesDone = true

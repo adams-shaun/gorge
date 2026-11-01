@@ -6,18 +6,21 @@ and where a given kind of change belongs. The per-package detail (every
 package with its purpose, size and importers) is generated from the source on
 [Packages](../architecture/packages.md); this page is the guided tour.
 
-*Verified 2026-10-27 against `develop` @ `25d71cadc`: `git ls-files`,
-`go list ./...` and `go run ./cmd/pkgmap` (100 Go packages).*
-
 ## The tree at a glance
 
 <figure>
-<svg viewBox="0 0 760 380" width="100%" role="img" aria-label="gorge's source tree as a layered stack: cmd on top, server and bots in the middle, engine at the bottom; testkit, cli and internal beside them as tooling; web, scripts and docs as non-Go paths.">
+<svg viewBox="0 0 760 468" width="100%" role="img" aria-label="gorge's source tree as a layered stack: cmd on top, then draft, server and bots in the middle, engine at the bottom; testkit, cli and internal beside them as tooling; web, scripts and docs as non-Go paths.">
 <defs><marker id="rl-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-arrow"/></marker></defs>
-<rect x="10" y="10" width="520" height="58" rx="8" class="dg-box"/>
+<rect x="10" y="10" width="740" height="58" rx="8" class="dg-box"/>
 <text x="24" y="34" class="dg-text-bold">cmd/</text>
-<text x="70" y="34" class="dg-text">product and developer binaries (18)</text>
-<text x="24" y="54" class="dg-text-muted">gorged  forgec  mtgsim  repro  headdiff  pkgmap  cardfuzz  enginebench ...</text>
+<text x="70" y="34" class="dg-text">product and developer binaries</text>
+<text x="24" y="54" class="dg-text-muted">gorged  forgec  mtgsim  repro  headdiff  pkgmap  cardfuzz  enginebench  draftsim  labdemo ...</text>
+<line x1="270" y1="68" x2="270" y2="94" class="dg-line" marker-end="url(#rl-arr)"/>
+<rect x="10" y="98" width="520" height="58" rx="8" class="dg-box"/>
+<text x="24" y="122" class="dg-text-bold">draft/</text>
+<text x="82" y="122" class="dg-text">the limited stack, linked by cmd/gorged</text>
+<text x="24" y="142" class="dg-text-muted">limited  event  eventhost  gorgedevents  draftlab</text>
+<g transform="translate(0,88)">
 <rect x="10" y="98" width="250" height="78" rx="8" class="dg-box"/>
 <text x="24" y="122" class="dg-text-bold">server/</text>
 <text x="24" y="142" class="dg-text-muted">gorged  host (+httpapi)  protocol</text>
@@ -61,26 +64,29 @@ package with its purpose, size and importers) is generated from the source on
 <text x="574" y="302" class="dg-text-mono">docs/</text><text x="630" y="302" class="dg-text-muted">this site, ADRs</text>
 <text x="574" y="326" class="dg-text-mono">.githooks/</text>
 <text x="574" y="350" class="dg-text-mono">.github/</text><text x="646" y="350" class="dg-text-muted">CI, docs</text>
+</g>
 </svg>
-<figcaption>Arrows point from the importer to the imported layer. The numbers and names are from <code>go run ./cmd/pkgmap</code> at <code>25d71cadc</code>.</figcaption>
+<figcaption>Arrows point from the importer to the imported layer.</figcaption>
 </figure>
 
 ## Top-level paths
 
-| Path | What it holds | Go packages |
-|---|---|--:|
-| `engine/` | The deterministic rules core: `cards` (the Forge-script compiler and card registry), `state`, `decision`, `events` (the event log and `events.Apply`), `effects`, `rules` (the engine, with sub-packages `chars`, `combat`, `cost`, `pay`, `resolve`, `scriptfacts`, `trigmatch`), `view`, `seat` (the `Seat` contract only), `replay`, `deck`. | 19 |
-| `bots/` | The bot registry (`bots`, linked by `bots/all`), the one heuristic policy (`botpolicy`), the default bot (`heuristic`), the hosted bots (`bot`, `lethalpressure`, `sbtactical`, `azredeal`, `forgeheuristic`) and their inference runtime (`azmcts`, `gonet`, `netsimd`, `policynet`, `searchprobe`, `searchseat`, `sanity`, `spellbench/*`, `traceboard`, `explain`: the per-decision notes a match record carries; `internal/simdk`, the AVX-512 kernels the network runtime shares). | 23 |
-| `server/` | The reference server: `gorged` (importable: `Main`, `Serve`, the `Extensions` seam), `host` (tables, sessions, persistence) with `host/httpapi` (JSON + server-sent events) and `host/manabrewhttp`, `protocol` (the wire types the web client is generated from), `manabrew` (an alternate wire), `divergence` (human-vs-bot divergence records), `matchrecord` (the portable one-file record of a played game that `gorged review` serves), `spellbench/*` (the SpellBench v2 environment and agent adapters). | 30 |
-| `testkit/` | Public test support: `testutil` (the corpus registry, repo decks, the acceptance decks, `feedback` snapshot loading), `bench` (a policy-agnostic head-to-head game runner), `paymirror` (an A/B check of payment plans). | 4 |
-| `cli/` | The command-line layer: GNU-style flags, environment variables and JSON config files on the standard library. | 1 |
-| `internal/` | Module-private ratchets and generators: `archtest` (import-graph and determinism tests), `codeshape`, `corpusheap`, `testbudget`, `tsgen` (Go → TypeScript). | 5 |
-| `cmd/` | Binaries. Product: `gorged`, `forgec`. Developer: `mtgsim`, `repro`, `headdiff`, `cardfuzz`, `enginebench`, `pkgmap`, `gentypes`, `codeshape`, `testbudget`, `gcgate`, `deckimport`, `keywordbench`, `paymirror`, `kcensus`, `spellbench-gorge-env`, `spellbench-gorge-agent`. | 18 |
-| `web/` | The TypeScript/Svelte browser client. `web/src/protocol.ts` is generated by `make gentypes`; never edit it by hand. Its own `go.mod` keeps Go tooling out of `node_modules`. | – |
-| `scripts/` | Contributor and CI scripts: `ci_shard.sh`, `smoke.sh`, `enginebench-*.sh`, `docs_sets.py`, `open-pr.sh` (`make pr`). | – |
-| `docs/` | `site/` (this site), `decisions/` (architecture decision records), `design/` (living design documents), `cli.md`, and an internal guide for AI coding agents. | – |
-| `.githooks/`, `.github/` | The opt-in git hooks (`git config core.hooksPath .githooks`) and the CI, docs and coverage workflows. | – |
-| `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `Makefile`, `go.mod`, `mkdocs.yml`, `LICENSE`, `NOTICE` | Root files. `go.mod` has no `require` lines. | – |
+| Path | What it holds |
+|---|---|
+| `engine/` | The deterministic rules core: `cards` (the Forge-script compiler and card registry), `state`, `decision`, `events` (the event log and `events.Apply`), `effects`, `rules` (the engine, with sub-packages `chars`, `combat`, `cost`, `pay`, `resolve`, `scriptfacts`, `trigmatch`), `view`, `seat` (the `Seat` contract only), `replay`, `eventdiff`, `deck`, and `game` with `gorgegame` (the [seam](../architecture/index.md#the-engine-seam) a host runs an engine through). |
+| `bots/` | The bot registry (`bots`, linked by `bots/all`), the one heuristic policy (`botpolicy`), the default bot (`heuristic`), the hosted bots (`bot`, `lethalpressure`, `sbtactical`, `azredeal`, `forgeheuristic`) and what they run on (`azmcts`, `gonet`, `netsimd`, `policynet`, `searchprobe`, `searchseat`, `sanity`, `spellbench/*`, `traceboard`, `explain`). |
+| `server/` | The reference server: `gorged` (importable: `Main`, `Serve`, the `Extensions` seam), `host` (tables, sessions, persistence) with `host/httpapi` (JSON + server-sent events), `host/manabrewhttp` and `host/sbv2http`, `protocol` (the wire types the web client is generated from), `manabrew` and `spellbench/*` (the other [wires](../architecture/wires.md)), `divergence`, `matchrecord` (the portable record of a played game that `gorged review` serves). |
+| `draft/` | The limited stack: `limited` (+`setdata`, `booster`, `draft`, `build`, `pickbot`), `event`, `eventhost`, `gorgedevents` (the plugin `cmd/gorged` passes to the server) and `draftlab` (+`extern`, the external-agent wire). See [Draft events](../architecture/draft.md). |
+| `testkit/` | Public test support: `testutil` (the corpus registry, repo decks, the acceptance decks, `feedback` snapshot loading), `bench` (a policy-agnostic head-to-head game runner), `paymirror` (an A/B check of payment plans), `conformance` (plays one game through a client wire and diffs what it says). |
+| `cli/` | The [command-line layer](https://github.com/adams-shaun/gorge/blob/main/docs/cli.md): GNU-style flags, environment variables and JSON config files on the standard library. |
+| `internal/` | Module-private ratchets and generators: `archtest` (import-graph and determinism tests), `codeshape`, `corpusheap`, `testbudget`, `tsgen` (Go → TypeScript). |
+| `cmd/` | Binaries. Product: `gorged`, `forgec`. Developer: `mtgsim`, `repro`, `headdiff`, `cardfuzz`, `enginebench`, `pkgmap`, `gentypes`, `codeshape`, `testbudget`, `gcgate`, `deckimport`, `keywordbench`, `paymirror`, `kcensus`, `spellbench-gorge-env`, `spellbench-gorge-agent`, `draftsim`, `labdemo`, `extagent`. |
+| `examples/` | Bots in [Go](../bots/native-go.md), [Python and Java](../bots/examples.md), and `extagent`, a [gorge-agent/1](../api/gorge-agent.md) agent in Python. |
+| `web/` | The TypeScript/Svelte browser client. `web/src/protocol.ts` is generated by `make gentypes`; never edit it by hand. Its own `go.mod` keeps Go tooling out of `node_modules`. |
+| `scripts/` | Contributor and CI scripts: `ci_shard.sh`, `smoke.sh`, `wire-matrix.sh`, `examples-smoke.sh`, `enginebench-*.sh`, `docs_sets.py`, `open-pr.sh` (`make pr`). |
+| `docs/` | `site/` (this site), `decisions/` (architecture decision records), `design/` (living design documents), `cli.md`, and a guide for AI coding agents. |
+| `.githooks/`, `.github/` | The opt-in git hooks (`git config core.hooksPath .githooks`) and the CI, docs and coverage workflows. |
+| `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, `Makefile`, `go.mod`, `mkdocs.yml`, `LICENSE`, `NOTICE` | Root files. `go.mod` has no `require` lines. |
 
 Untracked paths you will meet locally:
 
@@ -91,7 +97,7 @@ Untracked paths you will meet locally:
 | `gorged-data/`, `feedback/` | A local server's default persistence and player bug reports. |
 | `cmd/repro/testdata/.tokens/` | Token-script text stripped from committed replay fixtures. |
 
-Draft events, the maintainers' extensions and the oracle pipelines are not here: see
+Machine learning, private experiments and the compliance oracles are not here: see
 [The three repositories](../repos/index.md).
 
 ## Tiers and import direction
@@ -107,13 +113,13 @@ draws the tier graph from the real imports with any back-edge in red.
 | Engine | `engine/` | the standard library and other `engine/` packages only |
 | Bots | `bots/` | `engine/`, other `bots/` packages |
 | Server | `server/` | `engine/`, `bots/`, other `server/` packages |
-| Tooling | `internal/`, `testkit/`, `cli/` | `engine/`, `bots/`, `server/matchrecord`, other tooling packages (measured) |
+| Tooling | `internal/`, `testkit/`, `cli/` | `engine/`, `bots/`, `server/`, other tooling packages |
+| Draft | `draft/` | `engine/`, `bots/`, `server/`, `testkit/bench`, other `draft/` packages |
 | Commands | `cmd/` | anything; no package imports a command |
 
-Measured on 2026-10-27, every arrow in the tier graph points down this table
-except one: `server/spellbench/internal/testcorpus` (test support for the
-SpellBench adapter) imports `testkit/testutil`. Tests may import anything;
-these rules are about non-test code.
+Every arrow in the tier graph points down this table except the back-edges the graph
+draws in red: test support for the SpellBench adapter imports `testkit/testutil`. Tests
+may import anything; these rules are about non-test code.
 
 What is actually *enforced* is a list of edges that must never appear,
 checked directly and transitively by `internal/archtest`
@@ -128,6 +134,7 @@ checked directly and transitively by `internal/archtest`
 | any `bots/` package → `server/host` or `testkit/testutil` | bots plug into a host; they never depend on one |
 | `server/host`, `server/host/httpapi`, `server/gorged` → `testkit/testutil` | test scaffolding stays out of the server |
 | `server/protocol` → `bots` | the wire is engine-only |
+| anything outside `draft/` → `draft/`, except `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo`, `cmd/extagent` | limited play stays above the engine and the server (`TestDraftTreeStaysAbove`) |
 
 Inside `engine/rules`, the sub-packages (`cost`, `chars`, `combat`, `trigmatch`,
 `pay`, `resolve`, `scriptfacts`) have their own layering tests
@@ -153,7 +160,9 @@ only shrinks. A new package also needs a tier entry, or `go run ./cmd/pkgmap
 | Change what a seat sees | `engine/view/`: `card.go` (cards, battlefield), `stack.go` (stack); `view.go` only for the assembler. |
 | Change the wire | `server/protocol/`, then `make gentypes` (regenerates `web/src/protocol.ts`). |
 | Change server routes or seat authorisation | `server/host/httpapi/`; every seat route goes through `claimForTable` (`rest.go`). |
-| Change server flags or startup | `server/gorged/` (`cmd/gorged` is a 15-line main). |
+| Change a client wire | `server/manabrew/`, `server/spellbench/`, and the matching cell on [Wires](../architecture/wires.md). |
+| Change server flags or startup | `server/gorged/` (`cmd/gorged` is a short main). |
+| Change draft events | `draft/`: the pure logic in `limited/*` and `event`, hosting in `eventhost`. See [Draft events](../architecture/draft.md). |
 | Change the default bot's choices | `bots/botpolicy/` (the policy), `bots/heuristic/` (its seat adapter). |
 | Add a bot | `bots.Register` in an `init()` (`bots/registry.go`), blank-imported from `bots/all`. Read the [bots section](../bots/index.md) first. |
 | Add a repo deck | `testkit/testutil/decks/*.json` via `go run ./cmd/deckimport`; every card in it must be fully supported. |

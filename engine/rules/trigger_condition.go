@@ -646,10 +646,26 @@ func (e *Engine) presentZoneCountCtx(zone state.Zone, spec string, source state.
 func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
 	n := 0
 	for _, p := range e.presentSeats(you, scope) {
+		if zone == state.ZCommand && spec == "Boon.YouOwn" {
+			n += e.boonsOf(p)
+			continue
+		}
 		for _, id := range e.G.Zone(zone, p) {
 			if e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
 				n++
 			}
+		}
+	}
+	return n
+}
+
+// boonsOf counts p's one-time boons. A boon has no object in the command zone: it
+// lives as a delayed registration with firings left.
+func (e *Engine) boonsOf(p state.PlayerID) int {
+	n := 0
+	for i := range e.G.Delayed {
+		if d := &e.G.Delayed[i]; d.FiresLeft > 0 && d.Controller == p {
+			n++
 		}
 	}
 	return n

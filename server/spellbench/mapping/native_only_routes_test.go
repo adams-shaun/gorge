@@ -1,6 +1,6 @@
 package mapping_test
 
-// sbc-native-only-shrink: the v2 mapping classes that used to fall back to
+// The v2 mapping classes that could fall back to
 // the native wire on the legacy 2-seat corpus (choose/exilecost,
 // choose/hidden_pick, choose/vote_card), plus the look a hidden-object
 // yes/no ask needs.

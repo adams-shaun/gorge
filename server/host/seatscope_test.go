@@ -70,7 +70,7 @@ func TestViewAtSeatProjectsForTheViewer(t *testing.T) {
 	t.Parallel()
 	r, m := finishedTable(t)
 	head := uint64(len(m.e.L.Events) - 1)
-	seats := len(m.cfg.Names)
+	seats := len(m.gc.Names)
 	g := m.e.G
 
 	views := make([]view.View, seats)
@@ -182,7 +182,7 @@ func TestViewAtSeatAndEventsSeatDuringALiveMatch(t *testing.T) {
 		t.Fatal("a live, parked match has no pending decision")
 	}
 	asked = d.Player
-	seats := uint8(len(m.cfg.Names))
+	seats := uint8(len(m.gc.Names))
 	hands := make([]map[state.ObjID]bool, seats)
 	for s := uint8(0); s < seats; s++ {
 		hands[s] = inHandAt(m.e.G, state.PlayerID(s))

@@ -146,6 +146,13 @@ type TriggerContext struct {
 	// ability remembered, and an empty list is the empty set. rules sets it
 	// in triggerReferents; resolvedRemembered reads it.
 	SelfLeaves bool
+	// RememberWriterAbove marks a chain walk past a link that remembers objects
+	// (RememberChanged$ and its family). The capture is then no fallback for
+	// Defined$ Remembered: the body named its memory, and a link that wrote
+	// nothing leaves it empty (Forge reads the host's list, which never holds
+	// the capture). The Mighty Thor's "exile up to one target, then return
+	// that card" with no target returns nothing. Resolve sets it for its walk.
+	RememberWriterAbove bool
 	// Reflexive marks a CR 603.12 reflexive triggered ability ("When you do,
 	// ...") minted by effImmediateTrigger through Host.QueueReflexiveTrigger.
 	// Its stack object's Remembered is the instance's OWN remembered set --

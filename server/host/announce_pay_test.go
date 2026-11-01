@@ -189,7 +189,7 @@ func TestAnnouncePayHumanSeatThroughHost(t *testing.T) {
 	}
 	tb.mu.RUnlock()
 	fm.mu.RLock()
-	log, cfg := fm.e.L.Clone(), fm.cfg
+	log, cfg := fm.e.L.Clone(), fm.rulesConfig()
 	fm.mu.RUnlock()
 	replayed, err := replay.Replay(log, cfg)
 	if err != nil {

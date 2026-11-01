@@ -24,10 +24,6 @@ const (
 	CastProfilePolicy         = "cast-profile"
 )
 
-type Measurement struct {
-	Claim, Versus, Setting, Source string
-}
-
 type Cost struct {
 	MeanMS, P95MS       float64
 	Scope, Note, Source string
@@ -36,7 +32,6 @@ type Cost struct {
 type Info struct {
 	Name, Label, Description string
 	Tier                     Tier
-	Strength                 []Measurement
 	Cost                     Cost
 	// Env marks a policy whose seat builds a full search engine over every
 	// seat's REAL decklist (server/host/botenv.go envData: searchprobe.PublicGame
@@ -46,6 +41,11 @@ type Info struct {
 	// therefore never seats against a human, and on a bot-only table only
 	// with TableConfig.AllowDecklistBots (enforced by host's table
 	// validation and gorged's offered-set gate).
+	//
+	// Search marks a policy that cannot play without an honest root: the host
+	// refuses it at table creation on an engine that deals none
+	// (game.Caps.SearchRoots). An Env policy without Search seats there and
+	// answers with Env.RootRefused set.
 	Env, Search bool
 	// ClosedLists marks an Env policy whose every seat closes its
 	// opponents' deck lists: the seat is a searchseat.ClosedListSeat whose
@@ -188,7 +188,7 @@ func Names() []string {
 // server/host/botenv.go's envData). The single discriminator for the operator
 // ruling of 2026-10-13: such a policy seats only on a bot-only table that
 // set TableConfig's AllowDecklistBots, and never against a human. A
-// closed-list policy (az-c4) is an Env policy that does NOT read decklists.
+// closed-list policy is an Env policy that does NOT read decklists.
 // An unknown name is false.
 func ReadsDecklists(name string) bool {
 	e, ok := Lookup(name)

@@ -6,7 +6,7 @@
 //
 // Run it against a gorged started with -vsbot (it creates its own game):
 //
-//     java Agent.java --server http://127.0.0.1:8093 --policy simple
+//     java Agent.java --server http://127.0.0.1:8080 --policy simple
 //
 // or join a seat you already hold (gorged -humans 0 -seat-token TOKEN):
 //
@@ -326,7 +326,7 @@ public class Agent {
     // ----------------------------------------------------------------------
 
     public static void main(String[] argv) throws Exception {
-        Map<String, String> a = new HashMap<>(Map.of("--server", "http://127.0.0.1:8093",
+        Map<String, String> a = new HashMap<>(Map.of("--server", "http://127.0.0.1:8080",
                 "--policy", "simple", "--seed", "1", "--format", "constructed",
                 "--match", "1", "--seat", "0"));
         Set<String> flags = new HashSet<>();

@@ -8,7 +8,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// promptMulligan (scoping spec §6.3): London's two asks. The keep/mulligan
+// promptMulligan: London's two asks. The keep/mulligan
 // ask carries the seat's hand ids (the seat reads its own hand); the
 // bottoming ask carries the full card projection of that hand and the
 // bottoming count. The two are told apart by the options' kinds ("keep" and
@@ -41,7 +41,7 @@ func (t *Translator) handViews(d *decision.Decision, v *view.View) []view.CardVi
 // promptMulliganKeep builds the London keep/mulligan ask. MulliganCount
 // (mulligans taken so far) is not carried on the decision -- the engine
 // keeps it in the mulligan round's own state, which the adapter cannot see
-// -- so it reports 0 (G-7 style: absent information becomes a default, the
+// -- so it reports 0 (absent information becomes a default, the
 // prompt text and the option list stay the source of truth).
 func (t *Translator) promptMulliganKeep(d *decision.Decision, v *view.View) (mb.PromptMessage, error) {
 	hand := t.handViews(d, v)

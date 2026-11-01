@@ -33,7 +33,7 @@ func TestReviewTableServesTheRecordedMatchLikeTheLiveOne(t *testing.T) {
 	t.Parallel()
 	live, m := finishedTable(t)
 	r := reviewRegistry(t)
-	if err := r.AddReviewTable("rv", ReviewMatch{Config: m.cfg, Log: m.e.L.Clone(), Names: []string{"Ann"}, Policies: []string{"bot", "bot", "lethal-pressure"}, Label: "Review"}); err != nil {
+	if err := r.AddReviewTable("rv", ReviewMatch{Config: m.rulesConfig(), Log: m.e.L.Clone(), Names: []string{"Ann"}, Policies: []string{"bot", "bot", "lethal-pressure"}, Label: "Review"}); err != nil {
 		t.Fatal(err)
 	}
 	// Start is a no-op: no run loop, no new match.
@@ -62,7 +62,7 @@ func TestReviewTableServesTheRecordedMatchLikeTheLiveOne(t *testing.T) {
 	if (got.Winner == nil) != (want.Winner == nil) || (got.Winner != nil && *got.Winner != *want.Winner) {
 		t.Fatalf("winner %v, live %v", got.Winner, want.Winner)
 	}
-	if got.Seats[0].Name != "Ann" || got.Seats[1].Name != m.cfg.PlayerNames[1] || got.Seats[1].Deck != m.cfg.Names[1] {
+	if got.Seats[0].Name != "Ann" || got.Seats[1].Name != m.gc.PlayerNames[1] || got.Seats[1].Deck != m.gc.Names[1] {
 		t.Fatalf("seats %+v", got.Seats)
 	}
 
@@ -137,8 +137,8 @@ func TestReviewTableRefusesALogThatDoesNotReplay(t *testing.T) {
 		in   ReviewMatch
 		div  bool // the refusal carries a *replay.Divergence
 	}{
-		{"truncated", ReviewMatch{Config: m.cfg, Log: short}, true},
-		{"wrong seed", ReviewMatch{Config: m.cfg, Log: wrongSeed}, false},
+		{"truncated", ReviewMatch{Config: m.rulesConfig(), Log: short}, true},
+		{"wrong seed", ReviewMatch{Config: m.rulesConfig(), Log: wrongSeed}, false},
 	} {
 		err := r.AddReviewTable("bad", tc.in)
 		if err == nil || !strings.Contains(err.Error(), "does not replay") {
@@ -159,11 +159,11 @@ func TestReviewTableInputValidation(t *testing.T) {
 	t.Parallel()
 	_, m := finishedTable(t)
 	r := reviewRegistry(t)
-	ok := ReviewMatch{Config: m.cfg, Log: m.e.L.Clone()}
+	ok := ReviewMatch{Config: m.rulesConfig(), Log: m.e.L.Clone()}
 	if err := r.AddReviewTable("", ok); err == nil {
 		t.Fatal("empty id accepted")
 	}
-	if err := r.AddReviewTable("x", ReviewMatch{Config: m.cfg}); err == nil {
+	if err := r.AddReviewTable("x", ReviewMatch{Config: m.rulesConfig()}); err == nil {
 		t.Fatal("nil log accepted")
 	}
 	if err := r.AddReviewTable("x", ok); err != nil {

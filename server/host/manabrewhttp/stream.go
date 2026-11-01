@@ -11,14 +11,14 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// stream is GET .../stream (§5.2): one SSE connection for the claim's own
+// stream is GET .../stream: one SSE connection for the claim's own
 // seat. On connect it sends the current state and the open prompt if one
 // exists; from then on a host.Session subscribed in FOCUS mode is used
 // purely as a wake-up — its own frames are native-wire and are never
 // forwarded (invariant 5.3: "the host Session subscription is used only as
 // a wake-up") — so every board change anywhere at the table re-polls this
-// seat's own ViewAtSeat/Pending and re-translates. Auto-pass (§6.5) and a
-// queued concede (G-2) are serviced here, silently, before anything reaches
+// seat's own ViewAtSeat/Pending and re-translates. Auto-pass and a
+// queued concede are serviced here, silently, before anything reaches
 // the client: they are answered as ordinary logged intents and the next
 // wake-up (their own burst) drives the next refresh.
 func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 						}
 					} else {
 						// ShouldPass is false: either the policy was never active
-						// (a plain pass) or a stop condition was reached (§6.5).
+						// (a plain pass) or a stop condition was reached.
 						// Either way there is nothing left for it to do.
 						sc.setPolicy(nil)
 					}
@@ -147,7 +147,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		// Synthetic ack-only prompts (MBX-2): every match event this seat has
+		// Synthetic ack-only prompts: every match event this seat has
 		// not yet been shown mints at most one, in event order, between the
 		// state and the seat's own open prompt. They are additive -- none of
 		// the prompt bookkeeping below (havePrompt/lastPromptID) is consulted
@@ -164,9 +164,8 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 			havePrompt = false
 			if v.Over && sc.markGameOver() {
 				// The terminal gameOver prompt, exactly once per seat, after
-				// the final state (scoping spec Appendix A's "end of match"
-				// row). The stream stays open; closing it at rollover is
-				// cmd/gorged's (MB-9's) concern.
+				// the final state. The stream stays open; closing it at rollover
+				// is cmd/gorged's concern.
 				if err := write(mb.EngineMessage{Value: tr.GameOver(&v)}); err != nil {
 					return err
 				}
@@ -179,10 +178,8 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 		dv := v
 		pm, perr := tr.Prompt(d, &dv)
 		if perr != nil {
-			// A decision kind whose MB translator ticket has not landed
-			// yet: loud, not silent, and never a crash (see the mapping
-			// program's collision map — this transport must work against
-			// whatever server/manabrew currently covers).
+			// A decision kind the translator does not map: loud, not silent,
+			// and never a crash.
 			_ = write(mb.EngineMessage{Value: mb.ErrorMessage{Error: mb.ProtocolError{
 				Code: mb.CodeInvalidShape, Message: "prompt kind " + string(d.Kind) + " has no ManaBrew translation yet"}}})
 			return nil

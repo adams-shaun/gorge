@@ -211,10 +211,13 @@ func TestDiscardTgtChooseMultiTargetAsksEveryTargetKernel(t *testing.T) {
 	if d == nil || d.Player != 1 {
 		t.Fatalf("second ask = %+v, want seat 1 -- target 1 was never asked", d)
 	}
+	if !kr0In(e, state.ZHand, 0, cat) {
+		t.Fatal("target 0's card left the hand before target 1 chose")
+	}
+	kr0Answer(t, e, kr0Opt(t, d, dog))
 	if !kr0In(e, state.ZGraveyard, 0, cat) {
 		t.Fatal("target 0's answer was not applied")
 	}
-	kr0Answer(t, e, kr0Opt(t, d, dog))
 	if !kr0In(e, state.ZGraveyard, 1, dog) {
 		t.Fatal("target 1's answer was not applied to target 1's hand")
 	}
@@ -239,9 +242,6 @@ func TestDiscardChooseModeMultiTargetCursorDoesNotStallKernel(t *testing.T) {
 		t.Fatalf("first ask = %+v, want seat 0", d)
 	}
 	d = kr0Answer(t, e, kr0Opt(t, d, frog))
-	if !kr0In(e, state.ZGraveyard, 0, frog) {
-		t.Fatal("target 0's answer was not applied")
-	}
 	if d == nil || d.Player != 0 || d.ResumeTarget != 1 {
 		t.Fatalf("second ask = %+v, want the caster's ask for target 1", d)
 	}
@@ -251,6 +251,9 @@ func TestDiscardChooseModeMultiTargetCursorDoesNotStallKernel(t *testing.T) {
 		}
 	}
 	kr0Answer(t, e, kr0Opt(t, d, bird))
+	if !kr0In(e, state.ZGraveyard, 0, frog) {
+		t.Fatal("target 0's answer was not applied")
+	}
 	if !kr0In(e, state.ZGraveyard, 1, bird) {
 		t.Fatal("target 1's answer was not applied")
 	}

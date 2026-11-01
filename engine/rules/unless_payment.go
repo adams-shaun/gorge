@@ -84,7 +84,7 @@ func (e *Engine) answerUnlessMana(chosen []decision.Option) {
 		e.finishUnlessPayment(false)
 		return
 	}
-	for _, src := range e.windowManaUnitsPaid(u.Payer) {
+	for _, src := range e.unlessWindowUnits(u.Payer) {
 		if src.ID != chosen[0].Obj {
 			continue
 		}

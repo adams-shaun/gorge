@@ -59,10 +59,6 @@ if (( SMOKE_PORT_LO < 1 || SMOKE_PORT_HI > 65535 || SMOKE_PORT_LO >= SMOKE_PORT_
   echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least five ports)" >&2
   exit 1
 fi
-if (( SMOKE_PORT_LO <= 8081 && SMOKE_PORT_HI >= 8080 )); then
-  echo "smoke: port range $SMOKE_PORT_LO-$SMOKE_PORT_HI intersects reserved demo ports 8080-8081" >&2
-  exit 1
-fi
 
 allocate_ports() {
   local taken p
@@ -175,7 +171,7 @@ cleanup() {
     # No servers were recorded (a probe mode, a build failure, an
     # allocation-failure exit): nothing to kill and nothing to re-report —
     # but the temp dirs the run created must STILL go. A teardown that
-    # leaks on a failure path is exactly the class this ticket closes.
+    # leaks on a failure path would keep a port busy.
     # The selftest sets every dir to "" so this is a silent no-op there.
     rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${VITE_CACHE_DIR:-}"
   fi
@@ -202,7 +198,7 @@ if [[ "${SMOKE_TEARDOWN_SELFTEST:-}" == 1 ]]; then
   # Before the bounded-strict teardown this mode is the "fails without the
   # fix" witness: the old TERM-and-wait-only cleanup left the sleeper alive
   # after PASS/FAIL was already reported, which is exactly how a leaked farm
-  # blocked every later run on this box.
+  # blocked every later run.
   echo "== smoke: teardown selftest =="
   PUBDIR="" OMNDIR="" SEATDIR="" FIXTUREDIR="" TALISDIR="" VITE_CACHE_DIR=""
   SERVER_PIDS=()
@@ -253,10 +249,9 @@ echo "== smoke: building gorged =="
 mkdir -p bin
 CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 
-# ---- allocate five free smoke ports (8090-8099 by default); NEVER 8080/8081 (demo) ----
+# ---- allocate five free smoke ports (8090-8099 by default) ----
 # The scan-then-bind window races every OTHER gate running in the same range
-# (two agent worktrees legitimately share 8090-8099, measured live twice on
-# 2026-09-17: the loser's gorged fails to bind and the gate then drives the
+# (two worktrees legitimately share 8090-8099: the loser's gorged fails to bind and the gate then drives the
 # WINNER's servers — wrong fixture decks, wrong seat tokens, intents from two
 # playwrights on one seeded game — which reads exactly like a product
 # failure). So allocation is a function and the whole farm is retried below.

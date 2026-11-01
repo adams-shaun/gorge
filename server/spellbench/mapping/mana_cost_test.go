@@ -147,8 +147,7 @@ func replayCommit(t *testing.T, g *gamecfg.Game, commit []decision.Intent) *rule
 // Phyrexian Altar's sacrifice cost poses a pick and, past it, a colour ask:
 // the fold carries one candidate per (creature, colour), each naming its
 // cost_target, and its three-intent commit replayed on a clone sacrifices the
-// creature and adds the mana (Task 15 fix round: the cost fold's first live
-// coverage).
+// creature and adds the mana.
 func TestCostFoldExpandsPerCreatureAndColour(t *testing.T) {
 	g := altarPosition(t, "Phyrexian Altar", 2)
 	env := envFor(t, g)
@@ -331,7 +330,7 @@ func TestCostFoldFailsClosedOnAHiddenCostTarget(t *testing.T) {
 			t.Fatalf("construction assumption broken: %d exists in the small game", co.Obj)
 		}
 	}
-	env.Obs = &observe.Projector{E: g2.E, IDs: env.IDs}
+	env.Obs = &observe.Projector{R: g2.R, IDs: env.IDs}
 	if _, _, err := mapping.ExpandActivate(env, d, o, *src); !errors.Is(err, mapping.ErrUnmapped) ||
 		!strings.Contains(err.Error(), "cost_target_hidden") {
 		t.Fatalf("hidden cost target: %v, want ErrUnmapped:cost_target_hidden", err)

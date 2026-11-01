@@ -1,5 +1,5 @@
 #!/bin/sh
-# When main is pushed with RACE=1 set, run the race detector once (FL-56):
+# When main is pushed with RACE=1 set, run the race detector once:
 # nobody else runs -race.
 zero=0000000000000000000000000000000000000000
 push_main=0
@@ -7,20 +7,15 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
 	[ "$remote_ref" = "refs/heads/main" ] && push_main=1
 done
-# Ruling FL-62 (user directive 2026-09-05): the race gate is OFF by default —
-# it added ~2 min to every push of main, which is too slow to sit through.
-# FL-56 (-race runs exactly once, and only here) still holds for WHERE it
-# runs; what changed is that it no longer runs automatically. Run it
+# The race gate is OFF by default: it adds ~2 min to every push of main. Run it
 # deliberately before a milestone merge with RACE=1 git push origin main.
 if [ "$push_main" = 1 ] && [ -n "$RACE" ]; then
 	echo "pre-push: race gate on main, one package at a time" >&2
 	out=$(mktemp -t gorge-race-XXXXXX.log)
-	# Ruling FL-89: ONE package per invocation, and -p=1 inside each. This
-	# used to be a single `go test -race ./server/host/... ./engine/rules/ ...`, which
-	# lets -p default to GOMAXPROCS (32 here) and holds that many race
-	# binaries resident at once. The race detector's shadow memory sits
-	# OUTSIDE GOMEMLIMIT, so the Makefile's cap does not bound it -- that
-	# combination is what OOMed and locked the box (peak 17.8G).
+	# ONE package per invocation, and -p=1 inside each. A single `go test -race`
+	# over them lets -p default to GOMAXPROCS and holds that many race binaries
+	# resident at once. The race detector's shadow memory sits OUTSIDE
+	# GOMEMLIMIT, so the Makefile's cap does not bound it.
 	for p in ./engine/state/ ./engine/events/ ./engine/effects/ ./engine/rules/ ./engine/seat/ ./engine/replay/ ./server/host/ ./server/host/httpapi/; do
 		if ! go test -race -p=1 -count=1 "$p" >>"$out" 2>&1; then
 			grep -vE '^ok' "$out" | tail -60 >&2

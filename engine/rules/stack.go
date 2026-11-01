@@ -148,6 +148,9 @@ func (e *Engine) resolveTop() {
 			}
 			if spec := effects.TargetsOf(tsa).ValidTgts; spec != "" && !(e.resolvedTargetMin(o.Controller, id, tsa, 0) == 0 && len(targets) == 0) {
 				legal := e.legalTargets(targets, tsa, targetZones(tsa), o.Controller, o.Source, id)
+				if charmModeTargets != nil {
+					legal = nil // each mode judged its own targets, and none held
+				}
 				// subLegal > 0 keeps a chain alive whose ROOT targets all
 				// became illegal but whose pre-asked sub target did not
 				// (alltargeted1); charmHandled cannot reach here, so the two
@@ -656,6 +659,9 @@ func (e *Engine) resolveTop() {
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := effects.TargetsOf(targetSA).ValidTgts; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
+			if charmModeTargets != nil {
+				legal = nil // each mode judged its own targets, and none held
+			}
 			if len(legal) == 0 && subLegal == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes

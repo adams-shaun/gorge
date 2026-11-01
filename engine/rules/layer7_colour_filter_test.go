@@ -5,7 +5,7 @@ import "testing"
 // A layer-7 pump whose Affected$ names a colour reads the layer-5 colours
 // (CR 613.1e applies before 613.4c): Heraldic Banner (+1/+0 to creatures of
 // the chosen colour) pumps a creature Witness Protection made green and
-// white by its green, not its printed black (kernel lockstep pairs 110,
+// white by its green, not its printed black (dirac lockstep pairs 110,
 // 1004). The scalar P/T walk matched the pump against the printed colours.
 func TestLayer7ColourFilterReadsLayer5Colours(t *testing.T) {
 	const painter = "Name:Green Painter\nTypes:Enchantment\nS:Mode$ Continuous | Affected$ Creature | SetColor$ Green\nOracle:x\n"

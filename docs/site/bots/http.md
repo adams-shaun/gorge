@@ -1,31 +1,24 @@
 # Playing a seat over HTTP
 
-This page is for authors of bots in any language who want to play a gorge
-seat over the network. It walks the decision round trip with real requests
-and responses captured from a live `gorged` on 2026-10-20 (`ad3777023`),
-explains how to answer each of the thirteen decision kinds, and lists the
-errors, timeouts and pitfalls. The routes, error bodies and refusal
-behaviour were rechecked against a live `gorged` at `513a2a0c3` on
-2026-10-21. The field-by-field reference is the
-[HTTP API reference](../api/http.md); the wire types are on
-[the protocol reference](../api/protocol.md). Working agents are on
-[Python and Java examples](examples.md).
+This page is for authors of bots in any language who want to play a gorge seat over the network. It walks the decision
+round trip with real requests and responses from a live `gorged` (2026-10-31 unless a line says otherwise), explains how to
+answer each decision kind, and lists the errors and pitfalls. The field-by-field reference is the
+[HTTP API reference](../api/http.md); working agents are on [Python and Java examples](examples.md).
 
-The HTTP seat is the same surface the browser client plays through: a seat
-the server treats as "human" parks each decision until someone posts an
-answer. A bot is simply a program holding that seat's token.
+The HTTP seat is the surface the browser client plays through: a seat the server treats as "human" parks each decision until
+someone posts an answer. A bot is a program holding that seat's token.
 
 ## Start a server that has a seat for you
 
-Two ways, both on `gorged` (build it with `go build ./cmd/gorged` in the
-repository root, after `make fetch-cards compile-cards`):
+Two ways, both on `gorged` (build it with `go build ./cmd/gorged` in the repository root, after `make fetch-cards`; a bot
+needs no browser client):
 
 === "On demand: POST /api/games"
 
     ```console
-    $ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+    $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
         -tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot
-    gorged: 0 tables of 4 on 127.0.0.1:8092 (dir /tmp/gorge-bots)
+    gorged: 0 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
     ```
 
     `-vsbot` arms `POST /api/games`, which creates a private two-seat table,
@@ -38,10 +31,10 @@ repository root, after `make fetch-cards compile-cards`):
 === "Fixed seat: -humans"
 
     ```console
-    $ ./gorged -addr 127.0.0.1:8092 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
-        -tables 1 -seats 2 -humans 0 -seat-token docs-token -spectator public -pace 0 -prewarm=false -bot-policy bot
-    gorged: 1 tables of 2 on 127.0.0.1:8092 (dir /tmp/gorge-bots)
-    gorged: table t1 seat 0 joins at http://127.0.0.1:8092/t/t1?seat=0&token=docs-token
+    $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
+        -tables 1 -seats 2 -humans 0 -seat-token docs-token -pace 0 -prewarm=false -bot-policy bot
+    gorged: 1 tables of 2 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
+    gorged: table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=docs-token
     ```
 
     `-humans 0` makes seat 0 of table `t1` an HTTP seat; `-seat-token`
@@ -52,6 +45,13 @@ repository root, after `make fetch-cards compile-cards`):
 
 Use a persistence directory of your own (`-dir`); two servers sharing one
 corrupt each other.
+
+The commands below use two shell variables:
+
+```sh
+GORGE=http://127.0.0.1:8080
+TOKEN=<the seat's token>      # from the POST /api/games reply; docs-token on the fixed seat
+```
 
 ## The round trip
 
@@ -106,9 +106,9 @@ is the credential: the server derives the table and seat from it and refuses
 any request whose table or `?seat=` disagrees.
 
 ```console
-$ curl -s -w ' [%{http_code}]\n' "$B/api/tables/t1/matches/1/pending?seat=0"
+$ curl -s -w ' [%{http_code}]\n' "$GORGE/api/tables/t1/matches/1/pending?seat=0"
 {"code":"unauthorized","message":"request does not hold a seat claim"} [401]
-$ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$B/api/tables/t1/matches/1/pending?seat=1"
+$ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$GORGE/api/tables/t1/matches/1/pending?seat=1"
 {"code":"forbidden","message":"claim holds seat 0, not the requested seat 1"} [403]
 ```
 
@@ -133,23 +133,20 @@ network you trust, or behind TLS.
 ### Create a game
 
 ```console
-$ curl -s -X POST -d '{"format":"constructed","bot_policy":"bot","human_deck":"mono-green-stompy","bot_deck":"mono-red-goblins"}' $B/api/games
+$ curl -s -X POST -d '{"format":"constructed","bot_policy":"bot","human_deck":"mono-green-stompy","bot_deck":"mono-red-goblins"}' $GORGE/api/games
 {"table":"g7","match":1,"seed":6673408969535470007,"seat":0,"token":"b63edb2dcd4ea366426123ebd99fe424","bot_policy":"bot","join":"/t/g7?seat=0&token=b63edb2dcd4ea366426123ebd99fe424"}
 ```
 
-Every field is optional: `format` defaults to `constructed`, a missing deck
-is dealt at random, a missing `bot_policy` takes the server's `-bot-policy`.
-`mulligans` (0 to 6) overrides the server's London mulligan allowance. Deck
-ids come from `GET /api/decks`; an unknown one is a `400`
-(`{"code":"bad_request","message":"unknown human deck \"mono-red-burn\""}`).
-Your seat is always seat 0, and the opening `join` path is the same game in
-a browser, which is a good way to watch your bot play. The table appears a
-moment after the response, so retry a `404` on its first poll briefly.
+Every field is optional: `format` defaults to `constructed`, a missing deck is dealt at random, a missing `bot_policy` takes
+the server's `-bot-policy`. `mulligans` (0 to 6) overrides the server's London mulligan allowance. Deck ids come from
+`GET /api/decks`; an unknown one is a `400`. The seed is drawn by the server and returned; a client can't choose it. Your seat
+is always seat 0, and the `join` path is the same game in a browser, which is a good way to watch your bot play. The table
+appears a moment after the response, so retry a `404` on its first poll briefly.
 
 ### Read the pending decision
 
 ```console
-$ curl -s -H "Authorization: Bearer $TOK" "$B/api/tables/g2/matches/1/pending?seat=0"
+$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g2/matches/1/pending?seat=0"
 {"seq":18,"player":0,"kind":"starting_player","prompt":"You won the toss. Choose who takes the first turn.","min":1,"max":1,"options":[{"index":0,"kind":"player","label":"You","player":0},{"index":1,"kind":"player","label":"Bot","player":1}]}
 ```
 
@@ -168,7 +165,7 @@ When nothing is pending the answer is `409` with the server's reason:
 ### Read the view
 
 ```console
-$ curl -s -H "Authorization: Bearer $TOK" "$B/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, active, over, winner, me: .players[0] | {life, hand_size, library_size}, them: .players[1] | {life, hand_size, hand}}'
+$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, active, over, winner, me: .players[0] | {life, hand_size, library_size}, them: .players[1] | {life, hand_size, hand}}'
 {
   "viewer": 0,
   "visibility": "seat",
@@ -195,14 +192,12 @@ The opponent's `hand` is `null` (hidden) where yours is a list of cards with
 `tapped` and more. Your own `library` is listed in a canonical order that
 never reveals the real one. The view also embeds the pending `decision`, so a
 policy that always wants the board can skip `/pending` and read both from one
-`GET /view`; at 2 to 20 KB in the opening turns (it grows with the board and,
-for some decks, the listed library) it costs about four times as much as
-`/pending` (0.50 ms against 0.12 ms median, [below](#latency)).
+`GET /view`, at about four times the cost ([below](#latency)).
 
 ### Answer
 
 ```console
-$ curl -s -i -X POST -H 'Authorization: Bearer docs-token' -d '{"seq":22,"player":0,"choices":[0]}' "$B/api/tables/t1/matches/1/intent"
+$ curl -s -i -X POST -H 'Authorization: Bearer docs-token' -d '{"seq":22,"player":0,"choices":[0]}' "$GORGE/api/tables/t1/matches/1/intent"
 HTTP/1.1 204 No Content
 ```
 
@@ -245,9 +240,8 @@ payment works.
 
 ## Answering each decision kind
 
-Every kind uses the same answer shape; what differs is how many options to
-pick and what the order means. These are the option kinds observed in 70
-games on 2026-10-20 (a random agent, constructed and Commander).
+Every kind uses the same answer shape; what differs is how many options to pick and what the order means. The option kinds are
+examples, not a closed list.
 
 | Decision `kind` | What it asks | How to answer | Example option kinds |
 |---|---|---|---|
@@ -285,8 +279,7 @@ Real examples, trimmed to their first options:
 A rules-ignorant fallback that is accepted almost always: at `priority` the
 `pass` option; anywhere else the first `min` options. The example agents
 try their policy's answer, then a few random answers that respect `min`,
-`max`, `required` and the exclusivity rules, then that fallback; across 120
-games they were refused twice.
+`max`, `required` and the exclusivity rules, then that fallback.
 
 ## Errors
 
@@ -300,19 +293,16 @@ Every error body is `{"code": …, "message": …}`. Captured:
 | 404 | `not_found` | no such match (yet) | `host: not found` |
 | 409 | `conflict` | nothing pending; a stale `seq`; an answer the decision does not allow; an answer the rules engine refuses | `intent seq 1, pending decision seq 22` · `choice 7 out of range (2 options)` · `attacker 38 declared against more than one defender` |
 
-A refused intent leaves the decision pending and the game exactly where it
-was: read `/pending` again and send a different answer. That holds for a
-refusal from the rules engine too; it no longer ends the match.
+A refused intent leaves the decision pending and the game exactly where it was: read `/pending` again and send a different
+answer. That holds for a refusal from the rules engine too.
 
 ## Timeouts and disconnects
 
-`gorged` gives an HTTP seat **no deadline**: a parked decision waits until
-it is answered. If your bot dies, its game waits too (the browser's tab can
-be closed and reopened the same way). The seat's *caretaker*, the bot that
-would have played the slot, answers in your place only when the table shuts
-down. `-manabrew-think` is the one think-time knob, and it applies only with
-the ManaBrew adapter on. There is no per-request deadline to honour either;
-the examples use a 30 s HTTP timeout of their own.
+`gorged` gives an HTTP seat **no deadline**: a parked decision waits until it is answered. If your bot dies, its game waits too,
+and the seat's *caretaker*, the bot that would have played the slot, answers in your place only when the table shuts down.
+An abandoned table still counts against `-max-on-demand-tables`, so a crashed training loop can exhaust it
+(`host: on-demand table limit 32 reached`); `-max-on-demand-tables 0` lifts the cap. `-manabrew-think` is the one think-time knob, and
+it applies only with the ManaBrew wire on.
 
 ## Push instead of poll (SSE)
 
@@ -336,8 +326,8 @@ data: {"v":1,"t":"decision","id":7,"table":"t1","match":1,"seq":38,"body":{"play
 ```
 
 ```console
-$ curl -sN -H "Authorization: Bearer $TOK" $B/api/stream      # keep this open
-$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $B/api/subscribe
+$ curl -sN -H "Authorization: Bearer $TOKEN" $GORGE/api/stream      # keep this open
+$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $GORGE/api/subscribe
 ```
 
 The stream is a *spectator* stream: it shows what the table's spectator
@@ -350,12 +340,11 @@ from `Last-Event-ID` within 30 s of a disconnect, and closes with an
 
 ## Latency
 
-`examples/bots/python/measure_latency.py` plays ten games answering every
-decision minimally and times each call. On 2026-10-20 (`ad3777023`),
-loopback, Ryzen 9 9950X, `gorged -pace 0`:
+`examples/bots/python/measure_latency.py` plays ten games answering every decision minimally and times each call. On 2026-10-20,
+over loopback on a Ryzen 9 9950X with `gorged -pace 0`:
 
 ```console
-$ python3 measure_latency.py http://127.0.0.1:8092 10
+$ python3 measure_latency.py http://127.0.0.1:8080 10
 poll GET pending  median 0.12 ms, p95 0.19 ms (n=2116)
 poll GET view     median 0.50 ms, p95 1.09 ms (n=2116)
 poll POST intent  median 0.11 ms, p95 0.16 ms (n=2116)
@@ -366,14 +355,12 @@ sse  POST intent  median 0.12 ms, p95 0.18 ms (n=1932)
 sse  answer -> next own decision visible  median 0.24 ms, p95 0.67 ms (n=1922)
 ```
 
-So one decision costs about 0.25 ms of HTTP when the bot needs only the
-decision and 0.75 ms when it also reads the view, against tens of
-microseconds in-process. Polling flat out finds the next decision fastest
-but burns a core; the example agents back off from 2 ms to 50 ms while idle
-and average 1.6 ms (random policy, no view) to 3.2 ms (view every decision)
-per decision over whole games. SSE costs one wake-up hop and nothing while
-idle. Sixteen agents on one server played 16 games, 4,156 decisions, in
-1.27 s of wall time.
+So one decision costs about 0.25 ms of HTTP when the bot needs only the decision and 0.75 ms when it also reads the view. Polling
+flat out finds the next decision fastest but burns a core; the example agents back off from 2 ms to 50 ms while idle. SSE costs one
+wake-up hop and nothing while idle.
+
+There is no long-poll and no batching: an agent polls or takes the SSE wake-up, one decision per round trip. Training that needs
+engine-speed rollouts should run in Go.
 
 ## Pitfalls
 
@@ -387,8 +374,7 @@ idle. Sixteen agents on one server played 16 games, 4,156 decisions, in
   ([above](#push-instead-of-poll-sse)).
 - **Spectator visibility.** On a `-humans` server the default spectator
   visibility is `public`, so `/api/stream` and a seat-less `/view` hide every
-  hand. Do not pass `-spectator omniscient` on a table with people at it
-  (play-vs-bot tables default to public too).
+  hand. Don't pass `-spectator omniscient` on a table with people at it.
 - **Concede is an option.** A random policy that samples every priority
   option will concede in its first few turns. Filter it out.
 - **The first poll can 404.** A fresh table goes live a moment after

@@ -7,21 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// canReceiveCounter answers Forge's Card.canReceiveCounters <kind>: the object
-// can have a counter of kind placed on it. A +1/+1 (or -1/-1) counter is
-// hostable by a creature -- read through EffectiveIsCreature so a face-down
-// permanent's folded set type decides -- and any other counter kind by any
-// battlefield permanent with a face. Off the battlefield (or a face-less
-// object) never matches.
-func canReceiveCounter(kind string, o *state.Object) bool {
-	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
-		return false
-	}
-	switch canReceiveCounterCodes.Code(string(strings.ToUpper(kind))) {
-	case canReceiveCounterPowerToughness:
-		return o.EffectiveIsCreature()
-	}
-	return true
+// canReceiveCounter answers Forge's Card.canReceiveCounters: any permanent can
+// have a counter of any kind put on it, a noncreature's +1/+1 counter included
+// (CR 122.1a only limits what the counter does). A static that stops a counter
+// is applied by the put itself.
+func canReceiveCounter(o *state.Object) bool {
+	return o != nil && o.Zone == state.ZBattlefield && o.Face() != nil
 }
 
 // hasType reads a printed type plus Changeling's type-defining ability. The
@@ -364,17 +355,6 @@ func TypeMatchWords(types []string, all bool) []string {
 
 // kwChangeling is Changeling's interned keyword head (cards.InternKeywordHead).
 var kwChangeling = cards.InternKeywordHead("Changeling")
-
-type canReceiveCounterCode uint16
-
-const (
-	canReceiveCounterPowerToughness canReceiveCounterCode = iota + 1
-)
-
-var canReceiveCounterCodes = state.NewStrCodes(
-	state.StrEntry[canReceiveCounterCode]{Key: "P1P1", Val: canReceiveCounterPowerToughness},
-	state.StrEntry[canReceiveCounterCode]{Key: "M1M1", Val: canReceiveCounterPowerToughness},
-)
 
 type typePredicateCode uint16
 

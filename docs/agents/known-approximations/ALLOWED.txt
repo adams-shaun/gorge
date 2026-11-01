@@ -1,4 +1,4 @@
-# Known approximations: a CLOSING REGISTER (frozen 2026-09-22; moved out of AGENTS.md 2026-10-26).
+# Known approximations: a CLOSING REGISTER.
 # One line per remaining file: <slug> <max bytes>. Lines may only be DELETED (the row closed: delete
 # its file and its line) or have their byte cap LOWERED. Never add a line or raise a cap.
 effect-modes 630

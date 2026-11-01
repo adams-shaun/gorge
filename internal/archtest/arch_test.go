@@ -153,10 +153,9 @@ func set(s string) map[string]bool {
 // deadlines. No game, event, view or replay reads the clock, and intents reach
 // the engine only through SubmitIntent.
 //
-// The research tools that also read the clock (botbench, searchteacher, the
-// SpellBench agents, the draft-event runtime and the rest) moved to four-yay
-// with the lab tree, and the pipeline's issue ledger (cmd/ledger) with the ops
-// tree (docs/decisions/0001-repo-layout.md and its amendments).
+// draft/eventhost reads the clock only for lobby, idle and pick timers, through
+// Options.Now/Options.Clock; the event log records their outcome as entries, and
+// replay never reads the clock.
 func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	allowed := map[string]bool{
 		module + "/server/host":              true,
@@ -166,6 +165,7 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/paymirror":            true,
 		module + "/cmd/enginebench":          true,
 		module + "/server/host/manabrewhttp": true,
+		module + "/draft/eventhost":          true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {
@@ -181,6 +181,18 @@ func TestDependencyOrderHolds(t *testing.T) {
 	forbidden := []struct{ from, to string }{
 		{module + "/engine/effects", module + "/engine/rules"},
 		{module + "/engine/view", module + "/engine/rules"},
+		// engine/game is what a host sees of any engine: above view, below the
+		// host, and blind to the engine it fronts. engine/view's own tests
+		// import engine/replay, so replay reaching view would be a test import
+		// cycle; replay's shared divergence type lives in engine/eventdiff.
+		{module + "/engine/game", module + "/engine/rules"},
+		{module + "/engine/game", module + "/engine/replay"},
+		{module + "/engine/view", module + "/engine/game"},
+		{module + "/engine/seat", module + "/engine/game"},
+		{module + "/engine/rules", module + "/engine/game"},
+		{module + "/engine/replay", module + "/engine/game"},
+		{module + "/engine/eventdiff", module + "/engine/view"},
+		{module + "/engine/eventdiff", module + "/engine/rules"},
 		{module + "/bots/botpolicy", module + "/engine/view"},
 		{module + "/bots/botpolicy", module + "/engine/rules"},
 		{module + "/bots/botpolicy", module + "/engine/seat"},
@@ -363,10 +375,10 @@ func TestManaBrewWireIsStdlibOnly(t *testing.T) {
 }
 
 // TestNoExportLeaksAnEngineGame is D6's compile-time half: no exported
-// function or method of host or server/host/httpapi may expose a *state.Game or a
-// *rules.Engine through its signature — by return type, or by any parameter
-// shape a caller could funnel back into a leaked live game. Every value that
-// crosses either package is already a view.View, a protocol.* or a
+// function or method of host or server/host/httpapi may expose a game.Game, a
+// *state.Game or a *rules.Engine through its signature — by return type, or by
+// any parameter shape a caller could funnel back into a leaked live game. Every
+// value that crosses either package is already a view.View, a protocol.* or a
 // decision.* payload; the engine and its game never leave engine/rules/ at all (a
 // client layer must read state only through view).
 //
@@ -385,11 +397,12 @@ func TestNoExportLeaksAnEngineGame(t *testing.T) {
 	// so a source change invalidates this test's cached result (see its doc
 	// comment); the returned map is unused here.
 	packages(t)
-	// These exact type names (state.Game, rules.Engine) are what a leak's
-	// signature would carry; a legitimate client-facing type never has an
-	// element in either package. Word boundaries stop the match from
+	// These exact type names (game.Game, state.Game, rules.Engine) are what a
+	// leak's signature would carry; a legitimate client-facing type never has an
+	// element in any of these packages. Word boundaries stop the match from
 	// prefix-colliding with a hypothetical longer identifier.
 	leaks := []*regexp.Regexp{
+		regexp.MustCompile(`\bgame\.Game\b`),
 		regexp.MustCompile(`\bstate\.Game\b`),
 		regexp.MustCompile(`\brules\.Engine\b`),
 	}

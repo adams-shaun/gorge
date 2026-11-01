@@ -37,7 +37,7 @@ func Digest(c *cards.Card) string {
 
 // Packet renders name, mana cost, type line, P/T (or loyalty/defense) and
 // Oracle text per face, then the digest -- and nothing from the script. It is
-// the only card text an audit scenario author is shown (four-yay cmd/oraclepacket).
+// the only card text an audit scenario author is shown (gorge-compliance's oraclepacket).
 func Packet(c *cards.Card) string {
 	var b strings.Builder
 	for i, f := range c.Faces {

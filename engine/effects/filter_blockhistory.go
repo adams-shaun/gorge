@@ -157,7 +157,7 @@ func anyRemembered(g *state.Game, sc *SpecContext, fn func(state.ObjID) bool) bo
 	persistent := effectiveSourceRemembered(g, sc.TriggerContext, src)
 	resolution := sc.Remembered
 	if len(sc.Captured) > 0 {
-		resolution = selectRemembered(sc.Remembered, sc.Captured, sc.DelayedRemembered, persistent)
+		resolution = selectRemembered(sc.Remembered, sc.Captured, sc.DelayedRemembered, persistent, sc.RememberWriterAbove)
 	}
 	for _, t := range resolution {
 		if !t.IsPlayer && fn(t.Obj) {

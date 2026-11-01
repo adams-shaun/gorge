@@ -582,6 +582,7 @@ func cloneFieldsEngineTriggerBatches(c, e *Engine, sp *Spare, remap *cloneRemap)
 		}
 	}
 	c.entryHeld = cloneHeldEntryChecks(e.entryHeld)
+	c.exileReturnHeld = append([]state.ObjID(nil), e.exileReturnHeld...)
 	c.millBatchOpen = e.millBatchOpen
 	c.millBatchDepth = e.millBatchDepth
 	if e.millBatchIdx != nil {
@@ -1011,6 +1012,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.discards = append([]state.ObjID(nil), e.triggerCost.discards...)
 		p0.blights = append([]state.ObjID(nil), e.triggerCost.blights...)
 		p0.moveGraves = append([]state.ObjID(nil), e.triggerCost.moveGraves...)
+		p0.returns = append([]state.ObjID(nil), e.triggerCost.returns...)
 		p0.evidence = append([]state.ObjID(nil), e.triggerCost.evidence...)
 		p0.numTimes.unit = cloneCost(e.triggerCost.numTimes.unit)
 		p0.counterPicks = append([]string(nil), e.triggerCost.counterPicks...)

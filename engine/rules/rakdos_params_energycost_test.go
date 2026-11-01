@@ -71,12 +71,12 @@ func TestChthonianNightmarePaysEnergySacsAndReturns(t *testing.T) {
 	}
 	submitChoices(t, e, activateIndex(t, e, nm))
 
-	// The PayEnergy<X> ask: X bounds are the payer's 3 energy; choose 2.
+	// The PayEnergy<X> ask: the one X the 3 energy pays that has a target.
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
-		t.Fatalf("PayEnergy<X> did not announce an X ask: %+v", d)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Amount != 2 {
+		t.Fatalf("PayEnergy<X> did not announce X = 2 alone: %+v", d)
 	}
-	submitChoices(t, e, 2)
+	submitChoices(t, e, 0)
 	// CR 601.2h: the target ask (601.2c) precedes the Sac<1/Creature> pick,
 	// which is now chosen at payment.
 	d = e.Pending()
@@ -120,6 +120,12 @@ func TestChthonianNightmareXBoundedByEnergy(t *testing.T) {
 	t.Parallel()
 	e, _, _ := nightmareBoard(t)
 	nm := nightmareID(t, e)
+	for _, cost := range []string{"2 B", "3 B"} {
+		dead := e.G.AddObject(card(t, "Name:Scrap Heap "+cost+"\nManaCost:"+cost+"\nTypes:Creature Zombie\nPT:2/2\nOracle:x\n"), 0)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: dead.ID, From: state.ZLibrary, To: state.ZGraveyard})
+	}
+	e.pending = nil
+	e.priorityRound()
 	submitChoices(t, e, activateIndex(t, e, nm))
 	d := e.Pending()
 	if d == nil {

@@ -442,29 +442,23 @@ func spellAbilityCastSpellValidSA(e Board, obj *state.Object, validSA string, so
 }
 
 // SpellAbilityCastMatches is Mode$ SpellAbilityCast's dispatcher (the
-// spell-or-activate union): an AbilityPush or KeywordAbilityPush event routes
-// to the activation arm, a PutOnStack to the spell arm. A named
-// method, not an inline func literal, so the param census (the rot guard)
-// attributes both arms' trigger-param reads to this mode through the one
-// dispatch function.
+// spell-or-activate union): an activation mint routes to the activation arm,
+// a PutOnStack to the spell arm. A named method, not an inline func literal,
+// so the param census (the rot guard) attributes both arms' trigger-param
+// reads to this mode through the one dispatch function.
 func SpellAbilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
-	switch ev.Kind {
-	case events.AbilityPush, events.KeywordAbilityPush:
-		return abilityCastMatches(e, t, source, ev)
-	case events.PutOnStack:
+	if ev.Kind == events.PutOnStack {
 		return spellAbilityCastSpellMatches(e, t, source, ev)
 	}
-	return false
+	return abilityCastMatches(e, t, source, ev)
 }
 
 // abilityCastMatches implements Mode$ AbilityCast and Mode$ SpellAbilityCast
-// against an AbilityPush or KeywordAbilityPush event -- the moment an
-// activated ability is put on the stack. This is the COMPLETED boundary:
-// the push is emitted only once the activation's cost is fully paid and
-// the ability object is minted, so a trigger firing here is never observing a
-// provisional or abandoned activation. (F15: there was no such arm at all, so
-// Rings of Brighthearth's "Whenever you activate an ability, if it isn't a
-// mana ability..." trigger never fired.)
+// against an activation mint, whichever of its kinds the ability's provenance
+// selected: a granted ability is as much an activation as a printed one. This
+// is the COMPLETED boundary: the mint's trigger check is held until the
+// activation's cost is fully paid, so a trigger firing here is never observing
+// a provisional or abandoned activation.
 //
 // ValidActivatingPlayer$ and ValidSA$ narrow the activation the trigger
 // observes, in the same two params the corpus spells them with. A source
@@ -472,7 +466,7 @@ func SpellAbilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev ev
 // a no-op, never a panic. A keyword line without a synthesizable ability
 // also fails closed.
 func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.AbilityPush && ev.Kind != events.KeywordAbilityPush {
+	if !ev.IsActivationMint() {
 		return false
 	}
 	obj := e.Game().Obj(ev.Obj)
@@ -487,25 +481,9 @@ func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 			return false
 		}
 	}
-	// CR 702.140d: an AbilityPush's Amount is the FLAT pile-ability index
-	// events.Apply decoded the mint from, so an under-card activation sits
-	// past the top face's list. Resolve through the same pile view the
-	// emitter, the offer loop and events.Apply share -- reading
-	// obj.Face().Abilities here would make a ValidSA$ narrowing fail closed
-	// on every under-card activation and degrade a HasXManaCost$ gate to the
-	// pile TOP's printed cost (a wrong-wide pass whenever the top card's cost
-	// carried {X}). A plain permanent's flat index is unchanged.
-	pa, havePa := obj.PileAbilityAt(int(ev.Amount))
-	var ab *cards.SA
-	if ev.Kind == events.KeywordAbilityPush {
-		// Counter is the replayable derived keyword line used by Apply to
-		// mint the stack body's SA. Amount is not a printed-ability index.
-		ab = cards.KeywordPushAbility(ev.Counter)
-		if ab == nil {
-			return false
-		}
-	} else if havePa {
-		ab = pa.SA
+	ab := activationBody(e.Game(), ev, obj)
+	if ab == nil && ev.Kind == events.KeywordAbilityPush {
+		return false
 	}
 	// ValidCard$ scopes AbilityCast to the permanent whose ability was
 	// activated. It is distinct from the trigger source: Avalanche of Sector
@@ -556,6 +534,43 @@ func abilityCastMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 		return false
 	}
 	return true
+}
+
+// activationBody resolves the ability an activation mint puts on the stack, the
+// way events.Apply resolves it for that kind, or nil for stale data.
+func activationBody(g *state.Game, ev events.Event, recipient *state.Object) *cards.SA {
+	switch ev.Kind {
+	case events.AbilityPush:
+		// CR 702.140d: Amount is the FLAT pile-ability index, so an under-card
+		// activation sits past the top face's list. Reading
+		// recipient.Face().Abilities here would make a ValidSA$ narrowing fail
+		// closed on every under-card activation and degrade a HasXManaCost$
+		// gate to the pile TOP's printed cost.
+		if pa, ok := recipient.PileAbilityAt(int(ev.Amount)); ok {
+			return pa.SA
+		}
+	case events.KeywordAbilityPush:
+		return cards.KeywordPushAbility(ev.Counter)
+	case events.DelayedPush:
+		return events.ResolveSVarAcrossFaces(recipient, ev.Counter)
+	case events.GrantAbilityPush:
+		if len(ev.IDs) == 0 {
+			return nil
+		}
+		if grantor := g.Obj(ev.IDs[0]); grantor != nil {
+			return events.ResolveSVarAcrossFaces(grantor, ev.Counter)
+		}
+	case events.GainedAbilityPush:
+		if len(ev.IDs) == 0 {
+			return nil
+		}
+		if foreign := g.Obj(ev.IDs[0]); foreign != nil && foreign.Face() != nil {
+			if abilities := foreign.Face().Abilities; ev.Amount >= 0 && int(ev.Amount) < len(abilities) {
+				return abilities[ev.Amount]
+			}
+		}
+	}
+	return nil
 }
 
 // AbilityCastValidSA reports whether an activated ability matches a ValidSA$
@@ -1132,12 +1147,11 @@ func init() {
 		return spellCopyMatches(e, t, source, ev)
 	}, "SpellCopy")
 	// The activation-cast family, split (targetsvalid1): Mode$ AbilityCast is
-	// "whenever you activate an ability" -- AbilityPush or KeywordAbilityPush,
-	// never a spell cast -- while Mode$ SpellAbilityCast is Forge's "spell or
-	// activate an ability" union: both push kinds take the activation arm, and
-	// PutOnStack takes the spell arm
-	// (spellAbilityCastSpellMatches). triggerModeEvents and the compiled
-	// triggerInterestForMode mirror this split.
+	// "whenever you activate an ability" -- any activation mint, never a spell
+	// cast -- while Mode$ SpellAbilityCast is Forge's "spell or activate an
+	// ability" union: a mint takes the activation arm, and PutOnStack takes the
+	// spell arm (spellAbilityCastSpellMatches). triggerModeEvents and the
+	// compiled triggerInterestForMode mirror this split.
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return abilityCastMatches(e, t, source, ev)
 	}, "AbilityCast")

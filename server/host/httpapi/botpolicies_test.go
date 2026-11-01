@@ -35,8 +35,7 @@ func TestBotPoliciesEndpointServesTheList(t *testing.T) {
 		Policies: []protocol.BotPolicyInfo{
 			{
 				Name: "bot", Label: "Bot", Description: "the baseline bot", Tier: "production",
-				Strength: []protocol.BotMeasurement{{Claim: "55%", Versus: "manual", Setting: "mono suite", Source: "bench"}},
-				MeanMS:   12.5, P95MS: 40, CostScope: "mono", CostNote: "fast", Search: false,
+				MeanMS: 12.5, P95MS: 40, CostScope: "mono", CostNote: "fast", Search: false,
 				Formats: []string{"constructed", "commander"},
 			},
 			{Name: "az", Label: "AZ", Tier: "experimental", Search: true, Formats: []string{"constructed"}},
@@ -59,8 +58,7 @@ func TestBotPoliciesEndpointServesTheList(t *testing.T) {
 	if got.Default != want.Default || len(got.Policies) != 2 {
 		t.Fatalf("listing = %+v, want %+v", got, want)
 	}
-	if got.Policies[0].Search || got.Policies[0].MeanMS != 12.5 ||
-		len(got.Policies[0].Strength) != 1 || got.Policies[0].Strength[0].Setting != "mono suite" {
+	if got.Policies[0].Search || got.Policies[0].MeanMS != 12.5 {
 		t.Fatalf("first policy = %+v", got.Policies[0])
 	}
 	if !got.Policies[1].Search || got.Policies[1].Tier != "experimental" {

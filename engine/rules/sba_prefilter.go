@@ -279,7 +279,7 @@ type sbaBoardFacts struct {
 	at                                    int
 	pw, battle, saga, counterPair, attach bool
 	role, world, legend, combat           bool
-	dayNight                              bool
+	dayNight, paired                      bool
 }
 
 // sbaFacts refreshes f when the log has moved since it was taken.
@@ -313,6 +313,9 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 				}
 				if o.PhasedOut {
 					continue
+				}
+				if o.Paired != 0 {
+					f.paired = true
 				}
 				if face != nil && !f.legend && e.sbaTypeFast(o, sbaLegendary, anyLType) {
 					if legends++; legends >= 2 {

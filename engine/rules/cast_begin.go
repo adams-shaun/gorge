@@ -1067,14 +1067,11 @@ func (e *Engine) continueCast() {
 	// choice (601.2b-i). Its "whenever you activate" triggers are held until
 	// payCast, exactly as the old end-of-payment mint fired them.
 	e.pushActivation()
-	// castprov3: a provenance-keyed cost modifier (Bilbo's
-	// "!wasCastFromYourHand" ReduceCost) is unresolvable before CR 601.2a's
-	// push — the offer and option-selection snapshots both denied it (full
-	// price, the fail-closed direction) because the priced card had no cast
-	// in the log yet. Now the PutOnStack is in the log: when the selection
-	// pass evaluated such a static (e.costProvenanceSeen, the
-	// noCounterSpend-style transient capture), re-price the pending cast so
-	// the payment takes the honest reduction. For every other cast the
+	// A provenance-keyed cost modifier (Bilbo's "!wasCastFromYourHand"
+	// ReduceCost) was priced from the object before CR 601.2a's push. Now the
+	// PutOnStack is in the log: when the selection pass evaluated such a static
+	// (e.costProvenanceSeen, the noCounterSpend-style transient capture),
+	// re-price the pending cast from the log. For every other cast the
 	// recompute is byte-identical to the offer snapshot (both are the
 	// nil-target base snapshot), so no existing price — and no chain head —
 	// moves.

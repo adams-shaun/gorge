@@ -2,6 +2,7 @@ package sbv2http
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -109,10 +110,15 @@ func (b *extensionBuilder) NativeExtension(n humanseat.NativeOnly) (protocol.Ext
 	}, nil
 }
 
+// nativeObjectID is the id the transcript prints after an object's name. A v2
+// client knows objects by other ids, so it reads as noise there.
+var nativeObjectID = regexp.MustCompile(` #[0-9]+\b`)
+
 // logSince describes the events appended since the previous request, redacted
-// and described for seat exactly as the host's seat transcript does. A rewind
-// truncates the log; the cursor then moves to the new head without replaying
-// lines the seat already saw.
+// and described for seat as the host's seat transcript does, without what only
+// the native wire can read: object ids and the option indices and payment ids of
+// an answer. A rewind truncates the log; the cursor then moves to the new head
+// without replaying lines the seat already saw.
 func (b *extensionBuilder) logSince(g *state.Game, evs []events.Event, seat state.PlayerID) []string {
 	out := []string{}
 	if len(evs) == 0 {
@@ -132,8 +138,11 @@ func (b *extensionBuilder) logSince(g *state.Game, evs []events.Event, seat stat
 	}
 	for _, ev := range evs[start:] {
 		redacted := view.RedactEventFor(g, ev, seat, view.Seat)
+		if redacted.Kind == events.DecisionMade {
+			redacted.Text, _, _ = strings.Cut(redacted.Text, ":")
+		}
 		if line := view.Describe(g, redacted); line != "" {
-			out = append(out, line)
+			out = append(out, nativeObjectID.ReplaceAllString(line, ""))
 		}
 	}
 	b.lastSeq, b.haveSeq = head, true

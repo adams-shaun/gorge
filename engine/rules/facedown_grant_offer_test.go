@@ -88,3 +88,52 @@ func TestFaceDownGrantorOffersNoGrantedManaAbility(t *testing.T) {
 		})
 	}
 }
+
+// A grant from a face-up permanent reaches a face-down creature (CR 613.1f,
+// 708.2a): only the permanent's own printed abilities are gone, so the 2/2 taps
+// for the granted mana.
+func TestFaceDownRecipientKeepsGrantedManaAbility(t *testing.T) {
+	t.Parallel()
+	hiero := tokenReplCorpusCard(t, "Citanul Hierophants")
+	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	e, cfg := tokenReplGame(t, 9181, hiero, bears)
+	toMain1(t, e)
+	moveSeededCard(t, e, 0, hiero, state.ZBattlefield)
+	var bearID state.ObjID
+	for _, z := range []state.Zone{state.ZLibrary, state.ZHand} {
+		for _, id := range e.G.Zone(z, 0) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" && bearID == 0 {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: 0, From: z, To: state.ZBattlefield, Counter: "entered_face_down", Secret: true})
+				bearID = id
+			}
+		}
+	}
+	if bearID == 0 || !e.G.Obj(bearID).FaceDown {
+		t.Fatalf("no face-down Grizzly Bears (id %d)", bearID)
+	}
+	e.priorityRound()
+	gainsDriveToStep(t, e, 3, 0, state.StepMain1)
+
+	e.pending = nil
+	e.askPriority(0)
+	var offer *decision.Option
+	for _, o := range e.Pending().Options {
+		if o.Kind == "activate" && o.Obj == bearID {
+			o := o
+			offer = &o
+		}
+	}
+	if offer == nil {
+		t.Fatalf("a face-down creature lost the mana ability a face-up permanent grants it")
+	}
+	before := len(e.L.Events)
+	submitChoices(t, e, offer.Index)
+	added := false
+	for _, ev := range e.L.Events[before:] {
+		added = added || ev.Kind == events.ManaAdd && ev.Player == 0
+	}
+	if !added {
+		t.Fatalf("activating the granted mana ability added no mana")
+	}
+	replayCheck(t, e, cfg)
+}

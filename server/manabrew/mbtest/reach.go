@@ -17,7 +17,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// MBX-3 reachability support: the MB-8 census proves the FIRST legal answer
+// Reachability support: the census proves the FIRST legal answer
 // to every posed prompt is accepted; it does not prove every native
 // decision.Option can be SELECTED from ManaBrew. These helpers close that
 // gap:
@@ -36,7 +36,7 @@ import (
 //   - ReachSeat wraps a TranslatingSeat and runs the sweep after each
 //     answer, folding results into a Reach counter set.
 //   - TestManaBrewReachability (reach_test.go) plays the same 20 repo-deck
-//     games as the MB-8 census over ReachSeats and asserts the ratchet:
+//     games as the census over ReachSeats and asserts the ratchet:
 //     every observed unreachable (decision kind, option kind) must be in an
 //     explicit allowlist, and every allowlist entry must be observed.
 //
@@ -197,7 +197,7 @@ func ResponseForIntent(p *manabrew.Pending, want decision.Intent) (mb.ClientMess
 		}
 		if directive {
 			// The concede option is answered with an out-of-band directive,
-			// never a prompt response (G-2's answer half).
+			// never a prompt response.
 			return mb.ClientMessage{Value: mb.ClientDirective{Kind: "directive",
 				Directive: mb.DirectiveInput{Type: "concede"}}}, nil
 		}
@@ -308,7 +308,7 @@ func actionAdvertisedPay(actions []mb.PaymentAction, id string) bool {
 
 // chooseActionAnswer maps a priority answer: an Announce selects the
 // advertised "pay-<id>" action; a pass option answers with passOutput; the
-// concede option (never advertised as an action, G-2) answers with the
+// concede option (never advertised as an action) answers with the
 // concede directive; everything else selects its advertised "opt-<index>"
 // action.
 func chooseActionAnswer(in mb.ChooseActionInput, d *decision.Decision, want decision.Intent) (mb.PromptOutputValue, bool, error) {
@@ -654,7 +654,7 @@ func reorderAnswer(in mb.ReorderInput, d *decision.Decision, want decision.Inten
 // option answers act with its advertised id; autofill answers pay{auto};
 // "done" answers pay{auto:false} when the window advertises a confirm; the
 // cancel option answers cancel (the parser answers with the engine's own
-// truth, G-3).
+// truth).
 func payManaCostAnswer(in mb.PayManaCostInput, d *decision.Decision, want decision.Intent) (mb.PromptOutputValue, error) {
 	if len(want.Choices) != 1 {
 		return nil, fmt.Errorf("a payment window answers one option, want has %d", len(want.Choices))
@@ -1111,7 +1111,7 @@ func (s *ReachSeat) Decide(ctx context.Context, v view.View, d decision.Decision
 func (s *ReachSeat) probe(v view.View, d decision.Decision) {
 	msg, err := s.Translator.Prompt(&d, &v)
 	if err != nil {
-		// The prompt unmapped; the MB-8 census already counts it. Nothing to
+		// The prompt unmapped; the census already counts it. Nothing to
 		// sweep.
 		return
 	}

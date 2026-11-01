@@ -466,10 +466,10 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Sacrifice(id))
 		}
 	}
-	// tapeServed marks a served AskTape answer: ShowSacrificedCards$' Note
-	// names only what is sacrificed from the answered target on, so the
-	// collected set restarts there.
-	tapeServed := func() { sacrificed = sacrificed[:0] }
+	// CR 101.4: every player chooses in turn, then what they chose is sacrificed
+	// at once, so a later player's choice sees the earlier players' permanents
+	// still on the battlefield.
+	var chosen []state.ObjID
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
 	// sacrifices a matching permanent (Braids's "you may sacrifice an
@@ -571,7 +571,6 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 							// acceptance asks for EXACTLY Amount when there is a
 							// genuine identity choice, and otherwise takes every
 							// eligible permanent without asking.
-							tapeServed()
 							if len(ans) == 0 || ans[0].Index != 0 {
 								continue
 							}
@@ -626,14 +625,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 						Kind: "sacrifice", Label: name, Obj: id, Player: t.Player})
 				}
 				if ans, ok := AskTape(h, d); ok {
-					// Answered in place: sacrifice the picked batch.
-					tapeServed()
-					picks := tapeAnswerObjs(ans)
-					if len(picks) > 0 {
-						h.BatchDepartures(picks)
-						defer h.EndBatchDepartures()
-					}
-					sacrificeAnswered(picks)
+					chosen = append(chosen, tapeAnswerObjs(ans)...)
 					continue
 				}
 				// Fuzz/no-engine host: the deterministic stand-in (R-9) keeps
@@ -643,23 +635,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
 				n = maxv
 			}
-			// One departure snapshot per emitted batch (BatchDepartures): a
-			// sacrifice sweep over a lifelink-granting Equipment and its bearer
-			// must not make the bearer's CR 603.10a lifelink LKI depend on
-			// battlefield order.
-			batch := make([]state.ObjID, 0, n)
-			for i := int32(0); i < n && int(i) < len(eligible); i++ {
-				batch = append(batch, eligible[i])
-			}
-			if len(batch) > 0 {
-				h.BatchDepartures(batch)
-				defer h.EndBatchDepartures()
-			}
-			for _, id := range batch {
-				rememberLKICapture(id)
-				sacrificed = append(sacrificed, id)
-				h.Emit(events.Sacrifice(id))
-			}
+			chosen = append(chosen, eligible[:min(int(n), len(eligible))]...)
 			continue
 		}
 		o := g.Obj(t.Obj)
@@ -696,7 +672,6 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				Kind: "sacrifice", Label: name, Obj: o.ID, Player: o.Controller})
 			if ans, ok := AskTape(h, d); ok {
 				// Answered in place: sacrifice the object if it was picked.
-				tapeServed()
 				if len(tapeAnswerObjs(ans)) > 0 {
 					sacrificeAnswered([]state.ObjID{o.ID})
 				}
@@ -710,6 +685,14 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		rememberLKICapture(o.ID)
 		sacrificed = append(sacrificed, o.ID)
 		h.Emit(events.Sacrifice(o.ID))
+	}
+	// One departure snapshot for the whole sacrifice (BatchDepartures): a sweep
+	// over a lifelink-granting Equipment and its bearer must not make the
+	// bearer's CR 603.10a lifelink LKI depend on battlefield order.
+	if len(chosen) > 0 {
+		h.BatchDepartures(chosen)
+		defer h.EndBatchDepartures()
+		sacrificeAnswered(chosen)
 	}
 	if show && len(sacrificed) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, IDs: sacrificed})

@@ -36,8 +36,7 @@ func (t *Translator) gameView(v view.View) mb.GameViewDto {
 	for _, s := range v.Stack {
 		gv.Stack = append(gv.Stack, stackObject(s, stackIDs))
 	}
-	// The x_gorge_own_deck_v1 extension (seat-deck-manifest spec, interface
-	// mapping item 4) rides the seat's own state: v is a seat-redacted view,
+	// The x_gorge_own_deck_v1 extension rides the seat's own state: v is a seat-redacted view,
 	// so v.OwnDeck is non-nil exactly when the viewer is an in-range seat and
 	// carries ONLY the viewer's manifest (view.ProjectFor fills it for
 	// Visibility == Seat and nothing else). A nil manifest -- the synthetic
@@ -198,10 +197,9 @@ func hiddenCard(zone mb.ZoneKind, owner state.PlayerID, i int) mb.CardView {
 }
 
 // visibleCard projects one seat-visible view.CardView. The published
-// ManaBrew CardDto.text is filled from the operator-approved CardText seam
-// (scoping spec §10.1 Q9): the lookup is keyed on the SAME name the redacted
+// ManaBrew CardDto.text is filled from the CardText seam: the lookup is keyed on the SAME name the redacted
 // view already shows, so it can leak nothing, and a nil seam or a miss is an
-// empty string (gap G-7's v1 default). A FaceDown card has no name in the
+// empty string. A FaceDown card has no name in the
 // view and is never looked up.
 func (t *Translator) visibleCard(c view.CardView) mb.CardView {
 	name := c.Printing.Name

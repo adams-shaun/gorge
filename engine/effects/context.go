@@ -931,16 +931,12 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case definedSpecRememberedOwner:
 		return ownersOf(g, hostRemembered(h, c)), true
 	case definedSpecTargetedController:
-		return controllersOf(g, c.Targets), true
+		// Forge's TargetedController: the controllers of the target objects. A
+		// target player contributes nothing, or Blightning's second discard
+		// leg would make "that player" discard twice.
+		return controllersOf(g, objectTargets(c.Targets)), true
 	case definedSpecTargetedPlayer:
-		players := targetedPlayers(c)
-		if len(players) > 0 {
-			return players, true
-		}
-		// Forge's TargetedPlayer falls back to a target object's controller
-		// when the chain has no player target (Blightning targeting a
-		// planeswalker is the corpus case).
-		return controllersOf(g, c.Targets), true
+		return targetedPlayers(c), true
 	case definedSpecTargetedOwner:
 		// The OWNER (CR 108.3) of the resolving ability's targets, not their
 		// controller: Chaos Warp's DBDig sub-ability ("The owner of target
@@ -1949,12 +1945,13 @@ func plainRememberedSelector(sel string) bool { return params.PlainRememberedSel
 
 // playerForTarget maps one resolved Defined$ target to a player seat under
 // Forge's getDefinedPlayers/addPlayer rule: for the plain Remembered family
-// (and RememberedPlayer) a remembered CARD contributes NO player, so it is
-// dropped; every other selector still maps an object to its controller (the
-// pre-existing PlayerOf contract -- Targeted, ChosenCardController, ...). The
+// (and RememberedPlayer) and for Targeted a CARD contributes NO player, so it
+// is dropped: Aggressive Negotiations' Targeted spans its creature target as
+// well, and that creature's controller's hand is not the one named. Every other
+// selector maps an object to its controller (ChosenCardController, ...). The
 // second result is false when the target contributes no player.
 func playerForTarget(h Host, c *Ctx, selector string, t state.Target) (state.PlayerID, bool) {
-	if plainRememberedSelector(selector) && !t.IsPlayer {
+	if !t.IsPlayer && (plainRememberedSelector(selector) || selector == "Targeted") {
 		return 0, false
 	}
 	return PlayerOf(h, c, t), true
@@ -2006,7 +2003,7 @@ func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		// controls the SOURCE. They differ once the source has left the
 		// battlefield (a stolen permanent sacrificed as the activation's cost
 		// or in response resets to its owner, CR 400.7), while the ability
-		// stays under its activator (CR 113.8, 602.2): K1m pairs 39244 92575.
+		// stays under its activator (CR 113.8, 602.2).
 		return []state.PlayerID{c.Controller}
 	}
 	return playerIDsFromTargets(h, c, r.Raw, DefinedRef(h, c, r, sa))
@@ -2055,6 +2052,16 @@ func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {
 		if t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func objectTargets(ts []state.Target) []state.Target {
+	var out []state.Target
+	for _, t := range ts {
+		if !t.IsPlayer {
 			out = append(out, t)
 		}
 	}
@@ -2113,13 +2120,12 @@ func eventRemember(h Host, c *Ctx, id state.ObjID) {
 // modelled ones:
 //   - TargetedOrController -- "the target if it is a player, else its
 //     controller" (Flaming Gambit's ChooseCard chooser; Urza's and Rakdos's
-//     Return's discard/sacrifice legs): TargetedController already maps a
-//     player target to itself and an object target to its controller.
+//     Return's discard/sacrifice legs).
 //   - TargetedAndYou -- the targeted players, then you (Negan's "you and
 //     target opponent each secretly choose", the three Draw lines).
 var definedAliases = map[string]string{
-	"TargetedOrController": "TargetedController",
-	"TargetedAndYou":       "TargetedController & You",
+	"TargetedOrController": "TargetedPlayer & TargetedController",
+	"TargetedAndYou":       "TargetedPlayer & You",
 	// DirectRemembered -- the host's remembered objects as the RememberLKI$
 	// copies stored them (Supplant Form, Dance of the Dead): the same
 	// capture-excluding set RememberedLKI names.
@@ -2335,13 +2341,12 @@ func copyTargets(s []state.Target) []state.Target {
 // cards only, never the creature whose death fired the trigger. Only a
 // context holding nothing but the capture keeps it.
 func resolvedRemembered(h Host, c *Ctx) []state.Target {
-	if c.SelfLeaves && c.RepeatSubject == (state.Target{}) && len(c.DelayedRemembered) == 0 && len(sourceRemembered(h, c)) == 0 {
-		// A leaves-the-battlefield trigger on its own source: the capture is
-		// the leaver, never a Remembered fallback (see TriggerContext.SelfLeaves). A
-		// RepeatEach iteration (Giant Albatross) binds its own subject, kept as is.
-		return excludeCaptureOccurrences(c.Remembered, c.Captured)
-	}
-	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c))
+	// A leaves-the-battlefield trigger on its own source, or a chain past a link
+	// that remembers: the capture is no fallback (TriggerContext.SelfLeaves,
+	// TriggerContext.RememberWriterAbove). A RepeatEach iteration (Giant
+	// Albatross) binds its own subject, kept as is.
+	noFallback := (c.SelfLeaves || c.RememberWriterAbove) && c.RepeatSubject == (state.Target{})
+	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c), noFallback)
 }
 
 // selectRemembered is resolvedRemembered over plain slices -- the ONE home of
@@ -2349,9 +2354,13 @@ func resolvedRemembered(h Host, c *Ctx) []state.Target {
 // (filter.go), which reads a SpecContext rather than a Ctx. remembered is the
 // resolution's set, captured its fire-time seed, delayedRemembered a delayed
 // registration's saved set, persistent the source object's event-backed list.
+// noFallback reads a resolution that still holds only the capture as empty.
 // The result never aliases remembered or persistent.
-func selectRemembered(remembered, captured, delayedRemembered, persistent []state.Target) []state.Target {
+func selectRemembered(remembered, captured, delayedRemembered, persistent []state.Target, noFallback bool) []state.Target {
 	if len(captured) > 0 && len(delayedRemembered) == 0 && len(persistent) == 0 {
+		if noFallback && sameTargets(remembered, captured) {
+			return nil
+		}
 		// The ordinary trigger whose source wrote nothing (the second shape
 		// above): the capture is a fallback, kept only when the resolution
 		// wrote nothing of its own.

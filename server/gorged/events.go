@@ -9,6 +9,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
@@ -16,10 +17,11 @@ import (
 
 // Extensions are what a binary links into gorged beyond the platform. The
 // zero value is the bare platform: no draft events and no review loader
-// (gorge's own cmd/gorged links only the feedback-snapshot review loader).
+// (gorge's own cmd/gorged links draft events and the feedback-snapshot review
+// loader).
 type Extensions struct {
 	// Events, when set, serves draft events under /api/events with -events
-	// (four-yay's draft runtime). Without it -events is refused at startup.
+	// (draft/gorgedevents). Without it -events is refused at startup.
 	Events EventsPlugin
 	// Flags, when set, registers the extensions' own flags on gorged's
 	// command line (Main, Serve and ServeFlagSetFor call it on the fresh
@@ -31,6 +33,9 @@ type Extensions struct {
 	// into a recorded match with (review.go). Without it review mode refuses
 	// to start; the live server ignores it entirely.
 	Review ReviewLoader
+	// Engines are the engines this binary links beside gorge, by the name
+	// -engine selects them with.
+	Engines map[string]game.Engine
 }
 
 // EventsPlugin is a draft-event runtime: it owns a store under the server's
@@ -74,7 +79,7 @@ type EventRuntime interface {
 	Close() error
 }
 
-var errEventsNeedPlugin = errors.New("-events needs a binary with draft events linked in (four-yay's gorged)")
+var errEventsNeedPlugin = errors.New("-events needs a binary with draft events linked in (gorge's cmd/gorged links them)")
 
 // eventsWiring is serve's handle on a prepared runtime; the zero value means
 // -events is off.
@@ -142,7 +147,7 @@ func (c config) startEvents(w eventsWiring, r *host.Registry, reg *cards.Registr
 // offered when it does not read decklists -- the closed-list net policies
 // (bots.Info.ClosedLists): the event deals its own drafted decks and the
 // policy plays them, guessing its opponent's list from its belief as at any
-// table. az-c3, a reserved-pool decklist reader, stays out.
+// table. A reserved-pool decklist reader stays out.
 func (c config) eventPolicies() []string {
 	policies := make([]string, 0, len(c.botPolicies))
 	for _, p := range c.botPolicies {

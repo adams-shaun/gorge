@@ -43,6 +43,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -136,9 +137,8 @@ func IsAbort(stallOn string) bool { return stallOn == "livelock" || stallOn == "
 // FallbackTrace, when set, receives every decision the Env branch routes
 // around a seat's search -- a feed that stopped (its capture or answer
 // record failed) or an honest root that refused on a live feed -- with the
-// game seed, the seat index, the decision and the reason. Diagnostic only
-// (four-yay cmd/draftrl -az-fallbacks); set once before any game starts, and the
-// consumer synchronises itself.
+// game seed, the seat index, the decision and the reason. Diagnostic only; set once before any
+// game starts, and the consumer synchronises itself.
 var FallbackTrace func(seed uint64, seatIdx int, d *decision.Decision, reason string)
 
 // rootRefuser is a search seat's live-feed refused-root fallback
@@ -171,7 +171,7 @@ type Hooks struct {
 	// Outcome.Intents. With the kernel off it changes nothing.
 	SyncAnswer bool
 	// NewEngine builds the engine, in place of the default rules.New: the
-	// place a caller that needs a different constructor (four-yay cmd/draftsim's
+	// place a caller that needs a different constructor (cmd/draftsim's
 	// rules.NewStartingPlayerChoice, which defers the pregame rounds and
 	// lets Setup pose the CR 103.1 ask) selects it. Nil (the zero value) is
 	// exactly rules.New, so every existing caller's shape is unchanged.
@@ -201,7 +201,7 @@ type Hooks struct {
 // PlayGame plays one game between the given per-seat seats to completion, or
 // ends it as a stall at whichever watchdog cap fires first. maxTurns and
 // maxIntents are the two harness props: 0 means no cap. It is the single
-// engine drive loop both four-yay cmd/botbench and four-yay cmd/policytune run; the optional
+// engine drive loop both a bench runner and a tuner run; the optional
 // hooks let a statistics or trace collector observe without a second copy of
 // the loop.
 //
@@ -268,6 +268,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	for i, s := range seats {
 		mc := &bots.MatchContext{
 			Context:      context.Background(),
+			Game:         gorgegame.Game{E: e},
 			Engine:       e,
 			GameID:       gameID,
 			Seat:         i,
@@ -811,7 +812,7 @@ func FullPairs(names []string) []PairDef {
 // deck pairs "a:b,c:d". Deck names must exist in names. The lookup map is
 // only probed by key -- never ranged over in the report path -- so iteration
 // order cannot reach the output. The error strings are the shared vocabulary
-// four-yay cmd/botbench and four-yay cmd/policytune both report.
+// a bench runner and a tuner both report.
 func ParsePairs(spec string, names []string) ([]PairDef, error) {
 	if spec == "all" {
 		return FullPairs(names), nil
@@ -959,7 +960,7 @@ func (p *GamePool) Close() {
 type PairPlayer func(pos int, seed uint64, g int, seats [2]seat.Seat) (Outcome, error)
 
 // Progress receives live progress lines (nil is silent). It must be safe to
-// call from several workers; four-yay cmd/botbench's progressWriter serialises with a
+// call from several workers; a bench runner's progressWriter serialises with a
 // mutex. Progress never reaches a deterministic report.
 type Progress func(format string, a ...any)
 

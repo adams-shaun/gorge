@@ -5,11 +5,11 @@
 <line class="s1 ln" x1="193" y1="42" x2="211" y2="42"/>
 <text x="217.0" y="46.0" text-anchor="start">MageZero average</text>
 <line class="s2 ln" x1="335" y1="42" x2="353" y2="42"/>
-<text x="359.0" y="46.0" text-anchor="start">dirty-dirac, calibrated opponents</text>
+<text x="359.0" y="46.0" text-anchor="start">dirac, calibrated opponents</text>
 <line class="s2 dash ln" x1="16" y1="62" x2="34" y2="62"/>
 <text x="40.0" y="66.0" text-anchor="start">same, second seed</text>
 <line class="s3 ln" x1="165" y1="62" x2="183" y2="62"/>
-<text x="189.0" y="66.0" text-anchor="start">dirty-dirac, heuristic opponents</text>
+<text x="189.0" y="66.0" text-anchor="start">dirac, heuristic opponents</text>
 <line class="mz-grid" x1="56" y1="340.0" x2="736" y2="340.0"/>
 <text x="48.0" y="344.0" class="mz-muted" text-anchor="end">20%</text>
 <line class="mz-grid" x1="56" y1="302.9" x2="736" y2="302.9"/>
@@ -79,78 +79,78 @@
 <g><title>MageZero gen17: 0.646 [0.616, 0.676] over 1,000 games</title><circle cx="736.0" cy="174.3" r="11" fill="transparent"/>
 <circle class="dot s1" cx="736.0" cy="174.3" r="4"/></g>
 <polyline class="s3 ln" points="56.0,226.2 96.0,187.9 136.0,158.7 176.0,154.1 216.0,158.6 256.0,132.9 296.0,143.9 336.0,127.4 376.0,129.8 416.0,129.4 456.0,133.1 496.0,126.1 536.0,103.0 576.0,96.3 616.0,101.0 656.0,99.9 696.0,98.8 736.0,92.1"/>
-<g><title>dirty-dirac, heuristic opponents gen0: 0.506 [0.476, 0.537] over 1000 games</title><circle cx="56.0" cy="226.2" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen0: 0.506 [0.476, 0.537] over 1000 games</title><circle cx="56.0" cy="226.2" r="11" fill="transparent"/>
 <circle class="dot s3" cx="56.0" cy="226.2" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen1: 0.610 [0.579, 0.640] over 1000 games</title><circle cx="96.0" cy="187.9" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen1: 0.610 [0.579, 0.640] over 1000 games</title><circle cx="96.0" cy="187.9" r="11" fill="transparent"/>
 <circle class="dot s3" cx="96.0" cy="187.9" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen2: 0.688 [0.659, 0.717] over 1000 games</title><circle cx="136.0" cy="158.7" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen2: 0.688 [0.659, 0.717] over 1000 games</title><circle cx="136.0" cy="158.7" r="11" fill="transparent"/>
 <circle class="dot s3" cx="136.0" cy="158.7" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen3: 0.701 [0.672, 0.729] over 1000 games</title><circle cx="176.0" cy="154.1" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen3: 0.701 [0.672, 0.729] over 1000 games</title><circle cx="176.0" cy="154.1" r="11" fill="transparent"/>
 <circle class="dot s3" cx="176.0" cy="154.1" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen4: 0.689 [0.660, 0.717] over 1000 games</title><circle cx="216.0" cy="158.6" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen4: 0.689 [0.660, 0.717] over 1000 games</title><circle cx="216.0" cy="158.6" r="11" fill="transparent"/>
 <circle class="dot s3" cx="216.0" cy="158.6" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen5: 0.757 [0.731, 0.784] over 1000 games</title><circle cx="256.0" cy="132.9" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen5: 0.757 [0.731, 0.784] over 1000 games</title><circle cx="256.0" cy="132.9" r="11" fill="transparent"/>
 <circle class="dot s3" cx="256.0" cy="132.9" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen6: 0.728 [0.700, 0.756] over 1000 games</title><circle cx="296.0" cy="143.9" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen6: 0.728 [0.700, 0.756] over 1000 games</title><circle cx="296.0" cy="143.9" r="11" fill="transparent"/>
 <circle class="dot s3" cx="296.0" cy="143.9" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen7: 0.772 [0.747, 0.798] over 1000 games</title><circle cx="336.0" cy="127.4" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen7: 0.772 [0.747, 0.798] over 1000 games</title><circle cx="336.0" cy="127.4" r="11" fill="transparent"/>
 <circle class="dot s3" cx="336.0" cy="127.4" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen8: 0.766 [0.740, 0.792] over 1000 games</title><circle cx="376.0" cy="129.8" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen8: 0.766 [0.740, 0.792] over 1000 games</title><circle cx="376.0" cy="129.8" r="11" fill="transparent"/>
 <circle class="dot s3" cx="376.0" cy="129.8" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen9: 0.767 [0.741, 0.793] over 1000 games</title><circle cx="416.0" cy="129.4" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen9: 0.767 [0.741, 0.793] over 1000 games</title><circle cx="416.0" cy="129.4" r="11" fill="transparent"/>
 <circle class="dot s3" cx="416.0" cy="129.4" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen10: 0.757 [0.730, 0.784] over 1000 games</title><circle cx="456.0" cy="133.1" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen10: 0.757 [0.730, 0.784] over 1000 games</title><circle cx="456.0" cy="133.1" r="11" fill="transparent"/>
 <circle class="dot s3" cx="456.0" cy="133.1" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen11: 0.776 [0.750, 0.802] over 1000 games</title><circle cx="496.0" cy="126.1" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen11: 0.776 [0.750, 0.802] over 1000 games</title><circle cx="496.0" cy="126.1" r="11" fill="transparent"/>
 <circle class="dot s3" cx="496.0" cy="126.1" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen12: 0.838 [0.815, 0.861] over 1000 games</title><circle cx="536.0" cy="103.0" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen12: 0.838 [0.815, 0.861] over 1000 games</title><circle cx="536.0" cy="103.0" r="11" fill="transparent"/>
 <circle class="dot s3" cx="536.0" cy="103.0" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen13: 0.856 [0.834, 0.878] over 1000 games</title><circle cx="576.0" cy="96.3" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen13: 0.856 [0.834, 0.878] over 1000 games</title><circle cx="576.0" cy="96.3" r="11" fill="transparent"/>
 <circle class="dot s3" cx="576.0" cy="96.3" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen14: 0.844 [0.821, 0.866] over 1000 games</title><circle cx="616.0" cy="101.0" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen14: 0.844 [0.821, 0.866] over 1000 games</title><circle cx="616.0" cy="101.0" r="11" fill="transparent"/>
 <circle class="dot s3" cx="616.0" cy="101.0" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen15: 0.847 [0.824, 0.869] over 1000 games</title><circle cx="656.0" cy="99.9" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen15: 0.847 [0.824, 0.869] over 1000 games</title><circle cx="656.0" cy="99.9" r="11" fill="transparent"/>
 <circle class="dot s3" cx="656.0" cy="99.9" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen16: 0.850 [0.827, 0.872] over 1000 games</title><circle cx="696.0" cy="98.8" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen16: 0.850 [0.827, 0.872] over 1000 games</title><circle cx="696.0" cy="98.8" r="11" fill="transparent"/>
 <circle class="dot s3" cx="696.0" cy="98.8" r="4"/></g>
-<g><title>dirty-dirac, heuristic opponents gen17: 0.868 [0.846, 0.889] over 1000 games</title><circle cx="736.0" cy="92.1" r="11" fill="transparent"/>
+<g><title>dirac, heuristic opponents gen17: 0.868 [0.846, 0.889] over 1000 games</title><circle cx="736.0" cy="92.1" r="11" fill="transparent"/>
 <circle class="dot s3" cx="736.0" cy="92.1" r="4"/></g>
 <polyline class="s2 ln dash" points="56.0,273.1 96.0,230.6 136.0,197.9 176.0,193.3 216.0,201.1 256.0,190.5 296.0,194.2 336.0,167.7 376.0,167.3 416.0,169.0 456.0,172.5 496.0,162.8 536.0,136.8 576.0,130.7 616.0,126.8 656.0,132.0 696.0,132.9 736.0,123.1"/>
 <polyline class="s2 ln" points="56.0,273.5 96.0,231.0 136.0,205.2 176.0,206.1 216.0,196.6 256.0,192.0 296.0,189.6 336.0,175.6 376.0,187.2 416.0,180.3 456.0,179.7 496.0,163.6 536.0,141.5 576.0,130.1 616.0,140.4 656.0,134.8 696.0,125.9 736.0,125.9"/>
-<g><title>dirty-dirac, calibrated opponents gen0: 0.379 [0.349, 0.409] over 1000 games</title><circle cx="56.0" cy="273.5" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen0: 0.379 [0.349, 0.409] over 1000 games</title><circle cx="56.0" cy="273.5" r="11" fill="transparent"/>
 <circle class="dot s2" cx="56.0" cy="273.5" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen1: 0.493 [0.463, 0.524] over 1000 games</title><circle cx="96.0" cy="231.0" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen1: 0.493 [0.463, 0.524] over 1000 games</title><circle cx="96.0" cy="231.0" r="11" fill="transparent"/>
 <circle class="dot s2" cx="96.0" cy="231.0" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen2: 0.563 [0.532, 0.594] over 1000 games</title><circle cx="136.0" cy="205.2" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen2: 0.563 [0.532, 0.594] over 1000 games</title><circle cx="136.0" cy="205.2" r="11" fill="transparent"/>
 <circle class="dot s2" cx="136.0" cy="205.2" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen3: 0.560 [0.530, 0.591] over 1000 games</title><circle cx="176.0" cy="206.1" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen3: 0.560 [0.530, 0.591] over 1000 games</title><circle cx="176.0" cy="206.1" r="11" fill="transparent"/>
 <circle class="dot s2" cx="176.0" cy="206.1" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen4: 0.586 [0.555, 0.617] over 1000 games</title><circle cx="216.0" cy="196.6" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen4: 0.586 [0.555, 0.617] over 1000 games</title><circle cx="216.0" cy="196.6" r="11" fill="transparent"/>
 <circle class="dot s2" cx="216.0" cy="196.6" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen5: 0.599 [0.568, 0.629] over 1000 games</title><circle cx="256.0" cy="192.0" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen5: 0.599 [0.568, 0.629] over 1000 games</title><circle cx="256.0" cy="192.0" r="11" fill="transparent"/>
 <circle class="dot s2" cx="256.0" cy="192.0" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen6: 0.605 [0.575, 0.635] over 1000 games</title><circle cx="296.0" cy="189.6" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen6: 0.605 [0.575, 0.635] over 1000 games</title><circle cx="296.0" cy="189.6" r="11" fill="transparent"/>
 <circle class="dot s2" cx="296.0" cy="189.6" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen7: 0.642 [0.613, 0.672] over 1000 games</title><circle cx="336.0" cy="175.6" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen7: 0.642 [0.613, 0.672] over 1000 games</title><circle cx="336.0" cy="175.6" r="11" fill="transparent"/>
 <circle class="dot s2" cx="336.0" cy="175.6" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen8: 0.612 [0.581, 0.642] over 1000 games</title><circle cx="376.0" cy="187.2" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen8: 0.612 [0.581, 0.642] over 1000 games</title><circle cx="376.0" cy="187.2" r="11" fill="transparent"/>
 <circle class="dot s2" cx="376.0" cy="187.2" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen9: 0.630 [0.600, 0.660] over 1000 games</title><circle cx="416.0" cy="180.3" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen9: 0.630 [0.600, 0.660] over 1000 games</title><circle cx="416.0" cy="180.3" r="11" fill="transparent"/>
 <circle class="dot s2" cx="416.0" cy="180.3" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen10: 0.631 [0.602, 0.661] over 1000 games</title><circle cx="456.0" cy="179.7" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen10: 0.631 [0.602, 0.661] over 1000 games</title><circle cx="456.0" cy="179.7" r="11" fill="transparent"/>
 <circle class="dot s2" cx="456.0" cy="179.7" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen11: 0.675 [0.646, 0.704] over 1000 games</title><circle cx="496.0" cy="163.6" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen11: 0.675 [0.646, 0.704] over 1000 games</title><circle cx="496.0" cy="163.6" r="11" fill="transparent"/>
 <circle class="dot s2" cx="496.0" cy="163.6" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen12: 0.735 [0.707, 0.762] over 1000 games</title><circle cx="536.0" cy="141.5" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen12: 0.735 [0.707, 0.762] over 1000 games</title><circle cx="536.0" cy="141.5" r="11" fill="transparent"/>
 <circle class="dot s2" cx="536.0" cy="141.5" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen13: 0.765 [0.739, 0.791] over 1000 games</title><circle cx="576.0" cy="130.1" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen13: 0.765 [0.739, 0.791] over 1000 games</title><circle cx="576.0" cy="130.1" r="11" fill="transparent"/>
 <circle class="dot s2" cx="576.0" cy="130.1" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen14: 0.738 [0.710, 0.765] over 1000 games</title><circle cx="616.0" cy="140.4" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen14: 0.738 [0.710, 0.765] over 1000 games</title><circle cx="616.0" cy="140.4" r="11" fill="transparent"/>
 <circle class="dot s2" cx="616.0" cy="140.4" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen15: 0.752 [0.726, 0.779] over 1000 games</title><circle cx="656.0" cy="134.8" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen15: 0.752 [0.726, 0.779] over 1000 games</title><circle cx="656.0" cy="134.8" r="11" fill="transparent"/>
 <circle class="dot s2" cx="656.0" cy="134.8" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen16: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="696.0" cy="125.9" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen16: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="696.0" cy="125.9" r="11" fill="transparent"/>
 <circle class="dot s2" cx="696.0" cy="125.9" r="4"/></g>
-<g><title>dirty-dirac, calibrated opponents gen17: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="736.0" cy="125.9" r="11" fill="transparent"/>
+<g><title>dirac, calibrated opponents gen17: 0.776 [0.751, 0.802] over 1000 games</title><circle cx="736.0" cy="125.9" r="11" fill="transparent"/>
 <circle class="dot s2" cx="736.0" cy="125.9" r="4"/></g>
 </svg>

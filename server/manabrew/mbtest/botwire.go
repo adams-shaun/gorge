@@ -12,11 +12,10 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// BotWireSeat (MBX-4) is a seat.Seat that answers every engine decision with
+// BotWireSeat is a seat.Seat that answers every engine decision with
 // the PRODUCTION default bot (heuristic.NewBot's policy), but routes that answer
 // through the ManaBrew mapping: the native intent the bot chose is converted
-// to a ManaBrew client message with ResponseForIntent (MBX-3's inverse
-// helper), round-tripped through the real wire codec, and handed to
+// to a ManaBrew client message with ResponseForIntent, round-tripped through the real wire codec, and handed to
 // Translator.TranslateResponse exactly as a real client's answer would be.
 // The intent that reaches the engine is therefore the one the wire expressed
 // -- if the prompt or the response grammar dropped anything the bot needed,

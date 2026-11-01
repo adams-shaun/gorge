@@ -8,7 +8,7 @@ intent, plus the gap between answering and the seat's next decision becoming
 visible, first by polling GET pending flat out and then by waiting for the
 SSE stream's decision frame.
 
-    python3 measure_latency.py http://127.0.0.1:8092 10
+    python3 measure_latency.py http://127.0.0.1:8080 10
 """
 import http.client
 import json
@@ -107,7 +107,7 @@ def run(server, games, mode):
 
 
 if __name__ == "__main__":
-    server = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8092"
+    server = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8080"
     games = int(sys.argv[2]) if len(sys.argv) > 2 else 10
     run(server, games, "poll")
     run(server, games, "sse")

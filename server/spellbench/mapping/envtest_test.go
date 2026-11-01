@@ -14,11 +14,11 @@ import (
 )
 
 func envFor(t *testing.T, g *gamecfg.Game) *mapping.Env {
-	tr := identity.New(g.E, g.Secret)
-	if err := tr.Sync(g.E); err != nil {
+	tr := identity.New(g.R, g.Secret)
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
-	return &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{E: g.E, IDs: tr}, Slots: map[string]uint32{}}
+	return &mapping.Env{G: g, IDs: tr, Obs: &observe.Projector{R: g.R, IDs: tr}, Slots: map[string]uint32{}}
 }
 
 // untilPending plays bots (no mulligans) until a pending decision satisfies pred.

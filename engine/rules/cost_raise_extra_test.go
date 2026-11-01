@@ -588,3 +588,236 @@ func TestRaiseCostAetherTideDiscardsXCreatureCards(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestWaterbendAbilityOfferedFromSourcesAndHelpers pins CR 601.2g and 701.67a: the
+// taps pay part of the waterbend amount and untapped lands the rest, so the
+// ability is offered with nothing floating, and the activation still asks for the
+// taps before the lands pay the remainder. The source helps too unless its own {T} is
+// part of the cost.
+func TestWaterbendAbilityOfferedFromSourcesAndHelpers(t *testing.T) {
+	t.Parallel()
+	const bear = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	const forest = "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"
+	koi := func(cost string) string {
+		return "Name:Koi\nTypes:Creature Fish\nPT:1/1\n" +
+			"A:AB$ Pump | Cost$ " + cost + " | KW$ Hexproof | Defined$ Self | SpellDescription$ Hide.\nOracle:x\n"
+	}
+	setup := func(t *testing.T, cost string, lands int) (*Engine, state.ObjID) {
+		e := handEngine(t)
+		id := onBoardReady(t, e, 0, koi(cost))
+		onBoardReady(t, e, 0, bear)
+		onBoardReady(t, e, 0, bear)
+		for i := 0; i < lands; i++ {
+			onBoardReady(t, e, 0, forest)
+		}
+		e.priorityRound()
+		return e, id
+	}
+	abilityOption := func(e *Engine, id state.ObjID) *decision.Option {
+		for _, o := range e.Pending().Options {
+			if o.Kind == "ability" && o.Obj == id {
+				return &o
+			}
+		}
+		return nil
+	}
+	tapHelpers := func(t *testing.T, e *Engine, want int) {
+		t.Helper()
+		var helpers []int
+		for _, c := range e.Pending().Options {
+			if c.Kind == "waterbend_generic" {
+				helpers = append(helpers, c.Index)
+			}
+		}
+		if len(helpers) != want {
+			t.Fatalf("activation offers %d waterbend taps, want %d", len(helpers), want)
+		}
+		submitChoices(t, e, helpers...)
+	}
+	t.Run("one short", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3> T", 0)
+		if abilityOption(e, id) != nil {
+			t.Fatal("offered one short of the waterbend amount")
+		}
+	})
+	t.Run("two helpers and a land", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3> T", 1)
+		o := abilityOption(e, id)
+		if o == nil {
+			t.Fatal("not offered with two helpers and a land")
+		}
+		submitChoices(t, e, o.Index)
+		tapHelpers(t, e, 2)
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("stack %v after the taps and the land, want the ability", e.G.Stack)
+		}
+	})
+	t.Run("the source helps", func(t *testing.T) {
+		t.Parallel()
+		e, id := setup(t, "Waterbend<3>", 0)
+		o := abilityOption(e, id)
+		if o == nil {
+			t.Fatal("not offered with the source and two helpers")
+		}
+		submitChoices(t, e, o.Index)
+		tapHelpers(t, e, 3)
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("stack %v after three taps, want the ability", e.G.Stack)
+		}
+	})
+}
+
+// TestCostMovesReadOwnActivation pins that a resolving ability reads its own
+// activation's cost (CR 602.2b, 608.2h): the first activation discards a land and
+// the second a creature, so only the second satisfies "if the discarded card was
+// a creature card".
+func TestCostMovesReadOwnActivation(t *testing.T) {
+	t.Parallel()
+	const beast = "Name:Beast\nManaCost:1\nTypes:Creature Bear\nPT:5/5\nOracle:x\n"
+	const dirt = "Name:Dirt\nTypes:Land\nOracle:x\n"
+	const altar = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 3 for a creature.\nOracle:x\n"
+	for _, order := range [][2]string{{"Dirt", "Beast"}, {"Beast", "Dirt"}} {
+		t.Run(order[0]+" first", func(t *testing.T) {
+			t.Parallel()
+			e := handEngine(t, card(t, beast), card(t, dirt))
+			id := onBoardReady(t, e, 0, altar)
+			activate := func(discard string) {
+				t.Helper()
+				e.priorityRound()
+				for _, o := range e.Pending().Options {
+					if o.Kind == "ability" && o.Obj == id {
+						submitChoices(t, e, o.Index)
+						for _, c := range e.Pending().Options {
+							if c.Label == discard {
+								submitChoices(t, e, c.Index)
+								return
+							}
+						}
+						return // the last card in hand pays without an ask
+					}
+				}
+				t.Fatal("the ability was not offered")
+			}
+			activate(order[0])
+			activate(order[1])
+			life := e.G.Players[0].Life
+			passUntilStackEmpty(t, e, 20)
+			if got := e.G.Players[0].Life - life; got != 3 {
+				t.Fatalf("gained %d life, want 3", got)
+			}
+		})
+	}
+}
+
+// TestCostMovesEndAtEveryKindOfPush pins that a resolving ability reads only its
+// own cost (CR 602.2b) however the other ability reached the stack: a gained or
+// a granted ability pushed after it names the same source, and each must both
+// close the first window and open its own.
+func TestCostMovesEndAtEveryKindOfPush(t *testing.T) {
+	t.Parallel()
+	const gained = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 3 for a creature.\n" +
+		"S:Mode$ Continuous | Affected$ Card.Self | EffectZone$ Battlefield | GainsAbilitiesOf$ Artifact.Other+YouCtrl | GainsAbilitiesOfZones$ Battlefield | Description$ It has what the others have.\n" +
+		"Oracle:x\n"
+	const donor = "Name:Donor\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 5 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 5 for a creature.\n" +
+		"Oracle:x\n"
+	const granted = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 3 for a creature.\n" +
+		"Oracle:x\n"
+	const granter = "Name:Donor\nTypes:Enchantment\n" +
+		"S:Mode$ Continuous | Affected$ Artifact.YouCtrl | AddAbility$ Extra | Description$ It has the extra.\n" +
+		"SVar:Extra:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 5 | ConditionDefined$ Discarded | ConditionPresent$ Creature | SpellDescription$ Gain 5 for a creature.\n" +
+		"Oracle:x\n"
+	const beast = "Name:Beast\nManaCost:1\nTypes:Creature Bear\nPT:5/5\nOracle:x\n"
+	const dirt = "Name:Dirt\nTypes:Land\nOracle:x\n"
+	printed := func(o decision.Option) bool { return o.GainedSource == 0 && o.GrantSource == 0 }
+	other := func(o decision.Option) bool { return !printed(o) }
+	for _, tc := range []struct {
+		name          string
+		source, extra string
+	}{{"gained", gained, donor}, {"granted", granted, granter}} {
+		for _, order := range []struct {
+			name          string
+			first, second func(decision.Option) bool
+			discard       [2]string
+			want          int32
+		}{
+			{"printed first", printed, other, [2]string{"Dirt", "Beast"}, 5},
+			{"printed first, its creature", printed, other, [2]string{"Beast", "Dirt"}, 3},
+			{"other first", other, printed, [2]string{"Beast", "Dirt"}, 5},
+			{"other first, its land", other, printed, [2]string{"Dirt", "Beast"}, 3},
+		} {
+			t.Run(tc.name+"/"+order.name, func(t *testing.T) {
+				t.Parallel()
+				e := handEngine(t, card(t, beast), card(t, dirt))
+				id := onBoardReady(t, e, 0, tc.source)
+				onBoardReady(t, e, 0, tc.extra)
+				activate := func(which func(decision.Option) bool, discard string) {
+					t.Helper()
+					e.priorityRound()
+					for _, o := range e.Pending().Options {
+						if o.Kind == "ability" && o.Obj == id && which(o) {
+							submitChoices(t, e, o.Index)
+							for _, c := range e.Pending().Options {
+								if c.Label == discard {
+									submitChoices(t, e, c.Index)
+									return
+								}
+							}
+							return // the last card in hand pays without an ask
+						}
+					}
+					t.Fatalf("the ability was not offered: %+v", e.Pending().Options)
+				}
+				activate(order.first, order.discard[0])
+				activate(order.second, order.discard[1])
+				life := e.G.Players[0].Life
+				passUntilStackEmpty(t, e, 20)
+				if got := e.G.Players[0].Life - life; got != order.want {
+					t.Fatalf("gained %d life, want %d", got, order.want)
+				}
+			})
+		}
+	}
+}
+
+// An ability on the stack reads its own cost after its source has been cast again
+// (CR 602.2a): the recast's push names the source but minted no wrapper.
+func TestCostMovesSurviveTheSourceBeingCastAgain(t *testing.T) {
+	t.Parallel()
+	const altar = "Name:Altar\nTypes:Artifact\n" +
+		"A:AB$ GainLife | Cost$ Discard<1/Card> | Defined$ You | LifeAmount$ 3 | SpellDescription$ Gain three.\nOracle:x\n"
+	e := handEngine(t, card(t, "Name:Beast\nManaCost:1\nTypes:Creature Bear\nPT:5/5\nOracle:x\n"))
+	id := onBoardReady(t, e, 0, altar)
+	e.priorityRound()
+	hand := e.G.Zone(state.ZHand, 0)
+	beast := hand[len(hand)-1]
+	for _, o := range e.Pending().Options {
+		if o.Kind == "ability" && o.Obj == id {
+			submitChoices(t, e, o.Index)
+			break
+		}
+	}
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		for _, c := range d.Options {
+			if c.Obj == beast {
+				submitChoices(t, e, c.Index)
+				break
+			}
+		}
+	}
+	wrapper := e.G.Stack[len(e.G.Stack)-1]
+	want := e.CostMovesInWindow(wrapper, events.CostMoveDiscard)
+	if len(want) != 1 {
+		t.Fatalf("the ability paid %v, want one discard", want)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZHand})
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, Player: 0, From: state.ZHand, To: state.ZStack})
+	if got := e.CostMovesInWindow(wrapper, events.CostMoveDiscard); len(got) != 1 || got[0] != want[0] {
+		t.Fatalf("after the recast the ability reads %v, want %v", got, want)
+	}
+}

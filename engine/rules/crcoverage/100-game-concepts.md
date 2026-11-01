@@ -10,7 +10,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 100.5-100.7 | n/a | - | - | deck legality / tournament / casual-only cards |
 | 101.1 | unknown | - | - | general principle; not reached |
 | 101.2-101.2a | follows | `engine/rules/cantlose.go#Engine.gameWinPrevented` | - | "can't" funnels |
-| 101.3-101.4e | unknown | - | - | not reached (APNAP choice order) |
+| 101.3-101.4e | partial | `engine/effects/zone_bulk.go#effSacrifice` `engine/effects/cardflow.go#effDiscard` | `TestEachPlayerSacrificesChoosesThenMovesTogether` `TestEachPlayerSacrificesReplays` `TestEachPlayerDiscardsChoosesThenMovesTogether` | each player's sacrifice or discard chooses in order and moves together; other per-player effects not reached |
 | 102.1-102.2 | follows | `engine/state/game.go#Game.Active` | - | - |
 | 102.3-102.4 | n/a | - | - | no team modes |
 | 103.1 | follows | `engine/rules/starting_player_choice.go#TossWinner` `engine/rules/starting_player_choice.go#Engine.AskStartingPlayer` | `TestMulliganRoundAsksTheTossWinnerFirst` |  |
@@ -53,15 +53,15 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 105.1-105.3 | follows | `engine/rules/layer5colors.go#Engine.derivedColorTable` | - |  |
 | 105.4 | follows | `engine/effects/choose.go#effChooseColor` | - | - |
 | 105.5 | unknown | - | - | not reached |
-| 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` | - | - |
+| 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` `engine/rules/cast_window.go#Engine.castWindowProbeUnits` | `TestCastWindowChosenColourPaysHybridFace` | - |
 | 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/events/event.go#ManaClear` | - | pool empties between steps |
-| 106.5 | unknown | - | - | not reached |
+| 106.5 | partial | `engine/rules/cast_window.go#manaAbilityAddsNothing` | `TestManaAbilityThatAddsNothingLeavesTheCensusComplete` `TestTargetMenuPricesPastASourceThatAddsNothing` | a mana ability under a Condition$ this build does not evaluate adds no mana; other undefined types not reached |
 | 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` | - | LOUD (gorge register RestrictValid row) |
 | 106.7-106.13 | unknown | - | - | not reached |
 | 107.1-107.1c | follows | `engine/state/game.go#Player.Life` | - | integer state throughout |
 | 107.2 | unknown | - | - | not reached |
-| 107.3-107.3p | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` | - | cast X ask |
-| 107.4-107.6 | follows | `engine/rules/cost/parse.go#ParseCost` | - | mana/tap/untap symbols parsed |
+| 107.3-107.3p | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` `engine/events/apply_cast.go#foldCastInfo` | `TestExpendWakeLeavesNonXSpellXZero` `TestExpendWakeKeepsAnnouncedX` `TestPaidTeamworkLeavesNonXSpellXZero` `TestPaidTeamworkKeepsAnnouncedX` `TestXAnnouncementReachesUntappedSources` `TestXAnnouncementStopsAtTheLegalTargets` | cast X ask, bound by the pool, what the mana window can activate and the targets the value needs |
+| 107.4-107.6 | follows | `engine/rules/cost/parse.go#ParseCost` `engine/rules/cast_payment.go#Engine.announceFeasible` | `TestCastWindowChosenColourPaysHybridFace` `TestCastWindowFaceChargesActivationFee` | mana/tap/untap symbols parsed; a hybrid face is offered only if the window can pay it |
 | 107.7 | follows | `engine/rules/ability_loyalty.go#abilityLoyaltyFact` | - | loyalty cost symbols |
 | 107.8-107.13 | unknown | - | - | not reached; not in pools |
 | 107.14 | follows | `engine/rules/pay/board.go#EnergyPayable` | - | no energy in pools |
@@ -85,7 +85,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 113.4 | follows | `engine/rules/mana_activation.go#Engine.activateMana` | - |  |
 | 113.5 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | - |
 | 113.6 | unknown | - | - | not reached |
-| 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` | `TestNegatedCopiedSpellTriggersCountExiledCard` | an ability object's stack exit is not a card changing zones |
+| 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/rules/pile.go#abilityOwnedFace` | `TestNegatedCopiedSpellTriggersCountExiledCard` `TestActivatedAbilityResolvesWithItsFacesSVars` | an ability object's stack exit is not a card changing zones |
 | 113.7b-113.12 | unknown | - | - | not reached |
 | 114.1-114.5 | follows | `engine/effects/effect.go#effEffect` | `TestKaitoEmblemOutlivesKaito` `TestTezzeretCruelCaptainEmblemFiresEveryCombat` `TestEffectPhaseTriggerRecursEachUpkeep` | an Effect's Mode$ Phase trigger recurs at every occurrence for the Effect's lifetime (OneOff$ True and a self-exiling body end it) |
 | 115.1 | partial | `engine/rules/cast_targets.go#Engine.subTargetAsk` `engine/effects/targets_ask.go#poseTargetsAsk` | - | gorge: depth-2+ chain targets asked at resolution |
@@ -105,7 +105,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 116.2c-116.2e | unknown | - | - | not reached |
 | 116.2f | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` | - | suspend exile |
 | 116.2g | not-impl | `engine/rules/trigger_match.go#init` | - | companion to hand absent; SILENT |
-| 116.2h | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` | - | foretell exile |
+| 116.2h | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestForetellingAModalCardAnnouncesNoModes` | foretell exile |
 | 116.2i | not-impl | - | - | Planechase decks accepted, no planar-die roll; SILENT |
 | 116.2j | n/a | - | - | no Conspiracy |
 | 116.2k | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | follows 702.170a (main phase); 116.2k text broader |
@@ -114,15 +114,15 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 117.1-117.1c | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 117.1d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | no manual mana abilities (documented) |
 | 117.2-117.2e | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
-| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` | - | GorgeQuirks off |
+| 117.3-117.3a | follows | `engine/rules/turn.go#Engine.priorityRound` | - | - |
 | 117.3b | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | AP priority after resolution |
 | 117.3c | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.3d | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | - |
 | 117.4 | follows | `engine/rules/legal_priority.go#Engine.handlePriority` | - | all pass: resolve or advance |
-| 117.5 | follows | `engine/rules/turn.go#Engine.priorityRound` | - | SBAs and triggers before priority |
+| 117.5 | follows | `engine/rules/turn.go#Engine.drainTriggers` | `TestOrderedDrainSacrificesASagaWhoseFinalChapterHadNoTarget` `TestDirectDrainSacrificesASagaWhoseFinalChapterHadNoTarget` | SBAs and triggers repeat until neither has anything left, then a player receives priority |
 | 117.6 | n/a | - | - | shared team turns |
 | 117.7 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | stack LIFO |
-| 118.1-118.2 | follows | `engine/rules/pay/solve.go#ResolveManaWith` | - | - |
+| 118.1-118.2 | follows | `engine/rules/pay/solve.go#ResolveManaWith` | `TestTriggerCostReturnsPermanentToHand` | - |
 | 118.3-118.3c | follows | `engine/rules/pay/solve.go#ResolveManaWith` | - | - |
 | 118.4-118.5a | follows | `engine/rules/cast_subcounter.go#Engine.xAsk` `engine/rules/mana.go#Engine.castOfferBase` | - | X ask; zero-cost casts are explicit options |
 | 118.6-118.6a | follows | `engine/rules/nomanacost.go#isNoManaCost` `engine/rules/nomanacost.go#Engine.filterNoManaCostCasts` | - | unpayable cost |
@@ -156,7 +156,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 121.4 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.markDrawEmpty` | `TestDrawStepDeckOutEndsTheGameBeforePriority` | - |
 | 121.5 | follows | `engine/events/event.go#MoveZone` | - | library-to-hand move is not a draw |
 | 121.6-121.9 | unknown | - | - | not reached |
-| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` | - | P/T counters in layer 7c |
+| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` | `TestPresentDefinedGateOverTheRealCorpusBodies` | P/T counters in layer 7c; any permanent can hold one |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
 | 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
 | 122.1d | deviates | `engine/effects/untap.go#TryUntap` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` | stun spent on a doesn't-untap permanent |

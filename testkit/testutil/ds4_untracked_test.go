@@ -8,14 +8,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestNothingUnderDS4IsTracked: .ds4/ is the pipeline's per-worktree scratch
-// (briefs, seat reports, ledger) and is gitignored, but 31 historical seat
-// reports had been force-committed there. agentctl writes each round's report
-// to .ds4/report-<tag>.md, so every seat overwrote a TRACKED file: approved
-// branches then failed their pre-merge rebase on "You have unstaged changes"
-// (agent-...-09ee8c17, fb-...-232ca3dc, 2026-09-24), and branches that
-// committed the report carried thousands of lines of report churn. Nothing
-// under .ds4/ may be tracked again.
+// TestNothingUnderDS4IsTracked: .ds4/ is a gitignored scratch directory that
+// tools overwrite in place. A tracked file there breaks every rebase on
+// "You have unstaged changes", and a branch that commits one carries its churn.
 func TestNothingUnderDS4IsTracked(t *testing.T) {
 	top := exec.Command("git", "rev-parse", "--show-toplevel")
 	top.Env = cards.GitEnv()
@@ -30,6 +25,6 @@ func TestNothingUnderDS4IsTracked(t *testing.T) {
 		t.Fatalf("git ls-files .ds4: %v", err)
 	}
 	if tracked := strings.Fields(string(out)); len(tracked) > 0 {
-		t.Fatalf("%d path(s) under .ds4/ are tracked; .ds4 is pipeline scratch and must stay untracked (git rm --cached): %v", len(tracked), tracked)
+		t.Fatalf("%d path(s) under .ds4/ are tracked; .ds4 is scratch and must stay untracked (git rm --cached): %v", len(tracked), tracked)
 	}
 }

@@ -2,10 +2,12 @@ package identity_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/spellbench/identity"
@@ -16,7 +18,7 @@ import (
 func TestIDsAreFreshPerZoneAndPerViewer(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 1, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	hand := g.E.G.Zone(state.ZHand, 0)
 	card := hand[0]
 	inHand, _ := tr.VisibleID(0, card)
@@ -31,7 +33,7 @@ func TestIDsAreFreshPerZoneAndPerViewer(t *testing.T) {
 	if !moved {
 		t.Fatal("card never left hand in this seed: pick another seed")
 	}
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	after, _ := tr.VisibleID(0, card)
@@ -48,7 +50,7 @@ func TestIDsAreFreshPerZoneAndPerViewer(t *testing.T) {
 func TestMulliganRoundTripGivesFreshIDs(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Spy", "Spy", 8, "london")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	d := g.E.Pending()
 	if d.Kind != decision.KMulligan {
 		t.Fatalf("first decision %s, want mulligan", d.Kind)
@@ -79,7 +81,7 @@ func TestMulliganRoundTripGivesFreshIDs(t *testing.T) {
 	if d == nil || d.Kind != decision.KMulligan {
 		t.Fatalf("after the redraw the seat is asked %+v, want its next mulligan ask", d)
 	}
-	if err := tr.Sync(g.E); err != nil {
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	hand := g.E.G.Zone(state.ZHand, seat)
@@ -104,7 +106,7 @@ func TestMulliganRoundTripGivesFreshIDs(t *testing.T) {
 func TestLooksAreStableWithinAndFreshAcross(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 3, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	top := g.E.G.Zone(state.ZLibrary, 0)[0]
 	tr.OpenLook(0)
 	a, _ := tr.LookID(0, top)
@@ -127,14 +129,14 @@ func TestLooksAreStableWithinAndFreshAcross(t *testing.T) {
 func TestLookIDRefusesAnObjectItsViewerSees(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 4, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	card := g.E.G.Zone(state.ZHand, 0)[0]
 	if _, err := tr.LookID(1, card); err == nil {
 		t.Fatal("LookID minted without an open look")
 	}
 	checked := map[state.Zone]int{}
 	testgame.RunUntil(t, g, testgame.Bots(7), func(e *rules.Engine) bool {
-		if err := tr.Sync(e); err != nil {
+		if err := tr.Sync(g.R); err != nil {
 			t.Fatal(err)
 		}
 		for v := state.PlayerID(0); v < 2; v++ {
@@ -177,12 +179,12 @@ func TestLookIDRefusesAnObjectItsViewerSees(t *testing.T) {
 func TestSyncReportsADivergedShadow(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 5, "none")
-	tr := identity.New(g.E, g.Secret)
-	if err := tr.Sync(g.E); err != nil {
+	tr := identity.New(g.R, g.Secret)
+	if err := tr.Sync(g.R); err != nil {
 		t.Fatal(err)
 	}
 	g.E.G.Obj(g.E.G.Zone(state.ZHand, 0)[0]).Zone = state.ZGraveyard
-	if err := tr.Sync(g.E); !errors.Is(err, identity.ErrShadowDiverged) {
+	if err := tr.Sync(g.R); !errors.Is(err, identity.ErrShadowDiverged) {
 		t.Fatalf("Sync after an unlogged move: %v, want ErrShadowDiverged", err)
 	}
 }
@@ -191,9 +193,9 @@ func TestShadowNeverDivergesOverWholeGames(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	for i, deck := range []string{"Wildfire", "Rally", "Spy", "Burn", "CawGates"} {
 		g := testgame.New(t, reg, deck, deck, byte(10+i), "london")
-		tr := identity.New(g.E, g.Secret)
+		tr := identity.New(g.R, g.Secret)
 		testgame.RunUntil(t, g, testgame.Bots(uint64(i)), func(e *rules.Engine) bool {
-			if err := tr.Sync(e); err != nil {
+			if err := tr.Sync(g.R); err != nil {
 				t.Fatalf("%s: %v", deck, err)
 			}
 			return false
@@ -211,7 +213,7 @@ func sweep(t *testing.T, decks []string, visit func(e *rules.Engine, tr *identit
 	for _, deck := range decks {
 		for s := byte(1); s <= 20; s++ {
 			g := testgame.New(t, reg, deck, deck, s, "none")
-			tr := identity.New(g.E, g.Secret)
+			tr := identity.New(g.R, g.Secret)
 			prev := map[state.ObjID]string{}
 			keys := func() {
 				for i := range g.E.G.Objs {
@@ -220,7 +222,7 @@ func sweep(t *testing.T, decks []string, visit func(e *rules.Engine, tr *identit
 			}
 			keys()
 			if testgame.RunUntil(t, g, testgame.Bots(uint64(s)), func(e *rules.Engine) bool {
-				if err := tr.Sync(e); err != nil {
+				if err := tr.Sync(g.R); err != nil {
 					t.Fatal(err)
 				}
 				done := visit(e, tr, prev)
@@ -364,12 +366,12 @@ func TestBlockingFollowsDeclaredBlockers(t *testing.T) {
 func TestARecastSpellTakesFreshTargetKeys(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 6, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	emit := func(evs ...events.Event) {
 		for _, ev := range evs {
 			events.Emit(g.E.G, g.E.L, ev)
 		}
-		if err := tr.Sync(g.E); err != nil {
+		if err := tr.Sync(g.R); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -393,10 +395,10 @@ func TestARecastSpellTakesFreshTargetKeys(t *testing.T) {
 func TestCombatKeysFollowCombatEvents(t *testing.T) {
 	reg := testcorpus.Registry(t)
 	g := testgame.New(t, reg, "Burn", "Burn", 6, "none")
-	tr := identity.New(g.E, g.Secret)
+	tr := identity.New(g.R, g.Secret)
 	emit := func(ev events.Event) {
 		events.Emit(g.E.G, g.E.L, ev)
-		if err := tr.Sync(g.E); err != nil {
+		if err := tr.Sync(g.R); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -427,5 +429,55 @@ func TestCombatKeysFollowCombatEvents(t *testing.T) {
 	emit(events.Event{Kind: events.EndCombatReset})
 	if key, ok := tr.AttackKey(attacker); ok || tr.Blocking(stays) {
 		t.Fatalf("after combat: attack key %s %v, blocking %v", key, ok, tr.Blocking(stays))
+	}
+}
+
+// A tracker reads its game only through Source: one fed an independent fork at
+// every step mints the ids of one fed the live game, and both follow zone
+// changes from the id a fresh object starts with.
+func TestTrackerThroughSource(t *testing.T) {
+	reg := testcorpus.Registry(t)
+	g := testgame.New(t, reg, "Burn", "Burn", 9, "none")
+	live := identity.New(g.R, g.Secret)
+	forked := identity.New(gorgegame.Game{E: g.E}.Fork(), g.Secret)
+
+	card := g.E.G.Zone(state.ZHand, 0)[0]
+	first, err := live.VisibleID(0, card)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := g.Secret.ObjectID(fmt.Sprintf("p0:%d:z0", card)); first != want {
+		t.Fatalf("first id %s, want %s", first, want)
+	}
+
+	steps, moved := 0, false
+	testgame.RunUntil(t, g, testgame.Bots(3), func(e *rules.Engine) bool {
+		steps++
+		if err := live.Sync(g.R); err != nil {
+			t.Fatal(err)
+		}
+		if err := forked.Sync(gorgegame.Game{E: e}.Fork()); err != nil {
+			t.Fatal(err)
+		}
+		for v := state.PlayerID(0); v < 2; v++ {
+			for i := range e.G.Objs {
+				o := &e.G.Objs[i]
+				if o.Ability != nil || o.Zone == state.ZLibrary || (o.Zone == state.ZHand && o.Owner != v) {
+					continue
+				}
+				a, errA := live.VisibleID(v, o.ID)
+				b, errB := forked.VisibleID(v, o.ID)
+				if a != b || errA != nil || errB != nil {
+					t.Fatalf("step %d: object %d for seat %d: %s (%v), through a fork %s (%v)", steps, o.ID, v, a, errA, b, errB)
+				}
+			}
+		}
+		if id, err := live.VisibleID(0, card); err == nil && id != first {
+			moved = true
+		}
+		return false
+	}, 300)
+	if steps < 20 || !moved {
+		t.Fatalf("compared %d steps, tracked card moved: %v", steps, moved)
 	}
 }

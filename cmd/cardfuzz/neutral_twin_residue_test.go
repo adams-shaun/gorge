@@ -6,9 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestNeutralTwinResidueFixed pins the last two native-vs-v2 decision
-// disagreements the sbp-twin-residue ticket measured, at the positions they
-// were recorded at:
+// TestNeutralTwinResidueFixed pins two native-vs-v2 decision disagreements at
+// the positions they were recorded at:
 //
 //   - seed 8829294814793142954, decision 301 (engine_autopay) and 331/404
 //     (manual): Corpse Harvester's EACH "Zombie and Swamp" search. The

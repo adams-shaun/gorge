@@ -1,8 +1,6 @@
 # A2 target-selection rules: measured, kept opt-in, inert on the corpus
 
 Date: 2026-10-19.
-Ticket: A2 of four-yay's
-`docs/design/2026-10-19-forge-heuristics-go-port-design.md`.
 Outcome: **implemented, measured, gate NOT met, left opt-in with the numbers
 below.** The default bot is unchanged.
 
@@ -93,12 +91,10 @@ posture), and both adapters are pinned to agree on them.
 
 ## Reproducing
 
-four-yay's `cmd/botbench` has no arm for this policy (a bench arm for a
-policy that failed its gate would be dead weight in the pinned dependency).
-Add one to a scratch checkout of four-yay before measuring:
+The measurements came from a bench runner outside this repository, with this
+arm added to its policies map and gorge replaced by a local checkout:
 
 ```go
-// in cmd/botbench/main.go's policies map
 "targets": func(seed uint64) seat.Seat {
 	b := heuristic.NewBot(seed).EnableTargetRules(botpolicy.TargetRules{
 		LandPriority: true, ProminentColour: true, FilterFatalCopies: true,
@@ -107,19 +103,8 @@ Add one to a scratch checkout of four-yay before measuring:
 },
 ```
 
-then point the build at this checkout:
-
-```sh
-cd /path/to/four-yay
-printf '\nreplace github.com/adams-shaun/gorge => /path/to/gorge\n' >> go.mod
-go build -o /tmp/botbench ./cmd/botbench
-cd /path/to/gorge
-/tmp/botbench -a bot -b targets -games 400 -seed 1000000 -dir .cards
-/tmp/botbench -a bot -b bot     -games 400 -seed 1000000 -dir .cards  # bias control
-```
-
-The `replace` is a measurement scaffold only: it must not be committed, and
-it is why this ticket's bench arm lives in the note rather than in four-yay.
+Then 400 games of `bot` against `targets`, and of `bot` against `bot` as the
+bias control, both at seed 1000000.
 
 ## Pre-existing, not from this ticket
 

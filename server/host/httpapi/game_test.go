@@ -261,8 +261,8 @@ func TestDecksFiltersReservedPoolsByPolicy(t *testing.T) {
 	t.Cleanup(func() { r.Close() })
 	catalogue := []DeckInfo{
 		{ID: "burn", Name: "Burn", Format: "constructed"},
-		{ID: "fdn1", Name: "FDN 1", Format: "constructed", Pool: "az-c3"},
-		{ID: "fdn2", Name: "FDN 2", Format: "constructed", Pool: "az-c3"},
+		{ID: "fdn1", Name: "FDN 1", Format: "constructed", Pool: "net-a"},
+		{ID: "fdn2", Name: "FDN 2", Format: "constructed", Pool: "net-a"},
 		{ID: "tron", Name: "Tron", Format: "constructed"},
 	}
 	srv := httptest.NewServer(NewHandler(r, Options{Decks: catalogue}))
@@ -286,7 +286,7 @@ func TestDecksFiltersReservedPoolsByPolicy(t *testing.T) {
 	for query, want := range map[string][]string{
 		"":                        {"burn", "fdn1", "fdn2", "tron"},
 		"?policy=bot":             {"burn", "tron"},
-		"?policy=az-c3":           {"fdn1", "fdn2"},
+		"?policy=net-a":           {"fdn1", "fdn2"},
 		"?policy=lethal-pressure": {"burn", "tron"},
 	} {
 		if got := ids(query); !reflect.DeepEqual(got, want) {
@@ -295,7 +295,7 @@ func TestDecksFiltersReservedPoolsByPolicy(t *testing.T) {
 	}
 }
 
-// A deck reserved for two policies (az-c3 and az-c4 sharing one directory)
+// A deck reserved for two policies (net-a and net-b sharing one directory)
 // is listed for both.
 func TestDecksListsASharedPoolForEachOwner(t *testing.T) {
 	r, err := host.New(host.Options{LoadDeck: loader(t), Sleep: func(time.Duration, <-chan struct{}) {}})
@@ -303,21 +303,21 @@ func TestDecksListsASharedPoolForEachOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { r.Close() })
-	shared := JoinPools(JoinPools("", "az-c3"), "az-c4")
-	if shared != "az-c3,az-c4" || JoinPools(shared, "az-c4") != shared || PoolHas(shared, "az-c") || PoolHas("", "") {
+	shared := JoinPools(JoinPools("", "net-a"), "net-b")
+	if shared != "net-a,net-b" || JoinPools(shared, "net-b") != shared || PoolHas(shared, "net-") || PoolHas("", "") {
 		t.Fatalf("JoinPools/PoolHas: %q", shared)
 	}
 	catalogue := []DeckInfo{
 		{ID: "burn", Name: "Burn", Format: "constructed"},
 		{ID: "fdn1", Name: "FDN 1", Format: "constructed", Pool: shared},
-		{ID: "fdn2", Name: "FDN 2", Format: "constructed", Pool: "az-c4"},
+		{ID: "fdn2", Name: "FDN 2", Format: "constructed", Pool: "net-b"},
 	}
 	srv := httptest.NewServer(NewHandler(r, Options{Decks: catalogue}))
 	t.Cleanup(srv.Close)
 	for query, want := range map[string][]string{
 		"?policy=bot":   {"burn"},
-		"?policy=az-c3": {"fdn1"},
-		"?policy=az-c4": {"fdn1", "fdn2"},
+		"?policy=net-a": {"fdn1"},
+		"?policy=net-b": {"fdn1", "fdn2"},
 	} {
 		resp, err := http.Get(srv.URL + "/api/decks" + query)
 		if err != nil {

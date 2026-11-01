@@ -224,6 +224,14 @@ func applyPair(g *state.Game, srcID, partnerID state.ObjID) {
 	}
 }
 
+// endPairing clears a Soulbond pairing on both of its permanents (CR 702.95e).
+func endPairing(g *state.Game, o *state.Object) {
+	if partner := g.Obj(o.Paired); partner != nil && partner.Paired == o.ID {
+		partner.Paired = 0
+	}
+	o.Paired = 0
+}
+
 // matchExtraPhase finds the queue entry a consume (-1) or complete (-2)
 // event names: the FIRST entry (creation order, deterministic) whose
 // identity matches the event's carried fields. consumed=false matches only

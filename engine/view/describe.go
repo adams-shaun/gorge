@@ -34,6 +34,10 @@ func firstID(ids []state.ObjID) state.ObjID {
 }
 
 func Describe(g *state.Game, ev events.Event) string {
+	return addressYou(g, describe(g, ev))
+}
+
+func describe(g *state.Game, ev events.Event) string {
 	switch ev.Kind {
 	case events.ExtraTurn:
 		if ev.Amount < 0 {
@@ -164,6 +168,9 @@ func Describe(g *state.Game, ev events.Event) string {
 		}
 		return obj(g, ev.Obj) + " imprints " + objs(g, ev.IDs)
 	case events.Pair:
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " is no longer paired"
+		}
 		return obj(g, ev.Obj) + " pairs with " + obj(g, firstID(ev.IDs))
 	case events.MyriadCopy:
 		return obj(g, ev.Obj) + " creates a Myriad copy attacking " + player(g, state.PlayerID(firstID(ev.IDs)))
@@ -952,6 +959,61 @@ func player(g *state.Game, p state.PlayerID) string {
 		}
 	}
 	return "seat " + strconv.Itoa(int(p))
+}
+
+// addressYou turns a line about a seat displayed as "You", the human seat of a
+// vs-bot table, from the third person the lines are written in to the second.
+// A line starting with a card named "You ..." goes on to a capitalized word, so
+// it is left alone. Other mentions of the seat need no change: "attacks You".
+func addressYou(g *state.Game, line string) string {
+	if !hasYou(g) {
+		return line
+	}
+	line = strings.ReplaceAll(line, " You's ", " your ")
+	if rest, ok := strings.CutPrefix(line, "You's "); ok {
+		return "Your " + rest
+	}
+	rest, ok := strings.CutPrefix(line, "You ")
+	if !ok {
+		return line
+	}
+	subject := "You "
+	for _, adverb := range []string{"secretly ", "no longer "} {
+		if r, ok := strings.CutPrefix(rest, adverb); ok {
+			subject, rest = subject+adverb, r
+		}
+	}
+	verb, tail, _ := strings.Cut(rest, " ")
+	return subject + strings.TrimRight(baseVerb(verb)+" "+strings.ReplaceAll(tail, "their ", "your "), " ")
+}
+
+func hasYou(g *state.Game) bool {
+	if g != nil {
+		for i := range g.Players {
+			if g.Players[i].PlayerName == "You" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// baseVerb undoes the third-person -s of a lowercase verb. Any other word, a
+// past tense or a modal among them, comes back as it is.
+func baseVerb(v string) string {
+	switch {
+	case v == "is":
+		return "are"
+	case v == "has":
+		return "have"
+	case v == "" || v[0] < 'a' || v[0] > 'z' || !strings.HasSuffix(v, "s"):
+		return v
+	case strings.HasSuffix(v, "ies"):
+		return strings.TrimSuffix(v, "ies") + "y"
+	case strings.HasSuffix(v, "ches"), strings.HasSuffix(v, "shes"), strings.HasSuffix(v, "sses"), strings.HasSuffix(v, "xes"):
+		return strings.TrimSuffix(v, "es")
+	}
+	return strings.TrimSuffix(v, "s")
 }
 
 // tossNoteText is the deterministic chain text rules.New emits for its
