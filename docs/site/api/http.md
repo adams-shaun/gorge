@@ -166,6 +166,29 @@ clamp and retry:
 | `GET` | `/api/tables/{t}/matches/{k}/pending?seat=N` | The full decision your seat is being asked (`Decision`) | seat token, required | 200, 400, 401, 403, 404, 409 |
 | `POST` | `/api/tables/{t}/matches/{k}/intent` | Answer it (`Intent` body). `?auto=1` marks an autopilot answer. | seat token, required | 204, 400, 401, 403, 404, 409 |
 | `POST` | `/api/tables/{t}/matches/{k}/undo` | Rewind the live match to the decision you last answered | seat token, required | 204, 401, 403, 404, 409 |
+| `GET` | `/api/tables/{t}/paired-bot` | Whether this table offers a paired bot (`PairedBotStatus`) | none | 200, 404 |
+| `GET` | `/api/tables/{t}/matches/{k}/advice?seq=N` | The paired bot's evaluation of decision `N`, pending on your seat (`Advice`) | seat token, required | 200, 400, 401, 403, 404, 409 |
+
+#### The paired bot
+
+A server run with `-paired-bot` lets a human player ask a bot to evaluate the decision in front
+of them. It is off by default. It only advises: nothing it says reaches the game, a replay or the
+hash chain, and the seat still answers through `intent`.
+
+The bot sees what the seat can see: its own deck list and everything the seat has observed. It
+doesn't see the opponent's hand, the order of any library or the opponent's deck list; it guesses
+those cards from a set of decks (`-paired-bot-decks`, by default the server's constructed decks).
+The seat comes from the token alone, so spectators and other seats get nothing.
+
+`advice` blocks until the search ends, and hanging up cancels it. `state` is `ready` with a note in
+`explain`, the same shape as a review decision's; `none` when the bot doesn't evaluate that kind of
+decision; or `refused` with a plain `reason`. A decision that has moved on is a 409. Row `choices`
+index the decision's `options`; a row with `payment` names one of its `payment_actions` instead.
+
+A table with more than one human doesn't offer it unless the table allows it
+(`-paired-bot-shared`), and then `paired-bot` tells every seat it is on (`shared`). At most one
+search runs per table and `-paired-bot-searches` across the server, at a fixed
+`-paired-bot-sims`.
 
 ### The stream
 

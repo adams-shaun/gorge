@@ -43,6 +43,8 @@ func Render() (string, error) {
 		{protoPkg, "EventSetInfo"}, {protoPkg, "EventPersonas"},
 		// The review server's decision index (gorged review only).
 		{protoPkg, "ReviewDecision"},
+		// The paired bot's status and advice.
+		{protoPkg, "PairedBotStatus"}, {protoPkg, "Advice"},
 		// decision.Intent is the client's ANSWER — the one wire type a human
 		// needs. Every other decision type reaches the client through View,
 		// but nothing reaches it from the server's offered decisions, so

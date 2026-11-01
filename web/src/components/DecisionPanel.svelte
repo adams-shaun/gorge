@@ -3,6 +3,7 @@
   import { fetchDecisions } from '../lib/api';
   import { seatColour } from '../lib/colours';
   import { pointerRelease } from '../lib/pointer';
+  import SearchTable from './SearchTable.svelte';
   import {
     duplicateLabels,
     entryIndexAt,
@@ -77,8 +78,6 @@
   const bot = $derived(new Set(n?.bot ?? []));
   const override = $derived(e !== null && isOverride(e));
   const badge = $derived(n ? sourceBadge(n) : null);
-  const rows = $derived(n?.search?.rows ?? []);
-  const maxVisits = $derived(Math.max(1, ...rows.map((r) => r.visits)));
   const seatName = (p: number) => seats[p]?.name ?? `Seat ${p + 1}`;
   // Two options can share a label (two copies of a card in hand): a search
   // row then names its option index too, as the option list does.
@@ -186,33 +185,7 @@
       {/if}
 
       {#if n?.search}
-        {@const s = n.search}
-        <table class="search" aria-label="Search">
-          <thead>
-            <tr><th class="c-ans">Candidate</th><th class="c-vis">Visits</th><th class="num c-prior">Prior</th><th class="num">Q</th></tr>
-          </thead>
-          <tbody>
-            {#each rows as r, i (i)}
-              <tr class:chosen={r.chosen} class:bot={r.bot}>
-                <td class="c-ans" title={candidate(r.choices)}>
-                  <span class="ans"><span class="cand">{candidate(r.choices)}</span>{#if r.chosen}<span class="tag tag-chosen">chosen</span>{/if}{#if r.bot}<span class="tag tag-bot">bot</span>{/if}</span>
-                </td>
-                <td class="c-vis">
-                  <span class="vis"><span class="track"><span class="bar" style:width={`${(r.visits / maxVisits) * 100}%`}></span></span><span class="vn">{r.visits}</span></span>
-                </td>
-                <td class="num c-prior">{r.prior.toFixed(2)}</td>
-                <td class="num" class:neg={r.q < 0}>{signed(r.q)}</td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-        <p class="foot">
-          <span>Root <b class:neg={s.root_value < 0}>{signed(s.root_value)}</b></span>
-          {#if s.sims}<span>{s.sims} sims</span>{/if}
-          {#if s.ms}<span>{Math.round(s.ms)} ms</span>{/if}
-          <span>{s.engine}{s.cheap ? ', cheap' : ''}</span>
-          {#if s.dropped}<span>{s.dropped} more not listed</span>{/if}
-        </p>
+        <SearchTable search={n.search} label={(r) => candidate(r.choices)} />
       {:else if n?.net}
         <p class="foot"><span>Net value <b class:neg={n.net.value < 0}>{signed(n.net.value)}</b></span></p>
       {/if}
@@ -318,37 +291,10 @@
   .more, .answer { margin: var(--sp-1) 0 0; color: var(--ink-faint); overflow-wrap: anywhere; }
   .answer .k { color: var(--ink-dim); margin-right: var(--sp-1); }
 
-  .search { width: 100%; margin-top: var(--sp-3); border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
-  .search th {
-    text-align: left;
-    font-weight: 400;
-    color: var(--ink-faint);
-    padding: 0 var(--sp-1) 2px 0;
-    border-bottom: 1px solid var(--edge-inst);
-  }
-  .search td { padding: 3px var(--sp-1) 3px 0; vertical-align: baseline; border-bottom: 1px solid color-mix(in srgb, var(--edge-inst) 45%, transparent); }
-  .search .c-ans { width: 46%; }
-  .search .c-vis { width: 28%; }
-  .search .num { width: 13%; text-align: right; }
-  .ans { display: flex; align-items: baseline; gap: var(--sp-1); min-width: 0; }
-  .cand { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .search tr.chosen .cand { color: var(--ink); }
-  .vis { display: flex; align-items: center; gap: var(--sp-1); }
-  .track { flex: 1; min-width: 0; height: 0.5rem; }
-  .bar {
-    display: block;
-    height: 100%;
-    min-width: 1px;
-    border-radius: 1px;
-    background: color-mix(in srgb, var(--ink-inst) 30%, transparent);
-  }
-  .search tr.chosen .bar { background: color-mix(in srgb, var(--gilt) 70%, transparent); }
-  .search tr.bot:not(.chosen) .bar { background: color-mix(in srgb, var(--verdigris) 60%, transparent); }
-  .vn { flex: none; min-width: 2.2em; text-align: right; color: var(--ink-inst); }
-  .neg { color: var(--ink-dim); }
   .foot { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); margin: var(--sp-2) 0 0; color: var(--ink-faint); }
   .foot b { font-weight: 600; color: var(--ink); }
   .foot b.neg { color: var(--ink-dim); }
+  .neg { color: var(--ink-dim); }
 
   .jumps { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-top: var(--sp-3); }
   .jumps button {
@@ -374,22 +320,9 @@
   }
   .n { color: var(--ink-faint); margin-left: 2px; }
   .quiet { margin: var(--sp-1) 0 0; color: var(--ink-faint); }
-  /* A narrow rail keeps the candidate, its visits and Q; the prior goes. */
-  @container (max-width: 17rem) {
-    .search .c-prior { display: none; }
-    .search .c-ans { width: 52%; }
-    .search .c-vis { width: 30%; }
-    .search .num { width: 18%; }
-  }
-  /* A sliver of a rail: the candidate and its Q only. */
+  /* A sliver of a rail. */
   @container (max-width: 11rem) {
-    .search .c-vis, .search .c-prior { display: none; }
-    .search .c-ans { width: 65%; }
-    .search .num { width: 35%; }
     .options .tag { flex-basis: 100%; }
-    .search .tag { display: none; }
-    .search tr.chosen td:first-child { box-shadow: inset 2px 0 0 var(--gilt); padding-left: var(--sp-1); }
-    .search tr.bot:not(.chosen) td:first-child { box-shadow: inset 2px 0 0 var(--verdigris); padding-left: var(--sp-1); }
   }
   .missed { color: var(--ink-dim); }
 </style>

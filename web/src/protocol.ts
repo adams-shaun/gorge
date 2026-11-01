@@ -2237,6 +2237,49 @@ export interface ReviewDecision {
 }
 
   /**
+   * PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this
+   * table may ask a bot to evaluate its decisions. It carries configuration
+   * only, so every seat can read it and see that a table allows it.
+   */
+export interface PairedBotStatus {
+  offered: boolean;
+  /**
+   * Reason says, in plain words, why this table does not offer what the
+   * server does. A server without the option has none.
+   */
+  reason?: string;
+  /**
+   * Policy names the bot.
+   */
+  policy?: string;
+  /**
+   * Shared marks a table with more than one human that allows it: any of
+   * those players may be asking.
+   */
+  shared?: boolean;
+}
+
+  /**
+   * Advice is GET /api/tables/{t}/matches/{k}/advice: one bot's evaluation of
+   * the decision pending on the requesting seat. It is computed from what that
+   * seat can see, is never replay input and is never hashed.
+   */
+export interface Advice {
+  table: string;
+  match: number;
+  ask_seq: number;
+  seat: number;
+  policy: string;
+  state: string;
+  reason?: string;
+  /**
+   * Explain is a bots/explain.Note: the same shape as
+   * ReviewDecision.Explain, with Choices indexing the decision's options.
+   */
+  explain?: unknown;
+}
+
+  /**
    * PaymentSelection is the exclusive intent selector for an offered action and
    * its complete, byte-for-byte equivalent plan witness.
    */

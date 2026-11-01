@@ -1,5 +1,49 @@
 {
   "$defs": {
+    "Advice": {
+      "description": "Advice is GET /api/tables/{t}/matches/{k}/advice: one bot's evaluation of the decision pending on the requesting seat. It is computed from what that seat can see, is never replay input and is never hashed.",
+      "properties": {
+        "ask_seq": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "explain": {
+          "description": "Explain is a bots/explain.Note: the same shape as ReviewDecision.Explain, with Choices indexing the decision's options."
+        },
+        "match": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "seat": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ask_seq",
+        "match",
+        "policy",
+        "seat",
+        "state",
+        "table"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Advice"
+    },
     "AnnounceSelection": {
       "description": "AnnounceSelection is the announce-then-pay selector (spec docs/design/2026-09-27-announce-then-pay.md §3): it names an offered PaymentAction by ID and asks the engine to begin that ordinary cast WITHOUT a payment witness, so the caster pays in the CR 601.2g mana window (\"select mana\" prompt) instead. It is exclusive with Choices, Rest and Payment, valid only on a priority answer, and only for an action that carries at least one plan -- the planner's proof that the floating pool plus untapped sources can pay the cast.",
       "properties": {
@@ -2382,6 +2426,31 @@
         }
       ],
       "description": "Last frame of a session whose outbound buffer filled; the stream then closes and the client must reconnect without Last-Event-ID."
+    },
+    "PairedBotStatus": {
+      "description": "PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this table may ask a bot to evaluate its decisions. It carries configuration only, so every seat can read it and see that a table allows it.",
+      "properties": {
+        "offered": {
+          "type": "boolean"
+        },
+        "policy": {
+          "description": "Policy names the bot.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason says, in plain words, why this table does not offer what the server does. A server without the option has none.",
+          "type": "string"
+        },
+        "shared": {
+          "description": "Shared marks a table with more than one human that allows it: any of those players may be asking.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "offered"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.PairedBotStatus"
     },
     "PaymentAbility": {
       "description": "PaymentAbility is a stable source ability discriminator. Printed abilities use the card face and its printed ability index. Intrinsic abilities use a frozen name (for example \"basic_land\"); they never use a transient offered option index. Fields outside the selected discriminator must be zero.",

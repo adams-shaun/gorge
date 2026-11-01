@@ -128,6 +128,9 @@ func (s *Seat) searchRows(sn *searchNote) *explain.Search {
 	}
 	rows, dropped := explain.Rows(len(res.Candidates), visits, chosen, bot, func(i int) explain.Row {
 		r := explain.Row{Choices: res.Candidates[i].Choices, Visits: visits(i)}
+		if pay := res.Candidates[i].Payment; pay != nil {
+			r.Payment = pay.ActionID
+		}
 		if i < len(res.Prior) {
 			r.Prior = explain.Round(res.Prior[i])
 		}

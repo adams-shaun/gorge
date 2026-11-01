@@ -97,6 +97,21 @@ func NewWithModel(o bots.Options, cfg azmcts.SeatConfig, model *policynet.Model)
 	return &hostedSeat{bot: s, cfg: cfg, budgetMS: o.DecisionDeadlineMS}, nil
 }
 
+// ClosedFactory builds Hosted's search with the opponents' deck lists closed
+// under belief: each opponent's unknown cards are dealt from lists drawn from
+// the belief, never from its real list or real hidden cards. It searches sims
+// simulations per decision, over the payment plans when Options.AutoPayMana
+// says the decisions carry them.
+func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
+	return func(o bots.Options) (seat.Seat, error) {
+		cfg := Hosted()
+		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
+		cfg.Search.Sims = sims
+		cfg.Search.AutoPayment = o.AutoPayMana
+		return New(o, cfg)
+	}
+}
+
 // DecisionBudgetMS is the factory's per-decision wall-clock budget
 // (bots.Options.DecisionDeadlineMS), for the host to arm as the DecideEnv
 // context's deadline. Only DecideEnv reaches the search here -- Decide and

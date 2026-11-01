@@ -16,6 +16,7 @@
   import Transcript from '../components/Transcript.svelte';
   import ReplayTransport from '../components/ReplayTransport.svelte';
   import DecisionPanel from '../components/DecisionPanel.svelte';
+  import PairedBotPanel from '../components/PairedBotPanel.svelte';
   import { decisionStops, timelineMarks } from '../lib/review';
   import type { ReviewDecision } from '../protocol';
   import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
@@ -659,6 +660,9 @@
         {/if}
         {#if reviewMatch !== null}
           <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
+        {/if}
+        {#if liveSeated && seatCtx && !seatCtx.transport && m.match !== null}
+          <PairedBotPanel {table} match={m.match} ctx={seatCtx} decision={m.view?.decision ?? null} />
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed

@@ -29,6 +29,8 @@ var hostGorgePaths = map[string]bool{
 	"contract_shadow.go":  true,
 	// MatchTossWinner is gorge's toss.
 	"series.go": true,
+	// The paired bot searches a replayed gorge engine; another engine refuses.
+	"pairedbot.go": true,
 	// Narrowed by matchGorgeNames.
 	"match.go": true,
 }

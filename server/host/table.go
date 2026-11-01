@@ -217,6 +217,10 @@ type TableConfig struct {
 	// loads as false, and restart skips a persisted table the new rule
 	// refuses rather than failing the whole process.
 	AllowDecklistBots bool `json:"allow_decklist_bots,omitempty"`
+	// AllowPairedBot lets a table with more than one human offer the paired
+	// bot (Options.PairedBot); every seat can read that it is on
+	// (Registry.PairedBotStatus). A table with one human needs no opt-in.
+	AllowPairedBot bool `json:"allow_paired_bot,omitempty"`
 	// SeatBotPolicies names a bot policy per seat index: seat i of every match
 	// is played by SeatBotPolicies[i] when that entry is non-empty, else by
 	// BotPolicy. Like PlayerNames it never rotates with the decks. An entry
@@ -420,6 +424,9 @@ type table struct {
 	// its one match, ReviewDecisions), built by AddReviewTable's load walk
 	// and never changed after registration. nil on every live table.
 	decisions []protocol.ReviewDecision
+
+	// advice is the table's paired-bot search, at most one at a time.
+	advice adviceSlot
 
 	mu    sync.RWMutex
 	state string // protocol.Table*

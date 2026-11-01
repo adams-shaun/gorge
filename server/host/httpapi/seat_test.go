@@ -279,6 +279,7 @@ func TestTableBoundSeatClaimRejectsEveryOtherTable(t *testing.T) {
 		{"pending", http.MethodGet, "/api/tables/%s/matches/1/pending?seat=0", nil},
 		{"intent", http.MethodPost, "/api/tables/%s/matches/1/intent", answerFor(&d)},
 		{"undo", http.MethodPost, "/api/tables/%s/matches/1/undo", nil},
+		{"advice", http.MethodGet, "/api/tables/%s/matches/1/advice?seq=1", nil},
 	}
 	for _, route := range routes {
 		t.Run(route.name, func(t *testing.T) {

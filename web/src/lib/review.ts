@@ -22,6 +22,8 @@ export type ExplainSource =
 /** One searched candidate (bots/explain.Row). Values are the deciding seat's perspective. */
 export interface ExplainRow {
   choices: number[];
+  /** The id of the decision's payment action a planned cast selects; such a row has no choices. */
+  payment?: string;
   visits: number;
   prior: number;
   q: number;
