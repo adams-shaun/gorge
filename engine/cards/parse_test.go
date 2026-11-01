@@ -5,7 +5,7 @@ import "testing"
 const boltSrc = `Name:Lightning Bolt
 ManaCost:R
 Types:Instant
-A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SpellDescription$ CARDNAME deals 3 damage to any target.
+A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3
 Oracle:Lightning Bolt deals 3 damage to any target.
 `
 

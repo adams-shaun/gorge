@@ -52,8 +52,8 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// Basic-typed lands with an "any colour" production: each could produce
 		// one mana of ANY colour, so CR 903.5d binds it to a full-WUBRG
 		// commander no matter what its basic land type's intrinsic colour is.
-		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
-		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
+		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any\n",
+		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any\n",
 		// A mutual "Partner with" pair in the Food and Fellowship shape (CR
 		// 903.13c): partner A is {W}{B}, partner B is {G}{W}, so the CR 903.5
 		// UNION identity is {W}{B}{G} — a green card is legal only because

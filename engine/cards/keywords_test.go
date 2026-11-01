@@ -117,12 +117,12 @@ func TestEquipReadsTrailingFields(t *testing.T) {
 	if a.Params["Cost"] != "3" || a.Params["ValidTgts"] != "Creature.YouCtrl+Legendary" {
 		t.Fatalf("%+v", a.Params)
 	}
-	crown := expanded(t, "Name:C\nManaCost:4\nTypes:Artifact Equipment\nK:Equip:4:::ReduceCost$ Monarch:This ability costs {3} less to activate if you're the monarch\nOracle:x\n")
+	crown := expanded(t, "Name:C\nManaCost:4\nTypes:Artifact Equipment\nK:Equip:4:::ReduceCost$ Monarch:Cheaper for the monarch\nOracle:x\n")
 	ca := crown.Abilities[0]
 	if ca.Params["ValidTgts"] != "Creature.YouCtrl" || ca.Params["ReduceCost"] != "Monarch" {
 		t.Fatalf("%+v", ca.Params)
 	}
-	la := expanded(t, "Name:L\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:0:::ActivationLimit$ 1:Activate only once each turn\nOracle:x\n")
+	la := expanded(t, "Name:L\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:0:::ActivationLimit$ 1:Once a turn\nOracle:x\n")
 	laa := la.Abilities[0]
 	if laa.Params["ValidTgts"] != "Creature.YouCtrl" || laa.Params["ActivationLimit"] != "1" {
 		t.Fatalf("%+v", laa.Params)
@@ -239,9 +239,9 @@ func TestDevourTypedAndXParams(t *testing.T) {
 			f.SVars["__kwDevourSacX0"], f.SVars["__kwDevourX0"])
 	}
 
-	f2 := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Devour:X::, where X is the number of creatures devoured this way\nOracle:x\n")
+	f2 := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Devour:X::, with X the count devoured\nOracle:x\n")
 	r2 := f2.Repls[0]
-	if r2.Params["KeywordLine"] != "Devour:X::, where X is the number of creatures devoured this way" {
+	if r2.Params["KeywordLine"] != "Devour:X::, with X the count devoured" {
 		t.Fatalf("KeywordLine = %q (idempotence tag must be the whole original line)", r2.Params["KeywordLine"])
 	}
 	w2 := r2.With
@@ -302,10 +302,9 @@ func TestTypeCyclingExpandsToATypedLibrarySearch(t *testing.T) {
 			t.Errorf("param %s = %q, want %q", k, a.Params[k], want)
 		}
 	}
-	// A trailing description field (Sojourner's Companion's
-	// K:TypeCycling:Land.Artifact:2:artifact land) is dropped: the type and
-	// cost are fields 0 and 1 only.
-	c2, _ := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Land.Artifact:2:artifact land\nOracle:x\n"))
+	// A trailing description field is dropped: the type and cost are fields 0
+	// and 1 only.
+	c2, _ := ParseBytes("k.txt", []byte("Name:S\nManaCost:2\nTypes:Creature\nPT:1/1\nK:TypeCycling:Land.Artifact:2:display text\nOracle:x\n"))
 	c2.Link()
 	if got := c2.Faces[0].Abilities[0].Params["ChangeType"]; got != "Land.Artifact" {
 		t.Fatalf("ChangeType with trailing description = %q, want Land.Artifact", got)

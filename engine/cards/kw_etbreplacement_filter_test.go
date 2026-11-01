@@ -13,10 +13,10 @@ import "testing"
 // fallback byte-identical (every no-filter carrier: ChooseColor, ChooseCT,
 // DBNameCard, ...).
 func TestETBReplacementFilterFieldReachesValidCard(t *testing.T) {
-	// Veiled Ascension's exact keyword line.
+	// A filter on the entering creature's face-down state.
 	f := expanded(t, "Name:Veil\nManaCost:3 W\nTypes:Enchantment\n"+
-		"K:ETBReplacement:Other:AddExtraCounter:Mandatory:Battlefield:Creature.faceDown+YouCtrl\n"+
-		"SVar:AddExtraCounter:DB$ PutCounter | ETB$ True | Defined$ ReplacedCard | CounterType$ Flying\nOracle:x\n")
+		"K:ETBReplacement:Other:Extra:Mandatory:Battlefield:Creature.faceDown+YouCtrl\n"+
+		"SVar:Extra:DB$ PutCounter | ETB$ True | Defined$ ReplacedCard\nOracle:x\n")
 	if len(f.Repls) != 1 {
 		t.Fatalf("want 1 replacement, got %d", len(f.Repls))
 	}
@@ -28,10 +28,10 @@ func TestETBReplacementFilterFieldReachesValidCard(t *testing.T) {
 		t.Fatalf("ActiveZones$ = %q, want Battlefield", az)
 	}
 
-	// Giada, Font of Hope's line (a non-faceDown filter).
+	// A filter that isn't about faceDown.
 	f = expanded(t, "Name:Giada\nManaCost:1 W\nTypes:Creature Angel\nPT:2/2\n"+
-		"K:ETBReplacement:Other:AddExtraCounter:Mandatory:Battlefield:Creature.Angel+YouCtrl+Other\n"+
-		"SVar:AddExtraCounter:DB$ PutCounter | ETB$ True | Defined$ ReplacedCard\nOracle:x\n")
+		"K:ETBReplacement:Other:Extra:Mandatory:Battlefield:Creature.Angel+YouCtrl+Other\n"+
+		"SVar:Extra:DB$ PutCounter | ETB$ True | Defined$ ReplacedCard\nOracle:x\n")
 	if got := f.Repls[0].Params["ValidCard"]; got != "Creature.Angel+YouCtrl+Other" {
 		t.Fatalf("Giada ValidCard$ = %q, want the filter field", got)
 	}
