@@ -72,3 +72,73 @@ func TestStartYourEnginesSpeedStartsWithControlChange(t *testing.T) {
 		t.Fatalf("seat 0 re-emitted the grant on a second transfer: %d, want 1", got)
 	}
 }
+
+// TestStartYourEnginesSpeedStartsPastAReplacedEntry holds CR 704.5aa to having no
+// entry condition: an entry an Updated replacement folds itself, with or without
+// a counter on the permanent, still starts its controller's speed by the next
+// state-based check. The last case folds a static-less carrier's entry raw on a
+// quiet board, where the check must not skip the pass that starts the speed.
+func TestStartYourEnginesSpeedStartsPastAReplacedEntry(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		name, carrier string
+		seat0, seat1  string
+		raw           bool
+	}{
+		{name: "counter replacement", carrier: "Streaking Oilgorger", seat0: "Thunderous Velocipede"},
+		{name: "tap replacement", carrier: "Streaking Oilgorger", seat1: "Thalia, Heretic Cathar"},
+		{name: "quiet entry", carrier: "Point the Way", seat0: "Grizzly Bears", raw: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			deck0 := []*cards.Card{lookup(t, reg, tc.carrier)}
+			var deck1 []*cards.Card
+			if tc.seat0 != "" {
+				deck0 = append(deck0, lookup(t, reg, tc.seat0))
+			}
+			if tc.seat1 != "" {
+				deck1 = append(deck1, lookup(t, reg, tc.seat1))
+			}
+			e := corpusEngine(t, reg, deck0, deck1)
+			if tc.seat0 != "" {
+				moveByName(t, e, 0, tc.seat0, state.ZBattlefield)
+			}
+			if tc.seat1 != "" {
+				moveByName(t, e, 1, tc.seat1, state.ZBattlefield)
+			}
+			e.checkStateBased()
+			if tc.raw {
+				id := findSeatCard(t, e, 0, tc.carrier)
+				events.Emit(e.G, e.L, events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+			} else {
+				moveByName(t, e, 0, tc.carrier, state.ZBattlefield)
+			}
+			if got := e.G.Players[0].Speed; got != 0 && tc.raw {
+				t.Fatalf("precondition: speed %d before the state-based check, want 0", got)
+			}
+			e.checkStateBased()
+			if got := e.G.Players[0].Speed; got != 1 {
+				t.Fatalf("seat 0 speed after the state-based check: %d, want 1", got)
+			}
+			grants := countEvents(e, func(ev events.Event) bool {
+				return ev.Kind == events.SpeedChange && ev.Player == 0
+			})
+			if grants != 1 {
+				t.Fatalf("speed grants: %d, want 1", grants)
+			}
+		})
+	}
+}
+
+// findSeatCard is the first copy of name in seat p's hand or library.
+func findSeatCard(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, p) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+				return id
+			}
+		}
+	}
+	t.Fatalf("card %q not found in seat %d's hand or library", name, p)
+	return 0
+}

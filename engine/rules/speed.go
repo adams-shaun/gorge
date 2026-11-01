@@ -37,18 +37,17 @@ func (e *Engine) checkSpeedGain(ev events.Event) {
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Controller: p, SpeedIncrease: true})
 }
 
-// checkSpeedStart is the permanent half of the Start your engines! grant:
-// called from Engine.emit's post-fold hook on every battlefield entry
-// (MoveZone), token mint (TokenCreate, CardToken) and control transfer
-// (ControlChange) -- the same hook shape checkBlessingGrants uses. For each
-// still-alive speed-less seat it checks CR 702.179a's gate directly off the
-// FOLDED state: the seat controls at least one permanent whose derived
-// keywords include Start your engines!. It then emits the one-way
-// SpeedChange latch to 1. Running after the fold means a permanent's own
-// arrival grants its controller, and the recursive emit the scan makes sees
-// a seat that now has speed, so the scan terminates. A control transfer of a
-// permanent already on the battlefield is exactly the case a battlefield-
-// entry-only hook cannot see, which is why ControlChange is in the set.
+// checkSpeedStart is the Start your engines! grant (CR 702.179a), a
+// state-based action (CR 704.5aa): each speed-less seat controlling a permanent
+// whose derived keywords include Start your engines! emits the one-way
+// SpeedChange latch to 1. The recursive emit sees a seat that now has speed, so
+// the scan terminates.
+//
+// The state-based pass catches every way to meet the condition. Engine.emit's
+// post-fold hook also runs it on a battlefield entry (MoveZone), a token mint
+// (TokenCreate, CardToken) and a control transfer (ControlChange), so a seat has
+// its speed at once on those; an entry an Updated replacement folds itself skips
+// that hook.
 func (e *Engine) checkSpeedStart() {
 	if e.G.Over {
 		return
@@ -57,22 +56,25 @@ func (e *Engine) checkSpeedStart() {
 		if int(p) >= len(e.G.Players) || e.G.Players[p].Lost || e.G.Players[p].Speed != 0 {
 			continue
 		}
-		started := false
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			o := e.G.Obj(id)
-			if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
-				continue
-			}
-			if e.hasKeywordH(id, kwhStartYourEngines) {
-				started = true
+			if e.speedStarts(e.G.Obj(id)) {
+				e.emit(events.Event{Kind: events.SpeedChange, Player: p, Amount: 1,
+					Text: "start your engines"})
 				break
 			}
 		}
-		if started {
-			e.emit(events.Event{Kind: events.SpeedChange, Player: p, Amount: 1,
-				Text: "start your engines"})
-		}
 	}
+}
+
+// speedStarts reports whether o is a permanent that starts its controller's
+// speed: it has Start your engines! and they have none.
+func (e *Engine) speedStarts(o *state.Object) bool {
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil ||
+		int(o.Controller) >= len(e.G.Players) {
+		return false
+	}
+	pl := &e.G.Players[o.Controller]
+	return pl.Speed == 0 && !pl.Lost && e.hasKeywordH(o.ID, kwhStartYourEngines)
 }
 
 // speedTriggeredThisTurn counts the trigger, not its resolution. A queued

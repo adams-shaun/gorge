@@ -213,7 +213,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 704.4 | follows | `engine/rules/engine.go#submitCommit` `engine/rules/turn.go#Engine.step` | `TestDrawDuringResolutionDefersStateBasedActions` `TestCR704NoLifeSBAInsideSmallpoxDiscard` `TestMidCastSBADoesNotEndGameDuringManaWindow` | checked only at priority boundaries, not mid-resolution or mid-cast |
 | 704.5 | follows | `engine/rules/sba.go#Engine.checkStateBased` | - | index rule; members below |
 | 704.5a | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.playerLoses` | `TestZeroLifeEliminatesAPlayer` `TestNoPendingDecisionWithAZeroLifePlayerNotYetLost` | can't-lose replacements honoured |
-| 704.5aa | partial | `engine/rules/speed.go#Engine.checkSpeedStart` | `TestStartYourEnginesSpeedStartsWithControlChange` |  |
+| 704.5aa | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/sba.go#Engine.checkStateBased` | `TestStartYourEnginesSpeedStartsWithControlChange` `TestStartYourEnginesSpeedStartsPastAReplacedEntry` |  |
 | 704.5b | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.markDrawEmpty` | `TestEmptyLibraryDrawLosesAtTheNextStateBasedCheck` `TestEmptyLibraryDrawIsCheckedWhenTheCheckHappens` |  |
 | 704.5c | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | `TestInfectDamageToPlayerIsPoisonAndTenPoisonLoses` |  |
 | 704.5d | follows | `engine/rules/sba.go#Engine.ceaseDeadTokens` | `TestATokenThatDiesCeasesToExist` `TestATokenLeavingTheBattlefieldByAnyRouteCeasesToExist` `TestATokenOnTheStackIsNotPrematurelyCeased` |  |

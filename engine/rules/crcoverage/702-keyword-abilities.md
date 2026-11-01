@@ -237,7 +237,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.177a | follows | `engine/rules/legal_loyalty.go#Engine.activationLimitBlocked` | `TestExhaustMaiJadedEdgeWithheldAfterOneUse` `TestExhaustInlineWithheldSameTurnAndLaterTurn` |  |
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |
 | 702.178 | follows | `engine/rules/speed.go#Engine.maxSpeedAbilities` | `TestMaxSpeedAddAbilityOfferedExactlyOnce` `TestMaxSpeedPlayerProperty` |  |
-| 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` | Speed starts at 1 |
+| 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` `TestStartYourEnginesSpeedStartsPastAReplacedEntry` | Speed starts at 1 |
 | 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` `TestHarmonizeTapsAnimatedLandForItsPower` | Graveyard cast; tap one creature to reduce by power |
 | 702.181 | follows | `engine/cards/kw_mobilize.go#kwMobilize` | `TestMobilizeSacrificesAtTheNextEndStep` `TestMobilizeSecondTriggerCountsOnlyItsOwnTokens` |  |
 | 702.182 | follows | `engine/cards/kw_jobselect.go#kwJobSelect` | `TestJobSelectExpandsToHeroEtbAttach` `TestBlackMagesRodJobSelectCreatesHeroAndAttaches` |  |

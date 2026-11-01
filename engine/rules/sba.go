@@ -327,6 +327,10 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).dayNight {
 			e.dayNightStateCheck(&b)
 		}
+		// CR 704.5aa: a seat with a Start your engines! permanent and no speed.
+		if e.sbaFacts(facts).speedStart {
+			e.checkSpeedStart()
+		}
 		// The losses are made first: a player who has left makes no CR 704.5j
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
 		// own attempts are made under. That player's permanents stay until the

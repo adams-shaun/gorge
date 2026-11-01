@@ -378,6 +378,7 @@ func (e *Engine) verifySBAQuiet(ep0 int) {
 //     and world rules and the loyalty/defense/chapter walks read the printed
 //     face, or the derived Legendary/World with a layer-4 effect live --
 //     hasType);
+//   - not a permanent that starts its controller's speed (speedStarts);
 //   - not a creature, or a creature whose toughness is above zero.
 //
 // No later quiet event can change any of these (each would need a counter,
@@ -399,6 +400,9 @@ func (e *Engine) sbaQuietEntry(id state.ObjID) bool {
 		return false
 	}
 	if e.isAura(o) || e.hasType(o, "World") || e.hasType(o, "Legendary") {
+		return false
+	}
+	if e.speedStarts(o) {
 		return false
 	}
 	return !e.IsCreature(id) || e.Toughness(id) > 0

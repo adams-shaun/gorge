@@ -274,12 +274,14 @@ func (e *Engine) mayHaveLegendPair() bool {
 //   - legend: mayHaveLegendPair's answer (some controller has two phased-in
 //     permanents with a printed Legendary face), legendGroups' own gate;
 //   - combat: removeNoncombatants' gate -- some battlefield permanent is
-//     attacking, or some blocker list may be non-empty.
+//     attacking, or some blocker list may be non-empty;
+//   - speedStart: checkSpeedStart's test -- a permanent with Start your
+//     engines! under a seat with no speed.
 type sbaBoardFacts struct {
 	at                                    int
 	pw, battle, saga, counterPair, attach bool
 	role, world, legend, combat           bool
-	dayNight, paired                      bool
+	dayNight, paired, speedStart          bool
 }
 
 // sbaFacts refreshes f when the log has moved since it was taken.
@@ -316,6 +318,9 @@ func (e *Engine) sbaFacts(f *sbaBoardFacts) *sbaBoardFacts {
 				}
 				if o.Paired != 0 {
 					f.paired = true
+				}
+				if !f.speedStart && e.speedStarts(o) {
+					f.speedStart = true
 				}
 				if face != nil && !f.legend && e.sbaTypeFast(o, sbaLegendary, anyLType) {
 					if legends++; legends >= 2 {
