@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The handmove1 end-to-end leaves: a Burgeoning-shaped "choose N cards
+// The end-to-end leaves: a Burgeoning-shaped "choose N cards
 // matching ChangeType$ from Origin$ Hand" ChangeZone reached through the real
 // engine (opponent plays a land, the optional trigger accepted) poses the
 // hand-choice KChoose, the answer moves exactly the picked card, and the
@@ -262,7 +262,7 @@ func TestBurgeoningSingleLandCanBeDeclined(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// --- rv2b: the Brainstorm-shaped whole-hand put-back, end to end on the real
+// --- The Brainstorm-shaped whole-hand put-back, end to end on the real
 // corpus scripts. ---
 
 // brainFinds returns the option index whose Obj is id in a pending hand_move
@@ -439,8 +439,8 @@ func TestJaceTheMindSculptorZeroAbilityPutsTwoBackOnTop(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// --- rv2b r2: the owner-SELECTED hidden-hand shape, end to end on the real
-// corpus Kynaios and Tiro of Meletis -- the finding's breaking card. ---
+// --- The owner-SELECTED hidden-hand shape, end to end on the real
+// corpus Kynaios and Tiro of Meletis. ---
 
 // TestKynaiosAndTiroAsksEachPlayerForItsOwnLand runs the real corpus
 // Kynaios and Tiro of Meletis end to end: seated on seat 0's battlefield and
@@ -449,8 +449,8 @@ func TestJaceTheMindSculptorZeroAbilityPutsTwoBackOnTop(t *testing.T) {
 // RememberChanged$ True, no Chooser$ -- the hand's owner answers) asks EACH
 // player for its own hand in turn: one suspension per owner, the cursor
 // chaining the second ask off the first answer, and each answer moving
-// exactly that owner's chosen land. Pre-rv2b-r2 the whole sub-ability
-// silently no-op'd (the player targets fell off the object path's Origin$
+// exactly that owner's chosen land. On the object path the whole sub-ability
+// silently no-ops (the player targets fall off the object path's Origin$
 // precondition) and no ask of any kind was ever posed.
 func TestKynaiosAndTiroAsksEachPlayerForItsOwnLand(t *testing.T) {
 	t.Parallel()

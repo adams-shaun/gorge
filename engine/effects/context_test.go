@@ -497,7 +497,7 @@ func (h *fakeHost) CostMovesInWindow(_ state.ObjID, kind events.CostMoveKind) []
 	return nil
 }
 
-// The bare wasCastFromYourHand family's read (castprov3): the fake has no
+// The bare wasCastFromYourHand family's read: the fake has no
 // cast log either, so it reports the same single flag the ByYou double reads
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
 // provenance is pinned end to end on the real engine in rules.
@@ -992,7 +992,7 @@ func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
 }
 
 // TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm pins the resolver
-// contract behind the copyp2 fix: the bare "Defined$ Valid <filter>"
+// contract: the bare "Defined$ Valid <filter>"
 // battlefield form must be classified as KNOWN by knownDefinedTargets, not as
 // an unresolvable fetch list. Before the fix definedSpec recognised only the
 // zone-suffixed forms (ValidGraveyard/ValidHand/...) and ValidStack, so every

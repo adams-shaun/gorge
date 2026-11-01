@@ -1,6 +1,6 @@
 package host
 
-// The FIFO search-slot
+// docs/design/2026-09-28-hosted-bot-packages.md §7. The FIFO search-slot
 // gate, the abort-on-close of a queued decision, and AddTable's search-table
 // admission. The spy entry is a bots.Register'd entry with Search set — the
 // gate, the wait and the admission check all key on the TABLE's policy entry,

@@ -19,7 +19,7 @@ import (
 // asking, that a two-arrow room poses a choose decision to the venturing
 // seat whose answer moves the marker, that a one-arrow room moves without
 // asking, that venturing from the bottommost room is a LOUD nothing (dungeon
-// completion is the chain's slice 3), and that the whole scenario replays
+// completion is separate), and that the whole scenario replays
 // byte-identically from its log.
 
 // ventureFixtureSrc is a freely-authored fixture card (never a corpus .txt,
@@ -316,7 +316,7 @@ func TestVentureIntoUndercityPicksUndercity(t *testing.T) {
 // moves the marker to one of the current room's NextRoom$ rooms. A two-arrow
 // room poses a choose decision to the venturing seat whose answer moves the
 // marker; a one-arrow room moves without asking; and each room's ability
-// (CR 309.4c, the dungeon chain's slice 3) triggers and resolves. Venturing
+// (CR 309.4c) triggers and resolves. Venturing
 // after the marker reached the bottommost room does NOT move a marker: once
 // the bottom room's ability has left the stack CR 704.5t completes and
 // removes the dungeon, so the next venture starts a new dungeon (CR

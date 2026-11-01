@@ -74,8 +74,8 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	Resolve(h, ctx, trig)
 
 	// Two Notes: the public whole-hand reveal, then the sub-ability's
-	// hand-move. Pre-rv2b-r2 the DBExile sub-ability silently no-op'd (the
-	// DefinedPlayer$ target is a PLAYER the object path skipped); now it
+	// hand-move. The object path would silently no-op the DBExile sub-ability (the
+	// DefinedPlayer$ target is a PLAYER it skips); it
 	// asks (the chooser is seat 0, Chooser$ You) and the no-host stand-in
 	// answers deterministically with its own Note.
 	var notes []*events.Event

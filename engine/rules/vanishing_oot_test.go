@@ -232,7 +232,7 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 }
 
 // TestVanishingOutOfTimeSeededCounterClock is the supplemental clock-only
-// coverage (kept per the r2 review): with NO creatures on the battlefield the
+// coverage: with NO creatures on the battlefield the
 // printed count legitimately reads zero, so a one-counter setup is seeded
 // through the event log and the single controller upkeep must remove it and
 // then sacrifice the enchantment.

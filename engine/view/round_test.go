@@ -255,7 +255,7 @@ func TestRoundOfMatchesApproximationBeforeElimination(t *testing.T) {
 	}
 }
 
-// ---- rv2a: the round anchor is the game's starting player, not seat 0 ----
+// ---- The round anchor is the game's starting player, not seat 0 ----
 //
 // Before the CR 103.1 toss the first TurnChange always reached seat 0, so
 // "first still-living seat" and "lowest index" coincided. Since the toss the

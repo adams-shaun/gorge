@@ -1,7 +1,7 @@
 package host
 
 // Provenance ledger acceptance tests
-// (docs/design/2026-10-10-human-divergence-design.md §5.2, §12):
+// (docs/design/2026-10-10-human-divergence-design.md §5.2):
 // the caretaker bit follows HumanSeat.caretakerFires, the auto bit follows
 // SubmitIntentFrom's flag and the ?auto=1 query form, an undo truncates the
 // ledger beside the log, and the ledger never reaches replay input (two
@@ -134,8 +134,8 @@ func ledgerHumanSeat(t *testing.T, r *Registry, id TableID) *HumanSeat {
 }
 
 // TestLedgerAutoFlag: an answer submitted with the auto flag is marked
-// provAuto in the ledger; the same answer without the flag is not (spec §12
-// TestLedgerAutoFlag). The caretaker never fires in this test (ThinkTimeout
+// provAuto in the ledger; the same answer without the flag is not. The
+// caretaker never fires in this test (ThinkTimeout
 // 0), so the caretaker bit must stay clear everywhere — a marked caretaker
 // bit here would mean the bits are cross-contaminated.
 func TestLedgerAutoFlag(t *testing.T) {
@@ -174,7 +174,7 @@ func TestLedgerAutoFlag(t *testing.T) {
 // TestLedgerMarksCaretaker: with a ThinkTimeout armed, the first two seat-0
 // decisions are never submitted — the caretaker turns them — and exactly
 // those two intents carry the caretaker bit; every intent the human
-// submitted afterwards is unmarked (spec §12 TestLedgerMarksCaretaker). No
+// submitted afterwards is unmarked. No
 // submit is ever auto-flagged, so the auto bit must stay clear.
 func TestLedgerMarksCaretaker(t *testing.T) {
 	t.Parallel()
@@ -268,7 +268,7 @@ func TestLedgerMarksCaretaker(t *testing.T) {
 // point — and the second one demonstrably drops a MARKED entry: the
 // re-answered decision carries the auto bit before the undo and is gone
 // from the ledger after it, while the marked intent inside the kept prefix
-// survives both rewinds byte for byte (spec §12 TestLedgerTruncatesOnUndo).
+// survives both rewinds byte for byte.
 func TestLedgerTruncatesOnUndo(t *testing.T) {
 	t.Parallel()
 	o := testOptions(t)
@@ -384,7 +384,7 @@ func waitPastSeq(t *testing.T, r *Registry, id TableID, seq uint64) {
 // TestLedgerNotInLog: the provenance bits are host metadata, never replay
 // input. Two tables with the identical config, one driven with auto marks
 // on every other submit and one without any, reach the identical chain head
-// (spec §12 TestLedgerNotInLog). The precondition — the ledgers really
+// The precondition — the ledgers really
 // differ — is asserted first, so equal heads cannot mean equal marks.
 func TestLedgerNotInLog(t *testing.T) {
 	t.Parallel()

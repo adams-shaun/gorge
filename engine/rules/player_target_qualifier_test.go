@@ -265,7 +265,7 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// recheck use, so the two trigger-role qualifiers (Player.!
 	// TriggeredActivator, Player.!TriggeredCardController) are judged with
 	// their binding present (seat 1's) instead of absent -- an absent binding
-	// fails closed by the pg2 contract and would classify them wrongly.
+	// fails closed by the contract and would classify them wrongly.
 	//
 	// The game-long damage-by-source qualifier
 	// (Opponent.wasDealtDamageThisGameBy Self, task game-long damage
@@ -364,7 +364,7 @@ func equalStrings(a, b []string) bool {
 
 // TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer: a ValidTgts$
 // Player.!TriggeredCardController ask is judged through the ask's own
-// trigger context (pg2), not failed closed -- the entering creature's
+// trigger context, not failed closed -- the entering creature's
 // controller (seat 0, the asker) is excluded and seat 1 offered. Before the
 // trigger-role arm existed this spec offered NO seat (MatchesPlayerSpecFrom
 // cannot see the context), which silenced mandatory trigger-target asks
@@ -391,7 +391,7 @@ func TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer(t *testing.T) {
 // TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier: the resolution
 // recheck judges a trigger-role qualifier through the same trigger context
 // the offer used -- the role's seat is dropped, the rest kept; with the
-// binding absent the qualifier fails closed (the pg2 absent-binding
+// binding absent the qualifier fails closed (the absent-binding
 // contract) and drops every seat.
 func TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier(t *testing.T) {
 	t.Parallel()

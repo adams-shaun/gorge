@@ -18,7 +18,7 @@ import (
 // sharesAllFixture builds a 2-seat game with two Grizzly-Bear-shaped cards, a
 // Forest-shaped card and a bear-land-shaped card (Creature Land) as objects,
 // plus an Instant and a Sorcery (the card types the old fixed probe list
-// omitted — the r2 review's false positive).
+// omitted).
 func sharesAllFixture(t *testing.T) (*fakeHost, state.ObjID, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
 	h := newHost(t, 2)

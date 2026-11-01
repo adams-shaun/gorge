@@ -489,7 +489,7 @@ func TestGiftPrimitivesRegistered(t *testing.T) {
 	// Perch Protection's chained `DB$ Effect | StaticAbilities$ STCantChange`
 	// life-total static was the last gap: the api:Phases half closed when
 	// main registered it, and stat:CantChangeLife closed with the
-	// CantChangeLife static (cantchangelife1). Assert the measured set
+	// CantChangeLife static. Assert the measured set
 	// exactly so a future regression is named.
 	want := []string{}
 	if len(missing) != len(want) {

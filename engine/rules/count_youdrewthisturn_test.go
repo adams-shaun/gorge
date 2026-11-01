@@ -9,7 +9,7 @@
 // the head and the property can never drift apart. The eval-level pin runs on
 // the real corpus card (Elenda and Azor's own compiled face anchors the ctx
 // and supplies the real SVar body); the end-to-end pin runs the real end-step
-// trigger through its PayLife<4> body-cost window (trigcost1, already
+// trigger through its PayLife<4> body-cost window (already
 // landed) and pins two drawn cards -> two tokens.
 
 package rules

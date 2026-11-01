@@ -36,7 +36,7 @@ func svarSA(t *testing.T, f *cards.Face, name string) *cards.SA {
 }
 
 // TestDamageAllValidPlayersOpponentIsRemembered closes Snort's exotic
-// ValidPlayers$ spelling (brief rv2b-validplayers): the DamageAll player
+// ValidPlayers$ spelling: the DamageAll player
 // sweep reads the remember set -- the source object's persistent player list,
 // falling back to the resolution's Remembered, exactly definedSpec's
 // Player.IsRemembered two-tier read -- and narrows it to the spec's base

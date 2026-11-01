@@ -24,7 +24,7 @@ func TestKindredDominanceDestroysOnlyTheNonChosenType(t *testing.T) {
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 5, 2
 	submitOption(t, e, "", "Cast Kindred Dominance")
 	// Pass priority once: the spell resolves and suspends on the
-	// mid-resolution creature-type ask (ct1). Answer it "Goblin".
+	// mid-resolution creature-type ask. Answer it "Goblin".
 	passUntilAsk(t, e)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" ||

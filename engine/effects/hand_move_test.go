@@ -221,10 +221,10 @@ func TestHandMoveChangeZoneRejectsOutOfRangeChangeNum(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand is the rv2b core
+// TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand is the core
 // leaf: with NO ChangeType$ the eligible pool is the whole hand --
 // Brainstorm's "put two cards from your hand on top" must offer every card
-// in hand, not silently no-op the way the pre-rv2b object path did.
+// in hand, not silently no-op the way an object path would.
 func TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand(t *testing.T) {
 	h, _ := handAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
@@ -293,7 +293,7 @@ func TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud(t *testing.T) {
 	}
 }
 
-// --- rv2b: the two remaining brief leaves on the real corpus scripts. ---
+// --- Two more leaves on the real corpus scripts. ---
 
 // brainstormSubAbility returns the real compiled ChangeZoneDB sub-ability of
 // the real corpus Brainstorm card (the Draw's SubAbility$ chain), so the
@@ -480,7 +480,7 @@ func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
 	}
 }
 
-// --- rv2b r2: the owner-SELECTED hidden-hand shapes (DefinedPlayer$ /
+// --- The owner-SELECTED hidden-hand shapes (DefinedPlayer$ /
 // ValidTgts$ name the hand owners; Chooser$ names who answers). ---
 
 // ownersFixture seats two hands: seat 0 [bear, isle, isle], seat 1

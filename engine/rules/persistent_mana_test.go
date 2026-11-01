@@ -173,7 +173,7 @@ func TestPersistentManaReplaysIdentically(t *testing.T) {
 }
 
 // TestPersistentManaRestrictedBatchSpentFirstKeepsTheTallyExact is the
-// end-to-end pin on the r2 review's second misattribution shape (Klauth's
+// end-to-end pin on the second misattribution shape (Klauth's
 // live corpus form: `PersistentMana$ True | RestrictValid$ Spell`): a Spell
 // payment carves the persistent batch first, so the persistent tally must
 // follow the batch — not the raw slot arithmetic, whose fresh share counted
@@ -262,7 +262,7 @@ func TestPersistentManaRestrictedBatchSpentFirstKeepsTheTallyExact(t *testing.T)
 }
 
 // TestPersistentManaHiddenRestrictedBatchDoesNotSurviveTheBoundary is the
-// end-to-end pin on the r2 review's first misattribution shape: a persistent
+// end-to-end pin on the first misattribution shape: a persistent
 // plain unit beside an ordinary Spell-restricted unit, paid by a NON-Spell
 // payment — a GENUINE activation (Cryptic Trilobite's {1},{T} counter
 // ability), not a creature cast, which is still a Spell payment. The

@@ -178,7 +178,7 @@ func TestConspirePrintedOfferPayAndCopy(t *testing.T) {
 	// (the MayChooseTarget$ stand-in), so answer the opponent.
 	chooseTargetPlayer(t, e, 1)
 
-	// Regression (r3 review): the conspire provenance CastInfo carries
+	// Regression: the conspire provenance CastInfo carries
 	// Amount 1 as a marker; Apply's CastInfo switch must consume it in its
 	// FlagConspired arm, never fall through to the default that would write
 	// o.X = 1 onto the stack spell (and StackCopy would propagate that onto

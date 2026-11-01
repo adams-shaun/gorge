@@ -161,7 +161,7 @@ func TestGraftedExoskeletonGrantedInfectDealsInCounterForm(t *testing.T) {
 }
 
 // TestInfectDamageToNonCreatureArtifactIsMarked pins the recipient-form
-// split the r2 review demanded (CR 702.90b rewrites creature and player
+// split (CR 702.90b rewrites creature and player
 // damage ONLY): an infect source's damage to a plain artifact -- a legal
 // DealDamage target that is neither creature nor player -- is ordinary
 // marked damage, with NO -1/-1 counters and NO -1/-1 CounterChange event in
@@ -246,7 +246,7 @@ func TestInfectDamageToPlainPlaneswalkerOnlyRemovesLoyalty(t *testing.T) {
 	}
 }
 
-// TestInfectCountersRideTheCounterReplacementPath pins the r2 review's
+// TestInfectCountersRideTheCounterReplacementPath pins the
 // second MAJOR: the conversion emits REAL CounterChange/PlayerCounterChange
 // events, so the repl:AddCounter class replaces them -- Winding
 // Constrictor's "one more" lines double both the -1/-1 counters an opposing

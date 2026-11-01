@@ -95,8 +95,8 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 	}
 }
 
-// TestTossNotePrecedesTheFirstShuffle is the CR 103.1 ordering gate (fix
-// round rv2a): the toss announcement must be public before the decks are
+// TestTossNotePrecedesTheFirstShuffle is the CR 103.1 ordering gate: the toss
+// announcement must be public before the decks are
 // shuffled and the opening hands dealt -- Forge's GameAction and manabrew's
 // game loop announce the toss before their deal, and the whole point is that
 // the keep/mulligan decisions are made with the toss already read. The old

@@ -475,7 +475,7 @@ func TestRunPrewarmArtOnlyExitCodeWiring(t *testing.T) {
 
 func srvImg(r *http.Request) string { return "http://" + r.Host + "/img/alpha.jpg" }
 
-// TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the sol2 review
+// TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the
 // regression: a successful requested-face download followed by a failed
 // sibling CDN download must make the one-shot exit non-zero, not claim the
 // deck name was cached. No face manifest is published on that failure, so a

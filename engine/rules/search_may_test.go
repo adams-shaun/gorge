@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// searchmay1: an object-target ChangeZone that moves cards into a library
+// An object-target ChangeZone that moves cards into a library
 // and states Shuffle$ True shuffles -- Turn the Earth is the silent
 // (mandatory) carrier. (The library-search fail-to-find shuffle is pinned in
 // cr701_search_shuffle_test.go.) The flag-bearing tail is covered by a direct

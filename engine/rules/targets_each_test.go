@@ -51,7 +51,7 @@ func TestTargetsForEachPlayerUsesDecisionGroups(t *testing.T) {
 // TargetMax$ X (SVar:X:PlayerCountOpponents$Amount) and
 // TargetsForEachPlayer$ True — the ask is over the OPPONENTS' creatures with
 // at most one per controller, the maximum is the OPPONENT COUNT (a dynamic
-// bound the PlayerCountOpponents$Amount head must resolve; pre-pfpe1 the
+// bound the PlayerCountOpponents$Amount head must resolve; otherwise the
 // head failed unresolvable and the bound degraded to 1, collapsing "for each
 // opponent, goad up to one target creature that opponent controls" to a
 // single target), and the chained DB$ PutCounter reads
@@ -241,7 +241,7 @@ func targetCounterN(o *state.Object, kind string) int {
 }
 
 // TestTolarianContemptBareInlineBoundAsksOnePerOpponent pins the bare inline
-// spelling of the TargetsForEachPlayer$ dynamic bound (pfpe1 follow-up):
+// spelling of the TargetsForEachPlayer$ dynamic bound:
 // Tolarian Contempt writes its end-step bound INLINE --
 // TargetMax$ PlayerCountOpponents$Amount, no SVar name and no Count$ prefix
 // -- where Havoc Eater reaches the same body through

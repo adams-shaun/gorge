@@ -82,7 +82,7 @@ func exileAnyGraveBoard(t *testing.T, reg *cards.Registry, top, fodder, decoy, b
 	return e, cfg, out
 }
 
-// TestExileAnyGraveParsesToTheGraveyardExilePart (exg1): the verb lands on
+// TestExileAnyGraveParsesToTheGraveyardExilePart: the verb lands on
 // the same Cost.Exile part ExileFromGrave builds, with no phantom generic and
 // no Unknown entry -- Thelon of Havenwood's `{B}{G}, Exile a Fungus card from
 // a graveyard` must not price an extra {1}, and the malformed fallback stays
@@ -109,7 +109,7 @@ func TestExileAnyGraveParsesToTheGraveyardExilePart(t *testing.T) {
 	}
 }
 
-// TestExileAnyGraveThelonOfHavenwoodAbilityPaysAndExiles (exg1 class A): the
+// TestExileAnyGraveThelonOfHavenwoodAbilityPaysAndExiles (class A): the
 // activated ability is offered at exactly {B}{G} plus a real graveyard exile
 // -- the exile ask offers only Fungus cards in a graveyard (never the
 // non-Fungus decoy), answering it exiles the chosen card, and the ability's
@@ -229,7 +229,7 @@ func waitForWindow(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
-// TestTriggeredNewCardCostIsUnpayableWithoutATriggerContext (exg1 guard): an
+// TestTriggeredNewCardCostIsUnpayableWithoutATriggerContext (the guard): an
 // ORDINARY activated ability whose cost carries the bare trigger referent is
 // never offered, even with eligible-looking cards in the zone -- the
 // fail-closed default means the offer path never invents a referent.

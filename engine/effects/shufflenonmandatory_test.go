@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// searchmay1: the two ShuffleNonMandatory$ remainders the AGENTS.md row named.
+// The two ShuffleNonMandatory$ remainders.
 //
 //   (a) the fail-to-find shape (a hidden-library search that moved nothing)
 //       still owes its mandatory shuffle, and now poses the may-shuffle
@@ -23,7 +23,7 @@ import (
 // rules. SP-parented DB subs ask their own graveyard
 // targeting at resolution (changeZoneChosenTargets no longer inherits the
 // parent's targets), so they DO reach this tail in live play; engine/rules/
-// searchmay-style pins cover that live path end to end.
+// Search-may pins cover that live path end to end.
 
 // shuffleTailBoard builds a 2-seat board with one graveyard card owned by
 // seat 0 and a resolving source object. Returns the recording+suspending

@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// eventCaptureProbe is an inline (never corpus) card for task
-// rememberedcapture1, covering the EVENT-OBJECT capture path that
+// eventCaptureProbe is an inline (never corpus) card covering the EVENT-OBJECT
+// capture path that
 // rules.resolvingRemembered does NOT mask. resolvingRemembered (added on main
 // for Tombstone Stairwell) rewrites only a printed Mode$ Phase trigger's
 // resolution ctx, where the capture is the trigger's own source. An

@@ -207,7 +207,7 @@ func TestAttacksSecondaryFiresAlone(t *testing.T) {
 //
 // The pair deliberately shares Mode AND Execute$: with the two halves
 // sharing the one Execute$ SVar, the yield's pairing (strictly by shared
-// Execute$ since the r2 review) recognises them as one card text. A pair of
+// Execute$) recognises them as one card text. A pair of
 // same-Mode triggers with DISTINCT Execute$ SVars is two card texts -- the
 // Zoraline shape -- and never yields; that contract is pinned on the real
 // corpus card below.

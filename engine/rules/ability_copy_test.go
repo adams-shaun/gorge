@@ -1,6 +1,6 @@
 package rules
 
-// The ability-cast copy trigger (abcopy1): "whenever you activate an ability
+// The ability-cast copy trigger: "whenever you activate an ability
 // ... copy that ability" fires on events.AbilityPush, whose Obj is the SOURCE
 // PERMANENT -- the ability's stack wrapper is minted inside events.Apply and
 // never travels on the event. Before the TriggerAbility role the trigger's
@@ -64,7 +64,7 @@ const verrakUnpriceableCopySrc = "Name:Test Verrak\nManaCost:2 B\nTypes:Creature
 	"DeckHas:Ability$Life\n" +
 	"Oracle:x\n"
 
-// The spell-cast arm (abcopy2): a Mode$ SpellCast trigger fires on
+// The spell-cast arm: a Mode$ SpellCast trigger fires on
 // PutOnStack, whose Obj IS the cast spell -- no ability wrapper is minted, so
 // the trigger context carries TriggerCard, not TriggerAbility. The gates that
 // arm the pay/decline window accept either role; the copy source resolves

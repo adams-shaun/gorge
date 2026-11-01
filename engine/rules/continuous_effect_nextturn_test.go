@@ -8,7 +8,7 @@ import (
 )
 
 // TestEffectContinuousExpiresAtEndOfNextTurn pins the turn-boundary lifetime
-// of a Duration$ UntilTheEndOfYourNextTurn effect -- fix F1, and the largest
+// of a Duration$ UntilTheEndOfYourNextTurn effect -- the largest
 // non-Permanent Duration$ population (105 raw lines / 105 compiled SAs). The
 // restriction must survive the CURRENT turn's cleanup AND the opponent's
 // turn, stay live through the controller's NEXT turn, and only then expire:

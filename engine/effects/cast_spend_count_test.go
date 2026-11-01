@@ -41,7 +41,7 @@ func TestCastTotalManaSpentHeadReadsTheCapturedSpend(t *testing.T) {
 // The FILTERED Count$CastTotalManaSpent <Type> form.
 // Snow resolves from the parallel snow tally the pool has always carried
 // (Object.ManaSnowSpent, CR 107.4h); the typed Treasure/Cave/Desert forms
-// resolve from their own captures (castfilter2, tested below), and an
+// resolve from their own captures (tested below), and an
 // unknown producer type fails closed to 0 rather than returning the
 // unfiltered total. Pinned on the real corpus card the Snow family uses
 // (Berg Strider's SVar:S:Count$CastTotalManaSpent Snow).
@@ -59,7 +59,7 @@ func TestCastTotalManaSpentHeadFiltersByType(t *testing.T) {
 		t.Errorf("CastTotalManaSpent Snow = %d, want 2", got)
 	}
 	// A cast whose capture carries no typed units reads a real zero for that
-	// tag, never the unfiltered total (castfilter2 gives the typed tags their
+	// tag, never the unfiltered total (the typed tags get their
 	// own fields; an object with no capture reads 0 in every form).
 	if got := EvalCount(h, c, "Count$CastTotalManaSpent Desert"); got != 0 {
 		t.Errorf("CastTotalManaSpent Desert = %d, want 0 (no Desert units captured)", got)

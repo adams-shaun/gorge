@@ -13,7 +13,7 @@ import (
 )
 
 // TestDesecrationDemonMultiTargetOptionalDoesNotWedge pins the Optional$
-// ask's per-target binding on the real corpus card the r2 review wedged with:
+// ask's per-target binding on the real corpus card:
 // with TWO opponents, Defined$ Opponent + Optional$ True + a real host made
 // the shared "sacrifice" resume arm re-run effSacrifice's target walk, target
 // 1 consumed target 2's answer, and seat 2 was re-asked forever (11

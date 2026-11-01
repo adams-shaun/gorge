@@ -150,7 +150,7 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// order-free projection is pinned end to end by
 		// view/own_library_test.go.
 		"library": true,
-		// potential_actions (rv2c) is DERIVED from the seat's own hidden zones
+		// potential_actions is DERIVED from the seat's own hidden zones
 		// (the legal-offer walk reads the seat's hand, command zone and
 		// graveyard), which is exactly why it is gated on "is this the
 		// viewer's own seat" in project(), like Hand above — for every other

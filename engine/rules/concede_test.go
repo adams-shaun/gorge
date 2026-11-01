@@ -253,7 +253,7 @@ func TestConcedeInFourSeatsLeavesTheRestPlayingOn(t *testing.T) {
 		// active player answers now. It is not a priority decision, has no
 		// "concede"/"pass" option, and is never addressed to a conceded seat
 		// (seat 0 never becomes active), so answer it naively (first-Max) and
-		// continue rather than failing the way the pre-Task-D1 loop could.
+		// continue rather than failing on it.
 		if d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "discard" {
 			if d.Player == 0 {
 				t.Fatalf("a discard was offered to the conceded seat: %+v", d)

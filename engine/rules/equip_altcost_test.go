@@ -144,7 +144,7 @@ func TestEquipAlternateCostWithheldWhenNeitherPayable(t *testing.T) {
 }
 
 // TestActivatedAlternateCostNotOfferedOnNonEquipAbility pins the SCOPE of the
-// AlternateCost$ read (r2 finding): only the minted Equip/Fortify SAs carry
+// AlternateCost$ read: only the minted Equip/Fortify SAs carry
 // the rider into an offer. Heartwood Shard's AB$ Pump line carries its OWN
 // AlternateCost$ (`{3}, {T} or {G}, {T}`) -- a separate activation feature
 // this build deliberately does not model -- so with a pool that pays BOTH

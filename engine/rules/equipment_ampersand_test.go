@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// rv2b: static AddKeyword$ lists written with Forge's "&" separator
+// Static AddKeyword$ lists written with Forge's "&" separator
 // ("Vigilance & Lifelink") parsed as ONE bogus keyword, so every Equipment /
 // Aura static whose grant carried more than one keyword granted nothing at
 // all. The fix is cards.SplitKeywordList, the shared parser for the Forge

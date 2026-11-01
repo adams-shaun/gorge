@@ -69,7 +69,7 @@ func TestOracleSetupDropsParkedAndDestinationlessEntryTriggers(t *testing.T) {
 // A triggered "you may pay" cost no potential mana can cover (Esoteric
 // Duplicator's {2} with one Llanowar Elves) is posed decline-only, so no
 // mana floats before the decline (XMage never activates a mana ability for a
-// cost it cannot pay: its pool is empty at the measured D6 checkpoint). Since
+// cost it cannot pay: its pool is empty at the measured checkpoint). Under
 // the pay-first model (respay.go) the engine itself withholds both the pay
 // and the mana window there, so the harness's "done" fallback
 // (unpayableTriggerCostWindowDone) is never reached. A payable cost is

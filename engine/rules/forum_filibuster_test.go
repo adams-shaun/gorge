@@ -372,7 +372,7 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 		// whose Mode$ CantBlockBy grant effEffect registers for real (the
 		// whose Mode$ CantBlockBy grant effEffect registers for real. The old assertion watched for the "unimplemented" Note the
 		// build used to emit; the registration IS the execution now. The
-		// registration's Remembered is a separate, pre-existing mvts1 gap:
+		// registration's Remembered is a separate gap:
 		// the answered tgts ask does not reach the body's RememberObjects$
 		// Targeted read, so the grant itself
 		// remembers nothing here — the assertion pins the EXECUTION, not the

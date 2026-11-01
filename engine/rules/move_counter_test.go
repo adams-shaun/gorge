@@ -235,7 +235,7 @@ func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 // TestNestingGroundsSubTargetReceivesTheMove drives the real Nesting
 // Grounds: the {1},{T} root is a Pump whose target is the ORIGIN (Source$
 // ParentTarget) and whose DBMove sub carries its own ValidTgts$ -- the shape
-// the generic mvts1 pre-ask asks. The sub's OWN chosen target (the second
+// the generic pre-ask asks. The sub's OWN chosen target (the second
 // bear) must be the destination, never the root's target (the PickedTargets
 // convention): with the pre-fix code the -1 and +1 both landed on the root's
 // target and cancelled (land 1->1, bear 0->0).

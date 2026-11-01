@@ -37,8 +37,8 @@ func smallLibraryEngine(t *testing.T, n int, hand ...*cards.Card) *Engine {
 	return e
 }
 
-// TestSpellMillCostMillsOnPayment covers the other ordinary payment branch the
-// r1 review named (a spell, not an ability): casting a spell whose additional
+// TestSpellMillCostMillsOnPayment covers the other ordinary payment branch
+// (a spell, not an ability): casting a spell whose additional
 // Cost$ carries Mill<1> really mills the top card as its cost.
 func TestSpellMillCostMillsOnPayment(t *testing.T) {
 	t.Parallel()

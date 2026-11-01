@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The three cast-provenance tokens (castprov1/2/3) are stripped and evaluated
+// The three cast-provenance tokens are stripped and evaluated
 // at every rules match site by castProvenanceAdmits, which holds the event log
 // and the pre-push offer window the filter tier cannot reach. This test pins
 // the two properties that make them part of the filter GRAMMAR without making

@@ -36,7 +36,7 @@ func TestManaProductionIndeterminateFlag(t *testing.T) {
 }
 
 // TestManaProductionUrzaAmountStaysIndeterminate pins the offer-site decision
-// for the Count$UrzaLands head (mana1): effMana now evaluates the count at
+// for the Count$UrzaLands head: effMana evaluates the count at
 // runtime, but engine/cards/mana_production.go's projection still cannot price
 // UrzaAmount -- it reads only the ability's own Amount$ param ("UrzaAmount")
 // with no SVar table and no battlefield, and cards cannot import effects to

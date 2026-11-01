@@ -26,7 +26,7 @@ const PaymentPlanV1 uint32 = 1
 const MaxPaymentActivations = 64
 
 // MaxPaymentPlanSearchNodes is the rules planner's per-cast deterministic
-// resource budget. The planner lands in payplan-02; the public bound belongs
+// resource budget. The planner lives in engine/rules/pay; the public bound belongs
 // here because it is part of the V1 contract.
 const MaxPaymentPlanSearchNodes = 65536
 

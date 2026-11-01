@@ -305,7 +305,7 @@ func TestColourIdentityConstructionRoutesAgree(t *testing.T) {
 	}
 }
 
-// TestColourIdentityCorpusPins pins the rv2c round's five named identities on
+// TestColourIdentityCorpusPins pins five named identities on
 // the real corpus, each against the CR class it exercises:
 //
 //   - Pox: the SVar parameters ("Amount$ G" on a land-sacrifice count) are

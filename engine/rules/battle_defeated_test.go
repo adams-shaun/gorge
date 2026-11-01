@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file closes the "defeated" sub-shape of AGENTS.md's (battle1)
-// approximation row: the defeat SBA (engine/rules/sba.go's battleZeroDefense) exiles
+// This file pins the "defeated" sub-shape of battles: the defeat SBA
+// (engine/rules/sba.go's battleZeroDefense) exiles
 // a battle with no defense counters instead of binning it to the graveyard,
 // and the owner answers CR 310.11's "may cast it transformed without paying
 // its mana cost" offer -- a yes pushes the card back to the stack as its BACK

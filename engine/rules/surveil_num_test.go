@@ -394,7 +394,7 @@ func twoOptionalFixture(t *testing.T, seed uint64, surveilSrc string) (*Engine, 
 }
 
 // TestSurveilNumOptionalStaticsAreIndependentElections pins the
-// surveilnum-r2 fix: two optional statics offer TWO election options and the
+// rule: two optional statics offer TWO election options and the
 // controller can accept either subset. Accepting only the Num$-2 static must
 // raise the Surveil 1 to 3 (not the summed 6), and a second engine that
 // accepts both must look at 6 -- so neither election collapses into the

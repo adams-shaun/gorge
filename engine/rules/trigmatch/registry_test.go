@@ -67,7 +67,7 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
-	// clash1: "Whenever you win/lose a clash ..." (CR 701.31: Marvo, Deep
+	// "Whenever you win/lose a clash ..." (CR 701.31: Marvo, Deep
 	// Operative; Entangling Trap; Rebellion of the Flamekin; Sylvan Echoes --
 	// 6 raw lines / 4 files at the pin). It matches the events.Clash marker
 	// Kind effClash emits (one per clashing player), appended for it, so it

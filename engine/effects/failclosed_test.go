@@ -10,7 +10,7 @@ import (
 // TestUnimplementedPredicateFailsClosed is the fail-closed leaf: a predicate
 // this build does NOT implement still matches NOTHING and is still reported by
 // UnknownPredicates -- it never silently becomes an always-true predicate that
-// widens a filter. The families chosen are the remaining pc1 stragglers this
+// widens a filter. The families chosen are the stragglers this
 // build left unknown; the row's named object/game-context families
 // (ExiledWithSource, wasDealtDamageThisTurn, IsImprinted, NotDefinedTargeted,
 // DefenderCtrl, Opponent) are implemented and asserted in

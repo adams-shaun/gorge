@@ -18,7 +18,7 @@ import (
 // self-sacrifice family (471 corpus card files carry the shape). The engine's
 // float-then-cast model offers a battlefield ability only when the FLOATING
 // pool can pay its mana, so an empty-pool priority window offers none of it —
-// by design, and pinned here so nobody "fixes" the engine side. The rv2c
+// by design, and pinned here so nobody "fixes" the engine side. The
 // server-side projection (PotentialActions priced against PotentialMana) is
 // the bridge: the client's auto-pass reads it and stops the window, the seat
 // floats the {2}, and the live offer appears.
@@ -151,8 +151,8 @@ func TestLanderTokenAbilityOfferedOnlyWhenPoolFunded(t *testing.T) {
 	}
 }
 
-// TestLanderTokenIsAPotentialActionAfterTap is the projection pin (leaf 2)
-// on the rv2c baseline: the potential-action walk — the server field the
+// TestLanderTokenIsAPotentialActionAfterTap is the projection pin (leaf 2):
+// the potential-action walk — the server field the
 // auto-pass stop decision reads — must carry the Lander ability when the
 // seat's untapped sources can fund the {2} (the self-sacrifice part is
 // always satisfiable: Sac<1/CARDNAME> resolves to the untapped source

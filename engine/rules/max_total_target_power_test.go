@@ -688,7 +688,7 @@ func TestTotalPowerCapOfZeroIsEnforced(t *testing.T) {
 }
 
 // TestTotalPowerCapOfZeroKeepsANegativeOffsetSelection: a nonpositive cap
-// follows the SAME offset rule as a positive one (sol1 review MAJOR). With
+// follows the SAME offset rule as a positive one. With
 // the opponent at 21 life Scourge of the Skyclaves's CDA reads -1 in the
 // graveyard, so under a MaxTotalTargetPower$ of 0 the 1-power Llanowar Elves
 // is a legal target beside it (1 + (-1) = 0) and must stay offered, while

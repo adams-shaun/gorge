@@ -117,8 +117,8 @@ func TestPaymentPlanInterferenceManabarbsDefersOnlyWhatItMatches(t *testing.T) {
 
 // Seat 0's own Wild Growth on Island A: its TapsForMana ValidCard$
 // Card.AttachedBy matches only A, and its body is a fixed `Add {G}` to the
-// land's controller, so A is priced as {U}{G} (Free:Tier slice 2) while the
-// untouched Island B stays {U}. (Before the fold A was deferred by name.)
+// land's controller, so A is priced as {U}{G} while the untouched Island B
+// stays {U}.
 func TestPaymentPlanInterferenceWildGrowthPricesOnlyEnchantedLand(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9903, interferenceBlueInstant)

@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trigcost2 pins: the triggered-cost window's pay arm settles the
+// Pins: the triggered-cost window's pay arm settles the
 // Sac/Exile/Discard cost components for real (the walk the mandatory arm
 // already runs), so a "you may pay <cost>. If you do, ..." trigger whose
 // cost carries a choice-bearing component is genuinely payable instead of

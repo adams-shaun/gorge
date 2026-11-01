@@ -21,7 +21,7 @@ import (
 // Its compiled ability is `A:AB$ Destroy | Cost$ T | ValidTgts$
 // Aura.AttachedTo Creature`. With the whole "AttachedTo Creature" token
 // failing closed as one unknown predicate (a space is not a spec delimiter,
-// so the token survives intact -- the pg1 verdict), the filter matched
+// so the token survives intact), the filter matched
 // NOTHING, so abilityTargetsAvailable saw zero legal targets and withheld the
 // ability entirely -- "{T}: destroy target Aura attached to a creature" could
 // never be activated. With the two-token grammar in place the ability is

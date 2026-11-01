@@ -9,7 +9,7 @@ package rules
 // While the count head's $DifferentCardPower property is unread, X always
 // reads 0 and the Coven "may cast creature spells from the top of your
 // library" static never activated. The Different* distinct-set family is
-// implemented since diffcount1 (engine/effects/count.go differentPropertyKindOf)
+// implemented (engine/effects/count.go differentPropertyKindOf)
 // and pinned at the evaluator level in engine/effects/count_different_test.go; the
 // statics side of the gate (CheckSVar$/SVarCompare$ on a may-play static) is
 // pinned by TestVergeRangersOffersTopLibraryLandWhenOpponentAhead. What was

@@ -20,9 +20,8 @@
 //   - Desecration Demon: the Optional$ ask's per-target binding -- a
 //     multi-player optional sacrifice asks each targeted player in turn
 //     (each answer re-enters scoped to the exact target that asked,
-//     `ResumeTarget`), so the table does NOT wedge (the r2 review's
-//     measured infinite re-ask is closed by the target binding, not by
-//     suppressing the ask).
+//     `ResumeTarget`), so the table does NOT wedge (the infinite re-ask is
+//     closed by the target binding, not by suppressing the ask).
 //
 // Every fixture card is a REAL deck card (the corpus protagonist plus authored
 // extras) moved with logged MoveZone events, so each test's replayCheck holds

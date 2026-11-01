@@ -104,8 +104,7 @@ func TestHybridAndPhyrexianAlternativePayments(t *testing.T) {
 	}
 
 	// Forge spells monocolour hybrid as "2B" (Beseech the Queen). It is a
-	// REAL alternative payment since the rv2c cost-modifier task removed the
-	// flatten-to-generic stand-in: one pip, payable by two generic mana or by
+	// REAL alternative payment: one pip, payable by two generic mana or by
 	// one black (CR 107.4e).
 	monoCost := cost.ParseCost("2B")
 	if len(monoCost.Twobrid) != 1 || monoCost.Twobrid[0] != (cost.Twobrid{Generic: 2, Col: 'B'}) || monoCost.Generic != 0 {

@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The RollDice publication tests (the r2 review's MAJOR finding): the
+// The RollDice publication tests: the
 // multi-roll shapes the primitive claims must actually publish what their
 // chained sub-abilities read. Every test resolves a REAL corpus SVar (or a
 // real corpus ability) through the askHost double, with a scripted Rand so

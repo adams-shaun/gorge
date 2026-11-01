@@ -11,7 +11,7 @@ import (
 )
 
 // TestBlackDragonGateExcludesBlackFromTheColourAsk pins Exclude$ on the
-// cast-flow ETB colour ask (etbexclude1): the REAL corpus card Black Dragon
+// cast-flow ETB colour ask: the REAL corpus card Black Dragon
 // Gate ("As Black Dragon Gate enters, choose a color other than black")
 // played through its own play_land flow must offer the four WUBRG colours
 // minus Black, in the fixed WUBRG order with the gap closed (Option.Index

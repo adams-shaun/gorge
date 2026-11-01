@@ -384,7 +384,7 @@ func TestDalekIntensiveCareMandatoryExileIsAChoice(t *testing.T) {
 }
 
 // Kuldotha Flamefiend's ETB body carries `Cost$ Sac<1/Artifact>` (a real
-// non-mana component payMana cannot charge). trigcost2 makes it genuinely
+// non-mana component payMana cannot charge). The window makes it genuinely
 // payable: the window's pay arm walks the Sac component and settles it for
 // real. The PAY half pins: with an artifact on the battlefield the "pay"
 // answer sacrifices it (a real events.Sacrifice) BEFORE the body runs, and
@@ -648,7 +648,7 @@ func TestVizkopaConfessorETBChoosesLifeAndExilesRevealed(t *testing.T) {
 	submitChoices(t, e, pay)
 
 	// The body: the opponent CHOOSES which 2 of their hand to reveal (the
-	// infernaltutor1 fix -- a hand reveal with NumCards$ < hand size is a
+	// infernal-tutor rule -- a hand reveal with NumCards$ < hand size is a
 	// choice for the hand's owner), then the caster picks one of the 2
 	// revealed to exile.
 	d = passUntilNonPriority(t, e, 40)

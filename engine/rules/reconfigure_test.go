@@ -243,7 +243,7 @@ func TestAttachedReconfigureIsNotACreature(t *testing.T) {
 	}
 }
 
-// TestReconfigureUnattachedSelfNeverInItsOwnTargetPool pins the r2 review
+// TestReconfigureUnattachedSelfNeverInItsOwnTargetPool pins this
 // MAJOR: CR 702.150a's "another target creature you control" must be real
 // AT THE ASK, not only at resolution. The unattached reconfigurer IS a
 // creature matching the attach half's ValidTgts$ Creature.YouCtrl, so with

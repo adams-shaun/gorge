@@ -568,8 +568,8 @@ func TestValidateCommanderRejectsBasicLandTypeProduction(t *testing.T) {
 // CR 903.5d "each colour of mana it could produce" reading for a basic-typed
 // land whose own production is "one mana of any colour": such a card could
 // produce all five colours, so it is not legal in a mono-colour deck whatever
-// its basic land type's intrinsic colour is. This is the class the rv2c fix
-// had to catch — the subtype-only could-produce read saw just the land type's
+// its basic land type's intrinsic colour is. This is the class the rules
+// must catch — a subtype-only could-produce read sees just the land type's
 // own colour (red for a Mountain, green for a Forest) and let an any-colour
 // producer into a mono-red or mono-green commander deck.
 func TestValidateCommanderRejectsAnyColourProducerUnderMonoCommander(t *testing.T) {

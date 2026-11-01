@@ -1,4 +1,4 @@
-// Tests for the ctms sub-shape of the frozen castfilter1/2 row: the positive
+// Tests for the ctms sub-shape of cast filters: the positive
 // ManaAdd producers OTHER than the acted AB$ Mana ability -- the AB$
 // ManaReflected replacement body and the cumulative-upkeep AddMana action --
 // must carry the same Treasure/Cave/Desert/Snow producer tag effMana stamps,

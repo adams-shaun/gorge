@@ -83,7 +83,7 @@ func TestCR400_7GraveyardTargetThatLeftAndReturnedIsANewObject(t *testing.T) {
 }
 
 // TestCR400_7AnimateDeadTargetThatLeftAndReturnedIsANewObject is the audit's
-// Animate Dead repro (S05 #11): Animate Dead targets a creature card in a
+// Animate Dead repro: Animate Dead targets a creature card in a
 // graveyard, the card is Regrowth'd and discarded again in response, and
 // Animate Dead resolves. Its target is a new object, so the Aura spell has
 // no legal target, does not resolve and reanimates nothing (CR 608.2b,

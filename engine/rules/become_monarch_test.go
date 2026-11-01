@@ -244,7 +244,7 @@ func TestCustodiLichFirstBecomeMonarchFiresSelfTrigger(t *testing.T) {
 	requireOneEventTrigger(t, e, "Custodi Lich")
 }
 
-// TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the pg2 role the
+// TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the role the
 // body reads: Defined$ TriggeredPlayer must resolve the NEW monarch (the seat
 // that just took the crown), not the trigger's controller -- so the 2 life is
 // taken from the opponent, and the gain goes to seat 0.

@@ -101,7 +101,7 @@ func fundAndRefresh(t *testing.T, e *Engine, generic int32) {
 // the battlefield), then returns the commander to the command zone. The
 // MoveZone back to ZCommand is a test fixture -- the CR 903.9
 // "return a commander to the command zone" replacement is a later milestone
-// (m33) -- so it stands in for the post-return game state rather than
+// -- so it stands in for the post-return game state rather than
 // inventing that rule here.
 func castCommanderAndReturn(t *testing.T, e *Engine, id state.ObjID) {
 	t.Helper()

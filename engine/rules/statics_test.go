@@ -475,7 +475,7 @@ func TestReduceCostAmountOverflowDoesNotIncreaseCost(t *testing.T) {
 // case: a plain negative Amount$ on a ReduceCost must apply NO reduction and
 // never flip into a cost increase — modAmount degrades an unresolvable or
 // negative amount to zero, the honest read of an amount the engine cannot
-// evaluate (the old parseAmount(...,1) fallback is gone with the rv2c task).
+// evaluate.
 func TestReduceCostNegativeAmountDoesNotBecomeARaise(t *testing.T) {
 	t.Parallel()
 	zap := card(t, "Name:Zap\nManaCost:1\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n")

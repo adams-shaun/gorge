@@ -2,7 +2,7 @@ package effects
 
 import "testing"
 
-// TestTriggeredNewCardPredicateResolvesAndFailsClosed (exg1): Forge's bare
+// TestTriggeredNewCardPredicateResolvesAndFailsClosed: Forge's bare
 // TriggeredNewCard / TriggeredCard property -- the "you may exile it" cost
 // idiom's spec (`Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>`, Cavalier of
 // Thorns and 17 more corpus carriers) -- matches exactly the card the

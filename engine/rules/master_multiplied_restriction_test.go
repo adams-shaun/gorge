@@ -19,7 +19,7 @@ package rules
 // ForCost$ False keeps every COST sacrifice payable (the rules cost sites
 // pass forCost=true and skip Cause-scoped lines); ForCost$ True lines stay
 // skipped whole (cost provenance is not modelled -- angel_of_jubilation,
-// yasharn_implacable_earth, recorded in AGENTS.md's combatrestriction1 row).
+// yasharn_implacable_earth).
 //
 // Every leaf drives the real effSacrifice / Sac-cost paths on real corpus
 // cards and ends replay-verified; the fail-closed leaf uses an authored

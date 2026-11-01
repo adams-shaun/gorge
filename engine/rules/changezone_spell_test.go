@@ -1,6 +1,6 @@
 package rules
 
-// spcz1: a targeted root's SubAbility$ ChangeZone must ask ITS OWN
+// A targeted root's SubAbility$ ChangeZone must ask ITS OWN
 // ValidTgts$ targeting at resolution instead of silently inheriting the
 // parent's targets. Before the fix changeZoneChosenTargets' inherit guard
 // returned every non-TargetUnique$ sub to Defined's ValidTgts$ fallthrough,

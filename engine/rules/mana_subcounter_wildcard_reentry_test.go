@@ -12,9 +12,9 @@ import (
 // SubCounter stage's re-entry shape: a mana ability whose wildcard
 // RemoveAnyCounter<2/Any/Creature> part asks for its first unit (two units
 // legal), then finds exactly one unit left on re-entry from the answer and
-// takes it without asking. Before E7 flow slice 3 this silently dropped the
-// activation twice over: the re-entry reserved the permanent the first unit
-// came from (so no candidate was left and the payment was dropped), and past
+// takes it without asking. Done wrongly this silently drops the
+// activation twice over: the re-entry reserves the permanent the first unit
+// comes from (so no candidate is left and the payment is dropped), and past
 // that the stage read the stale pending-choice marker (still naming the
 // answered sub-counter ask) as "asked", parking the election with no
 // decision posed. The cost must settle, the mana be added and no choice stay

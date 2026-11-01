@@ -814,7 +814,7 @@ func activateWiperOn(t *testing.T, e *Engine, wiperID, foreignID state.ObjID) {
 	t.Fatalf("the wiper offers no ability: %+v", d.Options)
 }
 
-// TestGainedTriggerCarriesItsRememberedReferent is the r2 review's MAJOR:
+// TestGainedTriggerCarriesItsRememberedReferent pins this:
 // pushTrigger serializes the queue-time ctx Remembered after the foreign
 // card's provenance slot (IDs[0]), and events.Apply's GainedTriggerPush mint
 // must restore it onto the wrapper -- a gained trigger whose body reads
@@ -856,7 +856,7 @@ func TestGainedTriggerCarriesItsRememberedReferent(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGainedTriggerKeepsItsOwnSVarsAfterTheGrantEnds is the r3 review's
+// TestGainedTriggerKeepsItsOwnSVarsAfterTheGrantEnds is the
 // triggered arm: the exiled card is removed from Exile while the gained
 // trigger sits on the stack and the grant ends -- and the trigger's body
 // must still resolve X from ITS OWN face's table (+1/+1 on the carrier), not
@@ -903,7 +903,7 @@ func TestGainedTriggerKeepsItsOwnSVarsAfterTheGrantEnds(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGainedActivationKeepsItsOwnSVarsAfterTheGrantEnds is the r3 review's
+// TestGainedActivationKeepsItsOwnSVarsAfterTheGrantEnds is the
 // activated arm: the exiled card is removed from Exile while the gained
 // activation sits on the stack, and the ability's `LifeAmount$ X` still
 // resolves from ITS OWN face's SVar table (artifacts you control = 2), not

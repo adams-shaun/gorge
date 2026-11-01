@@ -1,6 +1,6 @@
 package sbtactical
 
-// The sb-tactical adapter's own gate (docs/design/2026-09-28-hosted-bot-packages.md).
+// The sb-tactical adapter's own gate (docs/design/2026-09-28-hosted-bot-packages.md §3.1).
 // The host-level rows for the entry live in host/hosted_policies_
 // test.go (determinism, leak); this file covers the adapter's contract and
 // the spec's §5.1 INFERRED claim:

@@ -1,6 +1,6 @@
 package host
 
-// The hosted-policy round
+// docs/design/2026-09-28-hosted-bot-packages.md §3.1. The hosted-policy round
 // table. This file links every built-in hosted policy gorge carries
 // (bots/all) so the tests below see the full registry, and owns the two
 // whole-policy gates, both run through the exported contract harness

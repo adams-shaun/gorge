@@ -97,7 +97,7 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardManaCost"); got != 4 {
 		t.Errorf("Creature.YouCtrl$CardManaCost = %d, want 4", got)
 	}
-	// The Different* distinct-set properties ARE read since diffcount1:
+	// The Different* distinct-set properties ARE read:
 	// distinct DERIVED powers among the matches -- Bear 2, Flier 1, Giant
 	// 5 -- is 3, not a sum and not a fail-closed zero.
 	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 3 {
@@ -488,7 +488,7 @@ func moveTo(g *state.Game, id state.ObjID, z state.Zone) {
 
 var _ = cards.Card{}
 
-// TestPlayerCountExtremePropertiesFailUnresolvable pins the r2 review's
+// TestPlayerCountExtremePropertiesFailUnresolvable pins a
 // fail-direction fix on the PlayerCount wrapper: the two life extremes
 // (LowestLifeTotal/HighestLifeTotal) and the count/counted-quantity extremes
 // (HighestValid/LowestValid over any Count$ zone, plus the
@@ -523,7 +523,7 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 }
 
 // TestPlayerCountGroupAmountHeadCountsTheGroup pins the `Amount` property on
-// the two living PlayerCount groups (pfpe1): Forge's property Amount counts 1
+// the two living PlayerCount groups: Forge's property Amount counts 1
 // per member, so PlayerCountOpponents$Amount is the opponent count -- the
 // "one each" bound the corpus names SVar:OneEach (99 raw Opponents + 52 raw
 // Players lines) and the per-player target maximum the TargetsForEachPlayer$
@@ -549,7 +549,7 @@ func TestPlayerCountGroupAmountHeadCountsTheGroup(t *testing.T) {
 }
 
 // TestNumResolvedReadsBareInlineCountBody pins the direct-parameter spelling
-// of a bare count body (pfpe1 follow-up): Tolarian Contempt writes its
+// of a bare count body: Tolarian Contempt writes its
 // TargetsForEachPlayer$ bound INLINE -- TargetMax$ PlayerCountOpponents$
 // Amount, no SVar name and no Count$ prefix -- and the Num grammar must
 // resolve it exactly as it resolves the SVar-mediated spelling of the same
@@ -924,7 +924,7 @@ func TestEvalCountValidZoneScanIsAllocationFree(t *testing.T) {
 	if allocs != 0 {
 		t.Fatalf("Count$Valid Creature allocated %.0f objects per eval; want zero (the zone-count scan must iterate in place)", allocs)
 	}
-	// The warm-Ctx shape the r3 review added: the layer walk (engine/rules/
+	// The warm-Ctx shape: the layer walk (engine/rules/
 	// layers.go's cdaSetPT) builds a FRESH &effects.Ctx{...} per call and
 	// hands it to EvalCount, so a warm caller-built Ctx must not be forced
 	// to the heap by anything evalCountBody does with it. The r2 fold

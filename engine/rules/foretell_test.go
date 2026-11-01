@@ -195,7 +195,7 @@ func TestHauntingVoyageForetellUnlocksTheReturnAllHalf(t *testing.T) {
 		t.Error("foretell cast offered on the foretell turn itself")
 	}
 	// Graveyard stock: three 1/1 Elves and a Zombie -- two owned creature
-	// subtypes, so the mid-resolution ChooseType ask (ct1) is real (two
+	// subtypes, so the mid-resolution ChooseType ask is real (two
 	// options) and the foretold arm's ReturnAll (ChangeZoneAll) is
 	// distinguishable from the ordinary arm's ChangeNum$ 2 cap by the
 	// zombie's rest state. The ask is answered "Elf".
@@ -210,8 +210,8 @@ func TestHauntingVoyageForetellUnlocksTheReturnAllHalf(t *testing.T) {
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 5, 2
 	submitOption(t, e, "foretell_cast", "Cast Haunting Voyage (foretold)")
 	// Pass priority once: the spell resolves and suspends on the
-	// mid-resolution creature-type ask (ct1); answer it "Elf", the same type
-	// the pre-ct1 fallback recorded, so the movement assertions below are
+	// mid-resolution creature-type ask; answer it "Elf", the same type
+	// the object-id-order fallback records, so the movement assertions below are
 	// unchanged.
 	passUntilAsk(t, e)
 	d := e.Pending()
@@ -269,8 +269,8 @@ func TestHauntingVoyageOrdinaryCastReturnsUpToTwo(t *testing.T) {
 	// The false branch of Count$Foretold.1.0 (the un-foretold ordinary cast)
 	// is the ChangeNum$ 2 pick over the three eligible Elves: the ask fires
 	// (strictly more eligible than the cap) and the answered pair is exactly
-	// what returns. Its first ask is the mid-resolution creature-type ask
-	// (ct1); answer it "Elf".
+	// what returns. Its first ask is the mid-resolution creature-type ask.
+	// Answer it "Elf".
 	resolveOffStack(t, e, id)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" ||
