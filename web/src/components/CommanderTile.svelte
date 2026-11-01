@@ -82,7 +82,7 @@
    * lifetime tied to the object it was opened for.
    */
   // hover and anchor are injectable for the repo's SSR test harness, exactly
-  // as CardTile takes them (CD1): that environment has no DOM, so no pointer
+  // as CardTile takes them: that environment has no DOM, so no pointer
   // event can ever open the panel and $effect never runs. Production renders
   // never pass them and the defaults are what this component would have built
   // for itself.
@@ -142,7 +142,7 @@
   const initialAnchor = () => anchorProp ?? null;
   let anchor = $state<AnchorRect | null>(initialAnchor());
 
-  // Same lifecycle tie as CardTile (CD1): the panel's lifetime follows the
+  // Same lifecycle tie as CardTile: the panel's lifetime follows the
   // OBJECT it was opened for, not the mounting. These tiles are keyed by the
   // commander's id so Svelte will not hand one instance a different
   // commander, but the id is re-fed on every card change anyway — the guard

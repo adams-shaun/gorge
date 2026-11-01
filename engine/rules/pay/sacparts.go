@@ -129,7 +129,7 @@ func SacrificeCostAssignable(e Engine, p state.PlayerID, source state.ObjID, par
 // stack top would name whatever unrelated object was already there -- the
 // exact misattribution trigmatch.DiscardCauseAdmits guards against. The pending act of
 // casting/activating is therefore the only honest cause where one is pending,
-// and the defined semantics per cost site (cantsac1 r2) are:
+// and the defined semantics per cost site are:
 //
 //	spell-cast cost component -> costCauseSpell
 //	activated-ability cost component, mana abilities included -> costCauseActivated

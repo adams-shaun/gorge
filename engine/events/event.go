@@ -459,8 +459,8 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	PlanarRoll
-	// Explore records one completed explore action (CR 701.35a, task
-	// explore1): Obj is the exploring permanent, Player its controller
+	// Explore records one completed explore action (CR 701.35a):
+	// Obj is the exploring permanent, Player its controller
 	// (whose library was explored), IDs[0] the card the process revealed,
 	// and Amount the outcome -- 1 when the revealed card was a land and
 	// went to its owner's hand, 0 when it was a nonland (the +1/+1 counter
@@ -618,8 +618,8 @@ const (
 	// after Mutate, following every prior Kind's own append-only precedent,
 	// so no earlier ordinal, hash chain or golden replay is affected.
 	MergedTriggerPush
-	// Discover records one completed discover action (CR 701.57, task
-	// trigdisc1): Player is the discovering seat and Obj the resolving source
+	// Discover records one completed discover action (CR 701.57):
+	// Player is the discovering seat and Obj the resolving source
 	// permanent (0 for a source-less body). It is an Apply no-op marker,
 	// exactly like Explore/Investigate: the discover's own state changes (the
 	// exiles, the reveal Notes, the chosen card's move) are their own events
@@ -630,8 +630,8 @@ const (
 	// earlier Kind, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	Discover
-	// Seek records one completed seek action (Forge's Alchemy seek, task
-	// trigdisc1): Player is the seeking seat and Obj the resolving source
+	// Seek records one completed seek action (Forge's Alchemy seek):
+	// Player is the seeking seat and Obj the resolving source
 	// permanent (0 for a source-less body). It is an Apply no-op marker,
 	// exactly like Discover, and is what trig:SeekAll matches ("whenever you
 	// seek one or more cards" -- Vexyr, Ich-Tekik's Heir; Val, Marooned
@@ -667,8 +667,8 @@ const (
 	// Kind's own append-only precedent, so no earlier ordinal, hash chain
 	// or golden replay is affected.
 	Enlist
-	// Exploit records one completed exploit sacrifice (CR 702.58a, task
-	// exploit1): Obj is the EXPLOITING creature (the permanent whose exploit
+	// Exploit records one completed exploit sacrifice (CR 702.58a):
+	// Obj is the EXPLOITING creature (the permanent whose exploit
 	// ability resolved), Player its controller, IDs[0] the exploited creature
 	// -- the one sacrificed to pay. It is an Apply no-op marker, exactly like
 	// Explore/Investigate: the sacrifice's own state change (the

@@ -71,7 +71,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			// the MoveZone boundary for every entry, cast or not, that reaches
 			// it with no other decision outstanding (engine/rules/replacement_etb.go).
 			// Those skipped paths keep the loud unimplemented-API fallback -- the
-			// copy is never silently dropped (the etbclone1 scope boundary).
+			// copy is never silently dropped.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 				Text: "unimplemented API " + sa.API})
 			return
@@ -272,7 +272,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// would silently skip it -- so asking the may-copy election over a board
 	// where every pair is dead poses a decision whose EVERY answer does
 	// nothing (Sarkhan Soul Aflame leaves the battlefield while its
-	// Dragon-entry trigger waits on the stack; findings-sol1 MAJOR). Filtering
+	// Dragon-entry trigger waits on the stack). Filtering
 	// here means the election is only posed when a copy can actually be made,
 	// and the bottom loop walks the same pre-filtered pairs the ask was built
 	// from -- one eligibility home, never two.

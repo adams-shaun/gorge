@@ -513,7 +513,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		}
 		return c.Remembered, true
 	case refTargetsTriggeredSpellAbility:
-		// The activation arm (abcopy1): the fire-time TriggerAbility role is
+		// The activation arm: the fire-time TriggerAbility role is
 		// the exact referent (Remembered names the source permanent); the
 		// spell-cast arm and hand-built contexts keep the Remembered entry.
 		if c.TriggerAbility != 0 {

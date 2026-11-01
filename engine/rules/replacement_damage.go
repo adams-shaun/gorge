@@ -18,7 +18,7 @@ import (
 // damage-replacement selection and application path classifies prevention
 // through this one predicate and cannot drift apart.
 func damageReplacementPrevents(r cards.Repl) bool {
-	// Case-insensitive (dponce1 r2): the registration (effEffect's
+	// Case-insensitive: the registration (effEffect's
 	// replacementLinePrevents) and the collection
 	// (applyReplacementsDispatch) read the param with EqualFold, so this
 	// classifier must too — a non-canonical `Prevent$ true` bodyless
@@ -118,8 +118,7 @@ func (e *Engine) applyReplaceDamageBody(ev *events.Event, m replMatch) bool {
 	// Obj carries the damaged object (0 for a player hit) like the full-
 	// prevention arm's Note above, not the preventing source: the log text
 	// names the preventer, and Mode$ DamagePreventedOnce triggers key their
-	// ValidTarget$ on the damaged side. (Prevention Notes carried no Amount
-	// before dponce1 and zero prevention-text events are logged in the
+	// ValidTarget$ on the damaged side. (Zero prevention-text events are logged in the
 	// golden-shape games, so the field's presence is stream-neutral there.)
 	return ev.Amount <= 0
 }
@@ -488,8 +487,8 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			}
 		} else if ce.ReplacementBody == "" && ce.ReplacementEvent == "DamageDone" &&
 			strings.EqualFold(ce.ReplacementParam(cards.PKPrevent), "True") {
-			// Mirror applyReplacementsDispatch's bodyless-Prevent admission
-			// (dponce1 r2): after a first NONTERMINAL application (a partial
+			// Mirror applyReplacementsDispatch's bodyless-Prevent admission:
+			// after a first NONTERMINAL application (a partial
 			// DB$ ReplaceDamage body reduced the held event), the recomputed
 			// CR 616.1e candidate set must still hold the bodyless "prevent
 			// all" effect — otherwise the remaining damage the registration
@@ -546,7 +545,7 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// The ordered path's full prevention is terminal — the held event
 		// never lands — so this re-entrant Note is the prevention's only log
 		// record, the same shape applyNonMoveReplacements' Prevent$ arm
-		// stores (dponce1 r2: silently returning terminal recorded nothing,
+		// stores (silently returning terminal recorded nothing,
 		// so no DamagePreventedOnce trigger could fire off a chosen
 		// prevention). Amount is the held event's REMAINING amount: a
 		// partial DB$ ReplaceDamage body may already have reduced it (CR

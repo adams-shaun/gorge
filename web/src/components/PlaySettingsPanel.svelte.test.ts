@@ -50,7 +50,7 @@ function selectHtml(html: string, which: string): string {
   return m[0];
 }
 
-describe('PlaySettingsPanel — Clear yields (prio6)', () => {
+describe('PlaySettingsPanel — Clear yields', () => {
   // One DISTINCT table id per test: the yield store's in-memory layer is
   // module-level and shared by every SeatPanelState this file constructs.
   it('is disabled with nothing yielded, showing None', () => {
@@ -506,7 +506,7 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
-  it('pressing the real Auto pass switch while the UNDO pause holds resumes the machine and preserves the enabled preference (r2 finding)', async () => {
+  it('pressing the real Auto pass switch while the UNDO pause holds resumes the machine and preserves the enabled preference', async () => {
     const page = await open();
     // Rewind the fixture's real state the way the stream's rewind frame
     // does: the machine pauses, the persisted preference stays on.

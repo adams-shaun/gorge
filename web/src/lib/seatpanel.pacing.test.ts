@@ -148,7 +148,7 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Lightning Bolt resolving']);
   });
 
-  it('re-derives at fire: even an in-place view mutation cannot authorize the scheduled pass (r3)', async () => {
+  it('re-derives at fire: even an in-place view mutation cannot authorize the scheduled pass', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const initial = view('main1', 0, 2, [{ ...stackView('Opponent trigger'), kind: 'trigger' }]);
@@ -170,7 +170,7 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog).toEqual([]);
   });
 
-  it('re-derives at fire when a targeted permanent changes controller to this seat (r3)', async () => {
+  it('re-derives at fire when a targeted permanent changes controller to this seat', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Opponent trigger'), kind: 'trigger', targets: [{ obj: 42, player: 0, is_player: false }] };
@@ -190,7 +190,7 @@ describe('the wait is cancellable', () => {
     expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
   });
 
-  it('an unrelated view change cancels the old deadline and starts a full fresh wait (r3)', async () => {
+  it('an unrelated view change cancels the old deadline and starts a full fresh wait', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const trigger = { ...stackView('Harmless trigger'), kind: 'trigger' };
@@ -262,7 +262,7 @@ describe('the wait is cancellable', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1);
   });
 
-  it("a settings change during the wait cancels it and the new 'always stop' trigger rule never posts (r3)", async () => {
+  it("a settings change during the wait cancels it and the new 'always stop' trigger rule never posts", async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     const v = view('main1', 0, 2, [{ ...stackView('Opponent trigger'), kind: 'trigger' }]);
@@ -279,7 +279,7 @@ describe('the wait is cancellable', () => {
     expect(autoNoteText(p.note)).toContain("opponent's object is on the stack");
   });
 
-  it('the top stack object REPLACED at the same depth cancels and re-paces: no post at the old deadline, the new spell logged (r2)', async () => {
+  it('the top stack object REPLACED at the same depth cancels and re-paces: no post at the old deadline, the new spell logged', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     p.adoptView(quiet(1));
@@ -302,7 +302,7 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['Auto-passed: Giant Growth resolving']);
   });
 
-  it('clicking End Turn during an automatic wait re-classifies the pass: runPassed and the run register, not autoPassed (r2)', async () => {
+  it('clicking End Turn during an automatic wait re-classifies the pass: runPassed and the run register, not autoPassed', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     p.adoptView(quiet(1));
@@ -319,7 +319,7 @@ describe('the wait is cancellable', () => {
     expect(p.autoLog.map((n) => n.text)).toEqual(['End turn: passed main 1']);
   });
 
-  it('shift-click Hard Skip during a wait does the same under the skip register (r2)', async () => {
+  it('shift-click Hard Skip during a wait does the same under the skip register', async () => {
     vi.useFakeTimers();
     const p = pacedSeat({ stepMs: 200, resolveMs: 400 });
     p.adoptView(quiet(1));

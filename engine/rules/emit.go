@@ -714,8 +714,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.sweepEffectDelayed(ev)
 	}
 	if ev.Kind == events.CounterChange {
-		// Effect-created continuous effects' counter-driven lifetime (task
-		// vow1; ForgetCounter$): after a counter REMOVAL is applied, a
+		// Effect-created continuous effects' counter-driven lifetime
+		// (ForgetCounter$): after a counter REMOVAL is applied, a
 		// remembered card whose count of the named kind reached zero leaves
 		// the effect's Remembered set -- Promise of Loyalty's "for as long
 		// as it has a vow counter on it". Applied before this event's own

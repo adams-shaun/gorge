@@ -1,13 +1,13 @@
 package rules
 
-// repoCommanderGames is the m38 commander play-evidence table: one real
+// repoCommanderGames is the commander play-evidence table: one real
 // Commander game per interim deck, each deck once as seat 0 (the seat whose
 // commander the assert requires to actually be cast from the command zone).
 // Matchups and seeds are pinned, not arbitrary: seeds are what made each
 // game representative when measured (a game that reaches a
 // winner with the deck's commander cast). In particular the green deck —
 // whose commander's own cost-reduction static this build does not read (see
-// the AGENTS.md Known approximations / the m38 report), so Ghalta costs a
+// docs/agents/known-approximations/), so Ghalta costs a
 // flat 12 — is seated against the slowest of the five (Wretched Ranks).
 // Under free-for-all combat, whether one
 // seeded game assembles twelve mana before it ends is close to a coin flip

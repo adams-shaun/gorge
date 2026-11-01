@@ -417,7 +417,7 @@ func TestOverrideWeightScalesExample(t *testing.T) {
 	}
 }
 
-// TestLossModeSwitchPinsTermMix pins the L9b-fix2 mode contract at the loss
+// TestLossModeSwitchPinsTermMix pins the loss-mode contract at the loss
 // level: CE contributes ONLY the rank term (Parts.Value exactly 0) and its
 // per-example weight ignores the margin (pure imitation: a one-world margin
 // must not silence the CE signal the way it silenced the margin-weighted rank
@@ -467,7 +467,7 @@ func TestLossModeSwitchPinsTermMix(t *testing.T) {
 	}
 }
 
-// TestResidualIsAFixedBotPrior pins the L9b-fix2 item-3 residual head: an
+// TestResidualIsAFixedBotPrior pins the residual head: an
 // option in the bot's own answer (Option.BotPick) scores exactly Model.ResidualW
 // higher and nothing else moves; ResidualW is a constant prior, never a
 // trained parameter (no Grads field touches it); and ResidualW 0 makes the

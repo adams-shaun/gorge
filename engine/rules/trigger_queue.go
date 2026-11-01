@@ -1810,7 +1810,7 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 		// A mutated pile's under-card ability is labelled with the UNDER-CARD's
 		// own name: the ability belongs to the card beneath the top card
 		// (CR 702.140d), and the pile's top face can be any creature. A
-		// HAS-ALL-ABILITIES-OF trigger (r3) is covered inside the recovery
+		// HAS-ALL-ABILITIES-OF trigger is covered inside the recovery
 		// function itself, so the foreign face's own name wins here too.
 		if _, mf, ok := e.findTriggerForAbilityFace(o.Source, t.Effect); ok && mf != nil && mf.Name != "" {
 			name = mf.Name
@@ -1898,7 +1898,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		// modal trigger must not read the pile's top face's same-named SVar --
 		// the same top-face steal the MergedTriggerPush body resolution
 		// prevents. Ordinary triggers find their own face (the top one) and
-		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper (r3) is
+		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper is
 		// covered inside the recovery function itself.
 		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
 			svars = mf.SVars
@@ -1958,7 +1958,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 // chooses the order. Min == Max == n over exactly that controller's own n
 // pending triggers, so Decision.Validate's existing rules (n choices, all
 // distinct, all in range) already mean "a permutation of these n" and
-// U2 needs no wire-format change at all.
+// the decision needs no wire-format change at all.
 //
 // Option i is e.pendingTriggers[i]; that positional correspondence is the only
 // binding between the decision and the queue, and handleTriggerOrder rechecks

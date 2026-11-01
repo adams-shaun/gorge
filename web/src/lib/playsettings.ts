@@ -26,7 +26,7 @@ export type PresetName = Exclude<Preset, 'custom'>;
  *  - 'smart'  — stop only if the window is actionable() (there is something
  *               to do; since lib/castable a mana-only window whose seat
  *               carries a projected potential action — the server's own
- *               legal-offer walk, rv2c — counts too); a mana-only window
+ *               legal-offer walk — counts too); a mana-only window
  *               with an empty projection still passes;
  *  - 'forced' — stop whenever priority is posed at that step, even with
  *               nothing to do.
@@ -126,13 +126,13 @@ export interface PlaySettings {
   steps: { yours: Record<StoppableStep, StepStop>; opponents: Record<StoppableStep, StepStop> };
   /** pass the seat's next priority window once after it takes a real action */
   passAfterAct: boolean;
-  /** auto-order identical simultaneous triggers; consumed by prio6, not decide() */
+  /** auto-order identical simultaneous triggers; not consumed by decide() */
   autoOrderIdenticalTriggers: boolean;
   /** auto-order EVERY simultaneous-trigger ask, not only identical ones; consumed by seatpanel's auto-order path, not decide() */
   autoOrderAllTriggers: boolean;
-  /** artificial pacing for auto-passing; consumed by prio5, not decide() */
+  /** artificial pacing for auto-passing; not consumed by decide() */
   pacing: { stepMs: number; resolveMs: number };
-  /** record auto-passes in the game log; consumed by prio5, not decide() */
+  /** record auto-passes in the game log; not consumed by decide() */
   logAutoPasses: boolean;
   /** the player's pause-on-X rules; never part of a preset (see Breakpoints) */
   breakpoints: Breakpoints;

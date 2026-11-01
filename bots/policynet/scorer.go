@@ -4,7 +4,7 @@ import (
 	"io"
 )
 
-// Scorer is the inference half of the learned per-option policy (plan L9c):
+// Scorer is the inference half of the learned per-option policy:
 // a trained Model plus reusable scratch buffers, scoring one encoded option
 // at a time for a seat-side policy. The contract:
 //

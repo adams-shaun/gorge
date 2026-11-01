@@ -94,7 +94,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	case effCopySpellAbilityTriggeredSpellAbility:
-		// The activation arm (abcopy1): the trigger context's TriggerAbility
+		// The activation arm: the trigger context's TriggerAbility
 		// names the minted ability wrapper -- an AbilityPush's Obj is the
 		// source permanent, so Remembered alone cannot identify it -- and the
 		// wrapper is on the stack, so the zone guard below passes and the copy
@@ -260,7 +260,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// key is exempt. This engine has no stack freeze -- nothing in the
 	// implemented ruleset suspends stack additions -- so there is no gate to
 	// relax; the recognition read documents the parameter so the census never
-	// flags it unread (review sol2: the earlier empty if-block was dropped).
+	// flags it unread.
 	_ = sa.ParamStr(cards.PKIgnoreFreeze)
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMayChooseTarget)), "True")
 	// NonLegendary$ True (The Sixth Doctor's "copy it, except the copy isn't

@@ -63,7 +63,7 @@ const maxFeedbackClientBytes = 256 << 10 // 256 KiB
 
 // maxFeedbackSnapshotBytes caps the three snapshot files' combined size.
 // The log dominates: measured over 189 completed four-seat Commander
-// matches (the m38 repo decks, played out at full speed), the largest log
+// matches (the repo's Commander decks, played out at full speed), the largest log
 // marshalled to 565,993 bytes of JSON (typical 100-200 KB) and the largest
 // four-seat constructed log to 451,493 — a real commander log is tens of
 // KB to a fraction of a MB, because events marshal compactly (~15 bytes

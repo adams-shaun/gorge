@@ -589,7 +589,7 @@ func init() {
 		// CR 119.8 CantLoseLife (Effect-delivered); replacement_life.go
 		// playerLifeLossForbidden is the reader.
 		"stat:CantLoseLife",
-		// cantdraw1 / cantdraw-drawlimit-cap: CR 121.6 CantDraw statics
+		// CR 121.6 CantDraw statics
 		// (engine/rules/replacement.go drawForbidden, consulted by applyReplacements
 		// before any Draw replacement). ValidPlayer$ scopes total prohibitions
 		// and DrawLimit$ per-turn count caps.
@@ -619,7 +619,7 @@ func init() {
 		// registration gate); the conditional shapes stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantPutCounter",
-		// exert1: CR 702.100's attack-time election.
+		// CR 702.100's attack-time election.
 		"stat:OptionalAttackCost",
 		// attackprop1: the CR 508.1g attack-prop static (engine/rules/attack_cost.go
 		// attackPairCharge, priced per (attacker, defender) pair and paid
@@ -692,7 +692,7 @@ func init() {
 		// Edgar's first coin flip each turn is forced heads. Both FlipCoin
 		// producers use effects.FlipCoinWin; events.Apply counts the results.
 		"stat:FlipCoinMod",
-		// asunblk1: the combat-damage assignment election (engine/rules/combat.go
+		// The combat-damage assignment election (engine/rules/combat.go
 		// asUnblockedNeeding / damageStep's chosenElection case, CR 509's
 		// optional "assign as though it weren't blocked"). Only the printed
 		// S:Mode$ statics are read; the SVar:Static: family that rides the

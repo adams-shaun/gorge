@@ -569,8 +569,8 @@ func etbChoicePrompt(kind string) string {
 // Embalm$-provenance riders (Vizier of Many Faces), AddColors$, RemoveCost$,
 // PumpKeywords$/PumpDuration$ and the AI-hint params, each of which offered a
 // copy that silently dropped the exception. A body carrying any other
-// parameter keeps today's loud unimplemented-API fallback (the etbclone1
-// scope boundary); engine/rules/etb_clone_whitelist_census_test.go pins the
+// parameter keeps today's loud unimplemented-API fallback;
+// engine/rules/etb_clone_whitelist_census_test.go pins the
 // classified population bidirectionally.
 func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 	return effects.CloneETBOffered(sa, svars)

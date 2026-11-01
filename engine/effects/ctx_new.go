@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/engine/state"
 // counts the Ctx{...} / SpecContext{...} composite literals anywhere else and
 // fails the build if one comes back.
 //
-// The reason is RC2: a context that is DERIVED from another (a resolution's
+// The reason: a context that is DERIVED from another (a resolution's
 // filter context, a per-object sub-evaluation) used to be a hand-written
 // literal copying the fields its author knew about, so a field added to Ctx
 // later -- a layer table, an LKI record -- silently did not reach it. Now a

@@ -64,7 +64,7 @@ func (c cand) scoreChoices() ([]int, bool) {
 
 // enumerate builds the candidates of the searching seat's decision d, the
 // bot's answer bot first (spec §1), over the exported searchprobe
-// enumerators the L10 search seat also uses:
+// enumerators the search seat also uses:
 //
 //   - attackers: searchprobe.AttackCandidates;
 //   - blockers: searchprobe.BlockCandidates, legality from the bot's own

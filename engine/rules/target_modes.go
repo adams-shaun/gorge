@@ -169,7 +169,7 @@ func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map
 		}
 		if max == 0 {
 			// A RESOLVED zero bound -- the cast announced X = 0 against an
-			// "up to X" mode -- takes no ask, exactly like resolveTop's N2
+			// "up to X" mode -- takes no ask, exactly like resolveTop's zero-target
 			// zero-target path: resolvedTargetBounds honours a resolved zero
 			// as written (engine/rules/target_legal.go), so the empty group records
 			// the skipped slot and the announcement finishes silently.
@@ -1275,7 +1275,7 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 // rules-tier ask sites (targetAskChooser) and the effects-tier mid-resolution
 // asks (Engine.ChooserFor and OpponentPickAsk, which effects.Host calls)
 // reach it, so the cast, activation, trigger, resolution-sub and
-// mid-resolution ValidTgts$ (mvts1 "tgts" and ChangeZone "choice") paths
+// mid-resolution ValidTgts$ ("tgts" and ChangeZone "choice") paths
 // cannot drift.
 //
 // Target LEGALITY is unaffected by every outcome: the caller keeps the

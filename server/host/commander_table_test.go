@@ -7,7 +7,7 @@ package host
 // replay build (the sidecar must carry the format/life/commanders or a
 // Commander match stops replaying), and
 // rejects at the config boundary a commander table dealt a deck without a
-// commander. The decks are the m38 interim Foundations decks, resolved
+// commander. The decks are the interim Foundations decks, resolved
 // through the same deck.File.CommanderIndex the product uses.
 
 import (
@@ -23,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// commanderDeckNames is the five m38 interim mono-colour Commander decks,
+// commanderDeckNames is the five interim mono-colour Commander decks,
 // the smallest real set a commander table can deal (an invalid or
 // commandless deck would make these tests about the fixture, not the host).
 var commanderDeckNames = [...]string{
@@ -61,8 +61,8 @@ func commanderDeckLoader(t *testing.T) func(string) (Deck, error) {
 }
 
 // commanderTable is a two-seat commander table: the smallest shape that has
-// a command zone at all, seeded for a real game (m39 measured seeds
-// 1000-1015 to produce games that reach a winner with commanders cast —
+// a command zone at all, seeded for a real game (seeds 1000-1015 were
+// measured to produce games that reach a winner with commanders cast —
 // see engine/rules/commander_decks_test.go's repoCommanderGames — and 1001 is the
 // keen-engineering-as-seat-0 evidence seed).
 func commanderTable(id TableID, deck0, deck1 string) TableConfig {
@@ -105,7 +105,7 @@ func finishedCommanderMatch(t *testing.T) (*Registry, *table, *match, string) {
 // TestCommanderTableBuildsACommanderMatch is the format gate's host half: a
 // TableConfig with FormatCommander builds its match with the format's
 // rules.Config — the engine's FormatCommander, 40 life at genesis, and a
-// command zone per seat from the deck's own commanders — so the m36
+// command zone per seat from the deck's own commanders — so the
 // command-zone projection is populated on a table that will actually exist.
 // The observed surface is the projected View: at genesis every seat starts
 // at 40 life with its commander in the zone, and at the head every seat's
@@ -197,7 +197,7 @@ func TestCommanderTableDefaultsLife40(t *testing.T) {
 // with no command zone — a commander table's commands cannot leak onto a
 // constructed table, and a constructed table cannot accidentally become a
 // Commander game. This is what keeps the default gorged table byte-
-// identical to every pre-m39 table, and the m39 default -format
+// identical to a table with no format set: the default -format
 // constructed is exactly this TableConfig.
 func TestConstructedTableStays20Life(t *testing.T) {
 	takeMatchSlot(t)

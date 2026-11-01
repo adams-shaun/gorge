@@ -913,7 +913,7 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 
 // moveCounterChosen is the chosen-target set a MoveCounter's origin/
 // destination defaults read: the generic ValidTgts$ pre-ask's ANSWER
-// (c.PickedTargets, mvts1) when one is outstanding, else the resolution's own
+// (c.PickedTargets) when one is outstanding, else the resolution's own
 // target list. Preferring PickedTargets is the established convention
 // (engine/effects/context.go Defined, engine/effects/damage.go, engine/effects/zone.go): a sub the
 // pre-ask asked (Nesting Grounds' `Source$ ParentTarget | ValidTgts$

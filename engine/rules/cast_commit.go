@@ -1074,7 +1074,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// push, which cleared it). Both
 	// the held-out set and the per-card no-progress count are restored, so a
 	// no-progress decline of THIS object can be counted again across the
-	// push (F05-2).
+	// push.
 	var saved map[state.ObjID]bool
 	if pc.pushed && pc.preSuppress != nil {
 		saved = make(map[state.ObjID]bool, len(pc.preSuppress))
@@ -1104,7 +1104,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			savedAborts = map[state.ObjID]int32{}
 		}
 		savedAborts[pc.card]++
-		// F05-2 (CR 733.2): the FIRST no-progress abort of a card leaves its
+		// CR 733.2: the FIRST no-progress abort of a card leaves its
 		// option offered, so a merely-reversed illegal action may be redone
 		// legally; the SECOND identical abort holds the option out. Undo the
 		// restore-only path for a count below two by not adding to `saved`.

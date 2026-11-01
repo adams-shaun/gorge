@@ -825,8 +825,8 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 	if len(statics) == 0 {
 		return
 	}
-	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$, task
-	// gains1): the recipient gains every triggered ability of each named
+	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$):
+	// the recipient gains every triggered ability of each named
 	// foreign card's face. The matching discipline is an ordinary trigger's --
 	// triggerMatches resolves the granted body's own TriggerZones$/
 	// ValidPlayer$/Phase$ clauses against the event -- and the queue carries

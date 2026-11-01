@@ -505,7 +505,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			effHiddenPick(h, c, sa, cz, to, originZones, originAll, valid, from)
 			return
 		}
-		// hiddenpick1: Forge's SpellAbility.isHidden() (hasParam("Hidden") ||
+		// Forge's SpellAbility.isHidden() (hasParam("Hidden") ||
 		// the origin zones hold hidden info) routes the resolution through the
 		// hidden-origin resolver (ChangeZoneEffect.changeHiddenOriginResolve)
 		// even when the origin zones are PUBLIC. There the objects are not the
@@ -586,10 +586,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// Sculptor's [0] -- offers the whole hand). With no Defined$/
 		// DefinedPlayer$/ValidTgts$ the object path below would resolve Defined
 		// to the SOURCE default and then skip every candidate on the Origin$
-		// precondition -- the silent no-op the handmove1 fix replaces with a
-		// real hand choice (the rv2b extension drops handmove1's ChangeType$
-		// requirement: the whole 239-line no-selector Origin$ Hand population
-		// routes here now, 19 of it untyped).
+		// precondition, a silent no-op, so it routes to a real hand choice
+		// (no ChangeType$ required: the whole 239-line no-selector Origin$ Hand
+		// population routes here, 19 of it untyped).
 		// An SVar or inline count expression is evaluated through Num where the
 		// count grammar supports it (for example Wrenn and Seven's SVar X counts
 		// lands in hand). An unknown count remains loud rather than falling through
@@ -612,8 +611,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// Liberated's "[+4]: Target player exiles a card from their hand",
 		// Kyoki, Sanity's Eclipse) -- is the per-owner hidden-hand shape: one
 		// chooser ask per hand owner, chained through the persisted
-		// Ctx.HandMoveTarget cursor. The rv2b r2 finding: these shapes used to
-		// fall through to the object path, where Defined() resolved to the
+		// Ctx.HandMoveTarget cursor. On the object path Defined() would resolve to the
 		// source (or to targets the Origin$ precondition then skipped because
 		// they are PLAYERS, not hand cards) -- another silent no-op.
 		if len(originZones) == 1 && originZones[0] == state.ZHand && !originAll &&
@@ -1102,7 +1100,7 @@ func changeZoneChosenTargetsFor(h Host, c *Ctx, sa *cards.SA, cz *changeZoneTarg
 		// sets the marker exactly for the SA the ask covered, and OfferedSA
 		// names it); the chosen-zero election must not be re-asked here. A
 		// deeper sub's own targeting was never offered -- the same
-		// mvts1 boundary chosenTargetsFor's OfferedSA check draws -- so it
+		// boundary chosenTargetsFor's OfferedSA check draws -- so it
 		// falls through to its own ask below.
 		return nil, false, false
 	}

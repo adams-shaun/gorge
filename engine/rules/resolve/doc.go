@@ -31,7 +31,7 @@
 //     converted site.
 //   - An engine whose every seat is a policy may install a synchronous
 //     Answerer instead: a converted ask is then posed and answered inline,
-//     and no resolution needs a checkpoint at all (S3b candidate 3).
+//     and no resolution needs a checkpoint at all.
 //
 // The kernel holds no engine pointer: it drives the engine through Board,
 // which package rules implements over its Engine (engine/rules/resolve_board.go).

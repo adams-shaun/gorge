@@ -342,7 +342,7 @@ describe('HandFan — the hand-card peek', () => {
   });
 
   it('keyboard focus stays fully raised when it moves from the face onto the card’s action controls (direct icon and open menu item)', { timeout: 30_000 }, async () => {
-    // The r3 finding: the raise arm was `.card:has(.face:focus-visible)` —
+    // The raise arm was `.card:has(.face:focus-visible)` —
     // qualified to the FACE. A hand card with an offered action has more
     // focusables inside it: the direct `.action-icon` (one option) and the
     // count badge plus its `.menu__item` controls (several). Tabbing from

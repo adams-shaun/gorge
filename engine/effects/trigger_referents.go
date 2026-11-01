@@ -262,7 +262,7 @@ type TriggerContext struct {
 	// an Attached trigger.
 	TriggerBearer state.ObjID
 	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
-	// SpellAbilityCast trigger fired on (abcopy1). An AbilityPush event's Obj
+	// SpellAbilityCast trigger fired on. An AbilityPush event's Obj
 	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper
 	// off the event -- so Remembered alone names the battlefield permanent and
 	// every Defined$ TriggeredSpellAbility consumer would resolve a non-stack
@@ -746,7 +746,7 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			}
 		}
 	case controlReferentPlayersPlayerIsRemembered:
-		// vow1: the same remembered set the bare "Remembered" referent
+		// The same remembered set the bare "Remembered" referent
 		// reads, PLAYERS ONLY -- the full player-spec spelling names the
 		// remembered player (a RepeatEach loop's subject), never a
 		// remembered object's controller.
@@ -779,7 +779,7 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		targets = []state.Target{{Player: alive[1], IsPlayer: true}}
 	case controlReferentPlayersChosenPlayer:
-		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
+		// The resolution's own ChoosePlayer answer (Gluntch's
 		// "ControlledBy ChosenPlayer"), the same current-resolution set the
 		// Player.Chosen Defined selector reads.
 		if !sc.Resolving {

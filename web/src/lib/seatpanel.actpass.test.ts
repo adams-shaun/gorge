@@ -59,7 +59,7 @@ const view = (step = 'draw', active = 0, stack: { id: number; controller: number
 
 /**
  * floatReadyView is a view whose seat 0 carries a projected potential action
- * (rv2c: the server's own legal-offer walk priced against the hypothetical
+ * (the server's own legal-offer walk priced against the hypothetical
  * tapped-out pool — here, the Lava-Spike-after-the-Mountain shape as one
  * projected cast). It is what makes a mana-only tap window STOP-worthy
  * (castableAfterTap true) instead of empty-floor'd, so the tap tests exercise
@@ -103,7 +103,7 @@ async function settle(predicate: () => boolean, maxTicks = 200): Promise<void> {
   throw new Error(`settle: condition still false after ${maxTicks} microtask ticks`);
 }
 
-/** manual is a seat with the preference ON, auto off and no stops set. Pacing is zeroed so machine passes post synchronously (the pre-prio5 path); pacing itself is tested in seatpanel.pacing.test.ts. */
+/** manual is a seat with the preference ON, auto off and no stops set. Pacing is zeroed so machine passes post synchronously (the unpaced path); pacing itself is tested in seatpanel.pacing.test.ts. */
 function manual(storage: Storage | null = null): SeatPanelState {
   const p = new SeatPanelState('t1', 1, ctx, storage);
   p.stops = { yours: new Set(), opponents: new Set() };

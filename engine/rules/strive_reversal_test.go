@@ -6,7 +6,7 @@ package rules
 // payments were unpayable, and the cast reversed (CR 733.1). The target
 // choice had already queued a "becomes the target of a spell" trigger
 // (Giggling Skitterspike, Ward, Silverfur Partisan), which the reversal left
-// on the queue; its push was a state change, so it cleared the F05-2
+// on the queue; its push was a state change, so it cleared the
 // no-progress suppression and the identical cast was re-offered forever --
 // each attempt dealing damage / minting a Wolf. These tests pin the engine
 // half: a reversed cast queues nothing (CR 733.1 "No abilities trigger ...
@@ -76,7 +76,7 @@ func skitterspikeTriggerPushes(e *Engine, spike state.ObjID) int {
 // the cast reverses and Skitterspike's "becomes the target of a spell"
 // trigger must NOT be queued or pushed (CR 733.1), so the opponent takes no
 // damage. The second identical reversal then holds the cast out of the
-// window (F05-2), which the leaked trigger's push used to defeat.
+// window (CR 733.2), which the leaked trigger's push used to defeat.
 func TestReversedStriveCastQueuesNoBecomesTargetTrigger(t *testing.T) {
 	t.Parallel()
 	e, cfg, pf, spike, raiders := striveTriggerFixture(t, 951)

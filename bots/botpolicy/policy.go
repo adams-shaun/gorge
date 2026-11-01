@@ -148,7 +148,7 @@ type Board struct {
 	// of it is taxed), and the 21-damage clock (Damage: cumulative combat
 	// damage it has dealt, keyed by the player who took it; nil when it
 	// has dealt none). Both adapter halves fill it from public facts — the
-	// command zone is public (m30 made ZCommand project), and commander
+	// command zone is public (ZCommand projects), and commander
 	// identity, cast counts and damage are open information — so the
 	// casting rule and the combat clock read the same facts whichever
 	// host asks. Damage is keyed by the commander, not its controller:
@@ -668,7 +668,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return Clamp(d, in)
 
 	case decision.KTriggerOrder:
-		// dp1: no more Fisher-Yates. The order the bot's own simultaneous
+		// The order the bot's own simultaneous
 		// triggers hit the stack is a deterministic ranking of the offered
 		// triggers by their source card's worth (trigger.go's
 		// chooseTriggerOrder), reading the same card-worth arithmetic the
@@ -682,7 +682,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 
 	case decision.KTriggerOptional:
 		// Only the api:Effect delayed body's no-host election defaults to
-		// decline. Printed triggers and Miracle retain dp1's accept policy.
+		// decline. Printed triggers and Miracle keep the accept policy.
 		if d.EffectOptional {
 			in.Choices = declineOptional(d)
 		} else if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
@@ -959,8 +959,8 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			}
 		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "setstate_pick", "counter_kind", "blight", "proliferate", "move_counter_kind", "reveal":
 			// A Dig look-and-take, a "choose N matching cards from hand"
-			// ChangeZone (handmove1), a Hidden$ True public-origin pick
-			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
+			// ChangeZone, a Hidden$ True public-origin pick,
+			// a DividedAsYouChoose$ PutCounter distribution
 			// pick (Vastwood Hydra), a bare-Choices$ PutCounter pick
 			// (Promise of Loyalty's vow), a Blight's per-player creature
 			// pick (CR 701.60), or a hand-reveal pick (infernaltutor1:
@@ -1167,7 +1167,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			}
 			// A hidden-library search whose options carry no Group keeps the
 			// first-offer answer it has always taken (Min 0, so one card). An
-			// EACH "EACH Forest & Plains" search (each1) builds one option per
+			// EACH "EACH Forest & Plains" search builds one option per
 			// eligible card with the type's ordinal in Group -- at most one per
 			// Group may be selected -- so the answer takes the FIRST option of
 			// each new Group up to Max: one card per listed type, in the
@@ -1634,7 +1634,7 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // already chosen, then -- if that leaves fewer than Min -- top up with the
 // lowest-index unused options until Min is reached or none remain. It is the
 // shared last resort every botpolicy return runs and the one heuristic.PolicyNetBot
-// reuses for its own scored answers (L9c), so no second clamp copy can drift
+// reuses for its own scored answers, so no second clamp copy can drift
 // from it.
 // the ones reachable today.
 //

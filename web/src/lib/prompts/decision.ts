@@ -30,7 +30,6 @@ import { isActionKind } from '../autopilot';
  * so the player never saw the spell become playable. An earlier version of
  * this comment claimed to mirror `actionable`'s kind test while inlining a
  * test that did not — now both call the one shared predicate.
- * (Moved here from actpass.ts, which prio3 deleted with the per-table keys.)
  * A planned cast posts no choices at all; its arming twin is actedPayment.
  */
 export function actedOption(d: Decision, choices: number[]): boolean {
@@ -234,7 +233,7 @@ export function triggerOrderPermutation(d: Decision): boolean {
 /**
  * identicalTriggerOrder reports whether a trigger_order decision's EVERY
  * option describes the same trigger — the same source name and the same
- * text (prio6) — on top of the shared triggerOrderPermutation shape
+ * text — on top of the shared triggerOrderPermutation shape
  * contract.
  *
  * Caveat, measured rather than assumed away: the label carries no target

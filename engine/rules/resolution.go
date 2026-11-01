@@ -229,7 +229,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	tc := e.triggerContexts[rp.obj]
 	armed := rp.kind == "optional" && rp.sa != nil &&
 		(e.triggerBodyNeedsCostWindow(rp.sa) ||
-			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
+			// An OptionalDecider$ copy trigger's AB$ CopySpellAbility
 			// with a real Cost$ pays through the same window whenever the
 			// trigger context carries an event role.
 			(rp.sa.API == "CopySpellAbility" && rp.sa.ParamStr(cards.PKCost) != "" &&

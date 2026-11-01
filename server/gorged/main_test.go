@@ -910,7 +910,7 @@ func TestNoHumansIsSpectatorOnly(t *testing.T) {
 // the tables so one server runs constructed and Commander games side by
 // side. A name that is neither is a startup error — before any table is
 // added — and the zero config (no flag at all) stays all-constructed,
-// byte-identical to every pre-m39 gorged.
+// byte-identical to a server with no format support.
 func TestFormatFlagParsing(t *testing.T) {
 	// Zero config: applyFormats defaults to constructed.
 	var c config
@@ -1007,14 +1007,14 @@ func commanderView(t *testing.T, url, seqs string) view.View {
 }
 
 // TestCommanderTableServesACommanderGameEndToEnd is the delivery proof for
-// the wire: a real gorged server on a Commander table with the five m38
+// the wire: a real gorged server on a Commander table with the five interim
 // decks serves a game whose seats start at 40 life (CR 903.6) with their
 // commanders in the command zone and a full roster, and whose logged
-// commander_casts climb past zero — the m36 command-zone panel on a table
-// that will actually exist. The seed is pinned to the m38 cast evidence:
+// commander_casts climb past zero — the command-zone panel on a table
+// that will actually exist. The seed is pinned to the cast evidence:
 // match 1 seat 0 plays foundations-keen-engineering at engine seed 1001
 // (the repoCommanderGames row that casts Sai), so a cast is guaranteed by
-// the same evidence the engine milestone was gated on, not hoped for.
+// the evidence in repoCommanderGames, not hoped for.
 func TestCommanderTableServesACommanderGameEndToEnd(t *testing.T) {
 	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, pace: 0, perpetual: false,

@@ -71,7 +71,7 @@
     open = false;
   }
 
-  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3).
+  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability.
    *  A selection option (an attacker declaration) is a
    *  pick in a still-pending multi-pick decision, so the picker stays open
    *  for the next pick; an ordinary action posts and closes as before. */

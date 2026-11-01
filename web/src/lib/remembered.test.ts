@@ -17,7 +17,7 @@ import {
 // the keying (B2), the storage shape
 // and cap (B3), the corruption rule, and the only rememberable kind (B1).
 
-/** fakeStorage is a record-and-inspect Storage (the prio6 fixture pattern). */
+/** fakeStorage is a record-and-inspect Storage (the seatpanel fixture pattern). */
 function fakeStorage(): Storage & { dump(): Map<string, string> } {
   const map = new Map<string, string>();
   return {

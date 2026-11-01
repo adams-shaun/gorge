@@ -45,7 +45,7 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * wear, and the post callback that hands one option index back to the seat
  * panel (the single answer path).
  *
- * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
+ * post's `holdPriority` threads the Ctrl modifier from the tile
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
  * action. post's `expectFollowUp` declares that a card-anchored post may

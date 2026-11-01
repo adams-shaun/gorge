@@ -93,8 +93,8 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto draw
 	// A DrawFor reached while the resolution is already suspended: a caller
 	// that does not check h.Suspended() between draws drove a second draw
 	// after the first one parked on a dredge ask. Posing a second ask here
-	// would overwrite the outstanding one (the orphaned-decision failure
-	// findings-sol4 proved); the guarded callers (effDraw's cursor loop,
+	// would overwrite the outstanding one, orphaning it;
+	// the guarded callers (effDraw's cursor loop,
 	// the turn draw, rules' lifeReplacementDraw park) never reach this
 	// suspended, so this degrades the unguarded one deterministically: no
 	// ask, an ordinary draw, one Note naming why.
@@ -1867,7 +1867,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
 // Amount$ cards of Defined$'s library, put any number of them -- the ones
 // the player does NOT pick -- into the GRAVEYARD (surveil has no bottom
-// pile; the fsv1 survey's bottom-pile reading is wrong and this code follows
+// pile; this code follows
 // CR 701.42), and the rest back on top in the order the player picks. It is
 // the KArrange ask with Min 0, Max N and Option.Kind "graveyard".
 //

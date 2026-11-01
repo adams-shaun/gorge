@@ -634,9 +634,9 @@ func TestValidateCommanderNamesEveryOffender(t *testing.T) {
 
 // corpusCardScript reads one pinned corpus script by its cardsfolder path so
 // an eligibility test can run on real Forge data — a real card's Types:/Oracle:
-// — rather than a hand-built face (the m35 fix1 hole was exactly a test set
-// whose faces were all hand-built around the half of the condition the author
-// was thinking about). It Skips on a clean checkout with no .cards/ corpus,
+// — rather than a hand-built face, because hand-built faces only cover the half
+// of a condition their author was thinking about. It Skips on a clean checkout
+// with no .cards/ corpus,
 // the same contract engine/cards/corpus_test.go sets.
 func corpusCardScript(t *testing.T, rel string) []byte {
 	t.Helper()
@@ -816,9 +816,8 @@ func TestParseReadsCommanderField(t *testing.T) {
 // row it sits on. This is the index rules.Config.Commanders wants (genesis
 // moves that object to the command zone) and the one resolution gorged and
 // the engine's own commander tests both use, so a deck that does not print
-// its commander first must resolve exactly as a deck that does. m39 moved
-// the one copy of this scan out of engine/rules/commander_decks_test.go into the
-// deck package so the product and the engine cannot disagree.
+// its commander first must resolve exactly as a deck that does. The scan lives
+// in the deck package so the product and the engine cannot disagree.
 func TestFileCommanderIndex(t *testing.T) {
 	// First row, ordinary row, duplicate-count rows before the commander.
 	if got := (File{Name: "x", Commander: "Zed", Cards: []Entry{

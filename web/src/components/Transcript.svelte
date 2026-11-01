@@ -81,7 +81,7 @@
     identities?: LogSeatIdentity[];
     cardColour?: CardOwnerColour | null;
     /**
-     * notes is the seat's own client-local auto-pass log (prio5), rendered
+     * notes is the seat's own client-local auto-pass log, rendered
      * AFTER the engine's lines. These are not events: nothing here scrubs
      * or joins the DVR cursor, and they exist only in the browser that made
      * the passes (settings.logAutoPasses). Empty for a spectator.
@@ -447,7 +447,7 @@
     font-style: italic;
     color: var(--ink-inst);
   }
-  /* The client-local auto-pass notes (prio5): not events, so no scrub and
+  /* The client-local auto-pass notes: not events, so no scrub and
      no cursor — a dim, quiet register under the engine's own lines, with
      the "auto" marker where an event's seq would sit. */
   .line.local {

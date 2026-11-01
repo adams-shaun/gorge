@@ -191,7 +191,7 @@ describe('decide', () => {
 
   it('casual: the report shape — opponent spell on top, mana-only window, Mana Leak + 2 untapped Islands in view STOPS', () => {
     const d = priority(ONLY_MANA); // activate + pass + concede — the window as the engine offers it, pool empty
-    // rv2c: the server projects the walk — the Mana Leak the seat could pay
+    // The server projects the walk — the Mana Leak the seat could pay
     // once its Islands float — and the client reads that, not a printed cost.
     const v = withHand(view(0, 'draw', [stackEntry(9, 1, 'spell')]), 0, {
       potential_actions: [pot('cast', 1)],
@@ -201,14 +201,14 @@ describe('decide', () => {
 
   it('casual: the same shape with NO hand still passes (the empty-hand pin above stays valid)', () => {
     const d = priority(ONLY_MANA);
-    // rv2c: no projection — the engine would unlock nothing here.
+    // No projection — the engine would unlock nothing here.
     const v = view(0, 'draw', [stackEntry(9, 1, 'spell')]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
 
   it('casual: a SORCERY castable after tapping does NOT stop an opponent-spell window (the timing filter)', () => {
     const d = priority(ONLY_MANA);
-    // rv2c: the server's own timing gates keep a sorcery out of a response
+    // The server's own timing gates keep a sorcery out of a response
     // window's projection — the client's old types-line timing filter is gone.
     const v = view(0, 'draw', [stackEntry(9, 1, 'spell')]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
@@ -238,7 +238,7 @@ describe('decide', () => {
 
   it('casual: a targets-me opponent trigger + mana-only window + castable SORCERY in hand passes (timing, not money)', () => {
     const d = priority(ONLY_MANA);
-    // rv2c: a sorcery is never in a response window's projection.
+    // A sorcery is never in a response window's projection.
     const v = view(0, 'draw', [stackEntry(9, 1, 'trigger', [{ player: 0, is_player: true }])]);
     expect(run(d, v)).toEqual({ act: 'pass', index: 1 });
   });
@@ -262,7 +262,7 @@ describe('decide', () => {
 
   it('respondableFor is respondable OR the projection scan, and never asks another seat\u2019s projection', () => {
     const d = priority(ONLY_MANA);
-    // rv2c: the seat's own projection (the engine's walk) is the only hand
+    // The seat's own projection (the engine's walk) is the only hand
     // the scan ever reads.
     const holding = withHand(view(0, 'draw'), 0, { potential_actions: [pot('cast')] });
     expect(respondableFor(holding, 0, d)).toBe(true);
@@ -321,7 +321,7 @@ describe('decide', () => {
     expect(run(d, v)).toEqual({ act: 'pass', index: 0 });
   });
 
-  // --- targets-me counts MY objects ON THE STACK (prio7) ---
+  // --- targets-me counts MY objects ON THE STACK ---
 
   it('casual: an opponent trigger targeting MY spell lower on the stack + respondable stops', () => {
     const d = priority(RESPONDABLE);
@@ -503,8 +503,8 @@ describe('decide', () => {
 
   // --- own-turn main-phase floor ---
   //
-  // rv2c merged over b4234e28: the castability oracle the floor reads is no
-  // longer a client-side mana scan of hand+lands — it is the seat's own
+  // The castability oracle the floor reads is not
+  // a client-side mana scan of hand+lands — it is the seat's own
   // projected potential_actions (castable.ts reads the server's offer walk
   // and fails closed to empty without it). The seq-1260 fixtures keep the
   // incident's hand and battlefield as context; the PROJECTION is the
@@ -569,7 +569,7 @@ describe('decide', () => {
       { index: 1, kind: 'pass', label: 'Pass priority', player: 0 },
       { index: 2, kind: 'concede', label: 'Concede', player: 0 },
     ]);
-    // rv2c: the projection is the castability oracle — the seq-1053 incident's
+    // The projection is the castability oracle — the seq-1053 incident's
     // hand (only Mountain untapped) unlocks nothing, so the engine projects
     // no cast and the floor stays quiet.
     const v = seqView('main1', 0, []);
@@ -676,7 +676,7 @@ describe('decide', () => {
 
   it('actionable on a mana-only window: a projected play makes it TRUE, an empty projection does not', () => {
     const d = priority(ONLY_MANA);
-    // rv2c: the server projected the walk — a play the seat could pay once
+    // The server projected the walk — a play the seat could pay once
     // its untapped sources floated.
     const stop = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast')] });
     expect(actionable(d, stop, 0)).toBe(true);
@@ -737,7 +737,7 @@ describe('decide', () => {
 
   it('casual decide(): a post-land mana-only window with a castable-after-tap card in hand STOPS (stop-set)', () => {
     const d = priority(ONLY_MANA); // activate + pass + concede — exactly the window after the turn-1 Mountain
-    // rv2c: the server projected the Lava Spike cast (the Mountain floats
+    // The server projected the Lava Spike cast (the Mountain floats
     // first); the client reads the projection.
     const v = withHand(view(0, 'main1'), 0, { potential_actions: [pot('cast', 5)] });
     const s = withSteps('yours', { main1: 'smart' });
@@ -745,7 +745,7 @@ describe('decide', () => {
   });
 
   it('casual decide(): the server projection, not a per-card produces join, decides the own-main window', () => {
-    // rv2c: the predecessor joined the decision's activate offers to
+    // The predecessor joined the decision's activate offers to
     // battlefield CardView.Produces projections (and priced Indeterminate
     // sources — Tron, a Cradle — at zero). The server projection carries
     // every shape, including the multi-colour and any-colour ones, and the
@@ -762,7 +762,7 @@ describe('decide', () => {
   it('casual decide(): a projected activation stops, but an activation the engine withholds does not project at all', () => {
     const d = priority([{ ...opt('activate', 0), obj: 7 }, opt('pass', 1), opt('concede', 2)]);
     const s = withSteps('yours', { main1: 'smart' });
-    // rv2c: the payable shape (including the effective-cost one — a printed
+    // The payable shape (including the effective-cost one — a printed
     // 2 T reduced by a live ReduceCost static arrives already reduced) is a
     // server-projected ability.
     const payable = withHand(view(0, 'main1'), 0, { potential_actions: [pot('ability', 8)] });
@@ -777,7 +777,7 @@ describe('decide', () => {
     expect(run(d, sick, s)).toEqual({ act: 'pass', index: 1 });
   });
 
-  it('rv2c (replaces the "only uncastable cards in hand passes" pin): an X spell the engine prices at 0 projects, and an empty projection still passes', () => {
+  it('an X spell the engine prices at 0 projects, and an empty projection still passes', () => {
     const d = priority(ONLY_MANA);
     const s = withSteps('yours', { main1: 'smart' });
     // The engine prices X at 0 (CR 107.3b) and offers the Blaze from the
@@ -815,7 +815,7 @@ describe('decide', () => {
     expect(run(d, view(0, 'draw', [stackEntry(9, 1, 'spell')]))).toEqual({ act: 'pass', index: 2 });
   });
 
-  // ---- prio6: always-yield per ability, and the Resolve All baseline ----
+  // ---- always-yield per ability, and the Resolve All baseline ----
   // A yield key is `${controller}:${name}:${text}` — the same three facts
   // the stack tile renders (lib/yields.ts). The entry below is shaped like
   // the real wire StackView for an ability: name is the SOURCE's face name,

@@ -1,5 +1,5 @@
-// Command enginebench re-measures gorge on the rows of draft-zero's engine
-// comparison (docs/015-rules-engine-comparison.md §1, method in §6): random
+// Command enginebench measures gorge on a fixed set of rows:
+// random
 // play turns/s on two FDN pairs and the Pauper Burn mirror, the heuristic
 // bot's games/s, Engine.Clone cost on a mid-game state, one search step
 // (Clone + Submit), and the built-in searches' per-thread rates.

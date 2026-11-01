@@ -2249,7 +2249,7 @@ func (o *Object) MergedFaceAt(i int) *cards.Face {
 // Myriad (CR 702.109) and populate ("create a token copy", CR 706.2) mint
 // their tokens as IsToken+IsCopy and legitimately keep them on the
 // battlefield, and a copy of a permanent SPELL that has resolved onto the
-// battlefield (CR 707.10g, token1's stack-entry clear) is likewise real.
+// battlefield (CR 707.10g) is likewise real.
 // Only a copy that is neither on the stack (still a spell) nor on the
 // battlefield (still a permanent) has ceased to exist.
 //

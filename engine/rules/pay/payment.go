@@ -682,7 +682,7 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	if src != 0 {
 		srcID = src
 	}
-	// The bare wasCastFromYourHand qualifier (castprov3, Mm'menon's
+	// The bare wasCastFromYourHand qualifier (Mm'menon's
 	// RestrictValid$ Spell.!wasCastFromYourHand — "spend this mana only to
 	// cast a spell from anywhere other than your hand"): split the
 	// provenance out before the filter match, through the pending-cast
@@ -800,8 +800,7 @@ func CostPayable(e Engine, p state.PlayerID, id state.ObjID, ability bool, cost 
 // ordinary gates (CostPayable here, manaFeasible in statics.go) are exactly
 // this with the real AvailableFor pool and never call it directly with
 // the RAW pool -- offering a cast on mana its RestrictValid$ provenance would
-// refuse at payment is the illegal direction (rv2c review: an earlier shape
-// of castable did, and was reverted). The only caller is the potential-action
+// refuse at payment is the illegal direction. The only caller is the potential-action
 // walk (engine/rules/legal.go legalActionsPriced via castablePriced), which passes
 // the hypothetical bound the seat would hold after floating every untapped
 // source. The payer grants and conversion shaping are the same reads in both

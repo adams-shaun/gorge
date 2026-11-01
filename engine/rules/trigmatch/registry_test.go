@@ -56,7 +56,7 @@ var addedAfterTheSplit = []string{
 	// matches the events.Connive marker Kind, which was appended for it, so
 	// it could not have been in the pre-split switch.
 	"Connives",
-	// enlist1: "Whenever CARDNAME enlists a creature ..." (CR 702.160;
+	// "Whenever CARDNAME enlists a creature ..." (CR 702.160;
 	// Goblin Morale Sergeant, Guardian of New Benalia). It matches the
 	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
 	// could not have been in the pre-split switch.

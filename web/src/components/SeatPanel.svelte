@@ -72,7 +72,7 @@
     // Escape is the panic key: it ends a one-shot run wherever the focus
     // happens to be. It is on the window because the player's hands are not
     // necessarily on the panel when a run does something they did not expect.
-    // CAPTURE phase (r2 review): this listener must evaluate the modal guard
+    // CAPTURE phase: this listener must evaluate the modal guard
     // BEFORE the bubble-phase handlers — OptionPicker's and PileModal's own
     // Escape-close — can close the modal out from under the probe. While a
     // modal picker is open, Escape closes THE MODAL and the run underneath
@@ -151,7 +151,7 @@
     });
   });
   // The paced pass is abandoned when the panel goes away: a timer owned by a
-  // destroyed surface must not post (prio5). The state object itself is
+  // destroyed surface must not post. The state object itself is
   // per-match and survives, so this is the timer's cancellation edge only.
   onDestroy(() => logic.cancelPass());
 

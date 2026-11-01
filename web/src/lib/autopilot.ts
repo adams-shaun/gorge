@@ -386,14 +386,14 @@ export function decide(args: {
   ffwd?: boolean;
   /**
    * yields is the game-scoped set of "always pass for this ability" keys
-   * (prio6, lib/yields.ts): when the TOP stack entry's key is in the set,
+   * (lib/yields.ts): when the TOP stack entry's key is in the set,
    * the opponent-object rule is skipped for it — the player has already
    * said, for this game, that they never stop for that ability. The step
    * rules still apply: a yield is per ability, never per step.
    */
   yields?: ReadonlySet<string>;
   /**
-   * baselineStack is the Resolve All run's arm-time stack (prio6): the ids
+   * baselineStack is the Resolve All run's arm-time stack: the ids
    * of the objects that were already on the stack when the run started.
    * Resolve All's whole point is to play through the stack AS IT STANDS, so
    * an opponent object that was present at arm time does not stop the run

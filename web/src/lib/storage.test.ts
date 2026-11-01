@@ -7,7 +7,7 @@ import { PROBE_KEY, safeStorage, storageWritable } from './storage';
  * logshown, the art cache, the oracle cache — routes through safeStorage()
  * here; storageWritable() is the single availability signal the Game
  * Options panel renders as its refusal notice. The stub shapes mirror the
- * fixtures seatpanel.prio6.test.ts and PlaySettingsPanel.svelte.test.ts
+ * fixtures seatpanel.yields.test.ts and PlaySettingsPanel.svelte.test.ts
  * already use for refusing browsers.
  */
 

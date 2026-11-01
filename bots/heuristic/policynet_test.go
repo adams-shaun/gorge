@@ -1,6 +1,6 @@
 package heuristic
 
-// The L9c learned-policy seat's pins. Three properties, over whole games
+// The learned-policy seat's pins. Three properties, over whole games
 // and crafted decisions:
 //
 //  1. DELEGATION: for every decision kind the scorer does not answer, the
@@ -188,7 +188,7 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 	// one-signed) and not a ranking. The seat refuses to answer and the caller
 	// falls back to the default bot's declaration, rather than declaring the
 	// whole mean-inclusive subset (which on a tie is every option — the all-in
-	// failure L9d exists to prevent, reached by another road).
+	// failure this guards against, reached by another road).
 	if _, ok := attackersFromScores(d2, []float32{3, 3}); ok {
 		t.Fatal("tie: seat answered an exactly-tied decision; want delegation")
 	}
@@ -229,7 +229,7 @@ func TestPolicyNetAttackersSubsetShapes(t *testing.T) {
 	}
 }
 
-// TestPolicyNetAttackersAdmissionIsShiftInvariant is the L9d regression pin:
+// TestPolicyNetAttackersAdmissionIsShiftInvariant is the regression pin:
 // a checkpoint whose scores share a large offset — a softmax-CE head's output
 // is shift-invariant, measured at [11575, 15052] for every labelled attack
 // option — must not make the seat declare every legal attacker (all-in), and
@@ -253,7 +253,7 @@ func TestPolicyNetAttackersAdmissionIsShiftInvariant(t *testing.T) {
 			atkOpt(0, 10, 1, false), atkOpt(1, 11, 1, false),
 			atkOpt(2, 12, 1, false), atkOpt(3, 13, 1, false),
 		}}
-	const base = 12000 // the CE checkpoint's measured level (L9d evidence)
+	const base = 12000 // the CE checkpoint's measured level
 
 	pos := []float32{base, base + 1, base + 2, base + 3}
 	in, ok := attackersFromScores(d, pos)
@@ -264,7 +264,7 @@ func TestPolicyNetAttackersAdmissionIsShiftInvariant(t *testing.T) {
 		t.Fatalf("all-positive: Validate rejected: %v", err)
 	}
 	if len(in.Choices) == len(d.Options) {
-		t.Fatalf("all-positive: admitted all %d options — the offset was trusted as a calibrated sign (the L9d bug)", len(in.Choices))
+		t.Fatalf("all-positive: admitted all %d options — the offset was trusted as a calibrated sign", len(in.Choices))
 	}
 	if len(in.Choices) == 0 {
 		t.Fatalf("all-positive: admitted none of %d options — the shift-invariant fallback over-corrected", len(d.Options))
@@ -279,7 +279,7 @@ func TestPolicyNetAttackersAdmissionIsShiftInvariant(t *testing.T) {
 		t.Fatalf("all-negative: Validate rejected: %v", err)
 	}
 	if len(in.Choices) == 0 {
-		t.Fatalf("all-negative: admitted none of %d options — the offset was trusted as a calibrated sign (the mirrored L9d bug)", len(d.Options))
+		t.Fatalf("all-negative: admitted none of %d options — the offset was trusted as a calibrated sign", len(d.Options))
 	}
 	if len(in.Choices) == len(d.Options) {
 		t.Fatalf("all-negative: admitted all %d options", len(in.Choices))

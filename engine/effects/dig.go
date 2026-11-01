@@ -30,7 +30,7 @@ import (
 // SVar ChangeNum$ handles "All" for free: it is simply the case where
 // nothing narrows the cap below the number of cards looked at.
 //
-// The look-and-take ask (dig1): where the top DigNum window holds STRICTLY
+// The look-and-take ask: where the top DigNum window holds STRICTLY
 // more ChangeValid$-eligible cards than ChangeNum, the pick is a real
 // decision and effDig poses it -- the same strict-supersets rule effDiscard's
 // TgtChoose arm already uses, so a decision nobody could answer differently
@@ -70,7 +70,7 @@ import (
 // remainder moves: a default-remainder Dig still moves its untaken cards to
 // the bottom (asking for that order when two or more remain), so only a game
 // that never reaches a Dig whose remainder moves replays byte-identically to
-// the pre-dig1 engine.
+// an engine without this ask.
 //
 // The variant params (task inbox-paramcensus-dig-variants), each read
 // below:

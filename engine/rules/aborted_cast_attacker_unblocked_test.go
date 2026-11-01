@@ -22,7 +22,7 @@ import (
 // StepDeclareBlockers arm, which re-ran the round-complete walk and queued
 // Senu's trigger AGAIN -- a second "isn't blocked" event from one combat (CR
 // 509.2 fires it once). Its TriggerPush was a genuine state change, so it
-// cleared the F05-2 held-out suppression and the same abort re-offered
+// cleared the held-out suppression and the same abort re-offered
 // forever, stacking one Senu trigger per attempt. The walk is now latched to
 // one run per combat: the stack keeps its single trigger across both aborts,
 // and the second identical abort holds the cast out of the window.
@@ -114,7 +114,7 @@ func TestAbortedCastDoesNotRefireAttackerUnblocked(t *testing.T) {
 		}
 	}
 	if castOffered(e, light) {
-		t.Fatal("the second identical no-progress abort still re-offers Devouring Light (F05-2 suppression)")
+		t.Fatal("the second identical no-progress abort still re-offers Devouring Light (no-progress suppression)")
 	}
 	replayCheck(t, e, cfg)
 }

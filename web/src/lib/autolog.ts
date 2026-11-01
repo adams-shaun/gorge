@@ -1,7 +1,7 @@
 import type { View } from '../protocol';
 
 /**
- * autolog is the client-local, non-engine log of automatic passes (prio5).
+ * autolog is the client-local, non-engine log of automatic passes.
  *
  * WHAT IT IS NOT: it is not the event-sourced log. The transcript's real
  * lines are server-described events (DvrState.events, host/describe.go);
@@ -9,8 +9,8 @@ import type { View } from '../protocol';
  * event is emitted, nothing is posted to the server, and a note exists only
  * in the browser tab that made the pass. It exists because Forge's players
  * found invisible instant passing disorienting: with casual pacing the seat
- * passes dozens of windows a turn, and `settings.logAutoPasses` (prio2,
- * editable since prio4) is the player's "show me what was skipped".
+ * passes dozens of windows a turn, and `settings.logAutoPasses`
+ * is the player's "show me what was skipped".
  *
  * SHAPE: one note per automatic pass, appended in pass order, each carrying
  * the engine turn it was made in so a reader can place it. The transcript

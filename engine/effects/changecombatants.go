@@ -58,7 +58,7 @@ func init() {
 // capricopian, TargetedPlayer
 // portal_manipulator — needs parent-target/trigger-referent plumbing that
 // does not exist, and portal_manipulator's ask rides a DEEPER sub the
-// mvts1 pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
+// generic pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
 // tahngarth_first_mate — needs planeswalker defenders, which do not exist).
 // Optional$ True (Windshaper Planetar) is read as mandatory with one Note
 // naming the stand-in: a per-attacker may-reselect election is not built.

@@ -102,7 +102,7 @@ func TestScorerRepeatedCallsAreBitIdentical(t *testing.T) {
 	}
 }
 
-// TestScorerLoadCheckpointRoundTrip pins the L9c entry path: a checkpoint
+// TestScorerLoadCheckpointRoundTrip pins the entry path: a checkpoint
 // written by the trainer loads through LoadScorer (the full checkpoint gate
 // runs) and scores bit-identically to the model it was written from.
 func TestScorerLoadCheckpointRoundTrip(t *testing.T) {

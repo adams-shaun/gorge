@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// This file is the model half of the learned per-option scorer (plan L9b,
-// R1 §1.4/§3.2/§3.4): a shared hashed embedding table over the encoder's
+// This file is the model half of the learned per-option scorer: a shared
+// hashed embedding table over the encoder's
 // sparse rows, a dense projection of the state's dense vector, and a
 // one-hidden-layer ReLU MLP that scores [state ‖ option]. Forward and
 // backward are HAND-DERIVED — there is no autodiff (R1 §3.4); the gradients
@@ -42,14 +42,14 @@ const (
 )
 
 // LossMode selects which loss terms train. The measured collapse driver
-// (L9b-fix2) is the VALUE term: the teacher's candidate values inside one
+// is the VALUE term: the teacher's candidate values inside one
 // decision differ by a median of one sampled world (0.062 at K=16), so
 // regressing the absolute value is minimised by predicting the decision
 // mean — every option scores alike and the argmax collapses onto the
 // option-order baseline. The modes:
 //
-//   - LossCE — PURE argmax cross-entropy (the trainer's default, the
-//     L9b-fix2 control): only the softmax cross-entropy over the labelled
+//   - LossCE — PURE argmax cross-entropy (the trainer's default):
+//     only the softmax cross-entropy over the labelled
 //     options toward the teacher-preferred set, LSE(z) − LSE(z_pref), with
 //     the max-subtracting log-sum-exp; the Huber value term is OFF. The
 //     per-example weight is RankWeight alone — NOT scaled by Margin, so a
@@ -125,8 +125,8 @@ type Model struct {
 	// ResidualW is the fixed weight of the bot-prior residual: an option the
 	// bot's own answer contains (Option.BotPick) scores ResidualW higher, so
 	// with a large prior the model starts at the bot baseline and the learned
-	// head only has to supply the overrides (residual policy learning,
-	// L9b-fix2 item 3). It is NOT a trained parameter — it is a prior the
+	// head only has to supply the overrides (residual policy learning).
+	// It is NOT a trained parameter — it is a prior the
 	// trainer sets once from Config.ResidualInit — so the CE gradient can
 	// never decay the baseline away. Zero (the default) makes the residual a
 	// no-op and reproduces pure CE byte for byte. Not covered by EncoderHash
@@ -334,9 +334,9 @@ func (lc LossConfig) exampleWeight(ex Example) float64 {
 }
 
 // DefaultLossConfig returns the default loss weights in the DEFAULT mode,
-// pure argmax CE (the L9b-fix2 control: the value term is what collapses).
+// pure argmax CE (the value term is what collapses).
 // Note the distinction: the Go zero value of LossConfig (Mode "") is the
-// pre-fix hybrid geometry, kept so every caller that does not opt in keeps
+// hybrid geometry, kept so every caller that does not opt in keeps
 // today's loss; the DEFAULT — what the trainer and this constructor hand a
 // fresh run — is CE.
 func DefaultLossConfig() LossConfig {
@@ -536,7 +536,7 @@ func (m *Model) residual(o Option) float32 {
 	return 0
 }
 
-// Score scores every offered option (the inference path, L9c's entry point):
+// Score scores every offered option (the inference path):
 // the state trunk is computed once, then each option gets its own head
 // forward. The returned slice parallels opts.
 func (m *Model) Score(st State, opts []Option) []float32 {

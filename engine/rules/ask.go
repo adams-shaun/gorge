@@ -82,7 +82,7 @@ func (e *Engine) ask(d *decision.Decision) {
 	// and silently swallowing it here would leave the caller's suspended
 	// half-resolution dangling.
 	// One mid-resolution decision at a time (the structural guard for the
-	// overwrite class findings-sol4 proved on the life-replacement draw
+	// overwrite class seen on the life-replacement draw
 	// loop): a caller reaching ask while a SUSPENDED RESOLUTION is awaiting
 	// its answer would overwrite e.pending and orphan that resolution's
 	// ask -- no seat can ever answer it, and the surviving ask's answer is

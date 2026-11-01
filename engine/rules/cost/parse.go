@@ -55,7 +55,7 @@ const discardXCost = `^Discard<X/([^/>]+)(?:/([^>]*))?>$`
 // card from your graveyard"). AnyGrave is the same graveyard payment with the
 // "any card" shape -- the payer picks the card, and beyond the spec's own
 // predicates there is no zone provenance beyond "a graveyard" -- so it lands
-// on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
+// on the identical Exile part with Zone ZGraveyard (the 18-carrier
 // Cavalier of Thorns / Thelon of Havenwood family). As with the other
 // non-mana tokens the trailing "/description" is captured into CostPart.Desc
 // and ";" alternations fold to ",".

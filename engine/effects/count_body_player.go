@@ -61,7 +61,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// property `Amount` counts 1 per group member, so
 	// PlayerCountOpponents$Amount is the opponent count — the dominant
 	// "one each" bound the corpus names SVar:OneEach (99 raw Opponents +
-	// 52 raw Players lines at the pfpe1 gate) and the per-player target
+	// 52 raw Players lines) and the per-player target
 	// bound the TargetsForEachPlayer$ shape needs (Havoc Eater's
 	// TargetMax$ X with SVar:X:PlayerCountOpponents$Amount).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
@@ -262,7 +262,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		case evalCountBodyPlayerHasPropertyMaxSpeed:
 			return playerMaxSpeedProperty(g, c.Controller)
 		case evalCountBodyPlayerCardsDiscardedThisTurn:
-			// The log-derived discard count (trigcost2): how many cards the
+			// The log-derived discard count: how many cards the
 			// RESOLVING controller discarded this turn — every
 			// events.IsDiscard move naming p since the last TurnChange, the
 			// cost form included (Ambergris Citadel Agent's

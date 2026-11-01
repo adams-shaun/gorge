@@ -219,8 +219,8 @@ type pendingTrigger struct {
 	// casts the exiled card, with the encoded card riding IDs as
 	// Remembered. Idx and SA are unset for it.
 	Cipher state.ObjID
-	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
-	// cascade1): the queue carries no parameter (the trigger body is the
+	// Cascade is a printed-or-granted cascade keyword (CR 702.85):
+	// the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
 	// drain pushes a KeywordTriggerPush whose __kwCascade: payload
 	// events.Apply rebuilds structurally -- the Ward shape. The trigger's
@@ -1121,8 +1121,8 @@ func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer, blocker st
 }
 
 // checkExertTriggers queues the Trigger$ rider of every offerable
-// stat:OptionalAttackCost static carried by the exerted permanent (task
-// exert1, CR 702.100a "When you do, ..."): a real triggered ability the
+// stat:OptionalAttackCost static carried by the exerted permanent
+// (CR 702.100a "When you do, ..."): a real triggered ability the
 // ordinary APNAP drain places with Source = the exerted permanent, resolving
 // with the registered APIs every rider body uses (UntapAll, AddPhase, Pump,
 // ... -- the triage census). The queue entry is the granted-trigger shape
@@ -2952,7 +2952,7 @@ func (e *Engine) notThisAbilityExcludes(t cards.Trigger, source state.ObjID) boo
 // fire for this event still fires on its own -- Grave Titan's Attacks half
 // fires for the attack although its ETB half did not.
 //
-// A Mode-equality fallback was tried here and REMOVED (r2 review): pairing
+// A Mode-equality fallback was tried here and REMOVED: pairing
 // any same-Mode sibling suppresses independent co-firing abilities, not just
 // complementary halves. Zoraline, Cosmos Caller carries two Attacks triggers
 // on one face -- her printed "Whenever a Bat you control attacks, gain 1

@@ -367,7 +367,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if !e.activationConditionOK(p, id, ab) {
 							continue
 						}
-						// F05-2 (CR 733.2): a card whose activation aborted with no
+						// CR 733.2: a card whose activation aborted with no
 						// progress twice in this window is held out here too, exactly
 						// like the cast options above -- the suppression is per CARD
 						// (abortCast keys it on pc.card, which for an activation is the
@@ -660,7 +660,7 @@ func (w *legalWalk) battlefieldWalk() {
 							continue
 						}
 					}
-					// F05-2 (CR 733.2): the granted twin of the printed loop's
+					// CR 733.2: the granted twin of the printed loop's
 					// no-progress hold-out. abortCast keys the suppression on the
 					// activation's source (pc.card), which for a granted or gained
 					// ability is this recipient -- without the check a granted
@@ -833,7 +833,7 @@ func (w *legalWalk) battlefieldWalk() {
 				if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
 					continue
 				}
-				// castSuppressed: the F05-2 no-progress hold-out every other
+				// castSuppressed: the no-progress hold-out every other
 				// activation offer reads (an aborted activation is keyed on its
 				// source).
 				if w.abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {

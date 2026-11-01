@@ -1,6 +1,6 @@
 package heuristic
 
-// The L9c learned-policy seat: a trained per-option scorer
+// The learned-policy seat: a trained per-option scorer
 // (bots/policynet) plugged in at the seat layer, exactly like the bench
 // bots above. botpolicy cannot import view (dependency order,
 // internal/archtest), so the encoder — which reads a projected view.View —
@@ -25,7 +25,7 @@ package heuristic
 //     An EXACTLY TIED decision has neither a sign nor a ranking, so the seat
 //     refuses it and the default bot's declaration stands. Those three arms
 //     between them mean no checkpoint offset can turn a decision all-in or
-//     empty, which is the L9d defect this rule replaced. The admitted subset
+//     empty. The admitted subset
 //     is then repaired the way chooseAttackersMode repairs it: one option per
 //     attacker (CR 506.2), every required attacker declared (CR 508.1d) and
 //     the Max ceiling applied required-first (CR 508.1j).
@@ -82,8 +82,8 @@ package heuristic
 // falls back too. Deterministic: no wall clock, no map-iteration order in
 // any answer; ties break on option index everywhere.
 //
-// The residual prior at INFERENCE (the train/eval symmetry the L9b-fix2
-// follow-up review demanded): for a scored kind this bot first asks the
+// The residual prior at INFERENCE (for train/eval symmetry): for a scored
+// kind this bot first asks the
 // wrapped default bot the same question and marks its answer's options
 // (Option.BotPick) before scoring, so a model trained with a positive
 // ResidualInit scores the same contract it trained under and reproduces the
@@ -956,7 +956,7 @@ func admissionVote(scores []float32, sign bool) (float32, bool) {
 // 0 at the inclusion probability 0.5. A softmax cross-entropy head trains
 // only the ORDER inside a decision (its loss is shift-invariant), so its
 // output has no calibrated zero and score > 0 admits everything — measured
-// on the controller's dev2 checkpoint, 100% of 9,016 labelled attack options
+// on a controller checkpoint, 100% of 9,016 labelled attack options
 // scored in [11575, 15052], so the seat declared every legal attacker every
 // combat.
 //

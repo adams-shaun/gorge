@@ -8,7 +8,7 @@ import type { Option, PlayerView, PotentialAction, View } from '../protocol';
  * PlayerView.potential_actions, the SERVER's own legal-offer walk priced
  * against the hypothetical tapped-out pool (rules.PotentialActions /
  * rules.PotentialMana). These tests pin what the client does with that
- * projection, including the shapes that motivated the rv2c rework: the client
+ * projection, including the shapes that motivated it: the client
  * could not price live cost modifiers, command-zone or flashback casts,
  * {T}-less activations, indeterminate sources or X spells, and every one of
  * those shapes arrives as a server-computed entry now.
@@ -50,7 +50,7 @@ const view = (p: PlayerView, secondSeat = true): View =>
 
 describe('castableAfterTap — reading the server projection', () => {
   it('a mana-only window the engine would unlock (the Jitte/Medallion/Tron class) stops: potential_actions non-empty', () => {
-    // Any of the eight rv2c shapes — a RaiseCost-raised cast the pool can no
+    // Any of the eight shapes — a RaiseCost-raised cast the pool can no
     // longer pay, a ReduceCost-reduced cast it now can, a {T}-less Equip, an
     // X spell at 0, an indeterminate Tron source, a command-zone or flashback
     // cast — projects as whatever real plays the engine would offer. The

@@ -101,7 +101,7 @@ const ARTIST_TEXT = 'Whenever a creature dies, each opponent loses 1 life';
 const artistEntry = (over: Partial<StackView> = {}): StackView =>
   spell({ id: 60, kind: 'trigger', name: ARTIST, text: ARTIST_TEXT, controller: 1, card: null, ...over });
 
-describe('StackTile — always-yield (prio6)', () => {
+describe('StackTile — always-yield', () => {
   it('shows the yielding marker when the entry\u2019s key is in the set, and none otherwise', () => {
     const s = artistEntry();
     const key = '1:Blood Artist:Whenever a creature dies, each opponent loses 1 life';

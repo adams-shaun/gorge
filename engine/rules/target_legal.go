@@ -127,7 +127,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// and the pile's top card can be any creature (with no X at all). The
 	// owning face comes from the compiled trigger pointer; an ordinary
 	// trigger's owning face is the top face, so nothing else moves. A
-	// HAS-ALL-ABILITIES-OF wrapper (r3) is covered inside the recovery
+	// HAS-ALL-ABILITIES-OF wrapper is covered inside the recovery
 	// functions themselves, so every caller shares the one read.
 	if owned, ok := e.triggerLineSVars[source]; ok {
 		effects.SetSVars(ctx, owned)
@@ -222,10 +222,10 @@ func (e *Engine) resolvedTargetBoundsWithGift(p state.PlayerID, source state.Obj
 }
 
 // resolvedTargetMin is the Min half of resolvedTargetBounds, for resolveTop's
-// N2 gate -- an ability or spell that MAY target zero things (a resolved
+// Zero-target gate -- an ability or spell that MAY target zero things (a resolved
 // TargetMin$ 0) and has none recorded resolves untargeted rather than
 // fizzling. An unresolvable dynamic Min keeps the literal reader's default 1,
-// so the N2 exemption never opens for a bound this build cannot price.
+// so the zero-target exemption never opens for a bound this build cannot price.
 func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) int {
 	min, _ := e.resolvedTargetBounds(p, source, sa, x)
 	return min
@@ -906,7 +906,7 @@ type targetCandidate struct {
 // recheck (legalTargets) -- so the two cannot disagree (the one-definition
 // rule). Every ordinary alternative is judged by the shared
 // effects.MatchesPlayerSpecFrom grammar; an alternative whose qualifier names
-// a trigger role the ask's own TriggerContext carries (pg2 event roles) is
+// a trigger role the ask's own TriggerContext carries (event roles) is
 // judged by triggerRolePlayerAlt below, because MatchesPlayerSpecFrom takes
 // no trigger context and fails closed on the role names -- which turned The
 // Lord of Pain's mandatory "choose another target player" trigger
@@ -934,8 +934,8 @@ func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q,
 // player alternative, both negated: Player.!TriggeredActivator (The Lord of
 // Pain) and Player.!TriggeredCardController (Lucy MacLean, Positively
 // Armed); a positive form resolves the same way. The binding rides the ask's
-// SpecContext (pg2); an absent binding matches NOBODY, including under !
-// (the documented pg2 absent-binding contract), so the fail-closed direction
+// SpecContext; an absent binding matches NOBODY, including under !
+// (the documented absent-binding contract), so the fail-closed direction
 // is kept for every qualifier the context cannot answer. known=false when
 // the alternative does not name a trigger role at all, leaving it to the
 // shared grammar.
@@ -1030,7 +1030,7 @@ func (e *Engine) candidatesForLimitInto(dst []targetCandidate, p state.PlayerID,
 	if limit > 0 && (tp.DefinedController != "" ||
 		tp.ValidTargeting != "" ||
 		tp.ControllerProperty != "" ||
-		// tpc1: TargetingPlayerControls$ True is also a DROPPING post-filter,
+		// TargetingPlayerControls$ True is also a DROPPING post-filter,
 		// so the census must not stop at limit before the whole search space
 		// (battlefield included) has been walked and filtered.
 		tp.Has(effects.TgtPlayerControlsSet) ||
@@ -1139,7 +1139,7 @@ zoneLoop:
 				if !e.stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
 					continue
 				}
-				// The cast-provenance split (castprov1/castprov3/wascastfrom):
+				// The cast-provenance split:
 				// a stack-target spec carrying a wasCast* token — Wash Away's
 				// `Card.!wasCastFromTheirHand` — evaluates the token against the
 				// candidate's cast log here, before the ordinary filter; the
@@ -1207,7 +1207,7 @@ zoneLoop:
 	out = e.filterTargetsWithRelatedProperty(out, sa, source, sc)
 	out = e.filterTargetValidTargeting(out, sa, sc)
 	if targeting {
-		// tpc1: TargetingPlayerControls$ True -- the answering seat's
+		// TargetingPlayerControls$ True -- the answering seat's
 		// battlefield permanents only. Applied to the targeting census only;
 		// the Overload affected sweep keeps its non-target semantics.
 		out = e.filterTargetingPlayerControls(out, sa, p, source)

@@ -269,7 +269,7 @@ func foldEndCombatReset(g *state.Game, e *Event) {
 func foldCmdDamage(g *state.Game, e *Event) {
 	// Commander combat damage to a player (CR 903.10): fold
 	// Amount into Player's cumulative tally at the source commander's
-	// match-wide dense index, exactly the slot m30's genesis sizes and
+	// match-wide dense index, exactly the slot genesis sizes and
 	// New's Commanders bookkeeping names, so commander B keeps one slot
 	// - and one cumulative total - for the whole match, across zone
 	// changes and recasts (state.ObjID is stable across moves). A

@@ -60,7 +60,7 @@ func gainedAbilityOffered(d *decision.Decision, obj state.ObjID) bool {
 // target and must not be offered -- before the fix the offer gate let the
 // source count as its own target, the ask found none and aborted, and the
 // bot re-picked the same option forever ("cast aborted: no legal target").
-// A second creature makes the Equip legal again, and a held-out (F05-2
+// A second creature makes the Equip legal again, and a held-out (no-progress
 // suppressed) source withholds the gained activation like a printed one.
 func TestGainedEquipNotOfferedWithoutAnotherCreature(t *testing.T) {
 	t.Parallel()

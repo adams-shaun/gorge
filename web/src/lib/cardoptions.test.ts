@@ -328,7 +328,7 @@ describe('single-action card affordance', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  // prio3 review r2: the tile affordances (direct icon, radial wheel, list
+  // The tile affordances (direct icon, radial wheel, list
   // menu) are the one path a Ctrl-held cast/ability takes, and Ctrl must
   // arrive at SeatPanelState.click as `{ holdPriority: true }` — otherwise
   // the action arms pass-after-acting. These are the pure half; the mounted

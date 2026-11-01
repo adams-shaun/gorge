@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * Smoke-gate Playwright config (Task SG1).
+ * Smoke-gate Playwright config.
  *
  * This config exists for `make smoke` / `npm run e2e`: a headless-browser
  * smoke gate that drives the REAL built client served by a REAL `gorged`

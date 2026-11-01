@@ -333,8 +333,8 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 // tapeRebindOwner moves the per-engine pools a restore adopted (cloneWith
 // bound them to the scratch copy sc) onto e, which took sc's contents by
 // value, and keeps a host-enabled decision arena on: without this every
-// re-execution dropped the pools and the arena and allocated afresh (S3b
-// restore fix 3). Owner-keyed caches (static scan reuse, walk block reuse,
+// re-execution dropped the pools and the arena and allocated afresh.
+// Owner-keyed caches (static scan reuse, walk block reuse,
 // the activation index) only miss and rebuild.
 func tapeRebindOwner(e *Engine, sc *Engine, arenaOn bool) {
 	if e.walkClsOwner == sc {

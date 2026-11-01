@@ -853,7 +853,7 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 //     (Suspicious Bookcase, Kaito Cunning Infiltrator's +1, Kappa Cannoneer's
 //     counter trigger; 108 activated carriers), while the "for as long as"
 //     shapes spell Duration$ UntilHostLeavesPlayOrEOT out explicitly and the
-//     forever shapes spell Duration$ Permanent (cbb1, joined from main).
+//     forever shapes spell Duration$ Permanent.
 //   - CantGainLife: the corpus's ABSENT-Duration population is uniformly
 //     this-turn -- measured, the four no-Duration bodies all read "this turn"
 //     in their own Description$/oracle text (Skullcrack and Call In a

@@ -174,7 +174,7 @@ const (
 	// `Card.OppOwn+!token+nonCopiedSpell`), and so matcher and
 	// UnknownPredicates agree.
 	wordCopiedSpell
-	// The three cast-provenance tokens (castprov1/2/3): wasCastFromYourHandByYou,
+	// The three cast-provenance tokens: wasCastFromYourHandByYou,
 	// wasCastByYou and the bare wasCastFromYourHand. rules' castProvenanceAdmits
 	// strips and evaluates them at every match site (it holds the event log and
 	// the offer window the filter tier cannot reach), so the filter grammar's
@@ -501,7 +501,7 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordHasCounters, ""
 	case wordPredicateWordSuspended:
 		return wordSuspended, ""
-	// The pc1 object/game-context families. Each is a bare predicate word
+	// The object/game-context families. Each is a bare predicate word
 	// whose body reads provenance outside the object alone (see the
 	// wordKind block's comment); classification here is what makes the
 	// matcher and UnknownPredicates agree that the word is implemented.
@@ -1289,7 +1289,7 @@ func targetBindingContains(bound []state.Target, o *state.Object) bool {
 }
 
 // contextPredicateBound reports whether a context-bound classifier word has
-// the binding its body reads. The pc1 families that read more than the
+// the binding its body reads. The families that read more than the
 // object alone are NotDefinedTargeted (needs a resolution, so the resolving
 // object's targets exist), DefenderCtrl (needs the combat trigger's captured
 // defending player) and IsImprinted (needs a source whose imprint association

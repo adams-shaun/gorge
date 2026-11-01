@@ -73,7 +73,7 @@ type slotAnswer struct {
 	// verdict for this answer: nil when Submit accepted it, the engine's
 	// refusal reason when it did not. The registry path arms it so an HTTP
 	// intent can answer with 204 only after the engine took it, and 409 with
-	// the reason when it did not (D1b). The plain seat API leaves it nil: a
+	// the reason when it did not. The plain seat API leaves it nil: a
 	// bare Decide has no match goroutine to produce a verdict and must not
 	// wait for one. Buffered (capacity 1) so the play loop's reply can never
 	// block on a handler that has already gone away.

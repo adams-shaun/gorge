@@ -130,7 +130,7 @@ func (e *Engine) resolveTop() {
 		// a target but has none recorded skipped CR 608.2b's recheck entirely
 		// and resolved. Zero recorded targets is zero LEGAL targets, which is
 		// exactly what 608.2b counters.
-		// Requirement N2: an ability that MAY target zero things (TargetMin$ 0)
+		// An ability that MAY target zero things (TargetMin$ 0)
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if !charmHandled {
@@ -278,7 +278,7 @@ func (e *Engine) resolveTop() {
 		// the body ran for free and no draw happened. The window's pay arm
 		// settles the draw, the decline arm leaves the body unexecuted.
 		//
-		// trigcost1: the gate is no longer an API allowlist. ANY Cost$-bearing
+		// The gate is not an API allowlist. ANY Cost$-bearing
 		// trigger body enters the window (Kalastria Highborn's `Cost$ B`,
 		// Elenda and Azor's `Cost$ PayLife<4>`, ...): Forge's Cost$ on a trigger
 		// body is the "you may pay; if you do" idiom, so a body that never asks
@@ -304,7 +304,7 @@ func (e *Engine) resolveTop() {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
 		}
-		// The ability-cast copy family (abcopy1): an AB$ CopySpellAbility
+		// The ability-cast copy family: an AB$ CopySpellAbility
 		// execute carrying a real Cost$ (Rings of Brighthearth {2}, Kurkesh
 		// {R}, Battlemages' Bracers {1}, Chandra's Regulator {1}) must never
 		// copy for free. When the firing trigger's context carries an event
@@ -613,7 +613,7 @@ func (e *Engine) resolveTop() {
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
 	// hoisted so the resolution ctx can carry the TargetsOffered marker and
-	// the mvts1 pre-ask's OfferedSA skip.
+	// the pre-ask's OfferedSA skip.
 	targetSA := modalTargetSA(f, sa, o.ChosenModes)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
@@ -654,7 +654,7 @@ func (e *Engine) resolveTop() {
 		// own reproduction. CR 608.2b counters a spell with no legal targets;
 		// CR 800.4a says a departed player's spell ceases to exist. Neither
 		// permits it to resolve.
-		// Requirement N2, the same exemption as the ability branch: an
+		// The same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := effects.TargetsOf(targetSA).ValidTgts; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
@@ -984,7 +984,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	if targetingSrc == 0 {
 		targetingSrc = source
 	}
-	// TargetingPlayerControls$ (tpc1): the restriction's answering seat is
+	// TargetingPlayerControls$: the restriction's answering seat is
 	// resolved through the same derivation the offer census used, with the
 	// answered-ask record taking precedence -- it is keyed by self, the
 	// RESOLVING stack object the answer was recorded on, so a selection pin

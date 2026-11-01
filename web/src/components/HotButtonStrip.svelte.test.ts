@@ -314,7 +314,7 @@ describe('HotButtonStrip — END TURN is gated to the seat\'s own turn', () => {
 
 // Prio6: Resolve All owns a fixed slot so stack changes cannot shift the
 // action strip. It is enabled only in a pending stack priority window.
-describe('HotButtonStrip — Resolve All (prio6)', () => {
+describe('HotButtonStrip — Resolve All', () => {
   const option = (index: number, kind: string, label: string) => ({ index, kind, label, player: 0 });
   const priorityOnStack: Decision = {
     seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,

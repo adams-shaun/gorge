@@ -638,7 +638,7 @@ func foldGainedAbilityPush(g *state.Game, e *Event) {
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 	o.Source = e.Obj
-	// The wrapper carries its foreign-face provenance on itself (r3):
+	// The wrapper carries its foreign-face provenance on itself:
 	// the granting static can END between this push and the resolution --
 	// the foreign card leaves the scoped zone, the static's named set
 	// re-derives -- and the live-grant recovery scans then find no owner.
@@ -694,8 +694,8 @@ func foldGainedTriggerPush(g *state.Game, e *Event) {
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 	o.Source = e.Obj
-	// The same foreign-face provenance the GainedAbilityPush mint stamps
-	// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
+	// The same foreign-face provenance the GainedAbilityPush mint stamps:
+	// the foreign face's own SVar table, OptionalDecider$ gate,
 	// intervening-if and label all stay resolvable after the grant ends.
 	o.AbilityFace = foreign.Face()
 	o.GainedFrom = foreign.ID

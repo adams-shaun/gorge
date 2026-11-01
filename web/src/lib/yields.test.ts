@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadYields, saveYields, stackYieldKey, yieldKey, yieldsStorageKey } from './yields';
 
 /**
- * The always-yield store (prio6): keys are `${controller}:${name}:${text}`,
+ * The always-yield store: keys are `${controller}:${name}:${text}`,
  * scope is per GAME (table id + match number — review r2: table-only let a
  * yield from game N auto-pass in game N+1), the layers are memory +
  * sessionStorage, and a browser that refuses site data keeps the memory

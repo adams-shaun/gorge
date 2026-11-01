@@ -1,6 +1,6 @@
 package rules
 
-// asunblk1: stat:AssignCombatDamageAsUnblocked (CR 509's optional "assign as
+// stat:AssignCombatDamageAsUnblocked (CR 509's optional "assign as
 // though it weren't blocked"). The static is collected through activeStatics
 // (engine/rules/statics.go asUnblockedStaticMatches), its controller election is
 // asked per damage pass through the combat damage step's continuation state

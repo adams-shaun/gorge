@@ -344,7 +344,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 		var eachGroups [][]state.ObjID
 		var eachPerType int32
 		if isEach {
-			// The per-type pick structure (each1's object-path fix): an EACH
+			// The per-type pick structure: an EACH
 			// public-origin pick is one pick of EACH listed type, never a flat
 			// count over the union. The candidates join the FIRST sub-spec that
 			// matches them (EachTypeGroups), so a card matching two listed

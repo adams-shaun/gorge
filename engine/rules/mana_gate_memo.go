@@ -13,7 +13,7 @@ import (
 // One walk asks the gate about the same object many times -- the priority
 // offer, PotentialMana, every candidate cast's payment-window census and
 // source-unit reads -- and a search world re-walks the same board for every
-// pass: measured on the c6 bench, 60% of gate calls repeated an (object,
+// pass: measured on a bench, 60% of gate calls repeated an (object,
 // walk) already answered. The answer is a pure function of the walk's fixed
 // state, exactly the inputs the Derived memo and boardStaticsWalk key on: the
 // board moves only through events (walkKey's log head, continuousVersion and

@@ -87,7 +87,7 @@
      *  SeatPanelState wiring); Rail only hosts the markup in the one row
      *  that had spare room. */
     logbar?: Snippet | null;
-    /** yields is the seated player's game-scoped always-pass set (prio6); null (spectator) renders no marker and no menu. */
+    /** yields is the seated player's game-scoped always-pass set; null (spectator) renders no marker and no menu. */
     yields?: ReadonlySet<string> | null;
     /** onYield is the stack tile menu's write path into the seat panel's yield set. */
     onYield?: ((key: string) => void) | null;

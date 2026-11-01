@@ -453,8 +453,8 @@ func (e *Engine) finishUntapStep(next int) bool {
 //	draw -> Advance -> priorityRound) grants that one priority itself. Reporting the suspension here (e.pending != nil alongside
 //	e.G.Over) is what keeps the emit below from granting priority twice
 //	and from logging a Priority event before the player had even answered
-//	whether to replace the draw (findings-sol4 MAJOR;
-//	dredge_turn_draw_test.go is the committed probe).
+//	whether to replace the draw
+//	(dredge_turn_draw_test.go is the committed probe).
 //
 // The Saga lore counter is NOT part of this action (CR 505.4/703.4f puts it
 // at the beginning of the precombat main phase, not after the draw step):
@@ -1451,8 +1451,8 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 	case decision.KTriggerOptional:
 		e.handleTriggerOptional(d, in)
 	case decision.KCommanderZone:
-		// The CR 903.9 "put it into the command zone instead" choice (Task
-		// m32): the answered decision emits the parked MoveZone for real --
+		// The CR 903.9 "put it into the command zone instead" choice:
+		// the answered decision emits the parked MoveZone for real --
 		// to the command zone on an accept, verbatim on a decline (a CR 903.9a
 		// sba entry: graveyard/exile -> command zone on an accept, nothing on
 		// a decline) -- and hands the queue to the next parked commander if
@@ -1765,7 +1765,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// is paid during resolution rather than being silently ignored.
 		e.triggeredCostAnswer(chosen)
 	case chooseTriggeredMandatory:
-		// trigmand1: a `Cost$ Mandatory Sac<...>/Exile<...>` trigger body's
+		// A `Cost$ Mandatory Sac<...>/Exile<...>` trigger body's
 		// choice-bearing component was answered. The component's picks are
 		// validated and settled; no pay/decline election is ever posed.
 		e.triggeredMandatoryAnswer(chosen)
@@ -1781,7 +1781,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// is never handed out from inside one).
 		e.handleDamageDivision(chosen)
 	case chooseAsUnblockedElection:
-		// asunblk1: the combat damage step's assign-as-unblocked election
+		// The combat damage step's assign-as-unblocked election
 		// (stat:AssignCombatDamageAsUnblocked, CR 509) was answered.
 		// handleAsUnblockedElection records the accepted elections and then
 		// asks the next combat ask or deals the pass. There is no trigger
@@ -1794,7 +1794,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// election after the last.
 		e.bandAnswer(d, in)
 	case chooseExert:
-		// exert1: the declare-attackers step's exert election (CR 702.100a)
+		// The declare-attackers step's exert election (CR 702.100a)
 		// was answered. exertAnswer emits the decline's nothing or the
 		// accepted exert's event, then advances the cursor to the next
 		// offerable attacker or ends the election; the Advance loop resumes
@@ -1805,7 +1805,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// resume needed here.
 		e.exertAnswer(d, in)
 	case chooseEnlist:
-		// enlist1: the declare-attackers step's enlist election (CR 702.160a)
+		// The declare-attackers step's enlist election (CR 702.160a)
 		// was answered. enlistAnswer taps the chosen creature, emits the
 		// Enlist event and registers the +power/+0 pump, then advances the
 		// cursor to the next offerable attacker or finishes the declaration

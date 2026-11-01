@@ -342,7 +342,7 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 // suspend. The loop parks the remaining count on the ask's resume point
 // (resolution.go) and returns, instead of looping on -- looping on would
 // pose a SECOND ask while the first is outstanding, orphaning it and losing
-// the remaining draws (findings-sol4 MAJOR). The answered dredge re-drives
+// the remaining draws. The answered dredge re-drives
 // the rest from handleModes' direct arm (stack empty) or resumeResolution's
 // dredge arm (a resolving object on the stack), both of which drain any
 // replacement-order queue the interrupted pass left behind.

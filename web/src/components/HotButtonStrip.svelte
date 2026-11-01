@@ -127,7 +127,7 @@
   // action then landed a moment later. Wait for the shared post latch; the
   // normal rewind frame will reset the panel and leave Undo usable again.
   const undoAllowed = $derived(humanSeats.length === 1 && humanSeats[0] === ctx.seat && !undoPosting && !logic.busy);
-  // Fast forward became End Turn (prio3): a one-shot to the end of the
+  // Fast forward became End Turn: a one-shot to the end of the
   // CURRENT turn. It can only advance through a real pass option, and it
   // only makes sense on a turn the seat OWNS — arming it on the opponent's
   // turn would just auto-pass their turn, machinery the player never asked
@@ -243,7 +243,7 @@
   const autoStatus = $derived(logic.machinePaused ? autoNoteText(logic.note) : playModeLabel);
 
   onMount(() => {
-    // The document-level hotkeys (prio3). The grammar lives in lib/hotkeys
+    // The document-level hotkeys. The grammar lives in lib/hotkeys
     // (pure, tested); this is only its wiring. The modal-picker probe reads
     // the live DOM via lib/modals (both card-action picker shapes AND the
     // pile modals — reviews found each unmarked surface could read hotkeys

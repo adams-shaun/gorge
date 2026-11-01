@@ -56,12 +56,12 @@ import (
 // predicate fails closed) keeps today's empty-set no-op.
 //
 // Deliberately NOT honoured here (measured carrier population: one sub
-// each, both noted in the mvts1 report): DividedAsYouChoose$ -- the ask
+// each): DividedAsYouChoose$ -- the ask
 // offers the plain TargetMin$/TargetMax$ bounds, exactly like the placement
 // ask does for the same parameters.
 //
-// TargetsForEachPlayer$ IS honoured (pfpe1; the mvts1 round deliberately
-// skipped it): the bounds read the OneEach spellings against the distinct-
+// TargetsForEachPlayer$ IS honoured:
+// the bounds read the OneEach spellings against the distinct-
 // controller count of the eligible candidates, and the pose attaches each
 // option's controller Group -- the same label rules' ask sites attach -- so
 // Decision.Validate's mutual-exclusion rule enforces one pick per
@@ -125,7 +125,7 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	min := numText(h, c, tp.Min, 1)
 	max := numText(h, c, tp.Max, 1)
 	if tp.Has(TgtForEachPlayer) {
-		// pfpe1: OneEach is the distinct-controller count of the eligible
+		// OneEach is the distinct-controller count of the eligible
 		// set (Forge's TargetRestrictions.setForEachPlayer), not a literal
 		// Num can read -- and a dynamic bound (TargetMax$ X with
 		// SVar:X:PlayerCountOpponents$Amount) already resolved above.
@@ -265,7 +265,7 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: resumeKind, ResumeSA: resumeSA,
 		Prompt: prompt}
-	// pfpe1: the TargetsForEachPlayer$ shape binds each option to its
+	// The TargetsForEachPlayer$ shape binds each option to its
 	// controller's Group -- the same label rules' ask sites attach (askTarget
 	// / cast.go targetAsk) -- so Decision.Validate's mutual-exclusion rule
 	// enforces one pick per controller whatever host answers. The bot's

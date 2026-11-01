@@ -1049,7 +1049,7 @@ func validPlayersSelectorUnknown(spec string) bool {
 // one ever appears on a corpus line, resolves through its existing spec
 // arm), and SetDamageSource published around each damager's pass -- the
 // lifelink rider, the deathtouch mark, protection and the DamageDone
-// triggers all read the DAMAGER, and the pg2 referent machinery binds it.
+// triggers all read the DAMAGER, and the trigger referent machinery binds it.
 // The whole pass is one simultaneous damage batch (CR: the creatures deal
 // their damage at the same time even though the log serializes the hits),
 // so DamageDealtOnce/DamageDoneOnce latch per pass and LifeLostAll-style

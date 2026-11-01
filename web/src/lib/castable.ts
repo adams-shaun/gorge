@@ -69,8 +69,7 @@ export function castableAfterTap(view: View, seat: number): boolean {
  * so the option-kind test already sees them). The mana tap ("activate"), pass
  * and concede are absent from the projection by construction. A whitelist,
  * not a blacklist of the three never-a-play kinds: an unknown or malformed
- * kind must not be read as a play and make a window stop-worthy (rv2c
- * review).
+ * kind must not be read as a play and make a window stop-worthy.
  */
 const POTENTIAL_PLAY_KINDS: ReadonlySet<string> = new Set([
   'cast', 'ability', 'granted', 'unlock', 'turn_face_up', 'specialize', 'play_land', 'station',

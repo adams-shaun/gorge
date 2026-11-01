@@ -43,7 +43,7 @@ const mulligan = (seq: number): Decision =>
 const view = (step = 'draw', active = 0, turn = 2, stack: { id: number; controller: number; kind?: string }[] = []): View =>
   ({ active, step, turn, stack }) as unknown as View;
 
-/** manualSeat is casual with auto off, every stop off and pass-after-acting off — the player, answering everything. Pacing is zeroed so the machine passes post synchronously (the pre-prio5 path); pacing itself is tested in seatpanel.pacing.test.ts. */
+/** manualSeat is casual with auto off, every stop off and pass-after-acting off — the player, answering everything. Pacing is zeroed so the machine passes post synchronously (the unpaced path); pacing itself is tested in seatpanel.pacing.test.ts. */
 function manualSeat(storage: Storage | null = null): SeatPanelState {
   const p = new SeatPanelState('t1', 1, ctx, storage);
   p.stops = { yours: new Set(), opponents: new Set() };
@@ -548,7 +548,7 @@ describe('the post-land window — castable after tapping', () => {
     ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [activate(0), pass(1), concede(2)] });
 
   /**
-   * postLandView carries seat 0's own projected potential actions (rv2c) when
+   * postLandView carries seat 0's own projected potential actions when
    * the server's walk would unlock the hand (the Lava Spike {R} the untapped
    * Mountain pays), and carries NO projection when it would not — the same
    * server fact the old fixture expressed with hand + Available, now one

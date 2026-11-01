@@ -288,7 +288,7 @@ describe('CommandArea — one seat"s commanders, on the board', () => {
 describe('the inspector opens on a commander tile in every state', () => {
   // SSR has no DOM, so no pointer event can open the panel and $effect never
   // runs: CommanderTile therefore accepts the HoverCard and anchor it would
-  // otherwise build itself (the harness CardTile uses since CD1), and these
+  // otherwise build itself (the harness CardTile uses), and these
   // renders drive that shared instance into the open state the reader sees.
   const anchor: AnchorRect = { left: 120, top: 90, right: 200 };
   const statusFor = (over: Partial<PlayerView>, index = 0) =>
@@ -322,7 +322,7 @@ describe('the inspector opens on a commander tile in every state', () => {
     expect(html).not.toContain('aria-describedby');
   });
 
-  it("the panel's lifetime follows the object: a tile rendering a different commander closes it (CD1)", () => {
+  it("the panel's lifetime follows the object: a tile rendering a different commander closes it", () => {
     const hover = new HoverCard();
     hover.open(7);
     expect(hover.superviseRendering(9)).toBe(true);

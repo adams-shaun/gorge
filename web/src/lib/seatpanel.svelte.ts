@@ -63,7 +63,7 @@ export * from './prompts/autonote';
 
 /**
  * safeSessionStorage is sessionStorage under the same guard — the handle for
- * the YIELD store only (prio6), deliberately separate from the persisted
+ * the YIELD store only, deliberately separate from the persisted
  * play settings' localStorage (whose ONE shared handle lives in
  * lib/storage.ts): a yield is session-scoped (review r2 — it
  * must die with the browser session, not outlive it the way a localStorage
@@ -292,7 +292,7 @@ export class SeatPanelState {
    * oneShot is the current one-shot run: 'end-turn' (End Turn — passes the
    * rest of THIS turn with the player's own rules minus the step stops),
    * 'hard-skip' (passes everything including opponent objects, MTGO F6),
-   * 'resolve-all' (prio6: passes while the stack is non-empty — the objects
+   * 'resolve-all' (passes while the stack is non-empty — the objects
    * PRESENT at arm time never stop it, a NEW opponent object stops it per
    * the settings, and it ends when the stack is empty), or 'none'. All
    * three end on Escape, on any non-priority decision, on any other stop
@@ -317,20 +317,20 @@ export class SeatPanelState {
   note = $state<AutoNote>({ kind: 'off' });
 
   /**
-   * autoLog is the client-local log of automatic passes (prio5): one line
+   * autoLog is the client-local log of automatic passes: one line
    * per pass when settings.logAutoPasses is on, rendered by the transcript
    * after the engine's own lines. It is NOT the event log — nothing here is
    * sent to the server or folded into DvrState.events; it lives and dies
    * with this browser tab. See lib/autolog.ts for the shape and the cap.
-   * The prio6 auto-order note is logged here too (unconditionally — it is a
+   * The auto-order note is logged here too (unconditionally — it is a
    * decision the machine made for the player, not a pass under the
    * logAutoPasses switch).
    */
   autoLog = $state<AutoPassLog[]>([]);
 
   /**
-   * yieldList is the game-scoped "always pass for this ability" set (prio6,
-   * lib/yields.ts), as a reactive array of keys — seeded from the per-game
+   * yieldList is the game-scoped "always pass for this ability" set
+   * (lib/yields.ts), as a reactive array of keys — seeded from the per-game
    * (table + match) store at construction (memory + sessionStorage; survives
    * a reload of the same match, but a new match on the same table starts
    * clean) and written through on every change. Reading it as a set is
@@ -415,7 +415,7 @@ export class SeatPanelState {
   private rememberedSeq: number | null = null;
 
   /**
-   * passWait is the pending PACED pass (prio5): the machine decided to pass
+   * passWait is the pending PACED pass: the machine decided to pass
    * decision `seq` by option `index`, classified as `kind`, and is waiting
    * settings.pacing's stepMs/resolveMs before actually posting — the visible
    * beat that makes skipped windows seen rather than felt. It is abandoned
@@ -611,7 +611,7 @@ export class SeatPanelState {
   }
 
   /**
-   * editSettings is the GAME OPTIONS editor's write path (prio4): a partial
+   * editSettings is the GAME OPTIONS editor's write path: a partial
    * change applied through withChange — so the preset relabels itself
    * Custom while the configuration matches none, and back to a named preset
    * when an edit is undone — and persisted. A settings edit ends a live
@@ -1024,7 +1024,7 @@ export class SeatPanelState {
   }
 
   /**
-   * startResolveAll arms the Resolve All one-shot (prio6): pass while the
+   * startResolveAll arms the Resolve All one-shot: pass while the
    * stack is non-empty, playing through the objects ALREADY on it — the
    * arm-time stack ids are captured here and decide() skips its stack
    * rules for them. It stops on a NEW opponent object (an id not in the
@@ -1081,7 +1081,7 @@ export class SeatPanelState {
     if (this.busy || this.machinePaused) return;
     this.acknowledgeBreakpoints(view, baseline);
     // Starting a run is the player taking the controls: any paced pass the
-    // AUTO paths had pending dies here (r2 finding — the old auto wait used
+    // AUTO paths had pending dies here (the old auto wait used
     // to survive, post at its old deadline and count as autoPassed). The
     // effect re-runs considerAuto because oneShot changed, so the same
     // window is re-derived and re-paced under the run's own rules and
@@ -1104,7 +1104,7 @@ export class SeatPanelState {
   cancelRun(say = true) {
     if (this.oneShot === 'none') {
       // Even with no run live, a hand action or Escape must still abandon a
-      // paced pass waiting to post (prio5): taking the controls back means
+      // paced pass waiting to post: taking the controls back means
       // the machine does not answer this window after all.
       this.cancelPassWait();
       return;
@@ -1119,7 +1119,7 @@ export class SeatPanelState {
 
   /**
    * handAnswer is the takeover step every human answering path runs before
-   * it posts. A hand answer is NOT a request to stop auto-passing (prio3):
+   * it posts. A hand answer is NOT a request to stop auto-passing:
    * the persisted autoPass survives it, and Escape is the only key that
    * ends a run without a decision of its own. The one thing it does is end
    * a live one-shot run — taking the controls mid-run cancels it.
@@ -1188,7 +1188,7 @@ export class SeatPanelState {
     const d = this.pending;
     if (d === null || this.busy || d.seq === this.postedSeq) return;
 
-    // The identical-trigger auto-order (prio6): an answered-before-we-classify
+    // The identical-trigger auto-order: an answered-before-we-classify
     // path — if the pending decision IS an identical trigger_order and the
     // setting is on, it is submitted here and the run of this function ends
     // (post() set busy synchronously). It runs after the busy/posted guards
@@ -1243,7 +1243,7 @@ export class SeatPanelState {
       // acknowledged when the run was armed (acknowledgeBreakpoints), so the
       // press itself moves that window. Persistent Auto stays armed: the
       // player answers this window and Auto resumes after it — and with
-      // hand answers no longer disarming Auto (prio3), no exception
+      // hand answers no longer disarming Auto, no exception
       // token is needed or minted.
       this.autoRun = 0;
       if (verdict.reason === 'breakpoint' && verdict.hit) this.bpFired.set(verdict.hit.key, d.seq);
@@ -1283,7 +1283,7 @@ export class SeatPanelState {
   }
 
   /**
-   * maybeAutoOrderTriggers is the trigger_order auto-order. The prio6 path
+   * maybeAutoOrderTriggers is the trigger_order auto-order. The path
    * answers an identical pair — every option the same trigger
    * (identicalTriggerOrder) — when settings.autoOrderIdenticalTriggers is
    * on, with the note "Ordered N identical triggers automatically".
@@ -1297,7 +1297,7 @@ export class SeatPanelState {
    * untouched answer submits, in both paths.
    *
    * Precedence: an identical pair answers through the identical path when
-   * that setting is on, so the pinned prio6 note is unchanged for casual
+   * that setting is on, so the pinned note is unchanged for casual
    * (which turns both on); the broader path covers everything else.
    * Any other decision kind, a busy/posted state, the setting(s) off: false,
    * and the decision stays manual. A live one-shot run is cancelled first:
@@ -1689,7 +1689,7 @@ export class SeatPanelState {
    * settings survive just as they do across begin().
    *
    * An UNDO is the player deliberately taking the controls back — unlike a
-   * hand answer, which is not a stop request (prio3), rewinding says "stop
+   * hand answer, which is not a stop request, rewinding says "stop
    * answering for me". So beyond begin()'s discard, rewind PAUSES the
    * machine (machinePaused — the runaway brake, never the persisted
    * preference): without it the autopilot loop re-runs considerAuto against

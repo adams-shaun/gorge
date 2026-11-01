@@ -3,7 +3,7 @@ import type { Decision, Option } from '../protocol';
 import { SeatPanelState, triggerOrderPermutation } from './seatpanel.svelte';
 
 // Casual should not make the player hand-order simultaneous
-// triggers. The prio6 identical-trigger auto-order exists but only fires on
+// triggers. The identical-trigger auto-order exists but only fires on
 // equal labels; this file pins the BROADER path — settings.autoOrderAllTriggers
 // auto-answers ANY trigger_order ask satisfying the same shape contract
 // (min == max == N over options, N >= 2), submitting the OFFERED order, with a
@@ -124,7 +124,7 @@ describe('auto-ordering ALL trigger_order asks (autoOrderAllTriggers, casual on 
     expect(p.pending?.seq).toBe(1);
   });
 
-  it('a rejected auto-order is never retried forever (the autoOrderedSeq guard, shared with prio6)', async () => {
+  it('a rejected auto-order is never retried forever (the autoOrderedSeq guard, shared with the identical-trigger path)', async () => {
     postIntentMock.mockRejectedValueOnce(new Error('stale seq'));
     fetchPendingMock.mockResolvedValue(null);
     const p = immediateSeat();

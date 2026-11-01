@@ -16,7 +16,7 @@
    *    click-to-place flow, where the pool row exists and keeps cards one
    *    click at a time. window.fetch is captured so the intent the seat posts
    *    is readable at window.__posted without a server.
-   *  - 'seqswap' — the stale-edits regression (r2 review): arrange decision A
+   *  - 'seqswap' — the stale-edits regression: arrange decision A
    *    (seq 7) is on screen with its popup openable, and the [data-swap-decision]
    *    button replaces the view's decision with arrange decision B (seq 9,
    *    different cards) while the panel stays mounted — the two-tab / rapid

@@ -201,11 +201,11 @@ type Ctx struct {
 	// the SA the placement/announcement ask actually covered. A deeper sub
 	// in the SAME resolution that carries its OWN never-offered ValidTgts$
 	// now poses its own ask there (the trigger "when you do" family: Mogg
-	// Bombers' DealDamage, Kor Outfitter's Attach); before mvts1 it either
-	// inherited the outer targets or moved nothing silently. A nested
+	// Bombers' DealDamage, Kor Outfitter's Attach).
+	// A nested
 	// Resolve entry at depth 0 whose SA is genuinely never-covered (a
 	// RepeatEach iteration body) is also suppressed while the flag is set --
-	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
+	// the conservative direction.
 	TargetsOffered bool
 	// TargetsUnique accumulates the targets chosen by earlier `TargetUnique$
 	// True` asks in THIS resolution chain, so a later ask in the same chain
@@ -948,7 +948,7 @@ const (
 // direct Ctx.Layers read -- agrees with rules' layer walk. It is optional,
 // like effectFrameHost, so the effects test doubles stay small and a double
 // with no tables reads the printed face. It replaced five per-table optional
-// interfaces (W1d), so a table added to LayerTables is published here and
+// interfaces, so a table added to LayerTables is published here and
 // nowhere else.
 type layerTablesHost interface {
 	LayerTables(want LayerTableSet) LayerTables

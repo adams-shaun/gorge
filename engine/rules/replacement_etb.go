@@ -177,7 +177,7 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	// A battlefield entry reached while another decision is outstanding must
 	// not overwrite it (the orphaned-pending failure poseLifeReplacementChoice
-	// already guards, and the same class findings-sol4 proved on the
+	// already guards, and the same class seen on the
 	// life-replacement draw loop): let the entry happen verbatim rather than
 	// parking on an ask that can never be posed. Unreachable in the corpus
 	// today; the guard keeps a future caller from shipping the overwrite.

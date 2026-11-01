@@ -1,5 +1,5 @@
-// The rules-side split for the cast-provenance filter predicates (tasks
-// castprov1 and castprov2). The predFn signature the effects filter runs on
+// The rules-side split for the cast-provenance filter predicates.
+// The predFn signature the effects filter runs on
 // carries no Host, and a hand-origin cast deliberately carries no CastFlags
 // bit (the flags mark alternative costs and origins only), so the provenance
 // lives in the event log — Engine reads it through reverse PutOnStack scans,
@@ -11,9 +11,9 @@
 //
 // The two families, and their exact semantics:
 //
-//   - wasCastFromYourHandByYou (castprov1): the object's LATEST PutOnStack
+//   - wasCastFromYourHandByYou: the object's LATEST PutOnStack
 //     event names the cast, and it was from hand, by you.
-//   - wasCastByYou (castprov2, the "When CARDNAME enters, if you cast it"
+//   - wasCastByYou (the "When CARDNAME enters, if you cast it"
 //     ETB family — Zacama, Marina Vendrell's Grimoire, Nine-Lives
 //     Familiar's etbCounter gate): SOME PutOnStack event for this object
 //     names you as caster — the oracle's "if you cast it" does not care
@@ -21,10 +21,10 @@
 //     take). A card that left the battlefield after that cast and came
 //     back without one (reanimated, blinked, Nine-Lives Familiar's own
 //     return) is a new object that was never cast (CR 400.7) and reads
-//     false. The hand scan (castprov1) still has the approximation: it reads
+//     false. The hand scan still has the approximation: it reads
 //     only the log's casts and cannot tell such a re-entry apart.
 //
-//   - wasCastFromYourHand (castprov3): the object's LATEST PutOnStack event
+//   - wasCastFromYourHand: the object's LATEST PutOnStack event
 //     names the cast AND that cast came from a hand — ANY caster. The bare
 //     spelling is the one the "from anywhere other than your hand" carriers
 //     print (Vega the Watcher, Bilbo Thief in the Night, Mm'menon's

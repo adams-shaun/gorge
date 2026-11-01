@@ -755,7 +755,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// reads as a forget, not the DelayedRemove line above it.
 		return obj(g, ev.Obj) + " is forgotten by a delayed trigger"
 	case events.DelayedRegister:
-		// A delayed trigger being registered (CR 603.7, dt1): Obj is the
+		// A delayed trigger being registered (CR 603.7): Obj is the
 		// source that created it, Text the phase it waits for. The line says
 		// only that the promise was made -- what it will DO is the Execute$
 		// sub-ability, which is named by the DelayedPush line below when it

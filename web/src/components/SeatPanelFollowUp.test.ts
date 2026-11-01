@@ -10,7 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
  * exercises the arm site; CardMenu.test.ts's Talisman case
  * still covers the tile surface.
  *
- * The second case is the L2 finding (verdict-tm1): the follow-up decision can
+ * The second case: the follow-up decision can
  * arrive through SSE BEFORE the POST response arms the expectation. The
  * fixture runs Table.svelte's arm mirror and decode effect reactively, so
  * arming must retrigger decoding for the wheel to open in that order.

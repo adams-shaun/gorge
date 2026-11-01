@@ -1158,8 +1158,7 @@ func TestSplitAttackAcrossTwoDefenders(t *testing.T) {
 	drainCombatPriority(t, e)
 	// Neither defender has a creature to block with (mountain-only seats),
 	// so combat cascades straight to damage: seat 2 took the 2/2, seat 3
-	// took the 3/3, and seat 1 -- the next living seat, the ONLY pre-m34
-	// legal defender -- was never attacked at all.
+	// took the 3/3, and seat 1, the next living seat, was never attacked at all.
 	if got := e.G.Players[2].Life; got != 18 {
 		t.Fatalf("seat 2 life = %d, want 18 (the 2/2 landed on it)", got)
 	}
@@ -1223,7 +1222,7 @@ func TestSameAttackerCannotAttackTwoDefenders(t *testing.T) {
 }
 
 // TestAttackersOfferEveryLivingOpponentOnce is the option-list gate for the
-// Task-m34 option construction: the attack decision offers each legal
+// attack decision's construction: it offers each legal
 // attacker against every LIVING opponent, defender-major, in ascending seat
 // order, and never against the active player or a departed seat. In a
 // two-player game the same construction is exactly one option per attacker

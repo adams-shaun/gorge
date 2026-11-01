@@ -496,8 +496,8 @@ func defN(n state.PlayerID, id int, p int32, t int32, kw ...string) fact {
 }
 
 // attackDecisionDefs builds a KAttackers decision for seat 0 (the attacker)
-// with one option per (defender, attacker id) pair -- the Task-m34 shape,
-// where the same attacker may be offered against several defenders -- and
+// with one option per (defender, attacker id) pair, so the same attacker may
+// be offered against several defenders, and
 // returns the choices Decide made. The attacker facts come from atk() (ids
 // 100+), the same base attackDecision uses.
 func attackDecisionDefs(b Board, pairs ...[2]int) []int {

@@ -870,7 +870,7 @@ func (c config) wantsFormat(f host.Format) bool {
 
 // splitDecks lists the deck stems in dir (deckFiles) and splits them into
 // the commander and constructed pools a table of each format deals, then
-// validates every commander deck up front (deck.ValidateCommander, the m35
+// validates every commander deck up front (deck.ValidateCommander, the
 // CR 903.4/903.5 gate) so a deployed commander table can never half-start
 // on an illegal deck — the deck is named in the error. A file that names a
 // commander belongs to the commander pool and every other file to the
@@ -1007,7 +1007,7 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	// package's only sanctioned clock read, so a long pace or cooldown still
 	// yields to Close.
 	//
-	// MaxDecisionsPerTurn arms the host's per-turn progress guard (Task HW1)
+	// MaxDecisionsPerTurn arms the host's per-turn progress guard
 	// for every served table at the recommended value: a bot policy stall
 	// that re-offers one no-op action forever — the 36-of-200 frozen
 	// four-seat Commander games measured on main — previously left the table

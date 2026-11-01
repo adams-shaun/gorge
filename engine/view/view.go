@@ -322,7 +322,7 @@ type PlayerView struct {
 	// is not a hidden zone, and commander identity is open information.
 	Command []CardView `json:"command"`
 	// Commanders is the player's full commander roster -- the same list
-	// m30's genesis built, in the same order, never shrunk as commanders
+	// genesis built, in the same order, never shrunk as commanders
 	// are cast or die. A roster CardView projects the commander's CURRENT
 	// zone's state (a cast commander is a battlefield object, a dead one a
 	// graveyard object), so the roster is what lets a client -- and the bot

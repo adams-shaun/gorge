@@ -876,7 +876,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		}
 	}
 	if v, ok := t.Param(cards.PKValidCard); ok {
-		// The cast-provenance qualifiers (castprov1/2/3 — narset's
+		// The cast-provenance qualifiers (narset's
 		// `ValidCard$ Instant.wasCastFromYourHand,Sorcery.wasCastFromYourHand`)
 		// split out BEFORE trigmatch.SpellCastPermanentSpec rewrites the base: the strip
 		// helpers match the raw Forge spec's predicate chain. The spell is on

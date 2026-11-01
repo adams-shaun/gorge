@@ -209,8 +209,8 @@ func tokenControlledCount(g *state.Game, c *Ctx, p state.PlayerID, specs ...stri
 //
 // objectArm reports an arm the grammar could not resolve to a seat: a `Valid
 // <filter>` object selector (the "or a planeswalker they control" half) is
-// unmodelled -- the engine's defenders are players only (the pw1 combat-damage
-// gap) -- so the caller says so loudly instead of guessing a planeswalker as a
+// unmodelled -- the engine's defenders are players only
+// -- so the caller says so loudly instead of guessing a planeswalker as a
 // player. seats[0] is the deterministic first resolved seat; the corpus's
 // carriers all resolve exactly one.
 func tokenAttackingPlayers(h Host, c *Ctx, raw string) (seats []state.PlayerID, objectArm bool) {

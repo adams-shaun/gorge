@@ -146,7 +146,7 @@ func set(s string) map[string]bool {
 // time.Now, and the CLI's progress line prints per-game elapsed seconds. The
 // testkit/paymirror library itself imports no time and is a pure function of
 // its seeds and the corpus for a completed game; a game the CLI's budget
-// truncated says so (Err "truncated: budget"). cmd/enginebench (the docs/015
+// truncated says so (Err "truncated: budget"). cmd/enginebench (the
 // engine-speed rows) reads it only to report each row's elapsed wall time
 // beside its CPU time; every game and seed is fixed by its flags.
 // server/host/manabrewhttp uses time only for SSE keep-alive and write

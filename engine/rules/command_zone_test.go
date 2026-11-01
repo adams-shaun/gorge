@@ -38,7 +38,7 @@ func zoneHas(ids []state.ObjID, want state.ObjID) bool {
 	return false
 }
 
-// TestCommanderGenesisPlacesCommandersBeforeTheDeal is the m30 genesis
+// TestCommanderGenesisPlacesCommandersBeforeTheDeal is the genesis
 // contract (and the mutation guard for the ZCommand placement itself): the
 // objects Config.Commanders names for each seat land in ZCommand -- not the
 // library, not the opening hand -- sized bookkeeping is populated, the

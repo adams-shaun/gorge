@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// repoCommanderDecks is the table of the m38 interim mono-colour Commander
+// repoCommanderDecks is the table of the interim mono-colour Commander
 // deck files and the commander each declares. It is the one place a new
 // Commander deck must be listed: the driver below is table-driven over it,
 // so a further deck added later is validated by construction, and the
@@ -32,7 +32,7 @@ var repoCommanderDecks = []struct {
 	{"science-pip", "Dr. Madison Li"},
 }
 
-// TestRepoCommanderDecksValidate is the m38 acceptance gate: every interim
+// TestRepoCommanderDecksValidate is the acceptance gate: every interim
 // Commander deck file is a legal Commander deck by deck.ValidateCommander
 // (CR 903.4: exactly 100 cards including the commander, singleton except
 // basic lands; CR 903.5: every card's colour identity a subset of the

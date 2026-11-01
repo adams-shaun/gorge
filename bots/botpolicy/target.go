@@ -110,7 +110,7 @@ type targetRank struct {
 	ours  bool
 }
 
-// The three tiers of the ft1 face-aiming policy, as large score offsets so
+// The three tiers of the face-aiming policy, as large score offsets so
 // a tier strictly outranks everything in the tier below it (a creature's
 // within-tier threat() figure is bounded far under the gap):
 //
@@ -132,7 +132,7 @@ const (
 // deals, and whether it is a recognisable direct-damage primitive with a
 // finite, nonnegative amount. An absent TargetEffect, an unknown API, or a
 // null/absent Amount all report (0, false): the effect is unreadable and,
-// per the ft1 contract, an unknown must never be treated as lethal. This is
+// by contract, an unknown must never be treated as lethal. This is
 // the one place an unknown is resolved to "no".
 func (b Board) effectDamage(d *decision.Decision) (int32, bool) {
 	te := d.TargetEffect
@@ -525,7 +525,7 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 
 // effectRanker returns the KTarget ranking for a decision whose effect is a
 // recognised direct-damage primitive with the known literal amount dmg. It
-// orders options by the three ft1 tiers, most important first:
+// orders options by the three face-aiming tiers, most important first:
 //
 //   - tier 1: an opponent's creature that may kill the deciding seat this
 //     round AND that dmg can actually kill (remaining toughness no more
@@ -628,7 +628,7 @@ func (b Board) rankOption(o decision.Option, me state.PlayerID) targetRank {
 // chooseTargets is the KTarget policy. It answers the one question the old
 // policy got wrong twice -- "which legal target" -- under these rules:
 //
-//   - R2' (the ft1 face-aiming tiers, when the effect is readable): when
+//   - R2' (the face-aiming tiers, when the effect is readable): when
 //     the decision carries a known literal damage figure (effectDamage),
 //     options are ranked by the three tiers of effectRanker instead of the
 //     plain scale: an opponent creature that may kill the seat this round
@@ -715,7 +715,7 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		pick = n
 	}
 
-	// The ranker: effect-aware (the three ft1 tiers) when the decision
+	// The ranker: effect-aware (the three face-aiming tiers) when the decision
 	// carries a known literal damage figure, otherwise the plain
 	// board-over-face ranking. A missing effect, an unknown API or a
 	// null/absent amount all take the plain path -- the unknown-is-no rule

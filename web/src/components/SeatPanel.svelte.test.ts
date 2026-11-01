@@ -478,7 +478,7 @@ describe('SeatPanel — name-a-card picker', () => {
   });
 });
 
-describe('SeatPanel — the mulligan prompt names the starting player (rv2a)', () => {
+describe('SeatPanel — the mulligan prompt names the starting player', () => {
   // The fixture is the ENGINE'S OWN wire bytes, not a hand-written prompt:
   // host's TestTheMulliganStarterFixtureIsTheEngineSOwnWireBytes drives a real
   // two-human table (duplicate decks "a"/"a", PlayerNames Alice/Bob, table

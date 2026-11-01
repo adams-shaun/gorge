@@ -743,7 +743,7 @@ type ObjectKeywords struct {
 // for objects whose derived characteristics differ from their printed face
 // -- held as the ONE field Layers in Ctx, SpecContext and PlayerSpecCtx, so
 // every derivation copies them together (a table added here reaches every
-// context at once, W1d) and (*Ctx).SpecContext stays within the inlining
+// context at once) and (*Ctx).SpecContext stays within the inlining
 // budget (a warm caller-built Ctx must not escape --
 // TestEvalCountValidZoneScanIsAllocationFree and rules' warm Derived pin).
 type LayerTables struct {
@@ -2303,7 +2303,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// (CardProperty "the card that triggered this ability") inside an
 		// ordinary filter spec -- the "you may exile it" cost idiom's
 		// `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` (Cavalier of Thorns,
-		// Doombot Harbinger, Creeping Chill's TriggeredCard; exg1, 18 corpus
+		// Doombot Harbinger, Creeping Chill's TriggeredCard; 18 corpus
 		// carriers). Cost-part specs evaluate through this same grammar, so
 		// the binding arrives through SpecContext.TriggerContext: the
 		// triggered-cost window binds the resolving ability's trigger
@@ -2665,7 +2665,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 				return false, false
 			}
 		}
-		// The pc1 context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
+		// The context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
 		// IsImprinted) are likewise recognised so the census reports them, but
 		// their binding may be absent outside a resolution/combat trigger/no
 		// source. An unbound one must fail closed for the NEGATED spelling as

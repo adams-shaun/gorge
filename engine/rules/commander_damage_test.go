@@ -1,7 +1,7 @@
 // Commander damage, and the 21-damage state-based action (CR
 // 903.10). Combat damage dealt to a player by a commander is tallied
 // per-commander (state.Player.CmdDamage, keyed by the match-wide dense
-// commander index m30's genesis assigns); a player with 21 or more from the
+// commander index genesis assigns); a player with 21 or more from the
 // same commander loses, as a state-based action like the life-loss check.
 //
 // The four traps CR 903.10 trips on, each pinned by a named test below:
@@ -50,20 +50,19 @@ func cmdCreatureNamed(name string, pw int32) string {
 // the given construction format (FormatCommander for the mechanics,
 // FormatConstructed for the gate probe) and the given per-seat commander card
 // sources (seat p's slice lists its commanders in deck order; an empty slice
-// means no commanders for that seat). m30's genesis pulls each configured
+// means no commanders for that seat). Genesis pulls each configured
 // commander to the command zone and sizes CmdDamage regardless of Format, so
 // the format gate is the ONLY thing that should keep a Constructed game from
 // running the mechanic. The engine is returned together with its Config for
 // log-only replay, deliberately NOT advanced, so a test can drive combat
-// directly (the combatEngine pattern); the m31 commander-tax suite reaches it
+// directly (the combatEngine pattern); the commander-tax suite reaches it
 // through commanderTaxGame (engine/rules/commander_tax_test.go), which drives to
 // turn 1 Main1 on top of it.
 //
-// seed seeds the shuffle: the m33 damage suite and the m32 zone-replacement
-// suite pass the fixed commanderDamageSeed they were written against (its
-// original Config.Seed was 9), the m31 tax suite passes its own per-test
-// seed. One fixture, three suites, each under exactly the stream it always
-// measured.
+// seed seeds the shuffle: the damage suite and the zone-replacement suite pass
+// the fixed commanderDamageSeed they were written against, the tax suite passes
+// its own per-test seed. One fixture, three suites, each under the stream it was
+// written against.
 func commanderGame(t *testing.T, seed uint64, format Format, life int32, seatCmds [][]string) (*Engine, Config) {
 	t.Helper()
 	names := make([]string, len(seatCmds))
@@ -88,14 +87,13 @@ func commanderGame(t *testing.T, seed uint64, format Format, life int32, seatCmd
 	return New(cfg), cfg
 }
 
-// commanderDamageSeed is the seed the m33 commander-damage tests were written
-// against (the original fixture hard-coded Config.Seed: 9). The m32
-// zone-replacement suite shares it through cmdZoneGame; the m31 tax suite
+// commanderDamageSeed is the seed the commander-damage tests were written
+// against. The zone-replacement suite shares it through cmdZoneGame; the tax suite
 // passes its own per-test seeds instead.
 const commanderDamageSeed uint64 = 9
 
 // fieldCommander moves the k-th commander of seat p (in the command-zone
-// order m30's genesis produced) onto the battlefield through a LOGGED
+// order genesis produced) onto the battlefield through a LOGGED
 // MoveZone (so a log-only replay can reconstruct it), then readies it to
 // attack (clears summoning sickness). It returns the commander's ObjID, which
 // is stable across the move. Only valid to index the command zone while its
@@ -225,7 +223,7 @@ func TestTwoCommandersElevenEachDoesNotLose(t *testing.T) {
 // (leaves the battlefield through a logged MoveZone) and is "recast" (the
 // same ObjID re-enters the battlefield) -- the tally must remember the first
 // 11 across that zone round-trip, because state.ObjID is stable across a
-// commander's moves (m30 keeps one game object throughout).
+// commander's moves (a commander stays one game object throughout).
 func TestSameCommanderTwiceCumulatesToTwentyTwoAndLoses(t *testing.T) {
 	t.Parallel()
 	e, _ := commanderGame(t, commanderDamageSeed, FormatCommander, 40, [][]string{{cmdCreature(11)}, {}})
@@ -329,7 +327,7 @@ func TestPreventedCombatDamageDoesNotInflateTheTally(t *testing.T) {
 
 // TestNonCommanderGameIgnoresCommanderDamage is the FormatCommander gate: a
 // Constructed-format game, even one whose Config carries a Commanders list
-// (so m30's genesis sized CmdDamage and parked a commander in the command
+// (so genesis sized CmdDamage and parked a commander in the command
 // zone), must have NONE of the mechanic run. The combat gate declines to
 // emit any CmdDamage event and the state-based-action gate declines to check
 // the (zero) tally, so 21 commander-power combat damage to the defender

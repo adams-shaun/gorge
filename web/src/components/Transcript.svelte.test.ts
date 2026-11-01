@@ -151,7 +151,7 @@ describe('Transcript — step-line default', () => {
   });
 });
 
-describe('Transcript — the client-local auto-pass notes (prio5)', () => {
+describe('Transcript — the client-local auto-pass notes', () => {
   const note = (id: number, turn: number, text: string) => ({ id, turn, text });
 
   it('renders auto-pass notes after the engine lines, without a data-seq scrub hook', () => {

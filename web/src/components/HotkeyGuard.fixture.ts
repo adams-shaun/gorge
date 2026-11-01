@@ -107,7 +107,7 @@ state.skipEmpty = false;
 state.setAuto(false);
 state.setActPass(false);
 // Zero pacing: every POST the fixture observes must be synchronous with the
-// key or click under test, so the paced wait (prio5) is off here.
+// key or click under test, so the paced wait is off here.
 state.settings = { ...state.settings, pacing: { stepMs: 0, resolveMs: 0 } };
 state.adoptView(decision);
 win.__state = state;

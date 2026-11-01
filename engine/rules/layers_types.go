@@ -170,7 +170,7 @@ var selfRejectVerify atomic.Int64
 // rejection removed. Verify mode calls it to prove the shortcut agrees with
 // the full match; production never does.
 func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone, power, toughness, basePower, baseToughness int32, hasPT bool) bool {
-	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
+	// The cast-provenance qualifiers (the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
 	// filter match, through the combined entry point; its one-probe
