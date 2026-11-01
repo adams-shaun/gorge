@@ -97,6 +97,21 @@ func (b *trigBoard) MatchesObject(spec string, obj *state.Object, source state.O
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
 	if obj != nil {
 		sc.ExtraTypesOwner = obj.ID
+		// An object last known on the battlefield, on a board that still has
+		// it there (the leaves-the-battlefield look-back observer, CR 603.10a),
+		// matches by its derived characteristics, as matchesSpec binds them.
+		if on := e.G.Obj(obj.ID); on != nil && on.Zone == state.ZBattlefield && obj.Zone == state.ZBattlefield && e.activeDepth == 0 {
+			facts := specBindFacts(spec)
+			if facts.reads {
+				d := e.Derived(obj.ID)
+				sc.ExtraKeywords, sc.ExtraKeywordsOwner = d.Keywords, obj.ID
+				sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = d.Power, d.Toughness, true
+				sc.BasePower, sc.BaseToughness, sc.HasBasePT = d.BasePower, d.BaseToughness, true
+			}
+			if facts.colors {
+				sc.Layers.DerivedColors = e.derivedColorTable()
+			}
+		}
 	}
 	return effects.MatchesObjectCtx(e.G, spec, obj, sc)
 }

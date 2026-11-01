@@ -879,6 +879,11 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// the cause qualifiers (WhileKeyword$, a ValidCause$ stack read) of
 		// a leaves-the-battlefield trigger read them.
 		observer.cast, observer.resolvingObj = e.cast, e.resolvingObj
+		// The no-event per-game facts a static gate or a Count$ reads: the
+		// starting life total and the turn ledgers the log cannot rebuild.
+		// Ledgers are read-only here: TurnsTaken and turnStartsFor replace
+		// their cache slice rather than write into it.
+		observer.startingLife, observer.engineTurnLedger = e.startingLife, e.engineTurnLedger
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
