@@ -403,6 +403,9 @@ type Ctx struct {
 	// NEAREST targeting parent's targets, not the root's. Resolution scratch,
 	// scoped to one Resolve walk; never event-encoded.
 	parentLinks [][]state.Target
+	// playerLink is the latest link answer in this walk naming a player
+	// (notePlayerLink), the SpecContext's PlayerLinkTargets.
+	playerLink []state.Target
 	// linkAnswer carries a link body's own consumed target answer out to
 	// Resolve's recorder when the body asked for it itself (effChangeZone's
 	// changeZoneChosenTargets), which the generic pre-ask never sees.
@@ -1225,7 +1228,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// The parent-link record belongs to THIS walk: a nested walk sharing
 		// the Ctx (a body resolving its own sub-chain) must not leave its links
 		// behind as "parents" of the enclosing chain's later links.
-		defer func(n int) { c.parentLinks = c.parentLinks[:n] }(len(c.parentLinks))
+		defer func(n int, player []state.Target) {
+			c.parentLinks, c.playerLink = c.parentLinks[:n], player
+		}(len(c.parentLinks), c.playerLink)
 		defer func(above bool) { c.RememberWriterAbove = above }(c.RememberWriterAbove)
 	}
 	reg := registry.load()
@@ -1375,6 +1380,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 			c.PickedTargets = ts
+			notePlayerLink(c, ts)
 			// Forge's sub-ability inheritance: a chain body that names no
 			// targets of its own shares the chain's target list, so a later
 			// body's "Targeted"/TargetedController referents (The Motherlode,

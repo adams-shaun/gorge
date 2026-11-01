@@ -712,6 +712,9 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 			return nil, false
 		}
 		targets = bound
+		if sc.PlayerLinkTargets != nil && ref != "TargetedController" && ref != "TargetedOrController" {
+			targets = sc.PlayerLinkTargets
+		}
 	case controlReferentPlayersRemembered:
 		// Resolution-only, like Targeted*: the players this resolution
 		// remembers -- a RepeatEach loop's current subject. Forge's

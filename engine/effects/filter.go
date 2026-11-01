@@ -2814,6 +2814,12 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
+	// PlayerLinkTargets is the answer of the resolving chain's nearest link that
+	// targets a player, the resolving link itself included. ResolutionTargets
+	// stays the chain root's list, so this is what "target player" reads when a
+	// later link is the one that named the player (Quick Draw's opponent, behind
+	// its creature target; CR 608.2b).
+	PlayerLinkTargets []state.Target
 	// ParentTargets are the PARENT ability's already-chosen targets, bound
 	// (ParentBound) only while the offer for a SubAbility$'s OWN ValidTgts$ is
 	// built during the parent's resolution. "Exile up to one target Equipment

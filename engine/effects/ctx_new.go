@@ -166,7 +166,7 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 	// offer, Count$Valid, CantTarget -- agrees with the layer walk: field
 	// copies of immutable data, no callable, no back-pointer.
 	sc := SpecContext{You: you, Source: c.Source, Layers: c.Layers,
-		TriggerContext: c.TriggerContext, ResolutionTargets: c.Targets, Remembered: c.Remembered, Captured: c.Captured, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true,
+		TriggerContext: c.TriggerContext, ResolutionTargets: c.Targets, PlayerLinkTargets: c.playerLink, Remembered: c.Remembered, Captured: c.Captured, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true,
 		TargetableObjects:           c.TargetableObjects,
 		ExcludeFromBattlefieldCount: c.Repl.ExcludeFromBattlefieldCount}
 	// Numeric-RHS resolution for a resolution-time filter spec, in priority
