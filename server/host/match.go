@@ -392,8 +392,8 @@ func defaultSeats(policy string, names []string, seed uint64) []seat.Seat {
 // auto-payment and CommonSense settings (bots.Options.AutoPayMana and
 // bots.Options.CommonSense — the bots/sanity guard; both are part of the
 // table's configuration, so a restart rebuilds the same seats), the
-// registry's search parallelism and the embedder's card dependency (
-// deps rides bots.Options.Deps into every factory, so a policy that reads
+// registry's search parallelism and the embedder's card dependency
+// (deps rides bots.Options.Deps into every factory, so a policy that reads
 // card facts builds on a served table). Keeping the legacy wrapper preserves
 // embedders and tests that intentionally exercise the historical manual-mana
 // policy.

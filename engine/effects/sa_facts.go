@@ -55,8 +55,8 @@ type SAFacts struct {
 	// (0 unknown, 1 ask-free, 2 may ask).
 	MayAsk uint32
 
-	// W4 step 3, the Charm/Pump/Draw compilers (charm_params.go,
 	// The Charm/Pump/Draw compilers (charm_params.go,
+	// pump_params.go, draw_params.go): each is non-nil exactly when the
 	// ability's API is one its compiler serves.
 	Charm *CharmParams
 	Pump  *PumpParams

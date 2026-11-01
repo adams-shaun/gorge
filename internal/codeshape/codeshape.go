@@ -523,10 +523,10 @@ type Metrics struct {
 	// reach the engine through. Zero when the package is absent.
 	TrigmatchBoardMethods int `json:"trigmatch_board_methods"`
 	// PayEngineMethods counts the methods pay.Engine declares
-	// (engine/rules/pay/engine.go): the payment layer's whole view of the engine
-	// . Zero when the package is absent.
 	// (engine/rules/pay/engine.go): the payment layer's whole view of the engine.
 	// Zero when the package is absent.
+	PayEngineMethods int `json:"pay_engine_methods"`
+	// EngineSurface counts, under engine/rules/ (recursive, non-test), the *Engine
 	// methods plus the free functions with a *Engine parameter plus the
 	// methods of struct types holding a *Engine field: the reach of the
 	// engine that EngineMethods alone misses (sidedoor.go).

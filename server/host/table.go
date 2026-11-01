@@ -264,9 +264,9 @@ func (c TableConfig) autoPayManaEnabled() bool {
 
 var ErrNotFound = errors.New("host: not found")
 
-// errDecklistBotRefusal marks the two decklist refusal forms
 // errDecklistBotRefusal marks the two decklist refusal forms added to
 // validated. It is the ONLY failure restart
+// recovers from: a tables.json written by an older binary can carry an
 // Env policy without the allow_decklist_bots opt-in, and skipping that
 // table beats failing the whole start. Every other validation failure
 // (unknown policy name, bad seats, missing decks) still fails the start,
