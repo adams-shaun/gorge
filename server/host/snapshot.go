@@ -26,7 +26,7 @@ func (r *Registry) afterBurst(t *table, m *match, before int) error {
 	if err := r.persistBurst(t, m, before); err != nil {
 		return err
 	}
-	return r.observeBurst(t, m, before) // Task M2c-1
+	return r.observeBurst(t, m, before)
 }
 
 // observeBurst delivers the burst that just ended to the embedder's OnBurst
@@ -35,7 +35,7 @@ func (r *Registry) afterBurst(t *table, m *match, before int) error {
 // from the hook is never ahead of what is durable) but before the match
 // loop continues, and with before == 0 it is how the genesis burst (no
 // intent yet) is delivered from play(). An OnBurst error crashes the match
-// exactly as a persist failure does (D15): the caller propagates it and the
+// exactly as a persist failure does: the caller propagates it and the
 // match stops rather than continuing silently.
 //
 // evs is copied (a fresh backing array) so the burst slice cannot alias the
@@ -96,7 +96,7 @@ func (m *match) snapshotGenesis() {
 // (viewat_test pins that) and lets a finished match served from files
 // answer ViewAt without persisting bounds.
 //
-// EXCEPT at a burst's own tail (fb-20260915T094418Z): a Submit whose
+// EXCEPT at a burst's own tail: a Submit whose
 // post-ask continuation — the SBA pass and step handler a mid-burst ask
 // does not stop — emits events leaves the recording carrying events past
 // its last DecisionAsk that belong to the SAME burst. Those tail events
@@ -113,7 +113,7 @@ func (m *match) snapshotGenesis() {
 // a naturally finished log's last burst has no trailing ask.
 // Anything else back there is a partial burst: Submit records an intent
 // into L.Intents before handle/checkStateBased/Advance run, so a panic
-// during that processing (a crashed match, spec D15) leaves a straggler
+// during that processing (a crashed match) leaves a straggler
 // tail with no ask and no GameOver — real logged events, but an
 // incomplete one whose owning intent never finished. Treating that as a
 // boundary would make viewAt resubmit the very intent that crashed the
@@ -135,9 +135,9 @@ func boundsOf(evs []events.Event) []uint64 {
 	return out
 }
 
-// persistBurst appends the burst and its intent (PL-2). Called with m.mu
+// persistBurst appends the burst and its intent. Called with m.mu
 // held; an error propagates through afterBurst to play, which crashes the
-// match (D15) — a table whose files cannot be written must not keep going.
+// match — a table whose files cannot be written must not keep going.
 // m.persisted advances only on a fully-appended burst, so it is always the
 // count of a complete, durable prefix.
 func (r *Registry) persistBurst(t *table, m *match, before int) error {

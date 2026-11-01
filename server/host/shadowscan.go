@@ -16,7 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/server/divergence/shadow"
 )
 
-// ShadowScan is HD-3 of the human-divergence design
+// ShadowScan is the shadow scan of the human-divergence design
 // (docs/design/2026-10-10-human-divergence-design.md §5.3-§5.5):
 // it replays match k of table id once and, at every decision the seat
 // answered deliberately, asks a fresh shadow instance of policy what it would
@@ -25,7 +25,7 @@ import (
 //
 // A decision is scanned only when the seat owned it, its intent index is
 // inside the log, and the provenance ledger marks it neither caretaker nor
-// client-auto (HD-2): those were not a human's choice. The scan copies
+// client-auto: those were not a human's choice. The scan copies
 // (cfg, log, ledger) under the match lock exactly as SnapshotForFeedback
 // does and runs the walk outside it, so it never drives the live engine and
 // blocks a Submit only for the copies.

@@ -32,7 +32,7 @@ import (
 // anything it wants to keep: evs is a fresh slice (a stable snapshot of this
 // burst) but the events' guts and in are read-only references into the live
 // match. Returning an error crashes the match exactly as a persist failure
-// does (D15): the table halts and the event chain does not continue.
+// does: the table halts and the event chain does not continue.
 //
 // A nil OnBurst is today's behaviour — nothing fires — so an embedder that
 // does not set it pays no cost and sees no change.
@@ -68,7 +68,7 @@ type Options struct {
 	// Engines holds the engines a table may name in TableConfig.Engine, by the
 	// name each reports. Nil is gorge alone.
 	Engines map[string]game.Engine
-	// Sleep is the table's only clock read (PL-11): run calls it between
+	// Sleep is the table's only clock read: run calls it between
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes
 	// first — that is what lets Close interrupt a table sitting in a long
@@ -137,7 +137,7 @@ type Options struct {
 	MaxDecisionsPerTurn int
 	// ThinkTimeout is how long a HumanSeat parks on a decision before its
 	// deterministic caretaker bot (the already-seeded bot for that slot) is
-	// asked to answer in the player's place (Task M2b-3, D3). 0 — the default
+	// asked to answer in the player's place. 0 — the default
 	// — means "no timeout": the seat waits for a human SubmitIntent forever,
 	// and only falls back to the caretaker when the table's context is
 	// cancelled (a disconnected human seat must never wedge play).
@@ -146,7 +146,7 @@ type Options struct {
 	// slot's bot would have produced, so a timed-out human game replays
 	// byte-identically (the caretaker intent is committed to the log like any
 	// other). The player may reconnect and answer later decisions via
-	// SubmitIntent (D2).
+	// SubmitIntent.
 	ThinkTimeout time.Duration
 	// DefaultBotAutoPayMana is applied only while restoring a table written
 	// before TableConfig recorded bot_auto_pay_mana. New tables always carry
@@ -179,7 +179,7 @@ type Options struct {
 	MaxOnDemandTables int
 
 	// SearchSlots bounds how many searched decisions run CONCURRENTLY across
-	// the whole registry (BP-10, spec 2026-09-28-hosted-bot-packages §7): a
+	// the whole registry (spec 2026-09-28-hosted-bot-packages §7): a
 	// bot seat whose table-policy entry has Search set takes one slot around
 	// its DecideEnv call (server/host/match.go parkSeat), and a decision that arrives
 	// while every slot is held QUEUES — the host never degrades to another
@@ -208,11 +208,11 @@ type Options struct {
 	// default. gorged sets it from -bot-search-parallelism.
 	BotSearchParallelism int
 	// BotDeps is the card dependency every hosted bot factory receives
-	// (BP-13, spec §3.2): it rides bots.Options.Deps into every bots.New the
+	// (spec §3.2): it rides bots.Options.Deps into every bots.New the
 	// registry's table path makes — defaultSeatsWithAutoPayMana and the
 	// caretaker (bot_policy.go) — so a policy whose factory reads printed
 	// card facts (sb-tactical) can build. A zero Deps keeps every policy
-	// already hosted before BP-13 unchanged and makes sb-tactical refuse at
+	// that needs none unchanged and makes sb-tactical refuse at
 	// seat-build time with its own error. gorged sets Cards to the opened
 	// corpus registry.
 	BotDeps bots.Deps
@@ -221,8 +221,7 @@ type Options struct {
 	// bench/training posture) instead of the served default
 	// hostedDecisionDeadlineMS. A determinism harness that compares two runs
 	// of one seed must never arm a wall clock: a deadline bail-out answers
-	// from the non-searched fallback and the two runs diverge (BP-07 §7
-	// rejected a wall-clock budget for exactly this reason). False — every
+	// from the non-searched fallback and the two runs diverge. False — every
 	// existing caller, gorged included — leaves served behaviour
 	// byte-identical.
 	BotUnboundedDecisions bool
@@ -235,10 +234,10 @@ type Options struct {
 	OnBurst OnBurstFunc
 	// OnMatchEnd, when non-nil, is invoked once per match once it reaches a
 	// terminal state (finished, aborted or crashed), with that match's final
-	// MatchInfo (Task M2c-1). See OnMatchEndFunc.
+	// MatchInfo. See OnMatchEndFunc.
 	OnMatchEnd OnMatchEndFunc
 	// Series plans the matches of every table whose TableConfig.Series is
-	// set (E3-2): before match k of a series table, run calls this hook with
+	// set: before match k of a series table, run calls this hook with
 	// the table's id and k (1 included) and plays the SeriesGame it returns —
 	// the deck each SEAT plays (never rotated by k) and the seat posed CR
 	// 103.1's starting-player choice (rules.Config.StartChooser; -1 keeps
@@ -248,8 +247,8 @@ type Options struct {
 	// around the call and a Registry.Close unblocks it through the hook's
 	// ctx. ok=false ends the table (state idle) without playing match k; an
 	// error halts it. The hook must return promptly once ctx is done and
-	// must not call Registry.Close or Registry.Wait. Nil — every caller
-	// before E3 — means no table may set TableConfig.Series (AddTable
+	// must not call Registry.Close or Registry.Wait. Nil
+	// means no table may set TableConfig.Series (AddTable
 	// refuses one).
 	Series SeriesFunc
 	// OnRewind, when non-nil, is invoked exactly once per undo an undo-capable
@@ -269,7 +268,7 @@ type Options struct {
 }
 
 // defaultSleep is installed when Options.Sleep is nil. It is the package's
-// only time.Now/time.NewTimer read (PL-11's stated exception): everywhere
+// only time.Now/time.NewTimer read: everywhere
 // else in host reaches the clock only through the Sleep field.
 func defaultSleep(d time.Duration, stop <-chan struct{}) {
 	timer := time.NewTimer(d)
@@ -362,7 +361,7 @@ func (r *Registry) AddTable(c TableConfig) error {
 	if _, dup := r.tables[c.ID]; dup {
 		return fmt.Errorf("host: table %s already exists", c.ID)
 	}
-	// E3-2: a series table's matches are planned by the embedder's hook, so
+	// A series table's matches are planned by the embedder's hook, so
 	// a registry built without one can never play the table — refuse at
 	// registration rather than halt the table at its first match.
 	if c.Series && r.opts.Series == nil {
@@ -379,7 +378,7 @@ func (r *Registry) AddTable(c TableConfig) error {
 			return fmt.Errorf("host: on-demand table limit %d reached", r.opts.MaxOnDemandTables)
 		}
 	}
-	// BP-10 (spec §7) admission: an on-demand table whose policy entry has
+	// Admission (spec §7): an on-demand table whose policy entry has
 	// Search set is refused while MaxSearchTables on-demand search tables are
 	// already live. "Live" means the table goroutine is running and its
 	// current match has not been retired — a finished single-shot table frees
@@ -449,7 +448,7 @@ func (r *Registry) searchGateFor(t *table) *searchSlots {
 }
 
 // searchSlots is the FIFO semaphore one Registry uses to bound concurrent
-// searched decisions (BP-10, spec §7). Go does not specify FIFO for a
+// searched decisions (spec §7). Go does not specify FIFO for a
 // buffered-channel semaphore, so the queue is explicit: a mutex plus a slice
 // of waiter channels, granted strictly in arrival order by release closing
 // the front waiter's channel (a handoff — held stays at the limit). The wait
@@ -662,7 +661,7 @@ func (r *Registry) run(t *table) {
 		t.mu.Lock()
 		k := t.k + 1
 		t.mu.Unlock()
-		// E3-2: a series table asks its hook for match k's plan before
+		// A series table asks its hook for match k's plan before
 		// building it. The hook runs with NO Registry or table lock held and
 		// may block for minutes between the games of a series; Close
 		// unblocks it by cancelling ctx (the bridging goroutine above), and
@@ -704,7 +703,7 @@ func (r *Registry) run(t *table) {
 		t.k, t.cur = k, m
 		t.mu.Unlock()
 		// setState, not a bare write: a subscriber learns the table went
-		// live (E3-fx2) through the same table_state frame every other
+		// live through the same table_state frame every other
 		// transition emits.
 		t.setState(protocol.TableLive)
 		r.mu.Lock()
@@ -722,12 +721,12 @@ func (r *Registry) run(t *table) {
 			return
 		}
 		if t.cfg.Series {
-			// E3-2: a series table skips the single-shot exit and the
+			// A series table skips the single-shot exit and the
 			// cooldown sleep — the next loop head asks the hook for match
 			// k+1's plan (and shows the cooldown state while it blocks).
 			continue
 		}
-		// Task M2c-2: a human-seated table stops at game over exactly like a
+		// A human-seated table stops at game over exactly like a
 		// non-perpetual one; singleShot captures both. StartAll revives a
 		// restored human table for a fresh single match, never an autoplay.
 		if t.cfg.singleShot() {
@@ -801,7 +800,7 @@ func (m *match) trimLog() {
 	m.snaps = snaps
 }
 
-// halt is D15's second half for the table: it stops and stays stopped,
+// halt stops the table: it stays stopped,
 // recording why. k is the match number the caller was building or had just
 // finished — not necessarily t.k, which the newMatch-failure path never
 // bumps, so a first-boot halt is addressed to the match that actually

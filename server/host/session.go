@@ -12,7 +12,7 @@ import (
 
 // Session is one client connection's worth of subscriptions: a bounded
 // outbound channel, a ring of the frames it has sent (for Last-Event-ID
-// resume), and the latest widget per table (PL-5: widgets are coalesced,
+// resume), and the latest widget per table (widgets are coalesced,
 // never ring-buffered, never given an id).
 type Session struct {
 	ID string
@@ -154,7 +154,7 @@ func (s *Session) push(f protocol.Frame) bool {
 }
 
 // setWidget replaces the latest widget for a table. Called with no frame
-// id (PL-5): widgets bypass the ring entirely.
+// id: widgets bypass the ring entirely.
 func (s *Session) setWidget(id TableID, f protocol.Frame) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

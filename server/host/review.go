@@ -43,8 +43,8 @@ type ReviewMatch struct {
 	Explain  []json.RawMessage
 }
 
-// AddReviewTable registers a read-only review table (match reviewer, design
-// D9): one recorded match, no slots, no run loop, never started, served to
+// AddReviewTable registers a read-only review table:
+// one recorded match, no slots, no run loop, never started, served to
 // spectators with omniscient visibility so the DVR's finished-match route
 // (/t/{id}/m/1) fans every hand face up.
 //
@@ -58,7 +58,7 @@ type ReviewMatch struct {
 // turn-start snapshots a live match's afterBurst takes, so viewAt serves any
 // seq by replaying at most one turn. The same walk builds the decision index
 // ReviewDecisions serves: at boundary i the engine's pending decision is
-// exactly the one Log.Intents[i] answered (design D8).
+// exactly the one Log.Intents[i] answered.
 //
 // Review tables live only in a memory-mode registry (Options.Dir == ""): a
 // persisted registry would write them into tables.json and a restart would

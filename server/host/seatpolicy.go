@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 )
 
-// validatedSeatPolicies normalizes and checks the E1-2 TableConfig additions:
+// validatedSeatPolicies normalizes and checks the TableConfig additions:
 // the per-seat bot policies and the owning draft event. It is called from
 // validated just before the deck-loading loop, so every refusal happens at
 // registration (and at a restart's re-validation) before any seat is built.
@@ -69,7 +69,7 @@ func (c TableConfig) seatBotPolicy(i int) string {
 }
 
 // seatPolicySeats builds every table bot from the table's per-seat bot
-// policies (E1-2): exactly defaultSeatsWithAutoPayMana's loop with
+// policies: exactly defaultSeatsWithAutoPayMana's loop with
 // seatBotPolicy(i) per seat and the table's CommonSense. It panics on a
 // bots.New error the way defaultSeatsWithAutoPayMana does — the table was
 // validated, so every named policy is registered and buildable.

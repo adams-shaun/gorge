@@ -15,7 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// Undo, dispatch fb-20260911T201015Z: a human seat's request to roll the
+// Undo: a human seat's request to roll the
 // live match back to the decision point at which that seat last submitted
 // an intent — "undo my last action". The mechanism is a REWIND IN PLACE,
 // never a fork: the game is rebuilt at the rewind point with the engine's
@@ -68,7 +68,7 @@ import (
 // match lock held (the same discipline as OnBurst), BEFORE any new burst —
 // so the sink never sees a post-rewind burst it has not been told to make
 // room for. A nil OnRewind is a no-op. A returned error crashes the match
-// exactly as an OnBurst error does (D15): a sink that cannot record the
+// exactly as an OnBurst error does: a sink that cannot record the
 // truncation must not keep receiving a chain it has diverged from.
 type OnRewindFunc func(t TableID, k int, toIntent int, headSeq uint64) error
 
@@ -280,25 +280,25 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 		}
 	}
 	m.intents = n
-	// HD-2's provenance ledger (server/host/divergence_ledger.go) describes exactly
+	// The provenance ledger (server/host/divergence_ledger.go) describes exactly
 	// the intents the log holds: drop every entry the rewind discarded.
 	m.ledgerTruncate(n)
 	m.bounds = append([]uint64(nil), m.bounds[:n+1]...)
 	m.turnStarts = turnStartsBefore(m.turnStarts, uint64(len(g.Log().Events)))
 	m.snaps = snapsBefore(m.snaps, n)
-	// BP-09 (spec 2026-09-28-hosted-bot-packages §5.2 Undo): the feeds are
+	// The feeds (spec 2026-09-28-hosted-bot-packages §5.2 Undo) are
 	// derived from (config, log prefix, actor) and the swap just invalidated
 	// them — a pre-undo feed observed every decision of the discarded tail.
 	// Rebuild every live feed from the replayed log right here, under the
 	// same lock and before projectNext (its observe appends the rewound
 	// pending decision's frame to whatever feeds are installed). An error is
-	// fatal for the match (D15): a feed and its log must never disagree.
+	// fatal for the match: a feed and its log must never disagree.
 	if err := m.feeds.rebuild(gorgegame.RulesConfig(m.gc), m.g.Log(), m.intents); err != nil {
 		return nil, fmt.Errorf("host: undo feed rebuild for match %d: %w", m.k, err)
 	}
 	if err := r.truncatePersisted(t, m); err != nil {
 		// The in-memory rewind has happened; a persistence failure at this
-		// point is a crash (D15) — the files, the hook and the memory must
+		// point is a crash — the files, the hook and the memory must
 		// not disagree, and only the crash path stops the loop from
 		// building on a half-truncated match.
 		return nil, err
@@ -306,7 +306,7 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	// The feeds were rebuilt above, and their last frame is the rewound
 	// decision's boundary (RebuildFeed's visit at n). projectNextData — not
 	// projectNext — projects it: a second observe would capture the same
-	// boundary twice (§5.2, and BP-09's TestUndoRebuildsEnvSeatFeeds).
+	// boundary twice (TestUndoRebuildsEnvSeatFeeds).
 	return projectNextData(m, seats, brd), nil
 }
 
@@ -348,7 +348,7 @@ func (r *Registry) serviceUndo(ctx context.Context, t *table, m *match, seats []
 	if err != nil {
 		return nil, err
 	}
-	// BP-10: a rewound search decision queues on the registry's FIFO search
+	// A rewound search decision queues on the registry's FIFO search
 	// slots exactly like a first park (searchGateFor returns nil for a
 	// non-search table or an unbounded registry).
 	parked := parkSeat(ctx, seats, data, m.undo.signal, r.searchGateFor(t), t.stop)

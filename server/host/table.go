@@ -182,11 +182,10 @@ type TableConfig struct {
 	Humans []int `json:"humans,omitempty"`
 	// Mulligans is the London mulligan allowance: each player may take up to
 	// this many mulligans in the pre-game round between the opening deal and
-	// turn 1 (rules.Config.Mulligans). 0 — the zero value, and what every
-	// table before M2e-5 played with — skips the round entirely, so a table
-	// that never sets it behaves byte-identically to today. It travels on the
+	// turn 1 (rules.Config.Mulligans). 0, the zero value, skips the round
+	// entirely. It travels on the
 	// same TableConfig that seed/decks/names travel on, so both the live
-	// match and a restart's replays rebuild the same rules.Config (R-8.4: the
+	// match and a restart's replays rebuild the same rules.Config (the
 	// replay's Config must carry it too, or a match played with a round stops
 	// replaying). Negative values are rejected by validate.
 	Mulligans int `json:"mulligans,omitempty"`
@@ -208,7 +207,7 @@ type TableConfig struct {
 	// match actually played with.
 	StartingLife int32 `json:"starting_life,omitempty"`
 	// AllowDecklistBots opts a BOT-ONLY table into a bot policy that reads
-	// every seat's real decklist (operator ruling 2026-10-13). An Env policy
+	// every seat's real decklist. An Env policy
 	// (bots.Info.Env) builds its search root from every seat's true 40/60 —
 	// server/host/botenv.go's envData hands searchseat.HonestRoot the table's
 	// m.cfg.Decks — so "honest" redeals the hidden cards but the deck LIST
@@ -223,7 +222,7 @@ type TableConfig struct {
 	// is played by SeatBotPolicies[i] when that entry is non-empty, else by
 	// BotPolicy. Like PlayerNames it never rotates with the decks. An entry
 	// may not name a human seat, and may not name a policy that reads
-	// opponents' decklists (bots.Info.Env). nil — every table before E1 —
+	// opponents' decklists (bots.Info.Env). nil
 	// builds every bot seat from BotPolicy exactly as before. Human-seat
 	// caretakers always use BotPolicy.
 	SeatBotPolicies []string `json:"seat_bot_policies,omitempty"`
@@ -265,9 +264,9 @@ func (c TableConfig) autoPayManaEnabled() bool {
 
 var ErrNotFound = errors.New("host: not found")
 
-// errDecklistBotRefusal marks the two refusal forms the 2026-10-13
-// decklist ruling adds to validated. It is the ONLY failure restart
-// recovers from: a tables.json written by an older binary can carry an
+// errDecklistBotRefusal marks the two decklist refusal forms
+// errDecklistBotRefusal marks the two decklist refusal forms added to
+// validated. It is the ONLY failure restart
 // Env policy without the allow_decklist_bots opt-in, and skipping that
 // table beats failing the whole start. Every other validation failure
 // (unknown policy name, bad seats, missing decks) still fails the start,
@@ -294,7 +293,7 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 	if e, ok := bots.Lookup(policy); ok && e.MaxSeats > 0 && c.Seats > e.MaxSeats {
 		return TableConfig{}, fmt.Errorf("host: table %s: bot policy %q seats at most %d, table has %d", c.ID, policy, e.MaxSeats, c.Seats)
 	}
-	// Operator ruling 2026-10-13: a policy that reads every seat's real
+	// A policy that reads every seat's real
 	// decklist (bots.Info.Env; server/host/botenv.go envData) never seats against a
 	// human, and only runs on a bot-only table that explicitly opted in.
 	// Both refusals wrap errDecklistBotRefusal so restart can tell the one
@@ -337,7 +336,7 @@ func (c TableConfig) validated(load func(string) (Deck, error), engines map[stri
 	if c.Engine == gorgegame.Name {
 		c.Engine = ""
 	}
-	// Task M2c-2: a human-seated table is single-shot by definition, so an
+	// A human-seated table is single-shot by definition, so an
 	// explicit Perpetual: true alongside Humans is a caller contradicting
 	// itself. Reject rather than silently force single-shot — silently
 	// ignoring an explicit Perpetual is the kind of thing discovered in
@@ -492,7 +491,7 @@ func (t *table) info() protocol.TableInfo {
 
 // singleShot reports whether the run loop should stop after exactly one
 // match instead of autoplaying the next. A non-perpetual table is single-
-// shot; so is a human-seated table (Task M2c-2) — a real person must not be
+// shot; so is a human-seated table — a real person must not be
 // pulled into a fresh match behind their back. AddTable already rejects
 // Perpetual+Humans, so in practice the Humans term makes singleShot true for
 // the same table a non-Perpetual flag would; keeping both explicit documents
@@ -500,7 +499,7 @@ func (t *table) info() protocol.TableInfo {
 // hand-edited persisted table).
 func (c TableConfig) singleShot() bool {
 	if c.Series {
-		// E3-2: a series table's end is the hook's decision, not the
+		// A series table's end is the hook's decision, not the
 		// match count — ok=false is what stops it.
 		return false
 	}
@@ -513,7 +512,7 @@ func (c TableConfig) singleShot() bool {
 // series table emits the frame: an ordinary table's idle/live/cooldown is
 // already carried by match_start/match_end and the overview widget, and
 // emitting it would add an unrequested frame to every non-series stream
-// (E3-fx2 scopes the signal to a series table between games). A halt does
+// (the signal is scoped to a series table between games). A halt does
 // not go through here — halt writes TableHalted directly and sends
 // TableHaltedBody instead — so a table_state frame only ever carries idle,
 // live or between_games. The broadcast runs after t.mu is released: it takes
@@ -541,7 +540,7 @@ func tableStateName(s string) string {
 // broadcastTableState pushes one table_state frame to every session watching
 // the table, focus and overview alike — the signal is public table
 // lifecycle, not per-viewer state, so it is not redacted. setState calls it
-// only for a series table (E3-fx2); the frame is not emitted for an ordinary
+// only for a series table; the frame is not emitted for an ordinary
 // table. It never blocks: push drops a slow client (the session overflows
 // and is unregistered).
 func (r *Registry) broadcastTableState(t *table, s string) {

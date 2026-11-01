@@ -13,8 +13,8 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// ReviewDecisions is a review table's decision index (match reviewer,
-// design T4): one entry per intent of match k, in log order, built once by
+// ReviewDecisions is a review table's decision index:
+// one entry per intent of match k, in log order, built once by
 // AddReviewTable's load walk. Only a review table has one; a live table, a
 // missing table and a missing match are all ErrNotFound, so the route that
 // serves this (mounted only by `gorged review`) can never reach a live

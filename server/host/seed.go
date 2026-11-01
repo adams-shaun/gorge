@@ -10,7 +10,7 @@ import (
 
 // MatchSeed derives match k's engine seed from its table's seed with
 // splitmix64's finaliser over tableSeed XOR k·φ, so a table's whole history
-// is a pure function of its configuration (spec D14) and consecutive
+// is a pure function of its configuration and consecutive
 // matches share nothing but the table.
 func MatchSeed(tableSeed uint64, k int) uint64 {
 	z := tableSeed ^ (uint64(k) * 0x9E3779B97F4A7C15)
