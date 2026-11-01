@@ -59,8 +59,8 @@ func riotCopyStagedRiders(t *testing.T, useEsix bool, riotPick int) {
 		copier = tokenReplCorpusCard(t, "Esix, Fractal Bloom")
 	} else {
 		copier = card(t, "Name:Riot Mandatory Copier\nTypes:Enchantment\n"+
-			"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ DBCopy | Description$ Create copies of the other creature instead.\n"+
-			"SVar:DBCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
+			"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ ThenCopy | Description$ Create copies of the other creature instead.\n"+
+			"SVar:ThenCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.Other | TokenScript$ Chosen\nOracle:x\n")
 	}
 	spell := card(t, "Name:Tapped Riot Tokens\nManaCost:0\nTypes:Sorcery\n"+
 		"A:SP$ Token | TokenAmount$ 1 | TokenScript$ c_a_powerstone | TokenTapped$ True | RememberTokens$ True | SubAbility$ Rider | SpellDescription$ x\n"+

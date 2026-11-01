@@ -51,8 +51,8 @@ func TestKernelAskLoops(t *testing.T) {
 			"SVar:DBGain:DB$ GainLife | LifeAmount$ 1", 2, 1},
 		{"Tape Repeat Body", "A:SP$ Repeat | RepeatSubAbility$ DBScry | MaxRepeat$ 3\n" +
 			"SVar:DBScry:DB$ Scry | ScryNum$ 1", 2, 3},
-		{"Tape Each Offer", "A:SP$ RepeatEach | RepeatPlayers$ Player | RepeatOptionalForEachPlayer$ True | RepeatSubAbility$ DBDraw\n" +
-			"SVar:DBDraw:DB$ Draw | Defined$ Remembered | NumCards$ 1", 4, 4},
+		{"Tape Each Offer", "A:SP$ RepeatEach | RepeatPlayers$ Player | RepeatOptionalForEachPlayer$ True | RepeatSubAbility$ Draw\n" +
+			"SVar:Draw:DB$ Draw | Defined$ Remembered | NumCards$ 1", 4, 4},
 		{"Tape Each Body", "A:SP$ RepeatEach | RepeatPlayers$ Player | RepeatSubAbility$ DBScry\n" +
 			"SVar:DBScry:DB$ Scry | Defined$ Remembered | ScryNum$ 1", 3, 3},
 	}

@@ -73,8 +73,8 @@ func TestSacrificeChangeNumIsInert(t *testing.T) {
 	// playable.
 	probe := func(changeNum string) []string {
 		c := card(t, "Name:ChangeNum Probe\nManaCost:2\nTypes:Creature Bear\nPT:2/2\n"+
-			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigSac | TriggerDescription$ x\n"+
-			"SVar:TrigSac:DB$ Sacrifice | SacValid$ Land | ChangeNum$ "+changeNum+"\nOracle:x\n")
+			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnSac | TriggerDescription$ x\n"+
+			"SVar:OnSac:DB$ Sacrifice | SacValid$ Land | ChangeNum$ "+changeNum+"\nOracle:x\n")
 		return c.Faces[0].Primitives()
 	}
 	if p := probe("1"); slices.Contains(p, "api:Sacrifice.ChangeNum") {

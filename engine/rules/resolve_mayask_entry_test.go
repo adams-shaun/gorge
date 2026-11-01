@@ -28,8 +28,8 @@ func TestCopiedAuraEntryAsksEnchant(t *testing.T) {
 		"A:SP$ Attach | Cost$ 0 | ValidTgts$ Creature | AILogic$ Pump\nS:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddPower$ 1 | Description$ x\nOracle:x\n"
 	maker := "Name:Entry Dollmaker\nManaCost:0\nTypes:Creature Dwarf\nPT:2/2\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigEx | TriggerDescription$ x\n" +
-		"SVar:TrigEx:DB$ ChangeZone | TargetMin$ 0 | TargetMax$ 1 | RememberChanged$ True | ValidTgts$ Permanent.Other+nonLand+!token | Origin$ Battlefield | Destination$ Exile | SubAbility$ DBCopy\n" +
-		"SVar:DBCopy:DB$ CopyPermanent | Defined$ Remembered | NonLegendary$ True | AddTypes$ Artifact | Controller$ RememberedController | SubAbility$ DBCleanup\n" +
+		"SVar:TrigEx:DB$ ChangeZone | TargetMin$ 0 | TargetMax$ 1 | RememberChanged$ True | ValidTgts$ Permanent.Other+nonLand+!token | Origin$ Battlefield | Destination$ Exile | SubAbility$ Copy\n" +
+		"SVar:Copy:DB$ CopyPermanent | Defined$ Remembered | NonLegendary$ True | AddTypes$ Artifact | Controller$ RememberedController | SubAbility$ DBCleanup\n" +
 		"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nOracle:x\n"
 	srcs := []string{bearA, bearB, aura, maker}
 	var cs []*cards.Card

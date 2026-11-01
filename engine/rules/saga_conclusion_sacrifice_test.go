@@ -149,7 +149,7 @@ func TestSagaThatCantBeSacrificedStays(t *testing.T) {
 	stubborn := card(t, "Name:Stubborn Saga\nManaCost:1 W\nTypes:Enchantment Saga\n"+
 		"K:Chapter:2:DBGain,DBGain\n"+
 		"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\n"+
-		"S:Mode$ CantSacrifice | ValidCard$ Card.Self | Description$ CARDNAME can't be sacrificed.\n"+
+		"S:Mode$ CantSacrifice | ValidCard$ Card.Self\n"+
 		"Oracle:I, II — You gain 1 life. Stubborn Saga can't be sacrificed.\n")
 	e := corpusEngine(t, reg, []*cards.Card{stubborn}, nil)
 	saga := moveByName(t, e, 0, "Stubborn Saga", state.ZBattlefield)
@@ -301,7 +301,7 @@ func TestSagaConclusionIgnoresOpponentCauseRestriction(t *testing.T) {
 		"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\n"+
 		"Oracle:I, II — You gain 1 life.\n")
 	relic := card(t, "Name:Opp Relic\nTypes:Artifact\n"+
-		"A:AB$ GainLife | Cost$ T | Defined$ You | LifeAmount$ 1 | SpellDescription$ You gain 1 life.\n"+
+		"A:AB$ GainLife | Cost$ T | Defined$ You | LifeAmount$ 1\n"+
 		"Oracle:{T}: You gain 1 life.\n")
 	e := corpusEngine(t, reg,
 		[]*cards.Card{sagaCard, lookup(t, reg, "Sigarda, Host of Herons")},

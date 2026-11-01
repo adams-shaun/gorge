@@ -28,17 +28,17 @@ func tapeEventIndex(e *Engine, from int, k events.Kind, obj state.ObjID) int {
 }
 
 const tapeBladeSrc = "Name:Tape Blade\nManaCost:1\nTypes:Artifact Equipment\n" +
-	"R:Event$ Attached | ValidCard$ Card.Self | ValidTarget$ Creature | ReplaceWith$ ChooseColor | ActiveZones$ Battlefield | Description$ x\n" +
-	"SVar:ChooseColor:DB$ ChooseColor | Defined$ You\nK:Equip:1\nOracle:x\n"
+	"R:Event$ Attached | ValidCard$ Card.Self | ValidTarget$ Creature | ReplaceWith$ PickColor | ActiveZones$ Battlefield | Description$ x\n" +
+	"SVar:PickColor:DB$ ChooseColor | Defined$ You\nK:Equip:1\nOracle:x\n"
 
 const tapePaperSrc = "Name:Tape Paper\nManaCost:1\nTypes:Artifact Equipment\n" +
 	"R:Event$ Attached | ValidCard$ Card.Self | ValidTarget$ Creature | ReplaceWith$ ChooseName | ActiveZones$ Battlefield | Description$ x\n" +
 	"SVar:ChooseName:DB$ NameCard | Defined$ You | ValidCards$ Creature | ValidDescription$ creature card\nK:Equip:1\nOracle:x\n"
 
-const tapePrismBearSrc = "Name:Tape Prism Bear\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\nOracle:x\n"
+const tapePrismBearSrc = "Name:Tape Prism Bear\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:PickColor\nSVar:PickColor:DB$ ChooseColor\nOracle:x\n"
 
 const tapeTotemSrc = "Name:Tape Totem\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseCT\nSVar:ChooseCT:DB$ ChooseType | Type$ Creature\n" +
-	"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
+	"K:ETBReplacement:Other:Choose\nSVar:Choose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
 
 // A chosen-copy CreateToken election (Mirrormind Crown's shape) posed while
 // a DB$ Token resolves is answered in place: the copies mint at the point of
@@ -48,7 +48,7 @@ func TestTapeParkTokenElection(t *testing.T) {
 		"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidPlayer$ You | Layer$ Copy | ReplaceWith$ DBCopy | Description$ x\n" +
 		"SVar:DBCopy:DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Creature.YouCtrl | TokenScript$ Chosen\nOracle:x\n"
 	name := "Tape Mint"
-	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\nA:SP$ Token | TokenScript$ tape_spirit | SubAbility$ DBGain\n" +
+	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\nA:SP$ Token | TokenScript$ tape_spirit | SubAbility$ Gain\n" +
 		tapeGainSVar + "\nOracle:x\n"
 	tokens := map[string]*cards.Card{"tape_spirit": card(t, "Name:Spirit Token\nTypes:Creature Spirit\nPT:1/1\nOracle:\n")}
 	before := resolve.ReadStats()

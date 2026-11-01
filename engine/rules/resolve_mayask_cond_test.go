@@ -18,14 +18,14 @@ const (
 	// parent's (not announced at cast), asked at resolution only when an
 	// Equipment is attached to the damaged creature.
 	tapeCondFierySrc = "Name:Tape Fiery\nManaCost:R\nTypes:Instant\n" +
-		"A:SP$ DealDamage | NumDmg$ 1 | ValidTgts$ Creature | SubAbility$ DBExile\n" +
-		"SVar:DBExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Equipment.AttachedTo ParentTarget | TargetMin$ 0 | TargetMax$ 1\nOracle:x\n"
+		"A:SP$ DealDamage | NumDmg$ 1 | ValidTgts$ Creature | SubAbility$ ThenExile\n" +
+		"SVar:ThenExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Equipment.AttachedTo ParentTarget | TargetMin$ 0 | TargetMax$ 1\nOracle:x\n"
 	// Sun-Blessed Healer's shape: a targeted return to the battlefield asks
 	// only through the returned card's own entry.
 	tapeCondReanimSrc = "Name:Tape Reanimate\nManaCost:B\nTypes:Sorcery\n" +
 		"A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | ValidTgts$ Creature.YouOwn | TgtPrompt$ x\nOracle:x\n"
 	tapeCondChooserSrc = "Name:Tape Chooser\nManaCost:G\nTypes:Creature Elf\nPT:1/1\n" +
-		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseColor | Defined$ You | SpellDescription$ x\nOracle:x\n"
+		"K:ETBReplacement:Other:Choose\nSVar:Choose:DB$ ChooseColor | Defined$ You | SpellDescription$ x\nOracle:x\n"
 )
 
 func TestKernelParentSubTargetWithoutCandidateIsExempt(t *testing.T) {

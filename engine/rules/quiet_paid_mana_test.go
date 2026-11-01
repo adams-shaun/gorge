@@ -27,7 +27,7 @@ const (
 	qpmPetal = "Name:Quiet Petal\nManaCost:0\nTypes:Artifact\n" +
 		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ W | SpellDescription$ Add {W}.\nOracle:x\n"
 	qpmPainRock = "Name:Quiet Pain Rock\nManaCost:1\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ W | SpellDescription$ Add {W}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ W\nOracle:x\n"
 	qpmSage = "Name:Quiet Paid Sage\nManaCost:2\nTypes:Creature Wizard\nPT:1/1\n" +
 		"A:AB$ Draw | Cost$ 1 | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
 	qpmSageWW = "Name:Quiet WW Sage\nManaCost:2\nTypes:Creature Wizard\nPT:1/1\n" +

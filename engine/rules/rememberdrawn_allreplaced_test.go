@@ -23,8 +23,8 @@ import (
 // "draw X, then discard Remembered$Amount" shape Ancient Excavation has, so
 // the only difference from the corpus card is the parameter spelling.
 const rememberDrawnTrueSpell = "Name:RememberDrawn True Test\nManaCost:U\nTypes:Sorcery\n" +
-	"A:SP$ Draw | NumCards$ X | RememberDrawn$ True | SubAbility$ DBDiscard | SpellDescription$ Draw a card for each card in your hand, then discard that many.\n" +
-	"SVar:DBDiscard:DB$ Discard | Defined$ You | Mode$ TgtChoose | NumCards$ Y | SubAbility$ DBCleanup\n" +
+	"A:SP$ Draw | NumCards$ X | RememberDrawn$ True | SubAbility$ Discard | SpellDescription$ Draw a card for each card in your hand, then discard that many.\n" +
+	"SVar:Discard:DB$ Discard | Defined$ You | Mode$ TgtChoose | NumCards$ Y | SubAbility$ DBCleanup\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
 	"SVar:X:Count$ValidHand Card.YouOwn\n" +
 	"SVar:Y:Remembered$Amount\n" +

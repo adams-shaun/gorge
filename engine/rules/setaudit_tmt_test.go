@@ -587,7 +587,7 @@ func TestSetAudit_tmt_ChromeDome_CopyGainsHasteAndIsSacrificedAtNextEndStep(t *t
 // control haste, so a corpus creature without haste can attack the turn it is
 // moved onto the battlefield (no direct write to summoning sickness).
 const setAuditHasteSrc = "Name:Haste Banner\nManaCost:0\nTypes:Enchantment\n" +
-	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Haste | Description$ Creatures you control have haste.\nOracle:x\n"
+	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Haste\nOracle:x\n"
 
 // TestSetAudit_tmt_Neutrinos_ExilesAndReturnsAttacking pins "Whenever The
 // Neutrinos attack, exile up to one target creature you own, then return it

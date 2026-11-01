@@ -26,5 +26,5 @@ const returnLandsSrc = "Name:Land Returner\nTypes:Creature\nPT:1/1\n" +
 // shockLandSrc is the shock-land entry shape: an Updated tap body gated on an
 // UnlessCost the entering land's controller is asked about.
 const shockLandSrc = "Name:Test Shock\nTypes:Land\n" +
-	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBTap | ReplacementResult$ Updated | Description$ As CARDNAME enters, you may pay 2 life. If you don't, it enters tapped.\n" +
-	"SVar:DBTap:DB$ Tap | ETB$ True | Defined$ Self | UnlessCost$ PayLife<2> | UnlessPayer$ You\nOracle:x\n"
+	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ Tap | ReplacementResult$ Updated\n" +
+	"SVar:Tap:DB$ Tap | ETB$ True | Defined$ Self | UnlessCost$ PayLife<2> | UnlessPayer$ You\nOracle:x\n"

@@ -36,7 +36,7 @@ func TestReanimateGainsControlOfGraveyardCreature(t *testing.T) {
 		t.Fatalf("reanimated creature owner=%d, want 1 (control changes, ownership does not)", o.Owner)
 	}
 	// The SubAbility$ DBLoseLifeYou chain: You lose life equal to its mana
-	// value (SVar:X:RememberedLKI$CardManaCost over the remembered LKI).
+	// value (X = RememberedLKI$CardManaCost over the remembered LKI).
 	if life := e.G.Players[0].Life; life != 14 {
 		t.Fatalf("seat 0 life=%d, want 14 (start 20 - 6 mana value)", life)
 	}

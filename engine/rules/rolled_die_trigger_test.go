@@ -226,11 +226,8 @@ func TestRolledDieOnceFiresOncePerMultiDieRoll(t *testing.T) {
 
 // TestRolledDieOnceFaridehDrawsOnTheBatchMax is the end-to-end leaf for the
 // second roll head, TriggerCountMax$Result, on real corpus Farideh, Devil's
-// Chosen. Her trigger is
-// T:Mode$ RolledDieOnce | ValidPlayer$ You,
-// SVar:TrigPump:DB$ Pump | Defined$ Self | KW$ Flying & Menace | SubAbility$ DBDraw,
-// SVar:DBDraw:DB$ Draw | ConditionCheckSVar$ DiceResult | ConditionSVarCompare$ GE10,
-// SVar:DiceResult:TriggerCountMax$Result -- "if any of those results was 10 or
+// Chosen. Her RolledDieOnce trigger pumps herself with flying and menace, then draws
+// a card if TriggerCountMax$Result is 10 or more: "if any of those results was 10 or
 // higher, draw a card".
 //
 // The canonical multi-die batch Note is emitted directly (the same encoding

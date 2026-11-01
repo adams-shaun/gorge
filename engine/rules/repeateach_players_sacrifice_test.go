@@ -14,8 +14,8 @@ import (
 // may sacrifice any number of creatures).
 const repeatEachSacSpell = "Name:Mass Offering\nManaCost:B\nTypes:Sorcery\n" +
 	"A:SP$ RepeatEach | RepeatSubAbility$ DBSac | RepeatPlayers$ %s | SpellDescription$ x\n" +
-	"SVar:DBSac:DB$ Sacrifice | Defined$ Remembered | Amount$ SacX | SacValid$ Creature | RememberSacrificed$ True | Optional$ True | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nSVar:SacX:Count$Valid Creature\nOracle:x\n"
+	"SVar:DBSac:DB$ Sacrifice | Defined$ Remembered | Amount$ Creatures | SacValid$ Creature | RememberSacrificed$ True | Optional$ True | SubAbility$ DBCleanup\n" +
+	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nSVar:Creatures:Count$Valid Creature\nOracle:x\n"
 
 // TestRepeatEachAsksEachRepeatedPlayerToSacrifice pins this shape on a
 // three-seat free-for-all board: a RepeatEach whose body

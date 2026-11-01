@@ -24,8 +24,8 @@ import (
 const grantedDiscardDrainGrantor = "Name:Test Blades Grantor\nManaCost:2\nTypes:Enchantment\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddTrigger$ CastTrig\n" +
 	"SVar:CastTrig:Mode$ SpellCast | ValidCard$ Artifact | ValidActivatingPlayer$ You | Execute$ TrigDraw | TriggerZones$ Battlefield\n" +
-	"SVar:TrigDraw:DB$ Draw | SubAbility$ DBDiscard\n" +
-	"SVar:DBDiscard:DB$ Discard | Defined$ You | NumCards$ 1 | Mode$ TgtChoose | RememberDiscarded$ True | SubAbility$ DBLoseLife\n" +
+	"SVar:TrigDraw:DB$ Draw | SubAbility$ Discard\n" +
+	"SVar:Discard:DB$ Discard | Defined$ You | NumCards$ 1 | Mode$ TgtChoose | RememberDiscarded$ True | SubAbility$ DBLoseLife\n" +
 	"SVar:DBLoseLife:DB$ LoseLife | Defined$ Opponent | LifeAmount$ X | SubAbility$ DBCleanup\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
 	"SVar:X:Remembered$CardManaCost\nOracle:x\n"

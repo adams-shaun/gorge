@@ -15,7 +15,7 @@ import (
 func TestRemoveAnyCounterCostOffersCounterKindChoice(t *testing.T) {
 	t.Parallel()
 	const fain = "Name:Fain, the Broker\nManaCost:2 B\nTypes:Legendary Creature Human Warlock\nPT:3/3\nK:Haste\n" +
-		"A:AB$ Token | Cost$ T RemoveAnyCounter<1/Any/Creature> | TokenScript$ c_a_treasure_sac | SpellDescription$ Create a Treasure token.\nOracle:x\n"
+		"A:AB$ Token | Cost$ T RemoveAnyCounter<1/Any/Creature> | TokenScript$ c_a_treasure_sac\nOracle:x\n"
 	targetCard := "Name:Counter Creature\nTypes:Creature\nPT:2/2\nOracle:x\n"
 	e, cfg, source := newFixtureDeck(t, 61, fain, targetCard)
 	target := moveSeeded(t, e, 0, targetCard, state.ZBattlefield)

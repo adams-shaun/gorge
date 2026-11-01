@@ -17,7 +17,7 @@ func TestSacrificeCostPrompt(t *testing.T) {
 		"A:AB$ GainLife | Cost$ Sac<1/Creature> | Defined$ You | LifeAmount$ 1 | SpellDescription$ Gain 1 life.\nOracle:x\n"
 	const creatureSrc = "Name:Prompt Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	const spellSrc = "Name:Prompt Rites\nManaCost:B\nTypes:Instant\n" +
-		"A:SP$ Draw | Cost$ B Sac<1/Creature> | NumCards$ 2 | SpellDescription$ Draw two cards.\nOracle:x\n"
+		"A:SP$ Draw | Cost$ B Sac<1/Creature> | NumCards$ 2\nOracle:x\n"
 
 	t.Run("activated ability", func(t *testing.T) {
 		e, _, source := newFixtureDeck(t, 181, abilitySrc, creatureSrc)

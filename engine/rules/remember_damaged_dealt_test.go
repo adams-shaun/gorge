@@ -189,7 +189,7 @@ func TestRememberDamagedStillExilesDealtCreature(t *testing.T) {
 // event can be fully prevented.
 const rememberPreventShield = `Name:Test Damage Shield
 Types:Enchantment
-R:Event$ DamageDone | ActiveZones$ Battlefield | Prevent$ True | ValidTarget$ You | Description$ Prevent all damage that would be dealt to you.
+R:Event$ DamageDone | ActiveZones$ Battlefield | Prevent$ True | ValidTarget$ You
 Oracle:x
 `
 

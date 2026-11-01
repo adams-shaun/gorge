@@ -12,8 +12,8 @@ import (
 // player defender ("TriggeredDefender.Opponent") with the planeswalker one
 // ("Valid Planeswalker.TriggeredDefender").
 const raidBombardmentSrc = "Name:Raid Bombardment\nManaCost:2 R\nTypes:Enchantment\n" +
-	"T:Mode$ Attacks | ValidCard$ Creature.powerLE2+YouCtrl | TriggerZones$ Battlefield | Execute$ TrigDamage | TriggerDescription$ x\n" +
-	"SVar:TrigDamage:DB$ DealDamage | Defined$ TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender | NumDmg$ 1\n" +
+	"T:Mode$ Attacks | ValidCard$ Creature.powerLE2+YouCtrl | TriggerZones$ Battlefield | Execute$ OnDamage | TriggerDescription$ x\n" +
+	"SVar:OnDamage:DB$ DealDamage | Defined$ TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender | NumDmg$ 1\n" +
 	"Oracle:x\n"
 
 const raidBombardmentAttacker = "Name:Raid Probe\nManaCost:1 R\nTypes:Creature Goblin\nPT:2/2\nOracle:x\n"
