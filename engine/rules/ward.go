@@ -405,7 +405,7 @@ func wardManaDecision(e *Engine, wm *wardManaPayment) *decision.Decision {
 	// and a window that kept offering its sources let an answerer that taps
 	// "while a source is offered" tap every land and then activate a
 	// non-tapping pool converter (Farrelite Priest's "{1}: Add {W}") forever
-	// (cardfuzz batch3 lines 9/11, Peacekeeper's upkeep unless-cost).
+	// (Peacekeeper's upkeep unless-cost).
 	// The pool-only predicate (lifeGrant false) matches the gate that opened
 	// the window (unlessManaWindowNeeded / advanceUnlessPayment): a {B} pip
 	// K'rrik's grant could settle with life must NOT mark the cost payable

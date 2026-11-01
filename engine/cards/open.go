@@ -135,7 +135,7 @@ func openCorpusWith(dir, fingerprint string, compile func(string) (*Registry, []
 	PruneCaches(dir, cache)
 	// Save failed (read-only corpus) or the just-written cache could not be
 	// read back: serve an imaged registry built in memory, so a read-only
-	// .cards still gets S4's pointer-free footprint. buildImage reads only
+	// .cards still gets the pointer-free footprint. buildImage reads only
 	// printed/derived fields, which the eager registry has, so this image is
 	// byte-identical to the gob route (TestImageCorpusOracle).
 	lr, err := imagedRegistry(r.AllCards(), r.Tokens)

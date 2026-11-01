@@ -97,11 +97,11 @@ type Bot struct {
 	payCand  decision.Decision
 }
 
-// M4: a compile-time assertion that Bot keeps satisfying Seat, since
+// A compile-time assertion that Bot keeps satisfying Seat, since
 // seat.go and bot.go otherwise never reference each other.
 var _ seat.Seat = (*Bot)(nil)
 
-// M4: Bot also satisfies BoardSeat — the game-shaped half of the adapter
+// Bot also satisfies BoardSeat — the game-shaped half of the adapter
 // pair, answered without a projected View. host builds the botpolicy.Board
 // (via BoardFromGame, the same Board BoardFromView would lift off the View)
 // under the match's exclusive lock and calls this instead of Decide, so a

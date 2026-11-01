@@ -1,13 +1,12 @@
-// The v2 entity/candidate table (spellbench policy-network build plan, S0,
-// P§3.3-P§3.6): ONE table shape every front end populates, so a network can
+// The v2 entity/candidate table: ONE table shape every front end populates, so a network can
 // train on rows built from gorge's own view.View and serve on rows built
-// from the spellbench protocol-v2 Observation, and P§3.9's parity test can
+// from the spellbench protocol-v2 Observation, and the parity test can
 // hold the two to byte-identity.
 //
 // The table has three parts:
 //
 //   - one V2Card row per object the acting seat can see, in the fixed order
-//     P§3.4 names: players in seat order, and per player the zones
+//     the table fixes: players in seat order, and per player the zones
 //     battlefield, hand (the acting seat only), graveyard, exile, command;
 //     then the stack, bottom to top. Both front ends iterate exactly this
 //     order, so a pointer feature's row index means the same object on both
@@ -20,13 +19,12 @@
 // shared by both front ends: a front end converts its own projection into
 // the neutral V2CardDatum / V2PlayerDatum / V2GlobalDatum below, and the
 // datum→row conversion — the part a checkpoint pins — is single-sourced.
-// Parity (P§3.9) then proves the two projections agree on the datum level.
+// Parity then proves the two projections agree on the datum level.
 //
-// S0 deliberately encodes only what BOTH projections supply. Fields only
+// The table deliberately encodes only what BOTH projections supply. Fields only
 // one side projects (the observation's colors, copy, poison, designations,
 // progress, lands played, known entries; the view's Round, LibraryTop,
-// Available, PotentialActions, AbilityCosts) are not encoded; S1 widens the
-// layout after the projector work (H5) closes the gaps. Residues that are
+// Available, PotentialActions, AbilityCosts) are not encoded. Residues that are
 // conventions rather than gaps are named at their datum field.
 
 package policynet
@@ -222,7 +220,7 @@ const (
 	v2cStackKind   = 54 // stack kind / 3 (0 off the stack)
 	v2cHasTargets  = 55
 	v2cTgtPlayer   = 56
-	// 57..63 reserved zero (S1 widens here)
+	// 57..63 reserved zero
 )
 
 // V2PlayerWidth is the dense scalar width of one player row.
@@ -325,7 +323,7 @@ func v2clamp(x, lo, hi float32) float32 {
 func v2satur(x, div float32) float32 { return v2clamp(x/div, -3, 3) }
 
 // V2CardRow converts one datum into the fixed row shape. THE single home of
-// the card encoding (P§3.9): both front ends call this.
+// the card encoding: both front ends call this.
 func V2CardRow(d V2CardDatum) V2Card {
 	raw := make([]float32, V2CardWidth)
 	raw[d.Zone] = 1
@@ -342,7 +340,7 @@ func V2CardRow(d V2CardDatum) V2Card {
 		raw[v2cOwnerOther] = 1
 	}
 	// Types. A facedown object's printed characteristics are NOT encoded in
-	// S0 (the two projections disagree about a face-down permanent's
+	// the table (the two projections disagree about a face-down permanent's
 	// characteristics: the observation reads the derived face-down shape, the
 	// view reads the printed face it may not redact for its looker), so the
 	// datum producers leave Types/Keywords/MV empty for a facedown object.
@@ -515,7 +513,7 @@ func V2GlobalRow(d V2GlobalDatum) V2Global {
 }
 
 // ---------------------------------------------------------------------------
-// Deterministic byte encoding. The parity test (P§3.9) compares tables via
+// Deterministic byte encoding. The parity test compares tables via
 // these bytes; a corpus dump stores the digest.
 
 // V2TableBytes returns the canonical byte encoding of a table: little-endian
@@ -642,7 +640,7 @@ func V2CardFromView(cv *view.CardView, zone uint8, viewer state.PlayerID, ctlSea
 		// the printed face PT of a creature in any zone, and the view's
 		// derived PT agrees with the printed face off the battlefield.
 	}
-	// S0's facedown convention (shared with front end V): a face-down
+	// The facedown convention (shared with front end V): a face-down
 	// object's printed face — name, types, keywords, mana value, and the
 	// power/toughness the two projections read differently (the view reads
 	// the derived shape, the observation the printed face for its looker) —
@@ -675,7 +673,7 @@ func V2CardFromView(cv *view.CardView, zone uint8, viewer state.PlayerID, ctlSea
 					d.Types = appendUniqueWord(d.Types, w)
 				}
 				// A subtype is neither encoded nor counted (the observation
-				// carries it in subtypes, which S0 does not read).
+				// carries it in subtypes, which the table does not read).
 			}
 		}
 		for _, k := range cv.Keywords {

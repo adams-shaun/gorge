@@ -613,8 +613,7 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		// copy this spell": the next living seat after the resolving
 		// controller in turn order (this build has no teams). Before this arm
 		// the unknown selector fell back to the resolving controller, so the
-		// CASTER was offered its own copy, and the copy's copy, forever
-		// (cardfuzz batch1 line 1).
+		// CASTER was offered its own copy, and the copy's copy, forever.
 		alive := g.AliveFrom(c.Controller)
 		if len(alive) < 2 {
 			return 0, false

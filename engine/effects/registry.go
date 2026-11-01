@@ -1423,7 +1423,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// discipline effCleanup documents): clearing lists that are
 			// already empty is a no-op, and logging it as a state change hid
 			// a no-progress Repeat from effRepeat's guard (Rally the Horde
-			// over an empty library, cardfuzz batch8 line 4).
+			// over an empty library).
 			if o := h.Game().Obj(c.Source); o != nil &&
 				(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
 				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})

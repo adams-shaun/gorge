@@ -416,7 +416,7 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			// value (Fealty to the Realm's "The monarch controls enchanted
 			// creature") and any other player spec resolve through. A
 			// qualified You/Opponent/Other base (You.isMonarch) still fails
-			// closed, like every fx20 qualifier not listed here.
+			// closed, like every qualifier not listed here.
 			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
 				return true
 			}
@@ -595,7 +595,7 @@ func attackedThisTurn(g *state.Game, p, d state.PlayerID, walker bool) bool {
 
 // descendedThisTurn counts the permanent CARDS that entered player p's
 // graveyard this turn from any zone (CR 700.11). This is the single read of
-// the fx20 descend provenance: the Player.descended predicate and the
+// the descend provenance: the Player.descended predicate and the
 // Count$YouDescendedThisTurn head both call it, so they cannot disagree.
 // A token or a nonpermanent card never counts ($PermanentCard is folded
 // from !IsToken/!IsCopy/IsPermanent at the move).

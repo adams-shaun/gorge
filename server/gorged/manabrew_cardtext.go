@@ -10,9 +10,8 @@ import (
 // manabrewCardText implements internal/manabrew.CardText over the art
 // cache's per-face facts sidecar (art.go: the six-field cardFacts record a
 // card's Scryfall named response already writes for the web client's own
-// /cards/named route). Wiring it to ManaBrew's Translator is MB-9/MB-10's
-// job (the ManaBrew HTTP transport that builds a Translator per table);
-// this type is the seam itself, exercised directly by the tests below.
+// /cards/named route). The type is the seam between that cache and ManaBrew's
+// Translator, exercised directly by this package's tests.
 //
 // Q9's five rules (scoping spec Section 10.1) hold here:
 //  1. Presentation only: nothing here touches events, the log, replay or a

@@ -229,7 +229,7 @@ type WireDecision = {
   options: Array<{ index: number; kind: string; label: string; obj?: number }>;
 };
 
-const fixtureToken = (seat: number): string => seat === 0 ? 'ui24fixture' : 'ui24fixture-1';
+const fixtureToken = (seat: number): string => seat === 0 ? 'boardfixture' : 'boardfixture-1';
 
 async function postFixtureIntent(request: APIRequestContext, base: string, d: WireDecision, choices: number[]): Promise<void> {
   const resp = await request.post(`${base}/api/tables/t1/matches/1/intent`, {

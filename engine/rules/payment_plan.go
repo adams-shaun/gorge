@@ -695,7 +695,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	defer e.endDerivedMemo()
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	got := e.planCastPaymentAtDecision(p, cast)
-	// PP-14: a Sac-bearing additional cost is answered by the ordinary in-flow
+	// A Sac-bearing additional cost is answered by the ordinary in-flow
 	// ask AFTER this validation, so the distinct-candidate assignment must
 	// still hold at submit time. Re-run the offer gate's own sacrifice
 	// feasibility check (nonManaCastable) on the composed cost and reject with

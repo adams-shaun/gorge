@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// LegacyDecide preserves the pre-B2 heuristic for the botbench head-to-head:
+// LegacyDecide preserves the original heuristic for the botbench head-to-head:
 // attackers are still all declared, and blockers are still selected by the
 // historical per-option coin. Its blocker arm is the one branch that reads
 // attacker facts beyond Board.IsMain: after the coin loop it drops a whole

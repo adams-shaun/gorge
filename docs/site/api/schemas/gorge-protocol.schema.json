@@ -756,7 +756,7 @@
       "x-go-type": "github.com/adams-shaun/gorge/engine/decision.Decision"
     },
     "DecisionBody": {
-      "description": "DecisionBody says who is being asked what; options come with the player seat (M2b), not here.",
+      "description": "DecisionBody says who is being asked what; options come with the player seat, not here.",
       "properties": {
         "kind": {
           "type": "string"
@@ -1467,7 +1467,7 @@
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.EventSeat"
     },
     "EventSeries": {
-      "description": "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series (E3-3). Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game.",
+      "description": "EventSeries is one pairing of an event round. State is \"pending\", \"live\", \"between\" or \"ended\" — \"between\" names the sideboarding step between two games of a series. Table names the live (or last) game's host table, so a spectator can watch at /t/{table}; Attempt is the game attempt in flight. Game is the live game, or the next one while between. Games is the winner seat per played game (-1 for a draw); Chooser names the event seat choosing play/draw for Game; Waiting lists the seats still to submit their deck while between. Winner is nil while the series is not ended and for a drawn series. Join appears only in the viewer's own state: the seat-tokenised spectate URL for that seat's side of the live game.",
       "properties": {
         "a": {
           "format": "int64",
@@ -3112,7 +3112,7 @@
       "x-go-type": "github.com/adams-shaun/gorge/engine/decision.RemovalEffect"
     },
     "ReviewDecision": {
-      "description": "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer, design D8/T4). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown.",
+      "description": "ReviewDecision is one entry of a review table's decision index, served only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions (match reviewer). Entry i describes the match log's Intents[i]: the decision the engine offered at that point and the answer the seat gave. It is derived at load from the replay itself -- the options and labels are never stored in a record -- so it is exactly what the seat was shown.",
       "properties": {
         "answer": {
           "type": "string"
@@ -3253,7 +3253,7 @@
       "description": "An undo rolled the live match back in place: discard everything past `body.head`, then apply the body like a snapshot."
     },
     "SeatInfo": {
-      "description": "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused (dispatch fb-20260911T201015Z).",
+      "description": "SeatInfo names a seat for the identity bars; Colour is the seat colour the client keeps consistent from overview to focused view. Human marks a seat played by a real person (TableConfig.Humans): additive and omitempty (old sidecars and every bot seat omit it), it is what tells a client whether an undo control may be offered — the registry refuses an undo on any table whose human seats are not all the requester, so a seat that can see two humans on the wire can know its UNDO button would be refused see two humans on the wire can know its UNDO button would be refused.",
       "properties": {
         "colour": {
           "type": "string"
@@ -3345,7 +3345,7 @@
           "type": "integer"
         },
         "seats": {
-          "description": "Seats is the live match's seat list, the same []SeatInfo MatchStart carries. A focus subscriber (server/host/session.go's Subscribe) receives a snapshot but not the match's match_start frame — that went out before it connected — so without this the table route has no way to learn the seats for the current match (ui16). Always populated for a live match; never omitempty, so the client type stays a plain SeatInfo[].",
+          "description": "Seats is the live match's seat list, the same []SeatInfo MatchStart carries. A focus subscriber (server/host/session.go's Subscribe) receives a snapshot but not the match's match_start frame — that went out before it connected — so without this the table route has no way to learn the seats for the current match. Always populated for a live match; never omitempty, so the client type stays a plain SeatInfo[].",
           "items": {
             "$ref": "#/$defs/SeatInfo"
           },
@@ -3570,7 +3570,7 @@
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.Subscribe"
     },
     "TableHaltedBody": {
-      "description": "TableHaltedBody is spec D15: a crashed table stops and says why.",
+      "description": "TableHaltedBody says a crashed table stopped, and why.",
       "properties": {
         "reason": {
           "type": "string"
@@ -3658,7 +3658,7 @@
           "type": "integer"
         },
         "series": {
-          "description": "Series marks a series table (TableConfig.Series, E3-2): it plays match after match, its end decided by the series hook rather than a match count, and between games it sits in the \"between_games\" table_state while players sideboard. omitempty: false is the default and the zero value, so a non-series table is byte-identical to a table before the field existed.",
+          "description": "Series marks a series table (TableConfig.Series): it plays match after match, its end decided by the series hook rather than a match count, and between games it sits in the \"between_games\" table_state while players sideboard. omitempty: false is the default and the zero value, so a non-series table is byte-identical to a table before the field existed.",
           "type": "boolean"
         },
         "spectator": {

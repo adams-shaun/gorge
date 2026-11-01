@@ -110,8 +110,7 @@ func IsAbort(stallOn string) bool { return stallOn == "livelock" || stallOn == "
 // HonestRoot, when set, routes the search branch's DecideSearch call through
 // searchseat.HonestRoot: the seat answers against a redeal of the live
 // position, built from its own observation feed at this boundary, instead of
-// the live engine -- the hosted-bot contract (spec 2026-09-28
-// hosted-bot-packages §5.3). The deal seed is bots.RootSeed over the seat's
+// the live engine -- the hosted-bot contract. The deal seed is bots.RootSeed over the seat's
 // per-seat seed (the game seed XOR the seat index plus one) and the decision
 // sequence number, so a root is a pure function of the feed and the decision
 // index. A refused redeal (nil root) plays the wrapped bot at that decision
@@ -212,7 +211,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	if newEng == nil {
 		newEng = rules.New
 	}
-	// The default object cap (CV-8): a caller that set no explicit budget
+	// The default object cap: a caller that set no explicit budget
 	// (cmd/cardfuzz's -max-objects, a search harness's own LoopGuard) plays
 	// under rules.DefaultMaxObjs, so a degenerate token storm ends as a
 	// recorded bigboard stall (the classification below) instead of growing
@@ -618,8 +617,8 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		return o, e, recErr
 	}
 	if lle != nil && rules.IsVolumeReason(lle.Reason) {
-		// A runaway burst on a board past rules.RunawayBigBoardObjs (CV-2)
-		// and the armed object cap (CV-8) are volume, not a loop: a stalled
+		// A runaway burst on a board past rules.RunawayBigBoardObjs
+		// and the armed object cap are volume, not a loop: a stalled
 		// game (the cardfuzz "bigboard" kind), excluded from rates like any
 		// watchdog cap.
 		return finish(Outcome{StallOn: "bigboard", Turns: e.G.Turn, Intents: n, Livelock: lle.Error()})
@@ -659,7 +658,7 @@ func emitRecord(sink *matchrecord.Sink, cfg rules.Config, l *events.Log, xt *exp
 }
 
 // reanswerRefused is PlayGame's refusal ladder, the driver-side mirror of the
-// hosted match's BP-06 ladder (server/host/match.go): after the engine refuses a
+// hosted match's refusal ladder (server/host/match.go): after the engine refuses a
 // Submit the pending decision survives, so the seat is asked once more -- if
 // it opts in with bots.RefusalAnswerer -- and then the shared bots.Fallbacks
 // are tried in order. The first intent the engine accepts wins; nil means one

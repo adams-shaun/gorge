@@ -468,7 +468,7 @@ func (e *Engine) castTargetsAvailable(p state.PlayerID, id state.ObjID, sa *card
 // too. Without that, a creature that GAINED an Equip ability (Trazyn the
 // Infinite with an Equipment in its owner's graveyard) as the only creature
 // its controller had was offered an Equip whose ask then found no legal
-// target and aborted, forever (cardfuzz batch5 line 1). An ability cost that
+// target and aborted, forever. An ability cost that
 // announces an X (a {X} mana symbol or PayEnergy<X>) relaxes an X-bound spec
 // to the post-announcement backstop.
 func (e *Engine) abilityTargetsAvailable(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {

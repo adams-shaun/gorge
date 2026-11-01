@@ -28,8 +28,8 @@ type sidecar struct {
 	// PlayerNames), independent of the deck. Persisted so a restarted or
 	// archived match rebuilds a view whose player box names the seat the
 	// same way the live one did. Omitted/older sidecars rebuild
-	// without it, which replays the display names back to the deck stem — the
-	// pre-B3 behaviour — so nothing migrates.
+	// without it, which replays the display names back to the deck stem, so
+	// nothing migrates.
 	PlayerNames []string `json:"player_names,omitempty"`
 	Decks       []string `json:"decks"`
 	Spectator   string   `json:"spectator"`

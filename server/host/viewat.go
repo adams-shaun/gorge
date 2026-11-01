@@ -96,7 +96,7 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 }
 
 // Events is every redacted, described event from since (inclusive) to the
-// head, in chain order. Redaction is against the state at head (PL-15),
+// head, in chain order. Redaction is against the state at head,
 // which holds because g is cloned at the tail's own head — RedactEventsFor
 // and Describe read "the state as of the last event in evs".
 //
@@ -129,12 +129,12 @@ func (r *Registry) Events(id TableID, k int, since uint64) ([]protocol.EventBody
 }
 
 // EventsSeat is every event from since (inclusive) to the head, redacted
-// for player as a seat (Task M2b-4): their own secret draws keep their
+// for player as a seat: their own secret draws keep their
 // cards, a card that entered any other seat's hidden zone never surfaces.
 // Mirrors Events — the only difference is the redaction mode, Seat instead
 // of the table's spectator visibility, i.e. only the viewer/visibility pair
 // handed to the common eventBodiesFor. While the CR 103.1 starting-player
-// choice is pending (E3-fx3, CR 103.5) the seat's own Secret events are
+// choice is pending (CR 103.5) the seat's own Secret events are
 // redacted to the opponent shape instead: no opening-hand id leaves the
 // server during the window.
 func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.PlayerID) ([]protocol.EventBody, error) {
@@ -155,7 +155,7 @@ func (r *Registry) EventsSeat(id TableID, k int, since uint64, player state.Play
 	}
 	g := m.g.Board().Clone()
 	evs := append([]events.Event(nil), m.g.Log().Events[since:]...)
-	// E3-fx3: while the CR 103.1 starting-player choice is pending, no
+	// While the CR 103.1 starting-player choice is pending, no
 	// player may see any hand (CR 103.5), so the seat's own Secret events
 	// -- the opening-hand deal's Draw events -- are served shape-only,
 	// exactly as an opponent's (card ids dropped, the event's shape kept).
@@ -250,7 +250,7 @@ func (t *table) archivedMatch(k int) (sidecar, bool) {
 // loadArchived rebuilds enough of a finished match to serve ViewAt/Events:
 // the log from its files, then matchForLog for everything else. It is the
 // on-disk entry to the read side; an embedder's persisted observer log
-// (Task M2c-3) takes the same matchForLog with the log already in hand,
+// takes the same matchForLog with the log already in hand,
 // so both sources are served through the exact same shape.
 //
 // sc is t.archived's index entry, which carries no NameUniverseNames (see
@@ -273,7 +273,7 @@ func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 
 // matchForLog builds the read-side shape of a finished match whose log is
 // already in hand — the readLog-equivalent for a non-file source, e.g. an
-// embedder's persisted observer log (Task M2c-3). Only the log's origin
+// embedder's persisted observer log. Only the log's origin
 // differs from loadArchived: a Config is rebuilt from the sidecar's names
 // and decks and the log is replayed to its end state, so ViewAt/EventsSeat
 // serve a sink-sourced match exactly as a live or on-disk one. head views
@@ -303,7 +303,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		archetypes[i] = d.Archetype
 	}
 	gc := game.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Archetypes: archetypes, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans, WindowDiagnostics: t.cfg.WindowDiagnostics, DisablePaidManaCensus: !sc.PaidManaCensus, NoObjectCap: true, Key: sc.EngineKey}
-	// E3-2: a configured starting-player chooser (the seat posed CR 103.1's
+	// A configured starting-player chooser (the seat posed CR 103.1's
 	// choice in place of the toss winner) is replay input exactly like
 	// Mulligans — the genesis Note names it, so a replay rebuilt without it
 	// replays the toss instead and diverges. A copied int, so the sidecar's
@@ -315,14 +315,14 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	// NameUniverse is a match MODE, not just data, and NameUniverseNames pins
 	// the exact ordered labels it offered. A pre-feature sidecar (no field)
 	// gets neither and therefore takes the legacy no-universe path, so a log
-	// that recorded no name decision still reproduces (R-8.4).
+	// that recorded no name decision still reproduces.
 	if sc.NameUniverse {
 		gc.NameUniverse = r.opts.NameUniverse
 		gc.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
 	}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
-	// reproduces the live match branch for branch (R-8.4: the replay Config
+	// reproduces the live match branch for branch (the replay Config
 	// is rebuilt from this sidecar alone, and the engine builds a command
 	// zone — and a 40-life start — off exactly those values). An old
 	// sidecar's zero Format is constructed, which needs none of this.
@@ -333,7 +333,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 	}
 	g, err := engine.Replay(l, gc)
 	if err != nil {
-		// fb-20260915T094418Z: readLog's reconcileLog trims the file to the
+		// readLog's reconcileLog trims the file to the
 		// last burst's ask boundary (the crash-cut protection, kept — see
 		// reconcileLog), but a burst may legitimately extend past its last
 		// DecisionAsk, so a match parked or ended on such a burst persists a
@@ -367,7 +367,7 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 // because the last recorded burst's own post-ask continuation — the SBA
 // pass and step handler a mid-burst DecisionAsk does not stop (rules
 // Engine.Submit) — legitimately emitted events the trimmed recording does
-// not carry (fb-20260915T094418Z), and the reproduced stream —
+// not carry, and the reproduced stream —
 // reconstructed tail included — chaining to the sidecar's full-stream head.
 // The chain comparison is the whole proof: a head taken over the FULL
 // stream matches only a byte-exact reproduction of that stream, so an
@@ -402,13 +402,13 @@ func (m *match) replaySource() replaySource {
 	return replaySource{engine: m.engine, config: m.gc, caps: m.g.Caps()}
 }
 
-// viewAt is PL-1: find the last intent boundary j with bounds[j] <= seq+1,
-// reach it from the nearest snapshot (or genesis) by re-submitting the
-// recorded intents, apply the rest of that burst's events onto the fork's
-// own board, and project. Zones, life, damage, counters and the stack are
+// viewAt finds the last intent boundary j with bounds[j] <= seq+1, reaches
+// it from the nearest snapshot (or genesis) by re-submitting the recorded
+// intents, applies the rest of that burst's events onto the fork's own board,
+// and projects. Zones, life, damage, counters and the stack are
 // exact at every seq; derived P/T from continuous effects and the pending
 // tray are as of the burst's start (at most one resolution stale) — and a seq
-// strictly inside a burst's overshoot tail (fb-20260915T094418Z) is as of the
+// strictly inside a burst's overshoot tail is as of the
 // tail's end, at most the one Submit's continuation ahead, the same tolerance.
 //
 // A game without Caps.SubBurstViews cannot rebuild a board from logged events,
@@ -470,7 +470,7 @@ func viewAt(src replaySource, l *events.Log, snaps []snapshot, seq uint64, viewe
 			return view.View{}, fmt.Errorf("host: replay intent %d: %w", i, err)
 		}
 	}
-	// fb-20260915T094418Z: a burst does not always end at its last
+	// A burst does not always end at its last
 	// DecisionAsk. Engine.Submit runs handle, then — whether or not handle
 	// just asked a fresh decision — the SBA pass and the step handler's
 	// continuation can still emit events before Submit returns, so the
@@ -517,7 +517,7 @@ func viewAt(src replaySource, l *events.Log, snaps []snapshot, seq uint64, viewe
 	}
 	v = view.ProjectFor(g.Board(), g.Chars(), viewer, vis, d)
 	// The round at seq is the exact round-trip count as of that moment, not
-	// the snapshot-only roundOf approximation ProjectFor fills in (ui13): fold
+	// the snapshot-only roundOf approximation ProjectFor fills in: fold
 	// the logged events up to and including the event the board shows. This is
 	// what makes the DVR's round match the live board clock across a mid-round
 	// elimination.

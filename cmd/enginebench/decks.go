@@ -16,11 +16,10 @@ import (
 )
 
 // corpusMode names which corpus shim this build links. One value survives:
-// every run opens the whole corpus, since S4 made cards.OpenCorpusFor a
-// wrapper over SharedCorpus and S8 deletes the subset route entirely.
+// every run opens the whole corpus.
 var corpusMode = "full"
 
-// The docs/015 §6 workloads.
+// The comparison's workloads.
 var pairs = map[string][2]string{
 	"A": {"FDN_top_04956_UG", "FDN_top_20626_WG"},
 	"B": {"FDN_top_07961_WR", "FDN_top_02581_UR"},
@@ -51,11 +50,8 @@ type workload struct {
 	paidManaCensus bool
 }
 
-// openCorpus opens the corpus: the whole corpus, as every gorge bench did at
-// a4af596. A build tagged enginebench_subset could replace this with
-// cards.OpenCorpusFor over the workloads' card names; S4 (pointer-free corpus
-// design) made OpenCorpusFor a wrapper over SharedCorpus and S8 deletes it,
-// so the tag and its shim are gone and there is one corpus open.
+// openCorpus opens the whole corpus. There is no subset route, so every run
+// has one corpus open.
 var openCorpus = func(dir string, names []string) (*cards.Registry, error) {
 	reg, err := testutil.OpenCorpusRegistry(dir)
 	if err != nil {
@@ -219,7 +215,7 @@ func (w workload) lookup(name string) (*cards.Card, error) {
 	return nil, fmt.Errorf("card %q is not in the corpus", name)
 }
 
-// config is game g of a pair: seats swap every game (docs/015 §6), and the
+// config is game g of a pair: seats swap every game, and the
 // engine seed is base+g.
 func (w workload) config(decks [2][]*cards.Card, names [2]string, base uint64, g int) rules.Config {
 	a, b := 0, 1

@@ -219,8 +219,8 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 			if kind == "name" && len(opts) == 0 {
 				// No name passes the filter: the legacy (no-universe) builder
 				// only sees public objects, so "choose a nonbasic land card
-				// name" with none in view (Alpine Moon, cardfuzz batch1 line
-				// 14) built a Min 1 ask with zero options that no answer
+				// name" with none in view (Alpine Moon) built a Min 1 ask
+				// with zero options that no answer
 				// could satisfy. Mirror effNameCard's own empty-list rule so
 				// the two NameCard paths agree: without a corpus universe (or
 				// with no ChooseFromList$) it names the deterministic legacy

@@ -63,7 +63,7 @@ type engineResolution struct {
 	// body that poses an ask needs Replaced (and Remembered = [that object],
 	// and the X value) restored on the resume, or its Defined$ ReplacedCard
 	// resolution and SVar:X Remembered$Amount gating see nothing and the
-	// completed move never happens (fx44, Mox Diamond). Zero whenever no
+	// completed move never happens (Mox Diamond). Zero whenever no
 	// replacement is in flight.
 	replReplaced state.ObjID `clone:"reset"`
 	// replReplacedCards is the ordered plural batch (Ctx.ReplacedCards) of the

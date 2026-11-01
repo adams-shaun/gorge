@@ -679,7 +679,7 @@ func (b Board) indeterminateSourceUntapped() bool {
 	return false
 }
 
-// The converter gate (cardfuzz batch1 lines 3/5/6/10/16/17). A mana
+// The converter gate. A mana
 // ability whose cost spends POOL mana and does not tap its source (Farrelite
 // Priest's and Bog Initiate's "{1}: Add {W}/{B}", Initiates of the Ebon
 // Hand) is a converter: it can be activated any number of times, and each
@@ -861,7 +861,7 @@ func conversionDeficit(c Card, pips [5]int32, pool state.Mana) int32 {
 	return d
 }
 
-// The payment-window converter gate (cardfuzz batch3 lines 9/11). The priority gate
+// The payment-window converter gate. The priority gate
 // keeps a converter from looping at PRIORITY, but the engine also offers
 // mana sources as "activate" options inside KChoose payment windows (the
 // cast payment window, the UnlessCost$ and Ward windows, cumulative upkeep),

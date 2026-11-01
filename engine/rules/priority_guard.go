@@ -11,8 +11,8 @@ import (
 )
 
 // A submitted-but-inert priority action is the livelock class cardfuzz kept
-// finding (batch7 line 2: a granted ability the activation could not
-// resolve; batch9 line 1: a mana ability offered off a face-down grantor):
+// finding (a granted ability the activation could not
+// resolve; a mana ability offered off a face-down grantor):
 // the offer walk (legalActions) and the handler behind the chosen option
 // disagreed, the handler returned without an event, priority came straight
 // back with the identical option list, and a seat that re-chose the option

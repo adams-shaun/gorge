@@ -1119,7 +1119,7 @@ playLoop:
 					// rung, not the seat's first answer) on the actor's feed, after
 					// the Submit that took it (§5.2 Record).
 					m.feeds.record(drec, in)
-					if e := r.afterBurst(t, m, before); e != nil { // Tasks 11, 12
+					if e := r.afterBurst(t, m, before); e != nil {
 						return fmt.Errorf("persist: %w", e)
 					}
 					// Still exclusive: project the engine's NEXT decision (nil when the
@@ -1308,7 +1308,7 @@ func (r *Registry) settleNaturalEndOrUndo(t *table, m *match) (state.PlayerID, b
 	}
 	m.mu.Unlock()
 
-	r.onMatchEnd(t, m) // Tasks 10, 12
+	r.onMatchEnd(t, m)
 	r.observeMatchEnd(t, m)
 	return 0, false, protocol.MatchFinished
 }

@@ -14,10 +14,10 @@
 // shape; against gonet (float64 layernorm and dot) the logits agree to fp32
 // rounding (TestShapesMatchGonet, TestParityWithGonet).
 //
-// It exists for the FDN microkernel plan's phase 4 microbenchmark: how much
-// faster can one evaluation be without changing the network, its inputs or
-// the search. The hot path allocates nothing after the first call per
-// scratch; the package reads no clock (timing lives in the benchmark).
+// It exists to measure how much faster one evaluation can be without
+// changing the network, its inputs or the search. The hot path allocates
+// nothing after the first call per scratch; the package reads no clock
+// (timing lives in the benchmark).
 //
 // A caller that knows which cards are unchanged between evaluations can
 // precompute them (cards.go): CardIdentity is a card's per-identity half,

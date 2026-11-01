@@ -1,9 +1,9 @@
-// The v2 candidate table (P§3.5): the shared encoding of one scored
+// The v2 candidate table: the shared encoding of one scored
 // alternative. The intermediate V2SemCand carries the semantic FIELDS the
 // spellbench v2 protocol poses (the "kind" plus its typed companions); the
 // V front end decodes them from a wire Candidate's fields, the G side
 // mirrors the per-option semantic construction of the gorge adapter
-// (v2engine, the D§6 mapping run in reverse), and the encoder to the fixed
+// (v2engine, its mapping run in reverse), and the encoder to the fixed
 // row shape is single-sourced here.
 //
 // A candidate's pointer references are encoded twice: as dense scalar slots

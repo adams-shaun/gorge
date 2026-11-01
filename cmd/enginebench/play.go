@@ -19,7 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/bench"
 )
 
-// Game caps. docs/015 reports gorge's random games at 36-43 turns; a game
+// Game caps. The comparison reports gorge's random games at 36-43 turns; a game
 // that reaches a cap is counted as a stall, and its turns still count.
 const (
 	maxTurns   = 300
@@ -87,7 +87,7 @@ func (s *intentScratch) permInto(n int, r *rand.Rand) []int {
 // at the option count), then that many distinct options uniformly, in random
 // order. At a priority decision (Min = Max = 1) that is uniform over the
 // offered options, a mana ability's activation included: gorge's random
-// player taps lands one at a time (docs/015 §6). The "concede" option every
+// player taps lands one at a time, as in the comparison. The "concede" option every
 // priority decision carries is never drawn (a uniform player would concede
 // on turn 1 in most games).
 //
@@ -439,7 +439,7 @@ func playBotWithPool(cfg rules.Config, autopay bool, st *botStats, pool *bench.S
 	if walkStatsFlag {
 		// A Decision hook disables the kernel's synchronous answerer; it does
 		// not change priority asks. It is how the observer sees each posed
-		// decision on the bot row (spec §9.1).
+		// decision on the bot row.
 		var eng *rules.Engine
 		hooks.SyncAnswer = false
 		hooks.Setup = func(e *rules.Engine) { eng = e; wm.reset() }

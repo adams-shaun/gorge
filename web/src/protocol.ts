@@ -82,7 +82,7 @@ export interface TableInfo {
    */
   auto_mana: boolean;
   /**
-   * Series marks a series table (TableConfig.Series, E3-2): it plays match
+   * Series marks a series table (TableConfig.Series): it plays match
    * after match, its end decided by the series hook rather than a match
    * count, and between games it sits in the "between_games" table_state
    * while players sideboard. omitempty: false is the default and the zero
@@ -145,7 +145,7 @@ export interface Widget {
    * whether an undo control may be offered — the registry refuses an undo on
    * any table whose human seats are not all the requester, so a seat that can
    * see two humans on the wire can know its UNDO button would be refused
-   * (dispatch fb-20260911T201015Z).
+   * see two humans on the wire can know its UNDO button would be refused.
    */
 export interface SeatInfo {
   name: string;
@@ -1711,7 +1711,7 @@ export interface Snapshot {
    * carries. A focus subscriber (server/host/session.go's Subscribe) receives a
    * snapshot but not the match's match_start frame — that went out before
    * it connected — so without this the table route has no way to learn the
-   * seats for the current match (ui16). Always populated for a live match;
+   * seats for the current match. Always populated for a live match;
    * never omitempty, so the client type stays a plain SeatInfo[].
    */
   seats: SeatInfo[];
@@ -1749,7 +1749,7 @@ export interface EventBody {
 
   /**
    * DecisionBody says who is being asked what; options come with the player
-   * seat (M2b), not here.
+   * seat, not here.
    */
 export interface DecisionBody {
   player: number;
@@ -1768,7 +1768,7 @@ export interface MatchEnd {
 }
 
   /**
-   * TableHaltedBody is spec D15: a crashed table stops and says why.
+   * TableHaltedBody says a crashed table stopped, and why.
    */
 export interface TableHaltedBody {
   reason: string;
@@ -1781,7 +1781,7 @@ export interface TableHaltedBody {
    * TableLive while a match is on the table, and TableIdle otherwise. The
    * envelope's Table names the table.
    *
-   * E3-fx2 chose a new frame over reusing an existing one: the widget frame
+   * This is a frame of its own, not a reuse of an existing one: the widget frame
    * carries a State field but is only built from a live match (host/widgetFrame
    * reads the engine), and a series table between games has no match at all
    * (server/host/registry.go retires it before the hook plans the next), so no widget
@@ -1901,7 +1901,7 @@ export interface EventSeat {
   /**
    * EventSeries is one pairing of an event round. State is "pending", "live",
    * "between" or "ended" — "between" names the sideboarding step between two
-   * games of a series (E3-3). Table names the live (or last) game's host
+   * games of a series. Table names the live (or last) game's host
    * table, so a spectator can watch at /t/{table}; Attempt is the game
    * attempt in flight. Game is the live game, or the next one while between.
    * Games is the winner seat per played game (-1 for a draw); Chooser names
@@ -2196,7 +2196,7 @@ export interface ReviewOption {
   /**
    * ReviewDecision is one entry of a review table's decision index, served
    * only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions
-   * (match reviewer, design D8/T4). Entry i describes the match log's
+   * (match reviewer). Entry i describes the match log's
    * Intents[i]: the decision the engine offered at that point and the answer
    * the seat gave. It is derived at load from the replay itself -- the
    * options and labels are never stored in a record -- so it is exactly what

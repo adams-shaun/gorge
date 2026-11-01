@@ -270,7 +270,7 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyCostYouDescendedThisTurn:
 		// The number of times the resolving controller descended this turn
 		// (CR 700.11): The Mycotyrant's TokenAmount$ X and Molten Collapse's
-		// CharmNum$ Count$Compare Y GE1.2.1. Reads the same fx20 provenance
+		// CharmNum$ Count$Compare Y GE1.2.1. Reads the same descend provenance
 		// ledger as the Player.descended predicate (descendedThisTurn), so
 		// the head and the predicate cannot drift. An out-of-range seat and
 		// an empty ledger are both a MODELLED zero -- never the unresolvable

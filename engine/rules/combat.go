@@ -1513,8 +1513,8 @@ type combatRound struct {
 	// under it, but completeCombatPass must wait for the answer. When the
 	// Advance loop re-enters combatStep after that answer, dealing routes it
 	// to the pass's completion instead of beginning the SAME pass again,
-	// which re-dealt the already-dealt combat damage forever (cardfuzz batch5
-	// line 10: choose -> damage -> replacement ask -> ... repeated).
+	// which re-dealt the already-dealt combat damage forever (choose ->
+	// damage -> replacement ask -> ... repeated).
 	dealing bool `clone:"deep"`
 }
 

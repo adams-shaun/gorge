@@ -218,7 +218,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "walkClsOwner"}:    true,
 	{"rules.Engine", "offerProbeDepth"}: true,
 	{"rules.Engine", "staticTouchGen"}:  true,
-	// The S4 own-battlefield mana-membership carry (mana_member_carry.go):
+	// The own-battlefield mana-membership carry (mana_member_carry.go):
 	// a walk cache keyed on the board stamp plus a mana-relevant log cursor;
 	// Clone copies none (ownManaCarry gives a copy its own on first use).
 	{"rules.Engine", "manaCarry"}: true,
@@ -311,7 +311,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "derivedPrevEntered"}: true,
 	{"rules.Engine", "activeList"}:         true,
 	// The rename table's arena-size key and its derivedSeq stamp
-	// (setname.go), the renames/* cache keys, and the E2 measurement
+	// (setname.go), the renames/* cache keys, and the measurement
 	// diagnostic counting refreshRenames' exits (never read by rules; Clone
 	// resets it, so the live run's tally and a clone's cannot agree).
 	{"rules.Engine", "renameObjs"}:         true,
@@ -363,18 +363,13 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "legalScratch"}: true,
 }
 
-// The engine_struct embedding refactor (2026-09-30) moved most of the Engine
-// struct's fields onto anonymous embedded cluster structs (engineScratch,
-// engineResolution, ...). The differ's walk visits those clusters under their
-// own "rules.<Type>" keys, and a promoted field's reflective path grew a
-// cluster prefix -- so the table above, keyed {"rules.Engine", field} exactly
-// as doc.go's exclusion table documents it, stopped matching and every
-// excluded cache started being compared again (the module-gate failure this
-// resolution closed: all ten failing route pairs diverged on
-// engineScratch.derivedMemo / engineDerivedTables.types* /
-// engineLayerCaches.activeBuildSeq). The two tables below, built once by
-// reflect over rules.Engine, keep the documented spellings working however
-// the fields are clustered:
+// Most of the Engine struct's fields live on anonymous embedded cluster structs
+// (engineScratch, engineResolution, ...). The differ's walk visits those
+// clusters under their own "rules.<Type>" keys, and a promoted field's
+// reflective path carries a cluster prefix, so the table above, keyed
+// {"rules.Engine", field} as doc.go's exclusion table documents it, does not
+// match them. The two tables below, built once by reflect over rules.Engine,
+// keep the documented spellings working however the fields are clustered:
 //
 //   - engineExcludedByType maps each struct type reachable from Engine by
 //     anonymous embedding to its fields that carry an exclusion entry,

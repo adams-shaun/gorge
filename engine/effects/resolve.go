@@ -573,7 +573,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 
 // encodeRemembered turns a Remembered target list into the []ObjID an event
 // carries, PlayerRef-encoding a player target the same way rules.pushTrigger
-// does (FL-41) so events.Apply's rememberedFrom decodes it back to a player
+// does so events.Apply's rememberedFrom decodes it back to a player
 // target rather than a zero object id. It mirrors the rule in effects since
 // effects cannot import rules.
 func encodeRemembered(remembered []state.Target) []state.ObjID {
@@ -668,7 +668,7 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 				// iteration up to the cap is the same no-op (Rally the Horde
 				// over an empty library: nothing is exiled, "the last card
 				// exiled isn't a land" keeps holding -- 1000 empty passes, a
-				// livelock to the watcher; cardfuzz batch8 line 4). End the
+				// livelock to the watcher). End the
 				// loop here, the optional arm's CR 732.2a shortcut below.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 					Text: "the repeated process changed nothing; it is not repeated again"})

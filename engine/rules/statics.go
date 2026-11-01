@@ -300,7 +300,7 @@ func (e *Engine) scanActionStaticsMode(carriersOnly bool) actionStaticViews {
 				// "{T}: Add {G}" (the offer's cached snapshot) while the
 				// activation's fresh activeStatics walk did not, so the
 				// offered "Activate ... for mana" was a silent no-op
-				// re-offered forever (cardfuzz batch9 line 1).
+				// re-offered forever.
 				if e.printedAbilitiesGone(o) {
 					continue
 				}

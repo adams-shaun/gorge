@@ -1430,7 +1430,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// strict-supersets discipline effDiscard applies. An Optional$
 			// reveal answers its own yes/no ask FIRST (the block below); the
 			// pick then poses on that accepted answer's re-walk. A DECLINED
-			// optional (fx45) must never reach the pick, or a MANDATORY
+			// optional must never reach the pick, or a MANDATORY
 			// reveal_pick would be posed over the declined cards; the decline
 			// `continue` below runs after this block, so gate here.
 			declined := optional && answerForTarget == "no"

@@ -7,7 +7,7 @@ import (
 )
 
 // The ability-object Ctx seeds resolveTop's ability branch and
-// resumeResolution share (spike S3, legacy defect 3). A suspended resolution
+// resumeResolution share. A suspended resolution
 // re-enters through resumeResolution with a freshly built Ctx, so every seed
 // the first pass derived from the stack object must be derived the same way
 // on the resume, or the resumed chain reads a different Ctx than the one it

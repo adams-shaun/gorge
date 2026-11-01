@@ -162,7 +162,7 @@ type InternalFunc func(*Env, *decision.Decision) (decision.Intent, error)
 
 var internals = map[string]InternalFunc{}
 
-// RegisterInternal makes route an engine-internal answer (Tasks 16 and 21).
+// RegisterInternal makes route an engine-internal answer.
 func RegisterInternal(route string, f InternalFunc) { internals[route] = f }
 
 // Internal answers d when its route is engine-internal; ok is false otherwise.

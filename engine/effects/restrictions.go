@@ -1013,7 +1013,7 @@ func replacementLineWith(params map[string]string) string {
 // Before this, Mavinda, Students' Advocate's "if that spell would be put into
 // your graveyard, exile it instead" was a Note: the recast card went back to
 // the graveyard while the MayPlay grant still named it, so a {0} sorcery
-// (Indicate) was recast forever inside one turn (cardfuzz batch5 line 7).
+// (Indicate) was recast forever inside one turn.
 // The same promise is the whole point of Jace, Vryn's Prodigy, Dire Fleet
 // Daredevil, Gaea's Will and the other ~20 carriers of this shape.
 func replacementRedirectsToExile(params map[string]string, body string, svars map[string]string) bool {

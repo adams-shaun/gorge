@@ -581,7 +581,7 @@ func playerRoleDefined(defined string) bool {
 // is the chooser still to ask; a non-nil Ctx.Modes is the answer for the
 // chooser at index-1, whose chosen body has not yet run. A nested
 // GenericChoice in a chosen body sees a nil cursor for the body's walk
-// (cleared around Resolve, the fx41 discipline) and resolves its own Defined$
+// (cleared around Resolve) and resolves its own Defined$
 // rather than inheriting this one.
 func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool {
 	// TempRemember$ (Forge ChooseGenericEffect): when present, the chooser is
@@ -773,7 +773,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	// Announced modes: Ctx.Modes already names the chosen SVars in execution
 	// order, so run exactly those and do not ask.
 	if c.Modes != nil {
-		// fx41: take the names into a local and clear c.Modes BEFORE running
+		// Take the names into a local and clear c.Modes BEFORE running
 		// them. The same Ctx is handed to Resolve for every mode AND to the
 		// Charm's own SubAbility$, and nothing else in the walk reads Modes,
 		// so an uncleared field would leak the OUTER Charm's answered modes

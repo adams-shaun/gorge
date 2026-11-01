@@ -182,7 +182,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 	// Predators' Mode$ Always trigger fire while it was merely an
 	// enchantment and, once animated, re-fire forever on the opponent's
 	// creature alone, stacking one Permanent Animate effect per resolution
-	// (cardfuzz batch3 lines 4/21: 500+ continuous effects, every Derived
+	// (500+ continuous effects, every Derived
 	// walking all of them -- the "hang").
 	if _, ok := t.Param(cards.PKIsPresent); ok &&
 		!e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {

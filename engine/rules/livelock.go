@@ -80,8 +80,8 @@ const (
 	// pairs, 600 constructed repo-deck pairs, 300 4-seat Commander repo-deck
 	// games, a Krenko probe) the arena's end-of-game high-water (it is monotone,
 	// so end-of-game length IS the high-water) was 554 objects (Commander,
-	// 4 seats); the widest legitimate token board on record is cardfuzz
-	// batch8's 1790 Goblins. 10000 sits ~18x above the measured ordinary
+	// 4 seats); the widest legitimate token board on record is a fuzz game's
+	// 1790 Goblins. 10000 sits ~18x above the measured ordinary
 	// maximum, equals RunawayBigBoardObjs (the same "this is volume, not a
 	// stuck resolution" population the runaway reason names), and
 	// bounds a Krenko, Mob Boss storm well under the GB-scale RSS an
@@ -392,7 +392,7 @@ func (w *livelockWatcher) observe(ev events.Event) { w.observeFrom(&ev, 0, 0) }
 // arena population. A Damage event's payload names only its RECIPIENT -- a
 // player hit carries no object at all -- so the combat damage step of a wide
 // board (1790 Goblin tokens from Krenko, Mob Boss, each dealing 1 to the
-// same player: cardfuzz batch8 lines 2-3) logs hundreds of byte-identical
+// same player) logs hundreds of byte-identical
 // Damage events that are each a DIFFERENT creature's damage. Folding the
 // source into a Damage event's signature keeps those distinct, while a real
 // loop -- one source damaging the same recipient again and again -- still
@@ -454,7 +454,7 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	// registered effect -- and carries no object, so a single
 	// resolution that legitimately registers one effect per affected
 	// permanent (a PumpAll over a 400-creature board: Moogles' Valor at the
-	// end of a token-doubling game, cardfuzz batch5 line 4) is a run of
+	// end of a token-doubling game) is a run of
 	// identical signatures that is not a loop. It is invisible to the
 	// exact-period detector (a real loop that also ticks the clock still
 	// repeats its other events, which the detector sees with the ticks

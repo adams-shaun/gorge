@@ -468,7 +468,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// (CR 120.8: 0 damage is never dealt). No DamageDone replacement
 		// applies to it -- matching it posed CR 616.1 order asks at every
 		// cleanup under two Ghosts of the Innocent, and each answer's
-		// halving re-emitted the removal, forever (fuzz batch6 line 9).
+		// halving re-emitted the removal, forever.
 		if ev.Kind != events.Damage || ev.Amount <= 0 ||
 			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers, cc) {
 			return false

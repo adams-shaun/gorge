@@ -85,8 +85,8 @@ func effChooseColor(h Host, c *Ctx, sa *cards.SA) {
 		// already recorded the answer on the object, so this pass is the
 		// historical no-op -- never a second ask. With no recorded answer
 		// (an entry answer the fold could not name) it keeps the
-		// deterministic fallback emit. The flag is consumed and cleared
-		// (fx42): a nested ChooseColor deeper in the same chain poses its
+		// deterministic fallback emit. The flag is consumed and cleared:
+		// a nested ChooseColor deeper in the same chain poses its
 		// own fresh ask.
 		c.ETB.ColorRecorded = false
 		if o := g.Obj(c.Source); o != nil && o.ChosenColor != "" {

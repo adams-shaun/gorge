@@ -709,7 +709,7 @@ func (r *Registry) run(t *table) {
 		r.mu.Lock()
 		r.saveLocked() // tables.json records the new match index before it plays
 		r.mu.Unlock()
-		r.onMatchStart(t, m) // Tasks 10, 12
+		r.onMatchStart(t, m)
 		final := r.play(ctx, t, m)
 		r.retire(t, m)
 		switch final {

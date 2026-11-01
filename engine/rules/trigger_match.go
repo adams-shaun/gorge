@@ -2513,22 +2513,21 @@ func (e *Engine) closeZoneBatch() {
 // declared against one defending player in Event.IDs rather than a single
 // Event.Obj (see trigmatch.AttacksMatches): Remembered there is every declared
 // attacker, in order, followed by one more entry for that event's defending
-// player. ev.Player is set by handleAttackers (engine/rules/combat.go); since Task
-// m34 an attack may split across several defenders, so the engine emits ONE
+// player. ev.Player is set by handleAttackers (engine/rules/combat.go); an
+// attack may split across several defenders, so the engine emits ONE
 // DeclareAttackers event per defending player and each event's Player is
 // that event's own defender -- a trigger matching one of its attackers
 // resolves TriggeredDefendingPlayer against the opponent that creature is
 // actually attacking, the same value a two-player game always produced.
 //
 // effects.context.go's Defined already recognises Defined$
-// TriggeredDefendingPlayer/TriggeredPlayer (playersOf(Remembered),
-// merged after this task started). The trailing entry only matters once it
-// survives onto the stack, which needed FL-41's fix: pushTrigger
-// (trigger_queue.go) could not just write tgt.Obj for this entry into the
-// logged TriggerPush event's IDs (always 0 for a player target) -- Apply
+// TriggeredDefendingPlayer/TriggeredPlayer (playersOf(Remembered)). The
+// trailing entry only matters once it survives onto the stack: pushTrigger
+// (trigger_queue.go) cannot just write tgt.Obj for this entry into the
+// logged TriggerPush event's IDs (always 0 for a player target), because Apply
 // would rebuild it as {Obj: 0}, and playersOf (engine/effects/context.go) filters
-// that entry out, so Defined$ TriggeredDefendingPlayer resolves to nothing
-// and the effect silently no-ops (PlayerOf is never reached). state.PlayerRef
+// that entry out, so Defined$ TriggeredDefendingPlayer would resolve to nothing
+// and the effect would silently no-op (PlayerOf is never reached). state.PlayerRef
 // is what lets a player reference survive that log-and-replay round trip
 // intact.
 //
@@ -2536,20 +2535,16 @@ func (e *Engine) closeZoneBatch() {
 // Knight of Infamy's intrinsic Exalted keyword trigger (engine/cards/keywords.go
 // expands it to Mode$ Attacks | ValidCard$ Creature.YouCtrl | Alone$ True),
 // which fires twice in the 4-seat game (mono-black-aggro is dealt in at
-// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker now prefers
+// seat 3 there). Exalted's DB$ Pump | Defined$ TriggeredAttacker prefers
 // the TriggerCard role the queue point (attacksTriggerInstances) binds for the
 // attacker that instance was queued for, falling back to Remembered -- every
 // declared attacker plus the defending player -- only when the role is absent
 // (a delayed registration, or the AttackersDeclared batch family).
-// On top of that,
-// trigmatch.AttacksMatches honours Alone$ True, so the trigger fires only when
-// exactly one attacker is declared and pumps that single attacker -- which is
-// the measured cause of the four-seat chain-head move 81a8a100641b5442's
-// successor (see commit 75be2a3's merge note); before FL-48, Remembered listed
-// several attackers and trigmatch.AttacksMatches, ignoring Alone$, pumped every one.
-// Goblin Guide and Goblin Piledriver never fire in the 8-seat game, and
-// Ulamog is in the tron deck, which is never dealt at 2/4/6/8 seats: neither
-// is a cause.
+// On top of that, trigmatch.AttacksMatches honours Alone$ True, so the trigger
+// fires only when exactly one attacker is declared and pumps that single
+// attacker. No other card in those games depends on the entry: Goblin Guide and
+// Goblin Piledriver never fire in the 8-seat game, and Ulamog is in the tron
+// deck, which is never dealt at 2/4/6/8 seats.
 func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 	if ev.Kind == events.DeclareAttackers {
 		out := make([]state.Target, 0, len(ev.IDs)+1)

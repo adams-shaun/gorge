@@ -136,7 +136,7 @@ type Board struct {
 	// restricted unit on an ability its restriction does not admit, so a
 	// simulation that paid a converter's {1} out of restricted {C} saw
 	// progress where the engine paid the {B} it then added back, forever
-	// (cardfuzz batch5 line 9: Initiates of the Ebon Hand beside Myr
+	// (Initiates of the Ebon Hand beside Myr
 	// Reservoir's floating {C}{C}).
 	PoolRestricted state.Mana
 	// Commanders is the CR 903.6/903.10 commander bookkeeping, keyed by
@@ -792,7 +792,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// spell": Chain of Smog, Barroom Brawl) hands the copy to another
 			// seat, whose copy offers the copy back, and two bots that always
 			// accept extend it forever -- a legal loop no state change ever
-			// ends (cardfuzz batch1: Chain of Smog on empty hands, 20000
+			// ends (Chain of Smog on empty hands, 20000
 			// intents in one main phase). Accepting the FIRST link (the
 			// original spell) keeps the card's real value; declining every
 			// copy-of-a-copy bounds each chain at one hand-over. The fact is

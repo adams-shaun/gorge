@@ -31,7 +31,7 @@ type searchFn func(env searchseat.Env, d decision.Decision) (searchOutcome, erro
 // not linked into this build (it does not exist at a4af596).
 var azSearch func(seed uint64, sims int) searchFn
 
-// samplerSearch is the pre-tree search seat docs/015 described ("sampled
+// samplerSearch is the pre-tree search seat the comparison described ("sampled
 // worlds, each played to the end by its bot; no tree"): searchseat.SearchBot
 // at its measured Defaults (8 worlds, 6 candidates, attackers + cast).
 func samplerSearch(seed uint64) searchFn {

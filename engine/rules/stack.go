@@ -870,7 +870,7 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		return
 	}
-	// fx44: a SUSPENDED replacement is legitimately still on the stack,
+	// A SUSPENDED replacement is legitimately still on the stack,
 	// waiting for its answer — the ask it posed decides where the object goes
 	// (Mox Diamond's ETB replacement parks the card exactly here). The guard
 	// must distinguish "the replacement finished and moved nothing" (the

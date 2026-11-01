@@ -51,7 +51,7 @@ const (
 	// TargetsChosen carries a spell or ability's chosen targets. Appended here
 	// rather than inserted near PutOnStack/Resolve so every
 	// earlier kind's numeric value, and therefore the hash chain and the
-	// golden replays Tasks 9-13 already locked in, is unaffected.
+	// golden replays, is unaffected.
 	//
 	// Amount is the discriminator between the two target shapes: 0 means
 	// object targets (read from IDs), 1 means a player target (read from

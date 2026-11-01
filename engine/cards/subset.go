@@ -633,8 +633,7 @@ func OpenCorpusSubset(dir string, names []string) (*Registry, error) {
 func OpenCorpusFor(dir string, names []string) (*Registry, error) {
 	// Since the imaged registry (registry_lazy.go) materializes only the
 	// cards a process touches, the whole corpus costs the GC what a subset
-	// did, so this is the shared full registry. Kept for its callers; S8
-	// deletes it.
+	// did, so this is the shared full registry, kept for its callers.
 	return SharedCorpus(dir)
 }
 

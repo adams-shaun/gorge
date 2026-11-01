@@ -259,7 +259,7 @@ CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
 PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
 OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
-FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
 TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 SERVER_PIDS=()
 
@@ -316,7 +316,7 @@ start_farm() {
   # is a deck list (names/counts), never Forge card text.
   ./bin/gorged -addr "127.0.0.1:$FIXTUREPORT" -dir "$FIXTUREDIR" -spectator omniscient \
     -decks web/e2e/fixtures/decks -tables 1 -seats 2 -pace 0 -seed 24 \
-    -mulligans 0 -perpetual=false -humans 0,1 -seat-token ui24fixture >"$FIXTUREDIR/server.log" 2>&1 &
+    -mulligans 0 -perpetual=false -humans 0,1 -seat-token boardfixture >"$FIXTUREDIR/server.log" 2>&1 &
   SERVER_PIDS+=("$!")
 
   # The two-stage Talisman continuation. The fixture gets a
@@ -361,7 +361,7 @@ for attempt in 1 2 3 4 5; do
   PUBDIR="$(mktemp -d /tmp/gorge-smoke-public-XXXXXX)"
   OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
   SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
-  FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-ui24-XXXXXX)"
+  FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
   TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
 done
 if [ "$farm" != true ]; then
@@ -387,7 +387,7 @@ if ! wait_ready "$SEATPORT"; then
   exit 1
 fi
 if ! wait_ready "$FIXTUREPORT"; then
-  echo "smoke: ui24 fixture gorged on :$FIXTUREPORT never became ready:" >&2
+  echo "smoke: board fixture gorged on :$FIXTUREPORT never became ready:" >&2
   sed -n '1,60p' "$FIXTUREDIR/server.log" >&2 || true
   exit 1
 fi

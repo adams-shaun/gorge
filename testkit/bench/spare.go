@@ -18,11 +18,10 @@ import (
 //
 // A SparePool is safe for concurrent use: sync.Pool hands each worker its own
 // Spare, so two live games never share one. A single Spare shared across
-// workers IS a data race -- the 2026-10-05 sampler bug fixed in 75c053d09 --
-// so a caller that needs one spare per worker must give each worker its own
-// pool, never share a *rules.Spare value.
+// workers IS a data race, so a caller that needs one spare per worker must
+// give each worker its own pool, never share a *rules.Spare value.
 //
-// The per-game rules.New / NewStartingPlayerChoice census (2026-10-06) and
+// The per-game rules.New / NewStartingPlayerChoice census and
 // why each caller does or does not draw from a SparePool here:
 //
 //   - recycled: cmd/enginebench playRandom/playBot (the -row random and -row

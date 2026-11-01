@@ -11,9 +11,9 @@ import (
 // host.FeedbackMatch's JSON field names so a record and a feedback
 // snapshot's match.json read the same way. It is what testkit/testutil/
 // feedback's loader builds its Config through as well, so the two loaders
-// cannot drift (design D3).
+// cannot drift.
 //
-// It records no token scripts and no name-universe label list (D2): Config
+// It records no token scripts and no name-universe label list: Config
 // takes the token table from the caller and re-derives the name universe
 // from the registry.
 type Match struct {

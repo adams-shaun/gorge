@@ -488,10 +488,10 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 		if c, ok := b.Cards.Lookup(o.Obj); ok && value == 0 {
 			value = c.CMC * 3
 		}
-		// A2: the land and prominent-colour rules tune the value tier. Both
+		// The land and prominent-colour rules tune the value tier. Both
 		// are zero unless Board.Targets armed them, so the default ranking is
 		// unchanged. A CMC-0 land scores zero on the ordinary scale, so its
-		// A2 contribution must be computed before the zero-value early return
+		// contribution must be computed before the zero-value early return
 		// or land priority can never fire. The target controller's dominant
 		// colour is folded from that player's PUBLIC cards (Board.PublicCards:
 		// battlefield, graveyard, exile, stack), never from a hidden deck

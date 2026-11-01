@@ -239,7 +239,7 @@ func (e *Engine) quietBlocker(p state.PlayerID) quietBlockerID {
 // deliberately: two reads here touch a Params map or a string -- the
 // MayPlay$ param scan over active Continuous statics and the AddKeyword head
 // compare in quietActiveKWGrantBlocker. §2.2's board-flag reader REQUIRES
-// them (there is no compiled S2 bit for an arbitrary MayPlay$/AddKeyword
+// them (there is no compiled bit for an arbitrary MayPlay$/AddKeyword
 // carrier in v1), and both run on the already-built active() summaries the
 // walk shares, not on a raw script re-parse. They are the proof's most
 // expensive part, so quietBlocker runs this reader LAST, only for a window

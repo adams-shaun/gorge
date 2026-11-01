@@ -7,8 +7,8 @@ import (
 )
 
 // manaMemberCarry caches, per own-battlefield object, the deferred-payability
-// mana-ability membership across a seat's priority walks (legal-walk design
-// §S4). Payability is never cached: the walk re-applies it every time.
+// mana-ability membership across a seat's priority walks. Payability is
+// never cached: the walk re-applies it every time.
 //
 // Validity: the board stamp at the last write, plus the object's own touch
 // generation. A board-stamp move retires every entry through gen, so an entry
@@ -29,7 +29,7 @@ type manaMemberBoardStamp struct {
 	// IsPresent$ gate -- so it is keyed on the log itself: any event outside
 	// the quiet set retires every entry. A seat's own priority transition
 	// logs only Priority/DecisionAsk/DecisionMade/StepChange, so a same-seat
-	// transition still hits (legal-walk design §S0/§S4).
+	// transition still hits.
 	manaRelevant uint64
 }
 
@@ -140,7 +140,7 @@ func (c *manaMemberCarry) advanceRelevant(evs []events.Event) uint64 {
 
 // manaRelevantKind reports whether a logged event can change a battlefield
 // object's mana-ability membership with payability deferred. The quiet set is
-// the seat's own priority transition (legal-walk design §S0) plus the kinds
+// the seat's own priority transition plus the kinds
 // that cannot reach a deferred-membership input:
 //
 //   - ManaAdd/ManaClear only move the mana pool, and the deferred list

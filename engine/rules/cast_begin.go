@@ -394,7 +394,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// reads: a continuous grant (Six's "nonland permanent cards in your
 		// graveyard have retrace") is not on the printed face, and reading
 		// f here offered the grant's cast but charged no discard -- a free
-		// graveyard recast loop (fuzz batch6 line 1, Jeweled Lotus).
+		// graveyard recast loop (Jeweled Lotus).
 		if e.hasKeywordH(id, kwhRetrace) {
 			cost = cost.Plus(retraceExtra())
 		}

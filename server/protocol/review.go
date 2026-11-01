@@ -11,7 +11,7 @@ const ReviewDecisionOptionCap = 64
 
 // ReviewDecision is one entry of a review table's decision index, served
 // only by `gorged review` at GET /api/tables/{t}/matches/{k}/decisions
-// (match reviewer, design D8/T4). Entry i describes the match log's
+// (match reviewer). Entry i describes the match log's
 // Intents[i]: the decision the engine offered at that point and the answer
 // the seat gave. It is derived at load from the replay itself -- the
 // options and labels are never stored in a record -- so it is exactly what

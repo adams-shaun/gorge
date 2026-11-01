@@ -885,7 +885,7 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 			// whole moved set (that would mint (M-1)*moved counters out of
 			// nothing). Distribution is the deterministic round-robin in
 			// destination order (a stand-in for the per-destination election
-			// the card text implies -- M4): destination j receives
+			// the card text implies): destination j receives
 			// floor((moved+M-1-j)/M), so 2 over 2 creatures is 1 and 1, and a
 			// single-destination shape -- every other measured carrier -- is
 			// byte-identical to the whole-set move it had before.

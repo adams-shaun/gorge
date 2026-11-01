@@ -511,7 +511,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := c.applyManaBrew(); err != nil {
 		return err
 	}
-	// MB-9 (scoping spec §5.4): -manabrew requires a seat gate (-humans or
+	// -manabrew requires a seat gate (-humans or
 	// -vsbot). Checked on the flags themselves, before any table is added,
 	// so a misconfigured server never mounts routes that could only ever
 	// answer 403 -- and never starts a bot table's goroutines first either.
@@ -702,7 +702,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		}
 		topMux.HandleFunc("POST /api/feedback", fb.submit)
 	}
-	// MB-9 (scoping spec §5.2/§5.4): mount the ManaBrew adapter ahead of
+	// Mount the ManaBrew adapter ahead of
 	// httpapi's own handler, same as /art/ and /api/feedback above. gate is
 	// non-nil here whenever c.manabrew is true -- the check above returned
 	// before any table was added otherwise -- so mountManaBrew never sees a

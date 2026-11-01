@@ -1106,7 +1106,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 		return
 	}
-	// FL-41: Remembered can hold a player entry now (triggerRemembered's
+	// Remembered can hold a player entry (triggerRemembered's
 	// DeclareAttackers case appends the defending player), but IDs is an
 	// []ObjID -- there is no field here for a bare PlayerID. Encoding it
 	// with state.PlayerRef instead of just writing tgt.Obj (always 0 for a

@@ -68,7 +68,7 @@ func (w *legalWalk) manaSection() walkBoardFacts {
 				// PotentialMana (walk_block_reuse.go: recordMembers).
 				own := w.rec != nil && z == state.ZBattlefield && zonePlayer == p
 				// The mana-member carry serves a seat's OWN battlefield
-				// objects (legal-walk design §S4). A board-wide grant or an
+				// objects. A board-wide grant or an
 				// add-ability changes every object's membership, so those
 				// boards keep the direct walk.
 				ownSeat := z == state.ZBattlefield && zonePlayer == p
@@ -650,7 +650,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// printed AbilityPush ones. The granted half was once exempt on the
 					// premise that an AddAbility$ body is never a loyalty ability;
 					// Rowan's Talent's body is one, and the exemption let a bot
-					// activate it without bound (cardfuzz batch1 line 18: 20000
+					// activate it without bound (20000
 					// intents of "+1" on one Jaya Ballard in one main phase).
 					if e.isLoyaltyAbility(ab) {
 						if !sorcery && !e.loyaltyAtInstantSpeed(p, id) {
@@ -666,7 +666,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// ability is this recipient -- without the check a granted
 					// activation whose transaction aborts (no legal target, an
 					// unpayable cost) was re-offered inside one priority window
-					// forever (cardfuzz batch5 line 1: Trazyn's gained Equip).
+					// forever (Trazyn's gained Equip).
 					if w.abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
 						continue
 					}
@@ -746,7 +746,7 @@ func (w *legalWalk) battlefieldWalk() {
 					// disagree (the grantor's face does not carry the table the
 					// effect captured) the option was a silent no-op: chosen, it
 					// emitted nothing and the identical board re-offered it forever
-					// (cardfuzz batch7 line 2: a gained-Animate grant on Manascape
+					// (a gained-Animate grant on Manascape
 					// Refractor, 100x "Regenerate CARDNAME" in one main phase).
 					if e.grantedSAFrom(ga.Source, id, ga.SVar) == nil {
 						continue

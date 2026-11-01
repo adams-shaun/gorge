@@ -249,7 +249,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// ValidPlayer$ values are Player 135, You 35, Opponent 2 plus a
 		// handful of qualified forms; bare Player matches every seat (the
 		// ungated behaviour those registrations already had), and the
-		// qualified ones fail closed inside MatchesPlayerSpec (the fx20
+		// qualified ones fail closed inside MatchesPlayerSpec (the
 		// convention: an unmodellable qualifier fires for nobody, never for
 		// everybody).
 		// The registration's capture is also what Player.IsRemembered names:

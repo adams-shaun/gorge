@@ -27,8 +27,8 @@ func legacyOnDemand(c TableConfig) bool {
 }
 
 // load reads tables.json and every sidecar. A match still marked live was
-// cut off by a crash or kill: it is rewritten as aborted (spec: restart
-// aborts in-progress matches; resume is M5). Perpetual tables are left
+// cut off by a crash or kill: it is rewritten as aborted, because a restart
+// aborts in-progress matches. Perpetual tables are left
 // ready for StartAll to begin match k+1.
 func (r *Registry) load() error {
 	raw, err := os.ReadFile(filepath.Join(r.opts.Dir, "tables.json"))

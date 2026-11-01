@@ -959,7 +959,7 @@ func replacementFaceHidden(o *state.Object, id state.ObjID, ev events.Event) boo
 // RememberChanged$/RememberRevealed$), and seeding the replaced card here
 // made every one of those counts one too high (measured over the compiled
 // corpus: all nine gating bodies carry a rider; none reads the seed). The
-// seed was fx44's stand-in for the suspended-resolution case; the resume
+// seed was a stand-in for the suspended-resolution case; the resume
 // thread carries the body's own Remembered instead (engine/rules/resolution.go's
 // replacement branch).
 //
@@ -1284,7 +1284,7 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 	}
 	ctx := e.replCtx(m, ev)
 	if m.repl.ParamStr(cards.PKReplacementResult) == "Updated" {
-		// Review finding M-6: an exact case-sensitive "Updated" compare is
+		// An exact case-sensitive "Updated" compare is
 		// deliberate (the corpus spells it one way). Apply the ORIGINAL event
 		// first (not routing back through e.emit, which is what keeps this
 		// from re-running replacement matching on the event it just

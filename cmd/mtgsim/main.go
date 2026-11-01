@@ -1,7 +1,6 @@
 // Command mtgsim plays headless games between heuristic.Bot instances over the
 // repo's 12 Legacy decks and verifies that each one replays to the same
-// event chain. It is the harness M5's performance work and the AI seat will
-// both build on -- a way to run many real games with no client, no network
+// event chain: a way to run many real games with no client, no network
 // and no wall clock in the loop.
 package main
 

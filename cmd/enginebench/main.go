@@ -10,7 +10,7 @@
 // and the corpus except the wall-clock readings it reports.
 //
 // Compatibility: the harness uses only APIs that exist at a4af596 (the pin
-// docs/015 measured) and at today's main: rules.New/Advance/Pending/Submit/
+// the comparison measured) and at today's main: rules.New/Advance/Pending/Submit/
 // Clone, decision.Decision/Intent, heuristic.NewBot(+EnableAutoPayMana),
 // botpolicy.BoardFromGameInto, testkit/bench.PlayGame, bots/searchseat
 // (Feed, NewSearchBot, Watch) and testutil.OpenCorpusRegistry. The azmcts
@@ -61,7 +61,7 @@ type result struct {
 	HeapMB      float64 `json:"heap_live_mb"`
 	ScanHeapMB  float64 `json:"scan_heap_mb"`
 	HeapObjects int64   `json:"heap_objects"`
-	Corpus      string  `json:"corpus"`   // "full" (the only value since S4 retired the subset loader)
+	Corpus      string  `json:"corpus"`   // "full" (the only value)
 	Secs        float64 `json:"secs"`     // wall seconds of the timed region
 	CPU         float64 `json:"cpu_secs"` // process CPU seconds (user+sys) of the timed region
 	Err         string  `json:"err,omitempty"`

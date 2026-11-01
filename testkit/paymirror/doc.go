@@ -154,7 +154,7 @@
 //	                                   and the arena's replacement event-bit superset cache
 //	staticZones/Ep                     static-source-walk zone summaries, validated on every use
 //	walkObjCls                         the offer walk's object classes, kept by the same catch-up
-//	manaCarry                          the S4 own-battlefield mana-membership carry, keyed on
+//	manaCarry                          the own-battlefield mana-membership carry, keyed on
 //	                                   the board stamp plus a mana-relevant log cursor; Clone
 //	                                   copies none
 //	PaymentPlanCarriers/Objs/Events/   payment-plan interference carrier memo keyed by the
@@ -188,7 +188,7 @@
 //	staticGates, staticGatesKnown      the static memo's gate records, carried only with a
 //	                                   copied memo
 //	renameObjs, renameDSeq,            the rename table's cache keys (the renames/* class)
-//	renameBFSeq, renameBranchCounts    and the E2 measurement diagnostic counting
+//	renameBFSeq, renameBranchCounts    and the measurement diagnostic counting
 //	                                   refreshRenames' exits (never read by rules;
 //	                                   Clone resets it)
 //	trigZeroNoopEp/Objs/Ver            checkFaceTriggers' zero-interest no-op memo key

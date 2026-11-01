@@ -17,7 +17,7 @@ func init() { Register("Demonstrate", effDemonstrate) }
 // it. If you do, choose an opponent to also copy it. Each copy becomes a
 // token."
 //
-// The two "may/choose" halves are real mid-resolution asks (the fx42
+// The two "may/choose" halves are real mid-resolution asks (the
 // transport: Ctx.Demonstrate* fields, rebuilt by rules' "demonstrate" resume
 // arm and consumed and cleared at the top of this walk):
 //
@@ -40,8 +40,8 @@ func init() { Register("Demonstrate", effDemonstrate) }
 // opponent ask's resume point -- the top of the stack -- would then re-enter
 // the COPY's resolution instead of this body's. Each copy is an ordinary
 // StackCopy mint (the same event effCopySpellAbility emits) keeping the
-// original's targets -- the standing copy-keeps-targets stand-in the M4
-// copy-target task owns (the printed carriers' oracle adds "Players may
+// original's targets -- the standing copy-keeps-targets stand-in
+// (the printed carriers' oracle adds "Players may
 // choose new targets for their copies", a choice this build cannot pose). A
 // creature-spell copy becomes a token when it RESOLVES, through the standing
 // CR 707.10g fold in events.Apply's Move case (enteredFrom ZStack + IsCopy ->
