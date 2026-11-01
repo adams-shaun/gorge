@@ -431,7 +431,14 @@
     gap: 4px;
     z-index: 3;
   }
-  .rail .tools { top: -3.6rem; }
+  .rail .tools,
+  .rail-bottom .tools { top: -3.6rem; }
+  /* Beside the art spine there is no banner to hold the tools, so the words
+     stop short of them. */
+  .floating .src,
+  .floating .title,
+  .table .src,
+  .table .title { padding-right: 3.5rem; }
   .tool {
     border: 0;
     border-radius: 5px;

@@ -240,4 +240,26 @@ describe('PromptDock near-table auto-yield (promptdock2)', () => {
       await page.close();
     }
   });
+
+  it('the title never runs under the tools, in any placement', { timeout: 60_000 }, async () => {
+    const page = await browser.newPage();
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${url}src/components/PromptDock.geometry.html?ask=toss`, { waitUntil: 'domcontentloaded' });
+      for (const placement of ['table', 'rail', 'rail-bottom', 'floating']) {
+        await page.waitForSelector(`[data-prompt-dock][data-placement="${placement}"]`, { timeout: 5000 });
+        const overlaps = await page.evaluate(() => {
+          const range = document.createRange();
+          range.selectNodeContents(document.querySelector('[data-prompt-title]')!);
+          const words = [...range.getClientRects()];
+          const tools = [...document.querySelectorAll('.tools .tool')].map((t) => t.getBoundingClientRect());
+          return words.filter((w) => tools.some((t) => w.left < t.right && t.left < w.right && w.top < t.bottom && t.top < w.bottom)).length;
+        });
+        expect(overlaps, placement).toBe(0);
+        await page.click('[data-dock-placement-toggle]');
+      }
+    } finally {
+      await page.close();
+    }
+  });
 });

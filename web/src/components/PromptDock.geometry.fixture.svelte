@@ -58,8 +58,14 @@
     options: [0, 1, 2, 3, 4, 5, 6].map((i) => opt(i, 'permanent', `Memnite ${i + 1} → Player 2`, { obj: 30 + i })),
   } as unknown as Decision;
 
-  const longAsk = typeof location === 'undefined' ? false : new URLSearchParams(location.search).get('ask') === 'long';
-  const ask = longAsk ? long : target;
+  // A source-less ask whose title fills its line, as the toss's does.
+  const toss: Decision = {
+    seq: 13, player: 0, kind: 'starting_player', prompt: 'You won the toss. Choose who takes the first turn.', min: 1, max: 1,
+    options: [opt(0, 'player', 'Ari', { player: 0 }), opt(1, 'player', 'Mira', { player: 1 })],
+  } as unknown as Decision;
+
+  const askName = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('ask');
+  const ask = askName === 'long' ? long : askName === 'toss' ? toss : target;
 
   const view: View = {
     viewer: 0, visibility: 'seat', turn: 7, round: 4, step: 'main1', phase: 'main1', active: 0, priority: 0,
