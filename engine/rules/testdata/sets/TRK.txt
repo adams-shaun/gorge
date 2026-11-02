@@ -60,6 +60,7 @@ Horta
 Hoshi Sato, Exolinguist
 Humpback Whales
 I'm a Doctor, Not a . . .
+I'm a Doctor, Not a ...
 In the Pale Moonlight
 Island
 Khaaaaaaaaaaaannn!
@@ -99,6 +100,7 @@ Salt Vampire
 Saurian Explorer
 Scotty, Miracle Worker
 Set Phasers to . . .
+Set Phasers to...
 Seven of Nine
 Seven of Nine, Unassimilated
 Shields Up!

@@ -36,13 +36,13 @@ func TestSetCensus(t *testing.T) {
 	supported := effects.Supported()
 
 	names := readSetNames(t, list)
-	absent := 0
+	var absentNames []string
 	byClass := map[string][]string{}
 	clean := 0
 	for _, name := range names {
 		c, ok := reg.Lookup(name)
 		if !ok {
-			absent++
+			absentNames = append(absentNames, name)
 			continue
 		}
 		var gaps []string
@@ -56,6 +56,9 @@ func TestSetCensus(t *testing.T) {
 			byClass[g] = append(byClass[g], name)
 		}
 		t.Logf("CARD\t%s\t%s", name, strings.Join(gaps, ","))
+	}
+	for _, name := range absentNames {
+		t.Logf("ABSENT\t%s", name)
 	}
 	for _, d := range diags {
 		t.Logf("DIAG\t%s\t%s", filepath.Base(d.Path), d.Msg)
@@ -74,5 +77,5 @@ func TestSetCensus(t *testing.T) {
 		t.Logf("CLASS\t%d\t%s\t%s", len(byClass[c]), c, strings.Join(byClass[c], "; "))
 	}
 	t.Logf("TOTAL\tnames=%d absent=%d clean=%d withgaps=%d classes=%d corpus-diagnostics=%d",
-		len(names), absent, clean, len(names)-absent-clean, len(classes), len(diags))
+		len(names), len(absentNames), clean, len(names)-len(absentNames)-clean, len(classes), len(diags))
 }
