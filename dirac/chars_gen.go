@@ -755,7 +755,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
 	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
-	if !s.addOvRec(sl, r, merge) {
+	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0) {
 		s.stall(StallTables)
 		return
 	}

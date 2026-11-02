@@ -78,3 +78,43 @@ func TestReturnedSourceIsOtherInAResolvingFilterLockstep(t *testing.T) {
 		}
 	}
 }
+
+// Two Undying Malices and a Fake Your Own Death on one Syr Alin die as three triggers,
+// listed in the order they were granted: a merged record would list the Malices together,
+// and the player's order would give the Treasure to the wrong one. Seeds 87 and 290 reach it.
+func TestGrantedTriggersKeepTheirOrderLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, "std-fdn")
+	entries := []cardset.Entry{{Name: "Syr Alin, the Lion's Claw", Count: 12}, {Name: "Undying Malice", Count: 7}, {Name: "Fake Your Own Death", Count: 3},
+		{Name: "Bake into a Pie", Count: 8}, {Name: "Plains", Count: 5}, {Name: "Swamp", Count: 5}}
+	var deck []*cards.Card
+	for _, e := range entries {
+		cd, ok := reg.Lookup(e.Name)
+		if !ok {
+			t.Fatalf("%s not in the corpus", e.Name)
+		}
+		for i := 0; i < e.Count; i++ {
+			deck = append(deck, cd)
+		}
+	}
+	tbl, _, _, err := set.Matchup(entries, entries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, seed := range []uint64{87, 290} {
+		m, err := NewMatchup(reg, [2]string{"alin-a", "alin-b"}, [2][]*cards.Card{deck, deck}, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k, err := SetSide(set, tbl, Config{GorgeAutopaySurface: true})(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := Lockstep(m, seed, k, RandomPolicy(seed), RunConfig{Config: Config{GorgeAutopaySurface: true}})
+		CloseSide(k)
+		if res.Div != nil {
+			t.Fatalf("seed %d: divergence at %d: %s %s %s %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail, res.Div.Diff)
+		}
+	}
+}

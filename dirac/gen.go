@@ -1873,14 +1873,16 @@ func (s *State) clearFx(sl Slot) {
 
 // addOvRec adds an override record to slot sl: merge collapses an identical
 // record in place (keyword repeats), otherwise a repeated P/T setter moves to
-// the newest position. False when the pool is full.
-func (s *State) addOvRec(sl Slot, r ovRec, merge bool) bool {
+// the newest position. A grant merges only with the newest record, as the order
+// of the records is the order of what they grant (gorge lists its grants by
+// timestamp). False when the pool is full.
+func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	s.touchSl(sl)
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps {
-					continue // full: a further identical record carries the rest
+				if p.r.fl&ovReps == ovReps || grants && s.newerOvRec(sl, i) {
+					continue // a further identical record carries the rest
 				}
 				if merge {
 					p.r.fl++
@@ -1910,6 +1912,16 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge bool) bool {
 	s.g.nfx++
 	s.fxM.set(sl)
 	return true
+}
+
+// newerOvRec reports an override record on sl after pool position i.
+func (s *State) newerOvRec(sl Slot, i int) bool {
+	for j := i + 1; j < int(s.g.nfx); j++ {
+		if p := &s.g.fx[j]; p.sl == sl && p.kind == fxOverride {
+			return true
+		}
+	}
+	return false
 }
 
 // setLossFx records a one-shot "loses all abilities" on sl at timestamp ts
