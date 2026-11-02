@@ -1,6 +1,7 @@
 package manabrew
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -185,6 +186,46 @@ func TestConstrainedTargetPrefixControllerAndGroup(t *testing.T) {
 	bad := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0, 1}}
 	if err := d.Validate(bad); err == nil {
 		t.Fatal("expected the same-group pair to be rejected")
+	}
+}
+
+// One object offered for two charm modes: whichever order the client names the
+// targets in, the answer takes the object's option in the mode left free.
+func TestParseBoardTargetsAssignsAnObjectToTheModeLeftFree(t *testing.T) {
+	d := &decision.Decision{Seq: 9, Kind: decision.KTarget, Min: 2, Max: 2, Options: []decision.Option{
+		{Index: 0, Kind: "permanent", Obj: 24, Group: "charm-mode-0"},
+		{Index: 1, Kind: "permanent", Obj: 37, Group: "charm-mode-0"},
+		{Index: 2, Kind: "permanent", Obj: 21, Group: "charm-mode-0"},
+		{Index: 3, Kind: "permanent", Obj: 21, Group: "charm-mode-1"},
+	}}
+	for _, ids := range [][]string{{"o24", "o21"}, {"o21", "o24"}} {
+		chosen := make([]mb.TargetRef, 0, 2)
+		for _, id := range ids {
+			chosen = append(chosen, mb.TargetRef{Kind: mb.RefCard, ID: id})
+		}
+		p := &Pending{Decision: d, Prompt: mb.PromptMessage{AgentPrompt: mb.AgentPrompt{Input: mb.PromptInput{Value: mb.ChooseBoardTargetsInput{}}}}}
+		out := (&Translator{}).parseBoardTargets(mb.BoardTargetsDecision{Chosen: chosen}, p)
+		if out.Err != nil {
+			t.Fatalf("%v refused: %+v", ids, out.Err)
+		}
+		if !slices.Contains(out.Intent.Choices, 3) {
+			t.Fatalf("%v answered %v, want option 3", ids, out.Intent.Choices)
+		}
+	}
+}
+
+// Two options of one mode stay refused: no assignment makes them legal.
+func TestParseBoardTargetsRefusesTwoTargetsInOneMode(t *testing.T) {
+	d := &decision.Decision{Seq: 9, Kind: decision.KTarget, Min: 2, Max: 2, Options: []decision.Option{
+		{Index: 0, Kind: "permanent", Obj: 24, Group: "charm-mode-0"},
+		{Index: 1, Kind: "permanent", Obj: 37, Group: "charm-mode-0"},
+		{Index: 2, Kind: "permanent", Obj: 21, Group: "charm-mode-1"},
+	}}
+	chosen := []mb.TargetRef{{Kind: mb.RefCard, ID: "o24"}, {Kind: mb.RefCard, ID: "o37"}}
+	p := &Pending{Decision: d, Prompt: mb.PromptMessage{AgentPrompt: mb.AgentPrompt{Input: mb.PromptInput{Value: mb.ChooseBoardTargetsInput{}}}}}
+	out := (&Translator{}).parseBoardTargets(mb.BoardTargetsDecision{Chosen: chosen}, p)
+	if out.Err == nil || !strings.Contains(out.Err.Message, "mutually exclusive") {
+		t.Fatalf("outcome = %+v, want the group refusal", out)
 	}
 }
 

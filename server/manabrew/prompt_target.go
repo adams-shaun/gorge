@@ -1,6 +1,8 @@
 package manabrew
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
@@ -175,14 +177,11 @@ func targetRefID(opt decision.Option) string {
 }
 
 // parseBoardTargets maps boardTargets{chosen}: each chosen ref is matched
-// against the decision's own options by kind+id (targetRefKind/targetRefID),
-// consuming each matching option at most once so two candidates that mint the
-// SAME ref (a duplicate kind+id) resolve to two distinct option indices
-// rather than one (which Decision.Validate would then reject as a duplicate).
-// The candidate list is reordered by orderTargetOptions, but the ref carries
-// no position, so this walk is order-independent: it picks the first
-// not-yet-consumed option matching the ref. An unknown ref is what
-// Decision.Validate says (invalidShape), so the fence stays in one place.
+// against the decision's own options by kind+id (targetRefKind/targetRefID).
+// The same object can be offered by several options, one per charm mode it can
+// be chosen for, and the ref doesn't say which, so assignBoardTargets picks the
+// options a legal answer needs. An unknown ref is what Decision.Validate says
+// (invalidShape), so the fence stays in one place.
 func (t *Translator) parseBoardTargets(out mb.PromptOutputValue, p *Pending) Outcome {
 	d := p.Decision
 	cur := p.Prompt.PromptID
@@ -193,36 +192,53 @@ func (t *Translator) parseBoardTargets(out mb.PromptOutputValue, p *Pending) Out
 	if _, ok := p.Prompt.Input.Value.(mb.ChooseBoardTargetsInput); !ok {
 		return Outcome{Err: errCode(mb.CodeInvalidShape, "the open prompt is not a board-target ask", idPtr(cur))}
 	}
-	// consumedByRef tracks how many options already resolved to a given
-	// kind+id ref, so a second ref of the same kind+id picks the next option
-	// with that ref instead of the same one.
-	consumed := map[string]int{}
-	choices := make([]int, 0, len(dec.Chosen))
-	for _, ref := range dec.Chosen {
-		key := string(ref.Kind) + "\x00" + ref.ID
-		skip := consumed[key]
-		idx := -1
+	candidates := make([][]int, len(dec.Chosen))
+	for i, ref := range dec.Chosen {
 		for _, o := range d.Options {
-			if targetRefKind(o.Kind) != ref.Kind || targetRefID(o) != ref.ID {
-				continue
+			if targetRefKind(o.Kind) == ref.Kind && targetRefID(o) == ref.ID {
+				candidates[i] = append(candidates[i], o.Index)
 			}
-			if skip > 0 {
-				skip--
-				continue
-			}
-			idx = o.Index
-			break
 		}
-		if idx < 0 {
+		if len(candidates[i]) == 0 {
 			return Outcome{Err: errCode(mb.CodeInvalidShape,
 				"target "+ref.ID+" is not offered", idPtr(cur))}
 		}
-		consumed[key]++
-		choices = append(choices, idx)
 	}
-	intent := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
+	intent := assignBoardTargets(d, candidates)
 	if err := d.Validate(intent); err != nil {
 		return Outcome{Err: errCode(mb.CodeInvalidShape, err.Error(), idPtr(cur))}
 	}
 	return Outcome{Intent: &intent}
+}
+
+// assignBoardTargets gives each chosen ref one of its candidate options, using
+// an option once and trying them in offered order, and returns the first
+// assignment Decision.Validate accepts. With none, it returns each ref's first
+// candidate, so the caller reports Validate's reason.
+func assignBoardTargets(d *decision.Decision, candidates [][]int) decision.Intent {
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: make([]int, 0, len(candidates))}
+	var walk func(i int) bool
+	walk = func(i int) bool {
+		if i == len(candidates) {
+			return d.Validate(in) == nil
+		}
+		for _, c := range candidates[i] {
+			if slices.Contains(in.Choices, c) {
+				continue
+			}
+			in.Choices = append(in.Choices, c)
+			if walk(i + 1) {
+				return true
+			}
+			in.Choices = in.Choices[:i]
+		}
+		return false
+	}
+	if !walk(0) {
+		in.Choices = in.Choices[:0]
+		for _, c := range candidates {
+			in.Choices = append(in.Choices, c[0])
+		}
+	}
+	return in
 }
