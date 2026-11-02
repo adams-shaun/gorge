@@ -1114,7 +1114,11 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 			open = true
 			continue
 		}
-		add(sl, s.srcMaskAt(pc, sl), pc.manaN)
+		mask := s.srcMaskAt(pc, sl)
+		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
+			mask = uint8(k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].ManaColors) // the walk below admits its other abilities, each once
+		}
+		add(sl, mask, pc.manaN)
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
