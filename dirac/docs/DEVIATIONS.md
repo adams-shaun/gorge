@@ -9,7 +9,7 @@ adapter translates between them, so the games match. `capacity` is a declared li
 named stall, counted and reported, and is not compared past that point.
 
 Nothing else belongs in this file. `TestDeviationsRegisterHasNoRealDifference` holds it to those two
-classes. Gorge behaviour the kernel copies, and the differences still open, are in
+classes. Gorge behaviour dirac copies, and the differences still open, are in
 [GORGE-FINDINGS.md](GORGE-FINDINGS.md).
 
 - [C] The priority vocabulary is the autopay one: no mana-ability options and
@@ -17,7 +17,7 @@ classes. Gorge behaviour the kernel copies, and the differences still open, are 
   GorgeAutopaySurface is set.
 - [C] Single-option decisions are elided, and declarations are sequential picks
   closed by Done, where gorge makes one subset choice.
-- [C] Ward and granted prowess are kernel-native triggers.
+- [C] Ward and granted prowess are dirac-native triggers.
 - [C] Every cost sacrifice happens after the mana is paid (gorge taps the
   planned sources at priority, CR 601.2g-h).
 - [C] An as-enters choice is asked on the stack when the replacement program
@@ -25,10 +25,10 @@ classes. Gorge behaviour the kernel copies, and the differences still open, are 
   otherwise after the permanent enters.
 - [C] Spell copies (Thousand-Year Storm): a copy whose target declaration takes several objects (Run Away Together,
   Macabre Waltz) is asked as one pick per object closed by Done (gorge's
-  one subset decision, as the oracle reposes it); the kernel's path is
+  one subset decision, as the oracle reposes it); dirac's path is
   tested in dirac/copytargets_test.go, but no lockstep game has reached
   it yet (0 in the 118 census pairs with Storm and such a spell).
-- [capacity] A game that outgrows the kernel's capacity (battlefield, objects, pending triggers, stack,
+- [capacity] A game that outgrows dirac's capacity (battlefield, objects, pending triggers, stack,
   override pools, a card zone holding tokens until the next state-based check (`zone`), a combat
   declaration with more pairs than MaxOptions (`options`)), or a turn that resolves more than 2000
   triggers, ends as a draw with `StallReason`; the lockstep reports it as a "kernel <reason>" stall.

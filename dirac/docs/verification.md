@@ -1,28 +1,28 @@
 # How dirac is held to gorge
 
-dirac, also called the kernel, is a second Magic engine. gorge (`engine/` in this repository) is the
-reference engine and the kernel's **oracle**: wherever both engines can play the same game, dirac must
+dirac is a second Magic engine. gorge (`engine/` in this repository) is the
+reference engine and dirac's **oracle**: wherever both engines can play the same game, dirac must
 pose the same choices and reach the same state. This page maps the tools that check that, explains the
 **lockstep** check they share, and covers following a gorge change and the parity tests.
 
 Related pages: [dirac/README.md](../README.md) (what dirac is and its Go API),
-[cards.md](cards.md) (how cards enter the kernel), [running.md](running.md) (running games, bots and
+[cards.md](cards.md) (how cards enter dirac), [running.md](running.md) (running games, bots and
 measurements).
 
 ## Which tool answers which question
 
 | Question | Tool | What it does |
 |---|---|---|
-| Does the kernel play this game exactly like gorge? | `dirac/oracle` lockstep, driven by `dirac/oracle/cmd/kfuzz` | Plays the same decks and seed on both engines and compares the canonical option list at every decision and the state projection after every committed action. |
-| Does a recorded game replay? | `dirac/oracle` `Repro`/`Replay`; `kfuzz -repro`, `kfuzz -replay` | `Repro` stores a divergence's action prefix; `Replay` re-executes a kernel game in gorge with the kernel's chance draws forced. |
-| Does the heuristic bot choose the same? | `dirac/oracle/cmd/khbot`, `dirac/oracle/hbot_parity.go` | Gorge's auto-pay heuristic bot plays gorge; the kernel's port (`dirac/search/hbot`) answers the same decisions on the kernel state; prints agreement per decision kind. |
-| SpellBench-transcript parity | `dirac/oracle/cmd/ksbt`, `dirac/oracle/sbt*.go`, `v2bridge.go`; `kfuzz -v2 transcript` | Gorge's sb-tactical answers through a view built from the kernel state (`ksbt`); the v2 transcript mode diffs the same seeded games played by `dirac/cmd/sbv2dirac` and gorge's environment. |
+| Does dirac play this game exactly like gorge? | `dirac/oracle` lockstep, driven by `dirac/oracle/cmd/kfuzz` | Plays the same decks and seed on both engines and compares the canonical option list at every decision and the state projection after every committed action. |
+| Does a recorded game replay? | `dirac/oracle` `Repro`/`Replay`; `kfuzz -repro`, `kfuzz -replay` | `Repro` stores a divergence's action prefix; `Replay` re-executes a kernel game in gorge with dirac's chance draws forced. |
+| Does the heuristic bot choose the same? | `dirac/oracle/cmd/khbot`, `dirac/oracle/hbot_parity.go` | Gorge's auto-pay heuristic bot plays gorge; dirac's port (`dirac/search/hbot`) answers the same decisions on dirac state; prints agreement per decision kind. |
+| SpellBench-transcript parity | `dirac/oracle/cmd/ksbt`, `dirac/oracle/sbt*.go`, `v2bridge.go`; `kfuzz -v2 transcript` | Gorge's sb-tactical answers through a view built from dirac state (`ksbt`); the v2 transcript mode diffs the same seeded games played by `dirac/cmd/sbv2dirac` and gorge's environment. |
 | Which Comprehensive Rules are covered? | `dirac/crcoverage` | One Markdown file per CR chapter, one row per rule, with status and the code that decides it. |
 | Did a change cost speed? | `BenchmarkTransitionFDN`, `BenchmarkTransitionBLB`, `BenchmarkTransitionFDNPool` in `./dirac` | Single-core transition benchmarks on real decks; see [running.md](running.md#performance). |
 
 ## Quick start: one lockstep run
 
-Build the driver, then play a couple of FDN pool pairings in lockstep (2026-10-30):
+Build the driver, then play a couple of FDN pool pairings in lockstep:
 
 ```sh
 go build -trimpath -o bin/kfuzz ./dirac/oracle/cmd/kfuzz
@@ -30,7 +30,7 @@ bin/kfuzz -kernel fdn -first-pair 0 -pairs 2 -seed 1 -keep-going -surface autopa
 ```
 
 ```
-fdn: 2 games (0 skipped as unsupported), 2 without divergence, 0 kernel capacity stalls [] (lead gorge); first divergences: 
+fdn: 2 games (0 skipped as unsupported), 2 without divergence, 0 kernel capacity stalls [] (lead gorge); first divergences:
 fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 0 hang (lead gorge, surface autopay)
 fdn-classes-json: {}
 ```
@@ -83,12 +83,12 @@ round. It changes every game's stream, so a slice at `-mulligans 1` is not the s
 A verdict's stalls are split by `dirac.StallClassOf`. `capacity`: a fixed array or budget ran out and
 gorge has no such limit; the game was correct up to there. These are declared limits, always counted,
 never a failure, and such a game still earns coverage. `unmodelled`: gorge does something at this point
-that the kernel does not; these fail under `-absolute`. A reason nobody classed counts as unmodelled.
+that dirac does not; these fail under `-absolute`. A reason nobody classed counts as unmodelled.
 A rule gap must not stop under a capacity reason's name: `TestRuleGapSitesKeepTheirOwnReason`.
 
-A pair whose cards the kernel cannot play together is refused before the game, as `refused-pair`, when
+A pair whose cards dirac cannot play together is refused before the game, as `refused-pair`, when
 `Matchup` builds its table (`cardset.InteractionRefusal`, naming the carriers): the table flags that used
-to stall at the start of the game (`kernel.genPrep.initStall`). The `refused-pair:` line counts them by
+to stall at the start of the game (`dirac`'s `genPrep.initStall`). The `refused-pair:` line counts them by
 reason. `Init` keeps the same check as a guard for a hand-built table, and
 `TestInteractionRefusalMatchesInitStall` holds the two together.
 
@@ -150,16 +150,16 @@ What is compared, in order:
    (`dirac/oracle/project.go`) is the whole canonical game state: per card instance its card,
    owner, controller, zone, position, flags, damage, counters and attachments; then life, poison,
    speed, the stack bottom to top, turn, step, active player, priority holder, RNG draw count, lands
-   played, mana pools and the game result. `dirac/doc.go` defines the kernel's side of the same
+   played, mana pools and the game result. `dirac/doc.go` defines dirac's side of the same
    shape. Both are fixed arrays, so equality is a value comparison.
 4. The **terminal result** (`over`, `winner`) when both sides stop.
 
-A game that hits `-max-turns` or `-max-decisions` is a **stall**, not a divergence. A **kernel
-capacity stall** is different: the kernel has fixed capacity (stack, board, instances) and ends the
+A game that hits `-max-turns` or `-max-decisions` is a **stall**, not a divergence. A **dirac
+capacity stall** is different: dirac has fixed capacity (stack, board, instances) and ends the
 game when it runs out (`oracle.KernelStallPrefix`, the `kernel ` prefix in the verdict). gorge has no
-such cap, so a capacity stall is reported separately and is a known kernel limit, not a mismatch. A
+such cap, so a capacity stall is reported separately and is a known dirac limit, not a mismatch. A
 game that hits a turn or decision cap agreed for its whole length and counts as clean. A game stopped at
-a kernel capacity agreed up to there and earns coverage for that much; one stopped at an unmodelled
+a dirac capacity agreed up to there and earns coverage for that much; one stopped at an unmodelled
 reason earns none. Lockstep records which in `Result.StallUnmodelled`.
 
 ### How a divergence is reported
@@ -168,8 +168,8 @@ reason earns none. Lockstep records which in `Result.StallUnmodelled`.
 `options`, `projection`, `decision`, `terminal`, `gorge` or `kernel`), the first mismatching field
 (`Field`, for example `Cards[12].Zone`), every mismatching field with both values (`Diff`), both
 option lists, and the side that led. `kfuzz -v` prints the last actions before the divergence and the
-field diff. This run, on the full surface where a divergence is still open, shows the shape
-(2026-10-30):
+field diff. This run of 2026-10-30 shows the shape; the difference it found has since been
+fixed, and the same command plays clean:
 
 ```
 $ bin/kfuzz -kernel blb -first-pair 8 -pairs 1 -seed 1 -surface full -mulligans 1 -shrink 0 -v
@@ -199,17 +199,17 @@ divergence as `DIR/repro.json` (a pool repro needs no deck files or `pool.tsv`),
 writes up to three files per divergence class under `DIR`. A clean run writes nothing. `-repro` takes
 the surface from the command line, since a repro does not record it.
 
-For a game the kernel played on its own, `oracle.RecordKernelGame` makes a `koracle-game-1` record, and
+For a game dirac played on its own, `oracle.RecordKernelGame` makes a `koracle-game-1` record, and
 `kfuzz -replay FILE` re-executes one saved as JSON in gorge with
-its chance draws forced, and verifies gorge's log. `-replay` is routed before the kernel switch, so it
+its chance draws forced, and verifies gorge's log. `-replay` is routed before dirac switch, so it
 works under any `-kernel`.
 
 ## The oracle import boundary
 
 Only `dirac/oracle` and its commands, `dirac/kgen`, `dirac/cmd/dplay` and `dirac/cmd/sbv2dirac` may
 import gorge's packages. The core (`dirac`, `dirac/kop`, `dirac/vanilla`, `dirac/cardset`, `dirac/search/...`,
-`dirac/feat`) must not. The boundary keeps the kernel a standalone engine: its `State` cannot
-accidentally hold a gorge pointer or map, and the kernel builds and tests without the gorge engine
+`dirac/feat`) must not. The boundary keeps dirac a standalone engine: its `State` cannot
+accidentally hold a gorge pointer or map, and dirac builds and tests without the gorge engine
 except through the oracle. The oracle is the one place both engines meet, which is why every comparison
 lives there.
 
@@ -237,7 +237,7 @@ the same change, or makes kgen refuse the affected cards by name (`kgen -refuse`
 
 - re-run lockstep, because the oracle's behaviour may have changed;
 - update `dirac/docs/GORGE-FINDINGS.md` where a copied behaviour is now fixed or newly required;
-- update `dirac/crcoverage` rows that say the kernel inherits gorge's behaviour, when gorge's row
+- update `dirac/crcoverage` rows that say dirac inherits gorge's behaviour, when gorge's row
   moved;
 - rebuild the tables with `make dirac-tables`, since a change in the gorge packages kgen builds against
   moves the table key. If the accepted counts moved, rewrite `dirac/kgen`'s acceptance pins:
@@ -247,9 +247,9 @@ the same change, or makes kgen refuse the affected cards by name (`kgen -refuse`
 
 ## Bot and transcript parity
 
-`khbot` (`dirac/oracle/cmd/khbot`) compares the kernel's port of gorge's auto-pay heuristic bot with
-the bot itself. Gorge's bot chooses every action on gorge; at each decision the kernel bot is asked
-the same decision on the kernel's state (`oracle.HBotParityGame`, `dirac/oracle/hbot_parity.go`).
+`khbot` (`dirac/oracle/cmd/khbot`) compares dirac's port of gorge's auto-pay heuristic bot with
+the bot itself. Gorge's bot chooses every action on gorge; at each decision dirac bot is asked
+the same decision on dirac's state (`oracle.HBotParityGame`, `dirac/oracle/hbot_parity.go`).
 It prints agreement per decision kind and one example of each disagreement class (2026-10-29):
 
 ```sh
@@ -270,7 +270,7 @@ disagreement classes:
 ```
 
 `ksbt` (`dirac/oracle/cmd/ksbt`) does the same for SpellBench's sb-tactical: gorge's own decision
-core answers a gorge view that the adapter builds from the kernel position
+core answers a gorge view that the adapter builds from dirac position
 (`oracle.SBTParityGame`, `dirac/oracle/sbt_parity.go`; the view is `sbt_view.go`, the agent
 `sbt.go`). It is an agent, not a hot-loop policy, because the gorge view allocates.
 
@@ -292,10 +292,10 @@ disagreement classes:
 ```
 
 `kfuzz -v2 transcript` is a different seam: it plays the same seeded games on `dirac/cmd/sbv2dirac`
-(the kernel hosted as a SpellBench v2 engine) and gorge's environment and diffs their transcripts.
+(dirac hosted as a SpellBench v2 engine) and gorge's environment and diffs their transcripts.
 `-v2-no-chance` is the negative control: the gorge host
-keeps its own shuffles instead of dealing the kernel's chance, and the transcripts must differ.
-`dirac/oracle/v2bridge.go` maps an agent's native v2 option back to the canonical kernel action.
+keeps its own shuffles instead of dealing dirac's chance, and the transcripts must differ.
+`dirac/oracle/v2bridge.go` maps an agent's native v2 option back to the canonical dirac action.
 
 ## Adding a card: the parity test shape
 
@@ -314,7 +314,7 @@ The shape:
   auto-pay surface, `seed%8 == 0` random, otherwise cast-first) and fails on every divergence; the
   environment variable named by the last argument overrides the seed count for a quick run;
 - add a mutation test (`TestProwessLockstepMutation`, `dirac/oracle/prowess_test.go`) that flips
-  a kernel debug knob and proves some seed diverges, so the fixture is known to reach the mechanic.
+  a dirac debug knob and proves some seed diverges, so the fixture is known to reach the mechanic.
   Without the mutation proof a green lockstep can mean the card was never exercised.
 
 Run one focused set with a small seed count:
@@ -331,7 +331,7 @@ ok  	github.com/adams-shaun/gorge/dirac/oracle	0.615s
 
 `dirac/crcoverage` is the rule-by-rule audit: one Markdown file per CR chapter, one row per numbered
 rule, with a status (`follows`, `partial`, `deviates`, `not-impl`, `definition`, `n/a`, `unknown`),
-the code that decides it, the tests that exercise it and a note. The kernel is two-player and plays
+the code that decides it, the tests that exercise it and a note. dirac is two-player and plays
 fixed pools, so many rows are `n/a` with the reason stated. The package README explains how to read
 and update a row: [dirac/crcoverage/README.md](../crcoverage/README.md).
 
@@ -355,7 +355,7 @@ and how to compare two commits; compare instructions per operation, not absolute
 ## Differences from gorge
 
 [`DEVIATIONS.md`](DEVIATIONS.md) lists the differences that are not divergences, each classed as canonical
-surface or declared capacity. [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md) lists the gorge behaviour the kernel
+surface or declared capacity. [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md) lists the gorge behaviour dirac
 copies and the differences still open.
 
 ## Where next

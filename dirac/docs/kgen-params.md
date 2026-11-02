@@ -925,10 +925,10 @@ so this table is complete by construction.
 ## Lowering decisions that bend semantics (need sign-off)
 
 - **Damage maps** (Drakuseth): the 4 + 3 + 3 damage is emitted as DealDamageEx
-  nodes flagged DmgMapped and closed by OpResolveDamageMap; the kernel must
+  nodes flagged DmgMapped and closed by OpResolveDamageMap; dirac must
   deal them as one simultaneous event to match gorge.
 - **Triggered card identity**: TriggeredCard, TriggeredCardLKICopy and
-  TriggeredNewCardLKICopy all lower to RefTriggerObj (the kernel resolves it to
+  TriggeredNewCardLKICopy all lower to RefTriggerObj (dirac resolves it to
   the object wherever it now is; LKI reads use its last-known values).
 - **SetName** (Witness Protection's "named Legitimate Businessperson") is
   dropped: the pool's only name filter (Hare Apparent) compares card ids.

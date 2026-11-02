@@ -1,14 +1,14 @@
 # How cards get into dirac
 
-**dirac**, also called the kernel, is the second rules engine in this repository. It does not read Forge
+**dirac** is the second rules engine in this repository. It does not read Forge
 scripts at run time: `dirac/kgen` (the card generator) compiles each supported card once into a binary
-table, and the kernel plays that data through the vocabulary in `dirac/kop` (**kop** is the kernel's
-op/instruction package). **gorge** is the rules engine in `engine/`; it leads and the kernel follows:
+table, and dirac plays that data through the vocabulary in `dirac/kop` (**kop** is dirac's
+op/instruction package). **gorge** is the rules engine in `engine/`; it leads and dirac follows:
 `dirac/oracle` runs them in **lockstep** (the same game and seed, the same decision, every step compared)
 — see [`dirac/docs/verification.md`](verification.md). This page explains that path, how to tell whether
 a card is playable, and what adding support costs.
 
-For the kernel API itself see [`dirac/README.md`](../README.md) and the package docs in
+For dirac API itself see [`dirac/README.md`](../README.md) and the package docs in
 [`dirac/doc.go`](../doc.go). For per-parameter lowering detail see
 [`dirac/docs/kgen-params.md`](kgen-params.md). For how the result is checked against gorge see
 [`dirac/docs/verification.md`](verification.md).
@@ -20,7 +20,7 @@ coverage report says why a card is refused. Tables are not committed, so build t
 
 ```sh
 $ make dirac-tables
-kgen: 443 tables, 2223197 bytes, key 45885a2a42a67ace-d2914b4b2322507a in .../.cards/kernel-tables/45885a2a42a67ace-d2914b4b2322507a
+kgen: <n> tables, <size> bytes, key <key> in .../.cards/kernel-tables/<key>
 $ go run ./dirac/cmd/kgen -supported fdn | grep Abrade
 Abrade	true
 $ go run ./dirac/cmd/kgen -supported blb | grep 'Sword of Fire'
@@ -138,7 +138,7 @@ cardset.ByName("fdn") → a game (dirac.NewConfig)
    (`dirac/cardset/pooldata.go`) is the pool API (`Lookup`, `Def`, `Pool`, `PoolID`, `InertID`, `Inert`,
    `AbilityOrigin`, `Matchup`) and builds a `kop.Table` for two decks: only the cards those decks need,
    plus their tokens.
-6. **A game.** `dirac.NewConfig(tbl, deckA, deckB, seed, cfg)` takes that `kop.Table`; the kernel never
+6. **A game.** `dirac.NewConfig(tbl, deckA, deckB, seed, cfg)` takes that `kop.Table`; dirac never
    reads the tables or gorge. `dirac/cardset` is the engine-neutral seam: `Set` exposes the pool, `ByName`
    resolves one.
 
@@ -283,23 +283,23 @@ Most support work is a lowering, not a new engine primitive. The shape of the wo
    (prompts, AI hints, descriptions) are ignored by construction, as listed at the top of
    [`dirac/docs/kgen-params.md`](kgen-params.md).
 3. **Extend kop only if needed.** If kop cannot express the effect, add an op or an `ExtOp` sub-op in
-   `dirac/kop` and implement it in the kernel. [`dirac/README.md`](../README.md) is the
+   `dirac/kop` and implement it in dirac. [`dirac/README.md`](../README.md) is the
    registration table: append-only ordinals, the name-registry tests, the `execExt` case, the new
    `opsdoc_<name>.go` row, and where a new stall reason goes. Do not renumber. A **stall** is a guard
-   that stops the game when the kernel cannot represent an ordering or a choice; it is a deliberate
+   that stops the game when dirac cannot represent an ordering or a choice; it is a deliberate
    failure, not a silent wrong answer (see [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md)).
 4. **Rebuild the tables.** `make dirac-tables` rebuilds every pool and extends each `ids.tsv`; commit a
    changed `ids.tsv`. For a new pool, create `dirac/cardset/pools/fixtures/<pool>/cards.txt` first, opening with a
    comment that says what it is for. If the lowering changes acceptance counts in the set-list ratchets, `KGEN_REPIN=1`
    rewrites the pins in `dirac/kgen/ratchet_test.go` (see
    [`verification.md`](verification.md#following-a-gorge-change)).
-5. **Prove it against gorge.** The generated table is the kernel's claim; gorge is the arbiter. The
+5. **Prove it against gorge.** The generated table is dirac's claim; gorge is the arbiter. The
    lockstep harness in `dirac/oracle` and its `kfuzz` lockstep fuzz driver compare the same game action
    by action. The commands, the census and the expected baseline live in
    [`dirac/docs/verification.md`](verification.md); do not invent a new measurement here.
 
 Two failure modes are easy to confuse. A **lowering** refusal means kgen cannot represent the card, so
-it never enters a playable table. A supported card can still hit a **kernel** stall if the interpreter
+it never enters a playable table. A supported card can still hit a **dirac** stall if the interpreter
 meets a state it cannot order or choose; that is an engine fix, not a kgen fix, and the stall name in
 `GORGE-FINDINGS.md` is the pointer.
 
@@ -335,6 +335,6 @@ one?”.
 - [`dirac/docs/kgen-params.md`](kgen-params.md) — the per-API/parameter census and lowering table.
 - [`dirac/README.md`](../README.md) — where to register a new op, stall or ext sub-op.
 - [`dirac/docs/verification.md`](verification.md) — lockstep, `kfuzz`, parity and following a gorge change.
-- [`dirac/docs/running.md`](running.md) — playing games on the kernel.
+- [`dirac/docs/running.md`](running.md) — playing games on dirac.
 - [`DEVIATIONS.md`](DEVIATIONS.md) and [`GORGE-FINDINGS.md`](GORGE-FINDINGS.md) — the declared
-  differences from gorge, and the gorge behaviour the kernel copies.
+  differences from gorge, and the gorge behaviour dirac copies.

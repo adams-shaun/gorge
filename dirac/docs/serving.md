@@ -8,12 +8,14 @@ as on gorge.
 
 ```sh
 make dirac-tables
-gorged -engine dirac -vsbot -addr 127.0.0.1:8091 -dir /tmp/gorge-data
+gorged -engine dirac -seats 2 -vsbot -dir /tmp/gorge-dirac
 ```
 
-- `-dirac-sets` lists the card sets to try, in order; the default is `fdn`. A game
-  plays on the first set holding both decks. A set whose tables are not built stops
-  the server at startup, naming the command that builds them.
+- `-seats 2` is required: `-seats` defaults to 4.
+- `-dirac-sets` lists the card sets to try, in order; the default is `fdn`, and `blb`
+  is the other set with limited decks. A game plays on the first set holding both
+  decks. A set whose tables are not built stops the server at startup, naming the
+  command that builds them.
 - `-decks` left at its default serves `dirac/testdata/bench/<first set>`. The lobby lists
   any other deck in a named directory, disabled, with the reason dirac refuses it.
   A directory with nothing playable stops the server at startup.
@@ -36,8 +38,9 @@ gorged -engine dirac -vsbot -addr 127.0.0.1:8091 -dir /tmp/gorge-data
 
 ## Limits on the wires
 
-- The derived log has no reveal or roll notes, so a ManaBrew client gets no reveal or
-  dice prompt. Those prompts only acknowledge.
+- The game log is derived from positions, so it has no "reveals" or "rolled" lines. Two
+  games of the same cards read differently on the two engines, with no effect on play. A
+  ManaBrew client gets no reveal or dice prompt; those prompts only acknowledge.
 - A v2 observation reads no trigger amount, a colour from a card's printing off the
   battlefield, and no key for a planeswalker under attack.
 
@@ -52,5 +55,5 @@ Each of these says why, at startup or in the request's error.
 | `-events`, a chosen starting player, sideboards | these need gorge |
 | `-<policy>-net`, `az-redeal`, any search policy | a search needs a root, and dirac deals none |
 | `sb-tactical` against a human | it declares it reads decklists, so it never seats with one |
-| A deck with a card outside the set | the card is named |
+| A deck with a card outside the set, or one dirac doesn't support | the card is named |
 | Paired bot, review decisions, shadow scans | these walk gorge's engine |

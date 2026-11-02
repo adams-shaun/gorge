@@ -1,21 +1,21 @@
-# Kernel glossary
+# dirac glossary
 
-Terms you meet reading the kernel's code and docs.
+Terms you meet reading dirac's code and docs.
 
 ## Checking against gorge
 
-**Lockstep.** `dirac/oracle` plays the same decks and seed on gorge and on the kernel. It compares the
+**Lockstep.** `dirac/oracle` plays the same decks and seed on gorge and on dirac. It compares the
 option list at every decision and the state projection after every committed action. The first
 difference is a **divergence**. A game with no divergence and no unmodelled stall (below) is **clean**
 (`oracle.Result.Clean`). See [verification.md](verification.md).
 
-**Stall.** The kernel stops a game it cannot continue correctly. The game ends as a draw,
+**Stall.** dirac stops a game it cannot continue correctly. The game ends as a draw,
 `Terminal()` returns `(true, -1)` and `StallReason()` names the reason. Each reason has a class, read
 with `dirac.StallClassOf` and defined in `dirac/stallclass.go`:
 
 - **Capacity**: a fixed array or budget ran out, and gorge has no such limit. The game was correct up
   to there. These are declared limits: always counted, never a failure.
-- **Unmodelled**: gorge does something at this point that the kernel does not. These are rule gaps, and
+- **Unmodelled**: gorge does something at this point that dirac does not. These are rule gaps, and
   they fail a `kfuzz -absolute` run. A reason nobody classed counts as unmodelled.
 
 ## Cards
@@ -51,7 +51,8 @@ them (`TestOnlyTheOracleReadsRawTables`).
 - A **card pool** is the card list in `dirac/cardset/pools/<pool>/cards.txt`, with stable card IDs in
   `ids.tsv`.
 - A **deck pool** is the list of decks in a `pool.tsv` that lockstep draws its pairs from, kept outside
-  the repository and linked as `.pools` or named by `$GORGE_POOLS`. A clone without one plays the committed
+  the repository and linked as `.pools` or named by `$GORGE_POOLS`. The full pools are not published and
+  have no download. A clone plays the committed
   slices in `dirac/oracle/testdata/slices`: the first 1500 pairs of each pool at seed 1.
 
 **Table.** kgen's binary output for one card pool, `<pool>.ktab`, with `<pool>.coverage.md` beside it.

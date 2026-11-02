@@ -1,15 +1,16 @@
 # dirac
 
-**dirac**, also called the kernel, is a second Magic rules engine, written to be fast enough to sit
+**dirac** is a second Magic rules engine, written to be fast enough to sit
 inside a search loop. A whole game is one `dirac.State`, copied with `CopyFrom`, allocating nothing per
 transition. It is a 2-player engine driven as a `Step`/`Apply` state machine over a `kop.Table` of cards,
 and it is judged against gorge, the rules engine in [`engine/`](../engine): gorge leads and dirac follows,
 decision by decision (see [verification](docs/verification.md)). That speed is the point: self-play,
 search and policy training run millions of transitions.
 
-It is **not** a server, a multiplayer engine, a card-database front end or a
-replacement for gorge. It plays two seats from a fixed card table, supports
-the mechanics the generated tables cover, and leaves everything else to gorge.
+It is **not** a multiplayer engine, a card-database front end or a replacement
+for gorge. It plays two seats from a fixed card table, supports the mechanics the
+generated tables cover, and leaves everything else to gorge. A server reaches it
+through `dirac/adapter` ([serving](docs/serving.md)).
 
 ## Quick start
 
@@ -43,7 +44,7 @@ corpus, and returns an error naming that command when they are missing.
 `dirac/example_test.go` runs this loop to the end on the hand-written
 `dirac/vanilla` table, which needs no tables, and prints the winner as a checked
 `Example`. `doc.go` has the full godoc: the API, projection layout and
-the gorge rules the kernel follows.
+the gorge rules dirac follows.
 
 ## Concepts
 
@@ -115,6 +116,7 @@ the SpellBench v2 engine may.
 | `dirac`, `dirac/kop`, `dirac/cardset`, `dirac/vanilla`, `dirac/search/...`, `dirac/feat` | No. `dirac/cardset` imports only the module root's table key, which imports the standard library. |
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
+| `dirac/adapter` | Yes, gorge's view, decision and card types, and never `engine/rules` itself, `engine/replay` or `dirac/oracle`: it serves a game with no rules engine built. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
 | `dirac/cmd/dplay` | Yes: it reads gorge's deck files, and its bots read gorge's compiled cards through `dirac/oracle`. |
 
@@ -125,19 +127,22 @@ A new import in the no column is a review failure even if the tests pass.
 | Path | What it is |
 |---|---|
 | `dirac` | The engine: state, `Step`/`Apply`, combat, stack, mulligans, projection, and the hand-written interpreter for the `kop` ops. Start at `doc.go`. |
-| `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum that card tables and the interpreter share. "kop" stands for kernel op. |
+| `dirac/kop` | The card-effect vocabulary: `Table`, `CardDef`, `Ability`, `Instr` and the op enum that card tables and the interpreter share. |
 | `dirac/cardset` | The engine-neutral `Set` interface and the loader of binary card tables (`ByName`, `Names`). It imports `dirac/kop` and the root package's table key. |
 | `dirac/cardset/pools` | One directory per card pool, with its committed inputs, `cards.txt` and `ids.tsv`. `fdn` and `blb` are full-set pools; the pools under `fixtures/` exercise one mechanic at a time. |
-| `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. "Lockstep" means both engines get the same decks and seed and every decision and projection is compared. Its commands are `cmd/kfuzz` (lockstep fuzzer), `cmd/khbot` (kernel heuristic-bot parity) and `cmd/ksbt` (kernel sb-tactical parity). |
+| `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. "Lockstep" means both engines get the same decks and seed and every decision and projection is compared. Its commands are `cmd/kfuzz` (lockstep fuzzer), `cmd/khbot` (dirac heuristic-bot parity) and `cmd/ksbt` (dirac sb-tactical parity). |
+| `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves, with a log and views derived from positions. See [serving](docs/serving.md). |
+| `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |
+| `dirac/support` | Which cards are supported: the `evidence` and `refused` lists. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. |
 | `dirac/search/mull` | gorge's London-mulligan policies, as pure functions over a hand. |
-| `dirac/feat` | The network feature encoder: kernel position to the same `policynet` inputs gorge produces. |
+| `dirac/feat` | The network feature encoder: dirac position to the same `policynet` inputs gorge produces. |
 | `dirac/vanilla` | A hand-written table of basic lands, vanilla creatures and simple spells, with four synthetic 40-card decks. The small-table test bed. |
 | `dirac/crcoverage` | Test-only CR coverage audit (`README.md` plus one file per CR chapter); `TestCRCoverageIsCurrent` checks every row against the code. |
 | `dirac/<topic>_<mechanic>.go` | One file per mechanic. `doc.go` lists the topics. A contributor adds a new file instead of appending to a shared one. |
 
-Commands: `dirac/cmd/kgen` writes the binary tables; `dirac/cmd/dplay` plays games on the kernel alone;
-`dirac/cmd/sbv2dirac` serves the kernel as a SpellBench v2 engine. See [running](docs/running.md).
+Commands: `dirac/cmd/kgen` writes the binary tables; `dirac/cmd/dplay` plays games on dirac alone;
+`dirac/cmd/sbv2dirac` serves dirac as a SpellBench v2 engine. See [running](docs/running.md).
 
 ## Where next
 
@@ -147,6 +152,9 @@ Commands: `dirac/cmd/kgen` writes the binary tables; `dirac/cmd/dplay` plays gam
   commands, CR coverage and following a gorge change.
 - [Running](docs/running.md): `kfuzz`, the Go API, bots, the SpellBench v2
   engine and the benchmarks.
+- [Serving](docs/serving.md): `gorged -engine dirac`, what it plays and refuses.
+- [Support](docs/support.md): how many cards are supported, refused or unverified,
+  per Standard set.
 
 Deeper reference: [`dirac/doc.go`](doc.go) (the full API and gorge-rule
 notes), [`DEVIATIONS.md`](docs/DEVIATIONS.md) and

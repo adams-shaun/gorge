@@ -1,6 +1,6 @@
 # Running games, bots and measurements on dirac
 
-dirac, also called the kernel, is the second Magic rules engine in this repository. gorge is the
+dirac is the second Magic rules engine in this repository. gorge is the
 engine it is checked against, and `dirac/oracle` is the seam between them. This page maps common
 jobs to the command or Go entry point that does them. It does not repeat the reference pages:
 `dirac/doc.go` is the API authority and `dirac/docs/verification.md` the lockstep authority.
@@ -10,9 +10,9 @@ Terms used below:
 - **kop**: the card and op table package (`dirac/kop`): card records and instruction opcodes, no
   gorge types.
 - **kgen**: the generator that turns gorge's compiled card IR into binary card tables.
-- **stall**: the kernel stops a game it cannot continue correctly; the game ends as a draw with a
+- **stall**: dirac stops a game it cannot continue correctly; the game ends as a draw with a
   named reason.
-- **lockstep**: one game played by gorge and the kernel action for action, with every field
+- **lockstep**: one game played by gorge and dirac action for action, with every field
   compared. `kfuzz` (`dirac/oracle/cmd/kfuzz`) is the lockstep driver.
 
 ## Setup
@@ -24,7 +24,7 @@ committed. From the repository root:
 ```sh
 make fetch-cards     # once; about 140 MB
 make compile-cards
-make dirac-tables    # about 10 s
+make dirac-tables
 ```
 
 Run `make dirac-tables` again after a change to `dirac/kgen`, `dirac/kop`, `dirac/cardset`, a pool
@@ -45,9 +45,10 @@ Without a corpus the module still builds, corpus-dependent tests skip, and the h
 | play both engines and compare them | `dirac/oracle/cmd/kfuzz` | seeded lockstep games on a deck pool or a card list; see `dirac/docs/verification.md` |
 | ask whether a card is supported | `dirac/cmd/kgen -supported <pool>` | one line per card in the pool; see `dirac/docs/cards.md` |
 | build the card tables | `make dirac-tables`, which runs `dirac/cmd/kgen` | every pool's binary table, under the corpus |
-| compare the heuristic bots | `dirac/oracle/cmd/khbot` | gorge's auto-pay heuristic bot against its port on the kernel, per decision kind |
-| compare sb-tactical | `dirac/oracle/cmd/ksbt` | gorge's sb-tactical answering through a view built from the kernel position |
-| serve dirac as a SpellBench v2 engine | `dirac/cmd/sbv2dirac` | the engine role, with gorge as the lockstep shadow |
+| compare the heuristic bots | `dirac/oracle/cmd/khbot` | gorge's auto-pay heuristic bot against its port on dirac, per decision kind |
+| compare sb-tactical | `dirac/oracle/cmd/ksbt` | gorge's sb-tactical answering through a view built from the dirac position |
+| serve games on dirac | `gorged -engine dirac` | a server's tables, see [serving](serving.md) |
+| serve dirac as a stdio SpellBench v2 engine | `dirac/cmd/sbv2dirac` | the engine role, with gorge as the lockstep shadow |
 | measure transition speed | `go test -bench` in `./dirac` | the transition benchmarks, below |
 | measure whole-game speed against other engines | `scripts/xengine-bench.sh dirac` | `dplay` on one pinned core; see `docs/site/performance/methodology.md` |
 
@@ -63,7 +64,9 @@ fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 
 ```
 
 A clone plays the committed slices in `dirac/oracle/testdata/slices`, the first 1500 pairs of the
-`fdn` and `blb` pools at seed 1. `kfuzz -synth <pool>` plays a card list instead of a deck list.
+`fdn` and `blb` pools at seed 1, and `kfuzz -synth <pool>` deals synthetic decks from a card list. The
+full deck pools are not published and have no download. `make dirac-slices` plays both slices on both
+surfaces.
 
 ## Playing games with dplay
 
@@ -166,25 +169,25 @@ They allocate nothing.
 | `dirac/feat` | `NewPool(tbl, specs)`, `NewEncoder(pool)`, `EncodeState`, `EncodeOptions` | the policy-net input encoding: the same bytes `bots/policynet` produces from gorge's redacted view |
 
 `oracle.HBotFacts` and `oracle.FeatPool` build hbot facts and the feat pool from a gorge registry.
-In kernel-only code, `hbot.NewFacts` and `feat.NewPool` take only the `kop.Table` plus the
+In dirac-only code, `hbot.NewFacts` and `feat.NewPool` take only the `kop.Table` plus the
 string-derived specs.
 
 ## SpellBench v2 on dirac
 
 SpellBench v2 is newline-delimited JSON over stdio: a **host** starts an **engine** child and two
 **agent** children, and relays an engine `decision` to the acting seat's agent as a `choose`, then
-the agent's `choice` back as a `step`. `dirac/cmd/sbv2dirac` is the engine role with the kernel as the
+the agent's `choice` back as a `step`. `dirac/cmd/sbv2dirac` is the engine role with dirac as the
 authority:
 
 - It answers `hello`, `reset`, `step` and `validate_deck`. One game runs in lockstep
-  (`oracle.LockstepLed`): the kernel leads, a gorge shadow (`oracle.GorgeSide`) follows action by
+  (`oracle.LockstepLed`): dirac leads, a gorge shadow (`oracle.GorgeSide`) follows action by
   action, and gorge's SpellBench mapping and observe layers build the v2 observation and candidate
   list from the shadow's pending decision.
-- The agent's pick is translated to the canonical action (`GorgeSide.CanonOfIntent`), applied to the
-  kernel and mirrored into the shadow. A disagreement ends the game with
+- The agent's pick is translated to the canonical action (`GorgeSide.CanonOfIntent`), applied to
+  dirac and mirrored into the shadow. A disagreement ends the game with
   `engine_contract_failure:divergence`; the report goes to stderr and `Server.Divergences`.
 - Decks are the engine catalog plus `-decks DIR` (one gorge deck JSON per file, catalog id = file
-  stem). A deck containing a card the kernel's set does not support is refused by
+  stem). A deck containing a card dirac's set does not support is refused by
   `validate_deck`/`reset`, naming the cards.
 
 A handshake smoke, the same line a host sends first:
@@ -211,11 +214,11 @@ Time per operation moves with the machine and with code layout. Instructions per
 steadier number to compare two commits: run the test binary under `perf stat -e instructions:u` at two
 `-test.benchtime` counts, and divide the difference in instructions by the difference in counts.
 
-The rules that keep the kernel fast are structural, not tuning:
+The rules that keep dirac fast are structural, not tuning:
 
 - `State` holds a fixed layout of plain values, cloned with `CopyFrom`. `go vet` rejects an
   assignment. See `dirac/doc.go` for the value and projection rules and `dirac/README.md` for the rules
-  a kernel change must keep.
+  a change to dirac must keep.
 - The transition loop allocates nothing.
 - No map iteration order may reach an action, option list, record or output file. Same seed, same
   game, byte for byte.
@@ -226,7 +229,7 @@ in `dirac/docs/verification.md`, rather than a full seeded sweep.
 
 ## Where to read next
 
-- `dirac/doc.go`: the value, decision and projection API and the rules the kernel follows.
+- `dirac/doc.go`: the value, decision and projection API and the rules dirac follows.
 - `dirac/docs/DEVIATIONS.md`, `dirac/docs/GORGE-FINDINGS.md`: the differences from gorge.
 - `dirac/docs/README.md`: the documentation index.
 - `dirac/docs/cards.md`: kgen, card pools and tables, "is card X supported?".
