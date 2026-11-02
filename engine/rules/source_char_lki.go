@@ -3,6 +3,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -117,9 +118,33 @@ func (e *Engine) captureSourceCharLKI(src state.ObjID) {
 // TriggerPush) or activated (including a self-sacrifice cost, seeded by
 // payCast). effects reads it so "this permanent" effects of an ability whose
 // source became a new object do nothing (CR 400.7).
+//
+// A source that left together with the permanent it watches (CR 603.10a:
+// Super Shredder and Casey Jones die together) triggers from the shared
+// pre-departure board, so its trigger is queued after the source's departure
+// and took no snapshot. Such a trigger can only have come from the battlefield,
+// so finding its source elsewhere at push is the same fact.
 func (e *Engine) SourceLeftBattlefieldSince(stack state.ObjID) bool {
-	_, ok := e.sourceCharLKI[stack]
-	return ok
+	if _, ok := e.sourceCharLKI[stack]; ok {
+		return true
+	}
+	t, ok := e.triggerForAbilityObject(stack, e.G.Obj(stack))
+	return ok && triggerOnlyFromBattlefield(t)
+}
+
+// triggerOnlyFromBattlefield reports whether t can only have triggered while
+// its source was on the battlefield: it says so (TriggerZones$, or its
+// ActiveZones$ spelling, as zoneGate reads them), or it declares neither and
+// watches a departure from the battlefield.
+func triggerOnlyFromBattlefield(t cards.Trigger) bool {
+	spec := t.ParamStr(cards.PKTriggerZones)
+	if spec == "" {
+		spec = t.ParamStr(cards.PKActiveZones)
+	}
+	if spec == "" {
+		spec = t.ParamStr(cards.PKOrigin)
+	}
+	return strings.TrimSpace(spec) == "Battlefield"
 }
 
 // setSourceCharLKI records snap for the stack object id.
