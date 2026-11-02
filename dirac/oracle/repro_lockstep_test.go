@@ -259,3 +259,10 @@ func TestControlEndsBeforeTheNextResolutionAskLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "tractor_beam_destroyed_mid_resolution", "std-eoe", Config{GorgeAutopaySurface: true})
 }
+
+// Xu-Ifit returns Cosmogoyf with "has no abilities": its star is 0 and its toughness 1+*
+// is 1 (CR 208.2a), so it lives as a 0/1. kgen read the toughness as 0 and it died.
+func TestCreatureWithoutItsDefiningAbilityKeepsTheFixedTermLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "cosmogoyf_no_abilities_is_zero_one", "std-eoe", Config{GorgeAutopaySurface: true})
+}

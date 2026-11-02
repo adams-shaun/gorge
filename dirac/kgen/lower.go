@@ -498,14 +498,14 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Colors = ""
 	}
 	if f.PT != "" {
-		pw, tg, ok := strings.Cut(f.PT, "/")
+		_, _, ok := strings.Cut(f.PT, "/")
 		if !ok {
 			lc.refuseNode("PT", "PT %q", f.PT)
 		} else {
-			// A star reads 0, and the other number stands once the CDA is lost.
-			out.PTStar = pw == "*" || tg == "*"
-			out.P, _ = strconv.Atoi(pw)
-			out.T, _ = strconv.Atoi(tg)
+			// A star reads 0 and the fixed term stands once the CDA is lost (CR 208.2a): a
+			// "1+*" toughness is 1, as gorge reads the face (Cosmogoyf with no abilities is 0/1).
+			out.PTStar = f.CharacteristicDefining()
+			out.P, out.T = f.Power(), f.Toughness()
 		}
 	}
 	if f.Loyalty != "" {
