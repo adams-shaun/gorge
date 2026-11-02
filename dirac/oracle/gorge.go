@@ -438,7 +438,7 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if d.PaymentFallback != nil {
 		g.Stats.Fallbacks++
 	}
-	picks := payexec.WindowChoices(g.withoutTapAnother(d), g.windowOwed(d))
+	picks := payexec.WindowChoices(d, g.windowOwed(d))
 	if g.OnInternal != nil {
 		g.OnInternal(d, picks[0])
 	}
@@ -446,50 +446,6 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 		g.fail(fmt.Errorf("oracle: payment window answer refused: %w", err))
 	}
 	return true
-}
-
-// withoutTapAnother is d without the window sources whose mana ability taps
-// another permanent as its cost (Gene Pollinator: "{T}, Tap an untapped
-// permanent you control"), while any other source remains to answer with.
-// Activating one asks which permanent to tap, a decision the kernel's
-// payment window never poses (dirac/mana_tapanother.go: gorge's payment
-// planner cannot price that choice, so autopay and the windows leave the
-// source alone), so the harness's window answer takes the first source that
-// pays without it. The options keep their indices, which the answer returns.
-func (g *GorgeSide) withoutTapAnother(d *decision.Decision) *decision.Decision {
-	var kept []decision.Option
-	dropped, other := false, false
-	for _, o := range d.Options {
-		if o.Kind == "activate" && g.tapsAnother(o.Obj) {
-			dropped = true
-			continue
-		}
-		if o.Kind == "activate" {
-			other = true
-		}
-		kept = append(kept, o)
-	}
-	if !dropped || !other {
-		return d
-	}
-	c := *d
-	c.Options = kept
-	return &c
-}
-
-// tapsAnother reports whether the mana ability of id's face costs a tapped
-// permanent besides the source (a tapXType part).
-func (g *GorgeSide) tapsAnother(id state.ObjID) bool {
-	o := g.E.G.Obj(id)
-	if o == nil || o.Face() == nil {
-		return false
-	}
-	for _, sa := range o.Face().Abilities {
-		if sa.API == "Mana" && strings.Contains(sa.Params["Cost"], "tapXType") {
-			return true
-		}
-	}
-	return false
 }
 
 // windowOwed is the mana demand payWindowAnswer matches against. A payment
