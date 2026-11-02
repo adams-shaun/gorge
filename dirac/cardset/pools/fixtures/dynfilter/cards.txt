@@ -1,0 +1,13 @@
+# the dynamic filter pool: paid any-colour abilities of dynamic amount beside a free
+# colourless one, hybrid costs that ask a colour, for the oracle's constructed lockstep
+# (dirac/oracle/dynfilter_test.go)
+D'Vana Tendi, Optimistic Ensign
+Forest
+Grizzly Bears
+Island
+Llanowar Elves
+Mountain
+Saurian Explorer
+Starfleet Academy
+Three Tree City
+Xenobotanist

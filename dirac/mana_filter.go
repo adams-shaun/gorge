@@ -40,15 +40,14 @@ const potentialScriptNodes = 160 // gorge rules/potential_script.go
 const relaxedPaidLimit = 3
 
 // filterTapMana: a, a mana ability of cd, is a filter the kernel models:
-// {N}, {T} (generic N only), one mana of any colour, no other cost,
-// restriction or dynamic amount, on a card whose first mana ability is a
-// free {T} one. Three Tree City's dynamic {2},{T} is not (it stays
-// unmodelled). A filter that is the card's first mana ability (Three Tree
-// Mascot's untapped {1}, Prophetic Prism) is kop.FilterManaAb's
-// (mana_filterfirst.go).
+// {N}, {T} (generic N only), one mana of any colour or a dynamic amount of
+// one colour (Three Tree City's {2},{T}), no other cost or restriction, on a
+// card whose first mana ability is a free {T} one. A filter that is the card's
+// first mana ability (Three Tree Mascot's untapped {1}, Prophetic Prism) is
+// kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
-	if a.Kind != kop.AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
+	if a.Kind != kop.AbMana || a.AFlags&^kop.AfManaDynamic != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
 		m.Generic == 0 || m.X != 0 || m.Hyb[0] != 0 || m.Pips != ([kop.NumManaKinds]uint8{}) ||
 		a.ManaColors != kop.ColAny || a.ManaN > 1 {
 		return false
@@ -78,6 +77,29 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 	return int(k.t.Cards[c].Abilities[k.gen.filt(c)].Cost.Mana.Generic)
 }
 
+// filtUnits is the mana the filter at sl makes.
+func (s *State) filtUnits(k *prep, sl Slot) int {
+	if a := s.filtAb(k, sl); a.AFlags&kop.AfManaDynamic != 0 {
+		return s.dynManaN(k, a, sl)
+	}
+	return 1
+}
+
+// filtRelaxable: gorge's relaxed proof can enumerate the filters f: at most
+// relaxedPaidLimit, each dynamic amount at least one and at most six
+// (rules/potential_plan.go paymentPlanRelaxedAlternatives).
+func (s *State) filtRelaxable(k *prep, f slotMask) bool {
+	if f.count() > relaxedPaidLimit {
+		return false
+	}
+	for ; f.any(); f = f.rest() {
+		if n := s.filtUnits(k, f.first()); n < 1 || n > 6 {
+			return false
+		}
+	}
+	return true
+}
+
 // availFilt: in the gaps walk each filter is a free unit of its colours
 // (any, or a Combo's) and its fee is charged on top of the cost (paymentPlanRelaxProof's run with
 // every paid gap: the most permissive of its subsets, since an any-colour
@@ -86,7 +108,7 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 //go:noinline
 func (s *State) availFilt(k *prep, p uint8, a *avail) {
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), 1)
+		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), uint8(s.filtUnits(k, b.first())))
 		a.total -= s.filtFee(k, b.first())
 	}
 }
@@ -127,7 +149,7 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 				pc := s.manaPCGen(k, sl)
 				t.remove(s.srcMaskAt(pc, sl), pc.manaN)
 			}
-			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), 1)
+			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), uint8(s.filtUnits(k, sl)))
 			t.total -= s.filtFee(k, sl)
 		}
 		if t.affords(r, pipMaskOf(r), extra) {
@@ -284,7 +306,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if fs.gaps.count() <= relaxedPaidLimit && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
 		}
@@ -342,7 +364,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
-		pl.pool[st.ans-1]++
+		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)

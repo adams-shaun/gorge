@@ -206,8 +206,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	// (potential_plan.go paymentPlanRelaxProof), and the candidates are
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
-	// A fourth filter makes it unrelaxable too (mana_filter.go relaxedPaidLimit).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && filt.count() <= relaxedPaidLimit
+	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
+	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
