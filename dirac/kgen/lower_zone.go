@@ -2777,6 +2777,13 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	switch {
 	case len(prod) == 1 && strings.Contains("WUBRGC", prod):
 		m.Colors = prod
+	case prod == "ColorIdentity" || prod == "Combo ColorIdentity":
+		// "any color in your commander's color identity" (CR 903.4): dirac plays
+		// no commander games, and gorge adds nothing for an empty identity, so the
+		// ability is a source of no colour, which the kernel leaves out of payment
+		m.Colors = ""
+		m.Amount = cst(1)
+		return lc.finishMana(sa, ps, ab, m)
 	case strings.HasPrefix(prod, "Combo "):
 		m.Choice = true
 		m.Colors = strings.ReplaceAll(strings.TrimPrefix(prod, "Combo "), " ", "")
