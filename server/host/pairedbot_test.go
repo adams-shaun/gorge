@@ -523,6 +523,57 @@ func TestPairedBotRefusals(t *testing.T) {
 	}
 }
 
+// A table's own choice overrides the server's default, off means no panel, and a
+// name this server does not offer is refused when the table is created but only
+// reported on a table already saved under it.
+func TestPairedBotTableChoice(t *testing.T) {
+	def, other := pairedTestEntry(t), pairedTestEntry(t)
+	other.Name, other.Formats = "test-other", []string{"commander"}
+	second := pairedTestEntry(t)
+	second.Name = "test-second"
+	o := testOptions(t)
+	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
+	o.PairedBot, o.PairedBotChoices = def, []*bots.Entry{second, other}
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	add := func(id TableID, choice string) error {
+		c := pairedTable([]int{0})
+		c.ID, c.PairedBot = id, choice
+		return r.AddTable(c)
+	}
+	for _, c := range []struct {
+		id     TableID
+		choice string
+		policy string
+	}{{"default", "", def.Name}, {"named", second.Name, second.Name}, {"off", PairedBotOff, ""}} {
+		if err := add(c.id, c.choice); err != nil {
+			t.Fatalf("%s: %v", c.id, err)
+		}
+		st, err := r.PairedBotStatus(c.id)
+		if err != nil || st.Offered != (c.policy != "") || st.Policy != c.policy || st.Reason != "" {
+			t.Errorf("%s: %+v, %v", c.id, st, err)
+		}
+	}
+	if err := add("nope", "no-such-bot"); err == nil || !strings.Contains(err.Error(), "not offered") {
+		t.Errorf("an unoffered bot: %v", err)
+	}
+	if err := add("misfit", other.Name); err == nil || !strings.Contains(err.Error(), "format") {
+		t.Errorf("a bot that does not play the format: %v", err)
+	}
+	if got := r.PairedBotChoices(); len(got) != 3 || got[0].Name != def.Name {
+		t.Errorf("choices %+v", got)
+	}
+
+	saved := &table{cfg: pairedTable([]int{0})}
+	saved.cfg.PairedBot = "gone-since-restart"
+	if reason := r.pairedBotRefusal(saved); reason != adviceNotOffered {
+		t.Errorf("a saved table naming a missing bot: %q", reason)
+	}
+}
+
 // An entry that would read real lists, or could not explain, is refused at
 // startup however it is declared.
 func TestPairedBotRefusesAnOpenListSeat(t *testing.T) {

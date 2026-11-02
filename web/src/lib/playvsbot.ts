@@ -34,6 +34,8 @@ export type VsBotMulligans = (typeof VS_BOT_MULLIGANS)[number];
  *
  * botPolicy names the opponent's hosted policy; empty keeps the server's
  * default (-bot-policy), exactly as an omitted deck id keeps random.
+ *
+ * pairedBot chooses the table's paired bot; empty keeps the server's default.
  */
 export async function startPlayVsBot(
   format: VsBotFormat,
@@ -41,6 +43,7 @@ export async function startPlayVsBot(
   botDeck = '',
   mulligans: VsBotMulligans = 6,
   botPolicy = '',
+  pairedBot = '',
 ): Promise<string> {
   const g: CreateGame = await createGame({
     format,
@@ -48,6 +51,7 @@ export async function startPlayVsBot(
     ...(botDeck ? { bot_deck: botDeck } : {}),
     ...(botPolicy ? { bot_policy: botPolicy } : {}),
     mulligans,
+    ...(pairedBot ? { paired_bot: pairedBot } : {}),
   });
   return withBase(g.join);
 }
@@ -84,6 +88,7 @@ export async function startRematch(
   botDeck: string,
   botPolicy: string,
   mulligans: number,
+  pairedBot = '',
 ): Promise<string> {
   // Unlike the lobby's random-deck flow, a rematch must not let the server
   // substitute random decks when an older snapshot lacks either exact id.
@@ -94,6 +99,7 @@ export async function startRematch(
     bot_deck: botDeck,
     ...(botPolicy ? { bot_policy: botPolicy } : {}),
     mulligans,
+    ...(pairedBot ? { paired_bot: pairedBot } : {}),
   });
   return withBase(g.join);
 }

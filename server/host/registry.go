@@ -184,6 +184,9 @@ type Options struct {
 	// The entry need not be registered. nil is off: nothing here touches a
 	// game.
 	PairedBot *bots.Entry
+	// PairedBotChoices are the other bots a table may choose instead
+	// (TableConfig.PairedBot), under the same check. They need PairedBot set.
+	PairedBotChoices []*bots.Entry
 	// PairedBotSearches bounds paired-bot searches across the registry;
 	// further requests wait their turn. 0 means one.
 	PairedBotSearches int
@@ -344,10 +347,18 @@ func New(o Options) (*Registry, error) {
 	}
 	var adviceGate *searchSlots
 	if o.PairedBot != nil {
-		if err := validatePairedBot(*o.PairedBot, o); err != nil {
+		if err := ValidatePairedBot(*o.PairedBot, o); err != nil {
 			return nil, err
 		}
 		adviceGate = newSearchSlots(max(1, o.PairedBotSearches))
+	}
+	for _, e := range o.PairedBotChoices {
+		if o.PairedBot == nil {
+			return nil, fmt.Errorf("host: paired bot %q is a choice beside no default", e.Name)
+		}
+		if err := ValidatePairedBot(*e, o); err != nil {
+			return nil, err
+		}
 	}
 	r := &Registry{opts: o, searchGate: gate, adviceGate: adviceGate, tables: map[TableID]*table{}, sessions: map[string]*Session{}, done: make(chan struct{})}
 	if o.Dir != "" {
@@ -372,6 +383,9 @@ func (r *Registry) AddTable(c TableConfig) error {
 		if err := r.checkAccepted(c); err != nil {
 			return err
 		}
+	}
+	if err := r.checkPairedBotChoice(&c); err != nil {
+		return err
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()

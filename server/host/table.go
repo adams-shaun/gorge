@@ -221,6 +221,10 @@ type TableConfig struct {
 	// bot (Options.PairedBot); every seat can read that it is on
 	// (Registry.PairedBotStatus). A table with one human needs no opt-in.
 	AllowPairedBot bool `json:"allow_paired_bot,omitempty"`
+	// PairedBot is this table's own choice of paired bot: a bot the server
+	// offers (Registry.PairedBotChoices), PairedBotOff for none, or empty for
+	// the server's default (Options.PairedBot).
+	PairedBot string `json:"paired_bot,omitempty"`
 	// SeatBotPolicies names a bot policy per seat index: seat i of every match
 	// is played by SeatBotPolicies[i] when that entry is non-empty, else by
 	// BotPolicy. Like PlayerNames it never rotates with the decks. An entry
@@ -480,7 +484,7 @@ func (t *table) info() protocol.TableInfo {
 	defer t.mu.RUnlock()
 	info := protocol.TableInfo{ID: string(t.cfg.ID), Name: t.cfg.Name, Seats: t.cfg.Seats,
 		Spectator: t.cfg.Spectator.String(), State: t.state, Match: t.k, Perpetual: t.cfg.Perpetual,
-		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, Mulligans: t.cfg.Mulligans, AutoMana: t.cfg.AutoMana,
+		Format: t.cfg.Format.String(), BotPolicy: t.cfg.BotPolicy, PairedBot: t.cfg.PairedBot, Mulligans: t.cfg.Mulligans, AutoMana: t.cfg.AutoMana,
 		Series: t.cfg.Series, Event: t.cfg.Event != "", Review: t.review, Engine: t.cfg.Engine}
 	// SeatNames come from the live match's own seat list — the same
 	// []protocol.SeatInfo that MatchStart carries — so the two can never

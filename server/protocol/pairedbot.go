@@ -17,6 +17,15 @@ type PairedBotStatus struct {
 	Shared bool `json:"shared,omitempty"`
 }
 
+// PairedBotChoice is one paired bot a new table may choose
+// (Capabilities.PairedBots).
+type PairedBotChoice struct {
+	Name  string `json:"name"`
+	Label string `json:"label"`
+	// Formats are the construction formats it plays; empty means all.
+	Formats []string `json:"formats,omitempty"`
+}
+
 // The states of an Advice.
 const (
 	// AdviceReady: Explain holds the bot's evaluation.

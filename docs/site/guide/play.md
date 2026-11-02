@@ -281,7 +281,9 @@ with it armed.
 
 A server can let you ask a bot what it makes of the decision in front of you. It is off by default: start
 the server with `-paired-bot az-closed`, then turn on **Paired bot** at the top of the rail. Your browser
-remembers the switch, and it starts off.
+remembers the switch, and it starts off. When you start a game against a bot, the **Paired bot** picker chooses
+for that game: the server's default, another bot the server offers, or none, which takes the panel away. A
+restart keeps the choice.
 
 For each of your decisions the panel lists the options the search weighed, each with the number of lines
 that looked at it and its estimated chance of winning, and marks the one it recommends. It only advises.
@@ -293,6 +295,9 @@ see, until the game ends or the search stops and scores the position by life, ca
 *Search looked at 100 lines* counts those lines, and an estimate averages where the lines through that option
 ended up. It's a guide to how the options compare, not a measured win rate.
 
+If the game moves on while the bot is thinking, the panel says the advice is out of date and offers to ask again.
+The next decision asks by itself.
+
 **What the bot can't see.** It sees what you can see: your deck list and everything you've seen in this game.
 It can't see your opponent's hand, the order of any library or your opponent's deck list. It guesses those
 cards from a set of decks, so when it's wrong about what your opponent holds, its advice is wrong too. It
@@ -301,7 +306,7 @@ decision in the middle of an effect resolving.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-paired-bot NAME` | off | `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary |
+| `-paired-bot NAME` | off | The default paired bot: `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary. Without it, no game can choose one. With it, a game can also choose `az-closed` or any such policy |
 | `-paired-bot-sims N` | 100 | simulations per request (`az-closed`) |
 | `-paired-bot-decks DIR` | the server's constructed decks | the decks it guesses from (`az-closed`) |
 | `-paired-bot-searches N` | 2 | searches at once across the server; further requests wait |

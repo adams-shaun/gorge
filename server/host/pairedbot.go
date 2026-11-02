@@ -56,6 +56,7 @@ var ErrAdviceStale = errors.New("The decision has moved on.")
 // seat.
 const (
 	adviceNotOffered    = "This server does not offer a paired bot."
+	adviceNotLive       = "A paired bot advises a human in a live game."
 	adviceNotSearched   = "Search weighs priority, attackers, blockers and single targets. This kind of decision is yours alone."
 	adviceMidResolution = "This decision comes in the middle of an effect resolving, and search cannot look ahead from here without seeing hidden cards."
 	adviceNoRoot        = "Search could not rebuild this position from what you can see."
@@ -65,10 +66,13 @@ const (
 	adviceFailed        = "The bot could not evaluate this decision."
 )
 
-// validatePairedBot refuses an entry whose seats could read an opponent's list
+// PairedBotOff is the TableConfig.PairedBot of a table that wants no paired bot.
+const PairedBotOff = "off"
+
+// ValidatePairedBot refuses an entry whose seats could read an opponent's list
 // or could not explain a search. Like closedListGuard it checks a built seat,
 // not the declaration.
-func validatePairedBot(e bots.Entry, o Options) error {
+func ValidatePairedBot(e bots.Entry, o Options) error {
 	if e.New == nil {
 		return fmt.Errorf("host: paired bot %q has no factory", e.Name)
 	}
@@ -88,19 +92,80 @@ func validatePairedBot(e bots.Entry, o Options) error {
 	return nil
 }
 
-// pairedBotRefusal is why table t does not offer the paired bot, "" when it
-// does.
-func (r *Registry) pairedBotRefusal(t *table) string {
-	e := r.opts.PairedBot
-	c := &t.cfg
-	if e == nil {
-		return adviceNotOffered
+// pairedBotOf is the bot table config c asks for, nil when it wants none or the
+// server does not offer the one it names. A table's named bot can be gone after
+// a restart with other flags.
+func (r *Registry) pairedBotOf(c *TableConfig) *bots.Entry {
+	switch c.PairedBot {
+	case "":
+		return r.opts.PairedBot
+	case PairedBotOff:
+		return nil
 	}
+	if e := r.opts.PairedBot; e != nil && e.Name == c.PairedBot {
+		return e
+	}
+	for _, e := range r.opts.PairedBotChoices {
+		if e.Name == c.PairedBot {
+			return e
+		}
+	}
+	return nil
+}
+
+// checkPairedBotChoice refuses a new table that names a bot this server does
+// not offer or that could not advise at that table. Left to the default, an
+// unsuitable table says why in PairedBotStatus instead.
+func (r *Registry) checkPairedBotChoice(c *TableConfig) error {
+	if c.PairedBot == "" || c.PairedBot == PairedBotOff {
+		return nil
+	}
+	e := r.pairedBotOf(c)
+	if e == nil {
+		return fmt.Errorf("paired bot %q is not offered on this server", c.PairedBot)
+	}
+	if reason := pairedBotMisfit(e, c); reason != "" {
+		return fmt.Errorf("paired bot %q: %s", c.PairedBot, reason)
+	}
+	return nil
+}
+
+// PairedBotChoices lists what a table may choose for TableConfig.PairedBot, the
+// server's default first; empty when it offers no paired bot.
+func (r *Registry) PairedBotChoices() []protocol.PairedBotChoice {
+	if r.opts.PairedBot == nil {
+		return nil
+	}
+	choice := func(e *bots.Entry) protocol.PairedBotChoice {
+		return protocol.PairedBotChoice{Name: e.Name, Label: e.Label, Formats: e.Formats}
+	}
+	out := []protocol.PairedBotChoice{choice(r.opts.PairedBot)}
+	for _, e := range r.opts.PairedBotChoices {
+		out = append(out, choice(e))
+	}
+	return out
+}
+
+// pairedBotRefusal is why table t does not offer a paired bot, "" when it does.
+func (r *Registry) pairedBotRefusal(t *table) string {
+	e := r.pairedBotOf(&t.cfg)
+	switch {
+	case e == nil:
+		return adviceNotOffered
+	case t.review:
+		return adviceNotLive
+	}
+	return pairedBotMisfit(e, &t.cfg)
+}
+
+// pairedBotMisfit is why bot e cannot advise at a table configured as c, "" when
+// it can.
+func pairedBotMisfit(e *bots.Entry, c *TableConfig) string {
 	switch {
 	case c.Engine != "":
 		return fmt.Sprintf("A paired bot needs gorge; this table runs %q.", c.Engine)
-	case t.review || len(c.Humans) == 0:
-		return "A paired bot advises a human in a live game."
+	case len(c.Humans) == 0:
+		return adviceNotLive
 	case len(c.Humans) > 1 && !c.AllowPairedBot:
 		return "This table has more than one human player and does not allow a paired bot."
 	case e.MaxSeats > 0 && c.Seats > e.MaxSeats:
@@ -119,13 +184,13 @@ func (r *Registry) PairedBotStatus(id TableID) (protocol.PairedBotStatus, error)
 	if !ok {
 		return protocol.PairedBotStatus{}, ErrNotFound
 	}
-	if r.opts.PairedBot == nil {
+	if r.opts.PairedBot == nil || t.cfg.PairedBot == PairedBotOff {
 		return protocol.PairedBotStatus{}, nil
 	}
 	if reason := r.pairedBotRefusal(t); reason != "" {
 		return protocol.PairedBotStatus{Reason: reason}, nil
 	}
-	return protocol.PairedBotStatus{Offered: true, Policy: r.opts.PairedBot.Name, Shared: len(t.cfg.Humans) > 1}, nil
+	return protocol.PairedBotStatus{Offered: true, Policy: r.pairedBotOf(&t.cfg).Name, Shared: len(t.cfg.Humans) > 1}, nil
 }
 
 // adviceSlot is one table's paired-bot search: the running one, or the last
@@ -350,7 +415,7 @@ func (m *match) watchAdvice(key adviceKey, cancel context.CancelFunc, stop, clos
 func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, error) {
 	m, d := job.m, job.d
 	p := d.Player
-	entry := r.opts.PairedBot
+	entry := r.pairedBotOf(&m.table.cfg)
 	out := protocol.Advice{Table: string(m.table.cfg.ID), Match: m.k, AskSeq: d.Seq, Seat: uint8(p), Policy: entry.Name}
 
 	seatSeed := m.seed ^ uint64(int(p)+1)

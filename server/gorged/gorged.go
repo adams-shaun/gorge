@@ -651,6 +651,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if hopts.PairedBot, err = c.pairedBotEntry(reg, load, conPool); err != nil {
 		return err
 	}
+	hopts.PairedBotChoices = c.pairedBotChoices(hopts, reg, load, conPool)
 	hopts.PairedBotSearches = c.pairedBotSearches
 	sbv2hub := c.applySBV2(&hopts)
 	r, err := host.New(hopts)

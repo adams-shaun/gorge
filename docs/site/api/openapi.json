@@ -416,6 +416,13 @@
           "manual_mana": {
             "description": "ManualMana is false on an engine that pays for every cast; absent elsewhere.",
             "type": "boolean"
+          },
+          "paired_bots": {
+            "description": "PairedBots are the paired bots a new table may choose, the server's default first; absent when the server offers none.",
+            "items": {
+              "$ref": "#/components/schemas/PairedBotChoice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -785,6 +792,10 @@
             "description": "Mulligans is the optional London mulligan allowance for the created game (without it a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
             "format": "int64",
             "type": "integer"
+          },
+          "paired_bot": {
+            "description": "PairedBot chooses the table's paired bot: a name from GET /api/capabilities, or \"off\" for none. Omitted takes the server's default (gorged -paired-bot).",
+            "type": "string"
           }
         },
         "required": [
@@ -2650,6 +2661,30 @@
         ],
         "description": "Last frame of a session whose outbound buffer filled; the stream then closes and the client must reconnect without Last-Event-ID."
       },
+      "PairedBotChoice": {
+        "description": "PairedBotChoice is one paired bot a new table may choose (Capabilities.PairedBots).",
+        "properties": {
+          "formats": {
+            "description": "Formats are the construction formats it plays; empty means all.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "name"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/protocol.PairedBotChoice"
+      },
       "PairedBotStatus": {
         "description": "PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this table may ask a bot to evaluate its decisions. It carries configuration only, so every seat can read it and see that a table allows it.",
         "properties": {
@@ -3929,6 +3964,10 @@
             "type": "integer"
           },
           "name": {
+            "type": "string"
+          },
+          "paired_bot": {
+            "description": "PairedBot is the table's own choice of paired bot, \"off\" for none; absent when it left that to the server. Public table configuration.",
             "type": "string"
           },
           "perpetual": {

@@ -148,10 +148,6 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			decks = []string{bot, human}
 		}
 		id := host.NextGameID(r)
-		tok, err := gate.mint(id, 0)
-		if err != nil {
-			return httpapi.CreateGameResponse{}, err
-		}
 		// The request may set its own London allowance; an omitted field keeps the server
 		// default. host.TableConfig.Validate still rejects a negative, so a
 		// caller that skips the handler's 0..6 cap fails at AddTable.
@@ -163,9 +159,14 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 			ID: id, Name: fmt.Sprintf("Play vs bot (%s)", req.Format), Seats: 2, Decks: decks,
 			Seed: seed, PlayerNames: []string{"You", "Bot"}, Mulligans: mulligans,
 			Spectator: vis, Perpetual: false, Humans: []int{0}, Format: req.Format,
-			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, Engine: c.engine,
+			BotPolicy: policy, BotAutoPayMana: c.botAutoPayMana, BotCommonSense: c.botCommonSense, AutoMana: c.autoMana, OnDemand: true, Engine: c.engine, PairedBot: req.PairedBot,
 		}
 		if err := r.AddTable(cfg); err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
+		// After AddTable, so a refused request leaves no token behind.
+		tok, err := gate.mint(id, 0)
+		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
 		if err := r.Start(id); err != nil {

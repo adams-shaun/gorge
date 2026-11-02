@@ -107,7 +107,7 @@ func (h *handler) botPolicies(w http.ResponseWriter, r *http.Request) {
 // capabilities serves GET /api/capabilities. Events reads the same field
 // mountEvents does, so the answer cannot disagree with the mounted routes.
 func (h *handler) capabilities(w http.ResponseWriter, r *http.Request) {
-	caps := protocol.Capabilities{Events: h.opts.Events != nil, Engine: h.opts.Engine}
+	caps := protocol.Capabilities{Events: h.opts.Events != nil, Engine: h.opts.Engine, PairedBots: h.reg.PairedBotChoices()}
 	if h.opts.NoManualMana {
 		caps.ManualMana = new(bool)
 	}
@@ -498,6 +498,10 @@ type CreateGameRequest struct {
 	// 0 — "0 disables the pre-game round" — is distinguishable from an
 	// omitted field, which keeps the server default.
 	Mulligans *int `json:"mulligans,omitempty"`
+	// PairedBot chooses the table's paired bot: a name from
+	// GET /api/capabilities, or "off" for none. Omitted takes the server's
+	// default (gorged -paired-bot).
+	PairedBot string `json:"paired_bot,omitempty"`
 }
 
 // CreateGameOptions is the validated request handed across Options.CreateGame.
@@ -513,6 +517,9 @@ type CreateGameOptions struct {
 	// Mulligans is the validated mulligan allowance; nil keeps the builder's
 	// server-side default.
 	Mulligans *int
+	// PairedBot is the request's choice, unchecked: the registry refuses a
+	// table naming a bot it does not offer.
+	PairedBot string
 }
 
 // CreateGameResponse is what a successful POST /api/games returns: the new
@@ -573,7 +580,7 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp, err := h.opts.CreateGame(CreateGameOptions{
-		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, BotPolicy: req.BotPolicy, Mulligans: req.Mulligans,
+		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, BotPolicy: req.BotPolicy, Mulligans: req.Mulligans, PairedBot: req.PairedBot,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())

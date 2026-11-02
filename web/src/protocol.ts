@@ -58,6 +58,11 @@ export interface TableInfo {
    */
   bot_policy: string;
   /**
+   * PairedBot is the table's own choice of paired bot, "off" for none;
+   * absent when it left that to the server. Public table configuration.
+   */
+  paired_bot?: string;
+  /**
    * SeatNames names the table's seats in seat order: the deck name each
    * seat is playing, as MatchStart carries them. Empty when no match
    * has started on this table yet. It is public information -- the
@@ -1880,6 +1885,19 @@ export interface BotPolicyList {
 }
 
   /**
+   * PairedBotChoice is one paired bot a new table may choose
+   * (Capabilities.PairedBots).
+   */
+export interface PairedBotChoice {
+  name: string;
+  label: string;
+  /**
+   * Formats are the construction formats it plays; empty means all.
+   */
+  formats?: string[];
+}
+
+  /**
    * Capabilities is GET /api/capabilities: which optional surfaces this server
    * serves, so a client can decide what to draw without probing a route that
    * 404s when the surface is off. Additive, and always 200. Events is true when
@@ -1895,6 +1913,11 @@ export interface Capabilities {
    * ManualMana is false on an engine that pays for every cast; absent elsewhere.
    */
   manual_mana?: boolean | null;
+  /**
+   * PairedBots are the paired bots a new table may choose, the server's
+   * default first; absent when the server offers none.
+   */
+  paired_bots?: PairedBotChoice[];
 }
 
   /**

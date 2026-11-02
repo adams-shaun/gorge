@@ -119,6 +119,9 @@ type TableInfo struct {
 	// BotPolicy is the effective hosted policy for bot seats and human-seat
 	// caretakers. It is public table configuration, never private game state.
 	BotPolicy string `json:"bot_policy"`
+	// PairedBot is the table's own choice of paired bot, "off" for none;
+	// absent when it left that to the server. Public table configuration.
+	PairedBot string `json:"paired_bot,omitempty"`
 	// SeatNames names the table's seats in seat order: the deck name each
 	// seat is playing, as MatchStart carries them. Empty when no match
 	// has started on this table yet. It is public information -- the
@@ -370,4 +373,7 @@ type Capabilities struct {
 	Engine string `json:"engine,omitempty"`
 	// ManualMana is false on an engine that pays for every cast; absent elsewhere.
 	ManualMana *bool `json:"manual_mana,omitempty"`
+	// PairedBots are the paired bots a new table may choose, the server's
+	// default first; absent when the server offers none.
+	PairedBots []PairedBotChoice `json:"paired_bots,omitempty"`
 }

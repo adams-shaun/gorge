@@ -84,6 +84,12 @@ describe('startRematch', () => {
       bot_deck: 'b',
       mulligans: 0,
     });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ table: 'g3', match: 1, seed: 2, seat: 0, token: 't', join: '/t/g3' }),
+    });
+    await startRematch('commander', 'h', 'b', '', 0, 'off');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).paired_bot).toBe('off');
   });
 
   it('propagates a server rejection (a 404 when CreateGame is not armed) so the control can render it', async () => {

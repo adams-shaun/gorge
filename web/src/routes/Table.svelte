@@ -325,6 +325,7 @@
         botDeck,
         tableInfo.bot_policy,
         tableInfo.mulligans,
+        tableInfo.paired_bot,
       );
       window.location.href = join;
     } catch (e) {
