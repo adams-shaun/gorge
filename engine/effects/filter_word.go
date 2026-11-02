@@ -789,7 +789,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// ability object was activated, never cast. The AsStack override
 		// (rules.derivedWith) admits the spell a cast is announcing, which is
 		// still in hand at CR 601.2b but IS the spell being cast.
-		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
+		// A copy of a spell is put on the stack, never cast (CR 707.10).
+		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil && !o.IsCopy
 	case wordCopiedSpell:
 		// Forge's copiedSpell: the object IS a copy of a spell or permanent
 		// (CR 707.10), read off state.Object.IsCopy. The CR 707.10h guard in

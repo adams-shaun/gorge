@@ -28,6 +28,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tdm", "thunder_of_unity_saga_etb"},               // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
 		{"std-trk", "beam_grant_lone_grantor"},                 // Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return
 		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
+		{"std-blb", "copied_flashback_spell_was_not_cast"},     // Kitsa copies a flashed-back Otterball Antics: the copy's token takes no counter
 		{"std-fin", "cast_window_restricted_mana_short"},       // The Emperor of Palamecia's one mana does not reach Ice Magic's {4}: no target offered, no cast reversed after it
 	} {
 		t.Run(c.name, func(t *testing.T) {
