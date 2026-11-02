@@ -1068,6 +1068,9 @@ func (s *State) finishPeek(k *prep) {
 		s.objs[o].zone = kop.ZoneLibrary
 		pl.libTop(o)
 	}
+	if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
+		s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
+	}
 	for i := top; i < int(r.peekI); i++ { // the rest phase's picks
 		s.putRest(k, r.arr[i])
 	}

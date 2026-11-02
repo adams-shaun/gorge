@@ -2669,7 +2669,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpMill
 	case "Surveil":
 		ki.Op = kop.OpSurveil
-		if err := remember3(in.CS, &ki); err != nil {
+		if in.CS == "RememberKept" {
+			ki.C |= kop.SurveilRememberKept
+		} else if err := remember3(in.CS, &ki); err != nil {
 			return ki, err
 		}
 	case "Scry":

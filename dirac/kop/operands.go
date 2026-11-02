@@ -177,6 +177,11 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// SurveilRememberKept (OpSurveil C): the cards the surveil leaves on top of the
+// library join the remembered set (RememberKept$), beside MvRemember's cards put
+// into the graveyard.
+const SurveilRememberKept = 1 << 1
+
 // SearchFlags (OpSearchEx / OpChooseMove C>>3).
 const (
 	SrTapped           = 1 << iota // the found cards enter tapped

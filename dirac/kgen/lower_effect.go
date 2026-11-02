@@ -1229,6 +1229,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		} else if rem {
 			in.CS = "Remember" // the cards put into the graveyard
 		}
+		if kept, err := rememberParam(ps, "RememberKept"); err != nil {
+			return err
+		} else if kept {
+			if in.CS != "" {
+				return refuse("Surveil RememberKept$ beside RememberMoved$")
+			}
+			in.CS = "RememberKept" // the cards left on top
+		}
 		lc.emit(in)
 	case "GainLife", "LoseLife":
 		who, err := lc.objOrTarget(ps, "You", zNone)
