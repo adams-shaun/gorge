@@ -592,7 +592,7 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) bool 
 		if !s.restrFilterMatch(k, &fl, c, p&1, og) {
 			continue
 		}
-		if !chosen || s.restrChoseTypeOf(k, p, f0, c) {
+		if !chosen || s.restrChoseTypeOf(k, p, c) {
 			return true
 		}
 	}
@@ -663,25 +663,23 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 	return false
 }
 
-// restrChoseTypeOf: a permanent of p's with a mana ability restricted by
-// f chose a creature type card c has (the restricted mana's source is not
-// recorded: with two such sources, either one's choice).
-func (s *State) restrChoseTypeOf(k *prep, p uint8, f kop.FilterID, c CardID) bool {
-	cd := &k.t.Cards[c]
-	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
-		sl := m.first()
-		ch := s.perms[sl].chosen
-		if ch == 255 || int(ch) >= len(k.t.Subtypes) || !cd.Subtypes.Has(int(ch)) {
-			continue
-		}
-		abs := k.t.Cards[s.cardAt(sl)].Abilities
-		for i := range abs {
-			if abs[i].Kind == kop.AbMana && abs[i].ManaRestrict == f {
-				return true
-			}
-		}
+// floatRestrFrom floats n of colour col from source sl's restriction f, recording the
+// creature type the source chose: the restriction is the source's as it was made (CR
+// 106.6), so mana of another source's choice beside it does not fit poolR and the caller
+// stalls.
+func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
+	ch := s.perms[sl].chosen
+	if s.pl[p&1].poolR&poolRCnt != 0 && s.g.poolRChosen[p&1] != ch {
+		return false
 	}
-	return false
+	s.g.poolRChosen[p&1] = ch
+	return s.pl[p&1].addRestr(k, &s.poolRx[p&1], f, col, n)
+}
+
+// restrChoseTypeOf: the source of p's restricted mana chose a creature type card c has.
+func (s *State) restrChoseTypeOf(k *prep, p uint8, c CardID) bool {
+	ch := s.g.poolRChosen[p&1]
+	return int(ch) < len(k.t.Subtypes) && k.t.Cards[c].Subtypes.Has(int(ch))
 }
 
 // restrAvail adds p's restricted mana to av when the cast of card c may
@@ -912,7 +910,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
-			if !s.pl[p].addRestr(k, &s.poolRx[p&1], ab.ManaRestrict, col, 1) {
+			if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
 				spill[col]++
 			}
 		}
@@ -923,7 +921,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 		s.pl[p].pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
 		return
 	}
-	if !s.pl[p].addRestr(k, &s.poolRx[p&1], cd.Abilities[k.gen.anyR(s.cardAt(sl))].ManaRestrict, c-1, 1) {
+	if !s.floatRestrFrom(k, p, sl, cd.Abilities[k.gen.anyR(s.cardAt(sl))].ManaRestrict, c-1, 1) {
 		spill[c-1]++
 	}
 }
@@ -1374,7 +1372,7 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		for col := 0; col < 5; col++ {
 			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 				s.pl[p].pool[col] -= n
-				if !s.pl[p].addRestr(k, &s.poolRx[p&1], ab.ManaRestrict, col, n) {
+				if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
 					s.capFull(StallRestrSrc)
 				}
 				break

@@ -1371,12 +1371,14 @@ type genState struct {
 	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
 	noTgtRed   bool     // cost computation without target-dependent reductions
 	mayPlayAny bool     // the may-play cast being priced is under the any-type rider
-	probe      probe    // the spell / ability a priority feasibility check is for
-	inLoop     bool     // executing one object of a multi-object target slot
-	mt         multiTgt // the multi-object target slot being chosen
-	lastCK     kop.CounterKind
-	disc       Obj      // the card being discarded (TrigDiscarded)
-	nlB        [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	// poolRChosen is, per player, the creature type the source of poolR's mana chose.
+	poolRChosen [2]uint8
+	probe       probe    // the spell / ability a priority feasibility check is for
+	inLoop      bool     // executing one object of a multi-object target slot
+	mt          multiTgt // the multi-object target slot being chosen
+	lastCK      kop.CounterKind
+	disc        Obj      // the card being discarded (TrigDiscarded)
+	nlB         [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC       [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	cast        slotMask // slots whose permanent was cast by its controller

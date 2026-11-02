@@ -218,7 +218,7 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
 		sl := m.first()
 		abs := k.t.Cards[s.cardAt(sl)].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
+			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.perms[sl].chosen == s.g.poolRChosen[p&1] && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
 				return true
 			}
 		}
@@ -485,7 +485,7 @@ func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 	c := s.cardAt(st.sl)
 	rec := k.gen.restrRecOf(c)
 	ab := &k.t.Cards[c].Abilities[rec.ab]
-	if !s.pl[p&1].addRestr(k, &s.poolRx[p&1], ab.ManaRestrict, int(st.ans), max(ab.ManaN, 1)) {
+	if !s.floatRestrFrom(k, p, st.sl, ab.ManaRestrict, int(st.ans), max(ab.ManaN, 1)) {
 		s.capFull(StallRestrSrc) // poolR holds another colour or restriction, or is full: never a silent spill
 	}
 }

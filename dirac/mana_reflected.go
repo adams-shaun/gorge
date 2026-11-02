@@ -257,7 +257,7 @@ func (s *State) reflDo(k *prep, p uint8, st reflStep) {
 			s.capFull(StallRestrX) // loud: never float it unrestricted
 			return
 		}
-		if !pl.addRestr(k, &s.poolRx[p&1], cd.Abilities[k.gen.anyR(s.cardAt(st.sl))].ManaRestrict, c, 1) {
+		if !s.floatRestrFrom(k, p, st.sl, cd.Abilities[k.gen.anyR(s.cardAt(st.sl))].ManaRestrict, c, 1) {
 			s.capFull(StallRestrX) // another restriction or past 15: never a silent spill
 		}
 	default:

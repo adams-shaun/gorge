@@ -123,3 +123,36 @@ func TestVillageFundsCreature(t *testing.T) {
 		t.Fatalf("after the Assassin: Villages tapped %v %v, stack %d, pool %v; want both tapped and the Assassin on the stack", sc.tapped(v1), sc.tapped(v2), s.sp, s.pl[0].pool)
 	}
 }
+
+// TestCourtyardsKeepTheirOwnChoice: mana floated from a Courtyard that chose Goblin
+// stays spendable only on Goblins while another Courtyard that chose Bird sits tapped
+// beside it (CR 106.6: the restriction is the source's, as it was made).
+func TestCourtyardsKeepTheirOwnChoice(t *testing.T) {
+	sc, court, hawk := courtScen(t, "")
+	s := sc.s
+	other := sc.perm(s.objs[court].card, 0)
+	if d := s.Step(); d.Kind == DkChoose {
+		s.Apply(d.Options[0])
+	}
+	bird := -1
+	for i, n := range sc.k.t.Subtypes {
+		if n == "Bird" {
+			bird = i
+		}
+	}
+	s.perms[sc.slot(other)].chosen = uint8(bird)
+	var f kop.FilterID
+	for _, a := range sc.k.t.Cards[s.objs[court].card].Abilities {
+		if a.Kind == kop.AbMana && a.ManaRestrict != 0 {
+			f = a.ManaRestrict
+		}
+	}
+	if !s.floatRestrFrom(sc.k, 0, sc.slot(court), f, int(kop.W), 1) {
+		t.Fatal("the Courtyard's mana did not float restricted")
+	}
+	s.perms[sc.slot(court)].flags |= pfTapped
+	s.perms[sc.slot(other)].flags |= pfTapped
+	if d := s.Step(); castOffered(&d, hawk) {
+		t.Fatalf("the Hawk is offered from mana of a Courtyard that did not choose Bird: %v", d.Options[:d.N])
+	}
+}
