@@ -9,6 +9,7 @@ package rules
 // copied from the corpus (never a committed .txt — the licensing rule).
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -611,6 +612,128 @@ func TestTwobridAnnouncementSeesRaiseCost(t *testing.T) {
 	}
 	if e.G.Players[0].Pool.Total() != 0 {
 		t.Fatalf("pool after white face plus Thalia raise = %d, want 0", e.G.Players[0].Pool.Total())
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTwobridGenericFaceTakesTheReduction pins CR 601.2b before 601.2f: a
+// generic reduction applies to the cost the announced faces made, so {2/W}
+// under "spells cost {1} less" is a {1} cast by its generic face. The offer
+// gate prices the same cast, rather than the unresolved {2/W} whose reduction
+// has no generic to take: one {C} offers the cast, and only the generic face.
+func TestTwobridGenericFaceTakesTheReduction(t *testing.T) {
+	t.Parallel()
+	prowlerSrc := "Name:Prowler\nManaCost:2/W\nTypes:Creature Cat\nPT:2/1\nOracle:x\n"
+	reducerSrc := "Name:Thought Reducer\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 1\n" +
+		"Oracle:Spells you cast cost {1} less to cast.\n"
+	e, cfg, prowler := newFixtureDeck(t, 684, prowlerSrc, reducerSrc)
+	putCreature(t, e, 0, reducerSrc)
+	addMana(t, e, 0, "C")
+
+	opt := castByName(t, e, 0, "Prowler")
+	if opt == nil {
+		t.Fatal("{2/W} under a {1} reduction must be castable with one {C}: its generic face costs {1}")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_generic" {
+		t.Fatalf("pip decision under the reduction = %+v, want only pay_generic", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(prowler).Zone != state.ZStack || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("after the reduced generic face: zone=%s pool=%v, want stack and empty pool",
+			e.G.Obj(prowler).Zone, e.G.Players[0].Pool)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTwobridLaterPipsTakeTheReduction pins the announcement walk: a pip's
+// face is offered when some assignment of the pips after it, composed with
+// the reduction on the resolved faces, is payable. Three {2/x} pips under a
+// {7} reduction cost nothing in generic faces, so with {U} floating the first
+// pip offers only its generic face (its colour {G} is unpayable) and the
+// second offers {U} as well: the last pip's generic face then leaves {U}.
+func TestTwobridLaterPipsTakeTheReduction(t *testing.T) {
+	t.Parallel()
+	spellSrc := "Name:Triple Prowler\nManaCost:2/G 2/U 2/R\nTypes:Sorcery\nOracle:x\n"
+	reducerSrc := "Name:Big Reducer\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 7\n" +
+		"Oracle:Spells you cast cost {7} less to cast.\n"
+	e, cfg, spell := newFixtureDeck(t, 685, spellSrc, reducerSrc)
+	putCreature(t, e, 0, reducerSrc)
+	addMana(t, e, 0, "U")
+
+	opt := castByName(t, e, 0, "Triple Prowler")
+	if opt == nil {
+		t.Fatal("three generic faces cost nothing under a {7} reduction; the cast must be offered")
+	}
+	submitChoices(t, e, opt.Index)
+	kinds := func(d *decision.Decision) string {
+		if d == nil || d.Kind != decision.KChoose {
+			t.Fatalf("pip decision: %+v", d)
+		}
+		var out []string
+		for _, o := range d.Options {
+			out = append(out, o.Kind)
+		}
+		return strings.Join(out, ",")
+	}
+	d := e.Pending()
+	if got := kinds(d); got != "pay_generic" {
+		t.Fatalf("first pip offers %s, want only pay_generic ({G} is unpayable)", got)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if got := kinds(d); got != "pay_U,pay_generic" {
+		t.Fatalf("second pip offers %s, want pay_U,pay_generic (the last pip's generic face leaves {U})", got)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if got := kinds(d); got != "pay_generic" {
+		t.Fatalf("last pip offers %s, want only pay_generic ({R} is unpayable after {U})", got)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("Triple Prowler on %s, want stack", e.G.Obj(spell).Zone)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTwobridFaceOfferedByTheSourceWindow is TestTwobridLaterPipsTakeTheReduction
+// with an untapped Mountain beside the floating {C} that offers the cast.
+// {2/R}{2/R} under a {3} reduction is one {R} when a pip pays its colour and
+// the other its generic face. The floating {C} cannot pay it, the Mountain can,
+// and the source-window probe composes the reduction on every completion of
+// the later pips, so the first pip offers {R} as well as its generic face.
+func TestTwobridFaceOfferedByTheSourceWindow(t *testing.T) {
+	t.Parallel()
+	spellSrc := "Name:Double Prowler\nManaCost:2/R 2/R\nTypes:Sorcery\nOracle:x\n"
+	reducerSrc := "Name:Triple Reducer\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
+		"S:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | Amount$ 3\n" +
+		"Oracle:Spells you cast cost {3} less to cast.\n"
+	e, cfg, spell := newFixtureDeck(t, 686, spellSrc, reducerSrc)
+	putCreature(t, e, 0, reducerSrc)
+	moveSeeded(t, e, 0, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n", state.ZBattlefield)
+	addMana(t, e, 0, "C")
+
+	opt := castByName(t, e, 0, "Double Prowler")
+	if opt == nil {
+		t.Fatal("{R} and a generic face under a {3} reduction cost one {R}; the cast must be offered")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "pay_R" || d.Options[1].Kind != "pay_generic" {
+		t.Fatalf("first pip = %+v, want pay_R and pay_generic", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "pay_generic" {
+		t.Fatalf("second pip = %+v, want only pay_generic ({R}{R} needs two Mountains)", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	if e.G.Obj(spell).Zone != state.ZStack && e.Pending() == nil {
+		t.Fatalf("Double Prowler on %s, want stack or a mana window", e.G.Obj(spell).Zone)
 	}
 	replayCheck(t, e, cfg)
 }

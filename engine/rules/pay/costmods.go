@@ -189,9 +189,9 @@ func totalMana(c Cost) int32 {
 // CR 202.4b prices a monocolour-hybrid pip at its generic face — the highest
 // of its faces — so an unresolved pip overprices every cheaper face the
 // announcement may resolve it to. That is the one part of the composition
-// whose result depends on the not-yet-announced pip faces; raises and
-// reductions are face-independent, so only a composition with a floor needs
-// the per-face enumeration feasibleAny performs.
+// whose result depends on the not-yet-announced pip faces, with the reduction
+// of a twobrid cost (FaceSensitiveP); raises are face-independent. Those
+// compositions need the per-face enumeration feasibleAny performs.
 func (m CostMods) HasFloor() bool { return m.HasFloorP() }
 
 // HasFloorP is hasFloor without the receiver copy.
@@ -205,6 +205,16 @@ func (m *CostMods) HasFloorP() bool {
 		}
 	}
 	return false
+}
+
+// FaceSensitiveP reports whether the composition on c depends on the faces
+// its announcement pips resolve to: a floor or a Color$ reduction (HasFloorP),
+// or any reduction of a cost with a monocolour-hybrid pip, whose generic face
+// adds the {2} the reduction can then take off where the unresolved pip left
+// it nothing (a reduction never takes the generic below zero, so {2/W} less
+// {1} is still {2/W}, but its generic face is {1}).
+func (m *CostMods) FaceSensitiveP(c *Cost) bool {
+	return m.HasFloorP() || len(m.Reduces) > 0 && len(c.Twobrid) > 0
 }
 
 // ComposeFeasible is feasibleAny's leaf composition of the cost it prices:
@@ -281,7 +291,7 @@ func (m CostMods) FeasibleAny(c Cost, pool, snow state.Mana, typed [7]state.Mana
 		_, ok := ResolveManaWith(cc, pool, snow, typed, life, bLifeOK, rider, conv)
 		return ok
 	}
-	if !m.HasFloor() || c.AnnPipCount() == 0 {
+	if !m.FaceSensitiveP(&c) || c.AnnPipCount() == 0 {
 		return composed(c)
 	}
 	var walk func(c Cost) bool

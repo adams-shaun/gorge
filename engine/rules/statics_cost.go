@@ -73,7 +73,7 @@ func (e *Engine) manaFeasiblePoolP(p state.PlayerID, id state.ObjID, ability boo
 	// Without an announcement walk feasibleAny is exactly its composed leaf,
 	// whose first answer is the pool-unit floor (poolUnitsFloor): decide that
 	// here, before the payer's grant and conversion reads the search needs.
-	if !mods.HasFloorP() || c.AnnPipCountP() == 0 {
+	if !mods.FaceSensitiveP(c) || c.AnnPipCountP() == 0 {
 		if int64(pool.Total()) < composedPoolFloor(mods, c, taxGeneric, delve) {
 			return false
 		}
