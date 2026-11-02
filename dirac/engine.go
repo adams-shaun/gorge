@@ -291,6 +291,12 @@ func (s *State) stepRaw(d *Decision) {
 				return
 			}
 		case ctlResolve:
+			if k.gen != nil && k.gen.ctrlSBA {
+				// gorge settles control after every event: a Destroy that
+				// ended an Aura's steal is seen by the ask the resolution
+				// poses next, not at the state-based check after it
+				s.ctrlSBA(k)
+			}
 			if s.resolveOptions(k, d) {
 				return
 			}

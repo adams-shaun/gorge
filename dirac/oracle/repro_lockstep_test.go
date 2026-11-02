@@ -240,3 +240,22 @@ func TestExchangeControlMutation(t *testing.T) {
 		t.Fatal("no divergence in 64 games with DebugExchangeControlOff")
 	}
 }
+
+// Gene Pollinator's cost taps a permanent with a "becomes tapped" trigger. The prefix
+// stacks the trigger and asks its target at the activation (CR 603.3), and a sorcery-speed
+// play waits for it to resolve, the mana still floating (Chrome Companion's life, Hemosymbic
+// Mite's pump before an Equip); an instant-speed ability goes on top of it.
+func TestTapAnotherManaTriggerStacksAndResolvesLockstep(t *testing.T) {
+	t.Parallel()
+	autopay := Config{GorgeAutopaySurface: true}
+	synthReproLockstep(t, "pollinator_tap_gain_resolves_first", "std-eoe", autopay)
+	synthReproLockstep(t, "pollinator_tap_pump_resolves_before_equip", "std-eoe", autopay)
+	synthReproLockstep(t, "pollinator_tap_target_trigger_below_ability", "std-eoe", autopay)
+}
+
+// Shattered Wings destroys Tractor Beam, then surveils: the creature it was stealing is its
+// owner's again when the surveil is asked (gorge settles control after every event).
+func TestControlEndsBeforeTheNextResolutionAskLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tractor_beam_destroyed_mid_resolution", "std-eoe", Config{GorgeAutopaySurface: true})
+}
