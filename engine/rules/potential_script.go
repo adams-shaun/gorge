@@ -180,7 +180,11 @@ func (sr *scriptSearch) waitsForStack(c *Engine) bool {
 	}
 	if sr.play.Kind == "ability" {
 		pa, ok := o.PileAbilityAt(sr.play.Ability)
-		return ok && pa.SA != nil && pa.SA.ParamStr(cards.PKSorcerySpeed) == "True"
+		if !ok || pa.SA == nil {
+			return false
+		}
+		sa := pa.SA
+		return sa.ParamStr(cards.PKSorcerySpeed) == "True"
 	}
 	if sr.play.Kind == "cast" && sr.play.Mode == "" {
 		return !c.spellTimingOK(sr.p, sr.play.Obj, o.Face(), false)
