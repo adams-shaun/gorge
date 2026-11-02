@@ -53,6 +53,10 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 				return
 			}
 			for _, in := range a.Prog {
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtCloneCopy {
+					g.equipAnim = true // a permanent become a copy can stop being an Equipment (Shuri)
+					return
+				}
 				if x := copyExcOf(&in); x > 0 && creatureOvr(uint16(x-1)) {
 					g.equipAnim = true // a copy of an Equipment made a creature (Nexus of Becoming)
 					return

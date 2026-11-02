@@ -12,10 +12,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // creature whose bearer stopped being a creature in the same pass is
 // unattached by the loop's CR 704.5n arm instead (same result).
 //
+// Its other half is modelled too: an attachment whose derived types lost Equipment,
+// by becoming a copy of another artifact (Shuri, Wakandan Inventor).
+//
 // Not modelled (no lowered carrier; crcoverage 704.5p records them SILENT): an
 // attached Aura that becomes a creature (it would take the "Aura attached to
-// nothing" graveyard arm on gorge's next pass), an attached battle, and an
-// attachment whose derived types lost Aura, Equipment and Fortification.
+// nothing" graveyard arm on gorge's next pass) and an attached battle.
 // 0 B: the link is the permanent's attached slot.
 
 // DebugAttachedCreatureStays leaves an attached creature attached (mutation
@@ -42,10 +44,11 @@ func (s *State) sbaAttachedCreatures(k *prep, all slotMask) bool {
 }
 
 // sbaAttachedCreature unattaches permanent sl (types t) when it is an attached
-// creature and reports whether it did. An Aura is left to the Aura arm and a
-// bestow card to the bestowed arm (CR 702.103f), which gorge runs first.
+// creature or no longer an Equipment, and reports whether it did. An Aura is left
+// to the Aura arm and a bestow card to the bestowed arm (CR 702.103f), which gorge
+// runs first.
 func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
-	if DebugAttachedCreatureStays || t&kop.TCreature == 0 || t&kop.TAura != 0 || s.perms[sl].attached == NoSlot {
+	if DebugAttachedCreatureStays || t&kop.TCreature == 0 && t&kop.TEquipment != 0 || t&kop.TAura != 0 || s.perms[sl].attached == NoSlot {
 		return false
 	}
 	if k.gen != nil && k.gen.anyBestow && k.t.Cards[s.cardAt(sl)].HasBestow {
