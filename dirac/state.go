@@ -412,6 +412,14 @@ const (
 	sfCountered
 )
 
+// A spell entry's remVer, never a delayed program's, holds the keywords the
+// spell gained on the stack (OpGrantKeyword at a spell, Judith, Carnage
+// Connoisseur; grantSpellKw, srcKw). A copy does not keep them (CR 707.2).
+const (
+	spellGainedDeathtouch uint8 = 1 << iota
+	spellGainedLifelink
+)
+
 // stackEntry is one spell or ability on the stack.
 // Face-down spells use mode bit 4, outside the modal-spell mode bitmask
 // (bits 0..3) and the warp provenance bits (6..7); ab == 255 (no spell
@@ -441,7 +449,8 @@ type stackEntry struct {
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
-	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
+	// A spell has no remembered object: see spellGainedDeathtouch.
 	remVer uint8
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)

@@ -481,6 +481,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpGrantKeyword:
+		if o := s.objRefObj(in.Obj); o != NoObj && s.objs[o].zone == kop.ZoneStack {
+			s.grantSpellKw(o, kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)
+			return true, true
+		}
 		// a graveyard card gains flashback with its mana cost until end of
 		// turn (Sphinx of Forgotten Lore); a permanent's grant is the core's
 		if kop.KwMask(uint16(in.B.N))<<16&kop.KwFlashbackOwnCost == 0 {

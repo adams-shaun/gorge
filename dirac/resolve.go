@@ -639,7 +639,32 @@ func (s *State) srcKw(k *prep) kop.KwMask {
 	if k.gen != nil && k.gen.anyStackLife && s.res.e.kind == seSpell {
 		kw |= s.stackLifelinkKw(k) // static_stacklifelink.go
 	}
+	if s.res.e.kind == seSpell {
+		if s.res.e.remVer&spellGainedDeathtouch != 0 {
+			kw |= kop.KwDeathtouch
+		}
+		if s.res.e.remVer&spellGainedLifelink != 0 {
+			kw |= kop.KwLifelink
+		}
+	}
 	return kw
+}
+
+// grantSpellKw gives the spell object o is on the stack as the keywords of kw an
+// entry can carry; its damage reads them as it resolves (srcKw; gorge
+// effects/damage.go HasKeyword on the stack object).
+func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
+	for i := int(s.sp) - 1; i >= 0; i-- {
+		if e := &s.stack[i]; e.kind == seSpell && e.obj == o {
+			if kw&kop.KwDeathtouch != 0 {
+				e.remVer |= spellGainedDeathtouch
+			}
+			if kw&kop.KwLifelink != 0 {
+				e.remVer |= spellGainedLifelink
+			}
+			return
+		}
+	}
 }
 
 // damage deals n damage from the resolving source to an object or player
