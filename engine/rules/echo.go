@@ -252,8 +252,7 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		return
 	}
 	if o := e.G.Obj(ef.source); o != nil && o.Zone == state.ZBattlefield {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: ef.source, From: state.ZBattlefield,
-			To: state.ZGraveyard, Text: "sacrificed for echo"})
+		pay.PaySacrificeCost(asPayer(e), []state.ObjID{ef.source})
 	}
 	e.finishEcho()
 }
@@ -299,8 +298,8 @@ func (e *Engine) echoActionAsk() {
 	windowAsk(e, d, chooseEcho)
 }
 
-// echoActionExecute applies the answered object choice — one move per chosen
-// object, with the echo text on the move — then finishes.
+// echoActionExecute applies the answered object choice — one discard or
+// sacrifice per chosen object — then finishes.
 func (e *Engine) echoActionExecute(chosen []decision.Option) {
 	ef := e.echo
 	if ef == nil {
@@ -312,11 +311,9 @@ func (e *Engine) echoActionExecute(chosen []decision.Option) {
 			continue
 		}
 		if ef.action.kind == "Discard" && o.Zone == state.ZHand && o.Owner == ef.player {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand,
-				To: state.ZGraveyard, Text: "discarded for echo"})
+			pay.PayDiscardCost(asPayer(e), []state.ObjID{o.ID}, "")
 		} else if ef.action.kind == "Sac" && o.Zone == state.ZBattlefield {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZBattlefield,
-				To: state.ZGraveyard, Text: "sacrificed for echo"})
+			pay.PaySacrificeCost(asPayer(e), []state.ObjID{o.ID})
 		}
 	}
 	e.finishEcho()

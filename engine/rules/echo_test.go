@@ -181,7 +181,7 @@ func TestEchoKarmicGuideDeclineSacrificesWithEchoText(t *testing.T) {
 	if o := e.G.Obj(guide); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("declined echo but the guide is in %v", o)
 	}
-	if text := lastMoveZoneText(e, guide); text != "sacrificed for echo" {
+	if text := lastMoveZoneText(e, guide); text != "sacrificed" {
 		t.Fatalf("sacrifice move text = %q", text)
 	}
 }

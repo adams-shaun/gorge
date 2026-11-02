@@ -1620,8 +1620,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 	case cumulativeAnswerCumulativeActionSac:
 		for _, option := range chosen {
 			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZBattlefield {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZBattlefield,
-					To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+				pay.PaySacrificeCost(asPayer(e), []state.ObjID{o.ID})
 			}
 		}
 		cu.actionRemaining = 0
@@ -1630,8 +1629,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 	case cumulativeAnswerCumulativeActionDiscard:
 		for _, option := range chosen {
 			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZHand && o.Owner == cu.player {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand,
-					To: state.ZGraveyard, Text: "discarded for cumulative upkeep"})
+				pay.PayDiscardCost(asPayer(e), []state.ObjID{o.ID}, "")
 			}
 		}
 		cu.actionRemaining = 0
@@ -1673,8 +1671,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		return
 	}
 	if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: cu.source, From: state.ZBattlefield,
-			To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+		pay.PaySacrificeCost(asPayer(e), []state.ObjID{cu.source})
 	}
 	e.finishCumulative()
 }
