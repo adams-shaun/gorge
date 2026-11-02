@@ -1091,9 +1091,12 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// recast is a new object the Pupils never damaged. The source-side
 		// DamageDealtThisTurn ledger stays: the damage was still dealt this
 		// turn, and the turn-wide damage counts read it after the source
-		// is gone.
+		// is gone. What the filters ask of the object itself does not.
 		o.DamageTakenThisTurnBy = nil
 		o.DamageTakenByGame = nil
+		o.DealtDamageThisTurnHere = false
+		o.DealtDamageToAnyGame = false
+		o.DealtCombatDamageToAnyGame = false
 		// CR 400.7: a permanent that returns this turn has activated nothing.
 		o.ActivatedThisTurn = 0
 		if !countersRemain || to == state.ZHand || to == state.ZLibrary {

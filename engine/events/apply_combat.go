@@ -330,6 +330,7 @@ func foldDamageProvenance(g *state.Game, e *Event) {
 			}
 		}
 		o.DamageDealtThisTurn = append(o.DamageDealtThisTurn, record)
+		o.DealtDamageThisTurnHere = true
 		// The game-long SOURCE-side record Forge's dealtDamagetoAny /
 		// dealtCombatDamagetoAny statics read (Karakyk Guardian, Ruric Thar,
 		// Magecrusher). The combat classification is the record's own bit,

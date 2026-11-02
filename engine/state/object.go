@@ -859,7 +859,8 @@ type Object struct {
 	// Ratonhnhaké:ton). Set by events.Apply's DamageProvenance fold alongside
 	// the per-turn DamageDealtThisTurn record, but GAME-LONG: the TurnChange
 	// clear that resets the per-turn records must never touch it. A plain
-	// bool, so the object clone copies it with the struct.
+	// bool, so the object clone copies it with the struct. Leaving the
+	// battlefield clears it with the rest of the stint's state (CR 400.7).
 	DealtDamageToAnyGame bool
 	// DealtCombatDamageToAnyGame is the combat-only half (Forge's
 	// dealtCombatDamagetoAny -- Ruric Thar, Magecrusher): set by the same
@@ -867,6 +868,12 @@ type Object struct {
 	// predicate and the provenance emitter cannot disagree. Non-combat
 	// damage leaves it false.
 	DealtCombatDamageToAnyGame bool
+	// DealtDamageThisTurnHere is Forge's dealtDamageThisTurn: this object dealt
+	// damage this turn. DamageDealtThisTurn outlives the source for the turn-wide
+	// counts, so it cannot answer that for a creature that left and came back,
+	// a new object (CR 400.7). Set by the DamageProvenance fold, cleared at
+	// TurnChange and on leaving the battlefield.
+	DealtDamageThisTurnHere bool
 	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
 	// object last came under its current controller's control on the
 	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,

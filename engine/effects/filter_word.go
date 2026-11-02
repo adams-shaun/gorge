@@ -217,8 +217,8 @@ const (
 	// wordSourceDealtDamageThisTurn is Forge's dealtDamageThisTurn -- the
 	// object DEALT damage this turn (the SOURCE side, distinct from
 	// wordDealtDamageThisTurn's recipient side). It reads
-	// state.Object.DamageDealtThisTurn, the per-object record events.Apply's
-	// DamageProvenance case appends to and TurnChange clears. Corpus
+	// state.Object.DealtDamageThisTurnHere, the per-object flag events.Apply's
+	// DamageProvenance case sets and TurnChange and departure clear. Corpus
 	// carriers: Avenging Arrow, Executioner's Swing, Restore the Peace, Red
 	// Guardian, Super Soldier and Treacherous Greed's sacrifice cost.
 	wordSourceDealtDamageThisTurn
@@ -997,7 +997,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// turn. The flag is the per-object provenance events.Apply's Damage
 		// case sets (the same field the playercount HasProperty heads read)
 		// and TurnChange clears. dealtDamageThisTurn is the SOURCE side: the
-		// object DEALT damage (state.Object.DamageDealtThisTurn). The
+		// object DEALT damage (state.Object.DealtDamageThisTurnHere). The
 		// by-source refinement is a separate token and stays unknown.
 		return damageRecordPredicate(kind, o)
 	case wordAttackingPlayer:
@@ -1241,19 +1241,19 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 // side: state.Object.WasDealtDamageThisTurn, the flag events.Apply's Damage
 // case sets and TurnChange clears, so an object never damaged this turn reads
 // false. wordSourceDealtDamageThisTurn is Forge's dealtDamageThisTurn, the
-// SOURCE side: state.Object.DamageDealtThisTurn, the record the
-// DamageProvenance fold appends to and TurnChange clears, non-empty only when
-// the object itself dealt damage this turn -- the fail-closed direction.
-// wordDealtDamageToAny / wordDealtCombatDamageToAny are the GAME-LONG
-// source-side words: the bools the same fold sets from the record's combat
-// classification, which the TurnChange clear never touches. All four share
+// SOURCE side: state.Object.DealtDamageThisTurnHere, which the
+// DamageProvenance fold sets and TurnChange and leaving the battlefield clear,
+// true only when this object itself dealt damage this turn -- the fail-closed
+// direction. wordDealtDamageToAny / wordDealtCombatDamageToAny are the
+// GAME-LONG source-side words: the bools the same fold sets from the record's
+// combat classification, which the TurnChange clear never touches. All four share
 // one case so the added branch costs the long-function ratchet nothing
 // extra; wordDealtExcessDamageThisTurn (the recipient's excess) stays its
 // own case.
 func damageRecordPredicate(kind wordKind, o *state.Object) bool {
 	switch kind {
 	case wordSourceDealtDamageThisTurn:
-		return len(o.DamageDealtThisTurn) > 0
+		return o.DealtDamageThisTurnHere
 	case wordDealtDamageToAny:
 		return o.DealtDamageToAnyGame
 	case wordDealtCombatDamageToAny:
