@@ -1596,7 +1596,7 @@ func (s *State) takePending(k *prep, i int) {
 		return
 	}
 	*s.bld() = build{e: stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.remSet, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw}}
+		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ skwRem}}
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seTrigger]
 	if k.gift {

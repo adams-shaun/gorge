@@ -501,8 +501,8 @@ type pendingTrig struct {
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
 	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
 	remVer uint8
-	remSet bool
 	// x is the trigger object's spell's paid X, bound as it triggered
 	// (Tf2XBound, CR 107.3m; trig_xpaid.go): the stack entry's x.
 	// It takes the struct's padding byte.
@@ -513,7 +513,7 @@ type pendingTrig struct {
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
-	// skw is the source's departure keywords (stackEntry.skw)
+	// skw is the source's departure keywords (stackEntry.skw), with skwRem above them
 	skw uint8
 }
 

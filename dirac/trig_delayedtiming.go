@@ -83,7 +83,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
-			s.pend[m].remVer, s.pend[m].remSet = remVer, remSet
+			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
 			if d.n&dpMany != 0 {
 				s.dpManyCarry(&d, &s.pend[m]) // trig_delayedmany.go
 			}

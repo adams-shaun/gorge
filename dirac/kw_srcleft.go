@@ -16,6 +16,20 @@ const (
 	skwLL
 )
 
+// skwRem is a pending trigger's skw high bit: whether its delayed program's
+// remembered object was captured (stackEntry.remSet). A pending trigger carries
+// it here so the struct stays two bytes smaller than a bool beside skw would
+// make it.
+const skwRem uint8 = 1 << 7
+
+// boolBit is bit when b, else 0.
+func boolBit(b bool, bit uint8) uint8 {
+	if b {
+		return bit
+	}
+	return 0
+}
+
 // settleSrcKw stamps the departing permanent o (slot sl) keywords on every
 // ability entry it sourced: the stack, the pending triggers, the resolution
 // in progress and the build in progress.
@@ -44,7 +58,7 @@ func (s *State) settleSrcKw(k *prep, sl Slot, o Obj) {
 	}
 	for i := uint8(0); i < s.npend; i++ {
 		if p := &s.pend[i]; p.obj == o && p.srcVer == ver {
-			p.skw = read()
+			p.skw = p.skw&skwRem | read()
 		}
 	}
 	if e := &s.res.e; s.res.active && e.kind != seSpell && e.obj == o && e.srcVer == ver {
