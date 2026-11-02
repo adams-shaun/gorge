@@ -584,34 +584,14 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o)
 }
 
-// gorgeOffersKicked: under Config.GorgeAutopaySurface a kicked cast is
-// still one of gorge's potential plays (pair 8638: Grow from the Ashes paid
-// only through the imprisoned lands), but an Offspring cast is offered only
-// when the floating pool alone pays its composed cost: gorge's planner
-// prices no offspring mode, so it is never one of the potential plays the
-// plain cast reaches. The potential walk (availWalk) and an {X} script walk
-// still list every play.
+// gorgeOffersKicked: under Config.GorgeAutopaySurface a kicked or Offspring cast
+// is still one of gorge's potential plays (pair 8638: Grow from the Ashes paid
+// only through the imprisoned lands).
 func (s *State) gorgeOffersKicked(p uint8, o Obj) bool {
-	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
+	if s.cfg&cfgGorgeAutopay == 0 {
 		return s.gorgeOffers(p, o, 1)
 	}
-	if !s.FeatOffspringCast(o) {
-		if s.cfg&cfgGorgeAutopay == 0 {
-			return s.gorgeOffers(p, o, 1)
-		}
-		return true // a kicked cast: gorge's potential play lists it
-	}
-	// an Offspring cast, on either oracle surface: the lowering surface
-	// lowers only the plays gorge's potential planner prices, and it
-	// prices no offspring mode ("unsupported shape"; Pawpatch
-	// Recruit)
-	if s.g.availX&availWalk != 0 {
-		return true
-	}
-	if s.g.availX&(availAny|availGaps) != 0 && s.k().t.Cards[s.objs[o].card].Cost.X != 0 {
-		return true
-	}
-	return s.FeatPoolPays(p, o, 1)
+	return true
 }
 
 // gorgeOffersMay is gorgeOffers for a cast through a permission: under

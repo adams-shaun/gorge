@@ -568,6 +568,9 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
+	case potentialModeBaseCostOffspring:
+		oc, ok := e.offspringCost(id)
+		return cost.Plus(oc), ok
 	case potentialModeBaseCostEntwined:
 		ec, ok := entwineCost(f)
 		return cost.Plus(ec), ok
@@ -1312,6 +1315,7 @@ const (
 	potentialModeBaseCostFlashback
 	potentialModeBaseCostKicked
 	potentialModeBaseCostBuyback
+	potentialModeBaseCostOffspring
 	potentialModeBaseCostEntwined
 	potentialModeBaseCostSurged
 	potentialModeBaseCostMiracle
@@ -1334,6 +1338,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "flashback", Val: potentialModeBaseCostFlashback},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "kicked", Val: potentialModeBaseCostKicked},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "buyback", Val: potentialModeBaseCostBuyback},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "offspring", Val: potentialModeBaseCostOffspring},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "entwined", Val: potentialModeBaseCostEntwined},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "surged", Val: potentialModeBaseCostSurged},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "miracle", Val: potentialModeBaseCostMiracle},

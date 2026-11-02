@@ -232,7 +232,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.172 | follows | `engine/rules/spree.go#modeCostTotal` `engine/rules/spree.go#Engine.modeCostFeasible` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestRequisitionRaidSpreeZeroModeCastNotOffered` |  |
 | 702.173 | not-impl | - | - |  |
 | 702.174 | follows | `engine/rules/cast_asks.go#Engine.giftAsk` `engine/effects/gift.go` | `TestGiftKitnapPromisedDrawsAndSkipsStunCounters` `TestGiftCopyCarriesNoPromise` | Promise an opponent at cast |
-| 702.175 | partial | `engine/rules/offspring.go#Engine.offspringRawParam` `engine/cards/kw_offspring.go#kwOffspring` | `TestOffspringSourceThatLeftStillMints` `TestOffspringPrintedPayMintsOneOneTokenCopy` `TestOffspringPrintedPlainCastMintsNothing` `TestOffspringGrantedByZinniaReachesTheCast` | First instance only |
+| 702.175 | partial | `engine/rules/offspring.go#Engine.offspringRawParam` `engine/cards/kw_offspring.go#kwOffspring` | `TestOffspringSourceThatLeftStillMints` `TestOffspringPrintedPayMintsOneOneTokenCopy` `TestOffspringPrintedPlainCastMintsNothing` `TestOffspringGrantedByZinniaReachesTheCast` `TestPotentialPlanPricesOffspring` | First instance only |
 | 702.176 | follows | `engine/rules/impending.go#impendingTickGrant` `engine/rules/altcast.go#Engine.altCostEnter` | `TestImpendingCastEntersWithTimeCountersAndIsNotACreature` `TestImpendingEndStepRemovesATimeCounterAndWakesAtTheLast` |  |
 | 702.177a | follows | `engine/rules/legal_loyalty.go#Engine.activationLimitBlocked` | `TestExhaustMaiJadedEdgeWithheldAfterOneUse` `TestExhaustInlineWithheldSameTurnAndLaterTurn` |  |
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |
