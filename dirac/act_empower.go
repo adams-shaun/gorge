@@ -119,10 +119,10 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 	return false
 }
 
-// grantHostGen returns the permanent whose continuous static grants sl the
-// ability (c, ab) (a global "planeswalkers you control have ..." grant), or
-// NoSlot. The attached-source case is grantedHost; this is the cold path the
-// FRA Ways and Avatar of Burgeoning Echoes need.
+// grantHostGen returns the permanent whose continuous or override static grants sl
+// the ability (c, ab) (a global "planeswalkers you control have ..." grant, Ygra's
+// Food ability), or NoSlot. The attached-source case is grantedHost; this is the
+// cold path the FRA Ways and Avatar of Burgeoning Echoes need.
 func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
@@ -132,13 +132,30 @@ func (s *State) grantHostGen(k *prep, sl Slot, c CardID, ab uint8) Slot {
 		cd := &k.t.Cards[c]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Grant == ab+1 &&
-				s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
+			if a.Kind != kop.AbStatic || !staticGrants(k.t, &a.Static, ab) {
+				continue
+			}
+			if s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
 				return src
 			}
 		}
 	}
 	return NoSlot
+}
+
+// staticGrants reports whether st grants its card's ability ab.
+func staticGrants(t *kop.Table, st *kop.Static, ab uint8) bool {
+	switch st.Kind {
+	case kop.StatContinuous:
+		return st.Grant == ab+1
+	case kop.StatOverride:
+		if st.Override == 0 {
+			return false
+		}
+		g := t.Overrides[st.Override-1].Grant
+		return g[0] == ab+1 || g[1] == ab+1
+	}
+	return false
 }
 
 // globalGrantsGen is globalGrants for a Continuous static whose Grant is a

@@ -70,3 +70,10 @@ func TestWaterbendCreditInTheGrantedPrefixSearchLockstep(t *testing.T) {
 	synthReproLockstep(t, "waterbend_credit_covers", "std-tla", autopay)
 	synthReproLockstep(t, "waterbend_granted_prefix", "std-tla", autopay)
 }
+
+// Ygra grants Maha its Food ability through an override static. With {2} floating after
+// an {X} cast, both engines offer it.
+func TestOverrideGrantedAbilityFromThePoolLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "ygra_food_from_pool", "std-blb", Config{})
+}
