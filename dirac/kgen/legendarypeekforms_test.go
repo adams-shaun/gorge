@@ -134,7 +134,7 @@ func TestThisTurnCastCount(t *testing.T) {
 		"Card.YouCtrl+wasCastFromExile":                                         kop.CastSpecYou | kop.CastSpecExile,   // Visions of Phyrexia, Wild-Magic Sorcerer
 		"Card.YouCtrl+wasCastFromGraveyard":                                     kop.CastSpecYou | kop.CastSpecGrave,   // Laboratory Drudge: the CastFlags read
 		"Instant.wasCastFromExile,Sorcery.wasCastFromExile":                     kop.CastSpecExile,
-		"Card.YouCtrl$CardTypes":                                                kop.CastSpecYou | kop.CastSpecTypes | kop.CastSpecExclude, // April O'Neil: the aggregate passes c.Source as its exclusion
+		"Card.YouCtrl$CardTypes":                                                kop.CastSpecYou | kop.CastSpecTypes, // April O'Neil
 	} {
 		v, err := lc.countValue("ThisTurnCast_"+spec, 0)
 		if err != nil {

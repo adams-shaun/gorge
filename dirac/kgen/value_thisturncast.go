@@ -189,10 +189,7 @@ func (lc *lowerCtx) thisTurnCastValue(spec string) (lValue, error) {
 		}
 	}
 	if aggregateTypes {
-		// gorge's EachSpellCastThisTurnMatching call passes c.Source as the
-		// exclusion (count_body.go), so the source's own cast never counts
-		// toward the aggregate -- the same skip CastSpecExclude makes.
-		bits |= kop.CastSpecTypes | kop.CastSpecExclude
+		bits |= kop.CastSpecTypes
 	}
 	return lValue{Kind: vThisTurnCastSpec, N: bits, F: f}, nil
 }

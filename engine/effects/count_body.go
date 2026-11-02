@@ -56,7 +56,7 @@ func evalCountBodyProvenance(h Host, c *Ctx, body string, depth int) (int32, boo
 		// vocabulary -- an unadmitted suffix keeps the byte-identical
 		// whole-token read below.
 		if stripped, prop, ok3 := stripCastSourceAggregate(rest); ok3 {
-			av, aok := aggregateCastSourceProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source, c.TriggerContext), prop)
+			av, aok := aggregateCastSourceProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, 0, c.TriggerContext), prop)
 			return av, aok, true
 		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest, c.TriggerContext)), true, true
