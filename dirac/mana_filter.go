@@ -68,13 +68,32 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	if k.gen.anyFiltFirst {
 		return s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
 	}
-	return s.gapMask(k, p, gfFilt)
+	m := s.gapMask(k, p, gfFilt)
+	if k.gen.anyAbReduce {
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); k.gen.has(s.cardAt(sl), gfFiltFee) && s.filtFee(k, sl) == 0 {
+				m = m.without(sl) // free: part of the source's own mana (mana_filterfree.go)
+			}
+		}
+	}
+	return m
 }
 
-// filtFee is the filter's {N} at slot sl.
+// FilterTapMana reports whether a, a mana ability of cd, is a filter the
+// kernel models (filterTapMana).
+func FilterTapMana(cd *kop.CardDef, a *kop.Ability) bool { return filterTapMana(cd, a) }
+
+// filtFee is the filter's {N} at slot sl, after the cost reductions that
+// reach it: a mana ability is an activated ability (CR 605.1a), so an
+// activated-ability reducer lowers it (CR 601.2f, 602.2b; gorge
+// manaAbilityCC).
 func (s *State) filtFee(k *prep, sl Slot) int {
 	c := s.cardAt(sl)
-	return int(k.t.Cards[c].Abilities[k.gen.filt(c)].Cost.Mana.Generic)
+	a := &k.t.Cards[c].Abilities[k.gen.filt(c)]
+	if k.gen.anyAbReduce {
+		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
+	}
+	return int(a.Cost.Mana.Generic)
 }
 
 // filtUnits is the mana the filter at sl makes.

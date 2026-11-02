@@ -65,9 +65,11 @@ type PoolData struct {
 	RoomCards           []int
 	NameReaders         []int
 	AbReducers          []int
-	AbReducerFloor      []uint8 // AbReducers' MinMana$ floors, 0 none
+	AbReducerFloor      []uint8  // AbReducers' MinMana$ floors, 0 none
+	AbReducerTypes      []uint16 // AbReducers' filter card types, 0 any
 	AbManaCosted        []int
-	AbManaCostedMV      []uint8 // AbManaCosted's dearest mana-ability mana cost
+	AbManaCostedMV      []uint8  // AbManaCosted's dearest mana-ability mana cost
+	AbManaCostedTypes   []uint16 // AbManaCosted's card types
 }
 
 // NoSubtype is the matchup filter sentinel for a subtype no object in the
@@ -204,7 +206,8 @@ func (s dataSet) abReduceGuard(pool []int) error {
 				continue
 			}
 			for j, rd := range d.AbReducers {
-				if !slices.Contains(pool, rd) || int(d.AbManaCostedMV[k]) <= int(d.AbReducerFloor[j]) {
+				if !slices.Contains(pool, rd) || int(d.AbManaCostedMV[k]) <= int(d.AbReducerFloor[j]) ||
+					d.AbReducerTypes[j] != 0 && d.AbReducerTypes[j]&d.AbManaCostedTypes[k] == 0 {
 					continue
 				}
 				costed = append(costed, d.Names[i])

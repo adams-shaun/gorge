@@ -134,12 +134,11 @@ func RoomNameRefusal(rooms, readers []string) error {
 
 // AbReduceRefusal refuses a matchup holding both a ReduceCost static of
 // activated abilities (reducers: kop.StatReduceAbility) and a mana ability
-// whose mana cost it would lower (costed: a filter land, a creature with a
-// paid mana ability; a reducer with a MinMana$ floor at or above the cost
-// lowers nothing and does not refuse). Neither engine reduces a mana
-// ability's cost, though CR 601.2f and 602.2b (and Forge's
-// PlaySpellAbility.payManaCost) price it like any ability, so the pair is not
-// played until gorge and the kernel do.
+// whose mana cost it would lower that the kernel does not price (costed: a
+// creature with a paid mana ability; a reducer with a MinMana$ floor at or
+// above the cost, or whose filter names no type the card has, lowers nothing
+// and does not refuse). A filter's fee is priced after the reducers
+// (dirac filtFee), so a filter land is not costed here.
 func AbReduceRefusal(reducers, costed []string) error {
 	if len(reducers) == 0 || len(costed) == 0 {
 		return nil

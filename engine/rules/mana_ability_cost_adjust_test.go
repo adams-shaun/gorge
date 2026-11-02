@@ -12,7 +12,6 @@ import (
 // prices it: CR 605.1a, 602.2b and 601.2f; Forge runs CostAdjustment.adjust on
 // a mana ability's cost like any other's.
 
-
 const paidTapLandFixtureSrc = `Name:Fixture Paid Tap Land
 ManaCost:no cost
 Types:Land
@@ -124,7 +123,6 @@ func TestSurchargeThatSparesManaAbilitiesLeavesThem(t *testing.T) {
 		t.Fatalf("a surcharge that spares mana abilities must not price the land's mana ability")
 	}
 }
-
 
 const filterLandFixtureSrc = `Name:Fixture Filter Land
 ManaCost:no cost

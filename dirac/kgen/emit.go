@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -100,7 +101,7 @@ func buildForOutput(p *pool, prev []idEntry) (*poolBuild, error) {
 
 // guardLists are the pool indexes the matchup guards read: the Room cards, the
 // cards that read a name, the ab-reduce statics and the mana-costed mana abilities.
-func guardLists(bs []built) (rooms, readers, abRed []int, abRedFloor []uint8, abMana []int, abManaMV []uint8) {
+func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16) {
 	for i := range bs {
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
@@ -116,13 +117,18 @@ func guardLists(bs []built) (rooms, readers, abRed []int, abRedFloor []uint8, ab
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.B&(1|kop.ReduceAbUnlock) == 0 {
 				abRed = append(abRed, i)
 				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
+				abRedTypes = append(abRedTypes, reducerTypes(filters, a.Static.Filter))
 				break
 			}
 		}
-		// The dearest mana cost among a card's mana abilities.
+		// The dearest mana cost among a card's mana abilities the kernel
+		// does not price itself: a filter's fee is priced at the slot after
+		// the reducers (dirac.FilterTapMana, filtFee), any other costed mana
+		// ability is not.
 		mv, any := 0, false
-		for _, a := range bs[i].def.Abilities {
-			if a.Kind == kop.AbMana && (a.Cost.Mana.MV() > 0 || a.Cost.Mana.X > 0) {
+		for j := range bs[i].def.Abilities {
+			a := &bs[i].def.Abilities[j]
+			if a.Kind == kop.AbMana && (a.Cost.Mana.MV() > 0 || a.Cost.Mana.X > 0) && !dirac.FilterTapMana(&bs[i].def, a) {
 				any = true
 				mv = max(mv, int(a.Cost.Mana.MV())+int(a.Cost.Mana.X))
 			}
@@ -130,9 +136,24 @@ func guardLists(bs []built) (rooms, readers, abRed []int, abRedFloor []uint8, ab
 		if any {
 			abMana = append(abMana, i)
 			abManaMV = append(abManaMV, uint8(min(max(mv, 1), 255)))
+			abManaTypes = append(abManaTypes, uint16(bs[i].def.Types))
 		}
 	}
-	return rooms, readers, abRed, abRedFloor, abMana, abManaMV
+	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes
+}
+
+// reducerTypes is the card types a StatReduceAbility static's filter can
+// match (kop.Filter.Types, 0 for any): every type when the filter has an
+// alternative (Or) or names none.
+func reducerTypes(filters []kop.Filter, id kop.FilterID) uint16 {
+	if int(id) >= len(filters) {
+		return 0
+	}
+	f := &filters[id]
+	if f.Or != 0 {
+		return 0
+	}
+	return uint16(f.Types)
 }
 
 // validPoolName reports whether name is letters, digits and underscores only.

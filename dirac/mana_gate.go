@@ -101,6 +101,12 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 func (s *State) manaGateView(k *prep, sl Slot, c CardID, vi int16) *pcard {
 	cd := &k.t.Cards[c]
 	on := false
+	if k.gen.flags[c]&gfFiltFee != 0 {
+		if s.filtFee(k, sl) == 0 {
+			return &k.gen.varPC[int(vi)+1]
+		}
+		return &k.gen.varPC[int(vi)]
+	}
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind == kop.AbMana && a.Trig.Cond != 0 && a.AFlags&kop.AfLatent == 0 {

@@ -35,10 +35,10 @@ func TestGuardMessagesNameTheCards(t *testing.T) {
 		}, `"A Card" and "B Card": they conflict`},
 		{"room", func(d *PoolData) { d.RoomCards, d.NameReaders = []int{0}, []int{1} }, "B Card reads a name and A Card is a Room"},
 		{"ab reduce", func(d *PoolData) {
-			d.AbReducers, d.AbReducerFloor, d.AbManaCosted, d.AbManaCostedMV = []int{0}, []uint8{0}, []int{1}, []uint8{1}
+			d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = []int{0}, []uint8{0}, []uint16{0}, []int{1}, []uint8{1}, []uint16{2}
 		}, "A Card reduces abilities and B Card has a mana ability"},
 		{"ab reduce floor below the cost", func(d *PoolData) {
-			d.AbReducers, d.AbReducerFloor, d.AbManaCosted, d.AbManaCostedMV = []int{0}, []uint8{1}, []int{1}, []uint8{2}
+			d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = []int{0}, []uint8{1}, []uint16{2}, []int{1}, []uint8{2}, []uint16{2}
 		}, "A Card reduces abilities and B Card has a mana ability"},
 	} {
 		d := data()
@@ -50,9 +50,15 @@ func TestGuardMessagesNameTheCards(t *testing.T) {
 	}
 	// A MinMana$ floor at the mana ability's cost leaves it as printed.
 	d := data()
-	d.AbReducers, d.AbReducerFloor, d.AbManaCosted, d.AbManaCostedMV = []int{0}, []uint8{1}, []int{1}, []uint8{1}
+	d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = []int{0}, []uint8{1}, []uint16{0}, []int{1}, []uint8{1}, []uint16{2}
 	if _, _, _, err := NewDataSet(d).Matchup(entries, nil); err != nil {
 		t.Errorf("a floored reducer beside a one-mana ability: %v", err)
+	}
+	// A reducer whose filter names a type the costed card lacks lowers nothing.
+	d = data()
+	d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = []int{0}, []uint8{0}, []uint16{1}, []int{1}, []uint8{1}, []uint16{2}
+	if _, _, _, err := NewDataSet(d).Matchup(entries, nil); err != nil {
+		t.Errorf("a land-only reducer beside a creature's mana ability: %v", err)
 	}
 	d = data()
 	d.Status[1], d.Reason[1] = StatusNotLowered, "not lowered: no"

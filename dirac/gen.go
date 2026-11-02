@@ -1133,6 +1133,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	if p.anyRedNC || g.anyRepl&rbPlProt != 0 {
 		g.anyRepl |= rbPlusDmg // open every replDamage site; no card carries the bit, so replPlus finds nothing
 	}
+	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
+	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
 	g.anyPrevFrom = grantsKw(t, kop.KwPreventCombatDamageFrom)
 	prepReplMult(t, g)

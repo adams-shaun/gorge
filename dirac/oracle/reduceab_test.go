@@ -88,3 +88,42 @@ func TestReduceabManaCostedLockstep(t *testing.T) {
 	t.Parallel()
 	lockstepSet(t, "reduceab", kreduceabManaDecks, 60, "KREDUCEAB_SEEDS")
 }
+
+// kreduceabFilterDecks put Blossoming Tortoise ("activated abilities of lands
+// you control cost {1} less") beside Crystal Grotto, whose "{1}, {T}: Add one
+// mana of any color" it turns into a free any-colour tap, so a filter land
+// makes the second colour with nothing else tapped (CR 601.2f, 602.2b; gorge
+// manaAbilityCC). The spells ask for the colours the Grotto must make.
+var kreduceabFilterDecks = [2][]cardset.Entry{
+	{
+		{Name: "Blossoming Tortoise", Count: 4}, {Name: "Crystal Grotto", Count: 8},
+		{Name: "Knowledge Seeker", Count: 4}, {Name: "Forecasting Fortune Teller", Count: 4},
+		{Name: "Keen Buccaneer", Count: 4}, {Name: "Greenbelt Guardian", Count: 4},
+		{Name: "Forest", Count: 6}, {Name: "Island", Count: 6},
+	},
+	{
+		{Name: "Crystal Grotto", Count: 8}, {Name: "Agatha of the Vile Cauldron", Count: 4},
+		{Name: "Boom Scholar", Count: 4}, {Name: "Greasewrench Goblin", Count: 4},
+		{Name: "Camera Launcher", Count: 4}, {Name: "Mountain", Count: 8}, {Name: "Forest", Count: 8},
+	},
+}
+
+// TestReduceabFilterLockstep: a land discount beside filter lands, on both
+// surfaces.
+func TestReduceabFilterLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "reduceab", kreduceabFilterDecks, 60, "KREDUCEAB_SEEDS")
+}
+
+// TestReduceabFilterMutation proves the pool plays a discounted filter: with
+// the reduction dropped, some seed diverges.
+func TestReduceabFilterMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoAbReduce = true
+	defer func() { dirac.DebugNoAbReduce = false }()
+	if !lockstepDiverges(t, "reduceab", kreduceabFilterDecks, 200) {
+		t.Fatal("no seed diverged with the filter's reduction dropped: the pool never plays a discounted filter")
+	}
+}

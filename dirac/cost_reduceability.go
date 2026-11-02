@@ -17,7 +17,7 @@ import (
 //
 //go:noinline
 func (s *State) abReduced(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost) kop.ManaCost {
-	if DebugNoAbReduce || a.Kind != kop.AbActivated || sl == NoSlot {
+	if DebugNoAbReduce || a.Kind != kop.AbActivated && a.Kind != kop.AbMana || sl == NoSlot {
 		return c
 	}
 	if a.ActZone != kop.ZoneNone && a.ActZone != kop.ZoneBattlefield {

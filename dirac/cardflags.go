@@ -33,6 +33,7 @@ const (
 	gfRestrSrc                       // a restricted mana ability the payment planner counts per payment (gorge; mana_restrictedsource.go)
 	gfRestrScript                    // a restricted source that is a scripted-prefix gap (smallRecs.restr set and not a gfRestrSrc one)
 	gfShockEntry                     // the enters program opens with the shock land's pay-life election (repl_shockland.go)
+	gfFiltFee                        // a filter whose fee a reducer may take to nothing: varPC holds the fee-paid and fee-free views (mana_filterfree.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.
