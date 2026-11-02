@@ -296,13 +296,14 @@ lint-web: web/node_modules/.package-lock.json
 	cd web && npm run check && npm run lint
 
 # smoke is the browser smoke gate: it builds the
-# REAL client and the REAL binary, starts THREE gorged servers — one
+# REAL client and the REAL binary, starts its gorged servers — one
 # -spectator public (the mode that was broken when a null hand spread into
 # the board killed every table page, and the one the omniscient-only unit
-# fixtures cannot see), one -spectator omniscient, and one SEATED 1v1
-# play-vs-bot server (-vsbot -humans 1) — on smoke ports in
-# 8090-8099, and drives the headless-browser test at web/e2e against all
-# three. It fails on any pageerror, any console.error, any failed request to
+# fixtures cannot see), one -spectator omniscient, one SEATED 1v1
+# play-vs-bot server (-vsbot -humans 1), two fixtures, and one server per
+# engine offering all three wires — on smoke ports in
+# 8090-8099, and drives the headless-browser test at web/e2e against them.
+# It fails on any pageerror, any console.error, any failed request to
 # the server's own origin, a page still in its loading state after a bounded
 # wait, or a blank page that never mounts. It also asserts the SEATED layout
 # invariants: the seated player's own identity bar does
@@ -313,8 +314,8 @@ lint-web: web/node_modules/.package-lock.json
 #
 # Deliberately NOT part of `make test`. The Go suite must stay runnable with
 # no browser and no live servers; threading smoke into the default tree would
-# make `make test` need Playwright + three gorged on this shared box. CI and
-# the merge gate run it explicitly, exactly like the other opt-in lanes
+# make `make test` need Playwright + these gorged on this shared box. CI runs it
+# as the job browser, exactly like the other opt-in lanes
 # (conformance, gc-gate).
 .PHONY: smoke
 smoke:

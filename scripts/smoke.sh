@@ -2,11 +2,11 @@
 #
 # scripts/smoke.sh — the browser smoke gate.
 #
-# Builds the REAL client and the REAL binary, starts FIVE `gorged` servers on
+# Builds the REAL client and the REAL binary, starts SEVEN `gorged` servers on
 # smoke ports (8090-8099 by default) — public and omniscient spectators, a SEATED 1v1,
-# the shared mana-wheel board fixture, and the Talisman two-stage
-# continuation fixture — then drives
-# the headless-browser smoke test in web/e2e against all five, and tears
+# the shared mana-wheel board fixture, the Talisman two-stage continuation fixture,
+# and one server per engine offering all three wires — then drives
+# the headless-browser smoke test in web/e2e against all seven, and tears
 # every server down (and removes its temp dir) whether the gate passes or
 # fails.
 #
@@ -19,6 +19,8 @@
 # board) and a seated player's identity bar drawn on top of their own first
 # card — sailed through the whole green unit suite to a human screenshot.
 # Only a real seated 1v1 client can see them, so the gate now drives one.
+# The wire servers are where the client plays a seated game over native, ManaBrew
+# and SpellBench v2, on gorge and on dirac; the spec names each pair in its output.
 # "GET the real ids from /api/tables", "POST /api/games for the join" and
 # "fail on any browser error, any stuck loading state, a blank page that never
 # mounts" are all in the Playwright spec, not here — this script only builds,
@@ -30,6 +32,7 @@
 # a smoke port poisons the next run.
 #
 # Run through `make smoke`, or directly: scripts/smoke.sh
+# It needs the corpus (`make fetch-cards compile-cards`) and builds dirac's tables.
 
 set -euo pipefail
 
@@ -49,14 +52,14 @@ fi
 SMOKE_PORT_LO="${SMOKE_PORT_LO-8090}"
 SMOKE_PORT_HI="${SMOKE_PORT_HI-8099}"
 if [[ ! "$SMOKE_PORT_LO" =~ ^[0-9]{1,5}$ || ! "$SMOKE_PORT_HI" =~ ^[0-9]{1,5}$ ]]; then
-  echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least five ports)" >&2
+  echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least seven ports)" >&2
   exit 1
 fi
 # Canonical decimal avoids bash interpreting leading zeroes as octal.
 SMOKE_PORT_LO=$((10#$SMOKE_PORT_LO))
 SMOKE_PORT_HI=$((10#$SMOKE_PORT_HI))
-if (( SMOKE_PORT_LO < 1 || SMOKE_PORT_HI > 65535 || SMOKE_PORT_LO >= SMOKE_PORT_HI || SMOKE_PORT_HI - SMOKE_PORT_LO + 1 < 5 )); then
-  echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least five ports)" >&2
+if (( SMOKE_PORT_LO < 1 || SMOKE_PORT_HI > 65535 || SMOKE_PORT_LO >= SMOKE_PORT_HI || SMOKE_PORT_HI - SMOKE_PORT_LO + 1 < 7 )); then
+  echo "smoke: invalid port range '$SMOKE_PORT_LO'-'$SMOKE_PORT_HI' (need integer ports 1-65535, LO < HI, at least seven ports)" >&2
   exit 1
 fi
 
@@ -66,9 +69,9 @@ allocate_ports() {
   PORTS=()
   for p in $(seq "$SMOKE_PORT_LO" "$SMOKE_PORT_HI"); do
     if ! grep -qx "$p" <<<"$taken"; then PORTS+=("$p"); fi
-    if [ "${#PORTS[@]}" -ge 5 ]; then break; fi
+    if [ "${#PORTS[@]}" -ge 7 ]; then break; fi
   done
-  [ "${#PORTS[@]}" -ge 5 ]
+  [ "${#PORTS[@]}" -ge 7 ]
 }
 
 # Both probe and farm call this for each attempt in the SAME five-try budget.
@@ -78,7 +81,7 @@ allocate_attempt() {
   local attempt="$1"
   if allocate_ports; then return 0; fi
   if (( attempt < 5 )); then
-    echo "smoke: need five free ports in $SMOKE_PORT_LO-$SMOKE_PORT_HI (attempt $attempt/5); rescanning in 5s" >&2
+    echo "smoke: need seven free ports in $SMOKE_PORT_LO-$SMOKE_PORT_HI (attempt $attempt/5); rescanning in 5s" >&2
     sleep 5
   fi
   return 1
@@ -161,7 +164,7 @@ teardown_farm() {
     printf '%s\n' "$ports" | sed 's/^/smoke:   /' >&2
     echo "smoke:   (a listener with no users:(...) detail belongs to another user; a listener pid that is NOT one of the farm pids above is a peer gate or another agent's server, not a leak from this run)" >&2
   fi
-  rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${VITE_CACHE_DIR:-}"
+  rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${WIREGORGEDIR:-}" "${WIREDIRACDIR:-}" "${VITE_CACHE_DIR:-}"
 }
 
 cleanup() {
@@ -173,7 +176,7 @@ cleanup() {
     # but the temp dirs the run created must STILL go. A teardown that
     # leaks on a failure path would keep a port busy.
     # The selftest sets every dir to "" so this is a silent no-op there.
-    rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${VITE_CACHE_DIR:-}"
+    rm -rf "${PUBDIR:-}" "${OMNDIR:-}" "${SEATDIR:-}" "${FIXTUREDIR:-}" "${TALISDIR:-}" "${WIREGORGEDIR:-}" "${WIREDIRACDIR:-}" "${VITE_CACHE_DIR:-}"
   fi
 }
 trap cleanup EXIT
@@ -200,7 +203,7 @@ if [[ "${SMOKE_TEARDOWN_SELFTEST:-}" == 1 ]]; then
   # after PASS/FAIL was already reported, which is exactly how a leaked farm
   # blocked every later run.
   echo "== smoke: teardown selftest =="
-  PUBDIR="" OMNDIR="" SEATDIR="" FIXTUREDIR="" TALISDIR="" VITE_CACHE_DIR=""
+  PUBDIR="" OMNDIR="" SEATDIR="" FIXTUREDIR="" TALISDIR="" WIREGORGEDIR="" WIREDIRACDIR="" VITE_CACHE_DIR=""
   SERVER_PIDS=()
   ( trap '' TERM; exec sleep 30 ) &
   sleeper=$!
@@ -223,11 +226,13 @@ if [[ "${SMOKE_TEARDOWN_SELFTEST:-}" == 1 ]]; then
   exit 0
 fi
 
-# vitest/playwright need Node >=24 (the system node is v20). Prefix the v24
-# toolchain so the target works from a plain shell with no nvm shim loaded.
-export PATH="$HOME/.nvm/versions/node/v24.15.0/bin:$PATH"
+# vitest/playwright need Node >=24. A node on PATH serves if it is v24; otherwise
+# take the nvm toolchain, so the target works from a plain shell with no shim loaded.
 if ! node --version 2>/dev/null | grep -q '^v24'; then
-  echo "smoke: need Node 24 at $HOME/.nvm/versions/node/v24.15.0/bin (not found on PATH)" >&2
+  export PATH="$HOME/.nvm/versions/node/v24.15.0/bin:$PATH"
+fi
+if ! node --version 2>/dev/null | grep -q '^v24'; then
+  echo "smoke: need Node 24 on PATH or at $HOME/.nvm/versions/node/v24.15.0/bin" >&2
   exit 1
 fi
 
@@ -248,8 +253,10 @@ echo "== smoke: building client =="
 echo "== smoke: building gorged =="
 mkdir -p bin
 CGO_ENABLED=0 go build -trimpath -o bin/gorged ./cmd/gorged
+echo "== smoke: building dirac's card tables =="
+make dirac-tables
 
-# ---- allocate five free smoke ports (8090-8099 by default) ----
+# ---- allocate seven free smoke ports (8090-8099 by default) ----
 # The scan-then-bind window races every OTHER gate running in the same range
 # (two worktrees legitimately share 8090-8099: the loser's gorged fails to bind and the gate then drives the
 # WINNER's servers — wrong fixture decks, wrong seat tokens, intents from two
@@ -261,6 +268,8 @@ OMNDIR="$(mktemp -d /tmp/gorge-smoke-omni-XXXXXX)"
 SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
 FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
 TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
+WIREGORGEDIR="$(mktemp -d /tmp/gorge-smoke-wire-gorge-XXXXXX)"
+WIREDIRACDIR="$(mktemp -d /tmp/gorge-smoke-wire-dirac-XXXXXX)"
 SERVER_PIDS=()
 
 wait_ready() {
@@ -296,7 +305,18 @@ start_seated_server() {
   SERVER_PIDS+=("$!")
 }
 
-# start_farm starts all five servers on the current PORTS allocation and
+# A wire server offers ManaBrew and SpellBench v2 beside native, for a play-vs-bot game on either
+# engine. Its one startup table of bots stops after a game, so the browser has the machine.
+start_wire_server() {
+  local port="$1" dir="$2"
+  shift 2
+  ./bin/gorged -addr "127.0.0.1:$port" -dir "$dir" -spectator omniscient \
+    -tables 1 -seats 2 -perpetual=false -seed 1 -format constructed \
+    -vsbot -manabrew -sbv2 "$@" >"$dir/server.log" 2>&1 &
+  SERVER_PIDS+=("$!")
+}
+
+# start_farm starts all seven servers on the current PORTS allocation and
 # records every pid. Kept as one function so the bind-race retry below can
 # rerun it wholesale.
 start_farm() {
@@ -306,6 +326,8 @@ start_farm() {
   SEATPORT="${PORTS[2]}"
   FIXTUREPORT="${PORTS[3]}"
   TALISPORT="${PORTS[4]}"
+  WIREGORGEPORT="${PORTS[5]}"
+  WIREDIRACPORT="${PORTS[6]}"
 
   start_server "$PUBPORT" "$PUBDIR" public  "$PUBDIR/server.log"
   start_server "$OMNPORT" "$OMNDIR" omniscient "$OMNDIR/server.log"
@@ -328,11 +350,14 @@ start_farm() {
     -decks web/e2e/fixtures/decks-talisman -tables 1 -seats 2 -pace 0 -seed 7 \
     -mulligans 0 -perpetual=false -humans 0,1 -seat-token talismanwheel >"$TALISDIR/server.log" 2>&1 &
   SERVER_PIDS+=("$!")
+
+  start_wire_server "$WIREGORGEPORT" "$WIREGORGEDIR" -decks testkit/testutil/decks
+  start_wire_server "$WIREDIRACPORT" "$WIREDIRACDIR" -engine dirac -dirac-sets fdn -decks dirac/testdata/bench/fdn
 }
 
 # The bind race: a gorged that lost the port to a concurrent gate exits within
 # milliseconds, so a short settle and a liveness check on every pid decides
-# whether this attempt owns all five ports. On a loss, kill what did start,
+# whether this attempt owns all seven ports. On a loss, kill what did start,
 # wait out the winner's own scan (so the rescan sees its ports taken), throw
 # away the persistence dirs (a retried farm must never resume a
 # half-written one — the seeded t1 resume path would leak into the run), and
@@ -363,14 +388,16 @@ for attempt in 1 2 3 4 5; do
   SEATDIR="$(mktemp -d /tmp/gorge-smoke-seat-XXXXXX)"
   FIXTUREDIR="$(mktemp -d /tmp/gorge-smoke-board-XXXXXX)"
   TALISDIR="$(mktemp -d /tmp/gorge-smoke-talisman-XXXXXX)"
+  WIREGORGEDIR="$(mktemp -d /tmp/gorge-smoke-wire-gorge-XXXXXX)"
+  WIREDIRACDIR="$(mktemp -d /tmp/gorge-smoke-wire-dirac-XXXXXX)"
 done
 if [ "$farm" != true ]; then
   allocation_failed
   exit 1
 fi
 
-echo "== smoke: gorged farm up (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
-echo "smoke: farm pids: public:$PUBPORT=${SERVER_PIDS[0]} omniscient:$OMNPORT=${SERVER_PIDS[1]} seated:$SEATPORT=${SERVER_PIDS[2]} fixture:$FIXTUREPORT=${SERVER_PIDS[3]} talisman:$TALISPORT=${SERVER_PIDS[4]}" >&2
+echo "== smoke: gorged farm up (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT, wire gorge :$WIREGORGEPORT, wire dirac :$WIREDIRACPORT) =="
+echo "smoke: farm pids: public:$PUBPORT=${SERVER_PIDS[0]} omniscient:$OMNPORT=${SERVER_PIDS[1]} seated:$SEATPORT=${SERVER_PIDS[2]} fixture:$FIXTUREPORT=${SERVER_PIDS[3]} talisman:$TALISPORT=${SERVER_PIDS[4]} wire-gorge:$WIREGORGEPORT=${SERVER_PIDS[5]} wire-dirac:$WIREDIRACPORT=${SERVER_PIDS[6]}" >&2
 if ! wait_ready "$PUBPORT"; then
   echo "smoke: public gorged on :$PUBPORT never became ready:" >&2
   sed -n '1,60p' "$PUBDIR/server.log" >&2 || true
@@ -396,15 +423,25 @@ if ! wait_ready "$TALISPORT"; then
   sed -n '1,60p' "$TALISDIR/server.log" >&2 || true
   exit 1
 fi
+if ! wait_ready "$WIREGORGEPORT"; then
+  echo "smoke: gorge wire gorged on :$WIREGORGEPORT never became ready:" >&2
+  sed -n '1,60p' "$WIREGORGEDIR/server.log" >&2 || true
+  exit 1
+fi
+if ! wait_ready "$WIREDIRACPORT"; then
+  echo "smoke: dirac wire gorged on :$WIREDIRACPORT never became ready:" >&2
+  sed -n '1,60p' "$WIREDIRACDIR/server.log" >&2 || true
+  exit 1
+fi
 echo "== smoke: driving the browser gate =="
 set +e
-( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" SMOKE_TALISMAN="http://127.0.0.1:$TALISPORT" npx playwright test )
+( cd web && SMOKE_PUBLIC="http://127.0.0.1:$PUBPORT" SMOKE_OMNI="http://127.0.0.1:$OMNPORT" SMOKE_SEATED="http://127.0.0.1:$SEATPORT" SMOKE_FIXTURE="http://127.0.0.1:$FIXTUREPORT" SMOKE_WHEEL="http://127.0.0.1:$FIXTUREPORT" SMOKE_TALISMAN="http://127.0.0.1:$TALISPORT" SMOKE_WIRE_GORGE="http://127.0.0.1:$WIREGORGEPORT" SMOKE_WIRE_DIRAC="http://127.0.0.1:$WIREDIRACPORT" npx playwright test )
 status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
-  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
+  echo "== smoke: PASS (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT, wire gorge :$WIREGORGEPORT, wire dirac :$WIREDIRACPORT) =="
 else
-  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT) =="
+  echo "== smoke: FAIL (public :$PUBPORT, omniscient :$OMNPORT, seated :$SEATPORT, fixture :$FIXTUREPORT, talisman :$TALISPORT, wire gorge :$WIREGORGEPORT, wire dirac :$WIREDIRACPORT) =="
 fi
 exit "$status"

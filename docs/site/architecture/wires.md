@@ -48,7 +48,8 @@ Not every combination is a cell:
 The web client plays all three, chosen per browser by the Protocol setting ([Play](../guide/play.md)). It offers
 ManaBrew and SpellBench v2 where the server's page carries `<meta name="gorge-manabrew">` or
 `<meta name="gorge-sbv2">`. Its adapters are in `web/src/lib/manabrew` and `web/src/lib/sbv2`, with what they
-share in `web/src/lib/wire`. Vitest covers them; there is no matrix cell for a browser.
+share in `web/src/lib/wire`. Vitest covers them, and `make smoke`, the CI job `browser`, plays a seated game in a
+browser over each wire on each engine. That job is outside this table: it needs Node and a browser, which the tiers don't.
 
 `-sbv2` costs a native seat nothing: a seat is played over v2 only once a v2 client
 [attaches to it](../api/spellbench-v2.md#attaching-a-seat), and goes back on its next native answer.

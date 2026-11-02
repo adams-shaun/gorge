@@ -28,8 +28,10 @@ export default defineConfig({
     browserName: 'chromium',
     headless: true,
     viewport: { width: 1440, height: 900 },
+    launchOptions: { args: ['--disable-gpu'] },
     // The gorged origins are per-run and injected by scripts/smoke.sh; each
     // test computes its own URLs from the SMOKE_* variables.
     trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
 });

@@ -28,6 +28,8 @@ const SEATED = process.env.SMOKE_SEATED;
 const FIXTURE = process.env.SMOKE_FIXTURE;
 const WHEEL = process.env.SMOKE_WHEEL;
 const TALIS = process.env.SMOKE_TALISMAN;
+const WIRE_GORGE = process.env.SMOKE_WIRE_GORGE;
+const WIRE_DIRAC = process.env.SMOKE_WIRE_DIRAC;
 
 // The seated-view gate. The two spectator modes above drive no seated client.
 // These helpers measure the REAL rendered DOM with
@@ -1550,6 +1552,214 @@ test.describe('gorged constructed board fixture', () => {
       expect(measurement.rows).toBeGreaterThanOrEqual(7);
       expect(measurement.parent).toBe('BODY');
       expect(measurement.menuBottom).toBeLessThanOrEqual(700);
+    } finally {
+      await ctx.close();
+    }
+  });
+});
+
+// One seated game over each wire the client speaks, on each engine a table can run. smoke.sh's
+// two wire servers offer ManaBrew and SpellBench v2 beside native. The Protocol setting belongs to
+// the browser, so the test stores it before the page loads. Only the starting-player answer goes
+// outside the wire under test; that ask precedes what these tests are about.
+const WIRE_SEND = {
+  native: /\/api\/tables\/[^/]+\/matches\/\d+\/intent$/,
+  manabrew: /\/api\/manabrew\/v0\/tables\/[^/]+\/matches\/\d+\/send$/,
+  sbv2: /\/api\/sbv2\/v1\/tables\/[^/]+\/matches\/\d+\/send$/,
+} as const;
+type WireName = keyof typeof WIRE_SEND;
+
+// A land and a spell take at most a few turns against a bot on the wire servers' default pace.
+const WIRE_GAME_MS = 150_000;
+
+/** visible reports whether the first element a locator matches is on screen now. */
+async function visible(l: Locator): Promise<boolean> {
+  return (await l.count()) > 0 && (await l.first().isVisible());
+}
+
+/**
+ * playFromHand hovers a hand card, which raises it above its neighbours, clicks one of its
+ * controls and reports whether the hand shrank. The game may have moved on since the control was
+ * drawn, so a miss is not a failure; the caller's deadline bounds the retries.
+ */
+async function playFromHand(page: Page, hand: Locator, card: Locator, action: () => Promise<Locator>): Promise<boolean> {
+  const before = await hand.count();
+  try {
+    await card.hover({ position: { x: 2, y: 8 }, timeout: 2_000 });
+    await (await action()).click({ timeout: 2_000 });
+  } catch {
+    return false;
+  }
+  const wheel = page.locator('body > [data-radial-picker] button[data-wire-index]').first();
+  if (await wheel.waitFor({ state: 'visible', timeout: 500 }).then(() => true, () => false)) await wheel.click();
+  return expect.poll(() => hand.count(), { timeout: 5_000 }).toBe(before - 1).then(() => true, () => false);
+}
+
+/**
+ * answerOpenAsk gives whatever the seat is asked the first thing offered, and passes priority.
+ * A submit comes before a pick, or a second pick of the same row would take back the first. A
+ * finished ask leaves a control behind for a moment, so a click that misses is not a failure.
+ */
+async function answerOpenAsk(page: Page): Promise<void> {
+  for (const offered of [
+    page.locator('[data-prompt-footer] button.primary:enabled'),
+    page.locator('[data-option]'),
+    page.locator('[data-prompt-footer] button:enabled'),
+    page.locator('[data-done-action]:enabled'),
+    page.locator('[data-pass-action]:enabled'),
+  ]) {
+    if (await visible(offered)) {
+      await offered.first().click({ timeout: 2_000 }).catch(() => {});
+      return;
+    }
+  }
+}
+
+/**
+ * playLandUndoAndSpell plays a seated game from the mulligan until the seat has played a land,
+ * taken it back, played one again and cast a spell with auto-pay, playing a land each turn until then.
+ */
+async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
+  const deadline = Date.now() + WIRE_GAME_MS;
+  const hand = page.locator('.handfan [data-obj]');
+  const asked = page.locator('[data-option], [data-prompt-footer] button:enabled');
+  let undone = false;
+  let land = false;
+  let spell = false;
+  const did: string[] = [];
+  while (Date.now() < deadline && !(land && spell)) {
+    const landCard = hand.filter({ has: page.locator('[data-play-land]') }).first();
+    const spellCard = hand.filter({ has: page.locator('[data-payment-card], [data-single-action], button[aria-haspopup="menu"]') }).first();
+    if (await visible(asked)) {
+      did.push('ask');
+      await answerOpenAsk(page);
+    } else if (!spell && (await visible(landCard))) {
+      did.push('land');
+      const before = await hand.count();
+      if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
+        if (undone) {
+          land = true;
+        } else {
+          // The client may already have passed priority after the land, so it can take a second undo.
+          await expect.poll(async () => {
+            await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
+            await page.waitForTimeout(500);
+            return hand.count();
+          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(before);
+          undone = true;
+        }
+      }
+    } else if (land && !spell && (await visible(spellCard))) {
+      did.push('spell');
+      spell = await playFromHand(page, hand, spellCard, async () => {
+        const shortcut = spellCard.locator('[data-payment-card], [data-single-action]').first();
+        return (await shortcut.count()) > 0 ? shortcut : spellCard.locator('button[aria-haspopup="menu"]');
+      });
+    } else {
+      did.push('pass');
+      await answerOpenAsk(page);
+    }
+    await page.waitForTimeout(100);
+  }
+  const trail = `after ${did.join(' ')}`;
+  expect(undone, `${label} a land was played and taken back, ${trail}`).toBe(true);
+  expect(land, `${label} a land was played, ${trail}`).toBe(true);
+  expect(spell, `${label} a spell was cast, ${trail}`).toBe(true);
+}
+
+for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as const) {
+  for (const wire of Object.keys(WIRE_SEND) as WireName[]) {
+    test.describe(`gorged [${engine} ${wire}] seated game`, () => {
+      test.skip(!base, 'SMOKE_WIRE_GORGE/SMOKE_WIRE_DIRAC unset — run via scripts/smoke.sh');
+
+      test('plays a land, undoes it, casts a spell, reads the log and concedes', async ({ browser, request }) => {
+        test.setTimeout(WIRE_GAME_MS + 60_000);
+        const b = base as string;
+        const label = `[${engine} ${wire}]`;
+        const resp = await request.post(`${b}/api/games`, { data: { format: 'constructed' } });
+        expect(resp.ok(), `${label} POST /api/games`).toBe(true);
+        const g = (await resp.json()) as { join: string; seat: number; table: string; match: number; token: string };
+        await settleStartingPlayer(request, b, g.table, g.match, g.seat, g.token);
+
+        const ctx = await browser.newContext();
+        try {
+          if (wire !== 'native') {
+            await ctx.addInitScript((p) => localStorage.setItem('gorge.protocol.v1', p), wire);
+          }
+          const page = await ctx.newPage();
+          const c = watch(page, b);
+          const sent: string[] = [];
+          page.on('request', (r) => {
+            if (r.method() === 'POST') sent.push(new URL(r.url()).pathname);
+          });
+          await page.goto(`${b}${g.join}`, { waitUntil: 'domcontentloaded' });
+          await page.locator('.quadrant').first().waitFor({ state: 'visible', timeout: WAIT_MS });
+          // The rail offers the log switch during the mulligan round; later it moves into Options.
+          await page.locator('[data-log-toggle]').click({ timeout: WAIT_MS });
+
+          await playLandUndoAndSpell(page, label);
+
+          expect(await page.locator('[data-wire-notice]').count(), `${label} the table plays over the wire it asked for`).toBe(0);
+          expect(sent.filter((p) => WIRE_SEND[wire].test(p)).length, `${label} answers went over ${wire}: ${sent.join(' ')}`).toBeGreaterThan(0);
+          if (wire === 'native') {
+            expect(sent.filter((p) => WIRE_SEND.manabrew.test(p) || WIRE_SEND.sbv2.test(p)), `${label} no other wire`).toEqual([]);
+          }
+
+          await assertHandWithinBoard(page, label);
+          const own = await page.locator(`.quadrant[data-seat="${g.seat}"]`).boundingBox();
+          const opp = await page.locator(`.quadrant[data-seat="${g.seat === 0 ? 1 : 0}"]`).boundingBox();
+          expect(own && opp && own.y > opp.y, `${label} the seat's own quadrant is below its opponent's`).toBe(true);
+
+          await page.locator('section.transcript .line[data-seq]').first().waitFor({ state: 'attached', timeout: WAIT_MS });
+
+          // Concede is offered with an open ask, and the spell may have left the seat without one.
+          const concede = page.locator('[data-concede-control]');
+          await expect.poll(async () => {
+            if (await visible(concede)) return true;
+            await answerOpenAsk(page);
+            return false;
+          }, { message: `${label} concede is offered`, timeout: STALL_MS, intervals: [200] }).toBe(true);
+          await concede.click({ timeout: WAIT_MS });
+          await page.locator('[data-confirm-concede]').click({ timeout: WAIT_MS });
+          await expect.poll(async () => {
+            const m = await request.get(`${b}/api/tables/${g.table}/matches?token=${encodeURIComponent(g.token)}`);
+            const list = (await m.json()) as Array<{ match: number; state: string }>;
+            return list.find((x) => x.match === g.match)?.state;
+          }, { message: `${label} the conceded game finishes`, timeout: WAIT_MS }).toBe('finished');
+
+          expectClean(c, label);
+        } finally {
+          await ctx.close();
+        }
+      });
+    });
+  }
+}
+
+test.describe('gorged [dirac] lobby and table', () => {
+  test.skip(!WIRE_DIRAC, 'SMOKE_WIRE_DIRAC unset — run via scripts/smoke.sh');
+
+  test('a refused deck is disabled in the picker and a table offers no manual mana', async ({ browser, request }) => {
+    const b = WIRE_DIRAC as string;
+    const decks = (await (await request.get(`${b}/api/decks`)).json()) as Array<{ id: string; refused?: string }>;
+    const refused = decks.filter((d) => d.refused);
+    test.skip(refused.length === 0, 'every bench deck is supported');
+
+    const ctx = await browser.newContext();
+    try {
+      const page = await ctx.newPage();
+      const c = watch(page, b);
+      await page.goto(`${b}/`, { waitUntil: 'domcontentloaded' });
+      const human = page.getByLabel('Your deck');
+      await human.locator(`option[value="${decks.find((d) => !d.refused)?.id}"]`).waitFor({ state: 'attached', timeout: WAIT_MS });
+      await expect(human.locator(`option[value="${refused[0].id}"]`)).toBeDisabled();
+
+      const g = (await (await request.post(`${b}/api/games`, { data: { format: 'constructed' } })).json()) as { join: string; seat: number; table: string; match: number; token: string };
+      await settleMulliganKeep(request, b, g.table, g.match, g.seat, g.token);
+      await page.goto(`${b}${g.join}`, { waitUntil: 'domcontentloaded' });
+      await page.locator('[data-hot-strip]').waitFor({ state: 'visible', timeout: WAIT_MS });
+      expect(await page.locator('[data-auto-pay-toggle]').count(), 'dirac has no manual mana to turn auto-pay off for').toBe(0);
+      expectClean(c, '[dirac lobby]');
     } finally {
       await ctx.close();
     }

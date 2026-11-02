@@ -301,6 +301,82 @@ jobs:
         if: always()
         run: df -h .
 
+  # The browser gate (scripts/smoke.sh): the built client against real servers, including a seated
+  # game on each engine over each wire. Not in ci-ok until it has gone green once here: the
+  # maintainers' machines don't run npm, so nothing proved this job before CI did.
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-browser-${{ github.sha }}
+          restore-keys: gocache-browser-
+      - name: Restore npm's cache and the browser
+        id: webcache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Install the client's dependencies
+        run: npm ci
+        working-directory: web
+      - name: Install Chromium's system libraries
+        run: npx playwright install-deps chromium
+        working-directory: web
+      - name: Run the browser gate
+        run: make smoke
+      - name: Keep the failures' traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: web/test-results
+          if-no-files-found: ignore
+      - name: Save npm's cache and the browser
+        if: github.event_name != 'pull_request' && steps.webcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Save the Go cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-browser-${{ github.sha }}
+
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
