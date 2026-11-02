@@ -880,8 +880,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(departing)
 		defer h.EndBatchDepartures()
 	}
-	// Several objects moved onto the battlefield by one ChangeZone (Living Death's Defined$ Remembered return) enter together: one entering event (CR 603.6a), the ChangeZoneAll sweep's bracket. One object needs none.
-	if to == state.ZBattlefield && objectTargetCount(targets) > 1 {
+	// Several objects moved by one ChangeZone move together (Living Death's Defined$
+	// Remembered return, Macabre Reconstruction's two targets), so a "one or more"
+	// trigger on them fires once.
+	if objectTargetCount(targets) > 1 {
 		h.BeginZoneBatch()
 		defer h.EndZoneBatch()
 	}
