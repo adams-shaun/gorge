@@ -659,7 +659,8 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	for i := 0; i < r.nev; i++ {
 		add(r.ev[i].src)
 	}
-	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any()
+	// a gain's plus-one (Angel of Vitality) is per source, each its own event
+	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0
 	if !life && !dealt {
 		for pp := uint8(0); pp < 2; pp++ {
 			if r.toPl[pp] > 0 {
