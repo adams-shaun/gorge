@@ -988,6 +988,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.keepTriggerLKI(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, true)
 		}
@@ -1016,6 +1017,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.keepTriggerLKI(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, false)
 		}

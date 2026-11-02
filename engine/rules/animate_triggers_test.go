@@ -225,3 +225,37 @@ func TestCrossObjectAnimateTriggerResolvesTheGrantorsBody(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestGrantedDeathTriggerReadsLastKnownPower: CR 608.2h. A gained "when this
+// creature dies" line that reads the creature's power reads what it had when it
+// died, pump included, not the graveyard card's printed value.
+func TestGrantedDeathTriggerReadsLastKnownPower(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := animateTriggersEngine(t, reg, lookup(t, reg, "Grizzly Bears"), lookup(t, reg, "Grizzly Bears"),
+		lookup(t, reg, "Galuf's Final Act"), lookup(t, reg, "Lightning Bolt"))
+	doomed := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	heir := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	act := moveByName(t, e, 0, "Galuf's Final Act", state.ZHand)
+	bolt := moveByName(t, e, 0, "Lightning Bolt", state.ZHand)
+	addMana(t, e, 0, "1GR")
+	castSpellAtTarget(t, e, act, doomed)
+	if got := e.Power(doomed); got != 3 {
+		t.Fatalf("pumped power = %d, want 3", got)
+	}
+	d := e.Pending()
+	idx := castOptionIdx(d, "cast", bolt)
+	if idx < 0 {
+		t.Fatalf("no cast option for the bolt: %+v", d)
+	}
+	submitChoices(t, e, idx)
+	submitTarget(t, e, doomed)
+	for i := 0; i < 20 && e.Pending() != nil && e.Pending().Kind != decision.KTarget; i++ {
+		passOnce(t, e)
+	}
+	submitTarget(t, e, heir)
+	passUntilStackEmpty(t, e, 20)
+	if n := e.G.Obj(heir).Counter("P1P1"); n != 3 {
+		t.Fatalf("counters on the other creature = %d, want the 3 power the first had when it died", n)
+	}
+}
