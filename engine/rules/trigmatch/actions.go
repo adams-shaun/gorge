@@ -362,10 +362,11 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 		(!valiant || valiantFirstTimeTargetedByYouThisTurn(e, ev, source, false, e.ControllerOf(source)))
 }
 
-// ChainNoTarget is the Text of the move off the stack of a triggered ability a chain link
-// had no target for (CR 603.3d): it was never put on the stack, and a TargetsChosen its
-// root's answer logged named no target.
-const ChainNoTarget = "removed: a chained link has no legal target"
+// ChainNoTarget is the Text of the move off the stack of an ability or spell with no legal
+// target for a mandatory link (CR 603.3d, 601.2c): it was never put on the stack, and a
+// TargetsChosen its root's answer logged named no target. It is the text every such exit
+// has always carried, which logs and tests read.
+const ChainNoTarget = "countered: no legal targets"
 
 // firstTimeTargetedThisTurn answers FirstTime$ True on Mode$ BecomesTarget
 // ("becomes the target of a spell or ability for the first time each turn",
