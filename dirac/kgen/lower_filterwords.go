@@ -95,6 +95,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithWarp), true
 	case "ManaCostPartialBlue":
 		return int(kop.W7CostBlue), true
+	case "NoAbilities":
+		return int(kop.W7NoAbilities), true
 	}
 	return 0, false
 }

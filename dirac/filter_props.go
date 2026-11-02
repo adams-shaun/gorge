@@ -261,6 +261,10 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
 	case kop.W7CostBlue:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].Cost.HasColour(1)
+	case kop.W7NoAbilities:
+		// gorge noAbilitiesPermanent over the printed face (a face-down
+		// card here is a battlefield permanent, which kgen never lowers)
+		ans = c != kop.NoCard && k.t.Cards[c].NoAbilities
 	}
 	return ans != DebugWord9Flip
 }

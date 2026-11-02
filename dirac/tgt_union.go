@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // union: an op whose subject is several target slots' union (RefTargets01,
-// RefTargets012, RefTargets12): gorge's Defined$ Targeted over a SubAbility$
+// RefTargets012, RefTargets12, RefTargets0123): gorge's Defined$ Targeted over a SubAbility$
 // chain (rules trigger_subtargets.go chainTargetUnion, effects count_ref.go
 // refTargetUnion) -- the root's targets, then each link's, in chain order,
 // a target illegal on resolution left out (CR 608.2b). Cold code, reached
@@ -18,6 +18,8 @@ func unionMask(r kop.Ref) uint8 {
 		return 7
 	case kop.RefTargets12:
 		return 6
+	case kop.RefTargets0123:
+		return 15
 	}
 	return 0
 }

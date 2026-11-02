@@ -289,6 +289,12 @@ const (
 	W7CostBlue int16 = 14
 )
 
+// W7NoAbilities (PredWord7 sub-kind 15): the card's printed face has no
+// ability of any kind (CardDef.NoAbilities; gorge noAbilitiesPermanent).
+// Read off the battlefield only: kgen refuses it on a permanent, where a
+// granted or lost ability would change the answer.
+const W7NoAbilities int16 = 15
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

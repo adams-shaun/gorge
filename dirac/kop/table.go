@@ -243,6 +243,10 @@ type CardDef struct {
 	// count; 0 = not a Saga). The chapter abilities themselves are printed
 	// battlefield triggers on CtrLore, each gated at its chapter number.
 	SagaN uint8
+	// NoAbilities: the printed face has no ability of any kind, the card
+	// read of the NoAbilities filter word (W7NoAbilities; gorge
+	// FaceHasNoAbilities). Read off the battlefield only.
+	NoAbilities bool
 	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
 	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
 	// spell cast that way is exiled at the beginning of the next end step

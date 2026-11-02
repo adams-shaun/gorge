@@ -51,7 +51,7 @@ func init() {
 		"kop.RefRemembered", kop.RefRemembered, "kop.RefDelayedRemembered", kop.RefDelayedRemembered,
 		"kop.RefReplaced", kop.RefReplaced, "kop.RefTriggerSource", kop.RefTriggerSource, "kop.RefSacrificed", kop.RefSacrificed,
 		"kop.RefHost", kop.RefHost, "kop.RefTargetSlot", kop.RefTargetSlot, "kop.RefTargets01", kop.RefTargets01,
-		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12,
+		"kop.RefTargets012", kop.RefTargets012, "kop.RefTargets12", kop.RefTargets12, "kop.RefTargets0123", kop.RefTargets0123,
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
 		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefTriggerAttackers", kop.RefTriggerAttackers)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,

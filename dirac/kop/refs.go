@@ -52,6 +52,7 @@ const (
 	RefDiscarded                                            // the card the resolving spell's Discard<1/...> cost discarded (stackEntry.trigObj, Grab the Prize)
 	RefLibTop                                               // the top card of the resolving controller's library (gorge definedSpecTopOrBottomOfLibrary); none when it is empty
 	RefTriggerAttackers                                     // the attacker group of the AttackersDeclared event that raised this trigger (gorge definedSpecTriggeredAttackers); only OpPumpUntilEOT / OpPutCounter / OpGrantKeyword read it
+	RefTargets0123                                          // every legal target of slots 0 to 3
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

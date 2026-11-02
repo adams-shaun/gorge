@@ -3803,15 +3803,23 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 	if o.FaceDownHidden() {
 		return true
 	}
-	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
-		return false
-	}
 	for _, c := range o.Counters {
 		if c.N > 0 {
 			if _, ok := cards.CounterKeyword(c.Kind); ok {
 				return false
 			}
 		}
+	}
+	return FaceHasNoAbilities(f, hasType(o, "Land"))
+}
+
+// FaceHasNoAbilities reports whether a printed face has no ability for
+// noAbilitiesPermanent's purposes: no keyword, static, replacement or
+// trigger, and no activated ability or spell ability beyond a land's mana
+// ability (land says whether the object is one) and the card's own plain cast.
+func FaceHasNoAbilities(f *cards.Face, land bool) bool {
+	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
+		return false
 	}
 	for _, a := range f.Abilities {
 		if a == nil {
@@ -3821,7 +3829,7 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 		case cards.SAKindActivated:
 			// A land's mana ability is not an ability for this
 			// predicate (Forge's isLandAbility).
-			if hasType(o, "Land") && a.APIKind() == cards.APIMana {
+			if land && a.APIKind() == cards.APIMana {
 				continue
 			}
 			return false

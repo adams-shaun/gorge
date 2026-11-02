@@ -1,0 +1,16 @@
+# the NoAbilities filter word off the battlefield: Fang-Druid Summoner
+# searches a library and a graveyard for a creature card with no abilities,
+# Rise from the Wreck returns one of four graveyard targets, beside vanilla
+# creatures, creatures with abilities, burn and basics
+# (dirac/oracle/noabilities_test.go)
+Fang-Druid Summoner
+Rise from the Wreck
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Llanowar Elves
+Serra Angel
+Shock
+Forest
+Mountain
+Plains
