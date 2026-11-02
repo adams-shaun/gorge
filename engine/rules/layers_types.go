@@ -88,7 +88,7 @@ func (e *Engine) matchesWithChars(ce *ContinuousEffect, id state.ObjID, types, k
 // default), so Garruk's Uprising grants nothing to a creature card in hand. Scoped
 // to what a static or an api:Effect registers: a one-shot effect names its objects.
 func affectsZone(ce *ContinuousEffect, zone, atStack state.Zone) bool {
-	if !ce.PermanentsOnly && (!ce.FromEffect || ce.AffectedZone != "" || ce.MayPlay) {
+	if !ce.PermanentsOnly && (!ce.FromEffect || ce.MayPlay || (ce.AffectedZone != "" && ce.AffectedZone != "Battlefield")) {
 		return true
 	}
 	if atStack != 0 {

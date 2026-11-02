@@ -67,3 +67,35 @@ func TestStaticNamingAZoneReachesIt(t *testing.T) {
 		t.Fatalf("a creature on the battlefield has power %d under a static naming the battlefield, want 4", p)
 	}
 }
+
+// An emblem's static is delivered through api:Effect; naming the battlefield it reads
+// as the printed static does (Vivien Reid's emblem), and naming every zone it reaches
+// a card in hand (a perpetual grant).
+func TestEffectStaticZones(t *testing.T) {
+	for _, tc := range []struct {
+		zone     string
+		wantHand int32
+	}{
+		{"", 2},
+		{"AffectedZone$ Battlefield | ", 2},
+		{"AffectedZone$ All | ", 4},
+	} {
+		grant := card(t, "Name:Emblem Maker\nManaCost:U\nTypes:Sorcery\n"+
+			"A:SP$ Effect | StaticAbilities$ STMight\n"+
+			"SVar:STMight:Mode$ Continuous | Affected$ Creature.YouCtrl | "+tc.zone+"AddPower$ +2 | AddToughness$ +2\n"+
+			"Oracle:x\n")
+		e := handEngine(t, grant)
+		e.G.Players[0].Pool[state.MU] = 1
+		bear := onBoard(t, e, 0, zoneBear)
+		e.askPriority(0)
+		castFirst(t, e, "cast")
+		passUntilStackEmpty(t, e, 8)
+		hand := zoneHandCard(t, e, 0, zoneBear)
+		if p := e.Derived(hand).Power; p != tc.wantHand {
+			t.Errorf("%q: a creature card in hand has power %d, want %d", tc.zone, p, tc.wantHand)
+		}
+		if p := e.Derived(bear).Power; p != 4 {
+			t.Errorf("%q: a creature on the battlefield has power %d, want 4", tc.zone, p)
+		}
+	}
+}
