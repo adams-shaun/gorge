@@ -90,14 +90,6 @@ func TestChoosecardparamsActivateFirstLockstep(t *testing.T) {
 	}
 	for _, seed := range []uint64{81, 128} {
 		t.Run("", func(t *testing.T) {
-			if seed == 128 {
-				// gorge's EnsurePaymentActions offers no hand Llanowar Elves
-				// cast while PotentialPaymentPlans prices both from the
-				// battlefield Llanowar: a gorge planner inconsistency
-				// (agent-20261027T035339Z-83c3893a, "Gorge finding"), not a
-				// kernel rules gap.
-				t.Skip("seed 128: gorge finding agent-20261027T035339Z-83c3893a (PaymentActions omits the hand Llanowar Elves casts)")
-			}
 			cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 			m, err := NewMatchup(reg, [2]string{"kccp-a", "kccp-b"}, decks, 1)
 			if err != nil {
