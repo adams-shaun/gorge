@@ -266,3 +266,11 @@ func TestCreatureWithoutItsDefiningAbilityKeepsTheFixedTermLockstep(t *testing.T
 	t.Parallel()
 	synthReproLockstep(t, "cosmogoyf_no_abilities_is_zero_one", "std-eoe", Config{GorgeAutopaySurface: true})
 }
+
+// Vote Out exiled by Possibility Technician with a Kavu in play: a convoke spell cast through a
+// permission is offered when the creatures it could tap cover its cost, as the same card in the
+// hand is (CR 702.51a). The permission walk priced the printed cost alone.
+func TestConvokeSpellCastThroughAPermissionIsOfferedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "vote_out_convoke_from_exile", "std-eoe", Config{GorgeAutopaySurface: true})
+}

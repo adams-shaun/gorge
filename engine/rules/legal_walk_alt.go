@@ -148,7 +148,7 @@ func (w *legalWalk) mayPlaySpellWalk() {
 			// offered only at those alternatives, below; a typed offer is
 			// never such a static (mayPlayPermText).
 			printed := off.key != "" || e.mayPlayPlainGrant(p, id)
-			base := pay.RawBaseCost(asPayer(e), p, id)
+			base := e.castOfferBase(p, id)
 			// A MayPlayText$-typed offer carries its own permission's riders
 			// (mayPlayPermissions); an untyped offer keeps the aggregate read
 			// every existing grant used.

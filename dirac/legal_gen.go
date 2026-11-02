@@ -110,7 +110,11 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		return
 	}
 	if mode&castFree == 0 {
-		cost := s.adjustCostGen(k, p, c, o, pc.cost)
+		base := pc.cost
+		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
+			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
+		}
+		cost := s.adjustCostGen(k, p, c, o, base)
 		if anyMana {
 			cost = anyType(cost)
 		}
