@@ -578,11 +578,19 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 
 // value evaluates a ValueRef.
 // enterCountValue is value for the amount of an enters-with-counters
-// replacement, which counts from the entering permanent (sl, controlled by
+// replacement, which counts for the entering permanent (sl, controlled by
 // ctrl): its "other" is that permanent, not the source of the effect that
 // put it onto the battlefield (Rescue Skiff's trigger returning Luxknight
-// Breacher, which counts the Skiff).
+// Breacher, which counts the Skiff), and its "you" is that permanent's
+// controller, not the effect's (All-Fates Stalker's return of Gigastorm Titan
+// under Bioengineered Future counts lands that entered under the Titan's
+// controller).
 func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
+	if v.K == kop.VExpr {
+		c := s.ctxEntry(&s.res.e)
+		c.ctrl = ctrl
+		return s.expr(k, v.N, c)
+	}
 	if v.K != kop.VCountFilter {
 		return s.value(k, v)
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
 // TestEnterCountersCountFromTheEnteringPermanent: a creature that "enters
@@ -59,5 +60,30 @@ func TestEnterCountersCountFromTheEnteringPermanent(t *testing.T) {
 	}
 	if n := sc.s.perms[sc.s.objs[g].slot].ctrN(sc.s, int(kop.CtrP1P1)); n != 2 {
 		t.Fatalf("the Breacher entered under its owner with %d +1/+1 counters, want 2 (its controller's two Bears)", n)
+	}
+}
+
+// TestEnterCountersLedgerCountsTheEnteringControllers: "for each land that
+// entered the battlefield under your control this turn" in an enters-with
+// replacement (Bioengineered Future) is the entering creature's controller's
+// ledger, not that of the player whose effect returned it (All-Fates
+// Stalker's leaves-the-battlefield return of Gigastorm Titan at the end of
+// the opponent's turn).
+func TestEnterCountersLedgerCountsTheEnteringControllers(t *testing.T) {
+	tbl := *v.Table
+	tbl.Filters = append(append([]kop.Filter(nil), v.Table.Filters...), kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Zone: kop.ZoneBattlefield})
+	fid := kop.FilterID(len(v.Table.Filters))
+	tbl.Exprs = []kop.Expr{{Kind: kop.ExThisTurnEntered, N: int16(kop.ZoneBattlefield), F: fid, F4: fid, From: -1}}
+	sc := newScenTable(t, &tbl, Config{})
+	sc.s.enteredRing()
+	o := sc.perm(v.GrizzlyBears, 1)
+	sc.s.noteEnter(o, kop.ZoneHand, kop.ZoneBattlefield, true)
+	sc.s.res.e.ctrl = 0
+	val := kop.ValueRef{K: kop.VExpr, N: 0}
+	if got := sc.s.enterCountValue(sc.k, val, sc.s.objs[o].slot, 1); got != 1 {
+		t.Fatalf("the entering controller's ledger: got %d, want 1", got)
+	}
+	if got := sc.s.value(sc.k, val); got != 0 {
+		t.Fatalf("the effect controller's ledger: got %d, want 0 (the pair has to differ to prove the override)", got)
 	}
 }
