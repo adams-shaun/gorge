@@ -602,6 +602,9 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 	if s.statM.any() || k.gen != nil {
 		cost = s.featCost(k, p&1, c, o, cost) // a flashback cost is reduced too
 	}
+	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o)) {
+		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
+	}
 	return cost, true
 }
 
@@ -1442,6 +1445,33 @@ func (s *State) FeatMayPlayUntyped(p uint8, o Obj) bool {
 		})
 	}
 	return untyped
+}
+
+// FeatMayPlayTyped names the typed permission p may cast object o through when no
+// untyped one allows it: the card holding the static, and how many play-from-zone
+// statics come before it on that card.
+func (s *State) FeatMayPlayTyped(p uint8, o Obj) (c CardID, nth int, ok bool) {
+	k := s.k()
+	if k.gen == nil || s.FeatMayPlayUntyped(p, o) {
+		return 0, 0, false
+	}
+	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
+		if st.sl == NoSlot {
+			return true
+		}
+		c, ok = s.cardAt(st.sl), true
+		for i := range k.t.Cards[c].Abilities {
+			a := &k.t.Cards[c].Abilities[i]
+			if a == st.a {
+				break
+			}
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
+				nth++
+			}
+		}
+		return false
+	})
+	return c, nth, ok
 }
 
 // FeatPayBlight reports whether the pending pay pick is a Blight cost

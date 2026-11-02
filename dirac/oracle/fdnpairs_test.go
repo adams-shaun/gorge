@@ -128,6 +128,35 @@ func TestFDNRegressPairs(t *testing.T) {
 	}
 }
 
+// TestFDNFullSurfacePairs: Tinybones casts an off-colour card from exile with Imprisoned
+// in the Moon in the table. gorge's planner funds the cast's pips as generic under the
+// any-type rider, so the cast is offered, and its mana floats at payment, not at the
+// announcement.
+func TestFDNFullSurfacePairs(t *testing.T) {
+	t.Parallel()
+
+	c, _ := testFDNPool(t)
+	pool, err := ReadPool(filepath.Join(filepath.Dir(c.DecksDir), "pool.tsv"), "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rp := range []struct{ pair, mulligans int }{{1924, 0}, {1535, 1}} {
+		p := PairingsFrom(pool, rp.pair, 1, 1)[0]
+		m, tbl, err := SetMatchup(rawSet("fdn"), c, p.A, p.B, rp.mulligans)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k, err := SetSide(rawSet("fdn"), tbl, Config{})(m, p.Seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), RunConfig{MaxDecisions: 20000, MaxTurns: 100}).Div; d != nil {
+			t.Errorf("pair %d diverged at decision %d: %s %s %v", rp.pair, d.At, d.What, d.Field, d.Diff)
+		}
+		CloseSide(k)
+	}
+}
+
 // fdnRulesPairs are census pairings that play to the end in lockstep
 // rules-only (no FeatCheck): their fix is the canonical grammar, and the
 // feature side's half is still open (named per pair).

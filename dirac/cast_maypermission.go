@@ -154,3 +154,21 @@ func (s *State) spendMayKind(k *prep, o Obj, p uint8, mode uint8) bool {
 	}
 	return false
 }
+
+// mayPlayAnyType reports whether a permission lets p spend mana of any type on the
+// card o: a record of that kind, or a static (Tinybones).
+func (s *State) mayPlayAnyType(k *prep, p uint8, o Obj) bool {
+	if k.gen.anyMayKind {
+		for i := 0; i < int(s.g.nmay); i++ {
+			if r := s.g.may[i]; r.obj == o && r.ctrl == p && r.ver == s.objs[o].ver && r.kind&kop.MayPlayAnyType != 0 && !s.mayLimitSpent(r) {
+				return true
+			}
+		}
+	}
+	anyType := false
+	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
+		anyType = st.a.Static.StFlags&kop.StAnyManaType != 0
+		return false
+	})
+	return anyType
+}

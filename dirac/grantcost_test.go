@@ -138,3 +138,58 @@ func TestAttachedGrantNotGlobal(t *testing.T) {
 		t.Fatalf("an unequipped creature gains %d abilities, want 0", n)
 	}
 }
+
+// grantHostScen is a creature with two copies of a granting card attached, in that
+// order, each with its own slot.
+func grantHostScen(t *testing.T, set, grantor, creature string) (sc *scen, src, older, newer Obj) {
+	t.Helper()
+	deck := []cardset.Entry{{Name: grantor, Count: 2}, {Name: creature, Count: 1}, {Name: "Plains", Count: 10}}
+	tbl, da, _, err := cardsettest.Set(t, set).Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc = newScenTable(t, tbl, Config{NoElide: true})
+	src = sc.perm(id[creature], 0)
+	older, newer = sc.perm(id[grantor], 1), sc.perm(id[grantor], 1)
+	sc.s.perms[sc.slot(older)].attached = sc.slot(src)
+	sc.s.perms[sc.slot(newer)].attached = sc.slot(src)
+	sc.s.pl[0].pool[kop.W] = 2
+	return sc, src, older, newer
+}
+
+// TestSecondSugarCoatIsTheGrantor: a later Sugar Coat removes the ability the earlier
+// one granted (CR 613.1f), so the one ability left is the later one's.
+func TestSecondSugarCoatIsTheGrantor(t *testing.T) {
+	sc, src, older, newer := grantHostScen(t, "blb", "Sugar Coat", "Starlit Soothsayer")
+	if sc.s.layerTs(sc.slot(older)) >= sc.s.layerTs(sc.slot(newer)) {
+		t.Fatal("the coats entered out of order")
+	}
+	d := sc.s.Step()
+	a, ok := grantedAct(&d, src)
+	if !ok {
+		t.Fatalf("the coated creature offers no ability: %v", d.Options[:d.N])
+	}
+	if a.Target() != uint8(newer) {
+		t.Fatalf("granted by %d, want the later Sugar Coat %d, not %d", a.Target(), newer, older)
+	}
+}
+
+// TestFirstListedPoleIsTheGrantor: of two Equipment giving one ability the older
+// timestamp is listed first, whatever slots they hold (CR 613.7).
+func TestFirstListedPoleIsTheGrantor(t *testing.T) {
+	sc, src, low, high := grantHostScen(t, "fdn", "Fishing Pole", "Sanguine Syphoner")
+	s := sc.s
+	s.lstamp[sc.slot(low)], s.lstamp[sc.slot(high)] = s.lstamp[sc.slot(high)], s.lstamp[sc.slot(low)]
+	d := s.Step()
+	a, ok := grantedAct(&d, src)
+	if !ok {
+		t.Fatalf("the equipped creature offers no ability: %v", d.Options[:d.N])
+	}
+	if a.Target() != uint8(high) {
+		t.Fatalf("granted by %d, want the older Pole %d, not %d", a.Target(), high, low)
+	}
+}

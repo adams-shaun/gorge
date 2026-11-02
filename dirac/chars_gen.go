@@ -698,15 +698,26 @@ func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts 
 }
 
 // grantedHost returns the permanent granting sl the ability (c, ab) (the
-// Equipment attached to it), NoSlot if none.
+// Equipment attached to it), NoSlot if none: of two copies, the older whose grant
+// is not itself older than sl's loss of all abilities (two Sugar Coats).
 func (s *State) grantedHost(k *prep, sl Slot, c CardID) Slot {
+	host := NoSlot
+	var lts uint16
+	lost, read := false, false
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
-		if s.perms[src].attached == sl && s.cardAt(src) == c {
-			return src
+		if s.perms[src].attached != sl || s.cardAt(src) != c {
+			continue
+		}
+		if !read {
+			lts, lost = s.lossAt(k, sl)
+			read = true
+		}
+		if ts := s.layerTs(src); !(lost && ts < lts) && (host == NoSlot || ts < s.layerTs(host)) {
+			host = src
 		}
 	}
-	return NoSlot
+	return host
 }
 
 // applyOverride records override idx (from card src) on sl.
