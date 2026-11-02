@@ -66,3 +66,11 @@ func TestDryPlanBesideASacOnlySourceLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "heap_gate_dry_plan_with_sac_only_source", "pauper", Config{})
 }
+
+// Land Grant beside Saruli Caretakers: the plain cast {1}{G} is payable through a
+// scripted prefix of two activations. gorge prices it on its own, the free
+// alternative cost being a separate play, so both are offered.
+func TestLandGrantPlainCastPricedBesideItsAltCostLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "land_grant_plain_cast_priced", "pauper", Config{})
+}

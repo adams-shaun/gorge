@@ -122,7 +122,8 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	hyp, opts := e.potentialWalkOf(p, true)
 	// ambiguous[i]: another potential play shares opts[i]'s (kind, object,
-	// ability, mode) identity. A granted or gained ability's Ability is 0 too,
+	// ability, mode) identity (a plain cast is not ambiguous with the card's
+	// own alternative-cost cast, only that cast with it). A granted or gained ability's Ability is 0 too,
 	// and its SVar or gained source tells it from the printed ability it would
 	// otherwise take off the surface. A pairwise scan over the walk's few plays
 	// spares the per-query map.
@@ -142,7 +143,18 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			b := &opts[j]
 			if a.Obj == b.Obj && a.Ability == b.Ability && a.Kind == b.Kind && a.Mode == b.Mode &&
 				a.SVar == b.SVar && a.GainedSource == b.GainedSource {
-				ambiguous[i], ambiguous[j] = true, true
+				// The plain cast is priced on its own beside a card's own alternative
+				// cost (Land Grant's reveal, Fireblast's sacrifice): it is
+				// the cast of the printed mana cost, a different play with its
+				// own plan, where the alternative-cost play shares its Action
+				// with it and stays unpriced.
+				if a.AltCostIndex == 0 && b.AltCostIndex > 0 {
+					ambiguous[j] = true
+				} else if a.AltCostIndex > 0 && b.AltCostIndex == 0 {
+					ambiguous[i] = true
+				} else {
+					ambiguous[i], ambiguous[j] = true, true
+				}
 			}
 		}
 	}
