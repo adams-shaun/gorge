@@ -1,6 +1,8 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Granted mana abilities in the cast offers (tokmana). A Continuous
 // static's AddAbility$ grant of a mana ability reaches permanents its
@@ -267,12 +269,15 @@ type grantSrch struct {
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
 	// the cast's origin known and the spell on the stack when paid
-	d     payDesc
-	n     int
-	cand  [MaxPerm]Slot
-	gi    [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
-	ng    [MaxPerm]uint8
-	dual  [MaxPerm]bool // the candidate's own ability is tried first
+	d    payDesc
+	n    int
+	cand [MaxPerm]Slot
+	gi   [MaxPerm][maxGrants]int16 // each candidate's granted abilities (grantPC indices)
+	ng   [MaxPerm]uint8
+	dual [MaxPerm]bool // the candidate's own ability is tried first
+	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
+	// color), a paid census gap of gorge's like the grants (mana_filter.go)
+	filt  [MaxPerm]bool
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]grantKey
@@ -293,26 +298,46 @@ type grantStep struct {
 	i   uint8
 	col uint8
 	n   uint8
-	gi  int16 // the grantPC index tapped; -1 the candidate's own printed ability
+	gi  int16 // the grantPC index tapped; -1 the candidate's own printed ability; stepFilt, stepFund
+	sl  Slot
 }
 
-// grantCandidates lists p's permanents with a granted mana ability
-// (granted only, or beside their own) in battlefield order.
+// stepFilt is the gi of a prefix step that is a candidate's filter ability (col the
+// colour it makes, its fee paid from the pool).
+const stepFilt int16 = -2
+
+// candidates lists p's permanents with a granted mana ability (granted only, or
+// beside their own) in battlefield order. On a board where a grant is in force the
+// filters join them: gorge's census misses a filter's paid ability as it does a
+// granted one, so one search activates the gaps of both in battlefield order (the
+// funding gorge's search also allows, other sources tapped to pay a fee, is not
+// modelled here).
 func (g *grantSrch) candidates(s *State) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(g.p, s.ctrlM[g.p&1].and(s.occ), order[:], 0)
+	var fm slotMask
+	if k := g.k; k.gen.anyFilt && !k.gen.anyFiltFirst {
+		fm = s.scriptFilt(k, g.p)
+	}
 	g.n = 0
+	holders := 0
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if sl == g.ex {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
-		if ng == 0 {
+		if ng == 0 && !fm.has(sl) {
 			continue
 		}
-		g.cand[g.n], g.ng[g.n], g.dual[g.n] = sl, uint8(ng), s.ownManaUsable(g.k, sl)
+		if ng > 0 {
+			holders++
+		}
+		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n] = sl, uint8(ng), s.ownManaUsable(g.k, sl), fm.has(sl)
 		g.n++
+	}
+	if holders == 0 {
+		g.n = 0
 	}
 }
 
@@ -366,8 +391,12 @@ func (g *grantSrch) visit(t *State) bool {
 		// "choose a mana ability" ask, one node, the printed ability's
 		// answers first (gorge flattens a Combo's colours into that ask;
 		// an Any ability still asks its colour)
+		fok := g.filt[i] && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl)
 		alts := int(g.ng[i])
 		if g.dual[i] {
+			alts++
+		}
+		if fok {
 			alts++
 		}
 		if alts > 1 && !g.node() {
@@ -378,6 +407,9 @@ func (g *grantSrch) visit(t *State) bool {
 			if g.branch(t, i, sl, -1, t.srcMaskAt(ppc, sl), ppc.manaN, alts == 1) {
 				return true
 			}
+		}
+		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+			return true
 		}
 		for j := 0; j < int(g.ng[i]); j++ {
 			gi := g.gi[i][j]
@@ -410,7 +442,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		}
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += n
-		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi}
+		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
 		if g.visit(t) {
 			return true
@@ -418,6 +450,30 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		g.np--
 		t.pl[g.p&1].pool[c] -= n
 		t.perms[sl].flags &^= pfTapped
+	}
+	return false
+}
+
+// filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
+// of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
+func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
+	if !g.node() {
+		return false
+	}
+	var order [5]uint8
+	n := manaColourOrder(t.filtAb(g.k, sl), &order)
+	for j := 0; j < n; j++ {
+		c := order[j]
+		u := t.fork()
+		u.filtDo(g.k, g.p, filtStep{sl: sl, gap: true, ans: 1 + c})
+		g.path[g.np] = grantStep{i: uint8(i), col: c, gi: stepFilt, sl: sl}
+		g.np++
+		ok := g.visit(u)
+		t.unfork()
+		if ok {
+			return true
+		}
+		g.np--
 	}
 	return false
 }
@@ -483,7 +539,12 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 func (s *State) grantApply(k *prep, g *grantSrch) {
 	for i := 0; i < g.np; i++ {
 		st := &g.path[i]
-		sl := g.cand[st.i]
+		sl := st.sl
+		switch st.gi {
+		case stepFilt:
+			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
+			continue
+		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		if r := restrOfStep(k, st); r != 0 {
