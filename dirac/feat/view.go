@@ -230,11 +230,14 @@ func (e *Encoder) po(o uint8) *dirac.ProjObj {
 // sourceHidden: seat can't tell which card an ability's source is, so the ability
 // can't carry its name: a library is hidden from every seat (CR 401.2), a hand from
 // all but its owner (CR 402.3) and a face-down object from all but its controller
-// (CR 708.5).
+// (CR 708.5). A token that left the battlefield has ceased to exist, in no such zone
+// whatever its Zone reads (CR 111.8).
 func sourceHidden(po *dirac.ProjObj, seat uint8) bool {
 	switch {
 	case po.Flags&dirac.ProjFaceDown != 0:
 		return po.Ctrl != seat
+	case po.Token:
+		return false
 	case po.Zone == kop.ZoneLibrary:
 		return true
 	case po.Zone == kop.ZoneHand:
