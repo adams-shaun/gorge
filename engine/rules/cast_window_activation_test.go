@@ -52,10 +52,14 @@ const (
 		"A:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Add {W}.\n" +
 		"A:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Add {U}.\nOracle:x\n"
 	// cwRestrictedSrc is a free green producer whose produced batch is
-	// RestrictValid$-governed. The dotted matcher only admits a subset of the
-	// grammar, so pricing it would be unsound; the probe must leave it out.
+	// RestrictValid$-governed to spells, so an equip (an activated ability)
+	// can never spend it: the probe must leave it out.
 	cwRestrictedSrc = "Name:RestrictedRock\nTypes:Land\n" +
 		"A:AB$ Mana | Cost$ T | Produced$ G | RestrictValid$ Spell | SpellDescription$ Add {G}. Spend only on spells.\nOracle:x\n"
+	// cwRestrictedAdmitSrc makes two mana an activated ability may spend, so
+	// the same equip can: the probe prices it like a plain producer.
+	cwRestrictedAdmitSrc = "Name:AbilityRock\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ G | Amount$ 2 | RestrictValid$ Activated | SpellDescription$ Add {G}{G}. Spend only on activated abilities.\nOracle:x\n"
 )
 
 // cwArmBelt drives the shared real-corpus Belt board to its equip target ask
@@ -416,10 +420,63 @@ func TestCastWindowNewShapesSubsetOfOffers(t *testing.T) {
 	}
 }
 
+// TestCastWindowRestrictedAbilityAdmittedIsPriced: a RestrictValid$ producer
+// whose restriction admits this payment (CR 106.6) buys what it makes, so the
+// 2-power target's {8} is reached by {6} floating plus its {G}{G}, and the
+// equip then pays with that mana.
+func TestCastWindowRestrictedAbilityAdmittedIsPriced(t *testing.T) {
+	t.Parallel()
+	b := equipWindowGame(t, 717, cwRestrictedAdmitSrc)
+	e, cfg, beltID, smallID := b.engine, b.cfg, b.belt, b.small
+	rockID := b.byName["AbilityRock"]
+	if rockID == 0 {
+		t.Fatal("AbilityRock fixture was not seeded onto the battlefield")
+	}
+	addMana(t, e, 0, "CCCCCC")
+	d := cwArmBelt(t, e, beltID)
+	if alts := cwProbeAlts(t, e, rockID); alts == 0 {
+		t.Fatal("probe priced no alternative for a restricted source its payment may spend")
+	}
+	if !e.castWindowCensusComplete(e.cast, e.castWindowUnits(e.cast)) {
+		t.Fatal("a priced restricted source left the census incomplete")
+	}
+	if !cwOffersTarget(d, smallID) {
+		t.Fatalf("2-power target withheld although {6} plus the restricted {G}{G} funds its {8}: %+v", d.Options)
+	}
+	targetObject(t, e, smallID)
+	cwDrainManaWindow(t, e, rockID)
+	passUntilStackEmpty(t, e, 30)
+	if e.G.Obj(beltID).AttachedTo != smallID {
+		t.Fatalf("Belt attached to %d, want the 2/2 %d", e.G.Obj(beltID).AttachedTo, smallID)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCastWindowRestrictedSpendableNeedsTheWholePayment: a restriction that
+// admits only a cost with no generic part (CantPayGenericCosts) buys the
+// coloured pips alone, so it is not priced as a whole-unit alternative.
+func TestCastWindowRestrictedSpendableNeedsTheWholePayment(t *testing.T) {
+	t.Parallel()
+	b := equipWindowGame(t, 718, cwRestrictedAdmitSrc)
+	e, rockID := b.engine, b.byName["AbilityRock"]
+	addMana(t, e, 0, "CCCCCC")
+	cwArmBelt(t, e, b.belt)
+	desc := paymentForCast(e.cast, e.cast.resolvedMana())
+	cost := *desc.Cost
+	cost.Generic = 0
+	desc.Cost = &cost
+	if !e.castWindowRestrictedSpendable(0, rockID, desc, "Activated") {
+		t.Error("a restriction that admits any activated ability was not priced")
+	}
+	if e.castWindowRestrictedSpendable(0, rockID, desc, "CantPayGenericCosts") {
+		t.Error("a restriction that confines the mana to the coloured pips was priced as a whole payment")
+	}
+}
+
 // TestCastWindowRestrictedAbilityStaysFailClosed is the restriction boundary:
-// a RestrictValid$-governed producer must be priced by NEITHER the probe nor
-// reachability, even though the live window still offers its tap. Pricing it
-// would claim a batch the dotted matcher cannot prove can pay the cast.
+// a RestrictValid$-governed producer whose restriction does not admit this
+// payment must be priced by NEITHER the probe nor reachability, even though
+// the live window still offers its tap (CR 106.6).
 func TestCastWindowRestrictedAbilityStaysFailClosed(t *testing.T) {
 	t.Parallel()
 	b := equipWindowGame(t, 716, cwRestrictedSrc)

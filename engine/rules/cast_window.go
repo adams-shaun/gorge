@@ -222,10 +222,13 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 // Deliberately EXCLUDED (fail closed), each for a named reason:
 //
 //   - InstantSpeed$ True abilities: already withheld by the shared walk.
-//   - RestrictValid$-governed abilities: the produced batch may not pay the
-//     priced cost, and the dotted matcher only admits a subset of the
-//     grammar, so no restriction is priced here (AGENTS.md row 1's
-//     direction).
+//   - RestrictValid$-governed abilities this payment may not spend, and the
+//     ones that spend on only part of it (CantPayGenericCosts): the first can
+//     never close a gap (CR 106.6), the second would overstate reach. A
+//     RestrictValid$ ability whose restriction admits this whole payment
+//     (pay.RestrictValidMatches, the matcher the payment itself reads) is
+//     priced like an unrestricted one: Emperor of Palamecia's {U} or {R} pays
+//     for any noncreature spell.
 //   - tapXType, SubCounter, Mill, UnlessCost$, Return<>, coloured activation
 //     pips, multi-part or overlapping Sac costs, loyalty-ability mana
 //     producers (never exposed by availableManaAbilities), and every
@@ -233,6 +236,8 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaUnit) []windowManaUnit {
 	p := pc.player
 	pl := e.G.Players[p]
+	var desc pay.Descriptor
+	descRead := false
 	for _, id := range pay.BattlefieldManaSourceIDs(e.G, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
@@ -240,8 +245,14 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 		for _, ma := range e.castWindowProbeAbilities(p, id) {
 			mp := effects.ManaOf(ma)
-			if mp.RestrictValid != "" {
-				continue
+			restricted := mp.RestrictValid != ""
+			if restricted {
+				if !descRead {
+					desc, descRead = paymentForCast(pc, pc.resolvedMana()), true
+				}
+				if !e.castWindowRestrictedSpendable(p, id, desc, mp.RestrictValid) {
+					continue
+				}
 			}
 			cost := e.manaAbilityCC(p, id, ma).Cost
 			if pay.ActivationTapCostUnavailable(o, &cost) {
@@ -297,7 +308,8 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// free dynamic amount is the shape this layer adds. The shape
 				// is the printed one: that census withholds a recorded Chosen
 				// although the substitution above reads as a plain colour.
-				if !mp.CountsAny && availableAmountOf(mp) > 0 {
+				// A restricted one is never in that census.
+				if !restricted && !mp.CountsAny && availableAmountOf(mp) > 0 {
 					continue
 				}
 			}
@@ -316,6 +328,25 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 	}
 	return windowUnits
+}
+
+// castWindowRestrictedSpendable reports whether a RestrictValid$ mana ability
+// of source id may be priced in this payment's window: its restriction admits
+// the payment (CR 106.6) and does not confine the mana to part of it. A
+// CantPayGenericCosts term admits only a cost with no generic part and pays
+// only the coloured pips, so a whole-unit alt would overstate what it buys: the
+// restriction must still admit the cost with a generic part added.
+func (e *Engine) castWindowRestrictedSpendable(p state.PlayerID, id state.ObjID, desc pay.Descriptor, valid string) bool {
+	if !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+		return false
+	}
+	if desc.Cost == nil || desc.Cost.Generic > 0 {
+		return true
+	}
+	withGeneric := *desc.Cost
+	withGeneric.Generic = 1
+	desc.Cost = &withGeneric
+	return pay.RestrictValidMatches(asPayer(e), p, desc, valid, id)
 }
 
 // castWindowProbeAbilities is the cast-window probe's own member walk: the
@@ -445,7 +476,7 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 			continue
 		}
 		if priced[id] {
-			if e.castWindowRestrictedAdmits(p, id, desc) {
+			if e.castWindowRestrictedAdmits(p, id, desc, units) {
 				return false
 			}
 			continue
@@ -460,11 +491,31 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 // castWindowRestrictedAdmits reports whether a source priced by its plain mana
 // abilities also has a RestrictValid$ one this payment may spend (CR 106.6,
 // Tablet of Discovery's {R}{R} for an instant or sorcery): its units understate
-// what the window can produce.
-func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
+// what the window can produce. One the probe priced (castWindowRestrictedSpendable)
+// has its own alt in units and understates nothing.
+func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor, units []windowManaUnit) bool {
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
-		if valid := effects.ManaOf(ma).RestrictValid; valid != "" && pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+		valid := effects.ManaOf(ma).RestrictValid
+		if valid == "" || !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			continue
+		}
+		if !castWindowUnitsPrice(units, id, ma) {
 			return true
+		}
+	}
+	return false
+}
+
+// castWindowUnitsPrice reports whether units carry an alt of ability ma of source id.
+func castWindowUnitsPrice(units []windowManaUnit, id state.ObjID, ma *cards.SA) bool {
+	for _, u := range units {
+		if u.ID != id {
+			continue
+		}
+		for _, a := range u.Alts {
+			if a.Ma == ma {
+				return true
+			}
 		}
 	}
 	return false
