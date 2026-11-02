@@ -1204,6 +1204,16 @@ func (e *Engine) pipAnnounceAsk(player state.PlayerID, source state.ObjID, amoun
 	return true
 }
 
+// specSource is the object the cost's spec reads as "this" and "another": the
+// ability's source, or none once the source has left the battlefield and come back,
+// so the new object can pay "sacrifice another creature" (CR 400.7).
+func (tc *triggeredEffectCost) specSource(e *Engine) state.ObjID {
+	if effects.SourceIsNewObject(e.G, e.G.Obj(tc.resume.obj)) {
+		return 0
+	}
+	return tc.source
+}
+
 // announcedCost is the window's cost folded through its shared pip
 // announcement accumulator (see pipAnnounce.fold).
 func (tc *triggeredEffectCost) announcedCost() Cost {
@@ -1227,7 +1237,7 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		// RollDice, etc.), before any irreversible tap is offered.
 		rest := amt
 		rest.TapPermanent = nil
-		return rest.IsZero() && len(literalTapOptions(asPayer(e), tc.player, tc.source, amt.TapPermanent, 0)) > 0
+		return rest.IsZero() && len(literalTapOptions(asPayer(e), tc.player, tc.specSource(e), amt.TapPermanent, 0)) > 0
 	}
 	if !pay.EnergyPayable(e.G, tc.player, &amt) {
 		return false
@@ -1482,7 +1492,7 @@ func (e *Engine) triggeredCostPaymentAsk() {
 		parts := tc.amount.TapPermanent
 		if tc.tapIdx < len(parts) {
 			part := parts[tc.tapIdx]
-			candidates := literalTapOptions(asPayer(e), tc.player, tc.source, parts, tc.tapIdx)
+			candidates := literalTapOptions(asPayer(e), tc.player, tc.specSource(e), parts, tc.tapIdx)
 			if len(candidates) > 0 {
 				d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
 					Prompt: tc.costLabel, Source: tc.source}
@@ -2031,7 +2041,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
 	// captured. A zero context is the filter's fail-closed default.
-	sc := e.withNames(effects.NewSpecContext(tc.player, tc.source))
+	sc := e.withNames(effects.NewSpecContext(tc.player, tc.specSource(e)))
 	sc.TriggerContext = tc.trig
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
@@ -2393,7 +2403,7 @@ func (e *Engine) nextDynTapPart(tc *triggeredEffectCost) (CostPart, bool) {
 // count is the cost's announced {X} (engine/rules/mana.go's dynTapCost doc); the
 // body the window then runs reads it through the resume point (rp.tapPaidX).
 func (e *Engine) triggeredTapAsk(tc *triggeredEffectCost, part CostPart) {
-	candidates := pay.CostCandidates(asPayer(e), tc.player, tc.source, state.ZBattlefield, part.Spec, false, true)
+	candidates := pay.CostCandidates(asPayer(e), tc.player, tc.specSource(e), state.ZBattlefield, part.Spec, false, true)
 	if len(candidates) == 0 {
 		// No eligible permanent: an X-form election could only announce 0 and
 		// an Any-form part is not payable at all -- both are the decline, and

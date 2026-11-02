@@ -465,7 +465,7 @@ func UnlessCandidatesFor(e Engine, payer state.PlayerID, ctx effects.Ctx, zone s
 	if out, ok := unlessSpecialCandidates(e, payer, ctx, zone, kind, part, seen); ok {
 		return out
 	}
-	sc := ctx.SpecContext(payer)
+	sc := ctx.CostSpecContext(e.Game(), payer)
 	// A Behold<N/Spec> part (CR 702.176) draws its candidates from TWO zones:
 	// permanents the payer controls on the battlefield, then cards in their
 	// hand. This is exactly the enumeration the cast flow's beholdCostAsk

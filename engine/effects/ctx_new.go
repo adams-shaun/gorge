@@ -144,6 +144,17 @@ func NewSpecContext(you state.PlayerID, source state.ObjID) SpecContext {
 	return SpecContext{You: you, Source: source}
 }
 
+// CostSpecContext is SpecContext for a cost paid as this ability resolves: once the
+// source has become a new object (CR 400.7) the cost's "another creature" can name it
+// and "this creature" cannot.
+func (c *Ctx) CostSpecContext(g *state.Game, payer state.PlayerID) SpecContext {
+	sc := c.SpecContext(payer)
+	if SourceIsNewObject(g, g.Obj(c.ResolvingObj)) {
+		sc.Source = 0
+	}
+	return sc
+}
+
 // TableSpecContext is the filter context of c's source with only the
 // resolution's published derived tables bound (layer-3 names, layer-4
 // types, layer-5/6 colours and keywords, static goads): MatchesSpecFrom's

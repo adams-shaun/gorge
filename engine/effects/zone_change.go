@@ -267,6 +267,18 @@ func hasRememberedDestroyedLand(g *state.Game, ts []state.Target) bool {
 // mover, and effChangeZone's departure-batch pre-pass
 // (changeZoneDepartureBatch) shares this predicate so its victim list cannot
 // drift from the moves.
+// SourceIsNewObject reports that ro, an ability on the stack, has a source on the
+// battlefield that left and returned since ro went on the stack: a new object the
+// ability has no relation to (CR 400.7), not "this creature", and "another creature"
+// can name it.
+func SourceIsNewObject(g *state.Game, ro *state.Object) bool {
+	if ro == nil || !ro.PushSourceStamped {
+		return false
+	}
+	src := g.Obj(ro.Source)
+	return src != nil && src.Zone == state.ZBattlefield && src.Incarnation != ro.PushSourceIncarnation
+}
+
 // sourceReturnedSincePush reports that o is the resolving ability's own
 // source, the ability went on the stack while that source was OFF the
 // battlefield (Reassembling Skeleton's "{1}{B}: Return this card from your

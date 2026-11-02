@@ -61,7 +61,7 @@ func UnlessHasSpecialParts(c costvocab.Cost) bool {
 // theirs. seen holds already-committed picks.
 func unlessSpecialCandidates(e Engine, payer state.PlayerID, ctx effects.Ctx, zone state.Zone, kind string, part costvocab.CostPart, seen map[state.ObjID]bool) (out []state.ObjID, ok bool) {
 	g := e.Game()
-	sc := ctx.SpecContext(payer)
+	sc := ctx.CostSpecContext(g, payer)
 	scan := func(p state.PlayerID, spec string, untapped bool) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			o := g.Obj(id)
