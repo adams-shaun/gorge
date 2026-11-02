@@ -73,6 +73,7 @@ export function projectCard(c: CardDto, blockedBy?: ReadonlyMap<number, number[]
   };
   if (c.manaCost) out.mana_cost = c.manaCost;
   if (c.isFaceDown) out.face_down = true;
+  if (c.identity?.isToken) out.is_token = true;
   if (c.counters && Object.keys(c.counters).length > 0) out.counters = { ...c.counters };
   if (c.keywords && c.keywords.length > 0) out.keywords = [...c.keywords];
   const ap = seatOfPlayerId(c.attackingPlayerId);
