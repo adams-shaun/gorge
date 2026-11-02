@@ -718,6 +718,7 @@ OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
 OvEnterWith	untyped int	2
+PayBBehold	untyped int	6
 PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
@@ -992,6 +993,7 @@ StepMain1	Step	3
 StepMain2	Step	10
 StepUntap	Step	0
 StepUpkeep	Step	1
+SurveilRememberKept	untyped int	2
 TArtifact	TypeMask	4
 TAura	TypeMask	512
 TBasic	TypeMask	2048
@@ -1186,7 +1188,7 @@ W7FaceUp	int16	5
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7InZone	int16	4
-W7NoAbilities	int16	14
+W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
 W7NotChosenType	int16	6
