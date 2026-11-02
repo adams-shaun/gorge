@@ -692,7 +692,6 @@ func (e *Engine) triggerStint(source state.ObjID) int {
 				}
 			}
 		}
-		return stint
 	}
 	before := e.triggerBefore
 	if before != nil && !before.noLookBack && stint > before.logEnd {
