@@ -366,6 +366,9 @@ func (r *oracleRun) snapshot(checkpoint string) OracleSnapshot {
 			it.Trigger = stackTriggerSlot(src, o.Ability)
 		}
 		it.Source = stackSourceRef(r.objRef(src), src)
+		if o.Ability != nil {
+			it.Source = abilitySourceRef(it.Source, src, o.Ability)
+		}
 		if o.Ability != nil && src != nil && src.Zone == state.ZBattlefield && src.FaceDown {
 			// An ability whose source is a face-down permanent (a granted
 			// one: Etrata's turn-face-up grant) names no source card: the
@@ -427,6 +430,48 @@ func stackSourceRef(ref string, o *state.Object) string {
 		nth = ref[j:]
 	}
 	return seat + o.Face().Name + nth
+}
+
+// abilitySourceRef is ref (a stack ability's source ref) for an ability whose
+// source has left the battlefield: the card is back to its front face, but the
+// ability on the stack is still the one its back face printed (CR 113.7a,
+// 712.8e), so it names that face the way stackSourceRef names a back-face
+// permanent. A source still on the battlefield was named by stackSourceRef.
+func abilitySourceRef(ref string, src *state.Object, sa *cards.SA) string {
+	if src == nil || src.Card == nil || src.Zone == state.ZBattlefield || src.CopyFace != nil || len(src.Card.Faces) < 2 {
+		return ref
+	}
+	var owner *cards.Face
+	for _, f := range src.Card.Faces {
+		if f == nil {
+			continue
+		}
+		for _, ab := range f.Abilities {
+			if ab == sa {
+				owner = f
+			}
+		}
+		for _, t := range f.Triggers {
+			if t.Effect == sa {
+				owner = f
+			}
+		}
+		if owner != nil {
+			break
+		}
+	}
+	if owner == nil || owner == src.Face() {
+		return ref
+	}
+	seat, nth := "", ""
+	if i := strings.IndexByte(ref, ':'); i >= 0 {
+		seat = ref[:i+1]
+		ref = ref[i+1:]
+	}
+	if j := strings.LastIndexByte(ref, '#'); j >= 0 {
+		nth = ref[j:]
+	}
+	return seat + owner.Name + nth
 }
 
 // objRef names o by the ref resolve maps back to o right now, so a snapshot
