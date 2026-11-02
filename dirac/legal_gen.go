@@ -114,7 +114,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
 			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
 		}
-		cost := s.adjustCostGen(k, p, c, o, base)
+		cost := s.adjustFit(k, av, p, c, o, base, true)
 		if anyMana {
 			cost = anyType(cost)
 		}
@@ -130,7 +130,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		return
 	}
 	if mode&castFree == 0 {
-		cost := s.adjustCostGen(k, p, c, o, pc.cost)
+		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
 		if anyMana {
 			cost = anyType(cost)
 		}
@@ -275,9 +275,15 @@ func (s *State) creatureCounters(k *prep, p uint8) int {
 // buildCostGen is the mana cost of the spell being built on a generated
 // table, when it differs from the core's (free, or mana of any type).
 func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
+	c, _, ok := s.buildCostGenPre(k, false)
+	return c, ok
+}
+
+// buildCostGenPre is buildCostGen with buildCostPre's pre and done.
+func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 	e := &s.bld().e
 	if e.kind != seSpell {
-		return kop.ManaCost{}, false
+		return kop.ManaCost{}, false, false
 	}
 	if e.flags&sfFree != 0 {
 		// "without paying its mana cost" skips the mana cost only: the
@@ -291,13 +297,13 @@ func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
-		return c, true
+		return c, false, true
 	}
 	if e.trigPl == trigPlAirbend {
-		return s.airbendCost(k, e.ctrl, e.card, e.obj), true // act_airbend.go
+		return s.airbendCost(k, e.ctrl, e.card, e.obj), false, true // act_airbend.go
 	}
 	if s.bld().altAdd == buildAltCost {
-		return s.altCostOf(k), true // the card's own alternative mana cost (cast_altfree.go)
+		return s.altCostOf(k), false, true // the card's own alternative mana cost (cast_altfree.go)
 	}
 	if e.flags&sfMayPlay != 0 {
 		cd := &k.t.Cards[e.card]
@@ -311,13 +317,17 @@ func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)
 		}
+		done := false
+		if pre {
+			c, done = s.foldTb(k, c)
+		}
 		c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
 		if e.flags&sfAnyMana != 0 {
 			c = anyTypePips(c)
 		}
-		return c, true
+		return c, done, true
 	}
-	return kop.ManaCost{}, false
+	return kop.ManaCost{}, false, false
 }
 
 // activateGen starts a graveyard or granted activation; false lets the core run

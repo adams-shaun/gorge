@@ -109,7 +109,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var adj kop.ManaCost
 		if s.statM.any() || k.gen != nil {
-			adj = s.adjustCost(k, p, c, o, *cost)
+			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (pl.poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {

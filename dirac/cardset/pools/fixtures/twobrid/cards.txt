@@ -28,6 +28,7 @@ Stream of Life
 Eliminate
 Despark
 Shock
+Goblin Electromancer
 Opt
 Grizzly Bears
 Plains

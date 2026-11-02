@@ -194,7 +194,6 @@ type genPrep struct {
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	beamTwice      bool           // a printed beam me up card beside a beam me up grant: the game stalls at its start (StallBeamTwice)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
-	twobridMod     bool           // anyTwobrid beside a cost reduction or increase: the game stalls at its start (StallTwobridMod)
 	raiseFree      bool           // anyRaise beside a free cast the kernel prices at nothing: the game stalls at its start (StallRaiseFree)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
@@ -536,7 +535,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyRaise, g.raiseFree = tableRaises(t)
-	g.anyTwobrid, g.twobridMod = tableTwobrid(t)
+	g.anyTwobrid = tableTwobrid(t)
 	g.beamTwice = tableBeamTwice(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
@@ -1620,46 +1619,46 @@ const (
 	StallLoop    = 5 // more than maxTrigTurn triggers resolved in one turn: an endless mandatory loop
 	// One reason per bounded pool. Append
 	// only; never renumber.
-	StallDelayed       = 6   // MaxDelayed delayed triggers (State.dly)
-	StallRemember      = 7   // maxRem remembered or chosen objects of one resolution
-	StallMayPlay       = 8   // maxMay play-from-zone permissions
-	StallDProg         = 9   // maxDProg delayed programs
-	StallEmblem        = 10  // maxEmb emblems of one player
-	StallDmgMap        = 11  // maxDmgMap damage-map entries
-	StallXTgt          = 12  // maxXTgt extra objects of multi-object target slots
-	StallUsed          = 13  // maxUsed once-per-turn records
-	StallKwRepX        = 14  // maxKwRepX repeated-keyword-grant records
-	StallLinks         = 15  // gen.links exile-until-leaves links
-	StallFree          = 16  // gen.free / gen.freeQ cast-without-paying candidates and queue
-	StallAsk           = 17  // gen.ask queued as-enters choices
-	StallCounters      = 18  // maxCtrOver counter kinds past the permanents' general slots (genState.ctrOver)
-	StallLKI           = 19  // maxLKI distinct last-known-information snapshots (genState.lki)
-	StallTapsMana      = 20  // a Taps trigger in a table with a granted mana ability (gen tapsMana; kw_protection.go)
-	StallInfect        = 21  // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
-	StallReplPlus      = 22  // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
-	StallRaiseFree     = 23  // a RaiseCost static in a table with a free cast (gen raiseFree; trig_delayedtiming.go)
-	StallLifeRepl      = 25  // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
-	StallProlif        = 26  // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
-	StallTapPick       = 27  // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
-	StallRegen         = 28  // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
-	StallLook          = 29  // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
-	StallCtrOrder      = 30  // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
-	StallGrants        = 31  // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
-	StallShield        = 32  // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
-	StallActs          = 33  // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
-	StallReplCtr       = 34  // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute (repl_counters.go)
-	StallReplLeave     = 35  // two or more replacements compete for one death (including two dies-to-exile sources or two turn-scoped exile marks on one creature): gorge asks the CR 616.1 order, the kernel stalls (repl_counters.go)
-	StallLinger        = 36  // more than maxLinger attachments lose their host in one state-based pass (genState.linger; static_lingerattach.go)
-	StallSac           = 37  // one effect sacrifices more than maxSacOrd permanents (genState.sacOrd)
-	StallEntered       = 38  // more than maxEntered zone entries in one turn (genState.entered)
-	StallConvoke       = 39  // more convoke picks than the cast build holds, or more convoke options than a decision holds (kw_convoke.go)
-	StallCastRing      = 40  // a player pushes more than castRingN spells in one turn (State.cold.castRing)
-	StallPT            = 41  // a power or toughness pump leaves the int8 end-of-turn range (eotAdd, OpPumpAllEach; filter_defined.go)
-	StallActRing       = 42  // a player activates more than actRingN abilities in one turn (genState.actRing)
-	StallCharmOpts     = 43  // a multi-pick charm's combined target ask has more than MaxOptions options
-	StallCopyFace      = 44  // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
-	StallRefLatch      = 45  // a combat damage batch has more than maxRefLatch (listener, referent) per-referent damage triggers (trig_damagedonce.go refLatch)
-	StallTwobridMod    = 46  // a twobrid cost beside a cost reduction or increase: gorge composes it on the unresolved cost at the offer gate and on the resolved faces at the charge (mana_twobrid.go)
+	StallDelayed   = 6  // MaxDelayed delayed triggers (State.dly)
+	StallRemember  = 7  // maxRem remembered or chosen objects of one resolution
+	StallMayPlay   = 8  // maxMay play-from-zone permissions
+	StallDProg     = 9  // maxDProg delayed programs
+	StallEmblem    = 10 // maxEmb emblems of one player
+	StallDmgMap    = 11 // maxDmgMap damage-map entries
+	StallXTgt      = 12 // maxXTgt extra objects of multi-object target slots
+	StallUsed      = 13 // maxUsed once-per-turn records
+	StallKwRepX    = 14 // maxKwRepX repeated-keyword-grant records
+	StallLinks     = 15 // gen.links exile-until-leaves links
+	StallFree      = 16 // gen.free / gen.freeQ cast-without-paying candidates and queue
+	StallAsk       = 17 // gen.ask queued as-enters choices
+	StallCounters  = 18 // maxCtrOver counter kinds past the permanents' general slots (genState.ctrOver)
+	StallLKI       = 19 // maxLKI distinct last-known-information snapshots (genState.lki)
+	StallTapsMana  = 20 // a Taps trigger in a table with a granted mana ability (gen tapsMana; kw_protection.go)
+	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
+	StallReplPlus  = 22 // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
+	StallRaiseFree = 23 // a RaiseCost static in a table with a free cast (gen raiseFree; trig_delayedtiming.go)
+	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
+	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
+	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
+	StallRegen     = 28 // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
+	StallLook      = 29 // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
+	StallCtrOrder  = 30 // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
+	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs)
+	StallShield    = 32 // a SHIELD counter and another damage replacement match one event: gorge asks the CR 616.1 order, the kernel stalls (ctr_shield.go)
+	StallActs      = 33 // 127 non-mana activations of one object in a turn: object.acts keeps the count in seven bits beside the owner
+	StallReplCtr   = 34 // a filtered counter doubler and a filtered plus/minus replacement match one event, or a plus and a minus replacement do: they do not commute (repl_counters.go)
+	StallReplLeave = 35 // two or more replacements compete for one death (including two dies-to-exile sources or two turn-scoped exile marks on one creature): gorge asks the CR 616.1 order, the kernel stalls (repl_counters.go)
+	StallLinger    = 36 // more than maxLinger attachments lose their host in one state-based pass (genState.linger; static_lingerattach.go)
+	StallSac       = 37 // one effect sacrifices more than maxSacOrd permanents (genState.sacOrd)
+	StallEntered   = 38 // more than maxEntered zone entries in one turn (genState.entered)
+	StallConvoke   = 39 // more convoke picks than the cast build holds, or more convoke options than a decision holds (kw_convoke.go)
+	StallCastRing  = 40 // a player pushes more than castRingN spells in one turn (State.cold.castRing)
+	StallPT        = 41 // a power or toughness pump leaves the int8 end-of-turn range (eotAdd, OpPumpAllEach; filter_defined.go)
+	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
+	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
+	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
+	StallRefLatch  = 45 // a combat damage batch has more than maxRefLatch (listener, referent) per-referent damage triggers (trig_damagedonce.go refLatch)
+	// 46 was a twobrid cost beside a cost reduction or increase; the cost statics now compose on the announced faces (mana_twobrid.go foldTb)
 	StallZone          = 47  // a hand, graveyard, exile or library array is full: tokens that left the battlefield together wait there for the next state-based check (zones.go placeFrom)
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)

@@ -394,7 +394,7 @@ func (s *State) buildCostCharge(k *prep) kop.ManaCost {
 
 func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
 	s.bld().bfl |= bflCostComp // gorge withCostCompositionEvent: a pushed spell's own push is hidden while its cost is composed
-	c := s.buildCost0(k)
+	c, tbDone := s.buildCostPre(k, true)
 	if s.bld().bfl&bflCostFixed != 0 {
 		c.Generic = s.bld().fixedGen
 	} else {
@@ -407,11 +407,13 @@ func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
 		}
 	}
 	s.bld().bfl &^= bflCostComp
-	if c.Hyb[0] == 0 {
+	if c.Hyb[0] == 0 && !tbDone {
 		return c
 	}
-	if c.Hyb[0] == kop.HybTwobrid {
-		c = resolveTbBuild(c, s.bld().pipN, s.bld().pipC[0])
+	if c.Hyb[0] == kop.HybTwobrid || tbDone {
+		if !tbDone {
+			c = resolveTbBuild(c, s.bld().pipN, s.bld().pipC[0])
+		}
 		if s.bld().e.flags&sfAnyMana != 0 && s.bld().e.kind == seSpell {
 			c = anyTypePips(c)
 		}
@@ -427,6 +429,17 @@ func (s *State) buildCostResolve(k *prep, charge bool) kop.ManaCost {
 }
 
 func (s *State) buildCost0(k *prep) kop.ManaCost {
+	c, _ := s.buildCostPre(k, false)
+	return c
+}
+
+// buildCostPre is buildCost0; with pre it folds the twobrid faces already
+// announced into a spell's printed cost BEFORE the cost statics apply, as
+// gorge composes the announced faces and then the modifiers (CR 601.2f:
+// a reduction takes its generic off the {2} a generic face added, where the
+// unresolved {2/W} would have dropped it). done reports that the faces are
+// folded, so the caller resolves nothing more.
+func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 	if s.bld().e.faceDown() {
 		// CR 702.37b/702.168b: Morph and Disguise cast face down for {3};
 		// Megamorph's face-down cost is its Morph cost ({3} in this pool).
@@ -434,11 +447,11 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, s.bld().e.ctrl, s.bld().e.card, s.bld().e.obj, c)
 		}
-		return c
+		return c, false
 	}
 	if k.gen != nil {
-		if c, ok := s.buildCostGen(k); ok {
-			return c
+		if c, done, ok := s.buildCostGenPre(k, pre); ok {
+			return c, done
 		}
 	}
 	e := &s.bld().e
@@ -484,10 +497,14 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 		}
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f)
+		done := false
+		if pre {
+			c, done = s.foldTb(k, c)
+		}
 		if s.statM.any() || k.gen != nil {
 			c = s.adjustCost(k, e.ctrl, e.card, e.obj, c)
 		}
-		return c
+		return c, done
 	case seAbility:
 		c := k.t.Cards[e.card].Abilities[e.ab].Cost.Mana
 		if k.gen != nil && k.gen.anyOwnReduce {
@@ -501,9 +518,9 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 		if k.gen != nil && k.gen.anyWaterbend {
 			c = s.waterbendApplyPicks(c)
 		}
-		return c
+		return c, false
 	}
-	return kop.ManaCost{}
+	return kop.ManaCost{}, false
 }
 
 func (s *State) srcSlot() Slot {
@@ -917,7 +934,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
 	if cost.Hyb[0] == kop.HybTwobrid {
-		s.pipOptionsTb(d, cost, &av)
+		s.pipOptionsTb(k, d, cost, &av)
 		return true
 	}
 	first, second := hybColours(cost, 0)

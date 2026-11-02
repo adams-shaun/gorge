@@ -49,7 +49,6 @@ func init() {
 	stallNames[43] = "charmopts"
 	stallNames[44] = "copyface"
 	stallNames[45] = "reflatch"
-	stallNames[46] = "twobridmod"
 	stallNames[47] = "zone"
 	stallNames[48] = "options"
 	stallNames[49] = "rolemulti"

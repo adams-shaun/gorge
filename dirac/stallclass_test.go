@@ -25,7 +25,7 @@ var (
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
 	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "raisefree", "liferepl", "prolif", "ctrorder",
-		"shield", "replctr", "replleave", "copyface", "twobridmod", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
+		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
 		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "beamtwice"}
@@ -190,10 +190,6 @@ func stallFlagCases() []stallFlagCase {
 		{StallBeamTwice, "Half Beam", "Half Grant", stallPool("beamtwice", []kop.CardDef{
 			{Name: "Half Beam", Types: kop.TSorcery, BeamMeUp: true, Abilities: []kop.Ability{spell()}},
 			vt("Half Grant", static(kop.StatBeamGrant)),
-		}, nil, nil, nil)},
-		{StallTwobridMod, "Half Twobrid", "Half Reducer", stallPool("twobrid", []kop.CardDef{
-			{Name: "Half Twobrid", Types: kop.TSorcery, Cost: kop.ManaCost{Tb: 1}, Abilities: []kop.Ability{spell()}},
-			vt("Half Reducer", static(kop.StatReduceCost)),
 		}, nil, nil, nil)},
 		{StallRaiseFree, "Half Raise", "Half Free", stallPool("raisefree", []kop.CardDef{
 			vt("Half Raise", static(kop.StatIncreaseCost)),

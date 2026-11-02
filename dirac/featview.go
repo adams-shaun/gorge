@@ -386,7 +386,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f; the kernel's buildCost): Archmage of Runes on a
 		// flashback Inspiration from Beyond
-		cost = s.featCost(k, p&1, c, o, cost)
+		cost = s.adjustFit(k, &a, p&1, c, o, cost, false) // a twobrid cost is priced on the face the pool pays
 	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions

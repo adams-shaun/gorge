@@ -26,7 +26,7 @@ var ktwobridDecks = [2][]cardset.Entry{
 		{Name: "Temur Tawnyback", Count: 3}, {Name: "Dragonclaw Strike", Count: 3},
 		{Name: "Monastery Messenger", Count: 2}, {Name: "Blaze", Count: 4},
 		{Name: "Mind Spring", Count: 3}, {Name: "Stream of Life", Count: 3},
-		{Name: "Grizzly Bears", Count: 3}, {Name: "Shock", Count: 2}, {Name: "Opt", Count: 2},
+		{Name: "Grizzly Bears", Count: 3}, {Name: "Goblin Electromancer", Count: 2}, {Name: "Opt", Count: 2},
 		{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Forest", Count: 5},
 	},
 	{
