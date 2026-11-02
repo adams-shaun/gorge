@@ -294,8 +294,8 @@ func TestRandomCharmModeIsChosenAsTheTriggerGoesOnTheStack(t *testing.T) {
 	t.Parallel()
 	script := "Name:Random Target Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
 		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
-		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ DBDraw,DBBolt\n" +
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ ModeDrawOne,DBBolt\n" +
+		"SVar:ModeDrawOne:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
 		"SVar:DBBolt:DB$ DealDamage | ValidTgts$ Player | NumDmg$ 3 | SpellDescription$ Deal 3 damage to target player.\n" +
 		"Oracle:x\n"
 	targeted := 0
@@ -346,8 +346,8 @@ func TestRandomCharmDrawsOnlyChoosableModes(t *testing.T) {
 	t.Parallel()
 	script := "Name:Random Choosy Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
 		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
-		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ DBDraw,DBBolt\n" +
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ ModeDrawOne,DBBolt\n" +
+		"SVar:ModeDrawOne:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
 		"SVar:DBBolt:DB$ DealDamage | ValidTgts$ Creature.OppCtrl | NumDmg$ 3 | SpellDescription$ Deal 3 damage to target creature an opponent controls.\n" +
 		"Oracle:x\n"
 	for seed := uint64(1); seed <= 16; seed++ {

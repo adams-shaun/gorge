@@ -410,8 +410,8 @@ func TestBlocksModeEligibilityMask(t *testing.T) {
 func TestBlockedTriggerNeedsTheCreatureToKeepItsAbilities(t *testing.T) {
 	t.Parallel()
 	const watcher = "Name:Blocked Watcher\nManaCost:1 R\nTypes:Creature Goblin\nPT:2/2\n" +
-		"T:Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ x\n" +
-		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
+		"T:Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ BlockDrawOne | TriggerDescription$ x\n" +
+		"SVar:BlockDrawOne:DB$ Draw | NumCards$ 1\nOracle:x\n"
 	for _, tc := range []struct {
 		name  string
 		humus bool
