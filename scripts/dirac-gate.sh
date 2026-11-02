@@ -4,9 +4,10 @@
 # (`git show <base>:scripts/dirac-gate.sh | bash -s <base>`), so a branch cannot weaken the gate
 # that judges it.
 #
-#   0. path filter: skipped when no changed file is in kfuzz's dependency closure and FORGE_REF
-#      did not move; test files in that closure do not count.
-#   1. protected: no edit to this file, to maxStateBytes or to the evidence constants.
+#   0. protected: no edit to this file, to maxStateBytes or to the evidence constants, and no card
+#      leaves the evidence lists unless the change refuses it.
+#   1. path filter: skipped when no changed file is under dirac/ (its docs aside) or in kfuzz's
+#      dependency closure and FORGE_REF did not move; test files do not count.
 #   2. layout: unsafe.Sizeof(State{}) stays under the base's maxStateBytes.
 #   3. allocs: BenchmarkTransitionFDN stays at 0 allocs/op; wall time against the base is advisory,
 #      since it is noise on a loaded machine and step 5 is the deterministic measure.
@@ -19,10 +20,11 @@
 #   7. escapes: no dirac local moves to the heap.
 #   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest, and any refused entry the branch adds.
 #
-# Steps 1-3 and 5-8 run only when a non-test file under dirac/ changed. A merge base without dirac/
-# has nothing to compare, so the base rows print a note. About 6 minutes on 4 cores with dirac/
-# changed, 2 with only its dependencies changed.
+# Steps 2-3 and 5-8 run only when a non-test file under dirac/ changed. A merge base without dirac/
+# has nothing to compare, so the base rows print a note. About 2 minutes on 4 cores with dirac/
+# changed, 1 with only its dependencies changed.
 set -uo pipefail
+export LC_ALL=C # comm and sort must agree on the order of card names
 base=${1:?usage: dirac-gate.sh <base>}
 INSTR_MB_MAX=${INSTR_MB_MAX:-1.05}
 INSTR_PB_MAX=${INSTR_PB_MAX:-1.02}
@@ -39,16 +41,34 @@ changed=$(git diff --name-only "$mb" HEAD)
 fail=0
 bad() { echo "dirac gate: FAIL -- $*"; fail=1; }
 
-echo "== 0 path filter"
+echo "== 0 protected"
+# maxStateBytes lives in a test file and an evidence list in no package, so this runs before the
+# path filter can skip them.
+have_base=
+git cat-file -e "$mb:dirac/kernel_test.go" 2>/dev/null && have_base=1
+prot=""
+if git cat-file -e "$mb:scripts/dirac-gate.sh" 2>/dev/null && grep -qx 'scripts/dirac-gate.sh' <<<"$changed"; then prot="scripts/dirac-gate.sh"; fi
+if [ -n "$have_base" ]; then
+	git diff "$mb" HEAD -- dirac/kernel_test.go | grep -qE '^[-+].*maxStateBytes' && prot="$prot maxStateBytes"
+	git diff "$mb" HEAD -- dirac/oracle/evidence.go | grep -qE '^[-+].*(Evidence[A-Z]|Synth[A-Z]|TailBucket)' && prot="$prot evidence constants"
+fi
+[ -z "$prot" ] || bad "edits what only the maintainers change: $prot"
+evidence_at() { git grep -h '' "$1" -- dirac/support/evidence | sort -u; }
+refused_at() { git grep -h '"card":' "$1" -- dirac/support/refused | sed -E 's/.*"card": "(.*)",?$/\1/' | sort -u; }
+dropped=$(comm -23 <(evidence_at "$mb") <(evidence_at HEAD) | comm -23 - <(refused_at HEAD))
+[ -z "$dropped" ] || bad "cards leave the evidence lists with no refusal: $(tr '\n' ',' <<<"$dropped")"
+
+echo "== 1 path filter"
 closure=$(go list -deps -f '{{if not .Standard}}{{.Dir}}{{end}}' ./dirac/oracle/cmd/kfuzz) || { echo "dirac gate: go list failed (infrastructure)"; exit 2; }
 closure=$(sed "s|^$top/||" <<<"$closure" | sort -u)
 in_closure=$(while IFS= read -r f; do
-	case $f in *_test.go|'') continue ;; esac
+	case $f in *_test.go|''|dirac/docs/*|dirac/README.md|dirac/PROVENANCE) continue ;; dirac/*) printf '%s\n' "$f"; continue ;; esac
 	if grep -qxF "$(dirname "$f")" <<<"$closure"; then printf '%s\n' "$f"; fi
 done <<<"$changed")
 forge_ref_moved=
 if grep -qx Makefile <<<"$changed" && git diff "$mb" HEAD -- Makefile | grep -qE '^[-+]FORGE_REF'; then forge_ref_moved=1; fi
 if [ -z "$in_closure" ] && [ -z "$forge_ref_moved" ]; then
+	[ "$fail" = 0 ] || exit 1
 	echo "dirac gate: skipped (no file in kfuzz's dependency closure)"
 	exit 0
 fi
@@ -62,20 +82,8 @@ trap 'git -C "$top" worktree remove --force "$S/base" >/dev/null 2>&1; rm -rf --
 make dirac-tables >"$S/tables.log" 2>&1 || { tail -20 "$S/tables.log"; bad "make dirac-tables failed"; exit 1; }
 go build -o "$S/kfuzz" ./dirac/oracle/cmd/kfuzz || { bad "kfuzz does not build"; exit 1; }
 
-have_base=
 if [ -n "$dirac_changed" ]; then
-	echo "== 1 protected"
-	prot=""
-	if git cat-file -e "$mb:scripts/dirac-gate.sh" 2>/dev/null && grep -qx 'scripts/dirac-gate.sh' <<<"$changed"; then prot="scripts/dirac-gate.sh"; fi
-	if git cat-file -e "$mb:dirac/kernel_test.go" 2>/dev/null; then
-		git diff "$mb" HEAD -- dirac/kernel_test.go | grep -qE '^[-+].*maxStateBytes' && prot="$prot maxStateBytes"
-		git diff "$mb" HEAD -- dirac/oracle/evidence.go | grep -qE '^[-+].*(Evidence[A-Z]|Synth[A-Z]|TailBucket)' && prot="$prot evidence constants"
-		have_base=1
-	else
-		echo "the merge base has no dirac/: base rows below are notes"
-	fi
-	[ -z "$prot" ] && echo ok || bad "edits what only the maintainers change: $prot"
-
+	[ -n "$have_base" ] || echo "the merge base has no dirac/: base rows below are notes"
 	go test -c -o "$S/head.test" ./dirac/ || { bad "dirac test binary does not build"; exit 1; }
 	if [ -n "$have_base" ]; then
 		git -C "$top" worktree add -q --detach "$S/base" "$mb" || exit 2
@@ -182,7 +190,9 @@ if [ -n "$dirac_changed" ]; then
 	echo "== 8 tests"
 	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
 	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
-	out=$(KERNEL_REFUSED_BASE=$mb go test -timeout 2m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
+	out=$(KERNEL_REFUSED_BASE=$mb go test -v -timeout 2m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
+	skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
+	[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
 fi
 
 [ "$fail" = 0 ] && echo "dirac gate: ok" && exit 0
