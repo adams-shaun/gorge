@@ -558,7 +558,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 // prefix before the play itself (prScript). The kernel taps them the same
 // way at the play, so the mana floats from the announcement on.
 func (s *State) grantPrefix(k *prep, a Action, p uint8) {
-	cost, ex, ok := s.grantPlayCost(k, p, a, false)
+	cost, ex, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
 	}
