@@ -233,6 +233,9 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XX {
 		out.X = 2
 	}
+	if m.XXX {
+		out.X = 3
+	}
 	return out, nil
 }
 

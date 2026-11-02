@@ -1,0 +1,13 @@
+{
+  "card": "Astral Cornucopia",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags: gorge's Ward payment window offers a tap of a source that produces nothing; 3 games in the corpus",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "autopay",
+    "seed": 3,
+    "pair": 393,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

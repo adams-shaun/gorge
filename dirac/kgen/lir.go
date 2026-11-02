@@ -508,6 +508,7 @@ type manaCost struct {
 	Phyrexian []byte
 	X         bool
 	XX        bool // a second {X} symbol (X set too)
+	XXX       bool // a third {X} symbol (X and XX set too)
 	None      bool // "no cost": cannot be cast
 	C         int  // colorless-specific pips
 }
@@ -536,6 +537,9 @@ func (m manaCost) String() string {
 		s += "X"
 	}
 	if m.XX {
+		s += "X"
+	}
+	if m.XXX {
 		s += "X"
 	}
 	return s + "}"

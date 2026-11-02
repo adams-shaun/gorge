@@ -580,8 +580,13 @@ func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
 			continue
 		}
 		if t == "X" {
+			if m.XXX {
+				return m, fmt.Errorf("XXXX cost")
+			}
 			if m.XX {
-				return m, fmt.Errorf("XXX cost")
+				// {X}{X}{X}: X announced once, paid three times
+				m.XXX = true
+				continue
 			}
 			if m.X {
 				// {X}{X}: X announced once, paid twice (the kernel's
