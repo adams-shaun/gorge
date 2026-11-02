@@ -13,6 +13,7 @@ TestDigMovesInPickOrder
 TestEatenAliveWindowLockstep
 TestEveryOptionHasALabel
 TestExileMarksOrderedAtDeath
+TestFDNFullSurfacePairs
 TestFDNRegressPairs
 TestFDNRegressPairsRules
 TestFeatBLBCountedCDAOffBattlefield
