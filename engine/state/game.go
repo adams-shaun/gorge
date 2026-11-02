@@ -579,7 +579,9 @@ type ZoneEntry struct {
 	// battlefield (CR 603.10a last known information), folded by
 	// events.Apply from events.DepartureCreatureFlip. An animated land that
 	// dies was a creature; a creature an effect made a non-creature was not.
-	// False for every other entry.
+	// For a battlefield entry, whether its face was a creature's as it entered:
+	// a land animated later that turn did not enter as a creature. False for
+	// every other entry.
 	WasCreature bool
 }
 

@@ -24,8 +24,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const maxEntered = 64
 
 // zoneEntry is one add. to/from are kop.Zone values (gorge's ZoneEntry.To
-// and .From); flags bit 0 is the departure-time creature status, gorge's
-// WasCreature (CR 603.10a); bit 1 is the controller a battlefield departure left
+// and .From); flags bit 0 is gorge's WasCreature, the creature status at a
+// departure (CR 603.10a) or the card's face at a battlefield entry; bit 1 is the controller a battlefield departure left
 // under, gorge's Controller. Owner, PermanentCard and Sacrificed are not read by
 // any Count$ThisTurnEntered head and are not ported.
 type zoneEntry struct {
@@ -101,6 +101,9 @@ func (s *State) noteEnter(o Obj, to, from kop.Zone, wasCreature bool) {
 	}
 	e := &s.cold.entered[s.g.enteredN]
 	e.o, e.to, e.from, e.flags = o, uint8(to), uint8(from), 0
+	if to == kop.ZoneBattlefield {
+		wasCreature = s.k().t.Cards[s.objs[o].card].Types&kop.TCreature != 0
+	}
 	if wasCreature {
 		e.flags |= enteredWasCreature
 	}
@@ -156,10 +159,14 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 		fromBattlefield := e.from == uint8(kop.ZoneBattlefield)
 		ok := false
 		if dest == kop.ZoneBattlefield {
-			if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
-				ok = s.matchPermGen(k, x.F, ob.slot, ctx.ctrl, ctx.srcSl, layerFull)
-			} else if !s.ceasedCopy(ob) {
-				ok = s.matchCardEntered(k, x.F4, ob.card, ob.owner(), ctx.ctrl, e.o, ctx.src)
+			if x.F2 == 0 {
+				ok = s.matchBattlefieldEntry(k, x.F, x.F4, e, ctx)
+			} else {
+				// the Creature-base alternatives read what entered, not what it is now
+				ok = (e.flags&enteredWasCreature != 0 || s.faceDownAt(k, e.o)) && s.matchBattlefieldEntry(k, x.F2, x.F2, e, ctx)
+				if !ok && x.F3 != 0 {
+					ok = s.matchBattlefieldEntry(k, x.F3, x.F3, e, ctx)
+				}
 			}
 		} else if x.F2 != 0 && fromBattlefield {
 			// gorge's CR 603.10a split: the Creature-base alternatives
@@ -186,6 +193,16 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 	}
 	return n
+}
+
+// matchBattlefieldEntry matches a dest=Battlefield entry: the live permanent while the
+// object is still there, else its card form.
+func (s *State) matchBattlefieldEntry(k *prep, perm, card kop.FilterID, e *zoneEntry, ctx evalCtx) bool {
+	ob := &s.objs[e.o]
+	if ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
+		return s.matchPermGen(k, perm, ob.slot, ctx.ctrl, ctx.srcSl, layerFull)
+	}
+	return !s.ceasedCopy(ob) && s.matchCardEntered(k, card, ob.card, ob.owner(), ctx.ctrl, e.o, ctx.src)
 }
 
 // DebugEnteredLive is the mutation test's switch: it makes thisTurnEntered

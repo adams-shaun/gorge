@@ -1,0 +1,9 @@
+# a land animated the turn it entered is no creature that entered
+# (dirac/oracle/repro_lockstep_test.go)
+Bristlebane Outrider
+Mishra's Factory
+Grizzly Bears
+Hill Giant
+Forest
+Mountain
+Lightning Bolt

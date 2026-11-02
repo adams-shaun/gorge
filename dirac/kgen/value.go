@@ -1056,18 +1056,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		if v.F, err = lc.filter(valid); err != nil {
 			return lValue{}, err
 		}
-		if dest != kop.ZoneBattlefield {
-			if cr, other, split := splitThisTurnEnteredCreature(valid); split {
-				if v.F2, err = lc.filter(cr); err != nil {
+		if cr, other, split := splitThisTurnEnteredCreature(valid); split {
+			if v.F2, err = lc.filter(cr); err != nil {
+				return lValue{}, err
+			}
+			if other != "" {
+				if v.F3, err = lc.filter(other); err != nil {
 					return lValue{}, err
 				}
-				if other != "" {
-					if v.F3, err = lc.filter(other); err != nil {
-						return lValue{}, err
-					}
-				}
 			}
-		} else {
+		}
+		if dest == kop.ZoneBattlefield {
 			v.F4 = v.F
 		}
 		return v, nil

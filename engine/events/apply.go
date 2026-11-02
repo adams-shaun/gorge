@@ -217,7 +217,8 @@ func applyKind(g *state.Game, e *Event) {
 			o.EnteredThisTurn = true
 			o.EnteredFrom = state.ZLibrary
 			g.Entered = append(g.Entered, state.ZoneEntry{Obj: o.ID, To: state.ZBattlefield,
-				From: state.ZLibrary, Owner: o.Owner, PermanentCard: !o.IsToken && !o.IsCopy && o.Card != nil})
+				From: state.ZLibrary, Owner: o.Owner, PermanentCard: !o.IsToken && !o.IsCopy && o.Card != nil,
+				WasCreature: DepartureDefaultCreature(o)})
 		}
 	case EndTurn:
 		foldEndTurn(g, e)

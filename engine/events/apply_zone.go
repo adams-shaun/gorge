@@ -862,7 +862,8 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
 		// head counts cards put into exile, never retired abilities.
 		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
-			Owner: o.Owner, PermanentCard: permanentCard, Controller: leftController})
+			Owner: o.Owner, PermanentCard: permanentCard, Controller: leftController,
+			WasCreature: to == state.ZBattlefield && DepartureDefaultCreature(o)})
 	}
 	switch to {
 	case state.ZBattlefield:

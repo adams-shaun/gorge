@@ -132,3 +132,13 @@ func TestGiftCastIsPlannedOnAutopayLockstep(t *testing.T) {
 		t.Error("no pair cast a Gift spell")
 	}
 }
+
+// A land animated the turn it entered is no creature that entered: Mishra's Factory
+// leaves Bristlebane Outrider's "another creature entered" unmet (CR 603.10a's reasoning,
+// read at the entry), and a Grizzly Bears meets it.
+func TestEnteredAsCreatureLockstep(t *testing.T) {
+	t.Parallel()
+	deck := []cardset.Entry{{Name: "Bristlebane Outrider", Count: 10}, {Name: "Mishra's Factory", Count: 14},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Forest", Count: 12}}
+	lockstepSet(t, "enteredcreature", [2][]cardset.Entry{deck, deck}, 64, "KENTEREDCREATURE_SEEDS")
+}
