@@ -2881,6 +2881,10 @@ type SpecContext struct {
 	// DamageSource names the object a damage replacement's ValidSource$ reads as
 	// the source it last was (copyCeased).
 	DamageSource state.ObjID
+	// DamageSourceLeft says that source has left the battlefield this turn, and
+	// DamageSourceEntered whether it had entered it this turn: ThisTurnEntered reads
+	// the object it last was (CR 608.2h), not its entry into the zone it left for.
+	DamageSourceLeft, DamageSourceEntered bool
 	// FrozenChosenName and ChosenNameBound are an Effect-registered static
 	// or delayed trigger's snapshot of the source's chosen card name at
 	// REGISTRATION time (state.ContinuousEffect.ChosenName /

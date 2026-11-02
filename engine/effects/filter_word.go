@@ -977,6 +977,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ThisTurnEntered: the object entered a zone this turn (any
 		// zone). The flag is the same per-object provenance
 		// events.Move records that the Count$ThisTurnEntered_* heads read.
+		if sc.DamageSourceLeft && o.ID == sc.DamageSource {
+			return sc.DamageSourceEntered
+		}
 		return o.EnteredThisTurn
 	case wordThisTurnEnteredFrom:
 		// Forge's ThisTurnEnteredFrom_<Zone>: the object entered from <Zone>

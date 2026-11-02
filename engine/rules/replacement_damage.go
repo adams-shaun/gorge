@@ -348,6 +348,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		// exact match it had before ChooseSource landed.
 		sc := e.rememberedSpecContextCap(ctrl, source, nil, cc)
 		sc.DamageSource = src
+		sc.DamageSourceLeft, sc.DamageSourceEntered = e.damageSourceLeftThisTurn(src)
 		if !e.matchesSpec(v, src, sc) {
 			return false
 		}
@@ -370,6 +371,35 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		return false
 	}
 	return e.replacementAmountMatches(r.ParamStr(cards.PKDamageAmount), ev.Amount, e.replCtx(replMatch{id: source, repl: &r}, ev))
+}
+
+// damageSourceLeftThisTurn reports whether a damage source now off the battlefield
+// left it this turn, and if so whether that permanent had entered this turn: the
+// source as it last existed (CR 608.2h), as Forge's last-known host keeps the turn it
+// entered (DamageDealEffect's getChangeZoneLKIInfo, read). The object's own flag says
+// only that it reached its new zone this turn.
+func (e *Engine) damageSourceLeftThisTurn(src state.ObjID) (left, entered bool) {
+	o := e.G.Obj(src)
+	if o == nil || o.Zone == state.ZBattlefield || !o.EnteredThisTurn {
+		return false, false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Obj != src || !zoneMovingKind(ev.Kind) || !ev.To.Valid() {
+			continue
+		}
+		if !left && ev.From != state.ZBattlefield {
+			return false, false
+		}
+		if left && ev.To == state.ZBattlefield {
+			return true, true
+		}
+		left = true
+	}
+	return left, false
 }
 
 // askReplacementChoice poses the CR 616.1 order choice for the FRONT parked
