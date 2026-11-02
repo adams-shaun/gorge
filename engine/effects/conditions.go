@@ -310,6 +310,10 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	svarCmp := cp.SVarCompare.Text
 	bare := cp.Bare
 	playerTurn := cp.PlayerTurn
+	if cp.OpponentTurn && playerTurn == "" {
+		// Every other player is an opponent: there are no teams to tell apart.
+		playerTurn = "False"
+	}
 	phases := cp.Phases
 	firstCombat := cp.FirstCombat
 	activationLimit := cp.ActivationLimit

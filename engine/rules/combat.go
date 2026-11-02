@@ -548,6 +548,11 @@ func (e *Engine) exertOfferHolds(id state.ObjID) bool {
 		if sv.Source != id || sv.Controller != o.Controller {
 			continue
 		}
+		// Exerting is the only optional attack cost this offers: the corpus's
+		// 28 carriers all spell it this way, and any other cost fails closed.
+		if sv.ParamStr(cards.PKCost) != "Exert<1/CARDNAME>" {
+			continue
+		}
 		// The static's own ValidCard$ (uniformly Card.Self over the corpus's
 		// 28 carriers, verified in triage) must still admit the attacker;
 		// an unparseable spec fails closed.

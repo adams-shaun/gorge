@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -182,6 +183,70 @@ func compilePumpGrant(sa *cards.SA) PumpGrant {
 	return g
 }
 
+// sharedPumpGrant narrows g's KW$ for a SharedKeywordsZone$ pump ("gain flying
+// if a creature you control has flying"): a keyword is granted only when a card
+// in those zones matching SharedRestrictions$ has it right now. The Landwalk,
+// Protection, Hexproof and Trample words stand for every spelling of the keyword
+// the matching cards have, which is what gets granted.
+func sharedPumpGrant(h Host, c *Ctx, sa *cards.SA, g PumpGrant) PumpGrant {
+	zoneText := strings.TrimSpace(sa.Params["SharedKeywordsZone"])
+	if zoneText == "" {
+		return g
+	}
+	zones, _, ok := ParseZones(zoneText)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "SharedKeywordsZone$ " + zoneText + " is not a zone list this engine can ask; no keyword is shared"})
+		zones = nil
+	}
+	spec := strings.TrimSpace(sa.Params["SharedRestrictions"])
+	if spec == "" {
+		spec = "Card"
+	}
+	var shared []string
+	game := h.Game()
+	for _, p := range game.AliveFrom(0) {
+		for _, z := range zones {
+			for _, id := range game.Zone(z, p) {
+				if MatchesSpecCtx(game, spec, id, c.SpecContext(c.Controller)) {
+					shared = append(shared, h.Chars(id).Keywords...)
+				}
+			}
+		}
+	}
+	var kws []string
+	add := func(kw string) {
+		if !slices.Contains(kws, kw) {
+			kws = append(kws, kw)
+		}
+	}
+	for _, want := range g.KW {
+		for _, have := range shared {
+			switch {
+			case sharedKeywordFamilySet.Has(want):
+				if strings.EqualFold(sharedKeywordFamily(have), want) {
+					add(have)
+				}
+			case strings.EqualFold(have, want):
+				add(want)
+			}
+		}
+	}
+	g.KW = kws
+	return g
+}
+
+// sharedKeywordFamily is the family word a keyword's spelling belongs to:
+// "Protection from red" and "Protection:Card.Red:..." are both Protection.
+func sharedKeywordFamily(kw string) string {
+	if strings.HasPrefix(kw, "Protection") {
+		return "Protection"
+	}
+	return cards.KeywordHead(kw)
+}
+
+var sharedKeywordFamilySet = state.NewNameSet("Landwalk", "Protection", "Hexproof", "Trample")
+
 // numForObjectText is NumForObject over a compiled parameter: a
 // statAddMultiplier token ("Double", "Triple") adds that multiple of obj's own
 // power (power) or toughness, else scalar, the caller's single reading of the
@@ -247,7 +312,7 @@ var pumpKnownKeys = [...]string{
 	"ConditionDescription",
 	"ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent",
-	"ConditionOptionalPaid",
+	"ConditionOpponentTurn", "ConditionOptionalPaid",
 	"ConditionPhases",
 	"ConditionPlayerTurn",
 	"ConditionPresent",
@@ -328,7 +393,7 @@ var pumpKnownKeys = [...]string{
 	"SelectPrompt",
 	"SetChosenMode",
 	"SetColor",
-	"ShowCards",
+	"SharedKeywordsZone", "SharedRestrictions", "ShowCards",
 	"SorcerySpeed",
 	"SpellDescription",
 	"StackDescription",
