@@ -26,7 +26,14 @@ func synthPairsOn(t *testing.T, name string, cfg Config, pairs []int, check func
 // synthPairsRun is synthPairsOn with rc's Check at every decision.
 func synthPairsRun(t *testing.T, name string, rc RunConfig, pairs []int, check func(pair int, res *Result)) {
 	t.Helper()
-	synthPairsPlay(t, name, rc, pairs, func(i int, res *Result) {
+	synthPairsMulligans(t, name, rc, 1, pairs, check)
+}
+
+// synthPairsMulligans is synthPairsRun with the London mulligans each player may
+// take: a pair is a different game at each count.
+func synthPairsMulligans(t *testing.T, name string, rc RunConfig, mulligans int, pairs []int, check func(pair int, res *Result)) {
+	t.Helper()
+	synthPairsPlayMulligans(t, name, rc, mulligans, pairs, func(i int, res *Result) {
 		if res.Div != nil {
 			t.Errorf("pair %d diverged at %d: %s %s %s %v %v", i, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
 		}
@@ -42,6 +49,12 @@ func synthPairsRun(t *testing.T, name string, rc RunConfig, pairs []int, check f
 // synthPairsPlay plays each pair in lockstep and hands the result to each, judging nothing.
 func synthPairsPlay(t *testing.T, name string, rc RunConfig, pairs []int, each func(pair int, res *Result)) {
 	t.Helper()
+	synthPairsPlayMulligans(t, name, rc, 1, pairs, each)
+}
+
+// synthPairsPlayMulligans is synthPairsPlay with the mulligans each player may take.
+func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans int, pairs []int, each func(pair int, res *Result)) {
+	t.Helper()
 	cfg := rc.Config
 	rc.MaxDecisions, rc.MaxTurns = 20000, 100
 	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
@@ -53,7 +66,7 @@ func synthPairsPlay(t *testing.T, name string, rc RunConfig, pairs []int, each f
 	c.AddDecks(files)
 	for _, i := range pairs {
 		p := PairingAt(pool, i, 1)
-		m, tbl, err := SetMatchup(set, c, p.A, p.B, 1)
+		m, tbl, err := SetMatchup(set, c, p.A, p.B, mulligans)
 		if err != nil {
 			t.Fatal(err)
 		}
