@@ -97,7 +97,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.24e-f | not-impl | - | - | cards refused by coverage gate |
 | 701.24g | unknown | - | - | not reached |
 | 701.25a | follows | `engine/effects/cardflow.go#effSurveil` | - |  |
-| 701.25b | follows | `engine/effects/cardflow.go#effLookAndArrange` | - |  |
+| 701.25b | follows | `engine/effects/cardflow.go#effLookAndArrange` `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | `TestSurveilGraveyardPileTakesTheCardsOwnReplacement` | the graveyard pile meets the card's own "from anywhere" line |
 | 701.25c | follows | `engine/effects/cardflow.go#effSurveil` `engine/effects/cardflow.go#effLookAndArrange` | `TestSurveilZeroIsNoSurveilEvent` `TestCerebralDownloadWithNoArtifactsSurveilsZero` | |
 | 701.25d | partial | `engine/effects/cardflow.go#effLookAndArrange` | - | marker before the look; no outcome found |
 | 701.26a-b | follows | `engine/effects/combatfx.go#effTap` `engine/effects/combatfx.go#effUntapAll` `engine/effects/untap.go#effUntap` | - |  |

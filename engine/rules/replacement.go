@@ -8,6 +8,7 @@ package rules
 import (
 	"fmt"
 
+	"slices"
 	"strconv"
 	"strings"
 
@@ -297,6 +298,20 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// entrant's own "enters tapped" line and its recorded "enter as a copy"
 	// election here; its other self-entry lines (counters, other as-enters
 	// choices) are not read on this path.
+	// A surveil's graveyard pile has already left the library's order when it
+	// moves (arrangeAnswerRecord's LibraryOrder comes first, a logged contract),
+	// so the walk cannot meet the card, and "from anywhere" is its own line.
+	if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && !sawEntrant && event == "Moved" {
+		if o := e.G.Obj(ev.Obj); o != nil && objectReplMask(o)&replEventBits[eventKind] != 0 && !slices.Contains(e.G.Zone(state.ZLibrary, o.Owner), ev.Obj) {
+			if f := e.replacementFace(ev.Obj, ev); f != nil {
+				for i := range f.Repls {
+					if r := &f.Repls[i]; replacementEventNameMatches(r.Event, event) && !movedLineRejects(r, ev.Obj, ev) && e.replacementMatches(*r, ev.Obj, ev) {
+						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					}
+				}
+			}
+		}
+	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && !sawEntrant && event == "Moved" {
 		if o := e.G.Obj(ev.Obj); o != nil && o.IsToken {
 			if f := e.replacementFace(ev.Obj, ev); f != nil {
