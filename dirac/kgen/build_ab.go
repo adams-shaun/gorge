@@ -2109,7 +2109,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2128,6 +2128,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "Reveal" {
 			ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
+		}
+		if in.CS == "Behold" {
+			ki.B = kop.Const(kop.PayBBehold) // a behold, not a discard: nothing moves
 		}
 		if pk == kop.PaySac && strings.HasPrefix(in.Note, noteRememberSacrificed) {
 			// a trigger's own IfPaid Sacrifice whose characteristic a value

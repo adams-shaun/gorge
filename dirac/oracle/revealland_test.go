@@ -29,19 +29,27 @@ var krevealDecks = [2][]cardset.Entry{
 }
 
 type krevealTally struct {
-	games, stalls, paid, declined, declineOnly, picks, mid int
+	games, stalls, paid, declined, declineOnly, picks, mid, beholds int
+}
+
+// krevealSanctums is deck A of the behold run: Theorist's Sanctum in bulk,
+// whose Empower ability makes the Jace the next one beholds.
+var krevealSanctums = []cardset.Entry{
+	{Name: "Theorist's Sanctum", Count: 12}, {Name: "Island", Count: 14},
+	{Name: "Grizzly Bears", Count: 8}, {Name: "Opt", Count: 6},
 }
 
 // krevealPolicy plays a land whenever it can and reveals with probability 1/2;
-// everything else is random.
-func krevealPolicy(seed uint64, tal *krevealTally) Policy {
+// with activate it activates an ability before anything else (Theorist's
+// Sanctum's Empower); everything else is random.
+func krevealPolicy(seed uint64, tal *krevealTally, activate bool) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if c.G == nil {
 			return rnd.Pick(c)
 		}
 		d := c.G.E.Pending()
-		if d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "revealcost" {
+		if d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 && (d.Options[0].Kind == "revealcost" || d.Options[0].Kind == "beholdcost") {
 			tal.picks++
 			return rnd.Pick(c)
 		}
@@ -58,6 +66,9 @@ func krevealPolicy(seed uint64, tal *krevealTally) Policy {
 			if len(c.G.E.G.Stack) > 0 {
 				tal.mid++
 			}
+			if pay >= 0 && c.G.E.G.Obj(d.Source).Face().Name == "Theorist's Sanctum" {
+				tal.beholds++
+			}
 			if pay < 0 {
 				tal.declineOnly++
 			}
@@ -69,6 +80,13 @@ func krevealPolicy(seed uint64, tal *krevealTally) Policy {
 				tal.declined++
 			}
 			return c.D.Options[want]
+		}
+		if activate {
+			for _, a := range c.D.Options {
+				if a.Kind() == ActActivate {
+					return a
+				}
+			}
 		}
 		for _, a := range c.D.Options {
 			if a.Kind() == ActPlayLand {
@@ -83,6 +101,13 @@ func TestRevealLandLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
+	t.Run("lands", func(t *testing.T) { krevealLockstep(t, krevealDecks, false) })
+	t.Run("behold", func(t *testing.T) {
+		krevealLockstep(t, [2][]cardset.Entry{krevealSanctums, krevealDecks[1]}, true)
+	})
+}
+
+func krevealLockstep(t *testing.T, krevealDecks [2][]cardset.Entry, behold bool) {
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +150,7 @@ func TestRevealLandLockstep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := LockstepLed(m, seed, g, k, krevealPolicy(seed, &tal), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120})
+		res := LockstepLed(m, seed, g, k, krevealPolicy(seed, &tal, behold), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120})
 		CloseSide(k)
 		tal.games++
 		if res.Stall != "" {
@@ -140,6 +165,12 @@ func TestRevealLandLockstep(t *testing.T) {
 	t.Logf("%+v", tal)
 	if tal.stalls != 0 {
 		t.Fatalf("%d stalls", tal.stalls)
+	}
+	if behold {
+		if tal.beholds < 5 {
+			t.Errorf("only %d payable Sanctum elections, want >= 5", tal.beholds)
+		}
+		return
 	}
 	if tal.paid < 30 || tal.declined < 30 || tal.declineOnly < 5 || tal.picks < 10 || tal.mid < 5 {
 		t.Errorf("thin coverage: %+v", tal)

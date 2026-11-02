@@ -15,20 +15,42 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const ChCostReveal ChoiceKind = 212
 
 func revealElection(in *kop.Instr) bool {
-	return in.Op == kop.OpUnlessPaid && int(in.C&0xF) == kop.PayDiscard && in.B.N == kop.PayBReveal
+	return in.Op == kop.OpUnlessPaid && int(in.C&0xF) == kop.PayDiscard && (in.B.N == kop.PayBReveal || in.B.N == kop.PayBBehold)
 }
 
-// revealFilter is the filter of the election at the queue's head.
-func (s *State) revealFilter(k *prep) kop.FilterID {
+// beholdElection is a revealElection that beholds: the payer's matching
+// permanents are candidates before their matching hand cards (CR 701.4a;
+// Theorist's Sanctum). Beholding moves and marks nothing either.
+func beholdElection(in *kop.Instr) bool {
+	return in.B.N == kop.PayBBehold
+}
+
+// ChCostBehold (act_behold.go) is gorge's "beholdcost" pick of a behold election.
+
+// revealIn is the election instruction at the queue's head.
+func (s *State) revealIn(k *prep) *kop.Instr {
 	a := &s.g.ask[0]
-	return k.t.Cards[a.card].Abilities[a.ab].Prog[a.pc].F
+	return &k.t.Cards[a.card].Abilities[a.ab].Prog[a.pc]
 }
 
-// revealCands counts player p's hand cards matching f, adding each to d when d
-// is set.
-func (s *State) revealCands(k *prep, p uint8, f kop.FilterID, d *Decision) int {
-	pl := &s.pl[p]
+// revealCands counts player p's candidates for the election in, adding each to
+// d when d is set: a behold's matching permanents in battlefield order, then
+// the matching hand cards in hand order.
+func (s *State) revealCands(k *prep, p uint8, in *kop.Instr, d *Decision) int {
+	f := in.F
 	n := 0
+	if beholdElection(in) {
+		for m := s.ctrlM[p]; m.any(); m = m.rest() {
+			sl := m.first()
+			if s.matchPerm(k, f, sl, p, NoSlot) {
+				n++
+				if d != nil {
+					d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+				}
+			}
+		}
+	}
+	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
 		if o := pl.hand[i]; s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
 			n++
@@ -43,15 +65,18 @@ func (s *State) revealCands(k *prep, p uint8, f kop.FilterID, d *Decision) int {
 // revealOptions poses the queue head's election (encoded as ChGenPayMode, with
 // pay only while a candidate exists) or its pick.
 func (s *State) revealOptions(k *prep, d *Decision, kind uint8) {
-	f := s.revealFilter(k)
+	in := s.revealIn(k)
 	if kind == akRevPick {
 		d.Sub = ChCostReveal
-		s.revealCands(k, d.Player, f, d)
+		if beholdElection(in) {
+			d.Sub = ChCostBehold
+		}
+		s.revealCands(k, d.Player, in, d)
 		return
 	}
 	d.Sub = ChGenPayMode
 	d.add(MakeAction(AkChoose, 0, 0, 0)) // decline
-	if s.revealCands(k, d.Player, f, nil) > 0 {
+	if s.revealCands(k, d.Player, in, nil) > 0 {
 		d.add(MakeAction(AkChoose, 0, 0, 1)) // reveal
 	}
 }
@@ -65,7 +90,7 @@ func (s *State) revealAnswer(k *prep, ask askRec, a Action) bool {
 	in := &prog[ask.pc]
 	next := int(ask.pc) + 1
 	if ask.kind == akRevPick || a.Mode() == 1 {
-		if ask.kind == akReveal && s.revealCands(k, s.perms[ask.sl].ctrl, in.F, nil) > 1 {
+		if ask.kind == akReveal && s.revealCands(k, s.perms[ask.sl].ctrl, in, nil) > 1 {
 			copy(s.g.ask[1:s.g.nask+1], s.g.ask[:s.g.nask])
 			s.g.nask++
 			ask.kind = akRevPick

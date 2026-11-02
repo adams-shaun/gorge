@@ -219,6 +219,11 @@ const PayBRemember = 4
 // (dirac/repl_revealland.go), and C's nibble is full.
 const PayBReveal = 5
 
+// PayBBehold: a PayDiscard unless-cost whose B.N carries this sentinel beholds
+// A permanents the payer controls or hand cards matching F (CR 701.4a); nothing
+// moves. Theorist's Sanctum's as-enters election (dirac/repl_revealland.go).
+const PayBBehold = 6
+
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (
 	PayMana    = 1 // A generic + B.N packed pips (3 bits per colour, WUBRG)

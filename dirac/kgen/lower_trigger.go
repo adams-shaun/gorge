@@ -3125,8 +3125,8 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			// life >= N (CR 119.4, UnlessCostPayableFromCtx). Only the exact
 			// shape lowers: the whole replacement is the one unswitched Tap
 			// with no other condition, and the cost is a literal PayLife<N> or
-			// a one-card Reveal (revealLandCost). Anything else refuses
-			// (Theorist's Sanctum's Behold<1/Jace> stays refused).
+			// a one-card Reveal or Behold (revealLandCost). Anything else
+			// refuses.
 			if uc, ok := ps.get("UnlessCost"); ok {
 				if other || node != sa || sa.Sub != nil || cond.Kind != cNone {
 					return refuse("ETB tap UnlessCost on a chained ETB replacement")
@@ -3137,8 +3137,8 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				if sw, ok := ps.get("UnlessSwitched"); ok {
 					return refuse("ETB tap UnlessCost UnlessSwitched$ %s", sw)
 				}
-				if spec, ok := revealLandCost(uc); ok {
-					if err := lc.revealLandElection(spec); err != nil {
+				if verb, spec, ok := revealLandCost(uc); ok {
+					if err := lc.revealLandElection(verb, spec); err != nil {
 						return err
 					}
 					break
