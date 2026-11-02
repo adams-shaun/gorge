@@ -97,7 +97,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.48a-c | not-impl | - | - | LOUD (6) |
 | 702.49a-d | follows | `engine/cards/kw_ninjutsu.go#kwNinjutsu` | `TestNinjutsuOrochiSoulReaverAndFallenShinobiFromHand` |  |
 | 702.50a,b | not-impl | - | - | LOUD (5) |
-| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` `engine/rules/legal_walk_autopay.go#Engine.rearmAutoPay` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` `TestPlannedCastSurvivesAConvokeAnswer` | player chooses creatures |
+| 702.51a-d | follows | `engine/rules/cast_altcost.go#Engine.hasCastConvoke` `engine/rules/cast_altcost.go#Engine.convokeCost` `engine/rules/pay/castasks.go#ConvokeAsk` `engine/rules/legal_walk_autopay.go#Engine.rearmAutoPay` `engine/rules/legal_walk_alt.go#legalWalk.mayPlaySpellWalk` | `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` `TestTapPaymentsReadCurrentTypes` `TestPlannedCastSurvivesAConvokeAnswer` `TestConvokeSpellCastThroughAPermissionIsOfferedLockstep` | player chooses creatures; a spell cast through a play permission is priced with the same convoke-credited base as one cast from the hand |
 | 702.52a,b | follows | `engine/effects/cardflow.go#dredgeCandidates` | `TestDredgeUsesRealCorpusCard` | derived dredge (Yixlid Jailer) |
 | 702.53a,b | follows | `engine/cards/kw_transmute.go#kwTransmute` | `TestTransmuteAndCyclingRealHandActivations` |  |
 | 702.54a-c | follows | `engine/rules/replacement_etb.go#Engine.bloodthirstEntryMatch` `engine/rules/entry_counters.go#Engine.entryBodyCandidates` | `TestBloodthirstPrintedEntersWithCounters` |  |
