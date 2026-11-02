@@ -128,6 +128,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterAll:
 		s.counterAll(k) // act_stackrewrite.go
 		return true, true
+	case kop.ExtExchangeControl:
+		s.exchangeControl(k, in) // act_exchangecontrol.go
+		return true, true
 	case kop.ExtEnterUntapped:
 		// the entering permanent untaps: not OpUntap, whose
 		// stun substitution is wrong for an entrant (gorge effects/untap.go)

@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"github.com/adams-shaun/gorge/dirac"
 	"strings"
 	"testing"
 
@@ -213,4 +214,29 @@ func TestEnteredAsCreatureLockstep(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Bristlebane Outrider", Count: 10}, {Name: "Mishra's Factory", Count: 14},
 		{Name: "Grizzly Bears", Count: 4}, {Name: "Forest", Count: 12}}
 	lockstepSet(t, "enteredcreature", [2][]cardset.Entry{deck, deck}, 64, "KENTEREDCREATURE_SEEDS")
+}
+
+// exchangeControlDecks is the fixture pool's deck: Shifting Grift's two targets in one
+// slot, Trade the Helm's parent-link target beside its own, and Kitsune's trigger over
+// two creatures with different controllers (CR 701.12), with artifacts, creatures and a
+// Mind Stone to trade.
+func exchangeControlDecks() [2][]cardset.Entry {
+	deck := []cardset.Entry{{Name: "Island", Count: 17}, {Name: "Ornithopter", Count: 4}, {Name: "Mind Stone", Count: 4},
+		{Name: "Wind Drake", Count: 4}, {Name: "Trade the Helm", Count: 4}, {Name: "Shifting Grift", Count: 4},
+		{Name: "Kitsune, Dragon's Daughter", Count: 3}}
+	return [2][]cardset.Entry{deck, deck}
+}
+
+func TestExchangeControlLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "exchangecontrol", exchangeControlDecks(), 64, "KEXCHANGECONTROL_SEEDS")
+}
+
+// With the exchange switched off the engines part ways: the pool really exchanges.
+func TestExchangeControlMutation(t *testing.T) {
+	dirac.DebugExchangeControlOff = true
+	defer func() { dirac.DebugExchangeControlOff = false }()
+	if !lockstepDiverges(t, "exchangecontrol", exchangeControlDecks(), 64) {
+		t.Fatal("no divergence in 64 games with DebugExchangeControlOff")
+	}
 }

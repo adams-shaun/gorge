@@ -131,10 +131,10 @@ func (s *State) linkRetStall(k *prep, srcCtrl uint8, o Obj, ret Obj) {
 // target_modes.go oneEachTargetBounds: no legal answer picks more targets
 // than there are controllers, so "any number" over two players closes after
 // two picks, and after one when only one controller has a candidate, with no
-// done-only ask; Lagrella, the Magpie).
+// done-only ask; Lagrella, the Magpie). It returns that count of controllers.
 //
 //go:noinline
-func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) {
+func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) uint8 {
 	var buf [MaxOptions]uint8
 	n := s.multiCands(k, t, ti, &buf)
 	var seen [2]bool
@@ -153,4 +153,5 @@ func (s *State) diffCtrlCap(k *prep, t *kop.TargetSpec, ti uint8, mt *multiTgt) 
 	if d > 0 && mt.max > d {
 		mt.max = max8(d, mt.min)
 	}
+	return d
 }

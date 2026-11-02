@@ -364,6 +364,16 @@ const ExtEnterUntapped ExtOp = 228
 
 func init() { extOpNames[ExtEnterUntapped] = "EnterUntapped" }
 
+// ExtExchangeControl (CR 701.12; gorge effects/exchange_control.go
+// effExchangeControl): C is a bit set of the resolving entry's target slots.
+// The battlefield objects they name that are still legal, in slot then pick
+// order, are the pair: when exactly two differently controlled ones remain,
+// each goes to the other's controller for no duration. Anything else does
+// nothing. dirac/act_exchangecontrol.go.
+const ExtExchangeControl ExtOp = 244
+
+func init() { extOpNames[ExtExchangeControl] = "ExchangeControl" }
+
 // operations on stack entries that already exist.
 const (
 	// ExtChangeTargets (CR 115.7; gorge effChangeTargets, choose_control.go):

@@ -764,9 +764,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				s.nextStage(k)
 				continue
 			}
-			if e.kind == seSpell && k.t.Cards[e.card].HasModeCost && !s.spreeAffordable(k) {
+			if e.kind == seSpell && k.t.Cards[e.card].HasModeCost && !s.spreeAffordable(k) && !s.charmSeqSlot(k, ti) {
 				// the same census for a Spree cast whose chosen modes cost
-				// more than it can pay (kw_spree.go)
+				// more than it can pay (kw_spree.go); a sequential charm ask
+				// has none (askCharmSeqSlot reads the legal candidates)
 				if !t.UpTo {
 					s.reverseCast(k)
 					return false

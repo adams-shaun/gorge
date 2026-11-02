@@ -1590,6 +1590,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.copyPermanent(ps)
 	case "GainControl":
 		return lc.gainControl(ps)
+	case "ExchangeControl":
+		return lc.exchangeControl(ps)
 	case "DelayedTrigger":
 		return lc.delayedTrigger(ps)
 	case "ImmediateTrigger":
@@ -3408,10 +3410,10 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 				return refuse("multi-pick charm with TargetUnique")
 			}
 			if t.SameCtrl || t.DiffCtrl || t.SharedCrType || t.DistinctName || t.MaxMV != 0 || t.Divided != 0 || t.ParentPlus1 != 0 || t.AtRes ||
-				!t.Min.isConst() || t.Min.N != 1 || !t.Max.isConst() || t.Max.N < 1 || t.Max.N > kop.MaxTargets {
+				!t.Min.isConst() || t.Min.N < 1 || t.Min.N > 2 || !t.Max.isConst() || t.Max.N < t.Min.N || t.Max.N > kop.MaxTargets {
 				return refuse("multi-pick charm mode target bounds %s..%s", t.Min, t.Max)
 			}
-			// a 1..N slot (N > 1) takes gorge's sequential per-mode asks
+			// a slot of more than one target takes gorge's sequential per-mode asks
 			// (askCharmSeqSlot), which the kernel derives from the slot
 			// bounds (modal_charmseq.go); the chain links' place among
 			// those asks is not read

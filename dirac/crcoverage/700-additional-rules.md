@@ -55,8 +55,8 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 701.10f | n/a | - | - |  |
 | 701.10g | follows | `dirac/repl_gen.go#State.replDamage` | - | Twinflame Tyrant; gorge via ReplaceCount$ Twice |
 | 701.11a-c | n/a | - | - |  |
-| 701.12a | n/a | - | - | control exchange all-or-nothing; life exchange: one side prevented, other still applies |
-| 701.12b | n/a | - | - | same controller: nothing |
+| 701.12a | follows | `dirac/act_exchangecontrol.go#State.exchangeControl` | `TestExchangeControlLockstep` | control exchange (ExtExchangeControl) is all-or-nothing: a target illegal as the resolution began, gone or repeated leaves no pair; life exchange is not lowered |
+| 701.12b | follows | `dirac/act_exchangecontrol.go#State.exchangeControl` | `TestExchangeControlLockstep` | two permanents under one controller: nothing changes |
 | 701.12c | n/a | - | - | one side prevented, other still applies; test pins it (see 701.12a) |
 | 701.12d-f | n/a | - | - | 1 corpus card |
 | 701.12g | n/a | - | - | ExchangePower unregistered (LOUD) |
