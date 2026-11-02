@@ -61,6 +61,16 @@ func TestDelayedReturnOfTheObjectItsTriggerExiledLockstep(t *testing.T) {
 	synthReproLockstep(t, "flying_car_exiles_itself", "std-msh", autopay)
 }
 
+// A land with an as-enters choice found for the battlefield, by a reveal-until (Clifftop
+// Lookout and Uncharted Haven) and a dig (Fecund Greenshell and Three Tree City): both
+// engines ask with it and the revealed cards still in the library.
+func TestFoundCardsAsEntersAskInTheLibraryLockstep(t *testing.T) {
+	t.Parallel()
+	autopay := Config{GorgeAutopaySurface: true}
+	synthReproLockstep(t, "clifftop_found_land_asks", "std-blb", autopay)
+	synthReproLockstep(t, "greenshell_dug_land_asks", "std-blb", autopay)
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {

@@ -455,7 +455,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
-		s.execDigUntil(k, in)
+		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
+		return s.execDigUntil(k, in, false), true
 	case kop.OpPeek:
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
@@ -1413,7 +1414,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 			return ask
 		}
 	}
-	if z == kop.ZoneBattlefield && s.cloneReturnPark(k, in, o, ctrl) {
+	if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
 		return true // the clone election is asked with the card still in its zone (copy_cloneenter.go)
 	}
 	if z == kop.ZoneBattlefield && host == NoSlot && fl&kop.MvTransformed == 0 && s.entryParkOp(k, in, o, ctrl) {
@@ -1613,25 +1614,35 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 	s.fireEntries(k, &eb)
 }
 
-func (s *State) execDigUntil(k *prep, in *kop.Instr) {
+// execDigUntil reveals until in.A cards match and moves them and the rest; false when
+// it suspends at a found card's as-enters ask. resume re-runs it from that ask: the
+// walk stopped at s.g.pickP with s.g.pickLeft found cards still to enter over s.g.nlook
+// revealed ones. A card found for the battlefield enters while it and the revealed
+// cards are still in the library, each ask answered in turn, and the rest move after
+// the last answer (gorge effDigUntil's emit order, Forge DigUntilEffect).
+func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 	first, second := s.eachPlayers(k, in.Obj)
 	for _, p := range [2]uint8{first, second} {
-		if p == 255 {
+		if p == 255 || resume && p != s.g.pickP {
 			continue
 		}
+		resumed := resume
+		resume = false
 		pl := &s.pl[p]
 		want := s.value(k, in.A)
+		scan := MaxDeck
+		if resumed {
+			want = int(s.g.pickLeft)
+			scan = want + int(s.g.nlook)
+		}
 		found := 0
 		var rev [MaxDeck]Obj
 		nr := 0
 		var fnd [MaxDeck]Obj
 		nf := 0
-		for found < want && pl.libLo < pl.libHi {
-			o := pl.lib[pl.libLo]
-			pl.libLo++
-			s.touch(o)
-			s.objs[o].zone = kop.ZoneNone
-			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && nf < len(fnd) {
+		for i := 0; (found < want || resumed) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
+			o := pl.lib[int(pl.libLo)+i]
+			if found < want && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
 				found++
@@ -1643,11 +1654,17 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 		fl := in.C >> 3
 		fz := kop.Zone(in.C & 7)
 		rz := kop.Zone(fl & 7)
-		if fl&kop.DuRememberFound != 0 {
-			s.digUntilRemember(p == first, fnd[:nf])
+		entering := fz == kop.ZoneBattlefield && fl&kop.DuFoundWithRevealed == 0
+		if !entering {
+			s.digPop(pl, nr+nf, rev[:nr], fnd[:nf])
 		}
-		if fl&kop.DuDugMark != 0 {
-			s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)
+		if !resumed {
+			if fl&kop.DuRememberFound != 0 {
+				s.digUntilRemember(p == first, fnd[:nf])
+			}
+			if fl&kop.DuDugMark != 0 {
+				s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)
+			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {
 			for i := 0; i < nf; i++ {
@@ -1657,13 +1674,27 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 			nf = 0
 		}
 		for i := 0; i < nf; i++ {
-			if fz == kop.ZoneBattlefield {
+			if entering {
+				s.g.pickP, s.g.nlook, s.g.pickLeft = p, uint8(nr), uint8(nf-i)
+				if s.cloneReturnPark(k, fnd[i], p) {
+					return false
+				}
 				if !s.digEnter(k, p, fnd[i], fl&kop.DuFoundTapped != 0, fl&kop.DuFoundAttacking != 0) {
-					return
+					return true
+				}
+				if s.g.pre.obj == fnd[i] {
+					s.g.pre = preAsk{}
+				}
+				s.g.pickLeft--
+				if s.parkTail(k, tailDigUntil) {
+					return false
 				}
 				continue
 			}
 			s.digMove(k, p, fnd[i], fz, fnd[i+1:nf], rev[:nr])
+		}
+		if entering {
+			s.digPop(pl, nr, rev[:nr], nil)
 		}
 		if fl&kop.DuRandomOrder != 0 {
 			// gorge's DigUntil: a forward Fisher-Yates drawing once per
@@ -1687,6 +1718,20 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 			}
 		}
 	}
+	return true
+}
+
+// digPop takes the n cards off the top of pl's library into no zone: a and b.
+func (s *State) digPop(pl *player, n int, a, b []Obj) {
+	for _, o := range a {
+		s.touch(o)
+		s.objs[o].zone = kop.ZoneNone
+	}
+	for _, o := range b {
+		s.touch(o)
+		s.objs[o].zone = kop.ZoneNone
+	}
+	pl.libLo += uint8(n)
 }
 
 // execCopyToken creates the instruction's token copies. A copy of an Aura

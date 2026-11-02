@@ -756,8 +756,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
+		r.ask = raNone
 		if s.finishDig(k) {
-			return // the rest are arranged on the bottom
+			return // the rest are arranged on the bottom, or a taken card's as-enters ask
 		}
 		s.continueRes(k, 0)
 	case raGenDigArrange:
@@ -1193,7 +1194,13 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}
-	return s.searchPick(k) && s.res.ask != raGenEnchant
+	return s.searchPick(k) && !s.moveAsked()
+}
+
+// moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove).
+func (s *State) moveAsked() bool {
+	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1305,12 +1312,13 @@ func (s *State) picksHas(o Obj) bool {
 }
 
 func (s *State) finishSearch(k *prep) {
+	s.res.ask = raNone
 	if s.entryParkSearch(k) {
 		return // a land's CR 616.1 entry-order ask, the card still in the hand (repl_entryorder.go)
 	}
 	s.finishSearchNow(k)
-	if s.res.ask == raGenEnchant {
-		return // a hand move's Aura waits for its host (handAuraEnter)
+	if s.moveAsked() {
+		return
 	}
 	if s.entryLatePark() {
 		return // the order ask that follows the land's entry (repl_entryorder.go)
@@ -1344,7 +1352,7 @@ func (s *State) finishSearchNow(k *prep) {
 		}
 	} else {
 		s.moveFound(k)
-		if s.res.ask == raGenEnchant {
+		if s.moveAsked() {
 			return
 		}
 		if s.parkTail(k, tailSearch) {
@@ -1409,24 +1417,36 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				continue
 			}
 		}
-		from := s.detach(o)
-		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
-			s.countMayPlayLand(k, o, from)
-		}
-		switch z {
-		case kop.ZoneBattlefield:
-			ep := p
+		ep := p
+		if z == kop.ZoneBattlefield {
 			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
 				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
 			}
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
 			}
+			if host == NoSlot && s.cloneReturnPark(k, o, ep) {
+				// the card waits in its zone for the answer (rerunMove), which
+				// moves the cards from this one on
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
+		}
+		from := s.detach(o)
+		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
+			s.countMayPlayLand(k, o, from)
+		}
+		switch z {
+		case kop.ZoneBattlefield:
 			hg := from != kop.ZoneLibrary
 			if hg {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			if s.g.pre.obj == o {
+				s.g.pre = preAsk{}
+			}
 			if hg {
 				s.g.enterCtr.n = 0
 			}
@@ -1504,7 +1524,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255) && s.res.ask == raGenEnterAsk {
+			if s.finishDigAt(k, second == 255) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice) {
 				return false // a taken card's as-enters ask, the tail parked
 			}
 			continue
@@ -1559,32 +1579,57 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
-	if digArranges(n, s.g.lookSel, rz, fl) {
-		// "the rest on the bottom in any order": the taken cards move, the
-		// rest stay on top while their owner orders them, one pick per
-		// card, each going to the bottom in pick order (gorge's
-		// dig_arrange, a full permutation)
+	arranges := digArranges(n, s.g.lookSel, rz, fl)
+	if arranges || z == kop.ZoneBattlefield {
+		// the taken cards move one at a time with the rest still on top; one
+		// entering the battlefield is asked its as-enters choice in the library
+		// (gorge's parked entry), and this runs again from the answer
 		for i := 0; i < n; i++ {
-			if s.g.lookSel&(1<<i) != 0 {
-				o := s.resArm().look[i]
-				s.detach(o)
-				s.digTake(k, o, z, fl)
+			o := s.resArm().look[i]
+			if s.g.lookSel&(1<<i) == 0 || s.objs[o].zone != kop.ZoneLibrary {
+				continue
+			}
+			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
+				return true
+			}
+			s.detach(o)
+			s.digTake(k, o, z, fl)
+			if s.g.pre.obj == o {
+				s.g.pre = preAsk{}
+			}
+			if z == kop.ZoneBattlefield && park && i+1 < n && s.g.lookSel>>(i+1) != 0 && s.parkTail(k, tailDigEnter) {
+				return true
 			}
 		}
+	}
+	if arranges {
+		// "the rest on the bottom in any order": the rest stay on top while their
+		// owner orders them, one pick per card, each going to the bottom in pick
+		// order (gorge's dig_arrange, a full permutation)
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
 		s.res.ask, s.res.askP = raGenDigArrange, p
 		return true
 	}
-	for i := 0; i < n; i++ {
-		s.touch(s.resArm().look[i])
-		s.objs[s.resArm().look[i]].zone = kop.ZoneNone
-	}
-	pl.libLo += uint8(n)
-	for i := 0; i < n; i++ {
-		if s.g.lookSel&(1<<i) != 0 {
-			s.digTake(k, s.resArm().look[i], z, fl)
+	if z == kop.ZoneBattlefield {
+		for i := 0; i < n; i++ {
+			if s.g.lookSel&(1<<i) == 0 {
+				s.touch(s.resArm().look[i])
+				s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+				pl.libLo++
+			}
+		}
+	} else {
+		for i := 0; i < n; i++ {
+			s.touch(s.resArm().look[i])
+			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+		}
+		pl.libLo += uint8(n)
+		for i := 0; i < n; i++ {
+			if s.g.lookSel&(1<<i) != 0 {
+				s.digTake(k, s.resArm().look[i], z, fl)
+			}
 		}
 	}
 	if park && s.parkTail(k, tailDig) {

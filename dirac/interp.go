@@ -535,7 +535,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) {
 			break
 		}
-		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, in, o, ob.owner()) {
+		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
 			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)
 		}
 		s.execReturnSimple(k, in, o)

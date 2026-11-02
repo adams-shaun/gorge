@@ -112,7 +112,7 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 			s.continueRes(k, 0) // declined: the owner is skipped
 			return true
 		}
-		if s.searchPick(k) && s.res.ask != raGenEnchant {
+		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
 	default:

@@ -21,7 +21,7 @@ var DebugCloneReturnNoAsk bool
 // caller must suspend without moving the card.
 //
 //go:noinline
-func (s *State) cloneReturnPark(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
+func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 	if DebugCloneReturnNoAsk {
 		return false
 	}
@@ -85,11 +85,30 @@ func (s *State) rerunReturn(k *prep) {
 	o := s.g.pre.obj
 	s.g.pre.state = 2
 	in := &s.prog(k)[s.res.pc]
-	if in.Op == kop.OpReturnEx {
+	switch in.Op {
+	case kop.OpDigUntil, kop.OpDigEx, kop.OpSearchEx, kop.OpChooseMove:
+		s.res.ask = raNone
+		if s.rerunMove(k, in) {
+			return // suspended again
+		}
+	case kop.OpReturnEx:
 		s.execReturn(k, in, NoSlot)
-	} else {
+	default:
 		s.execReturnSimple(k, in, o)
 	}
 	s.g.pre = preAsk{}
 	s.continueRes(k, 0)
+}
+
+// rerunMove runs a found card's move again after its as-enters answer; true when it
+// suspended at another ask.
+func (s *State) rerunMove(k *prep, in *kop.Instr) bool {
+	switch in.Op {
+	case kop.OpDigUntil:
+		return !s.execDigUntil(k, in, true)
+	case kop.OpDigEx:
+		return s.finishDig(k)
+	}
+	s.finishSearchNow(k)
+	return s.res.ask != raNone
 }
