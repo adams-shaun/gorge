@@ -99,6 +99,7 @@ func (a *SBT) card(s *dirac.State, o uint8, cv *view.CardView) {
 		pl := state.PlayerID(po.Attacks - dirac.PlayerTarget0)
 		cv.AttackingPlayer = &pl
 	}
+	cv.Blocked = s.FeatBlocked(ob)
 	// the type line: an animated land is a creature, a creature an effect
 	// made a non-creature is not (sb-tactical counts creatures by the line)
 	isCre := s.IsCreature(ob)
