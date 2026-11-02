@@ -30,7 +30,11 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 	if o == NoObj {
 		return
 	}
-	if !lastBear {
+	if bottom && s.objs[o].zone != kop.ZoneBattlefield {
+		// Origin$ Battlefield: an object that already left (a second trigger
+		// of the source that went to the library first) does not move, and
+		// the library is shuffled all the same (CR 701.24c)
+	} else if !lastBear {
 		s.moveRef(k, in.Obj, kop.ZoneLibrary, bottom)
 	} else if s.objs[o].zone == kop.ZoneBattlefield {
 		// the last bearer returned: gorge's LastBearer names the returned

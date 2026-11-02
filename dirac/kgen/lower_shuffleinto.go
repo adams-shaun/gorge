@@ -29,6 +29,9 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 		switch strings.TrimSpace(lp) {
 		case "0":
 		case "-1":
+			if origin != zBattlefield {
+				return refuse("shuffled move from %s with LibraryPosition$", zoneLabel[origin])
+			}
 			bottom = true
 		default:
 			return refuse("shuffled move with LibraryPosition$")

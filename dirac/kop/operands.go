@@ -360,7 +360,8 @@ const LibTopShuffleSelf = 5
 // LibBottomShuffle is OpToLibrary's C for LibTopShuffle with
 // LibraryPosition$ -1: the object goes on the bottom of its owner's library,
 // which is then shuffled (the placement is the shuffle's input, so it is
-// not the top's).
+// not the top's). Origin$ Battlefield only: an object no longer on the
+// battlefield does not move, but the library is still shuffled.
 const LibBottomShuffle = 7
 
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
