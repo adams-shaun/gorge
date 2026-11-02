@@ -252,33 +252,6 @@ func hasRememberedDestroyedLand(g *state.Game, ts []state.Target) bool {
 	return false
 }
 
-// changeZoneMoveSkip repeats the mover loop's per-object skip guards.
-// Origin$, when given, is a precondition: the object must actually be where
-// the script expects, or the movement does not happen. This is also this
-// build's only CR 608.2b guard for ChangeZone: a target moved away by an
-// earlier effect in the same resolution, or by a response that has already
-// resolved, is simply skipped rather than moved a second time or moved from
-// the wrong zone. A CantExile restriction (The Master, Multiplied: "Triggered
-// abilities you control can't cause you to ... exile creature tokens you
-// control") withholds the object from an exile entirely: it never leaves the
-// battlefield, no MoveZone is emitted and none of the inlined riders
-// (exiled-with, RememberChanged, exile-return) run. The shared settle path
-// (settleChangeZoneMoveAs) carries the same guard for every other ChangeZone
-// mover, and effChangeZone's departure-batch pre-pass
-// (changeZoneDepartureBatch) shares this predicate so its victim list cannot
-// drift from the moves.
-// SourceIsNewObject reports that ro, an ability on the stack, has a source on the
-// battlefield that left and returned since ro went on the stack: a new object the
-// ability has no relation to (CR 400.7), not "this creature", and "another creature"
-// can name it.
-func SourceIsNewObject(g *state.Game, ro *state.Object) bool {
-	if ro == nil || !ro.PushSourceStamped {
-		return false
-	}
-	src := g.Obj(ro.Source)
-	return src != nil && src.Zone == state.ZBattlefield && src.Incarnation != ro.PushSourceIncarnation
-}
-
 // sourceReturnedSincePush reports that o is the resolving ability's own
 // source, the ability went on the stack while that source was OFF the
 // battlefield (Reassembling Skeleton's "{1}{B}: Return this card from your
@@ -296,6 +269,18 @@ func sourceReturnedSincePush(h Host, c *Ctx, o *state.Object) bool {
 		return false
 	}
 	return o.Incarnation != ro.PushSourceIncarnation
+}
+
+// SourceIsNewObject reports that ro, an ability on the stack, has a source on the
+// battlefield that left and returned since ro went on the stack: a new object the
+// ability has no relation to (CR 400.7), not "this creature", and "another creature"
+// can name it.
+func SourceIsNewObject(g *state.Game, ro *state.Object) bool {
+	if ro == nil || !ro.PushSourceStamped {
+		return false
+	}
+	src := g.Obj(ro.Source)
+	return src != nil && src.Zone == state.ZBattlefield && src.Incarnation != ro.PushSourceIncarnation
 }
 
 // dropDelayedRememberedMoved removes from a Defined$
@@ -383,6 +368,21 @@ func tokenCannotChangeZone(o *state.Object) bool {
 	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack
 }
 
+// changeZoneMoveSkip repeats the mover loop's per-object skip guards.
+// Origin$, when given, is a precondition: the object must actually be where
+// the script expects, or the movement does not happen. This is also this
+// build's only CR 608.2b guard for ChangeZone: a target moved away by an
+// earlier effect in the same resolution, or by a response that has already
+// resolved, is simply skipped rather than moved a second time or moved from
+// the wrong zone. A CantExile restriction (The Master, Multiplied: "Triggered
+// abilities you control can't cause you to ... exile creature tokens you
+// control") withholds the object from an exile entirely: it never leaves the
+// battlefield, no MoveZone is emitted and none of the inlined riders
+// (exiled-with, RememberChanged, exile-return) run. The shared settle path
+// (settleChangeZoneMoveAs) carries the same guard for every other ChangeZone
+// mover, and effChangeZone's departure-batch pre-pass
+// (changeZoneDepartureBatch) shares this predicate so its victim list cannot
+// drift from the moves.
 func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.Zone, originAll bool) bool {
 	// CR 111.8 first: an off-battlefield token would otherwise be moved again
 	// inside one resolution, before any state-based action could cease it
