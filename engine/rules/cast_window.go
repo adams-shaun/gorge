@@ -89,7 +89,51 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 		}
 		out = append(out, u)
 	}
+	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
+		out = e.castWindowTapExtras(out)
+	}
 	return out
+}
+
+// castWindowTapExtras adds to each single-symbol alternative the mana a tap
+// trigger brings with it (Forsaken Monument's additional {C}): the tap that
+// makes the alternative floats both, so the window's reach is the sum. The
+// alternative keeps its symbol and the extra joins its count; each unit gets
+// a fresh Alts slice, as the census spans may share backing.
+func (e *Engine) castWindowTapExtras(units []windowManaUnit) []windowManaUnit {
+	for ui := range units {
+		u := &units[ui]
+		var alts []windowManaAlt
+		for ai, a := range u.Alts {
+			sym, n := -1, 0
+			for i, c := range a.Counts {
+				if c > 0 {
+					sym, n = i, n+1
+				}
+			}
+			if n != 1 || a.Ma == nil || a.Any {
+				continue
+			}
+			extra := e.paymentPlanTapExtraMana(u.ID, string(rune(cards.ManaSymbol(sym))))
+			if extra == (state.Mana{}) {
+				continue
+			}
+			if alts == nil {
+				alts = append(make([]windowManaAlt, 0, len(u.Alts)), u.Alts...)
+			}
+			// one count per mana: the amount is 1 and the symbol's count is
+			// what the tap makes plus the extra
+			alts[ai].Counts[sym] = a.Counts[sym] * a.Amt
+			alts[ai].Amt = 1
+			for i := range alts[ai].Counts {
+				alts[ai].Counts[i] += extra[state.ManaIndex(cards.ManaSymbol(i))]
+			}
+		}
+		if alts != nil {
+			u.Alts = alts
+		}
+	}
+	return units
 }
 
 // castWindowReflectedUnits is castWindowUnits' reflected-mana pass: for each
