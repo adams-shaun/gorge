@@ -582,6 +582,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/cmd/dplay": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/cmd/kgen": {
       "tier": "dirac",
       "status": "EXT"

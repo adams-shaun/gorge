@@ -41,13 +41,15 @@ Without a corpus the module still builds, corpus-dependent tests skip, and the h
 | I want to … | use | what it does |
 |---|---|---|
 | play a game from Go | package `dirac` | the `Step`/`Apply` loop, below |
+| play games and see who wins, or how fast | `dirac/cmd/dplay` | seeded games on dirac alone, with a line per game and a summary; below |
 | play both engines and compare them | `dirac/oracle/cmd/kfuzz` | seeded lockstep games on a deck pool or a card list; see `dirac/docs/verification.md` |
 | ask whether a card is supported | `dirac/cmd/kgen -supported <pool>` | one line per card in the pool; see `dirac/docs/cards.md` |
 | build the card tables | `make dirac-tables`, which runs `dirac/cmd/kgen` | every pool's binary table, under the corpus |
 | compare the heuristic bots | `dirac/oracle/cmd/khbot` | gorge's auto-pay heuristic bot against its port on the kernel, per decision kind |
 | compare sb-tactical | `dirac/oracle/cmd/ksbt` | gorge's sb-tactical answering through a view built from the kernel position |
 | serve dirac as a SpellBench v2 engine | `dirac/cmd/sbv2dirac` | the engine role, with gorge as the lockstep shadow |
-| measure speed | `go test -bench` in `./dirac` | the transition benchmarks, below |
+| measure transition speed | `go test -bench` in `./dirac` | the transition benchmarks, below |
+| measure whole-game speed against other engines | `scripts/xengine-bench.sh dirac` | `dplay` on one pinned core; see `docs/site/performance/methodology.md` |
 
 ## A first lockstep run
 
@@ -62,6 +64,71 @@ fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 
 
 A clone plays the committed slices in `dirac/oracle/testdata/slices`, the first 1500 pairs of the
 `fdn` and `blb` pools at seed 1. `kfuzz -synth <pool>` plays a card list instead of a deck list.
+
+## Playing games with dplay
+
+`dirac/cmd/dplay` plays dirac alone, with no gorge game beside it. Every game runs under
+`dirac.LockstepConfig` on the table `Set.Matchup` builds for the pair, the configuration and table
+`kfuzz` verifies against gorge, so a clean lockstep of the same seed is the same game.
+
+```sh
+go run -trimpath ./dirac/cmd/dplay -pairs 20 -a hbot -b random
+```
+
+Each game is one line on stdout, and the summary goes to stderr:
+
+```
+{"pair":0,"decks":["FDN_top_18855_URpG","FDN_top_02809_WG"],"seed":13195997260158159602,"winner":0,"turns":18,"intents":115}
+```
+
+`winner` is 0 for seat A, 1 for seat B, and -1 for no winner. A stalled game adds `stall` (its reason)
+and `class`: `capacity` (a declared limit), `unmodelled` (a rule gap) or `cap` (`-max-turns` or
+`-max-intents`). A game that panicked adds `error`. The summary counts games, wins by seat, draws,
+stalls by class and reason, refusals, turns, decisions and the run's CPU and wall seconds, counted
+from after the first pair's table is built. The games file depends only on the flags, whatever
+`-workers` is, unless `-wall` ends the run.
+
+| flag | default | meaning |
+|---|---|---|
+| `-cards` | `$GORGE_CARDS`, else `.cards` in or above the working directory | the corpus |
+| `-set` | `fdn` | the card set, a name in `dirac/cardset` |
+| `-decks` | the set's pool, else its committed slice | deck directory, `<name>.json` per deck |
+| `-pool` | `<decks>/../pool.tsv` | the decks pairs are drawn from |
+| `-split` | `all` | pool split: `train`, `eval` or `all` |
+| `-deck-a` | none | deck JSON file for seat A, with `-deck-b`, instead of a pool |
+| `-deck-b` | none | deck JSON file for seat B |
+| `-pairs` | 100 | deck pairs, one game each |
+| `-first-pair` | 0 | index of the first pair |
+| `-seed` | 1 | base seed; pairs and game seeds derive from it as in `kfuzz` |
+| `-pairs-file` | none | play these pairs: `deckA<TAB>deckB[<TAB>seed]` per line |
+| `-a` | `hbot` | seat A's player, who plays the pair's first deck: `random`, `first`, `hbot` or `sbt` |
+| `-b` | `random` | seat B's player |
+| `-mulligans` | 0 | London mulligans each player may take; 0 skips the round |
+| `-mulligan-policy` | `coin` | how every seat mulligans: `coin`, `lands`, `never`, `constructed` or `forge` (`dirac/search/mull`) |
+| `-max-turns` | 100 | turn cap; a capped game is a stall |
+| `-max-intents` | 20000 | decision cap per game; a capped game is a stall |
+| `-workers` | 1 | games in parallel |
+| `-wall` | 0 | start no game after this much wall time; 0 plays every pair |
+| `-out` | stdout | games file |
+| `-summary` | stderr | summary file |
+| `-skip-refused` | off | skip a pair the set refuses and count it, instead of failing |
+| `-sample-replay` | 0 | fraction of games also written as `koracle-game-1` records under `<out>.replays`, which `kfuzz -replay` re-executes in gorge; needs `-out` |
+| `-config` | `lockstep-autopay` | the verified surface: `lockstep-autopay` or `lockstep-full` |
+
+`random` picks uniformly from its own stream, seeded from the game's seed. `first` takes the first
+option offered. `hbot` is `dirac/search/hbot`, the port of gorge's auto-pay heuristic bot, and `sbt` is
+gorge's sb-tactical answering through `dirac/oracle`. `hbot` and `sbt` read gorge's compiled cards, so
+they open the corpus; `random` and `first` read only the card tables.
+
+A clone with no deck pool plays the committed slice, which holds `-split all -seed 1` pairs 0 to 1499.
+Other pairs need `GORGE_POOLS`.
+
+A deck holding a card the set does not play is an error naming the card and why, before any game.
+With `-skip-refused` the pair is skipped: the summary's `refused_pairs` counts it, and `refused_cards`
+names the first such card of each refused deck. Two decks the set plays can still be refused together;
+that error names the pair when it comes up, and `refused_pair_reasons` counts it under
+`-skip-refused`. A card missing from the set altogether is always an error: those decks belong to
+another set.
 
 ## Driving dirac from Go
 

@@ -199,8 +199,8 @@ works under any `-kernel`.
 
 ## The oracle import boundary
 
-Only `dirac/oracle` and its commands, `dirac/kgen` and `dirac/cmd/sbv2dirac` may import gorge's
-packages. The core (`dirac`, `dirac/kop`, `dirac/vanilla`, `dirac/cardset`, `dirac/search/...`,
+Only `dirac/oracle` and its commands, `dirac/kgen`, `dirac/cmd/dplay` and `dirac/cmd/sbv2dirac` may
+import gorge's packages. The core (`dirac`, `dirac/kop`, `dirac/vanilla`, `dirac/cardset`, `dirac/search/...`,
 `dirac/feat`) must not. The boundary keeps the kernel a standalone engine: its `State` cannot
 accidentally hold a gorge pointer or map, and the kernel builds and tests without the gorge engine
 except through the oracle. The oracle is the one place both engines meet, which is why every comparison
@@ -213,6 +213,7 @@ go list -f '{{.ImportPath}}: {{join .Imports " "}}' ./dirac/... | grep -E ' gith
 ```
 
 ```
+github.com/adams-shaun/gorge/dirac/cmd/dplay
 github.com/adams-shaun/gorge/dirac/cmd/sbv2dirac
 github.com/adams-shaun/gorge/dirac/cmd/sbv2dirac/sbv2
 github.com/adams-shaun/gorge/dirac/kgen

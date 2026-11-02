@@ -116,6 +116,7 @@ the SpellBench v2 engine may.
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
+| `dirac/cmd/dplay` | Yes: it reads gorge's deck files, and its bots read gorge's compiled cards through `dirac/oracle`. |
 
 A new import in the no column is a review failure even if the tests pass.
 
@@ -135,8 +136,8 @@ A new import in the no column is a review failure even if the tests pass.
 | `dirac/crcoverage` | Test-only CR coverage audit (`README.md` plus one file per CR chapter); `TestCRCoverageIsCurrent` checks every row against the code. |
 | `dirac/<topic>_<mechanic>.go` | One file per mechanic. `doc.go` lists the topics. A contributor adds a new file instead of appending to a shared one. |
 
-Commands: `dirac/cmd/kgen` writes the binary tables; `dirac/cmd/sbv2dirac` serves the kernel as a
-SpellBench v2 engine. See [running](docs/running.md).
+Commands: `dirac/cmd/kgen` writes the binary tables; `dirac/cmd/dplay` plays games on the kernel alone;
+`dirac/cmd/sbv2dirac` serves the kernel as a SpellBench v2 engine. See [running](docs/running.md).
 
 ## Where next
 

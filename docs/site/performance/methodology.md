@@ -184,13 +184,13 @@ The driver refuses a deck with a card mtg-kernel doesn't fully support rather th
 
 ### dirac
 
-[dirac's source isn't in this repository yet](../architecture/dirac/index.md), and neither is its game runner, `kplay`, so these commands
-can't be run from a clone of gorge. They are how the published rows were made. The game rows use the same script, which calls `kplay`
-when `KPLAY` names a binary:
+The game rows use `dirac/cmd/dplay`, built from the checkout. It needs the corpus and dirac's tables (`make fetch-cards compile-cards dirac-tables`):
 
 ```sh
-KPLAY=<kplay binary> OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh dirac
+OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh dirac
 ```
+
+Both rows play `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
 
 The transition rows are Go benchmarks, one core, reporting no allocations:
 
