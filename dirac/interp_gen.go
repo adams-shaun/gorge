@@ -1517,10 +1517,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		// one departure batch)
 		if mv&kop.MvRemember != 0 {
 			s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
-			return
+			return true
 		}
 		s.leaveAll(k, hit, z)
-		return
+		return true
 	}
 	// cards in a zone of each player, seat 0 first (gorge
 	// changeZoneAllPlayers: AliveFrom(0), not APNAP); a sweep onto the
