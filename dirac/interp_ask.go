@@ -472,8 +472,8 @@ func (s *State) enchantingCard(k *prep) CardID { return s.objs[s.enchantingObj(k
 func (s *State) enchantingObj(k *prep) Obj {
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
 		return s.objRefObj(in.Obj)
-	} else if in.Op == kop.OpChooseMove {
-		return s.resArm().look[0] // the hand move's parked Aura (handAuraEnter)
+	} else if in.Op == kop.OpChooseMove || in.Op == kop.OpSearchEx {
+		return s.resArm().look[0] // the move's parked Aura (handAuraEnter)
 	}
 	return s.res.lastTok
 }
@@ -984,6 +984,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			r.ask = raNone
 			s.moveFoundAns(k, s.objs[a.Source()].slot) // zone_handmoveaura.go: enter, attach, remember
 			s.continueRes(k, 0)
+			return
+		case kop.OpSearchEx:
+			r.ask = raNone
+			s.moveFoundAns(k, s.objs[a.Source()].slot)
+			if !s.parkTail(k, tailSearch) {
+				s.finishSearchTail(k)
+				s.continueRes(k, 0)
+			}
 			return
 		}
 		t := r.lastTok

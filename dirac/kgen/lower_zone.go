@@ -343,6 +343,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				}
 				flags = append(flags, "alt="+alt)
 			}
+			if dest == zBattlefield && !isConstN(n, 1) {
+				// CR 303.4f: the kernel parks one found Aura for its enchant ask.
+				for _, c := range f.Clauses {
+					if c.Types == 0 && c.Subtype == "" && c.Name == "" || c.Types&tEnchantment != 0 {
+						return refuse("search onto the battlefield for %v cards with a filter that may admit an Aura", n)
+					}
+				}
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
 			return nil
 		}
