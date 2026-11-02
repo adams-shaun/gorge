@@ -46,8 +46,10 @@ import (
 // the pending one.
 const adviceWatch = 50 * time.Millisecond
 
-// errAdviceStale answers a request for a decision that is no longer pending.
-var errAdviceStale = errors.New("The decision has moved on.")
+// ErrAdviceStale answers a request for a decision that is no longer pending,
+// and a seat with nothing pending: the client's view lags the game, so a
+// player's own answer can overtake the request.
+var ErrAdviceStale = errors.New("The decision has moved on.")
 
 // Words a player reads. A redeal's own refusal reasons can quote counts of
 // hidden cards, and a search's reason is a report name, so neither reaches the
@@ -166,8 +168,8 @@ type adviceJob struct {
 // Advice returns the paired bot's evaluation of the decision seq pending on
 // player's human seat. It blocks until the search ends. At most one search runs
 // per table: asking about a newer decision cancels the older search, and a
-// search ends early once its decision moves on or everyone asking has gone. An
-// answer is never returned for a decision that is no longer pending.
+// search ends early once its decision moves on or everyone asking has gone. A
+// decision that is no longer pending gets ErrAdviceStale, never an answer.
 func (r *Registry) Advice(ctx context.Context, id TableID, k int, player state.PlayerID, seq uint64) (protocol.Advice, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -186,21 +188,26 @@ func (r *Registry) Advice(ctx context.Context, id TableID, k int, player state.P
 		return protocol.Advice{}, err
 	}
 	d, err := r.Pending(id, k, player)
+	var idle nothingPending
+	if errors.As(err, &idle) {
+		return protocol.Advice{}, ErrAdviceStale
+	}
 	if err != nil {
 		return protocol.Advice{}, err
 	}
 	if d.Seq != seq {
-		return protocol.Advice{}, errAdviceStale
+		return protocol.Advice{}, ErrAdviceStale
 	}
 	job, key, ok := m.adviceJob(*d)
 	if !ok {
-		return protocol.Advice{}, errAdviceStale
+		return protocol.Advice{}, ErrAdviceStale
 	}
 
 	slot := &t.advice
 	slot.mu.Lock()
 	prev := slot.run
-	if prev != nil && prev.key == key && (!prev.finished || prev.err == nil) {
+	// An unfinished run with no one waiting has been cancelled and is winding down.
+	if prev != nil && prev.key == key && (prev.finished && prev.err == nil || !prev.finished && prev.waiters > 0) {
 		prev.waiters++
 		slot.mu.Unlock()
 		return awaitAdvice(ctx, slot, prev)
@@ -281,7 +288,7 @@ func (r *Registry) runAdvice(ctx context.Context, slot *adviceSlot, run *adviceR
 	job.m.mu.RUnlock()
 	switch {
 	case !current:
-		err = errAdviceStale
+		err = ErrAdviceStale
 	case err != nil && ctx.Err() != nil:
 		// Everyone asking has gone, or a request for another decision took over.
 	case err != nil:

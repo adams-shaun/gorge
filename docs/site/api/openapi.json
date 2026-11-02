@@ -6227,7 +6227,7 @@
                   "moved": {
                     "summary": "the decision moved on",
                     "value": {
-                      "code": "conflict",
+                      "code": "advice_stale",
                       "message": "The decision has moved on."
                     }
                   }
@@ -6237,7 +6237,7 @@
                 }
               }
             },
-            "description": "The decision is no longer pending, the seat has nothing pending, or the table does not offer the bot."
+            "description": "`advice_stale`: the decision is no longer pending, or the seat has nothing pending. `conflict`: the table does not offer the bot."
           }
         },
         "security": [

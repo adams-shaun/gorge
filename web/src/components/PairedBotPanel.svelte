@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import type { Advice, Decision, PairedBotStatus } from '../protocol';
-  import { fetchAdvice, fetchPairedBotStatus } from '../lib/api';
+  import { ApiError, fetchAdvice, fetchPairedBotStatus } from '../lib/api';
   import { adviceRows, differedNote, loadPairedBotOn, pairedRowLabel, savePairedBotOn, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
   import type { ExplainNote, ExplainSearch } from '../lib/review';
   import { signed, sourceBadge } from '../lib/review';
@@ -42,7 +42,8 @@
   let status = $state<PairedBotStatus | null>(null);
   let on = $state(loadPairedBotOn());
   let advice = $state<Advice | null>(null);
-  let failed = $state<string | null>(null);
+  /** Why the last request brought no advice: the game went ahead of it, or anything else, whose words are not a player's. */
+  let missed = $state<'stale' | 'failed' | null>(null);
   let attempt = $state(0);
   let differed = $state<string | null>(null);
   let advised: { seq: number; decision: Decision; search: ExplainSearch }[] = [];
@@ -69,7 +70,7 @@
     const s = seq;
     void attempt;
     advice = null;
-    failed = null;
+    missed = null;
     if (!on || !status?.offered || s === null) return;
     const asked = untrack(() => decision);
     const hangup = new AbortController();
@@ -84,7 +85,7 @@
           }
         })
         .catch((e: unknown) => {
-          if (!hangup.signal.aborted) failed = e instanceof Error ? e.message : String(e);
+          if (!hangup.signal.aborted) missed = e instanceof ApiError && e.code === 'advice_stale' ? 'stale' : 'failed';
         });
     }, SETTLE_MS);
     return () => {
@@ -122,7 +123,7 @@
 </script>
 
 {#if status?.offered || status?.reason}
-  <section class="paired" aria-label="Paired bot" data-paired-panel data-state={!status.offered ? 'unavailable' : !on ? 'off' : seq === null ? 'idle' : shown ? shown.state : failed ? 'failed' : 'working'}>
+  <section class="paired" aria-label="Paired bot" data-paired-panel data-state={!status.offered ? 'unavailable' : !on ? 'off' : seq === null ? 'idle' : shown ? shown.state : (missed ?? 'working')}>
     <header>
       <h3>Paired bot</h3>
       {#if status.offered}
@@ -140,8 +141,8 @@
       {:else}
         {#if seq === null}
           <p class="quiet">Nothing to weigh until your next decision.</p>
-        {:else if failed}
-          <p class="refused">The bot did not answer: {failed}</p>
+        {:else if missed}
+          <p class="refused">{missed === 'stale' ? 'This advice is out of date.' : 'The bot did not answer.'}</p>
           <button type="button" class="again" onclick={() => attempt++}>Ask again</button>
         {:else if !shown}
           <p class="quiet" role="status">Search is looking ahead…</p>

@@ -17,11 +17,15 @@ const state = () => page.getAttribute(panel, 'data-state');
 const probe = () => page.evaluate(() => (window as unknown as { __probe: { asked: number[]; posts: number } }).__probe);
 const setSeq = (s: number) => page.evaluate((v) => (window as unknown as { __setSeq: (s: number) => void }).__setSeq(v), s);
 
+const open = async () => {
+  page ??= await browser.newPage();
+  await page.goto(`${browserURL}src/components/PairedBotPanel.fixture.html`);
+  await page.waitForSelector(panel, { timeout: 60_000 });
+};
+
 describe('PairedBotPanel', () => {
   it('stays off until asked, shows only the decision in front of the player, notes a different answer, and answers nothing', async () => {
-    page = await browser.newPage();
-    await page.goto(`${browserURL}src/components/PairedBotPanel.fixture.html`);
-    await page.waitForSelector(panel, { timeout: 60_000 });
+    await open();
     expect(await state()).toBe('off');
     await page.waitForTimeout(400);
     expect((await probe()).asked).toEqual([]);
@@ -64,5 +68,22 @@ describe('PairedBotPanel', () => {
 
     await page.click(`${panel} .switch`);
     expect(await state()).toBe('off');
+  });
+
+  it('calls a request the game overtook out of date and offers it again, and never shows a server error', async () => {
+    await open();
+    await page.click(`${panel} .switch`);
+    await setSeq(4);
+    await page.waitForSelector(`${panel}[data-state="stale"]`);
+    expect(await page.locator(panel).textContent()).toContain('This advice is out of date.');
+    await page.click(`${panel} .again`);
+    await page.waitForSelector(`${panel} table.advice`);
+    expect(await page.locator(`${panel} tr.best`).textContent()).toContain('Cast Spell 4');
+
+    await setSeq(5);
+    await page.waitForSelector(`${panel}[data-state="failed"]`);
+    const text = await page.locator(panel).textContent();
+    expect(text).toContain('The bot did not answer.');
+    expect(text).not.toContain('host:');
   });
 });

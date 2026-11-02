@@ -184,7 +184,8 @@ The seat comes from the token alone, so spectators and other seats get nothing.
 `explain`, the same shape as a review decision's; `none` when the bot doesn't evaluate that kind of
 decision; or `refused`. `reason` is always plain words: why a `none` or `refused` has no evaluation,
 or what to know about a `ready` one, such as a search that ran out of time. A decision that has moved
-on is a 409. Row `choices` index the decision's `options`; a row with `payment` names one of its
+on, or a seat with nothing pending, is a 409 with code `advice_stale`, which is no failure: the game went
+ahead of the request, so ask about the decision you hold now. Row `choices` index the decision's `options`; a row with `payment` names one of its
 `payment_actions` instead. Row `q` and `root_value` run from -1 to +1 for the seat; the client shows
 them as `(q + 1) * 50` percent. A row with no `visits` has no estimate.
 

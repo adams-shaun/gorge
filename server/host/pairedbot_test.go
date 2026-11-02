@@ -267,7 +267,7 @@ func TestPairedBotSearchesBesideTheGame(t *testing.T) {
 			if err := r.SubmitIntent("t1", 1, 0, landFirstAnswer(d)); err != nil {
 				t.Fatal(err)
 			}
-			if err := <-got; err != nil && !errors.Is(err, errAdviceStale) && !strings.Contains(err.Error(), "no decision pending") {
+			if err := <-got; err != nil && !errors.Is(err, ErrAdviceStale) && !strings.Contains(err.Error(), "no decision pending") {
 				t.Fatalf("auto mana %v, decision %d: %v", autoMana, d.Seq, err)
 			}
 		}
@@ -280,6 +280,7 @@ type stubAdvisor struct {
 	running, peak *atomic.Int64
 	started       chan<- uint64
 	release       <-chan struct{}
+	linger        <-chan struct{} // nil, or what a cancelled search waits for before it ends
 	belief        *searchprobe.Belief
 	note          func(explain.Note)
 }
@@ -305,6 +306,9 @@ func (s *stubAdvisor) DecideEnv(ctx context.Context, _ bots.Env, d decision.Deci
 	s.started <- d.Seq
 	select {
 	case <-ctx.Done():
+		if s.linger != nil {
+			<-s.linger
+		}
 		return decision.Intent{}, ctx.Err()
 	case <-s.release:
 	}
@@ -319,6 +323,7 @@ type stubFixture struct {
 	running, peak atomic.Int64
 	started       chan uint64
 	release       chan struct{}
+	linger        chan struct{}
 }
 
 func newStubFixture(t *testing.T, limit int, ids ...TableID) *stubFixture {
@@ -329,7 +334,7 @@ func newStubFixture(t *testing.T, limit int, ids ...TableID) *stubFixture {
 	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
 	o.PairedBotSearches = limit
 	o.PairedBot = &bots.Entry{Info: bots.Info{Name: "stub"}, New: func(bots.Options) (seat.Seat, error) {
-		return &stubAdvisor{running: &f.running, peak: &f.peak, started: f.started, release: f.release, belief: belief}, nil
+		return &stubAdvisor{running: &f.running, peak: &f.peak, started: f.started, release: f.release, linger: f.linger, belief: belief}, nil
 	}}
 	r, err := New(o)
 	if err != nil {
@@ -625,4 +630,70 @@ func TestPairedBotRefusesAMidResolutionAsk(t *testing.T) {
 		}
 	}
 	t.Fatal("fixture: no storm copy asked for a new target")
+}
+
+// A seat with nothing parked is asking about a decision that has moved on, the
+// same answer whichever way it moved, so a player never reads the host's error.
+func TestPairedBotCallsAnIdleSeatStale(t *testing.T) {
+	o := testOptions(t)
+	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
+	o.PairedBot = pairedTestEntry(t)
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	c := pairedTable([]int{0, 1})
+	c.AllowPairedBot = true
+	if err := r.AddTable(c); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	d := parkedAfter(t, r, 0, 0)
+	if _, err := r.Advice(context.Background(), "t1", 1, 1, d.Seq); !errors.Is(err, ErrAdviceStale) {
+		t.Fatalf("idle seat: %v", err)
+	}
+	if _, err := r.Advice(context.Background(), "t1", 1, 0, d.Seq+1); !errors.Is(err, ErrAdviceStale) {
+		t.Fatalf("another decision: %v", err)
+	}
+}
+
+// A request arriving while a search winds down after its last asker left gets
+// its own search, not the cancellation meant for the one who left.
+func TestPairedBotNeverJoinsAnAbandonedSearch(t *testing.T) {
+	f := newStubFixture(t, 2, "t1")
+	linger := make(chan struct{})
+	f.linger = linger
+	d := parkedAfter(t, f.r, 0, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	first := f.ask(ctx, "t1", d.Seq)
+	<-f.started
+	cancel()
+	<-first
+
+	second := f.ask(context.Background(), "t1", d.Seq)
+	f.r.mu.RLock()
+	slot := &f.r.tables["t1"].advice
+	f.r.mu.RUnlock()
+	slot.mu.Lock()
+	left := slot.run
+	slot.mu.Unlock()
+	for decided := false; !decided; {
+		slot.mu.Lock()
+		decided = slot.run != left || left.waiters > 0
+		slot.mu.Unlock()
+		time.Sleep(time.Millisecond)
+	}
+	close(linger)
+	close(f.release)
+	select {
+	case ans := <-second:
+		if ans.err != nil || ans.a.State != protocol.AdviceReady {
+			t.Fatalf("answer %+v", ans)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("no answer")
+	}
 }

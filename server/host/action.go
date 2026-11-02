@@ -28,12 +28,12 @@ func (r *Registry) humanSeat(id TableID, k int, player state.PlayerID) (*HumanSe
 	slots := m.slots
 	m.mu.RUnlock()
 	if st != protocol.MatchLive {
-		return nil, fmt.Errorf("host: match %d is %s, nothing pending", k, st)
+		return nil, nothingPending(fmt.Sprintf("host: match %d is %s, nothing pending", k, st))
 	}
 	if slots == nil {
 		// newMatch publishes the match live a moment before play() installs
 		// its seats; a poll in that window finds nothing parked yet.
-		return nil, fmt.Errorf("host: match %d: no decision pending for player %d (seats not installed yet)", k, player)
+		return nil, nothingPending(fmt.Sprintf("host: match %d: no decision pending for player %d (seats not installed yet)", k, player))
 	}
 	if int(player) >= len(slots) {
 		return nil, fmt.Errorf("host: match %d: player %d out of range (%d seats)", k, player, len(slots))
@@ -44,6 +44,12 @@ func (r *Registry) humanSeat(id TableID, k int, player state.PlayerID) (*HumanSe
 	}
 	return hs, nil
 }
+
+// nothingPending is Pending's error for a seat with no decision parked right
+// now, as opposed to one that could never have one.
+type nothingPending string
+
+func (e nothingPending) Error() string { return string(e) }
 
 // Pending returns a copy of the decision currently being asked of the human
 // seat for player on match k of table id, or an error when the match/seat
@@ -58,7 +64,7 @@ func (r *Registry) Pending(id TableID, k int, player state.PlayerID) (*decision.
 	hs.mu.Lock()
 	defer hs.mu.Unlock()
 	if hs.slot == nil {
-		return nil, fmt.Errorf("host: no decision pending for player %d", player)
+		return nil, nothingPending(fmt.Sprintf("host: no decision pending for player %d", player))
 	}
 	return hs.slot.dec.Clone(), nil
 }
