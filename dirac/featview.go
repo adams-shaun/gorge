@@ -568,8 +568,16 @@ func planDeclinesAddCost(k *prep, c CardID) bool {
 // o in kernel cast mode (0 plain, bit 1 flashback); ok is false for the
 // casts it never plans (FeatPlannedCast).
 func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCost, bool) {
+	return s.plannedCastCostHyb(k, p, o, mode, false)
+}
+
+// plannedCastCostHyb is plannedCastCost, pricing a hybrid cost when hyb: the
+// potential planner resolves its pips (planHybridCost) where the cast planner
+// declines it, so a scripted play of a hybrid spell is priced on the pips as
+// printed.
+func (s *State) plannedCastCostHyb(k *prep, p uint8, o Obj, mode uint8, hyb bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	if planNeverPrices(k, c) {
+	if planNeverPricesHyb(k, c, hyb) {
 		return kop.ManaCost{}, false
 	}
 	if k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
@@ -617,7 +625,10 @@ func (s *State) FeatFaceDown(o Obj) bool {
 func (s *State) FeatPlanNeverPrices(c CardID) bool { return planNeverPrices(s.k(), c) }
 
 // planNeverPrices is plannedCastCost's refusals that read only the card.
-func planNeverPrices(k *prep, c CardID) bool {
+func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesHyb(k, c, false) }
+
+// planNeverPricesHyb is planNeverPrices with a hybrid cost priced when hyb.
+func planNeverPricesHyb(k *prep, c CardID, hyb bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.Face != 0 {
 		// gorge's cast planner plans face 0 only (rules payment_plan.go
@@ -625,7 +636,7 @@ func planNeverPrices(k *prep, c CardID) bool {
 		// a Room back in the hand on door 1 is lowered or pool-paid
 		return true
 	}
-	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !cd.Cost.Phyrexian() || cd.SpendRead || cd.SpentSelf {
+	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() || cd.SpendRead || cd.SpentSelf {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
 	if planDeclinesAddCost(k, c) {

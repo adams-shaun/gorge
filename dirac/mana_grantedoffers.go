@@ -559,7 +559,7 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			// pool and the printed sources
 			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, true
 		}
-		cost, ok = s.plannedCastCost(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay))
+		cost, ok = s.plannedCastCostHyb(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true)
 		return cost, ex, ok
 	}
 	return cost, ex, false
