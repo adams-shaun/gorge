@@ -25,10 +25,10 @@ flowchart LR
     SA["oraclediff status -level A"] --> DD[("docs-data branch<br/>status-A.jsonl, status-B.jsonl, meta.json")]
     SB["oraclediff status -level B"] --> DD
   end
-  subgraph priv["dirac"]
-    RK["acceptance ratchet<br/>lockstep runs"]
+  subgraph dirac["dirac, with the corpus"]
+    RK["dirac/docs/support.md<br/>make dirac-slices"]
   end
-  RK -->|"maintainer edits"| SNAP["support/dirac-sets.json<br/>(committed)"]
+  RK -->|"--refresh-dirac, held by a test"| SNAP["support/dirac-sets.json<br/>(committed)"]
   subgraph build["gorge docs.yml"]
     DS["scripts/docs_sets.py"] --> FR["support/_generated_sets.md<br/>(gitignored)"]
   end

@@ -15,8 +15,7 @@ comparison, because it costs almost nothing itself.
 | random legal action, auto-pay | 14.3 ms a game, 25.9 µs a decision | 14.8 ms, 24.0 µs |
 
 A bot game costs no more than a random one, because the bot ends games in fewer turns (18 against 23-42). About 15% of a bot game's CPU is
-the bot's own code ([Where the time goes](engine.md#where-the-time-goes)). Its port on dirac costs 5.5 µs a decision and about 0.54 ms a game
-([Performance](index.md#the-numbers)).
+the bot's own code ([Where the time goes](engine.md#where-the-time-goes)). [Performance](index.md#the-numbers) has the cost of its port on dirac.
 
 ## Search, per simulation
 
@@ -53,8 +52,8 @@ for n in 25 100 1000; do
 done
 ```
 
-The search rows' JSON line reports `sims_per_cpu_s` and `ms_per_root`. dirac's rows run its game runner with a search on both seats, `-a az:sims=N -b az:sims=N`,
-which can't be run from a clone of gorge ([dirac](methodology.md#dirac)).
+The search rows' JSON line reports `sims_per_cpu_s` and `ms_per_root`. dirac's rows ran a search on both seats through the port of it in the maintainers'
+private companion module, so they can't be reproduced from this repository ([Search and bots](../architecture/dirac/search.md)).
 
 To measure a policy inside whole games, `testkit/bench` (`PlayGame`, `RunPairs`) plays seeded games and deck-pair matrices between any `seat.Seat`
 implementations. `cmd/enginebench -row bot` measures the default bot on the committed workload decks.
