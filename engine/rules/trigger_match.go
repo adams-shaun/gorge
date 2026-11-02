@@ -677,8 +677,23 @@ func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKe
 // that left in the window now open looks back as the object it was (CR 603.10a),
 // so its limits are that object's: the first of several simultaneous deaths spends
 // a once-each-turn line's use even when the source dies among them.
+//
+// On a look-back walk whose source has already left (it died alongside the
+// creature it is watching, CR 603.10a) the limits count the stint that ended on
+// the battlefield: the walk is asking about the permanent as it was.
 func (e *Engine) triggerStint(source state.ObjID) int {
 	stint := e.objectStintStart(source)
+	if e.lookBackWalk {
+		if o := e.G.Obj(source); o != nil && o.Zone != state.ZBattlefield {
+			evs := e.L.Events
+			for i := len(evs) - 1; i >= 0; i-- {
+				if ev := &evs[i]; ev.Obj == source && zoneMovingKind(ev.Kind) && ev.From == state.ZBattlefield {
+					return objectStintStartIn(evs[:i], source)
+				}
+			}
+		}
+		return stint
+	}
 	before := e.triggerBefore
 	if before != nil && !before.noLookBack && stint > before.logEnd {
 		return objectStintStartIn(e.L.Events[:before.logEnd], source)
@@ -1002,7 +1017,9 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		if obj != nil {
 			obj = e.arenaObject(obj)
 		}
+		e.lookBackWalk = true
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
+		e.lookBackWalk = false
 		// Released before the live walk below, whose emits may re-enter
 		// checkTriggers: a nested look-back then reuses the same struct. A
 		// panic skips the release and every later call allocates, exactly as

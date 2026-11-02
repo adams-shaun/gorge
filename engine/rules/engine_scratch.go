@@ -151,6 +151,9 @@ type engineScratch struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot `clone:"reset"`
+	// lookBackWalk is set while checkTriggers walks a departure's triggers on
+	// the pre-departure board.
+	lookBackWalk bool `clone:"reset"`
 	// snapPool recycles the object arenas of trigger-window snapshots no
 	// record retained (trigger_snapshot_pool.go). Owned by exactly one
 	// engine (snapshotPool.owner): a by-value Engine copy (entryPreview's
