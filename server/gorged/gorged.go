@@ -47,6 +47,7 @@ const defaultMulligans = 7
 
 type config struct {
 	addr, cards, decks, dir, spectator string
+	decksGiven                         bool // -decks was on the command line
 	tables, seats                      int
 	pace, cooldown                     time.Duration
 	seed                               uint64
@@ -388,7 +389,12 @@ func serveFlags() (*flag.FlagSet, *config) {
 	c := new(config)
 	fs.StringVar(&c.addr, "addr", ":8080", "listen address")
 	fs.StringVar(&c.cards, "cards", ".cards", "corpus directory (ir.gob.gz / cardsfolder)")
-	fs.StringVar(&c.decks, "decks", defaultDecks, "directory of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks")
+	c.decks = defaultDecks
+	fs.Func("decks", "`directory` of deck JSON files; with -engine dirac the default is the first -dirac-sets set's bench decks", func(v string) error {
+		c.decks, c.decksGiven = v, true
+		return nil
+	})
+	fs.Lookup("decks").DefValue = defaultDecks
 	fs.StringVar(&c.engine, "engine", gorgegame.Name, "the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does")
 	fs.StringVar(&c.diracSets, "dirac-sets", "fdn", "with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables)")
 	fs.IntVar(&c.tables, "tables", 4, "number of tables")

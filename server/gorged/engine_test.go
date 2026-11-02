@@ -19,7 +19,7 @@ import (
 const benchDecks = "../../dirac/testdata/bench/fdn"
 
 func diracConfig() config {
-	return config{engine: adapter.Name, diracSets: "fdn", seats: 2, autoMana: true, botAutoPayMana: true, formatsRaw: "constructed", decks: benchDecks}
+	return config{engine: adapter.Name, diracSets: "fdn", seats: 2, autoMana: true, botAutoPayMana: true, formatsRaw: "constructed", decks: benchDecks, decksGiven: true}
 }
 
 func TestDiracRequiresTwoSeats(t *testing.T) {
@@ -55,11 +55,11 @@ func TestDiracFlagsRefuseCommander(t *testing.T) {
 
 func TestDiracDecksDefaultToBench(t *testing.T) {
 	c := diracConfig()
-	c.decks, c.diracSets = defaultDecks, "blb,fdn"
+	c.decks, c.decksGiven, c.diracSets = defaultDecks, false, "blb,fdn"
 	if got, want := c.diracDecks(), filepath.Join("dirac", "testdata", "bench", "blb"); got != want {
 		t.Fatalf("default decks %s, want %s", got, want)
 	}
-	c.decks = "elsewhere"
+	c.decks, c.decksGiven = "elsewhere", true
 	if got := c.diracDecks(); got != "elsewhere" {
 		t.Fatalf("named decks read as %s", got)
 	}
@@ -316,5 +316,22 @@ func TestUnknownEngineNamesEveryEngine(t *testing.T) {
 	err := serve(t.Context(), config{engine: "x"}, nil)
 	if err == nil || !strings.Contains(err.Error(), `engine "x" is not linked into this server (available: dirac, gorge)`) {
 		t.Fatalf("-engine x: %v", err)
+	}
+}
+
+func TestDecksFlagIsHonouredAtItsDefaultValue(t *testing.T) {
+	parsed := func(args ...string) *config {
+		t.Helper()
+		fs, c := flagsFor(Extensions{})
+		if err := fs.Parse(args); err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	if got, want := parsed("-engine", "dirac").diracDecks(), filepath.Join("dirac", "testdata", "bench", "fdn"); got != want {
+		t.Errorf("no -decks: %s, want %s", got, want)
+	}
+	if got := parsed("-engine", "dirac", "-decks", defaultDecks).diracDecks(); got != defaultDecks {
+		t.Errorf("-decks %s: read as %s", defaultDecks, got)
 	}
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 )
 
-// defaultDecks is -decks' default, which -engine dirac reads as its bench decks.
+// defaultDecks is -decks' default; -engine dirac reads a -decks not given as its bench decks.
 const defaultDecks = "testkit/testutil/decks"
 
 // diracOn reports whether this server's tables run on dirac.
@@ -49,10 +49,9 @@ func (c config) checkDiracFlags() error {
 	return nil
 }
 
-// diracDecks is -decks under -engine dirac: left at its default, the bench decks of
-// the first set.
+// diracDecks is -decks under -engine dirac: not given, the bench decks of the first set.
 func (c config) diracDecks() string {
-	if c.decks == defaultDecks {
+	if !c.decksGiven {
 		first, _, _ := strings.Cut(c.diracSets, ",")
 		return filepath.Join("dirac", "testdata", "bench", first)
 	}
