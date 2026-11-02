@@ -197,7 +197,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 612.8 | follows | `engine/rules/chars/derive.go#Name` `engine/rules/chars/derive.go#Compute` | - | SetName / Witness Protection |
 | 612.9 | unknown | - | - | stickers |
 | 612.10 | not-impl | - | - | LOUD via coverage gate; no kw:Splice handler |
-| 613.1 | follows | `engine/rules/layers.go#compareContinuousPtr` `engine/rules/layers.go#continuousPtrsSorted` `engine/rules/chars/derive.go#Compute` | `TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities` |  |
+| 613.1 | follows | `engine/rules/layers.go#compareContinuousPtr` `engine/rules/layers.go#continuousPtrsSorted` `engine/rules/chars/derive.go#Compute` | `TestCR613HumilitySetsBaseBeforePumpAndRemovesAbilities` `TestAttackTriggerReadsAttackerTypesPastColorTable` | a build under a live match keeps private buffers (Scratch.Borrowed) |
 | 613.1a | partial | `engine/state/object.go#Object.CopyFace` | `TestCloneModifiersApplyAtTheirOwnLayers` | copy as face swap; see 707 slice |
 | 613.1b | follows | `engine/rules/control.go#Engine.RegisterControl` `engine/rules/control.go#Engine.expireControl` | - | grants in timestamp order |
 | 613.1c | follows | `engine/state/object.go#Object.faceSlow` `engine/events/copy_except.go#foldTextChange` | `TestCR612ChangedSpellTextOnTheStack` `TestCR612TextChangeIsNotCopiableAndEndsOnLeaving` | layer 3 rewrites Face(); not copiable (707.2); ends on a zone change except spell to permanent (400.7a) |

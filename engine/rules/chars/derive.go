@@ -315,12 +315,11 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	s.Depth++
 	kw := s.KW
 	ty := s.Types
-	if s.Depth > 1 {
-		// Re-entrant (a nested Derived mid-build): own private buffers rather
-		// than overwrite the outer call's backing arrays mid-range. Same guard
-		// forEachObject uses and rules uses for active(). (This
-		// path is effectively unreachable — MatchesSpecFrom reads faces, never
-		// calls Derived — but it keeps the buffer discipline airtight.)
+	if s.Depth > 1 || s.Borrowed > 0 {
+		// Re-entrant (a nested Derived mid-build), or a finished build's lists
+		// are bound into a match still running: own private buffers rather
+		// than overwrite the backing arrays another reader holds. Same guard
+		// forEachObject uses and rules uses for active().
 		kw = nil
 		ty = nil
 	}
@@ -509,7 +508,7 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		kw = kept
 	}
 	colors := col.String()
-	if s.Depth <= 1 {
+	if s.Depth <= 1 && s.Borrowed == 0 {
 		// Keep the grown buffers on the scratch for the next build; a re-entrant
 		// build's private buffers are discarded on return.
 		s.KW = kw
@@ -577,7 +576,7 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 		if !built {
 			built = true
 			s.Depth++
-			if s.Depth == 1 {
+			if s.Depth == 1 && s.Borrowed == 0 {
 				kw, ty = s.KW, s.Types
 			}
 			kw = BaseKeywords(kw, o, f, faceDown)
@@ -601,7 +600,7 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 		name, nameSet = ce.SetName, true
 	}
 	if built {
-		if s.Depth == 1 {
+		if s.Depth == 1 && s.Borrowed == 0 {
 			s.KW, s.Types = kw, ty
 		}
 		s.Depth--

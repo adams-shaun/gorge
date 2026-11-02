@@ -98,6 +98,12 @@ type Scratch struct {
 	KW    []string
 	Types []string
 	Depth int
+	// Borrowed counts the live borrows of the last build's KW/Types: a spec
+	// match that binds them into its context (rules' matchesSpec) can itself
+	// derive another object, the colour table's build or a predicate's read,
+	// so while it is nonzero a build keeps private buffers, as a nested one
+	// does, and the bound slices keep naming their object.
+	Borrowed int
 	// PTFrames are the in-progress layer-7 snapshots, innermost last.
 	PTFrames []PTFrame
 	// ColorsSet/ColorsID/Colors are the finished layer-5 colour answer for

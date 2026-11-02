@@ -83,6 +83,13 @@ func (b *trigBoard) MatchesSpec(spec string, id, source state.ObjID, you state.P
 	if o.TargetsBound {
 		sc.Resolving, sc.ResolutionTargets = true, o.Targets
 	}
+	// ExtraTypes is the caller's Chars read, still in the scratch: the match
+	// can derive other objects (layer5colors.go's table), and they must not
+	// rewrite it under the types it is answering from.
+	if o.ExtraTypes != nil {
+		e.charsWalk.Borrowed++
+		defer func() { e.charsWalk.Borrowed-- }()
+	}
 	// A zone-scoped candidate reads a bare Permanent base as a permanent
 	// card; any other spec keeps the derived-bound ordinary match.
 	if o.InZone && effects.SpecMentionsPermanent(spec) {
@@ -105,6 +112,8 @@ func (b *trigBoard) MatchesObject(spec string, obj *state.Object, source state.O
 			if facts.reads {
 				d := e.Derived(obj.ID)
 				sc.ExtraKeywords, sc.ExtraKeywordsOwner = d.Keywords, obj.ID
+				e.charsWalk.Borrowed++
+				defer func() { e.charsWalk.Borrowed-- }()
 				sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = d.Power, d.Toughness, true
 				sc.BasePower, sc.BaseToughness, sc.HasBasePT = d.BasePower, d.BaseToughness, true
 			}

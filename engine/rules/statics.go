@@ -476,6 +476,7 @@ func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext
 	// During the layer scan Derived is already being built; consulting it
 	// again would recurse through active(). The scan's own matchesWithChars
 	// supplies its keywords-so-far snapshot directly.
+	borrowed := false
 	if e.activeDepth == 0 {
 		// specReadsDerived: a spec that cannot read the bound keyword list or
 		// P/T skips the Derived walk the bind costs (specderived.go). One
@@ -484,6 +485,10 @@ func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext
 		if o := e.G.Obj(id); o != nil && (specDerivedVerify || facts.reads) {
 			d := e.Derived(id)
 			sc.ExtraKeywords, sc.ExtraKeywordsOwner = d.Keywords, id
+			// The list stays in the scratch until the match returns, and the
+			// binds below and the predicates can derive other objects.
+			e.charsWalk.Borrowed++
+			borrowed = true
 			// The numeric power/basePower predicates read the same derived
 			// values the rest of the engine does: the candidate's current P/T
 			// and its base P/T through layer 7b (CR 613.4). Binding both here
@@ -523,10 +528,18 @@ func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext
 			sc.Layers.DerivedColors = e.derivedColorTable()
 		}
 		if specDerivedVerify && !facts.reads {
-			return e.verifySpecDerivedSkip(spec, id, sc)
+			ok := e.verifySpecDerivedSkip(spec, id, sc)
+			if borrowed {
+				e.charsWalk.Borrowed--
+			}
+			return ok
 		}
 	}
-	return effects.MatchesSpecCtxPtr(e.G, spec, id, &sc)
+	ok := effects.MatchesSpecCtxPtr(e.G, spec, id, &sc)
+	if borrowed {
+		e.charsWalk.Borrowed--
+	}
+	return ok
 }
 
 // verifySpecDerivedSkip is matchesSpec's verify-mode tail for a spec

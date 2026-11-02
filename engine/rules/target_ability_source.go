@@ -28,6 +28,8 @@ func (e *Engine) matchesTargetSpec(spec string, id state.ObjID, sc effects.SpecC
 		if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
 			d := e.Derived(o.Source)
 			sc.ExtraTypes, sc.ExtraTypesOwner = effects.TypeMatchWords(d.Types, d.AllCreatureTypes), id
+			e.charsWalk.Borrowed++
+			defer func() { e.charsWalk.Borrowed-- }()
 		}
 	}
 	return e.matchesSpec(spec, id, sc)
