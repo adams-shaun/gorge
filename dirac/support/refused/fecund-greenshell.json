@@ -1,12 +1,12 @@
 {
   "card": "Fecund Greenshell",
   "class": "projection-Cards.Pos",
-  "why": "the engines' state differs at projection Cards[].Pos; 4 games in the corpus",
+  "why": "its dig onto the battlefield: a land with an as-enters choice (Uncharted Haven, Three Tree City) is asked about in the library in gorge, on the battlefield in dirac; 11 of 12,000 std-blb pairs",
   "repro": {
     "pool": "std-blb",
     "surface": "autopay",
     "seed": 1,
-    "pair": 688,
+    "pair": 3358,
     "policy": "random",
     "mulligans": 0
   }
