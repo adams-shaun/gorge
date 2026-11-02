@@ -38,6 +38,26 @@ func charmRootSlots(a *kop.Ability, mode uint8) (mask uint8, n int) {
 	return
 }
 
+// StackTargetOrder is the order gorge lists a stack entry's target slots in:
+// each chosen mode's root slot, then the chain links (Object.Targets, then
+// Object.SubTargets). Slots are laid out mode by mode, so this moves a link only
+// when a later chosen mode also targets; Clash of the Eikons is the one such
+// card. The order has no rules meaning (CR 601.2c): resolution reads each slot
+// by number, and this is only how the oracle lines the two lists up.
+func StackTargetOrder(a *kop.Ability, mode uint8) (order [kop.MaxTargets]uint8) {
+	roots, _ := charmRootSlots(a, mode)
+	n := 0
+	for pass := 0; pass < 2; pass++ {
+		for j := range order {
+			if (roots&(1<<j) != 0) == (pass == 0) {
+				order[n] = uint8(j)
+				n++
+			}
+		}
+	}
+	return order
+}
+
 // charmChainNext is the first slot at or after from that a chosen mode owns
 // and the combined ask did not (a chain link); kop.MaxTargets when none.
 func charmChainNext(a *kop.Ability, mode uint8, from int) int {

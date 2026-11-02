@@ -363,7 +363,8 @@ func (r *realSide) Project(p *Projection) {
 		for k := range st.Targets {
 			st.Targets[k] = RefNone
 		}
-		for si, t := range e.Targets {
+		for _, slot := range r.stackTargetOrder(e) {
+			si, t := int(slot), e.Targets[slot]
 			if t != dirac.NoTarget && int(st.NTargets) < MaxTgts {
 				st.Targets[st.NTargets] = t
 				if t == dirac.StackTargetGone {
@@ -403,6 +404,19 @@ func (r *realSide) stackModes(e *dirac.ProjStack) uint8 {
 		return 0
 	}
 	return e.Mode & uint8(1<<r.tbl.Cards[e.Card].Abilities[e.Ability].NModes-1)
+}
+
+// stackTargetOrder is the order e's target slots project in: gorge's, for an
+// entry that has a card ability behind it.
+func (r *realSide) stackTargetOrder(e *dirac.ProjStack) [kop.MaxTargets]uint8 {
+	if int(e.Card) >= len(r.tbl.Cards) || int(e.Ability) >= len(r.tbl.Cards[e.Card].Abilities) {
+		var order [kop.MaxTargets]uint8
+		for i := range order {
+			order[i] = uint8(i)
+		}
+		return order
+	}
+	return dirac.StackTargetOrder(&r.tbl.Cards[e.Card].Abilities[e.Ability], e.Mode)
 }
 
 // Close releases the kernel's registration of the side's table (a run
