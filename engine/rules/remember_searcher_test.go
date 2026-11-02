@@ -15,8 +15,8 @@ import (
 func TestCRRememberSearcherCountsPlayersWhoSearch(t *testing.T) {
 	src := tapeZoneSorcery("Offered Search",
 		"A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ TYPE | DefinedPlayer$ Opponent | RememberSearcher$ True | Optional$ True | ChangeNum$ 1 | Hidden$ True | SubAbility$ DBGain\n"+
-			"SVar:DBGain:DB$ GainLife | LifeAmount$ Searchers | SubAbility$ DBCleanup\n"+
-			"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n"+
+			"SVar:DBGain:DB$ GainLife | LifeAmount$ Searchers | SubAbility$ Tidy\n"+
+			"SVar:Tidy:DB$ Cleanup | ClearRemembered$ True\n"+
 			"SVar:Searchers:Count$RememberedSize")
 	for _, tc := range []struct {
 		name, kind string
@@ -49,9 +49,9 @@ func TestCRRememberSearcherCountsPlayersWhoSearch(t *testing.T) {
 // a library this way shuffles" shuffles the player who accepted and only them.
 func TestRememberSearcherShufflesThoseWhoSearched(t *testing.T) {
 	src := tapeZoneSorcery("Offered Search",
-		"A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | RememberSearcher$ True | Optional$ True | NoShuffle$ True | ChangeNum$ 1 | Hidden$ True | SubAbility$ DBShuffle\n"+
-			"SVar:DBShuffle:DB$ Shuffle | Defined$ Player.IsRemembered | SubAbility$ DBCleanup\n"+
-			"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True")
+		"A:SP$ ChangeZone | Origin$ Library | Destination$ Battlefield | ChangeType$ Land | DefinedPlayer$ Player | RememberSearcher$ True | Optional$ True | NoShuffle$ True | ChangeNum$ 1 | Hidden$ True | SubAbility$ ShuffleThem\n"+
+			"SVar:ShuffleThem:DB$ Shuffle | SubAbility$ Tidy | Defined$ Player.IsRemembered\n"+
+			"SVar:Tidy:DB$ Cleanup | ClearRemembered$ True")
 	var from int
 	e, _ := runServedScenario(t, 2, 33302, 2, func(t *testing.T, e *Engine) {
 		from = len(e.L.Events)
@@ -107,8 +107,8 @@ func TestSameNameAsEachPicksOncePerNamedCard(t *testing.T) {
 // the trigger goes on the stack (CR 603.3d), before the root's choice resolves.
 func TestChooseCardRootAnnouncesItsTargetingLink(t *testing.T) {
 	src := tapeZoneETB("Choosing Entrant",
-		"SVar:TrigBody:DB$ ChooseCard | Choices$ Land.YouCtrl | Mandatory$ True | SubAbility$ DBExile\n"+
-			"SVar:DBExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 1")
+		"SVar:TrigBody:DB$ ChooseCard | Choices$ Land.YouCtrl | Mandatory$ True | SubAbility$ TakeOne\n"+
+			"SVar:TakeOne:DB$ ChangeZone | Destination$ Exile | Origin$ Battlefield | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 1")
 	e, _ := kernelFixture(t, 2, 33304, src)
 	moveByName(t, e, 0, "Mountain", state.ZBattlefield)
 	var order []string
