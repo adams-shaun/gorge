@@ -29,4 +29,3 @@ func TestChangeZoneAttackingSelectorNamesTheDefender(t *testing.T) {
 	}
 	t.Fatal("Grizzly Bears never reached the battlefield")
 }
-
