@@ -71,9 +71,11 @@ func (s *State) fireFullyUnlock(k *prep, roomSl Slot, roomObj Obj, unlocker uint
 // is subscribed, or the table has a graveyard ETB (genPrep.graveETB). The
 // per-slot subscription mask alone misses Fear of Infinity when no
 // battlefield ETB watcher is out, which is exactly the state fireGraveETB
-// exists to cover.
+// exists to cover. An Effect-created enters trigger (Thunder of Unity's
+// chapters) listens from the command zone: with an emblem out and some
+// emblem on the table listening for ETB, no battlefield watcher is needed.
 func (s *State) anyETB(k *prep) bool {
-	return s.subs[kop.TrigETB].any() || k != nil && k.gen != nil && k.gen.graveETB
+	return s.subs[kop.TrigETB].any() || k != nil && k.gen != nil && (k.gen.graveETB || k.gen.embObjEv&(1<<kop.TrigETB) != 0 && s.anyEmb())
 }
 
 // fireGraveETB queues the graveyard cards' ETB triggers (TriggerZones$
