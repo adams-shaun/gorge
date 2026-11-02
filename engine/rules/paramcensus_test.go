@@ -2373,6 +2373,14 @@ var handRoots = struct {
 		// hidden zones the walk may pass over; the reads that give those
 		// params meaning stay in zoneGate/phaseGate under triggerMatches.
 		"Engine.faceTriggerZones",
+		// triggerOnlyFromBattlefield (engine/rules/source_char_lki.go) answers
+		// SourceLeftBattlefieldSince from a stored trigger's own text: whether
+		// it can only have triggered from the battlefield, read as syntax
+		// (TriggerZones$, its ActiveZones$ spelling, or a Battlefield Origin$)
+		// by the same spelling zoneGate gives those params meaning under
+		// triggerMatches. It runs from an effects hook on the resolving
+		// ability, outside the dispatch walk.
+		"triggerOnlyFromBattlefield",
 		// The event-matched delayed registrations (Chancellor of the Annex's
 		// opening-hand Mode$ SpellCast shape): the registration re-parses the
 		// stored trigger body, and the firing walker re-evaluates its

@@ -1910,15 +1910,14 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			return false
 		}
 	}
-	source, svars := e.triggerModeSVars(obj, sa)
+	source, ctx := e.triggerModeCtx(p, obj, sa)
+	svars := ctx.SVars
 	choices := effects.CharmOf(sa).Modes
 	for i := range choices {
 		if cards.ResolveSVar(svars, choices[i]) == nil {
 			return false // not modal: the primitive asks at resolution
 		}
 	}
-	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
-	effects.SetSVars(ctx, svars)
 	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
 	// game"): a later instance of the same triggered Charm on the same source
 	// must not offer a mode an earlier instance already chose, so the eligible
@@ -1940,15 +1939,15 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	return true
 }
 
-// triggerModeSVars is the trigger object's source and the SVar table its modal
-// Choices$ names resolve against.
-func (e *Engine) triggerModeSVars(obj state.ObjID, sa *cards.SA) (state.ObjID, map[string]string) {
+// triggerModeCtx is the trigger object's source and the context, carrying the
+// SVar table (ctx.SVars) its modal Choices$ names resolve against.
+func (e *Engine) triggerModeCtx(p state.PlayerID, obj state.ObjID, sa *cards.SA) (state.ObjID, *effects.Ctx) {
 	var source state.ObjID
-	var svars map[string]string
 	wr := e.G.Obj(obj)
 	if wr != nil {
 		source = wr.Source
 	}
+	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
 	if so := e.G.Obj(source); so != nil {
 		// The modal SVar names resolve against the face that OWNS the trigger
 		// (the compiled SA pointer identifies it): a mutated pile's under-card
@@ -1958,15 +1957,15 @@ func (e *Engine) triggerModeSVars(obj state.ObjID, sa *cards.SA) (state.ObjID, m
 		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper is
 		// covered inside the recovery function itself.
 		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
-			svars = mf.SVars
+			effects.SetSVars(ctx, mf.SVars)
 		} else if sf := so.Face(); sf != nil {
-			svars = sf.SVars
+			effects.SetSVars(ctx, sf.SVars)
 		}
 	}
 	if owned, ok := e.triggerLineSVars[obj]; ok {
-		svars = owned
+		effects.SetSVars(ctx, owned)
 	}
-	return source, svars
+	return source, ctx
 }
 
 // askTriggerOrder has the controller of two or more simultaneous triggers

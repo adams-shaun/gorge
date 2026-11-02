@@ -284,7 +284,7 @@ var auraEntryCensusRules = map[string]string{
 	"stack.go:Engine.ensureLeftTheStack":                        "stack: resting-zone backstop",
 	"stack.go:Engine.resolveTop":                                "stack: resolution",
 	"staging.go:NewStaged":                                      "raw: test-scenario staging (Config.Staged), not a game action",
-	"target_ask.go:Engine.askTarget":                            "stack: fizzle off the stack",
+	"target_ask.go:Engine.askTargetChained":                     "stack: fizzle off the stack",
 	"token_entry_replacements.go:Engine.applyTokenEntryUpdates": "noentry: a synthetic match event, never emitted",
 }
 

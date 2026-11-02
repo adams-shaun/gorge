@@ -37,9 +37,8 @@ func (e *Engine) placeRandomCharmMode(p state.PlayerID, obj state.ObjID, sa *car
 	if sa.API != "Charm" {
 		return false
 	}
-	source, svars := e.triggerModeSVars(obj, sa)
-	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
-	effects.SetSVars(ctx, svars)
+	source, ctx := e.triggerModeCtx(p, obj, sa)
+	svars := ctx.SVars
 	if !effects.CharmRandomChosen(e, ctx, sa) {
 		return false
 	}

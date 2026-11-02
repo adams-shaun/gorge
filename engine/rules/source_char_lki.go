@@ -144,7 +144,7 @@ func triggerOnlyFromBattlefield(t cards.Trigger) bool {
 	if spec == "" {
 		spec = t.ParamStr(cards.PKOrigin)
 	}
-	return strings.TrimSpace(spec) == "Battlefield"
+	return spec == "Battlefield"
 }
 
 // setSourceCharLKI records snap for the stack object id.

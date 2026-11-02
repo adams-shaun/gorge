@@ -11,7 +11,7 @@ import (
 // permanent that can be regenerated, which excludes a NoRegen$ destruction, a
 // CantRegenerate restriction and a creature with no toughness left (as Forge's
 // ReplaceDestroy reads it).
-func (e *Engine) replacementMatchesDestroy(r cards.Repl, source state.ObjID, ev events.Event, you state.PlayerID, svars map[string]string, remembered []state.ObjID) bool {
+func (e *Engine) replacementMatchesDestroy(r cards.Repl, source state.ObjID, ev events.Event, you state.PlayerID, remembered []state.ObjID) bool {
 	if ev.Kind != events.DestroyProposal {
 		return false
 	}
@@ -26,7 +26,7 @@ func (e *Engine) replacementMatchesDestroy(r cards.Repl, source state.ObjID, ev 
 			return false
 		}
 	}
-	return e.replacementConditionHoldsWith(r, source, you, svars)
+	return true
 }
 
 // continueDestroyReplacements runs the first matching line's body in place of
