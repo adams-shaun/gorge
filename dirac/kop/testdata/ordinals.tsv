@@ -26,6 +26,7 @@ AfResolveCount	AbilityFlags	1024
 AfStation	AbilityFlags	4096
 AggCardTypes	untyped int	10
 AggColors	untyped int	7
+AggCreatureTypes	untyped int	13
 AggDistinctMV	untyped int	8
 AggDistinctNames	untyped int	9
 AggDistinctPower	untyped int	6

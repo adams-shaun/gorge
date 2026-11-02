@@ -344,6 +344,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 			}
 		}
 	}
+	for i := range dd.Exprs {
+		if x := &dd.Exprs[i]; x.Kind == kop.ExValidAgg && x.N == kop.AggCreatureTypes {
+			choosesType = true // a count of creature types reads every printed one
+		}
+	}
 	if choosesType {
 		for _, i := range pool {
 			subSet[0] |= dd.CardSubs[i][0]

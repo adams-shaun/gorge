@@ -32,6 +32,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var names [MaxPerm]CardID // distinct names seen (AggDistinctNames)
 	nn := 0
 	var types kop.TypeMask // the matches' face card types (AggCardTypes)
+	var crSubs kop.SubMask // the matches' current creature types (AggCreatureTypes)
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if !s.matchPermGen(k, x.F, sl, ctx.ctrl, ctx.srcSl, layerFull) {
@@ -75,6 +76,16 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 				types |= k.t.Cards[s.cardAt(sl)].Types
 			}
 			continue
+		case kop.AggCreatureTypes:
+			if s.hasSubGen(k, sl, subOutside) {
+				return len(k.t.TypeVocab) // every creature type (CR 702.73a; gorge creatureTypeWordList)
+			}
+			for i := 0; i < len(k.t.Subtypes); i++ {
+				if k.gen.creatSub.Has(i) && s.hasSubGen(k, sl, uint8(i)) {
+					crSubs = crSubs.With(i)
+				}
+			}
+			continue
 		case kop.AggSumCounters:
 			n += s.perms[sl].ctrN(s, int(x.Ctr)) // CR 122.1
 			continue
@@ -109,6 +120,8 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return nn
 	case kop.AggCardTypes:
 		return bits.OnesCount16(uint16(types & cardTypeBits))
+	case kop.AggCreatureTypes:
+		return bits.OnesCount64(crSubs[0]) + bits.OnesCount64(crSubs[1])
 	case kop.AggColors:
 		return bits.OnesCount8(uint8(col))
 	}

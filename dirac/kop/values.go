@@ -118,6 +118,7 @@ const (
 	AggCardTypes         = 10 // distinct card types on the matches' faces (CR 205.2a)
 	AggSumCounters       = 11 // total of counter kind Expr.Ctr over the matches (CR 122.1)
 	AggPermTypes         = 12 // distinct permanent card types (artifact, battle, creature, enchantment, land, planeswalker) on the matches' faces (CR 110.4; ExGraveAgg only)
+	AggCreatureTypes     = 13 // distinct current creature types among the matches (CR 205.3m), every one for a Changeling
 )
 
 // Expr is a computed amount: Kind over its operands, then *Mul (0 = 1),

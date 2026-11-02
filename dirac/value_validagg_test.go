@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
 // TestValidAgg: ExValidAgg folds gorge's Count$Valid $<prop> suffixes over
@@ -56,5 +57,55 @@ func TestValidAgg(t *testing.T) {
 	}
 	if got := agg(kop.AggColors); got != wantC {
 		t.Fatalf("colors %d, want %d", got, wantC)
+	}
+}
+
+// TestValidAggCreatureTypes: the distinct creature types among the matches, not a
+// subtype of another kind, and every creature type once a Changeling matches.
+func TestValidAggCreatureTypes(t *testing.T) {
+	tbl := *vanilla.Table
+	tbl.Cards = append([]kop.CardDef(nil), vanilla.Table.Cards...)
+	tbl.Exprs = make([]kop.Expr, 1) // a table with Exprs prepares the gen tables
+	tbl.Subtypes = append(append([]string(nil), vanilla.Table.Subtypes...), "Bear", "Elf", "Equipment")
+	n := len(vanilla.Table.Subtypes)
+	tbl.TypeVocab = make([]uint8, 50)
+	subs := func(is ...int) (m kop.SubMask) {
+		for _, i := range is {
+			m = m.With(n + i)
+		}
+		return m
+	}
+	bear, elfBear, gear, shifter := CardID(len(tbl.Cards)), CardID(len(tbl.Cards)+1), CardID(len(tbl.Cards)+2), CardID(len(tbl.Cards)+3)
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 1, Toughness: 1, Subtypes: subs(0)},
+		kop.CardDef{Name: "Test Elf Bear", Types: kop.TCreature, Power: 1, Toughness: 1, Subtypes: subs(0, 1)},
+		kop.CardDef{Name: "Test Gear", Types: kop.TCreature | kop.TArtifact, Power: 1, Toughness: 1, Subtypes: subs(2)},
+		kop.CardDef{Name: "Test Shifter", Types: kop.TCreature, Power: 1, Toughness: 1, AllCreatureTypes: true})
+	tbl.Filters = append(append([]kop.Filter(nil), vanilla.Table.Filters...), kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou})
+	f := kop.FilterID(len(tbl.Filters) - 1)
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	count := func() int {
+		x := kop.Expr{Kind: kop.ExValidAgg, N: kop.AggCreatureTypes, F: f}
+		return sc.s.exprCold(sc.k, &x, evalCtx{ctrl: 0, src: NoObj, srcSl: NoSlot})
+	}
+	if got := count(); got != 0 {
+		t.Fatalf("no match reads %d", got)
+	}
+	sc.perm(bear, 0)
+	sc.perm(gear, 0)
+	if got := count(); got != 1 {
+		t.Fatalf("a Bear and an Equipment read %d, want 1", got)
+	}
+	sc.perm(elfBear, 0)
+	if got := count(); got != 2 {
+		t.Fatalf("Bear and Elf read %d, want 2", got)
+	}
+	sc.perm(shifter, 1)
+	if got := count(); got != 2 {
+		t.Fatalf("the opponent's Changeling moved the count to %d", got)
+	}
+	sc.perm(shifter, 0)
+	if got := count(); got != len(tbl.TypeVocab) {
+		t.Fatalf("a Changeling reads %d, want the vocabulary's %d", got, len(tbl.TypeVocab))
 	}
 }

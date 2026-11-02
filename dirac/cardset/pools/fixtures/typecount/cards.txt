@@ -1,0 +1,15 @@
+# the creature type count pool: its readers, a Borg their filter skips, a printed
+# Changeling and a grant of every type, for the oracle's constructed lockstep
+# (dirac/oracle/typecount_test.go)
+Assault Drone
+Changeling Outcast
+Forest
+Grizzly Bears
+Hoshi Sato, Exolinguist
+Island
+Llanowar Elves
+Mirror Entity
+Plains
+Saavik, Stoic Student
+Universal Automaton
+Valiant Changeling
