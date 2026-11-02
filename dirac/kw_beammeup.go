@@ -65,3 +65,30 @@ func (s *State) beamBarred(k *prep, sl Slot) bool {
 func (s *State) FeatBeamMeUpCard(o Obj) bool {
 	return s.k().t.Cards[s.objs[o].card].BeamMeUp
 }
+
+// StallBeamGrantFB: a printed beam me up card beside a flashback grant. gorge lists a
+// flashback cast and a beam me up cast, and the kernel's one graveyard cast mode names
+// the beam me up cast only.
+const StallBeamGrantFB = 73
+
+func init() { stallNames[StallBeamGrantFB] = "beamgrantfb" }
+
+// grantsFlashback: in gives a graveyard card flashback at its mana cost.
+func grantsFlashback(in *kop.Instr) bool {
+	return in.Op == kop.OpGrantKeyword && kop.KwMask(uint16(in.B.N))<<16&kop.KwFlashbackOwnCost != 0
+}
+
+// tableBeamGrantFB reports a printed beam me up card beside a flashback grant.
+func tableBeamGrantFB(t *kop.Table) bool {
+	beam, grant := false, false
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		beam = beam || c.BeamMeUp
+		for j := range c.Abilities {
+			for k := range c.Abilities[j].Prog {
+				grant = grant || grantsFlashback(&c.Abilities[j].Prog[k])
+			}
+		}
+	}
+	return beam && grant
+}

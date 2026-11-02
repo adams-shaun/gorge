@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "twobridmod", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "beamgrantfb"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.
@@ -186,6 +186,10 @@ func stallFlagCases() []stallFlagCase {
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
+		}, nil, nil, nil)},
+		{StallBeamGrantFB, "Half Beam", "Half Grant", stallPool("beamgrantfb", []kop.CardDef{
+			{Name: "Half Beam", Types: kop.TSorcery, BeamMeUp: true, Abilities: []kop.Ability{spell()}},
+			sorcery("Half Grant", kop.Instr{Op: kop.OpGrantKeyword, B: kop.Const(int(uint16(kop.KwFlashbackOwnCost >> 16)))}),
 		}, nil, nil, nil)},
 		{StallTwobridMod, "Half Twobrid", "Half Reducer", stallPool("twobrid", []kop.CardDef{
 			{Name: "Half Twobrid", Types: kop.TSorcery, Cost: kop.ManaCost{Tb: 1}, Abilities: []kop.Ability{spell()}},
