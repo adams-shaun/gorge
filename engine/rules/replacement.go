@@ -1164,6 +1164,12 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	// A declined (or no longer legal) as-enters copy election is the optional
 	// replacement NOT applied (CR 614.1c): neither the copy nor its SubAbility$
 	// rider (Altered Ego's X additional counters) runs.
+	// The template's legality reads the board's derived types (an enchantment an
+	// effect made a creature is a creature to copy), and the body's own walk binds
+	// them only once it starts.
+	if ctx != nil && ctx.Layers.DerivedTypes == nil {
+		ctx.Layers = e.boardLayers()
+	}
 	if effects.CloneETBNoCopy(e.G, ctx, with) {
 		return
 	}

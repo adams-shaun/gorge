@@ -210,7 +210,7 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 				opts = effects.ETBNumberChoices(e, o.ID, you, f.SVars, r.With)
 			} else if kind == "copy" {
 				cp := effects.CloneOf(r.With)
-				opts = etbCloneOptions(e.G, you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
+				opts = e.etbCloneOptions(you, o.ID, cp.ChoicesRaw, cp.ChoiceZoneKind)
 			} else {
 				opts = e.etbOptions(you, o.ID, kind,
 					r.With.ParamStr(cards.PKValidCards), selector,
@@ -260,13 +260,16 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 // object of the body's ChoiceZone$ zone (the battlefield when absent) that the
 // Choices$ selector admits, across every living player (CR 707.2: Echoing
 // Deeps and Superior Spider-Man copy a card in "a graveyard", not only their
-// controller's). Option order is seat order, then the zone's own order.
-func etbCloneOptions(g *state.Game, you state.PlayerID, card state.ObjID, choices string, zone state.Zone) []decision.Option {
+// controller's). The selector reads the board's derived types, so a permanent
+// that became a creature (an animated Enchantment) is a creature to copy.
+// Option order is seat order, then the zone's own order.
+func (e *Engine) etbCloneOptions(you state.PlayerID, card state.ObjID, choices string, zone state.Zone) []decision.Option {
+	g := e.G
 	spec := strings.TrimSpace(choices)
 	if spec == "" {
 		spec = "Creature.Other"
 	}
-	sc := effects.NewSpecContext(you, card)
+	sc := e.specCtx(card, you)
 	out := []decision.Option{}
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(zone, p) {
@@ -343,7 +346,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case etbOptionsCopy:
-		return etbCloneOptions(e.G, you, card, choices, state.ZBattlefield)
+		return e.etbCloneOptions(you, card, choices, state.ZBattlefield)
 	case etbOptionsName:
 		// A no-universe Config is a pre-feature match on replay. Its visible
 		// object builder, including the Card.nonLand default and its full
