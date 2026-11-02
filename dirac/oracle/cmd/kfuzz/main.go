@@ -37,6 +37,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func main() { os.Exit(run()) }
@@ -109,12 +110,14 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
+		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 	)
 	flag.Parse()
 	verboseFDN = *verbose
+	reproEvents = *eventTail
 	coveragePath = *covPath
 	evidencePath = *evidence
 	implicatesAll = *implAll
@@ -503,6 +506,9 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	rrc.Config.PassElision = rep.PassElision
 	rrc.MaxTurns = rep.MaxTurns
 	rrc.MaxDecisions = len(rep.Actions) + 200
+	if reproEvents > 0 {
+		rrc.Finish = printEventTail(reproEvents)
+	}
 	mk, err := newSide(rep, rrc)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
@@ -520,6 +526,55 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	}
 	printDiv(res.Div)
 	return 1
+}
+
+// reproEvents is -events.
+var reproEvents int
+
+// printEventTail is a RunConfig.Finish that prints the last n events of gorge's log, each
+// object by name and id.
+func printEventTail(n int) func(*oracle.GorgeSide) {
+	return func(g *oracle.GorgeSide) {
+		name := func(id state.ObjID) string {
+			if o := g.E.G.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+				return fmt.Sprintf("%s#%d", o.Card.Faces[0].Name, id)
+			}
+			return fmt.Sprintf("#%d", id)
+		}
+		for pl := state.PlayerID(0); pl < 2; pl++ {
+			for _, id := range g.E.G.Zone(state.ZBattlefield, pl) {
+				o := g.E.G.Obj(id)
+				att := ""
+				if o.AttachedTo != 0 {
+					att = " on " + name(o.AttachedTo)
+				}
+				fmt.Printf("  bf p%d %s tapped=%v sick=%v atk=%v%s\n", pl, name(id), o.Tapped, o.SummonSick, o.IsAttacking, att)
+			}
+		}
+		evs := g.E.L.Events
+		for _, e := range evs[max(0, len(evs)-n):] {
+			line := fmt.Sprintf("  ev %d %s p%d", e.Seq, e.Kind, e.Player)
+			if e.Obj != 0 {
+				line += " obj=" + name(e.Obj)
+			}
+			if e.From != 0 || e.To != 0 {
+				line += fmt.Sprintf(" zone %d>%d", e.From, e.To)
+			}
+			if e.Amount != 0 {
+				line += fmt.Sprintf(" n=%d", e.Amount)
+			}
+			if e.Counter != "" {
+				line += " ctr=" + e.Counter
+			}
+			if e.Text != "" {
+				line += fmt.Sprintf(" %q", e.Text)
+			}
+			for _, id := range e.IDs {
+				line += " " + name(id)
+			}
+			fmt.Println(line)
+		}
+	}
 }
 
 // reproEntries turns a Repro deck (card names, one per copy) into the deck
@@ -1162,7 +1217,14 @@ func printVerboseDiv(p oracle.Pairing, m *oracle.Matchup, res *oracle.Result, im
 		return "token"
 	}
 	obj := regexp.MustCompile(`(#|Cards\[)(\d+)`)
+	// a stack entry's source and an attachment name an object by its bare index
+	byIndex := regexp.MustCompile(`^(Cards\[\d+\]\.AttachedTo|Stack\[\d+\]\.Source): ref=(\d+) kernel=(\d+)$`)
 	ann := func(x string) string {
+		if sm := byIndex.FindStringSubmatch(x); sm != nil {
+			r, _ := strconv.Atoi(sm[2])
+			k, _ := strconv.Atoi(sm[3])
+			return fmt.Sprintf("%s: ref=%d{%s} kernel=%d{%s}", sm[1], r, name(r), k, name(k))
+		}
 		return obj.ReplaceAllStringFunc(x, func(t string) string {
 			sm := obj.FindStringSubmatch(t)
 			n, _ := strconv.Atoi(sm[2])
