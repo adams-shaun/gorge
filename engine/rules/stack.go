@@ -216,7 +216,7 @@ func (e *Engine) resolveTop() {
 			resSpec = triggerOptionalSpec(rt)
 		}
 		if resSpec != "" {
-			who, askable := e.deciderFromSpec(resSpec, o.Controller, o.Remembered, e.triggerContexts[id])
+			who, askable := e.deciderFromSpec(resSpec, o.Source, o.Controller, o.Remembered, e.triggerContexts[id])
 			if !askable {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "ceased to exist: its optional decider left the game"})
