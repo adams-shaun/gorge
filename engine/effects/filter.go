@@ -2878,6 +2878,9 @@ type SpecContext struct {
 	// Rules' pre-cast reads of that spell set it; zero everywhere else, so
 	// every other read of exile keeps not seeing the copy.
 	PreparedSpell state.ObjID
+	// DamageSource names the object a damage replacement's ValidSource$ reads as
+	// the source it last was (copyCeased).
+	DamageSource state.ObjID
 	// FrozenChosenName and ChosenNameBound are an Effect-registered static
 	// or delayed trigger's snapshot of the source's chosen card name at
 	// REGISTRATION time (state.ContinuousEffect.ChosenName /
@@ -3163,9 +3166,10 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 // copyCeased reports CR 707.10h's rejection: a copy that is neither on the
 // stack nor on the battlefield matches nothing. A prepared exile copy (CR
 // 722.3c) is only the engine's representation of a cast the permanent permits,
-// so it stays unmatched too, unless sc is reading it as the spell being cast.
+// so it stays unmatched too, unless sc is reading it as the spell being cast. A damage
+// source that has left is read as it last existed (CR 608.2h), a token copy among them.
 func copyCeased(o *state.Object, sc *SpecContext) bool {
-	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell
+	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell && o.ID != sc.DamageSource
 }
 
 // matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:

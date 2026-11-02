@@ -340,11 +340,15 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		// The source is the one the damage emitter published (CR 120.2b,
 		// 701.14a: a fighting or biting creature), not the resolving spell.
 		src := e.inFlightDamageSource()
-		if src == 0 ||
-			// nil remembered: only the chosen half is added here, so an
-			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
-			// exact match it had before ChooseSource landed.
-			!e.matchesSpec(v, src, e.rememberedSpecContextCap(ctrl, source, nil, cc)) {
+		if src == 0 {
+			return false
+		}
+		// nil remembered: only the chosen half is added here, so an
+		// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
+		// exact match it had before ChooseSource landed.
+		sc := e.rememberedSpecContextCap(ctrl, source, nil, cc)
+		sc.DamageSource = src
+		if !e.matchesSpec(v, src, sc) {
 			return false
 		}
 	}
