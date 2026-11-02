@@ -286,7 +286,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// sacrifice, a target-dependent price -- planned from its
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
-			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderWithX(p, o.Obj, got.Detail) ||
+			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
@@ -304,12 +304,26 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
 }
 
-// manaSpentReaderWithX reports an {X} spell the cast planner declined only
-// because it reads the mana spent (Mockingbird): the composition prices its mana
-// exactly as it does any {X} spell, so an insufficient verdict stands as a proof
-// and, through a source the census cannot price, goes on to the prefix search.
-func (e *Engine) manaSpentReaderWithX(p state.PlayerID, id state.ObjID, detail string) bool {
-	return detail == "shape:mana_spent_reader" && pay.RawBaseCost(asPayer(e), p, id).X != 0
+// manaSpentReaderComposed reports a spell the cast planner declined only
+// because the mana it spends is read (its own Count$CastTotalManaSpent or
+// Converge, or a reader on any battlefield): reading the spend changes no
+// price, so the composition prices its mana exactly as it does any other spell
+// -- {X} (Mockingbird) or not (Deadly Embrace beside the other player's Tellah).
+// An insufficient verdict then stands as a proof and, through a source the
+// census cannot price (a filter land, a granted any-colour ability), goes on to
+// the prefix search. The shape gate tests Escalate and Strive after the
+// reader, so a spell with either is still left to the cast planner's verdict.
+func (e *Engine) manaSpentReaderComposed(id state.ObjID, detail string) bool {
+	if detail != "shape:mana_spent_reader" {
+		return false
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	_, escalate := o.Face().KeywordParam("Escalate")
+	_, strive := o.Face().KeywordParam("Strive")
+	return !escalate && !strive
 }
 
 // relaxedPaid is a missed paid ability's relaxed alternatives and fee.
