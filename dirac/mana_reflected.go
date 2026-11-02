@@ -208,7 +208,7 @@ type reflSearch struct {
 // reflBoard reports whether p's census gaps are anyR sources alone (the
 // boards reflScript models).
 func (s *State) reflBoard(k *prep, p uint8, restr, anyR slotMask) bool {
-	return k.gen.anyRefl && anyR.any() && !restr.any() && !s.scriptGaps(k, p).any() && !s.scriptSac(k, p).any() &&
+	return k.gen.anyRefl && anyR.any() && !restr.any() && !s.scriptGaps(k, p).any() &&
 		!s.scriptCtr(k, p).any() && !s.scriptFilt(k, p).any()
 }
 

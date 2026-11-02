@@ -128,7 +128,7 @@ func (s *State) availTapX(k *prep, p uint8, av *avail) {
 // tapXBoard: p's census gaps are tap-another-permanent and counter-cost
 // sources only, or a mix the filter search runs (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
-	return !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptSac(k, p)).or(s.scriptFilt(k, p)).any() || s.mixBoard(k, p)
+	return !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() || s.mixBoard(k, p)
 }
 
 // tapXPrefix plays the search's script for play a at a tapX board; it

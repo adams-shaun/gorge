@@ -50,7 +50,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.scriptTapX(k, p).any() {
 		n++
 	}
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptSac(k, p)).or(s.scriptCtr(k, p)).any()
+	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
 }
 
 // otherGaps: the gaps a filter search on p's board activates beside its filters.

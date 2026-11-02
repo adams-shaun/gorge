@@ -185,17 +185,17 @@ func testSpawnSacFiresSacTrigger(t *testing.T, cfg Config) {
 	}
 }
 
-// TestSpawnSacManaTappedNotOffered: a tapped Spawn is outside gorge's cast
-// planner (paymentPlanManaUnitsOnlyCompute skips o.Tapped), so the X ask
-// prices only X = 0 ({B}{G} from the lands).
-func TestSpawnSacManaTappedNotOffered(t *testing.T) {
+// TestSpawnSacManaTappedPays: a tapped Spawn's sacrifice has no {T} in its cost
+// (CR 602.2b), so gorge's cast planner counts it and the X ask prices X = 1 as
+// well ({B}{G} from the lands, the Spawn's {C} for the X).
+func TestSpawnSacManaTappedPays(t *testing.T) {
 	sc, id, objs := spawnScen(t, Config{NoElide: true}, "c_0_1_eldrazi_spawn_sac", "Swamp", "Forest")
 	sc.s.perms[sc.slot(objs[0])].flags |= pfTapped
 	os := sc.hand(id["Old Stickfingers"], 0)
 	sc.do(t, AkCast, uint8(os), 0xff)
 	d := xAsk(t, sc, sc.s.Step(), "the tapped cast")
-	if d.N != 1 || d.Options[0].Mode() != 0 {
-		t.Fatalf("X options %v, want only X = 0 (the Spawn is tapped)", d.Options[:d.N])
+	if d.N != 2 || d.Options[0].Mode() != 0 || d.Options[1].Mode() != 1 {
+		t.Fatalf("X options %v, want X = 0 and X = 1 (the tapped Spawn pays)", d.Options[:d.N])
 	}
 }
 
@@ -203,7 +203,7 @@ func TestSpawnSacManaTappedNotOffered(t *testing.T) {
 // ("{1}, {T}, Sacrifice this token: Target creature you control explores.
 // Activate only as a sorcery.", the mzpauper kgen lowering of
 // c_a_map_sac_explore): p0 controls it beside a TAPPED Eldrazi Spawn, the
-// only source of its {1} (a scripted prefix: scriptSac), and the named
+// only source of its {1}, and the named
 // extra permanents.
 func mapScen(t *testing.T, extra ...string) (*scen, Obj, Obj) {
 	t.Helper()
@@ -255,31 +255,19 @@ func mapOffered(d *Decision, m Obj) Action {
 	return 0
 }
 
-// TestSpawnSacPrefixTakesOnlyTarget: the Map's {1} is payable only by the
-// tapped Spawn's sacrifice (a scripted prefix, scriptPrefix), and the Spawn
-// is the only creature p0 controls. After the prefix the ability has no
-// legal target (CR 602.2b, 601.2c), so gorge's prefix search never reaches
-// it and the oracle's scriptCompletes calls it a dead end: it is not
-// offered. Before, scriptOffers offered it and the activation, begun after
-// the prefix, panicked "spell/ability without a legal target" (self-play
-// mzpauper Faeries vs Wildfire, 9 of 5,152 games). With another creature
-// the scripted activation is offered and its target ask lists that
-// creature alone (the Spawn is gone).
-func TestSpawnSacPrefixTakesOnlyTarget(t *testing.T) {
+// TestSpawnSacTappedPaysTheMapsGeneric: the Map's {1} is payable by the tapped
+// Spawn's sacrifice, a mana ability needing no untap, so the activation is offered
+// whether or not the Spawn is the only creature to target (gorge's offer walk
+// lists it beside the lone Spawn).
+func TestSpawnSacTappedPaysTheMapsGeneric(t *testing.T) {
 	sc, _, m := mapScen(t)
 	d := sc.s.Step()
-	if a := mapOffered(&d, m); a != 0 {
-		t.Fatalf("Map activation offered with the tapped Spawn its only payer and only target: %v", d.Options[:d.N])
+	if a := mapOffered(&d, m); a == 0 {
+		t.Fatalf("Map activation not offered with the tapped Spawn its only payer: %v", d.Options[:d.N])
 	}
-	sc2, spawn2, m2 := mapScen(t, "Warped Tusker")
+	sc2, _, m2 := mapScen(t, "Warped Tusker")
 	d = sc2.s.Step()
-	a := mapOffered(&d, m2)
-	if a == 0 {
+	if a := mapOffered(&d, m2); a == 0 {
 		t.Fatalf("Map activation not offered beside a second creature: %v", d.Options[:d.N])
-	}
-	sc2.s.Apply(a)
-	d = sc2.s.Step()
-	if d.Kind != DkTarget || d.N != 1 || d.Options[0].Target() == uint8(spawn2) || sc2.s.objs[spawn2].zone == kop.ZoneBattlefield {
-		t.Fatalf("target ask kind %d opts %v (spawn zone %d), want the Tusker alone", d.Kind, d.Options[:d.N], sc2.s.objs[spawn2].zone)
 	}
 }

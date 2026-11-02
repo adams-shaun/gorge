@@ -694,7 +694,7 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) bool 
 // (restrWideAnyMana), so gorge's relaxed proof reads each one against the
 // play it prices.
 func (s *State) wideGapsOnly(k *prep, p uint8, restr, anyR slotMask) bool {
-	if !k.gen.anyMultiR || !anyR.any() || restr.any() || s.scriptGaps(k, p).any() || s.scriptSac(k, p).any() ||
+	if !k.gen.anyMultiR || !anyR.any() || restr.any() || s.scriptGaps(k, p).any() ||
 		s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() || s.scriptAnyR(k, p).and(s.scriptWide(k, p)) != anyR {
 		return false
 	}
