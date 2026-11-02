@@ -393,24 +393,28 @@ func (c *MockClient) answerChooseNumber(in mb.ChooseNumberInput) mb.PromptOutput
 }
 
 // answerChooseCards picks the smallest legal number of offered cards (Min).
-// A value constraint the prompt carries (chooseConstraint's
-// "Total value must be at least N." / "Total value must not exceed N."
-// sentences; engine/rules/cast.go's
-// tapcost asks pose that floor over Option.Value=power, which the
-// translator renders as the cards' power) is honoured from the cards'
-// power: the smallest count in [Min, Max] for which some subset's power sum
+// A set-level constraint's sentence (setConstraintBound) means the first Min
+// cards are one legal set, so it takes those, as answerBoardTargets does. A value
+// constraint (chooseConstraint's "Total value must be at least N." / "Total value
+// must not exceed N." sentences) is honoured from the prompt's card values
+// (cardValues): the smallest count in [Min, Max] for which some subset's sum
 // lies in [floor, ceiling], strongest cards first so a floor is reached with
 // as few cards as possible. Both bounds are honoured together -- a
 // strongest-first pick that clears the floor is rejected when it overshoots
 // the ceiling and the search backs off to a cheaper card. The deterministic
 // modes pick the same way -- a constraint-bound ask's legal answer is
-// near-forced. (A stat:TapPowerValue static that trades power for toughness
-// -- Tapestry Warden -- is invisible on the wire: the prompt's power is the
-// view's layer-derived power, so such an ask can still be under-shot.)
+// near-forced.
 func (c *MockClient) answerChooseCards(in mb.ChooseCardsInput) mb.PromptOutputValue {
 	n := len(in.Cards)
 	if n == 0 {
 		return mb.ChooseCardsDecision{ChosenCardIDs: []string{}}
+	}
+	if setConstraintBound(in.Presentation.Description) && in.Min > 0 && n >= in.Min {
+		ids := make([]string, 0, in.Min)
+		for _, card := range in.Cards[:in.Min] {
+			ids = append(ids, card.ID)
+		}
+		return mb.ChooseCardsDecision{ChosenCardIDs: ids}
 	}
 	floor, hasFloor := constraintNumber(in.Presentation.Description, "Total value must be at least ")
 	ceiling, hasCeiling := constraintNumber(in.Presentation.Description, "Total value must not exceed ")
@@ -419,13 +423,8 @@ func (c *MockClient) answerChooseCards(in mb.ChooseCardsInput) mb.PromptOutputVa
 		for i := range order {
 			order[i] = i
 		}
-		val := func(i int) int {
-			if in.Cards[i].Power == nil {
-				return 0
-			}
-			p, _ := strconv.Atoi(*in.Cards[i].Power)
-			return p
-		}
+		values := cardValues(in.Presentation.Description)
+		val := func(i int) int { return values[in.Cards[i].ID] }
 		// Strongest first: reaching a floor with the fewest cards, and the
 		// deterministic tie order the earlier policy used.
 		sort.SliceStable(order, func(a, b int) bool { return val(order[a]) > val(order[b]) })
@@ -537,6 +536,22 @@ func constraintNumber(desc, prefix string) (int, bool) {
 	}
 	n, _ := strconv.Atoi(rest[j:k])
 	return n, true
+}
+
+// cardValues reads the prompt's "Card values: <id> <n>, ..." sentence
+// (cardValueSentence's wording).
+func cardValues(desc string) map[string]int {
+	_, rest, ok := strings.Cut(desc, "Card values: ")
+	if !ok {
+		return nil
+	}
+	list, _, _ := strings.Cut(rest, ".")
+	values := map[string]int{}
+	for _, pair := range strings.Split(list, ", ") {
+		id, n, _ := strings.Cut(pair, " ")
+		values[id], _ = strconv.Atoi(n)
+	}
+	return values
 }
 
 // answerChooseColor spends Amount across ValidColors, repeating the first
