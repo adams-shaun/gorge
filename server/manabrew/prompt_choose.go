@@ -164,20 +164,25 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		colors := make([]string, 0, 6)
 		seen := map[string]bool{}
 		allColor := true
+		// "Add X mana in any combination of colors" offers each colour once per
+		// unit, so a colour can repeat though no one option can.
+		repeat := d.Repeatable
 		for _, o := range d.Options {
 			c := colorCode(o.ManaSymbol, o.Label)
 			if c == "" {
 				allColor = false
 				break
 			}
-			if !seen[c] {
-				colors = append(colors, c)
-				seen[c] = true
+			if seen[c] {
+				repeat = true
+				continue
 			}
+			colors = append(colors, c)
+			seen[c] = true
 		}
 		if allColor && len(colors) > 0 {
 			sort.Strings(colors)
-			in = mb.ChooseColorInput{PromptBase: pres, ValidColors: colors, Amount: d.Min, RepeatAllowed: d.Repeatable}
+			in = mb.ChooseColorInput{PromptBase: pres, ValidColors: colors, Amount: d.Min, RepeatAllowed: repeat}
 		} else {
 			options := make([]mb.SelectionOption, 0, len(d.Options))
 			for _, o := range d.Options {
@@ -392,12 +397,12 @@ func (t *Translator) parseChooseCards(out mb.PromptOutputValue, p *Pending) Outc
 	return Outcome{Intent: &in}
 }
 
-// parseChooseColor maps chooseColor's colorDecision: chosenColors is a
-// count per colour code, expanded into that many repeats of the matching
-// option's index. The map is walked in sorted key order -- never Go's own
-// map range order -- so the resulting Choices list, and therefore any event
-// it feeds, is deterministic (AGENTS.md's "no map range where iteration
-// order can reach an event").
+// parseChooseColor maps chooseColor's colorDecision: chosenColors is a count
+// per colour code, expanded into that many of the colour's options, repeating
+// its last where the ask is Repeatable and offers it once. The map is walked in
+// sorted key order -- never Go's own map range order -- so the resulting Choices
+// list, and therefore any event it feeds, is deterministic (AGENTS.md's "no map
+// range where iteration order can reach an event").
 func (t *Translator) parseChooseColor(out mb.PromptOutputValue, p *Pending) Outcome {
 	d := p.Decision
 	cur := p.Prompt.PromptID
@@ -413,18 +418,17 @@ func (t *Translator) parseChooseColor(out mb.PromptOutputValue, p *Pending) Outc
 	choices := make([]int, 0, len(colors))
 	for _, c := range colors {
 		n := dec.ChosenColors[c]
-		idx := -1
+		var offered []int
 		for _, o := range d.Options {
 			if colorCode(o.ManaSymbol, o.Label) == c {
-				idx = o.Index
-				break
+				offered = append(offered, o.Index)
 			}
 		}
-		if idx < 0 {
+		if len(offered) == 0 {
 			return Outcome{Err: errCode(mb.CodeInvalidShape, fmt.Sprintf("color %q is not offered", c), idPtr(cur))}
 		}
 		for i := 0; i < n; i++ {
-			choices = append(choices, idx)
+			choices = append(choices, offered[min(i, len(offered)-1)])
 		}
 	}
 	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
