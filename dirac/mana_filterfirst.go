@@ -75,9 +75,10 @@ func (s *State) filtFirstOnly(k *prep, sl Slot) bool {
 
 // filtUsable: the filter at sl can be activated now, its fee aside: a {T}
 // one untapped and (a creature) unsick, a once-each-turn one unused this
-// turn (gorge's ActivationLimit$ gate).
+// turn (gorge's ActivationLimit$ gate), and not locked by a CantBeActivated
+// static (cast_cantactivate.go), as a plain mana source is not.
 func (s *State) filtUsable(k *prep, sl Slot) bool {
-	if s.genLost(k, sl) {
+	if s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
 	pm := &s.perms[sl]
