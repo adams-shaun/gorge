@@ -475,11 +475,7 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostSurged:
 		return surgeCost(f)
 	case potentialModeBaseCostMiracle:
-		mc, ok := f.KeywordCostParam("Miracle")
-		if !ok {
-			return Cost{}, false
-		}
-		return ParseCost(mc), true
+		return e.miracleCost(id)
 	case potentialModeBaseCostOmenAlt:
 		// CR 720.3: the offer flips to the Omen face and prices that face's
 		// printed cost (appendAlternateSpellFace's base), not the front's.

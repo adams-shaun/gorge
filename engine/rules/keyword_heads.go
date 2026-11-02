@@ -55,6 +55,7 @@ var (
 	kwhJumpStart        = newKWHead("Jump-start")
 	kwhLifelink         = newKWHead("Lifelink")
 	kwhMayhem           = newKWHead("Mayhem")
+	kwhMiracle          = newKWHead("Miracle")
 	kwhMenace           = newKWHead("Menace")
 	kwhMentor           = newKWHead("Mentor")
 	kwhModular          = newKWHead("Modular")

@@ -1792,11 +1792,11 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			return name + ": madness cast-or-graveyard trigger"
 		}
 		head, verb := "Miracle", "reveal "
-		o := e.G.Obj(pt.Source)
-		cost := ""
-		if o != nil && o.Face() != nil {
-			if c, ok := o.Face().KeywordParam(head); ok {
-				cost = c
+		cost, _ := e.derivedKeywordParamH(pt.Source, kwhMiracle)
+		if less, ok := miracleCardCostLess(cost); ok {
+			cost = "its mana cost"
+			if less != "" {
+				cost += " less " + less
 			}
 		}
 		return head + " — " + verb + name + " for " + cost + "?"

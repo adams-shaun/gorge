@@ -44,7 +44,7 @@ func (e *Engine) offerMiracle(ev events.Event) {
 	if o == nil || o.Face() == nil {
 		return
 	}
-	if _, ok := o.Face().KeywordParam("Miracle"); !ok {
+	if _, ok := e.derivedKeywordParamH(ev.Obj, kwhMiracle); !ok {
 		return
 	}
 	if e.G.Turn == 0 || e.drawsThisTurn(ev.Player) != 1 {
@@ -56,6 +56,42 @@ func (e *Engine) offerMiracle(ev events.Event) {
 		Miracle:    true,
 		Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
 	})
+}
+
+// miracleCardCost is the granted spelling that names the card's own mana cost.
+// "Miracle:ManaCost:4" is that cost less {4} (Aminatou, Veil Piercer).
+const miracleCardCost = "ManaCost"
+
+// miracleCost is card id's miracle cost, printed or granted in hand (Lorehold, the
+// Historian's "miracle {2}").
+func (e *Engine) miracleCost(id state.ObjID) (Cost, bool) {
+	raw, ok := e.derivedKeywordParamH(id, kwhMiracle)
+	if !ok {
+		return Cost{}, false
+	}
+	less, cardCost := miracleCardCostLess(raw)
+	if !cardCost {
+		return ParseCost(cardsKeywordHead(raw)), true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	cost := ParseCost(o.Face().ManaCost)
+	cost.Generic = max(0, cost.Generic-ParseCost(less).Generic)
+	return cost, true
+}
+
+// miracleCardCostLess reads the card-cost spelling: the mana it takes off, and
+// whether raw is that spelling at all.
+func miracleCardCostLess(raw string) (string, bool) {
+	if cardsKeywordHead(raw) != miracleCardCost {
+		return "", false
+	}
+	if len(raw) <= len(miracleCardCost)+1 {
+		return "", true
+	}
+	return raw[len(miracleCardCost)+1:], true
 }
 
 // drawsThisTurn counts Draw events for player p since the last TurnChange in

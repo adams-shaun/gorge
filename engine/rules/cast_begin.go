@@ -365,14 +365,12 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(raise)
 		}
 	case castModeMiracle:
-		// A Miracle cast pays the printed Miracle cost (CR 702.93d) in
-		// place of the card's normal cost. KeywordCostParam reads the keyword's
-		// first colon-field off the face;
-		// a missing keyword (offer routed here only from a Miracle offer, and
-		// only while the card is in hand) falls back to the empty cost so a
-		// stale cast cannot strand.
-		if mc, ok := f.KeywordCostParam("Miracle"); ok {
-			cost = ParseCost(mc)
+		// A Miracle cast pays the miracle cost in place of the card's normal
+		// cost (CR 702.94a). A missing keyword (offer routed here only from a
+		// Miracle offer, and only while the card is in hand) falls back to the
+		// empty cost so a stale cast cannot strand.
+		if mc, ok := e.miracleCost(id); ok {
+			cost = mc
 		} else {
 			cost = Cost{}
 		}
