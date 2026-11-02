@@ -155,14 +155,16 @@ func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			o := g.Obj(id)
-			if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+			if o == nil {
 				continue
 			}
 			untap := untapper
 			if perCardUntapper {
 				untap = o.Controller
 			}
-			h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: untap})
+			if !tryUntapBy(h, id, untap) {
+				continue
+			}
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
