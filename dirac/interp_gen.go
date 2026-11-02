@@ -1012,7 +1012,12 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
-	hr := s.holdOpen(k)
+	var hr holdRec
+	if in.Op == kop.OpReturn && kop.Zone(in.C) == kop.ZoneBattlefield || in.Op == kop.OpReturnEx && kop.Zone(in.C&7) == kop.ZoneBattlefield {
+		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
+	} else {
+		hr = s.holdOpen(k)
+	}
 	defer s.holdClose(k, hr)
 	s.g.inLoop = true
 	s.exec(k, in)
@@ -1448,10 +1453,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 			s.fireLeavesGraveyardSelf(k, sl, o)
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
-	case from == kop.ZoneGraveyard:
-		sl = s.enterFromGrave(k, o, ctrl, fl&kop.MvTapped != 0)
 	default:
-		sl = s.enter(k, o, ctrl, fl&kop.MvTapped != 0, from)
+		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
 	s.g.enterCtr.n = 0
 	s.g.retMiss = false

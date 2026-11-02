@@ -1579,6 +1579,10 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
+	if z == kop.ZoneBattlefield {
+		// gorge effDig's zone batch: the taken cards enter together (CR 603.6a)
+		defer s.holdClose(k, s.holdEntries())
+	}
 	arranges := digArranges(n, s.g.lookSel, rz, fl)
 	if arranges || z == kop.ZoneBattlefield {
 		// the taken cards move one at a time with the rest still on top; one
@@ -1787,7 +1791,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	}
 	switch {
 	case z == kop.ZoneBattlefield:
-		s.enter(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

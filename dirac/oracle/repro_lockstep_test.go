@@ -86,6 +86,15 @@ func TestXWitnessKeepsTheOnlyTargetLockstep(t *testing.T) {
 	synthReproLockstep(t, "common_good_keeps_treasure", "std-blb", Config{})
 }
 
+// Dewdrop Cure returns two Lifecreed Duos, or a Duo beside other creatures: the targets
+// enter together, so each Duo sees the others (CR 603.6a).
+func TestTargetsReturnedTogetherSeeEachOtherLockstep(t *testing.T) {
+	t.Parallel()
+	autopay := Config{GorgeAutopaySurface: true}
+	synthReproLockstep(t, "dewdrop_two_duos", "std-blb", autopay)
+	synthReproLockstep(t, "dewdrop_duo_last", "std-blb", autopay)
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {

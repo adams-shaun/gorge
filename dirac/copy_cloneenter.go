@@ -58,11 +58,7 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 		s.countMayPlayLand(k, o, from)
 	}
 	if kop.Zone(in.C) == kop.ZoneBattlefield {
-		if from == kop.ZoneGraveyard {
-			s.enterFromGrave(k, o, ob.owner(), false)
-		} else {
-			s.enter(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
-		}
+		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {
 		s.placeFromK(k, o, kop.Zone(in.C), false, from, false)
 	}
