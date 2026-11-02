@@ -23,6 +23,8 @@ func TestReturnedCardsLockstep(t *testing.T) {
 		{"blocked trigger without abilities", "std-dsk", autopay, 1, []int{398}},
 		// Smile at Death: a once-each-turn filter mana source under CantBeActivated
 		{"smile at death", "std-tdm", full, 1, []int{1379}},
+		// Mockingbird: a flickered clone's election, and an {X} spell that reads its mana spent paid through a filter land
+		{"mockingbird", "std-blb", full, 0, []int{629}},
 		// Victor Valgavoth's Seneschal and Tainted Treats, whose earlier differences no longer show
 		{"victor valgavoth's seneschal", "std-dsk", autopay, 0, []int{1488}},
 		{"tainted treats", "std-tmt", full, 0, []int{1463}},
