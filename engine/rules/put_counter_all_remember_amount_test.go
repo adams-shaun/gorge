@@ -12,10 +12,10 @@ import (
 // and draws a card only if two or more counters were put: RememberAmount$ on
 // PutCounterAll publishes the total that landed to Count$RememberedNumber.
 const rememberAmountSage = "Name:Tally Sage\nManaCost:2 W\nTypes:Creature Advisor\nPT:1/4\n" +
-	"A:AB$ PutCounterAll | Cost$ T | ValidCards$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 | RememberAmount$ True | SubAbility$ DBDraw | SpellDescription$ x\n" +
-	"SVar:DBDraw:DB$ Draw | ConditionCheckSVar$ X | ConditionSVarCompare$ GE2 | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
-	"SVar:X:Count$RememberedNumber\nOracle:x\n"
+	"A:AB$ PutCounterAll | Cost$ T | ValidCards$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 | RememberAmount$ True | SubAbility$ TallyDraw | SpellDescription$ x\n" +
+	"SVar:TallyDraw:DB$ Draw | ConditionCheckSVar$ Tally | ConditionSVarCompare$ GE2 | SubAbility$ TallyClear\n" +
+	"SVar:TallyClear:DB$ Cleanup | ClearRemembered$ True\n" +
+	"SVar:Tally:Count$RememberedNumber\nOracle:x\n"
 
 // TestPutCounterAllRememberAmountGatesAFollowUp: with one creature the sweep
 // lands one counter and the draw is skipped; with a second creature it lands
