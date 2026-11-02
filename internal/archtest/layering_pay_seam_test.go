@@ -129,9 +129,11 @@ func TestPayHoldsNoHost(t *testing.T) {
 }
 
 // payEvalMethods is the method count of pay.Eval (engine/rules/pay/eval.go), the
-// payment layer's evaluation seam, budgeted like charsReaderMethods.
+// payment layer's evaluation seam, budgeted like charsReaderMethods. 13: the
+// mana-ability cost reads (ManaStaticFor, ManaAbilityCost) price a mana ability
+// after the cost statics that reach it.
 const (
-	payEvalMethods = 11
+	payEvalMethods = 13
 	payEvalCeiling = 20
 )
 
