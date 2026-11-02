@@ -93,3 +93,15 @@ func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
 		})
 	}
 }
+
+// std-fin's: each of these once diverged at the end of its script.
+func TestStdFinReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-fin", []stdRepro{
+		{"clash_chain_link_target_order", true},          // a mode's chain link is listed after the later modes' roots
+		{"granted_death_trigger_last_known_power", true}, // CR 608.2h: Galuf's Final Act reads the pumped power
+		{"peek_after_source_changed_hands", true},        // CR 109.5: "your library" after Stiltzkin gave the source away
+		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
+		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
+	})
+}
