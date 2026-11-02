@@ -400,7 +400,7 @@ func SubCounterAvailable(o *state.Object, kind string) int32 {
 	if SubCounterAnyKind(kind) {
 		total := int32(0)
 		for _, c := range o.Counters {
-			if c.N > 0 {
+			if c.N > 0 && !state.InternalCounterMarker(c.Kind) {
 				total += c.N
 			}
 		}

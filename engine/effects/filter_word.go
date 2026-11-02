@@ -886,8 +886,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// kind on it. Test the COUNT, not the slice length -- state's
 		// AddCounter clamps a drained kind at zero without pruning the slot
 		// (engine/state/object.go), so a permanent whose counters were all removed
-		// still carries a zero-count entry and must not match.
-		return hasCounters(o.Counters)
+		// still carries a zero-count entry and must not match. A regeneration
+		// shield or a deathtouch mark is not a counter (CR 122.1).
+		return hasRealCounters(o.Counters)
 	case wordSuspended:
 		// Forge's isSuspended: the card is in exile carrying the Suspend
 		// action's cast provenance. Time counters are deliberately NOT part

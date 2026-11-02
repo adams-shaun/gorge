@@ -235,18 +235,16 @@ func (s *State) predAttached(sl, src Slot) bool {
 // here is reached by a table without the lifted shapes (an FDN/BLB filter
 // never carries PredHasCounters).
 
-// predHasCounters is PredHasCounters (gorge wordHasCounters: hasCounters
+// predHasCounters is PredHasCounters (gorge wordHasCounters: hasRealCounters
 // over Object.Counters): the battlefield permanent at sl holds one or more
-// counters of any kind. Unlike PredModified (hasRealCounters) gorge's read
-// INCLUDES its internal Shield/Deathtouched markers, which the kernel keeps
-// as flags: the regeneration shield (pfRegen) and the deathtouch mark
-// (pfDeathtouched) both match. A Class level (CtrLevel) is not a counter in
-// gorge (Object.ClassLevelValue).
+// counters of any kind. A regeneration shield (pfRegen) or a deathtouch mark
+// (pfDeathtouched) is not a counter (CR 122.1), and neither is a Class level
+// (CtrLevel; gorge's Object.ClassLevelValue).
 //
 //go:noinline
 func (s *State) predHasCounters(sl Slot) bool {
 	p := &s.perms[sl]
-	if p.p1 != 0 || p.flags&(pfRegen|pfDeathtouched) != 0 {
+	if p.p1 != 0 {
 		return true
 	}
 	for i := range p.ck {

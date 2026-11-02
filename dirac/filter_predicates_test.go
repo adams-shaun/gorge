@@ -320,10 +320,10 @@ func TestPredAttachedActiveCtrl(t *testing.T) {
 	}
 }
 
-// TestHasCountersPredicate: PredHasCounters (gorge wordHasCounters: hasCounters,
-// internal markers included) reads a counter of any stored kind, the
-// regeneration shield and the deathtouch mark, but not a Class level, an
-// attachment, or anything off the battlefield.
+// TestHasCountersPredicate: PredHasCounters (gorge wordHasCounters:
+// hasRealCounters) reads a counter of any stored kind, but not the regeneration
+// shield or the deathtouch mark (CR 122.1), a Class level, an attachment, or
+// anything off the battlefield.
 func TestHasCountersPredicate(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Downwind Ambusher", Count: 1}, {Name: "Short Bow", Count: 1}, {Name: "Plains", Count: 8}})
 	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Pred: kop.PredHasCounters})
@@ -354,13 +354,13 @@ func TestHasCountersPredicate(t *testing.T) {
 	}
 	p.subCtrN(s, int(kop.CtrLevel), 1)
 	p.flags |= pfRegen
-	if !has() {
-		t.Error("the regeneration shield (gorge's Shield marker) is not read")
+	if has() {
+		t.Error("the regeneration shield reads as a counter")
 	}
 	p.flags &^= pfRegen
 	p.markDT(1)
-	if !has() {
-		t.Error("the deathtouch mark (gorge's Deathtouched marker) is not read")
+	if has() {
+		t.Error("the deathtouch mark reads as a counter")
 	}
 	p.flags &^= pfDeathtouched
 	s.perms[sc.slot(bow)].attached = sc.slot(amb)

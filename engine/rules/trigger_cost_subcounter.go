@@ -116,6 +116,9 @@ func (tc *triggeredEffectCost) triggerSubCounterPayable(e *Engine, c Cost) bool 
 func triggerSubCounterKinds(o *state.Object, c Cost, picks []string) []string {
 	var out []string
 	for _, ctr := range o.Counters {
+		if state.InternalCounterMarker(ctr.Kind) {
+			continue
+		}
 		left := ctr.N - triggerSubCounterFixedUse(c, ctr.Kind)
 		for _, k := range picks {
 			if k == ctr.Kind {

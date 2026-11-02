@@ -227,7 +227,7 @@ func manaSubCounterWildcardStage(e Engine, md *ManaCostActivation, part costvoca
 				continue
 			}
 			for _, c := range o.Counters {
-				if c.N <= 0 || md.SubCounterKindUsed(md.SubPart, oid, c.Kind) {
+				if c.N <= 0 || state.InternalCounterMarker(c.Kind) || md.SubCounterKindUsed(md.SubPart, oid, c.Kind) {
 					continue
 				}
 				units = append(units, unit{oid, c.Kind})

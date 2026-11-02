@@ -111,25 +111,14 @@ func counterKinds(kind string, n int, at func(int) string, count func(int) int32
 	return out
 }
 
-// hasCounters reports whether a counter carrier holds at least one counter of
-// ANY kind, testing the COUNT and not the slice length (a drained slot stays in
-// the slice at N == 0). It includes the internal status markers; the CR 701.27a
-// proliferate gate is hasRealCounters, which excludes them.
-func hasCounters(kinds []state.Counter) bool {
-	for i := range kinds {
-		if kinds[i].N > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// hasRealCounters is hasCounters with the engine's internal status markers
-// ("Shield", "Deathtouched") excluded. They ride Object.Counters because the
-// engine has no per-object status field (state.InternalCounterMarker), but
-// they are not counters a spell or ability can see: CR 701.27a's proliferate
-// eligibility is "permanents and/or players that have a counter on them", so
-// a regeneration shield alone must not make a recipient choosable.
+// hasRealCounters reports whether a counter carrier holds at least one counter
+// of any kind, testing the COUNT and not the slice length (a drained slot stays
+// in the slice at N == 0). The engine's internal status markers ("Shield",
+// "Deathtouched") are excluded. They ride Object.Counters because the engine
+// has no per-object status field (state.InternalCounterMarker), but they are
+// not counters a spell or ability can see: CR 701.27a's proliferate eligibility
+// is "permanents and/or players that have a counter on them", so a regeneration
+// shield alone must not make a recipient choosable.
 func hasRealCounters(kinds []state.Counter) bool {
 	for i := range kinds {
 		if kinds[i].N > 0 && !state.InternalCounterMarker(kinds[i].Kind) {

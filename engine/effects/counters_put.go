@@ -460,7 +460,7 @@ func putCounterEachType(h Host, c *Ctx, sa *cards.SA, pc *PutCounterParams, n in
 				continue
 			}
 			for _, ct := range o.Counters {
-				if ct.N > 0 && !seen[ct.Kind] {
+				if ct.N > 0 && !seen[ct.Kind] && !state.InternalCounterMarker(ct.Kind) {
 					seen[ct.Kind] = true
 					kinds = append(kinds, ct.Kind)
 				}
