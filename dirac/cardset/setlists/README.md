@@ -21,6 +21,10 @@ rise must be re-pinned in the same commit.
   find -L .cards/cardsfolder -name '*.txt' -exec awk '/^Name:/{sub(/^Name:/,"");sub(/\r$/,"");print;nextfile}' {} + | LC_ALL=C sort -u
   ```
 
+TRK and TRC have no XMage manifest. Their lists are the names in the `[cards]` section of
+Forge's edition files (`Star Trek.txt`, `Star Trek Commander.txt`) that have a script at the
+pin, so they grow with the corpus until Forge has scripted the whole set.
+
 ## Names dropped from the manifest lists
 
 `kgen -card-list` refuses a list naming a card the corpus lacks, so these

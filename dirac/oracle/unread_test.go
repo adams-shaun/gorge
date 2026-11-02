@@ -201,7 +201,7 @@ func TestUnreadLockstep(t *testing.T) {
 		{"Lembas/ChangeZone", 3},
 		{"Agonizing Memories/Spell", 3},
 		{"Floodpits Drowner/ChangeZone", 3},
-		{"Deep-Cavern Bat/RevealHand", 5},
+		{"Deep-Cavern Bat/ChangeZone", 5},
 		{"Gleeful Demolition/Spell", 5},
 		{"Thirst for Discovery/Spell", 5},
 		{"Snap/Spell", 5},

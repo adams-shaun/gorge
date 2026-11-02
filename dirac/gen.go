@@ -2231,6 +2231,7 @@ var nonCreatureSubtype = map[string]bool{
 	"Mine": true, "Power-Plant": true, "Tower": true, "Urza's": true,
 	"Equipment": true, "Treasure": true, "Food": true, "Clue": true, "Vehicle": true, "Blood": true,
 	"Gold": true, "Map": true, "Powerstone": true, "Incubator": true, "Fortification": true, "Junk": true,
+	"Spacecraft": true, "Lander": true, "Communicator": true, "Planet": true,
 	"Aura": true, "Saga": true, "Shrine": true, "Curse": true, "Cartouche": true, "Class": true,
 	"Room": true, "Rune": true, "Background": true, "Role": true, "Case": true, "Shard": true,
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,

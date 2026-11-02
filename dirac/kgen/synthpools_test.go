@@ -20,8 +20,8 @@ func TestSynthListsAreDerivedAndFrontNamed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(lists) != 20 {
-		t.Errorf("%d Standard lists, want the 20 of standard.txt", len(lists))
+	if len(lists) != 22 {
+		t.Errorf("%d Standard lists, want the 22 of standard.txt", len(lists))
 	}
 	var dsk []string
 	for _, l := range lists {

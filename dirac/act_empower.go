@@ -61,7 +61,7 @@ func (s *State) empowerCands(k *prep, p uint8, sub int, out []Slot) int {
 
 // empower is OpEmpower (gorge effEmpower): player Obj puts A loyalty
 // counters on one Jace token they control. N is read before any token is
-// created. With no candidate the u_empower token is created (even when N
+// created. With no candidate the u_empower_jace token is created (even when N
 // <= 0), each mint gets the Type$ / "<Type$> Token" override, and the
 // counters go on the minted token; two or more mints (a token doubler) ask.
 // false: suspended on the pick.

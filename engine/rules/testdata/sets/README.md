@@ -12,3 +12,7 @@ Dropped names: DMU Tura Kennerud, Skyknight; HOB Dain Ironfoot, Dain's
 Company, Dain, Lord of the Iron Hills, Fili the Pathfinder, Gloin the Mighty,
 Kili the Resourceful, Oin the Brave, Thror's Map; LCI Bartolome del Presidio;
 MSH Mjolnir, Hammer of Thor; SPM Arana, Heart of the Spider; TMT Bespoke Bo.
+
+TRK and TRC have no XMage manifest. Their lists are the names in the `[cards]`
+section of Forge's edition files that have a script at the pin, so they grow with
+the corpus until Forge has scripted the whole set.

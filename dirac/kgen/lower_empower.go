@@ -6,11 +6,11 @@ import (
 
 // empower lowers api:Empower (gorge effEmpower, CR 701.71a): the resolving
 // controller puts Num$ (default 1) loyalty counters on one Jace token they
-// control; with none, they first create the u_empower token (a blue 0-loyalty
+// control; with none, they first create the u_empower_jace token (a blue 0-loyalty
 // Jace planeswalker token), which gets the Type$ subtype and the
 // "<Type$> Token" name as permanent grants. The corpus is entirely
 // Type$ Jace; any other Type$ refuses (the per-type token script
-// u_empower_<type> is not in the corpus, so the exact grant is unverified).
+// u_empower_<type> is in the corpus for Jace alone, so any other grant is unverified).
 // Defined$ refuses: gorge's default is You and no carrier names another
 // player. The token is created even when Num$ is 0 (it then dies to the
 // planeswalker SBA), unlike amass's early return.
@@ -26,7 +26,7 @@ func (lc *lowerCtx) empower(ps *params) error {
 	if err != nil {
 		return err
 	}
-	key := "u_empower"
+	key := "u_empower_jace"
 	if _, ok := lc.p.reg.Token(key); !ok {
 		return refuse("token script %q not in the corpus", key)
 	}

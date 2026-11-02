@@ -18,7 +18,7 @@ func sbTestOptions(autopay bool) sbOptions {
 func sbTestRun(t *testing.T, autopay bool, failPath string) (*sbTwinSummary, string) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

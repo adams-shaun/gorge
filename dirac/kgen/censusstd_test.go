@@ -507,8 +507,8 @@ func TestStdSetsFlag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 20 || got[0] != "BIG" || got[19] != "WOE" {
-		t.Fatalf("default stdSetCodes = %q, want 20 codes BIG..WOE", got)
+	if len(got) != 22 || got[0] != "BIG" || got[21] != "WOE" {
+		t.Fatalf("default stdSetCodes = %q, want 22 codes BIG..WOE", got)
 	}
 
 	// A non-std list leaves the ranking and joint order unchanged and still

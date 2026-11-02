@@ -157,7 +157,7 @@ func empPolicy(seed uint64) Policy {
 	})
 }
 
-// empTally counts the arms from gorge's event log: the u_empower mints, the
+// empTally counts the arms from gorge's event log: the u_empower_jace mints, the
 // loyalty placements on a token minted on an earlier turn (the existing
 // token), the counter_pick asks, and each carrier put on the stack.
 type empTally struct {
@@ -208,7 +208,7 @@ func (t *empTally) check(ref *GorgeSide, _ Side) *Divergence {
 		e := &evs[j]
 		switch e.Kind {
 		case events.TokenCreate:
-			if e.Text == "u_empower" {
+			if e.Text == "u_empower_jace" {
 				t.mints++
 			}
 		case events.CounterChange:

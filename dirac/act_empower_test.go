@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// The unit tests: OpEmpower mints the u_empower token even at
+// The unit tests: OpEmpower mints the u_empower_jace token even at
 // N = 0, ignores a non-token Jace, reuses an existing Jace token instead of
 // minting, and (with Doubling Season's two mints) asks which token gets the
 // counters.
@@ -37,7 +37,7 @@ func empScen(t *testing.T) (*scen, empCards) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tok := set.PoolID(empPoolIndex(t, "u_empower"))
+	tok := set.PoolID(empPoolIndex(t, "u_empower_jace"))
 	prog := func(n int) []kop.Ability {
 		return []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{{
 			Op: kop.OpEmpower, Obj: kop.RefController, A: kop.Const(n), B: kop.Const(1), C: int16(tok),
@@ -76,7 +76,7 @@ func (sc *scen) empCastObj(t *testing.T, o Obj) {
 	sc.do(t, AkPass, 0xff, 0xff)
 }
 
-// TestEmpowerMint: no Jace token -> one u_empower token, named "Jace Token"
+// TestEmpowerMint: no Jace token -> one u_empower_jace token, named "Jace Token"
 // and carrying the Jace subtype, with N loyalty counters.
 func TestEmpowerMint(t *testing.T) {
 	sc, c := empScen(t)
