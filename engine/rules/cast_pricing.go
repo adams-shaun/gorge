@@ -182,7 +182,7 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 			pc.ownReduce = n
 		}
 	}
-	pc.mods = pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets))
+	pc.mods = pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, pc.allTargets()))
 }
 
 // foldStriveCost prices the Strive keyword's per-extra-target additional
@@ -456,7 +456,7 @@ func (e *Engine) manaToPay(pc *pendingCast) Cost {
 		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
 		// pc.mods snapshot was bound to X=0.
 		if scope, ok := e.pendingCastScope(pc); ok {
-			m = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.targets, pc.x)).Apply(pc.resolvedMana())
+			m = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.allTargets(), pc.x)).Apply(pc.resolvedMana())
 		}
 	}
 	m.Generic += pc.taxGeneric
