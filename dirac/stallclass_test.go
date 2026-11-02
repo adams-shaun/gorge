@@ -24,7 +24,7 @@ var (
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
-	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "raisefree", "liferepl", "prolif", "ctrorder",
+	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "liferepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
@@ -175,9 +175,6 @@ func stallFlagCases() []stallFlagCase {
 	static := func(k kop.StaticKind) kop.Ability {
 		return kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: k}}
 	}
-	sorcery := func(name string, in ...kop.Instr) kop.CardDef {
-		return kop.CardDef{Name: name, Types: kop.TSorcery, Abilities: []kop.Ability{spell(in...)}}
-	}
 	return []stallFlagCase{
 		{StallTapsMana, "Half Tapper", "Half Rite", stallPool("tapsmana", []kop.CardDef{
 			vt("Half Tapper", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigTaps, Flags: kop.TfSelf}}),
@@ -190,10 +187,6 @@ func stallFlagCases() []stallFlagCase {
 		{StallBeamTwice, "Half Beam", "Half Grant", stallPool("beamtwice", []kop.CardDef{
 			{Name: "Half Beam", Types: kop.TSorcery, BeamMeUp: true, Abilities: []kop.Ability{spell()}},
 			vt("Half Grant", static(kop.StatBeamGrant)),
-		}, nil, nil, nil)},
-		{StallRaiseFree, "Half Raise", "Half Free", stallPool("raisefree", []kop.CardDef{
-			vt("Half Raise", static(kop.StatIncreaseCost)),
-			sorcery("Half Free", kop.Instr{Op: kop.OpCastFree}),
 		}, nil, nil, nil)},
 		{StallLifeRepl, "Half Doubler", "Half Plus", stallPool("liferepl", []kop.CardDef{
 			vt("Half Doubler", repl(kop.ReplLifeDouble)),

@@ -68,11 +68,16 @@ const (
 	StRemove6Counters                              // MayPlayFrom: also remove Static.A counters from among creatures you control (the name predates Dawnhand Dissident's three)
 	StTargetsFilter2                               // ReduceCost: only if the spell targets an object matching Filter2
 	StRaiseYou                                     // IncreaseCost (kgen): only spells the static's controller casts (Activator$ You)
-	StRaiseOpp                                     // IncreaseCost (kgen): only spells the controller's opponents cast (Activator$ Opponent)
+	StRaiseOpp                                     // IncreaseCost (kgen): only spells the controller's opponents cast (Activator$ Opponent); on a ReduceCost, StReduceAny: every caster's spells (no Activator$)
 	StYouHexproof                                  // Continuous (kgen, shield): the static's controller has hexproof too (Affected$ You,...; read by playerHexproof under Cond2)
 	_                                              // unused: the flags after it keep their values, which card tables pin
 	StPanhETB                                      // Panharmonicon (kgen): echoes only a trigger caused by a permanent entering the battlefield that matches Filter2 (ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$ Battlefield)
 )
+
+// StReduceAny is StRaiseOpp read on a StatReduceCost: the reduction applies to
+// the spells of either player (a ReduceCost with no Activator$, Helm of
+// Awakening), where a ReduceCost with Activator$ You reduces its controller's.
+const StReduceAny = StRaiseOpp
 
 // OpCounter C: Destination$ of the countered spell card (0 graveyard).
 const (

@@ -27,7 +27,6 @@ func init() {
 	stallNames[20] = "tapsmana"
 	stallNames[21] = "infect"
 	stallNames[22] = "replplus"
-	stallNames[23] = "raisefree"
 	stallNames[25] = "liferepl"
 	stallNames[26] = "prolif"
 	stallNames[27] = "tappick"

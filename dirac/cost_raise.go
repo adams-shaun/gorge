@@ -52,45 +52,21 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj) int {
 	return g
 }
 
-// tableRaises reports whether t has a generated StatIncreaseCost, and
-// whether it also has a free cast (OpCastFree, a play-from-zone static
-// without the mana cost): gorge charges the raise on a free cast (CR
-// 601.2f; manaToPay composes the modifiers on the empty cost), which the
-// kernel's castFree path does not price -- that table stalls loud.
-func tableRaises(t *Table) (raise, free bool) {
+// tableRaises reports whether t has a generated StatIncreaseCost. A free cast
+// is charged the raise on what it still owes (CR 601.2f, 118.9d; gorge
+// manaToPay composes the modifiers on the empty cost): buildCostGenPre.
+func tableRaises(t *Table) bool {
 	for i := range t.Cards {
-		if t.Cards[i].HasPlot || t.Cards[i].Types&kop.TBattle != 0 {
-			// (a Battle's defeat cast is free too:)
-			// a plotted card's later cast is free, and gorge composes a
-			// raise on that empty cost (CR 601.2f): the kernel's free
-			// path does not price it
-			free = true
-		}
 		for j := range t.Cards[i].Abilities {
-			a := &t.Cards[i].Abilities[j]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost {
-				raise = true
-			}
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StWithoutManaCost != 0 {
-				free = true
-			}
-			for _, in := range a.Prog {
-				if in.Op == kop.OpCastFree || in.Ext() == kop.ExtPlotGrant {
-					// (an effect's plotted grant, the same
-					// later free cast)
-					free = true
-				}
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIncreaseCost {
+				return true
 			}
 		}
 	}
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			for _, in := range t.Emblems[i].Abilities[j].Prog {
-				if in.Op == kop.OpCastFree {
-					free = true
-				}
-			}
-		}
-	}
-	return raise, raise && free
+	return false
 }
+
+// freeOwes reports whether a spell cast without paying its mana cost can still
+// owe something to the cost statics: a table with a RaiseCost, whose generic
+// lands on the empty cost.
+func (s *State) freeOwes(k *prep) bool { return k.gen != nil && k.gen.anyRaise }

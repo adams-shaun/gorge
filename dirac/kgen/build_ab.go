@@ -1503,6 +1503,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
+			case "AnyCaster":
+				st.StFlags |= kop.StReduceAny
 			case "EmbNum":
 				// the amount is the emblem's frozen
 				// SetChosenNumber$, read by adjustCostGen from embN

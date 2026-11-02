@@ -1653,6 +1653,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		if a, ok := sp.get("Activator"); ok && a != "You" {
 			return nil, refuse("ReduceCost Activator %q", a)
+		} else if !ok && sp.str("ValidCard") != "Card.Self" {
+			// no Activator$: either player's spells (CR 601.2f; Forge
+			// StaticAbilityCostChange applies it to every payer)
+			st.Flags = append(st.Flags, "AnyCaster")
 		}
 		if ez, ok := sp.get("EffectZone"); ok {
 			if ez != "All" {

@@ -125,6 +125,12 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 			return
 		}
+	} else if s.freeOwes(k) {
+		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
+		cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{})
+		if cost != (kop.ManaCost{}) && (!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) || !s.windowPoolPays(p, &cost, false)) {
+			return // (a free cast is no potential play: the floating pool pays what it owes)
+		}
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
@@ -296,6 +302,11 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
+		}
+		// the cost statics apply to what is left (CR 601.2f, 118.9d): a
+		// RaiseCost charges its generic on the empty cost
+		if s.freeOwes(k) {
+			c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
 		}
 		return c, false, true
 	}

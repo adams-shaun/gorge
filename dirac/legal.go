@@ -1381,7 +1381,7 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 			}
 			switch a.Static.Kind {
 			case kop.StatReduceCost:
-				if sp.ctrl == p && s.matchCard(k, a.Static.Filter, c, p, sp.ctrl) {
+				if (sp.ctrl == p || a.Static.StFlags&kop.StReduceAny != 0) && s.matchCard(k, a.Static.Filter, c, p, sp.ctrl) {
 					g -= int(a.Static.A)
 				}
 			case kop.StatIncreaseCost:

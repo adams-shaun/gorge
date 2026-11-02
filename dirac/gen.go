@@ -195,7 +195,6 @@ type genPrep struct {
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
 	beamTwice      bool           // a printed beam me up card beside a beam me up grant: the game stalls at its start (StallBeamTwice)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
-	raiseFree      bool           // anyRaise beside a free cast the kernel prices at nothing: the game stalls at its start (StallRaiseFree)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac      bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
@@ -535,7 +534,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPrevCol(t, g)    // cast_altfree.go
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
-	g.anyRaise, g.raiseFree = tableRaises(t)
+	g.anyRaise = tableRaises(t)
 	g.anyTwobrid = tableTwobrid(t)
 	g.beamTwice = tableBeamTwice(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
@@ -1642,7 +1641,6 @@ const (
 	StallTapsMana  = 20 // a Taps trigger in a table with a granted mana ability (gen tapsMana; kw_protection.go)
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
 	StallReplPlus  = 22 // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
-	StallRaiseFree = 23 // a RaiseCost static in a table with a free cast (gen raiseFree; trig_delayedtiming.go)
 	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)

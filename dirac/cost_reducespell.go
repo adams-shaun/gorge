@@ -73,6 +73,16 @@ func (s *State) raiseTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 // spell unaffordable, each tried as the sole selection (gorge
 // affordableTargetCandidates). A spell with no such raise keeps all n.
 func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+	return s.dropTargetsOwing(k, buf, n, false)
+}
+
+// freeDropTargets is raiseDropTargets for a spell cast without paying its
+// mana cost: the raise lands on the empty cost.
+func (s *State) freeDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
+	return s.dropTargetsOwing(k, buf, n, true)
+}
+
+func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]uint8, n int, free bool) int {
 	e := &s.bld().e
 	cd := &k.t.Cards[e.card]
 	has := false
@@ -92,11 +102,15 @@ func (s *State) raiseDropTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	m := 0
 	for i := 0; i < n; i++ {
 		e.nt, e.tgt[0] = 1, buf[i]
-		cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
+		base := cd.Cost
+		if free {
+			base = kop.ManaCost{}
+		}
+		cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, base)
 		if e.flags&sfAnyMana != 0 {
 			cost = anyType(cost)
 		}
-		if e.flags&sfKicked != 0 {
+		if e.flags&sfKicked != 0 && !free {
 			cost = addCost(cost, cd.Kicker)
 		}
 		cost.Generic = uint8(int(cost.Generic) + cost.XGeneric(int(e.x)))

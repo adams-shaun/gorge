@@ -79,7 +79,7 @@ var stallCapacityReasons = [...]uint8{
 }
 
 var stallUnmodelledReasons = [...]uint8{
-	StallTapsMana, StallInfect, StallReplPlus, StallRaiseFree, StallLifeRepl, StallProlif, StallCtrOrder,
+	StallTapsMana, StallInfect, StallReplPlus, StallLifeRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
@@ -99,8 +99,6 @@ func (g *genPrep) initStall() uint8 {
 		return StallTapsMana // TrigTaps is not fired for a mana tap
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
-	case g.raiseFree:
-		return StallRaiseFree // a free cast is not priced with the raise gorge charges
 	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
 		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
@@ -163,15 +161,6 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		text = "a printed beam me up card beside a beam me up grant: gorge lists a cast per distinct cost, and a canonical cast of the mode names one"
 		a = func(c *kop.CardDef, _ int) bool { return c.BeamMeUp }
 		b = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBeamGrant })
-	case StallRaiseFree:
-		text = "a cost increase beside a free cast: gorge charges the raise on the empty cost, the kernel prices nothing"
-		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatIncreaseCost })
-		b = func(c *kop.CardDef, i int) bool {
-			return c.HasPlot || c.Types&kop.TBattle != 0 || abilityOn(func(x *kop.Ability) bool {
-				return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatMayPlayFrom && x.Static.StFlags&kop.StWithoutManaCost != 0 ||
-					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpCastFree || in.Ext() == kop.ExtPlotGrant })
-			})(c, i)
-		}
 	case StallLifeRepl:
 		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
