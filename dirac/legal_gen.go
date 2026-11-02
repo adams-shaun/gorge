@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -680,53 +682,82 @@ func (s *State) affordsFor(k *prep, p uint8, c *kop.ManaCost) bool {
 }
 
 // tapAllForMana taps p's untapped mana sources into the pool (gorge's failed
-// ward payment leaves that mana floating).
+// ward payment leaves that mana floating). A first-only filter takes its turn in
+// the window's battlefield order once the pool pays its fee, for the first colour
+// its ask lists (windowFiltFirst; a net change of colour, no more mana).
 func (s *State) tapAllForMana(k *prep, p uint8) {
+	if k.gen != nil && k.gen.anyFiltFirst {
+		for s.tapAllStep(k, p) {
+		}
+		return
+	}
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		sl := m.first()
-		if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
-			var held [kop.NumManaKinds]uint8 // a restricted source's mana floats too
-			s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &held)
-			continue
+		s.tapOneForMana(k, p, m.first())
+	}
+}
+
+// tapAllStep plays the window's next activation, reporting whether there was one.
+func (s *State) tapAllStep(k *prep, p uint8) bool {
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
+	for _, sl := range order[:n] {
+		if s.windowFiltFirstUsable(k, p, sl) {
+			c := bits.TrailingZeros8(uint8(s.filtAb(k, sl).ManaColors))
+			s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
+			return true
 		}
-		pc := s.manaPCGen(k, sl)
-		sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
-		if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
-			continue
-		}
-		mask := s.srcMaskAt(pc, sl)
-		if k.painMana && pc.painCol != 0 && !pc.painOnly {
-			mask |= uint8(pc.painCol) & 0x1f // the window's colour answer (windowSrcMask)
-		}
-		if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
-			if c0, ok := s.vergeAbility0Col(k, sl); ok {
-				mask = 1 << c0 // a Verge's ability ask answers ability 0 (mana_gate.go)
-			}
-		}
-		// gorge's colour ask lists a source's colours in WUBRG order and
-		// the failed payment takes the first (oracle payWindowAnswer)
-		for _, c := range [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C} {
-			if mask&(1<<c) != 0 {
-				if !sacOnly {
-					s.perms[sl].flags |= pfTapped
-					s.touchSl(sl)
-				}
-				s.pl[p].pool[c] += pc.manaN
-				s.artTag(k, p, sl, c)
-				if k.painMana && pc.painCol != 0 && (pc.painOnly || c != kop.C) {
-					s.painDamage(k, sl, p, int(pc.painN))
-				}
-				break
-			}
-		}
-		if pc.manaSac || sacOnly {
-			// a Treasure is sacrificed for its mana too (pair 34385)
-			o := s.perms[sl].obj
-			s.fireSac(k, sl)
-			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
-				s.detach(o) // it ceases at once, as gorge pays
-			}
+		if s.tapOneForMana(k, p, sl) {
+			return true
 		}
 	}
+	return false
+}
+
+// tapOneForMana taps the source at sl into the pool, reporting whether it could.
+func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
+	if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
+		var held [kop.NumManaKinds]uint8 // a restricted source's mana floats too
+		s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &held)
+		return true
+	}
+	pc := s.manaPCGen(k, sl)
+	sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
+	if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
+		return false
+	}
+	mask := s.srcMaskAt(pc, sl)
+	if k.painMana && pc.painCol != 0 && !pc.painOnly {
+		mask |= uint8(pc.painCol) & 0x1f // the window's colour answer (windowSrcMask)
+	}
+	if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
+		if c0, ok := s.vergeAbility0Col(k, sl); ok {
+			mask = 1 << c0 // a Verge's ability ask answers ability 0 (mana_gate.go)
+		}
+	}
+	// gorge's colour ask lists a source's colours in WUBRG order and
+	// the failed payment takes the first (oracle payWindowAnswer)
+	for _, c := range [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C} {
+		if mask&(1<<c) != 0 {
+			if !sacOnly {
+				s.perms[sl].flags |= pfTapped
+				s.touchSl(sl)
+			}
+			s.pl[p].pool[c] += pc.manaN
+			s.artTag(k, p, sl, c)
+			if k.painMana && pc.painCol != 0 && (pc.painOnly || c != kop.C) {
+				s.painDamage(k, sl, p, int(pc.painN))
+			}
+			break
+		}
+	}
+	if pc.manaSac || sacOnly {
+		// a Treasure is sacrificed for its mana too (pair 34385)
+		o := s.perms[sl].obj
+		s.fireSac(k, sl)
+		s.leave(k, sl, kop.ZoneGraveyard, false)
+		if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+			s.detach(o) // it ceases at once, as gorge pays
+		}
+	}
+	return true
 }

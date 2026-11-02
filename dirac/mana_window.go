@@ -168,6 +168,10 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			return false, held
 		}
 		if gap {
+			if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
+				s.windowFiltFirst(k, p, sl, useful) // mana_filterfirst.go
+				continue
+			}
 			s.tapWindowGap(k, p, sl, &held)
 			continue
 		}
@@ -262,6 +266,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
 				continue // the clamp reads a fixed colour; a Tender's has none and stays
 			}
+			return o, true
+		}
+		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) {
 			return o, true
 		}
 	}
