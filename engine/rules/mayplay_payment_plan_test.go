@@ -343,3 +343,53 @@ func TestMayPlayGraveyardRaiseCostPlannedPaymentSettles(t *testing.T) {
 		}
 	}
 }
+
+// A may-play witness is priced as the cast will cost, not from the printed pips
+// (CR 609.4b, 118.9): under the rider any mana pays them; at the permission's
+// alternative cost the printed cost is not paid at all.
+func TestPotentialPlanPricesAMayPlayAsItCosts(t *testing.T) {
+	for _, tc := range []struct {
+		name, rider, cost string
+		mountains, taps   int
+	}{
+		{"any type", "MayPlayIgnoreType$ True | ", "1 G", 2, 2},
+		{"any color", "MayPlayIgnoreColor$ True | ", "G", 1, 1},
+		{"any type, too few", "MayPlayIgnoreType$ True | ", "1 G", 1, 0},
+		{"alternative cost", "MayPlayAltManaCost$ R | ", "1 G", 1, 1},
+		{"no rider", "", "1 G", 2, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, id := mayPlayRiderBoard(t, tc.rider, tc.cost, tc.mountains)
+			ppCheckWitness(t, e, id, tc.taps)
+		})
+	}
+}
+
+// A may-play cast takes a target-conditional reduction as a cast from the hand does
+// (CR 601.2f): under the any-type rider two Mountains pay {1}{W} against a tapped
+// creature, and with no tapped creature they do not pay {4}{W}.
+func TestMayPlayCastPricedAtCheapestTarget(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		tapped bool
+		taps   int
+	}{
+		{"a cheaper target", true, 2},
+		{"no cheaper target", false, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := mayPlayBase(t)
+			onBoardGrant(t, e, 0, "Name:Rider Grant\nManaCost:1\nTypes:Artifact\n"+
+				"S:Mode$ Continuous | Affected$ Instant.YouOwn | MayPlay$ True | MayPlayIgnoreType$ True | "+
+				"EffectZone$ Battlefield | AffectedZone$ Graveyard\nOracle:x\n")
+			onBoard(t, e, 0, apMountain)
+			onBoard(t, e, 0, apMountain)
+			target := onBoard(t, e, 1, "Name:Potential Beast\nManaCost:1\nTypes:Creature Beast\nPT:1/1\nOracle:x\n")
+			e.G.Obj(target).Tapped = tc.tapped
+			rebuke := graveyardCard(t, e, corpusCardText(t, "l/luminous_rebuke.txt"))
+			e.pending = nil
+			e.askPriority(0)
+			ppCheckWitness(t, e, rebuke, tc.taps)
+		})
+	}
+}

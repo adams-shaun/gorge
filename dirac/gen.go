@@ -1370,6 +1370,7 @@ type genState struct {
 	tyM        slotMask // slots whose perm.gty holds override-derived types (ovGenTy)
 	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
 	noTgtRed   bool     // cost computation without target-dependent reductions
+	mayPlayAny bool     // the may-play cast being priced is under the any-type rider
 	probe      probe    // the spell / ability a priority feasibility check is for
 	inLoop     bool     // executing one object of a multi-object target slot
 	mt         multiTgt // the multi-object target slot being chosen

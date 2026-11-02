@@ -172,6 +172,9 @@ func (s *State) lastKnownController(k *prep, r kop.Ref) uint8 {
 // Jelly's {1}), and it does have a restricted source this cast may spend.
 func (s *State) plannerPaysCast(k *prep, p uint8, c CardID, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	if s.g.mayPlayAny {
+		cost = anyType(cost) // a may-play under the any-type rider (rules potentialModeCastPlan)
+	}
 	return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 }
 

@@ -210,6 +210,19 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
+		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
+			// gorge's potential planner prices a target-conditional reduction on
+			// a spell choosing several targets with no target: the full cost
+			s.g.noTgtRed = true
+			full := s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
+			if !granted {
+				full = s.adjustCost(k, p, c, o, k.t.Cards[c].AltCost)
+			}
+			s.g.noTgtRed = false
+			if !av.affords(&full, pipMaskOf(&full), 0) {
+				continue
+			}
+		}
 		d.add(MakeAction(AkCast, uint8(o), 0, 2))
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
@@ -612,12 +625,7 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	// gorge's pool check prices a target-conditional reduction (Luminous
-	// Rebuke from Tinybones' stash) with no target: the full cost (pair 84909)
-	s.g.noTgtRed = true
-	pool := s.FeatPoolPays(p, o, 0)
-	s.g.noTgtRed = false
-	return pool || s.gorgeLowers(p, o)
+	return s.FeatPoolPays(p, o, 0) || s.gorgeLowers(p, o)
 }
 
 // gorgeLowers: gorge's potential-play planner prices p's plain cast of o,
@@ -625,9 +633,10 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 // composed cost (rules potentialModeCastPlan), and the cast is offered
 // once that witness is tapped (potentialWitnessOffers). For a
 // target-conditional reduction (Luminous Rebuke) the composition prices
-// the cheapest legal target. For an either-or additional cost (Eaten Alive)
-// it prices the spell's mana cost alone when a part with no mana can be paid
-// (a creature to sacrifice), and otherwise with a part that has mana.
+// the cheapest legal target, or for a spell choosing several the full cost.
+// For an either-or additional cost (Eaten Alive) it prices the spell's mana
+// cost alone when a part with no mana can be paid (a creature to sacrifice),
+// and otherwise with a part that has mana.
 func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
@@ -672,7 +681,12 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if tgtDepCost(a) {
+			s.g.noTgtRed = severalTargets(k, c)
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
+			s.g.noTgtRed = false
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
 			if k.gen != nil && len(k.gen.grantPC) != 0 {
 				// the planner's census has no granted source (Imprisoned in the Moon's {C})
 				return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
@@ -687,6 +701,12 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 }
 
 func manaEmpty(m *kop.ManaCost) bool { return m.MV() == 0 && m.X == 0 }
+
+// severalTargets: card c's spell chooses more than one target.
+func severalTargets(k *prep, c CardID) bool {
+	t := tspec(k, c, spellAb(k, c), 0)
+	return t != nil && t.Max > 1
+}
 
 // altAddFreePart: card c's either-or additional cost has a part with no mana
 // that can be paid (a creature to sacrifice).

@@ -70,8 +70,9 @@ type PotentialPlan struct {
 //     composition), planned so that the ability's own tap, tapXType and
 //     sacrifice parts stay payable (planComposedCost);
 //   - a cast in a mode the cast planner does not witness (flashback,
-//     bestow, kicker, may-play, plot ...) gets a witness from
-//     potentialModeCastPlan, confirmed by the offer gate itself;
+//     bestow, kicker, may-play under its rider or at its permission's alternative
+//     cost, plot ...) gets a witness from potentialModeCastPlan, confirmed by the
+//     offer gate itself;
 //   - every other play is "unsupported".
 //
 // A witness that sacrifices or returns a permanent is replayed on a clone
@@ -266,7 +267,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return got, true
 	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
 		return e.planAbilityPayment(p, o.Obj, o.Ability), true
-	case o.Kind == "cast" && o.AltCostIndex == 0:
+	case o.Kind == "cast" && (o.AltCostIndex == 0 || o.Mode == "mayplay"):
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
@@ -369,6 +370,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		})
 		return composed, ok
 	}
+	var rider pipRider
 	plan := func(x int32) PaymentPlanOutcome {
 		c := base
 		if base.X != 0 {
@@ -385,17 +387,30 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		prev := e.planFace
 		e.planFace = castFace
 		defer func() { e.planFace = prev }()
-		return e.planComposedCost(p, id, composed, false, false)
+		return e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
 	}
 	lo := base.XMin
 	best := plan(lo)
+	if best.Reason == "insufficient" && (o.Mode == "mayplay" || castModeCodes.Code(o.Mode) == castModeBargained) {
+		// The grant may let any mana pay what the printed pips cannot
+		// (MayPlayIgnoreColor$, MayPlayIgnoreType$), as the cast's payment reads it.
+		rider = asEval(e).MayPlayRider(p, id)
+		best = plan(lo)
+	}
 	if best.Reason == "insufficient" {
 		statics := e.collectCostStatics()
 		if e.paymentPlanTargetDependentFor(statics, p, id, scope) {
 			// A ValidTarget$ cost static may price this cast lower for some
 			// target (CR 601.2f reads the chosen targets; offerCastable's
-			// second pass).
-			return e.potentialTargetPricedPlan(statics, p, o, base, scope)
+			// second pass). The target ask tests each candidate as the sole
+			// selection, which does not price a spell choosing several, so one
+			// of those stays unknown.
+			if sa := pay.CostTargetingSA(e.G, id, scope); sa != nil {
+				if _, max := targetBounds(sa); max > 1 {
+					return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
+				}
+			}
+			return e.potentialTargetPricedPlan(statics, p, o, base, scope, rider)
 		}
 	}
 	if best.Plan == nil || best.Reason != "" || len(e.PaymentPlanRelaxed) != 0 {
@@ -438,12 +453,12 @@ func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool
 // statics price it lower for some legal target, tried one target at a time
 // (potentialCostModsUsing), or "insufficient" when no target's price is payable.
 // The target ask then keeps the targets the mana floated can pay for.
-func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope) PaymentPlanOutcome {
+func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope, rider pipRider) PaymentPlanOutcome {
 	got := PaymentPlanOutcome{Reason: "insufficient"}
 	e.potentialCostModsUsing(statics, p, o.Obj, scope, e.costPotentialTargets(p, o.Obj, scope), 0, func(m costMods) bool {
 		var c Cost
 		e.composedOfferCostInto(&c, p, o.Obj, &base, &m, scope)
-		got = e.planComposedCost(p, o.Obj, c, false, false)
+		got = e.planComposedCost(p, o.Obj, pay.PlanManaUnderRider(c, rider), false, false)
 		return got.Plan != nil && got.Reason == ""
 	})
 	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 && !e.potentialWitnessOffers(p, o, *got.Plan) {
@@ -512,6 +527,15 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		free, raise, hasRaise, priced := e.mayPlayPermFreeRaise(p, id, o.MayPlayPerm)
 		if free {
 			cost = Cost{}
+		}
+		if o.AltCostIndex > 0 {
+			// The permission's own alternative (MayPlayAltManaCost$), as beginCast
+			// reads it: it replaces the cost, and the raise still applies.
+			alts := e.mayPlayCastAlts(p, id, e.mayPlayPlainGrant(p, id))
+			if o.AltCostIndex > len(alts) {
+				return Cost{}, false
+			}
+			cost = alts[o.AltCostIndex-1].cost
 		}
 		if hasRaise {
 			if !priced {

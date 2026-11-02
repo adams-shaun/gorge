@@ -128,7 +128,10 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if anyMana {
 			cost = anyType(cost)
 		}
-		if !s.altAddCastable(k, c, p, o, &cost, av) || !s.gorgeOffersMay(p, o) || s.castHeldOut(o) {
+		s.g.mayPlayAny = anyMana
+		offers := s.gorgeOffersMay(p, o)
+		s.g.mayPlayAny = false
+		if !s.altAddCastable(k, c, p, o, &cost, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
@@ -579,9 +582,7 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 			if s.cfg&cfgGorgeUnpriced != 0 {
 				if fl&kop.StAnyManaType != 0 {
 					cost := s.adjustCostGen(k, p, s.objs[o].card, o, k.cards[s.objs[o].card].cost)
-					if !planNeverPrices(k, s.objs[o].card) {
-						cost = anyTypePips(cost)
-					}
+					cost = anyTypePips(cost)
 					unpriced = !s.castAffordsR(k, p, s.objs[o].card, s.restrOriginOfObj(o), &cost, av) // (the restricted sources the planner counts price it too)
 				} else {
 					unpriced = s.mayPlayOffers(k, p, o) >= 2 // cast_mayplayoffers.go

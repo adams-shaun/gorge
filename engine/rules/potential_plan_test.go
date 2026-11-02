@@ -571,6 +571,22 @@ func TestPotentialPlanPricesTheCheapestTarget(t *testing.T) {
 	}
 }
 
+// TestPotentialPlanLeavesASeveralTargetPriceUnknown: the target ask tests each
+// candidate alone, so a spell choosing several gets no cheapest-target witness.
+func TestPotentialPlanLeavesASeveralTargetPriceUnknown(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9418, corpusCardText(t, "t/this_town_aint_big_enough.txt"))
+	for range 2 {
+		onBoard(t, e, 0, ppLandFor("U"))
+	}
+	onBoard(t, e, 0, "Name:Potential Relic\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+	e.G.Step = state.StepMain1
+	ppPriority(t, e)
+	if pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell); pp.Reason != "unsupported" {
+		t.Fatalf("verdict %q %q, want unsupported", pp.Reason, pp.Detail)
+	}
+}
+
 // TestPotentialPlanPricesAnEitherOrCost: CR 601.2f, an either-or additional cost
 // is paid by whichever part the seat can pay: a creature to sacrifice, or mana.
 func TestPotentialPlanPricesAnEitherOrCost(t *testing.T) {

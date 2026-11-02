@@ -852,7 +852,12 @@ func (w *legalWalk) exileCastsWalk() {
 func (w *legalWalk) mayPlayAffordable(p state.PlayerID, id state.ObjID, f *cards.Face, base Cost) bool {
 	parts := altAddCostParts(f)
 	if len(parts) == 0 {
-		return w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base, spellScope("mayplay"))), false)
+		if w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base, spellScope("mayplay"))), false) {
+			return true
+		}
+		// A ValidTarget$ cost static may price the cast lower for some legal target
+		// (CR 601.2f), as a cast from the hand reads it.
+		return w.costStatics.get().validTarget && w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, base), spellScope("mayplay"), false)
 	}
 	for _, part := range parts {
 		if w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base.Plus(w.e.parseCost(part)), spellScope("mayplay"))), false) {

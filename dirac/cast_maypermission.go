@@ -109,9 +109,7 @@ func (s *State) offerMayKind(k *prep, d *Decision, p uint8, r mayPlay, sorc, lan
 	if (anyMana || anyColor) && s.cfg&cfgGorgeUnpriced != 0 {
 		c := s.objs[r.obj].card
 		cost := s.adjustCostGen(k, p, c, r.obj, k.cards[c].cost)
-		if !planNeverPrices(k, c) {
-			cost = planUnderRider(cost, anyMana, anyColor)
-		}
+		cost = planUnderRider(cost, anyMana, anyColor)
 		unpriced = !av.affords(&cost, pipMaskOf(&cost), 0)
 	}
 	if r.kind&mayKindRaise != 0 {
