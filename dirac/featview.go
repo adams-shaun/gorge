@@ -761,6 +761,14 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 		if pc.manaOne {
 			s.addOneColour(&av, pc.manaN)
 		}
+		if k.gen.anyTapExtra {
+			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
+			for c := range xv {
+				if xv[c] > 0 {
+					av.addUnits(1<<c, xv[c])
+				}
+			}
+		}
 	}
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &av, ex, 0)

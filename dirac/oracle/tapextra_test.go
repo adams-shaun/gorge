@@ -83,3 +83,10 @@ func TestTapExtraWaterbendCensusLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "waterbend_done_with_tap_extra", "std-tla", Config{})
 }
+
+// A cast that only the extra of a tap funds is a planned payment in gorge, paid after
+// its targets, not a play the oracle lowers.
+func TestTapExtraPlannedCastLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "planned_cast_counts_tap_extra", "std-tla", Config{})
+}
