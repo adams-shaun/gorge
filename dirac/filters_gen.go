@@ -446,7 +446,9 @@ func (s *State) matchCardGenAt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	if f == 0 {
 		return true
 	}
-	if o != NoObj && s.objs[o].of&ofCopy != 0 && s.copyCeased(k, o) {
+	// matchTargetLKI reads a departed target as it last was (CR 608.2h), a token copy
+	// bounced to hand included: Brackish Blunder's "if it was tapped".
+	if o != NoObj && s.g.tli&tliOn == 0 && s.objs[o].of&ofCopy != 0 && s.copyCeased(k, o) {
 		return false
 	}
 	for f != 0 {
