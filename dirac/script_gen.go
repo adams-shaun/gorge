@@ -191,7 +191,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapMask(k, p, gfGapOther).any()) { // (filtOnly)
+		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).any()) { // (filtOnly)
 			filt = f
 		}
 	}

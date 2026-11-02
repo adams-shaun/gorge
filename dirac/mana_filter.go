@@ -204,7 +204,26 @@ func censusGapMana(a *kop.Ability) bool {
 // with a mana ability the census misses: a Bloom Tender, Giada, a
 // Courtyard, Lupinflower Village's restricted {W}).
 func (s *State) filtOnly(k *prep, p uint8) bool {
-	return s.scriptFilt(k, p).any() && !s.gapMask(k, p, gfGapOther).any()
+	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
+}
+
+// gapOthers: p's activatable sources with a census gap that is no filter. A tap-another
+// source short of what its cost taps (Baylen with one token) cannot be activated, so
+// gorge's census does not miss it.
+func (s *State) gapOthers(k *prep, p uint8) slotMask {
+	m := s.gapMask(k, p, gfGapOther)
+	if !k.tapMana {
+		return m
+	}
+	live := s.scriptTapX(k, p)
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if ab := k.cards[c].manaAb; ab >= 0 && kop.TapXMana(&k.t.Cards[c].Abilities[ab]) && !live.has(sl) {
+			m = m.without(sl)
+		}
+	}
+	return m
 }
 
 // filtStep is one activation of a filter script: source sl; for a gap

@@ -102,6 +102,13 @@ func TestChainWithoutATargetFiresNoValiantLockstep(t *testing.T) {
 	synthReproLockstep(t, "hunters_talent_no_chain_target", "std-blb", Config{GorgeAutopaySurface: true})
 }
 
+// Baylen with too few tokens to tap cannot be activated, so gorge's census misses nothing
+// there and Hidden Grotto's filter takes the prefix search.
+func TestDeadTapAnotherSourceLeavesAFilterBoardLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "baylen_no_tokens_grotto", "std-blb", Config{})
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {
