@@ -2103,6 +2103,8 @@ var flagNames = [...]struct {
 	// The AddsKeywords$ mana-spend rider (Carnelian Orb of Dragonkind).
 	// Appended at the end per the table's own ordering rule.
 	{"addskeywords", state.FlagAddsKeywords},
+	// Beam me up's cast: the flag exiles the spell as it leaves the stack.
+	{"beamedup", state.FlagBeamedUp},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

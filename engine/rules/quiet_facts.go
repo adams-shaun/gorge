@@ -182,7 +182,7 @@ type quietFaceFacts struct {
 
 // quietGraveHeads are the keyword heads that open a cast from the graveyard.
 var quietGraveHeads = [...]kwHead{
-	kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhHarmonize, kwhWarp,
+	kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhHarmonize, kwhWarp, kwhBeamMeUp,
 }
 
 // quietGraveHeadNames are the same heads plus the parameterless/derived
@@ -491,6 +491,9 @@ func quietRecastFacts(f *cards.Face, q *quietFaceFacts) {
 	}
 	if f.KeywordLinesHaveHead(kwhHarmonize.S, kwhHarmonize.ID) {
 		open = true // harmonizePayment reduces the generic by creature power.
+	}
+	if f.KeywordLinesHaveHead(kwhBeamMeUp.S, kwhBeamMeUp.ID) {
+		open = true // the returned creature is a non-mana part.
 	}
 	if f.KeywordLinesHaveHead(kwhWarp.S, kwhWarp.ID) && warpGraveyardAllowed(f) {
 		if c, ok := keywordAltCost(f, "Warp"); ok {

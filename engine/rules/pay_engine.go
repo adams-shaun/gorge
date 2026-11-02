@@ -231,6 +231,9 @@ func (pe *payer) AsFace(id state.ObjID, faceIdx int, fn func() bool) bool {
 }
 func (pe *payer) MatchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
 	e := (*Engine)(pe)
+	if spec == beamReturnSpec || spec == beamReturnGrantedSpec {
+		return e.matchesBeamReturn(spec, id, you, source)
+	}
 	// A cost spec comparing against an X the ability's targets fix
 	// (cost_target_bound.go) is matched with that X bound, or open before
 	// the targets exist.

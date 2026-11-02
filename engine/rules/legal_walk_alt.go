@@ -473,6 +473,17 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		}
 	}
 
+	for _, id := range grave {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || !e.hasKeywordH(id, kwhBeamMeUp) || e.castSuppressed(p, id) ||
+			w.castRestrictedCost(p, id, ParseCost(f.ManaCost)) || !w.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		w.offerBeamMeUp(p, id, f, out)
+	}
+
 	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
 	// from its owner's graveyard for its printed mana cost (plus its own SP
 	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.

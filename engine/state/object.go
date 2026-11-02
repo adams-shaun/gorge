@@ -564,6 +564,10 @@ const (
 	// A CastProvenanceFlag: a stack copy was never cast (CR 707.10).
 	// Appended after FlagPrototype to preserve all bits already in main.
 	FlagAddsKeywords
+
+	// FlagBeamedUp marks a cast through beam me up: exiled instead of leaving
+	// the stack any other way, like flashback.
+	FlagBeamedUp
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -633,7 +637,7 @@ const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPro
 // the same minus the adventure face -- so those extras stay at their call
 // sites and only the keyword-family set is shared here.
 func ExilesLeavingStack(flags uint64) bool {
-	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagAftermath) != 0
+	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagAftermath|FlagBeamedUp) != 0
 }
 
 // ExilesInsteadOfGraveyard reports whether a card leaving the stack with these
@@ -654,13 +658,14 @@ func ExilesInsteadOfGraveyard(flags uint64, to Zone) bool {
 
 // WasCastFromGraveyard reports whether a cast carrying these flags was made
 // from a graveyard by a keyword that grants such a cast: flashback
-// (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).
+// (CR 702.32a), jump-start (CR 702.84a), harmonize, escape (CR 702.42a) and beam
+// me up.
 // It is the flags-only half of the Card.wasCastFromGraveyard predicate and
 // misses a may-play graveyard cast, which carries no keyword flag;
 // object-aware readers must call ObjectWasCastFromGraveyard instead, which
 // adds the cast-origin zone and the never-cast guard.
 func WasCastFromGraveyard(flags uint64) bool {
-	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
+	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped|FlagBeamedUp) != 0
 }
 
 // ObjectWasCastFromGraveyard is the ONE home for the object-aware read of

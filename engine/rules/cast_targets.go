@@ -34,6 +34,8 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagMayPlay)
 	case castModeHarmonize:
 		return events.FlagsString(state.FlagHarmonize)
+	case castModeBeamMeUp:
+		return events.FlagsString(state.FlagBeamedUp)
 	case castModeCleaved:
 		// Cleave (CR 702.148a): the provenance resolveTop and
 		// resumeResolution read to resolve the cleave spell ability. Not a
