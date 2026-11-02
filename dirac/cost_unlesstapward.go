@@ -70,7 +70,7 @@ func wardML(amt int16) (int, int) {
 //go:noinline
 func (s *State) resolveWardManaLife(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
@@ -96,7 +96,7 @@ func (s *State) resolveWardManaLife(k *prep) {
 //go:noinline
 func (s *State) applyWardManaLife(k *prep, a Action) {
 	r := &s.res
-	idx := s.stackIndexOf(r.e.trigObj)
+	idx := s.wardedIndex(&r.e)
 	n, l := wardML(r.e.trigAmt)
 	p := r.e.trigPl
 	c := kop.ManaCost{Generic: uint8(n)}

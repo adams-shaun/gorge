@@ -60,7 +60,7 @@ func (s *State) wardSacCands(k *prep, each func(Slot)) int {
 //go:noinline
 func (s *State) resolveWardSac(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -136,7 +136,7 @@ const ChWardEvidence ChoiceKind = 240
 //go:noinline
 func (s *State) resolveWardEvidence(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -239,7 +239,7 @@ const ChWardDiscard ChoiceKind = 245
 //go:noinline
 func (s *State) resolveWardDiscard(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -307,7 +307,7 @@ const wardPowBit int16 = 0x1000
 //go:noinline
 func (s *State) resolveWardPower(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return

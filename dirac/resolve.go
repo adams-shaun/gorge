@@ -302,7 +302,7 @@ func (s *State) resolveWard(k *prep) {
 		return
 	}
 	// the warded spell/ability: e.trigObj is its object, e.trigPl its controller
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
@@ -319,6 +319,31 @@ func (s *State) resolveWard(k *prep) {
 	}
 	s.counterAt(k, idx)
 	s.finishResolve(k, false)
+}
+
+// wardedIndex is the stack entry a ward trigger e answers (-1 = gone): the spell, or
+// the ability of that source that targets the ward's permanent. A source's other
+// ability above it is not the one that targeted (Koth of the Homestead's two
+// landfall triggers).
+func (s *State) wardedIndex(e *stackEntry) int {
+	i := s.stackIndexOf(e.trigObj)
+	if i < 0 || s.stack[i].kind == seSpell {
+		return i
+	}
+	for j := i; j >= 0; j-- {
+		se := &s.stack[j]
+		if se.obj != e.trigObj || se.kind == seSpell {
+			continue
+		}
+		var codes [kop.MaxTargets + maxXTgt]uint8
+		n := s.chainTargets(se, &codes)
+		for _, c := range codes[:n] {
+			if c == uint8(e.obj) {
+				return j
+			}
+		}
+	}
+	return -1
 }
 
 // stackIndexOf is o's stack entry, top down (-1 = none).

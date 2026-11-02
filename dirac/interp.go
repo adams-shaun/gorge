@@ -1018,7 +1018,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 			s.applyWardManaLife(k, a) // cost_unlesstapward.go
 			return
 		}
-		idx := s.stackIndexOf(r.e.trigObj)
+		idx := s.wardedIndex(&r.e)
 		if c := (kop.ManaCost{Generic: uint8(r.e.trigAmt)}); a.Mode() == 1 && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c)) {
 			s.payWindow(k, r.e.trigPl, &c)
 		} else if idx >= 0 {

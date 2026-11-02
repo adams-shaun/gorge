@@ -1019,7 +1019,7 @@ func (s *State) payDone(k *prep, paid bool) {
 	if f&pfWard != 0 {
 		s.res.ask = raNone
 		if !paid {
-			if idx := s.stackIndexOf(s.res.e.trigObj); idx >= 0 {
+			if idx := s.wardedIndex(&s.res.e); idx >= 0 {
 				s.counterAt(k, idx)
 			}
 		}
@@ -1046,7 +1046,7 @@ func (s *State) payDone(k *prep, paid bool) {
 // resolveWardLife resolves a ward—pay N life trigger (trigAmt = -N).
 func (s *State) resolveWardLife(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
