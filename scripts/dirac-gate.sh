@@ -19,10 +19,14 @@
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
 #   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest, and any refused entry the branch adds.
+#   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
+#      divergent on the merge base and the head is an open divergence, counted and not failed; a
+#      pair newly divergent fails.
 #
 # Steps 2-3 and 5-8 run only when a non-test file under dirac/ changed. A merge base without dirac/
 # has nothing to compare, so the base rows print a note. About 2 minutes on 4 cores with dirac/
-# changed, 1 with only its dependencies changed.
+# changed, 1 with only its dependencies changed, plus the base build and step 9 when nothing else
+# built the base.
 set -uo pipefail
 export LC_ALL=C # comm and sort must agree on the order of card names
 base=${1:?usage: dirac-gate.sh <base>}
@@ -194,6 +198,34 @@ if [ -n "$dirac_changed" ]; then
 	out=$(KERNEL_REFUSED_BASE=$mb go test -v -timeout 2m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
 	skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
 	[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
+fi
+
+echo "== 9 synthetic pools, against the merge base"
+synth_pools=${GATE_SYNTH_POOLS:-std-blb std-otj std-mkm}
+synth_pairs=${GATE_SYNTH_PAIRS:-50}
+synth_divergent() {
+	"$1" -synth "$2" -first-pair 0 -pairs "$synth_pairs" -seed 1 -keep-going -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -v 2>&1 |
+		sed -nE 's/^pair ([0-9]+) \((.*), seed [0-9]+\) after .*/\1 \2/p' | sort -u
+}
+if [ -z "$have_base" ]; then
+	echo "the merge base has no dirac/: nothing to compare"
+else
+	if [ ! -d "$S/base" ]; then
+		git -C "$top" worktree add -q --detach "$S/base" "$mb" || exit 2
+		(cd "$S/base" && make dirac-tables >/dev/null 2>&1) || { echo "dirac gate: base build failed (infrastructure)"; exit 2; }
+	fi
+	(cd "$S/base" && go build -o "$S/kfuzz.base" ./dirac/oracle/cmd/kfuzz) || { echo "dirac gate: base build failed (infrastructure)"; exit 2; }
+	for pool in $synth_pools; do
+		onbase=$(synth_divergent "$S/kfuzz.base" "$pool")
+		onhead=$(synth_divergent "$S/kfuzz" "$pool")
+		fresh=$(comm -13 <(printf '%s\n' "$onbase") <(printf '%s\n' "$onhead") | grep -v '^$')
+		echo "$pool: $(grep -c . <<<"$onbase") divergent on the merge base, $(grep -c . <<<"$onhead") on the head, $(grep -c . <<<"$fresh") new"
+		if [ -n "$fresh" ]; then
+			sed 's/^/  /' <<<"$fresh"
+			echo "  repro:   go run ./dirac/oracle/cmd/kfuzz -synth $pool -first-pair <pair> -pairs 1 -seed 1 -shrink 0 -v"
+			bad "newly divergent pairs on $pool"
+		fi
+	done
 fi
 
 [ "$fail" = 0 ] && echo "dirac gate: ok" && exit 0
