@@ -173,8 +173,8 @@ func TestThisTurnEntered(t *testing.T) {
 		f4   bool
 	}{
 		"Count$ThisTurnEntered_Battlefield_Permanent.nonLand":                    {zone: kop.ZoneBattlefield, from: -1, f4: true},
-		"Count$ThisTurnEntered_Battlefield_Creature":                             {zone: kop.ZoneBattlefield, from: -1, f4: true},
-		"Count$ThisTurnEntered_Battlefield_Creature.YouCtrl":                     {zone: kop.ZoneBattlefield, from: -1, f4: true},
+		"Count$ThisTurnEntered_Battlefield_Creature":                             {zone: kop.ZoneBattlefield, from: -1, f2: true, f4: true},
+		"Count$ThisTurnEntered_Battlefield_Creature.YouCtrl":                     {zone: kop.ZoneBattlefield, from: -1, f2: true, f4: true},
 		"Count$ThisTurnEntered_Graveyard_Card.YouOwn":                            {zone: kop.ZoneGraveyard, from: -1},
 		"Count$ThisTurnEntered_Exile_from_Battlefield_Creature":                  {zone: kop.ZoneExile, from: int8(kop.ZoneBattlefield), f2: true},
 		"Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature,Artifact":     {zone: kop.ZoneGraveyard, from: int8(kop.ZoneBattlefield), f2: true, f3: true},
