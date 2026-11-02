@@ -548,7 +548,11 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 				if o.AttachedTo != 0 {
 					att = " on " + name(o.AttachedTo)
 				}
-				fmt.Printf("  bf p%d %s tapped=%v sick=%v atk=%v%s\n", pl, name(id), o.Tapped, o.SummonSick, o.IsAttacking, att)
+				pt := ""
+				if g.E.IsCreature(id) {
+					pt = fmt.Sprintf(" pt=%d/%d", g.E.Power(id), g.E.Toughness(id))
+				}
+				fmt.Printf("  bf p%d %s tapped=%v sick=%v atk=%v%s%s\n", pl, name(id), o.Tapped, o.SummonSick, o.IsAttacking, pt, att)
 			}
 		}
 		evs := g.E.L.Events
