@@ -619,10 +619,12 @@ func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude
 	if pk.needT > 0 {
 		pk.first = first
 		s.plan(k, p, pk, exclude)
-		if pk.lastSl == NoSlot && k.sacOnlyMana {
+		if pk.lastSl == NoSlot && k.sacOnlyMana && !(pk.dry && pk.found) {
 			// gorge's scripted prefix can activate a tapped sacrifice-only
 			// source before the play; retry the plan with those sources once
-			// the untapped census has proved insufficient.
+			// the untapped census has proved insufficient. A dry plan that
+			// found one has nothing to retry: pk2 holds no deficit and its
+			// empty plan would replace the real one.
 			var pk2 planner
 			pk2.dry = pk.dry
 			pk2.try = pk.try
