@@ -55,7 +55,8 @@ func (s *State) FeatGranted(o Obj) (granted kop.KwMask, printed bool) {
 // FeatKwReps counts, per keyword bit, the listings of a granted keyword
 // past its first (saturating at 255): gorge lists a keyword once per
 // effect that grants it (two Fleeting Flights list flying twice; Soulstone
-// Sanctuary activated 33 times lists vigilance 33 times).
+// Sanctuary activated 33 times lists vigilance 33 times; Electroduplicate's
+// copy of its own hasty copy lists haste twice).
 type FeatKwReps [32]uint8
 
 // add records grant m on top of the bits already granted.
@@ -94,6 +95,9 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 		}
 	}
 	add(p.ovr.kw)
+	if s.fxM.has(ob.slot) {
+		s.copyExcKwReps(k, ob.slot, &rep)
+	}
 	if kw := ctrKw(s, p); kw != 0 {
 		add(kw)
 	}

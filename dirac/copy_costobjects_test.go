@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math/bits"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -135,5 +136,39 @@ func TestCopyOfAHastyCopyHasHaste(t *testing.T) {
 		if haste != (src == hasty) {
 			t.Fatalf("copy of %d (hasty source %v): haste %v", src, src == hasty, haste)
 		}
+	}
+}
+
+// A copy of a hasty copy carries both exceptions (CR 707.9b), and gorge lists
+// haste once for each; the keyword is redundant (CR 702.10d).
+func TestCopyOfAHastyCopyListsHasteTwice(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Electroduplicate", Count: 2}, {Name: "Savannah Lions", Count: 1}, {Name: "Mountain", Count: 10}}
+	sc, id := newObjScen(t, deck)
+	s := sc.s
+	lions := sc.perm(id["Savannah Lions"], 0)
+	copyOf := func(src Obj) Obj {
+		before := map[Obj]bool{}
+		for _, sl := range sc.copiesOf(id["Savannah Lions"]) {
+			before[s.perms[sl].obj] = true
+		}
+		s.pl[0].pool[kop.R] = 3
+		sc.do(t, AkCast, uint8(sc.hand(id["Electroduplicate"], 0)), 0xff)
+		sc.do(t, AkTarget, 0xff, uint8(src))
+		sc.resolveAll(t)
+		for _, sl := range sc.copiesOf(id["Savannah Lions"]) {
+			if o := s.perms[sl].obj; !before[o] {
+				return o
+			}
+		}
+		t.Fatal("no copy made")
+		return NoObj
+	}
+	haste := bits.TrailingZeros32(uint32(kop.KwHaste))
+	first := copyOf(lions)
+	if _, rep, _ := s.FeatGrantedRep(first); rep[haste] != 0 {
+		t.Fatalf("a copy of the printed creature repeats haste %d times", rep[haste])
+	}
+	if _, rep, _ := s.FeatGrantedRep(copyOf(first)); rep[haste] != 1 {
+		t.Fatalf("a copy of the hasty copy repeats haste %d times, want 1", rep[haste])
 	}
 }

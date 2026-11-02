@@ -84,6 +84,20 @@ func (s *State) copyExcKw(k *prep, sl Slot) (m kop.KwMask) {
 	return
 }
 
+// copyExcKwReps adds to rep the keywords slot sl's copy exceptions grant more
+// than once (FeatKwReps): a copy of a copy carries its template's "except it
+// has haste" beside its own.
+func (s *State) copyExcKwReps(k *prep, sl Slot, rep *FeatKwReps) {
+	var seen kop.KwMask
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			m := k.t.Overrides[r.r.idx-1].AddKw
+			rep.add(seen, m)
+			seen |= m
+		}
+	}
+}
+
 // copyExcPT is slot sl's set-P/T copy exception (the last one applied).
 //
 //go:noinline
