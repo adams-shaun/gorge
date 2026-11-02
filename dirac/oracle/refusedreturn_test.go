@@ -21,6 +21,8 @@ func TestReturnedCardsLockstep(t *testing.T) {
 		{"optional sacrifice batch", "std-otj", autopay, 0, []int{498}},
 		// Resurrected Cultist: loses all abilities against a become-blocked trigger
 		{"blocked trigger without abilities", "std-dsk", autopay, 1, []int{398}},
+		// Smile at Death: a once-each-turn filter mana source under CantBeActivated
+		{"smile at death", "std-tdm", full, 1, []int{1379}},
 		// Victor Valgavoth's Seneschal and Tainted Treats, whose earlier differences no longer show
 		{"victor valgavoth's seneschal", "std-dsk", autopay, 0, []int{1488}},
 		{"tainted treats", "std-tmt", full, 0, []int{1463}},
