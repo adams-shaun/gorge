@@ -1298,7 +1298,7 @@ func (pk *planner) dfs(t int, prod int, creat int) {
 	}
 	for c := 0; c <= lim; c++ {
 		p := prod + c*int(ty.n)
-		if c > 0 && p >= pk.needT+pk.maxN {
+		if c > 0 && p >= pk.needT+pk.maxN && !pk.unitNeeded(ty, c) {
 			break
 		}
 		ty.k = uint8(c)
@@ -1309,6 +1309,27 @@ func (pk *planner) dfs(t int, prod int, creat int) {
 		pk.dfs(t+1, p, cr)
 	}
 	ty.k = 0
+}
+
+// unitNeeded reports whether the c-th unit of ty can still cover a pip that
+// c-1 of its kind leave open. The walk's total-mana cut (the cost plus the
+// largest unit) is a minimal-plan argument that holds only while every unit
+// is replaceable: when each of several sources covers a pip no other does
+// (Swamp, a Tinder Wall's {R}{R}, a Battlement's three {G} for {B}{R}{G}),
+// their total passes the cut with none of them spare. Gorge's own walk caps a
+// level by the colour it still owes (pay/search.go walk), so a unit that owes
+// a colour is never cut. A looser answer only adds candidates that valid
+// and the ranking keys already reject as supersets.
+func (pk *planner) unitNeeded(ty *utype, c int) bool {
+	if pk.anyColor {
+		return true
+	}
+	for col := range pk.need {
+		if ty.mask&(1<<col) != 0 && pk.need[col] > (c-1)*int(ty.n) {
+			return true
+		}
+	}
+	return false
 }
 
 // valid: the chosen units can cover the pips (Hall over colour subsets).
