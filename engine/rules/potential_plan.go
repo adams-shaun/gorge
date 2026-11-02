@@ -122,7 +122,9 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	hyp, opts := e.potentialWalkOf(p, true)
 	// ambiguous[i]: another potential play shares opts[i]'s (kind, object,
-	// ability, mode) identity. A pairwise scan over the walk's few plays
+	// ability, mode) identity. A granted or gained ability's Ability is 0 too,
+	// and its SVar or gained source tells it from the printed ability it would
+	// otherwise take off the surface. A pairwise scan over the walk's few plays
 	// spares the per-query map.
 	var ambiguousBuf [128]bool
 	ambiguous := ambiguousBuf[:0]
@@ -138,7 +140,8 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		}
 		for j := i + 1; j < len(opts); j++ {
 			b := &opts[j]
-			if a.Obj == b.Obj && a.Ability == b.Ability && a.Kind == b.Kind && a.Mode == b.Mode {
+			if a.Obj == b.Obj && a.Ability == b.Ability && a.Kind == b.Kind && a.Mode == b.Mode &&
+				a.SVar == b.SVar && a.GainedSource == b.GainedSource {
 				ambiguous[i], ambiguous[j] = true, true
 			}
 		}

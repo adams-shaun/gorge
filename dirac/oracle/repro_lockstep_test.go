@@ -77,3 +77,10 @@ func TestOverrideGrantedAbilityFromThePoolLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "ygra_food_from_pool", "std-blb", Config{})
 }
+
+// Flexible Waterbender carrying Trusty Boomerang: both engines price its printed
+// waterbend beside the Boomerang's granted ability, whose Ability it shares in gorge.
+func TestPrintedAbilityBesideAGrantLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "printed_beside_equipment_grant", "std-tla", Config{GorgeAutopaySurface: true})
+}
