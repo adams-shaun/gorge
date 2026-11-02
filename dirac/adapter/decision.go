@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -555,9 +556,15 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		o.Player = state.PlayerID(c.Tgt() - canon.RefPlayer)
 	}
 	switch o.Kind {
-	case "x", "number", "altaddcost":
+	case "x":
+		o.Amount = int(c.Mode())
+		o.Label = "X = " + strconv.Itoa(o.Amount)
+	case "number":
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
+	case "altaddcost":
+		o.Amount = int(x.Target()) // the part; the canonical mode is its position, payable parts first
+		o.Label = g.altAddLabel(o.Amount)
 	case "division":
 		g.labelDivision(&o, c.Mode())
 	case "primary":
@@ -585,6 +592,17 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		}
 	}
 	return o, g.chooseKey(x)
+}
+
+// altAddLabel words part i of the either-or additional cost of the spell being built.
+func (g *Game) altAddLabel(i int) string {
+	card, _, _, _ := g.s.Building()
+	if param, ok := g.face(card).KeywordParam("AlternateAdditionalCost"); ok {
+		if parts := cost.AltAddParts(param); i < len(parts) {
+			return cost.CapitaliseFirst(cost.CostPhrase(cost.ParseCost(parts[i])))
+		}
+	}
+	return strconv.Itoa(i)
 }
 
 // unlessWords words the two options of a cost asked inside a resolution: ward's, read
