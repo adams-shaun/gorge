@@ -6,7 +6,7 @@ for that, the registered policies, how to run a fair matchup, how many games a d
 replay verification. For a bot in another language, see [Bots](../bots/index.md); for limited events,
 [Draft events](draft.md).
 
-The commands and output are from 2026-10-31, on 4 CPUs of a shared Linux box. Output depends on the
+The commands and output are from 2026-11-02, on 4 CPUs of a shared Linux box. Output depends on the
 gorge commit and the corpus pin, so yours may differ.
 
 ## Which tool?
@@ -215,10 +215,10 @@ cd ../gorge
 ```
 
 ```text
-bot vs bot: A won 631 of 1320 decided games = 47.8% (95% CI +/- 2.7 pp)
+bot vs bot: A won 634 of 1320 decided games = 48.0% (95% CI +/- 2.7 pp)
 ```
 
-Those 1,320 games took about 9 seconds on 4 cores. `bot` against itself is 50% by symmetry, so 47.8% is what noise and the
+Those 1,320 games took about 11 seconds on 4 cores. `bot` against itself is 50% by symmetry, so 48.0% is what noise and the
 seat order look like at this size. To compare policies, run `-a yours -b bot` with the same pairs, games and seed: its
 result means something only when it sits outside the control's interval. `-verify` replays every game and checks its chain
 head.
@@ -226,10 +226,10 @@ head.
 **A single pair** prints one line per pair as well as the total:
 
 ```text
-uw-tempo:mono-red-goblins                A  10  B  10  draws 0  stalls 0  seat0 wins 2
+uw-tempo:mono-red-goblins                A  13  B   7  draws 0  stalls 0  seat0 wins 3
 ```
 
-Here `seat0 wins 2` says the deck in seat 1 won 18 of 20. The deck pairing dominates a single pair, which is why the seats
+Here `seat0 wins 3` says the deck in seat 1 won 17 of 20. The deck pairing dominates a single pair, which is why the seats
 trade and why you want many pairs.
 
 **Your own decks.** `testutil.LoadRepoDeck` reads only the repo decks. To play deck files of your own (for example from

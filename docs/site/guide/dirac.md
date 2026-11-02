@@ -22,9 +22,10 @@ read the same view and decisions as on gorge, and `make web` applies the same wa
 
 Two-seat Constructed games on limited decks from two card sets, FDN and BLB. `-dirac-sets` lists the sets to try,
 in order, defaulting to `fdn`, and a game plays on the first set holding both decks; `-dirac-sets blb` serves
-Bloomburrow. `-decks` left at its default serves the first set's decks in `dirac/testdata/bench/`. Pointing `-decks`
-elsewhere lists any deck dirac refuses in the lobby, disabled, with the reason. None of the decks in
-`testkit/testutil/decks` fits one table, so the repository's Constructed decks don't play here.
+Bloomburrow. `-decks` left at its default serves the first set's decks in `dirac/testdata/bench/`. dirac plays only
+its [supported cards](../architecture/dirac/index.md#what-it-supports), so a deck holding any other card is logged at
+startup and listed in the lobby, disabled, with the reason, and the same goes for a directory you name with `-decks`.
+None of the decks in `testkit/testutil/decks` fits one table, so the repository's Constructed decks don't play here.
 
 A human can play a bot, or bots can play each other. `bot`, `lethal-pressure`, `forge-heuristic` and
 `forge-heuristic-hold` take a seat, and `sb-tactical` plays at a bot-only table. Undo, the game log, replay by event

@@ -6,8 +6,7 @@ decks and bots, filing a bug report from a game, and what you are exposed to on 
 You need the corpus and the browser client from [Install and build](install.md); the client
 has to be built before `gorged` is.
 
-The commands and responses are from 2026-10-31, and the screenshots from 2026-10-20. The
-client's behaviour was checked against its source in `web/src`.
+The commands and responses are from 2026-11-02, and the screenshots from 2026-10-20.
 
 ## Play against a bot
 

@@ -5,7 +5,7 @@ interface it implements, registering it with options, playing it against the
 default bot in-process, testing it with the harness gorge runs on its own
 policies, and serving it from a `gorged` binary. The code is in
 [`examples/bots/go`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/go),
-and every command below was run on 2026-10-31.
+and every command below was run on 2026-10-31 and the duel again on 2026-11-02.
 
 A native seat is the fastest way to play and the only one that can search, because it lives in the
 same process as the engine.
@@ -206,7 +206,7 @@ card corpus (`make fetch-cards` in the repository root).
 $ cd examples/bots/go
 $ go run ./cmd/duel -cards ../../../.cards -a bot -b bot -games 40
 bot (mono-green-stompy) 28 - 12 bot (mono-red-goblins), 0 draws, 0 stalls
-40 games, 14045 decisions in 0.44s: 31.1 µs per decision, both seats, engine included
+40 games, 14146 decisions in 0.39s: 27.3 µs per decision, both seats, engine included
 ```
 
 That is the control: `bot` against itself on these seeds and decks, showing what the deck pairing alone does. Run your

@@ -4,7 +4,7 @@ This page takes you from nothing to a checkout that can run games: the prerequis
 card corpus, the binaries, the browser client and dirac's card tables. Only the corpus step is
 required for bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
 
-The output below is from 2026-11-01 at `5917ab1ae`, on Linux x86-64 with Go 1.26.3. The maintainers test
+The output below is from 2026-11-02 at `b78e4c8b1`, on Linux x86-64 with Go 1.26.3. The maintainers test
 on Linux only.
 
 ## Prerequisites
