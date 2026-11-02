@@ -94,6 +94,17 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	}
 }
 
+// blgPrintedMask is the colours of the own mana abilities of the land at sl, 0
+// for a basic: gorge's PaymentAbility calls a basic's ability intrinsic, as it
+// does a granted one.
+func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
+	own := &k.cards[s.cardAt(sl)]
+	if own.types&kop.TBasic != 0 || own.manaAb < 0 {
+		return 0
+	}
+	return uint8(own.manaCol & 0x3f)
+}
+
 // blgPlain reports whether card c's own mana abilities (pc its facts) are
 // all plain {T} abilities making one mana of one colour, or it has none.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {

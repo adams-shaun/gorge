@@ -450,6 +450,10 @@ type utype struct {
 	// compares a step's ability before what it produces, so such a source
 	// makes that colour whenever the rest stays payable (CompareSteps).
 	first uint8
+	// printed: under a granted basic land type (static_landtype.go), the
+	// colours of a nonbasic's own abilities. CompareSteps reads Kind first and
+	// "intrinsic" sorts before "printed", so its granted colours come first.
+	printed uint8
 }
 
 type planner struct {
@@ -976,16 +980,19 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if dm[i] != 0 {
 					dmk = dm[i]
 				}
-				var first uint8
+				var first, printed uint8
 				if pc.manaMulti && k.gen != nil {
 					if c0, ok := s.vergeAbility0Col(k, sl); ok {
 						first = uint8(c0) + 1
+					}
+					if pc.blgFirst != 0 {
+						printed = s.blgPrintedMask(k, sl)
 					}
 				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed {
 						ti = t
 						break
 					}
@@ -997,7 +1004,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					ti = pk.nt
 					pk.nt++
 					fl := uint8(bits.OnesCount8(dmk))
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed}
 					if sac {
 						pk.types[ti].irr = 10
 						if cr {
@@ -1075,7 +1082,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(pk.bestCol[i])
 		if !pk.keepCols {
-			col = pk.pickColour(ty.mask, ty.first, int(ty.n), &rem, remAny, &pk.bestTy, i+1, pk.bestN)
+			col = pk.pickUnitColour(ty, &rem, remAny, &pk.bestTy, i+1, pk.bestN)
 		}
 		if !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped
@@ -1115,6 +1122,22 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			rem[col] = max(rem[col]-int(ty.n), 0)
 		}
 	}
+}
+
+// pickUnitColour is pickColour for a unit of type ty: a nonbasic with a granted
+// basic land type makes a granted colour before one of its own (utype.printed).
+func (pk *planner) pickUnitColour(ty *utype, rem *[kop.NumManaKinds]int, remAny int, tys *[maxUnits]uint8, from, n int) int {
+	if ty.printed != 0 {
+		if m := ty.mask &^ ty.printed; m != 0 {
+			for _, c := range [5]int{kop.G, kop.R, kop.B, kop.U, kop.W} {
+				if m&(1<<c) != 0 && pk.colourKeepsPayable(c, int(ty.n), rem, remAny, tys, from, n) {
+					return c
+				}
+			}
+		}
+		return pk.pickColour(ty.printed, 0, int(ty.n), rem, remAny, tys, from, n)
+	}
+	return pk.pickColour(ty.mask, ty.first, int(ty.n), rem, remAny, tys, from, n)
 }
 
 // pickColour picks the colour a unit of mask produces, given the pips still
@@ -1452,7 +1475,7 @@ func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 	remAny := pk.needAny
 	for i := 0; i < n; i++ {
 		ty := &pk.types[tys[i]]
-		c := pk.pickColour(ty.mask, ty.first, int(ty.n), &rem, remAny, tys, i+1, n)
+		c := pk.pickUnitColour(ty, &rem, remAny, tys, i+1, n)
 		col[i] = uint8(c)
 		if pk.anyColor && c != kop.C {
 			remAny = max(remAny-int(ty.n), 0)
