@@ -733,7 +733,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.touch(o)
 			p := &s.perms[s.objs[o].slot]
-			amt := s.value(k, in.A)
+			amt := s.enterCountValue(k, in.A, s.objs[o].slot, p.ctrl)
 			if k.gen.anyEntryMerge && s.entryAcc(int(in.C), amt) {
 				break // ctr_entryperkind.go: joins the entry's one put of this kind
 			}

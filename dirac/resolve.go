@@ -577,6 +577,24 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 }
 
 // value evaluates a ValueRef.
+// enterCountValue is value for the amount of an enters-with-counters
+// replacement, which counts from the entering permanent (sl, controlled by
+// ctrl): its "other" is that permanent, not the source of the effect that
+// put it onto the battlefield (Rescue Skiff's trigger returning Luxknight
+// Breacher, which counts the Skiff).
+func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
+	if v.K != kop.VCountFilter {
+		return s.value(k, v)
+	}
+	n := 0
+	for m := s.occ; m.any(); m = m.rest() {
+		if s.matchPerm(k, kop.FilterID(v.N), m.first(), ctrl, sl) {
+			n++
+		}
+	}
+	return n
+}
+
 func (s *State) value(k *prep, v kop.ValueRef) int {
 	e := &s.res.e
 	switch v.K {
