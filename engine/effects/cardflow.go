@@ -1340,7 +1340,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// scope to its controller (Summon: Valefor's per-opponent loop).
 			continue
 		}
-		p := PlayerOf(h, c, t)
+		p := definedPlayerOf(h, c, revealRef, t)
 		pool := zoneOf(g, zone, p)
 		if revealDefined != "" && !t.IsPlayer {
 			// A RevealDefined object is itself the card to reveal, not a

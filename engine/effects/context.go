@@ -1957,7 +1957,7 @@ func playerForTarget(h Host, c *Ctx, selector string, t state.Target) (state.Pla
 	if !t.IsPlayer && (plainRememberedSelector(selector) || selector == "Targeted") {
 		return 0, false
 	}
-	return PlayerOf(h, c, t), true
+	return definedPlayerOf(h, c, RefOf(selector), t), true
 }
 
 // playerIDsFromTargets applies playerForTarget to a resolved target set,
@@ -2608,6 +2608,16 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 		return o.Controller
 	}
 	return c.Controller
+}
+
+// definedPlayerOf is PlayerOf for one target of the Defined$ selector r. With no
+// Defined$ written the resolver answers with the source, and that names the
+// ability's controller, "you" (CR 109.5), who need not control the source any more.
+func definedPlayerOf(h Host, c *Ctx, r Ref, t state.Target) state.PlayerID {
+	if !r.Set() && !t.IsPlayer && t.Obj == c.Source {
+		return c.Controller
+	}
+	return PlayerOf(h, c, t)
 }
 
 // validStackToken is one comma-separated token of a Defined$ ValidStack spec.

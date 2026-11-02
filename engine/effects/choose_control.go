@@ -413,7 +413,7 @@ func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		if plainRemembered && !t.IsPlayer {
 			continue
 		}
-		p := PlayerOf(h, c, t)
+		p := definedPlayerOf(h, c, defined, t)
 		if !seen[p] && int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
 			seen[p] = true
 			out = append(out, p)
