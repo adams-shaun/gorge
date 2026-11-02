@@ -30,7 +30,7 @@ func TestSBV2ServesADiracGame(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	names := testutil.DeckDirNames(t, decks)
+	names := testutil.DeckDirNamesPlaying(t, reg, decks, e.CheckDeck)
 	for g := range 12 {
 		t.Run(fmt.Sprintf("game%d", g), func(t *testing.T) {
 			seed := uint64(3000 + g)

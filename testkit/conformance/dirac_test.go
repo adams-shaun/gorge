@@ -34,10 +34,10 @@ func diracEngine(t *testing.T, reg *cards.Registry, surface dirac.Surface) *adap
 	return e
 }
 
-// benchConfig is game g of the bench decks, each against the next.
+// benchConfig is game g of the bench decks the tables play, each against the next.
 func benchConfig(t *testing.T, reg *cards.Registry, g int) game.Config {
 	t.Helper()
-	names := testutil.DeckDirNames(t, benchDecks)
+	names := testutil.DeckDirNamesPlaying(t, reg, benchDecks, diracEngine(t, reg, dirac.SurfaceFull).CheckDeck)
 	c := game.Config{Seed: uint64(1000 + g), Tokens: reg.Tokens, NameUniverse: reg.Universe()}
 	for i := range 2 {
 		name := names[(g+i)%len(names)]

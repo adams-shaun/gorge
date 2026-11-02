@@ -32,9 +32,9 @@ func (s Status) String() string {
 }
 
 // EnforceEvidence makes an unverified card unplayable through ByName, as a refused
-// one is. While it is false an unverified card plays, because self-play and training
-// read those tables and most lowered cards have no evidence.
-const EnforceEvidence = false
+// one is. A caller that wants unverified cards anyway, such as self-play on a pool
+// with little evidence, reads the raw table or asks AllowUnverified.
+const EnforceEvidence = true
 
 // RefusedError is Matchup's answer for a deck holding a card its set will not play.
 type RefusedError struct {

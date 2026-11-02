@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -276,4 +277,20 @@ func DeckDirNames(t testing.TB, dir string) []string {
 		}
 	}
 	return names
+}
+
+// DeckDirNamesPlaying is DeckDirNames without the decks check turns away.
+func DeckDirNamesPlaying(t testing.TB, reg *cards.Registry, dir string, check func([]*cards.Card) error) []string {
+	t.Helper()
+	var out []string
+	for _, name := range DeckDirNames(t, dir) {
+		_, d, err := deck.Load(reg, filepath.Join(dir, name+".json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if check(d) == nil {
+			out = append(out, name)
+		}
+	}
+	return out
 }

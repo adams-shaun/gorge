@@ -82,13 +82,10 @@ func botGames(t *testing.T, policy string, pairs int) (rootRefusals int) {
 		t.Fatal(err)
 	}
 	defer r.Close()
-	entries, err := os.ReadDir(benchDecks)
-	if err != nil {
-		t.Fatal(err)
-	}
+	names := testutil.DeckDirNamesPlaying(t, reg, benchDecks, e.CheckDeck)
 	for i := 0; i < pairs; i++ {
 		id := host.TableID(fmt.Sprintf("p%d", i))
-		decks := []string{strings.TrimSuffix(entries[i].Name(), ".json"), strings.TrimSuffix(entries[i+1].Name(), ".json")}
+		decks := []string{names[i], names[i+1]}
 		if err := r.AddTable(host.TableConfig{ID: id, Name: string(id), Seats: 2, Decks: decks, Seed: uint64(i + 1), Spectator: view.Public,
 			BotPolicy: policy, AutoMana: true, BotAutoPayMana: true, AllowDecklistBots: true, Engine: adapter.Name}); err != nil {
 			t.Fatal(err)
