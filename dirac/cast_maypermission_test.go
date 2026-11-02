@@ -540,7 +540,7 @@ func TestMayPlayLimitPaths(t *testing.T) {
 		sc, s := newLand(t, tbl, &o)
 		s.res.e = stackEntry{kind: seSpell, ctrl: 1}
 		in := kop.Instr{Op: kop.OpChangeZoneAll, Obj: kop.RefNone, F: kop.FilterID(len(tbl.Filters) - 1), C: int16(kop.ZoneBattlefield)}
-		s.execChangeZoneAll(sc.k, &in)
+		s.execChangeZoneAll(sc.k, &in, false)
 		counted(t, s, o)
 	})
 	t.Run("enterFromGrantedZone", func(t *testing.T) {

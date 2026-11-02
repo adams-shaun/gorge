@@ -40,6 +40,7 @@ func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 		return false
 	}
 	s.res.ask, s.res.askP = raGenRetChoice, ctrl
+	s.touch(o) // the projection reads ctrl while it waits
 	return true
 }
 
@@ -82,7 +83,7 @@ func (s *State) rerunReturn(k *prep) {
 	s.g.pre.state = 2
 	in := &s.prog(k)[s.res.pc]
 	switch in.Op {
-	case kop.OpDigUntil, kop.OpDigEx, kop.OpSearchEx, kop.OpChooseMove:
+	case kop.OpDigUntil, kop.OpDigEx, kop.OpSearchEx, kop.OpChooseMove, kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
 		s.res.ask = raNone
 		if s.rerunMove(k, in) {
 			return // suspended again
@@ -104,6 +105,8 @@ func (s *State) rerunMove(k *prep, in *kop.Instr) bool {
 		return !s.execDigUntil(k, in, true)
 	case kop.OpDigEx:
 		return s.finishDig(k)
+	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
+		return !s.execChangeZoneAll(k, in, true)
 	}
 	s.finishSearchNow(k)
 	return s.res.ask != raNone

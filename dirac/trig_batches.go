@@ -82,6 +82,14 @@ func (s *State) enterHeld(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, 
 	return sl
 }
 
+// holdBatch hands b's entrants to genState.held across a suspension: fireHeld runs their
+// checks with the rest once the last has entered.
+func (s *State) holdBatch(b *entBatch) {
+	for _, sl := range b.sl[:b.n] {
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+	}
+}
+
 // fireEntries runs b's held enters checks, in move order.
 //
 //go:noinline

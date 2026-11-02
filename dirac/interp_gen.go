@@ -451,7 +451,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpSearchEx, kop.OpChooseMove:
 		return s.startSearch(k, in), true
 	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
-		s.execChangeZoneAll(k, in)
+		return s.execChangeZoneAll(k, in, false), true
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
@@ -1469,11 +1469,23 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	return false
 }
 
-func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
+// execChangeZoneAll moves the instruction's cards; false when it suspends at a card's
+// as-enters ask, with that card and the later ones still in their zones and the batch and
+// its held enters checks open (gorge's zone batch). resume runs it again from the answer:
+// the cards already moved have left what it walks.
+func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
 	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one graveyard-leave batch
+		old := s.batchOpen() // one graveyard-leave batch
+		if resume {
+			old &^= batchOpenMask
+		}
+		defer func() {
+			if done {
+				s.batchClose(old)
+			}
+		}()
 	}
 	z := kop.Zone(in.C & 7)
 	mv := int16(0)
@@ -1482,13 +1494,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 	}
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
 		s.czall3(k, in, mv, z) // zone_changezoneall.go
-		return
+		return true
 	}
 	only := uint8(255)
 	if in.Obj != kop.RefNone {
 		only = s.playerRef(k, in.Obj)
 		if only == 255 {
-			return
+			return true
 		}
 	}
 	src := s.objRef(k, kop.RefSelf)
@@ -1518,6 +1530,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 	// every player's Exile (gorge effChangeZoneAll's `for _, z := range from`
 	// outer loop) -- not one player's two zones.
 	var eb entBatch
+	stamp := s.ts
 	var rid sweepRiders // MvEntryRiders (zone_sweepriders.go)
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
@@ -1575,7 +1588,18 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 					// capacity, a draw like the token makers' (enter panics)
 					s.fireEntries(k, &eb)
 					s.stall(StallBoard)
-					return
+					return true
+				}
+				ctrl := p
+				if mv&kop.MvUnderYourControl != 0 {
+					ctrl = e.ctrl
+				}
+				if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
+					if !resume {
+						s.g.held, s.g.retTS = 0, stamp
+					}
+					s.holdBatch(&eb)
+					return false
 				}
 				from := s.detach(o)
 				if mv&kop.MvRemember != 0 {
@@ -1585,14 +1609,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 					s.countMayPlayLand(k, o, from)
 				}
 				if z == kop.ZoneBattlefield {
-					ctrl := p
-					if mv&kop.MvUnderYourControl != 0 {
-						ctrl = e.ctrl
-					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.armEntryCounters(&rid)
 					}
 					sl := s.enterHeld(k, &eb, o, ctrl, mv&kop.MvTapped != 0, from)
+					if s.g.pre.obj == o {
+						s.g.pre = preAsk{}
+					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
 						s.entryOverride(k, &rid, sl)
@@ -1614,7 +1637,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 			}
 		}
 	}
+	if resume {
+		s.holdBatch(&eb)
+		s.fireHeld(k, s.g.retTS)
+		return true
+	}
 	s.fireEntries(k, &eb)
+	return true
 }
 
 // execDigUntil reveals until in.A cards match and moves them and the rest; false when

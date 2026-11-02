@@ -123,6 +123,16 @@ func TestWitnessSacrificeMillsBeforeTheCastLockstep(t *testing.T) {
 	synthReproLockstep(t, "witness_sac_mill_trigger", "std-blb", Config{})
 }
 
+// A mass move onto the battlefield asks each as-enters choice with that card and the later
+// ones still in their zones, under the controller it will have: Rise of the Dark Realms and
+// Diamond Mare, Lumra and Uncharted Haven.
+func TestMassMoveAsksAsEntersInTheZoneLockstep(t *testing.T) {
+	t.Parallel()
+	autopay := Config{GorgeAutopaySurface: true}
+	synthReproLockstep(t, "rise_diamond_mare_asks", "std-fdn", autopay)
+	synthReproLockstep(t, "lumra_haven_asks", "std-blb", autopay)
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {

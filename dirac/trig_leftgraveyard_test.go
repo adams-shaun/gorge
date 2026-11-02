@@ -149,7 +149,7 @@ func TestGraveSweepIsOneBatch(t *testing.T) {
 	in := kop.Instr{Op: kop.OpChangeZoneAll, C: int16(kop.ZoneExile), F: f}
 	sc.s.npend = 0
 	sc.s.res.e.ctrl = 0
-	sc.s.execChangeZoneAll(sc.k, &in)
+	sc.s.execChangeZoneAll(sc.k, &in, false)
 	if n := batchPend(sc, c, ab); n != 1 {
 		t.Fatalf("a two-card sweep queued %d triggers, want 1", n)
 	}
