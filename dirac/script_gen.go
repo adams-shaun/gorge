@@ -237,6 +237,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost) {
 			continue // gorge searches no prefix for a target-priced or modal cost
 		}
+		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
+			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)
+		}
 		kk := s.walkKey(a, p, i)
 		j := nc
 		for ; j > 0 && key[j-1] > kk; j-- {
