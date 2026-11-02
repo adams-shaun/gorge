@@ -242,7 +242,6 @@ func (e *Engine) derivedKeywordParam(id state.ObjID, head string) (string, bool)
 	return e.derivedKeywordParamH(id, kwHeadOf(head))
 }
 
-// derivedKeywordParamH is derivedKeywordParam for a precompiled head.
 // enteringKeywordParam reads a keyword's parameter off an object about to enter, as
 // the permanent it will be: a replacement of its entry sees the battlefield's
 // continuous effects on it (CR 614.12; Twins of Discord's granted bloodthirst).
@@ -250,6 +249,7 @@ func (e *Engine) enteringKeywordParam(id state.ObjID, h kwHead) (string, bool) {
 	return e.derivedKeywordParamAt(id, h.S, state.ZBattlefield)
 }
 
+// derivedKeywordParamH is derivedKeywordParam for a precompiled head.
 func (e *Engine) derivedKeywordParamH(id state.ObjID, h kwHead) (string, bool) {
 	head := h.S
 	if !e.mayHaveDerivedKeywordH(id, h) {

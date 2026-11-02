@@ -97,6 +97,9 @@ func affectsZone(ce *ContinuousEffect, zone, atStack state.Zone) bool {
 	return zone == state.ZBattlefield
 }
 
+// matchesWithCharsPT binds the layer-7 walk's in-progress P/T values when an
+// Affected$ predicate is evaluated during that walk. Calling Derived here
+// would recurse through the same active layer scan.
 func (e *Engine) matchesWithCharsPT(ce *ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone, power, toughness, basePower, baseToughness int32, hasPT bool) bool {
 	// CR 702.25b: a phased-out permanent is treated as though it does not
 	// exist, so NO continuous effect applies to it -- a lord's pump, a
