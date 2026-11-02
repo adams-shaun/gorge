@@ -1,0 +1,16 @@
+# the DefinedPlayer$ search pool: Path to
+# Exile and Assassin's Trophy, whose target's controller may search
+# their library for a basic land, beside basics and vanilla creatures,
+# for the oracle's constructed lockstep (dirac/oracle/dpsearch_test.go)
+Path to Exile
+Assassin's Trophy
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -1,0 +1,117 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Balemurk Leech
+1	card	Bottomless Pool
+2	card	Cult Healer
+3	card	Dashing Bloodsucker
+4	card	Defiled Crypt
+5	card	Derelict Attic
+6	card	Entity Tracker
+7	card	Erratic Apparition
+8	card	Fear of Infinity
+9	card	Forest
+10	card	Funeral Room
+11	card	Grand Entryway
+12	card	Gremlin Tamer
+13	card	Grizzly Bears
+14	card	Infernal Phantom
+15	card	Island
+16	card	Lightning Bolt
+17	card	Meat Locker
+18	card	Mountain
+19	card	Murder
+20	card	Optimistic Scavenger
+21	card	Plains
+22	card	Restricted Office
+23	card	Roaring Furnace
+24	card	Scrabbling Skullcrab
+25	card	Skullsnap Nuisance
+26	card	Surgical Suite
+27	card	Swamp
+28	card	Ticket Booth
+29	card	Unholy Annex
+30	card	face:Bottomless Pool#1
+31	card	face:Defiled Crypt#1
+32	card	face:Derelict Attic#1
+33	card	face:Funeral Room#1
+34	card	face:Grand Entryway#1
+35	card	face:Meat Locker#1
+36	card	face:Restricted Office#1
+37	card	face:Roaring Furnace#1
+38	card	face:Surgical Suite#1
+39	card	face:Ticket Booth#1
+40	card	face:Unholy Annex#1
+41	card	room:Bottomless Pool#00
+42	card	room:Bottomless Pool#02
+43	card	room:Bottomless Pool#03
+44	card	room:Bottomless Pool#10
+45	card	room:Bottomless Pool#11
+46	card	room:Bottomless Pool#13
+47	card	room:Defiled Crypt#00
+48	card	room:Defiled Crypt#02
+49	card	room:Defiled Crypt#03
+50	card	room:Defiled Crypt#10
+51	card	room:Defiled Crypt#11
+52	card	room:Defiled Crypt#13
+53	card	room:Derelict Attic#00
+54	card	room:Derelict Attic#02
+55	card	room:Derelict Attic#03
+56	card	room:Derelict Attic#10
+57	card	room:Derelict Attic#11
+58	card	room:Derelict Attic#13
+59	card	room:Funeral Room#00
+60	card	room:Funeral Room#02
+61	card	room:Funeral Room#03
+62	card	room:Funeral Room#10
+63	card	room:Funeral Room#11
+64	card	room:Funeral Room#13
+65	card	room:Grand Entryway#00
+66	card	room:Grand Entryway#02
+67	card	room:Grand Entryway#03
+68	card	room:Grand Entryway#10
+69	card	room:Grand Entryway#11
+70	card	room:Grand Entryway#13
+71	card	room:Meat Locker#00
+72	card	room:Meat Locker#02
+73	card	room:Meat Locker#03
+74	card	room:Meat Locker#10
+75	card	room:Meat Locker#11
+76	card	room:Meat Locker#13
+77	card	room:Restricted Office#00
+78	card	room:Restricted Office#02
+79	card	room:Restricted Office#03
+80	card	room:Restricted Office#10
+81	card	room:Restricted Office#11
+82	card	room:Restricted Office#13
+83	card	room:Roaring Furnace#00
+84	card	room:Roaring Furnace#02
+85	card	room:Roaring Furnace#03
+86	card	room:Roaring Furnace#10
+87	card	room:Roaring Furnace#11
+88	card	room:Roaring Furnace#13
+89	card	room:Surgical Suite#00
+90	card	room:Surgical Suite#02
+91	card	room:Surgical Suite#03
+92	card	room:Surgical Suite#10
+93	card	room:Surgical Suite#11
+94	card	room:Surgical Suite#13
+95	card	room:Ticket Booth#00
+96	card	room:Ticket Booth#02
+97	card	room:Ticket Booth#03
+98	card	room:Ticket Booth#10
+99	card	room:Ticket Booth#11
+100	card	room:Ticket Booth#13
+101	card	room:Unholy Annex#00
+102	card	room:Unholy Annex#02
+103	card	room:Unholy Annex#03
+104	card	room:Unholy Annex#10
+105	card	room:Unholy Annex#11
+106	card	room:Unholy Annex#13
+107	token	b_2_2_e_horror
+108	token	b_6_6_demon_flying
+109	token	r_1_1_gremlin
+110	token	w_1_1_e_glimmer
+111	card	Blaze
+112	card	Mind Spring
+113	card	Careful Study
+114	card	Mental Note
+115	card	Flicker of Fate

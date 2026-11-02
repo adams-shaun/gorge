@@ -1,0 +1,31 @@
+# the value-heads pool: Count$Metalcraft (Galvanic
+# Blast), TargetedController$Counters.Poison (Anoint with Affliction),
+# PlayerCountPlayers$AttackersDeclared (Witchstalker Frenzy),
+# /Times.<SVar> (Lunar Convocation), /Minus.Remembered$Amount
+# (Refurbished Familiar), TriggeredTarget$LifeTotal/HalfUp and
+# !HasCounters (Unstoppable Slasher), beside artifacts, poison makers,
+# life gain and discard (dirac/oracle/vh_test.go)
+Galvanic Blast
+Refurbished Familiar
+Anoint with Affliction
+Unstoppable Slasher
+Witchstalker Frenzy
+Lunar Convocation
+Ornithopter
+Memnite
+Frogmite
+Ichor Rats
+Plague Stinger
+Darksteel Citadel
+Ajani's Pridemate
+Healer's Hawk
+Soul Warden
+Vampire Nighthawk
+Inspiring Overseer
+Savannah Lions
+Duress
+Mind Rot
+Leonin Skyhunter
+Swamp
+Mountain
+Plains

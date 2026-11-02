@@ -1,0 +1,36 @@
+# the all-of type predicate pool (typesall): "Artifact.Creature" /
+# "Land.Artifact" filter carriers (Steel Overseer, Tempered Steel,
+# Master of Etherium, Chief of the Foundry, Thopter Engineer, Pia
+# Nalaar, Sojourner's Companion) beside artifact creatures, nonartifact
+# creatures, noncreature artifacts, artifact lands and Ensoul Artifact
+# (the derived-type read), for the oracle's constructed lockstep
+# (dirac/oracle/typesall_test.go)
+Steel Overseer
+Tempered Steel
+Master of Etherium
+Chief of the Foundry
+Thopter Engineer
+Pia Nalaar
+Sojourner's Companion
+Ensoul Artifact
+Ornithopter
+Alloy Myr
+Gold Myr
+Juggernaut
+Wall of Tanglecord
+Mind Stone
+Shatter
+Naturalize
+Savannah Lions
+Coral Merfolk
+Grizzly Bears
+Hill Giant
+Seat of the Synod
+Ancient Den
+Great Furnace
+Tree of Tales
+Darksteel Citadel
+Plains
+Island
+Mountain
+Forest

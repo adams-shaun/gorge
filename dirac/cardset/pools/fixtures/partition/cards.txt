@@ -1,0 +1,17 @@
+# the partition pool: Soul Partition's while-exiled owner
+# permission with an opponent's {2} surcharge, beside creatures, an Aura,
+# an artifact and burn (dirac/oracle/partition_test.go)
+Soul Partition
+Grizzly Bears
+Hill Giant
+Wind Drake
+Serra Angel
+Savannah Lions
+Pacifism
+Mind Stone
+Shock
+Divination
+Plains
+Island
+Forest
+Mountain

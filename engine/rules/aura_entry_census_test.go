@@ -214,6 +214,7 @@ func TestAuraEntryCensusPrint(t *testing.T) {
 //	               never carry a fresh battlefield entry past the gate.
 var auraEntryCensusEffects = map[string]string{
 	"airbend.go:effAirbend":                     "noentry: exiles",
+	"assimilate.go:effAssimilate":               "noaura: a creature card or a creature, never an Aura spell's attach",
 	"amass.go:effAmass":                         "token: Army token mint",
 	"attach.go:effAttach":                       "attach: DB$ Attach on a battlefield (or still-on-stack Aura spell) object",
 	"attach.go:emitAttach":                      "attach: helper",

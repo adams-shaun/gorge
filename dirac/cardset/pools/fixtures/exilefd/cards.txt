@@ -1,0 +1,13 @@
+# a Dig into exile with ExileFaceDown$ and WithMayLook$ (Outrageous
+# Robbery, Decadent Dragon, Black Cat, Cunning Thief), for dirac/oracle/exilefd_test.go
+Outrageous Robbery
+Decadent Dragon
+Black Cat, Cunning Thief
+Goblin Piker
+Walking Corpse
+Hill Giant
+Lightning Bolt
+Shock
+Disfigure
+Mountain
+Swamp

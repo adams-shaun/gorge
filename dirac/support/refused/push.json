@@ -1,0 +1,13 @@
+{
+  "card": "Push",
+  "class": "options",
+  "why": "the engines offer different options; 49 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 815,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

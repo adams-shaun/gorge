@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,7 +103,7 @@ func TestAdviceIsForTheClaimedSeatOnly(t *testing.T) {
 		t.Errorf("bad seq: status %d: %s", code, raw)
 	}
 	stale := fmt.Sprintf("%s/api/tables/t1/matches/1/advice?seq=%d", srv.URL, seq+1)
-	if code, _, raw := seatReq(t, http.MethodGet, stale, "s0", nil); code != http.StatusConflict {
+	if code, _, raw := seatReq(t, http.MethodGet, stale, "s0", nil); code != http.StatusConflict || !strings.Contains(string(raw), `"advice_stale"`) {
 		t.Errorf("a decision that is not pending: status %d: %s", code, raw)
 	}
 	code, _, raw := seatReq(t, http.MethodGet, url, "s0", nil)

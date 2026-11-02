@@ -208,8 +208,8 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		// REDUCE-cost whose Amount$ the bound context can actually EVALUATE
 		// is no longer a shape the composition point cannot price — Not of
 		// This World's Amount$ CostReduction over
-		// SVar:CostReduction:Count$Compare CheckTgt GE1.7.0 with
-		// SVar:CheckTgt:TargetedByTarget$Valid Card.powerGE7+YouCtrl reads
+		// CostReduction = Count$Compare CheckTgt GE1.7.0 with
+		// CheckTgt = TargetedByTarget$Valid Card.powerGE7+YouCtrl reads
 		// its real {7}-or-0 from the targeted spell's own targets, at the
 		// offer gate (potentialCostModsUsing's single candidate) and
 		// at the CR 601.2c reprice (the chosen targets) alike. The probe is
@@ -583,6 +583,7 @@ func (e *Engine) spellConstraintMatches(sv staticView, scope costScope, p state.
 		sc := e.staticSpecCtxNamed(sv)
 		sc.You = p
 		sc.AsStack = true
+		sc.PreparedSpell = e.preparedSpellOf(id)
 		sc.ProposedTargets = targets
 		return e.matchesSpec("Spell."+c, id, sc)
 	}

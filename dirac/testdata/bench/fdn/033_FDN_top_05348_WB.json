@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_05348_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck fa7bc274e74d4871b2aa5889ee14a795:1, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Elenda, Saint of Dusk",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 5
+},
+{
+"name": "Guarded Heir",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "High-Society Hunter",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Macabre Waltz",
+"count": 1
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+}
+]
+}

@@ -491,6 +491,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	if to == state.ZLibrary && shuffle {
+		if !scoped && sweepsYourOwn(spec) {
+			players, scoped = []state.PlayerID{c.Controller}, true
+		}
 		changeZoneAllShuffleLibraries(h, placements, players, scoped)
 	}
 	scheduleAtEOT(h, c, sa, moved)
@@ -503,6 +506,17 @@ type ownerMoved struct {
 	ids   []state.ObjID
 }
 
+// sweepsYourOwn reports that every alternative of a sweep's ChangeType$ names your own
+// cards: "shuffle your graveyard into your library" makes you shuffle whatever it holds.
+func sweepsYourOwn(spec string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		if strings.Contains(alt, "!You") || !strings.Contains(alt, "YouOwn") && !strings.Contains(alt, "YouCtrl") {
+			return false
+		}
+	}
+	return true
+}
+
 // changeZoneAllShuffleLibraries is the ChangeZoneAll library-shuffle tail.
 // Shuffle$ True shuffles each destination library that received a card,
 // AFTER the placement (Gomazoa's "put on top ..., then those players
@@ -511,9 +525,10 @@ type ownerMoved struct {
 // shuffled even if there are no objects in that set" -- every library of
 // an EXPLICIT player scope (Defined$ / ValidTgts$ / UseAllOriginZones$:
 // Mnemonic Nexus's "each player", Timetwister, Blessed Respite's target
-// player) that received nothing, in scope order. The unscoped
-// all-players default (the "your graveyard" Card.YouOwn shapes) and the
-// unresolved-scope fallback shuffle only the receiving libraries.
+// player) that received nothing, in scope order, and of the player a
+// "your graveyard" sweep (sweepsYourOwn) belongs to. The other unscoped
+// shapes and the unresolved-scope fallback shuffle only the receiving
+// libraries.
 // NoShuffle$ True (the forced TwoPiles opt-out) is the caller's gate.
 func changeZoneAllShuffleLibraries(h Host, placements []ownerMoved, players []state.PlayerID, scoped bool) {
 	owed := make([]state.PlayerID, 0, len(placements)+len(players))

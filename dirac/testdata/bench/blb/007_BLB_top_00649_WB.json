@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_00649_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 9233162536424828abfbaa7851bdd3d9:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 2 Darkstar Augur, 1 Nocturnal Hunger, 1 Rottenmouth Viper, 1 Starseer Mentor -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Moonrise Cleric",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

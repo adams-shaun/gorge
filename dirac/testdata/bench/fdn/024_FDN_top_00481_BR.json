@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_00481_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 199bc735fc3b4e51b1a1f6df11c2fbe2:0, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 4
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Flamewake Phoenix",
+"count": 1
+},
+{
+"name": "Goblin Boarders",
+"count": 1
+},
+{
+"name": "Goblin Surprise",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Involuntary Employment",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Slumbering Cerberus",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Vengeful Bloodwitch",
+"count": 1
+}
+]
+}

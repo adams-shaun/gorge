@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_12610_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck bcbe6aa274414a7da4902d7088a12779:0, player win-rate bucket 0.70 (CC BY 4.0)",
+"cards": [
+{
+"name": "Alesha, Who Laughs at Fate",
+"count": 1
+},
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Burnished Hart",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Gutless Plunderer",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Involuntary Employment",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Revenge of the Rats",
+"count": 1
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 2
+},
+{
+"name": "Searslicer Goblin",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Stromkirk Bloodthief",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Thrill of Possibility",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Zombify",
+"count": 1
+}
+]
+}

@@ -1,0 +1,30 @@
+# the Phyrexian activation pool (CR 107.4f): {C/P} in activated
+# costs (the Souleaters, Moltensteel Dragon, the MOM transform cards)
+# beside creatures, burn and basics (dirac/oracle/phyact_test.go)
+Blinding Souleater
+Immolating Souleater
+Insatiable Souleater
+Trespassing Souleater
+Moltensteel Dragon
+Order of the Mirror
+Khenra Spellspear
+Mite Overseer
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Wind Drake
+Shock
+Lightning Bolt
+Plains
+Island
+Mountain
+Forest
+Swamp
+Nezumi Freewheeler
+Lashwrithe
+Birthing Pod
+Zopandrel, Hunger Dominus
+Pyretic Prankster
+Blightreaper Thallid
+Tarkir Duneshaper
+Seraph of New Capenna

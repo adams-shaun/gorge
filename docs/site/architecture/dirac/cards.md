@@ -4,7 +4,7 @@ dirac doesn't read card scripts. A generator, `dirac/kgen`, lowers gorge's compi
 integer ops, and a hand-written interpreter runs them. This page is for readers who want to know how a card gets into
 dirac, what a refusal means and why a lowered card isn't yet a supported one.
 
-The `kgen` and `kfuzz` commands on this page are dirac's tools, which aren't in this repository.
+`kgen` is `dirac/cmd/kgen` and `kfuzz` is `dirac/oracle/cmd/kfuzz`.
 
 ## The pipeline
 
@@ -21,7 +21,7 @@ flowchart TB
   script --> ir --> lower
   list --> lower
   lower --> build --> tab --> set --> engine
-  lower -. "refused: named in the coverage report, inert stand-in" .-> tab
+  lower -. "not lowered: named in the coverage report, inert stand-in" .-> tab
 ```
 
 **kgen lowers gorge's compiled IR, not the script.** dirac therefore inherits gorge's reading of every card: keyword
@@ -31,19 +31,18 @@ a second script parser. It also means a misreading in gorge is a misreading in d
 
 ## Binary tables
 
-Tables are generated and never committed, because they are mechanical translations of GPL-3.0 scripts. They live in a
-gitignored directory under the corpus, one subdirectory per key:
+Tables are generated and never committed, because they are mechanical translations of GPL-3.0 scripts. `make dirac-tables`
+writes them into the gitignored corpus directory, one subdirectory per key:
 
 ```text
-<corpus>/<tables dir>/<key>/manifest.tsv         pool, card and token counts, payload digest
-<corpus>/<tables dir>/<key>/<pool>.ktab          one table
-<corpus>/<tables dir>/<key>/<pool>.coverage.md   kgen's refusal report
+.cards/kernel-tables/<key>/manifest.tsv         pool, card and token counts, payload digest
+.cards/kernel-tables/<key>/<pool>.ktab          one table
+.cards/kernel-tables/<key>/<pool>.coverage.md   kgen's refusal report
 ```
 
 The key is 16 hex digits of the corpus lock's digest and 16 of a hash over kgen, kop, the pool lists and the gorge
 packages kgen builds against, so a key's bytes never change. The binary embeds its half of the key. A tree with stale
-tables fails with an error naming the command to rebuild them, and there is no fallback. Building every pool's table takes
-about ten seconds. `DIRAC_TABLES` points a deployed binary at a copy of the tables and needs no corpus. Without a corpus or
+tables fails with an error naming the command to rebuild them, and there is no fallback. `DIRAC_TABLES` points a deployed binary at a copy of the tables and needs no corpus. Without a corpus or
 tables, the hand-written `dirac/vanilla` table (basic lands, vanilla creatures and simple spells) still plays a game.
 
 ## The op vocabulary
@@ -80,7 +79,7 @@ A refused card still has a row in the table, as an **inert stand-in**: printed c
 abilities. `Matchup` refuses a deck holding one, so a game never plays such a card as vanilla by accident. The
 whole-pool table keeps the row, so a search world dealing hidden cards from a pool can still deal it.
 
-Two ratchets pin acceptance: a per-set count over each set's card list and a corpus-wide count. A fall fails, and a rise
+Two ratchets pin what lowers: a per-set count over each set's card list and a corpus-wide count. A fall fails, and a rise
 is re-pinned in the same commit. `kgen -census-std` prints the per-set table and ranks refusal classes by how many
 Standard cards each one blocks.
 
@@ -91,7 +90,7 @@ kgen computes one status per pool entry when it builds a table:
 | Status | Meaning | A game can deal it? |
 |---|---|---|
 | supported | lowered, not refused, evidenced | yes |
-| unverified | lowered, in no evidence list | yes, until evidence is enforced at setup |
+| unverified | lowered, in no evidence list | no, unless the run asks for it (`cardset.AllowUnverified`), as evidence runs do |
 | refused | named in the committed refused list, with a reason and a game that shows the difference | no |
 | not lowered | kgen can't represent it | no |
 
@@ -101,7 +100,9 @@ with the kind of difference and the game (pool, surface, pair, policy) that show
 **Evidence** is earned in lockstep. `kfuzz -evidence` writes the cards that clean games played at least three times with
 every ability the card has used. A token earns no evidence of its own, since it is played through the card that makes it.
 A card no human deck holds earns it through **synthetic evidence pools**: tables built from a set's list or from the
-lowered corpus outside the Standard lists, which exist only to be played in lockstep.
+lowered corpus outside the Standard lists, which exist only to be played in lockstep. The evidence corpus is the FDN and BLB
+slices and one synthetic pool per Standard list, on both surfaces, at mulligan limits 0 and 1, and `scripts/dirac-evidence.sh`
+plays it. A card is listed when it meets the floor across its runs.
 
 **A pair can be refused when neither card is.** A few interactions are refused at matchup time because the game would
 stall at its start, or because the two cards' effects need an order dirac doesn't model. `kfuzz` counts these as

@@ -1,0 +1,19 @@
+# the goad pool (CR 701.15): attack-trigger, ETB and mass
+# goads against creatures, a must-attack Juggernaut, a defender and a
+# planeswalker the goaded creatures may not attack (dirac/oracle/goad_test.go)
+Taunting Kobold
+Goblin Racketeer
+Jeering Homunculus
+Disrupt Decorum
+Insufferable Balladeer
+Kaito, Cunning Infiltrator
+Grizzly Bears
+Hill Giant
+Walking Corpse
+Juggernaut
+Wall of Wood
+Giant Growth
+Mountain
+Island
+Forest
+Swamp

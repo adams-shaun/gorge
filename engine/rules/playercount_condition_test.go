@@ -192,7 +192,7 @@ func TestSmugglersShareNoOpponentMeetsEitherThreshold(t *testing.T) {
 
 // TestRampantFrogantuaHasLostTimesSuffix pins the /Op suffix on the head's
 // SECOND corpus carrier, driving the real card: its
-// `SVar:X:PlayerCountHasLost$Amount/Times.10` (+10/+10 per lost player)
+// `X = PlayerCountHasLost$Amount/Times.10` (+10/+10 per lost player)
 // failed closed before the suffix split, so the Frogantua stayed its
 // printed 3/3 however many seats had lost.
 func TestRampantFrogantuaHasLostTimesSuffix(t *testing.T) {

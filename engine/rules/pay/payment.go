@@ -696,13 +696,13 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	// BASE-LESS here (the "Spell." class was already cut off) and the strip
 	// helpers rejoin onto a base, so evaluate the Card.-prefixed form; a
 	// surviving alternative whose only predicate was the provenance token
-	// rejoins to bare "Card", which MatchesSpecFrom matches like any card.
+	// rejoins to bare "Card", which MatchesSpellFrom matches like any card.
 	var provenanceOK bool
 	spec, provenanceOK = e.CastProvenanceAdmitsPending("Card."+spec, d.ID, p)
 	if !provenanceOK {
 		return false
 	}
-	if e.MatchesSpecFrom(spec, d.ID, p, srcID) {
+	if e.MatchesSpellFrom(spec, d.ID, p, srcID) {
 		return true
 	}
 	// Forge's object-filter grammar defaults the base to Card, so a bare
@@ -714,7 +714,7 @@ func restrictValidTermMatches(e Engine, p state.PlayerID, d Descriptor, term str
 	// explicit base before denying the batch: the retry can only turn a
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
-	return e.MatchesSpecFrom("Card."+spec, d.ID, p, srcID)
+	return e.MatchesSpellFrom("Card."+spec, d.ID, p, srcID)
 }
 
 // CostPayableGrant is CostPayable with the may-play ignore-colour rider

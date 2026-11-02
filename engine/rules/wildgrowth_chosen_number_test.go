@@ -25,27 +25,27 @@ import (
 )
 
 const torgalSrc = "Name:Torgal, A Fine Hound\nManaCost:1 G\nTypes:Legendary Creature Wolf\nPT:2/2\n" +
-	"T:Mode$ SpellCast | ValidCard$ Creature.Human | ValidActivatingPlayer$ You | ActivatorThisTurnCast$ EQ1 | Execute$ TrigEffect | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast your first Human creature spell each turn, that creature enters with an additional +1/+1 counter on it for each Dog and/or Wolf you control.\n" +
-	"SVar:TrigEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ X | ReplacementEffects$ ETBCreat | ExileOnMoved$ Stack\n" +
-	"SVar:ETBCreat:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated\n" +
-	"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
-	"SVar:X:Count$Valid Dog.YouCtrl,Wolf.YouCtrl\n" +
+	"T:Mode$ SpellCast | ValidCard$ Creature.Human | ValidActivatingPlayer$ You | ActivatorThisTurnCast$ EQ1 | Execute$ OnEffect | TriggerZones$ Battlefield\n" +
+	"SVar:OnEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ Pets | ReplacementEffects$ Entering | ExileOnMoved$ Stack\n" +
+	"SVar:Entering:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ Grow | ReplacementResult$ Updated\n" +
+	"SVar:Grow:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
+	"SVar:Pets:Count$Valid Dog.YouCtrl,Wolf.YouCtrl\n" +
 	"Oracle:x\n"
 
 const wildgrowthSrc = "Name:Wildgrowth Archaic\nManaCost:2G 2G\nTypes:Creature Avatar\nPT:2/2\n" +
-	"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigEffect | TriggerDescription$ Whenever you cast a creature spell, that creature enters with X additional +1/+1 counters on it, where X is the number of colors of mana spent to cast it.\n" +
-	"SVar:TrigEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ Y | ReplacementEffects$ ETBCreat | ExileOnMoved$ Stack\n" +
-	"SVar:ETBCreat:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated\n" +
-	"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
+	"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ OnEffect\n" +
+	"SVar:OnEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ Y | ReplacementEffects$ Entering | ExileOnMoved$ Stack\n" +
+	"SVar:Entering:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ Grow | ReplacementResult$ Updated\n" +
+	"SVar:Grow:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
 	"SVar:Y:TriggeredCard$Converge\n" +
 	"Oracle:x\n"
 
 const brewingSrc = "Name:Communal Brewing\nManaCost:2 G\nTypes:Enchantment\n" +
-	"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigEffect | TriggerDescription$ Whenever you cast a creature spell, that creature enters with X additional +1/+1 counters on it, where X is the number of ingredient counters on CARDNAME.\n" +
-	"SVar:TrigEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ Y | ReplacementEffects$ ETBCreat | ExileOnMoved$ Stack\n" +
-	"SVar:ETBCreat:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated\n" +
-	"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
-	"SVar:Y:Count$CardCounters.INGREDIENT\n" +
+	"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ OnEffect\n" +
+	"SVar:OnEffect:DB$ Effect | RememberObjects$ TriggeredCard | SetChosenNumber$ Stored | ReplacementEffects$ Entering | ExileOnMoved$ Stack\n" +
+	"SVar:Entering:Event$ Moved | ValidCard$ Card.IsRemembered | Destination$ Battlefield | ReplaceWith$ Grow | ReplacementResult$ Updated\n" +
+	"SVar:Grow:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ Count$ChosenNumber\n" +
+	"SVar:Stored:Count$CardCounters.INGREDIENT\n" +
 	"Oracle:x\n"
 
 // taiiSrc is Taii Wakeen, Perfect Shot's AB$ Effect chain -- the stretch
@@ -53,10 +53,10 @@ const brewingSrc = "Name:Communal Brewing\nManaCost:2 G\nTypes:Enchantment\n" +
 // event's amount by Plus.Y, where Y is the Effect's own frozen
 // SetChosenNumber$ binding (the {X} the activation paid).
 const taiiSrc = "Name:Taii Wakeen, Perfect Shot\nManaCost:R W\nTypes:Legendary Creature Human Mercenary\nPT:2/3\n" +
-	"A:AB$ Effect | Cost$ X T | ReplacementEffects$ RepDamage | SetChosenNumber$ X | SpellDescription$ If a source you control would deal noncombat damage to a permanent or player this turn, it deals that much damage plus X instead.\n" +
+	"A:AB$ Effect | Cost$ X T | ReplacementEffects$ RepDamage | SetChosenNumber$ X\n" +
 	"SVar:X:Count$xPaid\n" +
-	"SVar:RepDamage:Event$ DamageDone | ActiveZones$ Command | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Permanent,Player | IsCombat$ False | ReplaceWith$ DmgPlusX | Description$ If a source you control would deal noncombat damage to a permanent or player this turn, it deals that much damage plus X instead.\n" +
-	"SVar:DmgPlusX:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.Y\n" +
+	"SVar:RepDamage:Event$ DamageDone | ActiveZones$ Command | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Permanent,Player | IsCombat$ False | ReplaceWith$ AddX\n" +
+	"SVar:AddX:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.Y\n" +
 	"SVar:Y:Count$ChosenNumber\n" +
 	"Oracle:x\n"
 
@@ -93,7 +93,7 @@ func activeMovedReplacements(e *Engine) []*state.ContinuousEffect {
 func assertNoUnimplementedNote(t *testing.T, e *Engine) {
 	t.Helper()
 	if hasNote(e, "continuous replacement unimplemented") {
-		t.Fatal("the ETBCreat replacement was not registered: the unimplemented Note is in the log")
+		t.Fatal("the Entering replacement was not registered: the unimplemented Note is in the log")
 	}
 }
 
@@ -129,7 +129,7 @@ func TestTorgalEntersWithDogWolfCounters(t *testing.T) {
 				t.Fatalf("Human entered with %d P1P1, want %d (one per Dog/Wolf)", got, tc.want)
 			}
 			if len(activeMovedReplacements(e)) != 0 {
-				t.Fatalf("the ETBCreat effect survived its own entry: %+v", activeMovedReplacements(e))
+				t.Fatalf("the Entering effect survived its own entry: %+v", activeMovedReplacements(e))
 			}
 			assertNoUnimplementedNote(t, e)
 			if torgal == 0 {
@@ -159,7 +159,7 @@ func TestWildgrowthArchaicEntersWithConvergeCounters(t *testing.T) {
 			t.Fatalf("Elf entered with %d P1P1, want 1 (one colour spent)", got)
 		}
 		if len(activeMovedReplacements(e)) != 0 {
-			t.Fatalf("the ETBCreat effect survived its own entry: %+v", activeMovedReplacements(e))
+			t.Fatalf("the Entering effect survived its own entry: %+v", activeMovedReplacements(e))
 		}
 		assertNoUnimplementedNote(t, e)
 		replayCheck(t, e, cfg)
@@ -227,7 +227,7 @@ func TestCommunalBrewingEntersWithIngredientCounters(t *testing.T) {
 				t.Fatalf("Elf entered with %d P1P1, want %d (the ingredient counters)", got, tc.want)
 			}
 			if len(activeMovedReplacements(e)) != 0 {
-				t.Fatalf("the ETBCreat effect survived its own entry: %+v", activeMovedReplacements(e))
+				t.Fatalf("the Entering effect survived its own entry: %+v", activeMovedReplacements(e))
 			}
 			assertNoUnimplementedNote(t, e)
 			replayCheck(t, e, cfg)

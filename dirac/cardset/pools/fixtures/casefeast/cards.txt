@@ -1,0 +1,11 @@
+# Case of the Uneaten Feast's graveyard may-play
+# (dirac/oracle/casefeast_test.go)
+Case of the Uneaten Feast
+Inspiring Cleric
+Suntail Hawk
+Grizzly Bears
+Ambush Viper
+Shock
+Plains
+Forest
+Mountain

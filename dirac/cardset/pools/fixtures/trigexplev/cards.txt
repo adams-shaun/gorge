@@ -1,0 +1,22 @@
+# the Explores / CollectEvidence trigger pool:
+# Merfolk Cave-Diver, Nicanzil, Evidence Examiner, Surveillance Monitor
+# (dirac/oracle/trigexplev_test.go)
+# The Explores / CollectEvidence trigger pool (CR
+# 701.44a, 701.59a): Merfolk Cave-Diver and Nicanzil (Explores), Evidence
+# Examiner and Surveillance Monitor (CollectEvidence); explorers and evidence
+# payers feed them, burn fills the graveyards
+# (dirac/oracle/trigexplev_test.go)
+Merfolk Cave-Diver
+Nicanzil, Current Conductor
+Evidence Examiner
+Surveillance Monitor
+Cenote Scout
+Jadelight Ranger
+Merfolk Branchwalker
+Forensic Researcher
+Sample Collector
+Shock
+Lightning Bolt
+Forest
+Island
+Mountain

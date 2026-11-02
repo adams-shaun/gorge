@@ -1,0 +1,37 @@
+# the graveexile grammar pool: one pool for the five
+# sub-classes, for the kernel's lockstep and mutation tests
+Ainok Wayfarer
+Bramble Familiar
+Picklock Prankster
+Most Decrepit Old Bird
+Cantankerous Keepers
+Wasteful Harvest
+Defend the Rider
+Llanowar Elves
+Tormod's Crypt
+Hotshot Mechanic
+Deathless Pilot
+Dynamite Diver
+Weatherlight
+Brightfield Glider
+Loran of the Third Path
+Sky Crier
+Thran Spider
+Shields Up!
+Kaseto, Orochi Archmage
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Coral Merfolk
+Wall of Wood
+Walking Corpse
+Giant Spider
+Plains
+Island
+Swamp
+Mountain
+Forest
+Town Greeter
+Cloudspire Captain
+Adventurer's Inn

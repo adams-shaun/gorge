@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_00001_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 3c1b14f0217a4ad2b21b861570cfbc9e:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Fiendish Panda",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 2
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Infernal Vessel",
+"count": 1
+},
+{
+"name": "Liliana, Dreadhorde General",
+"count": 1
+},
+{
+"name": "Macabre Waltz",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Revenge of the Rats",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Tinybones, Bauble Burglar",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 2
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+}
+]
+}

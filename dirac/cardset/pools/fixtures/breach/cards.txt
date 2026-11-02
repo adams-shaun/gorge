@@ -1,0 +1,17 @@
+# Breach the Multiverse's per-player graveyard choice and mass reanimate (dirac/oracle/breach_test.go)
+Breach the Multiverse
+Jace Beleren
+Liliana of the Veil
+Elvish Visionary
+Phyrexian Rager
+Sol Ring
+Mind Stone
+Grizzly Bears
+Prodigal Sorcerer
+Savannah Lions
+Llanowar Elves
+Wall of Omens
+Nantuko Husk
+Swamp
+Forest
+Island

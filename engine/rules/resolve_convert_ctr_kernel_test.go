@@ -37,7 +37,7 @@ func TestKernelAskPutCounter(t *testing.T) {
 	two := []string{"Ctr Bear", "Ctr Bear"}
 	three := []string{"Ctr Bear", "Ctr Bear", "Ctr Giant"}
 	runCtrSpellCases(t, 31000, []ctrSpellCase{
-		{name: "Ctr Maybe Counter", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 2 | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Maybe Counter", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1 | CounterNum$ 2 | Optional$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: two, served: 1},
 		// The election then the pick; the two variants answer the election
 		// differently (tapePick's sequence parity), so both arms run.
@@ -45,15 +45,15 @@ func TestKernelAskPutCounter(t *testing.T) {
 			board: three, served: 1},
 		{name: "Ctr Maybe Pick Late", body: "A:SP$ ChooseColor | Defined$ You | SubAbility$ DBPut\nSVar:DBPut:DB$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 | Optional$ True",
 			board: three, served: 2},
-		{name: "Ctr Kinds", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ Menace,Deathtouch,Lifelink | ChooseDifferent$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Kinds", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ Menace,Deathtouch,Lifelink | ChooseDifferent$ 2 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: two, served: 1},
 		{name: "Ctr Kind", body: "A:SP$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1,M1M1 | CounterNum$ 2",
 			board: two, served: 1},
-		{name: "Ctr Kind Each", body: "A:SP$ PutCounter | Defined$ Valid Creature.YouCtrl | CounterType$ Vigilance,Reach,Trample | CounterTypePerDefined$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Kind Each", body: "A:SP$ PutCounter | Defined$ Valid Creature.YouCtrl | CounterType$ Vigilance,Reach,Trample | CounterTypePerDefined$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: three, served: 3},
 		{name: "Ctr Distribute", body: "A:SP$ PutCounter | Choices$ Creature.YouCtrl | DividedAsYouChoose$ 3 | CounterNum$ 3 | MinChoiceAmount$ 1 | ChoiceAmount$ 3 | CounterType$ P1P1",
 			board: three, served: 1},
-		{name: "Ctr Pick", body: "A:SP$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 2 | RememberCards$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Pick", body: "A:SP$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 2 | RememberCards$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: three, served: 1},
 		{name: "Ctr Pick Kind", body: "A:SP$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1,M1M1 | CounterNum$ 1",
 			board: three, served: 2},
@@ -70,17 +70,17 @@ func TestKernelAskCounterChoices(t *testing.T) {
 	runCtrSpellCases(t, 32000, []ctrSpellCase{
 		{name: "Ctr Remove Pick", body: "A:SP$ RemoveCounter | Choices$ Creature.YouCtrl | ChoiceOptional$ True | CounterType$ P1P1 | CounterNum$ 1 | RememberAmount$ True",
 			board: []string{"Ctr Bear", "Ctr Bear", "Ctr Giant"}, counters: []map[string]int32{p1, p1, p1}, served: 1},
-		{name: "Ctr Aor Named", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | CounterType$ P1P1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Aor Named", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | CounterType$ P1P1 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: []string{"Ctr Bear"}, counters: []map[string]int32{p1}, served: 1},
 		{name: "Ctr Aor Combined", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | Optional$ True",
 			board: []string{"Ctr Bear"}, counters: []map[string]int32{mixed}, served: 1},
-		{name: "Ctr Aor Each", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | EachExistingCounter$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Aor Each", body: "A:SP$ AddOrRemoveCounter | ValidTgts$ Creature | EachExistingCounter$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: []string{"Ctr Bear"}, counters: []map[string]int32{mixed}, served: 3},
-		{name: "Ctr Move Any", body: "A:SP$ MoveCounter | ValidTgts$ Creature | TargetMin$ 2 | TargetMax$ 2 | CounterType$ Any | CounterNum$ Any | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Move Any", body: "A:SP$ MoveCounter | ValidTgts$ Creature | TargetMin$ 2 | TargetMax$ 2 | CounterType$ Any | CounterNum$ Any | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: []string{"Ctr Bear", "Ctr Giant"}, counters: []map[string]int32{mixed, mixed}, served: 2},
-		{name: "Ctr Proliferate", body: "A:SP$ Proliferate | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Proliferate", body: "A:SP$ Proliferate | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: []string{"Ctr Bear", "Ctr Giant", "Ctr Ogre"}, counters: []map[string]int32{p1, mixed}, served: 1},
-		{name: "Ctr Time Travel", body: "A:SP$ TimeTravel | Amount$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Time Travel", body: "A:SP$ TimeTravel | Amount$ 2 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: []string{"Ctr Bear", "Ctr Giant"}, counters: []map[string]int32{{"TIME": 2}, {"TIME": 1}}, served: 3},
 	})
 }
@@ -95,22 +95,22 @@ func TestKernelAskResolutionLoops(t *testing.T) {
 		// division is still asked at resolution, which is the ask served here.
 		{name: "Ctr Divide", body: "A:SP$ GainLife | LifeAmount$ 2 | SubAbility$ DBDmg\nSVar:DBDmg:DB$ DealDamage | ValidTgts$ Any | TargetMin$ 2 | TargetMax$ 3 | NumDmg$ 4 | DividedAsYouChoose$ 4",
 			board: two, served: 1},
-		{name: "Ctr Clash", body: "A:SP$ Clash | WinSubAbility$ DBGain | OtherwiseSubAbility$ DBDraw\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2\nSVar:DBDraw:DB$ Draw | NumCards$ 1",
+		{name: "Ctr Clash", body: "A:SP$ Clash | WinSubAbility$ Gain | OtherwiseSubAbility$ DBDraw\nSVar:Gain:DB$ GainLife | LifeAmount$ 2\nSVar:DBDraw:DB$ Draw | NumCards$ 1",
 			served: 2},
-		{name: "Ctr Connive", body: "A:SP$ Connive | Defined$ Valid Creature.YouCtrl | ConniveNum$ 1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Ctr Connive", body: "A:SP$ Connive | Defined$ Valid Creature.YouCtrl | ConniveNum$ 1 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			board: two, served: 2},
-		{name: "Ctr Roll", body: "A:SP$ RollDice | Amount$ 2 | Sides$ 6 | ResultSVar$ Z | ChosenSVar$ X | OtherSVar$ Y | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ X | SubAbility$ DBLose\nSVar:DBLose:DB$ LoseLife | LifeAmount$ Y\nSVar:X:Number$0\nSVar:Y:Number$0",
+		{name: "Ctr Roll", body: "A:SP$ RollDice | Amount$ 2 | Sides$ 6 | ResultSVar$ Z | ChosenSVar$ X | OtherSVar$ Y | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ X | SubAbility$ DBLose\nSVar:DBLose:DB$ LoseLife | LifeAmount$ Y\nSVar:X:Number$0\nSVar:Y:Number$0",
 			served: 1},
 	})
 }
 
 // Fact or Fiction's shape: the split (an opponent's), then the pick.
 func TestKernelAskTwoPiles(t *testing.T) {
-	src := ctrSorcery("Ctr Fiction", "A:SP$ PeekAndReveal | PeekAmount$ 5 | RememberRevealed$ True | NoPeek$ True | SubAbility$ DBTwoPiles\n"+
-		"SVar:DBTwoPiles:DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Separator$ Opponent | ChosenPile$ DBHand | UnchosenPile$ DBGrave | SubAbility$ DBGain\n"+
-		"SVar:DBHand:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand\n"+
-		"SVar:DBGrave:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Graveyard\n"+
-		"SVar:DBGain:DB$ GainLife | LifeAmount$ 2")
+	src := ctrSorcery("Ctr Fiction", "A:SP$ PeekAndReveal | PeekAmount$ 5 | RememberRevealed$ True | NoPeek$ True | SubAbility$ TwoPiles\n"+
+		"SVar:TwoPiles:DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Separator$ Opponent | ChosenPile$ ThenHand | UnchosenPile$ Grave | SubAbility$ Gain\n"+
+		"SVar:ThenHand:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand\n"+
+		"SVar:Grave:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Graveyard\n"+
+		"SVar:Gain:DB$ GainLife | LifeAmount$ 2")
 	for i, seats := range []int{2, 3} {
 		s := ctrSetup{seats: seats, seed: 34000 + uint64(i), seat0: ctrCards(t, src)}
 		_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
@@ -123,7 +123,7 @@ func TestKernelAskTwoPiles(t *testing.T) {
 // Explore over two creatures with nonland cards on top of the library: each
 // explore poses its destination election.
 func TestKernelAskExplore(t *testing.T) {
-	src := ctrSorcery("Ctr Explore", "A:SP$ Explore | Defined$ Valid Creature.YouCtrl | Num$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2")
+	src := ctrSorcery("Ctr Explore", "A:SP$ Explore | Defined$ Valid Creature.YouCtrl | Num$ 2 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2")
 	s := ctrSetup{seats: 2, seed: 35000, seat0: ctrCards(t, src, ctrBearSrc, ctrGiantSrc, ctrOgreSrc, ctrOgreSrc, ctrOgreSrc, ctrOgreSrc)}
 	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {
 		ctrBoard(t, e, 0, []string{"Ctr Bear", "Ctr Giant"})
@@ -170,7 +170,7 @@ func TestKernelAskEmpower(t *testing.T) {
 
 // Optional$ Investigate over every player: one election per player.
 func TestKernelAskInvestigateOptional(t *testing.T) {
-	src := ctrSorcery("Ctr Investigate", "A:SP$ Investigate | Defined$ Player | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2")
+	src := ctrSorcery("Ctr Investigate", "A:SP$ Investigate | Defined$ Player | Optional$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2")
 	clue := card(t, "Name:Clue Token\nManaCost:no cost\nTypes:Artifact Clue\nOracle:\n")
 	s := ctrSetup{seats: 3, seed: 38000, seat0: ctrCards(t, src), tokens: map[string]*cards.Card{"c_a_clue_draw": clue}}
 	_, st := runCtrScenario(t, s, func(t *testing.T, e *Engine) {

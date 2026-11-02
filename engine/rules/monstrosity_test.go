@@ -234,7 +234,7 @@ func TestFleecemaneLionIsMonstrousGrantsKeywords(t *testing.T) {
 
 // TestVitalityHunterAnnouncedXMonstrousMarksWithX: the announced X binds the
 // counter count AND the mark's Amount -- the BecomeMonstrous trigger's
-// `SVar:MaxTgts:TriggerCount$Amount` reads the mark Amount back as its
+// `MaxTgts = TriggerCount$Amount` reads the mark Amount back as its
 // target bound (up to X creatures).
 func TestVitalityHunterAnnouncedXMonstrousMarksWithX(t *testing.T) {
 	t.Parallel()

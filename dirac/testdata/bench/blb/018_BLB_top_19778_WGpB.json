@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_19778_WGpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck e71af300265a4ff0baba8b17e003da6f:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Bakersbane Duo, 1 Carrot Cake, 1 Crumb and Get It, 1 Repel Calamity, 1 Rust-Shield Rampager, 1 Thornvault Forager -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Bumbleflower's Sharepot",
+"count": 1
+},
+{
+"name": "Burrowguard Mentor",
+"count": 2
+},
+{
+"name": "Druid of the Spade",
+"count": 3
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Pawpatch Formation",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 3
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

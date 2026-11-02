@@ -17,9 +17,8 @@ package rules
 // pushTrigger, resolved by triggerForAbilityObject) carries the line from the
 // push to resolution.
 //
-// The fixtures carry the corpus cards' lines VERBATIM (inline per the licensing
-// rule); the carriers are plain cards so the leaf under test is the grant
-// route, not the carrier.
+// The fixtures follow the corpus cards' shapes inline; the carriers are plain
+// cards so the leaf under test is the grant route, not the carrier.
 
 import (
 	"testing"
@@ -28,24 +27,24 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// mendicantCoreSrc carries mendicant_core_guidelight's Max-speed AddTrigger$
-// line and both SVars VERBATIM (Condition$ MaxSpeed dropped: the leaf under
+// mendicantCoreSrc follows mendicant_core_guidelight's Max-speed AddTrigger$
+// line and both SVars (Condition$ MaxSpeed dropped: the leaf under
 // test is the GRANT's visibility, not the speed condition).
 const mendicantCoreSrc = "Name:Test Guidelight\nManaCost:2\nTypes:Artifact Creature\nPT:2/2\n" +
 	"S:Mode$ Continuous | Affected$ Card.Self | AddTrigger$ CastTrig | Description$ Max speed — Whenever you cast an artifact spell, you may pay {1}. If you do, copy it.\n" +
-	"SVar:CastTrig:Mode$ SpellCast | ValidCard$ Artifact | ValidActivatingPlayer$ You | Execute$ TrigCopy | OptionalDecider$ You | TriggerZones$ Battlefield | Secondary$ True | TriggerDescription$ Max speed — Whenever you cast an artifact spell, you may pay {1}. If you do, copy it.\n" +
-	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 1 | Defined$ TriggeredSpellAbility | Amount$ 1\n" +
+	"SVar:CastTrig:Mode$ SpellCast | ValidCard$ Artifact | ValidActivatingPlayer$ You | Execute$ OnCopy | OptionalDecider$ You | TriggerZones$ Battlefield | Secondary$ True | TriggerDescription$ Max speed — Whenever you cast an artifact spell, you may pay {1}. If you do, copy it.\n" +
+	"SVar:OnCopy:AB$ CopySpellAbility | Cost$ 1 | Defined$ TriggeredSpellAbility | Amount$ 1\n" +
 	"Oracle:x\n"
 
 const artifactSpellSrc = "Name:Test Trinket Spell\nManaCost:1\nTypes:Artifact\n" +
 	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
 
-// rowanEmblemSrc carries rowan_scholar_of_sparks' emblem ultimate's Triggers$
-// name and both SVars VERBATIM on a sorcery carrier.
+// rowanEmblemSrc follows rowan_scholar_of_sparks' emblem ultimate's Triggers$
+// name and both SVars on a sorcery carrier.
 const rowanEmblemSrc = "Name:Test Rowan Emblem\nManaCost:2 R\nTypes:Sorcery\n" +
 	"A:SP$ Effect | Triggers$ TRCast | SpellDescription$ You get an emblem with \"Whenever you cast an instant or sorcery spell, you may pay {2}. If you do, copy that spell.\"\n" +
-	"SVar:TRCast:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Command | Execute$ TrigCopy | TriggerDescription$ Whenever you cast an instant or sorcery spell, you may pay {2}. If you do, copy that spell. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 2 | Defined$ TriggeredSpellAbility | AILogic$ Always | MayChooseTarget$ True\n" +
+	"SVar:TRCast:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Command | Execute$ OnCopy\n" +
+	"SVar:OnCopy:AB$ CopySpellAbility | Cost$ 2 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:x\n"
 
 // eldraziEchoTwoSrc is a SECOND, distinct mandatory Eldrazi-cast trigger so the
@@ -147,7 +146,7 @@ func drainCopyGrants(t *testing.T, e *Engine, limit int, acceptOptional, pay boo
 }
 
 // TestGrantedStaticSpellCopyPaysCost is the static AddTrigger$ route on
-// Mendicant Core's verbatim lines: the granted trigger's OptionalDecider$ You
+// Mendicant Core's lines: the granted trigger's OptionalDecider$ You
 // folds into its {1} pay election (optionalFoldsIntoCost -- one ask, not a
 // yes/no in front of it), the pay ask must pose, and paying must charge the
 // pool and copy.
@@ -210,7 +209,7 @@ func TestGrantedStaticSpellCopyDeclinesOptional(t *testing.T) {
 }
 
 // TestEffectGrantedSpellCopyPaysCost is the DB$ Effect | Triggers$ route on
-// Rowan's verbatim lines: cast the effect, then cast an instant -- the
+// Rowan's lines: cast the effect, then cast an instant -- the
 // registration's {2} ask must pose, and paying must charge the pool and copy.
 func TestEffectGrantedSpellCopyPaysCost(t *testing.T) {
 	t.Parallel()
@@ -340,7 +339,7 @@ func drainUlalekPluralAsks(t *testing.T, e *Engine, ulalek, echo1, echo2 state.O
 }
 
 // TestUlalekValidStackCopyIsPlural pins CR 707.10a's "copy each" for the
-// Defined$ ValidStack arm: Ulalek's verbatim sub-copy body
+// Defined$ ValidStack arm: Ulalek's sub-copy body
 // (Ability.YouCtrl+otherAbility) with TWO distinct echo ability wrappers on the
 // stack must copy BOTH, not just the first in stack-arena order. The resolving
 // wrapper is still excluded (the family anchor).

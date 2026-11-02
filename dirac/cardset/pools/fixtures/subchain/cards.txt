@@ -1,0 +1,10 @@
+# Mirrorpool copying Vibrant Outburst, whose tap link declares a second target
+# (dirac/oracle/subchain_test.go)
+Mirrorpool
+Vibrant Outburst
+Grizzly Bears
+Hill Giant
+Shock
+Mountain
+Island
+Wastes

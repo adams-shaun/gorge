@@ -341,6 +341,8 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		cost = Cost{Generic: 2}
 	case castModeFlashback:
 		cost = e.flashbackCostFor(id, opt)
+	case castModeBeamMeUp:
+		cost = e.beamMeUpCostFor(id, opt)
 	case castModeMayplay, castModeBargained:
 		// engine/rules/mayplay.go granted this play from a non-hand zone. The
 		// printed cost is paid (the default below) unless the granting
@@ -365,14 +367,12 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(raise)
 		}
 	case castModeMiracle:
-		// A Miracle cast pays the printed Miracle cost (CR 702.93d) in
-		// place of the card's normal cost. KeywordCostParam reads the keyword's
-		// first colon-field off the face;
-		// a missing keyword (offer routed here only from a Miracle offer, and
-		// only while the card is in hand) falls back to the empty cost so a
-		// stale cast cannot strand.
-		if mc, ok := f.KeywordCostParam("Miracle"); ok {
-			cost = ParseCost(mc)
+		// A Miracle cast pays the miracle cost in place of the card's normal
+		// cost (CR 702.94a). A missing keyword (offer routed here only from a
+		// Miracle offer, and only while the card is in hand) falls back to the
+		// empty cost so a stale cast cannot strand.
+		if mc, ok := e.miracleCost(id); ok {
+			cost = mc
 		} else {
 			cost = Cost{}
 		}
@@ -598,7 +598,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback") {
+		opt.Mode == "flashback" || opt.Mode == beamMeUpMode) {
 		cost = pay.WithSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -1348,6 +1348,7 @@ const (
 	castModeOptionalcost
 	castModeCleaved
 	castModePrototype
+	castModeBeamMeUp
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1396,6 +1397,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "optionalcost", Val: castModeOptionalcost},
 	state.StrEntry[castModeCode]{Key: castModeCleavedWord, Val: castModeCleaved},
 	state.StrEntry[castModeCode]{Key: "prototype", Val: castModePrototype},
+	state.StrEntry[castModeCode]{Key: beamMeUpMode, Val: castModeBeamMeUp},
 }, append(altCastModeEntries(),
 	// The Bargain row's mode word lives in rules/optional_sacrifice.go.
 	state.StrEntry[castModeCode]{Key: optionalSacrifices[optSacBargain].mode, Val: castModeBargained})...)...)

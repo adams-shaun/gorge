@@ -1,0 +1,30 @@
+# the manifest / cloak pool: plain Manifest carriers, the
+# DSK ManifestDread cards that lower, a land with Morph (the keyword
+# turn-up alternative) and creatures to turn up, beside basics, for the
+# oracle's constructed lockstep (dirac/oracle/manifest_test.go)
+Soul Summons
+Reality Shift
+Manifest Dread
+Defiant Survivor
+Innocuous Rat
+Unsettling Twins
+Unnerving Grasp
+Cryptic Coat
+Mind Stone
+Grizzly Bears
+Hill Giant
+Zoetic Cavern
+Mox Emerald
+Mox Pearl
+Mox Sapphire
+Mox Jet
+Mox Ruby
+Priest of Urabrask
+Priest of Gix
+Ornithopter
+Dryad Arbor
+Break Down the Door
+Twist Reality
+Mastery of the Unseen
+Temur War Shaman
+Killer's Mask

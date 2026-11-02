@@ -1,0 +1,13 @@
+{
+  "card": "Adaptive Automaton",
+  "class": "unmodelled-outsidetype",
+  "why": "gorge does something the kernel does not model here (stall outsidetype); 8 games in the corpus",
+  "repro": {
+    "pool": "std-fdn",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 171,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,43 @@
+# the Blight pool (CR 701.68): the 26 Standard carriers
+# of Blight costs, trigger/unless Blight and the Blight effect, the
+# RemoveAnyCounter and filtered SubCounter costs and Jessica Jones's
+# self AddCounter, beside vanilla creatures and basics
+# (dirac/oracle/eclblight_test.go)
+Blighted Blackthorn
+Boggart Mischief
+Bogslither's Embrace
+Brambleback Brute
+Burdened Stoneback
+Chaos Spewer
+Dream Seizer
+Evershrike's Gift
+Glen Elendra Guardian
+Gnarlbark Elm
+Gristle Glutton
+Gutsplitter Gang
+High Perfect Morcant
+Hovel Hurler
+Loch Mare
+Moonlit Lamenter
+Scuzzback Scrounger
+Slumbering Walker
+Sourbread Auntie
+Spiral into Solitude
+Sting-Slinger
+Warren Torchmaster
+Wild Unraveling
+Sunstar Chaplain
+Jessica Jones, Private Eye
+Ray Fillet, Man Ray
+Grizzly Bears
+Ornithopter
+Llanowar Elves
+Elvish Mystic
+Raging Goblin
+Opt
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

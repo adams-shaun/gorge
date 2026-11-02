@@ -67,14 +67,17 @@ func TestConstableOfTheRealmRenownPutsTwoCountersOnce(t *testing.T) {
 		t.Fatalf("want exactly one Renowned mark, got %+v", marks)
 	}
 	// Exercise a second, separately emitted combat-damage trigger in the
-	// same turn. The trigger may resolve, but its Renown$ effect's intervening
-	// condition must prevent both another counter batch and another mark.
+	// same turn. Already renowned, it does not trigger (CR 702.112a, 603.4).
+	pushed := triggersPushedFrom(e, id)
 	e.damaging = id
 	e.combatDamaging = true
 	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
 	e.combatDamaging = false
 	e.damaging = 0
 	e.priorityRound()
+	if n := triggersPushedFrom(e, id); n != pushed {
+		t.Fatalf("renowned creature triggered again: %d pushes, was %d", n, pushed)
+	}
 	passUntilStackEmpty(t, e, 30)
 	if got := e.G.Obj(id).Counter("P1P1"); got != 2 {
 		t.Fatalf("second combat damage changed Renown counters to %d, want still 2", got)

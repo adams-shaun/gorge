@@ -192,14 +192,19 @@ func effAddTurn(h Host, c *Ctx, sa *cards.SA) {
 	// ResolveSVar path here never fired; Alchemist's Gambit's Upkeep
 	// registration is the live shape the reader fixes).
 	phase := state.StepEnd
+	ids := make([]state.ObjID, 1, 2)
 	if name := strings.TrimSpace(sa.ParamStr(cards.PKExtraTurnDelayedTrigger)); name != "" {
 		if p, _, ok := delayedTriggerSpec(c, name); ok {
 			phase = p
 		}
+		if delayedTriggerStatic(c, name) {
+			ids = append(ids, 1)
+		}
 	}
+	ids[0] = state.ObjID(phase)
 	h.Emit(events.Event{Kind: events.ExtraTurn, Player: player, Amount: n,
 		Obj: c.Source, Counter: sa.ParamStr(cards.PKExtraTurnDelayedTriggerExecute), Text: text,
-		IDs: []state.ObjID{state.ObjID(phase)}})
+		IDs: ids})
 }
 
 // effLosesGame implements DB$ LosesGame (53 corpus files): the Defined$

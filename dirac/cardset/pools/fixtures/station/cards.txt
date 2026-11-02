@@ -1,0 +1,56 @@
+# the Station / named-counter test pool (kcounters): Spacecraft and
+# Planets, the unfeaturized counter kinds' cards, for the oracle's
+# constructed lockstep (dirac/oracle/station_test.go)
+Warmaker Gunship
+Larval Scoutlander
+Debris Field Crusher
+Atmospheric Greenhouse
+Galvanizing Sawship
+Wurmwall Sweeper
+Wedgelight Rammer
+Rescue Skiff
+Fell Gravship
+Susurian Dirgecraft
+Uthros Scanship
+The Eternity Elevator
+Pinnacle Kill-Ship
+Extinguisher Battleship
+Kavaron, Memorial World
+Uthros, Titanic Godcore
+Evendo, Waking Haven
+Thallid
+Thallid Germinator
+Mycologist
+Pallid Mycoderm
+War Dance
+Momentum
+Midsummer Revel
+Lilting Refrain
+Incendiary
+Kuldotha Cackler
+Sawblade Scamp
+Necrosquito
+Bladed Ambassador
+Gitaxian Raptor
+Exuberant Fuseling
+Urabrask's Anointer
+Staff of the Storyteller
+Quest for the Gravelord
+Golden Urn
+Spawning Pit
+Grindclock
+Shriekhorn
+Trigon of Rage
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Savannah Lions
+Coral Merfolk
+Wall of Wood
+Mountain
+Forest
+Plains
+Island
+Swamp

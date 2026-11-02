@@ -284,7 +284,7 @@ func TestTwoLimitedStaticsCountSeparately(t *testing.T) {
 func TestMayPlayAltCostLimitIsPerStatic(t *testing.T) {
 	t.Parallel()
 	monolith := "Name:Monolith Fixture\nManaCost:0\nTypes:Artifact\n" +
-		"S:Mode$ Continuous | MayPlay$ True | MayPlayAltManaCost$ 0 | MayPlayLimit$ 1 | MayPlayDontGrantZonePermissions$ True | Affected$ Card.nonLand+Colorless+YouOwn | AffectedZone$ Hand | Description$ Once each turn, you may pay {0} rather than pay the mana cost for a colorless spell that you cast from your hand.\nOracle:x\n"
+		"S:Mode$ Continuous | MayPlay$ True | MayPlayAltManaCost$ 0 | MayPlayLimit$ 1 | MayPlayDontGrantZonePermissions$ True | Affected$ Card.nonLand+Colorless+YouOwn | AffectedZone$ Hand\nOracle:x\n"
 	idol := func(n string) string { return "Name:" + n + "\nManaCost:3\nTypes:Artifact\nOracle:x\n" }
 	e, cfg, _ := newFixtureDeck(t, 209, monolith, idol("IdolA"), idol("IdolB"))
 	moveSeeded(t, e, 0, monolith, state.ZBattlefield)

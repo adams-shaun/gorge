@@ -1,0 +1,34 @@
+# the max-speed grant pool: "Max speed —"
+# activated grants with a mana cost on the battlefield and from the
+# graveyard (the Surveyors), offered from the floating pool alone, for the
+# oracle's constructed lockstep (dirac/oracle/speedgrant_test.go)
+# "Max speed —" activated grants with a mana cost, on
+# the battlefield and from the graveyard (Surveyors), for the oracle's
+# constructed lockstep (dirac/oracle/speedgrant_test.go). gorge offers such
+# a grant as a "granted" option priced from the floating pool alone, so the
+# pool holds Treasure mana; discard (Faithless Looting, Careful Study) and
+# combat put the Surveyors in the graveyard; Shock and combat damage raise
+# the speed. Lightwheel Enhancements (a max-speed graveyard cast) and Rancor are
+# the Auras Slick Imitator copies (auracopy_test.go).
+Glitch Ghost Surveyor
+Goblin Surveyor
+Leonin Surveyor
+Loxodon Surveyor
+Mutant Surveyor
+Hour of Victory
+Slick Imitator
+Lightwheel Enhancements
+Rancor
+Avishkar Raceway
+Gleaming Barrier
+Faithless Looting
+Careful Study
+Shock
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest
+Iridescent Tiger
+Burning-Tree Emissary

@@ -310,7 +310,7 @@ func TestPaymentPlanInterferenceSizesADynamicProduction(t *testing.T) {
 		t.Fatalf("plan with one creature = %+v, want the land taps for one", got)
 	}
 	onBoard(t, e, 0, "Name:Bear Test\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	onBoard(t, e, 1, "Name:Sphere Test\nTypes:Artifact\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | ManaAmount$ GE2 | ReplaceWith$ ProduceC\nSVar:ProduceC:DB$ ReplaceMana | ReplaceMana$ C\nOracle:x\n")
+	onBoard(t, e, 1, "Name:Sphere Test\nTypes:Artifact\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | ManaAmount$ GE2 | ReplaceWith$ AsC\nSVar:AsC:DB$ ReplaceMana | ReplaceMana$ C\nOracle:x\n")
 	if got = e.PlanCastPayment(0, paymentCast(spell)); got.Plan != nil {
 		t.Fatalf("plan with two creatures = %+v, want the replaced production deferred", got)
 	}

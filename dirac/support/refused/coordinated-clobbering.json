@@ -1,0 +1,13 @@
+{
+  "card": "Coordinated Clobbering",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 4 games in the corpus",
+  "repro": {
+    "pool": "std-dsk",
+    "surface": "full",
+    "seed": 1,
+    "pair": 957,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

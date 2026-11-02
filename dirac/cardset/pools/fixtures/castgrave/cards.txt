@@ -1,0 +1,26 @@
+# the cast-from-graveyard pool: the seven Standard
+# carriers of ConditionPresent$ Card.wasCastFromGraveyard and
+# Count$wasCastFromGraveyard.<yes>.<no> (four flashback spells and three
+# flashback counts) beside discard/self-mill enablers and vanilla
+# creatures, for the oracle's constructed lockstep
+# (dirac/oracle/castgrave_test.go)
+Broodspinner
+Esper Origins
+Faithless Looting
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Llanowar Elves
+Mind Rot
+Mountain
+Plains
+Plunder the Trollshaws
+Raging Goblin
+Recursive Recruitment
+Retrieve the Esper
+Ruthless Negotiation
+Swamp
+The Final Days
+Thought Scour
+Walking Corpse

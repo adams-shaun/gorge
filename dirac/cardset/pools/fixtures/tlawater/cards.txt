@@ -1,0 +1,31 @@
+# the Waterbend pool (CR 701.67): the lowered TLA
+# waterbenders beside mana creatures and artifacts (the offer credit
+# excludes mana sources; a picked mana creature is held from the plan),
+# removal, basics and vanilla creatures (dirac/oracle/waterbend_test.go)
+Aang's Iceberg
+Flexible Waterbender
+Foggy Swamp Vinebender
+Geyser Leaper
+Invasion Submersible
+Katara, Bending Prodigy
+Water Tribe Rallier
+Waterbender Ascension
+Llanowar Elves
+Mind Stone
+Sol Ring
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Serra Angel
+Lightning Bolt
+Doom Blade
+Murder
+Unsummon
+Mountain
+Island
+Swamp
+Forest
+Plains
+Ruthless Waterbender

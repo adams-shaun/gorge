@@ -44,11 +44,11 @@ func (e *Engine) offerMiracle(ev events.Event) {
 	if o == nil || o.Face() == nil {
 		return
 	}
-	if _, ok := o.Face().KeywordParam("Miracle"); !ok {
+	if _, ok := e.derivedKeywordParamH(ev.Obj, kwhMiracle); !ok {
 		return
 	}
-	if e.drawsThisTurn(ev.Player) != 1 {
-		return // not the first draw of the turn: no miracle.
+	if e.G.Turn == 0 || e.drawsThisTurn(ev.Player) != 1 {
+		return // the opening deal, or not the first draw of the turn: no miracle.
 	}
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Source:     ev.Obj,
@@ -58,12 +58,48 @@ func (e *Engine) offerMiracle(ev events.Event) {
 	})
 }
 
+// miracleCardCost is the granted spelling that names the card's own mana cost.
+// "Miracle:ManaCost:4" is that cost less {4} (Aminatou, Veil Piercer).
+const miracleCardCost = "ManaCost"
+
+// miracleCost is card id's miracle cost, printed or granted in hand (Lorehold, the
+// Historian's "miracle {2}").
+func (e *Engine) miracleCost(id state.ObjID) (Cost, bool) {
+	raw, ok := e.derivedKeywordParamH(id, kwhMiracle)
+	if !ok {
+		return Cost{}, false
+	}
+	less, cardCost := miracleCardCostLess(raw)
+	if !cardCost {
+		return ParseCost(cardsKeywordHead(raw)), true
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	cost := ParseCost(o.Face().ManaCost)
+	cost.Generic = max(0, cost.Generic-ParseCost(less).Generic)
+	return cost, true
+}
+
+// miracleCardCostLess reads the card-cost spelling: the mana it takes off, and
+// whether raw is that spelling at all.
+func miracleCardCostLess(raw string) (string, bool) {
+	if cardsKeywordHead(raw) != miracleCardCost {
+		return "", false
+	}
+	if len(raw) <= len(miracleCardCost)+1 {
+		return "", true
+	}
+	return raw[len(miracleCardCost)+1:], true
+}
+
 // drawsThisTurn counts Draw events for player p since the last TurnChange in
 // the log (or since the start of the log, on turn 1). It is the "first card
 // drawn this turn" oracle for offerMiracle's ==1 gate, and mirrors
 // spellsCastThisTurn (cast.go) exactly -- a log walk, so a replay derives
-// the same number, and the opening-hand deal (which is logged before the
-// first TurnChange) is naturally invisible to it.
+// the same number. The opening deal is logged before the first TurnChange, so
+// offerMiracle rules it out by turn number (CR 103.5: no turn has begun).
 func (e *Engine) drawsThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {

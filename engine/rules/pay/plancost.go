@@ -106,8 +106,9 @@ func restrictedRefused(e Engine, p state.PlayerID, desc *Descriptor, alt Alt) (r
 }
 
 // restrictedAdmission is the memo key's admission part: one byte per
-// RestrictValid$ alternative of p's census, in census order, '1' when desc's
-// payment may spend it. It is "" on a census with none.
+// RestrictValid$ alternative of p's census, in census order, then one per
+// restricted batch of p's floating pool, '1' when desc's payment may spend it.
+// It is "" when there are neither.
 func restrictedAdmission(e Engine, p state.PlayerID, desc *Descriptor) string {
 	var out []byte
 	for _, u := range PaymentPlanQueryUnits(e, p) {
@@ -117,7 +118,28 @@ func restrictedAdmission(e Engine, p state.PlayerID, desc *Descriptor) string {
 			}
 		}
 	}
+	for _, r := range e.Game().Players[p].RestrictedMana {
+		if r.Valid != "" {
+			out = append(out, "01"[b2i(desc != nil && RestrictValidMatches(e, p, *desc, r.Valid, r.Source))])
+		}
+	}
 	return string(out)
+}
+
+// PlanPool is the floating mana desc's payment can spend, the same view the
+// payment itself reads (AvailableFor). A plan's witness starts from it, so a
+// restricted batch counts exactly when this payment admits it. Typed, snow and
+// persistent units sit in their colour's bucket and spend as that colour.
+func PlanPool(e Engine, p state.PlayerID, desc *Descriptor) state.Mana {
+	pl := &e.Game().Players[p]
+	if len(pl.RestrictedMana) == 0 {
+		return pl.Pool
+	}
+	d := Descriptor{}
+	if desc != nil {
+		d = *desc
+	}
+	return AvailableFor(e, p, d).Pool
 }
 
 func b2i(b bool) int {
@@ -206,9 +228,10 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	// Phase 1 (spec 5): normal sources only. If it finds a complete plan,
 	// that is the offer and last-resort sources are never considered.
 	life := e.Game().Players[p].Life
+	pool := PlanPool(e, p, desc)
 	phase1 := PhaseChoices(choices, TierNormal)
 	rankCtx := NewRankContext(choices, demand)
-	search := SearchInto(e.SearchScratch(), cost, e.Game().Players[p].Pool, life, rankCtx,
+	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
 		phase1, queryClasses(p, TierNormal, phase1), PaymentSearchEnv(e.Verify()))
 	nodes := search.Nodes
 	// Phase 2 runs only when phase 1 PROVES no plan exists (insufficient,
@@ -218,7 +241,7 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	// and 7 read the untapped normal remainder in both phases.
 	if search.Best == nil && !search.Limited {
 		if phase2 := PlanLastResortChoices(choices, life); phase2 != nil {
-			search = SearchInto(e.SearchScratch(), cost, e.Game().Players[p].Pool, life, rankCtx,
+			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
 				phase2, queryClasses(p, TierLastResort, phase2), PaymentSearchEnv(e.Verify()))
 			nodes += search.Nodes
 		}

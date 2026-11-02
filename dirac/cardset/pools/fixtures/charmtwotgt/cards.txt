@@ -1,0 +1,21 @@
+# the two-declaration charm mode pool: Epic Fight,
+# Go Nuts! and HULK SMASH! (a mode whose root and chain link both
+# target), G/R creatures of several powers, a noncreature artifact and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/charmtwotgt_test.go)
+Epic Fight
+Go Nuts!
+HULK SMASH!
+Iridescent Tiger
+Burning-Tree Emissary
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Craw Wurm
+Gray Ogre
+Earth Elemental
+Lightning Bolt
+Darksteel Relic
+Forest
+Mountain
+Chromatic Lantern

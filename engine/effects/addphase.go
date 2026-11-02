@@ -39,6 +39,19 @@ func delayedTriggerSpec(c *Ctx, name string) (state.Step, string, bool) {
 	return 0, "", false
 }
 
+// delayedTriggerStatic reports a named delayed trigger marked Static$ True, whose
+// body runs off the stack when it fires.
+func delayedTriggerStatic(c *Ctx, name string) bool {
+	if c == nil || c.SVars == nil || name == "" {
+		return false
+	}
+	if sa := cards.ResolveSVar(c.SVars, name); sa != nil {
+		return strings.EqualFold(sa.ParamStr(cards.PKStatic), "True")
+	}
+	trig, ok := cards.ParseTriggerLine(c.SVars[name])
+	return ok && strings.EqualFold(trig.ParamStr(cards.PKStatic), "True")
+}
+
 // parseDelayedTriggerBody resolves a DelayedTrigger body's Phase$ through
 // the ONE shared phase-name parser; ok=false on anything unparseable.
 func parseDelayedTriggerBody(phase, vp string) (state.Step, string, bool) {
@@ -171,6 +184,7 @@ func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
 			// consume-time registration reads it); the Execute$ name rides
 			// Counter and a ValidPlayer$ rides the marker's VP= part.
 			riders.HasDelayedPhase, riders.DelayedPhase, riders.ValidPlayer = true, phase, vp
+			riders.DelayedStatic = delayedTriggerStatic(c, name)
 			text = events.EncodeExtraPhaseRiders(riders)
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,

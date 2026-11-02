@@ -1,0 +1,13 @@
+{
+  "card": "S.H.I.E.L.D. Helicarrier",
+  "class": "projection-Cards.AttachedTo",
+  "why": "the engines' state differs at projection Cards[].AttachedTo; 2 games in the corpus",
+  "repro": {
+    "pool": "std-msh",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1107,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

@@ -18,8 +18,7 @@ import (
 //   - EnsurePaymentActions' offer builder (paymentActionsForPriority: the
 //     PotentialMana candidate walk, casts only);
 //   - the seat's view projection (PotentialActions: the full walk);
-//   - the builtin seat's planner (PotentialPaymentPlans: the full walk, run
-//     with paymentPlanPotentialPool set).
+//   - the builtin seat's planner (PotentialPaymentPlans: the full walk).
 //
 // Measured on the 4096-game random SpellBench leg: those three walks
 // plus their PotentialMana fixpoints were ~26% of all CPU, each computed from
@@ -39,9 +38,7 @@ import (
 // and every non-event runtime input the walk contract lists (rename/type
 // tables, observer bindings, goad probes, the derivation depth guards, the
 // face probe) is at rest outside a derivation, which potentialWalkUsable
-// checks. paymentPlanPotentialPool, the one flag the PotentialPaymentPlans
-// reader sets around its walk, is read only by the cast planner
-// (paymentPlanPoolAccepted), never by PotentialMana or the offer walk. A
+// checks. A
 // direct test write to e.G between an ask and a read is the one input the
 // key cannot see exactly. The entry also records the seat's own pools and
 // turn bookkeeping (potentialPlayerStamp) and active()'s rebuild count
@@ -369,10 +366,8 @@ func (e *Engine) planCastPaymentAtDecision(p state.PlayerID, cast decision.Plann
 // submitted one -- each at the same state, so each answer is the builder's.
 //
 // Exact because planCastPaymentChecked is a pure read whose inputs are the
-// board (keyed by the walk entry), p, the cast, and three engine fields:
-// paymentPlanPotentialPool (read only through paymentPlanPoolAccepted, which
-// answers the same either way while the pool is plain -- the memo is only
-// used then), the relaxed-proof alternatives (paymentPlanRelaxed/Fee: the
+// board (keyed by the walk entry), p, the cast, and two engine fields:
+// the relaxed-proof alternatives (paymentPlanRelaxed/Fee: the
 // memo is bypassed while either is set), and the per-call statics and
 // candidates, whose answers are fixed by the board (the candidate set's
 // priced membership equals the huge-pool walk's: pricedCandidatesVerify).
@@ -381,7 +376,7 @@ func (e *Engine) planCastPaymentAtDecision(p state.PlayerID, cast decision.Plann
 // (walkCacheVerify) re-plans every hit with fresh inputs and panics on any
 // difference.
 func (e *Engine) planCastPaymentMemo(p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates) PaymentPlanOutcome {
-	if e.PaymentPlanRelaxed != nil || e.PaymentPlanRelaxedFee != 0 || !pay.PlanPoolOK(&e.G.Players[p]) ||
+	if e.PaymentPlanRelaxed != nil || e.PaymentPlanRelaxedFee != 0 ||
 		!e.potentialWalkUsable() || !e.potentialWalkHit(p, false) {
 		return e.planCastPaymentChecked(p, cast, statics, candidates)
 	}

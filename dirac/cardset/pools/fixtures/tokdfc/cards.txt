@@ -1,0 +1,21 @@
+# the token / back-face pool: Fable of the Mirror-Breaker
+# (Reflection of Kiki-Jiki's AtEOT$ Sacrifice copy) and Reckoner
+# Bankbuster (a TokenScript$ list under counters_EQ0) beside creatures,
+# burn and removal (dirac/oracle/tokdfc_test.go)
+Fable of the Mirror-Breaker
+Reckoner Bankbuster
+Mountain
+Swamp
+Island
+Plains
+Grizzly Bears
+Hill Giant
+Walking Corpse
+Savannah Lions
+Wind Drake
+Shock
+Lightning Bolt
+Doom Blade
+Divination
+Thatcher Revolt
+Hungry for More

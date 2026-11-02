@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_24718_WUB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck a5372ca659bc4b4bb517ebf7270d010e:2, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 2
+},
+{
+"name": "Curator of Destinies",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 3
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Elenda, Saint of Dusk",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Scoured Barrens",
+"count": 2
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 3
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+}
+]
+}

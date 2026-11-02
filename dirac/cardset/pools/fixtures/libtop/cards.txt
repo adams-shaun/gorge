@@ -1,0 +1,28 @@
+# the top-of-library play pool: "you may play/cast
+# <cards> from the top of your library" (Ka-Zar, Assemble the Players,
+# Hakoda, Johann, Madame Web) beside Allies, Spiders, small creatures,
+# instants, sorceries and lands they match or skip, for the oracle's
+# constructed lockstep (dirac/oracle/libtop_test.go)
+Assemble the Players
+Boltwave
+Burst Lightning
+Canopy Spider
+Divination
+Expedition Envoy
+Forest
+Giant Growth
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hakoda, Selfless Commander
+Hill Giant
+Island
+Johann, Apprentice Sorcerer
+Ka-Zar of the Savage Land
+Kyoshi Warrior Guard
+Madame Web, Clairvoyant
+Mountain
+Plains
+Sure Strike
+Think Twice
+Walking Corpse

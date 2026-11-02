@@ -1,0 +1,19 @@
+# the improvise test pool (CR 702.126): the lowered
+# Improvise carriers beside artifact sources (Ornithopter, Mind Stone,
+# thopter tokens), basics and vanilla creatures
+# (dirac/oracle/improvise_test.go)
+Maverick Thopterist
+Reverse Engineer
+Foundry Assembler
+Arc Reactor
+Sly Requisitioner
+Sweatworks Brawler
+Enraged Giant
+Ornithopter
+Mind Stone
+Grizzly Bears
+Mountain
+Island
+Swamp
+Forest
+Plains

@@ -149,7 +149,7 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 		for _, q := range candidates {
 			opt := decision.Option{Index: len(d.Options), Kind: "player", Player: q}
 			if int(q) < len(g.Players) {
-				opt.Label = g.Players[q].Name
+				opt.Label = g.SeatFacingName(q)
 			}
 			d.Options = append(d.Options, opt)
 		}

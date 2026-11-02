@@ -1,0 +1,29 @@
+# the player-choice pool: the BLB keyword-choice,
+# targeted-player GenericChoice and mid-resolution ChooseType carriers,
+# for the oracle's constructed lockstep (dirac/oracle/playerchoice_test.go)
+Distant Melody
+Extinction
+Luminescent Rain
+Manifold Mouse
+Starseer Mentor
+Terrapact Intimidator
+Thornplate Intimidator
+Witch's Vengeance
+Doom Blade
+Shock
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Walking Corpse
+Wind Drake
+Goblin Piker
+Plains
+Island
+Swamp
+Mountain
+Forest
+Bloodline Shaman
+Elvish Soultiller
+For the Ancestors
+Orcrist, Goblin-cleaver
+Pol Jamaar, Illusionist

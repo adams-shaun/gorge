@@ -1,0 +1,27 @@
+# the chosen-colour animation pool: Puca's Eye
+# (ChooseColor -> Animate Colors$ ChosenColor OverwriteColors$ True,
+# permanent) and Mondo Gecko (the same, until end of turn, then a
+# self Pump Hexproof:ChosenColor + Toxic:1 and ClearChosenColor), beside
+# Skrelv (the chosen-colour grant family), the colour-filtered removal
+# Blue/Red Elemental Blast, Deathmark and Noxious Grasp (whose target
+# lists read the animated colour), creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/animchosen_test.go)
+Puca's Eye
+Mondo Gecko
+Skrelv, Defector Mite
+Blue Elemental Blast
+Red Elemental Blast
+Deathmark
+Noxious Grasp
+Hill Giant
+Wind Drake
+Raging Goblin
+Grizzly Bears
+Llanowar Elves
+Suntail Hawk
+Savannah Lions
+Island
+Mountain
+Swamp
+Plains
+Forest

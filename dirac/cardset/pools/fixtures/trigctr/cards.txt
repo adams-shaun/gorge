@@ -1,0 +1,32 @@
+# TriggeredCard$CardCounters.<KIND|ALL> on a
+# leaves-the-battlefield trigger (Marketback Walker, Aerith
+# Gainsborough, The Ooze, Shadow Urchin) and TriggeredCard$CardNumColors
+# on a SpellCast trigger (Ancient Cornucopia), with life gain, counter
+# makers, multicolour spells and destroy/bounce/exile removal, for the
+# oracle's constructed lockstep (dirac/oracle/trigctr_test.go)
+# TriggeredCard$CardCounters.<KIND|ALL> on a
+# leaves-the-battlefield trigger (the LKI snapshot's counters) and
+# TriggeredCard$CardNumColors on a SpellCast trigger.
+Marketback Walker
+Aerith Gainsborough
+The Ooze
+Shadow Urchin
+Ancient Cornucopia
+# Life gain (Aerith grows) and +1/+1 counter makers.
+Ajani's Pridemate
+Healer's Hawk
+Snakeskin Veil
+# Multicolour spells for the Cornucopia.
+Watchwolf
+Terminate
+Lightning Helix
+# Removal: destroy, bounce and exile (The Ooze sees every destination).
+Murder
+Unsummon
+Swords to Plowshares
+# Lands.
+Plains
+Island
+Swamp
+Mountain
+Forest

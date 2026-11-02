@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_03402_UR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck ec59c31af8514deb8e4a6fd4a0464190:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Aetherize",
+"count": 1
+},
+{
+"name": "An Offer You Can't Refuse",
+"count": 2
+},
+{
+"name": "Balmor, Battlemage Captain",
+"count": 1
+},
+{
+"name": "Crackling Cyclops",
+"count": 1
+},
+{
+"name": "Drake Hatcher",
+"count": 1
+},
+{
+"name": "Fiery Annihilation",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "Goblin Boarders",
+"count": 1
+},
+{
+"name": "High Fae Trickster",
+"count": 1
+},
+{
+"name": "Homunculus Horde",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Lunar Insight",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Mocking Sprite",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Rite of the Dragoncaller",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Sure Strike",
+"count": 1
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

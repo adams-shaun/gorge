@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_23121_WBpU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 2a4281eb97204f3b898760981e5e365f:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Bandit's Talent, 1 Carrot Cake, 1 Downwind Ambusher, 1 Season of the Burrow, 1 Thornplate Intimidator, 1 Valley Rotcaller -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 4
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Savor",
+"count": 3
+},
+{
+"name": "Scales of Shale",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Thistledown Players",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_08400_WGpU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck db36a6332fc649ffaab480f5fe578c7b:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 2
+},
+{
+"name": "Blossoming Sands",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 6
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Good-Fortune Unicorn",
+"count": 1
+},
+{
+"name": "Hare Apparent",
+"count": 2
+},
+{
+"name": "Island",
+"count": 2
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Leyline Axe",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 3
+},
+{
+"name": "Needletooth Pack",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 6
+},
+{
+"name": "Spinner of Souls",
+"count": 1
+},
+{
+"name": "Tatyova, Benthic Druid",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Valkyrie's Call",
+"count": 1
+}
+]
+}

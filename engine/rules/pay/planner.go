@@ -151,21 +151,6 @@ func CommanderIdentityColours(e Engine, p state.PlayerID) []string {
 	return cols
 }
 
-// PaymentPlanPoolAccepted is paymentPlanPoolOK, relaxed inside a
-// PotentialPaymentPlans query (paymentPlanPotentialPool): there the witness
-// is never submitted as an Intent.Payment -- the seat taps its sources on
-// the manual surface and the ordinary payment spends the pool -- so snow,
-// persistent and producer-typed units (Treasure, Cave, Desert, artifact
-// mana) are ordinary mana of their colour. Restricted mana, which only some
-// spells may spend, is still declined.
-func PaymentPlanPoolAccepted(e Engine, p state.PlayerID) bool {
-	pl := &e.Game().Players[p]
-	if e.Session().PaymentPlanPotentialPool {
-		return len(pl.RestrictedMana) == 0
-	}
-	return PlanPoolOK(pl)
-}
-
 // PaymentPlanChoiceColours returns the concrete colours a choice-shaped
 // Produced$ resolves to for source id, or nil when the production is fixed
 // or cannot be resolved. The order is deterministic: WUBRG for Produced$ Any

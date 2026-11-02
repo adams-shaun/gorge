@@ -10,7 +10,7 @@ import (
 
 // CR 111.8: a token that has left the battlefield can't move to another zone
 // or come back onto the battlefield. Splash Portal's shape is the one-
-// resolution case: one ChangeZone exiles the target, then its DBReturn
+// resolution case: one ChangeZone exiles the target, then its Return
 // sub-ability moves the Remembered set from exile back to the battlefield.
 // No state-based action runs between the two moves, so the return mover must
 // carry the CR 111.8 guard itself; without it the token returns, its
@@ -21,8 +21,8 @@ import (
 // corpus card's Bird/Frog/Otter/Rat type line, because the shared fixture
 // token is r_1_1_goblin.
 const flickerPortalSrc = "Name:Flicker Portal\nManaCost:1 U\nTypes:Instant\n" +
-	"A:SP$ ChangeZone | ValidTgts$ Creature.YouCtrl | Origin$ Battlefield | Destination$ Exile | TgtPrompt$ Select target creature you control | RememberTargets$ True | SubAbility$ DBReturn\n" +
-	"SVar:DBReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield | RememberChanged$ True | ForgetOtherRemembered$ True | SubAbility$ DBDraw\n" +
+	"A:SP$ ChangeZone | ValidTgts$ Creature.YouCtrl | Origin$ Battlefield | Destination$ Exile | TgtPrompt$ Select target creature you control | RememberTargets$ True | SubAbility$ Return\n" +
+	"SVar:Return:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield | RememberChanged$ True | ForgetOtherRemembered$ True | SubAbility$ DBDraw\n" +
 	"SVar:DBDraw:DB$ Draw | Defined$ You | ConditionDefined$ Remembered | ConditionPresent$ Goblin | SubAbility$ DBCleanup\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
 	"Oracle:x\n"

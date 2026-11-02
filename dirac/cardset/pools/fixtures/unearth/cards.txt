@@ -1,0 +1,12 @@
+# the unearth pool (CR 702.84a): Yotian Frontliner against
+# removal that kills, bounces and burns it (dirac/oracle/unearth_test.go)
+Yotian Frontliner
+Savannah Lions
+Plains
+Murder
+Unsummon
+Shock
+Hill Giant
+Swamp
+Island
+Mountain

@@ -228,11 +228,12 @@ type ConditionParams struct {
 	Present2 ParamText
 	Compare2 Compare
 	Zone     string
-	// PlayerTurn is ConditionPlayerTurn$; Phases ConditionPhases$ with its
-	// parse (PhaseSet, PhasesOK: every element resolved and the set is
-	// non-empty); FirstCombat ConditionFirstCombat$; ActivationLimit
-	// ConditionActivationLimit$.
+	// PlayerTurn is ConditionPlayerTurn$; OpponentTurn ConditionOpponentTurn$;
+	// Phases ConditionPhases$ with its parse (PhaseSet, PhasesOK: every element
+	// resolved and the set is non-empty); FirstCombat ConditionFirstCombat$;
+	// ActivationLimit ConditionActivationLimit$.
 	PlayerTurn      string
+	OpponentTurn    bool
 	Phases          string
 	PhaseSet        state.StepSet
 	PhasesOK        bool
@@ -255,7 +256,7 @@ type ConditionParams struct {
 // ConditionSVarCompare$ compares nothing and does not count).
 func (c *ConditionParams) Any() bool {
 	return c.Defined != "" || c.Present.Text != "" || c.NotPresent != "" || c.Compare.Text != "" ||
-		c.CheckSVar != "" || c.Bare != "" || c.PlayerTurn != "" || c.Phases != "" ||
+		c.CheckSVar != "" || c.Bare != "" || c.PlayerTurn != "" || c.OpponentTurn || c.Phases != "" ||
 		c.FirstCombat != "" || c.ActivationLimit != "" ||
 		c.Present2.Text != "" || c.Compare2.Text != "" || c.Zone != "" || c.OptionalPaid != "" ||
 		c.ManaSpent != "" || c.ManaNotSpent != ""
@@ -428,6 +429,7 @@ func compileActivation(sa *cards.SA) *ActivationParams {
 	c.CheckSVar = strings.TrimSpace(sa.ParamStr(cards.PKConditionCheckSVar))
 	c.SVarCompare = CompareOf(sa.ParamStr(cards.PKConditionSVarCompare))
 	c.PlayerTurn = strings.TrimSpace(sa.ParamStr(cards.PKConditionPlayerTurn))
+	c.OpponentTurn = strings.EqualFold(strings.TrimSpace(sa.Params["ConditionOpponentTurn"]), "True")
 	c.Phases = strings.TrimSpace(sa.ParamStr(cards.PKConditionPhases))
 	if c.Phases != "" {
 		set, unknown := state.ParsePhases(c.Phases)
@@ -498,7 +500,7 @@ var activationZoneMaskTab = state.NewStrTable[uint32](
 var conditionEvaluatedKeys = state.NewNameSet(
 	"ConditionDefined", "ConditionPresent", "ConditionNotPresent",
 	"ConditionCompare", "ConditionCheckSVar", "ConditionSVarCompare",
-	"Condition", "ConditionPlayerTurn", "ConditionPhases",
+	"Condition", "ConditionPlayerTurn", "ConditionOpponentTurn", "ConditionPhases",
 	"ConditionFirstCombat", "ConditionActivationLimit",
 	"ConditionPresent2", "ConditionCompare2", "ConditionZone",
 	"ConditionOptionalPaid", "ConditionManaSpent", "ConditionManaNotSpent",

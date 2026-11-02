@@ -220,9 +220,17 @@ func (e *Engine) tapPowerValueStatics() []staticView {
 // scope, a kind this build cannot classify) fails closed, so a static the
 // engine cannot scope never silently replaces a value.
 func tapPowerSAScopeMatches(validSA, saKind string) bool {
+	_, ok := tapPowerSAScope(validSA, saKind)
+	return ok
+}
+
+// tapPowerSAScope is tapPowerSAScopeMatches plus the type the action's own
+// permanent must have, the qualifier after the action kind: Sulu's
+// `Activated.Station+Spacecraft` stations a Spacecraft and not a Planet.
+func tapPowerSAScope(validSA, saKind string) (hostType string, ok bool) {
 	v := strings.TrimSpace(validSA)
 	if v == "" {
-		return true
+		return "", true
 	}
 	for alt := range strings.SplitSeq(v, ",") {
 		alt = strings.TrimSpace(alt)
@@ -230,12 +238,12 @@ func tapPowerSAScopeMatches(validSA, saKind string) bool {
 		if !ok || kind != "Activated" {
 			continue
 		}
-		token, _, _ := strings.Cut(rest, "+")
+		token, qualifier, _ := strings.Cut(rest, "+")
 		if strings.TrimSpace(token) == saKind {
-			return true
+			return strings.TrimSpace(qualifier), true
 		}
 	}
-	return false
+	return "", false
 }
 
 // tapPowerValue returns the value a creature id contributes when it is
@@ -254,6 +262,14 @@ func tapPowerSAScopeMatches(validSA, saKind string) bool {
 // restriction/condition/ClassLevel gates, so an unmodelled gate fails closed
 // to plain power rather than replacing the value blanket.
 func (e *Engine) tapPowerValue(id state.ObjID, saKind string) int32 {
+	return e.tapPowerValueFor(id, saKind, 0)
+}
+
+// tapPowerValueFor is tapPowerValue for tapping toward host's action, where the
+// caller knows the permanent: a ValidSA$ qualifier naming a type it lacks does
+// not apply. A host of 0 reads every qualifier as met.
+func (e *Engine) tapPowerValueFor(id state.ObjID, saKind string, host state.ObjID) int32 {
+	base, added := e.Power(id), int32(0)
 	for _, sv := range e.tapPowerValueStatics() {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
@@ -261,7 +277,11 @@ func (e *Engine) tapPowerValue(id state.ObjID, saKind string) int32 {
 		if !e.classBandGateHolds(sv.ParamStr(cards.PKClassBand), sv.Source) {
 			continue
 		}
-		if !tapPowerSAScopeMatches(sv.ParamStr(cards.PKValidSA), saKind) {
+		hostType, ok := tapPowerSAScope(sv.ParamStr(cards.PKValidSA), saKind)
+		if !ok {
+			continue
+		}
+		if h := e.G.Obj(host); h != nil && hostType != "" && !e.hasType(h, hostType) {
 			continue
 		}
 		if !e.matchesSpec(sv.ParamStr(cards.PKValidCard), id, e.staticSpecCtx(sv)) {
@@ -269,16 +289,21 @@ func (e *Engine) tapPowerValue(id state.ObjID, saKind string) int32 {
 		}
 		v := strings.TrimSpace(sv.ParamStr(cards.PKValue))
 		if v == "Toughness" {
-			return e.Toughness(id)
+			base = e.Toughness(id)
+			continue
 		}
-		// A numeric Value$ is Forge's additive "as though its power were
-		// N greater" (every numeric corpus carrier's Description says
-		// exactly that), not a replacement with the literal number.
+		// Any other Value$ is Forge's additive "as though its power were N
+		// greater" (StaticAbilityTapPowerValue.getMod, read): the static's own
+		// SVar reads over the tapped creature ("as though his power were
+		// tripled" adds twice its power), and every such static adds.
 		if n, err := strconv.Atoi(v); err == nil {
-			return e.Power(id) + int32(n)
+			added += int32(n)
+		} else if body, ok := sv.SVars[v]; ok {
+			n, _ := effects.EvalCountOK(e, effects.NewCtxPtr(id, sv.Controller, effects.CtxInit{SVars: sv.SVars}), body)
+			added += n
 		}
 	}
-	return e.Power(id)
+	return base + added
 }
 
 // tapCostSAKind names the activated-action kind an ability's tap-power cost

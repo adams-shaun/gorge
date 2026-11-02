@@ -1,0 +1,25 @@
+# the TriggeredAttackerLKICopy condition pool: the five Ordeals and Viv Vision, with Bone Sabres and
+# vanilla creatures (dirac/oracle/ordeal_test.go)
+# The Ordeal pool ConditionDefined$
+# TriggeredAttackerLKICopy + ConditionPresent$ -- the five Theros Ordeals
+# (sacrifice at three +1/+1 counters) and Viv Vision (draw at power 4),
+# with Bone Sabres (a pump that reaches power 4), vanilla creatures and
+# basics, for the oracle's constructed lockstep (dirac/oracle/ordeal_test.go).
+Ordeal of Erebos
+Ordeal of Heliod
+Ordeal of Nylea
+Ordeal of Purphoros
+Ordeal of Thassa
+Viv Vision, Teen Synthezoid
+Bone Sabres
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Raging Goblin
+Goblin Piker
+Centaur Courser
+Plains
+Island
+Swamp
+Mountain
+Forest

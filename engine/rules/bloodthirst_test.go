@@ -157,16 +157,18 @@ func TestBloodthirstGrantTwinsOfDiscord(t *testing.T) {
 		return e, bruteID, greenID, twinsID
 	}
 
-	// The grant itself: the colorless creature carries the derived keyword
-	// while it waits in hand — the layer-6 walk is zone-blind for Affected
-	// (Twins's static names no AffectedZone$), and the entry read runs on it.
+	// The grant itself: read as the permanent it will be (CR 614.12), the colorless
+	// creature carries the keyword. In hand it has none (CR 109.2).
 	e, brute, green, _ := build(t)
-	if got, ok := bloodthirstParamOf(e, brute); !ok || got != "2" {
+	if got, ok := e.enteringKeywordParam(brute, kwhBloodthirst); !ok || got != "2" {
 		t.Fatalf("test precondition: granted bloodthirst param = %q,%v, want \"2\",true", got, ok)
+	}
+	if _, ok := bloodthirstParamOf(e, brute); ok {
+		t.Fatalf("a creature card in hand carries a battlefield static's grant")
 	}
 	// And the negative discriminator the Affected$ spec carries: a
 	// NON-colorless creature you control is outside the grant.
-	if _, ok := bloodthirstParamOf(e, green); ok {
+	if _, ok := e.enteringKeywordParam(green, kwhBloodthirst); ok {
 		t.Fatalf("test precondition: a non-colorless creature must not be granted bloodthirst")
 	}
 

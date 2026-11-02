@@ -109,6 +109,7 @@ Two properties of this design come up again in the guide:
 |---|---|
 | install the tools, the corpus and the client | [Install and build](install.md) |
 | play against a bot, or against friends on a LAN | [Play in the browser](play.md) |
+| run a server's two-seat tables on dirac | [Serving dirac](dirac.md) |
 | host or simulate a four-seat draft | [Draft events](draft.md) |
 | compare two bot strategies, or watch bots play | [Bot-vs-bot games](bot-games.md) |
 | replay a game, or read why a bot made each choice | [Replays](replays.md) |

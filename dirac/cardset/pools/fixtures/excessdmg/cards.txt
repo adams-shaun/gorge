@@ -1,0 +1,18 @@
+# the excess-damage pool: Orbital Plunge, Razor Rings,
+# Rhino's Rampage (ExcessSVar$ without a condition on DealDamage, and on
+# Fight) beside Goblin Negotiation, creatures of toughness 1-5 and cheap
+# noncreature artifacts (dirac/oracle/excessdmg_test.go)
+Orbital Plunge
+Razor Rings
+Goblin Negotiation
+Grizzly Bears
+Elite Vanguard
+Savannah Lions
+Hill Giant
+Trained Armodon
+Shock
+Mountain
+Forest
+Plains
+Colossal Dreadmaw
+Overwhelming Victory

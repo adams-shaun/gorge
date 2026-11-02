@@ -1,0 +1,30 @@
+# the Panharmonicon pool: the ValidCard$-only
+# "triggers an additional time" statics (Delney, Twinflame Travelers,
+# Katara) beside enters, dies and blocked triggers of the creatures
+# they double, for the oracle's constructed lockstep
+# (dirac/oracle/panharm_test.go)
+Armored Armadillo
+Ashmouth Hound
+Bogardan Firefiend
+Burglar Rat
+Charming Prince
+Cloudblazer
+Crow of Dark Tidings
+Delney, Streetwise Lookout
+Forest
+Hill Giant
+Island
+Katara, the Fearless
+Monastery Swiftspear
+Mountain
+Plains
+Raise the Alarm
+Rampaging Baloths
+Shock
+Staff of the Storyteller
+Starfield Vocalist
+Swamp
+Traveling Chocobo
+Twinflame Travelers
+Virtue of Knowledge
+Welcoming Vampire

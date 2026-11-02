@@ -1,0 +1,20 @@
+# CollectEvidence<N> as a spell's OptionalCost part and the Collected reads (dirac/oracle/optevid_test.go)
+Analyze the Pollen
+Extract a Confession
+Behind the Mask
+Thought Scour
+Careful Study
+Faithless Looting
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Shock
+Lightning Bolt
+Counterspell
+Iridescent Tiger
+Burning-Tree Emissary
+Priest of Gix
+Forest
+Swamp
+Island
+Mountain

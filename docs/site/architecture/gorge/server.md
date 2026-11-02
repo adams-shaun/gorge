@@ -209,5 +209,4 @@ binary:
   `bots` registry.
 
 gorge's own `cmd/gorged` links gorge's bots and [draft events](../draft.md),
-which serve only with `-events`. The private companion module builds its own
-main over `server/gorged` to add further bots; gorge never imports it.
+which serve only with `-events`.

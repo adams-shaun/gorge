@@ -1,0 +1,238 @@
+package oracle
+
+import (
+	"fmt"
+	"math/rand/v2"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+// Pairing is one deck pair and its game seed.
+type Pairing struct {
+	Index int
+	A, B  string
+	Seed  uint64
+}
+
+// Pairings draws n deck pairs from pool exactly as gorge self-play draws its
+// jobs: pair p's decks and seed are a pure function of (seed, p).
+func Pairings(pool []PoolDeck, n int, seed uint64) []Pairing {
+	return PairingsFrom(pool, 0, n, seed)
+}
+
+// PairingsFrom is Pairings starting at pair index first (-first-pair).
+func PairingsFrom(pool []PoolDeck, first, n int, seed uint64) []Pairing {
+	out := make([]Pairing, 0, n)
+	if len(pool) < 2 {
+		return out
+	}
+	for p := first; p < first+n; p++ {
+		out = append(out, PairingAt(pool, p, seed))
+	}
+	return out
+}
+
+// PairingAt is pair p of PairingsFrom's sequence on its own (pool must hold
+// at least two decks): a caller that needs one pairing at a time (a self-play runner's
+// schedule) makes it without holding the whole list.
+func PairingAt(pool []PoolDeck, p int, seed uint64) Pairing {
+	r := rand.New(rand.NewPCG(seed, uint64(p)))
+	i := r.IntN(len(pool))
+	j := r.IntN(len(pool) - 1)
+	if j >= i {
+		j++
+	}
+	return Pairing{Index: p, A: pool[i].Name, B: pool[j].Name, Seed: r.Uint64()}
+}
+
+// FuzzConfig is one fuzz run.
+type FuzzConfig struct {
+	Run       RunConfig
+	Mulligans int
+	// Policy builds the policy of one game from its seed (nil: RandomPolicy).
+	Policy func(seed uint64) Policy
+	// StopAtFirst stops the run at the first divergence (in pair order).
+	StopAtFirst bool
+	// Shrink shrinks the first divergence's repro with this many reruns
+	// (0: no shrink).
+	Shrink int
+	// Workers plays games in parallel (0 or 1: serially).
+	Workers int
+	// Coverage collects each clean game's coverage (WithCoverage) into
+	// FuzzSummary.Coverage, merged in pair order.
+	Coverage bool
+	// GameTimeout is the per-game watchdog: a game with no result after this long
+	// is a hang and the worker moves on. Its goroutine cannot be stopped, so it
+	// leaks until the process exits. 0: no watchdog.
+	GameTimeout time.Duration
+}
+
+// FuzzSummary is a fuzz run's totals.
+type FuzzSummary struct {
+	Games, Diverged, Over, Stalled, Errors int
+	Decisions                              int
+	Hung                                   int       // counted in Games too
+	Hangs                                  []Pairing // the hung pairs, in pair order
+	Wall                                   time.Duration
+	ByClass                                map[string]int // divergences by class ("projection Cards[].Zone")
+	First                                  *Repro         // the first divergence's repro (shrunk when asked)
+	FirstPair                              *Pairing
+	Stats                                  Stats
+	Coverage                               *Coverage // FuzzConfig.Coverage's merge (nil: off)
+}
+
+// Fuzz plays every pairing in lockstep against the side factory mk.
+// progress, when non-nil, is called after each game (serialised).
+func Fuzz(c *Corpus, pairs []Pairing, mk SideFactory, fc FuzzConfig, progress func(i int, p Pairing, r *Result)) FuzzSummary {
+	t0 := time.Now()
+	s := FuzzSummary{ByClass: map[string]int{}}
+	pol := fc.Policy
+	if pol == nil {
+		pol = RandomPolicy
+	}
+	workers := fc.Workers
+	if workers < 1 {
+		workers = 1
+	}
+	type done struct {
+		i    int
+		m    *Matchup
+		res  Result
+		err  error
+		cov  *Coverage
+		hung bool
+	}
+	var (
+		mu      sync.Mutex
+		stopped atomic.Bool
+		firstAt = -1
+		first   done
+		covs    []*Coverage
+		hung    []int
+	)
+	if fc.Coverage {
+		covs = make([]*Coverage, len(pairs))
+	}
+	jobs := make(chan int)
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range jobs {
+				p := pairs[i]
+				// The game owns everything it writes (d, its coverage), so one the
+				// watchdog gave up on touches nothing shared.
+				play := func() (d done) {
+					defer func() {
+						if r := recover(); r != nil {
+							d.err = fmt.Errorf("panic: %v", r)
+						}
+					}()
+					d.i = i
+					d.m, d.err = c.Matchup(p.A, p.B, fc.Mulligans)
+					if d.err == nil {
+						var k Side
+						if k, d.err = mk(d.m, p.Seed); d.err == nil {
+							rc, gp := fc.Run, pol(p.Seed)
+							var cov *Coverage
+							if covs != nil {
+								rc = WithCoverage(rc, d.m, &cov)
+							}
+							d.res = Lockstep(d.m, p.Seed, k, gp, rc)
+							if cov != nil && d.res.Clean() {
+								cov.Games, cov.Decisions, cov.Fallbacks = 1, d.res.Decisions, PolicyFallbacks(gp)
+								d.cov = cov
+							}
+						}
+					}
+					return d
+				}
+				d := withinTimeout(fc.GameTimeout, play, done{i: i, hung: true})
+				if d.cov != nil {
+					covs[i] = d.cov
+				}
+				mu.Lock()
+				if d.hung {
+					s.Games++
+					s.Hung++
+					s.ByClass["hang"]++
+					hung = append(hung, i)
+				} else if d.err != nil {
+					s.Errors++
+				} else {
+					s.Games++
+					s.Decisions += d.res.Decisions
+					s.Stats.Add(d.res.Stats)
+					switch {
+					case d.res.Div != nil:
+						s.Diverged++
+						s.ByClass[d.res.Div.fieldClass()]++
+						if firstAt < 0 || i < firstAt {
+							firstAt, first = i, d
+						}
+						if fc.StopAtFirst {
+							stopped.Store(true)
+						}
+					case d.res.Over:
+						s.Over++
+					default:
+						s.Stalled++
+					}
+					if progress != nil {
+						progress(i, p, &d.res)
+					}
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+	for i := range pairs {
+		if stopped.Load() {
+			break
+		}
+		jobs <- i
+	}
+	close(jobs)
+	wg.Wait()
+	if covs != nil {
+		s.Coverage = NewCoverage()
+		for _, cv := range covs {
+			s.Coverage.Merge(cv)
+		}
+	}
+	sort.Ints(hung)
+	for _, i := range hung {
+		s.Hangs = append(s.Hangs, pairs[i])
+	}
+	if firstAt >= 0 {
+		p := pairs[firstAt]
+		rep := NewRepro(first.m, p.Seed, fc.Run, &first.res)
+		if fc.Shrink > 0 {
+			rep = Shrink(c, rep, mk, fc.Shrink)
+		}
+		s.First, s.FirstPair = rep, &p
+	}
+	s.Wall = time.Since(t0)
+	return s
+}
+
+// withinTimeout runs play on its own goroutine and returns its result, or hung when
+// it has none after timeout. A zero timeout waits for it.
+func withinTimeout[T any](timeout time.Duration, play func() T, hung T) T {
+	if timeout <= 0 {
+		return play()
+	}
+	ch := make(chan T, 1)
+	go func() { ch <- play() }()
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	select {
+	case r := <-ch:
+		return r
+	case <-t.C:
+		return hung
+	}
+}

@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_21776_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck b89d8accdb3548f6b60aa1f5827c9359:1, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Into the Flood Maw, 1 Long River Lurker, 1 Mind Spiral, 1 Pond Prophet, 1 Three Tree Scribe -> 3 Island, 2 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 2
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Skyskipper Duo",
+"count": 2
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 3
+},
+{
+"name": "Treeguard Duo",
+"count": 1
+}
+]
+}

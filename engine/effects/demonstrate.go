@@ -131,7 +131,7 @@ func effDemonstrate(h Host, c *Ctx, sa *cards.SA) {
 		Prompt: "Choose an opponent to also copy " + name}
 	for j, p := range opps {
 		d.Options = append(d.Options, decision.Option{Index: j, Kind: "player",
-			Player: p, Label: g.Players[p].Name})
+			Player: p, Label: g.SeatFacingName(p)})
 	}
 	if ans, ok := AskTape(h, d); ok {
 		// The opponent pick in hand. An answer naming no player keeps only

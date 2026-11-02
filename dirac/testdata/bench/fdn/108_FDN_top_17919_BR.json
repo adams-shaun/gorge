@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_17919_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 2ca6bf5803bf4e77ad09ed6c06f938a0:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Alesha, Who Laughs at Fate",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Bloodfell Caves",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 2
+},
+{
+"name": "Diregraf Ghoul",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fanatical Firebrand",
+"count": 2
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 3
+},
+{
+"name": "Heartfire Immolator",
+"count": 1
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Infernal Vessel",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Perforating Artist",
+"count": 4
+},
+{
+"name": "Sure Strike",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+}
+]
+}

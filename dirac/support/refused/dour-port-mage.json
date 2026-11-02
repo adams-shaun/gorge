@@ -1,0 +1,13 @@
+{
+  "card": "Dour Port-Mage",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 13 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 223,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

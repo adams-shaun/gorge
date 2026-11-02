@@ -1,0 +1,40 @@
+# the value-driven Animate pool: Animate and
+# AnimateAll whose Power$/Toughness$ is X, a count, a hand size, a
+# mana value or a creature's P/T, beside Dinosaurs, artifacts and
+# vanilla creatures (dirac/oracle/animatevalue_test.go)
+Belligerent Yearling
+Obuun, Mul Daya Ancestor
+Jolrael, Mwonvuli Recluse
+Unruly Krasis
+Karn's Touch
+Karn, Silver Golem
+Sydri, Galvanic Genius
+Toymaker
+Zur, Eternal Schemer
+Riptide Mangler
+Eldrazi Mimic
+Wall of Tombstones
+Frenzied Raptor
+Ornithopter
+Carrion Feeder
+Darksteel Relic
+Grizzly Bears
+Wind Drake
+Hill Giant
+Walking Corpse
+Island
+Swamp
+Plains
+Mountain
+Forest
+Spectacular Pileup
+The Fire Nation Drill
+Quick Draw
+Curious Colossus
+Final Showdown
+Darksteel Myr
+Gladecover Scout
+Youthful Knight
+Fencing Ace
+Savannah Lions
+Elite Vanguard

@@ -1,0 +1,42 @@
+# the count-heads pool: the Count$ value-shape carriers
+# (distinct-name, card-type and counter aggregates, LimitMin/LimitMax,
+# ValidBattlefield,Graveyard, CardToughness, CastTotalManaSpent,
+# Remembered$Valid) and their fillers, for the oracle's constructed
+# lockstep (dirac/oracle/countheads_test.go)
+Emil, Vastlands Roamer
+Fungal Colossus
+Audience with Trostani
+Toph, the Blind Bandit
+Flow State
+Opt
+Cache Grab
+Curious Forager
+The Goose Mother
+Moon-Vigil Adherents
+Armored Armadillo
+Captain America, Wings of Freedom
+Agent of Atlas
+Triumphant Chomp
+Belligerent Yearling
+Molten Note
+Astelli Reclaimer
+Mind Stone
+Gloom Ripper
+Llanowar Elves
+Grizzly Bears
+Cid, Timeless Artificer
+Aeronaut Tinkerer
+Aerial Engineer
+Sinuous Benthisaur
+Unsummon
+All-Fates Scroll
+Loot, the Key to Everything
+Armored Kincaller
+Hidden Nursery
+Hidden Cataract
+Hidden Courtyard
+Plains
+Island
+Swamp
+Mountain
+Forest

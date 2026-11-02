@@ -1,0 +1,25 @@
+# the cast-trigger target-shape pool: the lowered
+# TargetsValid$ carriers (Gnarlback Rhino, Ms. Marvel, Scolding
+# Administrator, Tiller of Flesh) and Leyline of Resonance's
+# IsSingleTarget$ beside chained and two-target spells (Prey Upon, Arc
+# Trail, Twin Bolt) and pumps (dirac/oracle/targetsvalid_test.go)
+Gnarlback Rhino
+Ms. Marvel, Kamala Khan
+Scolding Administrator
+Tiller of Flesh
+Leyline of Resonance
+Prey Upon
+Arc Trail
+Twin Bolt
+Shock
+Lightning Bolt
+Giant Growth
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Child of Night
+Mountain
+Swamp
+Forest
+Island
+Plains

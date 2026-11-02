@@ -781,9 +781,12 @@ func describe(g *state.Game, ev events.Event) string {
 		// The registered phase arrived and the delayed ability went on the
 		// stack. Obj is the minted stack object; its source name is what a
 		// reader recognises, so prefer it and fall back to the minted id. The
-		// monarch's draw has no source; its Obj is any card at all (CR 724.2a).
-		if ev.Counter == "__monarch_draw" {
+		// monarch's abilities have no source (CR 725.2).
+		switch ev.Counter {
+		case "__monarch_draw":
 			return player(g, ev.Player) + "'s monarch draw triggers"
+		case "__monarch_steal":
+			return player(g, ev.Player) + "'s monarch designation triggers: a creature dealt them combat damage"
 		}
 		return obj(g, ev.Obj) + " triggers (delayed)"
 	case events.KeywordTriggerPush:

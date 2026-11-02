@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_17936_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck b0085336bc444732a3fbff1a7788b7a5:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 2 Agate-Blade Assassin, 1 Crumb and Get It, 1 Intrepid Rabbit, 1 Nettle Guard, 1 Nocturnal Hunger -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 4
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Ravine Raider",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Sinister Monolith",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 2
+},
+{
+"name": "Starlit Soothsayer",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 12
+}
+]
+}

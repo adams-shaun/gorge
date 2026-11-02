@@ -20,10 +20,10 @@ import (
 // script says, with the Ultimate$ marker inert.
 
 // windgraceSrc is Lord Windgrace's real script shape (the -11 ability and
-// its token sub verbatim, no corpus dependency).
+// its token sub, no corpus dependency).
 const windgraceSrc = "Name:Lord Windgrace\nManaCost:2 B R G\nTypes:Legendary Planeswalker Windgrace\nLoyalty:5\n" +
-	"A:AB$ Destroy | Cost$ SubCounter<11/LOYALTY> | Planeswalker$ True | Ultimate$ True | ValidTgts$ Permanent.nonLand | TgtPrompt$ Select target nonland permanent | TargetMin$ 0 | TargetMax$ 6 | SubAbility$ DBToken | SpellDescription$ Destroy up to six target nonland permanents, then create six 2/2 green Cat Warrior creature tokens with forestwalk.\n" +
-	"SVar:DBToken:DB$ Token | TokenAmount$ 6 | TokenOwner$ You | TokenScript$ g_2_2_cat_warrior_forestwalk\nOracle:x\n"
+	"A:AB$ Destroy | Cost$ SubCounter<11/LOYALTY> | Planeswalker$ True | Ultimate$ True | ValidTgts$ Permanent.nonLand | TargetMin$ 0 | TargetMax$ 6 | SubAbility$ ThenToken\n" +
+	"SVar:ThenToken:DB$ Token | TokenAmount$ 6 | TokenOwner$ You | TokenScript$ g_2_2_cat_warrior_forestwalk\nOracle:x\n"
 
 // windgraceTokenSrc is the g_2_2_cat_warrior_forestwalk token's shape; the
 // fixture registers it under the exact TokenScript$ stem the ability names.

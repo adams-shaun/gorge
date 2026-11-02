@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_06586_WUpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 2f2bef87138343a9bdaacae62aa5a520:0, player win-rate bucket 0.86 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Kastral, the Windcrested, 1 Portent of Calamity -> 2 Plains, 1 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 3
+},
+{
+"name": "Bellowing Crier",
+"count": 3
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 2
+},
+{
+"name": "Pileated Provisioner",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

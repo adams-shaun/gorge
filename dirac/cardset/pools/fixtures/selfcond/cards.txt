@@ -1,0 +1,22 @@
+# the self-counting override-condition pool (selfcond): Grond, the
+# Gatebreaker (PlayerTurn + IsPresent$ Army.YouCtrl, AddType$ Artifact &
+# Creature) and Rusted Relic (Metalcraft, a 5/5 artifact creature),
+# whose conditions count the permanents the static itself rewrites,
+# beside Army makers, changelings and artifacts (the layer walk's
+# re-entry guard, dirac/static_reentryguard.go;
+# dirac/oracle/selfcond_test.go)
+Grond, the Gatebreaker
+Lazotep Reaver
+Mordor Muster
+Grim Initiate
+Universal Automaton
+Woodland Changeling
+Rusted Relic
+Ornithopter
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Lightning Bolt
+Swamp
+Mountain
+Forest

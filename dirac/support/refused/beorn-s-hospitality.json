@@ -1,0 +1,13 @@
+{
+  "card": "Beorn's Hospitality",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 2 games in the corpus",
+  "repro": {
+    "pool": "std-hob",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 24,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

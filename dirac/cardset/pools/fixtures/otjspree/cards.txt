@@ -1,0 +1,22 @@
+# the OTJ Spree pool (CR 702.172): Three Steps Ahead,
+# Explosive Derailment, Metamorphic Blast and Trash the Town (Spree
+# spells with two or more targeted modes), beside cheap creatures, burn
+# and basics (dirac/oracle/otjspree_test.go)
+# The OTJ Spree pool (CR 702.172): Three Steps Ahead,
+# Explosive Derailment, Metamorphic Blast and Trash the Town (Spree spells
+# with two or more targeted modes), beside cheap creatures, burn and basics,
+# for the oracle's constructed lockstep (dirac/oracle/otjspree_test.go).
+Three Steps Ahead
+Explosive Derailment
+Metamorphic Blast
+Trash the Town
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Ornithopter
+Mind Stone
+Giant Growth
+Shock
+Island
+Mountain
+Forest

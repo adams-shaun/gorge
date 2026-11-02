@@ -16,7 +16,7 @@ import (
 const akOrbSrc = `Name:Carnelian Orb of Dragonkind
 ManaCost:2
 Types:Artifact
-A:AB$ Mana | Cost$ T | Produced$ R | AddsKeywords$ Haste | AddsKeywordsValid$ Spell.Dragon+Creature | AddsKeywordsUntil$ UntilEOT | SpellDescription$ Add {R}. If that mana is spent on a Dragon creature spell, it gains haste until end of turn.
+A:AB$ Mana | Cost$ T | Produced$ R | AddsKeywords$ Haste | AddsKeywordsValid$ Spell.Dragon+Creature | AddsKeywordsUntil$ UntilEOT
 Oracle:x
 `
 
@@ -37,7 +37,7 @@ Oracle:x
 const akHallSrc = `Name:Hall of the Bandit Lord
 ManaCost:no cost
 Types:Land
-A:AB$ Mana | Cost$ T PayLife<3> | Produced$ C | AddsKeywords$ Haste | AddsKeywordsValid$ Spell.Creature | SpellDescription$ Add {C}. If that mana is spent on a creature spell, it gains haste.
+A:AB$ Mana | Cost$ T PayLife<3> | Produced$ C | AddsKeywords$ Haste | AddsKeywordsValid$ Spell.Creature
 Oracle:x
 `
 

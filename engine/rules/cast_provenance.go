@@ -143,13 +143,21 @@ func (e *Engine) castAtAllAdmitsWindow(spec string, objID state.ObjID, you state
 		return spec, true
 	}
 	holds := false
-	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
+	if o := e.G.Obj(objID); o != nil && !e.copyNeverCast(o) {
 		holds = e.WasCastByYou(objID, you)
 		if !holds && pendingCast {
 			holds = o.Controller == you
 		}
 	}
 	return admitProvenanceAlternatives(spec, "wasCastByYou", holds)
+}
+
+// copyNeverCast reports a copy that was not cast (CR 707.10). CR 722.3c's
+// prepared copy is the exception: it is cast from exile, so it answers as a
+// cast spell from its offer, through the cast in progress, to its paid flag.
+func (e *Engine) copyNeverCast(o *state.Object) bool {
+	return o.IsCopy && !o.PreparedExileCopy() && o.CastFlags&state.FlagPreparedCopy == 0 &&
+		(e.cast == nil || e.cast.card != o.ID)
 }
 
 // specHasBareWasCast reports whether spec carries the bare wasCast
@@ -617,7 +625,7 @@ func (e *Engine) castOriginAdmits(spec string, objID state.ObjID, you state.Play
 			continue
 		}
 		holds := false
-		if o := e.G.Obj(objID); o != nil && !o.IsCopy {
+		if o := e.G.Obj(objID); o != nil && !e.copyNeverCast(o) {
 			if from, by, ok := e.latestCastOrigin(objID); ok {
 				holds = from == tok.zone && (!tok.byYou || by == you)
 			}

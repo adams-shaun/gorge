@@ -1,0 +1,13 @@
+{
+  "card": "Command Tower",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 239 games in the corpus",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 9,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

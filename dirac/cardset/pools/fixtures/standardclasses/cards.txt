@@ -1,0 +1,37 @@
+# the constructed lockstep pool:
+# one carrier group per lifted class beside basics, removal
+# and vanilla creatures (dirac/oracle/standardclasses_test.go)
+# HasCounters (PredHasCounters)
+Bulwark Ox
+Kulrath Knight
+Federation Field Medic
+Delta Bloodflies
+Yathan Tombguard
+Iron Apprentice
+Scolding Administrator
+Tyrant Guard
+# DB$ Mana Amount$ (triggered mana, one colour)
+Akki Rockspeaker
+Priest of Urabrask
+Priest of Gix
+# trigger PresentDefined$ Self (survival, Howling Mine)
+Cautious Survivor
+Savior of the Small
+Shrewd Storyteller
+Glimmer Seeker
+Howling Mine
+Cynical Loner
+# support
+Dragonscale Boon
+Doom Blade
+Shock
+Savannah Lions
+Walking Corpse
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Plains
+Swamp
+Mountain
+Forest
+Island

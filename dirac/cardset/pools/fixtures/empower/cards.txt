@@ -1,0 +1,39 @@
+# the Empower pool (CR 701.71a): the FRA cards whose only
+# refused ability was api:Empower (Type$ Jace), Doubling Season (one
+# mint becomes two, the token pick), basics, for the oracle's
+# constructed lockstep (dirac/oracle/empower_test.go)
+# The Empower pool: the FRA cards whose only refused ability was
+# api:Empower (all Type$ Jace), plus Doubling Season -- its CreateToken
+# doubler makes one Empower mint two Jace tokens, the "choose which token"
+# arm -- and basics, for the oracle's constructed lockstep
+# (dirac/oracle/empower_test.go). Fatehold Charm (ChangeZone origin), Solve
+# for Disappointment (gorge's hand-scoped Permanent base) and Tam's Resistance
+# (hybrid mana out of WUBRG order) are left out: they stay refused after
+# Empower lowers.
+Academic Ascent
+Arcane Amphisbaena
+Avatar of Burgeoning Echoes
+Campus Crier
+Doubling Season
+Hexhaven Battalion
+Inspired Tethermage
+Keeper of the Quiet Hour
+Mindseeker Oculus
+No Admittance
+Plan for All Outcomes
+Protege's Awakening
+Repurposed Enforcer
+Rewrite Regrets
+Violent Echoes
+Vraska's Final Mercy
+Way of the Deathbringer
+Way of the Healer
+Way of the Mentor
+Way of the Necromancer
+Way of the Warlord
+Way of the Wildspeaker
+Plains
+Island
+Swamp
+Mountain
+Forest

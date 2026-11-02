@@ -1,0 +1,71 @@
+{
+"name": "FDN_top_25678_GpU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 11f5f0ae4671400cbe1c060c30def4ec:0, player win-rate bucket 0.70 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 5
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 3
+},
+{
+"name": "Elvish Regrower",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Giant Growth",
+"count": 4
+},
+{
+"name": "Island",
+"count": 6
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Needletooth Pack",
+"count": 1
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Tatyova, Benthic Druid",
+"count": 1
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Zimone, Paradox Sculptor",
+"count": 1
+}
+]
+}

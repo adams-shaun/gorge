@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/azredeal"
@@ -31,14 +32,51 @@ func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck
 	if c.pairedBotSearches < 1 {
 		return nil, fmt.Errorf("-paired-bot-searches %d, want >= 1", c.pairedBotSearches)
 	}
-	if c.pairedBot != pairedBotBuiltin {
-		e, ok := bots.Lookup(c.pairedBot)
+	return c.pairedBotNamed(c.pairedBot, reg, load, conPool)
+}
+
+// pairedBotChoices lists what a table may choose besides -paired-bot: the
+// built-in search and every registered closed-list search policy. A server
+// with no -paired-bot offers none, since searching is its operator's to allow.
+// A choice that cannot be built is logged and left out, because the operator
+// did not ask for it by name.
+func (c config) pairedBotChoices(o host.Options, reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) []*bots.Entry {
+	if o.PairedBot == nil {
+		return nil
+	}
+	names := []string{pairedBotBuiltin}
+	for _, e := range bots.Entries() {
+		if e.ClosedLists && e.Search {
+			names = append(names, e.Name)
+		}
+	}
+	var out []*bots.Entry
+	for _, name := range names {
+		if name == o.PairedBot.Name {
+			continue
+		}
+		e, err := c.pairedBotNamed(name, reg, load, conPool)
+		if err == nil {
+			err = host.ValidatePairedBot(*e, o)
+		}
+		if err != nil {
+			log.Printf("paired bot %s is not offered: %v", name, err)
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// pairedBotNamed builds the entry for a paired bot's name.
+func (c config) pairedBotNamed(name string, reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) (*bots.Entry, error) {
+	if name != pairedBotBuiltin {
+		e, ok := bots.Lookup(name)
 		if !ok {
-			return nil, fmt.Errorf("-paired-bot: unknown bot %q (%s, or a registered closed-list search policy)", c.pairedBot, pairedBotBuiltin)
+			return nil, fmt.Errorf("-paired-bot: unknown bot %q (%s, or a registered closed-list search policy)", name, pairedBotBuiltin)
 		}
 		// bots.New fills the policy's declared option defaults; its factory
 		// alone would not.
-		name := c.pairedBot
 		e.New = func(o bots.Options) (seat.Seat, error) { return bots.New(name, o) }
 		return &e, nil
 	}

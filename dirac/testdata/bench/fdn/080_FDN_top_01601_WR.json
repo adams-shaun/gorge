@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_01601_WR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 4f10005cd7ce4c15a6dcb3016b2acf4f:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Arahbo, the First Fang",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Exemplar of Light",
+"count": 2
+},
+{
+"name": "Fanatical Firebrand",
+"count": 2
+},
+{
+"name": "Fiery Annihilation",
+"count": 2
+},
+{
+"name": "Goblin Surprise",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Heroic Reinforcements",
+"count": 2
+},
+{
+"name": "Hidetsugu's Second Rite",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Rugged Highlands",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Sure Strike",
+"count": 1
+},
+{
+"name": "Wind-Scarred Crag",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 1
+}
+]
+}

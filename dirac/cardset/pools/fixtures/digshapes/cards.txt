@@ -1,0 +1,16 @@
+# the DigUntil found-card battlefield shapes: a creature/planeswalker
+# Valid$ (Identity Echo), Attacking$ True (Raph & Mikey, Troublemakers) and NoPutDesc$
+# (Solstice Revelations), for dirac/oracle/digshapes_test.go
+Identity Echo
+Raph & Mikey, Troublemakers
+Solstice Revelations
+Grizzly Bears
+Mineshaft Spider
+Lasyd Prowler
+Rainveil Rejuvenator
+Patchwork Beastie
+Lightning Bolt
+Shock
+Mountain
+Forest
+Island

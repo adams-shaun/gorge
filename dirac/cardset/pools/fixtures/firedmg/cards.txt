@@ -1,0 +1,13 @@
+# Fated Firepower's plus the host's fire counters (dirac/oracle/firedmg_test.go)
+Fated Firepower
+Shock
+Lightning Bolt
+Prodigal Pyromancer
+Prodigal Sorcerer
+Grizzly Bears
+Hill Giant
+Twinflame Tyrant
+Valley Flamecaller
+Mountain
+Forest
+Island

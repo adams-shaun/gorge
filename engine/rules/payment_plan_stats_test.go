@@ -93,8 +93,8 @@ func TestPaymentPlanStatsCountsOutcomesNodesAndFallbacks(t *testing.T) {
 	if len(actions) != 1 || actions[0].Cast.Object != b.shock {
 		t.Fatalf("offered actions = %+v, want the Shock's alone", actions)
 	}
-	if stats.DecisionsBuilt != 1 || stats.PoolDeclined != 0 {
-		t.Errorf("builds = %d (pool declined %d), want 1 (0): Submit must reuse the cached offer", stats.DecisionsBuilt, stats.PoolDeclined)
+	if stats.DecisionsBuilt != 1 {
+		t.Errorf("builds = %d, want 1: Submit must reuse the cached offer", stats.DecisionsBuilt)
 	}
 	if stats.Candidates != 4 {
 		t.Errorf("candidates = %d, want 4", stats.Candidates)
@@ -166,23 +166,5 @@ func TestPaymentPlanStatsNotCloned(t *testing.T) {
 	}
 	if b.e.PaymentPlanStats() != stats {
 		t.Fatal("original lost its sink")
-	}
-}
-
-// A pool the planner cannot account for declines the whole build before any
-// candidate is walked: it counts once, as a pool-declined build, and adds no
-// per-cast outcome.
-func TestPaymentPlanStatsPoolDeclinedBuild(t *testing.T) {
-	t.Parallel()
-	b := newPaymentStatsBoard(t)
-	stats := &PaymentPlanStats{}
-	b.e.SetPaymentPlanStats(stats)
-	b.e.G.Players[0].Snow[state.MR] = 1
-	if got := b.e.PaymentActionsForPriority(0, 1); len(got) != 0 {
-		t.Fatalf("offer on a snow pool = %+v, want none", got)
-	}
-	want := PaymentPlanStats{DecisionsBuilt: 1, PoolDeclined: 1}
-	if !reflect.DeepEqual(*stats, want) {
-		t.Fatalf("stats = %+v, want %+v", *stats, want)
 	}
 }

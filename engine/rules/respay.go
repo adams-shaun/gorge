@@ -92,7 +92,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 func (e *Engine) resPayPlan(player state.PlayerID, source state.ObjID, amount Cost, class paymentClass) *decision.PaymentPlan {
 	planned := amount
 	planned.Life = 0
-	if pay.PlanCostDetail(planned) != "" || !pay.PlanPoolOK(&e.G.Players[player]) {
+	if pay.PlanCostDetail(planned) != "" {
 		return nil
 	}
 	desc := paymentDescriptor{ID: source, Class: class, Cost: &amount}

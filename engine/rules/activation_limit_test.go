@@ -3,7 +3,7 @@ package rules
 // A computed ActivationLimit is enforced, not silently
 // ignored. activationLimitReached used to strconv.Atoi the limit and return
 // false (unenforced) for anything not a plain integer, so Withering Wisps'
-// "ActivationLimit$ X" (SVar:X:Count$Valid Swamp.Snow+YouCtrl) was offered
+// "ActivationLimit$ X" (X = Count$Valid Swamp.Snow+YouCtrl) was offered
 // without limit. These leaves pin the fix: a computed limit sourced from the
 // Count$ path is enforced; a literal limit behaves exactly as before; and an
 // expression the evaluator genuinely cannot resolve still degrades to

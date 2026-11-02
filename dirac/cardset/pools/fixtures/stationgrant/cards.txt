@@ -1,0 +1,27 @@
+# a Station threshold's self grant: the eight EOE
+# Spacecraft whose STATION N+ line grants AddTrigger$ / AddStaticAbility$
+# to itself, for the oracle's lockstep
+# (dirac/oracle/stationgrant_test.go)
+# The Station self-grant pool: the eight EOE
+# Spacecraft whose "STATION N+" line grants the Spacecraft itself a
+# triggered ability (AddTrigger$) or a static ability (AddStaticAbility$)
+# while it holds N charge counters, bodies to station with, a legendary
+# creature for The Seriema, and basics, for the oracle's constructed
+# lockstep (dirac/oracle/stationgrant_test.go)
+Infinite Guideline Station
+Sledge-Class Seedship
+Specimen Freighter
+Entropic Battlecruiser
+Dawnsire, Sunstar Dreadnought
+Synthesizer Labship
+Lumen-Class Frigate
+The Seriema
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Isamaru, Hound of Konda
+Forest
+Island
+Mountain
+Plains
+Swamp

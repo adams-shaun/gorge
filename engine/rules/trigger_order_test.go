@@ -532,8 +532,8 @@ Oracle:x
 const grinderSrc = `Name:Grinder
 ManaCost:B
 Types:Enchantment
-T:Mode$ Phase | Phase$ Upkeep | Execute$ TrigMill | TriggerDescription$ mill a card
-SVar:TrigMill:DB$ Mill | NumCards$ 1 | Defined$ You
+T:Mode$ Phase | Phase$ Upkeep | Execute$ OnMill | TriggerDescription$ mill a card
+SVar:OnMill:DB$ Mill | NumCards$ 1 | Defined$ You
 Oracle:x
 `
 

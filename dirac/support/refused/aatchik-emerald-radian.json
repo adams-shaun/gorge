@@ -1,0 +1,13 @@
+{
+  "card": "Aatchik, Emerald Radian",
+  "class": "projection-Cards.Counters",
+  "why": "the engines' state differs at projection Cards[].Counters[]; 3 games in the corpus",
+  "repro": {
+    "pool": "std-dft",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 878,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

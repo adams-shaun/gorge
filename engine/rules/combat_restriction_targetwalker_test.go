@@ -37,8 +37,7 @@ import (
 const targetWalkerFixture = "Name:Target Walker\nTypes:Planeswalker\nPT:0\nOracle:x\n"
 
 // TestCantAttackTargetPlaneswalkerController drives Vow of Lightning's real
-// corpus static
-// `S:Mode$ CantAttack | ValidCard$ Creature.EnchantedBy | Target$ You,Planeswalker.YouCtrl`
+// corpus CantAttack static on the enchanted creature, Target$ You,Planeswalker.YouCtrl,
 // end to end: the walker clause matches the vow controller's battlefield
 // planeswalker through restrictionPlayerTargetMatches, and with the vow cast
 // and attached the (attacker, vow-controller) pair is blocked through

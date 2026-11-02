@@ -1,0 +1,25 @@
+# the Saga pool (saga, CR 714): chapter triggers (simple tokens, a
+# targeted destroy, a discard), a FIN Summon (a Saga CREATURE that also
+# attacks, blocks and dies), a proliferate spell to add lore off-turn
+# and a bounce to reset a Saga, beside creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/saga_test.go)
+History of Benalia
+The Birth of Meletis
+Elspeth's Nightmare
+Phyrexian Scriptures
+Summon: Shiva
+Volt Charge
+Vivisurgeon's Insight
+Disperse
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Vampire Cutthroat
+Giant Spider
+Air Elemental
+Plains
+Island
+Swamp
+Forest
+Mountain

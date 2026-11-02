@@ -113,8 +113,8 @@ func TestKernelConvertArrange(t *testing.T) {
 		served    int64
 		life      int32
 	}{
-		{"Tape Scry", "A:SP$ Scry | ScryNum$ 3 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1, 2},
-		{"Tape Surveil", "A:SP$ Surveil | Amount$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1, 2},
+		{"Tape Scry", "A:SP$ Scry | ScryNum$ 3 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2", 1, 2},
+		{"Tape Surveil", "A:SP$ Surveil | Amount$ 2 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2", 1, 2},
 		{"Tape Each Scry", "A:SP$ Scry | ScryNum$ 2 | Defined$ Player", 2, 0},
 		{"Tape Maybe Scry", "A:SP$ Scry | ScryNum$ 2 | Optional$ True | Defined$ Player", 2, 0},
 		{"Tape Ponder", "A:SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3 | MayShuffle$ True | SubAbility$ DBDraw\nSVar:DBDraw:DB$ Draw | NumCards$ 1", 2, 0},
@@ -158,7 +158,7 @@ func TestKernelParkAttached(t *testing.T) {
 		t.Run(eq, func(t *testing.T) {
 			name := "Tape Equip " + eq
 			src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\n" +
-				"A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ DBGain\n" +
+				"A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ Gain\n" +
 				tapeGainSVar + "\nOracle:x\n"
 			var spell, gear, bear state.ObjID
 			e, _ := runServedScenario(t, 2, 13900+uint64(i), 1, func(t *testing.T, e *Engine) {
@@ -194,7 +194,7 @@ func TestKernelParkAttached(t *testing.T) {
 func TestKernelParkMidChainEntry(t *testing.T) {
 	name := "Tape Mass Return"
 	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\n" +
-		"A:SP$ ChangeZoneAll | ChangeType$ Creature.YouOwn,Artifact.YouOwn | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ DBGain\n" +
+		"A:SP$ ChangeZoneAll | ChangeType$ Creature.YouOwn,Artifact.YouOwn | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ Gain\n" +
 		tapeGainSVar + "\nOracle:x\n"
 	var spell, bear, totem state.ObjID
 	e, _ := runServedScenario(t, 2, 13950, 3, func(t *testing.T, e *Engine) {
@@ -235,7 +235,7 @@ func TestKernelParkReplacementOrder(t *testing.T) {
 		"SVar:Ex:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ ReplacedCard\nOracle:x\n"
 	name := "Tape Order Kill"
 	src := "Name:" + name + "\nManaCost:U\nTypes:Sorcery\n" +
-		"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Graveyard | SubAbility$ DBGain\n" +
+		"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Graveyard | SubAbility$ Gain\n" +
 		tapeGainSVar + "\nOracle:x\n"
 	tapeCheckpointAll = true
 	defer func() { tapeCheckpointAll = false }()
@@ -256,7 +256,7 @@ func TestKernelParkReplacementOrder(t *testing.T) {
 // --- resolve_convert_unless_test.go ---
 
 func TestKernelConvertUnlessPay(t *testing.T) {
-	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
+	const gain = "\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
 	cases := []struct {
 		name, body string
 		seats      int
@@ -269,10 +269,10 @@ func TestKernelConvertUnlessPay(t *testing.T) {
 	}{
 		// The pool pays at once.
 		{name: "Tape Tithe", seats: 2, mana: "BR", pay: true, served: 1, life: 5,
-			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ DBGain" + gain},
+			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ Gain" + gain},
 		// Declined: the switched body does not run, the sub still does.
 		{name: "Tape Tithe Declined", seats: 2, mana: "BR", served: 1, life: 2,
-			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ DBGain" + gain},
+			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ Gain" + gain},
 		// A life payment settles in line too.
 		{name: "Tape Blood Tithe", seats: 2, mana: "B", pay: true, served: 1, life: 1,
 			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ PayLife<2> | UnlessPayer$ You | UnlessSwitched$ True"},
@@ -282,7 +282,7 @@ func TestKernelConvertUnlessPay(t *testing.T) {
 		// The mana window: an empty pool and two untapped Mountains -- one
 		// activation, then Done once the pool covers {1}.
 		{name: "Tape Window Tithe", seats: 2, mana: "B", lands: 2, pay: true, served: 3, window: 2, life: 5,
-			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ DBGain" + gain},
+			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 1 | UnlessPayer$ You | UnlessSwitched$ True | SubAbility$ Gain" + gain},
 		// A two-pip cost: two activations, then Done.
 		{name: "Tape Wide Window", seats: 2, mana: "B", lands: 3, pay: true, served: 4, window: 3, life: 3,
 			body: "A:SP$ GainLife | LifeAmount$ 3 | UnlessCost$ 2 | UnlessPayer$ You | UnlessSwitched$ True"},
@@ -490,7 +490,7 @@ func TestKernelConvertWard(t *testing.T) {
 // move took it off the stack: served from the tape in line.
 func TestKernelConvertOwnEntryReplacement(t *testing.T) {
 	srcs := []string{
-		"Name:Tape Sower\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n",
+		"Name:Tape Sower\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:Choose\nSVar:Choose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n",
 		"Name:Tape Charm Gate\nManaCost:B\nTypes:Creature Bear\nPT:2/2\nK:ETBReplacement:Other:DBCharm\nSVar:DBCharm:DB$ Charm | Choices$ DBA,DBB\nSVar:DBA:DB$ GainLife | LifeAmount$ 1 | SpellDescription$ a\nSVar:DBB:DB$ GainLife | LifeAmount$ 2 | SpellDescription$ b\nOracle:x\n",
 	}
 	for i, src := range srcs {
@@ -509,7 +509,7 @@ func TestKernelConvertOwnEntryReplacement(t *testing.T) {
 // completes with the CR 117.3b priority grant to the active player.
 func TestKernelETBThenEntryReplacement(t *testing.T) {
 	src := "Name:Tape Replicator\nManaCost:B\nTypes:Artifact\nK:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor\n" +
-		"K:ETBReplacement:Other:DBChoose\nSVar:DBChoose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
+		"K:ETBReplacement:Other:Choose\nSVar:Choose:DB$ ChooseCard | Defined$ You | Choices$ Land.YouCtrl | ChoiceZone$ Battlefield | Mandatory$ True\nOracle:x\n"
 	e, _ := runServedScenario(t, 2, 13750, 2, tapeUnlessScenario("Tape Replicator", "B", 2, tapePick), src)
 	last := -1
 	for i, ev := range e.L.Events {
@@ -588,13 +588,13 @@ func TestKernelConvertCopyTargets(t *testing.T) {
 func TestKernelConvertPlay(t *testing.T) {
 	const bear = "Name:Tape Free Bear\nManaCost:4 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	const bolt = "Name:Tape Free Bolt\nManaCost:4 R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
-	const gain = "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
+	const gain = "\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | Defined$ You"
 	for i, tc := range []struct {
 		target string
 		asks   bool
 	}{{"Tape Free Bear", false}, {"Tape Free Bolt", true}} {
 		t.Run(tc.target, func(t *testing.T) {
-			src := tapeUnlessSorcery("Tape Conduit", "A:SP$ Play | Valid$ Card.namedTape Free Bear,Card.namedTape Free Bolt | ValidZone$ Hand | WithoutManaCost$ True | Optional$ True | SubAbility$ DBGain"+gain)
+			src := tapeUnlessSorcery("Tape Conduit", "A:SP$ Play | Valid$ Card.namedTape Free Bear,Card.namedTape Free Bolt | ValidZone$ Hand | WithoutManaCost$ True | Optional$ True | SubAbility$ Gain"+gain)
 			pick := func(d *decision.Decision) []int {
 				if d.ResumeKind == "play" {
 					for _, o := range d.Options {
@@ -689,7 +689,7 @@ func TestKernelConvertMadness(t *testing.T) {
 // --- resolve_convert_zone_test.go ---
 
 func TestKernelConvertZone(t *testing.T) {
-	gain := "\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2"
+	gain := "\nSVar:Gain:DB$ GainLife | LifeAmount$ 2"
 	cases := []struct {
 		name, src string
 		seats     int
@@ -699,21 +699,21 @@ func TestKernelConvertZone(t *testing.T) {
 		extra     []string
 	}{
 		{name: "Tape Tutor", seats: 2, served: 1, kinds: []string{"search"},
-			src: tapeZoneSorcery("Tape Tutor", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 2 | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Tutor", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 2 | SubAbility$ Gain"+gain)},
 		{name: "Tape Each Tutor", seats: 3, served: 3, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape Each Tutor", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Graveyard | ChangeType$ Land | ChangeNum$ 1")},
 		{name: "Tape May Shuffle", seats: 2, served: 1, kinds: []string{"search"},
-			src: tapeZoneSorcery("Tape May Shuffle", "A:SP$ ChangeZone | Origin$ Library | Destination$ Library | LibraryPosition$ 0 | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape May Shuffle", "A:SP$ ChangeZone | Origin$ Library | Destination$ Library | LibraryPosition$ 0 | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Each May Shuffle", seats: 3, served: 3, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape Each May Shuffle", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | ShuffleNonMandatory$ True")},
 		{name: "Tape Confirm Tutor", seats: 3, served: 3, kinds: []string{"search_confirm"},
-			src: tapeZoneSorcery("Tape Confirm Tutor", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Confirm Tutor", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | Optional$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Limited Tutor", seats: 2, served: 1, kinds: []string{"search"},
 			src: tapeZoneSorcery("Tape Limited Tutor", "A:SP$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Land | ChangeNum$ 1 | MaxRevealed$ 4 | Bogus$ 1")},
 		{name: "Tape Top Fetch", seats: 2, served: 1, kinds: []string{"defined_library_optional"},
-			src: tapeZoneSorcery("Tape Top Fetch", "A:SP$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard | Optional$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Top Fetch", "A:SP$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard | Optional$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Put Back", seats: 2, served: 1, kinds: []string{"hand_move"}, setup: tapeZoneToHand(3),
-			src: tapeZoneSorcery("Tape Put Back", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 2 | Mandatory$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Put Back", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 2 | Mandatory$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Maybe Put Back", seats: 2, served: 1, kinds: []string{"hand_move_confirm"}, setup: tapeZoneToHand(3),
 			src: tapeZoneSorcery("Tape Maybe Put Back", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Library | ChangeNum$ 1 | Optional$ True")},
 		{name: "Tape Each Hand", seats: 3, served: 3, kinds: []string{"hand_move"}, setup: tapeZoneToHand(3),
@@ -721,31 +721,31 @@ func TestKernelConvertZone(t *testing.T) {
 		{name: "Tape Each Maybe Hand", seats: 3, served: 3, kinds: []string{"hand_move_confirm"}, setup: tapeZoneToHand(3),
 			src: tapeZoneSorcery("Tape Each Maybe Hand", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Hand | Destination$ Graveyard | ChangeNum$ 1 | Optional$ True")},
 		{name: "Tape Hidden Pick", seats: 2, served: 1, kinds: []string{"hidden_pick"}, setup: tapeZoneToGraveyard(2),
-			src: tapeZoneSorcery("Tape Hidden Pick", "A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Hand | Hidden$ True | ChangeType$ Card | ChangeNum$ 2 | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Hidden Pick", "A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Hand | Hidden$ True | ChangeType$ Card | ChangeNum$ 2 | SubAbility$ Gain"+gain)},
 		{name: "Tape Each Hidden Pick", seats: 3, served: 3, kinds: []string{"hidden_pick"}, setup: tapeZoneToGraveyard(2),
 			src: tapeZoneSorcery("Tape Each Hidden Pick", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Graveyard | Destination$ Exile | Hidden$ True | ChangeType$ Card | ChangeNum$ 1")},
 		{name: "Tape Maybe Hidden Pick", seats: 3, served: 3, kinds: []string{"hidden_pick_confirm"}, setup: tapeZoneToGraveyard(2),
 			src: tapeZoneSorcery("Tape Maybe Hidden Pick", "A:SP$ ChangeZone | DefinedPlayer$ Player | Origin$ Graveyard | Destination$ Exile | Hidden$ True | ChangeType$ Card | ChangeNum$ 1 | Optional$ True")},
 		{name: "Tape Edict", seats: 3, served: 3, kinds: []string{"sacrifice"}, setup: tapeZoneToBattlefield(3),
-			src: tapeZoneSorcery("Tape Edict", "A:SP$ Sacrifice | Defined$ Player | SacValid$ Land | Amount$ 2 | ShowSacrificedCards$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Edict", "A:SP$ Sacrifice | Defined$ Player | SacValid$ Land | Amount$ 2 | ShowSacrificedCards$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Strict Edict", seats: 3, served: 3, kinds: []string{"sacrifice_optional"}, setup: tapeZoneToBattlefield(3),
 			src: tapeZoneSorcery("Tape Strict Edict", "A:SP$ Sacrifice | Defined$ Player | SacValid$ Land | Amount$ 2 | Optional$ True | StrictAmount$ True | RememberSacrificed$ True")},
 		{name: "Tape Self Sac", seats: 2, served: 1, kinds: []string{"sacrifice"}, setup: tapeZoneToBattlefield(1),
-			src: tapeZoneSorcery("Tape Self Sac", "A:SP$ Sacrifice | ValidTgts$ Land | TgtPrompt$ x | Optional$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Self Sac", "A:SP$ Sacrifice | ValidTgts$ Land | TgtPrompt$ x | Optional$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Imprint", seats: 2, served: 1, kinds: []string{"imprint"}, setup: tapeZoneToHand(3),
-			src: tapeZoneSorcery("Tape Imprint", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | ChangeNum$ 1 | Imprint$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Imprint", "A:SP$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Card | ChangeNum$ 1 | Imprint$ True | SubAbility$ Gain"+gain)},
 		{name: "Tape Vanish", seats: 2, served: 1, kinds: []string{"changezone_alternative"},
 			setup: func(t *testing.T, e *Engine) { moveByName(t, e, 0, "ParentLink Bear", state.ZBattlefield) },
 			extra: []string{ptResumeBearSrc},
-			src:   tapeZoneSorcery("Tape Vanish", "A:SP$ ChangeZone | ValidTgts$ Creature | TgtPrompt$ x | AlternativeDecider$ TargetedOwner | Origin$ Battlefield | Destination$ Library | DestinationAlternative$ Library | LibraryPositionAlternative$ -1 | SubAbility$ DBGain"+gain)},
+			src:   tapeZoneSorcery("Tape Vanish", "A:SP$ ChangeZone | ValidTgts$ Creature | TgtPrompt$ x | AlternativeDecider$ TargetedOwner | Origin$ Battlefield | Destination$ Library | DestinationAlternative$ Library | LibraryPositionAlternative$ -1 | SubAbility$ Gain"+gain)},
 		{name: "Tape Dread", seats: 2, served: 1, kinds: []string{"manifest_dread"},
-			src: tapeZoneSorcery("Tape Dread", "A:SP$ ManifestDread | SubAbility$ DBGain"+gain)},
+			src: tapeZoneSorcery("Tape Dread", "A:SP$ ManifestDread | SubAbility$ Gain"+gain)},
 		{name: "Tape Pinger", seats: 2, served: 0, kinds: []string{"trig_sub"},
-			src: tapeZoneETB("Tape Pinger", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBDmg\nSVar:DBDmg:DB$ DealDamage | ValidTgts$ Player | NumDmg$ 1 | SubAbility$ DBGain"+gain)},
+			src: tapeZoneETB("Tape Pinger", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBDmg\nSVar:DBDmg:DB$ DealDamage | ValidTgts$ Player | NumDmg$ 1 | SubAbility$ Gain"+gain)},
 		{name: "Tape Raiser", seats: 2, served: 0, kinds: []string{"trig_sub"}, setup: tapeZoneToGraveyard(2),
-			src: tapeZoneETB("Tape Raiser", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBReturn\nSVar:DBReturn:DB$ ChangeZone | ValidTgts$ Card.YouOwn | TgtPrompt$ x | TargetMin$ 0 | TargetMax$ 2 | Origin$ Graveyard | Destination$ Hand | SubAbility$ DBGain"+gain)},
+			src: tapeZoneETB("Tape Raiser", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBReturn\nSVar:DBReturn:DB$ ChangeZone | ValidTgts$ Card.YouOwn | TgtPrompt$ x | TargetMin$ 0 | TargetMax$ 2 | Origin$ Graveyard | Destination$ Hand | SubAbility$ Gain"+gain)},
 		{name: "Tape Reshuffle", seats: 2, served: 1, kinds: []string{"trig_sub", "search_mayshuffle"}, setup: tapeZoneToGraveyard(2),
-			src: tapeZoneETB("Tape Reshuffle", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBShuffle\nSVar:DBShuffle:DB$ ChangeZone | ValidTgts$ Card.YouOwn | TgtPrompt$ x | TargetMin$ 1 | TargetMax$ 2 | Origin$ Graveyard | Destination$ Library | Shuffle$ True | ShuffleNonMandatory$ True | SubAbility$ DBGain"+gain)},
+			src: tapeZoneETB("Tape Reshuffle", "SVar:TrigBody:DB$ GainLife | LifeAmount$ 1 | SubAbility$ DBShuffle\nSVar:DBShuffle:DB$ ChangeZone | ValidTgts$ Card.YouOwn | TgtPrompt$ x | TargetMin$ 1 | TargetMax$ 2 | Origin$ Graveyard | Destination$ Library | Shuffle$ True | ShuffleNonMandatory$ True | SubAbility$ Gain"+gain)},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -808,7 +808,7 @@ func TestKernelConvertZoneElectionsBothWays(t *testing.T) {
 // itself (minServed 0); the assertion is that the roll's result still reaches
 // the mill.
 func TestKernelRollSurvivesTargetAsk(t *testing.T) {
-	src := tapeZoneETB("Tape Jelly", "SVar:TrigBody:DB$ RollDice | ResultSVar$ Result | SubAbility$ DBMill\nSVar:DBMill:DB$ Mill | ValidTgts$ Player | NumCards$ Result")
+	src := tapeZoneETB("Tape Jelly", "SVar:TrigBody:DB$ RollDice | ResultSVar$ Result | SubAbility$ ThenMill\nSVar:ThenMill:DB$ Mill | ValidTgts$ Player | NumCards$ Result")
 	var before int
 	e, _ := runServedScenario(t, 2, 33001, 0, func(t *testing.T, e *Engine) {
 		before = len(e.G.Zone(state.ZGraveyard, 0)) + len(e.G.Zone(state.ZGraveyard, 1))

@@ -22,8 +22,8 @@ const angelicOverseerSrc = "Name:Angelic Overseer\nManaCost:3 W W\nTypes:Creatur
 	"Oracle:As long as you control a Human, Angelic Overseer has hexproof and indestructible.\n"
 
 const auriokSteelshaperSrc = "Name:Auriok Steelshaper\nManaCost:1 W\nTypes:Creature Human Soldier\nPT:1/1\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Card | ValidSpell$ Activated.Equip | Activator$ You | Amount$ 1 | Description$ Equip costs you pay cost {1} less.\n" +
-	"S:Mode$ Continuous | Affected$ Creature.Soldier+YouCtrl,Creature.Knight+YouCtrl | AddPower$ 1 | AddToughness$ 1 | IsPresent$ Card.Self+equipped | Description$ As long as CARDNAME is equipped, each creature you control that's a Soldier or a Knight gets +1/+1.\n" +
+	"S:Mode$ ReduceCost | ValidCard$ Card | ValidSpell$ Activated.Equip | Activator$ You | Amount$ 1\n" +
+	"S:Mode$ Continuous | Affected$ Creature.Soldier+YouCtrl,Creature.Knight+YouCtrl | AddPower$ 1 | AddToughness$ 1 | IsPresent$ Card.Self+equipped\n" +
 	"Oracle:Equip costs you pay cost {1} less.\n"
 
 const kiyomaroSrc = "Name:Kiyomaro, First to Stand\nManaCost:3 W W\nTypes:Legendary Creature Spirit\nPT:*/*\n" +

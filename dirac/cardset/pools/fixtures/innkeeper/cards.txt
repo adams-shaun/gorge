@@ -1,0 +1,19 @@
+# the Innkeeper's Talent pool: the ClassBand$ 3 counter
+# doubling by the putter beside infect on both sides
+# (dirac/oracle/innkeeper_test.go)
+Innkeeper's Talent
+Forest
+Plains
+Swamp
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Walking Corpse
+Llanowar Elves
+Glistener Elf
+Plague Stinger
+Ichorclaw Myr
+Swords to Plowshares
+Doom Blade
+Shock
+Mountain

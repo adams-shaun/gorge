@@ -1,0 +1,19 @@
+# the bestow pool: Nyxborn Hydra's bestowed cast (an Aura spell
+# with enchant creature, a creature again when it detaches) beside
+# creature and noncreature counterspells, burn and bounce for its hosts
+# (dirac/oracle/bestow_test.go)
+Nyxborn Hydra
+Grizzly Bears
+Llanowar Elves
+Giant Growth
+Centaur Courser
+Runeclaw Bear
+Shock
+Essence Scatter
+Negate
+Unsummon
+Wind Drake
+Hill Giant
+Forest
+Island
+Mountain

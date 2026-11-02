@@ -1,0 +1,26 @@
+# the named-other pool: a named<X> filter naming a
+# card other than its source (Rufus Shinra's Darkstar token, Dragonstorm
+# Forecaster's Globe/Boulderborn search) and the '_'-spelled self name
+# (Gruff Triplets), with removal, cheap creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/namedother_test.go)
+Rufus Shinra
+Dragonstorm Forecaster
+Dragonstorm Globe
+Boulderborn Dragon
+Gruff Triplets
+Murder
+Savannah Lions
+Vampire Neonate
+Coral Merfolk
+Ornithopter
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Shock
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest

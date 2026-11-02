@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_02133_UR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck aea57e13ac2b403aa634b9e9a95de209:1, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Alania's Pathmaker, 1 Daring Waverider, 1 Kitnap, 1 Might of the Meek, 1 Sazacap's Brew, 1 Season of Weaving -> 3 Island, 3 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 1
+},
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 10
+},
+{
+"name": "Pearl of Wisdom",
+"count": 4
+},
+{
+"name": "Quaketusk Boar",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Stormcatch Mentor",
+"count": 3
+},
+{
+"name": "Tempest Angler",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

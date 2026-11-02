@@ -335,6 +335,12 @@ type staticGrantLifetime struct {
 	// ControllerTurnOnly gates every registration on its controller's
 	// turn (an Animate-delivered Condition$ PlayerTurn body).
 	ControllerTurnOnly bool
+	// SourceIncarnation anchors a grant registered ahead of its source's
+	// battlefield entry to the incarnation that entry will begin.
+	SourceIncarnation uint32
+	// GrantedStatic marks a body the object gained as its own static ability
+	// (Animate's staticAbilities$), where a loss of all abilities can end it.
+	GrantedStatic bool
 }
 
 // stampGrantLifetime applies lt to one layer's registration. Zero-value
@@ -365,6 +371,9 @@ func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
 	if lt.ChosenNumber != 0 {
 		ce.ChosenNumber = lt.ChosenNumber
 	}
+	if lt.SourceIncarnation != 0 {
+		ce.SourceIncarnation = lt.SourceIncarnation
+	}
 	if lt.FromEffect {
 		ce.FromEffect = true
 	}
@@ -388,8 +397,12 @@ func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
 // to its own honest Note rather than claiming a grant went live.
 func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g staticGrant, lt staticGrantLifetime) bool {
 	registered := false
+	// CR 613.6: a body that begins in layer 4 or 5 goes on applying, as a printed one does.
+	beginsLate := len(g.types) == 0 && !g.removeCardTypes && !g.removeLandTypes && !g.removeArtifactTypes &&
+		!g.removeEnchantmentTypes && !g.removeCreatureTypes && !g.allCreatureTypes && len(g.setColors) == 0 && len(g.addColors) == 0
 	add := func(ce state.ContinuousEffect) {
 		stampGrantLifetime(&ce, lt)
+		ce.GrantedStatic = lt.GrantedStatic && beginsLate
 		h.AddContinuous(ce)
 		registered = true
 	}

@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Arcane Signet
+1	card	Bake into a Pie
+2	card	Divert Disaster
+3	card	Don't Make a Sound
+4	card	Goblin Piker
+5	card	Heated Argument
+6	card	Island
+7	card	K'un-Lun Warrior
+8	card	Lightning Bolt
+9	card	Lord Skitter's Butcher
+10	card	Magnifying Glass
+11	card	Mind Stone
+12	card	Mountain
+13	card	Raging Goblin
+14	card	Reckless Detective
+15	card	Seize the Spoils
+16	card	Shock
+17	card	Skeleton Archer
+18	card	Sol Ring
+19	card	Swamp
+20	card	Thought Scour
+21	card	Walking Corpse
+22	token	b_1_1_rat_noblock
+23	token	c_a_clue_draw
+24	token	c_a_food_sac
+25	token	c_a_lander_sac_search
+26	token	c_a_treasure_sac
+27	card	Bonesplitter
+28	card	Callous Inspector
+29	card	Ornithopter

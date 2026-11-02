@@ -1,0 +1,29 @@
+# the shock-land as-enters pay-life election pool:
+# the ten Standard shock lands, burn, vanilla creatures, Opt and Wood
+# Elves (a search that puts a Forest card onto the battlefield, the
+# mid-resolution election), for the oracle's constructed lockstep
+# (dirac/oracle/shock_test.go)
+Blood Crypt
+Breeding Pool
+Coiling Oracle
+Forest
+Godless Shrine
+Grizzly Bears
+Hallowed Fountain
+Hill Giant
+Island
+Lightning Bolt
+Llanowar Elves
+Mountain
+Opt
+Overgrown Tomb
+Plains
+Raging Goblin
+Sacred Foundry
+Shock
+Steam Vents
+Stomping Ground
+Swamp
+Temple Garden
+Watery Grave
+Wood Elves

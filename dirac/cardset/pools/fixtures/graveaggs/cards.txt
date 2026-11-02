@@ -1,0 +1,27 @@
+# the constructed lockstep pool: the Count$ValidGraveyard mana-value
+# folds (greatest, sum, distinct) beside self-mill, cheap instants and
+# vanilla creatures (dirac/oracle/graveaggs_test.go)
+Wick's Patrol
+Inferno Project
+Sudden Insight
+Snooping Newsie
+Tainted Indulgence
+Aven Heartstabber
+Sanguine Spy
+Eris, Roar of the Storm
+Syndicate Infiltrator
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Giant Spider
+Walking Corpse
+Shock
+Divination
+Lightning Bolt
+Mind Rot
+Unsummon
+Cancel
+Island
+Swamp
+Mountain
+Forest

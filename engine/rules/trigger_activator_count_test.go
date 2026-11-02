@@ -20,8 +20,8 @@ func TestMagebaneLizardCountsTheActivatorsNoncreatureCasts(t *testing.T) {
 	t.Parallel()
 	lizard := card(t, "Name:Magebane Lizard\nManaCost:1 R\nTypes:Creature Lizard\nPT:1/4\n"+
 		"T:Mode$ SpellCast | TriggerZones$ Battlefield | ValidCard$ Card.nonCreature | ValidActivatingPlayer$ Player | Execute$ TrigDmg | TriggerDescription$ x\n"+
-		"SVar:TrigDmg:DB$ DealDamage | Defined$ TriggeredActivator | NumDmg$ X\n"+
-		"SVar:X:Count$ThisTurnCast_Card.nonCreature+ControlledBy TriggeredActivator\nOracle:x\n")
+		"SVar:TrigDmg:DB$ DealDamage | Defined$ TriggeredActivator | NumDmg$ Cast\n"+
+		"SVar:Cast:Count$ThisTurnCast_Card.nonCreature+ControlledBy TriggeredActivator\nOracle:x\n")
 	instant := card(t, "Name:Quick\nManaCost:U\nTypes:Instant\nA:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
 	e := handEngine(t, lizard, instant, instant)
 	hand := append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...)

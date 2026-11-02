@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_04547_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck af850c5172354e578febccb7264578fd:2, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Consumed by Greed, 1 Maha, Its Feathers Night, 2 Starscape Cleric, 1 Starseer Mentor, 1 Zoraline, Cosmos Caller -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 6
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 2
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

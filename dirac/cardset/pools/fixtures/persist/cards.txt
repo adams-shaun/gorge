@@ -1,0 +1,22 @@
+# the three PersistentMana$ True carriers (Brazen Collector,
+# Savage Ventmaw, Branch of Vitu-Ghazi) beside Firebending Student, instants
+# that spend the kept mana in a later step, creatures and basics
+# (dirac/oracle/persist_test.go)
+Brazen Collector
+Savage Ventmaw
+Branch of Vitu-Ghazi
+Firebending Student
+Shock
+Lightning Strike
+Giant Growth
+Disfigure
+Grizzly Bears
+Hill Giant
+Fire Elemental
+Air Elemental
+Youthful Knight
+Island
+Mountain
+Forest
+Plains
+Swamp

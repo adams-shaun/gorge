@@ -1,0 +1,38 @@
+# the Sneak pool: the sneak carriers kgen lowers, {X}
+# instants that float mana, cheap creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/sneak_test.go)
+# The Sneak pool: the sneak carriers kgen lowers (Teenage
+# Mutant Ninja Turtles, Marvel Super Heroes), the {X} instants that leave
+# mana floating (gorge offers a sneak cast only when the floating pool pays
+# it), cheap attackers and blockers from Foundations, and basics, for the
+# oracle's constructed lockstep (dirac/oracle/sneak_test.go).
+Leonardo, Big Brother
+Leonardo, Cutting Edge
+Leonardo's Technique
+Splinter, Hamato Yoshi
+Splinter's Technique
+Oroku Saki, Shredder Rising
+Shredder, Unrelenting
+Elektra, Daughter of the Hand
+Donatello's Technique
+Donatello, Gadget Master
+Raphael, the Nightwatcher
+Jennika's Technique
+New Generation's Technique
+Slice from the Shadows
+Pedal to the Metal
+Torch Breath
+Tyvar's Stand
+Savannah Lions
+Healer's Hawk
+Sanguine Syphoner
+Infestation Sage
+Fanatical Firebrand
+Goblin Boarders
+Courageous Goblin
+Gnarlid Colony
+Plains
+Island
+Swamp
+Mountain
+Forest

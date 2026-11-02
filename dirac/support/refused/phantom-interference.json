@@ -1,0 +1,13 @@
+{
+  "card": "Phantom Interference",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 6 games in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1292,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

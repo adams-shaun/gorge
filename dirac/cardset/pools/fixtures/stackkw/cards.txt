@@ -1,0 +1,34 @@
+# the AffectedZone$ Stack keyword-grant pool: Sami,
+# Witherbloom, Ironheart, Silverquill and Quandrix ("spells you cast have
+# affinity / improvise / casualty / cascade") beside instants, sorceries,
+# artifacts, a printed cascade card, power >= 1 creatures and basics
+# (dirac/oracle/stackkw_test.go)
+Sami, Wildcat Captain
+Witherbloom, the Balancer
+Quandrix, the Proof
+Shock
+Opt
+Impulse
+Lightning Bolt
+Divination
+Brainstorm
+Mind Stone
+Sol Ring
+Bonesplitter
+Pilgrim's Eye
+Bloodbraid Elf
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Giant Spider
+Walking Corpse
+Forest
+Island
+Mountain
+Plains
+Swamp
+Ironheart, Clever Champion
+Silverquill, the Disputant
+Iridescent Tiger
+Burning-Tree Emissary
+Inspiring Statuary

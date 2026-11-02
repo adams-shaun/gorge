@@ -188,6 +188,9 @@ func TestSquadSecuritronDeclinedIsAPlainCast(t *testing.T) {
 	if _, ok := squadCastInfoAmount(e, hero); ok {
 		t.Fatal("a declined squad still stamped the squadpaid flag")
 	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a declined squad put %d triggers on the stack, want 0", n)
+	}
 	replayCheck(t, e, cfg)
 }
 
@@ -212,6 +215,9 @@ func TestSquadSecuritronPlainCastUnchanged(t *testing.T) {
 	}
 	if _, ok := squadCastInfoAmount(e, hero); ok {
 		t.Fatal("a plain cast stamped the squadpaid flag")
+	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a plain cast put %d triggers on the stack, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -358,4 +364,28 @@ func TestSquadKeywordExpansionAddsTheETBTrigger(t *testing.T) {
 	if !prims["kw:Squad"] {
 		t.Fatal("Securitron Squadron's primitive set omits kw:Squad")
 	}
+}
+
+// A creature that left with its squad trigger on the stack still leaves its copies: the
+// count is the fire-time one and the copies are of what it was (CR 608.2h, from memory).
+// Forge's TriggeredCardLKICopy and XMage's CreateTokenCopySourceEffect agree (read).
+func TestSquadSourceThatLeftStillMints(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := squadEngine(t)
+	hero := searchMoveByName(t, e, "Securitron Squadron", state.ZHand)
+	addMana(t, e, 0, "WWWWWWWW")
+	submitChoices(t, e, squadOption(t, e, hero, "squadded").Index)
+	chooseSquad(t, e, 2)
+	for i := 0; i < 8 && e.G.Obj(hero).Zone != state.ZBattlefield; i++ {
+		passOnce(t, e)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v after entering, want the squad trigger", e.G.Stack)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: hero, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 40)
+	if n := squadCopies(e, hero); n != 2 {
+		t.Fatalf("%d token copies, want 2", n)
+	}
+	replayCheck(t, e, cfg)
 }

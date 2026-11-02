@@ -24,7 +24,7 @@ import (
 //  2. The real card's own script: Colfenor's Urn's `Cost$ Mandatory
 //     Sac<1/CARDNAME>` end-step trigger charges the sacrifice (the Urn leaves
 //     the battlefield for the graveyard) rather than a phantom generic mana.
-//     The fixture carries the card's exact script inline (never a committed
+//     The fixture states the card's shape inline (never a committed
 //     .txt -- Forge scripts are GPL-3.0 and this repo is Apache-2.0); the
 //     Urn is in no repo deck, so TestHeads is independent of it.
 //
@@ -73,10 +73,10 @@ func TestMandatoryCostHeadParsesWithoutGeneric(t *testing.T) {
 const colfenorUrnScript = "Name:Colfenor's Urn\n" +
 	"ManaCost:3\n" +
 	"Types:Artifact\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | TriggerZones$ Battlefield | ValidCard$ Creature.toughnessGE4+YouOwn | OptionalDecider$ You | Execute$ TrigExile | TriggerDescription$ Whenever a creature with toughness 4 or greater is put into your graveyard from the battlefield, you may exile it.\n" +
-	"SVar:TrigExile:DB$ ChangeZone | Origin$ Graveyard | Destination$ Exile | Defined$ TriggeredNewCardLKICopy\n" +
-	"T:Mode$ Phase | Phase$ End of Turn | TriggerZones$ Battlefield | CheckSVar$ X | SVarCompare$ GE3 | Execute$ TrigReturnAll | TriggerDescription$ At the beginning of the end step, if three or more cards have been exiled with CARDNAME, sacrifice it. If you do, return those cards to the battlefield under their owner's control.\n" +
-	"SVar:TrigReturnAll:AB$ ChangeZone | Cost$ Mandatory Sac<1/CARDNAME> | Defined$ ExiledWith | Origin$ Exile | Destination$ Battlefield\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | TriggerZones$ Battlefield | ValidCard$ Creature.toughnessGE4+YouOwn | OptionalDecider$ You | Execute$ OnExile\n" +
+	"SVar:OnExile:DB$ ChangeZone | Origin$ Graveyard | Destination$ Exile | Defined$ TriggeredNewCardLKICopy\n" +
+	"T:Mode$ Phase | Phase$ End of Turn | TriggerZones$ Battlefield | CheckSVar$ X | SVarCompare$ GE3 | Execute$ OnReturnAll\n" +
+	"SVar:OnReturnAll:AB$ ChangeZone | Cost$ Mandatory Sac<1/CARDNAME> | Defined$ ExiledWith | Origin$ Exile | Destination$ Battlefield\n" +
 	"SVar:X:ExiledWith$Amount\n" +
 	"Oracle:Whenever a creature with toughness 4 or greater is put into your graveyard from the battlefield, you may exile it.\\nAt the beginning of the end step, if three or more cards have been exiled with Colfenor's Urn, sacrifice it. If you do, return those cards to the battlefield under their owner's control.\n"
 

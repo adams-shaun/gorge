@@ -1,0 +1,13 @@
+{
+  "card": "Professor Dellian Fel",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 20 games in the corpus",
+  "repro": {
+    "pool": "std-sos",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 855,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

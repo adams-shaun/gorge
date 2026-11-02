@@ -1,0 +1,6 @@
+# Liliana of the Veil's battlefield TwoPiles
+# (dirac/oracle/liliana_test.go)
+Liliana of the Veil
+Grizzly Bears
+Swamp
+Forest

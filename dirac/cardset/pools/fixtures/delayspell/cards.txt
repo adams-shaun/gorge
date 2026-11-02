@@ -1,0 +1,24 @@
+# the delayed SpellCast pool (CR 603.7): "when you
+# next cast an instant or sorcery spell this turn, copy it" carriers
+# (spells, activations, attack/damage triggers, a Saga chapter, a
+# prepared spell) beside cheap instants and sorceries and vanilla
+# creatures (dirac/oracle/delayspell_test.go)
+Teach by Example
+Twinferno
+Najal, the Storm Runner
+Mercurial Spelldancer
+Doublecast
+Rimefire Torque
+Summon: G.F. Cerberus
+Pigment Wrangler
+Shock
+Opt
+Burst Lightning
+Think Twice
+Lightning Strike
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Island
+Mountain
+Forest

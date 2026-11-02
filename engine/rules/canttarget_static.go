@@ -124,7 +124,12 @@ func (e *Engine) cantTargetBlocks(b cantTargetBody, id state.ObjID, actor state.
 		// matched from the restriction controller's perspective so
 		// Card.nonGreen+OppCtrl means an opponent of Thrun's controller.
 		host := e.protectionSource(source)
-		if host == 0 || !e.matchesSpecFrom(b.validSource, host, staticController, staticSource) {
+		if host == 0 {
+			return false
+		}
+		sc := e.specCtx(staticSource, staticController)
+		sc.PreparedSpell = e.preparedSpellOf(host)
+		if !e.matchesSpec(b.validSource, host, sc) {
 			return false
 		}
 	}

@@ -5,10 +5,12 @@
 package cards
 
 func kwSquad(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// CR 702.66a: "As an additional cost to cast this spell, you may pay
-	// [cost] any number of times. When this creature enters, create that many
-	// tokens that are copies of it." The corpus scripts carry only the
-	// K:Squad:<cost> line, so the expansion supplies the ETB half.
+	// CR 702.157a: "As an additional cost to cast this spell, you may pay
+	// [cost] any number of times" and "When this creature enters, if its squad
+	// cost was paid, create a token that's a copy of it for each time its
+	// squad cost was paid." The corpus scripts carry only the K:Squad:<cost>
+	// line, so the expansion supplies the ETB half. The "if" is an intervening
+	// if (CR 603.4): a cast that paid nothing puts nothing on the stack.
 	//
 	// One ChangesZone self-entry trigger (the Afterlife shape) whose effect
 	// mints one token copy of the entering creature PER SQUAD PAYMENT. The
@@ -18,14 +20,13 @@ func kwSquad(f *Face, i int, k, head, param string, has func(kind, line string) 
 	// Count$ReplicatePaid pattern. Count$SquadPaid resolves against the
 	// trigger's SOURCE, which is the permanent the cast spell became, so a
 	// cast that paid nothing (the plain cast, or a token copy that was never
-	// cast) reads 0 and effCopyPermanent's NumCopies <= 0 arm mints nothing.
+	// cast) reads 0.
 	//
 	// CopyPermanent mints each copy's battlefield entry as a genuine
 	// ChangesZone-matchable MoveZone, so the copies' own entries are observed
 	// by every "a creature enters" trigger exactly like an ordinary cast --
-	// and each copy carries the printed Squad keyword, so its own entry
-	// trigger fires with Count$SquadPaid 0 (it was never cast) and creates no
-	// further copies.
+	// and each copy carries the printed Squad keyword, but its own entry reads
+	// Count$SquadPaid 0 (it was never cast) and does not trigger.
 	//
 	// The colon parameter is the per-payment cost, priced by the cast flow
 	// through squadCost (engine/rules/cast.go): a cost ParseCost cannot model is
@@ -33,7 +34,7 @@ func kwSquad(f *Face, i int, k, head, param string, has func(kind, line string) 
 	// paying a degraded cost. addKeywordTrigger guards idempotency via the
 	// KeywordLine tag, so a second Link() of a cached face cannot double-add
 	// the trigger.
-	f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Squad",
+	f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | CheckSVar$ Count$SquadPaid | TriggerDescription$ Squad",
 		"DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$SquadPaid", has)
 }
 

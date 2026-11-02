@@ -1,0 +1,26 @@
+# the Behold<1/Type> either-or additional cost pool:
+# the three creature carriers and the removal spell that read nothing of the beheld object, Kithkin,
+# Goblin, Merfolk and Dragon creatures to behold, cheap removal and
+# basics (dirac/oracle/behold_test.go)
+Caustic Exhale
+Coral Merfolk
+Dragon Moose
+Forest
+Goblin Bully
+Goblin Cavaliers
+Hulking Bugbear
+Island
+Kinsbaile Aspirant
+Kithkin Billyrider
+Knight of Meadowgrain
+Maritime Guard
+Merfolk of the Pearl Trident
+Mons's Goblin Raiders
+Mountain
+Mudbutton Cursetosser
+Plains
+Shock
+Silvergill Mentor
+Swamp
+Vodalian Soldiers
+Volcanic Dragon

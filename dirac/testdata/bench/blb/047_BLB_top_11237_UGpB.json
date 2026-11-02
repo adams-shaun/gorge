@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_11237_UGpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 4abd653aa8df4def8e1f0ef66ce9f31d:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Cache Grab, 1 Finch Formation, 1 Long River Lurker, 1 Rust-Shield Rampager, 1 Waterspout Warden -> 2 Island, 1 Swamp, 2 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Galewind Moose",
+"count": 1
+},
+{
+"name": "Hivespine Wolverine",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Pawpatch Formation",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 2
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Sinister Monolith",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 3
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 2
+},
+{
+"name": "Tidecaller Mentor",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

@@ -1,0 +1,40 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Bloodthirsty Adversary
+1	card	Cathartic Pyre
+2	card	Cityscape Leveler
+3	card	Coral Merfolk
+4	card	Diregraf Ghoul
+5	card	Fear of Failed Tests
+6	card	Gift of the Viper
+7	card	Gray Ogre
+8	card	Grisly Salvage
+9	card	Grizzly Bears
+10	card	Hill Giant
+11	card	Island
+12	card	Lightning Bolt
+13	card	Mind Stone
+14	card	Molten Collapse
+15	card	Mountain
+16	card	Ornithopter
+17	card	Pawpatch Recruit
+18	card	Pitiless Plunderer
+19	card	Selfless Spirit
+20	card	Sentinel of the Nameless City
+21	card	Shock
+22	card	Stitcher's Supplier
+23	card	Swamp
+24	card	Thought Scour
+25	card	Tireless Tracker
+26	card	Village Rites
+27	card	Wail of the Forgotten
+28	token	c_a_clue_draw
+29	token	c_a_map_sac_explore
+30	token	c_a_powerstone
+31	token	c_a_treasure_sac
+32	card	Blood Fountain
+33	card	Vampiric Rites
+34	card	Voltaic Key
+35	card	Wayfarer's Bauble
+36	card	Witch's Oven
+37	token	c_a_blood_draw
+38	token	c_a_food_sac

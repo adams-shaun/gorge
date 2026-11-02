@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_24458_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 6605f68ea89e45a5ac99d098c57511bc:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Crumb and Get It, 1 Jolly Gerbils, 1 Kastral, the Windcrested, 1 Long River's Pull, 1 Starfall Invocation, 1 Valley Floodcaller -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 3
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Thistledown Players",
+"count": 1
+}
+]
+}

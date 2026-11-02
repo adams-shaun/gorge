@@ -99,7 +99,7 @@ func TestManaCostAbilityGoesOnTheStackAndResolves(t *testing.T) {
 func TestScaldingTarnPayLifeActivation(t *testing.T) {
 	t.Parallel()
 	const tarn = "Name:Scalding Tarn\nManaCost:no cost\nTypes:Land\n" +
-		"A:AB$ ChangeZone | Cost$ T PayLife<1> Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | ChangeType$ Island,Mountain | SpellDescription$ Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.\n" +
+		"A:AB$ ChangeZone | Cost$ T PayLife<1> Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | ChangeType$ Island,Mountain\n" +
 		"Oracle:{T}, Pay 1 life, Sacrifice Scalding Tarn: Search your library for an Island or Mountain card, put it onto the battlefield, then shuffle.\n"
 
 	for _, tc := range []struct {
@@ -151,8 +151,8 @@ func TestScaldingTarnPayLifeActivation(t *testing.T) {
 func TestRemoveCounterCostAndTargetedAbility(t *testing.T) {
 	t.Parallel()
 	src := "Name:Ballista\nManaCost:X X\nTypes:Artifact Creature Construct\nPT:0/0\n" +
-		"A:AB$ PutCounter | Cost$ 4 | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ Put a +1/+1 counter on CARDNAME.\n" +
-		"A:AB$ DealDamage | Cost$ SubCounter<1/P1P1> | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ It deals 1 damage to any target.\nOracle:x\n"
+		"A:AB$ PutCounter | Cost$ 4 | CounterType$ P1P1 | CounterNum$ 1\n" +
+		"A:AB$ DealDamage | Cost$ SubCounter<1/P1P1> | ValidTgts$ Any | NumDmg$ 1\nOracle:x\n"
 	e, cfg, _ := newFixtureDeck(t, 36, src)
 	id := putCreature(t, e, 0, src) // drives to Main1 and leaves e.pending nil, so the Advance below re-asks a fresh priority decision
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 2})
@@ -181,7 +181,7 @@ func TestRemoveCounterCostAndTargetedAbility(t *testing.T) {
 func TestGraveyardActivationWithSacrificeCost(t *testing.T) {
 	t.Parallel()
 	src := "Name:Breaker\nManaCost:6 G\nTypes:Creature Eldrazi\nPT:5/7\nK:Devoid\n" +
-		"A:AB$ ChangeZone | Cost$ 2 C Sac<1/Land> | Origin$ Graveyard | Destination$ Hand | ActivationZone$ Graveyard | SpellDescription$ Return CARDNAME from your graveyard to your hand.\nOracle:x\n"
+		"A:AB$ ChangeZone | Cost$ 2 C Sac<1/Land> | Origin$ Graveyard | Destination$ Hand | ActivationZone$ Graveyard\nOracle:x\n"
 	e, cfg, id := newFixtureDeck(t, 39, src)
 	// The sacrificial land is a real deck Mountain moved with a logged
 	// MoveZone, not a putLands fixture: replayCheck reconstructs a deck card

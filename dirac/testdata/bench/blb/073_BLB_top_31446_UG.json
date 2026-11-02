@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_31446_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f93a59e3f3534b289f99912d275a41b4:1, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dour Port-Mage, 1 Long River Lurker, 1 Long River's Pull, 1 Longstalk Brawl, 2 Pond Prophet -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 3
+},
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "High Stride",
+"count": 1
+},
+{
+"name": "Hivespine Wolverine",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 2
+},
+{
+"name": "Skyskipper Duo",
+"count": 3
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 2
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+}
+]
+}

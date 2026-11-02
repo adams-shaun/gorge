@@ -6,7 +6,7 @@ bot, and bots take part in every phase. This page shows how to host events with
 `gorged`, how to run them headless with `draftsim`, and how to compose your own
 workflows with `labdemo` and the `draftlab` library.
 
-The commands and output below are from 2026-10-31.
+The commands and output below are from 2026-11-02.
 
 ## Host events with `gorged -events`
 
@@ -30,7 +30,7 @@ A `gorged` built before `make web` still serves the whole API, but pages answer
 `503 web build missing`.
 
 With `-events`, the startup art fill also covers every card in every draftable
-set (553 card names) as well as the deck files, so a first start spends a while
+set as well as the deck files, so a first start spends a while
 fetching from Scryfall at a limited rate. Play is not affected. Add
 `-prewarm=false` to skip the fill, and cards are then fetched as packs first show
 them; `-art-dir` keeps the cache across a wiped `-dir`.
@@ -188,16 +188,16 @@ bin/draftsim -set FDN -seed 1 -events 2 -verify
 event 1: seed 1, set FDN (play-arena), drafter rating-colour, builder best23
   round 1 seat 0 (lethal-pressure) vs seat 3 (lethal-pressure): winner seat 3 turns 11 head 14b4ac72c8b56212 replay OK
   round 1 seat 1 (bot) vs seat 2 (forge-heuristic): winner seat 1 turns 19 head 8fa59c64fc1474ef replay OK
-  round 2 seat 0 (lethal-pressure) vs seat 2 (forge-heuristic): winner seat 2 turns 22 head 3349f3473a6bd77a replay OK
-  round 2 seat 1 (bot) vs seat 3 (lethal-pressure): winner seat 3 turns 31 head 97ba2df4621a59f7 replay OK
+  round 2 seat 0 (lethal-pressure) vs seat 2 (forge-heuristic): winner seat 2 turns 22 head 07dff03942ae1a82 replay OK
+  round 2 seat 1 (bot) vs seat 3 (lethal-pressure): winner seat 3 turns 27 head 90c17aff84f08cb5 replay OK
   round 3 seat 0 (lethal-pressure) vs seat 1 (bot): winner seat 0 turns 41 head 022b40d05194e9bd replay OK
-  round 3 seat 2 (forge-heuristic) vs seat 3 (lethal-pressure): winner seat 2 turns 34 head b9be96e94f486128 replay OK
+  round 3 seat 2 (forge-heuristic) vs seat 3 (lethal-pressure): winner seat 3 turns 49 head c93b435f467e5677 replay OK
 event 1: replay OK (208 log entries, 6 games)
   standings: seat persona                pts    MW    OMW    GW    OGW
-    2 FDN/rating-colour/forge-heuristic   6  0.667  0.444  0.667  0.444
-    3 FDN/rating-colour/lethal-pressure   6  0.667  0.444  0.667  0.444
+    3 FDN/rating-colour/lethal-pressure   9  1.000  0.333  1.000  0.333
     0 FDN/rating-colour/lethal-pressure   3  0.333  0.556  0.333  0.556
     1 FDN/rating-colour/bot      3  0.333  0.556  0.333  0.556
+    2 FDN/rating-colour/forge-heuristic   3  0.333  0.556  0.333  0.556
 event 2: seed 2, set FDN (play-arena), drafter rating-colour, builder best23
   ...
 event 2: replay OK (208 log entries, 6 games)

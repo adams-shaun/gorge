@@ -19,7 +19,7 @@ func TestBeltOfGiantStrengthEquipChoiceManaWindow(t *testing.T) {
 	if !ok {
 		t.Fatal("real Belt of Giant Strength absent from corpus")
 	}
-	const prismSrc = "Name:Prism Land\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n"
+	const prismSrc = "Name:Prism Land\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any\nOracle:x\n"
 	cfg := Config{Seed: 517, Names: []string{"a", "b"}, Decks: [][]*cards.Card{
 		append([]*cards.Card{belt, card(t, equipReduceBruteSrc), card(t, equipReduceSmallSrc), card(t, prismSrc)}, mountainDeck(t, 36)...),
 		mountainDeck(t, 40),

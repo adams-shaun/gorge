@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Afterburner Expert
+1	card	Ajani Unrelenting
+2	card	Chandra, Flameshaper
+3	card	Forest
+4	card	Gideon the Oathless
+5	card	Greasewrench Goblin
+6	card	Grizzly Bears
+7	card	Island
+8	card	Kaito, Cunning Infiltrator
+9	card	Keen Buccaneer
+10	card	Liliana, Dreadhorde General
+11	card	Mindspring Merfolk
+12	card	Mountain
+13	card	Plains
+14	card	Rangers' Aetherhive
+15	card	Rangers' Refueler
+16	card	Shock
+17	card	Skystreak Engineer
+18	card	Stampeding Scurryfoot
+19	card	Swamp
+20	card	Vivien Reid
+21	card	Way of the Paradox
+22	card	name:Jace Token
+23	token	b_2_2_zombie
+24	token	c_1_1_a_thopter_flying
+25	token	cadet
+26	token	g_3_3_elephant
+27	token	u_2_1_ninja
+28	token	u_empower
+29	token	u_empower_jace

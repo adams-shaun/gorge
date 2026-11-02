@@ -51,3 +51,28 @@ func TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt(t *testing.T) {
 		})
 	}
 }
+
+// CR 702.58a: "if this permanent has a +1/+1 counter on it" is an intervening if, so
+// once the counter has moved another creature's entry poses nothing.
+func TestGraftWithoutACounterDoesNotTrigger(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := proliferateEngine(t, reg, "Llanowar Reborn", "Grizzly Bears")
+	land := putNamedOnBattlefield(t, e, "Llanowar Reborn")
+	putNamedOnBattlefield(t, e, "Grizzly Bears")
+	d := passUntilNonPriority(t, e, 60)
+	if d == nil || d.Kind != decision.KTriggerOptional {
+		t.Fatalf("decision = %+v, want optional Graft trigger", d)
+	}
+	submitChoices(t, e, 0)
+	passUntilStackEmpty(t, e, 60)
+	if got := e.G.Obj(land).Counter("P1P1"); got != 0 {
+		t.Fatalf("Llanowar Reborn P1P1 = %d after moving its counter", got)
+	}
+	pushed := triggersPushedFrom(e, land)
+	putNamedOnBattlefield(t, e, "Grizzly Bears")
+	if n := triggersPushedFrom(e, land); n != pushed {
+		t.Fatalf("Graft with no counter triggered: %d pushes, was %d", n, pushed)
+	}
+	replayCheck(t, e, cfg)
+}

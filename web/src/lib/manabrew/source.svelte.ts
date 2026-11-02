@@ -107,7 +107,7 @@ export class ManaBrewMatch extends SnapshotMatch {
         this.acceptPrompt(m);
         break;
       case 'error':
-        this.notice = `ManaBrew ${m.error.code}: ${m.error.message}`;
+        this.noteRefusal(m.error.code, m.error.message);
         break;
       case 'display':
         break; // WIP upstream, not authoritative
@@ -233,11 +233,16 @@ export class ManaBrewMatch extends SnapshotMatch {
       await this.deps.transport.send(this.table, this.match, this.seat.token, msg);
     } catch (e) {
       if (e instanceof WireError) {
-        this.notice = `ManaBrew ${e.code}: ${e.message}`;
+        this.noteRefusal(e.code, e.message);
         throw new ApiError(e.status, e.code, e.message);
       }
       throw e;
     }
+  }
+
+  /** A stale prompt is a race, not a fault: the prompt closed before the answer arrived, and the panel re-reads the open one. */
+  private noteRefusal(code: string, message: string) {
+    if (code !== 'stalePrompt') this.notice = `ManaBrew ${code}: ${message}`;
   }
 
   private withdraw() {

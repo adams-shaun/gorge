@@ -5,7 +5,7 @@
 # Local preview (needs only uv or a virtualenv):
 #   uvx --with mkdocs-material==9.7.7 mkdocs serve
 site_name: gorge
-site_description: A Magic rules engine in pure Go, with a server and browser client; every game is a replayable, hash-chained event log.
+site_description: Two Magic rules engines in pure Go, with a server and browser client.
 site_url: https://adams-shaun.github.io/gorge/
 repo_url: https://github.com/adams-shaun/gorge
 repo_name: adams-shaun/gorge
@@ -122,6 +122,7 @@ nav:
       - guide/index.md
       - Install and build: guide/install.md
       - Play in the browser: guide/play.md
+      - Serving dirac: guide/dirac.md
       - Draft events: guide/draft.md
       - Bot-vs-bot games: guide/bot-games.md
       - Replays: guide/replays.md

@@ -1,0 +1,37 @@
+# the departure-read pool: the TMT Disappear
+# (Revolt$ True) carriers and the SOS Count$LeftGraveyardThisTurn
+# carriers beside permanent leavers, graveyard leavers, a steal and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/leftzone_test.go)
+# The departure-read pool: the six TMT Disappear
+# (Revolt$ True) carriers and the three SOS Count$LeftGraveyardThisTurn
+# carriers, Shock, Lightning Bolt, Unsummon, Bake into a Pie and Hungry Ghoul
+# (permanents that leave), Control Magic (a steal: the controller a permanent
+# leaves under is not its owner), Raise Dead and Gravedigger (cards that leave
+# a graveyard), a few bears and basics, for the oracle's constructed
+# lockstep (dirac/oracle/leftzone_test.go).
+Foot Mystic
+Insectoid Exterminator
+Lord Dregg, Insect Invader
+Michelangelo, Game Master
+Pizza Face, Gastromancer
+West Wind Avatar
+Living History
+Primary Research
+Wilt in the Heat
+Shock
+Lightning Bolt
+Unsummon
+Bake into a Pie
+Hungry Ghoul
+Control Magic
+Raise Dead
+Gravedigger
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest

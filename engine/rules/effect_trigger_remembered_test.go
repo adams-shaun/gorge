@@ -15,8 +15,8 @@ import (
 const (
 	rememberInsightSrc = "Name:Insight Fixture\nManaCost:0\nTypes:Instant\n" +
 		"A:SP$ Effect | ValidTgts$ Permanent.YouCtrl | Triggers$ TrigTap | RememberObjects$ Targeted | SpellDescription$ x\n" +
-		"SVar:TrigTap:Mode$ Taps | ValidCard$ Card.IsRemembered | Execute$ TrigGain\n" +
-		"SVar:TrigGain:DB$ GainLife | LifeAmount$ 3\nOracle:x\n"
+		"SVar:TrigTap:Mode$ Taps | ValidCard$ Card.IsRemembered | Execute$ OnGain\n" +
+		"SVar:OnGain:DB$ GainLife | LifeAmount$ 3\nOracle:x\n"
 	rememberTapperSrc = "Name:Tapper Fixture\nTypes:Artifact\n" +
 		"A:AB$ GainLife | Cost$ T | LifeAmount$ 0\nOracle:x\n"
 )

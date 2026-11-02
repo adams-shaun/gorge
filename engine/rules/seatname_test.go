@@ -13,7 +13,7 @@ import (
 // hyphenated repo-deck slugs a table serves and whose table display names
 // are the vs-bot pair, then drives past the London mulligan round so a
 // priority decision is pending. Used to pin that the client-facing prompt
-// and option-label text (seatFacingName) reads the display name, never the
+// and option-label text (state.SeatName) reads the display name, never the
 // deck slug, while event text keeps the deck identity (F3,
 // TestPlayerNamesDoNotReachTheChain owns the chain-side invariant).
 func seatNamesGame(t *testing.T, withPlayerNames bool) *Engine {

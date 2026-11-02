@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_27678_WG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck d3ba650256b648cc9747c84c3b728abf:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 2 Carrot Cake, 1 Harvestrite Host, 1 Head of the Homestead, 1 Heirloom Epic, 1 Intrepid Rabbit -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Druid of the Spade",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Galewind Moose",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "High Stride",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Overprotect",
+"count": 2
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

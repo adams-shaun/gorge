@@ -1,0 +1,20 @@
+# the hand move whose filter may admit an Aura (CR
+# 303.4f/g) and a counted "any number" ChangeNum$: Kona, Anticausal
+# Vestige, Origin of the Avengers, Mind into Matter, Ghalta, beside
+# Auras, Heroes and cheap creatures (dirac/oracle/handaura_test.go)
+Kona, Rescue Beastie
+Anticausal Vestige
+Origin of the Avengers
+Mind into Matter
+Ghalta, Stampede Tyrant
+Pacifism
+Holy Strength
+Shardmage's Rescue
+Claustrophobia
+White Tiger, Amulet Keeper
+Winter Soldier, Bucky Barnes
+Grizzly Bears
+Llanowar Elves
+Forest
+Plains
+Island

@@ -71,3 +71,15 @@ A:SP$ GainLife | LifeAmount$ 1 | SpellDescription$ You gain 1 life.
 	d := giftAskFor(t, e, spell, "W")
 	assertGiftAskText(t, e, d, "Promise a gift?", "a gift")
 }
+
+// TestGiftAskNamesTheSeatByDisplayName pins the promise label to the seat's
+// display name: a table's PlayerNames identify the player, the deck name does not.
+func TestGiftAskNamesTheSeatByDisplayName(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 7303, corpusCardText(t, "d/dewdrop_cure.txt"))
+	e.G.Players[1].PlayerName = "Bot"
+	d := giftAskFor(t, e, spell, "CCW")
+	if want := "Promise Bot a card"; d.Options[1].Label != want {
+		t.Fatalf("promise label = %q, want %q", d.Options[1].Label, want)
+	}
+}

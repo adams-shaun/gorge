@@ -1,0 +1,19 @@
+# the face-down / Morph-family pool: a Morph {0} turn-up
+# trigger, Morph / Megamorph / Disguise carriers, a land with Morph and a
+# "whenever a permanent is turned face up" watcher, beside basics and
+# vanilla creatures (dirac/oracle/facedown_test.go)
+Aven Farseer
+Mox Emerald
+Mox Sapphire
+Mox Jet
+Mox Ruby
+Mox Pearl
+Priest of Urabrask
+Priest of Gix
+Kolaghan Stormsinger
+Bolrac-Clan Basher
+Basilica Stalker
+Zoetic Cavern
+Shock
+Humility
+Concealed Weapon

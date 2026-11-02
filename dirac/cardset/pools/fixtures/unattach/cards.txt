@@ -1,0 +1,28 @@
+# the Equipment-unattach pool (gorge, CR 704.5p):
+# Equipment that animators (Ensouled Scimitar, Relic's Roar, Karn's Touch,
+# the animating Auras...) make creatures, for the oracle's constructed
+# lockstep (dirac/oracle/unattach_test.go)
+Ensouled Scimitar
+Bonesplitter
+Short Sword
+Vulshok Morningstar
+Avacyn's Collar
+Relic's Roar
+Karn's Touch
+Alloy Animist
+Toymaker
+Ensoul Artifact
+Zoetic Glyph
+Mightstone's Animation
+I Am Iron Man
+Tough Cookie
+Grizzly Bears
+Llanowar Elves
+Ornithopter
+Memnite
+Gold Myr
+Hill Giant
+Shock
+Island
+Forest
+Mountain

@@ -1,0 +1,22 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abzan Monument
+1	card	Dance of the Tumbleweeds
+2	card	Forest
+3	card	Giant Growth
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Island
+7	card	Mountain
+8	card	Murder
+9	card	Plains
+10	card	Shock
+11	card	Swamp
+12	card	The Skullspore Nexus
+13	card	Tumbleweed Rising
+14	card	Unwilling Vessel
+15	token	g_x_x_elemental
+16	token	w_x_x_spirit
+17	card	Oviya Pashiri, Sage Lifecrafter
+18	token	c_1_1_a_servo
+19	token	c_x_x_a_construct
+20	token	u_x_x_spirit_flying

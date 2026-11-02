@@ -1,7 +1,7 @@
 package sbv2http
 
 // TestSBV2NameDecisionPastTheCap plays seed 2011 (tron's Pithing Needle asks
-// for any of 34,929 card names) over the real /api/sbv2 routes and answers the
+// for any of 34,990 card names) over the real /api/sbv2 routes and answers the
 // name through x_gorge_human_v1.choose_name with a name the 4096-candidate
 // window does not contain.
 
@@ -134,8 +134,8 @@ func TestSBV2NameDecisionPastTheCap(t *testing.T) {
 		if want := (nameDomain{Total: len(nd.Options), Offered: len(cands)}); human.NameDomain == nil || *human.NameDomain != want {
 			t.Fatalf("name_domain = %+v, want %+v", human.NameDomain, want)
 		}
-		if human.NameDomain.Total != 34929 {
-			t.Fatalf("name_domain.total = %d, want 34929", human.NameDomain.Total)
+		if human.NameDomain.Total != 34990 {
+			t.Fatalf("name_domain.total = %d, want 34990", human.NameDomain.Total)
 		}
 		last := nd.Options[len(nd.Options)-1].Label
 		for _, c := range req.ask.Pose.Candidates {

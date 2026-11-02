@@ -1,0 +1,17 @@
+# the non-cast clone entry pool: Clone returned by
+# Zombify asks the as-enters copy election beside basic lands
+# (dirac/oracle/cloneenter_test.go)
+Clone
+Zombify
+Plains
+Island
+Swamp
+Forest
+Visage Bandit
+Glasspool Mimic
+Phyrexian Metamorph
+Quicksilver Gargantuan
+Grizzly Bears
+Hill Giant
+Ornithopter
+Juggernaut

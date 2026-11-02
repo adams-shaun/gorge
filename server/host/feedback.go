@@ -5,10 +5,9 @@ import (
 	"os"
 	"sort"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/game/gorgegame"
-	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -92,6 +91,11 @@ type FeedbackMatch struct {
 	// first census-sensitive decision. A pre-flip capture carries no field,
 	// which reads back as census OFF (the narrow census those matches ran).
 	PaidManaCensus bool `json:"paid_mana_census,omitempty"`
+
+	// Engine and EngineKey mirror the sidecar's fields of the same names: the
+	// engine a replay runs on and what it must be built from. Absent is gorge.
+	Engine    string `json:"engine,omitempty"`
+	EngineKey string `json:"engine_key,omitempty"`
 
 	// Tokens carries the raw token scripts — keyed by file stem, the exact
 	// spelling a card's TokenScript$ parameter uses — behind the match's
@@ -182,9 +186,6 @@ type FeedbackSnapshot struct {
 //
 // The returned snapshot is a stable copy: later bursts append to the live
 // match but never to it, so marshalling it needs no lock.
-//
-// A match on another engine refuses with ErrEngineUnsupported: match.json
-// records gorge's replay input.
 func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -242,11 +243,7 @@ func (r *Registry) SnapshotMatch(id TableID, k int, seat *state.PlayerID) (Feedb
 // projects the seat's view outside it.
 func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, error) {
 	m.mu.Lock()
-	if m.e == nil {
-		m.mu.Unlock()
-		return FeedbackSnapshot{}, engineRefusal("a feedback snapshot", m.engine.Name())
-	}
-	l := m.e.L.Clone()
+	l := m.g.Log().Clone()
 	// reconcileLog's trim is for crash-cut FILES, and this clone is not one:
 	// under the match lock no Submit is in flight (the match loop holds the
 	// write lock across Submit and its bookkeeping), so every event in the
@@ -285,7 +282,8 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	// burst is complete and the game state is the state those events left,
 	// so Turn/Step/Priority/Active describe exactly the prefix recorded
 	// below.
-	turn, step, prio, active := m.e.G.Turn, m.e.G.Step.String(), m.e.G.Priority, m.e.G.Active
+	board := m.g.Board()
+	turn, step, prio, active := board.Turn, board.Step.String(), board.Priority, board.Active
 	if seat != nil && int(*seat) >= len(sc.Seats) {
 		n := len(sc.Seats)
 		m.mu.Unlock()
@@ -301,10 +299,10 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	// view gates it (a table without AutoMana publishes no payment actions,
 	// so the feedback view must not carry them either).
 	var d *decision.Decision
-	if p := m.e.Pending(); p != nil {
+	if p := m.g.Pending(); p != nil {
 		if seat != nil && m.table.cfg.AutoMana && p.Player == *seat && int(p.Player) < len(m.slots) {
 			if _, isHuman := m.slots[p.Player].(*HumanSeat); isHuman {
-				m.e.EnsurePaymentActions()
+				m.ensureHumanOffers()
 			}
 		}
 		cp := *p.Clone()
@@ -314,7 +312,12 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 		d = &cp
 	}
 	snaps := append([]snapshot(nil), m.snaps...)
-	cfg, src := gorgegame.RulesConfig(m.gc), m.replaySource()
+	src := m.replaySource()
+	// Gorge mints tokens from their scripts; another engine's tables hold its own.
+	var tokenCards map[string]*cards.Card
+	if m.e != nil {
+		tokenCards = m.gc.Tokens
+	}
 	// headSeq comes from the copy the view below is projected from, not
 	// from the live log: the two agree for every non-crashed match (the
 	// clone is not trimmed), but a crashed match's reconciled copy is
@@ -327,11 +330,11 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	}
 	m.mu.Unlock()
 
-	// The token scripts are read back outside the lock: cfg.Tokens is the
+	// The token scripts are read back outside the lock: gc.Tokens is the
 	// registry-owned, never-mutated map the match was built with (the same
 	// discipline viewAt's replay already relies on for cfg), and the file
 	// reads are disk I/O no concurrent Submit should wait behind.
-	tokens, tokensUnread := tokenScripts(cfg)
+	tokens, tokensUnread := tokenScripts(tokenCards)
 
 	snap := FeedbackSnapshot{
 		Match: feedbackMatch(sc, deckCards, sideboardCards, tokens, tokensUnread),
@@ -372,30 +375,31 @@ func feedbackMatch(sc sidecar, deckCards [][]string, sideboards [][]string,
 		NameUniverse:      sc.NameUniverse,
 		NameUniverseNames: append([]string(nil), sc.NameUniverseNames...),
 		PaidManaCensus:    sc.PaidManaCensus,
-		Tokens:            tokens, TokensUnread: tokensUnread,
+		Engine:            sc.Engine, EngineKey: sc.EngineKey,
+		Tokens: tokens, TokensUnread: tokensUnread,
 	}
 }
 
-// tokenScripts reads the raw script text behind cfg.Tokens back off each
+// tokenScripts reads the raw script text behind a token table back off each
 // token card's own source path — the file that path names is what the
 // compiled card was parsed from, so reading it back is exact. See
 // FeedbackMatch.Tokens for why text and not the compiled cards, and why the
 // whole map rather than a deck-filtered subset. Stems are walked in sorted
 // order so TokensUnread (the only order-sensitive output) is deterministic;
 // the map itself marshals with sorted keys either way.
-func tokenScripts(cfg rules.Config) (map[string]string, []string) {
-	if len(cfg.Tokens) == 0 {
+func tokenScripts(table map[string]*cards.Card) (map[string]string, []string) {
+	if len(table) == 0 {
 		return nil, nil
 	}
-	stems := make([]string, 0, len(cfg.Tokens))
-	for s := range cfg.Tokens {
+	stems := make([]string, 0, len(table))
+	for s := range table {
 		stems = append(stems, s)
 	}
 	sort.Strings(stems)
 	out := make(map[string]string, len(stems))
 	var unread []string
 	for _, s := range stems {
-		c := cfg.Tokens[s]
+		c := table[s]
 		if c == nil || c.Path == "" {
 			unread = append(unread, s+": token card carries no source path")
 			continue

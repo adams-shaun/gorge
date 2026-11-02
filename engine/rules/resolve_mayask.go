@@ -161,6 +161,11 @@ func tapeTextMayAsk(e *Engine) bool {
 		return true
 	}
 	sa := stackSpellSA(o, f) // a cleaved spell resolves its cleave ability (CR 702.148a)
+	if (!f.IsPermanent() || len(o.Targets) > 0) && tapeMovedReplMayAsk(e) {
+		// The spell's own move as it finishes (CR 608.2n) or fizzles: two Moved
+		// replacements (two Leylines of the Void) compete for it, a CR 616.1 order.
+		return true
+	}
 	if f.IsPermanent() {
 		// The spell's own entry text, and the board's entry replacements:
 		// two Moved replacements competing for the entering permanent pose

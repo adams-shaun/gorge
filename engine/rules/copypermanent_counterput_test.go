@@ -11,13 +11,13 @@ import (
 // lb-copyperm-sel: a trigger body's own Cost$ Blight<1>, paid in the
 // triggered-cost window, records the blighted creature as the body's
 // "CounterPut" paid list, and `Defined$ CounterPutCards` copies it. The
-// fixture is Grub, Notorious Auntie's attack trigger verbatim on a front face
+// fixture is Grub, Notorious Auntie's attack trigger on a front face
 // (the real card is a transformed back face this board cannot reach directly).
 func TestBlightPaidListFeedsCounterPutCards(t *testing.T) {
 	reg := searchTestRegistry(t)
 	auntie := "Name:Fixture Auntie\nManaCost:2 B\nTypes:Creature Goblin Warrior\nPT:2/1\n" +
-		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCopy | TriggerZones$ Battlefield | TriggerDescription$ blight copy\n" +
-		"SVar:TrigCopy:AB$ CopyPermanent | Cost$ Blight<1> | TokenTapped$ True | TokenAttacking$ True | Defined$ CounterPutCards | AtEOTTrig$ Sacrifice\n" +
+		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ OnCopy | TriggerZones$ Battlefield | TriggerDescription$ blight copy\n" +
+		"SVar:OnCopy:AB$ CopyPermanent | Cost$ Blight<1> | TokenTapped$ True | TokenAttacking$ True | Defined$ CounterPutCards | AtEOTTrig$ Sacrifice\n" +
 		"Oracle:x\n"
 	victim := "Name:Fixture Victim\nManaCost:2 G\nTypes:Creature Elf\nPT:3/3\nOracle:x\n"
 	e, cfg := combatTriggerBoard(t, reg, nil, []string{auntie, victim}, nil, nil)

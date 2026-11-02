@@ -1,0 +1,38 @@
+# a filter as a card's first and only mana ability
+# (Abzan Devotee, Three Tree Mascot, Prophetic Prism, Giant's Boulder;
+# dirac/oracle/manaabmanacost_test.go)
+# The first-only filter mana pool: a filter as a card's
+# first and only mana ability, "{1}: Add one mana of any color. Activate only
+# once each turn" (Three Tree Mascot), "{1}: Add {W}, {B}, or {G}" once each
+# turn (Abzan Devotee), "{1}, {T}: Add one mana of any color" (Prophetic
+# Prism, Giant's Boulder), in a W/B/G deck over thin off-colour mana, against
+# a plain blue-red creature deck (dirac/oracle/manaabmanacost_test.go,
+# dirac/mana_filter_test.go's Devotee boards). The Jeskai, Mardu, Sultai and
+# Temur Devotees are the same filter over a Combo
+# printed out of WUBRG order (kop.Ability.ManaColOrd); the oracle plays them
+# in kmanaabmanacostComboDecks.
+Abzan Devotee
+Jeskai Devotee
+Mardu Devotee
+Sultai Devotee
+Temur Devotee
+Three Tree Mascot
+Prophetic Prism
+Giant's Boulder
+Grizzly Bears
+Doom Blade
+Vampire Nighthawk
+Skinrender
+Gray Merchant of Asphodel
+Serra Angel
+Savannah Lions
+Hill Giant
+Wind Drake
+Shock
+Lightning Bolt
+Pestermite
+Plains
+Swamp
+Island
+Forest
+Mountain

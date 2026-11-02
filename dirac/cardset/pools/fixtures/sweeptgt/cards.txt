@@ -1,0 +1,23 @@
+# the target-player sweep pool: PutCounterAll and
+# UntapAll scoped by ValidTgts$ Player, PutCounterAll's second batch
+# (Claim the Kingdom, Kheru Goldkeeper, Sagu Pummeler), a CounterAddedOnce
+# listener and cheap creatures/basics, for the oracle's constructed
+# lockstep (dirac/oracle/sweeptgt_test.go)
+Twisted Fates
+Requisition Raid
+Practiced Offense
+Rustler Rampage
+Claim the Kingdom
+Kheru Goldkeeper
+Sagu Pummeler
+Herd Baloth
+Elite Vanguard
+Savannah Lions
+Grizzly Bears
+Llanowar Elves
+Isamaru, Hound of Konda
+Thraben Inspector
+Plains
+Island
+Swamp
+Forest

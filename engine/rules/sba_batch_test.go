@@ -43,8 +43,8 @@ func TestSBABatchUsesPreDepartureBoard(t *testing.T) {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: a, Counter: "Shield", Amount: 1})
 			case "exiled":
 				onBoard(t, e, 0, "Name:Exile marked deaths\nTypes:Enchantment\n"+
-					"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | ReplaceWith$ Exile\n"+
-					"SVar:Exile:DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Battlefield | Destination$ Exile\nOracle:x\n")
+					"R:Event$ Moved | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature | ReplaceWith$ ToExile\n"+
+					"SVar:ToExile:DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Battlefield | Destination$ Exile\nOracle:x\n")
 			}
 			e.checkStateBased()
 			if shape == "legend rule" {

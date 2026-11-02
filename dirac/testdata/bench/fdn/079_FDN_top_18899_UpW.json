@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_18899_UpW",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 20a1fae8a0e248ea995ad2be7263c5ff:1, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Aetherize",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Giada, Font of Hope",
+"count": 1
+},
+{
+"name": "Grappling Kraken",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "High Fae Trickster",
+"count": 1
+},
+{
+"name": "Imprisoned in the Moon",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Mischievous Mystic",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 5
+},
+{
+"name": "Refute",
+"count": 3
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Time Stop",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 2
+}
+]
+}

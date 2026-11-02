@@ -226,6 +226,7 @@
             "type": "string"
           },
           "reason": {
+            "description": "Reason is plain words: why a none or refused has no evaluation, or what a player should know about a ready one, such as a search that ran out of time.",
             "type": "string"
           },
           "seat": {
@@ -411,6 +412,17 @@
           },
           "events": {
             "type": "boolean"
+          },
+          "manual_mana": {
+            "description": "ManualMana is false on an engine that pays for every cast; absent elsewhere.",
+            "type": "boolean"
+          },
+          "paired_bots": {
+            "description": "PairedBots are the paired bots a new table may choose, the server's default first; absent when the server offers none.",
+            "items": {
+              "$ref": "#/components/schemas/PairedBotChoice"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -480,7 +492,7 @@
             "type": "boolean"
           },
           "attacking_player": {
-            "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears.",
+            "description": "AttackingPlayer is the seat this creature is attacking while Attacking is true, nil otherwise; BlockedBy lists the creatures blocking it. Both exist for the arrow overlay and come straight from the object's combat fields, which EndCombatReset clears. Blocked is true from the moment a creature is blocked until combat ends, even after every blocker has left the battlefield (CR 509.1h); BlockedBy then lists fewer creatures than blocked it, or none.",
             "maximum": 255,
             "minimum": 0,
             "type": "integer"
@@ -488,6 +500,9 @@
           "aura_logic": {
             "description": "AuraLogic is the AttachAILogic hint (\"Pump\", \"Curse\", ...) of a card whose spell is an Aura aimed at a creature, \"\" for every other card. It is a printed deck-builder hint of a visible card. The opt-in A5 attach rules read it to hold a boon Aura while the caster controls no creature that could use it.",
             "type": "string"
+          },
+          "blocked": {
+            "type": "boolean"
           },
           "blocked_by": {
             "items": {
@@ -777,6 +792,10 @@
             "description": "Mulligans is the optional London mulligan allowance for the created game (without it a play-vs-bot game could mulligan exactly once, with no knob at any layer). It is a pointer so 0 — \"0 disables the pre-game round\" — is distinguishable from an omitted field, which keeps the server default.",
             "format": "int64",
             "type": "integer"
+          },
+          "paired_bot": {
+            "description": "PairedBot chooses the table's paired bot: a name from GET /api/capabilities, or \"off\" for none. Omitted takes the server's default (gorged -paired-bot).",
+            "type": "string"
           }
         },
         "required": [
@@ -1122,6 +1141,10 @@
           },
           "pool": {
             "description": "Pool names the bot policy this deck is reserved for (\"\" for an ordinary deck). A reserved deck is dealt only to games against that policy, and that policy deals nothing else. A deck reserved for several policies (two policies sharing one deck directory) names them all, comma-separated (JoinPools).",
+            "type": "string"
+          },
+          "refused": {
+            "description": "Refused says why this server's engine cannot play the deck, naming the card: the client lists it, disabled.",
             "type": "string"
           }
         },
@@ -2534,6 +2557,10 @@
           "label": {
             "type": "string"
           },
+          "land_wont_stay": {
+            "description": "LandWontStay, on a play_land option, reports that the land would not stay on the battlefield: its enters trigger asks for a land to return to hand and the seat controls no other land that qualifies, so it returns itself or is sacrificed. The play stays legal.",
+            "type": "boolean"
+          },
           "mana_symbol": {
             "description": "ManaSymbol is the exact mana symbol selected by a colour option. Labels remain presentation-only; omitempty keeps unrelated options unchanged.",
             "type": "string"
@@ -2633,6 +2660,30 @@
           }
         ],
         "description": "Last frame of a session whose outbound buffer filled; the stream then closes and the client must reconnect without Last-Event-ID."
+      },
+      "PairedBotChoice": {
+        "description": "PairedBotChoice is one paired bot a new table may choose (Capabilities.PairedBots).",
+        "properties": {
+          "formats": {
+            "description": "Formats are the construction formats it plays; empty means all.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "name"
+        ],
+        "type": "object",
+        "x-go-type": "github.com/adams-shaun/gorge/server/protocol.PairedBotChoice"
       },
       "PairedBotStatus": {
         "description": "PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this table may ask a bot to evaluate its decisions. It carries configuration only, so every seat can read it and see that a table allows it.",
@@ -2840,7 +2891,7 @@
         "x-go-type": "github.com/adams-shaun/gorge/engine/decision.PaymentFallback"
       },
       "PaymentPlan": {
-        "description": "PaymentPlan is a complete V1 execution witness. PoolSpend records which pre-existing mana units pay the cast; PoolAfter records the expected pool after activations and payment, and is independently revalidated by rules.",
+        "description": "PaymentPlan is a complete V1 execution witness. PoolSpend records which pre-existing mana units pay the cast; PoolAfter records the expected pool after activations and payment, and is independently revalidated by rules. Both count only mana this payment may spend: a restricted batch it does not admit is in neither.",
         "properties": {
           "activations": {
             "items": {
@@ -3280,7 +3331,7 @@
         "description": "Draft events: pick progress of the pod."
       },
       "PoolRestrictionView": {
-        "description": "PoolRestrictionView is one restricted floating-mana batch as the wire sees it: the produced symbol verbatim (a bare WUBRGC letter, an \"S<colour>\" snow unit or a \"<Tag><colour>\" typed unit, exactly ManaRestriction.Color), the unit count, and Text -- a sentence naming what the mana may be spent on, or the raw Valid$ string when the formatter does not recognise the shape (an honest floor).",
+        "description": "PoolRestrictionView is one restricted floating-mana batch as the wire sees it: the produced symbol verbatim (a bare WUBRGC letter, an \"S<colour>\" snow unit or a \"<Tag><colour>\" typed unit, exactly ManaRestriction.Color), the unit count, and Text -- a sentence naming what the mana may be spent on.",
         "properties": {
           "amount": {
             "format": "int32",
@@ -3328,7 +3379,7 @@
             "type": "integer"
           },
           "payable": {
-            "description": "Payable is the payment planner's verdict for an ordinary cast from the hand or (Commander) the command zone: false only when the planner PROVED the cast unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay (decision.PotentialUnpayableCasts). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy. nil (omitted) for every other kind, for a cast in an alternative/additional-cost mode, for a cast outside the hand and command zone, and for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift.",
+            "description": "Payable is the payment planner's verdict: false only when the planner PROVED the play unpayable -- an \"insufficient\" verdict whose source census is complete, or whose missed abilities a relaxation of them still cannot pay. An ordinary cast from the hand or the command zone carries it once payment actions are built (decision.PotentialUnpayableCasts), and every play once potential proofs are built (decision.PotentialUnpayablePlays, for a human seat on an auto-mana table). It is what lets a client withhold a \"tap other mana first\" affordance that no amount of tapping can satisfy. nil (omitted) for every verdict that is not a proof -- \"unsupported\" (a shape the planner does not price, e.g. Delve), \"search_limit\", \"ambiguous\" and a census-incomplete insufficiency -- because those do not prove the play possible or impossible. A client must not re-derive this from printed mana_cost: castable.ts records the cost rules that drift.",
             "type": "boolean"
           }
         },
@@ -3913,6 +3964,10 @@
             "type": "integer"
           },
           "name": {
+            "type": "string"
+          },
+          "paired_bot": {
+            "description": "PairedBot is the table's own choice of paired bot, \"off\" for none; absent when it left that to the server. Public table configuration.",
             "type": "string"
           },
           "perpetual": {
@@ -6211,7 +6266,7 @@
                   "moved": {
                     "summary": "the decision moved on",
                     "value": {
-                      "code": "conflict",
+                      "code": "advice_stale",
                       "message": "The decision has moved on."
                     }
                   }
@@ -6221,7 +6276,7 @@
                 }
               }
             },
-            "description": "The decision is no longer pending, the seat has nothing pending, or the table does not offer the bot."
+            "description": "`advice_stale`: the decision is no longer pending, or the seat has nothing pending. `conflict`: the table does not offer the bot."
           }
         },
         "security": [

@@ -13,8 +13,8 @@ package rules
 // rules' typeCharacteristics applies as a layer-4 base strip. No event field is
 // added or reordered.
 //
-// The fixture carries the real corpus card's SpellCast trigger line and its
-// TrigCopy SVar VERBATIM (.cards/cardsfolder/t/the_sixth_doctor.txt), on the
+// The fixture follows the real corpus card's SpellCast trigger line and its
+// OnCopy SVar, on the
 // real card. The 4-seat/constructed harness cannot easily pay {4}{G}{U}, so the
 // card is moved onto the battlefield directly and a cheap legendary creature
 // spell is cast under it.
@@ -26,13 +26,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// sixthDoctorSrc is .cards/cardsfolder/t/the_sixth_doctor.txt's trigger line
-// and TrigCopy SVar, VERBATIM. The card's `ValidCard$ Card.Historic` is the
+// sixthDoctorSrc states The Sixth Doctor's trigger line
+// and OnCopy SVar. The card's `ValidCard$ Card.Historic` is the
 // real predicate; a legendary creature spell is historic (CR 205.4), so the
 // trigger fires on it.
 const sixthDoctorSrc = "Name:The Sixth Doctor\nManaCost:4 G U\nTypes:Legendary Creature Time Lord Doctor\nPT:3/3\n" +
-	"T:Mode$ SpellCast | TriggerZones$ Battlefield | ValidCard$ Card.Historic | ValidActivatingPlayer$ You | ActivationLimit$ 1 | Execute$ TrigCopy | TriggerDescription$ Time Lord's Prerogative - Whenever you cast a historic spell, copy it, except the copy isn't legendary. This ability triggers only once each turn.\n" +
-	"SVar:TrigCopy:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | NonLegendary$ True\n" +
+	"T:Mode$ SpellCast | TriggerZones$ Battlefield | ValidCard$ Card.Historic | ValidActivatingPlayer$ You | ActivationLimit$ 1 | Execute$ OnCopy | TriggerDescription$ Time Lord's Prerogative - Whenever you cast a historic spell, copy it, except the copy isn't legendary. This ability triggers only once each turn.\n" +
+	"SVar:OnCopy:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | NonLegendary$ True\n" +
 	"Oracle:x\n"
 
 // legendaryBearSrc is the historic legendary permanent spell the Sixth Doctor

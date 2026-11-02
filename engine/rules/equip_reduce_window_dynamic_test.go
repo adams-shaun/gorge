@@ -24,12 +24,12 @@ const (
 	// "{T}: Add {G} equal to its power" as Amount$ X / SVar:X:Count$CardPower,
 	// power 2 -> two green.
 	equipWindowJoinerSrc = "Name:Joiner\nManaCost:2 G\nTypes:Creature Elf Druid\nPT:2/2\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ G | Amount$ X | SpellDescription$ Add an amount of {G} equal to CARDNAME's power.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ G | Amount$ X\n" +
 		"SVar:X:Count$CardPower\nOracle:x\n"
 	// equipWindowPayLifeSrc pays life for its mana (a non-free activation
 	// cost), producing one red.
 	equipWindowPayLifeSrc = "Name:PayLifeRock\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ R\nOracle:x\n"
 	// equipWindowGenericSrc pays a literal generic for its mana, producing two
 	// red (net one red once the generic is paid).
 	equipWindowGenericSrc = "Name:GenericRock\nTypes:Land\n" +

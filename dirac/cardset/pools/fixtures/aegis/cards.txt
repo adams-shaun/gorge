@@ -1,0 +1,14 @@
+# Assimilation Aegis (Attached trigger, the bearer becomes a copy
+# of the exiled creature until unattached) (dirac/oracle/aegis_test.go)
+Assimilation Aegis
+Prodigal Sorcerer
+Serra Angel
+Elvish Visionary
+Pestermite
+Grizzly Bears
+Savannah Lions
+Mind Stone
+Plains
+Island
+Forest
+Mountain

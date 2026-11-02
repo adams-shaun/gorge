@@ -1,0 +1,18 @@
+# the player-prohibition pool: Giant Cindermaw, Mornsong Aria
+# beside lifegain / draw sources (dirac/oracle/pban_test.go)
+Giant Cindermaw
+Mornsong Aria
+Healer's Hawk
+Vampire Nighthawk
+Soul Warden
+Ajani's Pridemate
+Divination
+Opt
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest

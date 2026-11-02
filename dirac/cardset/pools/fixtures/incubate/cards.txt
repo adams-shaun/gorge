@@ -1,0 +1,40 @@
+# the Incubate pool (CR 701.53a-b): the MOM carriers whose
+# api:Incubate lowers, Doubling Season and basics, for the oracle's
+# constructed lockstep (dirac/oracle/incubate_test.go)
+# The Incubate pool (CR 701.53a-b): every card whose
+# api:Incubate kgen lowers -- the MOM carriers plus Blight Titan (a
+# Count$ValidGraveyard Amount), Brimaz, Blight of Oreskos (a
+# TriggeredSpellAbility Amount), Excise the Imperfect (Defined$
+# TargetedController) and Ichor Drinker (ActivationZone$ Graveyard).
+# Glissa and Sunder the Gateway stay refused for their targeted SetState
+# Transform. Doubling Season (both replacements) and basics, for the
+# oracle's constructed lockstep (dirac/oracle/incubate_test.go).
+Blight Titan
+Bloated Processor
+Brimaz, Blight of Oreskos
+Chrome Host Seedshark
+Compleated Huntmaster
+Converter Beast
+Doubling Season
+Essence of Orthodoxy
+Eyes of Gitaxias
+Excise the Imperfect
+Furnace Gremlin
+Gift of Compleation
+Glistening Dawn
+Ichor Drinker
+Infected Defector
+Injector Crocodile
+Marauding Dreadship
+Merciless Repurposing
+Phyrexian Awakening
+Phyrexian Walker
+Plains
+Swamp
+Forest
+Island
+Mountain
+Sculpted Perfection
+Tangled Skyline
+Tiller of Flesh
+Traumatic Revelation

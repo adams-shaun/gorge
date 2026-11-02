@@ -7,12 +7,9 @@ package rules
 // controller, and its chosen body must run exactly once per chooser with that
 // chooser bound as Ctx.Remembered.
 //
-// Hag of Ceaseless Torment is the real carrier:
-//
-//	T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | Execute$ TrigChoose
-//	SVar:TrigChoose:DB$ GenericChoice | Defined$ Opponent | Choices$ SacNonland,Discard
-//	SVar:SacNonland:DB$ LoseLife | Defined$ Remembered | LifeAmount$ 3 | UnlessCost$ Sac<...> | UnlessPayer$ Remembered
-//	SVar:Discard:DB$ LoseLife | Defined$ Remembered | LifeAmount$ 3 | UnlessCost$ Discard<1/Card> | UnlessPayer$ Remembered
+// Hag of Ceaseless Torment is the real carrier: its upkeep GenericChoice asks an
+// opponent to sacrifice a nonland or discard a card, each mode losing 3 life unless
+// paid.
 
 import (
 	"testing"

@@ -39,8 +39,9 @@ const maxSelectionTries = 1 << 16
 //   - A priority decision's Options, PaymentActions and the asked seat's
 //     PotentialActions become one sorted set of play keys. A mana ability
 //     (Option kind "activate", which at priority is only ever one) and concede
-//     are not plays and are dropped. Whether a play is offered directly, with a
-//     payment plan or after tapping mana is how an engine exposes mana, not
+//     are not plays and are dropped, and so is a potential play the wire says
+//     no tapping can pay (payable false). Whether a play is offered directly, with
+//     a payment plan or after tapping mana is how an engine exposes mana, not
 //     what it allows.
 //   - A card off the battlefield loses attacking, tapped, summon_sick and
 //     damage: gorge leaves them stale on an object that changes zones, and
@@ -91,7 +92,21 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 	if d.Prompt == "" {
 		return Frame{}, nil, fmt.Errorf("%s decision has no prompt", d.Kind)
 	}
-	for _, o := range d.Options {
+	var asked struct {
+		Decision *decision.Decision `json:"decision"`
+		Players  []struct {
+			Potential []decision.PotentialAction `json:"potential_actions"`
+		} `json:"players"`
+	}
+	if err := json.Unmarshal(raw.Seats[d.Player], &asked); err != nil {
+		return Frame{}, nil, fmt.Errorf("seat %d view: %w", d.Player, err)
+	}
+	if asked.Decision == nil {
+		return Frame{}, nil, fmt.Errorf("%s decision is missing from seat %d's view", d.Kind, d.Player)
+	}
+	// The seat's view is what a client reads: it names a card option from what that
+	// seat can see (view.fillVisibleOptionLabels).
+	for _, o := range asked.Decision.Options {
 		if o.Label == "" {
 			return Frame{}, nil, fmt.Errorf("%s decision: option %d (%s) has no label", d.Kind, o.Index, o.Kind)
 		}
@@ -101,15 +116,8 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 		f.Answers = selections(&d)
 		return f, names, nil
 	}
-	var asked struct {
-		Players []struct {
-			Potential []decision.PotentialAction `json:"potential_actions"`
-		} `json:"players"`
-	}
-	if err := json.Unmarshal(raw.Seats[d.Player], &asked); err != nil {
-		return Frame{}, nil, fmt.Errorf("seat %d view: %w", d.Player, err)
-	}
-	if f.Answers, err = playKeys(&d, asked.Players[d.Player].Potential, names); err != nil {
+	potential := asked.Players[d.Player].Potential
+	if f.Answers, err = playKeys(&d, potential, names); err != nil {
 		return Frame{}, nil, err
 	}
 	askedView := views[d.Player]
@@ -386,6 +394,9 @@ func playKeys(d *decision.Decision, potential []decision.PotentialAction, names 
 	for _, p := range potential {
 		if p.Label == "" {
 			return nil, fmt.Errorf("potential %s of object %d has no label", p.Kind, p.Obj)
+		}
+		if p.Payable != nil && !*p.Payable {
+			continue
 		}
 		keys = append(keys, playKey(p.Kind, p.Obj, p.Ability, p.Mode, names))
 	}

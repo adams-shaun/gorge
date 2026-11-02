@@ -1,0 +1,6 @@
+# a conditional additional land play, for the oracle's constructed lockstep
+# (dirac/oracle/landgrant_test.go)
+Forest
+Island
+Llanowar Elves
+Thranduil's Company

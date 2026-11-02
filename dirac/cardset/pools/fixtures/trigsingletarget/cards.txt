@@ -1,0 +1,26 @@
+# single-target trigger qualifiers: Leyline of
+# Resonance (IsSingleTarget$), Imodane, the Pyrohammer (ValidCause$
+# Spell.numTargets EQ1 + TargetRelativeToCause$) and The
+# Sackville-Bagginses (inert Origin$/Destination$) beside burn, pumps,
+# token makers and a sacrifice outlet (dirac/oracle/trigsingletarget_test.go)
+Leyline of Resonance
+Imodane, the Pyrohammer
+The Sackville-Bagginses
+Shock
+Lightning Bolt
+Giant Growth
+Twin Bolt
+Pyroclasm
+Arc Trail
+Radiating Lightning
+Bone Splinters
+Dragon Fodder
+Carrion Feeder
+Viscera Seer
+Grizzly Bears
+Raging Goblin
+Hill Giant
+Child of Night
+Mountain
+Swamp
+Forest

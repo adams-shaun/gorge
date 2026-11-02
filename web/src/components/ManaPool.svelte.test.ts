@@ -136,6 +136,18 @@ describe('ManaPool', () => {
     expect(html).toContain('data-mana="B"');
   });
 
+  it('names a typed unit\'s colour, never its engine spelling', () => {
+    const { html } = render(ManaPool, {
+      props: {
+        pool: { W: 1 },
+        poolRestrictions: [{ color: 'ArtifactW', amount: 1, text: 'spend only to cast a Dragon spell' }],
+      },
+    });
+    expect(html).toContain('data-mana-restriction="W"');
+    expect(html).toContain('1 white: spend only to cast a Dragon spell');
+    expect(html).not.toContain('ArtifactW');
+  });
+
   it('renders one annotation per restricted batch, not one per pool symbol', () => {
     const { html } = render(ManaPool, {
       props: {

@@ -1,0 +1,20 @@
+# DamageAll DamageSource$ ParentTarget over <spec>.NotDefinedTargeted
+# Waltz of Rage and Nibelheim Aflame beside
+# lifelink, deathtouch, infect and dies-trigger creatures and vanilla
+# bodies of power 1-6 (dirac/oracle/sweepfrom_test.go)
+Waltz of Rage
+Nibelheim Aflame
+Child of Night
+Typhoid Rats
+Vampire Nighthawk
+Glistener Elf
+Ashen-Skin Zubera
+Fire Elemental
+Alpine Grizzly
+Grizzly Bears
+Hill Giant
+Trained Armodon
+Colossal Dreadmaw
+Mountain
+Swamp
+Forest

@@ -1,0 +1,45 @@
+# the ChangeZoneAll RememberChanged$ /
+# ForgetOtherRemembered$, RememberLKI$ (RememberedLKI, RememberedController),
+# RememberControlled$, RememberDamaged$, PumpAll ValidTgts$ / Duration$ and
+# Discard UnlessType$ carriers beside vanillas, cantrips and basics, for the
+# oracle's constructed lockstep (dirac/oracle/remparams_test.go)
+Elixir
+Clive, Ifrit's Dominant
+Jill, Shiva's Dominant
+Stiltzkin, Moogle Merchant
+Hotshot Investigators
+Unyielding Gatekeeper
+Steamcore Scholar
+Arid Archway
+Nurturing Pixie
+Neutralize the Guards
+Thirst for Identity
+Boomerang Basics
+How to Start a Riot
+Splash Portal
+Settle the Wreckage
+The Black Arrow
+Hex Magic
+Thirst for Knowledge
+Alpharael, Dreaming Acolyte
+Overwrite the Multiverse
+Wail of War
+Savannah Lions
+Ornithopter
+Memnite
+Healer's Hawk
+Wind Drake
+Grizzly Bears
+Llanowar Elves
+Elvish Mystic
+Raging Goblin
+Merfolk Looter
+Shivan Dragon
+Divination
+Plains
+Island
+Swamp
+Mountain
+Forest
+Iridescent Tiger
+Priest of Gix

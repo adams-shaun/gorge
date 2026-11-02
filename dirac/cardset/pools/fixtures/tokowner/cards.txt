@@ -1,0 +1,12 @@
+# the Token ValidTgts$ / TokenOwner$ Targeted pool:
+# Hunted Bonebrute, The Sentry and Emeritus of Truce beside Shock, Doom
+# Blade, a vanilla creature and basics (dirac/oracle/tokowner_test.go)
+Emeritus of Truce
+Hunted Bonebrute
+The Sentry, Golden Guardian
+Shock
+Doom Blade
+Grizzly Bears
+Plains
+Swamp
+Mountain

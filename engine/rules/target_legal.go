@@ -56,7 +56,7 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	}
 	ctx := effects.NewCtxPtr(0, p, effects.CtxInit{})
 	// A trigger's dynamic target bound reading the causing event (Vitality
-	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`):
+	// Hunter's `TargetMax$ MaxTgts` with `MaxTgts = TriggerCount$Amount`):
 	// the trigger context recorded for this stack wrapper carries
 	// TriggerAmount, so the bound reads the mark/damage magnitude instead of
 	// degrading to the clamp's 1. Measured corpus: the ONLY two TargetMax$
@@ -597,7 +597,7 @@ func (e *Engine) targetName(source state.ObjID) string { return pay.TargetName(e
 func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 	// The controller's name is seat-facing (the seat that answers sees it),
 	// so it prefers the table's display name over the deck-identity slug.
-	label := seatFacingName(e.G, candidate.player)
+	label := e.G.SeatFacingName(candidate.player)
 	if candidate.obj != 0 {
 		label = e.targetName(candidate.obj) + " (" + label + ")"
 	}
@@ -681,49 +681,7 @@ func (e *Engine) grantedStaticModes(p state.PlayerID, source state.ObjID, sa *ca
 	if !ok || ctx.SVars == nil {
 		return nil
 	}
-	return staticModesFromSVars(sa, ctx.SVars)
-}
-
-// staticModesFromSVars is the one resolver an Effect SA's StaticAbilities$
-// names go through: it splits the name list, resolves each against the
-// supplied SVar table (the target ask binds targetBoundCtx's; the ability
-// OFFER binds the ability's own face's table, which for an ability object
-// is the same face) and returns each body's Mode$ value in the order the
-// names were written. It carries its own API guard so the offer site in
-// legal.go cannot publish statics for a non-Effect activation by forgetting
-// the check, and it skips a name that does not resolve or a body with no
-// readable Mode$ -- the payload publishes only what it can prove, exactly
-// the way an unknown API stays uninterpreted.
-func staticModesFromSVars(sa *cards.SA, svars map[string]string) []string {
-	if sa == nil || sa.API != "Effect" || svars == nil {
-		return nil
-	}
-	names := strings.FieldsFunc(effects.EffectOf(sa).StaticAbilities, func(r rune) bool {
-		return r == ',' || r == ' ' || r == '\t' || r == '\n'
-	})
-	if len(names) == 0 {
-		return nil
-	}
-	out := make([]string, 0, len(names))
-	for _, name := range names {
-		body := strings.TrimSpace(svars[name])
-		if body == "" {
-			continue
-		}
-		statics, ok := cards.ParseStaticLines(body)
-		if !ok {
-			continue
-		}
-		for _, st := range statics {
-			if st.Mode != "" {
-				out = append(out, st.Mode)
-			}
-		}
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+	return effects.GrantedStaticModes(sa, ctx.SVars)
 }
 
 // targetDamageAmount evaluates NumDmg with a verdict. effects.NumResolved is
@@ -761,6 +719,11 @@ func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *ca
 			// publishing it would claim a false zero (Kiku's Shadow's
 			// SVar:X:Targeted$CardPower against a legal 5/5 deals 5, not 0).
 			if e.amountDependsOnPendingTarget(ctx, p, source, sa, body) {
+				return 0, false
+			}
+			// Nor one reading what a cost will name (Heartfire Immolator's
+			// Sacrificed$CardPower is 2, not the 0 nothing sacrificed sums to).
+			if effects.AmountAwaitsCost(body) {
 				return 0, false
 			}
 			n, resolved := effects.EvalCountOK(e, ctx, body)

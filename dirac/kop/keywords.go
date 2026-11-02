@@ -1,0 +1,58 @@
+package kop
+
+// KwMask is a set of keyword abilities. Bits are append-only.
+type KwMask uint32
+
+const (
+	KwFlying KwMask = 1 << iota
+	KwReach
+	KwFirstStrike
+	KwDoubleStrike
+	KwDeathtouch
+	KwLifelink
+	KwTrample
+	KwVigilance
+	KwHaste
+	KwMenace
+	KwDefender
+	KwFlash
+	KwHexproof
+	KwIndestructible
+	KwProwess
+	KwProtectionAll // protection from everything
+	KwShroud
+	KwWard        // ward {N}: CardDef.WardN
+	KwUnblockable // can't be blocked
+	KwCantBlock   // this creature can't block
+	KwWither      // wither (CR 702.80) when GRANTED (Pump KW$, static AddKeyword$, Animate); printed wither stays CardDef.Wither. Was the reserved KwShadowNone, never set
+	KwKicker      // the card has a kicker cost (CardDef.Kicker)
+	KwFlashback   // the card has a flashback cost (CardDef.AltCost)
+	KwAffinity    // affinity for artifacts
+)
+
+// CardDef.Evasion bits.
+const (
+	EvHorsemanship uint8 = 1 << iota // CR 702.31b: blocked only by creatures with horsemanship
+	EvIntimidate                     // CR 702.13a: blocked only by artifact creatures and/or creatures sharing a colour
+	EvSkulk                          // CR 702.118a: not blocked by creatures with greater power
+)
+
+// The StatStackKw keyword codes (Static.A).
+const (
+	StackKwImprovise int16 = 1
+	StackKwCasualty  int16 = 2
+	StackKwCascade   int16 = 3
+	StackKwLifelink  int16 = 4
+)
+
+// Appended keyword bits.
+const (
+	KwHexproofFromInstants    KwMask = KwAffinity << (1 + iota) // hexproof from instants
+	KwProtBlack                                                 // protection from black
+	KwProtRed                                                   // protection from red
+	KwPreventCombatDamageTo                                     // prevent all combat damage that would be dealt to it
+	KwFlashbackOwnCost                                          // flashback with its mana cost (a graveyard card)
+	KwPreventCombatDamageFrom                                   // prevent all combat damage that would be dealt by it (an Effect's Prevent$ ValidSource$ IsRemembered)
+	KwFear                                                      // fear (CR 702.36): blocked only by artifact and/or black creatures
+	KwShadow                                                    // shadow (CR 702.28): blocks and is blocked only by shadow creatures
+)

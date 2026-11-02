@@ -1,0 +1,12 @@
+# the Hidden$ True Defined$ ChangeZone pool: Corpses
+# of the Lost's end-step return and Zuko, Conflicted's exile-then-return
+# under the opponent beside vanilla creatures, Shock and basics
+# (dirac/oracle/hidden_test.go)
+Corpses of the Lost
+Grizzly Bears
+Hill Giant
+Shock
+Duress
+Swamp
+Mountain
+Zuko, Conflicted

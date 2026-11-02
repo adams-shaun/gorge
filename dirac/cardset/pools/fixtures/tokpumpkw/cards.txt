@@ -1,0 +1,22 @@
+# the non-head Token PumpKeywords$ pool: Artistic
+# Process, Stingerquill Charm, Salt Road Skirmish and Krenko, Baron of
+# Tin Street (the token is preceded in its chain by a charm op, a
+# Destroy or a cost's IfPaid), artifacts for Krenko to sacrifice and
+# bodies/removal, for the oracle's constructed lockstep
+# (dirac/oracle/tokpumpkw_test.go)
+Artistic Process
+Stingerquill Charm
+Salt Road Skirmish
+Krenko, Baron of Tin Street
+Ornithopter
+Bronze Sable
+Raging Goblin
+Gray Ogre
+Shock
+Lightning Bolt
+Doom Blade
+Mountain
+Swamp
+Island
+Plains
+Forest

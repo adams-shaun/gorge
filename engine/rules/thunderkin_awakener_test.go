@@ -10,13 +10,9 @@ import (
 )
 
 // TestThunderkinAwakenerReturnsToughnessLessElementalTappedAndAttacking pins
-// the reported card itself: Thunderkin Awakener's attack trigger is
-//
-//	T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigChange
-//	SVar:TrigChange:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield
-//	  | ValidTgts$ Creature.Elemental+YouCtrl+toughnessLTX | ... | Tapped$ True
-//	  | Attacking$ True | AtEOT$ Sacrifice
-//	SVar:X:Count$CardToughness
+// the reported card itself: Thunderkin Awakener's attack trigger returns a target
+// Elemental card with lesser toughness from your graveyard tapped and attacking,
+// sacrificed at end of turn.
 //
 // The ValidTgts$ comparison's RHS is an SVAR-named X (toughnessLTX with
 // SVar:X:Count$CardToughness), NOT the literal stack X. The rules-side target

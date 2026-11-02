@@ -1,0 +1,29 @@
+# no-RememberObjects$ DB$ Effect statics: Goblin
+# Maskmaker's ReduceCost, Witchstalker / Stalked Researcher / Krotiq
+# Nestguard's CanAttackDefender Card.EffectSource (dirac/oracle/effnorem_test.go)
+# DB$ Effect statics of Mode$ ReduceCost (Goblin
+# Maskmaker) and Mode$ CanAttackDefender with ValidCard$ Card.EffectSource
+# (Territorial Witchstalker, Stalked Researcher, Krotiq Nestguard) with no
+# RememberObjects$, beside the facedown pool's Megamorph/Disguise creatures,
+# enchantments, power-4 creatures, vanilla bodies, Priest of Urabrask (RRR floating for the face-down casts), burn and basics, for the
+# oracle's constructed lockstep (dirac/oracle/effnorem_test.go).
+Goblin Maskmaker
+Territorial Witchstalker
+Stalked Researcher
+Krotiq Nestguard
+Kolaghan Stormsinger
+Bolrac-Clan Basher
+Basilica Stalker
+Priest of Urabrask
+Pacifism
+Journey to Nowhere
+Colossal Dreadmaw
+Earth Elemental
+Grizzly Bears
+Hill Giant
+Shock
+Forest
+Island
+Mountain
+Plains
+Swamp

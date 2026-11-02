@@ -1,0 +1,39 @@
+{
+"name": "K3K_C_GW",
+"format": "limited",
+"notes": "k3k crafted",
+"cards": [
+{
+"name": "Bloom Tender",
+"count": 8
+},
+{
+"name": "Giada, Font of Hope",
+"count": 4
+},
+{
+"name": "Youthful Valkyrie",
+"count": 6
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Squad Rallier",
+"count": 4
+},
+{
+"name": "Treetop Snarespinner",
+"count": 4
+},
+{
+"name": "Forest",
+"count": 6
+},
+{
+"name": "Plains",
+"count": 6
+}
+]
+}

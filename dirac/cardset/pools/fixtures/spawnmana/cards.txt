@@ -1,0 +1,22 @@
+# the sacrifice-only mana pool (spawnmana): Eldrazi Spawn tokens whose
+# "Sacrifice this creature: Add {C}" is a mana ability (CR 605.1a),
+# for the oracle's constructed lockstep (dirac/oracle/spawnmana_test.go)
+Dash Hopes
+Drownyard Lurker
+Eldrazi Repurposer
+Forest
+Hatchery Spider
+Island
+Llanowar Elves
+Mind Stone
+Mountain
+Old Stickfingers
+Phantasmagorian
+Plains
+Sowing Mycospawn
+Swamp
+Thief of Existence
+Titans' Vanguard
+Warped Tusker
+Writhing Chrysalis
+Zul Ashur, Lich Lord

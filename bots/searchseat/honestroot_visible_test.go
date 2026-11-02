@@ -101,9 +101,9 @@ func TestHonestRootKeepsAVisibleLibraryTop(t *testing.T) {
 	}
 }
 
-// The monarch's end-step draw names a hidden library card as its source, so an
-// honest root keeps that card where it is and the seats get their answer with
-// the trigger on the stack.
+// The monarch's end-step draw has no source (CR 725.2), and a stack ability's source
+// can be a hidden library card once it has left the battlefield. An honest root keeps
+// such a card where it is, and the seats get their answer with the ability on the stack.
 func TestHonestRootWithAStackSourceInALibrary(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	decks := [][]*cards.Card{
@@ -111,25 +111,31 @@ func TestHonestRootWithAStackSourceInALibrary(t *testing.T) {
 		twoCardDeck(t, reg, "Plains", "Palace Jailer"),
 	}
 	setup := searchprobe.PublicGame{Names: []string{"a", "b"}, Decks: decks}
-	seen := 0
+	sourceless, inLibrary := 0, 0
 	playWithFeeds(t, decks, 6, func(e *rules.Engine, f *Feed, seed uint64, step int) {
 		for i := range e.G.Objs {
 			o := &e.G.Objs[i]
-			if o.Zone != state.ZStack {
+			if o.Zone != state.ZStack || o.Source != 0 {
 				continue
 			}
-			src := e.G.Obj(o.Source)
-			if src == nil || src.Zone != state.ZLibrary {
-				continue
-			}
-			seen++
+			sourceless++
 			if root, why := HonestRoot(setup, f, e, [2]uint64{seed, uint64(step)}); root == nil {
-				t.Fatalf("seed %d step %d: %s", seed, step, why)
+				t.Fatalf("seed %d step %d, no source: %s", seed, step, why)
+			}
+			lib := e.G.Zone(state.ZLibrary, o.Controller)
+			if len(lib) == 0 {
+				break
+			}
+			fork := e.Clone()
+			fork.G.Obj(o.ID).Source = lib[len(lib)-1]
+			inLibrary++
+			if root, why := HonestRoot(setup, f, fork, [2]uint64{seed, uint64(step)}); root == nil {
+				t.Fatalf("seed %d step %d, source in a library: %s", seed, step, why)
 			}
 			break
 		}
 	})
-	if seen == 0 {
-		t.Fatal("precondition: no stack entry with a source in a library")
+	if sourceless == 0 || inLibrary == 0 {
+		t.Fatalf("precondition: %d stack entries with no source, %d with one in a library", sourceless, inLibrary)
 	}
 }

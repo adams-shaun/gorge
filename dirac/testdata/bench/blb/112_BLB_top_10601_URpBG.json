@@ -1,0 +1,83 @@
+{
+"name": "BLB_top_10601_URpBG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 1f16ea0e07b34093abc98f9485d079f7:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Eddymurk Crab, 1 Pond Prophet, 1 Splash Lasher, 1 Thundertrap Trainer, 1 Vren, the Relentless -> 3 Island, 2 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 1
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Cindering Cutthroat",
+"count": 1
+},
+{
+"name": "Frilled Sparkshooter",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Kindlespark Duo",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Pearl of Wisdom",
+"count": 2
+},
+{
+"name": "Quaketusk Boar",
+"count": 2
+},
+{
+"name": "Rabid Gnaw",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 1
+},
+{
+"name": "Take Out the Trash",
+"count": 1
+},
+{
+"name": "Tempest Angler",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 2
+}
+]
+}

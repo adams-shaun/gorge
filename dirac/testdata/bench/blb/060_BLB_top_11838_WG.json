@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_11838_WG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck cfb623f123854f72a3d36ca2d452fac7:0, player win-rate bucket 0.68 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Caretaker's Talent, 2 Head of the Homestead, 1 Intrepid Rabbit, 1 Longstalk Brawl, 1 Rust-Shield Rampager -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Burrowguard Mentor",
+"count": 2
+},
+{
+"name": "Druid of the Spade",
+"count": 2
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Fountainport",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Hivespine Wolverine",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

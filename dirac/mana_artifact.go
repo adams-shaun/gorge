@@ -1,0 +1,51 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// Artifact mana. gorge tags the mana an artifact's mana ability adds (Sol
+// Ring emits "Artifact", a Treasure "ArtifactTreasure": effects.ManaProducerTag).
+// A tagged unit sits in its colour's bucket for the planner (pay.PlanPool), and
+// gorge's prefix search keys on the tagged units apart (Player.ManaUnits).
+//
+// genState.poolArt holds, per player, the pool slots (bit per W U B R G C)
+// that hold an artifact unit. gorge spends a plain unit before a tagged one
+// (pay.takeUnit), so a slot keeps its tagged unit for as long as it is not
+// empty: the bit is cleared when the slot empties (artSync, after each pool
+// spend) and with the pool at a step boundary.
+
+// gorge's typed tallies (state.Player.TypedMana: Treasure, Cave, Desert and
+// Artifact-only) read the same way, so mana a Desert or a Cave adds floats as a
+// tagged unit too.
+
+// typedManaSubtypes is the subtype set of the Desert and Cave producers.
+func typedManaSubtypes(t *kop.Table) kop.SubMask {
+	var m kop.SubMask
+	for i, n := range t.Subtypes {
+		if n == "Desert" || n == "Cave" {
+			m = m.With(i)
+		}
+	}
+	return m
+}
+
+// artTag records that the mana source at sl added a unit of colour col to
+// p's pool. It is called after the unit is added.
+func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
+	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
+		s.g.poolArt[p&1] |= 1 << col
+	}
+}
+
+// artSync drops the slots of p's pool that have emptied.
+func (s *State) artSync(p uint8) {
+	if s.fbR[p&1]|(s.pmOn>>(p&1))&1 != 0 {
+		s.persistSync(p) // ordinary mana is spent first (kw_firebend.go, mana_persistent.go)
+	}
+	a := s.g.poolArt[p&1]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if a&(1<<c) != 0 && s.pl[p&1].pool[c] == 0 {
+			a &^= 1 << c
+		}
+	}
+	s.g.poolArt[p&1] = a
+}

@@ -1,0 +1,18 @@
+# the four ChoiceRestriction$ ThisTurn trigger carriers (Monument to
+# Endurance, Breeches, The Vision, Lita; Three Bowls is refused) beside
+# discard outlets, cheap Pirates and instants so a trigger repeats within a
+# turn, a flicker and basics (dirac/oracle/charmpick_test.go)
+Monument to Endurance
+Breeches, Eager Pillager
+The Vision
+Lita, Little Orphan Amphibian
+Tormenting Voice
+Swab Goblin
+Goblin Trailblazer
+Lightning Bolt
+Shock
+Defiant Strike
+Opt
+Cloudshift
+Plains
+Mountain

@@ -148,7 +148,7 @@ func classifyCounterUnlessSVarLines(t *testing.T, reg *cards.Registry) []string 
 // `SVar:Z:Number$2/Plus.Y` MOVED from `decline` to `resolves:{2}`. That is
 // this diff's doing and is attributed here: `evalCountExprOK` grew the
 // literal `Number$<int>` arm (the Vraska, Betrayal's Sting differential
-// `SVar:Difference:Number$9/Minus.X` needs it), so Rune Snag's body is now
+// `Difference = Number$9/Minus.X` needs it), so Rune Snag's body is now
 // evaluable and its unless-cost prices the correct {2} plus {2} per Rune
 // Snag in a graveyard -- with none in any graveyard, {2}. The old `decline`
 // row was a fail-closed verdict on an unevaluable body, not a rules

@@ -1,0 +1,19 @@
+# the flashback-cost pool: flashback costs with a
+# sacrifice or tap-creatures part, for the oracle's constructed lockstep
+# (dirac/oracle/fbcost_test.go)
+# The flashback-cost pool: flashback costs with a
+# sacrifice or tap-creatures part (Dread Return, Lava Dart, Battle Screech; Prismatic
+# Strands), creatures to pay them and to return, removal and basics, for
+# the oracle's constructed lockstep (dirac/oracle/fbcost_test.go).
+Dread Return
+Lava Dart
+Walking Corpse
+Savannah Lions
+Hill Giant
+Grizzly Bears
+Shock
+Battle Screech
+Plains
+Swamp
+Mountain
+Forest

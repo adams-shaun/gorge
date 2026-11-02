@@ -54,7 +54,7 @@ func tapeChooseCastResolve(t *testing.T, e *Engine, name string) []string {
 	return nil
 }
 
-const tapeGainSVar = "SVar:DBGain:DB$ GainLife | LifeAmount$ 2"
+const tapeGainSVar = "SVar:Gain:DB$ GainLife | LifeAmount$ 2"
 
 var bothCreatures = []string{"ParentLink Bear", "ParentLink Angel"}
 
@@ -70,6 +70,6 @@ const tapeRedirectSrc = "Name:Tape Redirect\nManaCost:U\nTypes:Instant\n" +
 
 const tapePendantSrc = "Name:Tape Pendant\nManaCost:U\nTypes:Artifact\n" +
 	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBChooseOpp | Layer$ Control | Description$ x\n" +
-	"SVar:DBChooseOpp:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | SubAbility$ MoveToPlay\n" +
-	"SVar:MoveToPlay:DB$ ChangeZone | Hidden$ True | Origin$ All | Destination$ Battlefield | Defined$ ReplacedCard | GainControl$ ChosenPlayer | SubAbility$ DBCleanup\n" +
+	"SVar:DBChooseOpp:DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | SubAbility$ ToPlay\n" +
+	"SVar:ToPlay:DB$ ChangeZone | Hidden$ True | Origin$ All | Destination$ Battlefield | Defined$ ReplacedCard | GainControl$ ChosenPlayer | SubAbility$ DBCleanup\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearChosenPlayer$ True\nOracle:x\n"

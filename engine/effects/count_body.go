@@ -56,7 +56,7 @@ func evalCountBodyProvenance(h Host, c *Ctx, body string, depth int) (int32, boo
 		// vocabulary -- an unadmitted suffix keeps the byte-identical
 		// whole-token read below.
 		if stripped, prop, ok3 := stripCastSourceAggregate(rest); ok3 {
-			av, aok := aggregateCastSourceProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source, c.TriggerContext), prop)
+			av, aok := aggregateCastSourceProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, 0, c.TriggerContext), prop)
 			return av, aok, true
 		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest, c.TriggerContext)), true, true
@@ -405,6 +405,9 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// expansion's ETB trigger the permanent the spell became (the
 		// stack->battlefield move preserves the field) -- so a replay derives
 		// the same count; a copy of the spell was never cast and reads 0.
+		if c.TriggerCard == c.Source && c.TriggerSquadPaid != 0 {
+			return c.TriggerSquadPaid, true, true
+		}
 		if o := g.Obj(c.Source); o != nil {
 			return o.SquadPaid, true, true
 		}

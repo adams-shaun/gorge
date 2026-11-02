@@ -421,6 +421,7 @@ keldon_raider.txt|T|TrigDiscard|Discard<1/Card>|window-settled
 kels_fight_fixer.txt|T|TrigDraw|UB|window-settled
 kethek_crucible_goliath.txt|T|TrigSac|Sac<1/Creature.StrictlyOther/another creature>|window-settled
 key_to_the_city.txt|T|TrigDraw|2|window-settled
+khan_vengeful_heart.txt|T|TrigDraw|Sac<1/Creature.Other;Artifact.Other/another creature or artifact>|window-settled
 kheru_lich_lord.txt|T|TrigChangZone|2 B|window-settled
 kickoff_celebrations.txt|T|TrigDraw|Discard<1/Card>|window-settled
 kill_zone_acrobat.txt|T|TrigPump|Sac<1/Creature.Other;Artifact.Other/another creature or artifact>|window-settled
@@ -718,7 +719,6 @@ stalking_tiger_avatar.txt|T|TrigDraw|1|window-settled
 standstill.txt|T|TrigSac|Mandatory Sac<1/CARDNAME>|window-settled
 starks_ingenuity.txt|T|TrigDraw|X|window-settled
 steamflogger_service_rep.txt|T|TrigAssemble|1|window-settled
-stockpiling_celebrant.txt|T|TrigScry|Return<1/Permanent.nonLand+Other/another nonland permanent>|decline-only
 strefan_maurer_progenitor.txt|T|TrigChangeZone|Sac<2/Blood.token/Blood token>|window-settled
 subway_train.txt|T|TrigChangeZone|G|window-settled
 summon_g_f_ifrit.txt|K:Chapter|DBDiscard|Discard<1/Card>|window-settled
@@ -765,6 +765,7 @@ the_motherlode_excavator.txt|T|TrigImmediateTrig|PayEnergy<4>|window-settled
 the_rise_of_sozin_fire_lord_sozin.txt|T|TrigImmediateTrig|X|window-settled
 the_sackville_bagginses.txt|T|TrigDraw|Sac<1/Artifact.Other;Creature.Other/another creature or artifact>|window-settled
 the_thing.txt|T|TrigImmediateTrig|R G W U|window-settled
+the_wrath_of_khan.txt|K:Chapter|DBDraw|ExileFromHand<1/Card>|decline-only
 thousand_moons_crackshot.txt|T|TrigImmediateTrig|2 W|window-settled
 thousand_moons_smithy_barracks_of_the_thousand.txt|T|TrigTransform|tapXType<5/Artifact;Creature/artifact or creature>|window-settled
 three_dog_galaxy_news_dj.txt|T|TrigImmediateTrig|2 Sac<1/Aura.Attached/Aura attached to CARDNAME>|window-settled
@@ -1037,8 +1038,8 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(added) != 0 || len(removed) != 0 {
 		t.Fatalf("trigger Cost$ inventory drift; unexpected card | record | root SVar | raw cost: %v; missing: %v", added, removed)
 	}
-	if len(got) != 855 {
-		t.Fatalf("unique trigger Cost$ carriers=%d, want 855", len(got))
+	if len(got) != 856 {
+		t.Fatalf("unique trigger Cost$ carriers=%d, want 856", len(got))
 	}
 	families := map[string]int{}
 	routes := map[string]int{}
@@ -1058,7 +1059,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 			families[fam]++
 		}
 	}
-	wantFamilies := map[string]int{"Mana": 384, "Sac": 163, "Discard": 97, "Draw": 38, "PayEnergy": 37, "PayLife": 36, "ExileFromGrave": 22, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 7, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 2, "PutCardToLibFromGrave": 2, "Behold": 1, "ExileCtrlOrGrave": 1, "Mill": 1}
+	wantFamilies := map[string]int{"Mana": 384, "Sac": 164, "Discard": 97, "Draw": 38, "PayEnergy": 37, "PayLife": 36, "ExileFromGrave": 22, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 6, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 3, "PutCardToLibFromGrave": 2, "Behold": 1, "ExileCtrlOrGrave": 1, "Mill": 1}
 	var familyDrift []string
 	for family, want := range wantFamilies {
 		if got := families[family]; got != want {
@@ -1074,7 +1075,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(familyDrift) > 0 {
 		t.Fatalf("Cost$ family occurrence drift: %s", strings.Join(familyDrift, ", "))
 	}
-	wantRoutes := map[string]int{"window-settled": 821, "decline-only": 34}
+	wantRoutes := map[string]int{"window-settled": 822, "decline-only": 34}
 	for route, want := range wantRoutes {
 		if got := routes[route]; got != want {
 			routeDrift = append(routeDrift, fmt.Sprintf("%s=%d (want %d)", route, got, want))
@@ -1089,7 +1090,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(routeDrift) != 0 {
 		t.Fatalf("trigger Cost$ route classification drift: %s", strings.Join(routeDrift, ", "))
 	}
-	if len(got) != 855 {
+	if len(got) != 856 {
 		t.Fatalf("Cost$ carrier aggregate changed during family census: %d", len(got))
 	}
 }

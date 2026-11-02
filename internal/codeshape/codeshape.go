@@ -64,7 +64,7 @@ var ChangeZoneOnlyKeys = []string{
 	"AlternativeDecider", "AttachedToPlayer", "ChooseFromDefined", "DestAltSVar",
 	"DestAltSVarCompare", "DestinationAlternative", "DifferentNames", "Exactly",
 	"ExileFaceDown", "Foretold", "Hidden", "ImprintLast", "LibraryPositionAlternative",
-	"MaxRevealed", "OptionalPrompt", "OriginAlternative", "RememberSearched", "Reorder",
+	"MaxRevealed", "OptionalPrompt", "OriginAlternative", "RememberSearcher", "Reorder",
 	"SelectPrompt", "ShareLandType", "ShuffleNonMandatory", "Transformed", "Unearth",
 	"Unimprint", "WithMayLook", "WithTotalCardTypes",
 }

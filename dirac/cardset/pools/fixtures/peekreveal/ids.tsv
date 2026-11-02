@@ -1,0 +1,23 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Bucolic Ranch
+1	card	Forest
+2	card	Gathering Stone
+3	card	Gilded Ghoda
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Mountain
+7	card	Ornithopter
+8	card	Routeway Moose
+9	card	Sidequest: Catch a Fish
+10	card	Traveling Botanist
+11	card	face:Sidequest: Catch a Fish#1
+12	token	c_a_food_sac
+13	token	c_a_treasure_sac
+14	card	Plane-Merge Elf
+15	token	g_1_1_elf_warrior
+16	card	Cabaretti Ascendancy
+17	card	Fisher's Talent
+18	card	Quest for Ula's Temple
+19	card	The Biblioplex
+20	token	u_1_1_fish
+21	card	Island

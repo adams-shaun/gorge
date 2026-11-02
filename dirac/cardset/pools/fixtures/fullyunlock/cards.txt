@@ -1,0 +1,38 @@
+# the FullyUnlock pool: the 11 DSK Eerie
+# "whenever you fully unlock a Room" enchantments, the Rooms kgen
+# already lowers, removal and basics, for the oracle's constructed
+# lockstep (dirac/oracle/fullyunlock_test.go)
+Balemurk Leech
+Cult Healer
+Dashing Bloodsucker
+Entity Tracker
+Erratic Apparition
+Fear of Infinity
+Gremlin Tamer
+Infernal Phantom
+Optimistic Scavenger
+Scrabbling Skullcrab
+Skullsnap Nuisance
+Bottomless Pool
+Defiled Crypt
+Derelict Attic
+Funeral Room
+Grand Entryway
+Meat Locker
+Restricted Office
+Roaring Furnace
+Surgical Suite
+Ticket Booth
+Unholy Annex
+Grizzly Bears
+Lightning Bolt
+Murder
+Mind Spring
+Blaze
+Careful Study
+Flicker of Fate
+Plains
+Island
+Swamp
+Mountain
+Forest

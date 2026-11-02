@@ -67,7 +67,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if sr == nil {
 		return nil, false
 	}
-	sr.gaps, sr.gapsOnly, sr.funding = gaps, true, funding
+	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
 }
@@ -85,6 +85,9 @@ type scriptSearch struct {
 	gapsOnly bool          // activate only gaps (plus funding others)
 	funding  int           // non-gap activations allowed when gapsOnly
 	passes   bool          // also pass priority while the stack is non-empty
+	// printedOnly: the play is a printed ability, and a granted one sharing its
+	// Ability is another option (only a printed ability reaches the planner).
+	printedOnly bool
 	// nodePlans asks the planner at every payer priority node; unproven
 	// records a node verdict that was neither a witness nor a proof.
 	nodePlans bool
@@ -146,6 +149,9 @@ func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
 
 func (sr *scriptSearch) offered(o *decision.Option) bool {
 	a := sr.play
+	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
+		return false
+	}
 	return o.Kind == a.Kind && o.Obj == a.Obj && o.Ability == a.Ability && o.Mode == a.Mode && (sr.altCost < 0 || o.AltCostIndex == sr.altCost)
 }
 
@@ -153,7 +159,6 @@ func (sr *scriptSearch) offered(o *decision.Option) bool {
 // from the floating pool (a witness that also reaches it); a verdict that
 // is neither a witness nor a proof marks the search unproven.
 func (sr *scriptSearch) priced(c *Engine) bool {
-	c.PaymentPlanPotentialPool = true
 	defer pay.PaymentPlanQueryEnd(asPayer(c), pay.PaymentPlanQueryBegin(asPayer(c)))
 	o := decision.Option{Kind: sr.play.Kind, Obj: sr.play.Obj, Ability: sr.play.Ability, Mode: sr.play.Mode, AltCostIndex: max(sr.altCost, 0)}
 	got, _ := c.potentialPlayVerdict(sr.p, o)
@@ -295,7 +300,6 @@ func (e *Engine) scriptNodeGaps(p state.PlayerID) []state.ObjID {
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
-	e.PaymentPlanPotentialPool = true
 	hyp := e.PotentialMana(p)
 	return e.paymentPlanCensusOf(p, &hyp).gaps
 }
@@ -533,9 +537,6 @@ func (e *Engine) PotentialPlayScript(p state.PlayerID, a decision.PotentialActio
 		e.beginDerivedMemo()
 		defer e.endDerivedMemo()
 		defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
-		prev := e.PaymentPlanPotentialPool
-		e.PaymentPlanPotentialPool = true
-		defer func() { e.PaymentPlanPotentialPool = prev }()
 		hyp := e.PotentialMana(p)
 		census = e.paymentPlanCensusOf(p, &hyp)
 		plain, _ = e.potentialPlayVerdict(p, decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode})

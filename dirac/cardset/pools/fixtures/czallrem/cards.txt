@@ -1,0 +1,18 @@
+# the ChangesZoneAll own-Remembered and BLOODSTAIN counter pool
+# Blood Spatter Analysis, a Day of Judgment
+# multi-death batch, small creatures and burn to make creatures die
+# (dirac/oracle/czallrem_test.go)
+Blood Spatter Analysis
+Raging Goblin
+Gleaming Barrier
+Shock
+Pyroclasm
+Fiery Cannonade
+Swamp
+Mountain
+Grizzly Bears
+Jolly Gerbils
+Day of Judgment
+Giant Growth
+Plains
+Forest

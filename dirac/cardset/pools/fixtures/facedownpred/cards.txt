@@ -1,0 +1,24 @@
+# the faceDown filter-word pool: Cryptid Inspector,
+# Threats Around Every Corner and Tunnel Tipster beside the face-down
+# makers (manifest dread, the facedown morph/disguise cards) and spare
+# creatures (dirac/oracle/facedownpred_test.go)
+Cryptid Inspector
+Threats Around Every Corner
+Tunnel Tipster
+Manifest Dread
+Defiant Survivor
+Innocuous Rat
+Break Down the Door
+Zoetic Cavern
+Forest
+Mox Emerald
+Mox Jet
+Mox Ruby
+Mox Pearl
+Priest of Gix
+Priest of Urabrask
+Aven Farseer
+Kolaghan Stormsinger
+Basilica Stalker
+Concealed Weapon
+Bolrac-Clan Basher

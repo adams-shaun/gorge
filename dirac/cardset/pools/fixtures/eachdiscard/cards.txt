@@ -1,0 +1,18 @@
+# the each-player discard pool: Wheel of
+# Fortune's Mode$ Hand each-player discard, basics and vanilla bodies,
+# for the oracle's constructed lockstep (dirac/oracle/eachdiscard_test.go)
+# The each-player discard pool: Wheel of Fortune is
+# the Mode$ Hand each-player discard (A=127) carrier -- the shape the kernel
+# guard also expands -- with basics and
+# vanilla bodies for the oracle's constructed lockstep
+# (dirac/oracle/eachdiscard_test.go).
+Wheel of Fortune
+Plains
+Island
+Swamp
+Mountain
+Forest
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Ornithopter

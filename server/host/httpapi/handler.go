@@ -31,6 +31,8 @@ type Options struct {
 	Web            fs.FS                     // the built client (has index.html); nil = 503 for non-API paths
 	// Engine is the engine GET /api/capabilities reports; "" is gorge.
 	Engine string
+	// NoManualMana reports an engine with no manual mana to /api/capabilities.
+	NoManualMana bool
 	// Seat resolves which seat a request may act for, separately from
 	// Authorize: nil — the default — keeps today's spectator-only behaviour,
 	// nobody may act as a seat, so any request that names one is refused

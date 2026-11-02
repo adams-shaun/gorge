@@ -1,0 +1,40 @@
+# the constructed lockstep pool: "whenever one or
+# more cards leave your graveyard" carriers beside Raise Dead, Regrowth,
+# an artifact creature, basics and vanilla creatures
+# (dirac/oracle/graveleaves_test.go)
+Attuned Hunter
+Chalk Outline
+Cyan, Vengeful Samurai
+Desecrated Tomb
+Fang, Fearless l'Cie
+Fuming Effigy
+Garrison Excavator
+Hardened Academic
+Imotekh the Stormlord
+Insidious Roots
+On Wings of Gold
+Owlin Historian
+Quintorius, Field Historian
+Rot Farm Mortipede
+Skeleton Crew
+Soul Enervation
+Spirit Mascot
+Stonebound Mentor
+Teval, the Balanced Scale
+Thran Vigil
+Undead Hand Ninja
+Raise Dead
+Regrowth
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Coral Merfolk
+Giant Spider
+Walking Corpse
+Mountain
+Forest
+Plains
+Island
+Swamp
+Ornithopter

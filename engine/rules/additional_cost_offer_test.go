@@ -10,7 +10,7 @@ import (
 // whose SpellAbility carries an ADDITIONAL cost (Sac<1/Creature>) on top of
 // its printed {B}. It is the card that wedged a live 4-player game.
 const villageRitesSrc = "Name:Village Rites\nManaCost:B\nTypes:Instant\n" +
-	"A:SP$ Draw | Cost$ B Sac<1/Creature> | NumCards$ 2 | SpellDescription$ Draw two cards.\n" +
+	"A:SP$ Draw | Cost$ B Sac<1/Creature> | NumCards$ 2\n" +
 	"Oracle:As an additional cost to cast this spell, sacrifice a creature.\\nDraw two cards.\n"
 
 const bearSrc = "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"

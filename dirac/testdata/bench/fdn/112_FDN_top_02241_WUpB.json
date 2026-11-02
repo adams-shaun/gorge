@@ -1,0 +1,111 @@
+{
+"name": "FDN_top_02241_WUpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 42c93acacc8343c1848948fb3317d026:0, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 1
+},
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 2
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 2
+},
+{
+"name": "Mocking Sprite",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 4
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 2
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 2
+}
+]
+}

@@ -18,8 +18,8 @@ import (
 
 const resolvedZeroTearSrc = "Name:Tear Asunder\nManaCost:1 G\nTypes:Instant\n" +
 	"K:Kicker:1 B\n" +
-	"A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Exile | TgtPrompt$ Select target artifact or enchantment | ValidTgts$ Artifact,Enchantment | TargetMin$ X | TargetMax$ X | SubAbility$ DBChangeZone | SpellDescription$ Exile target artifact or enchantment. If this spell was kicked, exile target nonland permanent instead.\n" +
-	"SVar:DBChangeZone:DB$ ChangeZone | TargetMin$ Y | TargetMax$ Y | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand | TgtPrompt$ Select target nonland permanent | Condition$ Kicked\n" +
+	"A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Artifact,Enchantment | TargetMin$ X | TargetMax$ X | SubAbility$ ChangeZone\n" +
+	"SVar:ChangeZone:DB$ ChangeZone | TargetMin$ Y | TargetMax$ Y | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand | Condition$ Kicked\n" +
 	"SVar:X:Count$Kicked.0.1\n" +
 	"SVar:Y:Count$Kicked.1.0\n" +
 	"Oracle:x\n"

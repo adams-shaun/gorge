@@ -1,0 +1,13 @@
+# the collect-evidence ward pool: Axebane Ferox against
+# burn and Murder with a filling graveyard (dirac/oracle/evidence_test.go)
+Axebane Ferox
+Grizzly Bears
+Giant Growth
+Murder
+Shock
+Lightning Bolt
+Hill Giant
+Walking Corpse
+Forest
+Swamp
+Mountain

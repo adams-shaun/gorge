@@ -1,48 +1,46 @@
-players[].battlefield[].id	61315
-players[].battlefield[].token	61315
-players[].graveyard[].id	56516
-players[].graveyard[].token	56516
-players[].hand[].id	50973
-players[].hand[].token	50973
-players[].available	44491
-players[].spells_cast_this_turn	34148
-players[].exile[].id	29968
-players[].exile[].token	29968
-players[].potential_actions[]	15027
-stack[].id	13539
-stack[].text	13466
-players[].graveyard[].exiled_cards[]	13391
-players[].life_lost_this_turn	11078
-players[].battlefield[].activated_this_turn	10657
-stack[].card.id	9417
-stack[].card.token	9417
-players[].exile[].exiled_cards[]	7817
-stack[].card	6523
-stack[].source	6520
-players[].battlefield[].exiled_cards[]	4619
-stack[].targets[].label	3874
+players[].battlefield[].id	60116
+players[].battlefield[].token	60116
+players[].graveyard[].id	55499
+players[].graveyard[].token	55499
+players[].hand[].id	48985
+players[].hand[].token	48985
+players[].available	42272
+players[].spells_cast_this_turn	34788
+players[].exile[].id	30585
+players[].exile[].token	30585
+players[].potential_actions[]	14803
+players[].graveyard[].exiled_cards[]	14439
+stack[].id	13599
+stack[].text	13527
+players[].life_lost_this_turn	11062
+players[].battlefield[].activated_this_turn	10396
+players[].exile[].exiled_cards[]	9968
+stack[].card.id	9544
+stack[].card.token	9544
+stack[].card	6456
+stack[].source	6447
+players[].battlefield[].exiled_cards[]	4188
+stack[].targets[].label	4104
 players[].battlefield[].attached_to	3747
-players[].battlefield[].keywords[]	3059
-stack[].targets[].obj	2908
-players[].hand[].effective_mana_cost	2483
-players[].battlefield[].types	2030
-players[].life_gained_this_turn	985
-players[].battlefield[].printed_pt	764
-players[].tokens_created_this_turn	612
-players[].graveyard[].keywords[]	589
-players[].battlefield[].blocked_by[]	372
-stack[].targets[]	308
+players[].battlefield[].keywords[]	3061
+stack[].targets[].obj	2925
+players[].hand[].effective_mana_cost	2052
+players[].battlefield[].types	1750
+players[].battlefield[].printed_pt	994
+players[].life_gained_this_turn	974
+players[].tokens_created_this_turn	737
+players[].battlefield[].blocked_by[]	383
 players[].battlefield[].counters.Shield	306
 stack[].decider	293
 stack[].optional	293
-players[].hand[].keywords[]	201
-stack[].card.exiled_cards[]	108
-players[].battlefield[].attacking_player	80	rare
-pending[]	77
+stack[].targets[]	285
+stack[].card.exiled_cards[]	121
+players[].battlefield[].attacking_player	103	rare
+pending[]	80
 stack[].modes[]	59
-players[].graveyard[].types	55
-players[].hand[].exiled_cards[]	31	rare
+players[].hand[].exiled_cards[]	52	rare
 stack[].kicks	28	rare
-stack[].card.keywords[]	20	rare
+players[].graveyard[].types	25
 players[].battlefield[].counters.Deathtouched	0	rare
 players[].exile[].types	0	rare
+stack[].card.keywords[]	0	rare

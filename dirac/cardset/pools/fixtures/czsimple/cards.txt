@@ -1,0 +1,17 @@
+# the ChangeZone NoShuffle$ / NoReveal$ /
+# AlreadyRevealed$ / targeted ChangeNum$ carriers beside W/B creatures,
+# artifacts, removal and nonbasic lands, for the oracle's constructed
+# lockstep (dirac/oracle/czsimple_test.go)
+Claim Jumper
+Case of the Stashed Skeleton
+Intimidation Tactics
+Virtue of Persistence
+Elite Vanguard
+Savannah Lions
+Silvercoat Lion
+Ornithopter
+Doom Blade
+Murder
+Scoured Barrens
+Plains
+Swamp

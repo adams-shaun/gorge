@@ -322,7 +322,7 @@ func TestVergeLandGatesColouredAbilityOnBasicTypeCount(t *testing.T) {
 	t.Parallel()
 	const verge = "Name:Blazemire Verge\nTypes:Land\n" +
 		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ R | IsPresent$ Swamp.YouCtrl,Mountain.YouCtrl | SpellDescription$ Add {R}. Activate only if you control a Swamp or a Mountain.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ R | IsPresent$ Swamp.YouCtrl,Mountain.YouCtrl\nOracle:x\n"
 	const swamp = "Name:Gate Swamp\nTypes:Land Swamp\nOracle:x\n"
 
 	// Below the threshold (no Swamp or Mountain controlled): the gated R
@@ -364,7 +364,7 @@ func TestVergeLandGatesColouredAbilityOnBasicTypeCount(t *testing.T) {
 func TestTempleOfTheFalseGodGatesOnLandCount(t *testing.T) {
 	t.Parallel()
 	const temple = "Name:Temple of the False God\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | IsPresent$ Land.YouCtrl | PresentCompare$ GE5 | SpellDescription$ Add {C}{C}. Activate only if you control five or more lands.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | IsPresent$ Land.YouCtrl | PresentCompare$ GE5\nOracle:x\n"
 	const plain = "Name:Bare Land\nTypes:Land\nOracle:x\n"
 
 	// Four lands total (the Temple counts itself): withheld.

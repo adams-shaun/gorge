@@ -36,7 +36,8 @@ func combatObs(t *testing.T, turn uint32, step, target string, blocked bool) *pr
 	return &o
 }
 
-func attackerBlocks(t *testing.T, b *neutral.Builder, o *protocol.Observation) int {
+// attackerBlocks is whether the view's attacker is blocked, and by how many listed.
+func attackerBlocks(t *testing.T, b *neutral.Builder, o *protocol.Observation) (bool, int) {
 	t.Helper()
 	v, err := b.View(o)
 	if err != nil {
@@ -45,40 +46,42 @@ func attackerBlocks(t *testing.T, b *neutral.Builder, o *protocol.Observation) i
 	for _, p := range v.Players {
 		for _, cv := range p.Battlefield {
 			if cv.Attacking {
-				return len(cv.BlockedBy)
+				return cv.Blocked, len(cv.BlockedBy)
 			}
 		}
 	}
 	t.Fatal("no attacker in the view")
-	return 0
+	return false, 0
 }
 
 // TestBlockedAttackerStaysBlockedAfterItsBlockerLeaves: CR 509.1h. Once the
 // builder has seen an attacker blocked, it stays blocked for the rest of
-// that combat after the blocker leaves the battlefield (gorge's view keeps a
-// zero tombstone), but not into a later combat or after it is re-pointed.
+// that combat after the blocker leaves the battlefield (gorge's view says
+// blocked and lists the blocker no more), but not into a later combat or
+// after it is re-pointed.
 func TestBlockedAttackerStaysBlockedAfterItsBlockerLeaves(t *testing.T) {
 	b := neutral.NewBuilder(testcorpus.Registry(t))
 	steps := []struct {
 		turn         uint32
 		step, target string
 		blocked      bool
-		want         int
+		wantBlocked  bool
+		wantListed   int
 	}{
-		{3, "declare_blockers", "p1", true, 1},
-		{3, "combat_damage", "p1", false, 1}, // the blocker died: still blocked
-		{3, "end_of_combat", "p1", false, 1},
-		{3, "postcombat_main", "p1", false, 0}, // out of combat: the memory resets
-		{3, "end_of_combat", "p1", false, 0},
-		{5, "declare_blockers", "p1", true, 1},
-		{5, "combat_damage", "p0", false, 0}, // re-pointed: gorge clears its blocks
-		{7, "declare_blockers", "p1", true, 1},
-		{9, "combat_damage", "p1", false, 0}, // a new turn resets
+		{3, "declare_blockers", "p1", true, true, 1},
+		{3, "combat_damage", "p1", false, true, 0}, // the blocker died: still blocked
+		{3, "end_of_combat", "p1", false, true, 0},
+		{3, "postcombat_main", "p1", false, false, 0}, // out of combat: the memory resets
+		{3, "end_of_combat", "p1", false, false, 0},
+		{5, "declare_blockers", "p1", true, true, 1},
+		{5, "combat_damage", "p0", false, false, 0}, // re-pointed: gorge clears its blocks
+		{7, "declare_blockers", "p1", true, true, 1},
+		{9, "combat_damage", "p1", false, false, 0}, // a new turn resets
 	}
 	for _, s := range steps {
-		if got := attackerBlocks(t, b, combatObs(t, s.turn, s.step, s.target, s.blocked)); got != s.want {
-			t.Errorf("turn %d %s (target %s, blocker present %v): blocked by %d, want %d",
-				s.turn, s.step, s.target, s.blocked, got, s.want)
+		if blocked, n := attackerBlocks(t, b, combatObs(t, s.turn, s.step, s.target, s.blocked)); blocked != s.wantBlocked || n != s.wantListed {
+			t.Errorf("turn %d %s (target %s, blocker present %v): blocked %v by %d, want %v by %d",
+				s.turn, s.step, s.target, s.blocked, blocked, n, s.wantBlocked, s.wantListed)
 		}
 	}
 }

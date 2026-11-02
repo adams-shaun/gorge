@@ -55,25 +55,23 @@ func (e *Engine) playerKeywords(p state.PlayerID) []string {
 	return out
 }
 
-// playerForetellsAnyTurn reports whether player p carries the foretell
-// TIMING grant (Cosmos Charger's `Affected$ You | AddKeyword$ Foretell on
-// any player's turn`): while it holds, the CR 702.126a foretell special
-// action's "during your turn" window is widened to any player's turn for
-// every hand card p could foretell. The grant is a PLAYER keyword (the
-// layer walk grants it to no object — `Affected$ You` never matches an
-// object — exactly like the shroud/hexproof grants above), so the read is
-// this surface, not the object Derived() walk. The entry is matched by its
-// text: the head begins with Foretell and the value carries the any-turn
-// modifier — the exact spelling both corpus carriers (Cosmos Charger and
-// its rebalanced twin) write. Any other spelling of a timing rider is a
-// keyword this read does not recognise and grants nothing (the
-// fail-closed convention).
-func (e *Engine) playerForetellsAnyTurn(p state.PlayerID) bool {
-	for _, kw := range e.playerKeywords(p) {
-		low := strings.ToLower(kw)
-		if strings.HasPrefix(low, "foretell") && strings.Contains(low, "any player's turn") {
-			return true
+// foretellsAnyTurn reports whether a static `Mode$ ForetellAnyTurn` (Cosmos
+// Charger) widens the CR 702.126a foretell special action's "during your turn"
+// window to any player's turn for player p and hand card id.
+func (e *Engine) foretellsAnyTurn(p state.PlayerID, id state.ObjID) bool {
+	for _, sv := range e.activeStatics("ForetellAnyTurn") {
+		if !e.staticGateHolds(sv) {
+			continue
 		}
+		if spec := strings.TrimSpace(sv.ParamStr(cards.PKValidPlayer)); spec != "" &&
+			!effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard)); spec != "" &&
+			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		return true
 	}
 	return false
 }

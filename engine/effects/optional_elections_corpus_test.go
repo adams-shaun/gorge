@@ -39,6 +39,7 @@ func TestOptionalElectionCorpusCarriers(t *testing.T) {
 		}},
 		{name: "DealDamage.OptionalDecider", api: "DealDamage", keys: []string{"OptionalDecider$"}, want: []string{
 			"c/channel_harm.txt",
+			"e/elektra_femme_fatale.txt",
 			"m/master_of_the_wild_hunt.txt",
 			"r/requiem_monolith.txt",
 			"s/spark_mage.txt",

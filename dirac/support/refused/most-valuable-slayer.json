@@ -1,0 +1,13 @@
+{
+  "card": "Most Valuable Slayer",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 2 games in the corpus",
+  "repro": {
+    "pool": "std-dsk",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1112,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

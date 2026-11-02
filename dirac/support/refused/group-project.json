@@ -1,0 +1,13 @@
+{
+  "card": "Group Project",
+  "class": "options",
+  "why": "the engines offer different options; 10 games in the corpus",
+  "repro": {
+    "pool": "std-sos",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 16,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

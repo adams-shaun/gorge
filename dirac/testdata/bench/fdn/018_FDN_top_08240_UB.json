@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_08240_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 2a8dcf3a2d5542cfa68b3e2155adf40b:0, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Billowing Shriekmass",
+"count": 3
+},
+{
+"name": "Burglar Rat",
+"count": 2
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 2
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 2
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Revenge of the Rats",
+"count": 1
+},
+{
+"name": "Sanguine Syphoner",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Tragic Banshee",
+"count": 2
+}
+]
+}

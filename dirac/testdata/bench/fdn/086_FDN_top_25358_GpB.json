@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_25358_GpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck dcd50318d9894a7aa9260ab6044d0bd8:1, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Ambush Wolf",
+"count": 3
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Blanchwood Armor",
+"count": 2
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 1
+},
+{
+"name": "Elfsworn Giant",
+"count": 3
+},
+{
+"name": "Elvish Regrower",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Giant Growth",
+"count": 2
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Lathril, Blade of the Elves",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Needletooth Pack",
+"count": 1
+},
+{
+"name": "Quakestrider Ceratops",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 5
+},
+{
+"name": "Swiftfoot Boots",
+"count": 1
+}
+]
+}

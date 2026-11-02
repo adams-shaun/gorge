@@ -1,0 +1,19 @@
+# Echo, Scientist Supreme of A.I.M. and Kirol copying the
+# abilities of creatures with targeted enters triggers and of pingers
+# (dirac/oracle/copyab_test.go)
+Echo, Perceptive Prodigy
+Scientist Supreme of A.I.M.
+Kirol, Attentive First-Year
+Fire Imp
+Flametongue Kavu
+Man-o'-War
+Prodigal Sorcerer
+Prodigal Pyromancer
+Rod of Ruin
+Shock
+Lightning Bolt
+Hill Giant
+Island
+Mountain
+Swamp
+Strionic Resonator

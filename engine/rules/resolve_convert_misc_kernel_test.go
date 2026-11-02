@@ -22,11 +22,11 @@ func TestKernelAskMiscSorceries(t *testing.T) {
 		served     int64
 	}{
 		// mana_color: one colour, then an allocation of Combo units.
-		{"Tape Any Mana", "A:SP$ Mana | Produced$ Any | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
-		{"Tape Combo Mana", "A:SP$ Mana | Produced$ Combo W U B | Amount$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Any Mana", "A:SP$ Mana | Produced$ Any | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Combo Mana", "A:SP$ Mana | Produced$ Combo W U B | Amount$ 2 | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
 		// endturn_optional and planeswalk_optional.
-		{"Tape Time Stop", "A:SP$ EndTurn | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
-		{"Tape Walk", "A:SP$ Planeswalk | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Time Stop", "A:SP$ EndTurn | Optional$ True | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Walk", "A:SP$ Planeswalk | Optional$ True | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
 	}
 	for i, tc := range cases {
 		for _, seed := range []uint64{0, 1} {
@@ -44,13 +44,13 @@ func TestKernelAskMiscBattlefield(t *testing.T) {
 		name, body string
 		served     int64
 	}{
-		{"Tape Ring", "A:SP$ RingTemptsYou | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
-		{"Tape Reflect", "A:SP$ ManaReflected | ColorOrType$ Color | ReflectProperty$ Is | Valid$ Creature.YouCtrl | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
-		{"Tape Untap", "A:SP$ Untap | UntapType$ Creature.YouCtrl | Amount$ 1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Ring", "A:SP$ RingTemptsYou | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Reflect", "A:SP$ ManaReflected | ColorOrType$ Color | ReflectProperty$ Is | Valid$ Creature.YouCtrl | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Untap", "A:SP$ Untap | UntapType$ Creature.YouCtrl | Amount$ 1 | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
 		{"Tape Untap Upto", "A:SP$ Untap | UntapType$ Creature.YouCtrl | Amount$ 2 | UntapUpTo$ True", 1},
-		{"Tape Twiddle", "A:SP$ TapOrUntap | ValidTgts$ Creature | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Twiddle", "A:SP$ TapOrUntap | ValidTgts$ Creature | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
 		{"Tape Twiddle Two", "A:SP$ TapOrUntap | ValidTgts$ Creature | SubAbility$ DBTwo\nSVar:DBTwo:DB$ TapOrUntap | ValidTgts$ Creature | TargetUnique$ True", 2},
-		{"Tape Skirmish", "A:SP$ Pump | ValidTgts$ Creature | KWChoice$ Flying,Vigilance,Trample | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", 1},
+		{"Tape Skirmish", "A:SP$ Pump | ValidTgts$ Creature | KWChoice$ Flying,Vigilance,Trample | SubAbility$ ThenGain\nSVar:ThenGain:DB$ GainLife | LifeAmount$ 2", 1},
 		// An unread parameter's Note and a NoteCards$ notation precede the
 		// ask; the legacy re-entry repeats both, so the tape branch must.
 		{"Tape Noted Skirmish", "A:SP$ Pump | ValidTgts$ Creature | TapeUnread$ 1 | NoteCards$ TriggeredSource | NoteCardsFor$ x | KWChoice$ Flying,Vigilance", 1},
@@ -72,8 +72,8 @@ func TestKernelAskMiscBattlefield(t *testing.T) {
 // setstate_optional: an Optional$ Transform of a two-faced creature.
 func TestKernelAskMiscSetState(t *testing.T) {
 	const name = "Tape Flip"
-	src := tapeMiscSorcery(name, "A:SP$ SetState | ValidTgts$ Creature | Mode$ Transform | Optional$ True | SubAbility$ DBGain\n"+
-		"SVar:DBGain:DB$ GainLife | LifeAmount$ 2")
+	src := tapeMiscSorcery(name, "A:SP$ SetState | ValidTgts$ Creature | Mode$ Transform | Optional$ True | SubAbility$ ThenGain\n"+
+		"SVar:ThenGain:DB$ GainLife | LifeAmount$ 2")
 	for _, seed := range []uint64{0, 1} {
 		t.Run(fmt.Sprint(seed), func(t *testing.T) {
 			_, st := runKernelScenario(t, 2, 13200+seed, func(t *testing.T, e *Engine) {

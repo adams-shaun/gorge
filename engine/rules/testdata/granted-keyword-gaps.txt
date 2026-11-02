@@ -8,7 +8,6 @@ Battle Cry
 Bushido
 CantSearchLibrary
 Double team
-Foretell on any player's turn
 Freerunning
 LimitSearchLibrary
 Modular
@@ -19,6 +18,7 @@ OnlyUntapChosen
 PayLifeInsteadOf
 Piracy
 Poisonous
+Prismatic
 Protection from EachCMCAmongDefined
 Protection from NotCommanderColorID
 Protection from cardColors

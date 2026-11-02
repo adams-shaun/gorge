@@ -1,0 +1,21 @@
+# the initiative pool (CR 726 / 309): Avenging Hunter and
+# six other TakeInitiative carriers on both sides, the Undercity's nine
+# rooms, creatures to connect (dirac/oracle/init_test.go)
+Avenging Hunter
+Bloodboil Sorcerer
+Stirring Bard
+Dungeoneer's Pack
+Goliath Paladin
+Underdark Explorer
+Aarakocra Sneak
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Walking Corpse
+Elite Vanguard
+Shock
+Forest
+Mountain
+Plains
+Swamp
+Island

@@ -142,6 +142,16 @@ func TestAprilOneilCardTypesAmongSpellsCast(t *testing.T) {
 			t.Fatalf("April's X = %d, want 2 (distinct card types: Instant + Creature)", got)
 		}
 	})
+	// April reads her own cast: she is one of the spells cast this turn, and the
+	// ability's source is no exclusion here (Forge and XMage both draw).
+	t.Run("the_source_counts", func(t *testing.T) {
+		e := handEngine(t, card(t, creatureSrc))
+		id := castSuffixSpell(t, e, creatureSrc)
+		got, ok := effects.EvalCountOK(e, &effects.Ctx{Controller: 0, Source: id}, aprilXBody)
+		if !ok || got != 1 {
+			t.Fatalf("April's X with the cast as its source = %d (ok %v), want 1", got, ok)
+		}
+	})
 	t.Run("one_card_type", func(t *testing.T) {
 		e := handEngine(t, card(t, "Name:Probe Spark\nManaCost:U\nTypes:Instant\nOracle:x\n"))
 		castSuffixSpell(t, e, "Name:Probe Spark\nManaCost:U\nTypes:Instant\nOracle:x\n")

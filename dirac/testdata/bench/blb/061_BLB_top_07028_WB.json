@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_07028_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 1d24662bc79d4d6699d0a1677bb024f0:1, player win-rate bucket 0.68 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Crumb and Get It, 2 Intrepid Rabbit, 1 Nocturnal Hunger, 1 Sword of Fire and Ice -> 4 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 3
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 2
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Pileated Provisioner",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 14
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Wax-Wane Witness",
+"count": 3
+}
+]
+}

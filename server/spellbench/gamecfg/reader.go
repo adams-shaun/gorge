@@ -40,17 +40,11 @@ type Reader interface {
 }
 
 // Facts is what an observation reports of an object's characteristics.
-type Facts struct {
-	Name             string
-	Types            []string
-	Colors           string // WUBRG letters
-	Keywords         []string
-	Power, Toughness int32
-}
+type Facts = game.Facts
 
 // Readable says why a v2 seat cannot read g, or nil when it can.
 func Readable(g game.Game) error {
-	if gorgegame.Rules(g) == nil {
+	if _, ok := g.(game.Observed); gorgegame.Rules(g) == nil && !ok {
 		return fmt.Errorf("the %q engine offers no v2 reader", g.Caps().Engine)
 	}
 	return nil
@@ -58,8 +52,29 @@ func Readable(g game.Game) error {
 
 // Over is the Game a v2 seat reads g through. g must be Readable.
 func Over(g game.Game, sec *secrets.Game) *Game {
-	return Wrap(gorgegame.Rules(g), sec)
+	if e := gorgegame.Rules(g); e != nil {
+		return Wrap(e, sec)
+	}
+	return &Game{R: gameReader{g, g.(game.Observed)}, Secret: sec}
 }
+
+// gameReader reads an engine through the seam alone.
+type gameReader struct {
+	game.Game
+	game.Observed
+}
+
+func (r gameReader) Probe(ins ...decision.Intent) (Reader, error) {
+	c := r.Fork()
+	for _, in := range ins {
+		if err := c.Submit(in); err != nil {
+			return nil, err
+		}
+	}
+	return gameReader{c, c.(game.Observed)}, nil
+}
+
+func (r gameReader) Toughness(id state.ObjID) int32 { return r.Chars().Toughness(id) }
 
 // engineReader reads a gorge engine.
 type engineReader struct{ e *rules.Engine }

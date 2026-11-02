@@ -1,6 +1,6 @@
 // Starting Town enters tapped on the first three turns. The corpus card's
-// ETB-tapped replacement gates on SVar:X:Count$Compare Y GE1.Z.4 with
-// SVar:Y:PlayerCountPropertyYou$HasPropertyActive and SVar:Z:Count$YourTurns —
+// ETB-tapped replacement gates on X = Count$Compare Y GE1.Z.4 with
+// Y = PlayerCountPropertyYou$HasPropertyActive and SVar:Z:Count$YourTurns —
 // tapped only when X > 3, i.e. untapped on your first, second and third turns
 // of the game (CR 305.7's "enters tapped unless" family). The sole defect was
 // the PlayerCountPropertyYou$HasPropertyActive count head (unresolvable, Y=0),
@@ -17,16 +17,15 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// startingTownSrc is the Starting-Town-shaped inline fixture: the identical
-// R: Moved / ReplaceWith$ LandTapped / ConditionCheckSVar$ shape the corpus
-// card carries, with its exact SVar table.
+// startingTownSrc is the Starting-Town-shaped inline fixture: a Moved replacement
+// that enters tapped behind a ConditionCheckSVar$ over a nested count.
 const startingTownSrc = `Name:Test Town
 Types:Land
-R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ LandTapped | ReplacementResult$ Updated | Description$ This land enters tapped unless it's your first, second, or third turn of the game.
-SVar:LandTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionCheckSVar$ X | ConditionSVarCompare$ GT3
-SVar:X:Count$Compare Y GE1.Z.4
-SVar:Y:PlayerCountPropertyYou$HasPropertyActive
-SVar:Z:Count$YourTurns
+R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ EntersTapped | ReplacementResult$ Updated
+SVar:EntersTapped:DB$ Tap | Defined$ Self | ETB$ True | ConditionCheckSVar$ Gate | ConditionSVarCompare$ GT3
+SVar:Gate:Count$Compare Active GE1.Turns.4
+SVar:Active:PlayerCountPropertyYou$HasPropertyActive
+SVar:Turns:Count$YourTurns
 Oracle:x
 `
 

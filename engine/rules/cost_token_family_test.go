@@ -478,7 +478,7 @@ func TestSVarFixedPayLifeXPaysItsBody(t *testing.T) {
 }
 
 // TestFixedLifeXSVarCountsCounters: Tornado's
-// "SVar:X:Count$CardCounters.VELOCITY/Times.3" shape on a fixture -- the
+// "X = Count$CardCounters.VELOCITY/Times.3" shape on a fixture -- the
 // fixed value counts the source's own counters and scales, the life the
 // settle pays tracks it exactly, and a fixed value the payer cannot afford
 // (life below the fixed price) withholds the ability instead of offering a
@@ -539,7 +539,7 @@ func TestFixedLifeXSVarCountsCounters(t *testing.T) {
 }
 
 // TestFixedLifeXUnresolvableWithheld: War Room's
-// "SVar:X:Count$ColorsColorIdentity" used to be a body this evaluator could
+// "X = Count$ColorsColorIdentity" used to be a body this evaluator could
 // not resolve, so the ability was WITHHELD. The head is now resolvable
 // (war_room_commander_test.go pins the Commander-format play), and THIS
 // Constructed game still withholds the ability -- but for the

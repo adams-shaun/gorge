@@ -1,0 +1,393 @@
+package kop
+
+// FilterID indexes Table.Filters. 0 is the empty filter (matches anything in
+// the default zone); Table.Filters[0] must be the zero Filter.
+type FilterID uint16
+
+// TypeMask is a card's types (plus the two subtypes the kernel treats as
+// types because rules read them: Aura and Equipment).
+type TypeMask uint16
+
+const (
+	TLand TypeMask = 1 << iota
+	TCreature
+	TArtifact
+	TEnchantment
+	TPlaneswalker
+	TInstant
+	TSorcery
+	TBattle
+	TKindred
+	TAura      // enchantment subtype Aura (attaches on resolution)
+	TEquipment // artifact subtype Equipment (Equip ability)
+	TBasic     // supertype basic
+	TLegendary // supertype legendary
+	TToken     // the object is a token (set on token CardDefs)
+	TVehicle
+)
+
+// ColorMask is WUBRG in bits 0..4. ColorColorless (bit 5) marks a colourless
+// mana symbol / production. ColorAny marks "one mana of any colour".
+type ColorMask uint8
+
+const (
+	ColW ColorMask = 1 << iota
+	ColU
+	ColB
+	ColR
+	ColG
+	ColC             // colourless mana ({C})
+	ColAny ColorMask = 0x1f
+)
+
+// CtrlSel selects by controller relative to the source's controller.
+type CtrlSel uint8
+
+const (
+	CtrlAny CtrlSel = iota
+	CtrlYou
+	CtrlOpp
+)
+
+// Pred is a filter's extra predicate opcode (applied with Filter.PredN).
+type Pred uint8
+
+const (
+	PredNone         Pred = iota
+	PredPowerLE           // power <= N
+	PredPowerGE           // power >= N
+	PredToughnessLE       // toughness <= N
+	PredCMCLE             // mana value <= N
+	PredCMCGE             // mana value >= N
+	PredHasKeyword        // has keyword bit N
+	PredHasCounter        // has a counter of kind N
+	PredSubtype           // has subtype index N (Table.Subtypes)
+	PredNamed             // is card id N
+	PredWithPowerLEX      // power <= X
+)
+
+// FilterFlags are boolean conditions of a Filter.
+type FilterFlags uint16
+
+const (
+	FOther    FilterFlags = 1 << iota // not the source itself
+	FNontoken                         // not a token
+	FToken                            // a token
+	FTapped
+	FUntapped
+	FAttacking
+	FBlocking
+	FAttackingOrBlocking
+	FSelf   // only the source itself
+	FPlayer // a target spec: players allowed
+	FCreatureOrPW
+	FNotAttacking
+	FSpell         // matches spells on the stack
+	FAttachedBySrc // the permanent the source Aura/Equipment is attached to
+	FExiledWith    // exiled with the reading source (gorge ExiledWithSource): a resolving entry's, or a static's own (kernel zone_exiledwith.go)
+	// FNotAttachedBySrc: '!EnchantedBy' / '!EquippedBy': not the permanent the
+	// source is attached to; true for all when the source is unattached or
+	// gone (gorge !attachedBy). Bit 15, the LAST free FilterFlags bit
+	// (kernel filter_notattached.go)
+	FNotAttachedBySrc
+)
+
+// Filter is the object predicate for targets, *All ops, triggers and statics:
+// type mask (any-of) + not-types + controller + colour mask + one predicate.
+type Filter struct {
+	Types     TypeMask // any of these (0 = any type)
+	NotTypes  TypeMask
+	Ctrl      CtrlSel
+	Colors    ColorMask // any of these colours (0 = any)
+	NotColors ColorMask
+	Pred      Pred
+	PredN     int16
+	Flags     FilterFlags
+	Zone      Zone // ZoneNone = battlefield (or the stack for FSpell)
+
+	// Appended by dirac/kgen (table.go documents them).
+	Owner  CtrlSel      // owner relative to the source's controller
+	Sub    uint8        // must have subtype index Sub-1 (0 = no requirement)
+	NotSub uint8        // must not have subtype index NotSub-1
+	Flags2 FilterFlags2 // more boolean conditions
+	PredV  ValueRef     // the bound for the *V predicates
+	Or     FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
+}
+
+// HybTwobrid marks Hyb[0] when the cost carries twobrid pips (ManaCost.Tb).
+// It is no colour mask: ManaCost.Resolve never sees it.
+const HybTwobrid ColorMask = 0x80
+
+// HybPhyrexian marks Hyb[1] beside HybTwobrid when ManaCost.Tb's pips are
+// Phyrexian ({W/P}, CR 107.4f): each is paid with its colour
+// or two life, and counts one toward the mana value (CR 202.3g).
+const HybPhyrexian ColorMask = 0x40
+
+// FilterFlags2 (Filter.Flags2).
+type FilterFlags2 uint32
+
+const (
+	F2Kicked           FilterFlags2 = 1 << iota // the object (spell or permanent) was kicked
+	F2CastByYou                                 // the permanent was cast by its controller
+	F2EnteredThisTurn                           // put into its current zone this turn
+	F2ChosenType                                // has the source's chosen creature type
+	F2ChosenColor                               // has the source's chosen colour
+	F2Remembered                                // in the remembered set
+	F2NotRemembered                             // not in the remembered set
+	F2ChosenCard                                // is a chosen card
+	F2NotChosenCard                             // is not a chosen card
+	F2AttachedToT0                              // attached to target 0's object
+	F2TargetedBy                                // targeted by the resolving ability
+	F2SameNameAsSource                          // has the source's name (same card id)
+	F2WithFlying                                // has flying
+	F2WithoutFlying                             // doesn't have flying
+	F2Emblem                                    // an emblem (sources)
+	F2Opponent                                  // players: an opponent of the controller
+	F2You                                       // players: the controller
+	F2Basic                                     // has the supertype basic
+	F2SharesColorRem                            // shares a colour with another object in the remembered set (cards off the battlefield only)
+	F2NotTriggerObj                             // is not the resolving (or building) ability's triggering object
+	F2WasDamaged                                // a permanent with damage marked this turn (gorge wasDealtDamageThisTurn)
+	F2Legendary                                 // has the supertype legendary (with a type head: Creature.Legendary)
+	F2Saddled                                   // a battlefield permanent that is saddled (CR 702.171b; gorge IsSaddled: SaddledTurn == the turn)
+	F2BasePermanent                             // the filter's Permanent base: on the battlefield it reads the live permanent; off it a permanent card
+	F2Sneaked                                   // the spell or permanent was cast for its sneak cost (the battlefield mark is the arena's mechSneaked)
+	F2Unblocked                                 // an attacking permanent with no blocker recorded (CR 509.1h; gorge "unblocked"; battlefield only)
+	F2BlockedBySrc                              // an attacking creature the source is blocking; with the source gone (sacrificed), any attacking creature: the target was chosen while it blocked (gorge blockedBySourceLKI)
+	F2DamagedBy                                 // a permanent the source dealt damage to this turn (gorge DamagedBy over DamageTakenThisTurnBy)
+	F2CrewedSrc                                 // a creature that crewed the source this turn (gorge CrewedThisTurn)
+	F2Warped                                    // a battlefield permanent cast for its warp cost, its delayed exile still pending (gorge CastSa Spell.Warp)
+	F2TgtPlayerCtrl                             // a permanent whose controller is a player target of the current stack entry (gorge TargetedPlayerCtrl; battlefield only)
+	F2DefendingCtrl                             // a permanent the defending player controls: in two-player combat, not the active player (gorge ControlledBy TriggeredDefendingPlayer in an Attacks trigger; battlefield only)
+)
+
+// Appended predicates (Filter.Pred).
+const (
+	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
+	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
+	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
+	PredPowerGEV                                            // reserved
+	PredToughnessGE                                         // toughness >= PredN
+	PredHasXCost                                            // the printed mana cost contains {X}
+	PredPowerLTToughness                                    // power < toughness
+	PredMultiColor                                          // two or more colours (gorge wordMultiColor)
+	PredHistoric                                            // artifact, legendary or Saga (gorge historicMatches); PredN = the Saga subtype index+1, 0 if the table has none
+	PredEquipped                                            // a battlefield permanent with an Equipment attached (gorge equipped)
+	PredEnchanted                                           // a battlefield permanent with an Aura attached (gorge enchanted)
+	PredAttached                                            // attached to the source (gorge objectAttachedToSource)
+	PredActiveCtrl                                          // controlled (off the battlefield: owned) by the active player (gorge ActivePlayerCtrl)
+	PredTypesAll                                            // has EVERY card type in the mask PredN (a Forge "Artifact.Creature" / "Land.Artifact" clause: the type head AND a disjoint type property; typesall); derived types on the battlefield, printed off it
+	PredModified                                            // modified (CR 700.9): a battlefield permanent with a counter, an Equipment attached, or an Aura its controller controls attached (gorge modifiedPermanent)
+	PredHasCounters                                         // HasCounters: a battlefield permanent with one or more counters of any kind, the regeneration shield and the deathtouch mark included (gorge wordHasCounters/hasCounters)
+	PredMonstrous                                           // the battlefield permanent is monstrous (CR 701.37b; gorge IsMonstrous: Object.Monstrous)
+	PredNoCounters                                          // !HasCounters: no counter of any kind, the regeneration shield and the deathtouch mark included (PredHasCounters negated)
+	PredLacksKeyword                                        // !with<Keyword>: does not have keyword bit PredN (PredHasKeyword negated)
+	PredOutlaw                                              // an Assassin, Mercenary, Pirate, Rogue or Warlock (gorge outlawMatches); PredN 1 negates (!Outlaw)
+	PredMonoColor                                           // exactly one colour (gorge wordMonoColor)
+	// PredSameNameT0: a battlefield permanent that is the resolving
+	// ability's target 0, or shares its name (a named, face-up one; gorge
+	// "TargetedCard.Self,Permanent.NotDefinedTargeted+sharesNameWith
+	// Targeted": Maelstrom Pulse)
+	PredSameNameT0
+	// PredCountersLT: fewer than PredN>>8 counters of kind PredN&0xff
+	// (gorge counters_LT/LE/EQ0: Reckoner Bankbuster's counters_EQ0_CHARGE
+	// is LT 1; off the battlefield a card has none but a stash mark;
+	// )
+	PredCountersLT
+	// PredToughnessLEV: a battlefield permanent whose current toughness
+	// is <= the value PredV (gorge toughnessLE<X>: Zero Point Ballad's
+	// "creatures with toughness X or less"; battlefield only, kgen lowers
+	// no other zone)
+	PredToughnessLEV
+)
+
+// PredAdventureCard: an adventurer card (CR 715.1; gorge wordAdventureCard,
+// Forge's AdventureCard): the card's layout, so it holds in every zone, on the
+// stack as the Adventure half is cast, in exile on an adventure, and for the
+// permanent on the battlefield.
+const PredAdventureCard Pred = 253
+
+// OvChosenColor, carried in an OpOverride's B field (which OpOverride does
+// not otherwise read; 0 is the zero Const there), marks the chosen-colour
+// animation family (Puca's Eye, Mondo Gecko): the
+// instruction's C names the FIRST of five consecutive Overrides records
+// differing only in SetColors -- W, U, B, R, G in that order, one record
+// per colour, in C + chosen - 1 order. At resolution the kernel applies the
+// record whose colour the controller chose earlier in the same resolution
+// (ExtChooseColorRes's res.chosen, 1..5), baking the colour into the
+// applied record: gorge effChooseColor + combatfx.go animateGrant read the
+// source's ChosenColor AT RESOLUTION, and OverwriteColors$ True replaces
+// the object's colours (layer 5, CR 613.1e).
+const OvChosenColor = 1
+
+// The exiled-with source link, numbered explicitly clear of the
+// iota lists that sibling families append to.
+
+// PredExiledWith: the card was exiled with the reading ability's source (gorge
+// filter ExiledWithSource, Forge Card.ExiledWithSource): the reverse link
+// Object.ExiledWith held live for the source's incarnation, or the source's
+// forward ExiledCards list (kernel zone_exiledwith.go). Resolution-time
+// readers only: the source is the resolving entry's. A filter reads the same
+// link as the FExiledWith flag, which takes its source from
+// the matcher's context (a static's own object, else the resolving entry);
+// the predicate survives as the synthetic Defined$ ExiledWith sweep's form
+// (PredN 1). Omenpath Journey, Ghost Vacuum, Northampton Farm.
+const PredExiledWith Pred = 249
+
+// PredFaceDown: the filter word faceDown, a face-down
+// BATTLEFIELD permanent (gorge wordFaceDown: AsFaceDown || Object.FaceDown on
+// the battlefield). A face-down spell or exile card never matches. Explicit
+// high ordinal, filters.go style; took 246.
+const PredFaceDown Pred = 245
+
+// PredWord7: five filter words, sub-kind in PredN's low byte:
+// 1 noName, 2 greatestPower, 3 attackingAlone, 4 inZone (zone in PredN>>8).
+const PredWord7 Pred = 241
+
+const (
+	W7NoName         int16 = 1
+	W7GreatestPower  int16 = 2
+	W7AttackingAlone int16 = 3
+	W7InZone         int16 = 4
+)
+
+// six more PredWord7 sub-kinds (PredN's low byte; no new
+// Pred). 5 faceUp, 6 IsNotChosenType, 7 "attacking Opponent", 8 "EnchantedBy
+// Aura.YouCtrl", 9 "doesNotShareNameWith OtherYourBattlefield", 10
+// "sharesNameWith Valid Permanent.Legendary" (gorge cuts the spec at '+': a
+// trailing +YouCtrl is the outer filter's, not the inner's). Append-only.
+const (
+	W7FaceUp           int16 = 5
+	W7NotChosenType    int16 = 6
+	W7AttackingOpp     int16 = 7
+	W7EnchantedByYours int16 = 8
+	W7NoNameTwin       int16 = 9
+	W7SharesNameLegend int16 = 10
+)
+
+// PredWord7 sub-kinds 11-13 (PredN's low byte; no new
+// Pred). 11 withWarp (gorge's printed-keyword read, effects/filter.go
+// keywordInCtx: the card's printed CardDef.HasWarp in any zone; a
+// battlefield permanent that is face down or lost all abilities has none;
+// Blade of the Swarm), 12 greatestPowerControlledByTargeted (a
+// battlefield creature controlled by a player target of the current stack
+// entry that no other such creature out-powers; ties match; no player
+// target matches nothing), 13 CrewedBySourceThisTurn (the filter's source
+// crewed the candidate Vehicle this turn; no source matches nothing).
+// Append-only.
+const (
+	W7WithWarp         int16 = 11
+	W7GreatestPowerTgt int16 = 12
+	W7CrewedBySrc      int16 = 13
+)
+
+// PredPermMark, four per-permanent marks the filter words
+// attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
+// dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
+// DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame).
+// PredN bits 0-3 name the mark (PermMark*), bit 4 (PermMarkNot) negates it.
+// Each mark is an arena slot bit; a card off the battlefield has none, so
+// the negated word is true there.
+const PredPermMark Pred = 244
+
+const (
+	PermMarkAttacked    = 0 // declared as an attacker this turn (CR 508.1; cleared as the turn changes)
+	PermMarkDealtTurn   = 1 // dealt damage this turn (CR 120.1; cleared as the turn changes)
+	PermMarkDealtAny    = 2 // dealt damage since it entered (game-long)
+	PermMarkDealtCombat = 3 // dealt combat damage since it entered (game-long)
+	PermMarkNot         = 16
+)
+
+// PredPowerGTBase: the filter word powerGTbasePower, a
+// BATTLEFIELD permanent whose current power is greater than its base power
+// (layer 7b, before 7c effects and 7d counters; CR 613.4; gorge
+// filter_value.go numericPred). Nothing off the battlefield matches.
+// Explicit high ordinal, filters.go style; 244 is PredPermMark.
+const PredPowerGTBase Pred = 243
+
+// PredNotF2 (high predicate kind): the '!' negation of one
+// Flags2 word (gorge matchPredicate negates any positive word): PredN is the
+// negated F2 bit's index. kgen lowers !targetedBy and !ThisTurnEntered to it;
+// FilterFlags2 is full, so they cannot be bits of their own (kernel filter_negations.go).
+const PredNotF2 Pred = 246
+
+// CtrlEachPl is the battlefield Filter.Ctrl "controlled by the player of the
+// OpRepeatEachPlayer in progress" (gorge's RememberedPlayerCtrl read inside a
+// RepeatEach player body, effects/filter.go). It rides
+// a Ctrl value because FilterFlags2 is full. Appended after CtrlOpp.
+const CtrlEachPl CtrlSel = 3
+
+// High predicates, numbered from 250 clear of the iota list in
+// table.go that sibling families append to. Both are battlefield-only
+// and read on the cold predicate path (kernel predPermCold).
+const (
+	// PredTotalPT: the permanent's current power plus toughness passes the
+	// DmgGate-encoded comparison PredN (gorge totalPT_<cmp><n>, Cut Down's
+	// totalPT_LE5).
+	PredTotalPT Pred = 250
+	// PredBlocked: an attacking creature with a blocker recorded, even one
+	// that has since left combat (gorge "blocked", CR 509.1h; Tactical
+	// Advantage).
+	PredBlocked Pred = 251
+	// PredSolved: PredN 1, a solved Case; PredN 0, anything not solved
+	// (gorge IsSolved / !IsSolved: Object.Solved, CR 719.3b). The
+	// designation rides OpSaddle with C = 1 (kernel kw_crewsaddle.go).
+	PredSolved Pred = 252
+)
+
+// PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything
+// else, off the battlefield too (gorge IsSuspected / !IsSuspected:
+// Object.Suspected, false off the battlefield).
+const PredSuspected Pred = 254
+
+// The this-turn records, numbered explicitly clear of the
+// iota lists that sibling families append to.
+
+// CtrlHitBySrc is the battlefield Filter.Ctrl "controlled by a player who was
+// dealt combat damage this turn by the evaluating ability's source" (gorge
+// dealtCombatDamageBySource, Forge ControlledBy
+// Player.wasDealtCombatDamageThisTurnBySource). It rides a Ctrl value, as
+// CtrlEachPl does, because FilterFlags and FilterFlags2 are full, and it is
+// not a Pred so it composes with the mana-value bound beside it (Steel
+// Hellkite: Permanent.nonLand+cmcEQX+ControlledBy ...). Matched by the
+// source's Obj, so the record outlives the source leaving and returning
+// (kernel value_turntallies.go). Only a card marked CardDef.CombatHitRec
+// records. Appended after CtrlEachPl.
+const CtrlHitBySrc CtrlSel = 4
+
+// PredWasCastEnter: the entering permanent is the spell that is resolving
+// right now, read as it enters (gorge WasCast / ObjectWasCastFromGraveyard on
+// the object a resolution puts onto the battlefield; kernel
+// cast_wascastenter.go). PredN: the origin the cast must have (0 any,
+// 1 a graveyard, 2 the permanent's owner's hand, cast by its controller,
+// 3 a graveyard by the reading player: wasCastFromYourGraveyard),
+// plus 4 for the negation ("!wasCast": not cast, or a copy, or no resolving
+// spell). A battlefield read inside the enter only.
+const PredWasCastEnter Pred = 248
+
+// PredWasCastSpell: the cast provenance of a spell on the stack, or of the
+// spell resolving right now (gorge WasCast, WasCastFromHand[ByYou],
+// WasCastFromExile, CastSa Spell.MayPlaySource and the effects-side wasCast
+// predicates; kernel cast_wascastspell.go). Numbered explicitly
+// beside PredWasCastEnter. PredN low four bits are the
+// origin the cast must have: 0 cast at all (a copy was never cast), 1 cast
+// from a hand by any caster (wasCastFromYourHand), 2 cast from a hand by
+// the reading player (wasCastFromYourHandByYou), 3 cast from exile
+// (wasCastFromExile), 4 cast from anywhere but a hand
+// (wasCast+!wasCastFromYourHand), 5 cast through a may-play permission
+// (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read);
+// bit 4 (16) negates the whole read. A spell's origin zone is
+// stackEntry.prov (genPrep.anyCastProv).
+const PredWasCastSpell Pred = 247
+
+// Player-set predicates (B): OpRepeatEachPlayer and the each-player
+// OpDealDamage read an optional predicate from Instr.B.N (0 = none), with
+// PlayerPredControlsCreature's creature filter in Instr.F. gorge definedSpec
+// (Player.<q> / Opponent.<q>) builds the set once, before the effect acts.
+const (
+	PlayerPredControlsCreature = 1 // Player.controlsCreature.<spec>: the candidate controls a creature matching F
+	PlayerPredMaxSpeed         = 2 // Player.MaxSpeed: speed 4
+	PlayerPredCorrupted        = 3 // Player.IsCorrupted: three or more poison counters
+	PlayerPredArtOrEnch        = 4 // TokenOwner$ Player.controlsEnchantment,controlsArtifact: the candidate controls an artifact or enchantment (any permanent)
+	PlayerPredNeg              = 0x100
+)

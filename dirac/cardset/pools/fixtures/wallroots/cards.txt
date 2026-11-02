@@ -1,0 +1,18 @@
+# the counter-cost mana pool: Wall of Roots' "put a -0/-1
+# counter: add {G}, once each turn", a source gorge's planner census
+# misses (a relaxable gap its prefix search activates), beside green
+# curve-toppers, burn and bounce (dirac/oracle/wallroots_test.go)
+Wall of Roots
+Grizzly Bears
+Centaur Courser
+Craw Wurm
+Giant Growth
+Runeclaw Bear
+Shock
+Hill Giant
+Wind Drake
+Unsummon
+Volcanic Hammer
+Forest
+Island
+Mountain

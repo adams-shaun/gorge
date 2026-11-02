@@ -138,11 +138,19 @@ describe('ManaBrewMatch', () => {
   });
 
   it('surfaces a refused answer as an ApiError and a visible notice', async () => {
-    const { m } = await started('start', { sendError: new WireError(409, 'stalePrompt', 'response names promptId 1', 2) });
+    const { m } = await started('start', { sendError: new WireError(409, 'wrongPromptType', 'response is the wrong type') });
     const d = m.clientDecision!;
     await expect(postIntent('g1', 1, { seq: d.seq, player: 0, choices: [0] }, m.ctx)).rejects.toBeInstanceOf(ApiError);
-    expect(m.notice).toMatch(/stalePrompt/);
+    expect(m.notice).toMatch(/wrongPromptType/);
     expect(m.clientDecision?.seq).toBe(d.seq); // still open: the player may answer again
+  });
+
+  it('keeps a stale answer off the banner, sent or pushed: the prompt simply closed first', async () => {
+    const { m, f } = await started('start', { sendError: new WireError(409, 'stalePrompt', 'response names promptId 1', 2) });
+    const d = m.clientDecision!;
+    await expect(postIntent('g1', 1, { seq: d.seq, player: 0, choices: [0] }, m.ctx)).rejects.toBeInstanceOf(ApiError);
+    f.emit({ kind: 'error', error: { code: 'stalePrompt', message: 'response names promptId 1' } });
+    expect(m.notice).toBeNull();
   });
 
   it('shows pushed protocol errors', async () => {

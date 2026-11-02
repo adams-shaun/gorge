@@ -11,6 +11,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/spellbench/payexec"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/game"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -31,6 +32,9 @@ func (Native) Open(t testing.TB, e game.Engine, c game.Config) Session {
 	seats := len(c.Decks)
 	r := startTable(t, "native", e, c)
 	s := &nativeSession{t: t, spectator: httpapi.NewHandler(r, httpapi.Options{})}
+	if e.Caps().ManualMana {
+		s.payer = newManualPayer(t, e, c)
+	}
 	for i := range seats {
 		s.seats = append(s.seats, httpapi.NewHandler(r, httpapi.Options{
 			Seat: func(*http.Request) (httpapi.SeatClaim, bool) {
@@ -45,8 +49,11 @@ type nativeSession struct {
 	t         testing.TB
 	seats     []http.Handler
 	spectator http.Handler
-	pending   *decision.Decision // what the last poll found; nil at the end of the game
-	names     *objectNames       // the last frame's renaming
+	pending   *decision.Decision  // what the last poll found; nil at the end of the game
+	names     *objectNames        // the last frame's renaming
+	payer     *manualPayer        // reaches a play only PotentialActions lists; nil when the engine lists none
+	owed      decision.ManaAmount // what the last payment window still wanted
+	tapped    bool                // the last answer settled a window with a tap
 }
 
 func (s *nativeSession) Next() (Frame, bool) {
@@ -73,38 +80,10 @@ func (s *nativeSession) Answer(key string) error {
 	if in, ok := s.intentFor(key); ok {
 		return s.submit(in)
 	}
-	if s.pending.Kind != decision.KPriority {
+	if s.pending.Kind != decision.KPriority || s.payer == nil {
 		return fmt.Errorf("answer %q is not on offer", key)
 	}
-	return s.tapToward(key)
-}
-
-// tapToward plays what only PotentialActions lists, which the wire offers once
-// enough mana is floating: it taps sources in offer order until the play is on
-// offer. Tapping cannot be taken back, so from the first tap this counts as an
-// accepted answer whatever follows, and the next frame shows the result: the
-// spell on the stack, the floating mana, or a choice a mana ability posed.
-func (s *nativeSession) tapToward(key string) error {
-	i := slices.IndexFunc(s.pending.Options, isManaAbility)
-	if i < 0 {
-		return fmt.Errorf("play %q needs mana no source can make", key)
-	}
-	for i >= 0 {
-		d := s.pending
-		if err := s.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[i].Index}}); err != nil {
-			return err
-		}
-		s.pending, _ = s.poll()
-		if s.pending == nil || s.pending.Player != d.Player || s.pending.Kind != decision.KPriority {
-			return nil
-		}
-		if in, ok := s.intentFor(key); ok {
-			_ = s.submit(in)
-			return nil
-		}
-		i = slices.IndexFunc(s.pending.Options, isManaAbility)
-	}
-	return nil
+	return s.payer.play(s, key)
 }
 
 // intentFor builds the intent key stands for at the pending decision, if it
@@ -146,6 +125,11 @@ func (s *nativeSession) submit(in decision.Intent) error {
 	status, resp := nativeDo(s.seats[in.Player], http.MethodPost, nativeMatch+"/intent", body)
 	switch status {
 	case http.StatusNoContent:
+		if s.payer != nil {
+			if err := s.payer.e.Submit(in); err != nil {
+				s.t.Fatalf("native wire: the payer's copy of the game refused an accepted answer: %v", err)
+			}
+		}
 		return nil
 	case http.StatusConflict:
 		s.pending, _ = s.poll()
@@ -157,7 +141,7 @@ func (s *nativeSession) submit(in decision.Intent) error {
 
 // poll waits for a seat to be asked something and returns the decision and the
 // bytes it was served as, or nil at the end of the game. It answers a
-// mana_payment window itself: the window is one way of paying, and an engine
+// payment window itself: the window is one way of paying, and an engine
 // that pays otherwise never poses it. This package reads no clock, so a hung
 // engine is left to go test's -timeout.
 func (s *nativeSession) poll() (*decision.Decision, []byte) {
@@ -175,7 +159,8 @@ func (s *nativeSession) poll() (*decision.Decision, []byte) {
 			if err := json.Unmarshal(body, &d); err != nil {
 				s.t.Fatal(err)
 			}
-			if d.ManaPayment == nil {
+			if !s.isPaymentWindow(&d) {
+				s.tapped = false
 				return &d, body
 			}
 			s.settleWindow(&d)
@@ -185,21 +170,44 @@ func (s *nativeSession) poll() (*decision.Decision, []byte) {
 	}
 }
 
-// settleWindow takes a mana_payment window's auto-fill, or cancels the cast
-// when the window has none.
-func (s *nativeSession) settleWindow(d *decision.Decision) {
-	s.t.Helper()
-	for _, kind := range []string{decision.OptAutoFill, decision.OptCancelCast} {
-		for _, o := range d.Options {
-			if o.Kind == kind {
-				if err := s.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
-					s.t.Fatal(err)
-				}
-				return
-			}
+// isPaymentWindow reports whether d only asks how to pay what the seat already
+// chose: which sources to tap, with or without any left to tap, or what the source
+// a window just tapped makes.
+func (s *nativeSession) isPaymentWindow(d *decision.Decision) bool {
+	if d.ManaPayment != nil || d.PaymentFallback != nil {
+		return true
+	}
+	if d.Kind != decision.KChoose || len(d.Options) == 0 {
+		return false
+	}
+	colour := false
+	for _, o := range d.Options {
+		switch o.Kind {
+		case "activate":
+			return true
+		case "mana":
+			colour = true
+		case "done":
+		default:
+			return false
 		}
 	}
-	s.t.Fatal("native wire: a mana_payment window offers neither auto-fill nor cancel")
+	return !colour || s.tapped
+}
+
+// settleWindow answers a payment window the deterministic way dirac's own payment
+// does (payexec.WindowAnswer). A colour ask carries no demand, so it reads the
+// window it was tapped from.
+func (s *nativeSession) settleWindow(d *decision.Decision) {
+	s.t.Helper()
+	if d.ManaPayment != nil {
+		s.owed = d.ManaPayment.Owed.Mana
+	}
+	answer := payexec.WindowAnswer(d, s.owed)
+	if err := s.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{answer}}); err != nil {
+		s.t.Fatal(err)
+	}
+	s.tapped = !slices.ContainsFunc(d.Options, func(o decision.Option) bool { return o.Index == answer && o.Kind == "done" })
 }
 
 func (s *nativeSession) get(h http.Handler, path string) []byte {

@@ -1,0 +1,57 @@
+# the enterstapped grammar pool: the conditional enters-tapped lands
+# (ConditionPresent$ + ConditionCompare$ on the self ETB Tap) for the
+# oracle's constructed lockstep and mutation tests
+Blooming Marsh
+Copperline Gorge
+Deathcap Glade
+Haunted Ridge
+Dedicated Commons
+Fatehold Annex
+Kishla Village
+Cori Mountain Monastery
+Realm of Koh
+Argoth, Sanctum of Nature
+Wild Roads
+Country Roads
+Ajani, Caller of the Pride
+Kaseto, Orochi Archmage
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Walking Corpse
+Giant Spider
+Weatherlight
+Brightfield Glider
+Plains
+Island
+Swamp
+Mountain
+Forest
+Atraxa's Skitterfang
+Forgehammer Centurion
+Guiding Hydra
+Ingenious Prodigy
+Lattice-Blade Mantis
+Magmatic Sprinter
+Aziza, Mage Tower Captain
+Caparocti Sunborn
+Civil Servant
+Gitaxian Anatomist
+Meanders Guide
+Raff, Weatherlight Stalwart
+Giant Growth
+Shock
+Blazemire Verge
+Floodfarm Verge
+Gloomlake Verge
+Thornspire Verge
+Sunbillow Verge
+Willowrush Verge
+Mox Jasper
+Flywheel Racer
+Tablet of Compleation
+Volcanic Dragon
+Wind Drake
+Savannah Lions
+Dragon Hatchling
+Cackling Prowler

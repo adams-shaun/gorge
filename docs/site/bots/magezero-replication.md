@@ -6,8 +6,8 @@ trains a graph network ("NetGraph") on MCTS self-play. In October 2026 gorge's
 maintainers replicated its published results and then ran the same experiments on
 [dirac](../architecture/dirac/index.md), gorge's second engine. The goal was to
 decide whether MageZero's encoding or network should replace the maintainers' own.
-This page reports results: dirac, its game runner `kplay` and the training code
-aren't in this repository, so these runs can't be repeated from a clone of gorge.
+This page reports results. dirac is in this repository, but the game runner these
+runs used, `kplay`, and the training code aren't, so they can't be repeated from a clone of gorge.
 
 !!! abstract "Verdict"
     - **The replication is faithful.** Their code on their data, their release
@@ -164,7 +164,7 @@ pooled XMage data). Also measured on the way:
 - **The PUCT scale is the one search key that moves results**, by 3–6
   points toward XMage on Spy, Affinity and Elves. The other search keys are
   noise-level.
-- **One rules bug, now fixed.** dirac could not activate Saruli
+- **One rules bug, since fixed.** dirac could not activate Saruli
   Caretaker's `{T}, tap an untapped creature` mana ability. Fixing it moved
   Faeries vs Spy from 0.786 to 0.710, about a quarter of that gap. The fix
   also made dirac refuse the 96 cards whose mana ability it still cannot
@@ -335,11 +335,11 @@ Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
 
 ## The encoder as an opt-in flag
 
-`kplay -mzxgraph FILE` writes MageZero's graph encoding (a Go port of their
+The runner's `-mzxgraph` flag wrote MageZero's graph encoding (a Go port of their
 `StateEncoder`, id-parity tested against their Python vocabulary) as a
-sidecar beside the training corpus. `-mzgraph FILE` writes dirac's own features
-as a typed graph. Both are off by default. Off, games are byte-identical in
-12 of 12 benchmark runs, and the instruction-count ratio is 1.0008 median,
+sidecar beside the training corpus, and `-mzgraph` wrote dirac's own features
+as a typed graph. Both are off by default. Off, games were byte-identical in
+12 of 12 benchmark runs, and the instruction-count ratio was 1.0008 median,
 inside run-to-run noise.
 
 ## Open questions

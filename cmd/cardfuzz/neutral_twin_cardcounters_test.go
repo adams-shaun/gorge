@@ -12,7 +12,7 @@ import (
 // (4/4) over Sneaking Guide (1/1), the only offered creature 3 damage kills.
 func TestNeutralTwinCardCountersTargetFixed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

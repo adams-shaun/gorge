@@ -1125,7 +1125,7 @@ var rememberObjectMask = cards.ParamMaskOf(
 	cards.PKRememberMoved, cards.PKRememberNewCard, cards.PKRememberObjects, cards.PKRememberOriginalTokens,
 	cards.PKRememberPeeked, cards.PKRememberPlayed, cards.PKRememberPumped, cards.PKRememberPut,
 	cards.PKRememberRemovedCards, cards.PKRememberRemovedFromCombat, cards.PKRememberRevealed, cards.PKRememberSacrificed,
-	cards.PKRememberSearched, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
+	cards.PKRememberSearcher, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
 	cards.PKRememberUntapped, cards.PKRememberVotedObjects,
 )
 
@@ -1249,6 +1249,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.TargetableObjects = nil
 		}
+		c.SourceReturned = SourceIsNewObject(h.Game(), h.Game().Obj(c.ResolvingObj))
 		// Condition* gate: a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
 		// per-SA read the corpus's own gated pairs rely on (Gruesome

@@ -58,6 +58,11 @@ export interface TableInfo {
    */
   bot_policy: string;
   /**
+   * PairedBot is the table's own choice of paired bot, "off" for none;
+   * absent when it left that to the server. Public table configuration.
+   */
+  paired_bot?: string;
+  /**
    * SeatNames names the table's seats in seat order: the deck name each
    * seat is playing, as MatchStart carries them. Empty when no match
    * has started on this table yet. It is public information -- the
@@ -435,9 +440,13 @@ export interface CardView {
    * Attacking is true, nil otherwise; BlockedBy lists the creatures
    * blocking it. Both exist for the arrow overlay and come
    * straight from the object's combat fields, which EndCombatReset clears.
+   * Blocked is true from the moment a creature is blocked until combat ends,
+   * even after every blocker has left the battlefield (CR 509.1h); BlockedBy
+   * then lists fewer creatures than blocked it, or none.
    */
   attacking_player?: number | null;
   blocked_by?: number[];
+  blocked?: boolean;
   tapped: boolean;
   power: number;
   toughness: number;
@@ -548,8 +557,7 @@ export interface CardView {
    * sees it: the produced symbol verbatim (a bare WUBRGC letter, an "S<colour>"
    * snow unit or a "<Tag><colour>" typed unit, exactly ManaRestriction.Color),
    * the unit count, and Text -- a sentence naming what the mana may be spent
-   * on, or the raw Valid$ string when the formatter does not recognise the
-   * shape (an honest floor).
+   * on.
    */
 export interface PoolRestrictionView {
   color: string;
@@ -610,18 +618,18 @@ export interface PotentialAction {
    */
   label?: string;
   /**
-   * Payable is the payment planner's verdict for an ordinary cast from the
-   * hand or (Commander) the command zone: false only when the planner PROVED
-   * the cast unpayable -- an "insufficient" verdict whose source census is
-   * complete, or whose missed abilities a relaxation of them still cannot
-   * pay (decision.PotentialUnpayableCasts). It is what
-   * lets a client withhold a "tap other mana first" affordance that no
-   * amount of tapping can satisfy. nil (omitted) for every other kind, for a cast
-   * in an alternative/additional-cost mode, for a cast outside the hand and
-   * command zone, and for every verdict that is not a proof --
-   * "unsupported" (a shape the planner does not price, e.g. Delve),
-   * "search_limit", "ambiguous" and a census-incomplete insufficiency --
-   * because those do not prove the play possible or impossible. A client
+   * Payable is the payment planner's verdict: false only when the planner
+   * PROVED the play unpayable -- an "insufficient" verdict whose source census
+   * is complete, or whose missed abilities a relaxation of them still cannot
+   * pay. An ordinary cast from the hand or the command zone carries it once
+   * payment actions are built (decision.PotentialUnpayableCasts), and every
+   * play once potential proofs are built (decision.PotentialUnpayablePlays,
+   * for a human seat on an auto-mana table). It is what lets a client withhold
+   * a "tap other mana first" affordance that no amount of tapping can satisfy.
+   * nil (omitted) for every verdict that is not a proof -- "unsupported" (a
+   * shape the planner does not price, e.g. Delve), "search_limit", "ambiguous"
+   * and a census-incomplete insufficiency -- because those do not prove the
+   * play possible or impossible. A client
    * must not re-derive this from printed mana_cost: castable.ts records the
    * cost rules that drift.
    */
@@ -987,6 +995,13 @@ export interface Option {
    */
   player: number;
   /**
+   * LandWontStay, on a play_land option, reports that the land would not
+   * stay on the battlefield: its enters trigger asks for a land to return to
+   * hand and the seat controls no other land that qualifies, so it returns
+   * itself or is sacrificed. The play stays legal.
+   */
+  land_wont_stay?: boolean;
+  /**
    * Attacker tells a block option's client which attacker this blocker
    * would block, so a human can see the pairing an in-process bot already
    * can (the declare-blockers step is otherwise guessing). omitempty
@@ -1313,6 +1328,8 @@ export interface PaymentActivation {
    * PaymentPlan is a complete V1 execution witness. PoolSpend records which
    * pre-existing mana units pay the cast; PoolAfter records the expected pool
    * after activations and payment, and is independently revalidated by rules.
+   * Both count only mana this payment may spend: a restricted batch it does not
+   * admit is in neither.
    */
 export interface PaymentPlan {
   version: number;
@@ -1868,6 +1885,19 @@ export interface BotPolicyList {
 }
 
   /**
+   * PairedBotChoice is one paired bot a new table may choose
+   * (Capabilities.PairedBots).
+   */
+export interface PairedBotChoice {
+  name: string;
+  label: string;
+  /**
+   * Formats are the construction formats it plays; empty means all.
+   */
+  formats?: string[];
+}
+
+  /**
    * Capabilities is GET /api/capabilities: which optional surfaces this server
    * serves, so a client can decide what to draw without probing a route that
    * 404s when the surface is off. Additive, and always 200. Events is true when
@@ -1879,6 +1909,15 @@ export interface Capabilities {
    * Engine names the engine this server creates tables on; absent for gorge.
    */
   engine?: string;
+  /**
+   * ManualMana is false on an engine that pays for every cast; absent elsewhere.
+   */
+  manual_mana?: boolean | null;
+  /**
+   * PairedBots are the paired bots a new table may choose, the server's
+   * default first; absent when the server offers none.
+   */
+  paired_bots?: PairedBotChoice[];
 }
 
   /**
@@ -2271,6 +2310,11 @@ export interface Advice {
   seat: number;
   policy: string;
   state: string;
+  /**
+   * Reason is plain words: why a none or refused has no evaluation, or what
+   * a player should know about a ready one, such as a search that ran out of
+   * time.
+   */
   reason?: string;
   /**
    * Explain is a bots/explain.Note: the same shape as

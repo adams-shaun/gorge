@@ -1,0 +1,27 @@
+# Baylen, the Haymaker, "Tap two untapped tokens you control: Add one mana of any color" (dirac/oracle/baylen_test.go)
+# The tap-two-tokens mana pool: Baylen, the Haymaker
+Birchlore Rangers
+# ("Tap two untapped tokens you control: Add one mana of any color", no {T})
+# in a token deck whose spells need colours its lands lack, against a plain
+# red-black deck (dirac/oracle/baylen_test.go). The cost has no once-only
+# part, so gorge's census is unrelaxable while Baylen has two untapped tokens
+# (paymentPlanRelaxedAlternatives).
+Baylen, the Haymaker
+Raise the Alarm
+Dragon Fodder
+Krenko's Command
+Hordeling Outburst
+Lightning Helix
+Giant Growth
+Rancor
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Lightning Bolt
+Shock
+Doom Blade
+Mountain
+Plains
+Forest
+Swamp

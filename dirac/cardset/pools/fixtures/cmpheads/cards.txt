@@ -1,0 +1,18 @@
+# Count$Compare over Targeted$Valid (Cut Propulsion) and
+# an inline ReplacedCard$CardManaCost (Thunderous Velocipede)
+# (dirac/oracle/cmpheads_test.go)
+Cut Propulsion
+Thunderous Velocipede
+Marketback Walker
+Blaze
+Wind Drake
+Serra Angel
+Hill Giant
+Grizzly Bears
+Craw Wurm
+Colossal Dreadmaw
+Plains
+Island
+Swamp
+Mountain
+Forest

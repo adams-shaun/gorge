@@ -1,0 +1,13 @@
+{
+  "card": "Ezrim, Agency Chief",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 4 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1044,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

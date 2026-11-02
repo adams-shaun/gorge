@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_26158_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck cd49b803ef32459e9f39d626709cdc1e:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Giada, Font of Hope",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 3
+},
+{
+"name": "Island",
+"count": 6
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 3
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 2
+},
+{
+"name": "Tranquil Cove",
+"count": 2
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 1
+}
+]
+}

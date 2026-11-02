@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_05388_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck bce9af1500244ccbaa956b470e03cfaf:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Barkform Harvester, 1 Builder's Talent, 1 Carrot Cake, 1 Intrepid Rabbit, 1 Nettle Guard, 1 Rabbit Response -> 4 Plains, 2 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 14
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Short Bow",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

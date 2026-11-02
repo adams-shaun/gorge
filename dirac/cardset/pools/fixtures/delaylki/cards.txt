@@ -1,0 +1,6 @@
+# a delayed copy of an artifact that left the graveyard, for the oracle's constructed
+# lockstep (dirac/oracle/delaylki_test.go)
+Esoteric Duplicator
+Island
+Mind Stone
+Tormod's Crypt

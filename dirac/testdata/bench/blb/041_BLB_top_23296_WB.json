@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_23296_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 98fb3da68015423d80a975f712e68a7c:0, player win-rate bucket 0.70 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Darkstar Augur, 1 Downwind Ambusher, 1 Maha, Its Feathers Night, 1 Moonstone Harbinger, 1 Nettle Guard, 1 Nocturnal Hunger -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 3
+},
+{
+"name": "Glidedive Duo",
+"count": 3
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 3
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Uncharted Haven",
+"count": 2
+},
+{
+"name": "Warren Elder",
+"count": 2
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

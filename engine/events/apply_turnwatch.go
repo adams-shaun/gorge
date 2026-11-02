@@ -11,6 +11,7 @@ import "github.com/adams-shaun/gorge/engine/state"
 
 // resetTurnWatchers clears one seat's watchers at TurnChange.
 func resetTurnWatchers(p *state.Player) {
+	p.DilemmasFacedThisTurn = 0
 	p.SpellsCastThisTurn = 0
 	p.LifeGainedThisTurn = 0
 	p.LifeLostThisTurn = 0

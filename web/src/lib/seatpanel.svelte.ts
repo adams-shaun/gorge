@@ -18,6 +18,7 @@ import {
   type StoppableStep,
 } from './playsettings';
 import { autoPassLogText, pushAutoPassLog, type AutoPassKind, type AutoPassLog } from './autolog';
+import type { PlayerAnswer } from './pairedbot';
 import { loadYields, saveYields, stackYieldKey } from './yields';
 import {
   emptyStore,
@@ -190,8 +191,16 @@ export class SeatPanelState {
   /** The card of a plan-less cast Auto-pay announced, until its mana window is filled. */
   private autoFillCard: number | null = null;
 
+  /** Set when the server's engine pays for every cast, so the switch has no off. */
+  private noManualMana = $state(false);
+
   get autoPayOnly(): boolean {
-    return this.ctx.transport?.autoPayOnly === true;
+    return this.noManualMana || this.ctx.transport?.autoPayOnly === true;
+  }
+
+  setNoManualMana(on: boolean) {
+    this.noManualMana = on;
+    this.setAutoManaAvailable(this.autoManaAvailable);
   }
 
   /** Auto-pay may hide plain taps, unless the wire has no off for it: floating is then the only way to pay an X above its plan. */
@@ -329,6 +338,9 @@ export class SeatPanelState {
    * logAutoPasses switch).
    */
   autoLog = $state<AutoPassLog[]>([]);
+
+  /** answered is the last answer the server accepted from this seat, whoever or whatever made it. */
+  answered = $state<PlayerAnswer | null>(null);
 
   /**
    * yieldList is the game-scoped "always pass for this ability" set
@@ -1732,9 +1744,13 @@ export class SeatPanelState {
    * `busy` still holds it off, so this panel's own in-flight intent and a
    * poll cannot race to define the current ask. That wait is bounded by the
    * intent request's own deadline (STATE_TIMEOUT in ./api).
+   *
+   * A finished game asks nothing: the server answers every poll with a 409,
+   * which the browser logs as an error once a second, so the poll stops
+   * until a live view arrives.
    */
   get shouldPoll(): boolean {
-    return !this.busy;
+    return !this.busy && !this.board?.over;
   }
 
   rewind() {
@@ -2181,6 +2197,7 @@ export class SeatPanelState {
       // panel (pending was cleared, the restored decision re-adopted).
       if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
+      this.answered = { seq: d.seq, choices, action: payment?.action_id ?? announce?.action_id };
       // The armed card-follow-up expectation lives on
       // the ACCEPTED hand post: a card action can hand the server a follow-up
       // decision for the same object (a treasure's activate -> its colour
@@ -2235,11 +2252,23 @@ export class SeatPanelState {
       // mid-flight) is not an error the player can act on — the undo already
       // moved the game. Stay silent; the restored decision is pending.
       if (stale) return;
-      // Surfaced, not swallowed: the intent was rejected (a stale seq, a
-      // race, a refusal) and the game is exactly where it was — recover by
-      // adopting the CURRENT decision rather than wedging on the stale one.
       this.picked = [];
       this.confirming = false;
+      // A 409 says the match is not where this post assumed, most often
+      // because the decision moved on while the click was in flight. Re-read
+      // the current ask first: a different one (or none) means the game has
+      // already recovered and the player has nothing to act on, so nothing is
+      // shown. The same ask means the server refused this answer itself,
+      // which stays visible.
+      if (e instanceof ApiError && e.status === 409) {
+        await this.refreshPending();
+        if (this.pending?.seq !== d.seq) return;
+        this.error = message;
+        return;
+      }
+      // Surfaced, not swallowed: the intent was rejected and the game is
+      // exactly where it was. Recover by adopting the CURRENT decision rather
+      // than wedging on the stale one.
       this.error = message;
       void this.refreshPending();
     } finally {

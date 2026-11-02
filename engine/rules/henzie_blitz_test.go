@@ -7,7 +7,7 @@ package rules
 //	  | AddKeyword$ Blitz:CardManaCost:Spell.Creature+cmcGE4
 //	S:Mode$ ReduceCost | ValidCard$ Card | ValidSpell$ Spell.Blitz
 //	  | Activator$ You | Amount$ CommanderCast
-//	SVar:CommanderCast:Count$TotalCommanderCastFromCommandZone
+//	CommanderCast = Count$TotalCommanderCastFromCommandZone
 //
 // so a mana-value-4+ creature card gains Blitz whose cost is the card's own
 // mana cost, and every blitz cost its controller pays is reduced by the

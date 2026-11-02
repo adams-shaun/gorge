@@ -1,0 +1,13 @@
+{
+  "card": "Final Showdown",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 3 games in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1184,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

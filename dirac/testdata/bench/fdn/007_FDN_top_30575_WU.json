@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_30575_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 35bba6f91dc94cb1b7532157356f8b3b:1, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani, Caller of the Pride",
+"count": 1
+},
+{
+"name": "Arahbo, the First Fang",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 2
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Kykar, Zephyr Awakener",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 4
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+}
+]
+}

@@ -191,7 +191,7 @@ func chooseEnteringDefender(h Host, c *Ctx, controller state.PlayerID, fallback 
 		if cd.Obj != 0 {
 			opt.Kind, opt.Obj, opt.Label = "card", cd.Obj, objName(g, cd.Obj)
 		} else if int(cd.Player) < len(g.Players) {
-			opt.Label = g.Players[cd.Player].Name
+			opt.Label = g.SeatFacingName(cd.Player)
 		}
 		d.Options = append(d.Options, opt)
 	}

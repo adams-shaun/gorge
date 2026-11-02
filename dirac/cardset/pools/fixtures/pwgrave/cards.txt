@@ -1,0 +1,21 @@
+# the "target player or planeswalker" and YouCtrl-graveyard-pick pool
+# Boros Charm's DealDmg mode, Viashino Pyromancer,
+# Another Chance (ChangeType$ Creature.YouCtrl), Deadly Brew
+# (Permanent.YouCtrl+!IsRemembered), two cheap planeswalkers and
+# creatures/basics for the oracle's constructed lockstep
+# (dirac/oracle/pwgrave_test.go)
+Boros Charm
+Viashino Pyromancer
+Another Chance
+Deadly Brew
+Ajani, Caller of the Pride
+Kaito, Cunning Infiltrator
+Elite Vanguard
+Grizzly Bears
+Walking Corpse
+Thought Scour
+Plains
+Mountain
+Swamp
+Island
+Forest

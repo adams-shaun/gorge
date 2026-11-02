@@ -14,7 +14,7 @@ import (
 // attack.
 func TestTwinAttackBarredByOtherPermanent(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

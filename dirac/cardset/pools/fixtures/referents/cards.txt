@@ -1,0 +1,17 @@
+# OwnedBy TriggeredDefendingPlayer / Targeted off the
+# battlefield, NotDefinedTriggeredAttacker, AttachedTo Targeted and the
+# optional ChooseCard display keys (dirac/oracle/referents_test.go)
+Chorale of the Void
+Cruel Calculations
+Saw
+Light of Judgment
+Grizzly Bears
+Raging Goblin
+Llanowar Elves
+Shock
+Thought Scour
+Bonesplitter
+Swamp
+Mountain
+Island
+Forest

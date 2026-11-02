@@ -751,8 +751,8 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 	// The per-member ThisTurnEntered leg: one creature entered per seat; the
 	// spec's YouCtrl binds to the counted member.
 	g.Entered = append(g.Entered,
-		state.ZoneEntry{Obj: ids["myBear"], To: state.ZBattlefield, From: state.ZHand},
-		state.ZoneEntry{Obj: ids["theirBig"], To: state.ZBattlefield, From: state.ZHand})
+		state.ZoneEntry{Obj: ids["myBear"], To: state.ZBattlefield, From: state.ZHand, WasCreature: true},
+		state.ZoneEntry{Obj: ids["theirBig"], To: state.ZBattlefield, From: state.ZHand, WasCreature: true})
 	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE1 ThisTurnEntered_Battlefield_Creature.YouCtrl"); got != 1 {
 		t.Errorf("opponents with GE1 creature entry = %d, want 1 (the resolved controller's own entry must not count)", got)
 	}

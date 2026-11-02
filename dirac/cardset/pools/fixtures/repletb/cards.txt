@@ -1,0 +1,14 @@
+# dirac/oracle/entersuntappedorder_test.go
+The Wandering Minstrel
+Spelunking
+Dismal Backwater
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Doom Blade
+Murder
+Forest
+Island
+Swamp
+Mountain

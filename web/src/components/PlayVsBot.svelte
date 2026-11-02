@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchBotPolicies, fetchDecks, type DeckInfo } from '../lib/api';
-  import type { BotPolicyInfo } from '../protocol';
+  import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
+  import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
   import ProtocolSetting from './ProtocolSetting.svelte';
-  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
 
   // The landing-page entry point that sits the player down 1v1 against a bot.
   // Deck ids come only from the server catalogue; empty values deliberately
@@ -15,6 +15,8 @@
   let botPolicy = $state('');
   let policies = $state<BotPolicyInfo[]>([]);
   let defaultPolicy = $state('');
+  let pairedBot = $state('');
+  let pairedBots = $state<PairedBotChoice[]>([]);
   let mulligans: VsBotMulligans = $state(6);
   let decks = $state<DeckInfo[]>([]);
   let loadingDecks = $state(true);
@@ -24,10 +26,12 @@
   const formatPolicies = $derived(policies.filter((p) => p.formats.includes(format)));
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
   const chosenPolicy = $derived(policies.find((p) => p.name === (botPolicy || defaultPolicy)));
+  const formatPairedBots = $derived(pairedBots.filter((b) => !b.formats?.length || b.formats.includes(format)));
 
   onMount(() => {
     void loadDecks();
     void loadPolicies();
+    void fetchCapabilities().then((c) => (pairedBots = c.paired_bots ?? [])).catch(() => {});
   });
 
   // A failed fetch leaves the picker at the server default: the game still
@@ -61,18 +65,14 @@
     humanDeck = '';
     botDeck = '';
     if (botPolicy && !formatPolicies.some((p) => p.name === botPolicy)) botPolicy = '';
-  }
-
-  function deckLabel(d: DeckInfo): string {
-    const details = [d.archetype, d.commander ? `Commander: ${d.commander}` : ''].filter(Boolean);
-    return details.length === 0 ? d.name : `${d.name} — ${details.join(' · ')}`;
+    if (pairedBot !== 'off' && !formatPairedBots.some((b) => b.name === pairedBot)) pairedBot = '';
   }
 
   async function start() {
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -107,7 +107,7 @@
       <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>
@@ -116,7 +116,7 @@
       <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
         <option value="">Random</option>
         {#each formatDecks as d (d.id)}
-          <option value={d.id}>{deckLabel(d)}</option>
+          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
         {/each}
       </select>
     </label>
@@ -130,6 +130,19 @@
       </select>
       {#if chosenPolicy?.description}<span class="policy-hint">{chosenPolicy.description}</span>{/if}
     </label>
+    {#if formatPairedBots.length > 0}
+      <label class="picker">
+        <span>Paired bot</span>
+        <select aria-label="Paired bot" bind:value={pairedBot} data-testid="paired-bot">
+          <option value="">Server default: {pairedBots[0].label}</option>
+          {#each formatPairedBots.filter((b) => b.name !== pairedBots[0].name) as b (b.name)}
+            <option value={b.name}>{b.label}</option>
+          {/each}
+          <option value="off">None</option>
+        </select>
+        <span class="policy-hint">Shows you what its search makes of your decisions, if you turn it on in the game.</span>
+      </label>
+    {/if}
   </div>
   <ProtocolSetting />
   <button type="button" onclick={start} disabled={busy}>

@@ -46,23 +46,33 @@ import (
 // the pending one.
 const adviceWatch = 50 * time.Millisecond
 
-// errAdviceStale answers a request for a decision that is no longer pending.
-var errAdviceStale = errors.New("The decision has moved on.")
+// ErrAdviceStale answers a request for a decision that is no longer pending,
+// and a seat with nothing pending: the client's view lags the game, so a
+// player's own answer can overtake the request.
+var ErrAdviceStale = errors.New("The decision has moved on.")
 
-// Refusals a player reads. A redeal's own refusal reasons can quote counts of
-// hidden cards, so none of them reaches the seat.
+// Words a player reads. A redeal's own refusal reasons can quote counts of
+// hidden cards, and a search's reason is a report name, so neither reaches the
+// seat.
 const (
 	adviceNotOffered    = "This server does not offer a paired bot."
-	adviceNotSearched   = "This bot does not evaluate this kind of decision."
-	adviceMidResolution = "This decision comes in the middle of an effect resolving, and the bot cannot search it without seeing hidden cards."
-	adviceNoRoot        = "The bot could not rebuild this position from what you can see."
+	adviceNotLive       = "A paired bot advises a human in a live game."
+	adviceNotSearched   = "Search weighs priority, attackers, blockers and single targets. This kind of decision is yours alone."
+	adviceMidResolution = "This decision comes in the middle of an effect resolving, and search cannot look ahead from here without seeing hidden cards."
+	adviceNoRoot        = "Search could not rebuild this position from what you can see."
+	adviceNoLines       = "Search could not finish a single line from this position."
+	adviceNoTime        = "Search ran out of time; these are the lines it finished."
+	adviceNotPriced     = "Search cannot price the options here; this is what the bot's rules would do."
 	adviceFailed        = "The bot could not evaluate this decision."
 )
 
-// validatePairedBot refuses an entry whose seats could read an opponent's list
+// PairedBotOff is the TableConfig.PairedBot of a table that wants no paired bot.
+const PairedBotOff = "off"
+
+// ValidatePairedBot refuses an entry whose seats could read an opponent's list
 // or could not explain a search. Like closedListGuard it checks a built seat,
 // not the declaration.
-func validatePairedBot(e bots.Entry, o Options) error {
+func ValidatePairedBot(e bots.Entry, o Options) error {
 	if e.New == nil {
 		return fmt.Errorf("host: paired bot %q has no factory", e.Name)
 	}
@@ -82,19 +92,80 @@ func validatePairedBot(e bots.Entry, o Options) error {
 	return nil
 }
 
-// pairedBotRefusal is why table t does not offer the paired bot, "" when it
-// does.
-func (r *Registry) pairedBotRefusal(t *table) string {
-	e := r.opts.PairedBot
-	c := &t.cfg
-	if e == nil {
-		return adviceNotOffered
+// pairedBotOf is the bot table config c asks for, nil when it wants none or the
+// server does not offer the one it names. A table's named bot can be gone after
+// a restart with other flags.
+func (r *Registry) pairedBotOf(c *TableConfig) *bots.Entry {
+	switch c.PairedBot {
+	case "":
+		return r.opts.PairedBot
+	case PairedBotOff:
+		return nil
 	}
+	if e := r.opts.PairedBot; e != nil && e.Name == c.PairedBot {
+		return e
+	}
+	for _, e := range r.opts.PairedBotChoices {
+		if e.Name == c.PairedBot {
+			return e
+		}
+	}
+	return nil
+}
+
+// checkPairedBotChoice refuses a new table that names a bot this server does
+// not offer or that could not advise at that table. Left to the default, an
+// unsuitable table says why in PairedBotStatus instead.
+func (r *Registry) checkPairedBotChoice(c *TableConfig) error {
+	if c.PairedBot == "" || c.PairedBot == PairedBotOff {
+		return nil
+	}
+	e := r.pairedBotOf(c)
+	if e == nil {
+		return fmt.Errorf("paired bot %q is not offered on this server", c.PairedBot)
+	}
+	if reason := pairedBotMisfit(e, c); reason != "" {
+		return fmt.Errorf("paired bot %q: %s", c.PairedBot, reason)
+	}
+	return nil
+}
+
+// PairedBotChoices lists what a table may choose for TableConfig.PairedBot, the
+// server's default first; empty when it offers no paired bot.
+func (r *Registry) PairedBotChoices() []protocol.PairedBotChoice {
+	if r.opts.PairedBot == nil {
+		return nil
+	}
+	choice := func(e *bots.Entry) protocol.PairedBotChoice {
+		return protocol.PairedBotChoice{Name: e.Name, Label: e.Label, Formats: e.Formats}
+	}
+	out := []protocol.PairedBotChoice{choice(r.opts.PairedBot)}
+	for _, e := range r.opts.PairedBotChoices {
+		out = append(out, choice(e))
+	}
+	return out
+}
+
+// pairedBotRefusal is why table t does not offer a paired bot, "" when it does.
+func (r *Registry) pairedBotRefusal(t *table) string {
+	e := r.pairedBotOf(&t.cfg)
+	switch {
+	case e == nil:
+		return adviceNotOffered
+	case t.review:
+		return adviceNotLive
+	}
+	return pairedBotMisfit(e, &t.cfg)
+}
+
+// pairedBotMisfit is why bot e cannot advise at a table configured as c, "" when
+// it can.
+func pairedBotMisfit(e *bots.Entry, c *TableConfig) string {
 	switch {
 	case c.Engine != "":
 		return fmt.Sprintf("A paired bot needs gorge; this table runs %q.", c.Engine)
-	case t.review || len(c.Humans) == 0:
-		return "A paired bot advises a human in a live game."
+	case len(c.Humans) == 0:
+		return adviceNotLive
 	case len(c.Humans) > 1 && !c.AllowPairedBot:
 		return "This table has more than one human player and does not allow a paired bot."
 	case e.MaxSeats > 0 && c.Seats > e.MaxSeats:
@@ -113,13 +184,13 @@ func (r *Registry) PairedBotStatus(id TableID) (protocol.PairedBotStatus, error)
 	if !ok {
 		return protocol.PairedBotStatus{}, ErrNotFound
 	}
-	if r.opts.PairedBot == nil {
+	if r.opts.PairedBot == nil || t.cfg.PairedBot == PairedBotOff {
 		return protocol.PairedBotStatus{}, nil
 	}
 	if reason := r.pairedBotRefusal(t); reason != "" {
 		return protocol.PairedBotStatus{Reason: reason}, nil
 	}
-	return protocol.PairedBotStatus{Offered: true, Policy: r.opts.PairedBot.Name, Shared: len(t.cfg.Humans) > 1}, nil
+	return protocol.PairedBotStatus{Offered: true, Policy: r.pairedBotOf(&t.cfg).Name, Shared: len(t.cfg.Humans) > 1}, nil
 }
 
 // adviceSlot is one table's paired-bot search: the running one, or the last
@@ -162,8 +233,8 @@ type adviceJob struct {
 // Advice returns the paired bot's evaluation of the decision seq pending on
 // player's human seat. It blocks until the search ends. At most one search runs
 // per table: asking about a newer decision cancels the older search, and a
-// search ends early once its decision moves on or everyone asking has gone. An
-// answer is never returned for a decision that is no longer pending.
+// search ends early once its decision moves on or everyone asking has gone. A
+// decision that is no longer pending gets ErrAdviceStale, never an answer.
 func (r *Registry) Advice(ctx context.Context, id TableID, k int, player state.PlayerID, seq uint64) (protocol.Advice, error) {
 	r.mu.RLock()
 	t, ok := r.tables[id]
@@ -182,21 +253,26 @@ func (r *Registry) Advice(ctx context.Context, id TableID, k int, player state.P
 		return protocol.Advice{}, err
 	}
 	d, err := r.Pending(id, k, player)
+	var idle nothingPending
+	if errors.As(err, &idle) {
+		return protocol.Advice{}, ErrAdviceStale
+	}
 	if err != nil {
 		return protocol.Advice{}, err
 	}
 	if d.Seq != seq {
-		return protocol.Advice{}, errAdviceStale
+		return protocol.Advice{}, ErrAdviceStale
 	}
 	job, key, ok := m.adviceJob(*d)
 	if !ok {
-		return protocol.Advice{}, errAdviceStale
+		return protocol.Advice{}, ErrAdviceStale
 	}
 
 	slot := &t.advice
 	slot.mu.Lock()
 	prev := slot.run
-	if prev != nil && prev.key == key && (!prev.finished || prev.err == nil) {
+	// An unfinished run with no one waiting has been cancelled and is winding down.
+	if prev != nil && prev.key == key && (prev.finished && prev.err == nil || !prev.finished && prev.waiters > 0) {
 		prev.waiters++
 		slot.mu.Unlock()
 		return awaitAdvice(ctx, slot, prev)
@@ -277,7 +353,7 @@ func (r *Registry) runAdvice(ctx context.Context, slot *adviceSlot, run *adviceR
 	job.m.mu.RUnlock()
 	switch {
 	case !current:
-		err = errAdviceStale
+		err = ErrAdviceStale
 	case err != nil && ctx.Err() != nil:
 		// Everyone asking has gone, or a request for another decision took over.
 	case err != nil:
@@ -339,7 +415,7 @@ func (m *match) watchAdvice(key adviceKey, cancel context.CancelFunc, stop, clos
 func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, error) {
 	m, d := job.m, job.d
 	p := d.Player
-	entry := r.opts.PairedBot
+	entry := r.pairedBotOf(&m.table.cfg)
 	out := protocol.Advice{Table: string(m.table.cfg.ID), Match: m.k, AskSeq: d.Seq, Seat: uint8(p), Policy: entry.Name}
 
 	seatSeed := m.seed ^ uint64(int(p)+1)
@@ -355,6 +431,7 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 
 	feed, e, err := searchseat.RebuildFeedEngine(ctx, gorgegame.RulesConfig(m.gc), job.l, job.n, p)
 	if errors.Is(err, searchseat.ErrFeedStopped) {
+		log.Printf("host: table %s match %d: paired bot: %v", m.table.cfg.ID, m.k, err)
 		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
 		return out, nil
 	}
@@ -372,8 +449,9 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		out.State, out.Reason = protocol.AdviceRefused, adviceMidResolution
 		return out, nil
 	}
-	root, _ := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
+	root, why := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
 	if root == nil {
+		log.Printf("host: table %s match %d: paired bot: no root: %s", m.table.cfg.ID, m.k, why)
 		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
 		return out, nil
 	}
@@ -399,12 +477,12 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		out.State, out.Reason = protocol.AdviceNone, adviceNotSearched
 		return out, nil
 	}
+	if !wordAdvice(&out, note) {
+		return out, nil
+	}
 	note.Policy = entry.Name
 	if note.Search != nil {
 		note.Search.MS = 0
-	}
-	if strings.HasPrefix(note.Reason, "redeal refused") {
-		note.Reason = adviceNoRoot
 	}
 	raw, err := json.Marshal(note)
 	if err != nil {
@@ -412,4 +490,27 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	}
 	out.State, out.Explain = protocol.AdviceReady, raw
 	return out, nil
+}
+
+// wordAdvice sets out's state from the seat's note and replaces the note's
+// reason, a report name, with words on out. It reports whether the note is
+// worth sending: a search that finished no line has no numbers to show.
+func wordAdvice(out *protocol.Advice, note *explain.Note) bool {
+	reason := note.Reason
+	note.Reason = ""
+	finished := note.Search != nil && note.Search.Sims > 0
+	switch {
+	case strings.HasPrefix(reason, "redeal refused"):
+		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
+		return false
+	case note.Search != nil && !finished:
+		out.State, out.Reason = protocol.AdviceRefused, adviceNoLines
+		return false
+	case reason == "deadline":
+		out.Reason = adviceNoTime
+	case reason != "":
+		out.Reason = adviceNotPriced
+	}
+	out.State = protocol.AdviceReady
+	return true
 }

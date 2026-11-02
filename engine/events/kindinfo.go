@@ -122,7 +122,7 @@ var kindInfo = [NumKinds]KindInfo{
 	StackCopy:             {Name: "stack_copy", Trigger: TriggerNone},
 	Attach:                {Name: "attach", Trigger: TriggerAttach},
 	AbilityPush:           {Name: "ability_push", Trigger: TriggerAbilityPush},
-	ModeChosen:            {Name: "mode_chosen", Trigger: TriggerNone},
+	ModeChosen:            {Name: "mode_chosen", Trigger: TriggerFullMatch},
 	CmdDamage:             {Name: "commander_damage", Trigger: TriggerNone},
 	DelayedRegister:       {Name: "delayed_register", Trigger: TriggerNone},
 	DelayedPush:           {Name: "delayed_push", Trigger: TriggerAbilityPush}, // a self-granted activation mints through it

@@ -709,16 +709,17 @@ func hasAnyCreatureTypeCtx(o *state.Object, sc *SpecContext) bool {
 	return false
 }
 
-// objectIsAttached reports whether o is attached to a live object: its own
-// AttachedTo names an object still reachable in the game. It is the shared
-// body of the bare `Attached` predicate and the literal `AttachedTo <X>`
-// matcher, so the two readings of "is attached" can never disagree. A bearer
-// that has left (AttachedTo stale, g.Obj nil) is not an attachment.
-func objectIsAttached(g *state.Game, o *state.Object) bool {
-	if g == nil || o == nil || o.AttachedTo == 0 {
+// objectAttachedToSource reports whether o is attached to src, or was as src left
+// the battlefield (LastBearer, which a later attachment clears).
+func objectAttachedToSource(g *state.Game, o *state.Object, src state.ObjID) bool {
+	if g == nil || o == nil || src == 0 {
 		return false
 	}
-	return g.Obj(o.AttachedTo) != nil
+	if o.AttachedTo == src {
+		return true
+	}
+	s := g.Obj(src)
+	return s != nil && s.Zone != state.ZBattlefield && o.AttachedTo == 0 && o.LastBearer == src
 }
 
 // attachedToReferent classifies the resolution-time referent forms beyond a

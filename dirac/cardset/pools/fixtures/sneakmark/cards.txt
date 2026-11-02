@@ -1,0 +1,30 @@
+# the sneaked-mark pool: the three carriers that read
+# Card.sneaked on a battlefield permanent (Karai, Future of the Foot;
+# Leonardo, Leader in Blue; Turncoat Kunoichi), {X} instants that float
+# mana, cheap creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/sneakmark_test.go)
+# The sneaked-mark pool: the three Teenage Mutant Ninja
+# Turtles carriers that read Card.sneaked on a battlefield permanent (Karai,
+# Future of the Foot; Leonardo, Leader in Blue; Turncoat Kunoichi), the {X}
+# instants that leave mana floating (gorge offers a sneak cast only when the
+# floating pool pays it; see the sneak pool), cheap attackers so
+# a sneak return has a candidate, creatures for the graveyard return and the
+# exile, and basics, for the oracle's constructed lockstep
+# (dirac/oracle/sneakmark_test.go).
+Karai, Future of the Foot
+Leonardo, Leader in Blue
+Turncoat Kunoichi
+Slice from the Shadows
+Torch Breath
+Savannah Lions
+Healer's Hawk
+Sanguine Syphoner
+Infestation Sage
+Fanatical Firebrand
+Goblin Boarders
+Courageous Goblin
+Gnarlid Colony
+Plains
+Swamp
+Mountain
+Forest

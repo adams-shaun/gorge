@@ -143,6 +143,26 @@ describe('the widened projection: every real play kind the offer walk emits', ()
   });
 });
 
+describe('a play the engine proved unpayable', () => {
+  // One dual land lists a {1}{W} cast, since each colour's bound covers it, and the planner proves it can't.
+  const proved: PotentialAction = { ...pot('cast'), payable: false };
+  const unknown: PotentialAction = { ...pot('ability', 20), label: 'Relic: Gain 3 life.', payable: null };
+
+  it('stops nothing and is named nowhere', () => {
+    const v = view(player({ potential_actions: [proved] }));
+    expect(castableAfterTap(v, 0)).toBe(false);
+    expect(respondableAfterTap(v, 0)).toBe(false);
+    expect(castablesAfterTap(v, 0)).toEqual([]);
+  });
+
+  it('leaves the plays it has no proof about', () => {
+    const v = view(player({ potential_actions: [proved, unknown] }));
+    expect(castableAfterTap(v, 0)).toBe(true);
+    expect(respondableAfterTap(v, 0)).toBe(true);
+    expect(castablesAfterTap(v, 0)).toEqual(['Relic: Gain 3 life. (after tapping)']);
+  });
+});
+
 describe('offersPotential — "the decision already offers this projected play"', () => {
   const o = (over: Partial<Option>): Option => ({ index: 0, kind: 'cast', label: 'Cast Opt', player: 0, obj: 22, ...over });
 

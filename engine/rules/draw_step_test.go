@@ -336,7 +336,7 @@ func stepEntries(e *Engine, turn int32, step state.Step) int {
 const drawStepDrawSrc = `Name:Kruphix Dictate
 ManaCost:1 U U
 Types:Enchantment
-T:Mode$ Phase | Phase$ Draw | ValidPlayer$ Player | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ At the beginning of each player's draw step, that player draws an additional card.
+T:Mode$ Phase | Phase$ Draw | ValidPlayer$ Player | TriggerZones$ Battlefield | Execute$ TrigDraw
 SVar:TrigDraw:DB$ Draw | Defined$ TriggeredPlayer
 Oracle:x
 `

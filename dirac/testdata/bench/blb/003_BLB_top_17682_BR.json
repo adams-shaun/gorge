@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_17682_BR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 92d89f9840e44877b1dd2abaa23c1dc3:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 3 Agate-Blade Assassin, 1 Downwind Ambusher, 1 Gev, Scaled Scorch, 1 Moonstone Harbinger -> 3 Swamp, 3 Mountain",
+"cards": [
+{
+"name": "Cindering Cutthroat",
+"count": 3
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Frilled Sparkshooter",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 10
+},
+{
+"name": "Rabid Gnaw",
+"count": 2
+},
+{
+"name": "Raccoon Rallier",
+"count": 1
+},
+{
+"name": "Ravine Raider",
+"count": 2
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Scales of Shale",
+"count": 3
+},
+{
+"name": "Swamp",
+"count": 12
+}
+]
+}

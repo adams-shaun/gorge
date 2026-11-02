@@ -331,6 +331,9 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).speedStart {
 			e.checkSpeedStart()
 		}
+		// CR 702.131b, 702.195a: "any time you control".
+		e.checkBlessingGrants()
+		e.checkEnduringStoryGrants()
 		// The losses are made first: a player who has left makes no CR 704.5j
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
 		// own attempts are made under. That player's permanents stay until the

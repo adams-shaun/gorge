@@ -8,7 +8,7 @@ import (
 )
 
 // Nine-Lives Familiar's return half: `WithCountersAmount$ X` over
-// `SVar:X:Spawner>TriggeredCard$CardCounters.REVIVAL/Minus.1`. The amount is
+// `X = Spawner>TriggeredCard$CardCounters.REVIVAL/Minus.1`. The amount is
 // an SVar name, not a literal: the familiar that died with eight revival
 // counters comes back with seven, not the malformed-amount default of one.
 func TestNineLivesFamiliarReturnsWithOneFewerRevival(t *testing.T) {

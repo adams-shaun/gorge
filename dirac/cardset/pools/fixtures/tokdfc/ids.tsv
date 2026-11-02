@@ -1,0 +1,24 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Divination
+1	card	Doom Blade
+2	card	Fable of the Mirror-Breaker
+3	card	Grizzly Bears
+4	card	Hill Giant
+5	card	Island
+6	card	Lightning Bolt
+7	card	Mountain
+8	card	Plains
+9	card	Reckoner Bankbuster
+10	card	Savannah Lions
+11	card	Shock
+12	card	Swamp
+13	card	Walking Corpse
+14	card	Wind Drake
+15	card	face:Fable of the Mirror-Breaker#1
+16	token	c_1_1_pilot_crewbuff
+17	token	c_a_treasure_sac
+18	token	r_2_2_goblin_shaman_treasure
+19	card	Hungry for More
+20	card	Thatcher Revolt
+21	token	br_3_1_vampire_trample_lifelink_haste
+22	token	r_1_1_human_haste

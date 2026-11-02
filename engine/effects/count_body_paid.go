@@ -78,6 +78,9 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// spell became (the stack->battlefield move preserves the field) -- so
 		// a replay derives the same value; a copy of the spell was never cast
 		// and reads 0 (so a minted 1/1 copy mints no further copies).
+		if c.TriggerCard == c.Source && c.TriggerOffspringPaid {
+			return 1, true, true
+		}
 		if o := castProvenanceSource(g, c); o != nil {
 			if o.OffspringPaid {
 				return 1, true, true
@@ -376,6 +379,11 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			return 0, true, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true, true
+	case evalCountBodyPaidYouFaceDilemmaThisTurn:
+		if c.Controller < 0 || int(c.Controller) >= len(h.Game().Players) {
+			return 0, true, true
+		}
+		return h.Game().Players[c.Controller].DilemmasFacedThisTurn, true, true
 	case evalCountBodyPaidYouDrewThisTurn:
 		// The number of cards the controller DREW this turn — Elenda and
 		// Azor's `SVar:Y:Count$YouDrewThisTurn` feeding `TokenAmount$ Y`
@@ -546,6 +554,7 @@ const (
 	evalCountBodyPaidParty
 	evalCountBodyPaidLifeYouGainedThisTurn
 	evalCountBodyPaidYouDrewThisTurn
+	evalCountBodyPaidYouFaceDilemmaThisTurn
 	evalCountBodyPaidYouScryOrSurveilThisTurn
 	evalCountBodyPaidCountersAddedThisTurn
 	evalCountBodyPaidCountersRemovedThisTurn
@@ -587,6 +596,7 @@ var evalCountBodyPaidCodes = state.NewStrCodes(
 	// (engine/rules/turn.go).
 	state.StrEntry[evalCountBodyPaidCode]{Key: "LifeYourTeamGainedThisTurn", Val: evalCountBodyPaidLifeYouGainedThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouDrewThisTurn", Val: evalCountBodyPaidYouDrewThisTurn},
+	state.StrEntry[evalCountBodyPaidCode]{Key: "YouFaceDilemmaThisTurn", Val: evalCountBodyPaidYouFaceDilemmaThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouScryThisTurn", Val: evalCountBodyPaidYouScryOrSurveilThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YouSurveilThisTurn", Val: evalCountBodyPaidYouScryOrSurveilThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CountersAddedThisTurn", Val: evalCountBodyPaidCountersAddedThisTurn},

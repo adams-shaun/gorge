@@ -30,7 +30,7 @@ const (
 	// activation cost whose production is THREE colours ({R}{G}{W}), so the
 	// fee is not expressible as a net against a single mana type.
 	cwTriRockSrc = "Name:TriRock\nTypes:Land\n" +
-		"A:AB$ Mana | Cost$ 1 T | Produced$ R G W | SpellDescription$ Add {R}{G}{W}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ 1 T | Produced$ R G W\nOracle:x\n"
 	// cwTriRockFeeSrc is the shape-2 negative control: the same multi-colour
 	// production behind a {7} fee, so its net is zero and it cannot fund the
 	// difference.

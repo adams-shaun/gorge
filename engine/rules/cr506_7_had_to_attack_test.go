@@ -21,7 +21,7 @@ import (
 // turn they are seeded.
 const (
 	hadToAttackBruteSrc = "Name:Brute Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Haste\n" +
-		"S:Mode$ MustAttack | ValidCreature$ Card.Self | Description$ CARDNAME attacks each combat if able.\nOracle:x\n"
+		"S:Mode$ MustAttack | ValidCreature$ Card.Self\nOracle:x\n"
 	hadToAttackFreeSrc = "Name:Free Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nK:Haste\nOracle:x\n"
 )
 

@@ -1,6 +1,7 @@
 package sbv2http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -526,7 +527,7 @@ func TestSBV2ExtensionNativeOnly(t *testing.T) {
 	hub := NewHub()
 	ss := hub.seat(seatKey{table: "nativeonly", match: 1, seat: 0})
 	ss.setExtension(newExtensionBuilder())
-	ss.NativeOnly(humanseat.NativeOnly{Seat: 0, GameID: "g-1"})
+	ss.NativeOnly(context.Background(), humanseat.NativeOnly{Seat: 0, GameID: "g-1"})
 	req, _ := ss.snapshot()
 	if req == nil {
 		t.Fatal("native-only decision published no request")

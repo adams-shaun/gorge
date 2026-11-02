@@ -9,14 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Oft-Nabbed Goat's death trigger (task defined-triggered-card-owner) pinned
-// end to end on the real corpus card. Its compiled body is
-//
-//	SVar:TrigDeath:DB$ Draw | Defined$ TriggeredCardOwner | NumCards$ X | SubAbility$ TrigDrain
-//	SVar:TrigDrain:DB$ LoseLife | Defined$ NonTriggeredCardOwner | LifeAmount$ X
-//	SVar:X:TriggeredCard$CardCounters.M1M1
-//
-// so Defined$ must not fall through to the resolving source for the draw leg
+// Oft-Nabbed Goat's death trigger pinned end to end on the real corpus card.
+// Its compiled body draws X for the TriggeredCardOwner, then drains X from
+// NonTriggeredCardOwner, where X is the M1M1 counters on the TriggeredCard, so
+// Defined$ must not fall through to the resolving source for the draw leg
 // (an accidental draw) and to the source for the drain leg -- the drain
 // direction was the player-visible defect: the OWNER lost life instead of
 // every OTHER player. This test puts two -1/-1 counters on the Goat, kills

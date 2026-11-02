@@ -1,0 +1,33 @@
+# the RemoveCreatureTypes-without-RemoveCardTypes pool
+# the four Auras that make a creature a
+# Citizen/Noggle/Turtle and strip its other creature types, beside
+# tribal lords and creatures whose types a filter reads, a Vehicle, and a
+# Treasure that animates beside a spell counting Treasures,
+# for the oracle's constructed lockstep (dirac/oracle/rmcreatsub_test.go)
+Elite Vanguard
+Elvish Archdruid
+Elvish Mystic
+Elvish Visionary
+Forest
+Goblin Chieftain
+Goblin Piker
+Gold Rush
+Grizzly Bears
+Honest Work
+Imperious Perfect
+Island
+Knight Exemplar
+Llanowar Elves
+Merfolk of the Pearl Trident
+Merfolk Sovereign
+Mimic
+Mountain
+Noggle the Mind
+Plains
+Raging Goblin
+Retro-Mutation
+Savannah Lions
+Silvercoat Lion
+Smuggler's Copter
+Spider-Man No More
+Swamp

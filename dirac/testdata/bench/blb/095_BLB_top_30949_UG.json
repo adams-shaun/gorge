@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_30949_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck dc69e1f9e07248cb802b617fac27a1f0:0, player win-rate bucket 0.70 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Cache Grab, 1 Ledger Shredder, 1 Scrapshooter, 1 Season of Weaving, 1 Thornvault Forager, 1 Treetop Sentries -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Bumbleflower's Sharepot",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Galewind Moose",
+"count": 3
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Pawpatch Formation",
+"count": 1
+},
+{
+"name": "Pearl of Wisdom",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 1
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 3
+},
+{
+"name": "Treeguard Duo",
+"count": 1
+}
+]
+}

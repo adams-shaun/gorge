@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_30696_UR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 2a122c582dda47b9bf590e5d11847591:3, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dazzling Denial, 1 Eddymurk Crab, 1 Splash Lasher, 1 Stormchaser's Talent -> 2 Island, 2 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 1
+},
+{
+"name": "Conduct Electricity",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 9
+},
+{
+"name": "Pearl of Wisdom",
+"count": 2
+},
+{
+"name": "Plumecreed Escort",
+"count": 2
+},
+{
+"name": "Rabid Gnaw",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Take Out the Trash",
+"count": 2
+},
+{
+"name": "Tempest Angler",
+"count": 2
+}
+]
+}

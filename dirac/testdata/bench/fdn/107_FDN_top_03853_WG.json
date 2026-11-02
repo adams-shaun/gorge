@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_03853_WG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 0e440dec1fc240a3a840f8603ea50e9d:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 2
+},
+{
+"name": "Cackling Prowler",
+"count": 2
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dauntless Veteran",
+"count": 1
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Good-Fortune Unicorn",
+"count": 2
+},
+{
+"name": "Hare Apparent",
+"count": 2
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Spinner of Souls",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Sylvan Scavenging",
+"count": 1
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Valkyrie's Call",
+"count": 1
+},
+{
+"name": "Wildwood Scourge",
+"count": 1
+}
+]
+}

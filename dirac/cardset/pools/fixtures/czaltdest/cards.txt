@@ -1,0 +1,20 @@
+# the conditional alternate-destination pool: From Father
+# to Son and Zuko's Conviction (DestAltSVar$ MANDATORY X +
+# DestinationAlternative$), Vehicles, self-mill and discard, for the
+# oracle's constructed lockstep (dirac/oracle/czaltdest_test.go)
+From Father to Son
+Zuko's Conviction
+Carrion Cruiser
+Veloheart Bike
+Voyager Glidecar
+Midnight Mangler
+Cultivator's Caravan
+Air Response Unit
+Daggerfang Duo
+Deathcap Marionette
+Mineshaft Spider
+Pothole Mole
+Under the Skin
+Grizzly Bears
+Plains
+Swamp

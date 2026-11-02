@@ -128,8 +128,8 @@ into v2 candidates and the answer back into an intent.
 ```console
 $ go run ./cmd/mtgsim -seats 2 -games 1 -verify -a sb-min \
     -sb-agent sb-min=server/spellbench/seat/testdata/minimal_bot.py
-seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=6766ab2087f96884
-  replay OK (chain 6766ab2087f96884)
+seed 0: 2 seats,    691 intents,   3577 events,  30 turns, winner=dimir-tempo, chain=f802d0caafd07c93
+  replay OK (chain f802d0caafd07c93)
 ```
 
 In `gorged` the agent becomes one more offered policy, so a play-vs-bot

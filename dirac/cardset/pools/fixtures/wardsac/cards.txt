@@ -1,0 +1,27 @@
+# the ward—sacrifice pool: Vein Ripper (Ward—Sacrifice a
+# creature) and Ygra, Eater of All (Ward—Sacrifice a Food; every other
+# creature is a Food through its static) beside Food makers,
+# targeted removal and burn and basics, for the oracle's constructed
+# lockstep (dirac/oracle/wardsac_test.go)
+# The ward—sacrifice pool: Vein Ripper (Ward—Sacrifice a
+# creature) and Ygra, Eater of All (Ward—Sacrifice a Food; its static makes
+# every other creature a Food, so the candidates are layer-derived), Food
+# and Clue makers, targeted
+# removal and burn (so the ward triggers), cheap creatures and basics, for
+# Bloodbriar (a Sacrificed watcher on the paying side, a ward
+# payment is a sacrifice) for the oracle's constructed lockstep
+# (dirac/oracle/wardsac_test.go).
+Vein Ripper
+Ygra, Eater of All
+Bake into a Pie
+Bloodbriar
+Detective's Satchel
+Shock
+Lightning Bolt
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Hungry Ghoul
+Swamp
+Forest
+Mountain

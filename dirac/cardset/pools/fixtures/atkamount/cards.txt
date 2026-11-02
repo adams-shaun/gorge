@@ -1,0 +1,17 @@
+# the TriggerObjectsAttackers pool: Poetic
+# Ingenuity and The Earth King ("that many" in a batch
+# AttackersDeclared trigger) beside Dinosaurs, power-4 creatures,
+# smaller non-matching attackers, burn and basics, for the oracle's
+# constructed lockstep (dirac/oracle/atkamount_test.go)
+Poetic Ingenuity
+The Earth King
+Colossal Dreadmaw
+Frenzied Raptor
+Raptor Hatchling
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Shock
+Forest
+Mountain
+Craw Wurm

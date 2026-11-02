@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_11115_BG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck dfe1fc6bff6347af8e20388daf0fa059:0, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Cackling Prowler",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 1
+},
+{
+"name": "Dwynen, Gilt-Leaf Daen",
+"count": 1
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 3
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Infernal Vessel",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Jungle Hollow",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Overrun",
+"count": 2
+},
+{
+"name": "Snakeskin Veil",
+"count": 1
+},
+{
+"name": "Spinner of Souls",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 5
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+}
+]
+}

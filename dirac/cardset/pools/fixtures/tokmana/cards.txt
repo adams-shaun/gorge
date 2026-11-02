@@ -1,0 +1,42 @@
+# the granted mana ability pool (tokmana): Continuous grants of a mana
+# ability to tokens, creatures, lands and Slivers (Springleaf Parade,
+# Cryptolith Rite, Chromatic Lantern, Gemhide Sliver,...) beside mana
+# creatures (printed and granted abilities on one permanent) and
+# off-colour spells only the granted mana pays, for the oracle's
+# lockstep (dirac/oracle/tokmana_test.go)
+A Realm Reborn
+Air Elemental
+Cancel
+Chromatic Lantern
+Citanul Hierophants
+Counterspell
+Cryptolith Rite
+Divination
+Elvish Mystic
+Elvish Visionary
+Enduring Vitality
+Forest
+Gemhide Sliver
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Island
+Jiang Yanggu, Wildcrafter
+Joiner Adept
+Lightning Strike
+Llanowar Elves
+Manaweft Sliver
+Metallic Sliver
+Mind Rot
+Mountain
+Murder
+Negate
+Plains
+Raise the Alarm
+Sachi, Daughter of Seshiro
+Savannah Lions
+Serra Angel
+Shock
+Springleaf Parade
+Swamp
+Wellwisher

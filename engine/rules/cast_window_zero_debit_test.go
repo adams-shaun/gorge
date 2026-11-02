@@ -28,7 +28,7 @@ import (
 )
 
 const zdPhyProbeSrc = "Name:ZD PhyProbe\nManaCost:2 UP\nTypes:Instant\n" +
-	"A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
+	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
 
 // TestZeroDebitCastWindowSurvivesNegativeLife drives the target-menu filter
 // (the castWindowReachable site) with the payer at -1 life: the tapped

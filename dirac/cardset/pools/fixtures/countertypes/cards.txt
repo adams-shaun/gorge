@@ -1,0 +1,19 @@
+# the CounterTypes$ pool: the five sole-blocked
+# `CounterTypes$` carriers (one counter of each listed kind, CR 122.1b
+# keyword counters beside power-up and Renew), cheap removal and vanilla
+# creatures (the Renew cards need creatures in graveyards), for the
+# oracle's constructed lockstep (dirac/oracle/countertypes_test.go)
+Abigale, Eloquent First-Year
+Captain Marvel, Earth's Protector
+Quicksilver, Brash Blur
+Champion of Dusan
+Qarsi Revenant
+Shock
+Grizzly Bears
+Hill Giant
+Giant Spider
+Walking Corpse
+Plains
+Mountain
+Forest
+Swamp

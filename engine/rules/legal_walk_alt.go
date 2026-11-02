@@ -34,7 +34,7 @@ func (w *legalWalk) mayPlayLandWalk() {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		w.add("play_land", "Play "+o.Face().Name, id)
+		w.addLandPlay("Play "+o.Face().Name, id, o.Face())
 	}
 }
 
@@ -57,7 +57,7 @@ func (w *legalWalk) mayhemLandWalk() {
 		if hasPlayLandOption(*out, id) {
 			continue
 		}
-		w.add("play_land", "Play "+o.Face().Name, id)
+		w.addLandPlay("Play "+o.Face().Name, id, o.Face())
 	}
 }
 
@@ -473,6 +473,17 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		}
 	}
 
+	for _, id := range grave {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || !e.hasKeywordH(id, kwhBeamMeUp) || e.castSuppressed(p, id) ||
+			w.castRestrictedCost(p, id, ParseCost(f.ManaCost)) || !w.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		w.offerBeamMeUp(p, id, f, out)
+	}
+
 	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
 	// from its owner's graveyard for its printed mana cost (plus its own SP
 	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.
@@ -746,7 +757,7 @@ func (w *legalWalk) exileCastsWalk() {
 			// A may-play grant over the same exile card already offered the
 			// play; never yield two identical options for one land.
 			if !hasPlayLandOption(*out, id) {
-				w.add("play_land", w.playLabel(f), id)
+				w.addLandPlay(w.playLabel(f), id, f)
 			}
 		}
 		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
@@ -841,7 +852,12 @@ func (w *legalWalk) exileCastsWalk() {
 func (w *legalWalk) mayPlayAffordable(p state.PlayerID, id state.ObjID, f *cards.Face, base Cost) bool {
 	parts := altAddCostParts(f)
 	if len(parts) == 0 {
-		return w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base, spellScope("mayplay"))), false)
+		if w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base, spellScope("mayplay"))), false) {
+			return true
+		}
+		// A ValidTarget$ cost static may price the cast lower for some legal target
+		// (CR 601.2f), as a cast from the hand reads it.
+		return w.costStatics.get().validTarget && w.offerCastable(p, id, pay.WithSpellAbilityExtras(f, base), spellScope("mayplay"), false)
 	}
 	for _, part := range parts {
 		if w.affordable(p, id, pay.WithSpellAbilityExtras(f, w.offerCostFor(p, id, base.Plus(w.e.parseCost(part)), spellScope("mayplay"))), false) {

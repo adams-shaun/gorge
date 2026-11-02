@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_04681_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 24426bad08b64b03b7ef47d56a15c5dc:1, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Daggerfang Duo, 1 Early Winter, 1 Huskburster Swarm, 1 Nocturnal Hunger, 1 Season of Loss, 1 Wick's Patrol -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 2
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 3
+},
+{
+"name": "Pearl of Wisdom",
+"count": 1
+},
+{
+"name": "Psychic Whorl",
+"count": 3
+},
+{
+"name": "Ravine Raider",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Tidecaller Mentor",
+"count": 2
+}
+]
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Roaming Throne",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 4 games in the corpus",
+  "repro": {
+    "pool": "std-lci",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1148,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,7 @@
+# each player creates a token (TokenOwner$ Player), for the oracle's constructed
+# lockstep (dirac/oracle/eachtoken_test.go)
+Edge Rover
+Forest
+Grizzly Bears
+Marching Duodrone
+Party Dude

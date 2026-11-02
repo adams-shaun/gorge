@@ -5,8 +5,10 @@
 package cards
 
 func kwOffspring(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// CR 702.175a: "You may pay an additional [cost] as you cast this spell.
-	// If you do, when this creature enters, create a 1/1 token copy of it."
+	// CR 702.175a: "You may pay an additional [cost] as you cast this spell"
+	// and "When this permanent enters, if its offspring cost was paid, create
+	// a token that's a copy of it, except it's 1/1." The "if" is an
+	// intervening if (CR 603.4): a plain cast puts nothing on the stack.
 	// The corpus scripts carry only the K:Offspring:<cost> line, so the
 	// expansion supplies the ETB half -- the Squad expansion's shape
 	// (engine/cards/kw_squad.go), with three deliberate differences:
@@ -22,8 +24,8 @@ func kwOffspring(f *Face, i int, k, head, param string, has func(kind, line stri
 	//     the mint (the CopyPermanent SetPower$/SetToughness$ family).
 	//   - The token copy is NOT a cast spell, so it carries no
 	//     Count$OffspringPaid provenance of its own; the copy enters with the
-	//     same printed K:Offspring line, but its own entry trigger reads 0
-	//     and mints no further copies (the Squad recursion guard).
+	//     same printed K:Offspring line, but its own entry reads 0 and does
+	//     not trigger (the Squad recursion guard).
 	//
 	// CopyPermanent mints each copy's battlefield entry as a genuine
 	// ChangesZone-matchable MoveZone, so the copy's entry is observed by
@@ -35,7 +37,7 @@ func kwOffspring(f *Face, i int, k, head, param string, has func(kind, line stri
 	// paying a degraded cost. addKeywordTrigger guards idempotency via the
 	// KeywordLine tag, so a second Link() of a cached face cannot double-add
 	// the trigger.
-	f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | TriggerDescription$ Offspring",
+	f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | CheckSVar$ Count$OffspringPaid | TriggerDescription$ Offspring",
 		"DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$OffspringPaid | SetPower$ 1 | SetToughness$ 1", has)
 }
 

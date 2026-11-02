@@ -108,7 +108,7 @@ func (a *scripted) Choose(ctx context.Context, ask humanseat.Ask) (int, error) {
 	return i, nil
 }
 
-func (a *scripted) NativeOnly(n humanseat.NativeOnly) {
+func (a *scripted) NativeOnly(_ context.Context, n humanseat.NativeOnly) {
 	a.mu.Lock()
 	a.nativeOn++
 	f := a.answerNative

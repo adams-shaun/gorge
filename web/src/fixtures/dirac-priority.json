@@ -1,0 +1,1369 @@
+{
+ "view": {
+  "viewer": 0,
+  "own_deck": {
+   "name": "000_FDN_top_00001_WB",
+   "main": [
+    {
+     "name": "Arbiter of Woe",
+     "count": 1
+    },
+    {
+     "name": "Burglar Rat",
+     "count": 2
+    },
+    {
+     "name": "Cathar Commando",
+     "count": 1
+    },
+    {
+     "name": "Dazzling Angel",
+     "count": 1
+    },
+    {
+     "name": "Eaten Alive",
+     "count": 1
+    },
+    {
+     "name": "Fiendish Panda",
+     "count": 1
+    },
+    {
+     "name": "Healer's Hawk",
+     "count": 1
+    },
+    {
+     "name": "Helpful Hunter",
+     "count": 2
+    },
+    {
+     "name": "Hero's Downfall",
+     "count": 1
+    },
+    {
+     "name": "Hungry Ghoul",
+     "count": 1
+    },
+    {
+     "name": "Infernal Vessel",
+     "count": 1
+    },
+    {
+     "name": "Liliana, Dreadhorde General",
+     "count": 1
+    },
+    {
+     "name": "Macabre Waltz",
+     "count": 1
+    },
+    {
+     "name": "Plains",
+     "count": 8,
+     "land": true
+    },
+    {
+     "name": "Revenge of the Rats",
+     "count": 1
+    },
+    {
+     "name": "Squad Rallier",
+     "count": 1
+    },
+    {
+     "name": "Swamp",
+     "count": 9,
+     "land": true
+    },
+    {
+     "name": "Tinybones, Bauble Burglar",
+     "count": 1
+    },
+    {
+     "name": "Tragic Banshee",
+     "count": 1
+    },
+    {
+     "name": "Vampire Nighthawk",
+     "count": 1
+    },
+    {
+     "name": "Vampire Soulcaller",
+     "count": 2
+    },
+    {
+     "name": "Vanguard Seraph",
+     "count": 1
+    }
+   ],
+   "curve": [
+    {
+     "cmc": 0,
+     "count": 17
+    },
+    {
+     "cmc": 1,
+     "count": 2
+    },
+    {
+     "cmc": 2,
+     "count": 8
+    },
+    {
+     "cmc": 3,
+     "count": 4
+    },
+    {
+     "cmc": 4,
+     "count": 4
+    },
+    {
+     "cmc": 5,
+     "count": 3
+    },
+    {
+     "cmc": 6,
+     "count": 2
+    }
+   ]
+  },
+  "visibility": "seat",
+  "turn": 3,
+  "round": 2,
+  "step": "main1",
+  "phase": "main1",
+  "active": 0,
+  "priority": 0,
+  "over": false,
+  "draw": false,
+  "winner": null,
+  "players": [
+   {
+    "seat": 0,
+    "name": "You",
+    "life": 20,
+    "lost": false,
+    "spells_cast_this_turn": 0,
+    "life_gained_this_turn": 0,
+    "life_lost_this_turn": 0,
+    "tokens_created_this_turn": 0,
+    "library_size": 32,
+    "hand_size": 6,
+    "graveyard_size": 0,
+    "library": [
+     {
+      "id": 1,
+      "name": "Arbiter of Woe",
+      "types": "Creature Demon",
+      "mana_cost": "4 B B",
+      "spell_api": "PermanentCreature",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Arbiter of Woe"
+      },
+      "token": "#1",
+      "tapped": false,
+      "power": 5,
+      "toughness": 4,
+      "printed_pt": "5/4",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 2,
+      "name": "Burglar Rat",
+      "types": "Creature Rat",
+      "mana_cost": "1 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Burglar Rat"
+      },
+      "token": "#2",
+      "tapped": false,
+      "power": 1,
+      "toughness": 1,
+      "printed_pt": "1/1",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 3,
+      "name": "Burglar Rat",
+      "types": "Creature Rat",
+      "mana_cost": "1 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Burglar Rat"
+      },
+      "token": "#3",
+      "tapped": false,
+      "power": 1,
+      "toughness": 1,
+      "printed_pt": "1/1",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 4,
+      "name": "Cathar Commando",
+      "types": "Creature Human Soldier",
+      "mana_cost": "1 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Cathar Commando"
+      },
+      "token": "#4",
+      "tapped": false,
+      "power": 3,
+      "toughness": 1,
+      "printed_pt": "3/1",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flash"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 5,
+      "name": "Dazzling Angel",
+      "types": "Creature Angel",
+      "mana_cost": "2 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Dazzling Angel"
+      },
+      "token": "#5",
+      "tapped": false,
+      "power": 2,
+      "toughness": 3,
+      "printed_pt": "2/3",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 6,
+      "name": "Eaten Alive",
+      "types": "Sorcery",
+      "mana_cost": "B",
+      "spell_api": "ChangeZone",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Eaten Alive"
+      },
+      "token": "#6",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "AlternateAdditionalCost:Sac<1/Creature>:3 B"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 7,
+      "name": "Fiendish Panda",
+      "types": "Creature Bear Demon",
+      "mana_cost": "2 W B",
+      "colour_identity": 5,
+      "printing": {
+       "name": "Fiendish Panda"
+      },
+      "token": "#7",
+      "tapped": false,
+      "power": 3,
+      "toughness": 2,
+      "printed_pt": "3/2",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 8,
+      "name": "Healer's Hawk",
+      "types": "Creature Bird",
+      "mana_cost": "W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Healer's Hawk"
+      },
+      "token": "#8",
+      "tapped": false,
+      "power": 1,
+      "toughness": 1,
+      "printed_pt": "1/1",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying",
+       "Lifelink"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 9,
+      "name": "Helpful Hunter",
+      "types": "Creature Cat",
+      "mana_cost": "1 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Helpful Hunter"
+      },
+      "token": "#9",
+      "tapped": false,
+      "power": 1,
+      "toughness": 1,
+      "printed_pt": "1/1",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 12,
+      "name": "Hungry Ghoul",
+      "types": "Creature Zombie",
+      "mana_cost": "1 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Hungry Ghoul"
+      },
+      "token": "#12",
+      "tapped": false,
+      "power": 2,
+      "toughness": 2,
+      "printed_pt": "2/2",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 13,
+      "name": "Infernal Vessel",
+      "types": "Creature Human Cleric",
+      "mana_cost": "2 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Infernal Vessel"
+      },
+      "token": "#13",
+      "tapped": false,
+      "power": 2,
+      "toughness": 1,
+      "printed_pt": "2/1",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 14,
+      "name": "Liliana, Dreadhorde General",
+      "types": "Legendary Planeswalker Liliana",
+      "mana_cost": "4 B B",
+      "play_main1": "TRUE",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Liliana, Dreadhorde General"
+      },
+      "token": "#14",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 16,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#16",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 18,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#18",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 19,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#19",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 20,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#20",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 22,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#22",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 23,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#23",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 25,
+      "name": "Squad Rallier",
+      "types": "Creature Human Scout",
+      "mana_cost": "3 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Squad Rallier"
+      },
+      "token": "#25",
+      "tapped": false,
+      "power": 3,
+      "toughness": 4,
+      "printed_pt": "3/4",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 26,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#26",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 27,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#27",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 28,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#28",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 29,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#29",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 30,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#30",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 31,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#31",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 32,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#32",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 33,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#33",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 34,
+      "name": "Swamp",
+      "types": "Basic Land Swamp",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Swamp"
+      },
+      "token": "#34",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 35,
+      "name": "Tinybones, Bauble Burglar",
+      "types": "Legendary Creature Skeleton Rogue",
+      "mana_cost": "1 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Tinybones, Bauble Burglar"
+      },
+      "token": "#35",
+      "tapped": false,
+      "power": 1,
+      "toughness": 3,
+      "printed_pt": "1/3",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 37,
+      "name": "Vampire Nighthawk",
+      "types": "Creature Vampire Shaman",
+      "mana_cost": "1 B B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Vampire Nighthawk"
+      },
+      "token": "#37",
+      "tapped": false,
+      "power": 2,
+      "toughness": 3,
+      "printed_pt": "2/3",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying",
+       "Deathtouch",
+       "Lifelink"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 39,
+      "name": "Vampire Soulcaller",
+      "types": "Creature Vampire Warlock",
+      "mana_cost": "4 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Vampire Soulcaller"
+      },
+      "token": "#39",
+      "tapped": false,
+      "power": 3,
+      "toughness": 2,
+      "printed_pt": "3/2",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 40,
+      "name": "Vanguard Seraph",
+      "types": "Creature Angel Warrior",
+      "mana_cost": "3 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Vanguard Seraph"
+      },
+      "token": "#40",
+      "tapped": false,
+      "power": 3,
+      "toughness": 3,
+      "printed_pt": "3/3",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     }
+    ],
+    "hand": [
+     {
+      "id": 11,
+      "name": "Hero's Downfall",
+      "types": "Instant",
+      "mana_cost": "1 B B",
+      "spell_api": "Destroy",
+      "removal_kind": "destroy",
+      "removal_targets": "creature",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Hero's Downfall"
+      },
+      "token": "#11",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 38,
+      "name": "Vampire Soulcaller",
+      "types": "Creature Vampire Warlock",
+      "mana_cost": "4 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Vampire Soulcaller"
+      },
+      "token": "#38",
+      "tapped": false,
+      "power": 3,
+      "toughness": 2,
+      "printed_pt": "3/2",
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flying"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 15,
+      "name": "Macabre Waltz",
+      "types": "Sorcery",
+      "mana_cost": "1 B",
+      "spell_api": "ChangeZone",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Macabre Waltz"
+      },
+      "token": "#15",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 10,
+      "name": "Helpful Hunter",
+      "types": "Creature Cat",
+      "mana_cost": "1 W",
+      "colour_identity": 1,
+      "printing": {
+       "name": "Helpful Hunter"
+      },
+      "token": "#10",
+      "tapped": false,
+      "power": 1,
+      "toughness": 1,
+      "printed_pt": "1/1",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 24,
+      "name": "Revenge of the Rats",
+      "types": "Sorcery",
+      "mana_cost": "2 B B",
+      "spell_api": "Token",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Revenge of the Rats"
+      },
+      "token": "#24",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "keywords": [
+       "Flashback:2 B B"
+      ],
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     },
+     {
+      "id": 36,
+      "name": "Tragic Banshee",
+      "types": "Creature Spirit",
+      "mana_cost": "4 B",
+      "colour_identity": 4,
+      "printing": {
+       "name": "Tragic Banshee"
+      },
+      "token": "#36",
+      "tapped": false,
+      "power": 5,
+      "toughness": 3,
+      "printed_pt": "5/3",
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false
+     }
+    ],
+    "battlefield": [
+     {
+      "id": 21,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#21",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": false,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     },
+     {
+      "id": 17,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#17",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 0,
+      "owner": 0,
+      "summon_sick": true,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     }
+    ],
+    "graveyard": [],
+    "exile": [],
+    "pool": {},
+    "potential_actions": [
+     {
+      "kind": "cast",
+      "obj": 10,
+      "label": "Cast Helpful Hunter"
+     }
+    ],
+    "command": [],
+    "commanders": [],
+    "completed_dungeons": 0,
+    "land_drop_spent": true,
+    "commander_casts": []
+   },
+   {
+    "seat": 1,
+    "name": "Bot",
+    "life": 20,
+    "lost": false,
+    "spells_cast_this_turn": 0,
+    "life_gained_this_turn": 0,
+    "life_lost_this_turn": 0,
+    "tokens_created_this_turn": 0,
+    "library_size": 32,
+    "hand_size": 7,
+    "graveyard_size": 0,
+    "hand": null,
+    "battlefield": [
+     {
+      "id": 64,
+      "name": "Plains",
+      "types": "Basic Land Plains",
+      "mana_cost": "no cost",
+      "printing": {
+       "name": "Plains"
+      },
+      "token": "#64",
+      "tapped": false,
+      "power": 0,
+      "toughness": 0,
+      "damage": 0,
+      "attacking": false,
+      "controller": 1,
+      "owner": 1,
+      "summon_sick": true,
+      "produces": {
+       "colour": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "any": false
+      }
+     }
+    ],
+    "graveyard": [],
+    "exile": [],
+    "pool": {},
+    "command": [],
+    "commanders": [],
+    "completed_dungeons": 0,
+    "land_drop_spent": true,
+    "commander_casts": [],
+    "archetype": {
+     "known": true,
+     "seen": 1,
+     "top": "ramp",
+     "top_score": 0.5454545454545454,
+     "scores": {
+      "aggro": 0,
+      "burn": 0,
+      "control": 0,
+      "go-wide": 0.45454545454545453,
+      "midrange": 0,
+      "ramp": 0.5454545454545454,
+      "tempo": 0
+     }
+    }
+   }
+  ],
+  "stack": [],
+  "pending": [],
+  "decision": {
+   "seq": 75,
+   "player": 0,
+   "kind": "priority",
+   "prompt": "",
+   "min": 1,
+   "max": 1,
+   "options": [
+    {
+     "index": 0,
+     "kind": "pass",
+     "label": "Pass",
+     "player": 0
+    },
+    {
+     "index": 1,
+     "kind": "concede",
+     "label": "Concede",
+     "player": 0
+    }
+   ],
+   "payment_actions": [
+    {
+     "id": "b5926b94879dcbb69905aa7317d900655fb83b7490747be2f481885d7564ba33",
+     "cast": {
+      "object": 10,
+      "face": 0,
+      "origin": "hand"
+     },
+     "label": "Helpful Hunter",
+     "plans": [
+      {
+       "version": 1,
+       "id": "9c054044cbc22de62273e142ce9d7961554ebd5d99e8c99432adc6d9885c9fb9",
+       "cost": {
+        "generic": 0,
+        "mana": [
+         0,
+         0,
+         0,
+         0,
+         0,
+         0
+        ]
+       },
+       "activations": [],
+       "pool_spend": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ],
+       "pool_after": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "pending": {
+  "seq": 75,
+  "player": 0,
+  "kind": "priority",
+  "prompt": "",
+  "min": 1,
+  "max": 1,
+  "options": [
+   {
+    "index": 0,
+    "kind": "pass",
+    "label": "Pass",
+    "player": 0
+   },
+   {
+    "index": 1,
+    "kind": "concede",
+    "label": "Concede",
+    "player": 0
+   }
+  ],
+  "payment_actions": [
+   {
+    "id": "b5926b94879dcbb69905aa7317d900655fb83b7490747be2f481885d7564ba33",
+    "cast": {
+     "object": 10,
+     "face": 0,
+     "origin": "hand"
+    },
+    "label": "Helpful Hunter",
+    "plans": [
+     {
+      "version": 1,
+      "id": "9c054044cbc22de62273e142ce9d7961554ebd5d99e8c99432adc6d9885c9fb9",
+      "cost": {
+       "generic": 0,
+       "mana": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+       ]
+      },
+      "activations": [],
+      "pool_spend": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "pool_after": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

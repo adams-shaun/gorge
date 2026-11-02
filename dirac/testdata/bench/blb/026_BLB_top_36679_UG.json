@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_36679_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f9dc311702ca48458cf295167e2c0f32:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Hunter's Talent, 1 Long River Lurker, 1 Pond Prophet, 1 Spellgyre, 1 Splash Lasher, 1 Stormchaser's Talent -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Pearl of Wisdom",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 3
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 2
+}
+]
+}

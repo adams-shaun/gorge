@@ -1,0 +1,30 @@
+# the random-discard pool: the Standard
+# `Mode$ Random` carriers (Curse-Marred Demon, Cool but Rude) and the
+# non-Std random discards (Mind Knives, Desperate Ravings, Hymn to
+# Tourach) beside Fiery Temper (madness) and basics, for the oracle's
+# constructed lockstep (dirac/oracle/discrandom_test.go)
+# The random-discard pool: the two Standard carriers of
+# resolution `DB$ Discard | Mode$ Random` (Curse-Marred Demon's ETB and Cool
+# but Rude's class level 3), two non-Std random-discard spells (Mind Knives,
+# Desperate Ravings, plus Hymn to Tourach for a multi-card pick), Fiery Temper
+# so the discarded card's identity matters (madness), burn, vanilla creatures
+# and basics, for the oracle's constructed lockstep
+# (dirac/oracle/discrandom_test.go).
+Curse-Marred Demon
+Cool but Rude
+Mind Knives
+Desperate Ravings
+Hymn to Tourach
+Fiery Temper
+Lightning Bolt
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Raging Goblin
+Goblin Piker
+Gray Ogre
+Mountain
+Swamp
+Forest
+Island

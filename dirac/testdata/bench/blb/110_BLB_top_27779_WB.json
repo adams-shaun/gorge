@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_27779_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 49e05e80ff9f4f04a28ed8246ec3ac2d:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Early Winter, 2 Moonstone Harbinger, 1 Thornplate Intimidator, 1 Thought-Stalker Warlock -> 3 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 4
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Sonar Strike",
+"count": 5
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

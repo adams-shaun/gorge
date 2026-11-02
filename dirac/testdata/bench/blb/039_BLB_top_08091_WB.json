@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_08091_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 85789c15bf1e46089c9d548d8a15bb3e:1, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 1 Bonebind Orator, 1 Crumb and Get It, 1 Early Winter, 1 Repel Calamity, 1 Starscape Cleric -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Scales of Shale",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Wax-Wane Witness",
+"count": 3
+}
+]
+}

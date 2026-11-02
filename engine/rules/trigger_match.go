@@ -94,10 +94,14 @@ type pendingTrigger struct {
 	// though its delayed-shape stack object has no T: line to record.
 	Chapter   bool
 	DelayedID uint32
-	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
-	// It is represented as a real stack ability through the existing delayed
-	// push event, rather than as an immediate turn action.
+	// MonarchDraw and MonarchSteal are the two source-less abilities of CR 725.2,
+	// the end-step draw and "whenever a creature deals combat damage to the
+	// monarch, its controller becomes the monarch". They are real stack abilities
+	// through the delayed push event, controlled by the monarch when they
+	// triggered. MonarchTo is the creature's controller.
 	MonarchDraw    bool
+	MonarchSteal   bool
+	MonarchTo      state.PlayerID
 	RadiationDrain bool
 	SpeedIncrease  bool
 	// InitiativeVenture is the source-less CR 726.2 inherent ability that makes
@@ -347,10 +351,21 @@ type triggerKey struct {
 // same line on two cards -- independent.
 type damageBatchKey struct {
 	triggerKey
+	grant  grantedLine    // which grant, on a granted line: one object can hold several (CR 113.2c)
 	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
 	all    bool           // true: the batch-level DamageAll latch (no referent)
 	obj    state.ObjID    // the referent object (dealing source, or damaged object)
 	player state.PlayerID // the referent player when the damage went to a player
+}
+
+// grantedLine tells apart the granted instances of a trigger on one object. Every
+// grant shares the object's triggerKey, and each is its own ability (CR 113.2c):
+// three activations of Dropkick Bomber on one Goblin are three triggers. The
+// timestamp separates two grants of one line; the line separates the two bodies
+// of one "AddTrigger$ A & B". The zero value is a printed line.
+type grantedLine struct {
+	stamp uint32
+	line  *cards.Trigger
 }
 
 // damageBatchEntry records one (trigger, referent) pair already queued inside
@@ -524,6 +539,8 @@ var actionTriggerModes = map[string]bool{
 	// predicate failing closed -- apply from day one. No Once latch: each
 	// flip result Note is one occurrence.
 	"FlippedCoin": true,
+	// FacesDilemma: one occurrence per marked ModeChosen.
+	"FacesDilemma": true,
 	// RolledDie/RolledDieOnce join them for the same reason: both are event
 	// modes registered from the start (engine/rules/trigmatch/actions.go's
 	// trigmatch.rolledDieMatches / trigmatch.rolledDieOnceMatches, firing off the canonical roll
@@ -1479,103 +1496,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 					}
 				}
 				if mk == cards.TriggerDamageDealtOnce || mk == cards.TriggerDamageDoneOnce || mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll {
-					// The "Once" gate latches once per DAMAGE BATCH, not per turn
-					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
-					// triggerDamageDoneOnce once per damage step, and one
-					// dealDamage call's damage per batch): a double striker's
-					// bearer triggers Jitte twice (two damage steps), and two
-					// separate damage events in one turn trigger an Enrage creature
-					// twice -- while two blockers hitting back at the same creature
-					// in ONE batch trigger it once, with the referent carrying the
-					// batch's accumulated total. Within an open batch the entry
-					// below IS the latch (a second matching event accumulates into
-					// it); no batch open means every Damage event is its own batch,
-					// so there is nothing to latch across and the trigger fires per
-					// event with its own event amount already the batch total.
-					//
-					// DamageAll (Forge GameAction.triggerDamageAll) is the
-					// batch-level "one or more" mode: it must fire ONCE for the
-					// whole batch if at least one matching SOURCE dealt damage to
-					// at least one matching TARGET, not once per pair. Its latch
-					// therefore keys on the trigger line ALONE (all=true, no
-					// referent): trigmatch.DamageMatches already requires BOTH ValidSource$
-					// and ValidTarget$ to match the SAME event, so the first such
-					// event queues the single instance and every later matching
-					// pair in the batch accumulates into it -- the "one or more"
-					// reading.
-					// Non-positive damage never latches (including cleanup repairs).
-					if ev.Amount > 0 {
-						bk := damageBatchKey{triggerKey: key, dealt: mk == cards.TriggerDamageDealtOnce, all: mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll}
-						var allSrc state.ObjID
-						var allTgt state.Target
-						if bk.dealt {
-							// Combat identifies the actual attacker/blocker in damaging;
-							// an effect batch's shared source is its published override
-							// or its resolving stack object otherwise. A watcher can
-							// match several sources in one batch, so never collapse
-							// non-combat sources onto ObjID zero. Same priority order as
-							// the ValidSource$ match above: an explicit override always
-							// wins, e.damaging is combat-only, trigmatch.damageSource is the
-							// non-combat fallback. Through the ONE shared resolution
-							// (trigmatch.DamageEventSource) so the latch and the match agree.
-							bk.obj = trigmatch.DamageEventSource(boardOf(e))
-						} else if !bk.all {
-							// DamageDoneOnce: the per-damaged-referent latch key.
-							if ev.Obj != 0 {
-								bk.obj = ev.Obj
-							} else {
-								bk.player = ev.Player
-							}
-						} else {
-							// DamageAll's line-only key carries no referent; instead
-							// the matching (source, target) pair of EVERY matching
-							// event accumulates into the entry's deduplicated batch
-							// sets, the capture the plural corpus readers resolve.
-							// The source read is the ONE shared dealer resolution, so
-							// a captured set can never contain a source the
-							// ValidSource$ match did not match (the match and the
-							// capture cannot drift).
-							allSrc = trigmatch.DamageEventSource(boardOf(e))
-							if ev.Obj != 0 {
-								allTgt = state.Target{Obj: ev.Obj}
-							} else {
-								allTgt = state.Target{Player: ev.Player, IsPlayer: true}
-							}
-						}
-						if e.damageBatchOpen {
-							if e.damageBatchIdx == nil {
-								e.damageBatchIdx = map[damageBatchKey]int{}
-							}
-							if entIdx, ok := e.damageBatchIdx[bk]; ok {
-								ent := &e.damageBatchLog[entIdx]
-								ent.amount += damageAmount
-								if bk.all {
-									ent.sources = batchAppendSource(ent.sources, allSrc)
-									ent.targets = batchAppendTarget(ent.targets, allTgt)
-								}
-								continue // already queued once for this batch and referent.
-							}
-							e.damageBatchIdx[bk] = len(e.damageBatchLog)
-							ent := damageBatchEntry{
-								key: bk, idx: len(e.pendingTriggers), amount: damageAmount,
-							}
-							if _, ok := t.Param(cards.PKDamageAmount); ok {
-								ent.gate, ent.gateSrc = &fc.face.Triggers[ti], id
-							}
-							if bk.all {
-								ent.sources = batchAppendSource(ent.sources, allSrc)
-								ent.targets = batchAppendTarget(ent.targets, allTgt)
-							}
-							e.damageBatchLog = append(e.damageBatchLog, ent)
-							// Fall through: the trigger queues now, at the same point
-							// in the stream it queued at before this gate was
-							// batch-scoped; closeDamageBatch patches its referent
-							// amount to the batch total.
-						} else if !trigmatch.DamageAmountMatches(boardOf(e), t, id, ev.Obj, damageAmount) {
-							// No batch open: this event is its own batch, so
-							// DamageAmount$ reads its amount now.
-							continue
-						}
+					if !e.latchDamageBatch(t, &fc.face.Triggers[ti], mk, key, grantedLine{}, id, *ev, damageAmount) {
+						continue
 					}
 				}
 				// ChangesZoneAll inside a RepeatEach ChangeZoneTable$ True loop is
@@ -2142,6 +2064,101 @@ func triggerFacesWithMerged(o *state.Object, base []triggerFace) []triggerFace {
 		}
 	}
 	return out
+}
+
+// latchDamageBatch is the once-per-batch gate of the damage batch modes. It
+// reports whether the line queues for this event: false when the open batch
+// already holds an instance for its referent, or when no batch is open and the
+// event's own amount fails DamageAmount$.
+//
+// The "Once" gate latches once per DAMAGE BATCH, not per turn (CR 510.4; Forge
+// PhaseHandler.dealAssignedDamage fires triggerDamageDoneOnce once per damage
+// step, and one dealDamage call's damage per batch): a double striker's bearer
+// triggers Jitte twice (two damage steps), and two separate damage events in one
+// turn trigger an Enrage creature twice -- while two blockers hitting back at the
+// same creature in ONE batch trigger it once, with the referent carrying the
+// batch's accumulated total. Within an open batch the entry below IS the latch (a
+// second matching event accumulates into it); no batch open means every Damage
+// event is its own batch, so there is nothing to latch across and the trigger
+// fires per event with its own event amount already the batch total.
+//
+// DamageAll (Forge GameAction.triggerDamageAll) is the batch-level "one or more"
+// mode: it must fire ONCE for the whole batch if at least one matching SOURCE
+// dealt damage to at least one matching TARGET, not once per pair. Its latch
+// therefore keys on the trigger line ALONE (all=true, no referent):
+// trigmatch.DamageMatches already requires BOTH ValidSource$ and ValidTarget$ to
+// match the SAME event, so the first such event queues the single instance and
+// every later matching pair in the batch accumulates into it -- the "one or more"
+// reading. Non-positive damage never latches (including cleanup repairs).
+func (e *Engine) latchDamageBatch(t cards.Trigger, line *cards.Trigger, mk cards.TriggerMode, key triggerKey, grant grantedLine, id state.ObjID, ev events.Event, damageAmount int32) bool {
+	if ev.Amount <= 0 {
+		return true
+	}
+	bk := damageBatchKey{triggerKey: key, grant: grant, dealt: mk == cards.TriggerDamageDealtOnce, all: mk == cards.TriggerDamageAll || mk == cards.TriggerExcessDamageAll}
+	var allSrc state.ObjID
+	var allTgt state.Target
+	if bk.dealt {
+		// Combat identifies the actual attacker/blocker in damaging; an effect
+		// batch's shared source is its published override or its resolving stack
+		// object otherwise. A watcher can match several sources in one batch, so
+		// never collapse non-combat sources onto ObjID zero. Same priority order as
+		// the ValidSource$ match: an explicit override always wins, e.damaging is
+		// combat-only, trigmatch.damageSource is the non-combat fallback. Through
+		// the ONE shared resolution (trigmatch.DamageEventSource) so the latch and
+		// the match agree.
+		bk.obj = trigmatch.DamageEventSource(boardOf(e))
+	} else if !bk.all {
+		// DamageDoneOnce: the per-damaged-referent latch key.
+		if ev.Obj != 0 {
+			bk.obj = ev.Obj
+		} else {
+			bk.player = ev.Player
+		}
+	} else {
+		// DamageAll's line-only key carries no referent; instead the matching
+		// (source, target) pair of EVERY matching event accumulates into the
+		// entry's deduplicated batch sets, the capture the plural corpus readers
+		// resolve. The source read is the ONE shared dealer resolution, so a
+		// captured set can never contain a source the ValidSource$ match did not
+		// match (the match and the capture cannot drift).
+		allSrc = trigmatch.DamageEventSource(boardOf(e))
+		if ev.Obj != 0 {
+			allTgt = state.Target{Obj: ev.Obj}
+		} else {
+			allTgt = state.Target{Player: ev.Player, IsPlayer: true}
+		}
+	}
+	if !e.damageBatchOpen {
+		// No batch open: this event is its own batch, so DamageAmount$ reads its
+		// amount now.
+		return trigmatch.DamageAmountMatches(boardOf(e), t, id, ev.Obj, damageAmount)
+	}
+	if e.damageBatchIdx == nil {
+		e.damageBatchIdx = map[damageBatchKey]int{}
+	}
+	if entIdx, ok := e.damageBatchIdx[bk]; ok {
+		ent := &e.damageBatchLog[entIdx]
+		ent.amount += damageAmount
+		if bk.all {
+			ent.sources = batchAppendSource(ent.sources, allSrc)
+			ent.targets = batchAppendTarget(ent.targets, allTgt)
+		}
+		return false // already queued once for this batch and referent.
+	}
+	e.damageBatchIdx[bk] = len(e.damageBatchLog)
+	ent := damageBatchEntry{key: bk, idx: len(e.pendingTriggers), amount: damageAmount}
+	if _, ok := t.Param(cards.PKDamageAmount); ok {
+		ent.gate, ent.gateSrc = line, id
+	}
+	if bk.all {
+		ent.sources = batchAppendSource(ent.sources, allSrc)
+		ent.targets = batchAppendTarget(ent.targets, allTgt)
+	}
+	e.damageBatchLog = append(e.damageBatchLog, ent)
+	// The trigger queues now, at the same point in the stream it queued at before
+	// this gate was batch-scoped; closeDamageBatch patches its referent amount to
+	// the batch total.
+	return true
 }
 
 // openDamageBatch opens a damage batch: the Damage events emitted until the
@@ -3007,7 +3024,7 @@ func init() {
 		// carriers eligible for deck validation and coverage.
 		"trig:ExcessDamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:BecomesTargetOnce", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:BecomesTargetOnce", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin", "trig:FacesDilemma",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",

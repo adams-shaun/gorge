@@ -1,0 +1,43 @@
+# the RememberedLKI$ pool: Tribute to Hunger (a
+# Sacrifice RememberSacrificed$ then GainLife of the sacrificed
+# creature's last-known toughness) beside anthems, pumps, +1/+1
+# counters, equipment, removal, cheap creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/remlki_test.go)
+# The RememberedLKI$ sacrificed-creature pool: Tribute to Hunger
+# (the opponent sacrifices a creature, you gain life equal to its toughness as
+# it last was), beside the P/T changers that make the last-known toughness
+# differ from the printed face: anthems (Glorious Anthem, Crusade), pumps
+# (Giant Growth, Might of the Meek), +1/+1 counters (Ajani's Pridemate),
+# Rancor and Bonesplitter, Heroic Reinforcements (tokens, a team pump), removal, cheap creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/remlki_test.go). Twisted Justice
+# (target player sacrifices, you draw its power) and Xathrid Demon (an upkeep
+# trigger: sacrifice another creature, each opponent loses its power) carry
+# the target-player and trigger paths.
+Tribute to Hunger
+Twisted Justice
+Xathrid Demon
+Glorious Anthem
+Crusade
+Giant Growth
+Might of the Meek
+Ajani's Pridemate
+Rancor
+Bonesplitter
+Lightning Bolt
+Shock
+Doom Blade
+Terror
+Tragic Slip
+Savannah Lions
+Elvish Mystic
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Kor Skyfisher
+Heroic Reinforcements
+Vicious Clown
+Plains
+Swamp
+Forest
+Mountain
+Island

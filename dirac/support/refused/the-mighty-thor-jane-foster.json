@@ -1,0 +1,13 @@
+{
+  "card": "The Mighty Thor, Jane Foster",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 11 games in the corpus",
+  "repro": {
+    "pool": "std-msh",
+    "surface": "full",
+    "seed": 1,
+    "pair": 270,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

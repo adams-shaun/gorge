@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -323,14 +324,7 @@ func altAddCostParts(f *cards.Face) []string {
 	if !ok {
 		return nil
 	}
-	parts := strings.Split(param, ":")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
+	return costvocab.AltAddParts(param)
 }
 
 func harmonizeCost(f *cards.Face) (Cost, bool) {
@@ -909,6 +903,7 @@ func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
 func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, ability bool, pool state.Mana) bool {
 	mana := cost
 	mana.Generic -= e.delveCredit(p, id, mana.Generic)
+	pool = e.potentialPoolFor(p, pay.DescriptorFor(id, ability, mana), pool)
 	if !pay.CostPayablePool(asPayer(e), p, id, ability, mana, pool, e.G.Players[p].ManaUnits()) {
 		return false
 	}

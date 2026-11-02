@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_09240_UG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 21b40c07c2d94668b6b5c1c561323e03:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Beast-Kin Ranger",
+"count": 2
+},
+{
+"name": "Burnished Hart",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 1
+},
+{
+"name": "Dwynen, Gilt-Leaf Daen",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Giant Growth",
+"count": 2
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Grappling Kraken",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Kiora, the Rising Tide",
+"count": 1
+},
+{
+"name": "Koma, World-Eater",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Llanowar Elves",
+"count": 2
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

@@ -239,6 +239,9 @@ func TestReplicateDeclinedIsAPlainCast(t *testing.T) {
 	if logHasFlag(e, hero, "replicated") {
 		t.Fatal("a declined replicate must not carry the flag")
 	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a declined replicate put %d triggers on the stack, want 0", n)
+	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.CastInfo && ev.Obj == hero {
 			t.Fatalf("declined replicate emitted a CastInfo: %+v", ev)
@@ -494,7 +497,7 @@ func TestReplicateTapCostAskBoundedByUntappedCandidates(t *testing.T) {
 }
 
 // TestReplicateTapCostPsionicRitualBoundReservesCandidates is the measured
-// shape verbatim: Psionic Ritual (K:Replicate:tapXType<1/Horror>, {4}{U}{U})
+// shape: Psionic Ritual (replicate by tapping a Horror, {4}{U}{U})
 // with two untapped Kederekt Creepers (real corpus Horrors) and a legal
 // graveyard target. The fixed bound is exactly the board's: 0..2, and
 // answering 2 pays, taps both Horrors and puts three spell objects on the

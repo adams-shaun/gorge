@@ -476,7 +476,7 @@ func (t *tactical) observe(v view.View, me state.PlayerID) {
 		for _, cv := range v.Players[i].Battlefield {
 			if cv.Attacking {
 				attacked = true
-				if len(cv.BlockedBy) > 0 {
+				if cv.Blocked {
 					blocked = true
 				}
 			}

@@ -8,8 +8,8 @@ import (
 )
 
 const aclazotzDiscardDraw = "Name:Aclazotz, Deepest Betrayal\nManaCost:2 B B\nTypes:Creature Vampire God\nPT:4/4\n" +
-	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigDiscard | TriggerDescription$ x\n" +
-	"SVar:TrigDiscard:DB$ Discard | Mode$ TgtChoose | Defined$ Opponent | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DBDraw\n" +
+	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ OnDiscard | TriggerDescription$ x\n" +
+	"SVar:OnDiscard:DB$ Discard | Mode$ TgtChoose | Defined$ Opponent | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DBDraw\n" +
 	"SVar:DBDraw:DB$ Draw | NumCards$ X | SubAbility$ DBCleanup\n" +
 	"SVar:X:PlayerCountOpponents$Amount/Minus.Remembered$Amount\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nOracle:x\n"

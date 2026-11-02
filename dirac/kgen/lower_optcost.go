@@ -1,0 +1,126 @@
+package kgen
+
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
+
+// "As an additional cost to cast this spell, you may <part>"
+// (CR 601.2b), printed S:Mode$ OptionalCost | EffectZone$ All | ValidCard$
+// Card.Self | ValidSA$ Spell | Cost$ <part>. gorge (rules
+// statics_costmods.go optionalCostViews, legal_walk_hand.go) offers each
+// payable view as its own "optionalcost" cast beside the plain one, folds
+// the part into the cost stages and stamps FlagOptionalCostPaid; Count$
+// OptionalGenericCostPaid.<paid>.<unpaid> and Condition$ OptionalCost read
+// that flag. The kernel's paid flag is the kicked provenance (sfKicked, as
+// Bargain's), so only a part the kernel already pays as a cost lowers:
+// Blight<N> (the pkBlight pick), Behold<1/Type> (the ChCostBehold pick) or
+// CollectEvidence<N> (the bsEvidence pick; lower_collectedevidence.go). Waterbend and
+// mana parts refuse by name.
+
+// optCostStatic lowers the card's one OptionalCost static into lc.out.OptCost.
+func (lc *lowerCtx) optCostStatic(s cards.Static) error {
+	for _, k := range sortedParamKeys(s.Params) {
+		switch k {
+		case "Mode", "EffectZone", "ValidCard", "ValidSA", "Cost", "Description":
+		default:
+			return refuse("OptionalCost static with %s$", k)
+		}
+	}
+	if strings.TrimSpace(s.Params["EffectZone"]) != "All" || strings.TrimSpace(s.Params["ValidCard"]) != "Card.Self" || strings.TrimSpace(s.Params["ValidSA"]) != "Spell" {
+		return refuse("OptionalCost static shape EffectZone %q ValidCard %q ValidSA %q", s.Params["EffectZone"], s.Params["ValidCard"], s.Params["ValidSA"])
+	}
+	if lc.out.OptCost != nil {
+		return refuse("a second OptionalCost static") // gorge offers one cast per view; the kernel has one kicked mode
+	}
+	if lc.out.Types&(tInstant|tSorcery) == 0 && !strings.HasPrefix(strings.TrimSpace(s.Params["Cost"]), "CollectEvidence<") {
+		// sfKicked reaches a permanent's kicked provenance (mechKicked,
+		// F2Kicked); only the evidence part is read there (lower_collectedevidence.go)
+		return refuse("OptionalCost on a permanent spell")
+	}
+	o := lc.out
+	if o.BeholdExile || o.Kicker != nil || o.Bargain || o.Offspring != nil || o.Gift || o.Casualty != 0 || o.Teamwork != 0 ||
+		o.SpellCost != nil || o.AltAddCost != nil || o.Flashback != nil || o.Harmonize != nil || o.Mayhem != nil {
+		return refuse("OptionalCost beside another optional or alternative cost")
+	}
+	raw := strings.TrimSpace(s.Params["Cost"])
+	lc.beholdOK = true
+	c, err := lc.cost(raw)
+	lc.beholdOK = false
+	if err != nil {
+		return refuse("OptionalCost cost %q", raw)
+	}
+	rest := c
+	rest.BlightN, rest.BeholdN, rest.BeholdF, rest.EvidenceN = 0, 0, nil, 0
+	parts := 0
+	for _, on := range []bool{c.BlightN != 0, c.BeholdN != 0, c.EvidenceN != 0} {
+		if on {
+			parts++
+		}
+	}
+	if !rest.pureMana() || !c.Mana.None || parts != 1 || c.BeholdN > 1 {
+		return refuse("OptionalCost cost %q", raw)
+	}
+	lc.out.OptCost = &c
+	return nil
+}
+
+// faceOptCost reports whether the face prints an OptionalCost static. The
+// spell lines lower before the statics, so a paid read checks the face; a
+// static that then refuses refuses the card.
+func (lc *lowerCtx) faceOptCost() bool {
+	for _, s := range lc.face.Statics {
+		if s.Mode == "OptionalCost" {
+			return true
+		}
+	}
+	return false
+}
+
+// optCostRead gates Count$OptionalGenericCostPaid.<paid>.<unpaid> (gorge
+// count_body_paid.go: the flag off the cast object): only in a spell's own
+// chain (the kernel reads the resolving entry's sfKicked), only on an
+// OptionalCost card, and with literal arms (an SVar arm is out of scope).
+func (lc *lowerCtx) optCostRead(rest string) error {
+	if !lc.faceOptCost() {
+		return refuse("Count$%s without an OptionalCost static", rest)
+	}
+	if lc.ab == nil || lc.ab.Kind != akSpell {
+		return refuse("Count$OptionalGenericCostPaid outside a spell ability")
+	}
+	for _, p := range strings.Split(strings.TrimPrefix(rest, "OptionalGenericCostPaid."), ".") {
+		if !isIntLit(p) {
+			return refuse("Count$%s: a non-literal arm", rest)
+		}
+	}
+	return nil
+}
+
+// optCostCond lowers Condition$ OptionalCost (gorge conditions.go: the
+// cast's FlagOptionalCostPaid): ConditionOptionalPaid$ True or absent reads
+// paid (cKicked); False has no Std carrier and refuses.
+func (lc *lowerCtx) optCostCond(ps *params) (lCond, error) {
+	if !lc.faceOptCost() {
+		return lCond{}, refuse("Condition$ OptionalCost without an OptionalCost static")
+	}
+	if lc.ab == nil || lc.ab.Kind != akSpell {
+		return lCond{}, refuse("Condition$ OptionalCost outside a spell")
+	}
+	if v, ok := ps.get("ConditionOptionalPaid"); ok && strings.TrimSpace(v) != "True" {
+		return lCond{}, refuse("Condition$ OptionalCost with ConditionOptionalPaid %q", v)
+	}
+	return lCond{Kind: cKicked}, nil
+}
+
+func isIntLit(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}

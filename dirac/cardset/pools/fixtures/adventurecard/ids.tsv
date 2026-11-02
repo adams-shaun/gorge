@@ -1,0 +1,27 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Beanstalk Wurm
+1	card	Bellowing Bruiser
+2	card	Beluna Grandsquall
+3	card	Bramble Familiar
+4	card	Edgewall Inn
+5	card	Ferocious Werefox
+6	card	Forest
+7	card	Frantic Firebolt
+8	card	Frolicking Familiar
+9	card	Galvanic Giant
+10	card	Grizzly Bears
+11	card	Hearth Elemental
+12	card	Howling Galefang
+13	card	Island
+14	card	Mountain
+15	card	Sentinel of Lost Lore
+16	card	Shock
+17	card	face:Beanstalk Wurm#1
+18	card	face:Bellowing Bruiser#1
+19	card	face:Beluna Grandsquall#1
+20	card	face:Bramble Familiar#1
+21	card	face:Ferocious Werefox#1
+22	card	face:Frolicking Familiar#1
+23	card	face:Galvanic Giant#1
+24	card	face:Hearth Elemental#1
+25	token	role_monster

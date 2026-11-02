@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_34322_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck ac412244d7744700bb7f4bed3d1c6f2c:1, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dewdrop Cure, 1 Fabled Passage, 1 Heirloom Epic, 1 Jolly Gerbils, 1 Nettle Guard, 1 Starseer Mentor -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 2
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Thistledown Players",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

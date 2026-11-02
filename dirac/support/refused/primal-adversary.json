@@ -1,0 +1,13 @@
+{
+  "card": "Primal Adversary",
+  "class": "unmodelled",
+  "why": "numtimes: gorge announces more repetitions than the kernel counts",
+  "repro": {
+    "pool": "tail-19",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 27,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Sawblade Skinripper",
+  "class": "projection-Cards.Damage",
+  "why": "the engines' state differs at projection Cards[].Damage; 12 games in the corpus",
+  "repro": {
+    "pool": "std-dsk",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 223,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

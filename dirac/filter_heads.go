@@ -1,0 +1,61 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// two controller roles of a battlefield filter and the
+// stack read of a target-gated cost reduction. Cold and out of line:
+// flags2Perm reaches ctrlRoleF2 only through one combined bit test, and
+// costTargetMatch runs only for a StTargetsFilter2 static, so a table
+// without these filters pays one AND per Flags2-carrying filter evaluation
+
+// ctrlRoleF2 reports whether a permanent controlled by ctrl passes the
+// controller-role bits of f.
+//
+//   - F2TgtPlayerCtrl (gorge matchTargetedPlayerCtrl, CR 115.10): ctrl is a
+//     player target of the current stack entry (the resolving one, else the
+//     one being built). No entry, or no player target, is false: gorge
+//     leaves the referent unbound rather than guessed.
+//   - F2DefendingCtrl (gorge controlReferentPlayers TriggeredDefendingPlayer,
+//     the Attacks trigger's DefendingPlayer, CR 508.5): two-player, only the
+//     active player attacks (CR 506.2) and its attackers attack the other
+//     seat or a permanent that seat controls or protects, so the defending
+//     player is the non-active one. kgen lowers it only in an Attacks
+//     trigger's body.
+func (s *State) ctrlRoleF2(f kop.FilterFlags2, ctrl uint8) bool {
+	if f&kop.F2DefendingCtrl != 0 && ctrl == s.active {
+		return false
+	}
+	if f&kop.F2TgtPlayerCtrl != 0 {
+		if DebugTgtPlayerCtrlAny {
+			return true // the test-only mutation
+		}
+		e := s.curEntry()
+		if e == nil {
+			return false
+		}
+		for i := 0; i < int(e.nt); i++ {
+			if e.tgt[i] == PlayerTarget0+ctrl {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
+// costTargetMatch reports whether target code t matches the Filter2 f of a
+// target-gated cost reduction (gorge costTargetsMatch, CR 601.2f): a
+// battlefield permanent, or for a stack-zone f (a Spell head, Out of Air's
+// Spell.Creature) a spell on the stack, read like a TgtSpell target
+// (legal.go targetOK). Every Filter2 reader (costTargetOK's build and probe
+// branches, affordableTargets) goes through it.
+func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t uint8) bool {
+	if t >= PlayerTarget0 {
+		return false
+	}
+	ob := &s.objs[t]
+	if k.t.Filters[f].Zone == kop.ZoneStack {
+		return ob.zone == kop.ZoneStack && s.matchCardAt(k, f, ob.card, s.stackCtrl(Obj(t)), p, Obj(t))
+	}
+	return ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, p, NoSlot, layerFull)
+}

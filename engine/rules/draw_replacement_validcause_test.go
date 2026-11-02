@@ -96,7 +96,7 @@ func TestUnpredictableCycloneNonCyclingAbilityDrawIsNotReplaced(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	drawer := card(t, "Name:Drawer\nManaCost:1\nTypes:Artifact\n"+
-		"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n")
+		"A:AB$ Draw | Cost$ T | NumCards$ 1\nOracle:x\n")
 	e := handEngine(t, drawer)
 	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Unpredictable Cyclone"))
 	id := e.G.Zone(state.ZHand, 0)[0]

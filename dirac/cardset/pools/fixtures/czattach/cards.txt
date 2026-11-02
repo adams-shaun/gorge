@@ -1,0 +1,27 @@
+# ChangeZone OriginAlternative$ (Delivery Moogle, Last
+# Light of Durin's Day) and AttachedTo$ (Eagle's Rescue, Magnetic Snuffler) beside
+# artifacts, equipment, dragons and removal (dirac/oracle/czattach_test.go)
+Delivery Moogle
+Last Light of Durin's Day
+Eagle's Rescue
+Magnetic Snuffler
+Healer's Hawk
+Ornithopter
+Dragon Hatchling
+Shivan Dragon
+Bonesplitter
+Short Sword
+Bone Saw
+Mind Stone
+Pyrite Spellbomb
+Sol Ring
+Tormenting Voice
+Wayfarer's Bauble
+Evolving Wilds
+Lightning Bolt
+Shatter
+Disenchant
+Grizzly Bears
+Mountain
+Plains
+Pirate's Pillage

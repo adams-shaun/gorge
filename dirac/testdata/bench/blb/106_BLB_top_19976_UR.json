@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_19976_UR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck ef9f71963ded434c891ba25b006e1b88:0, player win-rate bucket 0.72 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Harnesser of Storms, 1 Hired Claw, 1 Thundertrap Trainer -> 2 Island, 1 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 2
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lightshell Duo",
+"count": 3
+},
+{
+"name": "Mindwhisker",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 9
+},
+{
+"name": "Pearl of Wisdom",
+"count": 4
+},
+{
+"name": "Quaketusk Boar",
+"count": 1
+},
+{
+"name": "Raccoon Rallier",
+"count": 3
+},
+{
+"name": "Take Out the Trash",
+"count": 1
+},
+{
+"name": "Tempest Angler",
+"count": 1
+}
+]
+}

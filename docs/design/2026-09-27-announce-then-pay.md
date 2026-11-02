@@ -184,7 +184,7 @@ planned route do.
 At ask time the planner is run over the pending cast's remaining cost
 (`planPaymentCost` with `castPaymentMana(pc)` and the live pool); the option
 appears only when it returns a plan with at least one activation and the pool
-carries nothing the planner cannot model (`paymentPlanPoolOK`). The answer
+carries nothing the planner cannot model (`pay.PlanPool`). The answer
 re-plans at the identical state (the planner is deterministic and pure, so
 replay re-derives the same plan), installs it as the cast's payment witness
 and hands it to the existing executor (`manaWindowAsk`'s planned branch):

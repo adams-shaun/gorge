@@ -1,6 +1,10 @@
 package state
 
-import "github.com/adams-shaun/gorge/engine/cards"
+import (
+	"strconv"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
 
 type Player struct {
 	ID          PlayerID
@@ -17,6 +21,10 @@ type Player struct {
 	// CoinFlipsThisTurn counts canonical flip-result Notes. Folded by
 	// events.Apply and cleared at TurnChange; clone copies this scalar.
 	CoinFlipsThisTurn int32
+	// DilemmasFacedThisTurn counts the times this player chose one or more modes
+	// for a spell or ability this turn, however many modes each time. Folded by
+	// events.Apply from ModeChosen's dilemma Counter and cleared at TurnChange.
+	DilemmasFacedThisTurn int32
 	// SpellsCastThisTurn, LifeGainedThisTurn, LifeLostThisTurn and
 	// TokensCreatedThisTurn are the per-seat turn watchers: spells put on
 	// the stack, life gained, life lost (damage to the player included,
@@ -243,6 +251,7 @@ type ExtraPhase struct {
 	// turn (MinTurn = the current turn), gated by ValidPlayer when present.
 	HasDelayedPhase bool
 	DelayedPhase    Step
+	DelayedStatic   bool
 	ValidPlayer     string
 	Execute         string
 	Source          ObjID
@@ -570,7 +579,9 @@ type ZoneEntry struct {
 	// battlefield (CR 603.10a last known information), folded by
 	// events.Apply from events.DepartureCreatureFlip. An animated land that
 	// dies was a creature; a creature an effect made a non-creature was not.
-	// False for every other entry.
+	// For a battlefield entry, whether its face was a creature's as it entered:
+	// a land animated later that turn did not enter as a creature. False for
+	// every other entry.
 	WasCreature bool
 }
 
@@ -801,6 +812,26 @@ func NewGameInto(names []string, life int32, capacity int, spare []Object) *Game
 		g.Players = append(g.Players, Player{ID: PlayerID(i), Name: n, Life: life})
 	}
 	return g
+}
+
+// SeatFacingName is the seat's identity in client-facing prompt and option-label
+// text. PlayerName is supplied by the table and identifies a human even when two
+// players chose the same deck; Name is the deterministic fallback for bots or
+// callers without display names. Prompts and option labels are not chain content
+// (rules' ask emits only DecisionAsk{Kind}), so composing them from PlayerName
+// moves no chain head, but event text must stay on Name
+// (engine/rules/playername_test.go). The final fallback is defensive: malformed
+// state must not panic while constructing a client decision.
+func (g *Game) SeatFacingName(p PlayerID) string {
+	if g != nil && int(p) >= 0 && int(p) < len(g.Players) {
+		if name := g.Players[p].PlayerName; name != "" {
+			return name
+		}
+		if name := g.Players[p].Name; name != "" {
+			return name
+		}
+	}
+	return "seat " + strconv.Itoa(int(p))
 }
 
 func (g *Game) zoneIndex(z Zone, p PlayerID) int { return int(p)*numZones + int(z) }

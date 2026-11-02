@@ -1,0 +1,22 @@
+# the private-look pool: gorge's one-option look_ack before
+# a hand look (Gitaxian Probe, Peek, Telepathic Spies, Wu Scout, Glasses of
+# Urza) and a bare library look (Mishra's Bauble, Orcish Spy, Wand of
+# Denial), beside Mind Rot to empty hands (dirac/oracle/look_test.go)
+Gitaxian Probe
+Mishra's Bauble
+Peek
+Telepathic Spies
+Wu Scout
+Orcish Spy
+Glasses of Urza
+Wand of Denial
+Clairvoyance
+Mind Rot
+Grizzly Bears
+Hill Giant
+Wind Drake
+Shock
+Island
+Swamp
+Mountain
+Forest

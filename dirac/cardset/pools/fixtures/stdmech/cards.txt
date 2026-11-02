@@ -1,0 +1,18 @@
+# the MageZero Standard mechanisms pool: Burnout
+# Bashtronaut and kin's max-speed granted static (dirac/oracle/stdmech_test.go)
+Burnout Bashtronaut
+Gastal Thrillseeker
+Gastal Raider
+Walking Sarcophagus
+Lightning Bolt
+Shock
+Mountain
+Swamp
+Wall of Stone
+Wall of Wood
+Wall of Swords
+Serra Angel
+Grizzly Bears
+Giant Growth
+Forest
+Plains

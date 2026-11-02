@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_31026_RG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 0b5adf7393a841f4a5cca61ea1b7580e:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ashroot Animist",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 2
+},
+{
+"name": "Chandra, Flameshaper",
+"count": 1
+},
+{
+"name": "Dwynen, Gilt-Leaf Daen",
+"count": 2
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Elvish Archdruid",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 2
+},
+{
+"name": "Mossborn Hydra",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Overrun",
+"count": 1
+},
+{
+"name": "Ruby, Daring Tracker",
+"count": 1
+},
+{
+"name": "Strongbox Raider",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 2
+}
+]
+}

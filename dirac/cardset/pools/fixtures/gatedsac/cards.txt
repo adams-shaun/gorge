@@ -1,0 +1,6 @@
+# a gated land beside a sacrifice cost, for the oracle's constructed lockstep
+# (dirac/oracle/gatedmana_test.go)
+Forest
+Mountain
+Ripchain Razorkin
+Thornspire Verge

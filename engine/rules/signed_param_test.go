@@ -41,7 +41,7 @@ func resolveAttackPump(t *testing.T, e *Engine, src state.ObjID, others ...state
 // TestGoblinPiledriverPumpsForEachOtherAttackingGoblin pins the user-reported
 // defect end to end with the REAL corpus card: Goblin Piledriver's trigger
 // (`SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +X`,
-// `SVar:X:Count$Valid Goblin.attacking+Other`) resolved as +0/+0
+// `X = Count$Valid Goblin.attacking+Other`) resolved as +0/+0
 // because Num saw the signed non-literal "+X", failed Atoi, missed the SVar
 // table under the sign-prefixed key and degraded to zero. With the sign
 // stripped the pump is +2/+0 per other attacking Goblin.
@@ -85,8 +85,8 @@ ManaCost:2 B
 Types:Creature Spirit
 PT:2/2
 T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigShrink | TriggerDescription$ x
-SVar:TrigShrink:DB$ Pump | Defined$ Self | NumAtt$ -X
-SVar:X:Count$Valid Goblin.attacking+Other
+SVar:TrigShrink:DB$ Pump | Defined$ Self | NumAtt$ -Goblins
+SVar:Goblins:Count$Valid Goblin.attacking+Other
 Oracle:x
 `
 	e := layerEngine(t)

@@ -234,7 +234,7 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams) {
 			Prompt: "Vote for a player"}
 		for j, p := range opts {
 			d.Options = append(d.Options, decision.Option{Index: j, Kind: "player", Player: p,
-				Label: votePlayerLabel(g, p)})
+				Label: g.SeatFacingName(p)})
 		}
 		if ans, ok := AskTape(h, d); ok {
 			// The answered pick.

@@ -280,7 +280,7 @@ func auraEntryChoice(e *Engine, ev *events.Event) (etbChoice, bool) {
 	for _, c := range cands {
 		if c.toPlayer {
 			opts = append(opts, decision.Option{Index: len(opts), Kind: "enchant",
-				Label: e.G.Players[c.player].Name, Player: c.player})
+				Label: seatFacingName(e.G, c.player), Player: c.player})
 			continue
 		}
 		label := ""

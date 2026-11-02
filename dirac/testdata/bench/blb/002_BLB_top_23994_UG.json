@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_23994_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck a20becc713ec4addbf2dbed6431d2344:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dazzling Denial, 1 Hunter's Talent, 1 Longstalk Brawl, 1 Pond Prophet, 1 Scrapshooter, 1 Three Tree Scribe -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 12
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Galewind Moose",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Lilysplash Mentor",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 2
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+}
+]
+}

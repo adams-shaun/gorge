@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_02703_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 0bac07551bcf4accb68265e87ea0de27:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Darkstar Augur, 1 Early Winter, 1 Intrepid Rabbit, 1 Valley Rotcaller -> 2 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 2
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hazel's Nocturne",
+"count": 2
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

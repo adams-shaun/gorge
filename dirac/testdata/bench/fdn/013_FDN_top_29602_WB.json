@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_29602_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck c6d3ac45ce104d01b97a8c21c5c26d62:0, player win-rate bucket 0.70 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arahbo, the First Fang",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Day of Judgment",
+"count": 1
+},
+{
+"name": "Divine Resilience",
+"count": 1
+},
+{
+"name": "Exsanguinate",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 2
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Herald of Eternal Dawn",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Sanguine Syphoner",
+"count": 1
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Zombify",
+"count": 1
+}
+]
+}

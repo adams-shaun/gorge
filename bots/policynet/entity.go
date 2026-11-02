@@ -446,7 +446,7 @@ func entityCard(raw []float32, rows []Feature, cv *view.CardView, zone int, seat
 		if blocking {
 			set(entBlocking, 1)
 		}
-		if len(cv.BlockedBy) > 0 {
+		if cv.Blocked {
 			set(entBlocked, 1)
 		}
 		if len(cv.Counters) > 0 {

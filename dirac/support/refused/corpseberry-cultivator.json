@@ -1,0 +1,13 @@
+{
+  "card": "Corpseberry Cultivator",
+  "class": "options",
+  "why": "the engines offer different options; 6 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 993,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

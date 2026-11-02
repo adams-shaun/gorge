@@ -1,0 +1,38 @@
+# the mandatory-ChooseCard default-params pool:
+# Riverwheel Sweep, Heroes' Hangout and Mishra's Research Desk, whose
+# mandatory exile-zone Card.IsRemembered pick reads Amount$ 1, Defined$
+# You and ChoiceTitle$, beside vanilla bodies, a Cave land and basics
+# (dirac/oracle/choosecardparams_test.go)
+# The mandatory ChooseCard default-params pool: the
+# Standard carriers whose mandatory ChooseCard the default-valued Amount$ 1,
+# Defined$ You and ChoiceTitle$ lift (Riverwheel Sweep, Heroes' Hangout,
+# Mishra's Research Desk share the exile-zone Card.IsRemembered pick), plus
+# Lord of the Void (the same pick on a combat-damage trigger) and Crackling
+# Doom (a mandatory ChoiceTitle pick on the RepeatEach path), beside vanilla
+# bodies, a Cave land that lowers and basics, for the oracle's constructed
+# lockstep (dirac/oracle/choosecardparams_test.go).
+#
+# Summoner's Grimoire, Cosmium Confluence and End-Blaze Epiphany are NOT here:
+# their ChooseCard params are read now, but each card still has an unrelated
+# second blocker (a hand->battlefield move, a Cave filter/charm rider, an
+# Effect static Duration$ inside a DelayedTrigger).
+#
+# Riverwheel Sweep never appears as a cast option in the lockstep even with
+# mana and a legal target: gorge's cast planner does not offer it.
+# It stays here because its lowering is
+# the change under test.
+Riverwheel Sweep
+Heroes' Hangout
+Mishra's Research Desk
+Crackling Doom
+Lord of the Void
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Llanowar Elves
+Captivating Cave
+Island
+Mountain
+Plains
+Forest
+Swamp

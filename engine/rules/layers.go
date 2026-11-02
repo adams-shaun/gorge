@@ -272,6 +272,8 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 							Controller: o.Controller,
 							Affects:    affects,
 							SVars:      faceSVars,
+							PermanentsOnly: !affectsSelfBound(affects) && !st.HasParam(cards.PKCharacteristicDefining) &&
+								(!st.HasParam(cards.PKAffectedZone) || st.ParamStr(cards.PKAffectedZone) == "Battlefield"),
 						}
 						if st.HasParam(cards.PKAddPower) || st.HasParam(cards.PKAddToughness) {
 							pt := base

@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Beastbond Outcaster
+1	card	Blacksnag Buzzard
+2	card	Brimstone Roundup
+3	card	Cunning Coyote
+4	card	Demonic Ruckus
+5	card	Djinn of Fool's Fall
+6	card	Forest
+7	card	Irascible Wolverine
+8	card	Island
+9	card	Loan Shark
+10	card	Mountain
+11	card	Pillage the Bog
+12	card	Pitiless Carnage
+13	card	Plains
+14	card	Plan the Heist
+15	card	Railway Brawler
+16	card	Rictus Robber
+17	card	Rise of the Varmints
+18	card	Sheriff of Safe Passage
+19	card	Slickshot Lockpicker
+20	card	Slickshot Show-Off
+21	card	Spinewoods Paladin
+22	card	Stagecoach Security
+23	card	Stingerback Terror
+24	card	Swamp
+25	card	Tormod's Crypt
+26	card	Unscrupulous Contractor
+27	token	g_2_1_varmint
+28	token	r_1_1_mercenary_tappump
+29	token	ub_2_2_zombie_rogue

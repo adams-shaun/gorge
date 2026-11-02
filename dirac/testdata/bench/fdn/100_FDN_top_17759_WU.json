@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_17759_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 4885ce7098e04a4b8464c68ffe55f54f:1, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 2
+},
+{
+"name": "Celestial Armor",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 2
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Herald of Eternal Dawn",
+"count": 1
+},
+{
+"name": "Imprisoned in the Moon",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 2
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Kykar, Zephyr Awakener",
+"count": 1
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Resolute Reinforcements",
+"count": 1
+},
+{
+"name": "Savannah Lions",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+}
+]
+}

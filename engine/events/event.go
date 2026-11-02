@@ -1380,12 +1380,15 @@ type ExtraPhaseRiders struct {
 	HasRangeEnd     bool
 	RangeEnd        state.Step
 	ValidPlayer     string
+	// DelayedStatic is the forwarded trigger's Static$ True.
+	DelayedStatic bool
 }
 
 const (
-	extraPhaseDelayKey = "DELAY="
-	extraPhaseRangeKey = "RANGEEND="
-	extraPhaseVPKey    = "VP="
+	extraPhaseStaticKey = "STATIC"
+	extraPhaseDelayKey  = "DELAY="
+	extraPhaseRangeKey  = "RANGEEND="
+	extraPhaseVPKey     = "VP="
 )
 
 // EncodeExtraPhaseRiders writes the rider payload as the canonical Text
@@ -1402,6 +1405,9 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 	if r.ValidPlayer != "" {
 		parts = append(parts, extraPhaseVPKey+r.ValidPlayer)
 	}
+	if r.DelayedStatic {
+		parts = append(parts, extraPhaseStaticKey)
+	}
 	return strings.Join(parts, "|")
 }
 
@@ -1410,6 +1416,10 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
 	var r ExtraPhaseRiders
 	for part := range strings.SplitSeq(text, "|") {
+		if part == extraPhaseStaticKey {
+			r.DelayedStatic = true
+			continue
+		}
 		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
 				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
@@ -2103,7 +2113,19 @@ var flagNames = [...]struct {
 	// The AddsKeywords$ mana-spend rider (Carnelian Orb of Dragonkind).
 	// Appended at the end per the table's own ordering rule.
 	{"addskeywords", state.FlagAddsKeywords},
+	// Beam me up's cast: the flag exiles the spell as it leaves the stack.
+	{"beamedup", state.FlagBeamedUp},
 }
+
+// A ModeChosen's Counter says whether the choice was a dilemma: a player faces
+// one as they choose one or more modes of a Charm, a modal spell or ability. The
+// reversed form undoes a cast's dilemma with its proposal (CR 733.1). Only a game
+// with a card that reads dilemmas marks them.
+const (
+	DilemmaFaced         = "dilemma"
+	DilemmaFacedAtRandom = "dilemma_random"
+	DilemmaReversed      = "dilemma_reversed"
+)
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags word. Unrecognized names are silently ignored, the same

@@ -238,11 +238,12 @@ func TestPaymentPlanOnePassMatchesReferenceOnFixtureBoards(t *testing.T) {
 			e.G.Players[0].Pool[state.ManaIndex('U')] = 1
 			e.G.Players[0].Pool[state.ManaIndex('R')] = 1
 		}, 2},
-		{"typed floating mana declines every plan", 0, func(t *testing.T, e *Engine) {
+		{"floating snow mana keeps the plans", 0, func(t *testing.T, e *Engine) {
 			lands(e, 0, t, opIsland, opMountain)
 			hand(e, 0, t, opDraw, opBolt)
+			e.G.Players[0].Pool[state.ManaIndex('R')] = 1
 			e.G.Players[0].Snow[state.ManaIndex('R')] = 1
-		}, 0},
+		}, 2},
 		{"cost reducer and a cast prohibition", 0, func(t *testing.T, e *Engine) {
 			lands(e, 0, t, opIsland, opMountain, opForest)
 			lands(e, 0, t, opReducer, opLock)
@@ -426,15 +427,5 @@ func TestPaymentPlanOnePassWalkCount(t *testing.T) {
 	}
 	if got > 1 {
 		t.Fatalf("building offers opened %d legal-action walks, want at most 1", got)
-	}
-	// A floating typed unit declines every plan before any walk runs.
-	e.G.Players[0].Snow[state.ManaIndex('R')] = 1
-	onePassReask(e, 0)
-	walks = e.legalActionWalks
-	if n := len(e.EnsurePaymentActions()); n != 0 {
-		t.Fatalf("offers with floating snow mana = %d, want 0", n)
-	}
-	if got := e.legalActionWalks - walks; got != 0 {
-		t.Fatalf("a declined pool still opened %d walks", got)
 	}
 }

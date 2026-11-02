@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_05799_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 057f56fd2d0c477fa6cf22f8ad3ebb44:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Angel of Finality",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Crystal Barricade",
+"count": 1
+},
+{
+"name": "Day of Judgment",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 2
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Kiora, the Rising Tide",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 2
+},
+{
+"name": "Mischievous Pup",
+"count": 1
+},
+{
+"name": "Mocking Sprite",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+}
+]
+}

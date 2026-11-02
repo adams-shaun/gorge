@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_00001_WRpBG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 16dbb2a352ea4ea09c17eec828ec0b73:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Byway Barterer, 1 Head of the Homestead, 1 Manifold Mouse, 1 Rabbit Response, 1 Three Tree Mascot -> 3 Plains, 2 Mountain",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Baylen, the Haymaker",
+"count": 1
+},
+{
+"name": "Brambleguard Captain",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 9
+},
+{
+"name": "Pileated Provisioner",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Take Out the Trash",
+"count": 2
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

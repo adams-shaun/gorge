@@ -444,9 +444,9 @@ func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc 
 	case predicateTermOppOwn:
 		matched = o.Owner != sc.You
 	case predicateTermSelf:
-		matched = o.ID == sc.Source
+		matched = o.ID == sc.Source && !sc.SourceReturned
 	case predicateTermOther:
-		matched = o.ID != sc.Source
+		matched = o.ID != sc.Source || sc.SourceReturned
 	case predicateTermTapped:
 		matched = o.Tapped
 	case predicateTermAttacking:

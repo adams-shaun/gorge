@@ -253,7 +253,7 @@ func TestKasminaGainsSelfDefinedLoyaltyAbility(t *testing.T) {
 // observable non-mana activated ability, "{T}: Draw a card."
 func gainsDefinedTarget() string {
 	return "Name:Gains Draw Target\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:1/1\n" +
-		"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
+		"A:AB$ Draw | Cost$ T | NumCards$ 1\nOracle:x\n"
 }
 
 // gainsDefinedMixedCarrier deliberately combines both activated-half spellings:

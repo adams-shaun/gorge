@@ -1,0 +1,339 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// DebugWord7Flip is TestFilterWordsZoneAndPowerMutation's switch: every PredWord7 answer is negated.
+var DebugWord7Flip bool
+
+// wordPerm is PredWord7 on a battlefield permanent (gorge
+// effects/filter.go hasNoName, greatestPower, attackingAlone and filter_word.go
+// inZone<Zone>).
+//
+//go:noinline
+func (s *State) wordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
+	if fl.PredN&0xff >= kop.W7FaceUp {
+		return s.wordPerm2(k, fl, sl, s.ctxCur().ctrl, NoSlot) // the walk path (matchPermOne passes its own ctrl and src)
+	}
+	ans := false
+	switch fl.PredN & 0xff {
+	case kop.W7NoName:
+		// CR 708.2a face down, or CR 709.5 a Room with no door unlocked
+		c := s.perms[sl].card
+		ans = s.faceDown(k, sl) || (roomDef(k, c) && roomMask(k, c) == 0)
+	case kop.W7GreatestPower:
+		// a battlefield creature no OTHER battlefield creature out-powers; ties match
+		if s.isCreature(k, sl) {
+			ans = true
+			pw := s.power(k, sl)
+			for m := s.occ; m.any(); m = m.rest() {
+				o2 := m.first()
+				if o2 != sl && s.isCreature(k, o2) && s.power(k, o2) > pw {
+					ans = false
+					break
+				}
+			}
+		}
+	case kop.W7AttackingAlone:
+		// attacking, and exactly one battlefield permanent is attacking
+		if s.perms[sl].flags&pfAttacking != 0 {
+			n := 0
+			for m := s.occ; m.any(); m = m.rest() {
+				if s.perms[m.first()].flags&pfAttacking != 0 {
+					n++
+				}
+			}
+			ans = n == 1
+		}
+	case kop.W7InZone:
+		ans = kop.Zone(fl.PredN>>8) == kop.ZoneBattlefield
+	}
+	return ans != DebugWord7Flip
+}
+
+// wordCard is PredWord7 on a card off the battlefield (o may be NoObj).
+//
+//go:noinline
+func (s *State) wordCard(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
+	if fl.PredN&0xff >= kop.W7FaceUp {
+		return s.wordCard2(k, fl, c, o, fd, ctrl) // filter_props.go
+	}
+	ans := false
+	switch fl.PredN & 0xff {
+	case kop.W7NoName:
+		ans = fd // CR 708.2a: a face-down spell; no other nameless card off the battlefield
+	case kop.W7InZone:
+		ans = o != NoObj && s.objs[o].zone == kop.Zone(fl.PredN>>8)
+	}
+	return ans != DebugWord7Flip
+}
+
+// PredWord7 sub-kinds 5-10 (kop.W7FaceUp ...), cold. The
+// battlefield matcher reaches wordPerm2 from matchPermOne (it has ctrl and
+// src) behind prep.w8; wordPerm and wordCard delegate here for the walk
+// and card paths.
+
+// tableWord8 reports whether some filter is a PredWord7 sub-kind >= W7FaceUp.
+func tableWord8(t *kop.Table) bool {
+	for i := range t.Filters {
+		if f := &t.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff >= kop.W7FaceUp {
+			return true
+		}
+	}
+	return false
+}
+
+// wordPerm2 is the sub-kinds on a battlefield permanent; ctrl is the
+// evaluating controller (gorge sc.You), src the source slot (NoSlot for a spell).
+//
+//go:noinline
+func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot) bool {
+	if fl.PredN&0xff >= kop.W7WithWarp {
+		return s.wordPerm3(k, fl, sl, src) // filter_props.go
+	}
+	ans := false
+	switch fl.PredN & 0xff {
+	case kop.W7FaceUp:
+		// CR 708.2: the negation of face down (gorge wordFaceUp)
+		ans = !s.faceDown(k, sl) || s.blankCopy(sl)
+	case kop.W7NotChosenType:
+		// gorge IsNotChosenType: fails closed when nothing was chosen
+		if ch, ok := s.chosenTypeSub(src); ok {
+			ans = !s.hasSubGen(k, sl, ch) && !(ch == subOutside && s.outsideChosenHas(k, sl, src))
+		}
+	case kop.W7AttackingOpp:
+		// attacking a PLAYER who is an opponent of ctrl; a planeswalker defender matches nothing
+		ans = s.perms[sl].flags&pfAttacking != 0 && s.perms[sl].atk == PlayerTarget0+(1-ctrl)
+	case kop.W7EnchantedByYours:
+		// some Aura attached to the candidate is controlled by ctrl (CR 303.4)
+		for m := s.occ; m.any(); m = m.rest() {
+			q := m.first()
+			if s.perms[q].attached == sl && s.perms[q].ctrl == ctrl && s.typesGen(k, q)&kop.TAura != 0 {
+				ans = true
+				break
+			}
+		}
+	case kop.W7NoNameTwin:
+		// no OTHER permanent its controller controls shares its name (CR 201.2)
+		ans = true
+		if nm := s.nameCardAt(sl); nm != NoCard {
+			for m := s.occ; m.any(); m = m.rest() {
+				q := m.first()
+				if q != sl && s.perms[q].ctrl == s.perms[sl].ctrl && s.nameCardAt(q) == nm {
+					ans = false
+					break
+				}
+			}
+		}
+	case kop.W7SharesNameLegend:
+		// some OTHER legendary battlefield permanent shares its name
+		if nm := s.nameCardAt(sl); nm != NoCard {
+			for m := s.occ; m.any(); m = m.rest() {
+				q := m.first()
+				if q != sl && s.nameCardAt(q) == nm && s.typesGen(k, q)&kop.TLegendary != 0 {
+					ans = true
+					break
+				}
+			}
+		}
+	}
+	return ans != DebugWord7Flip
+}
+
+// wordCard2 is the sub-kinds on a card off the battlefield (o may be NoObj);
+// c is the card, ctrl the evaluating controller.
+//
+//go:noinline
+func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
+	if fl.PredN&0xff >= kop.W7WithWarp {
+		return s.wordCard3(k, fl, c) // filter_props.go
+	}
+	ans := false
+	switch fl.PredN & 0xff {
+	case kop.W7FaceUp:
+		ans = !fd // gorge wordFaceUp reads the object in any zone
+	case kop.W7NotChosenType:
+		if ch, ok := s.chosenTypeSub(NoSlot); ok {
+			cd := &k.t.Cards[c]
+			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+			if ch == subOutside {
+				has = cd.AllCreatureTypes
+			}
+			if s.res.bad&resChosenCard != 0 {
+				has = s.chosenCardTypeHas(cd.Types)
+			}
+			ans = !has
+		}
+	case kop.W7NoNameTwin:
+		ans = true // no permanent ctrl controls shares the card's name
+		if !fd {
+			for m := s.occ; m.any(); m = m.rest() {
+				q := m.first()
+				if s.perms[q].ctrl == ctrl && s.nameCardAt(q) == c {
+					ans = false
+					break
+				}
+			}
+		}
+	case kop.W7SharesNameLegend:
+		if !fd {
+			for m := s.occ; m.any(); m = m.rest() {
+				q := m.first()
+				if s.nameCardAt(q) == c && s.typesGen(k, q)&kop.TLegendary != 0 {
+					ans = true
+					break
+				}
+			}
+		}
+	}
+	// W7AttackingOpp, W7EnchantedByYours: nothing off the battlefield attacks or wears an Aura
+	return ans != DebugWord7Flip
+}
+
+// PredWord7 sub-kinds 11-13 (kop.W7WithWarp,
+// kop.W7GreatestPowerTgt, kop.W7CrewedBySrc), the Mayhem code of PredWasCastSpell and the
+// ManaSpent-EQ0 bit of PredWasCastEnter, cold. wordPerm2 and wordCard2
+// delegate every sub-kind >= 11 here. No State byte: the crew record reuses
+// the source-mark slots (filter_combatwords.go).
+
+// DebugWord9Flip is TestFilterWordsCrewedAndCastMutation's switch: the PredWord7 answers of
+// sub-kinds 11-13, the Mayhem read of wasCastSpell and the ManaSpent-EQ0 read
+// of wasCastRead are negated.
+var DebugWord9Flip bool
+
+// wasCastSpentZero is PredWasCastEnter's PredN bit for CastSa
+// Spell.ManaSpent EQ0 (kgen wasCastSpentZero).
+const wasCastSpentZero = 8
+
+// wordPerm3 is the sub-kinds on a battlefield permanent; src is the source
+// slot (NoSlot for a spell or a walk).
+//
+//go:noinline
+func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
+	ans := false
+	switch fl.PredN & 0xff {
+	case kop.W7WithWarp:
+		// gorge withWarp on a battlefield object reads the derived keyword
+		// list: printed Warp, none while face down (CR 708.2) or after a
+		// lose-all-abilities effect (the kw gate, chars.go)
+		c := s.cardAt(sl)
+		ans = c != kop.NoCard && k.t.Cards[c].HasWarp && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	case kop.W7GreatestPowerTgt:
+		// gorge greatestPowerControlledByTargeted: a battlefield creature a
+		// player target of the current entry controls that no OTHER such
+		// creature out-powers; ties match; no player target matches nothing
+		if s.isCreature(k, sl) && s.ctrlRoleF2(kop.F2TgtPlayerCtrl, s.perms[sl].ctrl) {
+			ans = true
+			pw := s.power(k, sl)
+			for m := s.occ; m.any(); m = m.rest() {
+				o2 := m.first()
+				if o2 != sl && s.isCreature(k, o2) && s.ctrlRoleF2(kop.F2TgtPlayerCtrl, s.perms[o2].ctrl) && s.power(k, o2) > pw {
+					ans = false
+					break
+				}
+			}
+		}
+	case kop.W7CrewedBySrc:
+		// the source crewed this Vehicle this turn (gorge CrewedBySourceThisTurn);
+		// no source fails closed
+		ans = src != NoSlot && s.srcMarked(smCrewed, s.perms[sl].obj, src)
+	}
+	return ans != DebugWord9Flip
+}
+
+// wordCard3 is the sub-kinds on a card off the battlefield: withWarp reads
+// the printed keyword in any zone, face down or not (gorge objectHasKeyword
+// reads the printed face); the other two read nothing there (gorge: a
+// battlefield creature, a crewed Vehicle).
+//
+//go:noinline
+func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID) bool {
+	ans := false
+	if fl.PredN&0xff == kop.W7WithWarp {
+		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
+	}
+	return ans != DebugWord9Flip
+}
+
+// exileCardCands appends the exiled cards spec t accepts to out[:n], player
+// 0's exile list then player 1's, each in list order (gorge target_legal.go
+// walks the inferred zone per seat in zone order; CR 406.1). Cold: only a
+// TgtCard slot whose filter zone is exile reaches it.
+//
+//go:noinline
+func (s *State) exileCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]uint8, n int) int {
+	for pp := 0; pp < 2; pp++ {
+		pl := &s.pl[pp]
+		for i := 0; i < int(pl.exileN); i++ {
+			o := pl.exile[i]
+			if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
+				out[n] = uint8(o)
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// prepWord9 sets the prep of this code's reads: the cards whose abilities'
+// filters read W7CrewedBySrc record the crews they pay (genPrep.crewerRec),
+// and a PredWasCastEnter with the ManaSpent-EQ0 bit keeps each spell's
+// recorded spend (anySpent, anyHist: spentOfSpell).
+func prepWord9(t *kop.Table, g *genPrep) {
+	for i := range t.Filters {
+		if f := &t.Filters[i]; f.Pred == kop.PredWasCastEnter && f.PredN&wasCastSpentZero != 0 {
+			g.anySpent, g.anyHist = true, true
+			break
+		}
+	}
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		for j := range c.Abilities {
+			a := &c.Abilities[j]
+			reads := chainWord7(t, a.Trig.Filter, kop.W7CrewedBySrc) || chainWord7(t, a.Trig.Filter2, kop.W7CrewedBySrc)
+			for _, ts := range a.Targets {
+				reads = reads || chainWord7(t, ts.Filter, kop.W7CrewedBySrc)
+			}
+			for _, in := range a.Prog {
+				reads = reads || chainWord7(t, in.F, kop.W7CrewedBySrc)
+			}
+			if reads {
+				if g.crewerRec == nil {
+					g.crewerRec = make([]bool, len(t.Cards))
+				}
+				g.crewerRec[i] = true
+				g.anySrcMark = true
+				if g.crewBy == nil {
+					// the crew pick's one guard (cast.go: crewBy != nil) now
+					// also opens for a crewer-side reader; no vehicle is
+					// flagged by it (noteCrew reads crewBy[card])
+					g.crewBy = make([]bool, len(t.Cards))
+				}
+			}
+		}
+	}
+}
+
+// chainWord7 reports whether filter f's Or chain holds the PredWord7
+// sub-kind n.
+func chainWord7(t *kop.Table, f kop.FilterID, n int16) bool {
+	for i := 0; f != 0 && int(f) < len(t.Filters) && i < len(t.Filters); i++ {
+		if fl := &t.Filters[f]; fl.Pred == kop.PredWord7 && fl.PredN&0xff == n {
+			return true
+		}
+		f = t.Filters[f].Or
+	}
+	return false
+}
+
+// crewerRecorded reports whether the creature at crewer is a card whose
+// ability reads W7CrewedBySrc (so the crews it pays are recorded).
+func (s *State) crewerRecorded(k *prep, crewer Slot) bool {
+	if k.gen == nil || k.gen.crewerRec == nil || crewer == NoSlot || !s.occ.has(crewer) {
+		return false
+	}
+	c := s.cardAt(crewer)
+	return int(c) < len(k.gen.crewerRec) && k.gen.crewerRec[c]
+}

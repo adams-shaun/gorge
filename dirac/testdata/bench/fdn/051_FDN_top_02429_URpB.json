@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_02429_URpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 7761649ac7d54cc097d4b8a21c1e630c:4, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Balmor, Battlemage Captain",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Bloodfell Caves",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 2
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Flamewake Phoenix",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 3
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+}
+]
+}

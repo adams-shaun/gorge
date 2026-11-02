@@ -1,0 +1,15 @@
+# the pool: Make Your Own Luck (Dig with a
+# ChangeValidDesc caption) and Way of the Pyromancer (a granted "[+1]:
+# Add {R}" carrying the AINoRecursiveCheck AI hint) beside a planeswalker,
+# vanilla creatures, burn and basics (dirac/oracle/cosmetic_test.go)
+Ajani, Caller of the Pride
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Make Your Own Luck
+Mountain
+Plains
+Shock
+Swamp
+Way of the Pyromancer

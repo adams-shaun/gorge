@@ -1393,7 +1393,7 @@ func (e *Engine) noteBatchDeparture(ev events.Event) {
 		ev.From != state.ZBattlefield || ev.To == state.ZBattlefield {
 		return
 	}
-	if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+	if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && !e.printedAbilitiesGone(o) {
 		e.batchReplSources = append(e.batchReplSources, ev.Obj)
 	}
 }
@@ -1407,8 +1407,20 @@ func (e *Engine) noteBatchDeparture(ev events.Event) {
 // applied to its copy. The entering mint is a real permanent-to-be: it is
 // matched by value with the ceased-copy marker cleared. Every other move
 // keeps the ordinary matcher.
+//
+// A bare Permanent base reads an object on the battlefield, which an entering card
+// isn't yet: "permanents enter tapped" reads it as the permanent it is about to be
+// (CR 110.1, 614.12), from its printed types, or as any card when it enters face down.
 func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.SpecContext) bool {
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		if ev.From != state.ZBattlefield {
+			if card := targetSpecForZone(spec, state.ZLibrary); card != spec {
+				spec = card
+				if sc.AsFaceDown {
+					spec = card[len("Permanent"):]
+				}
+			}
+		}
 		if o := e.G.Obj(ev.Obj); o != nil && o.IsCopy && o.IsToken &&
 			o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 			entering := *o

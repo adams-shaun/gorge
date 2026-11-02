@@ -13,14 +13,8 @@ import (
 // predicates ("Whenever one or more OTHER Elves YOU CONTROL enter") and
 // whose payoff is a TOKEN, not a draw or a counter.
 //
-// The card's real trigger line (verified live from the corpus, not
-// committed here -- Forge scripts are GPL-3.0):
-//
-//	T:Mode$ ChangesZoneAll | ValidCards$ Elf.Other+YouCtrl |
-//	    Destination$ Battlefield | TriggerZones$ Battlefield |
-//	    ActivationLimit$ 1 | Execute$ TrigToken
-//	SVar:TrigToken:DB$ Token | TokenScript$ g_1_1_elf_warrior |
-//	    TokenOwner$ You
+// The card's trigger is a ChangesZoneAll on other Elves you control entering the
+// battlefield, latched by ActivationLimit$ 1, whose body makes one 1/1 Elf Warrior.
 //
 // What is pinned: the once-per-turn LATCH plus the card's filter/payoff. Two
 // Elves entering (before/inside a zone bracket, see below) create exactly ONE

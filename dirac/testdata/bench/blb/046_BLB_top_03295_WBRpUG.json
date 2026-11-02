@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_03295_WBRpUG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 64710a6b40dd4773b7ac4fe9ffa50a09:1, player win-rate bucket 0.68 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Head of the Homestead, 1 Intrepid Rabbit, 1 Mouse Trapper, 1 Nettle Guard, 1 Starfall Invocation, 1 Starscape Cleric -> 3 Plains, 2 Swamp, 1 Mountain",
+"cards": [
+{
+"name": "Agate Assault",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Cindering Cutthroat",
+"count": 2
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Frilled Sparkshooter",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 5
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Sinister Monolith",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Take Out the Trash",
+"count": 2
+},
+{
+"name": "Thistledown Players",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

@@ -65,7 +65,8 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # 91402ac51 = 76fd7691a + 53ab12ae9 (wires unreachable SVars: Your Mistake Is My
 # Triumph, Disciple of Perdition, Last Rites) + 91402ac51 (Mandatory$ True on 48
 # ChooseCard lines of 44 cards whose Oracle says "choose"; Card-Forge/forge#12481/#12482).
-FORGE_REF  ?= 91402ac511046c0b7ed0bb691a8a446ca7dfc873
+# 07d4f918d = Card-Forge master 2026-11-02, which holds those fixes and scripts Star Trek (TRK, TRC).
+FORGE_REF  ?= 07d4f918dadea14522c40a7a276ab46fff93b38a
 
 .PHONY: help
 help:
@@ -74,6 +75,9 @@ help:
 	@echo "  make fetch-cards    — fetch Forge cardsfolder + tokenscripts at FORGE_REF into $(CARDS_DIR)"
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
+	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
+	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
+	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
 	@echo "  make enginebench-verify [REV=.]        — memo-verify-mode smoke over the bench rows"
@@ -139,6 +143,31 @@ fetch-cards: $(BIN_DIR)/forgec
 .PHONY: compile-cards
 compile-cards: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec compile -dir $(CARDS_DIR)
+
+.PHONY: dirac-tables
+# Every pool's binary card table under $(CARDS_DIR)/kernel-tables/<key>, and the
+# synthetic evidence pools' under $(CARDS_DIR)/kernel-synth-tables/<key>. Exit 3
+# means kgen wrote an ids.tsv: the binary embeds the old bytes, so it is rebuilt
+# and rerun. Built, not `go run`, because go run exits 1 whatever the program's
+# status was, which would hide the 3.
+dirac-tables:
+	@mkdir -p $(BIN_DIR)
+	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables; rc=$$?; \
+	if [ $$rc -eq 3 ]; then go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
+	$(BIN_DIR)/kgen -synth-pools
+
+.PHONY: dirac-slices
+# dirac against gorge on the committed FDN and BLB slices, both surfaces. A divergence, an
+# unmodelled stall or a hang fails; a capacity stall is counted and reported.
+dirac-slices: dirac-tables
+	go build -trimpath -o $(BIN_DIR)/kfuzz ./dirac/oracle/cmd/kfuzz
+	@for set in fdn blb; do for surface in autopay full; do \
+		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
+	done; done
+
+.PHONY: fresh-clone-check
+fresh-clone-check:
+	bash scripts/fresh-clone-check.sh
 
 .PHONY: report
 report: $(BIN_DIR)/forgec
@@ -267,13 +296,14 @@ lint-web: web/node_modules/.package-lock.json
 	cd web && npm run check && npm run lint
 
 # smoke is the browser smoke gate: it builds the
-# REAL client and the REAL binary, starts THREE gorged servers — one
+# REAL client and the REAL binary, starts its gorged servers — one
 # -spectator public (the mode that was broken when a null hand spread into
 # the board killed every table page, and the one the omniscient-only unit
-# fixtures cannot see), one -spectator omniscient, and one SEATED 1v1
-# play-vs-bot server (-vsbot -humans 1) — on smoke ports in
-# 8090-8099, and drives the headless-browser test at web/e2e against all
-# three. It fails on any pageerror, any console.error, any failed request to
+# fixtures cannot see), one -spectator omniscient, one SEATED 1v1
+# play-vs-bot server (-vsbot -humans 1), two fixtures, and one server per
+# engine offering all three wires — on smoke ports in
+# 8090-8099, and drives the headless-browser test at web/e2e against them.
+# It fails on any pageerror, any console.error, any failed request to
 # the server's own origin, a page still in its loading state after a bounded
 # wait, or a blank page that never mounts. It also asserts the SEATED layout
 # invariants: the seated player's own identity bar does
@@ -284,8 +314,8 @@ lint-web: web/node_modules/.package-lock.json
 #
 # Deliberately NOT part of `make test`. The Go suite must stay runnable with
 # no browser and no live servers; threading smoke into the default tree would
-# make `make test` need Playwright + three gorged on this shared box. CI and
-# the merge gate run it explicitly, exactly like the other opt-in lanes
+# make `make test` need Playwright + these gorged on this shared box. CI runs it
+# as the job browser, exactly like the other opt-in lanes
 # (conformance, gc-gate).
 .PHONY: smoke
 smoke:
@@ -339,7 +369,8 @@ coverage: $(BIN_DIR)/forgec
 #   PR_BASE=<branch>      target branch (default: origin's default branch)
 #   TITLE="..."           PR title (default: the commit subject, or "<head> → <base>: N commits")
 #   SUMMARY="..."         a paragraph placed under the overview table
-#   DRAFT=1               open as a draft      DRY=1   print the title and body only
+#   DRAFT=1               open as a draft      DRY=1   print the oracle step, the title and the body only
+#   SKIP_ORACLE=1         do not play the whole of dirac/oracle before a PR to main
 .PHONY: pr
 pr: export HEAD = $(PR_HEAD)
 pr: export BASE = $(PR_BASE)

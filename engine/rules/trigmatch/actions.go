@@ -153,6 +153,22 @@ func flippedCoinMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// facesDilemmaMatches implements Mode$ FacesDilemma: a player chose one or more
+// modes. ValidPlayer$ names that player and Random$ True narrows it to modes
+// chosen at random, after Forge's TriggerFacesDilemma (read).
+func facesDilemmaMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Counter != events.DilemmaFaced && ev.Counter != events.DilemmaFacedAtRandom {
+		return false
+	}
+	if _, random := t.Params["Random"]; random && ev.Counter != events.DilemmaFacedAtRandom {
+		return false
+	}
+	if v, ok := t.Param(cards.PKValidPlayer); ok {
+		return effects.MatchesPlayerSpecFrom(e.Game(), v, ev.Player, e.ControllerOf(source), source)
+	}
+	return true
+}
+
 // attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
 // Equipment or other attachment becomes attached to a permanent (CR
 // 701.3a's "becomes attached" -- the event the engine's one shared attach
@@ -440,6 +456,11 @@ func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.Ob
 		if le.Kind == events.TurnChange {
 			return true
 		}
+		// An earlier zone change made this a new object (CR 400.7), which no
+		// targeting before it named.
+		if !player && le.Kind == events.MoveZone && le.Obj == id {
+			return true
+		}
 		if le.Kind != events.TargetsChosen || le.Obj == 0 {
 			continue
 		}
@@ -569,11 +590,12 @@ func becomesTargetOnceMatches(e Board, t cards.Trigger, source state.ObjID, ev e
 // predicate is an ability-shape test, not a card filter, so it is answered
 // directly: an activated ability's stack object carries an Ability and is not a
 // stored trigger (the same split counterValidSA makes for R:Event$ Counter).
-// The `Ability` base (Loki, God of Mischief's `Ability.YouCtrl`) is the same
-// ability-shape test -- the ordinary object-filter grammar has no Ability base
-// word, so without the special case the alternative would fall to a card-type
-// test an ability stack object can never satisfy and fail closed; its dotted
-// qualifiers are answered by abilitySourceQualifiersHold. Every other comma
+// The `Ability` base (Loki, God of Mischief's `Ability.YouCtrl`) is wider: any
+// ability on the stack, triggered ones included. The ordinary object-filter
+// grammar has no Ability base word, so without the special case the alternative
+// would fall to a card-type test an ability stack object can never satisfy and
+// fail closed; its dotted qualifiers are answered by abilitySourceQualifiersHold.
+// Every other comma
 // alternative -- SpellAbility.OppCtrl, Spell.OppCtrl, a plain object spec --
 // goes through the ordinary object-filter grammar. An absent targeting object
 // fails closed.
@@ -597,8 +619,7 @@ func becomesTargetSourceMatches(e Board, spec string, stackObj, source state.Obj
 			continue
 		}
 		if quals, isAbility := abilitySourceAlt(alt); isAbility {
-			if o.Ability != nil && !isTriggeredObject(e.Game(), o) &&
-				abilitySourceQualifiersHold(quals, o, you) {
+			if o.Ability != nil && abilitySourceQualifiersHold(quals, o, you) {
 				return true
 			}
 			continue
@@ -896,6 +917,9 @@ func init() {
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return flippedCoinMatches(e, t, source, ev)
 	}, "FlippedCoin")
+	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return facesDilemmaMatches(e, t, source, ev)
+	}, "FacesDilemma")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return attachedMatches(e, t, source, ev)
 	}, "Attached")

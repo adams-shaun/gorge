@@ -1,0 +1,25 @@
+# the lowest-life pool: the ten DSK "enters tapped
+# unless a player has 13 or less life" lands (PlayerCountPlayers$
+# LowestLifeTotal, ExLowestLife), burn to cross the 13 threshold,
+# vanilla creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/lowlife_test.go)
+Abandoned Campground
+Bleeding Woods
+Etched Cornfield
+Lakeside Shack
+Lightning Bolt
+Mountain
+Forest
+Grizzly Bears
+Hill Giant
+Murky Sewer
+Neglected Manor
+Peculiar Lighthouse
+Plains
+Island
+Swamp
+Raging Goblin
+Raucous Carnival
+Razortrap Gorge
+Shock
+Strangled Cemetery

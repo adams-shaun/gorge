@@ -1,0 +1,16 @@
+# the effect-granted plot pool: Kellan Joins Up plots a
+# card from hand, Aloe Alchemist's own trigger included
+# (dirac/oracle/otjplot_test.go)
+Kellan Joins Up
+Aloe Alchemist
+Grizzly Bears
+Llanowar Elves
+Opt
+Forest
+Island
+Plains
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Mountain

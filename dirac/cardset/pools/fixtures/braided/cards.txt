@@ -1,0 +1,14 @@
+# Braided Net // Braided Quipu (Effect CantBeActivated
+# until the target untaps, net counters, LibraryPosition$ 2)
+# (dirac/oracle/braided_test.go)
+Braided Net
+Ornithopter
+Bonesplitter
+Hill Giant
+Shivan Dragon
+Flame Spirit
+Spikeshot Elder
+Prodigal Sorcerer
+Shock
+Island
+Mountain

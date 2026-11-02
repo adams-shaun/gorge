@@ -1,0 +1,19 @@
+# the Effect MayPlay Duration$ AsLongAsControl pool:
+# Lightning, Security Sergeant and Gwen Stacy beside burn that kills the
+# source while a card is still exiled, vanilla bodies and basics, for the
+# oracle's constructed lockstep (dirac/oracle/maywhilesrc_test.go)
+Lightning, Security Sergeant
+Gwen Stacy
+Shock
+Lightning Bolt
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Plains
+Island
+Swamp
+Mountain
+Forest
+Unsummon
+Act of Treason
+Victor Mancha, Runaway

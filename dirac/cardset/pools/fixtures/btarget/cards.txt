@@ -1,0 +1,17 @@
+# the becomes-target watcher pool: Pawpatch Recruit and
+# Surrak against burn, a pinger and a creature counterspell, beside a
+# ward creature (dirac/oracle/btarget_test.go)
+Pawpatch Recruit
+Surrak, Elusive Hunter
+Tomakul Honor Guard
+Giant Growth
+Grizzly Bears
+Shock
+Lightning Bolt
+Essence Scatter
+Prodigal Pyromancer
+Hill Giant
+Wind Drake
+Forest
+Island
+Mountain

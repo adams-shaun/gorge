@@ -15,7 +15,7 @@ import (
 //
 // Daybreak Coronet reads:
 //
-//	K:Enchant:Creature.EnchantedBy Aura.Other:creature with another Aura attached to it
+//	Enchant filter: Creature.EnchantedBy Aura.Other
 //
 // With the whole "EnchantedBy Aura.Other" token failing closed as one
 // unknown predicate (a space is not a spec delimiter, so the token survives

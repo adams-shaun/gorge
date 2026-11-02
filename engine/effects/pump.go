@@ -110,6 +110,10 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		g := definedKWGrant(h, c, p)
 		grant = &g
 	}
+	if _, shared := sa.Params["SharedKeywordsZone"]; shared {
+		g := sharedPumpGrant(h, c, sa, *grant)
+		grant = &g
+	}
 	var ateotIDs []state.ObjID
 	// pumpedTargets collects the objects this Pump actually affected, for the
 	// ReplaceDyingDefined$ rider below (the same []state.Target shape

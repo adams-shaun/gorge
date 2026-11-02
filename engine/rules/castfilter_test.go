@@ -83,7 +83,7 @@ func TestCastTotalManaSpentSnowCountsOnlySnowEndToEnd(t *testing.T) {
 // TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the
 // named carrier against PLAIN mana: Cataclysmic Prospecting creates a tapped
 // Treasure for each mana from a DESERT spent to cast it
-// (SVar:Y:Count$CastTotalManaSpent Desert), and an X=1 cast paid from three
+// (Y = Count$CastTotalManaSpent Desert), and an X=1 cast paid from three
 // PLAIN red units (no Desert units) reads 0 and creates NO Treasures. Before
 // the fix the head returned the UNFILTERED total (3 Treasures for the
 // three-mana cast); the direction -- only the named producer type counts --
@@ -262,7 +262,7 @@ func TestCastTotalManaSpentMixedPoolCaptureSplitsEveryTag(t *testing.T) {
 
 // TestCastTotalManaSpentDesertCataclysmicProspectingCreatesTappedTreasures: the sorcery's
 // DBTreasure creates a TAPPED Treasure for each mana from a Desert spent
-// (SVar:Y:Count$CastTotalManaSpent Desert). X=2 announced over a pool of two
+// (Y = Count$CastTotalManaSpent Desert). X=2 announced over a pool of two
 // Desert-typed colourless units and two plain red: the {R}{R} pips take the
 // plain red units, X's {2} generic takes the typed units, so exactly 2
 // tapped Treasures -- the exact per-tag count, not the total (4).
@@ -317,8 +317,8 @@ func TestCastTotalManaSpentConsumesPlainBeforeTyped(t *testing.T) {
 	t.Parallel()
 	fixture := "Name:Treasure Counter\nManaCost:1 C\nTypes:Creature\n" +
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$x\n" +
-		"SVar:TrigDraw:DB$ Draw | NumCards$ X\n" +
-		"SVar:X:Count$CastTotalManaSpent Treasure\nOracle:x\n"
+		"SVar:TrigDraw:DB$ Draw | NumCards$ Spent\n" +
+		"SVar:Spent:Count$CastTotalManaSpent Treasure\nOracle:x\n"
 	for _, tc := range []struct {
 		name      string
 		counters  []string // the Counter forms emitted, in order

@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -266,7 +267,7 @@ func TestPairedBotSearchesBesideTheGame(t *testing.T) {
 			if err := r.SubmitIntent("t1", 1, 0, landFirstAnswer(d)); err != nil {
 				t.Fatal(err)
 			}
-			if err := <-got; err != nil && !errors.Is(err, errAdviceStale) && !strings.Contains(err.Error(), "no decision pending") {
+			if err := <-got; err != nil && !errors.Is(err, ErrAdviceStale) && !strings.Contains(err.Error(), "no decision pending") {
 				t.Fatalf("auto mana %v, decision %d: %v", autoMana, d.Seq, err)
 			}
 		}
@@ -279,6 +280,7 @@ type stubAdvisor struct {
 	running, peak *atomic.Int64
 	started       chan<- uint64
 	release       <-chan struct{}
+	linger        <-chan struct{} // nil, or what a cancelled search waits for before it ends
 	belief        *searchprobe.Belief
 	note          func(explain.Note)
 }
@@ -304,6 +306,9 @@ func (s *stubAdvisor) DecideEnv(ctx context.Context, _ bots.Env, d decision.Deci
 	s.started <- d.Seq
 	select {
 	case <-ctx.Done():
+		if s.linger != nil {
+			<-s.linger
+		}
 		return decision.Intent{}, ctx.Err()
 	case <-s.release:
 	}
@@ -318,6 +323,7 @@ type stubFixture struct {
 	running, peak atomic.Int64
 	started       chan uint64
 	release       chan struct{}
+	linger        chan struct{}
 }
 
 func newStubFixture(t *testing.T, limit int, ids ...TableID) *stubFixture {
@@ -328,7 +334,7 @@ func newStubFixture(t *testing.T, limit int, ids ...TableID) *stubFixture {
 	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
 	o.PairedBotSearches = limit
 	o.PairedBot = &bots.Entry{Info: bots.Info{Name: "stub"}, New: func(bots.Options) (seat.Seat, error) {
-		return &stubAdvisor{running: &f.running, peak: &f.peak, started: f.started, release: f.release, belief: belief}, nil
+		return &stubAdvisor{running: &f.running, peak: &f.peak, started: f.started, release: f.release, linger: f.linger, belief: belief}, nil
 	}}
 	r, err := New(o)
 	if err != nil {
@@ -517,6 +523,57 @@ func TestPairedBotRefusals(t *testing.T) {
 	}
 }
 
+// A table's own choice overrides the server's default, off means no panel, and a
+// name this server does not offer is refused when the table is created but only
+// reported on a table already saved under it.
+func TestPairedBotTableChoice(t *testing.T) {
+	def, other := pairedTestEntry(t), pairedTestEntry(t)
+	other.Name, other.Formats = "test-other", []string{"commander"}
+	second := pairedTestEntry(t)
+	second.Name = "test-second"
+	o := testOptions(t)
+	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
+	o.PairedBot, o.PairedBotChoices = def, []*bots.Entry{second, other}
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	add := func(id TableID, choice string) error {
+		c := pairedTable([]int{0})
+		c.ID, c.PairedBot = id, choice
+		return r.AddTable(c)
+	}
+	for _, c := range []struct {
+		id     TableID
+		choice string
+		policy string
+	}{{"default", "", def.Name}, {"named", second.Name, second.Name}, {"off", PairedBotOff, ""}} {
+		if err := add(c.id, c.choice); err != nil {
+			t.Fatalf("%s: %v", c.id, err)
+		}
+		st, err := r.PairedBotStatus(c.id)
+		if err != nil || st.Offered != (c.policy != "") || st.Policy != c.policy || st.Reason != "" {
+			t.Errorf("%s: %+v, %v", c.id, st, err)
+		}
+	}
+	if err := add("nope", "no-such-bot"); err == nil || !strings.Contains(err.Error(), "not offered") {
+		t.Errorf("an unoffered bot: %v", err)
+	}
+	if err := add("misfit", other.Name); err == nil || !strings.Contains(err.Error(), "format") {
+		t.Errorf("a bot that does not play the format: %v", err)
+	}
+	if got := r.PairedBotChoices(); len(got) != 3 || got[0].Name != def.Name {
+		t.Errorf("choices %+v", got)
+	}
+
+	saved := &table{cfg: pairedTable([]int{0})}
+	saved.cfg.PairedBot = "gone-since-restart"
+	if reason := r.pairedBotRefusal(saved); reason != adviceNotOffered {
+		t.Errorf("a saved table naming a missing bot: %q", reason)
+	}
+}
+
 // An entry that would read real lists, or could not explain, is refused at
 // startup however it is declared.
 func TestPairedBotRefusesAnOpenListSeat(t *testing.T) {
@@ -530,5 +587,164 @@ func TestPairedBotRefusesAnOpenListSeat(t *testing.T) {
 	o.PairedBot = &bots.Entry{Info: bots.Info{Name: "plain"}, New: func(bots.Options) (seat.Seat, error) { return passSeat{}, nil }}
 	if _, err := New(o); err == nil {
 		t.Fatal("a seat that does not search was accepted")
+	}
+}
+
+func TestPairedBotWordsItsReasons(t *testing.T) {
+	search := func(sims int) *explain.Search {
+		return &explain.Search{Sims: sims, Rows: []explain.Row{{Visits: sims}}}
+	}
+	for _, c := range []struct {
+		name   string
+		note   explain.Note
+		state  string
+		reason string
+		send   bool
+	}{
+		{"a finished search", explain.Note{Source: explain.Policy, Search: search(100)}, protocol.AdviceReady, "", true},
+		{"cut short", explain.Note{Reason: "deadline", Search: search(40)}, protocol.AdviceReady, adviceNoTime, true},
+		{"cut before a line finished", explain.Note{Reason: "deadline", Search: search(0)}, protocol.AdviceRefused, adviceNoLines, false},
+		{"no line finished", explain.Note{Reason: "every simulation failed", Search: search(0)}, protocol.AdviceRefused, adviceNoLines, false},
+		{"a redeal's refusal, which can count hidden cards", explain.Note{Reason: "redeal refused: player 1 hidden pool (Bolt: 3)", Search: search(0)}, protocol.AdviceRefused, adviceNoRoot, false},
+		{"one candidate", explain.Note{Source: explain.Forced, Bot: []int{0}}, protocol.AdviceReady, "", true},
+		{"an unpriceable ask", explain.Note{Reason: "translate-error", Bot: []int{0}}, protocol.AdviceReady, adviceNotPriced, true},
+	} {
+		var out protocol.Advice
+		note := c.note
+		send := wordAdvice(&out, &note)
+		if out.State != c.state || out.Reason != c.reason || send != c.send {
+			t.Errorf("%s: state %q reason %q send %v, want %q %q %v", c.name, out.State, out.Reason, send, c.state, c.reason, c.send)
+		}
+		if note.Reason != "" {
+			t.Errorf("%s: a report name stays on the note: %q", c.name, note.Reason)
+		}
+	}
+}
+
+// A storm copy's new target is asked while the trigger resolves, with the real
+// hidden cards held in the resolution's checkpoint. Search refuses it in words.
+func TestPairedBotRefusesAMidResolutionAsk(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card := func(name string) *cards.Card {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("%q not in the corpus", name)
+		}
+		return c
+	}
+	var own []*cards.Card
+	for range 30 {
+		own = append(own, card("Mountain"), card("Grapeshot"))
+	}
+	opp := testutil.RepoDeck(t, reg, "mono-red-goblins")
+	o := testOptions(t)
+	o.LoadDeck = func(name string) (Deck, error) {
+		if name == "human" {
+			return Deck{Name: "own", Cards: own}, nil
+		}
+		return Deck{Name: "opposing", Cards: opp}, nil
+	}
+	o.PairedBot = pairedTestEntry(t)
+	o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{passSeat{}, passSeat{}} }
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(pairedTable([]int{0})); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	var after uint64
+	for range 400 {
+		d := parkedAfter(t, r, 0, after)
+		after = d.Seq
+		if d.Kind == decision.KTarget && strings.Contains(d.Prompt, "new target") {
+			a, err := r.Advice(context.Background(), "t1", 1, 0, d.Seq)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if a.State != protocol.AdviceRefused || a.Reason != adviceMidResolution {
+				t.Fatalf("advice on %q: %+v", d.Prompt, a)
+			}
+			return
+		}
+		in := landFirstAnswer(d)
+		if d.Kind == decision.KPriority && len(d.PaymentActions) > 0 && len(d.PaymentActions[0].Plans) > 0 {
+			a := &d.PaymentActions[0]
+			in = decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}
+		}
+		if err := r.SubmitIntent("t1", 1, 0, in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Fatal("fixture: no storm copy asked for a new target")
+}
+
+// A seat with nothing parked is asking about a decision that has moved on, the
+// same answer whichever way it moved, so a player never reads the host's error.
+func TestPairedBotCallsAnIdleSeatStale(t *testing.T) {
+	o := testOptions(t)
+	o.LoadDeck = pairedDecks(t, "mono-red-goblins")
+	o.PairedBot = pairedTestEntry(t)
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { r.Close() })
+	c := pairedTable([]int{0, 1})
+	c.AllowPairedBot = true
+	if err := r.AddTable(c); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	d := parkedAfter(t, r, 0, 0)
+	if _, err := r.Advice(context.Background(), "t1", 1, 1, d.Seq); !errors.Is(err, ErrAdviceStale) {
+		t.Fatalf("idle seat: %v", err)
+	}
+	if _, err := r.Advice(context.Background(), "t1", 1, 0, d.Seq+1); !errors.Is(err, ErrAdviceStale) {
+		t.Fatalf("another decision: %v", err)
+	}
+}
+
+// A request arriving while a search winds down after its last asker left gets
+// its own search, not the cancellation meant for the one who left.
+func TestPairedBotNeverJoinsAnAbandonedSearch(t *testing.T) {
+	f := newStubFixture(t, 2, "t1")
+	linger := make(chan struct{})
+	f.linger = linger
+	d := parkedAfter(t, f.r, 0, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	first := f.ask(ctx, "t1", d.Seq)
+	<-f.started
+	cancel()
+	<-first
+
+	second := f.ask(context.Background(), "t1", d.Seq)
+	f.r.mu.RLock()
+	slot := &f.r.tables["t1"].advice
+	f.r.mu.RUnlock()
+	slot.mu.Lock()
+	left := slot.run
+	slot.mu.Unlock()
+	for decided := false; !decided; {
+		slot.mu.Lock()
+		decided = slot.run != left || left.waiters > 0
+		slot.mu.Unlock()
+		time.Sleep(time.Millisecond)
+	}
+	close(linger)
+	close(f.release)
+	select {
+	case ans := <-second:
+		if ans.err != nil || ans.a.State != protocol.AdviceReady {
+			t.Fatalf("answer %+v", ans)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("no answer")
 	}
 }

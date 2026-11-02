@@ -1,0 +1,5 @@
+# an Adventure face only a filter land's colour pays, for the oracle's constructed
+# lockstep (dirac/oracle/facefilter_test.go)
+Ardenvale Tactician
+Crystal Grotto
+Island

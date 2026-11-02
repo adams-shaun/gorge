@@ -174,7 +174,7 @@ func TestChaliceCountersSpellsOfTheChargedManaValue(t *testing.T) {
 func TestSanctumPrelateNumberIsChosenAtEntryAndRestrictsCasting(t *testing.T) {
 	t.Parallel()
 	prelate := "Name:Prelate\nManaCost:1 W W\nTypes:Creature Human Cleric\nPT:2/2\nK:ETBReplacement:Other:ChooseNumber\n" +
-		"SVar:ChooseNumber:DB$ ChooseNumber | Defined$ You | SpellDescription$ As CARDNAME enters, choose a number.\n" +
+		"SVar:ChooseNumber:DB$ ChooseNumber | Defined$ You\n" +
 		"S:Mode$ CantBeCast | ValidCard$ Card.nonCreature+cmcEQChosen | Description$ x\nOracle:x\n"
 	bolt := "Name:Bolt\nManaCost:R\nTypes:Instant\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3\nOracle:x\n"
 	e, cfg, find := etbConfig(t, 44, []string{prelate}, []string{bolt})

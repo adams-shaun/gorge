@@ -116,14 +116,13 @@ func (p *Projector) LookRef(viewer state.PlayerID, id state.ObjID) (protocol.Obj
 }
 
 func (p *Projector) Characteristics(viewer state.PlayerID, o *state.Object) *protocol.Characteristics {
-	if o.FaceDown && !MayLook(viewer, o) {
-		if o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
-			return nil
-		}
-		two := int32(2)
-		return &protocol.Characteristics{Supertypes: []string{}, Types: []string{"creature"}, Subtypes: []string{},
-			Colors: []string{}, Power: &two, Toughness: &two, Keywords: []string{}}
+	hidden := o.FaceDown && !MayLook(viewer, o)
+	if hidden && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+		return nil
 	}
+	// A face-down object's characteristics are public (CR 708.2): usually a 2/2,
+	// with whatever counters and effects apply to it on top. The derivation reads
+	// no printed fact of it. Its mana value is 0.
 	d := p.R.Facts(o.ID)
 	c := &protocol.Characteristics{Supertypes: []string{}, Types: []string{}, Subtypes: []string{},
 		Colors: Colors(d.Colors), Keywords: Keywords(d.Keywords)}
@@ -138,7 +137,9 @@ func (p *Projector) Characteristics(viewer state.PlayerID, o *state.Object) *pro
 			c.Subtypes = append(c.Subtypes, n)
 		}
 	}
-	c.ManaValue = manaValue(o)
+	if !hidden {
+		c.ManaValue = manaValue(o)
+	}
 	if slices.Contains(c.Types, "creature") {
 		pw, tg := d.Power, d.Toughness
 		c.Power, c.Toughness = &pw, &tg

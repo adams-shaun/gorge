@@ -1,0 +1,13 @@
+{
+  "card": "Hostile Investigator",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; 2 games in the corpus",
+  "repro": {
+    "pool": "std-big",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 816,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

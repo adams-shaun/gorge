@@ -6,7 +6,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The class test for the empty-answer-only soft-lock (the Squadron Hawk
@@ -411,26 +410,15 @@ func TestDefinedLibraryObjectSelectorsMoveDirectly(t *testing.T) {
 	}
 }
 
-// TestImprintedDefinedLibraryFetchFailsClosed pins Dichotomancy's real
-// compiled continuation. Defined$ Imprinted became a KNOWN selector when the
-// untap/mana wave persisted imprint context (events.Imprint +
-// Obj.Imprinted, read by Defined.Imprinted), so the old fail-closed note no
-// longer fires; the fetch now resolves the imprint set — empty on a source
-// with no imprint — moves nothing, shuffles nothing, and asks nothing. The
-// DBChangeZone's SubAbility$ DBShuffle is now a REAL api:Shuffle (registered
-// by main's shuffle primitive): it resolves its Defined$ ParentTarget, which
-// no trigger context binds in this synthetic resolution, so it shuffles no
-// library and the whole resolution is a silent no-op.
+// TestImprintedDefinedLibraryFetchFailsClosed: a Defined$ Imprinted library
+// fetch resolves the imprint set, which is empty on a source with no imprint,
+// so it moves nothing, asks nothing, and its Defined$ ParentTarget shuffle
+// shuffles no library.
 func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	card, ok := reg.Lookup("Dichotomancy")
-	if !ok || len(card.Faces) == 0 {
-		t.Fatal("Dichotomancy is absent from the corpus")
-	}
-	fetch := cards.ResolveSVar(card.Faces[0].SVars, "DBChangeZone")
-	if fetch == nil || fetch.Params["Defined"] != "Imprinted" || fetch.Params["Origin"] != "Library" {
-		t.Fatalf("Dichotomancy DBChangeZone = %+v, want Defined$ Imprinted from Library", fetch)
-	}
+	card := mkCard(t, "Name:Imprint Fetcher\nManaCost:U\nTypes:Sorcery\n"+
+		"SVar:DBFetch:DB$ ChangeZone | Defined$ Imprinted | Origin$ Library | Destination$ Battlefield | SubAbility$ DBShuffle\n"+
+		"SVar:DBShuffle:DB$ Shuffle | Defined$ ParentTarget\nOracle:x\n")
+	fetch := cards.ResolveSVar(card.Faces[0].SVars, "DBFetch")
 	h := &askHost{}
 	h.g = state.NewGame(names(2))
 	src := h.g.AddObject(card, 0)
@@ -446,14 +434,7 @@ func TestImprintedDefinedLibraryFetchFailsClosed(t *testing.T) {
 	if got := h.g.Obj(src.ID).Zone; got != state.ZLibrary {
 		t.Fatalf("Imprinted Defined$ moved source to %s, want library", got)
 	}
-	// The one event is the compile-time unread-parameter Note for the
-	// script's Searched$ (no ChangeZone reader consumes it); nothing moves.
-	if len(h.log) != 1 || h.log[0].Kind != events.Note || h.log[0].Text != "ChangeZone ignores unread parameter(s) Searched$" {
-		t.Fatalf("Imprinted Defined$ events = %v, want only the Searched$ unread Note (no move, and DBShuffle's ParentTarget binds no player here)", h.log)
-	}
-	for _, ev := range h.log {
-		if ev.Kind == events.MoveZone || ev.Kind == events.Shuffle {
-			t.Fatalf("Imprinted Defined$ emitted %v, want no move or shuffle", ev)
-		}
+	if len(h.log) != 0 {
+		t.Fatalf("Imprinted Defined$ events = %v, want none", h.log)
 	}
 }

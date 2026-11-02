@@ -21,7 +21,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
   await server.warmupRequest('/src/main.ts');
   await server.environments.client.waitForRequestsIdle();
 
-  const browserServer: BrowserServer = await chromium.launchServer({ headless: true });
+  const browserServer: BrowserServer = await chromium.launchServer({ headless: true, args: ['--disable-gpu'] });
   const browserURL = server.resolvedUrls?.local[0];
   if (!browserURL) {
     await browserServer.close();

@@ -1,0 +1,19 @@
+# a resolving DB$ Mana with RestrictValid$ Spell.<spec>
+# (Abstract Paintmage, Ashling Rekindled, Desolation of Smaug)
+# (dirac/oracle/dbmanarestr_test.go)
+Abstract Paintmage
+Desolation of Smaug
+Rorix Bladewing
+Dragon Moose
+Hill Giant
+Air Elemental
+Goblin Chieftain
+Lightning Bolt
+Shock
+Divination
+Counterspell
+Prodigal Sorcerer
+Wind Drake
+Island
+Mountain
+Furnace Whelp

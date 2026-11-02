@@ -1,0 +1,26 @@
+# the per-permanent mark pool: the six attackedThisTurn /
+# dealtDamageThisTurn / dealtDamagetoAny carriers beside attackers, burn, fight
+# and bite spells, a pinger and basics (dirac/oracle/permmark_test.go)
+Treacherous Greed
+Red Guardian, Super-Soldier
+Hexhaven Dueling Arena
+Karakyk Guardian
+Ruric Thar, Magecrusher
+The Lunar Whale
+Savannah Lions
+Walking Corpse
+Serra Angel
+Elite Vanguard
+Grizzly Bears
+Runeclaw Bear
+Hill Giant
+Prodigal Sorcerer
+Lightning Bolt
+Shock
+Prey Upon
+Bite Down
+Plains
+Island
+Swamp
+Mountain
+Forest

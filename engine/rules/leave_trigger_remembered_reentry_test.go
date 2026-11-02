@@ -33,10 +33,10 @@ import (
 func ltbReentryEngine(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
 	exiler := card(t, "Name:Fixture Apparition\nManaCost:1 W\nTypes:Creature Spirit\nPT:2/2\n"+
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ When CARDNAME enters, exile target creature an opponent controls.\n"+
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature.OppCtrl | TgtPrompt$ Select target creature an opponent controls | RememberChanged$ True\n"+
-		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | Execute$ TrigReturn | TriggerDescription$ When CARDNAME leaves the battlefield, return the exiled card to the battlefield.\n"+
-		"SVar:TrigReturn:DB$ ChangeZone | Origin$ Exile | Destination$ Battlefield | Defined$ Remembered | ConditionDefined$ Remembered | ConditionPresent$ Card.ExiledWithSource\n"+
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | Execute$ OnReturn | TriggerDescription$ When CARDNAME leaves the battlefield, return the exiled card to the battlefield.\n"+
+		"SVar:OnReturn:DB$ ChangeZone | Origin$ Exile | Destination$ Battlefield | Defined$ Remembered | ConditionDefined$ Remembered | ConditionPresent$ Card.ExiledWithSource\n"+
 		"Oracle:x\n")
 	removal := card(t, "Name:Vindicate\nManaCost:1 B W\nTypes:Instant\n"+
 		"A:SP$ Destroy | ValidTgts$ Permanent | TgtPrompt$ Select target permanent\nOracle:x\n")

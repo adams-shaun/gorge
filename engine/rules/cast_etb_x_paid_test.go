@@ -26,9 +26,9 @@ import (
 )
 
 const hydroidKrasisSrc = "Name:Hydroid Krasis\nManaCost:X G U\nTypes:Creature Jellyfish Hydra Beast\nPT:0/0\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigGainLife | TriggerDescription$ When you cast CARDNAME, you gain half X life and draw half X cards. Round down each time.\n" +
-	"SVar:TrigGainLife:DB$ GainLife | Defined$ You | LifeAmount$ HalfXDown | SubAbility$ DBDraw\n" +
-	"SVar:DBDraw:DB$ Draw | NumCards$ HalfXDown\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ OnGainLife\n" +
+	"SVar:OnGainLife:DB$ GainLife | Defined$ You | LifeAmount$ HalfXDown | SubAbility$ Draw\n" +
+	"SVar:Draw:DB$ Draw | NumCards$ HalfXDown\n" +
 	"K:Flying\nK:Trample\nK:etbCounter:P1P1:X\n" +
 	"SVar:X:Count$xPaid\nSVar:HalfXDown:Count$xPaid/HalfDown\n" +
 	"DeckHas:Ability$Counters\n" +
@@ -36,17 +36,17 @@ const hydroidKrasisSrc = "Name:Hydroid Krasis\nManaCost:X G U\nTypes:Creature Je
 
 const genesisHydraSrc = "Name:Genesis Hydra\nManaCost:X G\nTypes:Creature Plant Hydra\nPT:0/0\n" +
 	"K:etbCounter:P1P1:X\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigDig | TriggerDescription$ When you cast this spell, reveal the top X cards of your library. You may put a nonland permanent card with mana value X or less from among them onto the battlefield. Then shuffle the rest into your library.\n" +
-	"SVar:TrigDig:DB$ Dig | DigNum$ X | Reveal$ True | ChangeNum$ 1 | ChangeValid$ Permanent.nonLand+cmcLEX | DestinationZone$ Battlefield | LibraryPosition2$ 0 | SubAbility$ DBShuffle | Optional$ True | RestRandomOrder$ True\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ OnDig\n" +
+	"SVar:OnDig:DB$ Dig | DigNum$ X | Reveal$ True | ChangeNum$ 1 | ChangeValid$ Permanent.nonLand+cmcLEX | DestinationZone$ Battlefield | LibraryPosition2$ 0 | SubAbility$ DBShuffle | Optional$ True | RestRandomOrder$ True\n" +
 	"SVar:DBShuffle:DB$ Shuffle | Defined$ You\n" +
 	"SVar:X:Count$xPaid\n" +
 	"Oracle:When you cast this spell, reveal the top X cards of your library. You may put a nonland permanent card with mana value X or less from among them onto the battlefield. Then shuffle the rest into your library.\\nGenesis Hydra enters the battlefield with X +1/+1 counters on it.\n"
 
 const wanShiTongSrc = "Name:Wan Shi Tong, Librarian\nManaCost:X U U\nTypes:Legendary Creature Bird Spirit\nPT:1/1\n" +
 	"K:Flash\nK:Flying\nK:Vigilance\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigPutCounter1 | TriggerDescription$ When NICKNAME enters, put X +1/+1 counters on him. Then draw half X cards, rounded down.\n" +
-	"SVar:TrigPutCounter1:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ X | SubAbility$ DBDraw1\n" +
-	"SVar:DBDraw1:DB$ Draw | NumCards$ Y\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnPutCounter1\n" +
+	"SVar:OnPutCounter1:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ X | SubAbility$ Draw1\n" +
+	"SVar:Draw1:DB$ Draw | NumCards$ Y\n" +
 	"SVar:X:Count$xPaid\nSVar:Y:SVar$X/HalfDown\n" +
 	"Oracle:Flash\\nFlying, vigilance\\nWhen Wan Shi Tong enters, put X +1/+1 counters on him. Then draw half X cards, rounded down.\n"
 

@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_06772_BR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck ca222ba33025417d9e5fdbd236841e8c:0, player win-rate bucket 0.74 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abyssal Harvester",
+"count": 1
+},
+{
+"name": "Alesha, Who Laughs at Fate",
+"count": 1
+},
+{
+"name": "Arbiter of Woe",
+"count": 2
+},
+{
+"name": "Axgard Cavalry",
+"count": 2
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Billowing Shriekmass",
+"count": 1
+},
+{
+"name": "Bloodfell Caves",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Goblin Boarders",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Gutless Plunderer",
+"count": 1
+},
+{
+"name": "Involuntary Employment",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Quick-Draw Katana",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Sower of Chaos",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+}
+]
+}

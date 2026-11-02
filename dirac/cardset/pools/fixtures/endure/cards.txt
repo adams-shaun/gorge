@@ -1,0 +1,21 @@
+# the TDM Endure carriers (dirac/oracle/endure_test.go)
+Anafenza, Unyielding Lineage
+Descendant of Storms
+Dusyut Earthcarver
+Fortress Kin-Guard
+Inspirited Vanguard
+Kin-Tree Nurturer
+Sandskitter Outrider
+Sinkhole Surveyor
+Warden of the Grove
+Grizzly Bears
+Llanowar Elves
+Ornithopter
+Shock
+Disfigure
+Hardened Scales
+Plains
+Island
+Swamp
+Mountain
+Forest

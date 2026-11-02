@@ -1,0 +1,37 @@
+# the targeted-prepare pool: the three carriers
+# that make another creature prepared or unprepared (Biblioplex
+# Tomekeeper, Skycoach Waypoint, Infinite Coursework), the preparation
+# creatures they target, non-preparation creatures (the no-op targets)
+# and basics (dirac/oracle/preptarget_test.go)
+# The targeted-prepare pool: the three carriers that make
+# another permanent prepared or unprepared (Biblioplex Tomekeeper's charm,
+# Skycoach Waypoint, Infinite Coursework), the preparation creatures kprepare
+# uses (their own grants included), non-preparation creatures (targets that
+# must stay unprepared), a removal spell and basics, for the oracle's
+# constructed lockstep (dirac/oracle/preptarget_test.go).
+Biblioplex Tomekeeper
+Skycoach Waypoint
+Infinite Coursework
+Abigale, Poet Laureate
+Emeritus of Conflict
+Emeritus of Woe
+Encouraging Aviator
+Leech Collector
+Infirmary Healer
+Pompous Battlemage
+Honorbound Page
+Elite Interceptor
+Tam, Observant Sequencer
+Kirol, History Buff
+Woodwork Prodigy
+Skycoach Conductor
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Lightning Bolt
+Bake into a Pie
+Plains
+Island
+Swamp
+Mountain
+Forest

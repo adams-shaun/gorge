@@ -22,8 +22,8 @@ import (
 // deferredAskShockLand is an authored land that, as it enters, lets its
 // controller pay 2 life or have it enter tapped.
 const deferredAskShockLand = "Name:Deferred Ask Tarn\nTypes:Land\n" +
-	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBTap | ReplacementResult$ Updated\n" +
-	"SVar:DBTap:DB$ Tap | ETB$ True | Defined$ Self | UnlessCost$ PayLife<2> | UnlessPayer$ You\n" +
+	"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ Tap | ReplacementResult$ Updated\n" +
+	"SVar:Tap:DB$ Tap | ETB$ True | Defined$ Self | UnlessCost$ PayLife<2> | UnlessPayer$ You\n" +
 	"Oracle:x\n"
 
 // castDeferredAskSorcery puts spell in seat 0's hand (with the other cards

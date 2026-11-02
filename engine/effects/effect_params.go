@@ -89,7 +89,7 @@ var effectKnownKeys = [...]string{
 	"ChoiceTitleAppend", "ChoiceZone", "Choices", "ChooseFromList", "ClassBand", "ClearImprinted",
 	"Condition", "ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
 	"ConditionDefined", "ConditionDescription", "ConditionFirstCombat",
-	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
+	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent", "ConditionOpponentTurn", "ConditionOptionalPaid", "ConditionPhases", "ConditionPlayerTurn",
 	"ConditionPresent", "ConditionPresent2", "ConditionSVarCompare", "ConditionZone", "CopyCard", "Cost", "CostDesc",
 	"Defined", "DefinedCards", "DefinedDesc", "DefinedTarget", "Description", "Duration",
 	"EffectOwner", "EffectZone", "Exclude", "Execute", "Exhaust", "ExileOnLost", "ExileOnMoved",

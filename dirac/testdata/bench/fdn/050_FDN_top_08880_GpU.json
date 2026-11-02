@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_08880_GpU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck f102340ff5334c4fb37b83018cec7f97:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 1
+},
+{
+"name": "Archmage of Runes",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 2
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 2
+},
+{
+"name": "Dwynen, Gilt-Leaf Daen",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Meteor Golem",
+"count": 2
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Quakestrider Ceratops",
+"count": 2
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Spinner of Souls",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

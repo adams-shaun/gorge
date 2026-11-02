@@ -209,7 +209,7 @@ func TestChainedUntapAndUpkeepSkips(t *testing.T) {
 	const skipUntapSrc = "Name:Stasis Well\nManaCost:2 U\nTypes:Enchantment\n" +
 		"R:Event$ BeginPhase | ActiveZones$ Battlefield | Phase$ Untap | Skip$ True | Description$ Players skip their untap step.\nOracle:x\n"
 	const skipUpkeepSrc = "Name:Quiet Dawn\nManaCost:1 W\nTypes:Enchantment\n" +
-		"R:Event$ BeginPhase | ActiveZones$ Battlefield | Phase$ Upkeep | Skip$ True | Description$ Players skip their upkeep steps.\nOracle:x\n"
+		"R:Event$ BeginPhase | ActiveZones$ Battlefield | Phase$ Upkeep | Skip$ True\nOracle:x\n"
 	e, cfg, _ := newFixtureDeck(t, 31, skipUntapSrc, skipUpkeepSrc)
 	moveByName(t, e, 0, "Stasis Well", state.ZBattlefield)
 	moveByName(t, e, 0, "Quiet Dawn", state.ZBattlefield)

@@ -1,0 +1,81 @@
+package kgen
+
+import "strings"
+
+// PutCounter's Choices$ (a mid-resolution recipient
+// pick: Aerith Rescue Mission, Wick, the Whorled Mind) and RememberPut$
+// (Systems Override).
+
+// notePutRememberPut marks a PutCounter whose recipient joins the
+// resolution's remembered set (RememberPut$; B=2).
+const notePutRememberPut = "remember put"
+
+// putCounterChoices lowers PutCounter with Choices$ (gorge counters_put.go
+// putCounterChoose -> putCounterChooseTitled): the resolving controller picks
+// one battlefield permanent the Choices$ spec admits, scanned seat 0's
+// battlefield then seat 1's; none: nothing; one: taken unasked; two or more:
+// one KChoose (Min 1, Max 1, counter_pick). The pick gets CounterNum$
+// counters through the ordinary CounterChange. ChoiceTitle$ is the prompt
+// only. Every shape beside the bare Min 1 / Max 1 controller pick refuses.
+func (lc *lowerCtx) putCounterChoices(ps *params) error {
+	for _, k := range []string{"Defined", "ValidTgts", "MinChoiceAmount", "ChoiceAmount", "Chooser", "ForColor",
+		"CounterTypes", "RememberPut", "RememberCards", "RememberAmount", "CounterNumPerDefined", "Optional"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("PutCounter Choices$ with %s$", k)
+		}
+	}
+	spec := ps.str("Choices")
+	for _, a := range strings.Split(spec, ",") {
+		if strings.Contains(a, "inZone") && !strings.Contains(a, "inZoneBattlefield") {
+			return refuse("PutCounter Choices$ %q: not a battlefield filter", spec) // gorge scans the battlefield only
+		}
+	}
+	ct := ps.str("CounterType")
+	if ct == "" {
+		return refuse("PutCounter without CounterType")
+	}
+	if strings.Contains(ct, ",") {
+		return refuse("PutCounter Choices$ with a CounterType$ list")
+	}
+	if ct == "ENERGY" {
+		return refuse("PutCounter Choices$ ENERGY")
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	n, err := lc.amount(ps, "CounterNum", 1)
+	if err != nil {
+		return err
+	}
+	ps.consume("Choices", "ChoiceTitle")
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield, CS: "PutCounterPick"})
+	lc.emit(lInstr{Op: "PutCounter", Obj: lRef{Kind: rChosen}, A: n, CS: ct})
+	return nil
+}
+
+// putCounterRememberPut lowers RememberPut$ True (gorge counters_put.go's
+// Defined$/target loop, rememberPlaced): the recipient joins the
+// resolution's remembered set when the CounterNum$ amount it was given is
+// > 0, read before counter replacements (gorge does not ask that a counter
+// landed). A Defined$ filter that excludes the target places nothing and
+// remembers nothing. B=2 carries it.
+func putCounterRememberPut(ps *params, in *lInstr) error {
+	v, ok := ps.get("RememberPut")
+	if !ok {
+		return nil
+	}
+	if v != "True" {
+		return refuse("RememberPut %q", v)
+	}
+	if _, ok := ps.m["RememberAmount"]; ok {
+		return refuse("PutCounter RememberAmount$ with RememberPut$")
+	}
+	if in.Obj.Kind != rSelf && in.Obj.Kind != rTarget {
+		return refuse("PutCounter RememberPut$ on %v", in.Obj)
+	}
+	in.B = cst(2)
+	in.Note = notePutRememberPut
+	ps.consume("RememberPut")
+	return nil
+}

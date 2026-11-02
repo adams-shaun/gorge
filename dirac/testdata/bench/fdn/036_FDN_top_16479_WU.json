@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_16479_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 459b41a468a94887a4dd0d63295e7608:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arcane Epiphany",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 2
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Guarded Heir",
+"count": 1
+},
+{
+"name": "Hare Apparent",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

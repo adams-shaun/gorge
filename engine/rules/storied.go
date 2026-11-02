@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// K:Storied (CR 702.175): "If you control three or more
+// K:Storied (CR 702.195): "If you control three or more
 // artifacts, legendaries, and/or Sagas, you have an enduring story for the
 // rest of the game."
 //
@@ -23,10 +23,10 @@ func init() {
 	effects.RegisterNonAPI("kw:Storied")
 }
 
-// checkEnduringStoryGrants is the continuous half of CR 702.175a's grant:
-// called from Engine.emit's post-fold hook on every battlefield entry
-// (MoveZone), token mint (TokenCreate, CardToken) and control transfer
-// (ControlChange) -- the same hook shape checkBlessingGrants uses. For each
+// checkEnduringStoryGrants is CR 702.195a's "any time" grant: called from
+// Engine.emit's post-fold hook on every battlefield entry (MoveZone), token mint
+// (TokenCreate, CardToken) and control transfer (ControlChange) and from the
+// state-based pass, the same hooks checkBlessingGrants uses. For each
 // still-alive seat without the designation it checks the gate directly off
 // the FOLDED state: the seat controls at least three permanents that are
 // artifacts, legendaries and/or Sagas (each permanent counted ONCE, even if
@@ -50,16 +50,14 @@ func (e *Engine) checkEnduringStoryGrants() {
 		storied, count := false, 0
 		for _, id := range board {
 			o := e.G.Obj(id)
-			if o == nil || o.Zone != state.ZBattlefield {
+			if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
 				continue
 			}
 			if e.hasKeywordH(id, kwhStoried) {
 				storied = true
 			}
 			d := e.Derived(id)
-			if slices.Contains(d.Types, "Artifact") ||
-				slices.Contains(d.Types, "Saga") ||
-				(o.Face() != nil && o.Face().IsLegendary()) {
+			if slices.Contains(d.Types, "Artifact") || slices.Contains(d.Types, "Saga") || e.hasType(o, "Legendary") {
 				count++
 			}
 		}
@@ -70,7 +68,7 @@ func (e *Engine) checkEnduringStoryGrants() {
 	}
 }
 
-// playerHasEnduringStory reports whether seat p holds the CR 702.175
+// playerHasEnduringStory reports whether seat p holds the CR 702.195
 // enduring-story latch. The ONE read of state.Player.EnduringStory for the
 // rules-side gates: layers.go's continuousConditionHolds (Condition$
 // EnduringStory) and replacement.go's replacementConditionHolds

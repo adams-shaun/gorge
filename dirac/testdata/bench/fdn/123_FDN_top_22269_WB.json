@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_22269_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck cad4eb73b377427ab1a7f87c66370f9a:0, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abyssal Harvester",
+"count": 1
+},
+{
+"name": "Ajani's Pridemate",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dauntless Veteran",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 3
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 2
+},
+{
+"name": "Ravenous Amulet",
+"count": 1
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 2
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Stromkirk Bloodthief",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Tragic Banshee",
+"count": 1
+}
+]
+}

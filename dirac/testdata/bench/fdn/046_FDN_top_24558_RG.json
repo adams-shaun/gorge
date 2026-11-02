@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_24558_RG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 99f861e2f6cd4ebf98ecf225f93c7a5a:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 2
+},
+{
+"name": "Courageous Goblin",
+"count": 3
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Flamewake Phoenix",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Goblin Boarders",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 3
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Needletooth Pack",
+"count": 1
+},
+{
+"name": "Overrun",
+"count": 1
+},
+{
+"name": "Rogue's Passage",
+"count": 1
+},
+{
+"name": "Ruby, Daring Tracker",
+"count": 1
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Snakeskin Veil",
+"count": 1
+},
+{
+"name": "Treetop Snarespinner",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

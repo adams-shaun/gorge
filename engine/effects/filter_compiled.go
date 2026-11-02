@@ -243,7 +243,7 @@ func compiledPositive(c *compiledPred, g *state.Game, o *state.Object, sc *SpecC
 		return namePredicate(c.pos, g, o, *sc)
 	}
 	if c.fn != nil && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, sc) || sc.AsPrototype) && colourMapPredicate(c.pos)) {
-		return c.fn(g, o, sc.You, sc.Source), true
+		return c.fn(g, o, sc.You, predicateSource(c.pos, sc)), true
 	}
 	if c.num {
 		return numericPred(c.pos, g, o, *sc)
@@ -449,7 +449,7 @@ func compiledMatch(cs *compiledSpec, g *state.Game, o *state.Object, sc *SpecCon
 	if o == nil {
 		return false
 	}
-	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+	if copyCeased(o, sc) {
 		return false
 	}
 	if cs.each != nil {

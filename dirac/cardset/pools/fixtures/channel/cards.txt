@@ -1,0 +1,29 @@
+# the channel pool: the five Kamigawa channel lands, whose
+# hand ability costs {1} less per legendary creature you control
+# (ReduceCost$), beside vanilla legends, artifacts, an enchantment and
+# basics for their targets (dirac/oracle/channel_test.go)
+Eiganjo, Seat of the Empire
+Sokenzan, Crucible of Defiance
+Boseiju, Who Endures
+Otawara, Soaring City
+Takenuma, Abandoned Mire
+Isamaru, Hound of Konda
+Happy Hogan, Dauntless Driver
+Tyrox, Saurid Tyrant
+Jasmine Boreal
+Kalakscion, Hunger Tyrant
+Caelorna, Coral Tyrant
+Grizzly Bears
+Hill Giant
+Glorious Anthem
+Ornithopter
+Wind Drake
+Walking Corpse
+Typhoid Rats
+Mind Rot
+Counterspell
+Plains
+Island
+Swamp
+Mountain
+Forest

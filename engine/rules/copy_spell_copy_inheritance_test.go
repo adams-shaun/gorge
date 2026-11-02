@@ -28,9 +28,9 @@ func TestSixthDoctorNonLegendaryCopyOfCopy(t *testing.T) {
 			if o := e.G.Obj(spell); o == nil || o.Zone != state.ZStack || !derivedHasType(e, spell, "Legendary") {
 				t.Fatal("precondition: original legendary spell must be on the stack")
 			}
-			firstSA := cards.ResolveSVar(e.G.Obj(doc).Face().SVars, "TrigCopy")
+			firstSA := cards.ResolveSVar(e.G.Obj(doc).Face().SVars, "OnCopy")
 			if firstSA == nil || firstSA.API != "CopySpellAbility" || firstSA.Params["Defined"] != "TriggeredSpellAbility" || firstSA.Params["NonLegendary"] != "True" {
-				t.Fatalf("precondition: Sixth Doctor's compiled TrigCopy missing: %+v", firstSA)
+				t.Fatalf("precondition: Sixth Doctor's compiled OnCopy missing: %+v", firstSA)
 			}
 			before := len(e.G.Objs)
 			effects.Resolve(e, &effects.Ctx{Source: doc, Controller: 0, Remembered: []state.Target{{Obj: spell}}}, firstSA)

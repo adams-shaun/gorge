@@ -8,13 +8,9 @@ import (
 )
 
 // TestGatheringStoneMillsThePeekedTopCard is the ECL Gathering Stone
-// regression. The script is a three-step chain:
-//
-//	SVar:TrigPeek:DB$ PeekAndReveal | PeekAmount$ 1 | RevealValid$ Card.ChosenType
-//	  | RevealOptional$ True | RememberRevealed$ True | SubAbility$ DBToHand
-//	SVar:DBToHand:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand | SubAbility$ DBToGrave
-//	SVar:DBToGrave:DB$ ChangeZone | Defined$ TopOfLibrary | Origin$ Library | Destination$ Graveyard
-//	  | Optional$ True | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ EQ0 | SubAbility$ DBCleanup
+// regression. The script is a three-step chain: a peek that remembers a revealed
+// card of the chosen type, a move of the remembered card to hand (DBToHand), then
+// an optional move of the top card to the graveyard when nothing was remembered.
 //
 // When the peeked card does NOT match the chosen type, `RememberRevealed$`
 // captures nothing, so DBToHand's `Defined$ Remembered` still holds only the

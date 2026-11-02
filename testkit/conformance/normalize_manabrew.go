@@ -56,7 +56,8 @@ var manaBrewStaleKeys = []string{"isAttacking", "attackingPlayerId", "tapped", "
 //   - presentation.title and manaBrewDisplayKeys are display strings. They are
 //     left out of the comparison, and must still be present on what a player is
 //     asked to answer. A chooseFromSelection option keeps its label: the wire
-//     names no object on one, so the label is the choice.
+//     names no object on one, so the label is the choice. A sampled answer's key
+//     leaves them out too, since a client echoes a target's oracle back.
 //
 // An ack-only prompt and a payManaCost window the session can settle never reach
 // here: the session answers them.
@@ -339,7 +340,9 @@ func sampledAnswers(pm mb.PromptMessage, names wireNames) (manaBrewAnswers, erro
 		if err := json.Unmarshal(b, &tree); err != nil {
 			return nil, err
 		}
-		if b, err = json.Marshal(names.rewrite(tree)); err != nil {
+		tree = names.rewrite(tree)
+		dropManaBrewUncompared(tree, nil)
+		if b, err = json.Marshal(tree); err != nil {
 			return nil, err
 		}
 		answers[string(b)] = out

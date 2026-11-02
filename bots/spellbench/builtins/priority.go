@@ -176,7 +176,7 @@ func (s *Seat) candidates(v view.View, d *decision.Decision) []cand {
 	ordinaryCast := make(map[state.ObjID]bool)          // lookup only
 	for i := range d.Options {
 		o := &d.Options[i]
-		if o.Kind == "pass" || o.Kind == "concede" {
+		if o.Kind == "pass" || o.Kind == "concede" || o.LandWontStay {
 			continue
 		}
 		cls := classify(o.Kind, o.Mode)

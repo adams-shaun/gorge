@@ -1,0 +1,139 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// A filter as a card's first and only mana ability (CR
+// 605.3a, 602.5b): the Devotees' "{1}: Add {W}, {B}, or {G}. Activate only
+// once each turn", Three Tree Mascot's "{1}: Add one mana of any color.
+// Activate only once each turn", Prophetic Prism's "{1}, {T}: Add one mana
+// of any color" (kop.FilterManaAb). gorge's planner census prices none of
+// them (pay.PlanLastResortCostOK rejects a mana part), so each is a paid
+// census gap exactly like Hidden Grotto's second-ability filter (mana_filter.go),
+// relaxed to one free unit of each colour it makes (potential_plan.go
+// paymentPlanRelaxedAlternatives: its once-only cost is the {T} or the
+// activation limit). It differs from Grotto's in three ways:
+//
+//   - it has no free ability: activating it poses only the colour ask
+//     (rules activateManaFor resolves a one-ability source directly; the fee
+//     is paid from the pool, no ask), Any's W U B R G or a Combo's colours
+//     in printed order (effects.ComboColours; kop.Ability.ManaColOrd records
+//     an out-of-WUBRG order, read by manaColourOrder), so filtStep's ans
+//     stays 1+c;
+//   - a once-each-turn one has no {T}: CR 302.6 does not bind it, a tapped
+//     or summoning-sick Devotee still activates, and its use is
+//     perm.actUsed (gorge's ManaActivate activation-limit marker), not the
+//     tapped bit. gorge's search dedup (scriptStateKey) does not key on that
+//     use, and filtKey does not either;
+//   - gorge's census lists it only when its fee is payable from the
+//     potential pool (paymentPlanCensusOf: manaAbilityPayablePool against
+//     PotentialMana's fixpoint, where a source never funds its own fee):
+//     Grotto's own {C} always pays its fee, a Devotee's needs other mana.
+//
+// It is never a funding step: it is always a census gap (a filter whose fee
+// the potential pool cannot pay is not activatable in the search either),
+// and the search funds with non-gap activate options only. In the payment
+// window it is no unit (rules windowManaUnitsWith skips a non-free cost), as
+// Grotto's filter is not: canTapForManaPC is false for it (pcard.manaTap
+// needs a mana-free cost), so the plain walk never taps it.
+
+// DebugFiltFirstNoLimit is a mutation (TestManaabmanacostMutation): a
+// once-each-turn filter ignores its activation limit.
+var DebugFiltFirstNoLimit bool
+
+// prepFiltFirst records ability j of card c, its first mana ability, as a
+// filter (genPrep.filt, gfFilt).
+func (g *genPrep) prepFiltFirst(c CardID, j int) {
+	if j >= 8 {
+		panic("kernel: a once-each-turn filter mana ability past ability 7 (perm.actUsed)")
+	}
+	g.smallFor(c).filt = int8(j)
+	g.setFlag(c, gfFilt)
+	g.anyFilt, g.anyFiltFirst = true, true
+}
+
+// filtAb is the filter ability of the card at sl.
+func (s *State) filtAb(k *prep, sl Slot) *kop.Ability {
+	c := s.cardAt(sl)
+	return &k.t.Cards[c].Abilities[k.gen.filt(c)]
+}
+
+// filtNoTap: the filter at sl costs no {T} (a once-each-turn one).
+func (s *State) filtNoTap(k *prep, sl Slot) bool {
+	return k.gen.anyFiltFirst && s.filtAb(k, sl).Cost.Flags&kop.CostTap == 0
+}
+
+// filtFirstOnly: the filter at sl is its card's first mana ability.
+func (s *State) filtFirstOnly(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	return k.gen.anyFiltFirst && firstManaAb(&k.t.Cards[c]) == int(k.gen.filt(c))
+}
+
+// filtUsable: the filter at sl can be activated now, its fee aside: a {T}
+// one untapped and (a creature) unsick, a once-each-turn one unused this
+// turn (gorge's ActivationLimit$ gate).
+func (s *State) filtUsable(k *prep, sl Slot) bool {
+	if s.genLost(k, sl) {
+		return false
+	}
+	pm := &s.perms[sl]
+	if s.filtNoTap(k, sl) {
+		return DebugFiltFirstNoLimit || pm.actUsed&(1<<uint(k.gen.filt(s.cardAt(sl)))) == 0
+	}
+	return pm.flags&pfTapped == 0 && !(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0)
+}
+
+// filtFirstMask is scriptFilt on a table with a first-only filter: p's
+// usable filters, a first-only one only while other potential mana covers
+// its fee.
+//
+//go:noinline
+func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
+	var m slotMask
+	other := -1
+	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
+		sl := b.first()
+		if !k.gen.has(s.cardAt(sl), gfFilt) || !s.filtUsable(k, sl) {
+			continue
+		}
+		if s.filtFirstOnly(k, sl) {
+			if other < 0 {
+				other = s.filtOtherMana(k, p)
+			}
+			if other < s.filtFee(k, sl) {
+				continue
+			}
+		}
+		m = m.with(sl)
+	}
+	return m
+}
+
+// filtOtherMana bounds the potential mana a first-only filter's fee may
+// draw on: the pool and every source the plain walk taps (each other
+// first-only filter is admitted to gorge's fixpoint only once these pay its
+// own fee, so it adds nothing a fee of one could need), plus the
+// counter-cost sources.
+func (s *State) filtOtherMana(k *prep, p uint8) int {
+	pl := &s.pl[p&1]
+	n := poolTotal(pl) + int(pl.poolR)
+	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
+			n += int(max(s.manaPCGen(k, sl).manaN, 1))
+		}
+	}
+	if k.ctrMana {
+		n += s.scriptCtr(k, p).count()
+	}
+	return n
+}
+
+// filtUse spends the filter at sl: its {T}, or its use this turn.
+func (s *State) filtUse(k *prep, sl Slot) {
+	if s.filtNoTap(k, sl) {
+		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
+	} else {
+		s.perms[sl].flags |= pfTapped
+	}
+	s.touchSl(sl)
+}

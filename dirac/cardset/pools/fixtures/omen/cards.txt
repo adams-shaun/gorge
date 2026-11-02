@@ -1,0 +1,34 @@
+# the Omen pool: the Standard Omen cards kgen lowers,
+# {X} spells that leave mana floating, counterspells, vanilla creatures
+# and basics, for the oracle's constructed lockstep
+# (dirac/oracle/omen_test.go)
+# The Omen pool: the Standard Omen cards kgen lowers
+# (Tarkir: Dragonstorm), the {X} spells that leave mana floating (gorge
+# offers an Omen face only when the floating pool pays it), counterspells,
+# non-flying vanilla creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/omen_test.go).
+Dirgur Island Dragon
+Disruptive Stormbrood
+Feral Deathgorger
+Marang River Regent
+Purging Stormbrood
+Riling Dawnbreaker
+Runescale Stormbrood
+Sagu Wildling
+Stormshriek Feral
+Twinmaw Stormbrood
+Whirlwing Stormbrood
+Blaze
+Exsanguinate
+Mind Spring
+Stream of Life
+Negate
+Counterspell
+Grizzly Bears
+Savannah Lions
+Gray Ogre
+Plains
+Island
+Swamp
+Mountain
+Forest

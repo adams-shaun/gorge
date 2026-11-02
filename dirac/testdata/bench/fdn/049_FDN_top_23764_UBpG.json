@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_23764_UBpG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck bdce750f319d4ab285036a665063c600:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 2
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Inspiration from Beyond",
+"count": 1
+},
+{
+"name": "Island",
+"count": 5
+},
+{
+"name": "Micromancer",
+"count": 2
+},
+{
+"name": "Reassembling Skeleton",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Rune-Sealed Wall",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Tatyova, Benthic Druid",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+}
+]
+}

@@ -1,0 +1,30 @@
+# Attach Object$ Remembered | Defined$ Self over a one-object remembered
+# writer: U.S.Agent, John Walker (Sturdy Shield) and
+# Tony Stark's back face (an artifact from hand, attached if Equipment)
+# beside Equipment and other artifacts (dirac/oracle/attrem_test.go)
+# The attrem lockstep pool: the two
+# `DB$ Attach | Object$ Remembered | Defined$ Self` carriers over a one-object
+# remembered writer (U.S.Agent's Sturdy Shield token, Tony Stark's put-onto-
+# the-battlefield artifact, so Equipment attaches and other artifacts do not),
+# cheap Equipment and non-Equipment artifacts, creatures, cheap removal so the
+# Shield sometimes loses its host, and basics.
+U.S.Agent, John Walker
+Tony Stark
+Bonesplitter
+Short Sword
+Bone Saw
+Mind Stone
+Wayfarer's Bauble
+Sol Ring
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Lightning Bolt
+Anointed Procession
+Parallel Lives
+Plains
+Swamp
+Mountain
+Island
+Forest
+Leather Armor

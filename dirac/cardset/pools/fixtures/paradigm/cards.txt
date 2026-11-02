@@ -1,0 +1,20 @@
+# the Paradigm pool: the three sole SOS Paradigm carriers
+# (Decorum Dissertation, Germination Practicum, Restoration Seminar)
+# beside Counterspell (a countered Paradigm spell reaches the
+# graveyard), cheap creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/paradigm_test.go)
+Decorum Dissertation
+Germination Practicum
+Restoration Seminar
+Counterspell
+Llanowar Elves
+Grizzly Bears
+Savannah Lions
+Walking Corpse
+Coral Merfolk
+Wind Drake
+Merfolk of the Pearl Trident
+Forest
+Plains
+Swamp
+Island

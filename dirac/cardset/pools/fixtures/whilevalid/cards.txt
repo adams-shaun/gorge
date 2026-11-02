@@ -1,0 +1,10 @@
+# Possibility Technician's "for as long as that card remains exiled, you may play
+# it if you control a Kavu", beside removal that takes the Kavu away
+# (dirac/oracle/whilevalid_test.go)
+Forest
+Grizzly Bears
+Lightning Bolt
+Mountain
+Possibility Technician
+Terror
+Swamp

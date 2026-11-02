@@ -1,0 +1,45 @@
+# restricted mana sources as planner units (gorge;
+# dirac/oracle/restrictedsource_test.go)
+Plains
+Island
+Swamp
+Mountain
+Forest
+Lupinflower Village
+Lilypad Village
+Mudflat Village
+Oakhollow Village
+Rockface Village
+Secluded Courtyard
+Giada, Font of Hope
+Helga, Skittish Seer
+Kolvori, God of Kinship
+Thran Spider
+Serra Angel
+Vanguard Seraph
+Dazzling Angel
+Savannah Lions
+Grizzly Bears
+Llanowar Elves
+Elvish Mystic
+Wind Drake
+Hill Giant
+Walking Corpse
+Craw Wurm
+Centaur Courser
+Shivan Dragon
+Furnace Whelp
+Prodigal Sorcerer
+Goblin Chieftain
+Walking Ballista
+Ornithopter
+Wayfarer's Bauble
+Mind Stone
+Guardian Idol
+Pestilent Cauldron
+Lightning Bolt
+Shock
+Giant Growth
+Divination
+Pacifism
+Mogg Fanatic

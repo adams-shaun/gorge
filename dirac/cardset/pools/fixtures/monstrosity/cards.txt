@@ -1,0 +1,29 @@
+# the Monstrosity pool: static IsMonstrous grants
+# (Fleecemane Lion, Domesticated Hydra) and destroy / mass-exile /
+# sacrifice / emblem BecomeMonstrous triggers, for the oracle's
+# constructed lockstep (dirac/oracle/monstrosity_test.go)
+# Monstrosity carriers for the oracle's constructed lockstep
+# (dirac/oracle/monstrosity_test.go). Static IsMonstrous keyword grants
+# (Fleecemane Lion, Domesticated Hydra) and destroy / mass-exile / sacrifice
+# / emblem BecomeMonstrous triggers.
+Fleecemane Lion
+Domesticated Hydra
+Arbor Colossus
+Kalemne's Captain
+Protector of the Wastes
+Keepsake Gorgon
+Hythonia the Cruel
+Alpha Deathclaw
+Splitting Slime
+Ember Swallower
+Plains
+Forest
+Swamp
+Mountain
+# Vitality Hunter and Wildfire Cerberus are Monstrosity carriers the builder
+# still refuses, so they stay out of the pool (kgen -census): Vitality Hunter
+# has a dynamic trigger target count (TargetMax$ TriggerCount$Amount, "target
+# count 0..TriggerAmount"), and Wildfire Cerberus's BecomeMonstrous body is
+# DamageAll over the opponents' creatures ("DamageAll filter {players=2 |
+# types=0x2 ctrl=2}"). Both need mechanisms outside. The
+# Monstrosity$ X path itself is proven by Domesticated Hydra in this pool.

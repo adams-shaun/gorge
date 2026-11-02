@@ -1,0 +1,21 @@
+# the Demonstrate pool (demo): the four Techniques (CR 702.144a), the
+# self-cast trigger, basics and vanilla creatures to target/copy, for
+# the oracle's constructed lockstep (dirac/oracle/demo_test.go)
+# the divided-counters pool: "distribute N +1/+1
+# counters among one to N targets" carriers, Shock to kill a target in
+# response (dirac/oracle/divcountersn_test.go)
+Armament Dragon
+Biogenic Upgrade
+Case of the Trampled Garden
+Cloudspire Skycycle
+Forest
+Glint Weaver
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Mountain
+Plains
+Revival of the Ancestors
+Shock
+Swamp
+The Earth Crystal

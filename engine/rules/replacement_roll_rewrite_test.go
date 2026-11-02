@@ -10,15 +10,15 @@ import (
 )
 
 const goblinBowlingFixture = "Name:Fixture Goblin Bowling Team\nManaCost:1 R\nTypes:Creature Goblin\nPT:1/1\n" +
-	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.Self | ReplaceWith$ RollDamage | Description$ damage plus the roll\n" +
-	"SVar:RollDamage:DB$ RollDice | ResultSVar$ Result | SubAbility$ DmgPlus\n" +
-	"SVar:DmgPlus:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n" +
-	"SVar:X:ReplaceCount$DamageAmount/Plus.Result\nOracle:x\n"
+	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.Self | ReplaceWith$ Roll | Description$ damage plus the roll\n" +
+	"SVar:Roll:DB$ RollDice | ResultSVar$ Result | SubAbility$ DmgPlus\n" +
+	"SVar:DmgPlus:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ Total\n" +
+	"SVar:Total:ReplaceCount$DamageAmount/Plus.Result\nOracle:x\n"
 
 const hawkeyePlusYFixture = "Name:Fixture Hawkeye\nManaCost:3 R\nTypes:Legendary Creature Human Archer\nPT:2/4\n" +
-	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Permanent.OppCtrl,Opponent | IsCombat$ False | ReplaceWith$ DmgPlusX\n" +
-	"SVar:DmgPlusX:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ X\n" +
-	"SVar:X:ReplaceCount$DamageAmount/Plus.Y\nSVar:Y:Count$CardPower\nOracle:x\n"
+	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl | ValidTarget$ Permanent.OppCtrl,Opponent | IsCombat$ False | ReplaceWith$ AddX\n" +
+	"SVar:AddX:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ Total\n" +
+	"SVar:Total:ReplaceCount$DamageAmount/Plus.Y\nSVar:Y:Count$CardPower\nOracle:x\n"
 
 const dealDamageReplacementFixture = "Name:Fixture Damage Replacer\nManaCost:1 R\nTypes:Creature Goblin\nPT:1/1\n" +
 	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.Self | ReplaceWith$ DealThree\n" +

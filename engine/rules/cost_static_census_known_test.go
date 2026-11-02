@@ -18,8 +18,4 @@ var knownBrokenCostStatics = map[string]string{
 // WRONG: the engine applies the static but ignores or misreads a parameter.
 // OFFER-BLIND findings (applied only at the payment-time reprice, never at
 // the offer gate) ride this table with an "OFFER-BLIND: " prefix.
-var knownWrongCostStatics = map[string]string{
-	"Mana Matrix":   "param unread: UpTo$",
-	"Planar Gate":   "param unread: UpTo$",
-	"Urza's Filter": "param unread: UpTo$",
-}
+var knownWrongCostStatics = map[string]string{}

@@ -11,7 +11,7 @@ import (
 // TestLullmagesDominationTargetControllerDiscount pins the real-corpus
 // reduction: Lullmage's Domination's ReduceCost static carries its discount
 // entirely in an SVar chain (`Amount$ XGrave`, `SVar:XGrave:Count$Compare
-// CheckTgt GE8.3.0`, `SVar:CheckTgt:TargetedController$CardsInGraveyard`).
+// CheckTgt GE8.3.0`, `CheckTgt = TargetedController$CardsInGraveyard`).
 // This test prices the real card with a chosen target whose controller has 8+
 // cards in its graveyard and asserts the generic drops to 0, with the
 // no-target case as the negative control.

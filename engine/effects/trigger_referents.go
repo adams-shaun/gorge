@@ -103,10 +103,10 @@ type TriggerContext struct {
 	// trigger was QUEUED, when the remembered objects stood as the triggering
 	// event left them. A trigger that resolves later refers to the object
 	// that existed then (CR 400.7), so a delayed trigger it registers stamps
-	// its Remembered from here rather than from the resolving state -- a dies
-	// trigger whose card was returned and died again while the trigger sat on
-	// the stack stamps the first graveyard incarnation and its end-step
-	// return moves nothing. Not serialized into events.Event -- the
+	// an object listed in TriggerRememberedMoved from here rather than from the
+	// resolving state -- a dies trigger whose card was returned and died again
+	// while the trigger sat on the stack stamps the first graveyard incarnation
+	// and its end-step return moves nothing. Not serialized into events.Event -- the
 	// per-stack capture is rebuilt by the same replay re-derivation as
 	// TriggerPaidX/TriggerConverge; the stamp a registration keeps rides the
 	// DelayedRegister event's Text (the established suffix channel).
@@ -138,6 +138,13 @@ type TriggerContext struct {
 	// TriggerRememberedStamps: replay re-derives the queue-time capture.
 	SourceRemembered  []state.Target
 	SourceIncarnation uint32
+	// SourceReturned is true while an ability resolves whose source left the
+	// battlefield and returned since it went on the stack (SourceIsNewObject). That
+	// source is a new object (CR 400.7), so a filter's Self does not name it and its
+	// Other and StrictlyOther can. The remembered and exiled-with readers keep
+	// following it: what the old object did stays linked to the ability. Resolve
+	// sets it at each body of the chain.
+	SourceReturned bool
 	// SelfLeaves marks a Mode$ ChangesZone | Origin$ Battlefield |
 	// ValidCard$ Card.Self trigger ("When CARDNAME leaves the battlefield").
 	// Its capture is the leaving source itself, so Defined$ Remembered must
@@ -286,6 +293,12 @@ type TriggerContext struct {
 	// Zero is both a valid count and the value for a triggering card whose
 	// cast carried none.
 	TriggerConverge int32
+	// TriggerOffspringPaid and TriggerSquadPaid are the triggering card's offspring
+	// and squad payments, snapshotted with X: the move of a source that left before
+	// its enters trigger resolved clears the live fields, and the token still copies
+	// what it was (CR 608.2h, from memory).
+	TriggerOffspringPaid bool
+	TriggerSquadPaid     int32
 	// TriggerManaSpent snapshots the CR 601.2h / 106.12 TOTAL mana actually
 	// spent to cast TriggerCard when this trigger matched (engine/rules/
 	// trigger_referents' capture beside TriggerPaidX/TriggerConverge, read by

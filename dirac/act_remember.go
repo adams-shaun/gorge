@@ -1,0 +1,167 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// destroyAllRemember is OpDestroyAll with RememberDestroyed$ (Starfall
+// Invocation): gorge effDestroyAll remembers each victim, in its
+// battlefield walk order, that actually reached the graveyard. It is also
+// the C&2 form (NoRegen$ True: no regeneration replacement).
+func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
+	e := &s.res.e
+	src := s.objRef(k, kop.RefSelf)
+	var hit slotMask
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.matchPerm(k, in.F, sl, e.ctrl, src) && s.kw(k, sl)&kop.KwIndestructible == 0 {
+			hit = hit.with(sl)
+		}
+	}
+	if in.C&2 == 0 && s.anyRegen(hit) {
+		hit = s.regenAll(hit)
+	}
+	if k.gen != nil && k.gen.anyRepl&rbShield != 0 {
+		hit = s.shieldAll(hit) // CR 122.1c: NoRegen$ suppresses regeneration only
+	}
+	var ord [MaxPerm]Slot
+	n := s.listenerOrder(hit, &ord)
+	var objs [MaxPerm]Obj
+	for i := 0; i < n; i++ {
+		objs[i] = s.perms[ord[i]].obj
+	}
+	s.leaveAll(k, hit, kop.ZoneGraveyard)
+	for _, o := range objs[:n] {
+		if in.C&1 != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+			s.remember(o)
+		}
+	}
+}
+
+// discardRemember is RememberDiscarded$ (gorge discardAndRememberEvent):
+// a card discarded by the resolving OpDiscard with B.N&1 joins the
+// remembered set. The resolving instruction is the one at res.pc (the
+// discard ask suspends on it); a discard outside a resolution, or by
+// another op, does not remember.
+//
+//go:noinline
+func (s *State) discardRemember(k *prep, o Obj) {
+	if !s.res.active {
+		return
+	}
+	prog := s.prog(k)
+	if int(s.res.pc) >= len(prog) {
+		return
+	}
+	if in := &prog[s.res.pc]; in.Op == kop.OpDiscard && in.B.N&1 != 0 || unlessRemembers(in) {
+		s.remember(o)
+	}
+}
+
+// tableRemembersDiscards reports whether some program of t has an
+// OpDiscard with RememberDiscarded$ (genPrep.anyRemDisc).
+func tableRemembersDiscards(t *kop.Table) bool {
+	return tableRemembersOp(t, kop.OpDiscard) || tableRemembersUnlessDisc(t) // trig_reflexiveremembered.go
+}
+
+// tableRemembersOp reports whether some program of t has an op with the
+// B.N&1 remember bit (genPrep.anyRemDisc / anyRemSac).
+func tableRemembersOp(t *kop.Table, op kop.Op) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			for _, in := range t.Cards[i].Abilities[j].Prog {
+				if in.Op == op && in.B.N&1 != 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// sacRemember is RememberSacrificed$ (gorge effSacrifice): a permanent
+// sacrificed by the resolving OpSacrifice with B.N&1 joins the remembered
+// set (the object keeps its id into the graveyard; a token's id still
+// counts, as gorge's remembered entry does). fireSac runs it before the
+// permanent leaves.
+//
+//go:noinline
+func (s *State) sacRemember(k *prep, sl Slot) {
+	if !s.res.active {
+		return
+	}
+	prog := s.prog(k)
+	if int(s.res.pc) >= len(prog) {
+		return
+	}
+	if in := &prog[s.res.pc]; in.Op == kop.OpSacrifice && in.B.N&1 != 0 {
+		if in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {
+			s.remLKAdd(k, sl, int(in.B.N)) // RememberedLKI$CardPower/Toughness (zone_rememberlki.go)
+		}
+		s.remember(s.perms[sl].obj)
+	} else if in.Op == kop.OpIfPaid && in.C&0xF == kop.PaySac &&
+		in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {
+		// a printed trigger's own IfPaid Sacrifice cost
+		// (Venom, Lethal Protector; Bolg of the North). gorge's trigger_cost
+		// sacrifice feeds Ctx.Sacrificed, not the remembered set, so only the
+		// characteristic accumulator is written here.
+		s.remLKAdd(k, sl, int(in.B.N))
+	}
+}
+
+// digUntilRemember is DigUntil's RememberFound$ (gorge effDigUntil): the
+// found cards replace the resolution's remembered set, accumulated across
+// the players walked (first: the walk's first player clears it).
+//
+//go:noinline
+func (s *State) digUntilRemember(first bool, found []Obj) {
+	if first {
+		s.g.nrem, s.g.remCnt = 0, 0
+	}
+	for _, o := range found {
+		s.remember(o)
+	}
+}
+
+// Destroy's RememberDestroyed$ (OpDestroy C&2) and
+// PutCounter's RememberAmount$ (OpPutCounter B=1). Cold code, reached
+// through one operand test at each interp.go site.
+
+// DebugRem2Always is TestRememberDestroyedAmountMutation's switch: RememberDestroyed
+// remembers the target even when it was not destroyed, and RememberAmount
+// counts CounterNum$ instead of the landed count. Never set outside a test.
+var DebugRem2Always bool
+
+// destroyRemember is OpDestroy with RememberDestroyed$ True (gorge
+// effDestroy, engine/effects/zone_bulk.go): the target joins the
+// remembered set only when the destroy put it into a graveyard (not an
+// indestructible, regenerated, shield-saved or replaced-away one). C&1 is
+// NoRegen$.
+//
+//go:noinline
+func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
+	o := s.perms[sl].obj
+	if c&1 != 0 {
+		s.destroyNoRegen(k, sl)
+	} else {
+		s.destroy(k, sl)
+	}
+	if DebugRem2Always || s.objs[o].zone == kop.ZoneGraveyard {
+		s.remember(o)
+	}
+}
+
+// putCounterRemAmount is OpPutCounter with RememberAmount$ True (gorge
+// counters_put.go putCounterLanded: the recipient is remembered once per
+// counter that landed): the landed count n joins the resolution's
+// remembered count, the remCnt channel ExRememberedCount sums.
+//
+//go:noinline
+func (s *State) putCounterRemAmount(k *prep, in *kop.Instr, n int) {
+	if DebugRem2Always {
+		n = s.value(k, in.A)
+	}
+	if n > 0 {
+		s.g.remCnt += uint16(n)
+	}
+}

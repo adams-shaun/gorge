@@ -1,0 +1,92 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// "whenever you cast a spell using mana produced by
+// CARDNAME" (Barracks of the Thousand; gorge ValidSA$ Spell.ManaFromCard.
+// StrictlySelf). gorge keeps the producing source of every unit an
+// observing source (its face reads the identity) adds as a source-bearing
+// pool batch, consumes those batches first when a cast pays, and records
+// the consumed batches' sources in Object.ManaSpentSources
+// (engine/rules/cast_mana_sources.go). The kernel pays a cast by tapping the
+// planned sources into the pool and spending the pool at once, so the
+// observed source's batch is spent exactly when this cast's payment tapped
+// the source: the planner's tap sites (mana.go plan, mana_window.go windowTap)
+// record it beside the Treasure bit (noteTapSrc), and the SpellCast match
+// reads the record (castProvOK) while the cast's build is still live.
+// Guards: genPrep.castTapOn (some card carries the reader).
+
+// pcard.castSrc bits.
+const (
+	csTreasure uint8 = 1 << iota
+	csObserved
+)
+
+// prepManaSrc sets the reader's per-card marks and genPrep.castTapOn.
+func prepManaSrc(t *kop.Table, g *genPrep, p *prep) {
+	tre := false
+	for c := range t.Cards {
+		for i := range t.Cards[c].Abilities {
+			a := &t.Cards[c].Abilities[i]
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags2&kop.Tf2ManaFromSelf != 0 {
+				p.cards[c].castSrc |= csObserved
+				g.castTapOn = true
+			}
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags3&kop.Tf3ManaFromTreasure != 0 {
+				tre = true
+			}
+		}
+	}
+	if tre {
+		g.castTapOn = true
+		markTreasureSrc(t, p) // trig_validsa.go
+	}
+	g.castTapOn = g.castTapOn || g.castRingOn
+}
+
+// noteTapSrc records that the cast being built tapped the source at sl for
+// mana: a Treasure (CastSpecTreasure) and an observed source (the SpellCast
+// reader's own source). A second observed source in one cast stalls loudly.
+//
+//go:noinline
+func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
+	if pc.castSrc&csTreasure != 0 {
+		s.bld().bfl |= bflTre
+	}
+	if pc.castSrc&csObserved != 0 {
+		if s.bld().obsSl != 0 && s.bld().obsSl != sl+1 {
+			s.capFull(StallObsSrc)
+			return
+		}
+		s.bld().obsSl = sl + 1
+	}
+}
+
+// castProvOK is castTrigGen's cold gate for the cast-provenance bits
+// (Tf2CastFromHand, Tf2ManaFromSelf).
+//
+//go:noinline
+func (s *State) castProvOK(t *kop.Trigger, l trigListener, e *stackEntry) bool {
+	if t.Flags2&kop.Tf2CastFromHand != 0 && !s.castFromHandBy(e, l.ctrl) {
+		return false // trig_gravedrawn.go
+	}
+	if t.Flags2&kop.Tf2ManaFromSelf != 0 {
+		// the payment of the cast still being built tapped this very
+		// source (a stack copy or a later read never matches)
+		if debugSonManaMutate == 1 {
+			return false // test only: the reader never matches
+		}
+		if debugSonManaMutate == 2 {
+			return true // test only: the reader ignores the payment
+		}
+		return l.sl != NoSlot && s.bld().e.kind == seSpell && s.bld().e.obj == e.obj && s.bld().obsSl == l.sl+1
+	}
+	return true
+}
+
+// debugSonManaMutate is the lockstep mutation switch (test only): 1 the
+// reader never matches, 2 it matches every cast.
+var debugSonManaMutate uint8
+
+// SetDebugSonManaMutate sets the mutation switch; tests only.
+func SetDebugSonManaMutate(m uint8) { debugSonManaMutate = m }

@@ -856,6 +856,10 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		label := charmModeLabel(choices, subs, idx)
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose a mode at random: " + label})
+		if sa.API == "Charm" && GameReadsDilemmas(h.Game()) {
+			h.Emit(events.Event{Kind: events.ModeChosen, Obj: c.Source, Player: c.Controller,
+				Counter: events.DilemmaFacedAtRandom, Text: label})
+		}
 		if subs[idx] != nil {
 			Resolve(h, c, subs[idx])
 		}
@@ -1062,3 +1066,30 @@ var charmRandomChosenCodes = state.NewStrCodes(
 	state.StrEntry[charmRandomChosenCode]{Key: "True", Val: charmRandomChosenTrue},
 	state.StrEntry[charmRandomChosenCode]{Key: "Compare", Val: charmRandomChosenCompare},
 )
+
+// GameReadsDilemmas reports whether a card in g reads dilemmas: a FacesDilemma
+// trigger, or an SVar naming the trigger or the Count$YouFaceDilemmaThisTurn head.
+func GameReadsDilemmas(g *state.Game) bool {
+	for i := range g.Objs {
+		if c := g.Objs[i].Card; c != nil && cardReadsDilemmas(c) {
+			return true
+		}
+	}
+	return false
+}
+
+func cardReadsDilemmas(c *cards.Card) bool {
+	for _, f := range c.Faces {
+		for i := range f.Triggers {
+			if f.Triggers[i].ModeKind() == cards.TriggerFacesDilemma {
+				return true
+			}
+		}
+		for _, body := range f.SVars {
+			if strings.Contains(body, "FacesDilemma") || strings.Contains(body, "YouFaceDilemmaThisTurn") {
+				return true
+			}
+		}
+	}
+	return false
+}

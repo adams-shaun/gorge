@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_28602_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 3077ac0477ca4920be776b11c590f3d0:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Bushy Bodyguard, 1 Curious Forager, 1 Long River Lurker, 1 Mistbreath Elder, 1 Pond Prophet, 1 Three Tree Scribe -> 3 Island, 3 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 12
+},
+{
+"name": "Hivespine Wolverine",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Patchwork Banner",
+"count": 2
+},
+{
+"name": "Pearl of Wisdom",
+"count": 2
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 2
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+}
+]
+}

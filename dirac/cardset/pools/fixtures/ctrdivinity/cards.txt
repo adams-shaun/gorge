@@ -1,0 +1,23 @@
+# the named DIVINITY/IMPOSTOR/BORE counter pool (CR
+# 122.1): Myojin of Night's Reach (etbCounter from hand, the
+# counters_GE1 filter and the SubCounter activation) and Illicit
+# Masquerade (PutCounterAll, then the impostor dies trigger) beside
+# cheap black and green creatures, self-mill and removal, for the
+# oracle's constructed lockstep (dirac/oracle/ctrdivinity_test.go)
+# the DIVINITY, IMPOSTOR and BORE named counters (CR 122.1).
+# Myojin of Night's Reach (DIVINITY: its etbCounter from hand, the
+# indestructible counters_GE1 filter and the SubCounter activation cost) and
+# Illicit Masquerade (IMPOSTOR: PutCounterAll on each creature you control,
+# then the dies trigger's counters_GE1 read).
+Myojin of Night's Reach
+Illicit Masquerade
+# cheap black and green creatures, a self-mill outlet and removal so the
+# impostor creatures die
+Llanowar Elves
+Grizzly Bears
+Vampire Neonate
+Stitcher's Supplier
+Murder
+Doom Blade
+Swamp
+Forest

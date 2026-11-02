@@ -1,0 +1,18 @@
+# the Saga chapter with its own Cost$ pool: Summon:
+# G.F. Ifrit (may discard, if you do draw) and The Huntsman's Redemption
+# (may sacrifice a creature, if you do search) for the oracle's
+# lockstep (dirac/oracle/chapc_test.go)
+Summon: G.F. Ifrit
+The Huntsman's Redemption
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Giant Spider
+Walking Corpse
+Vampire Cutthroat
+Air Elemental
+Disperse
+Forest
+Mountain
+Island
+Swamp

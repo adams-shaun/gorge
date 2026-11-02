@@ -51,7 +51,9 @@
    * no reason why. This renders the reason as persistent text beside the
    * chips (never a hover-only tooltip), the same legibility contract the
    * pool/tap tags follow. Absent or empty, it draws exactly what the
-   * component drew before this prop existed.
+   * component drew before this prop existed. r.color is the produced unit
+   * (a WUBRGC letter, an "S<colour>" snow unit or a "<Tag><colour>" typed
+   * unit); its last letter is the colour.
    */
   let { pool, available, poolRestrictions }: {
     pool: Record<string, number> | null | undefined;
@@ -72,7 +74,7 @@
   );
   const poolSummary = $derived(held.map((h) => `${h.n} ${NAMES[h.sym]}`).join(', '));
   const availSummary = $derived(avail.map((h) => `${h.n} ${NAMES[h.sym]}`).join(', '));
-  const restrictions = $derived((poolRestrictions ?? []).filter((r) => r.text));
+  const restrictions = $derived((poolRestrictions ?? []).filter((r) => r.text).map((r) => ({ ...r, sym: r.color.slice(-1) })));
 </script>
 
 {#if avail.length > 0 || held.length > 0 || restrictions.length > 0}
@@ -103,7 +105,7 @@
         {#if restrictions.length > 0}
           <span class="restr" data-mana-restrictions>
             {#each restrictions as r, i (i)}
-              <span class="restr-item" data-mana-restriction={r.color}>{r.amount} {NAMES[r.color] ?? r.color}: {r.text}</span>
+              <span class="restr-item" data-mana-restriction={r.sym}>{r.amount} {NAMES[r.sym]}: {r.text}</span>
             {/each}
           </span>
         {/if}
@@ -115,6 +117,7 @@
 <style>
   .readout {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: var(--sp-2);
@@ -122,8 +125,10 @@
   }
   .group {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--sp-2);
+    min-width: 0;
   }
   /* The two groups are deliberately styled opposite ways so a reader cannot
      mistake mana that COULD be tapped (hollow) for mana already floating
@@ -183,14 +188,17 @@
   /* The spend limit on a floating chip is persistent text, never hover-only: a
      reader looking at a static board must be able to tell that a symbol in the
      pool cannot pay what they hold. It is set in the same data face as the
-     counts so it reads as part of the readout, not a separate aside. */
+     counts so it reads as part of the readout, not a separate aside. It takes
+     its own line and wraps, so a long limit never clips in a narrow box. */
   .restr {
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
+    flex-basis: 100%;
     gap: 0.1rem;
     min-width: 0;
   }
   .restr-item {
+    overflow-wrap: anywhere;
     font-family: var(--font-data);
     font-size: 0.6rem;
     line-height: 1.1;

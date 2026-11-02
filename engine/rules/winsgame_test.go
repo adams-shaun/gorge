@@ -4,7 +4,7 @@ package rules
 // its pinned real carrier needs. Mechanized Production is the end-to-end pin:
 // its upkeep trigger copies the enchanted artifact, then wins the game if the
 // controller has eight or more artifacts sharing a name -- the count comes
-// from `SVar:X:Count$MostCardName Artifact.YouCtrl`, the win from
+// from `X = Count$MostCardName Artifact.YouCtrl`, the win from
 // `DB$ WinsGame | Defined$ You | ConditionCheckSVar$ X | ConditionSVarCompare$
 // GE8`. The test places the real corpus card plus eight same-named artifact
 // permanents under seat 0, fires the upkeep trigger, and asserts the game ends

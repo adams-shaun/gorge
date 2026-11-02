@@ -310,6 +310,10 @@ func conditionMetCore(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	svarCmp := cp.SVarCompare.Text
 	bare := cp.Bare
 	playerTurn := cp.PlayerTurn
+	if cp.OpponentTurn && playerTurn == "" {
+		// Every other player is an opponent: there are no teams to tell apart.
+		playerTurn = "False"
+	}
 	phases := cp.Phases
 	firstCombat := cp.FirstCombat
 	activationLimit := cp.ActivationLimit
@@ -708,7 +712,9 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 			}
 			continue
 		}
-		if MatchesObjectCtx(g, memberSpec, o, memberSc) {
+		// Off the battlefield a Permanent base is the card-type test: a countered
+		// or destroyed member was a permanent spell or permanent.
+		if matchesZoneSpecObj(g, memberSpec, o, memberSc, o.Zone) {
 			count++
 		}
 	}

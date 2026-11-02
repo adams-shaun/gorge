@@ -1,0 +1,26 @@
+# the granted-ward pool (CR 702.21a-b): the Continuous statics
+# granting ward {N} (Auras, a Human anthem, a legendary-only grant) beside
+# their carriers and targeted removal (dirac/oracle/ward_test.go)
+Sheltered by Ghosts
+Combat Research
+Coppercoat Vanguard
+Hardlight Containment
+Kitsa, Otterball Elite
+Isamaru, Hound of Konda
+Thraben Inspector
+Elite Vanguard
+Ornithopter
+Savannah Lions
+Wind Drake
+Hill Giant
+Shock
+Pacifism
+Lightning Bolt
+Unsummon
+Swords to Plowshares
+Valorous Stance
+Plains
+Island
+Mountain
+Zul Ashur, Lich Lord
+Swamp

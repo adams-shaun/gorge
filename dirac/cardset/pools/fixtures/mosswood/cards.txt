@@ -1,0 +1,11 @@
+# Mosswood Dreadknight's Adventure-only graveyard permission (dirac/oracle/mosswood_test.go)
+Mosswood Dreadknight
+Grizzly Bears
+Shock
+Prodigal Sorcerer
+Hill Giant
+Suntail Hawk
+Forest
+Swamp
+Mountain
+Island

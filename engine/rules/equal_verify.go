@@ -20,11 +20,11 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 130
+	continuousEffectFieldCount = 132
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 45
+	optionFieldCount           = 46
 	grantFieldCount            = 3
 )
 
@@ -63,6 +63,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.Controller == b.Controller &&
 		a.UntilEOT == b.UntilEOT &&
 		a.FromEffect == b.FromEffect &&
+		a.PermanentsOnly == b.PermanentsOnly &&
 		cards.StringMapEqual(a.SVars, b.SVars) &&
 		a.AddPower == b.AddPower &&
 		a.AddToughness == b.AddToughness &&
@@ -127,6 +128,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.ChosenNumber == b.ChosenNumber &&
 		a.RemoveAbilities == b.RemoveAbilities &&
 		a.SourceAbilityLayer == b.SourceAbilityLayer &&
+		a.GrantedStatic == b.GrantedStatic &&
 		sliceEq(a.RemoveKeywords, b.RemoveKeywords) &&
 		sliceEq(a.CantHaveKeywords, b.CantHaveKeywords) &&
 		a.MayPlay == b.MayPlay &&
@@ -248,7 +250,7 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Obj == b.Obj &&
 		a.ManaSymbol == b.ManaSymbol &&
 		a.Counter == b.Counter &&
-		a.Player == b.Player &&
+		a.Player == b.Player && a.LandWontStay == b.LandWontStay &&
 		a.Attacker == b.Attacker &&
 		a.Battle == b.Battle &&
 		a.Required == b.Required &&

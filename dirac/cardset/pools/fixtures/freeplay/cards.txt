@@ -1,0 +1,27 @@
+# the four api:Play free-cast spellings (P1 remembered,
+# P2 targeted graveyard, P3 hand, P4 untargeted graveyard), the
+# view-only top-of-library MayLookAt statics, cheap instants and
+# sorceries for the populations, basics, for the oracle's constructed
+# lockstep (dirac/oracle/freeplay_test.go)
+The Key to the Vault
+Kotis, the Fangkeeper
+Etali, Primal Storm
+Daring Waverider
+Seifer Almasy
+The Dawning Archaic
+Buster Sword
+Baral's Expertise
+Diviner of Mist
+Daredevil, Man Without Fear
+Iron Lad, Diverging Destiny
+Shock
+Refute
+Opt
+Divination
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
+Wanda's Vision

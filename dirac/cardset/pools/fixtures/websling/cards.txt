@@ -1,0 +1,23 @@
+# the Web-slinging pool (CR 702.188): the five lowered
+# SPM carriers beside vanilla creatures (tapped by attacking), {T}:
+# creatures (mana elves, Master Decoy) so tapped creatures exist at
+# sorcery timing, Lotus Cobra (floating mana), a vigilance creature
+# and basics (dirac/oracle/websling_test.go)
+Silk, Web Weaver
+Spider-Man India
+Spider-Man, Brooklyn Visionary
+Spider-Man, Web-Slinger
+Spider-UK
+Grizzly Bears
+Savannah Lions
+Llanowar Elves
+Elvish Mystic
+Master Decoy
+Lotus Cobra
+Serra Angel
+Giant Growth
+Plains
+Forest
+Mardu Warshrieker
+Burning-Tree Emissary
+Mountain

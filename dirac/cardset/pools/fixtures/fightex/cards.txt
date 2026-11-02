@@ -1,0 +1,14 @@
+# Rhino's Rampage / The Last Agni Kai: Fight ExcessSVar$ and Effect UnspentMana Red (dirac/oracle/fightex_test.go)
+Rhino's Rampage
+The Last Agni Kai
+Grizzly Bears
+Hill Giant
+Colossal Dreadmaw
+Elite Vanguard
+Mind Stone
+Short Sword
+Soul-Guide Lantern
+Shock
+Mountain
+Forest
+Plains

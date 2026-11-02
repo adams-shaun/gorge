@@ -170,7 +170,7 @@ func TestAttackPropPaysWithAMultiAbilityChoiceSource(t *testing.T) {
 // TestNilsPricesPerAttackerCounters pins the RememberingAttacker$ shape with
 // the REAL corpus card: Nils, Discipline Enforcer's
 // `S:Mode$ CantAttackUnless | ValidCard$ Creature.HasCounters | ... |
-// Cost$ X | RememberingAttacker$ True` with `SVar:X:Remembered$CardCounters.ALL`
+// Cost$ X | RememberingAttacker$ True` with `X = Remembered$CardCounters.ALL`
 // charges each attacking creature {X} where X is THAT creature's counters.
 // The representative must be priced at {1} and the counterless sibling at {0}.
 func TestNilsPricesPerAttackerCounters(t *testing.T) {

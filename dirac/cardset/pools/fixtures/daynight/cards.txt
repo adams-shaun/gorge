@@ -1,0 +1,11 @@
+# day/night, Daybound and Nightbound
+# (dirac/oracle/daynight_test.go)
+Brutal Cathar
+Graveyard Trespasser
+Shock
+Ornithopter
+Grizzly Bears
+Plains
+Swamp
+Mountain
+Forest

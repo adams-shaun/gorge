@@ -1,0 +1,83 @@
+{
+"name": "FDN_top_16319_UR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck bbe22baeb00b4a7ea4a2e0218ad651cb:1, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Balmor, Battlemage Captain",
+"count": 1
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Chandra, Flameshaper",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "High Fae Trickster",
+"count": 1
+},
+{
+"name": "Homunculus Horde",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Kaito, Cunning Infiltrator",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 3
+},
+{
+"name": "Thrill of Possibility",
+"count": 2
+},
+{
+"name": "Tolarian Terror",
+"count": 3
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+}
+]
+}

@@ -49,6 +49,7 @@ row() {
 	else
 		echo "$cell FAIL"
 		grep -- '--- SKIP' "$log" || true
+		grep -B12 -A12 -E -- '^\s*--- FAIL' "$log" || true
 		tail -20 "$log"
 		failed=1
 	fi
@@ -88,5 +89,12 @@ row gorge/manabrew/bot 'commit nightly pr' go test -v -timeout 10m ./server/mana
 row gorge/manabrew/fuzz 'nightly' fuzz
 row gorge/v2/harness 'commit nightly pr' go test -v -timeout 15m ./server/spellbench/... ./server/host/sbv2http
 row gorge/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
+row dirac/native/harness 'commit nightly pr' tests ./testkit/conformance TestNativeWireMatchesGorge
+row dirac/native/hosted-bots 'commit nightly pr' tests ./server/gorged TestBotsPlayDiracGames
+row dirac/native/http-agent 'commit nightly pr' tests ./server/gorged TestServesADiracGame
+row dirac/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewServesADiracGame
+row dirac/manabrew/bot 'commit nightly pr' tests ./testkit/conformance TestBotThroughManaBrewOnDirac
+row dirac/v2/harness 'commit nightly pr' tests ./server/host/sbv2http TestSBV2ServesADiracGame
+row dirac/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysDiracGame
 
 exit "$failed"

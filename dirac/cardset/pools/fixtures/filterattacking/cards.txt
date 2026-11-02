@@ -1,0 +1,21 @@
+# dirac/oracle/filterattacking_test.go
+Oviya, Automech Artisan
+Archon of the Wild Rose
+Yenna, Redtooth Regent
+Key to the Side-Door
+Kindred Judgment
+Holy Strength
+Isamaru, Hound of Konda
+Glorious Anthem
+Honor of the Pure
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Elvish Mystic
+Raging Goblin
+Glory Seeker
+Shock
+Lightning Bolt
+Plains
+Forest
+Mountain

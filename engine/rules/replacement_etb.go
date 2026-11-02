@@ -36,7 +36,7 @@ import (
 // corpus, all 23 printed lines spell <N> or X) fails closed to no match --
 // the conservative direction for a counter put.
 func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
-	param, ok := e.derivedKeywordParamH(ev.Obj, kwhBloodthirst)
+	param, ok := e.enteringKeywordParam(ev.Obj, kwhBloodthirst)
 	if !ok {
 		return nil
 	}
@@ -92,7 +92,7 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 // gate, widened to cover sunburst's cast faces). An inline Count body keeps
 // this a one-line body with no SVar minted on the face.
 func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
-	if _, ok := e.derivedKeywordParamH(ev.Obj, kwhSunburst); !ok {
+	if _, ok := e.enteringKeywordParam(ev.Obj, kwhSunburst); !ok {
 		return nil
 	}
 	o := e.G.Obj(ev.Obj)
@@ -592,7 +592,7 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	var opts []decision.Option
 	for idx, p := range e.protectorOpponents(o.Controller) {
 		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
-			Label: e.G.Players[p].Name, Obj: o.ID, Player: p})
+			Label: seatFacingName(e.G, p), Obj: o.ID, Player: p})
 	}
 	if len(opts) == 0 {
 		return false

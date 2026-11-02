@@ -1,0 +1,50 @@
+# the warp pool: the Standard warp cards kgen lowers,
+# basics and the {X}/graveyard-exile support cards, for the oracle's
+# constructed lockstep (dirac/oracle/warp_test.go)
+# The Warp pool: every Standard warp card whose cost kgen
+# lowers (Broodguard Elite's X warp cost and Timeline Culler's PayLife part
+# are refused), plus basics, for the oracle's constructed lockstep
+# (dirac/oracle/warp_test.go). Blaze is a support card, not EOE: its {X}
+# lowered witness taps for the largest X, so a smaller X leaves the mana a
+# warp recast needs floating (dirac/oracle/faces_test.go). Tormod's Crypt
+# exiles a warp card from a graveyard, the non-warp exile that must get no
+# warp_recast offer. Blade of the Swarm (withWarp over exile; dirac/oracle/warp_blade_test.go) is
+# the target-an-exiled-warp-card carrier.
+All-Fates Stalker
+Anticausal Vestige
+Astelli Reclaimer
+Blaze
+Blade of the Swarm
+Bygone Colossus
+Codecracker Hound
+Drix Fatemaker
+Eusocial Engineering
+Exalted Sunborn
+Germinating Wurm
+Haliya, Guided by Light
+Knight Luminary
+Loading Zone
+Mechanozoa
+Memorial Team Leader
+Mightform Harmonizer
+Nova Hellkite
+Perigee Beckoner
+Pinnacle Emissary
+Possibility Technician
+Quantum Riddler
+Rayblade Trooper
+Red Tiger Mechan
+Sinister Cryologist
+Starbreach Whale
+Starfield Shepherd
+Starfield Vocalist
+Starwinder
+Susurian Voidborn
+Tormod's Crypt
+Weftblade Enhancer
+Weftstalker Ardent
+Plains
+Island
+Swamp
+Mountain
+Forest

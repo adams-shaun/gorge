@@ -209,8 +209,8 @@ func TestTyphoidMaryAskReplacesThePickAfterADiscard(t *testing.T) {
 // carries Random$ True.
 const randomCharmScript = "Name:Random Charm Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
 	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
-	"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ DBDraw,DBDrain\n" +
-	"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+	"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ ThenDraw,DBDrain\n" +
+	"SVar:ThenDraw:DB$ Draw | Defined$ You | NumCards$ 1\n" +
 	"SVar:DBDrain:DB$ LoseLife | Defined$ Opponent | LifeAmount$ 1 | SpellDescription$ Each opponent loses 1 life.\n" +
 	"Oracle:x\n"
 
@@ -259,8 +259,8 @@ func TestCharmRandomUnresolvableComparisonAsks(t *testing.T) {
 	t.Parallel()
 	script := "Name:Broken Compare Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
 		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
-		"SVar:TrigCharm:DB$ Charm | Random$ Compare | RandomCompareSVar$ MissingSVar | RandomCompare$ LT1 | Choices$ DBDraw,DBDrain\n" +
-		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+		"SVar:TrigCharm:DB$ Charm | Random$ Compare | RandomCompareSVar$ MissingSVar | RandomCompare$ LT1 | Choices$ ThenDraw,DBDrain\n" +
+		"SVar:ThenDraw:DB$ Draw | Defined$ You | NumCards$ 1\n" +
 		"SVar:DBDrain:DB$ LoseLife | Defined$ Opponent | LifeAmount$ 1 | SpellDescription$ Each opponent loses 1 life.\n" +
 		"Oracle:x\n"
 	e := combatEngine(t)

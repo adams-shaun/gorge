@@ -9,7 +9,7 @@ import (
 )
 
 const manaLeakSpellSrc = "Name:Mana Leak\nManaCost:U\nTypes:Instant\n" +
-	"A:SP$ Counter | TargetType$ Spell | TgtPrompt$ Select target spell | ValidTgts$ Card | SpellDescription$ Counter target spell.\nOracle:x\n"
+	"A:SP$ Counter | TargetType$ Spell | ValidTgts$ Card\nOracle:x\n"
 
 // targetSpellFixture builds the scenario: a real-corpus-shaped
 // counterspell (TargetType$ Spell + ValidTgts$ Card, no TgtZone$) in seat 0's

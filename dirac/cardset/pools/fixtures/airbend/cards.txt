@@ -1,0 +1,28 @@
+# the airbend pool: the Standard api:Airbend carriers kgen
+# lowers, bodies, a token maker and basics, for the oracle's constructed
+# lockstep (dirac/oracle/airbend_test.go)
+# The Airbend pool: the Standard api:Airbend carriers
+# kgen lowers (battlefield-permanent airbend only; Aang, Swift Savior also
+# airbends a spell and Avatar's Wrath needs a CantBeCast effect: both refuse), vanilla and cheap bodies
+# for the other side to lose, Dragon Fodder (a token to airbend, which
+# ceases to exist in exile and gets no cast), Opt and basics, for the
+# oracle's constructed lockstep (dirac/oracle/airbend_test.go).
+Aang, the Last Airbender
+Airbender Ascension
+Airbender's Reversal
+Airbending Lesson
+Appa, Loyal Sky Bison
+Glider Staff
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Lightning Bolt
+Opt
+Stroke of Genius
+Blaze
+Dragon Fodder
+Plains
+Island
+Swamp
+Mountain
+Forest

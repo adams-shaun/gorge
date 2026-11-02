@@ -14,8 +14,8 @@ func TestRelativeReduceCostTargetCountAdmitsCastOffer(t *testing.T) {
 	spellID := e.G.Zone(state.ZHand, 0)[0]
 	bear := battlePerm(t, e, 0, "Name:Target Count Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	reducer := battlePerm(t, e, 0, "Name:Battlefield Thaumaturge Fixture\nTypes:Creature Wizard\nPT:2/2\n"+
-		"S:Mode$ ReduceCost | ValidCard$ Instant.YouCtrl | Relative$ True | Type$ Spell | Amount$ ReduceCost | EffectZone$ All\n"+
-		"SVar:ReduceCost:TargetedObjectsDistinct$Valid Creature.inZoneBattlefield\nOracle:x\n")
+		"S:Mode$ ReduceCost | ValidCard$ Instant.YouCtrl | Relative$ True | Type$ Spell | Amount$ Discount | EffectZone$ All\n"+
+		"SVar:Discount:TargetedObjectsDistinct$Valid Creature.inZoneBattlefield\nOracle:x\n")
 	if e.G.Obj(spellID).Zone != state.ZHand || e.G.Obj(bear).Zone != state.ZBattlefield || e.G.Obj(reducer).Zone != state.ZBattlefield {
 		t.Fatal("precondition: spell must be in hand and creature/reducer on battlefield")
 	}

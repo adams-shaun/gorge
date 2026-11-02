@@ -1,0 +1,132 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// Spree (CR 702.172a): a modal spell whose chosen modes each add
+// an additional cost (CardDef.ModeCost). gorge rules/spree.go and
+// cast_asks.go: the cast is offered on its printed cost; at the mode ask
+// a mode whose own cost (the base plus that mode's, judged against every
+// untapped source and the pool) cannot be paid is not offered; the chosen
+// modes' costs join the total (buildCost0); a combination of individually
+// payable modes that cannot be paid together is reversed at payment
+// (CR 733.1, finishBuild). gorge's payment planner declines the face
+// ("shape:modal_cost", featview.go plannedCastCost).
+
+// spreeCost adds the chosen modes' costs to c.
+func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
+	if DebugTieredNoModeCost {
+		return c // modal_tiered.go: TestFintieredMutation
+	}
+	for m := 0; m < len(cd.ModeCost); m++ {
+		if mode&(1<<m) != 0 {
+			c = addCost(c, cd.ModeCost[m])
+		}
+	}
+	return c
+}
+
+// spreeModeAffordable: the entry being built can pay its cost with only
+// mode m chosen (gorge modeCostFeasible: base plus that mode's cost, against
+// its PotentialMana bound).
+//
+//go:noinline
+func (s *State) spreeModeAffordable(k *prep, m int) bool {
+	e := &s.bld().e
+	saved := e.mode
+	e.mode = e.mode&^0x0f | 1<<m
+	c := s.buildCost(k)
+	e.mode = saved
+	var av avail
+	s.availPotential(k, e.ctrl, &av)
+	return av.affords(&c, pipMaskOf(&c), 0)
+}
+
+// spreeAffordable: the chosen modes' total cost can be paid.
+//
+//go:noinline
+func (s *State) spreeAffordable(k *prep) bool {
+	c := s.buildCost(k)
+	var av avail
+	s.availFor(k, s.bld().e.ctrl, &av)
+	return av.affords(&c, pipMaskOf(&c), 0)
+}
+
+// spreeCastWindowAbort pays the stranded Spree cost through the window and
+// reverses the cast, leaving the window's taps and floating mana in place.
+// A Spree cast whose chosen modes cannot be paid together reaches gorge's
+// CR 601.2g mana window (the payment planner declines the face: "shape:
+// modal_cost"), which offers every useful source; the player taps them, the
+// mana floats, the cost is still unpayable and payCast aborts (CR 733.1,
+// cast_commit.go). The per-slot target ask never reaches this point: its
+// affordableTargetCandidates census filters the candidates through the same
+// window and aborts a required target before any tap (kernel cast.go's
+// bsTargets arm). The combined charm target ask has no census
+// (cast_targets.go askCharmModeTargets): when an untapped source is still
+// there the cast passes gorge's pre-target gate and pays through the
+// window; with none it is reversed at that gate (charmTargetAskDead). The
+// window half is finishBuild's, which is payCast and must run the window
+// before reversing, as loweredWindowOK does
+// (mana_pain.go). The restricted mana a source held out of
+// the payment is returned to the pool, as payCastWindow does.
+//
+//go:noinline
+func (s *State) spreeCastWindowAbort(k *prep) {
+	e := &s.bld().e
+	anyType := e.flags&sfAnyMana != 0
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	cost := s.buildCost(k)
+	_, held := s.windowTapRider(k, e.ctrl, &cost, !anyType && !anyColor, anyColor)
+	for c := range held {
+		s.pl[e.ctrl].pool[c] += held[c]
+	}
+	s.reverseCast(k) // kw_spree.go
+}
+
+// charmTargetAskDead mirrors the gate gorge's target ask runs before it
+// poses any target (cast_targets.go: a proposal whose resolved mana cost the
+// floating pool cannot pay, with no untapped mana-ability source the CR
+// 601.2g window could activate, can never complete; CR 733.1 reverses it).
+// It applies to the combined charm target ask too -- askCharmModeTargets has
+// no affordability census of its own, but this gate runs ahead of it. A
+// cast whose cost a target-dependent reduction could still pay is left
+// alive (gorge targetDependentCostMayPay).
+//
+//go:noinline
+func (s *State) charmTargetAskDead(k *prep) bool {
+	e := &s.bld().e
+	if e.kind != seSpell {
+		return false
+	}
+	cost := s.buildCost(k)
+	if s.tapPaysEntry(k, e) {
+		// gor's gate prices paymentMana, which folds the announced
+		// Convoke/Improvise/Harmonize picks in; the pool pays only the remainder
+		cost = s.convokeApplyPicks(k, cost)
+	}
+	if s.windowPoolPays(e.ctrl, &cost, s.bld().bfl&bflAnyColor != 0) {
+		return false
+	}
+	if tgtDepReduce(&k.t.Cards[e.card]) {
+		return false // a matching target can still reduce the cost
+	}
+	return !s.hasUntappedMana(k, e.ctrl)
+}
+
+// hasUntappedMana reports whether p controls an untapped mana-ability
+// source (gorge hasUntappedManaSource over pay.ManaSourceIDs).
+//
+//go:noinline
+func (s *State) hasUntappedMana(k *prep, p uint8) bool {
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		if s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+			return true
+		}
+	}
+	return false
+}

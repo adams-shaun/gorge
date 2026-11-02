@@ -108,7 +108,7 @@ func (e *Engine) AskStartingPlayer() *decision.Decision {
 	opts := make([]decision.Option, len(alive))
 	for i, p := range alive {
 		opts[i] = decision.Option{Index: i, Kind: "player",
-			Label: seatFacingName(e.G, p), Player: p}
+			Label: e.G.SeatFacingName(p), Player: p}
 	}
 	prompt := "You won the toss. Choose who takes the first turn."
 	if e.tossChoice.configured {

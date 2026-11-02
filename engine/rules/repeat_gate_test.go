@@ -4,7 +4,7 @@
 // The end-to-end pins run on the REAL corpus card Grist, the Hunger Tide,
 // whose [+1] is `AB$ Repeat | RepeatCheckSVar$ MilledInsect |
 // RepeatSVarCompare$ EQ1 | RepeatSubAbility$ CleanupBegin` with
-// `SVar:MilledInsect:Remembered$Valid Card.Insect` and a body that mills one
+// `MilledInsect = Remembered$Valid Card.Insect` and a body that mills one
 // card with RememberMilled$ True. The gate is a do-while (the body runs
 // first, then the gate decides whether to run again), re-evaluated per
 // iteration over the remembered set the body itself grows.

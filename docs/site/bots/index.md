@@ -3,7 +3,8 @@
 This section is for anyone who wants a program, not a person, to play gorge: a Go developer
 adding a policy, a Python or Java author wiring a strategy to a server, or a benchmark harness.
 This page surveys the bots gorge ships and the ways to plug one in. The pages after it walk
-through each with working code.
+through each with working code. A client plays a [dirac](../guide/dirac.md) server's seats through the
+same routes and decisions, on two-seat tables.
 
 ## The one contract every bot answers
 

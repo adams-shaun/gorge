@@ -70,6 +70,7 @@ func (e *Engine) playerLoses(p state.PlayerID, reason, text string) bool {
 func (e *Engine) losePlayer(p state.PlayerID, text string) {
 	e.emit(events.Event{Kind: events.PlayerLost, Player: p, Text: text})
 	e.initiativeHandoffOnDeparture(p)
+	e.monarchHandoffOnDeparture(p)
 }
 
 // initiativeHandoffOnDeparture implements CR 726.4: "If the player who has
@@ -94,18 +95,37 @@ func (e *Engine) initiativeHandoffOnDeparture(p state.PlayerID) {
 	if e.G.Over || !e.G.HasInitiative || e.G.Initiative != p {
 		return
 	}
-	next := e.G.Active
-	if !(int(next) >= 0 && int(next) < len(e.G.Players) && next != p && !e.G.Players[next].Lost) {
-		next = e.G.NextAlive(p) // next in turn order that is still in the game
-	}
-	if next == p || e.G.Players[next].Lost {
-		// No other seat can take the designation; leave it unset rather
-		// than hand it to a seat that has left the game.
+	next, ok := e.designationHeir(p)
+	if !ok {
 		return
 	}
 	e.emit(events.Event{Kind: events.InitiativeChange, Player: next})
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Controller: next, InitiativeVenture: true})
+}
+
+// monarchHandoffOnDeparture is CR 725.4: if the monarch leaves the game, the
+// active player becomes the monarch at the same time, or the next player in turn
+// order when the active player is leaving. Its two callers are the initiative's.
+func (e *Engine) monarchHandoffOnDeparture(p state.PlayerID) {
+	if e.G.Over || !e.G.HasMonarch || e.G.Monarch != p {
+		return
+	}
+	if next, ok := e.designationHeir(p); ok {
+		e.emit(events.Event{Kind: events.MonarchChange, Player: next})
+	}
+}
+
+// designationHeir is who inherits a designation from departing player p: the
+// active player, else the next player in turn order still in the game. It reports
+// false when no other seat is left; the designation stays unset rather than naming
+// a seat that has left.
+func (e *Engine) designationHeir(p state.PlayerID) (state.PlayerID, bool) {
+	next := e.G.Active
+	if !(int(next) >= 0 && int(next) < len(e.G.Players) && next != p && !e.G.Players[next].Lost) {
+		next = e.G.NextAlive(p)
+	}
+	return next, next != p && !e.G.Players[next].Lost
 }
 
 // playerWins is the one funnel for an alternate win ("you win the game", the

@@ -497,49 +497,11 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	if int(i) < len(payers) && payers[i].IsPlayer {
 		payer = payers[i].Player
 	}
-	pay := unlessPayPhrase(cost)
-	prompt, payLabel, declineLabel := pay+", or decline", pay, "Don't pay"
-	switch sa.APIKind() {
-	case cards.APICounter:
-		prompt = pay + " to save the spell, or decline"
-		payLabel = pay + " — don't counter"
-	case cards.APICopySpellAbility:
-		if ActivationOf(sa).Has(ActUnlessSwitched) {
-			prompt = pay + " to copy the spell, or decline"
-			payLabel = pay + " — make a copy"
-		} else {
-			prompt = pay + " to stop the copy, or decline to copy"
-			payLabel = pay + " — no copy"
-			declineLabel = "Don't pay — make a copy"
-		}
-	default:
-		if n, dmg := ParseDamageUnlessCost(cost); dmg {
-			// The damage-payment offer (Vexing Devil, Longhorn Firebeast —
-			// the Sacrifice UnlessSwitched$ True population): "paying" is
-			// taking the damage, so the labels must say so, never "Pay the
-			// cost". The unswitched shape (no corpus carrier today) mirrors the
-			// plain unless orientation.
-			name := "The permanent"
-			if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
-				name = o.Face().Name
-			}
-			payLabel = "Take " + strconv.Itoa(n) + " damage"
-			switch {
-			case sa.API != "Sacrifice":
-				// Any other API (Combustion Man's Destroy, Browbeat's Draw):
-				// the orientation is the effect's own, so the wording stays
-				// neutral.
-				prompt = "Take " + strconv.Itoa(n) + " damage from " + name + ", or decline"
-				declineLabel = "Don't"
-			case ActivationOf(sa).Has(ActUnlessSwitched):
-				prompt = name + " deals " + strconv.Itoa(n) + " damage to you — accept?"
-				declineLabel = "Refuse — it stays"
-			default:
-				prompt = name + " — take " + strconv.Itoa(n) + " damage to spare it, or sacrifice it"
-				declineLabel = "Sacrifice it"
-			}
-		}
+	name := "The permanent"
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		name = o.Face().Name
 	}
+	prompt, payLabel, declineLabel := UnlessWording(sa, cost, name)
 	// Rules hosts prove whether the pay branch is reachable (floating mana
 	// plus the sources the payment window can tap, and the choice-bearing
 	// Sac/Discard/Reveal/Draw/RevealChosen/SubCounter components).
@@ -839,6 +801,54 @@ func sortTargets(ts []state.Target, rank map[state.PlayerID]int) {
 	}
 }
 
+// UnlessWording is what an unless-cost ask says: its prompt and its two options, for
+// sa's cost as resolved, source naming the permanent a damage offer is about.
+func UnlessWording(sa *cards.SA, cost, name string) (prompt, payLabel, declineLabel string) {
+	pay := unlessPayPhrase(cost)
+	prompt, payLabel, declineLabel = pay+", or decline", pay, "Don't pay"
+	switch sa.APIKind() {
+	case cards.APICounter:
+		prompt = pay + " to save the spell, or decline"
+		payLabel = pay + " — don't counter"
+	case cards.APICopySpellAbility:
+		if ActivationOf(sa).Has(ActUnlessSwitched) {
+			prompt = pay + " to copy the spell, or decline"
+			payLabel = pay + " — make a copy"
+		} else {
+			prompt = pay + " to stop the copy, or decline to copy"
+			payLabel = pay + " — no copy"
+			declineLabel = "Don't pay — make a copy"
+		}
+	default:
+		if n, dmg := ParseDamageUnlessCost(cost); dmg {
+			// The damage-payment offer (Vexing Devil, Longhorn Firebeast —
+			// the Sacrifice UnlessSwitched$ True population): "paying" is
+			// taking the damage, so the labels must say so, never "Pay the
+			// cost". The unswitched shape (no corpus carrier today) mirrors the
+			// plain unless orientation.
+			payLabel = "Take " + strconv.Itoa(n) + " damage"
+			switch {
+			case sa.API != "Sacrifice":
+				// Any other API (Combustion Man's Destroy, Browbeat's Draw):
+				// the orientation is the effect's own, so the wording stays
+				// neutral.
+				prompt = "Take " + strconv.Itoa(n) + " damage from " + name + ", or decline"
+				declineLabel = "Don't"
+			case ActivationOf(sa).Has(ActUnlessSwitched):
+				prompt = name + " deals " + strconv.Itoa(n) + " damage to you — accept?"
+				declineLabel = "Refuse — it stays"
+			default:
+				prompt = name + " — take " + strconv.Itoa(n) + " damage to spare it, or sacrifice it"
+				declineLabel = "Sacrifice it"
+			}
+		}
+	}
+	return prompt, payLabel, declineLabel
+}
+
+// UnlessPayPhrase is the words of paying cost.
+func UnlessPayPhrase(cost string) string { return unlessPayPhrase(cost) }
+
 // unlessPayPhrase is the imperative a player-facing unless ask leads with:
 // "Pay <unlessCostLabel>", except for a single-object sacrifice, which reads
 // as the action itself ("Sacrifice a land", Chain of Silence's switched copy
@@ -1081,3 +1091,14 @@ var unlessPayerTargetsCodes = state.NewStrCodes(
 	state.StrEntry[unlessPayerTargetsCode]{Key: "TriggeredAttackingPlayer", Val: unlessPayerTargetsTriggeredAttackingPlayer},
 	state.StrEntry[unlessPayerTargetsCode]{Key: "TriggeredAttackerController", Val: unlessPayerTargetsTriggeredAttackingPlayer},
 )
+
+// AmountAwaitsCost reports whether a dynamic amount reads what paying a cost will name:
+// asked before the cost is paid (CR 601.2c before 601.2h) it has no value yet.
+func AmountAwaitsCost(body string) bool {
+	for _, word := range []string{"Sacrificed$", "Discarded$", "Exiled$", "Revealed$"} {
+		if strings.Contains(body, word) {
+			return true
+		}
+	}
+	return false
+}

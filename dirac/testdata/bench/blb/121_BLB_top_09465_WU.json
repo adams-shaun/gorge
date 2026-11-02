@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_09465_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 06d86d3607f94df39924a98bf5c6c3d1:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Builder's Talent, 1 Jackdaw Savior, 1 Kastral, the Windcrested, 1 Mockingbird, 1 Salvation Swan, 1 Waterspout Warden -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Lupinflower Village",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 3
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 1
+}
+]
+}

@@ -1,0 +1,4 @@
+# a discard over several target players, for the oracle's constructed lockstep
+# (dirac/oracle/tgtdiscard_test.go)
+Swamp
+Tinybones Joins Up

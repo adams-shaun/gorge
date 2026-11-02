@@ -1,0 +1,12 @@
+# exile several targets and return them all, some entries asking (a clone), for
+# the oracle's constructed lockstep (dirac/oracle/returnrem_test.go)
+Attercop
+Clone
+Displace
+Elvish Visionary
+Forest
+Ghostly Flicker
+Grizzly Bears
+Island
+Lake-town Mariners
+Ornithopter

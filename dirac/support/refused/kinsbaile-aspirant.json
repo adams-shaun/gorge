@@ -1,0 +1,13 @@
+{
+  "card": "Kinsbaile Aspirant",
+  "class": "options",
+  "why": "the engines offer different options; 35 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1490,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

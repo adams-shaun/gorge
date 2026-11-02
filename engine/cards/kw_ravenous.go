@@ -24,11 +24,10 @@ func kwRavenous(f *Face, i int, k, head, param string, has func(kind, line strin
 	//     SBA sees the counters. This is the same shape kw:etbCounter
 	//     (engine/cards/kw_etbcounter.go) uses.
 	//
-	//   - the X>=5 draw is a ChangesZone self-entry trigger whose Draw body
-	//     is gated on the same count through the shared SVar-condition
-	//     engine (engine/effects/conditions.go's ConditionCheckSVar$ +
-	//     ConditionSVarCompare$, the Forge pair). The oracle says "draw a
-	//     card when it enters", so a trigger is the right shape here.
+	//   - the X>=5 draw is a ChangesZone self-entry trigger with the count as
+	//     its intervening if (CR 702.156a, 603.4: "When this permanent enters,
+	//     if X is 5 or more, draw a card"), so a smaller X puts nothing on the
+	//     stack.
 	//
 	// X is the {X} the cast paid, read by Count$xPaid from the moving object
 	// (the replacement's Ctx.X) and, for the draw trigger, from the trigger's
@@ -60,9 +59,9 @@ func kwRavenous(f *Face, i int, k, head, param string, has func(kind, line strin
 	}
 	if !has("T", k) {
 		draw := "__kwRavenousDraw" + strconv.Itoa(i)
-		f.setSVar(draw, "DB$ Draw | NumCards$ 1 | ConditionCheckSVar$ "+x+" | ConditionSVarCompare$ GE5")
+		f.setSVar(draw, "DB$ Draw | NumCards$ 1")
 		p := parseParams("Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self" +
-			" | Execute$ " + draw + " | Keyword$ Ravenous | TriggerDescription$ Ravenous")
+			" | CheckSVar$ " + x + " | SVarCompare$ GE5 | Execute$ " + draw + " | Keyword$ Ravenous | TriggerDescription$ Ravenous")
 		p["KeywordLine"] = k
 		f.Triggers = append(f.Triggers, Trigger{Mode: p["Mode"], Params: p})
 	}

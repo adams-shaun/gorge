@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_30978_UBpR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 5bed0333838c4eb4869f5cb81135c61b:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 2 Dazzling Denial, 1 Nocturnal Hunger, 1 Persistent Marshstalker, 1 Valley Floodcaller -> 3 Island, 3 Swamp",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mind Drill Assailant",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 2
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Pearl of Wisdom",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Tempest Angler",
+"count": 2
+},
+{
+"name": "Tidecaller Mentor",
+"count": 2
+}
+]
+}

@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_24215_WB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck f08f95e958bc40bdb7dfc8ac47b8a220:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Arbiter of Woe",
+"count": 1
+},
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 3
+},
+{
+"name": "Dazzling Angel",
+"count": 2
+},
+{
+"name": "Elenda, Saint of Dusk",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Guarded Heir",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 1
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+}
+]
+}

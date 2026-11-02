@@ -1,0 +1,20 @@
+# Plaza of Heroes (reflected mana beside {C} and a restricted
+# any colour) (dirac/oracle/plaza_test.go)
+Plaza of Heroes
+Isamaru, Hound of Konda
+Happy Hogan, Dauntless Driver
+Aziza, Mage Tower Captain
+Caelorna, Coral Tyrant
+Haru, Hidden Talent
+Kalakscion, Hunger Tyrant
+Jasmine Boreal
+Savannah Lions
+Grizzly Bears
+Llanowar Elves
+Shock
+Cackling Prowler
+Plains
+Mountain
+Forest
+Island
+Swamp

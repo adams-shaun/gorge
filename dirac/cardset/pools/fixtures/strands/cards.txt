@@ -1,0 +1,14 @@
+# the Prismatic Strands pool: a chosen colour's damage
+# prevented, flashback by tapping a white creature
+# (dirac/oracle/strands_test.go)
+Prismatic Strands
+Savannah Lions
+Serra Angel
+Plains
+Lightning Bolt
+Shock
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Mountain
+Forest

@@ -6,8 +6,7 @@ decks and bots, filing a bug report from a game, and what you are exposed to on 
 You need the corpus and the browser client from [Install and build](install.md); the client
 has to be built before `gorged` is.
 
-The commands and responses are from 2026-10-31, and the screenshots from 2026-10-20. The
-client's behaviour was checked against its source in `web/src`.
+The commands and responses are from 2026-11-02, and the screenshots from 2026-10-20.
 
 ## Play against a bot
 
@@ -282,21 +281,34 @@ with it armed.
 
 A server can let you ask a bot what it makes of the decision in front of you. It is off by default: start
 the server with `-paired-bot az-closed`, then turn on **Paired bot** at the top of the rail. Your browser
-remembers the switch, and it starts off.
+remembers the switch, and it starts off. When you start a game against a bot, the **Paired bot** picker chooses
+for that game: the server's default, another bot the server offers, or none, which takes the panel away. A
+restart keeps the choice.
 
-For each of your decisions the panel shows the bot's search, in the same table a [review](replays.md) uses:
-the candidates, how many simulations each got, the prior, the value (Q) and the value of the position, with
-the one it would pick marked. It only advises. Pressing a row does nothing, and you still answer.
+For each of your decisions the panel lists the options the search weighed, each with the share of its lines
+that looked at it and its estimated chance of winning, and marks the one it recommends. It also marks what the
+bot's own rules would do without searching, and says when search overrules them; a setting in the panel turns
+that off, and your browser remembers it. It only advises.
+Pressing a row does nothing, and you still answer. If you answer differently, a note in the panel and in
+your game log gives both estimates. The notes are your browser's alone; they aren't in a replay or a review.
 
-The bot sees what you can see: your deck list and everything you've seen in this game. It can't see your
-opponent's hand, the order of any library or your opponent's deck list. It guesses those cards from a set of
-decks, so when it's wrong about what your opponent holds, its advice is wrong too. It evaluates priority,
-attackers, blockers and single targets. For any other decision it says so, and it refuses a decision in the
-middle of an effect resolving.
+**What the numbers mean.** Each line plays on from this decision with a fresh guess at the cards you can't
+see, until the game ends or the search stops and scores the position by life, cards in hand and the board.
+*Search looked at 100 lines* counts those lines, and an estimate averages where the lines through that option
+ended up. It's a guide to how the options compare, not a measured win rate.
+
+If the game moves on while the bot is thinking, the panel says the advice is out of date and offers to ask again.
+The next decision asks by itself.
+
+**What the bot can't see.** It sees what you can see: your deck list and everything you've seen in this game.
+It can't see your opponent's hand, the order of any library or your opponent's deck list. It guesses those
+cards from a set of decks, so when it's wrong about what your opponent holds, its advice is wrong too. It
+weighs priority, attackers, blockers and single targets. For any other decision it says so, and it refuses a
+decision in the middle of an effect resolving.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-paired-bot NAME` | off | `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary |
+| `-paired-bot NAME` | off | The default paired bot: `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary. Without it, no game can choose one. With it, a game can also choose `az-closed` or any such policy |
 | `-paired-bot-sims N` | 100 | simulations per request (`az-closed`) |
 | `-paired-bot-decks DIR` | the server's constructed decks | the decks it guesses from (`az-closed`) |
 | `-paired-bot-searches N` | 2 | searches at once across the server; further requests wait |
@@ -387,7 +399,7 @@ listener is loopback, and a proxy in front of it would expose it anyway.
 | `-events`, `-max-events` | host [draft events](draft.md) |
 | `-manabrew`, `-manabrew-addr`, `-manabrew-think` | serve the ManaBrew wire, on the main listener or a separate address, with an optional human-seat think timeout |
 | `-sbv2` | serve SpellBench v2 seats over HTTP ([SpellBench v2](../api/spellbench-v2.md)) |
-| `-engine` | the engine tables run on; a plain build links only `gorge` |
+| `-engine`, `-dirac-sets` | the engine tables run on, `gorge` or `dirac`, and dirac's card sets ([Serving dirac](dirac.md)) |
 | `-prewarm-art-only`, `-prewarm-art-budget`, `-prewarm-art-max-consecutive-failures` | fill the art cache and exit, with optional limits |
 | `-allow-decklist-bots` | lets a binary that links a trained-network bot run one that reads opponents' deck lists, on its bot-only table. A plain `gorged` links none |
 

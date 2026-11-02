@@ -1,0 +1,22 @@
+# the BLB layer-row pool: the AddType / base-P/T override /
+# RemoveKeyword / control-Aura / until-your-next-turn carriers beside
+# artifacts, flyers and removal, for the oracle's constructed lockstep
+# (dirac/oracle/layerrows_test.go)
+Azure Beastbinder
+Tightening Coils
+Control Magic
+Ensoul Artifact
+Kasmina's Transmutation
+Darksteel Relic
+Wind Drake
+Grizzly Bears
+Shock
+Doom Blade
+Gray Ogre
+Hill Giant
+Walking Corpse
+Goblin Piker
+Island
+Forest
+Swamp
+Mountain

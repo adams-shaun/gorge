@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_28107_UB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 3c98c1d969d44d0389759775bc74325d:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bake into a Pie",
+"count": 2
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Clinquant Skymage",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 1
+},
+{
+"name": "Erudite Wizard",
+"count": 1
+},
+{
+"name": "Essence Scatter",
+"count": 2
+},
+{
+"name": "Extravagant Replication",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Hungry Ghoul",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Kiora, the Rising Tide",
+"count": 1
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mocking Sprite",
+"count": 1
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 1
+},
+{
+"name": "Vampire Nighthawk",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+}
+]
+}

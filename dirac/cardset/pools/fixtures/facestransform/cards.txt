@@ -1,0 +1,43 @@
+# the transforming DFC pool: the non-token
+# transforming cards kgen lowers (SetState Transform Self, ChangeZone
+# Transformed$ True, Mode$ Transformed), an Incubate carrier and a
+# PredCMC removal, basics and vanilla creatures, for the kernel's
+# scenario tests and the oracle's constructed lockstep
+Dowsing Device
+Cecil, Dark Knight
+Exdeath, Void Warlock
+Sidequest: Card Collection
+Sidequest: Hunt the Mark
+Vincent Valentine
+Befriending the Moths
+Boseiju Reaches Skyward
+Era of Enlightenment
+Life of Toshiro Umezawa
+Michiko's Reign of Truth
+Okiba Reckoner Raid
+Tales of Master Seshiro
+Teachings of the Kirin
+The Modern Age
+The Restoration of Eiganjo
+The Shattered States Era
+Dion, Bahamut's Dominant
+Garland, Knight of Cornelia
+Jecht, Reluctant Guardian
+Sidequest: Raise a Chocobo
+Norn's Inquisitor
+Converter Beast
+Tyrant's Scorn
+Mountain
+Forest
+Plains
+Island
+Swamp
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Savannah Lions
+Coral Merfolk
+Treasure Map
+Grasping Shadows

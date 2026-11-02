@@ -279,7 +279,7 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 		if t.IsPlayer {
 			o.Kind, o.Player = "player", t.Player
 			if p := h.Game(); int(t.Player) < len(p.Players) {
-				label = p.Players[t.Player].Name
+				label = p.SeatFacingName(t.Player)
 			}
 			owner = t.Player
 		} else {

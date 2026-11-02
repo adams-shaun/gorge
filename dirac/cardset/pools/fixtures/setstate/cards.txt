@@ -1,0 +1,13 @@
+# the SetState Transform pool: Monica Rambeau (flying
+# prowess, {2}{R}{W}{W} turns her to Photon, Living Light) beside
+# noncreature spells for her prowess and Photon's trigger, red and
+# white creatures and basics (dirac/oracle/setstate_test.go)
+Monica Rambeau
+Shoulder to Shoulder
+Expedition Raptor
+Hill Giant
+Gray Ogre
+Goblin Diplomats
+Swords to Plowshares
+Plains
+Mountain

@@ -1,0 +1,31 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abzan Falconer
+1	card	Ainok Bond-Kin
+2	card	Arcane Signet
+3	card	Boomerang Basics
+4	card	Bristlepack Sentry
+5	card	Colossal Dreadmaw
+6	card	Craw Wurm
+7	card	Demon Wall
+8	card	Earth Elemental
+9	card	Forest
+10	card	Grizzly Bears
+11	card	Hill Giant
+12	card	Island
+13	card	Lightning Strike
+14	card	Mechan Shieldmate
+15	card	Mind Stone
+16	card	Mountain
+17	card	Plains
+18	card	Platypus-Bear
+19	card	Prosperous Innkeeper
+20	card	Serra Angel
+21	card	Shipwreck Sentry
+22	card	Shock
+23	card	Sol Ring
+24	card	Swamp
+25	card	Thraben Inspector
+26	card	Tireless Tracker
+27	token	c_a_clue_draw
+28	token	c_a_treasure_sac
+29	card	Battlegrowth

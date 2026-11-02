@@ -1,0 +1,13 @@
+{
+  "card": "Piercing Exhale",
+  "class": "options",
+  "why": "the engines offer different options; 3 games in the corpus",
+  "repro": {
+    "pool": "std-tdm",
+    "surface": "full",
+    "seed": 1,
+    "pair": 912,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,19 @@
+# activation PlayerTurn$ True beside a CheckSVar$:
+# Essence Anchor (a token only on your turn after a card left your
+# graveyard) beside return-from-graveyard spells, a flashback spell,
+# self-mill and basics (dirac/oracle/actyt_test.go)
+Essence Anchor
+Raise Dead
+Gravedigger
+Think Twice
+Armored Skaab
+Mulch
+Lightning Bolt
+Grizzly Bears
+Opt
+Sign in Blood
+Island
+Swamp
+Forest
+Mountain
+Plains

@@ -25,16 +25,16 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// shadrixScript is shadrix_silverquill.txt's script, verbatim except the
-// Oracle line (display text) and the deck-related rider.
+// shadrixScript states Shadrix Silverquill's combat trigger: choose two of
+// three modes, each targeting a different player, without the deck-related rider.
 const shadrixScript = "Name:Shadrix Silverquill\nManaCost:3 W B\nTypes:Legendary Creature Elder Dragon\nPT:2/5\n" +
 	"K:Flying\nK:Double Strike\n" +
-	"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigCharm | TriggerDescription$ At the beginning of combat on your turn, you may ABILITY\n" +
-	"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Optional$ True | Choices$ Token,Card,Counters | AdditionalDescription$ Each mode must target a different player.\n" +
-	"SVar:Token:DB$ Token | ValidTgts$ Player | TargetUnique$ True | TgtPrompt$ Select target player to create a 2/1 white and black inkling creature token with flying | TokenScript$ wb_2_1_inkling_flying | TokenOwner$ ThisTargetedPlayer | SpellDescription$ Target player creates a 2/1 white and black Inkling creature token with flying.\n" +
-	"SVar:Card:DB$ Draw | ValidTgts$ Player | TargetUnique$ True | TgtPrompt$ Select target player to draw a card and lose 1 life | SubAbility$ DBLoseLife | SpellDescription$ Target player draws a card and loses 1 life.\n" +
-	"SVar:DBLoseLife:DB$ LoseLife | Defined$ ParentTarget | LifeAmount$ 1\n" +
-	"SVar:Counters:DB$ PutCounterAll | ValidTgts$ Player | Placer$ TargetedPlayer | TargetUnique$ True | TgtPrompt$ Select target player to put a +1/+1 counter on each creature they control | ValidCards$ Creature.TargetedPlayerCtrl | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ Target player puts a +1/+1 counter on each creature they control.\n" +
+	"T:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ OnCharm\n" +
+	"SVar:OnCharm:DB$ Charm | CharmNum$ 2 | Optional$ True | Choices$ Token,Card,Counters\n" +
+	"SVar:Token:DB$ Token | ValidTgts$ Player | TargetUnique$ True | TokenScript$ wb_2_1_inkling_flying | TokenOwner$ ThisTargetedPlayer | SpellDescription$ An Inkling for target player.\n" +
+	"SVar:Card:DB$ Draw | ValidTgts$ Player | TargetUnique$ True | SubAbility$ ThenLoseLife | SpellDescription$ Target player draws, then loses 1 life.\n" +
+	"SVar:ThenLoseLife:DB$ LoseLife | Defined$ ParentTarget | LifeAmount$ 1\n" +
+	"SVar:Counters:DB$ PutCounterAll | ValidTgts$ Player | Placer$ TargetedPlayer | TargetUnique$ True | ValidCards$ Creature.TargetedPlayerCtrl | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ A +1/+1 counter on each creature target player controls.\n" +
 	"Oracle:x\n"
 
 const inklingScript = "Name:Inkling\nManaCost:\nTypes:Token Creature Inkling\nPT:2/1\nK:Flying\nOracle:x\n"
@@ -47,8 +47,8 @@ const vanillaCreatureScript = "Name:Vanilla\nManaCost:1 G\nTypes:Creature Bear\n
 // on its own target.
 func duoCharmScript() string {
 	return "Name:Duo\nManaCost:1 U\nTypes:Creature Mutant Ninja Human Turtle\nPT:2/2\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enter, ABILITY\n" +
-		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ MReturn,MLife | AdditionalDescription$ Each mode must target a different player.\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnCharm\n" +
+		"SVar:OnCharm:DB$ Charm | CharmNum$ 2 | Choices$ MReturn,MLife | AdditionalDescription$ Each mode must target a different player.\n" +
 		"SVar:MReturn:DB$ ChangeZone | ValidTgts$ Player | TargetUnique$ True | Hidden$ True | Mandatory$ True | ChangeType$ Creature.OwnedBy ThisTargetedPlayer | ChangeTypeDesc$ creature | ChangeNum$ 1 | Origin$ Graveyard | Destination$ Hand | SpellDescription$ Target player returns a creature card from their graveyard to their hand.\n" +
 		"SVar:MLife:DB$ LoseLife | ValidTgts$ Player | TargetUnique$ True | LifeAmount$ 3 | SpellDescription$ Target player loses 3 life.\n" +
 		"Oracle:x\n"
@@ -291,8 +291,8 @@ func TestCrossModeCharmModesSurviveTheMidModeSuspension(t *testing.T) {
 func TestCrossModeCharmSacrificeReentryKeepsItsOwnTarget(t *testing.T) {
 	t.Parallel()
 	lich := "Name:LichC\nManaCost:1 B\nTypes:Creature Zombie\nPT:2/2\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enter, ABILITY\n" +
-		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ MSac,MLife | AdditionalDescription$ Each mode must target a different player.\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnCharm\n" +
+		"SVar:OnCharm:DB$ Charm | CharmNum$ 2 | Choices$ MSac,MLife | AdditionalDescription$ Each mode must target a different player.\n" +
 		"SVar:MSac:DB$ Sacrifice | ValidTgts$ Player | TargetUnique$ True | SacValid$ Creature | SpellDescription$ Target player sacrifices a creature.\n" +
 		"SVar:MLife:DB$ LoseLife | ValidTgts$ Player | TargetUnique$ True | LifeAmount$ 3 | SpellDescription$ Target player loses 3 life.\n" +
 		"Oracle:x\n"
@@ -366,8 +366,8 @@ func TestCrossModeCharmSacrificeReentryKeepsItsOwnTarget(t *testing.T) {
 func TestCrossModeUnsupportedShapeStaysLoudAndNarrow(t *testing.T) {
 	t.Parallel()
 	mixed := "Name:Mixed\nManaCost:1 U\nTypes:Creature Human\nPT:2/2\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enter, ABILITY\n" +
-		"SVar:TrigCharm:DB$ Charm | CharmNum$ 2 | Choices$ MLife,MDrain | AdditionalDescription$ x\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnCharm\n" +
+		"SVar:OnCharm:DB$ Charm | CharmNum$ 2 | Choices$ MLife,MDrain | AdditionalDescription$ x\n" +
 		"SVar:MLife:DB$ LoseLife | ValidTgts$ Player | TargetUnique$ True | LifeAmount$ 2 | SpellDescription$ Target player loses 2 life.\n" +
 		"SVar:MDrain:DB$ Draw | ValidTgts$ Opponent | TargetUnique$ True | NumCards$ 1 | SpellDescription$ Target opponent draws a card.\n" +
 		"Oracle:x\n"

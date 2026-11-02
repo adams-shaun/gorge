@@ -113,7 +113,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 		}
 	}
 	if v, ok := t.Param(cards.PKActivatorThisTurnCast); ok {
-		if !CompareIntCount(int32(e.SpellsCastThisTurn(ev.Player)), v) {
+		if !CompareIntCount(int32(activatorCastCount(e, ev.Player, ctrl, castAlts)), v) {
 			return false
 		}
 	}
@@ -1014,6 +1014,28 @@ func triggerCastAlternatives(e Board, rawSpec string, source, castObj state.ObjI
 		return nil, false
 	}
 	return alts, true
+}
+
+// activatorCastCount is the count ActivatorThisTurnCast$ compares: activator's
+// spells this turn that match ValidCard$, the current cast included, so "your
+// first noncreature spell each turn" looks past the creature spells cast before
+// it. A ValidCard$ that every spell of theirs matches reads the turn's tally.
+func activatorCastCount(e Board, activator, ctrl state.PlayerID, alts []triggerCastAlt) int {
+	spec := ""
+	for i, alt := range alts {
+		switch alt.spec {
+		case "Card", "Card.YouCtrl":
+			return e.SpellsCastThisTurn(activator)
+		}
+		if i > 0 {
+			spec += ","
+		}
+		spec += alt.spec
+	}
+	if spec == "" {
+		return e.SpellsCastThisTurn(activator)
+	}
+	return e.SpellsCastThisTurnByMatching(activator, ctrl, spec)
 }
 
 // spellsCastThisTurnByMatching counts player p's spells cast this turn whose

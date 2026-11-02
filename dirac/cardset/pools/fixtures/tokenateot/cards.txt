@@ -1,0 +1,17 @@
+# the created-token AtEOT$ rider pool: Kavaron Harrier
+# (SacrificeCombat), Harried Dronesmith (YourSacrifice) and Old Hob,
+# Alleycat Blues (Destroy), with vanilla and evasive creatures and Shock,
+# for the oracle's constructed lockstep
+# (dirac/oracle/tokenateot_test.go)
+Goblin Piker
+Harried Dronesmith
+Hill Giant
+Kavaron Harrier
+Mountain
+Old Hob, Alleycat Blues
+Plains
+Raging Goblin
+Savannah Lions
+Serra Angel
+Shock
+Suntail Hawk

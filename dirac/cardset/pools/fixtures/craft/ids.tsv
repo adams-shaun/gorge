@@ -1,0 +1,14 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Clay-Fired Bricks
+1	card	Forest
+2	card	Grizzly Bears
+3	card	Hill Giant
+4	card	Mountain
+5	card	Ornithopter
+6	card	Plains
+7	card	Savannah Lions
+8	card	Shock
+9	card	Spring-Loaded Sawblades
+10	card	face:Clay-Fired Bricks#1
+11	card	face:Spring-Loaded Sawblades#1
+12	token	c_1_1_a_gnome

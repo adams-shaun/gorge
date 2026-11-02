@@ -1,0 +1,13 @@
+{
+  "card": "Endrider Spikespitter",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 3 games in the corpus",
+  "repro": {
+    "pool": "std-dft",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 917,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -260,4 +261,36 @@ func CorpusRegistry(t testing.TB) *cards.Registry {
 		t.Fatalf("%v", result.err)
 	}
 	return result.reg
+}
+
+// DeckDirNames lists the .json decks of dir, by name, sorted.
+func DeckDirNames(t testing.TB, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		if name, ok := strings.CutSuffix(e.Name(), ".json"); ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// DeckDirNamesPlaying is DeckDirNames without the decks check turns away.
+func DeckDirNamesPlaying(t testing.TB, reg *cards.Registry, dir string, check func([]*cards.Card) error) []string {
+	t.Helper()
+	var out []string
+	for _, name := range DeckDirNames(t, dir) {
+		_, d, err := deck.Load(reg, filepath.Join(dir, name+".json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if check(d) == nil {
+			out = append(out, name)
+		}
+	}
+	return out
 }

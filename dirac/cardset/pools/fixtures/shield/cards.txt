@@ -1,0 +1,44 @@
+# the SHIELD counter pool (shield, CR 122.1c): the shield-counter
+# carriers beside burn, destroy, sweepers and big attackers, for the
+# oracle's constructed lockstep (dirac/oracle/shield_test.go)
+Boon of Safety
+Brokers Veteran
+Brotherhood Outcast
+Captain America, Super-Soldier
+Dapper Shieldmate
+Disciplined Duelist
+Family's Favor
+Protection Magic
+Proud Pack-Rhino
+Rhox Pummeler
+Singer of Swift Rivers
+Swooping Protector
+Voice of the Vermin
+Wingshield Agent
+Shock
+Lightning Bolt
+Murder
+Doom Blade
+Wrath of God
+Day of Judgment
+Pyroclasm
+Prodigal Pyromancer
+Typhoid Rats
+Hill Giant
+Gray Ogre
+Craw Wurm
+Grizzly Bears
+Savannah Lions
+Giant Spider
+Serra Angel
+Prickleboar
+Ajani's Pridemate
+Llanowar Elves
+Mountain
+Forest
+Plains
+Island
+Swamp
+Crystal Barricade
+Fleeting Flight
+Twinflame Tyrant

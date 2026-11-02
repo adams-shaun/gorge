@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_14749_WGpUB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 5cbafebdf38644138e0ffa97e4623d85:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Brambleguard Veteran, 1 Head of the Homestead, 1 Jolly Gerbils, 1 Nettle Guard, 1 Repel Calamity, 1 Rust-Shield Rampager -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Burrowguard Mentor",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "High Stride",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Tangle Tumbler",
+"count": 1
+},
+{
+"name": "Thistledown Players",
+"count": 1
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

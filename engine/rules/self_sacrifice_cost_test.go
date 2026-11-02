@@ -8,12 +8,12 @@ import (
 )
 
 const floodedStrandSrc = "Name:Flooded Strand\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ ChangeZone | Cost$ T PayLife<1> Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | ChangeType$ Plains,Island | SpellDescription$ Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.\n" +
+	"A:AB$ ChangeZone | Cost$ T PayLife<1> Sac<1/CARDNAME> | Origin$ Library | Destination$ Battlefield | ChangeType$ Plains,Island\n" +
 	"Oracle:{T}, Pay 1 life, Sacrifice Flooded Strand: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.\n"
 
 const wastelandSrc = "Name:Wasteland\nManaCost:no cost\nTypes:Land\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-	"A:AB$ Destroy | ValidTgts$ Land.nonBasic | TgtPrompt$ Select target nonbasic land. | Cost$ T Sac<1/CARDNAME> | SpellDescription$ Destroy target nonbasic land.\n" +
+	"A:AB$ Destroy | ValidTgts$ Land.nonBasic | Cost$ T Sac<1/CARDNAME>\n" +
 	"Oracle:{T}: Add {C}.\\n{T}, Sacrifice Wasteland: Destroy target nonbasic land.\n"
 
 const plainsSrc = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"

@@ -362,7 +362,7 @@ func TestNumericSetMaxHandSize(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	onBoard(t, e, 0, "Name:Necrodominance\nManaCost:B B B\nTypes:Legendary Enchantment\n"+
-		"S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ 5 | Description$ Your maximum hand size is five.\nOracle:x\n")
+		"S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ 5\nOracle:x\n")
 	if got := e.maxHandSizeFor(0); got != 5 {
 		t.Fatalf("maxHandSizeFor under SetMaxHandSize$ 5 = %d, want 5", got)
 	}

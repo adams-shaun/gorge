@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_23242_GpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck dea225f7edbc49cbaec7fc6d9c5b49e6:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 2
+},
+{
+"name": "Apothecary Stomper",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bite Down",
+"count": 3
+},
+{
+"name": "Cackling Prowler",
+"count": 2
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Garruk's Uprising",
+"count": 1
+},
+{
+"name": "Ghalta, Primal Hunger",
+"count": 1
+},
+{
+"name": "Giant Growth",
+"count": 2
+},
+{
+"name": "Juggernaut",
+"count": 1
+},
+{
+"name": "Liliana, Dreadhorde General",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Overrun",
+"count": 1
+},
+{
+"name": "Quick-Draw Katana",
+"count": 1
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

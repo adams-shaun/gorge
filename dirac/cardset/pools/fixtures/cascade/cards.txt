@@ -1,0 +1,10 @@
+# the cascade pool: the printed K:Cascade carrier
+# Bloodbraid Elf, vanilla creatures below and at its mana value and
+# basics, for the oracle's constructed lockstep (dirac/oracle/cascade_test.go)
+Bloodbraid Elf
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Giant Spider
+Mountain
+Forest

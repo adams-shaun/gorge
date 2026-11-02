@@ -1,0 +1,24 @@
+# the optional PeekAndReveal pool: the four
+# RevealOptional$ + RevealValid$ + RememberRevealed$ carriers, Mount
+# creatures, cheap creatures and basics (dirac/oracle/peekreveal_test.go)
+# The optional PeekAndReveal pool: the one carrier
+# of `PeekAndReveal | RevealOptional$ True | RevealValid$ <spec> |
+# RememberRevealed$ True` that lowers whole (Quest for Ula's Temple), cheap
+# creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/peekreveal_test.go, toplib_test.go). Three of the four
+# Standard carriers (Gathering Stone, Bucolic Ranch, Traveling Botanist) lower
+# whole since lifted their chained `Defined$ TopOfLibrary`
+# ChangeZone; Sidequest: Catch a Fish stays refused on `prop:inZoneHand`.
+# They are not yet gorge-exact on a TAKEN reveal (gorge shuffles after the
+# Defined$ Remembered Hand fetch; Gathering Stone also reads Card.ChosenType
+# differently): see GORGE-FINDINGS.md.
+Quest for Ula's Temple
+Gathering Stone
+Sidequest: Catch a Fish
+Bucolic Ranch
+Traveling Botanist
+Grizzly Bears
+Hill Giant
+Ornithopter
+Forest
+Island

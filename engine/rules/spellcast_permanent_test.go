@@ -10,7 +10,7 @@ package rules
 // base (`o.Zone == ZBattlefield`) kept every carrier in this family dead.
 //
 // Fixtures are inline per the licensing rule (never a .cards/ .txt); the real
-// corpus carriers' T:/SVar: lines are copied verbatim off .cards/cardsfolder.
+// corpus carriers give the shape.
 
 import (
 	"testing"
@@ -22,46 +22,46 @@ import (
 
 // defilerOfInstinctSrc is the real corpus carrier
 // .cards/cardsfolder/d/defiler_of_instinct.txt's SpellCast trigger line and
-// its SVar body, VERBATIM (the card's S:Mode$ OptionalCost static is a
+// its SVar body (the card's S:Mode$ OptionalCost static is a
 // different primitive -- optional additional cost -- and is not part of this
 // pin, so the fixture omits it).
 const defilerOfInstinctSrc = "Name:Defiler of Instinct\nManaCost:2 R R\nTypes:Creature Phyrexian Kavu\nPT:4/4\nK:First Strike\n" +
-	"T:Mode$ SpellCast | ValidCard$ Permanent.Red | ValidActivatingPlayer$ You | Execute$ TrigDamage | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast a red permanent spell, CARDNAME deals 1 damage to any target.\n" +
+	"T:Mode$ SpellCast | ValidCard$ Permanent.Red | ValidActivatingPlayer$ You | Execute$ TrigDamage | TriggerZones$ Battlefield\n" +
 	"SVar:TrigDamage:DB$ DealDamage | ValidTgts$ Any | NumDmg$ 1\n" +
 	"Oracle:Whenever you cast a red permanent spell, CARDNAME deals 1 damage to any target.\n"
 
 // archmageOfEchoesSrc is the real corpus carrier
 // .cards/cardsfolder/a/archmage_of_echoes.txt's SpellCast trigger line and
-// its SVar body, VERBATIM -- the comma-alternative ValidCard$ spelling
+// its SVar body -- the comma-alternative ValidCard$ spelling
 // (`Permanent.Faerie,Permanent.Wizard`), the grammar the per-alternative
 // rewrite exists for.
 const archmageOfEchoesSrc = "Name:Archmage of Echoes\nManaCost:4 U\nTypes:Creature Faerie Wizard\nPT:4/4\nK:Flying\nK:Ward:2\n" +
-	"T:Mode$ SpellCast | ValidCard$ Permanent.Faerie,Permanent.Wizard | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast a Faerie or Wizard permanent spell, copy it. (The copy becomes a token.)\n" +
+	"T:Mode$ SpellCast | ValidCard$ Permanent.Faerie,Permanent.Wizard | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield\n" +
 	"SVar:TrigCopySpell:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility\n" +
 	"Oracle:Whenever you cast a Faerie or Wizard permanent spell, copy it. (The copy becomes a token.)\n"
 
 // tecutlanSpellCastSrc is the real corpus carrier
 // .cards/cardsfolder/b/brasss_tunnel_grinder_tecutlan_the_searing_rift.txt's
 // BACK face (Tecutlan, the Searing Rift) SpellCast trigger line and its SVar
-// body, VERBATIM, attached to a plain artifact so the front face's other
+// body, attached to a plain artifact so the front face's other
 // triggers stay out of the pin. Its ValidSA$
 // Spell.ManaFromCard.StrictlySelf admits only a cast that spent mana THIS
 // permanent produced (engine/rules/cast_mana_sources.go); the fixture has no mana
 // ability, so every cast below is paid from source-less pool mana and the
 // trigger stays INERT -- the control half of manafromcard_test.go.
 const tecutlanSpellCastSrc = "Name:Tecutlan, the Searing Rift\nManaCost:2 R\nTypes:Legendary Artifact\n" +
-	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidSA$ Spell.ManaFromCard.StrictlySelf | ValidActivatingPlayer$ You | Execute$ TrigDiscover | TriggerDescription$ Whenever you cast a permanent spell using mana produced by CARDNAME, discover X, where X is that spell's mana value.\n" +
+	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidSA$ Spell.ManaFromCard.StrictlySelf | ValidActivatingPlayer$ You | Execute$ TrigDiscover\n" +
 	"SVar:TrigDiscover:DB$ Discover | Num$ TriggeredSpellAbility$CardManaCostLKI\n" +
 	"Oracle:x\n"
 
 // myriadPoolsSpellCastSrc is the real corpus carrier
 // .cards/cardsfolder/t/the_everflowing_well_the_myriad_pools.txt's BACK face
-// (The Myriad Pools) SpellCast trigger line and its SVar body, VERBATIM,
+// (The Myriad Pools) SpellCast trigger line and its SVar body,
 // attached to a plain artifact -- the second ValidSA$ carrier, inert here
 // for the same reason.
 const myriadPoolsSpellCastSrc = "Name:The Myriad Pools\nManaCost:2 U\nTypes:Legendary Artifact\n" +
-	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidSA$ Spell.ManaFromCard.StrictlySelf | ValidActivatingPlayer$ You | Execute$ TrigCopy | TriggerDescription$ Whenever you cast a permanent spell using mana produced by CARDNAME, up to one other target permanent you control becomes a copy of that spell until end of turn.\n" +
-	"SVar:TrigCopy:DB$ Clone | Defined$ TriggeredCardLKICopy | CloneTarget$ Targeted | ValidTgts$ Permanent.YouCtrl+Other | TargetMin$ 0 | TargetMax$ 1 | TgtPrompt$ Select up to one other target permanent you control | Duration$ UntilEndOfTurn\n" +
+	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidSA$ Spell.ManaFromCard.StrictlySelf | ValidActivatingPlayer$ You | Execute$ OnCopy\n" +
+	"SVar:OnCopy:DB$ Clone | Defined$ TriggeredCardLKICopy | CloneTarget$ Targeted | ValidTgts$ Permanent.YouCtrl+Other | TargetMin$ 0 | TargetMax$ 1 | Duration$ UntilEndOfTurn\n" +
 	"Oracle:x\n"
 
 // Spell partners for the fixtures.

@@ -1,0 +1,48 @@
+# the pool: the six value heads (Mathemagics' Number$
+# 2/Pow.X, Golbez's Remembered$CardPower, Jadeheart Attendant's
+# ExiledWith$CardManaCost, Spider-Man Noir's TriggeredAttacker$
+# CardCounters.ALL, Venom's Sacrificed$CardManaCost and Bolg's
+# Spawner>Sacrificed$CardPower), beside cheap artifacts and artifact
+# lands, craft fodder, a +1/+1 counter and vanilla support
+# (dirac/oracle/counttracked_test.go)
+# six value heads that read an object the kernel already
+# tracks (Number$/Pow.X, Remembered$CardPower, ExiledWith$CardManaCost,
+# TriggeredAttacker$CardCounters.ALL, trigger-cost Sacrificed$CardManaCost
+# and Spawner>Sacrificed$CardPower), beside cheap artifacts and artifact
+# lands for Golbez's eight-artifact gate, craft fodder for Jade Seedstones,
+# a +1/+1 counter for Noir's pre-existing-counter read, and vanilla bodies,
+# burn and basics for the oracle's constructed lockstep.
+Mathemagics
+Golbez, Crystal Collector
+Jade Seedstones
+Spider-Man Noir
+Eddie Brock
+Bolg of the North
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Raging Goblin
+Wind Drake
+Brineborn Cutthroat
+Ornithopter
+Memnite
+Darksteel Relic
+Bonesplitter
+Leonin Scimitar
+Kite Shield
+Accorder's Shield
+Welding Jar
+Fountain of Youth
+Seat of the Synod
+Vault of Whispers
+Tree of Tales
+Ancient Den
+Great Furnace
+Battlegrowth
+Opt
+Shock
+Lightning Bolt
+Island
+Swamp
+Mountain
+Forest

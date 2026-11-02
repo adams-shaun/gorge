@@ -140,7 +140,9 @@ const (
 	// Mode$ AbilityTriggered, appended after the keyword-action modes so
 	// every earlier ordinal (including main's) is unchanged.
 	TriggerAbilityTriggered TriggerMode = 102
-	TriggerModeCount                    = 103 // one past the last; sizes a dense per-TriggerMode array
+	// FacesDilemma (Star Trek, "whenever you face a dilemma").
+	TriggerFacesDilemma TriggerMode = 103
+	TriggerModeCount                = 104 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -246,6 +248,7 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerCounterAddedAll:            "CounterAddedAll",
 	TriggerCounterTypeAddedAll:        "CounterTypeAddedAll",
 	TriggerAbilityTriggered:           "AbilityTriggered",
+	TriggerFacesDilemma:               "FacesDilemma",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

@@ -1,0 +1,232 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abrupt Decay
+1	card	Boomerang
+2	card	Bottomless Pool // Locker Room
+3	card	Counterspell
+4	card	Defiled Crypt // Cadaver Lab
+5	card	Derelict Attic // Widow's Walk
+6	card	Forest
+7	card	Funeral Room // Awakening Hall
+8	card	Glassworks // Shattered Yard
+9	card	Grand Entryway // Elegant Rotunda
+10	card	Greenhouse // Rickety Gazebo
+11	card	Grizzly Bears
+12	card	Island
+13	card	Meat Locker // Drowned Diner
+14	card	Mountain
+15	card	Painter's Studio // Defaced Gallery
+16	card	Plains
+17	card	Restricted Office // Lecture Hall
+18	card	Roaring Furnace // Steaming Sauna
+19	card	Savannah Lions
+20	card	Surgical Suite // Hospital Room
+21	card	Swamp
+22	card	Ticket Booth // Tunnel of Hate
+23	card	Unholy Annex // Ritual Chamber
+24	card	face:Bottomless Pool // Locker Room#1
+25	card	face:Defiled Crypt // Cadaver Lab#1
+26	card	face:Derelict Attic // Widow's Walk#1
+27	card	face:Funeral Room // Awakening Hall#1
+28	card	face:Glassworks // Shattered Yard#1
+29	card	face:Grand Entryway // Elegant Rotunda#1
+30	card	face:Greenhouse // Rickety Gazebo#1
+31	card	face:Meat Locker // Drowned Diner#1
+32	card	face:Painter's Studio // Defaced Gallery#1
+33	card	face:Restricted Office // Lecture Hall#1
+34	card	face:Roaring Furnace // Steaming Sauna#1
+35	card	face:Surgical Suite // Hospital Room#1
+36	card	face:Ticket Booth // Tunnel of Hate#1
+37	card	face:Unholy Annex // Ritual Chamber#1
+38	card	room:Bottomless Pool // Locker Room#00
+39	card	room:Bottomless Pool // Locker Room#02
+40	card	room:Bottomless Pool // Locker Room#03
+41	card	room:Bottomless Pool // Locker Room#10
+42	card	room:Bottomless Pool // Locker Room#11
+43	card	room:Bottomless Pool // Locker Room#13
+44	card	room:Defiled Crypt // Cadaver Lab#00
+45	card	room:Defiled Crypt // Cadaver Lab#02
+46	card	room:Defiled Crypt // Cadaver Lab#03
+47	card	room:Defiled Crypt // Cadaver Lab#10
+48	card	room:Defiled Crypt // Cadaver Lab#11
+49	card	room:Defiled Crypt // Cadaver Lab#13
+50	card	room:Derelict Attic // Widow's Walk#00
+51	card	room:Derelict Attic // Widow's Walk#02
+52	card	room:Derelict Attic // Widow's Walk#03
+53	card	room:Derelict Attic // Widow's Walk#10
+54	card	room:Derelict Attic // Widow's Walk#11
+55	card	room:Derelict Attic // Widow's Walk#13
+56	card	room:Funeral Room // Awakening Hall#00
+57	card	room:Funeral Room // Awakening Hall#02
+58	card	room:Funeral Room // Awakening Hall#03
+59	card	room:Funeral Room // Awakening Hall#10
+60	card	room:Funeral Room // Awakening Hall#11
+61	card	room:Funeral Room // Awakening Hall#13
+62	card	room:Glassworks // Shattered Yard#00
+63	card	room:Glassworks // Shattered Yard#02
+64	card	room:Glassworks // Shattered Yard#03
+65	card	room:Glassworks // Shattered Yard#10
+66	card	room:Glassworks // Shattered Yard#11
+67	card	room:Glassworks // Shattered Yard#13
+68	card	room:Grand Entryway // Elegant Rotunda#00
+69	card	room:Grand Entryway // Elegant Rotunda#02
+70	card	room:Grand Entryway // Elegant Rotunda#03
+71	card	room:Grand Entryway // Elegant Rotunda#10
+72	card	room:Grand Entryway // Elegant Rotunda#11
+73	card	room:Grand Entryway // Elegant Rotunda#13
+74	card	room:Greenhouse // Rickety Gazebo#00
+75	card	room:Greenhouse // Rickety Gazebo#02
+76	card	room:Greenhouse // Rickety Gazebo#03
+77	card	room:Greenhouse // Rickety Gazebo#10
+78	card	room:Greenhouse // Rickety Gazebo#11
+79	card	room:Greenhouse // Rickety Gazebo#13
+80	card	room:Meat Locker // Drowned Diner#00
+81	card	room:Meat Locker // Drowned Diner#02
+82	card	room:Meat Locker // Drowned Diner#03
+83	card	room:Meat Locker // Drowned Diner#10
+84	card	room:Meat Locker // Drowned Diner#11
+85	card	room:Meat Locker // Drowned Diner#13
+86	card	room:Painter's Studio // Defaced Gallery#00
+87	card	room:Painter's Studio // Defaced Gallery#02
+88	card	room:Painter's Studio // Defaced Gallery#03
+89	card	room:Painter's Studio // Defaced Gallery#10
+90	card	room:Painter's Studio // Defaced Gallery#11
+91	card	room:Painter's Studio // Defaced Gallery#13
+92	card	room:Restricted Office // Lecture Hall#00
+93	card	room:Restricted Office // Lecture Hall#02
+94	card	room:Restricted Office // Lecture Hall#03
+95	card	room:Restricted Office // Lecture Hall#10
+96	card	room:Restricted Office // Lecture Hall#11
+97	card	room:Restricted Office // Lecture Hall#13
+98	card	room:Roaring Furnace // Steaming Sauna#00
+99	card	room:Roaring Furnace // Steaming Sauna#02
+100	card	room:Roaring Furnace // Steaming Sauna#03
+101	card	room:Roaring Furnace // Steaming Sauna#10
+102	card	room:Roaring Furnace // Steaming Sauna#11
+103	card	room:Roaring Furnace // Steaming Sauna#13
+104	card	room:Surgical Suite // Hospital Room#00
+105	card	room:Surgical Suite // Hospital Room#02
+106	card	room:Surgical Suite // Hospital Room#03
+107	card	room:Surgical Suite // Hospital Room#10
+108	card	room:Surgical Suite // Hospital Room#11
+109	card	room:Surgical Suite // Hospital Room#13
+110	card	room:Ticket Booth // Tunnel of Hate#00
+111	card	room:Ticket Booth // Tunnel of Hate#02
+112	card	room:Ticket Booth // Tunnel of Hate#03
+113	card	room:Ticket Booth // Tunnel of Hate#10
+114	card	room:Ticket Booth // Tunnel of Hate#11
+115	card	room:Ticket Booth // Tunnel of Hate#13
+116	card	room:Unholy Annex // Ritual Chamber#00
+117	card	room:Unholy Annex // Ritual Chamber#02
+118	card	room:Unholy Annex // Ritual Chamber#03
+119	card	room:Unholy Annex // Ritual Chamber#10
+120	card	room:Unholy Annex // Ritual Chamber#11
+121	card	room:Unholy Annex // Ritual Chamber#13
+122	token	b_2_2_e_horror
+123	token	b_6_6_demon_flying
+124	token	w_1_1_e_glimmer
+125	card	Bottomless Pool
+126	card	Defiled Crypt
+127	card	Derelict Attic
+128	card	Funeral Room
+129	card	Grand Entryway
+130	card	Greenhouse
+131	card	Meat Locker
+132	card	Painter's Studio
+133	card	Restricted Office
+134	card	Roaring Furnace
+135	card	Surgical Suite
+136	card	Ticket Booth
+137	card	Unholy Annex
+138	card	face:Bottomless Pool#1
+139	card	face:Defiled Crypt#1
+140	card	face:Derelict Attic#1
+141	card	face:Funeral Room#1
+142	card	face:Grand Entryway#1
+143	card	face:Greenhouse#1
+144	card	face:Meat Locker#1
+145	card	face:Painter's Studio#1
+146	card	face:Restricted Office#1
+147	card	face:Roaring Furnace#1
+148	card	face:Surgical Suite#1
+149	card	face:Ticket Booth#1
+150	card	face:Unholy Annex#1
+151	card	room:Bottomless Pool#00
+152	card	room:Bottomless Pool#02
+153	card	room:Bottomless Pool#03
+154	card	room:Bottomless Pool#10
+155	card	room:Bottomless Pool#11
+156	card	room:Bottomless Pool#13
+157	card	room:Defiled Crypt#00
+158	card	room:Defiled Crypt#02
+159	card	room:Defiled Crypt#03
+160	card	room:Defiled Crypt#10
+161	card	room:Defiled Crypt#11
+162	card	room:Defiled Crypt#13
+163	card	room:Derelict Attic#00
+164	card	room:Derelict Attic#02
+165	card	room:Derelict Attic#03
+166	card	room:Derelict Attic#10
+167	card	room:Derelict Attic#11
+168	card	room:Derelict Attic#13
+169	card	room:Funeral Room#00
+170	card	room:Funeral Room#02
+171	card	room:Funeral Room#03
+172	card	room:Funeral Room#10
+173	card	room:Funeral Room#11
+174	card	room:Funeral Room#13
+175	card	room:Grand Entryway#00
+176	card	room:Grand Entryway#02
+177	card	room:Grand Entryway#03
+178	card	room:Grand Entryway#10
+179	card	room:Grand Entryway#11
+180	card	room:Grand Entryway#13
+181	card	room:Greenhouse#00
+182	card	room:Greenhouse#02
+183	card	room:Greenhouse#03
+184	card	room:Greenhouse#10
+185	card	room:Greenhouse#11
+186	card	room:Greenhouse#13
+187	card	room:Meat Locker#00
+188	card	room:Meat Locker#02
+189	card	room:Meat Locker#03
+190	card	room:Meat Locker#10
+191	card	room:Meat Locker#11
+192	card	room:Meat Locker#13
+193	card	room:Painter's Studio#00
+194	card	room:Painter's Studio#02
+195	card	room:Painter's Studio#03
+196	card	room:Painter's Studio#10
+197	card	room:Painter's Studio#11
+198	card	room:Painter's Studio#13
+199	card	room:Restricted Office#00
+200	card	room:Restricted Office#02
+201	card	room:Restricted Office#03
+202	card	room:Restricted Office#10
+203	card	room:Restricted Office#11
+204	card	room:Restricted Office#13
+205	card	room:Roaring Furnace#00
+206	card	room:Roaring Furnace#02
+207	card	room:Roaring Furnace#03
+208	card	room:Roaring Furnace#10
+209	card	room:Roaring Furnace#11
+210	card	room:Roaring Furnace#13
+211	card	room:Surgical Suite#00
+212	card	room:Surgical Suite#02
+213	card	room:Surgical Suite#03
+214	card	room:Surgical Suite#10
+215	card	room:Surgical Suite#11
+216	card	room:Surgical Suite#13
+217	card	room:Ticket Booth#00
+218	card	room:Ticket Booth#02
+219	card	room:Ticket Booth#03
+220	card	room:Ticket Booth#10
+221	card	room:Ticket Booth#11
+222	card	room:Ticket Booth#13
+223	card	room:Unholy Annex#00
+224	card	room:Unholy Annex#02
+225	card	room:Unholy Annex#03
+226	card	room:Unholy Annex#10
+227	card	room:Unholy Annex#11
+228	card	room:Unholy Annex#13
+229	card	Blaze
+230	card	Mind Spring

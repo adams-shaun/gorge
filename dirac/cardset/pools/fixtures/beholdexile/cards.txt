@@ -1,0 +1,21 @@
+# the BeholdExile<1/Type> own-cost pool: the three
+# Lorwyn Champions (RaiseCost Cost$ BeholdExile and the exiled-with leaves
+# trigger), Kithkin, Elf and Merfolk creatures to behold, Shock and
+# Unsummon to make a Champion leave, and basics
+# (dirac/oracle/beholdexile_test.go)
+Champion of the Clachan
+Champions of the Perfect
+Champions of the Shoal
+Kithkin Billyrider
+Knight of Meadowgrain
+Coral Merfolk
+Merfolk of the Pearl Trident
+Silvergill Mentor
+Elvish Warrior
+Shock
+Unsummon
+Forest
+Island
+Mountain
+Plains
+Swamp

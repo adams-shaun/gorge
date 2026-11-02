@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_16027_WpG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 668a45532c16477894ad384c54cb0414:0, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 3 Carrot Cake, 1 Intrepid Rabbit, 1 Longstalk Brawl, 1 Rabbit Response -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Hop to It",
+"count": 3
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Shrike Force",
+"count": 2
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Thistledown Players",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 4
+}
+]
+}

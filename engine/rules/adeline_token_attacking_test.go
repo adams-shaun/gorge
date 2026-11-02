@@ -1,11 +1,9 @@
 package rules
 
 // Adeline, Resplendent Cathar's real corpus AttackersDeclared trigger is the
-// pin for the non-True TokenAttacking$ selector forms:
-//
-//	T:Mode$ AttackersDeclared | AttackingPlayer$ You | Execute$ DBRepeat
-//	SVar:DBRepeat:DB$ RepeatEach | RepeatPlayers$ Opponent | ChangeZoneTable$ True | RepeatSubAbility$ DBToken
-//	SVar:DBToken:DB$ Token | TokenScript$ w_1_1_human | TokenTapped$ True | TokenAttacking$ RememberedPlayer & Valid Planeswalker.ControlledBy Remembered | TokenOwner$ You
+// pin for the non-True TokenAttacking$ selector forms: a RepeatEach over the
+// opponents whose body makes a tapped Human with TokenAttacking$ naming the
+// remembered player or a planeswalker that player controls.
 //
 // The RepeatEach loop binds the current opponent as the resolution's
 // Remembered PLAYER, so `TokenAttacking$ RememberedPlayer` must resolve to

@@ -1,0 +1,495 @@
+package oracle
+
+import (
+	"hash/fnv"
+	"reflect"
+	"slices"
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/state"
+)
+
+// Projection limits.
+const (
+	MaxInst  = 224 // card instances (Ref 0..223)
+	MaxStack = 32
+	MaxTgts  = 4 // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
+)
+
+// Zone codes (gorge's state.Zone numbering).
+const (
+	ZoneLibrary uint8 = iota
+	ZoneHand
+	ZoneBattlefield
+	ZoneGraveyard
+	ZoneExile
+	ZoneStack
+	ZoneCommand
+	ZoneCeased = 0x7F // a token or copy that left the game's zones
+	ZoneNone   = 0xFF // instance unused
+)
+
+// CardProj flag bits.
+const (
+	FTapped uint16 = 1 << iota
+	FSummonSick
+	FAttacking
+	FBlocking
+	FFaceDown
+	FToken
+	FCopy
+	FPhasedOut
+	FMonstrous
+	FSuspected
+)
+
+// Counter slots of CardProj.Counters.
+const (
+	CtrP1P1 = iota
+	CtrM1M1
+	CtrLoyalty
+	CtrOther // sum of every other kind
+	// CtrX is the first of the unfeaturized kinds' own slots (kcounters):
+	// slot CtrX+i is kop.CtrCharge+i (gorge's name kop.CtrXNames[i]),
+	// compared per kind rather than summed into CtrOther
+	CtrX
+	// CtrShieldC is the SHIELD counter's own slot (shield, CR 122.1c), kept
+	// apart from gorge's "Shield" regeneration marker, which both sides sum
+	// into CtrOther
+	CtrShieldC = CtrX + kop.NumCounterKindsX
+	NumCtr     = CtrShieldC + 1
+)
+
+// CardProj is one card instance.
+type CardProj struct {
+	NameHash   uint32 // FNV-1a 32 of the front face name (tokens included)
+	Card       uint8  // deck table index (Matchup.Table); NoCardIndex for tokens and copies
+	Face       uint8  // the face up (gorge's Object.FaceIdx; a multi-face card'sb)
+	Zone       uint8
+	Owner      uint8
+	Controller uint8
+	Pos        uint8 // position in an ordered zone: the library from the top (0 = next draw), the controller's battlefield list, the graveyard and exile in arrival order; 255 elsewhere
+	Flags      uint16
+	Damage     int16
+	Power      int16 // battlefield creatures only; 0 elsewhere
+	Toughness  int16
+	Counters   [NumCtr]int16
+	AttachedTo Ref
+	Blocks     Ref // a blocker: the attacker it blocks (first); RefNone otherwise
+	// Chars is the derived types, subtypes, colours and keywords
+	// (battlefield only; projchars.go)
+	Chars CharsProj
+}
+
+// StackProj is one stack object, bottom first.
+type StackProj struct {
+	Kind       uint8 // 0 spell, 1 activated, 2 triggered
+	Source     Ref   // the spell's own instance, or the ability's source
+	Ability    uint8 // activated: Face.Abilities index; triggered: 0x80|Face.Triggers index; 255 unknown
+	Controller uint8
+	NTargets   uint8
+	Targets    [MaxTgts]Ref
+	Modes      uint8 // chosen modes, a bit per index in the charm's Choices$ order
+	X          int16 // the announced X
+}
+
+// Projection is the canonical state both sides are compared on after every
+// committed action (doc.go, "Projection").
+type Projection struct {
+	NInst  uint8
+	Cards  [MaxInst]CardProj
+	Life   [2]int32
+	Poison [2]int16
+	Speed  [2]uint8 // CR 702.179
+	// Initiative is the initiative's holder, -1 nobody (CR 726)
+	Initiative int8
+	// DayNight is the CR 731 designation: 0 neither, 1 day, 2 night
+	DayNight uint8
+	// Room is each player's venture marker: 0 no dungeon, else the room's
+	// index + 1 in the dungeon's printed K:Dungeon order (CR 309.4)
+	Room        [2]uint8
+	LandsPlayed [2]uint8
+	Pool        [2][6]int16 // WUBRGC
+	HandCount   [2]uint8
+	LibCount    [2]uint8
+	NStack      uint8
+	Stack       [MaxStack]StackProj
+	Turn        int32
+	Step        uint8 // gorge state.Step numbering
+	Active      uint8
+	Priority    uint8
+	RNGDraws    uint64
+	Over        bool
+	Winner      int8 // -1 none/draw
+}
+
+// identity is a game's stable map between gorge objects and canonical card
+// instances (doc.go, "Card identity"). gorge keeps an object's ObjID across
+// zone changes (state.Object's doc), so an instance is bound to an ObjID once,
+// when the object is first seen, and never rebound.
+type identity struct {
+	inst    []Ref         // by ObjID; RefNone for a non-card object (an ability, an emblem)
+	obj     []state.ObjID // by instance
+	scanned int           // objects scanned so far (len(G.Objs) at the last sync)
+	err     string        // first overflow, if any
+}
+
+// sync binds every object created since the last call. Genesis creates the
+// deck cards owner by owner in decklist order, so deck s's i-th card is
+// instance offset(s)+i; every later card object (a token, a spell or
+// permanent copy) takes the next instance in creation (ObjID) order.
+func (id *identity) sync(g *state.Game) {
+	for id.scanned < len(g.Objs) {
+		o := &g.Objs[id.scanned]
+		id.scanned++
+		for len(id.inst) <= int(o.ID) {
+			id.inst = append(id.inst, RefNone)
+		}
+		if o.Card == nil {
+			continue
+		}
+		if len(id.obj) >= MaxInst {
+			if id.err == "" {
+				id.err = "more than MaxInst card instances"
+			}
+			continue
+		}
+		id.inst[o.ID] = Ref(len(id.obj))
+		id.obj = append(id.obj, o.ID)
+	}
+}
+
+// ref is the canonical reference of object oid in g.
+func (id *identity) ref(g *state.Game, oid state.ObjID) Ref {
+	if oid == 0 {
+		return RefNone
+	}
+	if pl, ok := oid.PlayerRef(); ok {
+		return RefPlayer + Ref(pl)
+	}
+	if int(oid) < len(id.inst) && id.inst[oid] != RefNone {
+		return id.inst[oid]
+	}
+	for i, s := range g.Stack {
+		if s == oid && i < int(RefPlayer-RefStack) {
+			return RefStack + Ref(i)
+		}
+	}
+	return RefNone
+}
+
+// target is a state.Target's canonical reference.
+func (id *identity) target(g *state.Game, t state.Target) Ref {
+	if t.IsPlayer {
+		return RefPlayer + Ref(t.Player)
+	}
+	return id.ref(g, t.Obj)
+}
+
+func nameHash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
+// project fills p from gorge engine e (doc.go, "Projection"). It reads
+// state.Game and the engine's derived characteristics (Power/Toughness, the
+// layer-applied values engine/view projects) directly: view.ProjectInto
+// carries the same fields as strings and maps, and the oracle runs at every
+// decision, so it reads the source the view itself reads.
+func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr string) {
+	g := e.G
+	id.sync(g)
+	*p = Projection{}
+	p.NInst = uint8(len(id.obj))
+	for i := range p.Cards {
+		p.Cards[i] = CardProj{Card: NoCardIndex, Zone: ZoneNone, Pos: 255, AttachedTo: RefNone, Blocks: RefNone}
+	}
+	nDeck := 0
+	if m != nil {
+		nDeck = len(m.Deck[0]) + len(m.Deck[1])
+	}
+	for inst, oid := range id.obj {
+		o := g.Obj(oid)
+		c := &p.Cards[inst]
+		if o == nil {
+			continue
+		}
+		c.NameHash = nameHash(cardName(o.Card))
+		c.Face = o.FaceIdx
+		if inst < nDeck && !o.IsToken && !o.IsCopy {
+			if inst < len(m.Deck[0]) {
+				c.Card = m.Deck[0][inst]
+			} else {
+				c.Card = m.Deck[1][inst-len(m.Deck[0])]
+			}
+		}
+		c.Zone = uint8(o.Zone)
+		if o.Zone == state.ZCeased {
+			c.Zone = ZoneCeased
+		}
+		c.Owner, c.Controller = uint8(o.Owner), uint8(o.Controller)
+		var f uint16
+		if o.Tapped {
+			f |= FTapped
+		}
+		if o.SummonSick {
+			f |= FSummonSick
+		}
+		if o.IsAttacking {
+			f |= FAttacking
+		}
+		if o.IsBlocking {
+			f |= FBlocking
+		}
+		if o.FaceDown {
+			f |= FFaceDown
+		}
+		if o.IsToken {
+			f |= FToken
+		}
+		if o.IsCopy {
+			f |= FCopy
+		}
+		if o.Zone != state.ZBattlefield {
+			f &^= FTapped | FSummonSick | FAttacking | FBlocking
+		}
+		if o.PhasedOut {
+			f |= FPhasedOut
+		}
+		if o.Monstrous {
+			f |= FMonstrous
+		}
+		if o.Suspected {
+			f |= FSuspected
+		}
+		if o.Zone != state.ZBattlefield {
+			// Permanent status is not tracked off the battlefield (gorge
+			// keeps a stale summoning-sick bit on a dead creature).
+			f &= FToken | FCopy | FFaceDown
+		}
+		c.Flags = f
+		if o.Zone == state.ZBattlefield {
+			c.Damage = int16(o.Damage)
+			if e.IsCreature(oid) {
+				c.Power, c.Toughness = int16(e.Power(oid)), int16(e.Toughness(oid))
+			}
+			if m != nil && m.chars != nil {
+				var ce string
+				if c.Chars, ce = gorgeChars(e, m.chars, oid); ce != "" && charErr == "" {
+					charErr = ce
+				}
+			}
+			c.AttachedTo = id.ref(g, o.AttachedTo)
+			for _, b := range o.BlockedBy {
+				if bi := id.ref(g, b); bi < MaxInst && p.Cards[bi].Blocks == RefNone {
+					p.Cards[bi].Blocks = Ref(inst)
+				}
+			}
+		}
+		for _, ct := range o.Counters {
+			if o.Zone == state.ZHand || o.Zone == state.ZGraveyard || o.Zone == state.ZLibrary {
+				// gorge keeps a dead creature's counters on the card (CR
+				// 122.2 removes them); the kernel cannot, so they are not
+				// compared off the battlefield (an exiled card keeps a
+				// stash counter: Tinybones)
+				break
+			}
+			slot := CtrOther
+			switch ct.Kind {
+			case "P1P1":
+				slot = CtrP1P1
+			case "M1M1":
+				slot = CtrM1M1
+			case "LOYALTY":
+				slot = CtrLoyalty
+			case "SHIELD":
+				slot = CtrShieldC
+			default:
+				for x, n := range kop.CtrXNames {
+					if ct.Kind == n {
+						slot = CtrX + x
+					}
+				}
+			}
+			n := int16(ct.N)
+			if ct.Kind == "Deathtouched" && n > 2 {
+				// The kernel keeps a two-event deathtouch mark
+				// (pfDeathtouched, pfDtMore; FeatDeathtouchMark 1|2) while
+				// gorge adds one "Deathtouched" counter per event. Any mark
+				// is lethal at the next SBA, so this is a feature-view
+				// representation difference, not gameplay: clamp the gorge side.
+				n = 2
+			}
+			c.Counters[slot] += n
+		}
+	}
+	p.DayNight = gorgeDayNight(g)
+	p.Initiative = -1
+	if g.HasInitiative {
+		p.Initiative = int8(g.Initiative)
+	}
+	for s := 0; s < 2 && s < len(g.Players); s++ {
+		pl := &g.Players[s]
+		p.Life[s] = pl.Life
+		p.Speed[s] = uint8(pl.Speed)
+		if do := g.Obj(pl.DungeonObj); pl.DungeonObj != 0 && do != nil && do.Face() != nil {
+			p.Room[s] = dungeonRoomIndex(do.Face(), pl.DungeonRoom)
+		}
+		if state.PlayerID(s) == g.Active {
+			// Only the active player's count is game state: gorge resets
+			// a player's count at their own turn, the kernel at every turn.
+			p.LandsPlayed[s] = uint8(pl.LandsPlayed)
+		}
+		for k := 0; k < 6; k++ {
+			p.Pool[s][k] = int16(pl.Pool[k])
+		}
+		for _, ct := range pl.Counters {
+			if ct.Kind == "POISON" {
+				p.Poison[s] += int16(ct.N)
+			}
+		}
+		lib := g.Zone(state.ZLibrary, state.PlayerID(s))
+		p.LibCount[s] = uint8(len(lib))
+		p.HandCount[s] = uint8(len(g.Zone(state.ZHand, state.PlayerID(s))))
+		for i, oid := range lib {
+			if r := id.ref(g, oid); r < MaxInst && i < 255 {
+				p.Cards[r].Pos = uint8(i)
+			}
+		}
+		for _, z := range [3]state.Zone{state.ZBattlefield, state.ZGraveyard, state.ZExile} {
+			for i, oid := range g.Zone(z, state.PlayerID(s)) {
+				if r := id.ref(g, oid); r < MaxInst && i < 255 {
+					p.Cards[r].Pos = uint8(i)
+				}
+			}
+		}
+	}
+	for i, sid := range g.Stack {
+		if i >= MaxStack {
+			break
+		}
+		o := g.Obj(sid)
+		if o == nil {
+			continue
+		}
+		st := &p.Stack[i]
+		st.Controller = uint8(o.Controller)
+		st.Ability = 255
+		st.Modes = chosenModeMask(o)
+		st.X = int16(o.X)
+		for k := range st.Targets {
+			st.Targets[k] = RefNone
+		}
+		if o.Ability != nil && o.Card == nil {
+			st.Kind = 1
+			if o.StackKind == state.StackKindTriggered {
+				st.Kind = 2
+			}
+			st.Source = id.ref(g, o.Source)
+			if src := g.Obj(o.Source); src != nil {
+				st.Ability = abilityIndex(src.Face(), o.Ability)
+			}
+		} else {
+			st.Source = id.ref(g, sid)
+		}
+		// Every target of the whole chain: the main ability's, then its
+		// sub-abilities' (Prey Upon's fight target).
+		for _, ts := range [2][]state.Target{o.Targets, o.SubTargets} {
+			for _, t := range ts {
+				if st.NTargets >= MaxTgts {
+					break
+				}
+				st.Targets[st.NTargets] = id.target(g, t)
+				st.NTargets++
+			}
+		}
+		p.NStack++
+	}
+	p.Turn = g.Turn
+	p.Step = uint8(g.Step)
+	p.Active, p.Priority = uint8(g.Active), uint8(g.Priority)
+	p.RNGDraws = e.RNGDraws()
+	p.Over, p.Winner = g.Over, -1
+	if g.Over && !g.Draw {
+		p.Winner = int8(g.Winner)
+	}
+	return charErr
+}
+
+// chosenModeMask is stack object o's ChosenModes as a bit per mode's index in
+// its charm's Choices$ order.
+func chosenModeMask(o *state.Object) uint8 {
+	if len(o.ChosenModes) == 0 {
+		return 0
+	}
+	sa := o.Ability
+	if sa == nil {
+		sa = o.Face().SpellAbility()
+	}
+	var m uint8
+	for i, name := range effects.CharmOf(sa).Modes {
+		if i < 8 && slices.Contains(o.ChosenModes, name) {
+			m |= 1 << i
+		}
+	}
+	return m
+}
+
+// abilityIndex is sa's index in face: Abilities i, or 0x80|i for the
+// trigger whose Effect it is; 255 when it is neither (a delayed trigger, an
+// SVar-minted or granted ability).
+func abilityIndex(face *cards.Face, sa *cards.SA) uint8 {
+	if face == nil || sa == nil {
+		return 255
+	}
+	for i, a := range face.Abilities {
+		if a == sa && i < 0x80 {
+			return uint8(i)
+		}
+	}
+	for i, t := range face.Triggers {
+		if t.Effect == sa && i < 0x7F {
+			return 0x80 | uint8(i)
+		}
+	}
+	return 255
+}
+
+// dungeonRoomIndex is room key's index + 1 in the dungeon face's printed
+// K:Dungeon order (0: no marker room; 255: a key the order lacks).
+func dungeonRoomIndex(f *cards.Face, room string) uint8 {
+	if room == "" {
+		return 0
+	}
+	list, _ := f.KeywordParam("Dungeon")
+	for i, r := range strings.Split(list, ",") {
+		if strings.TrimSpace(r) == room {
+			return uint8(i + 1)
+		}
+	}
+	return 255
+}
+
+// gorgeDayNightField is the index of state.Game's DayNight field (gorge
+// cr-daybound-nightbound, 2e8eb2156), nil on a gorge pin before it: read
+// by reflection so the oracle builds against either pin.
+var gorgeDayNightField = func() []int {
+	if f, ok := reflect.TypeOf(state.Game{}).FieldByName("DayNight"); ok && f.Type.Kind() == reflect.Uint8 {
+		return f.Index
+	}
+	return nil
+}()
+
+// gorgeDayNight is g's CR 731 designation (0 neither, 1 day, 2 night).
+func gorgeDayNight(g *state.Game) uint8 {
+	if gorgeDayNightField == nil {
+		return 0
+	}
+	return uint8(reflect.ValueOf(g).Elem().FieldByIndex(gorgeDayNightField).Uint())
+}

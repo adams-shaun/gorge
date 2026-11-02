@@ -28,7 +28,7 @@ func TestStateBasedLossAfterManaColourAskClearsTheFlow(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 3)
 	toMain1(t, e)
-	src := onBoard(t, e, 0, "Name:Confluence Test\nTypes:Land\nA:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n")
+	src := onBoard(t, e, 0, "Name:Confluence Test\nTypes:Land\nA:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any\nOracle:x\n")
 	e.G.Obj(src).SummonSick = false
 	e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 1 - e.G.Players[0].Life})
 	e.pending = nil

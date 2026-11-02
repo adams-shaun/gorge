@@ -50,7 +50,8 @@ contains the word, including your own shell or editor. Or pick another `-addr`.
 | `-bot-policy "az-redeal" reads opponents' decklists and cannot be the default` | the default policy must be one a person can play against: `bot`, `forge-heuristic`, `forge-heuristic-hold` or `lethal-pressure` |
 | `-pprof requires a loopback listener (got [::]:8080)` | `-pprof` needs `-addr 127.0.0.1:…` |
 | `-manabrew requires a seat gate: pass -humans or -vsbot`, and the same for `-sbv2` | these wires only serve seats |
-| `-engine: engine "x" is not linked into this server (available: gorge)` | a plain build links one engine, `gorge`, which is the default |
+| `-engine: engine "x" is not linked into this server (available: dirac, gorge)` | `-engine` takes `gorge`, the default, or `dirac` ([Serving dirac](dirac.md)) |
+| `dirac plays two seats: pass -seats 2` | `-seats` defaults to 4, and dirac has two |
 
 ## Persistence
 

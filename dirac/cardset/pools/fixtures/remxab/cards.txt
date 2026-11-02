@@ -1,0 +1,19 @@
+# the Amass/Token Remembered pool: Goblin Plate Mail and
+# Generous Plunderer, for the oracle's constructed lockstep
+# (dirac/oracle/remxab_test.go)
+# The pool: Goblin Plate Mail (Amass RememberAmass$, then
+# Attach Defined$ Remembered) and Generous Plunderer (Token
+# RememberOriginalTokens$, then an ImmediateTrigger reading
+# Remembered$Amount), creatures and basics, for the oracle's constructed
+# lockstep (dirac/oracle/remxab_test.go).
+Goblin Plate Mail
+Generous Plunderer
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Shock
+Plains
+Swamp
+Mountain
+Island
+Forest

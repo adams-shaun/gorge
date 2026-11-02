@@ -320,7 +320,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			sc := c.SpecContext(c.Controller)
 			sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, spec, h)...)
 			if (lki && MatchesObjectCtx(g, spec, o, sc)) ||
-				(!lki && MatchesSpecCtx(g, spec, t.Obj, sc)) {
+				(!lki && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
 				n++
 			}
 		case prop == "Converge":

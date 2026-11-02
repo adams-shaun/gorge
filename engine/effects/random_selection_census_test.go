@@ -29,11 +29,11 @@ import (
 
 // randomTargetCarriers is every TargetsAtRandom$ carrier with its API.
 var randomTargetCarriers = map[string]string{
-	"Cinderheart Giant/TrigDealDamage": "DealDamage",
 	"Explosion of Riches/TrigDamage":   "DealDamage",
 	"Furnace Layer/FurnaceDiscard":     "Discard",
 	"Goblin Polka Band/A0":             "Tap",
 	"Goblin Test Pilot/A0":             "DealDamage",
+	"Knight Rampager/TrigDealDamage":   "DealDamage",
 	"Orcish Catapult/A0":               "PutCounter",
 	"Power Pack/TrigExile":             "ChangeZone",
 	"Power Struggle/DBExchangeControl": "ExchangeControl",

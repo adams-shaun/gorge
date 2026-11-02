@@ -1,0 +1,13 @@
+{
+  "card": "Caught in the Crossfire",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1172,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

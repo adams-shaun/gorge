@@ -61,30 +61,30 @@ func runFlowCases(t *testing.T, base uint64, seeds int, cases []tapeFlowCase) {
 
 func TestKernelAskFlowReveal(t *testing.T) {
 	runFlowCases(t, 31000, 3, []tapeFlowCase{
-		{name: "Tape Bauble", src: "A:SP$ PeekAndReveal | Defined$ You | NoReveal$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Bauble", src: "A:SP$ PeekAndReveal | Defined$ You | NoReveal$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"look_ack"}, served: 1},
 		{name: "Tape Each Bauble", src: "A:SP$ PeekAndReveal | Defined$ Player | NoReveal$ True",
 			kinds: []string{"look_ack"}, served: 2},
 		{name: "Tape Probe", src: "A:SP$ RevealHand | Defined$ Player | Look$ True | SubAbility$ DBDraw\nSVar:DBDraw:DB$ Draw | NumCards$ 1",
 			kinds: []string{"look_ack"}, served: 2},
-		{name: "Tape Tutor Reveal", src: "A:SP$ Reveal | Defined$ You | NumCards$ 1 | RememberRevealed$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Tutor Reveal", src: "A:SP$ Reveal | Defined$ You | NumCards$ 1 | RememberRevealed$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"reveal_pick"}, served: 1},
 		{name: "Tape Each Reveal", src: "A:SP$ Reveal | Defined$ Player | AnyNumber$ True",
 			kinds: []string{"reveal_pick"}, served: 2},
 		{name: "Tape Maybe Reveal", src: "A:SP$ Reveal | Defined$ Player | NumCards$ 1 | Optional$ True | RememberRevealed$ True",
 			kinds: []string{"reveal_optional", "reveal_pick"}, served: 2},
-		{name: "Tape Delver Peek", src: "A:SP$ PeekAndReveal | Defined$ Player | RevealOptional$ True | RememberRevealed$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1",
+		{name: "Tape Delver Peek", src: "A:SP$ PeekAndReveal | Defined$ Player | RevealOptional$ True | RememberRevealed$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1",
 			kinds: []string{"reveal_optional"}, served: 2},
 	})
 }
 
 func TestKernelAskFlowDiscard(t *testing.T) {
 	runFlowCases(t, 32000, 3, []tapeFlowCase{
-		{name: "Tape Duress All", src: "A:SP$ Discard | Defined$ Player | Mode$ RevealYouChoose | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Duress All", src: "A:SP$ Discard | Defined$ Player | Mode$ RevealYouChoose | NumCards$ 1 | RememberDiscarded$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"discard"}, served: 2},
 		{name: "Tape Thirst", src: "A:SP$ Discard | Defined$ You | Mode$ TgtChoose | NumCards$ 2 | UnlessType$ Land",
 			kinds: []string{"discard_unless", "discard"}, served: 2},
-		{name: "Tape Maybe Discard", src: "A:SP$ Discard | Defined$ Player | Mode$ TgtChoose | NumCards$ 1 | Optional$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Maybe Discard", src: "A:SP$ Discard | Defined$ Player | Mode$ TgtChoose | NumCards$ 1 | Optional$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"discard_may", "discard"}, served: 2, pick: tapePickYes},
 		{name: "Tape Wheel Maybe", src: "A:SP$ Discard | Defined$ Player | Mode$ Hand | Optional$ True | SubAbility$ DBDraw\nSVar:DBDraw:DB$ Draw | NumCards$ 1 | Defined$ Player",
 			kinds: []string{"discard_hand"}, served: 2},
@@ -107,7 +107,7 @@ func TestKernelAskFlowDiscardUnlessEachTarget(t *testing.T) {
 
 func TestKernelAskFlowDig(t *testing.T) {
 	runFlowCases(t, 33000, 3, []tapeFlowCase{
-		{name: "Tape Impulse", src: "A:SP$ Dig | DigNum$ 4 | ChangeNum$ 1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Impulse", src: "A:SP$ Dig | DigNum$ 4 | ChangeNum$ 1 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"dig", "dig_arrange"}, served: 2},
 		{name: "Tape Each Dig", src: "A:SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1",
 			kinds: []string{"dig", "dig_arrange"}, served: 2},
@@ -127,14 +127,14 @@ func TestKernelAskFlowDig(t *testing.T) {
 func TestKernelAskFlowSurveilLook(t *testing.T) {
 	onField := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Enhanced", state.ZBattlefield) }
 	runFlowCases(t, 34000, 3, []tapeFlowCase{
-		{name: "Tape Surveil Look", src: "A:SP$ Surveil | Amount$ 2 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Surveil Look", src: "A:SP$ Surveil | Amount$ 2 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"surveil_look_optional", "arrange"}, served: 2, extra: []string{tapeEnhancedSrc}, setup: onField},
 	})
 }
 
 func TestKernelAskFlowHideaway(t *testing.T) {
 	runFlowCases(t, 35000, 2, []tapeFlowCase{
-		{name: "Tape Hideaway", src: "A:SP$ Hideaway | Amount$ 4 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Hideaway", src: "A:SP$ Hideaway | Amount$ 4 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"hideaway_pick"}, served: 1},
 	})
 }
@@ -150,13 +150,13 @@ func TestKernelAskFlowDraw(t *testing.T) {
 	inYard := func(t *testing.T, e *Engine) { moveByName(t, e, 0, "Tape Dredger", state.ZGraveyard) }
 	dredger := []string{tapeDredgerSrc}
 	runFlowCases(t, 37000, 3, []tapeFlowCase{
-		{name: "Tape Remora", src: "A:SP$ Draw | NumCards$ 2 | OptionalDecider$ You | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Remora", src: "A:SP$ Draw | NumCards$ 2 | OptionalDecider$ You | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"draw_optional"}, served: 1},
-		{name: "Tape Truce", src: "A:SP$ Draw | NumCards$ 2 | Upto$ True | Defined$ Player | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Truce", src: "A:SP$ Draw | NumCards$ 2 | Upto$ True | Defined$ Player | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"draw_upto"}, served: 2},
-		{name: "Tape Dredge Draw", src: "A:SP$ Draw | NumCards$ 3 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Dredge Draw", src: "A:SP$ Draw | NumCards$ 3 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"dredge"}, served: 1, extra: dredger, setup: inYard, checkpointAll: true},
-		{name: "Tape Dredge Remember", src: "A:SP$ Draw | NumCards$ 2 | RememberDrawn$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1",
+		{name: "Tape Dredge Remember", src: "A:SP$ Draw | NumCards$ 2 | RememberDrawn$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2 | ConditionDefined$ Remembered | ConditionPresent$ Card | ConditionCompare$ GE1",
 			kinds: []string{"dredge"}, served: 1, extra: dredger, setup: inYard, checkpointAll: true},
 		{name: "Tape Dredge Upto", src: "A:SP$ Draw | NumCards$ 2 | Upto$ True | Defined$ Player",
 			kinds: []string{"draw_upto", "dredge"}, served: 2, extra: dredger, setup: inYard},
@@ -189,11 +189,11 @@ func TestKernelAskFlowDigUntil(t *testing.T) {
 		moveByName(t, e, 0, "Tape Bear B", state.ZBattlefield)
 	}
 	runFlowCases(t, 38000, 3, []tapeFlowCase{
-		{name: "Tape Songbirds", src: "A:SP$ DigUntil | Valid$ Card.Land | FoundDestination$ Battlefield | OptionalFoundMove$ True | RevealedDestination$ Graveyard | RememberFound$ True | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Songbirds", src: "A:SP$ DigUntil | Valid$ Card.Land | FoundDestination$ Battlefield | OptionalFoundMove$ True | RevealedDestination$ Graveyard | RememberFound$ True | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"diguntil_move"}, served: 1},
 		{name: "Tape Each Songbirds", src: "A:SP$ DigUntil | Defined$ Player | Valid$ Card.Land | FoundDestination$ Hand | OptionalFoundMove$ True | RevealedDestination$ Library | RevealedLibraryPosition$ -1",
 			kinds: []string{"diguntil_move"}, served: 1},
-		{name: "Tape Aura Dig", src: "A:SP$ DigUntil | Valid$ Card.Aura | FoundDestination$ Battlefield | RevealedDestination$ Library | RevealedLibraryPosition$ -1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2",
+		{name: "Tape Aura Dig", src: "A:SP$ DigUntil | Valid$ Card.Aura | FoundDestination$ Battlefield | RevealedDestination$ Library | RevealedLibraryPosition$ -1 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2",
 			kinds: []string{"diguntil_aura"}, served: 1, extra: []string{tapeAuraSrc, tapeBearASrc, tapeBearBSrc}, setup: auraBoard},
 		{name: "Tape Aura Maybe", src: "A:SP$ DigUntil | Valid$ Card.Aura | FoundDestination$ Battlefield | OptionalFoundMove$ True | RevealedDestination$ Graveyard",
 			kinds: []string{"diguntil_move"}, served: 1, extra: []string{tapeAuraSrc, tapeBearASrc, tapeBearBSrc}, setup: auraBoard},

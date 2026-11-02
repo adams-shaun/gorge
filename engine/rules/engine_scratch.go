@@ -127,6 +127,10 @@ type engineScratch struct {
 	// membership walk (walk_block_reuse.go potentialMembers). Clone copies
 	// none.
 	potentialManaRec *walkBlockRec `clone:"reset"`
+	// potentialRestricted records that the last PotentialMana bound counted a
+	// mana ability with a RestrictValid$, so a payment priced against it must
+	// rebuild the bound for itself (potentialPoolFor). Clone copies none.
+	potentialRestricted bool `clone:"reset"`
 	// walkBlocksServed counts the blocks a potential walk served from the
 	// record (a test-visible diagnostic, like legalActionWalks).
 	walkBlocksServed uint64 `clone:"reset"`

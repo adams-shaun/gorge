@@ -1,0 +1,16 @@
+# Collector's Cage (Hideaway 5 and the Play of the hidden card)
+# (dirac/oracle/cage_test.go)
+Collector's Cage
+Plains
+Forest
+Llanowar Elves
+Grizzly Bears
+Centaur Courser
+Serra Angel
+Savannah Lions
+Giant Growth
+Windbrisk Heights
+Mosswort Bridge
+Fight Rigging
+Craw Wurm
+Clive's Hideaway

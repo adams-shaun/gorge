@@ -14,7 +14,7 @@ import (
 // commander's color identity. If you spend this mana to cast your commander,
 // it enters with a number of additional +1/+1 counters on it equal to the
 // number of times it's been cast from the command zone this game." The mana
-// carries AddsCounters$ Card.YouOwn+IsCommander_P1P1_ManaAddsCounterNum and
+// carries AddsCounters$ Card.YouOwn+IsCommander_P1P1_CastCount and
 // its count is the non-Total Count$CommanderCastFromCommandZone head.
 //
 // Every fixture here is a real Forge script SHAPE (Opal Palace is a corpus
@@ -25,8 +25,8 @@ const opalPalaceSrc = `Name:Opal Palace
 ManaCost:no cost
 Types:Land
 A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.
-A:AB$ Mana | Cost$ 1 T | Produced$ Combo ColorIdentity | AddsCounters$ Card.YouOwn+IsCommander_P1P1_ManaAddsCounterNum | SpellDescription$ Add one mana of any color in your commander's color identity. If you spend this mana to cast your commander, it enters with a number of additional +1/+1 counters on it equal to the number of times it's been cast from the command zone this game.
-SVar:ManaAddsCounterNum:Count$CommanderCastFromCommandZone
+A:AB$ Mana | Cost$ 1 T | Produced$ Combo ColorIdentity | AddsCounters$ Card.YouOwn+IsCommander_P1P1_CastCount
+SVar:CastCount:Count$CommanderCastFromCommandZone
 Oracle:x
 `
 
@@ -280,8 +280,8 @@ func TestOpalPalaceRiderScopesToTheCommittedCommanderSpend(t *testing.T) {
 // closed rather than inventing a counter.
 func TestParseAddsCounters(t *testing.T) {
 	t.Parallel()
-	filter, kind, amount, ok := parseAddsCounters("Card.YouOwn+IsCommander_P1P1_ManaAddsCounterNum")
-	if !ok || filter != "Card.YouOwn+IsCommander" || kind != "P1P1" || amount != "ManaAddsCounterNum" {
+	filter, kind, amount, ok := parseAddsCounters("Card.YouOwn+IsCommander_P1P1_CastCount")
+	if !ok || filter != "Card.YouOwn+IsCommander" || kind != "P1P1" || amount != "CastCount" {
 		t.Fatalf("opal parse = (%q,%q,%q,%v)", filter, kind, amount, ok)
 	}
 	if _, _, _, ok := parseAddsCounters("NoSeparators"); ok {

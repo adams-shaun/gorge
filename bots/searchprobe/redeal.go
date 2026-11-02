@@ -235,9 +235,9 @@ func NewRedealer(setup PublicGame, h History, known KnownCards, base RedealBase)
 			}
 			return
 		}
-		if int(owner) >= len(setup.Decks) || !deckHas(setup.Decks[owner], name) {
-			// A token (or anything else no deck-list card could be) is not
-			// part of the owner's pool.
+		if int(owner) >= len(setup.Decks) || (!deckHas(setup.Decks[owner], name) && !sideboardHas(e.OwnDeckShared(owner), name)) {
+			// A token (or anything else no list card could be) is not part
+			// of the owner's pool.
 			return
 		}
 		if public[owner] == nil {
@@ -337,6 +337,18 @@ func NewRedealer(setup PublicGame, h History, known KnownCards, base RedealBase)
 		derivable := make(map[string]int)
 		for _, c := range setup.Decks[pi] {
 			derivable[c.Faces[0].Name]++
+		}
+		// A card brought in from outside the game (CR 400.11b) joins the pool
+		// it left the sideboard for.
+		if m := e.OwnDeckShared(p); m != nil {
+			for _, row := range m.Sideboard {
+				derivable[row.Name] += row.Count
+			}
+		}
+		for _, id := range e.G.Zone(state.ZSideboard, p) {
+			if o := e.G.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+				derivable[o.Card.Faces[0].Name]--
+			}
 		}
 		for name, count := range public[p] {
 			derivable[name] -= count
@@ -604,6 +616,13 @@ type dealScratch struct {
 	idx       []int32
 	dealt     []bool
 	free, lib []state.ObjID
+}
+
+func sideboardHas(m *deck.Manifest, name string) bool {
+	if m == nil {
+		return false
+	}
+	return slices.ContainsFunc(m.Sideboard, func(r deck.ManifestRow) bool { return r.Name == name })
 }
 
 func deckHas(deck []*cards.Card, name string) bool {

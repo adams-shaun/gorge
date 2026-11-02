@@ -1,0 +1,29 @@
+# the optional sacrifice/discard pool (koptask): Optional$ True on
+# Sacrifice and Discard in every gorge shape (may-sacrifice picks,
+# may-election discards, AnyNumber, target-player asks, chooseMode
+# reveals), for the kernel's scenario tests and the oracle's
+# constructed lockstep (dirac/oracle/optask_test.go)
+Midgar, City of Mako
+Coral Net
+Illuminate History
+Mind Maggots
+Crovax the Cursed
+Desecration Demon
+Extortion
+Extract the Truth
+Discordant Dirge
+Curse Artifact
+Kinetic Augur
+Last Rites
+Oildeep Gearhulk
+Plains
+Island
+Swamp
+Mountain
+Forest
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Ornithopter
+Blaze
+Stream of Life

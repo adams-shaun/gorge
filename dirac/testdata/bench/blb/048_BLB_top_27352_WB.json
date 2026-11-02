@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_27352_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 1ed3704f4c4844aa9a0d5f1a3f970539:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Beza, the Bounding Spring, 1 Carrot Cake, 1 Essence Channeler, 1 Nocturnal Hunger, 1 Repel Calamity, 1 Thornplate Intimidator -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 2
+},
+{
+"name": "Diresight",
+"count": 2
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hazel's Nocturne",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

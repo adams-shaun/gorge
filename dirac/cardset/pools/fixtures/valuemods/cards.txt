@@ -1,0 +1,41 @@
+# the count-value-modifier pool: Remembered$Amount/Plus.1
+# (Colossus of the Blood Age), Times.2 after a divide (Dark Matter
+# Manipulator) and Twice after a subtract (Outlaw Stitcher), with cheap
+# spells and self-mill for the oracle's constructed lockstep
+# (dirac/oracle/valuemods_test.go). Hit the Mother Lode's
+# Remembered$CardManaCost/NMinus.10 lowers, but its Discover free cast
+# plus DB$ Token tail is refused: the kernel defers the cast past the
+# tail (kernel-discover-freecast-order), so it is not lifted here.
+Colossus of the Blood Age
+Dark Matter Manipulator
+Outlaw Stitcher
+Shock
+Lightning Bolt
+Unsummon
+Giant Growth
+Ponder
+Preordain
+Divination
+Thought Scour
+Tome Scour
+Mind Sculpt
+Mind Rot
+Doom Blade
+Terror
+Rampant Growth
+Growth Spiral
+Explore
+Craw Wurm
+Shivan Dragon
+Force of Nature
+Mahamoti Djinn
+Serra Angel
+Ancient Stone Idol
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Plains
+Island
+Mountain
+Forest
+Swamp

@@ -11,7 +11,7 @@ import (
 
 // Tests for Count$Compare-driven card behaviour at the engine level:
 // Nissa's Pilgrimage's spell-mastery search (ChangeNum$ X behind
-// SVar:X:Count$Compare Y GE2.3.2) and the Will-of-the-X commander cycle's
+// X = Count$Compare Y GE2.3.2) and the Will-of-the-X commander cycle's
 // inline CharmNum$ Count$Compare Y GE1.2.1.
 //
 // Scope note: this pins the Compare head in engine/effects/count.go plus

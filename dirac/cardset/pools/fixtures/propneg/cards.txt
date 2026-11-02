@@ -1,0 +1,20 @@
+# the property-negation pool: !attacking, !TriggeredCard,
+# !targetedBy, !ThisTurnEntered and !wasDealtDamageThisTurn (Prophesied End,
+# Spider-Man To the Rescue, Roiling Canopy, Moment of Glory, Cactuar,
+# Faller's Faithful) plus spare creatures and burn
+# (dirac/oracle/propneg_test.go)
+Cactuar
+Forest
+Goblin Piker
+Grizzly Bears
+Moment of Glory
+Mountain
+Plains
+Prophesied End
+Raging Goblin
+Roiling Canopy
+Scathe Zombies
+Shock
+Spider-Man, To the Rescue
+Swamp
+Walking Corpse

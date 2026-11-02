@@ -351,6 +351,7 @@ func foldExtraTurn(g *state.Game, e *Event) {
 				Controller: e.Player,
 				Execute:    e.Counter,
 				MinTurn:    g.Turn + 1,
+				Static:     len(e.IDs) > 1,
 			})
 			g.DelayedNext++
 		}
@@ -399,6 +400,7 @@ func foldExtraPhase(g *state.Game, e *Event) {
 			}
 		}
 		ep.HasDelayedPhase, ep.DelayedPhase = riders.HasDelayedPhase, riders.DelayedPhase
+		ep.DelayedStatic = riders.DelayedStatic
 		ep.ValidPlayer = riders.ValidPlayer
 		for n := int32(0); n < min(e.Amount, maxQueuedGrants); n++ {
 			g.ExtraPhases = append(g.ExtraPhases, ep)
@@ -438,6 +440,7 @@ func foldExtraPhase(g *state.Game, e *Event) {
 						Controller: e.Player,
 						Execute:    e.Counter,
 						MinTurn:    g.Turn,
+						Static:     riders.DelayedStatic,
 					}
 					dt.ValidPlayer = riders.ValidPlayer
 					g.Delayed = append(g.Delayed, dt)

@@ -1,0 +1,9 @@
+# Surge Engine (Animate RemoveKeywords$ + staticAbilities$)
+# (dirac/oracle/surge_test.go)
+Surge Engine
+Island
+Mountain
+Grizzly Bears
+Wind Drake
+Hill Giant
+Shock

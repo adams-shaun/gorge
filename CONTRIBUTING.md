@@ -48,6 +48,9 @@ The full list, with what enforces each, is
 5. **Never commit Forge scripts** or anything generated from them.
 6. **Imports run one way.** `engine/` packages import nothing outside `engine/`, and
    `effects` never imports `rules`.
+7. **A card dirac supports plays identically to gorge.** A change that alters behaviour
+   on a supported card fixes `dirac/` in the same change, or refuses the card by name
+   (`kgen -refuse`).
 
 ## Run tests
 
@@ -69,6 +72,8 @@ each ratchet and golden failure means.
       `docs/site/api/openapi.json`'s generated parts).
 - [ ] Focused `go test` of the packages you touched, with `.cards/` present.
 - [ ] `make sim`: 20/20 `replay OK`.
+- [ ] If you changed the rules or `dirac/`: `make dirac-tables`, then
+      `bash scripts/dirac-gate.sh develop` ends `dirac gate: ok` or `skipped`.
 - [ ] `go test -run '^TestHeads$' ./engine/rules/`. If a chain head moved, your change
       altered what those games do. If that is intended, re-pin with
       `GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'` and name the
@@ -86,4 +91,4 @@ the table, and `go run ./cmd/pkgmap` prints every package with its purpose and t
 Behaviour that looks like a bug but is deliberate is recorded in
 [`docs/design/2026-09-22-engine-contracts.md`](docs/design/2026-09-22-engine-contracts.md)
 and [`docs/agents/known-approximations/`](docs/agents/known-approximations/); read both
-before filing.
+before filing. dirac's own guide is [`dirac/README.md`](dirac/README.md).

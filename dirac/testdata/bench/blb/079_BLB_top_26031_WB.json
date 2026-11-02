@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_26031_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 75ed200b41dd40e5b4284a1c383aa96b:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 2 Downwind Ambusher, 1 Nettle Guard, 1 Starscape Cleric, 1 Veteran Guardmouse -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 3
+},
+{
+"name": "Bumbleflower's Sharepot",
+"count": 1
+},
+{
+"name": "Cindering Cutthroat",
+"count": 2
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 2
+},
+{
+"name": "Hazel's Nocturne",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Short Bow",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 12
+},
+{
+"name": "Warren Elder",
+"count": 1
+}
+]
+}

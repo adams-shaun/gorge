@@ -17,8 +17,8 @@ const waveSrc = "Name:WaveMe\nManaCost:G\nTypes:Sorcery\n" +
 	"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 3\nOracle:x\n"
 
 const waveBanner = "Name:Bannerish\nManaCost:3\nTypes:Artifact\n" +
-	"K:ETBReplacement:Other:ChooseColor\n" +
-	"SVar:ChooseColor:DB$ ChooseColor | Defined$ You\nOracle:x\n"
+	"K:ETBReplacement:Other:PickColor\n" +
+	"SVar:PickColor:DB$ ChooseColor | Defined$ You\nOracle:x\n"
 
 const waveJunk = "Name:Junk\nManaCost:R\nTypes:Sorcery\nA:SP$ Draw | Defined$ You\nOracle:x\n"
 

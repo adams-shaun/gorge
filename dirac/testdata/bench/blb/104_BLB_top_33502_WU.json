@@ -1,0 +1,79 @@
+{
+"name": "BLB_top_33502_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 8683dfb7daf2452289e974878791793c:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Dazzling Denial, 1 Harvestrite Host, 1 Intrepid Rabbit, 1 Mind Spiral, 1 Starfall Invocation -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Nightwhorl Hermit",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Thistledown Players",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

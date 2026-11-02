@@ -1,0 +1,23 @@
+# the own-target damage pool: Wisecrack,
+# Self-Destruct (a DealDamage amount that reads its own Targeted$,
+# DamageSource$ Targeted / ThisTargetedCard) and Malamet Battle Glyph
+# (ConditionDefined$ ThisTargetedCard) beside Justice Strike, Repentance
+# and creatures of varied power (dirac/oracle/owntgt_test.go)
+Wisecrack
+Malamet Battle Glyph
+Justice Strike
+Repentance
+Raging Goblin
+Grizzly Bears
+Hill Giant
+Wall of Wood
+Pillarfield Ox
+Savannah Lions
+Elite Vanguard
+Isamaru, Hound of Konda
+Wind Drake
+Storm Crow
+Giant Growth
+Mountain
+Forest
+Plains

@@ -1,0 +1,18 @@
+# the spells-can't-be-countered pool: Chimil,
+# the Inner Sun and Sphinx of the Final Word (a battlefield Counter
+# Layer$ CantHappen with ValidSA$ Spell[.types]+YouCtrl) against hard
+# counters and counter-unless-pay spells
+# (dirac/oracle/uncounter_test.go)
+Chimil, the Inner Sun
+Sphinx of the Final Word
+Opt
+Divination
+Unsummon
+Wind Drake
+Air Elemental
+Counterspell
+Cancel
+Essence Scatter
+Mana Leak
+Negate
+Island

@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_29946_WG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck a41c9ba472bd4f689bba6ca0be91e962:0, player win-rate bucket 0.70 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Caretaker's Talent, 1 Oakhollow Village, 1 Polliwallop, 1 Rust-Shield Rampager, 1 Thornvault Forager -> 3 Plains, 2 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Bumbleflower's Sharepot",
+"count": 2
+},
+{
+"name": "Burrowguard Mentor",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 2
+},
+{
+"name": "Druid of the Spade",
+"count": 3
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Fountainport",
+"count": 1
+},
+{
+"name": "Hazardroot Herbalist",
+"count": 2
+},
+{
+"name": "Hivespine Wolverine",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

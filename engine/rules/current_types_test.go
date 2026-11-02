@@ -159,6 +159,7 @@ func TestSoulbondPairsCurrentCreatures(t *testing.T) {
 	t.Run("an animated land can be a partner", func(t *testing.T) {
 		t.Parallel()
 		e, _, _ := newFixtureDeck(t, 196, "Name:Blank\nTypes:Sorcery\nOracle:x\n")
+		e.layer4InPool = true // Awaken is placed, not in a deck the engine scanned
 		land := onBoard(t, e, 0, bareLandSrc)
 		onBoard(t, e, 0, awakenSrc)
 		d := enterBonded(t, e)

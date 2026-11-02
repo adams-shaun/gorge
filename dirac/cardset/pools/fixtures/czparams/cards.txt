@@ -1,0 +1,27 @@
+# the Mill / ChangeZone choice params (Mill
+# Optional$, graveyard-pick Optional$, Attacking$, DifferentNames$,
+# ThisDefinedAndTgts$ Self, targeted Mandatory$) for the oracle's
+# constructed lockstep (dirac/oracle/czparams_test.go)
+Daggerfang Duo
+Deathcap Marionette
+Mineshaft Spider
+Song of Stupefaction
+Lasyd Prowler
+Rainveil Rejuvenator
+Patchwork Beastie
+Mole Man, Moloid Master
+Carrion Cruiser
+Pothole Mole
+Under the Skin
+Kinscaer Sentry
+Persistent Marshstalker
+Disruptor Wanderglyph
+Fblthp, Knows the Way
+Floodpits Drowner
+Sandman, Shifting Scoundrel
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest

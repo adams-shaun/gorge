@@ -1,0 +1,88 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// RememberDrawn$ on Draw, RememberMoved$ on Surveil,
+// RememberSacrificed$ on SacrificeAll. Each is the instruction's
+// kop.MvRemember bit; every path here is behind that one guard.
+
+// DebugNoRemWrites3 (TestRememberWritesMutation) skips the three remember writes.
+var DebugNoRemWrites3 bool
+
+// drawRemember draws one card for p and remembers it when it reached the
+// hand (gorge effDraw: the top card, unless the library was empty).
+//
+//go:noinline
+func (s *State) drawRemember(p uint8) {
+	pl := &s.pl[p]
+	if pl.libLo == pl.libHi {
+		s.draw(p)
+		return
+	}
+	o := pl.lib[pl.libLo]
+	s.draw(p)
+	if s.objs[o].zone == kop.ZoneHand && !DebugNoRemWrites3 {
+		s.remember(o)
+	}
+}
+
+// surveilRemember remembers o when the surveil's graveyard move landed it
+// there (gorge arrange.go: RememberMoved$ after the moves, in pile-B order).
+//
+//go:noinline
+func (s *State) surveilRemember(o Obj) {
+	if s.objs[o].zone == kop.ZoneGraveyard && !DebugNoRemWrites3 {
+		s.remember(o)
+	}
+}
+
+// sacAllRemember is leaveAll for a SacrificeAll with RememberSacrificed$:
+// each sacrificed permanent joins the remembered set in gorge's victim
+// order (seat 0's battlefield list, then seat 1's).
+//
+//go:noinline
+func (s *State) sacAllRemember(k *prep, hit slotMask) {
+	if DebugNoRemWrites3 {
+		s.leaveAll(k, hit, kop.ZoneGraveyard)
+		return
+	}
+	s.rememberLeaveAll(k, hit, kop.ZoneGraveyard)
+}
+
+// an ImmediateTrigger's RememberObjects$ Targeted
+// (gorge effImmediateTrigger replaces the instance's remembered set with
+// the parent's target; Novel Nunchaku, Curse of the Werefox) and the body's
+// Fight Defined$ DelayTriggerRemembered. A gorge id changes on a zone move
+// (CR 400.7) while the kernel keeps Obj and bumps ver, so the pending entry
+// carries the object in trigObj and its ver in trigAmt; the fight skips a
+// captured creature whose ver has moved since.
+
+// DebugNoReflexCapture (test-only mutation) captures nothing.
+var DebugNoReflexCapture bool
+
+// reflexCapture is the object and ver a ReflexiveTrigger's Obj target ref
+// names, or (NoObj, 0) when the slot is empty, illegal, a player, or the
+// object left the battlefield since it was chosen.
+//
+//go:noinline
+func (s *State) reflexCapture(r kop.Ref) (Obj, int16) {
+	sl, _ := tgtSlot(r)
+	c := s.tgtCode(sl)
+	if int(c) >= MaxObj || DebugNoReflexCapture {
+		return NoObj, 0
+	}
+	ob := &s.objs[c]
+	if ob.ver != s.res.e.tver[sl] || ob.zone != kop.ZoneBattlefield {
+		return NoObj, 0
+	}
+	return Obj(c), int16(ob.ver)
+}
+
+// reflexStale reports the resolving reflexive entry's captured object gone:
+// none was captured, or it changed zones since (its ver moved).
+func (s *State) reflexStale() bool {
+	o := s.res.e.trigObj
+	return o == NoObj || s.objs[o].ver != uint8(s.res.e.trigAmt)
+}

@@ -1,0 +1,22 @@
+# the multi-pick charm sequential-ask pool: Trystan's
+# Command, Atlantis Attacks and Amazing Acrobatics (a mode with a
+# "one or two targets" slot beside other targeted modes), Elves,
+# vanilla creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/charmseq_test.go)
+Trystan's Command
+Atlantis Attacks
+Amazing Acrobatics
+Llanowar Elves
+Cylian Elf
+Treetop Warden
+Willow Elf
+Walking Corpse
+Grizzly Bears
+Trained Armodon
+Craw Wurm
+Merfolk of the Pearl Trident
+Coral Merfolk
+Water Elemental
+Forest
+Swamp
+Island

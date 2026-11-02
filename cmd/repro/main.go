@@ -10,6 +10,8 @@
 //	                                  index/player/choice summary a seat
 //	                                  needs to find the moment)
 //	repro <feedback-dir> -omniscient  show every hand in the summary
+//	repro <feedback-dir> -lockstep    play a dirac capture against gorge and
+//	                                  print the first place they disagree
 //	repro <feedback-dir> -emit-test <pkg>
 //	                                  copy the snapshot into
 //	                                  <pkg>/testdata/feedback/<id>/ and
@@ -32,6 +34,10 @@
 // directory only: a record holds every hidden card of a real game and is
 // never committed into a test package.
 //
+// A capture played on dirac replays on dirac, from the tables its engine key
+// names; tables built since print DIVERGED, and the recorded corpus pin rebuilds
+// them.
+//
 // Flags may come before or after the directory: `repro <dir> -at 0` and
 // `repro -at 0 <dir>` are equivalent.
 //
@@ -51,7 +57,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/adapter"
+	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -72,11 +82,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	list := fs.Bool("list", false, "print the intent timeline instead of the board summary")
 	omniscient := fs.Bool("omniscient", false, "show every seat's hand in the summary")
 	emit := fs.String("emit-test", "", "write a test skeleton into package <pkg> that reproduces this snapshot")
+	lock := fs.Bool("lockstep", false, "play a dirac capture against gorge and print the first place they disagree")
 	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 	if fs.NArg() != 1 {
-		fmt.Fprintln(stderr, "usage: repro <feedback-dir|record.match.json.gz> [-at N] [-list] [-omniscient] [-emit-test <pkg>]")
+		fmt.Fprintln(stderr, "usage: repro <feedback-dir|record.match.json.gz> [-at N] [-list] [-omniscient] [-lockstep] [-emit-test <pkg>]")
 		return 2
 	}
 	dir := fs.Arg(0)
@@ -103,10 +114,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 	// exit 0 promises a verified replay, and a test bootstrapped from an
 	// unverified capture would reproduce nothing. ReplayTo alone can prove
 	// only a prefix.
-	full, err := replayCapture(l, cfg, meta)
+	re, err := replayerOf(cfg, meta)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	full, err := replayCapture(re, l, meta)
 	if err != nil {
 		printDivergence(stdout, err)
 		return 1
+	}
+	if *lock {
+		return lockstep(l, cfg, meta, stdout, stderr)
 	}
 	if *emit != "" {
 		if title.record {
@@ -122,19 +141,109 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if *list {
-		return listIntents(l, cfg, stdout, stderr)
+		return listIntents(re, l, stdout, stderr)
 	}
 
-	e := full
+	g := full
 	if *at >= 0 {
-		e, err = replay.ReplayTo(l, cfg, n)
+		g, err = re.ReplayTo(l, n)
 		if err != nil {
 			printDivergence(stdout, err)
 			return 1
 		}
 	}
 
-	printSummary(e, l, n, meta, title, *omniscient, stdout)
+	printSummary(g, l, n, meta, title, *omniscient, stdout)
+	return 0
+}
+
+// replayer rebuilds a capture's game from its log.
+type replayer interface {
+	Replay(l *events.Log) (game.Game, error)
+	ReplayTo(l *events.Log, n int) (game.Game, error)
+}
+
+// gorgeReplayer replays from the rules config itself: a match record can carry fields
+// game.Config does not.
+type gorgeReplayer struct{ cfg rules.Config }
+
+func (r gorgeReplayer) Replay(l *events.Log) (game.Game, error) {
+	e, err := replay.Replay(l, r.cfg)
+	return gorgegame.Game{E: e}, err
+}
+
+func (r gorgeReplayer) ReplayTo(l *events.Log, n int) (game.Game, error) {
+	e, err := replay.ReplayTo(l, r.cfg, n)
+	return gorgegame.Game{E: e}, err
+}
+
+type engineReplayer struct {
+	e game.Engine
+	c game.Config
+}
+
+func (r engineReplayer) Replay(l *events.Log) (game.Game, error) { return r.e.Replay(l, r.c) }
+
+func (r engineReplayer) ReplayTo(l *events.Log, n int) (game.Game, error) {
+	return r.e.ReplayTo(l, r.c, n)
+}
+
+// replayerOf is the replay of a capture on the engine that played it.
+func replayerOf(cfg rules.Config, meta feedback.Meta) (replayer, error) {
+	switch meta.Engine {
+	case "", gorgegame.Name:
+		return gorgeReplayer{cfg}, nil
+	case adapter.Name:
+		e, c, err := feedback.Dirac(cfg, meta)
+		if err != nil {
+			return nil, fmt.Errorf("repro: %w", err)
+		}
+		return engineReplayer{e, c}, nil
+	}
+	return nil, fmt.Errorf("repro: this binary does not link engine %q", meta.Engine)
+}
+
+// lockstep plays a dirac capture's answers against gorge from the same seed. Exit 1
+// on the first difference.
+func lockstep(l *events.Log, cfg rules.Config, meta feedback.Meta, stdout, stderr io.Writer) int {
+	if meta.Engine != adapter.Name {
+		fmt.Fprintf(stderr, "repro: -lockstep compares a dirac capture with gorge; this one ran on %s\n", orDash(meta.Engine))
+		return 2
+	}
+	reg, err := feedback.Corpus()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	e, c, err := feedback.Dirac(cfg, meta)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 2
+	}
+	res, err := oracle.LockstepRecording(e, reg, l, c)
+	if err != nil {
+		fmt.Fprintf(stdout, "DIVERGED: %v\n", err)
+		return 1
+	}
+	return printLockstep(res, len(l.Intents), stdout)
+}
+
+func printLockstep(res oracle.Result, intents int, stdout io.Writer) int {
+	if d := res.Div; d != nil {
+		fmt.Fprintf(stdout, "DIVERGED: %s\n", d)
+		for _, line := range d.Diff {
+			fmt.Fprintf(stdout, "  %s\n", line)
+		}
+		if len(d.RefOptions)+len(d.KerOptions) > 0 {
+			fmt.Fprintf(stdout, "  gorge offers %v\n  dirac offers %v\n", d.RefOptions, d.KerOptions)
+		}
+		return 1
+	}
+	if strings.HasPrefix(res.Stall, oracle.KernelStallPrefix) {
+		fmt.Fprintf(stdout, "gorge agrees up to where dirac stopped: %s\n", res.Stall)
+		return 0
+	}
+	fmt.Fprintf(stdout, "gorge agrees: %d decisions over %d intents\n", res.Decisions, intents)
 	return 0
 }
 
@@ -196,21 +305,22 @@ func orDash(s string) string {
 // redundant head stored by the feedback capture. replay.Replay validates the
 // event stream's own chain; the explicit meta.Head check also catches a
 // log.json whose head field alone was corrupted.
-func replayCapture(l *events.Log, cfg rules.Config, meta feedback.Meta) (*rules.Engine, error) {
-	e, err := replay.Replay(l, cfg)
+func replayCapture(re replayer, l *events.Log, meta feedback.Meta) (game.Game, error) {
+	g, err := re.Replay(l)
 	if err != nil {
-		return e, err
+		return g, err
 	}
-	if len(e.L.Events) != len(l.Events) {
-		return e, fmt.Errorf("replay reached %d events, the recording has %d", len(e.L.Events), len(l.Events))
+	got := g.Log()
+	if len(got.Events) != len(l.Events) {
+		return g, fmt.Errorf("replay reached %d events, the recording has %d", len(got.Events), len(l.Events))
 	}
 	if want := l.HeadAt(len(l.Events)); meta.Head != want {
-		return e, fmt.Errorf("log.json head %q does not match its own event chain %q", meta.Head, want)
+		return g, fmt.Errorf("log.json head %q does not match its own event chain %q", meta.Head, want)
 	}
-	if got := e.L.Head(); got != meta.Head {
-		return e, fmt.Errorf("replayed head %s, recorded %s", got, meta.Head)
+	if head := got.Head(); head != meta.Head {
+		return g, fmt.Errorf("replayed head %s, recorded %s", head, meta.Head)
 	}
-	return e, nil
+	return g, nil
 }
 
 func printDivergence(w io.Writer, err error) {
@@ -227,14 +337,15 @@ func printDivergence(w io.Writer, err error) {
 // decision and the last ~20 described log lines. It reads the engine's own
 // pending decision (server-side shape) rather than the projected one —
 // repro is a triage tool, not a seat.
-func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, src source, omniscient bool, stdout io.Writer) {
-	g := e.G
+func printSummary(gm game.Game, l *events.Log, n int, meta feedback.Meta, src source, omniscient bool, stdout io.Writer) {
+	g := gm.Board()
+	logged := gm.Log().Events
 	vis := view.Public
 	if omniscient {
 		vis = view.Omniscient
 	}
-	v := view.ProjectFor(g, e, view.NoSeat, vis, nil)
-	v.Round = view.RoundOf(g, e.L.Events)
+	v := view.ProjectFor(g, gm.Chars(), view.NoSeat, vis, nil)
+	v.Round = view.RoundOf(g, logged)
 
 	fmt.Fprintf(stdout, "== %s ==\n", src.header)
 	if meta.Report != "" {
@@ -244,7 +355,7 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, src
 	for _, u := range meta.TokensUnread {
 		seedNote += "\n  token script unavailable at capture: " + u
 	}
-	fmt.Fprintf(stdout, "replayed %d of %d recorded intents (%d events); recorded head %s\n", n, len(l.Intents), len(e.L.Events), shortHead(meta.Head))
+	fmt.Fprintf(stdout, "replayed %d of %d recorded intents (%d events); recorded head %s\n", n, len(l.Intents), len(logged), shortHead(meta.Head))
 	if seedNote != "" {
 		fmt.Fprintf(stdout, "warning:%s\n", seedNote)
 	}
@@ -266,12 +377,12 @@ func printSummary(e *rules.Engine, l *events.Log, n int, meta feedback.Meta, src
 			fmt.Fprintf(stdout, "  - %s [%s, seat %d] %s\n", s.Name, s.Kind, s.Controller, s.Text)
 		}
 	}
-	if d := e.Pending(); d != nil {
+	if d := gm.Pending(); d != nil {
 		fmt.Fprintf(stdout, "pending: seat %d %s: %s (%d options)\n", d.Player, d.Kind, d.Prompt, len(d.Options))
 	}
 
 	fmt.Fprintln(stdout, "last log lines:")
-	tail := e.L.Events
+	tail := logged
 	if len(tail) > 20 {
 		tail = tail[len(tail)-20:]
 	}
@@ -419,34 +530,34 @@ func shortHead(h string) string {
 // replay before calling this renderer. This second engine is driven forward
 // one Submit at a time only so every decision can be rendered as it was asked;
 // it is not the recording's validation boundary.
-func listIntents(l *events.Log, cfg rules.Config, stdout, stderr io.Writer) int {
-	e, err := replay.ReplayTo(l, cfg, 0)
+func listIntents(re replayer, l *events.Log, stdout, stderr io.Writer) int {
+	g, err := re.ReplayTo(l, 0)
 	if err != nil {
 		fmt.Fprintf(stdout, "DIVERGED before intent 0: %v\n", err)
 		return 1
 	}
 	for i, it := range l.Intents {
-		if e.G.Over {
+		if g.Board().Over {
 			fmt.Fprintf(stdout, "%4d  (game already over; recording carries %d intents)\n", i, len(l.Intents))
 			break
 		}
-		d := e.Pending()
+		d := g.Pending()
 		if d == nil {
 			fmt.Fprintln(stderr, "repro: no decision pending at intent", i)
 			return 1
 		}
 		what := divergence.ChoiceSummary(d, it)
 		fmt.Fprintf(stdout, "%4d  seat %d  %s  %s\n", i, it.Player, d.Kind, what)
-		if err := e.Submit(it); err != nil {
+		if err := g.Submit(it); err != nil {
 			fmt.Fprintf(stderr, "repro: intent %d rejected: %v\n", i, err)
 			return 1
 		}
 	}
-	if e.G.Over {
-		if e.G.Draw {
+	if b := g.Board(); b.Over {
+		if b.Draw {
 			fmt.Fprintln(stdout, "game over: draw")
 		} else {
-			fmt.Fprintf(stdout, "game over: seat %d wins\n", e.G.Winner)
+			fmt.Fprintf(stdout, "game over: seat %d wins\n", b.Winner)
 		}
 	}
 	return 0
@@ -525,6 +636,10 @@ func emitTest(pkg, dir string, meta feedback.Meta, stdout io.Writer) error {
 		}
 	}
 
+	load := "e := feedback.EngineAt"
+	if meta.Engine == adapter.Name {
+		load = "e := feedback.GameAt"
+	}
 	body := fmt.Sprintf(`// Code generated by cmd/repro -emit-test from feedback report %s; DO NOT EDIT.
 // It reproduces the state the report was filed at: the snapshot under
 // testdata/feedback/%s/ is replayed to every recorded intent. Assert the
@@ -544,11 +659,11 @@ import (
 )
 
 func TestFeedbackRepro%s(t *testing.T) {
-	e := feedback.EngineAt(t, filepath.Join("testdata", "feedback", %q), -1)
+	%s(t, filepath.Join("testdata", "feedback", %q), -1)
 	_ = e
 	t.Fatal("TODO: assert the reported behaviour")
 }
-`, id, id, pkgName, san, id)
+`, id, id, pkgName, san, load, id)
 	if err := os.WriteFile(testPath, []byte(body), 0o644); err != nil {
 		return fmt.Errorf("repro: %w", err)
 	}

@@ -171,11 +171,11 @@ func causeTokens(e *Engine) int {
 	return n
 }
 
-// causeEmissarySrc is Foul Emissary's sacrifice trigger line verbatim without
+// causeEmissarySrc is Foul Emissary's sacrifice trigger line without
 // the corpus card's enters-the-battlefield dig (whose arrange ask would
 // interleave with the emerge cast).
 const causeEmissarySrc = "Name:Emissary Probe\nManaCost:2 G\nTypes:Creature Human Horror\nPT:1/1\n" +
-	"T:Mode$ Sacrificed | ValidCard$ Card.Self | WhileKeyword$ Spell.withEmerge | Execute$ TrigToken | TriggerZones$ Battlefield | TriggerDescription$ When you sacrifice CARDNAME while casting a spell with emerge, create a 3/2 colorless Eldrazi Horror creature token.\n" +
+	"T:Mode$ Sacrificed | ValidCard$ Card.Self | WhileKeyword$ Spell.withEmerge | Execute$ TrigToken | TriggerZones$ Battlefield\n" +
 	"SVar:TrigToken:DB$ Token | TokenScript$ c_3_2_eldrazi_horror | TokenOwner$ You\n"
 
 // causeEmergeSrc is an emerge creature with no cast trigger of its own, so

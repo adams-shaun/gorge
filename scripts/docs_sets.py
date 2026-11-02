@@ -19,10 +19,12 @@ Two sources, joined by set code:
    ratchet checks that measurement failed. A meta.json without the count reads
    as none.
 
-2. dirac's per-set acceptance, a committed snapshot
-   (docs/site/support/dirac-sets.json). dirac's source is
-   private, so a maintainer refreshes that file by hand from its acceptance
-   ratchet and lockstep runs.
+2. dirac's per-set support, a committed snapshot
+   (docs/site/support/dirac-sets.json). Its counts are the table in
+   dirac/docs/support.md, which needs the card corpus to generate and so can't
+   be generated here. docs_sets_test.py holds the snapshot to that page, and
+   --refresh-dirac copies the page into it. Its lockstep rows are read from
+   make dirac-slices.
 
 Either source may be missing; the tables then say so. The output is one
 markdown fragment, docs/site/support/_generated_sets.md (gitignored, never
@@ -39,8 +41,8 @@ Per set:
                  per-set pseudo problem, not a card, so it is not subtracted.
                  For a set without a printed list this is a hard lower bound.
   Level B %    = the same over the Level B status.
-  dirac  = accepted / cards from the snapshot, over dirac's own
-                 card list for the set (distinct card names in XMage's
+  dirac supported, lowered = counts / cards from the snapshot, over dirac's
+                 own card list for the set (distinct card names in XMage's
                  manifest that exist in the corpus), which can differ by a
                  few cards from gorge-compliance's count.
 
@@ -49,6 +51,8 @@ Stdlib only. Usage:
                        [--meta meta.json] [--dirac dirac-sets.json]
                        [-o docs/site/support/_generated_sets.md]
                        [--commit SHA] [--date YYYY-MM-DD]
+  scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json \\
+                       --commit SHA --date YYYY-MM-DD
 """
 
 import argparse
@@ -63,7 +67,10 @@ NOT_IN_CORPUS = "not in corpus"
 UNSUPPORTED = "unsupported"
 
 DEFAULT_OUT = "docs/site/support/_generated_sets.md"
-MAKEFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Makefile")
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+MAKEFILE = os.path.join(ROOT, "Makefile")
+SUPPORT_PAGE = os.path.join(ROOT, "dirac", "docs", "support.md")
+SUPPORT_COUNTS = ("cards", "lowered", "refused", "unverified", "supported")
 DASH = "—"
 
 
@@ -86,19 +93,56 @@ def load_dirac(path):
     """Read and check the dirac snapshot; raise ValueError on a bad file."""
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    for k in ("date", "corpus", "sets"):
+    for k in ("date", "commit", "corpus", "sets"):
         if k not in d:
             raise ValueError("%s: missing %r" % (path, k))
     for code, s in list(d["sets"].items()) + [("corpus", d["corpus"])]:
-        a, n = s.get("accepted"), s.get("cards")
-        if not (isinstance(a, int) and isinstance(n, int) and 0 <= a <= n and n > 0):
-            raise ValueError("%s: %s: need 0 <= accepted <= cards, cards > 0" % (path, code))
+        if not all(isinstance(s.get(k), int) and s[k] >= 0 for k in SUPPORT_COUNTS):
+            raise ValueError("%s: %s: need integer %s" % (path, code, ", ".join(SUPPORT_COUNTS)))
+        if s["refused"] + s["unverified"] + s["supported"] != s["lowered"] or not 0 < s["cards"] or s["lowered"] > s["cards"]:
+            raise ValueError("%s: %s: need refused + unverified + supported = lowered <= cards, cards > 0" % (path, code))
     for code, s in (d.get("lockstep") or {}).items():
         if not all(isinstance(s.get(k), int) for k in ("games", "agree", "stalls", "disagree")):
             raise ValueError("%s: lockstep %s: need integer games/agree/stalls/disagree" % (path, code))
         if s["agree"] + s["stalls"] + s["disagree"] != s["games"]:
             raise ValueError("%s: lockstep %s: agree + stalls + disagree != games" % (path, code))
     return d
+
+
+def read_support_page(path=SUPPORT_PAGE):
+    """The rows of dirac/docs/support.md's table: {list: {count: n}}."""
+    rows = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if line.startswith("|") and len(cells) == 1 + len(SUPPORT_COUNTS) and cells[1].isdigit():
+                rows[cells[0]] = dict(zip(SUPPORT_COUNTS, map(int, cells[1:])))
+    return rows
+
+
+def refresh_dirac(path, commit, date, support=SUPPORT_PAGE):
+    """Copy dirac/docs/support.md's counts into the snapshot, stamped commit and date."""
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    rows = read_support_page(support)
+    d["date"], d["commit"] = date, commit[:9]
+    d["corpus"] = rows.pop("ALL")
+    d["sets"] = dict(sorted(rows.items()))
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(dump_dirac(d))
+
+
+def dump_dirac(d):
+    """The snapshot's committed form: one line per set, so a diff reads count by count."""
+    keys = ["about", "date", "commit", "corpus", "lockstep", "sets"]
+    parts = []
+    for k in keys:
+        if k in ("lockstep", "sets"):
+            rows = ",\n".join("    %s: %s" % (json.dumps(c), json.dumps(v)) for c, v in sorted(d[k].items()))
+            parts.append('  "%s": {\n%s\n  }' % (k, rows))
+        else:
+            parts.append('  "%s": %s' % (k, json.dumps(d[k], ensure_ascii=False)))
+    return "{\n" + ",\n".join(parts) + "\n}\n"
 
 
 def measure(r):
@@ -145,11 +189,11 @@ def buckets_text(r):
     return ", ".join("%d %s" % (v, k) for k, v in sorted(b.items(), key=lambda kv: (-kv[1], kv[0])))
 
 
-def dd_cell(dd, code):
+def dd_cell(dd, code, count):
     s = (dd or {}).get("sets", {}).get(code)
     if not s:
         return DASH
-    return "%d / %d (%s%%)" % (s["accepted"], s["cards"], pct(s["accepted"], s["cards"]))
+    return "%d / %d (%s%%)" % (s[count], s["cards"], pct(s[count], s["cards"]))
 
 
 def lockstep_cell(dd, code):
@@ -221,9 +265,7 @@ def data_caption(meta):
 
 
 def dd_stamp(dd):
-    # The private module's commit is never published (privacy rule); the date
-    # identifies the snapshot.
-    return "the dirac snapshot of %s" % dd["date"]
+    return "the dirac snapshot of %s at gorge `%s`" % (dd["date"], dd["commit"][:9])
 
 
 def render_headline(rows, level_b, meta, dd):
@@ -259,9 +301,11 @@ def render_headline(rows, level_b, meta, dd):
         w("| gorge | certified Level A / B | not available to this build (gorge-compliance's docs-data was not fetched) |")
     if dd:
         c = dd["corpus"]
-        w("| dirac | lowered, whole corpus | **%s of %s** cards (%s%%) |" % (
-            num(c["accepted"]), num(c["cards"]), pct(c["accepted"], c["cards"])))
-        w("| dirac | sets in its acceptance ratchet | **%d** |" % len(dd["sets"]))
+        w("| dirac | supported, whole corpus | **%s of %s** cards (%s%%) |" % (
+            num(c["supported"]), num(c["cards"]), pct(c["supported"], c["cards"])))
+        w("| dirac | lowered, whole corpus (weaker: not yet checked) | %s of %s cards (%s%%) |" % (
+            num(c["lowered"]), num(c["cards"]), pct(c["lowered"], c["cards"])))
+        w("| dirac | sets on its support page | **%d** |" % len(dd["sets"]))
         ls = dd.get("lockstep") or {}
         if ls:
             parts = []
@@ -269,10 +313,10 @@ def render_headline(rows, level_b, meta, dd):
                 s = ls[code]
                 parts.append("%s: %s of %s games agree, %d stalled, %d disagree" % (
                     code, num(s["agree"]), num(s["games"]), s["stalls"], s["disagree"]))
-            w("| dirac | lockstep-verified against gorge | **%s** (%s) |" % (
+            w("| dirac | lockstep slices against gorge | **%s** (%s) |" % (
                 ", ".join(sorted(ls)), "; ".join(parts)))
     else:
-        w("| dirac | lowered | not available to this build |")
+        w("| dirac | supported | not available to this build |")
     w("")
     notes = []
     if rows and meta:
@@ -294,8 +338,8 @@ def render_sets(rows, level_b, meta, dd):
     unknown = sorted(c for c in codes if c not in by)
     out = []
     w = out.append
-    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirac lowered | Lockstep games |")
-    w("|---|---|---|---:|---:|---:|---:|---:|---:|")
+    w("| Set | Name | Declared | Cards | Playable % | Level A % | Level B % | dirac supported | dirac lowered | Lockstep games |")
+    w("|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
     problems = []
     for c in known:
         r = by[c]
@@ -312,12 +356,14 @@ def render_sets(rows, level_b, meta, dd):
                 problems.append("%s: %s" % (c, buckets_text(b)))
         else:
             bcell = DASH
-        w("| %s | %s | %s | %d | %s | %s | %s | %s | %s |" % (
+        w("| %s | %s | %s | %d | %s | %s | %s | %s | %s | %s |" % (
             cell(c), cell(r.get("name", "")), cell(r.get("declared") or DASH), m["cards"],
-            pct(m["playable"], m["cards"]), a, bcell, dd_cell(dd, c), lockstep_cell(dd, c)))
+            pct(m["playable"], m["cards"]), a, bcell,
+            dd_cell(dd, c, "supported"), dd_cell(dd, c, "lowered"), lockstep_cell(dd, c)))
     for c in unknown:
-        w("| %s | | %s | %s | %s | %s | %s | %s | %s |" % (
-            cell(c), DASH, DASH, DASH, DASH, DASH, dd_cell(dd, c), lockstep_cell(dd, c)))
+        w("| %s | | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+            cell(c), DASH, DASH, DASH, DASH, DASH,
+            dd_cell(dd, c, "supported"), dd_cell(dd, c, "lowered"), lockstep_cell(dd, c)))
     w("")
     if not rows:
         w("*gorge-compliance's status was not available to this build, so the gorge columns are empty.*")
@@ -366,7 +412,7 @@ def render_rollup(rows, level_b, meta, dd):
     w("")
     w("??? note \"Every set (%d), newest first\"" % len(rows))
     w("")
-    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirac lowered |")
+    w("    | Set | Name | Type | Released | Cards | Unsupported | Not in corpus | Playable % | Level A % | dirac supported |")
     w("    |---|---|---|---|---:|---:|---:|---:|---:|---:|")
     for r in rows:
         m = measure(r)
@@ -374,7 +420,7 @@ def render_rollup(rows, level_b, meta, dd):
             cell(r["set"]), cell(r.get("name", "")), cell(set_type(r)), cell(r.get("released", "")),
             m["cards"], m["unsupported"], m["missing"], pct(m["playable"], m["cards"]),
             pct(m["a_pass"], m["cards"]) if audited(r) else "≥ " + pct(m["a_pass"], m["cards"]),
-            dd_cell(dd, r["set"])))
+            dd_cell(dd, r["set"], "supported")))
     w("")
     return "\n".join(out) + "\n"
 
@@ -398,7 +444,16 @@ def main(argv=None):
     ap.add_argument("--commit", default="", help="gorge-compliance commit (overrides --meta)")
     ap.add_argument("--date", default="", help="measurement date (overrides --meta)")
     ap.add_argument("--dirac", default="", help="dirac per-set snapshot JSON")
+    ap.add_argument("--refresh-dirac", default="", metavar="SNAPSHOT",
+                    help="copy dirac/docs/support.md's counts into this snapshot, with --commit and --date, and exit")
     a = ap.parse_args(argv)
+
+    if a.refresh_dirac:
+        if not a.commit or not a.date:
+            print("docs_sets: --refresh-dirac needs --commit and --date", file=sys.stderr)
+            return 1
+        refresh_dirac(a.refresh_dirac, a.commit, a.date)
+        return 0
 
     rows = []
     if a.input == "-":

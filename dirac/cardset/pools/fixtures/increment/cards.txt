@@ -1,0 +1,20 @@
+# the Increment pool: the six `K:Increment` carriers
+# (the spend-vs-power/toughness SpellCast trigger, kernel
+# Tf2Increment), cheap spells and a pump that move the comparison, and
+# basics, for the oracle's constructed lockstep
+# (dirac/oracle/increment_test.go)
+Ambitious Augmenter
+Cuboid Colony
+Hungry Graffalon
+Pensive Professor
+Textbook Tabulator
+Topiary Lecturer
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Opt
+Lightning Bolt
+Giant Growth
+Forest
+Island
+Mountain

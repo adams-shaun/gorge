@@ -1,0 +1,20 @@
+# the Melira pool: Melira, the Living Cure's leave-return
+# delayed trigger and poison replacement beside an infect / toxic deck
+# (dirac/oracle/melira_test.go; skipped until the gorge pin pays
+# Exile<1/NICKNAME>)
+Melira, the Living Cure
+Plains
+Forest
+Swamp
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Ornithopter
+Swords to Plowshares
+Glistener Elf
+Plague Stinger
+Blight Mamba
+Bloated Contaminator
+Ichorclaw Myr
+Doom Blade
+Disfigure

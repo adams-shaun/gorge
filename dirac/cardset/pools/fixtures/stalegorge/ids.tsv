@@ -1,0 +1,20 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Dai Li Indoctrination
+1	card	Divination
+2	card	Forest
+3	card	Grizzly Bears
+4	card	Hill Giant
+5	card	Island
+6	card	Lightning Bolt
+7	card	Llanowar Elves
+8	card	Mountain
+9	card	North Pole Patrol
+10	card	Ornithopter
+11	card	Pacifism
+12	card	Plains
+13	card	Savannah Lions
+14	card	Solve for Disappointment
+15	card	Swamp
+16	card	name:Jace Token
+17	token	u_empower
+18	token	u_empower_jace

@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_25881_WBpR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck a77e5e4660cd4d8a8e8c8f73ced9dbe3:1, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Bonebind Orator, 1 Crumb and Get It, 1 Intrepid Rabbit, 1 Maha, Its Feathers Night, 1 Nocturnal Hunger, 1 Starscape Cleric -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Cindering Cutthroat",
+"count": 2
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 3
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Ravine Raider",
+"count": 1
+},
+{
+"name": "Savor",
+"count": 1
+},
+{
+"name": "Scales of Shale",
+"count": 3
+},
+{
+"name": "Swamp",
+"count": 12
+}
+]
+}

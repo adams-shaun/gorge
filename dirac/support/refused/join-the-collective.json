@@ -1,0 +1,13 @@
+{
+  "card": "Join the Collective",
+  "class": "projection-NInst",
+  "why": "the engines' state differs at projection NInst; 11 games in the corpus",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 231,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

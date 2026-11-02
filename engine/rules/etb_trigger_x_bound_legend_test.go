@@ -23,8 +23,8 @@ import (
 // script text is committed.
 
 const rollercrusherFixtureSrc = "Name:Rollercrusher Fixture\nManaCost:X 2 R\nTypes:Legendary Enchantment\n" +
-	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | Execute$ TrigDealDamage | TriggerDescription$ When CARDNAME enters, it deals X damage to each of up to X target creatures.\n" +
-	"SVar:TrigDealDamage:DB$ DealDamage | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ X | NumDmg$ X\n" +
+	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | Execute$ OnDealDamage\n" +
+	"SVar:OnDealDamage:DB$ DealDamage | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ X | NumDmg$ X\n" +
 	"SVar:X:Count$xPaid\n" +
 	"Oracle:x\n"
 

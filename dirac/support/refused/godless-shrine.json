@@ -1,0 +1,13 @@
+{
+  "card": "Godless Shrine",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 5 games in the corpus",
+  "repro": {
+    "pool": "std-eoe",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 6,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

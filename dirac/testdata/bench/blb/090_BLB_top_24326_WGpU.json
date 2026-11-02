@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_24326_WGpU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck a82925d64ea444a2be43cd4ff1316acc:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Crumb and Get It, 1 Finneas, Ace Archer, 1 Intrepid Rabbit, 1 Valley Questcaller -> 2 Plains, 2 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 2
+},
+{
+"name": "Druid of the Spade",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 10
+},
+{
+"name": "Galewind Moose",
+"count": 1
+},
+{
+"name": "Hazardroot Herbalist",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 2
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Seasoned Warrenguard",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 2
+}
+]
+}

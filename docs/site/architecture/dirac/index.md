@@ -4,13 +4,9 @@ dirac is a second Magic rules engine, written so that tree search and self-play 
 millions of times. This section is for engine and ML readers, and for bot authors who want to know what a
 dirac game is, what it supports, how it is checked and where the speed comes from.
 
-!!! note "The source isn't here yet"
-    dirac's source is not in this repository, so these pages describe it and don't link into it. Package
-    names on these pages are `dirac`, `dirac/kop`, `dirac/kgen`, `dirac/oracle` and so on. Commands on
-    these pages can't be run from a clone of gorge.
-
-Figures on these pages were read from the code on 2026-10-31, with Go 1.26.3 on linux/amd64, against gorge
-`7438d92b6` and the corpus pin in the Makefile's `FORGE_REF`. Each one says how it was measured.
+The source is in [`dirac/`](https://github.com/adams-shaun/gorge/tree/main/dirac), and
+[`dirac/README.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/README.md) is the guide for driving it from Go.
+The commands below need the card corpus and `make dirac-tables` ([Install and build](../../guide/install.md#build-diracs-card-tables-if-you-want-them)).
 
 ## Why a second engine
 
@@ -20,7 +16,7 @@ with slices and maps, so a clone is a deep copy, and every state change goes thr
 
 A search wants the opposite trade. Each simulation copies a position, plays a few dozen decisions and
 throws the copy away. If everything variable-length about the cards lives in a read-only table, the game
-itself can be mostly one fixed-size value:
+itself can be one flat value and one buffer sized to that table:
 
 ```go
 set, _ := cardset.ByName("fdn")
@@ -36,42 +32,61 @@ for {
 over, winner := s.Terminal()
 ```
 
-Copying a mid-game FDN position takes about 41 ns and allocates nothing, and a transition takes about
-2.8 µs, also allocating nothing ([Performance](../../performance/index.md#transitions-and-copies)).
+Copying a mid-game FDN position takes about 40 ns and allocates nothing, and a transition takes
+about 2.7 µs, also allocating nothing, measured 2026-11-02
+([Performance](../../performance/index.md#transitions-and-copies)).
 
 ## What it supports
 
-A card moves through three states. Only the last one is a claim about play.
+A card moves through three states. Only all three together are a claim about play.
 
-| State | Meaning | How to ask |
+| State | Meaning | Where it is recorded |
 |---|---|---|
-| **Lowered** | `dirac/kgen` read every rules parameter of the card's compiled IR and turned it into `dirac/kop` ops | the build ratchet: 20,730 of 34,072 corpus card names on 2026-10-31 |
-| **Not refused** | the card isn't on the short list of cards named as playing wrongly, each with a reason and a game that shows it | the list is committed with the source |
-| **Evidenced** | clean lockstep games played the card at least three times and used every ability it has | the evidence lists, committed with the source |
+| **Lowered** | `dirac/kgen` read every rules parameter of the card's compiled IR and turned it into `dirac/kop` ops | the build ratchet, and the *lowered* column of [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) |
+| **Not refused** | the card isn't on the short list of cards named as playing wrongly, each with a reason and a game that shows it | [`dirac/support/refused`](https://github.com/adams-shaun/gorge/tree/main/dirac/support/refused) |
+| **Evidenced** | clean lockstep games of the evidence corpus played the card at least three times and used every ability it has | [`dirac/support/evidence`](https://github.com/adams-shaun/gorge/tree/main/dirac/support/evidence) |
 
-A **supported** card is `lowered && !refused && evidenced`. `kgen -supported <pool>` prints one line per
-pool entry with that answer: on 2026-10-31 it says true for all 310 entries of the `fdn` pool and 260 of the
-288 of the `blb` pool, tokens included. Per-set lowering counts are on
-[Card support by set](../../support/sets.md#per-set-support).
+A **supported** card is all three: lowered, not refused by name, and clean in the lockstep games of the evidence
+corpus. [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) is generated from the
+same lists and gives the count corpus-wide and per Standard set, with the games behind each pool, and [Card support by set](../../support/sets.md#per-set-support)
+renders it. `kgen -supported <pool>` answers for each card of one pool:
 
-Evidence isn't enforced at game setup yet. A lowered card with no evidence is reported as *unverified*, not
-supported, and it can still be dealt into a game, which is how a lockstep sweep reaches it. A card that
-didn't lower or is refused can't: `Matchup` refuses the deck and names the card.
+```sh
+make dirac-tables
+go run ./dirac/cmd/kgen -supported fdn
+```
+
+```text
+Abrade	true
+Abyssal Harvester	true
+```
+
+A game plays supported cards only. `Matchup` refuses a deck holding any other card and names the card, so a lowered
+card with no evidence, reported as *unverified*, isn't dealt. Only a run that asks for them plays unverified cards:
+the lockstep runs that earn evidence, or a Go caller through `cardset.AllowUnverified`.
+
+"Supported" says what the evidence games saw, and no more. It doesn't say a card is right, because dirac shares
+gorge's bugs: lockstep can't see a mistake both engines make ([what lockstep proves](oracle.md#what-lockstep-proves-and-what-it-doesnt)).
+It doesn't cover a pair of cards no evidence game put together, so sweeps and census pairs outside the evidence corpus
+can still find a difference on a supported card.
 
 ### How far lockstep agrees
 
 gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
-2026-10-31, on `-surface autopay` with random answers:
+2026-11-02 at `e0cfe5407`, with random answers. The rows are `make dirac-slices`, which any clone
+with a corpus can run, and CI runs on every change. A slice is the first 1,500 pairs of a pool at seed 1.
 
 | Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
 |---|--:|--:|--:|--:|--:|--:|
-| FDN, the committed slice (first 1,500 pairs of its pool, seed 1) | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
-| BLB, the committed slice (first 1,500 pairs of its pool, seed 1) | 1,500 | 1,500 | 0 | 0 | 0 | 0 |
-| 20 Standard sets, 500 pairs each, deck pools | 9,067 | 8,635 | 404 | 15 | 13 | 933 |
+| FDN slice, `-surface autopay` | 1,399 | 1,397 | 0 | 0 | 2 | 101 |
+| FDN slice, `-surface full` | 1,399 | 1,395 | 0 | 0 | 4 | 101 |
+| BLB slice, `-surface autopay` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
+| BLB slice, `-surface full` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
 
-A refused pair holds a card dirac doesn't support, so it never starts a game. dirac is at zero divergence on
-FDN and BLB over those slices and is not at zero on the wider pool: 404 of 9,067 games found a difference from
-gorge. Those differences are open work, on one engine or the other.
+A refused pair holds a card dirac doesn't support, so it never starts a game. A capacity stall is a declared limit,
+reached with no disagreement up to that point; it counts against the run and isn't clean. Games beyond these slices,
+on pairs the evidence corpus never put together, can still diverge, and each that does is open work on one engine or
+the other.
 
 ## Scope
 
@@ -100,9 +115,10 @@ reason must be in one or a test fails:
 
 Nothing is dropped silently: a full pool stalls by name, and an op the interpreter lacks panics by name.
 
-dirac has no event log, no per-seat view, no host, no Commander, no concede and no manual mana. A cast is
-offered when untapped sources and the pool can pay, and it is paid by a planner that mirrors gorge's auto-pay
-planner. Those other jobs belong to gorge.
+The engine has no event log, no per-seat view, no Commander, no concede and no manual mana. A cast is offered when
+untapped sources and the pool can pay, and it is paid by a planner that mirrors gorge's auto-pay planner. A server
+reaches it through `dirac/adapter`, which derives a game's log and views from its positions
+([Serving dirac](../../guide/dirac.md)).
 
 ## How it relates to gorge
 
@@ -112,7 +128,8 @@ plays the same game through both engines. When they disagree, the question is wh
 Comprehensive Rules (CR). If gorge looks wrong, the evidence is checked against XMage and Forge and the fix
 lands in gorge. Several differences so far were gorge's bugs.
 
-The rules engine imports nothing from gorge. Only the tools that meet gorge do:
+The engine imports nothing from gorge. Only the tools that meet gorge do, and the adapter, which reads gorge's
+view and decision types and never its rules engine:
 
 ```mermaid
 flowchart LR
@@ -123,27 +140,29 @@ flowchart LR
     hbot["dirac/search/hbot<br/>heuristic bot port"] --> dirac
     oracle["dirac/oracle<br/>lockstep, kfuzz"] --> dirac
     kgen["dirac/kgen<br/>card generator"] -.->|writes tables| cardset
+    adapter["dirac/adapter<br/>serves a game to a host"] --> dirac
   end
   subgraph g["gorge"]
     engine["engine/...<br/>rules, cards, state"]
   end
   oracle -->|"runs gorge as the reference"| engine
   kgen -->|"reads the compiled IR"| engine
+  adapter -->|"implements engine/game"| engine
 ```
 
 | | gorge | dirac |
 |---|---|---|
-| **State** | `state.Game`: an object arena with slices and maps | one `State` of 14,896 bytes plus one small table-sized buffer ([State](state.md)) |
+| **State** | `state.Game`: an object arena with slices and maps | one `State` of under 16 KiB plus one small table-sized buffer ([State](state.md)) |
 | **Mutation** | events folded by `events.Apply` into a hash chain | `Apply(action)` writes the value directly, with no log |
-| **Clone** | `Engine.Clone`, about 22 µs and 200 KB | `CopyFrom`, about 41 ns and no allocation |
+| **Clone** | `Engine.Clone`, [tens of µs and hundreds of KB](../../performance/index.md#transitions-and-copies) | `CopyFrom`, [tens of ns and no allocation](../../performance/index.md#transitions-and-copies) |
 | **Players** | up to 8 | exactly 2 |
-| **Cards** | every Forge script is compiled; a card is playable when every primitive it names is implemented ([Card support](../../support/sets.md)) | the cards its generator lowers with no refusal; supported sets are verified in lockstep ([What it supports](#what-it-supports)) |
+| **Cards** | every Forge script is compiled; a card is playable when every primitive it names is implemented ([Card support](../../support/sets.md)) | supported cards only ([What it supports](#what-it-supports)) |
 | **Comparing two games** | the chain head: the same head means the same history | its `Projection` (fixed arrays): equal positions project `==`; two States in the same position may differ in bookkeeping |
 | **Decisions** | 13 kinds, multi-select answers | 8 kinds, every answer a single pick ([Step and Apply](step-apply.md)) |
 | **Checked by** | golden replays, census ratchets, XMage, Forge and Oracle-text scenarios | lockstep against gorge at every decision ([Verification](oracle.md)) |
-| **Used for** | hosting games, every card, the reference | search and self-play |
+| **Used for** | hosting games, every card, the reference | search and self-play; two-seat tables on FDN and BLB limited decks |
 
-dirac can also be served as a SpellBench v2 engine: `dirac/cmd/sbv2dirac` plays the game with dirac as the
+dirac can also run as a stdio SpellBench v2 engine: `dirac/cmd/sbv2dirac` plays the game with dirac as the
 authority and a gorge engine following in lockstep, which builds the observations and candidates. A
 disagreement ends that game as `engine_contract_failure:divergence`. See
 [SpellBench v2](../../api/spellbench-v2.md).

@@ -1,0 +1,18 @@
+# the self becomes-target pool: the four
+# "whenever this becomes the target of a spell or ability an opponent
+# controls" carriers against removal, pumps and a pinger
+# (dirac/oracle/btself_test.go)
+Altanak, the Thrice-Called
+Ruric Thar, Biomagus
+Old Fat Spider
+Tenured Concocter
+Shock
+Disfigure
+Giant Growth
+Prodigal Sorcerer
+Grizzly Bears
+Hill Giant
+Forest
+Island
+Mountain
+Swamp

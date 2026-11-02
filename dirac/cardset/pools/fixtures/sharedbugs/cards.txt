@@ -1,0 +1,46 @@
+# The cards of dirac/oracle/sharedbugs_test.go's constructed lockstep: boards where
+# gorge once agreed with the kernel against the Comprehensive Rules.
+Sleep Magic
+Slumbering Cerberus
+Sleep-Cursed Faerie
+Hill Giant
+Grizzly Bears
+Act of Treason
+Viscera Seer
+Foot Mystic
+Tormenting Voice
+Fiery Temper
+Marauding Mako
+Meltstrider Eulogist
+Incremental Blight
+Battlegrowth
+Glorious Anthem
+Railway Brawler
+Kaervek the Merciless
+Blaze
+Goblin Electromancer
+Red Room Recruit
+Kinjalli's Dawnrunner
+Lightning Bolt
+Electro's Bolt
+Phoenix Down
+Delney, Streetwise Lookout
+Alley Grifters
+Town Sentry
+Bow of Nylea
+Manaplasm
+Fire
+Mind Spring
+Insidious Fungus
+Barbed Servitor
+Astelli Reclaimer
+Secret Tunnel
+Quandrix, the Proof
+Opt
+Brave the Wilds
+Ornithopter
+Mountain
+Island
+Swamp
+Plains
+Forest

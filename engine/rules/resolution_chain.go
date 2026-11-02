@@ -431,6 +431,6 @@ func (e *Engine) applyCastModes(d *decision.Decision, player state.PlayerID, cho
 		}
 	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: player,
-		Text: strings.Join(labels, ",")})
+		Counter: e.dilemmaCounter(d.ResumeSA, len(names)), Text: strings.Join(labels, ",")})
 	e.continueCast()
 }

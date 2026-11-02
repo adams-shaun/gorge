@@ -1,0 +1,10 @@
+# the mana alternative cost pool: Blasphemous Edict's {B}
+# among two creature decks (dirac/oracle/altcost_test.go)
+Blasphemous Edict
+Raise the Alarm
+Savannah Lions
+Grizzly Bears
+Llanowar Elves
+Plains
+Swamp
+Forest

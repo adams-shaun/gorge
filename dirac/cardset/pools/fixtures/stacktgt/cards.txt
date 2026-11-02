@@ -1,0 +1,22 @@
+# the stack-ability target pool: Disallow and Stifle countering
+# a spell, an activated ability (the Prodigals) or a triggered one (Man-
+# o'-War, Ravenous Rats, Elvish Visionary), beside Counterspell, which
+# removes entries below a targeted ability (dirac/oracle/stacktgt_test.go)
+Disallow
+Stifle
+Counterspell
+Prodigal Sorcerer
+Man-o'-War
+Ravenous Rats
+Wind Drake
+Prodigal Pyromancer
+Elvish Visionary
+Shock
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Island
+Swamp
+Mountain
+Forest
+Ertai Resurrected

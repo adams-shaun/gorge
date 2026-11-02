@@ -81,6 +81,22 @@ func (e *Engine) matchesWithChars(ce *ContinuousEffect, id state.ObjID, types, k
 	return e.matchesWithCharsPT(ce, id, types, keywords, atStack, 0, 0, 0, 0, false)
 }
 
+// affectsZone reports whether ce reaches an object in zone, or in atStack when the
+// walk overrides it. A continuous static affects permanents unless it names another
+// zone with AffectedZone$ (CR 109.2, 611.3a: "creatures you control" are on the
+// battlefield; Forge's StaticAbilityContinuous.getAffectedCards reads the same
+// default), so Garruk's Uprising grants nothing to a creature card in hand. Scoped
+// to what a static or an api:Effect registers: a one-shot effect names its objects.
+func affectsZone(ce *ContinuousEffect, zone, atStack state.Zone) bool {
+	if !ce.PermanentsOnly && (!ce.FromEffect || ce.MayPlay || (ce.AffectedZone != "" && ce.AffectedZone != "Battlefield")) {
+		return true
+	}
+	if atStack != 0 {
+		zone = atStack
+	}
+	return zone == state.ZBattlefield
+}
+
 // matchesWithCharsPT binds the layer-7 walk's in-progress P/T values when an
 // Affected$ predicate is evaluated during that walk. Calling Derived here
 // would recurse through the same active layer scan.
@@ -91,7 +107,7 @@ func (e *Engine) matchesWithCharsPT(ce *ContinuousEffect, id state.ObjID, types,
 	// layer walk goes through, so the exclusion cannot be missed by a layer
 	// the way a per-layer check could. PhasedOut is only ever true on a
 	// battlefield permanent.
-	if o := e.G.Obj(id); o != nil && o.PhasedOut {
+	if o := e.G.Obj(id); o != nil && (o.PhasedOut || !affectsZone(ce, o.Zone, atStack)) {
 		return false
 	}
 	// A spec whose Affects is exactly Card.Self names only the effect's own
@@ -176,7 +192,7 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	// filter match, through the combined entry point; its one-probe
 	// specProvenanceGate is the early-out, so every Affected$ spec
 	// without the tokens costs one cached lookup on this shared hot path.
-	affects, ok := e.castProvenanceAdmitsWindow(ce.Affects, id, ce.Controller, atStack != 0)
+	affects, ok := e.castProvenanceAdmitsWindow(ce.Affects, id, ce.Controller, atStack == state.ZStack)
 	if !ok {
 		return false
 	}
@@ -185,7 +201,10 @@ func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, ty
 	// layer-7 lord's Affected$ sees the derived type. A value slice, not a
 	// callable, keeps the context stack-allocated on this hot path.
 	sc := e.specCtx(ce.Source, ce.Controller)
-	sc.AsStack = atStack != 0
+	sc.AsStack = atStack == state.ZStack
+	if sc.AsStack {
+		sc.PreparedSpell = e.preparedSpellOf(id)
+	}
 	sc.ExtraTypes, sc.ExtraTypesOwner = types, id
 	sc.ExtraKeywords, sc.ExtraKeywordsOwner = keywords, id
 	if hasPT {

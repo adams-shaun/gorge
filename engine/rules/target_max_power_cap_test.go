@@ -38,9 +38,9 @@ import (
 // keeps two instances distinct (the deck helper keys by name).
 func negOffsetScript(name string) string {
 	return "Name:" + name + "\nManaCost:1 B\nTypes:Creature Demon\nPT:*/*\n" +
-		"S:Mode$ Continuous | CharacteristicDefining$ True | SetPower$ X | SetToughness$ X | Description$ CARDNAME's power and toughness are each equal to 20 minus the highest life total among players.\n" +
-		"SVar:Y:PlayerCountPlayers$HighestLifeTotal\n" +
-		"SVar:X:SVar$Y/NMinus.20\n" +
+		"S:Mode$ Continuous | CharacteristicDefining$ True | SetPower$ X | SetToughness$ X\n" +
+		"SVar:Highest:PlayerCountPlayers$HighestLifeTotal\n" +
+		"SVar:X:SVar$Highest/NMinus.20\n" +
 		"Oracle:x\n"
 }
 

@@ -82,8 +82,11 @@ func TestRestrictedSourceFundsPlannedOffer(t *testing.T) {
 		if ppHasAction(d, toll) {
 			t.Fatalf("Green Toll has a payment action on a creature-only source: %+v", d.PaymentActions)
 		}
-		if got := e.PlanCastPayment(0, paymentCast(toll)); got.Plan != nil || got.Reason != "insufficient" {
-			t.Fatalf("PlanCastPayment = %+v, want insufficient", got)
+		// The potential walk prices the cast on the mana its payment may
+		// spend, so a creature-only source never makes it a candidate and the
+		// planner withholds it before pricing.
+		if got := e.PlanCastPayment(0, paymentCast(toll)); got.Plan != nil || got.Reason != "unsupported" {
+			t.Fatalf("PlanCastPayment = %+v, want unsupported", got)
 		}
 		replayCheck(t, e, cfg)
 	})

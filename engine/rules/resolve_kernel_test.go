@@ -115,8 +115,8 @@ func tapeEventString(ev events.Event) string {
 }
 
 const tapeChooseColorSrc = "Name:Tape Wash\nManaCost:U\nTypes:Sorcery\n" +
-	"A:SP$ ChooseColor | Defined$ You | SubAbility$ DBGain\n" +
-	"SVar:DBGain:DB$ GainLife | LifeAmount$ 2\nOracle:x\n"
+	"A:SP$ ChooseColor | Defined$ You | SubAbility$ ThenGain\n" +
+	"SVar:ThenGain:DB$ GainLife | LifeAmount$ 2\nOracle:x\n"
 
 const tapeNoAskSrc = "Name:Tape Gain\nManaCost:W\nTypes:Sorcery\nA:SP$ GainLife | LifeAmount$ 2\nOracle:x\n"
 
@@ -128,8 +128,8 @@ func tapeVoteSrc() string {
 }
 
 const tapeCardVoteSrc = "Name:Tape Judgment\nManaCost:W\nTypes:Sorcery\n" +
-	"A:SP$ Vote | Defined$ Player | VoteSubAbility$ DBExile | VoteCard$ Permanent.nonLand\n" +
-	"SVar:DBExile:DB$ ChangeZone | Defined$ Remembered | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
+	"A:SP$ Vote | Defined$ Player | VoteSubAbility$ ThenExile | VoteCard$ Permanent.nonLand\n" +
+	"SVar:ThenExile:DB$ ChangeZone | Defined$ Remembered | Origin$ Battlefield | Destination$ Exile\nOracle:x\n"
 
 const tapePlayerVoteSrc = "Name:Tape Verdict\nManaCost:R\nTypes:Sorcery\n" +
 	"A:SP$ Vote | Defined$ Player | VotePlayer$ Other | StoreVoteNum$ True | SubAbility$ DBRepeat\n" +
@@ -139,8 +139,8 @@ const tapePlayerVoteSrc = "Name:Tape Verdict\nManaCost:R\nTypes:Sorcery\n" +
 // A loop with per-iteration asks: every player discards a card of their
 // choice (TgtChoose over Defined$ Player).
 const tapeEachDiscardSrc = "Name:Tape Each Discard\nManaCost:B\nTypes:Sorcery\n" +
-	"A:SP$ Discard | Defined$ Player | Mode$ TgtChoose | NumCards$ 1 | SubAbility$ DBGain\n" +
-	"SVar:DBGain:DB$ GainLife | LifeAmount$ 2\nOracle:x\n"
+	"A:SP$ Discard | Defined$ Player | Mode$ TgtChoose | NumCards$ 1 | SubAbility$ ThenGain\n" +
+	"SVar:ThenGain:DB$ GainLife | LifeAmount$ 2\nOracle:x\n"
 
 // A converted ask then a legacy one (Scry's KArrange, held legacy): the re-run aborts and
 // the legacy path replays the tape (§7.7 run-time fallback).

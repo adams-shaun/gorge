@@ -1,0 +1,17 @@
+# RemoveCounter Choices$ on OpSupport's remove form:
+# Dyadrine (an exact two) and Garnet (any number of Sagas) beside Sagas,
+# creatures that gain +1/+1 counters, cheap removal and basics
+# (dirac/oracle/rmctr_test.go)
+Dyadrine, Synthesis Amalgam
+Garnet, Princess of Alexandria
+The Birth of Meletis
+History of Benalia
+Luminarch Aspirant
+Ajani's Pridemate
+Hopeful Initiate
+Grizzly Bears
+Savannah Lions
+Swords to Plowshares
+Giant Growth
+Forest
+Plains

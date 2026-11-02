@@ -1,0 +1,32 @@
+# the Bargain pool: the 12 WOE Bargain carriers kgen
+# lowers, Ornithopter, a token maker and basics, for the oracle's
+# constructed lockstep (dirac/oracle/bargain_test.go)
+Agatha's Champion
+Archon's Glory
+Brave the Wilds
+Candy Grapple
+Diminisher Witch
+Farsight Ritual
+High Fae Negotiator
+Kellan's Lightblades
+Realm-Scorcher Hellkite
+Rowan's Grim Search
+Stonesplitter Bolt
+Tenacious Tomeseeker
+Torch the Tower
+Troublemaker Ouphe
+Burning-Tree Emissary
+Bumbleflower's Sharepot
+Iridescent Tiger
+Curious Pair
+Ornithopter
+Grizzly Bears
+Lightning Bolt
+Shock
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest
+Lotus Cobra

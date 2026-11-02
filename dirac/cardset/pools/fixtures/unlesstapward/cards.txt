@@ -1,0 +1,23 @@
+# tapXType<N/Spec> as an UnlessCost$ (Command
+# Bridge, Public Thoroughfare) and Ward—{N}, pay N life (Ovika, Gisa)
+# (dirac/oracle/unlesstapward_test.go)
+Command Bridge
+Public Thoroughfare
+Ovika, Enigma Goliath
+Gisa, the Hellraiser
+Ornithopter
+Grizzly Bears
+Shock
+Lightning Bolt
+Unsummon
+Swords to Plowshares
+Plains
+Island
+Swamp
+Mountain
+Forest
+Rent Is Due
+Reservoir Kraken
+Sheltered by Ghosts
+Hardlight Containment
+Combat Research

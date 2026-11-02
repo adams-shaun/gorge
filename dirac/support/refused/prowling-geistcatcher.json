@@ -1,0 +1,13 @@
+{
+  "card": "Prowling Geistcatcher",
+  "class": "projection",
+  "why": "gorge puts the +1/+1 counter when the sacrificed creature was a token; the kernel does not",
+  "repro": {
+    "pool": "tail-46",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 48,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

@@ -16,7 +16,7 @@ import (
 // static
 //
 //	S:Mode$ Continuous | Affected$ Card.Self | AddPower$ X
-//	SVar:X:PlayerCountPlayers$HasPropertyHasCardsInGraveyard_Card_GE7/Times.2
+//	X = PlayerCountPlayers$HasPropertyHasCardsInGraveyard_Card_GE7/Times.2
 //
 // -- "This creature gets +2/+0 for each graveyard with seven or more cards in
 // it." CR 604.3 makes this a static ability generating a continuous effect;

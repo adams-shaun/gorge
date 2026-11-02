@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_29411_UG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck c4e09d89af9c44938b7b0c5ff12917a1:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Azure Beastbinder, 1 Daring Waverider, 1 Dour Port-Mage, 1 Long River Lurker, 1 Pond Prophet, 1 Season of Weaving -> 4 Island, 2 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 3
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Island",
+"count": 14
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Pawpatch Formation",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 2
+},
+{
+"name": "Sugar Coat",
+"count": 3
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Treeguard Duo",
+"count": 1
+}
+]
+}

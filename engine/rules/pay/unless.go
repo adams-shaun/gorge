@@ -53,7 +53,7 @@ func CostAnnouncesSacX(c costvocab.Cost) bool {
 //     unchanged.
 //   - any other resolvable body (Murderous Betrayal's
 //     SVar:X:Count$YourLifeTotal/HalfUp, Tornado's
-//     SVar:X:Count$CardCounters.VELOCITY/Times.3): the value is FIXED -- the
+//     X = Count$CardCounters.VELOCITY/Times.3): the value is FIXED -- the
 //     payer announces nothing, and the settle pays exactly the evaluated
 //     amount. Each such part is folded into Cost.Life, the fixed additional
 //     cost both the payable gates (resolveManaWith's life check) and the
@@ -465,7 +465,7 @@ func UnlessCandidatesFor(e Engine, payer state.PlayerID, ctx effects.Ctx, zone s
 	if out, ok := unlessSpecialCandidates(e, payer, ctx, zone, kind, part, seen); ok {
 		return out
 	}
-	sc := ctx.SpecContext(payer)
+	sc := ctx.CostSpecContext(e.Game(), payer)
 	// A Behold<N/Spec> part (CR 702.176) draws its candidates from TWO zones:
 	// permanents the payer controls on the battlefield, then cards in their
 	// hand. This is exactly the enumeration the cast flow's beholdCostAsk

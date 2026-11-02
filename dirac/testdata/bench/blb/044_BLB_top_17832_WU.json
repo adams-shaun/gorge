@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_17832_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 92a6629ec1b04e5e9277ab88bdc227ba:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Beza, the Bounding Spring, 4 Intrepid Rabbit -> 3 Plains, 2 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 4
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Knightfisher",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

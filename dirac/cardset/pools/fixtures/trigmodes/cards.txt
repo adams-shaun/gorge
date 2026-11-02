@@ -1,0 +1,30 @@
+# the LandPlayed / SearchedLibrary / Forage / Discover trigger pool
+# (dirac/oracle/trigmodes_test.go)
+# The LandPlayed / SearchedLibrary / Forage / Discover trigger pool
+# (CR 305.1, 701.61a, 701.57): Shadow of the Goblin and The Endstone (LandPlayed),
+# Wan Shi Tong (SearchedLibrary), Corpseberry Cultivator (Forage), Curator of
+# Sun's Creation (Discover) beside land fetch, forage, discover and play-from-
+# elsewhere carriers (dirac/oracle/trigmodes_test.go)
+The Endstone
+Shadow of the Goblin
+Wan Shi Tong, Librarian
+Corpseberry Cultivator
+Curator of Sun's Creation
+Felidar Retreat
+Evolving Wilds
+Fabled Passage
+Rampant Growth
+Cultivate
+Treetop Sentries
+Feed the Cycle
+Bake into a Pie
+Geological Appraiser
+Daring Discovery
+Llanowar Elves
+Grizzly Bears
+Lightning Bolt
+Island
+Mountain
+Plains
+Forest
+Swamp

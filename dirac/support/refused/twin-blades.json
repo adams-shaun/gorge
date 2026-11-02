@@ -1,0 +1,13 @@
+{
+  "card": "Twin Blades",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; 8 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 834,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

@@ -1,7 +1,8 @@
 # Getting started
 
-This page takes you from a fresh clone to verified bot games, a local server and a
-focused test run, in about five minutes plus one download. The
+This page takes you from a fresh clone to verified bot games, a local server with its API and a
+focused test run. It needs Go and one download of about 140 MB; a browser board also needs Node
+and `make web`. The
 [User's guide](guide/index.md) goes further on hosting and playing;
 [Contributing](contributing/index.md) on changing the code.
 
@@ -23,11 +24,11 @@ committed ([why](repos/index.md#licensing-and-the-forge-card-scripts)).
 `make compile-cards` prints a couple of diagnostics for rider text it doesn't support;
 those are expected.
 
-`make report` begins like this (2026-10-31, `FORGE_REF` `91402ac5`):
+`make report` begins like this (2026-11-02, at `b78e4c8b1`):
 
 ```text
-corpus: 91402ac511046c0b7ed0bb691a8a446ca7dfc873 @ 91402ac511046c0b7ed0bb691a8a446ca7dfc873 (GPL-3.0, 34074 files)
-cards: 34074  playable: 32390 (95.1%)
+corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, 34074 files)
+cards: 34074  playable: 32393 (95.1%)
 tokens: 854
 ```
 
@@ -51,19 +52,19 @@ bin/mtgsim -seats 2 -games 2 -seed 42 -verify
 ```
 
 ```text
-seed 42: 2 seats,    661 intents,   3423 events,  19 turns, winner=death-n-taxes, chain=99228a9168f4832f
-  replay OK (chain 99228a9168f4832f)
-seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=b7b28c0af06c5ddd
-  replay OK (chain b7b28c0af06c5ddd)
+seed 42: 2 seats,    611 intents,   3157 events,  18 turns, winner=dimir-tempo, chain=3baaa1a31c521ffd
+  replay OK (chain 3baaa1a31c521ffd)
+seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=ff2b8e4a6b5cc72c
+  replay OK (chain ff2b8e4a6b5cc72c)
 ```
 
 An *intent* is one answer to a decision, and `chain` is the hash of the game's whole event
-log. The numbers move when a change alters what the games do.
+log. The numbers move when a change alters what the games do; these are from 2026-11-01 at `5917ab1ae`.
 
 ## 3. Run a local server
 
 ```sh
-make web                                     # optional: build the browser client
+make web                                     # optional: the browser client, which needs Node 20.19+
 go build -trimpath -o bin/gorged ./cmd/gorged
 bin/gorged -dir /tmp/gorge-local -tables 2 -seats 4 -vsbot
 ```
@@ -76,7 +77,7 @@ without it the web root answers `503 web build missing`, and the API still works
 curl localhost:8080/api/tables
 ```
 
-`bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
+To run the same server on dirac, see [Serving dirac](guide/dirac.md). `bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
 must never share one `-dir`, because they silently corrupt each other's matches. At startup the
 server fetches card art for the dealt decks into `<dir>/art`; pass `-prewarm=false` to skip that
 when you are offline. [Play in the browser](guide/play.md) walks through the rest.

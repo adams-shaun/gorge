@@ -86,6 +86,25 @@ func PlanManaHalf(c Cost) Cost {
 	return c
 }
 
+// PlanManaUnderRider is the mana half a plan funds when the cast's may-play
+// grant relaxes its pips (MayPlayIgnoreColor$, MayPlayIgnoreType$): a pip the
+// rider lets any mana pay is generic to the plan. The real cast still spends
+// under the rider, so the witness only has to bring enough mana.
+func PlanManaUnderRider(c Cost, r PipRider) Cost {
+	slots := 0
+	switch {
+	case r.AnyType:
+		slots = len(c.Colored)
+	case r.AnyColor:
+		slots = len(c.Colored) - 1 // {C} stays: "any color" isn't colourless.
+	}
+	for i := 0; i < slots; i++ {
+		c.Generic += c.Colored[i]
+		c.Colored[i] = 0
+	}
+	return c
+}
+
 func PlanCostDetail(c Cost) string {
 	switch {
 	case c.X != 0 || c.XMin != 0:
@@ -206,34 +225,6 @@ func PlanCostOK(c Cost) bool {
 		len(c.LifeX) == 0 && !c.LifeHalfUp && len(c.DamageYou) == 0 && len(c.GainLife) == 0 && len(c.Return) == 0 &&
 		len(c.PutToLib) == 0 && len(c.MoveToGrave) == 0 && len(c.Mill) == 0 && len(c.Evidence) == 0 && len(c.RollDice) == 0 && len(c.Unknown) == 0 && len(c.Exert) == 0 &&
 		c.ChooseType == 0
-}
-
-// PlanPoolOK reports whether p's floating mana is plain: no snow,
-// persistent or restricted mana and every producer-typed unit
-// (state.Player.ManaUnits) empty. It reads the player in place; the units
-// are formed exactly as ManaUnits forms them, without its two copies of
-// the player.
-func PlanPoolOK(p *state.Player) bool {
-	if p.Snow.Total() != 0 || p.PersistentMana.Total() != 0 || len(p.RestrictedMana) != 0 {
-		return false
-	}
-	for t := range p.TypedMana {
-		m := p.TypedMana[t]
-		if t < len(p.ArtifactTyped) {
-			for i := range m {
-				m[i] -= p.ArtifactTyped[t][i]
-			}
-		}
-		if m.Total() != 0 {
-			return false
-		}
-	}
-	for t := range p.ArtifactTyped {
-		if p.ArtifactTyped[t].Total() != 0 {
-			return false
-		}
-	}
-	return true
 }
 
 // PlanLastResortCostOK reports whether a last-resort activation cost

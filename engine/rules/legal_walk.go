@@ -69,6 +69,13 @@ func (w *legalWalk) add(kind, label string, obj state.ObjID) {
 	w.out = append(w.out, decision.Option{Index: len(w.out), Kind: kind, Label: label, Obj: obj})
 }
 
+// addLandPlay offers playing the land f, with the fact a policy needs to not
+// play one that would not stay.
+func (w *legalWalk) addLandPlay(label string, obj state.ObjID, f *cards.Face) {
+	w.add("play_land", label, obj)
+	w.out[len(w.out)-1].LandWontStay = w.e.landWontStay(w.p, obj, f)
+}
+
 // hyp is the pricing mode the walk runs in: nil is the ordinary real-pool
 // offer walk; non-nil is the potential-action walk's hypothetical bound.
 // The three affordability gates below are the ONLY pricing difference:

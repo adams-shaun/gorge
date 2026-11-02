@@ -26,8 +26,8 @@ import (
 const effectTriggerSelfExileSrc = "Name:Fixture Effect Trigger\nTypes:Creature\nPT:2/2\n" +
 	"A:AB$ Effect | StaticAbilities$ Gift | Triggers$ Hook\n" +
 	"SVar:Gift:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying\n" +
-	"SVar:Hook:Mode$ DamageDone | ValidTarget$ You | Execute$ ExileEffect | TriggerZones$ Command\n" +
-	"SVar:ExileEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n" +
+	"SVar:Hook:Mode$ DamageDone | ValidTarget$ You | Execute$ EndEffect | TriggerZones$ Command\n" +
+	"SVar:EndEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n" +
 	"Oracle:x\n"
 
 // TestEffectTriggerBodySelfExileEndsTheEffect is the path-2 pin: the Effect
@@ -111,7 +111,7 @@ func TestEffectTriggerBodySelfExileLeavesPrintedStatics(t *testing.T) {
 }
 
 // TestEffectChainSelfExileEndsTheEffect pins the ordinary-chain path: a
-// `DB$ Effect ... SubAbility$ ExileEffect` in ONE resolution registers the
+// `DB$ Effect ... SubAbility$ EndEffect` in ONE resolution registers the
 // Effect and then self-exiles it from the same chain. Before this the chain
 // had no frame at all (the Effect was registered by an ordinary spell
 // ability, not a replacement body), so the idiom ended nothing.
@@ -120,9 +120,9 @@ func TestEffectChainSelfExileEndsTheEffect(t *testing.T) {
 	e := newSeats(t, 2)
 	e.pending = nil
 	line := "Name:Fixture Chain Effect\nTypes:Sorcery\n" +
-		"A:SP$ Effect | StaticAbilities$ Gift | SubAbility$ ExileEffect\n" +
+		"A:SP$ Effect | StaticAbilities$ Gift | SubAbility$ EndEffect\n" +
 		"SVar:Gift:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying\n" +
-		"SVar:ExileEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n" +
+		"SVar:EndEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile\n" +
 		"Oracle:x\n"
 	spell := e.G.AddObject(card(t, line), 0)
 	spell.Zone = state.ZStack

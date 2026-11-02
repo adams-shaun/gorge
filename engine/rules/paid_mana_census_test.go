@@ -19,9 +19,9 @@ import (
 
 const (
 	pmcPetal = "Name:Lotus Petal\nManaCost:0\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME> | Produced$ Any\nOracle:x\n"
 	pmcPainRock = "Name:Pain Rock\nManaCost:1\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ R\nOracle:x\n"
 	pmcOgre = "Name:Gray Ogre\nManaCost:1\nTypes:Creature Ogre\nPT:2/2\nOracle:x\n"
 	pmcSage = "Name:Paid Sage\nManaCost:2\nTypes:Creature Wizard\nPT:1/1\n" +
 		"A:AB$ Draw | Cost$ 1 | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"

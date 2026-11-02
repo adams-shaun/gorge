@@ -6,7 +6,7 @@ import "slices"
 // subtype lists plus the words non-tournament cards print beside those types.
 var (
 	artifactTypeWords = []string{
-		"Attraction", "Blood", "Bobblehead", "Book", "Clue", "Contraption",
+		"Attraction", "Blood", "Bobblehead", "Book", "Clue", "Communicator", "Contraption",
 		"Equipment", "Food", "Fortification", "Gold", "Hat", "Heartwood",
 		"Incubator", "Infinity", "Junk", "Key", "Lander", "Map", "Mutagen",
 		"Powerstone", "Spacecraft", "Stone", "Treasure", "Vehicle", "Vibranium",

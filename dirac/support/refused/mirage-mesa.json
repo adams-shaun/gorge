@@ -1,0 +1,13 @@
+{
+  "card": "Mirage Mesa",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 18 games in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1176,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

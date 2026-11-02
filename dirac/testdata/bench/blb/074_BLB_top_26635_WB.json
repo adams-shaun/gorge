@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_26635_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 2f837a3163af4553ab29b8ad68bd20f6:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Early Winter, 1 Intrepid Rabbit, 1 Moonstone Harbinger, 1 Parting Gust, 1 Thought-Stalker Warlock -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Brightblade Stoat",
+"count": 2
+},
+{
+"name": "Diresight",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Moonrise Cleric",
+"count": 2
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Savor",
+"count": 3
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Stargaze",
+"count": 1
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 11
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

@@ -28,9 +28,10 @@ func (h *handler) pairedBotStatus(w http.ResponseWriter, r *http.Request) {
 // advice is GET /api/tables/{t}/matches/{k}/advice?seq=: the paired bot's
 // evaluation of the decision pending on the claim's seat. The seat comes from
 // the claim alone; seq says which decision the client is showing, so an answer
-// can never be for another. 409 covers a decision that has moved on, a seat
-// with nothing pending and a table that does not offer the bot. A client that
-// hangs up cancels the search.
+// can never be for another. 409 advice_stale says that decision has moved on or
+// the seat has nothing pending, which is the client's view lagging the game and
+// no failure; 409 conflict covers a table that does not offer the bot. A client
+// that hangs up cancels the search.
 func (h *handler) advice(w http.ResponseWriter, r *http.Request) {
 	t, k, ok := matchKey(w, r)
 	if !ok {
@@ -48,6 +49,10 @@ func (h *handler) advice(w http.ResponseWriter, r *http.Request) {
 	a, err := h.reg.Advice(r.Context(), t, k, claim.Seat, seq)
 	if errors.Is(err, context.Canceled) && r.Context().Err() != nil {
 		return // the client has gone; nobody reads a reply
+	}
+	if errors.Is(err, host.ErrAdviceStale) {
+		writeError(w, http.StatusConflict, "advice_stale", err.Error())
+		return
 	}
 	if err != nil {
 		writeSeatError(w, err)

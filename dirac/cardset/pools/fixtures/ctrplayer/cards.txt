@@ -1,0 +1,11 @@
+# CounterPlayerAddedAll over object recipients, any counter kind: The Great
+# Goblin beside Luminarch Aspirant (dirac/oracle/ctrplayer_test.go)
+The Great Goblin
+Luminarch Aspirant
+Raging Goblin
+Goblin Piker
+Grizzly Bears
+Shock
+Mountain
+Swamp
+Plains

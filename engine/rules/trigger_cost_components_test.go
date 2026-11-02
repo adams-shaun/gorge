@@ -16,11 +16,11 @@ import (
 // either silently skipping the component on a Draw-bearing cost or offering
 // decline-only on a component-only one. All fixtures are inline synthetic
 // scripts (no Forge text committed); the cost specs are the real carriers'
-// verbatim shapes. None of the named real carriers (Ambergris Citadel Agent,
+// shapes. None of the named real carriers (Ambergris Citadel Agent,
 // Springbloom Druid, Sanctum of Ugin) is in any legacy golden deck.
 
 // discardCostLooter is the Ambergris-shape fixture: an ETB trigger whose
-// body carries `Cost$ Discard<1/Hand> Draw<2/You>` verbatim (the SILENT-SKIP
+// body carries `Cost$ Discard<1/Hand> Draw<2/You>` (the SILENT-SKIP
 // carrier's exact cost) behind a one-card body draw.
 const discardCostLooter = "Name:Ambergris Looter\nManaCost:2 U\nTypes:Creature Human Wizard\nPT:1/1\n" +
 	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCost | TriggerDescription$ When CARDNAME enters, you may discard your hand. If you do, draw two cards.\n" +
@@ -380,7 +380,7 @@ func TestTriggerCostUnpayableSacComponentDeclinesOnly(t *testing.T) {
 }
 
 // TestAmbergrisXCountsThePaidDiscard is the secondary-scope pin, on the REAL
-// carrier's exact body and SVar verbatim (`AB$ DamageAll | Cost$
+// carrier's body and SVar (`AB$ DamageAll | Cost$
 // Discard<1/Hand> Draw<2/You> | NumDmg$ X | ValidPlayers$ Opponent` with
 // `SVar:X:PlayerCountPropertyYou$CardsDiscardedThisTurn`): the cost's
 // discards are paid BEFORE the body resolves, so the body's X counts them --
@@ -389,8 +389,8 @@ func TestTriggerCostUnpayableSacComponentDeclinesOnly(t *testing.T) {
 func TestAmbergrisXCountsThePaidDiscard(t *testing.T) {
 	t.Parallel()
 	const script = "Name:Ambergris Citadel Agent\nManaCost:2 U\nTypes:Creature Human Wizard\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDamage | TriggerDescription$ When CARDNAME enters, you may discard your hand. If you do, it deals damage to each opponent equal to the cards discarded this turn.\n" +
-		"SVar:TrigDamage:AB$ DamageAll | Cost$ Discard<1/Hand> Draw<2/You> | NumDmg$ X | ValidPlayers$ Opponent\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnDamage | TriggerDescription$ When CARDNAME enters, you may discard your hand. If you do, it deals damage to each opponent equal to the cards discarded this turn.\n" +
+		"SVar:OnDamage:AB$ DamageAll | Cost$ Discard<1/Hand> Draw<2/You> | NumDmg$ X | ValidPlayers$ Opponent\n" +
 		"SVar:X:PlayerCountPropertyYou$CardsDiscardedThisTurn\n" +
 		"Oracle:x\n"
 	junk := card(t, discardCostJunk)

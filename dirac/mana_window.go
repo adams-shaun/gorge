@@ -1,0 +1,2010 @@
+package dirac
+
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// The ward / unless mana window's Bloom Tender and Giada path and the other cold
+// window code live here. The linker lays a package's functions out in file order,
+// so code added to a file in the middle shifts every hot function after it
+// by its size, and a 32-byte shift of the planner and step functions'
+// alignment cost BenchmarkTransitionFDN 2-3 % (interleaved, core 24,
+// GOMAXPROCS=1) although none of this code runs on the benchmark. Keep
+// rarely run code here, and keep the hot functions it replaced at their
+// old sizes (execPay calls windowPays, prepareGen restrTapMana).
+
+// windowTap activates p's sources in the window's order until the pool
+// (without the restricted mana, returned in held and kept out of the pool)
+// pays cost; ok is false when the sources run out first. clamp is a
+// cast's window: a source that cannot add a colour the payment still
+// absorbs is not offered (windowUseful).
+func (s *State) windowTap(k *prep, p uint8, cost *kop.ManaCost, clamp bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapRider(k, p, cost, clamp, false)
+}
+
+// windowTapNoOwed is windowTap for a payment window whose ask carries no
+// owed cost: gorge's trigger-cost manual window (rules resPayFund ->
+// paymentManaAskClass) poses a bare activate/done list with no ManaPayment,
+// so its colour ask has nothing owed and payWindowAnswer takes the first
+// colour (W). That is the route a trigger's pay election falls back to when
+// the planner has no witness (act_discover.go payReplanned); a ward or unless
+// window keeps windowTap's owed-colour answer.
+func (s *State) windowTapNoOwed(k *prep, p uint8, cost *kop.ManaCost) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapUseful(k, p, cost, cost, false, false, true, true)
+}
+
+// altAddWindowTap is the CR 601.2g window of a cast whose chosen either-or
+// part cannot be paid. Gorge reverses that cast (CR 733.1) only after the
+// window: it taps the useful sources in order and keeps the mana (CR 733.1's
+// mana-ability reversal is a "may", and gorge does not), so the taps stay.
+// A cast with a required target never reaches the window: the target menu
+// withholds every candidate of an unpayable cast and the cast aborts at the
+// target ask ("no legal target", cast_targets.go), tapping nothing.
+func (s *State) altAddWindowTap(k *prep) {
+	e := &s.bld().e
+	if e.kind != seSpell || s.requiredTarget(k) {
+		return
+	}
+	c := s.buildCost(k)
+	s.windowTap(k, e.ctrl, &c, true)
+}
+
+// altAddOpenTargets: gorge cannot tell the unpayable part from a payable one yet.
+// A restricted source this payment may spend leaves its window census incomplete,
+// and with any source untapped the target menu keeps its candidates
+// (affordableTargetCandidates): the cast reverses in the window, after the target
+// is chosen.
+func (s *State) altAddOpenTargets(k *prep) bool {
+	e := &s.bld().e
+	if e.kind != seSpell || k.gen == nil || !s.requiredTarget(k) {
+		return false
+	}
+	if k.t.Cards[e.card].Cost.Hyb[0] != 0 {
+		return true // the pip ask comes first, then the menu (altAddTargetAbort)
+	}
+	return s.altAddWindowOpen(k, e)
+}
+
+// altAddWindowOpen: the window census is incomplete and a source is left to tap.
+func (s *State) altAddWindowOpen(k *prep, e *stackEntry) bool {
+	if s.windowCensusComplete(k, e) {
+		return false
+	}
+	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
+		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) {
+			return true
+		}
+	}
+	return false
+}
+
+// altAddTargetAbort: the pips of a hybrid spell are announced and its chosen part
+// still can't be paid, so the target menu withholds every candidate
+// (affordableTargetCandidates) and a required target reverses the cast.
+func (s *State) altAddTargetAbort(k *prep) bool {
+	b := s.bld()
+	return b.altAdd == 1 && b.pipN != 0 && b.e.kind == seSpell && k.gen != nil && k.t.Cards[b.e.card].HasAltAdd &&
+		!s.altAddPayable(k, 1) && !s.altAddWindowOpen(k, &b.e)
+}
+
+// loweredPipWindow pays a lowered hybrid cast's pips through the window before its
+// cost objects are chosen (CR 601.2g-h): the witness priced the pips its own way,
+// so an answer it didn't cover opens the window. It reports false after reversing.
+func (s *State) loweredPipWindow(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	if cost.X != 0 || s.loweredPoolPays(k, e, *cost, anyColor) {
+		return true
+	}
+	ok, held := s.windowTapUseful(k, e.ctrl, cost, cost, e.flags&sfAnyMana == 0 && !anyColor, anyColor, false, false)
+	for c := range held {
+		s.pl[e.ctrl].pool[c] += held[c]
+	}
+	if !ok {
+		s.reverseCast(k)
+	}
+	return ok
+}
+
+// requiredTarget: the entry being built has a target slot it must fill at
+// announcement (bsTargets would pose it and abort without a legal one).
+func (s *State) requiredTarget(k *prep) bool {
+	e := &s.bld().e
+	a := s.buildAbility(k)
+	for ti := 0; ti < kop.MaxTargets; ti++ {
+		t := tspecE(k, e, ti)
+		if t == nil || t.Kind == kop.TgtNone || t.UpTo || t.TFlags&kop.TgfAtResolution != 0 {
+			continue
+		}
+		if a != nil {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// windowTapRider is windowTap with the may-play any-colour rider: the pool
+// pays when its coloured mana covers the coloured pips in any colours
+// ({C} stays strict), and every source's colour is usable, so the clamp is
+// off and the source colour is the lowest it makes.
+func (s *State) windowTapRider(k *prep, p uint8, cost *kop.ManaCost, clamp, anyColor bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapUseful(k, p, cost, cost, clamp, anyColor, false, false)
+}
+
+// windowTapRiderUseful is windowTapRider with a separate cost for the
+// clamp's source usefulness: gorge's announced/legacy window filters the
+// offered sources by the cast's composed cost before the convoke picks
+// (paymentUsefulColours reads pc.resolvedMana), while the window itself
+// closes only when the post-pick cost is payable (manaWindowAsk's
+// paymentForCast). A convoke cast therefore taps exactly the sources the
+// oracle's window answer would: the first source in battlefield order until
+// the picks are covered, then the sources the unreduced cost still owes.
+func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	return s.windowTapUseful(k, p, cost, useful, clamp, anyColor, false, false)
+}
+
+// windowTapUseful is windowTapRiderUseful with the ask's owed-cost mode:
+// potential stops the window once the payer's potential mana no longer covers cost,
+// as gorge funds a trigger's cost (respay.go resPayNeedsMana).
+// noOwed is gorge's trigger-cost manual window, whose decision has no
+// ManaPayment, so a source answers its lowest colour (windowCol).
+func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
+	for !s.windowSpellSettled(k, p, cost, anyColor) {
+		if potential {
+			var pot avail
+			s.availPotentialFor(k, p, &pot, true)
+			if !pot.affords(cost, pipMaskOf(cost), 0) {
+				return false, held
+			}
+		}
+		var order [MaxPerm]Slot
+		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
+		sl, gap := s.windowPick(k, p, order[:n], useful, clamp, anyColor)
+		if sl == NoSlot {
+			return false, held
+		}
+		if gap {
+			s.tapWindowGap(k, p, sl, &held)
+			continue
+		}
+		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful) {
+			continue
+		}
+		pc := &k.cards[s.cardAt(sl)]
+		own := pc
+		if k.gen != nil {
+			pc = s.manaPCGen(k, sl)
+		}
+		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && own.castSrc != 0 {
+			s.noteTapSrc(k, own, sl)
+		}
+		col := s.windowCol(k, p, cost, sl, pc, anyColor, noOwed)
+		if noOwed && clamp && !anyColor {
+			if pc.manaMulti {
+				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
+				col = s.windowCol(k, p, useful, sl, pc, false, false)
+			} else if want, decided := s.windowUseful(p, useful); decided {
+				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
+				if m := s.windowSrcMask(k, sl) & want; m != 0 {
+					col = bits.TrailingZeros8(m)
+				}
+			}
+		}
+		sacOnly := k.sacOnlyMana && pc.manaSacOnly
+		if k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDyn(k, p, cost, sl) {
+			continue
+		}
+		if !sacOnly {
+			s.perms[sl].flags |= pfTapped
+			s.touchSl(sl)
+		}
+		s.pl[p].pool[col] += pc.manaN
+		s.artTag(k, p, sl, col)
+		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
+			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
+		}
+		if pc.manaSac || sacOnly {
+			o := s.perms[sl].obj
+			s.fireSac(k, sl)
+			if s.manaSacParks() && s.park(k, o, parkLeave, parkManaHold(col, pc.manaN)) {
+				s.pl[p].pool[col] -= pc.manaN // it floats once the move has its answer (CR 605.3b)
+				return true, held
+			}
+			s.leave(k, sl, kop.ZoneGraveyard, false)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+				s.detach(o) // a sacrificed Treasure ceases at once, as gorge pays
+			}
+		}
+	}
+	return true, held
+}
+
+// windowSpellSettled: the pool settles cost, counting the floating restricted mana
+// the spell being built may spend (gorge's window prices AvailableFor's pool, CR 106.6).
+func (s *State) windowSpellSettled(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
+	if s.pl[p].poolR != 0 && s.buildLive() && s.bld().e.kind == seSpell {
+		e := &s.bld().e
+		c := s.restrShort(k, p, e.card, s.payDescNow(NoObj).og, *cost)
+		return s.windowPoolPays(p, &c, anyColor)
+	}
+	return s.windowPoolPays(p, cost, anyColor)
+}
+
+// windowPick is the window's next source among order (p's battlefield, in
+// order): the first usable one, or a window gap (gap true); NoSlot when
+// none is left.
+func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor bool) (sl Slot, gap bool) {
+	want, decided := uint8(0), false
+	if clamp && !anyColor {
+		want, decided = s.windowUseful(p, useful)
+	}
+	for _, o := range order {
+		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
+			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
+		}
+		if s.canTapForMana(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
+			if decided && s.windowSrcMask(k, o)&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
+				continue
+			}
+			return o, false
+		}
+		if k.gen != nil && k.gen.anyRestrSrc {
+			if m := s.windowRestrDynMask(k, p, o); m != 0 && (!decided || m&want != 0) {
+				return o, false
+			}
+		}
+		if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, o) {
+			c := s.cardAt(o)
+			if decided && k.gen.flags[c]&gfRestr != 0 && uint8(k.t.Cards[c].Abilities[k.gen.restr(c)].ManaColors)&want == 0 {
+				continue // the clamp reads a fixed colour; a Tender's has none and stays
+			}
+			return o, true
+		}
+	}
+	return NoSlot, false
+}
+
+// windowCol is the colour the window's source sl (mana facts pc) makes: a
+// colour the cost still owes, else the lowest (the oracle's window answer,
+// payWindowAnswer). A multi-ability source owing nothing: its first ability, the
+// lowest colour (mana_multicolour.go). noOwed is a window whose ask carries no cost:
+// there is nothing to owe, so the source takes its lowest colour, which for
+// a plain any-colour source is W (gorge's trigger-cost manual window).
+func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
+	mask := s.windowSrcMask(k, sl)
+	col := bits.TrailingZeros8(mask)
+	if anyColor {
+		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
+	} else if !noOwed {
+		if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
+			if c0, ok := s.vergeAbility0Col(k, sl); ok && c0 < 5 && cost.Pips[c0] > s.pl[p].pool[c0] {
+				return c0 // a Verge's ability 0 comes before its lower colour
+			}
+		}
+		for c := 0; c < 5; c++ {
+			if mask&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+				return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
+			}
+		}
+	}
+	if pc.blgFirst != 0 {
+		col = int(pc.blgFirst - 1) // a granted basic land type: the printed ability first (static_landtype.go)
+	}
+	if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
+		if c0, ok := s.vergeAbility0Col(k, sl); ok {
+			col = c0 // a Verge's window activates its ability 0 (mana_gate.go)
+		}
+	}
+	if k.painMana && pc.painCol != 0 && !pc.painOnly && !anyColor {
+		// a painland: gorge's "Choose a mana ability" ask carries no
+		// payment, so the answer is its lowest colour option whatever
+		// the window owes (mana_pain.go)
+		col = bits.TrailingZeros8(uint8(pc.painCol))
+		if pc.painCol == kop.ColAny {
+			// Starting Town: the any-colour ability lists no symbol, so the
+			// answer is the {C} ability while the payment can use it, and the
+			// colour the window owes when it can't
+			want, decided := s.windowUseful(p, cost)
+			col = kop.C
+			if decided && want&(1<<kop.C) == 0 {
+				col = bits.TrailingZeros8(want)
+			}
+		}
+	}
+	return col
+}
+
+// windowDry runs windowTapRider's source walk without its effects: only the
+// pool and the tapped bits move, and both are restored before it returns.
+// ok is whether the window pays cost; known is false when the walk reaches
+// a source whose activation does more than tap and add mana (a window gap,
+// a sacrificed source), which the caller must then probe another way.
+func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known bool) {
+	pool := s.pl[p].pool
+	var tapped [MaxPerm]Slot
+	nt := 0
+	ok, known = true, true
+	for !s.windowPoolPays(p, cost, anyColor) {
+		var order [MaxPerm]Slot
+		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
+		sl, gap := s.windowPick(k, p, order[:n], cost, true, anyColor)
+		if sl == NoSlot {
+			ok = false
+			break
+		}
+		pc := &k.cards[s.cardAt(sl)]
+		if k.gen != nil {
+			pc = s.manaPCGen(k, sl)
+		}
+		if gap || pc.manaSac || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
+			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
+			ok, known = false, false
+			break
+		}
+		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)
+		s.perms[sl].flags |= pfTapped
+		tapped[nt] = sl
+		nt++
+		s.pl[p].pool[col] += pc.manaN
+	}
+	for i := 0; i < nt; i++ {
+		s.perms[tapped[i]].flags &^= pfTapped
+	}
+	s.pl[p].pool = pool
+	return ok, known
+}
+
+// windowAnyColour picks the colour an any-colour window source makes: a
+// colourless pip the pool still owes first, else a colour while the pool's
+// coloured mana still owes a coloured pip, else {C} when the source makes
+// it (spending colourless for generic keeps colours for pips), else the
+// lowest colour. Gorge's window backtracks over the source's alternatives
+// (cast_window.go ordered[i].Alts); a source that makes both {C} and a
+// colour must not be spent on {C} while a coloured pip is unpaid.
+func (s *State) windowAnyColour(p uint8, cost *kop.ManaCost, mask uint8, multi bool) int {
+	if multi {
+		return bits.TrailingZeros8(mask) // its first ability, the lowest colour
+	}
+	pl := &s.pl[p]
+	needC := cost.Pips[kop.C] > pl.pool[kop.C]
+	colPips, colPool := 0, 0
+	for c := 0; c < 5; c++ {
+		colPips += int(cost.Pips[c])
+		colPool += int(pl.pool[c])
+	}
+	if needC && mask&(1<<kop.C) != 0 {
+		return kop.C
+	}
+	if colPips > colPool {
+		if m := mask & 0x1f; m != 0 {
+			return bits.TrailingZeros8(m)
+		}
+	}
+	if mask&(1<<kop.C) != 0 {
+		return kop.C
+	}
+	return bits.TrailingZeros8(mask)
+}
+
+// windowPoolPays is poolPays under the may-play any-colour rider.
+func (s *State) windowPoolPays(p uint8, cost *kop.ManaCost, anyColor bool) bool {
+	if anyColor {
+		return s.poolPaysAnyColor(p, cost)
+	}
+	return s.poolPays(p, cost)
+}
+
+// windowGap reports whether sl is p's usable Bloom Tender or restricted
+// source (Giada): no autopay source, but an activate option of gorge's
+// ward / unless mana window.
+func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&(gfEachCol|gfRestr) == 0 {
+		return false
+	}
+	pm := &s.perms[sl]
+	return pm.flags&pfTapped == 0 && !(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) &&
+		!s.genLost(k, sl) && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+}
+
+// tapWindowGap taps window gap sl: a Tender's colours into the pool, a
+// restricted source's mana beside it (poolR, which the cost cannot spend).
+// held stays empty: the restricted mana never enters the pool.
+func (s *State) tapWindowGap(k *prep, p uint8, sl Slot, held *[kop.NumManaKinds]uint8) {
+	var into [kop.NumManaKinds]uint8
+	s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &into)
+}
+
+// windowAffords: gorge's mana window pays cost from p's sources counting
+// the Tenders' mana (availFor does not), simulated on a copy.
+func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.anyEachCol || !s.scriptGaps(k, p).any() {
+		return false
+	}
+	t := s.fork()
+	defer s.unfork()
+	ok, _ := t.windowTap(k, p, cost, false)
+	return ok
+}
+
+// windowAffordsN is windowAffords for an unless cost of amt with pips.
+func (s *State) windowAffordsN(k *prep, p uint8, amt int, pips int16) bool {
+	c := manaOf(amt, pips)
+	return s.windowAffords(k, p, &c)
+}
+
+// restrTapMana: a is a plain tap mana ability with a spend restriction
+// (Giada's Angel-only {W}), a window / script gap (genPrep.restr). Kept
+// out of line, with the other window code, off prepareGen's hot
+// neighbours' alignment.
+//
+//go:noinline
+func restrTapMana(a *kop.Ability) bool {
+	return a.ManaRestrict != 0 && a.ManaColors != 0 && a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+}
+
+// windowPays: execPay's unless / ward mana cost that gorge's window pays
+// with a Tender's mana (windowAffords), out of line.
+//
+//go:noinline
+func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pips int16) bool {
+	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips)
+}
+
+// player.poolR's fields: the count, the restriction (genPrep.restrF
+// index) and the colour index.
+const (
+	poolRCnt   uint8 = 15
+	poolRKind  uint8 = 16
+	poolRShift       = 5
+)
+
+// addRestrF registers restriction f (genPrep.restrF).
+func (g *genPrep) addRestrF(f kop.FilterID) {
+	for i := range g.restrF {
+		if g.restrF[i] == f {
+			return
+		}
+		if g.restrF[i] == 0 {
+			g.restrF[i] = f
+			return
+		}
+	}
+}
+
+// restrKind is restriction f's poolR kind bits; ok is false for a third
+// restriction, which the byte cannot name.
+func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) {
+	switch f {
+	case g.restrF[0]:
+		return 0, true
+	case g.restrF[1]:
+		return poolRKind, true
+	}
+	return 0, false
+}
+
+// addRestr floats n restricted mana of colour col, spendable only as
+// restriction f allows, beside p's pool (poolR). The byte holds one colour and
+// one restriction; a second colour of that restriction floats in rx (two
+// Secluded Courtyards tapped for {W} and {G}). Mana of a second restriction
+// (no FDN game has shown it), or past the counts, floats unrestricted in the
+// pool instead (spilled: false).
+func (pl *player) addRestr(k *prep, rx *uint16, f kop.FilterID, col int, n uint8) bool {
+	kind, ok := k.gen.restrKind(f)
+	cnt := pl.poolR & poolRCnt
+	if ok && cnt != 0 && pl.poolR&poolRKind == kind && int(pl.poolR>>poolRShift) != col {
+		return pl.addRestrX(rx, col, n) // a second colour of the same restriction (mana_reflected.go)
+	}
+	if !ok || cnt != 0 && pl.poolR&^poolRCnt != uint8(col)<<poolRShift|kind || int(cnt)+int(n) > int(poolRCnt) {
+		pl.pool[col] += n
+		return false
+	}
+	pl.poolR = uint8(col)<<poolRShift | kind | (cnt + n)
+	return true
+}
+
+// poolProj is p's pool as gorge's Players[p].Pool holds it: the
+// restricted mana counted with its colour.
+func (pl *player) poolProj(rx uint16) [kop.NumManaKinds]uint8 {
+	m := pl.pool
+	if n := pl.poolR & poolRCnt; n != 0 {
+		m[pl.poolR>>poolRShift] += n
+	}
+	restrXInto(rx, &m)
+	return m
+}
+
+// restrOptions is p's plain priority walk at a node of gorge's prefix search:
+// the search prices a play through the planner, which reads the floating pool
+// through the restriction (pay.PlanPool), so restricted mana counts exactly
+// when this play may spend it.
+func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
+	s.plainOptions(k, d, 0)
+}
+
+// pendListenerOrder sorts the triggers queued since lo into listener order
+// (p0's battlefield order, then p1's; stable): one gorge event's
+// listeners are walked once, so a combat damage event to a player queues
+// its damage triggers and its life-loss triggers (Bloodthirsty Conqueror)
+// interleaved by listener, not damage first (the pair 15166). A
+// trigger whose source left the battlefield keeps its place at the end.
+func (s *State) pendListenerOrder(lo int) {
+	key := func(e *pendingTrig) uint32 {
+		o := e.obj
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].slot == NoSlot {
+			return 1 << 31
+		}
+		p := &s.perms[s.objs[o].slot]
+		return uint32(p.ctrl)<<30 | uint32(p.ts)
+	}
+	for i := lo + 1; i < int(s.npend); i++ {
+		e := s.pend[i]
+		ke := key(&e)
+		j := i
+		for j > lo && key(&s.pend[j-1]) > ke {
+			s.pend[j] = s.pend[j-1]
+			j--
+		}
+		s.pend[j] = e
+	}
+}
+
+// fireDelayedAt fires the object delayed triggers after the end step's
+// printed ones (queued since m) and, on a generated table, sorts them in
+// among those by listener order: gorge's "at the beginning of the next
+// end step" on a token copy (Electroduplicate's sacrifice) is a trigger
+// of that token, walked at its place in the battlefield order
+// (Slumbering Cerberus, the copy, the other Cerberus).
+func (s *State) fireDelayedAt(k *prep, m int) {
+	m2 := int(s.npend)
+	s.fireDelayed(k)
+	if k.gen != nil && m2 > m && int(s.npend) > m2 {
+		s.pendListenerOrder(m)
+	}
+}
+
+// restrSpendable reports whether p's restricted mana (poolR) may be spent
+// on p's cast of card c: the card matches the restriction as a spell
+// (gorge AvailableFor's RestrictValidMatches: Giada's "Spell.Angel",
+// Courtyard's "Spell.Creature+ChosenType", the type a source of p's with
+// that restriction chose). Out of line with the other cold window code.
+//
+//go:noinline
+func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) bool {
+	r := s.pl[p&1].poolR
+	if r&poolRCnt == 0 || k.gen == nil {
+		return false
+	}
+	f0 := k.gen.restrF[0]
+	if r&poolRKind != 0 {
+		f0 = k.gen.restrF[1]
+	}
+	for f := f0; f != 0; f = k.t.Filters[f].Or {
+		fl := k.t.Filters[f]
+		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
+		chosen := fl.Flags2&kop.F2ChosenType != 0
+		fl.Flags2 &^= kop.F2ChosenType
+		if !s.restrFilterMatch(k, &fl, c, p&1, og) {
+			continue
+		}
+		if !chosen || s.restrChoseTypeOf(k, p, c) {
+			return true
+		}
+	}
+	return false
+}
+
+// wideGapsOnly: p's census gaps are wide any-colour sources alone
+// (restrWideAnyMana), so gorge's relaxed proof reads each one against the
+// play it prices.
+func (s *State) wideGapsOnly(k *prep, p uint8, restr, anyR slotMask) bool {
+	if !k.gen.anyMultiR || !anyR.any() || restr.any() || s.scriptGaps(k, p).any() || s.scriptSac(k, p).any() ||
+		s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() || s.scriptAnyR(k, p).and(s.scriptWide(k, p)) != anyR {
+		return false
+	}
+	return true
+}
+
+// scriptWide: p's activatable wide any-colour restricted sources.
+func (s *State) scriptWide(k *prep, p uint8) slotMask {
+	var m slotMask
+	for b := s.scriptAnyR(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if restrWideAnyMana(&k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// wideAdmits reports whether some wide source of anyR may spend its mana on
+// play a: a cast its restriction matches by the spell's card and where it is
+// cast from, or an activation of a source it matches. gorge's relaxed proof
+// drops the source's alternatives from every other play's payment
+// (potentialRestrictionAdmits), so such a play is proven insufficient and
+// takes none of the four prefix searches.
+func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
+	if a.Kind() == AkActivate {
+		ob := &s.objs[Obj(a.Source())]
+		d := payDesc{class: pdAct, card: ob.card, src: NoSlot}
+		if ob.zone == kop.ZoneBattlefield {
+			d.src = ob.slot
+		}
+		for b := anyR; b.any(); b = b.rest() {
+			sl := b.first()
+			if s.restrSrcAdmits(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))], &d) {
+				return true
+			}
+		}
+		return false
+	}
+	if !isCastKind(a.Kind()) {
+		return false
+	}
+	o := Obj(a.Source())
+	c := s.objs[o].card
+	og := s.restrOriginOfObj(o)
+	for b := anyR; b.any(); b = b.rest() {
+		sl := b.first()
+		ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+		for f := ab.ManaRestrict; f != 0; f = k.t.Filters[f].Or {
+			fl := k.t.Filters[f]
+			fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
+			if s.restrFilterMatch(k, &fl, c, p&1, og) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// floatRestrFrom floats n of colour col from source sl's restriction f, recording the
+// creature type the source chose: the restriction is the source's as it was made (CR
+// 106.6), so mana of another source's choice beside it does not fit poolR and the caller
+// stalls.
+func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
+	ch := s.perms[sl].chosen
+	if s.pl[p&1].poolR&poolRCnt != 0 && s.g.poolRChosen[p&1] != ch {
+		return false
+	}
+	s.g.poolRChosen[p&1] = ch
+	return s.pl[p&1].addRestr(k, &s.poolRx[p&1], f, col, n)
+}
+
+// restrChoseTypeOf: the source of p's restricted mana chose a creature type card c has.
+func (s *State) restrChoseTypeOf(k *prep, p uint8, c CardID) bool {
+	ch := s.g.poolRChosen[p&1]
+	return int(ch) < len(k.t.Subtypes) && k.t.Cards[c].Subtypes.Has(int(ch))
+}
+
+// restrAvail adds p's restricted mana to av when the cast of card c may
+// spend it (restrSpendable), reporting whether it did.
+func (s *State) restrAvail(k *prep, p uint8, c CardID, og restrOrigin, av *avail) bool {
+	if !s.restrSpendable(k, p, c, og) {
+		return false
+	}
+	s.restrAvailAdd(p, av)
+	return true
+}
+
+// restrAvailAdd adds p's restricted mana (poolR and its other colours) to av.
+func (s *State) restrAvailAdd(p uint8, av *avail) {
+	r := s.pl[p&1].poolR
+	av.addUnits(1<<(r>>poolRShift), r&poolRCnt)
+	if rx := s.poolRx[p&1]; rx != 0 {
+		for c := 0; c < 5; c++ {
+			if n := uint8(rx>>(3*c)) & 7; n != 0 {
+				av.addUnits(1<<c, n)
+			}
+		}
+	}
+}
+
+// restrShort is cost less the restricted mana p's cast of card c may
+// spend (restrSpendable): its colour pip first, then generic. A lowering
+// taps the sources for this remainder only; the payment spends the
+// restricted mana (payRestr).
+//
+//go:noinline
+func (s *State) restrShort(k *prep, p uint8, c CardID, og restrOrigin, cost kop.ManaCost) kop.ManaCost {
+	if !s.restrSpendable(k, p, c, og) {
+		return cost
+	}
+	return s.restrShortAdm(p, cost)
+}
+
+// restrShortAdm is cost less p's restricted mana, known spendable on it.
+func (s *State) restrShortAdm(p uint8, cost kop.ManaCost) kop.ManaCost {
+	r := s.pl[p&1].poolR
+	col, n := int(r>>poolRShift), r&poolRCnt
+	d := min(n, cost.Pips[col])
+	cost.Pips[col] -= d
+	n -= d
+	if rx := s.poolRx[p&1]; rx != 0 {
+		for c := 0; c < 5; c++ { // the other colours' pips, then generic (mana_reflected.go)
+			m := uint8(rx>>(3*c)) & 7
+			d := min(m, cost.Pips[c])
+			cost.Pips[c] -= d
+			n += m - d
+		}
+	}
+	cost.Generic -= min(n, cost.Generic)
+	return cost
+}
+
+// restrAffords: av (p's pool and sources) lacks cost, but p's restricted
+// mana makes it up for the cast of card c, which may spend it (gorge's
+// pool for that payment, AvailableFor, holds it).
+//
+//go:noinline
+func (s *State) restrAffords(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
+	t := *av
+	return s.restrAvail(k, p, c, og, &t) && t.affords(cost, pipMaskOf(cost), 0)
+}
+
+// payRestr is pay for p's cast of object o while restricted mana floats:
+// a spell that may spend it sees it in its pool and spends it before the
+// ordinary mana of its colour (gorge emitRestrictedManaSpend carves the
+// matching batches first); otherwise it stays beside the pool.
+//
+//go:noinline
+func (s *State) payRestr(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj) {
+	s.payRestrRider(k, p, cost, x, o, false)
+}
+
+// payRestrRider is payRestr with the may-play any-colour rider.
+func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
+	og := s.restrOriginOfObj(o)
+	if e := s.spellEntryOf(o); e != nil {
+		og = restrOriginOfEntry(e) // the push is behind the payment: the honest read
+	}
+	if !s.restrSpendable(k, p, s.objs[o].card, og) {
+		s.payRider(k, p, cost, x, o, anyColor)
+		return
+	}
+	s.payRestrSpend(k, p, cost, x, o, anyColor)
+}
+
+// payRestrSpend is the payment of payRestrRider once p's restricted mana
+// is known spendable on it: spent before the ordinary mana of its colour.
+func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
+	pl := &s.pl[p]
+	if s.poolRx[p&1] != 0 {
+		s.payRestrX(k, p, cost, x, o, anyColor) // several restricted colours (mana_reflected.go)
+		return
+	}
+	r := pl.poolR
+	col, n := int(r>>poolRShift), r&poolRCnt
+	pl.pool[col] += n
+	pl.poolR = 0
+	if cost.Hyb[0] != 0 {
+		h := s.hybResolveRider(k, p, *cost, x, anyColor)
+		cost = &h
+	}
+	s.tapForRider(k, p, cost, x, o, anyColor)
+	pre := pl.pool[col]
+	s.payFromPoolRider(k, p, cost, x, anyColor)
+	if left := n - min(pre-pl.pool[col], n); left != 0 {
+		pl.pool[col] -= left
+		pl.poolR = r&^poolRCnt | left
+	}
+}
+
+// Secluded Courtyard as a census gap (genPrep.anyR). gorge's planner
+// census covers its {C} ability but not its restricted any-colour one, so
+// with it untapped the census is incomplete and a play the planner proves
+// insufficient gets a prefix search (potentialPrefixScript) that
+// activates it, branching on the ability ({C} first, then "Add any
+// color") and the colour (W U B R G): the first answer after which the
+// play is priced (the restriction is not read there) is the script. The
+// any-colour mana floats restricted (poolR, Courtyard's restriction:
+// creature spells of the chosen type), so the play completes only when
+// the pool pays it (restrSpendable).
+
+// restrAnyTapMana: a is a plain tap mana ability of a choice of colours
+// with a spend restriction (Courtyard's second ability).
+func restrAnyTapMana(a *kop.Ability) bool {
+	return a.ManaRestrict != 0 && bits.OnesCount8(uint8(a.ManaColors&kop.ColAny)) > 1 && a.AFlags&kop.AfLatent == 0 &&
+		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+}
+
+// DebugWideAnyPriced makes a wide any-colour restricted source an ordinary
+// restricted planner unit (two mana the planner counts; the model gorge's
+// census does not follow), mutation testing only: the lockstep must catch it
+// (TestWascastrestrictWebWatchMutation). Set before the table is prepared.
+var DebugWideAnyPriced bool
+
+// restrWideAnyMana: a is a restricted tap mana ability of two mana, each of
+// any colour ("Add two mana in any combination of colors", Interdimensional
+// Web Watch's Combo Any x2). gorge's planner cannot price it (a Combo Any
+// has no colour list, PaymentPlanChoiceColours), so it is a census gap whose
+// activation the prefix search branches on, a pair of colours per answer
+// (scriptDFS: the multisets, W W first). Its only mana ability is the gap.
+func restrWideAnyMana(a *kop.Ability) bool {
+	return !DebugWideAnyPriced && restrAnyTapMana(a) && a.AFlags&kop.AfManaChoice != 0 && a.ManaN == 2 && a.ManaColors&kop.ColAny == kop.ColAny
+}
+
+// wideAnswer decodes prefix-search answer c of a wide any-colour gap: the
+// c'th multiset of two colours in gorge's answer order (W W, W U ... W G,
+// U U ...: the first slot never above the second; the mirrored pairs make
+// the same pool, which the search has visited).
+func wideAnswer(c int) (int, int) {
+	for a := 0; a < 5; a++ {
+		if c < 5-a {
+			return a, a + c
+		}
+		c -= 5 - a
+	}
+	return 4, 4
+}
+
+const wideAnswers = 15 // the multisets of two colours of five
+
+// firstManaAb is cd's first own mana ability (-1 none).
+func firstManaAb(cd *kop.CardDef) int {
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			return j
+		}
+	}
+	return -1
+}
+
+// scriptAnyR: p's activatable any-colour restricted sources (Courtyard).
+func (s *State) scriptAnyR(k *prep, p uint8) slotMask {
+	if !k.gen.anyAnyR {
+		return slotMask{}
+	}
+	return s.gapMask(k, p, gfAnyR)
+}
+
+// availAnyR: in the gaps walk a Courtyard's unit ({C} as a source) is a
+// unit of any type: its relaxed alternatives (paymentPlanRelaxProof).
+func (s *State) availAnyR(k *prep, p uint8, a *avail) {
+	for b := s.scriptAnyR(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if k.gen.anyRefl && debugReflMutate != 2 {
+			// gorge's relaxed proof appends the missed ability's relaxed
+			// alternatives as a unit of their own beside the source's
+			// census unit (pay/plancost.go PaymentPlanRelaxed), so a Plaza
+			// counts twice (mana_reflected.go)
+			a.addUnits(0x3f, 1)
+			continue
+		}
+		if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
+			if s.g.availX&availNoWide == 0 {
+				a.addUnits(0x3f, 2) // (no census unit of its own to replace: its only ability is the gap)
+			}
+			continue
+		}
+		pc := s.manaPCGen(k, sl)
+		a.remove(s.srcMaskAt(pc, sl), max(pc.manaN, 1))
+		a.addUnits(0x3f, 1)
+	}
+}
+
+// tapGapChoice taps gap sl for p with gorge's search answer c: a Courtyard
+// (anyR) its first ability ({C}) for c 0, else colour c-1 of its
+// restricted one (poolR); any other gap as tapGap does.
+// spill counts restricted mana the byte could not hold (floating
+// unrestricted: addRestr).
+func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	cd := &k.t.Cards[s.cardAt(sl)]
+	if !anyR.has(sl) {
+		var held [kop.NumManaKinds]uint8
+		r, rx := s.pl[p].poolR, s.poolRx[p&1]
+		s.tapGap(k, p, sl, restr, &held)
+		if restr.has(sl) && s.pl[p].poolR == r && s.poolRx[p&1] == rx {
+			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
+			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += max(a.ManaN, 1)
+		}
+		return
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
+		c1, c2 := wideAnswer(c)
+		for _, col := range [2]int{c1, c2} {
+			if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
+				spill[col]++
+			}
+		}
+		return
+	}
+	if c == 0 {
+		f := &cd.Abilities[firstManaAb(cd)]
+		s.pl[p].pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
+		return
+	}
+	if !s.floatRestrFrom(k, p, sl, cd.Abilities[k.gen.anyR(s.cardAt(sl))].ManaRestrict, c-1, 1) {
+		spill[c-1]++
+	}
+}
+
+// scriptDFS is gorge's prefix search (scriptSearch.visit) for play a: p's
+// gaps tapped in battlefield order (order[i:]), a Courtyard branched on its
+// six answers, depth first; at each node after the first tap the walk
+// (restricted mana priced as ordinary) is asked for a. It returns the
+// number of gaps the found script taps (path holds their answers) and,
+// in dead, whether the oracle cannot complete it: restricted mana floats
+// and the play's pool does not pay it (the planner refuses that pool).
+// Mana only adds up, so skipping a gap never prices what tapping it does
+// not, and the chain with its branches is the search's order.
+//
+// The walk is iterative over one copy of s (a recursive walk's per-node
+// copy escapes to the heap): each node rebuilds the copy from s by
+// replaying path's taps, so the play loop allocates nothing.
+func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, restr, anyR slotMask, path []uint8, dead *bool) (int, bool) {
+	var d Decision
+	depth := 0 // gaps tapped at this node: order[:depth], answers path[:depth]
+	for {
+		if depth > 0 {
+			t := s.fork()
+			var spill [kop.NumManaKinds]uint8
+			for j := 0; j < depth; j++ {
+				t.tapGapChoice(k, p, order[j], restr, anyR, int(path[j]), &spill)
+			}
+			t.restrOptions(k, &d, p)
+			if hasOption(&d, a) {
+				*dead = false
+				if t.pl[p&1].poolR != 0 || spill != ([kop.NumManaKinds]uint8{}) {
+					for c := range spill {
+						t.pl[p&1].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
+					}
+					*dead = !t.scriptCompletes(k, p, a)
+				}
+				s.unfork()
+				return depth, true
+			}
+			s.unfork()
+		}
+		if depth < len(order) { // the node's first child
+			path[depth] = 0
+			depth++
+			continue
+		}
+		for { // a leaf: the deepest gap with an answer left, else done
+			if depth == 0 {
+				return 0, false
+			}
+			j := depth - 1
+			nch := uint8(1)
+			if anyR.has(order[j]) {
+				nch = 6
+				if cd := &k.t.Cards[s.cardAt(order[j])]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(order[j]))]) {
+					nch = wideAnswers
+				}
+			}
+			if path[j]+1 < nch {
+				path[j]++
+				break
+			}
+			depth--
+		}
+	}
+}
+
+// scriptDeadEndAny is scriptDeadEnd with a Courtyard among the gaps.
+func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR slotMask) bool {
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	var path [MaxPerm]uint8
+	dead := true
+	if _, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead); !ok {
+		return true
+	}
+	return dead
+}
+
+// scriptPrefixAny is scriptPrefix with a Courtyard among the gaps: the
+// search's script, played.
+func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR slotMask) {
+	var d Decision
+	s.plainOptions(k, &d, 0)
+	if hasOption(&d, a) {
+		return
+	}
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.scriptGaps(k, p).or(restr).or(anyR), order[:], 0)
+	var path [MaxPerm]uint8
+	var dead bool
+	m, ok := s.scriptDFS(k, a, p, order[:n], restr, anyR, path[:], &dead)
+	if !ok {
+		return
+	}
+	var spill [kop.NumManaKinds]uint8
+	for i := 0; i < m; i++ {
+		s.tapGapChoice(k, p, order[i], restr, anyR, int(path[i]), &spill)
+	}
+}
+
+// availPool is p's floating pool alone as an avail.
+func (s *State) availPool(p uint8, a *avail) {
+	a.total, a.n = 0, 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if n := s.pl[p].pool[c]; n > 0 {
+			a.addUnits(1<<c, n)
+		}
+	}
+}
+
+// tgtDepReduce: card cd's cost is reduced when its target matches
+// (Luminous Rebuke's "costs {3} less if it targets a tapped creature").
+func tgtDepReduce(cd *kop.CardDef) bool {
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// suppressEOT sets the until-end-of-turn keyword grants of the permanent
+// at sl aside as kwSup records (one per keyword, n = its grants): they
+// apply again whenever sl has not lost its abilities (kwGen,
+// FeatGrantedRep), until the cleanup ends them. A grant past the record
+// capacity is dropped.
+func (s *State) suppressEOT(sl Slot) {
+	p := &s.perms[sl]
+	if p.eotKw == 0 && s.nkwx == 0 {
+		return
+	}
+	// "can't be blocked this turn" (Rogue's Passage, Kaito, Vampire
+	// Gourmand) is an effect on the creature, not an ability it gains
+	// (gorge: an Effect object's CantBlockBy static), so it stays
+	const keep = kop.KwUnblockable
+	var cnt [32]uint8
+	for x := p.eotKw &^ keep; x != 0; x &= x - 1 {
+		cnt[bits.TrailingZeros32(uint32(x))] = 1
+	}
+	for _, r := range p.eotKwRep {
+		for x := r &^ keep; x != 0; x &= x - 1 {
+			cnt[bits.TrailingZeros32(uint32(x))]++
+		}
+	}
+	for i := 0; i < int(s.nkwx); i++ {
+		if r := &s.kwx[i]; r.sl == sl && kop.KwMask(1)<<(r.bit&^kwSup)&keep == 0 {
+			b := r.bit &^ kwSup
+			cnt[b] = uint8(min(int(cnt[b])+int(r.n), 255))
+		}
+	}
+	p.eotKw, p.eotKwRep = p.eotKw&keep, [2]kop.KwMask{p.eotKwRep[0] & keep, p.eotKwRep[1] & keep}
+	if s.nkwx != 0 {
+		s.dropKwRepX(sl)
+	}
+	for b, n := range cnt {
+		if n != 0 {
+			if int(s.nkwx) >= maxKwRepX {
+				s.capFull(StallKwRepX)
+				continue
+			}
+			s.kwx[s.nkwx] = kwRepX{sl: sl, bit: uint8(b) | kwSup, n: n}
+			s.nkwx++
+		}
+	}
+}
+
+// supKw is the keywords of sl's suppressed until-end-of-turn grants.
+func (s *State) supKw(sl Slot) kop.KwMask {
+	var m kop.KwMask
+	for i := 0; i < int(s.nkwx); i++ {
+		if r := &s.kwx[i]; r.sl == sl && r.bit&kwSup != 0 {
+			m |= kop.KwMask(1) << (r.bit &^ kwSup)
+		}
+	}
+	return m
+}
+
+// midResAsk poses an as-enters choice queued while a program resolves (a
+// permanent that entered mid-resolution with a ReplAfterEnter choice:
+// Banner of Kinship returning from a sacrificed Banishing Light's exile).
+// gorge asks it at once, with the resolving entry still on the stack, and
+// the program continues after the answer (pair 4150); outside a
+// resolution the queue is asked before the next priority (genAskOptions).
+func (s *State) midResAsk(k *prep) bool {
+	if k.gen == nil || !s.res.active {
+		return false
+	}
+	for s.g.nask > 0 {
+		a := &s.g.ask[0]
+		if a.sl == NoSlot {
+			return false // a returning Aura's host: asked before priority (genAskOptions)
+		}
+		if !s.occ.has(a.sl) || s.objs[s.perms[a.sl].obj].ver != a.ver {
+			s.popAsk()
+			continue
+		}
+		s.res.ask, s.res.askP = raGenEnterAsk, s.perms[a.sl].ctrl
+		s.ctl = ctlResolve
+		return true
+	}
+	return false
+}
+
+// lkiAttached is the permanent o was attached to as it left the
+// battlefield (last known information, CR 608.2h): Adventuring Gear's
+// landfall trigger pumps the creature it equipped though the Gear was
+// destroyed in response (gorge Defined$ Equipped; pairs 15721 47715
+// 85781). The departed permanent's slot keeps its record until a new one
+// enters there; NoObj once it has, or when the host left too.
+func (s *State) lkiAttached(o Obj) Obj {
+	for sl := Slot(0); sl < MaxPerm; sl++ {
+		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
+			if s.occ.has(p.attached) {
+				return s.perms[p.attached].obj
+			}
+			return NoObj
+		}
+	}
+	for i := range s.g.attLKI {
+		r := &s.g.attLKI[i]
+		if r.obj == o && r.ver != 0 {
+			h := &s.objs[r.host]
+			if h.zone == kop.ZoneBattlefield && h.ver == r.ver {
+				return r.host
+			}
+			return NoObj
+		}
+	}
+	return NoObj
+}
+
+// payCastWindow pays the rest of a cast's cost through gorge's CR 601.2g
+// cast window (a lowered or a free cast). That window's colour ask carries no
+// owed cost, only the pips the caster announced.
+func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
+	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	s.payFromPoolRider(k, p, cost, 0, anyColor)
+	for c := range held {
+		s.pl[p].pool[c] += held[c]
+	}
+}
+
+// loweredPoolPays: the floating pool settles a lowered cast with no window,
+// counting the restricted mana this spell may spend.
+func (s *State) loweredPoolPays(k *prep, e *stackEntry, cost kop.ManaCost, anyColor bool) bool {
+	if s.pl[e.ctrl].poolR != 0 {
+		cost = s.restrShort(k, e.ctrl, e.card, s.payDescNow(NoObj).og, cost)
+	}
+	return s.windowPoolPays(e.ctrl, &cost, anyColor)
+}
+
+// windowSrcMask is the colours sl's mana ability makes in the window
+// (colourless when it names none).
+func (s *State) windowSrcMask(k *prep, sl Slot) uint8 {
+	pc := &k.cards[s.cardAt(sl)]
+	if k.gen != nil {
+		pc = s.manaPCGen(k, sl)
+	}
+	if mask := s.srcMaskAt(pc, sl); mask != 0 {
+		if k.painMana && pc.painCol != 0 && !pc.painOnly {
+			// a painland: gorge's ability ask flattens the painful Combo
+			// into colour options with symbols beside {C}'s symbol-less one,
+			// so the window answer always takes a colour (painWindow)
+			mask |= uint8(pc.painCol) & 0x1f
+		}
+		return mask
+	}
+	return 1 << kop.C
+}
+
+// windowUseful is gorge's cast-window clamp (rules/mana_activation.go
+// paymentUsefulColours, read by paymentSourceUseful): once the pool's
+// mana beyond the coloured pips covers the generic, only a source adding
+// a pip colour the pool still lacks is offered (want, decided). A hybrid
+// pip or an unsettled generic leaves it undecided: every source stays.
+// An any-type rider (the caller's anyType) fails open the same way.
+func (s *State) windowUseful(p uint8, cost *kop.ManaCost) (want uint8, decided bool) {
+	if cost.Hyb[0] != 0 {
+		return 0, false
+	}
+	pool := &s.pl[p].pool
+	surplus := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if cost.Pips[c] > pool[c] {
+			want |= 1 << c
+		} else {
+			surplus += int(pool[c] - cost.Pips[c])
+		}
+	}
+	if surplus < int(cost.Generic) {
+		return 0, false
+	}
+	return want, true
+}
+
+// lowerWitness taps the witness of a cast the oracle lowers (beginCast):
+// gorge's composed-cost plan of the printed mana symbols, the card being
+// cast counting toward the hand demand (see beginCast's kicked case).
+// When the printed symbols have no plan, a cast offered only through its
+// permission's any-type rider (the default surface without
+// Config.GorgeUnpriced: the oracle never offers it) prices the any-type
+// cost, as tapPrinted does, and taps nothing when that has no plan
+// either: the payment then pays from the window (the self-play panic
+// "autopay found no plan").
+func (s *State) lowerWitness(k *prep, p uint8) { s.lowerWitnessEx(k, p, NoObj) }
+
+// lowerWitnessEx is lowerWitness with the hand card excl left out of the
+// witness's hand demand (a plain cast's PlanCastPayment witness).
+func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
+	s.g.noTgtRed = true
+	any := s.bld().e.flags & sfAnyMana
+	anyColor := s.bld().bfl&bflAnyColor != 0
+	s.bld().e.flags &^= any // the witness prices the printed mana symbols
+	s.bld().bfl &^= bflAnyColor
+	cost := s.buildCost(k)
+	s.bld().e.flags |= any
+	if anyColor {
+		s.bld().bfl |= bflAnyColor
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	if (any != 0 || anyColor) && cost.Hyb[0] == 0 {
+		ok := av.affords(&cost, pipMaskOf(&cost), 0)
+		if anyColor {
+			ok = av.affordsAnyColor(&cost, 0)
+		}
+		if !ok {
+			cost = s.buildCost(k)
+			if cost.Hyb[0] == 0 {
+				ok = av.affords(&cost, pipMaskOf(&cost), 0)
+				if anyColor {
+					ok = av.affordsAnyColor(&cost, 0)
+				}
+			} else {
+				ok = true
+			}
+			if !ok && (!cardTgtDepCost(&k.t.Cards[s.bld().e.card]) || severalTargets(k, s.bld().e.card)) {
+				s.g.noTgtRed = false
+				return
+			}
+		}
+	}
+	s.g.noTgtRed = false
+	s.witnessAtCheapest(k, p, &cost, &av)
+	if s.pl[p&1].poolR != 0 && s.bld().e.kind == seSpell {
+		// the witness starts from the mana this payment may spend (pay.PlanPool)
+		cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+	}
+	cost, _ = s.waterbendBuildCredit(k, p, cost)
+	x := 0
+	if cost.X != 0 {
+		// gorge's witness for an {X} spell pays the largest X the
+		// sources can (rules potentialModeCastPlan): the printed ones (a
+		// granted ability is no witness source; mana_grantedoffers.go)
+		if k.gen != nil && len(k.gen.grantPC) != 0 {
+			s.availUngranted(k, p, &av)
+		}
+		if anyColor {
+			x = max(0, av.maxXAnyColor(&cost))
+		} else {
+			x = max(0, av.maxX(&cost, pipMaskOf(&cost)))
+		}
+		// the search is bounded by the mana the pool and every source can
+		// hold, over the X count, before any reduction (rules
+		// potentialModeCastPlan: hi = paymentPlanCensusTotal / base.X): a
+		// reduction paying into {X} cannot lift the witness past it
+		x = min(x, av.total/int(cost.X))
+		// the restricted sources the payment may spend (the Emperor of
+		// Palamecia's {U} or {R}) are census sources of gorge's witness
+		// too: tapForRider's plan taps them, so count them and cap on the
+		// same restricted-inclusive total
+		if k.restrSrc {
+			d := s.payDescNow(excl)
+			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
+			xr := t.maxXMulti(&cost, pipMaskOf(&cost), multi[:nm])
+			x = min(max(x, xr), t.total/int(cost.X))
+		}
+	}
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd {
+		s.tapForRider(k, p, &cost, x, excl, anyColor)
+		return
+	}
+	pool := s.pl[p].pool
+	var untapped slotMask
+	for m := s.ctrlM[p].and(s.occ); m.any(); m = m.rest() {
+		if sl := m.first(); s.perms[sl].flags&pfTapped == 0 && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
+			untapped = untapped.or(slotBit(sl))
+		}
+	}
+	s.tapForRider(k, p, &cost, x, excl, anyColor)
+	s.witnessManaRestricted(k, p, &pool, untapped)
+}
+
+// witnessAtCheapest reprices a witness the printed composition cannot fund (rules
+// potentialModeCastPlan): a target-conditional reduction at the cheapest legal
+// target, and a hand cast's either-or additional cost with its part that has mana
+// when no part without mana can be paid.
+func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avail) {
+	e := &s.bld().e
+	if e.kind != seSpell {
+		return
+	}
+	cd := &k.t.Cards[e.card]
+	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
+		*cost = addCost(*cost, s.altAddManaPart(k, e.card))
+		return
+	}
+	if cardTgtDepCost(cd) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
+		funded := av.affords(cost, pipMaskOf(cost), 0)
+		if k.gen != nil && len(k.gen.grantPC) != 0 {
+			// the planner's census has no granted source (Imprisoned in the Moon's {C})
+			funded = s.affordsUngrantedFor(k, p, cost, NoSlot, s.payDescNow(NoObj))
+		}
+		if !funded {
+			*cost = s.buildCost(k)
+		}
+	}
+}
+
+// availForBuilt is availFor for the spell being built, with the floating restricted
+// mana it may spend.
+func (s *State) availForBuilt(k *prep, e *stackEntry, av *avail) {
+	s.availFor(k, e.ctrl, av)
+	if s.pl[e.ctrl].poolR != 0 {
+		s.restrAvail(k, e.ctrl, e.card, s.payDescNow(NoObj).og, av)
+	}
+}
+
+// witnessManaRestricted floats a witness's restricted mana as restricted: the plan
+// taps a restricted source like any unit, but what it taps floats under its
+// restriction, which a reversal leaves in the pool (CR 106.6, 733.1). pool is p's
+// pool before the witness and untapped the restricted sources it could tap.
+func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]uint8, untapped slotMask) {
+	for m := untapped; m.any(); m = m.rest() {
+		sl := m.first()
+		c := s.cardAt(sl)
+		if s.perms[sl].flags&pfTapped == 0 {
+			continue
+		}
+		rec := k.gen.restrRecOf(c)
+		if rec == nil {
+			continue
+		}
+		ab := &k.t.Cards[c].Abilities[rec.ab]
+		n := max(ab.ManaN, 1)
+		for col := 0; col < 5; col++ {
+			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
+				s.pl[p].pool[col] -= n
+				if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
+					s.capFull(StallRestrSrc)
+				}
+				break
+			}
+		}
+	}
+}
+
+// lkiCtrl is the controller of the resolving entry's first target o, which
+// has left since it was targeted (once: ver is its targeted ver + 1), as
+// it last existed (CR 608.2h; gorge's TargetedController): a permanent
+// target's departed battlefield record (the newest one naming o), else o's
+// owner. Stroke of Midnight's token for the destroyed permanent's
+// controller (pair 84472), Condemn's life gain.
+func (s *State) lkiCtrl(k *prep, o Obj) uint8 { return s.lkiCtrlSlot(k, o, 0) }
+
+// lkiCtrlSlot is lkiCtrl for target slot i's object.
+func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
+	if t := tspecE(k, &s.res.e, i); t != nil && t.Kind == kop.TgtObject {
+		if f := &k.t.Filters[t.Filter]; f.Zone == kop.ZoneNone && f.Flags&kop.FSpell == 0 {
+			best, ts := uint8(255), uint32(0)
+			for sl := Slot(0); sl < MaxPerm; sl++ {
+				if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && uint32(p.ts) > ts {
+					best, ts = p.ctrl, uint32(p.ts)
+				}
+			}
+			if best != 255 {
+				return best
+			}
+		}
+	}
+	return s.ctrlOfObj(o)
+}
+
+// selfPTLKI is the last known P/T of ability e's source, which has left
+// the battlefield since (once: ver is srcVer + 1), read from its departed
+// slot's record (CR 608.2h; Alesha's "mana value less than or equal to
+// Alesha's power" after she was sacrificed: pairs 12267 52089); pw, t
+// (the card's printed values) otherwise.
+func (s *State) selfPTLKI(k *prep, e *stackEntry, pw, t int) (int, int) {
+	ob := &s.objs[e.obj]
+	if ob.zone == kop.ZoneBattlefield || ob.ver != e.srcVer+1 {
+		return pw, t
+	}
+	best, ts := NoSlot, uint16(0)
+	for sl := Slot(0); sl < MaxPerm; sl++ {
+		if p := &s.perms[sl]; p.obj == e.obj && p.ts != 0 && !s.occ.has(sl) && p.ts > ts {
+			best, ts = sl, p.ts
+		}
+	}
+	if best == NoSlot {
+		return pw, t
+	}
+	return s.ptGen(k, best)
+}
+
+// digMove puts DigUntil's revealed card o into zone z. gorge moves the
+// revealed cards one at a time, the ones not moved yet still in the
+// library: when o is Progenitus going to a graveyard (shuffled into the
+// library instead), the cards still to move (next, then after) go back on
+// top in reveal order first, so the shuffle sees gorge's library, and are
+// taken out of it again when their turn comes (pair 45767).
+func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) {
+	if s.objs[o].zone == kop.ZoneLibrary {
+		s.pl[p].libRemove(o)
+	}
+	s.objs[o].zone = kop.ZoneNone
+	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, s.objs[o].card, z) == kop.ZoneLibrary {
+		pl := &s.pl[p]
+		for i := len(after) - 1; i >= 0; i-- {
+			if x := after[i]; s.objs[x].zone == kop.ZoneNone {
+				s.objs[x].zone = kop.ZoneLibrary
+				pl.libTop(x)
+			}
+		}
+		for i := len(next) - 1; i >= 0; i-- {
+			if x := next[i]; s.objs[x].zone == kop.ZoneNone {
+				s.objs[x].zone = kop.ZoneLibrary
+				pl.libTop(x)
+			}
+		}
+	}
+	s.placeFrom(o, z, false, kop.ZoneLibrary, false)
+}
+
+// divPicks lists entry e's target slot's picked objects in pick order (the
+// first in tgt[slot], then its extra objects), legal or not.
+func (s *State) divPicks(e *stackEntry, slot uint8, codes *[maxXTgt + 1]uint8) int {
+	m := 0
+	if c := e.tgt[slot]; c != NoTarget {
+		codes[m] = c
+		m++
+	}
+	x := s.xtOf(e)
+	for i := 0; i < int(x.n); i++ {
+		if x.slot[i] == slot {
+			codes[m] = x.code[i]
+			m++
+		}
+	}
+	return m
+}
+
+// startCastDivide enters bsDivide: gorge's CR 601.2d division of a divided
+// slot's total among its targets, each at least 1 (rules divisionAsk).
+func (s *State) startCastDivide(k *prep) {
+	s.bld().stage = bsDivide
+	s.bld().divLeft = 0
+	e := &s.bld().e
+	if k.gen == nil || !k.gen.has(e.card, gfDivCard) || e.ab >= abCascade {
+		return
+	}
+	a := s.buildAbility(k)
+	for ti := 0; ti < kop.MaxTargets; ti++ {
+		t := tspecE(k, e, ti)
+		if t == nil || t.Divide == 0 || t.TFlags&kop.TgfAtResolution != 0 {
+			continue
+		}
+		if a != nil {
+			if tm := a.TgtModes[ti]; tm != 0 && tm&e.mode == 0 {
+				continue
+			}
+		}
+		var codes [maxXTgt + 1]uint8
+		n := s.divPicks(e, uint8(ti), &codes)
+		tot := int(t.Divide)
+		if t.Divide == kop.DivLKIP1P1 {
+			tot = s.divLKITotal(e) // ctr_divided.go
+		} else if t.Divide == kop.DivMaxV {
+			tot = s.divMaxVTotal(k, t, e) // ctr_divided.go
+		}
+		if n < 2 || tot < n {
+			return
+		}
+		x := s.xtMut(e)
+		if x == nil {
+			return
+		}
+		for i := 0; i < n; i++ {
+			x.div[i] = 1
+		}
+		s.bld().divSlot, s.bld().divLeft = uint8(ti), uint8(tot-n)
+		return
+	}
+}
+
+// castDivideOptions poses one point of the division: one DkChoose/
+// ChCastDivide option per target, in pick order (gorge divisionDecision).
+func (s *State) castDivideOptions(k *prep, d *Decision) {
+	e := &s.bld().e
+	var codes [maxXTgt + 1]uint8
+	n := s.divPicks(e, s.bld().divSlot, &codes)
+	d.Kind, d.Sub, d.Player = DkChoose, ChCastDivide, e.ctrl
+	for i := 0; i < n; i++ {
+		d.add(MakeAction(AkChoose, codes[i], 0, 0))
+	}
+}
+
+// answerCastDivide gives target c one more point.
+func (s *State) answerCastDivide(k *prep, c uint8) {
+	e := &s.bld().e
+	var codes [maxXTgt + 1]uint8
+	n := s.divPicks(e, s.bld().divSlot, &codes)
+	x := s.xtMut(e)
+	for i := 0; i < n; i++ {
+		if codes[i] == c {
+			x.div[i]++
+			break
+		}
+	}
+	s.bld().divLeft--
+}
+
+// dealAnnouncedDivision deals a cast-time division (CR 601.2d / 608.2b):
+// each still-legal target takes its announced share, an illegal one's is
+// lost. False when nothing was announced.
+func (s *State) dealAnnouncedDivision(k *prep, e *stackEntry, slot uint8) bool {
+	if e.xi == 0 {
+		return false
+	}
+	x := s.xtOf(e)
+	if x.div[0] == 0 {
+		return false
+	}
+	var codes [maxXTgt + 1]uint8
+	var amts [maxXTgt + 1]int
+	m, i := 0, 0
+	if e.tgt[slot] != NoTarget {
+		if c := s.tgtCode(int(slot)); c != NoTarget {
+			codes[m], amts[m] = c, int(x.div[0])
+			m++
+		}
+		i = 1
+	}
+	for j := 0; j < int(x.n); j++ {
+		if x.slot[j] != slot {
+			continue
+		}
+		if s.xtLegal(k, e, j) {
+			codes[m], amts[m] = x.code[j], int(x.div[i])
+			m++
+		}
+		i++
+	}
+	if m > 0 {
+		s.damageBatch(k, codes[:m], amts[:m])
+	}
+	return true
+}
+
+// tapForHyb taps a hybrid cast's sources through gorge's manual CR 601.2g
+// window: gorge's cast planner refuses a hybrid cost (pay.PlanCostDetail
+// "cost:hybrid"), so the cast is paid by activating the first useful source
+// in battlefield order (pay.ManaSourceIDs) until the pool pays, not by the
+// planner's witness (whose colour-count key ranks a basic before a dual
+// whatever the order). The window is greedy, so it first dry-runs
+// (windowDry; a State copy only past a gap or sacrificed source); when it
+// would run out of sources before the cost is paid (a dual spent
+// for the wrong colour ahead of the basic) the planner witness, ranked in
+// battlefield order, pays instead; on a table with a basic land type grant,
+// or with no witness (the faces the fallback announced when no face was
+// payable), the stranded window cancels the cast (hybStrand). It reports
+// false after reversing.
+//
+//go:noinline
+func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
+	c := *cost
+	if g := cost.XGeneric(x); g != 0 {
+		// the window reads Generic, not X: fold the announced X in
+		c.Generic += uint8(g)
+	}
+	ok, known := s.windowDry(k, p, &c, anyColor)
+	if !known {
+		probe := s.fork() // a gap or sacrificed source: the rare full probe
+		ok, _ = probe.windowTapRider(k, p, &c, true, anyColor)
+		s.unfork()
+	}
+	if ok {
+		_, held := s.windowTapRider(k, p, &c, true, anyColor)
+		for col := range held {
+			s.pl[p].pool[col] += held[col]
+		}
+		return true
+	}
+	if known && k.gen != nil && k.gen.blgOn {
+		return s.hybStrand(k, p, &c, anyColor)
+	}
+	var pk planner
+	pk.bfl, pk.try = true, true
+	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
+	if pk.needT > 0 && !pk.found {
+		return s.hybStrand(k, p, &c, anyColor)
+	}
+	return true
+}
+
+// manaStep is the build's CR 601.2g step (bsMana): before the cost objects
+// are chosen (CR 601.2h, gorge costObjectAsks after manaWindowAsk), the
+// planner's sources for the mana cost are tapped into the pool, so a cost
+// pick sees them tapped; bsPay spends the pool. The permanents the cost
+// itself taps (an ability's {T} source, a granted ability's host, the
+// elected tap-X picks) are withheld from the planner, as their taps are
+// paid with the rest of the cost. A cast whose rest gorge pays through its
+// mana window (a free, lowered or madness cast) or with restricted mana floating
+// keeps its whole payment at bsPay.
+//
+//go:noinline
+func (s *State) manaStep(k *prep) bool {
+	e := &s.bld().e
+	switch e.kind {
+	case seSpell:
+		cost := s.buildCost(k)
+		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 && !s.loweredPipWindow(k, e, &cost) {
+			return true
+		}
+		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.pl[e.ctrl].poolR != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
+			return false
+		}
+		var saved [len(build{}.picks)]uint8
+		s.holdCostTaps(k, &saved)
+		s.bld().bfl |= bflManaStep | bflCostFixed
+		anyColor := s.bld().bfl&bflAnyColor != 0
+		if e.flags&sfAnyMana != 0 || anyColor {
+			s.tapRiderPlan(k, *e)
+		}
+		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) {
+			// the announced creatures pay their share before the plan runs
+			// (CR 702.51a; gorge convokeAsk before manaWindowAsk) and are
+			// withheld from the planner as mana sources. Gorge's planner
+			// refuses a convoke cast (payment_plan.go "shape:contribution"),
+			// so the payment runs through the manual CR 601.2g window: the
+			// first untapped source, repeat until the pool pays.
+			occ := s.occ
+			s.occ = s.occ.andNot(s.convokeHidden())
+			raw := cost
+			cost = s.convokeApplyPicks(k, cost)
+			if s.paymentStranded(k, e, &cost) {
+				s.occ = occ
+				s.releaseCostTaps(k, &saved)
+				s.reverseCast(k)
+				return true
+			}
+			s.windowTapRiderUseful(k, e.ctrl, &cost, &raw, true, anyColor)
+			s.occ = occ
+		} else if k.t.Cards[e.card].HasModeCost {
+			// Spree: gorge's planner declines the face ("shape:modal_cost"),
+			// so the cast pays through the manual CR 601.2g window, the
+			// first useful source until the pool pays (kw_spree.go)
+			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
+		} else if cost.X != 0 && s.cfg&cfgGorgeSurface != 0 {
+			if !s.xWindowPay(k, e, &cost) {
+				s.releaseCostTaps(k, &saved)
+				s.reverseCast(k)
+				return true
+			}
+		} else if k.phyMana && s.phyBuild(k) {
+			// a Phyrexian cast: the plan for the cost its pips settled, armed
+			// on the mana half; the manual window when none exists
+			// (mana_phyrexian.go)
+			half := s.buildCost0(k)
+			half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+			if s.phyCastPlanSettles(k, e, half, cost) {
+				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+			} else {
+				s.phyPay(k, e.ctrl, &cost, int(e.x), e.obj)
+			}
+		} else if s.bld().pipN != 0 {
+			// a hybrid pip was announced: gorge's cast planner refuses a
+			// hybrid cost (pay.PlanCostDetail "cost:hybrid"), so the cast is
+			// paid through its manual CR 601.2g window, which activates
+			// sources in battlefield order (pay.ManaSourceIDs), not the
+			// planner's ObjID-ordered witness (pay.CompareSteps).
+			if !s.tapForHyb(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) {
+				return true // stranded: the cast was reversed (static_landtype.go)
+			}
+		} else {
+			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+		}
+		s.bld().bfl &^= bflManaStep
+		s.releaseCostTaps(k, &saved)
+	case seAbility:
+		cost := s.buildCost(k)
+		if d := s.payDescNow(NoObj); s.pl[e.ctrl].poolR != 0 && s.restrPoolAct(k, e.ctrl, &d) {
+			cost = s.restrShortAdm(e.ctrl, cost) // the sources tap for what the restricted mana leaves (pay.PlanPool)
+		}
+		a := &k.t.Cards[e.card].Abilities[e.ab]
+		var saved [len(build{}.picks)]uint8
+		s.holdCostTaps(k, &saved)
+		sl := s.srcSlot()
+		selfUntapped := sl != NoSlot && a.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+		if selfUntapped {
+			s.perms[sl].flags |= pfTapped
+		}
+		var hostSl Slot = NoSlot
+		if h := e.trigObj; a.Cost.Flags&kop.CostTapHost != 0 && h != NoObj && s.objs[h].zone == kop.ZoneBattlefield {
+			if hs := s.objs[h].slot; s.perms[hs].flags&pfTapped == 0 {
+				hostSl = hs
+				s.perms[hs].flags |= pfTapped
+			}
+		}
+		s.bld().bfl |= bflManaStep
+		switch {
+		case s.paymentStranded(k, e, &cost):
+			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+			return true
+		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:
+			cc := s.buildCostCharge(k)
+			if !s.xWindowPay(k, e, &cc) {
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
+		case s.waterbendManualPay(k, e, &saved):
+			full := a.Cost.Mana
+			ok, held := s.windowTapRiderUseful(k, e.ctrl, &cost, &full, true, false)
+			if !ok {
+				// gorge's fallback window taps as it walks and leaves the
+				// mana abilities' taps and floated mana behind when payCast
+				// then aborts the activation (CR 733.1): a tap cannot be
+				// undone. Keep the window's state, unlike a dry probe.
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
+			for c := range held {
+				s.pl[e.ctrl].pool[c] += held[c]
+			}
+		case k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 && s.powerUpPlanRejected(k, a):
+			// The planner's printed-cost witness is outdated: the plan for the
+			// reduced cost, or with none the manual window, source by source,
+			// which taps nothing when the pool already pays it.
+			cc := s.buildCostCharge(k)
+			if s.abilityPlanSettles(k, e, a.Cost.Mana, a.Cost.Mana, cc, &saved) {
+				s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
+			} else if !s.windowTapHeldOK(k, e.ctrl, &cc) {
+				// the window ran out of sources: gorge aborts the activation
+				// (CR 733.1) and keeps the taps and the floated mana, as for
+				// the waterbend fallback above (mana_gate.go)
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
+		case k.phyMana && s.phyBuild(k):
+			// a Phyrexian activation: the plan for the cost its pips settled,
+			// armed on the mana half; the manual window when none exists
+			// (mana_phyrexian.go)
+			half := a.Cost.Mana
+			half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
+			if s.abilityPlanSettles(k, e, half, half, cost, &saved) {
+				s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
+			} else {
+				s.phyPay(k, e.ctrl, &cost, int(e.x), NoObj)
+			}
+		case s.bld().pipN != 0 && s.hybAbilityOffPlan(k, e.ctrl, &cost) &&
+			!s.abilityPlanSettles(k, e, s.hybResolve(k, e.ctrl, a.Cost.Mana, 0), s.hybResolve(k, e.ctrl, a.Cost.Mana, 0), cost, &saved):
+			// gorge has no plan for the cost the pips settled: its manual window, which can run dry
+			// when a source's first ability is not the colour owed (a
+			// granted basic land type: static_landtype.go; a filter's
+			// free {C}); gorge then aborts the activation and keeps the
+			// taps, as for power-up
+			if !s.windowTapHeldOK(k, e.ctrl, &cost) && k.gen != nil && (k.gen.blgOn || k.gen.anyFilt) {
+				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
+				return true
+			}
+		case a.Cost.Flags&kop.CostSac != 0 && k.sacMana:
+			s.tapForSacKept(k, e.ctrl, &cost, int(e.x), a, sl)
+		case a.Cost.Flags&kop.CostSacSelf != 0 && k.sacMana && sl != NoSlot && s.sacSelfMana(k, sl):
+			s.tapForSacSelf(k, e.ctrl, &cost, int(e.x), sl) // filter_combatwords.go
+		default:
+			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
+		}
+		s.bld().bfl &^= bflManaStep
+		if hostSl != NoSlot {
+			s.perms[hostSl].flags &^= pfTapped
+		}
+		if selfUntapped {
+			s.perms[sl].flags &^= pfTapped
+		}
+		s.releaseCostTaps(k, &saved)
+	}
+	return false
+}
+
+// holdCostTaps marks the untapped tap-X and waterbend picks tapped for the
+// planner (saved[i] = 1 for each it marked); releaseCostTaps undoes it.
+func (s *State) holdCostTaps(k *prep, saved *[len(build{}.picks)]uint8) {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().pickKs[i] != pkTapX && s.bld().pickKs[i] != pkWaterbend {
+			continue
+		}
+		if ob := &s.objs[s.bld().picks[i]]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfTapped == 0 {
+			s.perms[ob.slot].flags |= pfTapped
+			saved[i] = 1
+		}
+	}
+}
+
+func (s *State) releaseCostTaps(k *prep, saved *[len(build{}.picks)]uint8) {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if saved[i] != 0 {
+			s.perms[s.objs[s.bld().picks[i]].slot].flags &^= pfTapped
+		}
+	}
+}
+
+// retakeCostTaps undoes releaseCostTaps.
+func (s *State) retakeCostTaps(saved *[len(build{}.picks)]uint8) {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if saved[i] != 0 {
+			s.perms[s.objs[s.bld().picks[i]].slot].flags |= pfTapped
+		}
+	}
+}
+
+// reverseActivation reverses an activation mid-payment (CR 733.1). The cost's own
+// taps are not paid on that abort: the picks held for the planner and the {T}
+// source untap with it (gorge pays them after the mana, cast_commit.go
+// EmitConvokeTaps).
+func (s *State) reverseActivation(k *prep, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) {
+	s.releaseCostTaps(k, saved)
+	if hostSl != NoSlot {
+		s.perms[hostSl].flags &^= pfTapped
+	}
+	if selfUntapped {
+		s.perms[sl].flags &^= pfTapped
+	}
+	s.reverseCast(k)
+}
+
+// paymentStranded reports whether the helpers or tap-cost picks committed to the
+// build leave a mana payment no way through the window can finish. A permanent so
+// committed can't also tap for mana, so that answer is an illegal action, undone
+// before any mana is activated (CR 601.2g-h, 602.2b, 733.1; gorge
+// reverseStrandedPayment). The picks are already out of the sources; a census that
+// can't price every source leaves the window open.
+func (s *State) paymentStranded(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	if k.gen == nil || s.bld().pickN == 0 || !s.committedPicks() || !s.windowCensusComplete(k, e) {
+		return false
+	}
+	ok, known := s.windowDry(k, e.ctrl, cost, s.bld().bfl&bflAnyColor != 0)
+	return known && !ok
+}
+
+// committedPicks reports whether a pick commits a permanent to a tap cost or as a
+// convoke-family helper.
+func (s *State) committedPicks() bool {
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if pk := s.bld().pickKs[i]; pk == pkTapX || pk == pkWaterbend || isConvokePick(pk) {
+			return true
+		}
+	}
+	return false
+}
+
+// abilityPlanSettles reports whether gorge's auto-pay plan pays the activation's
+// settled cost. A plan is armed as the activation begins, for the offer's price
+// (offer, or fallback when the sources cannot fund offer), with the picks still
+// untapped; a shape the planner declines, or a pool that pays, arms none. Once the
+// announcements settle the cost, gorge plans again without the permanents committed
+// to it (CR 601.2g-h, 602.2b: one permanent does not pay two costs;
+// rearmAbilityAutoPay, announcedAutoFillPlan). The picks saved names are tapped on
+// entry and on return.
+//
+//go:noinline
+func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, settled kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if offer.X != 0 {
+		return false
+	}
+	s.releaseCostTaps(k, saved)
+	var chk planner
+	chk.dry = true
+	s.tapForPK(k, e.ctrl, &offer, 0, NoObj, false, false, &chk)
+	armed := chk.needT != 0
+	if armed && !chk.found {
+		chk = planner{dry: true}
+		s.tapForPK(k, e.ctrl, &fallback, 0, NoObj, false, false, &chk)
+		armed = chk.found
+	}
+	s.retakeCostTaps(saved)
+	if !armed {
+		return false
+	}
+	chk = planner{dry: true}
+	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
+	return chk.found || chk.needT == 0
+}
+
+// payAbilityCosts pays an activated ability's non-mana costs.
+func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
+	a := &k.t.Cards[e.card].Abilities[e.ab]
+	sl := s.srcSlot()
+	f := a.Cost.Flags
+	if f&kop.CostBlight != 0 && f&kop.CostSacSelf == 0 {
+		s.payBlightPicks(k) // gorge emits the blight counters before the tap
+	}
+	if sl != NoSlot {
+		s.touchSl(sl)
+	}
+	if f&kop.CostTap != 0 {
+		was := s.perms[sl].flags & pfTapped
+		s.perms[sl].flags |= pfTapped
+		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
+			s.fireTaps(k, sl)
+		}
+	}
+	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
+		s.untapCost(k, sl)
+	}
+	if f&kop.CostOncePerTurn != 0 && e.ab < 8 {
+		s.perms[sl].actUsed |= 1 << e.ab
+	}
+	if f&kop.CostLoyalty != 0 {
+		s.perms[sl].flags |= pfLoyaltyUsed
+		if f&kop.CostLoyaltyX != 0 {
+			s.payLoyaltyX(sl, e.x)
+		}
+	}
+	if f&kop.CostOncePerGame != 0 {
+		s.perms[sl].flags |= pfOnceGame
+	}
+	if f&kop.CostRemoveCtr != 0 {
+		s.perms[sl].seeCtr(s)
+		s.perms[sl].subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
+	}
+	if f&kop.CostAddCtr != 0 {
+		// a counter put as a cost is no effect (CR 609.1; Doubling Season's
+		// rulings): an EffectOnly$ doubler never doubles it, whatever the
+		// stack holds (gorge; Forge CostPutCounter effect=false,
+		// XMage PayLoyaltyCost); every other AddCounter replacement does,
+		// the payer putting it (replCostCtr, repl_addcounter.go)
+		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), e.ctrl, ctrPutCost)
+		if n > 0 && k.anyCtrAdded {
+			s.ctrNoteBy(k, sl, int(a.Cost.Ctr), e.ctrl) // a cost: gorge pay_engine publishes the payer
+		}
+	}
+	if f&kop.CostPayLife != 0 {
+		s.payLifeCost(k, e.ctrl, &a.Cost, e.x)
+	}
+	if f&kop.CostPayEnergy != 0 {
+		s.payEnergy(e.ctrl, &a.Cost)
+	}
+	if f&kop.CostTapHost != 0 {
+		s.tapHostGen(k, e)
+	}
+	if f&kop.CostDiscardSelf != 0 {
+		s.discardSelfCost(k, e)
+	}
+	s.payPicks(k)
+	if a.Evidence != 0 {
+		s.payCostEvidence(k) // cost_collectevidence.go
+	}
+	if f&kop.CostReturnSelf != 0 && sl != NoSlot {
+		if k.gen != nil && s.deferSacGen(k, sl) {
+			return // paySacsGen, after the mana (returnSelfDeferred)
+		}
+		s.leave(k, sl, kop.ZoneHand, false)
+		return
+	}
+	if f&kop.CostExileSelf != 0 && sl != NoSlot {
+		s.exileSelfCost(k, sl)
+		return
+	}
+	if f&kop.CostBlight != 0 && f&kop.CostSacSelf != 0 {
+		s.payBlightPicks(k) // before the source is sacrificed
+	}
+	if f&kop.CostSacSelf != 0 && sl != NoSlot {
+		if k.gen != nil {
+			s.bld().e.li = s.snapLKI(s.perms[sl].obj) // last known information (RefSacrificed)
+			if s.deferSacGen(k, sl) {
+				return // paySacsGen, after the mana
+			}
+		}
+		s.fireSac(k, sl)
+		if !s.parkCost(k, s.perms[sl].obj, parkLeave, 0) {
+			s.leave(k, sl, kop.ZoneGraveyard, false)
+		}
+	}
+}

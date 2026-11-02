@@ -7,11 +7,11 @@
   xengine-bench-summarize.py --json RUNS.jsonl
       print the same rows as JSON lines, with rss_mb {min, median, max, reps}
   xengine-bench-summarize.py --record ENGINE ROW PAIR REP CORE LOAD0 TIMEFILE RESULT KIND LOAD1
-      print one normalised run line (KIND: enginebench, xmage, kplay, mtgkernel, forge:WARM:SECS)
+      print one normalised run line (KIND: enginebench, xmage, dplay, mtgkernel, forge:WARM:SECS)
   xengine-bench-summarize.py --forge-games DECKS DECK_A DECK_B SEED N
       print N forge.oracle.GameReplay request lines, seats alternating
-  xengine-bench-summarize.py --kplay-decks DECKS DECK_A DECK_B DECKFILE PAIRSFILE SEED
-      write a kplay -deckfile and a -pairs-file of 200000 games, seats alternating
+  xengine-bench-summarize.py --dplay-decks DECKS DECK_A DECK_B DECKDIR PAIRSFILE SEED
+      write a dplay -decks directory and a -pairs-file of 200000 games, seats alternating
 """
 import json
 import os
@@ -41,10 +41,11 @@ def forge_games(decks, a, b, seed, n):
                           "max_turns": 100, "max_ms": 600000, "seats": seats}))
 
 
-def kplay_decks(decks, a, b, deckfile, pairsfile, seed):
-    with open(deckfile, "w") as f:
-        for name in (a, b):
-            f.write(json.dumps({"name": name, "cards": dck_cards(decks, name)}) + "\n")
+def dplay_decks(decks, a, b, deckdir, pairsfile, seed):
+    os.makedirs(deckdir, exist_ok=True)
+    for name in (a, b):
+        with open(os.path.join(deckdir, name + ".json"), "w") as f:
+            json.dump({"name": name, "cards": dck_cards(decks, name)}, f)
     with open(pairsfile, "w") as f:
         for g in range(200000):
             x, y = (a, b) if g % 2 == 0 else (b, a)
@@ -75,13 +76,10 @@ def record(engine, row, pair, rep, core, load0, timefile, result, kind, load1):
         games, turns, decisions, cpu_s = r["games"], r["turns"], r["decisions"], r["cpu_s"]
         warm = r["warmup_games"]
         errors = r["halted"] + r["errors"] + r["capped"]
-    elif kind == "kplay":
+    elif kind == "dplay":
         s = json.load(open(result))
-        rows = [json.loads(l) for l in open(result[: -len(".summary.json")]) if l.strip()]
-        games, cpu_s = s["games"], s["cpu_s"]
-        turns = sum(r["turns"] for r in rows)
-        decisions = sum(r["intents"] for r in rows)
-        errors = s.get("stalls", 0) + s.get("errors", 0)
+        games, turns, decisions, cpu_s = s["games"], s["turns"], s["decisions"], s["cpu_s"]
+        errors = s["stalls"] + s["errors"]
     elif kind.startswith("forge:"):
         _, w, m = kind.split(":")
         rows = [json.loads(l) for l in open(result) if l.strip()]
@@ -207,8 +205,8 @@ def main(argv):
         record(*argv[2:12])
     elif len(argv) >= 2 and argv[1] == "--forge-games":
         forge_games(*argv[2:7])
-    elif len(argv) >= 2 and argv[1] == "--kplay-decks":
-        kplay_decks(*argv[2:8])
+    elif len(argv) >= 2 and argv[1] == "--dplay-decks":
+        dplay_decks(*argv[2:8])
     elif len(argv) == 3 and argv[1] == "--json":
         summary_json(argv[2])
     elif len(argv) == 2:

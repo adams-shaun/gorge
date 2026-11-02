@@ -5,7 +5,7 @@
 // CardCounters.<KIND>, so the whole token became the spec, matched nothing
 // and the count degraded to 0 -- silently, because a count that fails closed
 // looks like "no counters". The end-to-end pin is Kate Stewart's attack
-// trigger (`SVar:X:Count$Valid Permanent.YouCtrl$CardCounters.TIME`,
+// trigger (`X = Count$Valid Permanent.YouCtrl$CardCounters.TIME`,
 // `NumAtt$ +X` on the pay-{8} PumpAll); the ALL spelling is pinned on
 // Maester Seymour's shape (the Sylvan Library/Backstreet Bruiser family's
 // "number of counters among ..." sums EVERY kind).

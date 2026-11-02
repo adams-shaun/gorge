@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
-import type { CardView, Decision, Option, PlayerView, PotentialAction } from '../protocol';
+import type { CardView, Decision, Option, PaymentAction, PlayerView, PotentialAction, View } from '../protocol';
 import HandFan from '../components/HandFan.svelte';
-import { laterByObj, optionsByObj, optionsByPlayer, type CardOptions } from './cardoptions';
+import { laterByObj, offHandPlays, optionsByObj, optionsByPlayer, type CardOptions } from './cardoptions';
 
 // A report: seat 0 held Gurmag Angler ({6}{B},
 // Delve) in hand with 6 cards in the graveyard and a black source untapped,
@@ -146,5 +146,52 @@ describe('plan-less hand cast later affordance', () => {
       { kind: 'station', obj: CARD, label: 'Station Gurmag Angler' },
     ];
     expect(laterByObj(d, potentials, [CARD])).toBeUndefined();
+  });
+});
+
+describe('off-hand plays: a card castable from a closed pile', () => {
+  const EXILED = 66;
+  const growth = card(EXILED, 'Giant Growth');
+  const stolen: PaymentAction = {
+    id: 'pay-exile', label: 'Cast Giant Growth', cast: { object: EXILED, face: 0, origin: 'exile' },
+    plans: [{ id: 'plan', sources: [], summary: '' } as unknown as PaymentAction['plans'][number]],
+  };
+  const seat = (over: Partial<PlayerView>): PlayerView => ({ seat: 0, name: 'You', hand: [], exile: [], graveyard: [], command: [], ...over }) as unknown as PlayerView;
+  const viewOf = (own: PlayerView, opp: PlayerView): View => ({ players: [own, opp] }) as unknown as View;
+  const taps = decision();
+
+  it('lists an opponent exile card the decision offers a payment action for', () => {
+    const v = viewOf(seat({}), seat({ seat: 1, exile: [growth] }));
+    expect(offHandPlays(v, 0, taps, [stolen])).toEqual([{ card: growth, zone: 'exile' }]);
+  });
+
+  it('lists a card offered only as a live cast, or only as a potential action', () => {
+    const v = viewOf(seat({ graveyard: [growth] }), seat({ seat: 1 }));
+    const live: Option = { index: 2, kind: 'cast', label: 'Cast Giant Growth', player: 0, obj: EXILED };
+    expect(offHandPlays(v, 0, decision([live, pass]), [])).toEqual([{ card: growth, zone: 'graveyard' }]);
+    const floated = viewOf(seat({ graveyard: [growth], potential_actions: [{ kind: 'cast', obj: EXILED, label: 'Cast Giant Growth' }] }), seat({ seat: 1 }));
+    expect(offHandPlays(floated, 0, taps, [])).toEqual([{ card: growth, zone: 'graveyard' }]);
+  });
+
+  it('leaves out what the server did not offer or proved unpayable, and any window but priority', () => {
+    const v = viewOf(seat({ potential_actions: [{ kind: 'cast', obj: EXILED, label: 'Cast Giant Growth', payable: false }] }), seat({ seat: 1, exile: [growth] }));
+    expect(offHandPlays(v, 0, taps, [])).toEqual([]);
+    expect(offHandPlays(viewOf(seat({}), seat({ seat: 1, exile: [growth] })), 0, { ...taps, kind: 'choose' }, [stolen])).toEqual([]);
+    expect(offHandPlays(viewOf(seat({}), seat({ seat: 1, exile: [growth] })), 0, null, [stolen])).toEqual([]);
+  });
+
+  it('gives the card the hand card\'s CAST control and names its zone, with an empty hand too', () => {
+    const { html } = render(HandFan, {
+      props: { player: player([]), offHand: [{ card: growth, zone: 'exile' }], paymentActions: [stolen], autoPay: false, width: 1000 },
+    });
+    expect(html).toContain(`data-obj="${EXILED}"`);
+    expect(html).toContain('data-payment-card="pay-exile"');
+    expect(html).toContain('Cast Giant Growth, then choose mana');
+    expect(html).toContain('data-offhand-zone="exile"');
+  });
+
+  it('a float-gated off-hand cast gets the disabled later row, not silence', () => {
+    const later = laterByObj(taps, [{ kind: 'cast', obj: EXILED, label: 'Cast Giant Growth' }], [EXILED]);
+    expect(later?.get(EXILED)?.map((a) => a.label)).toEqual(['Cast Giant Growth']);
   });
 });

@@ -59,3 +59,18 @@ func TestStunCounterStaysOnADoesntUntapPermanent(t *testing.T) {
 		t.Fatalf("err=%v fails=%v", err, res.Fails)
 	}
 }
+
+// An untap-all sweep proposes the same untap TryUntap does: a stun counter comes
+// off instead, on a noncreature as on a creature, and a permanent without one
+// untaps. Forge and XMage both play Unstoppable Plan this way.
+func TestUntapAllRemovesAStunCounterInstead(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	res, err := RunOracleAuditScenarioJSON(reg, []byte(`{"name":"stun-untap-all","cr":["122.1d"],"why":"an untap sweep meets a stun counter",
+"setup":{"p0":{"battlefield":["Unstoppable Plan","Hill Giant","Grizzly Bears","Chromatic Star"],"tapped_after_untap":["Hill Giant","Grizzly Bears","Chromatic Star"],"counters":{"Hill Giant":{"STUN":2},"Chromatic Star":{"STUN":1}}}},
+"steps":[{"op":"pass_to","step":"end"},{"op":"resolve"}],
+"expect":[{"card":"p0:Hill Giant","tapped":true,"counters":{"STUN":1}},{"card":"p0:Chromatic Star","tapped":true},{"card":"p0:Grizzly Bears","tapped":false}]}`), true)
+	if err != nil || len(res.Fails) != 0 {
+		t.Fatalf("err=%v fails=%v", err, res.Fails)
+	}
+}

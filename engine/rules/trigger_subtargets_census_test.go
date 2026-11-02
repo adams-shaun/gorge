@@ -40,6 +40,7 @@ var triggerChainPreAskCarriers = []string{
 	"Blue Dragon",
 	"Body Snatcher",
 	"Boomflinger",
+	"Borg Cube",
 	"Boros Battleshaper",
 	"Brink of Madness",
 	"Burning Sun's Avatar",
@@ -104,6 +105,7 @@ var triggerChainPreAskCarriers = []string{
 	"Mogg Bombers",
 	"Monoist Circuit-Feeder",
 	"Ms. Bumbleflower",
+	"My Will Is Irresistible",
 	"Nantuko Slicer",
 	"Necron Deathmark",
 	"Nightshade Assassin",
@@ -168,11 +170,6 @@ var triggerChainPreAskCarriers = []string{
 // fails the build rather than silently changing which triggers announce their
 // link targets at placement.
 var triggerChainPreAskExclusions = map[string]string{
-	// Modal roots are out whole: CR 603.3c's mode election owns that target
-	// ask, and the cast-side collector excludes a Charm root for the same
-	// reason (collectSubTargetPreAsks). ModeTargets carries the per-mode
-	// groups instead, so the two bindings stay disjoint.
-	"My Will Is Irresistible": "modal root (Choices$): CR 603.3c mode election owns the ask",
 	// No current trigger chain names TargetingPlayer$. If one enters the
 	// corpus, the census reports it as unpinned: its link ask belongs to the
 	// named seat, but trig_sub currently only resumes the trigger controller.
@@ -259,8 +256,8 @@ func chainHasTargetingLink(root *cards.SA) bool {
 // census pins; an unrecognised shape returns a reason no pinned entry matches,
 // which fails the census above.
 func exclusionReason(root *cards.SA) string {
-	if strings.TrimSpace(root.Params["Choices"]) != "" {
-		return "modal root (Choices$): CR 603.3c mode election owns the ask"
+	if root.CompiledAPI() == cards.APICharm {
+		return "modal root: CR 603.3c mode election owns the ask"
 	}
 	for sa := root.Sub; sa != nil; sa = sa.Sub {
 		if strings.TrimSpace(sa.Params["TargetingPlayer"]) != "" {

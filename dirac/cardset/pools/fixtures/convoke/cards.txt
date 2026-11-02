@@ -1,0 +1,21 @@
+# the convoke test pool: the cheap convoke carriers, a
+# hybrid carrier, basics and vanilla creatures, for the oracle's
+# constructed lockstep (dirac/oracle/convoke_test.go)
+Aerial Boost
+Burning Sun's Fury
+Protective Response
+Collective Nightmare
+Halo Hopper
+Stoke the Flames
+Vote Out
+Merrow Skyswimmer
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Mountain
+Island
+Swamp
+Forest
+Plains

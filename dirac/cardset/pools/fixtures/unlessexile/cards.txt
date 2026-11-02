@@ -1,0 +1,14 @@
+# ExileFromGrave<N/Spec> as an UnlessCost$
+# (dirac/oracle/unlessexile_test.go)
+Trystan, Callous Cultivator
+Heated Argument
+Rotting Giant
+Llanowar Elves
+Elvish Mystic
+Thought Scour
+Grizzly Bears
+Shock
+Forest
+Swamp
+Mountain
+Island

@@ -1,0 +1,31 @@
+# the Spell.ManaSpent gate pool: the seven
+# ValidSA$ / ValidSAonCard$ carriers, spells at MV 1-4+ (X and kicker
+# spend), a cost reducer for LTX, and basics, for the oracle's
+# constructed lockstep (dirac/oracle/spentvalidsa_test.go)
+Sahagin
+The Emperor of Palamecia
+The Prima Vista
+Blazing Bomb
+Prompto Argentum
+Ultros, Obnoxious Octopus
+Tokka & Rahzar, Terrible Twos
+Goblin Electromancer
+Lightning Bolt
+Shock
+Burst Lightning
+Blaze
+Crater's Claws
+Rite of Replication
+Wizard's Lightning
+Divination
+Counterspell
+Memory Lapse
+Essence Scatter
+Opt
+Preordain
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Mountain
+Island
+Forest

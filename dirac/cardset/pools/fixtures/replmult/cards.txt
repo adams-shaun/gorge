@@ -1,0 +1,28 @@
+# the replacement-multiplier pool: the filtered
+# damage doublers (Gratuitous Violence, Neriv, Trance Kuja) beside
+# Twinflame Tyrant, the token multipliers (Exalted Sunborn, Ojer Taq,
+# Doubling Season), burn, creature and non-creature token makers,
+# Wizards and cheap creatures, for the oracle's constructed lockstep
+# (dirac/oracle/replmult_test.go)
+Burst Lightning
+Doubling Season
+Dragon Fodder
+Elite Vanguard
+Exalted Sunborn
+Forest
+Ghitu Lavarunner
+Goblin Instigator
+Gratuitous Violence
+Kuja, Genome Sorcerer
+Lightning Strike
+Mountain
+Neriv, Heart of the Storm
+Ojer Taq, Deepest Foundation
+Plains
+Raging Goblin
+Raise the Alarm
+Savannah Lions
+Shock
+Strike It Rich
+Thraben Inspector
+Twinflame Tyrant

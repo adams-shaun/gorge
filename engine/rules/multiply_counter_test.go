@@ -11,7 +11,7 @@ import (
 
 // api:MultiplyCounter pinned end to end on the in-deck real corpus carrier
 // Lily Bowen, Raging Grandma: without `DB$ MultiplyCounter`, Lily's power<=16 upkeep branch
-// (SVar:DBPump:DB$ MultiplyCounter | CounterType$ P1P1 | Defined$ Self) did
+// (a DB$ MultiplyCounter of its own P1P1 counters) did
 // nothing -- the "double the number of +1/+1 counters" half of the card.
 //
 // Lily enters with two +1/+1 counters (K:etbCounter:P1P1:2), is 0/0 so its

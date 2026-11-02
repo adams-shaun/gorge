@@ -1,0 +1,17 @@
+# the filtered discard pool: Solitary Cell's
+# Discard<1/Card.Legendary> activated cost and Page, Loose Leaf's
+# grandeur Discard<1/Card.named<self>> beside vanilla creatures, burn,
+# card selection and basics, for the oracle's constructed lockstep
+# (dirac/oracle/discfilt_test.go)
+Solitary Cell
+Page, Loose Leaf
+Isamaru, Hound of Konda
+Grizzly Bears
+Raging Goblin
+Shock
+Opt
+Plains
+Island
+Mountain
+Forest
+Swamp

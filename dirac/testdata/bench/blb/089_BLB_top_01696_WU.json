@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_01696_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck b60fc0eb16874c58ac8c3326a5c5c038:0, player win-rate bucket 0.66 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Beza, the Bounding Spring, 1 Daring Waverider, 1 Essence Channeler, 1 Nettle Guard -> 2 Plains, 2 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 2
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Lifecreed Duo",
+"count": 2
+},
+{
+"name": "Mabel's Mettle",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 2
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

@@ -161,6 +161,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		// deliberately bypasses the playerLoses gate (CR 104.3a), which is why
 		// this is its own call rather than one inside the gate.
 		e.initiativeHandoffOnDeparture(in.Player)
+		e.monarchHandoffOnDeparture(in.Player)
 		e.checkStateBased()
 
 	case optStation:

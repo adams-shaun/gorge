@@ -1,0 +1,99 @@
+{
+"name": "FDN_top_18079_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 5187b062305e40bd82e86f83eb68b6d2:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 2
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 2
+},
+{
+"name": "Giada, Font of Hope",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "High Fae Trickster",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Luminous Rebuke",
+"count": 2
+},
+{
+"name": "Micromancer",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Refute",
+"count": 1
+},
+{
+"name": "Scrawling Crawler",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 2
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 2
+},
+{
+"name": "Tranquil Cove",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 2
+}
+]
+}

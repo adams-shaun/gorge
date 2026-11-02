@@ -1,0 +1,24 @@
+# Standard-20 set codes, from gorge-compliance declared.json, and TRC, a Commander set
+# played two-player for evidence.
+BIG
+BLB
+DFT
+DSK
+ECL
+EOE
+FDN
+FIN
+FRA
+HOB
+LCI
+MKM
+MSH
+OTJ
+SOS
+SPM
+TDM
+TLA
+TMT
+TRC
+TRK
+WOE

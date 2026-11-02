@@ -1,0 +1,13 @@
+{
+  "card": "Wanderbrine Trapper",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 6 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1043,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

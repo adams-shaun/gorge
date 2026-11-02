@@ -1,0 +1,13 @@
+{
+  "card": "Knight of Malice",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; 9 games in the corpus",
+  "repro": {
+    "pool": "std-fdn",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 336,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

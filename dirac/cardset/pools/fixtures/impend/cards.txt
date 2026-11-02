@@ -1,0 +1,9 @@
+# the impending pool (CR 702.176a): Overlord of the
+# Mistmoors against a creature deck, and a card reading its Horror type
+# (dirac/oracle/impend_test.go)
+Overlord of the Mistmoors
+Savannah Lions
+Plains
+Hill Giant
+Mountain
+Umbris, Fear Manifest

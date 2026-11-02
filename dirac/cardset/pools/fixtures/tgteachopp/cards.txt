@@ -1,0 +1,16 @@
+# TargetsForEachPlayer$ True over an opponents-only
+# filter (Celebrate the Mountain-king, Lich's Relic, Omega, Heartless
+# Evolution, The Theorist, Jace Beleren) for the oracle's constructed
+# lockstep (dirac/oracle/tgteachopp_test.go)
+Celebrate the Mountain-king
+Lich's Relic
+Omega, Heartless Evolution
+The Theorist, Jace Beleren
+Grizzly Bears
+Ornithopter
+Memnite
+Plains
+Island
+Swamp
+Mountain
+Forest

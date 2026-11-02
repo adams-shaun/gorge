@@ -115,7 +115,7 @@ func TestReplacementPresentZoneExile(t *testing.T) {
 	e := layerEngine(t)
 	host := onBoard(t, e, 0, "Name:Host\nTypes:Enchantment\n"+
 		"R:Event$ GainLife | ActiveZones$ Battlefield | ValidPlayer$ You | ReplaceWith$ X | IsPresent$ Artifact.YouCtrl | PresentZone$ Exile | Description$ x\n"+
-		"SVar:X:DB$ ReplaceEffect | VarName$ LifeGained | VarValue$ Y\nSVar:Y:ReplaceCount$LifeGained/Twice\nOracle:x\n")
+		"SVar:X:DB$ ReplaceEffect | VarName$ LifeGained | VarValue$ Scaled\nSVar:Scaled:ReplaceCount$LifeGained/Twice\nOracle:x\n")
 	r := &e.G.Obj(host).Face().Repls[0]
 	if r.ParamStr(cards.PKPresentZone) != "Exile" {
 		t.Fatalf("precondition: replacement zone %q, want Exile", r.ParamStr(cards.PKPresentZone))

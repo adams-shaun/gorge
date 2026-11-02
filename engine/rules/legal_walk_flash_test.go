@@ -26,7 +26,7 @@ const s2SelfFlashSpell = "Name:Snap Sorcery\nManaCost:0\nTypes:Sorcery\n" +
 	"A:SP$ Draw | Defined$ You\nOracle:x\n"
 
 const s2BoardFlashSource = "Name:Orrery Stand-In\nTypes:Artifact\n" +
-	"S:Mode$ CastWithFlash | ValidCard$ Card | ValidSA$ Spell | Caster$ You | Description$ You may cast spells as though they had flash.\n" +
+	"S:Mode$ CastWithFlash | ValidCard$ Card | ValidSA$ Spell | Caster$ You\n" +
 	"Oracle:x\n"
 
 const s2PlainSorcery = "Name:Slow Spell\nManaCost:0\nTypes:Sorcery\nA:SP$ Draw | Defined$ You\nOracle:x\n"

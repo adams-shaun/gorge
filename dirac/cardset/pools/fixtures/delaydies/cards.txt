@@ -1,0 +1,24 @@
+# the delayed dies-body pool: the five "when that
+# creature dies this turn, <effect>" carriers beside burn, removal, a
+# sacrifice outlet, vanilla creatures and basics, for the oracle's
+# constructed lockstep (dirac/oracle/delaydies_test.go)
+Bake into a Pie
+Burst Lightning
+Eaten Alive
+Fatal Fissure
+Felonious Rage
+Forest
+Giant Spider
+Goblin Boarders
+Gray Ogre
+Grim Javelineer
+Grizzly Bears
+Hill Giant
+Mountain
+Scarblade's Malice
+Searing Blood
+Stab
+Swamp
+Turn Inside Out
+Virulent Wound
+Walking Corpse

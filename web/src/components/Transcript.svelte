@@ -288,7 +288,7 @@
   {#if notes.length > 0}
     {#each notes as n (n.id)}
       <div class="line local" data-auto-log>
-        <span class="seq">auto</span>
+        <span class="seq">{n.tag ?? 'auto'}</span>
         <span class="text">{n.text}</span>
         {#if n.diagnostics}
           {@const diagnostic = n.diagnostics}

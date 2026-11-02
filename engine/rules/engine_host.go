@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -101,27 +100,10 @@ func (e *Engine) EnsurePaymentActions() []decision.PaymentAction {
 	return d.PaymentActions
 }
 
-// seatFacingName is the seat-facing identity for client-facing prompt and
-// option-label text (the priority prompt, the keep/mulligan prompt, the
-// attacker, cumulative-upkeep and target option labels). PlayerName is
-// supplied by the table and identifies a human even when two players chose
-// the same deck; Name is the deterministic fallback for bots or callers
-// without display names. Decision prompts and option labels are NOT chain
-// content (engine/rules/engine.go's ask emits only DecisionAsk{Kind}), so
-// composing them from PlayerName moves no chain head — but event text must
-// stay on Name (the seat-name invariant, engine/rules/playername_test.go). The final
-// fallback is defensive: decision seats originate from AliveFrom, but
-// malformed state must not panic while constructing a client decision.
+// seatFacingName is state.Game.SeatFacingName, which names the seat in
+// client-facing prompt and option-label text.
 func seatFacingName(g *state.Game, p state.PlayerID) string {
-	if g != nil && int(p) < len(g.Players) {
-		if name := g.Players[p].PlayerName; name != "" {
-			return name
-		}
-		if name := g.Players[p].Name; name != "" {
-			return name
-		}
-	}
-	return fmt.Sprintf("seat %d", p)
+	return g.SeatFacingName(p)
 }
 
 // BeginLibrarySearch marks the start of one library search's execution: the

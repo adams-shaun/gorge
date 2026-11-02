@@ -1,0 +1,25 @@
+# the Restless creature-land pool: Animate Colors$ with
+# OverwriteColors$ True beside colour-sensitive removal, burn and
+# vanilla creatures (dirac/oracle/restless_test.go)
+Restless Bivouac
+Restless Cottage
+Restless Fortress
+Restless Prairie
+Restless Reef
+Restless Ridgeline
+Restless Vinestalk
+Plains
+Island
+Swamp
+Mountain
+Forest
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Wind Drake
+Walking Corpse
+Shock
+Lightning Bolt
+Doom Blade
+Swords to Plowshares
+Ultimate Price

@@ -1,0 +1,8 @@
+# the Adversaries' pay-N-times bodies (dirac/oracle/adversary_test.go)
+Intrepid Adversary
+Primal Adversary
+Grizzly Bears
+Shock
+Plains
+Forest
+Mountain

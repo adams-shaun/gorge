@@ -10,9 +10,7 @@ package rules
 // was announced (an X announced as 0 still "contains {X}").
 //
 // Fixtures are inline per the licensing rule (never a .cards/ .txt); the real
-// corpus carriers' T:/SVar: lines are copied verbatim off .cards/cardsfolder
-// (script text lives only in this gitignored corpus; a fixture copies it into
-// a test, never into a tracked .txt).
+// corpus carriers give the shape.
 //
 // Measured: Unbound Flourishing's SpellCast trigger did not fire at all in
 // this build: trigmatch.spellCastMatches read
@@ -37,14 +35,14 @@ import (
 )
 
 const unboundFlourishingSrc = "Name:Unbound Flourishing\nManaCost:2 G\nTypes:Enchantment\n" +
-	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidActivatingPlayer$ You | Execute$ TrigDouble | TriggerZones$ Battlefield | HasXManaCost$ True | TriggerDescription$ Whenever you cast a permanent spell with a mana cost that contains {X}, double the value of X.\n" +
-	"SVar:TrigDouble:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ TriggeredSpellAbility>Count$xPaid/Twice\n" +
-	"T:Mode$ SpellAbilityCast | ValidSA$ Instant,Sorcery,Activated | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | HasXManaCost$ True | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an instant or sorcery spell or activate an ability, if that spell's mana cost or that ability's activation cost contains {X}, copy that spell or ability. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopySpell:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True | AILogic$ Always\n" +
+	"T:Mode$ SpellCast | ValidCard$ Permanent | ValidActivatingPlayer$ You | Execute$ OnDouble | TriggerZones$ Battlefield | HasXManaCost$ True\n" +
+	"SVar:OnDouble:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ TriggeredSpellAbility>Count$xPaid/Twice\n" +
+	"T:Mode$ SpellAbilityCast | ValidSA$ Instant,Sorcery,Activated | ValidActivatingPlayer$ You | Execute$ OnCopySpell | HasXManaCost$ True | TriggerZones$ Battlefield\n" +
+	"SVar:OnCopySpell:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:Whenever you cast a permanent spell with a mana cost that contains {X}, double the value of X.\\nWhenever you cast an instant or sorcery spell or activate an ability, if that spell's mana cost or that ability's activation cost contains {X}, copy that spell or ability. You may choose new targets for the copy.\n"
 
-// brassInfiniscopeTrigger is the real corpus carrier .cards/cardsfolder/b/brass_infiniscope.txt's
-// Effect-granted CastTrigger line and its SVar chain, VERBATIM. In the corpus
+// brassInfiniscopeTrigger states Brass Infiniscope's Effect-granted
+// CastTrigger line and its SVar chain. In the corpus
 // the trigger rides a DB$ Effect's Triggers$ (which this build leaves a Note
 // -- the Effect registration covers only CantTarget/CantRegenerate), so the
 // fixture attaches the T: line directly to the artifact to isolate the gate
@@ -80,11 +78,11 @@ const xSifterSrc = "Name:X Sifter\nTypes:Artifact\n" +
 	"Oracle:Draw a card.\n"
 
 const plainSifterSrc = "Name:Plain Sifter\nTypes:Artifact\n" +
-	"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+	"A:AB$ Draw | Cost$ T | NumCards$ 1\n" +
 	"Oracle:Draw a card.\n"
 
-// glavaSrc is the real corpus carrier .cards/cardsfolder/g/glava_five_advents_mage.txt
-// (T:/SVar: lines copied verbatim). Its ValidSA$ names both spell kinds
+// glavaSrc states Glava, Five Advents Mage's trigger.
+// Its ValidSA$ names both spell kinds
 // (Spell.Permanent) and the activated kind (Activated.!ManaAbility); the
 // spell half is DEAD in this build (Mode$ SpellAbilityCast only observes
 // AbilityPush -- see the report's Issues), so the carrier is exercised on its
@@ -94,8 +92,8 @@ const plainSifterSrc = "Name:Plain Sifter\nTypes:Artifact\n" +
 // answers that ask; OptionalDecider$ and ResolvedLimit$ reads beyond that are
 // not in scope here.
 const glavaSrc = "Name:Glava, Five-Advents Mage\nManaCost:5 G G\nTypes:Legendary Creature Human Wizard\nPT:5/5\n" +
-	"T:Mode$ SpellAbilityCast | ValidSA$ Spell.Permanent,Activated.!ManaAbility | ValidActivatingPlayer$ You | HasXManaCost$ True | TriggerZones$ Battlefield | Execute$ TrigSetX | OptionalDecider$ You | ResolvedLimit$ 1 | TriggerDescription$ Whenever you cast a permanent spell with {X} in its mana cost or activate an ability with {X} in its activation cost that isn't a mana ability, you may have the value of X become 5. Do this only once each turn.\n" +
-	"SVar:TrigSetX:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ 5\n" +
+	"T:Mode$ SpellAbilityCast | ValidSA$ Spell.Permanent,Activated.!ManaAbility | ValidActivatingPlayer$ You | HasXManaCost$ True | TriggerZones$ Battlefield | Execute$ OnSetX | OptionalDecider$ You | ResolvedLimit$ 1\n" +
+	"SVar:OnSetX:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ 5\n" +
 	"DeckHas:Ability$Counters\n" +
 	"Oracle:Whenever you cast a permanent spell with {X} in its mana cost or activate an ability with {X} in its activation cost that isn't a mana ability, you may have the value of X become 5. Do this only once each turn.\n"
 
@@ -277,7 +275,7 @@ func TestUnboundFlourishingSpellAbilityCastGateFiresOnlyOnXAbilities(t *testing.
 }
 
 // TestGlavaFiveAdventsSpellAbilityCastGateOnRealCorpusCarrier is the second
-// real corpus carrier, its T:/SVar: lines copied verbatim, exercised on the
+// real corpus carrier's shape, exercised on the
 // activation half of its Mode$ SpellAbilityCast trigger.
 func TestGlavaFiveAdventsSpellAbilityCastGateOnRealCorpusCarrier(t *testing.T) {
 	t.Parallel()

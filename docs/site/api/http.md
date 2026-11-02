@@ -62,7 +62,7 @@ The first command prints:
             "Player 1",
             "Player 2"
         ],
-        "mulligans": 1,
+        "mulligans": 7,
         "auto_mana": true
     },
 ```
@@ -139,7 +139,7 @@ each, are in [`openapi.json`](openapi.json) and the [interactive reference](redo
 | `GET` | `/api/tables` | The lobby's tables (`TableInfo[]`). Play-vs-bot tables are not listed. | none | 200 |
 | `GET` | `/api/decks` | The deck catalogue (`DeckInfo[]`). With `?policy=NAME`, only the decks a game against that policy may use. | none | 200 |
 | `GET` | `/api/bot-policies` | The offered bot policies and the default (`BotPolicyList`) | none | 200 |
-| `GET` | `/api/capabilities` | Which optional surfaces this server serves (`Capabilities`): `events` is true when `/api/events` is mounted; `engine` names the engine this server creates tables on, absent for gorge | none | 200 |
+| `GET` | `/api/capabilities` | Which optional surfaces this server serves (`Capabilities`): `events` is true when `/api/events` is mounted; `engine` names the engine this server creates tables on, absent for gorge; `paired_bots` lists the paired bots a new game may choose, the default first, absent when it offers none | none | 200 |
 | `GET` | `/api/stats/decks` | Deck leaderboard over finished bot-vs-bot games (`DeckTally`). `?min_games=N`, default 10. | none | 200, 400 |
 
 ### Matches
@@ -182,13 +182,17 @@ The seat comes from the token alone, so spectators and other seats get nothing.
 
 `advice` blocks until the search ends, and hanging up cancels it. `state` is `ready` with a note in
 `explain`, the same shape as a review decision's; `none` when the bot doesn't evaluate that kind of
-decision; or `refused` with a plain `reason`. A decision that has moved on is a 409. Row `choices`
-index the decision's `options`; a row with `payment` names one of its `payment_actions` instead.
+decision; or `refused`. `reason` is always plain words: why a `none` or `refused` has no evaluation,
+or what to know about a `ready` one, such as a search that ran out of time. A decision that has moved
+on, or a seat with nothing pending, is a 409 with code `advice_stale`, which is no failure: the game went
+ahead of the request, so ask about the decision you hold now. Row `choices` index the decision's `options`; a row with `payment` names one of its
+`payment_actions` instead. Row `q` and `root_value` run from -1 to +1 for the seat; the client shows
+them as `(q + 1) * 50` percent. A row with no `visits` has no estimate.
 
 A table with more than one human doesn't offer it unless the table allows it
 (`-paired-bot-shared`), and then `paired-bot` tells every seat it is on (`shared`). At most one
 search runs per table and `-paired-bot-searches` across the server, at a fixed
-`-paired-bot-sims`.
+`-paired-bot-sims`. A server run without `-paired-bot` lets no game choose one.
 
 ### The stream
 
@@ -204,7 +208,7 @@ The stream has its own page: [The event stream](sse.md).
 
 | Method | Path | What | Auth | Statuses |
 |---|---|---|---|---|
-| `POST` | `/api/games` | Start a play-vs-bot game (`CreateGameRequest` in, `CreateGameResponse` out, including the seat token and join path) | none | 200, 400, 404 |
+| `POST` | `/api/games` | Start a play-vs-bot game (`CreateGameRequest` in, `CreateGameResponse` out, including the seat token and join path). `paired_bot` chooses its paired bot: a name from `paired_bots`, or `off` for none; omitted, the server's default. Any other name is a 400. | none | 200, 400, 404 |
 | `POST` | `/api/feedback` | A bug report, as `multipart/form-data` with fields `text` (required), `url`, `table`, `seat`, `screenshot` (PNG) and `client.json`. Answers `201 {"id": …}`. | none | 201, 400, 500 |
 | `GET` | `/art/named?exact=NAME` | Card art reference, Scryfall-shaped: `{name, image_uris: {normal}}` | none | 200, 400, 404, 502, 503 |
 | `GET` | `/art/token?exact=NAME&types=…&ppt=P/T` | Token art reference, same shape | none | 200, 400, 404, 502, 503 |

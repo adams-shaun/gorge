@@ -1,0 +1,42 @@
+# the aggregate-tap test pool: Crew Vehicles, Saddle
+# Mounts, Exhaust abilities, basics and vanilla creatures, for the
+# oracle's constructed lockstep (dirac/oracle/crew_test.go)
+Sleek Schooner
+Mobile Garrison
+Renegade Freighter
+Untethered Express
+Fleetwheel Cruiser
+Thundering Chariot
+Sky Skiff
+Ovalchase Dragster
+Smuggler's Copter
+Rocketeer Boostbuggy
+Spire Mechcycle
+Bridled Bighorn
+Trained Arynx
+Gloryheath Lynx
+Caustic Bronco
+Venomsac Lagac
+Seraphic Steed
+Quilled Charger
+Brightfield Mustang
+Drover Grizzly
+Unswerving Sloth
+Skystreak Engineer
+Hazard of the Dunes
+Keen Buccaneer
+Stampeding Scurryfoot
+Prowcatcher Specialist
+Mountain
+Forest
+Plains
+Island
+Swamp
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Giant Spider
+Savannah Lions
+Coral Merfolk
+Wall of Wood

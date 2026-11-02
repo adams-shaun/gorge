@@ -1,0 +1,55 @@
+{
+"name": "BLB_top_11180_UB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f61019ceda9e4e5d8cd01925b06ddad4:3, player win-rate bucket 0.62 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Azure Beastbinder, 2 Dazzling Denial, 1 Maha, Its Feathers Night, 1 Thought Shucker -> 3 Island, 2 Swamp",
+"cards": [
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 2
+},
+{
+"name": "Hazel's Nocturne",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Mindwhisker",
+"count": 3
+},
+{
+"name": "Plumecreed Escort",
+"count": 3
+},
+{
+"name": "Shore Up",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 4
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Tidecaller Mentor",
+"count": 1
+}
+]
+}

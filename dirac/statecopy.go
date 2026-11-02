@@ -1,0 +1,203 @@
+package dirac
+
+import (
+	"slices"
+	"unsafe"
+)
+
+// noCopy makes go vet's copylocks check reject any assignment of a State.
+type noCopy struct{}
+
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+
+// CopyFrom makes dst a copy of src's game: every slot of perms ends up equal,
+// though only those below either State's permHi need touching. dst keeps its
+// own cold buffer and fork pool, and allocates only if its buffer is too small.
+func (dst *State) CopyFrom(src *State) {
+	stale := dst.permHi
+	dst.stateCore = src.stateCore
+	hi := src.permHi
+	copy(dst.perms[:hi], src.perms[:hi])
+	if stale > hi {
+		clear(dst.perms[hi:stale])
+	}
+	if dst.cold.layout != src.cold.layout {
+		dst.layOut(src.cold.layout)
+	}
+	copy(dst.cold.buf, src.cold.buf)
+}
+
+// SameGame reports whether s and t hold the same game.
+func (s *State) SameGame(t *State) bool {
+	return s.stateCore == t.stateCore && s.perms == t.perms && slices.Equal(s.cold.buf, t.cold.buf)
+}
+
+// coldArrays are the arrays only some tables' cards reach. Each is a view of
+// buf, one allocation per State, as long as the table's coldLayout says and
+// empty when no card reaches it. An element type must hold no pointers: buf is
+// a []uint64, which the garbage collector does not scan.
+type coldArrays struct {
+	layout   *coldLayout
+	buf      []uint64
+	ms       []slotMask   // slot-width mechanic masks (arenaAssign)
+	mo       []objBits    // object-width mechanic masks
+	exw      []exwRec     // exiled-with links
+	atkGrp   []objBits    // attacker groups; stackEntry.grp - 1 indexes it
+	exH      []exhRec     // until-end-of-turn can't-be-blocked-except records
+	entered  []zoneEntry  // this turn's zone entries, in add order
+	exMark   []exMarkRec  // this turn's exile-instead-of-dying effects
+	parked   []parkedMove // moves waiting on a replacement order ask
+	castRing []castPush   // this turn's spell pushes, castRingN per player
+	discHeld []uint8      // the first player's discard while the next chooses
+	copyHeld []copyHold   // the resolution waiting on its copy's election
+}
+
+// coldLayout is the lengths of a table's cold arrays.
+type coldLayout struct {
+	ms, mo, exw, atkGrp, exH, entered, exMark, parked, castRing, discHeld, copyHeld int
+	words                                                                           int
+}
+
+// prepCold sizes the arrays by the flags that cover their writers: exwPut's
+// callers, grpNew's caller, ExtExHaste, noteEnter, noteCast and OpDiscard. A full exw, exH,
+// atkGrp, entered or castRing stalls by name, and an empty exw or exH is simply full.
+func prepCold(g *genPrep, l *coldLayout) {
+	if g.anyExW || g.anyFaceExile {
+		l.exw = maxExw
+	}
+	if g.anyTriggerAttackers {
+		l.atkGrp = maxAtkGrp
+	}
+	if g.anyExHaste {
+		l.exH = maxExH
+	}
+	if g.enteredNeed {
+		l.entered = maxEntered
+	}
+	if g.ix[mechExileEx] != arenaNone {
+		l.exMark = maxExMarks
+	}
+	if g.ix[mechExileEx] != arenaNone || g.anyRepl&rbExileOnLeave != 0 {
+		l.parked = maxParked
+	}
+	if g.castRingOn || g.anyParadigm {
+		l.castRing = 2 * castRingN
+	}
+	if g.anyDiscard {
+		l.discHeld = 1 + maxDiscHeld
+	}
+	if g.anyCopyElect {
+		l.copyHeld = 1
+	}
+}
+
+// place points c's arrays into b, or just counts them if b is nil, and returns
+// the words they take.
+func (l *coldLayout) place(c *coldArrays, b []uint64) int {
+	at := 0
+	c.ms = coldView[slotMask](b, &at, l.ms)
+	c.mo = coldView[objBits](b, &at, l.mo)
+	c.exw = coldView[exwRec](b, &at, l.exw)
+	c.atkGrp = coldView[objBits](b, &at, l.atkGrp)
+	c.exH = coldView[exhRec](b, &at, l.exH)
+	c.entered = coldView[zoneEntry](b, &at, l.entered)
+	c.exMark = coldView[exMarkRec](b, &at, l.exMark)
+	c.parked = coldView[parkedMove](b, &at, l.parked)
+	c.castRing = coldView[castPush](b, &at, l.castRing)
+	c.discHeld = coldView[uint8](b, &at, l.discHeld)
+	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
+	return at
+}
+
+// size fills l.words from the lengths.
+func (l *coldLayout) size() { l.words = l.place(new(coldArrays), nil) }
+
+func coldView[T any](b []uint64, at *int, n int) []T {
+	var v T
+	p := *at
+	*at += (n*int(unsafe.Sizeof(v)) + 7) / 8
+	if b == nil || n == 0 {
+		return nil
+	}
+	return unsafe.Slice((*T)(unsafe.Pointer(&b[p])), n)
+}
+
+var noCold coldLayout
+
+// layOut gives s the arrays of layout l, whose contents are then arbitrary.
+// A nil l is a State never Init'd, which has none.
+func (s *State) layOut(l *coldLayout) {
+	s.cold.layout = l
+	if l == nil {
+		l = &noCold
+	}
+	if cap(s.cold.buf) < l.words {
+		s.cold.buf = make([]uint64, l.words)
+	}
+	s.cold.buf = s.cold.buf[:l.words]
+	l.place(&s.cold, s.cold.buf)
+}
+
+// resetCold gives s zeroed arrays of layout l, and makes sure the forks it
+// will take need not allocate for them.
+func (s *State) resetCold(l *coldLayout) {
+	if s.cold.layout != l {
+		s.layOut(l)
+	}
+	clear(s.cold.buf)
+	if s.pool != nil {
+		for _, f := range s.pool.forks {
+			if cap(f.cold.buf) < l.words {
+				f.cold.buf = make([]uint64, l.words)
+			}
+		}
+	}
+}
+
+// ForkPool holds the States rules probes run on, one per nesting depth. A State
+// and its forks share one pool, so a probe on a fork, or on the State itself
+// while it holds a saved fork, takes the next depth down.
+type ForkPool struct {
+	forks []*State
+	depth int
+}
+
+// warmForkDepth is past the deepest nesting measured, 5 in random play.
+const warmForkDepth = 8
+
+// NewForkPool returns a pool that will not allocate for any measured nesting.
+func NewForkPool() *ForkPool {
+	p := &ForkPool{forks: make([]*State, warmForkDepth)}
+	for i := range p.forks {
+		p.forks[i] = &State{pool: p}
+	}
+	return p
+}
+
+// UseForkPool makes s fork on p instead of allocating a pool of its own on its
+// first fork. Every State on p must run on one goroutine: a fork is released in
+// the call that took it, so forks on one goroutine nest whichever State took them.
+func (s *State) UseForkPool(p *ForkPool) { s.pool = p }
+
+// fork returns a copy of s to probe on. The caller pairs it with unfork, and
+// the fork is not valid after that.
+func (s *State) fork() *State {
+	p := s.pool
+	if p == nil {
+		p = new(ForkPool)
+		s.pool = p
+	}
+	if p.depth == len(p.forks) {
+		f := new(State)
+		f.pool = p
+		p.forks = append(p.forks, f)
+	}
+	f := p.forks[p.depth]
+	p.depth++
+	f.CopyFrom(s)
+	return f
+}
+
+// unfork releases the most recent fork of s or of a State sharing its pool.
+func (s *State) unfork() { s.pool.depth-- }

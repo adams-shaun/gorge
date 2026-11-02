@@ -1,0 +1,53 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Coral Merfolk
+1	card	Feldon's Cane
+2	card	Hall of Triumph
+3	card	Hellish Sideswipe
+4	card	Horn of Gondor
+5	card	Island
+6	card	Mirari
+7	card	Renegade Freighter
+8	card	Ring of the Lucii
+9	card	Sky Skiff
+10	card	Smuggler's Copter
+11	card	Splitting the Powerstone
+12	card	Stone of Erech
+13	card	Swamp
+14	card	Sword of the Chosen
+15	card	Walking Corpse
+16	token	c_a_powerstone
+17	token	w_1_1_human_soldier
+18	card	Bilious Skulldweller
+19	card	Boros Swiftblade
+20	card	Depopulate
+21	card	Fade from History
+22	card	Feed the Infection
+23	card	Forest
+24	card	Giant Spider
+25	card	Glistener Elf
+26	card	Gray Ogre
+27	card	Grizzly Bears
+28	card	Hill Giant
+29	card	Mountain
+30	card	Outpace Oblivion
+31	card	Plains
+32	card	Shock
+33	card	Skyknight Legionnaire
+34	card	Starting Column
+35	token	g_2_2_bear
+36	card	Bristly Bill, Spine Sower
+37	card	Double Trouble
+38	card	Kalonian Hydra
+39	card	Roar of Endless Song
+40	card	Savannah Lions
+41	card	Summon: Knights of Round
+42	card	Unnatural Growth
+43	card	Voltstorm Angel
+44	token	g_5_5_elephant
+45	token	w_2_2_knight
+46	card	Falkenrath Torturer
+47	card	Jade Mage
+48	card	Mabel, Heir to Cragflame
+49	card	Thallid Omnivore
+50	token	cragflame
+51	token	g_1_1_saproling

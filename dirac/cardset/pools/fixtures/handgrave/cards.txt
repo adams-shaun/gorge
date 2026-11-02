@@ -1,0 +1,19 @@
+# the Origin$ Hand,Graveyard pick pool: Kastral,
+# the Windcrested, Worldsoul's Rage, Bonny Pall, Clearcutter, plus Birds,
+# lands, burn, mill and discard (dirac/oracle/handgrave_test.go)
+Kastral, the Windcrested
+Worldsoul's Rage
+Bonny Pall, Clearcutter
+Bird Maiden
+Keeneye Aven
+Windcaller Aven
+Grizzly Bears
+Lightning Bolt
+Shock
+Mind Sculpt
+Mind Rot
+Plains
+Island
+Mountain
+Forest
+Swamp

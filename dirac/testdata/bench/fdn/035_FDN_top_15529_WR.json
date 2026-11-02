@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_15529_WR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck f32f1899f1a9482fb3b37679ab8bde75:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 2
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Goblin Surprise",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Guarded Heir",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 4
+},
+{
+"name": "Heroic Reinforcements",
+"count": 1
+},
+{
+"name": "Make Your Move",
+"count": 2
+},
+{
+"name": "Mountain",
+"count": 7
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Searslicer Goblin",
+"count": 1
+},
+{
+"name": "Squad Rallier",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 2
+},
+{
+"name": "Wind-Scarred Crag",
+"count": 1
+}
+]
+}

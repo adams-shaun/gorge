@@ -1,0 +1,18 @@
+# the ThisTurnEntered exact-count pool: the
+# cards whose Count$ThisTurnEntered_Graveyard_from_Battlefield_Creature
+# lowers to the per-add creatures-died tally (Bloodcrazed Paladin,
+# Khabál Ghoul) beside burn, destroy, vanilla creatures and basics, for
+# the oracle's constructed lockstep (dirac/oracle/watchent_test.go)
+Bloodcrazed Paladin
+Khabál Ghoul
+Grizzly Bears
+Gray Ogre
+Hill Giant
+Walking Corpse
+Ornithopter
+Lightning Bolt
+Shock
+Doom Blade
+Swamp
+Mountain
+Forest

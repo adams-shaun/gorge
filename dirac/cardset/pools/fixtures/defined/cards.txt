@@ -1,0 +1,47 @@
+# the other:Defined$ grammar sweep (ConditionDefined$
+# Sacrificed, Player.<q> sets, Defined$ Valid mass subjects) with
+# artifacts, Vehicles, multicoloured creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/defined_test.go)
+Hellish Sideswipe
+Splitting the Powerstone
+Smuggler's Copter
+Renegade Freighter
+Sky Skiff
+Stone of Erech
+Horn of Gondor
+Feldon's Cane
+Hall of Triumph
+Sword of the Chosen
+Walking Corpse
+Coral Merfolk
+Island
+Swamp
+Depopulate
+Fade from History
+Outpace Oblivion
+Feed the Infection
+Boros Swiftblade
+Skyknight Legionnaire
+Glistener Elf
+Bilious Skulldweller
+Shock
+Starting Column
+Giant Spider
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Forest
+Plains
+Mountain
+Bristly Bill, Spine Sower
+Roar of Endless Song
+Summon: Knights of Round
+Kalonian Hydra
+Double Trouble
+Unnatural Growth
+Voltstorm Angel
+Savannah Lions
+Thallid Omnivore
+Jade Mage
+Falkenrath Torturer
+Mabel, Heir to Cragflame

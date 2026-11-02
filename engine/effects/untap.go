@@ -27,15 +27,22 @@ func init() {
 // permanent that "doesn't untap" would not become untapped, so its stun counter
 // stays.
 func TryUntap(h Host, id state.ObjID) {
+	tryUntapBy(h, id, 0)
+}
+
+// tryUntapBy is TryUntap with the player the Untap event names. It reports
+// whether an Untap event was proposed, as opposed to a stun counter coming off.
+func tryUntapBy(h Host, id state.ObjID, by state.PlayerID) bool {
 	o := h.Game().Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
-		return
+		return false
 	}
 	if o.Counter("STUN") > 0 && !h.UntapBlocked(id) {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "STUN", Amount: -1, Text: events.UntapReplacedByStunNotice})
-		return
+		return false
 	}
-	h.Emit(events.Event{Kind: events.Untap, Obj: id})
+	h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: by})
+	return true
 }
 
 func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {

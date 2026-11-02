@@ -29,7 +29,7 @@ import (
 //   - 12603 seq 2409 (Mana Vault), commander4: Treasonous Ogre's "Pay 3 life: Add
 //     {R}" cast plan is equivalent, with its speed gain at its triggered-ability
 //     timing (CR 702.179d, paymirror.go lifePaymentConsequences).
-//   - 10877 seq 2879 (Infernal Plunge), commander4: the plan's Ogre paid life for R
+//   - 10877 seq 2870 (Infernal Plunge), commander4: the plan's Ogre paid life for R
 //     and was then the creature sacrificed for the spell's additional cost
 //     (CR 601.2h), which the witness must not read as its activation
 //     (activationProduction). Equivalent.
@@ -39,7 +39,7 @@ var recordedWant = map[uint64]map[uint64]string{ // seed -> seq -> verdict key (
 	12468: {},
 	11828: {},
 	12603: {2409: ""},
-	10877: {2879: ""},
+	10877: {2870: ""},
 }
 
 const (

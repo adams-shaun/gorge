@@ -1,0 +1,11 @@
+# CR 111.8: a token exiled by a one-resolution flicker stays exiled
+# (dirac/oracle/tokenmove_test.go)
+Lilysplash Mentor
+Splash Portal
+Dragon Fodder
+Raise the Alarm
+Grizzly Bears
+Forest
+Island
+Mountain
+Plains

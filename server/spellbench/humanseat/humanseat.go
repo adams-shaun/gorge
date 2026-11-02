@@ -92,8 +92,11 @@ type Answerer interface {
 	// undone, or the table closed). An index outside the candidates, or an
 	// error, gives up v2 for this decision, which stays pending natively.
 	Choose(ctx context.Context, ask Ask) (int, error)
-	// NativeOnly reports a decision v2 cannot pose. It must not block.
-	NativeOnly(NativeOnly)
+	// NativeOnly reports a decision v2 cannot pose. It must not block. Like Choose,
+	// it is called from a driver a newer one may already have replaced: a transport
+	// that keeps one open question must ignore a call whose ctx is done, or it closes
+	// the live driver's question.
+	NativeOnly(ctx context.Context, n NativeOnly)
 }
 
 // Extension is the server-internal state an opt-in extension builder needs
@@ -437,7 +440,7 @@ func (s *Seat) drop(gen uint64) {
 	s.env.CloseLooks()
 }
 
-func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, err error) {
+func (s *Seat) signalNativeOnly(ctx context.Context, gen uint64, v view.View, d *decision.Decision, err error) {
 	s.mu.Lock()
 	if s.gen != gen {
 		s.mu.Unlock()
@@ -453,7 +456,7 @@ func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, e
 	if !errors.Is(err, errLeftToClient) {
 		s.logf("v2 human seat %d: native only (%s): %v", d.Player, mapping.Route(d), err)
 	}
-	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: board, Events: evs, CanUndo: canUndo})
+	s.answerer.NativeOnly(ctx, NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: board, Events: evs, CanUndo: canUndo})
 }
 
 // drive answers one parked native decision: queued folded follow-ups first,
@@ -466,7 +469,7 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 		return
 	}
 	if syncErr != nil {
-		s.signalNativeOnly(gen, v, &d, syncErr)
+		s.signalNativeOnly(ctx, gen, v, &d, syncErr)
 		return
 	}
 	if in, ok := s.queued(gen, &d); ok {
@@ -488,7 +491,7 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 	s.mu.Unlock()
 	if !resume {
 		if in, ok := autoPayment(&d); ok {
-			s.answerOwn(gen, v, &d, in, answer)
+			s.answerOwn(ctx, gen, v, &d, in, answer)
 			return
 		}
 		var (
@@ -502,17 +505,17 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 		}
 		if ok || err != nil {
 			if err != nil {
-				s.signalNativeOnly(gen, v, &d, err)
+				s.signalNativeOnly(ctx, gen, v, &d, err)
 				return
 			}
-			s.answerOwn(gen, v, &d, in, answer)
+			s.answerOwn(ctx, gen, v, &d, in, answer)
 			return
 		}
 		if !s.section(gen, gone, &d, func() { tx, err = mapping.Begin(s.env, &d) }) {
 			return
 		}
 		if err != nil {
-			s.signalNativeOnly(gen, v, &d, err)
+			s.signalNativeOnly(ctx, gen, v, &d, err)
 			return
 		}
 		s.mu.Lock()
@@ -529,7 +532,7 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 			return
 		}
 		if err != nil {
-			s.signalNativeOnly(gen, v, &d, err)
+			s.signalNativeOnly(ctx, gen, v, &d, err)
 			return
 		}
 		i, err := s.answerer.Choose(ctx, ask)
@@ -570,9 +573,9 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 
 // answerOwn gives the codec's own answer to an ask v2 has no candidate for, or
 // leaves the ask to a client that takes those on the native routes.
-func (s *Seat) answerOwn(gen uint64, v view.View, d *decision.Decision, in decision.Intent, answer func(decision.Intent) error) {
+func (s *Seat) answerOwn(ctx context.Context, gen uint64, v view.View, d *decision.Decision, in decision.Intent, answer func(decision.Intent) error) {
 	if s.leaveAsks != nil && s.leaveAsks() {
-		s.signalNativeOnly(gen, v, d, errLeftToClient)
+		s.signalNativeOnly(ctx, gen, v, d, errLeftToClient)
 		return
 	}
 	_ = answer(in)

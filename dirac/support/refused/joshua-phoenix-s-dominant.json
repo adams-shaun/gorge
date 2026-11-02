@@ -1,0 +1,13 @@
+{
+  "card": "Joshua, Phoenix's Dominant",
+  "class": "projection-Cards.Chars.Keywords",
+  "why": "the engines' state differs at projection Cards[].Chars.Keywords; 2 games in the corpus",
+  "repro": {
+    "pool": "std-fin",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1269,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

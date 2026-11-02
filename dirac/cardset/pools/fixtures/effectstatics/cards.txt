@@ -1,0 +1,23 @@
+# the constructed lockstep pool: the until-end-of-turn
+# Effect statics and the later carriers, basics and vanilla
+# creatures (dirac/oracle/effectstatics_test.go)
+Goblin Diplomats
+Bident of Thassa
+Dread Charge
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Vampire Cutthroat
+Giant Spider
+Mountain
+Island
+Swamp
+Forest
+Reminisce
+Feldon's Cane
+Expedition Raptor
+Shoulder to Shoulder
+Plains
+Irreverent Gremlin
+Nykthos Paragon

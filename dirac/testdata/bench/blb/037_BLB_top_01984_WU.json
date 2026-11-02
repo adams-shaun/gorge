@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_01984_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 40994dcaa6e74c09bb0f0fa12468459f:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dazzling Denial, 1 Dewdrop Cure, 1 Intrepid Rabbit, 1 Mockingbird, 1 Repel Calamity -> 2 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Bellowing Crier",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Feather of Flight",
+"count": 1
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Seedpod Squire",
+"count": 2
+},
+{
+"name": "Shoreline Looter",
+"count": 2
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Sugar Coat",
+"count": 1
+}
+]
+}

@@ -132,11 +132,11 @@ func runChooseCaseWith(t *testing.T, seed uint64, tc tapeChooseCase, extra ...st
 
 func TestKernelAskChooseValues(t *testing.T) {
 	cases := []tapeChooseCase{
-		{name: "Tape Even Odd", kind: "chooseevenodd", src: "A:SP$ ChooseEvenOdd | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
-		{name: "Tape Number", kind: "choosenumber", src: "A:SP$ ChooseNumber | Max$ 5 | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
-		{name: "Tape Type", kind: "choosetype", src: "A:SP$ ChooseType | Type$ Creature | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
-		{name: "Tape Card Type", kind: "choosetype", src: "A:SP$ ChooseType | Type$ Card | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
-		{name: "Tape Direction", kind: "choosedirection", src: "A:SP$ ChooseDirection | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+		{name: "Tape Even Odd", kind: "chooseevenodd", src: "A:SP$ ChooseEvenOdd | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
+		{name: "Tape Number", kind: "choosenumber", src: "A:SP$ ChooseNumber | Max$ 5 | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
+		{name: "Tape Type", kind: "choosetype", src: "A:SP$ ChooseType | Type$ Creature | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
+		{name: "Tape Card Type", kind: "choosetype", src: "A:SP$ ChooseType | Type$ Card | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
+		{name: "Tape Direction", kind: "choosedirection", src: "A:SP$ ChooseDirection | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Safe", kind: "choosenumbermulti", seats: 3,
 			src: "A:SP$ ChooseNumber | ValidTgts$ Opponent | Defined$ TargetedAndYou | Min$ 1 | Max$ 3 | Secretly$ True | MatchedAbility$ DBGainA | UnmatchedAbility$ DBGainB\n" +
 				"SVar:DBGainA:DB$ GainLife | LifeAmount$ 1\nSVar:DBGainB:DB$ GainLife | LifeAmount$ 3", served: 2},
@@ -152,16 +152,16 @@ func TestKernelAskChoice(t *testing.T) {
 			src: "A:SP$ ChooseCard | Choices$ Creature | Mandatory$ True | SubAbility$ DBPump\n" +
 				"SVar:DBPump:DB$ Pump | Defined$ ChosenCard | NumAtt$ 2", served: 1},
 		{name: "Tape Each Chooses Card", kind: "choice", seats: 3, board: bothCreatures,
-			src: "A:SP$ ChooseCard | Defined$ Player | Choices$ Creature | AllCards$ True | Amount$ 1 | RememberChosen$ True | SubAbility$ DBGain\n" + tapeGainSVar, served: 3},
+			src: "A:SP$ ChooseCard | Defined$ Player | Choices$ Creature | AllCards$ True | Amount$ 1 | RememberChosen$ True | SubAbility$ Gain\n" + tapeGainSVar, served: 3},
 		{name: "Tape Choose Player", kind: "choice", seats: 3,
-			src: "A:SP$ ChoosePlayer | Defined$ You | Choices$ Player | SubAbility$ DBGain\n" +
-				"SVar:DBGain:DB$ GainLife | LifeAmount$ 2 | Defined$ ChosenPlayer", served: 1},
+			src: "A:SP$ ChoosePlayer | Defined$ You | Choices$ Player | SubAbility$ Gain\n" +
+				"SVar:Gain:DB$ GainLife | LifeAmount$ 2 | Defined$ ChosenPlayer", served: 1},
 		{name: "Tape Each Chooses Player", kind: "choice", seats: 3,
-			src: "A:SP$ ChoosePlayer | Defined$ Player | Choices$ Player.Opponent | SubAbility$ DBGain\n" + tapeGainSVar, served: 3},
+			src: "A:SP$ ChoosePlayer | Defined$ Player | Choices$ Player.Opponent | SubAbility$ Gain\n" + tapeGainSVar, served: 3},
 		{name: "Tape Choose Source", kind: "choice", board: bothCreatures,
-			src: "A:SP$ ChooseSource | Choices$ Card | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+			src: "A:SP$ ChooseSource | Choices$ Card | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Gain Choice", kind: "choice", board: bothCreatures,
-			src: "A:SP$ GainControl | Choices$ Creature | NewController$ You | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+			src: "A:SP$ GainControl | Choices$ Creature | NewController$ You | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Redistribute", kind: "choice", seats: 3,
 			src: "A:SP$ SetLife | PlayerChoices$ Player | ChoiceAmount$ Any | ChoicePrompt$ Choose players | Redistribute$ True", served: 2},
 	}
@@ -189,11 +189,11 @@ func TestKernelAskAttach(t *testing.T) {
 		{name: "Tape Attach Player", kind: "attach_player_choice", seats: 3,
 			src: "A:SP$ Attach | Object$ Valid Equipment.YouCtrl | PlayerChoices$ Player", board: []string{"Tape Sword"}, served: 1},
 		{name: "Tape Attach Dest", kind: "attach_choice", board: append([]string{"Tape Sword"}, bothCreatures...),
-			src: "A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Choices$ Creature.YouCtrl | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+			src: "A:SP$ Attach | Object$ Valid Equipment.YouCtrl | Choices$ Creature.YouCtrl | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Attach Object", kind: "attach_choice", board: append([]string{"Tape Sword", "Tape Axe"}, bothCreatures...),
-			src: "A:SP$ Attach | Optional$ True | Choices$ Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl+namedParentLink Bear | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+			src: "A:SP$ Attach | Optional$ True | Choices$ Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl+namedParentLink Bear | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 		{name: "Tape Attach Maybe", kind: "attach_optional", board: append([]string{"Tape Sword"}, bothCreatures...),
-			src: "A:SP$ Attach | Optional$ True | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ DBGain\n" + tapeGainSVar, served: 1},
+			src: "A:SP$ Attach | Optional$ True | Object$ Valid Equipment.YouCtrl | Defined$ Valid Creature.YouCtrl | SubAbility$ Gain\n" + tapeGainSVar, served: 1},
 	}
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -212,7 +212,7 @@ func TestKernelAskCopyCipherVariant(t *testing.T) {
 		{name: "Tape Inniaz", kind: "choice", board: bothCreatures,
 			src: "A:SP$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseFromPlayerToTheirRight", served: 1},
 		{name: "Tape Succession", kind: "choice", seats: 3, board: bothCreatures,
-			src: "A:SP$ ChooseDirection | SubAbility$ DBGainControl\nSVar:DBGainControl:DB$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseNextPlayerInChosenDirection", served: 2},
+			src: "A:SP$ ChooseDirection | SubAbility$ GainControl\nSVar:GainControl:DB$ GainControlVariant | AllValid$ Creature | ChangeController$ ChooseNextPlayerInChosenDirection", served: 2},
 		{name: "Tape Clone Elect", kind: "clone", board: bothCreatures,
 			src: "A:SP$ Clone | Defined$ Valid Creature.namedParentLink Angel | CloneTarget$ Valid Creature.namedParentLink Bear | Optional$ True", served: 1},
 	}

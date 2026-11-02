@@ -1,0 +1,36 @@
+# the Earthbend pool (CR 701.66): the lowered TLA
+# earthbenders beside creature removal (destroy, exile, bounce), basics
+# and vanilla creatures (dirac/oracle/earthbend_lockstep_test.go)
+Badgermole
+Beifong's Bounty Hunters
+Bitter Work
+Dai Li Agents
+Dai Li Indoctrination
+Earth Kingdom General
+Earth Rumble
+Earth Village Ruffians
+Earthbending Lesson
+Earthen Ally
+Haru, Hidden Talent
+Rebellious Captives
+Rockalanche
+Sandbenders' Storm
+The Boulder, Ready to Rumble
+Toph, Hardheaded Teacher
+Toph, the First Metalbender
+Lightning Bolt
+Murder
+Doom Blade
+Swords to Plowshares
+Path to Exile
+Unsummon
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Savannah Lions
+Serra Angel
+Mountain
+Forest
+Plains
+Island
+Swamp

@@ -1,0 +1,14 @@
+# the EffectSource pool: Giant Koi's and Verdant
+# Outrider's activated `Card.EffectSource` CantBlockBy Effects (a
+# host-bound emblem with no Duration$), a bounce that removes and
+# replays the source, basics and vanilla creatures
+# (dirac/oracle/effectsource_test.go)
+Giant Koi
+Verdant Outrider
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Unsummon
+Island
+Forest
+Mountain

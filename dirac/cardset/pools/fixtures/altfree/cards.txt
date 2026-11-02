@@ -1,0 +1,12 @@
+# the free alternative cost pool: Land Grant's reveal-your-
+# hand cast in a land-light deck (dirac/oracle/altfree_test.go)
+Land Grant
+Grizzly Bears
+Giant Growth
+Llanowar Elves
+Forest
+Murder
+Shock
+Hill Giant
+Swamp
+Mountain

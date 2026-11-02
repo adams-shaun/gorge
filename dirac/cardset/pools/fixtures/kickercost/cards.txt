@@ -1,0 +1,21 @@
+# the non-mana kicker pool: Vayne's Treachery and
+# Stomped by the Foot (Kicker Sac<1/Creature;Artifact>) and Chocobo Kick
+# (Kicker Return<1/Land>) beside cheap creatures and an artifact to
+# sacrifice, a death trigger (Vengeful Bloodwitch), a landfall trigger
+# (Tatyova) and basics (dirac/oracle/kickercost_test.go)
+Vayne's Treachery
+Stomped by the Foot
+Chocobo Kick
+Vengeful Bloodwitch
+Tatyova, Benthic Druid
+Llanowar Elves
+Savannah Lions
+Grizzly Bears
+Elite Vanguard
+Ornithopter
+Shock
+Plains
+Island
+Swamp
+Forest
+Mountain

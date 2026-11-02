@@ -8,16 +8,15 @@ package rules
 // TriggeredSpellAbility consumer resolved a non-stack object and
 // effCopySpellAbility's stack zone guard no-oped silently: no copy, no Note.
 //
-// Carriers here, verbatim corpus lines (inline fixtures per the licensing
-// rule):
+// Carriers here, as inline fixtures:
 //
 //   - Unbound Flourishing's ability arm (engine/rules/hasxmanacost_test.go's
 //     unboundFlourishingSrc): DB$ CopySpellAbility, no cost -- the pin test.
-//   - The Enigma Jewel / Locus of Enlightenment's T: line + TrigCopy SVar
+//   - The Enigma Jewel / Locus of Enlightenment's T: line + OnCopy SVar
 //     (the_enigma_jewel_locus_of_enlightenment.txt): the second clean DB
 //     carrier (other candidates need an Exhaust/EquippedBy
 //     predicate that fights the fixture).
-//   - Rings of Brighthearth's T: line + TrigCopySpell SVar
+//   - Rings of Brighthearth's T: line + OnCopySpell SVar
 //     (rings_of_brighthearth.txt): the AB$ CopySpellAbility WITH Cost$ {2}
 //     free-copy hazard -- routed through the pay/decline window, never free.
 //   - A Verrak-shaped carrier whose Cost$ is the unpriceable PayLife<X>:
@@ -39,28 +38,28 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// enigmaJewelAbilityCopySrc carries the_enigma_jewel_locus_of_enlightenment's
-// T: line and TrigCopy SVar VERBATIM on a plain artifact (the fusion card's
+// enigmaJewelAbilityCopySrc follows the_enigma_jewel_locus_of_enlightenment's
+// T: line and OnCopy SVar on a plain artifact (the fusion card's
 // two faces are irrelevant to the ability arm).
 const enigmaJewelAbilityCopySrc = "Name:Test Enigma Jewel\nManaCost:2\nTypes:Artifact\n" +
-	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ TrigCopy | TriggerDescription$ Whenever you activate an ability that isn't a mana ability, copy it. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopy:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ OnCopy\n" +
+	"SVar:OnCopy:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:Whenever you activate an ability that isn't a mana ability, copy it. You may choose new targets for the copy.\n"
 
-// ringsAbilityCopySrc carries rings_of_brighthearth's T: line and
-// TrigCopySpell SVar VERBATIM -- the AB$ CopySpellAbility with Cost$ 2 free-
+// ringsAbilityCopySrc follows rings_of_brighthearth's T: line and
+// OnCopySpell SVar -- the AB$ CopySpellAbility with Cost$ 2 free-
 // copy hazard.
 const ringsAbilityCopySrc = "Name:Test Rings of Brighthearth\nManaCost:3\nTypes:Artifact\n" +
-	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ TrigCopySpell | OptionalDecider$ You | TriggerDescription$ Whenever you activate an ability, if it isn't a mana ability, you may pay {2}. If you do, copy that ability. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopySpell:AB$ CopySpellAbility | Cost$ 2 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ OnCopySpell | OptionalDecider$ You\n" +
+	"SVar:OnCopySpell:AB$ CopySpellAbility | Cost$ 2 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:Whenever you activate an ability, if it isn't a mana ability, you may pay {2}. If you do, copy that ability. You may choose new targets for the copy.\n"
 
-// verrakUnpriceableCopySrc carries verrak_warped_sengir's TrigCopySpell SVar
-// VERBATIM (Cost$ PayLife<X>) with the T: line minus its Condition$ LifePaid
+// verrakUnpriceableCopySrc follows verrak_warped_sengir's OnCopySpell SVar
+// (Cost$ PayLife<X>) with the T: line minus its Condition$ LifePaid
 // gate, so the leaf under test is the unpriceable cost alone.
 const verrakUnpriceableCopySrc = "Name:Test Verrak\nManaCost:2 B\nTypes:Creature Vampire\nPT:3/3\n" +
-	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ TrigCopySpell | TriggerDescription$ Whenever you activate an ability that isn't a mana ability, you may pay that much life again. If you do, copy that ability.\n" +
-	"SVar:TrigCopySpell:AB$ CopySpellAbility | Cost$ PayLife<X> | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"T:Mode$ AbilityCast | ValidActivatingPlayer$ You | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ OnCopySpell | TriggerDescription$ Whenever you activate an ability that isn't a mana ability, you may pay that much life again. If you do, copy that ability.\n" +
+	"SVar:OnCopySpell:AB$ CopySpellAbility | Cost$ PayLife<X> | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"DeckHas:Ability$Life\n" +
 	"Oracle:x\n"
 
@@ -70,25 +69,25 @@ const verrakUnpriceableCopySrc = "Name:Test Verrak\nManaCost:2 B\nTypes:Creature
 // arm the pay/decline window accept either role; the copy source resolves
 // through the TriggeredSpellAbility arm's remembered entry.
 
-// mirariSpellCopySrc carries mirari's T: line and TrigCopy SVar VERBATIM --
+// mirariSpellCopySrc follows mirari's T: line and OnCopy SVar --
 // the OPTIONAL spell-cast arm (OptionalDecider$ You) with Cost$ 3.
 const mirariSpellCopySrc = "Name:Test Mirari\nManaCost:5\nTypes:Legendary Artifact\n" +
-	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ TrigCopy | TriggerDescription$ Whenever you cast an instant or sorcery spell, you may pay {3}. If you do, copy that spell. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 3 | Defined$ TriggeredSpellAbility | AILogic$ Always | MayChooseTarget$ True\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ OnCopy\n" +
+	"SVar:OnCopy:AB$ CopySpellAbility | Cost$ 3 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:Whenever you cast an instant or sorcery spell, you may pay {3}. If you do, copy that spell. You may choose new targets for the copy.\n"
 
-// clovenCastingSpellCopySrc carries cloven_casting's T: line and TrigCopy
-// SVar VERBATIM -- the MANDATORY spell-cast arm (no OptionalDecider$, the ask
+// clovenCastingSpellCopySrc follows cloven_casting's T: line and OnCopy
+// SVar -- the MANDATORY spell-cast arm (no OptionalDecider$, the ask
 // poses straight from resolveTop) with Cost$ 1. The ValidCard$ names
 // MultiColor, so the spell under it is a two-colour instant.
 const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTypes:Enchantment\n" +
-	"T:Mode$ SpellCast | ValidCard$ Instant.MultiColor,Sorcery.MultiColor | ValidActivatingPlayer$ You | Execute$ TrigCopy | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast a multicolored instant or sorcery spell, you may pay {1}. If you do, copy that spell. You may choose new targets for the copy.\n" +
-	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ 1 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant.MultiColor,Sorcery.MultiColor | ValidActivatingPlayer$ You | Execute$ OnCopy | TriggerZones$ Battlefield\n" +
+	"SVar:OnCopy:AB$ CopySpellAbility | Cost$ 1 | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"AI:RemoveDeck:Random\n" +
 	"Oracle:Whenever you cast a multicolored instant or sorcery spell, you may pay {1}. If you do, copy that spell. You may choose new targets for the copy.\n"
 
-// ulalekSpellCopySrc carries ulalek_fused_atrocity's T: line and BOTH SVars
-// VERBATIM -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
+// ulalekSpellCopySrc follows ulalek_fused_atrocity's T: line and BOTH SVars
+// -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
 // commander. The main copy's Defined$ ValidStack Spell.YouCtrl resolves
 // through effCopySpellAbility's ValidStack arm; the SubAbility$'s
 // Ability.YouCtrl+otherAbility half parses too (the
@@ -97,17 +96,17 @@ const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTyp
 // sub-copy pin below. The arm stays SINGLE-TARGET: with several matches it
 // copies only the first (stack-arena order), the recorded plural stand-in.
 const ulalekSpellCopySrc = "Name:Test Ulalek\nManaCost:4\nTypes:Creature Eldrazi\nPT:4/4\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ TrigCopySpell | TriggerZones$ Battlefield | TriggerDescription$ Whenever you cast an Eldrazi spell, you may pay {C}{C}. If you do, copy all spells you control, then copy all other activated and triggered abilities you control. You may choose new targets for the copies. (Mana abilities can't be copied.)\n" +
-	"SVar:TrigCopySpell:AB$ CopySpellAbility | Cost$ C C | Defined$ ValidStack Spell.YouCtrl | MayChooseTarget$ True | IgnoreFreeze$ True | SubAbility$ TrigCopyAbilities\n" +
-	"SVar:TrigCopyAbilities:DB$ CopySpellAbility | Defined$ ValidStack Ability.YouCtrl+otherAbility | MayChooseTarget$ True | IgnoreFreeze$ True\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Eldrazi | ValidActivatingPlayer$ You | Execute$ OnCopySpell | TriggerZones$ Battlefield\n" +
+	"SVar:OnCopySpell:AB$ CopySpellAbility | Cost$ C C | Defined$ ValidStack Spell.YouCtrl | MayChooseTarget$ True | IgnoreFreeze$ True | SubAbility$ OnCopyAbilities\n" +
+	"SVar:OnCopyAbilities:DB$ CopySpellAbility | Defined$ ValidStack Ability.YouCtrl+otherAbility | MayChooseTarget$ True | IgnoreFreeze$ True\n" +
 	"Oracle:x\n"
 
-// micaSpellCopySrc carries mica_reader_of_ruins's T: line and TrigCopy SVar
-// VERBATIM -- the spell-cast arm whose Cost$ Sac<1/Artifact> is unpriceable
+// micaSpellCopySrc follows mica_reader_of_ruins's T: line and OnCopy SVar
+// -- the spell-cast arm whose Cost$ Sac<1/Artifact> is unpriceable
 // in the pay window: hard decline (the ask is posed, "pay" is not answerable).
 const micaSpellCopySrc = "Name:Test Mica\nManaCost:3 R\nTypes:Legendary Creature Human Artificer\nPT:4/4\n" +
-	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigCopy | TriggerDescription$ Whenever you cast an instant or sorcery spell, you may sacrifice an artifact. If you do, copy that spell and you may choose new targets for the copy.\n" +
-	"SVar:TrigCopy:AB$ CopySpellAbility | Cost$ Sac<1/Artifact> | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
+	"T:Mode$ SpellCast | ValidCard$ Instant,Sorcery | ValidActivatingPlayer$ You | TriggerZones$ Battlefield | Execute$ OnCopy\n" +
+	"SVar:OnCopy:AB$ CopySpellAbility | Cost$ Sac<1/Artifact> | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n" +
 	"Oracle:x\n"
 
 // spellInsightSrc is the plain one-draw instant the mirari/mica carriers
@@ -265,7 +264,7 @@ func TestUFActivationCopyResolvesTheAbility(t *testing.T) {
 }
 
 // TestEnigmaJewelActivationCopyResolves is the second clean DB carrier on its
-// verbatim corpus lines: same shape, different card.
+// own lines: same shape, different card.
 func TestEnigmaJewelActivationCopyResolves(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 141, enigmaJewelAbilityCopySrc, changeXSifterSrc, plainSifterSrc)
@@ -286,7 +285,7 @@ func TestEnigmaJewelActivationCopyResolves(t *testing.T) {
 }
 
 // TestRingsCopyDeclineNeverCopies is the free-copy guard's decline leaf on
-// Rings of Brighthearth's verbatim lines: activate, accept the trigger, then
+// Rings of Brighthearth's lines: activate, accept the trigger, then
 // DECLINE the {2} pay ask -- no StackCopy, only the ability's own resolution
 // (one draw).
 func TestRingsCopyDeclineNeverCopies(t *testing.T) {
@@ -330,7 +329,7 @@ func TestRingsCopyPaidCopiesOnce(t *testing.T) {
 }
 
 // TestUnpriceableCopyCostIsHardDecline is the Verrak-shaped leaf: a
-// Cost$ PayLife<X> copy execute (verbatim SVar) poses its pay ask but offers
+// Cost$ PayLife<X> copy execute poses its pay ask but offers
 // NO answerable pay option -- one decline-only decision, no copy.
 func TestUnpriceableCopyCostIsHardDecline(t *testing.T) {
 	t.Parallel()
@@ -442,7 +441,7 @@ func poolTotal(m state.Mana) int {
 }
 
 // TestMirariCopySpellDeclineNeverCopies is the spell-cast OPTIONAL arm's
-// decline leaf on mirari's verbatim lines: cast the instant, accept the
+// decline leaf on mirari's lines: cast the instant, accept the
 // trigger's OptionalDecider$ ask, then DECLINE the {3} pay ask -- no
 // StackCopy, only the spell's own resolution (one draw), pool untouched.
 func TestMirariCopySpellDeclineNeverCopies(t *testing.T) {
@@ -469,7 +468,7 @@ func TestMirariCopySpellDeclineNeverCopies(t *testing.T) {
 }
 
 // TestMirariCopySpellPaidCopiesAndResolves is the spell-cast OPTIONAL arm's
-// paid leaf on mirari's verbatim lines: the {3} pay ask is answered "pay"
+// paid leaf on mirari's lines: the {3} pay ask is answered "pay"
 // from the floating pool -- exactly one StackCopy of the cast spell, the copy
 // RESOLVES (spell and copy each draw 1), and the pool is charged exactly {3}.
 func TestMirariCopySpellPaidCopiesAndResolves(t *testing.T) {
@@ -497,7 +496,7 @@ func TestMirariCopySpellPaidCopiesAndResolves(t *testing.T) {
 }
 
 // TestClovenCastingCopySpellPaidCopiesAndResolves is the spell-cast
-// MANDATORY arm's paid leaf on cloven_casting's verbatim lines: no
+// MANDATORY arm's paid leaf on cloven_casting's lines: no
 // OptionalDecider$, so the {1} pay ask poses straight from resolveTop's gate
 // (the cloven carrier's ValidCard$ is MultiColor, hence the two-colour
 // instant). Pay -> exactly one StackCopy that RESOLVES; the mandatory shape's
@@ -526,7 +525,7 @@ func TestClovenCastingCopySpellPaidCopiesAndResolves(t *testing.T) {
 }
 
 // TestUlalekCopySpellPaidCopiesAndResolves is the repo-deck commander's
-// mandatory spell-cast arm on Ulalek's VERBATIM T: line and SVars: the {C}{C}
+// mandatory spell-cast arm on Ulalek's T: line and SVars: the {C}{C}
 // pay ask poses straight from resolution, "pay" charges it, and the copy of
 // the cast Eldrazi spell RESOLVES. (The SubAbility$ "copy all other
 // activated and triggered abilities" half has its own end-to-end pin:
@@ -554,7 +553,7 @@ func TestUlalekCopySpellPaidCopiesAndResolves(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestUlalekCopySpellDeclineNeverCopies is the same verbatim carrier's
+// TestUlalekCopySpellDeclineNeverCopies is the same carrier's
 // decline leaf: "Do not pay" leaves the trigger unexecuted -- no StackCopy,
 // only the spell's own draw, pool untouched.
 func TestUlalekCopySpellDeclineNeverCopies(t *testing.T) {
@@ -581,7 +580,7 @@ func TestUlalekCopySpellDeclineNeverCopies(t *testing.T) {
 }
 
 // TestMicaCopySpellCostIsHardDecline is the unpriceable spell-cast carrier on
-// mica_reader_of_ruins's verbatim lines: Cost$ Sac<1/Artifact> poses the ask
+// mica_reader_of_ruins's lines: Cost$ Sac<1/Artifact> poses the ask
 // straight from resolution but offers ONLY the decline option (the
 // ParseUnlessCost hard-decline convention -- never a free copy through a
 // zero-amount read), and answering it copies nothing.
@@ -618,7 +617,7 @@ const eldraziEchoSrc = "Name:Test Eldrazi Echo\nManaCost:3\nTypes:Creature Eldra
 // submitted permutation -- handleTriggerOrder applies the permutation
 // positionally; askTriggerOrder's prompt states the direction), the pay ask
 // answered yes, and everything else passed or accepted. Returns the id of the
-// resolving TrigCopySpell wrapper, captured while the pay ask it posed is
+// resolving OnCopySpell wrapper, captured while the pay ask it posed is
 // pending (the wrapper is the stack top at that moment).
 func drainUlalekSubCopyAsks(t *testing.T, e *Engine, ulalek, echo state.ObjID, limit int) (wrapper, echoTrig state.ObjID) {
 	t.Helper()
@@ -686,13 +685,13 @@ func drainUlalekSubCopyAsks(t *testing.T, e *Engine, ulalek, echo state.ObjID, l
 }
 
 // TestUlalekSubAbilityCopiesOtherTriggeredAbility is the end-to-end pin for
-// the sub-copy half on the VERBATIM SVar: cast the Eldrazi instant with
+// the sub-copy half on the SVar: cast the Eldrazi instant with
 // Ulalek AND a second mandatory Eldrazi-cast trigger (Test Eldrazi Echo) on
 // the battlefield, answer the trigger-order ask so Ulalek's trigger is on
 // top, and pay {C}{C}. The resolution copies the cast spell AND the Echo
 // trigger's wrapper (the `Ability.YouCtrl+otherAbility` ValidStack spec now
 // parses), and every one of the four draws resolves: spell 1 + spell copy 1 +
-// echo trigger 1 + echo-trigger copy 1. The resolving TrigCopySpell wrapper
+// echo trigger 1 + echo-trigger copy 1. The resolving OnCopySpell wrapper
 // itself is NEVER copied -- the otherAbility exclusion anchors on
 // Ctx.ResolvingObj (rules set it at both ability-resolution ctx sites), the
 // loop guard that keeps the pay/copy walk from regressing on itself.

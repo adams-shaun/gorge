@@ -20,7 +20,7 @@ import (
 )
 
 const perennationSrc = "Name:Perennation\nManaCost:3 W B G\nTypes:Sorcery\n" +
-	"A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | TgtPrompt$ Choose target permanent card in your graveyard | ValidTgts$ Permanent.YouOwn | WithCountersType$ Hexproof,Indestructible | SpellDescription$ Return target permanent card from your graveyard to the battlefield with a hexproof counter and an indestructible counter on it.\n" +
+	"A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | ValidTgts$ Permanent.YouOwn | WithCountersType$ Hexproof,Indestructible\n" +
 	"Oracle:x\n"
 
 // TestPerennationReturnPlacesEachCounterKind casts Perennation targeting a

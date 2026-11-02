@@ -1,0 +1,35 @@
+# the self cast trigger pool (selfcast): "when you cast this spell"
+# carriers with ramp, for the oracle's constructed lockstep
+# (dirac/oracle/selfcast_test.go)
+Bruna, the Fading Light
+Dash Hopes
+Desolation Twin
+Drownyard Lurker
+Eldrazi Repurposer
+Elvish Mystic
+Forest
+Genesis Hydra
+Gluttonous Hellkite
+Grizzly Bears
+Hatchery Spider
+Highborn Ghoul
+Hill Giant
+Hope-Ender Coatl
+Hydroid Krasis
+Island
+Llanowar Elves
+Mind Stone
+Mountain
+Old Stickfingers
+Petrifying Meddler
+Phantasmagorian
+Plains
+Savannah Lions
+Sowing Mycospawn
+Swamp
+Thief of Existence
+Titans' Vanguard
+Ulamog, the Ceaseless Hunger
+Warped Tusker
+World Breaker
+Writhing Chrysalis

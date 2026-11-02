@@ -1,0 +1,26 @@
+# dirac/oracle/trigquals_test.go
+Geralf, the Fleshwright
+Reparations
+Orim's Prayer
+Lulu, Stern Guardian
+Reveille Squad
+Ichneumon Druid
+Grizzly Bears
+Raging Goblin
+Llanowar Elves
+Hill Giant
+Shock
+Lightning Bolt
+Giant Growth
+Walking Corpse
+Scathe Zombies
+Diabolic Edict
+Essence Scatter
+Mind Stone
+Swamp
+Island
+Forest
+Mountain
+Plains
+Jiang Yanggu, Alone
+Sabotage Strategist

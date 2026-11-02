@@ -1,0 +1,111 @@
+{
+"name": "FDN_top_30053_WRpB",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 52841ab3e84343d18d4a7e9fab1a1f50:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Alesha, Who Laughs at Fate",
+"count": 1
+},
+{
+"name": "Axgard Cavalry",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Brazen Scourge",
+"count": 1
+},
+{
+"name": "Cat Collector",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Courageous Goblin",
+"count": 2
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Firespitter Whelp",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Heartfire Immolator",
+"count": 1
+},
+{
+"name": "Heroic Reinforcements",
+"count": 1
+},
+{
+"name": "Incinerating Blast",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Kellan, Planar Trailblazer",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 8
+},
+{
+"name": "Plains",
+"count": 6
+},
+{
+"name": "Quick-Draw Katana",
+"count": 1
+},
+{
+"name": "Scoured Barrens",
+"count": 1
+},
+{
+"name": "Shivan Dragon",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 2
+}
+]
+}

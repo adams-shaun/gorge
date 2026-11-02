@@ -13,7 +13,7 @@ import (
 // candidates. Battlefield Thaumaturge is the real corpus carrier
 // (`Mode$ ReduceCost | ValidCard$ Instant.YouCtrl,Sorcery.YouCtrl |
 // Relative$ True | Amount$ ReduceCost` over
-// `SVar:ReduceCost:TargetedObjectsDistinct$Valid Creature.inZoneBattlefield`):
+// `ReduceCost = TargetedObjectsDistinct$Valid Creature.inZoneBattlefield`):
 // each instant/sorcery costs {1} less per creature it targets. On a {3} spell
 // with three legal creature targets, the union would reduce by 3 ({3} -> {0})
 // while no single target choice reduces by more than 1 ({3} -> {2}); pricing

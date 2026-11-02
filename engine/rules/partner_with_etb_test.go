@@ -29,7 +29,7 @@ func partnerWithFaceTrigger(c *cards.Card) (cards.Trigger, bool) {
 
 // TestPartnerWithETBOffersNamedPartnerSearch is the named proof for the
 // kw:Partner with expansion, over the real corpus carrier Kamber, the
-// Plunderer (K:Partner with:Laurine, the Diversion). CR 702.128's partner-with
+// Plunderer (partner with Laurine, the Diversion). CR 702.128's partner-with
 // keyword prints real rules text: "When this creature enters, target player
 // may put Laurine into their hand from their library, then shuffle." No
 // carrier's script prints that ability separately, so the expansion must

@@ -14,13 +14,13 @@ import (
 // inline, never a .txt from .cards/ (GPL). The ChangeZone's RememberChanged$
 // True is what captures the exiled permanent into the ability's Remembered,
 // which DelTrig's DelayedTrigger then carries into its registration; when the
-// delayed trigger fires, TrigBounce's Defined$ DelayTriggerRememberedLKI
+// delayed trigger fires, OnBounce's Defined$ DelayTriggerRememberedLKI
 // resolves against that Remembered and returns the right permanent.
 const flickerwispSrc = "Name:Flickerwisp\nManaCost:1 W W\nTypes:Creature Elemental\nPT:3/1\nK:Flying\n" +
 	"T:Mode$ ChangesZone | ValidCard$ Card.Self | Origin$ Any | Destination$ Battlefield | Execute$ TrigExile\n" +
 	"SVar:TrigExile:DB$ ChangeZone | ValidTgts$ Permanent.Other | Mandatory$ True | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ DelTrig\n" +
-	"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigBounce | SubAbility$ DBCleanup\n" +
-	"SVar:TrigBounce:DB$ ChangeZone | Origin$ Exile | Destination$ Battlefield | Defined$ DelayTriggerRememberedLKI\n" +
+	"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ OnBounce | SubAbility$ DBCleanup\n" +
+	"SVar:OnBounce:DB$ ChangeZone | Origin$ Exile | Destination$ Battlefield | Defined$ DelayTriggerRememberedLKI\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nOracle:x\n"
 
 // delayedFixture builds a 2-seat game, puts a target creature on seat 0's
@@ -310,7 +310,7 @@ func TestDelayedTriggerDegradesWhenReferentMoved(t *testing.T) {
 	t.Parallel()
 	e, _, tg := delayedFixture(t)
 	// Move the exiled referent out of exile before the end step (e.g. it was
-	// returned another way), so the delayed trigger's TrigBounce finds nothing
+	// returned another way), so the delayed trigger's OnBounce finds nothing
 	// in exile to move.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: tg,
 		From: state.ZExile, To: state.ZGraveyard})

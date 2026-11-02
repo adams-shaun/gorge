@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView } from '../../protocol';
 import { diffViews } from '../clientmodel/snapshotdiff';
-import { gorgeStep, mbStep, projectView, rememberCards } from './project';
+import { gorgeStep, mbStep, projectCard, projectView, rememberCards } from './project';
 import { allRecords, carriedView, runs, stateOf } from './testdata/fixture';
-import type { GameViewDto } from './wire';
+import type { CardDto, GameViewDto } from './wire';
 
 const project = (gv: GameViewDto, viewer = 0, known?: Map<number, CardView>) => projectView(gv, { viewer, known });
 
@@ -46,6 +46,12 @@ describe('projectView (captured from a real gorged -manabrew)', () => {
       for (const s of v.stack) if (s.kind === 'spell') expect(s.card?.types).not.toBe('');
       rememberCards(v, known);
     }
+  });
+
+  it('a token says so, or its art is looked up as a card of that name', () => {
+    const card = (isToken: boolean) => ({ id: 'c1', identity: { name: 'Faerie Token', isToken } }) as CardDto;
+    expect(projectCard(card(true)).is_token).toBe(true);
+    expect(projectCard(card(false)).is_token).toBeUndefined();
   });
 
   it('maps every step both ways', () => {

@@ -15,14 +15,14 @@ import (
 // matches.
 const (
 	urzaMineSrc = "Name:Urza's Mine\nTypes:Land Urza's Mine\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.2.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ TronBonus\n" +
+		"SVar:TronBonus:Count$UrzaLands.2.1\nOracle:x\n"
 	urzaTowerSrc = "Name:Urza's Tower\nTypes:Land Urza's Tower\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.3.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ TronBonus\n" +
+		"SVar:TronBonus:Count$UrzaLands.3.1\nOracle:x\n"
 	urzaPlantSrc = "Name:Urza's Power Plant\nTypes:Land Urza's Power-Plant\n" +
-		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount\n" +
-		"SVar:UrzaAmount:Count$UrzaLands.2.1\nOracle:x\n"
+		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ TronBonus\n" +
+		"SVar:TronBonus:Count$UrzaLands.2.1\nOracle:x\n"
 )
 
 // urzaEngine builds a 2-seat game seeded with all three Urza lands and places

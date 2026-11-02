@@ -1,0 +1,63 @@
+{
+"name": "BLB_top_17678_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 5866f35d0b5649c38c93880faf7aee17:0, player win-rate bucket 0.70 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Daggerfang Duo, 1 Essence Channeler, 1 Feed the Cycle, 1 Nocturnal Hunger, 1 Thought-Stalker Warlock, 1 Wick's Patrol -> 3 Plains, 3 Swamp",
+"cards": [
+{
+"name": "Driftgloom Coyote",
+"count": 2
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 3
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Mudflat Village",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Sinister Monolith",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 3
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

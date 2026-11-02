@@ -1,0 +1,11 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Case of the Crimson Pulse
+1	card	Case of the Filched Falcon
+2	card	Case of the Gorgon's Kiss
+3	card	Hill Giant
+4	card	Island
+5	card	Mountain
+6	card	Ornithopter
+7	card	Shock
+8	card	Swamp
+9	token	c_a_clue_draw

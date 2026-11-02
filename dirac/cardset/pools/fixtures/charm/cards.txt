@@ -1,0 +1,26 @@
+# the charm-shapes pool: Hullbreaker Horror and Gix's
+# Command beside cheap spells, creatures of mixed power and basics, for
+# the oracle's constructed lockstep (dirac/oracle/charm_test.go)
+# The charm-shapes pool: Hullbreaker Horror (an up-to-one
+# triggered charm whose first mode returns a spell to its owner's hand) and
+# Gix's Command (choose two of four: an up-to-one ChooseCard, a sweeper, a
+# graveyard return and each opponent's greatest-power sacrifice), beside
+# cheap spells to trigger and to bounce, creatures of mixed power and
+# basics, and Phantom Interference (Spree: each chosen mode adds its
+# cost), for the oracle's constructed lockstep
+# (dirac/oracle/charm_test.go).
+Hullbreaker Horror
+Gix's Command
+Phantom Interference
+Opt
+Shock
+Hill Giant
+Walking Corpse
+Gray Ogre
+Grizzly Bears
+Craw Wurm
+Giant Spider
+Island
+Swamp
+Mountain
+Forest

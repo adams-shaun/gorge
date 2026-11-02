@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_10160_BG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 29f0f5a28bb543cba6823649d9764845:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 2
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Cackling Prowler",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 2
+},
+{
+"name": "Elvish Regrower",
+"count": 2
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Felling Blow",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Garruk's Uprising",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 2
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 2
+},
+{
+"name": "Seeker's Folly",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Spinner of Souls",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 7
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Wardens of the Cycle",
+"count": 2
+},
+{
+"name": "Wary Thespian",
+"count": 1
+}
+]
+}

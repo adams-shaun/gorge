@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_08560_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 0b72dc21bdc74cf99c4d844d98030323:0, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Celestial Armor",
+"count": 1
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 3
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Helpful Hunter",
+"count": 4
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Make Your Move",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Savannah Lions",
+"count": 1
+},
+{
+"name": "Sire of Seven Deaths",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 1
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+}
+]
+}

@@ -1,0 +1,22 @@
+# the collect-evidence cost pool: Forensic Researcher
+# and Polygraph Orb pay it as an activation cost, Izoni and Sample
+# Collector as a trigger's own cost (dirac/oracle/costevidence_test.go)
+# The CollectEvidence cost pool (CR 701.59a): Forensic Researcher
+# and Polygraph Orb pay it as an activation cost; Izoni and Sample Collector as
+# a trigger's own optional cost; burn and removal fill both graveyards
+# (dirac/oracle/costevidence_test.go)
+Forensic Researcher
+Polygraph Orb
+Izoni, Center of the Web
+Sample Collector
+Shock
+Lightning Bolt
+Giant Growth
+Grizzly Bears
+Hill Giant
+Murder
+Walking Corpse
+Forest
+Swamp
+Mountain
+Island

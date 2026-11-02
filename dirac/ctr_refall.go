@@ -1,0 +1,54 @@
+package dirac
+
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// refCountersAll is refCounters for kop.CtrAll: every counter on the
+// object summed (gorge Object.Counter("ALL") / sumCounters, Warden of the
+// Inner Sky). The kernel's level slot is a designation, not a counter
+// (CR 716; gorge ClassLevelValue), so it is left out; the deathtouch mark
+// and the regeneration shield are no counter slots here, the markers
+// gorge's InternalCounterMarker excludes.
+func (s *State) refCountersAll(x *kop.Expr, r kop.Ref, ctx evalCtx) int {
+	e := ctx.e
+	// x.N 1 marks a TriggeredAttacker$CardCounters.ALL
+	// read, which gorge evaluates LIVE even when the trigger captured the
+	// attacker's LKI for another instruction (the sibling
+	// TriggeredAttackerLKICopy PutCounter): the LKI substitution below is
+	// for TriggeredCard$CardCounters in leaves triggers, not this head.
+	live := x.N == 1
+	if DebugCountHeads11Off && live {
+		return 0 // TestValueHeadsTrackedObjectMutation: the attacker's live counter read
+	}
+	if !live && (r == kop.RefDelayedRemembered || r == kop.RefTriggerObj && !DebugTrigCtrLive) && e != nil && e.li != 0 {
+		l := s.lk(e.li)
+		n := int(l.p1p1)
+		for i := range l.ck {
+			if l.ck[i] != 0 && kop.CounterKind(l.ck[i]) != kop.CtrLevel {
+				n += int(l.cn[i])
+			}
+		}
+		return n + s.ctrOverSum(l.obj, e.li)
+	}
+	var o Obj
+	if r == kop.RefSelf {
+		o = ctx.src
+	} else {
+		o = s.refObjCtx(r, ctx)
+	}
+	if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+		return 0
+	}
+	p := &s.perms[s.objs[o].slot]
+	n := int(p.p1)
+	for i := range p.ck {
+		if kop.CounterKind(p.ck[i]) != kop.CtrLevel {
+			n += int(p.cn[i])
+		}
+	}
+	if p.ck[ctrSlots-1] != 0 {
+		n += s.ctrOverSum(p.obj, 0)
+	}
+	return n
+}

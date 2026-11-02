@@ -1,0 +1,13 @@
+# Thousand Moons Smithy // Barracks of the Thousand
+# (SpellCast ValidSA$ Spell.ManaFromCard.StrictlySelf)
+# (dirac/oracle/smithy_test.go)
+Thousand Moons Smithy
+Ornithopter
+Savannah Lions
+Hill Giant
+Shock
+Wind Drake
+Plains
+Forest
+Mountain
+Island

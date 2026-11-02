@@ -16,8 +16,8 @@ func TestRestrictedManaKeepsSpentActivationRider(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	src := card(t, "Name:Restricted Palace\nTypes:Land\n"+
 		"A:AB$ Mana | Cost$ T | Produced$ U | RestrictValid$ Activated.Creature | TriggersWhenSpent$ TrigCopy\n"+
-		"SVar:TrigCopy:Mode$ SpellAbilityCast | ValidSA$ Spell,Activated | ValidActivatingPlayer$ You | Execute$ TrigCopyMain\n"+
-		"SVar:TrigCopyMain:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n"+
+		"SVar:TrigCopy:Mode$ SpellAbilityCast | ValidSA$ Spell,Activated | ValidActivatingPlayer$ You | Execute$ OnCopyMain\n"+
+		"SVar:OnCopyMain:DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | MayChooseTarget$ True\n"+
 		"Oracle:Add mana.\n")
 	e, _ := colourIdentityGame(t, 922, FormatCommander, corpusCommander(t, reg, "Wort, Boggart Auntie"), nil,
 		src, corpusCommander(t, reg, "Wall of Water"))

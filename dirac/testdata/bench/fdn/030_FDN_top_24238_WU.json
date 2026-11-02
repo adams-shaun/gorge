@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_24238_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 514ec4abfd2d4b96b9720c3f5213aaae:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 2
+},
+{
+"name": "Claws Out",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 3
+},
+{
+"name": "Icewind Elemental",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Joust Through",
+"count": 1
+},
+{
+"name": "Leyline Axe",
+"count": 1
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 9
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+}
+]
+}

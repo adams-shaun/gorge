@@ -13,11 +13,11 @@ import (
 // ALTERNATE face carries K:Aftermath (all 27 corpus aftermath cards carry the
 // keyword on the alternate face of an AlternateMode:Split card).
 const duskDawnSrc = "Name:Dusk\nManaCost:2 W W\nTypes:Sorcery\n" +
-	"A:SP$ DestroyAll | ValidCards$ Creature.powerGE3 | SpellDescription$ Destroy all creatures with power 3 or greater.\n" +
+	"A:SP$ DestroyAll | ValidCards$ Creature.powerGE3\n" +
 	"AlternateMode:Split\n" +
 	"ALTERNATE\n" +
 	"Name:Dawn\nManaCost:3 W W\nTypes:Sorcery\nK:Aftermath\n" +
-	"A:SP$ ChangeZoneAll | ChangeType$ Creature.powerLE2+YouCtrl | Origin$ Graveyard | Destination$ Hand | SpellDescription$ Return all creature cards with power 2 or less from your graveyard to your hand.\n" +
+	"A:SP$ ChangeZoneAll | ChangeType$ Creature.powerLE2+YouCtrl | Origin$ Graveyard | Destination$ Hand\n" +
 	"Oracle:x\n"
 
 const finishShapeSrc = "Name:Start\nManaCost:2 R\nTypes:Sorcery\n" +

@@ -1,0 +1,46 @@
+# the side-effect pool: the 22 non-Standard cards its
+# Optional$, additive Colors$, RemoveCardTypes$ and self P/T lowering
+# lifted (the Hidden and Opal enchantments, Veil of Birds, Veiled
+# Apparition and Sentry, Lurking Skirge, Ebony Fly, Hunting Wilds,
+# Mercurial Transformation, Phantasmal Form, Quirion Druid, Raging Spirit,
+# Scrapbasket, Bola Slinger; Opal Avenger and Opal Titan are refused)
+# beside burn, fliers, artifacts and vanilla creatures
+# (dirac/oracle/animgb_test.go)
+Bola Slinger
+Cloudchaser Kestrel
+Defiant Strike
+Ebony Fly
+Forest
+Grizzly Bears
+Hidden Ancients
+Hidden Gibbons
+Hidden Guerrillas
+Hidden Spider
+Hill Giant
+Hunting Wilds
+Island
+Lightning Bolt
+Llanowar Elves
+Lurking Skirge
+Mercurial Transformation
+Mind Stone
+Mountain
+Opal Acrolith
+Opal Archangel
+Opal Caryatid
+Opal Champion
+Opal Gargoyle
+Opal Guardian
+Ornithopter
+Phantasmal Form
+Plains
+Quirion Druid
+Raging Spirit
+Savannah Lions
+Scrapbasket
+Shock
+Spectral Sailor
+Swamp
+Veil of Birds
+Veiled Apparition
+Veiled Sentry

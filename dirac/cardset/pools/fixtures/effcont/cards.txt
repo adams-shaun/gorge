@@ -1,0 +1,41 @@
+# the Effect Continuous pool: the until-EOT
+# CantBlock / ExtraLandPlay emblems and the until-your-next-turn
+# no-maximum-hand-size / MustAttack emblems, beside basics, vanilla
+# creatures, ramp and removal for the oracle's lockstep
+Magmatic Chasm
+Falter
+Seismic Stomp
+Destructive Tampering
+Fire of Orthanc
+Tectonic Rift
+Goblin Locksmith
+Mournwillow
+Explore
+Enter the Unknown
+Scale the Heights
+Summer Bloom
+Urban Evolution
+Enter the Infinite
+Kardur, Doomscourge
+Mountain
+Forest
+Island
+Swamp
+Plains
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Walking Corpse
+Vampire Cutthroat
+Giant Spider
+Llanowar Elves
+Elvish Mystic
+Birds of Paradise
+Sakura-Tribe Elder
+Rampant Growth
+Wood Elves
+Farhaven Elf
+Sol Ring
+Shock
+Doom Blade
+Pacifism

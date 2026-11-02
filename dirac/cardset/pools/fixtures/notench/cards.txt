@@ -1,0 +1,23 @@
+# the not-enchanted-by pool: the three !EnchantedBy
+# Aura carriers beside two cheap Auras, creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/notench_test.go)
+# The not-enchanted-by pool: the three '!EnchantedBy'
+# carriers, each an Aura's own enters trigger (Due Diligence: a Pump target
+# "other than enchanted creature"; Sporogenic Infection: a target player's
+# sacrifice of a creature other than the enchanted one; Secret Invasion: an
+# exile target; refused: DB$ Clone outside an Attached trigger), two cheap Auras that
+# already lower (Pacifism, Unholy Strength), cheap creatures and basics, for
+# the oracle's constructed lockstep (dirac/oracle/notench_test.go).
+Due Diligence
+Sporogenic Infection
+Pacifism
+Unholy Strength
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Llanowar Elves
+Plains
+Island
+Swamp
+Mountain
+Forest

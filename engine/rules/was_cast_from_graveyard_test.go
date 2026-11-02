@@ -23,7 +23,7 @@ import (
 // cost, Token SA, X SVar) with a hand-authored TokenScript$ stem -- never
 // the GPL-3.0 corpus's own .cards/tokenscripts.
 const devotionSrc = "Name:Increasing Devotion\nManaCost:3 W W\nTypes:Sorcery\n" +
-	"A:SP$ Token | TokenAmount$ X | TokenScript$ w_1_1_human | TokenOwner$ You | SpellDescription$ Create five 1/1 white Human creature tokens. If this spell was cast from a graveyard, create ten of those tokens instead.\n" +
+	"A:SP$ Token | TokenAmount$ X | TokenScript$ w_1_1_human | TokenOwner$ You\n" +
 	"SVar:X:Count$wasCastFromGraveyard.10.5\n" +
 	"K:Flashback:7 W W\n" +
 	"Oracle:Create five 1/1 white Human creature tokens. If this spell was cast from a graveyard, create ten of those tokens instead.\n"
@@ -138,11 +138,11 @@ func TestIncreasingDevotionResolvesCastOriginCounts(t *testing.T) {
 }
 
 // zealotSrc is Ash Zealot's real script shape (cost, the SpellCast trigger
-// and its DealDamage SVar verbatim), hand-authored -- never the GPL corpus
+// and its DealDamage SVar), hand-authored -- never the GPL corpus
 // .txt.
 const zealotSrc = "Name:Ash Zealot\nManaCost:R R\nTypes:Creature Human Warrior\nPT:2/2\n" +
 	"K:First Strike\nK:Haste\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.wasCastFromGraveyard | Execute$ TrigDamage | TriggerZones$ Battlefield | TriggerDescription$ Whenever a player casts a spell from a graveyard, CARDNAME deals 3 damage to that player.\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.wasCastFromGraveyard | Execute$ TrigDamage | TriggerZones$ Battlefield\n" +
 	"SVar:TrigDamage:DB$ DealDamage | Defined$ TriggeredCardController | NumDmg$ 3\n" +
 	"Oracle:First strike, haste\n"
 

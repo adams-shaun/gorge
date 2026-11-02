@@ -1,0 +1,59 @@
+{
+"name": "BLB_top_21758_WU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck f6ef1829061645bf854203abc2789f7a:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Daring Waverider, 1 Dazzling Denial, 1 Finch Formation, 1 Pond Prophet, 1 Thought Shucker -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Dire Downdraft",
+"count": 4
+},
+{
+"name": "Island",
+"count": 12
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Lupinflower Village",
+"count": 1
+},
+{
+"name": "Mindwhisker",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 3
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 2
+},
+{
+"name": "Star Charter",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

@@ -273,3 +273,41 @@ func TestValiantDedupesSameSpellTargets(t *testing.T) {
 		t.Fatalf("after resolution the mentor has %d counters, want 1", got)
 	}
 }
+
+// A creature that left and came back is a new object (CR 400.7), and a targeting of
+// the old one is no first time for it: Forge's returned Card starts its targeted list
+// empty, and XMage's returned permanent has a fresh trigger (read).
+func TestValiantFiresForTheNewObjectAfterAZoneChange(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, ids := becomesTargetOnceBoard(t, reg,
+		[]string{"Seedglaive Mentor", "Prodigal Pyromancer", "Prodigal Pyromancer"}, nil)
+	mentor := ids["Seedglaive Mentor"]
+	var pingers []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Prodigal Pyromancer" {
+			pingers = append(pingers, id)
+		}
+	}
+	if len(pingers) != 2 {
+		t.Fatalf("precondition: %d Pyromancers, want 2", len(pingers))
+	}
+	ping := func(p state.ObjID) {
+		t.Helper()
+		e.G.Obj(mentor).Damage = 0
+		e.askPriority(0)
+		submitChoices(t, e, abilityOption(t, e, p, 0).Index)
+		submitChoices(t, e, targetOptionIdx(t, e, mentor))
+		drainQueuedTriggers(t, e)
+	}
+	ping(pingers[0])
+	if got := targetCounterN(e.G.Obj(mentor), "P1P1"); got != 1 {
+		t.Fatalf("first targeting: %d counters, want 1", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: mentor, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: mentor, From: state.ZExile, To: state.ZBattlefield})
+	ping(pingers[1])
+	if got := targetCounterN(e.G.Obj(mentor), "P1P1"); got != 1 {
+		t.Fatalf("the returned object's first targeting: %d counters, want 1", got)
+	}
+}

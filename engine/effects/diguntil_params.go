@@ -141,7 +141,7 @@ var digUntilKnownKeys = [...]string{
 	"ConditionDescription",
 	"ConditionFirstCombat",
 	"ConditionManaNotSpent", "ConditionManaSpent", "ConditionNotPresent",
-	"ConditionOptionalPaid",
+	"ConditionOpponentTurn", "ConditionOptionalPaid",
 	"ConditionPhases",
 	"ConditionPlayerTurn",
 	"ConditionPresent",

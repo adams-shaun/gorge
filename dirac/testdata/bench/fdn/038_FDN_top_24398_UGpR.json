@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_24398_UGpR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 4b28ad6bc7b44e5988a65d7106c2cf3f:0, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 1
+},
+{
+"name": "Ashroot Animist",
+"count": 1
+},
+{
+"name": "Battlesong Berserker",
+"count": 1
+},
+{
+"name": "Beast-Kin Ranger",
+"count": 2
+},
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 1
+},
+{
+"name": "Elvish Regrower",
+"count": 2
+},
+{
+"name": "Essence Scatter",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Gnarlid Colony",
+"count": 1
+},
+{
+"name": "Icewind Elemental",
+"count": 2
+},
+{
+"name": "Island",
+"count": 5
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 2
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 1
+},
+{
+"name": "Overrun",
+"count": 1
+},
+{
+"name": "Snakeskin Veil",
+"count": 2
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

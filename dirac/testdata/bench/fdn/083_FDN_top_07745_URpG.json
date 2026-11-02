@@ -1,0 +1,95 @@
+{
+"name": "FDN_top_07745_URpG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 708fa901ec2b4f009fc025fb74abd0c7:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ashroot Animist",
+"count": 1
+},
+{
+"name": "Balmor, Battlemage Captain",
+"count": 2
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Firebrand Archer",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 2
+},
+{
+"name": "Goblin Surprise",
+"count": 2
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Kellan, Planar Trailblazer",
+"count": 1
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Run Away Together",
+"count": 1
+},
+{
+"name": "Sphinx of Forgotten Lore",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 2
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 2
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Tolarian Terror",
+"count": 2
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Zimone, Paradox Sculptor",
+"count": 1
+}
+]
+}

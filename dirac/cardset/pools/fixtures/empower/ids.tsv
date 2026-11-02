@@ -1,0 +1,36 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Academic Ascent
+1	card	Arcane Amphisbaena
+2	card	Avatar of Burgeoning Echoes
+3	card	Campus Crier
+4	card	Doubling Season
+5	card	Fatehold Charm
+6	card	Forest
+7	card	Hexhaven Battalion
+8	card	Inspired Tethermage
+9	card	Island
+10	card	Keeper of the Quiet Hour
+11	card	Mindseeker Oculus
+12	card	Mountain
+13	card	No Admittance
+14	card	Plains
+15	card	Plan for All Outcomes
+16	card	Protege's Awakening
+17	card	Repurposed Enforcer
+18	card	Rewrite Regrets
+19	card	Solve for Disappointment
+20	card	Swamp
+21	card	Tam's Resistance
+22	card	Violent Echoes
+23	card	Vraska's Final Mercy
+24	card	Way of the Deathbringer
+25	card	Way of the Healer
+26	card	Way of the Mentor
+27	card	Way of the Necromancer
+28	card	Way of the Warlord
+29	card	Way of the Wildspeaker
+30	card	name:Jace Token
+31	token	cadet
+32	token	g_4_4_beast_trample
+33	token	u_empower
+34	token	u_empower_jace

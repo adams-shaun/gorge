@@ -28,9 +28,8 @@ the same tables and engine, and no draft concept reaches the rules core.
 ## Two engines
 
 gorge is the full rules engine. **dirac** is a second, much smaller engine that
-plays the same game much faster, for the cards its generator can lower. Its source
-isn't in this repository yet. They do different jobs, and the smaller one is held
-to the larger one.
+plays the same game much faster, for two seats and the cards it supports. They do
+different jobs, and the smaller one is held to the larger one.
 
 <figure markdown>
 <svg viewBox="0 0 760 300" width="100%" role="img" aria-label="The gorge engine and the dirac engine side by side, joined by a lockstep oracle check">
@@ -52,15 +51,15 @@ to the larger one.
   <rect x="430" y="10" width="320" height="280" rx="10" class="dg-box"/>
   <text x="590" y="38" text-anchor="middle" class="dg-text-bold">dirac</text>
   <text x="450" y="68" class="dg-text">A 2-player engine</text>
-  <text x="450" y="92" class="dg-text-muted">verified set by set against gorge</text>
+  <text x="450" y="92" class="dg-text-muted">plays only what lockstep has evidenced</text>
   <text x="450" y="112" class="dg-text-muted">exactly two players</text>
-  <text x="450" y="132" class="dg-text-muted">State is one fixed-size value: no pointers,</text>
-  <text x="450" y="150" class="dg-text-muted">maps, slices or strings; clone = assignment</text>
+  <text x="450" y="132" class="dg-text-muted">State is a flat value and one buffer: no maps,</text>
+  <text x="450" y="150" class="dg-text-muted">strings or interfaces; clone = CopyFrom</text>
   <text x="450" y="170" class="dg-text-muted">Step / Apply state machine over a</text>
   <text x="450" y="188" class="dg-text-muted">generated table of card operations</text>
   <text x="450" y="208" class="dg-text-muted">no event log; equal positions project ==</text>
   <text x="450" y="236" class="dg-text">Job: raw speed for self-play and</text>
-  <text x="450" y="256" class="dg-text">search on its verified pools</text>
+  <text x="450" y="256" class="dg-text">search on its supported cards</text>
   <line x1="332" y1="150" x2="428" y2="150" class="dg-line-accent" marker-start="url(#ix-arr)" marker-end="url(#ix-arr)"/>
   <text x="380" y="138" text-anchor="middle" class="dg-text-bold">lockstep</text>
   <text x="380" y="172" text-anchor="middle" class="dg-text-muted">same seed,</text>
@@ -78,10 +77,10 @@ the same canonical board projection after every action.</figcaption>
 A general engine that handles every card in the corpus needs open-ended data: arbitrary card
 text, variable-length zones, continuous effects that come and go. That shape makes it correct
 for everything and slower to copy and step. An engine that keeps every card's behaviour in a
-read-only generated table can lay the whole game out as a fixed-size value and step it cheaply,
+read-only generated table can lay the whole game out as one flat value and step it cheaply,
 which is what large-scale self-play and tree search want. Keeping gorge as the oracle means the
 fast engine never becomes a second source of rules truth. See [dirac](dirac/index.md) for
-its [fixed-size State](dirac/state.md), its [Step/Apply loop](dirac/step-apply.md),
+its [State](dirac/state.md), its [Step/Apply loop](dirac/step-apply.md),
 how [cards are compiled](dirac/cards.md) for it and the
 [lockstep oracle](dirac/oracle.md).
 
@@ -107,7 +106,8 @@ first thing the wire says differently.
 
 The repository is grouped by audience, and each group imports only the groups
 below it. The engine imports nothing outside `engine/`, and the root `go.mod` has
-no `require` lines.
+no `require` lines. [dirac](dirac/index.md) sits beside the engine: its core imports
+nothing outside `dirac/`, and nothing in `engine/` imports it.
 
 <figure markdown>
 <svg viewBox="0 0 760 380" width="100%" role="img" aria-label="The gorge tier stack: engine at the bottom, server and bots above it, commands at the top">

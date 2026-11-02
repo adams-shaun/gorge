@@ -1,6 +1,8 @@
 package searchprobe
 
 import (
+	"bytes"
+	"slices"
 	"strings"
 	"testing"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -89,5 +92,39 @@ func TestObserveDecisionNamesEveryOptionOfARealDecision(t *testing.T) {
 	}
 	if checked == 0 {
 		t.Fatal("seat 0 never faced a multi-option decision")
+	}
+}
+
+// An attack on a planeswalker or a battle names the attacked permanent too, and
+// a clone walked past the last Capture may never have seen it.
+func TestObserveDecisionNamesAnAttackedPermanent(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck, err := testutil.LoadRepoDeck(reg, "mono-red-prowess")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := rules.New(rules.Config{Seed: 1, Names: []string{"a", "b"}, Decks: [][]*cards.Card{deck, deck}, Tokens: reg.Tokens})
+	e.Advance()
+	lib := e.G.Zone(state.ZLibrary, 0)
+	creature, walker := lib[0], lib[1]
+	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KAttackers, Max: 2, Options: []decision.Option{
+		{Index: 0, Kind: "attacker", Label: "Attack b", Obj: creature, Player: 1},
+		{Index: 1, Kind: "attacker", Label: "Attack the walker", Obj: creature, Player: 1, Battle: walker},
+	}}
+	c := NewCollector(0)
+	if _, err := c.ObserveDecision(e, d); err != nil {
+		t.Fatal(err)
+	}
+	player, err := c.IntentKey(d, decision.Intent{Seq: 1, Choices: []int{0}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	player = slices.Clone(player)
+	battle, err := c.IntentKey(d, decision.Intent{Seq: 1, Choices: []int{1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(player, battle) {
+		t.Fatal("an attack on the permanent has the key of an attack on its controller")
 	}
 }

@@ -1,0 +1,21 @@
+# the Mobilize pool: the Mobilize 1 and 2 carriers and
+# supports, for the oracle's constructed lockstep
+# (dirac/oracle/mobilize_test.go)
+Dragonback Lancer
+Nightblade Brigade
+Reigning Victor
+Shock Brigade
+Stadium Headliner
+Venerated Stormsinger
+Zurgo's Vanguard
+Bone-Cairn Butcher
+Voice of Victory
+Grizzly Bears
+Ornithopter
+Raging Goblin
+Shock
+Disfigure
+Plains
+Swamp
+Mountain
+Forest

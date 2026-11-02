@@ -20,11 +20,11 @@ func TestRegularCombatDamageTriggerResolvesInTheDamageStep(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := combatTriggerBoard(t, reg, nil, []string{
 		"Name:Raider\nManaCost:1 R\nTypes:Creature Human\nPT:2/2\n" +
-			"T:Mode$ DamageDone | ValidSource$ Card.Self | ValidTarget$ Player | CombatDamage$ True | Execute$ TrigGain | TriggerDescription$ Whenever CARDNAME deals combat damage to a player, you gain 3 life.\n" +
-			"SVar:TrigGain:DB$ GainLife | LifeAmount$ 3\nOracle:x\n",
+			"T:Mode$ DamageDone | ValidSource$ Card.Self | ValidTarget$ Player | CombatDamage$ True | Execute$ OnGain | TriggerDescription$ Whenever CARDNAME deals combat damage to a player, you gain 3 life.\n" +
+			"SVar:OnGain:DB$ GainLife | LifeAmount$ 3\nOracle:x\n",
 		"Name:Sentinel\nManaCost:1 W\nTypes:Creature Human\nPT:0/4\n" +
-			"T:Mode$ Phase | Phase$ EndCombat | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ TrigGain | TriggerDescription$ At end of combat, you gain 1 life.\n" +
-			"SVar:TrigGain:DB$ GainLife | LifeAmount$ 1\nOracle:x\n",
+			"T:Mode$ Phase | Phase$ EndCombat | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ OnGain | TriggerDescription$ At end of combat, you gain 1 life.\n" +
+			"SVar:OnGain:DB$ GainLife | LifeAmount$ 1\nOracle:x\n",
 	}, nil, nil)
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})

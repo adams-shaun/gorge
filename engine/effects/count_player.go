@@ -199,11 +199,12 @@ func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, 
 	}
 	// CR 603.10a: a battlefield departure's creature status is its last
 	// known information, not the card's characteristics where it now lies
-	// (Forge stores the moved card's latest state with each entry). Split
-	// the spec's `Creature`-based alternatives off as `Card` alternatives
-	// gated on the entry's departure-time WasCreature bit; every other
-	// alternative, and every entry that did not leave the battlefield, is
-	// matched exactly as before.
+	// (Forge stores the moved card's latest state with each entry), and a
+	// battlefield entry's is what entered, not what it has become: a land
+	// animated later that turn is no creature that entered. Split the spec's
+	// `Creature`-based alternatives off as `Card` alternatives gated on the
+	// entry's WasCreature bit; every other alternative, and every entry that
+	// neither left nor entered the battlefield, is matched exactly as before.
 	creatureAlts, otherAlts, splitCreature := splitCreatureBaseAlternatives(valid)
 	var n int32
 	for _, e := range g.Entered {
@@ -213,8 +214,8 @@ func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, 
 		if origin != nil && e.From != *origin {
 			continue
 		}
-		if splitCreature && e.From == state.ZBattlefield {
-			matched := (e.WasCreature && matchesEnteredEntry(g, creatureAlts, e, c.SpecContext(you))) ||
+		if splitCreature && (e.From == state.ZBattlefield || e.To == state.ZBattlefield) {
+			matched := (enteredAsCreature(g, e) && matchesEnteredEntry(g, creatureAlts, e, c.SpecContext(you))) ||
 				(otherAlts != "" && matchesEnteredEntry(g, otherAlts, e, c.SpecContext(you)))
 			if !matched {
 				continue
@@ -256,6 +257,16 @@ func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, 
 		n += objectProperty(g, e.Obj, prop)
 	}
 	return n, true
+}
+
+// enteredAsCreature is the entry's WasCreature bit, or a battlefield entry turned
+// face down in the same action (a manifest, a cloak: CR 708.2a), whose move read its face.
+func enteredAsCreature(g *state.Game, e state.ZoneEntry) bool {
+	if e.WasCreature {
+		return true
+	}
+	o := g.Obj(e.Obj)
+	return e.To == state.ZBattlefield && o != nil && o.Zone == state.ZBattlefield && o.FaceDown
 }
 
 // objectProperty reads one Count$Valid-spec "$Property" aggregate term over

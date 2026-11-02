@@ -61,7 +61,7 @@ func TestChangeZoneDurationUntilHostLeavesPlay(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			orering := card(t, "Name:"+tc.orer+"\nManaCost:2 W\nTypes:Enchantment\n"+
-				"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ When CARDNAME enters, exile target nonland permanent an opponent controls until CARDNAME leaves the battlefield.\n"+
+				"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 				"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ "+tc.targets+" | TgtPrompt$ Select target | Duration$ UntilHostLeavesPlay\n"+
 				"Oracle:x\n")
 			removal := card(t, "Name:Vindicate\nManaCost:1 B W\nTypes:Instant\n"+
@@ -142,7 +142,7 @@ func TestChangeZoneDurationUntilHostLeavesPlay(t *testing.T) {
 func TestChangeZoneDurationDoesNotReturnAToken(t *testing.T) {
 	t.Parallel()
 	light := card(t, "Name:Banishing Light\nManaCost:2 W\nTypes:Enchantment\n"+
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ When CARDNAME enters, exile target nonland permanent an opponent controls until CARDNAME leaves the battlefield.\n"+
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand+OppCtrl | Duration$ UntilHostLeavesPlay\n"+
 		"Oracle:x\n")
 	removal := card(t, "Name:Vindicate\nManaCost:1 B W\nTypes:Instant\n"+
@@ -211,7 +211,7 @@ func TestChangeZoneDurationDoesNotReturnAToken(t *testing.T) {
 func TestChangeZoneDurationReturnedAuraAsksInsideRemoval(t *testing.T) {
 	t.Parallel()
 	light := card(t, "Name:Banishing Light\nManaCost:2 W\nTypes:Enchantment\n"+
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ When CARDNAME enters, exile target nonland permanent an opponent controls until CARDNAME leaves the battlefield.\n"+
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand+OppCtrl | Duration$ UntilHostLeavesPlay\n"+
 		"Oracle:x\n")
 	removal := card(t, "Name:Vindicate\nManaCost:1 B W\nTypes:Instant\n"+

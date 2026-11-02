@@ -200,8 +200,8 @@ func TestMayflashExtraCostGrammar(t *testing.T) {
 	if c, ok := mayflashExtraCost(unknown.Faces[0]); ok {
 		t.Fatalf("unmodelled token must withhold, got %+v", c)
 	}
-	behold := card(t, "Name:MF Behold\nManaCost:1 R\nTypes:Sorcery\nK:MayFlashCost:Behold<1/Dragon>\nOracle:x\n")
+	behold := card(t, "Name:MF Behold\nManaCost:1 R\nTypes:Sorcery\nK:MayFlashCost:Behold<1/Elf>\nOracle:x\n")
 	if c, ok := mayflashExtraCost(behold.Faces[0]); !ok || len(c.Behold) != 1 {
-		t.Fatalf("Behold<1/Dragon> -> (%+v, %v), want one Behold part", c, ok)
+		t.Fatalf("Behold<1/Elf> -> (%+v, %v), want one Behold part", c, ok)
 	}
 }

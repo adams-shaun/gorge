@@ -26,15 +26,15 @@ import (
 )
 
 const crystallineCrawlerSrc = "Name:Crystalline Crawler\nManaCost:4\nTypes:Artifact Creature Construct\nPT:1/1\n" +
-	"K:etbCounter:P1P1:X:no Condition:Converge — CARDNAME enters with a +1/+1 counter on it for each color of mana spent to cast it.\n" +
+	"K:etbCounter:P1P1:X:no Condition\n" +
 	"SVar:X:Count$Converge\n" +
-	"A:AB$ Mana | Cost$ SubCounter<1/P1P1> | Produced$ Any | SpellDescription$ Add one mana of any color.\n" +
-	"A:AB$ PutCounter | Cost$ T | CounterType$ P1P1 | CounterNum$ 1 | SpellDescription$ Put a +1/+1 counter on CARDNAME.\n" +
+	"A:AB$ Mana | Cost$ SubCounter<1/P1P1> | Produced$ Any\n" +
+	"A:AB$ PutCounter | Cost$ T | CounterType$ P1P1 | CounterNum$ 1\n" +
 	"DeckHas:Ability$Counters\n" +
 	"Oracle:Converge — Crystalline Crawler enters with a +1/+1 counter on it for each color of mana spent to cast it.\\nRemove a +1/+1 counter from Crystalline Crawler: Add one mana of any color.\\n{T}: Put a +1/+1 counter on Crystalline Crawler.\n"
 
 const radiantFlamesSrc = "Name:Radiant Flames\nManaCost:2 R\nTypes:Sorcery\n" +
-	"A:SP$ DamageAll | NumDmg$ X | ValidCards$ Creature | ValidDescription$ each creature. | SpellDescription$ Converge — CARDNAME deals X damage to each creature, where X is the number of colors of mana spent to cast this spell.\n" +
+	"A:SP$ DamageAll | NumDmg$ X | ValidCards$ Creature | ValidDescription$ each creature.\n" +
 	"SVar:X:Count$Converge\n" +
 	"AI:RemoveDeck:All\n" +
 	"Oracle:Converge — Radiant Flames deals X damage to each creature, where X is the number of colors of mana spent to cast this spell.\n"

@@ -3,8 +3,12 @@ package gorged
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/adams-shaun/gorge/bots"
+	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
+	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -61,5 +65,70 @@ func TestPairedBotRefusesAnOpenListPolicy(t *testing.T) {
 	}
 	if _, err := host.New(host.Options{LoadDeck: load, PairedBot: e}); err == nil || !strings.Contains(err.Error(), "real decklists") {
 		t.Fatalf("az-redeal as a paired bot: %v", err)
+	}
+}
+
+// A table may choose what the server offers, and nothing else. A server
+// without -paired-bot offers nothing to choose.
+func TestCreateGameChoosesAPairedBot(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
+	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
+	builtin, err := (config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}).pairedBotEntry(reg, load, []string{"a", "b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gate *seatGate
+	build := func(def *bots.Entry) func(httpapi.CreateGameOptions) (httpapi.CreateGameResponse, error) {
+		r, err := host.New(host.Options{LoadDeck: load, Sleep: func(time.Duration, <-chan struct{}) {}, PairedBot: def, PairedBotSearches: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { r.Close() })
+		gate = &seatGate{tokenToClaim: map[string]httpapi.SeatClaim{}, claimTokens: map[httpapi.SeatClaim]string{}}
+		return (config{mulligans: 0, autoMana: true, botAutoPayMana: true}).createGame(r, gate, nil, []string{"a", "b"}, view.Public)
+	}
+	create := build(builtin)
+	for _, name := range []string{"", host.PairedBotOff, pairedBotBuiltin} {
+		if _, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, PairedBot: name}); err != nil {
+			t.Errorf("choice %q: %v", name, err)
+		}
+	}
+	minted := len(gate.tokenToClaim)
+	if _, err := create(httpapi.CreateGameOptions{Format: host.FormatConstructed, PairedBot: "no-such-bot"}); err == nil || !strings.Contains(err.Error(), "not offered") {
+		t.Errorf("an unoffered bot: %v", err)
+	}
+	if len(gate.tokenToClaim) != minted {
+		t.Error("a refused request left a seat token behind")
+	}
+	if _, err := build(nil)(httpapi.CreateGameOptions{Format: host.FormatConstructed, PairedBot: pairedBotBuiltin}); err == nil || !strings.Contains(err.Error(), "not offered") {
+		t.Errorf("a server without the option: %v", err)
+	}
+}
+
+// The built-in search is on offer beside a registered default, and only with a
+// default: a choice cannot switch searching on.
+func TestPairedBotChoicesNeedTheFlag(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck := testutil.RepoDeck(t, reg, "mono-red-goblins")
+	load := func(string) (host.Deck, error) { return host.Deck{Name: "d", Cards: deck}, nil }
+	c := config{engine: "gorge", pairedBot: pairedBotBuiltin, pairedBotSims: 4, pairedBotSearches: 1}
+	if got := c.pairedBotChoices(host.Options{}, reg, load, []string{"a"}); got != nil {
+		t.Errorf("no default: %v", got)
+	}
+	def, err := c.pairedBotEntry(reg, load, []string{"a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: def}, reg, load, []string{"a"}) {
+		if e.Name == pairedBotBuiltin {
+			t.Error("the default is listed as its own choice")
+		}
+	}
+	other := *def
+	other.Name = "another"
+	got := c.pairedBotChoices(host.Options{LoadDeck: load, PairedBot: &other}, reg, load, []string{"a"})
+	if len(got) == 0 || got[0].Name != pairedBotBuiltin {
+		t.Errorf("beside another default: %v", got)
 	}
 }

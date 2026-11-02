@@ -1,0 +1,103 @@
+{
+"name": "FDN_top_09691_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 59627c53022c42f599f7e23416f79df4:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 1
+},
+{
+"name": "Exemplar of Light",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Felidar Savior",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Fleeting Flight",
+"count": 2
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Guarded Heir",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 2
+},
+{
+"name": "Helpful Hunter",
+"count": 1
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Inspiring Paladin",
+"count": 1
+},
+{
+"name": "Island",
+"count": 7
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 7
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 2
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Tranquil Cove",
+"count": 2
+},
+{
+"name": "Vanguard Seraph",
+"count": 1
+},
+{
+"name": "Youthful Valkyrie",
+"count": 1
+}
+]
+}

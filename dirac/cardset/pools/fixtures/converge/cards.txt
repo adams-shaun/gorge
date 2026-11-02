@@ -1,0 +1,36 @@
+# the Converge pool: the lowered converge carriers (SOS, Steel Exemplar)
+# (Transcendent Archaic stays refused: its Draw's OptionalDecider$ and
+# RememberDrawn$) beside basics and gain lands of all five colours,
+# Twincast (a copy reads 0), removal and a counterspell
+# (dirac/oracle/converge_test.go)
+Arcane Omens
+Archaic's Agony
+Snarl Song
+Together as One
+Magmablood Archaic
+Rancorous Archaic
+Sundering Archaic
+Steel Exemplar
+Twincast
+Lightning Bolt
+Shock
+Murder
+Cancel
+Opt
+Divination
+Grizzly Bears
+Hill Giant
+Priest of Urabrask
+Plains
+Island
+Swamp
+Mountain
+Forest
+Scoured Barrens
+Dismal Backwater
+Bloodfell Caves
+Rugged Highlands
+Jungle Hollow
+Thornwood Falls
+Wind-Scarred Crag
+Swiftwater Cliffs

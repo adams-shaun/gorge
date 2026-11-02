@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_13082_WB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 1ed114d5fb9842168854b485ba1f18b8:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Agate-Blade Assassin, 1 Carrot Cake, 1 Consumed by Greed, 1 Essence Channeler, 1 Parting Gust -> 3 Plains, 2 Swamp",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Fell",
+"count": 1
+},
+{
+"name": "Glidedive Duo",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Scales of Shale",
+"count": 2
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Star Charter",
+"count": 3
+},
+{
+"name": "Starlit Soothsayer",
+"count": 2
+},
+{
+"name": "Swamp",
+"count": 9
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+},
+{
+"name": "Wax-Wane Witness",
+"count": 2
+}
+]
+}

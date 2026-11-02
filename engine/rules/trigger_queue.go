@@ -233,7 +233,7 @@ func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
 		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0 && !pt.SpeedIncrease &&
-		!pt.InitiativeVenture
+		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal
 }
 
 // orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
@@ -464,8 +464,14 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.DelayedPush, Obj: pt.Source,
-			Player: pt.Controller, Counter: "__monarch_draw"})
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_draw"})
+		return
+	}
+	if pt.MonarchSteal {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_steal", Amount: int32(pt.MonarchTo)})
 		return
 	}
 	if pt.InitiativeVenture {
@@ -1492,15 +1498,6 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // gap, not a live one -- but a future card that did would have
 // TriggeredCardController read the wrong creature's controller whenever it
 // attacks alongside another creature that happened to be declared first.
-//
-// LIMITATION: the remaining ten T: lines (TriggeredPlayer, EnchantedController,
-// TriggeredAttackingPlayer, TriggeredActivator, on Phase, SpellCast,
-// AttackersDeclared and AttackerUnblocked triggers; 0.7% of the corpus's
-// optional triggers) have no case in deciderFromSpec, so they ask the controller.
-// A human is still asked and no outcome is assumed, but it can ask the wrong
-// human, so it is a real gap and not a silent approximation. TriggerContext
-// already carries the triggering player, the attacking player and the activator;
-// the enchanted controller would read the source's attachment.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
 	// A Miracle offer is always optional and its decider is always the
 	// owner (the controller of the drawn card). It has no T: line to read, so
@@ -1532,7 +1529,7 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 	if spec == "" {
 		return 0, false, false
 	}
-	who, askable = e.deciderFromSpec(spec, pt.Controller, pt.Ctx.Remembered, pt.Ctx.TriggerContext)
+	who, askable = e.deciderFromSpec(spec, pt.Source, pt.Controller, pt.Ctx.Remembered, pt.Ctx.TriggerContext)
 	return who, true, askable
 }
 
@@ -1546,7 +1543,7 @@ func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optiona
 // controller is the ability's controller and remembered the objects the
 // trigger captured; the returned askable is false when the decider has left
 // the game.
-func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (who state.PlayerID, askable bool) {
+func (e *Engine) deciderFromSpec(spec string, source state.ObjID, controller state.PlayerID, remembered []state.Target, tc effects.TriggerContext) (who state.PlayerID, askable bool) {
 	who = controller
 	switch deciderFromSpecCodes.Code(string(spec)) {
 	case deciderFromSpecYou:
@@ -1567,6 +1564,24 @@ func (e *Engine) deciderFromSpec(spec string, controller state.PlayerID, remembe
 		// the Sliver that dealt the damage, not Brood Sliver's controller).
 		if p, ok := effects.TriggeredSourceController(e.G, tc, remembered); ok {
 			who = p
+		}
+	case deciderFromSpecTriggeredPlayer:
+		if tc.TriggerPlayer.IsPlayer {
+			who = tc.TriggerPlayer.Player
+		}
+	case deciderFromSpecTriggeredAttackingPlayer:
+		if tc.AttackingPlayer.IsPlayer {
+			who = tc.AttackingPlayer.Player
+		}
+	case deciderFromSpecTriggeredActivator:
+		if tc.TriggerActivator.IsPlayer {
+			who = tc.TriggerActivator.Player
+		}
+	case deciderFromSpecEnchantedController:
+		if src := e.G.Obj(source); src != nil {
+			if host := e.G.Obj(src.AttachedTo); host != nil {
+				who = host.Controller
+			}
 		}
 	}
 	if int(who) >= len(e.G.Players) || e.G.Players[who].Lost {
@@ -1677,7 +1692,7 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 	if spec == "" {
 		return false, 0
 	}
-	who, askable := e.deciderFromSpec(spec, o.Controller, o.Remembered, e.triggerContexts[id])
+	who, askable := e.deciderFromSpec(spec, o.Source, o.Controller, o.Remembered, e.triggerContexts[id])
 	if !askable {
 		return false, 0
 	}
@@ -1698,6 +1713,12 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// to read a TriggerDescription$ from.
 	if pt.SpeedIncrease {
 		return "Speed: whenever an opponent loses life during your turn"
+	}
+	if pt.MonarchDraw {
+		return "The monarch: draw a card"
+	}
+	if pt.MonarchSteal {
+		return "The monarch: that creature's controller becomes the monarch"
 	}
 	if pt.RingEmblem > 0 {
 		return ringEmblemLabel(pt.RingEmblem)
@@ -1771,11 +1792,11 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			return name + ": madness cast-or-graveyard trigger"
 		}
 		head, verb := "Miracle", "reveal "
-		o := e.G.Obj(pt.Source)
-		cost := ""
-		if o != nil && o.Face() != nil {
-			if c, ok := o.Face().KeywordParam(head); ok {
-				cost = c
+		cost, _ := e.derivedKeywordParamH(pt.Source, kwhMiracle)
+		if less, ok := miracleCardCostLess(cost); ok {
+			cost = "its mana cost"
+			if less != "" {
+				cost += " less " + less
 			}
 		}
 		return head + " — " + verb + name + " for " + cost + "?"
@@ -2188,12 +2209,20 @@ const (
 	deciderFromSpecYou deciderFromSpecCode = iota + 1
 	deciderFromSpecTriggeredCardController
 	deciderFromSpecTriggeredSourceController
+	deciderFromSpecTriggeredPlayer
+	deciderFromSpecTriggeredAttackingPlayer
+	deciderFromSpecTriggeredActivator
+	deciderFromSpecEnchantedController
 )
 
 var deciderFromSpecCodes = state.NewStrCodes(
 	state.StrEntry[deciderFromSpecCode]{Key: "You", Val: deciderFromSpecYou},
 	state.StrEntry[deciderFromSpecCode]{Key: "TriggeredCardController", Val: deciderFromSpecTriggeredCardController},
 	state.StrEntry[deciderFromSpecCode]{Key: "TriggeredSourceController", Val: deciderFromSpecTriggeredSourceController},
+	state.StrEntry[deciderFromSpecCode]{Key: "TriggeredPlayer", Val: deciderFromSpecTriggeredPlayer},
+	state.StrEntry[deciderFromSpecCode]{Key: "TriggeredAttackingPlayer", Val: deciderFromSpecTriggeredAttackingPlayer},
+	state.StrEntry[deciderFromSpecCode]{Key: "TriggeredActivator", Val: deciderFromSpecTriggeredActivator},
+	state.StrEntry[deciderFromSpecCode]{Key: "EnchantedController", Val: deciderFromSpecEnchantedController},
 )
 
 type targetChooserFromSpecCode uint16

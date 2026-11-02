@@ -1,0 +1,27 @@
+# dirac/oracle/filtercrewedcast_test.go
+Consumed by Greed
+Balthier and Fran
+Leatherhead, Swamp Stalker
+Sandman's Quicksand
+Satoru, the Infiltrator
+Smuggler's Copter
+Renegade Freighter
+Sky Skiff
+Grizzly Bears
+Raging Goblin
+Llanowar Elves
+Hill Giant
+Shock
+Lightning Bolt
+Tormenting Voice
+Zombify
+Memnite
+Ornithopter
+Walking Corpse
+Scathe Zombies
+Bonesplitter
+Bad Moon
+Swamp
+Island
+Forest
+Mountain

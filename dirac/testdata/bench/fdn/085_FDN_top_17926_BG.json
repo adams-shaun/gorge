@@ -1,0 +1,91 @@
+{
+"name": "FDN_top_17926_BG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 2b4994063fb64a57a281d8fd75d0732f:0, player win-rate bucket 0.64 (CC BY 4.0)",
+"cards": [
+{
+"name": "Affectionate Indrik",
+"count": 2
+},
+{
+"name": "Crypt Feaster",
+"count": 1
+},
+{
+"name": "Dwynen's Elite",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 7
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 2
+},
+{
+"name": "Marauding Blight-Priest",
+"count": 1
+},
+{
+"name": "Reassembling Skeleton",
+"count": 1
+},
+{
+"name": "Rune-Scarred Demon",
+"count": 1
+},
+{
+"name": "Scavenging Ooze",
+"count": 1
+},
+{
+"name": "Seeker's Folly",
+"count": 2
+},
+{
+"name": "Stab",
+"count": 2
+},
+{
+"name": "Stromkirk Bloodthief",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 8
+},
+{
+"name": "Tragic Banshee",
+"count": 2
+},
+{
+"name": "Wary Thespian",
+"count": 1
+},
+{
+"name": "Wildwood Scourge",
+"count": 1
+},
+{
+"name": "Zombify",
+"count": 1
+}
+]
+}

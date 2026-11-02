@@ -14,7 +14,7 @@ import (
 // graveyardCastsWalk runs eight loops over the seat's graveyard, one per
 // route, and every loop's first gate is a keyword read: the PRINTED
 // Harmonize and Warp lines (harmonizeCost, keywordAltCost: Face.KeywordParam),
-// the DERIVED Flashback, Escape, Retrace, Jump-start and Mayhem heads
+// the DERIVED Flashback, Escape, Retrace, Jump-start, Mayhem and Beam me up heads
 // (hasKeywordH / mayHaveDerivedKeywordH, whose exact negative precheck is
 // mayHaveDerivedKeywordAnyH), and the aftermath alternate face
 // (aftermathAlternateFace). Measured on the random SpellBench leg the section
@@ -43,8 +43,8 @@ var (
 // graveyard route; graveyardDerivedHeads are those read through the derived
 // list (a subset: Harmonize and Warp are printed-only reads).
 var (
-	graveyardPrintedHeads = [...]kwHead{kwhHarmonize, kwhWarp, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem}
-	graveyardDerivedHeads = [...]kwHead{kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem}
+	graveyardPrintedHeads = [...]kwHead{kwhHarmonize, kwhWarp, kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
+	graveyardDerivedHeads = [...]kwHead{kwhFlashback, kwhEscape, kwhRetrace, kwhJumpStart, kwhMayhem, kwhBeamMeUp}
 )
 
 // graveyardCandidates appends to buf the ids of zone that can pass some

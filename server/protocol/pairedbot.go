@@ -17,6 +17,15 @@ type PairedBotStatus struct {
 	Shared bool `json:"shared,omitempty"`
 }
 
+// PairedBotChoice is one paired bot a new table may choose
+// (Capabilities.PairedBots).
+type PairedBotChoice struct {
+	Name  string `json:"name"`
+	Label string `json:"label"`
+	// Formats are the construction formats it plays; empty means all.
+	Formats []string `json:"formats,omitempty"`
+}
+
 // The states of an Advice.
 const (
 	// AdviceReady: Explain holds the bot's evaluation.
@@ -38,6 +47,9 @@ type Advice struct {
 	Seat   uint8  `json:"seat"`
 	Policy string `json:"policy"`
 	State  string `json:"state"`
+	// Reason is plain words: why a none or refused has no evaluation, or what
+	// a player should know about a ready one, such as a search that ran out of
+	// time.
 	Reason string `json:"reason,omitempty"`
 	// Explain is a bots/explain.Note: the same shape as
 	// ReviewDecision.Explain, with Choices indexing the decision's options.

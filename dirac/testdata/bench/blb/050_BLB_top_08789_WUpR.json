@@ -1,0 +1,79 @@
+{
+"name": "BLB_top_08789_WUpR",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck c1a76b9663fd4239b5315805a72fa663:1, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Dazzling Denial, 1 Dour Port-Mage, 1 Kastral, the Windcrested, 1 Spellgyre, 1 Whiskervale Forerunner -> 3 Plains, 3 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Brave-Kin Duo",
+"count": 1
+},
+{
+"name": "Brightblade Stoat",
+"count": 1
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Knightfisher",
+"count": 2
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Mabel, Heir to Cragflame",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 1
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 10
+},
+{
+"name": "Plumecreed Escort",
+"count": 2
+},
+{
+"name": "Plumecreed Mentor",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

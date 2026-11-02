@@ -16,7 +16,7 @@ import (
 // the rules tier as the trigger resolves -- effects.chosenTargetsFor (the
 // "tgts" ask) or effects.changeZoneChosenTargets (the ChangeZone
 // "choice" ask) -- and Engine.ChooserFor routes it (Mausoleum Turnkey's
-// TrigChangeZone shape). Before either router the ask silently went to the
+// OnChangeZone shape). Before either router the ask silently went to the
 // ability's controller.
 
 // cardHasSubTargetingPlayer reports whether the compiled card carries any
@@ -153,8 +153,8 @@ func TestVolcanicOfferingSubTargetAskGoesToOpponent(t *testing.T) {
 // mid-resolution "choice" ask the shared tail owns.
 const choiceProbeOuterSrc = "Name:Choice Probe\nManaCost:B\nTypes:Creature Ogre\nPT:3/2\n" +
 	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigOuter | TriggerDescription$ x\n" +
-	"SVar:TrigOuter:DB$ Pump | Defined$ Self | SubAbility$ TrigChangeZone\n" +
-	"SVar:TrigChangeZone:DB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Creature.YouOwn | TargetingPlayer$ Opponent\n" +
+	"SVar:TrigOuter:DB$ Pump | Defined$ Self | SubAbility$ OnChangeZone\n" +
+	"SVar:OnChangeZone:DB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Creature.YouOwn | TargetingPlayer$ Opponent\n" +
 	"Oracle:x\n"
 
 const choiceProbeDeadSrc = "Name:Dead Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
@@ -180,7 +180,7 @@ func TestMausoleumTurnkeyChangeZoneAskGoesToOpponent(t *testing.T) {
 
 	ask := passPriorityUntilNonPriority(t, e)
 	if ask.Kind != decision.KChoose || ask.ResumeKind != "choice" {
-		t.Fatalf("mid-resolution ask = %+v, want the ChangeZone \"choice\" KChoose for TrigChangeZone", ask)
+		t.Fatalf("mid-resolution ask = %+v, want the ChangeZone \"choice\" KChoose for OnChangeZone", ask)
 	}
 	if ask.Player != 1 {
 		t.Fatalf("ChangeZone mid-resolution target ask posed to seat %d, want the opponent seat 1 (TargetingPlayer$ Opponent)", ask.Player)

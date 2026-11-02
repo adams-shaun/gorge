@@ -151,7 +151,7 @@ func TestNameAnswerDoesNotChooseTheChainedCharmsMode(t *testing.T) {
 // the hidden pick's resume re-enters MReturn, not the root, so the nested
 // Charm must pose its own ask rather than re-run the root's mode names.
 const modalLeakScript = "Name:LeakCharm\nManaCost:1 U\nTypes:Creature Human Wizard\nPT:2/2\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME enters, ABILITY\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCharm\n" +
 	"SVar:TrigCharm:DB$ Charm | Choices$ MReturn,MLife\n" +
 	"SVar:MReturn:DB$ ChangeZone | Hidden$ True | Mandatory$ True | ChangeType$ Creature.YouOwn | ChangeTypeDesc$ creature card | ChangeNum$ 1 | Origin$ Graveyard | Destination$ Hand | SubAbility$ DBInner | SpellDescription$ Return a creature card from your graveyard to your hand.\n" +
 	"SVar:DBInner:DB$ Charm | Choices$ InGain,InLose\n" +

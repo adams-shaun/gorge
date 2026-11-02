@@ -166,6 +166,15 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 		module + "/cmd/enginebench":          true,
 		module + "/server/host/manabrewhttp": true,
 		module + "/draft/eventhost":          true,
+		// A lockstep game runs under a watchdog, so a hang is reported rather than
+		// stalling the run; kgen times its table build; dplay bounds a timed run by
+		// wall time. None of it reaches a game.
+		module + "/dirac/cmd/dplay":        true,
+		module + "/dirac/oracle":           true,
+		module + "/dirac/oracle/cmd/kfuzz": true,
+		module + "/dirac/oracle/cmd/khbot": true,
+		module + "/dirac/oracle/cmd/ksbt":  true,
+		module + "/dirac/kgen":             true,
 	}
 	for path, p := range packages(t) {
 		if p.imports["time"] && !allowed[path] {

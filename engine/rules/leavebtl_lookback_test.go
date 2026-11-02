@@ -22,10 +22,10 @@ import (
 // destroy and lethal-damage spells the two routes are driven through.
 
 var lbVial = "Name:Vial Fixture\nManaCost:3\nTypes:Artifact\n" +
-	"A:AB$ Draw | Cost$ 2 T Sac<1/Creature> | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
-	"S:Mode$ Continuous | Affected$ Card.Self | AddTrigger$ TrigDrain | IsPresent$ Cleric.YouCtrl | Description$ As long as you control a Cleric, CARDNAME has \"Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.\"\n" +
-	"SVar:TrigDrain:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigLoseLife | TriggerDescription$ Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.\n" +
-	"SVar:TrigLoseLife:DB$ LoseLife | Defined$ Player.Opponent | LifeAmount$ 1 | SubAbility$ DBGainLife\n" +
+	"A:AB$ Draw | Cost$ 2 T Sac<1/Creature> | NumCards$ 1\n" +
+	"S:Mode$ Continuous | Affected$ Card.Self | AddTrigger$ OnDrain | IsPresent$ Cleric.YouCtrl | Description$ As long as you control a Cleric, CARDNAME has \"Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.\"\n" +
+	"SVar:OnDrain:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ OnLoseLife\n" +
+	"SVar:OnLoseLife:DB$ LoseLife | Defined$ Player.Opponent | LifeAmount$ 1 | SubAbility$ DBGainLife\n" +
 	"SVar:DBGainLife:DB$ GainLife | Defined$ You | LifeAmount$ 1\n" +
 	"Oracle:x\n"
 

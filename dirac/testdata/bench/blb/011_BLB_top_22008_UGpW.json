@@ -1,0 +1,67 @@
+{
+"name": "BLB_top_22008_UGpW",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck ff382fc4bd6a451886cec08a3972662d:0, player win-rate bucket 0.64 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Curious Forager, 1 Kastral, the Windcrested, 1 Kitnap, 1 Polliwallop, 1 Pond Prophet -> 3 Island, 2 Forest",
+"cards": [
+{
+"name": "Bellowing Crier",
+"count": 2
+},
+{
+"name": "Dire Downdraft",
+"count": 3
+},
+{
+"name": "Forest",
+"count": 9
+},
+{
+"name": "Island",
+"count": 11
+},
+{
+"name": "Knightfisher",
+"count": 1
+},
+{
+"name": "Lilysplash Mentor",
+"count": 2
+},
+{
+"name": "Mindwhisker",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 1
+},
+{
+"name": "Plumecreed Escort",
+"count": 1
+},
+{
+"name": "Shore Up",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+}
+]
+}

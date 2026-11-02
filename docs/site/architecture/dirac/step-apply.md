@@ -84,8 +84,8 @@ kind << 24 | source << 16 | target << 8 | mode
 ```
 
 `source` and `target` are `Obj` indices. Bytes `0xF0` and up in a target are the two players and "none", which is why
-`MaxObj` can't pass 240. `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. Each of the
-20 action kinds says which fields it uses: `AkCast`'s mode bits name the cast route, for example kicked, flashback or
+`MaxObj` can't pass 240. `MakeAction`, `Kind()`, `Source()`, `Target()` and `Mode()` encode and decode it. Each action
+kind says which fields it uses: `AkCast`'s mode bits name the cast route, for example kicked, flashback or
 a play permission. A granted activated ability is `AkActivate` with the creature as source, the granting permanent
 as target and `0x80 | index` as mode.
 

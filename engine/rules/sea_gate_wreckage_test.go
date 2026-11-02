@@ -17,11 +17,11 @@ import (
 // activationConditionOK, wired into the printed-ability loop and the mana
 // path), so every API's activation is covered, not Draw's alone.
 
-// wreckSrc is Sea Gate Wreckage's real script shape (both abilities
-// verbatim): the {2}{C}, {T} hellbent draw.
+// wreckSrc is Sea Gate Wreckage's real script shape (both abilities): the
+// {2}{C}, {T} hellbent draw.
 const wreckSrc = "Name:Sea Gate Wreckage\nTypes:Land\n" +
 	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\n" +
-	"A:AB$ Draw | Cost$ 2 C T | NumCards$ 1 | Activation$ Hellbent | SpellDescription$ Draw a card. Activate only if you have no cards in hand.\nOracle:x\n"
+	"A:AB$ Draw | Cost$ 2 C T | NumCards$ 1 | Activation$ Hellbent\nOracle:x\n"
 
 // TestSeaGateWreckageHellbentGate drives the wreck's activated draw end to
 // end: with a card in hand the ability is not offered; with an empty hand it

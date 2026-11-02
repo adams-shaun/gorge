@@ -232,8 +232,8 @@ func TestManaReflectedAttributionIsTheAbilitySourceNotTheReflectedSet(t *testing
 // typed ManaReflected sources, both activated AB$ bodies), so the fixture is
 // synthetic; the script shape is Mana Flare's real one.
 const desertFlareCarrier = "Name:Ctms Dune\nManaCost:2 R\nTypes:Land Desert\n" +
-	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ TrigMana | TriggerZones$ Battlefield | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n" +
-	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
+	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ OnMana | TriggerZones$ Battlefield | Static$ True\n" +
+	"SVar:OnMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\nOracle:x\n"
 
 // TestProducedShapeTagsItsSourceNotTheReflectedLand covers the redirect arm
 // the reflect body offers: ReflectProperty$ Produced reads the types the
@@ -268,7 +268,7 @@ func TestProducedShapeTagsItsSourceNotTheReflectedLand(t *testing.T) {
 		t.Fatalf("precondition: seat 1 Desert tally = %d, want 0 before the tap", got)
 	}
 
-	sa := cards.ResolveSVar(do.Face().SVars, "TrigMana")
+	sa := cards.ResolveSVar(do.Face().SVars, "OnMana")
 	if sa == nil || sa.Params["ReflectProperty"] != "Produced" {
 		t.Fatalf("the carrier's real Produced-reflection SVar changed: %+v", sa)
 	}

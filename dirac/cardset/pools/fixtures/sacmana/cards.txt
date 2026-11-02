@@ -1,0 +1,24 @@
+# the sacrifice/tap-cost vs mana pool (sacmana): Treasure makers, mana
+# creatures and rocks beside activations and spells whose sacrifice or
+# tap-another part can take a mana source, for the oracle's lockstep
+Basal Thrull
+Deadly Dispute
+Elvish Mystic
+Forest
+Fountainport
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Makeshift Munitions
+Mind Stone
+Mountain
+Network Terminal
+Ornithopter
+Plains
+Prosperous Innkeeper
+Revelsong Horn
+Savannah Lions
+Swamp
+Treasure Dredger
+Volrath's Gardens
+Wanderbrine Trapper

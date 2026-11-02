@@ -45,6 +45,8 @@ describe('startPlayVsBot', () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ format: 'commander', human_deck: 'h', bot_deck: 'b', bot_policy: 'bot', mulligans: 6 });
     await startPlayVsBot('commander', '', '', 6, '');
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ format: 'commander', mulligans: 6 });
+    await startPlayVsBot('constructed', '', '', 6, '', 'off');
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ format: 'constructed', mulligans: 6, paired_bot: 'off' });
   });
 
   it('propagates a server rejection so the panel can render it', async () => {

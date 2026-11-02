@@ -1,0 +1,75 @@
+{
+"name": "BLB_top_04496_BRpWU",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 93159e5f926b4412be393d636587c568:0, player win-rate bucket 0.72 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Fireglass Mentor, 1 Steampath Charger, 1 Thought-Stalker Warlock, 1 Valley Rotcaller, 1 Vren, the Relentless, 1 Whiskerquill Scribe -> 3 Swamp, 3 Mountain",
+"cards": [
+{
+"name": "Cindering Cutthroat",
+"count": 1
+},
+{
+"name": "Fountainport Bell",
+"count": 2
+},
+{
+"name": "Frilled Sparkshooter",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 1
+},
+{
+"name": "Island",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 10
+},
+{
+"name": "Patchwork Banner",
+"count": 1
+},
+{
+"name": "Playful Shove",
+"count": 1
+},
+{
+"name": "Rabid Gnaw",
+"count": 1
+},
+{
+"name": "Ravine Raider",
+"count": 1
+},
+{
+"name": "Reptilian Recruiter",
+"count": 2
+},
+{
+"name": "Savor",
+"count": 2
+},
+{
+"name": "Scales of Shale",
+"count": 2
+},
+{
+"name": "Starlit Soothsayer",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 10
+},
+{
+"name": "Take Out the Trash",
+"count": 2
+}
+]
+}

@@ -1,0 +1,31 @@
+# the DSK Rooms pool: the UnlockDoor effects
+# (Ghostly Keybearer, Keys to the House, Marina Vendrell), Inquisitive
+# Glimmer's unlock-cost reduction, Unwilling Vessel's possession counter,
+# the DSK Rooms, Fear of Infinity and basics, for the oracle's
+# constructed lockstep and mutation (dirac/oracle/dskrooms_test.go)
+Blaze
+Bottomless Pool
+Defiled Crypt
+Derelict Attic
+Fear of Infinity
+Forest
+Funeral Room
+Ghostly Keybearer
+Grand Entryway
+Grizzly Bears
+Inquisitive Glimmer
+Island
+Keys to the House
+Lightning Bolt
+Marina Vendrell
+Meat Locker
+Mind Spring
+Mountain
+Plains
+Restricted Office
+Roaring Furnace
+Surgical Suite
+Swamp
+Ticket Booth
+Unholy Annex
+Unwilling Vessel

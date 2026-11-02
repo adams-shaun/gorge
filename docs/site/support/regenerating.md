@@ -11,7 +11,7 @@ names the commit it was taken at.
 |---|---|---|
 | per-set playable, Level A, Level B, roll-ups, every-set table | gorge-compliance's `oraclediff status` | nightly, through its `docs-data` branch; rendered at every docs build |
 | certified-set and Level A/B headline rows | the same status | the same |
-| dirac per-set accepted / cards, corpus-wide accepted, lockstep games | dirac's acceptance ratchet and lockstep runs | a committed snapshot, `docs/site/support/dirac-sets.json`, edited by a maintainer |
+| dirac per-set and corpus-wide supported and lowered, lockstep games | `dirac/docs/support.md` and `make dirac-slices` | a committed snapshot, `docs/site/support/dirac-sets.json`, held to that page by a test ([below](#dirac-refreshing-the-snapshot)) |
 | corpus cards, playable, tokens, top missing primitives | gorge, `make report` | by hand |
 | playable by card type | gorge, `make coverage` | by hand |
 | parse diagnostics | gorge, `forgec compile` | by hand |
@@ -25,10 +25,10 @@ flowchart LR
     SA["oraclediff status -level A"] --> DD[("docs-data branch<br/>status-A.jsonl, status-B.jsonl, meta.json")]
     SB["oraclediff status -level B"] --> DD
   end
-  subgraph priv["dirac"]
-    RK["acceptance ratchet<br/>lockstep runs"]
+  subgraph dirac["dirac, with the corpus"]
+    RK["dirac/docs/support.md<br/>make dirac-slices"]
   end
-  RK -->|"maintainer edits"| SNAP["support/dirac-sets.json<br/>(committed)"]
+  RK -->|"--refresh-dirac, held by a test"| SNAP["support/dirac-sets.json<br/>(committed)"]
   subgraph build["gorge docs.yml"]
     DS["scripts/docs_sets.py"] --> FR["support/_generated_sets.md<br/>(gitignored)"]
   end
@@ -145,23 +145,27 @@ print(collections.Counter(r["status"] for r in rows).most_common())'
 
 ## dirac: refreshing the snapshot
 
-dirac's source isn't in this repository, so no job here can re-measure it. Its per-set figures live in a
-small committed file,
+The docs build has no card corpus, so it can't generate dirac's figures. They live in a small committed file,
 [`docs/site/support/dirac-sets.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/support/dirac-sets.json),
-which holds:
+holding the gorge commit and date they were read at, the counts of each set and of the corpus, and the lockstep
+result of each committed slice. A clone with the corpus can refresh it:
 
-- the snapshot date;
-- the gorge commit it pins;
-- the corpus-wide accepted / cards count;
-- accepted / cards for each set in its acceptance ratchet;
-- the games, agreements, stalls and disagreements of each lockstep-verified
-  set.
+```sh
+make dirac-tables
+DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen   # rewrites dirac/docs/support.md
+python3 scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json \
+  --commit "$(git rev-parse --short=9 HEAD)" --date "$(date -u +%F)"
+make dirac-slices    # its -surface full lines give the snapshot's lockstep rows, copied by hand
+```
 
-To refresh it, a maintainer re-runs dirac's acceptance ratchet and its
-lockstep runs, then copies the counts into this file and opens a pull request. The ratchet's pins are always the live counts, so the
-copy is mechanical. The renderer checks that every accepted count is within
-its card count and that each lockstep row adds up. `docs_sets_test.py` loads
-the committed file.
+`docs_sets_test.py` fails when a count in the snapshot differs from `dirac/docs/support.md`, and the renderer checks
+that each set's counts and each lockstep row add up. To ask about one pool's cards, `go run ./dirac/cmd/kgen -supported fdn`
+prints one line per card.
+
+**The evidence behind those counts** is in `dirac/support/evidence/`. `scripts/dirac-evidence.sh <out>` plays the evidence
+corpus and `scripts/dirac-first-refusals.py evidence <out>` writes the lists. The corpus is the committed FDN and BLB slices
+and one synthetic pool per Standard list, so a clone can run all of it. The full deck pools aren't published and have no
+download, so a clone can't earn FDN and BLB evidence from real decks beyond the slices.
 
 ## gorge: corpus coverage
 

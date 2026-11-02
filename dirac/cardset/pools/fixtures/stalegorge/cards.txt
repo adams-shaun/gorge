@@ -1,0 +1,21 @@
+# the stale-gorge-refusal pool: the Discard
+# mode reading DiscardValid$ Permanent.nonLand in a hand (Dai Li
+# Indoctrination, Solve for Disappointment) and North Pole Patrol's
+# Waterbend<3> T activation (the source is not its own waterbend pick),
+# beside basics and vanilla creatures (dirac/oracle/stalegorge_test.go)
+Dai Li Indoctrination
+Solve for Disappointment
+North Pole Patrol
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Ornithopter
+Llanowar Elves
+Pacifism
+Lightning Bolt
+Divination
+Swamp
+Island
+Forest
+Plains
+Mountain

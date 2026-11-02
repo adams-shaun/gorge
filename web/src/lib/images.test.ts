@@ -25,6 +25,12 @@ function fakeEnv(responses: Record<string, unknown | Error>) {
 }
 
 describe('images', () => {
+  it('asks nothing for a face-down card, which has no name', async () => {
+    const { env, calls } = fakeEnv({});
+    await expect(createImages(env).url('')).resolves.toBeNull();
+    expect(calls).toHaveLength(0);
+  });
+
   it('asks this app\'s own /art/named, never Scryfall directly', async () => {
     const { env, calls } = fakeEnv({ 'Goblin Guide': { image_uris: { normal: '/art/blob/abc.jpg' } } });
     await createImages(env).url('Goblin Guide');

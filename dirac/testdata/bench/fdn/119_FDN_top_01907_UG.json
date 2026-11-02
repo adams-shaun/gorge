@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_01907_UG",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 014af42bb4d248359e7f005165c1103e:0, player win-rate bucket 0.60 (CC BY 4.0)",
+"cards": [
+{
+"name": "Beast-Kin Ranger",
+"count": 1
+},
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 1
+},
+{
+"name": "Elfsworn Giant",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 8
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Island",
+"count": 8
+},
+{
+"name": "Micromancer",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Nessian Hornbeetle",
+"count": 2
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Scavenging Ooze",
+"count": 1
+},
+{
+"name": "Skyship Buccaneer",
+"count": 2
+},
+{
+"name": "Snakeskin Veil",
+"count": 2
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Wary Thespian",
+"count": 2
+}
+]
+}

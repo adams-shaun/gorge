@@ -22,8 +22,8 @@ import (
 // counters on itself, where X is the caster's devotion to the chosen colour
 // -- the Hotel of Fears shape minus the planar trigger.
 const devotionRite = "Name:Rite of Praise\nManaCost:1 B\nTypes:Sorcery\n" +
-	"A:SP$ ChooseColor | Defined$ You | SubAbility$ DBGain\n" +
-	"SVar:DBGain:DB$ GainLife | LifeAmount$ X\n" +
+	"A:SP$ ChooseColor | Defined$ You | SubAbility$ Gain\n" +
+	"SVar:Gain:DB$ GainLife | LifeAmount$ X\n" +
 	"SVar:X:Count$Devotion.Chosen\nOracle:x\n"
 
 // castRite funds {1}{B} and casts the fixture rite from seat 0's hand,
@@ -137,8 +137,8 @@ func TestChosenColorWhiteAnswerCountsTheBoard(t *testing.T) {
 // second answer, so the second pick provably governs.
 const twofoldRite = "Name:Twofold Rite\nManaCost:G\nTypes:Sorcery\n" +
 	"A:SP$ ChooseColor | Defined$ You | SubAbility$ DBSecond\n" +
-	"SVar:DBSecond:DB$ ChooseColor | Defined$ You | SubAbility$ DBGain\n" +
-	"SVar:DBGain:DB$ GainLife | LifeAmount$ X\n" +
+	"SVar:DBSecond:DB$ ChooseColor | Defined$ You | SubAbility$ Gain\n" +
+	"SVar:Gain:DB$ GainLife | LifeAmount$ X\n" +
 	"SVar:X:Count$Devotion.Chosen\nOracle:x\n"
 
 // castTwofold funds {G} and casts the fixture rite from seat 0's hand,
@@ -219,8 +219,8 @@ func TestChosenColorSecondSequentialAskIsPosedAndGoverns(t *testing.T) {
 const chromaticBear = "Name:Chromatic Bear\nManaCost:G\nTypes:Creature Bear\nPT:2/2\n" +
 	"K:ETBReplacement:Other:ChooseColor\n" +
 	"SVar:ChooseColor:DB$ ChooseColor\n" +
-	"A:AB$ ChooseColor | Defined$ You | SubAbility$ DBGain | SpellDescription$ Choose a color.\n" +
-	"SVar:DBGain:DB$ GainLife | LifeAmount$ X\n" +
+	"A:AB$ ChooseColor | Defined$ You | SubAbility$ Gain | SpellDescription$ Choose a color.\n" +
+	"SVar:Gain:DB$ GainLife | LifeAmount$ X\n" +
 	"SVar:X:Count$Devotion.Chosen\nOracle:x\n"
 
 // TestChosenColorAbilityReasksAfterTheEntryChoice pins both halves on the

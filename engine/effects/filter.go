@@ -1067,15 +1067,16 @@ func init() {
 	// Attached: Forge's bare `Attached` CardProperty -- the candidate is
 	// itself attached to a permanent. It is the IS-side twin of the
 	// two-token wordAttachedTo below and the ONE-token form of the same
-	// relation: read the candidate's OWN AttachedTo (never the source's,
-	// which is attachedBy/AttachedBy's meaning), requiring the bearer to
-	// still be a live object. The corpus spells it only as a filter
-	// predicate (Count$Valid Equipment.Attached / Aura.Attached, the
-	// ChangeType$ and ValidCards$ families: 22 files), where the base type
-	// word does the object-kind narrowing. An unattached object matches
-	// nothing; a bearer that has left is not an attachment.
-	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return objectIsAttached(g, o)
+	// relation: the candidate is attached to the source (Forge's
+	// source.hasCardAttachment), the reverse of attachedBy/AttachedBy. The
+	// corpus spells it only as a filter predicate (Count$Valid
+	// Equipment.Attached / Aura.Attached, IsPresent$, Choices$ and ValidTgts$:
+	// Kemba's "for each Equipment attached to this creature"), where the base
+	// type word does the object-kind narrowing. A source that has left reads
+	// what was attached as it left (CR 608.2h: Zack Fair's "an Equipment that
+	// was attached to Zack Fair", sacrificed as the cost).
+	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return objectAttachedToSource(g, o, src)
 	}
 	// modified: Forge's CardProperty.modified (CR 700.9) -- a permanent is
 	// modified if it has one or more counters on it, is equipped, or is
@@ -2635,7 +2636,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
 	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc) || sc.AsPrototype) && colourMapPredicate(p)) {
-		return fn(g, o, sc.You, sc.Source), true
+		return fn(g, o, sc.You, predicateSource(p, &sc)), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
 		return res, true
@@ -2785,6 +2786,18 @@ func batchWordBase(code matchesBaseCode, o *state.Object, sc SpecContext) bool {
 	}
 }
 
+// predicateSource is the source a predicate-map word p compares against: none for
+// Self, Other and StrictlyOther when the source has returned as a new object.
+func predicateSource(p string, sc *SpecContext) state.ObjID {
+	if sc.SourceReturned {
+		switch compilePredicateTermCodes.Code(p) {
+		case compilePredicateTermSelf, compilePredicateTermOther:
+			return 0
+		}
+	}
+	return sc.Source
+}
+
 // SpecContext carries the extra state a filter spec beyond MatchesSpec's
 // three plain arguments needs: the perspective seat, the effect's source
 // (CARDNAME/Self/Other/StrictlyOther/NamedCard/ChosenType are relative to it), and
@@ -2860,6 +2873,11 @@ type SpecContext struct {
 	// inset rather than the printed face. rules' spellSpecCtx sets it for a
 	// "prototype" cast mode; absent from every other evaluation.
 	AsPrototype bool
+	// PreparedSpell names the prepared exile copy (CR 722.3c) this read treats
+	// as the spell it is about to become, the one object copyCeased spares.
+	// Rules' pre-cast reads of that spell set it; zero everywhere else, so
+	// every other read of exile keeps not seeing the copy.
+	PreparedSpell state.ObjID
 	// FrozenChosenName and ChosenNameBound are an Effect-registered static
 	// or delayed trigger's snapshot of the source's chosen card name at
 	// REGISTRATION time (state.ContinuousEffect.ChosenName /
@@ -3142,6 +3160,14 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	return matchesObjectPtr(g, spec, o, &sc)
 }
 
+// copyCeased reports CR 707.10h's rejection: a copy that is neither on the
+// stack nor on the battlefield matches nothing. A prepared exile copy (CR
+// 722.3c) is only the engine's representation of a cast the permanent permits,
+// so it stays unmatched too, unless sc is reading it as the spell being cast.
+func copyCeased(o *state.Object, sc *SpecContext) bool {
+	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell
+}
+
 // matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
 // SpecContext is large, and the per-object hot path must not copy it at
 // every call level.
@@ -3158,7 +3184,9 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	cs := compiledSpecFor(spec)
 	// A split card read as the spell being cast (splitReadAsSpell) is the
 	// same kind of override: the programs read its combined colours.
-	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
+	// A ceased copy is left to compiledMatch's rejection; the programs have no
+	// such check.
+	if ps := sc.PredicatePrograms; ps != nil && !copyCeased(o, sc) && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
 		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) &&
 		!sc.AsPrototype {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
@@ -3187,7 +3215,7 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 	// ChangesZone triggers -- exactly like any other permanent. Only reject
 	// a copy that is neither on the stack (still a spell) nor on the
 	// battlefield (still a permanent).
-	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
+	if copyCeased(o, &sc) {
 		return false
 	}
 	resolve := sc.Resolve

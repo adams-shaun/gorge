@@ -19,7 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-const lessonFixture = "Name:Test Lesson\nManaCost:1 U\nTypes:Sorcery Lesson\nA:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
+const lessonFixture = "Name:Test Lesson\nManaCost:1 U\nTypes:Sorcery Lesson\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
 
 // TestPlatypusBearAttacksWithLessonInGraveyard: the real corpus Platypus-Bear
 // is walled with no Lesson in its owner's graveyard and is offered as an

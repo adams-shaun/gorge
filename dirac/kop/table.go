@@ -1,0 +1,492 @@
+package kop
+
+// CardID indexes Table.Cards. NoCard is "no card". It is 16 bits so one
+// table can hold a whole card pool (the closed-list belief deals any card
+// of the pool's decks, not only the two playing).
+type CardID uint16
+
+const NoCard CardID = 0xFFFF
+
+// MaxSubtypes bounds Table.Subtypes: a SubMask holds that many.
+const MaxSubtypes = 128
+
+// SubMask is a set of subtype indexes (Table.Subtypes).
+type SubMask [MaxSubtypes / 64]uint64
+
+// Has reports whether subtype index i is in m.
+func (m SubMask) Has(i int) bool { return uint(i) < MaxSubtypes && m[i>>6]&(1<<(i&63)) != 0 }
+
+// With is m with subtype index i added (out of range: m).
+func (m SubMask) With(i int) SubMask {
+	if uint(i) < MaxSubtypes {
+		m[i>>6] |= 1 << (i & 63)
+	}
+	return m
+}
+
+// Or is the union of m and o.
+func (m SubMask) Or(o SubMask) SubMask { return SubMask{m[0] | o[0], m[1] | o[1]} }
+
+// And is the intersection of m and o.
+func (m SubMask) And(o SubMask) SubMask { return SubMask{m[0] & o[0], m[1] & o[1]} }
+
+// Any reports whether m is non-empty.
+func (m SubMask) Any() bool { return m[0]|m[1] != 0 }
+
+// Zone names a zone.
+type Zone uint8
+
+const (
+	ZoneNone Zone = iota
+	ZoneLibrary
+	ZoneHand
+	ZoneBattlefield
+	ZoneGraveyard
+	ZoneExile
+	ZoneStack
+	ZoneCommand
+	// ZonePhased and ZonePhasedInd (CR 702.26; ext.go)
+	// are the object zone of a phased-out permanent, phased out directly or
+	// indirectly (because the permanent it is attached to phased out). The
+	// permanent keeps its slot and perm record but is on no mask, so no
+	// battlefield walk sees it; the oracle projects both as the battlefield.
+	ZonePhased
+	ZonePhasedInd
+)
+
+// CardDef is one card's static record.
+type CardDef struct {
+	Name      string // reports only
+	Cost      ManaCost
+	Types     TypeMask
+	Subtypes  SubMask // indexes Table.Subtypes
+	Keywords  KwMask
+	Colors    ColorMask
+	Power     int8
+	Toughness int8
+	Loyalty   int8
+	WardN     uint8
+	Timing    Timing
+	Kicker    ManaCost // when Keywords has KwKicker
+	AltCost   ManaCost // flashback cost when Keywords has KwFlashback
+	Abilities []Ability
+	// Enchant is the Aura's "enchant" target spec (the spell targets it).
+	Enchant TargetSpec
+	// EquipCost is the Equipment's equip cost (an activated ability is implied).
+	EquipCost ManaCost
+
+	// Appended by dirac/kgen.
+	WardLife uint8 // ward—pay N life (KwWard with WardN = 0)
+	// WardEvidence: ward—collect evidence N (KwWard with WardN = 0;
+	// Axebane Ferox; kernel kw_wardcost.go)
+	WardEvidence uint8
+	// WardDiscard: ward—discard N cards (N = 1; KwWard with WardN 0;
+	// gorge kw_ward.go's ward_discard pick; kernel
+	// kw_wardcost.go, Graveyard Trespasser).
+	WardDiscard uint8
+	// WardLifePower: ward—pay life equal to its power (KwWard with WardN
+	// 0; gorge kw_ward.go's PayLife<X/…> arm reads the ward permanent's power
+	// at payment; kernel kw_wardcost.go; Raubahn).
+	WardLifePower bool
+	// WardSac: ward—sacrifice a permanent matching it (KwWard with WardN
+	// 0; gorge kw_ward.go's ward_sac pick; kernel kw_wardcost.go;
+	// Vein Ripper, Ygra).
+	WardSac FilterID
+	Leyline bool // may begin the game on the battlefield from the opening hand
+	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
+	// spell as though it had flash if ..."; Illusion Spinners). The card's own
+	// StatCastWithFlash ability grants it from hand, never from the
+	// battlefield (kernel cast_selfflash.go).
+	SelfFlash  bool
+	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
+	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
+	HasAltAdd  bool
+	// KickerCost: the kicker's non-mana cost (one Sac<1/..> or Return<1/..>
+	// part, Vayne's Treachery, Chocobo Kick; CR 702.33a). Kicker is then
+	// zero mana; a kicked cast pays this through the cost stages (kernel
+	// kw_kicker.go).
+	KickerCost Cost
+	// BeholdN, BeholdF: part one of the either-or additional cost is
+	// "behold a <type>" (Behold<1/Type>, CR 701.4a): BeholdN (1) of the
+	// payer's permanents or hand cards matching BeholdF. Table data, not a
+	// CostFlags bit (none is free); kernel act_behold.go.
+	BeholdN uint8
+	BeholdF FilterID
+	// BeholdExile: the behold is a mandatory additional cost that exiles what
+	// it beholds (RaiseCost Cost$ BeholdExile<1/Type>, the Lorwyn Champions;
+	// BeholdN is 1, no either-or): the pick is recorded, exiled at payment and
+	// linked to the spell for the exiled-with reader (kernel
+	// act_beholdexile.go).
+	BeholdExile bool
+	// Casualty is K:Casualty:<N> (CR 702.153a, N >= 1; 0 = none): the caster
+	// may sacrifice a creature with power N or greater as the spell is cast
+	// (the casualty cast, AkCast mode bit 5; dirac/kw_casualty.go). The
+	// keyword mask has no free bit, so the threshold is the whole carrier.
+	Casualty uint8
+	// Bargain is K:Bargain (CR 702.166; false = none): the caster may
+	// sacrifice an artifact, an enchantment or a token as the spell is cast
+	// (the bargained cast, the same AkCastCasualty action as Casualty; a
+	// card never has both, so this field picks the row). The paid flag rides
+	// the kicked provenance; dirac/kw_bargain.go.
+	Bargain bool
+	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
+	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
+	// optional cast is the kicked cast (AkCast mode 1, gorge's
+	// "optionalcost" option) and its paid flag rides the kicked provenance.
+	// OptCost is a Blight<N> part (Flags/N/Filter); OptBehold marks the
+	// card's BeholdN/BeholdF behold as the part. dirac/cost_optional.go.
+	OptCost   Cost
+	OptBehold bool
+	// OptEvidence is the OptionalCost part CollectEvidence<N> (N 1..255, 0 =
+	// none; CR 701.59a, 601.2b): the paid cast is the kicked cast and adds
+	// the bsEvidence graveyard pick (gorge postTargetAsks evidenceAsk).
+	// dirac/cost_optionalevidence.go.
+	OptEvidence uint8
+	// Teamwork is K:Teamwork:<N> (CR 702.194; 0 = none, N 1..15): the caster
+	// may declare the teamworked cast (the same AkCastCasualty action as
+	// Casualty/Bargain; a card never has two of them) and tap untapped
+	// creatures with total power N or more. The paid flag rides the kicked
+	// provenance; ModesPickTW (0 = none) is the charm's pick count under the
+	// declared intent (Atlantis Attacks' "choose both"); dirac/kw_teamwork.go.
+	Teamwork    uint8
+	ModesPickTW uint8
+	// ModesPickV (zero K = none) is a spell charm's CharmNum$ over a
+	// Count$Compare with constant arms (Molten Collapse's "choose both
+	// instead" once you descended): the pick count, evaluated with the
+	// caster's ctx at the cast's mode step and clamped to 1..NModes (gorge
+	// effects.CharmModeBounds). Ability.ModesPick is its upper bound and
+	// ModesFew the spread to MinCharmNum$; dirac/modal_charmcmp.go.
+	ModesPickV ValueRef
+	// DungeonNext: a dungeon card (CR 309; the Undercity
+	// token script), one entry per room in printed order, the room's
+	// ability Abilities[i] (latent); the entry packs its NextRoom$ arrows
+	// in printed order, each as room index + 1: low nibble the first,
+	// high nibble the second (0 = none; both 0: the bottommost room).
+	// dirac/act_initiative.go.
+	DungeonNext []uint8
+	// TypeValid: the as-enters OpChooseType with B = 1 (ValidTypes$,
+	// Dawn-Blessed Pennant) offers only these creature-type vocabulary
+	// indexes (Table.TypeVocab's), in vocabulary order (gorge
+	// creatureTypeOptions + effects.FilterTypeWords); kernel
+	// act_choosetype.go.
+	TypeValid []uint16
+	// SpentSelf: the card's own SVars read Count$CastTotalManaSpent (a spell's
+	// chain or a self-ETB trigger body). gorge's payment
+	// planner prices no cast of such a face ("shape:mana_spent_reader",
+	// faceWantsCastSpend), so FeatPlannedCast is false for it.
+	SpentSelf bool
+	Gift      bool // K:Gift: the caster may promise the opponent a gift as the spell is cast (CR 702.174a; the build's bsGift stage)
+	// Offspring: K:Offspring (CR 702.175a): Kicker holds the offspring cost
+	// and the kicked cast (AkCast mode bit 0, sfKicked) is gorge's
+	// "(offspring)" cast; Keywords has no KwKicker
+	Offspring bool
+	// Landwalk is the printed landwalk keyword's land filter (CR 702.14,
+	// 0 = none): the creature can't be blocked while the defending player
+	// controls a land matching it.
+	Landwalk FilterID
+	// ProtColors are the printed "protection from <colour>" keywords' colours
+	// (CR 702.16; 0 = none): damage from, blocking by, targeting by and
+	// enchanting by a source of one of them are prevented / illegal.
+	ProtColors ColorMask
+	// HexColors are the printed "hexproof from <colour>" keywords' colours
+	// (CR 702.11d; 0 = none): a spell or ability of one of them an opponent
+	// controls can't target the permanent.
+	HexColors ColorMask
+	// ProtFrom is the printed K:Protection:<spec> keywords' source filter
+	// (CR 702.16; type, subtype and colour terms only; 0 = none).
+	ProtFrom FilterID
+	// Infect is printed infect (CR 702.90): its damage is dealt to a player
+	// as poison counters and to a creature as -1/-1 counters.
+	Infect bool
+	// Toxic is the printed toxic N, its instances summed (CR 702.164): a
+	// player it deals combat damage to also gets N poison counters.
+	Toxic uint8
+	// Cascade is the number of printed K:Cascade instances (CR 702.85a/c):
+	// casting the spell queues that many cascade triggers, each resolving
+	// separately (dirac/kw_cascade.go; grants are not lowered).
+	Cascade uint8
+	// AllCreatureTypes is printed changeling (CR 702.73a): every creature
+	// type, also one outside the matchup's subtypes (a chosen type).
+	AllCreatureTypes bool
+	// Faces is a multi-face card's faces (CR 712b): each face's
+	// CardID, Faces[0] the front; every face's def carries the same list
+	// and Face is its own index (gorge's Object.FaceIdx). FaceMode is the
+	// layout (Face*). nil for a single-faced card. An object's CardID is
+	// its current face's: the kernel turns a face up by rewriting it and
+	// back to Faces[0] where gorge resets FaceIdx (dirac/face_multiface.go).
+	//
+	// A Room (FaceRoom) carries eight: Faces[0] and Faces[1] are the doors
+	// as plain split halves (also the state "face f, door f unlocked" a
+	// cast Room enters with), and Faces[2+3*f+j] the other battlefield
+	// door states of a Room showing face f: j=0 no door unlocked, j=1 only
+	// the other door, j=2 both (RoomState). RoomSplit is how many of a
+	// Room def's leading abilities are door Face's lines; the rest are the
+	// other door's.
+	Faces     []CardID
+	Face      uint8
+	FaceMode  uint8
+	RoomSplit uint8
+	// Wither is printed wither (CR 702.80): its damage to a creature is
+	// dealt as -1/-1 counters (infect's creature half).
+	Wither bool
+	// Evasion holds printed blocking-restriction keywords without a KwMask
+	// bit (Ev* bits): not when the creature has lost its abilities.
+	Evasion uint8
+	// TypedMana: the printed face is a Cave or a Desert, so the mana it
+	// makes is typed in gorge's pool (state.Game TypedMana; an artifact's
+	// is typed too, read from Types).
+	TypedMana bool
+	// Engines is printed Start your engines! (CR 702.179a): its controller's
+	// speed starts at 1 when it has none (dirac/kw_speed.go).
+	Engines bool
+	// SagaN is the final chapter number of a Saga (CR 714.1, K:Chapter's
+	// count; 0 = not a Saga). The chapter abilities themselves are printed
+	// battlefield triggers on CtrLore, each gated at its chapter number.
+	SagaN uint8
+	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
+	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
+	// spell cast that way is exiled at the beginning of the next end step
+	// with a recast from exile on a later turn (dirac/kw_warp.go).
+	HasWarp bool
+	// WarpCost is the printed warp cost (HasWarp).
+	WarpCost ManaCost
+	// Impending is printed K:Impending:N:cost's N (CR 702.176a; 0 = none):
+	// the hand offers the "impended" cast at ImpendingCost; cast that way
+	// the permanent enters with N time counters and is not a creature while
+	// it has one (kernel kw_impending.go).
+	Impending     uint8
+	ImpendingCost ManaCost
+	// HasPlot is printed plot (CR 702.170a; no KwMask bit is free): the
+	// hand offers the plot special action at PlotCost, exiling the card
+	// with the plotted designation and a later-turn free cast from exile
+	// (dirac/kw_plot.go).
+	HasPlot bool
+	// PlotCost is the printed plot cost (HasPlot).
+	PlotCost ManaCost
+	// TapPowerCrew / TapPowerSaddle are the static "this creature crews
+	// Vehicles / saddles Mounts as though its power were N greater"
+	// (graveexile; Mode$ TapPowerValue). Added only while paying a Crew or Saddle
+	// tap-power cost, never Station.
+	TapPowerCrew   int8
+	TapPowerSaddle int8
+	// Convoke is printed convoke (CR 702.51a; no KwMask bit is free):
+	// the cast may tap creatures for its mana cost (dirac/kw_convoke.go).
+	Convoke bool
+	// Improvise is printed improvise (CR 702.126a): the cast may tap
+	// untapped artifacts, each paying {1} of the generic part. Never set
+	// with Convoke (kgen refuses both). Shares the convoke payment path.
+	Improvise bool
+	// Harmonize is printed harmonize (CR 702.180a): a graveyard cast for
+	// AltCost, one untapped creature tapped to reduce its generic part by
+	// the creature's power (dirac/kw_harmonize.go). Never set with
+	// Convoke, Improvise or KwFlashback (kgen refuses them).
+	Harmonize bool
+	// Mayhem is printed mayhem (CR 702.187a): a graveyard cast for AltCost if
+	// the card was discarded this turn (dirac/kw_mayhem.go). Never
+	// set with Flashback or Harmonize (kgen refuses them).
+	Mayhem bool
+	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
+	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
+	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).
+	MorphCost   ManaCost
+	MorphFamily uint8
+	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
+	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
+	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
+	// those two are told apart from empty text here. A manifested or cloaked
+	// creature card turns up for its printed mana cost (CR 701.40b/701.58b):
+	// {0} and "no cost" both price as a free cost and are offered.
+	CostEmpty bool
+	// Defense is a Battle's printed Defense (CR 310.4; 0 for any other
+	// card): it enters with that many CtrDefense counters
+	// (dirac/face_battle.go).
+	Defense int8
+	// HasSneak is printed sneak (CR 702.190a; no KwMask bit is free): in
+	// its controller's declare-blockers step the hand offers the sneak cast
+	// at SneakCost plus returning an unblocked attacker, and a permanent
+	// spell cast that way enters tapped and attacking that attacker's
+	// defender (CR 702.190b; dirac/kw_sneak.go).
+	HasSneak bool
+	// SneakCost is the printed sneak cost (HasSneak).
+	SneakCost ManaCost
+	// HasWebSling is printed web-slinging (CR 702.188a; no KwMask bit is
+	// free): the hand offers the web-slinging cast (AkWebSling) at
+	// WebSlingCost plus returning a tapped creature its caster controls to
+	// its owner's hand (dirac/kw_websling.go).
+	HasWebSling bool
+	// WebSlingCost is the printed web-slinging cost (HasWebSling).
+	WebSlingCost ManaCost
+	// HasEvoke is printed evoke (CR 702.74a; no KwMask bit is free): the
+	// hand offers the evoked cast at EvokeCost (gorge's "evoked" option,
+	// FlagEvoked), and a permanent cast that way queues a mandatory
+	// "sacrifice it" trigger as it enters (dirac/kw_evoke.go).
+	HasEvoke bool
+	// EvokeCost is the printed evoke cost (HasEvoke).
+	EvokeCost ManaCost
+	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
+	// hand offers the bestowed cast (AkBestow) at BestowCost; the spell is
+	// an Aura with enchant creature (BestowTgt) and the permanent an Aura,
+	// not a creature, while it is attached (dirac/kw_bestow.go).
+	HasBestow  bool
+	BestowCost ManaCost
+	BestowTgt  TargetSpec
+	// HasModeCost: Spree (CR 702.172a): each chosen mode i adds
+	// ModeCost[i] to the spell's total cost (kernel
+	// kw_spree.go).
+	HasModeCost bool
+	ModeCost    [4]ManaCost
+	// FbCost is a printed flashback cost's non-mana part (KwFlashback;
+	// AltCost holds its mana, {0} when none): Sac<N/Spec> or
+	// tapXType<N/Spec>, paid through the cast's pick stages in place of
+	// the spell's additional cost (gorge flashbackCost).
+	FbCost Cost
+	// RemPersist: the card's enters trigger remembers objects its leaves
+	// trigger reads (gorge's Remembered persisting on the source: Journey
+	// to Nowhere, Mesmeric Fiend; dirac/zone_rememberpersist.go).
+	RemPersist bool
+	// ExiledWith: the card reads the exiled-with source link (PredExiledWith
+	// or ExExiledWithN): its resolutions record the cards they exile
+	// (dirac/zone_exiledwith.go, genPrep.exwRec).
+	ExiledWith bool
+	// CombatHitRec: the card reads CtrlHitBySrc against itself: a
+	// combat hit on a player by one of its objects is recorded
+	// (dirac/value_turntallies.go, genPrep.cdRec).
+	CombatHitRec bool
+	// ExiledWithRev: the card's text names ExiledWithSource, so gorge also
+	// sets the reverse Object.ExiledWith scalar on what it exiles
+	// (exileProvenanceNeeded); without it only the forward ExiledCards list
+	// (and a Hideaway's marker) records the link.
+	ExiledWithRev bool
+	// MinBlockers is a printed S:Mode$ MinMaxBlocker Min$ N on the card
+	// itself (CR 509.1b: "can't be blocked except by N or more creatures";
+	// 0 = none): menace's floor generalised (dirac/combat.go minBlockers).
+	// Not when the creature has lost its abilities. Troll of Khazad-dum.
+	MinBlockers uint8
+	// SpendRead: an SVar reads Count$CastTotalManaSpent (Memory Deluge):
+	// gorge's cast planner prices no cast of it (faceWantsCastSpend,
+	// "shape:mana_spent_reader"; kernel featview.go plannedCastCost).
+	SpendRead bool
+	// AltAddOne: SpellCost came from a one-part AlternateAdditionalCost
+	// (Dusk Rose Reliquary): no ask, but gorge's cast planner prices no
+	// cast of a card with the keyword ("shape:optional_cost").
+	AltAddOne bool
+	// Lure: "All creatures able to block CARDNAME do so." (CR 509.1c; gorge
+	// kw:AllMustBlock): while it attacks, every creature able to block it
+	// must block it or another lure attacker; not when it has lost its
+	// abilities (kernel combat_lure.go).
+	Lure bool
+	// MustBeBlocked: "CARDNAME must be blocked if able." (CR 509.1c; gorge
+	// hidden keyword MustBlock): while it attacks and some creature could
+	// block it, the defender's declaration must block it, one blocker
+	// satisfying it, as long as that does not cost a larger requirement
+	// (kernel combat_mustbeblocked.go). Not when it has
+	// lost its abilities.
+	MustBeBlocked bool
+	// Daybound / Nightbound (CR 702.145; gorge rules/daynight.go): the
+	// face makes it day / night when neither is (CR 702.145d/g), a daybound
+	// front face turns to its back as it becomes night and a nightbound
+	// back face to its front as it becomes day, and a daybound front face
+	// entering at night enters back face up (kernel
+	// kw_daynight.go).
+	Daybound, Nightbound bool
+	// HasMadness is printed madness (CR 702.35a; no KwMask bit is free): a
+	// discard exiles the card instead and queues the cast-or-graveyard
+	// trigger; MadnessCost is its cast cost (dirac/kw_madness.go).
+	HasMadness  bool
+	MadnessCost ManaCost
+	Paradigm    uint8 // 1 + the table's Paradigm-name index; 0 = none
+	// CastBF is the filter Count$LastStateBattlefieldWithFallback counts
+	// the battlefield permanents matching it as the
+	// spell was cast, frozen at beginCast into the spell entry's trigMV
+	// (dirac/value_castbattlefield.go); 0 = the card does not read the head.
+	CastBF FilterID
+}
+
+// CardDef.MorphFamily values: the face-down keyword the card was printed with.
+const (
+	MorphNone uint8 = iota
+	MorphMorph
+	MorphMegamorph
+	MorphDisguise
+)
+
+// CardDef.FaceMode layouts (gorge's Card.AlternateMode).
+const (
+	FaceNone  = iota
+	FaceModal // a modal double-faced card (CR 712.4d): the back face is a land played from the hand (gorge's "modal_land") or a nonland face cast from it (gorge's "modal_spell")
+	// FaceAdventure is an adventurer card (CR 715): face 1 is the
+	// Adventure instant or sorcery, cast from the hand (gorge's
+	// "adventure_alt"); it resolves into exile, from where the front is
+	// cast (gorge's "adventure_recast"), dirac/face_castface.go.
+	FaceAdventure
+	// FaceSplit is a split card (CR 709), no Room and no Fuse: face 1 is
+	// the right half, cast on its own from the hand (gorge's "split_alt");
+	// off the stack the mana value is the sum of the halves (CR 709.4b).
+	FaceSplit
+	// FaceTransform is a transforming double-faced card or token (gorge's
+	// "DoubleFaced", CR 712): a SetState Mode$ Transform flips it to its
+	// back face in place (CR 701.27a) and restamps the layer timestamp
+	// (CR 613.7g); a ChangeZone Transformed$ True return enters the back
+	// face (CR 712.14a) and a Mode$ Transformed trigger follows the flip.
+	// A card any of whose faces is a Battle (CR 310) is refused.
+	FaceTransform
+	// FacePrepare is a preparation card (CR 722): face 1 is the prepare
+	// spell, an instant or sorcery never cast from the hand; a prepared
+	// permanent's exile copy is cast as gorge's "prepared_copy"
+	// (dirac/face_prepare.go).
+	FacePrepare
+	// FaceRoom is a two-door Room (CR 709.5, gorge rules face_rooms.go): either
+	// door is cast (gorge's room_alt casts the other); the face persists in
+	// every zone; on the battlefield the CardID names the door state
+	// (CardDef.Faces, dirac/face_rooms.go).
+	FaceRoom
+	// FaceOmen is an omen card (CR 720): face 1 is the Omen instant or
+	// sorcery, cast from the hand (gorge's "omen_alt"); a resolved Omen goes
+	// to the bottom of its owner's library, which is then shuffled;
+	// countered or fizzled, it goes to the graveyard; off the stack it is
+	// its front (dirac/face_omen.go).
+	FaceOmen
+)
+
+// RoomState is the Faces index of a Room's battlefield state showing face
+// f with door mask m unlocked (bit i = door i).
+func RoomState(f, m uint8) int {
+	switch {
+	case m == 1<<f:
+		return int(f)
+	case m == 0:
+		return 2 + 3*int(f)
+	case m == 3:
+		return 4 + 3*int(f)
+	}
+	return 3 + 3*int(f)
+}
+
+// Table is a matchup's whole card universe: every card a deck can hold plus
+// every token those cards can create. Filters[0] must be the zero Filter.
+type Table struct {
+	Name     string
+	Cards    []CardDef
+	Filters  []Filter
+	Subtypes []string
+
+	// Appended by dirac/kgen: the side tables generated programs index.
+	Exprs     []Expr     // VExpr ValueRefs index this; Exprs[0] is unused
+	Conds     []Cond     // CondIDs index this; Conds[0] is "always"
+	Overrides []Override // OpOverride / StatOverride index this
+	Emblems   []Emblem   // OpCreateEmblem indexes this
+	// TypeVocab maps each entry of gorge's creature-type vocabulary (the
+	// option list of OpChooseType, in vocabulary order) to the matchup's
+	// subtype index, 255 when no object in the matchup can have it.
+	TypeVocab []uint8
+}
+
+// Filter returns the filter with id f.
+func (t *Table) Filter(f FilterID) *Filter { return &t.Filters[f] }
+
+// TapPays reports whether the card's cast announces tapped permanents toward
+// its mana cost (printed Convoke or Improvise; dirac/kw_convoke.go).
+func (c *CardDef) TapPays() bool { return c.Convoke || c.Improvise }
+
+// AndNot is m without the members of o.
+func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &^ o[1]} }

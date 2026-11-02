@@ -113,6 +113,9 @@ type Board interface {
 	// SpellsCastThisTurn and ManaExpendTotal are the per-player turn tallies.
 	SpellsCastThisTurn(p state.PlayerID) int
 	ManaExpendTotal(p state.PlayerID) int32
+	// SpellsCastThisTurnByMatching counts the spells activator cast this turn
+	// whose object matches spec, read from you's side of the table.
+	SpellsCastThisTurnByMatching(activator, you state.PlayerID, spec string) int
 
 	// IsLoyaltyAbility is rules' planeswalker loyalty-ability classifier
 	// (CR 606). It stays behind the Board, unlike cards.IsManaAbilitySA:

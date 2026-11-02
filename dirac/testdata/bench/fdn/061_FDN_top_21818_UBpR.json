@@ -1,0 +1,115 @@
+{
+"name": "FDN_top_21818_UBpR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 1040cd47b4d845dcad9e1d4f1b84fe18:3, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bigfin Bouncer",
+"count": 1
+},
+{
+"name": "Burglar Rat",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 2
+},
+{
+"name": "Crypt Feaster",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 2
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 1
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Faebloom Trick",
+"count": 1
+},
+{
+"name": "Fake Your Own Death",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Infestation Sage",
+"count": 1
+},
+{
+"name": "Island",
+"count": 5
+},
+{
+"name": "Lunar Insight",
+"count": 1
+},
+{
+"name": "Mischievous Mystic",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 3
+},
+{
+"name": "Perforating Artist",
+"count": 1
+},
+{
+"name": "Searslicer Goblin",
+"count": 1
+},
+{
+"name": "Soul-Shackled Zombie",
+"count": 1
+},
+{
+"name": "Spectral Sailor",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 6
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vampire Gourmand",
+"count": 1
+},
+{
+"name": "Vampire Soulcaller",
+"count": 1
+},
+{
+"name": "Witness Protection",
+"count": 1
+},
+{
+"name": "Zombify",
+"count": 1
+},
+{
+"name": "Zul Ashur, Lich Lord",
+"count": 1
+}
+]
+}

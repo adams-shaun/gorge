@@ -1,0 +1,13 @@
+{
+  "card": "Cease",
+  "class": "options",
+  "why": "the engines offer different options; 30 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1241,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,30 @@
+# DB$ Clone on the battlefield: Fleeting Reflection, Shuri,
+# Deepfathom Echo, Oko, Silent Hallcreeper, Naga Fleshcrafter beside bodies
+# with triggers, two artifacts, removal and basics
+# (dirac/oracle/clonecopy_test.go)
+# Clone on the battlefield: the six carriers, bodies with ETB,
+# attack, dies triggers and keywords, two artifacts you control for Shuri (one
+# legendary), removal and basics (dirac/oracle/clonecopy_test.go)
+Fleeting Reflection
+Shuri, Wakandan Inventor
+Deepfathom Echo
+Oko, the Ringleader
+Silent Hallcreeper
+Naga Fleshcrafter
+True Polymorph
+Serra Angel
+Elvish Visionary
+Pestermite
+Prodigal Sorcerer
+Azure Beastbinder
+Brokers Veteran
+Gnarlid Colony
+Llanowar Elves
+Grizzly Bears
+Mind Stone
+Horn of Gondor
+Doom Blade
+Murder
+Island
+Forest
+Swamp

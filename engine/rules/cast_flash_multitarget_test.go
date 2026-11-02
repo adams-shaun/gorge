@@ -18,7 +18,7 @@ import (
 // Permanent.YouCtrl`) and Incriminate's mandatory two-target declaration
 // (`TargetMin$ 2 | TargetMax$ 2`).
 const multiTargetFlashSrc = "Name:Tandem Verdict\nManaCost:2 U\nTypes:Sorcery\n" +
-	"S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Spell.IsTargeting Valid Permanent.YouCtrl | EffectZone$ All | Caster$ You | Description$ You may cast this spell as though it had flash if it targets a permanent you control.\n" +
+	"S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Spell.IsTargeting Valid Permanent.YouCtrl | EffectZone$ All | Caster$ You\n" +
 	"A:SP$ Pump | ValidTgts$ Creature | TgtPrompt$ Choose two target creatures | TargetMin$ 2 | TargetMax$ 2 | TargetUnique$ True | NumAtt$ +1 | NumDef$ +1 | SpellDescription$ Two target creatures each get +1/+1.\n" +
 	"Oracle:You may cast this spell as though it had flash if it targets a permanent you control.\\nTwo target creatures each get +1/+1."
 

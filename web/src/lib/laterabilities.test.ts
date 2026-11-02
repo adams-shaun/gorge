@@ -66,6 +66,10 @@ describe('laterByObj', () => {
     expect(m?.get(30)).toEqual([otherAbility]);
   });
 
+  it('drops an ability the engine has proved unpayable', () => {
+    expect(laterByObj(priority([doomMana]), [{ ...doomDamage, payable: false }])).toBeUndefined();
+  });
+
   it('drops an ability the decision already offers live (mana floated)', () => {
     const live = opt({ index: 3, kind: 'ability', obj: DOOM, ability: 1, label: doomDamage.label! });
     expect(laterByObj(priority([doomMana, live]), [doomDamage])).toBeUndefined();

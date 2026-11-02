@@ -1,0 +1,22 @@
+# the counter-crossing pool: Death to Our Enemies'
+# "when the fourth plan counter is put on this enchantment" (Mode$
+# CounterAdded, CounterAmount$ EQ4) beside the noncreature spells that
+# put its plan counters, and the per-counter ActivationLimit$ 1 lines
+# (Knight of Wundagore, Ant-Man, Colony
+# Commander) beside +1/+1 counter spells, for the oracle's constructed
+# lockstep (dirac/oracle/counteradded_test.go)
+Ant-Man, Colony Commander
+Big Play
+Burst Lightning
+Contagion Clasp
+Death to Our Enemies
+Forest
+Gray Ogre
+Hill Giant
+Incremental Growth
+Island
+Knight of Wundagore
+Mountain
+Shock
+Swamp
+Mikey & Leo, Chaos & Order

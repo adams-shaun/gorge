@@ -18,7 +18,7 @@ package rules
 // and **0** reach any ask-shaped parameter in the body chain. So no real
 // corpus carrier exercises a decision inside an Effect replacement body
 // today; the fixture below carries a real corpus SHAPE (the wildgrowth1
-// `Event$ Moved | ReplaceWith$ DBPutP1P1` + `SubAbility$` chain) with the
+// `Event$ Moved | ReplaceWith$ Grow` + `SubAbility$` chain) with the
 // unless-cost ask the corpus's other Effect bodies use everywhere else.
 
 // effectSelfExileResumeSrc is the live Moved+PutCounter Effect replacement
@@ -29,7 +29,7 @@ package rules
 // registration must survive the suspension to be ended on resume.
 const effectSelfExileResumeSrc = "Name:Fixture Self-Exile Effect\nManaCost:1 U\nTypes:Sorcery\n" +
 	"A:SP$ Effect | ReplacementEffects$ ETBCreat | SpellDescription$ x\n" +
-	"SVar:ETBCreat:Event$ Moved | Destination$ Battlefield | ValidCard$ Creature | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated\n" +
-	"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ 1 | SubAbility$ DBExileSelf\n" +
-	"SVar:DBExileSelf:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile | UnlessCost$ 1 | UnlessPayer$ You\n" +
+	"SVar:ETBCreat:Event$ Moved | Destination$ Battlefield | ValidCard$ Creature | ReplaceWith$ Grow | ReplacementResult$ Updated\n" +
+	"SVar:Grow:DB$ PutCounter | Defined$ ReplacedCard | CounterType$ P1P1 | ETB$ True | CounterNum$ 1 | SubAbility$ EndEffect\n" +
+	"SVar:EndEffect:DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile | UnlessCost$ 1 | UnlessPayer$ You\n" +
 	"Oracle:x\n"

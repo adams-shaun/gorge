@@ -270,7 +270,7 @@ GORGE_UPDATE_HEADS=1 go test ./engine/rules/ -run '^TestHeads$'  # re-pin, once 
 ```
 
 `go run ./cmd/headdiff -seats 2` prints the game's size and head, and whether it matches the pin:
-`2 seats: 2558 events, head 9a22e5122a3d436a (matches the pinned head)` on 2026-10-31.
+`2 seats: 2558 events, head 4d678d238e2e3c61 (matches the pinned head)` on 2026-11-02.
 
 `TestRepoDeckGamesReplayExactly` is the companion check: it plays several
 seeds, replays each game, and requires the replay's head to equal the

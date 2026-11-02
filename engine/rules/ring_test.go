@@ -150,8 +150,8 @@ func TestRingTemptsYouTriggerValidPlayerYouGatesOnTheTemptedSeat(t *testing.T) {
 // TestRingBearerPredicateReadsThroughRealCorpusSVars pins IsRingbearer and
 // the PlayerCountPropertyYou$RingTemptedYou count head through the REAL
 // corpus SVar bodies: Sauron, the Necromancer's
-// `SVar:X:Count$Valid Card.Self+IsRingbearer`, One Ring to Rule Them All's
-// `SVar:X:Count$Valid Creature.YouCtrl+IsRingbearer$CardPower`, and Frodo,
+// `X = Count$Valid Card.Self+IsRingbearer`, One Ring to Rule Them All's
+// `X = Count$Valid Creature.YouCtrl+IsRingbearer$CardPower`, and Frodo,
 // Adventurous Hobbit's `SVar:NumRingTempted:PlayerCountPropertyYou$RingTemptedYou`.
 func TestRingBearerPredicateReadsThroughRealCorpusSVars(t *testing.T) {
 	t.Parallel()

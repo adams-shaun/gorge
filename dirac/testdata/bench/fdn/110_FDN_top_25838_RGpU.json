@@ -1,0 +1,107 @@
+{
+"name": "FDN_top_25838_RGpU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 0fb3e40d2fe4492e85cfc15d1ca89586:1, player win-rate bucket 0.62 (CC BY 4.0)",
+"cards": [
+{
+"name": "Ambush Wolf",
+"count": 2
+},
+{
+"name": "Bite Down",
+"count": 1
+},
+{
+"name": "Bushwhack",
+"count": 2
+},
+{
+"name": "Dragon Trainer",
+"count": 1
+},
+{
+"name": "Eager Trufflesnout",
+"count": 1
+},
+{
+"name": "Etali, Primal Storm",
+"count": 1
+},
+{
+"name": "Evolving Wilds",
+"count": 1
+},
+{
+"name": "Forest",
+"count": 7
+},
+{
+"name": "Giant Growth",
+"count": 1
+},
+{
+"name": "Goldvein Pick",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Heraldic Banner",
+"count": 1
+},
+{
+"name": "Island",
+"count": 2
+},
+{
+"name": "Koma, World-Eater",
+"count": 1
+},
+{
+"name": "Llanowar Elves",
+"count": 1
+},
+{
+"name": "Loot, Exuberant Explorer",
+"count": 2
+},
+{
+"name": "Meteor Golem",
+"count": 1
+},
+{
+"name": "Mild-Mannered Librarian",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 6
+},
+{
+"name": "Slumbering Cerberus",
+"count": 1
+},
+{
+"name": "Soulstone Sanctuary",
+"count": 1
+},
+{
+"name": "Strongbox Raider",
+"count": 1
+},
+{
+"name": "Tatyova, Benthic Druid",
+"count": 1
+},
+{
+"name": "Thornwood Falls",
+"count": 1
+},
+{
+"name": "Twinflame Tyrant",
+"count": 1
+}
+]
+}

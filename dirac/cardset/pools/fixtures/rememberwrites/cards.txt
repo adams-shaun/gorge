@@ -1,0 +1,26 @@
+# the remember-writer pool: Enlightened Confidant
+# (Surveil RememberMoved$), Trade Route Envoy (Draw RememberDrawn$), Bringer of the Last Gift (SacrificeAll
+# RememberSacrificed$) beside lifegain, ramp, counters and cheap spells
+# (dirac/oracle/rememberwrites_test.go)
+Enlightened Confidant
+Trade Route Envoy
+Bringer of the Last Gift
+Healer's Hawk
+Infirmary Healer
+Cult Healer
+Suntail Hawk
+Messenger Hawk
+Unsummon
+Counterspell
+Llanowar Elves
+Elvish Mystic
+Mind Stone
+Sol Ring
+Knight of Wundagore
+Ambush Viper
+Giant Growth
+Plains
+Island
+Forest
+Swamp
+Chandra, Chill of Compliance

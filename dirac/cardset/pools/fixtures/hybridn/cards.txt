@@ -1,0 +1,26 @@
+# the three- and four-hybrid-pip pool (CR 107.4e, 601.2b):
+# the Standard cards with three or four hybrid pips and the basics, for
+# the oracle's constructed lockstep (dirac/oracle/hybridn_test.go)
+# The three- and four-hybrid-pip pool (CR 107.4e, 601.2b): the
+# Standard cards whose printed cost carries three hybrid pips ({B/R}{B/R}{B/R})
+# and three older cards with four ({R/W}x4), beside the basics, for the
+# oracle's constructed lockstep (dirac/oracle/hybridn_test.go). Leyline of
+# the Guildpact (four different pairs) is the Standard four-pip card; its
+# AllBasicLandType static grants every basic land type and so the CR 305.6
+# intrinsic mana abilities (dirac/static_landtype.go).
+Eclipsed Boggart
+Eclipsed Elf
+Reaping Willow
+Fireborn Knight
+Resolute Rider
+Thunderous Snapper
+Leyline of the Guildpact
+Jet, Freedom Fighter
+Eclipsed Merrow
+Voracious Tome-Skimmer
+Glister Bairn
+Swamp
+Mountain
+Forest
+Plains
+Island

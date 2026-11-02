@@ -1,0 +1,13 @@
+{
+  "card": "Firdoch Core",
+  "class": "projection-Cards.Chars.Keywords",
+  "why": "the engines' state differs at projection Cards[].Chars.Keywords; 2 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1046,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

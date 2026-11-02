@@ -1,0 +1,87 @@
+{
+"name": "FDN_top_00032_WU",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 887251ae7c36474382ee824fd509f2c1:0, player win-rate bucket 0.66 (CC BY 4.0)",
+"cards": [
+{
+"name": "Bigfin Bouncer",
+"count": 2
+},
+{
+"name": "Brineborn Cutthroat",
+"count": 1
+},
+{
+"name": "Cathar Commando",
+"count": 1
+},
+{
+"name": "Dazzling Angel",
+"count": 1
+},
+{
+"name": "Empyrean Eagle",
+"count": 2
+},
+{
+"name": "Faebloom Trick",
+"count": 2
+},
+{
+"name": "Giada, Font of Hope",
+"count": 1
+},
+{
+"name": "Healer's Hawk",
+"count": 1
+},
+{
+"name": "Island",
+"count": 9
+},
+{
+"name": "Luminous Rebuke",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Prideful Parent",
+"count": 1
+},
+{
+"name": "Refute",
+"count": 2
+},
+{
+"name": "Serra Angel",
+"count": 1
+},
+{
+"name": "Skyknight Squire",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Sun-Blessed Healer",
+"count": 1
+},
+{
+"name": "Uncharted Voyage",
+"count": 1
+},
+{
+"name": "Vanguard Seraph",
+"count": 2
+},
+{
+"name": "Witness Protection",
+"count": 1
+}
+]
+}

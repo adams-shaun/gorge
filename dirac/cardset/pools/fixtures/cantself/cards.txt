@@ -1,0 +1,12 @@
+# the self CantBeCast pool: Jace Reawakened and Proft
+# beside cheap spells, creatures and basics, for the oracle's
+# constructed lockstep (dirac/oracle/cantself_test.go)
+Jace Reawakened
+Proft, Sinister Mastermind
+Stitcher's Supplier
+Thought Scour
+Opt
+Grizzly Bears
+Gravedigger
+Island
+Swamp

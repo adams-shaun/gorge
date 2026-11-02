@@ -184,6 +184,9 @@ func (r *Registry) newMatchWith(t *table, k int, plan *SeriesGame) (*match, erro
 	if err != nil {
 		return nil, fmt.Errorf("host: table %s match %d: %w", c.ID, k, err)
 	}
+	if keyed, ok := g.(game.Keyed); ok {
+		gc.Key = keyed.EngineKey()
+	}
 	m := &match{table: t, k: k, seed: gc.Seed, engine: engine, gc: gc, seats: infos, decks: deckNames, state: protocol.MatchLive,
 		undo: newUndoQueue()}
 	m.setGame(g)
@@ -314,6 +317,15 @@ func (m *match) setGame(g game.Game) {
 func (m *match) ensurePaymentActions() {
 	if pp, ok := m.g.(game.PaymentPlanner); ok {
 		pp.EnsurePaymentActions()
+	}
+}
+
+// ensureHumanOffers builds what a human seat on an auto-mana table reads of the
+// pending decision: its payment plans, and which listed plays cannot be paid.
+func (m *match) ensureHumanOffers() {
+	m.ensurePaymentActions()
+	if pp, ok := m.g.(game.PotentialProver); ok {
+		pp.EnsurePotentialProofs()
 	}
 }
 
@@ -590,6 +602,9 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 	}
 	if wantsPlans {
 		m.ensurePaymentActions()
+	}
+	if isHuman && m.table.cfg.AutoMana {
+		m.ensureHumanOffers()
 	}
 	if c, ok := seats[d.Player].(seat.TargetHintConsumer); ok && c.WantsTargetHints() {
 		if pp, ok := m.g.(game.PaymentPlanner); ok {

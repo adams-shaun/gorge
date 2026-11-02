@@ -1,0 +1,119 @@
+{
+"name": "FDN_top_19872_UBR",
+"format": "limited",
+"notes": "17lands FDN PremierDraft deck 3b10f5af64d547f7b64f47ccaca59ef5:0, player win-rate bucket 0.68 (CC BY 4.0)",
+"cards": [
+{
+"name": "Abrade",
+"count": 1
+},
+{
+"name": "Bake into a Pie",
+"count": 1
+},
+{
+"name": "Bloodfell Caves",
+"count": 1
+},
+{
+"name": "Burst Lightning",
+"count": 1
+},
+{
+"name": "Campus Guide",
+"count": 1
+},
+{
+"name": "Consuming Aberration",
+"count": 1
+},
+{
+"name": "Dismal Backwater",
+"count": 1
+},
+{
+"name": "Dreadwing Scavenger",
+"count": 2
+},
+{
+"name": "Eaten Alive",
+"count": 1
+},
+{
+"name": "Elementalist Adept",
+"count": 1
+},
+{
+"name": "Fleeting Distraction",
+"count": 1
+},
+{
+"name": "Gorehorn Raider",
+"count": 1
+},
+{
+"name": "Hero's Downfall",
+"count": 1
+},
+{
+"name": "Island",
+"count": 4
+},
+{
+"name": "Lightshell Duo",
+"count": 1
+},
+{
+"name": "Mocking Sprite",
+"count": 1
+},
+{
+"name": "Mountain",
+"count": 5
+},
+{
+"name": "Perforating Artist",
+"count": 1
+},
+{
+"name": "Rite of the Dragoncaller",
+"count": 1
+},
+{
+"name": "Solemn Simulacrum",
+"count": 1
+},
+{
+"name": "Stab",
+"count": 1
+},
+{
+"name": "Strix Lookout",
+"count": 1
+},
+{
+"name": "Sure Strike",
+"count": 1
+},
+{
+"name": "Swamp",
+"count": 5
+},
+{
+"name": "Swiftwater Cliffs",
+"count": 1
+},
+{
+"name": "Think Twice",
+"count": 1
+},
+{
+"name": "Thrill of Possibility",
+"count": 1
+},
+{
+"name": "Twinflame Tyrant",
+"count": 1
+}
+]
+}

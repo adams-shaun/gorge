@@ -1,0 +1,24 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Basal Thrull
+1	card	Deadly Dispute
+2	card	Elvish Mystic
+3	card	Forest
+4	card	Fountainport
+5	card	Grizzly Bears
+6	card	Hill Giant
+7	card	Llanowar Elves
+8	card	Makeshift Munitions
+9	card	Mind Stone
+10	card	Mountain
+11	card	Network Terminal
+12	card	Ornithopter
+13	card	Plains
+14	card	Prosperous Innkeeper
+15	card	Revelsong Horn
+16	card	Savannah Lions
+17	card	Swamp
+18	card	Treasure Dredger
+19	card	Volrath's Gardens
+20	card	Wanderbrine Trapper
+21	token	c_a_treasure_sac
+22	token	u_1_1_fish

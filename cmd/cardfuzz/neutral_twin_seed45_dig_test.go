@@ -10,7 +10,7 @@ import (
 // twin records at decisions 643 (Scroll Thief) and 644 (Island).
 func TestTwinSeed45DigPartitionFixed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -22,7 +22,7 @@ import (
 // matching land candidate and the decision agrees.
 func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
 // has no priority disagreement at all.
 func TestSpellbenchTwinArmsChosenColourSkip(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestSpellbenchTwinArmsChosenColourSkip(t *testing.T) {
 // skip, not a divergence.
 func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

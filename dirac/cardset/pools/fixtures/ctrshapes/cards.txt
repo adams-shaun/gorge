@@ -1,0 +1,28 @@
+# the Counter-shapes pool: TargetType$ lists with a
+# spell qualifier, TargetValidTargeting$, RememberCounteredCMC$, TgtZone$
+# Stack and a sub Counter's Defined$ Targeted (dirac/oracle/ctrshapes_test.go)
+Louisoix's Sacrifice
+Spider-Sense
+Fugitive Droid
+Hurl into History
+Access Denied
+Overwhelming Intellect
+Spell Swindle
+Draining Whelk
+Keep Safe
+Turn Aside
+Hydromorph Guardian
+Hydromorph Gull
+Counterspell
+Prodigal Pyromancer
+Elvish Visionary
+Man-o'-War
+Shock
+Divination
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Ornithopter
+Island
+Mountain
+Forest

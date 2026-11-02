@@ -30,6 +30,13 @@ replays in `TestFoundPairs` for good.
 | gorge / manabrew / fuzz | No failure over 2,000 fuzzed-deck games on a rolling seed | `cardfuzz -manabrew` | nightly |
 | gorge / v2 / harness | Goldens, chain heads over `/api/sbv2`, an empty native-only census, privacy | `server/spellbench/...`, `server/host/sbv2http` | commit nightly pr |
 | gorge / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysGorgeAgent`, `TestSpellbenchSeatAppliesAgentPick`, `TestSpellbenchSeatAnswersUnposableDecisionWithFallback` | commit nightly pr |
+| dirac / native / harness | Gorge and dirac agree frame by frame on one game, same seed and answers, less what the test names | `TestNativeWireMatchesGorge` | commit nightly pr |
+| dirac / native / hosted-bots | Each policy dirac seats finishes 40 pairs without the refusal ladder | `TestBotsPlayDiracGames` | commit nightly pr |
+| dirac / native / http-agent | A scripted client plays a complete game over HTTP, undo included | `TestServesADiracGame` | commit nightly pr |
+| dirac / manabrew / harness | Every seat a seeded client, a complete game through `/state` and `/send` | `TestManaBrewServesADiracGame` | commit nightly pr |
+| dirac / manabrew / bot | A bot through the translator plays the game it plays with no wire | `TestBotThroughManaBrewOnDirac` | commit nightly pr |
+| dirac / v2 / harness | A complete game over `/api/sbv2` with no rules engine built and no decision left to the native wire | `TestSBV2ServesADiracGame` | commit nightly pr |
+| dirac / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysDiracGame` | commit nightly pr |
 
 Not every combination is a cell:
 
@@ -41,7 +48,8 @@ Not every combination is a cell:
 The web client plays all three, chosen per browser by the Protocol setting ([Play](../guide/play.md)). It offers
 ManaBrew and SpellBench v2 where the server's page carries `<meta name="gorge-manabrew">` or
 `<meta name="gorge-sbv2">`. Its adapters are in `web/src/lib/manabrew` and `web/src/lib/sbv2`, with what they
-share in `web/src/lib/wire`. Vitest covers them; there is no matrix cell for a browser.
+share in `web/src/lib/wire`. Vitest covers them, and `make smoke`, the CI job `browser`, plays a seated game in a
+browser over each wire on each engine. That job is outside this table: it needs Node and a browser, which the tiers don't.
 
 `-sbv2` costs a native seat nothing: a seat is played over v2 only once a v2 client
 [attaches to it](../api/spellbench-v2.md#attaching-a-seat), and goes back on its next native answer.

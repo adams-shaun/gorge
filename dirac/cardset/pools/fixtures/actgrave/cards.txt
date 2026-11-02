@@ -1,0 +1,25 @@
+# a printed graveyard ability's source-independent "activate only if"
+# Balustrade Wurm and Resurrected Cultist (Activation$
+# Delirium), Uchbenbak (IsPresent$ PresentZone$ Graveyard, descend 8),
+# self-mill and discard outlets, removal and basics
+# (dirac/oracle/actgrave_test.go)
+Armored Skaab
+Balustrade Wurm
+Darksteel Relic
+Deadly Dispute
+Doom Blade
+Forest
+Go for the Throat
+Grizzly Bears
+Island
+Llanowar Elves
+Mental Note
+Mind Rot
+Mulch
+Ornithopter
+Resurrected Cultist
+Swamp
+Thought Scour
+Tome Scour
+Uchbenbak, the Great Mistake
+Unholy Strength

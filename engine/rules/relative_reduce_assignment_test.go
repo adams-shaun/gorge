@@ -23,8 +23,8 @@ import (
 // an ENCHANTMENT so it is never itself a legal target of `ValidTgts$
 // Creature` and cannot inflate the candidate census being measured.
 const thaumaturgeFixture = "Name:Battlefield Thaumaturge Fixture\nTypes:Enchantment\n" +
-	"S:Mode$ ReduceCost | ValidCard$ Instant.YouCtrl | Relative$ True | Type$ Spell | Amount$ ReduceCost | EffectZone$ All\n" +
-	"SVar:ReduceCost:TargetedObjectsDistinct$Valid Creature.inZoneBattlefield\nOracle:x\n"
+	"S:Mode$ ReduceCost | ValidCard$ Instant.YouCtrl | Relative$ True | Type$ Spell | Amount$ Discount | EffectZone$ All\n" +
+	"SVar:Discount:TargetedObjectsDistinct$Valid Creature.inZoneBattlefield\nOracle:x\n"
 
 func creaturePerm(t *testing.T, e *Engine, name string) state.ObjID {
 	t.Helper()

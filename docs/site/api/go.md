@@ -99,9 +99,7 @@ The repository's own decks live in
 | `func (e *Engine) Clone() *Engine` | An independent copy, for look-ahead. |
 | `e.G *state.Game`, `e.L *events.Log` | The game state (`G.Over`, `G.Draw`, `G.Winner`, `G.Turn`) and the event log (`L.Head()` is the chain head). Read them; never write them. |
 
-`Config` has many fields; each one's zero value is the old behaviour, so a
-`Config` that leaves a field unset plays exactly as it did before that field
-existed. The ones an embedder sets:
+`Config` has many fields, and a field's zero value turns its feature off. The ones an embedder sets:
 
 | Field | Meaning |
 |---|---|
@@ -363,7 +361,7 @@ func main() {
 ```
 
 Build it as its own module whose `go.mod` requires `github.com/adams-shaun/gorge` with a `replace` pointing at a local gorge
-checkout, or `go get github.com/adams-shaun/gorge@<commit>` without one. Run on 2026-10-31 from the gorge checkout, with `$P` the
+checkout, or `go get github.com/adams-shaun/gorge@<commit>` without one. Run on 2026-11-02 from the gorge checkout, with `$P` the
 program's directory:
 
 ```console
@@ -383,8 +381,7 @@ another commit whenever an engine or corpus change alters any event of this game
 [source](https://github.com/adams-shaun/gorge/tree/main/engine/game)
 
 `engine/game` is the seam a host runs an engine through, so a server isn't tied to `rules.Engine`.
-`engine/game/gorgegame` adapts gorge's engine to it, and `gorged -engine` selects among the engines a binary links; a plain build
-links only `gorge`.
+`engine/game/gorgegame` adapts gorge's engine to it, `dirac/adapter` adapts dirac's, and `gorged -engine` selects between them.
 
 !!! tip "A ready-made loop"
     [`testkit/bench.PlayGame`](https://pkg.go.dev/github.com/adams-shaun/gorge/testkit/bench)
@@ -492,7 +489,7 @@ A binary that wants more (a bot, a plugin) is the same one line with something e
 | `func ServeReview(ctx context.Context, args []string, ln net.Listener, ext Extensions) error` | `gorged review` (which `Main` runs when `args[0]` is `review`) without signal handling or the bind: serves saved games read-only on `ln` until `ctx` is done. Needs `ext.Review`. |
 | `func ServeFlagSet() *flag.FlagSet` | A fresh copy of the flag set `Main` parses (`ContinueOnError`, no output), so a caller can check an argument list against the real flags. |
 | `func ServeFlagSetFor(ext Extensions) *flag.FlagSet` | The same, including the extensions' own flags. |
-| `func RegisterNetBot(policy string, nb NetBot)` | Links a network-backed policy into this binary; gorged gives it `-<policy>-net`, `-decks`, `-belief`, `-belief-pool` and `-demo-table`. Call before `Main`. |
+| `func RegisterNetBot(policy string, nb NetBot)` | Links a network-backed policy into this binary; gorged gives it `-<policy>-net`, `-<policy>-decks`, `-<policy>-belief`, `-<policy>-belief-pool` and `-<policy>-demo-table`. Call before `Main`. |
 
 ```go
 type Extensions struct {
@@ -506,6 +503,8 @@ type Extensions struct {
 	// into a recorded match with. Without it review mode refuses to start;
 	// the live server ignores it entirely.
 	Review ReviewLoader
+	// Engines, when set, adds engines -engine can select.
+	Engines map[string]game.Engine
 }
 ```
 
@@ -516,8 +515,7 @@ and sets `Events` to `gorgedevents.Plugin{}` from
 `server/gorged` cannot import that package itself, because it imports
 `server/gorged`. `EventsPlugin`, `EventsWiring`, `EventsEnv` and `EventRuntime`
 are the interfaces a draft-event runtime implements to be served under
-`/api/events`. The maintainers' private companion module links its network-backed policies through `RegisterNetBot`; gorge's own binary links
-none.
+`/api/events`. gorge's own binary links no network-backed policies through `RegisterNetBot`.
 
 ## 4. The host: `server/host`
 
@@ -634,10 +632,9 @@ gorge's Go API is **not versioned**:
 - **No releases.** The module has no semver tags. Depend on a commit's pseudo-version and move it deliberately.
 - **Go signatures can change in any commit.** Nothing checks exported Go
   signatures against a previous version. Field additions to `rules.Config`
-  have so far been zero-value compatible (each field's doc says so), but that
-  is a habit, not a test.
+  are zero-value compatible (each field's doc says so), but that is a habit, not a test.
 - **`internal/` is not importable** outside the module (Go's own rule):
-  `internal/archtest`, `codeshape`, `corpusheap`, `testbudget`, `tsgen`.
+  `internal/archtest`, `codeshape`, `corpusheap`, `schemacheck`, `testbudget`, `tsgen`.
 - **`testkit/` is test support**, shaped by gorge's own tests.
 
 What *is* pinned, and by which test:

@@ -1,0 +1,13 @@
+{
+  "card": "Emergency Phytomedic",
+  "class": "options",
+  "why": "the engines offer different options",
+  "repro": {
+    "pool": "std-fra",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1353,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

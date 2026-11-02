@@ -43,7 +43,7 @@ const acrAttendantSrc = `Name:Animal Attendant Test
 ManaCost:1 G
 Types:Creature Human Citizen
 PT:1/2
-A:AB$ Mana | Cost$ T | Produced$ Any | AddsCounters$ Creature.nonHuman_P1P1_1 | SpellDescription$ Add one mana of any color. If that mana is spent to cast a non-Human creature spell, that creature enters with an additional +1/+1 counter on it.
+A:AB$ Mana | Cost$ T | Produced$ Any | AddsCounters$ Creature.nonHuman_P1P1_1
 Oracle:x
 `
 
@@ -54,7 +54,7 @@ const acrForumSrc = `Name:Guildmages' Forum Test
 ManaCost:no cost
 Types:Land
 A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.
-A:AB$ Mana | Cost$ 1 T | Produced$ Any | AddsCounters$ Card.Creature+MultiColor_P1P1_1 | SpellDescription$ Add one mana of any color. If that mana is spent on a multicolored creature spell, that creature enters with an additional +1/+1 counter on it.
+A:AB$ Mana | Cost$ 1 T | Produced$ Any | AddsCounters$ Card.Creature+MultiColor_P1P1_1
 Oracle:x
 `
 

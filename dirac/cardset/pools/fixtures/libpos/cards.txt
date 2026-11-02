@@ -1,0 +1,17 @@
+# the library-position pool: the AlternativeDecider$
+# "second from the top or bottom" carriers (OpToLibraryChoice
+# kop.LibChoiceSecond) and the LibraryPosition$ 0 Shuffle$ True ones,
+# with creatures and planeswalkers to target, for the oracle's
+# constructed lockstep (dirac/oracle/libpos_test.go)
+Lost Days
+Temporal Cleansing
+Trickster's Stratagem
+Ice Magic
+Living Library
+Grizzly Bears
+Llanowar Elves
+Opt
+Divination
+Vivien Reid
+Island
+Forest

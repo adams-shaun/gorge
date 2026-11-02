@@ -1,0 +1,20 @@
+# the SpellCast ValidSA$ heads pool: Smaug (mana from a
+# Treasure) and Danitha (an Equipment or a spell targeting your creature),
+# Treasure makers, Equipment and targeting spells
+# (dirac/oracle/validsa_test.go)
+Danitha, Sword of Hope
+Quick-Draw Katana
+Swiftfoot Boots
+Short Bow
+Giant Growth
+Grizzly Bears
+Plains
+Forest
+Smaug, Wicked Worm
+Rapacious Dragon
+Gleaming Barrier
+Brass's Bounty
+Shock
+Raging Goblin
+Swamp
+Mountain

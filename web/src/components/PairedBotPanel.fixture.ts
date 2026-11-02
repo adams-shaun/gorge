@@ -4,7 +4,8 @@ import Fixture from './PairedBotPanel.fixture.svelte';
 
 // The paired bot panel over stubbed routes: seq 1 answers only after
 // __releaseFirst(), so a test can move the decision while it thinks; seq 3 is
-// refused. Every request is counted.
+// refused; seq 4 is out of date on the first ask; seq 5 fails in the server's
+// words. Every request is counted.
 const probe = { asked: [] as number[], posts: 0 };
 let releaseFirst = () => {};
 const first = new Promise<void>((resolve) => (releaseFirst = resolve));
@@ -13,6 +14,7 @@ w.__probe = probe;
 w.__releaseFirst = () => releaseFirst();
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+const problem = (code: string, message: string) => new Response(JSON.stringify({ code, message }), { status: 409, headers: { 'Content-Type': 'application/json' } });
 const realFetch = window.fetch.bind(window);
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
@@ -24,6 +26,8 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   probe.asked.push(seq);
   const base = { table: 't1', match: 1, ask_seq: seq, seat: 0, policy: 'az-closed' };
   if (seq === 3) return json({ ...base, state: 'refused', reason: 'Refused in plain words.' });
+  if (seq === 4 && probe.asked.filter((s) => s === 4).length === 1) return problem('advice_stale', 'The decision has moved on.');
+  if (seq === 5) return problem('conflict', 'host: match 1: seat 0 is not a human seat');
   if (seq === 1) await first;
   return json({
     ...base,

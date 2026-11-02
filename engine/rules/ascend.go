@@ -23,12 +23,13 @@ func init() {
 	effects.RegisterNonAPI("kw:Ascend")
 }
 
-// checkBlessingGrants is the permanent half of the Ascend grant: called from
-// Engine.emit's post-fold hook on every battlefield entry (MoveZone), token
-// mint (TokenCreate, CardToken) and control transfer (ControlChange). For
+// checkBlessingGrants is the permanent half of the Ascend grant (CR 702.131b, "any
+// time you control ten or more permanents"): called from Engine.emit's post-fold
+// hook on every battlefield entry (MoveZone), token mint (TokenCreate, CardToken)
+// and control transfer (ControlChange), and from the state-based pass for what the
+// hook does not see: an entry an Updated replacement folds, a keyword gained. For
 // each still-alive unblessed seat it checks CR 702.131a's gate directly off
-// the FOLDED state -- ten or more permanents on the battlefield under the
-// seat's control, at least one of them carrying the Ascend keyword -- and
+// the FOLDED state -- ten or more phased-in permanents under the seat's control, at least one of them carrying the Ascend keyword -- and
 // emits the one-way BlessingChange latch. Running after the fold means a
 // ten-permanent entry grants its own arrival, and the recursive emit the
 // scan makes sees a now-blessed seat, so the scan terminates.
@@ -47,7 +48,13 @@ func (e *Engine) checkBlessingGrants() {
 			continue
 		}
 		board := e.G.Zone(state.ZBattlefield, p)
-		if len(board) < 10 {
+		n := 0
+		for _, id := range board {
+			if o := e.G.Obj(id); o != nil && !o.PhasedOut {
+				n++
+			}
+		}
+		if n < 10 {
 			continue
 		}
 		if granted == 0 {

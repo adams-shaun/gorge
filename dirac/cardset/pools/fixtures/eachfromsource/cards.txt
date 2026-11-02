@@ -1,0 +1,40 @@
+# the eachfromsource lift pool: SacrificeAll Controller$ You, EachFromSource,
+# the modified property, RemoveCounter All / RemoveCounterAll
+# carriers beside basics, removal, an Equipment and an Aura, for the
+# oracle's constructed lockstep (dirac/oracle/eachfromsource_test.go)
+# The eachfromsource lockstep pool: one carrier per lifted class (kgen lifts
+# unblocked by at gorge pin 81dd3f940) beside basics, removal,
+# an Equipment, an Aura and vanilla creatures.
+# SacrificeAll Defined$ Self Controller$ You (end-of-combat sacrifice)
+Fog Elemental
+Mardu Blazebringer
+Crumbling Colossus
+Runaway Carriage
+# a1ab5c307 PutCounter CounterType$ EachFromSource (dies: put its counters on target creature)
+Star Pupil
+Dockworker Drone
+Graft Surgeon
+Essence Channeler
+# modified (counters, Equipment, your Auras)
+Kami's Flare
+Ambitious Assault
+Temperamental Oozewagg
+Upriser Renegade
+# RemoveCounter All/All and api RemoveCounterAll
+Vampire Hexmage
+Blitz Leech
+Pestilent Haze
+Inhumaniac
+# support
+Short Bow
+Blanchwood Armor
+Doom Blade
+Shock
+Savannah Lions
+Walking Corpse
+Grizzly Bears
+Plains
+Swamp
+Mountain
+Forest
+Island

@@ -1,0 +1,9 @@
+# Teferi, Temporal Pilgrim (the ultimate: a hidden pick of the target's
+# permanent, then a battlefield sweep into libraries) (dirac/oracle/teferi_test.go)
+Teferi, Temporal Pilgrim
+Divination
+Concentrate
+Hill Giant
+Act of Treason
+Island
+Mountain

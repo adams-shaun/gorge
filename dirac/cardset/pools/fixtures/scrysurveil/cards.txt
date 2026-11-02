@@ -1,0 +1,19 @@
+# the scry/surveil trigger pool: the six
+# Standard "whenever you scry or surveil" carriers beside scry and
+# surveil spells, creatures, an enchantment and lands, for the
+# oracle's constructed lockstep (dirac/oracle/scrysurveil_test.go)
+Augury Owl
+Consider
+Dazzling Lights
+Denzilore Fatehold
+Dimir Informant
+Diviner of Victory
+Faerie Seer
+Island
+Matoya, Archon Elder
+Omen of the Sea
+Opt
+Plains
+Proft, Consulting Detective
+Prudent Fateseer
+Saheeli, Consul of Oversight

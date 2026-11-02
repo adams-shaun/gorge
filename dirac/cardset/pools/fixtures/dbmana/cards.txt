@@ -1,0 +1,24 @@
+# the resolving-spell mana pool: Konstrari Charm's
+# mana mode, Rapturous Moment's and Narset's Rebuke's spell-chain DB$
+# Mana, cheap spells the floating mana pays in the same step, a flying
+# target for the Charm's damage mode and basics, for the oracle's
+# constructed lockstep (dirac/oracle/dbmana_test.go)
+Konstrari Charm
+Rapturous Moment
+Narset's Rebuke
+Shock
+Grizzly Bears
+Wind Drake
+Hill Giant
+Savannah Lions
+Llanowar Elves
+Island
+Mountain
+Forest
+Plains
+Quintorius Kand
+Hulking Raptor
+Narset of the Ancient Way
+Swamp
+Red Death, Shipwrecker
+Priest of Forgotten Gods

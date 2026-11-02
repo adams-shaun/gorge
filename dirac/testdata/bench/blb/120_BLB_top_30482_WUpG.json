@@ -1,0 +1,79 @@
+{
+"name": "BLB_top_30482_WUpG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 8de436beb07b46fab7738b087ea7a556:1, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Dazzling Denial, 1 Intrepid Rabbit, 1 Season of Weaving, 1 Splash Portal -> 2 Plains, 2 Island",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 1
+},
+{
+"name": "Calamitous Tide",
+"count": 1
+},
+{
+"name": "Dire Downdraft",
+"count": 1
+},
+{
+"name": "Dreamdew Entrancer",
+"count": 1
+},
+{
+"name": "Hidden Grotto",
+"count": 2
+},
+{
+"name": "Island",
+"count": 10
+},
+{
+"name": "Knightfisher",
+"count": 2
+},
+{
+"name": "Lightshell Duo",
+"count": 2
+},
+{
+"name": "Plains",
+"count": 8
+},
+{
+"name": "Plumecreed Escort",
+"count": 2
+},
+{
+"name": "Plumecreed Mentor",
+"count": 2
+},
+{
+"name": "Seedpod Squire",
+"count": 1
+},
+{
+"name": "Shoreline Looter",
+"count": 1
+},
+{
+"name": "Shrike Force",
+"count": 1
+},
+{
+"name": "Skyskipper Duo",
+"count": 1
+},
+{
+"name": "Sugar Coat",
+"count": 1
+},
+{
+"name": "Uncharted Haven",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

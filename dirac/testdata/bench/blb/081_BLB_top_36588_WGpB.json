@@ -1,0 +1,71 @@
+{
+"name": "BLB_top_36588_WGpB",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 43b10f71949f4ba1b0a76b3ceff0a6d8:0, player win-rate bucket 0.86 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Carrot Cake, 1 Head of the Homestead, 1 Jolly Gerbils, 1 Longstalk Brawl, 1 Rust-Shield Rampager, 1 Valley Questcaller -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Driftgloom Coyote",
+"count": 1
+},
+{
+"name": "Druid of the Spade",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Lifecreed Duo",
+"count": 1
+},
+{
+"name": "Moonrise Cleric",
+"count": 1
+},
+{
+"name": "Pileated Provisioner",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 11
+},
+{
+"name": "Sonar Strike",
+"count": 1
+},
+{
+"name": "Stickytongue Sentinel",
+"count": 1
+},
+{
+"name": "Sunshower Druid",
+"count": 2
+},
+{
+"name": "Tangle Tumbler",
+"count": 1
+},
+{
+"name": "Three Tree Rootweaver",
+"count": 1
+},
+{
+"name": "Treeguard Duo",
+"count": 3
+},
+{
+"name": "Warren Elder",
+"count": 1
+},
+{
+"name": "Wax-Wane Witness",
+"count": 1
+}
+]
+}

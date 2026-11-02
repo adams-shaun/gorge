@@ -1,4 +1,4 @@
-import type { CardView, Decision, Option, PotentialAction } from '../protocol';
+import type { CardView, Decision, Option, PaymentAction, PotentialAction, View } from '../protocol';
 import { offersPotential } from './castable';
 
 /**
@@ -160,11 +160,11 @@ const LATER_KINDS: ReadonlySet<string> = new Set(['ability', 'granted', 'unlock'
  * LATER_KINDS entry is indexed, plus hand casts with no live cast option or
  * payment action, so the float-gated plan-less cast is discoverable.
  *
- * A hand cast the ENGINE has proved unpayable
+ * A play the ENGINE has proved unpayable
  * (PotentialAction.payable === false, projected by
  * rules.Engine.PotentialActions) is never
- * indexed -- its "tap other mana first" row promised a tapped-out cast no
- * amount of tapping could reach. The verdict is the server's own; the client
+ * indexed -- its "tap other mana first" row would promise what no
+ * amount of tapping can reach. The verdict is the server's own; the client
  * must not re-derive affordability from mana_cost (castable.ts).
  */
 export function laterByObj(
@@ -179,7 +179,7 @@ export function laterByObj(
   for (const a of potential) {
     const handCast = a.kind === 'cast' && a.obj !== undefined && hand?.has(a.obj) === true;
     if ((!LATER_KINDS.has(a.kind) && !handCast) || a.obj === undefined) continue;
-    if (handCast && a.payable === false) continue;
+    if (a.payable === false) continue;
     if (handCast && decision.payment_actions?.some((action) => action.cast.object === a.obj)) continue;
     // An object with no live option is indexed too —
     // that is the Equipment case. An entry the decision already offers live
@@ -192,6 +192,49 @@ export function laterByObj(
     else list.push(a);
   }
   return m;
+}
+
+/** A card the seat can play from outside its hand, and the zone it sits in. */
+export interface OffHandPlay {
+  card: CardView;
+  zone: 'exile' | 'graveyard' | 'command' | 'library';
+}
+
+/**
+ * offHandPlays lists the cards a priority window lets the seat cast or play
+ * from outside its hand: a card it stole into any seat's exile, a flashback
+ * in a graveyard, a commander, its library's top card. These sit in closed
+ * piles, so the hand fan shows them beside the hand with the hand's controls.
+ * Membership is only what the server offered: a live option, a payment
+ * action or a potential action it has not proved unpayable. Zones are walked
+ * in a fixed order, so a card keeps its place between frames.
+ */
+export function offHandPlays(
+  view: View | null | undefined,
+  seat: number,
+  decision: Decision | null,
+  paymentActions: readonly PaymentAction[],
+): OffHandPlay[] {
+  if (!view || decision === null || decision.kind !== 'priority') return [];
+  const own = view.players.find((p) => p.seat === seat);
+  const offered = new Set<number>();
+  for (const o of decision.options) if ((o.kind === 'cast' || o.kind === 'play_land') && o.obj !== undefined) offered.add(o.obj);
+  for (const a of paymentActions) offered.add(a.cast.object);
+  for (const a of own?.potential_actions ?? []) {
+    if ((a.kind === 'cast' || a.kind === 'play_land') && a.obj !== undefined && a.payable !== false) offered.add(a.obj);
+  }
+  if (offered.size === 0) return [];
+  const out: OffHandPlay[] = [];
+  const collect = (cards: readonly CardView[] | null | undefined, zone: OffHandPlay['zone']) => {
+    for (const card of cards ?? []) if (offered.has(card.id)) out.push({ card, zone });
+  };
+  for (const p of view.players) {
+    collect(p.exile, 'exile');
+    collect(p.graveyard, 'graveyard');
+  }
+  collect(own?.command, 'command');
+  collect(own?.library_top ? [own.library_top] : [], 'library');
+  return out;
 }
 
 /** laterLabel is a later row's text: the server's label plus why it is not

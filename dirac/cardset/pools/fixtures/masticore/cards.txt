@@ -1,0 +1,22 @@
+# the unless-discard sacrifice pool (masticore): the
+# Masticore family and The Great Juggernaut, whose upkeep trigger pays
+# "UnlessCost$ Discard<1/Card>" or sacrifices the source, plus Bebop &
+# Rocksteady's attack/block ask, basics and vanilla creatures for the
+# oracle's constructed lockstep (dirac/oracle/masticore_test.go)
+Bebop & Rocksteady
+Divination
+Forest
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Island
+Masticore
+Mind Stone
+Molten-Tail Masticore
+Mountain
+Ornithopter
+Plains
+Razormane Masticore
+Savannah Lions
+Swamp
+The Great Juggernaut

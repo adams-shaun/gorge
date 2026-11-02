@@ -201,6 +201,12 @@ describe('manualManaHidden — the predicate table', () => {
     expect(manualManaHidden(d, view([{ kind: 'station', obj: 98, label: 'Station Probe Ship' }]), 0, true)).toBe(true);
   });
 
+  it('a play the engine proved unpayable keeps no taps, since none of them reaches it', () => {
+    const d = priority([plains, mountain, pass, concede]);
+    expect(manualManaHidden(d, view([{ ...equipPotential, payable: false }]), 0, true)).toBe(true);
+    expect(manualManaHidden(d, view([{ ...equipPotential, payable: false }, pumpPotential]), 0, true)).toBe(false);
+  });
+
   it('a costly mana activation alone does not keep the plain taps (it is shown itself, and needs none of them)', () => {
     const d = priority([plains, led, pass, concede]);
     expect(manualManaHidden(d, view(), 0, true)).toBe(true);

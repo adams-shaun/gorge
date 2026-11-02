@@ -155,14 +155,16 @@ func effUntapAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			o := g.Obj(id)
-			if o == nil || o.Zone != state.ZBattlefield || !o.Tapped {
+			if o == nil {
 				continue
 			}
 			untap := untapper
 			if perCardUntapper {
 				untap = o.Controller
 			}
-			h.Emit(events.Event{Kind: events.Untap, Obj: id, Player: untap})
+			if !tryUntapBy(h, id, untap) {
+				continue
+			}
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
@@ -335,7 +337,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	// registered effects carry the AffectedZone scope so the grant applies
 	// only while the card sits there.
 	zone := strings.TrimSpace(sa.ParamStr(cards.PKPumpZone))
-	grant := compilePumpGrant(sa)
+	grant := sharedPumpGrant(h, c, sa, compilePumpGrant(sa))
 	g := h.Game()
 	scope := targetPlayerKindScope(h, c, sa)
 	// Read before the walk (CR 608.2h): a pump registered below must not change

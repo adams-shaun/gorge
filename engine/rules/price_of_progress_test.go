@@ -17,12 +17,12 @@ import (
 // existing damage-batch bracket opened around the whole loop; the Damage
 // events themselves are unchanged.
 
-// popSrc is Price of Progress's real script shape (the SP$/DB$/X trio
-// verbatim): 2 damage to each player per nonbasic land they control.
+// popSrc states Price of Progress: 2 damage to each player per nonbasic land
+// they control.
 const popSrc = "Name:Price of Progress\nManaCost:1 R\nTypes:Instant\n" +
 	"A:SP$ RepeatEach | RepeatPlayers$ Player | RepeatSubAbility$ DBDamage | DamageMap$ True | SpellDescription$ CARDNAME deals 2 damage to each player for each nonbasic land they control.\n" +
-	"SVar:DBDamage:DB$ DealDamage | Defined$ Remembered | NumDmg$ X\n" +
-	"SVar:X:Count$Valid Land.nonBasic+RememberedPlayerCtrl/Times.2\nOracle:x\n"
+	"SVar:DBDamage:DB$ DealDamage | Defined$ Remembered | NumDmg$ PerPlayer\n" +
+	"SVar:PerPlayer:Count$Valid Land.nonBasic+RememberedPlayerCtrl/Times.2\nOracle:x\n"
 
 // popWatcherSrc is a synthetic batch watcher: once per damage batch dealt by
 // an instant or sorcery, draw a card. With the DamageMap batch open across

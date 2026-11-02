@@ -1,0 +1,26 @@
+# the granted-wither pool: Barbed Bloodletter's
+# Pump KW$ Wither beside printed wither (Boggart Ram-Gang), creatures
+# with toughness 3-5, +1/+1 counter sources, a pump and removal, for the
+# oracle's constructed lockstep (dirac/oracle/wither_test.go)
+# The granted-wither pool: Barbed Bloodletter (Pump KW$
+# Wither until end of turn on the creature it attaches to), Boggart Ram-Gang
+# (printed wither, the regression), cheap creatures and creatures with
+# toughness 3-5 so the -1/-1 counters matter, a +1/+1 counter source (counter
+# annihilation, CR 704.5q), a pump and removal, and basics, for the oracle's
+# constructed lockstep (dirac/oracle/wither_test.go).
+Barbed Bloodletter
+Boggart Ram-Gang
+Grizzly Bears
+Dwynen's Elite
+Gnarlback Rhino
+Elfsworn Giant
+Fecund Greenshell
+Armasaur Guide
+Pridemalkin
+Ajani's Pridemate
+Cat Collector
+Giant Growth
+Pacifism
+Swamp
+Forest
+Plains

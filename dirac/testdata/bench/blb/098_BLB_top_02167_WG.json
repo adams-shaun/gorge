@@ -1,0 +1,51 @@
+{
+"name": "BLB_top_02167_WG",
+"format": "limited",
+"notes": "17lands BLB PremierDraft deck 4e23927301894888af22cb35fbc4dc16:0, player win-rate bucket 0.60 (CC BY 4.0); kernel-refused copies replaced by basics: 1 Harvestrite Host, 1 Head of the Homestead, 2 Intrepid Rabbit, 1 Rabbit Response, 1 Season of Gathering -> 3 Plains, 3 Forest",
+"cards": [
+{
+"name": "Banishing Light",
+"count": 3
+},
+{
+"name": "Brightblade Stoat",
+"count": 3
+},
+{
+"name": "Feather of Flight",
+"count": 2
+},
+{
+"name": "Forest",
+"count": 11
+},
+{
+"name": "Hop to It",
+"count": 1
+},
+{
+"name": "Overprotect",
+"count": 1
+},
+{
+"name": "Plains",
+"count": 12
+},
+{
+"name": "Shrike Force",
+"count": 2
+},
+{
+"name": "Treeguard Duo",
+"count": 2
+},
+{
+"name": "Valley Mightcaller",
+"count": 1
+},
+{
+"name": "Warren Elder",
+"count": 2
+}
+]
+}

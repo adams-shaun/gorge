@@ -1066,6 +1066,11 @@ func (e *Engine) payCast() {
 // as the existing ability-fizzle resting place does). Nothing is paid and
 // the held cast trigger is dropped. e.cast and e.choosing are cleared.
 func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
+	// The reversal below clears the stack object's modes, so read them first.
+	facedDilemma := false
+	if so := e.G.Obj(pc.stackObj); so != nil && pc.modeChosen {
+		facedDilemma = len(so.ChosenModes) > 0 && effects.GameReadsDilemmas(e.G)
+	}
 	// The reversal below and the push that preceded it are state-changing
 	// events to emit's suppression-clearing rule, but their NET effect is no
 	// progress -- the object returns to the zone it came from -- so the
@@ -1162,11 +1167,18 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	if pc.modeChosen && !pc.isAbility() {
 		if o := e.G.Obj(pc.card); o != nil {
 			if sa := o.Face().SpellAbility(); sa != nil {
-				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player,
+				counter := ""
+				if facedDilemma {
+					counter = events.DilemmaReversed
+				}
+				e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player, Counter: counter,
 					Text: strings.Join(modeLabels(sa, o.Face().SVars, pc.preModes), ",")})
 			}
 			o.ChosenModes = state.CloneChosenModes(pc.preModes)
 		}
+	}
+	if facedDilemma && pc.isAbility() {
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.card, Player: pc.player, Counter: events.DilemmaReversed})
 	}
 	e.dropProposalTriggers(pc)
 	e.deferredPush = nil

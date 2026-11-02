@@ -483,7 +483,7 @@ func (w *legalWalk) battlefieldWalk() {
 								Label: abFace.Name + ": " + ab.ParamStr(cards.PKSpellDescription), Obj: id, Ability: i,
 								Cost:  e.abilityOfferCost(p, id, ab),
 								Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach",
-								GrantStatics:  staticModesFromSVars(ab, abFace.SVars),
+								GrantStatics:  effects.GrantedStaticModes(ab, abFace.SVars),
 								Loyalty:       abilityLoyaltyFact(o, ab, &cost, loyal),
 								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p})
 						}
@@ -491,7 +491,7 @@ func (w *legalWalk) battlefieldWalk() {
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
 								Label: abFace.Name + ": " + ab.ParamStr(cards.PKSpellDescription) + " (alternate cost)",
 								Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach",
-								GrantStatics:  staticModesFromSVars(ab, abFace.SVars),
+								GrantStatics:  effects.GrantedStaticModes(ab, abFace.SVars),
 								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p})
 						}
 					}

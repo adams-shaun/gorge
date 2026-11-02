@@ -47,6 +47,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerResult = result
 			c.TriggerResultMax = maxResult
 		}
+	case cards.TriggerFacesDilemma:
+		c.TriggerPlayer = player(ev.Player)
 	case cards.TriggerBecomesTarget, cards.TriggerBecomesTargetOnce:
 		// ev.Obj is the targeting spell/ability. TriggerTarget is the TARGETED
 		// object the trigger matched (CR 603.3d), which for a ValidTarget$
@@ -136,7 +138,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// The completed-scry marker carries the count of cards the player
 		// actually chose to put on the bottom in Amount, which is the
 		// magnitude the trigger body reads: The Temporal Anchor's
-		// `SVar:X:TriggerCount$ScryBottom` resolves to this value and its
+		// `X = TriggerCount$ScryBottom` resolves to this value and its
 		// `DB$ Dig | DigNum$ X | FromBottom$ True` exiles that many from the
 		// bottom. It is captured at fire time and carried to resolution, the
 		// same contract TriggerAmount has for every other mode.
@@ -364,7 +366,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// it) and TriggerAmount is the monstrosity COUNT the mark event
 		// carried -- what Hydra Broodmaster's
 		// `SVar:MonstrosityX:TriggerCount$Amount` and Vitality Hunter's
-		// `SVar:MaxTgts:TriggerCount$Amount` read back.
+		// `MaxTgts = TriggerCount$Amount` read back.
 		c.TriggerCard = ev.Obj
 		c.TriggerSource = ev.Obj
 		c.TriggerAmount = ev.Amount
@@ -446,6 +448,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	if card := e.G.Obj(c.TriggerCard); card != nil {
 		c.TriggerPaidX = card.X
 		c.TriggerConverge = card.ConvergeColours
+		c.TriggerOffspringPaid, c.TriggerSquadPaid = card.OffspringPaid, card.SquadPaid
 		// CR 601.2h / 106.12: the mana actually spent to cast the triggering
 		// spell, snapshotted beside the converge colours for the same reason --
 		// a spell that leaves the stack before the trigger resolves (countered,

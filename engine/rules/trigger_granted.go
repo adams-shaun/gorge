@@ -286,9 +286,9 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 // granted creature itself. The queue carries the __kwOffspringGranted
 // payload events.Apply rebuilds the same CopyPermanent body from (the Ward/
 // Afflict/Exploit shape; a granted creature has no printed Trigger index for
-// an inline body to ride). The body's Count$OffspringPaid reads the entering
-// permanent's pay-time provenance, which the stack->battlefield Move
-// preserved, so the plain cast mints nothing and the paid cast mints one.
+// an inline body to ride). The entering permanent's pay-time provenance, which
+// the stack->battlefield Move preserved, is the intervening if (CR 702.175a,
+// 603.4): a plain cast does not trigger and the paid cast mints one.
 //
 // The face that PRINTS Offspring is skipped: the printed expansion already
 // owns the line for that creature, and firing both would mint a second copy.
@@ -299,7 +299,7 @@ func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID,
 	// Cheap gates first: this walk is invoked for every object the event
 	// visits, so reject everything but the entering object before any
 	// derived-characteristics read.
-	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield || !o.OffspringPaid {
 		return
 	}
 	// The grant is evaluated with the STACK-zone override (hasCastOffspring,
@@ -884,6 +884,9 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				if !observer.triggerMatchesWithSVars(t, id, ev, objLKI, gf.Face.SVars) {
 					continue
 				}
+				if !e.grantedDamageBatchAdmits(t, &gf.Face.Triggers[ti], triggerKey{Source: id, Idx: ti}, ce.Timestamp, id, ev) {
+					continue
+				}
 				key := triggerKey{Source: id, Idx: -1}
 				tc := observer.triggerReferents(t, id, ev, objLKI)
 				pt := pendingTrigger{
@@ -971,6 +974,9 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			continue
 		}
 		key := triggerKey{Source: id, Idx: -1}
+		if !e.grantedDamageBatchAdmits(t, ce.AddTrigger, key, ce.Timestamp, id, ev) {
+			continue
+		}
 		tc := observer.triggerReferents(t, id, ev, objLKI)
 		pt := pendingTrigger{
 			Source:       id,
@@ -1045,6 +1051,24 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			}, ev, nil)
 		}
 	}
+}
+
+// grantedDamageBatchAdmits gives a granted line the damage batch gate a printed
+// line gets (CR 603.2): "when this creature deals combat damage" is one trigger
+// for a batch however many creatures the damage was split among. A line of any
+// other mode passes.
+func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line *cards.Trigger, key triggerKey, stamp uint32, id state.ObjID, ev events.Event) bool {
+	mk := t.ModeKind()
+	switch mk {
+	case cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll:
+	default:
+		return true
+	}
+	amount := damageTriggerAmount(e.excessDamageBaseline, mk, ev, damageSourceHasDeathtouch(e, e.damageSourceLKI, ev))
+	if amount <= 0 {
+		return false
+	}
+	return e.latchDamageBatch(t, line, mk, key, grantedLine{stamp: stamp, line: line}, id, ev, amount)
 }
 
 // grantedTriggerStaticsFor returns, in active()'s order, pointers to the

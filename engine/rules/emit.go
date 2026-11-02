@@ -763,11 +763,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if stored.Kind == events.EndTurn {
 			e.checkEndTurnExileTriggers(&stored)
 		}
-		// A pushed spell proposal's own target choice (CR 601.2c): remember
-		// which queue entries it produced so abortCast can drop them if the
-		// cast is reversed (CR 733.1 -- see pendingCast.proposalTriggers).
-		if stored.Kind == events.TargetsChosen && e.cast != nil && e.cast.pushed &&
-			!e.cast.isAbility() && stored.Obj == e.cast.stackObj && len(e.pendingTriggers) > before {
+		// A pushed spell proposal's own target choice (CR 601.2c), or a pushed
+		// proposal's dilemma: remember which queue entries it produced so
+		// abortCast can drop them if the cast is reversed (CR 733.1 -- see
+		// pendingCast.proposalTriggers).
+		if e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj && len(e.pendingTriggers) > before &&
+			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
+				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced) {
 			e.cast.proposalTriggers = append(e.cast.proposalTriggers, [2]int{before, len(e.pendingTriggers)})
 		}
 	}

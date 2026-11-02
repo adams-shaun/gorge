@@ -1,0 +1,47 @@
+# Count$ThisTurnCast_<spec> ring carriers (Stoic
+# Sphinx, Brightspear Zealot, Leapfrog, Haunting Figment: static
+# conditions; Focus the Mind, Raging Battle Mouse: cost composition;
+# Canyon Crab: hand provenance; Thunder Salvo, Storm Entity, Dream
+# Thief: !CastSaSource; Delightful Discovery: an unscoped opponent count;
+# Slick Sequence, Mogg Conscripts, Goblin Cohort; Zimone, Ivy Elemental, Mind Spring, Mocking Sprite: a reduction paying into {X}, CR 601.2f;
+# Laboratory Drudge, Visions of Phyrexia, Wild-Magic Sorcerer: the
+# wasCastFromGraveyard/Exile specs lower, each card still refused on
+# another ability, see coverage.md) beside Unsummon (a
+# bounce and recast), cantrips, vanillas and basics, for the oracle's
+# constructed lockstep (dirac/oracle/thisturncast_test.go)
+Stoic Sphinx
+Brightspear Zealot
+Focus the Mind
+Raging Battle Mouse
+Canyon Crab
+Thunder Salvo
+Storm Entity
+Dream Thief
+Delightful Discovery
+Leapfrog
+Haunting Figment
+Slick Sequence
+Mogg Conscripts
+Goblin Cohort
+Unsummon
+Thought Scour
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
+Impatience
+Relic Runner
+Predatory Advantage
+Mind Stone
+Kill Shot
+Vision Skeins
+Zimone, Infinite Analyst
+Ivy Elemental
+Mind Spring
+Mocking Sprite
+Laboratory Drudge
+Visions of Phyrexia
+Wild-Magic Sorcerer
+Bulk Up

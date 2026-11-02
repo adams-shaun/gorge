@@ -1,0 +1,19 @@
+# the counters-added-this-turn pool: the three lowered
+# Count$CountersAddedThisTurn carriers beside counter makers (a +1/+1
+# spell, a proliferate card, a flicker), basics and vanilla creatures
+# (dirac/oracle/ctradded_test.go)
+Lasting Tarfire
+Lord Jyscal Guado
+Beast, Erudite Aerialist
+Fractal Tender
+Battlegrowth
+Hunter's Edge
+Thrummingbird
+Flux Channeler
+Cloudshift
+Grizzly Bears
+Hill Giant
+Forest
+Island
+Mountain
+Plains

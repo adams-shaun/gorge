@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Decision, Intent, Option } from '../protocol';
+import type { Decision, Intent, Option, View } from '../protocol';
 import { ApiError } from './api';
 import { SeatPanelState, primaryOf, isConcede } from './seatpanel.svelte';
 
@@ -126,6 +126,26 @@ describe('SeatPanelState', () => {
     expect(p.shouldPoll).toBe(true);
   });
 
+  it('stops polling once the game is over, until a live view arrives', () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    p.adoptView(null, { over: true } as unknown as View);
+    expect(p.shouldPoll).toBe(false);
+    p.adoptView(null, { over: false } as unknown as View);
+    expect(p.shouldPoll).toBe(true);
+  });
+
+  it('a 409 that refuses the answer to the current ask stays visible', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    const d5 = priority(5, [cast(0), pass(1), concede(2)]);
+    p.adoptView(d5);
+    postIntentMock.mockRejectedValueOnce(new ApiError(409, 'conflict', 'duplicate choice 0'));
+    fetchPendingMock.mockResolvedValue(d5);
+    p.click(0);
+    await settle(() => p.error !== null);
+    expect(p.error).toBe('duplicate choice 0');
+    expect(p.pending?.seq).toBe(5);
+  });
+
   // The poll must not re-open a decision this seat already answered: while the
   // server still reports the answered ask, /pending returns it again.
   it('a poll that returns the decision just answered does not re-open it', async () => {
@@ -240,7 +260,7 @@ describe('SeatPanelState', () => {
     expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 6, player: 0, choices: [2] }, ctx);
   });
 
-  it('test 4 — a stale seq is surfaced, not swallowed, and the panel recovers onto the current decision', async () => {
+  it('test 4 — a stale seq recovers silently onto the current decision', async () => {
     const p = new SeatPanelState('t1', 1, ctx);
     const d5 = priority(5, [cast(0), pass(1), concede(2)]);
     const d7 = priority(7, [cast(0), pass(1), concede(2)]);
@@ -249,10 +269,8 @@ describe('SeatPanelState', () => {
     postIntentMock.mockRejectedValueOnce(new ApiError(409, 'conflict', 'intent seq 5, pending decision seq 7'));
     fetchPendingMock.mockResolvedValue(d7);
     p.click(0);
-    await settle(() => p.error !== null);
-    expect(p.error).toBe('intent seq 5, pending decision seq 7'); // surfaced, with the server's own reason
-
     await settle(() => p.pending?.seq === 7); // recovered: the current decision replaced the stale one
+    expect(p.error).toBeNull(); // the game moved on by itself: nothing for the player to act on
     expect(fetchPendingMock).toHaveBeenCalledWith('t1', 1, ctx);
     expect(p.postedSeq).toBeNull();
 
@@ -301,16 +319,16 @@ describe('SeatPanelState', () => {
     q.click(1); // deselect one
     expect(q.canSubmit).toBe(true);
 
-    // a rejection on a multi-pick decision is surfaced and recovered
+    // a refusal of a multi-pick answer is surfaced, with a fresh slate
     postIntentMock.mockRejectedValueOnce(new ApiError(409, 'conflict', 'duplicate choice 1'));
-    fetchPendingMock.mockResolvedValue({ ...d, seq: 10 });
+    fetchPendingMock.mockResolvedValue(d);
     const r = new SeatPanelState('t1', 1, ctx);
     r.adoptView(d);
     r.click(0); r.click(1);
     r.submit();
     await settle(() => r.error !== null);
     expect(r.error).toBe('duplicate choice 1');
-    await settle(() => r.pending?.seq === 10);
+    expect(r.pending?.seq).toBe(d.seq);
     expect(r.canSubmit).toBe(false); // fresh slate for the current decision
   });
 

@@ -1,0 +1,20 @@
+# the enter-time cast provenance pool: Patched
+# Plaything, whose enters replacement reads Count$wasCastFromYourHandByYou,
+# and Myojin of Night's Reach, whose DIVINITY enters replacement reads it
+# too, beside a flicker, a reanimation (a Plaything that enters uncast),
+# removal, self-mill, vanilla creatures and basics
+# (dirac/oracle/wascast_test.go)
+Patched Plaything
+Cloudshift
+Dread Return
+Murder
+Stitcher's Supplier
+Journey to Nowhere
+Savannah Lions
+Barony Vampire
+Serra Angel
+Suntail Hawk
+Child of Night
+Plains
+Swamp
+Myojin of Night's Reach

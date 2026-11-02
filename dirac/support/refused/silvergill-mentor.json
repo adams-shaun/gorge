@@ -1,0 +1,13 @@
+{
+  "card": "Silvergill Mentor",
+  "class": "options",
+  "why": "the engines offer different options; 29 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "full",
+    "seed": 1,
+    "pair": 812,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

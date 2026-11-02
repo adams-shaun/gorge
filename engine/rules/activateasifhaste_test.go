@@ -47,7 +47,7 @@ func activateAsIfHasteCorpusCarriers(reg *cards.Registry) map[string]bool {
 }
 
 const asIfHasteStaticSrc = "Name:Test Shang-Chi\nManaCost:2 G\nTypes:Legendary Creature Human Warrior\nPT:3/3\n" +
-	"S:Mode$ ActivateAbilityAsIfHaste | ValidCard$ Creature.YouCtrl+inZoneBattlefield | Description$ You may activate abilities of creatures you control as though those creatures had haste.\n" +
+	"S:Mode$ ActivateAbilityAsIfHaste | ValidCard$ Creature.YouCtrl+inZoneBattlefield\n" +
 	"Oracle:x\n"
 
 const asIfHasteTapperSrc = "Name:Test Tapper\nManaCost:G\nTypes:Creature Elf\nPT:1/1\n" +

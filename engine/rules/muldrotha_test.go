@@ -10,17 +10,17 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// muldrothaSrc is Muldrotha, the Gravetide's real compiled script: six
+// muldrothaSrc states Muldrotha, the Gravetide's permissions: six
 // S:Mode$ Continuous statics, one per permanent type, each carrying
 // MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ <type> | AffectedZone$
 // Graveyard. Each static is its OWN once-per-turn permission.
 const muldrothaSrc = "Name:Muldrotha, the Gravetide\nManaCost:3 B G U\nTypes:Legendary Creature Elemental Avatar\nPT:6/6\n" +
-	"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Land | EffectZone$ Battlefield | AffectedZone$ Graveyard | Description$ x\n" +
-	"S:Mode$ Continuous | Affected$ Creature.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Creature | EffectZone$ Battlefield | AffectedZone$ Graveyard\n" +
-	"S:Mode$ Continuous | Affected$ Planeswalker.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Planeswalker | EffectZone$ Battlefield | AffectedZone$ Graveyard\n" +
-	"S:Mode$ Continuous | Affected$ Artifact.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Artifact | EffectZone$ Battlefield | AffectedZone$ Graveyard\n" +
-	"S:Mode$ Continuous | Affected$ Enchantment.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Enchantment | EffectZone$ Battlefield | AffectedZone$ Graveyard\n" +
-	"S:Mode$ Continuous | Affected$ Battle.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Battle | EffectZone$ Battlefield | AffectedZone$ Graveyard\n" +
+	"S:Mode$ Continuous | Affected$ Land.YouOwn | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Land | AffectedZone$ Graveyard | Description$ x\n" +
+	"S:Mode$ Continuous | Affected$ Creature.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Creature | AffectedZone$ Graveyard\n" +
+	"S:Mode$ Continuous | Affected$ Planeswalker.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Planeswalker | AffectedZone$ Graveyard\n" +
+	"S:Mode$ Continuous | Affected$ Artifact.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Artifact | AffectedZone$ Graveyard\n" +
+	"S:Mode$ Continuous | Affected$ Enchantment.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Enchantment | AffectedZone$ Graveyard\n" +
+	"S:Mode$ Continuous | Affected$ Battle.YouOwn+nonLand | Condition$ PlayerTurn | MayPlay$ True | MayPlayLimit$ 1 | MayPlayText$ Battle | AffectedZone$ Graveyard\n" +
 	"Oracle:x\n"
 
 func artifactSrc(name, cost string) string {

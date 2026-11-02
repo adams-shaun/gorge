@@ -83,7 +83,7 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	// A pure read: one zone-entry index serves every remaining step.
 	defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 	plan := pc.Payment.Plan
-	cost := e.castPaymentMana(pc)
+	cost := pay.PlanManaUnderRider(e.castPaymentMana(pc), pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType})
 	if plan.Version != decision.PaymentPlanV1 || plan.Cost != pay.WireCost(cost) {
 		return paymentFallbackCostChanged, nil, pay.Alt{}, false
 	}
@@ -96,9 +96,6 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 	// (paymentPlanStepReady): a changed one is production_changed.
 	if pain := pay.PlanRemainingPain(plan, next); pain > 0 && pain >= int64(e.G.Players[pc.player].Life) {
 		return paymentFallbackCostChanged, nil, pay.Alt{}, false
-	}
-	if next == 0 && !pay.PlanPoolOK(&e.G.Players[pc.player]) {
-		return paymentFallbackProductionChanged, nil, pay.Alt{}, false
 	}
 	if next > 0 && next < len(plan.Activations) && e.paymentPlanManaInterference() {
 		return paymentFallbackProductionChanged, nil, pay.Alt{}, false
@@ -137,7 +134,8 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 			return paymentFallbackSourceChanged, units, pay.Alt{}, false
 		}
 	}
-	pool := e.G.Players[pc.player].Pool
+	desc := paymentForCast(pc, cost)
+	pool := pay.PlanPool(asPayer(e), pc.player, &desc)
 	var first pay.Alt
 	for i, pa := range plan.Activations {
 		// A source named twice is never a V1 witness (the planner taps each
