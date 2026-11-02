@@ -1893,7 +1893,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 							break
 						}
 						e.reserveTriggerLimits(t, key)
-						e.queueTrigger(observer, pt, *ev, nil)
+						e.queueTriggerMode(observer, pt, *ev, nil, t.Mode)
 					}
 				}
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
@@ -1917,14 +1917,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// computed per instance with that attacker as the sole cause.
 				if mk == cards.TriggerAttacks {
 					echoFor := func(attacker state.ObjID) int {
-						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker})
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode)
 					}
 					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
 						e.pendingTriggers = append(e.pendingTriggers, insts...)
 						continue
 					}
 				}
-				e.queueTrigger(observer, pt, *ev, e.echoCauses(t, *ev))
+				e.queueTriggerMode(observer, pt, *ev, e.echoCauses(t, *ev), t.Mode)
 			}
 		}
 		if len(grantedStatics) > 0 {

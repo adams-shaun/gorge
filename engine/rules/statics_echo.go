@@ -33,11 +33,21 @@ func (e *Engine) panharmoniconStatics() []staticView {
 // Effect's combat registration is a delayed trigger, which CR 603.2d excludes,
 // and it reaches the combat queue helpers with effectMatchOverride set.
 func (e *Engine) queueTrigger(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID) {
+	e.queueTriggerMode(observer, pt, ev, causes, "")
+}
+
+// queueTriggerMode is queueTrigger for a trigger that is a T: line, whose
+// Mode$ trigMode a Panharmonicon static's ValidMode$ names (CR 603.2d: the
+// static doubles an ability that triggers from the event it lists, and a
+// land-played trigger is not a zone-change trigger though one move causes both).
+// An empty trigMode is a keyword's synthetic trigger, which has no line of its
+// own and reads the event's family.
+func (e *Engine) queueTriggerMode(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string) {
 	e.pendingTriggers = append(e.pendingTriggers, pt)
 	if e.effectMatchOverride {
 		return
 	}
-	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes); n > 0; n-- {
+	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode); n > 0; n-- {
 		e.pendingTriggers = append(e.pendingTriggers, pt)
 	}
 }
@@ -59,14 +69,14 @@ func (e *Engine) echoCauses(t cards.Trigger, ev events.Event) []state.ObjID {
 func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id state.ObjID, ev events.Event, pt pendingTrigger) []pendingTrigger {
 	if t.ModeKind() == cards.TriggerAttacks {
 		echoFor := func(attacker state.ObjID) int {
-			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker})
+			return e.panharmoniconEchoes(observer, id, ev, []state.ObjID{attacker}, t.Mode)
 		}
 		if insts := attacksTriggerInstances(boardOf(observer), t, id, ev, pt, echoFor); len(insts) > 0 {
 			return insts
 		}
 	}
 	insts := []pendingTrigger{pt}
-	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev)); n > 0; n-- {
+	for n := e.panharmoniconEchoes(observer, id, ev, e.echoCauses(*t, ev), t.Mode); n > 0; n-- {
 		insts = append(insts, pt)
 	}
 	return insts
@@ -83,9 +93,13 @@ func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id 
 // permanent, before it doubles anything. The gate reads the corpus's own
 // parameter set, each optional, every one present needing to match:
 //
-//   - ValidMode$: the comma-separated Forge event-mode family the causing
-//     event belongs to (panharmoniconModes); a static naming modes the event
-//     is not in contributes nothing.
+//   - ValidMode$: the comma-separated Forge trigger modes the static
+//     doubles. The doubled trigger's own Mode$ (trigMode) must be listed, and
+//     so must the family the causing event belongs to (panharmoniconModes); a
+//     static naming modes either is not in contributes nothing. Forge reads the
+//     trigger's mode alone, so a Mode$ LandPlayed trigger is not doubled by a
+//     ChangesZone static though the same move causes both. A keyword's
+//     synthetic trigger (empty trigMode) reads the event family only.
 //   - ValidCause$: the event's causing OBJECT -- the moved/cast card for a
 //     zone change or cast, or the candidate set the caller passes for a
 //     declare: the attacker bound to a per-attacker Mode$ Attacks instance,
@@ -118,7 +132,7 @@ func (e *Engine) grantedTriggerInstances(observer *Engine, t *cards.Trigger, id 
 // against the turn-up event's own object. Params this build cannot evaluate
 // (IsPresent/PresentCompare, Condition) fail closed: the static does not
 // double, never over-applies.
-func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event, causes []state.ObjID, trigMode string) int {
 	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
@@ -148,6 +162,9 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 			ok := false
 			for want := range strings.SplitSeq(vm, ",") {
 				want = strings.TrimSpace(want)
+				if trigMode != "" && want != trigMode {
+					continue
+				}
 				for _, have := range modes {
 					if want == have {
 						ok = true
