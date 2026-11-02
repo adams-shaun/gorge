@@ -133,7 +133,13 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// resolves, Move turns it into a token and clears IsCopy, and
 	// engine/rules/altcast.go's battlefield-entry hook has no IsCopy left to
 	// tell a never-cast token from the real cast.
-	x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
+	//
+	// A gift promise is not provenance but a paid additional cost (CR 702.174a),
+	// which a copy copies with every other decision made for the spell (CR
+	// 707.10): the copy keeps the promise and its receiver, so its gift is given
+	// as it resolves and its Count$PromisedGift targets are asked for.
+	x, castFlags := src.X, src.CastFlags&^(state.CastProvenanceFlags&^state.FlagPromisedGift)
+	giftTo := src.GiftPromisedTo
 	// Teamwork is a paid additional cost, like Conspire: copies carry the
 	// cost-conditioned bit AND the boolean its count/filter readers inspect.
 	teamworkPaid := src.TeamworkPaid
@@ -202,6 +208,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.Division = division
 	o.ChosenModes = chosenModes
 	o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+	if castFlags&state.FlagPromisedGift != 0 {
+		o.GiftPromisedTo = giftTo
+	}
 	o.TeamworkPaid = teamworkPaid
 	// A copy was never cast (CR 707.10), so it carries no rider grants:
 	// the Spell.MayPlaySource/AddsCounters provenance is a statement about

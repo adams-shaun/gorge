@@ -593,10 +593,11 @@ const (
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-// FlagPromisedGift joins the set: the promise is made as the spell is cast
-// (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
-// inherit it and the copy's PromisedGift predicate and Count$PromisedGift
-// head read false.
+// FlagPromisedGift is deliberately NOT in the set: the promise is an
+// additional cost (CR 702.174a), and a copy copies the additional costs paid
+// for the spell (CR 707.10; Forge's CardFactory.copySpellAbilityAndPossiblyHost
+// copies it too), so the copy's PromisedGift predicate and Count$PromisedGift
+// head read true and its gift is given as it resolves.
 // FlagRebound joins the set for the same reason: CR 702.95a's rider is
 // conditioned on the cast ("If you cast this spell from your hand, exile it
 // as it resolves"), so a stack copy -- never cast, its origin a stack mint
@@ -619,7 +620,7 @@ const (
 // statement about the cast, and the prepared designation's exile copy is the
 // only object that was CAST with the grant; a copy OF that copy is put on the
 // stack, never cast (CR 707.10), so it must not re-fire Codie's trigger.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -1561,8 +1562,7 @@ type Object struct {
 	// GiftPromisedTo is the CR 702.168 Gift promise's receiver: the opponent
 	// the cast's election named. The promise itself is the CastFlags bit
 	// state.FlagPromisedGift (folded by events.GiftPromise, preserved across
-	// the stack->battlefield move and stripped from a stack copy by
-	// CastProvenanceFlags), so the PromisedGift predicate, the
+	// the stack->battlefield move and kept by a stack copy), so the PromisedGift predicate, the
 	// Count$PromisedGift head and the Defined$ Promised referent share one
 	// home for the bit; this field carries only the receiver, read by
 	// Defined$ Promised / TokenOwner$ Promised. Zero when no promise was
