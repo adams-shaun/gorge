@@ -5,7 +5,8 @@
 #   make pr                      # current branch -> origin's default branch
 #   make pr BASE=main HEAD=develop
 #   make pr TITLE="..." DRAFT=1
-#   make pr DRY=1                # print the title and body, change nothing
+#   make pr DRY=1                # print the oracle step, the title and the body; change nothing
+#   make pr SKIP_ORACLE=1        # no oracle run before a pull request to main
 #
 # The branch is pushed to origin (never the base branch itself), then a PR is
 # created; if one is already open for the branch its body is regenerated.
@@ -34,6 +35,10 @@ RANGE="$MB..$HEAD_BRANCH"
 
 NCOMMITS=$(git rev-list --count --no-merges "$RANGE")
 [ "$(git rev-list --count "$RANGE")" -gt 0 ] || die "$HEAD_BRANCH has nothing that is not already on $BASE_REF"
+
+if [ "$BASE" = main ]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/pr-oracle.sh" "$HEAD_BRANCH"
+fi
 
 REPO_NAME=$(git remote get-url "$REMOTE" 2>/dev/null | sed -E 's#.*[:/]([^/]+/[^/]+)$#\1#; s#\.git$##')
 read -r NFILES ADDS DELS < <(git diff --numstat "$MB" "$HEAD_BRANCH" |

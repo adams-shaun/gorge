@@ -208,11 +208,107 @@ jobs:
         if: github.event_name == 'schedule'
         run: scripts/wire-nightly.sh
 
+  # dirac plays the committed slices of its FDN and BLB pools against gorge, on both
+  # surfaces. A divergence, an unmodelled stall or a hang fails.
+  dirac-slices:
+    runs-on: ${{ github.event_name != 'pull_request' && vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: make dirac-tables
+      - name: Play the committed slices
+        run: make dirac-slices
+      - name: Save the Go cache
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+
+  # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
+  # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships
+  # with the repo: this plays committed slices and synthetic decks, and the shard script fails on
+  # any skip other than the pool-only tests it lists. A pull request saves no cache, so the test
+  # result cache never answers for a shard.
+  oracle:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: make dirac-tables
+      - name: Test part ${{ matrix.part }} of 10
+        run: bash scripts/ci-oracle-shard.sh ${{ matrix.part }} 10 -timeout 30m
+      - name: Disk left
+        if: always()
+        run: df -h .
+
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [lint, test, examples, wire-matrix]
+    needs: [lint, test, examples, wire-matrix, dirac-slices, oracle]
     runs-on: ubuntu-24.04
     steps:
       - run: |
-          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }}"; exit 1; }
+          # oracle runs on a pull request to main and nowhere else.
+          oracle=skipped
+          if [ "${{ github.base_ref }}" = main ]; then oracle=success; fi
+          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.test.result }}" = success ] && [ "${{ needs.examples.result }}" = success ] && [ "${{ needs.wire-matrix.result }}" = success ] && [ "${{ needs.dirac-slices.result }}" = success ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} dirac-slices=${{ needs.dirac-slices.result }} oracle=${{ needs.oracle.result }}"; exit 1; }

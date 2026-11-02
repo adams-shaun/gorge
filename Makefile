@@ -75,6 +75,7 @@ help:
 	@echo "  make compile-cards  — compile the fetched corpus into the IR cache"
 	@echo "  make report         — print card coverage against implemented primitives"
 	@echo "  make dirac-tables   — write dirac's binary card tables under the corpus (gitignored, keyed by corpus and kgen sources)"
+	@echo "  make dirac-slices   — play dirac against gorge on the committed FDN and BLB slices, both surfaces"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
@@ -153,6 +154,15 @@ dirac-tables:
 	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables; rc=$$?; \
 	if [ $$rc -eq 3 ]; then go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
 	$(BIN_DIR)/kgen -synth-pools
+
+.PHONY: dirac-slices
+# dirac against gorge on the committed FDN and BLB slices, both surfaces. A divergence, an
+# unmodelled stall or a hang fails; a capacity stall is counted and reported.
+dirac-slices: dirac-tables
+	go build -trimpath -o $(BIN_DIR)/kfuzz ./dirac/oracle/cmd/kfuzz
+	@for set in fdn blb; do for surface in autopay full; do \
+		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute || exit 1; \
+	done; done
 
 .PHONY: fresh-clone-check
 fresh-clone-check:
@@ -357,7 +367,8 @@ coverage: $(BIN_DIR)/forgec
 #   PR_BASE=<branch>      target branch (default: origin's default branch)
 #   TITLE="..."           PR title (default: the commit subject, or "<head> → <base>: N commits")
 #   SUMMARY="..."         a paragraph placed under the overview table
-#   DRAFT=1               open as a draft      DRY=1   print the title and body only
+#   DRAFT=1               open as a draft      DRY=1   print the oracle step, the title and the body only
+#   SKIP_ORACLE=1         do not play the whole of dirac/oracle before a PR to main
 .PHONY: pr
 pr: export HEAD = $(PR_HEAD)
 pr: export BASE = $(PR_BASE)
