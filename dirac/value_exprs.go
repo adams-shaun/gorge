@@ -241,6 +241,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.exAdamant(k, x, ctx) // kw_evoke.go
 	case kop.ExNumColorsOf:
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
+	case kop.ExChromaOf:
+		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
 	case kop.ExPoisonOf, kop.ExProduct, kop.ExAttackersAll:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}

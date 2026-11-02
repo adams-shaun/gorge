@@ -407,6 +407,13 @@ const (
 	OppsHitLegendary = 1
 )
 
+// ExChromaOf: the mana symbols of colour N (W U B R G = 0..4) in the printed
+// mana cost of object Ref (gorge TriggeredCard$ChromaSource.<Colour>, Forge's
+// getTotalChroma: a hybrid or Phyrexian symbol counts once for either of its
+// colours); a face-down object has no mana cost (CR 708.2) and counts none.
+// A SpellCast trigger's spell on the stack is the one reader.
+const ExChromaOf ExprKind = 231
+
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,
 // cov3BranchHoldsVoid). Void holds when a nonland permanent left the

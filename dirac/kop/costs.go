@@ -64,6 +64,32 @@ type ManaCost struct {
 // Phyrexian reports whether m's Tb pips are Phyrexian.
 func (m ManaCost) Phyrexian() bool { return m.Hyb[0] == HybTwobrid && m.Hyb[1] == HybPhyrexian }
 
+// HasColour reports whether m prints a symbol of colour c (W U B R G = 0..4):
+// a coloured pip, or a hybrid, monocoloured hybrid or Phyrexian pip of it
+// (CR 107.4e, 107.4f).
+func (m ManaCost) HasColour(c int) bool { return m.Chroma(c) != 0 }
+
+// Chroma counts the mana symbols of m that are colour c (W U B R G = 0..4), one
+// per symbol: a hybrid or Phyrexian pip counts once for either of its
+// colours (gorge's ChromaSource read, Forge's getTotalChroma).
+func (m ManaCost) Chroma(c int) int {
+	n := int(m.Pips[c])
+	if m.Hyb[0] == HybTwobrid {
+		for i := 0; i < m.TbN(); i++ {
+			if m.TbCol(i) == c {
+				n++
+			}
+		}
+		return n
+	}
+	for _, h := range m.Hyb {
+		if h&(1<<uint(c)) != 0 {
+			n++
+		}
+	}
+	return n
+}
+
 // TbN is the number of unresolved twobrid pips.
 func (m ManaCost) TbN() int {
 	n := 0

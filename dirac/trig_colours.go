@@ -35,3 +35,19 @@ func (s *State) refNumColors(k *prep, r kop.Ref, ctx evalCtx) int {
 	}
 	return bits.OnesCount8(uint8(c & kop.ColAny))
 }
+
+// refChroma is ExChromaOf: the symbols of colour c in the printed cost of the
+// triggering spell, none when it is face down (gorge chromaObjectCount).
+//
+//go:noinline
+func (s *State) refChroma(k *prep, r kop.Ref, c int, ctx evalCtx) int {
+	e := ctx.e
+	if r != kop.RefTriggerObj || e == nil || e.trigObj == NoObj {
+		return 0
+	}
+	ob := &s.objs[e.trigObj]
+	if k.gen != nil && k.gen.anyFaceDown && s.faceDownAt(k, e.trigObj) {
+		return 0
+	}
+	return k.t.Cards[ob.card].Cost.Chroma(c)
+}

@@ -279,6 +279,7 @@ ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
 ExCastManaSpent	ExprKind	35
 ExChosenMode	ExprKind	233
+ExChromaOf	ExprKind	231
 ExCommittedCrime	ExprKind	48
 ExCompare	ExprKind	36
 ExConst	ExprKind	1
@@ -1176,6 +1177,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttackingAlone	int16	3
 W7AttackingOpp	int16	7
+W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7FaceUp	int16	5

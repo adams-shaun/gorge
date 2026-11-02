@@ -284,6 +284,9 @@ const (
 	W7WithWarp         int16 = 11
 	W7GreatestPowerTgt int16 = 12
 	W7CrewedBySrc      int16 = 13
+	// W7CostBlue is ManaCostPartialBlue: the printed mana cost has a blue
+	// symbol, a hybrid or Phyrexian one included (never face down: CR 708.2).
+	W7CostBlue int16 = 14
 )
 
 // PredPermMark, four per-permanent marks the filter words

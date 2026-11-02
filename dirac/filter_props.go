@@ -147,7 +147,7 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 //go:noinline
 func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
 	if fl.PredN&0xff >= kop.W7WithWarp {
-		return s.wordCard3(k, fl, c) // filter_props.go
+		return s.wordCard3(k, fl, c, fd) // filter_props.go
 	}
 	ans := false
 	switch fl.PredN & 0xff {
@@ -235,6 +235,11 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 				}
 			}
 		}
+	case kop.W7CostBlue:
+		// gorge ManaCostPartialBlue reads the printed cost; a face-down
+		// permanent has none (CR 708.2)
+		c := s.cardAt(sl)
+		ans = c != kop.NoCard && !s.faceDown(k, sl) && k.t.Cards[c].Cost.HasColour(1)
 	case kop.W7CrewedBySrc:
 		// the source crewed this Vehicle this turn (gorge CrewedBySourceThisTurn);
 		// no source fails closed
@@ -243,16 +248,19 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 	return ans != DebugWord9Flip
 }
 
-// wordCard3 is the sub-kinds on a card off the battlefield: withWarp reads
+// wordCard3 is the sub-kinds on a card off the battlefield (fd: face down): withWarp reads
 // the printed keyword in any zone, face down or not (gorge objectHasKeyword
 // reads the printed face); the other two read nothing there (gorge: a
 // battlefield creature, a crewed Vehicle).
 //
 //go:noinline
-func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID) bool {
+func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	ans := false
-	if fl.PredN&0xff == kop.W7WithWarp {
+	switch fl.PredN & 0xff {
+	case kop.W7WithWarp:
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
+	case kop.W7CostBlue:
+		ans = c != kop.NoCard && !fd && k.t.Cards[c].Cost.HasColour(1)
 	}
 	return ans != DebugWord9Flip
 }

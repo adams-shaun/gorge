@@ -1,0 +1,18 @@
+# the blue-symbol pool: Namor the Sub-Mariner (a noncreature spell whose printed
+# cost has blue symbols makes that many Merfolk tokens), blue, hybrid-free and
+# Phyrexian spells to cast, and filler (dirac/oracle/chroma_test.go)
+Brainstorm
+Counterspell
+Divination
+Giant Growth
+Gitaxian Probe
+Grizzly Bears
+Hill Giant
+Island
+Lightning Bolt
+Mana Leak
+Mountain
+Namor the Sub-Mariner
+Opt
+Suntail Hawk
+Unsummon

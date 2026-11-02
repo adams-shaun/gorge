@@ -334,6 +334,15 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 				break
 			}
 			v = lValue{Kind: vNumColorsOf, Ref: ref}
+		case "ChromaSource.White", "ChromaSource.Blue", "ChromaSource.Black", "ChromaSource.Red", "ChromaSource.Green":
+			// the colour's mana symbols in the triggering spell's printed
+			// cost (gorge chromaObjectCount, Forge getTotalChroma)
+			tr := lc.ab.Trigger
+			if head != "TriggeredCard" || tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "SpellCast" {
+				err = refuse("TriggeredCard$ChromaSource outside a SpellCast trigger")
+				break
+			}
+			v = lValue{Kind: vChromaOf, Ref: ref, N: map[string]int{"White": 0, "Blue": 1, "Black": 2, "Red": 3, "Green": 4}[strings.TrimPrefix(rest, "ChromaSource.")]}
 		default:
 			if head == "ParentTargeted" && strings.HasPrefix(rest, "CardCounters.") && !strings.EqualFold(rest, "CardCounters.ALL") {
 				// the parent's first target's live counters
