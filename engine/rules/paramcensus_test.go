@@ -170,7 +170,7 @@ var baseBuckets = map[string]bucket{
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA, "pa.SA": bSA,
 	// alt.ma is payment-plan's one concrete mana-ability alternative.  It is
 	// a *cards.SA just like ma; the qualified name makes that type explicit
 	// to the census rather than allowing this planner read to evade it.

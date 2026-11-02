@@ -16,7 +16,7 @@ func TestCutPropulsionDoublesForGrantedFlying(t *testing.T) {
 	const (
 		plain   = "Name:Plain Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:2/6\nOracle:x\n"
 		printed = "Name:Winged Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:2/6\nK:Flying\nOracle:x\n"
-		granter = "Name:Wing Gift\nManaCost:1 G\nTypes:Enchantment\nS:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying | Description$ Creatures you control have flying.\nOracle:x\n"
+		granter = "Name:Wing Gift\nManaCost:1 G\nTypes:Enchantment\nS:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying | Description$ Yours fly.\nOracle:x\n"
 	)
 	for _, tc := range []struct {
 		name   string
