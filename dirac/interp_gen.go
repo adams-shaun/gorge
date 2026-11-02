@@ -1965,8 +1965,8 @@ const NoSubtypeIdx = 254
 
 // damageBatch deals damage from the resolving entry's source to several
 // recipients as one simultaneous event (a Drakuseth damage map, damage
-// divided at targeting): lifelink gains the total once and the source's
-// damage triggers fire once with the total, as for combat damage.
+// divided at targeting): lifelink gains the total once, a DamageDealtOnce line
+// fires once with the total, and every other damage trigger fires per recipient.
 func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 	kw := s.srcKw(k)
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -2031,6 +2031,7 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 		}
 		if k.gen.anyDmgRef {
 			s.fireDamageRefs(k, codes, dn[:len(codes)]) // one event per recipient for the lines that read the referent
+		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		}
 	}
 }

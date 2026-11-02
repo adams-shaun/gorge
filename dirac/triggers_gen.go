@@ -398,6 +398,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isDmg, func(l trigListener, a *kop.Ability) {
 			t := &a.Trig
+			if rl.batchLineSkips(t) {
+				return
+			}
 			if t.Flags&kop.TfCombat != 0 && !combat || t.Flags2&kop.Tf2NonCombat != 0 && combat {
 				return
 			}
@@ -478,6 +481,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		}
 		s.eachTrigger(k, ev, func(l trigListener, a *kop.Ability) {
 			t := &a.Trig
+			if rl.batchLineSkips(t) {
+				return
+			}
 			// ValidSource$ ...inZoneBattlefield: this source is no permanent
 			if t.Flags2&kop.Tf2SrcInPlay != 0 {
 				return
