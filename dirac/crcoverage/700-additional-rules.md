@@ -219,7 +219,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 704.5e | follows | `dirac/gen.go#State.ceaseTokensGen` | - | spell copies leaving the stack and card copies off stack/battlefield cease |
 | 704.5f | follows | `dirac/turn.go#State.sba` | - | moved directly, no regeneration |
 | 704.5g | follows | `dirac/turn.go#State.sba` `dirac/turn.go#State.regenerate` `dirac/ctr_shield.go#State.shieldDestroy` | `TestShieldSpentOnLethalDamage` `TestDeathtouchWitherDamageDestroysLockstep` | destruction replaceable (regeneration, a shield counter, umbra armor); the deathtouch mark alone is lethal, wither and infect mark no damage |
-| 704.5h | follows | `dirac/turn.go#State.sba` | - | deathtouch mark cleared each check |
+| 704.5h | follows | `dirac/turn.go#State.sba` | `TestStdMkmReprosLockstep` | deathtouch mark cleared each check; the mark alone is lethal: a wither or infect hit marks no damage |
 | 704.5i | follows | `dirac/turn.go#State.sba` | `TestLoyaltyAbilities` | reads printed planeswalker face (see) |
 | 704.5j | follows | `dirac/turn.go#State.legendRule` `dirac/turn.go#State.applyLegend` | `TestLegendRule` `TestLegendRuleByName` `TestLegendRuleGrantedLegendary` `TestSneakLockstep` `TestLegendAskBeforeParkedDeath` | reads derived types (`typesAt`): a layer-4 Legendary grant is subject to the rule. Two duplicate sets made at once are asked in the battlefield order of each set's first member, as gorge legendGroups (Leonardo's Technique returning two legends) |
 | 704.5k | n/a | - | - | dirac: no world permanents in FDN/BLB |

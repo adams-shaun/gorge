@@ -505,9 +505,8 @@ func (s *State) sba(k *prep) bool {
 					gy = gy.with(sl)
 					continue
 				}
-				// CR 704.5g: the deathtouch mark alone is lethal, as gorge's
-				// destroyLethalDamage reads it; wither and infect deal the damage
-				// as -1/-1 counters and mark none
+				// The deathtouch mark alone is lethal (CR 704.5h): a wither or
+				// infect hit marks no damage (gorge destroyLethalDamage).
 				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
 					if p.flags&pfRegen != 0 {
