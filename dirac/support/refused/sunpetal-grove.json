@@ -1,0 +1,13 @@
+{
+  "card": "Sunpetal Grove",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 2 games in the corpus",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 535,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Bat'leth",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 2 games in the corpus",
+  "repro": {
+    "pool": "std-trk",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 537,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

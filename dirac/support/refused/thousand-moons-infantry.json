@@ -1,0 +1,13 @@
+{
+  "card": "Thousand Moons Infantry",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 5 games in the corpus",
+  "repro": {
+    "pool": "std-lci",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 157,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

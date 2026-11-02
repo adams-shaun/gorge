@@ -1,0 +1,13 @@
+{
+  "card": "Lumra, Bellow of the Woods",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 28 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 623,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

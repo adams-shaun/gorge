@@ -8,27 +8,29 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
-| BIG | 30 | 23 | 2 | 8 | 13 |
-| BLB | 278 | 253 | 9 | 5 | 239 |
+| BIG | 30 | 23 | 2 | 7 | 14 |
+| BLB | 278 | 253 | 10 | 23 | 220 |
 | DFT | 276 | 242 | 8 | 10 | 224 |
 | DSK | 276 | 230 | 10 | 32 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 3 | 116 | 117 |
 | FDN | 517 | 505 | 9 | 3 | 493 |
-| FIN | 312 | 264 | 9 | 7 | 248 |
+| FIN | 312 | 264 | 10 | 9 | 245 |
 | FRA | 269 | 240 | 8 | 12 | 220 |
 | HOB | 172 | 151 | 6 | 2 | 143 |
-| LCI | 290 | 244 | 10 | 13 | 221 |
+| LCI | 290 | 244 | 7 | 9 | 228 |
 | MKM | 279 | 227 | 7 | 34 | 186 |
 | MSH | 276 | 221 | 8 | 6 | 207 |
 | OTJ | 276 | 235 | 12 | 11 | 212 |
 | SOS | 270 | 246 | 8 | 17 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
-| TDM | 276 | 242 | 10 | 42 | 190 |
+| TDM | 276 | 242 | 10 | 43 | 189 |
 | TLA | 285 | 242 | 11 | 46 | 185 |
-| TMT | 194 | 167 | 4 | 2 | 161 |
-| WOE | 281 | 250 | 3 | 9 | 238 |
-| ALL | 34072 | 20731 | 155 | 16697 | 3879 |
+| TMT | 194 | 167 | 5 | 2 | 160 |
+| TRC | 210 | 167 | 5 | 0 | 162 |
+| TRK | 128 | 98 | 5 | 5 | 88 |
+| WOE | 281 | 250 | 3 | 8 | 239 |
+| ALL | 34132 | 20770 | 162 | 16528 | 4080 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -41,16 +43,16 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | blb | 1500 |
 | fdn | 1500 |
 | std-big | 115 |
-| std-blb | 78 |
+| std-blb | 75 |
 | std-dft | 194 |
 | std-dsk | 105 |
 | std-ecl | 45 |
 | std-eoe | 10 |
 | std-fdn | 568 |
-| std-fin | 220 |
+| std-fin | 199 |
 | std-fra | 214 |
 | std-hob | 97 |
-| std-lci | 150 |
+| std-lci | 250 |
 | std-mkm | 252 |
 | std-msh | 275 |
 | std-otj | 70 |
@@ -58,35 +60,39 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-spm | 74 |
 | std-tdm | 43 |
 | std-tla | 42 |
-| std-tmt | 342 |
+| std-tmt | 295 |
+| std-trc | 340 |
+| std-trk | 111 |
 | std-woe | 146 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
 
 ## Refused by name
 
-155 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+162 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | capacity | 1 |
-| decision | 4 |
-| options | 33 |
+| decision | 3 |
+| options | 32 |
 | projection | 1 |
 | projection-Cards.AttachedTo | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Chars.Keywords | 2 |
 | projection-Cards.Counters | 2 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 14 |
-| projection-Cards.Pos | 13 |
+| projection-Cards.Flags | 16 |
+| projection-Cards.Pos | 15 |
 | projection-Cards.Power | 10 |
-| projection-Cards.Zone | 17 |
+| projection-Cards.Toughness | 1 |
+| projection-Cards.Zone | 16 |
 | projection-Life | 6 |
-| projection-NInst | 1 |
-| projection-NStack | 27 |
-| projection-Pool | 7 |
+| projection-NInst | 2 |
+| projection-NStack | 29 |
+| projection-Pool | 8 |
 | projection-Stack.Ability | 1 |
+| projection-Stack.Kind | 1 |
 | projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |

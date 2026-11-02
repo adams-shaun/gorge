@@ -1,13 +1,13 @@
 {
   "card": "Flowerfoot Swordmaster",
-  "class": "projection-Cards.Flags",
-  "why": "the engines' state differs at projection Cards[].Flags; 3 games in the corpus",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 4 games in the corpus",
   "repro": {
     "pool": "std-blb",
     "surface": "full",
     "seed": 1,
-    "pair": 1211,
+    "pair": 1455,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 0
   }
 }

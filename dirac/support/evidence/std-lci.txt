@@ -1,5 +1,6 @@
 Abrade
 Abuelo's Awakening
+Abuelo, Ancestral Echo
 Abyssal Gorestalker
 Aclazotz, Deepest Betrayal
 Acolyte of Aclazotz
@@ -12,9 +13,12 @@ Ancestral Reminiscence
 Anim Pakal, Thousandth Moon
 Another Chance
 Armored Kincaller
+Attentive Sunscribe
 Basking Capybara
 Bedrock Tortoise
+Belligerent Yearling
 Bitter Triumph
+Bloodletter of Aclazotz
 Bonehoard Dracosaur
 Brackish Blunder
 Braided Net
@@ -27,6 +31,7 @@ Buried Treasure
 Burning Sun Cavalry
 Calamitous Cave-In
 Canonized in Blood
+Caparocti Sunborn
 Captain Storm, Cosmium Raider
 Captivating Cave
 Careening Mine Cart
@@ -38,9 +43,11 @@ Chart a Course
 Child of the Volcano
 Chimil, the Inner Sun
 Chupacabra Echo
+Clay-Fired Bricks
 Coati Scavenger
 Cogwork Wrestler
 Colossadactyl
+Compass Gnome
 Confounding Riddle
 Contested Game Ball
 Corpses of the Lost
@@ -61,6 +68,7 @@ Disruptor Wanderglyph
 Disturbed Slumber
 Dowsing Device
 Dreadmaw's Ire
+Dusk Rose Reliquary
 Earthshaker Dreadmaw
 Eaten by Piranhas
 Echo of Dusk
@@ -82,7 +90,9 @@ Glorifier of Suffering
 Glowcap Lantern
 Goblin Tomb Raider
 Goldfury Strider
+Grasping Shadows
 Greedy Freebooter
+Guardian of the Great Door
 Helping Hand
 Hermitic Nautilus
 Hidden Cataract
@@ -127,7 +137,6 @@ Mischievous Pup
 Molten Collapse
 Mountain
 Nicanzil, Current Conductor
-Nurturing Bristleback
 Oaken Siren
 Oltec Archaeologists
 Oltec Cloud Guard
@@ -144,21 +153,21 @@ Plundering Pirate
 Poetic Ingenuity
 Poison Dart Frog
 Preacher of the Schism
+Primordial Gnawer
 Promising Vein
 Pugnacious Hammerskull
 Queen's Bay Paladin
 Quicksand Whirlpool
 Rampaging Ceratops
+Rampaging Spiketail
 Ray of Ruin
 Relic's Roar
-Restless Anchorage
 Restless Prairie
 Restless Reef
 Restless Ridgeline
 Restless Vents
 River Herald Guide
 River Herald Scout
-Roaming Throne
 Ruin-Lurker Bat
 Rumbling Rockslide
 Runaway Boulder
@@ -179,7 +188,6 @@ Soulcoil Viper
 Souls of the Lost
 Spelunking
 Spring-Loaded Sawblades
-Spyglass Siren
 Squirming Emergence
 Staggering Size
 Stalactite Stalker
@@ -196,7 +204,6 @@ Terror Tide
 The Ancient One
 The Mycotyrant
 Thousand Moons Crackshot
-Thousand Moons Infantry
 Thousand Moons Smithy
 Thrashing Brontodon
 Threefold Thunderhulk

@@ -1,10 +1,10 @@
 Agate Assault
 Agate-Blade Assassin
 Alania's Pathmaker
-Azure Beastbinder
 Bakersbane Duo
 Banishing Light
 Bark-Knuckle Boxer
+Barkform Harvester
 Bellowing Crier
 Beza, the Bounding Spring
 Blacksmith's Talent
@@ -20,12 +20,10 @@ Brightblade Stoat
 Builder's Talent
 Bumbleflower's Sharepot
 Burrowguard Mentor
-Bushy Bodyguard
 Byrke, Long Ear of the Law
 Byway Barterer
 Cache Grab
 Calamitous Tide
-Camellia, the Seedmiser
 Caretaker's Talent
 Carrot Cake
 Charmed Sleep
@@ -33,20 +31,18 @@ Cindering Cutthroat
 Clifftop Lookout
 Colossification
 Conduct Electricity
-Corpseberry Cultivator
-Coruscation Mage
+Consumed by Greed
+Cruelclaw's Heist
 Crumb and Get It
 Curious Forager
 Daggerfang Duo
 Daring Waverider
-Darkstar Augur
 Dawn's Truce
+Dazzling Denial
 Dewdrop Cure
 Dire Downdraft
 Diresight
-Dour Port-Mage
 Downwind Ambusher
-Dreamdew Entrancer
 Driftgloom Coyote
 Druid of the Spade
 Early Winter
@@ -55,13 +51,12 @@ Emberheart Challenger
 Essence Channeler
 Fabled Passage
 Feather of Flight
-Fecund Greenshell
 Fell
-Finch Formation
 Finneas, Ace Archer
 Fireglass Mentor
 Flame Lash
 Flamecache Gecko
+For the Common Good
 Forest
 Fountainport
 Fountainport Bell
@@ -92,8 +87,6 @@ Hunter's Talent
 Huskburster Swarm
 Innkeeper's Talent
 Into the Flood Maw
-Intrepid Rabbit
-Iridescent Vinelasher
 Island
 Jackdaw Savior
 Jolly Gerbils
@@ -107,14 +100,11 @@ Lightshell Duo
 Lilypad Village
 Lilysplash Mentor
 Long River's Pull
-Longstalk Brawl
-Lumra, Bellow of the Woods
 Lunar Convocation
 Lupinflower Village
 Mabel's Mettle
 Mabel, Heir to Cragflame
 Maha, Its Feathers Night
-Manifold Mouse
 Might of the Meek
 Mind Drill Assailant
 Mind Spiral
@@ -136,7 +126,6 @@ Overprotect
 Parting Gust
 Patchwork Banner
 Pawpatch Formation
-Pawpatch Recruit
 Pearl of Wisdom
 Peerless Recycling
 Persistent Marshstalker
@@ -159,14 +148,12 @@ Reptilian Recruiter
 Rockface Village
 Roughshod Duo
 Run Away Together
-Rust-Shield Rampager
 Ruthless Negotiation
 Salvation Swan
 Savor
 Sazacap's Brew
 Scales of Shale
 Scavenger's Talent
-Scrapshooter
 Seasoned Warrenguard
 Seedglaive Mentor
 Seedpod Squire
@@ -179,16 +166,13 @@ Sinister Monolith
 Skyskipper Duo
 Sonar Strike
 Spellgyre
-Splash Lasher
 Splash Portal
 Star Charter
 Starfall Invocation
 Starforged Sword
 Stargaze
 Starlit Soothsayer
-Starscape Cleric
 Starseer Mentor
-Steampath Charger
 Stickytongue Sentinel
 Stocking the Pantry
 Stormcatch Mentor
@@ -203,16 +187,12 @@ Take Out the Trash
 Tangle Tumbler
 Teapot Slinger
 Tempest Angler
-Tender Wildguide
 Thieving Otter
 Thistledown Players
-Thornplate Intimidator
-Thought Shucker
 Thought-Stalker Warlock
 Three Tree Mascot
 Three Tree Rootweaver
 Three Tree Scribe
-Thundertrap Trainer
 Tidecaller Mentor
 Treeguard Duo
 Treetop Sentries
@@ -222,8 +202,8 @@ Valley Floodcaller
 Valley Mightcaller
 Valley Questcaller
 Valley Rally
+Valley Rotcaller
 Veteran Guardmouse
-Vinereap Mentor
 Vren, the Relentless
 Wandertale Mentor
 War Squeak
@@ -233,7 +213,7 @@ Wax-Wane Witness
 Wear Down
 Whiskerquill Scribe
 Wick's Patrol
+Wick, the Whorled Mind
 Wildfire Howl
 Wishing Well
-Ygra, Eater of All
 Zoraline, Cosmos Caller

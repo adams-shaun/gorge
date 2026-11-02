@@ -71,13 +71,11 @@ Gaelicat
 Gaius van Baelsar
 Galuf's Final Act
 Garland, Knight of Cornelia
-Garnet, Princess of Alexandria
 Genji Glove
 Gigantoad
 Giott, King of the Dwarves
 Gladiolus Amicitia
 Gohn, Town of Ruin
-Golbez, Crystal Collector
 Gongaga, Reactor Town
 Goobbue Gardener
 Gran Pulse Ochu
@@ -90,6 +88,7 @@ Ice Magic
 Ignis Scientia
 Il Mheg Pixie
 Insomnia, Crown City
+Instant Ramen
 Iron Giant
 Ishgard, the Holy See
 Island
@@ -146,13 +145,11 @@ Raubahn, Bull of Ala Mhigo
 Reach the Horizon
 Red Mage's Rapier
 Relentless X-ATM092
-Relm's Sketching
 Resentful Revelation
 Restoration Magic
 Retrieve the Esper
 Ride the Shoopuf
 Ring of the Lucii
-Rinoa Heartilly
 Rook Turret
 Rosa, Resolute White Mage
 Rufus Shinra
