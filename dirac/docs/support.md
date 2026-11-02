@@ -13,7 +13,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DFT | 276 | 245 | 7 | 14 | 224 |
 | DSK | 276 | 231 | 8 | 35 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
-| EOE | 266 | 236 | 0 | 119 | 117 |
+| EOE | 266 | 236 | 0 | 118 | 118 |
 | FDN | 517 | 505 | 7 | 5 | 493 |
 | FIN | 312 | 264 | 10 | 9 | 245 |
 | FRA | 269 | 242 | 8 | 14 | 220 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 210 | 178 | 2 | 14 | 162 |
 | TRK | 128 | 106 | 0 | 18 | 88 |
 | WOE | 281 | 250 | 3 | 8 | 239 |
-| ALL | 34132 | 20830 | 132 | 16618 | 4080 |
+| ALL | 34132 | 20830 | 132 | 16531 | 4167 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -42,6 +42,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 |---|---:|
 | blb | 1500 |
 | fdn | 1500 |
+| pauper | 1500 |
 | std-big | 115 |
 | std-blb | 75 |
 | std-dft | 194 |
