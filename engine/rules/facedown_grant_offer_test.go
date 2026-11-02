@@ -137,3 +137,28 @@ func TestFaceDownRecipientKeepsGrantedManaAbility(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestFaceDownRecipientKeepsGrantedTrigger: the walk that hides a face-down
+// permanent's printed triggers (CR 708.8) leaves it what an effect gives it, as
+// the offer walk above does (CR 708.2a): Curious Inquiry on a face-down creature
+// triggers. Its printed line stays hidden.
+func TestFaceDownRecipientKeepsGrantedTrigger(t *testing.T) {
+	t.Parallel()
+	e := layerEngine(t)
+	id := onBoard(t, e, 0, "Name:Hidden\nTypes:Creature\nPT:2/2\n"+
+		"T:Mode$ LifeLost | ValidPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
+		"SVar:TrigDraw:DB$ Draw\nOracle:x\n")
+	e.G.Obj(id).FaceDown = true
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
+	if n := queuedFrom(e, id); n != 0 {
+		t.Fatalf("a face-down permanent's printed line queued %d", n)
+	}
+	onBoard(t, e, 0, "Name:Granter\nTypes:Enchantment\n"+
+		"S:Mode$ Continuous | Affected$ Creature | AddTrigger$ TrigGranted\n"+
+		"SVar:TrigGranted:Mode$ LifeLost | ValidPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
+		"SVar:TrigDraw:DB$ Draw\nOracle:x\n")
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
+	if n := queuedFrom(e, id); n != 1 {
+		t.Fatalf("the granted line queued %d on the face-down creature, want 1", n)
+	}
+}

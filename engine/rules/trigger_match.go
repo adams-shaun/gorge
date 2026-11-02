@@ -1305,33 +1305,23 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		if lki != nil && lki.ID == ev.Obj {
 			objLKI = lki
 		}
-		if e.faceDownPrintedHides(o) {
-			// CR 708.8: a face-down permanent's printed triggers (and any
-			// granted walk keyed to it) do not exist while it is face down --
-			// a manifested Sultai Emissary that dies reveals itself as a card
-			// in the graveyard and fires nothing (the leaves-battlefield
-			// look-back observer reads the pre-move state, where it is still
-			// face down; the live walk matches leaves-triggers only through
-			// that observer or a TriggerZones the departed card no longer
-			// occupies).
-			// A CLOAKED face-down permanent is the one exception: its ward {2}
-			// is part of the cloak status itself (CR 708.5's cloak variant),
-			// not a printed ability -- the synthesized Ward trigger in
-			// checkGrantedWardTriggers (built from the derived keyword list
-			// layers.go appends for Cloaked objects) is what turns targeting
-			// it into the pay-or-counter ask. Only the granted-ward walk
-			// revives; the printed-face walk stays suppressed.
-			if o.Cloaked && ev.Kind == events.TargetsChosen {
-				e.checkGrantedWardTriggers(observer, id, o, f, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
-			}
-			return
-		}
+		// CR 708.8: a face-down permanent's printed triggers do not exist while
+		// it is face down -- a manifested Sultai Emissary that dies reveals
+		// itself as a card in the graveyard and fires nothing (the
+		// leaves-battlefield look-back observer reads the pre-move state, where
+		// it is still face down; the live walk matches leaves-triggers only
+		// through that observer or a TriggerZones the departed card no longer
+		// occupies). What an effect gives it does (CR 708.2a): Curious Inquiry on
+		// a face-down creature, and a cloaked permanent's ward {2}, which is part
+		// of the cloak status and lives in the derived keyword list the granted
+		// ward walk reads. It takes the printed-free path below.
+		hidden := e.faceDownPrintedHides(o)
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.RoomOtherDoorUnlocked() && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
+		if hidden || !o.RoomOtherDoorUnlocked() && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
