@@ -1315,6 +1315,32 @@ func (g *GorgeSide) lowerCompletes(pe prioEntry) bool {
 	}()
 }
 
+// passOthers passes priority for the other players while a trigger the
+// script stacked resolves, as the search assumed (scriptSearch.visit), and
+// returns the decision then pending.
+func (g *GorgeSide) passOthers(p state.PlayerID, pe prioEntry) *decision.Decision {
+	e := g.E
+	d := e.Pending()
+	for guard := 0; d != nil && !e.G.Over && d.Player != p && d.Kind == decision.KPriority && guard < 8; guard++ {
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			break
+		}
+		g.Stats.Internal++
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
+			g.fail(fmt.Errorf("oracle: script of %v: other player's pass refused: %w", pe.a, err))
+			return nil
+		}
+		d = e.Pending()
+	}
+	return d
+}
+
 // runScript answers the scripted prefix's decisions, then pays the play by
 // the route the vocabulary at the following priority decision prices it
 // (planned cast, lowering or offered option).
@@ -1322,7 +1348,12 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	e := g.E
 	p := e.Pending().Player
 	for i, st := range pe.script {
-		d := e.Pending()
+		// A trigger the script's activation stacked: the search assumed the
+		// other players pass while it resolves (scriptSearch.visit).
+		d := g.passOthers(p, pe)
+		if g.err != nil {
+			return
+		}
 		if d == nil || e.G.Over || d.Player != p || d.Kind != st.Kind {
 			g.Stats.Aborts++
 			return
@@ -1354,8 +1385,8 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	}
 	// Answer any colour ask the last activation posed, then re-price.
 	for guard := 0; guard < 8; guard++ {
-		d := e.Pending()
-		if d == nil || e.G.Over {
+		d := g.passOthers(p, pe)
+		if g.err != nil || d == nil || e.G.Over {
 			return
 		}
 		if d.Kind == decision.KPriority {

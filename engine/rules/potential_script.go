@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -68,6 +69,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
 }
@@ -145,6 +147,45 @@ func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
 	}
 	pa, ok := o.PileAbilityAt(sr.play.Ability)
 	return ok && pa.SA != nil && c.abilityCompiledCost(pa.SA).Cost.Tap
+}
+
+// tapsOwnSource reports whether answer in to the activation's ask taps the
+// source of the searched ability as the cost of the mana ability just
+// activated (Gene Pollinator's "tap an untapped permanent you control" chosen
+// as Nutrient Block): the play's own {T} is then unpayable, and the node
+// pricing, which does not read the tapped state, would still call it payable.
+func (sr *scriptSearch) tapsOwnSource(c *Engine, d *decision.Decision, in decision.Intent) bool {
+	for _, ch := range in.Choices {
+		for i := range d.Options {
+			if o := &d.Options[i]; o.Index == ch && o.Kind == "tapcost" && sr.ownTapSource(c, o.Obj) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// waitsForStack reports whether the searched play is sorcery-speed and the
+// path has left an object of its own on c's stack (Hemosymbic Mite's tap
+// trigger, from the tapped permanent Gene Pollinator's cost chose): the
+// planner prices the play, but it is not offered until that object resolves
+// (CR 307.1, 602.5d), so the line continues through a pass.
+func (sr *scriptSearch) waitsForStack(c *Engine) bool {
+	if len(c.G.Stack) <= sr.stack {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	if sr.play.Kind == "ability" {
+		pa, ok := o.PileAbilityAt(sr.play.Ability)
+		return ok && pa.SA != nil && pa.SA.ParamStr(cards.PKSorcerySpeed) == "True"
+	}
+	if sr.play.Kind == "cast" && sr.play.Mode == "" {
+		return !c.spellTimingOK(sr.p, sr.play.Obj, o.Face(), false)
+	}
+	return false
 }
 
 func (sr *scriptSearch) offered(o *decision.Option) bool {
@@ -231,6 +272,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 			sr.approx = true
 		}
 		for _, in := range answers {
+			if sr.tapsOwnSource(c, d, in) {
+				continue // the ask taps the play's own {T} cost source (CR 602.2b)
+			}
 			if sr.try(c, d, in, funded, gapUsed) {
 				return true
 			}
@@ -255,7 +299,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && sr.priced(c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && sr.priced(c) {
 		return true
 	}
 	// The uncovered sources first; then the others (under gapsOnly, while
