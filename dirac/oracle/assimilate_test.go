@@ -75,3 +75,23 @@ func TestAssimilateLockstep(t *testing.T) {
 		}
 	}
 }
+
+// Two Borg Queens passing each other back through the legend rule reach gorge's trigger
+// cap (maxTriggerFires), which the kernel does not count. That game is a counted stall,
+// not a divergence, and still Clean: it agreed up to the decision the cap cut.
+func TestAssimilateTriggerCapIsAStall(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	synthPairsPlay(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, []int{235}, func(pair int, res *Result) {
+		if res.Div != nil {
+			t.Fatalf("pair %d diverged at %d: %s %s %v", pair, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+		}
+		if res.Stall != GorgeTriggerCapStall {
+			t.Fatalf("pair %d: stall %q after %d decisions, want %q", pair, res.Stall, res.Decisions, GorgeTriggerCapStall)
+		}
+		if !res.Clean() {
+			t.Fatalf("pair %d: a trigger-cap stall is not clean", pair)
+		}
+	})
+}

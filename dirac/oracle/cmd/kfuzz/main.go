@@ -1013,6 +1013,14 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		}
 		st.Add(res.Stats)
 		v.Games++
+		if res.Stall == oracle.GorgeTriggerCapStall {
+			v.Capacity++
+			v.CapacityWhy[res.Stall]++
+			if verboseFDN || o.absolute {
+				fmt.Printf("pair %d (%s vs %s, seed %d): %s stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+			}
+			continue
+		}
 		if res.Div == nil && strings.HasPrefix(res.Stall, oracle.KernelStallPrefix) {
 			why := strings.TrimPrefix(res.Stall, oracle.KernelStallPrefix)
 			if res.StallUnmodelled {

@@ -43,7 +43,7 @@ type Result struct {
 	Actions   []Canon // the canonical actions applied, in order
 	Over      bool
 	Winner    int8
-	Stall     string // "decisions" or "turns" when a cap ended the game; KernelStallPrefix+reason when the kernel side stopped
+	Stall     string // "decisions" or "turns" when a cap ended the game; KernelStallPrefix+reason when the kernel side stopped; GorgeTriggerCapStall when gorge's trigger bound cut the game
 	// StallUnmodelled: the kernel stopped because gorge does something here it does
 	// not model (dirac.StallClassOf), not because a capacity ran out.
 	StallUnmodelled bool
@@ -60,6 +60,13 @@ type Result struct {
 func (r *Result) Clean() bool {
 	return r.Div == nil && !r.StallUnmodelled
 }
+
+// GorgeTriggerCapStall is Result.Stall for a game gorge's hang guard cut short: a trigger
+// reached rules' maxTriggerFires and stopped matching, which the kernel does not count,
+// so the two disagree from there on. The bound is an engine limit, not a rule, so the
+// game is compared up to the decision where the difference appeared and no further. It
+// is a declared limit, counted and printed like a capacity stall, and the game is Clean.
+const GorgeTriggerCapStall = "gorge trigger cap"
 
 // KernelStallPrefix starts Result.Stall when the kernel side ended the
 // game at its fixed capacity ("kernel stack", "kernel board", ...).
@@ -268,6 +275,14 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 		gorge = g
 	} else if g, ok := follow.(*GorgeSide); ok {
 		gorge = g
+	}
+	if gorge != nil {
+		// Consulted only once a difference is found, so the transition loop pays nothing.
+		defer func() {
+			if res.Div != nil && gorge.E != nil && gorge.E.TriggerCapReached() {
+				res.Div, res.Stall = nil, GorgeTriggerCapStall
+			}
+		}()
 	}
 	defer func() {
 		if res.Div != nil {

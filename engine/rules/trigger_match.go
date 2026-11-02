@@ -908,6 +908,19 @@ func (e *Engine) noteTriggerResolved(source state.ObjID) {
 // runs dry instead of running forever.
 const maxTriggerFires = 256
 
+// TriggerCapReached reports whether any trigger has fired maxTriggerFires times, so
+// that checkTriggers has stopped matching it. It reads the counter and changes nothing;
+// a bool does not depend on the order the map is walked. A host that compares this
+// engine with another one asks it only after finding a difference.
+func (e *Engine) TriggerCapReached() bool {
+	for _, n := range e.triggerFireCount {
+		if n >= maxTriggerFires {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	// A board no look-back walk can act on needs no copy (lookBackNoopBoard):
 	// the window's departures take the shared empty snapshot, whose look-back

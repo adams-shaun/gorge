@@ -162,6 +162,12 @@ game that hits a turn or decision cap agreed for its whole length and counts as 
 a dirac capacity agreed up to there and earns coverage for that much; one stopped at an unmodelled
 reason earns none. Lockstep records which in `Result.StallUnmodelled`.
 
+One capacity stall is gorge's: a trigger that reached the engine's hang guard (`maxTriggerFires`, 256
+fires of one source and trigger over a match) stops matching, and dirac does not count fires. When a
+game would be reported divergent and `rules.Engine.TriggerCapReached` holds, it ends as a stall named
+`oracle.GorgeTriggerCapStall`. It agreed up to the decision where the difference appeared, counts under
+the capacity reasons of the verdict, and is printed with `-v` and `-absolute`.
+
 ### How a divergence is reported
 
 `oracle.Divergence` (`lockstep.go`) records the decision number (`At`), what disagreed (`What`, usually
