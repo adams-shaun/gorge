@@ -1,9 +1,11 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 )
@@ -101,13 +103,18 @@ func TestRevealLandLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	t.Run("lands", func(t *testing.T) { krevealLockstep(t, krevealDecks, false) })
+	t.Run("lands", func(t *testing.T) { krevealLockstep(t, krevealDecks, false, false) })
 	t.Run("behold", func(t *testing.T) {
-		krevealLockstep(t, [2][]cardset.Entry{krevealSanctums, krevealDecks[1]}, true)
+		krevealLockstep(t, [2][]cardset.Entry{krevealSanctums, krevealDecks[1]}, true, false)
 	})
 }
 
-func krevealLockstep(t *testing.T, krevealDecks [2][]cardset.Entry, behold bool) {
+// TestRevealLandMutation: with every reveal land accepting any hand card the
+// lockstep must diverge (the kernel offers a reveal gorge withholds, and picks
+// among cards gorge does not).
+func TestRevealLandMutation(t *testing.T) { krevealLockstep(t, krevealDecks, false, true) }
+
+func krevealLockstep(t *testing.T, krevealDecks [2][]cardset.Entry, behold, mutant bool) {
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
 		t.Fatal(err)
@@ -135,8 +142,20 @@ func krevealLockstep(t *testing.T, krevealDecks [2][]cardset.Entry, behold bool)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if mutant {
+		for c := range tbl.Cards {
+			for a := range tbl.Cards[c].Abilities {
+				prog := tbl.Cards[c].Abilities[a].Prog
+				for i := range prog {
+					if prog[i].Op == kop.OpUnlessPaid && prog[i].C&0xF == kop.PayDiscard && prog[i].B.N == kop.PayBReveal {
+						prog[i].F = 0
+					}
+				}
+			}
+		}
+	}
 	var tal krevealTally
-	for seed := uint64(1); seed <= 256; seed++ {
+	for seed := uint64(1); seed <= 300; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kreveal-a", "kreveal-b"}, decks, 1)
 		if err != nil {
@@ -153,14 +172,20 @@ func krevealLockstep(t *testing.T, krevealDecks [2][]cardset.Entry, behold bool)
 		res := LockstepLed(m, seed, g, k, krevealPolicy(seed, &tal, behold), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120})
 		CloseSide(k)
 		tal.games++
-		if res.Stall != "" {
+		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			tal.stalls++
 			t.Logf("seed %d: stall %s after %d decisions", seed, res.Stall, res.Decisions)
 		}
 		if d := res.Div; d != nil {
+			if mutant {
+				return
+			}
 			t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v",
 				seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
+	}
+	if mutant {
+		t.Fatal("no divergence in 300 seeds with the reveal filter open")
 	}
 	t.Logf("%+v", tal)
 	if tal.stalls != 0 {

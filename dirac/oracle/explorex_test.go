@@ -1,9 +1,11 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 )
@@ -26,7 +28,13 @@ var kexploreDecks = [2][]cardset.Entry{
 	},
 }
 
-func TestExploreXLockstep(t *testing.T) {
+func TestExploreXLockstep(t *testing.T) { kexploreRun(t, false) }
+
+// TestExploreXMutation: with the explore repeated once instead of X times the
+// lockstep must diverge (gorge explores X times).
+func TestExploreXMutation(t *testing.T) { kexploreRun(t, true) }
+
+func kexploreRun(t *testing.T, mutant bool) {
 	if isolate(t) {
 		return
 	}
@@ -58,8 +66,20 @@ func TestExploreXLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if mutant {
+		for c := range tbl.Cards {
+			for a := range tbl.Cards[c].Abilities {
+				prog := tbl.Cards[c].Abilities[a].Prog
+				for i := range prog {
+					if prog[i].Op == kop.OpRepeat {
+						prog[i].A = kop.Const(1)
+					}
+				}
+			}
+		}
+	}
 	games, divs, stalls, explores, multi := 0, 0, 0, 0, 0
-	for seed := uint64(1); seed <= 256; seed++ {
+	for seed := uint64(1); seed <= 300; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kexplore-a", "kexplore-b"}, decks, 1)
 		if err != nil {
@@ -76,12 +96,15 @@ func TestExploreXLockstep(t *testing.T) {
 		res := LockstepLed(m, seed, g, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 60})
 		CloseSide(k)
 		games++
-		if res.Stall != "" {
+		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			stalls++
 			t.Logf("seed %d: stall %s after %d decisions", seed, res.Stall, res.Decisions)
 		}
 		if d := res.Div; d != nil {
 			divs++
+			if mutant {
+				return
+			}
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v",
 				seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
@@ -97,6 +120,9 @@ func TestExploreXLockstep(t *testing.T) {
 				}
 			}
 		}
+	}
+	if mutant {
+		t.Fatal("no divergence in 300 seeds with the explore repeated once")
 	}
 	t.Logf("%d games, %d divergences, %d stalls; %d explores, %d in a run", games, divs, stalls, explores, multi)
 	if divs != 0 || stalls != 0 {
