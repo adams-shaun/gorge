@@ -153,7 +153,7 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 		var src [MaxPerm]Obj
 		n = s.graveMoveSources(k, o, &src)
 	}
-	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && s.mSl(k, mechExileEx, ob.slot) && s.isCreature(k, ob.slot) {
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && s.mSl(k, mechExileEx, ob.slot) {
 		n += s.exMarkCount(ob.slot)
 	}
 	return n > 1 && !s.moveAnswered(o)
