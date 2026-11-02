@@ -446,11 +446,29 @@ func (s *State) matchCardGenAt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	if f == 0 {
 		return true
 	}
+	if o != NoObj && s.objs[o].of&ofCopy != 0 && s.copyCeased(k, o) {
+		return false
+	}
 	for f != 0 {
 		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, ctx) {
 			return true
 		}
 		f = k.t.Filters[f].Or
+	}
+	return false
+}
+
+// copyCeased: copy o has left the stack and the battlefield, and matches nothing (CR
+// 707.10h, gorge's copyCeased), a linked prepared copy in exile aside (CR 722.3c).
+//
+//go:noinline
+func (s *State) copyCeased(k *prep, o Obj) bool {
+	switch s.objs[o].zone {
+	case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard:
+		return true
+	case kop.ZoneExile:
+		_, live := s.preparedCopyLive(k, o)
+		return !live
 	}
 	return false
 }

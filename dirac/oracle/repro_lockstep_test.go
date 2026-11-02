@@ -71,6 +71,13 @@ func TestFoundCardsAsEntersAskInTheLibraryLockstep(t *testing.T) {
 	synthReproLockstep(t, "greenshell_dug_land_asks", "std-blb", autopay)
 }
 
+// Scavenger's Talent's cost sacrifices a token copy, which stays in the graveyard until the
+// state-based actions: no pick from there offers it (CR 707.10h, gorge's copyCeased).
+func TestSacrificedTokenCopyIsNoPickLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "token_copy_not_a_pick", "std-blb", Config{})
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {
