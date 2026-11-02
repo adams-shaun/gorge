@@ -383,8 +383,7 @@ another commit whenever an engine or corpus change alters any event of this game
 [source](https://github.com/adams-shaun/gorge/tree/main/engine/game)
 
 `engine/game` is the seam a host runs an engine through, so a server isn't tied to `rules.Engine`.
-`engine/game/gorgegame` adapts gorge's engine to it, and `gorged -engine` selects among the engines a binary links; a plain build
-links only `gorge`.
+`engine/game/gorgegame` adapts gorge's engine to it, `dirac/adapter` adapts dirac's, and `gorged -engine` selects between them.
 
 !!! tip "A ready-made loop"
     [`testkit/bench.PlayGame`](https://pkg.go.dev/github.com/adams-shaun/gorge/testkit/bench)

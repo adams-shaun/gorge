@@ -1,8 +1,8 @@
 # Install and build
 
 This page takes you from nothing to a checkout that can run games: the prerequisites, the
-card corpus, the binaries and the browser client. Only the corpus step is required for
-bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
+card corpus, the binaries, the browser client and dirac's card tables. Only the corpus step is
+required for bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
 
 The output below is from 2026-10-31 on Linux x86-64 with Go 1.26.3. The maintainers test
 on Linux only.
@@ -34,7 +34,7 @@ the commit pinned by `FORGE_REF` in the
 is a function of that pin. The fetch leaves about 140 MB on disk.
 
 ```text
-fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at 91402ac5 (91402ac511046c0b7ed0bb691a8a446ca7dfc873)
+fetched <measure:corpus-files> card scripts and <measure:corpus-tokens> token scripts from https://github.com/adams-shaun/forge.git at <FORGE_REF>
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
@@ -102,4 +102,16 @@ seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes,
 The 20 games took about 5 seconds. A `replay diverged` or `FAILED` line is an engine bug
 worth [reporting](troubleshooting.md#a-game-prints-livelock-did-not-terminate-or-replay-diverged).
 
-Next: [Play in the browser](play.md) or [Bot-vs-bot games](bot-games.md).
+## Build dirac's card tables, if you want them
+
+A [dirac](../architecture/dirac/index.md) game reads binary tables generated from the same corpus:
+
+```sh
+make dirac-tables     # writes under .cards/, keyed by the corpus and the generator's sources
+```
+
+They are never committed, and a build whose sources have changed since the tables were written says so and
+names this command. Without a corpus `go test -run Example ./dirac` still plays a game, on a small hand-written
+table.
+
+Next: [Play in the browser](play.md), [Serving dirac](dirac.md) or [Bot-vs-bot games](bot-games.md).
