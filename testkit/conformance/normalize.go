@@ -17,9 +17,6 @@ type nativeRaw struct {
 	Seats     [][]byte // GET view?seat=i, per seat
 	Spectator []byte   // GET view
 	Pending   []byte   // GET pending of the seat asked; nil at the end of the game
-	// OfferedOnly moves a seat's PotentialActions from Answers to Unplanned: gorge also
-	// lists there a cast its planner cannot pay for.
-	OfferedOnly bool
 }
 
 // noSelection is the id of an answer that chooses no options.
@@ -42,8 +39,9 @@ const maxSelectionTries = 1 << 16
 //   - A priority decision's Options, PaymentActions and the asked seat's
 //     PotentialActions become one sorted set of play keys. A mana ability
 //     (Option kind "activate", which at priority is only ever one) and concede
-//     are not plays and are dropped. Whether a play is offered directly, with a
-//     payment plan or after tapping mana is how an engine exposes mana, not
+//     are not plays and are dropped, and so is a potential play the wire says
+//     no tapping can pay (payable false). Whether a play is offered directly, with
+//     a payment plan or after tapping mana is how an engine exposes mana, not
 //     what it allows.
 //   - A card off the battlefield loses attacking, tapped, summon_sick and
 //     damage: gorge leaves them stale on an object that changes zones, and
@@ -119,18 +117,6 @@ func normaliseNative(raw nativeRaw) (Frame, *objectNames, error) {
 		return f, names, nil
 	}
 	potential := asked.Players[d.Player].Potential
-	if raw.OfferedOnly {
-		offered, err := playKeys(&d, nil, names)
-		if err != nil {
-			return Frame{}, nil, err
-		}
-		listed, err := playKeys(&d, potential, names)
-		if err != nil {
-			return Frame{}, nil, err
-		}
-		f.Unplanned = without(listed, offered)
-		potential = nil
-	}
 	if f.Answers, err = playKeys(&d, potential, names); err != nil {
 		return Frame{}, nil, err
 	}
@@ -408,6 +394,9 @@ func playKeys(d *decision.Decision, potential []decision.PotentialAction, names 
 	for _, p := range potential {
 		if p.Label == "" {
 			return nil, fmt.Errorf("potential %s of object %d has no label", p.Kind, p.Obj)
+		}
+		if p.Payable != nil && !*p.Payable {
+			continue
 		}
 		keys = append(keys, playKey(p.Kind, p.Obj, p.Ability, p.Mode, names))
 	}

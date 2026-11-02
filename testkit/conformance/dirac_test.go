@@ -104,14 +104,13 @@ type acrossEngines struct{ Native }
 
 func (w acrossEngines) Open(t testing.TB, e game.Engine, c game.Config) Session {
 	caps := e.Caps()
-	return &acrossSession{Session: w.Native.Open(t, e, c), t: t, asks: caps.StartingAsk, manual: caps.ManualMana}
+	return &acrossSession{Session: w.Native.Open(t, e, c), t: t, asks: caps.StartingAsk}
 }
 
 type acrossSession struct {
 	Session
-	t      testing.TB
-	asks   bool
-	manual bool
+	t    testing.TB
+	asks bool
 }
 
 // resultKeys and playerResultKeys are what the last frame compares.
@@ -138,9 +137,6 @@ func (s *acrossSession) Next() (Frame, bool) {
 		}
 	}
 	f, more := s.Session.Next()
-	if !s.manual && len(f.Unplanned) > 0 {
-		s.t.Fatalf("%s: an engine without manual mana lists plays it cannot answer: %v", f.Key, f.Unplanned)
-	}
 	for _, viewer := range f.State {
 		v, _ := viewer.(map[string]any)
 		card := func(_ string, c map[string]any) {
@@ -182,14 +178,6 @@ func (s *acrossSession) Next() (Frame, bool) {
 
 // TestNativeWireMatchesGorge plays games on gorge and on dirac through the native wire:
 // same seed, same answers, every frame compared.
-//
-// OfferedOnly stands for one capability, game.Caps.ManualMana. Gorge also lists in
-// potential_actions a play its planner has no plan for, which its seat reaches by tapping
-// sources by hand; dirac declares no manual mana and offers every play with its plan, so
-// a play only gorge's manual route reaches is left out of what both are answered with.
-// What gorge lists this way is mostly a cast the seat cannot afford. Dirac lists nothing
-// of the kind: acrossSession fails if a seat without manual mana lists a play it cannot
-// answer.
 func TestNativeWireMatchesGorge(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := diracEngine(t, reg, dirac.SurfaceFull)
@@ -197,7 +185,7 @@ func TestNativeWireMatchesGorge(t *testing.T) {
 		t.Run(fmt.Sprintf("game%d", g), func(t *testing.T) {
 			t.Parallel()
 			c := benchConfig(t, reg, g)
-			if d := Run(t, acrossEngines{Native{OfferedOnly: true}}, gorgegame.Engine{}, e, c, Random(c.Seed)); d != nil {
+			if d := Run(t, acrossEngines{}, gorgegame.Engine{}, e, c, Random(c.Seed)); d != nil {
 				t.Fatal(d)
 			}
 		})

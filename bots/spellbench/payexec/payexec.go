@@ -592,3 +592,48 @@ func containsInt(s []int, v int) bool {
 	}
 	return false
 }
+
+// WindowAnswer is the deterministic answer to a payment window or colour
+// ask (spellbench builtins' payWindow): the engine's auto-fill; else a source
+// or colour still owed; else any source; else done/cancel. owed is the
+// caller's demand; a decision's own ManaPayment wins.
+func WindowAnswer(d *decision.Decision, owed decision.ManaAmount) int {
+	for _, o := range d.Options {
+		if o.Kind == decision.OptAutoFill {
+			return o.Index
+		}
+	}
+	if d.ManaPayment != nil {
+		owed = d.ManaPayment.Owed.Mana
+	}
+	// no owed colour: the first activation, or the lowest colour in WUBRGC
+	// order (the kernel's payWindow taps a gain land for its lowest colour;
+	// gorge lists Blossoming Sands' colours G then W: pair 934)
+	first, firstSym := -1, len(syms)
+	for _, o := range d.Options {
+		if o.Kind != "mana" && o.Kind != "activate" {
+			continue
+		}
+		if c := strings.Index(syms, o.ManaSymbol); o.Kind == "mana" && len(o.ManaSymbol) == 1 && c >= 0 {
+			if c < firstSym {
+				first, firstSym = o.Index, c
+			}
+		} else if first < 0 {
+			first = o.Index
+		}
+		for c := 0; c < len(syms); c++ {
+			if o.ManaSymbol == syms[c:c+1] && owed[c] > 0 {
+				return o.Index
+			}
+		}
+	}
+	if first >= 0 {
+		return first
+	}
+	for _, o := range d.Options {
+		if o.Kind == "done" || o.Kind == decision.OptCancelCast {
+			return o.Index
+		}
+	}
+	return d.Options[0].Index
+}
