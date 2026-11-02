@@ -83,13 +83,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Counters | 2 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 16 |
-| projection-Cards.Pos | 15 |
+| projection-Cards.Pos | 16 |
 | projection-Cards.Power | 10 |
 | projection-Cards.Toughness | 1 |
 | projection-Cards.Zone | 15 |
 | projection-Life | 6 |
 | projection-NInst | 2 |
-| projection-NStack | 28 |
+| projection-NStack | 27 |
 | projection-Pool | 8 |
 | projection-Stack.Ability | 1 |
 | projection-Stack.Kind | 1 |
