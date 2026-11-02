@@ -3073,7 +3073,7 @@ var statPresentationSecondary = []string{
 	"CantBeActivated", "CantSacrifice", "CantBeCast", "CantAttack",
 	"CastWithFlash", "CantGainLife", "CantTarget", "Panharmonicon",
 	"RaiseCost", "ReduceCost", "DisableTriggers",
-	"CantBeSuspected", "CantPutCounter", "CombatDamageToughness",
+	"CantBeSuspected", "CantPutCounter", "CombatDamageToughness", "CantBeBeamedUp",
 }
 
 // abilityPresentationSecondary lists the REGISTERED api primitives the corpus

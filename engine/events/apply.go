@@ -193,10 +193,20 @@ func applyKind(g *state.Game, e *Event) {
 	// RollDice is the proposal-only roll-action Kind (task rolldice-repl): it
 	// is held out to replacement matching, never emitted, so it folds nothing
 	// -- the marker shape PlanarRoll keeps.
-	case GameStart, DecisionAsk, DecisionMade, ModeChosen, ManaActivate, RollDice:
-		// Markers. ModeChosen is a marker too: rules carries
-		// its answer in a cast/trigger cache or suspended-resolution context, so
-		// Apply writes nothing; the log lets replay re-derive the same branch.
+	case ModeChosen:
+		// A marker: rules carries the answer in a cast/trigger cache or
+		// suspended-resolution context and the log lets replay re-derive the
+		// same branch. Apply folds only whether the choice was a dilemma.
+		if validPlayer(g, e.Player) {
+			switch e.Counter {
+			case DilemmaFaced, DilemmaFacedAtRandom:
+				g.Players[e.Player].DilemmasFacedThisTurn++
+			case DilemmaReversed:
+				g.Players[e.Player].DilemmasFacedThisTurn--
+			}
+		}
+	case GameStart, DecisionAsk, DecisionMade, ManaActivate, RollDice:
+		// Markers.
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
 	case SetupEntered:

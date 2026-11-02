@@ -493,6 +493,7 @@ var triggerModeEventRows = [...]struct {
 	// cost-side flip fires the trigger exactly like an effect-side one
 	// (Karplusan Minotaur).
 	{cards.TriggerFlippedCoin, 1 << events.Note},
+	{cards.TriggerFacesDilemma, 1 << events.ModeChosen},
 	// The mode fires on the canonical vote-finished Note (engine/effects/
 	// vote.go) both api:Vote shapes emit once a vote fully finishes --
 	// the exact carrier-event shape FlippedCoin shares, with the two

@@ -69,7 +69,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 				effects.RecordCharmChoices(e, so.Source, d.ResumeSA, names)
 			}
 			e.emit(events.Event{Kind: events.ModeChosen, Obj: id, Player: in.Player,
-				Text: strings.Join(labels, ",")})
+				Counter: e.dilemmaCounter(d.ResumeSA, len(names)), Text: strings.Join(labels, ",")})
 			// A trigger Charm's targeting lives INSIDE its modes (the
 			// corpus pairs ValidTgts$ on the chosen mode's SVar body,
 			// never on the ability — Charming Scoundrel's DBToken), so the
@@ -148,6 +148,17 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		Text: "modes answered with no resolution suspended"})
 }
 
+// dilemmaCounter is the ModeChosen Counter of a choice of n modes for sa. Only a
+// Charm is modal: GenericChoice and VillainousChoice ask through the same marker
+// without being "choose one". A game no card of which reads dilemmas leaves the
+// marker as it was, so a recorded game replays unchanged.
+func (e *Engine) dilemmaCounter(sa *cards.SA, n int) string {
+	if sa != nil && sa.API == "Charm" && n > 0 && effects.GameReadsDilemmas(e.G) {
+		return events.DilemmaFaced
+	}
+	return ""
+}
+
 // recordModesAnswer is the answer record every mid-resolution KModes answer
 // carries into the log when the resolution kernel serves the answer from
 // its tape (resolveBoard.Record): the SetChosenMode Choose, the ModeChosen marker on
@@ -161,7 +172,7 @@ func recordModesAnswer(e *Engine, d *decision.Decision, p state.PlayerID, chosen
 		}
 	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: obj, Player: p,
-		Text: strings.Join(chosenModeLabels(chosen), ",")})
+		Counter: e.dilemmaCounter(d.ResumeSA, len(chosen)), Text: strings.Join(chosenModeLabels(chosen), ",")})
 	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
 	// source as well, so a later instance is restricted against it.
 	if o := e.G.Obj(obj); o != nil {

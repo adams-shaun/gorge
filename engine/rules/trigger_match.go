@@ -539,6 +539,8 @@ var actionTriggerModes = map[string]bool{
 	// predicate failing closed -- apply from day one. No Once latch: each
 	// flip result Note is one occurrence.
 	"FlippedCoin": true,
+	// FacesDilemma: one occurrence per marked ModeChosen.
+	"FacesDilemma": true,
 	// RolledDie/RolledDieOnce join them for the same reason: both are event
 	// modes registered from the start (engine/rules/trigmatch/actions.go's
 	// trigmatch.rolledDieMatches / trigmatch.rolledDieOnceMatches, firing off the canonical roll
@@ -3022,7 +3024,7 @@ func init() {
 		// carriers eligible for deck validation and coverage.
 		"trig:ExcessDamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:BecomesTargetOnce", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:BecomesTargetOnce", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin", "trig:FacesDilemma",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",

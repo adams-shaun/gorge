@@ -190,6 +190,9 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// ChangesZoneAll matchers see. CopyToken stays
 			// zero-mapped: its entry is the separate MoveZone that follows.
 			want = cards.TriggerInterestZoneChange
+		case events.ModeChosen:
+			// FacesDilemma matches the marker.
+			want = cards.TriggerInterestAny
 		case events.SkipTurn, events.ControlPlayerChange:
 			// CR 500.9 and CR 720 bookkeeping: both are grants/consumption
 			// read back through state (SkipTurns, and ControlledBy/

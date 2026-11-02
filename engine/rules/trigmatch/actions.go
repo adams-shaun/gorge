@@ -153,6 +153,22 @@ func flippedCoinMatches(e Board, t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// facesDilemmaMatches implements Mode$ FacesDilemma: a player chose one or more
+// modes. ValidPlayer$ names that player and Random$ True narrows it to modes
+// chosen at random, after Forge's TriggerFacesDilemma (read).
+func facesDilemmaMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Counter != events.DilemmaFaced && ev.Counter != events.DilemmaFacedAtRandom {
+		return false
+	}
+	if _, random := t.Params["Random"]; random && ev.Counter != events.DilemmaFacedAtRandom {
+		return false
+	}
+	if v, ok := t.Param(cards.PKValidPlayer); ok {
+		return effects.MatchesPlayerSpecFrom(e.Game(), v, ev.Player, e.ControllerOf(source), source)
+	}
+	return true
+}
+
 // attachedMatches implements Mode$ Attached: the trigger fires when an Aura,
 // Equipment or other attachment becomes attached to a permanent (CR
 // 701.3a's "becomes attached" -- the event the engine's one shared attach
@@ -896,6 +912,9 @@ func init() {
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return flippedCoinMatches(e, t, source, ev)
 	}, "FlippedCoin")
+	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return facesDilemmaMatches(e, t, source, ev)
+	}, "FacesDilemma")
 	registerTrigMatcher(func(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return attachedMatches(e, t, source, ev)
 	}, "Attached")

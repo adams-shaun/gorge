@@ -46,6 +46,8 @@ var addedAfterTheSplit = []string{
 	// appended for them, so neither mode could have been in the pre-split
 	// switch.
 	"Discover", "SeekAll",
+	// "Whenever you face a dilemma" (Star Trek), matching the ModeChosen marker.
+	"FacesDilemma",
 	// rolled-die-trigger: "Whenever you roll a die ..." (CR 706; Mr. House,
 	// Celebr-8000, Feywild Trickster). RolledDie fires once per die, each with
 	// its own result, and its sibling RolledDieOnce fires once per roll action

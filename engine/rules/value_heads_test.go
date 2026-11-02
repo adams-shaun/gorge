@@ -10,6 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
+// valueHeadsAheadOfThePin are modelled heads whose only carriers are newer than
+// the pinned corpus; a bump to a corpus that has them deletes the entry.
+var valueHeadsAheadOfThePin = map[string]bool{"YouFaceDilemmaThisTurn": true}
+
 // TestValueHeadRegistryMatchesEvaluator keeps effects' modelledValueHeads
 // list -- the "count:<head>" primitives the supported-card gate
 // (cards.Registry.Unsupported) checks -- honest in BOTH directions against
@@ -155,7 +159,7 @@ func TestValueHeadRegistryMatchesEvaluator(t *testing.T) {
 		}
 	}
 	for h := range listed {
-		if !seen[h] {
+		if !seen[h] && !valueHeadsAheadOfThePin[h] {
 			stale = append(stale, h+" (no corpus carrier)")
 		}
 		if !sup[cards.ValueHeadPrefix+h] {

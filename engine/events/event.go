@@ -2107,6 +2107,16 @@ var flagNames = [...]struct {
 	{"beamedup", state.FlagBeamedUp},
 }
 
+// A ModeChosen's Counter says whether the choice was a dilemma: a player faces
+// one as they choose one or more modes of a Charm, a modal spell or ability. The
+// reversed form undoes a cast's dilemma with its proposal (CR 733.1). Only a game
+// with a card that reads dilemmas marks them.
+const (
+	DilemmaFaced         = "dilemma"
+	DilemmaFacedAtRandom = "dilemma_random"
+	DilemmaReversed      = "dilemma_reversed"
+)
+
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags word. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future

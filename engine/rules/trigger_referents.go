@@ -47,6 +47,8 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerResult = result
 			c.TriggerResultMax = maxResult
 		}
+	case cards.TriggerFacesDilemma:
+		c.TriggerPlayer = player(ev.Player)
 	case cards.TriggerBecomesTarget, cards.TriggerBecomesTargetOnce:
 		// ev.Obj is the targeting spell/ability. TriggerTarget is the TARGETED
 		// object the trigger matched (CR 603.3d), which for a ValidTarget$

@@ -21,6 +21,10 @@ type Player struct {
 	// CoinFlipsThisTurn counts canonical flip-result Notes. Folded by
 	// events.Apply and cleared at TurnChange; clone copies this scalar.
 	CoinFlipsThisTurn int32
+	// DilemmasFacedThisTurn counts the times this player chose one or more modes
+	// for a spell or ability this turn, however many modes each time. Folded by
+	// events.Apply from ModeChosen's dilemma Counter and cleared at TurnChange.
+	DilemmasFacedThisTurn int32
 	// SpellsCastThisTurn, LifeGainedThisTurn, LifeLostThisTurn and
 	// TokensCreatedThisTurn are the per-seat turn watchers: spells put on
 	// the stack, life gained, life lost (damage to the player included,
