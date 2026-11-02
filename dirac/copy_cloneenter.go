@@ -89,7 +89,9 @@ func (s *State) rerunReturn(k *prep) {
 			return // suspended again
 		}
 	case kop.OpReturnEx:
-		s.execReturn(k, in, NoSlot)
+		// the parked card itself, not the op's reference read afresh: the target the
+		// card was named by is a bad one now that it stands in exile
+		s.execReturnObj(k, in, NoSlot, o)
 	default:
 		s.execReturnSimple(k, in, o)
 	}
