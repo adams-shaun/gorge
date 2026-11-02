@@ -712,7 +712,9 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 			}
 			continue
 		}
-		if MatchesObjectCtx(g, memberSpec, o, memberSc) {
+		// Off the battlefield a Permanent base is the card-type test: a countered
+		// or destroyed member was a permanent spell or permanent.
+		if matchesZoneSpecObj(g, memberSpec, o, memberSc, o.Zone) {
 			count++
 		}
 	}
