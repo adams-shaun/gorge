@@ -43,69 +43,6 @@ func (r *DeckImportReport) ignore(field string, n int) {
 	r.Ignored[field] += n
 }
 
-// diacriticFold strips the Latin-1 diacritics a ManaBrew client's name field
-// may carry that cards.NormalizeName does not (it folds case, whitespace and
-// punctuation, but a marked vowel is still a distinct letter to it).
-var diacriticFold = strings.NewReplacer(
-	"á", "a", "à", "a", "â", "a", "ä", "a", "ã", "a", "å", "a",
-	"é", "e", "è", "e", "ê", "e", "ë", "e",
-	"í", "i", "ì", "i", "î", "i", "ï", "i",
-	"ó", "o", "ò", "o", "ô", "o", "ö", "o", "õ", "o",
-	"ú", "u", "ù", "u", "û", "u", "ü", "u",
-	"ñ", "n", "ç", "c", "ý", "y", "ÿ", "y",
-	"Á", "A", "À", "A", "Â", "A", "Ä", "A", "Ã", "A", "Å", "A",
-	"É", "E", "È", "E", "Ê", "E", "Ë", "E",
-	"Í", "I", "Ì", "I", "Î", "I", "Ï", "I",
-	"Ó", "O", "Ò", "O", "Ô", "O", "Ö", "O", "Õ", "O",
-	"Ú", "U", "Ù", "U", "Û", "U", "Ü", "U",
-	"Ñ", "N", "Ç", "C", "Ý", "Y",
-)
-
-// combinedFold is cards.NormalizeName plus the diacritic fold, applied in
-// that order: NormalizeName already lowercases (which also lowercases an
-// accented letter, e.g. "É" -> "é"), so the fold table only needs to carry
-// the lowercase forms to match either casing.
-func combinedFold(s string) string {
-	return diacriticFold.Replace(cards.NormalizeName(s))
-}
-
-// buildFoldIndex is the diacritic-fold fallback index: every face name
-// in reg, keyed by its combinedFold spelling. cards.Registry itself indexes
-// by NormalizeName only (no diacritic folding -- a corpus card keeps its
-// printed accents, e.g. "Lim-Dûl's Vault"), so a ManaBrew client that sends
-// the unaccented spelling would otherwise never resolve. Built fresh per
-// import rather than cached on the registry: a deck import happens once per
-// game, not per decision, and reg.Cards here is not large enough (tens of
-// thousands of faces) to matter next to loading the corpus itself.
-func buildFoldIndex(reg *cards.Registry) map[string]*cards.Card {
-	idx := make(map[string]*cards.Card, reg.Len())
-	for _, c := range reg.AllCards() {
-		for _, f := range c.Faces {
-			if f.Name == "" {
-				continue
-			}
-			k := combinedFold(f.Name)
-			if _, exists := idx[k]; !exists {
-				idx[k] = c
-			}
-		}
-	}
-	return idx
-}
-
-// lookupCard resolves one ManaBrew deck-card name against reg, applying the
-// fallback chain: reg.Lookup itself already folds an "A // B" name to
-// its front face (cards.NormalizeName truncates at "//"), so the only
-// fallback this adds is the diacritic fold (via foldIndex), tried only when
-// the direct lookup misses.
-func lookupCard(reg *cards.Registry, foldIndex map[string]*cards.Card, name string) (*cards.Card, bool) {
-	if c, ok := reg.Lookup(name); ok {
-		return c, true
-	}
-	c, ok := foldIndex[combinedFold(name)]
-	return c, ok
-}
-
 // canonicalName is the name a resolved card's own front face prints -- the
 // spelling every other gorge deck file uses, and the one deck.File.Resolve
 // will itself re-derive via the identical registry lookup. Falls back to raw
@@ -150,14 +87,14 @@ type cardGroup struct {
 	resolved map[string]*cards.Card // raw name -> resolved card, absent if unresolved
 }
 
-func groupCards(list []mb.DeckCard, reg *cards.Registry, foldIndex map[string]*cards.Card, rep *DeckImportReport) cardGroup {
+func groupCards(list []mb.DeckCard, reg *cards.Registry, rep *DeckImportReport) cardGroup {
 	g := cardGroup{counts: map[string]int{}, resolved: map[string]*cards.Card{}}
 	for _, dc := range list {
 		tallyIgnoredIdentity(dc.Identity, rep)
 		name := dc.Identity.Name
 		if _, seen := g.counts[name]; !seen {
 			g.order = append(g.order, name)
-			if c, ok := lookupCard(reg, foldIndex, name); ok {
+			if c, ok := reg.Lookup(name); ok {
 				g.resolved[name] = c
 			} else {
 				rep.Unresolved = append(rep.Unresolved, name)
@@ -254,11 +191,10 @@ func dedupeStable(in []string) []string {
 // the deck.File value.
 func ImportDeck(reg *cards.Registry, d mb.Deck, supported map[string]bool) (deck.File, DeckImportReport, error) {
 	rep := newDeckImportReport()
-	foldIndex := buildFoldIndex(reg)
 
 	f := deck.File{Name: d.Name, Format: d.Format}
 
-	main := groupCards(d.Cards, reg, foldIndex, rep)
+	main := groupCards(d.Cards, reg, rep)
 	f.Cards = main.entries()
 	haveMain := make(map[string]bool, len(main.order))
 	for _, e := range f.Cards {
@@ -266,13 +202,13 @@ func ImportDeck(reg *cards.Registry, d mb.Deck, supported map[string]bool) (deck
 	}
 
 	if len(d.Sideboard) > 0 {
-		sb := groupCards(d.Sideboard, reg, foldIndex, rep)
+		sb := groupCards(d.Sideboard, reg, rep)
 		f.Sideboard = sb.entries()
 		reportUnsupported(sb, reg, supported, rep)
 	}
 
 	if len(d.Commanders) > 0 {
-		cmdrs := groupCards(d.Commanders, reg, foldIndex, rep)
+		cmdrs := groupCards(d.Commanders, reg, rep)
 		names := make([]string, 0, len(cmdrs.order))
 		for _, raw := range cmdrs.order {
 			n := raw

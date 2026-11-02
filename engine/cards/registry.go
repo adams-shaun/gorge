@@ -86,9 +86,11 @@ func (r *Registry) MaterializedCount() int {
 	return len(r.cards)
 }
 
-// NormalizeName folds case, collapses whitespace and drops punctuation so
-// catalogue names from Scryfall match Forge script names. A "Front // Back"
-// name resolves to the front face, which is how Forge names the file.
+// NormalizeName folds case and diacritics, collapses whitespace and drops
+// punctuation so catalogue names from Scryfall match Forge script names. A
+// "Front // Back" name resolves to the front face, which is how Forge names
+// the file. A card printed with a mark ("Dáin Ironfoot", "Lim-Dûl's Vault")
+// answers to the unmarked spelling too: XMage and most hand-typed lists drop it.
 func NormalizeName(s string) string {
 	if i := strings.Index(s, "//"); i > 0 {
 		s = s[:i]
@@ -98,7 +100,7 @@ func NormalizeName(s string) string {
 	for _, r := range strings.ToLower(s) {
 		switch {
 		case unicode.IsLetter(r) || unicode.IsDigit(r):
-			b.WriteRune(r)
+			b.WriteRune(unmarked(r))
 			prevSpace = false
 		case unicode.IsSpace(r):
 			if !prevSpace {
@@ -111,6 +113,33 @@ func NormalizeName(s string) string {
 		}
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// unmarked is r without its diacritic, for the lowercase Latin letters a card
+// name carries; any other rune is returned as it is.
+func unmarked(r rune) rune {
+	if r < 0xC0 {
+		return r
+	}
+	switch r {
+	case 'à', 'á', 'â', 'ã', 'ä', 'å', 'ā':
+		return 'a'
+	case 'ç':
+		return 'c'
+	case 'è', 'é', 'ê', 'ë', 'ē':
+		return 'e'
+	case 'ì', 'í', 'î', 'ï', 'ī':
+		return 'i'
+	case 'ñ':
+		return 'n'
+	case 'ò', 'ó', 'ô', 'õ', 'ö', 'ō':
+		return 'o'
+	case 'ù', 'ú', 'û', 'ü', 'ū':
+		return 'u'
+	case 'ý', 'ÿ':
+		return 'y'
+	}
+	return r
 }
 
 func (r *Registry) Add(c *Card) {
