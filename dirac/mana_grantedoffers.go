@@ -186,9 +186,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
 	if ng == 0 && k.painMana && pc.painCol != 0 {
-		if m := s.painAvailMask(pc, s.perms[sl].ctrl); m != 0 {
-			a.addUnits(m, 1)
-		}
+		s.addPainAvail(k, sl, pc, s.perms[sl].ctrl, a, nil, false)
 		return
 	}
 	if ng == 0 || (!own && ng == 1) {

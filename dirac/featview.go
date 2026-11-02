@@ -735,6 +735,7 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 // too (pdNone: none).
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
+	var ms modalSet
 	pl := &s.pl[p&1]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
@@ -752,9 +753,7 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			if m := s.painAvailMask(pc, p&1); m != 0 {
-				av.addUnits(m, 1) // the planner's census has a pain ability (mana_pain.go)
-			}
+			s.addPainAvail(k, sl, pc, p&1, &av, &ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
 		av.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
@@ -771,7 +770,13 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 		}
 	}
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
-	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &av, ex, 0)
+	for c := 0; c < 1<<ms.n; c++ {
+		b := ms.modes(av, c)
+		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+			return true
+		}
+	}
+	return false
 }
 
 // manaGranted reports whether slot sl's mana ability is one an effect

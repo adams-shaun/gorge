@@ -50,6 +50,9 @@ func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	if res.Div != nil {
 		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
 	}
+	if res.Stall == KernelStallPrefix+"tapextra" {
+		t.Fatalf("the kernel stalled on a tap's extra mana (tapextra) after %d decisions", len(res.Actions))
+	}
 }
 
 // A trigger exiling the object that fired it, then returning it: Salvation Swan and a

@@ -90,3 +90,12 @@ func TestTapExtraPlannedCastLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "planned_cast_counts_tap_extra", "std-tla", Config{})
 }
+
+// A Talisman (a painless {C} ability beside a painful coloured one) under Forsaken
+// Monument: the {C} tap brings an additional {C}, the coloured one nothing, so the
+// source is two colourless mana or one coloured, and the cast's X ceiling counts the
+// tap's extra.
+func TestTapExtraPainfulSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "talisman_beside_monument", "std-trc", Config{})
+}

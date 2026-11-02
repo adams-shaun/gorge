@@ -82,6 +82,9 @@ type avail struct {
 	// independent; hallPlain then tries each source's colours.
 	one  [maxOneColour]uint8
 	nOne uint8
+	// nModal: the painful sources that make either {C} and a {C}-only extra
+	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
+	nModal uint8
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
@@ -175,7 +178,7 @@ func (a *avail) dropOneColour(n uint8) {
 }
 
 func (s *State) availFor(k *prep, p uint8, a *avail) {
-	a.total, a.n, a.nOne, a.pain.on = 0, 0, 0, false
+	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if pl.pool[c] > 0 {
@@ -204,10 +207,7 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			s.tapExtraStall(k, sl)
-			if m := s.painAvailMask(pc, p); m != 0 {
-				a.addUnits(m, 1)
-			}
+			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
@@ -1022,7 +1022,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				var xv [kop.NumManaKinds]uint8
 				var xm, xt uint8
 				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
-					xv = s.srcExtra(k, sl, pc)
+					if pc.painCol != 0 {
+						xv, _, _ = s.srcExtraPain(k, sl, pc) // phase 0: the painland's normal {C} ability
+					} else {
+						xv = s.srcExtra(k, sl, pc)
+					}
 					for c, v := range xv {
 						if v > 0 {
 							xm |= 1 << c
