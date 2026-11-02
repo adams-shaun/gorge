@@ -645,11 +645,14 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || sourceLeftSincePush(h, c, o) {
+		if o == nil || !animateRemembered(sa) && sourceLeftSincePush(h, c, o) {
 			// "This land becomes a 3/3 creature" names the permanent that
 			// activated it: a Soulstone Sanctuary put into its library in
 			// response is a new object the animation never reaches (CR
-			// 400.7; census pair 3988, where the drawn card was a 3/3).
+			// 400.7; census pair 3988, where the drawn card was a 3/3). A
+			// Defined$ Remembered animation names what the ability itself
+			// remembered, and that can be the source's own new incarnation:
+			// Retched Wretch's trigger returns it, then takes its abilities.
 			continue
 		}
 		if rememberAnimated {
@@ -1041,6 +1044,13 @@ func animateHostScoped(dur string) bool {
 		return true
 	}
 	return false
+}
+
+// animateRemembered reports an Animate whose Defined$ names the ability's
+// remembered objects, which were recorded at resolution and so are the
+// current incarnations even when one is the source.
+func animateRemembered(sa *cards.SA) bool {
+	return strings.HasPrefix(sa.ParamStr(cards.PKDefined), "Remembered")
 }
 
 // animateUntilEOT is registerAnimateEffects' one UntilEOT decision, shared by

@@ -19,6 +19,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tla", "granted_cap_restricted_source"},           // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
 		{"std-blb", "script_cap_skips_sufficient_plain_casts"}, // Mind Spring and Mockingbird pay from the Islands: no prefix search spent before Pawpatch Recruit's offspring cast
 		{"std-fdn", "kicked_cast_granted_mana_prefix"},         // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
+		{"std-ecl", "wretch_blight_dies"},                      // a Retched Wretch that came back has no abilities: its second death, with -1/-1 counters again, triggers nothing
 		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
 	} {
 		t.Run(c.name, func(t *testing.T) {
