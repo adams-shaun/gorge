@@ -1379,3 +1379,23 @@ func TestRevealWithNoDefinedIsTheAbilitysController(t *testing.T) {
 		t.Fatal("no Note recorded the peeked card")
 	}
 }
+
+// TestTargetedControllerAfterTheTargetLeft: CR 608.2h. A target that has left the
+// battlefield is "its controller"'s by what it last had there, not by its owner.
+func TestTargetedControllerAfterTheTargetLeft(t *testing.T) {
+	h := newHost(t, 2)
+	land := h.g.AddObject(mkCard(t, "Name:Land\nTypes:Land\nOracle:x\n"), 1)
+	h.g.Obj(land.ID).Zone = state.ZGraveyard
+	ctx := &Ctx{Controller: 0, Targets: []state.Target{{Obj: land.ID}}}
+	ctx.Snap.TargetController = map[state.ObjID]state.PlayerID{land.ID: 0}
+	got := DefinedSpec(h, ctx, "TargetedController")
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
+		t.Fatalf("TargetedController = %+v, want seat 0, who last controlled it", got)
+	}
+	h.g.Obj(land.ID).Zone = state.ZBattlefield
+	h.g.Obj(land.ID).Controller = 1
+	got = DefinedSpec(h, ctx, "TargetedController")
+	if len(got) != 1 || got[0].Player != 1 {
+		t.Fatalf("still on the battlefield: TargetedController = %+v, want seat 1, its controller now", got)
+	}
+}
