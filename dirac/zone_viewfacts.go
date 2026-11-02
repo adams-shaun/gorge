@@ -68,8 +68,10 @@ func (s *State) FeatHandCost(p uint8, o Obj) (kop.ManaCost, bool) {
 }
 
 // FeatResolving reports whether the pending decision is asked inside a resolution.
+// A held free cast counts: gorge makes it there, where the kernel makes it just after
+// (act_discoverfreecast.go).
 func (s *State) FeatResolving() bool {
-	return s.ctl == ctlResolve || s.g.pre.state == 1 || s.ctl == ctlGenAsk && s.g.ctlRet == ctlResolve
+	return s.ctl == ctlResolve || s.g.pre.state == 1 || s.ctl == ctlGenAsk && s.g.ctlRet == ctlResolve || s.g.hold
 }
 
 // FeatLifeThisTurn is what p gained and lost this turn.

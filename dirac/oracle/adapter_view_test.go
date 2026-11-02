@@ -241,6 +241,9 @@ func viewCompare(t *testing.T, name string, pairs int, autopay bool) {
 	check := viewCheck(d, &n)
 	clean, total := adapterRun(t, name, 0, pairs, 1, Config{GorgeAutopaySurface: autopay}, func(ref *GorgeSide, a *adapter.Game) {
 		seen++
+		if gp, sp := ref.E.G.Priority, a.Board().Priority; gp != sp {
+			d.add("priority at every position", "", gp, sp)
+		}
 		if seen%viewSampling == 0 {
 			check(ref, a)
 		}
