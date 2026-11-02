@@ -329,8 +329,10 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 // windowDry runs windowTapRider's source walk without its effects: only the
 // pool and the tapped bits move, and both are restored before it returns.
 // ok is whether the window pays cost; known is false when the walk reaches
-// a source whose activation does more than tap and add mana (a window gap,
-// a sacrificed source), which the caller must then probe another way.
+// a source whose activation does more than tap, or tap and sacrifice, and add
+// mana (a window gap, a source that sacrifices without tapping), which the
+// caller must then probe another way. A Treasure prices like any tapped source:
+// gorge's census counts it as a unit (castWindowPays).
 func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
@@ -348,7 +350,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		if gap || pc.manaSac || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
+		if gap || k.sacOnlyMana && pc.manaSacOnly || s.perms[sl].flags&pfTapped != 0 ||
 			k.gen != nil && k.gen.anyRestrSrc && s.windowRestrDynMask(k, p, sl) != 0 {
 			ok, known = false, false
 			break
