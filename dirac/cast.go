@@ -993,8 +993,7 @@ func (s *State) excludeTapSource(k *prep, av *avail) {
 	if k.gen != nil {
 		pc = s.manaPCGen(k, sl)
 	}
-	mk := s.srcMaskAt(pc, sl)
-	av.remove(mk, pc.manaN)
+	s.removeSrc(k, av, sl, pc)
 }
 
 func (s *State) applyBuild(k *prep, a Action) {

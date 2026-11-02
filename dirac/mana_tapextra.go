@@ -94,3 +94,19 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 		s.pl[p].pool[c] += xv[c]
 	}
 }
+
+// removeSrc takes out of a the mana the permanent at sl would make by tapping
+// for mana through pc, the extra its tap brings included: a cost that taps the
+// source leaves it neither.
+func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
+	a.remove(s.srcMaskAt(pc, sl), pc.manaN)
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	xv := s.srcExtra(k, sl, pc)
+	for c := range xv {
+		if xv[c] > 0 {
+			a.remove(1<<c, xv[c])
+		}
+	}
+}

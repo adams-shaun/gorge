@@ -329,7 +329,7 @@ func (s *State) sacSelfMana(k *prep, sl Slot) bool {
 func (s *State) abilityAffordsSacSelf(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaCost, av *avail) bool {
 	av2 := *av
 	pc := s.manaPCAt(k, sl)
-	av2.remove(s.srcMaskAt(pc, sl), pc.manaN)
+	s.removeSrc(k, &av2, sl, pc)
 	pm := pipMaskOf(cost)
 	if !av2.affords(cost, pm, 0) {
 		return false

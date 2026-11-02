@@ -448,11 +448,11 @@ func (s *State) pickKeepsPayable(k *prep, sl Slot) bool {
 		o := s.bld().picks[i]
 		if s.bld().pickKs[i] == pkTapX && s.objs[o].zone == kop.ZoneBattlefield && s.canTapForMana(k, s.objs[o].slot) {
 			pc := s.manaPCGen(k, s.objs[o].slot)
-			av.remove(s.srcMaskAt(pc, s.objs[o].slot), pc.manaN)
+			s.removeSrc(k, &av, s.objs[o].slot, pc)
 		}
 	}
 	pc := s.manaPCGen(k, sl)
-	av.remove(s.srcMaskAt(pc, sl), pc.manaN)
+	s.removeSrc(k, &av, sl, pc)
 	return av.affords(&cost, pipMaskOf(&cost), cost.XGeneric(int(s.bld().e.x)))
 }
 

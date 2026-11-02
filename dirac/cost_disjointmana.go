@@ -73,7 +73,7 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 		for i := 0; i < need; i++ {
 			x := cons[idx[i]]
 			pc := s.manaPCAt(k, x)
-			r.remove(s.srcMaskAt(pc, x), pc.manaN)
+			s.removeSrc(k, &r, x, pc)
 		}
 		if r.affords(mana, pm, 0) {
 			return true

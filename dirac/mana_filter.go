@@ -147,7 +147,7 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 			sl := filt[i]
 			if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
 				pc := s.manaPCGen(k, sl)
-				t.remove(s.srcMaskAt(pc, sl), pc.manaN)
+				s.removeSrc(k, &t, sl, pc)
 			}
 			// the fee comes first, out of what is made so far (CR 605.3b)
 			fee := s.filtFee(k, sl)

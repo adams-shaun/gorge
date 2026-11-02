@@ -199,10 +199,12 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if dual {
+			s.tapExtraStall(k, sl)
 			s.availGrant(k, sl, pc, a)
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
+			s.tapExtraStall(k, sl)
 			if m := s.painAvailMask(pc, p); m != 0 {
 				a.addUnits(m, 1)
 			}

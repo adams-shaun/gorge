@@ -508,8 +508,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		mk := s.srcMaskAt(pc, sl)
-		av2.remove(mk, pc.manaN)
+		s.removeSrc(k, &av2, sl, pc)
 		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}

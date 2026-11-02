@@ -1734,6 +1734,14 @@ func (s *State) stall(why uint8) {
 	s.ctl = ctlOver
 }
 
+// stallLatched ends the game as a draw when a stall was latched (capFull)
+// while the options of the decision just built were being generated.
+func (s *State) stallLatched() {
+	if s.g.stalled != 0 && !s.over {
+		s.stall(s.g.stalled)
+	}
+}
+
 // Stalled reports whether the game was stopped at the kernel's capacity.
 func (s *State) Stalled() bool { return s.g.stalled != 0 }
 
