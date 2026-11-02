@@ -91,6 +91,14 @@ func TestTapExtraPlannedCastLockstep(t *testing.T) {
 	synthReproLockstep(t, "planned_cast_counts_tap_extra", "std-tla", Config{})
 }
 
+// A waterbend pick leaves the window's census: the earthbent land picked to pay for {1}
+// no longer taps for mana, so its Cub extra is no unit of what remains, and gorge
+// reverses the activation the remaining sources cannot pay.
+func TestTapExtraWaterbendPickLeavesCensusLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "waterbend_pick_leaves_census", "std-tla", Config{})
+}
+
 // A Talisman (a painless {C} ability beside a painful coloured one) under Forsaken
 // Monument: the {C} tap brings an additional {C}, the coloured one nothing, so the
 // source is two colourless mana or one coloured, and the cast's X ceiling counts the

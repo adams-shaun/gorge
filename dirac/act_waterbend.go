@@ -403,10 +403,6 @@ func (s *State) waterbendTargetAbort(k *prep) bool {
 	if a.Cost.Flags&kop.CostWaterbend == 0 {
 		return false
 	}
-	// an incomplete census keeps the offer (gorge affordableTargetCandidates)
-	if !s.windowCensusComplete(k, e) {
-		return false
-	}
 	// buildCost already subtracts the announced picks (gorge's
 	// affordableTargetCandidates folds them through applyConvoke before the
 	// affordability probe), so the probe prices the cost the payment will
@@ -421,6 +417,13 @@ func (s *State) waterbendTargetAbort(k *prep) bool {
 		}
 	}
 	s.occ = s.occ.andNot(hide)
+	// an incomplete census keeps the offer (gorge affordableTargetCandidates);
+	// the census is of the sources the window still has, a committed pick being
+	// no unit of it (castWindowCensusComplete skips convokeCommitted)
+	if !s.windowCensusComplete(k, e) {
+		s.CopyFrom(saved)
+		return false
+	}
 	ok, _ := s.windowTapRider(k, e.ctrl, &cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)
 	return !ok
