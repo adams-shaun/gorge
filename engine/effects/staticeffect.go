@@ -335,6 +335,9 @@ type staticGrantLifetime struct {
 	// ControllerTurnOnly gates every registration on its controller's
 	// turn (an Animate-delivered Condition$ PlayerTurn body).
 	ControllerTurnOnly bool
+	// SourceIncarnation anchors a grant registered ahead of its source's
+	// battlefield entry to the incarnation that entry will begin.
+	SourceIncarnation uint32
 }
 
 // stampGrantLifetime applies lt to one layer's registration. Zero-value
@@ -364,6 +367,9 @@ func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
 	}
 	if lt.ChosenNumber != 0 {
 		ce.ChosenNumber = lt.ChosenNumber
+	}
+	if lt.SourceIncarnation != 0 {
+		ce.SourceIncarnation = lt.SourceIncarnation
 	}
 	if lt.FromEffect {
 		ce.FromEffect = true

@@ -33,7 +33,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.14 | follows | `engine/rules/trigmatch/cast.go#ManaExpendMatches` `engine/rules/cast_commit.go#Engine.payCast` | - | convoke counted as spent (G-lane) |
 | 700.15 | n/a | - | - | terminology |
 | 700.16 | follows | `engine/effects/filter_word.go#wordMatches` | - |  |
-| 701.1 | n/a | - | - | definitional |
+| 701.1 | n/a | - | `TestAssimilateFromAGraveyardEntersUnderYourControl` `TestAssimilateAPermanentChangesControlInPlace` `TestAssimilateEndsWhenItLeaves` | definitional; assimilate (Star Trek, not numbered in this CR; release notes) is `effAssimilate` |
 | 701.2a | follows | `engine/rules/legal_activation.go#Engine.activatorAllows` | - | controller-only unless Activator$ |
 | 701.3a | follows | `engine/rules/attach.go#Engine.attachRefused` `engine/rules/emit.go#Engine.emit` | `TestAttachToAnIllegalPermanentDoesNotMove` | an attach chooser may still offer an illegal bearer; the attach is refused |
 | 701.3b | partial | `engine/rules/attach.go#Engine.attachRefused` `engine/effects/attach.go#emitAttach` | `TestReEquipToTheSameCreatureDoesNothing` `TestAttachToAnIllegalPermanentDoesNotMove` | same-bearer and illegal-bearer attaches do nothing; the third sentence (a non-attachment object) is not checked |
