@@ -159,7 +159,9 @@ func (lc *lowerCtx) manaChoiceEffect(ps *params, prod string, persist lValue, re
 	if err != nil {
 		return err
 	}
-	if !amt.isConst() || amt.N < 1 || amt.N > 7 || len(colors) < 2 {
+	// a constant amount is one to seven; a counted one is read when the effect
+	// resolves (a zero adds nothing)
+	if amt.isConst() && (amt.N < 1 || amt.N > 7) || len(colors) < 2 {
 		return refuse("mana choice amount %q over %q", ps.str("Amount"), prod)
 	}
 	lc.emit(lInstr{Op: "ManaChoice", A: amt, B: persist, C: mode, CS: colors, F: restrict})
