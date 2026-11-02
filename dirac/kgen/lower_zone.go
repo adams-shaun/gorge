@@ -2854,6 +2854,12 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			// artifact (Powerstone tokens).
 			spell = append(spell, "Card.Artifact")
 			m.NonSpell = true
+		case alt == "CantCastSpellFromHand":
+			// Gorge restrictValidTermMatches: every payment but a spell,
+			// and a spell that was not cast from hand (the same pending-
+			// guarded read as Spell.!wasCastFromYourHand).
+			spell = append(spell, "Card.!wasCastFromYourHand")
+			m.NonSpell = true
 		default:
 			return refuse("mana restriction %q", rv)
 		}

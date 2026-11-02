@@ -430,10 +430,17 @@ func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []uint8) bool {
 //go:noinline
 func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
 	if s.pl[p].poolR != 0 {
-		return s.restrAffords(k, p, c, og, cost, av)
+		// the pool beside the restricted sources (gorge AvailableFor holds both)
+		t := *av
+		if s.restrAvail(k, p, c, og, &t) {
+			if t.affords(cost, pipMaskOf(cost), 0) {
+				return true
+			}
+			av = &t
+		}
 	}
 	// restrSrcNone precondition: every caller tests !av.affords first.
-	return s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
+	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
 }
 
 // payRiderRestr is payRider on a table with restricted planner sources: a
@@ -528,8 +535,14 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
-	if s.pl[p&1].poolR != 0 && s.restrAffords(k, p, c, og, cost, av) {
-		return true
+	if s.pl[p&1].poolR != 0 {
+		t := *av
+		if s.restrAvail(k, p, c, og, &t) {
+			if t.affords(cost, pipMaskOf(cost), 0) {
+				return true
+			}
+			av = &t
+		}
 	}
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (above).
 	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
@@ -571,8 +584,19 @@ func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
 //
 //go:noinline
 func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail, skip Slot) bool {
+	p := s.perms[sl].ctrl
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
-	return s.restrSrcAffords(k, s.perms[sl].ctrl, d, cost, av, skip, 0)
+	if s.pl[p&1].poolR != 0 && s.restrPoolAct(k, p, &d) {
+		// the floating restricted mana beside the restricted sources
+		// (gorge AvailableFor holds both)
+		t := *av
+		s.restrAvailAdd(p, &t)
+		if t.affords(cost, pipMaskOf(cost), 0) {
+			return true
+		}
+		av = &t
+	}
+	return s.restrSrcAffords(k, p, d, cost, av, skip, 0)
 }
 
 // actPoolAffords: av, with p's floating restricted mana counted, pays the
