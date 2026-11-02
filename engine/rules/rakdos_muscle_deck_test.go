@@ -620,3 +620,30 @@ func TestFlareOfDuplicationCopiesItsTarget(t *testing.T) {
 		t.Fatalf("%d StackCopy events, want exactly one (the Bolt copy; a second would be Flare copying itself)", copies)
 	}
 }
+
+// A self ReduceCost that counts creatures by a keyword filter (The Lord of the
+// Eagles: "costs {X} less, where X is the total power of creatures you control
+// with flying") reads the layer-6 keyword table, so a creature granted flying
+// counts. The control arm shows the count is zero without the grant.
+func TestSelfCostReductionCountsGrantedKeyword(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		grant   bool
+		generic int
+	}{{"no flyer", false, 7}, {"a creature granted flying", true, 4}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := mayPlayBase(t)
+			if tc.grant {
+				onBoard(t, e, 0, "Name:Sky Grant\nManaCost:1\nTypes:Enchantment\n"+
+					"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying\nOracle:x\n")
+			}
+			onBoard(t, e, 0, "Name:Grounded Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:3/3\nOracle:x\n")
+			lord := handFixture(t, e, 0, corpusCardText(t, "t/the_lord_of_the_eagles.txt"))
+			got := e.offerCostFor(0, lord, e.castOfferBase(0, lord), spellScope(""))
+			if got.Generic != int32(tc.generic) {
+				t.Fatalf("generic cost = %d, want %d", got.Generic, tc.generic)
+			}
+		})
+	}
+}
