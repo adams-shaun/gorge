@@ -71,3 +71,24 @@ func TestFreeHandCastIsTheStaticControllersAlone(t *testing.T) {
 		t.Fatal("the opponent was offered a free cast through Fires of Invention")
 	}
 }
+
+// TestTwoFreeHandStaticsOfferOneFreeCast: a second Omniscience adds no choice,
+// so the hand walk lists its free cast once (CR 118.9).
+func TestTwoFreeHandStaticsOfferOneFreeCast(t *testing.T) {
+	t.Parallel()
+	omni := corpusAlternativeCard(t, "Omniscience")
+	e := handEngine(t, omni, omni, corpusAlternativeCard(t, "Craw Wurm"))
+	h := e.G.Zone(state.ZHand, 0)
+	a, b, wurm := h[0], h[1], h[2]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: a, From: state.ZHand, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: b, From: state.ZHand, To: state.ZBattlefield})
+	n := 0
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "cast" && o.Obj == wurm && o.AltCostIndex > 0 {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("free casts of Craw Wurm under two Omnisciences = %d, want 1: %+v", n, e.legalActions(0))
+	}
+}

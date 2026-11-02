@@ -917,6 +917,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		return nil
 	}
 	var out []mayPlayAltView
+	var unlimitedFree [][2]bool
 	// The two sources the permission grant walks, scanned in one
 	// deterministic order (battlefield statics first, then the card's own
 	// face statics). Each is ranged in place -- neither list is appended to
@@ -1013,6 +1014,14 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		grants := !strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayDontGrantZonePermissions"]), "True")
 		flash := strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithFlash)), "True")
 		if free {
+			// A second unlimited static of the same shape (two Omnipresences)
+			// adds no choice, the way mayPlayPermissions folds unlimited grants.
+			if key == "" && slices.Contains(unlimitedFree, [2]bool{grants, flash}) {
+				continue
+			}
+			if key == "" {
+				unlimitedFree = append(unlimitedFree, [2]bool{grants, flash})
+			}
 			out = append(out, mayPlayAltView{grants: grants, flash: flash, key: key})
 			continue
 		}
