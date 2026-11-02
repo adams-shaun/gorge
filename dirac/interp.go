@@ -190,9 +190,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.discRandom(k, p, n)
 			break
 		}
-		if n >= int(pl.handN) {
+		if n >= s.handDiscardable(p) {
 			for i := uint8(0); i < pl.handN; {
-				if s.park(k, pl.hand[i], parkDiscard, 0) {
+				if s.objs[pl.hand[i]].of&ofCopy != 0 || s.park(k, pl.hand[i], parkDiscard, 0) {
 					i++
 					continue
 				}
@@ -791,7 +791,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 					taken = true
 				}
 			}
-			if !taken && (k.gen == nil || s.discardOK(k, o)) {
+			if !taken && s.objs[o].of&ofCopy == 0 && (k.gen == nil || s.discardOK(k, o)) {
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}
@@ -1096,4 +1096,20 @@ func (s *State) putRest(k *prep, o Obj) {
 	if s.prog(k)[s.res.pc].C&kop.MvRemember != 0 {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}
+}
+
+// handDiscardable counts the cards in p's hand a discard may take. A token copy
+// that bounced to the hand waits there for the state-based actions to cease it
+// (ceaseTokensGen) and is no card in the hand to Forge, whose zone never lists a
+// token off the battlefield; gorge's matcher rejects it too (CR 707.10h), so a
+// discard neither offers it nor counts it toward taking the whole hand.
+func (s *State) handDiscardable(p uint8) int {
+	pl := &s.pl[p]
+	n := int(pl.handN)
+	for i := 0; i < int(pl.handN); i++ {
+		if s.objs[pl.hand[i]].of&ofCopy != 0 {
+			n--
+		}
+	}
+	return n
 }
