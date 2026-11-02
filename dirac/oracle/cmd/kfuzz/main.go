@@ -169,6 +169,7 @@ func run() int {
 	if *decksDir == "" {
 		*decksDir = oracle.PoolDecks("fdn")
 	}
+	sliced := false // the pool is a committed slice
 	if *kernel == "fdn" && *synth == "" && *v2Mode == "" && !explicit["decks"] && !explicit["pool"] && !explicit["pairs-file"] && oracle.NeedDecks(*decksDir) != nil {
 		if *seed != oracle.SliceSeed || *split != "all" || *firstPair+*pairs > oracle.SlicePairs {
 			fmt.Fprintf(os.Stderr, "kfuzz: no %s pool on disk, and its committed slice holds only -split all -seed %d pairs 0 to %d: set GORGE_POOLS for others\n", *setName, oracle.SliceSeed, oracle.SlicePairs-1)
@@ -182,6 +183,7 @@ func run() int {
 		defer remove()
 		*decksDir, *poolPath, *pairsFile = filepath.Join(dir, "decks"), filepath.Join(dir, "pool.tsv"), filepath.Join(dir, "pairs.tsv")
 		explicit["pairs"] = true
+		sliced = true
 	}
 	if *lead != "gorge" && *lead != "kernel" {
 		fmt.Fprintf(os.Stderr, "kfuzz: -lead %q: want gorge or kernel\n", *lead)
@@ -335,6 +337,9 @@ func run() int {
 		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans}
 		if *synth == "" && *firstPair == 0 && *pairs == oracle.SynthPairs && *seed == oracle.EvidenceSeed {
 			o.minGames = oracle.GateMinGames[*setName]
+			if sliced {
+				o.minGames = min(o.minGames, oracle.SliceMinGames)
+			}
 		}
 		if *pairsFile != "" {
 			ps, err := pairsFromFile(*pairsFile, *firstPair, *pairs, explicit["pairs"], *seed)

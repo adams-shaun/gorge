@@ -74,7 +74,8 @@ evidence corpus and `scripts/dirac-first-refusals.py evidence <out>` writes `dir
 met across all of a card's runs. `-implicates-all` names every implicated card and prints one `bad-game` line per
 game that fails `-absolute`; `scripts/dirac-first-refusals.py settle <out>` reads them to find the refused list
 that leaves the corpus clean, from a run with `-play-refused`. On a deck pool's 1500-pair slice, `-absolute` also fails under `oracle.GateMinGames` started
-games, so refusals cannot shrink a gate without an edit saying so.
+games (`oracle.SliceMinGames` on a committed slice, which has no further pairs), so refusals cannot shrink a gate without
+an edit saying so.
 
 `-mulligans N` is the London mulligans each player may take, on every path; the default 0 skips the
 round. It changes every game's stream, so a slice at `-mulligans 1` is not the same games as at 0.

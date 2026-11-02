@@ -29,6 +29,10 @@ const (
 // short of decks to fill it fails, and lowering a floor is an edit a reviewer reads.
 var GateMinGames = map[string]int{"fdn": 1500, "blb": 1500}
 
+// SliceMinGames is the same floor on a committed slice, which holds SlicePairs pairs and
+// so has none to read on to: a clone with no pool plays what the refusals leave of them.
+const SliceMinGames = SlicePairs * 9 / 10
+
 // gatePairsLimit is how far past n pairs PairingsPlayable reads, as a multiple of n.
 const gatePairsLimit = 20
 
