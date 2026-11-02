@@ -92,3 +92,19 @@ func TestReplaceDyingWaitsOutAMidBatchChoice(t *testing.T) {
 		t.Fatalf("damaged creature zone = %s, want exile", got)
 	}
 }
+
+// A face-down casualty has no abilities (CR 708.2, from memory), so a manifested Leyline
+// of the Void dying beside a creature does not exile it: the rest of the batch reads
+// only what still had its replacement as it left.
+func TestFaceDownCasualtyReplacesNothingInItsBatch(t *testing.T) {
+	e := New(Config{Seed: 717, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
+	ley := onBoardReadyCard(t, e, 0, mshCorpusCard(t, "Leyline of the Void"))
+	e.G.Obj(ley).FaceDown = true
+	bear := onBoardReadyCard(t, e, 1, mshCorpusCard(t, "Grizzly Bears"))
+	e.G.Obj(ley).Damage, e.G.Obj(bear).Damage = 2, 2
+	e.checkStateBased()
+	if z := e.G.Obj(bear).Zone; z != state.ZGraveyard {
+		t.Fatalf("the bear is in %v, want the graveyard", z)
+	}
+}

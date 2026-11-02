@@ -1393,7 +1393,7 @@ func (e *Engine) noteBatchDeparture(ev events.Event) {
 		ev.From != state.ZBattlefield || ev.To == state.ZBattlefield {
 		return
 	}
-	if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+	if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && !e.printedAbilitiesGone(o) {
 		e.batchReplSources = append(e.batchReplSources, ev.Obj)
 	}
 }
