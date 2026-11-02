@@ -1,0 +1,55 @@
+package oracle
+
+import (
+	"path/filepath"
+	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+)
+
+// Games from the Standard sets' synthetic pools that once diverged at the end of
+// their script, on the autopay surface: both engines now agree there, and for 200
+// decisions after.
+func TestStdSetReprosLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	for _, c := range []struct{ pool, name string }{
+		{"std-tla", "waterbend_min_taps_filter"}, // Barrels of Blasting Jelly adds nothing to what the window can pay
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			m, err := r.Matchup(reg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			entries := func(names []string) []cardset.Entry {
+				es := make([]cardset.Entry, len(names))
+				for i, n := range names {
+					es[i] = cardset.Entry{Name: n, Count: 1}
+				}
+				return es
+			}
+			set := cardsettest.Synth(t, c.pool)
+			tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+			if err != nil {
+				t.Fatal(err)
+			}
+			rc := r.RunConfig()
+			rc.Config.GorgeAutopaySurface = true
+			rc.MaxDecisions = len(r.Actions) + 200
+			k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer CloseSide(k)
+			res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+			if res.Div != nil {
+				t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+			}
+		})
+	}
+}

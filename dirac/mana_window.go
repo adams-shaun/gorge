@@ -332,13 +332,16 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 // windowDry runs windowTapRider's source walk without its effects: only the
 // pool and the tapped bits move, and both are restored before it returns.
 // ok is whether the window pays cost; known is false when the walk reaches
-// a source whose activation does more than tap, or tap and sacrifice, and add
-// mana (a window gap, a source that sacrifices without tapping), which the
-// caller must then probe another way. A Treasure prices like any tapped source:
-// gorge's census counts it as a unit (castWindowPays).
+// a source whose activation does more than tap and add mana (a window gap
+// other than a first-only filter, a sacrificed source, a source that
+// sacrifices without tapping), which the caller must then probe another way.
+// A Treasure prices like any tapped source: gorge's census counts it as a unit
+// (castWindowPays).
 func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known bool) {
 	pool := s.pl[p].pool
 	var tapped [MaxPerm]Slot
+	var flags [MaxPerm]uint16
+	var used [MaxPerm]uint8
 	nt := 0
 	ok, known = true, true
 	for !s.windowPoolPays(p, cost, anyColor) {
@@ -348,6 +351,12 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 		if sl == NoSlot {
 			ok = false
 			break
+		}
+		if gap && s.windowFiltFirstUsable(k, p, sl) {
+			tapped[nt], flags[nt], used[nt] = sl, s.perms[sl].flags, s.perms[sl].actUsed
+			nt++
+			s.windowDryFilter(k, p, cost, sl)
+			continue
 		}
 		pc := &k.cards[s.cardAt(sl)]
 		if k.gen != nil {
@@ -359,16 +368,49 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 			break
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)
-		s.perms[sl].flags |= pfTapped
-		tapped[nt] = sl
+		tapped[nt], flags[nt], used[nt] = sl, s.perms[sl].flags, s.perms[sl].actUsed
 		nt++
+		s.perms[sl].flags |= pfTapped
 		s.pl[p].pool[col] += pc.manaN
 	}
 	for i := 0; i < nt; i++ {
-		s.perms[tapped[i]].flags &^= pfTapped
+		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
 	return ok, known
+}
+
+// windowDryFilter is windowDry's step over a first-only filter the floating mana
+// pays for (gorge's castWindowReachable, CR 605.3a): the fee comes from what cost
+// can spare and the filter makes a colour cost owes, so it never loses a pip. With
+// nothing to spare the swap gains nothing, and the filter only counts as spent.
+func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
+	if s.filtNoTap(k, sl) {
+		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
+	} else {
+		s.perms[sl].flags |= pfTapped
+	}
+	pl := &s.pl[p]
+	fee := s.filtFee(k, sl)
+	spare := 0
+	for c := range pl.pool {
+		spare += int(pl.pool[c]) - min(int(pl.pool[c]), int(cost.Pips[c]))
+	}
+	if spare < fee {
+		return
+	}
+	for c := range pl.pool {
+		for fee > 0 && pl.pool[c] > cost.Pips[c] {
+			pl.pool[c]--
+			fee--
+		}
+	}
+	mask := uint8(s.filtAb(k, sl).ManaColors)
+	col := bits.TrailingZeros8(mask)
+	if want, decided := s.windowUseful(p, cost); decided && mask&want != 0 {
+		col = bits.TrailingZeros8(mask & want)
+	}
+	pl.pool[col]++
 }
 
 // windowAnyColour picks the colour an any-colour window source makes: a
