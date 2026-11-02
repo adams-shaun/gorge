@@ -623,20 +623,29 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				if !feeOK {
 					continue
 				}
-				spent := manaSub(activationPool, activationFee.Pool)
-				snowSpent := manaSub(activationSnow, activationFee.Snow)
-				nextPool := manaSub(pool, spent)
-				nextSpellSnow := manaSub(spellSnow, snowSpent)
-				nextActivation := activationFee.Pool
-				nextActivationSnow := activationFee.Snow
 				produced := a.Mana()
 				next := -1
 				if freeAlt {
 					next = i
 				}
+				// The fee's colours are the payer's choice (CR 601.2h), and the
+				// one the spell's cost can spare decides whether the search
+				// ends: Gravestone Strider's {1} from G leaves {W}{W} payable
+				// out of W G G, from W does not. Try resolveMana's, then every
+				// other split of the unrestricted pool.
 				used[i] = true
-				found := rec(pay.ManaAdd(nextPool, produced), nextSpellSnow,
-					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next, remaining-1)
+				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
+					spent := manaSub(activationPool, afterFee)
+					snowSpent := manaSub(activationSnow, afterFeeSnow)
+					return rec(pay.ManaAdd(manaSub(pool, spent), produced), manaSub(spellSnow, snowSpent),
+						pay.ManaAdd(afterFee, produced), afterFeeSnow, lifeLeft-a.Life, next, remaining-1)
+				}
+				found := tryFee(activationFee.Pool, activationFee.Snow)
+				if !found && a.CostGeneric > 0 {
+					found = forEachFeeSplit(activationPool, a.CostGeneric, func(afterFee state.Mana) bool {
+						return afterFee != activationFee.Pool && tryFee(afterFee, activationSnow)
+					})
+				}
 				used[i] = false
 				if found {
 					return true
@@ -646,6 +655,28 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		return false
 	}
 	return rec(spellPool, snow, free, snow, life, -1, budget)
+}
+
+// forEachFeeSplit calls try with pool less each way of spending n mana from it,
+// in colour order, until try accepts one.
+func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
+	var walk func(from int, left int32, cur state.Mana) bool
+	walk = func(from int, left int32, cur state.Mana) bool {
+		if left == 0 {
+			return try(cur)
+		}
+		for c := from; c < len(cur); c++ {
+			if cur[c] > 0 {
+				cur[c]--
+				if walk(c, left-1, cur) {
+					return true
+				}
+				cur[c]++
+			}
+		}
+		return false
+	}
+	return walk(0, n, pool)
 }
 
 func manaSub(a, b state.Mana) state.Mana {
