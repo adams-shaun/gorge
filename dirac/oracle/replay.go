@@ -81,6 +81,11 @@ const gameFormat = "koracle-game-1"
 func compareHash(p *Projection) uint64 {
 	q := *p
 	q.Priority = 0
+	// Chars are read through a kernel table's vocabulary, and a replay has no table. The
+	// lockstep compares them.
+	for i := range q.Cards {
+		q.Cards[i].Chars = CharsProj{}
+	}
 	if q.Over {
 		q = Projection{Over: true, Winner: q.Winner, Life: q.Life}
 	}

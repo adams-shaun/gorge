@@ -217,6 +217,37 @@ func TestDplaySkipRefusedCounts(t *testing.T) {
 	}
 }
 
+func TestDplaySampleReplayReexecutesInGorge(t *testing.T) {
+	cardsettest.Require(t, "fdn")
+	cards, err := cardset.CorpusDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	var stderr bytes.Buffer
+	code := run([]string{"-pairs", "10", "-a", seatRandom, "-b", seatRandom, "-sample-replay", "1", "-out", filepath.Join(dir, "games.jsonl"), "-summary", filepath.Join(dir, "s.json")}, io.Discard, &stderr)
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("exit %d: %s", code, stderr.String())
+	}
+	files, err := filepath.Glob(filepath.Join(dir, "games.jsonl.replays", "*.json"))
+	if err != nil || len(files) != 10 {
+		t.Fatalf("%d records: %v", len(files), err)
+	}
+	corp, err := oracle.OpenCorpus(cards, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		g, err := oracle.ReadKernelGame(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r := oracle.Replay(corp.Reg, g); r.DivergedAt != -1 || r.Verified != nil {
+			t.Errorf("%s: diverged at %d (%s: %s), verified %v", f, r.DivergedAt, r.Reason, r.Detail, r.Verified)
+		}
+	}
+}
+
 // TestDplayFlagsDocumented holds the flag table in dirac/docs/running.md to the flags.
 func TestDplayFlagsDocumented(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "docs", "running.md"))
