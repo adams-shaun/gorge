@@ -22,10 +22,11 @@ import { parseSymbol } from './mana';
  *
  *  - a potential play (the seat's potential_actions, rules.PotentialActions:
  *    the SAME legal-offer walk priced against the pool the seat could float)
- *    that the decision does not already offer (castable.offersPotential) and
- *    that no offered plan pays. A potential play the decision does not offer
- *    is, by construction of that walk, withheld only because the floating
- *    pool cannot pay it yet. This covers every non-cast kind the server
+ *    that the decision does not already offer (castable.offersPotential),
+ *    that no offered plan pays and that the engine has not proved unpayable
+ *    (payable === false: no tap reaches it). A potential play the decision
+ *    does not offer is, by construction of that walk, withheld only because
+ *    the floating pool cannot pay it yet. This covers every non-cast kind the server
  *    projects (an Equip or pump "ability", a max-speed "granted" ability, a
  *    Room "unlock", a morph "turn_face_up", a "specialize") and every cast no
  *    plan pays: X spells, flashback, kicker/optional and alternative costs —
@@ -164,7 +165,7 @@ function paidByPlan(actions: readonly PaymentAction[], action: PotentialAction):
 
 /** needsManualMana is the potential half: a play of the seat's own that only floating mana by hand reaches. */
 function needsManualMana(decision: Decision, action: PotentialAction): boolean {
-  if (MANA_FREE_KINDS.has(action.kind)) return false;
+  if (MANA_FREE_KINDS.has(action.kind) || action.payable === false) return false;
   if (offersPotential(decision.options, action)) return false;
   return !paidByPlan(decision.payment_actions ?? [], action);
 }

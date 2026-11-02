@@ -29,6 +29,11 @@ import type { Decision, Option, PlayerView, PotentialAction, View } from '../pro
  * hand-maintained cost rule; the structural fix is that there are no client
  * rules left to drift.
  *
+ * A play the engine has proved unpayable (payable === false, see
+ * PotentialAction.payable) is not one the seat could act on, whatever it
+ * floated: the projection prices each colour's upper bound separately, so one
+ * dual land can list a {1}{W} cast it cannot pay. Every answer here skips it.
+ *
  * Fails closed (false) whenever the view does not carry the seat's own
  * projection: a seat the view does not name, a spectator view, or another
  * seat's PlayerView (the projection is attached to the viewer's own seat only,
@@ -39,6 +44,11 @@ import type { Decision, Option, PlayerView, PotentialAction, View } from '../pro
 /** playerOf returns the view's PlayerView for a seat, or undefined when absent. */
 function playerOf(view: View, seat: number): PlayerView | undefined {
   return view.players?.find((p) => p.seat === seat);
+}
+
+/** reachableAfterTap is the seat's projection without the plays no tapping can pay. */
+function reachableAfterTap(view: View, seat: number): PotentialAction[] {
+  return playerOf(view, seat)?.potential_actions?.filter((a) => a.payable !== false) ?? [];
 }
 
 /**
@@ -53,8 +63,7 @@ function playerOf(view: View, seat: number): PlayerView | undefined {
  * wherever the caller's own stop rules already consult the step.
  */
 export function castableAfterTap(view: View, seat: number): boolean {
-  const p = playerOf(view, seat);
-  return !!p?.potential_actions?.some((a) => isPotentialPlay(a));
+  return reachableAfterTap(view, seat).some((a) => isPotentialPlay(a));
 }
 
 /**
@@ -125,8 +134,7 @@ export function offersPotential(options: readonly Option[], action: PotentialAct
  * and cannot interact with a resolving spell).
  */
 export function respondableAfterTap(view: View, seat: number): boolean {
-  const p = playerOf(view, seat);
-  return !!p?.potential_actions?.some((a) => isResponseKind(a.kind));
+  return reachableAfterTap(view, seat).some((a) => isResponseKind(a.kind));
 }
 
 /**
@@ -145,9 +153,8 @@ export function respondableAfterTap(view: View, seat: number): boolean {
  * shape as its callers (autopilot.ts's actionables).
  */
 export function castablesAfterTap(view: View, seat: number, _decision?: Decision): string[] {
-  const p = playerOf(view, seat);
   const out: string[] = [];
-  for (const a of p?.potential_actions ?? []) {
+  for (const a of reachableAfterTap(view, seat)) {
     if (isPotentialPlay(a) && a.label) out.push(`${a.label} (after tapping)`);
   }
   return out;
