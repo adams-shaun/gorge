@@ -1873,6 +1873,9 @@ func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone, co
 		return attackingEntry{kind: attackingEntryNoDefender,
 			note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}
 	}
+	if seats, _ := tokenAttackingPlayers(h, c, attack); len(seats) > 0 {
+		return attackingEntry{kind: attackingEntryAttacks, defender: seats[0]}
+	}
 	return attackingEntry{kind: attackingEntryUnsupported,
 		note: "Attacking$ " + attack + " is not implemented; the permanent enters but does not attack"}
 }
