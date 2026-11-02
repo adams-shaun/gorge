@@ -147,3 +147,12 @@ func TestBestowTargetProtectedFromMonocoloredLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "bestow_target_protected_from_monocolored", "pauper", Config{GorgeAutopaySurface: true})
 }
+
+// Writhing Chrysalis paid with two Bridges and two tapped Eldrazi Spawn: the planner
+// prices a tapped Spawn (its sacrifice has no {T}), and the plan's step for it stays
+// ready, so the cast pays by its plan and no window asks for colours.
+func TestTappedSpawnPlanStepStaysReadyLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "tapped_spawn_plan_step_stays_ready", "pauper", Config{})
+	poolReproLockstep(t, "tapped_spawn_plan_step_stays_ready_autopay", "pauper", Config{GorgeAutopaySurface: true})
+}
