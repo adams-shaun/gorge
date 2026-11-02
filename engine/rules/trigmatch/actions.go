@@ -456,6 +456,11 @@ func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.Ob
 		if le.Kind == events.TurnChange {
 			return true
 		}
+		// An earlier zone change made this a new object (CR 400.7), which no
+		// targeting before it named.
+		if !player && le.Kind == events.MoveZone && le.Obj == id {
+			return true
+		}
 		if le.Kind != events.TargetsChosen || le.Obj == 0 {
 			continue
 		}
