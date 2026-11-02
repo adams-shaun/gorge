@@ -38,12 +38,18 @@ B_ROWS = {
     "BIG": {"set": "BIG", "level": "B", "declared": "B", "printed": True, "cards": 30,
             "outstanding": 1, "problem_cards": 1, "buckets": {"harness": 1}},
 }
+
+
+def counts(cards, lowered, supported):
+    return {"cards": cards, "lowered": lowered, "refused": 0,
+            "unverified": lowered - supported, "supported": supported}
+
+
 DD = {
     "date": "2026-10-21", "commit": "0123456789ab",
-    "corpus": {"accepted": 50, "cards": 100},
+    "corpus": counts(100, 50, 25),
     "lockstep": {"FDN": {"games": 10, "agree": 9, "stalls": 1, "disagree": 0}},
-    "sets": {"FDN": {"accepted": 471, "cards": 517}, "BRO": {"accepted": 144, "cards": 280},
-             "ZZZ": {"accepted": 1, "cards": 2}},
+    "sets": {"FDN": counts(517, 471, 300), "BRO": counts(280, 144, 72), "ZZZ": counts(2, 1, 1)},
 }
 META = {"commit": "671efbb30abc", "gorge_pin": "40aee00fabfd", "date": "2026-10-21"}
 
@@ -73,8 +79,9 @@ class RenderTest(unittest.TestCase):
         sets = section(self.out, "sets")
         fdn = row(sets, "FDN")
         self.assertEqual(fdn[2], "B")
-        self.assertEqual(fdn[7], "471 / 517 (91.1%)")
-        self.assertEqual(fdn[8], "9 / 10 (1 stalled)")
+        self.assertEqual(fdn[7], "300 / 517 (58.0%)")
+        self.assertEqual(fdn[8], "471 / 517 (91.1%)")
+        self.assertEqual(fdn[9], "9 / 10 (1 stalled)")
         # gorge only
         self.assertEqual(row(sets, "BIG")[7], "—")
         self.assertEqual(row(sets, "BIG")[6], "96.7")
@@ -83,7 +90,7 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(bro[5], "≥ 6.4")
         self.assertEqual(bro[6], "—")
         # a code only dirac has still renders
-        self.assertEqual(row(sets, "ZZZ")[7], "1 / 2 (50.0%)")
+        self.assertEqual(row(sets, "ZZZ")[8], "1 / 2 (50.0%)")
         # an unaudited set dirac lacks stays out of the by-engine table
         self.assertIsNone(row(sets, "LEA"))
         self.assertIn("BIG: 1 harness", sets)
@@ -91,16 +98,15 @@ class RenderTest(unittest.TestCase):
     def test_rollup_carries_dirac(self):
         rollup = section(self.out, "rollup")
         self.assertIn("| BRO | The Brothers' War |", rollup)
-        self.assertIn("144 / 280 (51.4%) |", rollup)
+        self.assertIn("72 / 280 (25.7%) |", rollup)
         self.assertIn("| **All** | **4** |", rollup)
 
     def test_headline(self):
         head = section(self.out, "headline")
-        self.assertIn("**50 of 100** cards (50.0%)", head)
+        self.assertIn("| dirac | supported, whole corpus | **25 of 100** cards (25.0%) |", head)
+        self.assertIn("| dirac | lowered, whole corpus (weaker: not yet checked) | 50 of 100 cards (50.0%) |", head)
         self.assertIn("`671efbb30`", head)
-        # The private module's commit is never published.
-        self.assertNotIn("`012345678`", head)
-        self.assertIn("the dirac snapshot of 2026-10-21", head)
+        self.assertIn("the dirac snapshot of 2026-10-21 at gorge `012345678`", head)
 
     def test_caption_names_date_and_corpus(self):
         meta = dict(META, forge_ref="76fd7691ab45", current_forge_ref="91402ac51104")
@@ -132,7 +138,7 @@ class RenderTest(unittest.TestCase):
     def test_without_status(self):
         out = docs_sets.render([], {}, {}, DD)
         self.assertIn("not available to this build", section(out, "headline"))
-        self.assertEqual(row(section(out, "sets"), "FDN")[7], "471 / 517 (91.1%)")
+        self.assertEqual(row(section(out, "sets"), "FDN")[8], "471 / 517 (91.1%)")
 
     def test_without_dirac(self):
         out = docs_sets.render(A_ROWS, META, B_ROWS, None)
@@ -168,13 +174,33 @@ class MainTest(unittest.TestCase):
                 self.assertIn("471 / 517", f.read())
 
     def test_bad_snapshot(self):
-        bad = dict(DD, sets={"FDN": {"accepted": 600, "cards": 517}})
+        for bad in (dict(DD, sets={"FDN": counts(517, 600, 300)}),
+                    dict(DD, sets={"FDN": dict(counts(517, 471, 300), refused=1)}),
+                    {k: v for k, v in DD.items() if k != "commit"}):
+            with tempfile.TemporaryDirectory() as d:
+                p = os.path.join(d, "dd.json")
+                with open(p, "w") as f:
+                    json.dump(bad, f)
+                with self.assertRaises(ValueError):
+                    docs_sets.load_dirac(p)
+
+    def test_refresh_copies_the_support_page(self):
+        page = ("| list | cards | lowered | refused | unverified | supported |\n|---|---:|---:|---:|---:|---:|\n"
+                "| FDN | 517 | 505 | 1 | 4 | 500 |\n| ALL | 900 | 800 | 2 | 8 | 790 |\n")
         with tempfile.TemporaryDirectory() as d:
-            p = os.path.join(d, "dd.json")
-            with open(p, "w") as f:
-                json.dump(bad, f)
-            with self.assertRaises(ValueError):
-                docs_sets.load_dirac(p)
+            support = os.path.join(d, "support.md")
+            with open(support, "w") as f:
+                f.write(page)
+            snap = os.path.join(d, "dd.json")
+            with open(snap, "w") as f:
+                json.dump(dict(DD, about="x"), f)
+            docs_sets.refresh_dirac(snap, "abcdef0123456", "2026-11-01", support)
+            got = docs_sets.load_dirac(snap)
+        self.assertEqual((got["date"], got["commit"]), ("2026-11-01", "abcdef012"))
+        self.assertEqual(got["corpus"]["supported"], 790)
+        self.assertEqual(list(got["sets"]), ["FDN"])
+        self.assertEqual(got["sets"]["FDN"]["refused"], 1)
+        self.assertEqual(got["lockstep"], DD["lockstep"])
 
     def test_committed_snapshot(self):
         dd = docs_sets.load_dirac(SNAPSHOT)
@@ -182,6 +208,14 @@ class MainTest(unittest.TestCase):
             self.assertRegex(code, r"^[0-9A-Z]{3,5}$")
         for code in dd.get("lockstep", {}):
             self.assertIn(code, dd["sets"])
+
+    def test_committed_snapshot_matches_the_support_page(self):
+        dd = docs_sets.load_dirac(SNAPSHOT)
+        want = docs_sets.read_support_page()
+        got = dict(dd["sets"], ALL=dd["corpus"])
+        self.assertEqual(got, want, "dirac-sets.json differs from dirac/docs/support.md: "
+                         "scripts/docs_sets.py --refresh-dirac docs/site/support/dirac-sets.json "
+                         "--commit SHA --date YYYY-MM-DD copies it")
 
 
 if __name__ == "__main__":

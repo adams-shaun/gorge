@@ -16,6 +16,7 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - dirac/docs/support.md
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
   # A PR (develop -> main above all) builds the site strictly but never
@@ -26,6 +27,7 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - dirac/docs/support.md
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
   # A daily rebuild picks up gorge-compliance's docs-data, written by its
