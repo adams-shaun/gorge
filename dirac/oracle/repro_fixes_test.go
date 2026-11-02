@@ -30,6 +30,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"ward_window_first_only_filter", false},       // ... and a failed ward payment still spends it
 		{"granted_colours_before_printed", false},      // Leyline of the Guildpact: a {C} land makes a granted colour first
 		{"face_down_granted_trigger", false},           // Curious Inquiry on a face-down creature
+		{"activation_plan_search_limit", false},        // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
 	})
 }
 
