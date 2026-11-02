@@ -178,7 +178,7 @@ func (s *State) eachDamage(k *prep, in *kop.Instr) {
 			m++
 		}
 	}
-	s.dealHits(k, hs[:m])
+	s.dealHitsToOne(k, hs[:m])
 }
 
 // eachDamageSlots lists the battlefield permanents the resolving entry's

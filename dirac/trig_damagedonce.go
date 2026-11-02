@@ -12,13 +12,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // referent's first matching event, with the batch total of the matching
 // events to that referent; trigger_match.go damageBatchKey).
 //
-// Only a combat damage step coalesces: every noncombat batch hits each
-// referent at most once (DamageAll, a damage map, a fight's two hits, a
-// replacement-mediated sequence deal one event per distinct recipient), so
-// there a line is its own batch of one and queues on the event's amount.
-// The step's latch is the stack-local refLatch (no State); the batch total
-// is a forward scan of the step's events, so the instance is queued at the
-// first event, in gorge's order, with gorge's closed amount.
+// Only a combat damage step and ExtEachDamage (dealHitsToOne) coalesce: every
+// other noncombat batch hits each referent at most once (DamageAll, a damage
+// map, a fight's two hits, a replacement-mediated sequence deal one event per
+// distinct recipient), so there a line is its own batch of one and queues on
+// the event's amount. The step's latch is the stack-local refLatch (no State);
+// the batch total is a forward scan of the step's events, so the instance is
+// queued at the first event, in gorge's order, with gorge's closed amount.
 
 // maxRefLatch is the (listener, referent) latches one combat damage step holds.
 const maxRefLatch = 16
