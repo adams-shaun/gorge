@@ -57,6 +57,20 @@ func disableTriggersUnread(sv staticView) []string {
 	return unread
 }
 
+// triggerWatchesEntry reports a zone-change line that triggers on an entry, the
+// only ones "creatures entering don't cause abilities to trigger" reaches. A
+// card that leaves a graveyard for the battlefield also triggers "whenever a
+// creature card leaves your graveyard" (Soul Enervation: Origin$ Graveyard,
+// Destination$ Any), and its leaving is not its entering. XMage agrees
+// (DontCauseTriggerEffect reads the enter event only); Forge's isDisabled
+// purges the cell by Destination$ alone.
+func triggerWatchesEntry(t cards.Trigger) bool {
+	if raw, ok := t.Param(cards.PKDestination); ok {
+		return strings.Contains(raw, "Battlefield")
+	}
+	return !t.HasParam(cards.PKOrigin)
+}
+
 // disableTriggersExcludes reports whether a printed DisableTriggers static on
 // the battlefield suppresses trigger t of source for event ev. It is the
 // trigger-admission gate every printed trigger line passes through
@@ -113,6 +127,9 @@ func (e *Engine) disableTriggersExcludes(t cards.Trigger, source state.ObjID, ev
 			}
 		}
 		if code, ok := sv.ParamCode(cards.PKDestination); ok && !effects.Destination(code).Admits(to) {
+			continue
+		}
+		if to == state.ZBattlefield && sv.HasParam(cards.PKDestination) && !triggerWatchesEntry(t) {
 			continue
 		}
 		if raw, ok := sv.Param(cards.PKOrigin); ok && raw != "Any" {
