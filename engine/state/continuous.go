@@ -438,6 +438,12 @@ type ContinuousEffect struct {
 	// layer keeps applying (CR 613.6), one that begins in layer 6 or later
 	// does not exist once its ability is gone (engine/rules/abilityloss.go).
 	SourceAbilityLayer Layer
+	// GrantedStatic marks a registered effect that IS a static ability Source
+	// gained, one that begins in layer 6 or later (Animate's staticAbilities$:
+	// Ms. Marvel, Kamala Khan's base power). It stops applying when a "loses all
+	// abilities" effect newer than it applies to Source (CR 613.1f), and an older
+	// one leaves it, since layer 6 applies in timestamp order.
+	GrantedStatic bool
 	// RemoveKeywords names keywords (matched by cards.KeywordHead, so a
 	// parameterised grant is removed by its head) that the affected object
 	// loses at layer 6 (CR 613.1f). Honoured in rules' LAbilities walk BEFORE

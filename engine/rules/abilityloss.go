@@ -31,7 +31,8 @@ import (
 //     every reader of the list -- the layer walks, the granted-ability and
 //     granted-trigger collectors, the may-play and land-drop rules
 //     modifications -- then sees the list without them, with no per-reader
-//     gate to forget.
+//     gate to forget. A static the permanent gained (GrantedStatic) follows
+//     grantLostTo's rule instead: only a removal newer than it ends it.
 //
 // CR 613.6 bounds the second half: an effect that started to apply in an
 // earlier layer keeps applying even though the ability generating it is
@@ -219,6 +220,21 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 		losses = append(losses, sourceLoss{id: source, lost: ok, first: ts})
 		return ts, ok
 	}
+	// newerRemover: a live removal newer than the static ce grants its source applies
+	// to that source, so the granted static is gone with the rest of its abilities.
+	newerRemover := func(ce *ContinuousEffect) bool {
+		o := e.G.Obj(ce.Source)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			return false
+		}
+		types := e.typeCharacteristicsActive(list, ce.Source, 0)
+		for k, ri := range removers {
+			if r := &list[ri]; !dead[k] && r.Timestamp > ce.Timestamp && e.removalApplies(r, o, types) {
+				return true
+			}
+		}
+		return false
+	}
 	// Every verdict is decided before the list is compacted: lossOf reads
 	// list (the removers by their original index, and layer 4 through
 	// typeCharacteristicsActive), so compacting while deciding would hand a
@@ -239,6 +255,8 @@ func (e *Engine) pruneLostSourceAbilities(list []ContinuousEffect) []ContinuousE
 		switch {
 		case isRemover:
 			drop = dead[next]
+		case ce.GrantedStatic:
+			drop = newerRemover(ce)
 		case ce.SourceAbilityLayer < LAbilities:
 			// A registered effect (zero), or a static ability that began
 			// applying before layer 6.

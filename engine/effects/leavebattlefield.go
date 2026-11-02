@@ -150,12 +150,12 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			// SetPower$/SetToughness$ stay expressions for the layer walk
 			// (CR 613.4b) rather than collapsing to a number here.
 			if g, _, ok := parseStaticEffectGrant(params, false); ok && len(g.unread) == 0 &&
-				staticKeysReadable(params, "Mode", "Affected", "Description", "EffectZone",
+				staticKeysReadable(params, "Mode", "Affected", "Description", "EffectZone", "CharacteristicDefining",
 					"SetPower", "SetToughness", "AddPower", "AddToughness") &&
 				(params["Affected"] == "" || params["Affected"] == "Card.Self") {
 				g.duration, g.permanent, g.untilEOT = dur, permanent, untilEOT
 				lt := staticGrantLifetime{Remembered: remembered, ExileOnMoved: exileOn,
-					ExileOnMovedAlso: exileAlso, DurationSource: durSource}
+					ExileOnMovedAlso: exileAlso, DurationSource: durSource, GrantedStatic: true}
 				if registerStaticEffectGrant(h, c, id, "Card.Self", g, lt) {
 					continue
 				}
@@ -178,7 +178,7 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 		}
 		if cards.StaticModeOf(mode) == cards.StaticContinuous {
 			lt := staticGrantLifetime{Remembered: remembered, ExileOnMoved: exileOn,
-				ExileOnMovedAlso: exileAlso, DurationSource: durSource}
+				ExileOnMovedAlso: exileAlso, DurationSource: durSource, GrantedStatic: true}
 			if registerAnimateContinuousGrant(h, c, id, params, dur, permanent, untilEOT, lt) {
 				continue
 			}

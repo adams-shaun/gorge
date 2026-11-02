@@ -128,6 +128,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.ChosenNumber == b.ChosenNumber &&
 		a.RemoveAbilities == b.RemoveAbilities &&
 		a.SourceAbilityLayer == b.SourceAbilityLayer &&
+		a.GrantedStatic == b.GrantedStatic &&
 		sliceEq(a.RemoveKeywords, b.RemoveKeywords) &&
 		sliceEq(a.CantHaveKeywords, b.CantHaveKeywords) &&
 		a.MayPlay == b.MayPlay &&
