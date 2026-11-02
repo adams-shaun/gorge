@@ -1262,7 +1262,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// replay-visible Note records the gap, instead of running the rider
 		// unconditionally and diverging from the oracle.
 		if sa != nil {
-			met, supported := conditionMet(h, c, sa)
+			met, supported := linkConditionMet(h, c, sa)
 			if supported && !met {
 				continue
 			}
