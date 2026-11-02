@@ -26,6 +26,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-blb", "calamitous_tide_leave_together"},          // Calamitous Tide bounces Dour Port-Mage with Plumecreed Mentor: one departure, so the Port-Mage sees the Mentor leave
 		{"std-sos", "treasure_mana_token_ceases_quietly"},      // a Treasure sacrificed for mana ceases to exist in the graveyard: Garrison Excavator's cards-leave-your-graveyard trigger stays quiet
 		{"std-tdm", "thunder_of_unity_saga_etb"},               // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
+		{"std-trk", "beam_grant_lone_grantor"},                 // Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return
 		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
 	} {
 		t.Run(c.name, func(t *testing.T) {

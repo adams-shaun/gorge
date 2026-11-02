@@ -193,7 +193,6 @@ type genPrep struct {
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
-	beamTwice      bool           // a printed beam me up card beside a beam me up grant: the game stalls at its start (StallBeamTwice)
 	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub      [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
@@ -536,7 +535,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyRaise = tableRaises(t)
 	g.anyTwobrid = tableTwobrid(t)
-	g.beamTwice = tableBeamTwice(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
@@ -1490,6 +1488,7 @@ type genState struct {
 	fog       bool                    // OpFog: all combat damage this turn is prevented (padding)
 	beamPick  bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast   bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
+	beamGrant bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast   bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	noUntapL  uint8                   // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)
 	yourTurns [2]uint8                // ExYourTurns: the turns each player began as the active player, saturating (prep.anyYourTurns only; padding)

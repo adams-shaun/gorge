@@ -25,7 +25,7 @@ var kbeamDecks = [2][]cardset.Entry{
 // random. gorge's planner prices no beam me up cast, so it is offered only while the
 // floating pool pays: Burning-Tree Emissary's mana with Lotus Cobra's. beams counts
 // the casts and returns the return picks.
-func kbeamPolicy(seed uint64, beams, returns *int) Policy {
+func kbeamPolicy(seed uint64, beams, returns, both *int) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(c *PickCtx) Canon {
 		if d := c.G.E.Pending(); d != nil {
@@ -33,11 +33,27 @@ func kbeamPolicy(seed uint64, beams, returns *int) Policy {
 				*returns++
 			}
 			if d.Kind == decision.KPriority {
+				var pick Canon
+				n := 0
 				for _, a := range c.D.Options {
-					if a.Kind() == ActCast && a.Mode()&15 == castModeOther {
-						*beams++
-						return a
+					if a.Kind() != ActCast || a.Mode()&15 != castModeOther {
+						continue
 					}
+					if n == 0 {
+						pick = a
+					}
+					n++
+					// the card's second permission, the grant: taken on odd seeds
+					if a.Mode()>>4 == 1 {
+						*both++
+						if seed%2 == 1 {
+							pick = a
+						}
+					}
+				}
+				if n > 0 {
+					*beams++
+					return pick
 				}
 			}
 		}
@@ -71,13 +87,35 @@ var kbeamFlashbackDecks = [2][]cardset.Entry{
 	},
 }
 
-func TestBeamMeUpLockstep(t *testing.T) { kbeamLockstep(t, kbeamDecks) }
+// kbeamBesideDecks: Scotty's grant over a card that prints beam me up, which then
+// has two casts, {2}{U} printed and {U} granted, told apart by the alt-cost nibble.
+var kbeamBesideDecks = [2][]cardset.Entry{
+	{
+		{Name: "Scotty, Miracle Worker", Count: 8}, {Name: "Open Communications", Count: 8}, {Name: "Burning-Tree Emissary", Count: 6},
+		{Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 4}, {Name: "Mountain", Count: 2},
+	},
+	{
+		{Name: "Scotty, Miracle Worker", Count: 8}, {Name: "Open Communications", Count: 8}, {Name: "Burning-Tree Emissary", Count: 6},
+		{Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 4}, {Name: "Mountain", Count: 2},
+	},
+}
 
-func TestBeamGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamGrantDecks) }
+func TestBeamMeUpLockstep(t *testing.T) { kbeamLockstep(t, kbeamDecks, 0) }
 
-func TestBeamBesideFlashbackGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamFlashbackDecks) }
+// TestBeamBesideGrantLockstep: a printed beam me up card beside a grant offers both
+// casts. The policy takes the granted one on odd seeds and the printed on even, so
+// each is played, and both must be offered together at least once.
+func TestBeamBesideGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamBesideDecks, 20) }
 
-func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry) {
+func TestBeamGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamGrantDecks, 0) }
+
+func TestBeamBesideFlashbackGrantLockstep(t *testing.T) {
+	kbeamLockstep(t, kbeamFlashbackDecks, 0)
+}
+
+// kbeamLockstep plays the decks in lockstep; wantBoth is the fewest windows that
+// must offer a card's second beam me up permission (the grant beside the printed).
+func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry, wantBoth int) {
 	if isolate(t) {
 		return
 	}
@@ -108,7 +146,7 @@ func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	beams, returns := 0, 0
+	beams, returns, both := 0, 0, 0
 	for seed := uint64(1); seed <= 256; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kbeam-a", "kbeam-b"}, decks, 1)
@@ -123,7 +161,7 @@ func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := LockstepLed(m, seed, g, k, kbeamPolicy(seed, &beams, &returns), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120})
+		res := LockstepLed(m, seed, g, k, kbeamPolicy(seed, &beams, &returns, &both), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120})
 		CloseSide(k)
 		if res.Stall != "" {
 			t.Fatalf("seed %d: stall %s after %d decisions", seed, res.Stall, res.Decisions)
@@ -133,8 +171,11 @@ func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry) {
 				seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
 	}
-	t.Logf("%d beam casts, %d return picks", beams, returns)
+	t.Logf("%d beam casts, %d return picks, %d second permissions offered", beams, returns, both)
 	if beams < 5 || returns < 5 {
 		t.Errorf("thin coverage: %d beam casts, %d return picks", beams, returns)
+	}
+	if both < wantBoth {
+		t.Errorf("%d windows offered a card's second beam me up permission, want %d", both, wantBoth)
 	}
 }

@@ -186,6 +186,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
 		case mode&2 != 0 && tgt != 0:
 			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
+			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {
+				cm |= 1 << 4 // a card's second beam me up permission, the grant (BeamAlt)
+			}
 		case mode&2 != 0:
 			cm, _ = CastModeCode("flashback")
 		case mode&0x18 == 0x18 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:

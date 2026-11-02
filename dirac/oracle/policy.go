@@ -135,7 +135,7 @@ func (h *heurPolicy) translate(c *PickCtx, d *decision.Decision) []Canon {
 		case "play_land":
 			return []Canon{Pack(ActPlayLand, c.G.InstRef(o.Obj), RefNone, landFaceCode(o.Mode))}
 		case "cast":
-			return []Canon{castOptCanon(c.G.InstRef(o.Obj), o.Mode, o.AltCostIndex)}
+			return []Canon{castOptCanon(c.G.InstRef(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 		case "ability":
 			return []Canon{Pack(ActActivate, c.G.InstRef(o.Obj), RefNone, uint8(o.Ability))}
 		}

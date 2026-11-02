@@ -89,9 +89,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		s.g.altCast = false
 		if mode&2 == 0 {
 			s.bld().altAdd = buildAltCost // cast_altfree.go
-		} else if !k.t.Cards[c].BeamMeUp {
+		} else if !k.t.Cards[c].BeamMeUp || s.g.beamGrant {
 			s.bld().altAdd = buildBeamGrant // kw_beammeup.go
 		}
+		s.g.beamGrant = false
 	}
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seSpell]

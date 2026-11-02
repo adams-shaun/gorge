@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "beamtwice"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.
@@ -170,11 +170,7 @@ func stallFlagCases() []stallFlagCase {
 	vt := func(name string, a ...kop.Ability) kop.CardDef {
 		return kop.CardDef{Name: name, Types: kop.TEnchantment, Abilities: a}
 	}
-	spell := func(in ...kop.Instr) kop.Ability { return kop.Ability{Kind: kop.AbSpell, Prog: in} }
 	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
-	static := func(k kop.StaticKind) kop.Ability {
-		return kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: k}}
-	}
 	return []stallFlagCase{
 		{StallTapsMana, "Half Tapper", "Half Rite", stallPool("tapsmana", []kop.CardDef{
 			vt("Half Tapper", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigTaps, Flags: kop.TfSelf}}),
@@ -183,10 +179,6 @@ func stallFlagCases() []stallFlagCase {
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
-		}, nil, nil, nil)},
-		{StallBeamTwice, "Half Beam", "Half Grant", stallPool("beamtwice", []kop.CardDef{
-			{Name: "Half Beam", Types: kop.TSorcery, BeamMeUp: true, Abilities: []kop.Ability{spell()}},
-			vt("Half Grant", static(kop.StatBeamGrant)),
 		}, nil, nil, nil)},
 		{StallLifeRepl, "Half Doubler", "Half Plus", stallPool("liferepl", []kop.CardDef{
 			vt("Half Doubler", repl(kop.ReplLifeDouble)),

@@ -86,7 +86,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
 	StallGravePower, // a characteristic-defining power featValue cannot evaluate, where gorge reads it (value_countheads.go:50)
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
-	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering, StallBeamTwice,
+	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
 }
 
 // initStall is the reason a game on this table stalls at its start, StallNone when
@@ -103,8 +103,6 @@ func (g *genPrep) initStall() uint8 {
 		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
 		return StallL6Walk // static_layer6.go prepL6
-	case g.beamTwice:
-		return StallBeamTwice // kw_beammeup.go
 	}
 	return StallNone
 }
@@ -157,10 +155,6 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor })
 			})(c, i)
 		}
-	case StallBeamTwice:
-		text = "a printed beam me up card beside a beam me up grant: gorge lists a cast per distinct cost, and a canonical cast of the mode names one"
-		a = func(c *kop.CardDef, _ int) bool { return c.BeamMeUp }
-		b = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBeamGrant })
 	case StallLifeRepl:
 		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
 		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }

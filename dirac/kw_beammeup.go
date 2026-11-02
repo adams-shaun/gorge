@@ -23,9 +23,19 @@ const buildBeamGrant = 3
 // noteBeamCast readies beginCast for AkCast a of mode bit 2. A flashback on a card
 // with printed beam me up is the granted instance, at the mana cost.
 func (s *State) noteBeamCast(k *prep, a Action) {
-	if t := a.Target(); t == castBeamGrantTgt || t == 0 && k.t.Cards[s.objs[a.Source()].card].BeamMeUp {
+	t := a.Target()
+	if t == castBeamGrantTgt || t == 0 && k.t.Cards[s.objs[a.Source()].card].BeamMeUp {
 		s.g.altCast = true
 	}
+	s.g.beamGrant = t == castBeamGrantTgt && k.t.Cards[s.objs[a.Source()].card].BeamMeUp
+}
+
+// FeatBeamGrantTgt is the target byte of a granted beam me up cast.
+const FeatBeamGrantTgt = castBeamGrantTgt
+
+// FeatBeamPrinted reports whether the card of o prints beam me up.
+func (s *State) FeatBeamPrinted(o Obj) bool {
+	return s.k().t.Cards[s.objs[o].card].BeamMeUp
 }
 
 // beamGrantor is p's permanent making a StatBeamGrant grant now and how many do.
@@ -69,7 +79,10 @@ func (s *State) beamPoolPays(k *prep, p uint8, o Obj, mana kop.ManaCost) bool {
 }
 
 // offerBeamCasts offers the graveyard casts of p's beam me up cards (gorge
-// legal_walk_alt.go's beam walk).
+// legal_walk_alt.go's beam walk). gorge lists one cast per distinct cost, the
+// printed one first (beamMeUpInstances): a card that prints the keyword beside a
+// grant gets a second cast at its mana cost unless that is the printed cost, and
+// the cast's alt-cost nibble tells the two apart.
 func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
 	have := false
@@ -81,7 +94,8 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 		o := pl.grave[i]
 		c := s.objs[o].card
 		cd := &k.t.Cards[c]
-		granted := grantor != NoSlot && cd.Types&(kop.TInstant|kop.TSorcery) != 0 && cd.Cost != (kop.ManaCost{})
+		granted := grantor != NoSlot && cd.Types&(kop.TInstant|kop.TSorcery) != 0 && cd.Cost != (kop.ManaCost{}) &&
+			(!cd.BeamMeUp || cd.AltCost != cd.Cost)
 		if !cd.BeamMeUp && !granted || !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
 		}
@@ -92,20 +106,32 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			s.availFor(k, p, av)
 			have = true
 		}
-		mana, pick, tgt := cd.AltCost, &cd.FbCost, uint8(castBeamTgt)
-		if !cd.BeamMeUp {
-			mana, pick, tgt = cd.Cost, &k.t.Cards[s.cardAt(grantor)].FbCost, castBeamGrantTgt
-			s.g.beamPick = true
+		if cd.BeamMeUp && s.beamCastOffered(k, p, o, cd.AltCost, &cd.FbCost, false, av) {
+			d.add(MakeAction(AkCast, uint8(o), castBeamTgt, 2))
 		}
-		fc := s.adjustCost(k, p, c, o, mana)
-		ok := s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) && s.spellTargetsFeasible(k, c, p) &&
-			(cd.BeamMeUp || s.spellCostsFeasible(k, c, p, o)) && s.pickCostPayable(k, p, pick, o) && !s.castHeldOut(o)
-		s.g.beamPick = false
-		if !ok || s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.beamPoolPays(k, p, o, mana) {
-			continue
+		if granted && s.beamCastOffered(k, p, o, cd.Cost, &k.t.Cards[s.cardAt(grantor)].FbCost, true, av) {
+			d.add(MakeAction(AkCast, uint8(o), castBeamGrantTgt, 2))
 		}
-		d.add(MakeAction(AkCast, uint8(o), tgt, 2))
 	}
+}
+
+// beamCastOffered reports whether p can cast o for one beam me up instance: mana,
+// and the return pick (a granted instance's return is barred differently).
+func (s *State) beamCastOffered(k *prep, p uint8, o Obj, mana kop.ManaCost, pick *kop.Cost, granted bool, av *avail) bool {
+	c := s.objs[o].card
+	s.g.beamPick = granted
+	fc := s.adjustCost(k, p, c, o, mana)
+	ok := s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, av) && s.spellTargetsFeasible(k, c, p) &&
+		(!granted && k.t.Cards[c].BeamMeUp || s.spellCostsFeasible(k, c, p, o)) && s.pickCostPayable(k, p, pick, o) && s.beamReturnable(k, p, pick, o) && !s.castHeldOut(o)
+	s.g.beamPick = false
+	return ok && !(s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.beamPoolPays(k, p, o, mana))
+}
+
+// beamReturnable reports whether p controls a permanent that pays the cast of o's
+// return, as a StatCantBeBeamedUp static leaves it: pickCostPayable counts the
+// battlefield without the spell, which the bar reads (beamPick says which kind).
+func (s *State) beamReturnable(k *prep, p uint8, pick *kop.Cost, o Obj) bool {
+	return pick.Flags&kop.CostReturn == 0 || s.returnCands(k, p, pick.Filter, o, nil) >= int(pick.N)
 }
 
 // beamBarred reports whether a StatCantBeBeamedUp static bars the permanent at
@@ -132,19 +158,4 @@ func (s *State) beamBarred(k *prep, sl Slot, p uint8, granted bool) bool {
 		}
 	}
 	return false
-}
-
-// StallBeamTwice: a printed beam me up card beside a beam me up grant. gorge lists
-// a cast per distinct cost, and a canonical cast of the mode names one.
-const StallBeamTwice = 73
-
-func init() { stallNames[StallBeamTwice] = "beamtwice" }
-
-// tableBeamTwice reports a printed beam me up card beside a beam me up grant.
-func tableBeamTwice(t *kop.Table) bool {
-	beam := false
-	for i := range t.Cards {
-		beam = beam || t.Cards[i].BeamMeUp
-	}
-	return beam && tableHasStatic(t, kop.StatBeamGrant)
 }
