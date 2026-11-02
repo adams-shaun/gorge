@@ -159,6 +159,13 @@ func (s *seatState) snapshot() (*request, <-chan struct{}) {
 // the v2 client picked.
 func (s *seatState) Choose(ctx context.Context, ask humanseat.Ask) (int, error) {
 	s.mu.Lock()
+	// The codec cancels a driver before it starts the next one, so a done ctx is a
+	// stale driver that lost the race here. Installing it would close the live
+	// driver's request, and then its own, leaving a v2 client nothing to answer.
+	if err := ctx.Err(); err != nil {
+		s.mu.Unlock()
+		return 0, err
+	}
 	s.next++
 	req := &request{id: s.next, ask: ask, result: make(chan int, 1), done: make(chan struct{})}
 	prev := s.current
@@ -215,8 +222,12 @@ func (s *seatState) leavesAsks() bool {
 // request whose x_gorge_human_v1 says native_only and whose x_gorge_view_v1
 // carries the native view, so the client can render the moment and answer it
 // on the native wire; the next v2 decision supersedes it.
-func (s *seatState) NativeOnly(n humanseat.NativeOnly) {
+func (s *seatState) NativeOnly(ctx context.Context, n humanseat.NativeOnly) {
 	s.mu.Lock()
+	if ctx.Err() != nil { // a stale driver: see Choose
+		s.mu.Unlock()
+		return
+	}
 	s.nativeOnly++
 	s.next++
 	var extensions protocol.ExtensionMap

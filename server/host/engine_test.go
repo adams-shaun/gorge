@@ -727,7 +727,7 @@ func (v2Answerer) Choose(context.Context, humanseat.Ask) (int, error) {
 	return 0, errors.New("the seat was refused")
 }
 
-func (v2Answerer) NativeOnly(humanseat.NativeOnly) {}
+func (v2Answerer) NativeOnly(context.Context, humanseat.NativeOnly) {}
 
 // A v2 seat reads the game through a reader this engine does not offer: it
 // refuses at attach, naming the engine, and the match ends with that reason
