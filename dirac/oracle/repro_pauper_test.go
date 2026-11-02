@@ -156,3 +156,11 @@ func TestTappedSpawnPlanStepStaysReadyLockstep(t *testing.T) {
 	poolReproLockstep(t, "tapped_spawn_plan_step_stays_ready", "pauper", Config{})
 	poolReproLockstep(t, "tapped_spawn_plan_step_stays_ready_autopay", "pauper", Config{GorgeAutopaySurface: true})
 }
+
+// A Nyxborn Hydra beside two Priests of Titania and a board of Elves: the sources make
+// 23 mana, gorge's largest-X witness pays X = 22, and the kernel's X search no longer
+// stops at 20.
+func TestXCastPastTwentyManaLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "x_cast_past_twenty_mana", "pauper", Config{})
+}

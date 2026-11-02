@@ -382,7 +382,12 @@ func (a *avail) hybWitnessRider(cost kop.ManaCost, x int, anyColor bool) kop.Man
 	return cost
 }
 
-// maxX is the largest X a can pay for cost (bounded by 20).
+// maxXAsk bounds the X the kernel searches and asks: gorge's largest-X search is
+// bounded by the sources' total alone (rules potentialModeCastPlan), and a board of
+// Elves under two Priests of Titania pays 22.
+const maxXAsk = 60
+
+// maxX is the largest X a can pay for cost (bounded by maxXAsk).
 func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
 	if !a.affords(cost, pipMask, 0) {
 		return -1
@@ -392,7 +397,7 @@ func (a *avail) maxX(cost *kop.ManaCost, pipMask uint8) int {
 	if per == 0 {
 		return 0
 	}
-	for x < 20 && a.affords(cost, pipMask, cost.XGeneric(x+1)) {
+	for x < maxXAsk && a.affords(cost, pipMask, cost.XGeneric(x+1)) {
 		x++
 	}
 	return x
@@ -408,7 +413,7 @@ func (a *avail) maxXAnyColor(cost *kop.ManaCost) int {
 	if per == 0 {
 		return 0
 	}
-	for x < 20 && a.affordsAnyColor(cost, cost.XGeneric(x+1)) {
+	for x < maxXAsk && a.affordsAnyColor(cost, cost.XGeneric(x+1)) {
 		x++
 	}
 	return x
