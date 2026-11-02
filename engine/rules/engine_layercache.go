@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -58,6 +59,13 @@ type engineLayerCaches struct {
 	// state a quiet event writes, so staticSafeSince admits quiet events only
 	// when it is false. Reset and set exactly like staticMemoGated.
 	staticMemoStateRead bool `clone:"deep,if=cloneCarriesStaticMemo"`
+	// staticColorGate records whether the last full staticEffects build met an
+	// IsPresent$/IsPresent2$ gate naming a colour (Knight of Grace's black
+	// permanent). staticGateColors is the layer-5 table its second walk read
+	// such gates through (static_colorgate.go), kept beside the memo it made
+	// and replaced with a fresh slice, never written, by the next build.
+	staticColorGate  bool                   `clone:"deep,if=cloneCarriesStaticMemo"`
+	staticGateColors []effects.ObjectColors `clone:"deep,if=cloneCarriesStaticMemo"`
 	// staticGates is every continuous gate the last full staticEffects build
 	// evaluated, in scan order, with its outcome (static_gatememo.go): a
 	// gated, state-read-free build is re-stamped across a quiet run when

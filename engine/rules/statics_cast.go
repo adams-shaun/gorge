@@ -1150,6 +1150,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string, skip state.ObjID
 		return 0
 	}
 	sc := e.staticSpecCtx(sv)
+	sc.Layers.DerivedColors = e.staticGateColors // nil outside a colour gate's second walk
 	n := 0
 	for _, zone := range zones {
 		if zone == state.ZBattlefield {

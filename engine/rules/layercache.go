@@ -370,11 +370,15 @@ func (e *Engine) refreshStaticContinuous() {
 	}
 	e.staticEpoch = n
 	e.staticVersion, e.staticObjs = e.continuousVersion, len(e.G.Objs)
+	e.staticGateColors = nil
 	e.staticContinuous = e.staticEffects(e.staticContinuous)
 	// A content change: any activeBuf built from the previous list is stale,
 	// even at an unmoved log head and continuousVersion (staticControlWants
 	// refreshes this memo outside active()).
 	e.staticBuildSeq++
+	if e.staticColorGate {
+		e.rewalkStaticColorGates() // static_colorgate.go
+	}
 	// A gate the scan evaluates can read Derived (a CheckSVar$ count
 	// matching a spell's type), and Derived builds active() -- which, with
 	// staticEpoch already stamped n above, took the PREVIOUS static list.

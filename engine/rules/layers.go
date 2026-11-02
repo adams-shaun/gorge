@@ -77,6 +77,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 	// (staticZoneSkipVerify) resets it again below and sets it identically.
 	e.staticMemoGated = false
 	e.staticMemoStateRead = false
+	e.staticColorGate = false
 	e.staticGates, e.staticGatesKnown = e.staticGates[:0], true
 	out := dst[:0]
 	for pi, p := range e.G.AliveFrom(0) {

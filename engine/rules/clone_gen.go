@@ -186,6 +186,8 @@ func cloneFieldsEngineLayerCaches(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		c.staticObjs = e.staticObjs
 		c.staticMemoGated = e.staticMemoGated
 		c.staticMemoStateRead = e.staticMemoStateRead
+		c.staticColorGate = e.staticColorGate
+		c.staticGateColors = append([]effects.ObjectColors(nil), e.staticGateColors...)
 	}
 	if cloneCarriesStaticMemo(e) && e.staticGatesKnown {
 		c.staticGates = append(c.staticGates, e.staticGates...)

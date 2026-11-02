@@ -105,6 +105,7 @@ func (r *staticGateRec) view() staticView {
 // staticGateHolds evaluates a Continuous static's gate in the walk and
 // records it for the re-check.
 func (e *Engine) staticGateHolds(sv staticView) bool {
+	e.noteStaticColorGate(sv) // static_colorgate.go
 	holds := e.continuousGateHolds(sv)
 	var zone state.Zone
 	if o := e.G.Obj(sv.Source); o != nil {
