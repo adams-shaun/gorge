@@ -312,6 +312,7 @@ func (s *TranslatingSeat) Decide(_ context.Context, v view.View, d decision.Deci
 			return s.decidePick(v, d, msg, out)
 		}
 	}
+	s.Client.SetTurn(v.Turn)
 	resp, err := s.Client.Answer(msg)
 	if err != nil {
 		return decision.Intent{}, fmt.Errorf("mbtest: mock client could not answer %s prompt (seq %d): %w",

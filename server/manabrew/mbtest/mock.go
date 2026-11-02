@@ -39,6 +39,34 @@ const (
 type MockClient struct {
 	mode Mode
 	rng  *rand.Rand
+
+	turn     int32  // the turn SetTurn last named
+	acts     int    // actions taken this turn
+	payCard  string // the card whose payment this client is stepping through
+	paySteps int    // steps taken on payCard's payment
+}
+
+// maxActsPerTurn is how many actions a client takes in a turn before it only
+// passes. An ability with no cost stays offered after each use, so a client that
+// acts at random stacks them faster than they resolve and the turn never ends: a
+// game of 20,000 intents is thousands of en-Kor redirects. Over 300 fuzz games
+// both seats together took 33 actions in their busiest turn without such an
+// ability, and passing priority is always legal (CR 117.3b).
+const maxActsPerTurn = 24
+
+// maxPaymentSteps is how many steps a client takes on one card's payment before
+// it settles for what it has. A source that taps runs out, but one that turns mana
+// into mana with no tap (Bog Initiate, "{1}: Add {B}") stays offered with its own
+// output, so a client that always takes a step never reaches the end of the window.
+const maxPaymentSteps = 32
+
+// SetTurn names the turn the next prompt is asked in, which a real client reads
+// from the state message beside each prompt. A new turn renews the client's
+// budgets.
+func (c *MockClient) SetTurn(turn int32) {
+	if turn != c.turn {
+		c.turn, c.acts, c.payCard, c.paySteps = turn, 0, "", 0
+	}
 }
 
 // NewFirstLegalClient returns a MockClient in ModeFirstLegal.
@@ -195,21 +223,20 @@ func (c *MockClient) coin(num, den int) bool {
 // actions at random instead of always the first, so different mana sources
 // and abilities get exercised across a run.
 func (c *MockClient) answerChooseAction(in mb.ChooseActionInput) mb.PromptOutputValue {
-	if len(in.Actions) == 0 {
+	if len(in.Actions) == 0 || c.acts >= maxActsPerTurn {
 		return mb.PassOutput{}
 	}
 	idx := 0
 	if c.mode == ModeSeededRandom {
-		// Sometimes pass even when actions are advertised: an always-act
-		// policy livelocks on a repeatable zero-cost ability (Ghost Town's "{0}: becomes a creature" with an empty hand -- the
-		// one advertised action, re-offered at every priority window).
-		// Passing priority is always legal (CR 117.3b), so the extra
-		// out-of-range draw meaning "pass" keeps the answer in-policy.
+		// Sometimes pass even when actions are advertised, so a window with a
+		// repeatable ability in it can close before the budget runs out. The
+		// extra out-of-range draw means "pass".
 		if c.rng.IntN(len(in.Actions)+1) == len(in.Actions) {
 			return mb.PassOutput{}
 		}
 		idx = c.rng.IntN(len(in.Actions))
 	}
+	c.acts++
 	return mb.ActOutput{ActionID: in.Actions[idx].ID}
 }
 
@@ -651,9 +678,9 @@ func (c *MockClient) answerReorder(in mb.ReorderInput) mb.PromptOutputValue {
 }
 
 // answerPayManaCost prefers an activation action (advancing the payment one
-// step, the engine re-prompts after each), then the wire "autofill" action
-// via pay{auto:true}, then confirming from the pool (pay{auto:false}), and
-// cancels only when none of those is offered. "autofill"-typed entries in
+// step, the engine re-prompts after each) until maxPaymentSteps, then the wire
+// "autofill" action via pay{auto:true}, then confirming from the pool
+// (pay{auto:false}), and cancels only when none of those is offered. "autofill"-typed entries in
 // Actions cannot be sent through act (only mana/activate/undoMana can); this
 // client tells them apart by PaymentAction.Type, as the payment
 // doc requires of a well-behaved client.
@@ -667,7 +694,11 @@ func (c *MockClient) answerPayManaCost(in mb.PayManaCostInput) mb.PromptOutputVa
 			stepActions = append(stepActions, a)
 		}
 	}
-	if len(stepActions) > 0 {
+	if in.CardID != c.payCard {
+		c.payCard, c.paySteps = in.CardID, 0
+	}
+	if len(stepActions) > 0 && c.paySteps < maxPaymentSteps {
+		c.paySteps++
 		idx := 0
 		if c.mode == ModeSeededRandom {
 			idx = c.rng.IntN(len(stepActions))
