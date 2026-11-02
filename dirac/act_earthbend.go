@@ -105,7 +105,7 @@ func (s *State) execEarthbend(k *prep, in *kop.Instr) (ok, done bool) {
 		s.capFull(StallDelayed)
 		return true, true
 	}
-	s.dly[s.ndly] = delayed{act: uint8(kop.OpEarthbendReturn), ctrl: s.res.e.ctrl, obj: o, ver: s.objs[o].ver, when: dlyLeave, creator: NoObj}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpEarthbendReturn), ctrl: s.res.e.ctrl, obj: o, ver: s.objs[o].ver, when: dlyLeave, creator: s.res.e.obj}
 	s.ndly++
 	if DebugEarthbendResolved != nil {
 		live := 0
@@ -153,7 +153,7 @@ func (s *State) earthbendLeft(k *prep, o Obj) {
 	for i := uint8(0); i < n; i++ {
 		d := s.dly[i]
 		if d.when == dlyLeave && d.obj == o {
-			s.enqueue(o, s.objs[o].ver, s.objs[o].card, abDelayed, d.ctrl, o, d.ctrl, int16(d.act))
+			s.enqueue(dlySource(&d), s.objs[o].ver, s.objs[o].card, abDelayed, d.ctrl, o, d.ctrl, int16(d.act))
 			continue
 		}
 		s.dly[w] = d
@@ -187,7 +187,7 @@ func (s *State) dropLeaveDelayed(o Obj) {
 //
 //go:noinline
 func (s *State) earthbendReturn(k *prep, e *stackEntry) {
-	o := e.obj
+	o := e.trigObj // the land; e.obj is the source, what created the promise (CR 603.7d)
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneGraveyard && ob.zone != kop.ZoneExile {
 		return

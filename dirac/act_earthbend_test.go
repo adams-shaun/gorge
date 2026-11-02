@@ -63,7 +63,7 @@ func ebResolve(t *testing.T, sc *scen) {
 	}
 	pt := s.pend[0]
 	s.npend = 0
-	s.resolveDelayed(sc.k, &stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl, trigAmt: pt.trigAmt})
+	s.resolveDelayed(sc.k, &stackEntry{kind: seTrigger, obj: pt.obj, trigObj: pt.trigObj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl, trigAmt: pt.trigAmt})
 }
 
 // TestEarthbendAnimatesAndCounts: Earthbend 4 makes the land a 0/0 hasty

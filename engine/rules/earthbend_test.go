@@ -333,6 +333,29 @@ func TestEarthbendBadgermoleCubETBOne(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// CR 603.7d: the return trigger's source is what created it, not the land.
+func TestEarthbendReturnIsSourcedOnItsCreator(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := searchEngine(t, reg, "Badgermole Cub", "Grizzly Bears")
+	forest := searchMoveByName(t, e, "Forest", state.ZBattlefield)
+	cub := searchMoveByName(t, e, "Badgermole Cub", state.ZBattlefield)
+	earthbendSettleAnswering(t, e, forest, 40)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: forest, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.priorityRound()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v after the land died, want the return trigger", e.G.Stack)
+	}
+	if src := e.G.Obj(e.G.Stack[0]).Source; src != cub {
+		t.Fatalf("the return trigger's source is %d, want the Cub %d (the land is %d)", src, cub, forest)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(forest); o.Zone != state.ZBattlefield || !o.Tapped {
+		t.Fatalf("the land is in %v tapped=%v, want back tapped", o.Zone, o.Tapped)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // earthbendDepart emits the MoveZone a removal produces and drains the
 // trigger queue, without asserting anything about where the land ends up --
 // the shape the one-shot regression leaf needs when the correct outcome is

@@ -706,8 +706,14 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			effects.Resolve(e, &ctx, f.sa)
 			continue
 		}
+		// CR 603.7d, as at the phase walk: earthbend's return records its creator.
+		pushSource := dt.Source
+		if dt.Creator != 0 {
+			pushSource = dt.Creator
+			f.referents.DelayedSelf = dt.Source
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-			Source:       dt.Source,
+			Source:       pushSource,
 			Controller:   dt.Controller,
 			Delayed:      true,
 			DelayedID:    dt.ID,

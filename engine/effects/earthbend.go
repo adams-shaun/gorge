@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strconv"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -90,7 +92,8 @@ func effEarthbend(h Host, c *Ctx, sa *cards.SA) {
 // One registration cannot have a leftover.
 //
 // The registration's Source is the land itself, so the builtin body's
-// Defined$ Self resolves to it; the registration's Counter names the builtin
+// Defined$ Self resolves to it, and the creating ability's source rides "|CR="
+// as the trigger's stack source (CR 603.7d); the registration's Counter names the builtin
 // SVar body (cards/builtinSVars' __kwEarthbendReturn, resolved for an object
 // with no SVar table of its own), and Text carries the mode and inline
 // trigger body the engine/events/apply.go decode splits back apart. The name
@@ -98,11 +101,15 @@ func effEarthbend(h Host, c *Ctx, sa *cards.SA) {
 // incarnation tracking applies: the promise is consumed at its first fire
 // and an object that later returns is not acted on again.
 func registerEarthbendReturn(h Host, c *Ctx, id state.ObjID) {
+	text := "ChangesZone:Mode$ ChangesZone | Origin$ Battlefield | " +
+		"Destination$ Graveyard,Exile | ValidCard$ Card.Self"
+	if c.Source != id {
+		text += "|CR=" + strconv.FormatUint(uint64(c.Source), 10)
+	}
 	h.Emit(events.Event{
 		Kind: events.DelayedRegister, Obj: id,
 		Player: c.Controller, Step: h.Game().Step,
 		Counter: "__kwEarthbendReturn",
-		Text: "ChangesZone:Mode$ ChangesZone | Origin$ Battlefield | " +
-			"Destination$ Graveyard,Exile | ValidCard$ Card.Self",
+		Text:    text,
 	})
 }
