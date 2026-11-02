@@ -21,6 +21,8 @@ const (
 	akClone   uint8 = 4 // an "enter as a copy" choice, cast or returned (s.g.pre only; copy_asenters.go)
 	akPayLife uint8 = 5 // a shock land's as-enters "pay N life or enter tapped" (repl_shockland.go)
 	akMode    uint8 = 6 // a Siege's as-enters mode (face_siegemode.go)
+	akReveal  uint8 = 7 // a reveal land's as-enters "reveal or enter tapped" (repl_revealland.go)
+	akRevPick uint8 = 8 // the card a reveal land's paid election reveals
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -879,10 +881,14 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	p := &s.perms[ask.sl]
 	s.touchSl(ask.sl)
-	if ask.kind == akPayLife {
-		s.shockAnswer(k, ask, a) // repl_shockland.go
+	if ask.kind == akPayLife || ask.kind == akReveal || ask.kind == akRevPick {
+		if ask.kind == akPayLife {
+			s.shockAnswer(k, ask, a) // repl_shockland.go
+		} else if !s.revealAnswer(k, ask, a) { // repl_revealland.go
+			return
+		}
 		if ask.ts == 1 {
-			// a played shock land: the answer completes the play
+			// a played land's election: the answer completes the play
 			s.pl[s.perms[ask.sl].ctrl].landsPlayed++
 		}
 		return
@@ -981,6 +987,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akPayLife {
 		s.shockOptions(k, d) // repl_shockland.go
+		return
+	}
+	if kind == akReveal || kind == akRevPick {
+		s.revealOptions(k, d, kind) // repl_revealland.go
 		return
 	}
 	if kind == akMode {

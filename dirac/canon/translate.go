@@ -735,6 +735,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's beholdCostAsk KChoose over the battlefield then hand
 		// candidates
 		return Pack(kind("beholdcost"), src, RefNone, 0), true
+	case dirac.ChCostReveal:
+		// gorge's AdvanceUnless "revealcost" pick over the payer's hand
+		return Pack(kind("revealcost"), src, RefNone, 0), true
 	case dirac.ChCostEvidence:
 		// gorge's evidence KChoose over the payer's graveyard
 		return Pack(kind("evidence"), src, RefNone, 0), true

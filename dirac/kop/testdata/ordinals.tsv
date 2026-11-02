@@ -712,6 +712,7 @@ OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
 PayBRemember	untyped int	4
+PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubEvidence	untyped int	2
 PayBSubTrigNew	untyped int	3

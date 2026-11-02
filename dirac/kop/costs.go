@@ -213,6 +213,12 @@ const CostLoyaltyX CostFlags = 1 << 29
 // the sentinel rides the existing Instr.B value.
 const PayBRemember = 4
 
+// PayBReveal: a PayDiscard unless-cost whose B.N carries this sentinel reveals
+// A hand cards matching F instead of discarding them; nothing moves (gorge
+// AdvanceUnless's "revealcost"). It is the as-enters election of a reveal land
+// (dirac/repl_revealland.go), and C's nibble is full.
+const PayBReveal = 5
+
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (
 	PayMana    = 1 // A generic + B.N packed pips (3 bits per colour, WUBRG)

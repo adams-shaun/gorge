@@ -2096,7 +2096,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2113,6 +2113,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.CS == "ExileTrigNew" {
 			ki.B = kop.Const(kop.PayBSubTrigNew) // ExileAnyGrave<1/Card.TriggeredNewCard>, not a filter exile
 		}
+		if in.CS == "Reveal" {
+			ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
+		}
 		if pk == kop.PaySac && strings.HasPrefix(in.Note, noteRememberSacrificed) {
 			// a trigger's own IfPaid Sacrifice whose characteristic a value
 			// head reads: B carries the remember bit and the sum bit
@@ -2122,6 +2125,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		z := kop.ZoneBattlefield
 		if pk == kop.PayExileGrave {
 			z = kop.ZoneGraveyard
+		}
+		if in.CS == "Reveal" {
+			z = kop.ZoneHand
 		}
 		if err := objFilter(z); err != nil {
 			return ki, err

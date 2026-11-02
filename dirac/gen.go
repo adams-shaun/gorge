@@ -742,7 +742,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Repl.Kind {
 				case kop.ReplEntersProgram:
 					g.setFlag(CardID(i), gfEnterRepl)
-					if len(a.Prog) > 0 && a.Prog[0].Op == kop.OpUnlessPaid && int(a.Prog[0].C&0xF) == kop.PayLife {
+					if len(a.Prog) > 0 && a.Prog[0].Op == kop.OpUnlessPaid && (int(a.Prog[0].C&0xF) == kop.PayLife || revealElection(&a.Prog[0])) {
 						g.setFlag(CardID(i), gfShockEntry)
 					}
 				case kop.ReplOthersEnterProgram:

@@ -85,6 +85,10 @@ func (s *State) shockOptions(k *prep, d *Decision) {
 // permanent put onto the battlefield mid-resolution) the ask is queued at
 // this instruction, as gorge defers it behind the suspended resolution.
 func (s *State) shockAt(k *prep, sl Slot, c CardID, ab uint8, in *kop.Instr, pc int) (res, skip int) {
+	if pc == 0 && revealElection(in) {
+		s.queueAskAt(sl, akReveal, c, ab, 0) // repl_revealland.go
+		return shockQueued, 0
+	}
 	if pc != 0 || in.Op != kop.OpUnlessPaid || int(in.C&0xF) != kop.PayLife {
 		return shockNo, 0
 	}
@@ -114,7 +118,7 @@ func (s *State) shockAt(k *prep, sl Slot, c CardID, ab uint8, in *kop.Instr, pc 
 func (s *State) shockLandCount(o Obj, p uint8) {
 	if s.g.nask > 0 {
 		a := &s.g.ask[s.g.nask-1]
-		if a.kind == akPayLife && a.sl == s.objs[o].slot {
+		if (a.kind == akPayLife || a.kind == akReveal) && a.sl == s.objs[o].slot {
 			a.ts = 1
 			return
 		}
