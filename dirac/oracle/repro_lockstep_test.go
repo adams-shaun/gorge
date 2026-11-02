@@ -95,6 +95,13 @@ func TestTargetsReturnedTogetherSeeEachOtherLockstep(t *testing.T) {
 	synthReproLockstep(t, "dewdrop_duo_last", "std-blb", autopay)
 }
 
+// Hunter's Talent with no opposing creature for its chained target: Emberheart Challenger,
+// answered as its root target, did not become a target (CR 603.3d).
+func TestChainWithoutATargetFiresNoValiantLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "hunters_talent_no_chain_target", "std-blb", Config{GorgeAutopaySurface: true})
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {

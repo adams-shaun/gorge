@@ -5,6 +5,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -41,6 +42,9 @@ type trigSubAsk struct {
 	posed      bool
 	leading    int
 	curLeading int
+	// queued is the trigger queue's length as the chain began: what its own
+	// targeting queues past it goes with the ability if a link has no target.
+	queued int
 }
 
 func (t *trigSubAsk) clone() *trigSubAsk {
@@ -118,7 +122,7 @@ func (e *Engine) startTriggerSubTargets(id state.ObjID, controller state.PlayerI
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
 		return
 	}
-	e.trigSub = &trigSubAsk{obj: id, controller: controller, subs: subs, ans: make([][]state.Target, len(subs))}
+	e.trigSub = &trigSubAsk{obj: id, controller: controller, subs: subs, ans: make([][]state.Target, len(subs)), queued: len(e.pendingTriggers)}
 	e.trigSub.noteRoot(root, e.Pending() != nil)
 	if e.Pending() == nil {
 		e.askTriggerSubTargets()
@@ -176,9 +180,14 @@ func (e *Engine) askTriggerSubTargets() bool {
 		min, max := e.resolvedTargetBounds(ts.controller, ts.obj, sub, 0)
 		e.subOfferParent, e.subOfferBound = savedParent, savedBound
 		if min > 0 && len(candidates) < min {
+			// CR 603.3d: the ability never went on the stack, so nothing became
+			// its target: "becomes the target" triggers its root's answer queued
+			// go with it, and a first-time scan skips that answer.
 			e.trigSub = nil
+			clear(e.pendingTriggers[ts.queued:])
+			e.pendingTriggers = e.pendingTriggers[:ts.queued]
 			e.emit(events.Event{Kind: events.MoveZone, Obj: ts.obj,
-				From: state.ZStack, To: state.ZExile, Text: "countered: no legal targets"})
+				From: state.ZStack, To: state.ZExile, Text: trigmatch.ChainNoTarget})
 			e.ensureLeftTheStack(ts.obj, state.ZExile, "a replacement fully discarded this "+
 				"ability's 'countered: no legal targets' move without relocating it anywhere; sent "+
 				"to its resting zone instead of re-resolving forever")

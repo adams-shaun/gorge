@@ -362,6 +362,11 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 		(!valiant || valiantFirstTimeTargetedByYouThisTurn(e, ev, source, false, e.ControllerOf(source)))
 }
 
+// ChainNoTarget is the Text of the move off the stack of a triggered ability a chain link
+// had no target for (CR 603.3d): it was never put on the stack, and a TargetsChosen its
+// root's answer logged named no target.
+const ChainNoTarget = "removed: a chained link has no legal target"
+
 // firstTimeTargetedThisTurn answers FirstTime$ True on Mode$ BecomesTarget
 // ("becomes the target of a spell or ability for the first time each turn",
 // Glyph Keeper, Kira, the Glasskites, Valiant creatures): true when no EARLIER
@@ -374,12 +379,17 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 // it) and never count as an earlier time. A TargetsChosen with no stack
 // object is a hand-built fixture emit and counts like any other.
 func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player bool) bool {
+	var unplaced []state.ObjID
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
 		if le.Kind == events.TurnChange {
 			return true
 		}
-		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) {
+		if le.Kind == events.MoveZone && le.Text == ChainNoTarget {
+			unplaced = append(unplaced, le.Obj)
+			continue
+		}
+		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) || slices.Contains(unplaced, le.Obj) {
 			continue
 		}
 		if player {
@@ -440,6 +450,7 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 // An event with no stack object (a hand-built fixture emit) names no
 // controller and is skipped.
 func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.ObjID, player bool, you state.PlayerID) bool {
+	var unplaced []state.ObjID
 	log := e.Log().Events
 	skipLast := false
 	if n := len(log); n > 0 {
@@ -461,7 +472,11 @@ func valiantFirstTimeTargetedByYouThisTurn(e Board, ev events.Event, id state.Ob
 		if !player && le.Kind == events.MoveZone && le.Obj == id {
 			return true
 		}
-		if le.Kind != events.TargetsChosen || le.Obj == 0 {
+		if le.Kind == events.MoveZone && le.Text == ChainNoTarget {
+			unplaced = append(unplaced, le.Obj)
+			continue
+		}
+		if le.Kind != events.TargetsChosen || le.Obj == 0 || slices.Contains(unplaced, le.Obj) {
 			continue
 		}
 		caster, ok := stackObjControllerAt(e, le.Obj, i)
