@@ -2248,7 +2248,8 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier"},
+		"RaiseCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
+			"costStaticMayReachManaAbility"},
 		// quietSelfReducePipFloor (engine/rules/quiet_facts.go) prices the
 		// quiet-seat proof's §2.5 self-ReduceCost refinement: it scans the
 		// face's own Statics slice for self-scoped generic-only ReduceCost
@@ -2258,8 +2259,8 @@ var handRoots = struct {
 		// mustAttackRequired has. Its may-play key reads live in
 		// quietStaticMayPlay and are family-attributed below.
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
-			"quietSelfReducePipFloor"},
-		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier"},
+			"quietSelfReducePipFloor", "costStaticMayReachManaAbility"},
+		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier", "costStaticMayReachManaAbility"},
 		"OptionalCost": {"Engine.optionalCostViews", "Engine.reduceColorOptionalViews"},
 		// paymentPlanManaConvertName (payment_plan_interference.go) names the
 		// restricting ManaConvert static behind a global auto-pay decline: it

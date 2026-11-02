@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -33,22 +31,44 @@ func costStaticMayReachManaAbility(sv staticView) bool {
 	if raw == "" {
 		return true
 	}
-	for _, tok := range strings.Split(raw, ",") {
-		tok = strings.TrimSpace(tok)
-		rest, ok := strings.CutPrefix(tok, "Activated")
-		if !ok {
-			continue
+	for start := 0; start <= len(raw); {
+		end := start
+		for end < len(raw) && raw[end] != ',' {
+			end++
 		}
-		switch rest {
-		case ".Equip", ".Cycling", ".Ninjutsu", ".Boast", ".Exhaust", ".PowerUp", ".Loyalty", ".Channel":
-			continue
+		if validSpellTokenMayBeManaAbility(raw[start:end]) {
+			return true
 		}
-		if strings.Contains(rest, "!ManaAbility") {
-			continue
-		}
-		return true
+		start = end + 1
 	}
 	return false
+}
+
+// validSpellTokenMayBeManaAbility: one ValidSpell$ alternative can match a
+// mana ability only if it names activated abilities and neither excludes mana
+// abilities nor names a keyword ability no mana ability is.
+func validSpellTokenMayBeManaAbility(tok string) bool {
+	for len(tok) > 0 && tok[0] == ' ' {
+		tok = tok[1:]
+	}
+	for len(tok) > 0 && tok[len(tok)-1] == ' ' {
+		tok = tok[:len(tok)-1]
+	}
+	const head, notMana = "Activated", "!ManaAbility"
+	if len(tok) < len(head) || tok[:len(head)] != head {
+		return false
+	}
+	rest := tok[len(head):]
+	switch rest {
+	case ".Equip", ".Cycling", ".Ninjutsu", ".Boast", ".Exhaust", ".PowerUp", ".Loyalty", ".Channel":
+		return false
+	}
+	for i := 0; i+len(notMana) <= len(rest); i++ {
+		if rest[i:i+len(notMana)] == notMana {
+			return false
+		}
+	}
+	return true
 }
 
 // anyManaReaching reports whether some collected raise, reduce or set static

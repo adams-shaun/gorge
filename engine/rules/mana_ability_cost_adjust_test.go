@@ -15,7 +15,7 @@ import (
 const paidTapLandFixtureSrc = `Name:Fixture Paid Tap Land
 ManaCost:no cost
 Types:Land
-A:AB$ Mana | Cost$ 1 T | Produced$ G | SpellDescription$ Add {G}.
+A:AB$ Mana | Cost$ 1 T | Produced$ G | SpellDescription$ Pay one and tap for one green.
 Oracle:{1}, {T}: Add {G}.
 `
 
@@ -127,8 +127,8 @@ func TestSurchargeThatSparesManaAbilitiesLeavesThem(t *testing.T) {
 const filterLandFixtureSrc = `Name:Fixture Filter Land
 ManaCost:no cost
 Types:Land
-A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.
-A:AB$ Mana | Cost$ 1 T | Produced$ Any | SpellDescription$ Add one mana of any color.
+A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Tap for one colorless mana.
+A:AB$ Mana | Cost$ 1 T | Produced$ Any | SpellDescription$ Pay one, tap: one mana of a color you pick.
 Oracle:{T}: Add {C}.\n{1}, {T}: Add one mana of any color.
 `
 
