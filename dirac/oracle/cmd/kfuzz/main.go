@@ -542,6 +542,9 @@ func printEventTail(n int) func(*oracle.GorgeSide) {
 			return fmt.Sprintf("#%d", id)
 		}
 		for pl := state.PlayerID(0); pl < 2; pl++ {
+			for _, id := range g.E.G.Zone(state.ZHand, pl) {
+				fmt.Printf("  hand p%d %s\n", pl, name(id))
+			}
 			for _, id := range g.E.G.Zone(state.ZBattlefield, pl) {
 				o := g.E.G.Obj(id)
 				att := ""

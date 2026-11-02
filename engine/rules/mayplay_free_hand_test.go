@@ -92,3 +92,28 @@ func TestTwoFreeHandStaticsOfferOneFreeCast(t *testing.T) {
 		t.Fatalf("free casts of Craw Wurm under two Omnisciences = %d, want 1: %+v", n, e.legalActions(0))
 	}
 }
+
+// TestFreeHandCastStillPaysTheSpellsOwnDiscard: casting without paying the
+// mana cost replaces the mana alone (CR 118.9d). Seize the Spoils' "discard a
+// card" is an additional cost it still carries under Omniscience, so with no
+// other card in hand the free cast is not offered, and with one it is.
+func TestFreeHandCastStillPaysTheSpellsOwnDiscard(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Omniscience"), corpusAlternativeCard(t, "Seize the Spoils"))
+	omni, seize := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: omni, From: state.ZHand, To: state.ZBattlefield})
+	if opt, ok := freeHandCastOption(e, 0, seize); ok {
+		t.Fatalf("Seize the Spoils offered free with nothing to discard: %+v", opt)
+	}
+	extra := e.G.AddObject(corpusAlternativeCard(t, "Craw Wurm"), 0)
+	extra.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), extra.ID))
+	opt, ok := freeHandCastOption(e, 0, seize)
+	if !ok {
+		t.Fatal("Seize the Spoils not offered free with a card to discard")
+	}
+	e.beginCast(0, opt)
+	if d := e.Pending(); d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("pending after the free cast = %+v, want the discard choice", d)
+	}
+}

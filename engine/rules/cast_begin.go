@@ -592,7 +592,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		cost = cost.Plus(parts[opt.AltCostIndex-1])
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
-	if (opt.AltCostIndex > 0 && opt.Mode == "mayplay") || opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "modal_spell" || opt.Mode == "room_alt" ||
+	if (opt.AltCostIndex > 0 && (opt.Mode == "mayplay" || opt.Mode == "")) || opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "modal_spell" || opt.Mode == "room_alt" ||
 		opt.Mode == "adventure_alt" || opt.Mode == "omen_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || castAnswerCodes.Code(opt.Mode) == castAnswerTeamworkMode || opt.Mode == "casualty" || castModeCodes.Code(opt.Mode) == castModeBargained || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart" || opt.Mode == "prototype" ||
 		// CR 702.34a/601.2f: flashback replaces only the mana cost; the
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,

@@ -407,7 +407,10 @@ func (w *legalWalk) handWalk() {
 			// gates the mana-only remainder on the same cost minus its exile
 			// parts; beginCast asks the X (xAsk's announce arm), then exAsk
 			// re-walks the part with the announced X bound.
-			gate := alt.cost
+			// The spell's own additional costs (a discard, a sacrifice in its
+			// SpellAbility Cost$) are paid beside any alternative cost
+			// (CR 118.9d), as Forge's copyWithManaCostReplaced keeps them.
+			gate := pay.WithSpellAbilityExtras(f, alt.cost)
 			if alt.announce != "" {
 				gate.Exile = nil
 				if len(e.altCostXCandidates(p, id, alt)) == 0 {
