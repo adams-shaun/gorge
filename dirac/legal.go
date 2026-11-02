@@ -1124,7 +1124,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 			}
 			for j := range cd.Abilities {
 				ab := &cd.Abilities[j]
-				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, ab, payment) {
+				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, payment) {
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
@@ -1152,12 +1152,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 }
 
 // potentialAdmits reports whether a further mana ability of the source at sl can
-// count toward p's potential pool: usable now, its non-mana costs a {T} or a
-// sacrifice of the source, and its restriction admitting the payment.
-func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, ab *kop.Ability, payment bool) bool {
+// count toward p's potential pool: usable now, its non-mana costs a {T}, a
+// once-each-turn limit or a sacrifice of the source, and its restriction
+// admitting the payment.
+func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, payment bool) bool {
 	pp := &s.perms[sl]
-	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife) != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
+	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
 		return false
+	}
+	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
+		return false // Gravestone Strider, used this turn
 	}
 	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[p&1].life) < int(ab.Cost.N) {
 		return false
