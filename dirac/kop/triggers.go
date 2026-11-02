@@ -335,7 +335,8 @@ const Tf4CounterCell TrigFlags4 = 1 << 2
 
 // Tf4NthFiltered (Trigger.Flags4): a Tf2NthSpell line whose ValidCard$ turns some
 // spells away counts the caster's pushes that match Filter (the cast ring), not
-// every spell they cast this turn.
+// every spell they cast this turn. Filter names no zone: an earlier push may have
+// left the stack.
 const Tf4NthFiltered TrigFlags4 = 1 << 3
 
 // the packed constants of the Increment keyword's ops.

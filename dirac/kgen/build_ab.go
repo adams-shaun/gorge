@@ -925,6 +925,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 				zone := kop.ZoneBattlefield
 				if t.Event == "SpellCast" {
 					zone = kop.ZoneStack
+					if t.NthFiltered {
+						zone = kop.ZoneNone // it also tests the earlier pushes, wherever they now live
+					}
 				}
 				if t.Event == "Discarded" {
 					zone = kop.ZoneGraveyard

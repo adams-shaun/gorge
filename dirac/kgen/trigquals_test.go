@@ -227,4 +227,13 @@ func TestNthSpellFilterLowering(t *testing.T) {
 	if why, _, _ := ktqBuild(t, line("Instant.YouCtrl+wasCastFromYourGraveyard")); why == "" {
 		t.Errorf("a provenance ValidCard: refusal %q", why)
 	}
+	// The filter also tests pushes that have left the stack, so it names no zone, and
+	// a clause the ring cannot read off every zone refuses.
+	_, tr, pt := ktqBuild(t, line("Instant,Sorcery"))
+	if z := pt.filters[tr.Filter].Zone; z != kop.ZoneNone {
+		t.Errorf("ValidCard Instant,Sorcery: filter zone %v, want none", z)
+	}
+	if why, _, _ := ktqBuild(t, line("Card.MultiColor")); !strings.Contains(why, "ActivatorThisTurnCast") {
+		t.Errorf("ValidCard Card.MultiColor: refusal %q", why)
+	}
 }

@@ -558,6 +558,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("ActivatorThisTurnCast over cast provenance %q", vc)
 			default:
 				tr.NthFiltered = true
+				for _, c := range tr.F.Clauses {
+					if why := castRingClauseInexact(c); why != "" {
+						return refuse("ActivatorThisTurnCast over ValidCard %q: %s", vc, why)
+					}
+				}
 			}
 			if cmp != uint8(kop.DmgEQ) {
 				tr.NthCmp = cmp

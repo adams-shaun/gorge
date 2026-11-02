@@ -42,9 +42,9 @@ var ktrigqualsDecks = [][2][]cardset.Entry{
 	},
 	{ // M2: Reparations (a player alternative) against burn, Ichneumon Druid and pump
 		{
-			{Name: "Reparations", Count: 4}, {Name: "Shock", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Essence Scatter", Count: 3},
-			{Name: "Mind Stone", Count: 2}, {Name: "Raging Goblin", Count: 3}, {Name: "Hill Giant", Count: 3},
-			{Name: "Plains", Count: 6}, {Name: "Island", Count: 6}, {Name: "Mountain", Count: 7},
+			{Name: "Reparations", Count: 4}, {Name: "Shock", Count: 5}, {Name: "Lightning Bolt", Count: 5}, {Name: "Essence Scatter", Count: 3},
+			{Name: "Raging Goblin", Count: 3},
+			{Name: "Plains", Count: 6}, {Name: "Island", Count: 6}, {Name: "Mountain", Count: 8},
 		},
 		{
 			{Name: "Ichneumon Druid", Count: 4}, {Name: "Grizzly Bears", Count: 3}, {Name: "Raging Goblin", Count: 3}, {Name: "Hill Giant", Count: 3},

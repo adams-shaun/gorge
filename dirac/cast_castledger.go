@@ -17,8 +17,9 @@ import (
 // castPushes(p) holds them in push order, and hist[p][histCastN] counts them.
 //
 // The ring is recorded only for tables with an ExThisTurnCastSpec
-// expression or a Paradigm card. A push past castRingN by one player in one
-// turn stalls with StallCastRing rather than truncating.
+// expression, a Tf4NthFiltered trigger or a Paradigm card. A push past
+// castRingN by one player in one turn stalls with StallCastRing rather than
+// truncating.
 //
 // CR 733.1: gorge's abortCast leaves the reversed cast's PutOnStack in the
 // append-only log (its SpellCastReversed companion undoes only the
