@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/spellbench/payexec"
@@ -48,9 +49,11 @@ type nativeSession struct {
 	t         testing.TB
 	seats     []http.Handler
 	spectator http.Handler
-	pending   *decision.Decision // what the last poll found; nil at the end of the game
-	names     *objectNames       // the last frame's renaming
-	payer     *manualPayer       // reaches a play only PotentialActions lists; nil when the engine lists none
+	pending   *decision.Decision  // what the last poll found; nil at the end of the game
+	names     *objectNames        // the last frame's renaming
+	payer     *manualPayer        // reaches a play only PotentialActions lists; nil when the engine lists none
+	owed      decision.ManaAmount // what the last payment window still wanted
+	tapped    bool                // the last answer settled a window with a tap
 }
 
 func (s *nativeSession) Next() (Frame, bool) {
@@ -156,7 +159,8 @@ func (s *nativeSession) poll() (*decision.Decision, []byte) {
 			if err := json.Unmarshal(body, &d); err != nil {
 				s.t.Fatal(err)
 			}
-			if !isPaymentWindow(&d) {
+			if !s.isPaymentWindow(&d) {
+				s.tapped = false
 				return &d, body
 			}
 			s.settleWindow(&d)
@@ -167,29 +171,43 @@ func (s *nativeSession) poll() (*decision.Decision, []byte) {
 }
 
 // isPaymentWindow reports whether d only asks how to pay what the seat already
-// chose: which sources to tap, or a colour for the source just tapped.
-func isPaymentWindow(d *decision.Decision) bool {
+// chose: which sources to tap, with or without any left to tap, or what the source
+// a window just tapped makes.
+func (s *nativeSession) isPaymentWindow(d *decision.Decision) bool {
 	if d.ManaPayment != nil || d.PaymentFallback != nil {
 		return true
 	}
-	if d.Kind != decision.KChoose {
+	if d.Kind != decision.KChoose || len(d.Options) == 0 {
 		return false
 	}
+	colour := false
 	for _, o := range d.Options {
-		if o.Kind == "activate" {
+		switch o.Kind {
+		case "activate":
 			return true
+		case "mana":
+			colour = true
+		case "done":
+		default:
+			return false
 		}
 	}
-	return false
+	return !colour || s.tapped
 }
 
 // settleWindow answers a payment window the deterministic way dirac's own payment
-// does (payexec.WindowAnswer).
+// does (payexec.WindowAnswer). A colour ask carries no demand, so it reads the
+// window it was tapped from.
 func (s *nativeSession) settleWindow(d *decision.Decision) {
 	s.t.Helper()
-	if err := s.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{payexec.WindowAnswer(d, decision.ManaAmount{})}}); err != nil {
+	if d.ManaPayment != nil {
+		s.owed = d.ManaPayment.Owed.Mana
+	}
+	answer := payexec.WindowAnswer(d, s.owed)
+	if err := s.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{answer}}); err != nil {
 		s.t.Fatal(err)
 	}
+	s.tapped = !slices.ContainsFunc(d.Options, func(o decision.Option) bool { return o.Index == answer && o.Kind == "done" })
 }
 
 func (s *nativeSession) get(h http.Handler, path string) []byte {
