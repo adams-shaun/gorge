@@ -64,11 +64,15 @@ func printedFaceTrigger(o *state.Object, sa *cards.SA) (cards.Trigger, *cards.Fa
 			}
 		}
 	}
-	if !inactiveFaceLayout(o.Card) {
+	// A source that has since become a copy (Fleeting Reflection on Outlaw Stitcher
+	// with its trigger on the stack) keeps the ability it triggered with: the live
+	// face is the copied one, so the printed faces are all still to look at.
+	copied := o.CopyFace != nil
+	if !copied && !inactiveFaceLayout(o.Card) {
 		return cards.Trigger{}, nil, 0, 0, false
 	}
 	for fi, f := range o.Card.Faces {
-		if f == nil || fi == int(o.FaceIdx) {
+		if f == nil || (!copied && fi == int(o.FaceIdx)) {
 			continue
 		}
 		for ti, t := range f.Triggers {
