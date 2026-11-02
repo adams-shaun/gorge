@@ -8,24 +8,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // it as a last-resort alternative of its source's payment-window ability
 // (pay/plancost.go PlanLastResortCostOK, payment_plan.go
 // paymentPlanManaUnitsOnlyCompute), so the planner uses it only when no
-// plan of normal sources pays. Its census extends only an untapped source;
-// the manual ward / unless window (mana_window.go windowTap) activates it
-// tapped or untapped alike (gorge availableManaAbilities gates only tap
-// costs).
+// plan of normal sources pays. The census extends it tapped or untapped
+// alike, as does the manual ward / unless window (mana_window.go windowTap):
+// gorge's availableManaAbilities gates only tap costs.
 
 // DebugIgnoreSpawnMana makes prepare drop sacrifice-only mana abilities.
 // The spawnmana lockstep's mutation test flips it to prove the pool
 // exercises them (the reference keeps them, so a play that used one
 // diverges).
 var DebugIgnoreSpawnMana bool
-
-// availPayTapped is the availFor mode bit that lets the payment planner
-// activate a tapped sacrifice-only source. gorge's potential census skips a
-// tapped source (paymentPlanManaUnitsOnlyCompute), so the offer gate reads
-// the untapped-only picture; a cast gorge reaches through a scripted prefix
-// (potentialPrefixScript activates the source first) is paid with this bit
-// set, exactly as the script's activations would leave it tapped.
-const availPayTapped uint8 = 16
 
 // anySacSource reports whether p controls a source a payment plan could
 // sacrifice: an untapped tap-and-sacrifice source (a Treasure) or any
@@ -113,17 +104,13 @@ func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
 }
 
 // canSacOnlyForMana reports whether the autopay planner may price sl as a
-// last-resort sacrifice-only source: untapped (gorge's census extension
-// skips a tapped source) and not stripped of its abilities.
+// last-resort sacrifice-only source: not stripped of its abilities. Its cost
+// has no {T}, so a tapped source pays as well as an untapped one (CR 602.2b).
 func (s *State) canSacOnlyForMana(k *prep, sl Slot, pc *pcard) bool {
 	if !k.sacOnlyMana || !pc.manaSacOnly {
 		return false
 	}
-	p := &s.perms[sl]
-	if p.flags&pfTapped != 0 && s.g.availX&availPayTapped == 0 {
-		return false
-	}
-	return p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	return s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 }
 
 // canSacOnlyAt is canSacOnlyForMana for a caller that has only the slot.

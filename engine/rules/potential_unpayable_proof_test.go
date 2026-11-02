@@ -93,3 +93,23 @@ func TestPotentialPlainCastPricedBesideItsOwnAltCost(t *testing.T) {
 		t.Errorf("plain cast: %+v, want payable through a scripted prefix", *plain)
 	}
 }
+
+// TestPotentialPlanPricesATappedSacrificeSource: a mana ability whose cost has no {T}
+// (an Eldrazi Spawn's "Sacrifice this creature: Add {C}") does not need its source
+// untapped (CR 602.2b), so a tapped Spawn is in the planner's census and pays a {1}
+// directly. Left out of the census it forced a scripted prefix that activates the
+// Spawn at priority first, and the sacrifice trigger it leaves on the stack (Writhing
+// Chrysalis) ends the sorcery window before the play.
+func TestPotentialPlanPricesATappedSacrificeSource(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9416, "Name:Potential One\nManaCost:1\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	spawn := onBoard(t, e, 0, "Name:Potential Spawn\nTypes:Creature Eldrazi Spawn\nPT:0/1\n"+
+		"A:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ C | Amount$ 1 | SpellDescription$ Add {C}.\nOracle:x\n")
+	e.G.Obj(spawn).Tapped = true
+
+	ppPriority(t, e)
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell)
+	if pp.Reason != "" || pp.Plan == nil || len(pp.Script) != 0 {
+		t.Errorf("cast beside a tapped sacrifice source: %+v, want priced by a plan with no scripted prefix", pp)
+	}
+}

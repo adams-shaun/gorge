@@ -74,3 +74,11 @@ func TestLandGrantPlainCastPricedBesideItsAltCostLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "land_grant_plain_cast_priced", "pauper", Config{})
 }
+
+// A tapped Eldrazi Spawn still sacrifices for {C} (its cost has no {T}), so both sides
+// price Makeshift Munitions' {1}{R} from an untapped Bridge and the Spawn, rather than
+// reaching the Spawn only through a prefix that leaves its sacrifice trigger on the stack.
+func TestTappedSpawnPaysTheCastLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "tapped_spawn_pays_the_cast", "pauper", Config{})
+}

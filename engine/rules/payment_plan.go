@@ -852,7 +852,7 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			continue
 		}
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil {
+		if o == nil || o.Face() == nil {
 			continue
 		}
 		idx := -1
@@ -867,6 +867,11 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			raw := mf.Produced
 			amt := mf.Amount
 			if amt <= 0 {
+				continue
+			}
+			// Only a {T} cost needs the source untapped (CR 602.2b, 118.3):
+			// a tapped Eldrazi Spawn still sacrifices for {C}.
+			if (mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
 				continue
 			}
 			counts, any := mf.Counts, mf.Any
