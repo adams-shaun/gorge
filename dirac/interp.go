@@ -75,8 +75,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpPumpUntilEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.touchSl(sl)
-			p := &s.perms[sl]
-			if !s.eotAdd(p, s.value(k, in.A), s.value(k, in.B)) {
+			if !s.eotAdd(k, sl, s.value(k, in.A), s.value(k, in.B)) {
 				break
 			}
 		}
@@ -481,8 +480,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// Magic's "Permanents you control gain hexproof and
 			// indestructible").
 			if s.isCreature(k, sl) {
-				p := &s.perms[sl]
-				if !s.eotAdd(p, a, b) {
+				if !s.eotAdd(k, sl, a, b) {
 					break
 				}
 			}

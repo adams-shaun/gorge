@@ -1094,7 +1094,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Capacity++
 			v.CapacityWhy[why]++
 			if verboseFDN {
-				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
 			}
 			continue
 		}

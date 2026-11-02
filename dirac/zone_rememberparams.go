@@ -178,8 +178,7 @@ func (s *State) pumpAllScoped(k *prep, in *kop.Instr) {
 		sl := m.first()
 		if s.isCreature(k, sl) && s.matchPerm(k, in.F, sl, e.ctrl, src) {
 			s.touchSl(sl)
-			p := &s.perms[sl]
-			if !s.eotAdd(p, a, b) {
+			if !s.eotAdd(k, sl, a, b) {
 				break
 			}
 			s.grantEOT(sl, kop.KwMask(uint16(in.C)))

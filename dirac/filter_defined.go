@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -239,11 +241,23 @@ func (s *State) execDefined(k *prep, in *kop.Instr) (ok, done bool) {
 	return true, true
 }
 
-// eotAdd adds an end-of-turn pump; an amount that leaves the int8 range stalls
-// loudly (StallPT) and adds nothing.
-func (s *State) eotAdd(p *perm, a, b int) bool {
+// eotAdd adds an end-of-turn pump to sl; an amount that leaves the int8 range
+// stalls loudly (StallPT) and adds nothing, with one exception: a toughness
+// below the range (-0/-9999) is saturated when the creature's toughness is
+// still zero or less, because it is put into the graveyard at the next state-
+// based action check (CR 704.5f) and the magnitude is never read again.
+func (s *State) eotAdd(k *prep, sl Slot, a, b int) bool {
+	p := &s.perms[sl]
 	np, nt := int(p.eotP)+a, int(p.eotT)+b
 	if np != int(int8(np)) || nt != int(int8(nt)) {
+		if np == int(int8(np)) && nt < math.MinInt8 {
+			op, ot := p.eotP, p.eotT
+			p.eotP, p.eotT = int8(np), math.MinInt8
+			if _, tough := s.pt(k, sl); tough <= 0 {
+				return true
+			}
+			p.eotP, p.eotT = op, ot
+		}
 		s.capFull(StallPT)
 		return false
 	}
