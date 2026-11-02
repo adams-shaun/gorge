@@ -467,15 +467,42 @@ func TestEachPlayerDiscardMovesTogether(t *testing.T) {
 }
 
 // TestWaterbendAskRequiresTheTapsThePaymentNeeds: Done waits for the taps the mana
-// window can't do without (CR 601.2h, 701.67a).
+// window can't do without (CR 601.2h, 701.67a). The pairs are ones that diverge when
+// the ask offers Done at once, so each carries the case.
 func TestWaterbendAskRequiresTheTapsThePaymentNeeds(t *testing.T) {
-	synthPairs(t, "std-tla", []int{1, 10, 11, 12}, nil)
+	waterbendPairs(t, "std-tla", []int{0, 1, 16, 18})
 }
 
 // TestWaterbendIncompleteCensusKeepsTheOpenAsk: with a restricted mana source the
 // census doesn't price, the ask requires nothing and the target ask keeps its offer.
+// The pairs are ones that diverge when the census is taken as complete.
 func TestWaterbendIncompleteCensusKeepsTheOpenAsk(t *testing.T) {
-	synthPairs(t, "std-tla", []int{20, 145, 298}, nil)
+	waterbendPairs(t, "std-tla", []int{66, 105, 108, 116})
+}
+
+// waterbendPairs is synthPairs requiring a waterbend ask in each game: a pair is
+// two decks dealt from the lowered list, so a card lowered later moves what a pair
+// holds, and a pin whose pair no longer waterbends would pass having tested nothing.
+func waterbendPairs(t *testing.T, name string, pairs []int) {
+	t.Helper()
+	asks := 0
+	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+		if d := ref.Pending(); d != nil {
+			for _, o := range d.Options {
+				if strings.HasPrefix(o.Kind, "waterbend") {
+					asks++
+					break
+				}
+			}
+		}
+		return nil
+	}}
+	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
+		if asks == 0 {
+			t.Errorf("pair %d of %s poses no waterbend ask: the pin tests nothing", pair, name)
+		}
+		asks = 0
+	})
 }
 
 // TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
