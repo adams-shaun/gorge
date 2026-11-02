@@ -137,6 +137,11 @@ func (s *State) Step() Decision {
 func (s *State) StepInto(d *Decision) {
 	for {
 		s.stepRaw(d)
+		if s.over {
+			// a capacity stall while the options were built: nothing to answer
+			d.Kind, d.N = DkNone, 0
+			return
+		}
 		if d.N > 1 {
 			s.sortCanonical(d)
 		}
@@ -161,6 +166,10 @@ func (s *State) StepInto(d *Decision) {
 // without changing anything. StepInto itself (the hot loop's) is unchanged.
 func (s *State) StepOne(d *Decision) {
 	s.stepRaw(d)
+	if s.over {
+		d.Kind, d.N = DkNone, 0
+		return
+	}
 	if d.N > 1 {
 		s.sortCanonical(d)
 	}
