@@ -251,9 +251,10 @@ const StatCantPutCounter StaticKind = 252
 // controller) cost A (or VA when StDynamic) generic less, floored at zero;
 // B = 1: Exhaust abilities only (CR 601.2f, 602.2b; gorge
 // costModifiersCompose, abilityScope). It follows its own ability's
-// ReduceCost$. The mana walk does not price it: kgen's matchup guard keeps
-// it out of a pool holding a mana-costed mana ability. An explicit ordinal
-// keeps the iota tail of StaticKind untouched.
+// ReduceCost$. It prices a filter land's fee (filtFee); any other mana
+// ability with a mana cost is not priced, and kgen's matchup guard keeps the
+// static out of a pool holding one it could lower. An explicit ordinal keeps
+// the iota tail of StaticKind untouched.
 const StatReduceAbility StaticKind = 233
 
 // two StaticFlags bits (explicit, outside the
