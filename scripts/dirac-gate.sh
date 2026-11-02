@@ -202,7 +202,7 @@ fi
 
 echo "== 9 synthetic pools, against the merge base"
 synth_pools=${GATE_SYNTH_POOLS:-std-blb std-otj std-mkm}
-synth_pairs=${GATE_SYNTH_PAIRS:-50}
+synth_pairs=${GATE_SYNTH_PAIRS:-300}
 synth_divergent() {
 	"$1" -synth "$2" -first-pair 0 -pairs "$synth_pairs" -seed 1 -keep-going -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -v 2>&1 |
 		sed -nE 's/^pair ([0-9]+) \((.*), seed [0-9]+\) after .*/\1 \2/p' | sort -u
