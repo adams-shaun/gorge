@@ -1203,20 +1203,23 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
+		lethal := 0
 		if in.C&kop.DmgTrackExcess != 0 {
-			lethal := s.excessLethalGen(k, sl)
+			lethal = s.excessLethalGen(k, sl)
 			if lethal < 0 || DebugExcessNoLethal {
 				lethal = 0
-			}
-			s.g.excess = int16(n - lethal)
-			if s.g.excess < 0 {
-				s.g.excess = 0
 			}
 		}
 		if in.C&kop.DmgExileIfDiesThisTurn != 0 && in.C&kop.DmgExileIfDealt == 0 {
 			s.markExileEx(k, sl)
 		}
-		if s.damageTo(k, code, n) > 0 {
+		dealt := s.damageTo(k, code, n)
+		if in.C&kop.DmgTrackExcess != 0 {
+			// CR 120.10: the excess of the damage dealt, after prevention and
+			// replacement (Tomik's +1), over what was lethal before it landed
+			s.g.excess = int16(max(dealt-lethal, 0))
+		}
+		if dealt > 0 {
 			s.damageDealt(k, in, Obj(code)) // cast_mayplaylimit.go
 		}
 		return
