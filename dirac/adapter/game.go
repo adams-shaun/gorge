@@ -47,6 +47,9 @@ type Game struct {
 	// tally is this turn's casts and tokens, per seat.
 	tally     [2]turnTally
 	tallyTurn int32
+	// landsPlayed is each seat's lands in its latest turn: the kernel clears the count
+	// at every turn, and a seat's land drop reads it until its next turn.
+	landsPlayed [2]uint8
 	// building is the object the last decision's cast or activation was building.
 	building dirac.Obj
 
@@ -118,9 +121,9 @@ func (g *Game) StallReason() string {
 func (g *Game) Fork() game.Game {
 	c := &Game{eng: g.eng, set: g.set, tbl: g.tbl, cfg: g.cfg, tr: g.tr,
 		d: g.d, log: g.log.Clone(), multi: g.multi, conceded: g.conceded, loser: g.loser,
-		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, building: g.building, vers: g.vers}
+		ids: g.ids, targets: g.targets, stalled: g.stalled, poison: g.poison, manifests: g.manifests, tally: g.tally, tallyTurn: g.tallyTurn, landsPlayed: g.landsPlayed, building: g.building, vers: g.vers}
 	c.bind()
-	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.landOpen
+	c.board.prio, c.board.step, c.board.seen, c.board.resolving, c.board.divided, c.board.landOpen = g.board.prio, g.board.step, g.board.seen, g.board.resolving, g.board.divided, g.board.landOpen
 	for i, l := range g.board.blockers {
 		c.board.blockers[i] = slices.Clone(l)
 	}

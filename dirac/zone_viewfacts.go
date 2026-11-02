@@ -2,10 +2,10 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// FeatLandDropOpen reports whether p may still play a land this turn, the extra
-// land drops of its permanents counted.
-func (s *State) FeatLandDropOpen(p uint8) bool {
-	return s.pl[p].landsPlayed < s.landLimit(s.k(), p)
+// FeatLandLimit is how many lands p may play in a turn, the extra land drops
+// included.
+func (s *State) FeatLandLimit(p uint8) uint8 {
+	return s.landLimit(s.k(), p)
 }
 
 // FeatCastDivideLeft is how many points of a cast's division are still to place.
@@ -68,10 +68,10 @@ func (s *State) FeatHandCost(p uint8, o Obj) (kop.ManaCost, bool) {
 }
 
 // FeatResolving reports whether the pending decision is asked inside a resolution.
-// A held free cast counts: gorge makes it there, where the kernel makes it just after
-// (act_discoverfreecast.go).
+// A held free cast and a queued as-enters choice count: gorge makes them there, where
+// the kernel makes them just after (act_discoverfreecast.go, turn_gen.go).
 func (s *State) FeatResolving() bool {
-	return s.ctl == ctlResolve || s.g.pre.state == 1 || s.ctl == ctlGenAsk && s.g.ctlRet == ctlResolve || s.g.hold
+	return s.ctl == ctlResolve || s.g.pre.state == 1 || s.ctl == ctlGenAsk && (s.g.ctlRet == ctlResolve || s.g.priSave != 0) || s.g.hold
 }
 
 // FeatLifeThisTurn is what p gained and lost this turn.

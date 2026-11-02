@@ -31,8 +31,10 @@ type board struct {
 	nstack   uint8
 	// resolving: the last decision was asked inside a resolution.
 	resolving bool
-	// landOpen is the active seat's land drop as of now, and the other seat's as of
-	// the end of its own turn, as gorge's count stands until its next untap.
+	// divided: the last decision divided combat damage, so that damage has been dealt.
+	divided bool
+	// landOpen is each seat's land drop as of now: gorge counts a seat's lands until its
+	// next turn (Game.landsPlayed).
 	landOpen [2]bool
 }
 
@@ -164,7 +166,9 @@ func (g *Game) noteTally(before *[dirac.MaxObj]kop.Zone, turn int32) {
 		po := &g.kp.Objs[o]
 		switch {
 		case po.Zone == kop.ZoneStack && before[o] != kop.ZoneStack:
-			g.tally[po.Ctrl&1].spells++
+			if !g.s.FeatStackCopy(dirac.Obj(o)) { // not cast (CR 707.10)
+				g.tally[po.Ctrl&1].spells++
+			}
 		case g.building == dirac.Obj(o) && before[o] == kop.ZoneStack && po.Zone != kop.ZoneStack && g.tally[po.Ctrl&1].spells > 0:
 			g.tally[po.Ctrl&1].spells-- // the proposal was reversed
 		case po.Token && before[o] == kop.ZoneNone && po.Zone != kop.ZoneNone:
@@ -182,8 +186,8 @@ func (g *Game) boardRenames() {
 	b := &g.board
 	for i := 0; i < int(g.kp.NObj); i++ {
 		po := &g.kp.Objs[i]
-		if po.Zone != kop.ZoneBattlefield || po.Attached == dirac.NoObj {
-			continue
+		if po.Zone != kop.ZoneBattlefield || po.Attached == dirac.NoObj || g.kp.Objs[po.Attached].Zone != kop.ZoneBattlefield {
+			continue // an Aura whose host has left waits on state-based actions, and sets it nothing
 		}
 		f := g.face(po.Card)
 		if f == nil {
@@ -318,10 +322,10 @@ func (g *Game) boardGame() {
 	case g.d.Sub == dirac.ChDivide && (!g.passed || stepOf[kp.Step] == stepOf[b.step]):
 		// a combat damage division comes before the step gives anyone priority, and
 		// the second one follows the first-strike round without it moving
-	case kp.Step != b.step || !b.seen || (g.passed || b.resolving) && !g.s.FeatResolving():
+	case kp.Step != b.step || !b.seen || b.divided || (g.passed || b.resolving) && !g.s.FeatResolving():
 		b.prio = state.PlayerID(kp.Active)
 	}
-	b.step, b.seen, b.resolving = kp.Step, true, g.s.FeatResolving()
+	b.step, b.seen, b.resolving, b.divided = kp.Step, true, g.s.FeatResolving(), g.d.Sub == dirac.ChDivide
 	gm.Priority = b.prio
 	// a kernel stopped at a limit reads as over, but the game has no result
 	over := kp.Over && g.stalled == 0
@@ -340,8 +344,11 @@ func (g *Game) boardGame() {
 	for p := range gm.Players {
 		pl := &gm.Players[p]
 		pl.Life = int32(kp.Life[p])
-		if uint8(p) == kp.Active && kp.Turn > 0 {
-			b.landOpen[p] = g.s.FeatLandDropOpen(uint8(p))
+		if kp.Turn > 0 {
+			if uint8(p) == kp.Active {
+				g.landsPlayed[p] = kp.Lands[p]
+			}
+			b.landOpen[p] = g.landsPlayed[p] < g.s.FeatLandLimit(uint8(p))
 		}
 		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
 		pl.LandsPlayed = 0
@@ -543,6 +550,11 @@ func (g *Game) stackSA(e *dirac.ProjStack) *cards.SA {
 	}
 	if sa := g.reflexiveSA(e.Card); sa != nil {
 		return sa
+	}
+	if e.Kind == 1 {
+		if _, sa := g.grantedSA(e.Card, e.Ability); sa != nil {
+			return sa
+		}
 	}
 	return latentSA
 }

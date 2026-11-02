@@ -37,6 +37,16 @@ func (s *State) isSpellCopy(o Obj) bool {
 	return s.objs[o].of&(ofCopy|ofToken) == ofCopy
 }
 
+// FeatStackCopy reports whether stack object o is a copy of a spell put there
+// without being cast. A copy that is cast (cast_copycast.go) is a free cast.
+func (s *State) FeatStackCopy(o Obj) bool {
+	if !s.isSpellCopy(o) {
+		return false
+	}
+	e := s.spellEntryOf(o)
+	return e != nil && e.flags&sfFree == 0
+}
+
 // execCopySpell runs OpCopySpell (stalling the game at capacity); false: a
 // copy's election is posed.
 func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {

@@ -3,6 +3,7 @@ package adapter
 import (
 	"math/bits"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -326,27 +327,107 @@ func (b *board) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 	for i := range d.PaymentActions {
 		a := &d.PaymentActions[i]
 		mode := a.Cast.CastMode()
-		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: castLabel(a.Label, mode), Mode: mode})
+		out = append(out, decision.PotentialAction{Kind: "cast", Obj: a.Cast.Object, Label: b.castLabel(a.Cast.Object, a.Label, mode, 0), Mode: mode})
 	}
 	return out
 }
 
-// castLabel words a cast, with the cost it is cast for.
-func castLabel(name, mode string) string {
-	if mode == "" {
-		return "Cast " + name
+// castLabel words a cast as gorge's priority walk does: the face cast, and what it
+// is cast for unless that is the card's own cost or the only permission to cast it.
+func (b *board) castLabel(obj state.ObjID, name, mode string, alt int) string {
+	switch mode {
+	case "", "mayplay":
+		switch alt {
+		case 0:
+			if text := b.mayPlayText(obj, mode); text != "" {
+				return "Cast " + name + " (" + text + ")"
+			}
+			return "Cast " + name
+		case 1:
+			return "Cast " + name + " (alternative cost)"
+		}
+		return "Cast " + name + " (alternative cost " + strconv.Itoa(alt) + ")"
+	case "modal_spell", "adventure_alt", "split_alt", "room_alt", "omen_alt":
+		return "Cast " + b.otherFace(obj, name)
+	case "aftermath":
+		return "Cast " + b.otherFace(obj, name) + " (aftermath)"
+	case "fuse":
+		return "Cast " + name + " // " + b.otherFace(obj, name) + " (fused)"
+	case "foretell":
+		return "Foretell " + name
+	case "plot":
+		return "Plot " + name
 	}
-	return "Cast " + name + " (" + mode + ")"
+	return "Cast " + name + " (" + castWord(mode) + ")"
+}
+
+// mayPlayText is the name a typed permission gives a may-play cast (MayPlayText$).
+func (b *board) mayPlayText(obj state.ObjID, mode string) string {
+	g := b.game
+	if mode != "mayplay" {
+		return ""
+	}
+	c, nth, ok := g.s.FeatMayPlayTyped(g.d.Player, dirac.Obj(g.RefOf(obj)))
+	if !ok {
+		return ""
+	}
+	f := g.face(c)
+	if f == nil {
+		return ""
+	}
+	for i := range f.Statics {
+		if f.Statics[i].ParamStr(cards.PKMayPlay) == "" {
+			continue
+		}
+		if nth == 0 {
+			return f.Statics[i].ParamStr(cards.PKMayPlayText)
+		}
+		nth--
+	}
+	return ""
+}
+
+// castWord is the word gorge's priority walk has for a cast mode.
+func castWord(mode string) string {
+	switch mode {
+	case "adventure_recast":
+		return "from adventure zone"
+	case "warp_recast":
+		return "from warp exile"
+	case "morphed", "megamorphed", "disguised":
+		return "face down"
+	case "plot_cast":
+		return "plotted"
+	case "prepared_copy":
+		return "prepared"
+	case "airbend_cast":
+		return "airbent"
+	}
+	return mode
+}
+
+// otherFace names the second face of obj's card.
+func (b *board) otherFace(obj state.ObjID, name string) string {
+	o := b.g.Obj(obj)
+	if o == nil || o.Card == nil || len(o.Card.Faces) < 2 {
+		return name
+	}
+	return o.Card.Faces[1].Name
 }
 
 // playLabel words a play the way a client lists what it could do.
 func (b *board) playLabel(o *decision.Option) string {
 	switch o.Kind {
 	case "cast":
-		return castLabel(o.Label, o.Mode)
+		return b.castLabel(o.Obj, o.Label, o.Mode, o.AltCostIndex)
 	case "play_land":
 		return "Play " + o.Label
 	case "ability":
+		if o.GrantSource != 0 {
+			if sa := cards.ResolveSVar(b.g.Obj(o.GrantSource).Face().SVars, o.SVar); sa != nil {
+				return o.Label + ": " + sa.ParamStr(cards.PKSpellDescription)
+			}
+		}
 		if obj := b.g.Obj(o.Obj); obj != nil && obj.Face() != nil && o.Ability < len(obj.Face().Abilities) {
 			if d := obj.Face().Abilities[o.Ability].ParamStr(cards.PKSpellDescription); d != "" {
 				return o.Label + ": " + d

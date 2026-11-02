@@ -40,6 +40,7 @@ type entry struct {
 }
 
 func (g *Game) posePriority() {
+	g.targets = targetSlot{} // a later ability from one source asks from its first target again
 	p := g.d.Player
 	d := g.pend
 	d.Kind = decision.KPriority
@@ -99,7 +100,13 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		e.key = zidx << 8
 	case canon.ActActivate:
 		e.opt.Kind, e.opt.Ability = "ability", int(c.Mode())
-		if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
+		if x.Mode()&0x80 != 0 { // a granted ability has no index of its own (rules' Option.SVar)
+			e.opt.Ability = 0
+			if name, sa := g.grantedSA(g.kp.Objs[x.Target()].Card, x.Mode()&^0x80); sa != nil {
+				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(x.Target())
+				e.opt.Cost = offerCost(sa)
+			}
+		} else if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
 			e.opt.Cost = offerCost(sa)
 			e.opt.Loyalty = loyaltyOf(sa, e.opt.Cost)
 		}
@@ -296,11 +303,12 @@ func (g *Game) poseAsk() {
 		d.Kind, d.Prompt = decision.KTriggerOptional, "Use this trigger?"
 	case canon.DArrange:
 		d.Kind, d.Prompt = decision.KArrange, "Arrange"
-		d.Restable = true
 		d.Min, d.Max = 0, n
 		kind := g.arrangeKind()
 		if kind == "dig_bottom" {
 			d.Min = n
+		} else {
+			d.Restable = true // a scry or surveil's other pile has an order of its own
 		}
 		for i := range d.Options {
 			d.Options[i].Kind = kind

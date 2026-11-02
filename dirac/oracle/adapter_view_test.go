@@ -178,7 +178,7 @@ func onlyServedPotential(gv, sv any) {
 	gp, sp := gv.(map[string]any)["players"].([]any), sv.(map[string]any)["players"].([]any)
 	key := func(x any) string {
 		m := x.(map[string]any)
-		return fmt.Sprint(m["kind"], m["obj"], m["mode"], m["ability"])
+		return fmt.Sprint(m["kind"], m["obj"], m["mode"], m["ability"], m["label"])
 	}
 	for i := range gp {
 		gl, ok := gp[i].(map[string]any)["potential_actions"].([]any)

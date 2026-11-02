@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -41,6 +42,35 @@ func (g *Game) faceSA(c dirac.CardID, gi uint8) *cards.SA {
 		return nil
 	}
 	return canon.FaceSA(f, gi)
+}
+
+// grantedSA is activated ability ab of card c, which c's statics grant to another
+// permanent, and the SVar that names it: the kernel lists them on the card in the
+// order the statics do.
+func (g *Game) grantedSA(c dirac.CardID, ab uint8) (string, *cards.SA) {
+	f := g.face(c)
+	if f == nil || int(ab) >= len(g.tbl.Cards[c].Abilities) {
+		return "", nil
+	}
+	n := 0
+	for _, a := range g.tbl.Cards[c].Abilities[:ab] {
+		if a.Kind == kop.AbActivated && a.AFlags&kop.AfLatent != 0 {
+			n++
+		}
+	}
+	for i := range f.Statics {
+		for _, name := range strings.Split(f.Statics[i].ParamStr(cards.PKAddAbility), " & ") {
+			sa := cards.ResolveSVar(f.SVars, name)
+			if sa == nil || sa.Kind != "AB" || cards.IsManaAbilitySA(sa) {
+				continue
+			}
+			if n == 0 {
+				return name, sa
+			}
+			n--
+		}
+	}
+	return "", nil
 }
 
 // cardName is a kernel object's display name.
