@@ -181,7 +181,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 611.2d | follows | `engine/effects/pump.go#effPump` | - | X fixed at resolution |
 | 611.2e | unknown | - | - | Valkyrie's Call return would test it |
 | 611.2f | unknown | - | - | - |
-| 611.3 | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | - | static-generated continuous effects |
+| 611.3 | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers_static.go#Engine.continuousGateHolds` | `TestBeamMeUpGrantHoldsInItsPhasesOnly` | static-generated continuous effects |
 | 611.3a | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` `engine/rules/layers.go#Engine.activeBuild` `engine/rules/layers_types.go#affectsZone` | `TestBattlefieldStaticGrantsPermanentsOnly` `TestEffectStaticZones` | statics re-read every derive; a static reaches permanents unless it names another zone |
 | 611.3b | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | - | source leaves: effect gone |
 | 611.3c | follows | `engine/rules/chars/derive.go#Compute` | - | no enter-then-change gap; derived on demand |

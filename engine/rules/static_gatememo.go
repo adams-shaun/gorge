@@ -120,7 +120,7 @@ func (e *Engine) staticGateHolds(sv staticView) bool {
 
 // staticGateDep classifies a gate's read set (see the constants).
 func (e *Engine) staticGateDep(sv staticView) uint8 {
-	if sv.HasParam(cards.PKIsPresent) || sv.HasParam(cards.PKIsPresent2) || sv.HasParam(cards.PKClassBand) {
+	if sv.HasParam(cards.PKIsPresent) || sv.HasParam(cards.PKIsPresent2) || sv.HasParam(cards.PKClassBand) || sv.HasParam(cards.PKPhases) {
 		return staticGateDepAny
 	}
 	cond, hasCond := sv.Param(cards.PKCondition)
