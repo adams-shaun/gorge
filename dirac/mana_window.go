@@ -173,6 +173,9 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.windowFiltFirst(k, p, sl, useful) // mana_filterfirst.go
 				continue
 			}
+			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
+				continue
+			}
 			s.tapWindowGap(k, p, sl, &held)
 			continue
 		}
@@ -427,6 +430,42 @@ func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 func (s *State) tapWindowGap(k *prep, p uint8, sl Slot, held *[kop.NumManaKinds]uint8) {
 	var into [kop.NumManaKinds]uint8
 	s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &into)
+}
+
+// windowGapAnyColour taps a restricted source of several colours (Gideon's Memorial)
+// for the colour gorge's ask answers: the ask lists what the clamp keeps
+// (paymentUsefulColours), the answer is what an announced pip still owes, else the
+// lowest listed. The mana floats beside the pool. It reports whether sl is such a source.
+func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool) bool {
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&gfRestr == 0 || !s.windowRestr(k, p).has(sl) {
+		return false
+	}
+	ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
+	mask := uint8(ab.ManaColors)
+	if bits.OnesCount8(mask) < 2 {
+		return false
+	}
+	if clamp {
+		if want, decided := s.windowUseful(p, useful); decided && mask&want != 0 {
+			mask &= want
+		}
+	}
+	col := bits.TrailingZeros8(mask)
+	if !noOwed {
+		for i := 0; i < 5; i++ {
+			if mask&(1<<i) != 0 && cost.Pips[i] > s.pl[p].pool[i] {
+				col = i
+				break
+			}
+		}
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, max(ab.ManaN, 1)) {
+		s.capFull(StallRestrSrc)
+	}
+	return true
 }
 
 // windowAffords: gorge's mana window pays cost from p's sources counting
