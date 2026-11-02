@@ -224,6 +224,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	nc := 0
 	wide := !mix && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play)
 	mixWide := mix && s.scriptWide(k, p).any()
+	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
+	if s.cfg&cfgGorgeAutopay != 0 {
+		s.plainOptions(k, &real, availWalk)
+	}
 	var noWide Decision
 	if mixWide {
 		s.plainOptions(k, &noWide, availGaps|availNoWide) // (gorge's potential walk counts a wide source only for what its restriction admits)
@@ -233,6 +237,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		if !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || hasOption(d, a) || wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
+		}
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
+			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost) {
 			continue // gorge searches no prefix for a target-priced or modal cost

@@ -15,10 +15,11 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	for _, c := range []struct{ pool, name string }{
-		{"std-tla", "waterbend_min_taps_filter"},       // Barrels of Blasting Jelly adds nothing to what the window can pay
-		{"std-tla", "granted_cap_restricted_source"},   // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
-		{"std-fdn", "kicked_cast_granted_mana_prefix"}, // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
-		{"std-tdm", "neriv_departed_source_entered"},   // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
+		{"std-tla", "waterbend_min_taps_filter"},               // Barrels of Blasting Jelly adds nothing to what the window can pay
+		{"std-tla", "granted_cap_restricted_source"},           // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
+		{"std-blb", "script_cap_skips_sufficient_plain_casts"}, // Mind Spring and Mockingbird pay from the Islands: no prefix search spent before Pawpatch Recruit's offspring cast
+		{"std-fdn", "kicked_cast_granted_mana_prefix"},         // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
+		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
