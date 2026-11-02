@@ -15,7 +15,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	for _, c := range []struct{ pool, name string }{
-		{"std-tla", "waterbend_min_taps_filter"}, // Barrels of Blasting Jelly adds nothing to what the window can pay
+		{"std-tla", "waterbend_min_taps_filter"},     // Barrels of Blasting Jelly adds nothing to what the window can pay
+		{"std-tla", "granted_cap_restricted_source"}, // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

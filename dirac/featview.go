@@ -712,14 +712,9 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 	return cost
 }
 
-// affordsUngranted: p's pool and untapped printed mana sources (not ex)
-// afford cost.
-func (s *State) affordsUngranted(k *prep, p uint8, cost *kop.ManaCost, ex Slot) bool {
-	return s.affordsUngrantedFor(k, p, cost, ex, payDesc{class: pdNone})
-}
-
-// affordsUngrantedFor is affordsUngranted for the payment d describes: the
-// restricted sources it may spend count too (pdNone: none).
+// affordsUngrantedFor: p's pool and untapped printed mana sources (not ex) afford
+// cost, for the payment d describes: the restricted sources it may spend count
+// too (pdNone: none).
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
 	pl := &s.pl[p&1]

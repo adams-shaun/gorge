@@ -338,7 +338,7 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngranted(g.k, g.p, &g.cost, g.ex) {
+	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
 		return true
 	}
 	key := grantKey{tapped: t.tappedOf(g.p), pool: t.pl[g.p&1].pool}
@@ -464,7 +464,7 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d}
 	g.candidates(s)
 	if g.n == 0 {
-		return s.affordsUngranted(k, p, cost, ex)
+		return s.affordsUngrantedFor(k, p, cost, ex, d)
 	}
 	t := s.fork()
 	defer s.unfork()
