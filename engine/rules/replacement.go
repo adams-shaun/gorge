@@ -301,8 +301,10 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// A surveil's graveyard pile has already left the library's order when it
 	// moves (arrangeAnswerRecord's LibraryOrder comes first, a logged contract),
 	// so the walk cannot meet the card, and "from anywhere" is its own line.
-	if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && !sawEntrant && event == "Moved" {
-		if o := e.G.Obj(ev.Obj); o != nil && objectReplMask(o)&replEventBits[eventKind] != 0 && !slices.Contains(e.G.Zone(state.ZLibrary, o.Owner), ev.Obj) {
+	// A token's entry has no origin, which reads as the library too; it takes
+	// the token-entrant path below, and a card goes to the graveyard here.
+	if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && !sawEntrant && event == "Moved" {
+		if o := e.G.Obj(ev.Obj); o != nil && !o.IsToken && objectReplMask(o)&replEventBits[eventKind] != 0 && !slices.Contains(e.G.Zone(state.ZLibrary, o.Owner), ev.Obj) {
 			if f := e.replacementFace(ev.Obj, ev); f != nil {
 				for i := range f.Repls {
 					if r := &f.Repls[i]; replacementEventNameMatches(r.Event, event) && !movedLineRejects(r, ev.Obj, ev) && e.replacementMatches(*r, ev.Obj, ev) {
