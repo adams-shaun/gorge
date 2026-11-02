@@ -115,3 +115,18 @@ func TestBestowWitnessThatWouldEatItsEnchantTargetKeepsItLockstep(t *testing.T) 
 	t.Parallel()
 	poolReproPrefixLockstep(t, "bestow_witness_keeps_its_enchant_target", "pauper", Config{GorgeAutopaySurface: true}, 2)
 }
+
+// Lotleth Giant paid with two Wall of Roots, an Overgrown Battlement and a Saruli
+// Caretaker: the scripted Wall activations each return to priority, and a Wall whose
+// toughness reached 0 dies before the Battlement counts the creatures with defender.
+func TestWallOfRootsDiesBetweenScriptStepsLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "wall_of_roots_dies_between_script_steps", "pauper", Config{})
+}
+
+// Lotleth Giant paid with Tinder Wall and an Overgrown Battlement: the plan prices the
+// Battlement with the Wall beside it, so the Wall's sacrifice runs after the tap.
+func TestPlanSacrificeRunsAfterABoardReaderLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "plan_sacrifice_after_board_reader", "pauper", Config{GorgeAutopaySurface: true})
+}

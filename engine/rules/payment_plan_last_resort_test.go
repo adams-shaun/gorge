@@ -665,6 +665,9 @@ func TestPaymentPlanLastResortSearchMatchesOracle(t *testing.T) {
 				continue // phase 1 answers; covered by the ordinary oracle tests
 			}
 			want, _ := paymentPlanSearchOracleOver(e, 0, c, table, demand)
+			if want != nil {
+				pay.SacrificesLast(want) // the plan lists the steps that consume their source last
+			}
 			got := pay.PlanPaymentCost(asPayer(e), 0, paymentCast(spell), c, nil)
 			what := fmt.Sprintf("board %d life %d cost %+v", board, life, c)
 			if want == nil {
@@ -719,5 +722,28 @@ func TestPaymentPlanLastResortComboHalves(t *testing.T) {
 	lrOnlyPriorityAsked(t, e2, mark)
 	if life := e2.G.Players[0].Life; life != 19 || e2.G.Obj(spell2).Zone != state.ZStack {
 		t.Fatalf("life = %d, spell zone = %s; want 19 and the stack", life, e2.G.Obj(spell2).Zone)
+	}
+}
+
+// Overgrown Battlement makes {G} for each creature with defender, Tinder Wall among
+// them. The plan prices the Battlement with the Wall on the board, so the Wall's
+// sacrifice (listed first by unit order) must run after it: run first it leaves the
+// Battlement a mana short and the cast reverses.
+func TestPaymentPlanLastResortSacrificeRunsAfterAReaderOfTheBoard(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 12015, lrSpell("4"))
+	wall := lrCorpus(t, e, "Tinder Wall")
+	battlement := lrCorpus(t, e, "Overgrown Battlement")
+	lrAssertPlan(t, e, e.PlanCastPayment(0, paymentCast(spell)), []lrStep{
+		{battlement, decision.ManaAmount{0, 0, 0, 0, 2, 0}, nil},
+		{wall, decision.ManaAmount{0, 0, 0, 2, 0, 0}, &decision.PaymentConsequence{Sacrifice: true}},
+	})
+	_, mark := lrSubmit(t, e, spell)
+	lrOnlyPriorityAsked(t, e, mark)
+	if o := e.G.Obj(spell); o.Zone != state.ZStack {
+		t.Fatalf("spell zone = %s, want stack: the plan came up short", o.Zone)
+	}
+	if o := e.G.Obj(wall); o != nil && o.Zone == state.ZBattlefield {
+		t.Fatal("the Tinder Wall is still on the battlefield")
 	}
 }
