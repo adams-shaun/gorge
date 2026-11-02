@@ -334,6 +334,18 @@ type triggerKey struct {
 	// the cast face's same-index trigger. Zero for every ordinary read --
 	// the zero value keeps the field invisible to every existing key build.
 	Face uint8
+	// Grantor is the object whose static gave Source a granted line (Idx -1),
+	// set only on the limit key: two grants of one line are two abilities with
+	// their own once-per-turn memory (grantedLimitKey). Zero everywhere else.
+	Grantor state.ObjID
+}
+
+// grantedLimitKey is the once-per-turn and once-per-game memory of a line a
+// static grants to source, per recipient and per grantor: Forge
+// Card.addTriggerForStaticAbility stores one trigger per static, and counts its
+// activations on the recipient.
+func grantedLimitKey(source, grantor state.ObjID) triggerKey {
+	return triggerKey{Source: source, Idx: -1, Grantor: grantor}
 }
 
 // damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce/DamageAll

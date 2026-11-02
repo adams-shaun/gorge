@@ -801,9 +801,9 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // the effect names via TriggerGrantor (the animating card's table).
 //
 // Fire-count: like Ward and Dethrone, every granted trigger shares the
-// granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
-// once-per-turn memory, and maxTriggerFires (256) is generous enough that
-// the sharing cannot starve a legitimate fire. Like those two the walk is
+// granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, and
+// maxTriggerFires (256) is generous enough that the sharing cannot starve a
+// legitimate fire. Once-per-turn memory is grantedLimitKey's. Like those two the walk is
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
 // split/leaving are the face walk's two passes, passed through so the
@@ -887,6 +887,11 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				if !e.grantedDamageBatchAdmits(t, &gf.Face.Triggers[ti], triggerKey{Source: id, Idx: ti}, ce.Timestamp, id, ev) {
 					continue
 				}
+				limitKey := grantedLimitKey(id, gf.Obj)
+				if !e.triggerGameActivationLimitAllows(t, limitKey) || !e.triggerActivationLimitAllows(t, limitKey) {
+					continue
+				}
+				e.reserveTriggerLimits(t, limitKey)
 				key := triggerKey{Source: id, Idx: -1}
 				tc := observer.triggerReferents(t, id, ev, objLKI)
 				pt := pendingTrigger{
@@ -977,6 +982,14 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		if !e.grantedDamageBatchAdmits(t, ce.AddTrigger, key, ce.Timestamp, id, ev) {
 			continue
 		}
+		// "This ability triggers only once each turn" on a granted line
+		// (Hollowmurk Siege, Well Rested): the same two gates a printed line
+		// passes, read after every other gate so a rejected match spends no use.
+		limitKey := grantedLimitKey(id, grantorID)
+		if !e.triggerGameActivationLimitAllows(t, limitKey) || !e.triggerActivationLimitAllows(t, limitKey) {
+			continue
+		}
+		e.reserveTriggerLimits(t, limitKey)
 		tc := observer.triggerReferents(t, id, ev, objLKI)
 		pt := pendingTrigger{
 			Source:       id,
