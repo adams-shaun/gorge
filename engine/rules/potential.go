@@ -494,7 +494,9 @@ func (e *Engine) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 	// open extra legal-action walks. Without a built decision, payability stays
 	// unknown and the affordance remains visible.
 	var unpayable map[state.ObjID]struct{}
+	var unpayablePlays []decision.PotentialAction
 	if e.pending != nil && e.pending.Kind == decision.KPriority && e.pending.Acting() == p {
+		unpayablePlays = e.pending.PotentialUnpayablePlays
 		unpayable = make(map[state.ObjID]struct{}, len(e.pending.PotentialUnpayableCasts))
 		for _, id := range e.pending.PotentialUnpayableCasts {
 			unpayable[id] = struct{}{}
@@ -513,6 +515,12 @@ func (e *Engine) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 				no := false
 				a.Payable = &no
 			}
+		}
+		if slices.ContainsFunc(unpayablePlays, func(u decision.PotentialAction) bool {
+			return u.Kind == a.Kind && u.Obj == a.Obj && u.Ability == a.Ability && u.Mode == a.Mode
+		}) {
+			no := false
+			a.Payable = &no
 		}
 		out = append(out, a)
 	}

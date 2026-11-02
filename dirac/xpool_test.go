@@ -53,14 +53,10 @@ func TestXAskCountsPoolAndWindow(t *testing.T) {
 	t.Fatal("no X ask")
 }
 
-// TestTargetReducedFlashbackNeedsPool: Luminous Rebuke granted flashback
-// (Sphinx of Forgotten Lore) costs {1}{W} against a tapped creature, but
-// gorge's planners never price a target-conditional reduction
-// ("shape:target_dependent_cost"); its potential planner prices the full
-// {4}{W} only. So under gorge's payment surfaces the cast four untapped
-// Plains pay only through the reduction is offered only when the floating
-// pool pays it (pair 13571). Before, the kernel offered it from the lands.
-func TestTargetReducedFlashbackNeedsPool(t *testing.T) {
+// TestTargetReducedFlashbackOffered: Luminous Rebuke granted flashback (Sphinx of
+// Forgotten Lore) costs {1}{W} against a tapped creature (CR 601.2f), so four
+// untapped Plains or {W}{W} floating pay it under gorge's payment surfaces.
+func TestTargetReducedFlashbackOffered(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Luminous Rebuke", Count: 1}, {Name: "Savannah Lions", Count: 1}, {Name: "Sphinx of Forgotten Lore", Count: 1}, {Name: "Plains", Count: 8}}
 	set := cardsettest.Set(t, "fdn")
 	for _, e := range deck {
@@ -97,8 +93,8 @@ func TestTargetReducedFlashbackNeedsPool(t *testing.T) {
 				got = true
 			}
 		}
-		if got != pool {
-			t.Fatalf("pool {W}{W} floating %v: flashback Luminous Rebuke offered %v, want %v", pool, got, pool)
+		if !got {
+			t.Fatalf("pool {W}{W} floating %v: flashback Luminous Rebuke is not offered", pool)
 		}
 	}
 }

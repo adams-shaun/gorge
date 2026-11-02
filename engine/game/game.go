@@ -48,6 +48,12 @@ type PaymentPlanner interface {
 	ValidateCastAnnounce(p state.PlayerID, cast decision.PlannedCast) error
 }
 
+// PotentialProver is a game that can prove which of a seat's potential plays it
+// cannot pay (rules.Engine.EnsurePotentialProofs).
+type PotentialProver interface {
+	EnsurePotentialProofs()
+}
+
 // Facts is what an observation reports of an object's characteristics.
 type Facts struct {
 	Name             string

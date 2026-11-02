@@ -280,6 +280,42 @@ func TestLoweredCastPaysAltAddThroughWindow(t *testing.T) {
 	}
 }
 
+// TestLoweredEitherOrManaPart: with no creature to sacrifice, Eaten Alive from the
+// hand is offered once five lands pay {B} and the {3}{B} part (CR 601.2f), and the
+// witness taps all of them; four lands do not pay it.
+func TestLoweredEitherOrManaPart(t *testing.T) {
+	for _, lands := range []int{4, 5} {
+		sc, id := newObjScen(t, []cardset.Entry{{Name: "Eaten Alive", Count: 1}, {Name: "Swamp", Count: 8}, {Name: "Burglar Rat", Count: 1}})
+		sc.s.cfg |= cfgGorgeLowering
+		var swamps []Obj
+		for i := 0; i < lands; i++ {
+			swamps = append(swamps, sc.perm(id["Swamp"], 0))
+		}
+		sc.perm(id["Burglar Rat"], 1)
+		ea := sc.obj(id["Eaten Alive"], 0)
+		sc.s.place(ea, kop.ZoneHand, false)
+		d := sc.s.Step()
+		var cast Action
+		for i := 0; i < int(d.N); i++ {
+			if a := d.Options[i]; a.Kind() == AkCast && a.Source() == uint8(ea) {
+				cast = a
+			}
+		}
+		if (cast != 0) != (lands == 5) {
+			t.Fatalf("%d lands: offered %v: %v", lands, cast != 0, d.Options[:d.N])
+		}
+		if cast == 0 {
+			continue
+		}
+		sc.s.Apply(cast)
+		for _, o := range swamps {
+			if sc.s.perms[sc.s.objs[o].slot].flags&pfTapped == 0 {
+				t.Fatalf("Swamp %d is untapped after the cast", o)
+			}
+		}
+	}
+}
+
 // TestLoweredStashCastPaysThroughWindow: the same for a Tinybones stash
 // cast of the opponent's Eaten Alive (mana of any type): the lowered cast
 // taps no printed-symbol plan at payment (tapPrinted is for a planned

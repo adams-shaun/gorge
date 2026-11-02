@@ -268,12 +268,10 @@ func TestPrintedFlashbackPlanned(t *testing.T) {
 	t.Fatalf("Think Twice's printed flashback not offered: %v", d.Options[:d.N])
 }
 
-// TestStashRebukePoolFullCost: under the oracle surface a Luminous Rebuke
-// cast from Tinybones' stash is offered from the floating pool only when
-// the pool pays its full cost: gorge prices the target-conditional
-// reduction with no target (pair 84909: W U B floating, a tapped creature
-// to target; 36a7b30 offered it at {1}{W}).
-func TestStashRebukePoolFullCost(t *testing.T) {
+// TestStashRebukeCheapestTarget: a Luminous Rebuke cast from Tinybones' stash is
+// priced at its cheapest legal target (CR 601.2f): W U B floating and a tapped
+// creature to target pay {1}{W} under the rider.
+func TestStashRebukeCheapestTarget(t *testing.T) {
 	sc, id := newObjScen(t, []cardset.Entry{{Name: "Luminous Rebuke", Count: 1}, {Name: "Tinybones, Bauble Burglar", Count: 1}, {Name: "Burglar Rat", Count: 1}, {Name: "Plains", Count: 8}})
 	sc.s.cfg |= cfgGorgeAutopay
 	sc.perm(id["Tinybones, Bauble Burglar"], 0)
@@ -286,9 +284,10 @@ func TestStashRebukePoolFullCost(t *testing.T) {
 	d := sc.s.Step()
 	for _, a := range d.Options[:d.N] {
 		if a.Kind() == AkCast && a.Source() == uint8(lr) {
-			t.Fatalf("the stashed Luminous Rebuke is offered from a three-mana pool: %v", d.Options[:d.N])
+			return
 		}
 	}
+	t.Fatalf("the stashed Luminous Rebuke is not offered from a three-mana pool: %v", d.Options[:d.N])
 }
 
 // TestStashCastRiderPlansEverySource: under the rider Dreadwing Scavenger's

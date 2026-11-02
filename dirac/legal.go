@@ -210,22 +210,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
-		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && !s.FeatPoolPays(p, o, 2) {
-			// gorge's potential planner prices a target-conditional
-			// reduction with no target (the full cost, lowered: pairs 2770
-			// 7576); a cast only the reduction makes affordable is
-			// "shape:target_dependent_cost", offered only when the
-			// floating pool pays it (Luminous Rebuke; pair 13571)
-			s.g.noTgtRed = true
-			full := s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
-			if !granted {
-				full = s.adjustCost(k, p, c, o, k.t.Cards[c].AltCost)
-			}
-			s.g.noTgtRed = false
-			if !av.affords(&full, pipMaskOf(&full), 0) {
-				continue
-			}
-		}
 		d.add(MakeAction(AkCast, uint8(o), 0, 2))
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
@@ -641,10 +625,9 @@ func (s *State) gorgeOffersMay(p uint8, o Obj) bool {
 // composed cost (rules potentialModeCastPlan), and the cast is offered
 // once that witness is tapped (potentialWitnessOffers). For a
 // target-conditional reduction (Luminous Rebuke) the composition prices
-// no target, so the full cost must be affordable. For an either-or
-// additional cost (Eaten Alive) it prices the spell's mana cost alone, and
-// gorge's offer gate then needs a part the floating pool pays in full:
-// one with no mana whose picks can be paid (a creature to sacrifice).
+// the cheapest legal target. For an either-or additional cost (Eaten Alive)
+// it prices the spell's mana cost alone when a part with no mana can be paid
+// (a creature to sacrifice), and otherwise with a part that has mana.
 func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
@@ -662,10 +645,18 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		return true
 	}
 	if cd.HasAltAdd {
-		ac := spellAddCost(k, c)
-		part := manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) ||
-			manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj)
-		return part && s.plannerPaysCast(k, p, c, o)
+		base := k.cards[c].cost
+		if !s.altAddFreePart(k, p, c, o) {
+			base = addCost(base, s.altAddManaPart(k, c))
+		}
+		cost := s.featCost(k, p, c, o, base)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		if s.g.availX&availGaps != 0 {
+			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
+		}
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
@@ -681,9 +672,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if tgtDepCost(a) {
-			s.g.noTgtRed = true
 			cost := s.featCost(k, p, c, o, k.cards[c].cost)
-			s.g.noTgtRed = false
 			if k.gen != nil && len(k.gen.grantPC) != 0 {
 				// the planner's census has no granted source (Imprisoned in the Moon's {C})
 				return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
@@ -698,6 +687,23 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 }
 
 func manaEmpty(m *kop.ManaCost) bool { return m.MV() == 0 && m.X == 0 }
+
+// altAddFreePart: card c's either-or additional cost has a part with no mana
+// that can be paid (a creature to sacrifice).
+func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
+	cd := &k.t.Cards[c]
+	ac := spellAddCost(k, c)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj)
+}
+
+// altAddManaPart is the mana of card c's either-or additional cost part that has any.
+func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
+	if ac := spellAddCost(k, c); !manaEmpty(&ac.Mana) {
+		return ac.Mana
+	}
+	return k.t.Cards[c].AltAddCost.Mana
+}
 
 // altAddCastable: a spell with an either-or additional cost has a part
 // that can be paid in full -- its picks, and the spell's mana cost with

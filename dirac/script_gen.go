@@ -235,7 +235,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			continue
 		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost) {
-			continue // "shape:target_dependent_cost" and "shape:modal_cost" aren't insufficient: gorge searches no prefix for them
+			continue // gorge searches no prefix for a target-priced or modal cost
 		}
 		kk := s.walkKey(a, p, i)
 		j := nc

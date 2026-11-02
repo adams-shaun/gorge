@@ -160,11 +160,11 @@ const LATER_KINDS: ReadonlySet<string> = new Set(['ability', 'granted', 'unlock'
  * LATER_KINDS entry is indexed, plus hand casts with no live cast option or
  * payment action, so the float-gated plan-less cast is discoverable.
  *
- * A hand cast the ENGINE has proved unpayable
+ * A play the ENGINE has proved unpayable
  * (PotentialAction.payable === false, projected by
  * rules.Engine.PotentialActions) is never
- * indexed -- its "tap other mana first" row promised a tapped-out cast no
- * amount of tapping could reach. The verdict is the server's own; the client
+ * indexed -- its "tap other mana first" row would promise what no
+ * amount of tapping can reach. The verdict is the server's own; the client
  * must not re-derive affordability from mana_cost (castable.ts).
  */
 export function laterByObj(
@@ -179,7 +179,7 @@ export function laterByObj(
   for (const a of potential) {
     const handCast = a.kind === 'cast' && a.obj !== undefined && hand?.has(a.obj) === true;
     if ((!LATER_KINDS.has(a.kind) && !handCast) || a.obj === undefined) continue;
-    if (handCast && a.payable === false) continue;
+    if (a.payable === false) continue;
     if (handCast && decision.payment_actions?.some((action) => action.cast.object === a.obj)) continue;
     // An object with no live option is indexed too —
     // that is the Equipment case. An entry the decision already offers live

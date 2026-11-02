@@ -42,6 +42,8 @@ func (g Game) Caps() game.Caps { return Engine{}.Caps() }
 
 func (g Game) EnsurePaymentActions() { g.E.EnsurePaymentActions() }
 
+func (g Game) EnsurePotentialProofs() { g.E.EnsurePotentialProofs() }
+
 func (g Game) EnsureTargetHints() { g.E.EnsureTargetHints() }
 
 func (g Game) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast, plan decision.PaymentPlan) error {

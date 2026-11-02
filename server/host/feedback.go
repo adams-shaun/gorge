@@ -302,7 +302,7 @@ func snapshotOf(id TableID, m *match, seat *state.PlayerID) (FeedbackSnapshot, e
 	if p := m.g.Pending(); p != nil {
 		if seat != nil && m.table.cfg.AutoMana && p.Player == *seat && int(p.Player) < len(m.slots) {
 			if _, isHuman := m.slots[p.Player].(*HumanSeat); isHuman {
-				m.ensurePaymentActions()
+				m.ensureHumanOffers()
 			}
 		}
 		cp := *p.Clone()

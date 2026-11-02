@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"slices"
 	"strconv"
 	"strings"
@@ -323,14 +324,7 @@ func altAddCostParts(f *cards.Face) []string {
 	if !ok {
 		return nil
 	}
-	parts := strings.Split(param, ":")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
+	return costvocab.AltAddParts(param)
 }
 
 func harmonizeCost(f *cards.Face) (Cost, bool) {

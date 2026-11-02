@@ -153,9 +153,11 @@ func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID,
 }
 
 // tgtDepCost: a is a cost static whose application waits for the chosen
-// target (a ReduceCost or RaiseCost with a ValidTarget$). gorge's payment
+// target (a ReduceCost or RaiseCost with a ValidTarget$). gorge's cast
 // planner declines such a cast's witness ("shape:target_dependent_cost",
-// paymentPlanTargetDependentFor reads the RaiseCost group too).
+// paymentPlanTargetDependentFor reads the RaiseCost group too), and its
+// potential planner prices one from the composed cost (gorgeLowers,
+// witnessAtCheapest).
 func tgtDepCost(a *kop.Ability) bool {
 	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatIncreaseCost) &&
 		a.Static.StFlags&kop.StTargetsFilter2 != 0

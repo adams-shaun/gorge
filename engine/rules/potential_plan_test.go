@@ -468,3 +468,136 @@ func TestCastPlanLeavesTheArtifactItsCostSacrifices(t *testing.T) {
 		}
 	}
 }
+
+// ppCheckWitness wants a witness of taps sources for the plain cast of spell, or
+// with taps 0, no way to pay it: a proof, or not listed at all.
+func ppCheckWitness(t *testing.T, e *Engine, spell state.ObjID, taps int) {
+	t.Helper()
+	for _, pp := range e.PotentialPaymentPlans(0) {
+		if pp.Action.Kind != "cast" || pp.Action.Obj != spell {
+			continue
+		}
+		switch {
+		case taps == 0 && pp.Reason != "insufficient":
+			t.Fatalf("verdict %q %q, want insufficient", pp.Reason, pp.Detail)
+		case taps != 0 && (pp.Plan == nil || pp.Reason != ""):
+			t.Fatalf("verdict %q %q with no witness", pp.Reason, pp.Detail)
+		case taps != 0 && len(pp.Plan.Activations) != taps:
+			t.Fatalf("witness taps %d sources, want %d", len(pp.Plan.Activations), taps)
+		}
+		return
+	}
+	if taps != 0 {
+		t.Fatal("the cast is not listed")
+	}
+}
+
+// ppLandFor is a land tapping for one colour.
+func ppLandFor(color string) string {
+	return "Name:Potential " + color + " Land\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ " + color +
+		" | SpellDescription$ Add {" + color + "}.\nOracle:x\n"
+}
+
+// ppCard reads a corpus card as a fixture script, from the fetched corpus.
+func ppCard(t *testing.T, name string) string {
+	t.Helper()
+	return corpusCardText(t, name)
+}
+
+// TestPotentialProofsCoverEveryPlayKind: one dual land cannot pay {1}{W}, an
+// ability's {2} or a flashback's {1}{W}, though the per-colour bound the walk
+// prices against covers them all (CR 106.1b: the land makes one mana). The proof
+// reaches the projection for each kind, and a play the land does pay keeps none.
+func TestPotentialProofsCoverEveryPlayKind(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9415, "Name:Potential Two\nManaCost:1 W\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	onBoard(t, e, 0, "Name:Potential Barrens\nTypes:Land\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ W | SpellDescription$ Add {W}.\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ B | SpellDescription$ Add {B}.\nOracle:x\n")
+	relic := onBoard(t, e, 0, "Name:Potential Tonic\nTypes:Artifact\n"+
+		"A:AB$ GainLife | Cost$ 2 | LifeAmount$ 3 | SpellDescription$ Gain 3 life.\nOracle:x\n")
+	cheap := onBoard(t, e, 0, "Name:Potential Sip\nTypes:Artifact\n"+
+		"A:AB$ GainLife | Cost$ 1 | LifeAmount$ 1 | SpellDescription$ Gain 1 life.\nOracle:x\n")
+	ppPriority(t, e)
+	proven := func(kind string, obj state.ObjID) bool {
+		t.Helper()
+		for _, a := range e.PotentialActions(0) {
+			if a.Kind == kind && a.Obj == obj {
+				return a.Payable != nil && !*a.Payable
+			}
+		}
+		t.Fatalf("no potential %s of %d", kind, obj)
+		return false
+	}
+	if proven("ability", relic) {
+		t.Fatal("an ability is marked before the proofs are built")
+	}
+	e.EnsurePotentialProofs()
+	if !proven("cast", spell) || !proven("ability", relic) {
+		t.Errorf("cast proven %v, ability proven %v, want both", proven("cast", spell), proven("ability", relic))
+	}
+	if proven("ability", cheap) {
+		t.Error("the {1} ability is payable from the land")
+	}
+}
+
+// TestPotentialPlanPricesTheCheapestTarget: CR 601.2f reads the chosen targets,
+// so a spell a legal target makes cheaper is priced at that target's cost.
+func TestPotentialPlanPricesTheCheapestTarget(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		lands  int
+		tapped bool
+		taps   int
+	}{
+		{"full price", 5, false, 5},
+		{"full price, a cheaper target ignored", 5, true, 5},
+		{"cheapest target", 2, true, 2},
+		{"no cheaper target", 4, false, 0},
+		{"too few for the cheapest", 1, true, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, spell := newFixtureDeck(t, 9416, ppCard(t, "l/luminous_rebuke.txt"))
+			for range tc.lands {
+				onBoard(t, e, 0, ppLandFor("W"))
+			}
+			target := onBoard(t, e, 1, "Name:Potential Beast\nManaCost:1\nTypes:Creature Beast\nPT:1/1\nOracle:x\n")
+			e.G.Obj(target).Tapped = tc.tapped
+			e.G.Step = state.StepMain1
+			ppPriority(t, e)
+			ppCheckWitness(t, e, spell, tc.taps)
+		})
+	}
+}
+
+// TestPotentialPlanPricesAnEitherOrCost: CR 601.2f, an either-or additional cost
+// is paid by whichever part the seat can pay: a creature to sacrifice, or mana.
+func TestPotentialPlanPricesAnEitherOrCost(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		lands    int
+		creature bool
+		taps     int
+	}{
+		{"sacrifice", 1, true, 1},
+		{"mana part", 5, false, 5},
+		{"neither", 4, false, 0},
+		{"not even the spell", 0, true, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, spell := newFixtureDeck(t, 9417, ppCard(t, "e/eaten_alive.txt"))
+			for range tc.lands {
+				onBoard(t, e, 0, ppLandFor("B"))
+			}
+			onBoard(t, e, 1, "Name:Potential Beast\nManaCost:1\nTypes:Creature Beast\nPT:1/1\nOracle:x\n")
+			if tc.creature {
+				onBoard(t, e, 0, "Name:Potential Goat\nManaCost:1\nTypes:Creature Goat\nPT:1/1\nOracle:x\n")
+			}
+			e.G.Step = state.StepMain1
+			ppPriority(t, e)
+			ppCheckWitness(t, e, spell, tc.taps)
+		})
+	}
+}

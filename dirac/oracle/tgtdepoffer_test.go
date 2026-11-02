@@ -7,9 +7,9 @@ import (
 )
 
 // A reduction that waits for the target leaves gorge's planner pricing the
-// full cost. When the sources its census can see do not pay that, the cast is
-// not one of its plays until the pool pays it: neither Hidden Grotto's filter
-// nor Imprisoned in the Moon's granted {C} makes it one.
+// full cost, and the cheapest legal target when the sources its census can see
+// do not pay that. Neither Hidden Grotto's filter nor Imprisoned in the Moon's
+// granted {C} is one of those sources.
 func TestTargetDependentCostOfferLockstep(t *testing.T) {
 	t.Parallel()
 	reg, _ := kcastSetup(t)

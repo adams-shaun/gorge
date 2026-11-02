@@ -1269,6 +1269,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		}
 	}
 	s.g.noTgtRed = false
+	s.witnessAtCheapest(k, p, &cost, &av)
 	if s.pl[p&1].poolR != 0 && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
@@ -1316,6 +1317,32 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	s.tapForRider(k, p, &cost, x, excl, anyColor)
 	s.witnessManaRestricted(k, p, &pool, untapped)
+}
+
+// witnessAtCheapest reprices a witness the printed composition cannot fund (rules
+// potentialModeCastPlan): a target-conditional reduction at the cheapest legal
+// target, and a hand cast's either-or additional cost with its part that has mana
+// when no part without mana can be paid.
+func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avail) {
+	e := &s.bld().e
+	if e.kind != seSpell {
+		return
+	}
+	cd := &k.t.Cards[e.card]
+	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
+		*cost = addCost(*cost, s.altAddManaPart(k, e.card))
+		return
+	}
+	if cardTgtDepCost(cd) && cost.Hyb[0] == 0 {
+		funded := av.affords(cost, pipMaskOf(cost), 0)
+		if k.gen != nil && len(k.gen.grantPC) != 0 {
+			// the planner's census has no granted source (Imprisoned in the Moon's {C})
+			funded = s.affordsUngrantedFor(k, p, cost, NoSlot, s.payDescNow(NoObj))
+		}
+		if !funded {
+			*cost = s.buildCost(k)
+		}
+	}
 }
 
 // availForBuilt is availFor for the spell being built, with the floating restricted

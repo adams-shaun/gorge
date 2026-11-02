@@ -87,6 +87,32 @@ type PotentialPlan struct {
 // A pure read: no event, no state write, no RNG draw. Determinism: zone-order
 // walks only; the maps below are lookups.
 func (e *Engine) PotentialPaymentPlans(p state.PlayerID) []PotentialPlan {
+	return e.potentialPlans(p, potentialScriptPlays)
+}
+
+// EnsurePotentialProofs records on the pending priority decision which of its
+// potential plays the planner proves unpayable, for PotentialActions to project
+// (PotentialAction.Payable). A host calls it for a seat that reads
+// potential_actions as what it can do: the walk prices every play, which a bot
+// reading its own plans has no use for. Like EnsurePaymentActions it is a pure
+// derived read that emits nothing, and it runs no prefix search: a play only a
+// script could pay is not a proof either way.
+func (e *Engine) EnsurePotentialProofs() {
+	d := e.pending
+	if d == nil || d.Kind != decision.KPriority || d.PotentialProofsBuilt {
+		return
+	}
+	d.PotentialUnpayablePlays = d.PotentialUnpayablePlays[:0]
+	for _, pp := range e.potentialPlans(d.Acting(), 0) {
+		if pp.Reason == pay.ReasonInsufficient {
+			d.PotentialUnpayablePlays = append(d.PotentialUnpayablePlays, pp.Action)
+		}
+	}
+	d.PotentialProofsBuilt = true
+}
+
+// potentialPlans is PotentialPaymentPlans with at most scriptPlays prefix searches.
+func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPlan {
 	if e.G.Over || int(p) < 0 || int(p) >= len(e.G.Players) {
 		return nil
 	}
@@ -155,7 +181,7 @@ func (e *Engine) PotentialPaymentPlans(p state.PlayerID) []PotentialPlan {
 						got = PaymentPlanOutcome{Reason: "insufficient", Detail: "relaxed_census"}
 					}
 				}
-				if got.Reason != "insufficient" && scripts < potentialScriptPlays {
+				if got.Reason != "insufficient" && scripts < scriptPlays && !e.potentialTargetPriced(p, o) {
 					// Payable, if at all, only through an uncovered source:
 					// search the activations of those sources on clones
 					// for a prefix after which the planner pays the play.
@@ -228,7 +254,8 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// sacrifice, a target-dependent price -- planned from its
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
-			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" {
+			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" ||
+				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -362,11 +389,14 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 	}
 	lo := base.XMin
 	best := plan(lo)
-	if best.Reason == "insufficient" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, id, scope) {
-		// A ValidTarget$ cost static may price this cast lower for some
-		// target (offerCastable's second pass); the composition above
-		// does not see it, so it proves nothing.
-		return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape:target_dependent_cost"}
+	if best.Reason == "insufficient" {
+		statics := e.collectCostStatics()
+		if e.paymentPlanTargetDependentFor(statics, p, id, scope) {
+			// A ValidTarget$ cost static may price this cast lower for some
+			// target (CR 601.2f reads the chosen targets; offerCastable's
+			// second pass).
+			return e.potentialTargetPricedPlan(statics, p, o, base, scope)
+		}
 	}
 	if best.Plan == nil || best.Reason != "" || len(e.PaymentPlanRelaxed) != 0 {
 		// No witness, or a relaxed proof run (which reads only whether the
@@ -389,9 +419,54 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		}
 	}
 	if !e.potentialWitnessOffers(p, o, *best.Plan) {
+		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
+			return e.potentialAltAddPlan(p, o, base, parts)
+		}
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return best
+}
+
+// potentialTargetPriced reports whether o is a cast a ValidTarget$ cost static may
+// price lower for some target. No prefix is searched for one: the search replays the
+// play's price, and a target's is not known until the targets are.
+func (e *Engine) potentialTargetPriced(p state.PlayerID, o decision.Option) bool {
+	return o.Kind == "cast" && e.paymentPlanTargetDependentFor(e.collectCostStatics(), p, o.Obj, spellScope(o.Mode))
+}
+
+// potentialTargetPricedPlan is a witness for a cast whose ValidTarget$ cost
+// statics price it lower for some legal target, tried one target at a time
+// (potentialCostModsUsing), or "insufficient" when no target's price is payable.
+// The target ask then keeps the targets the mana floated can pay for.
+func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.PlayerID, o decision.Option, base Cost, scope costScope) PaymentPlanOutcome {
+	got := PaymentPlanOutcome{Reason: "insufficient"}
+	e.potentialCostModsUsing(statics, p, o.Obj, scope, e.costPotentialTargets(p, o.Obj, scope), 0, func(m costMods) bool {
+		var c Cost
+		e.composedOfferCostInto(&c, p, o.Obj, &base, &m, scope)
+		got = e.planComposedCost(p, o.Obj, c, false, false)
+		return got.Plan != nil && got.Reason == ""
+	})
+	if got.Plan != nil && got.Reason == "" && len(e.PaymentPlanRelaxed) == 0 && !e.potentialWitnessOffers(p, o, *got.Plan) {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
+	}
+	return got
+}
+
+// potentialAltAddPlan is a witness for an either-or additional cost (CR 601.2f)
+// when the spell's own mana floated pays no part in full: its mana with a part
+// that has mana of its own. "insufficient" when no part is payable.
+func (e *Engine) potentialAltAddPlan(p state.PlayerID, o decision.Option, base Cost, parts []string) PaymentPlanOutcome {
+	for _, part := range parts {
+		c := ParseCost(part)
+		if !c.HasManaPayment() {
+			continue
+		}
+		got := e.planComposedCost(p, o.Obj, e.offerCostFor(p, o.Obj, base.Plus(c), spellScope(o.Mode)), false, false)
+		if got.Plan != nil && got.Reason == "" && e.potentialWitnessOffers(p, o, *got.Plan) {
+			return got
+		}
+	}
+	return PaymentPlanOutcome{Reason: "insufficient"}
 }
 
 // paymentPlanCensusTotal is the most mana a witness can hold: p's floating

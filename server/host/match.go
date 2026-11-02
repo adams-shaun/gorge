@@ -320,6 +320,15 @@ func (m *match) ensurePaymentActions() {
 	}
 }
 
+// ensureHumanOffers builds what a human seat on an auto-mana table reads of the
+// pending decision: its payment plans, and which listed plays cannot be paid.
+func (m *match) ensureHumanOffers() {
+	m.ensurePaymentActions()
+	if pp, ok := m.g.(game.PotentialProver); ok {
+		pp.EnsurePotentialProofs()
+	}
+}
+
 // turnStartsIn lists the seq of every TurnChange in evs[from:].
 func turnStartsIn(evs []events.Event, from int) []uint64 {
 	var out []uint64
@@ -593,6 +602,9 @@ func projectNextData(m *match, seats []seat.Seat, brd *botpolicy.Board) *parkedD
 	}
 	if wantsPlans {
 		m.ensurePaymentActions()
+	}
+	if isHuman && m.table.cfg.AutoMana {
+		m.ensureHumanOffers()
 	}
 	if c, ok := seats[d.Player].(seat.TargetHintConsumer); ok && c.WantsTargetHints() {
 		if pp, ok := m.g.(game.PaymentPlanner); ok {

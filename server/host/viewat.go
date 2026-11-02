@@ -81,7 +81,7 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 		if p := m.g.Pending(); p != nil {
 			if t.cfg.AutoMana && p.Player == player && int(p.Player) < len(m.slots) {
 				if _, isHuman := m.slots[p.Player].(*HumanSeat); isHuman {
-					m.ensurePaymentActions()
+					m.ensureHumanOffers()
 				}
 			}
 			cp := *p.Clone()
@@ -468,6 +468,13 @@ func viewAt(src replaySource, l *events.Log, snaps []snapshot, seq uint64, viewe
 	for i := from; i < j && i < len(l.Intents); i++ {
 		if err := g.Submit(l.Intents[i]); err != nil {
 			return view.View{}, fmt.Errorf("host: replay intent %d: %w", i, err)
+		}
+	}
+	if d != nil && d.PotentialProofsBuilt {
+		// potential_actions read the proofs off the engine they project from, and
+		// this replay's pending decision is its own.
+		if pp, ok := g.(game.PotentialProver); ok {
+			pp.EnsurePotentialProofs()
 		}
 	}
 	// A burst does not always end at its last
