@@ -130,3 +130,12 @@ func TestPlanSacrificeRunsAfterABoardReaderLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "plan_sacrifice_after_board_reader", "pauper", Config{GorgeAutopaySurface: true})
 }
+
+// Sagu Wildling beside a Wall of Roots at one toughness, an Overgrown Battlement, a
+// Swamp and a Forest: the Wall's counter kills it before the Battlement counts the
+// creatures with defender, so no chain of activations pays {4}{G} and gorge's prefix
+// search offers no plain cast.
+func TestWallOfRootsDeathLeavesTheCastUnofferedLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "wall_of_roots_dies_before_a_reader_prices_the_cast", "pauper", Config{})
+}

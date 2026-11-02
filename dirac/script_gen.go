@@ -167,7 +167,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			filt = f
 		}
 	}
-	tx := s.scriptTapXModelled(k, p)
+	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	if !s.scriptGaps(k, p).or(restr).or(anyR).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
@@ -363,7 +363,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if k.tapMana && s.tapXPrefix(k, a, p) {
+	if (k.tapMana || k.ctrMana) && s.tapXPrefix(k, a, p) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -398,6 +398,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	for i := 0; i < n && !hasOption(&d, a); i++ {
 		if ctr.has(order[i]) {
 			s.ctrGap(k, p, order[i]) // a Wall of Roots: its counter, its mana (mana_countercost.go)
+			s.sba(k)                 // the script returns to priority after the step
 		} else {
 			s.tapGap(k, p, order[i], restr, &held)
 		}

@@ -125,6 +125,19 @@ func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	}
 }
 
+// scriptCtrModelled is scriptCtr on the boards the search models: the counter-cost
+// source activates in the same prefix search as a tap-another-permanent one (rules
+// scriptSearch.visit tries every census gap in battlefield order, depth first), so a
+// play only a Wall of Roots pays is offered when some chain of activations pays it:
+// one the Wall's death before an Overgrown Battlement counts the defenders leaves
+// short is not.
+func (s *State) scriptCtrModelled(k *prep, p uint8) slotMask {
+	if !s.tapXBoard(k, p) {
+		return slotMask{}
+	}
+	return s.scriptCtr(k, p)
+}
+
 // tapXBoard: p's census gaps are tap-another-permanent and counter-cost
 // sources only, or a mix the filter search runs (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
@@ -136,7 +149,7 @@ func (s *State) tapXBoard(k *prep, p uint8) bool {
 //
 //go:noinline
 func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
-	if !s.scriptTapXModelled(k, p).any() {
+	if !s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).any() {
 		return false
 	}
 	var d Decision
@@ -193,7 +206,7 @@ type tapXSearch struct {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtr(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	t := s.fork()
 	defer s.unfork()
 	if !rs.settle(k, t, false) || rs.n == 0 {
