@@ -32,18 +32,19 @@ const (
 )
 
 // payWindowAsk is payWindow for a window that can wait out a tap-another pick;
-// true when it did, and the caller returns: the answer finishes the payment.
+// paused when it did, and the caller returns: the answer finishes the payment.
+// short: the colours the window took left the cost unpaid.
 //
 //go:noinline
-func (s *State) payWindowAsk(k *prep, p uint8, cost *kop.ManaCost, mode uint8) bool {
+func (s *State) payWindowAsk(k *prep, p uint8, cost *kop.ManaCost, mode uint8) (paused, short bool) {
 	if k.tapMana {
 		s.g.winMode = mode
 	}
-	if s.payWindow(k, p, cost) {
-		return true
+	if paused, short = s.payWindow(k, p, cost); paused {
+		return true, false
 	}
 	s.g.winMode = winNone
-	return false
+	return false, short
 }
 
 // windowTapXOffer: source o is a tap-another-permanent source the window lists
@@ -121,17 +122,21 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	r.ask = raNone
 	cost := s.winTapCost(k)
 	sl := s.g.winSrc
-	col := s.windowTapXCol(k, p, &cost, sl, false, false)
+	col := s.windowTapXCol(k, p, &cost, sl, false, true)
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: col})
-	if s.payWindow(k, p, &cost) {
+	paused, short := s.payWindow(k, p, &cost)
+	if paused {
 		return true
 	}
 	mode := s.g.winMode
 	s.g.winMode = winNone
 	if mode == winWard {
+		if idx := s.wardedIndex(&s.res.e); short && idx >= 0 {
+			s.counterAt(k, idx)
+		}
 		s.finishResolve(k, false)
 	} else {
-		s.payDone(k, true)
+		s.payDone(k, !short)
 	}
 	return true
 }

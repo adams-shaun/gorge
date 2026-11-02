@@ -663,27 +663,39 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 // wardManaDecision, the oracle's payWindowAnswer, the spellbench payWindow
 // builtin): while the pool cannot pay it, the first untapped mana source in
 // the payer's battlefield list is activated, a choice of colours taking
-// the first one (W U B R G C); then the pool pays. The window lists every
+// the first one (W U B R G C), whatever the cost still owes: the window's
+// decision carries no ManaPayment, so the answer has no owed colour to
+// prefer (windowTapUseful's noOwed); then the pool pays, or the payment fails short
+// (short) when those colours left it unpaid. The window lists every
 // mana ability, so a Bloom Tender (its colours) and a restricted source
 // (Giada: its {W} floats, unspendable on the cost) are activated in their
 // turn too (windowTap, script_gen.go).
-func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused bool) {
-	_, held := s.windowTap(k, p, cost, false)
+func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short bool) {
+	_, held := s.windowTapUseful(k, p, cost, cost, false, false, true, false)
 	if s.g.winMode != winNone {
 		for c := range held {
 			held[c] += s.g.winHeld[c] // what an earlier stretch of the walk kept out of the pool
 		}
 		s.g.winHeld = held
 		if s.res.ask == raGenWinTap {
-			return true // a tap-another source's pick: the answer runs the walk on (mana_windowtapx.go)
+			return true, false // a tap-another source's pick: the answer runs the walk on (mana_windowtapx.go)
 		}
 		s.g.winHeld = [kop.NumManaKinds]uint8{}
+	}
+	if !s.poolPays(p, cost) {
+		// the colours the window took leave the cost unpaid (a two-colour
+		// source answered its lowest colour): the taps and the floating
+		// mana stay, as gorge's Done leaves them, and the payment fails
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return false, true
 	}
 	s.payFromPool(p, cost, 0)
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
-	return false
+	return false, false
 }
 
 // hybResolve is cost with its hybrid pips resolved as gorge's potential

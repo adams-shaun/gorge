@@ -195,6 +195,15 @@ func TestUnlessWindowTapsAnotherSourceMutation(t *testing.T) {
 	}
 }
 
+// Chain Lightning on a Refurbished Familiar whose controller holds a Silverbluff Bridge ({T}: Add {U} or {R})
+// and a Great Furnace: the {R}{R} copy cost opens gorge's unless mana window, whose decisions carry no owed
+// cost, so the Bridge's colour ask is answered with its lowest colour, {U}. The payment then falls short, the
+// taps stay and no copy is made. The kernel's window gave the Bridge the colour the cost still owed.
+func TestUnlessWindowTwoColourSourceTakesLowestColourLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "unless_window_two_colour_source_takes_lowest_colour", "pauper", Config{GorgeAutopaySurface: true})
+}
+
 // Lembas sacrificed for its own ability, then Nihil Spellbomb exiling the graveyard in response to its
 // "shuffles it into their library" trigger: the card is no longer in the graveyard, so it is not shuffled
 // in and the library is not shuffled (the trigger's Origin$ Graveyard).
