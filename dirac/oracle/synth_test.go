@@ -581,7 +581,9 @@ func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
 // TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an
 // untapped one whose mana this payment can't spend, leaves the census complete, so a
 // waterbend ask still takes the taps the payment needs (CR 106.6, 601.2g, 701.67a).
+// The pairs diverge when a tapped restricted source (66, 414, 446, 503) or one whose
+// mana the payment can't spend (66, 171, 760, 949) is counted, and each must pose a
+// waterbend ask.
 func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
-	synthPairs(t, "std-tla", []int{20, 96, 144, 145, 196, 217, 276, 298}, nil)
-	synthPairs(t, "std-ecl", []int{338}, nil)
+	waterbendPairs(t, "std-tla", []int{66, 171, 414, 446, 503, 760, 949})
 }
