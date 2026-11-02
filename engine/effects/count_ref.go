@@ -275,12 +275,14 @@ func evalRememberedOK(h Host, c *Ctx, body string, depth int) (int32, bool) {
 // rememberedLKIGroup (the RememberedLKI ref group) and evalRefProperty's
 // Remembered$<Property> heads.
 // Contract: docs/design/2026-09-22-engine-contracts.md, “Trigger remembered readers intentionally differ.”
-// A no-capture ctx (captured empty) returns the list unchanged; the helper
-// is idempotent -- the instance ctx effImmediateTrigger builds has Captured
-// and Remembered disjoint, so applying it a second time there answers the
-// same set.
+// A no-capture ctx (captured empty) returns the list unchanged, and so does a
+// reflexive ability's (TriggerContext.Reflexive): its Remembered is the
+// instance's own set, already stripped of the spawning trigger's capture, and
+// its Captured is that spawner's capture, which the set may legitimately hold
+// again (Thorin, Mountain-king's ImmediateTrigger remembers the creature the
+// equipment went onto, which is Thorin, the object whose entering fired it).
 func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
-	if len(c.Captured) == 0 {
+	if len(c.Captured) == 0 || c.Reflexive {
 		return c.Remembered
 	}
 	if len(c.DelayedRemembered) > 0 && sameTargets(c.Captured, c.DelayedRemembered) {
