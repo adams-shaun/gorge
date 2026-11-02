@@ -17,7 +17,8 @@ hide:
      counter, end_combat_reset, player_lost; st-sed = everything else.
      Regenerate when engine/rules/testdata/heads/2.txt moves, and update the
      event count and head in the aria-label and the caption.
-     Last generated 2026-10-21 at 513a2a0c3. -->
+     Last generated 2026-10-21 at 513a2a0c3; event count and head read
+     2026-11-01 at 5917ab1ae. -->
 
 <div class="gg-hero" markdown>
 
@@ -35,7 +36,7 @@ hide:
 <li><i style="background:var(--gg-oxide)"></i>combat and life</li>
 <li><i style="background:var(--gg-sed)"></i>turn structure and decisions</li>
 </ul>
-<span>One golden two-player game: 2,558 events, the pregame at the bottom and 15 turns above it. Chain head <span class="gg-head">9a22e5122a3d436a</span>.</span>
+<span>One golden two-player game: 2,558 events, the pregame at the bottom and 15 turns above it. Chain head <span class="gg-head">4d678d238e2e3c61</span>.</span>
 </figcaption>
 </figure>
 

@@ -52,14 +52,14 @@ bin/mtgsim -seats 2 -games 2 -seed 42 -verify
 ```
 
 ```text
-seed 42: 2 seats,    661 intents,   3423 events,  19 turns, winner=death-n-taxes, chain=99228a9168f4832f
-  replay OK (chain 99228a9168f4832f)
-seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=b7b28c0af06c5ddd
-  replay OK (chain b7b28c0af06c5ddd)
+seed 42: 2 seats,    611 intents,   3157 events,  18 turns, winner=dimir-tempo, chain=3baaa1a31c521ffd
+  replay OK (chain 3baaa1a31c521ffd)
+seed 43: 2 seats,    585 intents,   3144 events,  20 turns, winner=death-n-taxes, chain=ff2b8e4a6b5cc72c
+  replay OK (chain ff2b8e4a6b5cc72c)
 ```
 
 An *intent* is one answer to a decision, and `chain` is the hash of the game's whole event
-log. The numbers move when a change alters what the games do.
+log. The numbers move when a change alters what the games do; these are from 2026-11-01 at `5917ab1ae`.
 
 ## 3. Run a local server
 

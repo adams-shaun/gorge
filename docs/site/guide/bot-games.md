@@ -58,7 +58,7 @@ go run ./cmd/mtgsim -seats 2 -games 3 -seed 1 -a forge-heuristic -b bot -decks u
 ```
 
 ```text
-seed 1: 2 seats,    323 intents,   1802 events,  13 turns, winner=mono-red-goblins, chain=584a6ddb06889c79
+seed 1: 2 seats,    323 intents,   1801 events,  13 turns, winner=mono-red-goblins, chain=49b4f7351421168c
 seed 2: 2 seats,    215 intents,   1225 events,  10 turns, winner=mono-red-goblins, chain=084fd9760febc4c7
 seed 3: 2 seats,    284 intents,   1608 events,  12 turns, winner=mono-red-goblins, chain=b98877a35b958904
 ```
@@ -86,10 +86,10 @@ go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
 ```
 
 ```text
-seed 0: 8 seats,   3543 intents,  16451 events,  48 turns, winner=mono-green-stompy, chain=63760184ea25d100
-  replay OK (chain 63760184ea25d100)
-seed 1: 8 seats,   3938 intents,  18059 events,  53 turns, winner=mono-red-goblins, chain=e2e6f50d2eb697fa
-  replay OK (chain e2e6f50d2eb697fa)
+seed 0: 8 seats,   3543 intents,  16452 events,  48 turns, winner=mono-green-stompy, chain=c3c6d7050cf802bb
+  replay OK (chain c3c6d7050cf802bb)
+seed 1: 8 seats,   3939 intents,  18066 events,  53 turns, winner=mono-red-goblins, chain=83576dc402ef2696
+  replay OK (chain 83576dc402ef2696)
 ```
 
 ## A fair matchup with `testkit/bench`

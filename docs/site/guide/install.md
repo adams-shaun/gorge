@@ -4,7 +4,7 @@ This page takes you from nothing to a checkout that can run games: the prerequis
 card corpus, the binaries, the browser client and dirac's card tables. Only the corpus step is
 required for bot games. A contributor needs the same steps, then [Testing](../contributing/testing.md).
 
-The output below is from 2026-10-31 on Linux x86-64 with Go 1.26.3. The maintainers test
+The output below is from 2026-11-01 at `5917ab1ae`, on Linux x86-64 with Go 1.26.3. The maintainers test
 on Linux only.
 
 ## Prerequisites
@@ -93,8 +93,8 @@ compares the rebuilt event chain with the live one. Each game prints a result li
 `replay OK`:
 
 ```text
-seed 0: 4 seats,   1419 intents,   6941 events,  33 turns, winner=death-n-taxes, chain=c726ff7a143bef8d
-  replay OK (chain c726ff7a143bef8d)
+seed 0: 4 seats,   1308 intents,   6460 events,  28 turns, winner=death-n-taxes, chain=6b2a9fd1ca81c2d5
+  replay OK (chain 6b2a9fd1ca81c2d5)
 seed 1: 4 seats,   1717 intents,   8409 events,  36 turns, winner=death-n-taxes, chain=cdf023640deb1b71
   replay OK (chain cdf023640deb1b71)
 ```

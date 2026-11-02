@@ -164,7 +164,7 @@ pooled XMage data). Also measured on the way:
 - **The PUCT scale is the one search key that moves results**, by 3–6
   points toward XMage on Spy, Affinity and Elves. The other search keys are
   noise-level.
-- **One rules bug, now fixed.** dirac could not activate Saruli
+- **One rules bug, since fixed.** dirac could not activate Saruli
   Caretaker's `{T}, tap an untapped creature` mana ability. Fixing it moved
   Faeries vs Spy from 0.786 to 0.710, about a quarter of that gap. The fix
   also made dirac refuse the 96 cards whose mana ability it still cannot

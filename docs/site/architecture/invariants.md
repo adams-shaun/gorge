@@ -27,6 +27,7 @@ usually the replay and golden-head tests.
 | 10 | [Golden chain heads move only with a named cause](#golden-chain-heads-move-only-with-a-named-cause) | `TestHeads` |
 | 11 | [Every test fits the budget](#every-test-fits-the-budget) | `cmd/testbudget` in the post-merge suite |
 | 12 | [Corpus or it did not run](#corpus-or-it-did-not-run) | CI refuses to test without `.cards/`; locally, convention |
+| 13 | [A card dirac supports plays identically to gorge](#a-card-dirac-supports-plays-identically-to-gorge) | `scripts/dirac-gate.sh`, `make dirac-slices` in CI, `TestStateIsPointerFree`, `TestStateSize` |
 
 Two companion documents record behaviour that is *not* an invariant
 violation even though it can look like one: the
@@ -400,6 +401,27 @@ convention: run with `-v` and look for `SKIP`.
 tracked files and therefore no `.cards/`. Link it in:
 `ln -s <main checkout>/.cards .cards`. See
 [Contributing](../contributing/index.md#work-in-a-worktree).
+
+## A card dirac supports plays identically to gorge
+
+**The rule.** On a [supported card](dirac/index.md#what-it-supports), dirac poses the same decisions with the same options
+as gorge, and reaches the same positions. gorge leads. A gorge change that alters behaviour on a supported card fixes dirac
+in the same change, or refuses the card by name with `kgen -refuse`. `dirac.State` holds no references beyond its views of
+one pointer-free buffer and its fork pool, and the transition loop allocates nothing.
+
+**Why.** dirac is a second engine only as long as it plays the same game. Lockstep is what lets its speed stand in for
+gorge's rules. It shows the two agree, not that they are right, so a bug in both isn't caught here
+([what lockstep proves](dirac/oracle.md#what-lockstep-proves-and-what-it-doesnt)).
+
+**What goes red.** `scripts/dirac-gate.sh <base>`: lockstep on the committed FDN and BLB slices, both surfaces, the size bar,
+allocations and instructions per transition. CI runs `make dirac-slices` on every change and the whole of `dirac/oracle` on a
+pull request to `main`. A capacity stall is a declared limit and is always counted, not a failure.
+
+**To change.** Keep gorge's change, port it, and let the gate run. If a port doesn't fit the change, refuse the card by name.
+Raising the size bar is a deliberate decision of its own.
+
+**Classic mistake.** Reading a green `make test` as enough after a rules change. Most of those tests don't play dirac, so run
+`scripts/dirac-gate.sh <base>` from a checkout with `make dirac-tables` built.
 
 ## Changing an invariant
 
