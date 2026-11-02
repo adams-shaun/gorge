@@ -543,7 +543,7 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			if !kicked {
 				return cost, ex, false // kicked: lowered by its witness (beginCast)
 			}
-			if cost, ok = s.plannedCastCost(k, p, Obj(a.Source()), a.Mode()&2); !ok {
+			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok {
 				return cost, ex, false
 			}
 			// the composed cost (pair 8638)
@@ -559,7 +559,7 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			// pool and the printed sources
 			return s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost), ex, true
 		}
-		cost, ok = s.plannedCastCostHyb(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true)
+		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
 		return cost, ex, ok
 	}
 	return cost, ex, false

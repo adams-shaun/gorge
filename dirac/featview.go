@@ -568,16 +568,22 @@ func planDeclinesAddCost(k *prep, c CardID) bool {
 // o in kernel cast mode (0 plain, bit 1 flashback); ok is false for the
 // casts it never plans (FeatPlannedCast).
 func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCost, bool) {
-	return s.plannedCastCostHyb(k, p, o, mode, false)
+	return s.plannedCastCostOf(k, p, o, mode, false, false)
 }
 
-// plannedCastCostHyb is plannedCastCost, pricing a hybrid cost when hyb: the
-// potential planner resolves its pips (planHybridCost) where the cast planner
-// declines it, so a scripted play of a hybrid spell is priced on the pips as
-// printed.
-func (s *State) plannedCastCostHyb(k *prep, p uint8, o Obj, mode uint8, hyb bool) (kop.ManaCost, bool) {
+// plannedCastCostOf is plannedCastCost with two prices the potential planner
+// reads where the cast planner declines. hyb prices a hybrid cost: the
+// potential planner resolves its pips (planHybridCost), so a scripted play of
+// a hybrid spell is priced on the pips as printed. composed prices the cast
+// that the planner declines only because a mana-spent reader is out ("shape:
+// mana_spent_reader": the card's own SpendRead or SpentSelf, or a Tf2CastSpent
+// listener on a battlefield) from its composed cost, as gorge's potential
+// planner does (potential_plan.go manaSpentReaderComposed): the reader changes
+// no price, and the cast then takes its place among the plays whose prefix
+// searches potentialScriptPlays caps.
+func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	if planNeverPricesHyb(k, c, hyb) {
+	if planNeverPricesOf(k, c, hyb, composed) {
 		return kop.ManaCost{}, false
 	}
 	if k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
@@ -585,7 +591,7 @@ func (s *State) plannedCastCostHyb(k *prep, p uint8, o Obj, mode uint8, hyb bool
 		// every cast ("shape:optional_cost"; cost_optional.go)
 		return kop.ManaCost{}, false
 	}
-	if k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k) {
+	if !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k) {
 		// a mana-spent reader on a battlefield: gorge's planner prices no
 		// cast ("shape:mana_spent_reader", opus)
 		return kop.ManaCost{}, false
@@ -625,10 +631,11 @@ func (s *State) FeatFaceDown(o Obj) bool {
 func (s *State) FeatPlanNeverPrices(c CardID) bool { return planNeverPrices(s.k(), c) }
 
 // planNeverPrices is plannedCastCost's refusals that read only the card.
-func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesHyb(k, c, false) }
+func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesOf(k, c, false, false) }
 
-// planNeverPricesHyb is planNeverPrices with a hybrid cost priced when hyb.
-func planNeverPricesHyb(k *prep, c CardID, hyb bool) bool {
+// planNeverPricesOf is planNeverPrices with a hybrid cost priced when hyb and
+// the card's own mana-spent read left out when composed (plannedCastCostOf).
+func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.Face != 0 {
 		// gorge's cast planner plans face 0 only (rules payment_plan.go
@@ -636,7 +643,7 @@ func planNeverPricesHyb(k *prep, c CardID, hyb bool) bool {
 		// a Room back in the hand on door 1 is lowered or pool-paid
 		return true
 	}
-	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() || cd.SpendRead || cd.SpentSelf {
+	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() || !composed && (cd.SpendRead || cd.SpentSelf) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
 	if planDeclinesAddCost(k, c) {
