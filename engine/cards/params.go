@@ -855,6 +855,8 @@ const (
 	PKBoon
 	PKBoonAmount
 	PKSameNameAsEach
+	// Play's AllowRepeats$: a chosen card stays a candidate for the next play.
+	PKAllowRepeats
 	paramKeyCount
 )
 
@@ -1660,6 +1662,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKReduceColor:                      "ReduceColor",
 	PKNoPrevention:                     "NoPrevention",
 	PKSameNameAsEach:                   "SameNameAsEach",
+	PKAllowRepeats:                     "AllowRepeats",
 }
 
 // String is the key's Forge text.
