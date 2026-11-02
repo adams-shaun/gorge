@@ -495,7 +495,7 @@ func (s *State) sba(k *prep) bool {
 				// A timestamped override record can set the base P/T (a
 				// value-driven Animate: HandSize can be 0), so the printed
 				// toughness is not enough for the no-damage shortcut.
-				if p.damage == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
+				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
 					p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
 					goto noncreature
 				}
@@ -505,7 +505,10 @@ func (s *State) sba(k *prep) bool {
 					gy = gy.with(sl)
 					continue
 				}
-				if (int(p.damage) >= tough || (p.flags&pfDeathtouched != 0 && p.damage > 0)) &&
+				// CR 704.5g: the deathtouch mark alone is lethal, as gorge's
+				// destroyLethalDamage reads it; wither and infect deal the damage
+				// as -1/-1 counters and mark none
+				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
 					if p.flags&pfRegen != 0 {
 						s.regenerate(sl)
