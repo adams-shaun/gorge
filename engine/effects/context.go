@@ -933,8 +933,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case definedSpecTargetedController:
 		// Forge's TargetedController: the controllers of the target objects. A
 		// target player contributes nothing, or Blightning's second discard
-		// leg would make "that player" discard twice.
-		return controllersOf(g, objectTargets(c.Targets)), true
+		// leg would make "that player" discard twice. A target that has left
+		// the battlefield answers with the controller captured when the
+		// resolution began (CR 608.2h; Forge's getChangeZoneLKIInfo): the live
+		// object's controller was reset to its owner by the departure.
+		return controllersOf(g, targetsControllerLKI(g, c, objectTargets(c.Targets))), true
 	case definedSpecTargetedPlayer:
 		return targetedPlayers(c), true
 	case definedSpecTargetedOwner:
@@ -2063,6 +2066,31 @@ func objectTargets(ts []state.Target) []state.Target {
 	for _, t := range ts {
 		if !t.IsPlayer {
 			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// targetsControllerLKI rewrites each object target that is no longer on the
+// battlefield into the player who controlled it when c's resolution began, so
+// controllersOf reads the last-known controller (CR 608.2h). Targets still on
+// the battlefield, and those with no capture, are returned unchanged.
+func targetsControllerLKI(g *state.Game, c *Ctx, ts []state.Target) []state.Target {
+	if c == nil || len(c.Snap.TargetController) == 0 {
+		return ts
+	}
+	out := make([]state.Target, len(ts))
+	copy(out, ts)
+	for i, t := range out {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone == state.ZBattlefield {
+			continue
+		}
+		if p, ok := c.Snap.TargetController[t.Obj]; ok {
+			out[i] = state.Target{Player: p, IsPlayer: true}
 		}
 	}
 	return out
