@@ -93,7 +93,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.23d | follows | `engine/effects/zone_search.go#effSearchLibrary` | `TestLibrarySearchMandatoryQualityRequiresFinding` | quantity search must find |
 | 701.24a | follows | `engine/effects/zone_library.go#shuffleLibraryOrder` | - | seeded Fisher-Yates |
 | 701.24b | follows | `engine/effects/zone_library.go#searchShuffleTail` `engine/effects/zone_library.go#placeLibraryObjects` | `TestCR70123SearchThenShuffleIsMandatory` `TestCR70124NoHostSearchShuffleNonMandatoryShuffles` | REVISED: cr-g09 landed, gorge's then-shuffle mandatory |
-| 701.24c-d | deviates | `engine/effects/zone_change.go#effChangeZone` `engine/effects/zone_changeall.go#effChangeZoneAll` | - | no shuffle when objects missing/set empty |
+| 701.24c-d | deviates | `engine/effects/zone_change.go#effChangeZone` `engine/effects/zone_changeall.go#effChangeZoneAll` `engine/effects/zone_changeall.go#sweepsYourOwn` | `TestFeldonsCaneShufflesAnEmptyGraveyard` | no shuffle when objects missing/set empty, except a sweep of your own cards |
 | 701.24e-f | not-impl | - | - | cards refused by coverage gate |
 | 701.24g | unknown | - | - | not reached |
 | 701.25a | follows | `engine/effects/cardflow.go#effSurveil` | - |  |

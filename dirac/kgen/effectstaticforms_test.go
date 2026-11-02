@@ -11,7 +11,7 @@ var effectstaticformsForms = []formCase{
 	{card: "Alchemist's Refuge", form: "Effect spell CastWithFlash stays refused (gorge: only the loyalty-timing grant registers)", refused: "Effect static mode CastWithFlash without RememberObjects$"},
 	{card: "Cosmotronic Wave", form: "Effect CantBlock stays refused (gorge effectUnsupportedStatic)", refused: "Effect static mode CantBlock without RememberObjects$"},
 	{card: "Reminisce", form: "ChangeZoneAll Shuffle$ of a target player's graveyard (gorge: the scoped library shuffles even when empty)", lir: "0 ChangeZoneAll obj=Target0 C=4 CS=from=Graveyard F={types=0x0} // only the target player's zone\n     1 Shuffle obj=Target0"},
-	{card: "Feldon's Cane", form: "ChangeZoneAll Shuffle$ of your own graveyard (gorge: only a receiving library shuffles)", lir: "0 SkipIf if=Value(op1,CountGraveyard({types=0x0 owner=1}),1) skip=2 // gorge shuffles only a receiving library\n     1 ChangeZoneAll C=4 CS=from=Graveyard F={types=0x0 owner=1}\n     2 Shuffle obj=You"},
+	{card: "Feldon's Cane", form: "ChangeZoneAll Shuffle$ of your own graveyard (gorge: you shuffle even when it is empty)", lir: "0 ChangeZoneAll C=4 CS=from=Graveyard F={types=0x0 owner=1}\n     1 Shuffle obj=You"},
 	{card: "Nihil Spellbomb", form: "ChangeZoneAll Shuffle$ into exile (gorge: the flag acts on library destinations only)", lir: "ChangeZoneAll obj=Target0 C=5 CS=from=Graveyard"},
 	{card: "Expedition Raptor", form: "PutCounter Support$ 2 of a permanent (gorge putCounterSupport: Creature.+Other)", lir: "0 Support A=2 C=1 CS=P1P1"},
 	{card: "Shoulder to Shoulder", form: "PutCounter Support$ 2 of a sorcery (gorge putCounterSupport: Creature)", lir: "0 Support A=2 CS=P1P1"},

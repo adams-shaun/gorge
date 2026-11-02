@@ -66,15 +66,13 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 			return refuse("ChangeZoneAll Shuffle$ over several owners' graveyards")
 		}
 	}
-	count := lCond{Kind: cValue, A: lValue{Kind: vCountGraveyard, F: in.F}, Op: opGE, B: cst(1)}
 	if in.Note == noteAllOrigin {
 		in.Note = ""
+		count := lCond{Kind: cValue, A: lValue{Kind: vCountGraveyard, F: in.F}, Op: opGE, B: cst(1)}
 		lc.czallAllShuffle(in, count) // UseAllOriginZones$ (lower_changezoneall.go)
 		return nil
 	}
-	lc.emit(lInstr{Op: "SkipIf", Cond: count, Skip: 2, // OpSkipUnless: skips when false
-		Note: "gorge shuffles only a receiving library"})
-	lc.emit(in)
+	lc.emit(in) // gorge sweepsYourOwn: you shuffle whatever the graveyard holds
 	lc.emit(lInstr{Op: "Shuffle", Obj: lRef{Kind: rYou}})
 	return nil
 }
