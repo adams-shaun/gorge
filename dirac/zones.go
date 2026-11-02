@@ -322,6 +322,9 @@ func (s *State) objReferenced(o Obj) bool {
 // Count$ThisTurnEntered_from_.
 func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
 	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
+	}
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}

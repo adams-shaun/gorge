@@ -202,3 +202,29 @@ func TestGraveLeavesCarriers(t *testing.T) {
 		})
 	}
 }
+
+// TestEnterFromGraveyardSeesOwnLeave: a card returned from a graveyard is on the
+// battlefield when gorge checks triggers, so it sees its own "cards leave your
+// graveyard" whichever effect moved it. A hidden search (Bind to Life's "a
+// creature card milled this way") enters through plain enter.
+func TestEnterFromGraveyardSeesOwnLeave(t *testing.T) {
+	sc, id := newLeftGraveyardScen(t, []cardset.Entry{
+		{Name: "Garrison Excavator", Count: 1}, {Name: "Forest", Count: 2}, {Name: "Plains", Count: 8},
+	})
+	o := sc.grave(id["Garrison Excavator"], 0, 1)[0]
+	sc.s.npend = 0
+	from := sc.s.detach(o)
+	sl := sc.s.enter(sc.k, o, 0, false, from)
+	if sc.s.perms[sl].obj != o {
+		t.Fatal("the card did not enter")
+	}
+	n := 0
+	for i := uint8(0); i < sc.s.npend; i++ {
+		if sc.s.pend[i].obj == o {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("the returned card queued %d triggers, want 1", n)
+	}
+}

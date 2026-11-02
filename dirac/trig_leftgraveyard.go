@@ -45,12 +45,7 @@ func (s *State) fireLeavesGraveyard(k *prep, o Obj, card CardID, owner uint8) {
 //
 //go:noinline
 func (s *State) enterFromGrave(k *prep, o Obj, ctrl uint8, tapped bool) Slot {
-	sl := s.enterNF(k, o, ctrl, tapped, kop.ZoneGraveyard, 0)
-	s.fireLeavesGraveyardSelf(k, sl, o)
-	if s.anyETB(k) {
-		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
-	}
-	return sl
+	return s.enter(k, o, ctrl, tapped, kop.ZoneGraveyard)
 }
 
 // fireLeavesGraveyardSelf queues the just-entered permanent's own
