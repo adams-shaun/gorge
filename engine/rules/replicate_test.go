@@ -239,6 +239,9 @@ func TestReplicateDeclinedIsAPlainCast(t *testing.T) {
 	if logHasFlag(e, hero, "replicated") {
 		t.Fatal("a declined replicate must not carry the flag")
 	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a declined replicate put %d triggers on the stack, want 0", n)
+	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.CastInfo && ev.Obj == hero {
 			t.Fatalf("declined replicate emitted a CastInfo: %+v", ev)

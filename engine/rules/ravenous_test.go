@@ -104,6 +104,33 @@ func TestJackedRabbitRavenousX3CountersNoDraw(t *testing.T) {
 	if drawn != 0 {
 		t.Fatalf("Ravenous X=3 drew %d cards, want 0 (the X>=5 gate must not fire)", drawn)
 	}
+	// Jacked Rabbit's other trigger is its attack trigger; nothing else fires here.
+	if n := triggersPushedFrom(e, id); n != 0 {
+		t.Fatalf("Ravenous X=3 put %d triggers on the stack, want 0", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// The recheck reads the X captured as the trigger fired, so a Rabbit that left with
+// its trigger on the stack still draws (CR 603.4, 107.3m).
+func TestJackedRabbitRavenousX5DrawsAfterLeaving(t *testing.T) {
+	t.Parallel()
+	e, cfg, id, caster := ravenousConfig(t, 131)
+	addMana(t, e, caster, "WWWWWWW")
+	submitChoices(t, e, castOptionFor(t, e, id).Index)
+	submitChoices(t, e, 5)
+	for i := 0; i < 8 && e.G.Obj(id).Zone != state.ZBattlefield; i++ {
+		passPriority(t, e)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v after entering, want the draw trigger", e.G.Stack)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	before := countDraw(e)
+	passUntilStackEmpty(t, e, 30)
+	if got := countDraw(e) - before; got != 1 {
+		t.Fatalf("drew %d after the Rabbit left, want 1", got)
+	}
 	replayCheck(t, e, cfg)
 }
 

@@ -19,11 +19,18 @@ import "fmt"
 //     live X could stand in for a captured 0. The spell's own cast
 //     trigger (Card.Self; kernel fireSelfCast) reads the spell's paid X.
 //
-// Anything else refuses: a trigger condition reading X (it is
+// A self-enters trigger's condition reads the same X (Ravenous): as the object
+// enters X reads the resolving spell's, and on the recheck the bound one.
+//
+// Anything else refuses: any other trigger condition reading X (it is
 // checked before the capture exists), an attack, death, cycle or delayed
 // trigger reading it (gorge reads the source's live or cleared X).
 func (lc *lowerCtx) xBound() error {
 	tr := lc.ab.Trigger
+	if tr != nil && lc.adamantTrigger() != nil && (lc.out.Kicker == nil || !lc.out.Kicker.X) {
+		tr.XBound = true
+		return nil
+	}
 	if tr == nil || !lc.trigBody || lc.ab.Latent {
 		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost")
 	}

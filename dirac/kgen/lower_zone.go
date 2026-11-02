@@ -2413,27 +2413,13 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
 	var flags []string
 	if n, ok := ps.get("NumCopies"); ok {
-		// Offspring's expansion (CR 702.175a): one copy when the cast paid
-		// the offspring cost, read off the permanent the spell became (the
-		// kernel's kicked mark: Card.Self+kicked), none for a token copy
-		if n == "Count$OffspringPaid" {
-			if lc.out.Offspring == nil {
-				return refuse("CopyPermanent NumCopies %q", n)
-			}
-			f, err := lc.filter("Card.Self+kicked")
-			if err != nil {
-				return err
-			}
-			in.A = lValue{Kind: vCount, F: f}
-		} else {
-			// gorge copyPermanentNumCopies: CalculateAmount (For the
-			// Common Good's X)
-			v, err := lc.value(n)
-			if err != nil {
-				return err
-			}
-			in.A = v
+		// gorge copyPermanentNumCopies: CalculateAmount (For the Common
+		// Good's X, Offspring's Count$OffspringPaid)
+		v, err := lc.value(n)
+		if err != nil {
+			return err
 		}
+		in.A = v
 	}
 	// the copy exceptions (CR 707.9b; lower_copyexceptions.go)
 	exc, hasExc, err := lc.copyExceptions(ps)

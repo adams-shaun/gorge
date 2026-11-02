@@ -228,6 +228,9 @@ func TestConspireDeclinedPlainCast(t *testing.T) {
 	if logHasFlag(e, hero, "conspired") {
 		t.Fatal("a plain cast must not carry the conspired flag")
 	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a plain cast put %d triggers on the stack, want 0", n)
+	}
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.CastInfo && ev.Obj == hero {
 			t.Fatalf("a plain cast emitted a CastInfo: %+v", ev)

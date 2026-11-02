@@ -21,7 +21,7 @@ func kwGraft(f *Face, i int, k, head, param string, has func(kind, line string) 
 	if !has("T", k) {
 		move := "__kwGraftMove" + strconv.Itoa(i)
 		f.setSVar(move, "DB$ MoveCounter | Source$ Self | Defined$ TriggeredCard | CounterType$ P1P1 | CounterNum$ 1")
-		p := parseParams("Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other | TriggerZones$ Battlefield | OptionalDecider$ You | Execute$ " + move + " | Keyword$ Graft | TriggerDescription$ Graft " + n)
+		p := parseParams("Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Creature.Other | TriggerZones$ Battlefield | IsPresent$ Card.Self+counters_GE1_P1P1 | PresentDefined$ Self | OptionalDecider$ You | Execute$ " + move + " | Keyword$ Graft | TriggerDescription$ Graft " + n)
 		p["KeywordLine"] = k
 		f.Triggers = append(f.Triggers, Trigger{Mode: p["Mode"], Params: p})
 	}

@@ -855,6 +855,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	switch rest {
 	case "FinishedEndOfTurnsThisTurn":
 		return finishedEndStepsValue(), nil // lower_addphase.go
+	case "OffspringPaid":
+		// CR 702.175a: the cast paid the offspring cost, read off the permanent
+		// the spell became (the kernel's kicked mark), 0 for a token copy
+		if lc.out.Offspring == nil {
+			return lValue{}, fmt.Errorf("Count$OffspringPaid without K:Offspring")
+		}
+		f, err := lc.filter("Card.Self+kicked")
+		if err != nil {
+			return lValue{}, err
+		}
+		return lValue{Kind: vCount, F: f}, nil
 	case "xPaid":
 		if v, ok, err := lc.reflexXPaid(); ok || err != nil {
 			return v, err // lower_triggerxcost.go: a "when you do" body under a paid {X}

@@ -360,7 +360,9 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		if src != nil {
 			remembered = effects.SourceRemembered(e.G, tcv, src)
 		}
-		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered})
+		// X reads what the body reads: the fire-time capture (CR 107.3m), which
+		// outlives a source that left before the recheck.
+		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX})
 		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.ParamStr(cards.PKSVarCompare)))
 		if !evaluated || !holds {
 			return false

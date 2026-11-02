@@ -20,9 +20,13 @@ func kwSoulbond(f *Face, i int, k, head, param string, has func(kind, line strin
 	// narrow its candidate scan to that one object; the #self trigger
 	// omits it and keeps the broad "any unpaired creature I control"
 	// scan CR 702.103a's other half calls for.
-	f.addKeywordTrigger(head, k+"#self", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.Self | TriggerDescription$ Soulbond",
+	//
+	// Both cases' "if you control both ... and both are unpaired" is an
+	// intervening if (CR 603.4): a creature with nothing to pair with puts
+	// nothing on the stack.
+	f.addKeywordTrigger(head, k+"#self", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.Self | IsPresent$ Creature.Other+YouCtrl+!Paired | TriggerDescription$ Soulbond",
 		"DB$ Pair", has)
-	f.addKeywordTrigger(head, k+"#other", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | TriggerDescription$ Soulbond",
+	f.addKeywordTrigger(head, k+"#other", "Mode$ ChangesZone | Destination$ Battlefield | ValidCard$ Creature.YouCtrl+Other | IsPresent$ Creature.Self+!Paired | TriggerDescription$ Soulbond",
 		"DB$ Pair | RestrictToRemembered$ True", has)
 }
 

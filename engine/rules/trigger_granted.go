@@ -286,9 +286,9 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 // granted creature itself. The queue carries the __kwOffspringGranted
 // payload events.Apply rebuilds the same CopyPermanent body from (the Ward/
 // Afflict/Exploit shape; a granted creature has no printed Trigger index for
-// an inline body to ride). The body's Count$OffspringPaid reads the entering
-// permanent's pay-time provenance, which the stack->battlefield Move
-// preserved, so the plain cast mints nothing and the paid cast mints one.
+// an inline body to ride). The entering permanent's pay-time provenance, which
+// the stack->battlefield Move preserved, is the intervening if (CR 702.175a,
+// 603.4): a plain cast does not trigger and the paid cast mints one.
 //
 // The face that PRINTS Offspring is skipped: the printed expansion already
 // owns the line for that creature, and firing both would mint a second copy.
@@ -299,7 +299,7 @@ func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID,
 	// Cheap gates first: this walk is invoked for every object the event
 	// visits, so reject everything but the entering object before any
 	// derived-characteristics read.
-	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield || !o.OffspringPaid {
 		return
 	}
 	// The grant is evaluated with the STACK-zone override (hasCastOffspring,

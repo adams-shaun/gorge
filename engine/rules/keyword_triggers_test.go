@@ -457,6 +457,23 @@ func TestSoulbondUsesRealCorpusCard(t *testing.T) {
 	}
 }
 
+// TestSoulbondAloneDoesNotTrigger: with no other unpaired creature the intervening
+// if fails (CR 702.95a, 603.4), so nothing goes on the stack.
+func TestSoulbondAloneDoesNotTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	lookout := mustCorpusCard(t, reg, "Tandem Lookout")
+	e := New(seatZeroStart(Config{Seed: 195, Names: []string{"a", "b"},
+		Decks:  [][]*cards.Card{append([]*cards.Card{lookout}, mountainDeck(t, 39)...), mountainDeck(t, 40)},
+		Tokens: map[string]*cards.Card{}}))
+	e.Advance()
+	id := findByName(e, "Tandem Lookout", 0)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	e.priorityRound()
+	if n := triggersPushedFrom(e, id); n != 0 {
+		t.Fatalf("Soulbond alone put %d triggers on the stack, want 0", n)
+	}
+}
+
 // TestSoulbondTriggersWhenAnotherCreatureEnters covers Soulbond's second CR
 // 702.103 trigger case and proves a noncreature cannot be offered as partner.
 func TestSoulbondTriggersWhenAnotherCreatureEnters(t *testing.T) {

@@ -64,6 +64,8 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 			x = int(px) - 1
 		} else if e != nil {
 			x = int(e.x)
+		} else if ctx.src != NoObj {
+			x = int(s.spellX(ctx.src)) // a self-enters condition, before its trigger binds X
 		}
 		if v.K == kop.VNegX {
 			return -x
@@ -174,6 +176,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExX:
 		if e != nil {
 			v = int(e.x)
+		} else if ctx.src != NoObj {
+			v = int(s.spellX(ctx.src)) // a self-enters condition, before its trigger binds X
 		}
 	case kop.ExCount:
 		v = s.countPerm(k, x.F, ctx)

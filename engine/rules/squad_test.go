@@ -188,6 +188,9 @@ func TestSquadSecuritronDeclinedIsAPlainCast(t *testing.T) {
 	if _, ok := squadCastInfoAmount(e, hero); ok {
 		t.Fatal("a declined squad still stamped the squadpaid flag")
 	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a declined squad put %d triggers on the stack, want 0", n)
+	}
 	replayCheck(t, e, cfg)
 }
 
@@ -212,6 +215,9 @@ func TestSquadSecuritronPlainCastUnchanged(t *testing.T) {
 	}
 	if _, ok := squadCastInfoAmount(e, hero); ok {
 		t.Fatal("a plain cast stamped the squadpaid flag")
+	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("a plain cast put %d triggers on the stack, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }

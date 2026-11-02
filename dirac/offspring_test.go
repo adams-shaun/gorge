@@ -3,6 +3,8 @@ package dirac
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -121,5 +123,73 @@ func TestOffspringNotOfferedUnaffordable(t *testing.T) {
 	}
 	if !plain {
 		t.Fatal("plain cast not offered")
+	}
+}
+
+// passUntilOnBF passes priority until o is on the battlefield.
+func (sc *scen) passUntilOnBF(t *testing.T, o Obj) {
+	t.Helper()
+	for i := 0; i < 20 && !sc.onBF(o); i++ {
+		if d := sc.s.Step(); d.Kind == DkPriority {
+			sc.s.Apply(MakeAction(AkPass, 0, 0, 0))
+		} else {
+			sc.s.Apply(d.Options[0])
+		}
+	}
+	if !sc.onBF(o) {
+		t.Fatal("the spell never entered")
+	}
+	sc.s.Step()
+}
+
+// "if its offspring cost was paid" is an intervening if (CR 702.175a, 603.4): a plain
+// cast puts nothing on the stack as the creature enters.
+func TestOffspringUnpaidDoesNotTrigger(t *testing.T) {
+	sc, id := giftScen(t, "Iridescent Vinelasher", "Swamp")
+	sc.perm(id["Swamp"], 0)
+	vl := sc.hand(id["Iridescent Vinelasher"], 0)
+	sc.castMode(t, vl, 0)
+	sc.passUntilOnBF(t, vl)
+	if sc.s.sp != 0 || sc.s.npend != 0 {
+		t.Fatalf("stack %d pending %d after a plain cast entered, want neither", sc.s.sp, sc.s.npend)
+	}
+}
+
+// Ravenous's draw (CR 702.156a) has the same shape: X below 5 puts nothing on the stack,
+// and X of 5 puts a trigger on it that keeps the X for the recheck.
+func TestRavenousInterveningIf(t *testing.T) {
+	for _, tc := range []struct {
+		x    uint8
+		want bool
+	}{{3, false}, {5, true}} {
+		deck := []cardset.Entry{{Name: "Termagant Swarm", Count: 1}, {Name: "Forest", Count: 1}}
+		tbl, da, _, err := cardsettest.Set(t, "mixedarms").Matchup(deck, deck)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := map[string]CardID{}
+		for _, c := range da {
+			id[tbl.Cards[c].Name] = c
+		}
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		for i := 0; i < 6; i++ {
+			sc.perm(id["Forest"], 0)
+		}
+		hand := sc.s.pl[0].handN
+		r := sc.hand(id["Termagant Swarm"], 0)
+		sc.castCard(t, r)
+		sc.chooseX(t, tc.x)
+		sc.passUntilOnBF(t, r)
+		if got := sc.s.sp > 0; got != tc.want {
+			t.Fatalf("X=%d: stack %d after entering, want a trigger: %v", tc.x, sc.s.sp, tc.want)
+		}
+		if tc.want && sc.s.stack[sc.s.sp-1].x != tc.x {
+			t.Fatalf("X=%d: the trigger binds X=%d", tc.x, sc.s.stack[sc.s.sp-1].x)
+		}
+		sc.resolveAll(t)
+		drew := int(sc.s.pl[0].handN) - int(hand)
+		if want := b2i(tc.want); drew != want {
+			t.Fatalf("X=%d: hand grew by %d, want %d", tc.x, drew, want)
+		}
 	}
 }

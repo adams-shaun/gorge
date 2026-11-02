@@ -89,6 +89,18 @@ func offspringCastInfo(e *Engine, obj state.ObjID) bool {
 	return false
 }
 
+// triggersPushedFrom counts the triggered abilities src has put on the stack: a
+// keyword's intervening if (CR 603.4) that fails puts none.
+func triggersPushedFrom(e *Engine, src state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if (ev.Kind == events.TriggerPush || ev.Kind == events.KeywordTriggerPush) && ev.Obj == src {
+			n++
+		}
+	}
+	return n
+}
+
 // offspringTokens returns every token copy of src on seat 0's battlefield:
 // same printed name, IsToken, still on the battlefield and not src itself.
 func offspringTokens(t *testing.T, e *Engine, src state.ObjID) []state.ObjID {
@@ -172,6 +184,9 @@ func TestOffspringPrintedPlainCastMintsNothing(t *testing.T) {
 	}
 	if toks := offspringTokens(t, e, hero); len(toks) != 0 {
 		t.Fatalf("plain cast minted %d token copies, want 0", len(toks))
+	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("plain cast put %d offspring triggers on the stack, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }
@@ -268,6 +283,9 @@ func TestOffspringGrantedPlainCastMintsNothing(t *testing.T) {
 	}
 	if toks := offspringTokens(t, e, hero); len(toks) != 0 {
 		t.Fatalf("plain cast under the grant minted %d token copies, want 0", len(toks))
+	}
+	if n := triggersPushedFrom(e, hero); n != 0 {
+		t.Fatalf("plain cast under the grant put %d offspring triggers on the stack, want 0", n)
 	}
 	replayCheck(t, e, cfg)
 }
