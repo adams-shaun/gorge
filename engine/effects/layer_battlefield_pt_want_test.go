@@ -25,7 +25,7 @@ func TestLayerBattlefieldPTWantBit(t *testing.T) {
 	t.Parallel()
 	asked := func(sa *cards.SA) bool {
 		w := &wantRecorder{}
-		layerTablesFor(w, sa)
+		layerTablesFor(w, sa, nil)
 		return w.want&LayerBattlefieldPT != 0
 	}
 	if asked(&cards.SA{Params: map[string]string{"ValidCards": "Creature.Red", "NumCards": "1"}}) {
