@@ -27,7 +27,7 @@ func (lc *lowerCtx) aiHintSVars(v string) bool {
 // Kicked reads the resolving spell's cast provenance (the kernel's
 // CondKicked reads the resolving entry, so only a spell's own chain
 // lowers); Threshold and Delirium read the resolving controller's
-// graveyard. Any other spelling, or one beside a ConditionPresent$/
+// graveyard; Metalcraft counts the controller's artifacts. Any other spelling, or one beside a ConditionPresent$/
 // ConditionCheckSVar$ gate, refuses.
 func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 	for _, k := range []string{"ConditionPresent", "ConditionCheckSVar", "ConditionDefined", "ConditionCompare", "ConditionSVarCompare"} {
@@ -50,6 +50,14 @@ func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 		return lCond{Kind: cThreshold}, nil
 	case "Delirium":
 		return deliriumCond(), nil
+	case "Metalcraft":
+		// gorge metalcraftHolds: three or more artifacts the resolving
+		// controller controls (CR 207.2c)
+		f, err := lc.filter("Artifact.YouCtrl")
+		if err != nil {
+			return lCond{}, err
+		}
+		return lCond{Kind: cValue, A: lValue{Kind: vCount, F: f}, Op: opGE, B: cst(3)}, nil
 	}
 	return lCond{}, refuse("Condition$ %q", c)
 }
