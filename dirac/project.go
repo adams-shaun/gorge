@@ -201,6 +201,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if s.g.pre.state == 1 && s.g.pre.land && s.g.pre.obj == i {
 		po.Ctrl = s.prio // a land played from another player's card (Tinybones), its as-enters choice asked first: gorge changed its control at the play
 	}
+	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && s.g.pre.state != 0 {
+		po.Ctrl = s.res.askP // a GainControl$ return's as-enters choice (Coalstoke Gearhulk): gorge folds the control onto the card before its entry (emitEntryMove)
+	}
 	if ob.zone == kop.ZoneStack {
 		for j := 0; j < int(s.sp); j++ {
 			if s.stack[j].obj == i && s.stack[j].kind == seSpell {
