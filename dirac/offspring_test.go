@@ -193,3 +193,27 @@ func TestRavenousInterveningIf(t *testing.T) {
 		}
 	}
 }
+
+// A Vinelasher that left with its paid offspring trigger on the stack still leaves its
+// 1/1: the trigger read the payment as it fired (gorge TestOffspringSourceThatLeftStillMints).
+func TestOffspringSourceThatLeftStillMints(t *testing.T) {
+	sc, id := giftScen(t, "Iridescent Vinelasher", "Swamp")
+	for i := 0; i < 3; i++ {
+		sc.perm(id["Swamp"], 0)
+	}
+	vl := sc.hand(id["Iridescent Vinelasher"], 0)
+	sc.castMode(t, vl, 1)
+	sc.passUntilOnBF(t, vl)
+	if sc.s.sp == 0 {
+		t.Fatal("no offspring trigger on the stack")
+	}
+	sc.s.destroy(sc.k, sc.slot(vl))
+	sc.resolveAll(t)
+	cs := sc.copiesOf(id["Iridescent Vinelasher"])
+	if len(cs) != 1 {
+		t.Fatalf("%d copies, want the token", len(cs))
+	}
+	if p, _ := sc.s.pt(sc.k, cs[0]); p != 1 {
+		t.Fatalf("the token has power %d, want 1", p)
+	}
+}

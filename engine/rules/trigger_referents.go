@@ -448,6 +448,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	if card := e.G.Obj(c.TriggerCard); card != nil {
 		c.TriggerPaidX = card.X
 		c.TriggerConverge = card.ConvergeColours
+		c.TriggerOffspringPaid, c.TriggerSquadPaid = card.OffspringPaid, card.SquadPaid
 		// CR 601.2h / 106.12: the mana actually spent to cast the triggering
 		// spell, snapshotted beside the converge colours for the same reason --
 		// a spell that leaves the stack before the trigger resolves (countered,

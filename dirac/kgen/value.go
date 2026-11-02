@@ -857,9 +857,14 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return finishedEndStepsValue(), nil // lower_addphase.go
 	case "OffspringPaid":
 		// CR 702.175a: the cast paid the offspring cost, read off the permanent
-		// the spell became (the kernel's kicked mark), 0 for a token copy
+		// the spell became (the kernel's kicked mark), 0 for a token copy. The
+		// trigger reads it as it fires and is not checked again, so its body knows
+		// it was paid, and a source that has left still mints.
 		if lc.out.Offspring == nil {
 			return lValue{}, fmt.Errorf("Count$OffspringPaid without K:Offspring")
+		}
+		if lc.trigBody {
+			return lValue{Kind: vConst, N: 1}, nil
 		}
 		f, err := lc.filter("Card.Self+kicked")
 		if err != nil {

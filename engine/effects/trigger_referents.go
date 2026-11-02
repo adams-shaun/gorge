@@ -293,6 +293,12 @@ type TriggerContext struct {
 	// Zero is both a valid count and the value for a triggering card whose
 	// cast carried none.
 	TriggerConverge int32
+	// TriggerOffspringPaid and TriggerSquadPaid are the triggering card's offspring
+	// and squad payments, snapshotted with X: the move of a source that left before
+	// its enters trigger resolved clears the live fields, and the token still copies
+	// what it was (CR 608.2h, from memory).
+	TriggerOffspringPaid bool
+	TriggerSquadPaid     int32
 	// TriggerManaSpent snapshots the CR 601.2h / 106.12 TOTAL mana actually
 	// spent to cast TriggerCard when this trigger matched (engine/rules/
 	// trigger_referents' capture beside TriggerPaidX/TriggerConverge, read by

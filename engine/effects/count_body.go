@@ -405,6 +405,9 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// expansion's ETB trigger the permanent the spell became (the
 		// stack->battlefield move preserves the field) -- so a replay derives
 		// the same count; a copy of the spell was never cast and reads 0.
+		if c.TriggerCard == c.Source && c.TriggerSquadPaid != 0 {
+			return c.TriggerSquadPaid, true, true
+		}
 		if o := g.Obj(c.Source); o != nil {
 			return o.SquadPaid, true, true
 		}

@@ -217,7 +217,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.154 | deviates | `engine/rules/enlist.go#Engine.applyEnlist` `engine/rules/enlist.go#Engine.enlistOfferList` | `TestAradeshEnlistElectionPumpAndTrigger` | No reflexive trigger, X frozen |
 | 702.155 | not-impl | - | - |  |
 | 702.156 | follows | `engine/cards/kw_ravenous.go#kwRavenous` | `TestJackedRabbitRavenousX5CountersAndDraw` `TestJackedRabbitRavenousX3CountersNoDraw` `TestJackedRabbitRavenousX5DrawsAfterLeaving` | Enters with X counters |
-| 702.157 | follows | `engine/cards/kw_squad.go#kwSquad` `engine/rules/cast_altcost.go#squadCost` | `TestSquadKeywordExpansionAddsTheETBTrigger` `TestSquadNonManaCostsParse` `TestSquadSecuritronPlainCastUnchanged` | Repeatable additional cost |
+| 702.157 | follows | `engine/cards/kw_squad.go#kwSquad` `engine/rules/cast_altcost.go#squadCost` | `TestSquadSourceThatLeftStillMints` `TestSquadKeywordExpansionAddsTheETBTrigger` `TestSquadNonManaCostsParse` `TestSquadSecuritronPlainCastUnchanged` | Repeatable additional cost |
 | 702.158-702.159,702.161-702.162 | not-impl | - | - |  |
 | 702.160 | follows | `engine/state/prototype.go#PrototypeParams` `engine/state/mana_value.go#ManaValue` `engine/rules/cast_begin.go#Engine.beginCastWith` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestPrototypeOffersInsetCast` `TestPrototypeCharacteristicsOnStackAndBattlefield` `TestPrototypeNormalCastStaysPrinted` `TestPrototypeNormalElsewhere` `TestPrototypeCopyIsPrototyped` `TestPrototypeReversalClears` | Inset cost, colour and P/T only on the stack and battlefield; a copy keeps the designation |
 | 702.163 | follows | `engine/cards/kw_formirrodin.go#kwForMirrodin` | `TestGlimmerLensForMirrodinCreatesARebelAndAttaches` |  |
@@ -232,7 +232,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.172 | follows | `engine/rules/spree.go#modeCostTotal` `engine/rules/spree.go#Engine.modeCostFeasible` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestRequisitionRaidSpreeZeroModeCastNotOffered` |  |
 | 702.173 | not-impl | - | - |  |
 | 702.174 | follows | `engine/rules/cast_asks.go#Engine.giftAsk` `engine/effects/gift.go` | `TestGiftKitnapPromisedDrawsAndSkipsStunCounters` `TestGiftCopyCarriesNoPromise` | Promise an opponent at cast |
-| 702.175 | partial | `engine/rules/offspring.go#Engine.offspringRawParam` `engine/cards/kw_offspring.go#kwOffspring` | `TestOffspringPrintedPayMintsOneOneTokenCopy` `TestOffspringPrintedPlainCastMintsNothing` `TestOffspringGrantedByZinniaReachesTheCast` | First instance only |
+| 702.175 | partial | `engine/rules/offspring.go#Engine.offspringRawParam` `engine/cards/kw_offspring.go#kwOffspring` | `TestOffspringSourceThatLeftStillMints` `TestOffspringPrintedPayMintsOneOneTokenCopy` `TestOffspringPrintedPlainCastMintsNothing` `TestOffspringGrantedByZinniaReachesTheCast` | First instance only |
 | 702.176 | follows | `engine/rules/impending.go#impendingTickGrant` `engine/rules/altcast.go#Engine.altCostEnter` | `TestImpendingCastEntersWithTimeCountersAndIsNotACreature` `TestImpendingEndStepRemovesATimeCounterAndWakesAtTheLast` |  |
 | 702.177a | follows | `engine/rules/legal_loyalty.go#Engine.activationLimitBlocked` | `TestExhaustMaiJadedEdgeWithheldAfterOneUse` `TestExhaustInlineWithheldSameTurnAndLaterTurn` |  |
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |

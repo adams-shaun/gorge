@@ -1359,6 +1359,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		ab.Name = "CheckOnTriggerOnly"
 	}
+	if cs, _ := tp.get("CheckSVar"); cs == "Count$OffspringPaid" {
+		ab.Name = "CheckOnTriggerOnly" // gorge captures the payment as it fires
+	}
 	if noResolve {
 		if tr.Cond.Kind == cNone {
 			return refuse("NoResolvingCheck without a condition")

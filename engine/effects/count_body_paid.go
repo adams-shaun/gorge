@@ -78,6 +78,9 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// spell became (the stack->battlefield move preserves the field) -- so
 		// a replay derives the same value; a copy of the spell was never cast
 		// and reads 0 (so a minted 1/1 copy mints no further copies).
+		if c.TriggerCard == c.Source && c.TriggerOffspringPaid {
+			return 1, true, true
+		}
 		if o := castProvenanceSource(g, c); o != nil {
 			if o.OffspringPaid {
 				return 1, true, true

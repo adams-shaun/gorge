@@ -289,3 +289,30 @@ func TestOffspringGrantedPlainCastMintsNothing(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// A creature that left with its offspring trigger on the stack still leaves a token:
+// the trigger read the payment as it fired and copies what the creature was (CR 608.2h,
+// from memory). Forge's TriggeredCardLKICopy and XMage's getSourcePermanentOrLKI agree (read).
+func TestOffspringSourceThatLeftStillMints(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := offspringEngine(t, searchCorpusCard(t, searchTestRegistry(t), "Agate Instigator"))
+	hero := searchMoveByName(t, e, "Agate Instigator", state.ZHand)
+	addMana(t, e, 0, "RRCCCC")
+	submitChoices(t, e, offspringOption(t, e, hero, "offspring").Index)
+	for i := 0; i < 8 && e.G.Obj(hero).Zone != state.ZBattlefield; i++ {
+		passOnce(t, e)
+	}
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v after entering, want the offspring trigger", e.G.Stack)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: hero, From: state.ZBattlefield, To: state.ZGraveyard})
+	passUntilStackEmpty(t, e, 20)
+	toks := offspringTokens(t, e, hero)
+	if len(toks) != 1 {
+		t.Fatalf("token copies = %d, want 1", len(toks))
+	}
+	if p, tg := e.Power(toks[0]), e.Toughness(toks[0]); p != 1 || tg != 1 {
+		t.Fatalf("offspring copy is %d/%d, want 1/1", p, tg)
+	}
+	replayCheck(t, e, cfg)
+}
