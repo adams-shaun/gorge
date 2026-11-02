@@ -1302,10 +1302,16 @@ const (
 	// DayNightChange so every earlier ordinal, hash chain and golden replay is
 	// unchanged.
 	SubTargetRemoved
+	// DestroyProposal is the synthetic proposal of one permanent's destruction,
+	// offered to R:Event$ Destroy lines before the destruction's move. Obj is the
+	// permanent; Amount is 1 when the destruction can be regenerated from. It is
+	// never logged. Appended after SubTargetRemoved so every earlier ordinal,
+	// hash chain and golden replay is unchanged.
+	DestroyProposal
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(SubTargetRemoved) + 1
+	NumKinds = int(DestroyProposal) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

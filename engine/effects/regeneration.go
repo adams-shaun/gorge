@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -62,6 +63,29 @@ func ReplaceShieldCounter(h Host, id state.ObjID) bool {
 	return true
 }
 
+// ReplaceDestroyLine offers a destruction to the R:Event$ Destroy lines, before
+// the shield-like replacements below: the same deterministic stand-in for CR
+// 616.1's controller choice they use among themselves. regenerable is false for
+// a destruction that can't be regenerated from, which a Regeneration$ line
+// doesn't apply to.
+func ReplaceDestroyLine(h Host, id state.ObjID, regenerable bool) bool {
+	ev := events.Event{Kind: events.DestroyProposal, Obj: id}
+	if regenerable {
+		ev.Amount = 1
+	}
+	return h.ActionReplaced(ev)
+}
+
+// effRegeneration is the body of a "would be destroyed, regenerate it" line: the
+// regeneration itself (CR 701.19a), with no shield involved.
+func effRegeneration(h Host, c *Ctx, sa *cards.SA) {
+	for _, t := range Defined(h, c, sa) {
+		if o := h.Game().Obj(t.Obj); !t.IsPlayer && o != nil && o.Zone == state.ZBattlefield {
+			regenerate(h, o)
+		}
+	}
+}
+
 // ReplaceDestruction consumes one regeneration shield (CR 701.16). Call only
 // for regenerable destruction, after checking indestructible and NoRegen,
 // never for other zone moves.
@@ -81,6 +105,13 @@ func ReplaceDestruction(h Host, id state.ObjID) bool {
 		return false
 	}
 	h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Shield", Amount: -1})
+	regenerate(h, o)
+	return true
+}
+
+// regenerate heals o, taps it and removes it from combat (CR 701.19a).
+func regenerate(h Host, o *state.Object) {
+	id := o.ID
 	if o.Damage > 0 {
 		h.Emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
 	}
@@ -93,5 +124,4 @@ func ReplaceDestruction(h Host, id state.ObjID) bool {
 		h.EmitTap(id, o.Controller, false)
 	}
 	h.Emit(events.Event{Kind: events.EndCombatReset, Obj: id})
-	return true
 }

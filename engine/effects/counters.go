@@ -25,6 +25,7 @@ func init() {
 	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Proliferate", effProliferate)
 	Register("Regenerate", effRegenerate)
+	Register("Regeneration", effRegeneration)
 }
 
 // effMultiplyCounter is Forge's MultiplyCounterEffect: for each object or

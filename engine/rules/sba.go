@@ -185,11 +185,11 @@ func (e *Engine) applySBABatch(b *sbaBatch) {
 }
 
 // replaceSBADestruction offers a lethal-damage destruction to the replacements
-// the Destroy effects consult: the regeneration shield, a shield counter (CR
-// 122.1c), then umbra armor (CR 702.90), which removes the bearer's damage so
-// the next check cannot re-kill it.
+// the Destroy effects consult: R:Event$ Destroy lines, the regeneration shield,
+// a shield counter (CR 122.1c), then umbra armor (CR 702.90), which removes the
+// bearer's damage so the next check cannot re-kill it.
 func (e *Engine) replaceSBADestruction(id state.ObjID) bool {
-	return effects.ReplaceDestruction(e, id) || effects.ReplaceShieldCounter(e, id) ||
+	return effects.ReplaceDestroyLine(e, id, true) || effects.ReplaceDestruction(e, id) || effects.ReplaceShieldCounter(e, id) ||
 		effects.ReplaceUmbraArmor(e, id)
 }
 

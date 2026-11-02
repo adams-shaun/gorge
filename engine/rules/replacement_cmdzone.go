@@ -56,6 +56,8 @@ func init() {
 		// Stone, Kruphix, Omnath) are applied by engine/rules/replacement_connive.go and
 		// engine/rules/replacement_lose_mana.go; this makes the coverage ratchet see them.
 		"repl:Connive", "repl:LoseMana",
+		// repl:Destroy: engine/rules/replacement_destroy.go.
+		"repl:Destroy",
 		// repl:GameLoss / repl:GameWin (task fdn-repl-cant-lose) are the
 		// "you can't lose the game" / "your opponents can't win the game"
 		// CantHappen class (Herald of Eternal Dawn, the Platinum Angel family,

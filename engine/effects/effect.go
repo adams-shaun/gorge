@@ -684,7 +684,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// not erase it. No ChosenCard text, no snapshot.
 		chosenSnap, chosenBound := effectChosenSnapshot(h, c,
 			params[cards.PKValidSource.String()]+" "+params[cards.PKValidTarget.String()])
-		if body != "" && (event == "DamageDone" ||
+		if body != "" && (event == "DamageDone" || event == "Destroy" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||

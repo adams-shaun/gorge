@@ -857,6 +857,7 @@ const (
 	PKSameNameAsEach
 	// Play's AllowRepeats$: a chosen card stays a candidate for the next play.
 	PKAllowRepeats
+	PKRegeneration
 	paramKeyCount
 )
 
@@ -1663,6 +1664,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKNoPrevention:                     "NoPrevention",
 	PKSameNameAsEach:                   "SameNameAsEach",
 	PKAllowRepeats:                     "AllowRepeats",
+	PKRegeneration:                     "Regeneration",
 }
 
 // String is the key's Forge text.

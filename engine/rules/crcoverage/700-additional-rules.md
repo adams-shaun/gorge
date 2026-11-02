@@ -77,7 +77,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 701.18a | follows | `engine/rules/legal.go#Engine.sorcerySpeed` `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | priority, main phase, empty stack, land limit |
 | 701.18b | follows | `engine/rules/mayplay.go#Engine.mayPlayPermissions` | - |  |
 | 701.18c-e | n/a | - | - | terminology |
-| 701.19a | follows | `engine/effects/regeneration.go#ReplaceDestruction` `engine/rules/combat.go#Engine.cleanupBody` | - | OpRegenerate unused by tables |
+| 701.19a | follows | `engine/effects/regeneration.go#ReplaceDestruction` `engine/effects/regeneration.go#effRegeneration` `engine/rules/combat.go#Engine.cleanupBody` | `TestRegenerationLinesRegenerateUnlessTheDestructionForbids` | OpRegenerate unused by tables |
 | 701.19b | unknown | - | - | static regeneration not located |
 | 701.19c | follows | `engine/effects/regeneration.go#ReplaceDestruction` | - | Incinerate stat:CantRegenerate still on ratchet |
 | 701.20a-c,e | follows | `engine/effects/cardflow.go#effReveal` `engine/effects/dig.go#digSecretTo` | `TestJacePlusTwoBottomedCardIsHiddenFromItsOwner` |  |

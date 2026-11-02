@@ -169,8 +169,8 @@ var askFreeAPITable = [...]askFreeAPIEntry{
 	{"DamageAll", replMask(ReplDamageDone, ReplLifeReduced, ReplGainLife, ReplAddCounter)},
 	{"DealDamage", replMask(ReplDamageDone, ReplLifeReduced, ReplGainLife, ReplAddCounter)},
 	{"Debuff", 0},
-	{"Destroy", replMask(ReplMoved)},
-	{"DestroyAll", replMask(ReplMoved)},
+	{"Destroy", replMask(ReplMoved, ReplDestroy)},
+	{"DestroyAll", replMask(ReplMoved, ReplDestroy)},
 	// A draw is a Draw event (DrawCards is its alias: rules' replEventBit
 	// shares the bit) and a library-to-hand move.
 	{"Draw", replMask(ReplDraw, ReplMoved)},

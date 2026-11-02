@@ -248,7 +248,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 614.6 | follows | `engine/rules/replacement.go#Engine.applyReplacementsDispatch` | - | modified event replaces the original |
 | 614.7 | follows | `engine/rules/replacement_match.go#Engine.replacementMatchesRememberedUngatedBy` | - | - |
 | 614.7a | follows | `engine/effects/damage.go#emitObjectDamage` | `TestCR120_8ZeroDamageHasNoEventToReplace` | 0 damage is no event, never replaced (cr-g06) |
-| 614.8 | partial | `engine/effects/regeneration.go#ReplaceDestruction` `engine/effects/regeneration.go#ReplaceUmbraArmor` | - | fixed shield-first order vs umbra |
+| 614.8 | partial | `engine/effects/regeneration.go#ReplaceDestroyLine` `engine/effects/regeneration.go#ReplaceDestruction` `engine/effects/regeneration.go#ReplaceUmbraArmor` | `TestDestroyLineSparesFromDestroyEffects` `TestDestroyLineSparesFromLethalDamage` | fixed order: R:Event$ Destroy lines in scan order, then shield, then umbra |
 | 614.9 | follows | `engine/effects/replacement.go#effReplaceEffect` | `TestCR614RememberedDamageRedirectToObject` `TestCR614RememberedDamageRedirectToPlayer` `TestCR614RememberedDamageSkipsLostPlayer` | damage redirect via ReplaceEffect |
 | 614.10 | follows | `engine/rules/turn.go#Engine.beginTurn` | - | SkipPhase API unregistered (LOUD) |
 | 614.10a-614.10b | unknown | - | - | not audited |
