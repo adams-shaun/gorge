@@ -240,7 +240,7 @@ func TestServesADiracGame(t *testing.T) {
 		Min    int      `json:"min"`
 		Opts   []option `json:"options"`
 	}
-	answers, undone := 0, false
+	answers, undone, rewinding := 0, false, false
 	deadline := time.Now().Add(40 * time.Second)
 	for {
 		if time.Now().After(deadline) {
@@ -279,15 +279,22 @@ func TestServesADiracGame(t *testing.T) {
 			}
 		}
 		s, raw = call(http.MethodPost, "/intent?seat=0", map[string]any{"seq": d.Seq, "player": 0, "choices": choices})
+		// An accepted undo is serviced after its 204, so the decision just read may be
+		// the one it rewinds past, and the server is right to refuse the answer.
+		if s == http.StatusConflict && rewinding {
+			continue
+		}
 		if s != http.StatusNoContent {
 			t.Fatalf("%s answer: %d %s", d.Kind, s, raw)
 		}
+		rewinding = false
 		answers++
 		if answers == 12 && !undone {
 			undone = true
 			if s, raw := call(http.MethodPost, "/undo?seat=0", struct{}{}); s != http.StatusNoContent {
 				t.Fatalf("undo: %d %s", s, raw)
 			}
+			rewinding = true
 		}
 	}
 	s, raw := call(http.MethodGet, "/events?seat=0", nil)
