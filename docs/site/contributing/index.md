@@ -149,7 +149,7 @@ plays dirac against gorge on the committed FDN and BLB slices. A PR to `main`
 also runs `oracle`, the whole of `dirac/oracle` in ten parts: no deck pool ships
 with the repo, so it plays committed slices and synthetic decks, and any skip
 outside `dirac/oracle/testdata/poolskips.txt` fails it. A PR that touches
-`docs/site/` or `mkdocs.yml` also gets a strict docs build.
+`docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a strict docs build.
 
 ## Reproduce a feedback report
 
