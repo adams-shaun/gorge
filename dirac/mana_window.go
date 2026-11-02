@@ -169,6 +169,10 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			return false, held
 		}
 		if gap {
+			if k.ctrMana && s.scriptCtr(k, p).has(sl) {
+				s.ctrGap(k, p, sl) // the counter, the use, the mana (mana_countercost.go)
+				continue
+			}
 			if s.g.winMode != winNone && s.scriptTapX(k, p).has(sl) {
 				if s.windowTapXGo(k, p, cost, sl, anyColor, noOwed) {
 					return false, held // the pick is posed; the answer runs the walk on
@@ -268,6 +272,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 		if s.g.winMode != winNone && s.windowTapXOffer(k, p, o, decided, want) {
 			return o, true // a tap-another source (mana_windowtapx.go)
+		}
+		if s.windowCtrOffer(k, p, o, decided, want) {
+			return o, true // a counter-cost source (mana_countercost.go)
 		}
 		if k.gen != nil && k.gen.anyRestrSrc {
 			if m := s.windowRestrDynMask(k, p, o); m != 0 && (!decided || m&want != 0) {

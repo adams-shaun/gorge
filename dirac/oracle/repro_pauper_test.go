@@ -204,6 +204,28 @@ func TestUnlessWindowTwoColourSourceTakesLowestColourLockstep(t *testing.T) {
 	poolReproLockstep(t, "unless_window_two_colour_source_takes_lowest_colour", "pauper", Config{GorgeAutopaySurface: true})
 }
 
+// Chain Lightning's {R}{R} copy cost paid by a player holding two Walls of Roots and a Tinder Wall: gorge's
+// unless mana window lists a counter-cost source like any other and its answer takes the first listed, so
+// each Wall gets a -0/-1 counter and floats {G} before the Tinder Wall is sacrificed for {R}{R}. The kernel's
+// window walked past the Walls.
+func TestUnlessWindowActivatesCounterCostSourceLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "unless_window_activates_counter_cost_source", "pauper", Config{GorgeAutopaySurface: true})
+}
+
+// TestUnlessWindowActivatesCounterCostSourceMutation: with the counter-cost gaps hidden the same game diverges.
+func TestUnlessWindowActivatesCounterCostSourceMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoCtrMana = true
+	res, _ := poolReproRun(t, "unless_window_activates_counter_cost_source", "pauper", Config{GorgeAutopaySurface: true}, 200)
+	dirac.DebugNoCtrMana = false
+	if res.Div == nil {
+		t.Error("no divergence without the counter-cost gaps: the fixture never needs them")
+	}
+}
+
 // Lembas sacrificed for its own ability, then Nihil Spellbomb exiling the graveyard in response to its
 // "shuffles it into their library" trigger: the card is no longer in the graveyard, so it is not shuffled
 // in and the library is not shuffled (the trigger's Origin$ Graveyard).

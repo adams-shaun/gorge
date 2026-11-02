@@ -50,6 +50,18 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 	}
 }
 
+// windowCtrOffer: counter-cost source o is one gorge's ward or unless window
+// lists and can take now (it asks no colour), and its colour adds something the
+// clamp keeps.
+//
+//go:noinline
+func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
+	if !k.ctrMana || !s.scriptCtr(k, p).has(o) {
+		return false
+	}
+	return !decided || uint8(k.cards[s.cardAt(o)].manaCol)&want != 0
+}
+
 // ctrGap activates counter-cost source sl for p: its counters, its use this
 // turn, its mana into the pool (gorge's activation: the cost's
 // CounterChange, then the mana).
