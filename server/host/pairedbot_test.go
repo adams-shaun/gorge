@@ -535,7 +535,9 @@ func TestPairedBotRefusesAnOpenListSeat(t *testing.T) {
 }
 
 func TestPairedBotWordsItsReasons(t *testing.T) {
-	search := func(sims int) *explain.Search { return &explain.Search{Sims: sims, Rows: []explain.Row{{Visits: sims}}} }
+	search := func(sims int) *explain.Search {
+		return &explain.Search{Sims: sims, Rows: []explain.Row{{Visits: sims}}}
+	}
 	for _, c := range []struct {
 		name   string
 		note   explain.Note
