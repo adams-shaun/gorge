@@ -1,0 +1,12 @@
+# the explores-X-times pool: Jadelight Spelunker (an explore repeated by the X
+# paid), nonland and land cards for the explores to reveal, burn and lands
+# (dirac/oracle/explorex_test.go)
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Jadelight Spelunker
+Lightning Bolt
+Llanowar Elves
+Mountain
+Opt

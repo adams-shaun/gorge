@@ -179,13 +179,14 @@ func (lc *lowerCtx) debuff(ps *params) error {
 
 // explore lowers api:Explore (gorge effExplore: each Defined$ object --
 // the source by default -- explores Num$ times, one OpExplore per
-// explore). A constant Num$ only; one explorer.
+// explore). A constant Num$ up to 4, or a value (Jadelight Spelunker's X)
+// repeating one explore; one explorer.
 func (lc *lowerCtx) explore(ps *params) error {
 	n, err := lc.amount(ps, "Num", 1)
 	if err != nil {
 		return err
 	}
-	if !n.isConst() || n.N < 1 || n.N > 4 {
+	if n.isConst() && (n.N < 1 || n.N > 4) {
 		return refuse("Explore Num %v", n)
 	}
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
@@ -201,6 +202,16 @@ func (lc *lowerCtx) explore(ps *params) error {
 		}
 	default:
 		return refuse("Explore of %s", obj)
+	}
+	if !n.isConst() {
+		// "explores X times" (gorge exploreOnce per pass): the one explore
+		// repeated by the value, read when the loop starts
+		if obj.Kind == rTarget {
+			return refuse("Explore of a target slot Num %v", n)
+		}
+		lc.emit(lInstr{Op: "Repeat", A: n, Skip: 1})
+		lc.emit(lInstr{Op: "Explore", Obj: obj})
+		return nil
 	}
 	for i := 0; i < n.N; i++ {
 		lc.emit(lInstr{Op: "Explore", Obj: obj})

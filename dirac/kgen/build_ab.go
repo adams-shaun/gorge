@@ -2091,6 +2091,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpDemonstrate
 	case "Ninjutsu":
 		ki.Op = kop.OpNinjutsu
+	case "Repeat":
+		ki.Op, ki.B = kop.OpRepeat, skip() // A: the pass count, read as the loop starts
 	case "RepeatWhile":
 		id, err := cb.cond(in.Cond)
 		if err != nil {
