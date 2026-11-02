@@ -1511,6 +1511,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("reduce cost flag %q", fl)
 			}
 		}
+	case "CantBeBeamedUp":
+		st.Kind = kop.StatCantBeBeamedUp
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
 		if s.F != nil { // nil: the card's own static (Card.Self | EffectZone$ All)

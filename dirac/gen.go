@@ -184,6 +184,8 @@ type genPrep struct {
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise; kw_convoke.go)
+	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
+	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
@@ -624,6 +626,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.KickerCost.Flags != 0 {
 			g.anyKickCost = true
 		}
+		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
 			g.anyConvoke = true
 			g.anyHarmonize = g.anyHarmonize || c.Harmonize
@@ -856,6 +859,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				case kop.StatNoMaxHandSize:
 					g.anyHandSize = true
+				case kop.StatCantBeBeamedUp:
+					g.anyBeamBar = true
+					pc.hasStat = true // scanned through statM (kw_beammeup.go)
 				case kop.StatCantPutCounter:
 					g.anyCtrBlock = true
 					pc.hasStat = true // scanned through statM (ctr_cantput.go)

@@ -618,6 +618,16 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "beam_me_up" {
+				// the kernel's mode-2 cast of a beam me up card canonicalises to
+				// castModeOther, like "harmonize" (kw_beammeup.go)
+				if o.AltCostIndex > 15 {
+					note("cast/beam_me_up")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "mayhem" {
 				// CR 702.187a: the kernel's mode-2 cast of a Mayhem card
 				// canonicalises to castModeOther, like "harmonize"

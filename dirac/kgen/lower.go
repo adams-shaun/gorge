@@ -327,6 +327,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseMayhemCombos()
+	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseWebSlingCombos()
 	lc.refuseEvokeCombos()
@@ -1012,6 +1013,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Harmonize = &mc
+		case head == "Beam me up":
+			lc.beamMeUp(node, param) // lower_beammeup.go
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn

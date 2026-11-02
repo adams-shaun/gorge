@@ -1251,7 +1251,7 @@ func (s *State) CastFreeIndex(o Obj) uint8 {
 // cost, or its mana cost when the flashback is granted (Sphinx of Forgotten
 // Lore).
 func flashbackCost(cd *kop.CardDef) kop.ManaCost {
-	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem {
+	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp {
 		return cd.AltCost
 	}
 	return cd.Cost

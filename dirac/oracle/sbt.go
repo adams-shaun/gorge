@@ -274,6 +274,8 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "mayhem"
 			case mode&2 != 0 && s.FeatHarmonizeCard(dirac.Obj(src)):
 				cm = "harmonize"
+			case mode&2 != 0 && s.FeatBeamMeUpCard(dirac.Obj(src)):
+				cm = "beam_me_up"
 			case mode&2 != 0:
 				cm = "flashback"
 			case mode&dirac.FeatCastMayPlay != 0:

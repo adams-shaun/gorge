@@ -285,6 +285,10 @@ type CardDef struct {
 	// the card was discarded this turn (dirac/kw_mayhem.go). Never
 	// set with Flashback or Harmonize (kgen refuses them).
 	Mayhem bool
+	// BeamMeUp is printed beam me up: a graveyard cast for AltCost that also
+	// returns a creature you control to its owner's hand (FbCost), then exiles
+	// the spell (dirac/kw_beammeup.go).
+	BeamMeUp bool
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).

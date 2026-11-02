@@ -106,6 +106,7 @@ var gorgeKwPrefix = []struct {
 // or an ability. Only the prefix before ':' (or the whole word) is listed.
 var gorgeKwElsewhere = map[string]string{
 	"Changeling":               "the subtype set (kgen's changelingSubs; CharsProj.Subtypes)",
+	"Beam me up":               "CardDef.BeamMeUp (a graveyard cast for AltCost with a return; kw_beammeup.go)",
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
 	"Mayhem":                   "CardDef.Mayhem (a graveyard cast for AltCost if discarded this turn; kw_mayhem.go)",
 	"Offspring":                "CardDef.Offspring (an optional additional cost and its enters trigger)",

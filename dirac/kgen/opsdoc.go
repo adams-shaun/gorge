@@ -211,6 +211,7 @@ var opsEntries = []opsDoc{
 	{"stat:CantDraw", "StatCantDraw (Cond2)", "No player draws a card while the static functions: the draw does not happen, no Drawn trigger and no drawn-this-turn count; an empty library still marks the CR 704.5b loss first, as gorge's drawFor does (CR 121.6; gorge rules/replacement.go, effects/cardflow.go). Mornsong Aria."},
 	{"stat:CantPutCounter", "StatCantPutCounter (Filter, A, Cond2)", "No counters of kind A (A < 0: every kind) may be put on a battlefield permanent matching Filter (read with the static's controller as \"you\" and its source's host as EnchantedBy) while Cond2 holds (S:Mode$ CantPutCounter, CR 122.1; gorge rules/layers_restrict.go PutCounterBlocked): the placement is swallowed before any AddCounter replacement, so no CounterChange, no CounterAddedOnce trigger and no doubling. The player form (ValidPlayer$) is refused. Blossombind, Blightbeetle, Tatterkite, Melira's Keepers, Darksteel Angel."},
 	{"stat:DisableETB", "StatDisableETB (Filter)", "While the static applies, an object matching Filter (S:Mode$ DisableTriggers | ValidMode$ ChangesZone,ChangesZoneAll | Destination$ Battlefield | ValidCause$ F, CR 603.2g) entering the battlefield causes no ability to trigger: the battlefield, graveyard and emblem enters listeners are all skipped. Not when the source has lost its abilities; a batch event with no single object is not suppressed. Gorge: rules/disable_triggers.go disableTriggersExcludes. Torpor Orb, Karn Argent Defender, Doorkeeper Thrull."},
+	{"stat:CantBeBeamedUp", "StatCantBeBeamedUp (Filter)", "Permanents matching Filter can't be returned to pay beam me up (gorge matchesBeamReturn)."},
 	{"stat:CantBeCast", "StatCantBeCast (Filter, StFlags, Cond2)", "Spells matching Filter can't be cast (gorge castRestricted): StRaiseYou only by the controller, StRaiseOpp only by its opponents (Caster$), under Cond2 (Condition$ PlayerTurn: the controller's turn). The hand, flashback, play-permission and free-cast offers are withheld. Dragonlord Dromoka. A self static (Zone = Command; ValidCard$ Card.Self | EffectZone$ All) binds only the card itself, in any zone, with its owner as \"you\"; StCasterActive: only while the caster is the active player (Caster$ Player.Active). Jace Reawakened, Proft. A > 0: NumLimitEachTurn$ A, the static binds only once the caster has cast A spells this turn (unfiltered ValidCard$ only; gorge castLimitBinds). High Noon."},
 	{"stat:CantActivate", "StatCantActivate (Filter, StFlags, Cond2, A)", "Activated abilities of battlefield permanents matching Filter (read with the static's controller as \"you\" and its source's host as EnchantedBy) can't be activated (S:Mode$ CantBeActivated, CR 602.5; gorge abilityRestricted): StRaiseOpp only by the controller's opponents, StRaiseYou only by the controller (Activator$), under Cond2 (Condition$ PlayerTurn). A = 1 (ValidSA$ Activated.!ManaAbility) spares mana abilities; otherwise a matching mana source is no mana source in the planner. Clarion Conqueror, Grand Abolisher, Petrify."},
 	{"stat:Override", "StatOverride (Filter, Override)", "Objects matching Filter (Witness Protection / Imprisoned in the Moon: the enchanted creature) get `Table.Overrides[Override-1]` while the static applies (see OpOverride for the order). An override with RemoveCreatureSub (RemoveCreatureTypes$ without RemoveCardTypes$: Noggle the Mind, Honest Work) first drops the creature subtypes (genPrep.creatSub) and the all-creature-types mark, keeps the rest, then adds AddSub (gorge applyTypeEffect). A HasTypes or HasSub replacement leaves KeepTypes and KeepSub, the subtypes of a card type the effect adds (CR 205.1a; RemoveCardTypes$ with AddType$ Land leaves a land's land types, which grant no mana ability back: the ability is the card's, and LoseAbilities still takes it)."},
@@ -521,6 +522,7 @@ var opsEntries = []opsDoc{
 	{"card:SelfFlash", "CardDef.SelfFlash", "A CastWithFlash EffectZone$ All self grant (\"you may cast this spell as though it had flash if you control a Faerie\"): the card's own StatCastWithFlash ability, gated by IsPresent$ read for the caster with no battlefield source, lets it be cast at instant speed from any zone it is cast from, never granting other spells flash. Gorge: rules/statics_cast.go withSelfStatics + castWithFlashTargets. Illusion Spinners, Bard's Company, Serpent of the Pass."},
 	{"card:Leyline", "CardDef.Leyline", "May begin the game on the battlefield from the opening hand (after mulligans; a decision per such card)."},
 	{"card:SpellCost", "CardDef.SpellCost", "A permanent spell's additional cost (Arbiter of Woe: sacrifice a creature). Instants/sorceries carry theirs on the AbSpell ability's Cost."},
+	{"card:BeamMeUp", "CardDef.BeamMeUp (AltCost the mana, FbCost the return)", "Printed beam me up: a graveyard cast for AltCost that also returns a creature you control to its owner's hand, then exiles the spell."},
 	{"card:FbCost", "CardDef.FbCost (with KwFlashback; AltCost the mana part)", "A printed flashback cost's non-mana part (CR 702.34a; gorge flashbackCost parses the keyword parameter as a whole cost): one Sac<N/Spec> or tapXType<N/Spec>, paid through the flashback cast's sacrifice / tap-creatures picks in place of the spell's additional cost, and its census gates the graveyard offer. Dread Return, Lava Dart."},
 	{"card:CombatHitRec", "CardDef.CombatHitRec (genPrep.cdRec)", "The card reads the filter word ControlledBy Player.wasDealtCombatDamageThisTurnBySource against itself (Filter.Ctrl = CtrlHitBySrc): a landed combat hit on a player by one of its objects is recorded in genState.cdh (up to four sources a turn, a fifth stalls StallCombatHit), keyed by the source's Obj so the record outlives the source leaving and returning (gorge dealtCombatDamageBySource matches the hit's ObjID). A card without it records nothing. Steel Hellkite."},
 	{"card:ExiledWith", "CardDef.ExiledWith (genPrep.exwRec)", "The card reads the exiled-with source link (pred:ExiledWith or ex:ExiledWithN): its resolutions record each card they exile (genState.exw: the source's ver, the reverse and forward bits), so a later resolution of the same source finds them. A card without it records nothing. Ghost Vacuum, Northampton Farm."},
@@ -945,6 +947,8 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("stat:Override", name)
 				case kop.StatPlayerHexproof:
 					add("stat:PlayerHexproof", name)
+				case kop.StatCantBeBeamedUp:
+					add("stat:CantBeBeamedUp", name)
 				case kop.StatCantBeCast:
 					add("stat:CantBeCast", name)
 				case kop.StatCantGainLife:
@@ -1172,6 +1176,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		}
 		if d.SpendRead {
 			add("card:SpendRead", name)
+		}
+		if d.BeamMeUp {
+			add("card:BeamMeUp", name)
 		}
 		if d.FbCost.Flags != 0 {
 			add("card:FbCost", name)

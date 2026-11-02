@@ -430,7 +430,7 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
-		if e.flags&sfFlashback != 0 && (cd.Keywords&kop.KwFlashback != 0 && e.flags&sfFbGranted == 0 || cd.Harmonize) {
+		if e.flags&sfFlashback != 0 && (cd.Keywords&kop.KwFlashback != 0 && e.flags&sfFbGranted == 0 || cd.Harmonize || cd.BeamMeUp) {
 			c = cd.AltCost // a granted flashback costs the mana cost
 		}
 		if e.mode&modeWarped != 0 && cd.HasWarp {

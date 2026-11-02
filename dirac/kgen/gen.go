@@ -296,6 +296,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.Harmonize != nil {
 		fmt.Fprintf(w, " harmonize=%s", c.Harmonize)
 	}
+	if c.BeamMeUp != nil {
+		fmt.Fprintf(w, " beammeup=%s", c.BeamMeUp)
+	}
 	if c.Mayhem != nil {
 		fmt.Fprintf(w, " mayhem=%s", c.Mayhem)
 	}

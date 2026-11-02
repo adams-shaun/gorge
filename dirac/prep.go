@@ -229,7 +229,7 @@ func prepare(t *kop.Table) *prep {
 		p.mayhem = p.mayhem || c.Mayhem
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.offspring = p.offspring || c.Offspring
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0

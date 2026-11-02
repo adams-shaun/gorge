@@ -1700,6 +1700,13 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
 		}
+	case "CantBeBeamedUp":
+		// ValidSA$ Spell.KeywordSource (Scotty's) stays unread: it bars only a
+		// granted beam me up
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
 	case "MinMaxBlocker":
 		// Max$ 1 only (gorge MinMaxBlockerBounds reads the
 		// literal smallest Max$; the corpus's only value is 1)

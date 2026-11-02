@@ -647,6 +647,12 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.BeamMeUp != nil {
+		d.BeamMeUp = true // dirac/kw_beammeup.go; FbCost holds the return
+		if d.AltCost, err = manaCostOf(*c.BeamMeUp); err != nil {
+			return err
+		}
+	}
 	if c.Mayhem != nil {
 		// CR 702.187a: a graveyard cast for the mayhem cost if the card was
 		// discarded this turn (dirac/kw_mayhem.go)

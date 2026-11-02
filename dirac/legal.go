@@ -228,6 +228,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
 	}
+	if k.gen != nil && k.gen.anyBeam {
+		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
+	}
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
 	}

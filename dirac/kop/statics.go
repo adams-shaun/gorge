@@ -289,6 +289,11 @@ const StatStackKw StaticKind = 251
 // StaticKind iota tail stays untouched.
 const StatCombatDmgToughness StaticKind = 245
 
+// StatCantBeBeamedUp: permanents matching Filter (battlefield, read with the
+// static's controller and source) can't be returned to pay beam me up (gorge
+// matchesBeamReturn). Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatCantBeBeamedUp StaticKind = 244
+
 // TapPowToughness is TapPowerCrew / TapPowerSaddle's sentinel: the card
 // crews / saddles using its toughness rather than its power (Value$ Toughness).
 const TapPowToughness int8 = -128
