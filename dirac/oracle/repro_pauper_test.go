@@ -226,6 +226,14 @@ func TestUnlessWindowActivatesCounterCostSourceMutation(t *testing.T) {
 	}
 }
 
+// Eviscerator's Insight in the graveyard, flashback {4}{B} with a sacrifice beside it, and a player holding
+// three untapped lands and two Eldrazi Spawn: the Spawn can pay the mana or be the sacrifice, not both, so the
+// five mana is out of reach and gorge lists no cast. The kernel counted each Spawn twice.
+func TestFlashbackSacCostAndSacManaShareTheSourcesLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "flashback_sac_cost_and_sac_mana_share_the_sources", "pauper", Config{})
+}
+
 // Lembas sacrificed for its own ability, then Nihil Spellbomb exiling the graveyard in response to its
 // "shuffles it into their library" trigger: the card is no longer in the graveyard, so it is not shuffled
 // in and the library is not shuffled (the trigger's Origin$ Graveyard).

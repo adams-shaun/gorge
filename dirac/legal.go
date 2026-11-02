@@ -210,6 +210,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
+		if !s.flashbackPartsDisjoint(k, p, c, fc) {
+			continue
+		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
 			// gorge's potential planner prices a target-conditional reduction on
 			// a spell choosing several targets with no target: the full cost
@@ -585,6 +588,23 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 		return true
 	}
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o)
+}
+
+// flashbackPartsDisjoint: the flashback cast of card c at cost, whose additional cost sacrifices
+// or taps a permanent, is still priced once the permanents that part takes are held
+// back from the mana (gorge planReserving, as gorgeLowers prices the plain cast): a
+// source that sacrifices itself can use up what the part must sacrifice, and a
+// creature tapped for mana is not also the one the part taps (CR 601.2g-h).
+//
+//go:noinline
+func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.ManaCost) bool {
+	ac := spellAddCost(k, c)
+	if ac.Flags&kop.CostTapX == 0 && !(ac.Flags&kop.CostSac != 0 && k.sacMana) {
+		return true
+	}
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
 }
 
 // gorgeOffersKicked: under Config.GorgeAutopaySurface a kicked or Offspring cast
