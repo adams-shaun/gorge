@@ -61,7 +61,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 603.2e | follows | `engine/rules/trigmatch/tap.go#tapsMatches` `engine/effects/combatfx.go#effTap` | - | d not reached |
 | 603.2f | unknown | - | - | g no hidden-object gate found |
 | 603.2g | follows | `engine/rules/trigmatch/combat.go#DamageMatchesWithCapture` | `TestCR603_2gDamageRemovalIsNotDamageDealt` `TestCR603_2gHealIsNotPreventedByProtection` | REVISED: g non-positive Damage never matches (cr-g06); d removal fires nothing, zero guard unverified |
-| 603.2h | partial | `engine/rules/trigger_match.go#Engine.triggerActivationLimitAllows` | - | g reserved at queue; d keyed by Obj not version, cap 8 |
+| 603.2h | partial | `engine/rules/trigger_match.go#Engine.triggerActivationLimitAllows` `engine/rules/trigger_match.go#Engine.triggerLimitSpentBeforeMove` | `TestTriggerLimitLooksBackAtTheDepartingSource` | g reserved at queue; d keyed by Obj not version, cap 8; a source tested against its own departure reads the stint that move ended (603.10a), so a spent limit stays spent |
 | 603.3 | follows | `engine/rules/turn.go#Engine.priorityRound` `engine/rules/trigger_queue.go#Engine.putTriggersOnStack` | - | placed when a player would get priority |
 | 603.3a | partial | `engine/rules/trigger_match.go#Engine.checkFaceTriggers` | `TestAuraDiesTriggerBelongsToTheAurasController` | g post-change controller for control-loss triggers; Forge's TriggerController$ is ignored, since the source's controller decides |
 | 603.3b | partial | `engine/rules/trigger_queue.go#Engine.putTriggersOnStack` `engine/rules/trigger_queue.go#Engine.askTriggerOrder` | - | g no two-part order, no SBA recheck between rounds |

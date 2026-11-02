@@ -738,6 +738,36 @@ func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
 	return limit, true
 }
 
+// triggerLimitSpentBeforeMove reports a line tested against its own source's
+// zone change whose limit that source spent before moving. The new-object
+// reset (CR 400.7) is for what the card does next: a look-back (CR 603.10a)
+// asks about the object as it last existed, and that object has already
+// triggered. Forge reads the same answer off its last-known copy, which keeps
+// the activation tables (CardCopyService.getLKICopy). The two limit gates,
+// which read the current stint, cannot see this.
+func (e *Engine) triggerLimitSpentBeforeMove(t cards.Trigger, key triggerKey, ev *events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.Obj != key.Source || int(ev.Seq) > len(e.L.Events) {
+		return false
+	}
+	turnLimit, onTurn := triggerTurnLimitFor(t)
+	gameLimit, onGame := triggerGameLimitFor(t)
+	if !onTurn && !onGame {
+		return false
+	}
+	before := objectStintStartIn(e.L.Events[:ev.Seq], key.Source)
+	if onTurn {
+		if f := e.triggerTurnFires[key]; f.Turn == e.G.Turn && f.Stint == before && int(f.N) >= turnLimit {
+			return true
+		}
+	}
+	if onGame {
+		if f := e.triggerGameFires[key]; f.Stint == before && int(f.N) >= gameLimit {
+			return true
+		}
+	}
+	return false
+}
+
 // triggerActivationLimitAllows is the READ half of the per-turn
 // ActivationLimit$ gate ("this ability triggers only once each turn", Forge
 // Trigger.checkActivationLimit): has this line queued fewer than N triggers
@@ -1492,6 +1522,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				}
 				if !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.
+				}
+				if e.triggerLimitSpentBeforeMove(t, key, ev) {
+					continue // the same limits, looking back at the object that left.
 				}
 				// ResolvedLimit$ ("Do this only once each turn."): scoped to EVERY
 				// trigger mode, not just actionTriggerModes -- ChangesZone and

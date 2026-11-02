@@ -49,6 +49,53 @@ func TestTriggerActivationLimitHonouredOnEveryMode(t *testing.T) {
 	}
 }
 
+// TestTriggerLimitLooksBackAtTheDepartingSource: a "one or more creatures you
+// control die ... only once each turn" line that has triggered this turn does
+// not trigger again on its own source's death, which is the same object looking
+// back (CR 603.10a), not the new one CR 400.7 makes it afterwards. A source that
+// has not triggered does, and the next turn re-arms the line.
+func TestTriggerLimitLooksBackAtTheDepartingSource(t *testing.T) {
+	t.Parallel()
+	const face = "Name:Watcher\nTypes:Creature\nPT:2/2\n" +
+		"T:Mode$ ChangesZoneAll | TriggerZones$ Battlefield | ValidCards$ Creature.YouCtrl | Origin$ Battlefield | Destination$ Graveyard | ActivationLimit$ 1 | Execute$ TrigDraw\n" +
+		"SVar:TrigDraw:DB$ Draw\nOracle:x\n"
+	const bear = "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n"
+	die := func(e *Engine, id state.ObjID) {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	}
+	t.Run("spent", func(t *testing.T) {
+		e := layerEngine(t)
+		w, b := onBoard(t, e, 0, face), onBoard(t, e, 0, bear)
+		die(e, b)
+		if n := queuedFrom(e, w); n != 1 {
+			t.Fatalf("the other creature's death queued %d, want 1", n)
+		}
+		die(e, w)
+		if n := queuedFrom(e, w); n != 1 {
+			t.Fatalf("its own death queued %d in all, want still 1", n)
+		}
+	})
+	t.Run("unspent", func(t *testing.T) {
+		e := layerEngine(t)
+		w := onBoard(t, e, 0, face)
+		die(e, w)
+		if n := queuedFrom(e, w); n != 1 {
+			t.Fatalf("its own first death queued %d, want 1", n)
+		}
+	})
+	t.Run("next turn", func(t *testing.T) {
+		e := layerEngine(t)
+		w, b := onBoard(t, e, 0, face), onBoard(t, e, 0, bear)
+		die(e, b)
+		e.pendingTriggers = nil
+		e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: e.G.Turn + 1})
+		die(e, w)
+		if n := queuedFrom(e, w); n != 1 {
+			t.Fatalf("its own death a turn later queued %d, want 1", n)
+		}
+	})
+}
+
 // TestExemplarOfLightDrawTriggersOncePerTurnAndOnlyForYou pins both halves
 // of Exemplar of Light's "Whenever you put one or more +1/+1 counters on
 // this creature, draw a card. This ability triggers only once each turn."
