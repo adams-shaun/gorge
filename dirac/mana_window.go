@@ -1690,7 +1690,7 @@ func (s *State) manaStep(k *prep) bool {
 				s.reverseCast(k)
 				return true
 			}
-			s.windowTapRiderUseful(k, e.ctrl, &cost, &raw, true, anyColor)
+			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
 		} else if k.t.Cards[e.card].HasModeCost {
 			// Spree: gorge's planner declines the face ("shape:modal_cost"),

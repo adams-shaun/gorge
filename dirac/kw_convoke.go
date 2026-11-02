@@ -313,7 +313,7 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	saved := s.fork()
 	defer s.unfork()
 	s.occ = s.occ.andNot(s.convokeHidden())
-	ok, held := s.windowTapRider(k, e.ctrl, &red, !anyType && !anyColor, anyColor)
+	ok, held := s.windowTapUseful(k, e.ctrl, &red, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		s.CopyFrom(saved)
 		s.reverseCast(k)
