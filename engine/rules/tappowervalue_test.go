@@ -232,3 +232,27 @@ func TestTapPowerValueCensus(t *testing.T) {
 		}
 	}
 }
+
+// TestTapPowerValueReadsAnSVarOverTheTappedCreature: "stations and crews as
+// though his power were tripled" adds twice the creature's power, and a second
+// additive static adds on top (Forge's StaticAbilityTapPowerValue.getMod, read).
+func TestTapPowerValueReadsAnSVarOverTheTappedCreature(t *testing.T) {
+	t.Parallel()
+	helm := "Name:Steady Helm\nManaCost:1 W\nTypes:Creature Human\nPT:2/2\n" +
+		"S:Mode$ TapPowerValue | ValidSA$ Activated.Station,Activated.Crew+Vehicle | ValidCard$ Card.Self | Value$ X | Description$ x\n" +
+		"SVar:X:Count$CardPower/Twice\nOracle:x\n"
+	boost := "Name:Crew Trainer\nManaCost:1 W\nTypes:Creature Human\nPT:1/1\n" +
+		"S:Mode$ TapPowerValue | ValidSA$ Activated.Station | ValidCard$ Creature.Other | Value$ 2 | Description$ x\nOracle:x\n"
+	e, _, _ := newFixtureDeck(t, 961, helm, boost)
+	id := putCreature(t, e, 0, helm)
+	if got := e.tapPowerValue(id, "Crew"); got != 6 {
+		t.Fatalf("a 2-power creature crews for %d, want 6", got)
+	}
+	if got := e.tapPowerValue(id, "Saddle"); got != 2 {
+		t.Fatalf("out of scope, it counts %d, want its power 2", got)
+	}
+	putCreature(t, e, 0, boost)
+	if got := e.tapPowerValue(id, "Station"); got != 8 {
+		t.Fatalf("with a second static it stations for %d, want 2+4+2", got)
+	}
+}

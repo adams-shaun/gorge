@@ -254,6 +254,7 @@ func tapPowerSAScopeMatches(validSA, saKind string) bool {
 // restriction/condition/ClassLevel gates, so an unmodelled gate fails closed
 // to plain power rather than replacing the value blanket.
 func (e *Engine) tapPowerValue(id state.ObjID, saKind string) int32 {
+	base, added := e.Power(id), int32(0)
 	for _, sv := range e.tapPowerValueStatics() {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
@@ -269,16 +270,21 @@ func (e *Engine) tapPowerValue(id state.ObjID, saKind string) int32 {
 		}
 		v := strings.TrimSpace(sv.ParamStr(cards.PKValue))
 		if v == "Toughness" {
-			return e.Toughness(id)
+			base = e.Toughness(id)
+			continue
 		}
-		// A numeric Value$ is Forge's additive "as though its power were
-		// N greater" (every numeric corpus carrier's Description says
-		// exactly that), not a replacement with the literal number.
+		// Any other Value$ is Forge's additive "as though its power were N
+		// greater" (StaticAbilityTapPowerValue.getMod, read): the static's own
+		// SVar reads over the tapped creature ("as though his power were
+		// tripled" adds twice its power), and every such static adds.
 		if n, err := strconv.Atoi(v); err == nil {
-			return e.Power(id) + int32(n)
+			added += int32(n)
+		} else if body, ok := sv.SVars[v]; ok {
+			n, _ := effects.EvalCountOK(e, effects.NewCtxPtr(id, sv.Controller, effects.CtxInit{SVars: sv.SVars}), body)
+			added += n
 		}
 	}
-	return e.Power(id)
+	return base + added
 }
 
 // tapCostSAKind names the activated-action kind an ability's tap-power cost
