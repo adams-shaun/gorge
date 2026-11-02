@@ -133,6 +133,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 	}
 	board := lw.boardFacts()
 	restricted := false
+	tapExtra := e.tapExtraTriggerOnBoard()
 	for {
 		progressed := false
 		for zi, id := range zone {
@@ -205,6 +206,9 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 							e.addPotentialManaOf(&out, ma)
 						}
 					}
+					if tapExtra {
+						e.addPotentialTapExtra(&out, id, ma)
+					}
 				}
 			}
 			if !admittedAny {
@@ -225,6 +229,49 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 		e.potentialRestricted = restricted
 	}
 	return out
+}
+
+// tapExtraTriggerOnBoard reports whether any object prints a static
+// TapsForMana trigger (CR 605.1b), the only carriers whose extra mana a
+// source's tap adds to the bound. The carrier list is memoised; the common
+// board has none.
+func (e *Engine) tapExtraTriggerOnBoard() bool {
+	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
+		o := e.G.Obj(oid)
+		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+			continue
+		}
+		for _, t := range o.Face().Triggers {
+			if t.Mode == "TapsForMana" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// addPotentialTapExtra folds into the bound the additional mana the folded
+// static TapsForMana triggers add when id taps for ma (CR 106.12a, 605.4a):
+// Groundchuck & Dirtbag's {G} beside a land's own mana. A tap fires the
+// trigger once whichever colour it takes, so the bound takes the largest
+// extra per colour over the colours the ability can produce, and an ability
+// that does not tap adds none.
+func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.SA) {
+	if !e.abilityCompiledCost(ma).Cost.Tap {
+		return
+	}
+	var most state.Mana
+	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+		x := e.paymentPlanTapExtraMana(id, produced)
+		for i := range most {
+			most[i] = max(most[i], x[i])
+		}
+	}
+	for i, n := range most {
+		if n > 0 {
+			m[i] = saturatingPotentialMana(m[i], n)
+		}
+	}
 }
 
 // potentialPoolFor is the hypothetical bound a payment may be priced against:
