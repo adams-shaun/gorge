@@ -60,3 +60,13 @@ func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "lost_cda_toughness", "std-tdm", Config{GorgeAutopaySurface: true})
 }
+
+// A waterbend ability priced by its credit under a granted mana source: Geyser Leaper's
+// credit covers the {4}, and Flexible Waterbender's {3} needs one tap of Great Divide
+// Guide's granted mana, the prefix gorge's search finds.
+func TestWaterbendCreditInTheGrantedPrefixSearchLockstep(t *testing.T) {
+	t.Parallel()
+	autopay := Config{GorgeAutopaySurface: true}
+	synthReproLockstep(t, "waterbend_credit_covers", "std-tla", autopay)
+	synthReproLockstep(t, "waterbend_granted_prefix", "std-tla", autopay)
+}

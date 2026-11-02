@@ -89,6 +89,21 @@ func (s *State) waterbendCredit(k *prep, p uint8, src Slot, a *kop.Ability, cost
 	return cost
 }
 
+// waterbendPlanCost is cost less the offer credit when object o's ability ab costs a
+// waterbend: what a source cannot fund, the taps may, so gorge's planner prices the
+// credited cost before it calls a play unpayable (planAbilityPaymentLifePips).
+func (s *State) waterbendPlanCost(k *prep, p uint8, o Obj, ab uint8, cost kop.ManaCost) kop.ManaCost {
+	ob := &s.objs[o]
+	if !k.gen.anyWaterbend || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return cost
+	}
+	a := &k.t.Cards[s.cardAt(ob.slot)].Abilities[ab]
+	if a.Cost.Flags&kop.CostWaterbend == 0 {
+		return cost
+	}
+	return s.waterbendCredit(k, p, ob.slot, a, cost)
+}
+
 // waterbendPoolPaidOffer reports whether the activation being built is a
 // waterbend ability whose offer credit (waterbendCredit) the floating pool
 // alone pays: gorge's offer gate priced that credited cost, so it is an

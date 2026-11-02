@@ -510,7 +510,11 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 		if a.Mode()&0x80 != 0 {
 			return cost, ex, false
 		}
-		return s.activationMana(k, Obj(a.Source()), a.Mode())
+		cost, ex, ok = s.activationMana(k, Obj(a.Source()), a.Mode())
+		if ok {
+			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
+		}
+		return cost, ex, ok
 	case AkCast, AkCastCasualty:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, true
