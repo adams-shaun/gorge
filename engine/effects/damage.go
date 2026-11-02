@@ -547,6 +547,12 @@ func effFight(h Host, c *Ctx, sa *cards.SA) {
 	fightUnreadNote(h, c, sa, "TargetsWithoutSameCreatureType")
 	excessName := params.ExcessSVarParam(sa)
 	excessCond := params.ExcessSVarConditionParam(sa)
+	if excessName != "" {
+		// a fight that does not happen (the fighter left) deals no damage,
+		// so the reflexive "excess damage" gate reads zero rather than an
+		// SVar nothing wrote
+		publishSVar(c, excessName, "0")
+	}
 	pairs := fightPairs(h, c, sa)
 	hits := make([]fightHit, 0, 2*len(pairs))
 	for _, p := range pairs {
