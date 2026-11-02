@@ -1538,7 +1538,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("exile cost %q", t)
 			}
 			if head == "ExileCtrlOrGrave" {
-				if n != 1 || parts[1] == "CARDNAME" {
+				if parts[1] == "CARDNAME" {
 					return c, refuse("exile cost %q", t)
 				}
 				c.ExileGBf = true
