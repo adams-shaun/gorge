@@ -92,3 +92,11 @@ func TestXWitnessPastTheTriggerWaitBudgetKeepsItsSourcesLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "xcast_spawn_witness_over_wait_budget", "pauper", Config{})
 }
+
+// A bestowed Nyxborn Hydra paid with Eldrazi Spawn beside a Writhing Chrysalis: the
+// oracle lowers the cast by activating its sources at priority, and the Chrysalis'
+// counter triggers resolve before the cast begins, as they do for a plain cast.
+func TestBestowLoweringResolvesTheSacrificeTriggersLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "bestow_lowering_waits_out_spawn_triggers", "pauper", Config{GorgeAutopaySurface: true})
+}

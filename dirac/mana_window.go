@@ -1318,8 +1318,15 @@ func (s *State) windowUseful(p uint8, cost *kop.ManaCost) (want uint8, decided b
 // Config.GorgeUnpriced: the oracle never offers it) prices the any-type
 // cost, as tapPrinted does, and taps nothing when that has no plan
 // either: the payment then pays from the window (the self-play panic
-// "autopay found no plan").
-func (s *State) lowerWitness(k *prep, p uint8) { s.lowerWitnessEx(k, p, NoObj) }
+// "autopay found no plan"). The lowering waits out what the taps trigger
+// before the cast (resolveLowerCounterTriggers), whichever cast route lowers.
+func (s *State) lowerWitness(k *prep, p uint8) {
+	n0 := s.npend
+	s.lowerWitnessEx(k, p, NoObj)
+	if s.npend > n0 {
+		s.resolveLowerCounterTriggers(k, n0)
+	}
+}
 
 // lowerWitnessEx is lowerWitness with the hand card excl left out of the
 // witness's hand demand (a plain cast's PlanCastPayment witness).
