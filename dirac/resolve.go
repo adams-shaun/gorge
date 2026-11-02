@@ -687,6 +687,9 @@ func (s *State) srcKw(k *prep) kop.KwMask {
 		return s.kw(k, sl)
 	}
 	kw := k.cards[s.res.e.card].kw
+	if e := &s.res.e; e.kind != seSpell {
+		kw = s.srcLeftKw(kw, e) // kw_srcleft.go: a source that left uses its last known keywords (CR 608.2h)
+	}
 	if k.gen != nil && k.gen.anyStackLife && s.res.e.kind == seSpell {
 		kw |= s.stackLifelinkKw(k) // static_stacklifelink.go
 	}

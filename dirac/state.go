@@ -455,6 +455,7 @@ type stackEntry struct {
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
 	grp    uint8 // an AttackersDeclared trigger's attacker group: State.cold.atkGrp index + 1 (trig_attackers.go)
+	skw    uint8 // an ability's source's deathtouch and lifelink as it left the battlefield (skwValid, skwDT, skwLL; kw_srcleft.go)
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when a SpellCast trigger is queued (value_spellmv.go): the
 	// triggering spell can leave the stack before the value is read.
@@ -512,6 +513,8 @@ type pendingTrig struct {
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
+	// skw is the source's departure keywords (stackEntry.skw)
+	skw uint8
 }
 
 // delayed is a delayed triggered ability (OpDelayedTrigger).

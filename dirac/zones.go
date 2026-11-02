@@ -553,6 +553,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && (s.sp|s.npend != 0 || s.res.active) {
 		s.settleFollowed(k, o)
 	}
+	if s.sp|s.npend != 0 || s.res.active || s.buildLive() {
+		s.settleSrcKw(k, sl, o)
+	}
 	if k.gen != nil && k.gen.anyPanharm {
 		p.flags &^= pfPanhGone
 	}
