@@ -1297,7 +1297,11 @@ func (e *Engine) advanceStep() {
 		// The first-strike damage step is a step of its own, so mana empties
 		// as it ends (CR 500.4). A loss that poses a replacement order parks
 		// here, and combatStep starts the regular pass once it is answered.
+		// With no StepChange to clear it, the priority window's hold-outs end
+		// here too (suppressedCast's lifetime): a card held out in the
+		// first-strike step is offered in the regular one.
 		e.combatRound.firstEnded = true
+		e.suppressedCast, e.castAborts, e.inertHeldOut = nil, nil, nil
 		e.finishStepBoundary(state.StepCombatDamage, state.StepCombatDamage, 0)
 		if e.pending != nil {
 			return
