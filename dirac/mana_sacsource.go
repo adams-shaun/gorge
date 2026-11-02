@@ -166,8 +166,10 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // cast's payment created before the cast's own triggers are placed. gorge
 // resolves a payment trigger before it puts the spell's cast triggers on the
 // stack (its lowering pays before the cast), so a trigger whose whole
-// program is one OpPutCounter lands its counter at once. Any other trigger
-// stays pending for the ordinary stack path.
+// program is one OpPutCounter lands its counter at once, and one that mills a
+// target player (Scavenger's Talent on a Treasure sacrificed for the witness)
+// mills the first player gorge's default answer names. Any other trigger stays
+// pending for the ordinary stack path.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 	for i := int(n0); i < int(s.npend); {
 		pt := &s.pend[i]
@@ -181,15 +183,24 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 			continue
 		}
 		a := &cd.Abilities[pt.ab]
-		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || a.Prog[0].Op != kop.OpPutCounter || a.NTargets != 0 || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
+		mills := len(a.Prog) == 1 && a.Prog[0].Op == kop.OpMill && a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer && a.Prog[0].C&kop.MvMayMill == 0
+		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || a.Prog[0].Op != kop.OpPutCounter && !mills || a.NTargets != 0 && !mills || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
 			i++
 			continue
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt}
+			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
 		save := s.res
 		s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-		s.putCounterProg(k, &a.Prog[0])
+		if mills {
+			s.res.e.tgt[0] = PlayerTarget0
+			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+				s.res.e.tgt[0] = PlayerTarget0 + 1
+			}
+			s.exec(k, &a.Prog[0])
+		} else {
+			s.putCounterProg(k, &a.Prog[0])
+		}
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--

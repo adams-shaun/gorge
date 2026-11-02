@@ -109,6 +109,20 @@ func TestDeadTapAnotherSourceLeavesAFilterBoardLockstep(t *testing.T) {
 	synthReproLockstep(t, "baylen_no_tokens_grotto", "std-blb", Config{})
 }
 
+// Cindering Cutthroat's {1}{B/R} answered red with only Three Tree Mascot to make it: gorge's
+// manual window taps a Swamp for the Mascot's fee, activates it, and taps on for the {1}.
+func TestWindowActivatesAFirstFilterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "mascot_window_filter", "std-blb", Config{})
+}
+
+// A Treasure sacrificed for a lowered cast's witness under Scavenger's Talent: the mill
+// trigger resolves before the cast, its target gorge's default answer.
+func TestWitnessSacrificeMillsBeforeTheCastLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "witness_sac_mill_trigger", "std-blb", Config{})
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {
