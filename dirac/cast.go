@@ -34,6 +34,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if two, _, g := s.fbInstances(k, p, o); two && g {
 			fl |= sfFbGranted // the granted instance (fbInstances)
 		}
+		if k.gen != nil && s.g.altCast && (k.cards[c].kw&kop.KwFlashback != 0 || k.t.Cards[c].BeamMeUp) {
+			fl |= sfFbGranted // a beam me up cast's mana cost, or a flashback grant's
+		}
 	}
 	e := stackEntry{kind: seSpell, obj: o, srcVer: ob.ver, card: c, ab: spellAb(k, c), ctrl: p, flags: fl, trigObj: NoObj}
 	if k.gen != nil && k.gen.anyCastBF && k.t.Cards[c].CastBF != 0 {
@@ -83,7 +86,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	}
 	*s.bld() = build{e: e}
 	if k.gen != nil && s.g.altCast {
-		s.bld().altAdd, s.g.altCast = buildAltCost, false // cast_altfree.go
+		s.g.altCast = false
+		if mode&2 == 0 {
+			s.bld().altAdd = buildAltCost // cast_altfree.go
+		} else if !k.t.Cards[c].BeamMeUp {
+			s.bld().altAdd = buildBeamGrant // kw_beammeup.go
+		}
 	}
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seSpell]
@@ -140,7 +148,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// a pool that pays the printed cost leaves no witness to tap, and the
 		// cast still has no plan: an either-or part chosen after it goes
 		// through the window (bsPay)
-		if !s.FeatPoolPays(p, o, mode&3) {
+		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
 			s.lowerWitness(k, p)
 		}
 	}
@@ -430,7 +438,7 @@ func (s *State) buildCost0(k *prep) kop.ManaCost {
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
-		if e.flags&sfFlashback != 0 && (cd.Keywords&kop.KwFlashback != 0 && e.flags&sfFbGranted == 0 || cd.Harmonize || cd.BeamMeUp) {
+		if e.flags&sfFlashback != 0 && ((cd.Keywords&kop.KwFlashback != 0 || cd.BeamMeUp) && e.flags&sfFbGranted == 0 || cd.Harmonize) {
 			c = cd.AltCost // a granted flashback costs the mana cost
 		}
 		if e.mode&modeWarped != 0 && cd.HasWarp {
@@ -1828,6 +1836,10 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altSacCost(&a.Cost) {
 				return &a.Cost // the sacrifice alternative cost (Fireblast; cast_altfree.go)
 			}
+		}
+		if s.bld().altAdd == buildBeamGrant {
+			g, _ := s.beamGrantor(k, e.ctrl)
+			return &k.t.Cards[s.cardAt(g)].FbCost // the return a granted beam me up cast pays (kw_beammeup.go)
 		}
 		if e.flags&sfFlashback != 0 && cd.FbCost.Flags != 0 && e.flags&sfFbGranted == 0 {
 			return &cd.FbCost // a non-mana flashback cost (CR 702.34a; kgen lower_fbcost.go)

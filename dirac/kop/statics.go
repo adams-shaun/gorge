@@ -304,3 +304,12 @@ const TapPowToughness int8 = -128
 // finishUntapStep, untap.go untapOtherStaticsMatch).
 // Explicit ordinal: the StaticKind iota tail stays untouched.
 const StatUntapOther StaticKind = 246
+
+// StatBeamGrant: during the controller's main phase each instant and sorcery card
+// in their graveyard has beam me up at its mana cost (Scotty, Miracle Worker). The
+// granter's CardDef.FbCost holds the return.
+const StatBeamGrant StaticKind = 253
+
+// StBeamGranted on a StatCantBeBeamedUp static: it bars only the return that pays
+// for a grant its own permanent makes.
+const StBeamGranted StaticFlags = 1 << 0

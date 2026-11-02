@@ -373,7 +373,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	}
 	cost := k.cards[c].cost
 	if mode&2 != 0 {
-		cost = flashbackCost(&k.t.Cards[c])
+		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 {
 		cost = addCost(cost, k.t.Cards[c].Kicker)
 	}
@@ -569,7 +569,6 @@ func planDeclinesAddCost(k *prep, c CardID) bool {
 // casts it never plans (FeatPlannedCast).
 func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	cd := &k.t.Cards[c]
 	if planNeverPrices(k, c) {
 		return kop.ManaCost{}, false
 	}
@@ -591,7 +590,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 	}
 	cost := k.cards[c].cost
 	if mode&2 != 0 {
-		cost = flashbackCost(cd)
+		cost = s.flashbackCostOf(k, o)
 	}
 	if cost.Phyrexian() {
 		// gorge pay.PlanManaHalf: the witness funds the cost without its
@@ -1247,11 +1246,12 @@ func (s *State) CastFreeIndex(o Obj) uint8 {
 	return n
 }
 
-// flashbackCost is a flashback cast's mana cost: the card's own flashback
-// cost, or its mana cost when the flashback is granted (Sphinx of Forgotten
-// Lore).
-func flashbackCost(cd *kop.CardDef) kop.ManaCost {
-	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp {
+// flashbackCostOf is object o's flashback cast's mana cost: the card's own
+// flashback cost, or its mana cost when the flashback is granted (Sphinx of
+// Forgotten Lore), printed beam me up or not.
+func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
+	cd := &k.t.Cards[s.objs[o].card]
+	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
 	return cd.Cost

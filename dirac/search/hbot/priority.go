@@ -153,7 +153,7 @@ func planShapedCast(s *dirac.State, a dirac.Action) bool {
 	}
 	o := dirac.Obj(a.Source())
 	if m&2 != 0 {
-		return !s.FeatHarmonizeCard(o) && !s.FeatMayhemCard(o) && !s.FeatBeamMeUpCard(o)
+		return !s.FeatHarmonizeCard(o) && !s.FeatMayhemCard(o) && a.Target() == 0
 	}
 	return m != 0 || a.Target() == 0 || s.ObjZone(o) != kop.ZoneHand
 }

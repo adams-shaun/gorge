@@ -1516,6 +1516,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		for _, fl := range s.Flags {
+			if fl != "BeamGranted" {
+				return ka, nil, fmt.Errorf("CantBeBeamedUp flag %q", fl)
+			}
+			st.StFlags |= kop.StBeamGranted
+		}
+	case "BeamGrant":
+		st.Kind = kop.StatBeamGrant
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
 		if s.F != nil { // nil: the card's own static (Card.Self | EffectZone$ All)

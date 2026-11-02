@@ -1,5 +1,6 @@
-# the beam me up pool: the printed keyword, the Aura that bars a return, and
-# creatures that float mana to pay it, for the oracle's constructed lockstep
+# the beam me up pool: the printed keyword, the grant, a flashback grant beside them,
+# the Aura that bars a return, and creatures that float mana to pay it, for the
+# oracle's constructed lockstep
 # (dirac/oracle/beammeup_test.go)
 Burning-Tree Emissary
 Forest
@@ -9,3 +10,7 @@ Mardu Warshrieker
 Marooned
 Mountain
 Open Communications
+Opt
+Scotty, Miracle Worker
+Sphinx of Forgotten Lore
+Think Twice

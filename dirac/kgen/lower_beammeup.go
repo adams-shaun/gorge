@@ -20,6 +20,26 @@ func (lc *lowerCtx) beamMeUp(node, param string) {
 	lc.out.BeamMeUp, lc.out.FbCost = &mc, &c
 }
 
+// beamGrant lowers a static grant of beam me up with no cost of its own (gorge
+// beamMeUpInstances: the card's mana cost). The kernel knows Scotty, Miracle Worker's
+// shape only: its controller's instants and sorceries, in their main phase. The return
+// goes on the granter's CardDef.FbCost.
+func (lc *lowerCtx) beamGrant(sp *params, st *lStatic, aff string) error {
+	if aff != "Instant.YouOwn,Sorcery.YouOwn" || !sp.is("AffectedZone", "Graveyard") ||
+		!sp.is("Condition", "PlayerTurn") || !sp.is("Phases", "Main1,Main2") {
+		return refuse("beam me up grant shape")
+	}
+	sp.consume("AddKeyword", "AffectedZone", "Condition", "Phases")
+	c, err := lc.cost("Return<1/Creature>")
+	if err != nil {
+		return err
+	}
+	c.Mana = manaCost{None: true}
+	lc.out.FbCost = &c
+	st.Kind = "BeamGrant"
+	return nil
+}
+
 // refuseBeamCombos refuses beam me up beside any other cast route or additional
 // cost: the cast is one plain alternative mana cost plus the return, and
 // CardDef.AltCost and FbCost hold one graveyard cast.

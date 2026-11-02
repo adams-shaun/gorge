@@ -55,8 +55,11 @@ func (s *State) returnCands(k *prep, p uint8, f kop.FilterID, src Obj, d *Decisi
 		if s.picked(o) || !s.matchPerm(k, f, sl, p, srcSl) {
 			continue
 		}
-		if k.gen != nil && k.gen.anyBeamBar && src != NoObj && k.t.Cards[s.objs[src].card].BeamMeUp && s.beamBarred(k, sl) {
-			continue
+		if k.gen != nil && k.gen.anyBeamBar && src != NoObj {
+			granted := s.g.beamPick || s.ctl == ctlBuild && s.bld().altAdd == buildBeamGrant
+			if (granted || k.t.Cards[s.objs[src].card].BeamMeUp) && s.beamBarred(k, sl, p, granted) {
+				continue
+			}
 		}
 		n++
 		if d != nil {

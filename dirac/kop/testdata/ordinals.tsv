@@ -921,6 +921,7 @@ SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
+StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
@@ -944,6 +945,7 @@ StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
+StatBeamGrant	StaticKind	253
 StatCantBeBeamedUp	StaticKind	244
 StatCantBeCast	StaticKind	16
 StatCantBlock	StaticKind	3

@@ -19,7 +19,7 @@ import (
 //     lStatic.RedCol the coloured counts.
 
 func init() {
-	mask[kop.StaticFlags]("kop.StBargained", kop.StBargained, "kop.StReduceColor", kop.StReduceColor)
+	mask[kop.StaticFlags]("kop.StBargained", kop.StBargained, "kop.StReduceColor", kop.StReduceColor, "kop.StBeamGranted", kop.StBeamGranted)
 }
 
 // reduceSpellShape reads Color$ and a self ValidSpell$ Spell.Bargain off a

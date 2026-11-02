@@ -45,7 +45,39 @@ func kbeamPolicy(seed uint64, beams, returns *int) Policy {
 	})
 }
 
-func TestBeamMeUpLockstep(t *testing.T) {
+// kbeamGrantDecks: Scotty's grant over plain spells and a printed flashback, beside
+// Scotty himself as the only creature the grant cannot return.
+var kbeamGrantDecks = [2][]cardset.Entry{
+	{
+		{Name: "Scotty, Miracle Worker", Count: 8}, {Name: "Think Twice", Count: 6}, {Name: "Opt", Count: 6},
+		{Name: "Burning-Tree Emissary", Count: 6}, {Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 6}, {Name: "Forest", Count: 4},
+	},
+	{
+		{Name: "Scotty, Miracle Worker", Count: 8}, {Name: "Think Twice", Count: 6}, {Name: "Opt", Count: 6},
+		{Name: "Burning-Tree Emissary", Count: 6}, {Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 6}, {Name: "Forest", Count: 4},
+	},
+}
+
+// kbeamFlashbackDecks: Sphinx of Forgotten Lore's flashback grant on a card with
+// printed beam me up, which then offers both casts.
+var kbeamFlashbackDecks = [2][]cardset.Entry{
+	{
+		{Name: "Sphinx of Forgotten Lore", Count: 10}, {Name: "Open Communications", Count: 8}, {Name: "Burning-Tree Emissary", Count: 6},
+		{Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 4},
+	},
+	{
+		{Name: "Sphinx of Forgotten Lore", Count: 10}, {Name: "Open Communications", Count: 8}, {Name: "Burning-Tree Emissary", Count: 6},
+		{Name: "Lotus Cobra", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 4},
+	},
+}
+
+func TestBeamMeUpLockstep(t *testing.T) { kbeamLockstep(t, kbeamDecks) }
+
+func TestBeamGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamGrantDecks) }
+
+func TestBeamBesideFlashbackGrantLockstep(t *testing.T) { kbeamLockstep(t, kbeamFlashbackDecks) }
+
+func kbeamLockstep(t *testing.T, kdecks [2][]cardset.Entry) {
 	if isolate(t) {
 		return
 	}
@@ -58,7 +90,7 @@ func TestBeamMeUpLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	var decks [2][]*cards.Card
-	for s, d := range kbeamDecks {
+	for s, d := range kdecks {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -72,7 +104,7 @@ func TestBeamMeUpLockstep(t *testing.T) {
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(kbeamDecks[0], kbeamDecks[1])
+	tbl, _, _, err := set.Matchup(kdecks[0], kdecks[1])
 	if err != nil {
 		t.Fatal(err)
 	}

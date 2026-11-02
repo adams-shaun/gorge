@@ -1244,6 +1244,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
 		}
+		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
+			s.noteBeamCast(k, a) // kw_beammeup.go
+		}
 		s.beginCast(k, Obj(a.Source()), a.Mode())
 		if face {
 			s.lowerFaceCast(k, p, Obj(a.Source())) // cast_faceroute.go

@@ -192,7 +192,8 @@ type genPrep struct {
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
-	beamGrantFB    bool           // a printed beam me up card beside a flashback grant: the game stalls at its start (StallBeamGrantFB)
+	beamTwice      bool           // a printed beam me up card beside a beam me up grant: the game stalls at its start (StallBeamTwice)
+	anyBeamGrant   bool           // some card has a StatBeamGrant static
 	twobridMod     bool           // anyTwobrid beside a cost reduction or increase: the game stalls at its start (StallTwobridMod)
 	raiseFree      bool           // anyRaise beside a free cast the kernel prices at nothing: the game stalls at its start (StallRaiseFree)
 	partyRole      [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
@@ -536,7 +537,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
 	g.anyRaise, g.raiseFree = tableRaises(t)
 	g.anyTwobrid, g.twobridMod = tableTwobrid(t)
-	g.beamGrantFB = tableBeamGrantFB(t)
+	g.beamTwice = tableBeamTwice(t)
+	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantAct(t, g)   // cast_cantactivate.go
@@ -870,6 +872,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyHandSize = true
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
+					pc.hasStat = true // scanned through statM (kw_beammeup.go)
+				case kop.StatBeamGrant:
+					g.anyBeam = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
 				case kop.StatCantPutCounter:
 					g.anyCtrBlock = true
@@ -1479,6 +1484,7 @@ type genState struct {
 	evSel     uint64       // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
 	endTurn   bool         // OpEndTurn: skip to cleanup after this resolution
 	fog       bool         // OpFog: all combat damage this turn is prevented (padding)
+	beamPick  bool         // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast   bool         // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
 	impCast   bool         // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	noUntapL  uint8        // OpSkipUntap C=1: bit p, player p's lands don't untap during p's next untap step (padding)

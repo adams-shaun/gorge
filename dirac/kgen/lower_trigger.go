@@ -1705,11 +1705,15 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err
 		}
 	case "CantBeBeamedUp":
-		// ValidSA$ Spell.KeywordSource (Scotty's) stays unread: it bars only a
-		// granted beam me up
 		sp.consume("Secondary")
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
+		}
+		if v, ok := sp.get("ValidSA"); ok {
+			if v != "Spell.KeywordSource" {
+				return nil, refuse("CantBeBeamedUp ValidSA %q", v)
+			}
+			st.Flags = append(st.Flags, "BeamGranted")
 		}
 	case "MinMaxBlocker":
 		// Max$ 1 only (gorge MinMaxBlockerBounds reads the
@@ -1968,6 +1972,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, nil
 		}
 		return nil, refuse("MayLookAt shape")
+	}
+	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
+		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
 	}
 	if az, ok := sp.get("AffectedZone"); ok {
 		if az == "Battlefield" {
