@@ -124,15 +124,16 @@ echo "== 4 lockstep, absolute"
 for set in fdn blb; do
 	for surface in autopay full; do
 		log=$S/lockstep-$set-$surface.log
-		"$S/kfuzz" -kernel "$set" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$surface" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute >"$log" 2>&1
+		"$S/kfuzz" -kernel "$set" -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface "$surface" -mulligans 1 -shrink 0 -workers "${GATE_KFUZZ_WORKERS:-4}" -absolute -v >"$log" 2>&1
 		rc=$?
 		grep "^$set:" "$log"
 		if [ "$rc" -ne 0 ]; then
 			grep -E '^ *(pair |options:|implicates:)' "$log" | head -6
-			echo "  repro:   go run ./dirac/oracle/cmd/kfuzz -kernel $set -surface $surface -first-pair <pair> -pairs 1 -seed 1 -mulligans 1 -absolute -v"
+			pair=$(sed -nE 's/^pair ([0-9]+) .*/\1/p' "$log" | head -1)
+			echo "  repro:   go run ./dirac/oracle/cmd/kfuzz -kernel $set -surface $surface -first-pair ${pair:-<pair>} -pairs 1 -seed 1 -mulligans 1 -absolute -v"
 			echo "  Your change altered behaviour on a supported card. In this change, do one of:"
 			echo "    1. fix dirac (dirac/*.go, dirac/kgen), or"
-			echo "    2. refuse by name: go run ./dirac/cmd/kgen -refuse \"<card>\" -why \"...\" -repro $set:$surface:<pair>"
+			echo "    2. refuse by name: go run ./dirac/cmd/kgen -refuse \"<card>\" -why \"...\" -repro $set:$surface:${pair:-<pair>}"
 			bad "absolute lockstep, $set, $surface surface"
 		fi
 	done

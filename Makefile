@@ -161,7 +161,7 @@ dirac-tables:
 dirac-slices: dirac-tables
 	go build -trimpath -o $(BIN_DIR)/kfuzz ./dirac/oracle/cmd/kfuzz
 	@for set in fdn blb; do for surface in autopay full; do \
-		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute || exit 1; \
+		$(BIN_DIR)/kfuzz -kernel $$set -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface $$surface -mulligans 1 -shrink 0 -workers 4 -absolute -v || exit 1; \
 	done; done
 
 .PHONY: fresh-clone-check
