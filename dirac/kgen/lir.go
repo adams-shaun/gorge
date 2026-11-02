@@ -578,6 +578,7 @@ type lTrigger struct {
 	SpentGate     int16 // SpellCast: ValidSA$/ValidSAonCard$ Spell.ManaSpent <op><n|X>, a kop.DmgGate over the cast's pool mana spent (X = 0xff, the printed mana value); gorge spellCastMatches, kernel spentGateOK
 	NthSpell      int   // SpellCast: the caster's spell count this turn against ActivatorThisTurnCast$ <op>N
 	NthCmp        uint8 // the NthSpell operator as a kop.DmgCmp (0 = EQ, the plain literal; kernel trigCmpOK)
+	NthFiltered   bool  // NthSpell counts the spells F matches: ValidCard$ turns some away (gorge activatorCastCount)
 	Amount        int   // ManaExpend: expend N
 	BlockedBySelf bool  // AttackerBlocked: ValidBlocker$ Card.Self
 	TargetsAll    bool  // SpellCast: every target of the spell matches F2 (TargetsValid$)

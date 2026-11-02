@@ -1030,6 +1030,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags2 |= kop.Tf2NthSpell
 		kt.N = trigCmpN(t.NthCmp, t.NthSpell)
+		if t.NthFiltered {
+			kt.Flags4 |= kop.Tf4NthFiltered
+		}
 	}
 	if t.Event == "ManaExpend" {
 		if t.Amount <= 0 {

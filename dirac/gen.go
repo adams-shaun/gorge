@@ -451,6 +451,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anySpent, g.anyHist = true, true // recorded at payment by histCast
 		}
 	}
+	if tableNthFiltered(t) {
+		g.castRingOn, g.anyHist = true, true
+	}
 	if g.castRingOn {
 		for i, n := range t.Subtypes {
 			if n == "Treasure" {

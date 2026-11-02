@@ -545,12 +545,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			tr.SpentGate = gate
 		}
 		if v, ok := tp.get("ActivatorThisTurnCast"); ok {
-			// gorge CompareIntCount over pay.SpellsCastThisTurn (the
-			// caster's spells this turn, this one included): the six
-			// operators, a literal 1..127
+			// gorge CompareIntCount over activatorCastCount (the caster's
+			// spells this turn that match ValidCard$, this one included): the
+			// six operators, a literal 1..127
 			cmp, n, ok := trigCmp(v)
 			if !ok {
 				return refuse("ActivatorThisTurnCast %q", v)
+			}
+			switch vc := t.ParamStr(cards.PKValidCard); {
+			case vc == "" || vc == "Card" || vc == "Card.YouCtrl":
+			case tr.CastHand || strings.Contains(vc, "wasCast") || strings.Contains(vc, "CastSa"):
+				return refuse("ActivatorThisTurnCast over cast provenance %q", vc)
+			default:
+				tr.NthFiltered = true
 			}
 			if cmp != uint8(kop.DmgEQ) {
 				tr.NthCmp = cmp

@@ -210,3 +210,21 @@ func TestTrigqualsTriggeredAttackers(t *testing.T) {
 		}
 	}
 }
+
+// A ValidCard$ that turns some spells away makes ActivatorThisTurnCast$ count the
+// spells it matches; one that turns none away keeps the turn's tally, and a
+// provenance qualifier refuses.
+func TestNthSpellFilterLowering(t *testing.T) {
+	line := func(vc string) string {
+		return "T:Mode$ SpellCast | ValidCard$ " + vc + " | ValidActivatingPlayer$ You | ActivatorThisTurnCast$ EQ1 | TriggerZones$ Battlefield | Execute$ TrigGain"
+	}
+	for vc, want := range map[string]bool{"Instant,Sorcery": true, "Card.nonCreature": true, "Card": false, "Card.YouCtrl": false} {
+		why, tr, _ := ktqBuild(t, line(vc))
+		if why != "" || tr.Flags2&kop.Tf2NthSpell == 0 || (tr.Flags4&kop.Tf4NthFiltered != 0) != want {
+			t.Errorf("ValidCard %s: refusal %q, flags4 %#x, want filtered %v", vc, why, tr.Flags4, want)
+		}
+	}
+	if why, _, _ := ktqBuild(t, line("Instant.YouCtrl+wasCastFromYourGraveyard")); why == "" {
+		t.Errorf("a provenance ValidCard: refusal %q", why)
+	}
+}

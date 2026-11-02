@@ -193,6 +193,10 @@ func (b *trigBoard) SpellsCastThisTurn(p state.PlayerID) int {
 }
 func (b *trigBoard) ManaExpendTotal(p state.PlayerID) int32 { return b.eng().manaExpendTotal(p) }
 
+func (b *trigBoard) SpellsCastThisTurnByMatching(activator, you state.PlayerID, spec string) int {
+	return len(b.eng().castsThisTurnMatching(you, spec, 0, effects.TriggerContext{}, activator))
+}
+
 func (b *trigBoard) IsLoyaltyAbility(ab *cards.SA) bool { return isLoyaltyAbility(ab) }
 
 // playingLand is the land whose land play is in flight (cast_commit.go's

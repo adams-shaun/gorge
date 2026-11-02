@@ -536,13 +536,17 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.N != 0 && t.Flags2&kop.Tf2NthSpell == 0 && k.gen.anySpentGate && !s.spentGateOK(k, t, e) {
 		return // trig_spentvalid.go: the cast's spend against the Spell.ManaSpent gate (gorge spellCastMatches)
 	}
-	if t.Flags2&kop.Tf2NthSpell != 0 && !trigCmpOK(int(s.g.hist[e.ctrl][histSpells]), t.N, false) {
+	if t.Flags4&kop.Tf4NthFiltered != 0 {
+		if !trigCmpOK(s.castPushesMatching(k, t.Filter, e.ctrl, l), t.N, false) {
+			return
+		}
+	} else if t.Flags2&kop.Tf2NthSpell != 0 && !trigCmpOK(int(s.g.hist[e.ctrl][histSpells]), t.N, false) {
 		return
 	}
 	if t.Flags2&kop.Tf2TargetsFilter2 != 0 && !s.castTargetsAll(k, t.Filter2, e, l) {
 		return
 	}
-	if t.Flags4 != 0 && !s.singleTargetOK(k, e) {
+	if t.Flags4&^kop.Tf4NthFiltered != 0 && !s.singleTargetOK(k, e) {
 		return // IsSingleTarget$ (trig_params.go)
 	}
 	if t.Flags3&kop.Tf3MayPlaySrc != 0 && !s.mayPlaySpell(e) {

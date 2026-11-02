@@ -170,6 +170,19 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 	return n
 }
 
+// castPushesMatching counts caster's pushes this turn that match f, read from
+// listener l's side (gorge activatorCastCount, ActivatorThisTurnCast$ over a
+// ValidCard$ that turns some spells away).
+func (s *State) castPushesMatching(k *prep, f kop.FilterID, caster uint8, l trigListener) int {
+	n := 0
+	for _, r := range s.castPushes(caster) {
+		if s.castRingMatch(k, f, Obj(r.obj-1), evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+			n++
+		}
+	}
+	return n
+}
+
 // castRingMatch tests f against object o where it lives now (gorge
 // matchesSpec on the pushed ObjID): a permanent through the perm matcher
 // (current controller, layered characteristics); a spell on the stack as

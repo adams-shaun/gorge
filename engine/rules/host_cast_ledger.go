@@ -67,6 +67,15 @@ func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, 
 // ControlledBy TriggeredActivator (Magebane Lizard) resolves against the
 // trigger that is being resolved instead of failing closed.
 func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID, tc effects.TriggerContext) []state.ObjID {
+	return e.castsThisTurnMatching(you, spec, exclude, tc, anyCaster)
+}
+
+// anyCaster is castsThisTurnMatching's "every player's casts", a seat no game holds.
+const anyCaster = state.PlayerID(255)
+
+// castsThisTurnMatching is the walk behind spellsCastThisTurnMatching. A caster
+// other than anyCaster keeps that player's casts only, whatever the spec says.
+func (e *Engine) castsThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID, tc effects.TriggerContext, caster state.PlayerID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
 	// The CastSa count specs (Rain of Riches' gate) are evaluated per cast
 	// event against THAT cast's spend window, not the object's latest one —
@@ -168,6 +177,9 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			continue
 		}
 		if youScoped && ev.Player != you {
+			continue
+		}
+		if caster != anyCaster && ev.Player != caster {
 			continue
 		}
 		matchSpec := spec

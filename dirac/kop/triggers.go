@@ -333,6 +333,11 @@ const Tf2SpellToo TrigFlags2 = 1 << 27
 // CounterAddedOnce keeps one trigger per event and has no bit.
 const Tf4CounterCell TrigFlags4 = 1 << 2
 
+// Tf4NthFiltered (Trigger.Flags4): a Tf2NthSpell line whose ValidCard$ turns some
+// spells away counts the caster's pushes that match Filter (the cast ring), not
+// every spell they cast this turn.
+const Tf4NthFiltered TrigFlags4 = 1 << 3
+
 // the packed constants of the Increment keyword's ops.
 
 // Tf2Increment (Trigger.Flags2): SpellCast -- "whenever
