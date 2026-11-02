@@ -155,7 +155,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 608.3c | follows | `engine/rules/stack.go#Engine.resolveTop` `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | `TestCelestialArchonBestowedCastAttachesAuraToBearer` | Aura enters attached to its target |
 | 608.3d | follows | `engine/rules/mutate.go#Engine.resolveMutate` | - | d no mutate |
 | 608.3e | follows | `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | - | d full board = documented capacity draw |
-| 608.3f | follows | `engine/events/apply_zone.go#move` | `TestCopiedPermanentSpellEntersAsToken` | copy enters as token (Move fold); d not traced |
+| 608.3f | follows | `engine/events/apply_zone.go#move` `engine/rules/trigmatch/zone.go#resolvedCopyLKI` | `TestCopiedPermanentSpellEntersAsToken` `TestCopiedSpellDoesNotFireItsOwnNontokenTrigger` | copy enters as token (Move fold); d not traced |
 | 608.3g | follows | `engine/rules/altcast.go#Engine.altCostEnter` | `TestDashCastsGainHasteAndReturnAtTheEndStep` | d no dash/blitz/warp |
 | 609.1 | follows | `engine/effects/registry.go#Resolve` | - | effects are spell/ability results |
 | 609.2 | follows | `engine/effects/pump.go#effPump` | - | battlefield-only unless zone stated |
