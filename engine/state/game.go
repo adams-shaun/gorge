@@ -251,6 +251,7 @@ type ExtraPhase struct {
 	// turn (MinTurn = the current turn), gated by ValidPlayer when present.
 	HasDelayedPhase bool
 	DelayedPhase    Step
+	DelayedStatic   bool
 	ValidPlayer     string
 	Execute         string
 	Source          ObjID

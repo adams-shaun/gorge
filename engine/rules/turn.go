@@ -1266,9 +1266,9 @@ func (e *Engine) advanceStep() {
 					continue
 				}
 			}
-			obj, counter, phase := e.latestUnconsumedGrant(seat)
+			obj, counter, ids := e.latestUnconsumedGrant(seat)
 			e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
-				Obj: obj, Counter: counter, IDs: []state.ObjID{phase}})
+				Obj: obj, Counter: counter, IDs: ids})
 			if !e.G.Players[seat].Lost {
 				// beginTurn resets the pass count along with the repeated
 				// holder; the ordinary rotation pointer does not advance.
@@ -1418,9 +1418,9 @@ func consumedExtraPhaseEvent(ep state.ExtraPhase, amount int32) events.Event {
 	ev := events.Event{Kind: events.ExtraPhase, Player: ep.Player, Obj: ep.Source,
 		Amount: amount, Step: ep.AfterStep, Counter: ep.Execute,
 		IDs: []state.ObjID{state.ObjID(ep.Entry)}}
-	if ep.HasDelayedPhase || ep.ValidPlayer != "" {
+	if ep.HasDelayedPhase || ep.ValidPlayer != "" || ep.DelayedStatic {
 		ev.Text = events.EncodeExtraPhaseRiders(events.ExtraPhaseRiders{
-			HasDelayedPhase: ep.HasDelayedPhase, DelayedPhase: ep.DelayedPhase,
+			HasDelayedPhase: ep.HasDelayedPhase, DelayedPhase: ep.DelayedPhase, DelayedStatic: ep.DelayedStatic,
 			ValidPlayer: ep.ValidPlayer})
 	}
 	return ev
@@ -1998,12 +1998,13 @@ func (e *Engine) rotationBase() state.PlayerID {
 // seat (the same latest-first order the turn structure consumes in), so the
 // first +grant reached with the running consumed-count at zero IS the grant
 // whose rider (Final Fortune's ExtraTurnDelayedTrigger$/Execute$ pair,
-// carried on the event's Obj/Counter, plus the trigger's Phase$ in IDs[0])
+// carried on the event's Obj/Counter, plus the trigger's Phase$ in IDs[0] and,
+// for a Static$ True trigger, a second id)
 // must ride the consumption that takes its turn.
 // A seat with no grant event left (never happens while its queue entry is
 // pending; the fold guarantees the count) returns zeros -- the consumption
 // then carries no rider and events.Apply registers nothing.
-func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string, state.ObjID) {
+func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string, []state.ObjID) {
 	consumed := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
@@ -2022,13 +2023,13 @@ func (e *Engine) latestUnconsumedGrant(seat state.PlayerID) (state.ObjID, string
 			consumed -= int(ev.Amount)
 			continue
 		}
-		phase := state.ObjID(state.StepEnd)
-		if len(ev.IDs) > 0 {
-			phase = ev.IDs[0]
+		ids := ev.IDs
+		if len(ids) == 0 {
+			ids = []state.ObjID{state.ObjID(state.StepEnd)}
 		}
-		return ev.Obj, ev.Counter, phase
+		return ev.Obj, ev.Counter, ids
 	}
-	return 0, "", 0
+	return 0, "", []state.ObjID{0}
 }
 
 type handleChooseCode uint16

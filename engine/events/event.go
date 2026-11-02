@@ -1380,12 +1380,15 @@ type ExtraPhaseRiders struct {
 	HasRangeEnd     bool
 	RangeEnd        state.Step
 	ValidPlayer     string
+	// DelayedStatic is the forwarded trigger's Static$ True.
+	DelayedStatic bool
 }
 
 const (
-	extraPhaseDelayKey = "DELAY="
-	extraPhaseRangeKey = "RANGEEND="
-	extraPhaseVPKey    = "VP="
+	extraPhaseStaticKey = "STATIC"
+	extraPhaseDelayKey  = "DELAY="
+	extraPhaseRangeKey  = "RANGEEND="
+	extraPhaseVPKey     = "VP="
 )
 
 // EncodeExtraPhaseRiders writes the rider payload as the canonical Text
@@ -1402,6 +1405,9 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 	if r.ValidPlayer != "" {
 		parts = append(parts, extraPhaseVPKey+r.ValidPlayer)
 	}
+	if r.DelayedStatic {
+		parts = append(parts, extraPhaseStaticKey)
+	}
 	return strings.Join(parts, "|")
 }
 
@@ -1410,6 +1416,10 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
 	var r ExtraPhaseRiders
 	for part := range strings.SplitSeq(text, "|") {
+		if part == extraPhaseStaticKey {
+			r.DelayedStatic = true
+			continue
+		}
 		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
 				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
