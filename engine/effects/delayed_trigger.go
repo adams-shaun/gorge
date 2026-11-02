@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -236,15 +237,10 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// The registration's remembered stamps ride the Text too
 	// ("|RS=<id>:<inc>[,<id>:<inc>...]", appended LAST so the decode strips
-	// them FIRST): the trigger-time stamps the resolving trigger captured
-	// (TriggerContext.TriggerRememberedStamps) for every remembered object it
-	// covers, and the live incarnation for the rest -- the same list
-	// rememberedStampsFrom derives at the fold for a registration without the
-	// suffix, so every already-logged registration folds identically. The
-	// trigger-time stamps are the point (CR 400.7): a dies trigger that
-	// resolved after its card was returned and died again must stamp the
-	// graveyard incarnation its event produced, or its end-step return acts
-	// on the new object.
+	// them FIRST). The trigger-time stamps are the point (CR 400.7): a dies
+	// trigger that resolved after its card was returned and died again must
+	// stamp the graveyard incarnation its event produced, or its end-step
+	// return acts on the new object.
 	if suffix := delayedRegisterStampSuffix(h, c, remembered); suffix != "" {
 		text += suffix
 	}
@@ -284,18 +280,22 @@ func delayedManaSpentSuffix(c *Ctx, remembered []state.Target) string {
 
 // delayedRegisterStampSuffix encodes a Phase DelayedTrigger registration's
 // remembered stamps into the event Text: one "<id>:<incarnation>" pair per
-// remembered object the state knows, the trigger's fire-time stamp where the
-// resolving trigger captured one (TriggerContext.TriggerRememberedStamps,
-// CR 400.7) and the live incarnation otherwise -- the value
-// events.rememberedStampsFrom derives at the fold, so a registration with no
-// trigger stamps (and every already-logged event) folds identically. An
-// empty remembered set of known objects carries no suffix.
+// remembered object the state knows. An object that changed zones between the
+// trigger firing and the start of its resolution keeps the fire-time stamp
+// (TriggerContext.TriggerRememberedStamps, CR 400.7): it is a new object the
+// delayed trigger cannot find. Any other takes the live incarnation, the value
+// events.rememberedStampsFrom derives at the fold, so a move the resolution itself
+// makes names the object it moved (CR 400.7j: Salvation Swan exiling the Bird
+// whose entering fired it returns that Bird). An empty remembered set of known
+// objects carries no suffix.
 func delayedRegisterStampSuffix(h Host, c *Ctx, remembered []state.Target) string {
 	var byID map[state.ObjID]uint32
-	if len(c.TriggerRememberedStamps) > 0 {
-		byID = make(map[state.ObjID]uint32, len(c.TriggerRememberedStamps))
+	if len(c.TriggerRememberedMoved) > 0 {
+		byID = make(map[state.ObjID]uint32, len(c.TriggerRememberedMoved))
 		for _, s := range c.TriggerRememberedStamps {
-			byID[s.Obj] = s.Incarnation
+			if slices.Contains(c.TriggerRememberedMoved, s.Obj) {
+				byID[s.Obj] = s.Incarnation
+			}
 		}
 	}
 	var parts []string

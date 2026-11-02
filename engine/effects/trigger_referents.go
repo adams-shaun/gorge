@@ -103,10 +103,10 @@ type TriggerContext struct {
 	// trigger was QUEUED, when the remembered objects stood as the triggering
 	// event left them. A trigger that resolves later refers to the object
 	// that existed then (CR 400.7), so a delayed trigger it registers stamps
-	// its Remembered from here rather than from the resolving state -- a dies
-	// trigger whose card was returned and died again while the trigger sat on
-	// the stack stamps the first graveyard incarnation and its end-step
-	// return moves nothing. Not serialized into events.Event -- the
+	// an object listed in TriggerRememberedMoved from here rather than from the
+	// resolving state -- a dies trigger whose card was returned and died again
+	// while the trigger sat on the stack stamps the first graveyard incarnation
+	// and its end-step return moves nothing. Not serialized into events.Event -- the
 	// per-stack capture is rebuilt by the same replay re-derivation as
 	// TriggerPaidX/TriggerConverge; the stamp a registration keeps rides the
 	// DelayedRegister event's Text (the established suffix channel).
