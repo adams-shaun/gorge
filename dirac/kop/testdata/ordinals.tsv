@@ -942,11 +942,11 @@ StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StatAlternativeCost	StaticKind	5
+StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
-StatBeamGrant	StaticKind	253
 StatCantBeBeamedUp	StaticKind	244
 StatCantBeCast	StaticKind	16
 StatCantBlock	StaticKind	3
