@@ -673,10 +673,22 @@ func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKe
 	return int(e.triggerGameFiresNow(key).N) < limit
 }
 
+// triggerStint is the zone stint source's trigger limits count against. A source
+// that left in the window now open looks back as the object it was (CR 603.10a),
+// so its limits are that object's: the first of several simultaneous deaths spends
+// a once-each-turn line's use even when the source dies among them.
+func (e *Engine) triggerStint(source state.ObjID) int {
+	stint := e.objectStintStart(source)
+	if b := e.triggerBefore; b != nil && !b.noLookBack && stint > b.logEnd {
+		return objectStintStartIn(e.L.Events[:b.logEnd], source)
+	}
+	return stint
+}
+
 // triggerGameFiresNow is key's lifetime count for its source's CURRENT
 // object (CR 400.7): an entry from an earlier zone stint reads as zero.
 func (e *Engine) triggerGameFiresNow(key triggerKey) gameFires {
-	stint := e.objectStintStart(key.Source)
+	stint := e.triggerStint(key.Source)
 	f := e.triggerGameFires[key]
 	if f.Stint != stint {
 		f = gameFires{Stint: stint}
@@ -688,7 +700,7 @@ func (e *Engine) triggerGameFiresNow(key triggerKey) gameFires {
 // object: an entry from an earlier turn or an earlier zone stint (CR 400.7)
 // reads as zero.
 func (e *Engine) triggerTurnFiresNow(key triggerKey) turnFires {
-	stint := e.objectStintStart(key.Source)
+	stint := e.triggerStint(key.Source)
 	f := e.triggerTurnFires[key]
 	if f.Turn != e.G.Turn || f.Stint != stint {
 		f = turnFires{Turn: e.G.Turn, Stint: stint}
@@ -905,7 +917,7 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	if noop && !trigZoneSkipVerify {
 		return noLookBackSnapshot
 	}
-	snap := &triggerSnapshot{game: e.G.CloneInto(e.takeSnapshotObjs()), continuous: append([]ContinuousEffect(nil), e.continuous...), noLookBack: noop}
+	snap := &triggerSnapshot{logEnd: len(e.L.Events), game: e.G.CloneInto(e.takeSnapshotObjs()), continuous: append([]ContinuousEffect(nil), e.continuous...), noLookBack: noop}
 	e.noteLookBackStatic(snap)
 	return snap
 }

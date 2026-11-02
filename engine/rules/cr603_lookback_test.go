@@ -202,3 +202,31 @@ func TestCR603_10aLookBackFilterReadsDerivedPower(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestCR603_10aOnceEachTurnSpansTheSourcesOwnDeath: Battle-Scarred Survivalist dies
+// beside two other creatures. It looks back at both deaths as one object, so its
+// once-each-turn line queues once, wherever its own death falls among theirs.
+func TestCR603_10aOnceEachTurnSpansTheSourcesOwnDeath(t *testing.T) {
+	t.Parallel()
+	e := crResolutionEngine(t, []string{"Battle-Scarred Survivalist"}, nil)
+	first := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)
+	source := crAbortMove(t, e, 0, "Battle-Scarred Survivalist", state.ZBattlefield)
+	last := crAbortMove(t, e, 0, "Delver of Secrets", state.ZBattlefield)
+	for _, id := range []state.ObjID{first, source, last} {
+		e.emit(events.Event{Kind: events.Damage, Obj: id, Amount: 9})
+	}
+	before := len(e.pendingTriggers)
+	e.checkStateBased()
+	if z := e.G.Obj(source).Zone; z != state.ZGraveyard {
+		t.Fatalf("the Survivalist is in zone %v", z)
+	}
+	queued := 0
+	for _, tr := range e.pendingTriggers[before:] {
+		if tr.Source == source {
+			queued++
+		}
+	}
+	if queued != 1 {
+		t.Errorf("queued %d Survivalist triggers, want 1", queued)
+	}
+}

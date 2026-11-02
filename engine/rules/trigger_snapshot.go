@@ -10,6 +10,8 @@ import (
 type triggerSnapshot struct {
 	game       *state.Game
 	continuous []ContinuousEffect
+	// logEnd is the log's length when the window opened.
+	logEnd int
 	// retained marks a snapshot a parked record holds (retainTriggerBefore):
 	// it outlives the window that took it, so its window never recycles its
 	// arena (trigger_snapshot_pool.go). Set only while the snapshot is still
