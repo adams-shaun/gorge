@@ -1472,6 +1472,11 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
 			return nil
 		}
+		if ps.str("Mode") == "TgtChoose" {
+			// gorge effSacrifice never reads Mode$: a targeted player
+			// chooses what to sacrifice whether or not it says so
+			ps.consume("Mode")
+		}
 		_, hasD := ps.get("Defined")
 		_, hasT := ps.get("ValidTgts")
 		sv := strings.TrimSpace(ps.str("SacValid"))

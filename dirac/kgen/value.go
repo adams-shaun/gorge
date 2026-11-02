@@ -113,6 +113,11 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if hok {
 		head = "\x00hascards"
 	}
+	if head == "ThisTargetedPlayer" && !strings.HasPrefix(rest, "Valid ") {
+		// gorge evalPlayerRefProperty binds both heads to one ref; only
+		// the Valid form has its own reading below
+		head = "TargetedPlayer"
+	}
 	switch head {
 	case "\x00hascards":
 		v, err = hv, herr
