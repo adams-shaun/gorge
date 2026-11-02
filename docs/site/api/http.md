@@ -62,7 +62,7 @@ The first command prints:
             "Player 1",
             "Player 2"
         ],
-        "mulligans": 1,
+        "mulligans": 7,
         "auto_mana": true
     },
 ```

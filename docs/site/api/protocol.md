@@ -118,7 +118,7 @@ the end, so existing ordinals never move. Recorded logs, hash chains and golden 
 on them. A client must treat an unknown kind as displayable but opaque, and use
 `line`.
 
-??? info "The event kinds on 2026-10-31"
+??? info "The event kinds on 2026-11-02"
     `game_start` `shuffle` `move_zone` `draw` `life` `damage` `tap` `untap` `step` `turn`
     `priority` `stack_push` `stack_resolve` `mana_add` `mana_clear` `counter`
     `declare_attackers` `declare_blockers` `player_lost` `game_over` `decision_ask`
