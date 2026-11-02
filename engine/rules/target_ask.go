@@ -487,6 +487,13 @@ func (e *Engine) OpponentPickAsk(c *effects.Ctx, sa *cards.SA) (state.PlayerID, 
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
+	e.askTargetChained(p, source, sa, nil)
+}
+
+// askTargetChained is askTarget for a root whose later chain links are asked
+// in turn (a triggered ability being placed, triggerChainPreAsks): a candidate
+// that leaves a later TargetUnique$ link no legal target is withheld.
+func (e *Engine) askTargetChained(p state.PlayerID, source state.ObjID, sa *cards.SA, links []*cards.SA) {
 	// CR 107.3m: a triggered ability that refers to X reads the value chosen
 	// for the spell that became (or triggered) its source, not the source
 	// permanent's live X. The fire-time capture is TriggerPaidX on the
@@ -519,6 +526,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		return
 	}
 	candidates := e.legalTargetCandidates(p, source, source, sa)
+	candidates = e.triggerUniqueChainViable(p, source, links, 0, nil, min, candidates)
 	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
 	// can provably join no legal selection (individually over the cap unless
 	// a negative-power candidate could offset them) and carry the running

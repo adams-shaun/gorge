@@ -440,7 +440,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 		}
 		if !handled && effects.TargetsOf(pt.SA).Targeted() {
-			e.askTarget(pt.Controller, id, pt.SA)
+			e.askTargetChained(pt.Controller, id, pt.SA, e.triggerChainPreAsks(pt.SA))
 		}
 		if !handled {
 			e.startTriggerSubTargets(id, pt.Controller, pt.SA)

@@ -178,6 +178,15 @@ func (e *Engine) askTriggerSubTargets() bool {
 			candidates = filtered
 		}
 		min, max := e.resolvedTargetBounds(ts.controller, ts.obj, sub, 0)
+		if effects.TargetUniqueRequested(sub) {
+			chosen := append([]state.Target(nil), o.Targets...)
+			for i := 0; i < ts.stage; i++ {
+				if effects.TargetUniqueRequested(ts.subs[i]) {
+					chosen = append(chosen, ts.ans[i]...)
+				}
+			}
+			candidates = e.triggerUniqueChainViable(ts.controller, ts.obj, ts.subs, ts.stage+1, chosen, min, candidates)
+		}
 		e.subOfferParent, e.subOfferBound = savedParent, savedBound
 		if min > 0 && len(candidates) < min {
 			// CR 603.3d: the ability never went on the stack, so nothing became
