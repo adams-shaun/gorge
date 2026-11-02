@@ -2636,7 +2636,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// supplies them: the map's legacy colour functions carry no SpecContext,
 	// so with a table bound they fall through to the word path below.
 	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc) || sc.AsPrototype) && colourMapPredicate(p)) {
-		return fn(g, o, sc.You, sc.Source), true
+		return fn(g, o, sc.You, predicateSource(p, &sc)), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
 		return res, true
@@ -2784,6 +2784,18 @@ func batchWordBase(code matchesBaseCode, o *state.Object, sc SpecContext) bool {
 	default:
 		return false
 	}
+}
+
+// predicateSource is the source a predicate-map word p compares against: none for
+// Self, Other and StrictlyOther when the source has returned as a new object.
+func predicateSource(p string, sc *SpecContext) state.ObjID {
+	if sc.SourceReturned {
+		switch compilePredicateTermCodes.Code(p) {
+		case compilePredicateTermSelf, compilePredicateTermOther:
+			return 0
+		}
+	}
+	return sc.Source
 }
 
 // SpecContext carries the extra state a filter spec beyond MatchesSpec's

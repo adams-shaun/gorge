@@ -92,3 +92,20 @@ func TestGourmandThatStayedIsNotAnotherCreature(t *testing.T) {
 		t.Fatalf("the cost window = %+v, want decline only", d)
 	}
 }
+
+// A resolving filter reads the same way: "other creatures you control" reaches the
+// returned source, and "this" does not name it.
+func TestResolvingFilterReadsAReturnedSourceAsANewObject(t *testing.T) {
+	c := mshCorpusCard(t, "Syr Alin, the Lion's Claw")
+	for _, returned := range []bool{false, true} {
+		e, src := attackingWithTrigger(t, c)
+		if returned {
+			flicker(e, src)
+		}
+		base := e.Power(src)
+		passUntilStackEmpty(t, e, 8)
+		if got, want := e.Power(src)-base, map[bool]int32{false: 0, true: 1}[returned]; int32(got) != want {
+			t.Fatalf("returned=%v: Syr Alin's power moved by %d, want %d", returned, got, want)
+		}
+	}
+}

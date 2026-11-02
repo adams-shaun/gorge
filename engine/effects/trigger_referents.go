@@ -138,6 +138,13 @@ type TriggerContext struct {
 	// TriggerRememberedStamps: replay re-derives the queue-time capture.
 	SourceRemembered  []state.Target
 	SourceIncarnation uint32
+	// SourceReturned is true while an ability resolves whose source left the
+	// battlefield and returned since it went on the stack (SourceIsNewObject). That
+	// source is a new object (CR 400.7), so a filter's Self does not name it and its
+	// Other and StrictlyOther can. The remembered and exiled-with readers keep
+	// following it: what the old object did stays linked to the ability. Resolve
+	// sets it at each body of the chain.
+	SourceReturned bool
 	// SelfLeaves marks a Mode$ ChangesZone | Origin$ Battlefield |
 	// ValidCard$ Card.Self trigger ("When CARDNAME leaves the battlefield").
 	// Its capture is the leaving source itself, so Defined$ Remembered must
