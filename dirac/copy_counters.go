@@ -46,7 +46,7 @@ func (s *State) copyTokenCtr(k *prep, in *kop.Instr) {
 		if amt > 0 {
 			s.g.enterCtr.n, s.g.enterCtr.kind = uint8(min(amt, 255)), kind
 		}
-		s.copyTokenEnter(k, &cin, t, NoSlot)
+		s.copyTokenEnter(k, &cin, t, NoSlot, nil)
 		s.g.enterCtr.n = 0
 	}
 }

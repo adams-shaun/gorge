@@ -1805,11 +1805,15 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			}
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
-			s.copyTokenEnter(k, in, t, NoSlot)
+			s.copyTokenEnter(k, in, t, NoSlot, nil)
 		}
 		return false
 	}
 	aura := k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject
+	// one resolution's copies enter together (gorge effCopyPermanent's zone
+	// batch, CR 603.6a): each one's "another enters" sees the others
+	var eb entBatch
+	defer s.fireEntries(k, &eb)
 	for i := 0; i < n; i++ {
 		if s.nearCapacity() {
 			s.stall(StallBoard)
@@ -1850,24 +1854,24 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		}
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
-		s.copyTokenEnter(k, in, t, host)
+		s.copyTokenEnter(k, in, t, host, &eb)
 	}
 	return false
 }
 
 // copyTokenEnter puts copy token t onto the battlefield, attached to host
 // when it is an Aura's.
-func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot) {
+func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot, eb *entBatch) {
 	tmpl := NoSlot
 	if src := s.objRefObj(in.Obj); src != NoObj && s.objs[src].zone == kop.ZoneBattlefield {
 		tmpl = s.objs[src].slot
 	}
-	s.copyTokenEnterFrom(k, in, t, host, tmpl)
+	s.copyTokenEnterFrom(k, in, t, host, tmpl, eb)
 }
 
 // copyTokenEnterFrom is copyTokenEnter with the copied permanent's slot tmpl
-// (NoSlot: none on the battlefield) given.
-func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot) {
+// (NoSlot: none on the battlefield) given. eb, when not nil, holds its enters check.
+func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch) {
 	e := &s.res.e
 	fl := in.B.N & 0xff
 	face := uint8(0)
@@ -1900,7 +1904,10 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 	}
-	if s.anyETB(k) {
+	if eb != nil && eb.n < len(eb.sl) {
+		eb.sl[eb.n], eb.o[eb.n] = sl, t
+		eb.n++
+	} else if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
 	}
 	if host != NoSlot && s.occ.has(host) {
@@ -2024,15 +2031,13 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
-		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(total), toPl, false, NoTarget)
-		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
-			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, nil)
-		}
-		if k.gen.anyDmgRef {
-			s.fireDamageRefs(k, codes, dn[:len(codes)]) // one event per recipient for the lines that read the referent
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
+		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
+			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)
+		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, &agg)
 		}
+		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}
 }
 

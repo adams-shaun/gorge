@@ -69,7 +69,7 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) {
 			}
 			t := s.newToken(c, ctrl)
 			s.objs[t].of |= ofCopy
-			s.copyTokenEnterFrom(k, in, t, NoSlot, sl)
+			s.copyTokenEnterFrom(k, in, t, NoSlot, sl, nil)
 			minted++
 		}
 	}
