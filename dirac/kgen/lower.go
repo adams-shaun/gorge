@@ -499,9 +499,9 @@ func (lc *lowerCtx) lowerRecord() {
 		pw, tg, ok := strings.Cut(f.PT, "/")
 		if !ok {
 			lc.refuseNode("PT", "PT %q", f.PT)
-		} else if pw == "*" || tg == "*" {
-			out.PTStar = true
 		} else {
+			// A star reads 0, and the other number stands once the CDA is lost.
+			out.PTStar = pw == "*" || tg == "*"
 			out.P, _ = strconv.Atoi(pw)
 			out.T, _ = strconv.Atoi(tg)
 		}

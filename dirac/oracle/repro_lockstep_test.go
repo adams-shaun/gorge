@@ -53,3 +53,10 @@ func TestDelayedReturnOfTheObjectItsTriggerExiledLockstep(t *testing.T) {
 	synthReproLockstep(t, "swan_exiles_its_bird", "std-blb", autopay)
 	synthReproLockstep(t, "flying_car_exiles_itself", "std-msh", autopay)
 }
+
+// Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
+// on the battlefield, whose toughness the lost ability did not set.
+func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "lost_cda_toughness", "std-tdm", Config{GorgeAutopaySurface: true})
+}
