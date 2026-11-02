@@ -563,6 +563,9 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 	if k.w8 && fl.Pred == kop.PredWord7 && fl.PredN&0xff >= kop.W7FaceUp {
 		return s.wordPerm2(k, fl, sl, ctrl, src) // the static's controller and source
 	}
+	if fl.Pred == kop.PredAttached {
+		return s.predAttached(sl, src)
+	}
 	return s.predPermGen(k, fl, sl, layerKw)
 }
 

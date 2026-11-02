@@ -174,7 +174,7 @@ const (
 	PredHistoric                                            // artifact, legendary or Saga (gorge historicMatches); PredN = the Saga subtype index+1, 0 if the table has none
 	PredEquipped                                            // a battlefield permanent with an Equipment attached (gorge equipped)
 	PredEnchanted                                           // a battlefield permanent with an Aura attached (gorge enchanted)
-	PredAttached                                            // attached to a permanent (gorge objectIsAttached)
+	PredAttached                                            // attached to the source (gorge objectAttachedToSource)
 	PredActiveCtrl                                          // controlled (off the battlefield: owned) by the active player (gorge ActivePlayerCtrl)
 	PredTypesAll                                            // has EVERY card type in the mask PredN (a Forge "Artifact.Creature" / "Land.Artifact" clause: the type head AND a disjoint type property; typesall); derived types on the battlefield, printed off it
 	PredModified                                            // modified (CR 700.9): a battlefield permanent with a counter, an Equipment attached, or an Aura its controller controls attached (gorge modifiedPermanent)

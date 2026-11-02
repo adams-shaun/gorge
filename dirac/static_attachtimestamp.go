@@ -20,6 +20,7 @@ func (s *State) attachTo(k *prep, sl, host Slot) {
 		s.lstamp[sl] = s.ts
 	}
 	s.perms[sl].attached = host
+	s.perms[sl].flags &^= pfLastBear
 	s.loseAllOnset(k, sl, host)
 	if old != host && k.gen != nil && k.gen.anyAegis {
 		s.aegisMoved(k, sl, old, host) // zone_exilethenattach.go

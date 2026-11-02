@@ -38,16 +38,20 @@ var DebugEquipShuf EquipShufDebug
 // shuffle of a RefAttached referent, and the lockstep must diverge.
 var DebugEquipShufNoShuffle bool
 
-// noteLastBear parks the host of a leaving Aura while the Aura is still on
-// the battlefield. perm.bord is the non-creature Aura's unused combat-order
+// noteLastBear parks the host of a leaving Aura or Equipment while it is still on
+// the battlefield. perm.bord is the non-creature attachment's unused combat-order
 // byte (a bestowed Aura becomes a creature and is left alone), and the
 // projection does not expose it; removePerm turns it into the departed
-// record's chosen byte. Cold: only a host's departure reaches it.
+// record's chosen byte, and attaching again clears the mark. Cold: only a host's
+// departure reaches it.
 //
 //go:noinline
 func (s *State) noteLastBear(q Slot, host Obj) {
 	k := s.k()
-	if k == nil || s.typesAt(k, q)&kop.TAura == 0 {
+	if k == nil {
+		return
+	}
+	if t := s.typesAt(k, q); t&kop.TAura == 0 && t&kop.TCreature != 0 {
 		return
 	}
 	if k.gen != nil && k.gen.anyBestow && k.t.Cards[s.cardAt(q)].HasBestow {

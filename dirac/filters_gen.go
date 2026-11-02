@@ -146,6 +146,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if k.w8 && fl.Pred == kop.PredWord7 && fl.PredN&0xff >= kop.W7FaceUp {
 			return s.wordPerm2(k, fl, sl, ctrl, src)
 		}
+		if fl.Pred == kop.PredAttached {
+			return s.predAttached(sl, src)
+		}
 		return s.predPermGen(k, fl, sl, layer)
 	}
 	return true
@@ -386,8 +389,8 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, layer uint8) bool 
 		return s.predPermStats(k, fl, sl)
 	case kop.PredMultiColor, kop.PredHistoric, kop.PredEquipped, kop.PredEnchanted:
 		return s.predPermKind(k, fl, sl)
-	case kop.PredAttached, kop.PredActiveCtrl:
-		return s.predPermContext(fl, sl)
+	case kop.PredActiveCtrl:
+		return s.perms[sl].ctrl == s.active
 	case kop.PredModified:
 		return s.predModified(k, sl)
 	case kop.PredHasCounters:

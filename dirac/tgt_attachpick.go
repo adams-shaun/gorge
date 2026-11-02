@@ -40,7 +40,7 @@ func (s *State) attachPickScan(k *prep, pc uint8, p uint8, d *Decision) (n int, 
 	f := prog[pc].F
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
-		if sl == dest || !s.matchPermGen(k, f, sl, p, NoSlot, layerFull) {
+		if sl == dest || !s.matchPermGen(k, f, sl, p, s.resSrcSlot(k), layerFull) {
 			continue
 		}
 		o := s.perms[sl].obj

@@ -615,7 +615,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// Flash is read
 		return c.setCmp(cmpHasKw, 0, bits.TrailingZeros32(uint32(kop.KwFlash)), "", "")
 	case "Attached":
-		// gorge objectIsAttached: the candidate is attached to a live object
+		// gorge objectAttachedToSource: the candidate is attached to the source
 		return c.setCmp(cmpAttached, 0, 0, "", "")
 	case "ActivePlayerCtrl":
 		// gorge wordActivePlayerCtrl: its controller is the active player

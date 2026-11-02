@@ -216,16 +216,19 @@ func (s *State) exprCompare(k *prep, x *kop.Expr, ctx evalCtx) int {
 	return s.evalV(k, br.Sub[1], ctx)
 }
 
-// predPermContext: PredAttached (gorge objectIsAttached: attached to a
-// permanent) and PredActiveCtrl (gorge ActivePlayerCtrl: its controller is
-// the active player) for a battlefield permanent.
-//
-//go:noinline
-func (s *State) predPermContext(fl *kop.Filter, sl Slot) bool {
-	if fl.Pred == kop.PredAttached {
-		return s.perms[sl].attached != NoSlot
+// predAttached: PredAttached (gorge objectAttachedToSource) for a battlefield
+// permanent: attached to the source's slot, or, with the resolving ability's source
+// gone, attached to it as it left (noteLastBear; CR 608.2h).
+func (s *State) predAttached(sl, src Slot) bool {
+	p := &s.perms[sl]
+	if src != NoSlot {
+		return p.attached == src
 	}
-	return s.perms[sl].ctrl == s.active
+	if p.attached != NoSlot || p.flags&pfLastBear == 0 || !s.res.active {
+		return false
+	}
+	o := s.res.e.obj
+	return Obj(p.bord) == o && s.objs[o].zone != kop.ZoneBattlefield
 }
 
 // sweep 1 in Standard-weighted order. Cold, out of line; nothing

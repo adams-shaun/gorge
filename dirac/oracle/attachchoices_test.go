@@ -206,9 +206,9 @@ func TestAttachchoicesMutation(t *testing.T) {
 	reg, set := kattachchoicesSetup(t)
 	dirac.DebugAttachPickAlwaysAsk = true
 	defer func() { dirac.DebugAttachPickAlwaysAsk = false }()
-	_, div, _ := kattachchoicesRun(t, reg, set, 64, &kattachchoicesTally{})
+	_, div, _ := kattachchoicesRun(t, reg, set, 600, &kattachchoicesTally{})
 	if div == 0 {
-		t.Fatalf("always-ask: no divergence in 64 seeds")
+		t.Fatalf("always-ask: no divergence in 600 seeds")
 	}
 	t.Logf("diverged at seed %d", div)
 }

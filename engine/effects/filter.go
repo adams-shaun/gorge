@@ -1067,15 +1067,16 @@ func init() {
 	// Attached: Forge's bare `Attached` CardProperty -- the candidate is
 	// itself attached to a permanent. It is the IS-side twin of the
 	// two-token wordAttachedTo below and the ONE-token form of the same
-	// relation: read the candidate's OWN AttachedTo (never the source's,
-	// which is attachedBy/AttachedBy's meaning), requiring the bearer to
-	// still be a live object. The corpus spells it only as a filter
-	// predicate (Count$Valid Equipment.Attached / Aura.Attached, the
-	// ChangeType$ and ValidCards$ families: 22 files), where the base type
-	// word does the object-kind narrowing. An unattached object matches
-	// nothing; a bearer that has left is not an attachment.
-	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return objectIsAttached(g, o)
+	// relation: the candidate is attached to the source (Forge's
+	// source.hasCardAttachment), the reverse of attachedBy/AttachedBy. The
+	// corpus spells it only as a filter predicate (Count$Valid
+	// Equipment.Attached / Aura.Attached, IsPresent$, Choices$ and ValidTgts$:
+	// Kemba's "for each Equipment attached to this creature"), where the base
+	// type word does the object-kind narrowing. A source that has left reads
+	// what was attached as it left (CR 608.2h: Zack Fair's "an Equipment that
+	// was attached to Zack Fair", sacrificed as the cost).
+	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return objectAttachedToSource(g, o, src)
 	}
 	// modified: Forge's CardProperty.modified (CR 700.9) -- a permanent is
 	// modified if it has one or more counters on it, is equipped, or is

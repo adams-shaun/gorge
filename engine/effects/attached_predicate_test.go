@@ -2,7 +2,7 @@ package effects
 
 // This file pins two related filter capabilities on real corpus spellings:
 //
-//   - the bare `Attached` predicate (the candidate is itself attached), and
+//   - the bare `Attached` predicate (the candidate is attached to the source), and
 //   - the resolution-time referent arguments of `AttachedTo <ref>`
 //     (Targeted, ParentTarget, TriggeredCardLKICopy, TriggeredAttackerLKICopy).
 //
@@ -19,13 +19,10 @@ import (
 )
 
 // TestAttachedPredicate pins the bare `Attached` predicate (Forge's
-// CardProperty) on the object that IS attached. The corpus spells it only in
-// filter position -- Count$Valid Equipment.Attached, Aura.Attached,
-// ChangeType$/ValidCards$ Card.AttachedTo ...+Attached -- so the base type
-// word does the object-kind narrowing and the predicate asks only "does this
-// candidate carry an attachment of its own". It reads the candidate's own
-// AttachedTo, NOT the source's (that is AttachedBy) and NOT "is a bearer"
-// (equipped/enchanted).
+// CardProperty, source.hasCardAttachment): the candidate is attached to the
+// source. The corpus spells it only in filter position -- Count$Valid
+// Equipment.Attached, Aura.Attached, Choices$, IsPresent$ -- so the base type
+// word does the object-kind narrowing.
 func TestAttachedPredicate(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -54,54 +51,57 @@ func TestAttachedPredicate(t *testing.T) {
 		t.Fatalf("precondition failed: bear and mountain share id %d", bear.ID)
 	}
 
-	// Positive: an attached Aura/Equipment matches its own type word + Attached.
-	if !MatchesObjectCtx(g, "Aura.Attached", auraOnBear, SpecContext{You: 0}) {
-		t.Errorf("Aura.Attached must match an Aura attached to a permanent")
+	onBear := SpecContext{You: 0, Source: bear.ID}
+	// Positive: an Aura/Equipment attached to the source matches its own type word + Attached.
+	if !MatchesObjectCtx(g, "Aura.Attached", auraOnBear, onBear) {
+		t.Errorf("Aura.Attached must match an Aura attached to the source")
 	}
-	if !MatchesObjectCtx(g, "Aura.Attached", auraOnLand, SpecContext{You: 0}) {
-		t.Errorf("Aura.Attached must match an Aura attached to a land")
+	if !MatchesObjectCtx(g, "Aura.Attached", auraOnLand, SpecContext{You: 0, Source: mountain.ID}) {
+		t.Errorf("Aura.Attached must match an Aura attached to a land source")
 	}
-	if !MatchesObjectCtx(g, "Equipment.Attached", equipOnBear, SpecContext{You: 0}) {
-		t.Errorf("Equipment.Attached must match an Equipment attached to a permanent")
+	if !MatchesObjectCtx(g, "Equipment.Attached", equipOnBear, onBear) {
+		t.Errorf("Equipment.Attached must match an Equipment attached to the source")
 	}
 	// The corpus's dominant spelling: a comma list of the two attachment kinds.
-	if !MatchesObjectCtx(g, "Equipment.Attached,Aura.Attached", equipOnBear, SpecContext{You: 0}) {
+	if !MatchesObjectCtx(g, "Equipment.Attached,Aura.Attached", equipOnBear, onBear) {
 		t.Errorf("Equipment.Attached,Aura.Attached must match an attached Equipment")
 	}
-	if !MatchesObjectCtx(g, "Equipment.Attached,Aura.Attached", auraOnBear, SpecContext{You: 0}) {
+	if !MatchesObjectCtx(g, "Equipment.Attached,Aura.Attached", auraOnBear, onBear) {
 		t.Errorf("Equipment.Attached,Aura.Attached must match an attached Aura")
 	}
 
-	// Negative: an unattached Aura/Equipment matches nothing.
-	if MatchesObjectCtx(g, "Aura.Attached", auraFree, SpecContext{You: 0}) {
+	// Negative: an attachment on something else, and an unattached one, match nothing.
+	if MatchesObjectCtx(g, "Aura.Attached", auraOnLand, onBear) {
+		t.Errorf("Aura.Attached must not match an Aura attached to another permanent")
+	}
+	if MatchesObjectCtx(g, "Aura.Attached", auraFree, onBear) {
 		t.Errorf("Aura.Attached must not match an unattached Aura")
 	}
-	if MatchesObjectCtx(g, "Equipment.Attached", equipFree, SpecContext{You: 0}) {
+	if MatchesObjectCtx(g, "Equipment.Attached", equipFree, onBear) {
 		t.Errorf("Equipment.Attached must not match an unattached Equipment")
 	}
-	// Negative, the conflation this predicate must NOT make: a creature that
-	// BEARS an attachment is not itself attached. `Creature.Attached` must
-	// not match the bear (its own AttachedTo is 0).
-	if g.Obj(bear.ID).AttachedTo != 0 {
-		t.Fatalf("precondition failed: bear.AttachedTo = %d, want 0 (the bear is a bearer, not an attachment)", g.Obj(bear.ID).AttachedTo)
-	}
-	if MatchesObjectCtx(g, "Creature.Attached", bear, SpecContext{You: 0}) {
+	if MatchesObjectCtx(g, "Creature.Attached", bear, SpecContext{You: 0, Source: mountain.ID}) {
 		t.Errorf("Creature.Attached must not match a creature that merely bears an attachment")
 	}
 
-	// A stale AttachedTo (the bearer left the game) is not an attachment:
-	// clear the bearer from the game and the Aura must stop matching.
-	gone := corpusObject(t, reg, g, "Unholy Strength")
-	gone.AttachedTo = state.ObjID(999999)
-	if MatchesObjectCtx(g, "Aura.Attached", gone, SpecContext{You: 0}) {
-		t.Errorf("Aura.Attached must not match an Aura whose AttachedTo names no live object")
+	// A source that left the battlefield reads what was attached as it left.
+	aura := g.Obj(auraOnBear.ID)
+	g.Obj(bear.ID).Zone = state.ZGraveyard
+	aura.AttachedTo, aura.LastBearer = 0, bear.ID
+	if !MatchesObjectCtx(g, "Aura.Attached", aura, onBear) {
+		t.Errorf("Aura.Attached must match what was attached to a source that left")
 	}
+	g.Obj(bear.ID).Zone = state.ZBattlefield
+	if MatchesObjectCtx(g, "Aura.Attached", aura, onBear) {
+		t.Errorf("Aura.Attached must not match a former attachment of a source still here")
+	}
+	aura.AttachedTo, aura.LastBearer = bear.ID, 0
 
 	// The leading-'!' path negates the recognised positive word.
-	if !MatchesObjectCtx(g, "Aura.!Attached", auraFree, SpecContext{You: 0}) {
+	if !MatchesObjectCtx(g, "Aura.!Attached", auraFree, onBear) {
 		t.Errorf("Aura.!Attached must match an unattached Aura")
 	}
-	if MatchesObjectCtx(g, "Aura.!Attached", auraOnBear, SpecContext{You: 0}) {
+	if MatchesObjectCtx(g, "Aura.!Attached", auraOnBear, onBear) {
 		t.Errorf("Aura.!Attached must not match an attached Aura")
 	}
 

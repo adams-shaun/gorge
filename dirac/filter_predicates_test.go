@@ -297,8 +297,8 @@ func TestPredHasKeyword(t *testing.T) {
 	}
 }
 
-// TestPredAttachedActiveCtrl: PredAttached matches an attached Aura, not
-// an unattached one nor a card; PredActiveCtrl matches the active player's
+// TestPredAttachedActiveCtrl: PredAttached matches an Aura attached to the source,
+// not one on something else, an unattached one nor a card; PredActiveCtrl matches the active player's
 // permanents and, off the battlefield, the cards they own.
 func TestPredAttachedActiveCtrl(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Valley Floodcaller", Count: 2}, {Name: "Feather of Flight", Count: 2}, {Name: "Plains", Count: 8}})
@@ -308,7 +308,8 @@ func TestPredAttachedActiveCtrl(t *testing.T) {
 	a, b := sc.perm(fc, 0), sc.perm(fc, 1)
 	aura, loose := sc.perm(fof, 0), sc.perm(fof, 0)
 	sc.s.perms[sc.slot(aura)].attached = sc.slot(a)
-	if !sc.s.matchPerm(sc.k, att, sc.slot(aura), 0, NoSlot) || sc.s.matchPerm(sc.k, att, sc.slot(loose), 0, NoSlot) ||
+	if !sc.s.matchPerm(sc.k, att, sc.slot(aura), 0, sc.slot(a)) || sc.s.matchPerm(sc.k, att, sc.slot(aura), 0, sc.slot(b)) ||
+		sc.s.matchPerm(sc.k, att, sc.slot(loose), 0, sc.slot(a)) || sc.s.matchPerm(sc.k, att, sc.slot(aura), 0, NoSlot) ||
 		sc.s.matchCard(sc.k, att, fof, 0, 0) {
 		t.Fatal("Attached")
 	}
@@ -421,5 +422,47 @@ func TestModifiedPredicate(t *testing.T) {
 	}
 	if s.matchCard(sc.k, f, id["Downwind Ambusher"], 0, 0) {
 		t.Error("a card off the battlefield is modified")
+	}
+}
+
+// Attached reads the source (gorge objectAttachedToSource): Zack Fair moves only the
+// Equipment that was on him as he was sacrificed, and leaves another creature's.
+func TestAttachedReadsTheSource(t *testing.T) {
+	for _, equipped := range []bool{false, true} {
+		set := cardsettest.Set(t, "attachchoices")
+		deck := []cardset.Entry{{Name: "Zack Fair", Count: 1}, {Name: "Bonesplitter", Count: 1}, {Name: "Plains", Count: 1}, {Name: "Grizzly Bears", Count: 1}}
+		tbl, da, _, err := set.Matchup(deck, deck)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := map[string]CardID{}
+		for _, c := range da {
+			id[tbl.Cards[c].Name] = c
+		}
+		sc := newScenTable(t, tbl, Config{NoElide: true})
+		sc.perm(id["Plains"], 0)
+		zack, mine := sc.perm(id["Zack Fair"], 0), sc.perm(id["Grizzly Bears"], 0)
+		theirs, glove := sc.perm(id["Grizzly Bears"], 1), sc.perm(id["Bonesplitter"], 1)
+		sc.s.perms[sc.slot(glove)].attached = sc.slot(theirs)
+		var own Obj
+		if equipped {
+			own = sc.perm(id["Bonesplitter"], 0)
+			sc.s.perms[sc.slot(own)].attached = sc.slot(zack)
+		}
+		if !sc.activateAb(zack, 0) {
+			t.Fatal("Zack's ability not offered")
+		}
+		sc.s.Step()
+		sc.s.Apply(MakeAction(AkTarget, 0, uint8(mine), 0))
+		sc.resolveAll(t)
+		if sc.onBF(zack) {
+			t.Fatal("Zack was not sacrificed")
+		}
+		if got := sc.s.perms[sc.slot(glove)].attached; got != sc.slot(theirs) {
+			t.Fatalf("equipped=%v: the opponent's Equipment is on slot %d", equipped, got)
+		}
+		if equipped && sc.s.perms[sc.slot(own)].attached != sc.slot(mine) {
+			t.Fatalf("Zack's Equipment is on slot %d, want the target", sc.s.perms[sc.slot(own)].attached)
+		}
 	}
 }
