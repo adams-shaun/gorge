@@ -289,16 +289,17 @@ func setConstraintBound(desc string) bool {
 // optional attacker too -- declaring no attacks at all is always legal
 // (CR 508.1a), so ModeFirstLegal only ever satisfies the forced attacks.
 func (c *MockClient) answerAttackers(in mb.ChooseAttackersInput) mb.PromptOutputValue {
+	together, bound := canGoTogether(in.Presentation, "attack")
 	var assignments []mb.AttackerAssignment
 	for _, a := range in.Attackers {
-		if len(a.ValidTargetIDs) == 0 {
+		if len(a.ValidTargetIDs) == 0 || (bound && !together[a.AttackerID]) {
 			continue
 		}
 		if !a.MustAttack && !c.coin(1, 2) {
 			continue
 		}
 		target := a.ValidTargetIDs[0]
-		if c.mode == ModeSeededRandom {
+		if c.mode == ModeSeededRandom && !bound {
 			target = a.ValidTargetIDs[c.rng.IntN(len(a.ValidTargetIDs))]
 		}
 		assignments = append(assignments, mb.AttackerAssignment{AttackerID: a.AttackerID, TargetID: target})
@@ -311,10 +312,30 @@ func (c *MockClient) answerAttackers(in mb.ChooseAttackersInput) mb.PromptOutput
 
 // cannotGoAlone reports whether the prompt's presentation names the creature
 // in the translator's "Can't attack alone" or "Can't block alone" sentence
-// (prompt_combat.go's alonePresentation). Declaring nothing is always legal, so
+// (prompt_combat.go's declarationPresentation). Declaring nothing is always legal, so
 // a lone declaration of such a creature becomes none.
 func cannotGoAlone(p *mb.PromptPresentation, verb, id string) bool {
 	return p != nil && strings.Contains(p.Description, "Can't "+verb+" alone: ") && strings.Contains(p.Description, "("+id+")")
+}
+
+// canGoTogether reads the translator's "These can attack together: <ids>."
+// sentence (prompt_combat.go's declarationPresentation): the creatures a
+// declaration bound as a whole can hold, each at its first offered target. bound
+// is false when the prompt has no such sentence.
+func canGoTogether(p *mb.PromptPresentation, verb string) (together map[string]bool, bound bool) {
+	if p == nil {
+		return nil, false
+	}
+	_, rest, ok := strings.Cut(p.Description, "These can "+verb+" together: ")
+	if !ok {
+		return nil, false
+	}
+	list, _, _ := strings.Cut(rest, ".")
+	together = map[string]bool{}
+	for _, id := range strings.Split(list, ", ") {
+		together[id] = true
+	}
+	return together, true
 }
 
 // answerBlockers assigns every MustBeBlocked attacker a blocker not already
@@ -333,6 +354,7 @@ func cannotGoAlone(p *mb.PromptPresentation, verb, id string) bool {
 // attacker takes none -- but the mandatory attackers go first so an
 // optional coin cannot consume a blocker a mandatory ask still needs.
 func (c *MockClient) answerBlockers(in mb.ChooseBlockersInput) mb.PromptOutputValue {
+	together, bound := canGoTogether(in.Presentation, "block")
 	used := map[string]bool{}
 	var assignments []mb.BlockerAssignment
 	assign := func(a mb.BlockableAttackerDto, want int) {
@@ -355,7 +377,7 @@ func (c *MockClient) answerBlockers(in mb.ChooseBlockersInput) mb.PromptOutputVa
 			if len(batch) == want {
 				break
 			}
-			if used[bid] {
+			if used[bid] || (bound && !together[bid]) {
 				continue
 			}
 			batch = append(batch, mb.BlockerAssignment{BlockerID: bid, AttackerID: a.AttackerID})

@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/engine/view"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
@@ -182,5 +183,51 @@ func TestAttackersBlockersRefMint(t *testing.T) {
 	}
 	if attackTargetID(battleOpt) != "o5" {
 		t.Fatalf("permanent-attack ref = %q, want o5", attackTargetID(battleOpt))
+	}
+}
+
+// An attack tax that taps creatures draws on the same creatures that attack, which
+// no attacker's fields show. The prompt names a set the declaration can hold.
+func TestAttackersNameWhatATapTaxLetsAttackTogether(t *testing.T) {
+	d := &decision.Decision{Seq: 9, Kind: decision.KAttackers, Max: 3, ChargeTapPool: 3, Options: []decision.Option{
+		{Index: 0, Kind: "attacker", Obj: 10, Player: 1, CostTaps: 1, TapPoolCost: 1},
+		{Index: 1, Kind: "attacker", Obj: 11, Player: 1, CostTaps: 1, TapPoolCost: 1},
+		{Index: 2, Kind: "attacker", Obj: 12, Player: 1, CostTaps: 1, TapPoolCost: 1},
+	}}
+	p := declarationPresentation(d, &view.View{}, "attack")
+	if p == nil || p.Description != "These can attack together: o10." {
+		t.Fatalf("presentation = %+v", p)
+	}
+	if d.Validate(decision.Intent{Seq: 9, Choices: []int{0}}) != nil || d.Validate(decision.Intent{Seq: 9, Choices: []int{0, 1}}) == nil {
+		t.Fatal("the fixture's pool does not hold one attacker and refuse two")
+	}
+}
+
+// A required attacker is priced first, whatever its place in the offer, and a mana
+// tax and a cap per defender bound the set as well.
+func TestAttackersTogetherTakeTheRequiredFirst(t *testing.T) {
+	d := &decision.Decision{Seq: 9, Kind: decision.KAttackers, Max: 3, MaxSum: 2, Options: []decision.Option{
+		{Index: 0, Kind: "attacker", Obj: 10, Player: 1, Value: 2},
+		{Index: 1, Kind: "attacker", Obj: 11, Player: 1, Value: 2, Required: true},
+	}}
+	if got := chargeableTogether(d, "attack"); len(got) != 1 || got[0] != "o11" {
+		t.Fatalf("together = %v, want the required o11", got)
+	}
+	capped := &decision.Decision{Seq: 9, Kind: decision.KAttackers, Max: 2, Options: []decision.Option{
+		{Index: 0, Kind: "attacker", Obj: 10, Player: 1, Group: "attack-restrict"},
+		{Index: 1, Kind: "attacker", Obj: 11, Player: 1, Group: "attack-restrict"},
+	}}
+	if got := chargeableTogether(capped, "attack"); len(got) != 1 || got[0] != "o10" {
+		t.Fatalf("together = %v, want one attacker under the cap", got)
+	}
+}
+
+// An unbound declaration keeps its bare prompt.
+func TestAnUnboundDeclarationHasNoPresentation(t *testing.T) {
+	d := &decision.Decision{Seq: 9, Kind: decision.KAttackers, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "attacker", Obj: 10, Player: 1},
+	}}
+	if p := declarationPresentation(d, &view.View{}, "attack"); p != nil {
+		t.Fatalf("presentation = %+v", p)
 	}
 }

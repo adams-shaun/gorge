@@ -57,17 +57,33 @@ func (t *Translator) promptAttackers(d *decision.Decision, v *view.View) (mb.Pro
 			MustAttack:     opt.Required,
 		})
 	}
-	in := mb.ChooseAttackersInput{Attackers: attackers, AttackTargets: targets, Presentation: alonePresentation(d, v, "attack")}
+	in := mb.ChooseAttackersInput{Attackers: attackers, AttackTargets: targets, Presentation: declarationPresentation(d, v, "attack")}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
 		PromptID: promptID(d), DecidingPlayerID: playerID(d.Player),
 		Input: mb.PromptInput{Value: in}}}, nil
 }
 
-// alonePresentation frames a declaration with a creature that can't be declared
-// alone (CR 506.5), and is nil when there is none. The sentence gives each
-// creature the id an answer names it by. Its wording is a contract with the
-// clients that read it, mbtest's mock among them.
-func alonePresentation(d *decision.Decision, v *view.View, verb string) *mb.PromptPresentation {
+// declarationPresentation frames a declaration whose legality a creature's own
+// fields can't show, and is nil for any other. The sentences give each creature
+// the id an answer names it by, and their wording is a contract with the clients
+// that read them, mbtest's mock among them.
+func declarationPresentation(d *decision.Decision, v *view.View, verb string) *mb.PromptPresentation {
+	var sentences []string
+	if names := aloneRestricted(d, v); names != nil {
+		// CR 506.5.
+		sentences = append(sentences, fmt.Sprintf("Can't %s alone: %s.", verb, strings.Join(names, ", ")))
+	}
+	if ids := chargeableTogether(d, verb); ids != nil {
+		sentences = append(sentences, fmt.Sprintf("These can %s together: %s.", verb, strings.Join(ids, ", ")))
+	}
+	if sentences == nil {
+		return nil
+	}
+	return &mb.PromptPresentation{Title: d.Prompt, Description: strings.Join(sentences, " "), Targets: []mb.TargetRef{}}
+}
+
+// aloneRestricted names the creatures that can't be declared alone.
+func aloneRestricted(d *decision.Decision, v *view.View) []string {
 	var names []string
 	seen := make(map[state.ObjID]bool)
 	for _, opt := range d.Options {
@@ -81,14 +97,48 @@ func alonePresentation(d *decision.Decision, v *view.View, verb string) *mb.Prom
 		}
 		names = append(names, fmt.Sprintf("%s (%s)", name, cardID(opt.Obj)))
 	}
-	if names == nil {
+	return names
+}
+
+// chargeableTogether lists creatures a declaration can hold at once, when
+// something bounds the declaration as a whole: an attack or block tax in mana or
+// life, a tax that taps creatures from a pool the declared ones leave, or a cap on
+// attackers per defender. None of those show on a creature, and fewer of the
+// listed creatures are legal too. Each creature is priced at its first offered
+// option, the first target its prompt lists. Those required to attack or block are
+// taken first. Nil when nothing bounds the declaration.
+func chargeableTogether(d *decision.Decision, verb string) []string {
+	if d.ChargeTapPool <= 0 && !d.HasBudget() && d.PayerLife <= 0 && (verb != "attack" || !optionsHaveGroups(d.Options)) {
 		return nil
 	}
-	return &mb.PromptPresentation{
-		Title:       d.Prompt,
-		Description: fmt.Sprintf("Can't %s alone: %s.", verb, strings.Join(names, ", ")),
-		Targets:     []mb.TargetRef{},
+	var chosen []int
+	sum := 0
+	groups := map[string]int{}
+	seen := make(map[state.ObjID]bool)
+	take := func(required bool) {
+		for _, o := range d.Options {
+			if seen[o.Obj] || o.Required != required {
+				continue
+			}
+			if !d.ChargeOptionsFit(append(chosen[:len(chosen):len(chosen)], o.Index)) ||
+				(d.HasBudget() && sum+o.Value > d.MaxSum) || !d.GroupAdmits(groups, o.Group) {
+				continue
+			}
+			seen[o.Obj] = true
+			chosen = append(chosen, o.Index)
+			sum += o.Value
+			if o.Group != "" {
+				groups[o.Group]++
+			}
+		}
 	}
+	take(true)
+	take(false)
+	ids := make([]string, 0, len(chosen))
+	for _, c := range chosen {
+		ids = append(ids, cardID(d.Options[c].Obj))
+	}
+	return ids
 }
 
 // attackTargetID is the wire ref id of an attacker option's target: the
@@ -174,7 +224,7 @@ func (t *Translator) promptBlockers(d *decision.Decision, v *view.View) (mb.Prom
 	in := mb.ChooseBlockersInput{
 		Attackers:           attackers,
 		AvailableBlockerIDs: blockers,
-		Presentation:        alonePresentation(d, v, "block"),
+		Presentation:        declarationPresentation(d, v, "block"),
 	}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{
 		PromptID: promptID(d), DecidingPlayerID: playerID(d.Player),

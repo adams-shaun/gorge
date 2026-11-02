@@ -60,6 +60,8 @@ HTTP reply and is also pushed on any open stream. Its code is one of the protoco
 - **Constraints on a set.** A rule over the whole answer has no field either, so its presentation text states it. Targets or cards that must
   share a controller or a property, or options that exclude each other, come with the first `min` candidates a legal answer. A `chooseCards`
   ask whose total must reach or stay within a value lists what each card counts for (`Card values: o39 1, o135 3.`), which needn't be anything
-  on the card. The answer is still checked, and a broken constraint comes back `invalidShape`.
+  on the card. A combat prompt under an attack or block tax, or a cap on attackers, names creatures that can go together
+  (`These can attack together: o10, o12.`, each at the first target it offers). The answer is still checked, and a broken constraint comes back
+  `invalidShape`.
 - **No spectators.** ManaBrew has no spectator role, so spectating stays native. [Wires](../architecture/wires.md) lists what else isn't a
   supported combination, and the tests behind each one that is.

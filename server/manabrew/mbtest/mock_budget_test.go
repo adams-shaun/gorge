@@ -61,3 +61,29 @@ func TestMockFillsAColourAskWithRepeats(t *testing.T) {
 		t.Fatalf("chosen %v, want 6 in all", got.ChosenColors)
 	}
 }
+
+// A declaration bound as a whole keeps to the creatures the prompt names, at the
+// first target each offers, and to none past them however the coin falls.
+func TestMockAttacksOnlyWithWhatCanAttackTogether(t *testing.T) {
+	in := mb.ChooseAttackersInput{
+		Attackers: []mb.AttackerOptionDto{
+			{AttackerID: "o10", ValidTargetIDs: []string{"player-1", "o50"}},
+			{AttackerID: "o11", ValidTargetIDs: []string{"player-1"}},
+		},
+		Presentation: &mb.PromptPresentation{Description: "These can attack together: o10."},
+	}
+	c := NewSeededRandomClient(1)
+	attacked := false
+	for range 64 {
+		out := c.answerAttackers(in).(mb.DeclareAttackersDecision)
+		for _, a := range out.Assignments {
+			if a.AttackerID != "o10" || a.TargetID != "player-1" {
+				t.Fatalf("assignment %+v is not the named creature at its first target", a)
+			}
+			attacked = true
+		}
+	}
+	if !attacked {
+		t.Fatal("the client never attacked with the creature it may")
+	}
+}
