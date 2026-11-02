@@ -56,9 +56,7 @@ func TestShockElectionBeforeEffectTap(t *testing.T) {
 		if s.perms[sl].flags&pfTapped != 0 {
 			t.Errorf("mode %d: tapped while the election is asked", mode)
 		}
-		ask := s.g.ask[0]
-		s.g.nask = 0
-		s.shockAnswer(k, ask, MakeAction(AkChoose, 0, 0, mode))
+		s.answerQueuedAsk(k, MakeAction(AkChoose, 0, 0, mode))
 		if s.perms[sl].flags&pfTapped == 0 {
 			t.Errorf("mode %d: not tapped after the answer", mode)
 		}
