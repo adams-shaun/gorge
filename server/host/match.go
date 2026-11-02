@@ -91,6 +91,11 @@ type match struct {
 	// turnStarts is the seq of every TurnChange so far — the DVR's ticks.
 	turnStarts []uint64
 	snaps      []snapshot
+	// viewResume is the furthest game a view's replay has reached, which the next
+	// view forks instead of replaying the turn again. rewinds tells a replay that
+	// began before an undo that its game is no longer this match's history.
+	viewResume snapshot
+	rewinds    int
 	intents    int
 	state      string // protocol.Match*
 	result     string // "win", "draw" or ""

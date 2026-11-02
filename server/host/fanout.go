@@ -361,6 +361,7 @@ func (r *Registry) archive(t *table, m *match) {
 	m.files.close()
 	m.files = nil
 	m.snaps = nil
+	m.viewResume = snapshot{}
 	m.mu.Unlock()
 	if err := writeSidecar(r.opts.Dir, sc, r.opts.Sync); err != nil {
 		m.mu.Lock()
