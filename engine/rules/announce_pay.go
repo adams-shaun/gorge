@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -111,12 +112,17 @@ func (e *Engine) announcedManaWindowAsk(pc *pendingCast, mana Cost) bool {
 		f := *pc.PaymentFallback
 		d.PaymentFallback = &f
 	}
+	desc := paymentForCast(pc, mana)
 	for _, id := range pay.ManaSourceIDs(e.G, p) {
 		if e.convokeCommitted(pc, id) || !e.untappedManaSource(p, id) {
 			continue
 		}
 		chosen := pay.ChosenProducedColour(e.G, id)
 		for i, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+			// CR 106.6: mana this payment cannot spend is not worth offering.
+			if valid := effects.ManaOf(ma).RestrictValid; valid != "" && !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+				continue
+			}
 			marker := e.manaActivationCostMarker([]*cards.SA{ma})
 			if cols := pay.AnnouncedAbilityColours(asPayer(e), p, id, ma, chosen); len(cols) > 0 {
 				for _, col := range cols {

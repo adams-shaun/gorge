@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -326,7 +327,7 @@ func (e *Engine) manaWindowAsk() bool {
 	}
 	var sources []state.ObjID
 	for _, id := range pay.ManaSourceIDs(e.G, pc.player) {
-		if !e.convokeCommitted(pc, id) && e.untappedManaSource(pc.player, id) &&
+		if !e.convokeCommitted(pc, id) && e.untappedManaSourceFor(pc.player, id, paymentForCast(pc, mana)) &&
 			// CR 601.2g: a source that can no longer add a colour the
 			// announced composition absorbs is withheld from the window
 			// (see paymentSourceUseful); if NO source remains the payment
@@ -406,6 +407,35 @@ func (e *Engine) untappedManaSource(p state.PlayerID, id state.ObjID) bool {
 			continue
 		}
 		return true
+	}
+	return false
+}
+
+// untappedManaSourceFor is untappedManaSource for one payment: a source whose
+// every available mana ability is governed by a RestrictValid$ this payment
+// cannot spend adds nothing to it (CR 106.6; Forge offers only the abilities
+// whose mana meets the restrictions of the ability being paid for), so a
+// window for desc does not list it.
+func (e *Engine) untappedManaSourceFor(p state.PlayerID, id state.ObjID, desc paymentDescriptor) bool {
+	for _, ma := range e.availableManaAbilities(p, id) {
+		if pay.InstantSpeedOnly(ma) {
+			continue
+		}
+		if valid := effects.ManaOf(ma).RestrictValid; valid != "" && !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// hasUntappedManaSourceFor is hasUntappedManaSource for one payment
+// (untappedManaSourceFor).
+func (e *Engine) hasUntappedManaSourceFor(p state.PlayerID, desc paymentDescriptor) bool {
+	for _, id := range pay.ManaSourceIDs(e.G, p) {
+		if e.untappedManaSourceFor(p, id, desc) {
+			return true
+		}
 	}
 	return false
 }

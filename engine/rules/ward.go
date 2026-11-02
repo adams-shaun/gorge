@@ -414,7 +414,7 @@ func wardManaDecision(e *Engine, wm *wardManaPayment) *decision.Decision {
 		paymentDescriptor{ID: wm.obj, Class: paymentOther, Cost: &wm.cost}, pipRider{}, wm.cost, false)
 	if !payable {
 		for _, id := range e.G.Zone(state.ZBattlefield, wm.payer) {
-			if e.untappedManaSource(wm.payer, id) && e.windowSourceYields(wm.payer, id) {
+			if e.untappedManaSourceFor(wm.payer, id, paymentDescriptor{ID: wm.obj, Class: paymentOther, Cost: &wm.cost}) && e.windowSourceYields(wm.payer, id) {
 				opt := decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
 					Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"}
 				// The beyond-tap cost marker every other "activate" offer
