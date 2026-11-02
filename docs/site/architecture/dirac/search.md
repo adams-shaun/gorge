@@ -8,7 +8,7 @@ and for readers comparing engines. It reports no playing strength. Speed per sim
 
 | Need | Operation | Cost |
 |---|---|---|
-| copy a position | `dst.CopyFrom(root)` | about 41 ns, no allocation ([State](state.md)) |
+| copy a position | `dst.CopyFrom(root)` | no allocation ([Performance](../../performance/index.md#transitions-and-copies)) |
 | list a decision | `StepInto(&d)`: packed `Action`s in canonical order | no allocation |
 | apply a move | `Apply(a)` | no allocation |
 | hide what a seat can't see | `Hidden(o, seat)`, `HiddenCards`, `DealHidden` (re-deal hidden cards from a pool), `RedealOwnLibrary`, `ReseedChance` | in place, on the copy |

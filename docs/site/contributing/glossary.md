@@ -164,11 +164,11 @@ maintainers periodically merge a `develop → main` snapshot, when its checks ar
 green, with a merge commit. `main` is what this site and
 the published coverage are built from ([Branch flow](../repos/index.md#branch-flow)).
 
-**dirac.** A second, much faster rules engine, for two players. Its whole game is one
-mostly fixed-size value, cloned with one or two memory copies and driven as a `Step`/`Apply`
-state machine, and its cards are tables of *kop* instructions, generated from
-gorge's compiled cards. Play is checked against gorge by a *lockstep oracle*. Its source isn't in this
-repository yet. See [dirac](../architecture/dirac/index.md).
+**dirac.** The second rules engine in this repository, for two players, built for search and
+self-play. Its whole game is one flat value and one buffer sized to its card table, cloned with one
+or two memory copies and driven as a `Step`/`Apply` state machine, and its cards are tables of *kop*
+instructions, generated from gorge's compiled cards. Play is checked against gorge by a *lockstep
+oracle*. See [dirac](../architecture/dirac/index.md).
 
 **kop.** dirac's card-effect vocabulary: a closed, append-only set of
 ops, and the tables (`kop.Table`, one entry per card) its interpreter runs.
@@ -195,9 +195,9 @@ lockstep run fails on it. Neither is reported as a divergence.
 
 **kgen.** The generator that lowers gorge's compiled card IR into
 dirac's kop tables, as generated binary tables that are never committed. It reads every
-parameter of a card or refuses the card. A refused card stays out of every
-deck dirac accepts. A card that lowers without a refusal
-isn't yet supported: that also takes evidence from lockstep games. See [Cards](../architecture/dirac/cards.md).
+parameter of a card or refuses to lower it, and a card that doesn't lower stays out of every
+deck dirac accepts. A card that lowers isn't yet supported: that also takes clean lockstep games of the
+evidence corpus, and no refusal by name. See [Cards](../architecture/dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
 agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).

@@ -24,7 +24,7 @@ That is why gorge is checked separately by readings that don't share its source:
   ([Testing](../../contributing/testing.md)).
 
 dirac is covered by those checks only indirectly, for behaviour lockstep exercises, because it matches gorge there. They
-are not run against dirac itself.
+are not run against dirac itself. So dirac shares gorge's bugs on the cards it supports.
 
 ## What is compared
 
@@ -64,18 +64,21 @@ agreement per kind. `ksbt` does the same for sb-tactical, through a view built f
 
 ## Running it
 
-`kfuzz` is the driver, and like the rest of dirac it isn't in this repository, so this shows what a run looks
-like rather than something you can run from a clone of gorge. A pool run plays seeded pairs of decks:
+`kfuzz` is the driver. With the card tables built (`make dirac-tables`), a pool run plays seeded pairs of decks:
 
 ```sh
-kfuzz -kernel fdn -first-pair 0 -pairs 2 -seed 1 -keep-going -surface autopay -shrink 0
+go build -trimpath -o bin/kfuzz ./dirac/oracle/cmd/kfuzz
+bin/kfuzz -kernel fdn -first-pair 0 -pairs 2 -seed 1 -keep-going -surface autopay -shrink 0
 ```
+
+Among its output is this summary line:
 
 ```text
 fdn: 2 games (0 refused-card, 0 refused-pair, 0 error), 2 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 0 hang (lead gorge, surface autopay)
 ```
 
 Every pair that started a game is one of these. A pair that couldn't be built is outside the count, in the bracket.
+`make dirac-slices` plays both slices on both surfaces with `-absolute` and took 47 s on four cores on 2026-11-01.
 
 | Verdict | Meaning | Exit, plain | Exit, `-absolute` |
 |---|---|---|---|
@@ -89,10 +92,11 @@ Every pair that started a game is one of these. A pair that couldn't be built is
 `-absolute` also fails on an `error` skip and on a run that played no game. `-coverage` and `-evidence` count a game with no
 divergence and no unmodelled stall, so a capacity-stalled game earns coverage up to where it stopped.
 
-dirac commits slices of its deck pools, the first 1,500 pairs of the `fdn` and `blb` pools at seed 1, so a checkout can
-play them without the pools themselves. The pools are 17Lands-derived, and `kfuzz -synth <pool>` plays a card list instead of a
-deck list. Latest results are on [What it supports](index.md#how-far-lockstep-agrees). On `-surface full`, the same slices
-gave 1,499 clean games and one capacity stall on FDN and 1,500 clean games on BLB (2026-10-31).
+A clone plays two things: committed slices of the deck pools, the first 1,500 pairs of the `fdn` and `blb` pools at seed 1
+(`dirac/oracle/testdata/slices`), and synthetic decks, which `kfuzz -synth <pool>` deals from a card list. The full deck
+pools aren't published and there is no download for them, so a clone can't rerun a soak over a whole pool or earn FDN and
+BLB evidence from real decks beyond the slices. Everything CI runs needs only the slices and synthetic decks. Latest results
+are on [What it supports](index.md#how-far-lockstep-agrees).
 
 Random answers are a strength here: they reach corners (declining every optional trigger, chump-blocking with everything,
 casting into a counterspell) that a sensible bot never visits.
@@ -116,10 +120,16 @@ against XMage and Forge first, the fix lands in gorge, and dirac keeps gorge's b
 fix. A card that lowers and still plays wrong can be refused by name until it's fixed
 ([Cards](cards.md#lowered-refused-evidenced)).
 
+## Where this runs
+
+`make dirac-slices` is the job `dirac-slices` in CI, on every change. A pull request to `main` also runs the whole of
+`dirac/oracle` (the job `oracle`). `scripts/dirac-gate.sh <base>` holds a change to gorge and dirac together: gorge
+leads, and a change that alters behaviour on a supported card fixes dirac in the same change or refuses the card by name.
+
 ## CR coverage
 
 dirac keeps a rule-by-rule table of where it stands against the Comprehensive Rules, one file per chapter, with the code
 that decides each rule. `TestCRCoverageIsCurrent` fails when a row stops matching the code, so the table changes in the same
-commit as the behaviour. Rows on 2026-10-31: 1,621 in all, of which 695 follow, 107 are partial, 14 deviate, 4 are not
-implemented, 20 are definitions, 733 don't apply (multiplayer, for example) and 48 aren't established yet. A row marked
-`inherits gorge` copies gorge's behaviour, so [gorge's table](https://github.com/adams-shaun/gorge/tree/main/engine/rules/crcoverage) decides it.
+commit as the behaviour, and [its README](https://github.com/adams-shaun/gorge/blob/main/dirac/crcoverage/README.md) has
+the current count of each status. A row marked `inherits gorge` copies gorge's behaviour, so
+[gorge's table](https://github.com/adams-shaun/gorge/tree/main/engine/rules/crcoverage) decides it.

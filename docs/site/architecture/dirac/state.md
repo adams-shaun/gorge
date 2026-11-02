@@ -3,8 +3,8 @@
 A dirac game is one Go value, `dirac.State`, plus one small buffer it owns. This page shows what is inside
 it and why, for readers who want to know what a cheap clone costs and what it rules out.
 
-Sizes were read on 2026-10-31 with Go 1.26.3 on linux/amd64 by a scratch test printing `unsafe.Sizeof` of each
-part. dirac's own `TestStateSize` logs the total.
+Sizes were read on 2026-11-01 at gorge `5917ab1ae`, with Go 1.26.3 on linux/amd64, by a scratch test printing
+`unsafe.Sizeof` of each part. dirac's own `TestStateSize` logs the total.
 
 ## Three parts
 
@@ -19,18 +19,18 @@ type State struct {
 
 | Part | Bytes | What it holds |
 |---|--:|---|
-| `stateCore` | 8,344 | the rules state, below |
+| `stateCore` | 8,240 | the rules state, below |
 | `perms` | 6,272 | 112 battlefield slots at 56 bytes each |
-| `cold` headers and `pool` | 280 | slice headers and a pointer; the arrays themselves are in one buffer |
-| **`State`, total** | **14,896** | |
+| `cold` headers and `pool` | 304 | slice headers and a pointer; the arrays themselves are in one buffer |
+| **`State`, total** | **14,816** | |
 
 The core and `perms` hold no pointers, maps, slices, strings or interfaces. Every collection is a fixed array
 and a count, so three things follow:
 
 1. **A clone is one or two memory copies.** `dst.CopyFrom(src)` assigns the core, copies `perms` up to
    `permHi` (one past the highest slot this game has used), clears any slots above that in the destination, and
-   copies the cold buffer. It allocates only if the destination's buffer is too small. A copy of a mid-game FDN
-   position takes about 41 ns ([Performance](../../performance/index.md#transitions-and-copies)).
+   copies the cold buffer. It allocates only if the destination's buffer is too small
+   ([Performance](../../performance/index.md#transitions-and-copies) has the cost).
 2. **The garbage collector scans almost nothing.** The cold buffer is a `[]uint64`, which it doesn't look
    inside, and the only pointers in a `State` are in the cold headers and the fork pool.
 3. **Positions compare directly.** `SameGame` compares the core, `perms` and the buffer. `Projection`, below,
@@ -56,7 +56,7 @@ What's variable-length about the cards (definitions, filters, op programs) is in
 | delayed triggers | 96 | 16 records |
 | resolution in progress | 80 | the suspended program and its position |
 | change marks | 24 + 192 | one bit per object, one stamp per object ([below](#change-marks)) |
-| generated-table extension | 3,448 | continuous effects, last known information, per-turn history and other pools |
+| generated-table extension | the rest | continuous effects, last known information, per-turn history and other pools |
 
 ## Hot and cold
 
@@ -113,7 +113,7 @@ Marks may over-report and cost a recomputation, but never miss.
 Every byte of the core is copied on every clone, so its size is a decision rather than a side effect.
 
 - **`State` must stay under 16 KiB.** `TestStateSize` fails above that, and moving the bar is a deliberate
-  decision. It is 14,896 bytes today.
+  decision.
 - **The table holds what's printed and `State` holds what changes.** No field in `State` belongs to one card.
 - **Per-slot bytes are expensive.** One byte on `perm` costs 112 bytes of `State`, one on `object` 192. Rare
   state goes in a pool sized for the worst case seen in play, or in a cold array.

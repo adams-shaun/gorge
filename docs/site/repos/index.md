@@ -11,7 +11,7 @@ covers what each holds, which way the imports run, licensing, pinning, and how c
 | Visibility | public | public | private |
 | Licence | Apache-2.0 | Apache-2.0 | (private) |
 | Module | `github.com/adams-shaun/gorge` | `github.com/adams-shaun/gorge-compliance` | (private) |
-| Holds | the rules engine, the reference server `gorged` with [draft events](../guide/draft.md), the bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | machine learning and private experiments: training, networks, research bots |
+| Holds | both rules engines, gorge and dirac, the reference server `gorged` with [draft events](../guide/draft.md), the bots, the browser client, contributor tooling | the compliance oracles (gorge vs XMage vs Forge), the hand-written Oracle-text scenarios, the XMage-ported scenarios, the certification ratchet | machine learning and private experiments: training, networks, research bots |
 | Depends on | nothing (the root `go.mod` has no `require` lines) | gorge, pinned by commit | gorge, pinned by commit |
 | You need it to… | build, run, test or embed the engine | measure gorge against independent engines | nothing in gorge |
 
@@ -21,8 +21,8 @@ covers what each holds, which way the imports run, licensing, pinning, and how c
 <rect x="270" y="20" width="220" height="150" rx="10" class="dg-box-accent"/>
 <text x="380" y="48" text-anchor="middle" class="dg-text-bold">gorge</text>
 <text x="380" y="66" text-anchor="middle" class="dg-text-muted">public · Apache-2.0</text>
-<text x="380" y="92" text-anchor="middle" class="dg-text">engine/  server/  bots/  draft/</text>
-<text x="380" y="112" text-anchor="middle" class="dg-text">cmd/  web/  testkit/  cli/</text>
+<text x="380" y="92" text-anchor="middle" class="dg-text">engine/  dirac/  server/  bots/</text>
+<text x="380" y="112" text-anchor="middle" class="dg-text">draft/  cmd/  web/  testkit/  cli/</text>
 <text x="380" y="138" text-anchor="middle" class="dg-text-muted">imports nothing outside</text>
 <text x="380" y="154" text-anchor="middle" class="dg-text-muted">the standard library</text>
 <rect x="10" y="40" width="200" height="110" rx="10" class="dg-box"/>
@@ -51,16 +51,16 @@ covers what each holds, which way the imports run, licensing, pinning, and how c
 
 ## gorge (this repository)
 
-The engine and everything needed to use it; [Repository layout](../contributing/repo-layout.md) has the
-tree. dirac, the [second engine](../architecture/dirac/index.md), isn't in this repository yet. gorge
-builds, tests and runs on its own. It exposes a few **extension seams**, which are ordinary exported API:
+Both engines and everything needed to use them; [Repository layout](../contributing/repo-layout.md) has the
+tree, and [dirac](../architecture/dirac/index.md) is the second engine. This repository builds, tests and runs
+on its own. It exposes a few **extension seams**, which are ordinary exported API:
 
 | Seam | What plugs in |
 |---|---|
 | `bots.Register` (`bots/registry.go`) | a bot policy joins the registry the server offers |
 | `server/gorged.RegisterNetBot` | a network-backed hosted bot, with its flags |
 | `server/gorged.Extensions` | what a binary links into the server: its events plugin, extra flags, the `gorged review` loader, and further engines for `-engine`. gorge's own `cmd/gorged` passes `draft/gorgedevents`, and a binary that leaves `Events` empty is refused `-events` at startup (`TestEventsNeedAPlugin`) |
-| `engine/game` | what a host needs from a running game; each engine implements it |
+| `engine/game` | what a host needs from a running game; `engine/game/gorgegame` and `dirac/adapter` implement it |
 | `engine/rules`' exported oracle runner (`RunOracleScenarioJSON`, `RunOracleAuditScenarioJSON`, `CheckOracleScenarioJSON`) | gorge-compliance's scenario drivers |
 | `testkit/` (`testutil`, `bench`, `paymirror`) and `cli/` | test fixtures, the head-to-head game runner, command-line plumbing |
 
