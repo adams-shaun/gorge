@@ -177,9 +177,12 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		// ValidSource$ You: the player putting the counters (the
 		// resolving spell's or ability's controller; Fleeting Flight cast
-		// by an opponent on Exemplar of Light triggers nothing)
+		// by an opponent on Exemplar of Light triggers nothing). The
+		// counters a permanent enters with are put by its controller
+		// (CR 122.6a; gorge foldEntryWithPlaced): Parting Gust's return
+		// under the owner's control is the owner's put, whoever resolves it.
 		putter := evCtrl
-		if s.res.active {
+		if s.res.active && !s.g.ctrEntry {
 			putter = s.res.e.ctrl
 		}
 		if !whoseOK(a.Trig.Whose, l.ctrl, putter) {

@@ -421,7 +421,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		for c := 0; c < int(kop.NumCounterKinds3); c++ {
 			if n := p.ctrN(s, c); n > 0 && s.occ.has(sl) && kop.IsCounterKind(c) {
 				s.g.lastCK = kop.CounterKind(c)
+				s.g.ctrEntry = true
 				s.fireObj(k, kop.TrigCounterAddedOnce, sl, o, ctrl, int16(n))
+				s.g.ctrEntry = false
 			}
 		}
 	}

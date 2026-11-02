@@ -1022,6 +1022,9 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
 		hr = s.holdOpen(k)
 	}
 	defer s.holdClose(k, hr)
+	if s.leaveTogether(k, in, i) {
+		return
+	}
 	s.g.inLoop = true
 	s.exec(k, in)
 	for j := 0; j < int(s.xtOf(e).n); j++ {

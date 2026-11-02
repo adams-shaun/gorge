@@ -1567,6 +1567,7 @@ type genState struct {
 
 	ctrCell    slotMask // the put action's recipients so far (trig_countercell.go)
 	ctrCellHit bool     // the fire in progress is a later kind of one action on one recipient
+	ctrEntry   bool     // the fire in progress is the entrant's own counters: their putter is its controller (CR 122.6a)
 
 	ctrOver  [maxCtrOver]ctrOverEntry // counter kinds past the general slots, sorted (ctr_sparse.go)
 	nctrOver uint8

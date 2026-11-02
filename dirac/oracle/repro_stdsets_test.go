@@ -14,12 +14,16 @@ import (
 func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
+	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
+	fullSurface := map[string]bool{"calamitous_tide_leave_together": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-tla", "waterbend_min_taps_filter"},               // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},           // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
 		{"std-blb", "script_cap_skips_sufficient_plain_casts"}, // Mind Spring and Mockingbird pay from the Islands: no prefix search spent before Pawpatch Recruit's offspring cast
 		{"std-fdn", "kicked_cast_granted_mana_prefix"},         // Into the Roil kicked, UU from New Horizons' Mountain: the prefix prices the composed cost
 		{"std-ecl", "wretch_blight_dies"},                      // a Retched Wretch that came back has no abilities: its second death, with -1/-1 counters again, triggers nothing
+		{"std-blb", "parting_gust_return_counter"},             // Parting Gust returns a creature under its owner's control: the owner puts its counter, so their Stocking the Pantry triggers
+		{"std-blb", "calamitous_tide_leave_together"},          // Calamitous Tide bounces Dour Port-Mage with Plumecreed Mentor: one departure, so the Port-Mage sees the Mentor leave
 		{"std-tdm", "thunder_of_unity_saga_etb"},               // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
 		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
 	} {
@@ -45,7 +49,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 				t.Fatal(err)
 			}
 			rc := r.RunConfig()
-			rc.Config.GorgeAutopaySurface = true
+			rc.Config.GorgeAutopaySurface = !fullSurface[c.name]
 			rc.MaxDecisions = len(r.Actions) + 200
 			k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
 			if err != nil {
