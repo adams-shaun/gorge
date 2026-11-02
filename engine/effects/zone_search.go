@@ -882,8 +882,6 @@ func changeZoneFetchSelector(h Host, c *Ctx, cz *ChangeZoneParams) bool {
 	return true
 }
 
-// searchPlayers resolves whose zones are searched. DefinedPlayer$ takes
-// precedence over Defined$; targeted players come next, then the controller.
 // searchSameNames is SameNameAsEach$: one search with one pick per card the
 // param names, of a card sharing that card's name ("for each creature you
 // control, search for a card with the same name"). Each pick may fail to find
@@ -915,6 +913,8 @@ func searchSameNames(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner s
 	return chosen
 }
 
+// searchPlayers resolves whose zones are searched. DefinedPlayer$ takes
+// precedence over Defined$; targeted players come next, then the controller.
 func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return searchPlayersFor(h, c, fetchSelectorsParam(sa))
 }
