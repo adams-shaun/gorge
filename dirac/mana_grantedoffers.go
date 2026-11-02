@@ -543,10 +543,12 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepFilt:
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
+			s.manaTapped(k, sl)
 			continue
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
+		s.manaTapped(k, sl)
 		if r := restrOfStep(k, st); r != 0 {
 			// a restricted grant floats beside the pool (poolR), spendable only
 			// as its restriction allows; never a silent spill into the pool

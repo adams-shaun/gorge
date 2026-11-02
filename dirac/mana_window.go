@@ -219,6 +219,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 		if !sacOnly {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
+			s.manaTapped(k, sl)
 		}
 		s.pl[p].pool[col] += pc.manaN
 		s.addExtraCol(k, p, sl, pc, col)

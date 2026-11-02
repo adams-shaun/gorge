@@ -587,3 +587,53 @@ func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
 func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
 	waterbendPairs(t, "std-tla", []int{66, 171, 414, 446, 503, 760, 949})
 }
+
+// manaTapTriggerPairs is synthPairs requiring that a mana tap in each game puts a Taps
+// trigger on gorge's stack: a pair is two decks dealt from the lowered list, so a card
+// lowered later moves what a pair holds.
+func manaTapTriggerPairs(t *testing.T, name string, pairs []int) {
+	t.Helper()
+	seen, hits := 0, 0
+	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+		evs := ref.E.L.Events
+		for ; seen < len(evs); seen++ {
+			if evs[seen].Kind.String() != "trigger_push" {
+				continue
+			}
+			mana := false
+			for j := seen - 1; j >= max(0, seen-6); j-- {
+				switch k := evs[j].Kind.String(); {
+				case k == "mana_add":
+					mana = true
+				case k == "tap" && evs[j].Obj == evs[seen].Obj && mana:
+					hits++
+				}
+			}
+		}
+		return nil
+	}}
+	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
+		if hits == 0 {
+			t.Errorf("pair %d of %s taps no Taps listener for mana: the pin tests nothing", pair, name)
+		}
+		seen, hits = 0, 0
+	})
+}
+
+// TestGrantedManaTapFiresTapsTriggers: a creature tapped for a granted mana ability
+// (Great Divide Guide gives every Ally one) becomes tapped, so its "whenever this
+// becomes tapped" trigger (Master Pakku, Gran-Gran, Compassionate Healer) fires
+// whether the tap is in the script before the play or in the payment (CR 603.2,
+// 605.1b). The pairs diverge when a mana tap fires nothing.
+func TestGrantedManaTapFiresTapsTriggers(t *testing.T) {
+	manaTapTriggerPairs(t, "std-tla", []int{40, 121, 185, 473, 532})
+}
+
+// TestScriptTriggerWithATargetIsPlacedBeforeThePlay: a Taps trigger with a target
+// that a script's mana tap causes (Master Pakku's mill) is answered by the script and
+// stands on the stack below the play it was a prefix to, as gorge answers each prefix
+// activation as its own decision (CR 603.3). The pairs diverge when it is left to be
+// placed above the play.
+func TestScriptTriggerWithATargetIsPlacedBeforeThePlay(t *testing.T) {
+	manaTapTriggerPairs(t, "std-tla", []int{40, 185, 473, 532})
+}

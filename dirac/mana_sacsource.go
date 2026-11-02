@@ -239,10 +239,9 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 // trigger queue before the play is submitted; a sacrifice made while paying
 // the play therefore sits below the play's own ability (seed 640: Writhing
 // Chrysalis below Drownyard Lurker's activation, whose discard trigger is
-// queued later and joins no order choice). Only a targetless trigger can be
-// placed here without posing a decision; a target ask or an order choice is
-// left pending for the ordinary priority path (the pool's prefix triggers
-// have neither).
+// queued later and joins no order choice). A trigger with a target or a mode
+// is answered with the script's first option; an order choice (two triggers at
+// once) is left pending for the ordinary priority path.
 func (s *State) flushPrefixTriggers(k *prep) {
 	for s.npend != 0 {
 		p := s.active
@@ -261,10 +260,24 @@ func (s *State) flushPrefixTriggers(k *prep) {
 				break
 			}
 		}
-		if i < 0 || s.pendNeedsDecision(k, i) {
+		if i < 0 {
 			return
 		}
+		decides := s.pendNeedsDecision(k, i)
 		s.takePending(k, i)
+		if decides {
+			// the script's answer to the trigger's ask is the first option (the search
+			// branches on the answers in order, and a target does not change what the
+			// prefix pays), given before the play is submitted
+			for s.ctl == ctlBuild && !s.over {
+				var d Decision
+				s.StepOne(&d)
+				if d.N == 0 || s.ctl != ctlBuild {
+					break
+				}
+				s.Apply(d.Options[0])
+			}
+		}
 	}
 }
 

@@ -24,7 +24,6 @@ func init() {
 	stallNames[17] = "ask"
 	stallNames[18] = "counters"
 	stallNames[19] = "lki"
-	stallNames[20] = "tapsmana"
 	stallNames[21] = "infect"
 	stallNames[22] = "replplus"
 	stallNames[25] = "liferepl"

@@ -24,7 +24,7 @@ var (
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
-	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "liferepl", "prolif", "ctrorder",
+	unmodelledStalls = []string{"infect", "replplus", "liferepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
@@ -73,8 +73,8 @@ func TestUnclassedStallIsNotCapacity(t *testing.T) {
 	if !StallIsUnmodelled(NumStall) || !StallIsUnmodelled(255) {
 		t.Error("a reason past the table must not read as capacity")
 	}
-	if StallIsUnmodelled(StallBoard) || !StallIsUnmodelled(StallTapsMana) {
-		t.Error("board is capacity, tapsmana is not")
+	if StallIsUnmodelled(StallBoard) || !StallIsUnmodelled(StallInfect) {
+		t.Error("board is capacity, infect is not")
 	}
 }
 
@@ -172,10 +172,6 @@ func stallFlagCases() []stallFlagCase {
 	}
 	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
 	return []stallFlagCase{
-		{StallTapsMana, "Half Tapper", "Half Rite", stallPool("tapsmana", []kop.CardDef{
-			vt("Half Tapper", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigTaps, Flags: kop.TfSelf}}),
-			vt("Half Rite", kop.Ability{Kind: kop.AbMana, AFlags: kop.AfLatent, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColG, ManaN: 1}),
-		}, nil, nil, nil)},
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
@@ -223,11 +219,11 @@ func TestMatchupRefusesEveryInteraction(t *testing.T) {
 }
 
 // The test's named example, on its own.
-func TestMatchupRefusesTapsManaPair(t *testing.T) {
+func TestMatchupRefusesInfectPair(t *testing.T) {
 	c := stallFlagCases()[0]
 	_, _, _, err := c.set.Matchup([]cardset.Entry{{Name: c.a, Count: 1}}, []cardset.Entry{{Name: c.b, Count: 1}})
-	if err == nil || !strings.Contains(err.Error(), c.a) || !strings.Contains(err.Error(), c.b) || !strings.Contains(err.Error(), "tapsmana") {
-		t.Fatalf("error %v, want tapsmana naming %q and %q", err, c.a, c.b)
+	if err == nil || !strings.Contains(err.Error(), c.a) || !strings.Contains(err.Error(), c.b) || !strings.Contains(err.Error(), "infect") {
+		t.Fatalf("error %v, want infect naming %q and %q", err, c.a, c.b)
 	}
 }
 

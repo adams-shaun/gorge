@@ -106,10 +106,10 @@ type genPrep struct {
 	// (AddTrigger$): their listeners include those hosts (kw_protection.go trigSubs)
 	grantTrigEv uint32
 	anyProtF    bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
-	// tapsMana: the table has a Taps trigger (TrigTaps) and a granted mana
-	// ability, which could tap a Taps listener for mana where the kernel
-	// does not fire TrigTaps: the game stalls at its start (StallTapsMana)
-	tapsMana bool
+	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
+	// ability, which can tap a Taps listener for mana: the mana taps fire it
+	// (manaTapped)
+	manaTaps bool
 	// tapsWhose: a TrigTaps ability reads the tapper (Trig.Whose, "whenever
 	// you tap ..."; trig_tapsvalid.go)
 	tapsWhose bool
@@ -1066,7 +1066,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			manaGrant = manaGrant || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0
 		}
 	}
-	g.tapsMana = anyTaps && manaGrant
+	g.manaTaps = anyTaps && manaGrant
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
@@ -1623,21 +1623,21 @@ const (
 	StallLoop    = 5 // more than maxTrigTurn triggers resolved in one turn: an endless mandatory loop
 	// One reason per bounded pool. Append
 	// only; never renumber.
-	StallDelayed   = 6  // MaxDelayed delayed triggers (State.dly)
-	StallRemember  = 7  // maxRem remembered or chosen objects of one resolution
-	StallMayPlay   = 8  // maxMay play-from-zone permissions
-	StallDProg     = 9  // maxDProg delayed programs
-	StallEmblem    = 10 // maxEmb emblems of one player
-	StallDmgMap    = 11 // maxDmgMap damage-map entries
-	StallXTgt      = 12 // maxXTgt extra objects of multi-object target slots
-	StallUsed      = 13 // maxUsed once-per-turn records
-	StallKwRepX    = 14 // maxKwRepX repeated-keyword-grant records
-	StallLinks     = 15 // gen.links exile-until-leaves links
-	StallFree      = 16 // gen.free / gen.freeQ cast-without-paying candidates and queue
-	StallAsk       = 17 // gen.ask queued as-enters choices
-	StallCounters  = 18 // maxCtrOver counter kinds past the permanents' general slots (genState.ctrOver)
-	StallLKI       = 19 // maxLKI distinct last-known-information snapshots (genState.lki)
-	StallTapsMana  = 20 // a Taps trigger in a table with a granted mana ability (gen tapsMana; kw_protection.go)
+	StallDelayed  = 6  // MaxDelayed delayed triggers (State.dly)
+	StallRemember = 7  // maxRem remembered or chosen objects of one resolution
+	StallMayPlay  = 8  // maxMay play-from-zone permissions
+	StallDProg    = 9  // maxDProg delayed programs
+	StallEmblem   = 10 // maxEmb emblems of one player
+	StallDmgMap   = 11 // maxDmgMap damage-map entries
+	StallXTgt     = 12 // maxXTgt extra objects of multi-object target slots
+	StallUsed     = 13 // maxUsed once-per-turn records
+	StallKwRepX   = 14 // maxKwRepX repeated-keyword-grant records
+	StallLinks    = 15 // gen.links exile-until-leaves links
+	StallFree     = 16 // gen.free / gen.freeQ cast-without-paying candidates and queue
+	StallAsk      = 17 // gen.ask queued as-enters choices
+	StallCounters = 18 // maxCtrOver counter kinds past the permanents' general slots (genState.ctrOver)
+	StallLKI      = 19 // maxLKI distinct last-known-information snapshots (genState.lki)
+	// 20 was a Taps trigger in a table with a granted mana ability; a granted ability's tap now fires Taps triggers like any other
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
 	StallReplPlus  = 22 // a damage plus-N replacement and another damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go)
 	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)

@@ -327,7 +327,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	if apply {
 		for i := 0; i < fs.n; i++ {
-			s.filtDo(k, p, fs.path[i])
+			st := fs.path[i]
+			s.filtDo(k, p, st)
+			if (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
+				s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
+			}
 		}
 	}
 	return true

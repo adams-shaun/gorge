@@ -1134,6 +1134,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
+			s.manaTapped(k, sl)
 		}
 		pk.lastSl = sl
 		s.pl[p].pool[col] += ty.n

@@ -325,10 +325,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// gorge tapsMatches: every real Tap event (not an entry-tapped
 		// state) of a permanent matching ValidCard$. Only "whenever this
 		// becomes tapped" of a card with no mana ability is lowered: the
-		// kernel fires TrigTaps where a permanent is tapped other than for
-		// mana (attack, {T} and tap-a-creature costs, Tap effects,
-		// regeneration), and stalls a table where a granted mana ability
-		// could tap a Taps listener (gen tapsMana). A non-Self ValidCard$
+		// kernel fires TrigTaps where a permanent is tapped (attack, {T} and
+		// tap-a-creature costs, Tap effects, regeneration, and a granted
+		// mana ability's {T}: gen manaTaps). A non-Self ValidCard$
 		// lowers only as "whenever you tap an untapped creature an
 		// opponent controls" (ValidPlayer$ You, every clause OppCtrl):
 		// ValidPlayer$ is the TAPPER (gorge TapActor), which the kernel

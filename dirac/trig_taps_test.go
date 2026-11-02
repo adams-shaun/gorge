@@ -10,8 +10,8 @@ import (
 
 // TestTapsTrigger: "whenever this becomes tapped" (gorge Mode$ Taps) fires
 // when it attacks (after the attack triggers) and not for a vigilant or
-// already-tapped one; a table that also grants a mana ability stalls at
-// the start (StallTapsMana: a mana tap would not fire it).
+// already-tapped one. A mana tap fires it too (manaTapped; the oracle's
+// TestGrantedManaTapFiresTapsTriggers plays that against gorge).
 func TestTapsTrigger(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
 	set := cardsettest.Set(t, "fdn")
@@ -30,19 +30,5 @@ func TestTapsTrigger(t *testing.T) {
 	sc.combat(t, []Obj{a1}, nil)
 	if l0, l1 := sc.s.pl[0].life, sc.s.pl[1].life; l0 != 21 || l1 != 18 {
 		t.Fatalf("life %d / %d, want 21 / 18 (one Taps trigger)", l0, l1)
-	}
-
-	tbl2, _, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tbl2.Cards = append(tbl2.Cards, tbl.Cards[tapper],
-		kop.CardDef{Name: "Test Rite", Types: kop.TEnchantment, Abilities: []kop.Ability{
-			{Kind: kop.AbMana, AFlags: kop.AfLatent, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColG, ManaN: 1}}})
-	var s State
-	lib := make([]CardID, 20)
-	s.Init(tbl2, lib, lib, 1, Config{})
-	if s.StallReason() != StallTapsMana {
-		t.Fatalf("stall %d, want StallTapsMana", s.StallReason())
 	}
 }

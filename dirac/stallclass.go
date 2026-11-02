@@ -79,7 +79,7 @@ var stallCapacityReasons = [...]uint8{
 }
 
 var stallUnmodelledReasons = [...]uint8{
-	StallTapsMana, StallInfect, StallReplPlus, StallLifeRepl, StallProlif, StallCtrOrder,
+	StallInfect, StallReplPlus, StallLifeRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
@@ -95,8 +95,6 @@ var stallUnmodelledReasons = [...]uint8{
 // matchup with it, so the two cannot disagree.
 func (g *genPrep) initStall() uint8 {
 	switch {
-	case g.tapsMana:
-		return StallTapsMana // TrigTaps is not fired for a mana tap
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
 	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
@@ -134,10 +132,6 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 	var a, b func(c *kop.CardDef, i int) bool
 	var text string
 	switch why {
-	case StallTapsMana:
-		text = "a Taps trigger beside a granted mana ability: the kernel fires no Taps trigger for a mana tap"
-		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigTaps })
-		b = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbMana && x.AFlags&kop.AfLatent != 0 })
 	case StallInfect:
 		text = "infect, toxic, wither or poison beside a damage replacement order ask, a counter-added trigger or proliferate: gorge orders the conversion differently"
 		a = func(c *kop.CardDef, i int) bool {
