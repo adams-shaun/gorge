@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Decision } from '../protocol';
-import { adviceRows, differedNote, loadDifferedNotes, loadPairedBotOn, pairedRowLabel, saveDifferedNotes, savePairedBotOn, shownRows, winChance } from './pairedbot';
+import { adviceRows, differedNote, loadDifferedNotes, loadPairedBotOn, loadShowRules, pairedRowLabel, saveDifferedNotes, saveShowRules, savePairedBotOn, shownRows, winChance } from './pairedbot';
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -23,6 +23,18 @@ describe('paired bot preference', () => {
     expect(loadPairedBotOn(s)).toBe(true);
     savePairedBotOn(false, s);
     expect(loadPairedBotOn(s)).toBe(false);
+  });
+});
+
+describe('the bot\'s rules setting', () => {
+  it('is on until the player turns it off, and remembers', () => {
+    const s = memoryStorage();
+    expect(loadShowRules(s)).toBe(true);
+    expect(loadShowRules(null)).toBe(true);
+    saveShowRules(false, s);
+    expect(loadShowRules(s)).toBe(false);
+    saveShowRules(true, s);
+    expect(loadShowRules(s)).toBe(true);
   });
 });
 
@@ -106,20 +118,20 @@ describe('adviceRows', () => {
       engine: 'azmcts',
       root_value: 0,
       rows: [
-        row({ choices: [0], visits: 50, q: 0 }),
+        row({ choices: [0], visits: 50, q: 0, bot: true }),
         row({ payment: 'guide-a', visits: 30, q: 0.2, chosen: true }),
         row({ payment: 'guide-b', visits: 30, q: 0.4 }),
       ],
     });
     expect(got).toEqual([
-      { label: 'Cast Goblin Guide', visits: 60, chance: 65, recommended: true },
-      { label: 'Pass priority', visits: 50, chance: 50, recommended: false },
+      { label: 'Cast Goblin Guide', visits: 60, chance: 65, share: 55, recommended: true, rules: false },
+      { label: 'Pass priority', visits: 50, chance: 50, share: 45, recommended: false, rules: true },
     ]);
   });
 });
 
 describe('shownRows', () => {
-  const row = (visits: number, recommended = false) => ({ label: String(visits), visits, chance: 50, recommended });
+  const row = (visits: number, recommended = false) => ({ label: String(visits), visits, chance: 50, share: 0, recommended, rules: false });
   it('keeps the recommendation and counts the rest', () => {
     const got = shownRows([row(9), row(8), row(7), row(1, true)], 3, 2);
     expect(got.rows.map((r) => r.visits)).toEqual([9, 8, 1]);

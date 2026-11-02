@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import type { Advice, Decision, PairedBotStatus } from '../protocol';
   import { ApiError, fetchAdvice, fetchPairedBotStatus } from '../lib/api';
-  import { adviceRows, differedNote, loadPairedBotOn, pairedRowLabel, savePairedBotOn, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
+  import { adviceRows, differedNote, loadPairedBotOn, loadShowRules, pairedRowLabel, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
   import type { ExplainNote, ExplainSearch } from '../lib/review';
   import { signed, sourceBadge } from '../lib/review';
   import type { SeatCtx } from '../lib/seat';
@@ -41,6 +41,7 @@
 
   let status = $state<PairedBotStatus | null>(null);
   let on = $state(loadPairedBotOn());
+  let showRules = $state(loadShowRules());
   let advice = $state<Advice | null>(null);
   /** Why the last request brought no advice: the game went ahead of it, or anything else, whose words are not a player's. */
   let missed = $state<'stale' | 'failed' | null>(null);
@@ -112,13 +113,18 @@
     savePairedBotOn(on);
   }
 
+  function toggleRules() {
+    showRules = !showRules;
+    saveShowRules(showRules);
+  }
+
   const shown = $derived(advice !== null && advice.ask_seq === seq ? advice : null);
   const note = $derived(shown?.state === 'ready' ? (shown.explain as ExplainNote) : null);
   const badge = $derived(note ? sourceBadge(note) : null);
   const pick = $derived(note?.bot && decision && note.bot.length > 0 ? pairedRowLabel(decision, { choices: note.bot }) : null);
   const rows = $derived(note?.search && decision ? adviceRows(decision, note.search) : []);
   const list = $derived(shownRows(rows, ROWS, note?.search?.dropped ?? 0));
-  const maxVisits = $derived(Math.max(1, ...rows.map((r) => r.visits)));
+  const overruled = $derived(rows.some((r) => r.rules && !r.recommended) && rows.some((r) => r.recommended));
   const standing = $derived(note?.search ? winChance({ visits: note.search.sims ?? 0, q: note.search.root_value }) : null);
 </script>
 
@@ -153,19 +159,20 @@
             <p class="summary" data-paired-summary title="Each line plays on from here with a fresh guess at the cards you can't see. Estimates are the average of where those lines end up, not a measured win rate.">Search looked at {note.search.sims} lines{#if standing !== null}. You stand at about {standing}%{/if}</p>
             <table class="advice" aria-label="Search">
               <thead>
-                <tr><th>Option</th><th class="c-vis">Looked at</th><th class="num">Est. win</th></tr>
+                <tr><th>Option</th><th class="c-vis" title="The share of the lines that went through this option. Search sends more lines down the options that look better.">Looked at</th><th class="num">Est. win</th></tr>
               </thead>
               <tbody>
                 {#each list.rows as r (r.label)}
                   <tr class:best={r.recommended}>
-                    <td class="c-opt"><span class="opt">{r.label}</span>{#if r.recommended}<span class="tag">Recommended</span>{/if}</td>
-                    <td class="c-vis"><span class="vis"><span class="track"><span class="bar" style:width={`${(r.visits / maxVisits) * 100}%`}></span></span><span class="vn">{r.visits}</span></span></td>
+                    <td class="c-opt"><span class="opt">{r.label}</span>{#if r.recommended}<span class="tag">Recommended</span>{/if}{#if showRules && r.rules}<span class="tag rules">The bot's rules</span>{/if}</td>
+                    <td class="c-vis" title={`${r.visits} of ${note.search.sims ?? r.visits} lines`}><span class="vis"><span class="track"><span class="bar" style:width={`${r.share}%`}></span></span><span class="vn">{r.share}%</span></span></td>
                     <td class="num">{r.chance === null ? '-' : `${r.chance}%`}</td>
                   </tr>
                 {/each}
               </tbody>
             </table>
             {#if list.more}<p class="quiet">and {list.more} more</p>{/if}
+            {#if showRules && overruled}<p class="quiet" data-paired-overruled>Search overrules what the bot's rules would do here.</p>{/if}
           {:else if note.source === 'forced'}
             <p class="pick" title={badge?.tip}>Nothing to weigh here{#if pick}: <b>{pick}</b>{/if}</p>
           {:else}
@@ -176,6 +183,7 @@
         {/if}
         {#if differed}<p class="differed" data-paired-differed>{differed}</p>{/if}
         <p class="quiet fine">Advice only, from what you can see. It guesses your opponent's cards from a set of decks, and you still answer.</p>
+        <label class="quiet fine setting"><input type="checkbox" checked={showRules} onchange={toggleRules} /> Mark what the bot's rules would do</label>
       {/if}
     {/if}
   </section>
@@ -227,6 +235,8 @@
   .advice tr.best .opt { color: var(--ink); font-weight: 600; }
   .advice tr.best td:first-child { box-shadow: inset 2px 0 0 var(--gilt); padding-left: var(--sp-1); }
   .tag { display: block; font-size: var(--t-11); color: var(--gilt); }
+  .tag.rules { color: var(--ink-faint); }
+  .setting { display: block; margin-top: var(--sp-1); }
   .opt { overflow-wrap: anywhere; }
   .vis { display: flex; align-items: center; gap: var(--sp-1); }
   .track { flex: 1; min-width: 0; height: 0.5rem; }

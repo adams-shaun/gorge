@@ -11,6 +11,8 @@ import { safeStorage } from './storage';
  * than one per table. Off until the player turns it on.
  */
 const KEY = 'gorge.pairedbot.v1';
+/** Whether the panel marks what the bot's rules would do. Stored only when turned off. */
+const RULES_KEY = 'gorge.pairedbot.rules.v1';
 
 export function loadPairedBotOn(storage: Storage | null = safeStorage()): boolean {
   try {
@@ -25,6 +27,23 @@ export function savePairedBotOn(on: boolean, storage: Storage | null = safeStora
     storage?.setItem(KEY, on ? 'on' : 'off');
   } catch {
     // A refused write leaves the toggle working for this page.
+  }
+}
+
+export function loadShowRules(storage: Storage | null = safeStorage()): boolean {
+  try {
+    return storage?.getItem(RULES_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function saveShowRules(show: boolean, storage: Storage | null = safeStorage()): void {
+  try {
+    if (show) storage?.removeItem(RULES_KEY);
+    else storage?.setItem(RULES_KEY, 'off');
+  } catch {
+    // A refused write leaves the setting for this page.
   }
 }
 
@@ -67,22 +86,35 @@ export interface AdviceRow {
   visits: number;
   /** The visit-weighted estimate as a percentage; null when search never visited it. */
   chance: number | null;
+  /** The percentage of the search's lines that looked at it. */
+  share: number;
   recommended: boolean;
+  /** What the bot's rules would do without searching. */
+  rules: boolean;
 }
 
 /** adviceRows gathers a search's rows by what a player would call them, most visited first. */
 export function adviceRows(d: Decision, search: ExplainSearch): AdviceRow[] {
-  const named = new Map<string, { visits: number; value: number; recommended: boolean }>();
+  const named = new Map<string, { visits: number; value: number; recommended: boolean; rules: boolean }>();
   for (const r of search.rows ?? []) {
     const label = pairedRowLabel(d, r);
-    const row = named.get(label) ?? { visits: 0, value: 0, recommended: false };
+    const row = named.get(label) ?? { visits: 0, value: 0, recommended: false, rules: false };
     row.visits += r.visits;
     row.value += r.q * r.visits;
     row.recommended ||= r.chosen === true;
+    row.rules ||= r.bot === true;
     named.set(label, row);
   }
+  const lines = search.sims || [...named.values()].reduce((sum, r) => sum + r.visits, 0) || 1;
   return [...named]
-    .map(([label, r]) => ({ label, visits: r.visits, chance: winChance({ visits: r.visits, q: r.value / Math.max(1, r.visits) }), recommended: r.recommended }))
+    .map(([label, r]) => ({
+      label,
+      visits: r.visits,
+      chance: winChance({ visits: r.visits, q: r.value / Math.max(1, r.visits) }),
+      share: Math.round((100 * r.visits) / lines),
+      recommended: r.recommended,
+      rules: r.rules,
+    }))
     .sort((a, b) => b.visits - a.visits);
 }
 

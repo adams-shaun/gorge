@@ -44,7 +44,18 @@ describe('PairedBotPanel', () => {
     expect(await best.textContent()).toContain('Recommended');
     expect(await best.textContent()).toContain('Cast Spell 2');
     expect(await best.textContent()).toContain('65%');
-    expect(await page.locator(`${panel} tbody tr`).nth(1).textContent()).toContain('45%');
+    expect(await best.textContent()).toContain('60%');
+    const second = page.locator(`${panel} tbody tr`).nth(1);
+    expect(await second.textContent()).toContain('45%');
+    expect(await second.textContent()).toContain('40%');
+
+    // What the bot's rules would do is marked, and overruled, until the player turns that off.
+    expect(await second.textContent()).toContain("The bot's rules");
+    expect(await page.locator('[data-paired-overruled]').count()).toBe(1);
+    await page.click(`${panel} .setting input`);
+    expect(await second.textContent()).not.toContain("The bot's rules");
+    expect(await page.locator('[data-paired-overruled]').count()).toBe(0);
+    await page.click(`${panel} .setting input`);
     expect(await page.locator('[data-paired-summary]').textContent()).toContain('Search looked at 100 lines');
     expect(await page.locator(`${panel}`).textContent()).toContain('from what you can see');
 

@@ -285,8 +285,10 @@ remembers the switch, and it starts off. When you start a game against a bot, th
 for that game: the server's default, another bot the server offers, or none, which takes the panel away. A
 restart keeps the choice.
 
-For each of your decisions the panel lists the options the search weighed, each with the number of lines
-that looked at it and its estimated chance of winning, and marks the one it recommends. It only advises.
+For each of your decisions the panel lists the options the search weighed, each with the share of its lines
+that looked at it and its estimated chance of winning, and marks the one it recommends. It also marks what the
+bot's own rules would do without searching, and says when search overrules them; a setting in the panel turns
+that off, and your browser remembers it. It only advises.
 Pressing a row does nothing, and you still answer. If you answer differently, a note in the panel and in
 your game log gives both estimates. The notes are your browser's alone; they aren't in a replay or a review.
 
