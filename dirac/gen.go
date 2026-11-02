@@ -127,7 +127,7 @@ type genPrep struct {
 	anyEOTEmb      bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
 	anyNTEmb       bool           // some emblem ends at its controller's next turn (kop.Emblem.UntilNextTurn; static_effectdelivered.go)
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
-	embCombatEv    uint32         // combat events (DamageDone, AttackersDeclared) some emblem trigger listens to (trig_effectuntileot.go)
+	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
 	anyWardGrant   bool           // some Continuous static grants ward {N} (kop.Static.Ward; kw_ward.go)
 	btWatch        bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
@@ -1091,7 +1091,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigLifeGained:
 					g.embCombatEv |= 1 << a.Trig.Event
 				}
 			}

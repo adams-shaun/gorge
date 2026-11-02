@@ -1065,7 +1065,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	}
 	s.pl[p].life += int16(n)
 	s.pl[p].lifeGained += int16(n)
-	if s.subs[kop.TrigLifeGained].any() {
+	if s.subs[kop.TrigLifeGained].any() || k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0 {
 		s.firePlayer(k, kop.TrigLifeGained, p, int16(n))
 	}
 }

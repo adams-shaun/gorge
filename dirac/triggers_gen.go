@@ -218,6 +218,10 @@ func (s *State) firePlayerGen(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 	if ev == kop.TrigDrawn && s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireGraveDrawn(k, who, amt) // trig_gravedrawn.go
 	}
+	if ev == kop.TrigLifeGained {
+		// an Effect-created trigger (an emblem) follows the battlefield's listeners
+		s.fireEmblemsAmt(k, ev, who, NoObj, amt, func(*kop.Ability) bool { return true })
+	}
 }
 
 // playerTrigGen queues listener l's ability a for a player event if it
@@ -309,6 +313,12 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 
 // fireEmblems queues the emblem triggers of event ev.
 func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extra func(a *kop.Ability) bool) {
+	s.fireEmblemsAmt(k, ev, who, tobj, 0, extra)
+}
+
+// fireEmblemsAmt is fireEmblems for an event that carries an amount (life
+// gained: Professor Dellian Fel's emblem reads TriggerCount$LifeAmount).
+func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			c := s.g.embC[pp][i]
@@ -324,7 +334,7 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.g.embO[pp][i]
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, 0)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, amt)
 						break
 					}
 				}
@@ -666,7 +676,8 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		add(r.ev[i].src)
 	}
 	// a gain's plus-one (Angel of Vitality) is per source, each its own event
-	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0
+	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0 ||
+		k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0
 	if !life && !dealt {
 		for pp := uint8(0); pp < 2; pp++ {
 			if r.toPl[pp] > 0 {
