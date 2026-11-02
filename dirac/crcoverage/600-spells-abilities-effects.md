@@ -148,7 +148,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 608.2i | unknown | - | - | d not reached |
 | 608.2j | unknown | - | - | d not reached |
 | 608.2k | unknown | - | - | d not reached |
-| 608.2m | unknown | - | - | d not reached |
+| 608.2m | partial | `dirac/tgt_stackability.go#State.stackTgtSelf` | `TestStdFinReprosLockstep` | a spell the resolving ability offers may target that ability; the rest of the rule is not modelled |
 | 608.2n | follows | `dirac/resolve.go#State.finishResolve` `dirac/trig_xpaid.go#State.spellHoldLeaves` | `TestFreePlaySpellingsLockstep` | graveyard / exile if flashback, or a Play's ReplaceGraveyard$ Exile (sfFreeGY; a COUNTER still honours its Destination$: ExilesLeavingStack does not include the Play rider) |
 | 608.2p | n/a | - | - | LOUD: no AbilityResolves matcher (Tom Bombadil) |
 | 608.3 | follows | `dirac/resolve.go#State.resolveTop` | - | permanent spell resolution header |
