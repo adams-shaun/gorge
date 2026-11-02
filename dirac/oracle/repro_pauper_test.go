@@ -11,6 +11,13 @@ import (
 // the game that found a difference.
 func poolReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	t.Helper()
+	poolReproPrefixLockstep(t, file, pool, cfg, 200)
+}
+
+// poolReproPrefixLockstep is poolReproLockstep stopping tail decisions past the
+// script, for a fixture whose game goes on to a difference of another cause.
+func poolReproPrefixLockstep(t *testing.T, file, pool string, cfg Config, tail int) {
+	t.Helper()
 	r, err := ReadRepro("testdata/" + file + ".repro.json")
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +47,7 @@ func poolReproLockstep(t *testing.T, file, pool string, cfg Config) {
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + 200}
+	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + tail}
 	script := &ScriptPolicy{Actions: r.Actions}
 	res := Lockstep(m, r.Seed, k, script, rc)
 	if script.Skipped != 0 {
@@ -99,4 +106,12 @@ func TestXWitnessPastTheTriggerWaitBudgetKeepsItsSourcesLockstep(t *testing.T) {
 func TestBestowLoweringResolvesTheSacrificeTriggersLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "bestow_lowering_waits_out_spawn_triggers", "pauper", Config{GorgeAutopaySurface: true})
+}
+
+// A bestowed Nyxborn Hydra whose largest-X witness would sacrifice the Eldrazi Spawn
+// that is its only creature to enchant: gorge plans the largest X that keeps its
+// sources, so the Spawn is still on the battlefield when X is announced.
+func TestBestowWitnessThatWouldEatItsEnchantTargetKeepsItLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproPrefixLockstep(t, "bestow_witness_keeps_its_enchant_target", "pauper", Config{GorgeAutopaySurface: true}, 2)
 }

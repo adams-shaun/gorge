@@ -47,7 +47,8 @@ const witnessWaits = 4
 // wait budget lets resolve before the play is offered again (kickWitness; Nyxborn Hydra's
 // X paid with three Eldrazi Spawn beside two Writhing Chrysalis).
 func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x int, excl Obj) bool {
-	targeted := tspec(k, c, spellAb(k, c), 0) != nil
+	bestowed := s.buildLive() && s.bld().e.bestowedEntry() // its one target is the enchant creature
+	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
 	if !s.anySacSource(k, p) || !targeted && !stacked {
 		return false
@@ -61,7 +62,15 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	if !pk.found {
 		return false
 	}
-	return targeted && !t.spellTargetsFeasible(k, c, p) || stacked && int(t.npend)-int(n0) > witnessWaits
+	if bestowed {
+		var buf [MaxOptions]uint8
+		if t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) == 0 {
+			return true
+		}
+	} else if targeted && !t.spellTargetsFeasible(k, c, p) {
+		return true
+	}
+	return stacked && int(t.npend)-int(n0) > witnessWaits
 }
 
 // sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness
