@@ -1151,6 +1151,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(in)
 	case "ChangeZone":
 		return lc.changeZone(ps)
+	case "Assimilate":
+		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
 		return lc.changeZoneAll(ps)
 	case "Draw":

@@ -3491,6 +3491,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+		if _, ok := fl["enterWith"]; ok {
+			ki.B = kop.Const(kop.OvEnterWith)
+		}
 		switch strings.SplitN(in.CS, "|", 2)[0] {
 		case "EOT":
 			ki.A = kop.Const(kop.DurEOT)

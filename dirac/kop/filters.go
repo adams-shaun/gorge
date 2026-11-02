@@ -220,6 +220,11 @@ const PredAdventureCard Pred = 253
 // the object's colours (layer 5, CR 613.1e).
 const OvChosenColor = 1
 
+// OvEnterWith, in an OpOverride's B field: the override belongs to the OpReturn
+// just before it and applies as the card enters, ahead of the enters triggers
+// (assimilate, CR 613-layer characteristics seen as it enters).
+const OvEnterWith = 2
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 

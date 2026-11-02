@@ -713,6 +713,7 @@ OptAll	untyped int	16
 OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
+OvEnterWith	untyped int	2
 PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1

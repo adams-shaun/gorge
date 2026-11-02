@@ -634,6 +634,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
 		}
+		if in.B.N == kop.OvEnterWith {
+			break // applied as the return entered (execReturnObj)
+		}
 		o := s.objRefObj(in.Obj)
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
 			break
@@ -1447,6 +1450,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	var sl Slot
 	switch {
+	case s.enterWithOverride(k, in):
+		sl = s.enterAssimilated(k, o, ctrl, from)
 	case s.g.retAt != 0:
 		sl = s.enterNF(k, o, ctrl, fl&kop.MvTapped != 0, from, 0)
 		if from == kop.ZoneGraveyard {

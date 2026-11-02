@@ -1,0 +1,12 @@
+# the assimilate pool: a graveyard target, a type the assimilated creature loses, an
+# artifact-enters trigger that sees it enter, and burn to fill a graveyard, for the
+# oracle's constructed lockstep (dirac/oracle/assimilate_test.go)
+Borg Queen, Perfection Manifest
+Forest
+Goblin Piker
+Grizzly Bears
+Island
+Lightning Bolt
+Mountain
+Reckless Fireweaver
+Swamp
