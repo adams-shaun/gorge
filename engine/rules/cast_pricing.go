@@ -682,14 +682,7 @@ func (e *Engine) objectReadsTriggeredCastSpendOffBattlefield(o *state.Object) bo
 	if f == nil || !e.faceScanHas(f, faceScanCastSpendReader) {
 		return false
 	}
-	for _, t := range f.Triggers {
-		for z := range strings.SplitSeq(t.ParamStr(cards.PKTriggerZones), ",") {
-			if z = strings.TrimSpace(z); z != "" && !strings.EqualFold(z, "Battlefield") {
-				return true
-			}
-		}
-	}
-	return false
+	return e.faceTriggerZones(f)&^(1<<trigZoneSlot(state.ZBattlefield)) != 0
 }
 
 // objectReadsTriggeredCastSpend reports whether any face the ordinary trigger
