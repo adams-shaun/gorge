@@ -2,6 +2,7 @@ package effects
 
 import (
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -113,6 +114,12 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// that skips the library neither offers its cards nor owes the
 		// "If you search your library this way, shuffle" tail.
 		zones := originAlternativeZones(h, c, sa, cz, owner, targetIndex, zones)
+		// RememberSearcher$ names the player who searched, whatever the search
+		// finds (CR 701.23b): "for each opponent who searches" and "when you
+		// search your library this way" count a search that found nothing.
+		if cz.RememberSearcher && zoneIn(zones, state.ZLibrary) {
+			rememberPlayerBothHalves(h, c, owner)
+		}
 		lib, lookWindow := searchLook(h, c, cz, owner, zones)
 
 		rawSpec := cz.ChangeType
@@ -174,6 +181,11 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to sta
 		// non-budget search emits byte-identically. The CR 701.23b/701.23d Min
 		// semantics below are unchanged; only the affordable pool they are read
 		// over is narrowed.
+		if cz.SameNameAsEach != "" {
+			c.Search.Target = targetIndex
+			applyLibrarySearch(h, c, sa, cz, owner, to, searchSameNames(h, c, sa, cz, owner, targetIndex, eligible), zones)
+			continue
+		}
 		budget, hasBudget := numResolvedText(h, c, cz.WithTotalCMC, 0)
 		if budget < 0 {
 			budget = 0
@@ -872,6 +884,37 @@ func changeZoneFetchSelector(h Host, c *Ctx, cz *ChangeZoneParams) bool {
 
 // searchPlayers resolves whose zones are searched. DefinedPlayer$ takes
 // precedence over Defined$; targeted players come next, then the controller.
+// searchSameNames is SameNameAsEach$: one search with one pick per card the
+// param names, of a card sharing that card's name ("for each creature you
+// control, search for a card with the same name"). Each pick may fail to find
+// (CR 701.23b), and a host with no decision channel finds nothing.
+func searchSameNames(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, targetIndex int, eligible []state.ObjID) []state.ObjID {
+	g := h.Game()
+	chooser := searchChooser(h, c, cz, owner)
+	var chosen []state.ObjID
+	for _, named := range DefinedSpec(h, c, cz.SameNameAsEach) {
+		if named.IsPlayer {
+			continue
+		}
+		name := objName(g, named.Obj)
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 0, Max: 1, Source: c.Source,
+			ResumeKind: "search", ResumeSA: sa, ResumeTarget: targetIndex,
+			Prompt: "Search a library: choose up to 1 card named " + name}
+		for _, id := range eligible {
+			if objName(g, id) == name && !slices.Contains(chosen, id) {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "search", Label: name, Obj: id, Player: owner})
+			}
+		}
+		if len(d.Options) == 0 {
+			continue
+		}
+		if ans, ok := AskTape(h, d); ok {
+			chosen = append(chosen, tapeAnswerObjs(ans)...)
+		}
+	}
+	return chosen
+}
+
 func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return searchPlayersFor(h, c, fetchSelectorsParam(sa))
 }
@@ -1360,13 +1403,8 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			moved = append(moved, id)
 			// settleChangeZoneMoveAs already appended the object to the
 			// resolution's Remembered for RememberChanged$; only the persistent
-			// event-backed half is left here. RememberSearched$ is not read
-			// there, so its ctx append is made here too.
+			// event-backed half is left here.
 			if cz.RememberChanged {
-				eventRemember(h, c, id)
-			}
-			if cz.RememberSearched {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -1378,7 +1416,10 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 		ev := moveZoneEvent(c, id, state.ZLibrary, to)
 		ev.Player = owner
 		applyMoveFaceDown(h, c, &cz.Riders.FaceDownRiders, &ev, to)
-		seenFaceDownExile(&ev, c.Controller, c.Source)
+		// NoLooking$ moves a card nobody searched for, so nobody saw it.
+		if !cz.NoLooking {
+			seenFaceDownExile(&ev, c.Controller, c.Source)
+		}
 		markChangeZoneAttach(h, c, sa, cz, &ev)
 		withKind := ""
 		var withAmt int32
@@ -1425,16 +1466,6 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			changeZoneAttachedTo(h, c, sa, cz, id)
 		}
 		if cz.RememberChanged {
-			c.Remembered = append(c.Remembered, state.Target{Obj: id})
-			eventRemember(h, c, id)
-		}
-		if cz.RememberSearched {
-			// RememberSearched$ True (Tempt with Discovery's tempting offer):
-			// the cards the search found join the resolution's Remembered --
-			// the same Ctx set RememberChanged$ feeds -- so the follow-up sub
-			// ("for each opponent who searched, search again") counts them
-			// through Count$RememberedSize and repeats the search that many
-			// times.
 			c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			eventRemember(h, c, id)
 		}

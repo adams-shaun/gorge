@@ -170,7 +170,8 @@ type ChangeZoneParams struct {
 	RememberLKI            bool
 	RememberChanged        bool
 	RememberTargets        bool
-	RememberSearched       bool
+	RememberSearcher       bool
+	SameNameAsEach         string
 	ForgetOtherTargets     bool
 	Tapped                 bool
 	AtRandom               bool
@@ -376,7 +377,7 @@ var changeZoneKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberLKI",
 	"RememberObjects",
-	"RememberSearched",
+	"RememberSearcher",
 	"RememberTargets",
 	"Reorder",
 	"ReplaceColor",
@@ -389,6 +390,7 @@ var changeZoneKnownKeys = [...]string{
 	"ReturnValid",
 	"Reveal",
 	"SVarCompare",
+	"SameNameAsEach",
 	"SelectPrompt",
 	"SetChosenMode",
 	"SetColor",
@@ -694,7 +696,8 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.RememberLKI = isTrue(sa.ParamStr(cards.PKRememberLKI))
 	p.RememberChanged = isTrue(sa.ParamStr(cards.PKRememberChanged))
 	p.RememberTargets = isTrue(sa.ParamStr(cards.PKRememberTargets))
-	p.RememberSearched = isTrue(sa.ParamStr(cards.PKRememberSearched))
+	p.RememberSearcher = isTrue(sa.ParamStr(cards.PKRememberSearcher))
+	p.SameNameAsEach = strings.TrimSpace(sa.ParamStr(cards.PKSameNameAsEach))
 	p.ForgetOtherTargets = isTrue(sa.ParamStr(cards.PKForgetOtherTargets))
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
 	p.AtRandom = isTrue(sa.ParamStr(cards.PKAtRandom))

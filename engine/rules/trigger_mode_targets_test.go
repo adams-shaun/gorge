@@ -181,7 +181,7 @@ func TestModalTriggerTargetedModesCensus(t *testing.T) {
 	if !ferocification {
 		t.Fatal("Ferocification missing from the census")
 	}
-	want := map[string]int{"Charm": 164}
+	want := map[string]int{"Charm": 167}
 	keys := make([]string, 0, len(got))
 	for k := range got {
 		keys = append(keys, k)

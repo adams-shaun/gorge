@@ -705,7 +705,7 @@ const (
 	PKRememberChain
 	PKRememberDrawn
 	PKRememberOriginalTokens
-	PKRememberSearched
+	PKRememberSearcher
 	PKRememberTokens
 	PKRememberVotedObjects
 	PKRenown
@@ -854,6 +854,7 @@ const (
 	// ordinals stay stable.
 	PKBoon
 	PKBoonAmount
+	PKSameNameAsEach
 	paramKeyCount
 )
 
@@ -1578,7 +1579,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberChain:                    "RememberChain",
 	PKRememberDrawn:                    "RememberDrawn",
 	PKRememberOriginalTokens:           "RememberOriginalTokens",
-	PKRememberSearched:                 "RememberSearched",
+	PKRememberSearcher:                 "RememberSearcher",
 	PKRememberTokens:                   "RememberTokens",
 	PKRememberVotedObjects:             "RememberVotedObjects",
 	PKRenown:                           "Renown",
@@ -1658,6 +1659,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidTgtsDesc:                    "ValidTgtsDesc",
 	PKReduceColor:                      "ReduceColor",
 	PKNoPrevention:                     "NoPrevention",
+	PKSameNameAsEach:                   "SameNameAsEach",
 }
 
 // String is the key's Forge text.

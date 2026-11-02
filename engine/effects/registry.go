@@ -1125,7 +1125,7 @@ var rememberObjectMask = cards.ParamMaskOf(
 	cards.PKRememberMoved, cards.PKRememberNewCard, cards.PKRememberObjects, cards.PKRememberOriginalTokens,
 	cards.PKRememberPeeked, cards.PKRememberPlayed, cards.PKRememberPumped, cards.PKRememberPut,
 	cards.PKRememberRemovedCards, cards.PKRememberRemovedFromCombat, cards.PKRememberRevealed, cards.PKRememberSacrificed,
-	cards.PKRememberSearched, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
+	cards.PKRememberSearcher, cards.PKRememberTapped, cards.PKRememberTargets, cards.PKRememberTokens,
 	cards.PKRememberUntapped, cards.PKRememberVotedObjects,
 )
 

@@ -305,9 +305,9 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// the source-anchored negation is evaluable here; unbound it fails closed
 	// (Crown of Doom's real offer binds one, TestCrownOfDoomTargetsANonOwner).
 	wantOffered := []string{"Any", "Any.!EnchantedBy", "Any.NotDefinedParentTarget,Player", "Opponent", "Opponent.wasDealtDamageThisGameBy Self", "Player",
-		"Player.!CardOwner", "Player.!EnchantedBy", "Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other", "You"}
+		"Player.!CardOwner", "Player.!EnchantedBy", "Player.!TriggeredActivator", "Player.!TriggeredCardController", "Player.Opponent", "Player.Other"}
 	wantFailClosed := []string{
-		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander",
+		"Any.!Dinosaur", "Any.!Dragon", "Any.!IsCommander", "Any.wasDealtDamageThisTurn",
 		"Player.LostLifeThisTurn",
 		"Player.Opponent+Active",
 		"Player.OpponentToActive+hasFewerCreaturesInYardThanActive",

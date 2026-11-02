@@ -65,7 +65,8 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # 91402ac51 = 76fd7691a + 53ab12ae9 (wires unreachable SVars: Your Mistake Is My
 # Triumph, Disciple of Perdition, Last Rites) + 91402ac51 (Mandatory$ True on 48
 # ChooseCard lines of 44 cards whose Oracle says "choose"; Card-Forge/forge#12481/#12482).
-FORGE_REF  ?= 91402ac511046c0b7ed0bb691a8a446ca7dfc873
+# 07d4f918d = Card-Forge master 2026-11-02, which holds those fixes and scripts Star Trek (TRK, TRC).
+FORGE_REF  ?= 07d4f918dadea14522c40a7a276ab46fff93b38a
 
 .PHONY: help
 help:

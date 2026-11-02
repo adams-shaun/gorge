@@ -15,7 +15,7 @@ import (
 var creatureSubtypeWords = func() map[string]bool {
 	out := make(map[string]bool)
 	for word := range strings.FieldsSeq(`
-Advisor Aetherborn Alien Ally Andorian Angel Antelope Ape Archer Archon Armadillo
+Advisor Aenar Aetherborn Alien Ally Andorian Android Angel Antelope Ape Archer Archon Armadillo
 Armored Army Artificer Assassin Assembly-Worker Astartes Atog Attendee Aurochs Avatar Azra
 B.O.B. Badger Bahamut Balloon Barbarian Bard Basilisk Bat Bear Beast Beaver
 Beeble Beholder Berserker Bird Bison Blinkmoth Boar Borg Brainiac Bringer Brushwagg
@@ -33,7 +33,7 @@ Hydra Hyena Illusion Imp Incarnation Inhuman Inkling Inquisitor Insect Jackal
 Jellyfish Judge Juggernaut Kangaroo Kavu Kelpien Killbot Kirin Kithkin Klingon Knight
 Kobold Kor Kraken Kree Llama Lamia Lammasu Lanthanite Leech Lemur Leviathan Lhurgoyf
 Licid Lizard Lobster Lord Mammoth Manticore Masticore Mercenary Merfolk
-Metathran Minion Minotaur Mite Mole Monger Mongoose Monk Monkey Moogle Moonfolk
+Metathran Mindless-One Minion Minotaur Mite Mole Monger Mongoose Monk Monkey Moogle Moonfolk
 Mount Mouse Mutant Myr Mystic Nautilus Necron Nephilim Nightmare Nightstalker
 Ninja Noble Noggle Nomad Nymph Octopus Officer Ogre Ooze Orb Orc Orion Orgg Otter
 Ouphe Ox Oyster Pangolin Peasant Pegasus Pentavite Performer Pest Phelddagrif
@@ -45,7 +45,7 @@ Shapeshifter Shark Sheep Shi'ar Siren Skeleton Skrull Skunk Slith Sliver Sloth
 Slug Snail Snake Soldier Soltari Sorcerer Specter Spellshaper Sphinx Spider Spike
 Spawn Spirit Splinter Sponge Spy Squid Squirrel Stained Starfish Surrakar Survivor
 Symbiote Synth Talosian Teddy Tellarite Tentacle Tetravite Thalakos Tholian Thopter
-Thrull Tiefling Time Toy Treefolk Trilobite Triskelavite Troll Tosk Turtle Tyranid
+Thrull Tiefling Time Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tosk Turtle Tyranid
 Unicorn Utrom Vampire Varmint Vedalken Villain Volver Vorta Vulcan Wall Walrus
 Warlock Warrior Weasel Weird Werewolf Whale Wizard Wolf Wolverine Wombat Worm
 Wraith Wurm Xindi Yeti Zombie Zubera

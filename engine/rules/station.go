@@ -106,7 +106,7 @@ func (e *Engine) askStation(p state.PlayerID, opt decision.Option) {
 			name = co.Face().Name
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "station",
-			Label: fmt.Sprintf("Tap %s (power %d) to station", name, e.tapPowerValue(id, stationSAKind)),
+			Label: fmt.Sprintf("Tap %s (power %d) to station", name, e.tapPowerValueFor(id, stationSAKind, opt.Obj)),
 			Obj:   id, Player: p})
 	}
 	e.choosing = chooseStation
@@ -186,7 +186,7 @@ func (e *Engine) stationAmount(o *state.Object) (int32, bool) {
 		if e.G.Obj(rem.Obj) == nil {
 			return 0, true
 		}
-		n := e.tapPowerValue(rem.Obj, stationSAKind)
+		n := e.tapPowerValueFor(rem.Obj, stationSAKind, o.Source)
 		if n < 0 {
 			n = 0
 		}

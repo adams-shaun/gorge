@@ -49,7 +49,6 @@ func TestMoveZoneEventStampsStaticOnlyExiledWithSource(t *testing.T) {
 // ratchet: the list only shrinks. A new entry means a card whose "exiled
 // with" association the engine silently drops.
 var exiledWithSourceUncovered = []string{
-	"Azor's Gateway (T)",
 	"Cemetery Protector (T)",
 	"Chrome Mox (T)",
 	"Circle of Confinement (T)",

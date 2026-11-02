@@ -973,10 +973,10 @@ func quietHandKeywordAction(o *state.Object, id state.ObjID, e *Engine, p state.
 	// layer-6 AddKeyword$ Foretell grant reaches a plain hand card and the
 	// walk offers the {2} action, so a printed-only proof would call the
 	// window quiet. The Foretell turn gate mirrors the walk's own
-	// (e.G.Active == p || playerForetellsAnyTurn), so a grant that only widens
+	// (e.G.Active == p || foretellsAnyTurn), so a grant that only widens
 	// the timing (Cosmos Charger) still blocks.
 	if e.mayHaveDerivedKeywordH(id, kwhForetell) &&
-		(e.G.Active == p || e.playerForetellsAnyTurn(p)) {
+		(e.G.Active == p || e.foretellsAnyTurn(p, id)) {
 		return true
 	}
 	if e.mayHaveDerivedKeywordH(id, kwhSuspend) && e.G.Active == p {

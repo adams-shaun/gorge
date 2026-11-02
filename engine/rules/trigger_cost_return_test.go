@@ -7,11 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// celebrantWindow casts Stockpiling Celebrant over the permanents built from
-// sources and lets its enters trigger reach the cost's pay/decline window.
+// celebrantSrc is a creature whose enters trigger costs returning another
+// nonland permanent.
+const celebrantSrc = "Name:Return Celebrant\nManaCost:W\nTypes:Creature Dwarf\nPT:1/1\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigScry | TriggerDescription$ x\n" +
+	"SVar:TrigScry:AB$ Scry | ScryNum$ 2 | Cost$ Return<1/Permanent.nonLand+Other/another nonland permanent>\nOracle:x\n"
+
+// celebrantWindow casts celebrantSrc over the permanents built from sources and
+// lets its enters trigger reach the cost's pay/decline window.
 func celebrantWindow(t *testing.T, sources ...string) (*Engine, []state.ObjID) {
 	t.Helper()
-	e := handEngine(t, corpusAlternativeCard(t, "Stockpiling Celebrant"))
+	e := handEngine(t, card(t, celebrantSrc))
 	var ids []state.ObjID
 	for _, src := range sources {
 		ids = append(ids, onBoard(t, e, 0, src))

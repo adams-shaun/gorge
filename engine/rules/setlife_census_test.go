@@ -63,7 +63,7 @@ func TestSetLifeCorpusCensus(t *testing.T) {
 		"sorin_markov", "stunning_reversal", "sway_of_the_stars",
 		"the_doctors_tomb", "the_endstone", "the_golden_throne",
 		"torgaar_famine_incarnate", "touch_of_the_eternal",
-		"urza_academy_headmaster", "vraska_relic_seeker",
+		"urza_academy_headmaster", "the_darkhold", "vraska_relic_seeker",
 		"welcome_the_darkness", "worldfire",
 		"you_live_only_because_i_will_it",
 	}

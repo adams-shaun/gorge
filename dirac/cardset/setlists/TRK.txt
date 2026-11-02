@@ -1,15 +1,24 @@
+70,000 Light-Years from Home
 A Good Day to Die
+All Good Things . . .
 Amok Time
+Andoria
 Assault Drone
 Automated Warfare System
 Bat'leth
 Battle-Scarred Survivalist
 Beckett Mariner, Impetuous Ensign
 Blood Crypt
+Borg Cube
+Brad Boimler, Eager Ensign
 Breeding Pool
 Cantankerous Captain
+Captain Benjamin Sisko
 Captain James T. Kirk
+Captain Jean-Luc Picard
 Captain Kathryn Janeway
+Captain Michael Burnham
+Captain Pike, Fullness of Time
 Captain's Tutelage
 Cha'DIch Investigator
 Cloistered Telepath
@@ -18,54 +27,84 @@ Collective Drone
 Command Decision
 Common Goal
 Consider the Prime Directive
+Constable Odo
 Crystalline Entity
 Cybernetic Specialist
+D'Vana Tendi, Optimistic Ensign
 DOT-7 Repair Squad
+Dal R'El, Augment Orphan
 Dathon and Picard at El-Adrel
+Dominion Saboteur
 Dominion Supervisor
 Dr. Beverly Crusher
 Eject the Warp Core
 Emergency Medical Hologram
+Engineered Explosives
 Federation Field Medic
+Federation Outpost
 Federation Probe
+Ferenginar
+First Contact
 Forest
 Free Borg Revolutionaries
 General Chang, Cold Warrior
 Godless Shrine
+Gray and Adira, Forever Joined
 Guidance Failure
 Hallowed Fountain
 He's Dead, Jim
+Hemmer, Fixing What Is Broken
 Highly Illogical
 Hive Mind Coprocessor
 Horta
+Hoshi Sato, Exolinguist
 Humpback Whales
-I'm a Doctor, Not a ...
+I'm a Doctor, Not a . . .
 In the Pale Moonlight
 Island
 Khaaaaaaaaaaaannn!
+Khan, Vengeful Heart
+Kirk, Commanding Officer
+Kobayashi Maru Scenario
 La'An Noonien-Singh, Security
+Locutus, the One Who Speaks
+Lore, Positronic Provocateur
+Lt. Cmdr. Geordi La Forge
 Malfunctioning Holodeck
+Marooned
 Moopsy
 Mountain
 Mugato
 Munitions Enthusiast
+Open Communications
 Organic Avulsion Unit
 Overgrown Tomb
+Peace in Our Time
 Perils of the Past
 Picard, Leading by Example
 Plains
 Planetary Patrol
 Plasma Cascade
+Q, Stacking the Deck
+Quark's Bar
 Reckless Impulse
 Relentless Drednok
 Resistance Is Futile
 Rogue Artificial Intelligence
+Romulan Bird-of-Prey
+Romulus
+Saavik, Stoic Student
 Sacred Foundry
+Salt Vampire
 Saurian Explorer
-Set Phasers to...
+Scotty, Miracle Worker
+Set Phasers to . . .
+Seven of Nine
+Seven of Nine, Unassimilated
 Shields Up!
 Shuttle Ace
 Silicate Surveyor
+Starfleet Academy
 Steam Vents
 Stomping Ground
 Support Mission
@@ -73,9 +112,17 @@ Swamp
 Syndicate Liquidators
 Tactical Officer
 Temple Garden
+The Caretaker
 The City on the Edge of Forever
+The Duras Sisters
+The Wrath of Khan
+Tricorder
+Troubling Tribbles
+U.S.S. Enterprise-A, Free Spirit
 U.S.S. Enterprise-D, Galaxy-Class
 V'Ger, the Intruder
+Vash, Freelance Archaeologist
+Vulcan
 Watery Grave
 Xenobotanist
 Xindi Surveyors

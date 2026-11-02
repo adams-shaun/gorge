@@ -260,16 +260,15 @@ func (w *legalWalk) handWalk() {
 		// "During your turn" is the timing gate (deliberately NO
 		// instant/sorcery-speed check, unlike Suspend -- CR 702.126a's action
 		// text names only the turn, and a special action needs only priority,
-		// never the ability to cast an instant), widened by a granted
-		// `AddKeyword$ Foretell on any player's turn` player keyword (Cosmos
-		// Charger). The block sits BEFORE the front-face timing gate: the
+		// never the ability to cast an instant), widened by a static
+		// `Mode$ ForetellAnyTurn` (Cosmos Charger). The block sits BEFORE the front-face timing gate: the
 		// action's timing is its own turn window, never the card's cast
 		// timing -- a creature with foretell is offered the action on any
 		// step of its controller's turn (with a stack, in an upkeep), and
 		// under the any-turn grant on any step of anyone's turn.
 		// castRestricted/castSuppressed above still bound the offer.
 		if _, ok := e.derivedKeywordParamH(id, kwhForetell); ok &&
-			(e.G.Active == p || e.playerForetellsAnyTurn(p)) &&
+			(e.G.Active == p || e.foretellsAnyTurn(p, id)) &&
 			w.offerCastable(p, id, Cost{Generic: 2}, foretellScope(), false) {
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
 		}

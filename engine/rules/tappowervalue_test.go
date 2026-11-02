@@ -15,7 +15,7 @@ package rules
 // counters instead of 4
 // (TestSetAudit_eoe_TapestryWarden_StationUsesToughness).
 //
-// The census at the bottom names all 10 corpus carriers, so a corpus-pin
+// The census at the bottom names all 11 corpus carriers, so a corpus-pin
 // bump that adds or drops one fails by name instead of silently drifting.
 
 import (
@@ -166,10 +166,10 @@ type tapPowerCarrier struct {
 // tapPowerValueCarriers is every corpus card that carries an
 // `S:Mode$ TapPowerValue` line, measured on the Makefile's FORGE_REF pin:
 //
-//	/usr/bin/grep -rl 'TapPowerValue' .cards/cardsfolder | wc -l  ==  10
+//	/usr/bin/grep -rl 'TapPowerValue' .cards/cardsfolder | wc -l  ==  11
 //
 // Nine Pilot-family cards replace only Crew/Saddle readings; Tapestry Warden
-// and Stoic Star-Captain also scope the Station action.
+// Stoic Star-Captain and Sulu also scope the Station action.
 var tapPowerValueCarriers = []tapPowerCarrier{
 	{"Cloudspire Captain", false, "2"},
 	{"Deathless Pilot", false, "2"},
@@ -180,6 +180,7 @@ var tapPowerValueCarriers = []tapPowerCarrier{
 	{"Hotshot Mechanic", false, "2"},
 	{"Interface Ace", false, "Toughness"},
 	{"Stoic Star-Captain", true, "2"},
+	{"Sulu, Heroic Helmsman", true, "X"},
 	{"Tapestry Warden", true, "Toughness"},
 }
 
@@ -254,5 +255,25 @@ func TestTapPowerValueReadsAnSVarOverTheTappedCreature(t *testing.T) {
 	putCreature(t, e, 0, boost)
 	if got := e.tapPowerValue(id, "Station"); got != 8 {
 		t.Fatalf("with a second static it stations for %d, want 2+4+2", got)
+	}
+}
+
+// A ValidSA$ qualifier names the action's own permanent: Sulu stations a
+// Spacecraft as though his power were tripled, and a Planet at his power.
+func TestTapPowerValueScopeQualifierReadsTheStationedPermanent(t *testing.T) {
+	t.Parallel()
+	helm := "Name:Ship Helm\nManaCost:1 W\nTypes:Creature Human\nPT:2/2\n" +
+		"S:Mode$ TapPowerValue | ValidSA$ Activated.Station+Spacecraft | ValidCard$ Card.Self | Value$ X | Description$ x\n" +
+		"SVar:X:Count$CardPower/Twice\nOracle:x\n"
+	ship := "Name:Test Ship\nManaCost:1\nTypes:Artifact Spacecraft\nPT:4/4\nK:Station:4\nOracle:x\n"
+	planet := "Name:Test Planet\nTypes:Land Planet\nK:Station:4\nOracle:x\n"
+	e, _, _ := newFixtureDeck(t, 962, helm, ship, planet)
+	id := putCreature(t, e, 0, helm)
+	shipID, planetID := onBoard(t, e, 0, ship), onBoard(t, e, 0, planet)
+	if got := e.tapPowerValueFor(id, "Station", shipID); got != 6 {
+		t.Fatalf("toward a Spacecraft he stations for %d, want 6", got)
+	}
+	if got := e.tapPowerValueFor(id, "Station", planetID); got != 2 {
+		t.Fatalf("toward a Planet he stations for %d, want his power 2", got)
 	}
 }

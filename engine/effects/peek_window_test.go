@@ -119,6 +119,7 @@ var peekFilteredCarriers = []string{
 	"Archghoul of Thraben",
 	"Bucolic Ranch",
 	"Cabaretti Ascendancy",
+	"Commander Spock",
 	"Deceiver of Form",
 	"Descendants' Path",
 	"Domri Rade",

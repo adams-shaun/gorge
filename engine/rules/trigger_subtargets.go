@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -75,7 +73,9 @@ func (t *trigSubAsk) clone() *trigSubAsk {
 // pins that reason so a future corpus chain that reaches it fails the build
 // until this continuation exists.
 func (e *Engine) triggerChainPreAsks(root *cards.SA) []*cards.SA {
-	if root == nil || root.Sub == nil || strings.TrimSpace(root.ParamStr(cards.PKChoices)) != "" {
+	// A Charm root is out whole: CR 603.3c's mode election owns its target ask,
+	// and ModeTargets carries the per-mode groups.
+	if root == nil || root.Sub == nil || root.CompiledAPI() == cards.APICharm {
 		return nil
 	}
 	var subs []*cards.SA
