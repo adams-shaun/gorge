@@ -12,12 +12,7 @@ import (
 // diverged on: both engines now agree there, and for 200 decisions after.
 func TestStdMkmReprosLockstep(t *testing.T) {
 	t.Parallel()
-	reg := synthReg(t)
-	set := cardsettest.Synth(t, "std-mkm")
-	for _, c := range []struct {
-		name    string
-		autopay bool
-	}{
+	stdReprosLockstep(t, "std-mkm", []stdRepro{
 		{"deathtouch_wither_hit", true},                // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
 		{"dealt_once_each_damage", true},               // EachDamage lands on one referent twice: one trigger with the batch's total
 		{"wither_from_departed_source", true},          // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
@@ -34,7 +29,35 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"ward_window_first_only_filter", false},       // ... and a failed ward payment still spends it
 		{"granted_colours_before_printed", false},      // Leyline of the Guildpact: a {C} land makes a granted colour first
 		{"face_down_granted_trigger", false},           // Curious Inquiry on a face-down creature
-	} {
+	})
+}
+
+// std-fdn's, on the same terms.
+func TestStdFdnReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-fdn", []stdRepro{
+		{"surveil_own_replacement", true},     // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
+		{"color_gate_made_black", true},       // Knight of Grace counts what Eaten by Piranhas made black
+		{"color_gate_recoloured", true},       // ... and not what Witness Protection made green and white
+		{"exile_instead_planeswalker", true},  // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
+		{"lifelink_plus_per_source", true},    // two lifelink sources are two gains, each with Angel of Vitality's plus one
+		{"lost_ability_no_shuffle", true},     // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
+		{"damage_map_per_recipient", true},    // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
+		{"copies_enter_together", true},       // CR 603.6a: each of Rite of Replication's five sees the other four
+		{"flashback_restricted_source", true}, // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+	})
+}
+
+type stdRepro struct {
+	name    string
+	autopay bool
+}
+
+func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
+	t.Helper()
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, pool)
+	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
 			if err != nil {
