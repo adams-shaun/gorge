@@ -200,6 +200,8 @@ jobs:
         run: |
           test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
           grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Build dirac's card tables
+        run: make dirac-tables
       - name: Run the commit tier
         run: scripts/wire-matrix.sh commit
       - name: Run the nightly chunks, fuzz and parity
