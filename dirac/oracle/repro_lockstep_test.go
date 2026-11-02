@@ -1,10 +1,12 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // synthReproLockstep replays a recorded game on a synthetic pool's table, past its
@@ -39,7 +41,12 @@ func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	}
 	defer CloseSide(k)
 	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + 200}
-	if res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc); res.Div != nil {
+	script := &ScriptPolicy{Actions: r.Actions}
+	res := Lockstep(m, r.Seed, k, script, rc)
+	if script.Skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", script.Skipped)
+	}
+	if res.Div != nil {
 		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
 	}
 }
@@ -83,4 +90,45 @@ func TestOverrideGrantedAbilityFromThePoolLockstep(t *testing.T) {
 func TestPrintedAbilityBesideAGrantLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "printed_beside_equipment_grant", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// On the autopay surface a Gift spell is an ordinary plain cast: the promise costs no
+// mana and is asked after the planner's witness is tapped.
+func TestGiftCastIsPlannedOnAutopayLockstep(t *testing.T) {
+	t.Parallel()
+	cfg := Config{GorgeAutopaySurface: true}
+	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
+	set := cardsettest.Synth(t, "std-blb")
+	pool, files, err := SynthPool(c.Reg, set, 1, SynthDecks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.AddDecks(files)
+	cast := 0
+	for _, i := range []int{37, 243, 253} {
+		p := PairingAt(pool, i, 1)
+		m, tbl, err := SetMatchup(set, c, p.A, p.B, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k, err := SetSide(set, tbl, cfg)(m, p.Seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), RunConfig{Config: cfg, MaxDecisions: 20000, MaxTurns: 100})
+		CloseSide(k)
+		if res.Div != nil {
+			t.Fatalf("pair %d diverged at %d: %s %s", i, res.Div.At, res.Div.What, res.Div.Field)
+		}
+		for _, a := range res.Actions {
+			if s := a.String(); strings.HasPrefix(s, "cast(") {
+				if n := firstObjectCard(m, s); n == "Longstalk Brawl" || n == "Scrapshooter" {
+					cast++
+				}
+			}
+		}
+	}
+	if cast == 0 {
+		t.Error("no pair cast a Gift spell")
+	}
 }

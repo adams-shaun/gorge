@@ -674,7 +674,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			return s.affordsFor(k, p, &cost)
 		}
 	}
-	if cd.Gift || cd.BeholdExile {
+	if cd.BeholdExile {
 		return s.plannerPaysCast(k, p, c, o) // a shape lowered only on the composed plan's witness
 	}
 	return true

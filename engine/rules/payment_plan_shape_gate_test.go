@@ -24,7 +24,6 @@ func TestPaymentPlanShapeGate(t *testing.T) {
 		{"delve", "K:Delve\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
 		{"improvise", "K:Improvise\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
 		{"convoke", "K:Convoke\nA:SP$ Draw | NumCards$ 1", "shape:contribution"},
-		{"gift", "K:Gift:1\nA:SP$ Draw | NumCards$ 1", "shape:gift"},
 		{"spree", "K:Spree\nA:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ 1", "shape:modal_cost"},
 		{"tiered", "K:Tiered\nA:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ 1", "shape:modal_cost"},
 		{"modeCost", "A:SP$ Charm | Choices$ DBOne | MinCharmNum$ 1\nSVar:DBOne:DB$ Draw | NumCards$ 1 | ModeCost$ 1", "shape:modal_cost"},
@@ -323,5 +322,18 @@ func TestPaymentPlanShapeGateWaterbend(t *testing.T) {
 	got := e.PlanCastPayment(0, paymentCast(spell))
 	if got.Plan != nil || got.Reason != "unsupported" || got.Detail != "shape:contribution" {
 		t.Fatalf("plan outcome = %+v, want unsupported detail shape:contribution", got)
+	}
+}
+
+// A Gift spell's promise is a free ask after the plan is tapped, so the plain cast is
+// planned: a Swamp witnesses the {B}.
+func TestPlanCastPaymentPricesAGiftSpell(t *testing.T) {
+	t.Parallel()
+	src := "Name:Shape Gate Gift\nManaCost:B\nTypes:Instant\nK:Gift\n" +
+		"SVar:GiftAbility:DB$ Draw | GiftDescription$ a card | Defined$ Promised\nA:SP$ Draw | NumCards$ 1\nOracle:test\n"
+	e, _, spell := newFixtureDeck(t, 9600, src)
+	onBoard(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:test\n")
+	if got := e.PlanCastPayment(0, paymentCast(spell)); got.Plan == nil || got.Reason != "" {
+		t.Fatalf("plan outcome = %+v, want a witness", got)
 	}
 }

@@ -517,8 +517,7 @@ func (s *State) featManaActivatable(k *prep, sl Slot) bool {
 // FeatPlannedCast reports whether gorge's payment planner offers p's cast
 // of o in kernel cast mode (0 plain, bit 1 flashback) as a payment action.
 // It does not for a spell with an {X} cost, an either-or additional cost
-// (Eaten Alive), a target-conditional cost reduction (Luminous Rebuke) or a
-// Gift promise (Starforged Sword; payment_plan.go's "shape:gift"), nor when
+// (Eaten Alive) or a target-conditional cost reduction (Luminous Rebuke), nor when
 // the cast is payable only with a mana ability an effect grants
 // (Imprisoned in the Moon's {T}: Add {C}): gorge's source census holds
 // printed and intrinsic abilities only (rules/pay PaymentAbility: "grants,
@@ -626,9 +625,6 @@ func planNeverPrices(k *prep, c CardID) bool {
 		// planCastPaymentChecked: FaceIdx != cast.Face is "unsupported"):
 		// a Room back in the hand on door 1 is lowered or pool-paid
 		return true
-	}
-	if cd.Gift {
-		return true // K:Gift (CR 702.174a): "shape:gift", before pricing
 	}
 	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !cd.Cost.Phyrexian() || cd.SpendRead || cd.SpentSelf {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")

@@ -5,7 +5,6 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
-	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 func giftPlanScen(t *testing.T, cfg Config, lands int) (*scen, Obj) {
@@ -27,13 +26,13 @@ func giftPlanScen(t *testing.T, cfg Config, lands int) (*scen, Obj) {
 	return sc, sc.hand(id["Starforged Sword"], 0)
 }
 
-func TestGiftSpellUnplanned(t *testing.T) {
+func TestGiftSpellPlanned(t *testing.T) {
 	sc, sword := giftPlanScen(t, Config{GorgeAutopaySurface: true, NoElide: true}, 4)
-	if sc.s.FeatPlannedCast(0, sword, 0) {
-		t.Fatalf("FeatPlannedCast(Starforged Sword) = true; gorge's planner declines a Gift spell")
+	if !sc.s.FeatPlannedCast(0, sword, 0) {
+		t.Fatalf("FeatPlannedCast(Starforged Sword) = false; gorge's planner prices a Gift spell")
 	}
-	if offersCast(sc.s, sword) {
-		t.Fatalf("autopay surface offers Starforged Sword from lands")
+	if !offersCast(sc.s, sword) {
+		t.Fatalf("autopay surface does not offer Starforged Sword from lands")
 	}
 	sc, sword = giftPlanScen(t, Config{NoElide: true}, 4)
 	if !offersCast(sc.s, sword) {
@@ -43,9 +42,8 @@ func TestGiftSpellUnplanned(t *testing.T) {
 	if !offersCast(sc.s, sword) {
 		t.Fatalf("lowering surface does not offer Starforged Sword")
 	}
-	sc, sword = giftPlanScen(t, Config{GorgeAutopaySurface: true, NoElide: true}, 0)
-	sc.s.pl[0].pool[kop.U] = 4
-	if !offersCast(sc.s, sword) {
-		t.Fatalf("autopay surface does not offer Starforged Sword paid by the pool")
+	sc, sword = giftPlanScen(t, Config{GorgeAutopaySurface: true, NoElide: true}, 3)
+	if offersCast(sc.s, sword) {
+		t.Fatalf("autopay surface offers Starforged Sword short of its cost")
 	}
 }
