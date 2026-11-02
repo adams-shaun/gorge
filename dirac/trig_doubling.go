@@ -57,10 +57,12 @@ func (s *State) panharmKeyword(k *prep, sl Slot, ev kop.TrigEvent, tobj Obj, n u
 // Destination$ Battlefield (StPanhETB, Filter2 = the cause) echoes only a
 // placement caused by a permanent entering the battlefield: gorge maps the
 // MoveZone to the battlefield and a TokenCreate/CardToken mint to those modes
-// (panharmoniconModes), and the kernel's events a move or mint onto the
-// battlefield causes are TrigETB and TrigTokenCreated, whose triggering object
-// tobj is the entering permanent. The cause must match Filter2 relative to the
-// static's controller.
+// (panharmoniconModes), and the kernel's event for a Mode$ ChangesZone trigger
+// of a move or mint onto the battlefield is TrigETB, whose triggering object
+// tobj is the entering permanent. A Mode$ TokenCreatedOnce trigger
+// (TrigTokenCreated) is not a ChangesZone trigger, and Forge's ValidMode$ names
+// the doubled trigger's own mode, so it is never echoed. The cause must match
+// Filter2 relative to the static's controller.
 func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj) int {
 	if DebugPanharmNoEcho || l.sl == NoSlot || !s.occ.has(l.sl) || s.perms[l.sl].obj != l.obj {
 		return 0
@@ -99,7 +101,7 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 // object tobj is caused by a permanent entering the battlefield that matches
 // the StPanhETB static a's cause filter (static controlled by ctrl at slot sl).
 func (s *State) panharmCause(k *prep, a *kop.Ability, ev kop.TrigEvent, tobj Obj, ctrl uint8, sl Slot) bool {
-	if ev != kop.TrigETB && ev != kop.TrigTokenCreated || tobj == NoObj {
+	if ev != kop.TrigETB || tobj == NoObj {
 		return false
 	}
 	ob := &s.objs[tobj]
