@@ -593,6 +593,29 @@ func containsInt(s []int, v int) bool {
 	return false
 }
 
+// WindowChoices is WindowAnswer as a whole answer: a colour ask for several mana
+// ("add two mana in any combination of colours") lists its colours once per mana, and
+// each mana takes one, what it pays coming off the owed amount.
+func WindowChoices(d *decision.Decision, owed decision.ManaAmount) []int {
+	if d.Min <= 1 || len(d.Options)%d.Min != 0 {
+		return []int{WindowAnswer(d, owed)}
+	}
+	if d.ManaPayment != nil {
+		owed = d.ManaPayment.Owed.Mana
+	}
+	n := len(d.Options) / d.Min
+	out := make([]int, 0, d.Min)
+	for slot := 0; slot < d.Min; slot++ {
+		one := decision.Decision{Options: d.Options[slot*n : (slot+1)*n]}
+		i := WindowAnswer(&one, owed)
+		out = append(out, i)
+		if c := strings.Index(syms, d.Options[i].ManaSymbol); c >= 0 && len(d.Options[i].ManaSymbol) == 1 && owed[c] > 0 {
+			owed[c]--
+		}
+	}
+	return out
+}
+
 // WindowAnswer is the deterministic answer to a payment window or colour
 // ask (spellbench builtins' payWindow): the engine's auto-fill; else a source
 // or colour still owed; else any source; else done/cancel. owed is the

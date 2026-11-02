@@ -438,11 +438,11 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if d.PaymentFallback != nil {
 		g.Stats.Fallbacks++
 	}
-	idx := payexec.WindowAnswer(d, g.windowOwed(d))
+	picks := payexec.WindowChoices(d, g.windowOwed(d))
 	if g.OnInternal != nil {
-		g.OnInternal(d, idx)
+		g.OnInternal(d, picks[0])
 	}
-	if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+	if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: picks}); err != nil {
 		g.fail(fmt.Errorf("oracle: payment window answer refused: %w", err))
 	}
 	return true

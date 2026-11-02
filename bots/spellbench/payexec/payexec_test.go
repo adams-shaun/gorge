@@ -526,3 +526,28 @@ func TestSacrificeLastKeepsTheDefenderCount(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// TestWindowChoicesAnswersWholeColourAsk: "add two mana in any combination of
+// colours" lists its colours once per mana and takes Min of them, so a one-choice
+// answer is refused; each mana takes the colour still owed, what it pays coming off.
+func TestWindowChoicesAnswersWholeColourAsk(t *testing.T) {
+	var opts []decision.Option
+	for slot := 0; slot < 2; slot++ {
+		for _, s := range []string{"W", "U", "B", "R", "G"} {
+			opts = append(opts, decision.Option{Index: len(opts), Kind: "mana", ManaSymbol: s})
+		}
+	}
+	d := &decision.Decision{Kind: decision.KChoose, Min: 2, Max: 2, Options: opts}
+	owed := decision.ManaAmount{0, 0, 1, 1}
+	got := WindowChoices(d, owed)
+	if len(got) != 2 || got[0] != 2 || got[1] != 8 {
+		t.Fatalf("choices %v, want the B of the first slot and the R of the second ([2 8])", got)
+	}
+	if owed != (decision.ManaAmount{0, 0, 1, 1}) {
+		t.Errorf("the caller's owed amount was changed: %v", owed)
+	}
+	one := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: opts[:5]}
+	if got := WindowChoices(one, owed); len(got) != 1 {
+		t.Errorf("a single-mana ask answered with %v", got)
+	}
+}
