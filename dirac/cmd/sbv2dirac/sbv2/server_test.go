@@ -62,7 +62,7 @@ func rows(spec string) []wire.DeckRow {
 // every card the kernel's FDN set supports.
 var (
 	deckWB = catalog.Deck{CatalogID: "FDN_WB", Name: "FDN_WB", Rows: rows("Arbiter of Woe 1, Burglar Rat 2, Cathar Commando 1, Dazzling Angel 1, Eaten Alive 1, Fiendish Panda 1, Healer's Hawk 1, Helpful Hunter 2, Hero's Downfall 1, Hungry Ghoul 1, Infernal Vessel 1, Liliana, Dreadhorde General 1, Macabre Waltz 1, Plains 9, Revenge of the Rats 1, Swamp 9, Tinybones, Bauble Burglar 1, Tragic Banshee 1, Vampire Nighthawk 1, Vampire Soulcaller 2, Vanguard Seraph 1")}
-	deckRG = catalog.Deck{CatalogID: "FDN_RG", Name: "FDN_RG", Rows: rows("Affectionate Indrik 1, Axgard Cavalry 1, Beast-Kin Ranger 1, Bite Down 1, Burst Lightning 3, Courageous Goblin 3, Eager Trufflesnout 1, Elvish Regrower 2, Evolving Wilds 1, Felling Blow 1, Forest 8, Giant Growth 2, Gorehorn Raider 2, Heartfire Immolator 1, Mountain 8, Quilled Greatwurm 1, Shivan Dragon 1, Strongbox Raider 1, Wary Thespian 1")}
+	deckRG = catalog.Deck{CatalogID: "FDN_RG", Name: "FDN_RG", Rows: rows("Affectionate Indrik 1, Axgard Cavalry 1, Beast-Kin Ranger 1, Abrade 1, Burst Lightning 3, Courageous Goblin 3, Eager Trufflesnout 1, Elvish Regrower 2, Evolving Wilds 1, Felling Blow 1, Forest 8, Giant Growth 2, Gorehorn Raider 2, Heartfire Immolator 1, Mountain 8, Quilled Greatwurm 1, Shivan Dragon 1, Strongbox Raider 1, Wary Thespian 1")}
 )
 
 func newServer(t testing.TB) *Server {

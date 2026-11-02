@@ -87,8 +87,8 @@ func (kp kfhPool) accepted(t *testing.T, name string) {
 	if c == nil {
 		t.Fatalf("%s not in the pool", name)
 	}
-	if len(c.Refusals) > 0 {
-		t.Fatalf("%s refused: %v", name, c.Refusals)
+	if len(lowerRefusals(c)) > 0 {
+		t.Fatalf("%s refused: %v", name, lowerRefusals(c))
 	}
 }
 

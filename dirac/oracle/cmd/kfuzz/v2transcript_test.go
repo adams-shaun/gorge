@@ -249,7 +249,8 @@ func TestV2TranscriptGraveyardOrder(t *testing.T) {
 		}
 		return raw
 	}
-	t.Cleanup(func() { v2MessageHook = nil })
+	v2PlayRefused = true
+	t.Cleanup(func() { v2MessageHook, v2PlayRefused = nil, false })
 	sum, err := v2Run(opts)
 	if err != nil && len(sum.Diffs) == 0 {
 		t.Fatal(err)
@@ -395,7 +396,8 @@ func TestV2TranscriptDetectsDiff(t *testing.T) {
 		t.Fatalf("%d diffs, want exactly 1: %v", len(sum.Diffs), sum.Diffs)
 	}
 	d := sum.Diffs[0]
-	if d.Bucket != v2BucketObservation || d.Game != 0 || d.Path != "seat_decision.observation.turn" {
+	// The game is whichever pair played first: one holding a card refused by name is skipped.
+	if d.Bucket != v2BucketObservation || d.Path != "seat_decision.observation.turn" {
 		t.Fatalf("diff %+v, want one observation_field at observation.turn", d)
 	}
 }

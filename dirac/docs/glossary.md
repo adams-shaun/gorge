@@ -26,8 +26,9 @@ pool's `coverage.md`. It stays in the table as an inert stand-in, and `Matchup` 
 
 **Refused.** A card that lowers and must not be played, because it is known to diverge. It has a file
 in `dirac/support/refused/`, written by `kgen -refuse`, naming a game that shows it.
-`TestRefusedEntriesStillDiverge` fails an entry once no game implicates the card. A refused card counts
-against the `dirac/kgen` ratchets' "accepted", and `Matchup` refuses a deck holding it.
+`TestRefusedEntriesStillDiverge` fails an entry once no game implicates the card. A refused card still
+counts as "accepted" in the `dirac/kgen` ratchets, which count lowering, and `Matchup` refuses a deck
+holding it.
 
 **Evidenced.** Played in clean lockstep games: at least `oracle.EvidenceMinPlays` (3) casts and land
 plays, with every one of the card's own ability keys used. `kfuzz -evidence` writes these cards, and
@@ -35,13 +36,13 @@ the lists in `dirac/support/evidence/` hold them. `kfuzz -reach` says where any 
 synthetic pool stopped.
 
 **Supported.** Lowered, not refused, and evidenced: `Set.Status(i) == cardset.StatusSupported`, computed
-by kgen when it writes a table. A lowered card with no evidence is **unverified**. While
-`cardset.EnforceEvidence` is false an unverified card still plays, so `Set.Supported()` and
-`kgen -supported <pool>` report what a game may play, which includes it. [support.md](support.md) has
+by kgen when it writes a table. A lowered card with no evidence is **unverified**, and `Matchup` refuses a
+deck holding it, as it does a refused card, unless `kplay -allow-unverified` asked to play it.
+`Set.Supported()` and `kgen -supported <pool>` report what a game may play. [support.md](support.md) has
 the counts.
 
 **Raw table.** A set that plays every lowered card, refused and unverified alike (`cardset.RawByName`).
-Evidence runs and lockstep fixtures play these, or no card could earn evidence. Nothing else may read
+Lockstep fixtures and refused entries' repros play these, and synthetic pools deal from them leaving out what is refused, or no card could earn evidence. Nothing else may read
 them (`TestOnlyTheOracleReadsRawTables`).
 
 **Pool.** Either of two lists:

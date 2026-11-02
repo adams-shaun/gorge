@@ -66,9 +66,15 @@ time as a `hang` with its decks and seed, and the run moves on. `-surface autopa
 surface (default `full`; `-autopay-surface` means `-surface autopay`). `-pairs-file F` plays
 `deckA<TAB>deckB[<TAB>seed]` lines instead of drawing from `pool.tsv`. `-coverage F` and `-evidence F`
 count clean games only: `-evidence` writes the cards with at least `oracle.EvidenceMinPlays` plays and
-every own ability key used, leaving out cards refused by name. It plays the raw table, so that a card can
-earn evidence. `dirac/support/evidence/<pool>.txt` is its output at the gate's form:
-`kfuzz -kernel <pool> -first-pair 0 -pairs 1500 -seed 1 -keep-going -surface autopay -mulligans 1 -shrink 0 -workers 4 -evidence dirac/support/evidence/<pool>.txt`.
+every own ability key used, leaving out cards refused by name. It plays unverified cards, so that a card can
+earn evidence, and not refused ones; `-allow-unverified` plays them the same way without writing a list. A
+pair holding a refused card is skipped and counted. A synthetic pool deals every lowered card, so a refusal
+takes games out of it and leaves its other pairs as they were. `scripts/dirac-evidence.sh <out>` plays the whole
+evidence corpus and `scripts/dirac-first-refusals.py evidence <out>` writes `dirac/support/evidence/`, the floor
+met across all of a card's runs. `-implicates-all` names every implicated card and prints one `bad-game` line per
+game that fails `-absolute`; `scripts/dirac-first-refusals.py settle <out>` reads them to find the refused list
+that leaves the corpus clean, from a run with `-play-refused`. On a deck pool's 1500-pair slice, `-absolute` also fails under `oracle.GateMinGames` started
+games, so refusals cannot shrink a gate without an edit saying so.
 
 `-mulligans N` is the London mulligans each player may take, on every path; the default 0 skips the
 round. It changes every game's stream, so a slice at `-mulligans 1` is not the same games as at 0.

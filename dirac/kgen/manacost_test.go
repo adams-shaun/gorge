@@ -25,7 +25,7 @@ func manaCostCensus(t *testing.T) map[string][]string {
 	}
 	out := map[string][]string{}
 	for i, c := range all {
-		if len(c.Refusals) > 0 {
+		if len(lowerRefusals(c)) > 0 {
 			continue
 		}
 		cd := &bs[i].def
@@ -168,7 +168,7 @@ func lowerPoolBuilt(t *testing.T, names []string) []builtCard {
 		if c.Token {
 			continue
 		}
-		out = append(out, builtCard{c.Name, c.Refusals})
+		out = append(out, builtCard{c.Name, lowerRefusals(c)})
 		_ = bs[i]
 	}
 	return out

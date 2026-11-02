@@ -51,7 +51,7 @@ func TestExwGraveExileFlag(t *testing.T) {
 			t.Errorf("%s: not lowered", c.card)
 			continue
 		}
-		if r := all[i].Refusals; len(r) > 0 {
+		if r := lowerRefusals(all[i]); len(r) > 0 {
 			t.Errorf("%s: refused: %v", c.card, r)
 			continue
 		}

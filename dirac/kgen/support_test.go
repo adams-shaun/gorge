@@ -3,6 +3,7 @@ package kgen
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -180,9 +181,19 @@ func TestRefusedReproParses(t *testing.T) {
 		}
 	}
 	r, err := parseRefusedRepro("std-dsk:full:17:explore")
-	if err != nil || r != (cardset.RefusedRepro{Pool: "std-dsk", Surface: "full", Seed: 1, Pair: 17, Policy: "explore"}) {
+	if err != nil || r != (cardset.RefusedRepro{Pool: "std-dsk", Surface: "full", Seed: 1, Pair: 17, Policy: "explore", Mulligans: 1}) {
 		t.Errorf("%+v, %v", r, err)
 	}
+	r, err = parseRefusedRepro("std-dsk:autopay:3:random:0")
+	if err != nil || r != (cardset.RefusedRepro{Pool: "std-dsk", Surface: "autopay", Seed: 1, Pair: 3, Policy: "random"}) {
+		t.Errorf("%+v, %v", r, err)
+	}
+}
+
+// lowerRefusals is c's refusals from lowering and building, without one by name: a
+// fixture tests what a card lowers to, whether or not lockstep plays it yet.
+func lowerRefusals(c *lCard) []refusal {
+	return slices.DeleteFunc(slices.Clone(c.Refusals), func(r refusal) bool { return r.Node == supportNode })
 }
 
 // statusOf over real lowering: a card refused by name keeps its whole table entry,
@@ -288,7 +299,9 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	fmt.Fprintf(&b, "Generated: `DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen` rewrites this page.\n\n")
 	b.WriteString("A card is **supported** when kgen lowers it, it is not refused by name, and it has evidence: clean lockstep games, listed in `dirac/support/evidence`. A card with no evidence is **unverified**, not presumed clean. See the [glossary](glossary.md).\n\n")
 	fmt.Fprintf(&b, "`cardset.EnforceEvidence` is %v", cardset.EnforceEvidence)
-	if !cardset.EnforceEvidence {
+	if cardset.EnforceEvidence {
+		b.WriteString(": a game plays supported cards only, and a deck holding an unverified or refused card is turned away")
+	} else {
 		b.WriteString(", so unverified cards still play")
 	}
 	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported |\n|---|---:|---:|---:|---:|---:|\n")
@@ -300,21 +313,32 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 		r := countSupport(t, cardsDir, list, s)
 		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported)
 	}
-	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets.\n\n## Refused by name\n\n")
+	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets.\n\n## What supported covers\n\n")
+	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool skips a pair holding a refused card and a pair the kernel refuses together, so it plays fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
+	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range strings.Fields(strings.ReplaceAll(string(games), "\t", ",")) {
+		pool, n, _ := strings.Cut(row, ",")
+		fmt.Fprintf(&b, "| %s | %s |\n", pool, n)
+	}
+	b.WriteString("\nNothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.\n\n## Refused by name\n\n")
 	entries, err := cardset.ReadRefused(os.DirFS(testRoot))
 	if err != nil {
 		t.Fatal(err)
 	}
-	slices.SortFunc(entries, func(a, c cardset.RefusedEntry) int {
-		return strings.Compare(a.Class+"\x00"+a.Card, c.Class+"\x00"+c.Card)
-	})
 	if len(entries) == 0 {
 		b.WriteString("None.\n")
 		return b.Bytes()
 	}
-	b.WriteString("| class | card | what differs |\n|---|---|---|\n")
+	classes := map[string]int{}
 	for _, e := range entries {
-		fmt.Fprintf(&b, "| %s | %s | %s |\n", e.Class, e.Card, e.Why)
+		classes[e.Class]++
+	}
+	fmt.Fprintf(&b, "%d cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.\n\n| what differed | cards |\n|---|---:|\n", len(entries))
+	for _, c := range slices.Sorted(maps.Keys(classes)) {
+		fmt.Fprintf(&b, "| %s | %d |\n", c, classes[c])
 	}
 	return b.Bytes()
 }

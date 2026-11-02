@@ -65,7 +65,7 @@ func TestRemparamsLowering(t *testing.T) {
 			t.Errorf("%s: not lowered", n)
 			continue
 		}
-		if r := all[i].Refusals; len(r) > 0 {
+		if r := lowerRefusals(all[i]); len(r) > 0 {
 			t.Errorf("%s: refused: %v", n, r)
 		}
 	}
@@ -76,11 +76,11 @@ func TestRemparamsLowering(t *testing.T) {
 			continue
 		}
 		hit := false
-		for _, x := range all[i].Refusals {
+		for _, x := range lowerRefusals(all[i]) {
 			hit = hit || strings.Contains(x.Reason, r.why)
 		}
 		if !hit {
-			t.Errorf("%s: refusals %v, want one containing %q", r.card, all[i].Refusals, r.why)
+			t.Errorf("%s: refusals %v, want one containing %q", r.card, lowerRefusals(all[i]), r.why)
 		}
 	}
 	// find is the first instruction with op o in card n's programs.

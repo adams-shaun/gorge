@@ -26,7 +26,7 @@ func TestSBTCardsResolvesLazily(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func TestSBTCardsViewMatchesWholeTable(t *testing.T) {
 	t.Parallel()
 
 	c, _ := testCorpus(t)
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)

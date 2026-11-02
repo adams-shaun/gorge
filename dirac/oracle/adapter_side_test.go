@@ -11,6 +11,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/adapter"
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/game"
@@ -269,7 +270,18 @@ func envPairs(n int) int {
 	return n
 }
 
-// startServed is a served game on the first FDN pair.
+// firstServedPair is the first FDN pair the served set plays.
+func firstServedPair(t *testing.T, c *Corpus, pool []PoolDeck) Pairing {
+	t.Helper()
+	set, err := cardset.ByName("fdn")
+	if err != nil {
+		t.Skip(err)
+	}
+	ps := PairingsPlayable(c, set, pool, 0, 1, 1)
+	return ps[len(ps)-1]
+}
+
+// startServed is a served game on the first FDN pair the set plays.
 func startServed(t *testing.T) (*adapter.Engine, *Matchup, *adapter.Game) {
 	t.Helper()
 	c, pool := testPoolCorpus(t, "fdn")
@@ -277,7 +289,7 @@ func startServed(t *testing.T) (*adapter.Engine, *Matchup, *adapter.Game) {
 	if err != nil {
 		t.Skip(err)
 	}
-	p := PairingsFrom(pool, 0, 1, 1)[0]
+	p := firstServedPair(t, c, pool)
 	m, err := c.Matchup(p.A, p.B, 1)
 	if err != nil {
 		t.Fatal(err)

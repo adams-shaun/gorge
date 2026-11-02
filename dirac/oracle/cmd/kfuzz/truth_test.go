@@ -388,11 +388,14 @@ func TestFuzzPoolRunPlaysMulligans(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	set = cardset.AllowUnverified(set) // the first pairs' decks, whatever their evidence
 	ps := oracle.PairingsFrom(pool, 0, 4, 1)
 	rc := oracle.RunConfig{MaxDecisions: 2000, MaxTurns: 100}
-	asked := func(mulligans int) (keepOrMull int) {
+	// A pair holding a card refused by name is skipped and asks nothing.
+	asked := func(mulligans int) (keepOrMull, games int) {
 		code, _ := capture(t, func() int {
 			return runFDN(c, set, rc, ps, sweepOpts{lead: "gorge", surface: "full", workers: 1, mulligans: mulligans, onGame: func(res *oracle.Result) {
+				games++
 				for _, a := range res.Actions {
 					if k := a.Kind(); k == oracle.ActKeep || k == oracle.ActMulligan {
 						keepOrMull++
@@ -403,13 +406,13 @@ func TestFuzzPoolRunPlaysMulligans(t *testing.T) {
 		if code != 0 {
 			t.Errorf("-mulligans %d: exit %d", mulligans, code)
 		}
-		return keepOrMull
+		return keepOrMull, games
 	}
-	if n := asked(0); n != 0 {
+	if n, _ := asked(0); n != 0 {
 		t.Errorf("-mulligans 0 asked %d keep-or-mulligan decisions, want none", n)
 	}
-	if n := asked(1); n < 2*len(ps) {
-		t.Errorf("-mulligans 1 asked %d keep-or-mulligan decisions over %d games, want at least two a game", n, len(ps))
+	if n, games := asked(1); games == 0 || n < 2*games {
+		t.Errorf("-mulligans 1 asked %d keep-or-mulligan decisions over %d games, want at least two a game", n, games)
 	}
 }
 
@@ -635,7 +638,8 @@ func TestFuzzPoolRunFlags(t *testing.T) {
 	if _, err := os.Stat(fdnDecks); err != nil {
 		t.Skipf("FDN decks absent: %v", err)
 	}
-	slice := []string{"-kernel", "fdn", "-first-pair", "0", "-pairs", "3", "-seed", "1", "-keep-going", "-shrink", "0"}
+	// Pairs 8 to 10 hold no card refused by name, so all three play.
+	slice := []string{"-kernel", "fdn", "-first-pair", "8", "-pairs", "3", "-seed", "1", "-keep-going", "-shrink", "0", "-allow-unverified"}
 	withFlags := func(extra ...string) []string { return append(append([]string{}, slice...), extra...) }
 
 	code, canon, stderr := runKFuzz(t, withFlags("-surface", "autopay")...)
@@ -675,7 +679,7 @@ func TestFuzzPoolRunFlags(t *testing.T) {
 
 	// A real game that outlives its time is a hang, named, and no pair is lost.
 	code, stdout, _ = runKFuzz(t, withFlags("-surface", "autopay", "-game-timeout", "1ns")...)
-	if code != 1 || !strings.Contains(stdout, "3 hang") || !regexp.MustCompile(`pair 0 \(\S+ vs \S+, seed \d+\): hang`).MatchString(stdout) {
+	if code != 1 || !strings.Contains(stdout, "3 hang") || !regexp.MustCompile(`pair 8 \(\S+ vs \S+, seed \d+\): hang`).MatchString(stdout) {
 		t.Errorf("-game-timeout 1ns: exit %d\n%s", code, stdout)
 	}
 
@@ -685,14 +689,14 @@ func TestFuzzPoolRunFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	var b strings.Builder
-	for _, p := range oracle.PairingsFrom(pool, 0, 3, 1) {
+	for _, p := range oracle.PairingsFrom(pool, 8, 3, 1) {
 		fmt.Fprintf(&b, "%s\t%s\t%d\n", p.A, p.B, p.Seed)
 	}
 	file := filepath.Join(t.TempDir(), "pairs.tsv")
 	if err := os.WriteFile(file, []byte(b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	code, fromFile, _ := runKFuzz(t, "-kernel", "fdn", "-pairs-file", file, "-keep-going", "-surface", "autopay", "-shrink", "0")
+	code, fromFile, _ := runKFuzz(t, "-kernel", "fdn", "-pairs-file", file, "-keep-going", "-surface", "autopay", "-shrink", "0", "-allow-unverified")
 	if code != 0 || verdictLines(fromFile) != verdictLines(canon) {
 		t.Errorf("-pairs-file: exit %d\n%s\nwant\n%s", code, fromFile, canon)
 	}

@@ -76,9 +76,9 @@ func kindOf(c *cards.Card) synthKind {
 	return kind
 }
 
-// SynthPool deals set's supported cards into nDecks 40-card decks, a pure function
-// of set, the corpus and seed. Rule: a deck takes two colours from PCG(seed, deck);
-// 23 spells from a shuffled queue of the supported nonlands whose pips are within its
+// SynthPool deals set's lowered cards into nDecks 40-card decks, a pure function of
+// set's list, the corpus and seed. Rule: a deck takes two colours from PCG(seed, deck);
+// 23 spells from a shuffled queue of the lowered nonlands whose pips are within its
 // colours, at most 2 copies, the oldest in the queue first; up to 4 of the set's
 // nonbasic lands, shuffled by the same generator; basics alternating over its colours
 // to 40.
@@ -87,20 +87,17 @@ func kindOf(c *cards.Card) synthKind {
 // queue the deck takes that card's colours instead. Without this a three-colour card
 // is never dealt, and a set of them (TDM's clans) has a blind spot nothing reports.
 //
-// A card refused by name is left out, so a pool's games stay clean of what is already
-// known. Cards are classified from the compiled corpus, never by re-parsing scripts.
-// The returned map is keyed by deck name and is for lookup: the order is the slice's.
+// A card refused by name is still dealt, and a set that will not play it turns away the
+// pairs holding it, as with a real deck pool. So a refusal removes games and moves none:
+// pair p of a pool is the same two decks whatever the refused list says, and a refused
+// entry's repro goes on naming its game. Cards are classified from the compiled corpus,
+// never by re-parsing scripts. The returned map is keyed by deck name and is for lookup:
+// the order is the slice's.
 func SynthPool(reg *cards.Registry, set cardset.Set, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
-	return synthDeal(reg, set, seed, nDecks, "")
-}
-
-// synthDeal is SynthPool dealing the refused card named also as if it were not.
-func synthDeal(reg *cards.Registry, set cardset.Set, seed uint64, nDecks int, also string) ([]PoolDeck, map[string]deck.File, error) {
 	var spells, lands []string
 	var masks []uint8 // by index in spells
-	supported := set.Supported()
 	for i, name := range set.Names()[:set.NumCards()] {
-		if !supported[i] || cardset.IsSynthBasic(name) || set.Status(i) == cardset.StatusRefused && name != also {
+		if set.Status(i) == cardset.StatusNotLowered || cardset.IsSynthBasic(name) {
 			continue
 		}
 		c, ok := reg.Lookup(name)
@@ -225,7 +222,7 @@ const (
 	ReachNoGame     = "no-game"     // in a deck, in no game that started
 	ReachNotDealt   = "not-dealt"   // lowered, in no deck
 	ReachNotLowered = "not-lowered" // kgen refuses it
-	ReachRefused    = "refused"     // refused by name, so never dealt
+	ReachRefused    = "refused"     // refused by name, so its pairs are turned away
 )
 
 // ReachCard is one card of a list.
@@ -252,13 +249,12 @@ type Reach struct {
 func SynthReach(set cardset.Set, pool []PoolDeck, files map[string]deck.File, started [][2]string, cov *Coverage) *Reach {
 	r := &Reach{Pool: set.Name(), Games: len(started)}
 	names := set.Names()[:set.NumCards()]
-	supported := set.Supported()
 	index := make(map[string]int, len(names))
 	for i, n := range names {
 		if !cardset.IsSynthBasic(n) {
 			index[n] = len(r.Cards)
 			st := ReachNotDealt
-			if !supported[i] {
+			if set.Status(i) == cardset.StatusNotLowered {
 				st = ReachNotLowered
 			} else {
 				r.Lowered++

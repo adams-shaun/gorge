@@ -10,23 +10,11 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
 
-// Set returns the set named name. With no corpus located it skips the test; on any
-// other error (no tables for this binary, a damaged table, an unknown pool) it fails
-// the test, naming the command when that is what is missing.
+// Set returns the set named name with every lowered card playable: a fixture tests
+// what a card does, whether or not it is supported yet. With no corpus located it
+// skips the test; on any other error (no tables for this binary, a damaged table, an
+// unknown pool) it fails the test, naming the command when that is what is missing.
 func Set(tb testing.TB, name string) cardset.Set {
-	tb.Helper()
-	s, err := cardset.ByName(name)
-	if errors.Is(err, cardset.ErrNoCorpus) {
-		tb.Skipf("set %s: %v", name, err)
-	}
-	if err != nil {
-		tb.Fatalf("set %s: %v", name, err)
-	}
-	return s
-}
-
-// Raw is Set over cardset.RawByName, with the same rule.
-func Raw(tb testing.TB, name string) cardset.Set {
 	tb.Helper()
 	s, err := cardset.RawByName(name)
 	if errors.Is(err, cardset.ErrNoCorpus) {

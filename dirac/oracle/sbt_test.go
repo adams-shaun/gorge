@@ -64,7 +64,7 @@ func TestSBTPlaysKernelGames(t *testing.T) {
 	t.Parallel()
 
 	c, pool := testCorpus(t)
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)

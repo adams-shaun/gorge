@@ -94,8 +94,11 @@ func run() int {
 		absolute   = flag.Bool("absolute", false, "pool runs: exit 1 on any divergence, hang, panic, unmodelled stall, unknown option kind or error skip, or when no game was played; capacity stalls and refusals are counted and do not fail")
 		gameLimit  = flag.Duration("game-timeout", 30*time.Second, "a game with no result after this long is recorded as a hang and the run moves on; a hang fails the run (0: no watchdog)")
 		pairsFile  = flag.String("pairs-file", "", "pool runs: play these pairs instead of drawing from pool.tsv: deckA<TAB>deckB[<TAB>seed] per line (oracle.ExplicitPairs); -first-pair skips lines and -pairs, when given, caps them")
-		evidence   = flag.String("evidence", "", "pool runs: play the raw table and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here")
+		evidence   = flag.String("evidence", "", "pool runs: play the cards the table does not refuse, unverified ones too, and write the cards the run's clean games evidence (oracle.Coverage.Evidence), one name a line, here")
+		allowUnv   = flag.Bool("allow-unverified", false, "pool runs: play the cards the table does not refuse, unverified ones too, as -evidence does")
+		implAll    = flag.Bool("implicates-all", false, "pool runs: name every implicated card instead of the top ten, and print one line per game that fails -absolute: bad-game, pair, seed, outcome, class, the implicated cards joined by |, the sources of its latest actions joined by |, the cards of both decks joined by |, tab-separated")
 		listPools  = flag.Bool("list-pools", false, "print the registered lockstep pools (name, inputs, label, decks, tree digest) and exit")
+		listSynth  = flag.Bool("list-synth", false, "print the synthetic evidence pools, one a line, and exit")
 		covPath    = flag.String("coverage", "", "write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line")
 		v2Mode     = flag.String("v2", "", "run a v2 engine-parity check instead of lockstep: \"transcript\" plays the same seeded games on dirac/cmd/sbv2dirac and gorge's env and diffs their transcripts")
 		games      = flag.Int("games", 100, "-v2 transcript: seeded games per answerer")
@@ -106,6 +109,7 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
+		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 	)
@@ -113,12 +117,22 @@ func run() int {
 	verboseFDN = *verbose
 	coveragePath = *covPath
 	evidencePath = *evidence
+	implicatesAll = *implAll
 	statsOn = *stats
 	if *listPools {
 		for _, p := range oracle.Pools() {
 			q, _ := oracle.PoolByName(p.Name)
 			fmt.Printf("%s\t%s\t%s\t%d\t%s\n", p.Name, q.Inputs, p.Label, p.Decks, p.Tree)
 		}
+		return 0
+	}
+	if *listSynth {
+		names, err := cardset.SynthNames()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 1
+		}
+		fmt.Println(strings.Join(names, "\n"))
 		return 0
 	}
 	explicit := map[string]bool{}
@@ -183,9 +197,19 @@ func run() int {
 	var set cardset.Set
 	switch {
 	case *synth != "":
-		set, err = cardset.SynthByName(*synth)
-	case *evidence != "":
-		set, err = cardset.RawByName(*setName) // otherwise no card could earn evidence
+		// As -evidence: unverified cards play and a pair holding a refused one is turned
+		// away, unless -play-refused asks for the games a settling run needs.
+		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
+			set = cardset.AllowUnverified(set)
+		}
+	case *refusedIn:
+		set, err = cardset.RawByName(*setName)
+	case *evidence != "" || *allowUnv:
+		// Unverified cards play, or no card could earn evidence; a refused one stays out,
+		// or its known divergence would fail the run.
+		if set, err = cardset.ByName(*setName); err == nil {
+			set = cardset.AllowUnverified(set)
+		}
 	default:
 		set, err = cardset.ByName(*setName)
 	}
@@ -309,6 +333,9 @@ func run() int {
 			return 1
 		}
 		o := sweepOpts{features: *features, lead: *lead, surface: surfaceName, workers: *workers, out: *out, timeout: *gameLimit, absolute: *absolute, reach: reach, mulligans: *mulligans}
+		if *synth == "" && *firstPair == 0 && *pairs == oracle.SynthPairs && *seed == oracle.EvidenceSeed {
+			o.minGames = oracle.GateMinGames[*setName]
+		}
 		if *pairsFile != "" {
 			ps, err := pairsFromFile(*pairsFile, *firstPair, *pairs, explicit["pairs"], *seed)
 			if err != nil {
@@ -325,7 +352,11 @@ func run() int {
 				return 1
 			}
 		}
-		return runFDN(c, set, rc, oracle.PairingsFrom(pool, *firstPair, *pairs, *seed), o, pol)
+		ps := oracle.PairingsFrom(pool, *firstPair, *pairs, *seed)
+		if o.minGames > 0 {
+			ps = oracle.PairingsPlayable(c, set, pool, *firstPair, *pairs, *seed)
+		}
+		return runFDN(c, set, rc, ps, o, pol)
 	default:
 		fmt.Fprintf(os.Stderr, "kfuzz: -kernel %q: want gorge or gorge-api (the real kernel's adapter lands with package kernel)\n", *kernel)
 		return 2
@@ -500,6 +531,26 @@ func reproEntries(cards []string) []cardset.Entry {
 // is collected.
 var coveragePath, evidencePath string
 
+// recentSourcesShown is how many of a game's latest sourced actions a bad-game line names.
+const recentSourcesShown = 8
+
+// implicatesAll is -implicates-all.
+var implicatesAll bool
+
+// printBadGame is -implicates-all's line for a game that fails -absolute, which
+// scripts/dirac-first-refusals.py reads to choose what to refuse.
+func printBadGame(c *oracle.Corpus, p oracle.Pairing, outcome, class string, implicated, recent []string) {
+	if !implicatesAll {
+		return
+	}
+	m, err := c.Matchup(p.A, p.B, 0)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
+		return
+	}
+	fmt.Printf("bad-game\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", p.Index, p.Seed, outcome, class, strings.Join(implicated, "|"), strings.Join(recent, "|"), strings.Join(m.Table, "|"))
+}
+
 // writeEvidence writes the names cov's games evidence to path, one a line, and
 // prints the count. A card in refused stays out whatever its games did: it is known
 // to diverge somewhere.
@@ -661,7 +712,11 @@ type sweepOpts struct {
 
 	mulligans int // -mulligans: London mulligans each player may take; 0 skips the round
 
+	minGames int // -absolute: fewer started games than this fail the run; 0: no floor
+
 	onGame func(*oracle.Result) // a test's look at each game, Actions included
+
+	corpus *oracle.Corpus // where a bad-game line reads its decks
 }
 
 // played is one pair's outcome: a game with its Result, a skip (the pair was
@@ -785,6 +840,7 @@ func (v *verdict) legacyLine(name, lead string, classes map[string]int) string {
 var verboseFDN bool
 
 func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.Pairing, o sweepOpts, pol func(uint64) oracle.Policy) int {
+	o.corpus = c
 	var fs oracle.FeatStats
 	var ks kstats
 	if statsOn {
@@ -831,8 +887,8 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		if o.onGame != nil {
 			o.onGame(&res)
 		}
-		if !verboseFDN && (o.out == "" || res.Div == nil) {
-			res.Actions = nil // only the verbose report and -out read them; don't hold every game's
+		if !verboseFDN && (o.out == "" || res.Div == nil) && (!implicatesAll || res.Clean()) {
+			res.Actions = nil // only the reports of a bad game read them; don't hold every game's
 		}
 		return played{m: m, res: res, cov: cov}
 	}
@@ -926,6 +982,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Hang++
 			classes["hang"]++
 			fmt.Printf("pair %d (%s vs %s, seed %d): hang: no result after %s\n", p.Index, p.A, p.B, p.Seed, o.timeout)
+			printBadGame(o.corpus, p, "hang", "hang", nil, nil)
 			continue
 		}
 		if err := out[i].skip; err != nil {
@@ -959,6 +1016,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 				if verboseFDN || o.absolute {
 					fmt.Printf("pair %d (%s vs %s, seed %d): %s unmodelled stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
 				}
+				printBadGame(o.corpus, p, "unmodelled", why, nil, res.RecentSources(m, recentSourcesShown))
 				continue
 			}
 			v.Capacity++
@@ -986,6 +1044,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		for _, n := range implicates {
 			implicated[n]++
 		}
+		printBadGame(o.corpus, p, "divergent", cls, implicates, res.RecentSources(m, recentSourcesShown))
 		if res.Div.What == "features" {
 			fmt.Printf("pair %d (%s vs %s): %s\n", p.Index, p.A, p.B, res.Div.Detail)
 		}
@@ -1008,7 +1067,11 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		fmt.Println(l)
 	}
 	if len(implicated) > 0 {
-		fmt.Println("implicates:", topCounts(implicated, 10))
+		shown := 10
+		if implicatesAll {
+			shown = len(implicated)
+		}
+		fmt.Println("implicates:", topCounts(implicated, shown))
 	}
 	for _, kv := range []struct {
 		name string
@@ -1056,6 +1119,9 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 	}
 	fails := v.failures(o.absolute)
 	if o.absolute {
+		if v.Games < o.minGames {
+			fails = append(fails, fmt.Sprintf("%d games started, under the pool's floor of %d (oracle.GateMinGames)", v.Games, o.minGames))
+		}
 		if len(fails) > 0 {
 			fmt.Println("absolute: FAIL:", strings.Join(fails, ", "))
 		} else {

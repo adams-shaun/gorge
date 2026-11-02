@@ -161,7 +161,9 @@ func TestFilterAndValueCarriersAccepted(t *testing.T) {
 	}
 	refused := map[string]string{}
 	for _, r := range cv.refused {
-		refused[r.Card] = r.Reason
+		if r.Node != supportNode {
+			refused[r.Card] = r.Reason
+		}
 	}
 	for n, class := range filterwordclassesCarriers {
 		if class == "" {

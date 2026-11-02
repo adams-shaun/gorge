@@ -82,6 +82,12 @@ func New(reg *cards.Registry, sourceRevision *string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewSet(reg, set, sourceRevision)
+}
+
+// NewSet is New over set instead of the supported FDN set: a parity harness plays
+// the unverified cards too, through cardset.AllowUnverified.
+func NewSet(reg *cards.Registry, set cardset.Set, sourceRevision *string) (*Server, error) {
 	s := &Server{reg: reg, set: set, gameIDs: map[string]bool{}, cache: map[string]cached{}, clean: map[string]bool{}}
 	e := env.EngineIdentity(sourceRevision, reg)
 	e.Name = "dirac"

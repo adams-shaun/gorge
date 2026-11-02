@@ -163,6 +163,24 @@ func (d *Divergence) Implicates(m *Matchup) []string {
 	return nil
 }
 
+// RecentSources is the cards of the game's latest sourced actions, newest first and
+// without repeats, at most n. A stall has no differing options to name, and a
+// divergence on a token or copy names no card, so this is what points at a cause there.
+func (r *Result) RecentSources(m *Matchup, n int) []string {
+	if m == nil {
+		return nil
+	}
+	var out []string
+	for i := len(r.Actions) - 1; i >= 0 && len(out) < n; i-- {
+		if src := r.Actions[i].Src(); src != RefNone && src < RefStack {
+			if c := firstObjectCard(m, r.Actions[i].String()); c != "" && !slices.Contains(out, c) {
+				out = append(out, c)
+			}
+		}
+	}
+	return out
+}
+
 // firstObjectCard is the card of the first object an action string names.
 func firstObjectCard(m *Matchup, action string) string {
 	r := objectRef.FindStringSubmatch(action)

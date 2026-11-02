@@ -34,6 +34,8 @@ TestNativeViewMatchesGorgeFDNManualMana
 TestPoolFrozen/blb
 TestPoolFrozen/fdn
 TestRecordingStopsAtAConcession
+TestRefusedEntriesStillDiverge/Bite_Down
+TestRefusedEntriesStillDiverge/Starlit_Soothsayer
 TestServedFieldsMatchGorge
 TestSliceMatchesPool/blb
 TestSliceMatchesPool/fdn

@@ -10,10 +10,10 @@ import (
 // fdnkernel.go: the adapter hooks for package kernel on a generated card
 // set (dirac/cardset), with the FDN* functions wrapping the "fdn" set.
 
-// fdnSet is the generated FDN set as reached through cardset.ByName. A missing
+// fdnSet is the generated FDN set as reached through cardset.RawByName. A missing
 // table panics with ByName's error, which names the command that builds it.
 func fdnSet() cardset.Set {
-	s, err := cardset.ByName("fdn")
+	s, err := cardset.RawByName("fdn")
 	if err != nil {
 		panic(err)
 	}

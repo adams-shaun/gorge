@@ -89,14 +89,14 @@ func statusOf(c *lCard, s *supportLists) (cardset.Status, string) {
 	return cardset.StatusSupported, ""
 }
 
-// parseRefusedRepro parses -repro: POOL:SURFACE:PAIR[:POLICY]. The seed is the
+// parseRefusedRepro parses -repro: POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]. The seed is the
 // evidence corpus's, so a game is named by its pair.
 func parseRefusedRepro(s string) (cardset.RefusedRepro, error) {
 	f := strings.Split(s, ":")
 	bad := func(why string) (cardset.RefusedRepro, error) {
-		return cardset.RefusedRepro{}, fmt.Errorf("-repro %q: %s; want POOL:SURFACE:PAIR[:POLICY]", s, why)
+		return cardset.RefusedRepro{}, fmt.Errorf("-repro %q: %s; want POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]", s, why)
 	}
-	if len(f) < 3 || len(f) > 4 || f[0] == "" {
+	if len(f) < 3 || len(f) > 5 || f[0] == "" {
 		return bad("wrong shape")
 	}
 	if f[1] != "autopay" && f[1] != "full" {
@@ -106,12 +106,17 @@ func parseRefusedRepro(s string) (cardset.RefusedRepro, error) {
 	if err != nil || pair < 0 {
 		return bad("pair is a pair index")
 	}
-	r := cardset.RefusedRepro{Pool: f[0], Surface: f[1], Seed: 1, Pair: pair, Policy: "random"}
-	if len(f) == 4 {
+	r := cardset.RefusedRepro{Pool: f[0], Surface: f[1], Seed: 1, Pair: pair, Policy: "random", Mulligans: 1}
+	if len(f) >= 4 {
 		if !slices.Contains([]string{"random", "heuristic", "explore", "first"}, f[3]) {
 			return bad("policy is random, heuristic, explore or first")
 		}
 		r.Policy = f[3]
+	}
+	if len(f) == 5 {
+		if r.Mulligans, err = strconv.Atoi(f[4]); err != nil || r.Mulligans < 0 {
+			return bad("mulligans is a count")
+		}
 	}
 	return r, nil
 }

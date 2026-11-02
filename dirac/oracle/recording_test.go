@@ -33,7 +33,7 @@ func recordingMatchup(t *testing.T) (*adapter.Engine, *Matchup, uint64) {
 	if err != nil {
 		t.Skip(err)
 	}
-	p := PairingsFrom(pool, 0, 1, 1)[0]
+	p := firstServedPair(t, c, pool)
 	m, _, err := SetMatchup(rawSet("fdn"), c, p.A, p.B, 1)
 	if err != nil {
 		t.Fatal(err)

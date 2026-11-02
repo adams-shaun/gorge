@@ -32,7 +32,7 @@ func runShow(pool, card string, w io.Writer) error {
 	if card == "" {
 		return errors.New("-show wants a card name argument")
 	}
-	s, err := cardset.ByName(pool)
+	s, err := cardset.RawByName(pool)
 	if err != nil {
 		return err
 	}

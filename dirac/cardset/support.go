@@ -26,6 +26,8 @@ type RefusedRepro struct {
 	Seed    uint64 `json:"seed"`
 	Pair    int    `json:"pair"`
 	Policy  string `json:"policy"` // random, heuristic, explore or first
+	// Mulligans is the London mulligans each player may take.
+	Mulligans int `json:"mulligans"`
 }
 
 // RefusedEntry is one dirac/support/refused file.

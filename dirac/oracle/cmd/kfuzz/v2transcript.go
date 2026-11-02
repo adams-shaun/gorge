@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cmd/sbv2dirac/sbv2"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -162,7 +163,7 @@ func v2Run(opts v2TranscriptOpts) (v2Summary, error) {
 		cache[name] = d
 		return d, nil
 	}
-	probe, err := sbv2.New(opts.Corpus.Reg, nil)
+	probe, err := v2DiracServer(opts.Corpus.Reg)
 	if err != nil {
 		return sum, err
 	}
@@ -287,9 +288,29 @@ func v2Run(opts v2TranscriptOpts) (v2Summary, error) {
 	return sum, nil
 }
 
+// v2PlayRefused is a test's way to a pinned pair that holds a card refused by name.
+var v2PlayRefused bool
+
+// v2DiracServer is the dirac side of the parity check. It plays the FDN cards the
+// table does not refuse, unverified ones too, as a lockstep evidence run does: this
+// is where their v2 behaviour is checked against gorge's.
+func v2DiracServer(reg *cards.Registry) (*sbv2.Server, error) {
+	set, err := cardset.ByName("fdn")
+	if err != nil {
+		return nil, err
+	}
+	if v2PlayRefused {
+		if set, err = cardset.RawByName("fdn"); err != nil {
+			return nil, err
+		}
+		return sbv2.NewSet(reg, set, nil)
+	}
+	return sbv2.NewSet(reg, cardset.AllowUnverified(set), nil)
+}
+
 // v2PlayTask plays one task on both hosts.
 func v2PlayTask(reg *cards.Registry, t v2Task) v2Played {
-	ds, err := sbv2.New(reg, nil)
+	ds, err := v2DiracServer(reg)
 	if err != nil {
 		return v2Played{err: err}
 	}

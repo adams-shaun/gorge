@@ -87,7 +87,7 @@ func TestDiracCoreEdgesSynthetic(t *testing.T) {
 // evidence or not.
 var rawTableReaders = map[string]bool{
 	"cardset.RawByName": true, "cardset.SynthByName": true,
-	"cardsettest.Raw": true, "cardsettest.Synth": true,
+	"cardsettest.Synth": true,
 }
 
 // rawTableUsers may name them: lockstep earns evidence on raw tables, kgen builds

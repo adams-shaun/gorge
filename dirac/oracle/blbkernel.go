@@ -13,10 +13,10 @@ import (
 // them); the script's --max-refused 0 is the strict pool. The pool registry
 // (pools.go) says where its decks/ and pool.tsv live.
 
-// blbSet is the generated BLB set as reached through cardset.ByName. A missing
+// blbSet is the generated BLB set as reached through cardset.RawByName. A missing
 // table panics with ByName's error, which names the command that builds it.
 func blbSet() cardset.Set {
-	s, err := cardset.ByName("blb")
+	s, err := cardset.RawByName("blb")
 	if err != nil {
 		panic(err)
 	}

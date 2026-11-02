@@ -213,5 +213,5 @@ func TestEntersUntappedReplOrderMutation(t *testing.T) {
 // The Wandering Minstrel's untapped entry whatever the condition says: gorge asks the
 // order, and a body applied last taps nothing when its condition fails (CR 616.1).
 func TestEntryOrderConditionalTapBody(t *testing.T) {
-	synthPairsOn(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{55, 97, 113, 396, 499}, nil)
+	synthPairsOn(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 97, 113, 396, 499}, nil)
 }

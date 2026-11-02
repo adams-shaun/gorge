@@ -1,5 +1,7 @@
 package oracle
 
+import "github.com/adams-shaun/gorge/dirac/cardset"
+
 // The evidence floor: what a card must reach, in clean lockstep games, before
 // those games count as evidence for it.
 const (
@@ -20,6 +22,47 @@ const (
 	// pool's gate slice.
 	SynthPairs = 1500
 )
+
+// GateMinGames is how many games a deck pool's gate slice, 1500 pairs at the evidence
+// seed, must start. A refused or unverified card takes every deck holding it out of the pool,
+// so the slice reads on past pairs the set turns away (PairingsPlayable); a pool too
+// short of decks to fill it fails, and lowering a floor is an edit a reviewer reads.
+var GateMinGames = map[string]int{"fdn": 1500, "blb": 1500}
+
+// gatePairsLimit is how far past n pairs PairingsPlayable reads, as a multiple of n.
+const gatePairsLimit = 20
+
+// PairingsPlayable is the pairs from first on until n of them hold only cards set
+// plays. The pairs it turned away stay in the list, so a verdict counts them.
+func PairingsPlayable(c *Corpus, set cardset.Set, pool []PoolDeck, first, n int, seed uint64) []Pairing {
+	supported := set.Supported()
+	playable := map[string]bool{}
+	deckPlays := func(name string) bool {
+		ok, seen := playable[name]
+		if seen {
+			return ok
+		}
+		f, err := c.deckFile(name)
+		ok = err == nil
+		for _, e := range f.Cards {
+			if i, found := set.Lookup(e.Name); found && !supported[i] {
+				ok = false
+			}
+		}
+		playable[name] = ok
+		return ok
+	}
+	var out []Pairing
+	playing := 0
+	for p := first; playing < n && p < first+n*gatePairsLimit; p++ {
+		pair := PairingAt(pool, p, seed)
+		out = append(out, pair)
+		if deckPlays(pair.A) && deckPlays(pair.B) {
+			playing++
+		}
+	}
+	return out
+}
 
 // Evidence is the cards c's games evidence, sorted: at least EvidenceMinPlays
 // plays and, under EvidenceAllKeys, no unused ability key. c should hold clean

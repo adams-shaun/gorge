@@ -126,7 +126,7 @@ import (
 // +7 (RememberedLKI$CardPower / $CardToughness over a Sacrifice RememberSacrificed$ set: Tribute to Hunger, Twisted Justice, Xathrid Demon and kin; 19864 -> 19871. Reign of the Pit and Soul Separator stay refused: their read is a token override).
 // +1 (Melek, Reforged Researcher: OnlyFirstSpell$ with ValidSpell$; 19927 -> 19928; ratchet MKM 204 -> 205).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{20729, 34072} // {built, cards}
+var buildAcceptancePin = [2]int{20731, 34072} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
@@ -140,8 +140,8 @@ func TestCorpusBuildAcceptance(t *testing.T) {
 		t.Fatal(err)
 	}
 	cv := computeCoverage(p, lw)
-	t.Logf("ALL build-level: %d of %d build (%v)", cv.cardsOK, cv.cards, time.Since(start))
-	got := [2]int{cv.cardsOK, cv.cards}
+	t.Logf("ALL build-level: %d of %d build (%v)", cv.lowered, cv.cards, time.Since(start))
+	got := [2]int{cv.lowered, cv.cards}
 	if got != buildAcceptancePin && os.Getenv("KGEN_REPIN") == "1" {
 		row := regexp.MustCompile(`(?m)^(var buildAcceptancePin = \[2\]int\{)\d+, \d+(\})`)
 		msg, err := repinFile("build_ratchet_test.go", row, "ALL build-level", buildAcceptancePin, got, os.Getenv("KGEN_REPIN_FALL"))

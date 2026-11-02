@@ -47,7 +47,7 @@ func Main(args []string) int {
 	refuse := flags.String("refuse", "", "write this card's dirac/support/refused entry instead of generating (with -why and -repro)")
 	why := flags.String("why", "", "with -refuse: one line saying what differs")
 	class := flags.String("class", "lockstep", "with -refuse: the kind of difference, the refused list's grouping")
-	repro := flags.String("repro", "", "with -refuse: the game that shows it, POOL:SURFACE:PAIR[:POLICY]")
+	repro := flags.String("repro", "", "with -refuse: the game that shows it, POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]")
 	unrefuse := flags.String("unrefuse", "", "delete this card's dirac/support/refused entry instead of generating")
 	flags.Parse(args)
 	if *refuse != "" {

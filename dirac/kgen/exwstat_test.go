@@ -35,6 +35,9 @@ func TestExwStaticsLowering(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, r := range cv.refused {
+		if r.Node == supportNode {
+			continue
+		}
 		t.Errorf("%s refused: %s", r.Card, r.Reason)
 	}
 	dump := map[string]string{}

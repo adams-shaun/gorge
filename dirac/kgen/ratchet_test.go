@@ -14,8 +14,9 @@ import (
 
 // The acceptance ratchets: kgen lowers every
 // registered card list in dirac/cardset/setlists and the accepted count
-// (cards with no refusal) must EQUAL the pin. A fall is a regression; a rise
-// is re-pinned in the same commit, so the pins are always the live counts.
+// (cards that lower, whether or not refused by name) must EQUAL the pin. A fall
+// is a regression; a rise is re-pinned in the same commit, so the pins are
+// always the live counts.
 //
 // The count is LOWER + BUILD (checkAcceptance runs buildPool): a card the LIR
 // pass accepts but `generate` refuses (counter kinds, cost shapes, filter
@@ -23,7 +24,7 @@ import (
 // The earlier LIR-only pins were higher (ALL 17340 vs 16588 built).
 var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {20729, 34072},
+	"ALL": {20731, 34072},
 	"BIG": {23, 30},
 	"BLB": {253, 278},
 	"BRO": {206, 280},
@@ -33,7 +34,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"ECL": {230, 273},
 	"EOE": {236, 266},
 	"FDN": {505, 517},
-	"FIN": {263, 312},
+	"FIN": {264, 312},
 	"FRA": {240, 269},
 	"HOB": {151, 172},
 	"LCI": {244, 290},
@@ -90,8 +91,8 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 		t.Fatalf("%s: build: %v", list, err)
 	}
 	cv := computeCoverage(p, lw)
-	t.Logf("%s: %d of %d accepted", list, cv.cardsOK, cv.cards)
-	got := [2]int{cv.cardsOK, cv.cards}
+	t.Logf("%s: %d of %d accepted", list, cv.lowered, cv.cards)
+	got := [2]int{cv.lowered, cv.cards}
 	if got != pin && os.Getenv("KGEN_REPIN") == "1" {
 		repinMu.Lock()
 		defer repinMu.Unlock()

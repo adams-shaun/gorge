@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"encoding/json"
+	"maps"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -66,9 +67,8 @@ func TestSynthPoolIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestSynthEveryCardAppears: a supported card the deal cannot reach would have no
-// evidence and nothing to say why. A card refused by name says why in its record,
-// and one with no main-deck type has no slot; neither is dealt.
+// TestSynthEveryCardAppears: a lowered card the deal cannot reach would have no
+// evidence and nothing to say why. One with no main-deck type has no slot.
 func TestSynthEveryCardAppears(t *testing.T) {
 	reg := synthReg(t)
 	const floor = 10
@@ -99,10 +99,6 @@ func TestSynthEveryCardAppears(t *testing.T) {
 				if decks[n] != 0 {
 					t.Errorf("%s: unsupported %q was dealt", name, n)
 				}
-			case set.Status(i) == cardset.StatusRefused:
-				if decks[n] != 0 {
-					t.Errorf("%s: refused %q was dealt", name, n)
-				}
 			case kindOf(c) == synthUndealable:
 				if decks[n] != 0 {
 					t.Errorf("%s: %q has no main-deck type and was dealt", name, n)
@@ -115,6 +111,64 @@ func TestSynthEveryCardAppears(t *testing.T) {
 	if wide == 0 {
 		t.Error("no deck took a wider colour set: three-colour cards reached no deck by the rule under test")
 	}
+}
+
+// refusing is a set with one more card refused by name.
+type refusing struct {
+	cardset.Set
+	card int
+}
+
+func (r refusing) Status(i int) cardset.Status {
+	if i == r.card {
+		return cardset.StatusRefused
+	}
+	return r.Set.Status(i)
+}
+
+// TestRefusalMovesNoDeal: refusing a card leaves every pair of its pool the same two
+// decks and the same seed, or a refused entry's repro would name a different game and
+// a test pinning a pair would break with the list.
+func TestRefusalMovesNoDeal(t *testing.T) {
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, "std-dsk")
+	dealt := func(s cardset.Set) ([]PoolDeck, map[string]deck.File) {
+		pool, files, err := SynthPool(reg, s, EvidenceSeed, SynthDecks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pool, files
+	}
+	pool, files := dealt(set)
+	// A set turning refused cards away deals the same decks as one playing them.
+	if _, f := dealt(cardset.AllowUnverified(set)); !maps.EqualFunc(files, f, func(a, b deck.File) bool { return slices.Equal(a.Cards, b.Cards) }) {
+		t.Fatal("a view of the table dealt other decks")
+	}
+	refused := 0
+	for i, n := range set.Names()[:set.NumCards()] {
+		if set.Status(i) == cardset.StatusNotLowered || cardset.IsSynthBasic(n) || set.Status(i) == cardset.StatusRefused {
+			continue
+		}
+		pool2, files2 := dealt(refusing{set, i})
+		if !slices.Equal(pool, pool2) {
+			t.Fatalf("refusing %s moved the pool's decks", n)
+		}
+		for p := range SynthPairs {
+			a, b := PairingAt(pool, p, EvidenceSeed), PairingAt(pool2, p, EvidenceSeed)
+			if a != b {
+				t.Fatalf("refusing %s moved pair %d: %v, %v", n, p, a, b)
+			}
+			for _, name := range []string{a.A, a.B} {
+				if !slices.Equal(files[name].Cards, files2[name].Cards) {
+					t.Fatalf("refusing %s changed deck %s in pair %d", n, name, p)
+				}
+			}
+		}
+		if refused++; refused == 5 {
+			return
+		}
+	}
+	t.Fatal("std-dsk has no card to refuse")
 }
 
 func TestSynthDecksAre40(t *testing.T) {
@@ -306,23 +360,23 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 // fakeReachSet is the part of a table SynthReach reads.
 type fakeReachSet struct {
 	cardset.Set
-	names     []string
-	supported []bool
+	names  []string
+	status []cardset.Status
 }
 
-func (s fakeReachSet) Name() string              { return "std-x" }
-func (s fakeReachSet) Names() []string           { return s.names }
-func (s fakeReachSet) NumCards() int             { return len(s.names) }
-func (s fakeReachSet) Supported() []bool         { return s.supported }
-func (s fakeReachSet) Status(int) cardset.Status { return cardset.StatusUnverified }
-func (s fakeReachSet) Reason(int) string         { return "" }
+func (s fakeReachSet) Name() string                { return "std-x" }
+func (s fakeReachSet) Names() []string             { return s.names }
+func (s fakeReachSet) NumCards() int               { return len(s.names) }
+func (s fakeReachSet) Status(i int) cardset.Status { return s.status[i] }
+func (s fakeReachSet) Reason(int) string           { return "" }
 
 // TestSynthReachReportsEveryStage: each stage of the report counts what it says, from
 // a pool with one card stopped at each.
 func TestSynthReachReportsEveryStage(t *testing.T) {
 	set := fakeReachSet{
-		names:     []string{"A Evidence", "B Keys", "C Few", "D NoGame", "E NotDealt", "F NotLowered", "Plains"},
-		supported: []bool{true, true, true, true, true, false, true},
+		names: []string{"A Evidence", "B Keys", "C Few", "D NoGame", "E NotDealt", "F NotLowered", "Plains"},
+		status: []cardset.Status{cardset.StatusUnverified, cardset.StatusUnverified, cardset.StatusUnverified, cardset.StatusUnverified,
+			cardset.StatusUnverified, cardset.StatusNotLowered, cardset.StatusUnverified},
 	}
 	entry := func(names ...string) (out []deck.Entry) {
 		for _, n := range names {
@@ -367,7 +421,7 @@ func TestSynthReachReportsEveryStage(t *testing.T) {
 // earlier player's cards still in hand, then everything moves at once (CR 101.4).
 func TestEachPlayerDiscardMovesTogether(t *testing.T) {
 	synthPairs(t, "std-dsk", []int{21, 36, 44}, nil)
-	synthPairs(t, "std-fin", []int{90, 120}, nil)
+	synthPairs(t, "std-fin", []int{1, 12}, nil)
 	synthPairs(t, "std-otj", []int{2}, nil)
 	synthPairs(t, "std-woe", []int{84}, nil)
 }
@@ -407,7 +461,7 @@ func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
 // of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
 // matchup's table keeps it.
 func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	synthPairs(t, "std-fin", []int{62, 105, 115, 244}, nil)
+	synthPairs(t, "std-fin", []int{0, 2, 6, 14}, nil)
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
@@ -446,7 +500,7 @@ func TestStrandedPaymentReversesFirst(t *testing.T) {
 // a legal target leaves its Saga to be sacrificed before anyone receives priority
 // (CR 117.5, 603.3d, 714.4).
 func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
-	synthPairs(t, "std-fin", []int{91, 317, 342, 381, 432, 482}, nil)
+	synthPairs(t, "std-fin", []int{8, 18, 32, 33, 38, 42}, nil)
 	synthPairs(t, "std-spm", []int{93, 101, 310, 320}, nil)
 }
 

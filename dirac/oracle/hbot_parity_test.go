@@ -76,7 +76,7 @@ func TestHBotPlaysFDNGames(t *testing.T) {
 	// serial: testing.AllocsPerRun panics in a parallel test
 
 	c, pool := testCorpus(t)
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestHBotPlaysFDNGames(t *testing.T) {
 // itself on the pool table.
 func BenchmarkHBotCombatPick(b *testing.B) {
 	c, pool := testCorpus(b)
-	set := cardsettest.Raw(b, "fdn")
+	set := cardsettest.Set(b, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		b.Fatal(err)

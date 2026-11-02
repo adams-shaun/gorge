@@ -224,13 +224,23 @@ func TestDplaySampleReplayReexecutesInGorge(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
+	pairs := filepath.Join(dir, "pairs.tsv")
+	decks := []string{"000_FDN_top_00001_WB", "001_FDN_top_00032_WU", "002_FDN_top_07920_WBpG", "004_FDN_top_15839_BR", "005_FDN_top_20394_WB", "006_FDN_top_23758_UBpW",
+		"008_FDN_top_00161_WR", "009_FDN_top_09240_UG", "010_FDN_top_08080_UB", "011_FDN_top_19421_UR", "013_FDN_top_29602_WB"}
+	var rows strings.Builder
+	for i := range len(decks) - 1 {
+		fmt.Fprintf(&rows, "%s\t%s\t%d\n", decks[i], decks[i+1], i+1)
+	}
+	if err := os.WriteFile(pairs, []byte(rows.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	var stderr bytes.Buffer
-	code := run([]string{"-pairs", "10", "-a", seatRandom, "-b", seatRandom, "-sample-replay", "1", "-out", filepath.Join(dir, "games.jsonl"), "-summary", filepath.Join(dir, "s.json")}, io.Discard, &stderr)
+	code := run([]string{"-decks", filepath.Join("..", "..", "testdata", "bench", "fdn"), "-pairs-file", pairs, "-a", seatRandom, "-b", seatRandom, "-sample-replay", "1", "-out", filepath.Join(dir, "games.jsonl"), "-summary", filepath.Join(dir, "s.json")}, io.Discard, &stderr)
 	if code != 0 || stderr.Len() != 0 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	files, err := filepath.Glob(filepath.Join(dir, "games.jsonl.replays", "*.json"))
-	if err != nil || len(files) != 10 {
+	if err != nil || len(files) != len(decks)-1 {
 		t.Fatalf("%d records: %v", len(files), err)
 	}
 	corp, err := oracle.OpenCorpus(cards, dir)

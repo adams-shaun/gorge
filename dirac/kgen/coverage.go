@@ -11,6 +11,7 @@ import (
 type coverage struct {
 	decks, supported int
 	cards, cardsOK   int
+	lowered          int // cards that lowered and built, whether or not refused by name
 	refused          []refusal
 	deckHits         map[string]int // refused card -> decks it blocks
 }
@@ -19,6 +20,9 @@ func computeCoverage(p *pool, lw *lowered) coverage {
 	bad := map[string]bool{}
 	cv := coverage{decks: len(p.decks), cards: len(lw.cards), deckHits: map[string]int{}}
 	for _, c := range lw.cards {
+		if c.loweredOK() {
+			cv.lowered++
+		}
 		if len(c.Refusals) > 0 {
 			bad[c.Name] = true
 			cv.refused = append(cv.refused, c.Refusals...)

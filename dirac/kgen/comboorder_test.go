@@ -30,8 +30,8 @@ func TestManaColourPrintedOrder(t *testing.T) {
 			continue
 		}
 		seen++
-		if len(c.Refusals) != 0 {
-			t.Errorf("%s refused: %v", c.Name, c.Refusals)
+		if len(lowerRefusals(c)) != 0 {
+			t.Errorf("%s refused: %v", c.Name, lowerRefusals(c))
 		}
 		a := bs[i].def.Abilities[0]
 		var mask kop.ColorMask

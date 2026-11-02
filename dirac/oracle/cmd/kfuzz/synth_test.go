@@ -22,7 +22,7 @@ func TestFuzzSynthRuns(t *testing.T) {
 	}
 	cardsettest.Synth(t, "std-fdn")
 	reach := filepath.Join(t.TempDir(), "reach.tsv")
-	args := []string{"-synth", "std-fdn", "-first-pair", "0", "-pairs", "12", "-seed", "1", "-keep-going", "-surface", "autopay", "-shrink", "0", "-workers", "2", "-reach", reach}
+	args := []string{"-synth", "std-fdn", "-play-refused", "-first-pair", "0", "-pairs", "12", "-seed", "1", "-keep-going", "-surface", "autopay", "-shrink", "0", "-workers", "2", "-reach", reach}
 	code, stdout, stderr := runKFuzz(t, args...)
 	if code > 1 {
 		t.Fatalf("exit %d, stderr %q", code, stderr)

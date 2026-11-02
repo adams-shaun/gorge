@@ -4,10 +4,10 @@ package cardset
 // (ErrNoCorpus, ErrNoTables, a damaged file, an unknown pool) is returned as it is.
 func ByName(name string) (Set, error) { return load(name) }
 
-// MustByName is ByName for a helper with no way to return an error or reach a
-// testing.TB: it panics. Its callers guard with cardsettest.Require.
+// MustByName is RawByName for a test helper with no way to return an error or reach
+// a testing.TB: it panics. Its callers guard with cardsettest.Require.
 func MustByName(name string) Set {
-	s, err := ByName(name)
+	s, err := RawByName(name)
 	if err != nil {
 		panic(err)
 	}

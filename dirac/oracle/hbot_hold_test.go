@@ -17,7 +17,7 @@ func TestHBotFactsTrick(t *testing.T) {
 	t.Parallel()
 
 	c, _ := testCorpus(t)
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +137,7 @@ func TestHBotHoldPlaysFDNGames(t *testing.T) {
 	// serial: testing.AllocsPerRun panics in a parallel test
 
 	c, pool := testCorpus(t)
-	set := cardsettest.Raw(t, "fdn")
+	set := cardsettest.Set(t, "fdn")
 	tbl, err := set.Pool()
 	if err != nil {
 		t.Fatal(err)

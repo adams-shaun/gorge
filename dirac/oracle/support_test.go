@@ -1,12 +1,15 @@
 package oracle
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,16 +21,22 @@ import (
 const (
 	moduleRootFromOracle = "../.."
 
-	refusedPairsMax  = 200              // pairs with the card dealt in, once its repro plays clean
-	refusedEntryCap  = 20 * time.Second // per entry
-	refusedGameCap   = 10 * time.Second // a game past this is a hang, which proves nothing
-	refusedMulligans = 1                // the gate's form
+	refusedPairsMax = 200              // pairs with the card dealt in, once its repro plays clean
+	refusedEntryCap = 20 * time.Second // per entry
+	refusedGameCap  = 10 * time.Second // a game past this is a hang, which proves nothing
+	// refusedRecentSources is kfuzz's bad-game line: the sources the refusal loop may blame.
+	refusedRecentSources = 8
+	// refusedGateSample is how many changed entries one KERNEL_REFUSED_BASE run checks,
+	// chosen by the hash of the name: a change refusing a thousand cards at once still
+	// fits a gate, and the whole list runs before develop reaches main.
+	refusedGateSample = 50
 )
 
 // refusedRun is one entry's pool: its raw set and the decks its pairs draw from.
 type refusedRun struct {
 	card    string
 	surface string
+	mulls   int
 	policy  func(uint64) Policy
 	set     cardset.Set
 	c       *Corpus
@@ -86,13 +95,13 @@ func openRefusedRun(t *testing.T, e *cardset.RefusedEntry) *refusedRun {
 			t.Fatalf("%s is in no synthetic pool", e.Card)
 		}
 	}
-	r := &refusedRun{card: e.Card, surface: e.Repro.Surface, policy: refusedPolicy(t, e.Repro.Policy), set: set, seed: e.Repro.Seed}
+	r := &refusedRun{card: e.Card, surface: e.Repro.Surface, mulls: e.Repro.Mulligans, policy: refusedPolicy(t, e.Repro.Policy), set: set, seed: e.Repro.Seed}
 	if isSynthPool(poolName) {
 		if r.c, err = OpenCorpus(cardsDir, ""); err != nil {
 			t.Fatal(err)
 		}
 		var files map[string]deck.File
-		if r.pool, files, err = synthDeal(r.c.Reg, set, r.seed, SynthDecks, e.Card); err != nil {
+		if r.pool, files, err = SynthPool(r.c.Reg, set, r.seed, SynthDecks); err != nil {
 			t.Fatal(err)
 		}
 		r.c.AddDecks(files)
@@ -131,7 +140,7 @@ func (r *refusedRun) diverges(p Pairing) bool {
 				done <- false
 			}
 		}()
-		m, tbl, err := SetMatchup(r.set, r.c, p.A, p.B, refusedMulligans)
+		m, tbl, err := SetMatchup(r.set, r.c, p.A, p.B, r.mulls)
 		if err != nil {
 			done <- false
 			return
@@ -144,7 +153,7 @@ func (r *refusedRun) diverges(p Pairing) bool {
 		}
 		res := Lockstep(m, p.Seed, k, r.policy(p.Seed), rc)
 		CloseSide(k)
-		done <- res.Div != nil && slices.Contains(res.Div.Implicates(m), r.card)
+		done <- gameImplicates(&res, m, r.card)
 	}()
 	select {
 	case d := <-done:
@@ -152,6 +161,19 @@ func (r *refusedRun) diverges(p Pairing) bool {
 	case <-time.After(refusedGameCap):
 		return false
 	}
+}
+
+// gameImplicates reports whether a bad game points at card, as the refusal loop reads
+// it: a divergence's implicated cards, or the latest sources of an unmodelled stall or
+// of a divergence that names none or another card as the victim.
+func gameImplicates(res *Result, m *Matchup, card string) bool {
+	if res.Clean() {
+		return false
+	}
+	if res.Div != nil && slices.Contains(res.Div.Implicates(m), card) {
+		return true
+	}
+	return slices.Contains(res.RecentSources(m, refusedRecentSources), card)
 }
 
 // changedRefused is the entries' files that differ from base.
@@ -174,7 +196,8 @@ func changedRefused(t *testing.T, base string) map[string]bool {
 // clean replay of an entry's repro is not staleness, since games shift as gorge moves:
 // the card's pool is searched for another game that implicates it, and only finding
 // none fails. DIRAC_UPDATE_SUPPORT=1 writes the newer game into the entry.
-// KERNEL_REFUSED_BASE=<rev> checks only the entries that differ from rev.
+// KERNEL_REFUSED_BASE=<rev> checks only the entries that differ from rev, at most
+// refusedGateSample of them; KERNEL_REFUSED_SAMPLE=<n> checks n of all of them.
 func TestRefusedEntriesStillDiverge(t *testing.T) {
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
@@ -182,7 +205,13 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 	}
 	var only map[string]bool
 	if base := os.Getenv("KERNEL_REFUSED_BASE"); base != "" {
-		only = changedRefused(t, base)
+		only = sampleRefused(changedRefused(t, base))
+	} else if n, _ := strconv.Atoi(os.Getenv("KERNEL_REFUSED_SAMPLE")); n > 0 {
+		all := map[string]bool{}
+		for i := range entries {
+			all[cardset.SupportSlug(entries[i].Card)] = true
+		}
+		only = sampleOf(all, n)
 	}
 	for i := range entries {
 		e := &entries[i]
@@ -194,6 +223,24 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 			checkRefusedEntry(t, e)
 		})
 	}
+}
+
+// sampleRefused is at most refusedGateSample of the changed entries.
+func sampleRefused(changed map[string]bool) map[string]bool {
+	return sampleOf(changed, refusedGateSample)
+}
+
+// sampleOf is the n slugs with the lowest name hash, a choice that cannot favour an entry.
+func sampleOf(slugs map[string]bool, n int) map[string]bool {
+	keys := slices.Collect(maps.Keys(slugs))
+	slices.SortFunc(keys, func(a, b string) int {
+		return cmp.Compare(cardset.SynthNameHash(a), cardset.SynthNameHash(b))
+	})
+	out := map[string]bool{}
+	for _, k := range keys[:min(n, len(keys))] {
+		out[k] = true
+	}
+	return out
 }
 
 func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {

@@ -12,7 +12,7 @@ import (
 func TestDigMovesInPickOrder(t *testing.T) {
 	t.Parallel()
 	c, pool := testPoolCorpus(t, "fdn")
-	set, err := cardset.ByName("fdn")
+	set, err := cardset.RawByName("fdn")
 	if err != nil {
 		t.Fatal(err)
 	}

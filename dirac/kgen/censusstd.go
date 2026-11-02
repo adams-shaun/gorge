@@ -409,7 +409,7 @@ func lowerStdList(l stdList, cardsDir string) (*listResult, error) {
 	}
 	for _, c := range lw.cards {
 		lr.cardOrder = append(lr.cardOrder, c.Name)
-		if len(c.Refusals) == 0 {
+		if c.loweredOK() {
 			lr.accepted++
 			lr.rows = append(lr.rows, stdTSVRow{set: l.set, card: c.Name})
 			continue

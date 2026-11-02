@@ -46,9 +46,9 @@ func TestResolveKernel(t *testing.T) {
 	}
 }
 
-// mutatedPair is the FDN pair (seed 1) that diverges under mutateKernel, and plays
-// clean without it.
-const mutatedPair = 4
+// mutatedPair is the FDN pair (seed 1) that diverges under mutateKernel, plays
+// clean without it, and holds no card refused by name.
+const mutatedPair = 386
 
 // mutateKernel makes the kernel deal one damage too many on the effects that
 // deal it, which gives a command-line test a game the two sides disagree on.
@@ -112,7 +112,7 @@ func TestKFuzzFDNReproFlags(t *testing.T) {
 	}
 	missing := filepath.Join(t.TempDir(), "does-not-exist.json")
 	diverging := []string{"-kernel", "fdn", "-first-pair", strconv.Itoa(mutatedPair), "-pairs", "1", "-seed", "1",
-		"-keep-going", "-autopay-surface", "-shrink", "0"}
+		"-keep-going", "-autopay-surface", "-shrink", "0", "-allow-unverified"}
 
 	mutateKernel(true)
 	defer mutateKernel(false)

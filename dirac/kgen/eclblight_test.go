@@ -68,7 +68,7 @@ func keclIndex(t *testing.T, all []*lCard, name string) int {
 func TestBlightCostLowering(t *testing.T) {
 	all, bs := keclBuild(t, []string{"Sting-Slinger"})
 	i := keclIndex(t, all, "Sting-Slinger")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Sting-Slinger refused: %v", r)
 	}
 	c := bs[i].def.Abilities[0].Cost
@@ -104,7 +104,7 @@ func TestBlightAltAddLowering(t *testing.T) {
 		{"Wild Unraveling", 2, 1},
 	} {
 		i := keclIndex(t, all, tc.name)
-		if r := all[i].Refusals; len(r) != 0 {
+		if r := lowerRefusals(all[i]); len(r) != 0 {
 			t.Fatalf("%s refused: %v", tc.name, r)
 		}
 		d := bs[i].def
@@ -134,7 +134,7 @@ func TestBlightAltAddLowering(t *testing.T) {
 func TestBlightResolutionLowering(t *testing.T) {
 	all, bs := keclBuild(t, []string{"Blighted Blackthorn", "Gutsplitter Gang"})
 	i := keclIndex(t, all, "Blighted Blackthorn")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Blighted Blackthorn refused: %v", r)
 	}
 	ab := bs[i].def.Abilities
@@ -157,7 +157,7 @@ func TestBlightResolutionLowering(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Gutsplitter Gang")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Gutsplitter Gang refused: %v", r)
 	}
 	var got *kop.Instr
@@ -179,7 +179,7 @@ func TestBlightResolutionLowering(t *testing.T) {
 func TestBlightEffectLowering(t *testing.T) {
 	all, bs := keclBuild(t, []string{"High Perfect Morcant", "Chaos Spewer", "Dose of Dawnglow"})
 	i := keclIndex(t, all, "High Perfect Morcant")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("High Perfect Morcant refused: %v", r)
 	}
 	found := false
@@ -198,7 +198,7 @@ func TestBlightEffectLowering(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Chaos Spewer")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Chaos Spewer refused: %v", r)
 	}
 	var unless, blight *kop.Instr
@@ -224,7 +224,7 @@ func TestBlightEffectLowering(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Dose of Dawnglow")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Errorf("Dose of Dawnglow refused: %v, want its InOwnMainPhase count head lowered", r)
 	}
 }
@@ -236,7 +236,7 @@ func TestCounterCostForms(t *testing.T) {
 	all, bs := keclBuild(t, []string{"Loch Mare", "Sunstar Chaplain", "Jessica Jones, Private Eye", "Slumbering Walker", "Sanctuary Wall"})
 
 	i := keclIndex(t, all, "Loch Mare")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Loch Mare refused: %v", r)
 	}
 	for j, want := range []int{1, 2} {
@@ -250,7 +250,7 @@ func TestCounterCostForms(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Sunstar Chaplain")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Sunstar Chaplain refused: %v", r)
 	}
 	c := bs[i].def.Abilities[0].Cost
@@ -259,7 +259,7 @@ func TestCounterCostForms(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Jessica Jones, Private Eye")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Jessica Jones refused: %v", r)
 	}
 	c = bs[i].def.Abilities[0].Cost
@@ -274,7 +274,7 @@ func TestCounterCostForms(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Slumbering Walker")
-	if r := all[i].Refusals; len(r) != 0 {
+	if r := lowerRefusals(all[i]); len(r) != 0 {
 		t.Fatalf("Slumbering Walker refused: %v", r)
 	}
 	var paid *lInstr
@@ -288,7 +288,7 @@ func TestCounterCostForms(t *testing.T) {
 	}
 
 	i = keclIndex(t, all, "Sanctuary Wall")
-	got := keclReason(all[i].Refusals)
+	got := keclReason(lowerRefusals(all[i]))
 	if !strings.Contains(got, "counter cost") {
 		t.Errorf("Sanctuary Wall: refusals %q, want the counter-cost reason", got)
 	}
