@@ -15,7 +15,7 @@ import (
 // same question and the decision agrees.
 func TestSpellbenchTwinManualPayGollumAdventure(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -26,7 +26,7 @@ import (
 // invert the last assertion to demand the neutral 4U plan.
 func TestBenthicGiantCostGrantIsInherent(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

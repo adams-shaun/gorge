@@ -12,7 +12,7 @@ import (
 // game; only the neutral answer is under test.
 func TestNeutralTwinEntrancingLyre(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

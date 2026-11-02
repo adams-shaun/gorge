@@ -147,10 +147,15 @@ func identity(c *cards.Card) uint8 {
 }
 
 func buildPool(reg *cards.Registry) (*pool, error) {
-	p := &pool{all: map[string]bool{}, cards: map[string]*cards.Card{}, keys: map[string][]string{}}
 	sup := effects.Supported()
+	return buildPoolOf(reg, func(c *cards.Card) bool { return len(reg.Unsupported(c, sup)) == 0 })
+}
+
+// buildPoolOf is the pool of the eligible cards keep admits.
+func buildPoolOf(reg *cards.Registry, keep func(*cards.Card) bool) (*pool, error) {
+	p := &pool{all: map[string]bool{}, cards: map[string]*cards.Card{}, keys: map[string][]string{}}
 	for _, c := range reg.AllCards() {
-		if !eligible(c) || len(reg.Unsupported(c, sup)) > 0 {
+		if !eligible(c) || !keep(c) {
 			continue
 		}
 		id := identity(c)

@@ -21,7 +21,7 @@ import (
 // reaches is a broken precondition, not a pass.
 func TestNeutralTwinResidueFixed(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}

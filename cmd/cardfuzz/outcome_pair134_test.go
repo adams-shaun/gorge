@@ -12,7 +12,7 @@ import (
 // as agent_error. The pair must reach its result with both lanes finished.
 func TestOutcomePair134NoForfeit(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	p, err := buildPool(reg)
+	p, err := pinnedPool(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
