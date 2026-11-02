@@ -107,8 +107,11 @@ derives each list from the set lists and the corpus on every build, and kfuzz de
 
 `oracle.SynthPool` deals `oracle.SynthDecks` 40-card decks from `-seed`: two colours, 23 spells from a
 shuffled queue at most two of each, up to 4 nonbasic lands, basics to 40. A card of three or more colours
-at the head of the queue makes the deck take its colours, or that card would never be dealt. The deal
-never avoids a card because it diverges or stalls: that would hide what the pool is for. A deck name
+at the head of the queue makes the deck take its colours, or that card would never be dealt. The deal is from the cards the run plays: the evidence
+run leaves out the cards refused by name, so no pair is lost to one, and the run that settles
+the refused list (`-play-refused`) deals every lowered card, which is what keeps a refused
+entry's repro pair fixed. Within the cards dealt, which ones a deck holds is the queue's and
+never depends on how a card plays. A deck name
 (`std-dsk_00017_WU`) and `-seed` reproduce a game: `kfuzz -synth std-dsk -first-pair N -pairs 1 -seed 1`.
 
 ```sh

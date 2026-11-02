@@ -314,7 +314,7 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported)
 	}
 	b.WriteString("\n`ALL` is the whole corpus; the rest are the Standard sets.\n\n## What supported covers\n\n")
-	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool skips a pair holding a refused card and a pair the kernel refuses together, so it plays fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
+	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
 	if err != nil {
 		t.Fatal(err)

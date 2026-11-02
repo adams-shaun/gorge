@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"encoding/json"
-	"maps"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -126,9 +125,9 @@ func (r refusing) Status(i int) cardset.Status {
 	return r.Set.Status(i)
 }
 
-// TestRefusalMovesNoDeal: refusing a card leaves every pair of its pool the same two
-// decks and the same seed, or a refused entry's repro would name a different game and
-// a test pinning a pair would break with the list.
+// TestRefusalMovesNoDeal: a set that plays the refused cards (the run that settles the
+// list, and every test pinning a pair) deals the same decks whatever the list says, or a
+// refused entry's repro would name a different game.
 func TestRefusalMovesNoDeal(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-dsk")
@@ -140,10 +139,6 @@ func TestRefusalMovesNoDeal(t *testing.T) {
 		return pool, files
 	}
 	pool, files := dealt(set)
-	// A set turning refused cards away deals the same decks as one playing them.
-	if _, f := dealt(cardset.AllowUnverified(set)); !maps.EqualFunc(files, f, func(a, b deck.File) bool { return slices.Equal(a.Cards, b.Cards) }) {
-		t.Fatal("a view of the table dealt other decks")
-	}
 	refused := 0
 	for i, n := range set.Names()[:set.NumCards()] {
 		if set.Status(i) == cardset.StatusNotLowered || cardset.IsSynthBasic(n) || set.Status(i) == cardset.StatusRefused {
@@ -169,6 +164,51 @@ func TestRefusalMovesNoDeal(t *testing.T) {
 		}
 	}
 	t.Fatal("std-dsk has no card to refuse")
+}
+
+// TestSynthDealsNoRefusedCard: a set that turns refused cards away deals none of them, so
+// no pair of the evidence run is lost to one, and still deals every other lowered card,
+// unverified ones included.
+func TestSynthDealsNoRefusedCard(t *testing.T) {
+	reg := synthReg(t)
+	for _, name := range []string{"std-tla", "std-dsk"} {
+		set := cardsettest.Synth(t, name)
+		view := cardset.AllowUnverified(set)
+		pool, files, err := SynthPool(reg, view, EvidenceSeed, SynthDecks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		held := map[string]int{}
+		for _, d := range pool {
+			for _, e := range files[d.Name].Cards {
+				held[e.Name]++
+			}
+		}
+		refused := 0
+		for i, n := range view.Names()[:view.NumCards()] {
+			switch st := view.Status(i); {
+			case st == cardset.StatusRefused:
+				refused++
+				if held[n] != 0 {
+					t.Errorf("%s: refused %q was dealt into %d decks", name, n, held[n])
+				}
+			case st == cardset.StatusUnverified && kindOf(mustLookup(t, reg, n)) != synthUndealable && held[n] == 0:
+				t.Errorf("%s: unverified %q was dealt into no deck", name, n)
+			}
+		}
+		if refused == 0 {
+			t.Errorf("%s has no refused card to leave out", name)
+		}
+	}
+}
+
+func mustLookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("%q is not in the corpus", name)
+	}
+	return c
 }
 
 func TestSynthDecksAre40(t *testing.T) {

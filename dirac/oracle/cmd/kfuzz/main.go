@@ -202,8 +202,8 @@ func run() int {
 	var set cardset.Set
 	switch {
 	case *synth != "":
-		// As -evidence: unverified cards play and a pair holding a refused one is turned
-		// away, unless -play-refused asks for the games a settling run needs.
+		// As -evidence: unverified cards play and decks are dealt without the refused
+		// ones, unless -play-refused asks for the games a settling run needs.
 		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
 			set = cardset.AllowUnverified(set)
 		}

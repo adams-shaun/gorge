@@ -36,7 +36,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 ## What supported covers
 
-Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool skips a pair holding a refused card and a pair the kernel refuses together, so it plays fewer games, and its cards met the floor in these:
+Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:
 
 | pool | games per run |
 |---|---:|
