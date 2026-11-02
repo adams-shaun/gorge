@@ -57,3 +57,32 @@ func TestMayAskSeesGrantedOptionalReplacement(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// An ask-free spell still proposes its own move as it finishes (CR 608.2n), and two
+// exile-instead replacements compete for that (CR 616.1): std-dsk's Horrid Vigor under
+// two Leylines of the Void and std-fdn's under two Dryad Militants panicked here.
+func TestMayAskSeesASpellsOwnMove(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	militant := mustCorpusCard(t, reg, "Dryad Militant")
+	spell := card(t, "Name:Gate Gain\nManaCost:0\nTypes:Instant\nA:SP$ GainLife | LifeAmount$ 1 | SpellDescription$ Gain 1 life.\nOracle:x\n")
+	for _, n := range []int{1, 2} {
+		e, cfg := tokenReplGame(t, 7555083076110424585, militant, militant, spell)
+		id := moveSeededCard(t, e, 0, spell, state.ZHand)
+		for i := 0; i < n; i++ {
+			moveSeededCard(t, e, 0, militant, state.ZBattlefield)
+		}
+		addMana(t, e, 0, "")
+		castSpellOption(t, e, spell.Faces[0].Name)
+		if n == 2 && !tapeMayAsk(e) {
+			t.Fatal("the ask-free predicate exempted the spell under two Militants")
+		}
+		if asks := driveCountingReplacementAsks(t, e, 0); (asks > 0) != (n == 2) {
+			t.Fatalf("%d Militants: %d replacement asks", n, asks)
+		}
+		if z := e.G.Obj(id).Zone; z != state.ZExile {
+			t.Fatalf("%d Militants: the spell is in %v, want exile", n, z)
+		}
+		replayCheck(t, e, cfg)
+	}
+}
