@@ -44,7 +44,7 @@ func (s *State) srcWither(k *prep, kw kop.KwMask) bool {
 	if k.t.Cards[e.card].Wither {
 		return true
 	}
-	if k.gen.anyWitherGrant && !DebugWitherGrantIgnored && e.li != 0 && e.kind == seAbility {
+	if k.gen.anyWitherGrant && !DebugWitherGrantIgnored && e.li != 0 && e.kind != seSpell {
 		if l := s.lk(e.li); l.obj == e.obj && l.kw&kop.KwWither != 0 {
 			return true
 		}
