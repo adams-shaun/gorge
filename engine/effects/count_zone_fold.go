@@ -263,7 +263,14 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			}
 		}
 	case zoneFoldPropCreatureType:
-		for _, typ := range o.Face().Types {
+		// The object's current creature types, layer 4 included (CR 205.3m,
+		// 702.73a): a Changeling has every one. Forge reads
+		// card.getType().getCreatureTypes() the same way.
+		types, all := derivedCreatureTypes(o, &specCtx)
+		if all {
+			types = creatureTypeWordList
+		}
+		for _, typ := range types {
 			if creatureSubtypeWords[typ] {
 				f.seenCreatureTypes[typ] = true
 			}

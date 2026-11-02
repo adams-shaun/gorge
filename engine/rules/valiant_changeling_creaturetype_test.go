@@ -94,6 +94,24 @@ func TestValiantChangelingReducesPerCreatureTypeCapped(t *testing.T) {
 	}
 }
 
+// TestValiantChangelingReadsCurrentCreatureTypes: the count reads the creatures'
+// current types (CR 205.3m): a lone Changeling has every creature type, and a
+// static that grants a type adds it to each creature it reaches.
+func TestValiantChangelingReadsCurrentCreatureTypes(t *testing.T) {
+	t.Parallel()
+	changeling := "Name:VC Changeling\nManaCost:1 G\nTypes:Creature Shapeshifter\nPT:1/1\nK:Changeling\nOracle:x\n"
+	e, _, vc := valiantChangelingGame(t, 823, []string{changeling})
+	if got := reduceOf(t, e, 0, vc); got != 5 {
+		t.Fatalf("reduction with a Changeling = %d, want 5 (every type, then the LimitMax cap)", got)
+	}
+	grant := "Name:VC Grant\nManaCost:1 G\nTypes:Creature Bear\nPT:1/1\n" +
+		"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddType$ Elf | Description$ x\nOracle:x\n"
+	e2, _, vc2 := valiantChangelingGame(t, 824, []string{grant})
+	if got := reduceOf(t, e2, 0, vc2); got != 2 {
+		t.Fatalf("reduction with a granted type = %d, want 2 (Bear and Elf)", got)
+	}
+}
+
 // TestValiantChangelingCastsForTheCappedDiscount pins the discount as real
 // money: with seven creature types out the capped {5} reduction makes the
 // {5}{W}{W} spell castable for {W}{W} alone, and the pool empties.

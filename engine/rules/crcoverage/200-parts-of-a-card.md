@@ -57,7 +57,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 205.3e | partial | `engine/effects/creature_types.go#creatureSubtypeWords` | - | "Time Lord" split into Time + Lord |
 | 205.3f | follows | `engine/cards/printed_facts.go#typeNames` | - | Oracle subtypes from corpus |
 | 205.3g-205.3k | follows | `engine/cards/printed_facts.go#typeNames` | - | vocabulary from corpus |
-| 205.3m | partial | `engine/effects/creature_types.go#creatureSubtypeWords` | - | extra/split tokens vs CR list |
+| 205.3m | partial | `engine/effects/creature_types.go#creatureSubtypeWords` `engine/effects/count_zone_fold.go#zoneCountFold.visit` | `TestValiantChangelingReadsCurrentCreatureTypes` | extra/split tokens vs CR list; a count of creature types reads each object's current types, every one for a Changeling |
 | 205.3n-205.3r | n/a | - | - | planes/dungeon/battle subtype lists |
 | 205.4 | definition | - | - | heading |
 | 205.4a | follows | `engine/rules/chars/types.go#SupertypeWords` | - |  |

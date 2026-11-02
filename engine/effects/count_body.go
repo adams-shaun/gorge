@@ -341,12 +341,15 @@ func evalCountBodyCost(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		if o == nil || o.Face() == nil {
 			return 0, true, true
 		}
-		types := o.Face().Types
+		types, all := o.Face().Types, IntrinsicAllCreatureTypes(o)
 		for _, derived := range c.Layers.DerivedTypes {
 			if derived.ID == o.ID {
-				types = derived.Types
+				types, all = derived.Types, derived.AllCreatureTypes
 				break
 			}
+		}
+		if all {
+			types = creatureTypeWordList
 		}
 		seen := make(map[string]bool)
 		for _, typ := range types {
