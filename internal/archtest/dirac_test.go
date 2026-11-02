@@ -91,12 +91,12 @@ var rawTableReaders = map[string]bool{
 }
 
 // rawTableUsers may name them: lockstep earns evidence on raw tables, kgen builds
-// them, and five dirac tests read synthetic pools, four for cards only they hold
+// them, and six dirac tests read synthetic pools, five for cards only they hold
 // and one to measure them. Everything else plays what the support lists allow.
 var rawTableUsers = []string{
 	"dirac/oracle/", "dirac/kgen/", "dirac/cardset/",
 	"dirac/panic_test.go", "dirac/poolbytes_test.go", "dirac/restractivation_test.go",
-	"dirac/synthshapes_test.go", "dirac/xannounce_test.go",
+	"dirac/synthshapes_test.go", "dirac/xannounce_test.go", "dirac/grantcap_reader_test.go",
 }
 
 // rawTableViolation is the selector in src that file may not use, or "".
