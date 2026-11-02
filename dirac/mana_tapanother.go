@@ -147,22 +147,37 @@ func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
 	return true
 }
 
-// tapXStep is one activation: source sl taps candidate cand and makes col.
+// tapXStep is one step of the search's path: an activation (source sl taps
+// candidate cand and makes col), an answer to an ask the activation's trigger
+// posed (act: the target of a Taps listener's trigger, an order, a discard),
+// or p's pass while that trigger resolves.
 type tapXStep struct {
 	sl, cand Slot
 	cand2    Slot // the second tapped permanent of a two-permanent cost (NoSlot: none)
 	col      uint8
+	kind     uint8
+	act      Action
 }
+
+const (
+	tapXAct    uint8 = iota // an activation
+	tapXAnswer              // act answers the ask then pending
+	tapXPass                // p passes with a trigger of the path on the stack
+)
 
 type tapXKey struct {
 	pool   [kop.NumManaKinds]uint8
 	art    uint8
 	tapped slotMask
+	sp     uint8 // gorge's key counts the stack, hand and graveyard too
+	hand   uint8
+	gy     uint8
 }
 
 type tapXSearch struct {
 	a     Action
 	p     uint8
+	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	nodes int
 	nseen int
@@ -178,18 +193,123 @@ type tapXSearch struct {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.gaps = a, p, s.scriptTapXModelled(k, p).or(s.scriptCtr(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtr(k, p))
 	t := s.fork()
 	defer s.unfork()
-	if !rs.visit(k, t, false) || rs.n == 0 {
+	if !rs.settle(k, t, false) || rs.n == 0 {
 		return false
 	}
 	if apply {
-		for i := 0; i < rs.n; i++ {
-			s.tapXDo(k, p, rs.path[i])
-		}
+		s.tapXPlay(k, p, rs.path[:rs.n])
 	}
 	return true
+}
+
+// tapXNext runs t to p's next decision, passing for the other player while a
+// trigger of the path resolves (gorge scriptSearch.visit assumes they pass),
+// and reports whether there is one. Priority is not offered with the script
+// hook: the search prices the play itself.
+func (t *State) tapXNext(p uint8, d *Decision) bool {
+	for guard := 0; guard < 16; guard++ {
+		t.g.availX = availPlain
+		t.stepRaw(d)
+		t.g.availX = 0
+		if t.over || d.Kind == DkNone || d.N == 0 {
+			return false
+		}
+		if d.Player == p&1 {
+			return true
+		}
+		pass := MakeAction(AkPass, 0, 0, 0)
+		if d.Kind != DkPriority || !hasOption(d, pass) {
+			return false
+		}
+		t.Apply(pass)
+	}
+	return false
+}
+
+// tapXPlay plays the found path on s: each activation as the search made it,
+// each answer and pass as the decision then pending (gorge answers the
+// activation's asks and the stacked trigger's one at a time).
+func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
+	n := s.Decisions
+	var d Decision
+	for _, st := range path {
+		if !s.tapXNext(p, &d) {
+			break
+		}
+		if st.kind == tapXAct {
+			s.tapXDo(k, p, st)
+		} else if hasOption(&d, st.act) {
+			s.Apply(st.act)
+		}
+	}
+	s.tapXNext(p, &d) // the trigger the last step queued is stacked and asked now
+	s.Decisions = n
+}
+
+// gorgeTargetOrder puts a target ask's options in the order gorge offers
+// them (target_legal.go candidatesFor: the players by seat, then each seat's
+// battlefield in entry order, then the rest as listed): the script takes the
+// first answer that works, so the kernel's slot order would pick another
+// creature.
+func (t *State) gorgeTargetOrder(d *Decision) {
+	var keys [MaxOptions]uint32
+	n := int(d.N)
+	for i := 0; i < n; i++ {
+		c := d.Options[i].Target()
+		switch {
+		case isPlayerTarget(c):
+			keys[i] = uint32(c-PlayerTarget0) << 8
+		case c < MaxObj && t.objs[c].zone == kop.ZoneBattlefield && t.objs[c].slot != NoSlot:
+			pm := &t.perms[t.objs[c].slot]
+			keys[i] = 1<<24 | uint32(pm.ctrl)<<20 | uint32(pm.ts)
+		default:
+			keys[i] = 2<<24 | uint32(i)
+		}
+	}
+	for i := 1; i < n; i++ {
+		k, a := keys[i], d.Options[i]
+		j := i
+		for j > 0 && keys[j-1] > k {
+			keys[j], d.Options[j] = keys[j-1], d.Options[j-1]
+			j--
+		}
+		keys[j], d.Options[j] = k, a
+	}
+}
+
+// settle continues the search at t after a step: t runs to p's next
+// decision, a priority being a node (visit) and an ask a branch over its
+// answers (gorge scriptSearch.visit's scriptAnswers).
+func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
+	var d Decision
+	if !t.tapXNext(rs.p, &d) {
+		return false
+	}
+	if d.Kind == DkPriority {
+		return rs.visit(k, t, gapUsed)
+	}
+	if !rs.tick() { // the ask
+		return false
+	}
+	if d.Kind == DkTarget {
+		t.gorgeTargetOrder(&d)
+	}
+	for i := 0; i < int(d.N) && rs.n < maxTapXPath; i++ {
+		c := t.fork()
+		c.Apply(d.Options[i])
+		rs.path[rs.n] = tapXStep{kind: tapXAnswer, act: d.Options[i], sl: NoSlot, cand: NoSlot, cand2: NoSlot}
+		rs.n++
+		ok := rs.settle(k, c, gapUsed)
+		t.unfork()
+		if ok {
+			return true
+		}
+		rs.n--
+	}
+	return false
 }
 
 func (rs *tapXSearch) tick() bool {
@@ -238,7 +358,7 @@ func (rs *tapXSearch) try(k *prep, t *State, st tapXStep) bool {
 	c.tapXDo(k, rs.p, st)
 	rs.path[rs.n] = st
 	rs.n++
-	if rs.visit(k, c, true) {
+	if rs.settle(k, c, true) {
 		return true
 	}
 	rs.n--
@@ -251,7 +371,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	}
 	p := rs.p
 	pl := &t.pl[p&1]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[p&1]}
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[p&1], sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
@@ -354,6 +474,22 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 				}
 			}
 		}
+	}
+	if t.sp > rs.sp0 && rs.n < maxTapXPath {
+		// a trigger an activation caused: let it resolve, the pool floats
+		// (gorge: the last resort at a node, so an activation that still
+		// funds the play is tried first)
+		pass := MakeAction(AkPass, 0, 0, 0)
+		c := t.fork()
+		c.Apply(pass)
+		rs.path[rs.n] = tapXStep{kind: tapXPass, act: pass, sl: NoSlot, cand: NoSlot, cand2: NoSlot}
+		rs.n++
+		ok := rs.settle(k, c, true)
+		t.unfork()
+		if ok {
+			return true
+		}
+		rs.n--
 	}
 	return false
 }
