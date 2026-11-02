@@ -359,8 +359,3 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   `getPermanentOrLKIBattlefield` (read, not run); Forge's `TriggerSacrificedOnce` matches its `Cards` run parameter
   (read, not run; whether that is a last-known copy wasn't traced). Gorge's matcher wasn't traced or patched, so
   the cause is unconfirmed. std-blb 435 and 448 also name Camellia but diverge on the stack count and weren't read.
-- Dropkick Bomber's grant never fires: a Goblin given "When this creature deals combat damage, sacrifice it" by
-  Animate's `Triggers$` (Mode$ DamageDealtOnce) deals combat damage and gorge queues no trigger (std-fdn 3, 68, 342;
-  std-tmt 60, 386 on the same shape; run in lockstep, cause in gorge not traced). CR 603.2. XMage's `DropkickBomber`
-  grants `DealsCombatDamageTriggeredAbility` with a sacrifice (read); Forge's script is the same line (read). The
-  kernel fires it, so these stay divergent until gorge is fixed.

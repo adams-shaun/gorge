@@ -119,11 +119,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 		return amt, srcObj, 1 - srcCtrl, true
 	}
 	total := int(amt)
-	// A granted line (Animate Triggers$: Strength of Will) is not latched by
-	// gorge: its grant walk (rules/trigger_granted.go
-	// checkGrantedStaticTriggersUsing) queues an instance per Damage event
-	// with that event's amount, so a double-blocked creature gets two.
-	if rl != nil && rl.r != nil && a.AFlags&kop.AfLatent == 0 {
+	if rl != nil && rl.r != nil {
 		for i := 0; i < rl.n; i++ {
 			// an entry of an earlier event: the referent's first event queued
 			// (or failed the gate) already. The copies of one granted line

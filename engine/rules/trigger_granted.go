@@ -884,6 +884,9 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 				if !observer.triggerMatchesWithSVars(t, id, ev, objLKI, gf.Face.SVars) {
 					continue
 				}
+				if !e.grantedDamageBatchAdmits(t, &gf.Face.Triggers[ti], triggerKey{Source: id, Idx: ti}, ce.Timestamp, id, ev) {
+					continue
+				}
 				key := triggerKey{Source: id, Idx: -1}
 				tc := observer.triggerReferents(t, id, ev, objLKI)
 				pt := pendingTrigger{
@@ -971,6 +974,9 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			continue
 		}
 		key := triggerKey{Source: id, Idx: -1}
+		if !e.grantedDamageBatchAdmits(t, ce.AddTrigger, key, ce.Timestamp, id, ev) {
+			continue
+		}
 		tc := observer.triggerReferents(t, id, ev, objLKI)
 		pt := pendingTrigger{
 			Source:       id,
@@ -1045,6 +1051,24 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			}, ev, nil)
 		}
 	}
+}
+
+// grantedDamageBatchAdmits gives a granted line the damage batch gate a printed
+// line gets (CR 603.2): "when this creature deals combat damage" is one trigger
+// for a batch however many creatures the damage was split among. A line of any
+// other mode passes.
+func (e *Engine) grantedDamageBatchAdmits(t cards.Trigger, line *cards.Trigger, key triggerKey, stamp uint32, id state.ObjID, ev events.Event) bool {
+	mk := t.ModeKind()
+	switch mk {
+	case cards.TriggerDamageDealtOnce, cards.TriggerDamageDoneOnce, cards.TriggerDamageAll, cards.TriggerExcessDamageAll:
+	default:
+		return true
+	}
+	amount := damageTriggerAmount(e.excessDamageBaseline, mk, ev, damageSourceHasDeathtouch(e, e.damageSourceLKI, ev))
+	if amount <= 0 {
+		return false
+	}
+	return e.latchDamageBatch(t, line, mk, key, grantedLine{stamp: stamp, line: line}, id, ev, amount)
 }
 
 // grantedTriggerStaticsFor returns, in active()'s order, pointers to the

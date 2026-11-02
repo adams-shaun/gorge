@@ -351,8 +351,11 @@ type dmgLatch struct {
 	totalPl int16 // the part dealt to players
 }
 
-func (d *dmgLatch) has(l trigListener) bool {
-	for i := 0; i < d.n; i++ {
+// has reports whether l latched before the event whose walk began with seen
+// entries. Entries of the event in progress do not count: each granted instance of
+// one line is its own ability (CR 113.2c) and they all trigger on the event.
+func (d *dmgLatch) has(l trigListener, seen int) bool {
+	for i := 0; i < seen; i++ {
 		if d.l[i].obj == l.obj && d.l[i].card == l.card && d.l[i].ab == l.ab {
 			return true
 		}
@@ -388,6 +391,10 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	isDmg := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigDamageDone || a.Trig.Event == kop.TrigDamageDealtOnce
 	}
+	seen := 0
+	if latch != nil {
+		seen = latch.n
+	}
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isDmg, func(l trigListener, a *kop.Ability) {
 			t := &a.Trig
@@ -404,7 +411,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 				return
 			}
 			once := t.Event == kop.TrigDamageDealtOnce && latch != nil
-			if once && latch.has(l) {
+			if once && latch.has(l, seen) {
 				return
 			}
 			if !s.objEventMatch(k, l, a, src) || !s.trigOK(k, l, a) {
