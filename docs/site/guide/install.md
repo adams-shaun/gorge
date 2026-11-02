@@ -34,7 +34,7 @@ the commit pinned by `FORGE_REF` in the
 is a function of that pin. The fetch leaves about 140 MB on disk.
 
 ```text
-fetched <measure:corpus-files> card scripts and <measure:corpus-tokens> token scripts from https://github.com/adams-shaun/forge.git at <FORGE_REF>
+fetched 34074 card scripts and 854 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```

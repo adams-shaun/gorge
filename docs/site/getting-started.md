@@ -24,12 +24,12 @@ committed ([why](repos/index.md#licensing-and-the-forge-card-scripts)).
 `make compile-cards` prints a couple of diagnostics for rider text it doesn't support;
 those are expected.
 
-`make report` begins like this (`<measure:date>`, at `<measure:rev>`):
+`make report` begins like this (2026-11-02, at `b78e4c8b1`):
 
 ```text
-corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, <measure:corpus-files> files)
-cards: <measure:corpus-files>  playable: <measure:gorge-playable>
-tokens: <measure:corpus-tokens>
+corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, 34074 files)
+cards: 34074  playable: 32393 (95.1%)
+tokens: 854
 ```
 
 A card is *playable* when every primitive its script names is implemented, which doesn't

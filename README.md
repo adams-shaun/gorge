@@ -29,17 +29,18 @@ shown it agrees with gorge on, decision by decision, and refuses the rest by nam
 | | gorge | dirac |
 |---|---|---|
 | Seats and formats | 2 to 8, Constructed and Commander | 2, Constructed |
-| Cards | `<measure:gorge-playable>` of `<measure:corpus-files>` scripts playable | `<measure:dirac-supported>` of `<measure:corpus-names>` names supported |
+| Cards | 32,393 of 34,074 scripts playable | supported cards only, counted per set in [`dirac/docs/support.md`](dirac/docs/support.md) |
 | What the count means | every primitive the script names is implemented; [per set](https://adams-shaun.github.io/gorge/support/sets/) also checked against XMage | lowered, not refused by name, and clean in the lockstep games of the evidence corpus |
-| Random games per core-second, FDN decks | `<measure:gorge-games>` | `<measure:dirac-games>` |
+| Random games per core-second, FDN decks | 70 | 1,800 |
 | Record of a game | hash-chained event log | the answers given; the log is derived |
-| Checked by | gorge-compliance: `<measure:level-a>` sets at level A, `<measure:level-b>` at level B, against XMage | gorge, at every decision, on every change |
+| Checked by | gorge-compliance: 20 sets at level A or better, 17 of them at level B, against XMage | gorge, at every decision, on every change |
 
 gorge plays full games and replays them exactly, but it is not at rules parity
 with mature engines and is not ready for production use. dirac agrees with gorge
 on the cards it supports, so it shares gorge's bugs: lockstep can't see a mistake
-both engines make. Measured `<measure:date>`
-at `<measure:rev>`; [Performance](https://adams-shaun.github.io/gorge/performance/) has the method.
+both engines make. Measured 2026-11-02 at `b78e4c8b1` with `make report` and
+`scripts/xengine-bench.sh gorge dirac`, on the corpus pin of that revision;
+[Performance](https://adams-shaun.github.io/gorge/performance/) has the method.
 
 - **The server** (`gorged`) hosts perpetual bot tables, play-against-a-bot games
   and 4-seat draft events over HTTP and server-sent events. It speaks three

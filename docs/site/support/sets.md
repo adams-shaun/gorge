@@ -20,9 +20,9 @@ the most leverage.
 
 ## Headline
 
-**gorge, playable:** `<measure:gorge-playable>` of
-`<measure:corpus-files>` Forge card scripts at the corpus pin. All of them compile into gorge's IR
-(`make report`, `<measure:date>`, `<measure:rev>`).
+**gorge, playable:** 32,393 of
+34,074 Forge card scripts at the corpus pin. All of them compile into gorge's IR
+(`make report`, 2026-11-02, `b78e4c8b1`).
 
 --8<-- "support/_generated_sets.md:headline"
 
@@ -100,8 +100,9 @@ holds every other set's problem count, and that count may only fall. All of
 these targets describe the pinned gorge commit. Bumping the pin is a pull
 request that re-measures them.
 
-At gorge-compliance `<measure:compliance-rev>`, the committed verdicts number
-`<measure:verdict-counts>`. `xmage_wrong` is a ruled XMage error with a CR citation.
+At gorge-compliance `7d796ae`, the committed verdicts number
+13,187 over 5,279 cards: 13,134 `agree`, 37 `xmage_wrong`, 11 `harness`, 3 `diverge` and 2 `gorge_wrong`
+([the count's command](regenerating.md)). `xmage_wrong` is a ruled XMage error with a CR citation.
 
 ### dirac: lowered and supported
 
@@ -126,8 +127,8 @@ dirac's per-set card list is the distinct card names in XMage's manifest
 for the set that exist in the Forge corpus. That list can differ by a few cards
 from gorge-compliance's count, which uses the printed card list where one
 exists. Each engine's column uses its own denominator. dirac's
-corpus-wide count is distinct card names, `<measure:corpus-names>`, and `make report`'s
-`<measure:corpus-files>` counts script files.
+corpus-wide count is distinct card names, 34,072, and `make report`'s
+34,074 counts script files.
 
 ### XMage and Forge, as reference points
 
@@ -137,7 +138,7 @@ claims or a plain count, not certifications.
 | Engine | Claim | Source |
 |---|---|---|
 | XMage | "over 32 000 unique cards and more than 91 000 reprints across official sets" | the [XMage README](https://github.com/magefree/mage), read 2026-10-20 |
-| Forge | no card-count claim in its README; its card corpus at gorge's pin holds `<measure:corpus-files>` card scripts and `<measure:corpus-tokens>` token scripts | `.cards/cards.lock` and `make report` |
+| Forge | no card-count claim in its README; its card corpus at gorge's pin holds 34,074 card scripts and 854 token scripts | `.cards/cards.lock` and `make report` |
 
 Forge is where gorge's card scripts come from, so Forge's corpus is gorge's
 denominator. XMage supplies the set manifests (589 sets, built from its set

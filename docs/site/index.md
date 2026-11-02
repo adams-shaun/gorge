@@ -74,16 +74,16 @@ decision, and refuses the rest by name. Its cards are generated from gorge's com
 - **Tools** to play verified bot games, replay any game, and turn a player's bug report into a failing test.
 
 gorge plays full games and replays them byte for byte. It is not at rules parity with mature engines and is
-not ready for production use. On `<measure:date>`
-at `<measure:rev>`, `make report` counted
-`<measure:gorge-playable>` of Forge's
-`<measure:corpus-files>` scripts as playable, meaning every primitive they name is implemented;
+not ready for production use. On 2026-11-02
+at `b78e4c8b1`, `make report` counted
+32,393 of Forge's
+34,074 scripts as playable, meaning every primitive they name is implemented;
 [Card support](support/sets.md) has the stronger per-set certification against XMage and Forge, rebuilt with
 this site.
 
-dirac supported `<measure:dirac-supported>`
-of `<measure:corpus-names>` card names on that date: lowered, not refused by name, and clean in lockstep
-games of the evidence corpus. It agrees with gorge on those cards, so it shares gorge's bugs: lockstep can't
+dirac plays only its supported cards: lowered, not refused by name, and clean in lockstep games of the
+evidence corpus. [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) is generated and
+counts them per set, with the games behind each pool. It agrees with gorge on those cards, so it shares gorge's bugs: lockstep can't
 see a mistake both engines make.
 
 ## Where to go

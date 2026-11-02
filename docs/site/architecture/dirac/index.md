@@ -32,8 +32,8 @@ for {
 over, winner := s.Terminal()
 ```
 
-Copying a mid-game FDN position takes about `<measure:clone-ns>` and allocates nothing, and a transition takes
-about `<measure:transition-us>`, also allocating nothing, measured `<measure:date>`
+Copying a mid-game FDN position takes about 40 ns and allocates nothing, and a transition takes
+about 2.7 µs, also allocating nothing, measured 2026-11-02
 ([Performance](../../performance/index.md#transitions-and-copies)).
 
 ## What it supports
@@ -42,14 +42,13 @@ A card moves through three states. Only all three together are a claim about pla
 
 | State | Meaning | Where it is recorded |
 |---|---|---|
-| **Lowered** | `dirac/kgen` read every rules parameter of the card's compiled IR and turned it into `dirac/kop` ops | the build ratchet: `<measure:dirac-lowered>` of `<measure:corpus-names>` corpus card names on `<measure:date>` |
+| **Lowered** | `dirac/kgen` read every rules parameter of the card's compiled IR and turned it into `dirac/kop` ops | the build ratchet, and the *lowered* column of [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) |
 | **Not refused** | the card isn't on the short list of cards named as playing wrongly, each with a reason and a game that shows it | [`dirac/support/refused`](https://github.com/adams-shaun/gorge/tree/main/dirac/support/refused) |
 | **Evidenced** | clean lockstep games of the evidence corpus played the card at least three times and used every ability it has | [`dirac/support/evidence`](https://github.com/adams-shaun/gorge/tree/main/dirac/support/evidence) |
 
 A **supported** card is all three: lowered, not refused by name, and clean in the lockstep games of the evidence
-corpus. That is `<measure:dirac-supported>` of the `<measure:corpus-names>` names in the corpus.
-[`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) is generated from the
-same lists and gives the count per Standard set, and [Card support by set](../../support/sets.md#per-set-support)
+corpus. [`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md) is generated from the
+same lists and gives the count corpus-wide and per Standard set, with the games behind each pool, and [Card support by set](../../support/sets.md#per-set-support)
 renders it. `kgen -supported <pool>` answers for each card of one pool:
 
 ```sh
@@ -74,20 +73,20 @@ can still find a difference on a supported card.
 ### How far lockstep agrees
 
 gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
-`<measure:date>` at `<measure:rev>`, with random answers. The first four rows are `make dirac-slices`, which any clone
+2026-11-02 at `b78e4c8b1`, with random answers. The rows are `make dirac-slices`, which any clone
 with a corpus can run, and CI runs on every change. A slice is the first 1,500 pairs of a pool at seed 1.
 
 | Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
 |---|--:|--:|--:|--:|--:|--:|
-| FDN slice, `-surface autopay` | <measure:row-lockstep-fdn-autopay> |
-| FDN slice, `-surface full` | <measure:row-lockstep-fdn-full> |
-| BLB slice, `-surface autopay` | <measure:row-lockstep-blb-autopay> |
-| BLB slice, `-surface full` | <measure:row-lockstep-blb-full> |
-| Standing sweep, deck pools that aren't published | <measure:row-lockstep-sweep> |
+| FDN slice, `-surface autopay` | 1,399 | 1,397 | 0 | 0 | 2 | 101 |
+| FDN slice, `-surface full` | 1,399 | 1,395 | 0 | 0 | 4 | 101 |
+| BLB slice, `-surface autopay` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
+| BLB slice, `-surface full` | 1,456 | 1,456 | 0 | 0 | 0 | 44 |
 
-A refused pair holds a card dirac doesn't support, so it never starts a game. The sweep is outside "supported": it
-pairs cards the evidence corpus never put together, and each game that diverges is open work, on one engine or the
-other.
+A refused pair holds a card dirac doesn't support, so it never starts a game. A capacity stall is a declared limit,
+reached with no disagreement up to that point; it counts against the run and isn't clean. Games beyond these slices,
+on pairs the evidence corpus never put together, can still diverge, and each that does is open work on one engine or
+the other.
 
 ## Scope
 
