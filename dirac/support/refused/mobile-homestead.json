@@ -1,0 +1,13 @@
+{
+  "card": "Mobile Homestead",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 25 games in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1318,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

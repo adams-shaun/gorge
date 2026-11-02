@@ -1,0 +1,13 @@
+{
+  "card": "Resurrected Cultist",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 2 games in the corpus",
+  "repro": {
+    "pool": "std-dsk",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 398,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

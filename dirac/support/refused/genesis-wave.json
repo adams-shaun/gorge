@@ -1,0 +1,13 @@
+{
+  "card": "Genesis Wave",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 4 games in the corpus",
+  "repro": {
+    "pool": "std-fdn",
+    "surface": "full",
+    "seed": 1,
+    "pair": 689,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

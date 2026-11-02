@@ -1,0 +1,13 @@
+{
+  "card": "Crossroads Village",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 39 games in the corpus",
+  "repro": {
+    "pool": "std-fin",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 120,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

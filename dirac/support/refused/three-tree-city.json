@@ -1,0 +1,13 @@
+{
+  "card": "Three Tree City",
+  "class": "options",
+  "why": "the engines offer different options; 33 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1082,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

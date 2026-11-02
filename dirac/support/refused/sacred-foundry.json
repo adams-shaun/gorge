@@ -1,0 +1,13 @@
+{
+  "card": "Sacred Foundry",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 14 games in the corpus",
+  "repro": {
+    "pool": "std-eoe",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 399,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Flood the Engine",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 9 games in the corpus",
+  "repro": {
+    "pool": "std-dft",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 926,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

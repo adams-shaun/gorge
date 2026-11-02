@@ -1,0 +1,13 @@
+{
+  "card": "Edgewall Inn",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 6 games in the corpus",
+  "repro": {
+    "pool": "std-woe",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 138,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

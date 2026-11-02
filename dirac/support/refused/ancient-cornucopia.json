@@ -1,0 +1,13 @@
+{
+  "card": "Ancient Cornucopia",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 4 games in the corpus",
+  "repro": {
+    "pool": "std-big",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 30,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

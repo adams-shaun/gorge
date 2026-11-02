@@ -1,0 +1,13 @@
+{
+  "card": "Dragonbroods' Relic",
+  "class": "projection-Cards.Chars.Colors",
+  "why": "the engines' state differs at projection Cards[].Chars.Colors; 30 games in the corpus",
+  "repro": {
+    "pool": "std-tdm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 500,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

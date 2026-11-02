@@ -1,0 +1,13 @@
+{
+  "card": "Giant's Boulder",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 17 games in the corpus",
+  "repro": {
+    "pool": "std-hob",
+    "surface": "full",
+    "seed": 1,
+    "pair": 234,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

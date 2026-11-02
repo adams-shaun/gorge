@@ -1,0 +1,13 @@
+{
+  "card": "Behind the Mask",
+  "class": "options",
+  "why": "the engines offer different options; 3 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1133,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

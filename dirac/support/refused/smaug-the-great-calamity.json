@@ -1,0 +1,13 @@
+{
+  "card": "Smaug, the Great Calamity",
+  "class": "projection-Life",
+  "why": "the engines' state differs at projection Life[]; 4 games in the corpus",
+  "repro": {
+    "pool": "std-hob",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 589,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Flickering Hound",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]",
+  "repro": {
+    "pool": "std-fra",
+    "surface": "full",
+    "seed": 1,
+    "pair": 816,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

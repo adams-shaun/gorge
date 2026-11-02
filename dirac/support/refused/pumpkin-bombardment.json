@@ -1,0 +1,13 @@
+{
+  "card": "Pumpkin Bombardment",
+  "class": "options",
+  "why": "the engines offer different options; 6 games in the corpus",
+  "repro": {
+    "pool": "std-spm",
+    "surface": "full",
+    "seed": 1,
+    "pair": 798,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

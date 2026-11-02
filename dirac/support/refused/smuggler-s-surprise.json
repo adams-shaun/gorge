@@ -1,0 +1,13 @@
+{
+  "card": "Smuggler's Surprise",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]; 18 games in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "full",
+    "seed": 1,
+    "pair": 147,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

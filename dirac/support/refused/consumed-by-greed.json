@@ -1,0 +1,13 @@
+{
+  "card": "Consumed by Greed",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 4 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1084,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

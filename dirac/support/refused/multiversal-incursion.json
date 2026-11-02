@@ -1,0 +1,13 @@
+{
+  "card": "Multiversal Incursion",
+  "class": "options",
+  "why": "the engines offer different options; 4 games in the corpus",
+  "repro": {
+    "pool": "std-msh",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 983,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

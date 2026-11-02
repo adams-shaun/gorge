@@ -1,0 +1,13 @@
+{
+  "card": "Deserter's Disciple",
+  "class": "unmodelled-landgrant",
+  "why": "gorge does something the kernel does not model here (stall landgrant); 3 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 621,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

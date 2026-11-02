@@ -1,0 +1,13 @@
+{
+  "card": "Water Tribe Rallier",
+  "class": "options",
+  "why": "the engines offer different options; 16 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 811,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

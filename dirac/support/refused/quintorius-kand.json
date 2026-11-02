@@ -1,0 +1,13 @@
+{
+  "card": "Quintorius Kand",
+  "class": "unmodelled-tokatkask",
+  "why": "gorge does something the kernel does not model here (stall tokatkask); 20 games in the corpus",
+  "repro": {
+    "pool": "std-lci",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 474,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

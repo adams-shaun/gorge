@@ -1,0 +1,13 @@
+{
+  "card": "It Doesn't Add Up",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 7 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 203,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

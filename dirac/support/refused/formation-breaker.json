@@ -1,0 +1,13 @@
+{
+  "card": "Formation Breaker",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 2 games in the corpus",
+  "repro": {
+    "pool": "std-tdm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 427,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

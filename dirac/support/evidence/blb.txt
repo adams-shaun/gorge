@@ -7,7 +7,9 @@ Brightblade Stoat
 Bumbleflower's Sharepot
 Burrowguard Mentor
 Calamitous Tide
+Cindering Cutthroat
 Conduct Electricity
+Dire Downdraft
 Diresight
 Dreamdew Entrancer
 Driftgloom Coyote
@@ -35,8 +37,11 @@ Lilysplash Mentor
 Lupinflower Village
 Mabel's Mettle
 Mabel, Heir to Cragflame
+Mind Drill Assailant
 Mindwhisker
+Moonrise Cleric
 Mountain
+Mudflat Village
 Nightwhorl Hermit
 Overprotect
 Patchwork Banner
@@ -58,6 +63,7 @@ Run Away Together
 Savor
 Scales of Shale
 Seasoned Warrenguard
+Seedpod Squire
 Shore Up
 Shoreline Looter
 Short Bow
@@ -66,6 +72,7 @@ Sinister Monolith
 Skyskipper Duo
 Sonar Strike
 Star Charter
+Stargaze
 Starlit Soothsayer
 Stickytongue Sentinel
 Stormcatch Mentor
@@ -74,6 +81,7 @@ Sunshower Druid
 Swamp
 Take Out the Trash
 Tangle Tumbler
+Tempest Angler
 Thistledown Players
 Three Tree Rootweaver
 Tidecaller Mentor

@@ -1,0 +1,13 @@
+{
+  "card": "Macabre Reconstruction",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; 26 games in the corpus",
+  "repro": {
+    "pool": "std-mkm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 323,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

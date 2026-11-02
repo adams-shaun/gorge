@@ -1,0 +1,13 @@
+{
+  "card": "Mudbutton Cursetosser",
+  "class": "options",
+  "why": "the engines offer different options; 20 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "full",
+    "seed": 1,
+    "pair": 716,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

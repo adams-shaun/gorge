@@ -1,0 +1,13 @@
+{
+  "card": "Tainted Treats",
+  "class": "projection-NInst",
+  "why": "the engines' state differs at projection NInst; 7 games in the corpus",
+  "repro": {
+    "pool": "std-tmt",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1463,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

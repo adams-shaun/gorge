@@ -1,0 +1,13 @@
+{
+  "card": "Kulrath Zealot",
+  "class": "options",
+  "why": "the engines offer different options; 5 games in the corpus",
+  "repro": {
+    "pool": "std-ecl",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 684,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

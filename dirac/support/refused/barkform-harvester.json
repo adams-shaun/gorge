@@ -1,0 +1,13 @@
+{
+  "card": "Barkform Harvester",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 15 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 950,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

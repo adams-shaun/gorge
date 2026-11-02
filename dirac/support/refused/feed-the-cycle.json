@@ -1,0 +1,13 @@
+{
+  "card": "Feed the Cycle",
+  "class": "options",
+  "why": "the engines offer different options; 55 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 352,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Smile at Death",
+  "class": "options",
+  "why": "the engines offer different options; 2 games in the corpus",
+  "repro": {
+    "pool": "std-tdm",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1379,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

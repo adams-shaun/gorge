@@ -1,0 +1,13 @@
+{
+  "card": "Kraven's Last Hunt",
+  "class": "unmodelled-gravepower",
+  "why": "gorge does something the kernel does not model here (stall gravepower); 41 games in the corpus",
+  "repro": {
+    "pool": "std-spm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 216,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

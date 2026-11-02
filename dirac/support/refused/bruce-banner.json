@@ -1,0 +1,13 @@
+{
+  "card": "Bruce Banner",
+  "class": "projection-Step",
+  "why": "the engines' state differs at projection Step; 5 games in the corpus",
+  "repro": {
+    "pool": "std-msh",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 364,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

@@ -1,0 +1,239 @@
+Agate Assault
+Agate-Blade Assassin
+Alania's Pathmaker
+Azure Beastbinder
+Bakersbane Duo
+Banishing Light
+Bark-Knuckle Boxer
+Bellowing Crier
+Beza, the Bounding Spring
+Blacksmith's Talent
+Blooming Blast
+Blossoming Sands
+Bonebind Orator
+Brambleguard Captain
+Brambleguard Veteran
+Brave-Kin Duo
+Brazen Collector
+Bria, Riptide Rogue
+Brightblade Stoat
+Builder's Talent
+Bumbleflower's Sharepot
+Burrowguard Mentor
+Bushy Bodyguard
+Byrke, Long Ear of the Law
+Byway Barterer
+Cache Grab
+Calamitous Tide
+Camellia, the Seedmiser
+Caretaker's Talent
+Carrot Cake
+Charmed Sleep
+Cindering Cutthroat
+Clifftop Lookout
+Colossification
+Conduct Electricity
+Corpseberry Cultivator
+Coruscation Mage
+Crumb and Get It
+Curious Forager
+Daggerfang Duo
+Daring Waverider
+Darkstar Augur
+Dawn's Truce
+Dewdrop Cure
+Dire Downdraft
+Diresight
+Dour Port-Mage
+Downwind Ambusher
+Dreamdew Entrancer
+Driftgloom Coyote
+Druid of the Spade
+Early Winter
+Eddymurk Crab
+Emberheart Challenger
+Essence Channeler
+Fabled Passage
+Feather of Flight
+Fecund Greenshell
+Fell
+Finch Formation
+Finneas, Ace Archer
+Fireglass Mentor
+Flame Lash
+Flamecache Gecko
+Forest
+Fountainport
+Fountainport Bell
+Frilled Sparkshooter
+Galewind Moose
+Gev, Scaled Scorch
+Giant Growth
+Glidedive Duo
+Gossip's Talent
+Harnesser of Storms
+Harvestrite Host
+Hazardroot Herbalist
+Hazel's Nocturne
+Head of the Homestead
+Heaped Harvest
+Heartfire Hero
+Hearthborn Battler
+Helga, Skittish Seer
+Hidden Grotto
+High Stride
+Hired Claw
+Hivespine Wolverine
+Hoarder's Overflow
+Honored Dreyleader
+Hop to It
+Hugs, Grisly Guardian
+Hunter's Talent
+Huskburster Swarm
+Innkeeper's Talent
+Into the Flood Maw
+Intrepid Rabbit
+Iridescent Vinelasher
+Island
+Jackdaw Savior
+Jolly Gerbils
+Junkblade Bruiser
+Kastral, the Windcrested
+Keen-Eyed Curator
+Kindlespark Duo
+Knightfisher
+Lifecreed Duo
+Lightshell Duo
+Lilypad Village
+Lilysplash Mentor
+Long River's Pull
+Longstalk Brawl
+Lumra, Bellow of the Woods
+Lunar Convocation
+Lupinflower Village
+Mabel's Mettle
+Mabel, Heir to Cragflame
+Maha, Its Feathers Night
+Manifold Mouse
+Might of the Meek
+Mind Drill Assailant
+Mind Spiral
+Mind Spring
+Mindwhisker
+Mistbreath Elder
+Moonrise Cleric
+Moonstone Harbinger
+Mountain
+Mouse Trapper
+Mudflat Village
+Nettle Guard
+Nightwhorl Hermit
+Nocturnal Hunger
+Oakhollow Village
+Osteomancer Adept
+Otterball Antics
+Overprotect
+Parting Gust
+Patchwork Banner
+Pawpatch Formation
+Pawpatch Recruit
+Pearl of Wisdom
+Peerless Recycling
+Persistent Marshstalker
+Pileated Provisioner
+Plains
+Playful Shove
+Plumecreed Escort
+Plumecreed Mentor
+Polliwallop
+Pond Prophet
+Psychic Whorl
+Quaketusk Boar
+Rabbit Response
+Rabid Bite
+Rabid Gnaw
+Raccoon Rallier
+Ravine Raider
+Repel Calamity
+Reptilian Recruiter
+Rockface Village
+Roughshod Duo
+Run Away Together
+Rust-Shield Rampager
+Ruthless Negotiation
+Salvation Swan
+Savor
+Sazacap's Brew
+Scales of Shale
+Scavenger's Talent
+Scrapshooter
+Seasoned Warrenguard
+Seedglaive Mentor
+Seedpod Squire
+Serra Redeemer
+Shore Up
+Shoreline Looter
+Short Bow
+Shrike Force
+Sinister Monolith
+Skyskipper Duo
+Sonar Strike
+Spellgyre
+Splash Lasher
+Splash Portal
+Star Charter
+Starfall Invocation
+Starforged Sword
+Stargaze
+Starlit Soothsayer
+Starscape Cleric
+Starseer Mentor
+Steampath Charger
+Stickytongue Sentinel
+Stocking the Pantry
+Stormcatch Mentor
+Stormchaser's Talent
+Stormsplitter
+Sugar Coat
+Sunshower Druid
+Swamp
+Swiftwater Cliffs
+Sword of Vengeance
+Take Out the Trash
+Tangle Tumbler
+Teapot Slinger
+Tempest Angler
+Tender Wildguide
+Thieving Otter
+Thistledown Players
+Thornplate Intimidator
+Thought Shucker
+Thought-Stalker Warlock
+Three Tree Mascot
+Three Tree Rootweaver
+Three Tree Scribe
+Thundertrap Trainer
+Tidecaller Mentor
+Treeguard Duo
+Treetop Sentries
+Uncharted Haven
+Valley Flamecaller
+Valley Floodcaller
+Valley Mightcaller
+Valley Questcaller
+Valley Rally
+Veteran Guardmouse
+Vinereap Mentor
+Vren, the Relentless
+Wandertale Mentor
+War Squeak
+Warren Elder
+Waterspout Warden
+Wax-Wane Witness
+Wear Down
+Whiskerquill Scribe
+Wick's Patrol
+Wildfire Howl
+Wishing Well
+Ygra, Eater of All
+Zoraline, Cosmos Caller

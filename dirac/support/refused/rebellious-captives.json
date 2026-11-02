@@ -1,0 +1,13 @@
+{
+  "card": "Rebellious Captives",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]; 8 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1333,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

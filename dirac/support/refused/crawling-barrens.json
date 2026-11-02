@@ -1,0 +1,13 @@
+{
+  "card": "Crawling Barrens",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; 5 games in the corpus",
+  "repro": {
+    "pool": "std-fdn",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 194,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

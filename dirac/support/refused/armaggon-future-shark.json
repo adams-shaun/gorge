@@ -1,0 +1,13 @@
+{
+  "card": "Armaggon, Future Shark",
+  "class": "decision",
+  "why": "the engines pose different decisions; 15 games in the corpus",
+  "repro": {
+    "pool": "std-tmt",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 287,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

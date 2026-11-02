@@ -1,0 +1,13 @@
+{
+  "card": "Attentive Sunscribe",
+  "class": "unmodelled-entryorder",
+  "why": "gorge does something the kernel does not model here (stall entryorder)",
+  "repro": {
+    "pool": "std-lci",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1096,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

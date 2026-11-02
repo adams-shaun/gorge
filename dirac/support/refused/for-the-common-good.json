@@ -1,0 +1,13 @@
+{
+  "card": "For the Common Good",
+  "class": "options",
+  "why": "the engines offer different options; 11 games in the corpus",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 614,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

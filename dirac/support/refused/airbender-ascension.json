@@ -1,0 +1,13 @@
+{
+  "card": "Airbender Ascension",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos; 5 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "full",
+    "seed": 1,
+    "pair": 232,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "card": "Blessed Ghoul",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]; 3 games in the corpus",
+  "repro": {
+    "pool": "std-fra",
+    "surface": "full",
+    "seed": 1,
+    "pair": 1223,
+    "policy": "random",
+    "mulligans": 0
+  }
+}

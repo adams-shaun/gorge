@@ -1,0 +1,13 @@
+{
+  "card": "Instant Ramen",
+  "class": "decision",
+  "why": "the engines pose different decisions; 2 games in the corpus",
+  "repro": {
+    "pool": "std-fin",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 431,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

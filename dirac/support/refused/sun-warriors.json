@@ -1,0 +1,13 @@
+{
+  "card": "Sun Warriors",
+  "class": "options",
+  "why": "the engines offer different options; 3 games in the corpus",
+  "repro": {
+    "pool": "std-tla",
+    "surface": "full",
+    "seed": 1,
+    "pair": 902,
+    "policy": "random",
+    "mulligans": 1
+  }
+}
