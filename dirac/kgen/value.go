@@ -1131,6 +1131,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if rest == "YouDrewThisTurn" {
 		return lValue{Kind: vDrawnThisTurn}, nil // gorge CardsDrawnThisTurn
 	}
+	if rest == "YouFaceDilemmaThisTurn" {
+		return lValue{Kind: vDilemmasFaced}, nil // gorge Player.DilemmasFacedThisTurn
+	}
 	if rest == "YouScryThisTurn" {
 		return lValue{Kind: vScriedThisTurn, N: 0}, nil // gorge ScriedThisTurn
 	}

@@ -161,6 +161,7 @@ const (
 	vAttackedTurn        // the objects declared as attackers this turn that match F where each now is (Count$CreaturesAttackedThisTurn <spec>)
 	vPhaseCount          // N 0: the combats begun this turn; N 1: the finished end steps (Count$FinishedEndOfTurnsThisTurn)
 	vAdamant             // Sub[0] if at least n mana of a colour was spent to cast the source, else Sub[1]; N packs colour | n<<3 (CastSA>Count$Adamant_<n>.<Colour>.<yes>.<no>, a self-ETB trigger's CheckSVar$ only)
+	vDilemmasFaced       // the times the controller chose modes this turn (Count$YouFaceDilemmaThisTurn)
 	vCount_
 )
 
@@ -168,7 +169,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -220,7 +221,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("agg=%d", v.N))
 		case vCompare:
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
-		case vSacrificedThisTurn, vScriedThisTurn, vRemLKIPT, vPhaseCount, vAdamant:
+		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
 		case vOppsLostLife:
 			if v.N != 0 {

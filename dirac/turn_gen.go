@@ -503,6 +503,7 @@ func (s *State) newTurnGen() {
 	}
 	s.mObjZero(s.k(), mechMayhem) // the discard-this-turn marks end with the turn (CR 702.187a; gorge's TurnChange bound)
 	s.g.trigTurn = 0
+	s.g.dilemmas = [2]uint8{}
 	if s.g.nchPick != 0 {
 		s.charmPickTurn() // modal_charmpick.go: ChoiceRestriction$ ThisTurn picks end
 	}

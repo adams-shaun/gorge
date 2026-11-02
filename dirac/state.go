@@ -644,6 +644,8 @@ type build struct {
 	picks     [24]Obj // Lathril taps ten Elves; 24 since kcaps2x (was 12: a tap-any-number cost past 12 picks, c6)
 	pickKs    [24]pickKind
 	donePicks pickKind
+	dilLo     uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
+	dilHi     uint8
 	bfl       uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
 	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
 	pipN      uint8    // hybrid pips announced so far
@@ -684,6 +686,8 @@ const bflCostFixed uint16 = 1 << 9
 // the state-based check after the cast's reversal, an event that ends the no-progress
 // interval, and dirac's has already gone (reverseCast).
 const bflTokenGone uint16 = 1 << 10
+// bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
+const bflDilemma uint16 = 1 << 15
 
 // resolution ask kinds (resCtx.ask).
 const (

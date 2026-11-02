@@ -127,13 +127,13 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// of a Phase trigger, the drawer, the player who gained/lost life, the caster)
 		if tr := lc.ab.Trigger; tr != nil {
 			switch tr.Event {
-			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast":
+			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma":
 				// SpellCast: gorge trigger_referents.go:244-258 sets
 				// TriggerPlayer to the caster, the TriggeredActivator below
 				return lRef{Kind: rTriggeredPlayer}, nil
 			}
 		}
-		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast trigger", v)
+		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$

@@ -67,7 +67,7 @@ func init() {
 		"kop.TrigDrawn", kop.TrigDrawn, "kop.TrigDiscarded", kop.TrigDiscarded, "kop.TrigCounterAddedOnce", kop.TrigCounterAddedOnce,
 		"kop.TrigUntaps", kop.TrigUntaps, "kop.TrigBlocks", kop.TrigBlocks, "kop.TrigBecomesBlocked", kop.TrigBecomesBlocked,
 		"kop.TrigSacrificed", kop.TrigSacrificed, "kop.TrigManaExpend", kop.TrigManaExpend, "kop.TrigTaps", kop.TrigTaps,
-		"kop.TrigGiveGift", kop.TrigGiveGift, "kop.TrigProliferate", kop.TrigProliferate, "kop.TrigTokenCreated", kop.TrigTokenCreated,
+		"kop.TrigGiveGift", kop.TrigGiveGift, "kop.TrigProliferate", kop.TrigProliferate, "kop.TrigFacesDilemma", kop.TrigFacesDilemma, "kop.TrigTokenCreated", kop.TrigTokenCreated,
 		"kop.TrigBecomeMonstrous", kop.TrigBecomeMonstrous, "kop.TrigTurnFaceUp", kop.TrigTurnFaceUp, "kop.TrigTransformed", kop.TrigTransformed, "kop.TrigCommitCrime", kop.TrigCommitCrime, "kop.TrigUnlockDoor", kop.TrigUnlockDoor, "kop.TrigFullyUnlock", kop.TrigFullyUnlock,
 		"kop.TrigBecomesPlotted", kop.TrigBecomesPlotted, "kop.TrigBecomesSaddled", kop.TrigBecomesSaddled, "kop.TrigAttached", kop.TrigAttached, "kop.TrigDiscardedAll", kop.TrigDiscardedAll, "kop.TrigAbilityCast", kop.TrigAbilityCast, "kop.TrigScry", kop.TrigScry, "kop.TrigSurveil", kop.TrigSurveil, "kop.TrigExplores", kop.TrigExplores, "kop.TrigCollectEvidence", kop.TrigCollectEvidence,
 		"kop.TrigLandPlayed", kop.TrigLandPlayed, "kop.TrigSearchedLibrary", kop.TrigSearchedLibrary, "kop.TrigForage", kop.TrigForage, "kop.TrigDiscover", kop.TrigDiscover)
@@ -142,7 +142,7 @@ func init() {
 		"kop.ExRevolt", kop.ExRevolt, "kop.ExLeftZone", kop.ExLeftZone, "kop.ExCtrAdded", kop.ExCtrAdded,
 		"kop.ExCastFromGrave", kop.ExCastFromGrave, "kop.ExExiledWithN", kop.ExExiledWithN,
 		"kop.ExSacrificedThisTurn", kop.ExSacrificedThisTurn, "kop.ExDiscardedThisTurn", kop.ExDiscardedThisTurn,
-		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant)
+		"kop.ExScriedThisTurn", kop.ExScriedThisTurn, "kop.ExDilemmasFaced", kop.ExDilemmasFaced, "kop.ExRemLKIPT", kop.ExRemLKIPT, "kop.ExCastBattlefield", kop.ExCastBattlefield, "kop.ExUnlockedDoors", kop.ExUnlockedDoors, "kop.ExChosenMode", kop.ExChosenMode, "kop.ExMod", kop.ExMod, "kop.ExPow", kop.ExPow, "kop.ExAttackedTurn", kop.ExAttackedTurn, "kop.ExPhaseCount", kop.ExPhaseCount, "kop.ExAdamant", kop.ExAdamant)
 	enum[kop.CondKind]("kop.CondAlways", kop.CondAlways, "kop.CondPresent", kop.CondPresent, "kop.CondValue", kop.CondValue,
 		"kop.CondKicked", kop.CondKicked, "kop.CondThreshold", kop.CondThreshold, "kop.CondYourTurn", kop.CondYourTurn,
 		"kop.CondRefMatches", kop.CondRefMatches, "kop.CondPromised", kop.CondPromised, "kop.CondAnd", kop.CondAnd)

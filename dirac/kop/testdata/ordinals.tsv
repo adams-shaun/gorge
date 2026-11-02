@@ -292,6 +292,7 @@ ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
 ExCtrAdded	ExprKind	243
 ExDevotion	ExprKind	38
+ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDrawnThisTurn	ExprKind	40
@@ -1120,8 +1121,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	45
+TrigEventCount	TrigEvent	46
 TrigExplores	TrigEvent	39
+TrigFacesDilemma	TrigEvent	45
 TrigForage	TrigEvent	43
 TrigFullyUnlock	TrigEvent	34
 TrigGiveGift	TrigEvent	23

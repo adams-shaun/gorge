@@ -1,0 +1,10 @@
+# the dilemma pool: the trigger and the count, with what faces one: a charm on a
+# spell and on a triggered ability
+# (dirac/oracle/dilemma_test.go)
+Abrade
+Charming Scoundrel
+Island
+Mountain
+Seven of Nine
+Swamp
+The Caretaker

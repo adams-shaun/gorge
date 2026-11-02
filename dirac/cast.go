@@ -663,6 +663,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			if s.bld().modesN >= max8(pick, 1) || e.kind == seAbility && s.modalActAtResolution(a, pick) {
+				if k.gen != nil && k.gen.anyDilemma {
+					s.buildModesChosen(k, a) // trig_dilemma.go
+				}
 				s.nextStage(k)
 				continue
 			}
@@ -674,6 +677,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					return false
 				case cmAbort:
 					return false
+				}
+				if k.gen != nil && k.gen.anyDilemma {
+					s.buildModesChosen(k, a) // trig_dilemma.go
 				}
 				s.nextStage(k)
 				continue
@@ -1035,6 +1041,9 @@ func (s *State) applyBuild(k *prep, a Action) {
 	case AkDone:
 		if s.bld().stage == bsModes {
 			s.bld().modesN = 255 // a multi-pick charm closed with its minimum met
+			if k.gen != nil && k.gen.anyDilemma {
+				s.buildModesChosen(k, s.buildAbility(k)) // trig_dilemma.go
+			}
 			s.nextStage(k)
 			s.syncBuild()
 			return

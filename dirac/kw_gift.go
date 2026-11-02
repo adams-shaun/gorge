@@ -40,7 +40,7 @@ func (e *stackEntry) promised() bool {
 // array below fails to compile otherwise.
 const nSubEvents = kop.TrigGiveGift
 
-var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigDiscover]
+var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigFacesDilemma]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
 // one option per opponent).
@@ -169,6 +169,9 @@ func (s *State) reverseCast(k *prep) {
 	tokenGone := s.bld().bfl&bflTokenGone != 0
 	s.ctl = ctlPriority
 	s.undos++
+	if s.bld().bfl&bflDilemma != 0 {
+		s.unfaceDilemma() // trig_dilemma.go
+	}
 	s.g.evSel = 0 // a spell's or activation's evidence picks (CR 733.1: nothing was exiled)
 	if s.bld().bfl&bflCrime != 0 && DebugCrimeStats != nil {
 		if s.npend != 0 {

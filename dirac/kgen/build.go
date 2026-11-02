@@ -1630,6 +1630,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,
 	vScriedThisTurn:     kop.ExScriedThisTurn,
+	vDilemmasFaced:      kop.ExDilemmasFaced,
 	vExiledWithN:        kop.ExExiledWithN,
 	vRemLKIPT:           kop.ExRemLKIPT,
 	vCastBattlefield:    kop.ExCastBattlefield,

@@ -360,6 +360,10 @@ const ExSacrificedThisTurn ExprKind = 242
 // performed this turn. Kept as two per-player tallies in State.
 const ExScriedThisTurn ExprKind = 238
 
+// ExDilemmasFaced: gorge Count$YouFaceDilemmaThisTurn (Player.DilemmasFacedThisTurn):
+// the times the reading controller chose modes this turn.
+const ExDilemmasFaced ExprKind = 239
+
 // ExChosenMode: the evaluating source permanent's chosen
 // mode index (gorge Card.ChosenMode<X>, effects/filter.go: the permanent's
 // ChosenModes holds X), 255 when the source is off the battlefield or has

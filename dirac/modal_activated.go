@@ -146,6 +146,9 @@ func (s *State) applyAskModalAct(k *prep, a Action) bool {
 		if r.chosen < max8(ab.ModesPick, 1) && int(r.chosen) < int(ab.NModes) {
 			return true // the next mode
 		}
+		if k.gen != nil && k.gen.anyDilemma {
+			s.faceDilemma(k, r.e.ctrl) // trig_dilemma.go
+		}
 		r.left, r.peekI = 0, 0
 	case raGenModalTarget:
 		i := int(r.left)

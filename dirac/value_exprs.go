@@ -19,6 +19,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
 	case kop.ExScriedThisTurn:
 		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
+	case kop.ExDilemmasFaced:
+		return int(s.g.dilemmas[ctx.ctrl&1])
 	case kop.ExCastBattlefield:
 		// Count$LastStateBattlefieldWithFallback: the
 		// count frozen at beginCast into the spell entry's trigMV

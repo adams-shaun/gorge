@@ -212,6 +212,7 @@ type genPrep struct {
 	anyLandPlayed  bool           // a trigger is TrigLandPlayed (trig_modes.go)
 	anyCzPair      bool           // a TrigLeaves line has a destination mask (N) (trig_zonepairs.go)
 	anyKwAct       bool           // a trigger is TrigSearchedLibrary, TrigForage or TrigDiscover
+	anyDilemma     bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally   bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr       bool           // some trigger is TrigTokenCreated (act_proliferate.go)
 	anyMonstrosity bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
@@ -443,6 +444,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExThisTurnActGrave {
 			g.actRingOn = true
 		}
+		if t.Exprs[i].Kind == kop.ExDilemmasFaced {
+			g.anyDilemma = true // trig_dilemma.go
+		}
 		if t.Exprs[i].Kind == kop.ExScriedThisTurn {
 			g.anyScryTally = true // value_scrytally.go
 		}
@@ -671,6 +675,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				}
 				if a.Trig.Event == kop.TrigProliferate {
 					g.anyProlif = true
+				}
+				if a.Trig.Event == kop.TrigFacesDilemma {
+					g.anyDilemma = true
 				}
 				if a.Trig.Event == kop.TrigScry || a.Trig.Event == kop.TrigSurveil {
 					g.anyScryTrig = true
@@ -1374,6 +1381,7 @@ type genState struct {
 	} // per restricted charm source: m bits 0-3 picked modes, bit 7 ThisGame scope (modal_charmpick.go)
 	nchPick    uint8    // entries of chPick in use
 	trigTurn   uint16   // triggered abilities resolved this turn (StallLoop)
+	dilemmas   [2]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
 	on         bool     // the State plays a generated table
 	batchLatch uint8    // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
 	tyM        slotMask // slots whose perm.gty holds override-derived types (ovGenTy)

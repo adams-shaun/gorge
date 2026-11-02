@@ -936,6 +936,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.proliferateTrigger(tp, tr); err != nil {
 			return err
 		}
+	case "FacesDilemma":
+		if err := lc.facesDilemmaTrigger(tp, tr); err != nil {
+			return err
+		}
 	case "Scry", "Surveil":
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err
