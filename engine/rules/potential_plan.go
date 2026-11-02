@@ -274,7 +274,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// sacrifice, a target-dependent price -- planned from its
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
-			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" ||
+			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderWithX(p, o.Obj, got.Detail) ||
 				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
@@ -290,6 +290,14 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// manaSpentReaderWithX reports an {X} spell the cast planner declined only
+// because it reads the mana spent (Mockingbird): the composition prices its mana
+// exactly as it does any {X} spell, so an insufficient verdict stands as a proof
+// and, through a source the census cannot price, goes on to the prefix search.
+func (e *Engine) manaSpentReaderWithX(p state.PlayerID, id state.ObjID, detail string) bool {
+	return detail == "shape:mana_spent_reader" && pay.RawBaseCost(asPayer(e), p, id).X != 0
 }
 
 // relaxedPaid is a missed paid ability's relaxed alternatives and fee.
