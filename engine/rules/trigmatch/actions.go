@@ -585,11 +585,12 @@ func becomesTargetOnceMatches(e Board, t cards.Trigger, source state.ObjID, ev e
 // predicate is an ability-shape test, not a card filter, so it is answered
 // directly: an activated ability's stack object carries an Ability and is not a
 // stored trigger (the same split counterValidSA makes for R:Event$ Counter).
-// The `Ability` base (Loki, God of Mischief's `Ability.YouCtrl`) is the same
-// ability-shape test -- the ordinary object-filter grammar has no Ability base
-// word, so without the special case the alternative would fall to a card-type
-// test an ability stack object can never satisfy and fail closed; its dotted
-// qualifiers are answered by abilitySourceQualifiersHold. Every other comma
+// The `Ability` base (Loki, God of Mischief's `Ability.YouCtrl`) is wider: any
+// ability on the stack, triggered ones included. The ordinary object-filter
+// grammar has no Ability base word, so without the special case the alternative
+// would fall to a card-type test an ability stack object can never satisfy and
+// fail closed; its dotted qualifiers are answered by abilitySourceQualifiersHold.
+// Every other comma
 // alternative -- SpellAbility.OppCtrl, Spell.OppCtrl, a plain object spec --
 // goes through the ordinary object-filter grammar. An absent targeting object
 // fails closed.
@@ -613,8 +614,7 @@ func becomesTargetSourceMatches(e Board, spec string, stackObj, source state.Obj
 			continue
 		}
 		if quals, isAbility := abilitySourceAlt(alt); isAbility {
-			if o.Ability != nil && !isTriggeredObject(e.Game(), o) &&
-				abilitySourceQualifiersHold(quals, o, you) {
+			if o.Ability != nil && abilitySourceQualifiersHold(quals, o, you) {
 				return true
 			}
 			continue
