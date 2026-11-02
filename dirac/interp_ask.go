@@ -565,7 +565,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.PayMana:
 			c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[r.pc].B.N))
 			if s.g.pickF&(pfWard|pfModes) != 0 {
-				s.payWindow(k, s.g.pickP, &c) // gorge's ward / unless mana window
+				if s.payWindowAsk(k, s.g.pickP, &c, winPay) { // gorge's ward / unless mana window
+					return // a tap-another source's pick (mana_windowtapx.go)
+				}
 			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.parkedWaiting() {
 				s.ctl = ctlExileOrder // a sacrificed source's order ask (payManaResume)
 				return

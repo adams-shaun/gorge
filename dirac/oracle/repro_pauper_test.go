@@ -3,6 +3,7 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
 
@@ -17,6 +18,18 @@ func poolReproLockstep(t *testing.T, file, pool string, cfg Config) {
 // poolReproPrefixLockstep is poolReproLockstep stopping tail decisions past the
 // script, for a fixture whose game goes on to a difference of another cause.
 func poolReproPrefixLockstep(t *testing.T, file, pool string, cfg Config, tail int) {
+	t.Helper()
+	res, script := poolReproRun(t, file, pool, cfg, tail)
+	if script.Skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", script.Skipped)
+	}
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
+	}
+}
+
+// poolReproRun plays the fixture's script and tail decisions beyond it.
+func poolReproRun(t *testing.T, file, pool string, cfg Config, tail int) (Result, *ScriptPolicy) {
 	t.Helper()
 	r, err := ReadRepro("testdata/" + file + ".repro.json")
 	if err != nil {
@@ -49,13 +62,7 @@ func poolReproPrefixLockstep(t *testing.T, file, pool string, cfg Config, tail i
 	defer CloseSide(k)
 	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + tail}
 	script := &ScriptPolicy{Actions: r.Actions}
-	res := Lockstep(m, r.Seed, k, script, rc)
-	if script.Skipped != 0 {
-		t.Errorf("%d scripted actions were not offered", script.Skipped)
-	}
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
-	}
+	return Lockstep(m, r.Seed, k, script, rc), script
 }
 
 // Heap Gate's "{1}, {T}, Tap an untapped Gate": gorge arms the mana plan before the
@@ -163,4 +170,27 @@ func TestTappedSpawnPlanStepStaysReadyLockstep(t *testing.T) {
 func TestXCastPastTwentyManaLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "x_cast_past_twenty_mana", "pauper", Config{})
+}
+
+// Force Spike's unless {1} paid by a player holding two Saruli Caretakers, two Walls of Roots and an
+// Overgrown Battlement: gorge's CR 601.2g window lists the first Caretaker first, asks which creature
+// to tap (seven candidates) and takes the lowest colour. The kernel's window offered only the sources
+// that tap for mana alone and tapped the Battlement.
+func TestUnlessWindowTapsAnotherSourceLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "unless_window_taps_another_source_pauper", "pauper", Config{})
+}
+
+// TestUnlessWindowTapsAnotherSourceMutation: with the tap-another gaps hidden (the window does not
+// list the Caretaker) the same game diverges.
+func TestUnlessWindowTapsAnotherSourceMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoTapMana = true
+	res, _ := poolReproRun(t, "unless_window_taps_another_source_pauper", "pauper", Config{}, 200)
+	dirac.DebugNoTapMana = false
+	if res.Div == nil {
+		t.Error("no divergence without the window's tap-another source: the fixture never needs it")
+	}
 }

@@ -505,6 +505,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 			}
 		}
 	default:
+		if s.askOptionsWinTap(k, d) { // mana_windowtapx.go
+			return true
+		}
 		if s.askOptionsBlight(k, d) { // act_blight.go
 			return true
 		}
@@ -570,6 +573,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 		r.peekN = 0
 		s.continueRes(k, 0)
 	default:
+		if s.applyAskWinTap(k, a) { // mana_windowtapx.go
+			return true
+		}
 		if s.applyAskBlight(k, a) { // act_blight.go
 			return true
 		}

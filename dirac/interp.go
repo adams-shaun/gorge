@@ -1022,7 +1022,9 @@ func (s *State) applyResolve(k *prep, a Action) {
 		}
 		idx := s.wardedIndex(&r.e)
 		if c := (kop.ManaCost{Generic: uint8(r.e.trigAmt)}); a.Mode() == 1 && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c)) {
-			s.payWindow(k, r.e.trigPl, &c)
+			if s.payWindowAsk(k, r.e.trigPl, &c, winWard) {
+				return // a tap-another source's pick (mana_windowtapx.go)
+			}
 		} else if idx >= 0 {
 			if a.Mode() == 1 {
 				s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay

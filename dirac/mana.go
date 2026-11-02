@@ -667,12 +667,23 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 // mana ability, so a Bloom Tender (its colours) and a restricted source
 // (Giada: its {W} floats, unspendable on the cost) are activated in their
 // turn too (windowTap, script_gen.go).
-func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) {
+func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused bool) {
 	_, held := s.windowTap(k, p, cost, false)
+	if s.g.winMode != winNone {
+		for c := range held {
+			held[c] += s.g.winHeld[c] // what an earlier stretch of the walk kept out of the pool
+		}
+		s.g.winHeld = held
+		if s.res.ask == raGenWinTap {
+			return true // a tap-another source's pick: the answer runs the walk on (mana_windowtapx.go)
+		}
+		s.g.winHeld = [kop.NumManaKinds]uint8{}
+	}
 	s.payFromPool(p, cost, 0)
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
 	}
+	return false
 }
 
 // hybResolve is cost with its hybrid pips resolved as gorge's potential

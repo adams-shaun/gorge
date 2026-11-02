@@ -216,7 +216,7 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	case dirac.ChGenConvoke:
 		b.fill(s, bt.f, d.Player)
 		return bt.castHelper(s, d)
-	case dirac.ChWaterbend, dirac.ChCostTap, dirac.ChGenPayTap:
+	case dirac.ChWaterbend, dirac.ChCostTap, dirac.ChGenPayTap, dirac.ChWindowTap:
 		// policy.go's tapHelperChoices: the first offer that makes no mana, since
 		// one that does may be needed for the rest of the payment and can't do both
 		b.fill(s, bt.f, d.Player)

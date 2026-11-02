@@ -281,7 +281,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("sacrifice", src, 0)
 		case dirac.ChCostTap:
 			return ch("tapcost", src, 0)
-		case dirac.ChGenPayTap:
+		case dirac.ChGenPayTap, dirac.ChWindowTap:
 			return ch("tapcost", src, 0)
 		case dirac.ChStation:
 			return ch("station", src, 0)
