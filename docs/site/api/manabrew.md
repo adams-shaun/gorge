@@ -57,5 +57,9 @@ HTTP reply and is also pushed on any open stream. Its code is one of the protoco
   native view's `own_deck`. It isn't part of the published protocol; a client that doesn't know it ignores it. Prompts never carry it.
 - **Declaring alone.** The native wire's `alone_restricted` has no field here. A combat prompt names a creature that can't attack or
   block alone in its presentation text, and a lone declaration is refused, as on the [native wire](http.md#decision-kinds).
+- **Constraints on a set.** A rule over the whole answer has no field either, so its presentation text states it. Targets or cards that must
+  share a controller or a property, or options that exclude each other, come with the first `min` candidates a legal answer. A `chooseCards`
+  ask whose total must reach or stay within a value lists what each card counts for (`Card values: o39 1, o135 3.`), which needn't be anything
+  on the card. The answer is still checked, and a broken constraint comes back `invalidShape`.
 - **No spectators.** ManaBrew has no spectator role, so spectating stays native. [Wires](../architecture/wires.md) lists what else isn't a
   supported combination, and the tests behind each one that is.
