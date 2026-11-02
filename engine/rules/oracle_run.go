@@ -2632,13 +2632,22 @@ func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot b
 // already answered by the time its checkpoint is taken: the CR 603.3b order
 // ask for several triggers put on the stack at once, or the payment window
 // of a "you may pay" triggered cost (CR 603.5, e.choosing == chooseTriggeredCost,
-// including its mana-source taps).
+// including its mana-source taps), or the target of a triggered ability going on
+// the stack (CR 603.3d): with it unanswered the triggers queued behind it, and any
+// the target itself sets off (a crime), are not on the stack yet.
 func (r *oracleRun) pendingTriggerAsk() bool {
 	d := r.e.Pending()
 	if d == nil || d.Kind == decision.KPriority || r.e.G.Over {
 		return false
 	}
-	return d.Kind == decision.KTriggerOrder || r.e.choosing == chooseTriggeredCost
+	if d.Kind == decision.KTriggerOrder || r.e.choosing == chooseTriggeredCost {
+		return true
+	}
+	if d.Kind != decision.KTarget {
+		return false
+	}
+	st := r.e.G.Stack
+	return len(st) > 0 && isTriggered(r.e.G, r.e.G.Obj(st[len(st)-1]))
 }
 
 // settleTriggerAsks answers a trigger-order or triggered-cost ask still
@@ -2657,6 +2666,9 @@ func (r *oracleRun) pendingTriggerAsk() bool {
 func (r *oracleRun) settleTriggerAsks(steps []oracleStep, i int) error {
 	if !r.xmageFixture || !r.pendingTriggerAsk() {
 		return nil
+	}
+	if d := r.e.Pending(); d.Kind == decision.KTarget && i+1 < len(steps) && len(steps[i+1].Targets) > 0 {
+		return nil // the next step names this target itself
 	}
 	next := -1
 	for j := i + 1; j < len(steps); j++ {
