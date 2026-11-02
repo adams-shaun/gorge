@@ -73,7 +73,7 @@ can still find a difference on a supported card.
 ### How far lockstep agrees
 
 gorge is the engine dirac is checked against ([Verification](oracle.md)). The state of that check on
-2026-11-02 at `b78e4c8b1`, with random answers. The rows are `make dirac-slices`, which any clone
+2026-11-02 at `e0cfe5407`, with random answers. The rows are `make dirac-slices`, which any clone
 with a corpus can run, and CI runs on every change. A slice is the first 1,500 pairs of a pool at seed 1.
 
 | Run | Games | Clean | Divergent | Unmodelled stalls | Capacity stalls | Refused pairs |
