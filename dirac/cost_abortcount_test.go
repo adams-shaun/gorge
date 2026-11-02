@@ -30,15 +30,16 @@ func TestReversalAfterAManaTokenIsProgress(t *testing.T) {
 		sc.s.bld().bfl &^= bflPushed // the spell is not on the stack in this scenario: no unpush
 		sc.s.reverseCast(sc.k)
 	}
+	// a mana token sits in the graveyard when it ceases, as the real sacrifice leaves it
 	reverse(NoObj, true)
 	if !sc.s.noProgress() {
 		t.Fatal("a plain reversal ended the no-progress interval")
 	}
-	reverse(sc.obj(id["Plains"], 0), false)
+	reverse(sc.grave(id["Plains"], 0, 1)[0], false)
 	if !sc.s.noProgress() {
 		t.Fatal("a token sacrificed before the push ended the no-progress interval")
 	}
-	reverse(sc.obj(id["Plains"], 0), true)
+	reverse(sc.grave(id["Plains"], 0, 1)[0], true)
 	if sc.s.noProgress() {
 		t.Fatal("a reversal after a mana token's sacrifice kept the no-progress interval open")
 	}
