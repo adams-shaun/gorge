@@ -341,3 +341,31 @@ func TestThisTurnCastOrigin(t *testing.T) {
 		t.Fatalf("the cast ring survived the turn: %v", sc.s.cold.castRing)
 	}
 }
+
+// TestCastSpecNotBuiltDropsEarlierCasts: OnlyFirstSpell$ drops every push of the
+// object being priced, as gorge's onlyFirstSpellUsed does: Radagast's first
+// creature spell is the creature half of the Adventure card cast earlier this
+// turn, whose exiled card reads as a creature now.
+func TestCastSpecNotBuiltDropsEarlierCasts(t *testing.T) {
+	sc, id := kcastScen(t)
+	focus := id("Focus the Mind")
+	f := sc.hand(focus, 0)
+	s := sc.s
+	s.noteCast(f, 0, kop.ZoneHand)
+	x := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou | kop.CastSpecNotBuilt}
+	ctx := evalCtx{src: NoObj, srcSl: NoSlot, ctrl: 0}
+	if n := s.thisTurnCastSpec(sc.k, x, ctx); n != 1 {
+		t.Fatalf("outside a cost composition the push counts: %d", n)
+	}
+	s.bld().e.obj = f
+	s.bld().e.kind = seSpell
+	s.bld().bfl |= bflCostComp
+	defer func() { s.bld().bfl &^= bflCostComp }()
+	if n := s.thisTurnCastSpec(sc.k, x, ctx); n != 0 {
+		t.Fatalf("pricing the same object counts its earlier cast: %d", n)
+	}
+	plain := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou}
+	if n := s.thisTurnCastSpec(sc.k, plain, ctx); n != 1 {
+		t.Fatalf("a spec without the bit keeps the earlier cast: %d", n)
+	}
+}

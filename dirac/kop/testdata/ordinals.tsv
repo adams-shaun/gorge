@@ -47,6 +47,7 @@ CastSpecExclude	untyped int	2
 CastSpecExile	untyped int	64
 CastSpecGrave	untyped int	32
 CastSpecHand	untyped int	4
+CastSpecNotBuilt	untyped int	512
 CastSpecNotHand	untyped int	8
 CastSpecTreasure	untyped int	16
 CastSpecTypes	untyped int	256

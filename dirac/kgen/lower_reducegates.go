@@ -73,7 +73,7 @@ func (lc *lowerCtx) reduceGates(sp *params, params map[string]string, st *lStati
 			return err
 		}
 		// gorge filters the ledger on ev.Player == p, not on a YouCtrl word
-		v.N |= kop.CastSpecYou
+		v.N |= kop.CastSpecYou | kop.CastSpecNotBuilt
 		st.Cond = andCond(st.Cond, lCond{Kind: cValue, A: v, Op: opEQ, B: cst(0)})
 	}
 	return nil

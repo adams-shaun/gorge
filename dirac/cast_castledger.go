@@ -139,6 +139,9 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 			if x.N&kop.CastSpecExclude != 0 && o == ctx.src {
 				continue
 			}
+			if x.N&kop.CastSpecNotBuilt != 0 && s.bld().bfl&bflCostComp != 0 && o == s.bld().e.obj && !DebugReduceGatesNoFirst {
+				continue
+			}
 			if x.N&kop.CastSpecHand != 0 && r.prov&castFromMask != castFromHand {
 				continue
 			}

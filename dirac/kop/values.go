@@ -163,6 +163,7 @@ const (
 	// Appended by.
 	CastSpecCtrlTrig // +ControlledBy TriggeredActivator: the object's current controller is the trigger's activating player
 	CastSpecTypes    // count-level $CardTypes: the distinct card types among the matching objects, not their count
+	CastSpecNotBuilt // OnlyFirstSpell$ (gorge onlyFirstSpellUsed): every push of the object whose cost is being composed is dropped, not only the in-flight one: an Adventure card's earlier cast does not spend the discount on its creature half
 )
 
 // CondID indexes Table.Conds; 0 is "always".
