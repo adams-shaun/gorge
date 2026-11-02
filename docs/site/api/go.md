@@ -503,6 +503,8 @@ type Extensions struct {
 	// into a recorded match with. Without it review mode refuses to start;
 	// the live server ignores it entirely.
 	Review ReviewLoader
+	// Engines, when set, adds engines -engine can select.
+	Engines map[string]game.Engine
 }
 ```
 
