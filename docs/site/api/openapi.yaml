@@ -159,6 +159,7 @@ components:
         policy:
           type: "string"
         reason:
+          description: "Reason is plain words: why a none or refused has no evaluation, or what a player should know about a ready one, such as a search that ran out of time."
           type: "string"
         seat:
           maximum: 255

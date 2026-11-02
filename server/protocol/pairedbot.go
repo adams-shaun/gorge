@@ -38,6 +38,9 @@ type Advice struct {
 	Seat   uint8  `json:"seat"`
 	Policy string `json:"policy"`
 	State  string `json:"state"`
+	// Reason is plain words: why a none or refused has no evaluation, or what
+	// a player should know about a ready one, such as a search that ran out of
+	// time.
 	Reason string `json:"reason,omitempty"`
 	// Explain is a bots/explain.Note: the same shape as
 	// ReviewDecision.Explain, with Choices indexing the decision's options.

@@ -42,6 +42,8 @@ export interface AutoPassLog {
   text: string;
   /** Optional advanced detail for an automatic pass. */
   diagnostics?: AutoPassDiagnostics;
+  /** The word in the seq column; absent, "auto". */
+  tag?: string;
 }
 
 /**
@@ -56,6 +58,12 @@ let nextId = 1;
 /** pushAutoPassLog appends one note (or replaces the list when empty) and caps it, dropping the OLDEST entries first. */
 export function pushAutoPassLog(notes: readonly AutoPassLog[], text: string, turn: number, cap = AUTO_LOG_CAP, diagnostics?: AutoPassDiagnostics): AutoPassLog[] {
   const out = [...notes, { id: nextId++, turn, text, ...(diagnostics ? { diagnostics } : {}) }];
+  return out.length > cap ? out.slice(out.length - cap) : out;
+}
+
+/** pushTaggedNote appends a note that is not an automatic pass, under its own tag. */
+export function pushTaggedNote(notes: readonly AutoPassLog[], text: string, turn: number, tag: string, cap = AUTO_LOG_CAP): AutoPassLog[] {
+  const out = [...notes, { id: nextId++, turn, text, tag }];
   return out.length > cap ? out.slice(out.length - cap) : out;
 }
 

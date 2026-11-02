@@ -17,6 +17,9 @@
   import ReplayTransport from '../components/ReplayTransport.svelte';
   import DecisionPanel from '../components/DecisionPanel.svelte';
   import PairedBotPanel from '../components/PairedBotPanel.svelte';
+  import { pushTaggedNote, type AutoPassLog } from '../lib/autolog';
+  import { loadDifferedNotes, saveDifferedNotes } from '../lib/pairedbot';
+  import { namedDecision } from '../lib/prompts/decision';
   import { decisionStops, timelineMarks } from '../lib/review';
   import type { ReviewDecision } from '../protocol';
   import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
@@ -463,6 +466,24 @@
     };
   });
 
+  // The paired bot's "you differed" notes are this seat's alone and outlast the
+  // seat panel, so the log keeps them through the end of the game and a reload.
+  let differedNotes = $state<AutoPassLog[]>([]);
+  $effect(() => {
+    const k = m.match;
+    let notes: AutoPassLog[] = [];
+    if (seatCtx !== null && k !== null && !seatCtx.transport) {
+      for (const n of loadDifferedNotes(table, k, seatCtx.seat)) notes = pushTaggedNote(notes, n.text, n.turn, 'bot');
+    }
+    differedNotes = notes;
+  });
+  function noteDiffered(text: string) {
+    if (seatCtx === null || m.match === null) return;
+    differedNotes = pushTaggedNote(differedNotes, text, m.view?.turn ?? 0, 'bot');
+    saveDifferedNotes(table, m.match, seatCtx.seat, differedNotes);
+  }
+  const logNotes = $derived([...(panel?.autoLog ?? []), ...differedNotes].sort((a, b) => a.id - b.id));
+
   // The colour-coded log: the same name/colour resolution SeatTable's
   // rows use (seats[seat].name falling back to the wire's own player name),
   // off whichever view is currently on screen. Guarded for the pre-snapshot
@@ -679,7 +700,7 @@
           <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
         {/if}
         {#if liveSeated && seatCtx && !seatCtx.transport && m.match !== null}
-          <PairedBotPanel {table} match={m.match} ctx={seatCtx} decision={m.view?.decision ?? null} />
+          <PairedBotPanel {table} match={m.match} ctx={seatCtx} decision={m.view?.decision ? namedDecision(m.view.decision, m.view) : null} answered={panel?.answered ?? null} onDiffered={noteDiffered} />
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed
@@ -763,7 +784,7 @@
         <!-- The log lives in the rail beneath the stack (the v3 layout),
              shown or hidden by the per-table choice or the layout profile. -->
         <section class="transcript" class:hidden={!showLog} aria-label="Game log">
-          <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} cards={logCards} notes={panel?.autoLog ?? []} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
+          <div class="log"><Transcript dvr={m.dvr} identities={logIdentities} cardColour={logCardColour} cards={logCards} notes={logNotes} onSeek={seated ? () => {} : (seq) => m.dispatch({ type: 'scrub', seq })} /></div>
         </section>
         {#if promptPlacement === 'dock-bottom'}
           <PromptRailSlot placement="dock-bottom" clearFeedback={railSide !== 'left'}>

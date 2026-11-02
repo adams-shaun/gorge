@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -531,4 +532,95 @@ func TestPairedBotRefusesAnOpenListSeat(t *testing.T) {
 	if _, err := New(o); err == nil {
 		t.Fatal("a seat that does not search was accepted")
 	}
+}
+
+func TestPairedBotWordsItsReasons(t *testing.T) {
+	search := func(sims int) *explain.Search { return &explain.Search{Sims: sims, Rows: []explain.Row{{Visits: sims}}} }
+	for _, c := range []struct {
+		name   string
+		note   explain.Note
+		state  string
+		reason string
+		send   bool
+	}{
+		{"a finished search", explain.Note{Source: explain.Policy, Search: search(100)}, protocol.AdviceReady, "", true},
+		{"cut short", explain.Note{Reason: "deadline", Search: search(40)}, protocol.AdviceReady, adviceNoTime, true},
+		{"cut before a line finished", explain.Note{Reason: "deadline", Search: search(0)}, protocol.AdviceRefused, adviceNoLines, false},
+		{"no line finished", explain.Note{Reason: "every simulation failed", Search: search(0)}, protocol.AdviceRefused, adviceNoLines, false},
+		{"a redeal's refusal, which can count hidden cards", explain.Note{Reason: "redeal refused: player 1 hidden pool (Bolt: 3)", Search: search(0)}, protocol.AdviceRefused, adviceNoRoot, false},
+		{"one candidate", explain.Note{Source: explain.Forced, Bot: []int{0}}, protocol.AdviceReady, "", true},
+		{"an unpriceable ask", explain.Note{Reason: "translate-error", Bot: []int{0}}, protocol.AdviceReady, adviceNotPriced, true},
+	} {
+		var out protocol.Advice
+		note := c.note
+		send := wordAdvice(&out, &note)
+		if out.State != c.state || out.Reason != c.reason || send != c.send {
+			t.Errorf("%s: state %q reason %q send %v, want %q %q %v", c.name, out.State, out.Reason, send, c.state, c.reason, c.send)
+		}
+		if note.Reason != "" {
+			t.Errorf("%s: a report name stays on the note: %q", c.name, note.Reason)
+		}
+	}
+}
+
+// A storm copy's new target is asked while the trigger resolves, with the real
+// hidden cards held in the resolution's checkpoint. Search refuses it in words.
+func TestPairedBotRefusesAMidResolutionAsk(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card := func(name string) *cards.Card {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("%q not in the corpus", name)
+		}
+		return c
+	}
+	var own []*cards.Card
+	for range 30 {
+		own = append(own, card("Mountain"), card("Grapeshot"))
+	}
+	opp := testutil.RepoDeck(t, reg, "mono-red-goblins")
+	o := testOptions(t)
+	o.LoadDeck = func(name string) (Deck, error) {
+		if name == "human" {
+			return Deck{Name: "own", Cards: own}, nil
+		}
+		return Deck{Name: "opposing", Cards: opp}, nil
+	}
+	o.PairedBot = pairedTestEntry(t)
+	o.Seats = func([]string, uint64) []seat.Seat { return []seat.Seat{passSeat{}, passSeat{}} }
+	r, err := New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(pairedTable([]int{0})); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Start("t1"); err != nil {
+		t.Fatal(err)
+	}
+	var after uint64
+	for range 400 {
+		d := parkedAfter(t, r, 0, after)
+		after = d.Seq
+		if d.Kind == decision.KTarget && strings.Contains(d.Prompt, "new target") {
+			a, err := r.Advice(context.Background(), "t1", 1, 0, d.Seq)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if a.State != protocol.AdviceRefused || a.Reason != adviceMidResolution {
+				t.Fatalf("advice on %q: %+v", d.Prompt, a)
+			}
+			return
+		}
+		in := landFirstAnswer(d)
+		if d.Kind == decision.KPriority && len(d.PaymentActions) > 0 && len(d.PaymentActions[0].Plans) > 0 {
+			a := &d.PaymentActions[0]
+			in = decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: a.Plans[0]}}
+		}
+		if err := r.SubmitIntent("t1", 1, 0, in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Fatal("fixture: no storm copy asked for a new target")
 }

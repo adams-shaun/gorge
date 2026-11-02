@@ -49,13 +49,17 @@ const adviceWatch = 50 * time.Millisecond
 // errAdviceStale answers a request for a decision that is no longer pending.
 var errAdviceStale = errors.New("The decision has moved on.")
 
-// Refusals a player reads. A redeal's own refusal reasons can quote counts of
-// hidden cards, so none of them reaches the seat.
+// Words a player reads. A redeal's own refusal reasons can quote counts of
+// hidden cards, and a search's reason is a report name, so neither reaches the
+// seat.
 const (
 	adviceNotOffered    = "This server does not offer a paired bot."
-	adviceNotSearched   = "This bot does not evaluate this kind of decision."
-	adviceMidResolution = "This decision comes in the middle of an effect resolving, and the bot cannot search it without seeing hidden cards."
-	adviceNoRoot        = "The bot could not rebuild this position from what you can see."
+	adviceNotSearched   = "Search weighs priority, attackers, blockers and single targets. This kind of decision is yours alone."
+	adviceMidResolution = "This decision comes in the middle of an effect resolving, and search cannot look ahead from here without seeing hidden cards."
+	adviceNoRoot        = "Search could not rebuild this position from what you can see."
+	adviceNoLines       = "Search could not finish a single line from this position."
+	adviceNoTime        = "Search ran out of time; these are the lines it finished."
+	adviceNotPriced     = "Search cannot price the options here; this is what the bot's rules would do."
 	adviceFailed        = "The bot could not evaluate this decision."
 )
 
@@ -355,6 +359,7 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 
 	feed, e, err := searchseat.RebuildFeedEngine(ctx, gorgegame.RulesConfig(m.gc), job.l, job.n, p)
 	if errors.Is(err, searchseat.ErrFeedStopped) {
+		log.Printf("host: table %s match %d: paired bot: %v", m.table.cfg.ID, m.k, err)
 		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
 		return out, nil
 	}
@@ -372,8 +377,9 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		out.State, out.Reason = protocol.AdviceRefused, adviceMidResolution
 		return out, nil
 	}
-	root, _ := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
+	root, why := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
 	if root == nil {
+		log.Printf("host: table %s match %d: paired bot: no root: %s", m.table.cfg.ID, m.k, why)
 		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
 		return out, nil
 	}
@@ -399,12 +405,12 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		out.State, out.Reason = protocol.AdviceNone, adviceNotSearched
 		return out, nil
 	}
+	if !wordAdvice(&out, note) {
+		return out, nil
+	}
 	note.Policy = entry.Name
 	if note.Search != nil {
 		note.Search.MS = 0
-	}
-	if strings.HasPrefix(note.Reason, "redeal refused") {
-		note.Reason = adviceNoRoot
 	}
 	raw, err := json.Marshal(note)
 	if err != nil {
@@ -412,4 +418,27 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	}
 	out.State, out.Explain = protocol.AdviceReady, raw
 	return out, nil
+}
+
+// wordAdvice sets out's state from the seat's note and replaces the note's
+// reason, a report name, with words on out. It reports whether the note is
+// worth sending: a search that finished no line has no numbers to show.
+func wordAdvice(out *protocol.Advice, note *explain.Note) bool {
+	reason := note.Reason
+	note.Reason = ""
+	finished := note.Search != nil && note.Search.Sims > 0
+	switch {
+	case strings.HasPrefix(reason, "redeal refused"):
+		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot
+		return false
+	case note.Search != nil && !finished:
+		out.State, out.Reason = protocol.AdviceRefused, adviceNoLines
+		return false
+	case reason == "deadline":
+		out.Reason = adviceNoTime
+	case reason != "":
+		out.Reason = adviceNotPriced
+	}
+	out.State = protocol.AdviceReady
+	return true
 }

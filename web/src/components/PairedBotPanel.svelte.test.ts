@@ -18,7 +18,7 @@ const probe = () => page.evaluate(() => (window as unknown as { __probe: { asked
 const setSeq = (s: number) => page.evaluate((v) => (window as unknown as { __setSeq: (s: number) => void }).__setSeq(v), s);
 
 describe('PairedBotPanel', () => {
-  it('stays off until asked, shows only the decision in front of the player, and answers nothing', async () => {
+  it('stays off until asked, shows only the decision in front of the player, notes a different answer, and answers nothing', async () => {
     page = await browser.newPage();
     await page.goto(`${browserURL}src/components/PairedBotPanel.fixture.html`);
     await page.waitForSelector(panel, { timeout: 60_000 });
@@ -32,17 +32,31 @@ describe('PairedBotPanel', () => {
 
     // The decision moves while the bot thinks; the older answer arrives late and never shows.
     await setSeq(2);
-    await page.waitForSelector(`${panel} table.search`);
+    await page.waitForSelector(`${panel} table.advice`);
     await page.evaluate(() => (window as unknown as { __releaseFirst: () => void }).__releaseFirst());
     await page.waitForTimeout(100);
-    expect(await page.locator(`${panel} table.search tbody tr`).first().textContent()).toContain('Cast Spell 2');
-    expect(await page.locator(`${panel} tr.chosen`).textContent()).toContain('its pick');
-    expect(await page.locator(`${panel} .foot`).textContent()).toContain('+0.20');
-    expect(await page.locator(`${panel}`).textContent()).toContain("can't see hidden cards");
+    expect(await page.locator(`${panel} table.advice tbody tr`).first().textContent()).toContain('Cast Spell 2');
+    const best = page.locator(`${panel} tr.best`);
+    expect(await best.textContent()).toContain('Recommended');
+    expect(await best.textContent()).toContain('Cast Spell 2');
+    expect(await best.textContent()).toContain('65%');
+    expect(await page.locator(`${panel} tbody tr`).nth(1).textContent()).toContain('45%');
+    expect(await page.locator('[data-paired-summary]').textContent()).toContain('Search looked at 100 lines');
+    expect(await page.locator(`${panel}`).textContent()).toContain('from what you can see');
 
     // Pressing a candidate answers nothing.
-    await page.locator(`${panel} table.search tbody tr`).first().click();
+    await page.locator(`${panel} table.advice tbody tr`).first().click();
     expect((await probe()).posts).toBe(0);
+
+    // Answering other than the recommendation leaves a note, once; the recommendation leaves none.
+    const answer = (a: object) => page.evaluate((v) => (window as unknown as { __answer: (a: object) => void }).__answer(v), a);
+    const differed = () => page.evaluate(() => (window as unknown as { __differed: string[] }).__differed);
+    await answer({ seq: 2, choices: [0] });
+    await page.waitForSelector('[data-paired-differed]');
+    expect(await differed()).toEqual(['You differed: Pass priority, estimated 45%. Search preferred Cast Spell 2, estimated 65%.']);
+    await answer({ seq: 2, choices: [0] });
+    await page.waitForTimeout(50);
+    expect(await differed()).toHaveLength(1);
 
     await setSeq(3);
     await page.waitForSelector(`${panel}[data-state="refused"]`);

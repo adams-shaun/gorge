@@ -284,15 +284,21 @@ A server can let you ask a bot what it makes of the decision in front of you. It
 the server with `-paired-bot az-closed`, then turn on **Paired bot** at the top of the rail. Your browser
 remembers the switch, and it starts off.
 
-For each of your decisions the panel shows the bot's search, in the same table a [review](replays.md) uses:
-the candidates, how many simulations each got, the prior, the value (Q) and the value of the position, with
-the one it would pick marked. It only advises. Pressing a row does nothing, and you still answer.
+For each of your decisions the panel lists the options the search weighed, each with the number of lines
+that looked at it and its estimated chance of winning, and marks the one it recommends. It only advises.
+Pressing a row does nothing, and you still answer. If you answer differently, a note in the panel and in
+your game log gives both estimates. The notes are your browser's alone; they aren't in a replay or a review.
 
-The bot sees what you can see: your deck list and everything you've seen in this game. It can't see your
-opponent's hand, the order of any library or your opponent's deck list. It guesses those cards from a set of
-decks, so when it's wrong about what your opponent holds, its advice is wrong too. It evaluates priority,
-attackers, blockers and single targets. For any other decision it says so, and it refuses a decision in the
-middle of an effect resolving.
+**What the numbers mean.** Each line plays on from this decision with a fresh guess at the cards you can't
+see, until the game ends or the search stops and scores the position by life, cards in hand and the board.
+*Search looked at 100 lines* counts those lines, and an estimate averages where the lines through that option
+ended up. It's a guide to how the options compare, not a measured win rate.
+
+**What the bot can't see.** It sees what you can see: your deck list and everything you've seen in this game.
+It can't see your opponent's hand, the order of any library or your opponent's deck list. It guesses those
+cards from a set of decks, so when it's wrong about what your opponent holds, its advice is wrong too. It
+weighs priority, attackers, blockers and single targets. For any other decision it says so, and it refuses a
+decision in the middle of an effect resolving.
 
 | Flag | Default | Meaning |
 |---|---|---|

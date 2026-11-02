@@ -18,6 +18,7 @@ import {
   type StoppableStep,
 } from './playsettings';
 import { autoPassLogText, pushAutoPassLog, type AutoPassKind, type AutoPassLog } from './autolog';
+import type { PlayerAnswer } from './pairedbot';
 import { loadYields, saveYields, stackYieldKey } from './yields';
 import {
   emptyStore,
@@ -337,6 +338,9 @@ export class SeatPanelState {
    * logAutoPasses switch).
    */
   autoLog = $state<AutoPassLog[]>([]);
+
+  /** answered is the last answer the server accepted from this seat, whoever or whatever made it. */
+  answered = $state<PlayerAnswer | null>(null);
 
   /**
    * yieldList is the game-scoped "always pass for this ability" set
@@ -2193,6 +2197,7 @@ export class SeatPanelState {
       // panel (pending was cleared, the restored decision re-adopted).
       if (epoch !== this.seqEpoch) return;
       this.postedSeq = d.seq;
+      this.answered = { seq: d.seq, choices, action: payment?.action_id ?? announce?.action_id };
       // The armed card-follow-up expectation lives on
       // the ACCEPTED hand post: a card action can hand the server a follow-up
       // decision for the same object (a treasure's activate -> its colour
