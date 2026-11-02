@@ -290,14 +290,6 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	})
-	// A copy token's entry MoveZone moves an object the CopyToken fold minted
-	// outside every zone list (events/apply_copy.go), so the scan above never
-	// visits it and its own copied lines are never read: a token copy of
-	// Diregraf Ghoul entered untapped (CR 707.2, 614.12: the copy has the
-	// "enters tapped" replacement and it applies to its own entry). Read the
-	// entrant's own "enters tapped" line and its recorded "enter as a copy"
-	// election here; its other self-entry lines (counters, other as-enters
-	// choices) are not read on this path.
 	// A surveil's graveyard pile has already left the library's order when it
 	// moves (arrangeAnswerRecord's LibraryOrder comes first, a logged contract),
 	// so the walk cannot meet the card, and "from anywhere" is its own line.
@@ -314,26 +306,29 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	}
+	// A copy token's entry MoveZone moves an object the CopyToken fold minted
+	// outside every zone list (events/apply_copy.go), so the scan above never
+	// visits it and never reads its own copied lines. The copy has them, and
+	// they apply to its own entry (CR 707.2, 614.12): a token copy of Diregraf
+	// Ghoul enters tapped, and one of Banner of Kinship chooses a type and takes
+	// its counters. So read them here with the same matcher. The one narrower
+	// case is the as-enters "enter as a copy" body: entryETBChoice recorded the
+	// election on the token, so that Clone body applies only when one is
+	// recorded and the whitelist that offered it passes.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && !sawEntrant && event == "Moved" {
 		if o := e.G.Obj(ev.Obj); o != nil && o.IsToken {
 			if f := e.replacementFace(ev.Obj, ev); f != nil {
 				for i := range f.Repls {
 					r := &f.Repls[i]
-					// The full matcher does not admit the minted object yet
-					// (it is in no zone list, so a Card.Self spec fails), so
-					// the line's own shape is checked: an Updated self-entry
-					// to the battlefield with no other qualifier.
-					if r.Event == "Moved" && r.With != nil && r.With.APIKind() == cards.APITap && selfEntryTapLine(r) {
-						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					if !replacementEventNameMatches(r.Event, event) || movedLineRejects(r, ev.Obj, ev) ||
+						!e.replacementMatches(*r, ev.Obj, ev) {
+						continue
 					}
-					// The as-enters "enter as a copy" body (CR 614.12, 707.2):
-					// entryETBChoice recorded the election on the token, so the
-					// Clone body is applied only when one is recorded and the
-					// same whitelist that offered it passes.
-					if r.Event == "Moved" && r.ParamStr(cards.PKKeyword) == "ETBReplacement" && r.With != nil && r.With.API == "Clone" &&
-						o.ETBCloneChoiceValid && etbCloneWhitelist(r.With, f.SVars) {
-						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					if r.ParamStr(cards.PKKeyword) == "ETBReplacement" && r.With != nil && r.With.API == "Clone" &&
+						(!o.ETBCloneChoiceValid || !etbCloneWhitelist(r.With, f.SVars)) {
+						continue
 					}
+					matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
 				}
 			}
 		}
@@ -1424,30 +1419,4 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 		return false
 	}
 	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
-}
-
-// selfEntryTapLine reports whether r is the plain "CARDNAME enters tapped"
-// shape: R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield |
-// ReplacementResult$ Updated with no Origin$, condition or other qualifier.
-func selfEntryTapLine(r *cards.Repl) bool {
-	for k, v := range r.Params {
-		switch k {
-		case "Event", "Description", "ReplaceWith":
-		case "ValidCard":
-			if v != "Card.Self" {
-				return false
-			}
-		case "Destination":
-			if v != "Battlefield" {
-				return false
-			}
-		case "ReplacementResult":
-			if v != "Updated" {
-				return false
-			}
-		default:
-			return false
-		}
-	}
-	return true
 }
