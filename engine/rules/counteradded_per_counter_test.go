@@ -237,3 +237,28 @@ func TestPlainCounterRemovedQueuesOnePerCounter(t *testing.T) {
 		t.Fatalf("CounterRemovedOnce TriggerCount$Amount = %d, want 2 (the batch magnitude)", got)
 	}
 }
+
+// The engine's own status markers ride a CounterChange (the deathtouch mark,
+// the regeneration shield) but are not counters, so no counter trigger of
+// either direction sees them (state.InternalCounterMarker).
+func TestStatusMarkersAreNotCountersToCounterTriggers(t *testing.T) {
+	t.Parallel()
+	e := combatEngine(t)
+	id := onBoard(t, e, 0, "Name:Counter Watcher\nManaCost:1 U\nTypes:Creature Wizard\nPT:1/1\nOracle:x\n"+
+		"T:Mode$ CounterAdded | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
+		"T:Mode$ CounterRemoved | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
+		"T:Mode$ CounterAddedOnce | ValidCard$ Creature.YouCtrl | TriggerZones$ Battlefield | Execute$ TrigDraw\n"+
+		"SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1\n")
+	for _, marker := range []string{"Deathtouched", "Shield"} {
+		e.pendingTriggers = nil
+		e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: marker, Amount: 1})
+		e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: marker, Amount: -1})
+		if got := len(e.pendingTriggers); got != 0 {
+			t.Fatalf("a %s marker queued %d counter triggers, want none", marker, got)
+		}
+	}
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 1})
+	if got := len(e.pendingTriggers); got == 0 {
+		t.Fatal("a +1/+1 counter queued no counter trigger: the control arm is dead")
+	}
+}
