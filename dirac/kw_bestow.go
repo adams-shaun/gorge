@@ -80,6 +80,12 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 		return
 	}
 	var buf [MaxOptions]uint8
+	if k.gen != nil && s.g.probe.kind == 0 {
+		// the spell's colours decide what it may enchant: a monocolored Hydra cannot
+		// enchant a creature with protection from monocolored (CR 702.16b)
+		s.g.probe = probe{kind: probeSpell, src: NoSlot, card: c, ctrl: p}
+		defer func() { s.g.probe = probe{} }()
+	}
 	if s.targetCands(k, &cd.BestowTgt, p, NoSlot, o, &buf) == 0 {
 		return
 	}

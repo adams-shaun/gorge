@@ -139,3 +139,11 @@ func TestWallOfRootsDeathLeavesTheCastUnofferedLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "wall_of_roots_dies_before_a_reader_prices_the_cast", "pauper", Config{})
 }
+
+// A Nyxborn Hydra in hand beside a Guardian of the Guildpact, the only creature:
+// the Hydra is monocolored, so the Guardian is no creature it may enchant and the
+// bestowed cast is not offered.
+func TestBestowTargetProtectedFromMonocoloredLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "bestow_target_protected_from_monocolored", "pauper", Config{GorgeAutopaySurface: true})
+}
