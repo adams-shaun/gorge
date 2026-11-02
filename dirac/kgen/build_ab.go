@@ -2313,6 +2313,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["TopShuffleSelf"]; ok {
 			ki.C = kop.LibTopShuffleSelf
 		}
+		if _, ok := fl["BottomShuffle"]; ok {
+			ki.C = kop.LibBottomShuffle
+		}
 		if in.C == 3 {
 			ki.Op, ki.C = kop.OpToLibraryChoice, 0
 		}

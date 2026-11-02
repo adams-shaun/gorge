@@ -357,6 +357,12 @@ const LibTopShuffle = 4
 // shuffled once, in that order (Floodpits Drowner).
 const LibTopShuffleSelf = 5
 
+// LibBottomShuffle is OpToLibrary's C for LibTopShuffle with
+// LibraryPosition$ -1: the object goes on the bottom of its owner's library,
+// which is then shuffled (the placement is the shuffle's input, so it is
+// not the top's).
+const LibBottomShuffle = 7
+
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (
 	DelayUpkeep     = 1 // the next upkeep of any player (gorge Phase$ Upkeep, ValidPlayer$ Player)

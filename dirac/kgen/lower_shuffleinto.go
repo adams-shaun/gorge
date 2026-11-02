@@ -21,10 +21,16 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	if origin != zBattlefield && origin != zGraveyard {
 		return refuse("shuffled move from %s", zoneLabel[origin])
 	}
+	bottom := false
 	if lp, ok := ps.get("LibraryPosition"); ok {
 		// LibraryPosition$ 0 is the default top placement the shuffle then
-		// randomises (gorge placeTargetedLibraryObjects, objectPathShuffleOwed)
-		if strings.TrimSpace(lp) != "0" {
+		// randomises (gorge placeTargetedLibraryObjects, objectPathShuffleOwed);
+		// -1 is the bottom, which the shuffle then randomises from there
+		switch strings.TrimSpace(lp) {
+		case "0":
+		case "-1":
+			bottom = true
+		default:
 			return refuse("shuffled move with LibraryPosition$")
 		}
 		ps.consume("LibraryPosition")
@@ -40,6 +46,9 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	if obj.Kind == rTarget {
 		t := &lc.ab.Targets[obj.N]
 		if !(t.Min.isConst() && t.Min.N == 1 && t.Max.isConst() && t.Max.N == 1) {
+			if bottom {
+				return refuse("shuffled move of several targets with LibraryPosition$")
+			}
 			if self {
 				return refuse("ThisDefinedAndTgts$ Self with several targets")
 			}
@@ -62,8 +71,13 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 		obj.Kind = rTriggeredNew
 	}
 	cs := "TopShuffle"
-	if self {
+	switch {
+	case self && bottom:
+		return refuse("shuffled move of the source and a target with LibraryPosition$")
+	case self:
 		cs = "TopShuffleSelf"
+	case bottom:
+		cs = "BottomShuffle"
 	}
 	lc.emit(lInstr{Op: "ToLibrary", Obj: obj, CS: cs + "|from=" + zoneLabel[origin]})
 	return nil

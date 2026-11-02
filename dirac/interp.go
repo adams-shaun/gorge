@@ -54,7 +54,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpToLibrary:
 		switch in.C {
 		case kop.LibTopShuffle:
-			s.toLibraryShuffle(k, in)
+			s.toLibraryShuffle(k, in, false)
+		case kop.LibBottomShuffle:
+			s.toLibraryShuffle(k, in, true)
 		case kop.LibTopShuffleSelf:
 			s.toLibraryShuffleSelf(k, in)
 		case kop.LibThird:

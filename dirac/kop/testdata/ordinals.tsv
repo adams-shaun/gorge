@@ -490,6 +490,7 @@ KwUnblockable	KwMask	262144
 KwVigilance	KwMask	128
 KwWard	KwMask	131072
 KwWither	KwMask	1048576
+LibBottomShuffle	untyped int	7
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopShuffle	untyped int	4
