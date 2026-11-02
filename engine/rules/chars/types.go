@@ -568,22 +568,6 @@ func IsSupertype(t string) bool {
 	return false
 }
 
-// IsCreatureSubtype reports whether t is a subtype word (a creature type
-// under RemoveCreatureTypes' reading): not a card type and not a supertype.
-func IsCreatureSubtype(t string) bool {
-	for _, w := range cardTypeWords {
-		if strings.EqualFold(w, t) {
-			return false
-		}
-	}
-	for _, w := range supertypeWords {
-		if strings.EqualFold(w, t) {
-			return false
-		}
-	}
-	return true
-}
-
 // containsKeywordHead reports whether the keyword k matches any name in
 // names by keyword HEAD (cards.KeywordHead strips a parameter tail), so
 // RemoveKeywords$ Protection removes a printed "Protection:..." grant and

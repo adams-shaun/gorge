@@ -167,6 +167,35 @@ func TestTargetSetSameCreatureType(t *testing.T) {
 	}
 }
 
+// TestTargetSetCreatureTypeIgnoresLandTypes pins CR 205.3i and 205.3m: a land
+// type is not a creature type, so two lands that are creatures (an earthbent
+// Forest, a Cave that was animated) share a creature type only through a
+// creature type they both have. The pair of animated Forests share none, so a
+// mandatory two-target "share a creature type" declaration is infeasible.
+func TestTargetSetCreatureTypeIgnoresLandTypes(t *testing.T) {
+	t.Parallel()
+	sa := setPropSA("Creature", map[string]string{"TargetsWithSameCreatureType": "True"})
+	e := newSeats(t, 2)
+	forestA := putBattlefield(t, e, 0, "Name:Grove One\nTypes:Land Creature Forest\nPT:1/1\nOracle:x\n")
+	forestB := putBattlefield(t, e, 0, "Name:Grove Two\nTypes:Land Creature Forest\nPT:1/1\nOracle:x\n")
+	cave := putBattlefield(t, e, 0, "Name:Hollow\nTypes:Land Creature Cave Elemental\nPT:1/1\nOracle:x\n")
+	spirit := putBattlefield(t, e, 0, "Name:Wisp\nTypes:Creature Elemental Spirit\nPT:1/1\nOracle:x\n")
+	if got := e.setPropTokens("creaturetype", forestA); len(got) != 0 {
+		t.Fatalf("an animated Forest reads creature types %v, want none (Forest is a land type)", got)
+	}
+	if got := e.setPropTokens("creaturetype", cave); len(got) != 1 || got[0] != "elemental" {
+		t.Fatalf("an animated Cave Elemental reads creature types %v, want [elemental]", got)
+	}
+	both := []targetCandidate{{kind: "object", obj: forestA}, {kind: "object", obj: forestB}}
+	if e.targetChoiceFeasible(sa, both, 2) {
+		t.Fatal("two animated Forests are a feasible shared-creature-type pair; they share a land type only")
+	}
+	withElemental := []targetCandidate{{kind: "object", obj: forestA}, {kind: "object", obj: cave}, {kind: "object", obj: spirit}}
+	if !e.targetChoiceFeasible(sa, withElemental, 2) {
+		t.Fatal("the Elemental pair is not feasible; both are Elementals")
+	}
+}
+
 // TestTargetSetEqualToughness pins TargetsWithEqualToughness$ (Vatz's "choose
 // any number of target creatures with equal toughness").
 func TestTargetSetEqualToughness(t *testing.T) {
