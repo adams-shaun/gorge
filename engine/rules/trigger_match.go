@@ -679,8 +679,9 @@ func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKe
 // a once-each-turn line's use even when the source dies among them.
 func (e *Engine) triggerStint(source state.ObjID) int {
 	stint := e.objectStintStart(source)
-	if b := e.triggerBefore; b != nil && !b.noLookBack && stint > b.logEnd {
-		return objectStintStartIn(e.L.Events[:b.logEnd], source)
+	before := e.triggerBefore
+	if before != nil && !before.noLookBack && stint > before.logEnd {
+		return objectStintStartIn(e.L.Events[:before.logEnd], source)
 	}
 	return stint
 }
