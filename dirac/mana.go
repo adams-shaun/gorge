@@ -1105,7 +1105,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			} else {
 				s.leave(k, sl, kop.ZoneGraveyard, false)
 				if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
-					s.detach(o) // a token sacrificed to pay a cast ceases at once, as gorge pays (a Treasure); one sacrificed to pay mid-resolution waits for the state-based check
+					s.ceaseManaToken(o) // a token sacrificed to pay a cast ceases at once, as gorge pays (a Treasure); one sacrificed to pay mid-resolution waits for the state-based check
 				}
 			}
 		}

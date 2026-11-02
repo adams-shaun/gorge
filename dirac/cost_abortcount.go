@@ -23,3 +23,12 @@ func (s *State) abortCount(o Obj, noProg bool) {
 	ob.of |= ofAbort1
 	s.touch(o)
 }
+
+// ceaseManaToken removes a token sacrificed for mana, and notes it on a cast being
+// built for the reversal's no-progress window.
+func (s *State) ceaseManaToken(o Obj) {
+	s.detach(o)
+	if s.buildLive() {
+		s.bld().bfl |= bflTokenGone
+	}
+}

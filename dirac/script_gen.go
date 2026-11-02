@@ -453,7 +453,7 @@ func (s *State) sacGap(k *prep, p uint8, sl Slot, a Action) {
 	s.fireSac(k, sl)
 	s.leave(k, sl, kop.ZoneGraveyard, false)
 	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
-		s.detach(o) // a token sacrificed to pay a cast ceases at once, as gorge pays
+		s.ceaseManaToken(o) // a token sacrificed to pay a cast ceases at once, as gorge pays
 	}
 }
 

@@ -671,6 +671,11 @@ const (
 // sacrifice under affinity, a cost's discard) does not move its total cost.
 const bflCostFixed uint16 = 1 << 9
 
+// bflTokenGone: a token sacrificed for mana during this cast. gorge's token ceases at
+// the state-based check after the cast's reversal, an event that ends the no-progress
+// interval, and dirac's has already gone (reverseCast).
+const bflTokenGone uint16 = 1 << 10
+
 // resolution ask kinds (resCtx.ask).
 const (
 	raNone uint8 = iota

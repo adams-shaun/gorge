@@ -216,7 +216,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			}
 			s.leave(k, sl, kop.ZoneGraveyard, false)
 			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
-				s.detach(o) // a sacrificed Treasure ceases at once, as gorge pays
+				s.ceaseManaToken(o) // a sacrificed Treasure ceases at once, as gorge pays
 			}
 		}
 	}

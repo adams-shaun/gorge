@@ -166,6 +166,7 @@ func (s *State) giftNoSlot(t *kop.TargetSpec, e *stackEntry) bool {
 // F05-2 / CR 733.2).
 func (s *State) reverseCast(k *prep) {
 	e := &s.bld().e
+	tokenGone := s.bld().bfl&bflTokenGone != 0
 	s.ctl = ctlPriority
 	s.undos++
 	s.g.evSel = 0 // a spell's or activation's evidence picks (CR 733.1: nothing was exiled)
@@ -229,4 +230,7 @@ func (s *State) reverseCast(k *prep) {
 		s.refreshAirbend(e.obj) // act_airbend.go
 	}
 	s.heldTurn, s.heldStep, s.heldTouch = uint16(s.turn), s.step, s.touchN
+	if tokenGone {
+		s.heldTouch-- // gorge's token ceases after the reversal: progress (bflTokenGone)
+	}
 }
