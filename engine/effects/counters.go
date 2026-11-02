@@ -327,12 +327,20 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 		}
 	}
 	g := h.Game()
+	rememberAmount := isTrue(sa.ParamStr(cards.PKRememberAmount))
 	for _, p := range players {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
+			t := state.Target{Obj: id}
+			before := putCounterHeld(g, t)
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+			if rememberAmount {
+				// RememberAmount$: one entry per counter that landed across the
+				// whole sweep, so Count$RememberedNumber reads the total.
+				c.Remembered = append(c.Remembered, putCounterLanded(g, t, before)...)
+			}
 		}
 	}
 }
