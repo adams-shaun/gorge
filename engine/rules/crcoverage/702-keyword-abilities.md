@@ -141,7 +141,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.91a,b | follows | `engine/cards/kw_battle_cry.go#kwBattleCry` | `TestBattleCryPumpsOtherAttackingCreatures` |  |
 | 702.92a | follows | `engine/cards/kw_livingweapon.go#kwLivingWeapon` | `TestBatterskullLivingWeaponCreatesAGermAndReachesAttach` |  |
 | 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
-| 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` | `TestMiracleOffersOnTheFirstDrawOnly` |  |
+| 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` | `TestMiracleOffersOnTheFirstDrawOnly` `TestMiracleNotOfferedOnTheOpeningHand` | no offer on the opening deal or a mulligan redraw (CR 103.5) |
 | 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` `engine/effects/soulbond.go#effPair` | `TestSoulbondPairsCurrentCreatures` |  |
 | 702.95e | follows | `engine/rules/sba.go#Engine.unpairNoncreatures` `engine/events/apply_player.go#foldControlChange` `engine/events/apply_zone.go#foldMoveZone` | `TestSoulbondPairEnds` | checked with the state-based actions: the rule names no time, and no player can act before the next check |
 | 702.96 | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/stack.go#Engine.resolveTop` | `TestOverloadedCastTargetsEachNotOne` `TestOverloadIsCastableWhenOnlyProtectedObjectsMatch` | Alt cost |

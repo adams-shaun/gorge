@@ -47,8 +47,8 @@ func (e *Engine) offerMiracle(ev events.Event) {
 	if _, ok := o.Face().KeywordParam("Miracle"); !ok {
 		return
 	}
-	if e.drawsThisTurn(ev.Player) != 1 {
-		return // not the first draw of the turn: no miracle.
+	if e.G.Turn == 0 || e.drawsThisTurn(ev.Player) != 1 {
+		return // the opening deal, or not the first draw of the turn: no miracle.
 	}
 	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 		Source:     ev.Obj,
@@ -62,8 +62,8 @@ func (e *Engine) offerMiracle(ev events.Event) {
 // the log (or since the start of the log, on turn 1). It is the "first card
 // drawn this turn" oracle for offerMiracle's ==1 gate, and mirrors
 // spellsCastThisTurn (cast.go) exactly -- a log walk, so a replay derives
-// the same number, and the opening-hand deal (which is logged before the
-// first TurnChange) is naturally invisible to it.
+// the same number. The opening deal is logged before the first TurnChange, so
+// offerMiracle rules it out by turn number (CR 103.5: no turn has begun).
 func (e *Engine) drawsThisTurn(p state.PlayerID) int {
 	n := 0
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
