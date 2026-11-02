@@ -262,6 +262,13 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 			return sim, all, simFull, true
 		}
 		independent := func(i int) bool {
+			// A Card.Self effect applies to its source whatever types anything
+			// gives it. An ability that animates its source leaves one of these
+			// per activation, and asking every other effect's closure about each
+			// of them is what grows with the fourth power of their number.
+			if act[lo+i].Affects == "Card.Self" {
+				return true
+			}
 			base := applies(&act[lo+i], ty, allCreatureTypes, full)
 			for j := range done {
 				if j == i || done[j] {
