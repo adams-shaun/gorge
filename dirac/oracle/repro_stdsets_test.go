@@ -9,13 +9,13 @@ import (
 )
 
 // Games from the Standard sets' synthetic pools that once diverged at the end of
-// their script, on the autopay surface: both engines now agree there, and for 200
-// decisions after.
+// their script, on the autopay surface (the full one where a case says so): both
+// engines now agree there, and for 200 decisions after.
 func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
-	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true}
+	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-tla", "waterbend_min_taps_filter"},               // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},           // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
@@ -28,6 +28,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tdm", "thunder_of_unity_saga_etb"},               // a chapter of Thunder of Unity with no other enters watcher out: the creature cast afterwards still drains
 		{"std-trk", "beam_grant_lone_grantor"},                 // Scotty the only creature, Open Communications in the graveyard: the grant has no creature to return
 		{"std-tdm", "neriv_departed_source_entered"},           // Stadium Headliner sacrificed the turn it entered: Neriv still doubles
+		{"std-fin", "cast_window_restricted_mana_short"},       // The Emperor of Palamecia's one mana does not reach Ice Magic's {4}: no target offered, no cast reversed after it
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
