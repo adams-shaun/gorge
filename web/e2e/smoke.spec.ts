@@ -1348,7 +1348,7 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
    *  resolves without a wheel); any other step passes, because a Mountain
    *  tapped outside a main phase wastes its mana to the step boundary — the
    *  Talisman's {2} would then never pool. The Talisman's own activation
-   *  (labelled "Activate Talisman …") is the STOP shape the test drives to. */
+   *  (labelled "Activate Talisman …") is part of the STOP shape the test drives to. */
   async function driveTalismanUntil(
     request: APIRequestContext,
     base: string,
@@ -1402,8 +1402,12 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
 
   test('a wheel-answered stage-1 re-opens the stage-2 colour wheel at the card', async ({ browser, request }) => {
     const b = TALIS as string;
+    // The stop also offers a land drop, on the turn after the Talisman is cast. To the client a window
+    // of nothing but mana taps is empty: auto-pass answers it a step's pacing after the page sees it,
+    // often before a click lands, and the seat's badge is gone.
     const pending = await driveTalismanUntil(request, b,
       (d) => d.kind === 'priority' && d.player === 0 &&
+        d.options.some((o) => o.kind === 'play_land') &&
         d.options.some((o) => o.kind === 'activate' && o.label.includes('Talisman')));
     const activation = pending.options.find((o) => o.kind === 'activate' && o.label.includes('Talisman'))!;
     expect(activation.obj, 'the Talisman activation is card-anchored').toBeDefined();
@@ -1421,7 +1425,7 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
       // and the server answers with the stage-1 ability choose, FLATTENED
       // into Add C / Add B / Add R — pip-tinted, one
       // wheel, no prose "Add B or R" option.
-      await action.click();
+      await action.click({ timeout: WAIT_MS });
       const stageOne = page.locator('body > [data-radial-picker]');
       await expect(stageOne).toBeVisible({ timeout: WAIT_MS });
       const black = stageOne.locator('button[aria-label="Add B"]');
@@ -1432,7 +1436,7 @@ test.describe('gorged [talisman] two-stage mana continuation fixture', () => {
       // The one click under test: answering the flattened Add B pays the tap
       // and lands the mana with NO second decision — the wheel closes and no
       // stage-2 colour ask re-opens at the card.
-      await black.click();
+      await black.click({ timeout: WAIT_MS });
       await expect(page.locator('body > [data-radial-picker]')).toHaveCount(0, { timeout: WAIT_MS });
     } finally {
       await ctx.close();
@@ -1752,13 +1756,17 @@ test.describe('gorged [dirac] lobby and table', () => {
       await page.goto(`${b}/`, { waitUntil: 'domcontentloaded' });
       const human = page.getByLabel('Your deck');
       await human.locator(`option[value="${decks.find((d) => !d.refused)?.id}"]`).waitFor({ state: 'attached', timeout: WAIT_MS });
-      await expect(human.locator(`option[value="${refused[0].id}"]`)).toBeDisabled();
+      // toBeDisabled reads the option's enclosing label's control, the select, which is enabled.
+      await expect(human.locator(`option[value="${refused[0].id}"]`)).toHaveJSProperty('disabled', true);
 
       const g = (await (await request.post(`${b}/api/games`, { data: { format: 'constructed' } })).json()) as { join: string; seat: number; table: string; match: number; token: string };
       await settleMulliganKeep(request, b, g.table, g.match, g.seat, g.token);
+      // A table offers the auto-pay switch until the server's capabilities say nothing is paid by hand.
+      const capabilities = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/capabilities', { timeout: WAIT_MS });
       await page.goto(`${b}${g.join}`, { waitUntil: 'domcontentloaded' });
+      await capabilities;
       await page.locator('[data-hot-strip]').waitFor({ state: 'visible', timeout: WAIT_MS });
-      expect(await page.locator('[data-auto-pay-toggle]').count(), 'dirac has no manual mana to turn auto-pay off for').toBe(0);
+      await expect(page.locator('[data-auto-pay-toggle]'), 'dirac has no manual mana to turn auto-pay off for').toHaveCount(0, { timeout: WAIT_MS });
       expectClean(c, '[dirac lobby]');
     } finally {
       await ctx.close();
