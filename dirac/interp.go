@@ -53,7 +53,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.moveRef(k, in.Obj, kop.ZoneHand, false)
 	case kop.OpToLibrary:
 		switch in.C {
-		case kop.LibTopShuffle:
+		case kop.LibTopShuffle, kop.LibTopShuffleGrave:
 			s.toLibraryShuffle(k, in, false)
 		case kop.LibBottomShuffle:
 			s.toLibraryShuffle(k, in, true)

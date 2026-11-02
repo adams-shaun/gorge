@@ -356,6 +356,12 @@ const (
 // the object goes on top of its owner's library, which is then shuffled.
 const LibTopShuffle = 4
 
+// LibTopShuffleGrave is LibTopShuffle for a trigger object's Origin$ Graveyard
+// move (Lembas' "its owner shuffles it into their library"): the card moves,
+// and the library is shuffled, only if it is still in the graveyard. Exiled in
+// response, it does neither (gorge's Origin$ precondition on the object path).
+const LibTopShuffleGrave = 8
+
 // LibTopShuffleSelf is OpToLibrary's C for LibTopShuffle with
 // ThisDefinedAndTgts$ Self: the target, then the source, go on top of their
 // owners' libraries (one departure batch); each owner's library is then

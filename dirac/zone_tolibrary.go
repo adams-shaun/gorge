@@ -27,8 +27,8 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 		o = s.lastBearerObj(s.res.e.obj)
 		lastBear = o != NoObj
 	}
-	if o == NoObj {
-		return
+	if o == NoObj || in.C == kop.LibTopShuffleGrave && s.objs[o].zone != kop.ZoneGraveyard {
+		return // (Origin$ Graveyard: a card exiled in response is not shuffled in, nor the library)
 	}
 	if bottom && s.objs[o].zone != kop.ZoneBattlefield {
 		// Origin$ Battlefield: an object that already left (a second trigger

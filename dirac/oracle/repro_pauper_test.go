@@ -194,3 +194,11 @@ func TestUnlessWindowTapsAnotherSourceMutation(t *testing.T) {
 		t.Error("no divergence without the window's tap-another source: the fixture never needs it")
 	}
 }
+
+// Lembas sacrificed for its own ability, then Nihil Spellbomb exiling the graveyard in response to its
+// "shuffles it into their library" trigger: the card is no longer in the graveyard, so it is not shuffled
+// in and the library is not shuffled (the trigger's Origin$ Graveyard).
+func TestLembasExiledInResponseIsNotShuffledInLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "lembas_exiled_in_response_is_not_shuffled_in", "pauper", Config{})
+}
