@@ -281,11 +281,17 @@ func (s *State) hideLand(k *prep, o Obj) {
 	if k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	s.pl[p].landsPlayed++
+	deferCount := k.gen.has(s.objs[o].card, gfShockEntry) // the election's answer completes the play
+	if !deferCount {
+		s.pl[p].landsPlayed++
+	}
 	if k.gen.anyLandPlayed {
 		s.enterLandPlayed(k, o, p, from)
 	} else {
 		s.enter(k, o, p, false, from)
+	}
+	if deferCount {
+		s.shockLandCount(o, p)
 	}
 }
 
