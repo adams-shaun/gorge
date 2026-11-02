@@ -49,6 +49,7 @@ row() {
 	else
 		echo "$cell FAIL"
 		grep -- '--- SKIP' "$log" || true
+		grep -A12 -E -- '^\s*--- FAIL' "$log" || true
 		tail -20 "$log"
 		failed=1
 	fi
