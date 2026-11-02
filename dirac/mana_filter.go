@@ -149,8 +149,14 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 				pc := s.manaPCGen(k, sl)
 				t.remove(s.srcMaskAt(pc, sl), pc.manaN)
 			}
+			// the fee comes first, out of what is made so far (CR 605.3b)
+			fee := s.filtFee(k, sl)
+			if t.total < fee {
+				t.total = -1 << 30
+				break
+			}
+			t.total -= fee
 			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), uint8(s.filtUnits(k, sl)))
-			t.total -= s.filtFee(k, sl)
 		}
 		if t.affords(r, pipMaskOf(r), extra) {
 			return true
