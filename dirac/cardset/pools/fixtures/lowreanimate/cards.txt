@@ -1,0 +1,13 @@
+# the reanimate-then-sacrifice pool: Come Back Wrong (destroy a creature, then
+# return it under your control and sacrifice it at the next end step) beside
+# creatures, a token maker and basics, for the oracle's constructed lockstep
+# (dirac/oracle/lowreanimate_test.go)
+Come Back Wrong
+Raise the Alarm
+Walking Corpse
+Grizzly Bears
+Savannah Lions
+Giant Spider
+Swamp
+Plains
+Forest

@@ -36,7 +36,7 @@ func (lc *lowerCtx) animateAtEOT(ps *params, obj lRef) (func(), error) {
 // oneObjectSubject reports whether ref names at most one object: Self, one
 // object-target slot with no TargetMax$ (a single target), or the remembered
 // set when exactly one earlier instruction of this ability remembers and it
-// moved one targeted object.
+// moved (or destroyed) one targeted object.
 func (lc *lowerCtx) oneObjectSubject(obj lRef) bool {
 	switch obj.Kind {
 	case rSelf:
@@ -49,6 +49,10 @@ func (lc *lowerCtx) oneObjectSubject(obj lRef) bool {
 		for _, in := range lc.ab.Prog {
 			if in.Op == "ClearRemembered" {
 				return false
+			}
+			if in.Op == "Destroy" && in.Note == noteRememberDestroyed {
+				n++ // a single targeted Destroy that remembers the object it destroyed
+				one = in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N)
 			}
 			for _, f := range strings.Split(in.CS, "|") {
 				if f == "Remember" {
@@ -119,4 +123,47 @@ func atEOTAct(v string) (int, error) {
 		return 1, nil
 	}
 	return 0, refuse("AtEOT %q", v)
+}
+
+// changeZoneAtEOT reads a ChangeZone's AtEOT$ and takes it off the params, so
+// the move lowers as it would without it; emitChangeZoneAtEOT then schedules
+// the promise for the moved object. gorge effChangeZone schedules one
+// next-end-step promise per object the move actually moved
+// (zone_change.go scheduleAtEOT on the Defined$ walk).
+func (lc *lowerCtx) changeZoneAtEOT(ps *params) (act int, ok bool, err error) {
+	v, ok := ps.get("AtEOT")
+	if !ok {
+		return 0, false, nil
+	}
+	if act, err = atEOTAct(v); err != nil {
+		return 0, false, err
+	}
+	if ps.str("Defined") != "Remembered" || ps.str("Destination") != "Battlefield" {
+		return 0, false, refuse("ChangeZone AtEOT beside Defined$ %q Destination$ %q", ps.str("Defined"), ps.str("Destination"))
+	}
+	ps.consume("AtEOT")
+	return act, true, nil
+}
+
+// emitChangeZoneAtEOT schedules the AtEOT promise on the one object a
+// Defined$ Remembered return moved. The kernel's OpAtEOT takes one object, so
+// the remembered set must be the one targeted object the same ability
+// remembered (oneObjectSubject); the move must be a single Return, which the
+// ability's condition then skips along with the promise.
+func (lc *lowerCtx) emitChangeZoneAtEOT(start, act int) error {
+	moves := 0
+	for _, in := range lc.ab.Prog[start:] {
+		if in.Op != "Return" || in.Obj.Kind != rRemembered {
+			return refuse("ChangeZone AtEOT beside a %s", in.Op)
+		}
+		moves++
+	}
+	if moves != 1 {
+		return refuse("ChangeZone AtEOT over %d moves", moves)
+	}
+	if !lc.oneObjectSubject(lRef{Kind: rRemembered}) {
+		return refuse("ChangeZone AtEOT on a set of remembered objects")
+	}
+	lc.emit(lInstr{Op: "AtEOT", Obj: lRef{Kind: rRemembered}, C: act})
+	return nil
 }
