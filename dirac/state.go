@@ -686,6 +686,7 @@ const bflCostFixed uint16 = 1 << 9
 // the state-based check after the cast's reversal, an event that ends the no-progress
 // interval, and dirac's has already gone (reverseCast).
 const bflTokenGone uint16 = 1 << 10
+
 // bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
 const bflDilemma uint16 = 1 << 15
 
