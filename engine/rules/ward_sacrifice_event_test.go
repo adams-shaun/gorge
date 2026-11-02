@@ -118,7 +118,7 @@ func TestWardSacrificePaymentQueuesSacrificedOnceOnce(t *testing.T) {
 	}
 }
 
-func TestWardDiscardPaymentTextUnchanged(t *testing.T) {
+func TestWardDiscardPaymentIsADiscard(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
 	warded := onBoard(t, e, 0, "Name:Discard Warded\nTypes:Creature\nPT:2/2\nK:Ward:Discard<1/Card>\nOracle:x\n")
@@ -145,8 +145,8 @@ func TestWardDiscardPaymentTextUnchanged(t *testing.T) {
 	}
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.MoveZone && ev.To == state.ZGraveyard && ev.From == state.ZHand {
-			if ev.Text != "discarded for ward" {
-				t.Fatalf("ward discard text = %q, want %q", ev.Text, "discarded for ward")
+			if !events.IsDiscard(ev) {
+				t.Fatalf("ward's discard is no discard: %+v", ev)
 			}
 			return
 		}

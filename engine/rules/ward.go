@@ -167,9 +167,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 			if !pay.PayMana(asPayer(e), payer, wardManaCost(cost)) {
 				return false, false
 			}
-			for _, id := range chosen {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZGraveyard, Text: "discarded for ward"})
-			}
+			pay.PayDiscardCost(asPayer(e), chosen, "")
 			return true, false
 		}
 		return e.askWardObjects(rp, ctx, payer, "ward_discard", "Choose cards to discard for ward", int(part.N), int(part.N), ids)
@@ -269,7 +267,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		if chosen[0].Kind != "ward_discard" || len(ids) != 1 || !slices.Contains(e.G.Zone(state.ZHand, payer), ids[0]) {
 			return false
 		}
-		e.emit(events.Event{Kind: events.MoveZone, Obj: ids[0], From: state.ZHand, To: state.ZGraveyard, Text: "discarded for ward"})
+		pay.PayDiscardCost(asPayer(e), ids[:1], "")
 		return true
 	case settleWardPaymentWardBlight:
 		if len(ids) != 1 || !slices.Contains(e.wardPermanents(payer, ctx.Source, "Creature", false), ids[0]) {
@@ -334,9 +332,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 			pay.PaySacrificeCost(asPayer(e), ids)
 			return true
 		}
-		for _, id := range ids {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: zone, To: state.ZGraveyard, Text: "discarded for ward"})
-		}
+		pay.PayDiscardCost(asPayer(e), ids, "")
 		return true
 	}
 	return false
