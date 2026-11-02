@@ -2463,8 +2463,9 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// itself be in the set (Forge's non-LKI contains check), so a creature
 		// not controlled by the named players never matches even if its power
 		// is the greatest on the battlefield. Bound callers supply layer-derived
-		// power for the entire comparison set; direct calls retain objectPower's
-		// printed-plus-counter fallback.
+		// power and layer-derived types (a crewed Vehicle is a creature) for the
+		// entire comparison set; direct calls retain objectPower's
+		// printed-plus-counter fallback and the printed type line.
 		var players []state.PlayerID
 		if ref, is := strings.CutPrefix(rest, "ControlledBy"); is {
 			var ok bool
@@ -2476,7 +2477,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 				return false, true
 			}
 		}
-		if o.Zone != state.ZBattlefield || !hasType(o, "Creature") {
+		if o.Zone != state.ZBattlefield || !hasTypeCtx(o, "Creature", sc) {
 			return false, true
 		}
 		inSet := len(players) == 0
@@ -2491,7 +2492,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		mine := objectPowerInContext(o, sc)
 		for i := range g.Objs {
 			other := &g.Objs[i]
-			if other.Zone != state.ZBattlefield || !hasType(other, "Creature") || other.ID == o.ID {
+			if other.Zone != state.ZBattlefield || other.ID == o.ID || !hasTypeCtx(other, "Creature", sc) {
 				continue
 			}
 			if len(players) > 0 {
