@@ -47,8 +47,7 @@ func counterDestination(ps *params) (int, error) {
 // TargetType$ lists with a spell qualifier and abilities (Louisoix's
 // Sacrifice, Spider-Sense), TargetValidTargeting$ (Fugitive Droid),
 // RememberCounteredCMC$ (Hurl into History) and TgtZone$ Stack. Swallowed by
-// Leviathan and Thranduil's Decree stay refused (gorge findings; see
-// lowerCtx.unless and the Counter case's Defined$ Targeted refusal).
+// Leviathan stays refused (gorge findings; see lowerCtx.unless).
 
 // counterTypeList reads a TargetType$ list that is none of Counter's three
 // exact forms (gorge state.StackKindTokenOf, OR over the tokens): one spell

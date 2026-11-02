@@ -1361,14 +1361,6 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 	case "Counter":
 		if _, ok := ps.get("TargetType"); !ok {
 			if d, ok := ps.get("Defined"); ok {
-				if d == "Targeted" {
-					// Thranduil's Decree: its exile of a
-					// countered permanent spell reads X as Targeted$Valid
-					// Permanent, which gorge counts 0 for a spell on the stack
-					// (Forge and XMage take the card type), so the kernel's
-					// exact program would diverge: refused until gorge agrees
-					return refuse("Counter Defined$ Targeted (gorge Count Targeted$Valid Permanent reads 0 for a spell on the stack)")
-				}
 				if spec, ok := strings.CutPrefix(d, "ValidStack "); ok {
 					return lc.counterAll(ps, strings.TrimSpace(spec)) // lower_stackrewrite.go
 				}
