@@ -326,6 +326,7 @@ func (rs *tapXSearch) tick() bool {
 func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl) // a counter-cost gap: its counter, its use, its mana
+		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
 	for _, cd := range [2]Slot{st.cand, st.cand2} {
