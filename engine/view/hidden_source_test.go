@@ -47,7 +47,7 @@ func TestAbilityFromASourceTheViewerCantSee(t *testing.T) {
 		g.SetZone(state.ZHand, 0, nil)
 		g.SetZone(tc.zone, 0, []state.ObjID{id})
 		g.Obj(id).FaceDown = tc.faceDown
-		events.Apply(g, events.Event{Kind: events.DelayedPush, Player: 0, Obj: id, Counter: "__monarch_draw"})
+		events.Apply(g, events.Event{Kind: events.DelayedPush, Player: 0, Obj: id, Counter: "WatcherBody"})
 		ability := g.Stack[0]
 		ch := pendingChars{flatChars{g}, []state.PendingTrigger{{Source: id, Controller: 0, Label: name}}}
 
@@ -68,7 +68,7 @@ func TestAbilityFromASourceTheViewerCantSee(t *testing.T) {
 		if got := strings.Contains(obj(g, ability), name); got != tc.wantInLog {
 			t.Errorf("%+v: log names the ability %q", tc, obj(g, ability))
 		}
-		if line := Describe(g, events.Event{Kind: events.DelayedPush, Player: 0, Obj: id, Counter: "__monarch_draw"}); strings.Contains(line, name) {
+		if line := Describe(g, events.Event{Kind: events.DelayedPush, Player: 0, Counter: "__monarch_draw"}); strings.Contains(line, name) {
 			t.Errorf("%+v: monarch line %q", tc, line)
 		}
 	}
@@ -127,7 +127,7 @@ func TestAbilityFromASacrificedTokenKeepsItsName(t *testing.T) {
 	src := g.Obj(id)
 	src.IsToken, src.Zone = true, state.ZLibrary
 	g.SetZone(state.ZHand, 0, nil)
-	events.Apply(g, events.Event{Kind: events.DelayedPush, Player: 0, Obj: id, Counter: "__monarch_draw"})
+	events.Apply(g, events.Event{Kind: events.DelayedPush, Player: 0, Obj: id, Counter: "WatcherBody"})
 	if got := Project(g, flatChars{g}, 1, nil).Stack[0].Name; got != "Watcher" {
 		t.Errorf("stack name %q", got)
 	}

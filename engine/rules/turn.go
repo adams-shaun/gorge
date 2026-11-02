@@ -193,24 +193,16 @@ func (e *Engine) finishEnteredStep() {
 			Controller: e.G.Initiative, InitiativeVenture: true,
 		})
 	}
-	// CR 724.2a: the monarch's draw is a triggered ability at the beginning
-	// of the end step, not an immediate turn-based action. Queue it here; the
-	// ordinary trigger drain places it on the stack before priority, preserving
-	// responses and APNAP ordering with other beginning-of-end-step triggers.
-	if e.G.Step == state.StepEnd && e.G.HasMonarch &&
+	// CR 725.2: "At the beginning of the monarch's end step, that player draws a
+	// card" is a triggered ability with no source, not an immediate turn-based
+	// action. Queue it here; the ordinary trigger drain places it on the stack
+	// before priority, preserving responses and APNAP ordering with other
+	// beginning-of-end-step triggers.
+	if e.G.Step == state.StepEnd && e.G.HasMonarch && e.G.Monarch == e.G.Active &&
 		!e.G.Players[e.G.Monarch].Lost {
-		var source state.ObjID
-		for i := range e.G.Objs {
-			if e.G.Objs[i].Face() != nil {
-				source = e.G.Objs[i].ID
-				break
-			}
-		}
-		if source != 0 {
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-				Source: source, Controller: e.G.Monarch, MonarchDraw: true,
-			})
-		}
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Controller: e.G.Monarch, MonarchDraw: true,
+		})
 	}
 	// Entry resets the pass count along with the active holder. Cumulative
 	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep

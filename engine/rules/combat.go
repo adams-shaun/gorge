@@ -2526,13 +2526,13 @@ func (e *Engine) runCombatAssignments() {
 					// branch records (the object branch above is untouched): the
 					// property is only ever read about players.
 					e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
-					// CR 724.2b: combat damage to the monarch makes the
-					// damage-dealing player become the monarch. Emit this
-					// transition only after confirming the damage landed.
+					// CR 725.2: "Whenever a creature deals combat damage to the
+					// monarch, its controller becomes the monarch": one trigger per
+					// creature whose hit landed, controlled by the monarch.
 					if e.G.HasMonarch && ev.Player == e.G.Monarch &&
 						x.from != 0 && e.G.Obj(x.from) != nil {
-						e.emit(events.Event{Kind: events.MonarchChange,
-							Player: e.G.Obj(x.from).Controller})
+						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+							Controller: e.G.Monarch, MonarchSteal: true, MonarchTo: e.G.Obj(x.from).Controller})
 					}
 					// CR 726.2: "Whenever one or more creatures a player controls
 					// deal combat damage to the player who has the initiative, the

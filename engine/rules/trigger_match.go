@@ -94,10 +94,14 @@ type pendingTrigger struct {
 	// though its delayed-shape stack object has no T: line to record.
 	Chapter   bool
 	DelayedID uint32
-	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
-	// It is represented as a real stack ability through the existing delayed
-	// push event, rather than as an immediate turn action.
+	// MonarchDraw and MonarchSteal are the two source-less abilities of CR 725.2,
+	// the end-step draw and "whenever a creature deals combat damage to the
+	// monarch, its controller becomes the monarch". They are real stack abilities
+	// through the delayed push event, controlled by the monarch when they
+	// triggered. MonarchTo is the creature's controller.
 	MonarchDraw    bool
+	MonarchSteal   bool
+	MonarchTo      state.PlayerID
 	RadiationDrain bool
 	SpeedIncrease  bool
 	// InitiativeVenture is the source-less CR 726.2 inherent ability that makes

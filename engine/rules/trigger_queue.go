@@ -233,7 +233,7 @@ func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
 		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0 && !pt.SpeedIncrease &&
-		!pt.InitiativeVenture
+		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal
 }
 
 // orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
@@ -464,8 +464,14 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.DelayedPush, Obj: pt.Source,
-			Player: pt.Controller, Counter: "__monarch_draw"})
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_draw"})
+		return
+	}
+	if pt.MonarchSteal {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_steal", Amount: int32(pt.MonarchTo)})
 		return
 	}
 	if pt.InitiativeVenture {
@@ -1707,6 +1713,12 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// to read a TriggerDescription$ from.
 	if pt.SpeedIncrease {
 		return "Speed: whenever an opponent loses life during your turn"
+	}
+	if pt.MonarchDraw {
+		return "The monarch: draw a card"
+	}
+	if pt.MonarchSteal {
+		return "The monarch: that creature's controller becomes the monarch"
 	}
 	if pt.RingEmblem > 0 {
 		return ringEmblemLabel(pt.RingEmblem)

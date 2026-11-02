@@ -360,22 +360,23 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	if !validPlayer(g, e.Player) {
 		return
 	}
-	// CR 724.2a's monarch draw is the engine's OWN trigger, minted from
-	// a synthetic body with no card registration at all: it must never
-	// consume one. Its event carries Amount zero (no DelayedRegister
-	// ever set it), which would otherwise match registration ID 0 and
-	// delete a bystander's pending delayed trigger.
+	// The monarch's abilities (CR 725.2) are the engine's OWN triggers, minted
+	// from a synthetic body with no card registration at all: they must never
+	// consume one. Their event's Amount is no DelayedRegister's ID and would
+	// otherwise match a bystander's pending delayed trigger.
 	monarchDraw := e.Counter == "__monarch_draw"
 	radiationDrain := e.Counter == "__radiation_drain"
 	speedIncrease := e.Counter == "__speed_increase"
 	initiativeVenture := e.Counter == "__initiative_venture"
+	monarchSteal := e.Counter == "__monarch_steal"
+	sourceless := monarchDraw || monarchSteal || radiationDrain || speedIncrease || initiativeVenture
 	// Consume the registration first, even when its tracked permanent has
 	// changed incarnation. A stale dash/warp promise expires once; it must
 	// neither act on the returned object nor be retried forever. Ordinary
 	// delayed triggers, including Encore's group cleanup, are independent
 	// of their source and still resolve.
 	var registration *state.DelayedTrigger
-	if !monarchDraw && !radiationDrain && !speedIncrease && !initiativeVenture {
+	if !sourceless {
 		for i := range g.Delayed {
 			if g.Delayed[i].ID == uint32(e.Amount) {
 				dt := g.Delayed[i]
@@ -391,7 +392,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		}
 	}
 	src := g.Obj(e.Obj)
-	if !radiationDrain && !speedIncrease && !initiativeVenture {
+	if !sourceless {
 		if src == nil {
 			return
 		}
@@ -416,6 +417,10 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	var sa *cards.SA
 	if monarchDraw {
 		sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{"Defined": "You", "NumCards": "1"}}
+	} else if monarchSteal {
+		// CR 725.2: the creature's controller, recorded when the ability
+		// triggered, is the ability's Remembered player.
+		sa = &cards.SA{Kind: "DB", API: "BecomeMonarch", Params: map[string]string{"Defined": "Remembered"}}
 	} else if radiationDrain {
 		sa = &cards.SA{Kind: "DB", API: "RadiationDrain", Params: map[string]string{"Defined": "You"}}
 	} else if speedIncrease {
@@ -463,7 +468,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 	if e.Text == TextGrantedAbility {
 		o.StackKind = state.StackKindActivated
 	}
-	if !radiationDrain && !speedIncrease && !initiativeVenture {
+	if !sourceless {
 		o.Source = e.Obj
 	}
 	if registration != nil && registration.TrackSource {
@@ -480,6 +485,9 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
+	if monarchSteal {
+		o.Remembered = []state.Target{{Player: state.PlayerID(e.Amount), IsPlayer: true}}
+	}
 }
 
 // foldGrantTriggerPush folds Kind GrantTriggerPush into state.
