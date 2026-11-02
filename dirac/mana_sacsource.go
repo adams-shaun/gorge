@@ -36,19 +36,32 @@ func (s *State) anySacSource(k *prep, p uint8) bool {
 	return false
 }
 
-// xWitnessEats: the witness for spell c's {X} at x sacrifices the last permanent the spell
-// could target, For the Common Good paid with the Treasure it would copy. Gorge then plans
-// the largest X that keeps its sources (potentialWitnessKeeping).
+// witnessWaits is how many stacked triggers gorge's witness execution lets resolve (one
+// pass each) before it gives up (potential_script.go witnessReachesFrom, waits >= 4).
+const witnessWaits = 4
+
+// xWitnessEats: gorge does not take the witness for spell c's {X} at x, so it plans the
+// largest X that keeps its sources (potentialWitnessKeeping). It is not taken when the
+// witness sacrifices the last permanent the spell could target (For the Common Good paid
+// with the Treasure it would copy), and when its sacrifices stack more triggers than the
+// wait budget lets resolve before the play is offered again (kickWitness; Nyxborn Hydra's
+// X paid with three Eldrazi Spawn beside two Writhing Chrysalis).
 func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x int, excl Obj) bool {
-	if !s.anySacSource(k, p) || tspec(k, c, spellAb(k, c), 0) == nil {
+	targeted := tspec(k, c, spellAb(k, c), 0) != nil
+	stacked := s.subs[kop.TrigSacrificed].any()
+	if !s.anySacSource(k, p) || !targeted && !stacked {
 		return false
 	}
 	t := s.fork()
 	defer s.unfork()
+	n0 := t.npend
 	var pk planner
 	pk.try = true
 	t.tapForPK(k, p, cost, x, excl, false, false, &pk)
-	return pk.found && !t.spellTargetsFeasible(k, c, p)
+	if !pk.found {
+		return false
+	}
+	return targeted && !t.spellTargetsFeasible(k, c, p) || stacked && int(t.npend)-int(n0) > witnessWaits
 }
 
 // sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness
@@ -100,7 +113,7 @@ func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
 	if !pk.found {
 		return true
 	}
-	return int(tmp.npend)-int(n0) <= 4
+	return int(tmp.npend)-int(n0) <= witnessWaits
 }
 
 // canSacOnlyForMana reports whether the autopay planner may price sl as a

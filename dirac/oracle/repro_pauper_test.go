@@ -82,3 +82,13 @@ func TestTappedSpawnPaysTheCastLockstep(t *testing.T) {
 	t.Parallel()
 	poolReproLockstep(t, "tapped_spawn_pays_the_cast", "pauper", Config{})
 }
+
+// Nyxborn Hydra's {X}{G} beside two Writhing Chrysalis and three Eldrazi Spawn: the
+// largest-X witness sacrifices all three, each sacrifice stacks a trigger per
+// Chrysalis, and six triggers are more than gorge's witness execution waits out before
+// the cast is offered again. gorge plans the largest X that keeps its sources, so the
+// Spawn are still there, with the Chrysalis uncountered, when X is announced.
+func TestXWitnessPastTheTriggerWaitBudgetKeepsItsSourcesLockstep(t *testing.T) {
+	t.Parallel()
+	poolReproLockstep(t, "xcast_spawn_witness_over_wait_budget", "pauper", Config{})
+}
