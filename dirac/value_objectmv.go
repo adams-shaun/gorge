@@ -5,19 +5,19 @@ import (
 )
 
 // sacrificedMV is Sacrificed$CardManaCost (gorge c.Sacrificed's last known
-// information): the mana value of the card the sacrificed cost object was,
-// from the entry's LKI record (RefSacrificed); 0 without one, and 0 for a
-// face-down permanent (CR 708.2; gorge captures ManaValue before the zone
-// change, where FaceDownHidden is 0).
+// information): the mana value the sacrificed cost object had, the copied card's
+// on a copy (CR 707.2), from the entry's LKI record (RefSacrificed); 0 without one,
+// and 0 for a face-down permanent (CR 708.2; gorge captures ManaValue before the
+// zone change, where FaceDownHidden is 0).
 //
 //go:noinline
-func (s *State) sacrificedMV(k *prep, ctx evalCtx) int {
+func (s *State) sacrificedMV(ctx evalCtx) int {
 	if e := ctx.e; e != nil && e.li != 0 {
 		l := s.lk(e.li)
 		if l.bits&lkiFaceDown != 0 {
 			return 0
 		}
-		return int(k.cards[s.objs[l.obj].card].total)
+		return int(l.mv)
 	}
 	return 0
 }

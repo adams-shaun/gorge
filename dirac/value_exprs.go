@@ -148,7 +148,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return 0 // mutation hook
 		}
 		if x.Ref == kop.RefSacrificed {
-			return s.sacrificedMV(k, ctx)
+			return s.sacrificedMV(ctx)
 		}
 		if x.Ref == kop.RefRemembered {
 			return s.rememberedMV(k)
