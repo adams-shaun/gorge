@@ -1366,9 +1366,22 @@ func firstLineOf(s string) string {
 
 func printDiv(d *oracle.Divergence) {
 	fmt.Println(d.String())
-	for i, l := range d.Diff {
+	// A position shift is usually the echo of a card that moved, so the lines naming
+	// something else come first.
+	diff := make([]string, 0, len(d.Diff))
+	for _, l := range d.Diff {
+		if !strings.HasSuffix(strings.SplitN(l, ": ", 2)[0], ".Pos") {
+			diff = append(diff, l)
+		}
+	}
+	for _, l := range d.Diff {
+		if strings.HasSuffix(strings.SplitN(l, ": ", 2)[0], ".Pos") {
+			diff = append(diff, l)
+		}
+	}
+	for i, l := range diff {
 		if i >= 20 {
-			fmt.Printf("  ... %d more\n", len(d.Diff)-i)
+			fmt.Printf("  ... %d more\n", len(diff)-i)
 			break
 		}
 		fmt.Println("  " + l)
