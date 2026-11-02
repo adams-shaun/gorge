@@ -67,7 +67,7 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		return false, true
 	}
 	if strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKOnlyFirstSpell)), "True") &&
-		e.onlyFirstSpellUsed(sv, p, id) {
+		e.onlyFirstSpellUsed(sv, p) {
 		// OnlyFirstSpell$ (Conduit of Ruin: "The first creature spell you cast
 		// each turn costs {2} less"): the reduction is spent once the
 		// turn's first covered spell has been announced. See

@@ -3371,6 +3371,15 @@ func MatchesSpecCtxPtr(g *state.Game, spec string, id state.ObjID, sc *SpecConte
 	return matchesObjectPtr(g, spec, o, sc)
 }
 
+// MatchesSpecAsFace matches spec against o read with face faceIdx showing, the
+// characteristics a spell had when it was cast (an Adventure half) after the
+// object has since been rewritten to another face. o is not modified.
+func MatchesSpecAsFace(g *state.Game, spec string, o *state.Object, faceIdx uint8, sc *SpecContext) bool {
+	c := *o
+	c.SetFaceIdx(faceIdx)
+	return matchesObjectPtr(g, spec, &c, sc)
+}
+
 // matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
 // base names a permanent card when a count already scoped the candidates to a
 // non-battlefield zone; it must not re-check the object's current zone and

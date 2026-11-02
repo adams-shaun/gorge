@@ -200,6 +200,11 @@ func (s *State) pushBuild(k *prep) {
 		}
 		if k.gen != nil && k.gen.castRingOn {
 			s.noteCast(e.obj, e.ctrl, z) // CR 601.2a: the push is the cast's ledger entry
+			if s.bld().castN != 0 {
+				if cd := &k.t.Cards[ob.card]; cd.FaceMode == kop.FaceAdventure && cd.Face == 1 {
+					s.castPushes(e.ctrl)[s.bld().castN-1].prov |= castAdventurePush
+				}
+			}
 		} else if k.gen != nil && k.gen.anyParadigm {
 			s.noteParadigmCast(k, e.obj, e.ctrl, z) // kw_paradigm.go
 		}

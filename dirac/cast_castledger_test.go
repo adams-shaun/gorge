@@ -342,30 +342,22 @@ func TestThisTurnCastOrigin(t *testing.T) {
 	}
 }
 
-// TestCastSpecNotBuiltDropsEarlierCasts: OnlyFirstSpell$ drops every push of the
-// object being priced, as gorge's onlyFirstSpellUsed does: Radagast's first
-// creature spell is the creature half of the Adventure card cast earlier this
-// turn, whose exiled card reads as a creature now.
-func TestCastSpecNotBuiltDropsEarlierCasts(t *testing.T) {
+// TestCastSpecAsCastCountsARecast: an OnlyFirstSpell$ spec drops no push of the
+// object being priced (gorge onlyFirstSpellUsed skips only the push under
+// composition, which the build hides separately): an object cast, bounced and
+// priced again the same turn finds its earlier cast in the ledger.
+func TestCastSpecAsCastCountsARecast(t *testing.T) {
 	sc, id := kcastScen(t)
-	focus := id("Focus the Mind")
-	f := sc.hand(focus, 0)
+	f := sc.hand(id("Focus the Mind"), 0)
 	s := sc.s
 	s.noteCast(f, 0, kop.ZoneHand)
-	x := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou | kop.CastSpecNotBuilt}
+	x := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou | kop.CastSpecAsCast}
 	ctx := evalCtx{src: NoObj, srcSl: NoSlot, ctrl: 0}
-	if n := s.thisTurnCastSpec(sc.k, x, ctx); n != 1 {
-		t.Fatalf("outside a cost composition the push counts: %d", n)
-	}
 	s.bld().e.obj = f
 	s.bld().e.kind = seSpell
 	s.bld().bfl |= bflCostComp
 	defer func() { s.bld().bfl &^= bflCostComp }()
-	if n := s.thisTurnCastSpec(sc.k, x, ctx); n != 0 {
-		t.Fatalf("pricing the same object counts its earlier cast: %d", n)
-	}
-	plain := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou}
-	if n := s.thisTurnCastSpec(sc.k, plain, ctx); n != 1 {
-		t.Fatalf("a spec without the bit keeps the earlier cast: %d", n)
+	if n := s.thisTurnCastSpec(sc.k, x, ctx); n != 1 {
+		t.Fatalf("pricing a recast misses its earlier cast: %d", n)
 	}
 }

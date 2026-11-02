@@ -3,7 +3,9 @@
 # NotPlayerTurn), Radagast of Rhosgobel, Serah Farron and Melek,
 # Reforged Researcher (OnlyFirstSpell$ True; Melek's ValidSpell$ names
 # the first instant/sorcery) beside Inspiration, flash and legendary
-# creatures, a vanilla creature, Mountain and the other basics
+# creatures, a vanilla creature, Rimrock Knight (an Adventure whose
+# instant half, Boulder Rush, is no creature spell) and Unsummon (a creature recast the same
+# turn), Mountain and the other basics
 # (dirac/oracle/reducegates_test.go)
 Mental Modulation
 Geyser Drake
@@ -20,3 +22,5 @@ Mountain
 Forest
 Plains
 Island
+Rimrock Knight
+Unsummon

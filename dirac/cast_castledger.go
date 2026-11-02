@@ -45,6 +45,11 @@ const (
 	castFromMask uint8 = 3
 
 	castTreasurePush uint8 = 4 // its payment spent mana from a Treasure (CastSpecTreasure)
+
+	// castAdventurePush (16; castWarpPush is 8): the push was an Adventure
+	// card's Adventure half, which CastSpecAsCast reads as that half although
+	// the card now shows its creature face from exile.
+	castAdventurePush uint8 = 16
 )
 
 // castPushes is player p's pushes this turn. A table with no reader has no ring.
@@ -139,9 +144,6 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 			if x.N&kop.CastSpecExclude != 0 && o == ctx.src {
 				continue
 			}
-			if x.N&kop.CastSpecNotBuilt != 0 && s.bld().bfl&bflCostComp != 0 && o == s.bld().e.obj && !DebugReduceGatesNoFirst {
-				continue
-			}
 			if x.N&kop.CastSpecHand != 0 && r.prov&castFromMask != castFromHand {
 				continue
 			}
@@ -159,6 +161,12 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			if x.N&(kop.CastSpecCtrlTrig|kop.CastSpecTypes) != 0 {
 				if s.castRingCountHeadsMatch(k, x, o, ctx, &tm) && x.N&kop.CastSpecTypes == 0 {
+					n++
+				}
+				continue
+			}
+			if x.N&kop.CastSpecAsCast != 0 && r.prov&castAdventurePush != 0 {
+				if s.castRingMatchAdventure(k, x.F, o, ctx) {
 					n++
 				}
 				continue
@@ -214,6 +222,18 @@ func (s *State) castRingMatch(k *prep, f kop.FilterID, o Obj, ctx evalCtx) bool 
 		return false
 	}
 	return s.matchCardEntered(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.src)
+}
+
+// castRingMatchAdventure is castRingMatch for a push of an Adventure half:
+// the card's Adventure face, the characteristics it was cast with (gorge
+// MatchesSpecAsFace; Forge's thisTurnCast holds the cast-time LKI copy).
+func (s *State) castRingMatchAdventure(k *prep, f kop.FilterID, o Obj, ctx evalCtx) bool {
+	ob := &s.objs[o]
+	c := ob.card
+	if fs := k.t.Cards[c].Faces; len(fs) == 2 {
+		c = fs[1]
+	}
+	return s.matchCardEntered(k, f, c, ob.owner(), ctx.ctrl, o, ctx.src)
 }
 
 // DebugCastRingLive is the mutation test's switch: thisTurnCastSpec reads

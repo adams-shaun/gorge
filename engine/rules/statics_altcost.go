@@ -392,19 +392,26 @@ func priorCastTargets(evs []events.Event) []state.Target {
 // leaves the stack, so both are rebuilt from the CastInfo / TargetsChosen
 // events above its PutOnStack.
 //
-// Every cost-static evaluation site runs BEFORE the cast's own PutOnStack
-// exists (the offer walk, beginCast's modifier snapshot, and the
-// target-announcement recompute all precede pushCast -- CR 601.2f's
-// modifiers are computed into pc.mods and manaToPay only reads them), so the
-// in-flight cast is never in the log while it is being priced. The ev.Obj ==
-// id exclusion is defensive against a future evaluation site past the push:
-// the cast being priced must not count as its own "previous cast".
+// The offer walk and beginCast's modifier snapshot run BEFORE the cast's own
+// PutOnStack exists, but the recompute CR 601.2f does once targets are
+// announced runs after it, under withCostCompositionEvent, which names that
+// one push (e.costCompositionEvent) so the cast being priced is not its own
+// "previous cast". Only that push is skipped, never every push of the object:
+// an object keeps its ObjID through a zone change, so a creature cast,
+// bounced and cast again the same turn has an earlier cast that is a real
+// spell (Forge's thisTurnCast list holds every cast, the card priced
+// included), and the discount it took is spent (CR 400.7 makes the new object
+// new, but the count of spells cast this turn still includes the old one).
+//
+// A prior cast reads as the characteristics it was cast with: an Adventure
+// cast is the instant or sorcery half although its object now shows the
+// creature face from exile (Forge's list holds the cast-time LKI copy).
 //
 // A cast whose object no longer carries a face (or whose face, mode or targets
 // the specs cannot re-evaluate) is not counted -- the missing-match direction
 // for a USED tracking, which widens the discount by at most one cast on a
 // board this build cannot reconstruct, never withholds it.
-func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
+func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID) bool {
 	cardSpec := strings.TrimSpace(sv.ParamStr(cards.PKValidCard))
 	spellSpec, hasSpellSpec := sv.Param(cards.PKValidSpell)
 	sc := e.staticSpecCtxNamed(sv)
@@ -445,12 +452,20 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 		// must never be read at its older push.
 		f := facts[ev.Obj]
 		delete(facts, ev.Obj)
-		if ev.Player != p || ev.Obj == id {
+		if ev.Player != p || (e.costCompositionEvent != 0 && i+1 == e.costCompositionEvent) {
 			continue
 		}
 		if cardSpec != "" {
 			o := e.G.Obj(ev.Obj)
-			if o == nil || o.Face() == nil || !e.matchesSpec(cardSpec, ev.Obj, sc) {
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if f != nil && f.flags&state.FlagAdventure != 0 && adventureSpellFace(o) != nil {
+				// The cast was the Adventure half (face 1), whatever face the card shows now.
+				if !effects.MatchesSpecAsFace(e.G, cardSpec, o, 1, &sc) {
+					continue
+				}
+			} else if !e.matchesSpec(cardSpec, ev.Obj, sc) {
 				continue
 			}
 		}
