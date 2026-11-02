@@ -45,6 +45,49 @@ func (s *State) anySacSource(k *prep, p uint8) bool {
 	return false
 }
 
+// xWitnessEats: the witness for spell c's {X} at x sacrifices the last permanent the spell
+// could target, For the Common Good paid with the Treasure it would copy. Gorge then plans
+// the largest X that keeps its sources (potentialWitnessKeeping).
+func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x int, excl Obj) bool {
+	if !s.anySacSource(k, p) || tspec(k, c, spellAb(k, c), 0) == nil {
+		return false
+	}
+	t := s.fork()
+	defer s.unfork()
+	var pk planner
+	pk.try = true
+	t.tapForPK(k, p, cost, x, excl, false, false, &pk)
+	return pk.found && !t.spellTargetsFeasible(k, c, p)
+}
+
+// sacSourcesHeld takes p's sacrificing mana sources out of its control mask for a witness
+// that keeps them, and returns them to put back.
+func (s *State) sacSourcesHeld(k *prep, p uint8) slotMask {
+	var held slotMask
+	for b := s.ctrlM[p]; b.any(); b = b.rest() {
+		if pc := s.manaPCAt(k, b.first()); pc.manaSac || pc.manaSacOnly {
+			held = held.or(slotBit(b.first()))
+		}
+	}
+	s.ctrlM[p] = s.ctrlM[p].andNot(held)
+	return held
+}
+
+// xWitnessOffered: gorge has a witness for p's {X} cast of hand card o, at the largest X or
+// at a smaller one that keeps the sacrificing sources.
+func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	var av avail
+	s.availFor(k, p, &av)
+	if !s.xWitnessEats(k, p, c, &cost, max(0, av.maxX(&cost, pipMaskOf(&cost))), o) {
+		return true
+	}
+	held := s.sacSourcesHeld(k, p)
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast
 // whose plan sacrifices a source: the witness lets at most four stacked
 // triggers resolve before it gives up (potential_script.go's wait budget),

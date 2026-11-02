@@ -78,6 +78,14 @@ func TestSacrificedTokenCopyIsNoPickLockstep(t *testing.T) {
 	synthReproLockstep(t, "token_copy_not_a_pick", "std-blb", Config{})
 }
 
+// For the Common Good with a Treasure as its only target. A witness that sacrifices it pays
+// nothing, so the cast needs lands for its {G}, and then pays the largest X that keeps it.
+func TestXWitnessKeepsTheOnlyTargetLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "common_good_only_treasure", "std-blb", Config{})
+	synthReproLockstep(t, "common_good_keeps_treasure", "std-blb", Config{})
+}
+
 // Zurgo's Vanguard is */3, and Fresh Start takes its power's CDA away: it stays a -5/3
 // on the battlefield, whose toughness the lost ability did not set.
 func TestLostCDALeavesThePrintedToughnessLockstep(t *testing.T) {

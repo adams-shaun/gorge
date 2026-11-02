@@ -1309,6 +1309,13 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			x = min(max(x, xr), t.total/int(cost.X))
 		}
 	}
+	if cost.X != 0 && s.bld().e.kind == seSpell && s.xWitnessEats(k, p, s.bld().e.card, &cost, x, excl) {
+		held := s.sacSourcesHeld(k, p)
+		s.availFor(k, p, &av)
+		s.tapForRider(k, p, &cost, max(0, av.maxX(&cost, pipMaskOf(&cost))), excl, anyColor)
+		s.ctrlM[p] = s.ctrlM[p].or(held)
+		return
+	}
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd {
 		s.tapForRider(k, p, &cost, x, excl, anyColor)
 		return

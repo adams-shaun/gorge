@@ -199,8 +199,9 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		}
 		if witness && got.Plan != nil && got.Reason == "" && paymentPlanConsumes(*got.Plan) && !e.potentialWitnessReaches(p, o, *got.Plan) {
 			// The witness sacrifices or returns a permanent the play
-			// itself needed (its only target): not a way to pay it.
-			got = PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_unreachable"}
+			// itself needed (its only target): not a way to pay it, though a
+			// smaller X may pay without that permanent.
+			got = e.potentialWitnessKeeping(p, o)
 		}
 		pp.Reason, pp.Detail = got.Reason, got.Detail
 		if witness && got.Plan != nil && got.Reason == "" {
@@ -210,6 +211,21 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		out = append(out, pp)
 	}
 	return out
+}
+
+// potentialWitnessKeeping is the witness for a cast whose planned witness ate
+// what the cast needed: the largest X that keeps every permanent, or
+// witness_unreachable when no plan does.
+func (e *Engine) potentialWitnessKeeping(p state.PlayerID, o decision.Option) PaymentPlanOutcome {
+	if o.Kind == "cast" {
+		e.planKeepSources = true
+		got := e.potentialModeCastPlan(p, o)
+		e.planKeepSources = false
+		if got.Plan != nil && got.Reason == "" && !paymentPlanConsumes(*got.Plan) {
+			return got
+		}
+	}
+	return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_unreachable"}
 }
 
 // paymentPlanConsumes reports whether some step of plan sacrifices or
@@ -390,7 +406,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		prev := e.planFace
 		e.planFace = castFace
 		defer func() { e.planFace = prev }()
-		return e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
+		got := e.planComposedCost(p, id, pay.PlanManaUnderRider(composed, rider), false, false)
+		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+			return PaymentPlanOutcome{Reason: "insufficient"}
+		}
+		return got
 	}
 	lo := base.XMin
 	best := plan(lo)

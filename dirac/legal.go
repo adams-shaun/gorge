@@ -631,7 +631,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
 	if cd.Cost.X != 0 {
-		return true
+		return s.xWitnessOffered(k, p, c, o)
 	}
 	if cd.HasAltAdd {
 		base := k.cards[c].cost
