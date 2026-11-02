@@ -23,7 +23,8 @@ func (s *State) unspentRedOn(p uint8) {
 	s.pmOn |= pmUnspentR << (p & 1)
 }
 
-// fightExcessRec records the excess of the hit that dealt pa to the creature
+// fightExcessRec records the excess of the hit that dealt pa (the damage
+// dealt, after any replacement or prevention) to the creature
 // whose lethal (toughness less marked damage, clamped at 0) the caller read
 // before any hit landed (gorge effFight excessLethal): pa - lethal, clamped
 // at 0.

@@ -29,7 +29,7 @@ import (
 // removal (Shock, The Last Agni Kai) can remove the Fight target in response
 // to a Rhino's Rampage: the Rhino variant has no other removal, and the
 // kernel is not bent to the gorge quirk.
-var kfightexDecks = [3][]cardset.Entry{
+var kfightexDecks = [4][]cardset.Entry{
 	{ // Rhino's Rampage
 		{Name: "Rhino's Rampage", Count: 4}, {Name: "Colossal Dreadmaw", Count: 9}, {Name: "Hill Giant", Count: 9},
 		{Name: "Mountain", Count: 9}, {Name: "Forest", Count: 9},
@@ -42,6 +42,11 @@ var kfightexDecks = [3][]cardset.Entry{
 		{Name: "Elite Vanguard", Count: 6}, {Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 3}, {Name: "Colossal Dreadmaw", Count: 2},
 		{Name: "Mind Stone", Count: 3}, {Name: "Short Sword", Count: 3}, {Name: "Soul-Guide Lantern", Count: 2},
 		{Name: "Plains", Count: 7}, {Name: "Mountain", Count: 5}, {Name: "Forest", Count: 5},
+	},
+	{ // The Last Agni Kai beside the one Fated Firepower (a second would be the replacement-order ask the kernel stalls): the excess is the damage dealt after the replacement
+		{Name: "The Last Agni Kai", Count: 4}, {Name: "Fated Firepower", Count: 1}, {Name: "Hill Giant", Count: 4},
+		{Name: "Colossal Dreadmaw", Count: 3}, {Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 3},
+		{Name: "Mountain", Count: 18}, {Name: "Forest", Count: 3},
 	},
 }
 
@@ -111,6 +116,12 @@ func kfightexCheck(tal *kfightexTally) func(*GorgeSide, Side) *Divergence {
 // returns the tallies, the first divergence ("" if none) and the kernel
 // stalls.
 func kfightexRun(t *testing.T, seeds uint64) (tal kfightexTally, div string, stalls map[string]int) {
+	return kfightexRunDecks(t, seeds, [2]int{0, 1})
+}
+
+// kfightexRunDecks is kfightexRun with deck A alternating between the two
+// decks of variants.
+func kfightexRunDecks(t *testing.T, seeds uint64, variants [2]int) (tal kfightexTally, div string, stalls map[string]int) {
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -120,7 +131,7 @@ func kfightexRun(t *testing.T, seeds uint64) (tal kfightexTally, div string, sta
 	if err != nil {
 		t.Fatal(err)
 	}
-	var deckCards [3][]*cards.Card
+	var deckCards [4][]*cards.Card
 	for s, d := range kfightexDecks {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
@@ -137,9 +148,9 @@ func kfightexRun(t *testing.T, seeds uint64) (tal kfightexTally, div string, sta
 	}
 	stalls = map[string]int{}
 	for seed := uint64(1); seed <= seeds; seed++ {
-		order := [2]int{int(seed % 2), 2} // variant: Rhino / Agni Kai deck A against deck B
+		order := [2]int{variants[seed%2], 2} // variant: Rhino / Agni Kai deck A against deck B
 		if seed/2%2 == 1 {
-			order = [2]int{2, int(seed % 2)} // both seat orders
+			order = [2]int{2, variants[seed%2]} // both seat orders
 		}
 		var decks [2][]*cards.Card
 		var entries [2][]cardset.Entry
@@ -196,6 +207,24 @@ func TestFightexLockstep(t *testing.T) {
 	}
 	if tal.agniFloats < 3 {
 		t.Errorf("turns with red kept across a step boundary %d, want at least 3", tal.agniFloats)
+	}
+}
+
+// TestFightexFirepowerLockstep: The Last Agni Kai's excess is the damage the
+// Fight dealt after Fated Firepower's replacement (CR 120.4a), so the red it
+// adds counts the fire counters.
+func TestFightexFirepowerLockstep(t *testing.T) {
+	t.Parallel()
+	tal, div, stalls := kfightexRunDecks(t, 200, [2]int{3, 3})
+	t.Logf("%d games; The Last Agni Kai mana adds %d; stalls %v", tal.games, tal.agniMana, stalls)
+	if div != "" {
+		t.Fatalf("diverged: %s", div)
+	}
+	if len(stalls) != 0 {
+		t.Errorf("kernel capacity stalls %v", stalls)
+	}
+	if tal.agniMana < 5 {
+		t.Errorf("Agni Kai mana adds %d, want at least 5", tal.agniMana)
 	}
 }
 

@@ -309,7 +309,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		s.dealHits(k, hb.h[:hb.n])
 		if track {
-			s.fightExcessRec(lethal, pa)
+			s.fightExcessRec(lethal, int(hb.h[0].n)) // the damage dealt, after replacement and prevention (CR 120.4a, gorge effFight)
 		}
 	case kop.OpTap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {

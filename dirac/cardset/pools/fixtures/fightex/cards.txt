@@ -9,6 +9,7 @@ Mind Stone
 Short Sword
 Soul-Guide Lantern
 Shock
+Fated Firepower
 Mountain
 Forest
 Plains
