@@ -27,9 +27,10 @@ func (s *State) abortCount(o Obj, noProg bool) {
 // ceaseManaToken removes a token sacrificed for mana, and notes it on a pushed cast
 // being built for the reversal's no-progress window. A token sacrificed before the
 // push (a Spree cast's mana window runs first) has ceased by the time the spell
-// reaches the stack, so its reversal leaves nothing to end the window.
+// reaches the stack, so its reversal leaves nothing to end the window. It ceases to
+// exist where it sits (CR 704.5d): no graveyard-leave trigger fires for it.
 func (s *State) ceaseManaToken(o Obj) {
-	s.detach(o)
+	s.ceaseQuiet(o)
 	if s.buildLive() && s.bld().bfl&bflPushed != 0 {
 		s.bld().bfl |= bflTokenGone
 	}
