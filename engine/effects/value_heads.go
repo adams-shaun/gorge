@@ -58,6 +58,7 @@ var modelledValueHeads = []string{
 	"IfCastInOwnMainPhase",
 	"ImprintedSize",
 	"InOwnMainPhase",
+	"Intensity",
 	"IsPrime",
 	"Kicked",
 	"Landfall",

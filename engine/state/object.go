@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -1959,11 +1960,41 @@ type Object struct {
 	// DoorLock/DoorUnlock events alone update this per-face lock bitset.
 	LockedDoors uint8
 
+	// Intensity is the perpetual intensity the card has accumulated (Alchemy:
+	// "intensify", "perpetually increase the intensity"): the increments only,
+	// on top of the printed K:Starting intensity (IntensityTotal is the number
+	// the rules text reads). It belongs to the card, not to one zone stint, so
+	// Move leaves it alone: the object keeps its ObjID across zones and a
+	// perpetual effect outlasts every one of them. Only events.AlterAttribute
+	// "Intensity" writes it, so a replay rebuilds it.
+	Intensity int32
+
 	// _ pads the Object to 1472 bytes (23 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [48]byte
+	_ [44]byte
+}
+
+// IntensityTotal is the card's intensity as its text reads it: the printed
+// K:Starting intensity plus every perpetual increase. Forge's
+// Card.getIntensity(true); zero for a card with neither.
+func (o *Object) IntensityTotal() int32 {
+	n := o.Intensity
+	if f := o.Face(); f != nil {
+		for _, k := range f.Keywords {
+			if cards.KeywordHead(k) != "Starting intensity" {
+				continue
+			}
+			if _, v, ok := strings.Cut(k, ":"); ok {
+				if m, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+					n += int32(m)
+				}
+			}
+			break
+		}
+	}
+	return n
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast

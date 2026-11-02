@@ -140,6 +140,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// as it resolves and its Count$PromisedGift targets are asked for.
 	x, castFlags := src.X, src.CastFlags&^(state.CastProvenanceFlags&^state.FlagPromisedGift)
 	giftTo := src.GiftPromisedTo
+	// A copy of a spell is a copy of the card as it stands, perpetual
+	// intensity included: "this spell's intensity" reads the same on both.
+	intensity := src.Intensity
 	// Teamwork is a paid additional cost, like Conspire: copies carry the
 	// cost-conditioned bit AND the boolean its count/filter readers inspect.
 	teamworkPaid := src.TeamworkPaid
@@ -195,6 +198,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o := g.AddObject(card, e.Player)
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.SetFaceIdx(faceIdx)
+	o.Intensity = intensity
 	o.Ability, o.Source = ability, source
 	o.CastBattlefield = castBattlefield
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
