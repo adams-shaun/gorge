@@ -276,8 +276,8 @@ func TestConvokeSpellCastThroughAPermissionIsOfferedLockstep(t *testing.T) {
 }
 
 // Divert Disaster's unless cost {2} paid by a player holding Stomping Ground, Gene Pollinator and
-// Sacred Foundry: the window answer takes the first source that pays on its own, not Gene Pollinator,
-// whose activation asks which permanent to tap, a choice the kernel's payment window never poses.
+// Sacred Foundry: gorge's window lists Gene Pollinator among the sources; the kernel's lists it too
+// and answers the permanent it taps (mana_windowtapx.go).
 func TestUnlessWindowSkipsATapAnotherSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "unless_window_skips_tap_another_source", "std-eoe", Config{GorgeAutopaySurface: true})

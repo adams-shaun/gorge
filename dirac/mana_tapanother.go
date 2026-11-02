@@ -11,8 +11,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gorge's payment planner census cannot price the cost's creature choice
 // (the source is a "relaxable" census gap with a free any-colour relaxed
 // alternative, rules potential_plan.go paymentPlanRelaxProof), so autopay
-// and the payment windows never use it (the mana walk here does not either:
-// canTapForManaPC is false for it). A play only its mana pays is a scripted
+// and the cast windows never use it (the mana walk here does not either:
+// canTapForManaPC is false for it). The unless and ward windows list it and ask
+// which permanent to tap (mana_windowtapx.go). A play only its mana pays is a scripted
 // potential play (rules potentialPrefixScript): a depth-first search on
 // clones that activates the gaps at priority, branching on every answer of
 // the activation in engine order -- the creature to tap (the "tapcost" ask,
