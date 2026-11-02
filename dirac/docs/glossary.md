@@ -37,12 +37,13 @@ synthetic pool stopped.
 
 **Supported.** Lowered, not refused, and evidenced: `Set.Status(i) == cardset.StatusSupported`, computed
 by kgen when it writes a table. A lowered card with no evidence is **unverified**, and `Matchup` refuses a
-deck holding it, as it does a refused card, unless `kplay -allow-unverified` asked to play it.
+deck holding it, as it does a refused card, unless a caller asked to play it
+(`cardset.AllowUnverified`, `kfuzz -allow-unverified`).
 `Set.Supported()` and `kgen -supported <pool>` report what a game may play. [support.md](support.md) has
 the counts.
 
 **Raw table.** A set that plays every lowered card, refused and unverified alike (`cardset.RawByName`).
-Lockstep fixtures and refused entries' repros play these, and synthetic pools deal from them leaving out what is refused, or no card could earn evidence. Nothing else may read
+Lockstep fixtures and refused entries' repros play these. Nothing else may read
 them (`TestOnlyTheOracleReadsRawTables`).
 
 **Pool.** Either of two lists:
