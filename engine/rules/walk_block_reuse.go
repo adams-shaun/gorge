@@ -120,6 +120,7 @@ func (e *Engine) filterPayableMana(dst, all []*cards.SA, p state.PlayerID, o *st
 		if mf := e.manaFactsOf(ma); mf != nil {
 			cc = mf.cost
 		}
+		cc = e.pricedManaCC(p, id, ma, cc)
 		if e.manaCostPayable(p, o, id, cc, nil) {
 			out = append(out, ma)
 		}

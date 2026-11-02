@@ -243,7 +243,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			if mp.RestrictValid != "" {
 				continue
 			}
-			cost := e.abilityCompiledCost(ma).Cost
+			cost := e.manaAbilityCC(p, id, ma).Cost
 			if pay.ActivationTapCostUnavailable(o, &cost) {
 				continue
 			}
@@ -364,7 +364,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 	}
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
-		cost := e.abilityCompiledCost(ma).Cost
+		cost := e.manaAbilityCC(p, id, ma).Cost
 		if pay.ActivationTapCostUnavailable(o, &cost) {
 			continue
 		}

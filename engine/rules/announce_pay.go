@@ -180,7 +180,7 @@ func (e *Engine) announcedActivate(pc *pendingCast, opt decision.Option) {
 	ab := abilities[opt.Ability]
 	normal := false
 	if tier, _, _ := pay.PaymentPlanAbilityTier(asPayer(e), p, src, ab); tier == pay.TierNormal &&
-		pay.PaymentPlanTapOnlyCost(e.abilityCompiledCost(ab).Cost) && !e.manaStaticOf(ab).RestrictValid {
+		pay.PaymentPlanTapOnlyCost(e.manaAbilityCC(p, src, ab).Cost) && !e.manaStaticOf(ab).RestrictValid {
 		normal = true
 	}
 	gained := pay.GainedManaRefFor(asPayer(e), p, src, ab)

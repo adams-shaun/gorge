@@ -125,7 +125,7 @@ func paymentPlanAbilityShapeTier(e Engine, p state.PlayerID, id state.ObjID, ma 
 	}
 	var cost costvocab.Cost
 	if ma != nil {
-		cost = AbilityCompiledCost(e, ma).Cost
+		cost = e.Eval().ManaAbilityCost(p, id, ma).Cost
 	}
 	tier, c, detail, rider := PaymentPlanShapeTierOf(ma, cost)
 	if !rider {
@@ -184,7 +184,7 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 		tier, consequence, _ := PaymentPlanAbilityTier(e, payer, u.ID, alt.Ma)
 		switch tier {
 		case TierNormal:
-			if !e.Eval().ManaStatic(alt.Ma).TapOnly {
+			if !e.Eval().ManaStaticFor(payer, u.ID, alt.Ma).TapOnly {
 				continue
 			}
 		case TierLastResort:

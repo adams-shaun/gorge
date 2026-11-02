@@ -51,7 +51,7 @@ func (e *Engine) paidCostShape(p state.PlayerID, id state.ObjID, cost Cost, life
 // life is what it spends. lifeLeft is the payer's life not yet committed to
 // other sources of this census.
 func (e *Engine) paidManaAbility(p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA, lifeLeft int32) (life int32, ok bool) {
-	mf := e.manaStaticOf(ma)
+	mf := e.manaStaticFor(p, id, ma)
 	if mf.RestrictValid || mf.FreeCost || mf.Amount <= 0 {
 		return 0, false
 	}
@@ -68,7 +68,7 @@ func (e *Engine) paidManaAbility(p state.PlayerID, id state.ObjID, o *state.Obje
 	if total <= 0 {
 		return 0, false
 	}
-	cost := e.abilityCompiledCost(ma).Cost
+	cost := e.manaAbilityCC(p, id, ma).Cost
 	if pay.ActivationTapCostUnavailable(o, &cost) {
 		return 0, false
 	}
@@ -184,7 +184,7 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 			continue
 		}
 		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
-			mf := e.manaStaticOf(ma)
+			mf := e.manaStaticFor(p, id, ma)
 			if mf.Amount <= 0 && mf.TapOnly && !mf.RestrictValid && !o.Tapped {
 				if probe == nil {
 					probe = e.paymentPlanTappedProbe(p)

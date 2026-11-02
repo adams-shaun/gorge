@@ -1286,7 +1286,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	if o == nil || ma == nil || ma.API != "Mana" {
 		return nil, 0, false
 	}
-	cost := e.abilityCompiledCost(ma).Cost
+	cost := e.manaAbilityCC(p, id, ma).Cost
 	if cost.X != 0 || cost.XMin != 0 || len(cost.Hybrid)+len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 || cost.Snow != 0 {
 		return nil, 0, false
 	}

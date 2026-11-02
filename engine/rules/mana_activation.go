@@ -595,6 +595,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 			}
 			cc = e.abilityCompiledCost(ma)
 		}
+		cc = e.pricedManaCC(p, id, ma, cc)
 		// The cost is looked up once for the CR 302.6 tap-sick gate and the
 		// payability gate (manaAbilityPayable's own tap-sick re-check is the
 		// same pure read, so it is not repeated).
@@ -973,7 +974,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	cc := e.abilityCompiledCost(ma)
+	cc := e.manaAbilityCC(p, source, ma)
 	if pay.TapFlagsSick(asPayer(e), source, cc.Tap, cc.Untap, activatesAsIfHaste(e, source)) {
 		return false
 	}
@@ -1509,7 +1510,7 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
-	cc := e.abilityCompiledCost(ma)
+	cc := e.manaAbilityCC(p, source, ma)
 	cost := cc.Cost
 	sacs, _ := pay.ManaSacrifices(asPayer(e), p, source, cost)
 	// The continuation owns EVERY non-mana cost part, so it must be entered

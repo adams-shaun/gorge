@@ -863,7 +863,7 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			}
 		}
 		for _, ma := range windowMas[zi] {
-			mf := e.manaStaticOf(ma)
+			mf := e.manaStaticFor(p, id, ma)
 			raw := mf.Produced
 			amt := mf.Amount
 			if amt <= 0 {
@@ -945,7 +945,7 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			}
 		}
 		for _, ma := range windowMas[zi] {
-			mf := e.manaStaticOf(ma)
+			mf := e.manaStaticFor(p, id, ma)
 			if mf.Amount > 0 {
 				continue // windowManaUnits' static path already priced it.
 			}
