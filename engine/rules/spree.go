@@ -111,15 +111,22 @@ func (e *Engine) modeCostFeasible(pc *pendingCast, extra Cost, pot state.Mana) b
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	typed := e.G.Players[pc.player].ManaUnits()
+	pl := &e.G.Players[pc.player]
+	typed := pl.ManaUnits()
+	// The spell is on the stack by now, where MayPlayRider no longer finds the
+	// grant, so the rider is the one the cast captured at 601.2a (Rakdos, the Muscle:
+	// mana of any type pays the mode too).
+	rider := pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}
+	feasible := func(m costMods) bool {
+		return m.FeasibleAny(base, pot, pl.Snow, typed, pl.Life, tax, delve,
+			asEval(e).PayLifeInsteadOfB(pc.player), rider, asEval(e).Conv(pc.player, pc.card, pc.isAbility()))
+	}
 	mods := pc.mods
-	if !e.manaFeasiblePool(pc.player, pc.card, pc.isAbility(), base, mods, tax, delve, pot, typed) {
+	if !feasible(mods) {
 		// A target-dependent reducer cannot be in the pre-target snapshot, but
 		// it may make one legal target choice payable; retry with exactly the
 		// potential reductions (offerCastableUsing's own fallback).
-		potential, ok := e.potentialCostModsUsing(e.collectCostStatics(), pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope), 0, func(m costMods) bool {
-			return e.manaFeasiblePool(pc.player, pc.card, pc.isAbility(), base, m, tax, delve, pot, typed)
-		})
+		potential, ok := e.potentialCostModsUsing(e.collectCostStatics(), pc.player, pc.card, scope, e.costPotentialTargets(pc.player, pc.card, scope), 0, feasible)
 		if !ok {
 			return false
 		}
