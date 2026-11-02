@@ -110,7 +110,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		}
 	}
 	d.LayerConflicts = nonNil(layerConflicts)
-	d.RoomCards, d.NameReaders, d.AbReducers, d.AbManaCosted = guardLists(bs)
+	d.RoomCards, d.NameReaders, d.AbReducers, d.AbReducerFloor, d.AbManaCosted, d.AbManaCostedMV = guardLists(bs)
 	return d, pb.cv, pb.idx, nil
 }
 

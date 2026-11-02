@@ -100,7 +100,7 @@ func buildForOutput(p *pool, prev []idEntry) (*poolBuild, error) {
 
 // guardLists are the pool indexes the matchup guards read: the Room cards, the
 // cards that read a name, the ab-reduce statics and the mana-costed mana abilities.
-func guardLists(bs []built) (rooms, readers, abRed, abMana []int) {
+func guardLists(bs []built) (rooms, readers, abRed []int, abRedFloor []uint8, abMana []int, abManaMV []uint8) {
 	for i := range bs {
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
@@ -108,20 +108,31 @@ func guardLists(bs []built) (rooms, readers, abRed, abMana []int) {
 		if bs[i].readsName {
 			readers = append(readers, i)
 		}
+		// A reducer of activated abilities reaches a mana ability's mana cost
+		// (CR 601.2f, 602.2b); one that lowers only an Exhaust ability or a
+		// Room unlock never does. Its MinMana$ floor (0 none) is what the
+		// cost keeps.
 		for _, a := range bs[i].def.Abilities {
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.B&(1|kop.ReduceAbUnlock) == 0 {
 				abRed = append(abRed, i)
+				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
 				break
 			}
 		}
+		// The dearest mana cost among a card's mana abilities.
+		mv, any := 0, false
 		for _, a := range bs[i].def.Abilities {
 			if a.Kind == kop.AbMana && (a.Cost.Mana.MV() > 0 || a.Cost.Mana.X > 0) {
-				abMana = append(abMana, i)
-				break
+				any = true
+				mv = max(mv, int(a.Cost.Mana.MV())+int(a.Cost.Mana.X))
 			}
 		}
+		if any {
+			abMana = append(abMana, i)
+			abManaMV = append(abManaMV, uint8(min(max(mv, 1), 255)))
+		}
 	}
-	return rooms, readers, abRed, abMana
+	return rooms, readers, abRed, abRedFloor, abMana, abManaMV
 }
 
 // validPoolName reports whether name is letters, digits and underscores only.

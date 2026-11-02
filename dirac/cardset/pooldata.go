@@ -2,6 +2,7 @@ package cardset
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -64,7 +65,9 @@ type PoolData struct {
 	RoomCards           []int
 	NameReaders         []int
 	AbReducers          []int
+	AbReducerFloor      []uint8 // AbReducers' MinMana$ floors, 0 none
 	AbManaCosted        []int
+	AbManaCostedMV      []uint8 // AbManaCosted's dearest mana-ability mana cost
 }
 
 // NoSubtype is the matchup filter sentinel for a subtype no object in the
@@ -189,20 +192,23 @@ func (s dataSet) roomNameGuard(pool []int) error {
 	return RoomNameRefusal(rooms, readers)
 }
 
-// abReduceGuard refuses a matchup pool holding both an activated-ability
-// cost reducer and a mana-costed mana ability (AbReduceRefusal).
+// abReduceGuard refuses a matchup pool holding an activated-ability cost
+// reducer and a mana ability whose mana cost the reducer would lower
+// (AbReduceRefusal).
 func (s dataSet) abReduceGuard(pool []int) error {
 	d := s.d
 	var reducers, costed []string
 	for _, i := range pool {
-		for _, r := range d.AbReducers {
-			if i == r {
-				reducers = append(reducers, d.Names[i])
+		for k, r := range d.AbManaCosted {
+			if i != r {
+				continue
 			}
-		}
-		for _, r := range d.AbManaCosted {
-			if i == r {
+			for j, rd := range d.AbReducers {
+				if !slices.Contains(pool, rd) || int(d.AbManaCostedMV[k]) <= int(d.AbReducerFloor[j]) {
+					continue
+				}
 				costed = append(costed, d.Names[i])
+				reducers = append(reducers, d.Names[rd])
 			}
 		}
 	}

@@ -60,3 +60,31 @@ func TestReduceabMutation(t *testing.T) {
 		t.Fatal("no seed diverged with the ability reduction dropped: the pool never activates a reduced ability")
 	}
 }
+
+// kreduceabManaDecks put a floored activated-ability reducer (Agatha of the
+// Vile Cauldron, "can't reduce the mana in that cost to less than one mana")
+// beside mana abilities that cost one mana: filter lands and creatures
+// (Crystal Grotto, Rootrider Faun, Scarecrow Guide). The floor leaves each
+// as printed, which is what gorge plays.
+var kreduceabManaDecks = [2][]cardset.Entry{
+	{
+		{Name: "Agatha of the Vile Cauldron", Count: 4}, {Name: "Rootrider Faun", Count: 4},
+		{Name: "Scarecrow Guide", Count: 4}, {Name: "Knowledge Seeker", Count: 4},
+		{Name: "Crystal Grotto", Count: 6}, {Name: "Forest", Count: 8}, {Name: "Island", Count: 4},
+		{Name: "Mutavault", Count: 2}, {Name: "Treetop Village", Count: 4},
+	},
+	{
+		{Name: "Agatha of the Vile Cauldron", Count: 4}, {Name: "Scarecrow Guide", Count: 4},
+		{Name: "Boom Scholar", Count: 3}, {Name: "Greasewrench Goblin", Count: 3},
+		{Name: "Camera Launcher", Count: 3}, {Name: "Crystal Grotto", Count: 4},
+		{Name: "Mountain", Count: 8}, {Name: "Forest", Count: 8}, {Name: "Mutavault", Count: 2},
+		{Name: "Rogue's Passage", Count: 1},
+	},
+}
+
+// TestReduceabManaCostedLockstep: a StatReduceAbility static beside a mana
+// ability with a mana cost it leaves as printed, on both surfaces.
+func TestReduceabManaCostedLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "reduceab", kreduceabManaDecks, 60, "KREDUCEAB_SEEDS")
+}

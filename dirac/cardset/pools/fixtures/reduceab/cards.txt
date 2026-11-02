@@ -1,6 +1,7 @@
 # the activated-ability cost-reduction pool:
 # Mutagen Man, Blossoming Tortoise and Boom Scholar beside Clue makers,
-# Exhaust creatures and utility lands, no mana-costed mana ability
+# Exhaust creatures and utility lands, and filter lands and a creature whose
+# mana ability costs mana
 # (dirac/oracle/reduceab_test.go)
 Mutagen Man, Living Ooze
 Blossoming Tortoise
@@ -40,3 +41,7 @@ Mountain
 Plains
 Agatha of the Vile Cauldron
 Forensic Gadgeteer
+Crystal Grotto
+Rootrider Faun
+Scarecrow Guide
+Agatha of the Vile Cauldron
