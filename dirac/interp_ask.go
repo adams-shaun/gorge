@@ -165,7 +165,8 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	}
 	c := manaOf(amt, pips)
 	var av avail
-	s.availPotentialFor(k, p, &av, true)
+	other := payDesc{class: pdOther}
+	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
@@ -194,22 +195,20 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 // else the card's first mana ability.
 //
 //go:noinline
-func (s *State) openManaRefused(k *prep, p uint8, sl Slot) bool {
+func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 	if k.gen != nil && len(k.gen.grantPC) > 0 {
 		if gi := s.grantIdx(k, sl); gi >= 0 && !s.ownManaUsable(k, sl) {
 			if k.gen.grantRestr[gi] == 0 {
 				return false
 			}
 			r := k.gen.grantOf[gi]
-			d := payDesc{class: pdOther}
-			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], &d)
+			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d)
 		}
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	j := firstManaAb(cd)
-	d := payDesc{class: pdOther}
 	return j >= 0 && cd.Abilities[j].ManaRestrict != 0 &&
-		!s.restrSrcAdmits(k, p, sl, &cd.Abilities[j], &d)
+		!s.restrSrcAdmits(k, p, sl, &cd.Abilities[j], d)
 }
 
 func (s *State) payerOf(k *prep, r kop.Ref) uint8 {

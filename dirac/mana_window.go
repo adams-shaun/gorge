@@ -156,7 +156,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 	for !s.windowSpellSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
-			s.availPotentialFor(k, p, &pot, true)
+			other := payDesc{class: pdOther}
+			s.availPotentialFor(k, p, &pot, &other)
 			if !pot.affords(cost, pipMaskOf(cost), 0) {
 				return false, held
 			}

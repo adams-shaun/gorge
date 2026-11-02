@@ -1035,8 +1035,11 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !s.fbGranted(k, o) || cd.Cost == cd.AltCost {
 		return false, false, false
 	}
+	// gorge prices each instance for this spell: a source whose restriction
+	// refuses it adds nothing (Secluded Courtyard's any colour for an instant)
+	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 	var pa avail
-	s.availPotential(k, p, &pa)
+	s.availPotentialFor(k, p, &pa, &spell)
 	pf := s.adjustCost(k, p, c, o, cd.AltCost)
 	gf := s.adjustCost(k, p, c, o, cd.Cost)
 	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
@@ -1060,7 +1063,7 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 // deliberate over-bound: a source adds one unit of every colour it can make, and
 // an open production (any colour, an unread chosen colour) is unlimited.
 func (s *State) availPotential(k *prep, p uint8, a *avail) {
-	s.availPotentialFor(k, p, a, false)
+	s.availPotentialFor(k, p, a, nil)
 }
 
 // potentialOpenUnits stands for gorge's potentialUnbounded in each colour: more
@@ -1074,7 +1077,8 @@ const potentialOpenUnits = 2 * trigXCap
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
+	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
@@ -1095,7 +1099,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl) {
+		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			continue
 		}
 		if pc.manaAb >= 0 {
@@ -1131,7 +1135,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 			}
 			for j := range cd.Abilities {
 				ab := &cd.Abilities[j]
-				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, payment) {
+				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
@@ -1162,7 +1166,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 // count toward p's potential pool: usable now, its non-mana costs a {T}, a
 // once-each-turn limit or a sacrifice of the source, and its restriction
 // admitting the payment.
-func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, payment bool) bool {
+func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, d *payDesc) bool {
 	pp := &s.perms[sl]
 	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
 		return false
@@ -1182,8 +1186,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	d := payDesc{class: pdOther}
-	return !payment || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, &d)
+	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)
 }
 
 // potentialCovers reports whether the pool others covers cost's pips and total.
