@@ -1075,6 +1075,17 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	if d.Kind == decision.KBlockers && !o.BlockMust && !o.Required && blockDutyFull(d, o.Obj) {
 		return false
 	}
+	if d.Kind == decision.KBlockers && o.MaxBlockers > 0 {
+		n := 0
+		for _, c := range chosen {
+			if optByIndex(d, c).Attacker == o.Attacker {
+				n++
+			}
+		}
+		if n >= o.MaxBlockers {
+			return false
+		}
+	}
 	if o.Group != "" {
 		n := 0
 		for _, c := range chosen {
