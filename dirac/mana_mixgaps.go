@@ -230,6 +230,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			return
 		}
 		s.pl[p&1].pool[o.ans] += o.n
+		s.tapExtraStall(k, st.sl)
 		s.artTag(k, p, st.sl, int(o.ans))
 	}
 }

@@ -287,6 +287,10 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 	for i, t := range lc.face.Triggers {
 		t := t
 		n := len(out.Abilities)
+		if t.Mode == "TapsForMana" {
+			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
+			continue
+		}
 		lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.lowerTriggered(t, "") })
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = 0x80|i, true

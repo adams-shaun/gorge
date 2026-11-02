@@ -71,7 +71,7 @@ var stallCapacityReasons = [...]uint8{
 	StallCounters, StallLKI, StallTapPick, StallRegen, StallLook, StallGrants, StallActs, StallLinger, StallSac,
 	StallEntered, StallConvoke, StallCastRing, StallPT, StallActRing, StallCharmOpts, StallRefLatch, StallZone,
 	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
-	StallObsSrc, StallDynMana, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
+	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering

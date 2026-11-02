@@ -757,6 +757,7 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 				s.touchSl(sl)
 			}
 			s.pl[p].pool[c] += pc.manaN
+			s.addExtra(k, p, sl, pc)
 			s.artTag(k, p, sl, c)
 			if k.painMana && pc.painCol != 0 && (pc.painOnly || c != kop.C) {
 				s.painDamage(k, sl, p, int(pc.painN))

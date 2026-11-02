@@ -743,6 +743,8 @@ type lStatic struct {
 	// PwVsSrc: CantBlockBy ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower
 	// (kop.Static.PwVsSrc)
 	PwVsSrc int8
+	// TapCol, TapAmt: a TapExtra static's mana index and amount (kop.StatTapExtra)
+	TapCol, TapAmt uint8
 	// RaiseAb: a MayPlayFrom static's RaiseCost$ (flag "MayRaise"): 1 + the
 	// latent ability whose Cost is the raise (lower_mayraise.go)
 	RaiseAb int

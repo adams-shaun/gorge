@@ -371,16 +371,19 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
 		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
+		s.tapExtraStall(k, st.sl)
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
 		pl.pool[c] += max(pc.manaN, 1)
+		s.addExtra(k, p, st.sl, pc)
 		s.artTag(k, p, st.sl, c)
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
 		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
+		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
 	}
 }

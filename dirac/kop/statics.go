@@ -313,3 +313,15 @@ const StatBeamGrant StaticKind = 253
 // StBeamGranted on a StatCantBeBeamedUp static: it bars only the return that pays
 // for a grant its own permanent makes.
 const StBeamGranted StaticFlags = 1 << 0
+
+// StatTapExtra: whenever the static's controller taps a permanent matching
+// Filter for mana, they add A-coloured mana, B of it (A is a mana index W U B R
+// G C), once per tap (a Mode$ TapsForMana | Static$ True trigger whose body is
+// one literal DB$ Mana: Groundchuck & Dirtbag, Badgermole Cub, Forsaken
+// Monument; gorge pay.PaymentPlanFoldableTapMana). StTapOnC restricts it to a
+// tap that declares {C} (Produced$ C). Explicit ordinal: the StaticKind iota
+// tail stays untouched.
+const StatTapExtra StaticKind = 254
+
+// StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
+const StTapOnC StaticFlags = 1 << 1

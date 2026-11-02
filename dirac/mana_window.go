@@ -221,6 +221,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			s.touchSl(sl)
 		}
 		s.pl[p].pool[col] += pc.manaN
+		s.addExtra(k, p, sl, pc)
 		s.artTag(k, p, sl, col)
 		if k.painMana && pc.painCol != 0 && (pc.painOnly || col != kop.C) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
@@ -388,6 +389,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 		nt++
 		s.perms[sl].flags |= pfTapped
 		s.pl[p].pool[col] += pc.manaN
+		s.addExtra(k, p, sl, pc)
 	}
 	for i := 0; i < nt; i++ {
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]

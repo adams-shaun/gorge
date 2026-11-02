@@ -212,6 +212,14 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}
+		if k.gen != nil && k.gen.anyTapExtra {
+			xv := s.srcExtra(k, sl, pc)
+			for c := range xv {
+				if xv[c] > 0 {
+					a.addUnits(1<<c, xv[c])
+				}
+			}
+		}
 	}
 	if k.availExt {
 		s.availExt(k, p, a) // pain budget, Phyrexian life (mana_pain.go)
@@ -459,6 +467,12 @@ type utype struct {
 	// colours of a nonbasic's own abilities. CompareSteps reads Kind first and
 	// "intrinsic" sorts before "printed", so its granted colours come first.
 	printed uint8
+	// xv: the fixed mana each tap also makes beyond its colour choice (a
+	// StatTapExtra static, mana_tapextra.go); xmask its colours, xt its total.
+	// gorge's Alt.Mana holds it, so the rank keys read it as production
+	xv    [kop.NumManaKinds]uint8
+	xmask uint8
+	xt    uint8
 }
 
 type planner struct {
@@ -510,6 +524,8 @@ type planner struct {
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
 	keepCols bool
+	// maxXt: some unit type carries a fixed extra (mana_tapextra.go)
+	maxXt bool
 }
 
 // pay pays cost (+x generic) for p: floating pool first, then gorge's
@@ -1001,10 +1017,21 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						printed = s.blgPrintedMask(k, sl)
 					}
 				}
+				var xv [kop.NumManaKinds]uint8
+				var xm, xt uint8
+				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
+					xv = s.srcExtra(k, sl, pc)
+					for c, v := range xv {
+						if v > 0 {
+							xm |= 1 << c
+							xt += v
+						}
+					}
+				}
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == pc.manaN && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.xv == xv {
 						ti = t
 						break
 					}
@@ -1015,16 +1042,17 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					fl := uint8(bits.OnesCount8(dmk))
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed}
+					fl := uint8(bits.OnesCount8(dmk | xm))
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: pc.manaN, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac, first: first, printed: printed, xv: xv, xmask: xm, xt: xt}
 					if sac {
 						pk.types[ti].irr = 10
 						if cr {
 							pk.types[ti].irr = 20
 						}
 					}
-					if int(pc.manaN) > pk.maxN {
-						pk.maxN = int(pc.manaN)
+					pk.maxXt = pk.maxXt || xt != 0
+					if int(pc.manaN)+int(xt) > pk.maxN {
+						pk.maxN = int(pc.manaN) + int(xt)
 					}
 				}
 				pk.types[ti].avail++
@@ -1048,7 +1076,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					continue
 				}
 				for c := 0; c < 5; c++ {
-					if dmk&(1<<c) != 0 {
+					if (dmk|xm)&(1<<c) != 0 {
 						pk.colSrc[c]++
 					}
 				}
@@ -1085,6 +1113,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	var rem [kop.NumManaKinds]int
 	rem = pk.need
 	remAny := pk.needAny
+	pk.fixedOffSeq(&rem, &remAny, &pk.bestTy, pk.bestN)
 	for i := 0; i < bn; i++ {
 		u := best[i]
 		sl := pk.units[u]
@@ -1102,6 +1131,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 		pk.lastSl = sl
 		s.pl[p].pool[col] += ty.n
+		if ty.xt != 0 {
+			s.addXv(p, &ty.xv)
+		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
 			// a restricted evaluated amount (Helga) floats restricted beside
@@ -1297,7 +1329,7 @@ func (pk *planner) dfs(t int, prod int, creat int) {
 		lim -= int(pk.types[ty.pair-1].k) // the primary {C} type is counted first (painUnit)
 	}
 	for c := 0; c <= lim; c++ {
-		p := prod + c*int(ty.n)
+		p := prod + c*(int(ty.n)+int(ty.xt))
 		if c > 0 && p >= pk.needT+pk.maxN && !pk.unitNeeded(ty, c) {
 			break
 		}
@@ -1334,6 +1366,10 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 
 // valid: the chosen units can cover the pips (Hall over colour subsets).
 func (pk *planner) valid() bool {
+	nd, ndAny := pk.need, pk.needAny
+	if pk.maxXt {
+		pk.fixedOff(&nd, &ndAny)
+	}
 	if pk.anyColor {
 		haveC, haveCol, both := 0, 0, 0
 		for t := 0; t < pk.nt; t++ {
@@ -1351,26 +1387,26 @@ func (pk *planner) valid() bool {
 				both += v
 			}
 		}
-		return pk.need[kop.C] <= haveC && pk.needAny <= haveCol &&
-			pk.need[kop.C]+pk.needAny <= haveC+haveCol-both
+		return nd[kop.C] <= haveC && ndAny <= haveCol &&
+			nd[kop.C]+ndAny <= haveC+haveCol-both
 	}
 	var pm uint8
-	for c := range pk.need {
-		if pk.need[c] > 0 {
+	for c := range nd {
+		if nd[c] > 0 {
 			pm |= 1 << c
 		}
 	}
 	for q := pm; q != 0; q = (q - 1) & pm {
 		need := 0
-		for c := range pk.need {
+		for c := range nd {
 			if q&(1<<c) != 0 {
-				need += pk.need[c]
+				need += nd[c]
 			}
 		}
 		mx := 0
-		for c := range pk.need {
-			if q&(1<<c) != 0 && pk.need[c] > mx {
-				mx = pk.need[c]
+		for c := range nd {
+			if q&(1<<c) != 0 && nd[c] > mx {
+				mx = nd[c]
 			}
 		}
 		have := 0
@@ -1399,7 +1435,7 @@ func (pk *planner) valid() bool {
 				n++
 			}
 		}
-		return pk.assignable(pk.need, &seq, 0, n)
+		return pk.assignable(nd, &seq, 0, n)
 	}
 	return true
 }
@@ -1420,7 +1456,7 @@ func (pk *planner) consider() {
 			key[1] += k
 		}
 		size += k
-		prod += k * int(ty.n)
+		prod += k * (int(ty.n) + int(ty.xt))
 		flex += k * int(ty.flex)
 		if ty.nocol {
 			continue // colours 0 (above): it takes nothing from the remainder
@@ -1429,6 +1465,7 @@ func (pk *planner) consider() {
 		if cm == 0 {
 			cm = ty.mask // a painland type (painUnit sets no dmask)
 		}
+		cm |= ty.xmask
 		for c := 0; c < 5; c++ {
 			if cm&(1<<c) != 0 {
 				used[c] += k
@@ -1506,6 +1543,7 @@ func (pk *planner) consider() {
 func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 	rem := pk.need
 	remAny := pk.needAny
+	pk.fixedOffSeq(&rem, &remAny, tys, n)
 	for i := 0; i < n; i++ {
 		ty := &pk.types[tys[i]]
 		c := pk.pickUnitColour(ty, &rem, remAny, tys, i+1, n)
@@ -1621,5 +1659,44 @@ func (pk *planner) seqTypes(kv *[maxTypes]uint8, seq *[maxUnits]uint8, n int, ou
 		}
 		left[t]--
 		out[i] = t
+	}
+}
+
+// fixedOff takes the mana every chosen unit's fixed extra makes off the pips
+// the choices must cover (a StatTapExtra's extra is the same whichever colour
+// the unit picks, so it covers pips before any pick is made).
+func (pk *planner) fixedOff(nd *[kop.NumManaKinds]int, ndAny *int) {
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		if ty.xt == 0 || ty.k == 0 {
+			continue
+		}
+		pk.takeXv(nd, ndAny, ty, int(ty.k))
+	}
+}
+
+// fixedOffSeq is fixedOff over the first n units of tys (a plan's sequence).
+func (pk *planner) fixedOffSeq(nd *[kop.NumManaKinds]int, ndAny *int, tys *[maxUnits]uint8, n int) {
+	if !pk.maxXt {
+		return
+	}
+	for i := 0; i < n; i++ {
+		if ty := &pk.types[tys[i]]; ty.xt != 0 {
+			pk.takeXv(nd, ndAny, ty, 1)
+		}
+	}
+}
+
+func (pk *planner) takeXv(nd *[kop.NumManaKinds]int, ndAny *int, ty *utype, k int) {
+	for c, x := range ty.xv {
+		v := int(x) * k
+		if v == 0 {
+			continue
+		}
+		if pk.anyColor && c != kop.C {
+			*ndAny = max(*ndAny-v, 0)
+		} else {
+			nd[c] = max(nd[c]-v, 0)
+		}
 	}
 }

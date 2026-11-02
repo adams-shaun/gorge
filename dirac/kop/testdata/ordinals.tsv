@@ -941,6 +941,7 @@ StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
 StReduceColor	StaticFlags	8192
 StRemove6Counters	StaticFlags	32
+StTapOnC	StaticFlags	2
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
@@ -980,6 +981,7 @@ StatPlayerHexproof	StaticKind	15
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
+StatTapExtra	StaticKind	254
 StatUntapOther	StaticKind	246
 StepAttackers	Step	5
 StepBeginCombat	Step	4

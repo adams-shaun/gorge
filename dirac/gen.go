@@ -93,6 +93,7 @@ type genPrep struct {
 
 	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
+	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
@@ -543,6 +544,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCantAct(t, g)   // cast_cantactivate.go
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
+	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra)
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
@@ -1688,7 +1690,7 @@ const (
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
-	NumStall           = 143 // capacity of the reason tables (StallName); a reason registers its name in its own file
+	NumStall           = 144 // capacity of the reason tables (StallName); a reason registers its name in its own file
 )
 
 // StallName is reason r's short name ("" for StallNone).

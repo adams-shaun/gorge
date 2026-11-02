@@ -21,7 +21,7 @@ var (
 	capacityStalls = []string{"ctradded", "addphase", "board", "pending", "stack", "tables", "loop", "delayed", "remember",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
-		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana",
+		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
 	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "raisefree", "liferepl", "prolif", "ctrorder",
@@ -70,7 +70,7 @@ func TestUnclassedStallIsNotCapacity(t *testing.T) {
 	if StallIsUnmodelled(StallNone) {
 		t.Error("no stall is an unmodelled stall")
 	}
-	if !StallIsUnmodelled(143) || !StallIsUnmodelled(255) {
+	if !StallIsUnmodelled(NumStall) || !StallIsUnmodelled(255) {
 		t.Error("a reason past the table must not read as capacity")
 	}
 	if StallIsUnmodelled(StallBoard) || !StallIsUnmodelled(StallTapsMana) {
