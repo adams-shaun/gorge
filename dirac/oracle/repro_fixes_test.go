@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Games that once diverged at the end of their script, on the surface they
@@ -59,37 +60,7 @@ func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
 	set := cardsettest.Synth(t, pool)
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			m, err := r.Matchup(reg)
-			if err != nil {
-				t.Fatal(err)
-			}
-			entries := func(names []string) []cardset.Entry {
-				es := make([]cardset.Entry, len(names))
-				for i, n := range names {
-					es[i] = cardset.Entry{Name: n, Count: 1}
-				}
-				return es
-			}
-			tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
-			if err != nil {
-				t.Fatal(err)
-			}
-			rc := r.RunConfig()
-			rc.Config.GorgeAutopaySurface = c.autopay
-			rc.MaxDecisions = len(r.Actions) + 200
-			k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer CloseSide(k)
-			res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
-			if res.Div != nil {
-				t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
-			}
+			replayRepro(t, reg, set, c.name, c.autopay)
 		})
 	}
 }
@@ -104,4 +75,67 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
 		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 	})
+}
+
+// The same, on the pools the games came from.
+func TestStdPoolReprosLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	for _, c := range []struct {
+		name string
+		pool string
+	}{
+		{"convoke_colour_no_owed", "std-fra"},              // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
+		{"convoke_colour_no_picks", "std-fra"},             // ... with no creature announced, and the cast reversed
+		{"improvise_treasure_census", "std-msh"},           // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
+		{"excess_of_a_replaced_amount", "std-fra"},         // CR 120.10: Violent Echoes' excess reads the damage as replaced
+		{"free_cast_two_statics", "std-fra"},               // two Omnipresences list one free cast
+		{"ward_discard_is_a_discard", "std-fra"},           // CR 701.9a: Tinybones sees the discard ward was paid with
+		{"cast_trigger_second_target", "std-fra"},          // Danitha, on the second object of a multi-object slot
+		{"restricted_any_colour_window", "std-fra"},        // Gideon's Memorial in a window makes the announced pip's colour
+		{"ward_counters_the_targeting_ability", "std-fra"}, // Koth's two triggers: ward counters the one that targeted
+		{"eot_pump_past_int8", "std-fra"},                  // Aerid Konstrari's pump past int8 stalls loudly
+		{"attached_equipment_becomes_a_copy", "std-msh"},   // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
+		{"unless_evaluated_amount", "std-msh"},             // Doc Samson's mana can pay an unless cost
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)
+		})
+	}
+}
+
+// replayRepro plays a fixture's script in lockstep and 200 decisions past it.
+func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := r.Matchup(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := func(names []string) []cardset.Entry {
+		es := make([]cardset.Entry, len(names))
+		for i, n := range names {
+			es[i] = cardset.Entry{Name: n, Count: 1}
+		}
+		return es
+	}
+	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := r.RunConfig()
+	rc.Config.GorgeAutopaySurface = autopay
+	rc.MaxDecisions = len(r.Actions) + 200
+	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CloseSide(k)
+	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+	}
 }
