@@ -1,6 +1,6 @@
 package rules
 
-// The draw-replacement chain (task xp-b14-drawrepl, CR 616.1e/614.5). A draw
+// The draw-replacement chain (CR 616.1e/614.5). A draw
 // replacement's ReplaceWith$ body draws in the replaced event's place, and
 // those draws are the modified events of CR 616.1e: the remaining applicable
 // draw replacements get their opportunity on them, with every replacement

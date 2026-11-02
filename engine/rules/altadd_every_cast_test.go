@@ -106,3 +106,67 @@ func TestEitherOrAdditionalCostOnEveryCast(t *testing.T) {
 		check(t, e, victim, fodder)
 	})
 }
+
+// A free cast begun during a resolution has floated nothing, so its either-or
+// cost's mana part is payable through the untapped lands the mana window can
+// still activate (CR 601.2g). With no land to tap the cast reverses (CR 733.1).
+func TestFreeCastEitherOrManaPartReadsUntappedLands(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		lands int
+		cast  bool
+	}{{"lands pay it", 4, true}, {"too few lands", 3, false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := mayPlayBase(t)
+			spell := graveCard(e, card(t, eatenAliveLike), 0, 0)
+			victim := onBoardGrant(t, e, 1, "Name:Victim Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+			for i := 0; i < tc.lands; i++ {
+				onBoardGrant(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
+			}
+			caster := handCard(e, card(t, "Name:Free Caster\nManaCost:B\nTypes:Sorcery\nA:SP$ Play | Valid$ Card.namedEaten Alive Probe+YouOwn | ValidZone$ Graveyard | WithoutManaCost$ True | Optional$ True\nOracle:x\n"), 0)
+			addMana(t, e, 0, "B")
+			e.priorityRound()
+			idx := -1
+			for _, o := range e.Pending().Options {
+				if o.Kind == "cast" && o.Obj == caster {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("Free Caster not offered: %+v", e.Pending().Options)
+			}
+			submitChoices(t, e, idx)
+			asked := false
+			for i := 0; i < 60; i++ {
+				d := e.Pending()
+				if d == nil || (d.Kind == decision.KPriority && len(e.G.Stack) == 0) {
+					break
+				}
+				pick := -1
+				for _, o := range d.Options {
+					switch {
+					case o.Kind == "altaddcost" && o.Amount == 1:
+						asked = true
+						pick = o.Index
+					case d.Kind == decision.KTarget && o.Obj == victim:
+						pick = o.Index
+					case o.Kind == "activate" && e.cast != nil:
+						pick = o.Index
+					case o.Kind == "pass" && pick < 0:
+						pick = o.Index
+					}
+				}
+				if pick < 0 {
+					pick = 0
+				}
+				submitChoices(t, e, pick)
+			}
+			if asked != tc.cast {
+				t.Fatalf("either-or ask offered the mana part = %v, want %v", asked, tc.cast)
+			}
+			if exiled := e.G.Obj(victim).Zone == state.ZExile; exiled != tc.cast {
+				t.Fatalf("victim exiled = %v, want %v (spell zone %v)", exiled, tc.cast, e.G.Obj(spell).Zone)
+			}
+		})
+	}
+}

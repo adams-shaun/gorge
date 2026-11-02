@@ -65,7 +65,7 @@ func realReentrantDiscardSA(t *testing.T, cardName string) (*cards.SA, map[strin
 	return nil, nil
 }
 
-// TestNestedCounterDoesNotInheritOuterUnlessPayAnswer pins the fx42 defect
+// TestNestedCounterDoesNotInheritOuterUnlessPayAnswer pins the defect
 // synthetically. The corpus cannot reach it — a walker over the compiled
 // corpus found ZERO unless_pay consumers (a Counter or CopySpellAbility with
 // an UnlessCost$) whose same-walk graph reaches a second unless_pay consumer

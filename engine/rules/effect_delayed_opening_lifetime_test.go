@@ -11,14 +11,14 @@ import (
 // This file is the companion to effect_delayed_lifetime_test.go and
 // effect_delayed_riders_test.go.
 //
-// The MAJOR it pins: a Duration$ Permanent api:Effect trigger's source-relative
+// What it pins: a Duration$ Permanent api:Effect trigger's source-relative
 // ending (CR 611.2, the source leaving the battlefield) applies ONLY when the
 // source WAS a battlefield permanent at registration. An opening-hand Effect
 // (Chancellor of the Annex -- its source stays in hand) or an emblem/
-// command-zone source has no battlefield incarnation to lose, so its Permanent
-// promise is unbounded and must survive. Before the fix the generic effEffect
-// path admitted Permanent (so the pregame registerOpeningEffectTriggers pass
-// stood down as a duplicate), then the battlefield liveness rule removed the
+// command-zone source has no battlefield incarnation to lose, so its
+// Permanent promise is unbounded and must survive. The generic effEffect path
+// admits Permanent (so the pregame registerOpeningEffectTriggers pass stood
+// down as a duplicate), then the battlefield liveness rule removed the
 // registration on the next scan: e.G.Delayed fell to empty and the opening
 // trigger never fired.
 //
@@ -28,7 +28,7 @@ import (
 // exile (engine/effects/zone.go's `Origin$ Command | Destination$ Exile` body ->
 // EndImprintedEffects) -- not by calling the sweeps directly.
 
-// TestEffectDelayedOpeningHandPermanentSurvives is the MAJOR regression: the
+// TestEffectDelayedOpeningHandPermanentSurvives is a regression test: the
 // real Chancellor of the Annex's generic registration must be born with the
 // Permanent lifetime and an explicit "source was not a battlefield permanent"
 // bit, survive a TurnChange (the bug removed it immediately), and then fire
@@ -122,7 +122,7 @@ func TestEffectDelayedPermanentRiderSuffixRoundTrip(t *testing.T) {
 	}
 }
 
-// TestEffectDelayedNonBattlefieldPermanentStaysLive is the same MAJOR class for
+// TestEffectDelayedNonBattlefieldPermanentStaysLive is the same class for
 // an emblem/command-zone-shaped source: a Duration$ Permanent Effect whose
 // source is NOT on the battlefield must never be killed by the battlefield
 // liveness rule, while a true battlefield source still is.

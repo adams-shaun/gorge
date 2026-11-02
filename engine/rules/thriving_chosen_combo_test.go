@@ -120,8 +120,8 @@ const comboChosenSource = "Name:Chosen Land\nTypes:Land\n" +
 
 // TestThrivingChosenNothingRecordedKeepsRawLabelAndFailsClosed pins the
 // fail-closed guard: with nothing recorded the wheel keeps the raw jargon
-// label (the documented pre-fix behaviour, unchanged for this branch) and
-// the resolution emits the loud "unhandled Produced$" Note with NO ManaAdd.
+// label and the resolution emits the loud "unhandled Produced$" Note with NO
+// ManaAdd.
 func TestThrivingChosenNothingRecordedKeepsRawLabelAndFailsClosed(t *testing.T) {
 	t.Parallel()
 	e, cfg, id := manaSourceEngine(t, comboChosenSource)

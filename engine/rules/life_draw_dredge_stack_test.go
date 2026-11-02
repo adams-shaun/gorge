@@ -1,7 +1,7 @@
-// Findings-sol5 stack-path siblings: the committed direct-arm probe
+// Stack-path siblings: the direct-arm probe
 // (life_draw_dredge_test.go) answers the parked GainLife→Draw dredge asks
 // while the stack is EMPTY, so it exercises only handleModes' direct arm.
-// The review round proved two further defects that live ONLY in
+// Two further defects can live ONLY in
 // resumeResolution's parked-frame arm -- a resolving spell on the stack:
 //
 //   - the FINAL parked draw of the body (lifeDraws == 0, i.e. the draw that
@@ -180,8 +180,8 @@ func millEvents(t *testing.T, e *Engine, since int) int {
 	return n
 }
 
-// assertNoOrphanNote fails if the misleading no-sub-ability Note (the
-// findings-sol5 finding-1 symptom) appears since `since`.
+// assertNoOrphanNote fails if the misleading no-sub-ability Note
+// appears since `since`.
 func assertNoOrphanNote(t *testing.T, e *Engine, since int) {
 	t.Helper()
 	for _, ev := range e.L.Events[since:] {
@@ -194,7 +194,7 @@ func assertNoOrphanNote(t *testing.T, e *Engine, since int) {
 // TestLifeReplacementDredgeStackAcceptsFirstAsk accepts the FIRST ask (no
 // re-park: the Thug returns to hand, so the remaining six life draws are
 // ordinary and ask nothing), then the DBDraw sub-ability runs to its full 2.
-// This is the shape the review round already verified holds; committed so the
+// This shape holds; it is committed so the
 // ordinary suite keeps defending the no-re-park continuation against
 // regressions.
 func TestLifeReplacementDredgeStackAcceptsFirstAsk(t *testing.T) {

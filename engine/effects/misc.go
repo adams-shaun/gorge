@@ -362,8 +362,8 @@ func effectChosenSnapshot(h Host, c *Ctx, affects string) ([]state.ObjID, bool) 
 // ValidAfterStack$ spell-characteristic qualifier (Nahiri, Forged in Fury's
 // STPlay2), returned verbatim on MayPlayValidAfterStack for rules to evaluate.
 //
-// cascadeKeywordGrantFromLine is the AddKeyword$ Cascade twin (task
-// cascade1): ok only when the line's AddKeyword$ value is entirely Cascade
+// cascadeKeywordGrantFromLine is the AddKeyword$ Cascade twin:
+// ok only when the line's AddKeyword$ value is entirely Cascade
 // tokens (the whitelist — a mixed Cascade & Haste grant or any other keyword
 // fails closed to the unimplemented Note) and carries no condition gate this
 // registration path cannot evaluate. Returns the granted keyword list (all

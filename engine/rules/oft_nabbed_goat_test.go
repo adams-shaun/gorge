@@ -16,10 +16,10 @@ import (
 //	SVar:TrigDrain:DB$ LoseLife | Defined$ NonTriggeredCardOwner | LifeAmount$ X
 //	SVar:X:TriggeredCard$CardCounters.M1M1
 //
-// so before the fix Defined$ fell through to the resolving source for the
-// draw leg (an accidental draw) and to the source for the drain leg -- the
-// drain direction was the player-visible defect: the OWNER lost life instead
-// of every OTHER player. This test puts two -1/-1 counters on the Goat, kills
+// so Defined$ must not fall through to the resolving source for the draw leg
+// (an accidental draw) and to the source for the drain leg -- the drain
+// direction was the player-visible defect: the OWNER lost life instead of
+// every OTHER player. This test puts two -1/-1 counters on the Goat, kills
 // it, and asserts the owner (seat 2, distinct from the Goat's controller seat
 // 0) draws exactly two while the two non-owner seats each lose exactly two and
 // the owner loses none.

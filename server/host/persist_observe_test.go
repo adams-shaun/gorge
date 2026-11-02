@@ -34,7 +34,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestObserverPersistedLogServesIdenticallyToTheLiveMatch is Task M2c-3's
+// TestObserverPersistedLogServesIdenticallyToTheLiveMatch is the
 // one acceptance test. The table is a real human-seated one
 // (TableConfig.Humans, seat 0 answered through Pending/SubmitIntent) — the
 // configuration an embedder runs — played to a finished, archived

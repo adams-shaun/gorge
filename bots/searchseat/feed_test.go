@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -175,4 +178,54 @@ func TestFeedCapturesAtEveryPlayerDecision(t *testing.T) {
 	if !feed.Live() {
 		t.Fatalf("feed stopped unexpectedly: %s", feed.StopReason())
 	}
+}
+
+// A miracle reveal is public: both seats' feeds carry the named card past it,
+// and the seat that didn't draw it still gets an honest root at its next ask.
+func TestFeedCarriesAMiracleRevealToBothSeats(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	decks := [][]*cards.Card{testutil.RepoDeck(t, reg, "uw-control"), testutil.RepoDeck(t, reg, "tron")}
+	cfg := rules.Config{Seed: 1000, Names: []string{"a", "b"}, Decks: decks}
+	setup := searchprobe.PublicGame{Names: cfg.Names, Decks: cfg.Decks}
+	for seed := uint64(1000); seed < 1020; seed++ {
+		cfg.Seed = seed
+		e := rules.New(cfg)
+		e.Advance()
+		rngs := searchprobe.BotRandoms(seed, 2)
+		board := botpolicy.NewBoard(2)
+		feeds := [2]*Feed{NewFeed(0), NewFeed(1)}
+		var revealed string
+		var revealer state.PlayerID
+		for steps := 0; !e.G.Over && steps < 4000; steps++ {
+			d := e.Pending()
+			if d == nil {
+				break
+			}
+			for i, f := range feeds {
+				fr, ok := f.Observe(e)
+				if !ok {
+					t.Fatalf("seed %d: seat %d's feed stopped: %s", seed, i, f.StopReason())
+				}
+				for _, ev := range fr.Events {
+					if ev.Kind == events.Note && strings.HasSuffix(ev.Text, " (miracle)") {
+						revealed, revealer = ev.Text, ev.Player
+					}
+				}
+			}
+			if revealed != "" && d.Player != revealer {
+				if _, why := HonestRoot(setup, feeds[d.Player], e, [2]uint64{seed, uint64(steps)}); why != "" {
+					t.Fatalf("seed %d: after %q: %s", seed, revealed, why)
+				}
+				return
+			}
+			in := botpolicy.Decide(botpolicy.BoardFromGameInto(e.G, e, d.Player, &board), d, rngs[d.Player])
+			if err := feeds[d.Player].RecordAnswer(d, in); err != nil {
+				t.Fatal(err)
+			}
+			if err := e.Submit(in); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	t.Fatal("precondition: no seed reached a miracle reveal")
 }

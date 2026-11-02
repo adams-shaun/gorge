@@ -2,9 +2,8 @@ package rules
 
 // Class census for the CR 611.3a / 613.4c "Other ... you control" static: a
 // continuous P/T static whose Affected$ carries the `Other` qualifier must
-// exclude its own source. Bard's Company (HOB 146, ticket
-// cli-20261006T024353Z-c6ff08b6) prompted this: its resolved snapshot read
-// 4/3 instead of the printed 2/3. The cause turned out to be the upstream
+// exclude its own source. Bard's Company (HOB 146) prompted this: its resolved
+// snapshot read 4/3 instead of the printed 2/3. The cause turned out to be the upstream
 // Forge script's PT:4/3 typo (see
 // testdata/oracle/base-characteristics/known-divergent/bards-company.json),
 // NOT a self-application bug -- but the census pins the class so a future
@@ -29,7 +28,7 @@ import (
 // otherCensusFloor is the number of `Creature...Other...` P/T statics this
 // census must find. It guards against a vacuous pass (a corpus that failed to
 // load the statics, or a filter change that silently skips them): measured at
-// the 2026-10-06 pin, 261 carriers qualify (262 minus Vampire Nocturnus,
+// the corpus pin, 261 carriers qualify (262 minus Vampire Nocturnus,
 // which also names Card.Self). Neutering predicates["Other"] makes 225 of
 // those 261 report derived > base.
 const otherCensusFloor = 200

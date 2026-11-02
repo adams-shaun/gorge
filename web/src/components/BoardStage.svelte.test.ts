@@ -210,7 +210,7 @@ describe('BoardStage — the table is arranged, and the centre strip is a real l
 
   it('the gilt Pass is Waiting without a pass option and posts a non-positional pass by its wire index', async () => {
     const unavailable = await table(1000, 900, 'decision=choose');
-    // No pass on the wire: the button names the wait and posts nothing (R-E4-2).
+    // No pass on the wire: the button names the wait and posts nothing.
     await expect.poll(() => unavailable.locator('[data-pass-action]').getAttribute('disabled')).not.toBeNull();
     expect(await unavailable.locator('[data-pass-action]').textContent()).toContain('Waiting');
     await unavailable.close();

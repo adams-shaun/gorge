@@ -1,5 +1,5 @@
 /**
- * layoutprofile is the pure model of ONE layout profile (UI rework spec §2):
+ * layoutprofile is the pure model of ONE layout profile:
  * everything about how the table is drawn — the opponents' share of the
  * height, how opponents are arranged and oriented, the board template's
  * regions, how cards stack and overflow, how much of the hand shows, and

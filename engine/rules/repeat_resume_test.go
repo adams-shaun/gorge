@@ -20,9 +20,8 @@ import (
 // TestRemorselessPunishmentRepeatsAfterAnsweredBody: Remorseless Punishment
 // is `Repeat | MaxRepeat$ 2` over a GenericChoice the TARGET opponent answers
 // and an unless-pay that opponent then declines -- both asks suspend the
-// resolution inside iteration 1. The opponent must face the process twice
-// and lose 5 life each time (20 -> 10); before the fix the second iteration
-// was dropped and the spell resolved at 15.
+// resolution inside iteration 1. The opponent must face the process twice and
+// lose 5 life each time (20 -> 10).
 func TestRemorselessPunishmentRepeatsAfterAnsweredBody(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, caster := corpusCardConfig(t, 7311, "Remorseless Punishment")
@@ -72,7 +71,6 @@ func TestRemorselessPunishmentRepeatsAfterAnsweredBody(t *testing.T) {
 // Card) whose body is a hand pick (ChangeZone Origin$ Hand) -- an ask in every
 // iteration. Each answered pick must put the land in, draw, re-check the gate
 // and ask again; declining empties Remembered and the gate ends the loop.
-// Before the fix only the first pick happened.
 func TestCultivatorColossusRepeatGateRunsAfterAnsweredBody(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, caster := corpusCardConfig(t, 7311, "Cultivator Colossus")

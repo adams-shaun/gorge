@@ -3,7 +3,7 @@ import { STEPS } from './autopilot';
 import { stepFullName } from './phases';
 
 /**
- * passlabel is what the one gilt action button says (UI rework spec §3): it
+ * passlabel is what the one gilt action button says: it
  * NAMES what passing does — "Let Rhystic Study resolve" when the stack holds
  * something, "Move to Declare attackers" otherwise, "Pass the turn" at the
  * end of a turn — and becomes "Waiting" while a prompt needs an answer or

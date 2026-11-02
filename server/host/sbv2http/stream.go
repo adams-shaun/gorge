@@ -41,7 +41,7 @@ func (h *handler) stream(w http.ResponseWriter, r *http.Request) {
 
 	ss := h.hub.seat(seatKey{table: t, match: k, seat: claim.Seat})
 	defer ss.hold()()
-	ss.attach()
+	ss.attach(leavesAsks(r))
 	// last is the request id already written. A sentinel no real request can
 	// have forces the initial frame (the null or the request already open), so
 	// a client that connects after a decision parked is never left waiting for

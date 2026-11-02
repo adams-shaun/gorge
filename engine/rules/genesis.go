@@ -531,18 +531,18 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	}
 	e.deferGameOver = false
 	alive := e.G.AliveFrom(0)
-	// CR 103.1: the starting seat is the toss result, not seat 0.
-	// Resolve the starting seat uniformly over the SURVIVORS. The pre-shuffle
-	// toss draw is uniform over every seat, so CONDITIONED on naming a
-	// survivor it is already uniform over the survivors -- it is the first
-	// candidate and costs no further rng. Only when it named a seat the deal
-	// eliminated does rejection sampling draw again: IntN over all seats,
-	// retried until a survivor is hit, each round uniform over the survivors
-	// once conditioned. In the no-elimination case -- every real game -- the
+	// CR 103.1: the starting seat is the toss result, not seat 0. Resolve the
+	// starting seat uniformly over the SURVIVORS. The pre-shuffle toss draw
+	// is uniform over every seat, so CONDITIONED on naming a survivor it is
+	// already uniform over the survivors -- it is the first candidate and
+	// costs no further rng. Only when it named a seat the deal eliminated
+	// does rejection sampling draw again: IntN over all seats, retried until
+	// a survivor is hit, each round uniform over the survivors once
+	// conditioned. In the no-elimination case -- every real game -- the
 	// stream is exactly one IntN and the candidate is always the first. A
 	// modulo over the survivor count instead would be BIASED: three seats
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
-	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
+	// survivor (395/205 over 600 seeds).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
 	// CR 103.1's SECOND half: the winner of the toss chooses who takes the
 	// first turn, and that answer -- not the raw toss draw -- is the

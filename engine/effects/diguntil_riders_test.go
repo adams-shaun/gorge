@@ -1,6 +1,6 @@
 package effects
 
-// The DigUntil withheld-rider tests (issue agent-20260923T042552Z-0936e140):
+// The DigUntil withheld-rider tests:
 // the Amount$ SVar, Shuffle$/ShuffleCondition$, NoMoveFound$/
 // FoundLibraryPosition$, ImprintFound$/ImprintRevealed$ and NoneFound*$
 // riders effDigUntil used to log a loud Note for. Inline mechanics use the

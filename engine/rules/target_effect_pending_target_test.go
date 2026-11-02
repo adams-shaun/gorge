@@ -9,7 +9,7 @@ import (
 )
 
 // pendingTargetFixture poses a KTarget ask for a DealDamage spell on the
-// stack with creatures on seat 0's battlefield, the way round 1's
+// stack with creatures on seat 0's battlefield, the way
 // stackTargetEffect does, and returns the pending decision.
 func pendingTargetFixture(t *testing.T, src string, creatures ...string) (*Engine, *decision.Decision) {
 	t.Helper()
@@ -84,7 +84,7 @@ func TestTargetEffectWithholdsAmountForPendingTargetDependentBody(t *testing.T) 
 // TestTargetEffectWithholdsInlinePendingTargetBody covers the second probe
 // site: an INLINE Targeted$ NumDmg body (no SVar indirection) must be
 // withheld the same way, while a genuinely target-independent body posed by
-// the same helper still publishes (round 1's SVar coverage already pins
+// the same helper still publishes (the SVar coverage already pins
 // Count$YourLifeTotal and Count$xPaid through the SVar branch).
 func TestTargetEffectWithholdsInlinePendingTargetBody(t *testing.T) {
 	t.Parallel()
@@ -103,8 +103,8 @@ func TestTargetEffectWithholdsInlinePendingTargetBody(t *testing.T) {
 
 // TestTargetEffectPublishesTargetIndependentBodyThroughTheSameProbe is the
 // positive control the two withholding tests need: a Count$ body that does
-// not read the target reference family keeps its round-1 publishable
-// amount even though the probe now runs on every posed damage ask.
+// not read the target reference family keeps its publishable
+// amount even though the probe runs on every posed damage ask.
 func TestTargetEffectPublishesTargetIndependentBodyThroughTheSameProbe(t *testing.T) {
 	t.Parallel()
 	e, d := pendingTargetFixture(t,

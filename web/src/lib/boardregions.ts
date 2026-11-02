@@ -4,7 +4,7 @@ import { REGION_KEYS, type Anchor, type LayoutProfile, type RegionKey, type Regi
 
 /**
  * boardregions projects one seat's battlefield onto the layout profile's
- * board template (UI rework spec §2): each region (creatures, lands, other
+ * board template: each region (creatures, lands, other
  * permanents) sits on a row with a width weight, an anchor to fill from and
  * an order. It decides nothing about the rules — which region a permanent
  * belongs to is groupBattlefield's type-word reading, and what stacks is

@@ -219,8 +219,8 @@ type pendingTrigger struct {
 	// casts the exiled card, with the encoded card riding IDs as
 	// Remembered. Idx and SA are unset for it.
 	Cipher state.ObjID
-	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
-	// cascade1): the queue carries no parameter (the trigger body is the
+	// Cascade is a printed-or-granted cascade keyword (CR 702.85):
+	// the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
 	// drain pushes a KeywordTriggerPush whose __kwCascade: payload
 	// events.Apply rebuilds structurally -- the Ward shape. The trigger's
@@ -879,6 +879,11 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// the cause qualifiers (WhileKeyword$, a ValidCause$ stack read) of
 		// a leaves-the-battlefield trigger read them.
 		observer.cast, observer.resolvingObj = e.cast, e.resolvingObj
+		// The no-event per-game facts a static gate or a Count$ reads: the
+		// starting life total and the turn ledgers the log cannot rebuild.
+		// Ledgers are read-only here: TurnsTaken and turnStartsFor replace
+		// their cache slice rather than write into it.
+		observer.startingLife, observer.engineTurnLedger = e.startingLife, e.engineTurnLedger
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
@@ -1121,8 +1126,8 @@ func (e *Engine) queueRingEmblem(p state.PlayerID, level int, bearer, blocker st
 }
 
 // checkExertTriggers queues the Trigger$ rider of every offerable
-// stat:OptionalAttackCost static carried by the exerted permanent (task
-// exert1, CR 702.100a "When you do, ..."): a real triggered ability the
+// stat:OptionalAttackCost static carried by the exerted permanent
+// (CR 702.100a "When you do, ..."): a real triggered ability the
 // ordinary APNAP drain places with Source = the exerted permanent, resolving
 // with the registered APIs every rider body uses (UntapAll, AddPhase, Pump,
 // ... -- the triage census). The queue entry is the granted-trigger shape
@@ -2759,27 +2764,26 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
-	// NotThisAbility$ True: the event being matched must not
-	// have been caused by the resolution of THIS very trigger instance
-	// (Kodama of the East Tree -- the corpus's one carrier, 1 of 38000+ card
-	// files -- is the shape: its "whenever another permanent you control
-	// enters, if it wasn't put onto the battlefield with this ability"
-	// rider would otherwise re-fire on the permanent its own Execute$
-	// ChangeZone just placed, a self-feeding loop). The cause is read the
-	// way every synchronous action matcher reads it -- actionCause(), the
-	// resolving wrapper at the top of the stack inside emit -- and compared
-	// by identity: the wrapper's Source is the trigger's source permanent
-	// and its Ability pointer is the exact compiled trigger line (the
-	// pointer TriggerPush mints the wrapper from), so two copies of the
-	// same card distinguish correctly (each wrapper names ITS source) and
-	// a sibling trigger line of the same card does not suppress its
-	// neighbour. The comparison is replay-safe with no event-schema
-	// change: trigger checks run synchronously inside emit, and a replay
-	// re-derives the same stack and the same compiled pointers. A cause
-	// that cannot be identified (no resolving wrapper, a keyword-granted
-	// trigger whose Effect is re-synthesized per scan) fails OPEN -- the
-	// trigger fires, the pre-fix behaviour -- so the gate only ever
-	// narrows when it can PROVE the cause is this ability.
+	// NotThisAbility$ True: the event being matched must not have been caused
+	// by the resolution of THIS very trigger instance (Kodama of the East
+	// Tree -- the corpus's one carrier, 1 of 38000+ card files -- is the
+	// shape: its "whenever another permanent you control enters, if it wasn't
+	// put onto the battlefield with this ability" rider would otherwise
+	// re-fire on the permanent its own Execute$ ChangeZone just placed, a
+	// self-feeding loop). The cause is read the way every synchronous action
+	// matcher reads it -- actionCause(), the resolving wrapper at the top of
+	// the stack inside emit -- and compared by identity: the wrapper's Source
+	// is the trigger's source permanent and its Ability pointer is the exact
+	// compiled trigger line (the pointer TriggerPush mints the wrapper from),
+	// so two copies of the same card distinguish correctly (each wrapper
+	// names ITS source) and a sibling trigger line of the same card does not
+	// suppress its neighbour. The comparison is replay-safe with no
+	// event-schema change: trigger checks run synchronously inside emit, and
+	// a replay re-derives the same stack and the same compiled pointers. A
+	// cause that cannot be identified (no resolving wrapper, a
+	// keyword-granted trigger whose Effect is re-synthesized per scan) fails
+	// OPEN -- the trigger fires -- so the gate only ever narrows when it can
+	// PROVE the cause is this ability.
 	if e.notThisAbilityExcludes(t, source) {
 		return false
 	}
@@ -2952,7 +2956,7 @@ func (e *Engine) notThisAbilityExcludes(t cards.Trigger, source state.ObjID) boo
 // fire for this event still fires on its own -- Grave Titan's Attacks half
 // fires for the attack although its ETB half did not.
 //
-// A Mode-equality fallback was tried here and REMOVED (r2 review): pairing
+// A Mode-equality fallback was tried here and REMOVED: pairing
 // any same-Mode sibling suppresses independent co-firing abilities, not just
 // complementary halves. Zoraline, Cosmos Caller carries two Attacks triggers
 // on one face -- her printed "Whenever a Bat you control attacks, gain 1

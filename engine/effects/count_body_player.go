@@ -22,7 +22,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// one way per card. The read is a plain read of Player.Counters, which
 	// events.PlayerCounterChange folds, so it is event-backed and
 	// replay-derivable; no new event or provenance is needed. Razorfield
-	// Ripper's SVar:X:Count$YourCountersEnergy drives its attack pump,
+	// Ripper's Count$YourCountersEnergy drives its attack pump,
 	// Localized Destruction's and Aether Refinery's DB$ ChooseNumber
 	// Max$ Count$YourCountersEnergy bounds their may-pay-{E} ask. A
 	// controller out of range (no resolution in flight) reads 0.
@@ -61,7 +61,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// property `Amount` counts 1 per group member, so
 	// PlayerCountOpponents$Amount is the opponent count — the dominant
 	// "one each" bound the corpus names SVar:OneEach (99 raw Opponents +
-	// 52 raw Players lines at the pfpe1 gate) and the per-player target
+	// 52 raw Players lines) and the per-player target
 	// bound the TargetsForEachPlayer$ shape needs (Havoc Eater's
 	// TargetMax$ X with SVar:X:PlayerCountOpponents$Amount).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
@@ -246,9 +246,8 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 	// PlayerCountPropertyYou$<Property> — the supported members of Forge's
 	// PlayerCountProperty<group>$<Property> family. HasPropertyActive reads 1
 	// when the resolving controller is active, else 0 — Starting Town's
-	// ETB gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and
-	// feeds Count$Compare Y GE1.Z.4, so X is YourTurns on your turn and 4
-	// off it, tapped only when X > 3. The per-turn properties below read the
+	// ETB gate reads it and feeds Count$Compare Y GE1.Z.4, so X is YourTurns on
+	// your turn and 4 off it, tapped only when X > 3. The per-turn properties below read the
 	// existing replay-derived host tallies or the event-backed LandsPlayed
 	// state. Unsupported properties and all other group spellings retain the
 	// fail-closed unresolvable verdict.
@@ -262,7 +261,7 @@ func evalCountBodyPlayer(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 		case evalCountBodyPlayerHasPropertyMaxSpeed:
 			return playerMaxSpeedProperty(g, c.Controller)
 		case evalCountBodyPlayerCardsDiscardedThisTurn:
-			// The log-derived discard count (trigcost2): how many cards the
+			// The log-derived discard count: how many cards the
 			// RESOLVING controller discarded this turn — every
 			// events.IsDiscard move naming p since the last TurnChange, the
 			// cost form included (Ambergris Citadel Agent's

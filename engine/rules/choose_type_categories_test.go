@@ -7,12 +7,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The as-enters ChooseType ask (the ETBReplacement path) is
-// category-aware too. Before the fix its "type" arm built the owner-scoped
-// creature-type list for EVERY Type$ category, so a real corpus Basic Land
-// carrier asked the wrong question. These tests drive the real carriers
-// through the entry boundary and assert the offered list is the category's
-// own.
+// The as-enters ChooseType ask (the ETBReplacement path) is category-aware
+// too. These tests drive the real carriers through the entry boundary and
+// assert the offered list is the category's own.
 
 // etbTypeChoiceLabels drives id from the hand to the battlefield and returns
 // the posed ETB type decision, failing if the ask did not happen or offered

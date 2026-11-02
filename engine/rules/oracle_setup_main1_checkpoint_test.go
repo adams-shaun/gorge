@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// (cli-20261006T132128Z) Level B: the setup checkpoint is turn 1's FIRST
+// The setup checkpoint is turn 1's FIRST
 // precombat-main priority, the exact point XMage's ScenarioReplay pauses at
 // for its "setup" snapshot (ScenarioReplay.java runCode("setup", TURN, MAIN,
 // ...)). That means:

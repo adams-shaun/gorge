@@ -24,8 +24,8 @@ import (
 //     mana-costed cast from exile is offered — the oracle's "If you don't
 //     cast it this way, you may cast it this turn".
 //
-// Before this task the gate was unresolved (the sub ran unconditionally) and
-// the imprint was never recorded, so BOTH branches registered the static.
+// With the gate unresolved the sub runs unconditionally, and with
+// the imprint unrecorded BOTH branches register the static.
 // Rashmi and Ragavan is in NO repo deck and NO legacy golden deck, so no
 // chain head depends on this card (measured: grepping the carrier names
 // against testkit/testutil/decks/*.json returns nothing).

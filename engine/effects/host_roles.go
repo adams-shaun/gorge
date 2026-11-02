@@ -411,6 +411,9 @@ type HostTargeting interface {
 	// AnnouncedLinkTargets returns the targets announced for the chain link
 	// link of the stack object obj (CR 601.2c).
 	AnnouncedLinkTargets(obj state.ObjID, link *cards.SA) []state.Target
+	// AskCopyTargets poses CR 707.10c's election for a copy just put on the
+	// stack with the permission to choose new targets.
+	AskCopyTargets(id state.ObjID)
 	// RetargetLink replaces the announced targets of the chain link link of
 	// the stack object obj. A target it adds is targeted anew; one it keeps is
 	// not.

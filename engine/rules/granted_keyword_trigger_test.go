@@ -97,8 +97,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 // grant a triggered keyword at FORGE_REF, each mapped to the granted head and
 // whether the build fires it. It is a two-direction contract: a new
 // grant fails naming the card and head, and a stale entry fails too. The
-// uncovered rows are a known gap (the ticket that removes this census must
-// fire them); the covered rows must stay covered.
+// uncovered rows are a known gap; the covered rows must stay covered.
 var knownEquipAuraTriggerKeywords = map[string][2]string{
 	"A-Plate Armor":         {"Ward", "covered"},
 	"Aegis of the Legion":   {"Mentor", "covered"},
@@ -128,7 +127,7 @@ var knownEquipAuraTriggerKeywords = map[string][2]string{
 	"Tome of Gadwick":       {"Ward", "covered"},
 	"Winged Boots":          {"Ward", "covered"},
 	"Wizard's Staff":        {"Prowess", "covered"},
-	// uncovered: no granted walk fires the head yet (file a ticket per head).
+	// uncovered: no granted walk fires the head yet.
 	"Blade of Selves":      {"Myriad", "uncovered"},
 	"Eldrazi Conscription": {"Annihilator", "uncovered"},
 	"Infantry Shield":      {"Mobilize", "uncovered"},
@@ -179,7 +178,7 @@ func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
 			}
 		}
 	}
-	// Precondition: the census must actually have found the card the ticket
+	// Precondition: the census must actually have found the card this
 	// is about; an empty or short scan would make every assertion vacuous.
 	if _, ok := measured["Wizard's Staff"]; !ok {
 		t.Fatal("precondition: Wizard's Staff was not measured as an Equipment granting a triggered keyword")

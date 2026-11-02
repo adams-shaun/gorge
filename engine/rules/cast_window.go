@@ -28,7 +28,7 @@ func (e *Engine) flipProposalFace(o *state.Object, faceBefore **uint8, preSuppre
 // is one, but it is net no progress when the proposal is then reversed
 // (abortCast flips the card back). Left cleared, pushCast captured the
 // already-emptied maps as the proposal's pre-push state, so abortCast's
-// F05-2 count restarted at zero on every attempt and the SECOND identical
+// no-progress count restarted at zero on every attempt and the SECOND identical
 // no-progress abort never held the option out: an Adventure cast the offer
 // priced as payable but the flipped face could not pay was reversed and
 // re-offered forever (the botbench flip_face livelock). Restoring the maps

@@ -4,7 +4,7 @@ import { SICK_TAP_REASON, sickUntappableManaSource } from './sicktap';
 
 // The predicate table mirrors rules/mana_activation.go tapFlagsSick's gate
 // one row per condition (see sicktap.ts for the mirror comment). Each row
-// is the Elvish-Mystic shape (fb-20260928T161557Z-2d23d432) with exactly one
+// is the Elvish-Mystic shape with exactly one
 // fact flipped, so a row that stops differing from the base case fails the
 // setup loudly rather than passing vacuously.
 
@@ -59,7 +59,7 @@ describe('sickUntappableManaSource — the muted tap affordance predicate', () =
     expect(sickUntappableManaSource(card({ tapped: true }))).toBe(false);
   });
 
-  it('a sick NONCREATURE with a mana ability (a freshly played land) gets nothing — fb-20260917T004545Z unchanged', () => {
+  it('a sick NONCREATURE with a mana ability (a freshly played land) gets nothing', () => {
     const land = card({ types: 'Land', name: 'Forest', mana_cost: '', power: 0, toughness: 0 });
     expect(land.types.includes('Creature')).toBe(false); // setup: really a noncreature
     expect(sickUntappableManaSource(land)).toBe(false);

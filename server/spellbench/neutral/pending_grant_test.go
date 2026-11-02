@@ -99,7 +99,7 @@ func TestNeutralGrantMatchesNativeAtPendingGrant(t *testing.T) {
 	}
 }
 
-// TestNeutralGrantSurvivesCostTargetDecision is the MAJOR finding from review:
+// TestNeutralGrantSurvivesCostTargetDecision:
 // the session pruned its recorded grant on every Payload, so the non-priority
 // choose_cost_target decision an activation poses before its ability is on the
 // stack (Fledgling Imp's "Discard a card") deleted the grant, and the later

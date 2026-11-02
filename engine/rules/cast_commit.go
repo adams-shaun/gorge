@@ -244,7 +244,7 @@ func (e *Engine) payCast() {
 		// tapped as part of paying the cost, the same Tap event a cast's
 		// Convoke/Harmonize/Improvise contributions emit (CR 701.67a), and
 		// they are ONE cost action for the aggregate Mode$ TapAll trigger.
-		pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke)
+		pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke, pc.mods.Waterbend > 0 || pc.mods.WaterbendX)
 		for _, id := range pc.delve {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
@@ -530,7 +530,7 @@ func (e *Engine) payCast() {
 	if pc.PayLife != 0 {
 		e.emit(events.Event{Kind: events.LifeChange, Player: pc.player, Amount: -pc.PayLife, Text: "paylife proposal"})
 	}
-	pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke)
+	pay.EmitConvokeTaps(asPayer(e), pc.card, pc.player, pc.Convoke, pc.mods.Waterbend > 0 || pc.mods.WaterbendX)
 	for _, id := range pc.delve {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 	}
@@ -681,8 +681,8 @@ func (e *Engine) payCast() {
 	}
 	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
 	e.installPaidCostLists(pc)
-	// A Fuse cast publishes its per-stage target split for resolution
-	// (review MAJOR 1): resolveFused reads it instead of re-deriving the
+	// A Fuse cast publishes its per-stage target split for resolution:
+	// resolveFused reads it instead of re-deriving the
 	// split from the flat target list. Engine-only scratch like
 	// sacrificedLKI — rebuilt by replay because payCast re-executes, and
 	// removed with the stack object by the shared MoveZone cleanup.
@@ -1074,7 +1074,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	// push, which cleared it). Both
 	// the held-out set and the per-card no-progress count are restored, so a
 	// no-progress decline of THIS object can be counted again across the
-	// push (F05-2).
+	// push.
 	var saved map[state.ObjID]bool
 	if pc.pushed && pc.preSuppress != nil {
 		saved = make(map[state.ObjID]bool, len(pc.preSuppress))
@@ -1104,7 +1104,7 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			savedAborts = map[state.ObjID]int32{}
 		}
 		savedAborts[pc.card]++
-		// F05-2 (CR 733.2): the FIRST no-progress abort of a card leaves its
+		// CR 733.2: the FIRST no-progress abort of a card leaves its
 		// option offered, so a merely-reversed illegal action may be redone
 		// legally; the SECOND identical abort holds the option out. Undo the
 		// restore-only path for a count below two by not adding to `saved`.

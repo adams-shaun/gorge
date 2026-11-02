@@ -1,7 +1,7 @@
 package effects
 
-// The Optional$ True election leaves of DB$ Clone (ticket
-// api-clone-trigger-copy, Sarkhan Soul Aflame's shape): the no-host stand-in
+// The Optional$ True election leaves of DB$ Clone (Sarkhan Soul Aflame's
+// shape): the no-host stand-in
 // and the in-place answer contract.
 
 import (
@@ -35,7 +35,7 @@ func cloneOptionalFixture(t *testing.T) (*fakeHost, state.ObjID, state.ObjID) {
 	return h, sarkID, dragonID
 }
 
-// TestCloneOptionalNoHostTakesTheCopy pins the R-9 no-host stand-in: a host
+// TestCloneOptionalNoHostTakesTheCopy pins the no-host stand-in: a host
 // that cannot ask resolves the "you may" copy deterministically as take,
 // with the one degradation Note and the same layer-1 copy the pre-election
 // build performed.

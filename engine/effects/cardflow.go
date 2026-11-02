@@ -93,8 +93,8 @@ func drawFor(h Host, p state.PlayerID, cursor int, resumeSA *cards.SA, upto draw
 	// A DrawFor reached while the resolution is already suspended: a caller
 	// that does not check h.Suspended() between draws drove a second draw
 	// after the first one parked on a dredge ask. Posing a second ask here
-	// would overwrite the outstanding one (the orphaned-decision failure
-	// findings-sol4 proved); the guarded callers (effDraw's cursor loop,
+	// would overwrite the outstanding one, orphaning it;
+	// the guarded callers (effDraw's cursor loop,
 	// the turn draw, rules' lifeReplacementDraw park) never reach this
 	// suspended, so this degrades the unguarded one deterministically: no
 	// ask, an ordinary draw, one Note naming why.
@@ -201,6 +201,15 @@ func objName(g *state.Game, id state.ObjID) string {
 		return o.Face().Name
 	}
 	return "it"
+}
+
+// publicObjName is objName for text a seat other than the object's controller
+// reads: only its controller may see a face-down permanent's name (CR 708.5).
+func publicObjName(g *state.Game, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.FaceDown {
+		return "a face-down permanent"
+	}
+	return objName(g, id)
 }
 
 // effDiscard moves cards from a player's hand to their graveyard. Which
@@ -479,6 +488,17 @@ func discardChooser(c *Ctx, mode string) state.PlayerID {
 	return c.Controller
 }
 
+// countRange words a pick count for a prompt: "2", "1 to 3" or "up to 2".
+func countRange(min, max int) string {
+	switch {
+	case min == max:
+		return strconv.Itoa(max)
+	case min == 0:
+		return "up to " + strconv.Itoa(max)
+	}
+	return strconv.Itoa(min) + " to " + strconv.Itoa(max)
+}
+
 func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, chooser state.PlayerID, min, max, target int) *decision.Decision {
 	opts := make([]decision.Option, 0, len(eligible))
 	for _, id := range eligible {
@@ -490,7 +510,7 @@ func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, cho
 	}
 	return &decision.Decision{Player: chooser, Kind: decision.KModes, Min: min, Max: max, Source: c.Source,
 		ResumeKind: "discard", ResumeSA: sa, ResumeTarget: target,
-		Prompt: "Choose " + strconv.Itoa(min) + ".." + strconv.Itoa(max) + " card(s) to discard", Options: opts}
+		Prompt: "Choose " + countRange(min, max) + " card(s) to discard", Options: opts}
 }
 
 // discardRevealNumber applies RevealNumber$ for one target: the target
@@ -781,7 +801,7 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 			d := &decision.Decision{Player: p, Kind: decision.KModes,
 				Min: askMin, Max: askMax, Source: c.Source,
 				ResumeKind: "discard", ResumeSA: sa, ResumeTarget: targetIndex,
-				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
+				Prompt:  "Choose " + countRange(askMin, askMax) + " card(s) to discard",
 				Options: opts}
 			if ans, ok := AskTape(h, d); ok {
 				// Answered in place: discard exactly the chosen cards that
@@ -811,17 +831,16 @@ func chooseDiscards(h Host, c *Ctx, sa *cards.SA, riders discardRiders) {
 
 		case effDiscardHand:
 			// Mode$ Hand is the whole-hand wheel (Reforge the Soul, Windfall,
-			// Magus of the Wheel, Dark Deal): "each player discards their hand".
-			// Forge's DiscardEffect HAND mode discards the ENTIRE hand and
-			// never reads NumCards$ there; the pre-fix engine fell through to
-			// the default arm and discarded only the front card. A mandatory
-			// Hand line has no choice to record, so there is no ask and no
-			// Note: every card in hand order, one events.Discard per card via
-			// discardAndRemember (which applies the RememberDiscarded$ /
-			// RememberDiscardingPlayers$ riders per card, exactly what Windfall's
-			// "greatest number discarded" draw reads). The measured corpus
-			// population (108 raw lines) carries no NumCards$, DiscardValid$ or
-			// AnyNumber$, so none is read here.
+			// Magus of the Wheel, Dark Deal): "each player discards their
+			// hand". Forge's DiscardEffect HAND mode discards the ENTIRE hand
+			// and never reads NumCards$ there. A mandatory Hand line has no
+			// choice to record, so there is no ask and no Note: every card in
+			// hand order, one events.Discard per card via discardAndRemember
+			// (which applies the RememberDiscarded$ /
+			// RememberDiscardingPlayers$ riders per card, exactly what
+			// Windfall's "greatest number discarded" draw reads). The
+			// measured corpus population (108 raw lines) carries no
+			// NumCards$, DiscardValid$ or AnyNumber$, so none is read here.
 			if strings.EqualFold(sa.ParamStr(cards.PKOptional), "True") {
 				// "each player MAY discard their hand and draw N" (5 corpus
 				// lines): a real may-discard election, a yes/no per acting
@@ -1373,12 +1392,10 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// TargetedPlayerCtrl): the reveal covers EVERY card in the pool
 			// matching the spec — "Target player reveals all cards with mana
 			// value 2 or greater in their hand" — so the spec narrows the
-			// pool and the count becomes the whole matching set. Pre-fix the
-			// spec was never fed to the filter, so the reveal took pool[:1],
-			// the FIRST card of the whole hand whether or not it matched. An
+			// pool and the count becomes the whole matching set. An
 			// unresolvable spec matches nothing (the fail-closed convention
-			// RevealType$ and RevealValid$ already apply above), so the
-			// n == 0 skip below cleanly emits no Note and captures no
+			// RevealType$ and RevealValid$ already apply above), so the n ==
+			// 0 skip below cleanly emits no Note and captures no
 			// RememberRevealed$; this is also the arm that keeps the
 			// revealer's own pick off the walk (the `pickable` gate reads the
 			// same parameter).
@@ -1391,17 +1408,15 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			pool = filtered
 			n = int32(len(pool))
 		}
-		// A hand reveal is a CHOICE when the eligible pool holds strictly more
-		// cards than the answer must show. Forge asks the pool's owner which
-		// cards to reveal -- Infernal Tutor's "Reveal a card from your hand"
-		// (NumCards default 1 over a seven-card hand), an AnyNumber$ miss
-		// ("Reveal any number of green cards in your hand": zero through all
-		// of them) and an Optional$ miss ("You may reveal a Dinosaur card from
-		// your hand": none or the one). Pre-fix the walk silently took
-		// pool[:n], the FRONT cards of the hand, so the chained sub read the
-		// wrong card entirely. The pick is posed as a KChoose to the pool's
-		// owner and answered in place, the same answer-shape the discard ask
-		// uses.
+		// A hand reveal is a CHOICE when the eligible pool holds strictly
+		// more cards than the answer must show. Forge asks the pool's owner
+		// which cards to reveal -- Infernal Tutor's "Reveal a card from your
+		// hand" (NumCards default 1 over a seven-card hand), an AnyNumber$
+		// miss ("Reveal any number of green cards in your hand": zero through
+		// all of them) and an Optional$ miss ("You may reveal a Dinosaur card
+		// from your hand": none or the one). The pick is posed as a KChoose
+		// to the pool's owner and answered in place, the same answer-shape
+		// the discard ask uses.
 		//
 		// Not pickable, deliberately: RevealHand (the whole hand is public, no
 		// choice), Random$ (the engine picks, deterministically), a Look$
@@ -1447,9 +1462,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 					opts = append(opts, decision.Option{Index: len(opts), Kind: "reveal",
 						Label: "Reveal " + name, Obj: id, Player: p})
 				}
-				prompt := "Choose " + strconv.Itoa(int(minPick)) + ".." + strconv.Itoa(int(maxPick)) + " card(s) to reveal"
+				prompt := "Choose " + countRange(int(minPick), int(maxPick)) + " card(s) to reveal"
 				if minPick == 0 {
-					prompt = "You may reveal 0.." + strconv.Itoa(int(maxPick)) + " card(s)"
+					prompt = "You may reveal " + countRange(0, int(maxPick)) + " card(s)"
 				}
 				d := &decision.Decision{Player: p, Kind: decision.KChoose,
 					Min: int(minPick), Max: int(maxPick), Source: c.Source,
@@ -1867,7 +1882,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
 // Amount$ cards of Defined$'s library, put any number of them -- the ones
 // the player does NOT pick -- into the GRAVEYARD (surveil has no bottom
-// pile; the fsv1 survey's bottom-pile reading is wrong and this code follows
+// pile; this code follows
 // CR 701.42), and the rest back on top in the order the player picks. It is
 // the KArrange ask with Min 0, Max N and Option.Kind "graveyard".
 //

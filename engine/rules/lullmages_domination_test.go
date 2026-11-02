@@ -9,15 +9,12 @@ import (
 )
 
 // TestLullmagesDominationTargetControllerDiscount pins the real-corpus
-// reduction (agent-20260928T043626Z-b7e271c1): Lullmage's Domination's
-// ReduceCost static carries its discount entirely in an SVar chain
-// (`Amount$ XGrave`, `SVar:XGrave:Count$Compare CheckTgt GE8.3.0`,
-// `SVar:CheckTgt:TargetedController$CardsInGraveyard`). Before the fix the
-// TargetedController$ count head resolved to (0, false), so Count$Compare read
-// 0, GE8 failed, and the generic {3} was never reduced. This test prices the
-// real card with a chosen target whose controller has 8+ cards in its
-// graveyard and asserts the generic drops to 0, with the no-target case as the
-// negative control.
+// reduction: Lullmage's Domination's ReduceCost static carries its discount
+// entirely in an SVar chain (`Amount$ XGrave`, `SVar:XGrave:Count$Compare
+// CheckTgt GE8.3.0`, `SVar:CheckTgt:TargetedController$CardsInGraveyard`).
+// This test prices the real card with a chosen target whose controller has 8+
+// cards in its graveyard and asserts the generic drops to 0, with the
+// no-target case as the negative control.
 func TestLullmagesDominationTargetControllerDiscount(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Lullmage's Domination"))

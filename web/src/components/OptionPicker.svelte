@@ -2,6 +2,7 @@
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
   import { ACTION_GLYPHS, actionAccessibleLabel, laterLabel, wheelFace, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { promptWords } from '../lib/prompts/words';
   import {
     placeMenu,
     placeRadial,
@@ -71,7 +72,7 @@
     open = false;
   }
 
-  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3).
+  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability.
    *  A selection option (an attacker declaration) is a
    *  pick in a still-pending multi-pick decision, so the picker stays open
    *  for the next pick; an ordinary action posts and closes as before. */
@@ -206,7 +207,7 @@
               role="menuitem"
               data-wire-index={opt.index}
               data-mana-option={isManaChoice ? mana : undefined}
-              aria-label={opt.label}
+              aria-label={promptWords(opt.label)}
               style:left="{point.x}px"
               style:top="{point.y}px"
               style:--pip={isManaChoice && mana ? `var(--mana-${mana.toLowerCase()})` : undefined}
@@ -228,7 +229,7 @@
               style:left="{tipAnchorX(point.x)}px"
               style:top="{tipAbove ? point.y : point.y + RADIAL_BUTTON + TIP_GAP}px"
               style:transform={tipAbove ? 'translate(-50%, calc(-100% - 8px))' : 'translate(-50%, 0)'}
-            >{opt.label}</span>
+            >{promptWords(opt.label)}</span>
           </div>
         {/each}
         {#each later as a, j (`later-${a.obj}-${a.ability}-${j}`)}
@@ -268,7 +269,7 @@
           {#each tileOptions.list as opt (opt.index)}
             <li role="none">
               <button class="menu__item" type="button" role="menuitem" onclick={(event) => choose(opt, event.ctrlKey)}>
-                {opt.label}
+                {promptWords(opt.label)}
               </button>
             </li>
           {/each}

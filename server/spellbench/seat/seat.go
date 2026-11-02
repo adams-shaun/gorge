@@ -84,6 +84,10 @@ type Agent struct {
 	forfeit           string
 	fallbackLogged    bool
 	unposed           int
+	// seed, when seedSet, is the agent_seed game_start sends in place of the
+	// one derived from the match secret (SeedAgent).
+	seed    uint64
+	seedSet bool
 	// startup is the handshake deadline seam. Tests replace it to shorten
 	// the budget; nil uses the advertised startupBudget.
 	startup func() (context.Context, context.CancelFunc)
@@ -106,6 +110,12 @@ func New(name string, argv []string, o bots.Options) (engineseat.Seat, error) {
 	}
 	return &Agent{name: name, argv: append([]string(nil), argv...), opts: o, fallback: heuristic.NewBot(o.Seed)}, nil
 }
+
+// SeedAgent fixes the agent_seed the seat's game_start sends, which is otherwise
+// derived from the match secret. A paired measurement uses it to start a native
+// bot and the same bot behind the wire on one RNG stream, so the wire is the only
+// thing that can part them. seed must fit the protocol's integers (wire.MaxInt).
+func (a *Agent) SeedAgent(seed uint64) { a.seed, a.seedSet = seed, true }
 
 // NewInProcess builds a v2 agent seat whose agent runs in this process: serve
 // is the agent's stdio loop (agent.Serve over a server), started on a pipe pair
@@ -331,12 +341,16 @@ func (a *Agent) gameStart() error {
 	}
 	engine := sbenv.EngineIdentity(nil, mc.Registry)
 	engine.Version += sbenv.AutoPayVersionSuffix // mana_payment above is engine_autopay
+	seed := agentSeed(a.secret, a.gameID, seat)
+	if a.seedSet {
+		seed = a.seed
+	}
 	id := a.nextID()
 	req := gameStartReq{
 		RequestType:   "game_start",
 		Protocol:      protocolName,
 		RequestID:     id,
-		AgentSeed:     agentSeed(a.secret, a.gameID, seat),
+		AgentSeed:     seed,
 		Engine:        engine,
 		EngineProfile: profile,
 		Format:        formatOr(mc.Format),

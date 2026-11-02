@@ -21,8 +21,7 @@ import (
 // had never held a keyword (engine/rules/derivedmemo.go memoOwned; the rules-side
 // pin is TestDerivedMemoKeepsEmptyKeywordListBound).
 //
-// Seed 20814263898706950 (all-r7) diverged at 011316363 but no longer
-// reaches the same board on a base that includes 87586f456 (the fixed-count
+// Seed 20814263898706950 no longer reaches the same board (the fixed-count
 // sacrifice plan offer moves the game); it stays pinned as a clean replay.
 func TestDerivedMemoReplayFindings(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

@@ -264,7 +264,7 @@ func (e *Engine) flashPermittedCandidates(pc *pendingCast, f *cards.Face, candid
 // resolved mana cost is no longer payable, or a mandatory target (min >= 1)
 // has zero legal candidates. Clearing e.cast with nothing committed restores
 // the pre-proposal board. An SA with no ValidTgts (or a zero-minimum target
-// with no legal candidate, Requirement N2) returns false so commitCast runs
+// with no legal candidate) returns false so commitCast runs
 // directly.
 func (e *Engine) targetAsk() bool {
 	pc := e.cast
@@ -350,7 +350,7 @@ func (e *Engine) targetAsk() bool {
 	// activated ability target its own source. For Equip the exclusion is
 	// inert (an Equipment face does not match Creature specs); it is live
 	// exactly for Reconfigure, whose unattached form IS a creature and was
-	// offered itself here (r2 review MAJOR).
+	// offered itself here.
 	var excludeSelf state.ObjID
 	if !pc.isAbility() || sa.API == "Attach" {
 		excludeSelf = pc.card
@@ -484,7 +484,7 @@ func (e *Engine) targetAsk() bool {
 		// cast trigger fires. No library was shuffled during the proposal, so
 		// the 733.1 library exception does not apply.
 		//
-		// suppress=true engages the F05-2 (CR 733.2) no-progress discipline
+		// suppress=true engages the CR 733.2 no-progress discipline
 		// like every other abort site: the FIRST identical abort of this card
 		// in the window leaves the option offered (a player may still make a
 		// play that creates a legal target -- cast a creature, then Shelter),
@@ -499,7 +499,7 @@ func (e *Engine) targetAsk() bool {
 		return true
 	}
 	if min == 0 && len(candidates) == 0 {
-		// Requirement N2: a subject that MAY target zero things resolves
+		// A subject that MAY target zero things resolves
 		// untargeted when no legal target exists; proceed straight to payCast
 		// with no target decision.
 		return false
@@ -509,7 +509,7 @@ func (e *Engine) targetAsk() bool {
 		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1) declares
 		// that this stage takes no targets -- the chained sub does the
 		// work. A Min 0 / Max 0 ask would offer nothing selectable; skip
-		// straight to payCast exactly as the N2 arm above does.
+		// straight to payCast exactly as the zero-target arm above does.
 		return false
 	}
 	// The decision's Source is the object that must not be offered as its own
@@ -794,7 +794,7 @@ func (e *Engine) postTargetAsks(pc *pendingCast) bool {
 // TargetUnique$ sub excludes every already-chosen target (root answers and
 // earlier sub answers) exactly as the mid-resolution path's accumulator does.
 // A Min-0 sub with no legal candidate is recorded as an ANSWERED EMPTY set
-// (Requirement N2: nobody could answer differently) and the walk advances; a
+// (nobody could answer differently) and the walk advances; a
 // mandatory one aborts the proposal (CR 733.1, the target stage's own rule --
 // nothing has been paid yet). The answers ride the ordinary KTarget flow
 // (handleTarget's cast_sub branch), so replay re-derives them like any other
@@ -889,7 +889,7 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 		}
 		if max == 0 {
 			// A dynamic bound RESOLVED to zero: this stage takes no targets,
-			// recorded as an ANSWERED EMPTY set exactly as the N2 arm above.
+			// recorded as an ANSWERED EMPTY set exactly as the zero-target arm above.
 			pc.subAns[pc.subStage] = []state.Target{}
 			pc.subStage++
 			continue
@@ -1604,7 +1604,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	if restricted {
 		// suppress=true, not false: an illegal-proposal abort is a
 		// no-progress reversal (CR 733.1) exactly like every other abort
-		// site, so it rides the same F05-2 (CR 733.2) discipline -- first
+		// site, so it rides the same CR 733.2 discipline -- first
 		// identical abort retryable, second holds the option out of the
 		// window. With false, a seat that re-picks the same X (the only
 		// value it knows) re-announces the same illegal spell forever.

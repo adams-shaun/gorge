@@ -26,8 +26,8 @@ func effectTargetDecision(b Board, dmg *int, options []tgt, min, max int) ([]int
 // DamageEffect.Amount field (a *int, null when unknown).
 func intp(v int) *int { return &v }
 
-// TestTargetEffectUnknownDamageIsNotLethal is the most important test in
-// the ft1 round: when the damage fact is ABSENT (the amount is null, as it
+// TestTargetEffectUnknownDamageIsNotLethal is the most important test of
+// face aiming: when the damage fact is ABSENT (the amount is null, as it
 // is for X/dynamic/SVar/invalid amounts), the bot must not treat the
 // opponent as lethal -- it must not aim at their face just because they are
 // about to die to some damage the engine cannot read. The opponent here is
@@ -114,7 +114,7 @@ func TestTargetEffectLethalFace(t *testing.T) {
 	}
 }
 
-// TestTargetEffectThreatBeforeLethalFace pins the brief's stated order of
+// TestTargetEffectThreatBeforeLethalFace pins the order of
 // the tiers: a threat that may kill the seat this round (tier 1) is the
 // first pick even when the same spell could also deal lethal to the
 // opponent's face (tier 2). The seat is at 4 life and the opponent at 2, so

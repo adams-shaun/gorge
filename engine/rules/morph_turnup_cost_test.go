@@ -260,11 +260,8 @@ func TestMorphTurnFaceUpPaysNonManaCosts(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 
-	// PayLife is a non-mana cost too. The ORIGINAL mana/life-only turn-up
-	// implementation already charged Cost.Life through payMana, so this subtest
-	// is a REGRESSION GUARD for the pre-existing life charge rather than proof
-	// of this ticket's new hunk; it lives inside the test that IS proven to
-	// fail without the non-mana payment so the coverage is attached to a test
+	// PayLife is a non-mana cost too; it lives inside the test that is proven to
+	// fail without the non-mana payment, so the coverage is attached to a test
 	// that can fail (the standalone life test could not).
 	t.Run("PayLife", func(t *testing.T) {
 		reg := searchTestRegistry(t)

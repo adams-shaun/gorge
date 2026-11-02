@@ -503,7 +503,7 @@ func TestTotalPowerCapOnAnAbilityTargetAsk(t *testing.T) {
 // comment) -- with a populated graveyard its derived power is 13, over the
 // cap of 10, so it can never be part of any legal selection and must not be
 // offered. The first cut pruned on Face().Power(), read Lord as a free
-// 0-power target and let it through (findings-r2 MAJOR 1).
+// 0-power target and let it through.
 func TestTotalPowerCapReadsDerivedPowerInEveryZone(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -589,8 +589,8 @@ func TestTotalPowerCapReadsDerivedPowerInEveryZone(t *testing.T) {
 // zero (or negative) is still a real cap -- every surviving candidate's own
 // power is <= the cap, so any subset sums under it and the per-candidate
 // pruning alone enforces the bound; the ask attaches NO Decision.MaxSum
-// (a MaxSum of 0 reads as NO budget on the wire, not as a zero budget --
-// findings-r2 MAJOR 2). The pin: under a literal cap of 0 the 0/5 Wall of
+// (a MaxSum of 0 reads as NO budget on the wire, not as a zero budget).
+// The pin: under a literal cap of 0 the 0/5 Wall of
 // Roots is offered and pickable, the 2-power Grizzly Bears is pruned, and
 // the CDA */* Lord of Extinction (printed power 0, derived power 13) is
 // pruned on its DERIVED power -- the first cut offered it as a free target
@@ -688,7 +688,7 @@ func TestTotalPowerCapOfZeroIsEnforced(t *testing.T) {
 }
 
 // TestTotalPowerCapOfZeroKeepsANegativeOffsetSelection: a nonpositive cap
-// follows the SAME offset rule as a positive one (sol1 review MAJOR). With
+// follows the SAME offset rule as a positive one. With
 // the opponent at 21 life Scourge of the Skyclaves's CDA reads -1 in the
 // graveyard, so under a MaxTotalTargetPower$ of 0 the 1-power Llanowar Elves
 // is a legal target beside it (1 + (-1) = 0) and must stay offered, while

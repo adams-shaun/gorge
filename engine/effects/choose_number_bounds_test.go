@@ -9,9 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The bounded ChooseNumber ask (task bounded1, absorbing
-// agent-20260922T091245Z-d777f1b6): a card's own Max$ bound, Min$ floor and
-// ListTitle$ prompt now shape the mid-resolution number ask choose.go poses.
+// The bounded ChooseNumber ask: a card's own Max$ bound, Min$ floor and
+// ListTitle$ prompt shape the mid-resolution number ask choose.go poses.
 // These pins drive the primitive directly through the same scripted-ask
 // double choose_number_ask_test.go uses; the real-corpus end-to-end pins
 // (Pia Nalaar, Chief Mechanic; Localized Destruction / Aether Refinery) live
@@ -163,7 +162,7 @@ func TestChooseNumberListTitlePrompt(t *testing.T) {
 
 // TestChooseNumberMinFloor pins Min$: the card's own lower bound floors the
 // offered list (Min$ 2 Max$ 6 offers exactly 2..6), and Min$ 0 with Max$ 5
-// keeps zero offerable — the zero/optional semantics the ticket must preserve
+// keeps zero offerable — the zero/optional semantics
 // (a "you may pay" carrier's answered 0 is a legal decline, never a forced
 // positive).
 func TestChooseNumberMinFloor(t *testing.T) {
@@ -266,7 +265,7 @@ func TestChooseNumberUnresolvableBoundFailsClosed(t *testing.T) {
 	}
 }
 
-// TestChooseNumberBoundNoHostDegradesQuietly pins R-9 for the bounded ask: on
+// TestChooseNumberBoundNoHostDegradesQuietly pins the no-host path for the bounded ask: on
 // a host that cannot ask, a legal bound still degrades to the deterministic
 // first-legal-value (0) with NO extra Note — only the unresolvable-bound path
 // is loud.

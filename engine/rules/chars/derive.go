@@ -67,7 +67,7 @@ func PT(b Board, s *Scratch, id state.ObjID, o *state.Object, f *cards.Face, act
 		}
 	}
 	cdaClaim := false
-	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
+	if o.FaceDownHidden() {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
 		// ability do not exist while it is face down. A FaceDownSetType$ that
@@ -303,7 +303,7 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	// to none). Layer effects from OTHER permanents still apply on top (an
 	// Anthem pumps a manifested 2/2 to 3/3); the printed-face scans never
 	// reach here because faceDownPrintedHides gates them all off (CR 708.8).
-	faceDown := o.FaceDown && o.Zone == state.ZBattlefield
+	faceDown := o.FaceDownHidden()
 	if faceDown {
 		f = faceDownBasis
 	}
@@ -552,7 +552,7 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 		return "", false
 	}
 	f := o.Face()
-	faceDown := o.FaceDown && o.Zone == state.ZBattlefield
+	faceDown := o.FaceDownHidden()
 	if faceDown {
 		f = faceDownBasis
 	}

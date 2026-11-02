@@ -8,8 +8,8 @@ import (
 )
 
 // TestChangeZoneAllForgetOtherRememberedFlagGating pins the absent/false
-// behaviour of the ChangeZoneAll batch sweep's ForgetOtherRemembered$ rider
-// (ticket: Implement ForgetOtherRemembered$ for ChangeZoneAll). The sibling
+// behaviour of the ChangeZoneAll batch sweep's ForgetOtherRemembered$ rider.
+// The sibling
 // TestChangeZoneAllForgetOtherRememberedReplacesTheSet proves the True case
 // replaces the remembered set with exactly the moved cards; this one proves
 // an ABSENT or explicit-False parameter does not: no clear-remembered event

@@ -10,10 +10,7 @@ import (
 
 // TestCumulativeUpkeepSnowCostRequiresSnowAtEveryAgeCounter is the snow half
 // of the row: a {S} upkeep cost must be a real snow requirement at EVERY age
-// counter, not only the first. Before the fix engine/rules/cumulative.go's scaleCost
-// dropped Cost.Snow when scaling by the age-counter count, so at two age
-// counters the snow pip vanished, the cost was empty, and the permanent could
-// be kept for free with no mana at all.
+// counter, not only the first.
 func TestCumulativeUpkeepSnowCostRequiresSnowAtEveryAgeCounter(t *testing.T) {
 	t.Parallel()
 	e, cover := coverOfWinterEngine(t)

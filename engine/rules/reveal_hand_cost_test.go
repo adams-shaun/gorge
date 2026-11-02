@@ -1,11 +1,11 @@
 // Land Grant's "reveal your hand" alternative cost (Reveal<1/Hand>) and its
-// siblings. Found by the SpellBench kernel-shadow comparison: with a land-free
-// hand gorge offered only pass/concede where mtg-kernel offered the free cast.
-// Root cause (measured, pre-fix): the choice-cost parser read Reveal<1/Hand>
-// as "reveal ONE card matching the card filter Hand" -- a filter no card ever
-// matches -- so the cost was judged unpayable and the option withheld. In
-// Forge (and every corpus carrier) the type slot "Hand" means the whole hand,
-// the same reading Discard<1/Hand> already gets. The file pins:
+// siblings. Found by the SpellBench kernel-shadow comparison: with a
+// land-free hand gorge offered only pass/concede where mtg-kernel offered the
+// free cast. The choice-cost parser must not read Reveal<1/Hand> as "reveal
+// ONE card matching the card filter Hand" -- a filter no card ever matches --
+// so the cost was judged unpayable and the option withheld. In Forge (and
+// every corpus carrier) the type slot "Hand" means the whole hand, the same
+// reading Discard<1/Hand> already gets. The file pins:
 //
 //   - the whole-hand reveal is payable with ANY hand, including an empty one
 //     (CR 701.20a: revealing a hand with no cards is a legal reveal);
@@ -239,11 +239,9 @@ func TestLandGrantRevealHandAltCostWithAnEmptyHand(t *testing.T) {
 
 // TestSasayaRevealHandAbilityIsOfferedWithSevenLands: the ability carrier of
 // Reveal<1/Hand>. Sasaya's flip ability is an activated ability whose ONLY
-// cost is the whole-hand reveal; pre-fix the reveal was read as an unmatched
-// card filter, so the cost was unpayable and the ability was never offered.
-// The "seven or more land cards in hand" rider is ConditionCheckSVar$/
-// ConditionSVarCompare$, a resolution-side gate -- the OFFER assertion here
-// is about the cost being payable.
+// cost is the whole-hand reveal. The "seven or more land cards in hand" rider
+// is ConditionCheckSVar$/ ConditionSVarCompare$, a resolution-side gate --
+// the OFFER assertion here is about the cost being payable.
 func TestSasayaRevealHandAbilityIsOfferedWithSevenLands(t *testing.T) {
 	t.Parallel()
 	sasaya := corpusAlternativeCard(t, "Sasaya, Orochi Ascendant")
@@ -282,12 +280,10 @@ func TestSasayaRevealHandAbilityIsOfferedWithSevenLands(t *testing.T) {
 // TestRevealHandSelfAbilityPaysByRevealingItself: the Reveal<1/CARDNAME> cost
 // shape (13 corpus carriers, e.g. the forecast cycle) is paid by revealing a
 // card named CARDNAME -- for an ability activated from the hand, the source
-// itself is that card: it still sits in the hand while its ability
-// activates, so the self-reveal must include it. Pre-fix the candidate walk
-// excluded the source unconditionally, so the only matching card could never
-// pay and such abilities were never offered. (The corpus's forecast cards
+// itself is that card: it still sits in the hand while its ability activates,
+// so the self-reveal must include it. (The corpus's forecast cards
 // additionally need Forecast$ zone/timing support to be offered from the
-// hand; that mechanic is outside this ticket -- the synthetic card carries
+// hand; that mechanic is not under test -- the synthetic card carries
 // ActivationZone$ Hand so the COST semantics are what is under test.)
 func TestRevealHandSelfAbilityPaysByRevealingItself(t *testing.T) {
 	t.Parallel()

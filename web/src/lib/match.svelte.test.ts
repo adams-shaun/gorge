@@ -78,10 +78,10 @@ describe('MatchState', () => {
     vi.unstubAllGlobals();
   });
 
-  // ui16 discrimination proof, entry path 1 — COLD LOAD. The table route is
+  // Entry path 1 — COLD LOAD. The table route is
   // entered directly (or refreshed): onMount seeds m.seats once from
   // tables.list, which is empty until the SSE hello (or tables.load) lands,
-  // so a cold load read an empty list and never looked again (ui15). The
+  // so a cold load reads an empty list and never looks again. The
   // seat list must still end up populated — from the snapshot frame the
   // route receives, not from any tables.list seed in this test (none is
   // applied: the MatchState is constructed with nothing seeding seats).
@@ -96,7 +96,7 @@ describe('MatchState', () => {
     expect(m.seats).toEqual(seats);
   });
 
-  // ui16 discrimination proof, entry path 2 — MID-GAME FOCUS SUBSCRIBE. A
+  // Entry path 2 — MID-GAME FOCUS SUBSCRIBE. A
   // subscriber who joins a table mid-match gets a snapshot frame but never a
   // match_start (host/session.go's Subscribe pushes only the snapshot); with
   // the seats only on match_start, this seat list stayed empty for the whole
@@ -360,6 +360,32 @@ describe('MatchState — DVR cursor fetching', () => {
     expect(m.dvr.events.map((e) => e.event.seq)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(m.view).toEqual(view(5));
     expect(m.loadError).toBeNull();
+  });
+
+  it('showLastGame opens a seat at its last game\'s final board, live at the head', async () => {
+    fetchMatchesMock.mockReset();
+    fetchEventsMock.mockReset();
+    fetchViewMock.mockReset();
+    const info = (match: number, events: number) => ({ match, state: 'finished', turns: 4, events, seats }) as unknown as MatchInfo;
+    fetchMatchesMock.mockResolvedValue([info(1, 40), info(2, 3), info(3, 0)]);
+    fetchEventsMock.mockResolvedValue([ev(0), ev(1), ev(2)]);
+    const over = { ...view(4), over: true, winner: 1 };
+    fetchViewMock.mockResolvedValue(over);
+    const m = new MatchState('t1', { seat: 0, token: 'tok' });
+    await m.showLastGame();
+    expect(m.match).toBe(2);
+    expect(m.dvr.live).toBe(true);
+    expect(m.dvr.head).toBe(2);
+    expect(m.view).toEqual(over);
+    expect(m.seats).toEqual(seats);
+  });
+
+  it('showLastGame is a seat\'s: a spectator stays on the list', async () => {
+    fetchMatchesMock.mockReset();
+    const m = new MatchState('t1');
+    await m.showLastGame();
+    expect(m.match).toBeNull();
+    expect(fetchMatchesMock).not.toHaveBeenCalled();
   });
 
   it('loadFinished sets loadError (and never rejects) when the table has no such match', async () => {

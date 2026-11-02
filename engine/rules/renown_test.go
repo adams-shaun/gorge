@@ -92,7 +92,7 @@ func TestConstableOfTheRealmRenownPutsTwoCountersOnce(t *testing.T) {
 }
 
 // TestRenownTriggerFizzesAfterSourceLeftBattlefield pins the CR 702.112a
-// boundary (round-r3 MAJOR): a renown combat-damage trigger put on the stack
+// boundary: a renown combat-damage trigger put on the stack
 // still resolves after instant-speed removal sends its source off the
 // battlefield, but the departed card takes NEITHER the +1/+1 counters NOR
 // the Renowned designation -- "puts N +1/+1 counters on it and it becomes

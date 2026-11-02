@@ -37,7 +37,7 @@ describe('Ctrl held on a card-menu cast holds priority (the tile post thread)', 
     await wheel.locator('button[data-wire-index="3"]').waitFor();
 
     await wheel.locator('button[data-wire-index="3"]').click();
-    // fb-e079def5: every picker post arms the card-follow-up expectation
+    // Every picker post arms the card-follow-up expectation
     // (the Talisman stage-1 → stage-2 colour wheel), so expectFollowUp is
     // true for radial clicks too, not just the single-action badge.
     expect(await posted(page)).toEqual([[3, true, false]]);
@@ -61,7 +61,7 @@ describe('Ctrl held on a card-menu cast holds priority (the tile post thread)', 
     await page.close();
   });
 
-  // fb-e079def5: the reported Talisman of Indulgence flow — stage 1 answered
+  // The Talisman of Indulgence flow — stage 1 answered
   // through the radial wheel must arm the follow-up, and the stage-2 colour
   // wheel must re-open at the card instead of falling back to the seat
   // panel's generic option list.
@@ -86,14 +86,14 @@ describe('Ctrl held on a card-menu cast holds priority (the tile post thread)', 
 });
 
 /**
- * fb-20260923T020152Z: an attacker declaration is a SELECTION in a
+ * An attacker declaration is a SELECTION in a
  * still-pending multi-pick decision, so choosing one must post its own wire
  * index and leave the radial open for the next attacker. The two other close
  * paths the report named are held here too: an outside click and Escape must
  * still dismiss the wheel, and an ordinary immediate action must still close
  * it (the latter is the first describe block's existing contract).
  */
-describe('declaring attackers keeps the radial picker open (fb-20260923T020152Z)', () => {
+describe('declaring attackers keeps the radial picker open', () => {
   it('a click on an attacker option posts its wire index and leaves the radial attached for the next attacker', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/CardMenu.fixture.html`);
@@ -110,7 +110,7 @@ describe('declaring attackers keeps the radial picker open (fb-20260923T020152Z)
 
     // The fix under test: the same wheel is still attached at the SAME
     // anchor after a successful attacker pick (no badge re-open), and the
-    // next attacker posts its own wire index (R-E4-1, never list position).
+    // next attacker posts its own wire index, never list position.
     expect(await wheel.count()).toBe(1);
     await wheel.locator('button[data-wire-index="41"]').waitFor();
     await wheel.locator('button[data-wire-index="41"]').click();

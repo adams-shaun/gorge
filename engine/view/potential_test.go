@@ -20,7 +20,7 @@ func (c potentialChars) PotentialActions(p state.PlayerID) []decision.PotentialA
 }
 
 // TestPotentialActionsGatedToViewerSeat pins the hidden-info gate on the
-// projection (rv2c): the potential-action walk reads the seat's own hand,
+// projection: the potential-action walk reads the seat's own hand,
 // command zone and graveyard — a CR 400.2 hidden zone — so the wire carries
 // the field for the VIEWER'S OWN SEAT ONLY. Every other seat's PlayerView is
 // absent the key entirely (omitempty), whatever their boards hold, and a

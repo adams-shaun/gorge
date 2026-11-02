@@ -63,7 +63,7 @@ func dedupeTargets(ts []state.Target) []state.Target {
 //     is one Note and NO mint, never a silent fall-through to the source or
 //     the chosen targets (a wrong-copy is worse than no-copy here).
 //   - ValidTgts$ (no Defined$): the answered target ask (Ctx.Targets / the
-//     mvts1 PickedTargets arm) -- the Flamerush Rider shape.
+//     PickedTargets arm) -- the Flamerush Rider shape.
 //   - neither: no copy (defensive; the measured corpus carries no such line
 //     outside the mint-blocked families above).
 //
@@ -100,7 +100,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//
 	//   - The mint-blocking families are the source-selection parameters
 	//     whose copy is a mid-call choice this build cannot pose from an
-	//     effect (the mvts1 sub-ask machinery only covers a body's own
+	//     effect (the sub-ask machinery only covers a body's own
 	//     ValidTgts$): the SA carrying one mints NOTHING rather than silently
 	//     falling back to a wrong source. Measured population over the 249
 	//     raw DB$ CopyPermanent lines: Choices$ 9, DefinedName$ 8, Pawprint$ 1,
@@ -834,10 +834,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// ImprintTokens$ True records the created tokens on the SOURCE, the same
-	// event-backed association api:Token writes (state.Object.ImprintTokens);
-	// the copy path previously skipped it entirely, so a DelTrig reading
-	// RememberObjects$ ImprintedLKI found nothing (Kharasha Foothills,
-	// Shredder, Shadow Master).
+	// event-backed association api:Token writes (state.Object.ImprintTokens).
 	if cp.ImprintTokens && c.Source != 0 {
 		ids := make([]state.ObjID, 0, len(minted))
 		for _, id := range minted {

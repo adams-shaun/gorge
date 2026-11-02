@@ -279,7 +279,7 @@ func (e *Engine) echoActionAsk() {
 	}
 	// A Sac echo payment is demanded by the echo trigger (CR 702.35), so its
 	// candidate walk runs the same CantSacrifice cost gate the cumulative
-	// upkeep Sac arm does (cantsac1 r2); the Discard arm reads a hand, where
+	// upkeep Sac arm does; the Discard arm reads a hand, where
 	// no sacrifice is made.
 	var ids []state.ObjID
 	if ef.action.kind == "Sac" {

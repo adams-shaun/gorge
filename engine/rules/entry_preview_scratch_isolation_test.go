@@ -29,8 +29,8 @@ func previewIsolationEngine(t *testing.T) (*Engine, state.ObjID) {
 	return e, src
 }
 
-// TestEntryPreviewMutationsNeverReachTheLiveEngine extends 734c28a48's
-// layer-cache isolation to the engine's other shared slices: an entry
+// TestEntryPreviewMutationsNeverReachTheLiveEngine extends layer-cache
+// isolation to the engine's other shared slices: an entry
 // preview that ends an Effect (the in-place filter of the continuous
 // registry), rewrites the pending-trigger list or refills a scratch buffer
 // must leave the live engine's registry, queue and buffer untouched (CR

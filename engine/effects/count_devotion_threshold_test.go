@@ -1,7 +1,7 @@
 package effects
 
-// count_devotion_threshold_test.go pins the two Count$ heads the 2026-09-22
-// repo-deck audit found unmodelled (both degraded to the dispatch's
+// count_devotion_threshold_test.go pins two Count$ heads a repo-deck audit
+// found unmodelled (both degraded to the dispatch's
 // (0, false) fallthrough, so Cabal Ritual added NO mana and Aspect of Hydra
 // pumped +0/+0):
 //

@@ -257,8 +257,7 @@ func TestDiregrafHordeDividesTokensIntoOneInstance(t *testing.T) {
 // is AB$ ImmediateTrigger | Cost$ 1 -- the "you may pay {1}. When you do"
 // idiom. The ordinary triggered-cost window poses the pay/decline ask; the
 // paid answer charges one mana and executes TrigEffect (its CantBlockBy
-// static used to fall to the unimplemented Note; since the
-// Effect-delivered-CantBlockBy ticket -- engine/rules/effect_cantblockby_test.go --
+// static is the Effect-delivered CantBlockBy of engine/rules/effect_cantblockby_test.go:
 // the paid body registers a REAL CantBlockBy restriction, which is what the
 // pay subtest now asserts instead of the old note); a decline (asserted on
 // the second game) executes nothing.
@@ -337,7 +336,7 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 			// The paid body is TrigEffect (DB$ Effect | ValidTgts$
 			// Creature.withHaste) — the "target creature with haste" the
 			// oracle names. It was never placement-covered (the ImmediateTrigger
-			// AB root declares no targets), so task mvts1's pre-ask poses its
+			// AB root declares no targets), so the pre-ask poses its
 			// own KChoose here; the census's withHaste candidates are non-empty
 			// (Speed itself has haste), so the ask is real. Answer it.
 			// CR 603.12: the paid half is a reflexive triggered ability, so
@@ -371,12 +370,11 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 
 		// The paid body is TrigEffect (DB$ Effect | StaticAbilities$ KWPump),
 		// whose Mode$ CantBlockBy grant effEffect registers for real (the
-		// ticket counterplayeraddedall added the mode to the registration
-		// case). The old assertion watched for the "unimplemented" Note the
+		// whose Mode$ CantBlockBy grant effEffect registers for real. The old assertion watched for the "unimplemented" Note the
 		// build used to emit; the registration IS the execution now. The
-		// registration's Remembered is a separate, pre-existing mvts1 gap:
+		// registration's Remembered is a separate gap:
 		// the answered tgts ask does not reach the body's RememberObjects$
-		// Targeted read (ledgered in the ticket report), so the grant itself
+		// Targeted read, so the grant itself
 		// remembers nothing here — the assertion pins the EXECUTION, not the
 		// remembered set.
 		registered := false

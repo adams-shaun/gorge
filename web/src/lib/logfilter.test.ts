@@ -34,7 +34,7 @@ describe('logfilter hiddenKinds', () => {
   });
 });
 
-describe('logfilter end_combat_reset (lc1)', () => {
+describe('logfilter end_combat_reset', () => {
   it('end_combat_reset is engine noise: hidden by default, not part of the step set', () => {
     expect(isHiddenKind('end_combat_reset')).toBe(true);
     expect(isStepKind('end_combat_reset')).toBe(false);

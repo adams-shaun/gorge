@@ -14,9 +14,8 @@ import (
 
 // TestAtEOTOutOfScopeNotesEvenWithNoAffectedObject: an out-of-scope AtEOT$
 // value must produce its one loud Note even when the body affected nothing
-// (the round-2 finding: the empty-affected early return used to swallow the
-// note, and an empty affected set is exactly when a silent drop is easiest
-// to miss).
+// (the empty-affected early return must not swallow the note: an empty
+// affected set is exactly when a silent drop is easiest to miss).
 func TestAtEOTOutOfScopeNotesEvenWithNoAffectedObject(t *testing.T) {
 	h := newHost(t, 2)
 	// No targets in context: Defined() resolves to nothing, so the pump's

@@ -1,7 +1,7 @@
 package rules
 
-// The aggregate tap trigger modes, end to end on the real compiled corpus
-// (task cli-20261005T075020Z-05241a06): Mode$ TapAll (MSH Rewrite History,
+// The aggregate tap trigger modes, end to end on the real compiled corpus:
+// Mode$ TapAll (MSH Rewrite History,
 // LCI Deeproot Pilgrimage) and Mode$ UntapAll (LCI The Millennium Calendar)
 // are the "whenever one or more ... become tapped/untapped" batch readings of
 // the ordinary Tap/Untap events. ONE tapping/untapping action fires the

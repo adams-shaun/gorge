@@ -1,14 +1,16 @@
 # A gorge-brained SpellBench agent — design (2026-09-28)
 
-Status: draft for review. No code is specified to
-the task level here; the implementation plan follows approval.
+Status: the design as written on 2026-09-28, with measured results added as
+they came in. No code is specified to the task level here. The tools named here
+(`botbench`, the `sbagent` and `sbv1agent` agents, the `sbv2engine` server, the
+`kshadow` staging, the rating and gauntlet scripts) live in the maintainers'
+private companion module, so this document describes what they measured rather
+than how to rerun them.
 
-Sources, read at: gorge @ `cc3c349d8`; SpellBench
-clone `$DATA/spellbench` `main` @ `971a1fb` (protocol text
-`spec/SPELLBENCH_PROTOCOL_V1.md`, `spec/SPELLBENCH_PROTOCOL_V2.md`); the gorge
-engine adapter plan `origin/gorge-adapter` @ `a69b3cc`
-(`docs/design/2026-09-27-gorge-adapter-plan.md`, code through
-`origin/gorge-adapter-g14` @ `62b17fa`). `§n` is a section of the v2
+Sources, read at: gorge @ `cc3c349d8`; SpellBench `main` @ `971a1fb` (protocol
+text `spec/SPELLBENCH_PROTOCOL_V1.md`, `spec/SPELLBENCH_PROTOCOL_V2.md`); the
+plan for SpellBench's gorge engine adapter, "the adapter" below (`gorge-adapter`
+@ `a69b3cc`, code through `gorge-adapter-g14` @ `62b17fa`). `§n` is a section of the v2
 protocol (v1 when marked); `D§n` is a section of this document. Theory and references:
 `archived 2026-09-28-spellbench-theory-and-references.md (docs/design/ARCHIVE.md)`
 (cited below as **[T§n]**). Anything not read from code or a document is
@@ -20,8 +22,8 @@ marked INFERRED.
 that plays Magic in SpellBench arenas on *any* v2 engine, using gorge as its
 private simulator: it rebuilds a gorge state from the neutral observation,
 samples the hidden information it cannot see, and searches with gorge.
-Secondary goal: the upstream gorge changes that make this, and Jack's gorge
-engine adapter, cheaper to build and maintain.
+Secondary goal: the upstream gorge changes that make this, and the gorge engine
+adapter, cheaper to build and maintain.
 
 **Why this shape.** The one durable edge gorge has ever measured is
 decision-time search over sampled worlds; every attempt to compress it into
@@ -36,7 +38,7 @@ the most on top of a network (LOCM: 26.8% net alone, 51.35% with search
 [T§4]).
 
 **Non-goals.**
-- Not the engine side: Jack's adapter (`engines/gorge` in the SpellBench
+- Not the engine side: the adapter (`engines/gorge` in the SpellBench
   repo) owns making gorge a v2 environment. We align with it and propose
   upstream hooks (D§11) but do not fork or duplicate it.
 - No clairvoyance anywhere a rated game can reach. SpellBench's fairness
@@ -85,10 +87,10 @@ v1 §9) — which would make the agent kernel-specific, and is out of scope.
 
 Decision: the v1 path is a **candidate-semantics policy** (priorities over
 `semantic.kind` and the referenced card names, informed by gorge's card IR
-where a name resolves), sized as W1's minimal workup. Its purpose is a
+where a name resolves), kept minimal. Its purpose is a
 leaderboard presence and a floor, not strength.
 
-- **Measured (W1, 2026-09-28, commit `50adc8999`).** gorge-native round
+- **Measured (2026-09-28, commit `50adc8999`).** gorge-native round
   robin on the 8 pauper-kernel decks as seat-swapped mirrors
   (`botbench -spellbench`, SpellBench's seed and schedule formulas, rated
   with SpellBench's own leaderboard code: anchored Bradley-Terry, paired
@@ -111,8 +113,7 @@ leaderboard presence and a floor, not strength.
   drop about 190 Elo each. gorge also poses about 770 decisions per game
   against mtg-kernel's about 218. 2688 games, 0 truncated, 0 halted,
   0 draws; 9m25s on 4 CPUs (96% of it az). `lethal-pressure` and the L10
-  seat were not in this run. Rerun: `lab/scripts/spellbench-rate.py` and the
-  commit message of `50adc8999`.
+  seat were not in this run.
 
 ### 3.2 v2: the real path
 
@@ -130,19 +131,17 @@ leaderboard presence and a floor, not strength.
 - **Groups (§8).** A physical decision decomposed into substeps (attacks,
   blocks, fixed-count targets, arrangements) is decided **once**, at
   substep 0, as a gorge intent; later substeps are matched to that plan.
-  This is the pattern Jack's adapter uses for its own Go agent (plan
+  This is the pattern the adapter uses for its own Go agent (plan
   Task 26, `agent.Pick` / `agent.Plan`). A substep the plan cannot match
   goes to the fallback ladder for that substep only.
 - **Errors.** Never answer `choose` with an error (it is a forfeit,
   §10.5); every internal failure resolves to a fallback answer.
 
-**Measured (W2, 2026-09-28, commit `bf425c60d`).** `lab/cmd/sbagent` +
-`lab/training/spellbench/v2agent` play the v2 agent role (random, heuristic,
-first) against the reference fake v2 engine through the reference host's
+**Measured (2026-09-28, commit `bf425c60d`).** The Go `sbagent` plays the v2
+agent role (random, heuristic, first) against the reference fake v2 engine through the reference host's
 real seat drivers and live validator. The branch's `spellbench run` is still
 the v1 runner, so games were driven through `host/game.py` `play_game` from
-unmerged `protocol-v2-p23` plus `-p26` merged locally
-(`lab/cmd/sbagent/scripts/sbv2_harness.py`).
+unmerged `protocol-v2-p23` plus `-p26` merged locally.
 
 - **Parity:** all 927 games that seated a Go agent were replayed with the
   python twin in its place; every game digest (which chains every
@@ -162,7 +161,7 @@ unmerged `protocol-v2-p23` plus `-p26` merged locally
   `malformed_json`, we answer `malformed_request`); §7.3 mixed-type fields;
   §10.1 hello mid-game; §10.6 stale.
 - **Not yet measured:** shadow fidelity (needs the shadow, D§4) and parity
-  with native gorge answers (needs Jack's gorge engine adapter).
+  with native gorge answers (needs the gorge engine adapter).
 
 ### 3.3 Mana taps as candidates: plan lowering (measured)
 
@@ -199,10 +198,10 @@ now lowered from a witness, and about 2,200-2,650 over-bound plays per seat
 are dropped as proven unpayable instead of being tapped out for. The
 remaining naive pursuit failures are plays no planner prices (a census with
 an unpriceable source, X costs, flashback), not proven-legal plays. The v2
-agent (`lab/cmd/sbagent`) now answers every recoverable request instead of
+agent now answers every recoverable request instead of
 erroring (a host forfeit): policy failure, unknown or stale game, missing
 candidate ids, an echo that would not round-trip; `-stats` counts each.
-On the v2 harness (`sbv2_harness.py tournament --pairs 2`, 84 games against
+On the v2 harness (a 2-pair tournament, 84 games against
 the python bots): 0 forfeits, 0 halts, empty agent stderr, twin parity 0
 mismatches over 60 replays; sbagent-heuristic scored 90.0% (16-4-0), ahead
 of the python heuristic at 82.5%.
@@ -280,8 +279,8 @@ trigger order, searches).
   extra draws with a short library), hand-size overflow, milling ourselves.
 
 **Measured (commit `fd8c30e39`).** Benchmark-shaped round robin, 8 pairs per
-deck (128 games per pair of bots), rated with `lab/scripts/spellbench-rate.py`;
-0 truncated, 0 halted, 0 refused-answer fallbacks for any sb-tactical seat.
+deck (128 games per pair of bots), rated with SpellBench's anchored
+Bradley-Terry code; 0 truncated, 0 halted, 0 refused-answer fallbacks for any sb-tactical seat.
 
 | Bot | pauper-kernel, benchmark seed 20260926 | held-out seed 99991 | held-out decks: FDN Limited, 4 pairs |
 |---|---|---|---|
@@ -337,13 +336,12 @@ gorge offers one plan per cast. The early-game and timing weights are
 unvalidated. On FDN the lead over `bot` is smaller, as expected from
 pauper-driven fixes.
 
-Rerun (worktree root, a built `botbench`):
-
-1. `botbench -dir .cards -workers 8 -spellbench sb-uniform,sb-heuristic,bot,sb-heuristic-planned,sb-tactical,sb-tactical-planned,sb-tactical-noearly,sb-tactical-notiming,sb-tactical-norace -spellbench-pairs 8 -spellbench-out <dir>`
-2. Rate with `lab/scripts/spellbench-rate.py --anchor sb-uniform --out <dir>/rate <dir>`, adding `--bots sb-uniform,sb-heuristic,bot,sb-heuristic-planned,sb-tactical,sb-tactical-planned` for the main table.
-3. For the held-out runs, add `-spellbench-base-seed 99991` (and `--base-seed 99991` when rating), or use `-spellbench-catalog fdn -spellbench-pairs 4` (and `--format fdn-limited-bo1` when rating).
-
-Data: `$DATA/spellbench-work/v1b/{final-bench,heldout-seed,heldout-fdn}`.
+What was run: a round robin of `sb-uniform`, `sb-heuristic`, `bot`,
+`sb-heuristic-planned`, `sb-tactical`, `sb-tactical-planned`,
+`sb-tactical-noearly`, `sb-tactical-notiming` and `sb-tactical-norace` at 8
+pairs per deck, anchored on `sb-uniform`, with the main table rated over the
+first six. The held-out runs change the base seed to 99991, or play the FDN
+catalog at 4 pairs per deck, rated as `fdn-limited-bo1`.
 
 ### 3.5 Arena on mtg-kernel (v1, measured)
 
@@ -355,7 +353,7 @@ engine, in that benchmark's shape, rated by SpellBench's own code.
 
 **What is and is not obtainable.**
 
-- *The engine bridge is private.* Jack's `agent_bridge_v1` (engine
+- *The engine bridge is private.* The published run's `agent_bridge_v1` (engine
   `source_revision` `1ca8eb40` in the published manifest) is not in the
   public `jackmaiorino/mtg-kernel` (main @ `2c5e72f`, none of its 145 refs
   mention it, and `1ca8eb40` is not fetchable: "not our ref"). We rebuilt
@@ -379,8 +377,7 @@ engine, in that benchmark's shape, rated by SpellBench's own code.
 
 **Setup (local only; nothing pushed to any external repo).**
 
-- *Engine bridge rebuild,* `lab/scripts/spellbench-arena/agent_bridge_v1.rs`:
-  one Rust bin over the public in-process `RlEpisodeSessionV1` (policy
+- *Engine bridge rebuild,* `agent_bridge_v1`: one Rust bin over the public in-process `RlEpisodeSessionV1` (policy
   surface V5, legal scan answers only). The kernel's `ActionSemanticV1`
   maps one-to-one onto the v1 candidate kinds (the aggregate `declare_*`
   and `ambiguous` actions never reach a V5 session; if one did, the bridge
@@ -395,22 +392,7 @@ engine, in that benchmark's shape, rated by SpellBench's own code.
   menace and linked-exile fixes), and our own `game_seed` → kernel seed
   mapping (legacy reset, `env_seed = game_seed`), so no individual
   published game replays; distributions are what compare.
-- *Build.* A user-local Rust 1.98 was already in `~/.rustup`; the repo pins
-  1.94.1, overridden with `RUSTUP_TOOLCHAIN`. With thin LTO off the
-  release build takes 38 s:
-
-      W=$DATA/spellbench-work/arena/mtg-kernel
-      git -C $DATA/mtg-kernel worktree add -b sb-arena-bridge $W HEAD
-      cp lab/scripts/spellbench-arena/agent_bridge_v1.rs $W/mtg-kernel/src/bin/
-      cd $W && RUSTUP_TOOLCHAIN=1.98-x86_64-unknown-linux-gnu CARGO_BUILD_JOBS=6 \
-        CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 CARGO_PROFILE_RELEASE_LTO=false \
-        cargo build --release --locked --bin agent_bridge_v1
-      SPELLBENCH_ENGINE_BIN=$W/target/release/agent_bridge_v1 \
-        SPELLBENCH_ENGINE_DECKS=Wildfire,Rally,Affinity,Elves,Spy,Burn,CawGates,Faeries \
-        pytest spellbench/python/tests/test_engine_conformance.py
-
-- *Agent,* `lab/cmd/sbv1agent` over `lab/training/spellbench/v1agent`: the v1 agent
-  role (hello, game_start, choose, game_over; single-entry idempotent
+- *Agent,* `sbv1agent`: the v1 agent role (hello, game_start, choose, game_over; single-entry idempotent
   retry; the closed error-code set) for any Go `Policy`
   (`GameStart`, `Choose(*Decision) int`, `GameOver`). A policy panic or
   out-of-range answer never reaches the wire (a wire error forfeits the
@@ -419,20 +401,12 @@ engine, in that benchmark's shape, rated by SpellBench's own code.
   `heuristic`, `first` (the python builtins ported choice for choice) and
   `tactical`.
 - *Arena,* SpellBench's own runner and rating code: `spellbench run` on a
-  config from `lab/scripts/spellbench-arena/mkcfg.py` (the benchmark's deck
-  pool, seat-swapped pairs per deck, caps, timeouts, 2000 bootstrap
-  replicates, uniform anchor), e.g.
-
-      python3 lab/scripts/spellbench-arena/mkcfg.py pub.json RUN_DIR 4 20260926 \
-        builtin:uniform builtin:heuristic builtin:first go:sbv1-tactical:tactical
-      spellbench run pub.json          # every arena run under heavy2.lock
-
-  `lab/scripts/spellbench-arena/rate.py` re-rates ledgers with
-  `leaderboard.build_leaderboard` when `spellbench run` refuses its final
-  write: a lopsided matchup (e.g. 125-3) gives the exact sign-test p-value
-  a denominator above 2^53, which the canonical-JSON writer rejects (an
-  upstream bug; the ratings are unaffected). `wl.py` and `view.sh`
-  summarise a ledger and a `-trace` file.
+  config with the benchmark's deck pool, seat-swapped pairs per deck, caps,
+  timeouts, 2000 bootstrap replicates and the uniform anchor. Ledgers are
+  re-rated with `leaderboard.build_leaderboard` when `spellbench run` refuses
+  its final write: a lopsided matchup (e.g. 125-3) gives the exact sign-test
+  p-value a denominator above 2^53, which the canonical-JSON writer rejects (an
+  upstream bug; the ratings are unaffected).
 
 **Correctness checks.**
 
@@ -485,8 +459,7 @@ Every candidate is scored and the best taken:
 **Results (2026-09-28).** Benchmark shape: the eight-deck pool, 4
 seat-swapped mirror pairs per deck, base seed 20260926 (the published
 run's), workers 8, our bridge with `x_kernel_v5`. Final build `tac9` =
-`sbv1agent` at the head of `wt/sb-arena` (md5 `451f5f7f…`), run
-`runs/final`:
+`sbv1agent` (md5 `451f5f7f…`), run `runs/final`:
 
 | Bot | Elo | CI95 | W-L |
 |---|---|---|---|
@@ -590,17 +563,17 @@ them caused by a tactical move, from two mtg-kernel bugs:
   bridge fails closed on (`fail_closed: nonterminal decision produced zero
   legal actions`). Tactical casts removal only at a creature worth it.
 
-Both replay exactly with `lab/scripts/spellbench-arena/replay.py SEED DECK DECK
-GAME_ID P0 P1 -1 /dev/null`. Nothing was reported upstream. (The
+Both replay exactly from their seed, decks, game id and players. Nothing was
+reported upstream. (The
 published ledger's 7 halted games are a different, bridge-side cause:
 `flat_v4_lockstep:selection_not_in_training_list`, all Elves.)
 
 **Gaps and what would raise the kernel rating most.**
 
 - *A real g115 measurement.* Everything above is transitive. The single
-  most useful next step is a g115 head-to-head: that needs Jack's scorer,
-  checkpoint and bridge (or him running our `sbv1agent` in his arena; it
-  needs only the v1 wire and `x_kernel_v5`).
+  most useful next step is a g115 head-to-head: that needs the mtg-kernel
+  author's scorer, checkpoint and bridge (or that author running our
+  `sbv1agent` in their arena; it needs only the v1 wire and `x_kernel_v5`).
 - *Play strength.* Tactical is one-ply. The losses that remain against the
   builtins are mostly mana screw (the kernel has no mulligan), races
   lost by a turn, and pump tricks after blocks. The biggest levers are
@@ -612,25 +585,13 @@ published ledger's 7 halted games are a different, bridge-side cause:
   determinized search over sampled hands is possible with an in-process
   kernel (the agent cannot query the engine; it would need a kernel state
   builder from `ObservationV5`, which the public API lacks).
-- *gorge-native vs mtg-kernel.* Gorge-native (W1): sb-heuristic 1080,
+- *gorge-native vs mtg-kernel.* Gorge-native (D§3.1): sb-heuristic 1080,
   gorge `bot` 1238. On mtg-kernel the python heuristic rates 1100-1140 and
   tactical 1430-1445. The engines differ in decision granularity (kernel:
   ~200-500 decisions a game, mana auto-paid for casts, X as an option
   index, combat as include/exclude scans) and in hidden-information
   surface (the kernel extension shows the whole public board; v1's neutral
   observation shows counts only).
-
-**Rerun.**
-
-    W=$DATA/spellbench-work/arena
-    go build -o $W/bin/sbv1agent ./lab/cmd/sbv1agent
-    go test ./lab/training/spellbench/v1agent/ ./lab/cmd/sbv1agent/
-    python3 lab/scripts/spellbench-arena/mkcfg.py final.json $W/runs/final 4 20260926 \
-      builtin:uniform builtin:heuristic builtin:first \
-      go:sbv1-tactical:tactical:-stats,$W/runs/final.stats
-    spellbench run final.json
-    python3 lab/scripts/spellbench-arena/rate.py joint.md \
-      $DATA/spellbench/benchmarks/pauper-kernel/runs/2026-09-27 $W/runs/final
 
 **Hint-free build (sb-generic, measured 2026-09-28).** `-policy generic`
 is `Tactical` with every `hints.go` lookup and every card- or deck-named
@@ -701,17 +662,17 @@ Escape rule) lost 16 generic-v-hinted games to our own escapes; after the
 rule, no generic-v-hinted game halted and every Escape halt has a builtin
 in the seat that escaped.
 
-### 3.6 Kernel shadow: gorge policies on mtg-kernel (v1, lane B)
+### 3.6 Kernel shadow: gorge policies on mtg-kernel (v1)
 
 Goal: play gorge's strongest policies (sb-tactical, the az-redeal search,
 rollout search) on the live v1 benchmark engine. At each mtg-kernel
 decision, build a gorge engine consistent with what our seat sees (the
 decision's `x_kernel_v5` ObservationV5), map the kernel's candidates onto
 that engine's options, let a gorge policy answer, and map the answer back.
-Code: `lab/training/spellbench/kshadow` (staging, fidelity, mapping, policies),
-`lab/cmd/sbv1agent -policy shadow-*`, `lab/cmd/kshadowcheck` (offline fidelity and
-coverage over recorded games), `lab/scripts/spellbench-arena/kshadow_corpus.py`
-(recording both seats of kernel games; parallel dev matches).
+The code has four parts: the staging, fidelity, mapping and policies
+(`kshadow`), the agent's `shadow-*` policies, an offline checker (`kshadowcheck`)
+for fidelity and coverage over recorded games, and a recorder for both seats of
+kernel games that also runs parallel dev matches (`kshadow_corpus.py`).
 
 **Design choice: rebuild from each observation, not incremental replay.**
 Evidence (corpus `kshadow/corpus1`: 16 tactical-vs-tactical kernel games,
@@ -757,7 +718,7 @@ and kicker; triggered and activated abilities through `TriggerPush` /
 (attackers, blocks), the initiative, and priority. The hidden zones are
 dealt from each list minus every seen card: our library in a random order,
 the opponent's hand (its observed size) and library from its unseen cards
-(the M1 redeal world, D§5.2). Kernel priority windows the engine does not
+(the honest redeal world, D§5.2). Kernel priority windows the engine does not
 have are staged as the window gorge has (a pre-declaration priority in
 declare attackers = beginning of combat; in declare blockers = after the
 attack declaration; priority in combat damage = end of combat, so the
@@ -914,7 +875,7 @@ decision the host just posed, rebuilt from what the seat can see.
 
 | Source | When | What it adds |
 |---|---|---|
-| `x_gorge_view_v1` payload | engine is Jack's gorge adapter and the host enabled the extension | gorge's own seat `view.View` + the native `decision.Decision`, re-keyed to per-seat non-native ids (plan Task 24: JSON keys `view`, `decision`, `policy_facts`, `followups`, `ops`) |
+| `x_gorge_view_v1` payload | engine is the gorge adapter and the host enabled the extension | gorge's own seat `view.View` + the native `decision.Decision`, re-keyed to per-seat non-native ids (plan Task 24: JSON keys `view`, `decision`, `policy_facts`, `followups`, `ops`) |
 | neutral observation (§6) | always | zones, characteristics after continuous effects, permanent state, stack, pending triggers (optional flag), `known` |
 | the seat's own history | always | our own past answers; consecutive-observation diffs (what left the opponent's hand, what was cast) |
 
@@ -950,8 +911,7 @@ replay snapshots by calling the unexported `(*rules.Engine).emit`
 (`engine/rules/engine.go:2610`) from a `_test.go` file inside package `rules`
 (a spike branch, `rules/spike17l_replay_test.go:300-370`).
 That proved staging works — 93.8% of recorded 17lands actions were legal in
-the staged engine (25,139 of 26,805,
-`$DATA/17lands-spike/replay2000.kept.log`) — but it is not
+the staged engine (25,139 of 26,805) — but it is not
 a supportable API. D§11 H2 proposes one.
 
 ### 4.3 Fidelity check (re-project and diff)
@@ -1026,8 +986,8 @@ SpellBench seat is in exactly that position. So:
 
 - v1 of the world source is **uniform redeal** with known cards pinned.
 - The measured L10 edge was obtained with the rejection sampler; whether it
-  survives redeal-only worlds is unmeasured and is milestone M1's first
-  question (D§12).
+  survives redeal-only worlds is unmeasured and is the first thing to
+  measure (D§12).
 - Improvement path, not in v1: importance-weight redealt worlds by the
   likelihood of the opponent actions inferable from consecutive observations
   (e.g. passing with open mana), using the opponent model the value net
@@ -1057,13 +1017,12 @@ PIMC teacher as the baseline arm.
   curve; we inherit that.
 - Measured so far: clairvoyant gen-0 `az` at 25 simulations beat `bot` 78.0%
   [72.3, 83.7] over 200 games vs a 50.0% same-seed control, at 65.8 ms mean,
-  144.2 ms p95 per searched decision
-  (`$DATA/az/stage0/az25.txt:11,17`). This is an expected upper
+  144.2 ms p95 per searched decision. This is an expected upper
   bound: honest worlds are unmeasured.
 - Multi-world budget split: Cowling et al. found MTG strength peaks at many
   determinizations with shallow trees (best 20-100 determinizations for a
   10k budget; extra budget better spent on more worlds) [T§3]. Default: K
-  worlds round-robin with K ≥ 16 (INFERRED starting value; tune in M1).
+  worlds round-robin with K ≥ 16 (INFERRED starting value, to be tuned).
 
 **Mapping the answer back.** The chosen gorge intent is matched to the v2
 candidates (and later substeps) by semantics: kind, source object (by our
@@ -1079,7 +1038,7 @@ ladder; counted.
 | T2 neutral heuristic | no usable shadow | priorities over candidate semantics (the v1 policy of D§3.1) |
 | T3 first candidate | anything else | candidate 0 (`pass` when legal, §7.1) |
 
-Gates (starting values, INFERRED, tuned in M1/M2): observation match =
+Gates (starting values, INFERRED, to be tuned): observation match =
 100% on our own zones and ≥ 98% overall; candidate agreement ≥ 95%.
 **Proxies:** an unsupported opponent card on the battlefield is staged as a
 vanilla object with its observed characteristics and keywords (gorge
@@ -1103,8 +1062,7 @@ whole policynet checkpoint):
   (K5, D§12.3). Otherwise it is dropped; the generic is the default.
 - Evidence to date is against expecting much: gorge's value head reaches
   within-matchup AUC 0.805 from 1k own games and 0.833 from the full own
-  corpus, while adding 17lands FDN data lowered it (0.768)
-  (`$DATA/17lands-spike/score-all.txt:1,5,13`). MageZero
+  corpus, while adding 17lands FDN data lowered it (0.768). MageZero
   is one agent per deck [T§4]. Specialists are an experiment, not an
   assumption.
 - Resources: 16 GB per agent (§11.4 example) leaves room for many small
@@ -1136,7 +1094,7 @@ whole policynet checkpoint):
 - **Clock guard:** if `clock.remaining_ms` falls below a floor (INFERRED
   default: 30 × increment), drop to T1 for the rest of the game. It reads
   wall-clock-derived input, so a game where it fires is not reproducible;
-  it is counted and must fire in 0 of M2's games (K4).
+  it is counted and must fire in 0 of the v2 games (K4).
 
 ## 10. (h) Fairness compliance
 
@@ -1156,9 +1114,9 @@ identical. **Clairvoyance ban:** the agent binary does not link the
 clairvoyant world source (`azmcts.AllowClairvoyant`,
 `bots/azmcts/world.go:39`, is never called).
 
-## 11. Engine side: gorge, Jack's adapter, and upstream hooks
+## 11. Engine side: gorge, the adapter, and upstream hooks
 
-**Relationship.** Jack's adapter is the environment; it imports gorge
+**Relationship.** The adapter is the environment; it imports gorge
 unmodified at `26257e0e` through `rules.NewHypotheticalPlanned`
 (`engine/rules/chance.go:48`) and wraps `seat.NewBot` / `seat.NewLethalPressureBot`
 as agents (plan Tasks 8, 26). It carries `x_gorge_view_v1` with
@@ -1167,36 +1125,35 @@ B's `native_ids: true`, which makes the extension usable in rated runs
 without the §14 audit. Our agent is a separate v2 entry that can run on that
 engine or any other. Two consequences:
 
-- **Pin skew.** `26257e0e` is 584 commits behind this worktree's HEAD. An
+- **Pin skew.** `26257e0e` was 584 commits behind gorge's HEAD at the time. An
   agent built at gorge HEAD simulating an engine at the pin is a rules
   divergence even within gorge; candidate agreement (D§4.3) measures it.
 - **Two entries, not one.** Rate `gorge-search` (neutral observation only)
   and, optionally, `gorge-search-xview` (extension enabled). Only the neutral
   one is comparable across engines.
 
-**Proposed upstream changes** (each a separate gorge ticket; none is needed
-for the adapter to ship):
+**Proposed upstream changes** (none is needed for the adapter to ship):
 
 | # | Change | Why |
 |---|---|---|
-| H1 | Public checkpoint loader and scorer: a non-`internal` package re-exporting `policynet.LoadCheckpointFile` / `LoadScorerFile` (`bots/policynet/checkpoint.go:445`, `scorer.go:97`) plus a `seat.Seat` around it | Jack's plan leaves the PolicyNet bot out "because `bots/policynet` cannot be imported from outside gorge"; our agent needs the same to host checkpoints outside gorge's module |
+| H1 | Public checkpoint loader and scorer: a non-`internal` package re-exporting `policynet.LoadCheckpointFile` / `LoadScorerFile` (`bots/policynet/checkpoint.go:445`, `scorer.go:97`) plus a `seat.Seat` around it | The adapter's plan leaves the PolicyNet bot out "because `bots/policynet` cannot be imported from outside gorge"; our agent needs the same to host checkpoints outside gorge's module |
 | H2 | State-staging API: `rules.Stage(cfg, Snapshot)` building a hypothetical engine at a given public-plus-determinized state through logged events (zones, permanents, stack, turn/step, designations, and continuous effects via `AddContinuous`, `engine/rules/layers.go:1458`) | replaces the spike's package-internal `emit`; keeps AGENTS.md's "all mutation through `events.Apply`"; the engine is hypothetical like `CloneHypothetical` (not replayable from Config) |
 | H3 | Public world sampler: export the redeal with an explicit per-player card pool (a deck-list draw from our posterior) instead of `PublicGame.Decks` being one declared list (`bots/searchprobe/sample.go:24`) | lets hidden-list worlds reuse gorge's pinned-knowledge dealing; the same code can implement §9.7 `probe_resample` in the adapter |
 | H4 | Public search: export `azmcts.Search`, `Root`, `WorldSource` | the agent lives outside gorge's `internal` tree if it ships in the SpellBench repo or as a standalone module |
 | H5 | Upstream a v2 observation projector and the §6.7 `known` tracker (adapter `internal/observe`, MIT) as a public gorge package | adapter and agent then share one projection; the D§4.3 diff is exact on gorge engines |
-| H6 | A botbench mode that forces redeal-only worlds for the L10 seat | measures, gorge-native, what the SpellBench observation constraint costs (M1 Q1) |
+| H6 | A botbench mode that forces redeal-only worlds for the L10 seat | measures, gorge-native, what the SpellBench observation constraint costs (D§12.1, Q1) |
 
 H2 and H3 are the load-bearing ones; H1 unblocks the most people.
 
 ### 11.1 v2 on gorge (reverse adapter)
 
-Operator direction (2026-09-28): host a v2 environment backed by gorge and
+The direction taken on 2026-09-28: host a v2 environment backed by gorge and
 run our agent "in reverse" against it, so the agent plays full games on
 real gorge rules through the reference host, with every decision checked by
 the host's live validator and the agent's reconstruction compared against
 engine truth.
 
-**Path taken: our own server, not Jack's adapter.** The newest adapter
+**Path taken: our own server, not the adapter.** The newest adapter
 branch, `origin/gorge-adapter-g14` @ `62b17fa`, implements plan Tasks 1-14
 (framing, canonical JSON, secrets, v2 types, request decoding, catalog, game
 construction, the validator subset, identity, observation, the mapping
@@ -1204,10 +1161,9 @@ framework and priority decisions). Mana abilities (T15), combat (T16),
 targets and costs (T17), selections (T18), ordering and arrangement (T19),
 simple choices (T20), resolution payments (T21), the game loop (T22) and the
 server binary (T23) do not exist yet, so the module cannot host one game;
-building it against this worktree would have given a library, not a
-server. We wrote a minimal environment server inside gorge instead:
-`lab/training/spellbench/v2engine` (mapping in its package doc) and
-`lab/cmd/sbv2engine`, serving the nine pauper-kernel catalog decks (and
+building it against the gorge of that date would have given a library, not a
+server. We wrote a minimal environment server instead, `sbv2engine`, serving the
+nine pauper-kernel catalog decks (and
 decklist decks). It is a harness for agents, not a candidate rated engine
 (deviations below).
 
@@ -1228,21 +1184,11 @@ CR 103.1 choice answered for the named seat), observation flags `keywords`
 and `full_name` only (`known_cards` false), `replacement_order` and
 `combat_damage_assignment` `engine_order`, no extensions, no probe.
 
-**Setup** (reference host = spellbench `protocol-v2` plus the unmerged game
-loop `protocol-v2-p23` and `-p26`, checked out at
-`$DATA/spellbench-v2-harness`; venv `sbvenv2`):
-
-```sh
-W=$DATA/spellbench-work/v2rev
-go build -o $W/bin/sbv2engine ./lab/cmd/sbv2engine
-go build -o $W/bin/sbagent ./lab/cmd/sbagent
-go build -o $W/bin/sbv2shadow ./lab/cmd/sbv2shadow
-PATH=$DATA/sbvenv2/bin:$PATH python lab/cmd/sbv2engine/scripts/sbv2_reverse.py play \
-  --engine $W/bin/sbv2engine --dir $PWD/.cards --sbagent $W/bin/sbagent --out $W/r1 \
-  --bots uniform,heuristic,sbagent-random,sbagent-heuristic --pairs 4 --workers 3 --truth
-python lab/cmd/sbv2engine/scripts/sbv2_reverse.py report --out $W/r1
-$W/bin/sbv2shadow -truth $W/r1/truth-w0.jsonl.gz,$W/r1/truth-w1.jsonl.gz,$W/r1/truth-w2.jsonl.gz -belief-dir $W/r1/belief
-```
+**Setup.** The reference host is spellbench `protocol-v2` plus the unmerged game
+loop `protocol-v2-p23` and `-p26`. It plays `uniform`, `heuristic`,
+`sbagent-random` and `sbagent-heuristic` on `sbv2engine` at 4 pairs with 3
+workers, and a shadow checker then compares each Go agent's belief log with the
+engine's truth log.
 
 The schedule is the benchmark's shape (every bot pair, seat-swapped pairs,
 pair p on deck `pool[p % 8]` in both seats). `--truth` turns on the engine's
@@ -1350,7 +1296,7 @@ the adapter's `ResolveSource` makes the same choice); no probe; the
 seat-private arrangement-order and search results are exact but the order
 of a pile-B remainder follows gorge's `Rest` convention unverified.
 
-**Notes for Jack's adapter**:
+**Notes for the adapter**:
 
 - It cannot host a game yet (Tasks 15-23 missing); the pin `26257e0e` is
   hundreds of commits behind gorge HEAD.
@@ -1377,20 +1323,20 @@ of a pile-B remainder follows gorge's `Rest` convention unverified.
 
 ### 12.1 Stages
 
-| M | Where | Question | Result slot |
+| Stage | Where | Question | Result |
 |---|---|---|---|
-| M0 | v1 gorge-native (W1) | where do gorge bots and ports of the builtins land on the pauper-kernel decks? | done (D§3.1): bot +238, clairvoyant az +436 over the uniform port |
-| M1 | gorge-native botbench | (Q1) L10 with redeal-only worlds vs full sampler; (Q2) honest az25/az100 with the D§5.2 world source vs `bot` | Q2 done (D§12.5): K1 passes, az25 +14.7pp, az100 +20.5pp over `bot`; Q1 open |
-| M1b | gorge-native botbench + policytrain | does a CLAIRVOYANT search teacher distil into a seat-visible student as well as (or better than) an honest one? | done (D§16): no -- both teachers' students are statistically indistinguishable, and neither helps honest search or beats `bot` alone |
-| M2 | v2 mocked backend (W2), then v2 on gorge in reverse (D§11.1) | protocol correctness; shadow fidelity; parity with native answers; leaderboard incl. our agent | protocol + builtin parity done (D§3.2, 927/927 digests); on real gorge 896 games with 0 protocol errors, belief-level shadow 0 mismatches, heuristic intent parity 15/16 (D§11.1); staged-shadow (D§4) fidelity open |
-| M3 | v2 on Jack's adapter, `pauper-gorge` (5 decks: Wildfire, Rally, Spy, Burn, CawGates; plan Task 7) | strength vs `gorge-bot`, `gorge-lethal-pressure`, builtins; neutral vs xview entry | — |
-| M4 | v2 on mtg-kernel (Annex A bridge), `pauper-kernel` | cross-engine: fidelity and candidate agreement on a foreign engine; rating vs g115 (1388), a48, c12, heuristic (1102) | — |
-| M5 | fixed-deck / hidden-list benchmark (§15, when enabled) | deck inference pays off | — |
+| Gorge-native floor | v1 gorge-native (D§3.1) | where do gorge bots and ports of the builtins land on the pauper-kernel decks? | done (D§3.1): bot +238, clairvoyant az +436 over the uniform port |
+| Honest search | gorge-native botbench | (Q1) L10 with redeal-only worlds vs full sampler; (Q2) honest az25/az100 with the D§5.2 world source vs `bot` | Q2 done (D§12.5): K1 passes, az25 +14.7pp, az100 +20.5pp over `bot`; Q1 open |
+| Clairvoyant teacher | gorge-native botbench + policytrain | does a CLAIRVOYANT search teacher distil into a seat-visible student as well as (or better than) an honest one? | done (D§16): no -- both teachers' students are statistically indistinguishable, and neither helps honest search or beats `bot` alone |
+| Protocol and fidelity | v2 mocked backend (D§3.2), then v2 on gorge in reverse (D§11.1) | protocol correctness; shadow fidelity; parity with native answers; leaderboard incl. our agent | protocol + builtin parity done (D§3.2, 927/927 digests); on real gorge 896 games with 0 protocol errors, belief-level shadow 0 mismatches, heuristic intent parity 15/16 (D§11.1); staged-shadow (D§4) fidelity open |
+| Adapter | v2 on the adapter, `pauper-gorge` (5 decks: Wildfire, Rally, Spy, Burn, CawGates; plan Task 7) | strength vs `gorge-bot`, `gorge-lethal-pressure`, builtins; neutral vs xview entry | — |
+| Cross-engine | v2 on mtg-kernel (Annex A bridge), `pauper-kernel` | cross-engine: fidelity and candidate agreement on a foreign engine; rating vs g115 (1388), a48, c12, heuristic (1102) | — |
+| Hidden lists | fixed-deck / hidden-list benchmark (§15, when enabled) | deck inference pays off | — |
 
 Coverage note: gorge fully supports 6 of the 9 kernel catalog decks
 (missing primitives: Black Mage's Rod kw:Job select in Affinity, Avenging
 Hunter api:TakeInitiative in Elves, Saiba Cryptomancer kw:Backup in Faeries;
-commit `ab42bea5d`). On M4 those decks run with proxies (D§7) or are excluded.
+commit `ab42bea5d`). On mtg-kernel those decks run with proxies (D§7) or are excluded.
 
 ### 12.2 Sample sizes
 
@@ -1413,17 +1359,18 @@ not certify a 3pp gain. Internal decisions are made on our own larger runs.
 
 | K | Condition | Consequence |
 |---|---|---|
-| K1 | M1 Q2: honest search does not beat `bot` by ≥ 3pp at ≥ 2,000 games (CI clear of 0) | ship T1 (gorge bot on the shadow) as the agent; search stays in research |
-| K2 | M2: < 95% of decisions pass the fidelity gates on the kernel pool | stop; fix staging (H2) before any search on a foreign engine |
-| K3 | M4: candidate agreement < 90% on kernel | search off on that engine; publish a divergence report to both engines |
-| K4 | any `timeout` forfeit in M3/M4 runs | halve budgets and re-size |
+| K1 | Honest search does not beat `bot` by ≥ 3pp at ≥ 2,000 games (CI clear of 0) | ship T1 (gorge bot on the shadow) as the agent; search stays in research |
+| K2 | < 95% of decisions pass the fidelity gates on the kernel pool | stop; fix staging (H2) before any search on a foreign engine |
+| K3 | Candidate agreement < 90% on kernel | search off on that engine; publish a divergence report to both engines |
+| K4 | any `timeout` forfeit in runs on the adapter or on mtg-kernel | halve budgets and re-size |
 | K5 | a specialist does not beat the generic in its matchup, CI clear of 0 | drop the specialist |
 
-### 12.4 Milestone order
+### 12.4 Order of the stages
 
-H1 and H2 first (they gate everything), then M1 (cheap, gorge-native, answers
-the biggest unknown), M2 with W2's harness, M3 when adapter Tasks 26-28 land,
-M4 after the kernel v2 bridge exists, M5 when §15 ships.
+H1 and H2 first (they gate everything), then honest search (cheap, gorge-native,
+answers the biggest unknown), protocol and fidelity on the D§3.2 harness, the
+adapter stage when its Tasks 26-28 land, cross-engine after the kernel v2 bridge
+exists, and hidden lists when §15 ships.
 
 **Policy networks (v1c).** The network this agent's search consumes (D§6
 prior and leaf, D§7 fallback, D§8 specialists) is surveyed and planned in
@@ -1435,10 +1382,10 @@ table with two front ends: gorge's view, and the v2 neutral observation,
 which must agree bit for bit on gorge-engine transcripts. Candidates are
 scored pointer-style over the v2 list. Policy targets come only from honest
 search, with Gumbel root selection. Stages S0-S5 carry kill criteria. S3
-(honest expert iteration) waits for M1 Q2. Its open questions (O1-O9) sit
+(honest expert iteration) waits for Q2's answer. Its open questions (O1-O9) sit
 alongside D§14.
 
-### 12.5 M1 result (Q2, measured 2026-09-28)
+### 12.5 Honest search vs `bot` (Q2, measured 2026-09-28)
 
 **Verdict: K1 PASSES.** Honest search beats `bot` by far more than 3pp at
 more than 2,000 games, CI clear of 0: az25 on redeal worlds wins **64.7%
@@ -1512,8 +1459,8 @@ network.
   to an unpinned hidden card").
 
 **SpellBench-shaped round robin** (8 pauper-kernel decks as mirrors, 4 pairs
-per deck, 64 games per matchup, 640 games, rated with
-`lab/scripts/spellbench-rate.py`, anchor sb-uniform; `b87ab3d4c`):
+per deck, 64 games per matchup, 640 games, rated with SpellBench's Bradley-Terry
+code, anchor sb-uniform; `b87ab3d4c`):
 
 | Bot | Elo | CI95 | W-L |
 |---|---|---|---|
@@ -1530,25 +1477,14 @@ fit, against +180 for the clairvoyant reference.
 **Not answered here:** Q1 (L10 on redeal-only worlds vs its rejection
 sampler) and hidden-list worlds (list posterior not a point mass).
 
-**Rerun** (outputs and the chunk runner are in
-`$DATA/spellbench-work/m1/`: `run_chunk.sh`,
-`aggregate.py`, one directory per arm):
-
-```sh
-go build -o $M1/botbench ./lab/cmd/botbench
-P=uw-tempo:mono-white-equipment,uw-tempo:mono-blue-tempo,uw-tempo:mono-black-aggro,uw-tempo:mono-red-prowess,uw-tempo:mono-green-stompy
-# chunk c (0..7): 500 games at seed 91000000+1000c
-$M1/botbench -pairs $P -games 100 -seed $((91000000+1000*c)) -workers 8 -a az-redeal -b bot -az-sims 25
-$M1/botbench ... -a bot -b bot                                           # control
-$M1/botbench ... -a az -b bot -az-world clairvoyant -az-sims 25          # clairvoyant
-$M1/botbench ... -games 50 -a az-redeal -b bot -az-sims 100 [-az-worlds 4]
-$M1/botbench -spellbench az,az-redeal,bot,sb-heuristic,sb-uniform -az-world clairvoyant \
-    -az-sims 25 -spellbench-pairs 4 -spellbench-out $M1/sb-rr2 -workers 8
-lab/scripts/spellbench-rate.py --anchor sb-uniform --out $M1/sb-rr2-rated $M1/sb-rr2
-```
-
-Every heavy command ran under `flock heavy.lock systemd-run --scope -p
-MemoryMax=4G env GOMEMLIMIT=2GiB GOMAXPROCS=8`. The matrix arms ran on
+**What was run.** The matrix plays `uw-tempo` against the five mono decks
+(white equipment, blue tempo, black aggro, red prowess, green stompy) in eight
+chunks of 500 games at seeds 91000000+1000c, with 8 workers. The arms are
+`az-redeal` at 25 sims, a `bot` vs `bot` control, clairvoyant `az` at 25 sims,
+and `az-redeal` at 100 sims with and without 4 worlds at half the games per
+pair. The round robin plays clairvoyant `az`, `az-redeal`, `bot`, `sb-heuristic`
+and `sb-uniform` at 25 sims and 4 pairs per deck, anchored on `sb-uniform`. Each
+run was capped at 4 GB and 8 cores. The matrix arms ran on
 `666cc2720`, which has the two bugs above. They never hit the Sacred Cat
 case (the matrix decks have no embalm), so their numbers stand.
 
@@ -1568,8 +1504,8 @@ almost all of it -- **328-184 (64.1%)** -- at a 0.22 s mean searched
 decision. Four heuristic decorators on sb-tactical had all measured
 neutral; this is the first idea that moves it.
 
-**Design** (`bots/spellbench/sbsearch`, registered in
-`lab/cmd/botbench/spellbench_registry.go`). The seat wraps an sb-tactical
+**Design** (`bots/spellbench/sbsearch`, registered in botbench's SpellBench
+registry). The seat wraps an sb-tactical
 `builtins.Seat` and is a `searchseat.SearchSeat`, so `bench.PlayGame`
 hands it the live engine and its observation feed; `UnwrapSeat` exposes the
 sb-tactical seat so the runner's planner hand-off, refused-answer retry and
@@ -1660,15 +1596,12 @@ time, so it belongs in the live seat only, not in the reproducible bench.
 Existing policies are untouched: the sb-gauntlet smoke digest golden
 passes, and a 96-game sb-tactical / sb-tactical-noearly / bot round robin
 (seed 777, 2 pairs) is games.jsonl-identical (wall time dropped) between
-the base commit `ee26ea630` and this branch.
+the base commit `ee26ea630` and the commit that added the search.
 
-```sh
-W=$DATA/spellbench-work/search-tac
-$W/botbench -dir .cards -spellbench sb-tactical,sb-search-fast -spellbench-pairs 32 \
-    -spellbench-base-seed 777 -spellbench-out $W/h2h-fast-p32 -workers 8
-# the other arms swap the policy name (sb-search, -fast-atk, -lite, -lite-atk);
-# held-out: -spellbench-base-seed 99991; FDN: -spellbench-catalog fdn -spellbench-pairs 4
-```
+The head-to-heads play `sb-tactical` against each search arm (`sb-search`,
+`sb-search-fast`, `-fast-atk`, `-lite`, `-lite-atk`) at 32 pairs, base seed 777.
+The held-out runs use base seed 99991, and the FDN runs use the FDN catalog at 4
+pairs.
 
 ## 13. Risks
 
@@ -1678,36 +1611,35 @@ $W/botbench -dir .cards -spellbench sb-tactical,sb-search-fast -spellbench-pairs
 | Observation → state fidelity for continuous effects | the observation gives post-layer characteristics, not effects or durations (§6.4); a pump misread as permanent (or the reverse) mis-values combat | staged until-EOT deltas; observation-match gate; H2 includes durations |
 | Hidden history | delayed triggers, "this turn" counts, zone-entry history are not observable; cards reading them mis-simulate | enumerate such cards per pool from the IR; fallback when one is live (INFERRED coverage) |
 | Card coverage | 6/9 kernel decks; FDN/Standard coverage unmeasured | proxies; per-benchmark coverage report before entry |
-| Redeal-only worlds lose L10's edge | the edge was measured with behaviour-consistent worlds | M1 Q1 measures it first; importance weighting as the follow-up |
+| Redeal-only worlds lose L10's edge | the edge was measured with behaviour-consistent worlds | measure it first (D§12.1, Q1); importance weighting as the follow-up |
 | Clock | Go search at hundreds of decisions per game | fixed budgets sized to 50% bank; clock guard; K4 |
-| Opponent model mismatch | the environment plays opponents as `bot`; real opponents (RL nets, kernel bots) differ | measure per-opponent in M3/M4; the AZ loop trains against `bot`, same bias |
+| Opponent model mismatch | the environment plays opponents as `bot`; real opponents (RL nets, kernel bots) differ | measure per-opponent on the adapter and on mtg-kernel; the AZ loop trains against `bot`, same bias |
 | Adapter moves under us | adapter at Task 14 of 30 | align on the published plan; re-verify at Task 26 |
 
-## 14. Open questions for the operator
+## 14. Open questions
 
 - **Q1.** Rotating-pool benchmarks are deck mirrors and send the list as
   `visible` (§12.2). Should the agent's prior use the published pairing
   rule (mirror) when the list is hidden, or ignore it as a benchmark
   artefact?
 - **Q2.** Enter the `x_gorge_view_v1` variant at all? It is fair but not
-  comparable across engines, and Jack's host policy (plan, P5) enables the
+  comparable across engines, and the adapter's host policy (plan, P5) enables the
   extension only for entries that *require* it; our agent only accepts it.
 - **Q3.** Where the agent lives: in gorge (needs H1/H4 only for outside
   consumers) or as a SpellBench-repo module like the adapter (needs H1-H5).
-- **Q4.** Offer H2/H3/H5 to Jack as shared infrastructure (one sampler that
+- **Q4.** Offer H2/H3/H5 to the adapter's author as shared infrastructure (one sampler that
   also implements `probe_resample`)?
-- **Q5.** Resources for M1 Q2 at 2,000+ games per arm (current AZ budget is
+- **Q5.** Resources for honest search vs `bot` at 2,000+ games per arm (current AZ budget is
   2 cores / 5 GB).
 
 ## 15. Experiment framework
 
-One standard way to add a SpellBench policy idea and measure it. Three
-parts, all landed (sb-gauntlet workstream):
+One standard way to add a SpellBench policy idea and measure it, in three parts.
 
-**Registry** (`lab/training/spellbench/registry`). A named policy registry:
+**Registry.** A named policy registry:
 `name -> factory(seed uint64, mana builtins.ManaMode) seat.Seat`. The
 sb-* builtins are registered by the package itself (`sb.go`); `bot` and
-`az` are registered by `lab/cmd/botbench` (they need the command's hosted-policy
+`az` are registered by botbench (they need the command's hosted-policy
 and azmcts wiring); `botbench -spellbench` resolves every name through it,
 and an unknown name fails with the registered names listed. Registering a
 new policy is one file plus one `Register` call from `init()`.
@@ -1731,36 +1663,25 @@ spec keeps the clairvoyant ledger marker (`az+passguard` is recorded as
 `az-clairvoyant-sims<N>+passguard`) and rate.py's name tag (a leading
 `az-`) still classifies it as a search agent.
 
-**Gauntlet** (`lab/scripts/sb-gauntlet.sh <spec>[,<spec>...] [pairs] [decks]`).
-Rates candidate specs against a fixed reference set: `sb-uniform` (the Elo
-anchor), `sb-heuristic` and `bot`, plus every spec in
-`$DATA/spellbench-work/gauntlet/champions.txt` when it
-exists. Candidates play the references through `-spellbench-with <spec>`
-(full round robin's seeds and indices kept); reference-vs-reference games
-are cached under `$DATA/spellbench-work/gauntlet/ref/<key>/`,
-keyed by the `git rev-parse HEAD:` tree hashes of `rules effects cards
-decision botpolicy lab/training/spellbench lab/cmd/botbench` plus pairs and decks,
-so any engine or policy change invalidates the cache, as does any change
+**Gauntlet.** Rates candidate specs against a fixed reference set: `sb-uniform` (the Elo
+anchor), `sb-heuristic` and `bot`, plus every spec in a champions file. Candidates play the references through `-spellbench-with <spec>`
+(full round robin's seeds and indices kept); reference-vs-reference games are cached, keyed by the git tree hashes of the
+engine, policy and bench packages plus pairs and decks, so any engine or policy change invalidates the cache, as does any change
 to the champions file's content (a new champion line must get its own
 ref-vs-ref games, not ride a cache built without it). Every relevant ledger
-is rated together with `lab/scripts/spellbench-rate.py`
-(`$DATA/sbvenv/bin` provides the interpreter); the run
-prints a per-candidate table (spec, Elo, CI95, W-L, head-to-head vs each
-reference) and appends one JSON row per candidate to
-`.../gauntlet/results.jsonl` (`spec, elo, ci_lo, ci_hi, wins, losses,
-pairs, decks, git_head, key, ts`). Exit code 0 unless the run fails. Every
-botbench invocation runs under
-`flock -o .../heavy.lock systemd-run --user --scope -q -p MemoryMax=4G env
-GOMEMLIMIT=2GiB GOMAXPROCS=8` with `-workers 8` (SB_GAUNTLET_WORKERS
-overrides the worker count for a smoke-sized run).
+is rated together; the run prints a per-candidate table (spec, Elo, CI95, W-L,
+head-to-head vs each reference) and appends one JSON row per candidate to a
+results file (`spec, elo, ci_lo, ci_hi, wins, losses, pairs, decks, git_head,
+key, ts`). Every botbench invocation is capped at 4 GB and 8 cores with 8
+workers.
 
-## 16. M1b: clairvoyant vs honest teacher (measured 2026-09-28)
+## 16. Clairvoyant vs honest teacher (measured 2026-09-28)
 
 **Question.** Clairvoyant `az` cheats, so it cannot be entered, but it can
 TEACH: record its visit distributions and outcomes, and train a student whose
 inputs are seat-visible only (privileged-teacher distillation: Suphx oracle
 guiding, Learning by Cheating). Does that student beat one taught by the
-honest search (`az-redeal`, M1), and plain behaviour cloning of `bot`? The
+honest search (`az-redeal`, D§12.5), and plain behaviour cloning of `bot`? The
 risk to measure: a clairvoyant target can depend on what the student cannot
 see ("attack, their hand is empty"), so the student learns an average over
 hidden states (strategy-fusion-like bias).
@@ -1779,12 +1700,12 @@ whole story; the override labels are close to noise") with soft MCTS visit
 targets in place of argmax PIMC labels, and extends it: the clairvoyant
 targets are no more predictable with the hidden information than without it.
 Do not build the clairvoyant-distillation arm further; the honest search seat
-itself (M1 K1 pass) is the asset.
+itself (K1 passed, D§12.5) is the asset.
 
 ### 16.1 Setup
 
 - **Teachers.** `az` over clairvoyant clones (`-az-world clairvoyant`) and
-  `az-redeal` (honest: every simulation walks a fresh redeal, M1), 50
+  `az-redeal` (honest: every simulation walks a fresh redeal, D§12.5), 50
   simulations, PUCT c 1.5, moves sampled ∝ visits on turns ≤ 4, **no** root
   Dirichlet noise (at 50 simulations the noise would be a large share of every
   target; `-az-no-noise`), vs `bot`, on the SpellBench 8-deck pauper-kernel
@@ -1937,19 +1858,5 @@ searched decision; with a student leaf 77-79 ms / 160-171 ms; `bc` prior
   would decide whether the +2pp value-head estimate is real, and whether a
   full-sampled-world leaf head (the PerfectDou-style two-headed value the v1c
   survey recommends) does better.
-- The agent's decision core stays honest search with no network (M1 K1 pass).
-
-### 16.6 Rerun
-
-```sh
-lab/scripts/m1b-distill.sh build   # botbench + policytrain into $M/bin
-lab/scripts/m1b-distill.sh gen     # teacher corpora (one lock hold per 1,280-game chunk)
-lab/scripts/m1b-distill.sh train   # students and the opp-hand diagnostic pairs
-lab/scripts/m1b-distill.sh eval    # student alone; student inside honest search
-python3 ops/scripts/m1b-paired.py $M/evals/search-clair/sb/matches.jsonl $M/evals/search-none/sb/matches.jsonl
-```
-
-`M` defaults to `$DATA/spellbench-work/m1b` (the run
-recorded here: corpora under `clair/` and `honest/`, students and their
-`*.json` readouts under `students/`, ledgers under `evals/`). Every step runs
-under `heavy.lock` in a 4 GB scope with 8 cores.
+- The agent's decision core stays honest search with no network (K1 passed,
+  D§12.5).

@@ -456,7 +456,7 @@ var triggerModeEventRows = [...]struct {
 	// Amount >= 0); the Amount == -1 untap-step consume marker is the
 	// same Kind but rejected by trigmatch.ExertedMatches, so the mask stays exact.
 	{cards.TriggerExerted, 1 << events.Exert},
-	// enlist1: the mode fires on the CR 702.160 enlist action itself
+	// The mode fires on the CR 702.160 enlist action itself
 	// (events.Enlist, the Exerted shape). The Kind's ordinal (75) is past
 	// the 64-bit mask's reach, the RingTemptsYou/Investigated shape: a
 	// mask bit is not encodable and allows() fails open for every kind at

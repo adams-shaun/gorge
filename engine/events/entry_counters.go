@@ -167,14 +167,14 @@ type EntryCounterGrant struct {
 }
 
 // EntryCounterGrants returns the counters a permanent entering the
-// battlefield grants ITSELF as part of that entry, in the order the entry
-// fold used to place them: CR 306.5b starting loyalty, CR 702.54 Riot's
-// counter election, CR 702.86 Unleash's, CR 702.151a a Saga's lore counter,
-// CR 310.6 a Battle's defense counters. It is a pure function of the object
-// as it stands in its ORIGIN zone (the logged elections and the cast-time
-// CompleatedLifePaid are read here), plus whether this specific entry puts
-// the card onto the battlefield face down -- a face-down entry is a 2/2
-// creature with no abilities (CR 708.5), so it grants none of these.
+// battlefield grants ITSELF as part of that entry, in this order: CR 306.5b
+// starting loyalty, CR 702.54 Riot's counter election, CR 702.86 Unleash's,
+// CR 702.151a a Saga's lore counter, CR 310.6 a Battle's defense counters. It
+// is a pure function of the object as it stands in its ORIGIN zone (the
+// logged elections and the cast-time CompleatedLifePaid are read here), plus
+// whether this specific entry puts the card onto the battlefield face down --
+// a face-down entry is a 2/2 creature with no abilities (CR 708.5), so it
+// grants none of these.
 //
 // This is the ONE home for the entry-characteristic counter arithmetic.
 // events.Move no longer folds them itself: rules snapshots this list just

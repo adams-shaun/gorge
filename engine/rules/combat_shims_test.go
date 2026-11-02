@@ -5,8 +5,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The engine-level combat tests predate the engine/rules/combat extraction (W5 step
-// E5) and read the legality predicates as Engine methods. These test-only
+// The engine-level combat tests predate the engine/rules/combat extraction
+// and read the legality predicates as Engine methods. These test-only
 // shims keep that spelling: each forwards to the combat package over
 // asBoard(e), the same Board the production call sites pass, so a test still
 // exercises exactly the code the declaration flow runs. They are not

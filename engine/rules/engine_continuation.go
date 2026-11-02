@@ -45,7 +45,7 @@ type engineContinuation struct {
 	oppPicksMid map[string]state.PlayerID `clone:"deep"`
 
 	// tpCtlChooser (engine/rules/stack.go) is the TargetingPlayerControls$ answered
-	// record (tpc1): the seat that answered a target ask whose SA carries
+	// record: the seat that answered a target ask whose SA carries
 	// `TargetingPlayerControls$ True`, keyed by the RESOLVING stack object
 	// (pc.stackObj for a cast/activation, the TriggerPush object for a
 	// placement ask) and carrying the asking SA's line. The entry lives from

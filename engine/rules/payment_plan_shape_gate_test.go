@@ -65,12 +65,10 @@ func TestPaymentPlanShapeGate(t *testing.T) {
 	}
 }
 
-// PP-08 keeps the cost-class exclusions that were already in place before
-// this ticket: an {X}, hybrid or snow printed cost still receives no plan, now
-// with the machine-readable cost detail. A Phyrexian cost is no longer in this
-// list (fb-20261006T065812Z-2782e8eb, see payment_plan_phyrexian_test.go). This is the invariant
-// the gaps audit proved on main; it must not regress when the additional-cost
-// and contribution gates above were added.
+// Cost-class exclusions: an {X}, hybrid or snow printed cost receives no plan,
+// with the machine-readable cost detail. A Phyrexian cost is not in this list
+// (see payment_plan_phyrexian_test.go). This must not regress with the
+// additional-cost and contribution gates above.
 func TestPaymentPlanShapeGateCostClassesStillDecline(t *testing.T) {
 	t.Parallel()
 	for i, tc := range []struct {
@@ -194,9 +192,8 @@ func TestPaymentPlanShapeGateSpreeOffers(t *testing.T) {
 	}
 }
 
-// The executor half of the audit story (ticket autopay-exec-harden) is not
-// reachable through the planner offer for delve, because PP-08 withholds it
-// (the fixed discard is offered since botmanual:
+// The executor half is not reachable through the planner offer for delve,
+// because the shape gate withholds it (the fixed discard is offered:
 // TestPaymentPlanSeeksDiscardOffer covers that route end to end). Build the witness directly, exactly as
 // TestPaymentPlanExecutesAfterCastTimeChoice does for sacrifice, and prove the
 // executor still pays the whole cost after the additional-cost choice: the

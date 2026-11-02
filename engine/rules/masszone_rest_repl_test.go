@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The remaining unbatched multi-object battlefield departures (masszone-rest,
-// after wt/fix-masszone batched the SBA and destroy/sacrifice-all paths).
+// The remaining unbatched multi-object battlefield departures.
 // Kalitas, Traitor of Ghet leaving in the SAME batch as the opponent's
 // creatures still exiles them (CR 614.6, 616.1, 603.10); a dying watcher
 // (Psychomancer's Harbinger of Despair trigger, which also names exile)
@@ -21,7 +20,7 @@ import (
 //     would-die, Origin$ Battlefield -> Destination$ Graveyard, and no corpus
 //     spell does a multi-target ChangeZone to a graveyard), so the watcher's
 //     exile-inclusive death trigger is the observable.
-//   - SacrificeAll (engine/effects/sacrificeall.go, batched by wt/fix-masszone and
+//   - SacrificeAll (engine/effects/sacrificeall.go, batched and
 //     pinned here): All Is Dust sweeping both boards with Kalitas present.
 const massRestScenarios = `[
  {"name": "curse-of-the-swine-multi-exile-watcher",

@@ -63,7 +63,7 @@
   }: {
     stack: StackView; view: View; emphasized?: boolean; dimmed?: boolean;
     hover?: HoverCard; anchor?: AnchorRect | null;
-    /** yields is the game-scoped always-pass set (prio6, lib/yields.ts); null (spectator) renders no marker. */
+    /** yields is the game-scoped always-pass set (lib/yields.ts); null (spectator) renders no marker. */
     yields?: ReadonlySet<string> | null;
     /** onYield is the menu action's write path — the caller (Table → Rail) adds the key to the seat panel's game-scoped set. Null renders no menu. */
     onYield?: ((key: string) => void) | null;
@@ -119,7 +119,7 @@
     anchor = r ? { left: r.left, top: r.top, right: r.right } : null;
   }
 
-  // ---- always-yield (prio6) -------------------------------------------
+  // ---- always-yield -------------------------------------------
   // yielded reports whether this entry's key is in the game-scoped set: the
   // tile shows a small "yielding" marker, so a pass the player will never
   // be asked about is visible as such. The key is the SAME three facts the
@@ -221,7 +221,7 @@
     overflow: hidden;
   }
   .targets { margin: .15rem 0 0; padding: 0; list-style: none; font-size: .68rem; opacity: .8; }
-  /* The always-yield affordances (prio6): the marker sits in the tile's top
+  /* The always-yield affordances: the marker sits in the tile's top
      right so an already-yielded entry is readable at a glance; the kebab
      opens a one-action menu anchored to the header. The menu is absolutely
      positioned within the tile (position: relative above) — it hangs BELOW

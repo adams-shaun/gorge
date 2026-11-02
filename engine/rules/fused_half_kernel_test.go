@@ -127,16 +127,13 @@ func TestFusedFarAwayAlternateHalfSuspensionAsksOnlyTheSacrifice(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets is review round 3's
-// MAJOR pin: a SUB-ABILITY of a fused half must read the half's own targets
-// as its parent list, never the stack object's whole flat target list. On the
-// real corpus card Flesh // Blood, Flesh's DBPutCounter SubAbility puts
-// X +1/+1 counters where X = ParentTargeted$CardPower -- the power of the
-// graveyard creature Flesh exiled (2), NOT the sum of both halves' chosen
-// targets (the exiled bear 2 + Blood's own target bear 2 = 4). Pre-fix
-// resumeResolution bound Ctx.Targets from o.Targets (the flat list) for any
-// frame that was not a half root, and fusedHalfTargets matched only the
-// halves' root SAs, so DBPutCounter read 4.
+// TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets: a SUB-ABILITY of a
+// fused half must read the half's own targets as its parent list, never the
+// stack object's whole flat target list. On the real corpus card Flesh //
+// Blood, Flesh's DBPutCounter SubAbility puts X +1/+1 counters where X =
+// ParentTargeted$CardPower -- the power of the graveyard creature Flesh
+// exiled (2), NOT the sum of both halves' chosen targets (the exiled bear 2 +
+// Blood's own target bear 2 = 4).
 func TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -248,14 +245,12 @@ func TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFusedBloodSubAbilityReadsItsOwnHalfTargets is review round 3's MAJOR
-// second pin, taken on the ALTERNATE half of the same real corpus card.
-// Blood's BloodDamage SubAbility asks its own ValidTgts$ Any target and deals
-// NumDmg$ Y, where SVar:Y:ParentTargeted$CardPower reads the half's own
-// parent target -- Blood's root target (bearA, power 2), never the sum with
-// Flesh's exiled graveyard card (2+2=4). Pre-fix resumeResolution bound
-// Ctx.Targets from the stack object's flat list for the sub-ability frame
-// (fusedHalfTargets matched only the halves' root SAs), so Blood dealt 4.
+// TestFusedBloodSubAbilityReadsItsOwnHalfTargets is the second pin, taken on
+// the ALTERNATE half of the same real corpus card. Blood's BloodDamage
+// SubAbility asks its own ValidTgts$ Any target and deals NumDmg$ Y, where
+// SVar:Y:ParentTargeted$CardPower reads the half's own parent target --
+// Blood's root target (bearA, power 2), never the sum with Flesh's exiled
+// graveyard card (2+2=4).
 func TestFusedBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

@@ -1,6 +1,6 @@
 package rules
 
-// Payment plans for the command-zone cast (ticket fb-20260927T163321Z-69285807):
+// Payment plans for the command-zone cast:
 // the auto-pay offer builder was hand-only by construction, so a commander in
 // the command zone never received a "pay with a plan" action even though the
 // ordinary "Cast <name>" option was offered.  These tests pin the command-zone

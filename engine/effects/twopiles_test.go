@@ -11,8 +11,7 @@ import (
 
 // twopilesBoard builds a 2-seat game with five cards on seat 0's library
 // (ids[0] on top), a source object, and the FoF-shaped SVar table the pile
-// bodies resolve through: DBHand/DBGrave are exactly Fact or Fiction's real
-// sub-abilities, DBBottom Jace, Architect of Thought's ChangeZoneAll tail.
+// bodies resolve through: DBHand takes the chosen pile, DBGrave the other.
 // Returns the host, the five library ids, and the source id (ids[5]).
 func twopilesBoard(t *testing.T) (*fakeHost, []state.ObjID) {
 	t.Helper()
@@ -41,22 +40,20 @@ func twopilesSVars() map[string]string {
 	}
 }
 
-// twopilesSA parses the exact FoF TwoPiles sub-ability.
+// twopilesSA parses a TwoPiles sub-ability in Fact or Fiction's shape.
 func twopilesSA(t *testing.T) *cards.SA {
 	t.Helper()
 	src := "Name:FoF\nTypes:Instant\nOracle:x\n" +
-		"SVar:DBTwoPiles:DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Separator$ Opponent | ChosenPile$ DBHand | UnchosenPile$ DBGrave\n" +
-		"SVar:DBHand:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Hand\n" +
-		"SVar:DBGrave:DB$ ChangeZone | Defined$ Remembered | Origin$ Library | Destination$ Graveyard\n"
+		"SVar:Piles:DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Separator$ Opponent | ChosenPile$ DBHand | UnchosenPile$ DBGrave\n"
 	c, d := cards.ParseBytes("twopiles.txt", []byte(src))
 	if len(d) != 0 {
 		t.Fatalf("diags: %v", d)
 	}
 	c.Link()
 	f := c.Faces[0]
-	sa := cards.ResolveSVar(f.SVars, "DBTwoPiles")
+	sa := cards.ResolveSVar(f.SVars, "Piles")
 	if sa == nil {
-		t.Fatalf("DBTwoPiles did not resolve")
+		t.Fatalf("Piles did not resolve")
 	}
 	return sa
 }
@@ -88,7 +85,7 @@ func TestTwoPilesEmptyCardSetIsSilent(t *testing.T) {
 	}
 }
 
-// TestTwoPilesNoHostStandIn pins the R-9 stand-in: with a host that cannot
+// TestTwoPilesNoHostStandIn pins the no-host stand-in: with a host that cannot
 // ask, pile A is the FIRST card of the set, the chooser takes pile A, no
 // Note records it, and nothing wedges.
 func TestTwoPilesNoHostStandIn(t *testing.T) {

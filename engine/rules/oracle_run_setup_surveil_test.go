@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// D1 (verdict rows Broodheart Engine / Essence Anchor / Morcant's Eyes,
+// Oracle rows (Broodheart Engine / Essence Anchor / Morcant's Eyes,
 // activate#0.0): a card placed on the battlefield in setup fires its
 // "At the beginning of your upkeep, surveil 1" phase trigger while the setup
 // drive walks turn 1. XMage's unscripted default for the arrange ask sends

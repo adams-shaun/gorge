@@ -10,8 +10,8 @@ import (
 )
 
 // TestProfaneTransfusionDifferenceRiderSurvivesDredgeSuspension pins the
-// RememberDifference half of the ExchangeLife numeric rider
-// (agent-20260928T235256Z-127d875e). Profane Transfusion is a two-target
+// RememberDifference half of the ExchangeLife numeric rider.
+// Profane Transfusion is a two-target
 // exchange; its DBToken reads X:Count$RememberedNumber/Abs for the created
 // Horror's power and toughness. When Lich replaces one side's life gain with
 // draws whose dredge asks suspend the exchange mid-resolution, the created

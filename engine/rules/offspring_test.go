@@ -19,7 +19,7 @@ import (
 //     (`Affected$ Creature.wasCastByYou | AffectedZone$ Stack |
 //     AddKeyword$ Offspring:2`): a plain creature spell cast while Zinnia is
 //     on the battlefield is offered the granted {2} offspring cost and mints
-//     the 1/1 copy. The granted form is the ticket's hard requirement —
+//     the 1/1 copy. The granted form is the hard requirement —
 //     a printed-only test does not close it — and it exercises THREE dead
 //     layers at once: the wasCastByYou predicate at the pre-push offer
 //     window, the layer-6 granted keyword reaching the cast offer, and the
@@ -176,7 +176,7 @@ func TestOffspringPrintedPlainCastMintsNothing(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestOffspringGrantedByZinniaReachesTheCast is the ticket's hard
+// TestOffspringGrantedByZinniaReachesTheCast is the hard
 // requirement: Zinnia, Valley's Voice's exact static
 // (`Affected$ Creature.wasCastByYou | AffectedZone$ Stack | AddKeyword$
 // Offspring:2`) must make a plain creature spell cast while she is on the

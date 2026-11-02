@@ -11,7 +11,7 @@
   import { blurAfterPointer } from '../lib/pointer';
 
   /**
-   * ActionCluster is the ONE action button (UI rework spec §3): gilt, in the
+   * ActionCluster is the ONE action button: gilt, in the
    * hand row's right corner, naming what passing does ("Pass — Move to
    * Declare attackers", "Let Rhystic Study resolve"), and "Waiting" while a
    * prompt needs an answer or another seat acts. Above it sit the secondary

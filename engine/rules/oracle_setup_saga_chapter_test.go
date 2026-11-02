@@ -8,7 +8,7 @@ import "testing"
 // Summon: Knights of Round's (three Knight tokens) at XMage's setup checkpoint. Only a
 // back-face placement drops the chapter trigger
 // (TestOracleSetupBackFacePlacementFiresNoChapterTrigger). This is the
-// ticket-specific multi-card companion to TestOracleSetupFrontFaceSagaFiresChapterI
+// multi-card companion to TestOracleSetupFrontFaceSagaFiresChapterI
 // (Summon: Leviathan) and TestOracleSetupFrontFaceSagaDrawChapterFires
 // (Summon: Anima draw chapter).
 func TestOracleSetupFrontFaceSagaCombatRowsFireChapterI(t *testing.T) {

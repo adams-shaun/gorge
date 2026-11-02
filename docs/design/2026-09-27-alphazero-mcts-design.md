@@ -1,7 +1,8 @@
 # AlphaZero-style MCTS for gorge's bot — design (2026-09-27)
 
-Status: approved in conversation 2026-09-27 (approach A, sections 1–4). This
-document is the written spec; the implementation plan follows it.
+Status: the design as approved on 2026-09-27, before implementation. The bench
+and training commands named here (`botbench`, `policytrain`, `exitloop`, `azgen`)
+live in the maintainers' private companion module.
 
 ## Why, and what this must answer
 
@@ -18,7 +19,7 @@ search whose leaf is the network's value head, whose training targets are
 the search's visit distribution (soft, not argmax labels), and whose value
 target comes from its own games, iterated and gated.
 
-The effort is staged, as the operator chose ("both, staged"):
+The effort is staged:
 
 1. **Stage 1 (clairvoyant):** does the AZ loop compound in gorge at all?
 2. **Stage 2 (honest):** the same code with sampled worlds. What does hidden
@@ -80,7 +81,7 @@ Search(src WorldSource, net *policynet.Model, opts Options) (Result, error)
   (no network) uses the frozen heuristic `searchprobe.LeafValue`
   (`teacher.go:89`) and a uniform prior.
 
-### Seat `az` in `lab/cmd/botbench`
+### Seat `az` in `botbench`
 
 `-a az -az-sims N -az-world clairvoyant|sampled -checkpoint <gpol>`. It
 follows the L10 searchseat route: the driver feeds the seat the engine and
@@ -88,7 +89,7 @@ history (the `BoardSeat`-style type assertion in `internal/bench.PlayGame`).
 `-az-world clairvoyant` is refused anywhere a non-bench opponent could be
 seated (host / gorged).
 
-### `cmd/azgen` (new)
+### `azgen` (new)
 
 Plays the `az` seat against `bot` over a seed block and writes a visit
 corpus, JSONL, one row per searched decision:
@@ -99,7 +100,7 @@ corpus, JSONL, one row per searched decision:
 - `root_value`;
 - the game outcome, filled at game end.
 
-### `lab/cmd/policytrain -loss visits` (new loss mode)
+### `policytrain -loss visits` (new loss mode)
 
 - Policy: soft cross-entropy against π over the candidate options. Attackers
   and blockers candidates are subsets; their π target is spread onto the
@@ -112,7 +113,7 @@ corpus, JSONL, one row per searched decision:
   candidate 0 and the tie-break, not through a pinned logit
   (residual 2 pins the policy).
 
-### `lab/cmd/exitloop -mode az` (new mode)
+### `exitloop -mode az` (new mode)
 
 Control → per generation: `azgen` → `policytrain -loss visits` over a
 sliding window of the last 5 generations' corpora → evals (§3) → gate.
@@ -165,7 +166,7 @@ optimisation, out of scope here unless stage 0 shows it binding.
 Deck set for every stage: uw-tempo against the five mono decks (the earlier probes'
 and MageZero-comparison set). Eval block: seed 90,000,000, seats traded.
 
-### Stage 0: measure (after ticket 2)
+### Stage 0: measure
 
 - Cost per simulation and per searched decision; games/h at 25 and 100
   simulations, 2 cores.
@@ -173,7 +174,8 @@ and MageZero-comparison set). Eval block: seed 90,000,000, seats traded.
   200 games per arm.
 - **Kill:** if full-information search with no network cannot beat `bot`,
   the candidates or the leaf are broken; diagnose before any training.
-- The numbers come back to the operator before tickets 3–5 are built.
+- These numbers decide whether the corpus, training and sampled-world work
+  goes ahead.
 
 ### Stage 1: clairvoyant AZ loop
 
@@ -192,8 +194,7 @@ Per generation, four readouts:
   is ≥ the incumbent's; every checkpoint is still evaluated.
 - **Budget now:** 2 cores, 5 GB. Runs at this size are pipeline proofs
   (about 3 generations × 100–200 games); 200-game evals are ±7pp, so they are
-  not a verdict. The verdict run is sized from stage-0 throughput on
-  resources the operator makes available later.
+  not a verdict. The verdict run is sized from stage-0 throughput.
 - **Kill:** after 8 gated generations, readout 1 is not ≥ gen 0 + 3pp with
   the CI clear of gen 0. Then AZ does not compound here even with full
   information, and stage 2 is not run.
@@ -205,15 +206,7 @@ Per generation, four readouts:
   against L10 (53.7% held-out).
 - **Success:** beats L10 on the held-out block (seed 1,000,000, 400 games per
   pair) at comparable latency (L10: mean 664 ms, p95 2.2 s per asked
-  decision). Promotion to the default bot is the operator's decision.
-
-### Resource rules (every run and every brief)
-
-- `systemd-run --user --scope -q -p MemoryMax=<cap>`, `GOMEMLIMIT=1GiB`,
-  `taskset` to the granted cores.
-- Data, corpora, checkpoints and `GOTMPDIR` under
-  `$DATA/az/`.
-- One heavy job at a time machine-wide.
+  decision). Promotion to the default bot is the maintainers' decision.
 
 ## §4 Testing and failure handling
 
@@ -244,15 +237,12 @@ Per generation, four readouts:
 | Every simulation failed, or no world could be sampled or redealt | Play the bot's answer; count it. |
 | Step cap reached | Evaluate the leaf where the walk stopped. |
 
-## Tickets
+## Order of the work
 
 1. `bots/azmcts` core, the clairvoyant source, the gen-0 heuristic leaf,
    and the core tests.
-2. The `az` seat in botbench; then stage 0's measurements and a short
-   report. Checkpoint with the operator before 3–5.
-3. `cmd/azgen` corpus, `policytrain -loss visits`, and the TD-blended value
+2. The `az` seat in botbench, then stage 0's measurements.
+3. The `azgen` corpus, `policytrain -loss visits`, and the TD-blended value
    target.
 4. `exitloop -mode az` and its per-generation summary table.
 5. The sampled world source, ISMCTS availability, and the leak test.
-
-The stage 1 and stage 2 loop runs are controller work, not tickets.

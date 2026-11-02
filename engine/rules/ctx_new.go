@@ -10,7 +10,7 @@ import (
 // the ones that bind ENGINE-owned tables (the layer-3 rename table, the
 // layer-4 derived type table, the compiled predicate programs) which the
 // effects tier cannot reach. Like engine/effects/ctx_new.go it is a designated
-// constructor file of the W1c ratchet (internal/codeshape ctxLiterals /
+// constructor file of the ratchet (internal/codeshape ctxLiterals /
 // specContextLiterals): every other rules file builds a context through
 // effects.NewCtx / NewCtxPtr / NewSpecContext, the (*Ctx) derivations, or
 // one of these.

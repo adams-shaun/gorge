@@ -10,10 +10,10 @@ import "slices"
 //   - a pointer field equals when both are the same address, or both are
 //     non-nil and their pointees are equal;
 //
-// with ONE deliberate tightening: SA.compiledCatalog compares by identity.
-// It is the corpus's single bound catalog table (bindCompiledCatalog), so two
+// with ONE deliberate tightening: SA.compiledCatalog compares by identity. It
+// is the corpus's single bound catalog table (bindCompiledCatalog), so two
 // SAs bound to distinct-but-identical catalogs do not arise; walking a whole
-// catalog per comparison would be the cost DeepEqual used to hide.
+// catalog per comparison would be the cost DeepEqual hides.
 //
 // equal_test.go holds each field list to its struct's (a field added to a
 // node fails the build's tests until the function here compares it).

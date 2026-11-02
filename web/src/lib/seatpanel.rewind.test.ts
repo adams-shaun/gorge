@@ -5,7 +5,7 @@ import { rememberKey } from './remembered';
 import { SeatPanelState, autoNoteText } from './seatpanel.svelte';
 import { clientBreadcrumbs } from './breadcrumbs';
 
-// The UNDO pause (fb-20260914T063523Z): pressing UNDO rewinds the board to
+// The UNDO pause: pressing UNDO rewinds the board to
 // the decision point of the player's last action, and the autopilot machine
 // — auto-pass, the empty-window floor, pass-after-acting, the
 // identical-trigger auto-order, remembered optional-trigger answers — must
@@ -37,7 +37,7 @@ const quiet = (seq: number): Decision =>
 const live = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1, options: [cast(0), pass(1), concede(2)] });
 
-/** triggerOrder is the measured wire shape of a trigger_order decision (mirrors seatpanel.prio6.test.ts). */
+/** triggerOrder is the measured wire shape of a trigger_order decision (mirrors seatpanel.yields.test.ts). */
 const triggerOrder = (seq: number, labels: [string, string]): Decision => ({
   seq,
   player: 0,
@@ -369,7 +369,7 @@ describe('the undo pause', () => {
   });
 
   it('the pause-aware Auto switch resumes without touching the enabled preference (the real r2 break)', () => {
-    // r2 finding: the paused note told the default auto-ON player to press
+    // The paused note told the default auto-ON player to press
     // the Auto switch, but the switch's onclick was setAuto(!autoPass) —
     // with the persisted default that DISABLED auto, cleared the brake and
     // the empty-window floor instantly passed the restored window. The
@@ -423,8 +423,8 @@ describe('the undo pause', () => {
     expect(viaPreset.note.kind).toBe('armed');
   });
 
-  it('while the pause holds a one-shot run cannot arm: the machine answers nothing on the restored window (r2 finding)', async () => {
-    // r2 finding: startRun used to lift the pause — an unauthorized resume
+  it('while the pause holds a one-shot run cannot arm: the machine answers nothing on the restored window', async () => {
+    // startRun must not lift the pause — an unauthorized resume
     // path (End Turn / Hard Skip / Resolve All could re-enable machine
     // posting on the just-restored window). Now the arm is REFUSED while
     // the pause holds: the run never arms, the paused note stays on screen

@@ -18,7 +18,7 @@ because a file may carry more than one `SVar:PlayMain1`/`AI:RemoveDeck` line.
 | `AI:RemoveDeckCard` | 0 | 0 |
 | `SVar:PlayMain1` | 1524 | `TRUE` 1448, `ALWAYS` 54, `OPPONENTCREATURES` 11, `True` 10, `Random` 1, `FALSE` 1 |
 
-The two `AI:RemoveDeck*` spellings the ticket names beyond the base key are
+The two `AI:RemoveDeck*` spellings named beyond the base key are
 absent from this pin. They are parsed anyway because they are part of Forge's
 closed vocabulary and cost nothing at load time; a future corpus can add them
 without another parser change.
@@ -110,13 +110,13 @@ values. `engine/cards/aihints_test.go` pins parsing, canonicalisation and the
 
 ## The `RemoveDeck` wording
 
-The ticket's acceptance line says a `RemoveDeck` card is "never chosen as a
+The acceptance line says a `RemoveDeck` card is "never chosen as a
 removal target of a deck-wide-bad shape". In gorge, deck-choice options do not
-carry card facts, and the cast scorer is the only path this ticket arms; the
+carry card facts, and the cast scorer is the only path this work arms; the
 implemented reading is therefore **"never chosen as a cast by the armed cast
 scorer"**. This is the same deck-wide-bad shape Forge's hint names: the AI
-does not know how to play the card, so the policy declines to cast it. If a
-later ticket needs a deck-choice veto, that is a separate fact path and is not
+does not know how to play the card, so the policy declines to cast it. If later
+work needs a deck-choice veto, that is a separate fact path and is not
 claimed here.
 
 ## Scope and non-claims

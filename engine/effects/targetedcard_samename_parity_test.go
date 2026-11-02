@@ -57,13 +57,13 @@ func TestTargetedCardSameNameParity(t *testing.T) {
 // TestSharesNameWithReferentNarrowing holds the sharesNameWith referent set to
 // the name-comparison referents the shared resolver actually binds — Targeted,
 // Remembered, RememberedCard, TriggeredCard and Self. Self was classified by
-// the Marvin, Murderous Mimic donor ticket (it binds the static's own source,
+// the Marvin, Murderous Mimic work (it binds the static's own source,
 // SpecContext.Source), so it is recognised at the census level; with no
 // Source bound it must still fail closed under both polarities.
 // sharesTypeArgCodes aliases its ordinals across
 // RememberedCard/RememberedLKI/TriggeredCardLKICopy/Self/Commander/Convoked,
 // so a code-based switch there would silently recognise all six and evaluate a
-// name comparison against a referent no ticket covered (Reflector Mage's
+// name comparison against an uncovered referent (Reflector Mage's
 // RememberedLKI). sharesNameWithArg reads the distinct-code
 // sharesTypeReferentsCodes table instead, so the referents outside the
 // recognised set — RememberedLKI, Commander, Convoked, TriggeredCardLKICopy —
@@ -90,7 +90,7 @@ func TestSharesNameWithReferentNarrowing(t *testing.T) {
 		}
 	}
 	// The five supported referents must be recognised. Self binds only
-	// through SpecContext.Source (the Marvin ticket); with the source
+	// through SpecContext.Source; with the source
 	// unbound the referent is empty and must fail closed under both
 	// polarities, exactly like an unrecognised referent.
 	for _, ref := range []string{"Targeted", "Remembered", "RememberedCard", "TriggeredCard", "Self"} {

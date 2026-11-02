@@ -17,11 +17,11 @@ import (
 // `DBLoseLife` (`LifeAmount$ Y`, `Defined$ Opponent`) making each opponent
 // lose life equal to Y = `Count$ThisTurnEntered_Graveyard_from_Battlefield_Dalek$CardPower`.
 //
-// Before the fix, evalThisTurnEnteredAs handed `Dalek$CardPower` to the
-// zone-spec matcher as one filter, matched nothing, and Y evaluated to zero,
-// so every opponent lost nothing. This test asserts the played-out life loss
-// equals the measured total power of the Daleks the chapter itself destroyed,
-// and verifies the whole event stream replays byte-identically.
+// Handed whole to the zone-spec matcher as one filter, `Dalek$CardPower`
+// matches nothing and Y evaluates to zero, so every opponent lost nothing.
+// This test asserts the played-out life loss equals the measured total power
+// of the Daleks the chapter itself destroyed, and verifies the whole event
+// stream replays byte-identically.
 func TestGenesisOfTheDaleksChapterLosesTotalDalekPower(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

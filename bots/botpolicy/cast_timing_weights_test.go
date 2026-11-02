@@ -123,7 +123,7 @@ func TestCastWeightInstantOppEnd(t *testing.T) {
 	}
 }
 
-// TestCastWeightTimingDefaultIsZero pins the byte-identity half of the brief:
+// TestCastWeightTimingDefaultIsZero pins byte identity:
 // on every new-feature window a Board carrying DefaultCastWeights (all four
 // weights 0) picks exactly what the literal pre-refactor rule picks.
 func TestCastWeightTimingDefaultIsZero(t *testing.T) {

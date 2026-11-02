@@ -10,7 +10,7 @@ import (
 )
 
 // oviyaStaticAffected asserts the real corpus script still carries the
-// Affected$ line this ticket closes (a corpus pin move is a fixture break,
+// Affected$ line (a corpus pin move is a fixture break,
 // not something to paper over). AffectedDefined$ Self loads normalized into
 // a `Card.Self+...` Affected list, which is what the face carries.
 func oviyaStaticAffected(t *testing.T, reg *cards.Registry, name, want string) {

@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestContextWordPredicates is the effects leaf for the pc1 object/game-context
-// predicate families the row named and this task closed. Each family reads
+// TestContextWordPredicates is the effects leaf for the object/game-context
+// predicate families.
 // provenance the object alone does not carry, but the engine already tracks
 // it, so none needed a new tracker or a callable on SpecContext:
 //

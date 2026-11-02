@@ -1,5 +1,5 @@
 /**
- * yields is the game-scoped "always pass for this ability" set (prio6).
+ * yields is the game-scoped "always pass for this ability" set.
  *
  * WHAT A YIELD IS: one key naming ONE recurring stack entry — an opponent's
  * triggered ability the player is tired of answering, e.g. their Blood

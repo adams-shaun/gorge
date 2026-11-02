@@ -15,8 +15,8 @@ import (
 // census rather than a keyword the observation does not carry.
 func TestAttackersRebuildsActivatedCanAttackDefender(t *testing.T) {
 	script := "Name:Fixture Wall\nTypes:Creature Wall\nPT:3/5\nK:Defender\n" +
-		"A:AB$ Effect | Cost$ W | StaticAbilities$ CanAttack | Duration$ UntilHostLeavesPlayOrEOT | SpellDescription$ CARDNAME can attack this turn as though it didn't have defender.\n" +
-		"SVar:CanAttack:Mode$ CanAttackDefender | ValidCard$ Card.EffectSource | Description$ EFFECTSOURCE can attack this turn as though it didn't have defender.\n"
+		"A:AB$ Effect | Cost$ W | StaticAbilities$ CanAttack | Duration$ UntilHostLeavesPlayOrEOT\n" +
+		"SVar:CanAttack:Mode$ CanAttackDefender | ValidCard$ Card.EffectSource\n"
 	build := func(uses map[string]int32) ([]decision.Option, state.ObjID) {
 		s := fixtureSession(t, script, "Name:Fixture Bears\nTypes:Creature Bear\nPT:2/2\n")
 		s.uses, s.usesTurn = uses, 3

@@ -11,16 +11,16 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The stage-1 "choose a mana ability" labels were built straight from the raw
-// Produced$ script token (fb-e079def5): a Talisman-of-Indulgence-shaped wheel
-// showed the jargon "Add Combo B R", which no player can read and which
+// The stage-1 "choose a mana ability" labels must not come straight from the raw
+// Produced$ script token: a Talisman-of-Indulgence-shaped wheel
+// would show the jargon "Add Combo B R", which no player can read and which
 // defeats the web wheel's mana-pip styling (it tints a list only when EVERY
 // label is a single "Add <C>"). manaAbilityLabel renders them for humans; the
 // direct unit table lives in TestManaAbilityLabelShapes below, and these two
 // engine tests pin the reported flow end to end.
 
 // TestTalismanOfIndulgenceStageOneFlattensIntoColourPips pins the reported
-// card's flow end to end (task fb-20260917T232800Z): Talisman of Indulgence
+// card's flow end to end: Talisman of Indulgence
 // carries TWO mana abilities ({T}: Add {C}, and {T}: Add {B} or {R} plus the
 // 1-damage SubAbility), and the stage-1 wheel offers THREE options -- "Add
 // C", "Add B", "Add R" -- the per-colour pip bubbles the player asked for.
@@ -121,7 +121,7 @@ func TestTalismanOfIndulgenceRealCorpusFlattens(t *testing.T) {
 // goes straight to the five-colour ask). The Any ability is NOT flattened
 // (the choice is not enumerable at option-build time), so it keeps the
 // single "Add any color" option and the stage-2 five-colour ask still
-// follows it (task fb-20260917T232800Z's scope boundary).
+// follows it.
 func TestManaProducedAnyStageOneLabel(t *testing.T) {
 	t.Parallel()
 	const src = "Name:Any Source\nTypes:Artifact\n" +
@@ -165,10 +165,9 @@ func TestManaProducedAnyStageOneLabel(t *testing.T) {
 
 // TestManaAbilityLabelShapes is the direct unit table over the formatter,
 // including the shapes no engine fixture reaches (a three-colour combo, a
-// doubled pip, Chosen). The formatter now serves only the NON-flattened
+// doubled pip, Chosen). The formatter serves only the NON-flattened
 // stage-1 options (an explicit multi-colour Combo is expanded into per-colour
-// options before manaAbilityLabel is consulted, task fb-20260917T232800Z),
-// but its own output contract is unchanged.
+// options before manaAbilityLabel is consulted), but its own output contract is unchanged.
 func TestManaAbilityLabelShapes(t *testing.T) {
 	t.Parallel()
 	cases := []struct{ produced, want string }{

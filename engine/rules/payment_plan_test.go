@@ -464,7 +464,7 @@ func TestPaymentPlanDeclinesEffectCreatedProduceManaReplacement(t *testing.T) {
 
 const paymentPlanMountain = "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"
 
-// paymentPlanFallbackReasons is the closed spec §6 fallback vocabulary.
+// paymentPlanFallbackReasons is the closed fallback vocabulary.
 var paymentPlanFallbackReasons = map[string]bool{
 	paymentFallbackCostChanged: true, paymentFallbackSourceChanged: true,
 	paymentFallbackProductionChanged: true, paymentFallbackChoiceRequired: true,
@@ -507,7 +507,7 @@ func paymentPlanChooseObj(t *testing.T, e *Engine, obj state.ObjID) {
 	t.Fatalf("cost choice %q offers no option for %d: %#v", d.Prompt, obj, d.Options)
 }
 
-// paymentPlanSettle is the spec §6 contract for a planned cast whose cost
+// paymentPlanSettle is the contract for a planned cast whose cost
 // choices have been answered: either the plan kept running and the cast
 // settled, or automation stopped on the ordinary manual window with a
 // vocabulary PaymentFallback naming the selected plan -- which the caller's
@@ -564,7 +564,7 @@ func assertPlannedCastPaid(t *testing.T, e *Engine, spell state.ObjID, from int,
 	}
 }
 
-// PP-08 (spec §3.1 as amended): a plain cast whose spell ability also carries
+// A plain cast whose spell ability also carries
 // a non-mana `Cost$` part -- Harrow's land sacrifice, Thrill of Possibility's
 // discard, Gurmag Angler's delve -- receives NO V1 payment plan, because the
 // witness cannot bind the additional cost. The ordinary cast option is
@@ -572,8 +572,7 @@ func assertPlannedCastPaid(t *testing.T, e *Engine, spell state.ObjID, from int,
 // a plan that does name such a cast is exercised directly (not through the
 // planner offer) by TestPaymentPlanExecutesAfterCastTimeChoice and
 // TestPaymentPlanShapeGateAdditionalCostExecutorPays in
-// payment_plan_shape_gate_test.go. This test is the planner half of the audit
-// story aph-cast-shape-gate owns; autopay-exec-harden owns the executor half.
+// payment_plan_shape_gate_test.go. This test is the planner half of the audit.
 func TestPaymentPlanAdditionalCostCastGetsNoPlan(t *testing.T) {
 	t.Parallel()
 	red := state.Mana{}
@@ -619,7 +618,7 @@ func TestPaymentPlanAdditionalCostCastGetsNoPlan(t *testing.T) {
 		if e.G.Obj(spell).Zone != state.ZHand {
 			t.Fatal("fixture spell is not in hand")
 		}
-		// PP-08 now admits exactly the fixed-count mandatory sacrifice shape:
+		// The planner admits exactly the fixed-count mandatory sacrifice shape:
 		// the planner offers a mana-only witness and the sacrifice is answered
 		// through the ordinary in-flow ask (TestPaymentPlanSeeksSacrificeOffer).
 		if detail := e.paymentPlanCastShapeDetail(0, spell); detail != "" {
@@ -688,7 +687,7 @@ func TestPaymentPlanAdditionalCostCastGetsNoPlan(t *testing.T) {
 		onBoard(t, e, 0, paymentPlanMountain)
 		spell := putInHand(t, e, 0, corpusCard(t, "Harrow"))
 		// Harrow's `Cost$ Sac<1/Land>` is the fixed-count mandatory sacrifice
-		// shape PP-08 now admits, so its plan is offered; the land sacrifice
+		// shape the planner admits, so its plan is offered; the land sacrifice
 		// is answered through the ordinary in-flow ask.
 		if detail := e.paymentPlanCastShapeDetail(0, spell); detail != "" {
 			t.Fatalf("Harrow shape detail = %q, want the fixed-count sacrifice shape admitted", detail)
@@ -759,7 +758,7 @@ func paymentPlanPendingSummary(d *decision.Decision) string {
 // first planned activation -- the post-activation check's own territory.
 const paymentPlanTappedContamination = "Name:Tapped Contamination\nTypes:Enchantment\nR:Event$ ProduceMana | ActiveZones$ Battlefield | ValidCard$ Land | IsPresent$ Land.tapped | ReplaceWith$ ProduceB | Description$ Fixture: once a land is tapped, a land tapped for mana produces B instead.\nSVar:ProduceB:DB$ ReplaceMana | ReplaceMana$ B\nOracle:x\n"
 
-// Spec §6: after each planned activation the executor compares the mana it
+// After each planned activation the executor compares the mana it
 // actually added with the witness step. A ProduceMana replacement arriving
 // after the offer that applies only once a land is tapped makes the first
 // planned Mountain produce B where its step says R. Automation stops at once

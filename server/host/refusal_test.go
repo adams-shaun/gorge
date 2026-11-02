@@ -1,6 +1,6 @@
 package host
 
-// BP-06: the host refusal ladder (spec 2026-09-28-hosted-bot-packages §5.5).
+// The host refusal ladder (hosted-bot design 2026-09-28-hosted-bot-packages §5.5).
 // A seat that implements bots.RefusalAnswerer gets one retry and then the
 // shared bots.Fallbacks rungs before the crash; every other seat keeps the
 // old crash, unchanged. These tests drive a real 4-seat match through
@@ -36,7 +36,7 @@ func refusableIntent(d decision.Decision) decision.Intent {
 
 // refusingSeat wraps a real bot and answers one shared decision ordinal with
 // a refusable intent. It implements bots.RefusalAnswerer, so the host runs
-// the BP-06 ladder for it. retryValid selects the ladder's branch: true
+// the ladder for it. retryValid selects the ladder's branch: true
 // returns the wrapped bot's own answer (rung 1 accepts), false returns a
 // second refusable intent so the ladder falls through to bots.Fallbacks.
 type refusingSeat struct {
@@ -184,7 +184,7 @@ func TestRefusalLadderFallsBackToMinimalThenBot(t *testing.T) {
 
 // plainRefusingSeat answers the first decision with a refusable intent and,
 // crucially, does NOT implement bots.RefusalAnswerer. The host must keep the
-// pre-BP-06 crash for it.
+// crash for it.
 type plainRefusingSeat struct {
 	inner seat.Seat
 	n     *int
@@ -201,7 +201,7 @@ func (s *plainRefusingSeat) Decide(ctx context.Context, v view.View, d decision.
 
 // TestNonRefusalSeatStillCrashesOnRejection: a seat that is not a
 // RefusalAnswerer gets no ladder and the match crashes with the rejected
-// intent, exactly as before BP-06.
+// intent.
 func TestNonRefusalSeatStillCrashesOnRejection(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

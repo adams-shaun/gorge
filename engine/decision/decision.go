@@ -657,8 +657,7 @@ type Decision struct {
 	WindowReasons []WindowReason `json:"window_reasons,omitempty"`
 	// PaymentActions is an additive, separately indexed cast-payment
 	// extension. Keeping it outside Options preserves every legacy priority
-	// choice index. It remains empty until payplan-04 publishes executable
-	// offers.
+	// choice index. It stays empty until the host publishes executable offers.
 	PaymentActions []PaymentAction `json:"payment_actions,omitempty"`
 	// PaymentActionsBuilt distinguishes an unrequested extension from a built
 	// empty extension. It is engine cache state, never part of the wire.

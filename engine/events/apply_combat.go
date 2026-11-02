@@ -147,20 +147,18 @@ func foldDamage(g *state.Game, e *Event) {
 	infect := e.Counter == "infect"
 	wither := e.Counter == "wither+creature"
 	if o := g.Obj(e.Obj); o != nil {
-		// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
-		// removes that many loyalty counters instead of being marked as
-		// damage. The conversion lives here, on the one fold every
-		// Damage event goes through, so spell/ability damage (engine/effects/
-		// damage.go), future combat damage and any emitter this build
-		// gains later all convert the same way and a replay derives the
-		// same loyalty from the same log. A planeswalker that is ALSO a
-		// creature still takes marked damage (CR 120.3e -- the exchange
-		// is not exclusive), and either way a positive amount records
-		// that the object was dealt damage this turn. Prevention (CR
-		// 702.16d) and protection replace or note the Damage event
-		// before it reaches this fold, so a prevented hit converts
-		// nothing -- which is why the walker exchange no longer needs
-		// the bypass it used to travel by.
+		// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent removes
+		// that many loyalty counters instead of being marked as damage. The
+		// conversion lives here, on the one fold every Damage event goes
+		// through, so spell/ability damage (engine/effects/ damage.go),
+		// future combat damage and any emitter this build gains later all
+		// convert the same way and a replay derives the same loyalty from the
+		// same log. A planeswalker that is ALSO a creature still takes marked
+		// damage (CR 120.3e -- the exchange is not exclusive), and either way
+		// a positive amount records that the object was dealt damage this
+		// turn. Prevention (CR 702.16d) and protection replace or note the
+		// Damage event before it reaches this fold, so a prevented hit
+		// converts nothing.
 		walker := false
 		battle := false
 		if f := o.Face(); f != nil && f.IsBattle() {
@@ -269,7 +267,7 @@ func foldEndCombatReset(g *state.Game, e *Event) {
 func foldCmdDamage(g *state.Game, e *Event) {
 	// Commander combat damage to a player (CR 903.10): fold
 	// Amount into Player's cumulative tally at the source commander's
-	// match-wide dense index, exactly the slot m30's genesis sizes and
+	// match-wide dense index, exactly the slot genesis sizes and
 	// New's Commanders bookkeeping names, so commander B keeps one slot
 	// - and one cumulative total - for the whole match, across zone
 	// changes and recasts (state.ObjID is stable across moves). A

@@ -4,7 +4,7 @@ import { pickOption } from './seatpanel.svelte';
 
 // pickOption against a raised per-Group cap (Decision.groupLimit): an option
 // Group is one listed type of the EACH multi-type search grammar and may
-// contribute up to groupLimit picks. The client stays rules-ignorant (R-E4-2):
+// contribute up to groupLimit picks. The client stays rules-ignorant:
 // it derives the cap from the wire field alone, appends while the group has
 // room, and replaces the oldest member once it is full. At the default cap
 // (absent field, or 1) the pick is the historical replace-on-represented.

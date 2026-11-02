@@ -20,7 +20,7 @@ func ringCreature(t *testing.T, h *fakeHost, p state.PlayerID, name string) stat
 
 // TestRingTemptsYouCountsAndDesignatesFirstCreature is the no-host fallback
 // leaf: with no engine host to ask (this effects double's Ask reports false)
-// two eligible creatures pose the R-9 stand-in, and one Resolve emits exactly
+// two eligible creatures pose the no-host stand-in, and one Resolve emits exactly
 // one RingTemptsYou event, the seat's tempt count rises to 1, and the first
 // creature in the controller's battlefield zone order is designated. The
 // hosted ask path (a real KChoose posed when two or more creatures are
@@ -31,7 +31,7 @@ func TestRingTemptsYouCountsAndDesignatesFirstCreature(t *testing.T) {
 	gorilla := ringCreature(t, h, 0, "Gorilla")
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "DB$ RingTemptsYou"))
 	// Precondition: the ask path was actually reached (two eligible creatures),
-	// so the R-9 Note below is the fallback, not the single-creature silent path.
+	// so the stand-in Note below is the fallback, not the single-creature silent path.
 	if h.askCount != 1 {
 		t.Fatalf("asks = %d, want 1 (two eligible creatures pose the choice)", h.askCount)
 	}
@@ -39,7 +39,7 @@ func TestRingTemptsYouCountsAndDesignatesFirstCreature(t *testing.T) {
 		t.Fatal("precondition: the double must report no host (Ask false)")
 	}
 	if !ringLogHasNoHostNote(h.log) {
-		t.Fatalf("log = %+v, want the R-9 no-host Note", h.log)
+		t.Fatalf("log = %+v, want the no-host Note", h.log)
 	}
 	if len(h.log) != 2 || h.log[1].Kind != events.RingTemptsYou || h.log[1].Player != 0 {
 		t.Fatalf("log = %+v", h.log)
@@ -55,7 +55,7 @@ func TestRingTemptsYouCountsAndDesignatesFirstCreature(t *testing.T) {
 	_ = gorilla
 }
 
-// ringLogHasNoHostNote reports whether the log carries the R-9 no-host Note
+// ringLogHasNoHostNote reports whether the log carries the no-host Note
 // effRingTemptsYou emits when it falls back to the default bearer.
 func ringLogHasNoHostNote(log []events.Event) bool {
 	for _, e := range log {

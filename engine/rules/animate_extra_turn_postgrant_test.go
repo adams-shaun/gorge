@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Regressions for the review round on the UntilYourNextTurn animate lifetime:
-// the prior round only pinned extra turns already QUEUED at registration
+// Regressions for the UntilYourNextTurn animate lifetime: a pin of extra turns
+// already QUEUED at registration
 // (AddContinuous's nextTurnFor walk). These two pin the other half -- a +1
 // ExtraTurn grant emitted AFTER Karn's +1 resolved, which the frozen
 // registration-time UntilTurn cannot see. EndOfTurnCleanup reschedules the

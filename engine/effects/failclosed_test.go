@@ -10,10 +10,10 @@ import (
 // TestUnimplementedPredicateFailsClosed is the fail-closed leaf: a predicate
 // this build does NOT implement still matches NOTHING and is still reported by
 // UnknownPredicates -- it never silently becomes an always-true predicate that
-// widens a filter. The families chosen are the remaining pc1 stragglers this
+// widens a filter. The families chosen are the stragglers this
 // build left unknown; the row's named object/game-context families
 // (ExiledWithSource, wasDealtDamageThisTurn, IsImprinted, NotDefinedTargeted,
-// DefenderCtrl, Opponent) were implemented by task pc1ctx and are asserted in
+// DefenderCtrl, Opponent) are implemented and asserted in
 // contextword_test.go instead. A card that uses e.g. `Card.DefinedTargeted`
 // must fail closed: the predicate matches nothing, so those clauses stay
 // inert rather than firing against every card.

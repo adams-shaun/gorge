@@ -28,7 +28,7 @@ import (
 // answer it exactly as native's: pass.
 func TestNeutralRepeatableActivationMatchesNative(t *testing.T) {
 	s := fixtureSession(t,
-		"Name:Fixture Staff\nTypes:Artifact\nA:AB$ Untap | Cost$ 1 | SpellDescription$ Untap CARDNAME.\n")
+		"Name:Fixture Staff\nTypes:Artifact\nA:AB$ Untap | Cost$ 1\n")
 	staff := obsRef("o-staff", "Fixture Staff", "p1")
 	obsWith := func(activations int, tapped bool) protocol.Observation {
 		staffRec := obsPerm("o-staff", "Fixture Staff", "p1", &protocol.Permanent{Tapped: tapped}, "artifact")

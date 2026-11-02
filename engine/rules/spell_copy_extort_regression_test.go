@@ -1,6 +1,6 @@
 package rules
 
-// Round-1 regression pins for the two MSH roots:
+// Regression pins for two MSH roots:
 //
 //   1. A copy of a spell that leaves the stack ceases to exist (CR 707.10a,
 //      704.5e). The end-to-end pin is

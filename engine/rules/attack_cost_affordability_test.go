@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// attackcost-affordability: the l2 review-round narrowing of the shared
-// combatChargeAffordable read.
+// The narrowing of the shared combatChargeAffordable read.
 //
 // A resolved zero is a free charge, not an unpriceable cost. On main a
 // Count$/SVar combat price that resolved to 0 was skipped as a free pair; the
@@ -112,7 +111,7 @@ const combatMultiPipFixture = "Name:Multi Pip Tax\nTypes:Enchantment\n" +
 	"S:Mode$ CantAttackUnless | ValidCard$ Creature | Target$ You | Cost$ W/P U/P | Description$x\n" +
 	"Oracle:x\n"
 
-// TestMixedOnlyMultiPipChargeIsNeverOffered pins the l2 MINOR's consequence:
+// TestMixedOnlyMultiPipChargeIsNeverOffered pins the consequence:
 // a two-pip charge payable ONLY by mixing branches (one colour, one life) is
 // admitted by the joint `Cost{Generic, Phyrexian}` reachability read, but
 // openCombatPayPlan can settle neither an all-colour nor an all-life branch,
@@ -181,7 +180,7 @@ const combatTapPipFixture = "Name:Tap Pip Tax\nTypes:Enchantment\n" +
 	"S:Mode$ CantAttackUnless | ValidCard$ Creature | Target$ You | Cost$ tapXType<1/Creature> W/P | Description$x\n" +
 	"Oracle:x\n"
 
-// TestPhyrexianColourBranchExcludesReservedTapSource pins the l2 MINOR: a
+// TestPhyrexianColourBranchExcludesReservedTapSource: a
 // plan-reserved tap permanent must be withheld from the Phyrexian colour
 // branch probe too, not only from combatChargeAffordable's reachability. When
 // the payer's only white source IS the creature the tap obligation must tap,

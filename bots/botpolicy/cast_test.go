@@ -253,13 +253,13 @@ func TestChooseCastAndLandPickOneWithoutClamp(t *testing.T) {
 	}
 }
 
-// TestCastEqualCostNonCreaturesTieOnIndex pins the withdrawal of the
-// effect-class bonus the task checkpoint added: two non-creatures at equal
-// CMC previously separated by the oracle-phrase class their text matched
-// (classifyCard read an anti-removal word like "destroy"/"exile" and priced
-// it above a draw or a burn). That bonus rested on oracle-phrase guessing
-// about what a spell does -- it never read what the removal answers, never
-// read a card's printed type line or oracle text, and cannot tell a burn from
+// TestCastEqualCostNonCreaturesTieOnIndex pins that there is no effect-class
+// bonus: two non-creatures at equal CMC tie on index, not on the oracle-phrase
+// class their text matches
+// (a classifyCard reading an anti-removal word like "destroy"/"exile" and pricing
+// it above a draw or a burn). Such a bonus rests on oracle-phrase guessing
+// about what a spell does -- it never reads what the removal answers, never
+// reads a card's printed type line or oracle text, and cannot tell a burn from
 // a draw whose texts differ only in words the matcher did not happen to
 // list -- so it is gone. A cast the policy cannot separate ranks by CMC
 // alone, and an equal-CMC tie breaks on option index (C6), the

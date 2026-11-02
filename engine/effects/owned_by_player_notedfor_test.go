@@ -1,12 +1,12 @@
 package effects
 
 // The `Card.OwnedBy|ControlledBy Player.NotedFor<label>` control/ownership
-// referent (task agent-20261005T013345Z-8182c5fb). Forge's PlayerProperty
+// referent. Forge's PlayerProperty
 // .NotedFor is a global player property written by a DB$ Pump body's
 // NoteCardsFor$ parameter (effects.effPump -> events.PlayerNoted) and read by
 // the shared player filter's `Player.NotedFor<label>` qualifier
-// (engine/effects/player_filter.go). Before this ticket the shared control/ownership
-// classifier (controlReferent) did not know the qualifier, so the whole
+// (engine/effects/player_filter.go). Without it the shared control/ownership
+// classifier (controlReferent) would not know the qualifier, so the whole
 // predicate failed closed and moved nothing: TMT Turtles in Time and TMT Step
 // Between Worlds swept zero cards for their opted-in players, and the two
 // Continuous statics (Archangel of Strife, Two Streams Facility) matched no

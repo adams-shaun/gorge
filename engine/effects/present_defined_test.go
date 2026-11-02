@@ -104,10 +104,9 @@ func TestPresentDefinedGateReadsPresentCompare(t *testing.T) {
 }
 
 // TestPresentDefinedGateIgnoresThePhantomPresentKey proves the fix replaces
-// the phantom `Present$` key (zero corpus occurrences) with the corpus's
-// real DB-body spelling `IsPresent$`. A gate carrying ONLY `Present$ Land`
-// over the creature source must RUN (the phantom key is not a filter);
-// before the fix it was read as one and the gate denied.
+// the phantom `Present$` key (zero corpus occurrences) with the corpus's real
+// DB-body spelling `IsPresent$`. A gate carrying ONLY `Present$ Land` over
+// the creature source must RUN (the phantom key is not a filter).
 func TestPresentDefinedGateIgnoresThePhantomPresentKey(t *testing.T) {
 	h, _, ctx := presentDefinedCtx(t, "Creature", false)
 	gate := sa(t, "DB$ PutCounter | Defined$ TriggeredSourceLKICopy | CounterType$ P1P1 | PresentDefined$ TriggeredSourceLKICopy | Present$ Land | PresentCompare$ EQ1")

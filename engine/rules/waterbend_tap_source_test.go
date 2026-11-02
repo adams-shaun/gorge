@@ -129,8 +129,8 @@ func TestSetAudit_tla_NorthPolePatrol_TwoFillersNotOffered(t *testing.T) {
 func TestSetAudit_tla_NorthPolePatrol_IntentNamingSourceRejected(t *testing.T) {
 	e, patrol, fillers, bears := patrolBoard(t, 3)
 	d := patrolToWaterbendAsk(t, e, patrol, bears)
-	// Forge the pre-fix option: the Patrol as a waterbend tap, spliced into
-	// the pending decision the way an old option list carried it.
+	// Forge an option: the Patrol as a waterbend tap, spliced into the
+	// pending decision.
 	forged := *d
 	forged.Options = append(append([]decision.Option(nil), d.Options...), decision.Option{
 		Index: len(d.Options), Kind: "waterbend_generic", Obj: patrol, Group: "payment:forged"})

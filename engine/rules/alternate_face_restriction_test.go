@@ -123,8 +123,8 @@ func TestAlternateFaceCantBeCastAdventureAltFrontRestricted(t *testing.T) {
 		t.Fatalf("precondition: Steel Golem zone=%s face=%q, want a creature on the battlefield",
 			goObj.Zone, goObj.Face().Name)
 	}
-	// Precondition: the FRONT face is restricted -- this is exactly the gate
-	// that withheld the adventure_alt offer before the fix.
+	// Precondition: the FRONT face is restricted -- this is the gate that
+	// must not withhold the adventure_alt offer.
 	if !e.castRestricted(0, id) {
 		t.Fatal("precondition: the Brazen Borrower front is not restricted by " +
 			"Steel Golem's ValidCard$ Creature static")

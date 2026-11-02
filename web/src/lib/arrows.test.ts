@@ -23,7 +23,7 @@ describe('arrowsFor', () => {
     ]);
   });
 
-  it('a counterspell on the stack targets the spell beneath it — the stack-to-stack pair the rail renders (fb-20260914T121642Z)', () => {
+  it('a counterspell on the stack targets the spell beneath it — the stack-to-stack pair the rail renders', () => {
     // view.stack lists bottom first, so the bolt (890) sits BELOW the
     // counterspell (900) in the rail; the arrow runs from the upper tile to
     // the lower one. No new wire or target projection was needed for the
@@ -144,7 +144,7 @@ describe('previewArrowsFor', () => {
   });
 });
 
-describe('arrowsFor — stack targets only for the hovered item (UI rework §3)', () => {
+describe('arrowsFor — stack targets only for the hovered item', () => {
   it('draws one stack item\'s targets when named, none for null, and combat always', async () => {
     const { arrowsFor } = await import('./arrows');
     const v = {

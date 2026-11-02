@@ -10,8 +10,8 @@ import (
 
 // TestCopyPermanentDefinedNameRealCorpus pins ECL Mutable Explorer's real
 // ChangesZone -> TrigToken -> CopyPermanent DefinedName$ Mutavault script.
-// Fix 30c3341fe makes that named-card source produce the tapped Mutavault
-// token the card promises, rather than rejecting DefinedName$.
+// That named-card source produces the tapped Mutavault token the card promises,
+// rather than rejecting DefinedName$.
 func TestCopyPermanentDefinedNameRealCorpus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	explorer, ok := reg.Lookup("Mutable Explorer")

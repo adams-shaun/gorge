@@ -67,7 +67,7 @@ func witheringEngine(t *testing.T, reg *cards.Registry, swamps int) (*Engine, st
 	return e, id, swampIDs
 }
 
-// TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer is av3-1: with
+// TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer: with
 // ZERO snow Swamps the computed limit is 0, so Withering Wisps' activated
 // ability must NOT be offered at all.
 func TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer(t *testing.T) {
@@ -83,7 +83,7 @@ func TestActivationLimitComputedZeroSnowSwampsWithholdsTheOffer(t *testing.T) {
 	}
 }
 
-// TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird is av3-2: with
+// TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird: with
 // TWO snow Swamps the computed limit is 2, so the ability is offered twice
 // this turn and NOT a third time.
 func TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird(t *testing.T) {
@@ -115,7 +115,7 @@ func TestActivationLimitComputedTwoSnowSwampsOfferedTwiceNotThird(t *testing.T) 
 	}
 }
 
-// TestActivationLimitLiteralStillEnforcedExactly is av3-3: the literal-limit
+// TestActivationLimitLiteralStillEnforcedExactly: the literal-limit
 // shape (Basking Rootwalla's ActivationLimit$ 1) behaves exactly as it did
 // before -- offered once, withheld on the second activation the same turn.
 func TestActivationLimitLiteralStillEnforcedExactly(t *testing.T) {
@@ -148,7 +148,7 @@ func TestActivationLimitLiteralStillEnforcedExactly(t *testing.T) {
 // IS the inline Count$ expression, so only the direct-raw arm can resolve it.
 // Deleting the arm makes resolveActivationLimit fall through to a failed SVar
 // lookup, report ok=false, and silently leave the limit unenforced -- which is
-// exactly the divergence this task exists to remove.
+// exactly the divergence to avoid.
 func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -201,8 +201,7 @@ func TestActivationLimitInlineCountWithheldAtComputedCount(t *testing.T) {
 }
 
 // TestManaAbilityActivationLimitOfferedOnceThenWithheld pins the mana
-// activation half of the ActivationLimit$ gate (the vivi-ornitier-cedh deck
-// import, 2026-09-14): availableManaAbilities is a mana ability's ONLY
+// activation half of the ActivationLimit$ gate: availableManaAbilities is a mana ability's ONLY
 // eligibility walk -- offer, payment window and chosen activation all go
 // through it -- and it used to skip the parameter entirely, so Vivi
 // Ornitier's "only once each turn" mana ability stayed offerable without
@@ -293,10 +292,9 @@ func TestManaAbilityActivationLimitOfferedOnceThenWithheld(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestActivationLimitUnresolvableItDegradesToUnenforced is av3-4: an
-// ActivationLimit expression the evaluator genuinely cannot resolve (an SVar
-// name absent from the face's table) stays unenforced, deliberately -- the
-// ability is offered exactly as it was before the fix.
+// TestActivationLimitUnresolvableItDegradesToUnenforced: an ActivationLimit
+// expression the evaluator genuinely cannot resolve (an SVar name absent from
+// the face's table) stays unenforced, deliberately -- the ability is offered.
 func TestActivationLimitUnresolvableItDegradesToUnenforced(t *testing.T) {
 	t.Parallel()
 	src := "Name:MysteryBeast\nManaCost:1 G\nTypes:Creature Beast\nPT:2/2\n" +

@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Regressions for the cardfuzz batch11 intent-cap run and livelock (all real
-// corpus cards).
+// Regressions for a fuzzer-found intent-cap run and livelock (all real corpus cards).
 
 // driveStackEmpty answers every pending decision (passing priority, taking
 // the choice pick(d) names otherwise) until the stack is empty and a priority
@@ -32,8 +31,7 @@ func driveStackEmpty(t *testing.T, e *Engine, budget int, pick func(d *decision.
 	}
 }
 
-// TestMoveReplacementOrderChoiceResumesTheResolution (cardfuzz batch11 line
-// 1): two Library of Leng on one battlefield both offer to put a card their
+// TestMoveReplacementOrderChoiceResumesTheResolution: two Library of Leng on one battlefield both offer to put a card their
 // controller discards on top of the library, so Shoal Kraken's constellation
 // discard poses a CR 616.1 order choice from inside the trigger's
 // resolution. The move competition's pose never marked itself
@@ -71,7 +69,7 @@ func TestMoveReplacementOrderChoiceResumesTheResolution(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestRedirectedMoveGetsTheOtherReplacements (cardfuzz batch11 line 2):
+// TestRedirectedMoveGetsTheOtherReplacements:
 // Magus of the Will's effect exiles any card that would go to its
 // controller's graveyard this turn and lets them cast from the graveyard.
 // Mox Diamond's own "if it would enter, discard a land or put it into the

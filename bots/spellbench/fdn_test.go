@@ -119,7 +119,7 @@ func TestFDNCoverage(t *testing.T) {
 			primCards[p] = append(primCards[p], fc.Name)
 		}
 		if _, listed := knownUnsupportedFDN[fc.Name]; !listed {
-			t.Errorf("%s is not fully supported (missing %v) and is not in knownUnsupportedFDN -- a regression, or add the row with a ticket", fc.Name, m)
+			t.Errorf("%s is not fully supported (missing %v) and is not in knownUnsupportedFDN -- a regression, or add the row", fc.Name, m)
 		}
 	}
 	sort.Slice(gaps, func(i, j int) bool {

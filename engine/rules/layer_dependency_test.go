@@ -6,16 +6,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestLayer6DependencyOrderCavalryMasterOlderThanSidewinder pins the CR
-// 613.6 half of the kw:Flanking row's layer-walk narrowing: Cavalry Master's
+// TestLayer6DependencyOrderCavalryMasterOlderThanSidewinder pins the CR 613.6
+// half of the kw:Flanking row's layer-walk narrowing: Cavalry Master's
 // `Affected$ Creature.Other+withFlanking+YouCtrl` lord that entered the
 // battlefield BEFORE a Sidewinder Sliver must still give the Sliver a second
 // flanking instance (CR 702.25b), because the lord's effect DEPENDS on the
 // Sliver's own grant -- applying the grant changes what the lord applies to
-// -- so CR 613.6 applies the lord after the grant instead of in raw
-// timestamp order. Before the fix the walk evaluated the lord's gate against
-// the pre-grant keyword list, `withFlanking` failed, and the Sliver sat on
-// one instance.
+// -- so CR 613.6 applies the lord after the grant instead of in raw timestamp
+// order.
 func TestLayer6DependencyOrderCavalryMasterOlderThanSidewinder(t *testing.T) {
 	t.Parallel()
 	master := mshCorpusCard(t, "Cavalry Master")
@@ -62,8 +60,7 @@ func TestLayer6DependencyOrderCavalryMasterOlderThanSidewinder(t *testing.T) {
 // direction of the same CR 613.6 modelling: an older `without<Keyword>`-gated
 // lord DEPENDS on a newer layer-6 grant that turns the gate off, so the lord
 // applies after the grant and stops matching the object -- the Muraganda
-// Petroglyphs ruling's reading. Before the fix raw timestamp order applied
-// the older lord first, while the gate still matched, and its grant stood.
+// Petroglyphs ruling's reading.
 func TestLayer6NegativeKeywordDependencyAppliesDependentAfter(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
@@ -114,10 +111,9 @@ func TestLayer6NegativeKeywordDependencyAppliesDependentAfter(t *testing.T) {
 
 // TestLayer6KeywordDependencyChainResolvesTransitively pins the transitive
 // half: a lord gated on a keyword that is itself granted by a gate on a
-// keyword granted by a third effect, with the three timestamps in the
-// reverse order, must still land all three grants (the dependency chain
-// reorders to A1, A2, B). Before the fix only the innermost, ungated grant
-// survived.
+// keyword granted by a third effect, with the three timestamps in the reverse
+// order, must still land all three grants (the dependency chain reorders to
+// A1, A2, B).
 func TestLayer6KeywordDependencyChainResolvesTransitively(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

@@ -192,3 +192,38 @@ func TestManaColourAskKeepsOnlyAbsorbableColours(t *testing.T) {
 		t.Fatalf("Hybrid Beast zone = %v, want battlefield", o.Zone)
 	}
 }
+
+// TestColourAskOffersTheOwedColourFirst: a {1}{U} cast paid by a dual and a red
+// source. A dual that answers its first colour, W, leaves the {U} to the red
+// source and strands the payment (CR 601.2g), so an answerer taking the first
+// option must find the colour still owed there, whether the dual offers its
+// colours in one ability or one per colour.
+func TestColourAskOffersTheOwedColourFirst(t *testing.T) {
+	t.Parallel()
+	const redSrc = "Name:Red Rock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ R\nOracle:x\n"
+	for name, dualSrc := range map[string]string{
+		"one ability": "Name:Dual Rock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo W U\nOracle:x\n",
+		"one per colour": "Name:Dual Rock\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ W\n" +
+			"A:AB$ Mana | Cost$ T | Produced$ U\nOracle:x\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			e := handEngine(t, card(t, "Name:Blue Bird\nManaCost:1 U\nTypes:Creature Bird\nPT:1/1\nOracle:x\n"))
+			bird := e.G.Zone(state.ZHand, 0)[0]
+			battlePerm(t, e, 0, dualSrc)
+			battlePerm(t, e, 0, redSrc)
+			e.cast = &pendingCast{player: 0, card: bird, from: state.ZHand, ability: -1, cost: ParseCost("1 U")}
+			e.continueCast()
+			for i := 0; i < 8 && e.cast != nil; i++ {
+				d := e.Pending()
+				if d == nil {
+					t.Fatal("no decision while the cast is pending")
+				}
+				submitIdx(t, e, d, d.Options[0].Index)
+			}
+			if got := e.G.Obj(bird).Zone; got != state.ZStack {
+				t.Fatalf("Blue Bird in %s, want on the stack: the payment stranded", got)
+			}
+		})
+	}
+}

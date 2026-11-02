@@ -115,7 +115,7 @@ describe('SeatTable — the rail floor (one-line counts let the rail shrink)', (
   // tray) at exactly that width, with a 27-character seat name that was
   // ALREADY ellipsized at the old 17rem floor (needs 173px, had 64px there),
   // so the assertions below are measured facts about the reduced rail, not
-  // about the name change. Since fb-20260917T232028Z the seat summary is one
+  // about the name change. The seat summary is one
   // text-line tall: its register (life pill + four one-line counts + row
   // chrome) measures ~141px — just under the stack tile's 144px floor, which
   // the 11rem floor cleared before this change too. The name takes the
@@ -151,8 +151,8 @@ describe('SeatTable — the rail floor (one-line counts let the rail shrink)', (
   });
 
   it('wraps the lost seat\'s long loss cause inside the rail instead of overflowing past it', async () => {
-    // fb-20260917T232028Z round-2 finding: the eliminated line inherited the
-    // row's nowrap inside a min-width: 0 flex item, so the longest real loss
+    // The eliminated line must not inherit the row's nowrap inside a
+    // min-width: 0 flex item, so the longest real loss
     // cause (lib/seattable.ts lossCauses doc: "commander damage (21 or more
     // from one commander)") painted past the counts and past the rail box at
     // the 11rem floor (measured 349px scroll vs 176px client). The fix wraps
@@ -237,9 +237,9 @@ describe('SeatTable — the rail floor (one-line counts let the rail shrink)', (
     expect(fits.button).toBeLessThanOrEqual(fits.rail);
   });
 
-  // fb-53bd45b9: the concede control used to be absolutely positioned at
+  // The concede control must not be absolutely positioned at
   // top: 3rem inside the rail — an offset calibrated to clear the logbar
-  // that instead landed ON seat row 0 (49.2px) once the zone counts stacked
+  // lands ON seat row 0 (49.2px) once the zone counts stacked
   // two-high, painting over its life and pile counts with z-index: 9 and
   // eating the pile buttons' clicks. The control now renders inside the
   // REAL logbar row via Table's real seam (Rail's `logbar` snippet), in

@@ -1,7 +1,7 @@
 // trig:CounterPlayerAddedAll — "Whenever you put one or more counters on
 // a(n) <spec>" (Generous Patron, Rikku Resourceful Guardian, Kros Defense
-// Contractor, All Will Be One). Pinned end to end on the two corpus cards
-// the ticket names: the Patron's support-then-draw chain (one draw per
+// Contractor, All Will Be One). Pinned end to end on the two corpus cards:
+// the Patron's support-then-draw chain (one draw per
 // counter-PLACING EVENT, never per counter) and Rikku's CantBlockBy window.
 
 package rules
@@ -165,14 +165,11 @@ func TestRikkuWindowUncontrolledWithoutThePut(t *testing.T) {
 	}
 }
 
-// TestRikkuWindowExpiresAtEndOfTurn is the expiry regression for the MAJOR: Rikku's
-// `DB$ Effect` body carries no `Duration$`, but its trigger text is explicitly
-// "until end of turn". Before the fix `effectUntilEOT` read the absent duration
-// as `Permanent` and installed a restriction that only ended when Rikku left the
-// battlefield, so the countered creature stayed unblockable for the rest of the
-// game. This drives the real turn boundary: the counter goes on, the window holds
-// through that turn, and by the next turn's declare-blockers the bear is a legal
-// blocker again.
+// TestRikkuWindowExpiresAtEndOfTurn is an expiry regression test: Rikku's
+// `DB$ Effect` body carries no `Duration$`, but its trigger text is
+// explicitly "until end of turn". This drives the real turn boundary: the
+// counter goes on, the window holds through that turn, and by the next turn's
+// declare-blockers the bear is a legal blocker again.
 func TestRikkuWindowExpiresAtEndOfTurn(t *testing.T) {
 	t.Parallel()
 	counterSpell := "Name:Count Up\nManaCost:R\nTypes:Instant\n" +

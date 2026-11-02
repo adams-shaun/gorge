@@ -8,7 +8,7 @@ import (
 )
 
 // TestIntoTheFloodMawPromisedGiftCastsAndBounces pins the promised-gift half
-// of the offer/ask target-feasibility agreement (r2 review MINOR). With the
+// of the offer/ask target-feasibility agreement. With the
 // gift promised, the root creature ask resolves to Min 0 / Max 0 and is
 // skipped, the opponent receives the promised tapped Fish token, and the
 // ChangeZone sub-ability announces a nonland permanent an opponent controls

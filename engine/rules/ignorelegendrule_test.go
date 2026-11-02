@@ -1,4 +1,4 @@
-// Ticket agent-20260918T232250Z-29aed5d6: `S:Mode$ IgnoreLegendRule` is now
+// `S:Mode$ IgnoreLegendRule` is
 // honored by the CR 704.5j legend SBA. A permanent a live IgnoreLegendRule
 // static's `ValidCard$` admits never joins a duplicate set, so the static's
 // own controller can keep two same-named legendary permanents. The named real

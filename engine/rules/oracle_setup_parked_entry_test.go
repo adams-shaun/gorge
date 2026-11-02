@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The wave-4 D1/D7 class: XMage's addCard(Zone.BATTLEFIELD) places a setup
+// XMage's addCard(Zone.BATTLEFIELD) places a setup
 // permanent without "entering", so no enters-the-battlefield trigger fires
 // at the setup checkpoint. Two shapes escaped placeSetupCard's drop window:
 //
@@ -69,7 +69,7 @@ func TestOracleSetupDropsParkedAndDestinationlessEntryTriggers(t *testing.T) {
 // A triggered "you may pay" cost no potential mana can cover (Esoteric
 // Duplicator's {2} with one Llanowar Elves) is posed decline-only, so no
 // mana floats before the decline (XMage never activates a mana ability for a
-// cost it cannot pay: its pool is empty at the measured D6 checkpoint). Since
+// cost it cannot pay: its pool is empty at the measured checkpoint). Under
 // the pay-first model (respay.go) the engine itself withholds both the pay
 // and the mana window there, so the harness's "done" fallback
 // (unpayableTriggerCostWindowDone) is never reached. A payable cost is

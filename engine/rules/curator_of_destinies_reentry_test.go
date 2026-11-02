@@ -12,10 +12,7 @@ import (
 // CR 400.7, lockstep pairs 52526/97100: a SECOND Curator of Destinies
 // resolution — the Sphinx left the battlefield and returned as a new object —
 // must remember only ITS OWN resolution's cards. The card's Forge script
-// never clears its remembered list (no DBCleanup), so before the fix the
-// first resolution's event-backed Remembered entries survived the
-// graveyard→battlefield re-entry on the same ObjID, and the second
-// resolution's unchosen pile (`ChangeZoneAll | ChangeType$ Card.IsRemembered
+// never clears its remembered list (no DBCleanup).IsRemembered
 // | Origin$ Library`) swept a first-resolution card that was back in the
 // library into the graveyard with the second pile. The kernel (resolve.go
 // "a resolution remembers afresh") leaves that card in the library.
@@ -265,11 +262,8 @@ func TestCuratorSecondResolutionMovesOnlyItsOwnCards(t *testing.T) {
 			t.Fatalf("second unchosen-pile card %d zone = %s, want graveyard", id, z)
 		}
 	}
-	// ... and the recycled first-resolution card, which the second
-	// resolution never remembered, STAYS in the library. Before the fix the
-	// stale persistent remembered list survived the re-entry (CR 400.7) and
-	// the unchosen pile's `ChangeType$ Card.IsRemembered` swept it into the
-	// graveyard with the second pile.
+	// ... and the recycled first-resolution card, which the second resolution
+	// never remembered, STAYS in the library.
 	if z := e.G.Obj(recycled).Zone; z != state.ZLibrary {
 		t.Fatalf("recycled first-resolution card %d zone = %s, want library: the second resolution must not move a card it did not remember", recycled, z)
 	}

@@ -1,6 +1,6 @@
 package rules
 
-// kw:Sunburst (CR 702.47; task agent-20260919T055500Z-a4cd7643): "This object
+// kw:Sunburst (CR 702.47): "This object
 // enters with a +1/+1 counter on it for each color of mana spent to cast it.
 // If it isn't a creature, it enters with that many charge counters instead."
 //

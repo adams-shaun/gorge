@@ -1,6 +1,5 @@
 // Count$LastStateBattlefieldWithFallback — the battlefield count read from
-// the last known-state snapshot with a current-battlefield fallback (ticket
-// cli-20261006T024354Z-3345d0e0, Count$ heads part 2). OTJ Steer Clear gates
+// the last known-state snapshot with a current-battlefield fallback. OTJ Steer Clear gates
 // its four-damage branch on `SVar:Y:Count$LastStateBattlefieldWithFallback
 // Permanent.Mount+YouCtrl` ("if you controlled a Mount as you cast this
 // spell"). Before this head existed the body was the unresolvable zero, so
@@ -75,7 +74,7 @@ func TestLastStateBattlefieldHeadOnSteerClear(t *testing.T) {
 // TestLastStateBattlefieldCensusEveryCarrier enumerates every corpus card
 // whose SVars read Count$LastStateBattlefieldWithFallback and asserts the
 // head is supported and every extracted body resolves against a bare
-// context. It is the ticket's "census every corpus carrier": the head is one
+// context. It is the census of every corpus carrier: the head is one
 // primitive name in cards.Registry's coverage check, so registering it marks
 // ALL of these cards supported at once -- this test is what proves each
 // carrier's own read resolves rather than merely being un-listed. The pinned

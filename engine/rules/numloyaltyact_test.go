@@ -154,8 +154,7 @@ func TestEffectDeliveredNumLoyaltyActControllerScopeTwice(t *testing.T) {
 // Veil's REAL activated ability (A:AB$ Effect | StaticAbilities$ LoyaltyAbs,
 // Additional$ 1), which is the activated-ability delivery route rather than a
 // DB$ sub-ability, and covers the Additional$ 1 value on ValidCard$
-// Planeswalker.YouCtrl. Before the fix the ability emitted the
-// NumLoyaltyAct unimplemented Note and granted nothing.
+// Planeswalker.YouCtrl.
 func TestEffectDeliveredNumLoyaltyActChainVeilActivatedAbility(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -180,7 +179,7 @@ func TestEffectDeliveredNumLoyaltyActChainVeilActivatedAbility(t *testing.T) {
 	}
 	before := len(e.L.Events)
 	// Resolve the real ability body without the {4}, {T} payment gates --
-	// the registration path is what this ticket changes.
+	// the registration path is what this pins.
 	e.resolveAbility(veilID, 0, nil, sa, veil.Faces[0].SVars)
 	for _, ev := range e.L.Events[before:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {

@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAnimateColorsFailClosed pins the two Animate fail-closed leaves found
-// in review round 2:
+// TestAnimateColorsFailClosed pins the two Animate fail-closed leaves:
 //
 //  1. A Colors$ value colorLetters cannot fully parse -- the corpus's
 //     "ChosenColor" family (25 files: wild_mongrel, kavu_chameleon,

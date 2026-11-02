@@ -1,7 +1,6 @@
 package rules
 
-// The api:GenericChoice per-Defined$-player path (ticket
-// agent-20260922T234314Z-bbfff2fb). A GenericChoice whose Defined$ resolves to
+// The api:GenericChoice per-Defined$-player path. A GenericChoice whose Defined$ resolves to
 // more than the resolving controller must ask EACH defined player, one at a
 // time, and run that player's chosen body with the chooser bound as
 // Ctx.Remembered. Seize the Spotlight is the real carrier:

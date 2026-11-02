@@ -282,7 +282,7 @@ func selfOnlySpec(spec string) bool {
 // matches against the board as it was immediately before a battlefield
 // departure: a leaves-the-battlefield line (Mode$ ChangesZone or
 // ChangesZoneAll with Origin$ exactly Battlefield), a sacrifice line
-// (Mode$ Sacrificed), or Mode$ Unattached (CR 701.3d) -- "an attachment
+// (Mode$ Sacrificed or SacrificedOnce), or Mode$ Unattached (CR 701.3d) -- "an attachment
 // that leaves the battlefield becomes unattached from its bearer", and a
 // "becomes unattached" trigger looks back in time the same way, seeing the
 // departure MoveZone's LKI (the attachment still carrying its
@@ -294,7 +294,7 @@ func looksBackOnDeparture(t *cards.Trigger) bool {
 	switch t.ModeKind() {
 	case cards.TriggerChangesZone, cards.TriggerChangesZoneAll:
 		return t.ParamStr(cards.PKOrigin) == "Battlefield"
-	case cards.TriggerSacrificed, cards.TriggerUnattached:
+	case cards.TriggerSacrificed, cards.TriggerSacrificedOnce, cards.TriggerUnattached:
 		return true
 	}
 	return false

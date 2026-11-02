@@ -222,7 +222,7 @@ func idsOf(ts []state.Target) []state.ObjID {
 }
 
 // TestValidStackAbilityBaseAdmitsBothAbilityKindsYouCtrl pins the `Ability`
-// base (task abcopy3): an alias for Activated+Triggered -- never a spell
+// base: an alias for Activated+Triggered -- never a spell
 // kind -- and its YouCtrl qualifier reads through the shared
 // state.StackKindAdmits matcher.
 func TestValidStackAbilityBaseAdmitsBothAbilityKindsYouCtrl(t *testing.T) {

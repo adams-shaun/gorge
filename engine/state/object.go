@@ -1868,10 +1868,9 @@ type Object struct {
 	// CREATING CopySpellAbility SA declared MayChooseTarget$ True (the event's
 	// Amount discriminator) -- so an external copier (Mirari, Cloven Casting,
 	// a Storm or Replicate copy) that is not part of the copied spell's own
-	// text still grants the election. engine/rules/stack.go's resolveTop asks the
-	// copy's controller exactly once while this is true and records the answer
-	// through TargetsChosen, whose fold clears the flag; a log-only replay
-	// rebuilds set-then-cleared identically.
+	// text still grants the election, which Engine.AskCopyTargets poses as the
+	// copy goes on the stack and records through TargetsChosen, whose fold clears
+	// the flag; a log-only replay rebuilds set-then-cleared identically.
 	CopyMayChooseTarget bool
 
 	// CopyNonLegendary is the CopySpellAbility NonLegendary$ True rider (The
@@ -2166,13 +2165,13 @@ func (o *Object) faceDownEffective() bool {
 	return o.FaceDown && o.Zone == ZBattlefield
 }
 
-// FaceDownTypeWords is the effective base type set of a face-down battlefield
-// permanent (CR 708.5): {Creature} when no FaceDownSetType$ was folded, else
-// the set type split on Forge's " & " join. A non-face-down object returns
+// FaceDownTypeWords is the effective base type set of a face-down spell or
+// battlefield permanent (CR 708.4, 708.5): {Creature} when no FaceDownSetType$
+// was folded, else the set type split on Forge's " & " join. A non-face-down object returns
 // its printed types. It returns a fresh slice so a caller can append to it
 // (the layer-4 walk does) without aliasing stored state.
 func (o *Object) FaceDownTypeWords() []string {
-	if !o.faceDownEffective() {
+	if !o.FaceDownHidden() {
 		if f := o.Face(); f != nil {
 			return append([]string(nil), f.Types...)
 		}
@@ -2209,7 +2208,7 @@ func (o *Object) EffectiveIsCreature() bool {
 	if o.ImpendingDormant() {
 		return false
 	}
-	if o.faceDownEffective() {
+	if o.FaceDownHidden() {
 		for _, w := range o.FaceDownTypeWords() {
 			if w == "Creature" {
 				return true
@@ -2249,7 +2248,7 @@ func (o *Object) MergedFaceAt(i int) *cards.Face {
 // Myriad (CR 702.109) and populate ("create a token copy", CR 706.2) mint
 // their tokens as IsToken+IsCopy and legitimately keep them on the
 // battlefield, and a copy of a permanent SPELL that has resolved onto the
-// battlefield (CR 707.10g, token1's stack-entry clear) is likewise real.
+// battlefield (CR 707.10g) is likewise real.
 // Only a copy that is neither on the stack (still a spell) nor on the
 // battlefield (still a permanent) has ceased to exist.
 //

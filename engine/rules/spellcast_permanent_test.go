@@ -77,8 +77,8 @@ const faerieWizardSrc = "Name:Test Faerie\nManaCost:1 U\nTypes:Creature Faerie W
 // `A:AB$ DelayedTrigger | Mode$ SpellCast | ValidCard$ Card | ...` line,
 // Cost$ and ThisTurn$/Static$ dropped): an ACTIVATED DelayedTrigger SA whose
 // body carries `Mode$ SpellCast | ValidCard$ Permanent`. The corpus has no
-// delayed SpellCast carrier whose ValidCard$ names Permanent (measured -- the
-// fx41/fx42 synthetic-pin convention), so this synthetic registration pins
+// delayed SpellCast carrier whose ValidCard$ names Permanent (measured), so
+// this synthetic registration pins
 // the eventDelayedSpellCastMatches mirror: a permanent spell cast fires it,
 // an instant does not.
 const delayedRegistrarSrc = "Name:Delayed SpellCast Registrar\nManaCost:3\nTypes:Artifact\n" +

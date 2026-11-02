@@ -58,7 +58,7 @@ import (
 // ParseUnlessCost stays the strict parser and hard-declines what it cannot
 // price. A value naming an SVar on the resolving face whose body is a
 // RESOLVABLE count expression folds its numeric result into one generic amount
-// "{N}": Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2
+// "{N}": Feather, Radiant Arbiter's Count$ChosenSize/Times.2
 // becomes "{4}" for two chosen creatures. The fold applies to every
 // UnlessCost$ API because the shared gate owns the payment; leaving a
 // resolvable SVar opaque on Sacrifice, Tap, or another effect would make the

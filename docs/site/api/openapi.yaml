@@ -144,6 +144,39 @@ components:
             $ref: "#/components/schemas/ErrorBody"
       description: "The request needs a seat claim and holds none (`unauthorized`)."
   schemas:
+    Advice:
+      description: "Advice is GET /api/tables/{t}/matches/{k}/advice: one bot's evaluation of the decision pending on the requesting seat. It is computed from what that seat can see, is never replay input and is never hashed."
+      properties:
+        ask_seq:
+          format: "uint64"
+          minimum: 0
+          type: "integer"
+        explain:
+          description: "Explain is a bots/explain.Note: the same shape as ReviewDecision.Explain, with Choices indexing the decision's options."
+        match:
+          format: "int64"
+          type: "integer"
+        policy:
+          type: "string"
+        reason:
+          type: "string"
+        seat:
+          maximum: 255
+          minimum: 0
+          type: "integer"
+        state:
+          type: "string"
+        table:
+          type: "string"
+      required:
+        - "ask_seq"
+        - "match"
+        - "policy"
+        - "seat"
+        - "state"
+        - "table"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.Advice"
     AnnounceSelection:
       description: "AnnounceSelection is the announce-then-pay selector (spec docs/design/2026-09-27-announce-then-pay.md §3): it names an offered PaymentAction by ID and asks the engine to begin that ordinary cast WITHOUT a payment witness, so the caster pays in the CR 601.2g mana window (\"select mana\" prompt) instead. It is exclusive with Choices, Rest and Payment, valid only on a priority answer, and only for an action that carries at least one plan -- the planner's proof that the floating pool plus untapped sources can pay the cast."
       properties:
@@ -656,7 +689,7 @@ components:
           format: "int32"
           type: "integer"
         payment_actions:
-          description: "PaymentActions is an additive, separately indexed cast-payment extension. Keeping it outside Options preserves every legacy priority choice index. It remains empty until payplan-04 publishes executable offers."
+          description: "PaymentActions is an additive, separately indexed cast-payment extension. Keeping it outside Options preserves every legacy priority choice index. It stays empty until the host publishes executable offers."
           items:
             $ref: "#/components/schemas/PaymentAction"
           type: "array"
@@ -1874,6 +1907,24 @@ components:
               const: "overflow"
           type: "object"
       description: "Last frame of a session whose outbound buffer filled; the stream then closes and the client must reconnect without Last-Event-ID."
+    PairedBotStatus:
+      description: "PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this table may ask a bot to evaluate its decisions. It carries configuration only, so every seat can read it and see that a table allows it."
+      properties:
+        offered:
+          type: "boolean"
+        policy:
+          description: "Policy names the bot."
+          type: "string"
+        reason:
+          description: "Reason says, in plain words, why this table does not offer what the server does. A server without the option has none."
+          type: "string"
+        shared:
+          description: "Shared marks a table with more than one human that allows it: any of those players may be asking."
+          type: "boolean"
+      required:
+        - "offered"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.PairedBotStatus"
     PaymentAbility:
       description: "PaymentAbility is a stable source ability discriminator. Printed abilities use the card face and its printed ability index. Intrinsic abilities use a frozen name (for example \"basic_land\"); they never use a transient offered option index. Fields outside the selected discriminator must be zero."
       properties:
@@ -2164,7 +2215,7 @@ components:
             - "array"
             - "null"
         commanders:
-          description: "Commanders is the player's full commander roster -- the same list m30's genesis built, in the same order, never shrunk as commanders are cast or die. A roster CardView projects the commander's CURRENT zone's state (a cast commander is a battlefield object, a dead one a graveyard object), so the roster is what lets a client -- and the bot policy's view-shaped half -- tell that a battlefield creature is a commander (the CR 903.10 clock's subject) even when it has left the command zone and not yet dealt damage. Public for every seat: the identity of a player's commanders is the premise of the format."
+          description: "Commanders is the player's full commander roster -- the same list genesis built, in the same order, never shrunk as commanders are cast or die. A roster CardView projects the commander's CURRENT zone's state (a cast commander is a battlefield object, a dead one a graveyard object), so the roster is what lets a client -- and the bot policy's view-shaped half -- tell that a battlefield creature is a commander (the CR 903.10 clock's subject) even when it has left the command zone and not yet dealt damage. Public for every seat: the identity of a player's commanders is the premise of the format."
           items:
             $ref: "#/components/schemas/CardView"
           type:
@@ -2928,7 +2979,7 @@ components:
         step:
           type: "string"
         turn:
-          description: "Turn is the engine's per-player-turn counter (TurnChange events). It increments once per seat's turn, so a four-seat table reads \"Turn 22\" after five and a half rounds. Round is the exact round-trip count of the players still alive, folded over the ordered event stream (RoundOf) by host, which has the log in hand when it builds this view; a caller with only a snapshot gets the roundOf approximation instead. Both Turn and Round are sent because the raw engine counter is what the transcript (\"Turn N: \u003cplayer\u003e\") refers to, and the round is what the board's clock shows."
+          description: "Turn is the engine's per-player-turn counter (TurnChange events). It increments once per seat's turn, so a four-seat table reads \"Turn 22\" after five and a half rounds. Round is the exact round-trip count of the players still alive, folded over the ordered event stream (RoundOf) by host, which has the log in hand when it builds this view; a caller with only a snapshot gets the roundOf approximation instead. Both Turn and Round are sent because the raw engine counter is what the client and the transcript (\"Turn N: \u003cplayer\u003e\") show, and the round says how far around the table the game has come."
           format: "int32"
           type: "integer"
         viewer:
@@ -4227,6 +4278,57 @@ paths:
         - "matches"
     parameters:
       - $ref: "#/components/parameters/table"
+  "/api/tables/{t}/matches/{k}/advice":
+    get:
+      description: "The paired bot's evaluation of the decision pending on the claim's seat. The seat comes from the token alone. The bot works from what that seat can see: its own list and what it has observed, with opponents' unknown cards guessed from a set of decks. It advises only; the seat still answers through the intent route. The request blocks until the search ends, and hanging up cancels it. Advice is never replay input and never hashed."
+      operationId: "advice"
+      parameters:
+        - description: "The `seq` of the decision the client is showing. An answer is only ever for this decision."
+          in: "query"
+          name: "seq"
+          required: true
+          schema:
+            format: "uint64"
+            minimum: 0
+            type: "integer"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Advice"
+          description: "`state` says whether `explain` holds an evaluation, the bot does not evaluate this kind of decision, or it refused this one."
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "409":
+          content:
+            "application/json":
+              examples:
+                moved:
+                  summary: "the decision moved on"
+                  value:
+                    code: "conflict"
+                    message: "The decision has moved on."
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+          description: "The decision is no longer pending, the seat has nothing pending, or the table does not offer the bot."
+      security:
+        - seatBearer: []
+        - seatQuery: []
+      summary: "Ask the paired bot about your pending decision"
+      tags:
+        - "seat"
+    parameters:
+      - $ref: "#/components/parameters/table"
+      - $ref: "#/components/parameters/match"
   "/api/tables/{t}/matches/{k}/decisions":
     get:
       description: "The recorded match's decision index: one entry per intent of the log, in order. Each entry names the decision the engine offered at that point (asking seat, kind, prompt, options with the labels the live client shows, capped at 64 plus every option the answer or explain note names; `options_total` is the uncapped count), the answer (`chosen`, `rest`, a short `answer` label and the `decision_made` text), the `ask_seq`/`made_seq` of its decision events (the replay's Decision step stops on `ask_seq`), and the record's explain note for that intent (a `bots/explain.Note`, or null). Mounted only by `gorged review`: a live server has no such route."
@@ -5519,6 +5621,26 @@ paths:
     parameters:
       - $ref: "#/components/parameters/table"
       - $ref: "#/components/parameters/match"
+  "/api/tables/{t}/paired-bot":
+    get:
+      description: "Whether a seat at this table may ask the paired bot about its decisions, and if not, why not in plain words. It is off unless the server runs with -paired-bot. A table with more than one human offers it only if the table allows it, and then every seat can read here that it is on. Configuration only: no game state."
+      operationId: "pairedBotStatus"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/PairedBotStatus"
+          description: "The table's paired-bot status."
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+      summary: "Does this table offer a paired bot"
+      tags:
+        - "matches"
+    parameters:
+      - $ref: "#/components/parameters/table"
   "/api/unsubscribe":
     post:
       operationId: "unsubscribe"

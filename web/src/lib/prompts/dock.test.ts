@@ -69,7 +69,7 @@ describe('the near-table auto-yield (promptdock2)', () => {
 
   it('yields when a board option carrier is fully covered by a dock control, and not otherwise', () => {
     const controls = [box(376, 295, 732, 332)];
-    // The measured ui24 case: the 28x22 badge lies wholly inside option row 3.
+    // The measured case: the 28x22 badge lies wholly inside option row 3.
     expect(dockYields(controls, [box(430, 307, 458, 329)])).toBe(true);
     // Partial overlap (the badge pokes out above the row) must NOT yield.
     expect(dockYields(controls, [box(430, 290, 458, 329)])).toBe(false);

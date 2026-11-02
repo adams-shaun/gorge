@@ -12,7 +12,7 @@
   import PromptFooter, { type FooterButton } from './PromptFooter.svelte';
 
   /**
-   * TargetChips is the `target` renderer (UI rework spec §4): one chip per
+   * TargetChips is the `target` renderer: one chip per
    * legal target with the card's art as a round thumbnail and its P/T (or a
    * player's life) beside the name. The board already rings the same legal
    * targets (the shared card-options index); hovering a chip sets the prompt

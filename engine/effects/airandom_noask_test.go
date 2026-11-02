@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// noAskRngHost is the no-ask fakeHost (every Ask degrades to the R-9
+// noAskRngHost is the no-ask fakeHost (every Ask degrades to the no-host
 // stand-in) whose Rand replays a scripted sequence of raw draws; an
 // exhausted script degrades to 0.
 type noAskRngHost struct {
@@ -30,7 +30,7 @@ func (h *noAskRngHost) Rand(n int) int {
 }
 
 // TestFaceToFaceNoAskHostRethrowsATie resolves the REAL Face to Face on a
-// host that cannot ask. Its throws carry AILogic$ Random, so the R-9 answer
+// host that cannot ask. Its throws carry AILogic$ Random, so the no-ask answer
 // is an engine-rng draw, never the fixed first option (Rock against Rock
 // for every pass of the Repeat, up to its 1000-iteration cap). The script
 // ties twice (Rock/Rock, Paper/Paper), then the caster wins two rounds
@@ -67,7 +67,7 @@ func TestFaceToFaceNoAskHostRethrowsATie(t *testing.T) {
 
 // TestAIRandomNoAskPickOnlyDrawsForRandomAsks pins the helper's contract:
 // a non-random or one-option ask keeps the first option and consumes no
-// rng, so every other R-9 answer (and its replay) is unchanged.
+// rng, so every other no-ask answer (and its replay) is unchanged.
 func TestAIRandomNoAskPickOnlyDrawsForRandomAsks(t *testing.T) {
 	fh, _ := fixtureHost(t)
 	h := &noAskRngHost{fakeHost: *fh, seq: []int{2}}

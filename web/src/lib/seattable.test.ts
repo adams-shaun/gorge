@@ -26,6 +26,12 @@ const seats: SeatInfo[] = [
 ];
 
 describe('seatStateOf', () => {
+  it('marks the seat answering a decision, not the last seat to pass', () => {
+    const v = view({ active: 0, priority: 1, decision: { player: 0 } as View['decision'] });
+    expect(seatStateOf(v, v.players[0])).toBe('acting');
+    expect(seatStateOf(v, v.players[1])).toBe('idle');
+  });
+
   it('active and priority together are one state, not two marks fighting for the same row', () => {
     const v = view({ active: 0, priority: 0 });
     expect(seatStateOf(v, v.players[0])).toBe('acting');

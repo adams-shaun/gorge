@@ -33,7 +33,7 @@ func TestPacifismCommaModeStaticSuppressesAttackAndBlock(t *testing.T) {
 		t.Fatal("corpus missing Pacifism")
 	}
 	// Precondition: the corpus card still prints the compound shape this
-	// ticket splits (both halves present after the parse-time split).
+	// parser splits (both halves present after the parse-time split).
 	var hasAttack, hasBlock bool
 	for _, f := range pac.Faces {
 		for _, st := range f.Statics {

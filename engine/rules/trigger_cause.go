@@ -276,8 +276,8 @@ func causeSpecQualifiersKnown(alt string) bool {
 // sacrificeBlockedForCost's caller, which knows what the payer is
 // casting/activating.
 //
-// A cost site's cause is the ability the payment is made to (the cantsac1
-// r2 semantics table on costCause): a spell cast (Spell), an ability
+// A cost site's cause is the ability the payment is made to (the
+// semantics table on costCause): a spell cast (Spell), an ability
 // activation (Activated), a ward or upkeep trigger's demand (Triggered) or
 // an unless resolution election (Resolution). Those four -- None stays
 // inadmissible, a no-cause payment names nothing -- are the readable

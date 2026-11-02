@@ -1,6 +1,6 @@
 // ConditionCheckSVar/CheckSVar and Sacrifice Optional:
-// corpus-carried behaviour tests for the gates the task taught the engine to
-// read. The cards are pulled from the real compiled corpus (choiceCorpusCard)
+// corpus-carried behaviour tests for the gates the engine reads. The cards are
+// pulled from the real compiled corpus (choiceCorpusCard)
 // so the fixtures pin the cards' ACTUAL script shapes, not a paraphrase; the
 // per-test comment states which measured population each represents.
 //
@@ -20,9 +20,8 @@
 //   - Desecration Demon: the Optional$ ask's per-target binding -- a
 //     multi-player optional sacrifice asks each targeted player in turn
 //     (each answer re-enters scoped to the exact target that asked,
-//     `ResumeTarget`), so the table does NOT wedge (the r2 review's
-//     measured infinite re-ask is closed by the target binding, not by
-//     suppressing the ask).
+//     `ResumeTarget`), so the table does NOT wedge (the infinite re-ask is
+//     closed by the target binding, not by suppressing the ask).
 //
 // Every fixture card is a REAL deck card (the corpus protagonist plus authored
 // extras) moved with logged MoveZone events, so each test's replayCheck holds

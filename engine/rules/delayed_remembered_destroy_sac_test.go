@@ -9,7 +9,7 @@ import (
 )
 
 // TestDelayedDestroyAndSacrificeFindOnlyTheRememberedObject extends CR
-// 400.7's delayed-trigger rule from ChangeZone (b9ba5c1b7) to the Destroy and
+// 400.7's delayed-trigger rule from ChangeZone to the Destroy and
 // SacrificeAll movers: "destroy/sacrifice that creature at the beginning of
 // the next end step" (Goblin Kites, Spinal Embrace, Berserk) remembers the
 // creature, and if it left the battlefield and came back before the end step

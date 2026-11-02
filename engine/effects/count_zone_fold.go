@@ -274,11 +274,10 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		// object itself rather than gating on a separate vocabulary: Forge's
 		// CardType.getPlaneswalkerTypes() returns the card's subtypes when it
 		// is a planeswalker, and a roster can fall behind a printed type
-		// (Svega, the Unconventional) into the same silent zero this property
-		// used to read. CR 205.1 orders the type line supertypes, then card
-		// types, then subtypes, so the subtypes are the words after the
-		// Planeswalker card type. An object without the card type contributes
-		// nothing.
+		// (Svega, the Unconventional) into a silent zero. CR 205.1 orders the
+		// type line supertypes, then card types, then subtypes, so the
+		// subtypes are the words after the Planeswalker card type. An object
+		// without the card type contributes nothing.
 		types := o.Face().Types
 		walker := -1
 		for i, typ := range types {

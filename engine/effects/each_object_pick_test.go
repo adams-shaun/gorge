@@ -41,11 +41,11 @@ func eachSetZone(g *state.Game, p state.PlayerID, z state.Zone, ids ...state.Obj
 }
 
 // TestEachSearchPartitionResolvesTheOverlap is the overlap fix: a card
-// matching TWO listed qualities (a white-blue card under
-// "EACH Card.White & Card.Blue") is offered ONCE, in the FIRST matching
-// group, and picking it cannot block the other group's pick. Pre-fix, the
-// per-sub scan offered the multicoloured card in both Groups (three options,
-// and a pick in one group removed it from the other).
+// matching TWO listed qualities (a white-blue card under "EACH Card.White &
+// Card.Blue") is offered ONCE, in the FIRST matching group, and picking it
+// cannot block the other group's pick. A per-sub scan would offer the
+// multicoloured card in both Groups (three options, and a pick in one group
+// removes it from the other).
 func TestEachSearchPartitionResolvesTheOverlap(t *testing.T) {
 	h := newHost(t, 2)
 	src := h.g.AddObject(mkCard(t, "Name:Probe\nTypes:Instant\nOracle:x\n"), 0)
@@ -91,8 +91,8 @@ func TestEachSearchPartitionResolvesTheOverlap(t *testing.T) {
 // TestEachSearchPerTypeChangeNumCapsEachGroup closes the per-type ChangeNum
 // clause: "EACH Forest & Plains" with ChangeNum$ 2 poses a per-type pick with
 // Decision.GroupLimit 2 and Max 4 over a library of 3 Forests and 2 Plains --
-// not the pre-fix flat count (Max 2 behind a loud Note), and an answer taking
-// three of one group is refused while two of EACH is accepted.
+// not a flat count (Max 2 behind a loud Note), and an answer taking three of
+// one group is refused while two of EACH is accepted.
 func TestEachSearchPerTypeChangeNumCapsEachGroup(t *testing.T) {
 	h := newHost(t, 2)
 	src := h.g.AddObject(mkCard(t, "Name:Verge\nTypes:Land\nOracle:x\n"), 0)

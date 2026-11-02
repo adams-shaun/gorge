@@ -28,7 +28,7 @@ describe('PlayVsBot entry point', () => {
     expect(html).toMatch(/<option value="" selected[^>]*>Server default<\/option>/);
   });
 
-  it('offers the mulligan selector, 0 through 6, defaulting to 6 (finding fb-20260914T114629Z-6c81e4d6)', () => {
+  it('offers the mulligan selector, 0 through 6, defaulting to 6', () => {
     const { html } = render(PlayVsBot, {});
     expect(html).toContain('Mulligans');
     expect(html).toContain('data-testid="mulligans"');

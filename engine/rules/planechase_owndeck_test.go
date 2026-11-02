@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPlaneswalkFromScanRejectsAnotherSeatsPlane is the MINOR pin from the t2
-// verdict: checkPlaneswalkTriggers' PlaneswalkedFrom arm must validate that
+// TestPlaneswalkFromScanRejectsAnotherSeatsPlane:
+// checkPlaneswalkTriggers' PlaneswalkedFrom arm must validate that
 // ev.Obj belongs to ev.Player's OWN planar deck, exactly as the chaos scan's
 // currentPlane boundary does. A hand-built PlanarWalk naming a foreign seat's
 // plane in Obj must queue nothing (and, once drained, draw nothing), while a

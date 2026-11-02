@@ -11,7 +11,7 @@
 // creature with {3} available, and was withheld entirely from a {3} pool.
 //
 // engine/rules/equip_targeted_reducecost_test.go pins the FULL flow only for
-// Targeted$CardPower (Belt of Giant Strength); engine/effects/count_ref_property_rv2b_test.go
+// Targeted$CardPower (Belt of Giant Strength); engine/effects/count_ref_property_referenced_test.go
 // pins the count head only at unit level. No test on main drove a real
 // Targeted$CardNumColors reduction end to end. These leaves close that gap.
 package rules
@@ -82,8 +82,8 @@ func TestDragonfireBladeEquipOfferedAtColorDiscountedPrice(t *testing.T) {
 	if got := len(e.ObjectColors(e.G.Obj(monoID))); got != 1 {
 		t.Fatalf("mono target color count = %d, want 1 (the reduction depends on it)", got)
 	}
-	// {3} is exactly Dragonfire Blade's printed {4} minus the 1-color target's
-	// reduction. Before the fix the head read 0 and withheld the equip.
+	// {3} is exactly Dragonfire Blade's printed {4} minus the 1-color
+	// target's reduction.
 	addMana(t, e, 0, "CCC")
 	opt, ok := findAbilityOption(e, bladeID, 0)
 	if !ok {

@@ -8,7 +8,7 @@ import type { Option, PlayerView, PotentialAction, View } from '../protocol';
  * PlayerView.potential_actions, the SERVER's own legal-offer walk priced
  * against the hypothetical tapped-out pool (rules.PotentialActions /
  * rules.PotentialMana). These tests pin what the client does with that
- * projection, including the shapes that motivated the rv2c rework: the client
+ * projection, including the shapes that motivated it: the client
  * could not price live cost modifiers, command-zone or flashback casts,
  * {T}-less activations, indeterminate sources or X spells, and every one of
  * those shapes arrives as a server-computed entry now.
@@ -50,7 +50,7 @@ const view = (p: PlayerView, secondSeat = true): View =>
 
 describe('castableAfterTap — reading the server projection', () => {
   it('a mana-only window the engine would unlock (the Jitte/Medallion/Tron class) stops: potential_actions non-empty', () => {
-    // Any of the eight rv2c shapes — a RaiseCost-raised cast the pool can no
+    // Any of the eight shapes — a RaiseCost-raised cast the pool can no
     // longer pay, a ReduceCost-reduced cast it now can, a {T}-less Equip, an
     // X spell at 0, an indeterminate Tron source, a command-zone or flashback
     // cast — projects as whatever real plays the engine would offer. The
@@ -107,7 +107,7 @@ describe('castableAfterTap — reading the server projection', () => {
   });
 });
 
-describe('the widened projection (aph-web-manual-only-plays): every real play kind the offer walk emits', () => {
+describe('the widened projection: every real play kind the offer walk emits', () => {
   // rules.PotentialActions now projects every play kind legalActionsPriced
   // emits (rules TestPotentialActionsProjectsEveryPlayKind): a float-gated
   // Room unlock, morph turn-face-up, specialize or max-speed granted ability
@@ -163,7 +163,7 @@ describe('offersPotential — "the decision already offers this projected play"'
   });
 });
 
-describe('castablesAfterTap — the descriptive twin (fb-20260916T225211Z)', () => {
+describe('castablesAfterTap — the descriptive twin', () => {
   // Whatever makes castableAfterTap true is named here by construction (the
   // boolean IS this list's emptiness test): the labels are the server's own
   // offer labels for every real play in the projection.

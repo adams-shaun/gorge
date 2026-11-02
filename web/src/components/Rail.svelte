@@ -9,6 +9,7 @@
   import StackTile from './StackTile.svelte';
   import PendingTray from './PendingTray.svelte';
   import ResolvedCard from './ResolvedCard.svelte';
+  import { promptWords } from '../lib/prompts/words';
 
   /**
    * The rail starts with ONE compact summary across seats, then the stack,
@@ -87,7 +88,7 @@
      *  SeatPanelState wiring); Rail only hosts the markup in the one row
      *  that had spare room. */
     logbar?: Snippet | null;
-    /** yields is the seated player's game-scoped always-pass set (prio6); null (spectator) renders no marker and no menu. */
+    /** yields is the seated player's game-scoped always-pass set; null (spectator) renders no marker and no menu. */
     yields?: ReadonlySet<string> | null;
     /** onYield is the stack tile menu's write path into the seat panel's yield set. */
     onYield?: ((key: string) => void) | null;
@@ -155,7 +156,7 @@
   {#if decision}
     <p class="decision">
       <span class="who">{decisionWho}</span>
-      {decision.prompt}
+      {promptWords(decision.prompt)}
     </p>
   {/if}
 
@@ -199,7 +200,7 @@
    * sized except the stack frame, which takes the leftover height and
    * scrolls history AND live stack together. The detail pane and pending
    * tray are capped and scroll inside themselves, so neither history nor
-   * stack tiles can push Pending off the bottom (U2).
+   * stack tiles can push Pending off the bottom.
    */
   .rail-inner {
     display: flex;

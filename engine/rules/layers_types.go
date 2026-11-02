@@ -12,13 +12,13 @@ import (
 )
 
 // faceDownPrintedHides is the one CR 708.8 gate every printed-face scan
-// shares: while a battlefield object is face down, its printed abilities,
+// shares: while a spell or permanent is face down, its printed abilities,
 // triggers and statics do not exist. The ability-offer loop, the
 // mana-ability collector, the trigger scan and both static scans all
 // consult it, so no printed face of a manifested card can leak into any
 // offer or queue while it is face down.
 func (e *Engine) faceDownPrintedHides(o *state.Object) bool {
-	return o != nil && o.FaceDown && o.Zone == state.ZBattlefield
+	return o.FaceDownHidden()
 }
 
 // typeCharacteristics applies layer 4 before anything that tests a type. The
@@ -170,7 +170,7 @@ var selfRejectVerify atomic.Int64
 // rejection removed. Verify mode calls it to prove the shortcut agrees with
 // the full match; production never does.
 func (e *Engine) matchesWithCharsPTSlow(ce *ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone, power, toughness, basePower, baseToughness int32, hasPT bool) bool {
-	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
+	// The cast-provenance qualifiers (the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
 	// filter match, through the combined entry point; its one-probe

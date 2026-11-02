@@ -1,5 +1,5 @@
 // Package azredeal hosts the az-redeal policy (spec
-// 2026-09-28-hosted-bot-packages §11): the adapter over internal/azmcts.Seat
+// 2026-09-28-hosted-bot-packages §3.1): the adapter over internal/azmcts.Seat
 // in its honest redeal world (generation 0: uniform prior, heuristic leaf,
 // 100 simulations, a fresh deal per simulation) that answers the searched
 // kinds from the host's honest root and the seat's own observation feed, and
@@ -95,6 +95,21 @@ func NewWithModel(o bots.Options, cfg azmcts.SeatConfig, model *policynet.Model)
 		return nil, err
 	}
 	return &hostedSeat{bot: s, cfg: cfg, budgetMS: o.DecisionDeadlineMS}, nil
+}
+
+// ClosedFactory builds Hosted's search with the opponents' deck lists closed
+// under belief: each opponent's unknown cards are dealt from lists drawn from
+// the belief, never from its real list or real hidden cards. It searches sims
+// simulations per decision, over the payment plans when Options.AutoPayMana
+// says the decisions carry them.
+func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
+	return func(o bots.Options) (seat.Seat, error) {
+		cfg := Hosted()
+		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
+		cfg.Search.Sims = sims
+		cfg.Search.AutoPayment = o.AutoPayMana
+		return New(o, cfg)
+	}
 }
 
 // DecisionBudgetMS is the factory's per-decision wall-clock budget

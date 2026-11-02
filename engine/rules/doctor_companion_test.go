@@ -80,12 +80,11 @@ func TestDoctorCompanionSeatsBothCommanders(t *testing.T) {
 // TestTwoDoctorCompanionsSeatBothCommanders is the engine half of the
 // clause's bidirectional reading: two DISTINCT Doctors that EACH carry
 // K:Doctor's companion are a legal pair, because for each card the other
-// commander is the Doctor. The pre-fix predicate required exactly one
-// companion half and rejected this shape. No real corpus card is a Doctor
-// that carries the keyword (measured: all 27 Doctor's-companion cards are
-// Humans/Robots/Time Lords without the Doctor subtype), so the cards are
-// authored here rather than drawn from the corpus; the pair predicate under
-// test (partnerPairOK -> deck.IsPartnerPair) is the production one either way.
+// commander is the Doctor. No real corpus card is a Doctor that carries the
+// keyword (measured: all 27 Doctor's-companion cards are Humans/Robots/Time
+// Lords without the Doctor subtype), so the cards are authored here rather
+// than drawn from the corpus; the pair predicate under test (partnerPairOK ->
+// deck.IsPartnerPair) is the production one either way.
 func TestTwoDoctorCompanionsSeatBothCommanders(t *testing.T) {
 	t.Parallel()
 	reg := cards.NewRegistry()

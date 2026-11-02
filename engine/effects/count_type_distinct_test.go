@@ -1,7 +1,7 @@
 package effects
 
 // The two remaining distinct-set aggregate spellings on the
-// Count$Valid<zone> head, siblings of the Different* family (diffcount1) and
+// Count$Valid<zone> head, siblings of the Different* family and
 // the CardTypes/Colors reads:
 //
 //   - $CreatureType -- distinct creature subtypes among the matches (Valiant
@@ -56,7 +56,7 @@ func TestEvalCountCreatureTypeDedupsSubtypes(t *testing.T) {
 
 // TestEvalCountCreatureTypeLimitMaxClamps pins the clamp: Valiant Changeling
 // caps its reduction at {5}, Saavik at {10}, so a /LimitMax.<n> suffix on a
-// CreatureType body must clamp the distinct count. (Before diffcount2 the
+// CreatureType body must clamp the distinct count. (Otherwise the
 // suffix was only recognised for Colors, so an unclamped CreatureType read
 // would have widened the discount past the card's own cap.)
 func TestEvalCountCreatureTypeLimitMaxClamps(t *testing.T) {

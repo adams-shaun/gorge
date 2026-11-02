@@ -90,11 +90,11 @@ func submitDiscard(t *testing.T, e *Engine, wantIDs ...state.ObjID) *decision.De
 	return d
 }
 
-// Test3141DiscardDownToSevenIsAsked runs the primary CR 514.1 path: the
+// TestCleanupDiscardDownToSevenIsAsked runs the primary CR 514.1 path: the
 // active player ending their turn holding nine cards is asked a KChoose
 // "discard" decision over exactly their nine hand cards with Min == Max == 2,
 // and after answering ends at seven in hand and two more in the graveyard.
-func Test3141DiscardDownToSevenIsAsked(t *testing.T) {
+func TestCleanupDiscardDownToSevenIsAsked(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	e.G.Active = 0
@@ -159,13 +159,13 @@ func Test3141DiscardDownToSevenIsAsked(t *testing.T) {
 	}
 }
 
-// Test3141ExactlyMaxHandSizeAsksNothing pins decision rule 5: a player
+// TestCleanupExactlyMaxHandSizeAsksNothing pins decision rule 5: a player
 // ending their turn holding EXACTLY seven cards is asked nothing at all --
 // no decision is pending, not merely that the hand is unchanged. Before the
 // fix the cleanup step never discriminated on hand size (and asked nothing
 // regardless); this test guards the exactly-at-the-limit boundary where a
 // buggy "<=" instead of ">" would quietly pose a zero-count decision.
-func Test3141ExactlyMaxHandSizeAsksNothing(t *testing.T) {
+func TestCleanupExactlyMaxHandSizeAsksNothing(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	e.G.Active = 0
@@ -182,11 +182,11 @@ func Test3141ExactlyMaxHandSizeAsksNothing(t *testing.T) {
 	}
 }
 
-// Test3141OnlyActivePlayerDiscards pins decision rule 3 (CR 514.1): the
+// TestCleanupOnlyActivePlayerDiscards pins decision rule 3 (CR 514.1): the
 // non-active player holding far more than seven cards is NOT asked during
 // the active player's cleanup step. Only the active player's hand is subject
 // to the discard.
-func Test3141OnlyActivePlayerDiscards(t *testing.T) {
+func TestCleanupOnlyActivePlayerDiscards(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	e.G.Active = 0
@@ -207,11 +207,11 @@ func Test3141OnlyActivePlayerDiscards(t *testing.T) {
 	}
 }
 
-// Test3141DiscardedCardsAreTheIntentNamed pins decision rule 4: the cards
+// TestCleanupDiscardedCardsAreTheIntentNamed pins decision rule 4: the cards
 // that actually move are the ones the intent named, by identity, even when
 // the answer names indices that are NOT the first N. (The bot may take the
 // first N, but the engine must honour whatever valid indices a client sends.)
-func Test3141DiscardedCardsAreTheIntentNamed(t *testing.T) {
+func TestCleanupDiscardedCardsAreTheIntentNamed(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
 	e.G.Active = 0
@@ -295,10 +295,10 @@ func TestChoosingIsClearedByDiscardCleanup(t *testing.T) {
 	// the way handleChoose's default-arm comment describes ("only reachable
 	// from a hand-built decision"), naming a real remaining hand card as the
 	// discard option. With a correct reset this hits the default (a Note is
-	// emitted and the hand is untouched); the pre-fix stale chooseCleanup
-	// instead routes it into discardCleanup, which would move that card out
-	// of the hand, re-run the CR 514.2 body and advance the step -- so the
-	// hand check below fails.
+	// emitted and the hand is untouched); a stale chooseCleanup would instead
+	// route it into discardCleanup, which would move that card out of the
+	// hand, re-run the CR 514.2 body and advance the step -- so the hand
+	// check below fails.
 	keep := e.G.Zone(state.ZHand, 0)
 	if len(keep) == 0 {
 		t.Fatal("no hand cards left to protect from a no-flow choose")
@@ -329,8 +329,7 @@ func TestChoosingIsClearedByDiscardCleanup(t *testing.T) {
 	}
 }
 
-// Test3143SecondCleanupStep names the CR 514.3 gap (clearly and honestly) for
-// the follow-up, per the task brief: when the cleanup step's own actions --
+// TestSecondCleanupStep names the CR 514.3 gap (clearly and honestly): when the cleanup step's own actions --
 // the 514.1 discard or the 514.2 removal -- leave a triggered ability waiting
 // to be put onto the stack, the rules repeat the cleanup step after the
 // active player gets priority instead of letting the turn hand over. The
@@ -341,7 +340,7 @@ func TestChoosingIsClearedByDiscardCleanup(t *testing.T) {
 // this point of priorityRound, so this test records the gap rather than
 // papering over it. Skip until the turn loop grows the repeat; the skip
 // carries the CR reference so the next pass finds it.
-func Test3143SecondCleanupStep(t *testing.T) {
+func TestSecondCleanupStep(t *testing.T) {
 	t.Parallel()
 	t.Skip("CR 514.3: a trigger created by cleanup (a discard or 514.2 action) is placed at the NEXT player's first priority instead of in a repeated cleanup step. Follow-up: make priorityRound re-run cleanup after granting priority when a cleanup action left pendingTriggers non-empty or performed a state-based action.")
 }

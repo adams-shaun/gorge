@@ -87,7 +87,7 @@ func TestEachDamageToEachOtherDealsBothWays(t *testing.T) {
 	theirs := putCreature(t, h, 1, "Theirs", "3/2", "")
 	c := &Ctx{Source: src, Controller: 0,
 		Targets: []state.Target{{Obj: mine}}, // the parent's ask
-		// this SA's own answered pre-ask (mvts1)
+		// this SA's own answered pre-ask
 		PickedTargets: []state.Target{{Obj: theirs}},
 	}
 	Resolve(h, c, sa(t, "DB$ EachDamage | ToEachOther$ Targeted | NumDmg$ Count$CardToughness"))

@@ -1,22 +1,20 @@
-// flicker_unattach_test.go — CR 400.7's attachment half played through the
-// CR 704.5m/n state-based actions: a permanent that leaves the battlefield
-// and returns under its owner's control (a flicker) is a NEW object, so
-// nothing stays attached across the trip. The move fold
-// (engine/events/apply_zone.go) marks every attachment to the departing
-// permanent UnattachPending at the move itself — recording LastBearer while
-// deliberately leaving the live AttachedTo link standing, so the
-// mid-resolution window while the bearer is off the battlefield still shows
-// the attachment fastened (Murderous Spoils' StealEquip) — and the bearer's
-// re-entry breaks that link (breakQueuedAttachmentsOnEntry: the returned
-// permanent is a new object nothing is attached to, and a link surviving to
-// the SBA pass would let destroyLethalDamage, which runs before
-// attachmentSBAs, kill the returned creature with a toughness-changing Aura
-// it was never attached to). The SBAs then finish the job: the Aura goes to
-// its owner's graveyard (704.5m) and the Equipment sits unattached on the
-// battlefield (704.5n), so the returned bearer has its base
-// characteristics. Before the fix the returned creature carried its Aura,
-// its +1/+0 and its flying across the flicker. All cards are real compiled
-// corpus cards; no Forge script text is committed here.
+// flicker_unattach_test.go — CR 400.7's attachment half played through the CR
+// 704.5m/n state-based actions: a permanent that leaves the battlefield and
+// returns under its owner's control (a flicker) is a NEW object, so nothing
+// stays attached across the trip. The move fold (engine/events/apply_zone.go)
+// marks every attachment to the departing permanent UnattachPending at the
+// move itself — recording LastBearer while deliberately leaving the live
+// AttachedTo link standing, so the mid-resolution window while the bearer is
+// off the battlefield still shows the attachment fastened (Murderous Spoils'
+// StealEquip) — and the bearer's re-entry breaks that link
+// (breakQueuedAttachmentsOnEntry: the returned permanent is a new object
+// nothing is attached to, and a link surviving to the SBA pass would let
+// destroyLethalDamage, which runs before attachmentSBAs, kill the returned
+// creature with a toughness-changing Aura it was never attached to). The SBAs
+// then finish the job: the Aura goes to its owner's graveyard (704.5m) and
+// the Equipment sits unattached on the battlefield (704.5n), so the returned
+// bearer has its base characteristics. All cards are real compiled corpus
+// cards; no Forge script text is committed here.
 package rules
 
 import (
@@ -191,7 +189,7 @@ func TestFlickerUnattachesAura(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 
-	// The r3-review MAJOR: between the flicker's return and the next SBA
+	// Between the flicker's return and the next SBA
 	// pass, a stale AttachedTo link would make the OLD Aura's statics apply
 	// to the returned new object, and checkStateBased runs destroyLethalDamage
 	// BEFORE attachmentSBAs -- so Dead Weight's -2/-2 (applied through the

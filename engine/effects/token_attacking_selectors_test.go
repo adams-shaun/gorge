@@ -1,7 +1,6 @@
 package effects
 
-// The non-True TokenAttacking$ selector forms (task
-// agent-20260920T064028Z-a7f115d7). The engine's player-defender grammar
+// The non-True TokenAttacking$ selector forms. The engine's player-defender grammar
 // (effects.definedSpec) must resolve the player half of every corpus spelling
 // -- Remembered x5, RememberedPlayer x3, TriggeredAttackedTarget x4,
 // TriggeredDefender x1 -- and the object half (`Valid <filter>`, the "or a

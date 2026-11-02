@@ -32,7 +32,7 @@ func planMeasurementFixture() []genDeck {
 //
 //   - default -autopay off: lazy publication builds no seat's payment
 //     extension, so no plan is ever on offer and the counter is zero (the
-//     cheap path the lazy commit d1dcb7eae introduced);
+//     cheap path);
 //   - -autopay off -measure-manual-seat-plans: the guard forces every seat's
 //     extension at each priority window, so the counter reports the plans the
 //     eager publisher would have offered to the manual seats.

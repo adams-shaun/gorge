@@ -11,7 +11,7 @@ import (
 // ValidTgts$, the sweep must read it or the resolving controller's own
 // creatures are animated too.  Curious Colossus is the carrier:
 // `AnimateAll | ValidTgts$ Opponent | ValidCards$ Creature | Power$ 1 |
-// Toughness$ 1 | Types$ Coward` (std3 ECL: gorge turned its OWN Colossus into
+// Toughness$ 1 | Types$ Coward` (ECL: gorge turned its OWN Colossus into
 // a 1/1 Coward, xmage left it 7/7 and shrank the opponent's creature).  These
 // leaves pin the scope, mirroring effects/damageall_target_player_scope_test.go.
 //

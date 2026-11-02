@@ -154,7 +154,7 @@ func answerDiscard(t *testing.T, e *Engine, d *decision.Decision) {
 	submitChoices(t, e, pick)
 }
 
-// TestParentTargetSurvivesALaterLinkSuspension is the ticket's main carrier:
+// TestParentTargetSurvivesALaterLinkSuspension is the main carrier:
 // DBTap's targets must be what the post-suspension DBPump reads.
 func TestParentTargetSurvivesALaterLinkSuspension(t *testing.T) {
 	e, cfg, _ := newFixtureDeck(t, 7101, parentTargetBetweenScript(),

@@ -8,10 +8,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// These tests pin task ct1's non-creature ChooseType option lists: every
-// Type$ category this build can enumerate now offers its REAL list through
-// the existing "choosetype" ask, instead of a loud Note and a
-// nonsensical creature-type fallback. Each test asserts its own precondition
+// These tests pin the non-creature ChooseType option lists: every Type$
+// category this build can enumerate offers its real list through the
+// "choosetype" ask, not a loud Note and a nonsensical creature-type fallback.
+// Each test asserts its own precondition
 // (the objects exist where the rule reads them; the option list actually
 // differs from a creature list) so a vacuous setup fails loudly.
 

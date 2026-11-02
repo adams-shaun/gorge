@@ -99,7 +99,7 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 			spec += alt.spec
 		}
 		// The bare wasCastFromYourHandByYou / wasCastByYou qualifiers (the
-		// cast-provenance families, tasks castprov1/castprov2) are split out
+		// cast-provenance families) are split out
 		// and evaluated against the log here; the remainder matches as before.
 		spec, ok3 := e.CastProvenanceAdmits(spec, ev.Obj, ctrl)
 		if !ok3 || !e.MatchesSpec(spec, ev.Obj, source, ctrl, SpecOpts{}) {

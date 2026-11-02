@@ -1,18 +1,16 @@
 package rules
 
-// Amass-remembered census (task agent-20260928T215010Z-bea05a4b, filed from
-// the Goblin Plate Mail finding).
+// Amass-remembered census.
 //
 // `DB$ Amass | ... | RememberAmass$ True` records the amassed Army in the
-// resolution's Remembered list (engine/effects/amass.go, amassRiders). The Goblin
-// Plate Mail finding this ticket came from was that the FOLLOWING
-// `DB$ Attach | Defined$ Remembered` sub did not see that entry, so the
-// Equipment stayed unattached (AttachedTo == 0). The mechanism is fixed in
-// the base this branched from: the shared resolution Ctx carries the amass
-// write into the chained sub, and
-// TestSetAudit_hob_GoblinPlateMail_AmassesThenAttaches (unguarded) passes.
-// This census does not change engine behaviour; it names the affected class so
-// every consumer of the remembered Army is on record, not just the Attach one.
+// resolution's Remembered list (engine/effects/amass.go, amassRiders). The
+// Goblin Plate Mail finding was that the FOLLOWING `DB$ Attach | Defined$
+// Remembered` sub did not see that entry, so the Equipment stayed unattached
+// (AttachedTo == 0). The shared resolution Ctx carries the amass write into
+// the chained sub, and TestSetAudit_hob_GoblinPlateMail_AmassesThenAttaches
+// (unguarded) passes. This census does not change engine behaviour; it names
+// the affected class so every consumer of the remembered Army is on record,
+// not just the Attach one.
 //
 // This census pins the class so a corpus-pin bump that adds a new
 // RememberAmass$ consumer is named rather than silently joining an untested

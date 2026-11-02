@@ -47,7 +47,7 @@ func costStaticCensusSubject(c *cards.Card) bool {
 }
 
 // TestCostStaticPlannedCastsNeverCostChange<k> is the class census behind
-// cardfuzz fuzz-1003's planfb cost_changed (Battlefield Thaumaturge under
+// the fuzzer's cost_changed reversal (Battlefield Thaumaturge under
 // Call to Heel, Press the Enemy, Symbol of Unsummoning): every corpus
 // permanent with a cost-modifier static is put on both battlefields beside a
 // creature each and six Islands, and each probe spell's offered payment plan

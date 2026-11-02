@@ -18,16 +18,9 @@ import (
 
 // charsReaderMethods is the method count of chars.Reader
 // (engine/rules/chars/reader.go). It is a BUDGETED ratchet like payEngineMethods:
-// it may rise only in a commit that moves ring code onto the new read, the
-// comment recording the step, and never above charsReaderCeiling (the
-// spec's narrow-interface target). E4 slice 1 landed it with the six reads
-// the mana activation gates use: DerivedTypes, HasKeyword, SVarGate,
-// ActivationPhasesOK, PresentGate, GrantedAbilities. Slice 5 added
-// SameColorRevealSets and TapPower (the non-mana cost-part castability walk,
-// nonManaCastableP): 6 -> 8. E7 flow slice 1: ZoneEntrySeq (the zone-entry
-// index read, moved off pay.Engine to make room for the flow seam): 8 -> 9.
-// E7 flow slice 4: Power and Colors (the Convoke/Harmonize announcement,
-// pay.ConvokeAsk): 9 -> 11.
+// it may rise only in a commit that moves ring code onto the new read, and
+// never above charsReaderCeiling (the layering design's narrow-interface
+// target).
 const (
 	charsReaderMethods = 11
 	charsReaderCeiling = 20
@@ -136,16 +129,7 @@ func TestPayHoldsNoHost(t *testing.T) {
 }
 
 // payEvalMethods is the method count of pay.Eval (engine/rules/pay/eval.go), the
-// payment layer's evaluation seam, budgeted like charsReaderMethods. E4
-// slice 2 landed it with EvalCount, MatchesSpec and WindowUnits (the
-// unless-payment reachability and the SVar-fixed cost counts). Slice 6
-// added ManaShape, ManaStatic and SourceInterference (the planner's
-// per-source alternatives and tiers): 3 -> 6. Slice 7 added ManaUnits (the
-// planner's source census): 6 -> 7. E7 flow slice 2 moved Conv,
-// MayPlayRider and PayLifeInsteadOfB (static-pricing evaluations) off
-// pay.Engine onto it: 7 -> 10. ds1017-cantchangelife added
-// LifeChangeForbidden (the CR 119.7/119.8 CantChangeLife read every life
-// payment gate consults): 10 -> 11.
+// payment layer's evaluation seam, budgeted like charsReaderMethods.
 const (
 	payEvalMethods = 11
 	payEvalCeiling = 20

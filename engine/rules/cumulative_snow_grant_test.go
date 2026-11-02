@@ -3,8 +3,7 @@
 // requirement (CR 702.24a / CR 107.4h), and a dynamically granted cumulative
 // upkeep (a layer-6 AddKeyword$ or an A:AB$ Pump's KW$ grant) must run through
 // the same engine/rules/cumulative.go machinery a printed K:Cumulative upkeep line
-// does. Kept in its own file so the ticket cannot conflict on a shared test
-// file.
+// does.
 package rules
 
 import (
@@ -19,7 +18,7 @@ import (
 
 // coverOfWinterEngine seeds seat 0's library with the REAL corpus Cover of
 // Winter (K:Cumulative upkeep:S) and returns the engine and its id once it is
-// on the battlefield. The brief names no specific card; this is the corpus's
+// on the battlefield. This is the corpus's
 // snow cumulative-upkeep carrier.
 func coverOfWinterEngine(t *testing.T) (*Engine, state.ObjID) {
 	t.Helper()
@@ -70,12 +69,10 @@ const cumulativeGrantStatic = "Name:Cumulus Cover\nManaCost:0\nTypes:Enchantment
 const cumulativeGrantPump = "Name:Cumulus Idol\nManaCost:0\nTypes:Artifact\n" +
 	"A:AB$ Pump | Cost$ 0 | Defined$ Self | KW$ Cumulative upkeep:1 | Duration$ Permanent | SpellDescription$ CARDNAME gains cumulative upkeep {1}.\nOracle:x\n"
 
-// TestGrantedCumulativeUpkeepStaticGrantTriggers is the grant half of the row:
-// a creature granted Cumulative upkeep by a layer-6 AddKeyword$ must accrue an
-// age counter and pose the pay/sacrifice ask at its controller's upkeep,
-// exactly as a printed K:Cumulative upkeep line does. Before the fix the
-// keyword sat in the derived list with no Phase trigger to carry it, so the
-// upkeep simply passed.
+// TestGrantedCumulativeUpkeepStaticGrantTriggers is the grant half of the
+// row: a creature granted Cumulative upkeep by a layer-6 AddKeyword$ must
+// accrue an age counter and pose the pay/sacrifice ask at its controller's
+// upkeep, exactly as a printed K:Cumulative upkeep line does.
 func TestGrantedCumulativeUpkeepStaticGrantTriggers(t *testing.T) {
 	t.Parallel()
 	const bear = "Name:Testbear\nManaCost:0\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"

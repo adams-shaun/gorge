@@ -96,8 +96,8 @@ func TestTriggerGameActivationLimitRealCorpusAcrobaticCheerleader(t *testing.T) 
 
 // gameLimitedBlocksTrigger is the dedicated-hook fixture: a Mode$ Blocks line
 // with GameActivationLimit$ 1. Blocks rides checkBlocksTriggers, whose gate
-// runs BEFORE its pair scan -- the shape the round-1 defect miscounted (an
-// event whose pairs match nothing consumed the lifetime use at the gate).
+// runs BEFORE its pair scan: an event whose pairs match nothing must not
+// consume the lifetime use at the gate.
 const gameLimitedBlocksTrigger = "Name:OnceBlocker\nManaCost:0\nTypes:Creature\nPT:2/2\n" +
 	"T:Mode$ Blocks | TriggerZones$ Battlefield | GameActivationLimit$ 1 | Execute$ TrigDraw\n" +
 	"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
@@ -152,9 +152,9 @@ func TestTriggerGameActivationLimitBlocksEmptyEventDoesNotConsumeUse(t *testing.
 
 // gameAndTurnLimitedTapsTrigger is the combined-parameter fixture: Mode$ Taps
 // (an actionTriggerMode, so BOTH gates apply) carrying ActivationLimit$ 1 and
-// GameActivationLimit$ 2 -- the shape the round-1 defect miscounted (the
-// second same-turn match consumed a game use at the game gate before the
-// per-turn gate rejected it, so the turn-2 use was wrongly spent).
+// GameActivationLimit$ 2: a second same-turn match must not consume a game use
+// at the game gate before the per-turn gate rejects it, or the turn-2 use is
+// wrongly spent.
 const gameAndTurnLimitedTapsTrigger = "Name:TwiceTap\nManaCost:0\nTypes:Creature\nPT:2/2\n" +
 	"T:Mode$ Taps | TriggerZones$ Battlefield | ValidCard$ Card.Self | ActivationLimit$ 1 | GameActivationLimit$ 2 | Execute$ TrigDraw\n" +
 	"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"

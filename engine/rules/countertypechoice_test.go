@@ -69,7 +69,7 @@ func TestInvokeTheAncientsCounterTypePerDefinedChoice(t *testing.T) {
 // TestCrystallineGiantCounterTypeChoice exercises the real begin-combat
 // trigger: it uses RNG and creates no player KChoose while avoiding a kind
 // the Giant already has.
-// TestCounterTypeChoiceDoesNotLeakIntoSubAbility is the fx42 scoping
+// TestCounterTypeChoiceDoesNotLeakIntoSubAbility is the scoping
 // regression: one resolved list answer must not suppress a later list ask in
 // the same Resolve chain.
 func TestCounterTypeChoiceDoesNotLeakIntoSubAbility(t *testing.T) {

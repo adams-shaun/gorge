@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The FILTERED Count$CastTotalManaSpent <Type> form (task castfilter1),
+// The FILTERED Count$CastTotalManaSpent <Type> form,
 // pinned end to end on real corpus cards.
 //
 // Snow is the tractable family: the pool has always carried a PARALLEL snow
@@ -80,14 +80,14 @@ func TestCastTotalManaSpentSnowCountsOnlySnowEndToEnd(t *testing.T) {
 	}
 }
 
-// TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the ticket's
+// TestCataclysmicProspectingCastTotalManaSpentFailsClosed pins the
 // named carrier against PLAIN mana: Cataclysmic Prospecting creates a tapped
 // Treasure for each mana from a DESERT spent to cast it
 // (SVar:Y:Count$CastTotalManaSpent Desert), and an X=1 cast paid from three
 // PLAIN red units (no Desert units) reads 0 and creates NO Treasures. Before
 // the fix the head returned the UNFILTERED total (3 Treasures for the
 // three-mana cast); the direction -- only the named producer type counts --
-// is the contract both this pin and the castfilter2 Desert pin below assert.
+// is the contract both this pin and the Desert pin below assert.
 func TestCataclysmicProspectingCastTotalManaSpentFailsClosed(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -352,7 +352,7 @@ func TestCastTotalManaSpentConsumesPlainBeforeTyped(t *testing.T) {
 // --- Restricted tagged mana: the restriction must survive the tag ----------
 //
 // A Treasure/Cave/Desert-typed producer can also carry RestrictValid$ (task
-// castfilter2's review fix). Registering the restriction batch only for the
+// the Desert pin). Registering the restriction batch only for the
 // PLAIN counter form silently dropped it for a tagged unit -- the ManaAdd
 // case's typed branch broke out before the registration block -- so Echoing
 // Cavern, Sunken Citadel (both Cave) and Bucolic Ranch (Desert) produced

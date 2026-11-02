@@ -43,7 +43,7 @@ var incrementCorpusCarriers = []string{
 }
 
 // TestIncrementCensusEveryCorpusCarrierIsSupported names the other affected
-// cards the ticket calls for: every corpus carrier of K:Increment must report
+// cards: every corpus carrier of K:Increment must report
 // no missing primitives once the keyword expands and its marker is registered.
 // It is the ratchet direction (acceptance_test.go's knownUnsupported is empty
 // for these; a regression that drops the expander or the registration makes

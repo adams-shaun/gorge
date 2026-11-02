@@ -1,14 +1,14 @@
 package rules
 
-// CR 700.2i's printed-order execution (the BLB Seasons) must not desynchronize
-// the per-mode target bindings. A budgeted Charm records ChosenModes in
-// printed order before the per-mode target ask, so charmTargetSlots,
-// recheckCharmTargets and charmDistinctTargetRun all walk the same order.
-// Season of the Burrow is the corpus carrier with two distinct target-bearing
-// modes (exile a nonland permanent, return a small permanent card from your
-// graveyard), so answering them in reverse printed order is the regression:
-// pre-fix the target groups stayed in ANSWER order while resolution reordered
-// only the mode names, and both modes silently no-opped.
+// CR 700.2i's printed-order execution (the BLB Seasons) must not
+// desynchronize the per-mode target bindings. A budgeted Charm records
+// ChosenModes in printed order before the per-mode target ask, so
+// charmTargetSlots, recheckCharmTargets and charmDistinctTargetRun all walk
+// the same order. Season of the Burrow is the corpus carrier with two
+// distinct target-bearing modes (exile a nonland permanent, return a small
+// permanent card from your graveyard), so answering them in reverse printed
+// order is the case: target groups staying in ANSWER order while resolution
+// reorders only the mode names would give and both modes silently no-opped.
 
 import (
 	"testing"

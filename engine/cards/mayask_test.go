@@ -22,7 +22,7 @@ func TestSAChainMayAsk(t *testing.T) {
 		src  string
 		want bool
 	}{
-		{"plain burn", "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | LifeAmount$ 2", false},
+		{"plain burn", "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ Gain\nSVar:Gain:DB$ GainLife | LifeAmount$ 2", false},
 		{"off-list API", "A:SP$ Scry | ScryNum$ 2", true},
 		{"vocabulary rider", "A:SP$ Draw | NumCards$ 1 | OptionalDecider$ You", true},
 		{"raw rider", "A:SP$ PutCounter | Defined$ Self | CounterType$ P1P1 | Bolster$ True", true},
@@ -59,8 +59,8 @@ func TestFaceEntryMayAsk(t *testing.T) {
 		t.Fatal("a vanilla creature's entry cannot ask")
 	}
 	painter := mayAskCard(t, "Name:Ask Painter\nManaCost:R\nTypes:Creature Shapeshifter\nPT:1/3\n"+
-		"K:ETBReplacement:Other:ChooseColor\n"+
-		"SVar:ChooseColor:DB$ ChooseColor | Defined$ You | SpellDescription$ As CARDNAME enters, choose a color.\nOracle:x\n")
+		"K:ETBReplacement:Other:Pick\n"+
+		"SVar:Pick:DB$ ChooseColor | Defined$ You\nOracle:x\n")
 	if !FaceEntryMayAsk(painter) {
 		t.Fatal("an as-enters color choice asks as the permanent enters")
 	}
@@ -78,16 +78,16 @@ func TestTriggerLineMayAsk(t *testing.T) {
 	}
 }
 
-// TestSAChainMayAskAttachAndAbilitySubTargets pins the miss classes closed
-// in W3 step 2: an Equipment whose own "as this becomes attached" choice
+// TestSAChainMayAskAttachAndAbilitySubTargets pins three miss classes: an
+// Equipment whose own "as this becomes attached" choice
 // (an R:Event$ Attached replacement) asks as it equips, an Attach of a
 // non-Self object (whose face is board-dependent), and an ability's
 // sub-ability target set (asked mid-resolution; a spell's is asked at cast).
 func TestSAChainMayAskAttachAndAbilitySubTargets(t *testing.T) {
 	plain := mayAskCard(t, "Name:Plain Blade\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:1\nOracle:x\n")
 	paper := mayAskCard(t, "Name:Paper Probe\nManaCost:2\nTypes:Artifact Equipment\n"+
-		"R:Event$ Attached | ValidCard$ Card.Self | ValidTarget$ Creature | ReplaceWith$ ChooseColor | ActiveZones$ Battlefield\n"+
-		"SVar:ChooseColor:DB$ ChooseColor | Defined$ You\nK:Equip:1\nOracle:x\n")
+		"R:Event$ Attached | ValidCard$ Card.Self | ValidTarget$ Creature | ReplaceWith$ Pick | ActiveZones$ Battlefield\n"+
+		"SVar:Pick:DB$ ChooseColor | Defined$ You\nK:Equip:1\nOracle:x\n")
 	equip := func(f *Face) *SA {
 		for _, a := range f.Abilities {
 			if a.API == "Attach" {

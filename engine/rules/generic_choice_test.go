@@ -1,6 +1,6 @@
 package rules
 
-// The api:GenericChoice primitive (task agent-20260918T202223Z-eb7aab2a):
+// The api:GenericChoice primitive:
 // Forge's free-form modal choice ("create a Food token OR a Treasure token")
 // is a modal machinery carrier like Charm — a Choices$ list naming SVar
 // ability bodies — and since it registered onto the same handler
@@ -18,7 +18,7 @@ package rules
 // are authored here under the corpus's TokenScript$ keys so the inline
 // carrier's references resolve.
 //
-// Out of scope, recorded in the ticket's ledger: effCharm asks the resolving
+// Out of scope: effCharm asks the resolving
 // controller and ignores Defined$ (the same narrowing Charm already has), and
 // an SP$ GenericChoice spell announces its modes mid-resolution rather than at
 // CR 601.2b cast time (castModeAsk is Charm-only) — pinned as the stand-in it

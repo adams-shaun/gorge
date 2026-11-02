@@ -74,9 +74,9 @@ func TestTargetedByTargetReadsZeroWhenTheFilterFails(t *testing.T) {
 
 func TestTargetedByTargetEmptyBindingIsAModelledZero(t *testing.T) {
 	h, c := fixtureHost(t)
-	// No cast targets bound (the pre-fix cost path read exactly this shape):
-	// a MODELLED head must resolve to a legitimate zero, never the
-	// unresolvable verdict the Compare gate treats as an error condition.
+	// No cast targets bound (the shape a cost path reads): a MODELLED head
+	// must resolve to a legitimate zero, never the unresolvable verdict the
+	// Compare gate treats as an error condition.
 	const body = "TargetedByTarget$Valid Creature.powerGE7+YouCtrl"
 	if n, ok := EvalCountOK(h, c, body); !ok || n != 0 {
 		t.Errorf("%s with no Ctx.Targets = (%d, %v), want (0, true)", body, n, ok)

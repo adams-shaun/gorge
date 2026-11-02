@@ -11,7 +11,7 @@ import (
 )
 
 // effectCantBlockByCount counts the live registered CantBlockBy restrictions
-// (the Effect-delivered route this ticket wires), so a test can assert the
+// (the Effect-delivered route), so a test can assert the
 // registration itself happened rather than only its shadow on canBlock.
 func effectCantBlockByCount(e *Engine) int {
 	n := 0
@@ -46,9 +46,9 @@ func chooseTargetOption(t *testing.T, e *Engine, obj state.ObjID) {
 // Suspicious Bookcase's "{3},{T}: Target creature can't be blocked this turn"
 // is an `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
 // `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` (the dominant
-// unblockable template -- measured 246 corpus files carry the shape). Before
-// this ticket effEffect's static-mode switch had no CantBlockBy case, the
-// ability resolved as an unimplemented Note and the targeted creature stayed
+// unblockable template -- measured 246 corpus files carry the shape). Without
+// a CantBlockBy case in effEffect's static-mode switch, the
+// ability resolves as an unimplemented Note and the targeted creature stays
 // blockable. After it the ability resolves to a live CantBlockBy restriction
 // that the blockRestricted combat walk consults beside the printed statics.
 func TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget(t *testing.T) {
@@ -93,8 +93,7 @@ func TestEffectCantBlockBySuspiciousBookcaseUnblocksItsTarget(t *testing.T) {
 		t.Fatalf("CantBlockBy effects registered after the ability resolved = %d, want 1", n)
 	}
 	// The readable body must have registered, NOT been refused: no
-	// unimplemented-CantBlockBy note may carry the resolution (fails pre-fix,
-	// where the stand-in Note is exactly what this ability emits).
+	// unimplemented-CantBlockBy note may carry the resolution.
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.Note && ev.Obj == bookcase &&

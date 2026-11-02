@@ -4,7 +4,7 @@ package rules
 // CR 800.4a: 12361-12367; 800.4e: 12408-12409;
 // 800.6: 12452-12454; 800.7: 12456-12458; 802.4: 12673-12676.
 // All cards/SAs come from the compiled corpus; each seat has a repo deck.
-// I-1's departed unless-pay continuation belongs to the existing CR608 test,
+// The departed unless-pay continuation belongs to the existing CR608 test,
 // not these independent ownership, stack-cleanup and combat obligations.
 
 import (
@@ -35,8 +35,8 @@ func crMultiplayerConfig(t *testing.T, reg *cards.Registry, deck string) Config 
 // crProbeAnswerAsks settles every non-priority decision the probe's raw
 // entry emits suspend on, then returns once the engine is back at a priority
 // decision. A Cavern of Souls moved onto the battlefield by the fixture asks
-// its "as this enters" creature-type choice at entry (task ct1 made the
-// mid-resolution ChooseType real; a raw MoveZone entry is not a cast, so no
+// its "as this enters" creature-type choice at entry (the
+// mid-resolution ChooseType is real; a raw MoveZone entry is not a cast, so no
 // cast-time ask pre-recorded it), and the ask must be answered before the
 // probe's own askPriority can post — the overwrite guard would panic
 // otherwise. The probe answers the first legal option, the same

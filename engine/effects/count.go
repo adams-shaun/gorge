@@ -241,7 +241,7 @@ func numResolvedText(h Host, c *Ctx, p ParamText, def int32) (int32, bool) {
 	// TargetMax$ PlayerCountOpponents$Amount -- must resolve the way the
 	// SVar-mediated form (Havoc Eater's SVar:X:PlayerCountOpponents$Amount
 	// behind TargetMax$ X) resolves through the lookup above. Otherwise the
-	// pfpe1 per-player bound collapses to the default 1 on one spelling and
+	// per-player bound collapses to the default 1 on one spelling and
 	// not the other. A token that names no modelled head keeps the
 	// degrade-to-zero path -- evalCountExprOK's verdict is exactly
 	// "the head matched nothing".
@@ -315,7 +315,7 @@ func EvalCount(h Host, c *Ctx, expr string) int32 {
 // evalCountBody's switch automatically becomes evaluated, one deleted
 // automatically stops being so.
 //
-// The count reads the board's derived characteristics by default (W1d): a
+// The count reads the board's derived characteristics by default: a
 // context that carries no layer-3 rename or layer-4 type table -- one built
 // outside effects.Resolve, such as a static's numeric-RHS SVar, a CDA, a cost
 // or a target-offer count -- is bound to the host's always-published pair for
@@ -559,7 +559,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		}
 		// Forge's literal "Number$<int>" SVar body -- the "this is just the
 		// number" spelling (Vraska, Betrayal's Sting's
-		// SVar:Difference:Number$9/Minus.X, Kokusho's Number$7/Minus.Y,
+		// Number$9/Minus.X, Kokusho's Number$7/Minus.Y,
 		// Krang's Number$4/Minus.X, and the bookkeeping Number$0 bodies)
 		// evaluates the literal, with the shared /Op suffix resolved through
 		// the same operand grammar the Count$ branch applies (so

@@ -22,9 +22,9 @@ import (
 // TestDragonsDiscipleDeclinedRevealPosesNoPick casts the real Dragon's
 // Disciple with TWO Dragons in hand (so the narrowed eligible pool is
 // strictly larger than the one card the reveal must show -- the condition
-// under which the pick exists at all) and declines the may-reveal. The
-// pre-fix build then posed a Min/Max 1/1 reveal_pick anyway; the fixed build
-// finishes the resolution with nothing revealed.
+// under which the pick exists at all) and declines the may-reveal. No Min/Max
+// 1/1 reveal_pick follows; the resolution finishes the resolution with
+// nothing revealed.
 func TestDragonsDiscipleDeclinedRevealPosesNoPick(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -94,7 +94,7 @@ func TestDragonsDiscipleDeclinedRevealPosesNoPick(t *testing.T) {
 			submitChoices(t, e, 1) // decline
 			declined = true
 		case "reveal_pick":
-			t.Fatalf("fx45 regression: a DECLINED may-reveal posed a mandatory reveal_pick: %+v", d)
+			t.Fatalf("a DECLINED may-reveal posed a mandatory reveal_pick: %+v", d)
 		default:
 			t.Fatalf("unexpected mid-resolution ask: kind=%s resume=%q %+v", d.Kind, d.ResumeKind, d)
 		}

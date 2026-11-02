@@ -1,4 +1,4 @@
-// Fix round (findings-sol4 MAJOR): a GainLife→Draw replacement body (Lich's
+// A GainLife→Draw replacement body (Lich's
 // "If you would gain life, draw that many cards instead") drives its draws
 // through effects.DrawFor, and each draw may suspend on a Dredge ask (CR
 // 702.55). The old `case "Draw"` loop did not check h.Suspended() between
@@ -8,9 +8,9 @@
 //
 // The committed probe is exactly the finding's repro, on real card scripts:
 // Lich on the battlefield, a Golgari Thug (Dredge 4) in its controller's
-// graveyard, one LifeChange{Amount: 2} emit. Post-fix the loop parks the
-// remaining count on the ask's resume point, the answered dredge re-drives
-// the rest, and a second dredger re-parks for its own sequential ask.
+// graveyard, one LifeChange{Amount: 2} emit. The loop parks the remaining
+// count on the ask's resume point, the answered dredge re-drives the rest,
+// and a second dredger re-parks for its own sequential ask.
 package rules
 
 import (

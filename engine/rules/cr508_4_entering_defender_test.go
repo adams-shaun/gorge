@@ -39,7 +39,7 @@ func drainAnsweringEnteringDefender(t *testing.T, e *Engine, limit int, pick fun
 }
 
 // drainFirstEnteringDefender is drainAnsweringEnteringDefender answering
-// option 0 -- the trigger's own defending player, the R-9 stand-in -- for
+// option 0 -- the trigger's own defending player, the no-host stand-in -- for
 // the multiplayer drains written before CR 508.4's ask existed.
 func drainFirstEnteringDefender(t *testing.T, e *Engine, limit int) {
 	t.Helper()

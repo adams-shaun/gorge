@@ -90,7 +90,7 @@ func TestColourIdentityPinnedTrapCards(t *testing.T) {
 	}
 
 	// Ghoulcaller Gisa: costs {3}{B}{B} and its activated ability costs {B},
-	// {T}. The brief calls this the trap: at least one {B} must survive from
+	// {T}. This is the trap: at least one {B} must survive from
 	// the ability's Cost$ even though the mana cost already has {B}, and the
 	// word "Sacrifice" in the cost is not a colour. A parser that only ever
 	// read the mana cost would be fine here, so the gate is the ability text.
@@ -246,15 +246,15 @@ func TestDeriveColourIdentityFromScriptFields(t *testing.T) {
 	// characteristic-defining is not.
 	all, _ := ParseBytes("s.txt", []byte(
 		"Name:All\nManaCost:4\nTypes:Artifact Creature Golem\n"+
-			"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | SetColor$ All | Description$ CARDNAME is all colors.\n"+
-			"Oracle:Transguild Courier is all colors.\n"))
+			"S:Mode$ Continuous | Affected$ Card.Self | CharacteristicDefining$ True | SetColor$ All\n"+
+			"Oracle:x\n"))
 	if want := ColourWhite | ColourBlue | ColourBlack | ColourRed | ColourGreen; all.Faces[0].ColourIdentity() != want {
 		t.Fatalf("SetColor$ All identity = %08b, want all five colours", all.Faces[0].ColourIdentity())
 	}
 	other, _ := ParseBytes("s.txt", []byte(
 		"Name:Other\nManaCost:G\nTypes:Enchantment\n"+
-			"S:Mode$ Continuous | Affected$ Permanent.nonLand+YouCtrl | SetColor$ All | Description$ Each nonland permanent you control is all colors.\n"+
-			"Oracle:Each nonland permanent you control is all colors.\n"))
+			"S:Mode$ Continuous | Affected$ Permanent.nonLand+YouCtrl | SetColor$ All\n"+
+			"Oracle:x\n"))
 	if got := other.Faces[0].ColourIdentity(); got != ColourGreen {
 		t.Fatalf("a SetColor$ on other permanents is not the card's identity; got %08b, want green", got)
 	}
@@ -305,7 +305,7 @@ func TestColourIdentityConstructionRoutesAgree(t *testing.T) {
 	}
 }
 
-// TestColourIdentityCorpusPins pins the rv2c round's five named identities on
+// TestColourIdentityCorpusPins pins five named identities on
 // the real corpus, each against the CR class it exercises:
 //
 //   - Pox: the SVar parameters ("Amount$ G" on a land-sacrifice count) are

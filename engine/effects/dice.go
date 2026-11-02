@@ -384,7 +384,7 @@ func retainedDice(dice []int32, ignoreLower int32, useHighest bool) []int32 {
 //     the total of those results", Pair o' Dice Lost "total mana value X or
 //     less ... where X is the total of those results" -- and Spark Fiend's
 //     StoreSVar Expression$ Result reads the same total through the
-//     bare-name body path. The r2 review's truncation is gone: multi-roll
+//     bare-name body path. Multi-roll
 //     resolutions publish.
 //   - UseDifferenceBetweenRolls$ True (5 corpus lines, all two dice -- the
 //     Ungencoded CrankContraption family, Boomflinger et al.): publishes

@@ -49,7 +49,7 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `specs/2026-09-18-botbench-decision-trace-design.md` | 2026-09-18 | Botbench decision-trace design | Botbench JSONL decision trace; implemented. |
 | `specs/2026-09-18-compiled-predicate-cost-design.md` | 2026-09-18 | Compiled Predicate and Cost Design | Compiled filter/cost predicates; implemented. |
 | `specs/2026-09-19-hosted-bot-policy-selection-design.md` | 2026-09-19 | Hosted bot policy selection | Hosted bot selection by name; implemented, then extended by hosted-bot-packages. |
-| `specs/2026-09-23-seat-box-pill-requirements.md` | 2026-09-23 | Seat-box "pill" visual requirements — fb-20260923T015756Z-c1c7d6d8 | Visual requirements for seat-box pills from a player report; implemented in `web/`. |
+| `specs/2026-09-23-seat-box-pill-requirements.md` | 2026-09-23 | Seat-box "pill" visual requirements | Visual requirements for seat-box pills from a player report; implemented in `web/`. |
 | `specs/2026-09-28-client-table-ui-rework-design.md` | 2026-09-28 | Client table UI rework — design | Table UI rework; sub-project plans executed in `web/`. |
 | `specs/2026-09-28-loop-shortcut-protocol-design.md` | 2026-09-28 | Loop shortcut protocol, execution and replay: the deferred half of the loops design | Deferred half of the loops design (consent, execution, replay); not started. |
 | `specs/2026-09-28-loops-and-shortcuts-design.md` | 2026-09-28 | Loops and shortcuts: a bounded, replayable execution protocol | Loops and shortcuts proposal; client-driven v1 only. |
@@ -155,7 +155,7 @@ The `evidence/token-art/` directory also held 8 screenshots
 | `reports/2026-09-28-spellbench-policy-networks.md` | 2026-09-28 | SpellBench policy networks — survey and build plan (v1c, 2026-09-28) | Survey and build plan for SpellBench policy networks (v1c). |
 | `reports/2026-09-28-spellbench-theory-and-references.md` | 2026-09-28 | SpellBench agent — theory and references (2026-09-28) | Theory and references companion to the SpellBench agent design. |
 | `reports/2026-09-29-adopt-a-deck-and-rl-dashboard.md` | 2026-09-29 | Adopt-a-deck: a standing RL target, and a real win-rate dashboard for it | The dashboard already existed in `traindash`; named a standing adopt-a-deck target. |
-| `reports/2026-09-30-gate-cpu-ceiling.md` | 2026-09-30 | Gate CPU ceiling — cli-20260930T021924Z-01e737bb | Gate CPU ceiling: wall time unchanged, CPU burst cut sharply. |
+| `reports/2026-09-30-gate-cpu-ceiling.md` | 2026-09-30 | Gate CPU ceiling | Gate CPU ceiling: wall time unchanged, CPU burst cut sharply. |
 | `reports/2026-09-30-gorge-engine-speed.md` | 2026-09-30 | gorge engine speed on draft-zero's docs/015 metrics (2026-09-30) | Re-measured gorge on draft-zero docs/015 speed rows. |
 | `reports/2026-09-30-repo-constructed-gauntlet.md` | 2026-09-30 | Repo-constructed gauntlet: every supported constructed deck through SpellBench, and what the RL dashboard can see | Repo constructed decks added as a SpellBench catalog. |
 | `reports/2026-09-30-traindash-rescope.md` | 2026-09-30 | traindash re-scope: measure TRAIN_ROOT, fix the empty-panel defect, decide the viewer question | traindash re-scope: fixed the empty-panel defect, decided the viewer question. |

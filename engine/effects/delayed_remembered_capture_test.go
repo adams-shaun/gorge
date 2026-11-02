@@ -13,12 +13,12 @@ import (
 // treat that as a disposable firing-event referent and replace it with the
 // source's later mutable remembered list.
 //
-// The regression this guards is Turn to Mist: the original ChangeZone remembers
-// the exiled creature, the delayed `TrigReturn: ChangeZone | Defined$
-// Remembered` returns it at end of turn, and recasting the same card before the
-// end step clears/replaces the source's persistent memory. Before the fix the
-// delayed body resolved to nothing (cleared) or to the NEW target (replaced)
-// instead of the creature its own registration captured.
+// The regression this guards is Turn to Mist: the original ChangeZone
+// remembers the exiled creature, the delayed `TrigReturn: ChangeZone |
+// Defined$ Remembered` returns it at end of turn, and recasting the same card
+// before the end step clears/replaces the source's persistent memory. The
+// delayed body must resolve to the creature its own registration captured,
+// not to nothing (cleared) or to the NEW target (replaced).
 //
 // Each case asserts its precondition -- the source's persistent list really
 // differs from the delayed capture -- so a vacuous fixture fails loudly rather

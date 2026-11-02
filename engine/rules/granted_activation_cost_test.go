@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// granted_activation_cost_test.go is task grantcost1's leaf: a granted
+// granted_activation_cost_test.go is the leaf for this rule: a granted
 // activation (engine/rules/speed.go's beginGrantedActivation, the max-speed
 // "granted" option and beginActivation's SVar branch) used to pay ONLY its
 // mana/life/{T} parts -- every Sac/Discard/SubCounter/AddCounter/Exile/...
@@ -21,11 +21,8 @@ import (
 // CROSS-OBJECT (GrantAbilityPush).
 
 // TestGrantedAbilityPaysNonManaCosts covers Done-means (a): Acidic Sliver's
-// real corpus granted body, `Cost$ 2 Sac<1/CARDNAME>`. Before the fix the
-// activation spent the {2} and dealt the damage but NEVER sacrificed the
-// Sliver -- it survived and the ability could be reused for free. After the
-// fix the Sliver is gone from the battlefield, the mana is spent, and the 2
-// damage still resolves.
+// real corpus granted body, `Cost$ 2 Sac<1/CARDNAME>`. The Sliver is gone
+// from the battlefield, the mana is spent, and the 2 damage still resolves.
 func TestGrantedAbilityPaysNonManaCosts(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -104,11 +101,11 @@ func TestSelfGrantedActivationIsAnActivatedAbility(t *testing.T) {
 }
 
 // TestGrantedActivationChargesLoyaltySubCounter covers Done-means (b) and the
-// CROSS-OBJECT mint: Ichormoon Gauntlet's real corpus grant gives planeswalkers
-// `[-12]: Take an extra turn after this one`, whose `Cost$ SubCounter<12/LOYALTY>`
-// was never charged before the fix -- the ultimate fired for free. Garruk the
-// Slayer enters with 20 loyalty, so the payment is affordable; after the fix
-// twelve loyalty counters must be REMOVED (20 -> 8) and the extra turn granted.
+// CROSS-OBJECT mint: Ichormoon Gauntlet's real corpus grant gives
+// planeswalkers `[-12]: Take an extra turn after this one`, whose `Cost$
+// SubCounter<12/LOYALTY>` must be charged. Garruk the Slayer enters with 20
+// loyalty, so the payment is affordable; twelve loyalty counters must be
+// REMOVED (20 -> 8) and the extra turn granted.
 func TestGrantedActivationChargesLoyaltySubCounter(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

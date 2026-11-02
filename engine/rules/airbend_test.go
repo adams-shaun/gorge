@@ -1,7 +1,6 @@
 package rules
 
-// api:Airbend (CR 701.65) end-to-end pins on real corpus cards (ticket
-// tla-airbend-unimplemented). CR 701.65a: "Airbend [a permanent]" means exile
+// api:Airbend (CR 701.65) end-to-end pins on real corpus cards. CR 701.65a: "Airbend [a permanent]" means exile
 // it, and "for as long as it remains exiled, its owner may cast it by paying
 // {2} rather than its mana cost."
 //

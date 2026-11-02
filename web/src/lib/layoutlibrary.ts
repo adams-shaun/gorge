@@ -15,8 +15,8 @@ import {
 import { MAX_PROFILE_NAME } from './profiles';
 
 /**
- * layoutlibrary is the persisted library of layout profiles (UI rework spec
- * §2), at ONE localStorage key, `gorge.layouts.v1`:
+ * layoutlibrary is the persisted library of layout profiles, at ONE
+ * localStorage key, `gorge.layouts.v1`:
  *
  *   - `current` is the working copy. Every edit — a drawer control, a drag
  *     of the centre bar, the stacking hotkey — writes here, so the table

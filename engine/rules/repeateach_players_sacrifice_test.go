@@ -17,8 +17,8 @@ const repeatEachSacSpell = "Name:Mass Offering\nManaCost:B\nTypes:Sorcery\n" +
 	"SVar:DBSac:DB$ Sacrifice | Defined$ Remembered | Amount$ SacX | SacValid$ Creature | RememberSacrificed$ True | Optional$ True | SubAbility$ DBCleanup\n" +
 	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\nSVar:SacX:Count$Valid Creature\nOracle:x\n"
 
-// TestRepeatEachAsksEachRepeatedPlayerToSacrifice pins the ds2-townsfolk
-// ticket's shape on a three-seat free-for-all board: a RepeatEach whose body
+// TestRepeatEachAsksEachRepeatedPlayerToSacrifice pins this shape on a
+// three-seat free-for-all board: a RepeatEach whose body
 // is an optional sacrifice by the iteration's player poses one sacrifice ask
 // per repeated player, in turn order, each owned by that player, and each
 // answer moves that player's creature. RepeatPlayers$ NonOpponent is the

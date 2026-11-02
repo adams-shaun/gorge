@@ -47,7 +47,7 @@ func stallCard(t *testing.T, src string) *cards.Card {
 // with them and the turn never advances), and once the hand is empty the
 // same player can activate the free ability again and again — the same
 // "offer and re-offer one legal no-op" signature as the measured equip
-// loop, produced here without reproducing it (the brief): no equipment, no
+// loop, produced here without reproducing it: no equipment, no
 // creatures to equip, just the smallest reusable legal action the engine
 // offers.
 func stallDeck(t *testing.T) []*cards.Card {

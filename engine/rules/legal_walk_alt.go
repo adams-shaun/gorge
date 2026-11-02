@@ -299,10 +299,11 @@ func (w *legalWalk) commandZoneWalk() {
 		if f == nil {
 			continue
 		}
-		if w.castRestricted(p, id) || e.castSuppressed(p, id) {
+		if w.castRestricted(p, id) {
+			w.appendFaceDownCast(p, id, f, sorcery)
 			continue
 		}
-		if !w.spellTimingOK(p, id, f, sorcery) {
+		if e.castSuppressed(p, id) || !w.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
@@ -366,11 +367,7 @@ func (w *legalWalk) commandZoneWalk() {
 		// the printed keyword parameter (the turn-face-up cost) is not paid
 		// now. offerCastable composes the CR 903.8 commander tax on top of
 		// the {3}, exactly what beginCast charges for this mode.
-		if fam := morphDownFamily(f); fam != "" &&
-			w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
-			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-				Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
-		}
+		w.appendFaceDownCast(p, id, f, sorcery)
 	}
 }
 

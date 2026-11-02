@@ -12,7 +12,7 @@ import (
 // (testdata and dot/underscore directories excluded), whose basename keep
 // accepts (nil keeps all), sorted. The source-parsing census tests use it
 // instead of filepath.Glob(dir/*.go) so a later move of code into a rules
-// subpackage (the rules-engine refactor spec's W5) cannot silently drop files
+// subpackage cannot silently drop files
 // from a census and leave it running vacuously green.
 func sourceFilesUnder(t *testing.T, dir string, keep func(base string) bool) []string {
 	t.Helper()

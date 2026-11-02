@@ -7,7 +7,7 @@ import (
 )
 
 // TestDescribeClashNamesSeatAndOutcome pins the transcript line for the
-// events.Clash marker (CR 701.31, task clash1): one record per clashing
+// events.Clash marker (CR 701.31): one record per clashing
 // player, Player the clashing seat, Amount 1 when that player won and 0 when
 // they lost or tied. Without the describe case the Kind renders "unknown
 // event" and TestDescribeCoversEveryKind (describe_test.go) fails, so

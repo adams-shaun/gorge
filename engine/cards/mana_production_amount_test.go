@@ -36,15 +36,14 @@ func TestManaProductionIndeterminateFlag(t *testing.T) {
 }
 
 // TestManaProductionUrzaAmountStaysIndeterminate pins the offer-site decision
-// for the Count$UrzaLands head (mana1): effMana now evaluates the count at
-// runtime, but engine/cards/mana_production.go's projection still cannot price
-// UrzaAmount -- it reads only the ability's own Amount$ param ("UrzaAmount")
-// with no SVar table and no battlefield, and cards cannot import effects to
-// call EvalCount (dependency order cards -> ... -> effects). So the source
-// stays Indeterminate and contributes zero colourless slots, rather than
-// claiming a colour the pool is never promised. This is byte-identical to the
-// pre-fix shape: the bot tap gate still treats the land as "might produce
-// something", never as a dependable count.
+// for the Count$UrzaLands head: effMana evaluates the count at runtime, but
+// engine/cards/mana_production.go's projection still cannot price UrzaAmount
+// -- it reads only the ability's own Amount$ param ("UrzaAmount") with no
+// SVar table and no battlefield, and cards cannot import effects to call
+// EvalCount (dependency order cards -> ... -> effects). So the source stays
+// Indeterminate and contributes zero colourless slots, rather than claiming a
+// colour the pool is never promised. The bot tap gate still treats the land
+// as "might produce something", never as a dependable count.
 func TestManaProductionUrzaAmountStaysIndeterminate(t *testing.T) {
 	mp := mpOf(t, "Name:Urza's Mine\nTypes:Land Urza's Mine\n"+
 		"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ UrzaAmount\n"+

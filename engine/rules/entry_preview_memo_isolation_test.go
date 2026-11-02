@@ -8,21 +8,21 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestEntryPreviewDoesNotWriteTheLiveStaticMemo pins the entry preview's
-// memo isolation (CR 611.3a: a static ability stops applying once its source
-// leaves the battlefield). The census shape (dirac pairs 21961
-// 37823 66869 74406): Stroke of Midnight destroys Empyrean Eagle ("other
-// creatures you control with flying get +1/+1") and creates a Human token in
-// the same resolution, with no read in between, and Giada, Font of Hope's
-// entry grant makes the token's entry build an entry preview -- a shallow
-// copy of the live engine. Before the fix the preview's static-memo rebuild
-// wrote into the live engine's own array (zeroing the Eagle's entry under an
-// unchanged key), the live refresh then judged the Eagle's departure cold
-// and re-stamped the memo, and the live active list kept the Eagle's +1/+1:
-// Serra Angel stayed 5/5 while a clone read 4/4. The test folds the
-// departure without an engine read (log append + Apply, as one emit inside a
-// resolution leaves it), builds the token entry's preview, reads through it,
-// and checks the live memo and the live Derived.
+// TestEntryPreviewDoesNotWriteTheLiveStaticMemo pins the entry preview's memo
+// isolation (CR 611.3a: a static ability stops applying once its source
+// leaves the battlefield). The census shape (dirac pairs 21961 37823 66869
+// 74406): Stroke of Midnight destroys Empyrean Eagle ("other creatures you
+// control with flying get +1/+1") and creates a Human token in the same
+// resolution, with no read in between, and Giada, Font of Hope's entry grant
+// makes the token's entry build an entry preview -- a shallow copy of the
+// live engine. The preview's static-memo rebuild must not write into the live
+// engine's own array (zeroing the Eagle's entry under an unchanged key), the
+// live refresh then judged the Eagle's departure cold and re-stamped the
+// memo, and the live active list kept the Eagle's +1/+1: Serra Angel stayed
+// 5/5 while a clone read 4/4. The test folds the departure without an engine
+// read (log append + Apply, as one emit inside a resolution leaves it),
+// builds the token entry's preview, reads through it, and checks the live
+// memo and the live Derived.
 func TestEntryPreviewDoesNotWriteTheLiveStaticMemo(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)

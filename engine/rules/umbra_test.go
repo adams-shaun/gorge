@@ -236,9 +236,8 @@ func TestUmbraMysticGrantsUmbraArmorToYourAuras(t *testing.T) {
 // TestAttachedToDottedYouCtrlGrammar pins the Part 2 filter grammar
 // directly: the dotted two-token "AttachedTo <class>.YouCtrl" matches
 // exactly when the attached object is controlled by the spec's you. A
-// dotted qualifier that is itself a recognised predicate is now consumed by
-// the grammar (the With Great Power ticket widened the old YouCtrl-only
-// allowlist to every qualifier recognisedPredicate knows), so this test also
+// dotted qualifier that is itself a recognised predicate is consumed by
+// the grammar (every qualifier recognisedPredicate knows), so this test also
 // pins that widening and the shapes that still fail closed: a nested dotted
 // qualifier and a player-side class.
 func TestAttachedToDottedYouCtrlGrammar(t *testing.T) {

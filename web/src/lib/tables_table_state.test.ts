@@ -25,7 +25,7 @@ function find(id: string): TableState {
   return t;
 }
 
-describe('tables: series table state (E3-fx2 client)', () => {
+describe('tables: series table state', () => {
   it('a table_state frame sets the state, mapping between_games to cooldown', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('s1', { series: true })] } });
     expect(find('s1').info.state).toBe('idle'); // precondition: a fresh table is idle
@@ -89,7 +89,7 @@ describe('tables: series table state (E3-fx2 client)', () => {
   it('a table_state frame with an unrecognised or missing state is ignored (fail closed)', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('known')] } });
     expect(find('known').info.state).toBe('idle'); // precondition: the table starts idle
-    // E3-fx2 emits only between_games|live|idle; anything else — a future
+    // The server emits only between_games|live|idle; anything else — a future
     // value this client does not know, or a missing state — must not become
     // the store's state and feed the idle/matches-page derivation.
     tables.apply({ v: 1, t: 'table_state', seq: 1, table: 'known', body: { state: 'rebooting' } });

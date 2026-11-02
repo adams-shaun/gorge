@@ -9,7 +9,7 @@ import (
 )
 
 // These tests pin the resolution-start stack-kind snapshot the SpellTargeted
-// count ref reads (task agent-20260920T120233Z-357a4f24, round t2).
+// count ref reads.
 //
 // The l1 round made SpellTargeted require the named target to be a live stack
 // object, which is right for a battlefield permanent but WRONG once a move

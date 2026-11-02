@@ -8,8 +8,8 @@ import (
 )
 
 // TestReconfigureFaceDownKeepsCreature keeps the filter grammar and the
-// layer walk on ONE answer for a face-down attached reconfigure card (the
-// r2 review MINOR, same attach-time-internal-inconsistency class as the
+// layer walk on ONE answer for a face-down attached reconfigure card (the same
+// attach-time-internal-inconsistency class as the
 // disclosed attachableTo divergence). engine/rules/layers.go's
 // chars.reconfigureTypeSwitch guards its CR 702.150c strip with
 // `o.FaceDown && o.Zone == state.ZBattlefield`: a face-down battlefield

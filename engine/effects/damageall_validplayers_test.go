@@ -36,13 +36,12 @@ func svarSA(t *testing.T, f *cards.Face, name string) *cards.SA {
 }
 
 // TestDamageAllValidPlayersOpponentIsRemembered closes Snort's exotic
-// ValidPlayers$ spelling (brief rv2b-validplayers): the DamageAll player
-// sweep reads the remember set -- the source object's persistent player list,
-// falling back to the resolution's Remembered, exactly definedSpec's
-// Player.IsRemembered two-tier read -- and narrows it to the spec's base
-// constraint. Before the fix the dotted form fell through to the bare player
-// filter, which binds no source and carries no remember fallback, so the
-// whole player half matched NOBODY and Snort dealt no damage at all.
+// ValidPlayers$ spelling: the DamageAll player sweep reads the remember set
+// -- the source object's persistent player list, falling back to the
+// resolution's Remembered, exactly definedSpec's Player.IsRemembered two-tier
+// read -- and narrows it to the spec's base constraint. The bare player
+// filter binds no source and carries no remember fallback, so a dotted form
+// falling through to it matches NOBODY and Snort deals no damage at all.
 func TestDamageAllValidPlayersOpponentIsRemembered(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	snort, ok := reg.Lookup("Snort")

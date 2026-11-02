@@ -41,7 +41,7 @@ func multiTargetFlashEngine(t *testing.T) (*Engine, state.ObjID) {
 	return e, spell
 }
 
-// TestFlashMultitargetMixedCompletionIsOfferedAndCasts pins the r2 MAJOR:
+// TestFlashMultitargetMixedCompletionIsOfferedAndCasts:
 // with a mandatory two-target ask and exactly ONE qualifying own permanent,
 // the per-candidate filter left a one-candidate pool that could not satisfy
 // Min 2, so the ask aborted a cast the offer census had admitted. The full

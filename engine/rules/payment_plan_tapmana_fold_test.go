@@ -1,6 +1,6 @@
 package rules
 
-// Ticket Free:Tier slice 2 (agent-20261013T014220Z-c94e9775): a deterministic
+// A deterministic
 // additional-mana `TapsForMana | Static$ True` trigger (Forsaken Monument,
 // Badgermole Cub, Crypt Ghast, Wild Growth) is folded into the planned
 // alternative's production instead of deferring the source. The shapes the

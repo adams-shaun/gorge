@@ -31,10 +31,6 @@ Oracle:x
 // TestNoCallOutcomeResumesAfterAnAskingCall pins the NoCall$ deferred-outcome
 // repetition across a suspension: the per-head branch asks, and once that ask
 // is answered the REMAINING head calls and every tail call must still run.
-// Before the fix resolveOutcome returned on the first suspended call with no
-// cursor, so the enclosing chain fell through to the FlipCoin's Sub and the
-// later heads and the whole tails side were dropped: seat 0 gained 1 life
-// however many heads came up and never lost any.
 func TestNoCallOutcomeResumesAfterAnAskingCall(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

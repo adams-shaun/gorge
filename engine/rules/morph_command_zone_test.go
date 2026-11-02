@@ -93,7 +93,7 @@ func TestMorphFaceDownCastOfferedFromTheCommandZone(t *testing.T) {
 		t.Fatalf("the printed command-zone cast option for Akroma is missing: %+v", d.Options)
 	}
 	// castModeOption itself t.Fatalfs when the (morphed) option is absent —
-	// this is the precondition the whole test turns on (/fails/ pre-fix).
+	// this is the precondition the whole test turns on.
 	down := castModeOption(t, e, id, "morphed")
 	submitChoices(t, e, down)
 	passUntilStackEmpty(t, e, 40)

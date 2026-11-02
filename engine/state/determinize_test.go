@@ -1,6 +1,6 @@
 package state
 
-// Task D1: property tests for Determinize. The whole value of the feature is
+// Property tests for Determinize. The whole value of the feature is
 // the invariant:
 //
 //	No card visible to the searching seat may move, and the multiset of
@@ -408,7 +408,7 @@ func TestDeterminizeFromSeatHandUntouched(t *testing.T) {
 }
 
 // TestDeterminizeFromSeatLibraryPermutes — breaks if fromSeat's own library is
-// left in its original order (the "helpful" bug the task warns against).
+// left in its original order (the "helpful" bug).
 func TestDeterminizeFromSeatLibraryPermutes(t *testing.T) {
 	g := determFixture(t)
 	var orders []string

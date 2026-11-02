@@ -383,13 +383,8 @@ func applyManaAdd(g *state.Game, e *Event) {
 			// payment consumed: the payment path (payManaForSpent) attributes
 			// the slot's units ordinary-first over the VISIBLE pool and marks
 			// the persistent remainder with this suffix, so the tally follows
-			// the units that actually survived instead of raw slot arithmetic.
-			// (The old fresh-rule — decrement past Pool minus PersistentMana —
-			// misattributed whenever a payment's visible pool differed from
-			// the raw slot: a hidden restricted batch, or a carve that consumed
-			// the persistent batch first, made ordinary mana wrongly survive a
-			// step boundary. An unmarked negative event consumes ordinary
-			// units only, by the same attribution convention.)
+			// the units that actually survived instead of raw slot
+			// arithmetic.
 			d := -e.Amount
 			if player.PersistentMana[idx] < d {
 				d = player.PersistentMana[idx]

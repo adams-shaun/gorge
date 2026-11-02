@@ -11,7 +11,7 @@ import (
 )
 
 // TestBotPolicyFlagsValidateAtStartup pins every startup refusal of the
-// §9.4 policy flags (BP-18): an unknown default, an unknown offered name, a
+// §9.4 policy flags: an unknown default, an unknown offered name, a
 // default missing from the offered set, a default that cannot play a format,
 // and a duplicate in the offered list. A valid pairing must pass and return
 // the offered set in registry order, and a blank default must normalize to

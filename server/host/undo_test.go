@@ -1,12 +1,11 @@
 package host
 
-// Undo (dispatch fb-20260911T201015Z): the in-place rewind tests. The v1
-// attempt forked a successor match; its blocking MAJOR was that the fork
-// pushed the whole inherited prefix through OnBurst as one burst (one call,
-// many intents) — violating the one-intent-per-burst contract and breaking
-// every embedder's persistence. This slice rewinds IN PLACE, and the
-// regression test below is written against exactly that shape: after any
-// undo, every OnBurst call still carries exactly one intent's burst.
+// Undo: the in-place rewind tests. A fork of the match into a successor would
+// push the whole inherited prefix through OnBurst as one burst (one call, many
+// intents), violating the one-intent-per-burst contract and breaking every
+// embedder's persistence. Undo rewinds IN PLACE, and the regression test below
+// is written against exactly that shape: after any undo, every OnBurst call
+// still carries exactly one intent's burst.
 
 import (
 	"sync"
@@ -673,7 +672,7 @@ func stringContains(s, sub string) bool {
 	return false
 }
 
-// TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst is the v1 MAJOR as a
+// TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst is a
 // regression test. OnRewind must fire exactly once per undo with the intent
 // index the match was rewound to, and after the rewind every OnBurst call
 // must still carry exactly ONE intent's burst — the v1 fork pushed the whole
@@ -786,7 +785,7 @@ func TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst(t *testing.T) {
 			}
 		}
 		if asks > 1 {
-			t.Fatalf("burst %d carries %d DecisionAsks — more than one intent's burst (the v1 MAJOR shape)", i, asks)
+			t.Fatalf("burst %d carries %d DecisionAsks — more than one intent's burst", i, asks)
 		}
 	}
 	if len(bursts) <= burstsBefore {

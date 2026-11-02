@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The IsPresent$ gate on an AdjustLandPlays grant (ticket
-// agent-20261009T055739Z-b43f3480): Thranduil's Company's "As long as you
+// The IsPresent$ gate on an AdjustLandPlays grant: Thranduil's Company's "As long as you
 // control another Elf, you may play an additional land on each of your
 // turns" is an intervening-if, not a fail-closed rider. The staticEffects
 // walk evaluates the gate through continuousGateHolds before the grant is

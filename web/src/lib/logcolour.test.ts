@@ -21,7 +21,7 @@ describe('colourSegments', () => {
   });
 
   it('does NOT colour a seat name that is really the (single-word) head of a card name + id tag', () => {
-    // The exact false-positive the brief calls out: a seat named "Storm"
+    // The exact false positive: a seat named "Storm"
     // must not light up part of "Storm Cauldron #12".
     const segs = colourSegments('Storm Cauldron #12 resolves', identities);
     expect(segs.some((s) => s.colour)).toBe(false);

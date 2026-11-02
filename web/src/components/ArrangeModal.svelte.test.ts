@@ -41,7 +41,7 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     expect(html).toContain('data-arrange-modal');
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
-    expect(html).toContain('Rearrange the top 5 card(s)');
+    expect(html).toContain('Rearrange the top 5 cards');
     // the keep pile, in seed order, with its ordinals
     expect(html).toContain('data-arrange-keep');
     expect(html).toContain('data-arrange-keep-card="3"');
@@ -81,10 +81,10 @@ describe('ArrangeModal — the card-face popup for a KArrange ask', () => {
     expect(scryEmpty).not.toMatch(/data-arrange-submit[^>]*disabled/);
   });
 
-  // fb-20260914T063020Z Job 2: the preview carries the printed description
+  // The preview carries the printed description
   // beside the large art, resolved by name through lib/oracle — the same
   // best-effort resolver CardDetail's oracle block uses.
-  describe('the preview aside (fb-20260914T063020Z Job 2)', () => {
+  describe('the preview aside', () => {
     const props0 = (over: Record<string, unknown> = {}) => ({
       open: true, decision: reorder, seed: [], onSubmit: () => {}, onClose: () => {}, ...over,
     });

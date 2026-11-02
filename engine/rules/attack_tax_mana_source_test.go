@@ -1,4 +1,4 @@
-// attackcost-manatax: the published attack-declaration budget must count a
+// The published attack-declaration budget must count a
 // declared mana source's own production as SPENT. A creature that attacks
 // cannot also be tapped for mana (CR 508.1), so a declaration that includes a
 // mana-source attacker can only pay its CantAttackUnless tax with what the

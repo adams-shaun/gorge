@@ -11,10 +11,7 @@ import (
 // per-target cursor: a TgtChoose discard whose acting-player list holds TWO
 // players (`Defined$ You & Opponent` — caster seat 0, opponent seat 1) must
 // ask each one in order, and each answer must be applied to the target that
-// gave it. The pre-fix walk consumed every resume's answer at target 0's
-// cursor (DiscardTarget was never threaded from the resume point), so target
-// 0's answer was re-applied to a hand that never held target 1's cards and
-// target 1 was re-asked forever — targets 2..n were abandoned.
+// gave it.
 func TestDiscardMultiTargetAsksEveryTarget(t *testing.T) {
 	t.Parallel()
 	ms := "Name:MultiMind\nManaCost:B\nTypes:Sorcery\n" +

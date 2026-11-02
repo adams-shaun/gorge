@@ -17,11 +17,11 @@ import (
 func TestMoveZoneEventStampsStaticOnlyExiledWithSource(t *testing.T) {
 	static := mkCard(t, "Name:Static Only\nTypes:Creature\nPT:1/1\nOracle:x\n"+
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ x\n"+
-		"SVar:TrigExile:DB$ Dig | ValidTgts$ Opponent | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile\n"+
+		"SVar:TrigExile:DB$ Dig | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile\n"+
 		"S:Mode$ Continuous | Affected$ Card.nonLand+ExiledWithSource | MayPlay$ True | AffectedZone$ Exile | Description$ x\n")
 	plain := mkCard(t, "Name:Plain Dig\nTypes:Creature\nPT:1/1\nOracle:x\n"+
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile | TriggerDescription$ x\n"+
-		"SVar:TrigExile:DB$ Dig | ValidTgts$ Opponent | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile\n")
+		"SVar:TrigExile:DB$ Dig | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile\n")
 	f := static.Faces[0]
 	if len(f.Statics) != 1 || !strings.Contains(f.Statics[0].Params["Affected"], "ExiledWithSource") {
 		t.Fatalf("precondition: static = %+v, want one Affected$ naming ExiledWithSource", f.Statics)

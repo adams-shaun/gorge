@@ -14,9 +14,7 @@ import (
 // from it until it is empty. The opponent's picks are imprinted (ChangeZone
 // Imprint$ True) and return to their hand; the caster's go to the graveyard.
 // With seven cards the opponent picks four (1st, 3rd, 5th, 7th) and the
-// caster three. Before the fix RememberTargets$ was unread on RevealHand, so
-// Player.IsRemembered named nobody: the opponent was never asked, the caster
-// exiled all seven and every card went to the graveyard.
+// caster three.
 func TestStruggleForSanityAlternatesAndReturnsTheOpponentsPicks(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, caster := corpusCardConfig(t, 7311, "Struggle for Sanity")

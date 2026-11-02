@@ -1,4 +1,4 @@
-// K:Storied (CR 702.175, task storied1): the enduring-story latch and the
+// K:Storied (CR 702.175): the enduring-story latch and the
 // statics gated on Condition$ EnduringStory, pinned on real corpus carriers.
 //
 // CR 702.175a makes "you have an enduring story for the rest of the game" a

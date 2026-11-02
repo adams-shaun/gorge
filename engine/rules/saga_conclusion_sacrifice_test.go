@@ -292,9 +292,7 @@ func TestSagaThatLostItsAbilitiesHasNoChapters(t *testing.T) {
 // permanents" is a ValidCause$ SpellAbility.OppCtrl CantSacrifice static. It
 // does not stop the CR 704.5s SBA: an SBA has no cause, so an opponent's
 // ability merely sitting on the stack is not the reason the Saga is
-// sacrificed. Pre-fix SacrificeBlocked evaluated ValidCause$ against
-// actionCause() (that unrelated ability) and wrongly left the Saga on the
-// battlefield.
+// sacrificed.
 func TestSagaConclusionIgnoresOpponentCauseRestriction(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

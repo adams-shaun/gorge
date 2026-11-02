@@ -215,10 +215,9 @@ func (l *Log) AppendPtr(e *Event) {
 }
 
 // catchUp folds every stored-but-unfolded event (see unhashed) into chain,
-// oldest first: sha256(chain || encode(e)) per event, the fold Append used to
-// run eagerly. A log whose Events were cut below its unfolded tail by a
-// direct field write (no engine path does that to a live log) folds what is
-// left of the tail.
+// oldest first: sha256(chain || encode(e)) per event. A log whose Events were
+// cut below its unfolded tail by a direct field write (no engine path does
+// that to a live log) folds what is left of the tail.
 func (l *Log) catchUp() {
 	if l.unhashed == 0 {
 		return

@@ -19,8 +19,7 @@ func registerToken(t *testing.T, e *Engine, key, src string) {
 	setFixtureToken(e, key, card(t, src))
 }
 
-// TestStaticMemoDoesNotReuseAcrossGateFlippingTokenCreates pins the bug
-// agent-20260928T171650Z-006e2611 fixes: a static-cold token's ARRIVAL can
+// TestStaticMemoDoesNotReuseAcrossGateFlippingTokenCreates: a static-cold token's ARRIVAL can
 // flip an existing Continuous static's IsPresent$ gate, so the memo must not
 // be re-stamped across the TokenCreate even though the token itself carries
 // no static. Bolg's Company's haste grant is off while it is the only Goblin;

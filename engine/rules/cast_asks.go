@@ -32,7 +32,7 @@ func (e *Engine) altAddAsk() bool {
 	pc.altAddDone = true
 	if len(pc.altAddParts) == 1 {
 		part := ParseCost(pc.altAddParts[0])
-		if !e.castable(pc.player, pc.card, pc.cost.Plus(part), pc.isAbility()) {
+		if !e.altAddPartPayable(pc, part) {
 			e.abortCast(pc, "additional cost no longer payable; cast aborted", true)
 			return true
 		}
@@ -42,7 +42,7 @@ func (e *Engine) altAddAsk() bool {
 	payable := make([]int, 0, len(pc.altAddParts))
 	unpayable := make([]int, 0, len(pc.altAddParts))
 	for i, part := range pc.altAddParts {
-		if e.castable(pc.player, pc.card, pc.cost.Plus(ParseCost(part)), pc.isAbility()) {
+		if e.altAddPartPayable(pc, ParseCost(part)) {
 			payable = append(payable, i)
 		} else {
 			unpayable = append(unpayable, i)
@@ -62,6 +62,24 @@ func (e *Engine) altAddAsk() bool {
 	e.choosing = chooseCast
 	e.ask(d)
 	return true
+}
+
+// altAddPartPayable reports whether the caster can pay part of an either-or
+// additional cost: from the pool now, or at the mana window the choice leads to,
+// where untapped sources can still be activated (CR 601.2g). A free cast begun
+// during a resolution has had no chance to float anything first.
+func (e *Engine) altAddPartPayable(pc *pendingCast, part Cost) bool {
+	full := pc.cost.Plus(part)
+	if e.castable(pc.player, pc.card, full, pc.isAbility()) {
+		return true
+	}
+	if !pay.NonManaCastable(asPayer(e), pc.player, pc.card, full, pc.isAbility(), "") {
+		return false
+	}
+	base := pc.cost
+	pc.cost = full
+	defer func() { pc.cost = base }()
+	return e.castWindowPays(pc, e.castPaymentMana(pc), e.castWindowUnits(pc))
 }
 
 // giftAsk poses the CR 702.168 Gift election: "You may promise an opponent a

@@ -20,8 +20,8 @@ import (
 // pool), so a later planner ranking or eligibility change cannot move the
 // golden; what is pinned here is the encoding, not the planner. A change to
 // either ID's derivation or to the separator format makes these fail, and
-// that is a replay-compat break that must be named in a ticket, not absorbed
-// silently.
+// that is a replay-compat break that must be named in the change that makes
+// it, not absorbed silently.
 
 // goldenPlannedSpell is the {U} instant of the golden fixture: castable at
 // the first priority ask with one untapped Island, so the planner offers

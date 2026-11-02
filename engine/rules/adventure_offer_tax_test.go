@@ -59,7 +59,7 @@ func TestAdventureFaceOfferPricesTheAdventureFace(t *testing.T) {
 }
 
 // TestAdventureFaceNoProgressAbortIsHeldOut pins the defence in depth: when
-// an alternate-face cast IS reversed with no progress, the F05-2 count must
+// an alternate-face cast IS reversed with no progress, the no-progress count must
 // survive the proposal's own FlipFace, so the SECOND identical abort holds
 // the card out of the window (the flip used to clear the count, restarting it
 // at zero on every attempt). The cast is begun directly -- the offer no

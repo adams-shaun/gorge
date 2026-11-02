@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The DB$ AddPhase multi-step-value tests (ticket ap1's "support a
+// The DB$ AddPhase multi-step-value tests (the "support a
 // multi-step set" half; engine/rules/addphase_multistep_test.go owns the turn-walk
 // side). effAddPhase resolves ExtraPhase$/AfterPhase$/FollowedBy$ through
 // the ONE shared phase-name parser (state.ParsePhases), so a value naming a

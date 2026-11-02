@@ -7,8 +7,7 @@ import (
 )
 
 // TestPlainRememberedExplicitSource pins the plain-Remembered counterpart of
-// TestRememberedLKIGroupKeepsExplicitlyRememberedSource (task
-// agent-20260925T094320Z-60e2024d): the plain group and the RememberedLKI
+// TestRememberedLKIGroupKeepsExplicitlyRememberedSource: the plain group and the RememberedLKI
 // group are ONE resolution rule, so an object that IS the resolving source and
 // was EXPLICITLY remembered after the trigger's fire-time capture must be
 // visible to every plain-Remembered reader.

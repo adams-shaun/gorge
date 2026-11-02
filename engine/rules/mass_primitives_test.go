@@ -1,7 +1,7 @@
 package rules
 
-// One test per primitive this ticket implements, each driven by at least one
-// real corpus card script from the ticket's card table (lookup fetches the
+// One test per primitive, each driven by at least one
+// real corpus card script (lookup fetches the
 // REAL compiled script; the other participants are freely-authored fixtures,
 // per the licensing rule that a corpus .txt is never inlined).
 
@@ -94,7 +94,7 @@ func corpusEngineCfg(t *testing.T, reg *cards.Registry, extras0, extras1 []*card
 	return e, cfg
 }
 
-// lookup is reg.Lookup or the test fails: a corpus card this ticket's tests
+// lookup is reg.Lookup or the test fails: a corpus card these tests
 // depend on being absent is a corpus-pin change, not something to paper over.
 func lookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
 	t.Helper()
@@ -1276,7 +1276,7 @@ func TestLegendarySpacecraftCommanderLegalityFollowsPTBox(t *testing.T) {
 }
 
 // TestLegendarySpacecraftWithPTIsSeatedAsCommander is the leaf for the
-// pro-shaper genesis rejection (fb-20260918T194005Z-e4e743e1): a real corpus
+// pro-shaper genesis rejection: a real corpus
 // Hearthhull, the Worldseed (legendary Spacecraft, printed P/T) must be
 // SEATED as seat 0's commander -- one Commanders entry, the object in the
 // command zone -- and the CR 903 rejection Note must be absent.

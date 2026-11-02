@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { browserURL, sharedBrowser } from '../test/browser';
 
 /**
- * AutoPayActPass.test.ts is the mounted proof for aph-web-autopay-policy's
- * first half (spec §8: "Auto-pay changes which witness an explicit cast uses;
+ * AutoPayActPass.test.ts is the mounted proof of the auto-pay policy's
+ * first half ("Auto-pay changes which witness an explicit cast uses;
  * it does not otherwise change Auto/Manual policy"). A planned cast posts
  * choices=[] plus a payment selection; it must arm pass-after-acting exactly
  * as the same cast's legacy option does, and a Ctrl-held click (hold
@@ -54,7 +54,7 @@ async function open(surface: Surface): Promise<Page> {
 const plannedPost = { seq: 17, player: 0, choices: [], payment: { action_id: 'action-17', plan: { id: 'plan-17-a' } } };
 const SURFACES = ['panel', 'strip', 'hand'] as const;
 
-describe('a planned cast arms pass-after-acting from every UI entry point (spec §8)', () => {
+describe('a planned cast arms pass-after-acting from every UI entry point', () => {
   it.each(SURFACES)('%s: a click posts the plan, and the next priority window is machine-passed exactly once', async (surface) => {
     const page = await open(surface);
     await (await planButton(page, surface)).click();

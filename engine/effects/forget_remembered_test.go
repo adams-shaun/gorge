@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Mimeoplasm's graveyard-to-exile setup (ticket: ChooseCard.ForgetChosen
-// + ChangeZone-family ForgetOtherRemembered): a setup effect remembers two
+// The Mimeoplasm's graveyard-to-exile setup (ChooseCard.ForgetChosen plus the
+// ChangeZone-family ForgetOtherRemembered): a setup effect remembers two
 // creatures, a ChangeZoneAll ForgetOtherRemembered$ True + RememberChanged$
 // True batch replaces the remembered set with exactly the moved cards, and
 // the follow-up ChooseCard ForgetChosen$ True drops the chosen card from the

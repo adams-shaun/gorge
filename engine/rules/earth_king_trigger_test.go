@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Earth King (TLA #172, task tek1): "Whenever one or more creatures you
+// The Earth King (TLA #172): "Whenever one or more creatures you
 // control with power 4 or greater attack, search your library for up to that
 // many basic land cards, put them onto the battlefield tapped, then shuffle."
 // The count ref TriggerObjectsAttackers$Amount must read the MATCHED

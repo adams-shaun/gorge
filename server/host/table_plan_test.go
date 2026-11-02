@@ -1,10 +1,9 @@
 package host
 
-// Task M2c-2: TableConfig.Humans — reproducible human-driven single-shot
+// TableConfig.Humans — reproducible human-driven single-shot
 // tables.
 //
-// Covers the two halves of the new surface that matter for the M2e fixture
-// chain:
+// Covers the two halves of the surface that matter:
 //
 //  1. a table with Humans seated plays exactly one match and then stops
 //     (single-shot) even though no human ever answers a decision — the
@@ -32,7 +31,7 @@ import (
 )
 
 // twoSeatHumanTable is a 2-seat table (slot 0 human, slot 1 bot) — the
-// smallest plan the brief's "Humans: []int{0} and one bot" describes. Seat 1
+// smallest plan (Humans: []int{0} and one bot). Seat 1
 // stays a bot both to keep the game short enough for the package budget and
 // to prove the run loop seats the complement with bots, exactly as the
 // pure-bot default would.
@@ -41,8 +40,8 @@ func twoSeatHumanTable(id TableID) TableConfig {
 		Seed: 99, Pace: 0, Spectator: view.Omniscient, Perpetual: false, Humans: []int{0}}
 }
 
-// TestHumanSeatedTableHonorsThinkTimeoutAndEndsSingleShot is Task M2c-2 step
-// 1+3 rolled together: no human ever answers, a real ThinkTimeout lets the
+// TestHumanSeatedTableHonorsThinkTimeoutAndEndsSingleShot rolls
+// two steps together: no human ever answers, a real ThinkTimeout lets the
 // caretaker drive the table, and the table is single-shot. Deliberately not
 // t.Parallel: it owns a match slot and its wall cost is bounded by the
 // ThinkTimeout × number of decisions, so it runs in the sequential phase.

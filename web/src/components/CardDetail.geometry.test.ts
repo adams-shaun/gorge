@@ -49,7 +49,7 @@ async function measure(page: Awaited<ReturnType<typeof browser.newPage>>, id: nu
   }, id);
 }
 
-describe('CardDetail — plate non-occlusion (ui28)', () => {
+describe('CardDetail — plate non-occlusion', () => {
   it('a card with a resolved oracle keeps its whole plate: the printed card is never cropped and its oracle block stays inside the panel', { timeout: 60_000 }, async () => {
     for (const { width, height } of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width, height } });

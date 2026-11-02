@@ -1,7 +1,6 @@
 package rules
 
-// agent-20260923T132455Z-3f6a9ab9 review round 3 MAJOR: the CR 712.8
-// modal_spell offer used to sit behind the card-level castRestricted gate,
+// The CR 712.8 modal_spell offer must not sit behind the card-level castRestricted gate,
 // which evaluates the FRONT face, while its affordability probe priced the
 // BACK face. Two prohibition directions regressed together:
 //
@@ -92,9 +91,9 @@ func modalSpellOption(e *Engine, spell state.ObjID) (int, bool) {
 
 // TestModalSpellBackFaceRestrictionWithholdsOffer is the "back face
 // prohibited" direction: Nikya's Card.nonCreature CantBeCast static on the
-// battlefield matches the Awaken sorcery back face but not the Extus
-// creature front, so the modal_spell offer must be withheld even though the
-// FRONT face is unrestricted (which is what the pre-fix gate read).
+// battlefield matches the Awaken sorcery back face but not the Extus creature
+// front, so the modal_spell offer must be withheld even though the FRONT face
+// is unrestricted.
 func TestModalSpellBackFaceRestrictionWithholdsOffer(t *testing.T) {
 	t.Parallel()
 	e, spell, _ := sacXFixture(t, "Awaken the Blood Avatar", []string{
@@ -156,9 +155,8 @@ func TestModalSpellOfferSurvivesFrontFaceRestriction(t *testing.T) {
 		t.Fatalf("precondition: Steel Golem face %q is not a creature, so it is "+
 			"not the fourth sacrifice candidate", golemObj.Face().Name)
 	}
-	// Precondition: the FRONT face really is restricted -- this is the gate
-	// that withheld the modal offer before the fix, so it must bind here or
-	// the test cannot fail on the old code.
+	// Precondition: the FRONT face really is restricted -- it must bind here
+	// or the test cannot fail.
 	if !e.castRestricted(0, spell) {
 		t.Fatal("precondition: the Extus front face is not restricted by Steel " +
 			"Golem's ValidCard$ Creature static")

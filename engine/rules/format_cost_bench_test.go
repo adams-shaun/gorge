@@ -43,13 +43,13 @@ func BenchmarkFormatCost(b *testing.B) {
 	b.Run("constructed-2seat", func(b *testing.B) {
 		runFormatBench(b, constructedBenchConfig(b, reg, 2))
 	})
-	// Round 1: bucket the same 4-seat games' decisions by STEP (not turn), for
+	// Bucket the same 4-seat games' decisions by STEP (not turn), for
 	// both formats, then compute the wall time of the two step windows the user
 	// actually watched (main1->main2 on the Commander table, begin-combat->end on
 	// the constructed table) at 1.5s per decision, so the report can say whether
 	// step selection -- not format -- is what produced the ~2x the user saw.
-	// Both rows here are 4 seats: the constructed-2seat case above IS the round-0
-	// artifact, and this comparison deliberately excludes it.
+	// Both rows here are 4 seats: the constructed-2seat case above is an artifact,
+	// and this comparison deliberately excludes it.
 	b.Run("commander-perstep", func(b *testing.B) {
 		logStepWindows(b, "commander(4seats)", perTurnPerStep(b, commanderBenchConfig(b, reg)))
 	})
@@ -204,8 +204,8 @@ func playFormatTurns(b *testing.B, e *Engine, bot *testBot, targetTurn int32) (i
 	return decisions, time.Since(start)
 }
 
-// spendPace is the gorged default per-decision sleep the round-0 report named
-// as the demonstrator's pacing knob (server/gorged/gorged.go `-pace` default). A
+// spendPace is the gorged default per-decision sleep, the demonstrator's pacing
+// knob (server/gorged/gorged.go `-pace` default). A
 // step's wall time in the served-game model is its decision count x this pace;
 // the only thing that varies between the two windows below is which steps the
 // user watched, so the pace constant cancels out of their ratio. Kept as a
@@ -265,8 +265,7 @@ func sumSteps(per []float64, lo, hi state.Step) float64 {
 // the user watched -- main1->main2 (the main-phase pair where casting decisions
 // land) and begin-combat->end (the late, decision-sparse steps) -- with their
 // decision counts and, at spendPace, the wall time a served game would show
-// between those step markers. This is the "decisions per STEP" alternative the
-// round-0 report never considered.
+// between those step markers.
 func logStepWindows(b *testing.B, label string, per []float64) {
 	mainW := sumSteps(per, state.StepMain1, state.StepMain2)
 	cbeW := sumSteps(per, state.StepBeginCombat, state.StepEnd)

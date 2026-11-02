@@ -139,7 +139,7 @@ func anchorOnBattlefield(t *testing.T, seed uint64) (*Engine, Config, state.ObjI
 	return e, cfg, anchorID, d
 }
 
-// TestTemporalAnchorScryBottomTrigger is the task's end-to-end pin against
+// TestTemporalAnchorScryBottomTrigger is the end-to-end pin against
 // the real card. Two answers to the same real Scry 2:
 //
 //   - (a) keep both looked-at cards on top -> the completed Scry marker

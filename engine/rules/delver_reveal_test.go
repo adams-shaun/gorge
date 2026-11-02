@@ -13,7 +13,7 @@ import (
 )
 
 // delverFixture loads the REAL corpus Delver of Secrets onto seat 0's
-// battlefield (task fb-20260914T033246Z-3f1cc033), puts `top` on top of
+// battlefield, puts `top` on top of
 // seat 0's library (zone index 0), and drives one upkeep StepChange through
 // putTriggersOnStack + resolveTop, which suspends on the RevealOptional$
 // ask. Returns the engine, Delver's object id and the pending decision.
@@ -94,8 +94,8 @@ func TestDelverWithALandOnTopAndARevealDeclinedDoesNotTransform(t *testing.T) {
 	}
 }
 
-// TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat is round-2
-// finding 1's pin: the may-reveal decision must tell the deciding seat WHAT
+// TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat is the
+// pin: the may-reveal decision must tell the deciding seat WHAT
 // it is deciding over (the library is not projected to that seat, and the
 // public Note exists only after "yes"), and that payload must reach no SEAT
 // other than the peeking one — view.project attaches a decision to no viewer
@@ -136,10 +136,9 @@ func TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat(t *testing.T) {
 }
 
 // TestDelverWithALandOnTopAndARevealAnsweredYesDoesNotTransform pins the
-// gate's other half: revealing a LAND answers "yes" — the Note goes out —
-// but ConditionCompare$ EQ1 over Card.Instant,Card.Sorcery finds zero, so
-// Delver does not transform (the pre-fix build transformed every upkeep
-// regardless).
+// gate's other half: revealing a LAND answers "yes" — the Note goes out — but
+// ConditionCompare$ EQ1 over Card.Instant,Card.Sorcery finds zero, so Delver
+// does not transform.
 func TestDelverWithALandOnTopAndARevealAnsweredYesDoesNotTransform(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -184,7 +183,7 @@ func TestDelverWithAnInstantOnTopAndARevealAnsweredYesTransformsExactlyOnce(t *t
 // TestDelverRevealAskIsDeterministicOnRepeatUpkeeps drives two upkeeps: the
 // first reveal resolves the trigger; the second upkeep poses the ask again
 // (the trigger is a every-upkeep Phase trigger) — and no re-ask of the
-// already-answered reveal leaks into it (the fx42 scoping of Ctx.RevealOpt).
+// already-answered reveal leaks into it (the scoping of Ctx.RevealOpt).
 func TestDelverRevealAskIsDeterministicOnRepeatUpkeeps(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

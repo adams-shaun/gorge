@@ -158,7 +158,7 @@ func TestDelayedDefinedPlayerThisTurnFiresAtEndStepOfNextTurn(t *testing.T) {
 		t.Fatalf("registration = %+v, want DefinedPlayer 2, ThisTurnDefined, Phase End", dt)
 	}
 	pushes := func() int { return countDelayedPushes(e, id) }
-	// Turn 1's own end step must not fire it (the pre-fix behaviour).
+	// Turn 1's own end step must not fire it.
 	driveToStepAll(t, e, 1, 0, state.StepEnd)
 	if n := pushes(); n != 0 {
 		t.Fatalf("delayed trigger fired %d time(s) at the registering turn's end step", n)

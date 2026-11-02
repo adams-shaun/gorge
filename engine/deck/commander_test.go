@@ -52,8 +52,8 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// Basic-typed lands with an "any colour" production: each could produce
 		// one mana of ANY colour, so CR 903.5d binds it to a full-WUBRG
 		// commander no matter what its basic land type's intrinsic colour is.
-		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
-		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any color.\n",
+		"Painted Mountain": "Name:Painted Mountain\nTypes:Land Mountain\nOracle:Painted Mountain enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any\n",
+		"Painted Forest":   "Name:Painted Forest\nTypes:Land Forest\nOracle:Painted Forest enters the battlefield.\nA:AB$ Mana | Cost$ T | Produced$ Any\n",
 		// A mutual "Partner with" pair in the Food and Fellowship shape (CR
 		// 903.13c): partner A is {W}{B}, partner B is {G}{W}, so the CR 903.5
 		// UNION identity is {W}{B}{G} — a green card is legal only because
@@ -137,12 +137,10 @@ func partnerPairDeck() File {
 }
 
 // TestValidateCommanderPartnerPairUnionIdentity pins the CR 903.5 UNION
-// identity: a two-commander partner-pair deck validates against the union
-// of BOTH commanders' identities, so the pair's green half of the deck is
-// legal; remove one partner from the designation and the same deck is
-// rejected, because the green cards now sit outside the one remaining
-// commander's {W}{B}. (On the pre-fix validator this failed the other way
-// round: the pair itself was rejected.)
+// identity: a two-commander partner-pair deck validates against the union of
+// BOTH commanders' identities, so the pair's green half of the deck is legal;
+// remove one partner from the designation and the same deck is rejected,
+// because the green cards sit outside the one remaining commander's {W}{B}.
 func TestValidateCommanderPartnerPairUnionIdentity(t *testing.T) {
 	r := commanderFixture(t)
 	if err := partnerPairDeck().ValidateCommander(r); err != nil {
@@ -229,7 +227,7 @@ func TestValidateCommanderDoctorCompanionPair(t *testing.T) {
 // TestValidateCommanderRejectsNonDoctorCompanion pins the companion clause's
 // other half: a Doctor's companion paired with a legendary creature that is
 // NOT a Doctor is not a legal pair. This is the deck-level twin of the
-// brief's "rejects a non-Doctor companion" gate — and it must fail on the
+// "rejects a non-Doctor companion" gate — and it must fail on the
 // PAIR, not on some unrelated colour or count, so the deck is otherwise legal
 // (100 cards, singleton, mono-white).
 func TestValidateCommanderRejectsNonDoctorCompanion(t *testing.T) {
@@ -296,11 +294,11 @@ func doctorCompanionsBothDeck() File {
 
 // TestValidateCommanderTwoDoctorCompanions pins the clause's bidirectional
 // half: two DISTINCT Doctors that EACH carry Doctor's companion are a legal
-// pair, because for each card the other commander is the Doctor. The pre-fix
-// predicate required exactly one companion half (ca == cb returned false) and
-// wrongly rejected this shape. The deck is otherwise legal (100 cards,
-// singleton) and its blue card is legal only through the union identity, so
-// the test also fails if the pair is admitted but the identity is not unioned.
+// pair, because for each card the other commander is the Doctor. A predicate
+// requiring exactly one companion half (ca == cb false) would reject this
+// shape. The deck is otherwise legal (100 cards, singleton) and its blue card
+// is legal only through the union identity, so the test also fails if the
+// pair is admitted but the identity is not unioned.
 func TestValidateCommanderTwoDoctorCompanions(t *testing.T) {
 	r := commanderFixture(t)
 	d := doctorCompanionsBothDeck()
@@ -414,9 +412,9 @@ func isDoctorFace(f *cards.Face) bool {
 // singular spelling still resolves through CommanderIndex.
 // TestValidateCommanderRejectsDuplicateCommander pins CR 903.3's DISTINCT
 // half: two designations naming the SAME card are not a partner pair — the
-// engine's genesis would seat the same object twice. The pre-fix validator
-// accepted ["Plain Partner","Plain Partner"] (a plain Partner paired with
-// itself is IsPartnerPair-legal) and CommanderIndices came back [0 0].
+// engine's genesis would seat the same object twice. A plain Partner paired
+// with itself is IsPartnerPair-legal, so the validator must refuse ["Plain
+// Partner","Plain Partner"] itself, or CommanderIndices comes back [0 0].
 func TestValidateCommanderRejectsDuplicateCommander(t *testing.T) {
 	r := commanderFixture(t)
 	f := File{
@@ -568,8 +566,8 @@ func TestValidateCommanderRejectsBasicLandTypeProduction(t *testing.T) {
 // CR 903.5d "each colour of mana it could produce" reading for a basic-typed
 // land whose own production is "one mana of any colour": such a card could
 // produce all five colours, so it is not legal in a mono-colour deck whatever
-// its basic land type's intrinsic colour is. This is the class the rv2c fix
-// had to catch — the subtype-only could-produce read saw just the land type's
+// its basic land type's intrinsic colour is. This is the class the rules
+// must catch — a subtype-only could-produce read sees just the land type's
 // own colour (red for a Mountain, green for a Forest) and let an any-colour
 // producer into a mono-red or mono-green commander deck.
 func TestValidateCommanderRejectsAnyColourProducerUnderMonoCommander(t *testing.T) {
@@ -634,9 +632,9 @@ func TestValidateCommanderNamesEveryOffender(t *testing.T) {
 
 // corpusCardScript reads one pinned corpus script by its cardsfolder path so
 // an eligibility test can run on real Forge data — a real card's Types:/Oracle:
-// — rather than a hand-built face (the m35 fix1 hole was exactly a test set
-// whose faces were all hand-built around the half of the condition the author
-// was thinking about). It Skips on a clean checkout with no .cards/ corpus,
+// — rather than a hand-built face, because hand-built faces only cover the half
+// of a condition their author was thinking about. It Skips on a clean checkout
+// with no .cards/ corpus,
 // the same contract engine/cards/corpus_test.go sets.
 func corpusCardScript(t *testing.T, rel string) []byte {
 	t.Helper()
@@ -816,9 +814,8 @@ func TestParseReadsCommanderField(t *testing.T) {
 // row it sits on. This is the index rules.Config.Commanders wants (genesis
 // moves that object to the command zone) and the one resolution gorged and
 // the engine's own commander tests both use, so a deck that does not print
-// its commander first must resolve exactly as a deck that does. m39 moved
-// the one copy of this scan out of engine/rules/commander_decks_test.go into the
-// deck package so the product and the engine cannot disagree.
+// its commander first must resolve exactly as a deck that does. The scan lives
+// in the deck package so the product and the engine cannot disagree.
 func TestFileCommanderIndex(t *testing.T) {
 	// First row, ordinary row, duplicate-count rows before the commander.
 	if got := (File{Name: "x", Commander: "Zed", Cards: []Entry{

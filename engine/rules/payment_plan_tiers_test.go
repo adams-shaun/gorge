@@ -53,8 +53,7 @@ func TestPaymentPlanTiers(t *testing.T) {
 		// Chrome Mox's production is AB$ ManaReflected (a reflected-colour
 		// read of the imprinted card). The reflected shape admits the
 		// Defined.Imprinted selector (no payment step can shrink an imprint),
-		// so it now classifies as a normal tap-only source.
-		// (agent-20261013T014220Z-46d44d41)
+		// so it classifies as a normal tap-only source.
 		{"Chrome Mox", pay.TierNormal, "", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
 		{"Ashnod's Altar", pay.TierDeferred, "source:last_resort", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
 		{"Cavern of Souls", pay.TierDeferred, "source:special_production", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
@@ -138,7 +137,7 @@ func TestPaymentPlanDoesNotUseLastResortSources(t *testing.T) {
 		out := e.PlanCastPayment(0, paymentCast(spell))
 		if basics == 0 {
 			// No normal plan exists, so the Tomb funds a last-resort plan that
-			// discloses its damage (aph-last-resort-plans).
+			// discloses its damage.
 			if out.Plan == nil || len(out.Plan.Activations) != 1 || out.Plan.Activations[0].Source != tomb ||
 				out.Plan.Activations[0].Consequence == nil || *out.Plan.Activations[0].Consequence != (decision.PaymentConsequence{Damage: 2}) {
 				t.Fatalf("Tomb-only plan = %+v, want the Tomb disclosing damage:2", out)
@@ -231,7 +230,7 @@ func tierFillGraveyard(t *testing.T, e *Engine, n int) {
 // TestPaymentPlanTiersFPAncientTomb (FP-2). The {2} plan the fewest-sources
 // rank used to build from Ancient Tomb moved life 20 -> 18 on execution with
 // nothing announced in the witness. Now: tomb only is a last-resort plan
-// whose witness DISCLOSES the 2 damage (aph-last-resort-plans), and with two
+// whose witness DISCLOSES the 2 damage, and with two
 // Swamps the plan uses the Swamps and execution leaves life untouched.
 func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 	t.Parallel()
@@ -293,8 +292,7 @@ func TestPaymentPlanTiersFPAncientTomb(t *testing.T) {
 // (deferred: life loss to each player, poison; a control-change or targeted
 // rider is no mana ability at all, CR 605.1a) or, when it is a fully
 // determined last-resort consequence (damage to you, return to hand), planned
-// only with that consequence disclosed in the witness step
-// (aph-last-resort-plans).
+// only with that consequence disclosed in the witness step.
 func TestPaymentPlanTiersFPHarmfulRiderFamily(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{"Tarnished Citadel", "Cryptolith Fragment", "Elves of Deep Shadow", "Mox Poison",
@@ -382,10 +380,9 @@ func TestPaymentPlanTiersFPTriggersWhenSpent(t *testing.T) {
 	}
 }
 
-// TestPaymentPlanTiersMirrorTombFixture is the mirror audit's authored fixture
-// (commit 0da6e8e59): a Tomb-shaped IR card whose ability carries SubAbility$
-// DBHurt next to two Swamps. The witness used to select the Tomb (fewest
-// sources); now it uses the Swamps.
+// TestPaymentPlanTiersMirrorTombFixture is the mirror audit's authored
+// fixture: a Tomb-shaped IR card whose ability carries SubAbility$ DBHurt next
+// to two Swamps. The witness uses the Swamps, not the Tomb (fewest sources).
 func TestPaymentPlanTiersMirrorTombFixture(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9845, "Name:Two Generic Test\nManaCost:2\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")

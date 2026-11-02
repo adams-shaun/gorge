@@ -172,7 +172,7 @@ func countTopK(st *Stats, ranked bool, before int) {
 	}
 }
 
-// Search runs the tree at the searching seat's current decision (spec §1-§2)
+// Search runs the tree at the searching seat's current decision (design §1-§2)
 // and returns the answer to play. A decision that is not searched -- not a
 // searched kind, fewer than two candidates, a bot answer outside the
 // candidate vocabulary, Sims <= 0 -- returns the bot's intent without asking
@@ -340,7 +340,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 // priors to eager ones (TestLazyPriorMatchesEager) runs both.
 var eagerPrior bool
 
-// DecisionSeed is the per-decision seed of spec §2: a mix of the seat's seed
+// DecisionSeed is the per-decision seed of design §2: a mix of the seat's seed
 // (itself derived from the game seed, testkit/bench.RunPairs) and the
 // decision's sequence number.
 func DecisionSeed(seatSeed, seq uint64) uint64 { return splitmix(seatSeed ^ splitmix(seq)) }

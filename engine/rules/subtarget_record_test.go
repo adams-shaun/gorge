@@ -113,9 +113,8 @@ func TestTriggerSubTargetRecordsBecomesTargetTrigger(t *testing.T) {
 
 // TestCastSubTargetRecordsWardTargeting is the cast path's twin: Bite Down's
 // announced sub-link (the creature you don't control) hitting a warded
-// creature must fire ward. The cast path already routes through
-// recordSubTargets (commit 3f9a1d9fa); this pins it so a regression that
-// drops the recording fails here.
+// creature must fire ward. The cast path routes through recordSubTargets; this
+// pins it so a regression that drops the recording fails here.
 func TestCastSubTargetRecordsWardTargeting(t *testing.T) {
 	t.Parallel()
 	e, cfg, mine, theirs := cr601Board(t, 9911,

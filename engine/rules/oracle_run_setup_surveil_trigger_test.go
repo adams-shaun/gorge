@@ -13,7 +13,7 @@ import (
 // the setup drive already walked (a pass_to upkeep step), and its stored XMage
 // reference KEEPS the looked-at card on top at the setup checkpoint; the
 // activate#0.0 template never revisits the phase and its reference graveyards
-// the setup ask. D1's empty-set arm therefore applies only to scenarios that
+// the setup ask. The empty-set arm therefore applies only to scenarios that
 // do NOT revisit the upkeep (oracleRun.revisitsUpkeep).
 func TestSetupDriveSurveilTriggerTemplateKeepsOnTop(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -85,7 +85,7 @@ func TestSetupDriveSurveilTriggerTemplateKeepsOnTop(t *testing.T) {
 	}
 
 	// Activate shape: no pass_to upkeep step, so the scenario never revisits
-	// the phase. D1's empty-set arm still applies; the looked-at card goes to
+	// the phase. The empty-set arm still applies; the looked-at card goes to
 	// the graveyard at setup, matching the stored activate#0.0 reference.
 	const activateShape = `{"name":"surveil-activate","setup":{"p0":{"battlefield":["Broodheart Engine"],"graveyard":["Grizzly Bears"],"library":["Wastes","Forest"]},"p1":{"battlefield":["Grizzly Bears"]}},"steps":[]}`
 	res2, err := RunOracleScenarioJSON(reg, []byte(activateShape))

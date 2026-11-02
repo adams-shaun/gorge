@@ -5,7 +5,7 @@ package rules
 // This file is an AUDIT product: each guarded test names a real engine defect
 // found by auditing how correctly the engine plays the set. The guard
 // (GORGE_SET_AUDIT) keeps a failing finding out of the ordinary suite while the
-// follow-up ticket fixes the root cause; an UNGUARDED test is regression
+// root cause is fixed; an UNGUARDED test is regression
 // coverage for behaviour verified correct.
 //
 // Card data comes from the corpus (.cards/cardsfolder) via the ordinary corpus
@@ -24,7 +24,7 @@ import (
 )
 
 // eclGuard skips a failing finding unless GORGE_SET_AUDIT is set, naming the
-// defect and its follow-up ticket title.
+// defect and its follow-up.
 func eclGuard(t *testing.T, defect, ticket string) {
 	t.Helper()
 	if os.Getenv("GORGE_SET_AUDIT") == "" {

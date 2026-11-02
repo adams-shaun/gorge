@@ -7,7 +7,7 @@ import (
 )
 
 // TestPlayerCountOtherAmountCountsOtherPlayers pins Kaya, Spirits' Justice's
-// `SVar:OneEach:PlayerCountOther$Amount` -- Forge's PlayerCountOther$ names
+// `PlayerCountOther$Amount` -- Forge's PlayerCountOther$ names
 // every living player other than the resolving controller (the group the
 // "-2: exile target creature you control. For each other player, exile up to
 // one target creature that player controls" ability bounds its per-player

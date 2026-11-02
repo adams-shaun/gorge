@@ -3,14 +3,14 @@ import { browserURL, sharedBrowser } from '../test/browser';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * SeatPanelFollowUp.test.ts is the mounted proof for fb-20260923T050205Z: the
+ * SeatPanelFollowUp.test.ts is the mounted proof: the
  * treasure's colour ask opens the radial mana wheel when the activation was
  * posted from the SEAT PANEL's plain option button — not only from a card
  * tile. The fixture posts through the real SeatPanelState.click, so this test
- * exercises the arm site the fix moved; CardMenu.test.ts's fb-e079def5 case
+ * exercises the arm site; CardMenu.test.ts's Talisman case
  * still covers the tile surface.
  *
- * The second case is the L2 finding (verdict-tm1): the follow-up decision can
+ * The second case: the follow-up decision can
  * arrive through SSE BEFORE the POST response arms the expectation. The
  * fixture runs Table.svelte's arm mirror and decode effect reactively, so
  * arming must retrigger decoding for the wheel to open in that order.
@@ -36,7 +36,7 @@ beforeAll(async () => {
 
 type Arm = { seq: number; obj: number } | null;
 
-describe('a panel-answered treasure activation raises the radial colour wheel (fb-20260923T050205Z)', () => {
+describe('a panel-answered treasure activation raises the radial colour wheel', () => {
   it('panel click 1 arms obj 207, decodes the 5-colour ask, and the wheel opens with five pips', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/SeatPanelFollowUp.fixture.html`);
@@ -94,7 +94,7 @@ describe('a panel-answered treasure activation raises the radial colour wheel (f
   });
 });
 
-describe('a panel-answered stage-1 mana-ability pick raises the stage-2 colour wheel (fb-e079def5, round-2 break)', () => {
+describe('a panel-answered stage-1 mana-ability pick raises the stage-2 colour wheel', () => {
   it('panel click on "Add any color" (a choose/mana answer) arms obj 512 and the five-pip wheel opens', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/SeatPanelFollowUp.fixture.html?scenario=stage1`);

@@ -1,6 +1,6 @@
 package rules
 
-// The self-exile completion guard (task agent-20260922T150140Z-702b52c6):
+// The self-exile completion guard:
 // a spell whose own resolution chain moves it off the stack (Forge's
 // `Origin$ Stack | Destination$ Exile` sub-ability) must keep that
 // destination. The shared `moveResolvedOffStack` tail used to emit an

@@ -5,7 +5,7 @@ import { setBasePathForTests, withBase } from './basepath';
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-describe('startPlayVsBot (Task ui11)', () => {
+describe('startPlayVsBot', () => {
   it('returns the join path the server hands back, made base-relative', async () => {
     setBasePathForTests('/x');
     fetchMock.mockReset();
@@ -19,7 +19,7 @@ describe('startPlayVsBot (Task ui11)', () => {
     }));
   });
 
-  it('POSTs the default allowance 6 and an explicit allowance otherwise (finding fb-20260914T114629Z-6c81e4d6)', async () => {
+  it('POSTs the default allowance 6 and an explicit allowance otherwise', async () => {
     setBasePathForTests('');
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({

@@ -12,7 +12,7 @@ import (
 
 // TestBangPredicateUnlocksTargeting is the gameplay-visible leaf for the
 // leading-'!' negation grammar: a real corpus card whose printed behaviour
-// was broken when `Creature.!attacking+!blocking` matched NOTHING.
+// needs `Creature.!attacking+!blocking` to match.
 //
 // Unlikely Alliance reads:
 //

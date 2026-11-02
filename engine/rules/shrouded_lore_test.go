@@ -67,11 +67,9 @@ func shroudedLore(t *testing.T, pays int) (pickers []state.PlayerID, unless int,
 // opponent chooses a card in the CASTER's graveyard (Choices$ Card.YouOwn,
 // "You" = the activator, as Forge's ChooseCardEffect reads it), the caster
 // may pay {B} to have them choose again (Defined$ ParentTarget, a card not
-// already chosen), and the last chosen card returns to the caster's hand.
-// The repeat is gated on SVar$ChoiceNum/Times.CheckNotPaid, an arithmetic
-// gate body. Before the fix the choice filter read "You" as the CHOOSER, so
-// the opponent's pool (their own cards in that graveyard) was empty and
-// they were never asked; the caster only ever saw the unless-pay prompts.
+// already chosen), and the last chosen card returns to the caster's hand. The
+// repeat is gated on SVar$ChoiceNum/Times.CheckNotPaid, an arithmetic gate
+// body.
 func TestShroudedLoreOpponentPicksFromYourGraveyard(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

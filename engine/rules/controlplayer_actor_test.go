@@ -1,6 +1,6 @@
 package rules
 
-// CR 722 (formerly 720) acting-player conformance for a controlled turn.
+// CR 722 acting-player conformance for a controlled turn.
 //
 // controlPlayerRedirect hands every decision the controlled seat would be
 // offered to its controller: the controller ANSWERS. But the actions the
@@ -11,7 +11,7 @@ package rules
 // controlled seat (askPriority's legalActions(p)), so every handler behind it
 // must run for that seat too.
 //
-// The cardfuzz class this pins (sig "priority option # (activate \"Activate
+// The fuzzer class this pins (sig "priority option # (activate \"Activate
 // Mountain for mana\") cannot be performed: the source has no activatable
 // mana ability", nine seeds across Mindslaver, Emrakul the Promised End,
 // Secret of Bloodbending and Cruel Entertainment): the offer listed the
@@ -114,7 +114,7 @@ func priorityOptionFor(t *testing.T, d *decision.Decision, kind string, obj stat
 	return decision.Option{}
 }
 
-// TestControlledTurnOfferedOptionsPassTheSubmitGuard is the cardfuzz repro:
+// TestControlledTurnOfferedOptionsPassTheSubmitGuard is the fuzzer repro:
 // every action the controlled seat's priority offers must be accepted by the
 // Submit guard (priorityOptionStale) -- the offer and the guard are ONE
 // membership, whoever answers.
@@ -146,7 +146,7 @@ func TestControlledTurnActionsActForTheControlledSeat(t *testing.T) {
 	e, cfg, ids := mindslaverControlledTurn(t, "Raging Goblin")
 	goblin := ids[0]
 
-	// Mana ability: the cardfuzz shape.
+	// Mana ability: the fuzzer's shape.
 	d := e.Pending()
 	act := priorityOptionFor(t, d, "activate", 0)
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{act.Index}}); err != nil {

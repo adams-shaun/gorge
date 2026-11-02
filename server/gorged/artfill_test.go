@@ -167,7 +167,7 @@ func (f *scryFixture) namedJSON(name string) string {
 		name, f.srv.URL, url.PathEscape(name))
 }
 
-// TestPrewarmSurvives429sAndCachesEveryName is the brief's 429 gate: a fake
+// TestPrewarmSurvives429sAndCachesEveryName is the 429 gate: a fake
 // Scryfall answering 429 twice (once with Retry-After: 1, once without) then
 // 200 must end with the name's art AND facts cached and the name NOT skipped.
 // The fake clock records the backoff pauses — honouring Retry-After on the
@@ -227,7 +227,7 @@ func TestExhausted429RetriesAreAFailureNotAMiss(t *testing.T) {
 	}
 }
 
-// TestLimiterSpacesEveryScryfallRequest is the brief's limiter gate: with
+// TestLimiterSpacesEveryScryfallRequest is the limiter gate: with
 // the REAL 100ms pace on a fake clock, every outbound Scryfall request start
 // is spaced at least a.pace after the previous one. The sequence deliberately
 // includes named metadata, the requested image, a multi-face sibling image,
@@ -475,7 +475,7 @@ func TestRunPrewarmArtOnlyExitCodeWiring(t *testing.T) {
 
 func srvImg(r *http.Request) string { return "http://" + r.Host + "/img/alpha.jpg" }
 
-// TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the sol2 review
+// TestSiblingImageFailureFailsTheFillAndRemainsRetryable is the
 // regression: a successful requested-face download followed by a failed
 // sibling CDN download must make the one-shot exit non-zero, not claim the
 // deck name was cached. No face manifest is published on that failure, so a
@@ -658,8 +658,8 @@ func TestFetchCachesBothFacesOfAMultiFacedCard(t *testing.T) {
 	}
 }
 
-// TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached is the sol2
-// review regression: a deck name whose OWN art and facts were cached before
+// TestFillCompletesAWarmFrontFaceWhoseSiblingWasNeverCached is a
+// regression test: a deck name whose OWN art and facts were cached before
 // sibling faces were kept (or by a fetch killed between the requested image
 // and a sibling) has a .jpg and .json yet the client can still request an
 // uncached back face. Completeness is decided by every face the named

@@ -3,7 +3,7 @@ import type { Decision, Option } from '../protocol';
 import { SeatPanelState } from './seatpanel.svelte';
 import { REMEMBERED_STORAGE_KEY, emptyRemembered, rememberKey } from './remembered';
 
-// The remembered-answer feature (fb-20260914T062319Z-88b4069a part B) at the
+// The remembered-answer feature at the
 // SeatPanelState level: the checkbox write path (B4), the adopt-time
 // auto-answer with its guard and note (B5), and the management write paths.
 // The STORE itself (keying, cap, corruption) is pinned in lib/remembered.test.ts.
@@ -32,7 +32,7 @@ const optional = (seq: number, prompt = PROMPT): Decision =>
 const quietModes = (seq: number): Decision =>
   ({ seq, player: 0, kind: 'modes', prompt: PROMPT, min: 1, max: 1, options: [{ index: 0, kind: 'mode', label: 'Mode A', player: 0 }, { index: 1, kind: 'mode', label: 'Mode B', player: 0 }] });
 
-/** fakeStorage is a record-and-inspect Storage (the prio6 fixture pattern). */
+/** fakeStorage is a record-and-inspect Storage (the seatpanel fixture pattern). */
 function fakeStorage(): Storage {
   const map = new Map<string, string>();
   return {

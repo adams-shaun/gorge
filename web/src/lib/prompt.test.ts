@@ -42,7 +42,7 @@ describe('shapeOf — the response shape in the UI’s own words', () => {
     expect(shapeOf(decision({ kind: 'mulligan' }))).toBeNull();
   });
 
-  // fb-20260914T062319Z-88b4069a part A: an optional trigger is a yes/no on an
+  // An optional trigger is a yes/no on an
   // OPTIONAL ability, and the generic "Pick 1 option" fallback read as a
   // mandatory selection. The shape line names both facts.
   it('an optional-trigger ask says the ability is optional — a yes/no, never "Pick 1 option"', () => {
@@ -96,7 +96,7 @@ describe('promptContext — the context line', () => {
   });
 });
 
-// fb-20260924T023233Z-ae628f55: the target is mandatory now, but the
+// The target is mandatory, but the
 // optional trigger's effect can still be declined at resolution.
 const sageTarget = () => decision({
   seq: 1107, kind: 'target', source: 204, prompt: 'Choose a target for Reclamation Sage',

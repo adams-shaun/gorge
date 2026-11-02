@@ -1,6 +1,6 @@
 package rules
 
-// Toph, Hardheaded Teacher's Lesson rider (task agent-20260930T003623Z-97c7643c).
+// Toph, Hardheaded Teacher's Lesson rider.
 // The SpellCast trigger's chained `DBPutCounter` sub gates on
 // `ConditionDefined$ TriggeredCardLKICopy | ConditionPresent$ Lesson` — put an
 // ADDITIONAL +1/+1 counter on the earthbent land only when the cast spell is a

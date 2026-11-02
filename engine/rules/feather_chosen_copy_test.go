@@ -10,8 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Feather, Radiant Arbiter's chosen-card copy chain (ticket
-// agent-20260918T210307Z-cf9de221): the whole chain is pinned end to end on
+// Feather, Radiant Arbiter's chosen-card copy chain: the whole chain is pinned end to end on
 // the real corpus card --
 //
 //	Whenever you cast a noncreature spell that targets only Feather, you may
@@ -36,8 +35,7 @@ import (
 //     per chosen creature, each copy's target replaced by its own creature
 //     (the StackCopy event's IDs), not the original's.
 //
-// The trigger-side target-shape parameters (IsSingleTarget$, TargetsValid$)
-// are a separately ticketed narrowing (issue-agent-20260918T210307Z-b6ca5a70):
+// The trigger-side target-shape parameters (IsSingleTarget$, TargetsValid$) are a separate narrowing:
 // this trigger still over-fires on a noncreature spell that does not target
 // Feather, which is why the test casts the spell AT Feather and relies on
 // nothing else being cast.

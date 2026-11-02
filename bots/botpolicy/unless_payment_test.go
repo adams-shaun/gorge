@@ -39,7 +39,7 @@ func TestUnlessPaymentPolicyAnswersLegalManaWindow(t *testing.T) {
 	}
 }
 
-// TestUnlessPaymentPolicyDeclinesWhenPayIsNotOffered pins the R-9-shaped
+// TestUnlessPaymentPolicyDeclinesWhenPayIsNotOffered pins the
 // single-option election (the pay branch was never offered because the window
 // cannot reach the cost): the bot takes the only legal answer and it passes
 // Validate.

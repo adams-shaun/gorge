@@ -18,14 +18,10 @@ import (
 // diversity (key 7), and is MORE coverage first, so it only breaks ties the
 // placeholder used to leave to the typed witness.
 //
-// Boards here follow the aph-hand-reserve design (the spec §5 key 6 text),
-// which this implements. The acceptance board is pinned in
-// TestPaymentPlanHandAwareBriefBoard; its stated pre-change premise
-// ("today taps Forest+Forest by the canonical tie-break") was measured FALSE
-// at this base: remainder diversity (key 7) already picks Forest+Wastes
-// there, because the Wastes' {C} contributes no colour to key 7's census.
-// The gap key 6 actually closes is the object-ID tie below, measured
-// Forest+Plains before this change.
+// The acceptance board is pinned in TestPaymentPlanHandAwareAcceptanceBoard,
+// where remainder diversity (key 7) alone picks Forest+Wastes, because the
+// Wastes' {C} contributes no colour to key 7's census. The tie key 6 actually
+// decides is the object-ID tie below, which would otherwise pick Forest+Plains.
 
 const handAwarePlains = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"
 const handAwareWastes = "Name:Wastes\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C\nOracle:x\n"
@@ -70,7 +66,7 @@ func oppHand(t *testing.T, e *Engine, src string) state.ObjID {
 	return o.ID
 }
 
-// Done-means (aph-hand-reserve 1, the P5 probe): {1}{W} over Forest, Island,
+// {1}{W} over Forest, Island,
 // Plains with a {G} instant in hand. Every plan ties on keys 1-5 and key 7
 // (each leaves exactly one colour), so before key 6 the typed witness's
 // object-ID compare picked Forest+Plains (Forest holds the lowest id) and
@@ -127,7 +123,7 @@ func TestPaymentPlanHandAwareKeepsHandBlueCastable(t *testing.T) {
 // key 7 remainder diversity — the "pins Forest+Forest" premise
 // was false — so this board pins the composed outcome, and the decisive key-6
 // behaviour is pinned by the two P5 boards above and the rank unit test.)
-func TestPaymentPlanHandAwareBriefBoard(t *testing.T) {
+func TestPaymentPlanHandAwareAcceptanceBoard(t *testing.T) {
 	t.Parallel()
 	e, _, artifact := newFixtureDeck(t, 9723, "Name:Gray Artifact\nManaCost:2\nTypes:Artifact\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	toMain1(t, e)

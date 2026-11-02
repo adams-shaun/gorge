@@ -12,7 +12,7 @@ import (
 )
 
 // corpusInfectCard parses the live GPL corpus at test time so the
-// kw:Infect primitives this ticket registers are exercised against the
+// kw:Infect primitives are exercised against the
 // exact Forge scripts whose coverage entries they retire, the way
 // combat_keywords_test.go's corpusKeywordCard does for its keywords.
 func corpusInfectCard(t *testing.T, name string) *cards.Card {
@@ -161,7 +161,7 @@ func TestGraftedExoskeletonGrantedInfectDealsInCounterForm(t *testing.T) {
 }
 
 // TestInfectDamageToNonCreatureArtifactIsMarked pins the recipient-form
-// split the r2 review demanded (CR 702.90b rewrites creature and player
+// split (CR 702.90b rewrites creature and player
 // damage ONLY): an infect source's damage to a plain artifact -- a legal
 // DealDamage target that is neither creature nor player -- is ordinary
 // marked damage, with NO -1/-1 counters and NO -1/-1 CounterChange event in
@@ -246,8 +246,8 @@ func TestInfectDamageToPlainPlaneswalkerOnlyRemovesLoyalty(t *testing.T) {
 	}
 }
 
-// TestInfectCountersRideTheCounterReplacementPath pins the r2 review's
-// second MAJOR: the conversion emits REAL CounterChange/PlayerCounterChange
+// TestInfectCountersRideTheCounterReplacementPath:
+// the conversion emits REAL CounterChange/PlayerCounterChange
 // events, so the repl:AddCounter class replaces them -- Winding
 // Constrictor's "one more" lines double both the -1/-1 counters an opposing
 // infect creature puts on your blocker and the poison counters one puts on
@@ -302,15 +302,11 @@ func TestInfectCountersRideTheCounterReplacementPath(t *testing.T) {
 	}
 }
 
-// TestInfectDamageRedirectedToCreatureIsCountersOnly pins the review-sol1
-// MAJOR: a damage REDIRECT changes the event's recipient (Palisade Giant's
-// `ReplaceEvent Affected$ Self` moves a player-targeted hit onto the Giant),
-// and the infect marker must be recomputed for the NEW recipient. Before the
-// fix the bare "infect" (player-form) marker survived onto the creature
-// recipient, so events.Apply marked ordinary damage on the Giant AND
-// convertInfectDamage placed -1/-1 counters for the same hit -- both forms of
-// one hit. After the fix the redirect lands exactly one form: -1/-1 counters,
-// no marked damage.
+// TestInfectDamageRedirectedToCreatureIsCountersOnly: a damage REDIRECT
+// changes the event's recipient (Palisade Giant's `ReplaceEvent Affected$
+// Self` moves a player-targeted hit onto the Giant), and the infect marker
+// must be recomputed for the NEW recipient. The redirect lands exactly one
+// form: -1/-1 counters, no marked damage.
 func TestInfectDamageRedirectedToCreatureIsCountersOnly(t *testing.T) {
 	t.Parallel()
 	e := combatEngine(t)
@@ -461,13 +457,11 @@ func corpusInfectSrc(t *testing.T, path string) string {
 }
 
 // TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI pins CR 113.7a for
-// the granted-infect half of the damage rider, the review-sol1 MAJOR. Grafted
-// Exoskeleton grants infect to a creature whose damage ability sacrifices that
-// creature as its cost: the sacrifice detaches the Equipment (attachment SBAs)
-// before the independent ability resolves, so the live board no longer grants
-// infect. Before the fix newDamageRider re-read HasKeyword live and the hit
-// landed as one life loss; the source's last known infect must make it one
-// poison counter instead.
+// the granted-infect half of the damage rider. Grafted Exoskeleton grants
+// infect to a creature whose damage ability sacrifices that creature as its
+// cost: the sacrifice detaches the Equipment (attachment SBAs) before the
+// independent ability resolves, so the live board doesn't grant infect; the
+// source's last known infect must make it one poison counter instead.
 func TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI(t *testing.T) {
 	t.Parallel()
 	pinger := "Name:Sac Pinger\nManaCost:2 R\nTypes:Creature Wizard\nPT:1/2\n" +
@@ -528,8 +522,7 @@ func TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI(t *testing.T) {
 // TestSacrificedGrantedDeathtouchSourceUsesLKI is the same class one keyword
 // over: newDamageRider now resolves deathtouch once, from the same LKI, so an
 // Equipment-granted deathtouch source sacrificed to pay for its own damage
-// ability still marks its hit deadly (CR 702.2b/113.7a). Before the fix the
-// live read lost the grant and the 4/4 survived one damage.
+// ability still marks its hit deadly (CR 702.2b/113.7a).
 func TestSacrificedGrantedDeathtouchSourceUsesLKI(t *testing.T) {
 	collar := "Name:Fang Collar\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:2\n" +
 		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Deathtouch | Description$ Equipped creature has deathtouch.\nOracle:x\n"

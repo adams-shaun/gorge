@@ -48,8 +48,7 @@ func TestCR601_2hTargetsAreChosenBeforeTheSacrifice(t *testing.T) {
 // payment plan (Red Rock for {R}, the Spawn for {1}). The plan's mana
 // abilities run first (601.2g), so the Spawn is gone when the sacrifice cost
 // is chosen: it is not offered, the Bear pays the sacrifice, and the Spawn is
-// sacrificed exactly once. (Before the fix the sacrifice was chosen first,
-// the Spawn was offered, and choosing it sacrificed it twice.)
+// sacrificed exactly once.
 func TestCR601_2hOneObjectPaysOneCost(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t, corpusCardText(t, "f/fling.txt")))

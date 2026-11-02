@@ -55,7 +55,7 @@ func TestPersistentManaFold(t *testing.T) {
 		}
 	})
 
-	// The two misattributions the r2 review broke the fresh-rule with: the
+	// Two misattributions that break the fresh rule: the
 	// fold must follow the units the PAYMENT consumed, which the events now
 	// name (a marked plain spend, or a restricted spend's batch flags), not
 	// raw slot arithmetic — whose fresh share disagrees with the payment's
@@ -164,7 +164,7 @@ func TestPersistentManaFold(t *testing.T) {
 		}
 	})
 
-	// The phantom-batch defect the r2 review found: ManaClear keeps a
+	// The phantom-batch defect: ManaClear keeps a
 	// persistent batch unconditionally, so a batch surviving the turn with
 	// the tally zeroed would outlive its units — manaAvailableFor subtracts
 	// its Amount from every non-matching payment and hides the seat's REAL

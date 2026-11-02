@@ -9,7 +9,7 @@ import (
 
 // TestRepeatHonoursMaxRepeatAndIsBounded is the hygiene test for
 // effRepeat: the fetched corpus's real cards parameterise Repeat with
-// MaxRepeat$, not the RepeatNum$ the OLD M1 implementation read (RepeatNum$
+// MaxRepeat$, not RepeatNum$ (RepeatNum$
 // appears nowhere in the corpus, so every real Repeat degraded to a single
 // run). Two things are asserted: MaxRepeat$ actually drives the run count,
 // and an absurd/unbounded repeat is clamped to the 1000-run safety cap so a

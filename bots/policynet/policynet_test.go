@@ -575,7 +575,7 @@ func TestLoaderPrefersTheTeachersCandidateValue(t *testing.T) {
 func TestLoaderRejectsWrongSchema(t *testing.T) {
 	recs := fixtureRecords()
 	bad := recs[:1]
-	bad[0].SchemaVersion = 4 // schema 3 is pn12's extras schema
+	bad[0].SchemaVersion = 4 // schema 3 is the extras schema
 	path := writeCorpus(t, bad, false)
 	if _, _, err := Load(path); err == nil {
 		t.Fatal("schema_version 4 accepted")
@@ -655,7 +655,7 @@ func TestLoaderOutcomes(t *testing.T) {
 			t.Fatalf("schema 1 example %d: HasOutcome %v Outcome %g, want false 0", i, ex.HasOutcome, ex.Outcome)
 		}
 	}
-	for _, v := range []int{0, 4} { // 3 is pn12's extras schema
+	for _, v := range []int{0, 4} { // 3 is the extras schema
 		if LabelSchemaAccepted(v) {
 			t.Fatalf("schema %d accepted", v)
 		}

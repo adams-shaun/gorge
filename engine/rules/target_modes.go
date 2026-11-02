@@ -169,7 +169,7 @@ func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map
 		}
 		if max == 0 {
 			// A RESOLVED zero bound -- the cast announced X = 0 against an
-			// "up to X" mode -- takes no ask, exactly like resolveTop's N2
+			// "up to X" mode -- takes no ask, exactly like resolveTop's zero-target
 			// zero-target path: resolvedTargetBounds honours a resolved zero
 			// as written (engine/rules/target_legal.go), so the empty group records
 			// the skipped slot and the announcement finishes silently.
@@ -431,18 +431,17 @@ func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.Player
 // targetAsk share it so the two ask sites cannot drift.
 //
 // It returns the (possibly rewritten) bounds, whether the constraint applies
-// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity of
-// the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
-// that many, and BOTH shapes cap the effective maximum at it, because no legal
-// answer can ever select more targets than there are distinct controllers.
-// Without the cap (the pre-fix state) a TargetsWithDifferentControllers$ SA
-// with a literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while
-// offering only one selectable group -- an unsatisfiable decision that no
-// intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
-// Callers compare min against distinct (not the raw option count) to detect
-// that no legal set exists.
-// sameControllerTargetBounds applies the TargetsWithSameController$ set
-// constraint. Unlike the one-per-controller family, this permits multiple
+// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity
+// of the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
+// that many, and BOTH shapes cap the effective maximum at it, because no
+// legal answer can ever select more targets than there are distinct
+// controllers. Without the cap a TargetsWithDifferentControllers$ SA with a
+// literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while offering only
+// one selectable group -- an unsatisfiable decision that no intent could
+// answer (Run Away Together, Kitsune, Dragon's Daughter). Callers compare min
+// against distinct (not the raw option count) to detect that no legal set
+// exists. sameControllerTargetBounds applies the TargetsWithSameController$
+// set constraint. Unlike the one-per-controller family, this permits multiple
 // picks from one group; its capacity is therefore the largest controller
 // group, not the number of groups. The capacity is returned separately so
 // callers can reject a mandatory ask without exposing an unsatisfiable
@@ -808,12 +807,14 @@ func maxNegativeOffset(negs []int32, slots int, skip bool, skipVal int32) int32 
 	return sum
 }
 
-// AskCopyTargets offers CR 707.10c's new-target choice for the copy on top
-// of the stack. It is driven entirely by the copy's own
-// CopyMayChooseTarget flag -- set by the StackCopy fold from the CREATING
-// CopySpellAbility's MayChooseTarget$ parameter, so an external copier
-// (Mirari, Cloven Casting, a Storm or Replicate copy) grants the election
-// even though its SA is not part of the copied spell's text.
+// AskCopyTargets offers CR 707.10c's new-target choice for a copy just put on
+// the stack, inside the resolution that made it: no player receives priority
+// between the copy and its election, and a target it names triggers at once.
+// It is driven entirely by the copy's own CopyMayChooseTarget flag -- set by
+// the StackCopy fold from the CREATING CopySpellAbility's MayChooseTarget$
+// parameter, so an external copier (Mirari, Cloven Casting, a Storm or
+// Replicate copy) grants the election even though its SA is not part of the
+// copied spell's text.
 //
 // The ask preserves the copied spell's WHOLE target requirement, not just
 // one slot: MayChooseTarget$ True is not restricted to one-target spells, so
@@ -827,9 +828,7 @@ func maxNegativeOffset(negs []int32, slots int, skip bool, skipVal int32) int32 
 // 608.2b (forcing a new target here would retarget a copy the player declined
 // to change) -- so selecting the leading keep-current options reproduces
 // "choose nothing new". The remaining options use the same legal-target
-// census as casting. The election is one-shot: the answer records targets
-// through recordChosenTargets, whose TargetsChosen fold clears the flag, so
-// the resolveTop re-entry does not ask again.
+// census as casting.
 //
 // A copy whose spell has MORE THAN ONE target DECLARATION -- the two halves
 // of a Fuse cast, or each target-bearing mode of a modal spell -- is asked
@@ -842,46 +841,44 @@ func maxNegativeOffset(negs []int32, slots int, skip bool, skipVal int32) int32 
 // the enchantment the alternate half demands). A copy inherits the cast's
 // announcement and target provenance; an illegal inherited target remains
 // in its original declaration rather than migrating to a later stage. The
-// in-progress stage is
-// tracked in Engine.copyTargetStage keyed on the copy's stack object, so the
-// second-stage ask survives the TargetsChosen fold that clears
-// CopyMayChooseTarget after the first declaration.
-func (e *Engine) AskCopyTargets() bool {
-	n := len(e.G.Stack)
-	if n == 0 {
-		return false
+// answers are recorded together once every declaration has been asked:
+// recording one early would replace Object.Targets and lose a later
+// declaration's inherited keep-current slots.
+func (e *Engine) AskCopyTargets(id state.ObjID) {
+	o := e.G.Obj(id)
+	if o == nil || !o.IsCopy || !o.CopyMayChooseTarget {
+		return
 	}
-	o := e.G.Obj(e.G.Stack[n-1])
-	if o == nil || !o.IsCopy {
-		return false
-	}
-	stage := 0
-	if e.copyTargetStage != nil {
-		stage = e.copyTargetStage[o.ID]
-	}
-	// The one-shot election is pending while the flag is set OR while a
-	// multi-declaration ask is mid-flight (the first answer's TargetsChosen
-	// fold clears the flag, but later declarations still owe an ask).
-	if !o.CopyMayChooseTarget && stage == 0 {
-		return false
-	}
-	controller := o.Controller
 	rootDecls, chainDecls := e.copyDeclarationSplit(o)
 	decls := append(rootDecls[:len(rootDecls):len(rootDecls)], chainDecls...)
-	if stage >= len(decls) {
-		return false
+	answers := make([][]decision.Option, len(decls))
+	asked := false
+	for stage, sa := range decls {
+		if sa == nil || !effects.TargetsOf(sa).Targeted() {
+			break
+		}
+		if d := e.copyTargetAsk(o, decls, len(rootDecls), stage, answers); d != nil {
+			answers[stage] = d.Chosen(tapeServe(e, d))
+			asked = true
+		}
 	}
+	if asked {
+		e.finishCopyTargets(id, answers)
+	}
+}
+
+// copyTargetAsk builds the election's ask for one declaration, or nil when the
+// declaration has nothing to choose: the copy keeps its inherited (empty) set
+// for it.
+func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage int, answers [][]decision.Option) *decision.Decision {
 	sa := decls[stage]
-	if sa == nil || !effects.TargetsOf(sa).Targeted() {
-		return false
-	}
+	controller := o.Controller
 	// A chained declaration is judged the way the cast judged it (subTargetAsk):
 	// a link whose pool reads an EARLIER target binds the nearest earlier
 	// declaration's answers for the census.
-	chained := stage >= len(rootDecls)
 	savedParent, savedBound := e.subOfferParent, e.subOfferBound
-	if chained {
-		e.subOfferParent, e.subOfferBound = e.copyChainParent(o.ID, stage, len(rootDecls)), true
+	if stage >= nRoot {
+		e.subOfferParent, e.subOfferBound = copyChainParent(answers, stage, nRoot), true
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
 	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
@@ -918,7 +915,7 @@ func (e *Engine) AskCopyTargets() bool {
 	ordered = append(ordered, candidates...)
 	if len(ordered) == 0 {
 		e.subOfferParent, e.subOfferBound = savedParent, savedBound
-		return e.copySkipStage(o, stage, len(decls))
+		return nil
 	}
 	// The copy's OWN declaration supplies the required count (CR 707.10c
 	// retargets a copy per the spell's target rules), through the same shared
@@ -943,11 +940,9 @@ func (e *Engine) AskCopyTargets() bool {
 	// A declaration whose resolved bound admits NO target (Min 0 Max 0 -- a
 	// dynamic TargetMax$ that evaluated to zero) leaves nothing to choose:
 	// the only legal answer is the empty one, which Engine.ask refuses to
-	// post. Resolve it silently -- the copy keeps its inherited (empty)
-	// set for this declaration -- and move on to the next declaration, if
-	// any, exactly as an answered ask would.
+	// post.
 	if max == 0 {
-		return e.copySkipStage(o, stage, len(decls))
+		return nil
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
@@ -986,74 +981,19 @@ func (e *Engine) AskCopyTargets() bool {
 			d.MaxSum, d.Budgeted = cmcCap, true
 		}
 	}
-	// Record the stage BEFORE the ask is answered: the answer's TargetsChosen
-	// clears the one-shot flag, so the resolveTop re-entry learns from this
-	// scratch that the next declaration (if any) still owes an ask.
-	if e.copyTargetStage == nil {
-		e.copyTargetStage = make(map[state.ObjID]int)
-	}
-	e.copyTargetStage[o.ID] = stage + 1
-	{
-		in := tapeServe(e, d)
-		// The resolution kernel's answer in hand: run the
-		// legacy answer's continuation (resumeResolution's copy_targets
-		// arm: record, or ask the next declaration, then resolveTop) now.
-		//
-		// The continuation logs no priority grant of its own, so the copy's
-		// resolution leaves tapeGranted alone: handlePriority logs the CR
-		// 117.3b reset (priority to the active player, pass count zero) as
-		// for any other resolution. Claiming the grant here left priority
-		// with the player who passed last, one pass already counted, so the
-		// next pass resolved the object below or ended the step without the
-		// active player ever receiving priority (lockstep pair 6042,
-		// Thousand-Year Storm).
-		e.resumeResolution(&resumePoint{kind: "copy_targets", obj: o.ID, sa: sa}, d.Chosen(in))
-		return true
-	}
-}
-
-// copySkipStage passes over a declaration that has nothing to choose: the copy
-// keeps its inherited (empty) set for it and the walk moves to the next
-// declaration. When the skipped declaration is the LAST one and earlier ones
-// were answered, their accumulated answers are recorded now -- no later answer
-// will arrive to record them (a chained declaration with no legal target after
-// the root was retargeted).
-func (e *Engine) copySkipStage(o *state.Object, stage, nDecls int) bool {
-	if e.copyTargetStage == nil {
-		e.copyTargetStage = make(map[state.ObjID]int)
-	}
-	e.copyTargetStage[o.ID] = stage + 1
-	ans := e.copyAnswerTargets[o.ID]
-	pending := len(ans) > 0
-	if pending {
-		for len(ans) <= stage {
-			ans = append(ans, nil)
-		}
-		e.copyAnswerTargets[o.ID] = ans
-	}
-	if stage+1 < nDecls {
-		return e.AskCopyTargets()
-	}
-	if pending {
-		e.finishCopyTargets(o.ID, nil)
-	}
-	return false
+	return d
 }
 
 // copyChainParent is the parent target list a chained declaration's census
 // binds: the previous chained declaration's answer, or the root declarations'
 // flattened answers for the first link (the cast's pc.targets).
-func (e *Engine) copyChainParent(obj state.ObjID, stage, nRoot int) []state.Target {
-	ans := e.copyAnswerTargets[obj]
+func copyChainParent(answers [][]decision.Option, stage, nRoot int) []state.Target {
 	if stage > nRoot {
-		if stage-1 < len(ans) {
-			return targetOptions(ans[stage-1])
-		}
-		return nil
+		return targetOptions(answers[stage-1])
 	}
 	var flat []decision.Option
-	for i := 0; i < nRoot && i < len(ans); i++ {
-		flat = append(flat, ans[i]...)
+	for _, ans := range answers[:nRoot] {
+		flat = append(flat, ans...)
 	}
 	return targetOptions(flat)
 }
@@ -1130,34 +1070,47 @@ func (e *Engine) copyRootDeclarations(o *state.Object) []*cards.SA {
 	return []*cards.SA{sa}
 }
 
-// copyChainRoot returns the root of the SubAbility$ chain a copy announces
-// new targets for, nil when the copy's shape keeps the chain on its
-// resolution-time ask: an ability copy, a Fuse copy (two halves, no chain walk
-// on cast either), an overloaded copy ("target" reads "each", CR 702.96a) and a
-// Charm (its modes are the declarations). These mirror castSubAskLinks.
-func copyChainRoot(e *Engine, o *state.Object) *cards.SA {
-	if o == nil || o.Ability != nil || o.CastFlags&(state.FlagFused|state.FlagOverloaded) != 0 || len(o.ChosenModes) > 0 {
+// copyChainRoots returns the roots of the SubAbility$ chains a copy announces
+// new targets for: the ability's or the spell's own root, or each chosen mode of
+// a Charm (its modes are the root declarations). A fused copy (two halves, no
+// chain walk on cast either) and an overloaded one ("target" reads "each", CR
+// 702.96a) have none.
+func copyChainRoots(e *Engine, o *state.Object) []*cards.SA {
+	if o == nil || o.CastFlags&(state.FlagFused|state.FlagOverloaded) != 0 {
 		return nil
 	}
-	f := o.Face()
-	if f == nil {
+	root, face := o.Ability, o.Face()
+	if root != nil {
+		if src := e.G.Obj(o.Source); src != nil {
+			face = src.Face()
+		}
+	} else if face != nil {
+		root = stackSpellSA(o, face)
+	}
+	if root == nil || face == nil {
 		return nil
 	}
-	if root := stackSpellSA(o, f); root != nil && root.API != "Charm" {
-		return root
+	if !isCharmWithChoices(root) {
+		return []*cards.SA{root}
 	}
-	return nil
+	var modes []*cards.SA
+	for _, name := range o.ChosenModes {
+		if mode := cards.ResolveSVar(face.SVars, name); mode != nil {
+			modes = append(modes, mode)
+		}
+	}
+	return modes
 }
 
 // copyChainDeclarations is the copy's chained target declarations, in chain
-// order: the links the cast announced (collectSubTargetPreAsks, minus those
-// castSubPreAskable keeps on the resolution path), minus the ones an unpaid
-// Kicked/OptionalCost cost excuses. The cast mode is rebuilt from the copy's
-// inherited cast flags so castSubTargetsOwed judges the copy as it judged the
-// original.
+// order: the links the original announced, whose answers the copy inherited
+// (castSubTargets), minus the ones an unpaid Kicked/OptionalCost cost excuses.
+// The cast mode is rebuilt from the copy's inherited cast flags so
+// castSubTargetsOwed judges the copy as it judged the original. A link the
+// original keeps on its resolution-time ask has no record and is asked there.
 func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
-	root := copyChainRoot(e, o)
-	if root == nil {
+	announced := e.castSubTargets[o.ID]
+	if len(announced) == 0 {
 		return nil
 	}
 	probe := &pendingCast{}
@@ -1169,11 +1122,12 @@ func copyChainDeclarations(e *Engine, o *state.Object) []*cards.SA {
 	case o.CastFlags&state.FlagOptionalCostPaid != 0:
 		probe.mode = "optionalcost"
 	}
-	svars := o.Face().SVars
 	var out []*cards.SA
-	for _, sub := range e.collectSubTargetPreAsks(root) {
-		if !subTargetingRootUnbindable(sub, svars) && castSubTargetsOwed(probe, sub) {
-			out = append(out, sub)
+	for _, root := range copyChainRoots(e, o) {
+		for sa := root.Sub; sa != nil; sa = sa.Sub {
+			if _, ok := announced[sa.Line]; ok && effects.TargetsOf(sa).Targeted() && castSubTargetsOwed(probe, sa) {
+				out = append(out, sa)
+			}
 		}
 	}
 	return out
@@ -1229,6 +1183,9 @@ func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA,
 		}
 		return nil
 	}
+	if groups, ok := e.charmTargets[o.ID]; ok && stage < len(groups) {
+		return groups[stage]
+	}
 	start := 0
 	for i, sa := range decls {
 		end := len(o.Targets)
@@ -1275,7 +1232,7 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 // rules-tier ask sites (targetAskChooser) and the effects-tier mid-resolution
 // asks (Engine.ChooserFor and OpponentPickAsk, which effects.Host calls)
 // reach it, so the cast, activation, trigger, resolution-sub and
-// mid-resolution ValidTgts$ (mvts1 "tgts" and ChangeZone "choice") paths
+// mid-resolution ValidTgts$ ("tgts" and ChangeZone "choice") paths
 // cannot drift.
 //
 // Target LEGALITY is unaffected by every outcome: the caller keeps the

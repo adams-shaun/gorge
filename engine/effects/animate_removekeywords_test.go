@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The api:Animate.RemoveKeywords$ read (the graveyard-enchant ticket): a
+// The api:Animate.RemoveKeywords$ read: a
 // `DB$ Animate` body's RemoveKeywords$ reaches state.ContinuousEffect
 // .RemoveKeywords beside the Keywords$ grant, so rules' layer-6 walk strips the
 // named entries BEFORE this same effect's AddKeywords apply (Animate Dead's

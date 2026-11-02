@@ -1,7 +1,7 @@
 import type { Option } from '../../protocol';
 
 /**
- * promptHover is the prompt dock's hover hook (UI rework spec §4: a target
+ * promptHover is the prompt dock's hover hook (a target
  * chip "highlights legal targets on the board, and draws an arrow on
  * hover"). A renderer sets what its hovered option points at — `to`, an
  * object or a seat, and optionally where the arrow starts (`from`; the

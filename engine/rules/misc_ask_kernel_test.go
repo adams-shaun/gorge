@@ -132,6 +132,9 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopiesKernel(t *testing.T)
 			}
 			d = answerAsk(t, e, optionOfKind(t, d, l.elect))
 		}
+		if d != nil && d.ResumeKind == "copy_targets" && l.copies == 1 {
+			d = answerAsk(t, e, 0) // the copy's MayChooseTarget$ election, keeping the target
+		}
 		if d != nil {
 			t.Fatalf("%v: unexpected further decision %+v", l, d)
 		}

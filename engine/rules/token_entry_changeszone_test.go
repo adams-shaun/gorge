@@ -8,11 +8,10 @@ import (
 
 // A token minted straight onto the battlefield (events.TokenCreate /
 // events.CardToken) must fire an "enters the battlefield" trigger, exactly
-// like a real card's MoveZone entry. Before this ticket no token entry raised
-// a Mode$ ChangesZone / ChangesZoneAll trigger at all: the mint event was
-// event-kind-gated out of the zone-change matcher, its compiled-interest
-// prefilter returned 0, the textual mask excluded it, and the mint carried
-// no object id for ValidCard$ to read. The four gates are closed together
+// like a real card's MoveZone entry. A token entry raises a
+// Mode$ ChangesZone / ChangesZoneAll trigger only if four gates admit it: the
+// zone-change matcher's event kind, the compiled-interest prefilter, the textual
+// mask, and an object id on the mint for ValidCard$ to read
 // (engine/rules/trigmatch/zone.go, engine/rules/trigger_eligibility.go, engine/rules/emit.go).
 //
 // The control half (a real creature entering) passes before and after; the
@@ -70,9 +69,9 @@ func battlefieldToken(t *testing.T, e *Engine, p state.PlayerID, name string) *s
 // TestTokenEntryFiresChangesZoneTriggers is the report's carrier shape: Soul
 // Warden (Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield |
 // ValidCard$ Creature.Other) must gain life for a real creature's entry
-// (control, passes before the fix) AND for a minted creature token's entry
-// (the regression, fails before the fix). The third half asserts the minted
-// object really is a battlefield token, so the count is not vacuous.
+// (control) AND for a minted creature token's entry . The third half asserts
+// the minted object really is a battlefield token, so the count is not
+// vacuous.
 func TestTokenEntryFiresChangesZoneTriggers(t *testing.T) {
 	t.Parallel()
 	warden := tokenReplCorpusCard(t, "Soul Warden")

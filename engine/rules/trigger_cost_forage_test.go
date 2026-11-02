@@ -9,15 +9,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestTriggeredForageCanBePaid (CR 701.61a): a triggered "you may
-// forage" (Bushy Bodyguard, Treetop Sentries, Corpseberry Cultivator, Curious
-// Forager, Euru Acorn Scrounger) is payable, not decline-only. Before the fix
-// the trigger-cost window kept the decline-only ask, so the payer could never
-// forage. The corpus cards come from the shared corpus registry
-// (searchTestRegistry); the helpers are search_library_test.go's
-// searchEngine/searchMoveByName, cast_test.go's submitChoices/replayCheck,
-// resolution_test.go's passUntilNonPriority and delayed_test.go's
-// submitTarget.
+// TestTriggeredForageCanBePaid (CR 701.61a): a triggered "you may forage"
+// (Bushy Bodyguard, Treetop Sentries, Corpseberry Cultivator, Curious
+// Forager, Euru Acorn Scrounger) is payable, not decline-only. The corpus
+// cards come from the shared corpus registry (searchTestRegistry); the
+// helpers are search_library_test.go's searchEngine/searchMoveByName,
+// cast_test.go's submitChoices/replayCheck, resolution_test.go's
+// passUntilNonPriority and delayed_test.go's submitTarget.
 
 // forageCostAsk drives seat 0's turn forward until the trigger-cost
 // pay/decline ask of Curious Forager's enter trigger is pending, answering

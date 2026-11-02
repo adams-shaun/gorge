@@ -192,11 +192,11 @@ func TestQalSismaBehemothBlockTapWindow(t *testing.T) {
 	}
 }
 
-// TestAwesomePresencePricesItsEnchantedAttacker pins the round-2 fix: the
+// TestAwesomePresencePricesItsEnchantedAttacker: the
 // aura's static has NO ValidCard$ -- an absent one is an unconditional
 // blocker match, and the Attacker$ scope alone decides which attackers the
-// price rides. Before the fix the static was discarded before the Attacker$
-// match, so the enchanted attacker was blockable for free.
+// price rides. Discarding the static before the Attacker$
+// match would make the enchanted attacker blockable for free.
 func TestAwesomePresencePricesItsEnchantedAttacker(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)

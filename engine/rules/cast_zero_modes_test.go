@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestUpToModalCastWithNoLegalModeAnnouncesZero is the cardfuzz batch1 line 7
+// TestUpToModalCastWithNoLegalModeAnnouncesZero pins a fuzzer-found
 // panic: Call Damage Control ("Choose up to two" -- MinCharmNum$ 0 -- over
 // four graveyard-targeting modes) cast with an empty graveyard left no legal
 // mode, and castModeAsk posted a Min 0 / Max 0 / 0-option KModes, which
@@ -24,7 +24,7 @@ func TestUpToModalCastWithNoLegalModeAnnouncesZero(t *testing.T) {
 	spell := handIDsByFace(e)["Call Damage Control"]
 	e.G.Players[0].Pool[state.MG] = 2
 	e.askPriority(0)
-	submitChoices(t, e, passToCast(t, e, spell)) // panicked before the fix
+	submitChoices(t, e, passToCast(t, e, spell))
 	if d := e.Pending(); d != nil && d.Kind == decision.KModes {
 		t.Fatalf("a zero-legal-mode cast posed a modes ask: %+v", d)
 	}

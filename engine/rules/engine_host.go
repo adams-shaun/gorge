@@ -194,8 +194,7 @@ func (e *Engine) controlPlayerRedirect(d *decision.Decision) {
 	// controlled seat is active on a strictly later turn, the same Turn >
 	// armed test expirePlayerControl uses -- and the view's CR 723.4 widening
 	// reads it too, so who answers and who may look cannot disagree.
-	// Without it the redirect spilled across the whole interval (findings-t2
-	// MAJOR).
+	// Without it the redirect spilled across the whole interval.
 	ctl, ok := e.G.LiveController(d.Player)
 	if !ok {
 		return

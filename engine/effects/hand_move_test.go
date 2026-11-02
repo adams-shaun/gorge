@@ -10,10 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The handmove1 effects-level leaves for the "choose N cards matching
+// The effects-level leaves for the "choose N cards matching
 // ChangeType$ from Origin$ Hand" ChangeZone shape, using the askHost double
 // (primitives_test.go) whose Ask captures the posed decision and suspends,
-// and the embedded fakeHost whose Ask returns false -- the R-9 no-host
+// and the embedded fakeHost whose Ask returns false -- the no-host
 // stand-in. The rules-package halves (the real-engine end to end through
 // Burgeoning's trigger) live in rules/hand_move_test.go.
 
@@ -41,7 +41,7 @@ func handAskFixture(t *testing.T) (*askHost, []state.ObjID) {
 }
 
 // handNoHostFixture is handAskFixture over the bare fakeHost (Ask false --
-// the R-9 no-host stand-in) rather than the capturing askHost.
+// the no-host stand-in) rather than the capturing askHost.
 func handNoHostFixture(t *testing.T) (*fakeHost, []state.ObjID) {
 	t.Helper()
 	h := &fakeHost{}
@@ -102,7 +102,7 @@ func TestHandMoveChangeZoneZeroEligibleIsASilentNoOp(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneNoHostTakesFirstEligible is the R-9 fallback leaf: a
+// TestHandMoveChangeZoneNoHostTakesFirstEligible is the no-host fallback leaf: a
 // host without a decision channel takes the first ChangeNum eligible cards in
 // the decision's own deterministic option order, with the Note recording why.
 func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
@@ -116,7 +116,7 @@ func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
 		}
 	}
 	if note == nil || note.Player != 0 {
-		t.Fatalf("no R-9 Note for the controller in %+v", h.log)
+		t.Fatalf("no stand-in Note for the controller in %+v", h.log)
 	}
 	if o := h.g.Obj(ids[0]); o.Zone != state.ZExile {
 		t.Fatalf("first eligible card on %s, want exile", o.Zone)
@@ -221,10 +221,10 @@ func TestHandMoveChangeZoneRejectsOutOfRangeChangeNum(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand is the rv2b core
+// TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand is the core
 // leaf: with NO ChangeType$ the eligible pool is the whole hand --
 // Brainstorm's "put two cards from your hand on top" must offer every card
-// in hand, not silently no-op the way the pre-rv2b object path did.
+// in hand, not silently no-op the way an object path would.
 func TestHandMoveChangeZoneUntypedSpecDefaultsToWholeHand(t *testing.T) {
 	h, _ := handAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
@@ -293,7 +293,7 @@ func TestHandMoveChangeZoneMarkerlessWithoutTextIsLoud(t *testing.T) {
 	}
 }
 
-// --- rv2b: the two remaining brief leaves on the real corpus scripts. ---
+// --- Two more leaves on the real corpus scripts. ---
 
 // brainstormSubAbility returns the real compiled ChangeZoneDB sub-ability of
 // the real corpus Brainstorm card (the Draw's SubAbility$ chain), so the
@@ -480,7 +480,7 @@ func TestDreamCacheDestinationAlternativeEmitsNote(t *testing.T) {
 	}
 }
 
-// --- rv2b r2: the owner-SELECTED hidden-hand shapes (DefinedPlayer$ /
+// --- The owner-SELECTED hidden-hand shapes (DefinedPlayer$ /
 // ValidTgts$ name the hand owners; Chooser$ names who answers). ---
 
 // ownersFixture seats two hands: seat 0 [bear, isle, isle], seat 1

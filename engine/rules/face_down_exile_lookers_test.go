@@ -1,17 +1,14 @@
 package rules
 
-// CR 406.3 -- cards "exiled face down" can't be examined by any
-// player except when instructions allow it; a player instructed to look and
-// then exile, or allowed to look, may keep looking. The face of a face-down
-// exiled card is therefore visible to EXACTLY the seats that may look:
-// a recorded looker (WithMayLook$, a looked-at Dig, a search, Hideaway's
-// controller -- CR 702.75a -- the foreteller -- CR 702.143a), a seat a live
-// MayLookAt$ static names, and the controller of such a seat (CR 723.4) --
-// never its owner by default. The board (view.Project) and the seat's event
-// stream (view.RedactEventFor + view.Describe) must agree. Before the fix the
-// board admitted the exiled card's controller (its owner) whatever the
-// instruction said, ignored MayLookAt$, and the Foretell action's transcript
-// read "casts".
+// CR 406.3 -- cards "exiled face down" can't be examined by any player except
+// when instructions allow it; a player instructed to look and then exile, or
+// allowed to look, may keep looking. The face of a face-down exiled card is
+// therefore visible to EXACTLY the seats that may look: a recorded looker
+// (WithMayLook$, a looked-at Dig, a search, Hideaway's controller -- CR
+// 702.75a -- the foreteller -- CR 702.143a), a seat a live MayLookAt$ static
+// names, and the controller of such a seat (CR 723.4) -- never its owner by
+// default. The board (view.Project) and the seat's event stream
+// (view.RedactEventFor + view.Describe) must agree.
 
 import (
 	"strings"

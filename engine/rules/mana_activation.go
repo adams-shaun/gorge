@@ -913,6 +913,9 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	if !atPriority {
 		d.ResumeKind = decision.ResumeManaPayment
 	}
+	if cast && e.cast != nil {
+		abilities = e.owedAbilitiesFirst(e.cast, p, source, abilities)
+	}
 	chosen := pay.ChosenProducedColour(e.G, source)
 	for i, ma := range abilities {
 		// An explicit multi-colour "Produced$ Combo <colours>" ability is
@@ -1832,8 +1835,12 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	// any-colour druid), strand the exact payment, and reverse the cast
 	// (CR 601.2g).
 	if cast && e.cast != nil {
-		if useful, decided := e.paymentUsefulColours(e.cast, p, colours); decided && len(useful) > 0 {
+		useful, decided := e.paymentUsefulColours(e.cast, p, colours)
+		switch {
+		case decided && len(useful) > 0:
 			colours = useful
+		case !decided:
+			colours = owedColoursFirst(colours, useful)
 		}
 	}
 	for unit := 0; unit < max; unit++ {
@@ -1845,12 +1852,57 @@ func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA
 	windowAsk(e, d, chooseManaColor)
 }
 
-// paymentUsefulColours filters a mana-production colour choice to the
-// colours the pending payment can still absorb, and reports whether the
-// verdict is DECIDED: a false second return means "uncertain" (a flexible
-// pip or an unsettled generic remainder could still absorb anything), and
-// the caller keeps the unclamped choice then. A decided EMPTY result means
-// the composition has no mana left to absorb any colour.
+// owedColoursFirst orders a colour choice with the colours a fixed pip still
+// owes ahead of the rest. The mana may legally go anywhere while generic mana is
+// owed too, but only an owed colour keeps every other source's mana usable: an
+// answer taking the first option doesn't strand the payment (CR 601.2g).
+func owedColoursFirst(colours, owed []string) []string {
+	out := make([]string, 0, len(colours))
+	for _, c := range colours {
+		if slices.Contains(owed, c) {
+			out = append(out, c)
+		}
+	}
+	for _, c := range colours {
+		if !slices.Contains(owed, c) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// owedAbilitiesFirst is owedColoursFirst for a source's several mana abilities,
+// the shape of a dual land with two basic land types.
+func (e *Engine) owedAbilitiesFirst(pc *pendingCast, p state.PlayerID, source state.ObjID, abilities []*cards.SA) []*cards.SA {
+	chosen := pay.ChosenProducedColour(e.G, source)
+	owes := func(ma *cards.SA) bool {
+		cols := pay.AnnouncedAbilityColours(asPayer(e), p, source, ma, chosen)
+		if len(cols) == 0 {
+			cols = fixedProductionColours(ma)
+		}
+		owed, _ := e.paymentUsefulColours(pc, p, cols)
+		return len(owed) > 0
+	}
+	out := make([]*cards.SA, 0, len(abilities))
+	for _, ma := range abilities {
+		if owes(ma) {
+			out = append(out, ma)
+		}
+	}
+	for _, ma := range abilities {
+		if !owes(ma) {
+			out = append(out, ma)
+		}
+	}
+	return out
+}
+
+// paymentUsefulColours returns the colours of a mana-production colour choice
+// that a fixed pip of the pending payment still owes, and reports whether that
+// verdict is DECIDED: a false second return means "uncertain" (a flexible pip or
+// an unsettled generic remainder could still absorb anything), and the caller
+// keeps the unclamped choice then. A decided EMPTY result means the composition
+// has no mana left to absorb any colour.
 func (e *Engine) paymentUsefulColours(pc *pendingCast, p state.PlayerID, colours []string) ([]string, bool) {
 	// A may-play rider ("mana of any type can be spent to cast that spell",
 	// Tinybones, Bauble Burglar's stash; MayPlayIgnoreColor$) lets a pip take
@@ -1931,9 +1983,6 @@ func (e *Engine) paymentUsefulColours(pc *pendingCast, p state.PlayerID, colours
 			break
 		}
 	}
-	if flexUncertain || surplus < int64(comp.Generic) {
-		return nil, false
-	}
 	var out []string
 	seen := map[string]bool{}
 	for _, c := range colours {
@@ -1946,7 +1995,7 @@ func (e *Engine) paymentUsefulColours(pc *pendingCast, p state.PlayerID, colours
 			out = append(out, c)
 		}
 	}
-	return out, true
+	return out, !flexUncertain && surplus >= int64(comp.Generic)
 }
 
 // paymentSourceUseful reports whether source id can still add a colour the

@@ -1,6 +1,6 @@
 package rules
 
-// fb-20260923T005805Z-1301f55a / agent-20260923T132455Z-3f6a9ab9: regression
+// Regression
 // coverage for the OTHER corpus carriers of the announced Sac<X/Spec> count
 // whose X drives a ReduceCost static. Dargo, the Shipwrecker already has its
 // own regression in engine/rules/dargo_cast_offer_test.go; these are the same shape

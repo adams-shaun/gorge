@@ -148,8 +148,7 @@ func (e *Engine) untapDenied(id state.ObjID) bool {
 // lines never restrict a cost sacrifice, ForCost$ True lines restrict only a
 // cost sacrifice, and ValidCause$ is evaluated against the cause appropriate
 // to the path -- actionCause() (the resolving wrapper) on the effect path,
-// the pending cast/activation on the cost path (causeCostAdmits, task
-// cantsac1).
+// the pending cast/activation on the cost path (causeCostAdmits).
 func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	return e.sacrificeBlocked(id, forCost, pay.CostCauseNone)
 }
@@ -225,7 +224,7 @@ func (e *Engine) cantSacStaticBlocks(sv staticView, id state.ObjID, forCost bool
 	if !effects.CantSacrificeRestrictionParamsReadable(sv.Params) {
 		return false
 	}
-	// cantsac1: the cause-scoping parameters, evaluated before the
+	// The cause-scoping parameters, evaluated before the
 	// ValidCard match so an unevaluable shape stays skipped (the
 	// permissive direction) instead of blanket-blocking. ForCost$ True
 	// restricts only COST sacrifices; ForCost$ False never restricts one.

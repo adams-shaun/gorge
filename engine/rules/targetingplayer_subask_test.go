@@ -14,7 +14,7 @@ import (
 // routes the chooser through targetAskChooser (Volcanic Offering's
 // DBDestroyLand). For a TRIGGER's deeper link the ask is still posed below
 // the rules tier as the trigger resolves -- effects.chosenTargetsFor (the
-// mvts1 "tgts" ask) or effects.changeZoneChosenTargets (the ChangeZone
+// "tgts" ask) or effects.changeZoneChosenTargets (the ChangeZone
 // "choice" ask) -- and Engine.ChooserFor routes it (Mausoleum Turnkey's
 // TrigChangeZone shape). Before either router the ask silently went to the
 // ability's controller.

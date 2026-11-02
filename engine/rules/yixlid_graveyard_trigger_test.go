@@ -70,7 +70,7 @@ func TestYixlidJailerStopsGraveyardToHandTrigger(t *testing.T) {
 // TestGolgariBrownscaleGraveyardToHandTrigger is the positive control: the
 // same board without Yixlid Jailer, where the Brownscale's own
 // "when CARDNAME is put into your hand from your graveyard, you gain 2 life"
-// line must fire, gaining p0 2 life. This pins the widened 7e1c80fae
+// line must fire, gaining p0 2 life. This pins the widened
 // self-ChangesZone admission: the negative above is the Jailer's ability
 // loss, not a setup whose trigger never fires.
 func TestGolgariBrownscaleGraveyardToHandTrigger(t *testing.T) {

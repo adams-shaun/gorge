@@ -97,7 +97,7 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardManaCost"); got != 4 {
 		t.Errorf("Creature.YouCtrl$CardManaCost = %d, want 4", got)
 	}
-	// The Different* distinct-set properties ARE read since diffcount1:
+	// The Different* distinct-set properties ARE read:
 	// distinct DERIVED powers among the matches -- Bear 2, Flier 1, Giant
 	// 5 -- is 3, not a sum and not a fail-closed zero.
 	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 3 {
@@ -221,9 +221,9 @@ func TestEvalCountZoneScopedForms(t *testing.T) {
 // against the shared-zone double-count: state.Game.Zone returns g.Stack for
 // EVERY seat, so the zone-count scan must visit the shared stack exactly
 // once, not once per alive seat. On the two-seat fixture below one spell on
-// the stack read 2 before the fix and reads 1 after (Mindbreak Trap's
-// MaxTgts = the number of spells on the stack; Display of Power's copy
-// count). The preconditions are asserted so a vacuous setup fails loudly.
+// the stack must read 1, not 2 (Mindbreak Trap's MaxTgts = the number of
+// spells on the stack; Display of Power's copy count). The preconditions are
+// asserted so a vacuous setup fails loudly.
 func TestEvalCountValidStackScansTheSharedStackOnce(t *testing.T) {
 	h := newHost(t, 2)
 	// Precondition: both seats are alive, so a per-seat walk visits two
@@ -488,11 +488,11 @@ func moveTo(g *state.Game, id state.ObjID, z state.Zone) {
 
 var _ = cards.Card{}
 
-// TestPlayerCountExtremePropertiesFailUnresolvable pins the r2 review's
+// TestPlayerCountExtremePropertiesFailUnresolvable pins a
 // fail-direction fix on the PlayerCount wrapper: the two life extremes
 // (LowestLifeTotal/HighestLifeTotal) and the count/counted-quantity extremes
 // (HighestValid/LowestValid over any Count$ zone, plus the
-// HighestLifeLostThisTurn pair, and since fuzz-cov3 the per-player zone
+// HighestLifeLostThisTurn pair, and the per-player zone
 // sizes/tallies HighestCardsInHand et al.) are evaluated; ANY other property
 // -- e.g. HighestSpeed -- reports (0, false), so a gate over one fails per
 // its caller's documented direction instead of silently enforcing a fake
@@ -523,7 +523,7 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 }
 
 // TestPlayerCountGroupAmountHeadCountsTheGroup pins the `Amount` property on
-// the two living PlayerCount groups (pfpe1): Forge's property Amount counts 1
+// the two living PlayerCount groups: Forge's property Amount counts 1
 // per member, so PlayerCountOpponents$Amount is the opponent count -- the
 // "one each" bound the corpus names SVar:OneEach (99 raw Opponents + 52 raw
 // Players lines) and the per-player target maximum the TargetsForEachPlayer$
@@ -549,16 +549,16 @@ func TestPlayerCountGroupAmountHeadCountsTheGroup(t *testing.T) {
 }
 
 // TestNumResolvedReadsBareInlineCountBody pins the direct-parameter spelling
-// of a bare count body (pfpe1 follow-up): Tolarian Contempt writes its
-// TargetsForEachPlayer$ bound INLINE -- TargetMax$ PlayerCountOpponents$
-// Amount, no SVar name and no Count$ prefix -- and the Num grammar must
-// resolve it exactly as it resolves the SVar-mediated spelling of the same
-// body (Havoc Eater's SVar:X:PlayerCountOpponents$Amount behind
-// TargetMax$ X). Before the fix the bare inline form fell through every
-// recognised shape in NumResolved and returned (0, false), so the bound
-// degraded to the default 1 and the "for each opponent" ask collapsed to a
-// single target. A token naming no modelled head keeps the unresolvable
-// verdict so Num's degrade-to-zero contract is unchanged.
+// of a bare count body: Tolarian Contempt writes its TargetsForEachPlayer$
+// bound INLINE -- TargetMax$ PlayerCountOpponents$ Amount, no SVar name and
+// no Count$ prefix -- and the Num grammar must resolve it exactly as it
+// resolves the SVar-mediated spelling of the same body (Havoc Eater's
+// SVar:X:PlayerCountOpponents$Amount behind TargetMax$ X). Were the bare
+// inline form to fall through every recognised shape in NumResolved and
+// return (0, false), the bound would degrade to the default 1 and the "for
+// each opponent" ask would collapse to a single target. A token naming no
+// modelled head keeps the unresolvable verdict so Num's degrade-to-zero
+// contract is unchanged.
 func TestNumResolvedReadsBareInlineCountBody(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
@@ -587,7 +587,7 @@ func TestNumResolvedReadsBareInlineCountBody(t *testing.T) {
 }
 
 // TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
-// head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
+// head: the head reads Ctx.ChosenNumber -- the
 // Effect-created replacement's SetChosenNumber$ binding rules' replCtx
 // threads in -- and its VERDICT is the bound flag. A bound context evaluates
 // (including a bound zero, torgal with no Dogs); an UNBOUND context stays
@@ -643,7 +643,7 @@ func TestThisTurnEnteredGraveyardCountsPermanentBase(t *testing.T) {
 		body string
 		want int32
 	}{
-		// Permanent is the Defect-2 carrier: 0 before the fix.
+		// Permanent is the carrier that must not read 0.
 		{"Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent", 1},
 		// Creature/Card are type/identity tests and were already 1; they
 		// must stay 1 so the fix does not regress the common shape.
@@ -924,7 +924,7 @@ func TestEvalCountValidZoneScanIsAllocationFree(t *testing.T) {
 	if allocs != 0 {
 		t.Fatalf("Count$Valid Creature allocated %.0f objects per eval; want zero (the zone-count scan must iterate in place)", allocs)
 	}
-	// The warm-Ctx shape the r3 review added: the layer walk (engine/rules/
+	// The warm-Ctx shape: the layer walk (engine/rules/
 	// layers.go's cdaSetPT) builds a FRESH &effects.Ctx{...} per call and
 	// hands it to EvalCount, so a warm caller-built Ctx must not be forced
 	// to the heap by anything evalCountBody does with it. The r2 fold

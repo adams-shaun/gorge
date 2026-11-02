@@ -20,7 +20,7 @@ import (
 // SAs (the same discipline corpusCounterSA records -- a synthetic
 // map[string]string fixture has shipped bugs here before): the ask's shape
 // and the two answered re-entries, plus the no-host deterministic decline
-// stand-in (R-9). The engine-side end-to-end pins on the trigger-shaped
+// stand-in. The engine-side end-to-end pins on the trigger-shaped
 // carriers live in rules/putcounter_optional_test.go.
 
 // corpusPutCounterSA returns the REAL compiled PutCounter sub-ability of a
@@ -120,7 +120,7 @@ func TestPutCounterOptionalDeadRecipientNeverAsks(t *testing.T) {
 	}
 }
 
-// TestPutCounterOptionalNoAskHostDeclinesAndRunsTheChain pins the R-9
+// TestPutCounterOptionalNoAskHostDeclinesAndRunsTheChain pins the no-host
 // stand-in AND the decline-runs-the-chain semantics on Black Widow's real
 // DBPutCounter (Defined$ Self, RememberPut$ True, Optional$ True,
 // SubAbility$ DBEffect): a host that cannot ask takes the deterministic

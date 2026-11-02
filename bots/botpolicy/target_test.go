@@ -95,7 +95,7 @@ func TestTargetPreferCreatureOverFace(t *testing.T) {
 	// The 6/6 is offered at index 1, the face at index 0; a positional
 	// (Options[0]) pick would hit the face and fail this. The opponent is
 	// at a healthy 20 life, so the face is merely legal and loses to the
-	// board (the do-not-suicide half of the dp3 face rule).
+	// board (the do-not-suicide half of the face rule).
 	b := boardOf(def(1, 6, 6))
 	b.Life.Set(1, 20)
 	got, d := targetDecision(b, []tgt{face(), opp(201)}, 1, 1)
@@ -236,8 +236,8 @@ func TestChooseTargetsHonoursMinAndMaxDirect(t *testing.T) {
 	}
 }
 
-// TestTargetNeverTakesTwoOfOneGroup pins the pick loop's group discipline
-// (pfpe1): Decision.Validate's mutual-exclusion rule makes two options
+// TestTargetNeverTakesTwoOfOneGroup pins the pick loop's group discipline:
+// Decision.Validate's mutual-exclusion rule makes two options
 // sharing one non-empty Group mutually exclusive -- the TargetsForEachPlayer$
 // shape (one target per controller) and the cross-mode Charm ask both attach
 // it -- so a multi-target answer that took two same-group options would be

@@ -132,8 +132,7 @@ func TestChangeTextWordHalvesMapsToChooseFromSelection(t *testing.T) {
 // contribution kinds ("convoke_<color>"/"convoke_generic"/...) maps onto
 // chooseFromSelection over the labels, with the ask's own 0..outstanding
 // slot bounds. The payment GROUPS are not wire-expressible (Validate is the fence),
-// but the branch itself must stay live: the reviewer
-// round-2 sweep proved this was the one mapping no committed test reached.
+// but the branch itself must stay live: no other committed test reaches it.
 func TestCastContributionMappingIsPinned(t *testing.T) {
 	d := newDec(17, 0, decision.KChoose,
 		decision.Option{Index: 0, Kind: "convoke_G", Label: "Tap Bear for G", Obj: 70, Group: "unit-1"},

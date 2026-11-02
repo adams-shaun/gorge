@@ -178,6 +178,16 @@ type Options struct {
 	// removes its config.
 	MaxOnDemandTables int
 
+	// PairedBot, when non-nil, lets a table's human ask this bot to evaluate
+	// the decision in front of them (Registry.Advice). New refuses an entry
+	// whose seats could read an opponent's list or could not explain a search.
+	// The entry need not be registered. nil is off: nothing here touches a
+	// game.
+	PairedBot *bots.Entry
+	// PairedBotSearches bounds paired-bot searches across the registry;
+	// further requests wait their turn. 0 means one.
+	PairedBotSearches int
+
 	// SearchSlots bounds how many searched decisions run CONCURRENTLY across
 	// the whole registry (spec 2026-09-28-hosted-bot-packages §7): a
 	// bot seat whose table-policy entry has Search set takes one slot around
@@ -288,6 +298,9 @@ type Registry struct {
 	// contends for it around its search seats' DecideEnv calls; see
 	// searchSlots and Options.SearchSlots.
 	searchGate *searchSlots
+	// adviceGate bounds paired-bot searches, apart from searchGate so advice
+	// never holds a slot a playing bot is waiting for. nil when PairedBot is.
+	adviceGate *searchSlots
 
 	mu       sync.RWMutex
 	tables   map[TableID]*table
@@ -329,7 +342,14 @@ func New(o Options) (*Registry, error) {
 	if o.SearchSlots > 0 {
 		gate = newSearchSlots(o.SearchSlots)
 	}
-	r := &Registry{opts: o, searchGate: gate, tables: map[TableID]*table{}, sessions: map[string]*Session{}, done: make(chan struct{})}
+	var adviceGate *searchSlots
+	if o.PairedBot != nil {
+		if err := validatePairedBot(*o.PairedBot, o); err != nil {
+			return nil, err
+		}
+		adviceGate = newSearchSlots(max(1, o.PairedBotSearches))
+	}
+	r := &Registry{opts: o, searchGate: gate, adviceGate: adviceGate, tables: map[TableID]*table{}, sessions: map[string]*Session{}, done: make(chan struct{})}
 	if o.Dir != "" {
 		if err := r.load(); err != nil {
 			return nil, err

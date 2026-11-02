@@ -59,8 +59,8 @@ func landCastOptions(t *testing.T, e *Engine, id state.ObjID) (casts []decision.
 // from seat 0's hand at Main1. It asserts the precondition (the object really
 // is a land in the hand whose printed face carries the wanted family), the
 // option SHAPE (play_land is offered, the face-down cast is offered, and NO
-// plain cast is offered — the addition-not-replacement precondition this
-// ticket is about), then casts and resolves. symbols funds exactly the {3};
+// plain cast is offered — the addition-not-replacement precondition),
+// then casts and resolves. symbols funds exactly the {3};
 // poolAfter is the exact total that must remain (0 when the pool was {3}).
 func morphLandFaceDownCast(t *testing.T, e *Engine, name, mode, symbols string, poolAfter int) state.ObjID {
 	t.Helper()

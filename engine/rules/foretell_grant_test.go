@@ -1,7 +1,6 @@
 package rules
 
-// The ft1 closure (AGENTS.md row "(ft1) `withForetell`/`withoutForetell`
-// remain unread ..."): the foretell predicates are readable in the ordinary
+// The foretell predicates are readable in the ordinary
 // filter grammar, Cosmos Charger's any-turn timing grant is live, and the
 // Effect-delivered free-cast MayPlay static is registered and consumed.
 // Pinned on the real corpus carriers: Dream Devourer (the withoutForetell

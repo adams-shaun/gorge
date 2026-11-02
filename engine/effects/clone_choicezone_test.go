@@ -1,7 +1,7 @@
 package effects
 
 // ChoiceZone$ / ChoiceOptional$ / ExcludeChosen$ on the DB$ Clone Choices$
-// pick (ticket agent-20260923T090459Z-65bbfecf).
+// pick.
 //
 // Before this change the standalone/trigger Clone route honoured only the
 // battlefield pool and a mandatory pick: ChoiceZone$ was ignored (the pool was

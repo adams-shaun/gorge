@@ -67,7 +67,7 @@ func (e *Engine) livingOpponents(controller state.PlayerID) []state.PlayerID {
 }
 
 // tpControlState is the TargetingPlayerControls$ restriction's resolution
-// state (tpc1): Forge's `TargetingPlayerControls$ True` makes every target
+// state: Forge's `TargetingPlayerControls$ True` makes every target
 // OBJECT of the SA a battlefield permanent controlled by the answering
 // TargetingPlayer$ seat (Evangelize: "target creature of an opponent's
 // choice they control"), without touching ValidTgts$'s own
@@ -198,7 +198,7 @@ func (e *Engine) tpControlsAdmits(o *state.Object, p, chooser state.PlayerID, st
 }
 
 // filterTargetingPlayerControls applies TargetingPlayerControls$ True to a
-// target census (tpc1): every OBJECT candidate must be a battlefield
+// target census: every OBJECT candidate must be a battlefield
 // permanent controlled by the answering TargetingPlayer$ seat. Player
 // candidates are out of the parameter's scope and stay. It runs last in
 // candidatesForLimit's post-filter chain and only on the targeting census
@@ -221,7 +221,7 @@ func (e *Engine) filterTargetingPlayerControls(out []targetCandidate, sa *cards.
 }
 
 // recordTpControlsChooser pins the seat that ANSWERED a target ask whose SA
-// carries TargetingPlayerControls$ True (tpc1), keyed by the RESOLVING
+// carries TargetingPlayerControls$ True, keyed by the RESOLVING
 // stack object -- the spell object for a cast (pc.stackObj), the
 // AbilityPush-minted object for an activation, the TriggerPush object for a
 // placement ask. The CR 608.2b recheck (legalTargets) reads the same key
@@ -583,7 +583,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		}
 	}
 	if min == 0 {
-		// Requirement N2 / totality: a target-hungry subject whose minimum
+		// Totality: a target-hungry subject whose minimum
 		// is zero resolves untargeted when NO legal target exists. When at
 		// least one exists it is still offered (Min 0 lets the chooser take
 		// none); a zero-option decision would strand the cast, never asked.
@@ -644,9 +644,6 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	if d.ResumeKind == "copy_targets" {
-		return
-	}
 	if d.ResumeKind == "charm_targets" {
 		groups, ordered := charmTargetGroups(d, chosen)
 		if e.cast != nil {
@@ -739,7 +736,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		// targets are already recorded (its first target must then APPEND).
 		stageBase := len(pc.targets)
 		pc.targets = append(pc.targets, targetOptions(chosen)...)
-		// A Fuse cast records the stage's own slice (review MAJOR 1): the flat
+		// A Fuse cast records the stage's own slice: the flat
 		// list on the stack object cannot express which half chose which
 		// target, and re-deriving the split through each half's ValidTgts spec
 		// mis-assigns every target that half's spec merely overlaps (Turn //
@@ -779,7 +776,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			return
 		}
 		e.finishTargetedCast(pc, pc.player)
-		// tpc1: pin the answering seat against the resolving object. For a
+		// Pin the answering seat against the resolving object. For a
 		// spell and an activation pc.stackObj is already the pushed object
 		// (pushCast / pushActivation, CR 602.2a). The CR 608.2b recheck
 		// (legalTargets) reads this record off the resolving object.

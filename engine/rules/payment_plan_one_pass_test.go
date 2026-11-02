@@ -9,20 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Ticket aph-offer-one-pass: the payment extension is built from ONE
-// PotentialMana candidate walk, ONE hypothetical huge-pool legality walk and
-// the pending decision's own Options, instead of the pre-ticket N+2 walks
-// (the candidate walk, a duplicate legalActions for BaseOptionIndex, and one
-// huge-pool walk per candidate inside PlanCastPayment). The offers must be
-// byte-identical to the shared-builder result, which paymentActionsReference
-// keeps as the test-only oracle.
+// The payment extension is built from ONE PotentialMana candidate walk, ONE
+// hypothetical huge-pool legality walk and the pending decision's own Options,
+// not from a walk per candidate. The offers must be byte-identical to the
+// shared-builder result, which paymentActionsReference keeps as the test-only
+// oracle.
 
 // paymentActionsReference is the equivalence oracle: an independent
-// re-implementation of the PaymentActionsForPriority body (originally kept
-// verbatim from the aph-offer-one-pass builder; updated in ticket
-// fb-20260927T163321Z-69285807 to derive each candidate's PlannedCast origin
-// from its object's zone, hand → "hand" and command zone → "command_zone",
-// exactly as the production builder does -- anything else is skipped). Every
+// re-implementation of the PaymentActionsForPriority body. It derives each
+// candidate's PlannedCast origin from its object's zone, hand → "hand" and
+// command zone → "command_zone", exactly as the production builder does, and
+// skips anything else. Every
 // candidate goes through the public PlanCastPayment (whose own huge-pool
 // candidate walk is unchanged), and BaseOptionIndex comes from a fresh
 // legalActions walk.
@@ -405,7 +402,7 @@ func TestPaymentPlanOnePassBenchBoardMatchesReference(t *testing.T) {
 // (pricedCandidatesVerify, castsOnlyWalkVerify) are off for the count. The count comes from
 // Engine.legalActionWalks, which legalActionsPriced bumps on every call --
 // the derived-memo generation delta CANNOT measure this since
-// paymentActionsForPriority (merge 39948fe8c) opens ONE beginDerivedMemo
+// paymentActionsForPriority opens ONE beginDerivedMemo
 // scope around the whole build, so its generation advances by at most one
 // no matter how many walks run inside. The counter is direct: a regression
 // that runs `options = e.legalActions(p)` once per candidate cast (instead

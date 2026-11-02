@@ -15,7 +15,7 @@ package rules
 //	api:ChangeZone.TargetsWithSameController  Lodestone Bauble
 //	api:DelayedTrigger.SpellCast    Mistrise Village (ThisTurn$/Static$/ValidCard$/ValidActivatingPlayer$)
 //
-// The same ticket fixed the class behind the first live livelock the deck
+// Also pinned here, the class behind a live livelock the deck
 // exposed: an SA whose BODY poses a mid-resolution ask after its UnlessCost$
 // gate resolved used to re-pose the pay ask after the body's answer (a
 // repeating pay/draw cycle). The resolved gate's answer now stays in hand
@@ -134,9 +134,8 @@ func viviDecline(d *decision.Decision) int {
 // TestRhysticStudyPayDeclineAsksTheOptionalDraw pins api:Draw.
 // OptionalDecider$ end to end, and with it the asking-body-under-UnlessCost$
 // livelock fix: the payer declines {1}, the OptionalDecider$ player is asked
-// ("draw?"), a yes draws one, and — the class pin — the gate does NOT
-// re-pose the pay ask after the draw answer (the pre-fix cycle
-// repeated pay/choose 80 times before the livelock detector fired).
+// ("draw?"), a yes draws one, and — the class pin — the gate does NOT re-pose
+// the pay ask after the draw answer.
 func TestRhysticStudyPayDeclineAsksTheOptionalDraw(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -354,10 +353,9 @@ func TestMishrasBaublePrivateLookAndNextTurnSlowtrip(t *testing.T) {
 	submitChoices(t, e, ta.Index)
 	viviPass(t, e)
 	viviPass(t, e)
-	// The pacing gate (lookack, fb-20260917T232325Z-35cfca4b): the bare
-	// private look now poses its one-option Continue ack to the activator
-	// BEFORE the note lands — the reporter's defect was exactly this line
-	// streaming past ungated.
+	// The pacing gate: the bare
+	// private look poses its one-option Continue ack to the activator
+	// BEFORE the note lands, so this line does not stream past ungated.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "look_ack" || d.Player != 0 {
 		t.Fatalf("expected the look ack, got %+v", d)

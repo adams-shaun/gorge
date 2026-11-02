@@ -27,9 +27,9 @@ func TestConditionalCantAttackReadsObservableGates(t *testing.T) {
 		"Name:Fixture Bears\nTypes:Creature Bear\nPT:2/2\n",
 		"Name:Fixture Knight\nTypes:Creature Human Knight\nPT:2/2\n",
 		"Name:Fixture Falcon\nTypes:Creature Bird\nPT:2/1\n"+
-			"S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Knight.YouCtrl | PresentCompare$ EQ0 | Description$ CARDNAME can't attack unless you control a Knight.\n",
+			"S:Mode$ CantAttack | ValidCard$ Card.Self | IsPresent$ Knight.YouCtrl | PresentCompare$ EQ0\n",
 		"Name:Fixture Cohort\nTypes:Creature Goblin Warrior\nPT:2/2\n"+
-			"S:Mode$ CantAttack | ValidCard$ Card.Self | CheckSVar$ X | SVarCompare$ EQ0 | Description$ CARDNAME can't attack unless you've cast a creature spell this turn.\n"+
+			"S:Mode$ CantAttack | ValidCard$ Card.Self | CheckSVar$ X | SVarCompare$ EQ0\n"+
 			"SVar:X:Count$ThisTurnCast_Creature.YouCtrl\n")
 	cur := obsRef("o-bears", "Fixture Bears", "p0")
 	player := protocol.PlayerTarget("p1")
@@ -70,7 +70,7 @@ func TestUnlessDefenderUsesTheDefendingBoard(t *testing.T) {
 	s := fixtureSession(t,
 		"Name:Fixture Bears\nTypes:Creature Bear\nPT:2/2\n",
 		"Name:Fixture Serpent\nTypes:Creature Serpent\nPT:5/5\n"+
-			"S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ controlsIsland | Description$ CARDNAME can't attack unless defending player controls an Island.\n",
+			"S:Mode$ CantAttack | ValidCard$ Card.Self | UnlessDefender$ controlsIsland\n",
 		"Name:Fixture Forest\nTypes:Basic Land Forest\n",
 		"Name:Fixture Island\nTypes:Basic Land Island\n")
 	cur := obsRef("o-bears", "Fixture Bears", "p0")
@@ -114,9 +114,9 @@ func TestUnlessDefenderUsesTheDefendingBoard(t *testing.T) {
 func TestWalkingWallPumpGrantAttacks(t *testing.T) {
 	s := fixtureSession(t,
 		"Name:Fixture Wall\nTypes:Artifact Creature Wall\nPT:0/6\nK:Defender\n"+
-			"A:AB$ Pump | Cost$ 3 | NumAtt$ +3 | NumDef$ -1 | SubAbility$ DBEffect | SpellDescription$ CARDNAME can attack this turn as though it didn't have defender.\n"+
-			"SVar:DBEffect:DB$ Effect | StaticAbilities$ CanAttack | Duration$ UntilHostLeavesPlayOrEOT\n"+
-			"SVar:CanAttack:Mode$ CanAttackDefender | ValidCard$ Card.EffectSource | Description$ EFFECTSOURCE can attack this turn as though it didn't have defender.\n",
+			"A:AB$ Pump | Cost$ 3 | NumAtt$ +3 | NumDef$ -1 | SubAbility$ Grant\n"+
+			"SVar:Grant:DB$ Effect | StaticAbilities$ CanAttack | Duration$ UntilHostLeavesPlayOrEOT\n"+
+			"SVar:CanAttack:Mode$ CanAttackDefender | ValidCard$ Card.EffectSource\n",
 		"Name:Fixture Bears\nTypes:Creature Bear\nPT:2/2\n")
 	cur := obsRef("o-bears", "Fixture Bears", "p0")
 	player := protocol.PlayerTarget("p1")

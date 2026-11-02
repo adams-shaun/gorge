@@ -1,13 +1,11 @@
-// Tests for the ATTRIBUTION of the ManaReflected producer tag (review round
-// r2 on the ctms sub-shape of the frozen castfilter1/2 row): which
+// Tests for the ATTRIBUTION of the ManaReflected producer tag: which
 // permanent's printed Treasure/Cave/Desert/Snow types a reflected mana unit
 // carries. The rule the three tests pin: "mana from a <Type>" is mana
 // PRODUCED BY a permanent of that type (Marut's official ruling; CR 107.4h's
 // snow mana is the same producer-side definition), and the producer of a
 // ManaReflected body's mana is the permanent whose ability resolved the body
 // -- never the object the body reflects FROM, and never changed by the
-// recipient the body pays TO. Kept in its own file so the ticket cannot
-// conflict on a shared test file.
+// recipient the body pays TO.
 package rules
 
 import (

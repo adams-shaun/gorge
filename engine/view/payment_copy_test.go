@@ -68,9 +68,8 @@ func TestCopyDecisionPaymentOwnership(t *testing.T) {
 }
 
 // TestCopyDecisionRejectsDerefedClone pins the value-clone shape of the
-// projection choke point. bf2668175 made copyDecision use `cp := *d.Clone()`
-// and fc7d924ad (this ticket) replaced it with `cp := d.CloneValue()` so the
-// projected decision is built by value again. No allocation-count test can
+// projection choke point. copyDecision uses `cp := d.CloneValue()`, not
+// `cp := *d.Clone()`, so the projected decision is built by value. No allocation-count test can
 // distinguish the two under the current toolchain: go1.26.3 inlines
 // decision.(*Decision).Clone into copyDecision (go build -gcflags='-m'), the
 // pointee of the inlined intermediate pointer is then stack-elided, and

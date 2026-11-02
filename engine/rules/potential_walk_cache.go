@@ -21,7 +21,7 @@ import (
 //   - the builtin seat's planner (PotentialPaymentPlans: the full walk, run
 //     with paymentPlanPotentialPool set).
 //
-// Measured on the 4096-game random SpellBench leg (tip12): those three walks
+// Measured on the 4096-game random SpellBench leg: those three walks
 // plus their PotentialMana fixpoints were ~26% of all CPU, each computed from
 // scratch. potentialWalk computes the pair once per decision and serves the
 // rest.

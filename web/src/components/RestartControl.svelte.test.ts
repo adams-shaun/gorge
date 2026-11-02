@@ -12,7 +12,7 @@ beforeAll(async () => {
   browser = await sharedBrowser();
 });
 
-describe('RestartControl (fb-20260922T202722Z)', () => {
+describe('RestartControl', () => {
   it('unarmed renders the Restart button (data-restart-control) and no confirm button', () => {
     const { html } = render(RestartControl, { props: { onArm: () => {}, onConfirm: () => {} } });
     expect(html).toContain('data-restart-control');

@@ -20,8 +20,7 @@ import (
 // covers it -- the same shape as the AnimateAll player-kind ValidTgts$ census
 // (engine/effects/animateall_player_tgts_ratchet_test.go).
 //
-// The five files are the WHOLE measured population at the ticket's base
-// (2026-10-05):
+// The five files are the whole measured population:
 //
 //	archangel_of_strife.txt   S:Mode$ Continuous | Affected$ Creature.ControlledBy Player.NotedForWar ...
 //	decoy_gambit.txt          ChangeType$ Card.targetedBy+ControlledBy Player.NotedForDiversion ...

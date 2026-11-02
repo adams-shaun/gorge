@@ -1,6 +1,6 @@
 package host
 
-// fb-20260915T094418Z: a parked mid-burst decision made every view request
+// A parked mid-burst decision made every view request
 // at head return HTTP 500. The root cause was the host's burst-boundary
 // model: a burst does not always end at its last DecisionAsk — Engine.
 // Submit's post-ask continuation (the SBA pass and the step handler the
@@ -45,35 +45,15 @@ const (
 	overshootDeckA = "foundations-reign-of-dragons"
 	overshootDeckB = "foundations-calling-all-angels"
 	overshootSeed  = 1
-	// cli-20260922T225141Z-e771720d: the hosted game now opens with the CR
-	// 103.1 winner-chooses ask, whose answer is the toss winner naming
-	// itself -- one recorded intent at genesis -- so every later intent
-	// (including the overshoot burst's own) sits one later in the count.
-	// The Menace floor removed one forced-empty blockers ask at intent 194.
-	// The paid-cost mana census flip (cli-20261012T170859Z-8fbcbbcf) moved
-	// the live shape again: at the old seed 8 the bot's offer list changed
-	// with the census on, so that game no longer reaches a commander_zone
-	// overshoot burst; the fixture was re-measured across the pure-bot
-	// course to the first seed whose burst carries the shape, seed 2,
-	// parked at intent 526. CR 117.3a (rules 93b6057e4): the end of combat
-	// step opens with the active player holding priority, so every
-	// end-of-combat entry from a round's tail (the CR 508.8 no-attackers
-	// skip) poses one more pass before the burst: the same turn-21 burst
-	// now parks at intent 541 (526 -> 541, re-measured on seed 2). CR 510.3
-	// (rules 24bbba791): players receive priority in the combat damage step
-	// after the regular damage, two more passes per such combat before the
-	// burst: 541 -> 551, the same turn-21 burst, re-measured on seed 2.
-	// CR 903.9a (2026-10-20): a commander's graveyard/exile move is no
-	// longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
-	// longer exists; across seeds 1-29 of the old pair no burst ends past its
-	// last ask. Re-measured over the five FDN commander decks:
-	// foundations-reign-of-dragons vs foundations-calling-all-angels, seed 1,
-	// burst 664. A board wipe destroys seat 1's commander, the next check asks
-	// seat 1 at its first pass, and the same pass removes three destroyed tokens
-	// ("ceased to exist") after the ask. assertOvershootShape now requires that
-	// token-cleanup tail rather than a lethal-damage sweep. The capture was
-	// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
-	// head 8f92486feb45ce6b at the last re-record (see the capture's history below).
+	// The hosted game opens with the CR 103.1 winner-chooses ask, so every
+	// later intent (including the overshoot burst's own) sits one later in the
+	// count. The fixture is foundations-reign-of-dragons vs
+	// foundations-calling-all-angels, seed 1, burst 664: a board wipe destroys
+	// seat 1's commander, the next check asks seat 1 at its first pass, and the
+	// same pass removes three destroyed tokens ("ceased to exist") after the
+	// ask. assertOvershootShape requires that token-cleanup tail. A rules change
+	// that adds or removes a decision before the burst moves this count;
+	// re-record the capture via TestGenerateOvershootCapture with it.
 	overshootIntents = 664 // intents recorded when parked on the overshoot burst's pending ask
 )
 
@@ -124,8 +104,7 @@ func parkedOvershootMatch(t *testing.T, dir string) (*Registry, *table, *match, 
 		// instead of actually minting. feedback.Load's own token resolution
 		// falls back to the full corpus map when a capture records no
 		// tokens, so a token-starved live capture replays differently
-		// (Note vs a real token_create) the moment it is reloaded --
-		// discovered regenerating fb-20260915T094418Z's committed fixture.
+		// (Note vs a real token_create) the moment it is reloaded.
 		Tokens:       testutil.CorpusRegistry(t).Tokens,
 		NameUniverse: testutil.CorpusRegistry(t).Universe(),
 		Seats: func(names []string, seed uint64) []seat.Seat {
@@ -516,171 +495,15 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 	}
 }
 
-// committedCaptureRel is the REAL fb-20260915T094418Z capture, committed as
-// a fixture beside cmd/repro's fixture set (testdata — a fixture, not a
-// production package; cmd/repro's Go sources stay untouched, per the task's
-// host-only scope). The capture was recorded by the pre-fix host: its
-// reconcileLog cut the parked burst's overshoot tail (the two real events
-// after the commander_zone ask — the "lethal damage" sweep and the
-// end-combat step change) from log.json while the head field stayed the
-// chain hash over the FULL 1326-event stream. The committed copy carries
-// that tail RECONSTRUCTED: the recorded intents' replay reproduced it
-// byte for byte and the chain proves it (the trimmed prefix chains to
-// d5b4fa8fa12b16e7, the full stream to the recorded 7e35c9a40dedff68 —
-// measured at repair time), so the fixture verifies under plain
-// replay.Replay with no cut-tail tolerance anywhere and cmd/repro on it
-// exits 0. The test pins both, so an engine or corpus move that breaks the
-// capture fails loudly here instead of leaving a stale fixture behind.
-//
-// rv2a integration (toss Note before the deal): the same repair was applied
-// once more. The rv2a engine moves the genesis toss Note from its post-deal
-// position to sequence 1 and shortens its text ("X won the toss"), so the
-// recorded stream diverged at event 1. The recorded intents' replay under
-// the rv2a engine reproduces the identical 1326-event stream except for
-// exactly that one Note's position and text (measured by diffing the rebuilt
-// stream against the recording: one changed event, every other event byte-identical,
-// and the game facts at the capture point — turn, step, priority, active —
-// unchanged), so log.json's events and head were regenerated the same way the
-// tail was: same match, engine-current bytes. The recorded Intents are untouched.
-//
-// sacrifice/unless integration (2026-09-16, full re-record): the recorded
-// intents stopped replaying altogether. Main's mass-effects merge registered
-// the DB$ Shuffle primitive AFTER this capture's last regeneration (822502e4
-// is not an ancestor of 679883dc), so event 76 — Gamble's mid-burst "then
-// shuffle" — became a real Secret Shuffle where the recording kept the
-// "unimplemented API Shuffle" Note the pre-Shuffle engine emitted; a real
-// shuffle changes the library order, and no recorded intent after the draw
-// it feeds can survive that. The stale recording also failed on plain main
-// tip (the divergence is exactly the registered-primitive move, measured by
-// replaying the capture there), so it was re-recorded rather than patched:
-// a live gated match over the SAME deck pair (foundations-wretched-ranks vs
-// foundations-reign-of-dragons, commander, corpus tokens attached — a
-// capture must replay, so its registry carries Tokens, which the live
-// fixture's does not need) parked on the same reported shape: seat 0's
-// commander_zone ask (a dying Grave Titan, turn 15, declare-blockers) with
-// the post-ask "lethal damage" sweep and end-combat step change on the log
-// (2150 events, 396 intents, head 023ef9e6f0175524). report.json keeps the
-// original report's provenance fields; its snapshot line names the
-// re-record.
-//
-// event-802 re-record (2026-09-17): that re-record was itself made by
-// parkedOvershootMatch BEFORE host.Options.Tokens was wired (see this
-// file's parkedOvershootMatch) — its live match ran token-starved, so a
-// token-minting ability it hit recorded the engine's "unimplemented API"
-// Note stand-in in place of the real mint. feedback.Load falls back to the
-// full corpus token map when a capture carries no token text, so replaying
-// this same capture today actually mints the token, diverging at event 802
-// (recorded move_zone [the Note's text], replayed choose). Fixed at the
-// source and re-recorded via TestGenerateOvershootCapture
-// (REPRO_REGEN_FIXTURE=1) with Tokens now attached to the live match:
-// 2238 events, 407 intents, head d8cf3b6dc00a07d9.
-//
-// Discard Mode$ Hand re-record (2026-09-19): the pre-fix capture (the
-// seed-1111 game: MatchSeed(1111,1) = 1671561686018727072, 2238 events,
-// 407 intents, head d8cf3b6dc00a07d9, 10 discard events) names Reforge the
-// Soul, and the Discard Mode$ Hand wheel fix (DiscardEffect's Mode$ Hand
-// arm, pinned on the real corpus card in engine/rules/reforge_the_soul_wheel_test.go)
-// made it diverge at event 836 under the post-fix engine: the pre-fix
-// engine kept one front-card events.Discard where the post-fix engine
-// emits one events.Discard per card in hand order. Re-recorded via
-// TestGenerateOvershootCapture (REPRO_REGEN_FIXTURE=1) — but NOT over that
-// old game: 4987fe2e (2026-09-17) had already re-measured the live
-// fixture to table seed 8 (MatchSeed(8,1) = 11409396526365357622, burst
-// 378 — overshootIntents as it stands) WITHOUT re-recording the capture,
-// so the regen mechanism (which records the CURRENT fixture's game) taped
-// a different game than the one the pre-fix capture held: toss to
-// foundations-reign-of-dragons, 14 turns, 2112 events, 378 intents, head
-// fd33d9db389d28e3. That game contains NO discard events at all, so this
-// gate does not exercise the wheel fix's emission shape — that fix's
-// defence remains engine/rules/reforge_the_soul_wheel_test.go, and a future diff
-// against 2238 → 2112 is the seed re-measure at 4987fe2e plus this
-// re-record, not a discard-shape change.
-//
-// trig:SearchedLibrary re-record (2026-09-23): the completed-library-search
-// marker (events.SearchedLibrary, emitted by effects/applyLibrarySearch) is
-// one new event in this game's stream — Cultivate's search at the burst —
-// so the pre-marker capture diverged at event 173 (recorded shuffle,
-// replayed the new marker). Re-recorded via TestGenerateOvershootCapture
-// (REPRO_REGEN_FIXTURE=1): 2113 events (2112 + the one marker), 378 intents
-// (the overshootIntents shape unchanged), head 3a31833838e13145.
-// Starting-player election and Artifact mana provenance (2026-09-23):
-// the current live fixture records the starting_player ask at event 20
-// (previously no ask), and the first artifact-produced mana is tagged at
-// the old event 265. Re-recorded through TestGenerateOvershootCapture;
-// the parked commander-zone ask and lethal-damage tail are unchanged.
-// 2117 events, 379 intents, head 9f32a260ba20e345.
-//
-// Menace block-count floor (2026-09-23): at turn 8 Undead Augur attacks
-// with Lord of the Accursed's menace grant while seat 0 has one untapped
-// creature (Lathliss), so no legal blocking declaration exists and the
-// engine no longer poses the empty blockers ask (CR 509.1a/702.111b; the
-// Menace floor is now part of blockPairScopeFor's impossible-bound check).
-// The recorded stream loses exactly that ask/answer pair (events 1052-1053)
-// and intent 194; every other event and intent is identical. Re-recorded via
-// TestGenerateOvershootCapture: 2115 events, 378 intents, head
-// dbba928d76d290b2; overshootIntents 379 -> 378.
-//
-// Game-long damage provenance (2026-09-23): every landed Damage event now
-// emits a DamageProvenance fact through Engine.emit, so the re-recorded
-// stream carries 23 more events (one per point of damage the match dealt)
-// and a new head; no intent moved (provenance changes no decision).
-// Re-recorded via TestGenerateOvershootCapture: 2138 events, 378 intents,
-// head 55f5cbb8b801acb7.
-// lifeLost1: effLoseLife now publishes AFLifeLost on its source after each
-// instruction. Four StoreSVar events (seqs 179, 1695, 1722, 2086) are the
-// only difference from that stream apart from shifted seqs/head. Re-recorded
-// via TestGenerateOvershootCapture: 2142 events, 378 intents, head
-// 5775daf7a611571c.
-//
-// Source damage-history re-record (2026-10-05): DamageProvenance's text now
-// carries the source's colours at the hit and the recipient's derived types
-// (Count$ damage-history heads), so the capture diverged at its first
-// damage_provenance event. Re-recorded via TestGenerateOvershootCapture:
-// 2142 events, 378 intents (unchanged), head f8d6151ddd8d7d50.
-// Excess-damage history (2026-10-05): the burst's five 5-damage hits on
-// opposing creatures exceed their pre-batch lethal thresholds, so the batch
-// close appends five ExcessDamage facts after its last Damage (seq
-// 2131-2135); every other event is unchanged. Re-recorded via
-// TestGenerateOvershootCapture: 2147 events, 378 intents (unchanged), head
-// 4101482cdae7fccc.
-// CR 103.8a first draw STEP (2026-10-06): the starting player's turn-1 draw
-// step is skipped whole, not only its draw, so the stream loses that step's
-// StepChange and both seats' priority ask/answer pairs (9 events) and two
-// intents. Re-recorded via TestGenerateOvershootCapture: 2138 events, 376
-// intents, head f54a225e6073bbfa; overshootIntents 378 -> 376.
-// End-of-combat priority (2026-10-17, rules 93b6057e4, CR 117.3a): the
-// step now opens with the active player holding priority, so the capture
-// diverged at turn 1's no-attackers end of combat (event 90). NOT
-// regenerated through TestGenerateOvershootCapture, which would tape the
-// live fixture's current game (seed 2 since the paid-cost census flip)
-// instead of this one: the recorded intents were replayed in order through
-// the fixed engine, with a pass inserted for each of the four end-of-combat
-// windows the old engine never posed (turns 1-4); no other answer changed.
-// 2158 events, 380 intents, head 57b79c439f48eaea; the parked
-// commander_zone ask and its lethal-damage tail are unchanged.
-// CR 510.3 post-damage priority (2026-10-17, rules 24bbba791): players now
-// receive priority in the combat damage step after the regular damage, so
-// the capture diverged at its first such combat. Re-derived the same way,
-// with a turn's damage step and end of combat matched as one window: 18
-// passes inserted (two per combat with regular damage), no answer changed.
-// 2230 events, 398 intents, head fc7001a63b429c7b; the parked ask and its
-// tail are unchanged.
-// CR 903.9a (2026-10-20): a commander's graveyard/exile move is no
-// longer parked, so the old seed-2 burst (an ask parked mid-lethal-sweep) no
-// longer exists; across seeds 1-29 of the old pair no burst ends past its
-// last ask. Re-measured over the five FDN commander decks:
-// foundations-reign-of-dragons vs foundations-calling-all-angels, seed 1,
-// burst 664. A board wipe destroys seat 1's commander, the next check asks
-// seat 1 at its first pass, and the same pass removes three destroyed tokens
-// ("ceased to exist") after the ask. assertOvershootShape now requires that
-// token-cleanup tail rather than a lethal-damage sweep. The capture was
-// re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents,
-// head 6d7b5325284ddbc4 (one more event after the develop rebase).
-// Entered-object reads (2026-10-31, CR 608.2h): Righteous Valkyrie's life gain
-// on Selfless Spirit, sacrificed in response, reads its last toughness 3 under
-// the Valkyrie's own +2/+2 rather than the card's printed 1, so event 3623 gains
-// 3. Re-recorded via TestGenerateOvershootCapture: 3653 events, 664 intents, head
-// 8f92486feb45ce6b; the parked ask and its tail are unchanged.
+// committedCaptureRel is a REAL capture, committed as a fixture beside
+// cmd/repro's fixture set (testdata -- a fixture, not a production package).
+// Its parked burst has an overshoot tail: events after the ask that parks the
+// decision. The fixture verifies under plain replay.Replay with no cut-tail
+// tolerance anywhere and cmd/repro on it exits 0. The test pins both, so an
+// engine or corpus move that breaks the capture fails loudly here instead of
+// leaving a stale fixture behind. Re-record it via
+// TestGenerateOvershootCapture: 3653 events, 664 intents, head
+// 8f92486feb45ce6b, with the parked ask and its tail as above.
 const committedCaptureRel = "../../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -722,10 +545,9 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	}
 	// The tail events are on the rebuilt log, after the ask that parked it.
 	// event-802 re-record (2026-09-17): with Tokens now attached, the token
-	// creatures the burst's lethal-damage sweep hits are real permanents,
-	// so their own SBA cleanup ("ceased to exist") now lands after the
-	// sweep — the pre-fix, token-starved capture never had real tokens to
-	// clean up, so its tail ended one step earlier (the step change).
+	// creatures the burst's lethal-damage sweep hits are real permanents, so
+	// their own SBA cleanup ("ceased to exist") lands after the sweep, one
+	// step past the sweep itself.
 	last := l.Events[len(l.Events)-1]
 	if last.Kind != events.MoveZone || last.Text != "ceased to exist" {
 		t.Fatalf("capture ends with %+v, want a token's post-sweep cleanup", last)

@@ -76,7 +76,7 @@ func countMostCardName(h Host, c *Ctx, spec string) (int32, bool) {
 // ScryBottom is the completed Scry's own magnitude: events.Scry.Amount, the
 // count the player actually chose to put on the bottom (rules captures it
 // into TriggerAmount, the same fire-time binding every other head reads).
-// The Temporal Anchor's `SVar:X:TriggerCount$ScryBottom` sizes its bottom
+// The Temporal Anchor's `TriggerCount$ScryBottom` sizes its bottom
 // exile through it. ScryNum -- the number LOOKED at -- remains unmodelled:
 // this build raises no scry marker carrying that number.
 //
@@ -513,7 +513,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		}
 		return c.Remembered, true
 	case refTargetsTriggeredSpellAbility:
-		// The activation arm (abcopy1): the fire-time TriggerAbility role is
+		// The activation arm: the fire-time TriggerAbility role is
 		// the exact referent (Remembered names the source permanent); the
 		// spell-cast arm and hand-built contexts keep the Remembered entry.
 		if c.TriggerAbility != 0 {
@@ -643,7 +643,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		return paidCostTargets(c, ref), true
 	case refTargetsExiledCards:
 		// Forge's `ExiledCards` count referent (Corpseweft's
-		// `SVar:Y:ExiledCards$Amount/Twice` -- the only corpus carrier at this
+		// `ExiledCards$Amount/Twice` -- the only corpus carrier at this
 		// pin): the cards THIS cast or activation exiled as a cost, i.e. the
 		// SAME paid list the `Exiled` spelling immediately above reads. It is
 		// claimed here explicitly because the default fallback below cannot

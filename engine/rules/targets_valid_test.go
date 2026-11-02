@@ -27,7 +27,7 @@ import (
 //   - the synthetic IsSingleTarget$ probe: a one-target spell fires, a
 //     two-target spell does not.
 //
-// Feather's resolution half (the ChosenSize copy ask) is a separate ticket;
+// Feather's resolution half (the ChosenSize copy ask) is not under test;
 // its ChooseCard here degrades to an empty choice, so the drain answers an
 // empty KChoose and must settle.
 
@@ -293,9 +293,9 @@ func TestIsSingleTargetParamOneTargetFiresTwoDoesNot(t *testing.T) {
 	}
 }
 
-// ---------- The activation arm (round 3) ----------
+// ---------- The activation arm ----------
 //
-// The round-2 diff wired trigmatch.TargetShapeMatches into trigmatch.abilityCastMatches, but the
+// trigmatch.TargetShapeMatches is wired into trigmatch.abilityCastMatches, but the
 // match there is evaluated synchronously inside payCast's AbilityPush emit —
 // BEFORE handleTarget's ability branch records the chosen targets onto the
 // minted object, and against ev.Obj (the SOURCE permanent, whose own Targets
@@ -377,7 +377,7 @@ func activateTargetsValid(t *testing.T, e *Engine, src state.ObjID, ability int,
 }
 
 // TestAbilityCastTargetsValidFiresOnCreatureTargetingActivation: the
-// round-2 probe, now green — an AbilityCast trigger with TargetsValid$
+// an AbilityCast trigger with TargetsValid$
 // Creature FIRES for an activation whose target is a creature (the watcher's
 // own pump targeting itself), and the fired trigger's draw resolves.
 func TestAbilityCastTargetsValidFiresOnCreatureTargetingActivation(t *testing.T) {
@@ -453,7 +453,7 @@ func TestAbilityCastIsSingleTargetOnActivation(t *testing.T) {
 }
 
 // TestSpellAbilityCastSpellArmValidCardRead: the spell arm's ValidCard$ is
-// read (round-2 MINOR): a SpellAbilityCast trigger restricted to Instant
+// read: a SpellAbilityCast trigger restricted to Instant
 // spells stays silent for a creature cast and fires for an instant cast.
 func TestSpellAbilityCastSpellArmValidCardRead(t *testing.T) {
 	t.Parallel()

@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Round-2 pins for the ChangeZone OriginAlternative$ work (review findings).
+// Pins for the ChangeZone OriginAlternative$ parameter.
 
 // TestChangeZoneCompoundOriginWithDefinedMovesTheChosenCard is the Eladamri,
 // Korvecdal guard: a compound `Origin$` WITHOUT an OriginAlternative$ keeps

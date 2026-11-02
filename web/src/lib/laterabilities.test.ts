@@ -14,7 +14,7 @@ import {
 } from './cardoptions';
 import OptionPicker from '../components/OptionPicker.svelte';
 
-// fb-20260923T033148Z-877b8f8f: "mount doom, phyrexian tower -- can only play
+// "mount doom, phyrexian tower -- can only play
 // tap for mana, not the other abilities". The engine offers a mana-costed
 // ability only once its mana floats, so an untapped Mount Doom's live option
 // list was its one mana activation; a one-option card acts directly, so the
@@ -52,18 +52,12 @@ describe('laterByObj', () => {
     const d = priority([doomMana, opt({ index: 8, kind: 'pass' })]);
     const m = laterByObj(d, [doomDamage, handCast, otherAbility], [5]);
     expect(m?.get(DOOM)).toEqual([doomDamage]);
-    // fb-20260928T230741Z re-oracled this assertion. The old lines —
-    //   expect(m?.has(5)).toBe(false);
-    //   expect(m?.has(30)).toBe(false);
-    //   // A hand cast and an ability on a card with no live option stay
-    //   // where they were (the auto-pass stop note): no new badge appears
-    //   // anywhere.
-    // drew the no-live-option boundary for Mount Doom, whose mana tap IS a
-    // live option. The reporter's request — "equipment should have a 'cast
+    // The no-live-option boundary is drawn for Mount Doom, whose mana tap IS a
+    // live option, not for every card. A request — "equipment should have a 'cast
     // button', e.g. equip, in both manual and auto mana mode" — is exactly
-    // the refused shape: at a mana-taps-only window an Equipment has NO live
-    // option, so the old guard rendered no affordance at all and the Equip
-    // was discoverable only by floating mana first and looking again. The
+    // the shape it would refuse: at a mana-taps-only window an Equipment has NO
+    // live option, so a guard there renders no affordance at all and the Equip
+    // is discoverable only by floating mana first and looking again. The
     // request supersedes the boundary for LATER_KINDS entries: Grim
     // Monolith's untap (obj 30, no live option here) is now indexed and its
     // tile gets the badge with a disabled row. Hand casts are separately
@@ -135,7 +129,7 @@ describe('OptionPicker with later abilities', () => {
   });
 });
 
-// aph-web-manual-only-plays: rules.PotentialActions now also projects the
+// rules.PotentialActions also projects the
 // float-gated special actions and max-speed granted abilities. Avishkar
 // Raceway is the Mount Doom shape again: its live option is the mana tap, and
 // its max-speed "{3}, {T}, Discard a card: Draw a card." (kind "granted") is
@@ -164,17 +158,9 @@ describe('laterByObj with the widened projection kinds', () => {
       { kind: 'specialize', obj: RACEWAY, mode: '1', label: 'Specialize as White Form ({1})' },
     ];
     expect(laterByObj(priority([racewayMana]), others)?.get(RACEWAY)).toEqual(others);
-    // fb-20260928T230741Z re-oracled this assertion too. The old lines —
-    //   const elsewhere = others.map((a) => ({ ...a, obj: 62 }));
-    //   expect(laterByObj(priority([racewayMana]), elsewhere)).toBeUndefined();
-    //   // On an object with no live option (a face-down morph, a locked
-    //   // Room) nothing is indexed: no new badge appears on a tile that had
-    //   // none.
-    // pinned the same no-live-option boundary; the reporter's request
-    // supersedes it for LATER_KINDS potentials: a face-down morph's
-    // turn_face_up and a locked Room's unlock now DO get the count badge on
-    // their tile, opening to a disabled row that says why — the affordance
-    // the old rule hid entirely in both mana modes.
+    // LATER_KINDS potentials get the count badge even with no live option: a
+    // face-down morph's turn_face_up and a locked Room's unlock get it on their
+    // tile, opening to a disabled row that says why, in both mana modes.
     const elsewhere = others.map((a) => ({ ...a, obj: 62 }));
     expect(laterByObj(priority([racewayMana]), elsewhere)?.get(62)).toEqual(elsewhere);
   });
@@ -200,7 +186,7 @@ describe('laterByObj with the widened projection kinds', () => {
   });
 });
 
-// fb-20260928T230741Z — the reporter's captured state (demo, /t/g6, seat 0,
+// The reporter's captured state (demo, /t/g6, seat 0,
 // mono-white-equipment vs death-n-taxes, turn 10 main2): four Plains taps,
 // pass and concede are the ONLY live options, and the three Equips exist
 // only in PlayerView.potential_actions. Two of the three Equipment are
@@ -275,7 +261,7 @@ describe('an Equipment whose only offered action is a float-gated Equip', () => 
   });
 });
 
-// fb-20260924T180813Z-bbe4fd8f: Phyrexian Tower's stage-1 wheel is now
+// Phyrexian Tower's stage-1 wheel is
 // labelled "Add C" / "Sacrifice 1 creature: Add BB" by the engine; the
 // generic first-word face read "Add" on both buttons.
 describe('wheelFace for mana options', () => {

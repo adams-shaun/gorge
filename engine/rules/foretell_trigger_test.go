@@ -1,4 +1,4 @@
-// Mode$ Foretell (task agent-20260923T032009Z-3b9d3432): Dream Devourer's
+// Mode$ Foretell: Dream Devourer's
 // "Whenever you foretell a card, CARDNAME gets +2/+0 until end of turn"
 // (CR 702.126b), the corpus's sole carrier of the mode. Two provenance
 // shapes must fire it -- the {2} Foretell special action's pay-time

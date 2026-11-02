@@ -1,11 +1,10 @@
-import type { Decision, Option, PaymentAction, PaymentPlan, PaymentSelection } from '../../protocol';
+import type { Decision, Option, PaymentAction, PaymentPlan, PaymentSelection, View } from '../../protocol';
 import { isPlainManualTap } from '../manualmana';
 import { isActionKind } from '../autopilot';
 
 /**
  * decision.ts holds the pure, rules-ignorant decision helpers the seat's
- * answer surfaces share (moved out of lib/seatpanel.svelte.ts by the prompt
- * system work, UI rework sub-project 4). Nothing here posts or holds state.
+ * answer surfaces share. Nothing here posts or holds state.
  */
 
 /**
@@ -30,7 +29,6 @@ import { isActionKind } from '../autopilot';
  * so the player never saw the spell become playable. An earlier version of
  * this comment claimed to mirror `actionable`'s kind test while inlining a
  * test that did not — now both call the one shared predicate.
- * (Moved here from actpass.ts, which prio3 deleted with the per-table keys.)
  * A planned cast posts no choices at all; its arming twin is actedPayment.
  */
 export function actedOption(d: Decision, choices: number[]): boolean {
@@ -42,8 +40,8 @@ export function actedOption(d: Decision, choices: number[]): boolean {
 }
 
 /**
- * actedPayment is actedOption's twin for the payment selector (spec §8:
- * "Auto-pay changes which witness an explicit cast uses; it does not
+ * actedPayment is actedOption's twin for the payment selector
+ * ("Auto-pay changes which witness an explicit cast uses; it does not
  * otherwise change Auto/Manual policy"). A planned cast posts `choices: []`
  * plus a payment selection, so actedOption alone never saw it and a cast paid
  * by its plan never armed pass-after-acting while the same cast clicked
@@ -234,7 +232,7 @@ export function triggerOrderPermutation(d: Decision): boolean {
 /**
  * identicalTriggerOrder reports whether a trigger_order decision's EVERY
  * option describes the same trigger — the same source name and the same
- * text (prio6) — on top of the shared triggerOrderPermutation shape
+ * text — on top of the shared triggerOrderPermutation shape
  * contract.
  *
  * Caveat, measured rather than assumed away: the label carries no target
@@ -308,4 +306,35 @@ export function genericListOptions(
     && opt.index !== primary?.index
     && !paymentBases.has(opt.index)
     && !(hideManualMana && isPlainManualTap(opt)));
+}
+
+function nameOnBoard(v: View | null, obj: number | undefined): string | null {
+  if (!v || !obj) return null;
+  for (const s of v.stack) if (s.id === obj && s.name) return s.name;
+  for (const p of v.players) for (const z of [p.hand ?? [], p.battlefield, p.graveyard, p.exile, p.command]) for (const c of z) if (c.id === obj && c.name) return c.name;
+  return null;
+}
+
+function fillSelfName(text: string, name: string | null): string {
+  const self = name ?? 'This';
+  return text.replace(/\bCARDNAME\b/g, self).replace(/\bNICKNAME\b/g, name?.split(/[ ,]/)[0] ?? self);
+}
+
+/**
+ * namedDecision writes the card's name over Forge's CARDNAME and NICKNAME in
+ * what a player reads on a decision: a mode, a trigger to order, an ability.
+ * The name is the option's own card, then the name a trigger label leads with,
+ * then the decision's source.
+ */
+export function namedDecision(d: Decision, v: View | null): Decision {
+  if (!/\b(CARDNAME|NICKNAME)\b/.test([d.prompt, ...d.options.map((o) => o.label)].join(' '))) return d;
+  const source = nameOnBoard(v, d.source);
+  return {
+    ...d,
+    prompt: fillSelfName(d.prompt, source),
+    options: d.options.map((o) => {
+      const named = nameOnBoard(v, o.obj) ?? o.label.match(/^([^:]+): /)?.[1] ?? source;
+      return { ...o, label: fillSelfName(o.label, named) };
+    }),
+  };
 }

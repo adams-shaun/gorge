@@ -17,10 +17,9 @@ import (
 // Thoughtbound Phantasm; Whispering Snitch; Copy Catchers; Disinformation
 // Campaign; Blood Operative; and the five Secondary$ lines paired with a
 // T:Mode$ Scry sibling -- Matoya, Archon Elder; Planetarium of Wan Shi Tong
-// (its Remembered present-clause gate is covered by this ticket,
-// tla-trigger-present-defined-remembered); Prudent Fateseer; River Song; and
-// Val, Marooned Surveyor, whose scry/discover/seek halves are other tickets'
-// scopes).
+// (its Remembered present-clause gate is covered here); Prudent Fateseer; River
+// Song; and Val, Marooned Surveyor, whose scry/discover/seek halves are out of
+// scope).
 //
 // The harness is the investigate/token-replacement one: corpus cards by
 // name, a 2-seat engine, real activations driving real effSurveil bodies

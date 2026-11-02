@@ -192,6 +192,9 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		// a new object (CR 400.7) but its cast still counts.
 		e.ledgerCast = ledgerCastView{obj: ev.Obj, from: ev.From, by: ev.Player}
 		matchSpec, ok := e.castProvenanceAdmits(matchSpec, ev.Obj, you)
+		if ok {
+			matchSpec, ok = admitProvenanceAlternatives(matchSpec, "wasCastFromGraveyard", ev.From == state.ZGraveyard)
+		}
 		if !ok {
 			e.ledgerCast = ledgerCastView{}
 			continue

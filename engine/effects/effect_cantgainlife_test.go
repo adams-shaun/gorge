@@ -1,7 +1,7 @@
 package effects
 
 // effect_cantgainlife_test.go — the REGISTRATION half of the Effect-delivered
-// CR 614.1 CantGainLife static (task cantgainlife1): a DB$ Effect whose
+// CR 614.1 CantGainLife static: a DB$ Effect whose
 // StaticAbilities$ SVar carries `Mode$ CantGainLife | ValidPlayer$ ...` must
 // register a continuous restriction rules' lifeGainForbidden registered walk
 // reads, not fall to the unimplemented Note (Screaming Nemesis, Stigma Lasher,

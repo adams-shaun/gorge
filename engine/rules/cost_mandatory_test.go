@@ -7,12 +7,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The cost:Mandatory regression pin (task costmand1). A census agent reported
-// that ParseCost treated Forge's `Mandatory` cost head as an unknown token and
-// substituted one generic mana of it, so a `Cost$ Mandatory Sac<1/CARDNAME>`
-// trigger body (Colfenor's Urn's end-step ability) was priced {1} too high.
+// The cost:Mandatory regression pin: treating Forge's `Mandatory` cost head as an unknown token
+// substitutes one generic mana for it, so a `Cost$ Mandatory Sac<1/CARDNAME>`
+// trigger body (Colfenor's Urn's end-step ability) is priced {1} too high.
 //
-// The fix -- `engine/rules/mana.go`'s explicit `Mandatory` case, a skip-the-token
+// The rule -- `engine/rules/mana.go`'s explicit `Mandatory` case, a skip-the-token
 // `continue` -- is already in at this build's HEAD; this file is the direct
 // regression pin the report asked for, on the real corpus prevalence. It pins
 // three halves:
@@ -37,9 +36,7 @@ import (
 
 // TestMandatoryCostHeadParsesWithoutGeneric is the ParseCost half: every
 // Mandatory-prefixed cost shape measured in the corpus parses with a zero
-// generic component and no Unknown token. Before the fix the Mandatory head
-// fell through to ParseCost's unknown-token default, which substitutes one
-// generic mana.
+// generic component and no Unknown token.
 func TestMandatoryCostHeadParsesWithoutGeneric(t *testing.T) {
 	t.Parallel()
 	// Every head shape the corpus carries, one representative line each

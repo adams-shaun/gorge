@@ -104,7 +104,7 @@ func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
 		t.Fatalf("shape: first %s, second %s, last %s", frames[0].T, frames[1].T, frames[len(frames)-1].T)
 	}
 	snap := decode[protocol.Snapshot](t, frames[1])
-	// cli-20260922T225141Z-e771720d: the hosted game parks on the CR 103.1
+	// The hosted game parks on the CR 103.1
 	// toss-choice ask BEFORE turn 1 (the winner's answer begins it), so the
 	// initial snapshot legitimately carries no TurnChange yet — TurnStarts is
 	// empty here and fills as the match runs. The board itself (hands dealt,
@@ -160,13 +160,12 @@ func TestFocusSubscriptionStreamsSnapshotThenEventsInChainOrder(t *testing.T) {
 	}
 }
 
-// TestFocusSnapshotCarriesSeats is the ui16 wire proof: a focus subscriber
+// TestFocusSnapshotCarriesSeats is the wire proof: a focus subscriber
 // that joins mid-game receives only a snapshot frame (server/host/session.go's
 // Subscribe pushes a snapshot but never a match_start), and that snapshot
 // must carry the match's seat list. Without the seats on the snapshot the
 // table route has no way to learn who is where for the current match — it
-// never saw the match_start frame and tables.list may or may not be loaded
-// yet (ui15 measured both gaps).
+// never saw the match_start frame and tables.list may or may not be loaded yet.
 func TestFocusSnapshotCarriesSeats(t *testing.T) {
 	t.Parallel()
 	var s *Session
@@ -289,7 +288,7 @@ func TestOverviewSubscriptionCoalescesWidgets(t *testing.T) {
 		t.Fatalf("widget %+v", w)
 	}
 	if ws[0].ID != 0 {
-		t.Fatal("widgets must not consume frame ids (PL-5)")
+		t.Fatal("widgets must not consume frame ids")
 	}
 	if again := s.TakeWidgets(); len(again) != 0 {
 		t.Fatal("TakeWidgets did not clear")
@@ -309,10 +308,10 @@ func TestRingResumesExactlyTheMissedFrames(t *testing.T) {
 	o := testOptions(t)
 	// Ring is the resumable stream's CHANNEL capacity; the engine must never
 	// block on a client, so a burst longer than the channel between the
-	// drain hooks' Sleep calls overflows it. The game-long damage-provenance
-	// ticket (2026-09-23) emits one extra event per point of damage through
-	// the one emit tail, which densifies a damage-heavy four-seat burst
-	// enough that 64 occasionally lost the race (measured: 19855 frames,
+	// drain hooks' Sleep calls overflows it. Damage provenance emits one extra
+	// event per point of damage through the one emit tail, which densifies a
+	// damage-heavy four-seat burst enough that 64 occasionally lost the race
+	// (measured: 19855 frames,
 	// 1 dropped). 256 restores the headroom without changing what this test
 	// asserts (the last-10 frame resumption); it is not a behaviour pin.
 	o.Ring = 256

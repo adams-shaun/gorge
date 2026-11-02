@@ -77,8 +77,8 @@ func TestHumanCaretakerUsesConfiguredPolicy(t *testing.T) {
 	}
 }
 
-// TestThinkTimeoutCaretakerTurnsADecisionAndReplays is Task M2b-3's Step-1
-// end-to-end proof: a table whose seat 0 is a HumanSeat with a short
+// TestThinkTimeoutCaretakerTurnsADecisionAndReplays is the end-to-end proof: a
+// table whose seat 0 is a HumanSeat with a short
 // ThinkTimeout, never answered from outside, still advances (the caretaker
 // turns every parked slot-0 decision), and the resulting Log replays back to
 // the identical chain head (determinism, D3). The game cannot advance past a
@@ -230,9 +230,9 @@ func TestTimeoutTurnsDecisionThenNextDecisionAcceptsHuman(t *testing.T) {
 	}
 }
 
-// TestZeroThinkTimeoutMeansNoTimeout pins judgment point 3: a bare HumanSeat,
+// TestZeroThinkTimeoutMeansNoTimeout pins that a bare HumanSeat,
 // or a zero ThinkTimeout, never turns a decision on its own — it blocks until
-// a human submit or ctx cancellation, exactly as before M2b-3.
+// a human submit or ctx cancellation.
 func TestZeroThinkTimeoutMeansNoTimeout(t *testing.T) {
 	hs := NewHumanSeat() // not configured: timeout 0, no caretaker
 	d := decision.Decision{Seq: 7, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,

@@ -116,7 +116,7 @@ so a Commander table or one with more seats plays over Native, with no warning. 
 ### Mulligans and mana
 
 A play-vs-bot game takes its London mulligan allowance from the lobby (0 to 6; the panel defaults
-to 6). Startup tables use `-mulligans` (default 1; 0 skips the pregame round).
+to 6). Startup tables use `-mulligans` (default 7; 0 skips the pregame round).
 
 The server offers **automatic mana payment plans** to human seats (`-auto-mana`, on by default):
 CAST pays with a suggested plan, and the ACTIONS menu and the payment panel let you tap by hand
@@ -191,7 +191,7 @@ games.
 | `-pace D` | 50ms | sleep after every decision on bot tables; `0` is flat out, `1.5s` is watchable |
 | `-cooldown D` | 5s | pause between matches on a perpetual table |
 | `-perpetual` | true | start a new match when one ends |
-| `-mulligans N` | 1 | London mulligans per player before turn 1 |
+| `-mulligans N` | 7 | London mulligans per player before turn 1 |
 | `-decks dir` | `testkit/testutil/decks` | the deck JSON files every table and the lobby deal from |
 | `-max-on-demand-tables N` | 32 | how many play-vs-bot tables the process keeps; these are always two seats, one human and one bot |
 
@@ -277,6 +277,34 @@ Per-policy options use `-bot-opt <policy>.<key>=<value>`, the environment variab
 `GORGED_BOT_<POLICY>_<KEY>` or `-bot-config <policy>=<file.json>`, highest precedence first. Only `forge-heuristic`
 declares an option, `hold-instant`, a bool that defaults to `false`; `forge-heuristic-hold` is that policy
 with it armed.
+
+## A paired bot
+
+A server can let you ask a bot what it makes of the decision in front of you. It is off by default: start
+the server with `-paired-bot az-closed`, then turn on **Paired bot** at the top of the rail. Your browser
+remembers the switch, and it starts off.
+
+For each of your decisions the panel shows the bot's search, in the same table a [review](replays.md) uses:
+the candidates, how many simulations each got, the prior, the value (Q) and the value of the position, with
+the one it would pick marked. It only advises. Pressing a row does nothing, and you still answer.
+
+The bot sees what you can see: your deck list and everything you've seen in this game. It can't see your
+opponent's hand, the order of any library or your opponent's deck list. It guesses those cards from a set of
+decks, so when it's wrong about what your opponent holds, its advice is wrong too. It evaluates priority,
+attackers, blockers and single targets. For any other decision it says so, and it refuses a decision in the
+middle of an effect resolving.
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `-paired-bot NAME` | off | `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary |
+| `-paired-bot-sims N` | 100 | simulations per request (`az-closed`) |
+| `-paired-bot-decks DIR` | the server's constructed decks | the decks it guesses from (`az-closed`) |
+| `-paired-bot-searches N` | 2 | searches at once across the server; further requests wait |
+| `-paired-bot-shared` | off | also offer it on `t1` when it seats more than one human; every seat is told it's on |
+
+`az-closed` plays two-seat constructed games. A request costs a few tenths of a CPU second at 100
+simulations, more late in a long game. Nobody else at the table sees the advice, and it never reaches the game's log or a replay. It runs
+on the gorge engine only; a table on another engine refuses it.
 
 ## Persistence and restarts
 

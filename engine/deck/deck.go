@@ -55,12 +55,10 @@ type File struct {
 }
 
 // CommanderNames is the deck's commander designation as a list: the plural
-// Commanders field when the file carries one (a two-commander partner pair
-// or Doctor's companion pair), else the legacy singular Commander wrapped,
-// else nil for a
-// constructed deck. Every gate that used to read f.Commander == "" reads
-// len(f.CommanderNames()) == 0 instead, so a plural-only file is a commander
-// deck too.
+// Commanders field when the file carries one (a two-commander partner pair or
+// Doctor's companion pair), else the legacy singular Commander wrapped, else
+// nil for a constructed deck. Gates read len(f.CommanderNames()) == 0, not
+// f.Commander == "", so a plural-only file is a commander deck too.
 func (f File) CommanderNames() []string {
 	if len(f.Commanders) > 0 {
 		return f.Commanders
@@ -297,7 +295,7 @@ func (f File) CardNames() []string {
 }
 
 // ResolveSideboard resolves the optional sideboard list independently of the
-// main deck. A nil list remains nil, preserving the old genesis shape.
+// main deck. A nil list remains nil.
 func (f File) ResolveSideboard(r *cards.Registry) ([]*cards.Card, error) {
 	if len(f.Sideboard) == 0 {
 		return nil, nil

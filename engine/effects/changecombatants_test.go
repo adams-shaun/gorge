@@ -51,7 +51,7 @@ func attackingBoard(t *testing.T) (*fakeHost, *state.Object) {
 	return h, h.g.Obj(attacker.ID)
 }
 
-// TestChangeCombatantsNoHostKeepsTheDefender pins the R-9 stand-in: a host
+// TestChangeCombatantsNoHostKeepsTheDefender pins the no-host stand-in: a host
 // that cannot answer keeps the original defender, records exactly one Note,
 // and emits no CombatRetarget.
 func TestChangeCombatantsNoHostKeepsTheDefender(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Round 2 of cli-20260923T060218Z: a Static$ True body cannot carry the
+// A Static$ True body cannot carry the
 // OptionalDecider$ election. rules' checkEventDelayedTriggers resolves a
 // static-marked delayed registration INLINE at fire time -- never minting a
 // stack object -- so resolveTop's CR 603.5 optional gate cannot pose the
@@ -76,7 +76,7 @@ func TestOptionalStaticDelayedTriggerIsNotExecutedInline(t *testing.T) {
 
 	// Mint the registration directly: an EffectRepeat SpellCast registration
 	// whose body is Static$ True and whose Text carries the OptionalDecider$
-	// spec the round-1 encoding rides. Precondition: it decoded into the
+	// spec. Precondition: it decoded into the
 	// delayed set with the spec intact.
 	e.emit(events.Event{Kind: events.DelayedRegister, Obj: id, Player: 0,
 		Step: e.G.Step, Counter: "TrigStaticODBody",

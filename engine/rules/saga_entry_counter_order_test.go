@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Saga entry lore under a non-commuting AddCounter pair (cli-20260924T034908Z).
+// Saga entry lore under a non-commuting AddCounter pair.
 // A Saga enters with its first lore counter (CR 702.151a), and CR 614.12
 // requires the CR 616.1 order choice over competing AddCounter replacements to
 // be answered BEFORE the permanent is on the battlefield with that counter:

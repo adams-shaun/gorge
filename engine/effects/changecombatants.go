@@ -58,7 +58,7 @@ func init() {
 // capricopian, TargetedPlayer
 // portal_manipulator — needs parent-target/trigger-referent plumbing that
 // does not exist, and portal_manipulator's ask rides a DEEPER sub the
-// mvts1 pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
+// generic pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
 // tahngarth_first_mate — needs planeswalker defenders, which do not exist).
 // Optional$ True (Windshaper Planetar) is read as mandatory with one Note
 // naming the stand-in: a per-attacker may-reselect election is not built.
@@ -134,7 +134,7 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if len(candidates) == 0 {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
-				Text: "no legal defender to reselect " + objName(g, o.ID) + " against"})
+				Text: "no legal defender to reselect " + publicObjName(g, o.ID) + " against"})
 			continue
 		}
 		if len(candidates) == 1 && candidates[0] == o.Attacking {
@@ -145,7 +145,7 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Source: c.Source, Min: 1, Max: 1,
 			ResumeKind: "choice", ResumeSA: sa, ResumeTarget: idx,
-			Prompt: "Choose which player " + objName(g, o.ID) + " attacks"}
+			Prompt: "Choose which player " + publicObjName(g, o.ID) + " attacks"}
 		for _, q := range candidates {
 			opt := decision.Option{Index: len(d.Options), Kind: "player", Player: q}
 			if int(q) < len(g.Players) {
@@ -168,6 +168,6 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 		// No answer served: keep the original defender and record one Note,
 		// never guessing a defender.
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
-			Text: "no engine host: " + objName(g, o.ID) + " keeps attacking its current defender"})
+			Text: "no engine host: " + publicObjName(g, o.ID) + " keeps attacking its current defender"})
 	}
 }

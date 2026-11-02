@@ -4,6 +4,7 @@
   import { discardCard } from '../lib/discard';
   import { oracle, type OracleCard } from '../lib/oracle';
   import CardImage from './CardImage.svelte';
+  import { promptWords } from '../lib/prompts/words';
 
   /**
    * DiscardModal is the discard-pick ask's "Open the card view" popup:
@@ -196,7 +197,7 @@
       bind:this={dialog}
     >
       <header>
-        <h2 id="discard-modal-title">{decision.prompt}</h2>
+        <h2 id="discard-modal-title">{promptWords(decision.prompt)}</h2>
         <button type="button" class="close" aria-label="Close the card view" onclick={onClose}>×</button>
       </header>
       <div class="body" data-discard-body>

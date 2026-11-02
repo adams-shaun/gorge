@@ -14,11 +14,10 @@ func init() {
 // stack object was cast or activated with. The two corpus carriers:
 //
 //	Unbound Flourishing "Whenever you cast a permanent spell with a mana cost
-//	that contains {X}, double the value of X."
-//	  SVar:TrigDouble:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$
-//	  TriggeredSpellAbility>Count$xPaid/Twice
-//	Glava, Five-Advents Mage "...you may have the value of X become 5."
-//	  SVar:TrigSetX:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ 5
+//	that contains {X}, double the value of X." Its Value$ is a count read on the
+//	triggering spell.
+//	Glava, Five-Advents Mage "...you may have the value of X become 5." Its
+//	Value$ is the literal.
 //
 // The trigger's Remembered carries the cast/activation stack object
 // (TriggeredSpellAbility), whose pay-time CastInfo already set its X; the

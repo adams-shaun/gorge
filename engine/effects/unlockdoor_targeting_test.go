@@ -18,7 +18,7 @@ import (
 type tapeHost struct {
 	*fakeHost
 	// choiceIdx is the option index TapeAnswer returns for the lock/unlock
-	// choice; a negative value serves no answer (the R-9 stand-in applies).
+	// choice; a negative value serves no answer (the no-host stand-in applies).
 	choiceIdx int
 	// served records every lock/unlock decision the seam was offered.
 	served []*decision.Decision
@@ -42,7 +42,7 @@ func newTapeHost(t *testing.T, choiceIdx int) *tapeHost {
 	return &tapeHost{fakeHost: newHost(t, 2), choiceIdx: choiceIdx}
 }
 
-// TestUnlockDoorMinZeroElectedNoTargetDoesNothing pins the MAJOR-1 regression:
+// TestUnlockDoorMinZeroElectedNoTargetDoesNothing pins a regression:
 // Ghostly Keybearer is `Mode$ Unlock | ValidTgts$ Room.YouCtrl | TargetMin$ 0
 // | TargetMax$ 1`. When the announcement ask OFFERED that targeting and the
 // chooser elected ZERO targets, Ctx.Targets is empty but Ctx.TargetsOffered is
@@ -144,7 +144,7 @@ func TestUnlockDoorLockOrUnlockUnlockAnswerUnlocks(t *testing.T) {
 // must be posed. With no answer served, the deterministic stand-in is the
 // unlock half, which finds no locked door and changes nothing.
 func TestUnlockDoorLockOrUnlockOnFullyUnlockedAsksBeforeActing(t *testing.T) {
-	h := newTapeHost(t, -1) // no answer -> R-9 stand-in (unlock)
+	h := newTapeHost(t, -1) // no answer -> no-host stand-in (unlock)
 	room := testRoomDoorCard(t, "Full Choice Room", "Full Choice Chamber")
 	id := h.g.AddObject(room, 0).ID
 	o := h.g.Obj(id)

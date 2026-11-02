@@ -1,6 +1,6 @@
 package rules
 
-// aph-last-resort-plans (spec §3.2, §4, §5, §6 as amended 2026-09-26): a plan
+// A payment plan
 // may use a last-resort source only when no plan from normal sources exists;
 // every such step discloses its consequence in the witness; the plan ranks by
 // the Arena-calibrated key-1 weights; the planner never offers a plan whose

@@ -204,7 +204,7 @@ func TestManifestAmountReadsDeclaredSVar(t *testing.T) {
 // TestManifestFamilyCorpusShapesAreSupported runs every Manifest,
 // ManifestDread and Cloak SA in the corpus through the shared shape check the
 // primitives call: the only loud shapes left have no carrier. It also pins
-// that the sweep sees the carriers the ticket closed.
+// that the sweep sees the carriers.
 func TestManifestFamilyCorpusShapesAreSupported(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

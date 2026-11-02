@@ -12,12 +12,12 @@ package rules
 //   - Mossbridge Troll: an activated AB with tapXType<Any/
 //     Creature.Other+withTotalPowerGE10> -- the Any form binds no X, and the
 //     withTotalPowerGE10 group predicate is a SET-level floor the tap-cost
-//     machinery enforces (Decision.MinSum over the tapped set's total
-//     power; crew_test.go pins the end-to-end shape), so the ability is
-//     offered only when the board's other untapped creatures can reach
-//     total power 10 (pinned below as the no-free-pump guard; pre-fix the
-//     token degraded to one generic and pumped for a floating mana, and
-//     before the floor was modelled the unknown predicate failed closed).
+//     machinery enforces (Decision.MinSum over the tapped set's total power;
+//     crew_test.go pins the end-to-end shape), so the ability is offered only
+//     when the board's other untapped creatures can reach total power 10
+//     (pinned below as the no-free-pump guard; a token degraded to one
+//     generic would pump for a floating mana, and before the floor was
+//     modelled the unknown predicate failed closed).
 //   - Explosive Singularity: a RaiseCost static with tapXType<Tapped/
 //     Creature>, whose count rides an announced SVar variable -- different
 //     machinery (the RaiseCost Cost$ grammar), out of scope here.

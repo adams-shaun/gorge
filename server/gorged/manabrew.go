@@ -46,7 +46,7 @@ func (c *config) applyManaBrew() error {
 }
 
 // manabrewThinkTimeout is the host.Options.ThinkTimeout override
-// -manabrew-think requests (scoping spec §5.4, Q5), scoped to when the
+// -manabrew-think requests, scoped to when the
 // adapter is actually on. With -manabrew off this returns 0 -- the zero
 // value host.Options.ThinkTimeout already carries today, since gorged sets
 // no other think timeout -- so an operator who sets -manabrew-think without

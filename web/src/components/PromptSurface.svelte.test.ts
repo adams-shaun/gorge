@@ -96,7 +96,7 @@ describe('ArrangeModal (via the seat panel)', () => {
     await page.locator('[data-arrange-open]').click();
     const keep = page.locator('[data-arrange-keep]');
     expect(await keep.isVisible()).toBe(true);
-    // The MINOR fix's initial state, in a real browser: a fresh pure reorder
+    // The initial state, in a real browser: a fresh pure reorder
     // opens with EVERY card in the keep row, in offered order, and no pool
     // row — it is a reorder surface from the first paint, not a picking one.
     expect(await keep.locator('[data-arrange-keep-card]').count()).toBe(5);
@@ -206,7 +206,7 @@ describe('ArrangeModal (via the seat panel)', () => {
     // apart in lib/images) finishing their layout-affecting resolution.
     await page.waitForFunction(() => document.querySelectorAll('[data-arrange-modal]').length === 0, null, { timeout: 10_000 });
     await page.waitForTimeout(1500);
-    expect(await page.locator('[data-answer-surface] [data-prompt]').textContent()).toContain('Rearrange the top 3 card(s)');
+    expect(await page.locator('[data-answer-surface] [data-prompt]').textContent()).toContain('Rearrange the top 3 cards');
 
     // Reopening is the NEW ask, fresh: three decision-B cards in offered
     // order — none of decision A's edits — and the posted intent is B's.
@@ -224,13 +224,13 @@ describe('ArrangeModal (via the seat panel)', () => {
 });
 
 /**
- * The arrange surfaces' card detail (fb-20260914T063020Z): the strip's cards
+ * The arrange surfaces' card detail: the strip's cards
  * get the same hover/focus CardDetail inspector every other card surface
  * has, and the modal's preview shows the printed description beside the art.
  * Browser tests, because these are asks about what a player can SEE and do
  * with a real pointer and keyboard — the SSR harness cannot hover or focus.
  */
-describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => {
+describe('the arrange strip hover inspector', () => {
   /** Give the portalled inspector the same catalog and resolved art plate as the demo. */
   async function injectCatalog(page: Page): Promise<void> {
     await page.route('**/PromptSurface.fixture.html*', async (route) => {
@@ -415,7 +415,7 @@ describe('the arrange strip hover inspector (fb-20260914T063020Z Job 1)', () => 
   });
 });
 
-describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
+describe('the arrange modal preview', () => {
   it('without a catalog, hovering a card shows the large art and its name — and no oracle block (the designed degradation)', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=arrange`);
@@ -506,7 +506,7 @@ describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
 });
 
 /**
- * The discard-pick card-face row (fb-20260914T120705Z): the Thoughtseize /
+ * The discard-pick card-face row: the Thoughtseize /
  * Mind Rot discard ask — a `modes` decision whose options are "discard" card
  * picks — renders real card faces (synthesized from {obj, label}, exactly as
  * the arrange strip does) with the shared CardHover → CardDetail inspector,
@@ -514,7 +514,7 @@ describe('the arrange modal preview (fb-20260914T063020Z Job 2)', () => {
  * are asks about what a player SEES (faces, hover inspector) and does (the
  * posting path must be the ordinary one, byte-identical to the text list).
  */
-describe('the discard-pick card-face row (fb-20260914T120705Z)', () => {
+describe('the discard-pick card-face row', () => {
   it('a Thoughtseize-shaped ask renders card faces with the hover inspector, and a click answers it', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/PromptSurface.fixture.html?case=discard1`);
@@ -640,7 +640,7 @@ describe('PendingTray empty-answer safety net', () => {
     const stuck = page.locator('[data-stuck]');
     await stuck.waitFor();
     expect(await stuck.isVisible()).toBe(true);
-    expect(await stuck.textContent()).toContain('Search a library: choose up to 0 card(s)');
+    expect(await stuck.textContent()).toContain('Search a library: choose up to 0 cards');
     // "Nothing waiting" is gone: the seat is NOT idle, it is blocked on a
     // decision the tray now names.
     expect(await page.locator('.empty').count()).toBe(0);
@@ -661,7 +661,7 @@ describe('PendingTray empty-answer safety net', () => {
     await page.goto(tray('stuck-unanswerable'));
     const stuck = page.locator('[data-stuck]');
     await stuck.waitFor();
-    expect(await stuck.textContent()).toContain('Search a library: choose 1 card(s)');
+    expect(await stuck.textContent()).toContain('Search a library: choose 1 card');
     // There is no minimum legal answer to submit (Min 1 over nothing), so the
     // tray names the decision and says so instead of offering a control that
     // could never succeed.

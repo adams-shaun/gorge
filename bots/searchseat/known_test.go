@@ -1,6 +1,6 @@
 package searchseat_test
 
-// The feed-owned known-card tracker (BP-04): the projection a seat reads back
+// The feed-owned known-card tracker: the projection a seat reads back
 // must equal the whole-history fold at every decision the driver hands the
 // seat its own feed, which is what lets azmcts and sbsearch stop keeping
 // private copies of the tracker.

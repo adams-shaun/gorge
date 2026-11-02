@@ -78,7 +78,7 @@ that pool.
 
 ## Decision
 
-Per the ticket's own acceptance rule -- "if it cannot beat the gate, the note
+Per this work's acceptance rule -- "if it cannot beat the gate, the note
 says so and the code is deleted or left opt-in with the number written down"
 -- the code stays **opt-in, default path untouched**, and this note is the
 number. It is registered as the experimental `forge-heuristic` policy so it
@@ -106,7 +106,7 @@ arm added to its policies map and gorge replaced by a local checkout:
 Then 400 games of `bot` against `targets`, and of `bot` against `bot` as the
 bias control, both at seed 1000000.
 
-## Pre-existing, not from this ticket
+## Pre-existing, not from this change
 
 A `-pairs all` sweep aborts 1 game of ~87,000 with
 `resolve: tape kernel divergence: the ask-free predicate missed an ask:

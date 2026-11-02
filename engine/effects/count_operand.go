@@ -244,7 +244,7 @@ func countOpHolds(op string, threshold, got int32) bool {
 
 // evalCompare resolves a "Compare <Name> <OP><threshold>.<ifTrue>.<ifFalse>"
 // body -- the spell-mastery / lieutenant form Forge encodes as
-// `SVar:X:Count$Compare Y GE2.3.2` (Nissa's Pilgrimage: 2 basic Forests, or 3
+// `Count$Compare Y GE2.3.2` (Nissa's Pilgrimage: 2 basic Forests, or 3
 // with two or more instants/sorceries in the graveyard). <Name> resolves the
 // compared value: an SVar body evaluated recursively (Y's
 // `Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn`), else the token itself
@@ -511,7 +511,7 @@ func applyCountOp(n int32, op string) int32 {
 		//   DivideEvenly.N / Divide.N -- floor(n/N), Forge's default division
 		//
 		// Legate Lanius, Caesar's Ace is the DivideEvenlyUp carrier:
-		// `SVar:X:Count$Valid Creature.RememberedPlayerCtrl/DivideEvenlyUp.10`
+		// `/DivideEvenlyUp.10`
 		// ("each opponent sacrifices a tenth of the creatures they control,
 		// rounded up"). Before this arm Every DivideEvenlyUp spelling fell
 		// through applyCountOp untouched, so the op returned the WHOLE

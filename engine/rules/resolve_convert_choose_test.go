@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 2a(choose): the dual-run tests for the choose family's converted
+// The dual-run tests for the choose family's converted
 // ask sites (engine/effects/choose.go, choose_control.go, choose_direction.go,
 // changetext.go, changecombatants.go, life.go, attach.go, clone.go, copy.go,
 // copypermanent.go, cipher.go). Each scenario resolves on legacy and on the

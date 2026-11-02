@@ -106,7 +106,7 @@ func TestTriggerCountResultEmptyWithoutARoll(t *testing.T) {
 
 // TestTriggerCountMaxResultReadsTheBatchHighRoll pins the second roll head,
 // TriggerCountMax$Result, against the real corpus body Farideh, Devil's
-// Chosen reads: SVar:DiceResult:TriggerCountMax$Result, gated
+// Chosen reads, gated
 // ConditionSVarCompare$ GE10 ("if any of those results was 10 or higher").
 // The batch's highest result is captured by rules into Ctx.TriggerResultMax
 // when the RolledDieOnce trigger fires, so the head answers the MAX across a
@@ -133,7 +133,7 @@ func TestTriggerCountMaxResultReadsTheBatchHighRoll(t *testing.T) {
 
 // TestVitoTriggerCountLifeAmount pins the second head
 // (LifeAmount) with the exact SVar body of a real corpus card: Vito, Thorn of
-// the Dusk Rose declares `SVar:X:TriggerCount$LifeAmount` and its trigger
+// the Dusk Rose declares `TriggerCount$LifeAmount` and its trigger
 // loses the target opponent `that much` life (DB$ LoseLife | LifeAmount$ X).
 // The value has to be the life the triggering event changed by, carried in
 // TriggerAmount, and it must be N -- not the zero the unmodelled prefix used

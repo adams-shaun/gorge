@@ -19,8 +19,8 @@ const rederiveEnv = "FEEDBACK_REDERIVE"
 
 // TestRederiveFeedbackFixtures re-derives a real player capture's log.json
 // after an engine change that moves WHEN a decision is posed but not WHICH
-// decisions are posed or how they are answered (precedent 8a3613cea,
-// 6960ea1e4). The recorded intents are replayed in order through this tree's
+// decisions are posed or how they are answered. The recorded intents are
+// replayed in order through this tree's
 // engine (the genesis replay.walk uses); each keeps its recorded Player,
 // Choices and payment fields and takes the pending decision's Seq, which is
 // all a cast-order reorder changes. It refuses (fails) when an intent's

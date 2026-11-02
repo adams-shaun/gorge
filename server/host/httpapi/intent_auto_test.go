@@ -1,6 +1,6 @@
 package httpapi
 
-// HD-2's ?auto=1 query form: the intent route forwards the client-autopilot
+// The ?auto=1 query form: the intent route forwards the client-autopilot
 // flag into Registry.SubmitIntentFrom, which records it as bit 1
 // (host.provAuto, value 2) of the match's provenance ledger. The caretaker
 // bit (bit 0, value 1) must stay clear in this harness — its ThinkTimeout is

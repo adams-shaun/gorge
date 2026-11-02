@@ -51,8 +51,7 @@ func emrFace(t *testing.T, name string) *cards.Face {
 	return nil
 }
 
-// emrRegister resolves the card's DBEffect with remembered as the captured set
-// -- the recipe in the ticket's Workspace facts.
+// emrRegister resolves the card's DBEffect with remembered as the captured set.
 func emrRegister(e *Engine, f *cards.Face, src state.ObjID, remembered ...state.ObjID) {
 	var rem []state.Target
 	for _, id := range remembered {

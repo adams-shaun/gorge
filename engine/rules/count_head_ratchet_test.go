@@ -49,12 +49,11 @@ var knownUnmodelledCountHeads = map[string][]string{
 	// NOT an unmodelled head: Count$ChosenNumber IS implemented
 	// (state.ContinuousEffect.ChosenNumber, wildgrowth1) — its (0, false)
 	// verdict here is the documented UNBOUND-context read, because this
-	// ratchet's Ctx binds nothing. Since fuzz-cov3 an unbound read falls back
+	// ratchet's Ctx binds nothing. An unbound read falls back
 	// to the SOURCE object's logged ChosenNumber (engine/effects/choose.go's Choose
 	// fold), so the head resolves whenever a source exists; this ratchet's
 	// Ctx names none (Source 0), which keeps the verdict unresolvable here.
-	// Vault 112: Sadistic Simulation (Science! / pip precon import, task
-	// agent-20260922T231317Z-842a3f1e) lands in the same unbound-context class.
+	// Vault 112: Sadistic Simulation lands in the same unbound-context class.
 	"Count$ChosenNumber": {"Nahiri's Lithoforming", "Vault 112: Sadistic Simulation"},
 }
 

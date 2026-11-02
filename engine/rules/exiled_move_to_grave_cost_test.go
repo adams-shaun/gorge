@@ -9,10 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The ExiledMoveToGrave<N/Spec> cost ticket. Forge's token moves N cards
+// The ExiledMoveToGrave<N/Spec> cost. Forge's token moves N cards
 // matching Spec out of EXILE into their OWNER's graveyard as a cost payment
 // (the Eldrazi processor family and Shelob, Dread Weaver's {2}{B} ability).
-// Before this ticket the token hit ParseCost's unrecognised-symbol fallback:
+// Unmodelled, the token hits ParseCost's unrecognised-symbol fallback:
 // a phantom {1} rode the price (a player with exactly {2}{B} could not
 // activate Shelob) and the cost's governing action was silently dropped
 // while the ability still resolved -- a fail-open defect. The fix parses the
@@ -117,10 +117,10 @@ func inOwnerGraveyard(e *Engine, id state.ObjID) bool {
 
 // TestShelobExiledMoveToGravePaysExactlyAndMovesTheCard pins the Shelob,
 // Dread Weaver end-to-end shape on the real compiled face: with a pool of
-// EXACTLY {2}{B}'s worth of mana (three pips -- one fewer than the phantom
-// {3}{B} the pre-fix parse priced) the ability is offered, the cost pick is
-// a real choice over the exile zone, and paying moves the exiled card to its
-// OWNER's graveyard while the counters land and the SubAbility$ draw runs.
+// EXACTLY {2}{B}'s worth of mana (three pips) the ability is offered, the
+// cost pick is a real choice over the exile zone, and paying moves the exiled
+// card to its OWNER's graveyard while the counters land and the SubAbility$
+// draw runs.
 func TestShelobExiledMoveToGravePaysExactlyAndMovesTheCard(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

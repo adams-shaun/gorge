@@ -524,7 +524,7 @@ func describe(g *state.Game, ev events.Event) string {
 			// has for hidden-zone ids in a Note. Rule 3 of view.RedactEvents
 			// passes a non-Secret Note through unchanged, so
 			// these ids are public by contract on every viewer's line.
-			return player(g, ev.Player) + " reveals " + objs(g, ev.IDs)
+			return player(g, ev.Player) + " reveals " + shownObjs(g, ev.IDs)
 		}
 		if ev.Secret && ev.Text == "" && len(ev.IDs) > 0 {
 			// A private look recorded by effects' emitLook: only the looker's
@@ -755,7 +755,7 @@ func describe(g *state.Game, ev events.Event) string {
 		// reads as a forget, not the DelayedRemove line above it.
 		return obj(g, ev.Obj) + " is forgotten by a delayed trigger"
 	case events.DelayedRegister:
-		// A delayed trigger being registered (CR 603.7, dt1): Obj is the
+		// A delayed trigger being registered (CR 603.7): Obj is the
 		// source that created it, Text the phase it waits for. The line says
 		// only that the promise was made -- what it will DO is the Execute$
 		// sub-ability, which is named by the DelayedPush line below when it
@@ -780,7 +780,11 @@ func describe(g *state.Game, ev events.Event) string {
 	case events.DelayedPush:
 		// The registered phase arrived and the delayed ability went on the
 		// stack. Obj is the minted stack object; its source name is what a
-		// reader recognises, so prefer it and fall back to the minted id.
+		// reader recognises, so prefer it and fall back to the minted id. The
+		// monarch's draw has no source; its Obj is any card at all (CR 724.2a).
+		if ev.Counter == "__monarch_draw" {
+			return player(g, ev.Player) + "'s monarch draw triggers"
+		}
 		return obj(g, ev.Obj) + " triggers (delayed)"
 	case events.KeywordTriggerPush:
 		return obj(g, ev.Obj) + " triggers (" + strings.TrimPrefix(ev.Counter, "__kw") + ")"
@@ -868,11 +872,17 @@ func describeTemplate(g *state.Game, ev events.Event, tmpl string) string {
 }
 
 // obj names an object as "Name #id", "<Name>'s ability #id" for a faceless
-// stack object whose source card is resolvable, "an ability #id" for a
-// faceless object whose source is not (0, unresolvable, or itself faceless),
-// "a card" for the redacted id 0, and "#id" for an id the game cannot
-// resolve (nil g, stale or tampered data).
-func obj(g *state.Game, id state.ObjID) string {
+// stack object whose source card can be named, "an ability #id" for a faceless
+// object whose source cannot (see abilitySource), "a face-down spell #id" or "a
+// face-down permanent #id" for an object every seat but its controller knows
+// only by that (CR 708.2, a line reads the same to every seat), "a card" for the
+// redacted id 0, and "#id" for an id the game cannot resolve (nil g, stale or
+// tampered data).
+func obj(g *state.Game, id state.ObjID) string { return namedObj(g, id, false) }
+
+// namedObj is obj; shown names a face-down object too, for a line that is a
+// public reveal or the reader's own look.
+func namedObj(g *state.Game, id state.ObjID, shown bool) string {
 	if id == 0 {
 		return "a card"
 	}
@@ -883,6 +893,14 @@ func obj(g *state.Game, id state.ObjID) string {
 	o := g.Obj(id)
 	if o == nil {
 		return tag
+	}
+	if o.FaceDown && !shown {
+		switch o.Zone {
+		case state.ZStack:
+			return "a face-down spell " + tag
+		case state.ZBattlefield:
+			return "a face-down permanent " + tag
+		}
 	}
 	if f := o.Face(); f != nil && f.Name != "" {
 		return f.Name + " " + tag
@@ -896,18 +914,19 @@ func obj(g *state.Game, id state.ObjID) string {
 // abilitySource resolves a faceless ability object's source (state.Object.
 // Source, set by events.Apply's TriggerPush/AbilityPush/DelayedPush minting
 // paths) to the name of the card it came from, or "" when that path cannot
-// produce one: a zero source id, an id the game no longer holds, or a source
-// that is itself faceless (a copied or minted ability) — a source whose own
-// name is unknowable must not yield an empty possessive, so it degrades to
-// the bare "an ability #id" instead. It mirrors obj's own care about nil g,
-// id == 0 and stale ids, because this is called on log lines for tampered
-// and historical data.
+// produce one: a zero source id, an id the game no longer holds, a source that
+// is itself faceless (a copied or minted ability), or one that is face down or
+// in a hand or library, because a line reads the same to every seat and some
+// seat can't see it. A source whose own name is unknowable must not yield an
+// empty possessive, so it degrades to the bare "an ability #id" instead. It
+// mirrors obj's own care about nil g, id == 0 and stale ids, because this is
+// called on log lines for tampered and historical data.
 func abilitySource(g *state.Game, o *state.Object) string {
 	if o.Source == 0 {
 		return ""
 	}
 	src := g.Obj(o.Source)
-	if src == nil {
+	if src == nil || src.FaceDown || !src.Ephemeral() && (src.Zone == state.ZLibrary || src.Zone == state.ZHand) {
 		return ""
 	}
 	if f := src.Face(); f != nil && f.Name != "" {
@@ -920,6 +939,15 @@ func objs(g *state.Game, ids []state.ObjID) string {
 	parts := make([]string, 0, len(ids))
 	for _, id := range ids {
 		parts = append(parts, obj(g, id))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// shownObjs is objs for a public reveal or the reader's own look.
+func shownObjs(g *state.Game, ids []state.ObjID) string {
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		parts = append(parts, namedObj(g, id, true))
 	}
 	return strings.Join(parts, ", ")
 }
@@ -1126,9 +1154,9 @@ func lookClause(g *state.Game, ev events.Event) string {
 		}
 	}
 	if target == ev.Player {
-		return "looks at the cards in their own " + noun + ": " + objs(g, ev.IDs)
+		return "looks at the cards in their own " + noun + ": " + shownObjs(g, ev.IDs)
 	}
-	return "looks at " + player(g, target) + "'s " + noun + ": " + objs(g, ev.IDs)
+	return "looks at " + player(g, target) + "'s " + noun + ": " + shownObjs(g, ev.IDs)
 }
 
 // mana renders n symbols of one colour: "{G}{G}". An empty symbol is

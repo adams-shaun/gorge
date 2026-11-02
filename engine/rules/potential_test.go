@@ -12,7 +12,7 @@ import (
 
 // This file pins rules.PotentialActions and rules.PotentialMana — the
 // server-side projection the auto-pass stop decision reads (view's
-// potential_actions, rv2c): the engine's own legal-offer walk priced against
+// potential_actions): the engine's own legal-offer walk priced against
 // the hypothetical pool the seat's untapped sources could produce. Every case
 // here is one of the eight client-side pricing defects the projection
 // replaces, so the client never re-derives castability again. The fixture
@@ -75,7 +75,7 @@ func jitteSnapshotBoard(t *testing.T, withThalia bool) (*Engine, state.ObjID) {
 	return e, jitte
 }
 
-// restrictedBearBoard seats the rv2c-review drift pin: a plain {2} Bear in
+// restrictedBearBoard seats the drift pin: a plain {2} Bear in
 // hand with a floating batch of two colourless RESTRICTED to the given
 // RestrictValid$ class, both lands tapped, main1, land drop spent. The class
 // is a parameter so the same fixture pins both sides of the boundary -- a
@@ -94,8 +94,7 @@ func restrictedBearBoard(t *testing.T, valid string) (*Engine, state.ObjID) {
 }
 
 // TestCastableExcludesNonMatchingRestrictedMana pins the ordinary offer gate's
-// pool semantics against the raw floating pool (rv2c review, the drift the
-// castable/castablePriced split introduced and this fixes): manaAvailableFor
+// pool semantics against the raw floating pool: manaAvailableFor
 // excludes a restricted batch a payment does not admit, so a {2} creature
 // cannot be cast off {C:2 Spell.Artifact} -- the offer gate and the payment
 // path must answer identically, or the engine offers a cast whose payment
@@ -708,7 +707,7 @@ func TestPotentialActionsJitteThaliaCorpusScriptIsNotCastable(t *testing.T) {
 }
 
 // TestPotentialActionsMountDoomDamageAbility pins the engine half of
-// fb-20260923T033148Z-877b8f8f ("mount doom -- can only play tap for mana").
+// a player report ("mount doom -- can only play tap for mana").
 // Measured then: with Mount Doom untapped beside enough other mana, the
 // empty-pool priority window offered Mount Doom ONLY its mana activation (the
 // float-then-cast model). The window now also offers the damage ability as an

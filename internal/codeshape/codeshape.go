@@ -35,7 +35,7 @@ const LongFuncLines = 300
 // move of code into a engine/rules/* subpackage stays inside the census.
 var ScannedDirs = []string{"engine/rules", "engine/effects"}
 
-// CtxConstructorFiles are the designated context-constructor files of the W1c
+// CtxConstructorFiles are the designated context-constructor files of the
 // ratchet (rules-engine refactor spec section 5): the only non-test files in
 // which an effects.Ctx / effects.SpecContext / effects.TriggerContext
 // composite literal is not counted. Repo-relative, slash-separated.
@@ -378,7 +378,7 @@ type Metrics struct {
 	// (resolved among package effects' own interface types, recursively; a
 	// method two roles share counts once). HostEmbeds counts the interfaces it
 	// embeds directly. HostDirectMethods counts the methods Host itself
-	// declares rather than takes from a role (W1d: a new method joins a
+	// declares rather than takes from a role (a new method joins a
 	// role), and HostRoleMaxMethods is the method-set size of its largest
 	// embedded role.
 	HostMethods        int `json:"host_methods"`
@@ -389,7 +389,7 @@ type Metrics struct {
 	// type assertions to an interface other than Host and its roles -- an
 	// inline `h.(interface{ ... })` or a named optional interface such as
 	// `h.(layerTablesHost)`. Each is a Host method by another name that the
-	// role split cannot see; W1d collapsed five per-table ones into one.
+	// role split cannot see.
 	HostOptionalAssertions int `json:"host_optional_assertions"`
 	// CtxFields counts the named fields of effects.Ctx (each name on a
 	// multi-name line counts); CtxEmbeds its embedded fields.
@@ -416,7 +416,7 @@ type Metrics struct {
 	// effects.TriggerContext (`effects.Ctx{...}` / `&effects.Ctx{...}`, the
 	// bare `Ctx{...}` inside package effects, and a type-elided element of a
 	// []Ctx / map[K]Ctx literal). A literal that copies fields from another
-	// context is the RC2 hand-synced copy that drops a later field; build
+	// context is a hand-synced copy that drops a later field; build
 	// through effects.NewCtx / NewSpecContext and the (*Ctx) derivations.
 	CtxLiterals            int `json:"ctx_literals"`
 	SpecContextLiterals    int `json:"spec_context_literals"`

@@ -60,7 +60,7 @@ func clashSoloSA() *cards.SA {
 	return sa
 }
 
-// TestClashNoHostPutsBothCardsOnBottom pins the R-9 no-host degradation: a
+// TestClashNoHostPutsBothCardsOnBottom pins the no-host degradation: a
 // host that refuses every ask puts each revealed card on the BOTTOM
 // deterministically and records an explicit no-host Note per participant.
 // The feature's handler really ran (no unimplemented-API Note), and the

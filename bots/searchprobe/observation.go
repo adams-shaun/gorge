@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/deck"
@@ -204,6 +203,16 @@ func (noPotentialChars) SuppressOwnLibrary() bool { return true }
 // does not rewrite, a planar deck, gets its tokens back there, so no board
 // changes.
 func (noPotentialChars) SuppressCardTokens() bool { return true }
+
+// LibraryTopRevealed is view.Project's optional read of a "play with the top
+// card revealed" grant (CR 401.5). The wrapper must pass it on: without it no
+// seat observes another player's revealed top, though every wire shows it.
+func (c noPotentialChars) LibraryTopRevealed(p state.PlayerID) bool {
+	r, ok := c.Chars.(interface {
+		LibraryTopRevealed(state.PlayerID) bool
+	})
+	return ok && r.LibraryTopRevealed(p)
+}
 
 func NewCollector(actor state.PlayerID) *Collector {
 	return &Collector{actor: actor, byRef: []state.ObjID{0}}
@@ -561,13 +570,12 @@ func (c *Collector) observe(e *rules.Engine, burst []events.Event, withPotential
 		}
 		// Explicit reveal/look channels and visible zone transitions can name a
 		// card absent from the end-of-burst board. No other unknown reference is
-		// a license to query that object's hidden card identity.
+		// a license to query that object's hidden card identity. A Note's Secret
+		// bit is its classification: unset is a reveal to every seat, set is a
+		// look by ev.Player alone, and the text plays no part.
 		if !ev.Secret || ev.Player == c.actor {
 			switch ev.Kind {
 			case events.Note:
-				if len(ev.IDs) > 0 && ev.Text != "" && ev.Text != "looks at the top of the library" && !(strings.HasPrefix(ev.Text, "revealed ") && strings.HasSuffix(ev.Text, " as a cost")) {
-					return view.View{}, Frame{}, fail("unsupported", "identity-bearing note: %q", ev.Text)
-				}
 				for _, id := range ev.IDs {
 					c.introduce(e, id)
 				}

@@ -1,6 +1,6 @@
 package rules
 
-// Creature mana-ability audit (feedback fb-20260928T161639Z-081a09f0).
+// Creature mana-ability audit.
 //
 // TestCreatureManaAbilityAudit is the ordinary-suite census the player asked
 // for: over the WHOLE compiled corpus it enumerates every mana ability that
@@ -74,7 +74,7 @@ var knownUnsupportedCreatureMana = map[string]string{
 	// engine refusal keeps off the offer regardless of fodder.
 	//
 	// The creature-face SubCounter<X/...>, Forage and untapYType cost work is
-	// LIVE as of the mana-announced-cost ticket: the mana-activation path
+	// live: the mana-activation path
 	// announces their X, settles the removal, poses the Forage election and
 	// elects the untapYType permanent. Haruspex, Petalmane Baku, Rasputin,
 	// Jetfire, Thornvault Forager and Benthic Explorers all went live and

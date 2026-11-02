@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The RollDice publication tests (the r2 review's MAJOR finding): the
+// The RollDice publication tests: the
 // multi-roll shapes the primitive claims must actually publish what their
 // chained sub-abilities read. Every test resolves a REAL corpus SVar (or a
 // real corpus ability) through the askHost double, with a scripted Rand so
@@ -114,13 +114,13 @@ func TestBoomflingerPublishesTheDifferenceBetweenRolls(t *testing.T) {
 	}
 }
 
-// TestNeverwinterHydraPublishesTheTotalOfXRolls is the multi-roll
-// ResultSVar$ leaf (real corpus Neverwinter Hydra): Amount$ X = 3 rolls three
-// d6 (5, 2, 6 here) and publishes the TOTAL 13 under Result, which the
-// chained DBCounters reads through CounterNum$ Result — the card's own oracle
-// wording, "a number of +1/+1 counters on it equal to the total of those
-// results". Before the fix no multi-roll resolution published at all, so the
-// Hydra entered with zero counters.
+// TestNeverwinterHydraPublishesTheTotalOfXRolls is the multi-roll ResultSVar$
+// leaf (real corpus Neverwinter Hydra): Amount$ X = 3 rolls three d6 (5, 2, 6
+// here) and publishes the TOTAL 13 under Result, which the chained DBCounters
+// reads through CounterNum$ Result — the card's own oracle wording, "a number
+// of +1/+1 counters on it equal to the total of those results". A multi-roll
+// resolution that publishes nothing would have the Hydra enter with zero
+// counters.
 func TestNeverwinterHydraPublishesTheTotalOfXRolls(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	nh, ok := reg.Lookup("Neverwinter Hydra")
@@ -210,8 +210,8 @@ func TestIronMastiffUsesOnlyItsHighestRoll(t *testing.T) {
 	}
 	// The corpus's NbAttackedPlayers SVar is populated by its attack trigger;
 	// supply the real two-player-attacked result here while retaining the real
-	// RollDice SA and its result ranges. (The Count evaluator does not yet
-	// parse Forge's bare PlayerCountOpponents$... body; see this task's report.)
+	// RollDice SA and its result ranges. (The Count evaluator does not parse
+	// Forge's bare PlayerCountOpponents$... body.)
 	g := state.NewGame([]string{"a", "b", "c"})
 	h := &scriptedRollHost{seq: []int{19, 0}} // dice 20, 1
 	h.g = g

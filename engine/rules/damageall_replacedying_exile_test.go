@@ -15,8 +15,7 @@ import (
 // turn, exile it instead") end to end, through the real engine. effDamageAll
 // damages the sweep and -- with RememberDamaged$ True -- remembers the hit
 // creatures; registerReplaceDying then turns the state-based lethal-damage
-// move into an exile. Before the fix effDamageAll never called
-// registerReplaceDying, so the 2/2 went to the graveyard.
+// move into an exile.
 func TestDamageAllReplaceDyingDefinedExilesInstead(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

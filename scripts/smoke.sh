@@ -247,7 +247,7 @@ echo "== smoke: building client =="
 ( cd web && npm run build )
 echo "== smoke: building gorged =="
 mkdir -p bin
-CGO_ENABLED=0 go build -o bin/gorged ./cmd/gorged
+CGO_ENABLED=0 go build -trimpath -o bin/gorged ./cmd/gorged
 
 # ---- allocate five free smoke ports (8090-8099 by default) ----
 # The scan-then-bind window races every OTHER gate running in the same range
@@ -292,7 +292,7 @@ start_seated_server() {
   local port="$1" dir="$2" log="$3"
   ./bin/gorged -addr "127.0.0.1:$port" -dir "$dir" -spectator omniscient \
     -decks testkit/testutil/decks -tables 2 -seats 2 -pace 1.5s -seed 1 \
-    -format constructed -vsbot -humans 1 -seat-token ui19seat1 >"$log" 2>&1 &
+    -format constructed -vsbot -humans 1 -seat-token seatedfixture >"$log" 2>&1 &
   SERVER_PIDS+=("$!")
 }
 

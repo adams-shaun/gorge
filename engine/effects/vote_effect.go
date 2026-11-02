@@ -211,7 +211,7 @@ func askCardVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, options []state.O
 			label := "permanent"
 			var controller state.PlayerID
 			if o := h.Game().Obj(id); o != nil && o.Face() != nil {
-				label = o.Face().Name
+				label = publicObjName(h.Game(), id)
 				// The subject's controller is public information (CR 400.2) and
 				// the one fact the voter's policy needs to prefer a foreign
 				// permanent over its own: Council's Judgment's ballot excludes
@@ -282,7 +282,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, ballot string) {
 		if i < len(picks) && picks[i] >= 0 && picks[i] < len(options) {
 			id := options[picks[i]]
 			if o := g.Obj(id); o != nil && o.Face() != nil {
-				label = o.Face().Name
+				label = publicObjName(g, id)
 			}
 			counts[id]++
 			if counts[id] > max {

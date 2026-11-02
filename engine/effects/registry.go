@@ -201,11 +201,11 @@ type Ctx struct {
 	// the SA the placement/announcement ask actually covered. A deeper sub
 	// in the SAME resolution that carries its OWN never-offered ValidTgts$
 	// now poses its own ask there (the trigger "when you do" family: Mogg
-	// Bombers' DealDamage, Kor Outfitter's Attach); before mvts1 it either
-	// inherited the outer targets or moved nothing silently. A nested
+	// Bombers' DealDamage, Kor Outfitter's Attach).
+	// A nested
 	// Resolve entry at depth 0 whose SA is genuinely never-covered (a
 	// RepeatEach iteration body) is also suppressed while the flag is set --
-	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
+	// the conservative direction.
 	TargetsOffered bool
 	// TargetsUnique accumulates the targets chosen by earlier `TargetUnique$
 	// True` asks in THIS resolution chain, so a later ask in the same chain
@@ -403,6 +403,9 @@ type Ctx struct {
 	// NEAREST targeting parent's targets, not the root's. Resolution scratch,
 	// scoped to one Resolve walk; never event-encoded.
 	parentLinks [][]state.Target
+	// playerLink is the latest link answer in this walk naming a player
+	// (notePlayerLink), the SpecContext's PlayerLinkTargets.
+	playerLink []state.Target
 	// linkAnswer carries a link body's own consumed target answer out to
 	// Resolve's recorder when the body asked for it itself (effChangeZone's
 	// changeZoneChosenTargets), which the generic pre-ask never sees.
@@ -948,7 +951,7 @@ const (
 // direct Ctx.Layers read -- agrees with rules' layer walk. It is optional,
 // like effectFrameHost, so the effects test doubles stay small and a double
 // with no tables reads the printed face. It replaced five per-table optional
-// interfaces (W1d), so a table added to LayerTables is published here and
+// interfaces, so a table added to LayerTables is published here and
 // nowhere else.
 type layerTablesHost interface {
 	LayerTables(want LayerTableSet) LayerTables
@@ -1225,7 +1228,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// The parent-link record belongs to THIS walk: a nested walk sharing
 		// the Ctx (a body resolving its own sub-chain) must not leave its links
 		// behind as "parents" of the enclosing chain's later links.
-		defer func(n int) { c.parentLinks = c.parentLinks[:n] }(len(c.parentLinks))
+		defer func(n int, player []state.Target) {
+			c.parentLinks, c.playerLink = c.parentLinks[:n], player
+		}(len(c.parentLinks), c.playerLink)
 		defer func(above bool) { c.RememberWriterAbove = above }(c.RememberWriterAbove)
 	}
 	reg := registry.load()
@@ -1375,6 +1380,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 			c.PickedTargets = ts
+			notePlayerLink(c, ts)
 			// Forge's sub-ability inheritance: a chain body that names no
 			// targets of its own shares the chain's target list, so a later
 			// body's "Targeted"/TargetedController referents (The Motherlode,

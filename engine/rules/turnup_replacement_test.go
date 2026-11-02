@@ -1,8 +1,7 @@
 // turnup_replacement_test.go — the "as this is turned face up" replacement
 // class (R:Event$ TurnFaceUp, CR 614.1a with CR 708.6/702.36e) and the
-// T:Mode$ TurnFaceUp trigger observed off the morph-family special action,
-// task cli-20260924T031747Z-6d0658fc. Each corpus carrier proves, end to
-// end:
+// T:Mode$ TurnFaceUp trigger observed off the morph-family special action.
+// Each corpus carrier proves, end to end:
 //
 //   - Hooded Hydra: its "As Hooded Hydra is turned face up, put five +1/+1
 //     counters on it" replacement runs as the turn-up happens — the

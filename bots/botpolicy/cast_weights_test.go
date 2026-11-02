@@ -1,6 +1,6 @@
 package botpolicy
 
-// The L1 cast-weights pins. Three jobs, per the brief:
+// The L1 cast-weights pins. Three jobs:
 //
 //  1. the equivalence table: DefaultCastWeights (reached through the zero
 //     Board.Cast the adapters leave) picks identically to the LITERAL
@@ -743,7 +743,7 @@ func TestCastWeightInstantSpeedOffTurnHold(t *testing.T) {
 // ---------------------------------------------------------------------------
 // L1c: the within-turn mana-efficiency feature (C11, SetValue).
 
-// TestCastWeightSetValuePrefersTheFollowUp is the brief's headline case: four
+// TestCastWeightSetValuePrefersTheFollowUp is the headline case: four
 // mana and a hand of one 3-drop plus two 2-drops. Greedy best-first alone ties
 // them on index (the default picks the 3-drop at option 0); with SetValue set,
 // a 2-drop's score carries the second 2-drop it leaves affordable, so a 2-drop
@@ -766,7 +766,7 @@ func TestCastWeightSetValuePrefersTheFollowUp(t *testing.T) {
 	}
 }
 
-// TestCastWeightSetValueZeroIsUnchanged pins the brief's other half: with
+// TestCastWeightSetValueZeroIsUnchanged pins the other half: with
 // SetValue explicitly 0 the pick is identical to the pre-L1c rule on every
 // mirrored cast case — the same equivalence the DefaultCastWeights table
 // asserts, restated for this field so a future change cannot make the feature
@@ -783,7 +783,7 @@ func TestCastWeightSetValueZeroIsUnchanged(t *testing.T) {
 	}
 }
 
-// TestCastWeightSetValueSubsetCapDeterministic pins the brief's bounded-search
+// TestCastWeightSetValueSubsetCapDeterministic pins the bounded-search
 // requirement: with more candidates than the exhaustive cap (>10) the greedy
 // fallback is used, and the answer is a pure function of the board — repeated
 // picks on the same board are identical, so no map iteration order reaches it.

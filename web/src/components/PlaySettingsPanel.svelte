@@ -563,7 +563,7 @@ onclick={() => logic.editSettings({ logAutoPasses: !s.logAutoPasses })}
     >
       <span>Log auto-passes</span><span class="state" aria-hidden="true">{s.logAutoPasses ? 'On' : 'Off'}</span>
     </button>
-    <!-- Clear yields (prio6): the GAME OPTIONS action for the stack tile
+    <!-- Clear yields: the GAME OPTIONS action for the stack tile
          menus' "Always pass for …" set — game-scoped, per table, so this is
          a state write (logic.clearYields), not a settings edit. Disabled
          with nothing yielded, and the count says how much it would clear. -->

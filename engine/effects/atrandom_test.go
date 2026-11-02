@@ -7,7 +7,7 @@ import (
 )
 
 // askFixture is fixtureHost behind the asking double, so a posed decision
-// is observable (h.asked) instead of degrading to the R-9 stand-in.
+// is observable (h.asked) instead of degrading to the no-host stand-in.
 func askFixture(t *testing.T) (*askHost, *Ctx) {
 	t.Helper()
 	fh, c := fixtureHost(t)

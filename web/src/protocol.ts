@@ -819,7 +819,7 @@ export interface PlayerView {
   command: CardView[];
   /**
    * Commanders is the player's full commander roster -- the same list
-   * m30's genesis built, in the same order, never shrunk as commanders
+   * genesis built, in the same order, never shrunk as commanders
    * are cast or die. A roster CardView projects the commander's CURRENT
    * zone's state (a cast commander is a battlefield object, a dead one a
    * graveyard object), so the roster is what lets a client -- and the bot
@@ -1460,8 +1460,7 @@ export interface Decision {
   /**
    * PaymentActions is an additive, separately indexed cast-payment
    * extension. Keeping it outside Options preserves every legacy priority
-   * choice index. It remains empty until payplan-04 publishes executable
-   * offers.
+   * choice index. It stays empty until the host publishes executable offers.
    */
   payment_actions?: PaymentAction[];
   /**
@@ -1653,9 +1652,9 @@ export interface View {
    * players still alive, folded over the ordered event stream (RoundOf) by
    * host, which has the log in hand when it builds this view; a caller with
    * only a snapshot gets the roundOf approximation instead. Both Turn and
-   * Round are sent because the raw engine counter is what the transcript
-   * ("Turn N: <player>") refers to, and the round is what the board's
-   * clock shows.
+   * Round are sent because the raw engine counter is what the client and the
+   * transcript ("Turn N: <player>") show, and the round says how far around
+   * the table the game has come.
    */
   turn: number;
   round: number;
@@ -2235,6 +2234,49 @@ export interface ReviewDecision {
   answer?: string;
   made: string;
   explain: unknown;
+}
+
+  /**
+   * PairedBotStatus is GET /api/tables/{t}/paired-bot: whether a seat at this
+   * table may ask a bot to evaluate its decisions. It carries configuration
+   * only, so every seat can read it and see that a table allows it.
+   */
+export interface PairedBotStatus {
+  offered: boolean;
+  /**
+   * Reason says, in plain words, why this table does not offer what the
+   * server does. A server without the option has none.
+   */
+  reason?: string;
+  /**
+   * Policy names the bot.
+   */
+  policy?: string;
+  /**
+   * Shared marks a table with more than one human that allows it: any of
+   * those players may be asking.
+   */
+  shared?: boolean;
+}
+
+  /**
+   * Advice is GET /api/tables/{t}/matches/{k}/advice: one bot's evaluation of
+   * the decision pending on the requesting seat. It is computed from what that
+   * seat can see, is never replay input and is never hashed.
+   */
+export interface Advice {
+  table: string;
+  match: number;
+  ask_seq: number;
+  seat: number;
+  policy: string;
+  state: string;
+  reason?: string;
+  /**
+   * Explain is a bots/explain.Note: the same shape as
+   * ReviewDecision.Explain, with Choices indexing the decision's options.
+   */
+  explain?: unknown;
 }
 
   /**

@@ -38,16 +38,16 @@ card, whichever side is wrong.
 | `internal/testutil.CorpusRegistry` | Loads the corpus once per process. It SKIPS when `.cards` is absent, so a worktree without the corpus reads green. |
 | `engine/rules/acceptance_test.go` `knownUnsupported`, `engine/rules/paramcensus_test.go` `knownUnsupportedParams` | Ratchets on "is every primitive registered / every param read". They measure **coverage, not correctness**. Purphoros's `RemoveType$` has been listed as unread in `paramcensus` all along, yet Purphoros ships in `valgavoth-endless-punishment` and behaves as an always-on 6/5 (§8). |
 | `cmd/repro`, `feedback.EngineAt` | Turns a player report into a failing test at the exact board. It is reactive and per report; it does not audit a card. |
-| The issue queue, `feedback/` | 1572 tickets and 125 player reports (classified in §3). |
+| The issue history, `feedback/` | 1572 issues and 125 player reports (classified in §3). |
 
 ## 3. Bug classes in the issue history
 
-A background classification of all 1572 tickets and 125 feedback reports
+A background classification of all 1572 issues and 125 feedback reports
 (keyword pass, then a hand check of every player report). Counts are ±10%,
-because many tickets span two buckets.
+because many issues span two buckets.
 
-- 1302 of 1572 tickets are card-text work. The pipeline exists to grind card
-  primitives, so that share is expected.
+- 1302 of 1572 issues are card-text work. Most of the work is card primitives,
+  so that share is expected.
 - About 40 of the 125 player reports are genuine card-text bugs. The rest are
   UI complaints that happen to name a card.
 
@@ -74,7 +74,7 @@ The three motivating reports resolved as follows:
 - **Sidar Jabari**: a confirmed engine bug.
   `Engine.forEachObject` walks `ZLibrary..ZStack` and never `ZCommand`. The
   pilot reproduces it from the Oracle text alone.
-- **Relic Vial**: no ticket exists. The pilot found a real Relic Vial bug that
+- **Relic Vial**: no issue exists. The pilot found a real Relic Vial bug that
   nobody had reported (§8, look-back).
 
 Recurring roots, from 15 named examples read in full:
@@ -90,13 +90,13 @@ all three, because it checks behaviour.
 ## 4. Card selection and priority
 
 1. **Repo-deck cards first.** 1110 distinct cards across
-   `testkit/testutil/decks/*.json` (measured via `lab/cmd/oraclepacket -decks`).
+   `testkit/testutil/decks/*.json` (measured via `oraclepacket -decks`).
    These are the cards players actually play. Skip basics and vanilla
    creatures (no Oracle text).
 2. **Cards named in feedback reports**, whatever the deck, at the head of
    every batch.
 3. **Mechanism families, sampled by Oracle wording.** A family is selected by
-   a regexp over Oracle text with `lab/cmd/oraclepacket -grep`, so no script is
+   a regexp over Oracle text with `oraclepacket -grep`, so no script is
    read to choose it. Measured family sizes (repo decks / whole corpus):
 
    | Family | Oracle selector (abridged) | Decks | Corpus |
@@ -125,26 +125,24 @@ all three, because it checks behaviour.
 
 A mix, split by role:
 
-- **Author: a cheap LLM seat** (the implement tier). It receives only:
+- **Author: a cheap LLM agent.** It receives only:
   (a) the Oracle packet of the card under audit and of a vetted support-card
   list, (b) the relevant CR excerpts, (c) the scenario schema (§6), and
   (d) one worked example file. It writes one scenario file per card.
-- **Reviewer: a stronger seat** (the review tier), with the same inputs and
-  still no script. It checks each expectation against the Oracle text and
+- **Reviewer: a stronger LLM agent**, with the same inputs and still no script. It checks each expectation against the Oracle text and
   the CR, and looks especially for the subtle ones: look-back (603.10a),
   intervening-if (603.4), characteristic changes (613), "you" vs "each
-  player". Ambiguous rulings go to the operator.
+  player". Ambiguous rulings go to the maintainers.
 - **Triage: a third role** (§7). It is the only role allowed to open the
   script, and only after the scenarios are committed.
 
 ### Keeping the script out of the author's context
 
-- `lab/cmd/oraclepacket` prints what a player can read on the card (name, cost,
+- `oraclepacket` (in gorge-compliance) prints what a player can read on the card (name, cost,
   type line, P/T, Oracle text) plus `oracle_sha`, and nothing else.
   `engine/cards/oracletext` (a subpackage, so `cards.CompilerFingerprint` and every IR cache are untouched) fails its test if the packet ever carries script syntax.
-- **The authoring worktree has no `.cards`.** The dispatcher generates the
-  batch's packets into a gitignored in-repo path (the pi jail cannot see
-  `/tmp`), for example `.oracle-packets/<batch>.txt`, and does not link the
+- **The authoring worktree has no `.cards`.** The batch's packets are generated
+  into a gitignored in-repo path, for example `.oracle-packets/<batch>.txt`, and does not link the
   corpus. There is then no script to read. The engine cannot run either
   (`CorpusRegistry` skips), which is also intended: the author cannot fit
   expectations to engine output. `TestOracleScenarioFilesWellFormed` needs no
@@ -237,15 +235,15 @@ acts only through `Submit` on offered options, as a client does.
 
 ## 7. Triage
 
-Each failing scenario gets one of four verdicts. The triage seat may now
-read the script.
+Each failing scenario gets one of four verdicts. Triage may now read the
+script.
 
 | Verdict | How to tell | Action |
 |---|---|---|
 | **Harness** | The runner cannot express or answer something the Oracle text allows, e.g. a graveyard cast offered as `mode=mayplay`, or a Vexing Devil choice posed as `unless_pay`/`unless_decline`. The error is prefixed `harness:`. | Fix the runner. Expectations are untouched. |
 | **Scenario error** | The expectation contradicts Oracle + CR. Example: in the pilot the Sulfuric Vortex expectation ignored its own turn-1 upkeep trigger. | Correct the scenario, with the reviewer's agreement that this is a **rules** error and not a fit to engine output. The `why` records the reason. |
-| **Script translation (gorge)** | The script encodes the Oracle text correctly, but gorge ignores or misreads a param. Check `paramcensus`: an unread param there confirms it. Example: `RemoveType$`. | Ratchet row + engine ticket. Search every script carrying the same construct (the selector in §4) and batch the siblings. |
-| **Engine primitive** | The script is right and read, but rules machinery is wrong for every card that uses it. Examples: look-back, the command-zone walk. | Ratchet row + engine ticket that names the CR rule. Add a control scenario that localises the fault, as with Relic Vial's SBA vs destroy vs sacrifice split. |
+| **Script translation (gorge)** | The script encodes the Oracle text correctly, but gorge ignores or misreads a param. Check `paramcensus`: an unread param there confirms it. Example: `RemoveType$`. | Ratchet row + engine fix. Search every script carrying the same construct (the selector in §4) and batch the siblings. |
+| **Engine primitive** | The script is right and read, but rules machinery is wrong for every card that uses it. Examples: look-back, the command-zone walk. | Ratchet row + engine fix that names the CR rule. Add a control scenario that localises the fault, as with Relic Vial's SBA vs destroy vs sacrifice split. |
 | **Upstream script** (rare) | The Forge script itself misstates the Oracle text. | Cannot be fixed by committing a script (GPL). Report upstream or bump `FORGE_REF`. Ratchet row meanwhile. |
 
 **Ratchet:** one file per card per family,
@@ -254,15 +252,15 @@ read the script.
 works in both directions like `knownUnsupported`; the leftover-answer ratchet
 uses the same shape under `known-unconsumed/`. A row naming another family's
 scenario, or a card with two files in one family, fails the build. (Why
-per-card files: every audit ticket appending to one shared map or family file
+per-card files: every audit change appending to one shared map or family file
 made each merge conflict with every other in-flight audit branch, and each
-conflict cost a merge-fix round plus a full re-gate.)
+conflict cost a merge fix plus a full re-gate.)
 
 - A listed scenario that now passes is **stale** and fails the build until its
   row is deleted.
 - An unlisted failure fails the build.
 - A row naming no scenario fails the build.
-- Rows are added only by triage and each names its ticket. The author never
+- Rows are added only by triage and each names its issue. The author never
   sees or edits the table.
 
 **Oracle drift:** `oracle_sha` is recorded per file. After a `FORGE_REF`
@@ -361,7 +359,7 @@ calibrate the triage verdicts:
 - Two Relic Vial control scenarios were added during triage, with CR-only
   expectations, to localise defect 2.
 
-## 9. Licensing (flag for the operator)
+## 9. Licensing
 
 - **Forge scripts: never committed.** Unchanged. Scenario files name cards
   and carry no script token. The runner reads the corpus at run time.
@@ -373,18 +371,16 @@ calibrate the triage verdicts:
 - **Scenarios therefore reference cards by name plus `oracle_sha`**, and
   `why` holds the author's paraphrase.
 - A few `why` fields quote a short clause (e.g. "Red spells YOU cast") to pin
-  the rules point. I believe that is fine as fair-use-scale quotation, but
-  **the operator should confirm**. If not, the schema rule becomes
-  "paraphrase only", and the reviewer checks it.
-- Oracle packets written for seats are corpus-derived and go to a gitignored
+  the rules point, as fair-use-scale quotation. If that is ever judged not to
+  be fine, the schema rule becomes "paraphrase only", and the reviewer checks it.
+- Oracle packets written for authors are corpus-derived and go to a gitignored
   path.
 
 ## 10. Scale and rollout
 
-**Ticket shape (one cheap-seat ticket = one family × 8–10 cards):**
+**Shape of one unit of work (one family × 8–10 cards):**
 
-- *Inputs, pre-generated by the dispatcher into the ticket's worktree, which
-  has no `.cards`:* the Oracle packets of the batch plus the support-card
+- *Inputs, pre-generated into the author's worktree, which has no `.cards`:* the Oracle packets of the batch plus the support-card
   list, the CR excerpts for the family, this document's §6, and one example
   file from the same family.
 - *Output:* `engine/rules/testdata/oracle/<family>/*.json` only, 2–4 scenarios per
@@ -393,15 +389,15 @@ calibrate the triage verdicts:
 - *Stop rules:* do not create or edit any `.go` file; do not read `.cards`
   (it is absent); a card the schema cannot express is listed in the report,
   not approximated.
-- *Review (strong seat, no script):* expectation-vs-Oracle/CR check.
-- *Gate / triage (strong seat with `.cards`):* run `make oracle-audit`, then
-  classify every failure per §7. Harness gaps go to one follow-up ticket per
-  gap. Engine and script failures get ratchet rows plus engine tickets. The
-  gate merges when the suite is green with the ratchet.
+- *Review (no script):* expectation-vs-Oracle/CR check.
+- *Gate / triage (with `.cards`):* run `make oracle-audit`, then classify every
+  failure per §7. Harness gaps get one follow-up per gap. Engine and script
+  failures get ratchet rows plus engine fixes. A batch merges when the suite is
+  green with the ratchet.
 
 **Batches and estimates:**
 
-| Wave | Scope | Cards | Tickets (≈9 cards) |
+| Wave | Scope | Cards | Units (≈9 cards) |
 |---|---|---:|---:|
 | 0 | this pilot | 25 | — |
 | 1 | repo-deck cards in the conditional-static, ability-word, intervening-if, cost-modifier, replacement, command-zone families (§4 table, deduplicated) | ~150 | ~17 |
@@ -418,7 +414,7 @@ Pilot rates for calibration:
 - Expect waves 1–2 to need a handful of new ops: planeswalker loyalty
   activations, modal choices by label, multiple defenders, blockers with
   damage assignment, and "at end of turn" observations. Each is one harness
-  ticket. The runner is ~1200 lines and each op is ~30.
+  change. The runner is ~1200 lines and each op is ~30.
 
 ## 11. Commands
 

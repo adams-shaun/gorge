@@ -3,7 +3,7 @@ import type { Decision } from '../protocol';
 import { discardCard, discardName, isDiscardPick } from './discard';
 
 /**
- * The discard-pick ask's pure half (fb-20260914T120705Z): the decision shape
+ * The discard-pick ask's pure half: the decision shape
  * the card-face row triggers on, and the label→name extraction every
  * synthesized face resolves its art and oracle text by. The four engine
  * shapes (effects/cardflow.go's RevealYouChoose and TgtChoose, rules/combat.go

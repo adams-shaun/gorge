@@ -268,10 +268,9 @@ const venomBlastScript = "Name:Venom Blast\nManaCost:4\nTypes:Instant\n" +
 // TestVenomBlastNoOtherTargetDealsNoDamage pins the empty-exclusion outcome
 // end to end on the real corpus card: in a two-player game whose ONLY legal
 // creature is the root's own target, the TargetUnique$ filter leaves no
-// candidate, so the sub must be a NO-OP — never the pre-fix fallthrough,
-// where the DealDamage body re-read Ctx.Targets and the pumped creature dealt
-// its (now boosted) damage to ITSELF and died. The Bear carries 4 power after
-// the pump, so the pre-fix self-hit is lethal and the assertion cannot pass
+// candidate, so the sub must be a NO-OP — never a fallthrough where the
+// DealDamage body deals its (boosted) damage to ITSELF. The Bear carries 4
+// power after the pump, so a self-hit is lethal and the assertion cannot pass
 // vacuously.
 func TestVenomBlastNoOtherTargetDealsNoDamage(t *testing.T) {
 	t.Parallel()
@@ -306,9 +305,7 @@ func TestVenomBlastNoOtherTargetDealsNoDamage(t *testing.T) {
 	if got := p1p1On(t, e, id); got != 2 {
 		t.Fatalf("pump precondition: Bear carries %d P1P1 counters, want 2", got)
 	}
-	// The assertion itself: no self-damage. Pre-fix the TargetUnique filter
-	// emptied the ask's candidates, poseTargetsAsk fell through to Defined's
-	// Ctx.Targets read, and the Bear dealt its 4 power to itself.
+	// The assertion itself: no self-damage.
 	if o := e.G.Obj(id); o == nil {
 		t.Fatal("the Bear died: the excluded parent target was damaged by its own sub")
 	} else if o.Damage != 0 {

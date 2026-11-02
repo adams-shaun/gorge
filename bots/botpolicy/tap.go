@@ -18,12 +18,9 @@ import (
 // replaces the WHEN with a need check computed from board facts alone (the
 // policy is stateless: no memory across decisions).
 //
-// The WHICH was position-first when op6 landed, because the View then
-// projected no per-permanent mana production and nothing in the offer
-// distinguished a Plains from an Island. It no longer is: CardView.Produces
-// (dp2) carries each permanent's produced colours, so chooseTap below picks
-// the source whose colour answers a pip the pool still owes. See chooseTap's
-// own doc comment for the ordering rules; what survives from op6 here is the
+// CardView.Produces carries each permanent's produced colours, so chooseTap
+// below picks the source whose colour answers a pip the pool still owes. See
+// chooseTap's own doc comment for the ordering rules; this comment covers the
 // WHEN, not the WHICH.
 //
 // The check is deliberately the engine's own gate re-derived at the
@@ -230,7 +227,7 @@ func (b Board) cardScore(c Card) int32 {
 // repeatable [0] ({C}{C}{C}, a loyalty cost) was re-tapped once per intent
 // toward a green card's pip while the turn never advanced. A purely generic
 // shortfall always qualifies: a tier-1 tap adds to the pool total and the
-// progress is finite. A KNOWN empty production stays a non-producer (the bl1
+// progress is finite. A KNOWN empty production stays a non-producer (the
 // honesty contract); an entry the Board carries no facts for claims NOTHING
 // (fail closed). The earlier fail-open read -- "unknown production, not
 // absent production" -- was written for the synthetic policy-test shapes and
@@ -240,7 +237,7 @@ func (b Board) cardScore(c Card) int32 {
 // fail-open let the seed-1019 livelock's green-card tap target back in. (The
 // older parenthetical here cited state.Object.Ephemeral's IsCopy half as
 // keeping such a copy out of the adapters' Cards tables; that is no longer
-// true -- token1 clears IsCopy when a stack copy resolves onto the
+// true -- the engine clears IsCopy when a stack copy resolves onto the
 // battlefield, and Ephemeral is zone-aware, so it hides NO battlefield
 // object. The fail-closed reading is independent of Ephemeral and stays.)
 // Fail-closed errs toward passing: the gate never taps a source it cannot
@@ -356,7 +353,7 @@ func (b Board) neededColours(c Card) [5]bool {
 // The WHICH source is colour-aware instead of position-first.
 // chooseTap names the intended card (the best-scoring castable card the pool
 // cannot pay) and taps toward its colour need, ordered by a three-tier
-// preference that the production honesty fix (bl1) tightened:
+// preference:
 //
 //   - tier 0: a source that DEMONSTRABLY produces a colour the intended card
 //     needs (producesColour, which is only true for a known, guaranteed

@@ -9,7 +9,7 @@ import (
 
 // horsemanshipCard parses a live corpus card at test time (GPL scripts stay
 // out of the repo), so the CantBlockBy pin runs against the real Forge script
-// whose ValidBlocker$ spec this ticket's predicate fix serves.
+// whose ValidBlocker$ spec the predicate serves.
 func horsemanshipCard(t *testing.T, name, path string) *cards.Card {
 	t.Helper()
 	c, ds := cards.Parse(filepath.Join("..", "..", ".cards", "cardsfolder", path))

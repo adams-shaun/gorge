@@ -11,11 +11,11 @@ import (
 
 // This file pins findings on the planechase machinery:
 //
-//   - [MAJOR] Norn's Seedcore's `DB$ Planeswalk | Defined$ Remembered |
+//   - Norn's Seedcore's `DB$ Planeswalk | Defined$ Remembered |
 //     DontPlaneswalkAway$ True` must actually land on the remembered plane
 //     and actually suppress the walked-away-from ability -- not rotate and
-//     fire it as the deleted AGENTS row documented.
-//   - [MINOR] the chaos-ensues scan must reject a marker naming another
+//     fire it.
+//   - the chaos-ensues scan must reject a marker naming another
 //     seat's plane (or a face-up non-top plane) before queueing a trigger.
 //
 // Helpers (seatZeroStart, moveSeededCard, replayCheck) are the shared harness
@@ -23,8 +23,8 @@ import (
 // engine/rules/planechase_test.go's probePlaneCard does.
 
 // twoDeckConfig builds a 2-seat Config with the given planar decks for BOTH
-// seats, so a test can exercise the cross-seat marker boundary (the MINOR
-// finding needs a plane that is real but not the marker seat's current one).
+// seats, so a test can exercise the cross-seat marker boundary (that
+// boundary needs a plane that is real but not the marker seat's current one).
 func twoDeckConfig(t *testing.T, seed uint64, seat0, seat1 []*cards.Card) Config {
 	t.Helper()
 	build := func(s uint64) Config {
@@ -115,7 +115,7 @@ func drainPlaneTriggers(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestDefinedPlaneswalkLandsOnTheRememberedPlane is the MAJOR pin: Norn's
+// TestDefinedPlaneswalkLandsOnTheRememberedPlane: Norn's
 // Seedcore's `Defined$ Remembered` planeswalk must move the walk to the named
 // plane, NOT rotate to the deck's next plane. With a 3-plane deck whose
 // current plane is planes[0] and whose named destination is planes[2], a
@@ -193,8 +193,8 @@ func TestDefinedPlaneswalkLandsOnTheRememberedPlane(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestDontPlaneswalkAwaySuppressesTheFromTrigger is the other half of the
-// MAJOR pin: Norn's "except don't planeswalk away from any plane" must
+// TestDontPlaneswalkAwaySuppressesTheFromTrigger is the other half:
+// Norn's "except don't planeswalk away from any plane" must
 // suppress the walked-away-from plane's Mode$ PlaneswalkedFrom ability. The
 // control arm (same walk without the flag) proves the ability DOES fire
 // otherwise, so the test distinguishes suppression from a trigger that never
@@ -326,8 +326,8 @@ func nornsSeedcorePlaneswalkSA(t *testing.T) *cards.SA {
 	return sa
 }
 
-// TestDefinedChaosEnsuesEruptsTheRememberedPlane is the chaos half of the
-// MAJOR pin: The Fertile Lands of Saulvinia's `DB$ ChaosEnsues | Defined$
+// TestDefinedChaosEnsuesEruptsTheRememberedPlane is the chaos half:
+// The Fertile Lands of Saulvinia's `DB$ ChaosEnsues | Defined$
 // Remembered` must erupt the remembered plane, not the controller's current
 // one. Two arms:
 //
@@ -335,7 +335,7 @@ func nornsSeedcorePlaneswalkSA(t *testing.T) *cards.SA {
 //     for exactly that plane (proving the verb reads Defined$ rather than
 //     falling back to current), while the chaos SCAN correctly refuses to
 //     fire a trigger for a plane that is not the seat's face-up current one
-//     (the MINOR boundary) -- so this arm also pins the boundary together
+//     (the plane-marker boundary) -- so this arm also pins the boundary together
 //     with the verb.
 //   - a plain `DB$ ChaosEnsues` (no Defined$) with the same Remembered set
 //     falls back to the current plane, so the two paths are distinguishable.
@@ -395,7 +395,7 @@ func TestDefinedChaosEnsuesEruptsTheRememberedPlane(t *testing.T) {
 		t.Fatalf("the defined chaos verb also erupted the current plane %d", current)
 	}
 	// The marker named a non-current plane, so the scan must have queued
-	// nothing for it (the MINOR boundary) -- it is not the seat's current
+	// nothing for it (the plane-marker boundary) -- it is not the seat's current
 	// plane and it is face down.
 	drainPlaneTriggers(t, e, 10)
 	if got := drawsAfter(e.L.Events[before:], 0); got != 0 {
@@ -446,7 +446,7 @@ func mustParseVerb(t *testing.T, src string) *cards.SA {
 	return sa.Faces[0].Abilities[0]
 }
 
-// TestChaosScanRejectsAnotherSeatsPlaneMarker is the MINOR pin: a
+// TestChaosScanRejectsAnotherSeatsPlaneMarker: a
 // hand-built ChaosEnsues marker naming a plane that is not the marker
 // Player's own current plane must queue nothing. Two negative cases: seat 0
 // names seat 1's face-up plane, and seat 0 names its own face-down lower

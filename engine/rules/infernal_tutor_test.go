@@ -1,6 +1,6 @@
 package rules
 
-// The engine-level end to end for Infernal Tutor (task infernaltutor1), using
+// The engine-level end to end for Infernal Tutor, using
 // the REAL compiled corpus card: effReveal used to take pool[:1] for a hand
 // reveal with no choice, so "Reveal a card from your hand" showed the FIRST
 // hand card and the chained search looked for THAT name. Here the pick is
@@ -46,9 +46,7 @@ func tutorPassIndex(t *testing.T, d *decision.Decision) int {
 // TestInfernalTutorEngineSearchUsesTheChosenCard casts the real Infernal
 // Tutor with a two-card hand (Lightning Bolt, then Forest) and a library
 // holding both names, answers the reveal pick with the Forest, and asserts
-// the chained search moves the FOREST -- never the Lightning Bolt. The
-// pre-fix build revealed the front card (Lightning Bolt) and searched for
-// Lightning Bolt.
+// the chained search moves the FOREST -- never the Lightning Bolt.
 func TestInfernalTutorEngineSearchUsesTheChosenCard(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

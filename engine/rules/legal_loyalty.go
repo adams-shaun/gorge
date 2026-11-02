@@ -563,10 +563,10 @@ func (e *Engine) boastGateOK(id state.ObjID, ability int, svar string) bool {
 // Count$/SVar evaluator the rest of the tree uses (effects.EvalCount), bound
 // to the source object and the SVar table of the face at pile position merged
 // (0 = the top face), so a computed limit is enforced rather than silently
-// ignored. ok reports whether the limit was resolvable at all: false keeps the
-// pre-fix behaviour of leaving the limit unenforced, which is also what a
-// value that is neither a literal nor an SVar reference (such as a
-// description-suffixed literal from a keyword template) gets.
+// ignored. ok reports whether the limit was resolvable at all: false leaves
+// the limit unenforced, which is also what a value that is neither a literal
+// nor an SVar reference (such as a description-suffixed literal from a
+// keyword template) gets.
 func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw string, merged int) (int, bool) {
 	raw = strings.TrimSpace(raw)
 	if n, err := strconv.Atoi(raw); err == nil {

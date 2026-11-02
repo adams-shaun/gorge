@@ -220,7 +220,7 @@ func TestAnimateColorlessWithoutOverwriteKeepsColoursAndNotes(t *testing.T) {
 }
 
 // TestDerivedColorsSkipsMalformedColourElements pins the layer-5 walk's
-// robustness leaf from review round 2: state.ContinuousEffect is exported,
+// robustness leaf: state.ContinuousEffect is exported,
 // so a malformed AddColors element (empty, or not a WUBRG letter) must be
 // skipped -- never an index panic. Valid elements in the same list still
 // land.
@@ -243,7 +243,7 @@ func TestDerivedColorsSkipsMalformedColourElements(t *testing.T) {
 // already splits -- so the enchanted creature is green AND white, not the
 // printed blue. Before the shared parser learned " & ", "Green & White" was
 // one unrecognised word, the read failed closed, and the bearer kept its
-// printed colour (the review's MAJOR finding).
+// printed colour.
 func TestSetColorStaticAmpersandListMakesWitnessProtectionBearerGreenWhite(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

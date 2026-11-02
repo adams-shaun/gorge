@@ -184,10 +184,10 @@ func TestPrintedContinuousAddAbilityMultiValue(t *testing.T) {
 
 // TestPrintedContinuousAddAbilityManaGrantsExactlyOnce covers Done-means (3):
 // the duplicate-offer trap. A printed AddAbility$ whose body is AB$ Mana must
-// appear in availableManaAbilities exactly once -- before the fix the old
-// direct static scan and the new grantedAbilities walk each contributed a
-// member. The static holder is an Artifact granting the ability to ANOTHER
-// artifact, so the grant is genuinely cross-object.
+// appear in availableManaAbilities exactly once -- a direct static scan and
+// the new grantedAbilities walk each contributed a member. The static holder
+// is an Artifact granting the ability to ANOTHER artifact, so the grant is
+// genuinely cross-object.
 func TestPrintedContinuousAddAbilityManaGrantsExactlyOnce(t *testing.T) {
 	t.Parallel()
 	holder := card(t, "Name:Mana Holder\nManaCost:0\nTypes:Artifact\n"+
@@ -210,7 +210,7 @@ func TestPrintedContinuousAddAbilityManaGrantsExactlyOnce(t *testing.T) {
 
 // TestPrintedContinuousAddAbilityCorpusBarbedField covers Done-means (2): the
 // real corpus Aura Barbed Field grants its enchanted LAND "{T}: This land
-// deals 1 damage to any target." The ability was inert before the fix.
+// deals 1 damage to any target."
 func TestPrintedContinuousAddAbilityCorpusBarbedField(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

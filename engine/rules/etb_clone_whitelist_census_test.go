@@ -65,8 +65,8 @@ func TestETBCloneWhitelistCensus(t *testing.T) {
 }
 
 // TestETBCloneWhitelistRegressionCarriers pins the classification of the
-// specific carriers the round-1 blacklist got wrong (it admitted
-// IntoPlayTapped$/ChoiceTitle$-shaped bodies) and of the end-to-end test
+// carriers a blacklist gets wrong (IntoPlayTapped$/ChoiceTitle$-shaped bodies)
+// and of the end-to-end test
 // cards.
 func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 	t.Parallel()

@@ -203,10 +203,9 @@ func TestBotOnlyBo3EventCompletes(t *testing.T) {
 	}
 	results := make([]event.SeriesResult, 0, len(perSeries))
 	// Walk the series in (round, a, b) order -- the order the event itself
-	// ended them in. Ranging the map directly fed ComputeStandings a random
+	// ended them in. Ranging the map directly feeds ComputeStandings a random
 	// order, and OMW%/OGW% are float means whose last bit depends on the
-	// summation order, so the DeepEqual below failed at random (postmerge RED
-	// 216758d3e: OGW ...967 vs ...969).
+	// summation order, so the DeepEqual below would fail at random.
 	pairs := make([][3]int, 0, len(perSeries))
 	for pair := range perSeries {
 		pairs = append(pairs, pair)

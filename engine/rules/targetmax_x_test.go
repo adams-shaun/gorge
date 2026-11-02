@@ -112,8 +112,8 @@ func TestAnnouncementAskBareXReadsThePaidX(t *testing.T) {
 
 // TestUnresolvableTargetMaxXKeepsTheDefault pins the failure direction: a
 // bound token the grammar cannot price (TargetMax$ Y, no SVar:Y) must NOT
-// degrade to zero -- the ask keeps today's Max-1 shape (the M1
-// single-target contract), never a Max-0 ask that could wedge or silently
+// degrade to zero -- the ask keeps the Max-1 single-target shape, never a
+// Max-0 ask that could wedge or silently
 // resolve untargeted.
 func TestUnresolvableTargetMaxXKeepsTheDefault(t *testing.T) {
 	t.Parallel()

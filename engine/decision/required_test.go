@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// reviewBoard is the attackprop1 review's reachable shape: two required
+// reviewBoard is a reachable shape: two required
 // creatures, each offered at a {2} defender and a free one, under a {3}
 // budget.
 func reviewBoard() *Decision {

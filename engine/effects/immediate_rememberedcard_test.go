@@ -45,7 +45,7 @@ func TestImmediateTriggerRememberedCardDoesNotNote(t *testing.T) {
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "ImmediateTrigger",
 		Params: map[string]string{"Execute": "Hit", "RememberObjects": "RememberedCard"}})
 
-	// The ticket's whole claim: the value must NOT reach the loud default arm.
+	// The value must NOT reach the loud default arm.
 	for _, ev := range h.log {
 		if ev.Kind == events.Note {
 			t.Fatalf("RememberedCard emitted Note %q; the value is recognised", ev.Text)

@@ -1,6 +1,6 @@
 package rules
 
-// The three level-B spell-cast predicate triggers this ticket landed, each
+// Three level-B spell-cast predicate triggers, each
 // pinned end to end on REAL corpus carriers (CorpusRegistry, never
 // cards.LoadRegistry) at a real cast:
 //

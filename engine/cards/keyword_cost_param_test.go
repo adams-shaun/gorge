@@ -18,7 +18,7 @@ import "testing"
 func TestKeywordCostParamTakesTheFirstColonField(t *testing.T) {
 	c, _ := ParseBytes("k.txt", []byte(
 		"Name:K\nTypes:Creature\n"+
-			"K:Disguise:5 R:X:This cost is reduced by {1} for each instant and sorcery card in your graveyard.\n"+
+			"K:Disguise:5 R:X:Cheaper by {X}.\n"+
 			"K:Flashback:8 U U:ReduceCost$ X:This spell costs {X} less to cast this way.\n"+
 			"K:Morph:X B B\n"+
 			"K:Megamorph:4 G|alt reminder\n"+

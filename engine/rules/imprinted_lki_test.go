@@ -13,13 +13,12 @@ import (
 // zone-change matcher's LKI branch (engine/rules/trigmatch/zone.go,
 // trigmatch.ZoneChangeMatchesWithCapture) for a `ValidCard$ Card.IsImprinted` spec.
 //
-// The branch runs when the trigger's source is the moved object
-// (`source == ev.Obj`, here a registration on the imprinted card itself) or the
-// move left the battlefield. In both cases the matcher hands the predicate the
-// event's LKI snapshot -- the object as it was a moment before the move, still
-// in exile. The predicate must judge the imprint association against that
-// candidate; before the fix it re-read the live object, now in the destination
-// zone, and never matched.
+// The branch runs when the trigger's source is the moved object (`source ==
+// ev.Obj`, here a registration on the imprinted card itself) or the move left
+// the battlefield. In both cases the matcher hands the predicate the event's
+// LKI snapshot -- the object as it was a moment before the move, still in
+// exile. The predicate must judge the imprint association against that
+// candidate, not the live object in the destination zone.
 func TestImprintedChangesZoneLKIBranchMatchesLeavingExile(t *testing.T) {
 	t.Parallel()
 	e := goadGrantEngine(t)

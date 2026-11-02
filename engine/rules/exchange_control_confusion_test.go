@@ -21,8 +21,8 @@ import (
 //
 // so the entering permanent's controller (seat 1, NOT the trigger's
 // controller) answers the target ask, and the two sides are the entering
-// permanent and the chosen permanent. Before this ticket the handler
-// rejected any TargetingPlayer$ value outright, so the trigger always
+// permanent and the chosen permanent. Rejecting a TargetingPlayer$ value
+// outright would leave the trigger always
 // emitted an unimplemented Note and never exchanged anything.
 func TestExchangeControlConfusionTrigger(t *testing.T) {
 	t.Parallel()

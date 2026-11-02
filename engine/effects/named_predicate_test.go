@@ -319,8 +319,7 @@ func TestSameNameBasePrefixReferents(t *testing.T) {
 	}
 
 	// The context rewrite is intentionally limited to sameName. An unrelated
-	// Remembered.Self filter remains fail-closed rather than gaining new
-	// behaviour as a side effect of this task.
+	// Remembered.Self filter remains fail-closed.
 	sc = SpecContext{You: 0, Source: id["bear"], Remembered: []state.Target{{Obj: id["giant"]}}}
 	if MatchesObjectCtx(g, "Remembered.Self", g.Obj(id["giant"]), sc) {
 		t.Error("unrelated Remembered.Self gained name-predicate behaviour")

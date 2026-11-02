@@ -43,8 +43,8 @@ func sharedCorpus(t *testing.T) *cards.Registry {
 // compiled corpus replacement: ReplaceEffect changes the damage's affected
 // player before DamageDone is logged. The Optional$ "may" belongs to the
 // replacement's OptionalDecider$ -- "You", the source's controller -- not to
-// the damaged creature's controller (the Battletide Alchemist round-2
-// finding; both corpus Optional$ DamageDone lines name "You").
+// the damaged creature's controller (the Battletide Alchemist
+// shape; both corpus Optional$ DamageDone lines name "You").
 func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
 	t.Parallel()
 	reg := sharedCorpus(t)
@@ -75,8 +75,8 @@ func TestBloodOfTheMartyrEffectCreatedOptionalReplacement(t *testing.T) {
 	}
 }
 
-// TestBattletideAlchemistAsksItsControllerAndPreventsClerics is the real
-// round-2 finding's probe: Battletide Alchemist's Optional$ True |
+// TestBattletideAlchemistAsksItsControllerAndPreventsClerics probes
+// Battletide Alchemist's Optional$ True |
 // OptionalDecider$ You | ReplaceWith$ DB$ ReplaceDamage body. The choice is
 // Battletide's controller's, not the damaged player's; accepting prevents
 // exactly X of the damage, where X is Count$Valid Cleric.YouCtrl (Battletide
@@ -157,8 +157,7 @@ func TestBattletideAlchemistAsksItsControllerAndPreventsClerics(t *testing.T) {
 
 // TestThunderstaffPreventsExactlyItsAmount pins the single-match
 // ReplaceDamage body: Thunderstaff's "prevent 1 of that damage" must leave
-// the rest standing, not erase the whole event (the pre-fix defect applied
-// every DB$ ReplaceDamage body as a silent full prevention).
+// the rest standing, not erase the whole event.
 func TestThunderstaffPreventsExactlyItsAmount(t *testing.T) {
 	t.Parallel()
 	reg := sharedCorpus(t)
@@ -327,8 +326,8 @@ func TestSpiderPunkStopsProtectionPrevention(t *testing.T) {
 	}
 }
 
-// TestSpiderPunkStopsReplaceDamagePreventionBodies closes the round-4
-// finding: stat:CantPreventDamage used to exclude only the legacy
+// TestSpiderPunkStopsReplaceDamagePreventionBodies pins this
+// rule: stat:CantPreventDamage must exclude more than the legacy
 // Prevent$ True shape, so the DB$ ReplaceDamage prevention-body family
 // (Thunderstaff, Battletide Alchemist) still reduced damage Spider-Punk
 // forbids preventing. Every damage-replacement selection and application

@@ -33,7 +33,7 @@ func (h *discardRngHost) Rand(n int) int {
 	return 0
 }
 
-// standinNotes counts the R-9 "no engine host to ask" stand-in Notes in a
+// standinNotes counts the "no engine host to ask" stand-in Notes in a
 // host's log.
 func standinNotes(log []events.Event) int {
 	n := 0
@@ -79,7 +79,7 @@ func TestDiscardRandomUsesTheEngineRng(t *testing.T) {
 		t.Fatal("a card the RNG never picked (frog or the land) left the hand")
 	}
 	if standinNotes(rng.log) != 0 {
-		t.Fatal("the Random arm recorded the R-9 stand-in Note — randomness is the rule, not a degradation")
+		t.Fatal("the Random arm recorded the no-host stand-in Note — randomness is the rule, not a degradation")
 	}
 }
 
@@ -97,7 +97,7 @@ func TestDiscardChooseModesPoseNoAskWhenNothingIsEligible(t *testing.T) {
 		t.Fatal("a LookYouChoose over an all-land hand posed an unanswerable decision")
 	}
 	if standinNotes(ah.log) != 0 {
-		t.Fatal("the empty-pool skip recorded the R-9 stand-in Note")
+		t.Fatal("the empty-pool skip recorded the no-host stand-in Note")
 	}
 	if len(ah.g.Zone(state.ZHand, 1)) != 1 {
 		t.Fatal("the land left the hand although nothing was eligible")

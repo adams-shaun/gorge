@@ -154,7 +154,7 @@ func TestLifeSimValueIsConcave(t *testing.T) {
 	}
 }
 
-// TestAttackSimControlledTurnFallsBack is the cardfuzz fuzz-1003 panic
+// TestAttackSimControlledTurnFallsBack is a cardfuzz panic
 // (seed 3384737241469053067, Mindslaver): during a CR 722 controlled turn the
 // controller (seat 0) answers the controlled seat's (seat 1's) declare-
 // attackers decision, so the deciding seat is the DEFENDER and every attacker

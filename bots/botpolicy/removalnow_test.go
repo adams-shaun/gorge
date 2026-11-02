@@ -90,8 +90,8 @@ func TestRemovalNowHoldsNonLethalFaceDamage(t *testing.T) {
 }
 
 // TestRemovalNowUnknownDamageGetsNoFaceCandidate: a dynamic damage figure
-// (NumDmg$ X, RemovalDamage 0) is "unknown", never lethal -- the ft1
-// contract's standing rule -- so the armed rule holds the spell against a
+// (NumDmg$ X, RemovalDamage 0) is "unknown", never lethal
+// -- so the armed rule holds the spell against a
 // 1/1 even though the opponent sits at 1 life.
 func TestRemovalNowUnknownDamageGetsNoFaceCandidate(t *testing.T) {
 	b := removalBoard(1, 1, true)

@@ -10,7 +10,7 @@ import (
 )
 
 // chooseColorHost is a scripted-ask double for the mid-resolution ChooseColor
-// ask (task cli-20260923T060000Z-choose-color): Ask records every posed
+// ask: Ask records every posed
 // decision and reports suspended, so the test can drive the engine's two
 // passes (ask, then answer through Ctx.ChosenColor) the way rules'
 // resumeResolution does.
@@ -63,11 +63,11 @@ var wantWUBRGOptions = []decision.Option{
 	{Index: 4, Kind: "color", Label: "Green"},
 }
 
-// TestChooseColorFallbackRespectsTheExclusion pins the deterministic
-// no-host degradation reading the SA's own colour restriction: on a host
-// that cannot ask (the plain fakeHost), Exclude$ White removes White from
-// the option list, so the fallback records the next colour "U" -- NOT the
-// first-WUBRG "W" the pre-fix stand-in always recorded.
+// TestChooseColorFallbackRespectsTheExclusion pins the deterministic no-host
+// degradation reading the SA's own colour restriction: on a host that cannot
+// ask (the plain fakeHost), Exclude$ White removes White from the option
+// list, so the fallback records the next colour "U" -- NOT the first-WUBRG
+// "W".
 func TestChooseColorFallbackRespectsTheExclusion(t *testing.T) {
 	h := newHost(t, 2)
 	src := chooseColorSrc(t, h)
@@ -81,10 +81,10 @@ func TestChooseColorFallbackRespectsTheExclusion(t *testing.T) {
 	}
 }
 
-// TestChooseColorRandomStaysTheSilentDeterministicFallback pins Random$:
-// the card text makes the choice a die roll, never a player's pick, so no
-// ask is posed and the deterministic first-WUBRG "W" stands in exactly as
-// the pre-fix behaviour did (no Note, no ask, one Choose).
+// TestChooseColorRandomStaysTheSilentDeterministicFallback pins Random$: the
+// card text makes the choice a die roll, never a player's pick, so no ask is
+// posed and the deterministic first-WUBRG "W" stands in (no Note, no ask, one
+// Choose).
 func TestChooseColorRandomStaysTheSilentDeterministicFallback(t *testing.T) {
 	h := newHost(t, 2)
 	src := chooseColorSrc(t, h)
@@ -134,10 +134,9 @@ func TestChooseColorUnaskableShapesNoteAndFallBack(t *testing.T) {
 // TestChooseColorEntryBodyStaysTheNoOp pins the preserved half of the same
 // finding: the as-enters ENTRY-choice body (Ctx.ETBColorRecorded -- rules'
 // replCtx flags the K:ETBReplacement ChooseColor repl's body) never poses an
-// ask. With the entry answer already recorded it emits NOTHING (the
-// machinery recorded it); with no recorded entry answer it emits exactly the
-// deterministic fallback Choose event. Either way the pre-fix entry
-// behaviour is byte-identical.
+// ask. With the entry answer already recorded it emits NOTHING (the machinery
+// recorded it); with no recorded entry answer it emits exactly the
+// deterministic fallback Choose event.
 func TestChooseColorEntryBodyStaysTheNoOp(t *testing.T) {
 	// Recorded entry answer: complete no-op.
 	h := &chooseColorHost{}

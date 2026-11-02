@@ -1,6 +1,6 @@
 package rules
 
-// Ticket aph-interference-scope (spec §3.2 as amended 2026-09-26): a trigger
+// A trigger
 // or replacement on source S affects only S's tier, a trigger/replacement on
 // another object defers exactly the sources its filter can match, and only an
 // unprovable global effect declines every plan of the affected player.
@@ -117,8 +117,8 @@ func TestPaymentPlanInterferenceManabarbsDefersOnlyWhatItMatches(t *testing.T) {
 
 // Seat 0's own Wild Growth on Island A: its TapsForMana ValidCard$
 // Card.AttachedBy matches only A, and its body is a fixed `Add {G}` to the
-// land's controller, so A is priced as {U}{G} (Free:Tier slice 2) while the
-// untouched Island B stays {U}. (Before the fold A was deferred by name.)
+// land's controller, so A is priced as {U}{G} while the untouched Island B
+// stays {U}.
 func TestPaymentPlanInterferenceWildGrowthPricesOnlyEnchantedLand(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9903, interferenceBlueInstant)
@@ -475,8 +475,8 @@ func TestPaymentPlanInterferenceRestrictingManaConvertIsGlobal(t *testing.T) {
 // player adds an additional {B}", which lives as a state.Game.Delayed
 // EffectRepeat entry, not on any face or static -- defers exactly the sources
 // its matcher sees: the Swamp, not the Island. Before the delayed walk the
-// planner priced the Swamp at {B} while its tap added {B}{B} (round-5
-// cardfuzz mirror seed 14886721532440673633, wrong_production).
+// planner priced the Swamp at {B} while its tap added {B}{B} (cardfuzz mirror
+// seed 14886721532440673633, wrong_production).
 func TestPaymentPlanInterferenceDelayedTapTriggerDefersItsSources(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9915, interferenceOneInstant)

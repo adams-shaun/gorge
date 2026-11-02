@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The RepeatCheckSVar$/RepeatSVarCompare$ between-iteration gate
-// (task agent-20260919T192133Z-20ce31d6): a gate-governed Repeat runs its
+// The RepeatCheckSVar$/RepeatSVarCompare$ between-iteration gate: a gate-governed Repeat runs its
 // body at least once and repeats only while the gate holds, re-evaluated
 // per iteration. The synthetic bodies use test-local registered effects --
 // the same pattern TestResolveWalksTheSubAbilityChain uses -- because the

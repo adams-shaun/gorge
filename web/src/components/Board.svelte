@@ -5,7 +5,7 @@
   import { arrangeTable, type SeatCell } from '../lib/tablearrange';
   import { regionRows, slotUnits, type BoardRow } from '../lib/boardregions';
   import { GAP, seatSize, shareOpponentSize, splitHeights, STRIP_HEADER_H, STRIP_PAD, type RegionDemand, type SeatSize } from '../lib/cardsizing';
-  import { visibleHand } from '../lib/board';
+  import { actingSeat, visibleHand } from '../lib/board';
   import { passiveBandH, passiveFaceH, stripHand } from '../lib/passivehand';
   import { rowCount } from '../lib/layoutprofile';
   import { layoutStore } from '../lib/layouts.svelte';
@@ -89,8 +89,8 @@
     handScale: profile.hand.scale,
   }));
 
-  // While the centre bar is dragged only the grid rows move (the spec's
-  // "update only CSS while dragging"); card sizes follow on release.
+  // While the centre bar is dragged only the grid rows move (update only
+  // CSS while dragging); card sizes follow on release.
   const gridHeights = $derived(liveSplit === null || arr.opponents.length === 0 ? heights : splitHeights({
     boardH: H,
     stripH,
@@ -208,7 +208,7 @@
             header={true}
             strip={c.strip}
             active={view.active === p.seat}
-            priority={view.priority === p.seat}
+            priority={actingSeat(view) === p.seat}
             glow={seatGlow(view, options, p.seat)}
             onFocus={c.strip ? () => (focus = c.seat) : null}
             passiveHand={oppHands[i]}
@@ -231,7 +231,7 @@
         size={ownSize}
         header={showOwnHeader}
         active={view.active === p.seat}
-        priority={view.priority === p.seat}
+        priority={actingSeat(view) === p.seat}
         glow={seatGlow(view, options, p.seat)}
         passiveHand={ownHand}
       />

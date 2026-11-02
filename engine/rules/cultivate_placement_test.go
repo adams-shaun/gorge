@@ -1,6 +1,6 @@
 package rules
 
-// The Cultivate-family placement-leg truth fix (task fb-20260922T235033Z):
+// The Cultivate-family placement-leg truth:
 // a search's head ask picks cards BY NAME and (in the Reveal$ shapes) publicly
 // reveals them, then its `ChangeType$ ...IsRemembered` placement legs pose
 // follow-up asks. Those legs carry NoLooking$ True (Forge's "do not look

@@ -16,7 +16,7 @@ func TestTwinBlockRestoresMustBlockDuty(t *testing.T) {
 	s := fixtureSession(t,
 		"Name:Fixture Bear\nTypes:Creature Bear\nPT:2/2\n",
 		"Name:Watchdog\nTypes:Artifact Creature Dog\nPT:1/2\n"+
-			"S:Mode$ MustBlock | ValidCreature$ Card.Self | Description$ CARDNAME blocks each combat if able.\n")
+			"S:Mode$ MustBlock | ValidCreature$ Card.Self\n")
 	bear := obsRef("o-bear", "Fixture Bear", "p0")
 	dog := obsRef("o-dog", "Watchdog", "p1")
 	obs := testObservation("p1", "declare_blockers",

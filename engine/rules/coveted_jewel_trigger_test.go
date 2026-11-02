@@ -11,7 +11,7 @@ import (
 )
 
 // Coveted Jewel's downside trigger, Mode$ AttackerUnblockedOnce, pinned end to
-// end on the real corpus card (task trigunblk1). The trigger is a dedicated
+// end on the real corpus card. The trigger is a dedicated
 // hook (checkAttackerUnblockedOnceTriggers) run at the declare-blockers ROUND
 // COMPLETE instant; these fixtures drive the real combat engine to get there.
 

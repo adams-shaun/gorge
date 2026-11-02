@@ -130,7 +130,7 @@ func untapRider(t *testing.T, e *Engine, obj state.ObjID) {
 	e.Advance()
 }
 
-// TestAddsCountersRiderTwoUnitsOneSource is MAJOR 1's pin: two mana units
+// TestAddsCountersRiderTwoUnitsOneSource: two mana units
 // produced by ONE rider ability and both spent on the same creature spell must
 // place the rider twice. The old capture deduplicated by source and broke
 // after one grant, so the creature entered with one counter instead of two;
@@ -191,7 +191,7 @@ func TestAddsCountersRiderTwoUnitsOneSource(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestAddsCountersRiderIsTheProducingAbilityNotTheFace is MAJOR 2's pin. Dual
+// TestAddsCountersRiderIsTheProducingAbilityNotTheFace: Dual
 // Totem has a restricted (provenance-bearing) {C} ability with NO rider and a
 // separate {R} ability with the rider. Spending the {C} ability's mana on a
 // creature must NOT award counters even though the permanent's face does

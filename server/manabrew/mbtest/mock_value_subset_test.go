@@ -21,7 +21,7 @@ func chosenIDs(t *testing.T, out mb.PromptOutputValue) []string {
 	return dec.ChosenCardIDs
 }
 
-// TestMockChooseCardsHonoursFloorAndCeilingTogether pins the round-4 MAJOR:
+// TestMockChooseCardsHonoursFloorAndCeilingTogether pins this:
 // a choose-cards ask whose prompt carries BOTH a value floor and a value
 // ceiling must return a set satisfying both. With Min=Max=1, floor 5 and
 // ceiling 6, the strongest-first floor pick (power 10) overshoots the

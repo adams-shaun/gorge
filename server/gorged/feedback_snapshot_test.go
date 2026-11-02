@@ -28,7 +28,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The feedback snapshot (task fbrepro1) is exercised end to end here, on a
+// The feedback snapshot is exercised end to end here, on a
 // real registry playing a real match, because the thing under test is the
 // whole chain: a POST naming a table must leave match.json/log.json/
 // view.json in the report directory, and the log must replay.
@@ -311,7 +311,7 @@ func TestFeedbackViewForSeat0CarriesNoOtherSeatsHiddenInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The table id comes from the url; the seat from the explicit form
-	// field, the shape the client ticket will send.
+	// field, the shape a client sends.
 	rec := postFeedbackSeat(t, fs, "creatures are 2/2", "http://localhost:8080/t/t1", "0")
 	if rec.Code != 201 {
 		t.Fatalf("status = %d (body %q)", rec.Code, rec.Body.String())
@@ -344,7 +344,7 @@ func TestFeedbackViewForSeat0CarriesNoOtherSeatsHiddenInfo(t *testing.T) {
 			t.Errorf("seat %d's hand = %v, want nil (hidden)", i, p.Hand)
 		}
 	}
-	// The direct reading of the brief: no card identity from another seat's
+	// No card identity from another seat's
 	// hand or library anywhere in the file. Seat i of match 1 plays deck
 	// (i+1)%4 (server/host/table.go's rotation), so the reporter's own deck is the
 	// Forest deck and the deck at seat 1 is the Plains deck — and at this
@@ -513,7 +513,7 @@ func TestFeedbackSnapshotDuringAnInFlightMatch(t *testing.T) {
 }
 
 // postFeedbackSeat drives the handler with an explicit seat form field, the
-// shape the client ticket (fbrepro3) will send.
+// shape a client sends.
 func postFeedbackSeat(t *testing.T, fs *feedbackStore, text, url, seat string) *httptest.ResponseRecorder {
 	t.Helper()
 	var body bytes.Buffer

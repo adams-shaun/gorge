@@ -15,7 +15,7 @@ import (
 // TestEntryPreviewNeverWritesALiveMap is the map half of
 // TestEntryPreviewSharesNoAppendableSlice. The entry preview is a shallow
 // struct copy of the engine, so every map field is the live engine's map by
-// reference (the slices got private copies in 00e878a5e). Rather than pay a
+// reference (the slices have private copies). Rather than pay a
 // per-entry clone of ~50 maps, the preview's paths are held READ-ONLY on them:
 // across a real acceptance game, at every checkpoint, each non-nil map field
 // of the live engine is fingerprinted, the preview paths run (the preview of

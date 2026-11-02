@@ -1,5 +1,5 @@
 // RepeatCheckSVar$/RepeatSVarCompare$ -- the DB$ Repeat between-iteration
-// gate (task agent-20260919T192133Z-20ce31d6).
+// gate.
 //
 // The end-to-end pins run on the REAL corpus card Grist, the Hunger Tide,
 // whose [+1] is `AB$ Repeat | RepeatCheckSVar$ MilledInsect |

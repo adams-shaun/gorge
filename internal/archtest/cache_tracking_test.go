@@ -2,8 +2,8 @@ package archtest
 
 import "testing"
 
-// TestOpenPackageDirsCoversEveryPackage guards the cache-correctness wiring
-// introduced for cli-20261014T200058Z-c466ec4b. The go-list-based checks read
+// TestOpenPackageDirsCoversEveryPackage guards the cache-correctness wiring.
+// The go-list-based checks read
 // the module through a `go list` subprocess, whose reads go test's result
 // cache cannot see; packages() opens every package directory from the test
 // process (through openModulePackageDirs) so the cache tracks the source (see

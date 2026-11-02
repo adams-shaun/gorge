@@ -25,7 +25,7 @@ import (
 //   - a non-land creature or artifact does not match.
 //
 // The classifier and the matcher share wordPredicate, so UnknownPredicates
-// reports the bare token recognised (the pc1 structural rule): the two
+// reports the bare token recognised (the structural rule): the two
 // cannot disagree about whether `Land.hasANonBasicLandType` is implemented.
 func TestHasANonBasicLandTypePredicate(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

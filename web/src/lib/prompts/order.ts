@@ -22,9 +22,7 @@ export interface OrderContext {
 
 /**
  * orderedOptions is the options a decision's renderer draws as numbered
- * rows, in exactly the order they appear on screen (UI rework spec §1:
- * "Pick 1–9 acts only where the on-screen order is the decision's order …
- * until sub-project 4 numbers options by rendered order"). Each renderer
+ * rows, in exactly the order they appear on screen. Each renderer
  * numbers its rows from this list and the pick-N hotkeys resolve digit N
  * through it, so the digit on a row and the key that answers it cannot
  * disagree.

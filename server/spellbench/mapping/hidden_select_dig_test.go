@@ -62,8 +62,8 @@ func cardName(g *gamecfg.Game, id state.ObjID) string { return g.E.G.Obj(id).Fac
 // TestMixedSelectOrdersHiddenCandidates takes a real Thoughtseize
 // modes/discard decision, reverses its options, and checks the pose is still
 // in (card_name, object_id) order, each hidden candidate carrying the key V5
-// reads. Before the fix the candidates had Hidden=false and empty keys, so
-// Finalize left them in engine order.
+// reads. Candidates with Hidden=false and empty keys would stay in engine
+// order through Finalize.
 func TestMixedSelectOrdersHiddenCandidates(t *testing.T) {
 	g := untilRepoDeck(t, "dimir-tempo", func(d *decision.Decision, _ *rules.Engine) bool {
 		return d.Kind == decision.KModes && mapping.Route(d) == "modes/discard"

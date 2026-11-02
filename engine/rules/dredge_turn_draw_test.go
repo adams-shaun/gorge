@@ -1,4 +1,4 @@
-// Fix round (findings-sol4 MAJOR): the draw step's turn-based draw (CR 504.1)
+// The draw step's turn-based draw (CR 504.1)
 // can SUSPEND on a Dredge replacement ask (CR 702.55) posed through the same
 // DrawFor the Draw primitive shares. advanceStep must then return without
 // emitting the step's own Priority event: CR 405.1 grants priority only after
@@ -10,7 +10,6 @@
 //
 // The probe that broke this drove an ACTUAL turn draw (upkeep -> draw through
 // the turn structure, not e.drawCard directly) with Golgari Thug in its
-// controller's graveyard and failed on the pre-fix code with
-// "priority emitted while dredge decision is pending". This test is that
-// probe, committed.
+// controller's graveyard, where a bad order reads "priority emitted while
+// dredge decision is pending". This test is that probe, committed.
 package rules

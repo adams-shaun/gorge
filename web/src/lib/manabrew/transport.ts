@@ -4,7 +4,7 @@ import { parseEngineMessage, type ClientMessage, type EngineMessage, type Protoc
 
 /**
  * transport.ts is gorge's ManaBrew wire transport, client side
- * (host/manabrewhttp, scope spec §5.2): an SSE stream of engine messages,
+ * (host/manabrewhttp): an SSE stream of engine messages,
  * a POST per client message, and a one-shot state read. Every route is
  * seat-claim fenced; EventSource cannot set headers, so the token rides as
  * `?token=` on the GETs and as a Bearer header on the POST.

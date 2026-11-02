@@ -89,8 +89,7 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 // loss arrives from the state-based action at the priority boundary --
 // never during the payment.
 //
-// The payment is driven MANUALLY. Ancient Tomb is a last-resort source (spec
-// §3.2, aph-producer-tiers): the planner never funds a plan with it, so the
+// The payment is driven MANUALLY. Ancient Tomb is a last-resort source: the planner never funds a plan with it, so the
 // auto-pay offer carries no witness for this cast and the planned-payment
 // executor cannot reach the shape. The test asserts that first, then begins
 // the cast directly (the pool-only offer gate never offers a cast the empty
@@ -99,14 +98,13 @@ func nlPutOnStack(e *Engine, id state.ObjID) bool {
 //
 // The Island is tapped FIRST and the tomb LAST, so the tomb's damage is the
 // final activation of the window and the payment settles inside that same
-// answer. Pre-fix, resolveManaWith refused the {2}{U} at life -1 and the cast
-// reversed "cost no longer payable". The reverse order (tomb, then Island)
-// crosses a Submit boundary at life -1, where Submit's closing
-// checkStateBased runs while the cast is still mid-window, so the payer
-// loses before the Island can be tapped -- a separate CR 704.3 deviation of
-// the manual window that this test deliberately does not pin.
+// answer. The reverse order (tomb, then Island) crosses a Submit boundary at
+// life -1, where Submit's closing checkStateBased runs while the cast is
+// still mid-window, so the payer loses before the Island can be tapped -- a
+// separate CR 704.3 deviation of the manual window that this test
+// deliberately does not pin.
 //
-// The log is walked to pin the ordering the ticket names: the tomb's
+// The log is walked to pin the ordering: the tomb's
 // production and damage precede the pool deduction, and no PlayerLost
 // appears before the spell is paid for.
 func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
@@ -137,7 +135,7 @@ func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("precondition: pending = %+v, want priority", d)
 	}
-	// Payment actions are published lazily (aph-lazy-offers): build them
+	// Payment actions are published lazily: build them
 	// for this ask, as an opted-in consumer would, before reading them.
 	e.EnsurePaymentActions()
 	for _, a := range d.PaymentActions {
@@ -177,7 +175,7 @@ func TestManaPaymentContinuesBelowZeroLife(t *testing.T) {
 		t.Fatalf("the window did not offer Ancient Tomb: %+v", e.Pending())
 	}
 
-	// Walk the log once and pin every event the ticket names by index, then
+	// Walk the log once and pin every event by index, then
 	// assert the ordering.
 	//
 	// CR ordering: the spell is put on the stack when announced (601.2a),

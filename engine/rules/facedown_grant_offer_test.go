@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestFaceDownGrantorOffersNoGrantedManaAbility pins cardfuzz batch9 line 1
+// TestFaceDownGrantorOffersNoGrantedManaAbility pins a fuzzer failure
 // on the real corpus pair: Citanul Hierophants ("Creatures you control have
 // '{T}: Add {G}.'") entered the battlefield FACE DOWN, so its printed
 // Continuous static does not exist (CR 708.8). The priority offer read the

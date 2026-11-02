@@ -1,11 +1,9 @@
 package rules
 
-// trig:FullyUnlock's leaf (task agent-20260919T191104Z-95f1e316): the Eerie
+// trig:FullyUnlock's leaf: the Eerie
 // enchantments' "whenever ... you fully unlock a Room" half, driven by the
 // REAL corpus Fear of Sleep Paralysis and the real two-door Defiled Crypt /
-// Cadaver Lab. The tests live in their own file (never appended to the Room
-// leaves in mass_primitives_test.go) so a concurrent ticket cannot collide on
-// the same test file.
+// Cadaver Lab.
 
 import (
 	"testing"

@@ -9,7 +9,7 @@ package rules
 // referent was bound in the shared filter grammar the gate's
 // ConditionPresent$ carried an unknown predicate, effects.conditionMet
 // returned UNRESOLVED, and the registry's documented fail-open convention
-// ran the sub-ability unconditionally: measured at main 8b38ed71e, C.A.M.P.
+// ran the sub-ability unconditionally: C.A.M.P.
 // minted a Junk token even for a Savannah Lions target that shares nothing
 // with the Forest's {G} (and Jaded Response countered every spell).
 //

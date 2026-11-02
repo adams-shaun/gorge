@@ -1,7 +1,7 @@
 package rules
 
-// The review round's fixes on top of the vivi-ornitier-cedh import reads
-// (verdict-r2's findings), each pinned on the carrier the finding named:
+// Fixes on top of the vivi-ornitier-cedh import reads, each pinned on its
+// carrier:
 //
 //	static delayed-trigger scan   Insist (the "next creature spell can't be
 //	                              countered" promise family, ~50 corpus cards)
@@ -119,8 +119,7 @@ const randTwoSrc = "Name:Randtwo\nManaCost:B R\nTypes:Sorcery\n" +
 
 // TestRandomRevealCountFollowsNumCards pins the count: the Random$ narrowing
 // runs AFTER the count is resolved, so NumCards$ 2 reveals (and the chained
-// discard acts on) TWO distinct cards — the pre-fix build narrowed the pool
-// to one card first and revealed one.
+// discard acts on) TWO distinct cards .
 func TestRandomRevealCountFollowsNumCards(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -156,11 +155,10 @@ func TestRandomRevealCountFollowsNumCards(t *testing.T) {
 	viviPass(t, e)
 	viviPass(t, e)
 	// THE pin: exactly one public reveal Note, carrying TWO DISTINCT seat-1
-	// hand ids — the pre-fix narrowing narrowed the pool to one card first
-	// and revealed one. (The chained discard sub is the Discard Mode$ Defined
-	// stand-in — a defined-PLAYER target with DefinedCards$ moves nothing —
-	// a gap already recorded in AGENTS.md's approximations table, out of
-	// scope here.) The reveal moves nothing, so seat 1's hand is unchanged.
+	// hand ids . (The chained discard sub is the Discard Mode$ Defined
+	// stand-in — a defined-PLAYER target with DefinedCards$ moves nothing — a
+	// gap already recorded in AGENTS.md's approximations table, out of scope
+	// here.) The reveal moves nothing, so seat 1's hand is unchanged.
 	if got := len(e.G.Zone(state.ZHand, 1)); got != 7 {
 		t.Fatalf("seat 1 hand %d, want 7 (a reveal moves nothing)", got)
 	}
@@ -184,8 +182,8 @@ func TestRandomRevealCountFollowsNumCards(t *testing.T) {
 
 // TestOptionalDeciderAskResolvesTheNamedDecider pins the decider identity:
 // Vex's "that spell's controller may draw a card" — OptionalDecider$
-// TargetedController — asks the TARGETED spell's controller (seat 0), not
-// the counter's caster (seat 1, where the pre-fix read posed it).
+// TargetedController — asks the TARGETED spell's controller (seat 0), not the
+// counter's caster (seat 1).
 func TestOptionalDeciderAskResolvesTheNamedDecider(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -248,8 +246,7 @@ const unresolvableDeciderSrc = "Name:Optdec\nManaCost:U\nTypes:Instant\n" +
 
 // TestOptionalDeciderUnresolvableDrawsMandatory pins the fail-closed arm: an
 // unresolvable decider keeps the pre-ask mandatory draw and one loud Note —
-// it neither poses a controller ask (the pre-fix wrong-seat behaviour) nor
-// wedges.
+// it neither poses a controller ask nor wedges.
 func TestOptionalDeciderUnresolvableDrawsMandatory(t *testing.T) {
 	t.Parallel()
 	deck0 := append([]*cards.Card{card(t, unresolvableDeciderSrc)}, mountainDeck(t, 39)...)

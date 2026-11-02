@@ -5,7 +5,7 @@ import { parseSymbol } from './mana';
 
 /**
  * manualmana.ts is the ONE rule for when the auto-pay mode hides a manual
- * mana tap (spec §8 as amended): "Manual mana
+ * mana tap: "Manual mana
  * taps are hidden under auto-pay only when every play the window can reach is
  * reachable without them."
  *

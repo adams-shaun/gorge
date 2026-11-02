@@ -27,7 +27,7 @@ func ppAsk(t *testing.T, e *Engine) *decision.Decision {
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("pending = %#v, want seat-0 priority", d)
 	}
-	// Payment actions are published lazily (aph-lazy-offers): build them
+	// Payment actions are published lazily: build them
 	// for this ask, as an opted-in consumer would.
 	e.EnsurePaymentActions()
 	return d
@@ -103,7 +103,7 @@ func TestPaymentPlanPrefersMountainOverBadlandsAndLeavesItUntapped(t *testing.T)
 	}
 }
 
-func TestPaymentPlanPP01PaysGenericWithMountainOnExactBoard(t *testing.T) {
+func TestPaymentPlanPaysGenericWithMountainOnExactBoard(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9300, "Name:Grixis Plan\nManaCost:1 U B\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
 	island := onBoard(t, e, 0, ppIsland)
@@ -119,7 +119,7 @@ func TestPaymentPlanPP01PaysGenericWithMountainOnExactBoard(t *testing.T) {
 		used[activation.Source] = true
 	}
 	if len(used) != 3 || !used[island] || !used[swamp] || !used[mountain] {
-		t.Fatalf("PP-01 witness sources = %#v, want Island, Swamp and Mountain", a.Plans[0].Activations)
+		t.Fatalf("witness sources = %#v, want Island, Swamp and Mountain", a.Plans[0].Activations)
 	}
 	ppSubmitPlan(t, e, d, a)
 	if e.G.Obj(spell).Zone != state.ZStack {
@@ -268,12 +268,11 @@ func TestPaymentPlanProducerAndPoolExclusions(t *testing.T) {
 			t.Fatal("restricted producer funded a plan")
 		}
 	})
-	// PP-09 / spec §3.2: a source another object's tap/mana trigger can match
+	// A source another object's tap/mana trigger can match
 	// is deferred (not scheduled), so it may never appear in a witness. The
 	// engine's V1 gate is stricter than per-source deferral -- it declines the
 	// whole offer while any TapsForMana trigger is live -- but the deferred
-	// source is never scheduled either way, which is the property asserted
-	// here. The over-conservative global shape is named in the report.
+	// here.
 	t.Run("source matched by a taps-for-mana trigger is deferred", func(t *testing.T) {
 		e, _, spell := newFixtureDeck(t, 9353, redSpell)
 		mtn := onBoard(t, e, 0, ppMountain)

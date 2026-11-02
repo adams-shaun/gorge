@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Tests for the token/zone-change entry variants this task read:
+// Tests for the token/zone-change entry variants:
 //
 //   - `Token.TokenTapped$ True` (Army of the Damned's thirteen tapped
 //     Zombies) -- the token enters and then carries the same "entered

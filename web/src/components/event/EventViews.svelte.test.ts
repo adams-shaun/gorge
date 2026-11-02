@@ -288,7 +288,7 @@ describe('HubView and Standings', () => {
     expect(body).toContain('<i class="dot d ');
   });
 
-  it('the viewer\'s own between-games series carries the between-games panel inline (E3-9); others do not', () => {
+  it('the viewer\'s own between-games series carries the between-games panel inline; others do not', () => {
     const ev = eventState({
       phase: 'ROUND1',
       round: 1,

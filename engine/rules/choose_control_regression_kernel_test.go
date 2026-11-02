@@ -116,7 +116,8 @@ func TestReboundTargetRestrictionOnlyOffersPlayersKernel(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: creature.ID, From: state.ZLibrary, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, Player: 0, Amount: 1})
 	resolveUnderProbe(e, func() *effects.Ctx {
-		return &effects.Ctx{Source: rebound.ID, Controller: 0, Targets: []state.Target{{Obj: spell.ID}}, SVars: rebound.Face().SVars}
+		return &effects.Ctx{Source: rebound.ID, Controller: 0, Targets: []state.Target{{Obj: spell.ID}}, SVars: rebound.Face().SVars,
+			OfferedSA: rebound.Face().SpellAbility(), TargetsOffered: true}
 	}, rebound.Face().SpellAbility())
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {

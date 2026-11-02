@@ -5,8 +5,8 @@ package host
 // ViewAtSeat/EventsSeat are the library's answer to "what does player k
 // see": a view built for one seat and an event stream redacted for it, both
 // via primitives that already exist (view.ProjectFor, view.RedactEventsFor
-// with Seat visibility) — this task threads a viewer through, it writes no
-// new redaction. The assertions pin the three properties the brief names:
+// with Seat visibility) -- this threads a viewer through, it writes no new
+// redaction. The assertions pin three properties:
 // (a) the asked seat's own hand — and, while the engine is parked on that
 // seat, its decision — is visible, and no other seat's hand is; (b) the
 // projection follows the viewer, so a different seat's view is that seat's
@@ -18,8 +18,8 @@ package host
 // not its Obj), so its fixture must have cards still sitting in hands at
 // head — the shared finished match does not (every seat plays its hand out,
 // hand sizes are 0), which is exactly why (c) runs against a live match
-// parked on its first decision, where the openers are still in hand. Since
-// E3-fx3 (CR 103.5) that first decision is the CR 103.1 starting-player
+// parked on its first decision, where the openers are still in hand. Under
+// CR 103.5 that first decision is the CR 103.1 starting-player
 // ask, so the pregame blind redacts the seat's own Secret draws too; the
 // (c) assertions below pin the blind shape.
 
@@ -252,7 +252,7 @@ func TestViewAtSeatAndEventsSeatDuringALiveMatch(t *testing.T) {
 		}
 		bySeq[b.Event.Seq] = b
 	}
-	// The viewer's own draw: since E3-fx3 (CR 103.5) the fixture's parked
+	// The viewer's own draw: under CR 103.5 the fixture's parked
 	// state is the CR 103.1 starting-player ask, so the CR 103.5 pregame
 	// blind redacts the viewer's OWN Secret draws too — no object, the
 	// shape line. After the choice resolves the same request serves the

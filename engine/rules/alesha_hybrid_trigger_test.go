@@ -11,13 +11,13 @@ import (
 )
 
 // This file pins the CR 601.2b / 107.4e flexible-pip payment at a
-// TRIGGERED-cost window, on a real-corpus carrier: Alesha,
-// Who Smiles at Death's attack trigger `Cost$ WB WB`. Before the fix the
-// window's pay/decline ask collapsed to a single `trigger_cost_decline`
-// because Cost.Priceable() rejects hybrid pips and no announcement ask
-// existed, so her ChangeZone body never ran. These tests drive real combat
-// from the attackers declaration, elect each hybrid face through the window's
-// own pip ask (the cast flow's `pay_W`/`pay_B` option kinds and Cost.announcePip
+// TRIGGERED-cost window, on a real-corpus carrier: Alesha, Who Smiles at
+// Death's attack trigger `Cost$ WB WB`. Cost.Priceable() rejects hybrid pips,
+// so with no announcement the window's pay/decline ask would collapse to a
+// single `trigger_cost_decline`; no announcement ask existed, so her
+// ChangeZone body never ran. These tests drive real combat from the attackers
+// declaration, elect each hybrid face through the window's own pip ask (the
+// cast flow's `pay_W`/`pay_B` option kinds and Cost.announcePip
 // alternatives), pay, and assert the returned creature's entry plus the exact
 // mana/life spent.
 
@@ -145,8 +145,7 @@ func TestAleshaHybridTriggerPaysEitherFace(t *testing.T) {
 
 // TestAleshaHybridTriggerWillNotPayUnpayable is the negative half: with an
 // empty pool and no untapped mana sources, the window must not falsely offer
-// the payment. Since the pool-coverability gate
-// (triggeredCostManaHalfPayable, ticket agent-20260922T232740Z-cf0357bb) the
+// the payment. With the pool-coverability gate (triggeredCostManaHalfPayable) the
 // pay/decline ask is DECLINE-ONLY when neither the pool nor any activatable
 // mana source can cover the announced cost -- the CR 601.2b pip announcement
 // is still posed (it is a choice, not a solvency claim), but the pay option

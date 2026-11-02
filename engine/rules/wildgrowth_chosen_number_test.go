@@ -1,19 +1,12 @@
 package rules
 
-// Effect-delivered replacements with a SetChosenNumber$
-// binding -- the "that creature enters with an additional +1/+1 counter on
-// it for each ..." trigger family (torgal_a_fine_hound, communal_brewing,
-// wildgrowth_archaic). Before the fix the trigger fired, the DB$ Effect
-// registered nothing, and the log carried one line:
-//
-//	note: continuous replacement unimplemented (ETBCreat)
-//
-// because effEffect's registration branch knew only the DamageDone-with-body
-// shape (Taii Wakeen) and nothing anywhere read SetChosenNumber$. The fix
-// binds the number ONCE at Effect creation against the trigger's own context
-// (torgal's Dog/Wolf board count, communal's ingredient counters on itself,
-// wildgrowth's TriggeredCard$Converge fire-time snapshot), registers the
-// Event$ Moved + PutCounter-body replacement for real, and threads the
+// Effect-delivered replacements with a SetChosenNumber$ binding -- the "that
+// creature enters with an additional +1/+1 counter on it for each ..."
+// trigger family (torgal_a_fine_hound, communal_brewing, wildgrowth_archaic).
+// The fix binds the number ONCE at Effect creation against the trigger's own
+// context (torgal's Dog/Wolf board count, communal's ingredient counters on
+// itself, wildgrowth's TriggeredCard$Converge fire-time snapshot), registers
+// the Event$ Moved + PutCounter-body replacement for real, and threads the
 // frozen binding through replCtx into the body's Count$ChosenNumber head.
 //
 // Every fixture is a real Forge script SHAPE written inline per the repo's
@@ -95,8 +88,8 @@ func activeMovedReplacements(e *Engine) []*state.ContinuousEffect {
 	return out
 }
 
-// assertNoUnimplementedNote fails if the log carries the pre-fix
-// "continuous replacement unimplemented" Note.
+// assertNoUnimplementedNote fails if the log carries a "continuous
+// replacement unimplemented" Note.
 func assertNoUnimplementedNote(t *testing.T, e *Engine) {
 	t.Helper()
 	if hasNote(e, "continuous replacement unimplemented") {
@@ -342,8 +335,8 @@ const wgBaubleSrc = "Name:Fixture Bauble\nManaCost:0\nTypes:Artifact\nOracle:x\n
 // TestVoidChooseNumberReadsTheLoggedChoice pins the OTHER side of the
 // Count$ChosenNumber verdict: on a non-effect shape (void's SP$ ChooseNumber
 // chain) the chosen number lives on the SOURCE object (engine/effects/choose.go's
-// logged Choose fold), never on Ctx. Before fuzz-cov3 the unbound head stayed
-// UNRESOLVED, so void's cmcEQX never matched and Void destroyed nothing
+// logged Choose fold), never on Ctx. An unbound head stays
+// UNRESOLVED, so void's cmcEQX never matches and Void destroys nothing
 // whatever number was chosen; the head now falls back to the source's own
 // recorded answer, so the comparison reads the number the player actually
 // chose -- never Ctx's meaningless zero (the first wildgrowth draft's bug,

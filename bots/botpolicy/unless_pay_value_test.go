@@ -24,8 +24,8 @@ func manaUnlessDecision(cost string) *decision.Decision {
 // TestUnlessPayPolicyDeclinesWhenPayingIsWorse pins the value-aware half of
 // the unless-pay bot policy: a PAYABLE mana vote can be declined when the
 // payer faces lethal board damage and the tax would spend its entire floating
-// pool — the losing race. Before the fix the generic KModes arm chose option
-// 0 (Pay) unconditionally.
+// pool — the losing race. The generic KModes arm would choose option 0 (Pay)
+// unconditionally.
 func TestUnlessPayPolicyDeclinesWhenPayingIsWorse(t *testing.T) {
 	r := rand.New(rand.NewPCG(5, 6))
 	d := manaUnlessDecision("3")

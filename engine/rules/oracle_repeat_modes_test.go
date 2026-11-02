@@ -2,11 +2,10 @@ package rules
 
 // Regression tests for the oracle runner's handling of a CanRepeatModes$
 // Charm (CR 601.2b: "Choose N. You may choose the same mode more than
-// once."). The decision it poses carries Repeatable (engine/rules/resolution_chain.go
-// modeDecisionForChoices), and a scripted answer that picks the same mode
-// more than once must SUBMIT the same option index again. Before the fix the
-// runner kept a single one-use map across the picks, so the second "Proliferate"
-// found no unused option and the run died "answer ... not offered".
+// once."). The decision it poses carries Repeatable
+// (engine/rules/resolution_chain.go modeDecisionForChoices), and a scripted
+// answer that picks the same mode more than once must SUBMIT the same option
+// index again.
 
 import (
 	"strings"

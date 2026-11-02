@@ -104,8 +104,8 @@ func TestFieryConfluenceRepeatsAMode(t *testing.T) {
 		t.Fatalf("damage-opponents mode not offered: %+v", d.Options)
 	}
 
-	// The repeated pick: the SAME index three times. Pre-fix this intent is
-	// rejected by Validate ("duplicate choice"), which is exactly the bug.
+	// The repeated pick: the SAME index three times. Validate must not reject
+	// this intent as a "duplicate choice".
 	start := e.G.Players[1].Life
 	submitChoices(t, e, opp, opp, opp)
 	passUntilStackEmpty(t, e, 20)
@@ -208,8 +208,7 @@ func mysticConfluenceEngine(t *testing.T, seed uint64) (*Engine, Config, state.O
 // TARGET-BEARING mode: three picks of the return mode are three separate
 // instances (CR 700.2d), so the cast announcement asks for three targets in
 // one decision -- one exclusive Group per instance (CR 115.3) -- and each
-// instance resolves against its OWN target. Pre-fix the repeated name dropped
-// the per-instance slots and the single first-mode ask shared one target.
+// instance resolves against its OWN target.
 func TestMysticConfluenceRepeatsTargetedModeAsksPerInstance(t *testing.T) {
 	t.Parallel()
 	e, cfg, id, bears := mysticConfluenceEngine(t, 1)

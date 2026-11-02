@@ -5,9 +5,7 @@ package rules
 // face's own T:Mode$ UnlockDoor trigger must fire on entry -- not only on the
 // paid special-action unlock of the other door. This leaf drives the real
 // corpus Spiked Corridor // Torture Pit: the front door's trigger creates
-// three 1/1 red Devil tokens when the room is cast. It lives in its own file
-// (never appended to mass_primitives_test.go's Room leaves) so a concurrent
-// ticket cannot collide on the same test file.
+// three 1/1 red Devil tokens when the room is cast.
 
 import (
 	"strings"

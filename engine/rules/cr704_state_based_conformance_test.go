@@ -31,7 +31,7 @@ func TestCR704NoLifeSBAInsideSmallpoxDiscard(t *testing.T) {
 	}
 	// The first discard chooser stays alive. Seat 1 must still participate
 	// at zero life until this ENTIRE spell, including sacrifices, finishes.
-	// This avoids I-1's departed-chooser continuation entirely.
+	// This avoids the departed-chooser continuation entirely.
 	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: 1 - e.G.Players[1].Life})
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "B", Amount: 2})
 	e.askPriority(0)

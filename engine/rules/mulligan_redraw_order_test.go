@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // firstRedrawEvent returns the index of the first redraw event in the log: a
@@ -184,5 +185,47 @@ func TestMulliganRedrawWaitsForAllSeats(t *testing.T) {
 		t.Errorf("seat 0's redraw at event %d precedes a seat's declaration at %d: the pass "+
 			"must finish declaring before any redraw resolves (CR 103.4/103.5)",
 			redraws, lastKeepAt)
+	}
+}
+
+// TestServedMulliganAllowanceReachesAnEmptyHand: CR 103.5 lets a player mulligan
+// as often as they like. Seat 0 takes every mulligan the served allowance gives,
+// goes to an empty hand and starts the game there.
+func TestServedMulliganAllowanceReachesAnEmptyHand(t *testing.T) {
+	t.Parallel()
+	const served = 7
+	cfg := fourSeatConfig(t, 60, served)
+	cfg.Names, cfg.Decks = cfg.Names[:2], cfg.Decks[:2]
+	e := New(cfg)
+	e.Advance()
+	taken := 0
+	for e.G.Turn == 0 && e.Pending() != nil && !e.G.Over {
+		d := e.Pending()
+		in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}
+		if d.Options[0].Kind == "bottom" {
+			in.Choices = in.Choices[:0]
+			for j := 0; j < d.Min; j++ {
+				in.Choices = append(in.Choices, d.Options[j].Index)
+			}
+		} else if d.Player == 0 {
+			for _, o := range d.Options {
+				if o.Kind == "mulligan" {
+					in.Choices = []int{o.Index}
+					taken++
+				}
+			}
+		}
+		if err := e.Submit(in); err != nil {
+			t.Fatalf("pregame intent: %v", err)
+		}
+	}
+	if taken != served {
+		t.Fatalf("seat 0 took %d mulligans, want %d", taken, served)
+	}
+	if e.G.Turn != 1 {
+		t.Fatalf("round did not reach turn 1, turn %d", e.G.Turn)
+	}
+	if hand := e.G.Zone(state.ZHand, 0); len(hand) > 1 {
+		t.Fatalf("seat 0's hand after %d mulligans: %v", served, hand)
 	}
 }

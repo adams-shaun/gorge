@@ -4,8 +4,8 @@ import { pickOption } from './seatpanel.svelte';
 
 // pickOption against Decision.groupLimits: a per-defender attack ceiling
 // (AttackRestrict's MaxAttackers$ scoped by ValidDefender$) names each capped
-// defender's Group and its own cap. The client stays rules-ignorant
-// (R-E4-2): it derives the cap from the wire field alone, so a defender
+// defender's Group and its own cap. The client stays rules-ignorant: it derives
+// the cap from the wire field alone, so a defender
 // capped at two accepts a second attacker while a defender capped at one
 // still replaces. The map overrides the decision-wide groupLimit for the
 // groups it names.

@@ -1,4 +1,4 @@
-import type { BotPolicyList, Capabilities, Decision, ErrorBody, EventBody, Intent, MatchInfo, ReviewDecision, TableInfo, View } from '../protocol';
+import type { Advice, BotPolicyList, Capabilities, Decision, ErrorBody, EventBody, Intent, MatchInfo, PairedBotStatus, ReviewDecision, TableInfo, View } from '../protocol';
 import type { SeatCtx } from './seat';
 import { withBase } from './basepath';
 
@@ -116,6 +116,27 @@ async function postJSON(path: string, body: unknown): Promise<void> {
 export const fetchTables = () => getJSON<TableInfo[]>(tablesURL());
 export const fetchMatches = (t: string, ctx?: SeatCtx) => getJSON<MatchInfo[]>(matchesURL(t, ctx));
 export const fetchDecisions = (t: string, k: number) => getJSON<ReviewDecision[]>(decisionsURL(t, k));
+
+/** fetchPairedBotStatus is whether this table offers a paired bot. A seated request passes the private-table fence. */
+export const fetchPairedBotStatus = (t: string, ctx: SeatCtx) =>
+  getJSON<PairedBotStatus>(withBase(`/api/tables/${enc(t)}/paired-bot${seatQuery(ctx)}`));
+
+/**
+ * fetchAdvice asks the paired bot about decision seq, pending on the claim's
+ * seat. Aborting the signal hangs up, which cancels the search on the server;
+ * it rejects with the signal's AbortError.
+ */
+export async function fetchAdvice(t: string, k: number, seq: number, ctx: SeatCtx, signal: AbortSignal): Promise<Advice> {
+  const res = await fetch(withBase(`/api/tables/${enc(t)}/matches/${k}/advice?seq=${seq}`), {
+    headers: { Accept: 'application/json', Authorization: `Bearer ${ctx.token}` },
+    signal,
+  });
+  if (!res.ok) {
+    const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
+    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
+  }
+  return (await res.json()) as Advice;
+}
 
 export interface DeckInfo {
   id: string;

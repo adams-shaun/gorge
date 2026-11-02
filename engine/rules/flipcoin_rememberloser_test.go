@@ -16,8 +16,8 @@ import (
 // whose T:Mode$ PlaneswalkedTo trigger can never fire in a build with no
 // planar deck, and its repeat gate reads the count head
 // PlayerCountRemembered$HasPropertyYou, which this build does not model, so
-// the loop would not repeat even if the trigger fired. What IS this ticket's
-// behaviour is the RememberLoser$ binding itself: a LOST flip must bind the
+// the loop would not repeat even if the trigger fired. What IS pinned is
+// the RememberLoser$ binding itself: a LOST flip must bind the
 // flipper as Remembered (and a won flip must leave Remembered untouched),
 // which is exactly what the real card's repeat gate goes on to count. The
 // chained DB$ DealDamage | Defined$ Remembered makes that binding observable

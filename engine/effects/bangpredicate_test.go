@@ -72,7 +72,7 @@ func TestBangPredicateNegation(t *testing.T) {
 		t.Errorf("UnknownPredicates(Creature.DefinedTargeted) = %v, want [DefinedTargeted]", un)
 	}
 
-	// Leaf 2b (pc2): IsRemembered is now IMPLEMENTED, so its negation is a
+	// Leaf 2b: IsRemembered is IMPLEMENTED, so its negation is a
 	// real negation -- the remembered creature is excluded and the
 	// un-remembered one admitted, and the census reports neither form. The
 	// remembered set rides the SpecContext (the resolution's Remembered list,

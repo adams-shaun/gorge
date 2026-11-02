@@ -299,10 +299,9 @@ func TestLedgerSkipsRedirectedPlayerCombatDamage(t *testing.T) {
 // replacement alone qualifies, and Battletide Alchemist ("you may prevent X …
 // where X is the number of Clerics you control", here 0) is a real corpus
 // carrier — parks a KReplacement and returns a Note from runCombatAssignments,
-// so the capture site's append is SKIPPED for a hit that lands. Before the
-// finishChosenDamage append existed the parked hit never entered the ledger
-// and Lost Monarch's intervening-if read 0 in exactly the games this ticket
-// exists to fix.
+// so the capture site's append is SKIPPED for a hit that lands. Without the
+// finishChosenDamage append the parked hit never enters the ledger and Lost
+// Monarch's intervening-if reads 0.
 func TestLedgerRecordsParkedDamageReplacement(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

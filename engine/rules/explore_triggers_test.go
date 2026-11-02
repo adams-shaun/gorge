@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Explore family end to end (task explore1): api:Explore (CR 701.35a —
+// The Explore family end to end: api:Explore (CR 701.35a —
 // reveal the top card; land to hand; otherwise a +1/+1 counter and the LCI
 // "put the card back or put it into your graveyard" election), the
 // "Whenever a creature you control explores" trigger mode (trig:Explores)

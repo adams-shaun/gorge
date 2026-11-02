@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Decision, View } from '../../protocol';
   import type { SeatPanelState } from '../../lib/seatpanel.svelte';
+  import { isDivision } from '../../lib/prompts/division';
   import { rendererFor, type Placement } from '../../lib/prompts/renderer';
   import { manaWindow } from '../../lib/announcepay';
   import { digitMap, renderedOrder } from '../../lib/prompts/order';
@@ -8,6 +9,7 @@
   import ArrangePrompt from './ArrangePrompt.svelte';
   import CombatPrompt from './CombatPrompt.svelte';
   import DiscardPrompt from './DiscardPrompt.svelte';
+  import DivisionPrompt from './DivisionPrompt.svelte';
   import ListPrompt from './ListPrompt.svelte';
   import MulliganPrompt from './MulliganPrompt.svelte';
   import NamePickPrompt from './NamePickPrompt.svelte';
@@ -16,8 +18,8 @@
   import TargetChips from './TargetChips.svelte';
 
   /**
-   * PromptBody is the one dispatch from a decision to its renderer (UI
-   * rework spec §4: "one renderer per decision kind"). The seat panel (the
+   * PromptBody is the one dispatch from a decision to its renderer (one
+   * renderer per decision kind). The seat panel (the
    * ACTIONS strip and the board-centred mulligan) and the prompt dock both
    * mount it, so a decision looks and answers the same wherever it is
    * shown. rendererFor holds the precedence; every renderer answers through
@@ -48,6 +50,8 @@
   <TargetChips {decision} {view} {logic} />
 {:else if kind === 'attackers' || kind === 'blockers'}
   <CombatPrompt {decision} {view} {logic} />
+{:else if isDivision(decision)}
+  <DivisionPrompt {decision} {view} {logic} />
 {:else}
   <ListPrompt {decision} {logic} />
 {/if}

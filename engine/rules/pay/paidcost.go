@@ -118,22 +118,21 @@ func TargetName(g *state.Game, source state.ObjID) string {
 
 // EmitConvokeTaps emits the Tap events an activation's or cast's announced
 // Convoke/Harmonize/Improvise/waterbend contributions pay (CR 701.67a),
-// followed by the waterbend ElementalBend marker. All of one announcement's
-// taps are ONE cost action, so the Mode$ TapAll aggregate trigger fires once
-// for the whole announcement, not once per tapped creature: the taps ride
-// the BatchTap bracket (the tap-cost parts of EmitChoiceCosts' twin). It is
-// a free function over the payment Engine -- not a method on rules' Engine --
-// because the convoke emission is a cost-emission concern and the Engine's
-// method surface is a shrink-only ratchet.
-func EmitConvokeTaps(e Engine, card state.ObjID, player state.PlayerID, convoke []ConvokePayment) {
+// followed by the waterbend ElementalBend marker when the cost has a waterbend
+// part, however it was paid (CR 701.67c). All of one announcement's taps are
+// ONE cost action, so the Mode$ TapAll aggregate trigger fires once for the
+// whole announcement, not once per tapped creature: the taps ride the BatchTap
+// bracket (the tap-cost parts of EmitChoiceCosts' twin). It is a free function
+// over the payment Engine -- not a method on rules' Engine -- because the
+// convoke emission is a cost-emission concern and the Engine's method surface
+// is a shrink-only ratchet.
+func EmitConvokeTaps(e Engine, card state.ObjID, player state.PlayerID, convoke []ConvokePayment, waterbend bool) {
 	e.Batch(BatchTap, true)
-	waterbent := false
 	for _, pay := range convoke {
 		e.Emit(events.Event{Kind: events.Tap, Obj: pay.ID})
-		waterbent = waterbent || pay.Waterbend
 	}
 	e.Batch(BatchTap, false)
-	if waterbent {
+	if waterbend {
 		e.Emit(events.Event{Kind: events.ElementalBend, Obj: card, Player: player, Text: "water"})
 	}
 }

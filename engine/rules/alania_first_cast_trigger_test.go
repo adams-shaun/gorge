@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Alania, Divergent Storm's cast trigger (task castprov2), pinned end to end
+// Alania, Divergent Storm's cast trigger, pinned end to end
 // on the real corpus card:
 //
 //	T:Mode$ SpellCast | ValidCard$ Instant,Sorcery,Otter.!CastSaSource |
@@ -101,7 +101,7 @@ func castAlaniaProbe(t *testing.T, e *Engine, name string) {
 		}
 		d := e.Pending()
 		if d != nil && d.Kind == decision.KTriggerOptional {
-			// The optional-trigger asks (R2's placement ask and CR 603.5's
+			// The optional-trigger asks (the placement ask and CR 603.5's
 			// resolution ask, OptionalDecider$ You): answer yes.
 			submitChoices(t, e, 0)
 			continue

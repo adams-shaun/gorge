@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 2 (group "flow"): dual-run tests for the card-flow ask sites
+// Dual-run tests for the card-flow ask sites
 // converted onto the resolution kernel -- the look ack, the reveal pick and
 // may-reveal, the discard family, Dig, DigUntil, Surveil's look election,
 // Hideaway, NameCard, Draw's optional/up-to asks, Dredge and Recruit. Each

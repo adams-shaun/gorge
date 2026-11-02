@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMadnessDiscardDuringARepeatExilesInPlace pins cardfuzz batch8 line 1
+// TestMadnessDiscardDuringARepeatExilesInPlace pins a fuzzer failure
 // on real corpus cards: Kindle the Carnage ("Discard a card at random ...
 // You may repeat this process any number of times") discards Violent
 // Eruption. Its madness replacement used to be an optional ask that the
@@ -81,8 +81,8 @@ func TestMadnessDiscardDuringARepeatExilesInPlace(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGatedRepeatStopsWhenAnIterationChangesNothing pins cardfuzz batch8
-// line 4 on the real corpus card: Rally the Horde ("Exile the top card of
+// TestGatedRepeatStopsWhenAnIterationChangesNothing pins a fuzzer failure
+// on the real corpus card: Rally the Horde ("Exile the top card of
 // your library" three times; "If the last card exiled isn't a land card,
 // repeat this process") resolved over an EMPTY library. Nothing is exiled,
 // so the land-count gate keeps holding, and every pass logged only a Note

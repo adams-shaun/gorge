@@ -31,7 +31,7 @@ type engineCastWindows struct {
 	// engine: instead of counting no-progress aborts and killing the match,
 	// suppress the exact card that produced one, so the re-offer loop cannot
 	// begin an unbounded second iteration -- nobody's match dies, and the
-	// seat may still do anything else. F05-2 (CR 733.2) lets a reversed
+	// seat may still do anything else. CR 733.2 lets a reversed
 	// illegal action be redone legally, so suppression engages only on the
 	// SECOND identical no-progress abort of the same card in the same window
 	// (the per-card castAborts count), never the first. Cleared on any
@@ -42,7 +42,7 @@ type engineCastWindows struct {
 	suppressedCast map[state.ObjID]bool `clone:"deep"`
 
 	// castAborts counts the no-progress cast/activation aborts per card so far
-	// in the current priority window (F05-2, CR 733.2): the held-out
+	// in the current priority window (CR 733.2): the held-out
 	// suppression above engages only on the SECOND identical no-progress abort
 	// of the same card, so a merely-reversed illegal action (CR 733.2) may be
 	// redone legally once -- the first abort leaves the option offered -- while

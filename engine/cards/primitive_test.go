@@ -52,10 +52,10 @@ func TestPrimitivesFollowSVarNamingParams(t *testing.T) {
 	src := `Name:PrimFixtures
 Types:Sorcery
 A:SP$ Repeat | RepeatNum$ 2 | RepeatSubAbility$ DBRepeatBody
-A:SP$ Charm | CharmNum$ 1 | Choices$ DBPutCounter,DBPhaseOut
+A:SP$ Charm | CharmNum$ 1 | Choices$ DBCounter,DBPhaseOut
 SVar:DBRepeatBody:DB$ GenericChoice | Choices$ DBSac
 SVar:DBSac:DB$ LoseLife | LifeAmount$ 3
-SVar:DBPutCounter:DB$ PutCounter | CounterType$ P1P1
+SVar:DBCounter:DB$ PutCounter | CounterType$ P1P1
 SVar:DBPhaseOut:DB$ CustomUnsupportedProbe
 SVar:CountOnly:Count$Valid Creature.YouCtrl
 Oracle:x

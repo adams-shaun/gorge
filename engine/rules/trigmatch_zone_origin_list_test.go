@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Origin$ zone-set coverage for the ChangesZone / ChangesZoneAll matchers
-// (ticket agent-20260930T005535Z-b621b37a): a comma-list Origin$ is a zone
+// Origin$ zone-set coverage for the ChangesZone / ChangesZoneAll matchers: a comma-list Origin$ is a zone
 // set read with effects.ParseZones, not a single zone word. The corpus
 // carriers are Syr Konrad, the Grim ("from anywhere other than the
 // battlefield" = Hand,Graveyard,Exile,Stack,Library,Command) and Laelia, the

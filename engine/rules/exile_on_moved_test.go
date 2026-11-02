@@ -9,9 +9,7 @@ package rules
 // The sweep is engine/rules/layers.go's effectMoveSweep (wired from Engine.emit for
 // every MoveZone and PutOnStack); effEffect (engine/effects/misc.go) carries the
 // param onto the registered ContinuousEffect. The census label
-// param:api:Effect.ExileOnMoved was already deleted from
-// knownUnsupportedParams (commit 06769b73, the same commit that landed the
-// sweep with the Rakdos deck import), so — as for ForgetOnMoved$ — these
+// param:api:Effect.ExileOnMoved is read by the sweep, so — as for ForgetOnMoved$ — these
 // tests are the per-card proof the removal stands on, on real corpus cards:
 //
 //   - Abbot of Keral Keep (EXILE departure): the ETB dig exiles the top

@@ -115,8 +115,7 @@ func TestDiscardRememberingPlayersPersistently(t *testing.T) {
 	}
 }
 
-// TestDiscardRememberingPlayerAlreadyInTransientContext is the case the
-// first version of the fix missed (reviewer MAJOR, round 1): the discarding
+// TestDiscardRememberingPlayerAlreadyInTransientContext: the discarding
 // player is ALREADY in the resolution-local Ctx.Remembered set when the
 // RememberDiscardingPlayers$ rider runs -- an earlier subeffect in the same
 // resolution (e.g. ChoosePlayer's RememberChosen$) put them there WITHOUT

@@ -7,7 +7,7 @@ import (
 )
 
 // TestTriggerObjectsAttackersCountRef pins the TriggerObjectsAttackers count
-// ref (task tek1): the attackers that passed the firing trigger's own
+// ref: the attackers that passed the firing trigger's own
 // ValidAttackers$ filter, captured at queue time on the TriggerContext and
 // read here directly off a hand-built Ctx. The Earth King's
 // SVar:X:TriggerObjectsAttackers$Amount ("up to that many basic land cards")

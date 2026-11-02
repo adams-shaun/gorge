@@ -1,6 +1,6 @@
 package rules
 
-// cantsac1: a CantSacrifice static's ForCost$ True is enforced on the COST
+// A CantSacrifice static's ForCost$ True is enforced on the COST
 // path (engine/rules/layers.go sacrificeBlocked / sacrificeBlockedForCost), and its
 // ValidCause$ is evaluated there against the pending cast/activation
 // (engine/rules/trigger_cause.go causeCostAdmits) instead of being skipped whole.

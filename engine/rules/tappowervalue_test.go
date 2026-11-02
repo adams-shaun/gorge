@@ -11,9 +11,9 @@ package rules
 // The engine's Station flow (engine/rules/station.go) now reads the amount through
 // the ONE shared helper Engine.tapPowerValue, which honours a TapPowerValue
 // static scoped to the activated action's kind (ValidSA$) and matching the
-// tapped creature (ValidCard$). Until this ticket the static was read
-// nowhere, so a 0/4 wall charged ZERO charge counters instead of 4
-// (TestSetAudit_eoe_TapestryWarden_StationUsesToughness, now unguarded).
+// tapped creature (ValidCard$). Without it a 0/4 wall charges ZERO charge
+// counters instead of 4
+// (TestSetAudit_eoe_TapestryWarden_StationUsesToughness).
 //
 // The census at the bottom names all 10 corpus carriers, so a corpus-pin
 // bump that adds or drops one fails by name instead of silently drifting.
@@ -169,7 +169,7 @@ type tapPowerCarrier struct {
 //	/usr/bin/grep -rl 'TapPowerValue' .cards/cardsfolder | wc -l  ==  10
 //
 // Nine Pilot-family cards replace only Crew/Saddle readings; Tapestry Warden
-// and Stoic Star-Captain also scope the Station action this ticket wired.
+// and Stoic Star-Captain also scope the Station action.
 var tapPowerValueCarriers = []tapPowerCarrier{
 	{"Cloudspire Captain", false, "2"},
 	{"Deathless Pilot", false, "2"},

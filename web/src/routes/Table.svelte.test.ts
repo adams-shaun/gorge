@@ -53,7 +53,7 @@ const view = (overrides: Partial<View> = {}): View => ({
   over: false, draw: false, winner: null, players: [player(0), player(1)], stack: [], pending: [], ...overrides,
 });
 
-describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
+describe('Table.svelte seat gating', () => {
   it('test 5 — no seat in the URL renders no panel, and the spectator page renders as it always did', () => {
     initSeatContext('');
     fakeMatch.shared.view = view();
@@ -64,7 +64,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
 
     expect(html).not.toContain('data-seat-panel'); // no seat -> no panel
     expect(html).not.toContain('data-hot-strip'); // spectators get the display-only clock, never action tabs
-    expect(html).toContain('data-log-toggle'); // fb-20260917T231628Z: the OPTIONS drop is not mounted for a spectator, so the rail keeps the LOGS toggle
+    expect(html).toContain('data-log-toggle'); // the OPTIONS drop is not mounted for a spectator, so the rail keeps the LOGS toggle
     expect(html).toContain('data-cursor'); // the DVR bar still renders for the spectator
     // the seat identity never reached the MatchState: constructed with no
     // seat context, so no seat-scoped fetch can be built from it
@@ -96,7 +96,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-hot-tab="actions"');
     expect(html).toContain('data-hot-tab="done"');
     // Pass, End turn and Undo moved from the strip's tabs to the one gilt
-    // action button and its secondaries (UI rework §3), in the hand row.
+    // action button and its secondaries, in the hand row.
     expect(html).not.toContain('data-hot-tab="pass"');
     expect(html).toContain('data-action-cluster');
     expect(html).toContain('data-pass-action');
@@ -108,7 +108,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     expect(html).toContain('data-rail-options');
     expect(html).toContain('aria-controls="play-options-popover"');
     expect(html).not.toContain('data-toggle="show-game-log"');
-    expect(html).not.toContain('data-action-dock'); // ui26's rail dock moved here; it was not duplicated
+    expect(html).not.toContain('data-action-dock'); // the rail dock is not duplicated
     expect(html).toContain('data-concede-control');
     // Concede lives inside the rail's own box (position: relative), not
     // pinned to the viewport corner — a fixed-to-viewport control only
@@ -124,7 +124,7 @@ describe('Table.svelte seat gating (R-E4-4 / R-E4-5)', () => {
     // alone, which the colour-coding change now splits across markup.
     expect(html).toContain('draws a card');
     expect(html).toMatch(/<span class="who[^"]*"[^>]*color:\s*#e5484d[^>]*>Ari<\/span>/);
-    expect(html).not.toContain('TOPSECRETVALUEnEVERseen'); // R-E4-5: the token is never rendered
+    expect(html).not.toContain('TOPSECRETVALUEnEVERseen'); // the token is never rendered
     expect(fakeMatch.shared.lastSeat).toEqual({ seat: 0, token: 'TOPSECRETVALUEnEVERseen' });
 
     // restore the no-seat baseline for any later test in this file
@@ -154,7 +154,7 @@ describe('Table.svelte seat identity: header bars and the seat box', () => {
   });
 });
 
-describe('Table.svelte — the one arrows overlay mounts at the table root (fb-20260914T121642Z)', () => {
+describe('Table.svelte — the one arrows overlay mounts at the table root', () => {
   // The counterspell-over-bolt stack: the stack-to-stack pair whose arrow was
   // computed but invisible while the overlay lived inside the felt section.
   const counterStack: StackView[] = [
@@ -255,7 +255,7 @@ describe('Table.svelte — the ACTIONS-anchored prompt surface', () => {
 });
 
 describe('Table.svelte — the empty-answer safety net reaches the seated Pending tray', () => {
-  // The live soft-lock's wire decision (demo game g4, seat 0): Min 0 / Max 0
+  // The wire decision from a live soft-lock, seat 0: Min 0 / Max 0
   // with NO options — nothing a picker can render.
   const emptyChoose: Decision = {
     seq: 846, player: 0, kind: 'choose', prompt: 'Search a library: choose up to 0 card(s)', min: 0, max: 0, options: [],
@@ -272,7 +272,7 @@ describe('Table.svelte — the empty-answer safety net reaches the seated Pendin
     expect(pendingAt, 'the rail renders its Pending section').toBeGreaterThan(-1);
     const tray = html.slice(pendingAt);
     expect(tray).toContain('data-stuck');
-    expect(tray).toContain('Search a library: choose up to 0 card(s)');
+    expect(tray).toContain('Search a library: choose up to 0 cards');
     // The Continue renders only when Table wired an onContinue, which it
     // does only for a seated panel whose decision is answerable empty.
     expect(tray).toContain('data-continue');

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestRequiredQuotaPricesCombinedLifeCharge pins the review-r1 MAJOR at the
+// TestRequiredQuotaPricesCombinedLifeCharge pins this at the
 // rule's own home: a Required option set whose COMBINED non-mana charge (each
 // Phyrexian pip at two life, CR 107.4f) exceeds the published PayerLife must
 // have a quota that the answer can actually pay, and FitRequired must return

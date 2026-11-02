@@ -6,7 +6,7 @@ import (
 
 // TestPotentialUnpayableCastsOnlyOnAProof pins the offer builder's
 // PotentialUnpayableCasts to the planner's PROOF, not the cast planner's raw
-// "insufficient" verdict (fb-20261006T100405Z).
+// "insufficient" verdict.
 //
 // On the TestPotentialPaymentPlansScriptsAFilter board a {W} spell is payable
 // only through Heap Gate's filter, a source the planner census cannot price:

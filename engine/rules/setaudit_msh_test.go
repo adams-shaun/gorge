@@ -4,8 +4,8 @@ package rules
 //
 // This file is the audit's product: one test per defect found, and one
 // regression test per behaviour verified correct. A FAILING test is guarded
-// by GORGE_SET_AUDIT and names its follow-up ticket; it is expected to pass
-// once the ticket lands (remove the guard then). A PASSING test is the
+// by GORGE_SET_AUDIT and names its follow-up; it is expected to pass
+// once that fix lands (remove the guard then). A PASSING test is the
 // regression coverage and is never guarded.
 //
 // Findings are marked (a) keyword semantics, (b) corner cases, (c)

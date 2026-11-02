@@ -485,7 +485,7 @@ func cardFace(t *testing.T, name, types string, p, tn int32) *cards.Card {
 }
 
 // ---------------------------------------------------------------------------
-// Task m34: the defender is a per-attacker choice (CR 506.2 / CR 903.14).
+// The defender is a per-attacker choice (CR 506.2 / CR 903.14).
 
 // defN is def for a defending seat of the caller's choosing (the atk/def
 // helpers hard-code seats 0 and 1): the same Creature shape, controller n,
@@ -496,8 +496,8 @@ func defN(n state.PlayerID, id int, p int32, t int32, kw ...string) fact {
 }
 
 // attackDecisionDefs builds a KAttackers decision for seat 0 (the attacker)
-// with one option per (defender, attacker id) pair -- the Task-m34 shape,
-// where the same attacker may be offered against several defenders -- and
+// with one option per (defender, attacker id) pair, so the same attacker may
+// be offered against several defenders, and
 // returns the choices Decide made. The attacker facts come from atk() (ids
 // 100+), the same base attackDecision uses.
 func attackDecisionDefs(b Board, pairs ...[2]int) []int {
@@ -596,7 +596,7 @@ func TestAttackChoosesTheDefenderItCanHurt(t *testing.T) {
 }
 
 // TestAttackSplitsTwoAttackersAcrossTwoDefenders is the multiplayer
-// behaviour Task m34 exists to enable, at the policy level: each attacker
+// behaviour at the policy level: each attacker
 // independently chooses the defender it can hurt most -- seat 1 takes the
 // flier it cannot block, seat 2 takes the ground 4/4 nobody attends -- so
 // one combat points at two opponents at once. The 0/1 on my side stays
@@ -619,7 +619,7 @@ func TestAttackSplitsTwoAttackersAcrossTwoDefenders(t *testing.T) {
 }
 
 // TestAttackClockClosesAgainstOnlyOneDefender is AR5 against a real
-// defender choice (the Task-m34 brief's open question about m37): the
+// defender choice: the
 // commander clock is per (commander, damaged player), so closesClock is
 // read against the defender each option names. A commander pounding seat
 // 1's clock swings at seat 1 even though seat 1 can kill it for free --
@@ -662,7 +662,7 @@ func combinedAttackDecision(b Board, ids ...int) []int {
 	return combinedAttackDecisionFull(b, ids...).choices
 }
 
-// TestCombinedLethalTwoThreesVsFiveLife is the brief's headline case: two
+// TestCombinedLethalTwoThreesVsFiveLife is the headline case: two
 // 3/3s against 5 life with a lone 2/2 blocker. No single attacker is lethal
 // (AR7 misses it) and AR4 would hold one 3/3 back to keep a blocker, so the
 // baseline attacks with one; AR8's subset search sees 3+3=6 >= 5 through a

@@ -13,7 +13,7 @@ import (
 // the emit path -- the harnesses (cmd/mtgsim, a bench runner) recover it and
 // report it. These tests drive the engine's own emit with synthetic
 // non-terminating patterns: the same (object, event-kind) shape repeating
-// forever is the I-1 failure family (a stack object re-resolving 700+ times
+// forever is one failure family (a stack object re-resolving 700+ times
 // in a 13-event cycle), and the tests pin the diagnostic
 // for: object id, event kind, repeat count and cycle length.
 
@@ -74,7 +74,7 @@ func TestLivelockWatcherAbortsSameObjectSameKindRepeats(t *testing.T) {
 	}
 }
 
-// TestLivelockWatcherAbortsMultiEventCycle pins the I-1 shape directly: a
+// TestLivelockWatcherAbortsMultiEventCycle pins that shape directly: a
 // 13-event resolve cycle (here synthesised as a 3-event rotation) repeating
 // forever is caught, with the cycle length reported.
 func TestLivelockWatcherAbortsMultiEventCycle(t *testing.T) {
@@ -257,8 +257,7 @@ func TestLivelockWatcherShortWindowDoesNotReadBeforeTheWindow(t *testing.T) {
 	}
 }
 
-// TestLivelockWatcherCombatDamageFromManySourcesIsNotACycle pins cardfuzz
-// batch8 lines 2-3: the combat damage step of a board of ~1800 Goblin
+// TestLivelockWatcherCombatDamageFromManySourcesIsNotACycle: the combat damage step of a board of ~1800 Goblin
 // tokens logs one Damage event per attacker, each to the same player and
 // byte-identical in payload (a player hit names no object). Folding the
 // engine's damage source into the signature keeps 500 different creatures'

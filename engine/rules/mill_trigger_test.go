@@ -1,7 +1,7 @@
 package rules
 
-// The two mill-event trigger modes, end to end on the real compiled corpus
-// (task agent-20260919T183731Z-085022e9): Mode$ Milled fires once PER CARD
+// The two mill-event trigger modes, end to end on the real compiled corpus:
+// Mode$ Milled fires once PER CARD
 // milled (Glowing One), and Mode$ MilledAll fires once for the WHOLE mill
 // action with the number of matching cards milled this way bound to the
 // trigger's TriggerCount$Amount (The Wise Mothman's X).

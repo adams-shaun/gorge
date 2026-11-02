@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// ExcludeZone$ on a Continuous static (task agent-20260919T192133Z): the
+// ExcludeZone$ on a Continuous static: the
 // source-zone exclusion a static's ExcludeZone$ names is read at the ONE
 // gate every characteristic emission passes through (staticEffects, which
 // walks every staticSourceZones zone) and at the layer-7a CDA read

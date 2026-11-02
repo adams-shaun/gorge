@@ -3,7 +3,7 @@ package effects
 import "testing"
 
 // TestSaddlePredicateIsRecognizedAndTurnRelative pins the effects.IsSaddled
-// predicate (CR 702.171b, task agent-20260929T014717Z-0f0a84be): it is a
+// predicate (CR 702.171b): it is a
 // recognised predicate (so the census does not drift from the matcher) and it
 // matches ONLY on the turn the designation was stamped, so "until end of
 // turn" expires without a second event.

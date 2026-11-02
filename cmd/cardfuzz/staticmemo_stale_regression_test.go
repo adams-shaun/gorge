@@ -8,7 +8,7 @@ import (
 )
 
 // TestStaticMemoRefreshAtUnmovedLogHeadIsNotServedStale is the regression for
-// the 2026-09-27 perf-sweep verify-mode panic: cardfuzz in verify mode
+// a verify-mode panic: cardfuzz in verify mode
 // aborted this seed (9870940514099297810) with
 //
 //	rules: layer-inert active() reuse at log 2135 disagrees with a rebuild

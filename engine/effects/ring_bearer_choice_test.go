@@ -69,9 +69,9 @@ func ringTemptEvents(log []events.Event) []events.Event {
 
 // TestRingTemptsYouOffersTheExistingBearerFirst pins the option ORDER: the
 // deterministic default (the existing Ring-bearer) is option 0, so the
-// shared KChoose first-option policy -- botpolicy's arm and every R-9 clamp
+// shared KChoose first-option policy -- botpolicy's arm and every no-host clamp
 // fallback -- answers "keep the existing Ring-bearer", exactly as the no-host
-// stand-in and the pre-choice engine did. Without this, a hosted bot would
+// stand-in does. Without this, a hosted bot would
 // silently switch its bearer off the deterministic default.
 func TestRingTemptsYouOffersTheExistingBearerFirst(t *testing.T) {
 	h := newHost(t, 2)

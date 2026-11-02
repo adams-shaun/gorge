@@ -1,6 +1,6 @@
 package host
 
-// BP-11 (spec 2026-09-28-hosted-bot-packages §11): the hosted-policy round
+// docs/design/2026-09-28-hosted-bot-packages.md §3.1. The hosted-policy round
 // table. This file links every built-in hosted policy gorge carries
 // (bots/all) so the tests below see the full registry, and owns the two
 // whole-policy gates, both run through the exported contract harness
@@ -61,7 +61,7 @@ func TestEveryHostedPolicyIsDeterministic(t *testing.T) {
 	}
 	played := false
 	for _, e := range entries {
-		if e.Name == bp10SpyPolicy || e.Name == closedTestPolicy {
+		if e.Name == slotSpyPolicy || e.Name == closedTestPolicy {
 			// Test fixtures that register themselves in this binary
 			// (slots_test.go, hosted_closed_test.go); harnesses, not hosted
 			// policies.
@@ -82,7 +82,7 @@ func TestEveryHostedPolicyIsDeterministic(t *testing.T) {
 			run := func(tag string) ContractRun {
 				opts := testOptions(t)
 				opts.MaxIntents = intents // 0 = play the whole game
-				// BP-13: every hosted policy is built with the same card
+				// Every hosted policy is built with the same card
 				// dependency a served table gets, so the registry gate covers
 				// the corpus-hungry entries exactly as the host threads them.
 				opts.BotDeps = sampleBotDeps(t)
@@ -152,7 +152,7 @@ func sampleBotDeps(t *testing.T) bots.Deps {
 }
 
 // TestHostedEnvSeatsIgnoreTheRealHiddenCardsSBTactical is the sb-tactical row
-// of the leak property (BP-13, §5.3): the REAL sb-tactical adapter at slot 0,
+// of the leak property (§5.3): the REAL sb-tactical adapter at slot 0,
 // with the swap applied at the first decision the adapter wants an Env for —
 // a priority ask, the only kind sb-tactical's WantsEnv claims. The adapter's
 // whole world source is the honest root as its payment planner, so a root
@@ -192,7 +192,7 @@ func builtinsPlanner(t *testing.T) func(seat.Seat) any {
 }
 
 // TestHostedEnvSeatsIgnoreTheRealHiddenCardsAZRedeal is the az-redeal row of
-// the leak property (BP-12, §5.3): the REAL az adapter at slot 0, the swap at
+// the leak property (§5.3): the REAL az adapter at slot 0, the swap at
 // a decision the seat actually SEARCHED (azmcts.Watch, Stats.Searched == 1,
 // found by the contract's pre-pass and re-verified in both matches). The az
 // seat's whole world source is a redeal over the honest root, so a root that

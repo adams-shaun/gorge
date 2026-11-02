@@ -61,3 +61,50 @@ func TestCopyWithoutForEachKeepsTarget(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestRadiateCopiesForEachPlayerAndPermanent pins CR 707.10d's "each player or
+// object": Radiate copies a Lightning Bolt once for each other permanent and
+// player it could target. A Bolt at the opponent makes a copy at its caster and
+// one at the Bears, and a Bolt at the Bears makes a copy at each player.
+func TestRadiateCopiesForEachPlayerAndPermanent(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		atBears bool
+	}{{"bolt at the opponent", false}, {"bolt at the Bears", true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			reg := choiceCorpusRegistry(t)
+			e, cfg := corpusEngineCfg(t, reg,
+				[]*cards.Card{choiceCorpusCard(t, "Lightning Bolt"), choiceCorpusCard(t, "Radiate"), choiceCorpusCard(t, "Grizzly Bears")}, nil)
+			bolt := moveByName(t, e, 0, "Lightning Bolt", state.ZHand)
+			radiate := moveByName(t, e, 0, "Radiate", state.ZHand)
+			bears := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+			e.pending = nil
+			e.priorityRound()
+			life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+
+			addMana(t, e, 0, "R")
+			target := state.ObjID(0)
+			if tc.atBears {
+				target = bears
+			}
+			cr707CastCostPaid(t, e, bolt, 0, target)
+			addMana(t, e, 0, "RRRRR")
+			submitChoices(t, e, castOptionFor(t, e, radiate).Index)
+			submitChoices(t, e, optForObj(t, e.Pending(), bolt))
+			passUntilStackEmpty(t, e, 40)
+
+			if got := e.G.Players[0].Life; got != life0-3 {
+				t.Errorf("seq %d: caster life %d, want %d (one copy at the caster)", len(e.L.Events), got, life0-3)
+			}
+			if got := e.G.Players[1].Life; got != life1-3 {
+				t.Errorf("seq %d: opponent life %d, want %d (one Bolt at the opponent)", len(e.L.Events), got, life1-3)
+			}
+			if o := e.G.Obj(bears); o.Zone != state.ZGraveyard {
+				t.Errorf("seq %d: the Bears are in %v, want the graveyard", len(e.L.Events), o.Zone)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}

@@ -556,7 +556,7 @@ type pendingCast struct {
 	pushed bool `clone:"deep"`
 
 	// provenanceRepriced is true once the post-push provenance re-price has
-	// run for this proposal (castprov3: a provenance-keyed cost static is
+	// run for this proposal (a provenance-keyed cost static is
 	// unresolvable pre-push, so continueCast re-prices pc.mods right after
 	// the push; the flag keeps the re-entries — a mana-window resume re-enters
 	// continueCast with pushed already true — from gathering the statics
@@ -582,7 +582,7 @@ type pendingCast struct {
 	// just before pushCast's PutOnStack, captured and restored for exactly the
 	// reason preSuppress is: the push is a state-changing event that emit
 	// treats as progress and clears the count, but an aborted cast is net no
-	// progress, so the count must come back across the push (F05-2). Nil when
+	// progress, so the count must come back across the push. Nil when
 	// no cast push is in flight.
 	preAborts map[state.ObjID]int32 `clone:"deep"`
 
@@ -594,7 +594,7 @@ type pendingCast struct {
 	// leave nothing on the queue. Without it a bot re-attempting the same
 	// unpayable Strive cast queued a fresh Ward/Silverfur Partisan trigger per
 	// attempt, and that trigger's push was the state change that cleared the
-	// F05-2 no-progress suppression -- an endless cast/reverse cycle.
+	// no-progress suppression -- an endless cast/reverse cycle.
 	// Engine-side scratch rebuilt by replay (the same intents reach the same
 	// emits); nil outside a spell proposal with targets.
 	proposalTriggers [][2]int `clone:"deep"`

@@ -8,7 +8,7 @@ import (
 
 // TestConditionalDestinationBotTakesAlternate pins the bot's answer to
 // effects' non-MANDATORY DestAltSVar$ ask (Green Sun's Twilight at X>=5): it
-// takes the alternate destination, the direction of the R-9 no-host stand-in,
+// takes the alternate destination, the direction of the no-host stand-in,
 // selected by Mode rather than index, and the answer validates.
 func TestConditionalDestinationBotTakesAlternate(t *testing.T) {
 	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KChoose, Min: 1, Max: 1,

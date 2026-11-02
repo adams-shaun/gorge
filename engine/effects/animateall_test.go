@@ -129,7 +129,7 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 // naming every unread parameter present, and NEVER a read parameter --
 // while the supported parameters still apply. staticAbilities$ is
 // tested through the shared Animate registration path below.
-// Triggers$ is READ since the Animate Triggers$ ticket: a named body the
+// Triggers$ is read: a named body the
 // parser refuses (no SVar table here, so TrigSomething resolves to
 // nothing) gets its own loud refuse-note instead of joining the unread
 // list. RemoveKeywords$/RemoveAllAbilities$ are read
@@ -232,8 +232,8 @@ func TestAnimateAllZoneGraveyardScopesTheGrant(t *testing.T) {
 }
 
 // TestAnimateAllConditionPresentGateBlocksDispatch pins the shared pre-dispatch
-// condition gate on AnimateAll (the Lord of the Nazgul acceptance case,
-// issue agent-20260918T201425Z-dffc06a3): ConditionPresent$ with no
+// condition gate on AnimateAll (the Lord of the Nazgul acceptance case):
+// ConditionPresent$ with no
 // ConditionDefined$ counts the battlefield (shape 2 in conditions.go), so a
 // gated AnimateAll whose compare does not hold registers NOTHING, while the
 // same body with a holding compare registers normally.

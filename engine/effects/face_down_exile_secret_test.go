@@ -42,8 +42,8 @@ func exileMoves(h *fakeHost) []events.Event {
 
 // TestChangeZoneAllHandFaceDownExileIsEachOwnersSecret: Memory Jar's shape
 // ("each player exiles all cards from their hand face down"), resolved by
-// seat 0. ChangeZoneAll stamps no Player, so before the fix both moves were
-// public and Player 0; each must be Secret to the card's own owner.
+// seat 0. ChangeZoneAll stamps no Player, so each move defaults to public and
+// Player 0; each must be Secret to the card's own owner.
 func TestChangeZoneAllHandFaceDownExileIsEachOwnersSecret(t *testing.T) {
 	h, mine, theirs := faceDownExileBoard(t, state.ZHand)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ ChangeZoneAll | ChangeType$ Card | Origin$ Hand | Destination$ Exile | ExileFaceDown$ True"))

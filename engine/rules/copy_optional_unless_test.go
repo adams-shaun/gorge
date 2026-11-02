@@ -9,8 +9,7 @@ import (
 )
 
 // The COMBINED Optional$ + UnlessCost$ CopySpellAbility shape, pinned
-// end-to-end through the engine (findings-r2 found the round-1 read silently
-// excluding these SAs). The corpus carriers are Wandering Archaic
+// end-to-end through the engine. The corpus carriers are Wandering Archaic
 // ("they may pay {2}. If they don't, you may copy that spell" -- unswitched)
 // and Chain of Silence ("may sacrifice a land. If the player does, they may
 // copy this spell" -- UnlessSwitched$ True). The two asks compose

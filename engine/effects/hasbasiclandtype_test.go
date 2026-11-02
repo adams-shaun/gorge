@@ -19,7 +19,7 @@ import (
 // a continuous effect is excluded by the Land base the body re-checks.
 //
 // The classifier and the matcher share wordPredicate, so UnknownPredicates
-// reports the bare token recognised (the pc1 structural rule): the two
+// reports the bare token recognised (the structural rule): the two
 // cannot disagree about whether `Land.hasABasicLandType` is implemented.
 func TestHasABasicLandTypePredicate(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

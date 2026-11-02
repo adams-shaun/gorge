@@ -48,7 +48,7 @@ func frostLynxEngine(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID, s
 	return e, frostID, wandID, centaurID
 }
 
-// TestFrostLynxHiddenUntapKeywordIsRead is the ticket's end-to-end leaf on the
+// TestFrostLynxHiddenUntapKeywordIsRead is the end-to-end leaf on the
 // REAL corpus Frost Lynx. Its enter trigger's Pump sub-body grants
 // `KW$ HIDDEN This card doesn't untap during your next untap step.` as runtime
 // keyword TEXT (never a printed K: line). The test drives the whole flow
@@ -59,7 +59,7 @@ func frostLynxEngine(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID, s
 //  2. the target does NOT untap at its controller's next untap step (the
 //     runtime keyword is read);
 //  3. it DOES untap at the following untap step (the window is one-shot,
-//     consumed at use -- the crux of the ticket);
+//     consumed at use);
 //  4. an untap EFFECT untaps it while the window is armed (CR 611.2b names
 //     only the untap step, so the gate must not live in effects.TryUntap).
 func TestFrostLynxHiddenUntapKeywordIsRead(t *testing.T) {

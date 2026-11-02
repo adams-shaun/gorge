@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The api:Play parameter-family pin (ticket agent-20260918T221252Z-d504b33b)
-// on REAL compiled corpus cards. The four parameters:
+// The api:Play parameter-family pin on REAL compiled corpus cards. The four
+// parameters:
 //
 //   - WithoutManaCost$ True gates the free cast end to end (rules'
 //     resumeResolution "play" arm -> beginPlay): the played card's printed
@@ -32,7 +32,7 @@ import (
 //     "unplayed remainder" arm (Sunbird's DBRestRandomOrder) moves only
 //     what was NOT played.
 //
-// Supporting fix in the same ticket: Sunbird's Invocation's own
+// Also pinned here: Sunbird's Invocation's own
 // `SVar:X:TriggeredSpellAbility$CardManaCostLKI` (51 raw corpus lines carry
 // this ref-property spelling) evaluated to 0 before the alias read in
 // engine/effects/count.go's evalRefProperty, so the whole real-card chain was inert

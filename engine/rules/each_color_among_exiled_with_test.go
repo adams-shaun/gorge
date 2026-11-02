@@ -1,7 +1,6 @@
 package rules
 
-// Produced$ Special EachColorAmong_ExiledWith (feedback
-// fb-20260928T161639Z-081a09f0, the creature mana-ability audit's one
+// Produced$ Special EachColorAmong_ExiledWith, the creature mana-ability audit's one
 // unmodelled selector). Sunbird Effigy -- the creature face of the corpus's
 // only carrier, sunbird_standard_sunbird_effigy.txt -- prints "{T}: For each
 // color among the exiled cards used to craft CARDNAME, add one mana of that

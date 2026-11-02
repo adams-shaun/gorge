@@ -8,12 +8,12 @@ import (
 )
 
 // TestSacValidTargetedCardSelf is the focused candidate-pool regression: a
-// player-targeted Sacrifice whose SacValid$ names the resolution's card target
-// (`TargetedCard.Self`) must offer exactly that target -- and only when it sits
-// in the asked player's battlefield. Enchanter's Bane's compiled DBSac is this
-// shape. Before the fix the target-referent base was unrecognised by the filter
-// grammar (a bare Self reads relative to the resolving SOURCE), so the pool was
-// empty and the optional ask was never posed.
+// player-targeted Sacrifice whose SacValid$ names the resolution's card
+// target (`TargetedCard.Self`) must offer exactly that target -- and only
+// when it sits in the asked player's battlefield. Enchanter's Bane's compiled
+// DBSac is this shape. If the filter grammar did not recognise the
+// target-referent base (a bare Self reads relative to the resolving SOURCE),
+// the pool would be empty and the optional ask never posed.
 //
 // Board: the targeted enchantment and an unrelated enchantment both belong to
 // seat 1, so the pool has two candidates and the compared values (which option

@@ -1,8 +1,0 @@
-{
-  "name": "UI24 deterministic board fixture",
-  "format": "custom",
-  "cards": [
-    {"name": "Memnite", "count": 22},
-    {"name": "Underground Sea", "count": 7}
-  ]
-}

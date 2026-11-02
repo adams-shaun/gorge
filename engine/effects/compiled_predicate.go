@@ -368,7 +368,7 @@ func (ps *PredicatePrograms) evaluateCS(cs *compiledSpec, spec string, g *state.
 			// reports it colourless (CR 708.2a). Maybe keeps that answer
 			// textual.
 			if (term.kind == predicateTermColor || term.kind == predicateTermColorless) &&
-				o.FaceDown && o.Zone == state.ZBattlefield {
+				o.FaceDownHidden() {
 				altMaybe = true
 				continue
 			}

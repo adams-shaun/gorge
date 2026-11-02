@@ -4,7 +4,7 @@ import { diffViews, lifeTransitions } from './snapshotdiff';
 import type { ClientView, ModelEvent, ModelListener, Transition } from './types';
 
 /**
- * gorge is the gorge adapter's step logic (sub-project 0). One live view step
+ * gorge is the gorge adapter's step logic. One live view step
  * covers the events in (prevSeq, nextSeq]. When the DVR already holds every
  * one of them — the spectator path, which receives events before the view —
  * they are mapped directly, in order. Otherwise — the seated path, whose

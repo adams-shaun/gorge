@@ -31,9 +31,7 @@ func transformedTriggerFor(t *testing.T, e *Engine, id state.ObjID) cards.Trigge
 // TestTransformedWatcherMatchesAnotherPermanent is the finding's exact probe:
 // Cult of the Waxing Moon's real "Whenever a permanent you control transforms
 // into a non-Human creature" line must admit ANOTHER permanent's transform
-// event. Before the fix the matcher required ev.Obj == source, so only Card.Self
-// bodies could ever fire and the watcher family (Cult of the Waxing Moon,
-// Corruption of Towashi, Norn's Inquisitor, Neglected Heirloom) stayed dead.
+// event.
 func TestTransformedWatcherMatchesAnotherPermanent(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

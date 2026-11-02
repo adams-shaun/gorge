@@ -1,6 +1,6 @@
 /**
  * hotkeys is the pure keyboard grammar behind the table's document-level
- * hotkeys (prio3): Space passes once, Enter arms End Turn, Shift+Enter arms
+ * hotkeys: Space passes once, Enter arms End Turn, Shift+Enter arms
  * the hard skip, Escape cancels a live run, Ctrl+Shift+F toggles the
  * full-control preset. It is pure TypeScript — no DOM, no Svelte — so the
  * mapping and its guards are testable without a browser: the caller passes

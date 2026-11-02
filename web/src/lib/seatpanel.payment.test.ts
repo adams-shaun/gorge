@@ -91,7 +91,7 @@ describe('payment plan seat preference', () => {
 
 /**
  * offer is priority() with payment identities that bind the decision seq, as
- * the engine's do (spec §4: action and plan IDs hash the seq): action-<seq>,
+ * the engine's do (action and plan IDs hash the seq): action-<seq>,
  * plan-<seq>-a and plan-<seq>-b. Two seqs' offers are then distinguishable by
  * ID, not only by object identity, so "N's plan attached to N+1" is visible
  * in the posted body. base null is the plan-only shape.
@@ -138,7 +138,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: 
   return { promise, resolve, reject };
 }
 
-// Spec §8 as amended 2026-09-26 (aph-web-autopass): auto-pay reaches the
+// Auto-pay reaches the
 // autopilot only through the SEAT preference. The table capability makes the
 // switch available and nothing else: with the preference off, a capability
 // table's pass policy is exactly a capability-less table's.
@@ -216,11 +216,11 @@ describe('auto-pass follows the seat preference, not the table capability', () =
   });
 });
 
-// PP-18 / PP-19 (spec §8): toggling after a submission affects future
+// Toggling after a submission affects future
 // submissions only; a stale response must never attach an old plan to a new
 // seq. submitPayment re-resolves the action and plan on the CURRENT pending
 // decision by identity, and adopt()'s seq fence refuses an older decision.
-describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
+describe('in-flight and stale payment submissions', () => {
   beforeEach(() => {
     postIntentMock.mockReset();
     fetchPendingMock.mockReset();
@@ -230,7 +230,7 @@ describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
   it.each([
     ['the legacy cast click (the first plan)', 0, (p: SeatPanelState) => p.click(7)],
     ['the list button for the second plan', 1, (p: SeatPanelState, d: Decision) => p.submitPayment(d.payment_actions![0], d.payment_actions![0].plans[1])],
-  ] as const)('PP-18: toggling after %s is submitted leaves exactly one post, carrying the plan chosen at click time', async (_, planAt, submit) => {
+  ] as const)('toggling after %s is submitted leaves exactly one post, carrying the plan chosen at click time', async (_, planAt, submit) => {
     const wire = deferred<undefined>();
     postIntentMock.mockReturnValueOnce(wire.promise);
     const p = seat({ auto: false, autoPay: true });
@@ -265,7 +265,7 @@ describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
     expect(postIntentMock).toHaveBeenCalledTimes(1);
   });
 
-  it('PP-19: a delayed /pending response for seq N, arriving after N+1 was adopted, attaches no plan and posts nothing for N', async () => {
+  it('a delayed /pending response for seq N, arriving after N+1 was adopted, attaches no plan and posts nothing for N', async () => {
     const wire = deferred<Decision>();
     fetchPendingMock.mockReturnValueOnce(wire.promise);
     const p = seat({ auto: false, autoPay: true });
@@ -295,7 +295,7 @@ describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
   it.each([
     ['accepted', (wire: ReturnType<typeof deferred<undefined>>) => wire.resolve(undefined)],
     ['rejected as stale', (wire: ReturnType<typeof deferred<undefined>>) => wire.reject(new ApiError(409, 'conflict', 'intent seq 81, pending decision seq 82'))],
-  ] as const)('PP-19: N\'s planned post %s after N+1 was adopted posts nothing further and leaves N+1 its own plan', async (_, answer) => {
+  ] as const)('N\'s planned post %s after N+1 was adopted posts nothing further and leaves N+1 its own plan', async (_, answer) => {
     const wire = deferred<undefined>();
     postIntentMock.mockReturnValueOnce(wire.promise);
     const p = seat({ auto: false, autoPay: true });
@@ -323,7 +323,7 @@ describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
   });
 });
 
-// Spec §8: "Auto-pay changes which witness an explicit cast uses; it does not
+// "Auto-pay changes which witness an explicit cast uses; it does not
 // otherwise change Auto/Manual policy." A planned cast posts choices=[] plus a
 // payment selection, so pass-after-acting must arm on the selection exactly as
 // it arms on the same cast's legacy option: on the ACCEPTED post, skipped with
@@ -332,7 +332,7 @@ describe('in-flight and stale payment submissions (PP-18, PP-19)', () => {
 // list and the hot strip's nested list) calls submitPayment with the plan it
 // lists, Table.svelte's HandFan CAST shortcut calls submitPayment with the
 // first plan, and a legacy cast click on a base option goes through click().
-describe('pass after acting arms on a planned cast exactly as on its legacy cast (spec §8)', () => {
+describe('pass after acting arms on a planned cast exactly as on its legacy cast', () => {
   beforeEach(() => {
     postIntentMock.mockReset();
     fetchPendingMock.mockReset();

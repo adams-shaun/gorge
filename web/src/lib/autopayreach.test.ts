@@ -4,8 +4,8 @@ import { actionables } from './autopilot';
 import { offersPotential } from './castable';
 import { isManualManaOption, isPlainManualTap, manualManaHidden } from './manualmana';
 
-// "Auto never stops for something the panel hides" (aph-web-manual-only-plays,
-// spec §8 as amended: manual mana taps are hidden under auto-pay only when
+// "Auto never stops for something the panel hides":
+// manual mana taps are hidden under auto-pay only when
 // every play the window can reach is reachable without them).
 //
 // For each fixture window, with the seat's auto-pay preference ON:
@@ -69,7 +69,7 @@ function surfaces(d: Decision, v: View) {
     const o = d.options.find((x) => x.label === label);
     if (o) return reachesOption(o);
     if (planned.some((p) => `${p.label} (with suggested mana)` === label)) return true;
-    // The plan-less announce arm (agent-20260929T172335Z-dee96bba): under
+    // The plan-less announce arm: under
     // Auto-pay ON the panel renders the plan-less action's "Cast — choose
     // mana" announce button (PriorityOptions.svelte's plan-less branch), so
     // the label names a reachable surface.

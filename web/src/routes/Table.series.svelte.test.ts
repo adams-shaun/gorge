@@ -3,7 +3,7 @@ import { render } from 'svelte/server';
 import type { PlayerView, TableInfo, View } from '../protocol';
 import { initSeatContext } from '../lib/seat';
 
-// E3-fx2: a series (best-of-three) table between two games keeps the finished
+// A series (best-of-three) table between two games keeps the finished
 // board on the table page because the TABLE STORE knows the table is between
 // games (TableInfo.series at match_end, then the server's table_state frame),
 // not because any event overlay reports the series in play. The join link
@@ -59,8 +59,8 @@ function onBoard(html: string): boolean {
   return BOARD.test(html) && !html.includes('matches-page');
 }
 
-describe('Table.svelte — a series table between games (E3-fx2)', () => {
-  it('keeps the finished board after match_end and between_games, and drops to the match list only when the series is over', () => {
+describe('Table.svelte — a series table between games', () => {
+  it('keeps the finished board after match_end, between games and when the series is over', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('bo3', { series: true })] } });
     tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'bo3', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
     expect(onBoard(page('bo3'))).toBe(true);
@@ -72,14 +72,19 @@ describe('Table.svelte — a series table between games (E3-fx2)', () => {
     expect(onBoard(page('bo3'))).toBe(true);
 
     tables.apply({ v: 1, t: 'table_state', seq: 4, table: 'bo3', match: 2, body: { state: 'idle' } });
-    const html = page('bo3');
-    expect(html).toContain('matches-page');
-    expect(html).not.toMatch(BOARD);
+    expect(onBoard(page('bo3'))).toBe(true);
   });
 
-  it('an ordinary single-match table still drops to the match list at match_end', () => {
+  it('an ordinary single-match table keeps a seat on the finished board', () => {
     tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('plain')] } });
     tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'plain', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
-    expect(page('plain')).toContain('matches-page');
+    expect(onBoard(page('plain'))).toBe(true);
+  });
+
+  it('a spectator of a finished table gets the match list', () => {
+    tables.apply({ v: 1, t: 'hello', seq: 0, body: { session: 's1', tables: [info('plain')] } });
+    tables.apply({ v: 1, t: 'match_end', seq: 1, table: 'plain', match: 1, body: { result: 'win', winner: 1, head: 'h1' } });
+    initSeatContext('');
+    expect(render(Table, { props: { table: 'plain' } }).html).toContain('matches-page');
   });
 });

@@ -4,8 +4,8 @@
 //
 //	SVar:TrigAnimate:DB$ Animate | ValidTgts$ Artifact.YouCtrl | TgtPrompt$ Select target artifact you control | Power$ 5 | Toughness$ 5 | Types$ Artifact,Creature | Duration$ AsLongAsInPlay
 //
-// Before this ticket effects.animateUntilEOT classified AsLongAsInPlay with
-// the absent-Duration$/UntilEndOfTurn bucket, so every animation layer was
+// Without this, effects.animateUntilEOT classifies AsLongAsInPlay with
+// the absent-Duration$/UntilEndOfTurn bucket, so every animation layer is
 // registered UntilEOT and rules' EndOfTurnCleanup dropped the 5/5 at the
 // controller's cleanup even though Skilled Animator and the artifact both
 // stayed on the battlefield. The lifetime anchor was the bug's second half:

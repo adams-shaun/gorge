@@ -17,7 +17,7 @@ import type { PlayerView, SeatInfo, StackView, View } from '../protocol';
  * it leaves no overlay (waitForSelector times out), moving it back inside
  * the clipped felt section trips the containment assertion.
  *
- * fb-20260914T121642Z: a stack-to-stack target arrow — a counterspell
+ * A stack-to-stack target arrow — a counterspell
  * targeting the spell beneath it — was computed but invisible, because the
  * overlay lived inside Board.svelte, which the route mounts inside the felt
  * section whose `overflow: hidden` clips anything reaching into the rail.
@@ -142,7 +142,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
     for (const sel of ['main.table section.stack [data-obj="900"]', 'main.table section.stack [data-obj="890"]']) {
       await page.waitForSelector(sel, { state: 'attached', timeout: 60_000 });
     }
-    // UI rework §3: a stack item's target arrows are drawn only while that
+    // A stack item's target arrows are drawn only while that
     // item is hovered. The pointer is never moved (a real hover would be
     // re-hit-tested as the rail scrolls below), so the hover is the one
     // pointerover the table's delegated tracker listens for.
@@ -168,7 +168,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
         };
       })()`)) as unknown as Measured;
 
-    // --- the real route renders the brief's case for real ---
+    // --- the real route renders the case for real ---
     expect(m.line, 'exactly one resolved target arrow: the counterspell\u2019s').not.toBeNull();
     // The counterspell and bolt tiles sit at DIFFERENT heights in the rail
     // (the counterspell is the upper entry), and the stack genuinely
@@ -176,7 +176,7 @@ describe('Arrows — the overlay escapes the felt clip and tracks the rail (real
     expect(m.counterspell.top).toBeLessThan(m.bolt.top - 1);
     expect(m.scrollable, 'the history frame really overflows at the test viewport').toBe(true);
 
-    // --- fb-20260914T121642Z: the overlay escapes the felt clip ---
+    // --- The overlay escapes the felt clip ---
     // Exactly ONE overlay, and it is the route's: mounted by Table.svelte as
     // a direct child of main.table, never a descendant of the clipped felt
     // section (whose overflow: hidden is what cut every stack-to-stack line

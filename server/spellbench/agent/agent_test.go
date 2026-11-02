@@ -94,7 +94,7 @@ func TestAgentHelloRequiresTheViewExtension(t *testing.T) {
 
 // The bot is gorge's own PCG seeded from agent_seed: two seeds must give
 // observably different bots, visible in the recorded intents. The probe is
-// lethal-pressure, which still mulligans on the coin: since FORGE-M1 `bot`
+// lethal-pressure, which still mulligans on the coin: `bot`
 // answers mulligans with the deterministic MulliganForge and draws its PCG
 // only on AIRandom asks, which the wire does not carry. Every policy is built
 // through the same bots.New(..., Seed: agent_seed) call.

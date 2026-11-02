@@ -3,7 +3,7 @@ import { render } from 'svelte/server';
 import type { CardView, Decision, EventBody, PlayerView, PotentialAction, SeatInfo, View } from '../protocol';
 import { initSeatContext } from '../lib/seat';
 
-// The board-badge surface of spec §8's manual-mana rule. Table.svelte builds
+// The board-badge surface of the manual-mana rule. Table.svelte builds
 // boardOptions from the seat panel's pending decision; with the auto-pay
 // preference on it must drop a source's manual "Activate … for mana" badge by
 // the shared predicate (lib/manualmana.ts manualManaHidden) — the same rule
@@ -65,7 +65,7 @@ const player = (seat: number, battlefield: CardView[] = [], potential?: Potentia
 });
 const seats: SeatInfo[] = [{ name: 'Ari', deck: 'mono-white', colour: '#e5484d' }, { name: 'Bo', deck: 'mono-green', colour: '#22c55e' }];
 
-// The measured empty-pool window (aph-web-autopay-policy's Go probe): the
+// The measured empty-pool window: the
 // lands' manual taps, pass and concede — the Equip {1} is NOT an option yet.
 const tapWindow: Decision = {
   seq: 43, player: 0, kind: 'priority', prompt: 'You have priority.', min: 1, max: 1,

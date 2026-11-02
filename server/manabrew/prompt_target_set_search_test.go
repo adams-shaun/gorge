@@ -8,7 +8,7 @@ import (
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
 
-// TestConstrainedTargetPrefixControllerAndProperty pins the round-4 MAJOR: a
+// TestConstrainedTargetPrefixControllerAndProperty pins this: a
 // TargetsWithSameController ask that ALSO carries SetPropShared. Hoisting the
 // largest controller group and then the largest shared token picks one anchor,
 // and neither anchor is guaranteed to be the controller that can fill Min
@@ -62,7 +62,7 @@ func TestConstrainedTargetPrefixControllerAndProperty(t *testing.T) {
 }
 
 // TestConstrainedTargetPrefixDistinctPropertyFallback pins the structural
-// half of the same MAJOR: SetPropDistinct without a controller constraint,
+// half: SetPropDistinct without a controller constraint,
 // where a greedy pass takes an early option whose property blocks every later
 // one. A legal pair still exists, so the fallback search must find it.
 //

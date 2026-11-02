@@ -19,8 +19,8 @@ import (
 const waterbendXOverpaySrc = "Name:Water Fiend\nManaCost:U\nTypes:Creature Elemental\nPT:1/1\n" +
 	"A:AB$ Effect | Cost$ Waterbend<X> 2 | XMin$ 1 | SpellDescription$ x.\nOracle:x\n"
 
-// TestWaterbendXCostPartCapsTapsAtAnnouncedX pins the finding on this ticket's
-// fix: a Waterbend<X> cost part's amount is the announced X, so the waterbend
+// TestWaterbendXCostPartCapsTapsAtAnnouncedX pins the cost part's
+// cap: a Waterbend<X> cost part's amount is the announced X, so the waterbend
 // taps may cover at most X of the cost's generic -- never a tap redirected
 // onto a separate fixed generic component. With the ability `Waterbend<X> 2`
 // and two eligible permanents tapped for waterbend, X=1 must NOT be offered

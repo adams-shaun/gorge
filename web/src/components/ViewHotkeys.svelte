@@ -15,8 +15,8 @@
   import ZoomCard from './ZoomCard.svelte';
 
   /**
-   * ViewHotkeys wires the keymap's VIEW and LAYOUT actions (UI rework spec
-   * §1, delivered with §2/§3): toggle the log, toggle stacking, zoom the card
+   * ViewHotkeys wires the keymap's VIEW and LAYOUT actions: toggle the log,
+   * toggle stacking, zoom the card
    * under the pointer, open the hovered seat's graveyard or exile, and switch
    * layout profile (1–9, next, previous). They are view preferences, so they
    * work for a spectator too — this is mounted for every table view, unlike

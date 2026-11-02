@@ -9,11 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Feedback fb-20260916T201317Z-841054c5 ("planar engineering -- I was given no
-// choice for which land to select"): the pre-ask engine took
-// `eligible[:n]` with n hardcoded to 1, so "Sacrifice two lands" both picked
-// the land itself and sacrificed only one. The sacrifice-asks merge fixed
-// effSacrifice; these tests pin the reported card end to end on the REAL
+// A player report ("planar engineering -- I was given no choice for which
+// land to select"): an engine taking `eligible[:n]` with n hardcoded to 1 makes
+// "Sacrifice two lands" both pick the land itself and sacrifice only one.
+// These tests pin the reported card end to end on the REAL
 // corpus card (Planar Engineering, SP$ Sacrifice | Defined$ You |
 // SacValid$ Land | Amount$ 2 | SubAbility$ DBChangeZone), which is in the
 // hearthhull-worldseed-landfall repo deck but not in any legacy golden deck,

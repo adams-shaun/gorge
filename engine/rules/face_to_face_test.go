@@ -52,10 +52,10 @@ func faceToFaceMatch(t *testing.T, oppThrows []string) (rounds int, oppLife int3
 }
 
 // TestFaceToFaceIsBestTwoOutOfThree: Face to Face repeats its round while
-// SVar:Total = SVar$Wins/LimitMin.Losses (Forge's LimitMin: the larger of
-// the two, max(Wins, Losses)) is below 2. A win, a loss and a win is three
-// rounds and 5 damage; two losses are two rounds and no damage; a tie does
-// not count. Before the fix the /LimitMin.<SVar> operand was not evaluated.
+// SVar:Total = SVar$Wins/LimitMin.Losses (Forge's LimitMin: the larger of the
+// two, max(Wins, Losses)) is below 2. A win, a loss and a win is three rounds
+// and 5 damage; two losses are two rounds and no damage; a tie does not
+// count.
 func TestFaceToFaceIsBestTwoOutOfThree(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

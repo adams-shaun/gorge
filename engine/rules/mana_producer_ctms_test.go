@@ -1,4 +1,4 @@
-// Tests for the ctms sub-shape of the frozen castfilter1/2 row: the positive
+// Tests for the ctms sub-shape of cast filters: the positive
 // ManaAdd producers OTHER than the acted AB$ Mana ability -- the AB$
 // ManaReflected replacement body and the cumulative-upkeep AddMana action --
 // must carry the same Treasure/Cave/Desert/Snow producer tag effMana stamps,
@@ -6,8 +6,6 @@
 // Count$CastTotalManaSpent <Type> head. The count head's own grammar is
 // driven from state.TypedManaTags, so a modelled type counts and an unknown
 // one stays the fail-closed 0.
-//
-// Kept in its own file so the ticket cannot conflict on a shared test file.
 package rules
 
 import (
@@ -18,10 +16,8 @@ import (
 )
 
 // TestManaReflectedProducerTagsItsSourceType is the ManaReflected half,
-// driven end to end on the real corpus carrier Cactus Preserve (a Land
-// Desert whose {T}: ManaReflected ability reflects a land you control's
-// mana). Before the fix the reflected unit was emitted with a bare "R"
-// Counter, so it landed in the pool untagged and never counted as a Desert.
+// driven end to end on the real corpus carrier Cactus Preserve (a Land Desert
+// whose {T}: ManaReflected ability reflects a land you control's mana).
 func TestManaReflectedProducerTagsItsSourceType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)
@@ -96,8 +92,7 @@ const cumulativeDesertSource = "Name:Ctms Oasis\nManaCost:0\nTypes:Land Desert\n
 
 // TestCumulativeUpkeepAddManaTagsItsSourceType is the cumulative half: paying
 // the AddMana upkeep cost of a Desert permanent must tag the produced unit
-// Desert<colour>, so it counts as Desert in the filtered head. Before the fix
-// the action emitted a bare "C" Counter.
+// Desert<colour>, so it counts as Desert in the filtered head.
 func TestCumulativeUpkeepAddManaTagsItsSourceType(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t)

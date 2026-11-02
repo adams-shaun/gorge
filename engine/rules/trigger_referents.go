@@ -278,7 +278,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if t.ParamStr(cards.PKKeyword) == "Storm" {
 			c.TriggerStormCount = int32(e.CastThisTurn())
 		}
-		// The activation arm (abcopy1): an AbilityPush event's Obj is the
+		// The activation arm: an AbilityPush event's Obj is the
 		// SOURCE PERMANENT -- the ability's stack wrapper is minted inside
 		// events.Apply and never travels on the event, so Remembered names the
 		// battlefield permanent. Capture the minted wrapper here, at fire

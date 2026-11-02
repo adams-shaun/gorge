@@ -52,7 +52,7 @@ func TestTwoPilesZoneLibraryAndFaceDownOneAreMetadata(t *testing.T) {
 	ctx := &Ctx{Controller: 0, Source: ids[5], Remembered: twopilesRemembered(ids[:2]), SVars: twopilesSVars()}
 	Resolve(h, ctx, sa(t, "DB$ TwoPiles | Defined$ You | DefinedCards$ Remembered | Zone$ Library | FaceDown$ One | Separator$ You | ChosenPile$ DBHand | UnchosenPile$ DBGrave"))
 	if h.g.Obj(ids[0]).Zone != state.ZHand || h.g.Obj(ids[1]).Zone != state.ZGraveyard {
-		t.Fatalf("R-9 pile movement = %d, %d; want hand/graveyard", h.g.Obj(ids[0]).Zone, h.g.Obj(ids[1]).Zone)
+		t.Fatalf("no-host pile movement = %d, %d; want hand/graveyard", h.g.Obj(ids[0]).Zone, h.g.Obj(ids[1]).Zone)
 	}
 	for _, ev := range h.log {
 		if ev.Kind == events.Note {

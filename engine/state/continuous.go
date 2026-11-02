@@ -698,8 +698,8 @@ type ContinuousEffect struct {
 	// EndImprintedEffect. Engine-runtime only, rebuilt by re-execution on
 	// replay like every other continuous-effect field.
 	ImprintOnHost bool
-	// ForgetCounter carries the Effect's ForgetCounter$ counter kind (task
-	// vow1; Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
+	// ForgetCounter carries the Effect's ForgetCounter$ counter kind
+	// (Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
 	// Obsidian Fireheart's BLAZE -- 18 corpus carriers): a remembered card
 	// whose count of that kind reaches zero after a counter-removal leaves
 	// the effect's Remembered set -- "for as long as it has a vow counter

@@ -1,9 +1,9 @@
 package host
 
-// The rv2a mulligan-starter contract at the web boundary. The seated client
+// The mulligan-starter contract at the web boundary. The seated client
 // renders the mulligan prompt from the seat-scoped view the product fetches —
 // Registry.ViewAtSeat at head, whose `decision` field is the engine's own
-// answerable Decision (M2b-4) — so a prompt change is only proven if the bytes
+// answerable Decision — so a prompt change is only proven if the bytes
 // that reach SeatPanel come from the real engine, not from a hand-written
 // fixture the panel test could pass even with keepMulliganPrompt reverted.
 //

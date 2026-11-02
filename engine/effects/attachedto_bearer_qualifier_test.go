@@ -11,9 +11,8 @@ import (
 // "<class>.<qual>" form of the two-token AttachedTo grammar, where the
 // qualifier names a property of the ATTACHED BEARER. With Great Power . . .
 // ("Enchanted creature gets +2/+2 for each Aura and Equipment attached to
-// it") is the headline carrier:
-//
-//	SVar:X:Count$Valid Aura.AttachedTo Creature.EnchantedBy,Equipment.AttachedTo Creature.EnchantedBy/Times.2
+// it") is the headline carrier, counting Aura.AttachedTo Creature.EnchantedBy
+// and the same for Equipment.
 //
 // Before this change attachedToArg accepted only YouCtrl as a dotted
 // qualifier, so the token failed closed as an unknown predicate and the
@@ -184,14 +183,14 @@ func TestAttachedToBearerQualifierNegation(t *testing.T) {
 }
 
 // TestEvalCountValidAttachedToEnchantedBy is the count-level assertion of the
-// real pump value With Great Power . . . computes. The X SVar is
-// "Count$Valid Aura.AttachedTo Creature.EnchantedBy,Equipment.AttachedTo
-// Creature.EnchantedBy/Times.2". The qualifier describes the ATTACHED
-// BEARER (the enchanted creature), so both alternatives admit an object
-// attached to that creature -- an Aura or an Equipment. With one attached
-// Aura the count is 1 and Times.2 makes 2; an attached Equipment raises it
-// to 4; a second Aura raises it to 6. Every asserted value differs from the
-// pre-fix zero, so a fail-closed token cannot pass by coincidence.
+// real pump value With Great Power . . . computes. The X SVar is "Count$Valid
+// Aura.AttachedTo Creature.EnchantedBy,Equipment.AttachedTo
+// Creature.EnchantedBy/Times.2". The qualifier describes the ATTACHED BEARER
+// (the enchanted creature), so both alternatives admit an object attached to
+// that creature -- an Aura or an Equipment. With one attached Aura the count
+// is 1 and Times.2 makes 2; an attached Equipment raises it to 4; a second
+// Aura raises it to 6. Every asserted value differs from zero, so a
+// fail-closed token cannot pass by coincidence.
 func TestEvalCountValidAttachedToEnchantedBy(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
@@ -221,8 +220,8 @@ func TestEvalCountValidAttachedToEnchantedBy(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Aura.AttachedTo Creature.EnchantedBy/Times.2"); got != 2 {
 		t.Errorf("Count$Valid Aura.AttachedTo Creature.EnchantedBy/Times.2 = %d, want 2", got)
 	}
-	// The two-alternative spelling: still one Aura attached, so 2 -- the
-	// same as the single spelling and NOT 0, which is the pre-fix value.
+	// The two-alternative spelling: still one Aura attached, so 2 -- the same
+	// as the single spelling and NOT 0.
 	if got := EvalCount(h, c, "Count$Valid Aura.AttachedTo Creature.EnchantedBy,Equipment.AttachedTo Creature.EnchantedBy/Times.2"); got != 2 {
 		t.Errorf("the two-alternative spelling with one attached Aura = %d, want 2", got)
 	}

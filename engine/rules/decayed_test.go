@@ -276,9 +276,8 @@ func TestDecayedCorpusCensus(t *testing.T) {
 		t.Fatal("cards.CounterKeyword does not classify Decayed (CR 122.1b)")
 	}
 
-	// The ticket's stated goal: kw:Decayed was Rot-Curse Rakshasa's ONLY
-	// unsupported primitive, so registering it must leave the card fully
-	// supported. This is the assertion that retires the coverage gap.
+	// kw:Decayed is Rot-Curse Rakshasa's ONLY unsupported primitive, so registering
+	// it must leave the card fully supported.
 	rot, ok := reg.Lookup("Rot-Curse Rakshasa")
 	if !ok {
 		t.Fatal("corpus has no Rot-Curse Rakshasa")

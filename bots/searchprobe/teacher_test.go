@@ -53,9 +53,9 @@ func TestAttackCandidatesBotFirstDedupedAndValid(t *testing.T) {
 // player, a creature has one option per defender. No candidate may name it
 // twice (the engine rejects "attacker declared against more than one
 // defender" and Decision.Validate does not catch it); toggling on its other
-// option moves it to that defender. Before the fix the toggles produced the
+// option moves it to that defender. Toggling without moving would produce the
 // double declaration, and a search that kept picking that never-visitable
-// candidate discarded almost every simulation.
+// candidate would discard almost every simulation.
 func TestAttackCandidatesOneDefenderPerAttacker(t *testing.T) {
 	d := &decision.Decision{Kind: decision.KAttackers, Player: 0, Min: 0, Max: 4, Options: []decision.Option{
 		{Index: 0, Kind: "attacker", Obj: 10, Player: 1},

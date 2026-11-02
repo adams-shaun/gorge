@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// The fb-20260917T004304Z smoke-gate wedge, as a unit test. The upstream
-// catalog hangs (the review run's degraded network): without the wait budget
+// The smoke-gate wedge, as a unit test. The upstream catalog hangs (a degraded
+// network): without the wait budget
 // the /art/named handler holds the browser's connection for the full
 // serialized fetch chain — each request up to the outbound client's 15s
 // timeout, seven cold-cache cards one after another — and the browser's
@@ -150,9 +150,7 @@ func TestTextRouteAnswersWithinTheWaitBudgetWhileTheUpstreamHangs(t *testing.T) 
 
 // A fast upstream must be untouched by the budget: the ordinary cold-cache
 // fetch completes inside the budget and answers 200 on the very first
-// request — the pre-fix behaviour every existing art test already pins, so
-// this guard only exists to say out loud that the budget does not cost the
-// healthy path its answer.
+// request. The budget must not cost the healthy path its answer.
 func TestArtRouteStillAnswersAHealthyUpstreamInsideTheBudget(t *testing.T) {
 	ac, hits := artFixture(t, map[string]string{"Goblin Guide": "/img/gg.jpg"})
 	w := httptest.NewRecorder()

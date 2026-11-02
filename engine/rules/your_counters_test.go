@@ -1,6 +1,6 @@
-// Count$YourCounters<KIND> — the player-counter count heads (ticket
-// count-yourcounters). Before the fix every YourCounters head degraded to 0
-// through Num's "present but unresolvable degrades to zero" rule.
+// Count$YourCounters<KIND> — the player-counter count heads. Unmodelled, every
+// YourCounters head degrades to 0 through Num's "present but unresolvable
+// degrades to zero" rule.
 //
 // The end-to-end pin runs on the REAL corpus card Razorfield Ripper (whose
 // trigger body is `DB$ Pump | Defined$ TriggeredAttackerLKICopy | NumAtt$ +X
@@ -153,7 +153,7 @@ func TestYourCountersExperienceAndRADSpellings(t *testing.T) {
 // `DB$ ChooseNumber | Max$ Count$YourCountersEnergy` Max expressions resolve
 // to the controller's energy total through each card's own compiled SVar —
 // the bound the may-pay-{E} ask takes once the ChooseNumber ask primitive
-// itself lands (its own ticket; today the ask is the silent 0 fallback).
+// itself lands (today the ask is the silent 0 fallback).
 func TestEnergyCountersBoundTheMayPayAsks(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

@@ -220,7 +220,7 @@ func TestCommandTowerColourlessCommanderStaysFailClosed(t *testing.T) {
 
 // TestCommandTowerNonCommanderGameStaysFailClosed: outside the Commander
 // format (no commanders at all) the tap adds nothing and keeps the
-// fail-closed Note — the pre-fix behaviour, unchanged.
+// fail-closed Note.
 func TestCommandTowerNonCommanderGameStaysFailClosed(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

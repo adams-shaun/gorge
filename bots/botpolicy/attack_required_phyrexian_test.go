@@ -7,8 +7,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// TestClampKeepsRequiredAttackersChargeFeasible is the review-r1 MAJOR's
-// policy-layer pin: Clamp's repair (FitRequired) must build a required
+// TestClampKeepsRequiredAttackersChargeFeasible pins the policy layer:
+// Clamp's repair (FitRequired) must build a required
 // KAttackers answer that is COMBINED-CHARGE-feasible, not restore a required
 // option whose pip overruns the published life bound. Three required pips at
 // four life: the quota is two and Clamp must hand back exactly two -- the

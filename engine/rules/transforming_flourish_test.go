@@ -1,12 +1,11 @@
 package rules
 
-// Transforming Flourish is the absorbed clause of this ticket's consolidated
-// acceptance (agent-20260919T194848Z-a2b4e083): its single-target `SP$ Destroy`
+// Transforming Flourish: its single-target `SP$ Destroy`
 // carries `RememberDestroyed$ True`, and the chained DBDig (a DB$ DigUntil) is
-// gated on `ConditionDefined$ Remembered | ConditionPresent$ Card`. Before
-// effDestroy read RememberDestroyed$, the destroyed permanent was never added
-// to the ability's remembered set, so the gate was never satisfied and the
-// whole dig leg silently skipped.
+// gated on `ConditionDefined$ Remembered | ConditionPresent$ Card`. Without
+// the RememberDestroyed$ read the destroyed permanent never joins the ability's
+// remembered set, so the gate is never satisfied and the whole dig leg silently
+// skips.
 //
 // Measured shape (GPL corpus, never copied into a tracked fixture):
 //

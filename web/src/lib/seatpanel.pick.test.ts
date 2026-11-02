@@ -12,7 +12,7 @@ vi.mock('./api', async (importOriginal) => ({
 const ctx = { seat: 0, token: 'tok' };
 
 // pickOption is the seat's pure selection logic, expressed entirely in terms
-// of the decision's own Option.Group field (R-E4-2): the panel never finds
+// of the decision's own Option.Group field: the panel never finds
 // out what a Group's members are, only that a non-empty Group is an
 // exclusivity marker. These tests therefore build the decision by hand and
 // assert nothing about blockers, creatures or combat.
@@ -75,7 +75,7 @@ describe('pickOption — exclusivity by Group', () => {
     expect(pickOption(d, 99, [0])).toEqual([0]);
   });
 
-  it('options with no Group are never exclusive (R-E4-2: only the Group contract applies)', () => {
+  it('options with no Group are never exclusive (only the Group contract applies)', () => {
     const ungrouped: Decision = {
       seq: 4,
       player: 0,
@@ -95,7 +95,7 @@ describe('pickOption — exclusivity by Group', () => {
 
 // A repeatable modal ask (a CanRepeatModes$ Charm, CR 601.2b): the answer is
 // an ORDERED MULTISET over the distinct options, so the ask's Min may exceed
-// the option count — CharmNum$ 3 over 2 legal modes. The review-r2 wedge:
+// the option count — CharmNum$ 3 over 2 legal modes. The wedge:
 // toggle-off on a re-click made len(picked) == min unreachable, so a human
 // seat could never enable the submit button on the engine's own shape.
 const repeatableModes = (seq: number, min = 3, max = 3, repeatable = true): Decision => ({

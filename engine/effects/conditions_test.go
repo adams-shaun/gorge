@@ -28,8 +28,7 @@ func conditionBoard(t *testing.T) (*fakeHost, []state.ObjID) {
 // TestConditionGateDelverShape pins the exact shape Delver of Secrets
 // transforms on: ConditionDefined$ Remembered + ConditionPresent$
 // Card.Instant,Card.Sorcery + ConditionCompare$ EQ1 is met exactly when the
-// remembered set holds exactly one instant/sorcery (task
-// fb-20260914T033246Z-3f1cc033, defect 2).
+// remembered set holds exactly one instant/sorcery.
 func TestConditionGateDelverShape(t *testing.T) {
 	h, ids := conditionBoard(t)
 	sa := sa(t, "DB$ SetState | Defined$ Self | Mode$ Transform | ConditionDefined$ Remembered | ConditionPresent$ Card.Instant,Card.Sorcery | ConditionCompare$ EQ1")
@@ -179,9 +178,9 @@ func TestConditionGateTargetedGroup(t *testing.T) {
 	}
 }
 
-// TestConditionGatePresentWithoutDefinedResolvesBattlefield pins the
-// task fb-9d2338cc scope: a ConditionPresent$ WITHOUT a ConditionDefined$
-// now resolves against Forge's default group, the whole battlefield. The
+// TestConditionGatePresentWithoutDefinedResolvesBattlefield: a ConditionPresent$
+// WITHOUT a ConditionDefined$ resolves against Forge's default group, the whole
+// battlefield. The
 // entering/replaced object (c.Replaced) is excluded, so a fast land's
 // GT2-on-Land.YouCtrl counts OTHER lands — the oracle's "two or fewer other
 // lands" — not the land itself (which for the Updated replacement shape is

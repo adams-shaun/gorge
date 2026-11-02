@@ -30,7 +30,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// Each branch token is a numeric literal in the common case
 		// (Count$OptionalGenericCostPaid.4.2), but Forge also writes another
 		// SVar's value as the branch (Dragon's Fire's
-		// `SVar:Y:Count$OptionalGenericCostPaid.X.3`, where the paid branch is
+		// `Count$OptionalGenericCostPaid.X.3`, where the paid branch is
 		// SVar X = Revealed$CardPower): a non-numeric token resolves as an
 		// SVar$ indirection through the SAME runtime -> printed -> publication
 		// precedence the SVar$ head uses, so the paired X/Y sizes from the
@@ -504,7 +504,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 	case evalCountBodyPaidColorsColorIdentity:
 		// Count$ColorsColorIdentity: the number of colours in the resolving
 		// controller's commanders' colour identity (War Room's
-		// "SVar:X:Count$ColorsColorIdentity" driving "{3}, {T}, Pay life equal
+		// "{3}, {T}, Pay life equal
 		// to the number of colors in your commanders' color identity: Draw a
 		// card", the corpus's only carrier). Read through the Host's
 		// CommanderIdentityColourCount like the other log/state-derived heads

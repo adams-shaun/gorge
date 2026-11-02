@@ -53,8 +53,7 @@ func sagesDrawOption(e *Engine, sages state.ObjID) int {
 // among creatures you control" is a TOTAL across the payer's creatures (CR
 // 118.3, 601.2h), the same reading as Quilled Greatwurm's wildcard part, so
 // the Sages and the Bears carrying one counter each pay it, one counter from
-// each. Before the fix a fixed-kind part needed one creature carrying both
-// counters, so the ability was never offered.
+// each.
 func TestFixedKindCountersFromAmongCreatures(t *testing.T) {
 	t.Parallel()
 	e, sages, bear := novijenSagesEngine(t, 1, 1)

@@ -159,3 +159,41 @@ func TestTokenCreatedOncePerBatch(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestSacrificedOnceReadsTheFoodAsItLastExisted: a creature Ygra makes a Food is
+// a Food only on the battlefield, so "whenever you sacrifice one or more Foods"
+// has to judge it on the board before it left (CR 603.10a).
+func TestSacrificedOnceReadsTheFoodAsItLastExisted(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	feast := card(t, "Name:Feast Once\nManaCost:0\nTypes:Sorcery\n"+
+		"A:SP$ Sacrifice | SacValid$ Food | Amount$ 1\nOracle:x\n")
+	e := corpusEngine(t, reg, []*cards.Card{
+		lookup(t, reg, "Camellia, the Seedmiser"), lookup(t, reg, "Ygra, Eater of All"),
+		lookup(t, reg, "Grizzly Bears"), feast}, nil)
+	moveByName(t, e, 0, "Camellia, the Seedmiser", state.ZBattlefield)
+	moveByName(t, e, 0, "Ygra, Eater of All", state.ZBattlefield)
+	bear := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	id := moveByName(t, e, 0, "Feast Once", state.ZHand)
+	e.pending = nil
+	e.priorityRound()
+	castFixture(t, e, id, -1)
+	drainSetMechanic(t, e, func(d *decision.Decision) []int {
+		for _, o := range d.Options {
+			if o.Obj == bear {
+				return []int{o.Index}
+			}
+		}
+		out := make([]int, d.Min)
+		for i := range out {
+			out[i] = d.Options[i].Index
+		}
+		return out
+	})
+	if o := e.G.Obj(bear); o.Zone != state.ZGraveyard {
+		t.Fatalf("precondition: Grizzly Bears in zone %v, want the graveyard", o.Zone)
+	}
+	if n := countTokensNamed(t, e, "Squirrel Token"); n != 1 {
+		t.Fatalf("Squirrels = %d, want 1 from the granted Food's sacrifice", n)
+	}
+}

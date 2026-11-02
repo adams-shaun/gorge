@@ -19,16 +19,16 @@ func grantDecision(b Board, options []tgt, statics []string) ([]int, *decision.D
 	return Decide(b, &d, rng(1)).Choices, &d
 }
 
-// TestTargetGrantAimsOwnNotOpponent is the fb-20260927T153930Z regression:
-// Whirler Rogue's "target creature can't be blocked this turn" is a one-way
-// BOON, so a bot handed the seat's own 5/5, an opponent's 2/2 and the
-// opponent's face must point the grant at its OWN creature. Before the
-// polarity branch the plain path (R1/R3) led with the opponent and aimed the
-// "unblockable" grant at the enemy's board -- measured in the report at seq
-// 4237-4257, where the seat spent two artifacts to make an OPPONENT's Serra
-// Avenger unblockable. The opponent's 2/2 is the higher-threat FOREIGN option
-// (and the 5/5 is listed first, so a positional pick fails too), so this test
-// fails for every pre-fix ranker, not just the greedy-foreign one.
+// TestTargetGrantAimsOwnNotOpponent pins the grant's direction: Whirler
+// Rogue's "target creature can't be blocked this turn" is a one-way BOON, so
+// a bot handed the seat's own 5/5, an opponent's 2/2 and the opponent's face
+// must point the grant at its OWN creature. Before the polarity branch the
+// plain path (R1/R3) led with the opponent and aimed the "unblockable" grant
+// at the enemy's board -- measured in the report at seq 4237-4257, where the
+// seat spent two artifacts to make an OPPONENT's Serra Avenger unblockable.
+// The opponent's 2/2 is the higher-threat FOREIGN option (and the 5/5 is
+// listed first, so a positional pick fails too), so this test fails for any
+// ranker that ignores the grant, not just a greedy-foreign one.
 func TestTargetGrantAimsOwnNotOpponent(t *testing.T) {
 	b := boardOf(atk(1, 5, 5), def(1, 2, 2))
 	got, d := grantDecision(b, []tgt{mine(101), opp(201), face()}, []string{"CantBlockBy"})

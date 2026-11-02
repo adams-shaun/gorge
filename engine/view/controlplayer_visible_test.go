@@ -66,7 +66,7 @@ func TestControllerSeesControlledHandNotThirdSeat(t *testing.T) {
 
 // TestOrdinaryProjectionRevealsControlledSeatToItsController pins that the
 // CR 720.4 widening is keyed on state.Game.ControlledBy INSIDE the view
-// package, as this ticket's scope requires: it must reach every wire consumer
+// package: it must reach every wire consumer
 // (host decision view, ViewAtSeat, EventsSeat, fan-out) with no host change,
 // so plain ProjectFor/Project -- not only the explicit alsoVisible entry
 // point -- read ControlledBy on their own. A seat that controls nobody keeps

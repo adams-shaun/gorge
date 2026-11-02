@@ -431,8 +431,8 @@ func TestChangeZoneMovesTheTarget(t *testing.T) {
 // TestChangeZoneSkipsObjectNoLongerAtOrigin is a CR 608.2b-flavoured guard:
 // Origin$ is a precondition, so a target that already left where the effect
 // expected it (destroyed in response, say) is skipped rather than moved from
-// the wrong place. The ctx carries the TargetsOffered marker (task spcz1:
-// changeZoneChosenTargets inherits pre-chosen targets only when the marker
+// the wrong place. The ctx carries the TargetsOffered marker
+// (changeZoneChosenTargets inherits pre-chosen targets only when the marker
 // says they are this SA's own -- a live placement ask always sets it), so the
 // chosen target is read instead of an ask being posed.
 func TestChangeZoneSkipsObjectNoLongerAtOrigin(t *testing.T) {
@@ -474,9 +474,9 @@ func TestChangeZoneAllSweepsMatchingLibraryCards(t *testing.T) {
 // TestChangeZoneAllScope pins Forge ChangeZoneAllEffect's player scope: a
 // ChangeZoneAll that declares a target or a Defined$ acts only on those
 // players' zones; UseAllOriginZones$ True (and the no-target/no-Defined$
-// default) sweeps every player. Before the fix effChangeZoneAll always walked
-// g.AliveFrom(0), so "exile target player's graveyard" exiled every player's
-// graveyard. Both seats are stocked in every case.
+// default) sweeps every player. Always walking g.AliveFrom(0) would make
+// "exile target player's graveyard" exile every player's graveyard. Both
+// seats are stocked in every case.
 func TestChangeZoneAllScope(t *testing.T) {
 	stock := func(t *testing.T) (*fakeHost, map[state.PlayerID]state.ObjID) {
 		t.Helper()
@@ -1100,9 +1100,9 @@ func TestCounterIgnoresATargetNoLongerOnTheStack(t *testing.T) {
 }
 
 // TestDelayedTriggerPhaseRegisters pins the Mode$ Phase branch: a Phase
-// delayed trigger now emits a DelayedRegister event (folded by events.Apply
+// delayed trigger emits a DelayedRegister event (folded by events.Apply
 // into state.Game.Delayed, so the registration survives replay) rather than
-// the M1 Note-only recording. The event carries the source, controller, the
+// a Note-only recording. The event carries the source, controller, the
 // phase step resolved from Phase$, the Execute$ SVar name and the Remembered;
 // Event-matched modes use the same event-backed registration shape.
 func TestDelayedTriggerPhaseRegisters(t *testing.T) {
@@ -1165,8 +1165,7 @@ func TestCharmRunsOnlyTheFirstChoice(t *testing.T) {
 		t.Fatalf("life = %d, want 15 (only the first choice runs)", h.g.Players[0].Life)
 	}
 	// A host that cannot ask keeps the deterministic first-mode stand-in
-	// WITH the Note that records why the richer path did not run (the R-9
-	// fallback, M2d-2: real asks now go to an engine host instead).
+	// WITH the Note that records why the richer path did not run.
 	found := false
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "first mode") {
@@ -1201,7 +1200,7 @@ func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ Vote | Defined$ Player | Choices$ Sickness,Psychosis"))
 	// The fixed-Choices$ ballot poses a private per-voter KChoose (the
 	// votepb1 ask machinery); the fake host cannot answer it, so each voter
-	// takes the deterministic first option (R-9) and records the loud
+	// takes the deterministic first option and records the loud
 	// no-host Note beside its "votes for" reveal — the same fallback shape
 	// the player-ballot and card-ballot no-host paths emit. One "votes for
 	// Sickness" Note per voting player is still the contract under test.
@@ -1310,7 +1309,7 @@ func TestMana(t *testing.T) {
 // TestCardflowAPIsGuardOutOfRangePlayerID is a regression test.
 // Every one of cardflow.go's nine registered APIs eventually reads a zone via
 // PlayerOf's result (a target's raw Player field) or, for NameCard,
-// Ctx.Controller directly. Neither is validated before this task's fix, and
+// Ctx.Controller directly. Neither is validated at the source, and
 // Game.Zone computes int(p)*numZones+int(z) with no bounds check of its own
 // before indexing a fixed-size slice -- an out-of-range PlayerID reached that
 // arithmetic and panicked. Each API is exercised two ways: an out-of-range

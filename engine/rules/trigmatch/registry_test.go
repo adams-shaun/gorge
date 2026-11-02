@@ -9,9 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trigger-mode dispatch used to be one switch in trigger_match.go, which
-// made every ticket touching a mode edit the same file. It is now a table this
-// package's per-mode files register into. These tests pin the two
+// The trigger-mode dispatch is a table this package's per-mode files register
+// into, not one switch that every mode change would edit. These tests pin the two
 // properties that replace what the compiler used to give us for free: no mode
 // silently loses its matcher, and no two files claim the same mode.
 
@@ -34,7 +33,7 @@ var registeredModes = []string{
 }
 
 // addedAfterTheSplit names every mode registered into the table since the
-// split, each with the ticket that added it. The split did not invent these
+// split. The split did not invent these
 // dispatches -- they are deliberate new trigger modes whose events did not
 // exist before the split -- but a new mode must land here to be legal, which
 // keeps the addition explicit and reviewable instead of silent. A mode NOT on
@@ -57,7 +56,7 @@ var addedAfterTheSplit = []string{
 	// matches the events.Connive marker Kind, which was appended for it, so
 	// it could not have been in the pre-split switch.
 	"Connives",
-	// enlist1: "Whenever CARDNAME enlists a creature ..." (CR 702.160;
+	// "Whenever CARDNAME enlists a creature ..." (CR 702.160;
 	// Goblin Morale Sergeant, Guardian of New Benalia). It matches the
 	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
 	// could not have been in the pre-split switch.
@@ -68,7 +67,7 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
-	// clash1: "Whenever you win/lose a clash ..." (CR 701.31: Marvo, Deep
+	// "Whenever you win/lose a clash ..." (CR 701.31: Marvo, Deep
 	// Operative; Entangling Trap; Rebellion of the Flamekin; Sylvan Echoes --
 	// 6 raw lines / 4 files at the pin). It matches the events.Clash marker
 	// Kind effClash emits (one per clashing player), appended for it, so it
@@ -116,7 +115,7 @@ var addedAfterTheSplit = []string{
 	// trigger_match.go's all-latch), but the MODE name is new, so no pre-split
 	// switch arm could have dispatched it.
 	"DamageAll",
-	// agent-20261005T061534Z-7ace93d1: Magmatic Galleon's excess
+	// Magmatic Galleon's excess
 	// damage uses existing Damage events but its mode had no pre-split arm.
 	"ExcessDamageAll",
 	// trig-become-monarch: "Whenever a player becomes the monarch ..." (the
@@ -139,11 +138,11 @@ var addedAfterTheSplit = []string{
 	// existed already but the MODE did not -- no pre-split switch arm could
 	// have dispatched it.
 	"CounterPlayerAddedAll",
-	// agent-20261005T061522Z-9024c29e: CounterAddedAll and
+	// CounterAddedAll and
 	// CounterTypeAddedAll match existing CounterChange events, but the
 	// pre-split dispatcher had no arms for these mode names.
 	"CounterAddedAll", "CounterTypeAddedAll",
-	// monstrosity (task agent-20260919T190014Z): "When CARDNAME becomes
+	// monstrosity: "When CARDNAME becomes
 	// monstrous, ..." (CR 701.31; Hydra Broodmaster, Fleecemane Lion,
 	// Polukranos and the mode's 19 corpus carrier files). It matches the
 	// events.AlterAttribute mark events.Apply folds for the Monstrosity$
@@ -156,19 +155,19 @@ var addedAfterTheSplit = []string{
 	// which was appended for it, so it could not have been in the pre-split
 	// switch.
 	"Surveil",
-	// AbilityTriggered (agent cli-20261006T024354Z-f4a25d7f): "Whenever a
+	// AbilityTriggered: "Whenever a
 	// creature's attacking causes a triggered ability of it to trigger"
 	// (Firebender Ascension, Aboleth Spawn, Historian's Boon, Strict
 	// Proctor). It matches the events.AbilityTriggered marker appended for
 	// it, so the pre-split switch could not have dispatched it.
 	"AbilityTriggered",
-	// agent-20260919T183016Z-886b1a86: "Whenever you give a gift ..."
+	// "Whenever you give a gift ..."
 	// (CR 702.168; Jolly Gerbils, the one corpus carrier). It matches the
 	// events.GiveGift marker Kind, which was appended for it alongside the
 	// GiftPromise election record, so it could not have been in the pre-split
 	// switch -- no prior engine action produced a gift-completion event.
 	"GiveGift",
-	// agent-20260920T063816Z-abb68c8f: "Whenever CARDNAME becomes unattached
+	// "Whenever CARDNAME becomes unattached
 	// from a permanent ..." (CR 701.3b; Captain's Hook, Grafted Exoskeleton,
 	// Grafted Wargear, Stitcher's Graft). It matches the events.Unattached
 	// marker Kind, which was appended for it so that a detach fires this mode
@@ -184,7 +183,7 @@ var addedAfterTheSplit = []string{
 	// events.FlipFace marker (CR 701.26); the pre-split switch did not dispatch
 	// this mode.
 	"Transformed",
-	// TurnFaceUp (task agent-20260919T183249Z-0fb8ed97): "When
+	// TurnFaceUp: "When
 	// [this/that permanent] is turned face up" (CR 708.6 / CR 702.36e;
 	// Printlifter Ooze, Woolly Loxodon and the mode's 125 corpus carriers).
 	// It matches the events.TurnFaceUp Kind appended for it (effSetState's
@@ -194,7 +193,7 @@ var addedAfterTheSplit = []string{
 	// trig:Untaps (Key to the City): it matches the existing events.Untap
 	// event although the old switch had no such mode.
 	"Untaps",
-	// trig-milled (task agent-20260919T183731Z-085022e9): the two
+	// The two
 	// "whenever ... mills ..." modes (CR 701.17a; glowing_one and
 	// infesting_radroach on Mode$ Milled, the_wise_mothman, mirelurk_queen
 	// and screeching_scorchbeast on Mode$ MilledAll). They match the mill
@@ -203,7 +202,7 @@ var addedAfterTheSplit = []string{
 	// switch arm existed for either name and no library->graveyard move
 	// could be told from a mill without the marker.
 	"Milled", "MilledAll",
-	// DiscardedAll (agent-20260919T183145Z-c6610d46): "Whenever you discard
+	// DiscardedAll: "Whenever you discard
 	// one or more [filtered] cards" (CR 701.8; 21 corpus T: lines plus Pure
 	// Intentions' SVar body at the pin -- Veronica Dissident Scribe, Magmakin
 	// Artillerist, Marauding Mako, Rielle the Everwise and the rest). It
@@ -220,7 +219,7 @@ var addedAfterTheSplit = []string{
 	// KArrange answer is known (the count actually put on the bottom), so
 	// no pre-split switch arm could have dispatched it.
 	"Scry",
-	// agent-20260919T183836Z-df01c8be: "Whenever this creature evolves"
+	// "Whenever this creature evolves"
 	// (CR 702.99b; Watchful Radstag, Renegade Krasis -- the 2 corpus
 	// carriers). It matches the events.Evolved marker Kind, which was
 	// appended for it (resolveTop emits it once the Evolve keyword ability's
@@ -228,7 +227,7 @@ var addedAfterTheSplit = []string{
 	// dispatched it -- evolve previously announced only its own counter
 	// trigger and no separate mode existed.
 	"Evolved",
-	// trig:FullyUnlock (task agent-20260919T191104Z-95f1e316): CR 709.5's
+	// trig:FullyUnlock: CR 709.5's
 	// "Eerie -- whenever ... you fully unlock a Room" (17 corpus carriers,
 	// the Eerie enchantments e.g. Fear of Sleep Paralysis). It matches the
 	// pre-existing events.DoorUnlock transition, but the MODE did not exist:
@@ -246,7 +245,7 @@ var addedAfterTheSplit = []string{
 	// ordinary counter addition is not a proliferate action), so it could not
 	// have been in the pre-split switch.
 	"Proliferate",
-	// trig:BecomesTargetOnce (task agent-20260919T192459Z-2d5505d7):
+	// trig:BecomesTargetOnce:
 	// Forge's TriggerBecomesTargetOnce, the BATCH sibling of Mode$
 	// BecomesTarget ("whenever one or more creatures you control become the
 	// target of an activated ability", Professor Hojo; Leyline of Combustion;
@@ -257,7 +256,7 @@ var addedAfterTheSplit = []string{
 	// cadence it needs (one instance per targeting ACTION) rides the
 	// queue-time target-batch latch (engine/rules/trigger_match.go).
 	"BecomesTargetOnce",
-	// foretell-trig (task agent-20260923T032009Z-3b9d3432): "Whenever you
+	// "Whenever you
 	// foretell a card, ..." (CR 702.126b; Dream Devourer, the corpus's sole
 	// carrier at the pin -- measured
 	// `/usr/bin/grep -rlE 'T:Mode\$ Foretell' .cards/cardsfolder | wc -l`
@@ -268,14 +267,14 @@ var addedAfterTheSplit = []string{
 	// existed before the mode did -- but the pre-split switch had no
 	// Foretell arm, so neither shape could have been dispatched through it.
 	"Foretell",
-	// agent-20260929T010346Z-ae55d89d: ElementalBend uses a new completed
+	// ElementalBend uses a new completed
 	// bend-action marker; the pre-split switch had no way to distinguish the
 	// four actions' otherwise ordinary state-change events.
 	"ElementalBend",
-	// triage-478c51d1: the set-mechanic / keyword-action trigger modes.
+	// The set-mechanic / keyword-action trigger modes.
 	// Crewed and Saddled read per-crewer action markers (events.Crew, which
-	// the pre-split switch never dispatched as a MODE, and the new
-	// events.Saddle appended for this ticket); BecomesSaddled and
+	// the pre-split switch never dispatched as a MODE, and events.Saddle);
+	// BecomesSaddled and
 	// BecomesPlotted read the events.AlterAttribute grants the K:Saddle and
 	// K:Plot bodies emit (the Kind predates the modes, but neither name was
 	// in the pre-split switch); SacrificedOnce reads the ordinary sacrifice
@@ -283,11 +282,11 @@ var addedAfterTheSplit = []string{
 	// express. None of the five names existed in the pre-split switch, so no
 	// arm there could have dispatched them.
 	"Crewed", "Saddled", "BecomesSaddled", "BecomesPlotted", "SacrificedOnce",
-	// cli-20261006T024353Z-ce4a0d59: these keyword-action markers carry the
+	// These keyword-action markers carry the
 	// acting player (and ManifestDread's graveyard objects); the old switch
 	// had no dispatch for their modes.
 	"Forage", "ManifestDread", "CollectEvidence",
-	// cli-20261005T075020Z-05241a06: the aggregate tap trigger modes, the
+	// The aggregate tap trigger modes, the
 	// "whenever one or more ... become tapped/untapped" batch siblings of
 	// Taps/Untaps (MSH Rewrite History and LCI Deeproot Pilgrimage on TapAll,
 	// LCI The Millennium Calendar on UntapAll -- the corpus's only three
@@ -301,7 +300,7 @@ var addedAfterTheSplit = []string{
 	// dispatcher (TurnChange, PlayerLost, ControlChange, MoveZone), plus
 	// ChangesController which had vocabulary but no matcher.
 	"TurnBegin", "LosesGame", "ChangesController", "Exiled",
-	// cli-20261006T024354Z-e5dc4abb: "whenever you solve a Case" (MKM Case
+	// "whenever you solve a Case" (MKM Case
 	// File Auditor). It matches the AlterAttribute "Solved" grant, which the
 	// effect only began emitting when the Case's solved designation was
 	// modelled -- before that the attribute was a Note -- so the pre-split
@@ -330,7 +329,7 @@ func TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched(t *testing.T) {
 	// The mirror of the test above: a mode in the table that is on neither
 	// the pre-split switch's list nor the documented post-split additions
 	// means a dispatch appeared without review -- which is a behaviour
-	// change. A legitimate new mode joins addedAfterTheSplit with its ticket
+	// change. A legitimate new mode joins addedAfterTheSplit
 	// rather than broadening this test.
 	known := map[string]bool{}
 	for _, m := range allRegisteredModeNames() {
@@ -344,7 +343,7 @@ func TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched(t *testing.T) {
 	}
 	sort.Strings(extra)
 	if len(extra) != 0 {
-		t.Errorf("modes registered that the split never dispatched and no ticket added: %v", extra)
+		t.Errorf("modes registered that the split never dispatched and addedAfterTheSplit does not name: %v", extra)
 	}
 }
 

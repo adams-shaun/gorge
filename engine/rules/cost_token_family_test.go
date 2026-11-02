@@ -261,7 +261,7 @@ func TestBareExileCostExilesTheSource(t *testing.T) {
 // resolves. A spec naming a trigger-only role has no binding in the cast
 // flow and the ability is never offered. Riddlesmith's own Draw<1/You> lives
 // on a trigger Execute$ body (whose costs this build's executor does not
-// charge -- see the task report), so the payment path is pinned on a fixture
+// charge), so the payment path is pinned on a fixture
 // with the same printed token.
 func TestDrawCostDrawsThePayer(t *testing.T) {
 	t.Parallel()
@@ -410,8 +410,8 @@ func TestDamageYouCostModelledAndPaid(t *testing.T) {
 	}
 }
 
-// The r2-review fixes: the SVar-priced announced PayLife<X> faces (the free
-// announcement the r2 build gave every PayLife<X> face was fail-OPEN for the
+// The SVar-priced announced PayLife<X> faces (a free
+// announcement for every PayLife<X> face would be fail-OPEN for the
 // four faces whose SVar:X fixes the value), and the plain Cost$ DamageYou<N>
 // settle branch, which the r2 round had covered only through Vexing Devil's
 // UnlessCost$ path.

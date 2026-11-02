@@ -12,7 +12,7 @@ import (
 // chain, or the same primitive on the next iteration of an enclosing loop --
 // starts fresh instead of reading the previous one's state. effCharm, the
 // per-player GenericChoice loop and effPump's KWChoice$ already consume
-// Ctx.Modes (fx41/fx42); these pin the two readers that did not.
+// Ctx.Modes; these pin the two readers that did not.
 
 // TestVillainousChoiceVictimCursorIsConsumed: effVillainousChoice derives its
 // victims only while Ctx.VillainousVictims is nil and never reset the cursor

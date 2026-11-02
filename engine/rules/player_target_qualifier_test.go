@@ -78,9 +78,7 @@ func playerTargetOptions(t *testing.T, d *decision.Decision) []state.PlayerID {
 
 // TestSleeperAgentTargetAskExcludesTheController drives Sleeper Agent's real
 // corpus ETB (DB$ GainControl | ValidTgts$ Opponent) end to end: the ask must
-// offer the opponent and NOT the spell's own controller. The pre-fix engine
-// offered every living seat (the controller was option 0) and the recheck
-// accepted any of them, so the Opponent qualifier was never enforced.
+// offer the opponent and NOT the spell's own controller.
 func TestSleeperAgentTargetAskExcludesTheController(t *testing.T) {
 	t.Parallel()
 	e, sleeper := etbTriggerEngine(t, 2, nil, choiceCorpusCard(t, "Sleeper Agent"))
@@ -265,7 +263,7 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// recheck use, so the two trigger-role qualifiers (Player.!
 	// TriggeredActivator, Player.!TriggeredCardController) are judged with
 	// their binding present (seat 1's) instead of absent -- an absent binding
-	// fails closed by the pg2 contract and would classify them wrongly.
+	// fails closed by the contract and would classify them wrongly.
 	//
 	// The game-long damage-by-source qualifier
 	// (Opponent.wasDealtDamageThisGameBy Self, task game-long damage
@@ -299,7 +297,7 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	// offers seats through its bare Player alternative (the unhandled
 	// NotDefinedParentTarget clause contributes nothing), so it is classified
 	// by behaviour, not by its first alternative.
-	// Player.!EnchantedBy offers seats since fuzz-cov3's after-the-dot
+	// Player.!EnchantedBy offers seats through the after-the-dot
 	// negation (effects' matchesPlayerSingleSpec): no seat is enchanted
 	// here, so every seat qualifies. Player.!CardOwner offers for the same
 	// after-the-dot reason once a source object is bound -- this census
@@ -364,7 +362,7 @@ func equalStrings(a, b []string) bool {
 
 // TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer: a ValidTgts$
 // Player.!TriggeredCardController ask is judged through the ask's own
-// trigger context (pg2), not failed closed -- the entering creature's
+// trigger context, not failed closed -- the entering creature's
 // controller (seat 0, the asker) is excluded and seat 1 offered. Before the
 // trigger-role arm existed this spec offered NO seat (MatchesPlayerSpecFrom
 // cannot see the context), which silenced mandatory trigger-target asks
@@ -391,7 +389,7 @@ func TestPlayerTargetAskTriggerRoleExcludesTheRolePlayer(t *testing.T) {
 // TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier: the resolution
 // recheck judges a trigger-role qualifier through the same trigger context
 // the offer used -- the role's seat is dropped, the rest kept; with the
-// binding absent the qualifier fails closed (the pg2 absent-binding
+// binding absent the qualifier fails closed (the absent-binding
 // contract) and drops every seat.
 func TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier(t *testing.T) {
 	t.Parallel()

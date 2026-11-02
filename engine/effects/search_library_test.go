@@ -11,7 +11,7 @@ import (
 )
 
 // hostlessSearchRegistryOnce shares ONE corpus decode across the four
-// hostless-search leaves (and the fixture helpers), so pinning the R-9
+// hostless-search leaves (and the fixture helpers), so pinning the no-host
 // stand-in does not compound the corpus load a fresh worktree's budget can
 // ill afford. Same pattern as engine/rules/search_library_test.go's
 // librarySearchRegistryOnce.
@@ -32,7 +32,7 @@ func hostlessSearchTestRegistry(t *testing.T) *cards.Registry {
 }
 
 // searchFixtureNoHost is a 2-seat effect board for the hidden-library
-// ChangeZone R-9 stand-in. It places `source` (carrying the search SA) in
+// ChangeZone no-host stand-in. It places `source` (carrying the search SA) in
 // seat 0's hand and seat 0's library to the ordered `lib` cards, so the
 // search's deterministic eligible list (and therefore the option list the
 // decision would have built) is exactly `lib` order for a bare ChangeType$
@@ -71,12 +71,11 @@ func countSearchMoves(h *fakeHost) (moves, shuffles int) {
 }
 
 // TestLibrarySearchNoHostQuantityFindsDeterministicFirst pins CR 701.23d on
-// the R-9 stand-in: a hostless quantity-only search (Demonic Tutor's
+// the no-host stand-in: a hostless quantity-only search (Demonic Tutor's
 // ChangeType$ Card) must find exactly Min (1) card, and that card must be the
 // deterministic FIRST eligible card in the decision's own option order -- not
-// just any card, and not zero. Before srch1 the stand-in found nothing; the
-// pre-fix no-host lay the quantity-only shape down as 0 cards, which is the
-// answer the decision it bypassed would itself have refused.
+// just any card, and not zero. Laying the quantity-only shape down as 0 cards
+// is the answer the bypassed decision would itself refuse.
 func TestLibrarySearchNoHostQuantityFindsDeterministicFirst(t *testing.T) {
 	reg := hostlessSearchTestRegistry(t)
 	tutor, ok := reg.Lookup("Demonic Tutor")

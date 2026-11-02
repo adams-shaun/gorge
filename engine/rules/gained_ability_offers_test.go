@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Regressions for the cardfuzz batch5 livelocks (all real corpus cards).
+// Regressions for fuzzer-found livelocks (all real corpus cards).
 
 // b5Engine deals seat 0 the named corpus cards on top of a Plains deck and
 // seat 1 all Plains, seat 0 to start, and walks to seat 0's first main phase.
@@ -52,16 +52,16 @@ func gainedAbilityOffered(d *decision.Decision, obj state.ObjID) bool {
 	return false
 }
 
-// TestGainedEquipNotOfferedWithoutAnotherCreature (cardfuzz batch5 line 1):
-// Trazyn the Infinite has the activated abilities of the artifact cards in
-// its owner's graveyard, so a Bonesplitter there gives it "Equip {1}". An
-// attach ability can never target its own source (CR 701.3a; targetAsk
-// excludes it), so with Trazyn the only creature the Equip has no legal
-// target and must not be offered -- before the fix the offer gate let the
-// source count as its own target, the ask found none and aborted, and the
-// bot re-picked the same option forever ("cast aborted: no legal target").
-// A second creature makes the Equip legal again, and a held-out (F05-2
-// suppressed) source withholds the gained activation like a printed one.
+// TestGainedEquipNotOfferedWithoutAnotherCreature: Trazyn the Infinite has
+// the activated abilities of the artifact cards in its owner's graveyard, so
+// a Bonesplitter there gives it "Equip {1}". An attach ability can never
+// target its own source (CR 701.3a; targetAsk excludes it), so with Trazyn
+// the only creature the Equip has no legal target and must not be offered --
+// were the offer gate to let the source count as its own target, the ask
+// would find none and abort, and the bot re-picked the same option forever
+// ("cast aborted: no legal target"). A second creature makes the Equip legal
+// again, and a held-out (no-progress suppressed) source withholds the gained
+// activation like a printed one.
 func TestGainedEquipNotOfferedWithoutAnotherCreature(t *testing.T) {
 	t.Parallel()
 	e, _ := b5Engine(t, "Trazyn the Infinite", "Bonesplitter", "Grizzly Bears")
@@ -83,7 +83,7 @@ func TestGainedEquipNotOfferedWithoutAnotherCreature(t *testing.T) {
 	}
 }
 
-// TestMavindaExilesTheRecastSpell (cardfuzz batch5 line 7): Mavinda's
+// TestMavindaExilesTheRecastSpell: Mavinda's
 // Effect lets its controller cast a graveyard instant/sorcery this turn and
 // carries the ReplacementEffects$ promise "if that spell would be put into
 // your graveyard, exile it instead". The promise used to be a Note, so a {0}
@@ -128,8 +128,7 @@ func TestMavindaExilesTheRecastSpell(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestYawgmothsWillExilesCardsPutIntoTheGraveyard (cardfuzz batch5 line
-// 12): Gaea's Will's and Yawgmoth's Will's (identical Effect bodies) "if a
+// TestYawgmothsWillExilesCardsPutIntoTheGraveyard: Gaea's Will's and Yawgmoth's Will's (identical Effect bodies) "if a
 // card would be put into your graveyard from anywhere this turn, exile it
 // instead" is the same Effect-created Moved -> exile redirect (the Hidden$
 // True body). Without it, Urza's Bauble was recast from the graveyard,
@@ -180,8 +179,8 @@ func TestYawgmothsWillExilesCardsPutIntoTheGraveyard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestCombatDamageReplacementBodyAskDoesNotRedealThePass (cardfuzz batch5
-// line 10): Phyrexian Vindicator blocks and its damage replacement competes
+// TestCombatDamageReplacementBodyAskDoesNotRedealThePass:
+// Phyrexian Vindicator blocks and its damage replacement competes
 // with Statecraft's, so its controller orders them; picking Vindicator runs
 // its body, whose immediate "deals that much damage to any other target"
 // asks for a target. That ask is not a replacement-order ask, so the pass
@@ -233,7 +232,7 @@ func TestCombatDamageReplacementBodyAskDoesNotRedealThePass(t *testing.T) {
 	}
 }
 
-// TestLivelockWatcherIgnoresClockTickRuns (cardfuzz batch5 line 4): a single
+// TestLivelockWatcherIgnoresClockTickRuns: a single
 // resolution that registers one continuous effect per affected permanent
 // (a PumpAll over hundreds of creatures -- Moogles' Valor late in a
 // token-doubling game) emits one objectless ClockTick per registration. That

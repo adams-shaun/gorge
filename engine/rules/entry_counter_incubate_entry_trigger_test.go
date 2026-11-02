@@ -1,13 +1,9 @@
 package rules
 
 // CR 701.53a, 122.6, 614.1c: an Incubator token is created WITH its +1/+1
-// counters, so an "enters with a +1/+1 counter" trigger sees them. The
-// pre-fix Incubate path minted the token first and emitted a post-entry
-// CounterChange, so a ChangesZone trigger matched at the mint saw zero
-// counters and never fired (the token's later counter was not a new entry).
-// The Token API path already held its entry check behind a zone batch and
-// therefore passed; these two tests pin the difference so neither path can
-// regress.
+// counters, so an "enters with a +1/+1 counter" trigger sees them. The Token
+// API path already held its entry check behind a zone batch and therefore
+// passed; these two tests pin the difference so neither path can regress.
 
 import (
 	"testing"

@@ -181,10 +181,9 @@ func TestDinosaursTokenPerTimeCounterRemoved(t *testing.T) {
 
 // TestRegenerationsRestoredScrysOncePerBatch pins trig:CounterRemovedOnce on
 // the real corpus card Regenerations Restored: one CounterChange carrying a
-// whole TIME removal batch queues exactly ONE trigger (the Once contract), and
-// its chained body scrys 1 and gains 1 life. Two separate removals are two
-// batches and so two triggers. This is the mode that had NO matcher at all
-// before the fix -- the trigger never queued.
+// whole TIME removal batch queues exactly ONE trigger (the Once contract),
+// and its chained body scrys 1 and gains 1 life. Two separate removals are
+// two batches and so two triggers.
 func TestRegenerationsRestoredScrysOncePerBatch(t *testing.T) {
 	t.Parallel()
 	e := corpusTokenEngine(t)

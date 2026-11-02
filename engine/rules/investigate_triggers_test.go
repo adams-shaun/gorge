@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trig:Investigated half (task investtrig1, "whenever you investigate"):
+// The trig:Investigated half ("whenever you investigate"):
 // the events.Investigate record api:Investigate's effInvestigate emits beside
 // each Clue mint is what the mode matches. Erdwal Illuminator is the
 // FirstTime$ carrier ("Whenever you investigate for the first time each

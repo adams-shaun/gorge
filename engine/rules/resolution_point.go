@@ -13,9 +13,8 @@ import (
 // the ability to run and the kind of window that settled before it. Plain
 // data (the *cards.SA is shared immutable card data).
 type resumePoint struct {
-	// kind is "optional" (an optional trigger's yes), "effect_paid" (a
-	// triggered Cost$ window paid) or "copy_targets" (a copy's new-target
-	// election).
+	// kind is "optional" (an optional trigger's yes) or "effect_paid" (a
+	// triggered Cost$ window paid).
 	kind string      `clone:"deep"`
 	obj  state.ObjID `clone:"deep"`
 	sa   *cards.SA   `clone:"share"`

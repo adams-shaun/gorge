@@ -14,14 +14,14 @@ import (
 // An inline Weeping Angel trigger body: no Forge script is included in the fixture.
 func TestWeepingAngelRemoveTypesChangesDerivedCharacteristics(t *testing.T) {
 	const src = "Name:Weeping Angel\nManaCost:1 U B\nTypes:Artifact Creature Alien Angel\nPT:2/2\n" +
-		"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ TrigAnimate\n" +
-		"SVar:TrigAnimate:DB$ Animate | RemoveTypes$ Creature\nOracle:x\n"
+		"T:Mode$ SpellCast | ValidCard$ Creature | ValidActivatingPlayer$ Opponent | TriggerZones$ Battlefield | Execute$ LoseType\n" +
+		"SVar:LoseType:DB$ Animate | RemoveTypes$ Creature\nOracle:x\n"
 	card, diags := cards.ParseBytes("inline-angel.txt", []byte(src))
 	if len(diags) != 0 {
 		t.Fatalf("fixture parse: %v", diags)
 	}
 	card.Link()
-	body := cards.ResolveSVar(card.Faces[0].SVars, "TrigAnimate")
+	body := cards.ResolveSVar(card.Faces[0].SVars, "LoseType")
 	if len(card.Faces[0].Triggers) == 0 || body == nil || body.API != "Animate" || body.Params["RemoveTypes"] != "Creature" {
 		t.Fatalf("precondition: missing battlefield spell-cast Animate trigger: %+v", body)
 	}

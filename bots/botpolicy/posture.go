@@ -5,7 +5,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// DeckShape is the A4 deck-shape classification derived from the deciding
+// DeckShape is the deck-shape classification derived from the deciding
 // seat's own manifest. The zero value is ShapeMidrange so an unarmed Board
 // stays exactly inert.
 type DeckShape uint8
@@ -32,8 +32,10 @@ func (s DeckShape) String() string {
 	}
 }
 
-// PostureRules arms the A4 deck-shape posture. The zero value is off, so the
-// default bot and every existing policy are byte-identical.
+// PostureRules arms the deck-shape posture of
+// docs/design/2026-10-20-a4-deck-posture.md, whose rules R2 and R3 are named
+// below. The zero value is off, so the default bot and every existing policy
+// are byte-identical.
 type PostureRules struct {
 	// Attack arms R2 (release the AR4 blocker) and R3 (sim life weights).
 	Attack bool
@@ -41,7 +43,7 @@ type PostureRules struct {
 	Reserve bool
 }
 
-// Enabled reports whether any A4 rule is armed.
+// Enabled reports whether any posture rule is armed.
 func (r PostureRules) Enabled() bool { return r.Attack || r.Reserve }
 
 const (

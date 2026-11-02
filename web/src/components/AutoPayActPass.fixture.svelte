@@ -9,7 +9,7 @@
   /**
    * AutoPayActPass.fixture.svelte mounts the UI entry points that submit a
    * planned cast around ONE real SeatPanelState with pass-after-acting ON and
-   * the auto-pay preference ON (spec §8: "Auto-pay changes which witness an
+   * the auto-pay preference ON ("Auto-pay changes which witness an
    * explicit cast uses; it does not otherwise change Auto/Manual policy"):
    *
    *  - ?surface=panel — the seat-panel option list's plan button (SeatPanel);

@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file is the regression suite for the Mill<N> cost component
-// (task agent-20260918T230554Z-2b1a0e21). Ordinary activated abilities and
+// This file is the regression suite for the Mill<N> cost component. Ordinary activated abilities and
 // spells must settle their parsed Mill cost parts as real zone moves.
 
 const composedMillManaScript = "Name:Composed Mill Rock\nManaCost:0\nTypes:Artifact\n" +
@@ -38,8 +37,8 @@ func smallLibraryEngine(t *testing.T, n int, hand ...*cards.Card) *Engine {
 	return e
 }
 
-// TestSpellMillCostMillsOnPayment covers the other ordinary payment branch the
-// r1 review named (a spell, not an ability): casting a spell whose additional
+// TestSpellMillCostMillsOnPayment covers the other ordinary payment branch
+// (a spell, not an ability): casting a spell whose additional
 // Cost$ carries Mill<1> really mills the top card as its cost.
 func TestSpellMillCostMillsOnPayment(t *testing.T) {
 	t.Parallel()

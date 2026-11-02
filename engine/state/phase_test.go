@@ -2,7 +2,7 @@ package state
 
 import "testing"
 
-// The brief's table test: every Forge PhaseType script name and enum name,
+// Table test: every Forge PhaseType script name and enum name,
 // the case tolerance the corpus relies on, the range/list/Main/All forms,
 // and the unknown names that must be reported rather than matched or
 // dropped. Expected sets are written as explicit step lists in turn order,

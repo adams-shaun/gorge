@@ -186,9 +186,8 @@ func TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact(t *testing.T) {
 	submitChoices(t, e, art)
 
 	// CR 601.2b: the announced X is bounded by the largest candidate's
-	// counter count -- 2, the Ballista's -- not by the source's (0), so
-	// three values are offered. Pre-fix the bound read the source's
-	// o.Counter("Any") = 0 and only X=0 was offered.
+	// counter count -- 2, the Ballista's -- not by the source's (0), so three
+	// values are offered.
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
 		t.Fatalf("X decision for the Moxite activation: %+v", d)
@@ -246,8 +245,7 @@ func TestMoxiteRefineryAnyKindRemovesFromTheChosenArtifact(t *testing.T) {
 // TestGhaveRemovesFromTheChosenCreature pins the digit form's target ask:
 // with TWO eligible creatures (Ghave itself carries its 5 entry counters, the
 // Ballista one) the engine poses the KChoose and removes from the CHOSEN
-// creature. Pre-fix the cost read the source's counters, posed no ask, and
-// silently removed from Ghave.
+// creature.
 func TestGhaveRemovesFromTheChosenCreature(t *testing.T) {
 	t.Parallel()
 	e, cfg, p := subCounterConfig(t, 91, "Ghave, Guru of Spores", "Walking Ballista")
@@ -317,11 +315,9 @@ func TestGhaveRemovesFromTheChosenCreature(t *testing.T) {
 }
 
 // TestGorgonRemovalTargetIsNotTheSource pins the "offered at all" half: an
-// actor whose SOURCE carries none of the counters the cost removes is
-// offered because another creature you control does (pre-fix the offer gate
-// read the source's counters and withheld the ability entirely). Korozda
-// Gorgon is the carrier ({2}, no {T}, so no summoning-sickness lock on the
-// entry turn).
+// actor whose SOURCE carries none of the counters the cost removes is offered
+// because another creature you control does. Korozda Gorgon is the carrier
+// ({2}, no {T}, so no summoning-sickness lock on the entry turn).
 func TestGorgonRemovalTargetIsNotTheSource(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := subCounterConfig(t, 173, "Korozda Gorgon", "Walking Ballista")

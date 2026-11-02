@@ -26,7 +26,7 @@ import (
 
 // revealChooseEngine builds a two-seat game from compiled corpus cards: seat0
 // is padded with Forests and seat1 with Mountains. It is paidCostEngine's
-// sibling, kept separate so this ticket's fixtures read clearly.
+// sibling, kept separate so these fixtures read clearly.
 func revealChooseEngine(t *testing.T, seat0, seat1 []string) (*Engine, Config) {
 	t.Helper()
 	return paidCostEngine(t, seat0, seat1)

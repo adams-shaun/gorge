@@ -13,7 +13,7 @@ import (
 // whole "AttachedTo Creature" token survived the spec splitter as one word
 // (a space is neither a ',' nor a '.' nor a '+') and failed closed as a
 // single unknown predicate, so a filter naming "an Aura attached to a
-// creature" matched NOTHING -- the same silent-unknown the pg1 verdict found.
+// creature" matched NOTHING -- a silent unknown.
 //
 // The rule: for a candidate o (an Aura or Equipment), AttachedTo <X> holds
 // when o.AttachedTo names a permanent on the battlefield (o is attached) that
@@ -78,7 +78,7 @@ func TestAttachedToLiteralPredicate(t *testing.T) {
 		t.Errorf("Aura.AttachedTo Permanent must not match an unattached Aura")
 	}
 
-	// Leaf 3: the leading-'!' path (pg1) negates the recognised positive
+	// Leaf 3: the leading-'!' path negates the recognised positive
 	// predicate without any special-casing here. !AttachedTo Creature holds
 	// for the Aura attached to the land and for the unattached Aura, and not
 	// for the Aura attached to the creature.

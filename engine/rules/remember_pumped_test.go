@@ -138,8 +138,8 @@ func TestChemistersTrickRememberPumpedFeedsMustAttack(t *testing.T) {
 	}
 }
 
-// TestParamCensusReadsPumpRememberPumped pins the census half of the ticket:
-// effPump now reads RememberPumped$, so the parameter census derives the read
+// TestParamCensusReadsPumpRememberPumped pins the census half:
+// effPump reads RememberPumped$, so the parameter census derives the read
 // for api:Pump, and no repo-deck card is reported unsupported for
 // param:api:Pump.RememberPumped. TestParamCensusDetectsADeletedConsumer
 // proves the same derivation by pretending a consumer was deleted.

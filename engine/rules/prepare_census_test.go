@@ -1,7 +1,6 @@
 package rules
 
-// Prepare-mode modal pair census (ticket agent-20260928T214048Z-a90202e9,
-// corrected by agent-20260928T215803Z-ddee4eed).
+// Prepare-mode modal pair census.
 //
 // Forge encodes the Secrets of Strixhaven "prepared spell" pairs with a
 // card-level `AlternateMode:Prepare`: a permanent front (which enters
@@ -22,9 +21,9 @@ package rules
 // At 95f04e8, 33 of the 54 cards named a real Instant/Sorcery face inline in their
 // ALTERNATE block. The other 21 encode their inset spell with a
 // `CopyFaceFrom:<Card>` directive, which engine/cards/parse.go now resolves by
-// copying the referenced card's front-face characteristics onto the stub
-// (ticket agent-20260928T215303Z-ab37989c); after resolution every back is a
-// named face too, so the census compares all 54 as "Front // Back".
+// copying the referenced card's front-face characteristics onto the stub;
+// after resolution every back is a named face too, so the census compares all
+// 54 as "Front // Back".
 //
 // A counted census is a ratchet: a Prepare card added to the corpus, an inline
 // back turning into a stub (or the reverse), or the helper's classification
@@ -43,9 +42,8 @@ import (
 // "Front // Back". Sorted. Measured 2026-09-28 at FORGE_REF
 // 95f04e8a04c8925fa97cb226fc3341cabcc90a53 (54 cards) and re-measured
 // 2026-10-02 at fb4d8091126051b0c579db5f3bfdcb7e03aae63d (69: fifteen new
-// pairs, every one passing the helper checks below); every back is now a resolved
-// named face (the 21 CopyFaceFrom stubs resolve as of
-// agent-20260928T215303Z-ab37989c).
+// pairs, every one passing the helper checks below); every back is a resolved
+// named face.
 var prepareCensus = []string{
 	"Abigale, Poet Laureate // Heroic Stanza",
 	"Adventurous Eater // Have a Bite",
@@ -177,8 +175,7 @@ func TestPrepareCensusMatchesCorpus(t *testing.T) {
 // TestPrepareBackFaceHelperCensus pins modalSpellBack's classification over
 // every Prepare card: CR 722.3 makes the inset prepare spell uncasteable from
 // hand, so the helper must return nil for all 69 backs. It also pins the
-// parser resolution of the 21 `CopyFaceFrom` stub backs (ticket
-// agent-20260928T215303Z-ab37989c): after resolution every back is a real,
+// parser resolution of the 21 `CopyFaceFrom` stub backs: after resolution every back is a real,
 // named Instant/Sorcery face, never a nameless stub. This is the class-wide
 // assertion behind
 // TestSetAudit_sos_TamObservantSequencer_PrepareSpellNotCastableFromHand; it

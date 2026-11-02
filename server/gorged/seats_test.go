@@ -13,7 +13,7 @@ import (
 // TestSeatGateMintsAndResolvesTokens covers the resolver's own contract,
 // which the end-to-end tests reach only through one concrete token: the
 // fixed-seed derivation for later slots, the random default, and the two
-// acquisition paths with header-over-query precedence (R-E3-3).
+// acquisition paths with header-over-query precedence.
 func TestSeatGateMintsAndResolvesTokens(t *testing.T) {
 	// Fixed seed: the first human slot takes the literal string, later
 	// slots derive "<tok>-<slot>".
@@ -112,7 +112,7 @@ func TestJoinURLPointsAtTheLiveTable(t *testing.T) {
 }
 
 // TestSeatGateMintMintsResolvableDistinctTokens covers the on-demand-game
-// token path (Task ui11): each mint returns a fresh opaque token that
+// token path: each mint returns a fresh opaque token that
 // resolves to the seat, and two mints for the same seat coexist (a later
 // game does not invalidate an earlier one, since the seat is all a claim
 // carries).

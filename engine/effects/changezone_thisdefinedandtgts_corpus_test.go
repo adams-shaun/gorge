@@ -9,7 +9,7 @@ import (
 )
 
 // TestChangeZoneThisDefinedAndTgtsRealCorpus pins Suspend Aggression's real
-// ChangeZone script: fixing commit 73c9cc2e5 makes TopOfLibrary join the
+// ChangeZone script: TopOfLibrary joins the
 // targeted nonland permanent in the exile move.
 func TestChangeZoneThisDefinedAndTgtsRealCorpus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

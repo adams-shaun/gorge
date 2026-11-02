@@ -60,7 +60,7 @@ func TestRoundOfRoundLengthShrinksWithElimination(t *testing.T) {
 }
 
 // TestRoundOfNeverJumpsBackwardsOrRepeatsAtElimination is the pin for the
-// elimination behaviour the brief singles out: a viewer must never read a
+// elimination behaviour: a viewer must never read a
 // round number that is lower than one they already saw, nor re-read a later
 // game state with an earlier round. It simulates a full match: turns advance
 // one at a time, and seats are eliminated at turns where the engine would
@@ -133,7 +133,7 @@ func turnLog(seats ...state.PlayerID) []events.Event {
 	return ev
 }
 
-// TestRoundOfFoldsEliminationWithoutJump is the ui13 discrimination proof: a
+// TestRoundOfFoldsEliminationWithoutJump is the discrimination proof: a
 // game with an elimination where the snapshot-only projection (roundOf, the
 // old 1+(Turn-1)/AliveCount) JUMPS and the event-stream fold (RoundOf) does
 // not. Four seats play ten full rounds (turns 1-40, all alive), seat 3 loses
@@ -141,7 +141,7 @@ func turnLog(seats ...state.PlayerID) []events.Event {
 // round at turn 41 is 11 -- ten rounds done, the eleventh just opened. The
 // snapshot projection, reading only the CURRENT alive set (now three seats)
 // and the current Turn, computes 1+(41-1)/3 = 14 and jumps three rounds
-// ahead of reality, which is exactly the defect ui12 booked.
+// ahead of reality, which is exactly the defect.
 func TestRoundOfFoldsEliminationWithoutJump(t *testing.T) {
 	// Turns 1-40 seat order 0,1,2,3,0,1,2,3,... (ten full rounds).
 	var evs []events.Event
@@ -255,15 +255,14 @@ func TestRoundOfMatchesApproximationBeforeElimination(t *testing.T) {
 	}
 }
 
-// ---- rv2a: the round anchor is the game's starting player, not seat 0 ----
+// ---- The round anchor is the game's starting player, not seat 0 ----
 //
 // Before the CR 103.1 toss the first TurnChange always reached seat 0, so
 // "first still-living seat" and "lowest index" coincided. Since the toss the
 // starting seat is drawn, and a fold still anchored at seat 0 ran one round
-// ahead all game for every game whose toss started another seat (measured on
-// the pre-fix code: seats=2 seed=4 start=1, turn=2, active=0: RoundOf=2,
-// want 1). These tests pin the anchored rule at the seat counts the brief
-// names, with streams that begin at seats the old rule could not handle.
+// ahead all game for every game whose toss started another seat (seats=2
+// seed=4 start=1, turn=2, active=0 would read RoundOf=2). These tests pin the
+// anchored rule at these seat counts, with streams that begin at other seats.
 
 // startLog builds a TurnChange stream for a table of n seats whose turn
 // order cycles beginning at `start` -- the shape the engine's NextAlive
@@ -285,7 +284,7 @@ func TestRoundOfAnchorsOnTheStartingSeat(t *testing.T) {
 	if got, want := RoundOf(roundTestGame(2, 20), startLog(2, 1, 5)), int32(3); got != want {
 		t.Fatalf("2 seats starting at 1, 5 turns: RoundOf = %d, want %d", got, want)
 	}
-	// The brief's probe shape: seats=2, start=1, turn=2 (active=0, the
+	// The probe shape: seats=2, start=1, turn=2 (active=0, the
 	// second seat's turn) is still round 1 -- the old seat-0 anchor counted
 	// the turn's RETURN to seat 0 as a boundary and read 2.
 	if got, want := RoundOf(roundTestGame(2, 20), startLog(2, 1, 2)), int32(1); got != want {

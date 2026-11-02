@@ -94,9 +94,8 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 // territory instead. The policy must then answer the same; this uses the
 // priority decision where IsMain changes the choice (in a main phase the
 // policy taps mana, outside it the same options are passed on), with the
-// two sides' rngs seeded identically. This is the test that dies on
-// mutation M1: invert BoardFromView's IsMain and the halves disagree
-// precisely on StepMain1/StepMain2.
+// two sides' rngs seeded identically. Inverting BoardFromView's IsMain makes
+// the halves disagree precisely on StepMain1/StepMain2, and this test fails.
 func TestBotAdaptersAgreePerStep(t *testing.T) {
 	prio := decision.Decision{Seq: 1, Player: 0, Kind: decision.KPriority, Min: 1, Max: 1,
 		Options: []decision.Option{
@@ -156,10 +155,9 @@ func TestBotAdaptersAgreePerStep(t *testing.T) {
 // zone). The CR 903.10 damage clock is NOT asserted to move: the bot's
 // commanders never connect in combat before these 18-card decks deck out,
 // so CmdDamage stays zero — pinning the clock would be fake coverage. It is
-// an honest boundary of this fixture, not a bug. The View
-// additions this task made (the projected command zone, roster + cast
-// counts, and CmdDamage) are exactly the wire facts this test's view-shaped
-// half reads.
+// an honest boundary of this fixture, not a bug. The projected command zone,
+// roster + cast counts, and CmdDamage are exactly the wire facts this test's
+// view-shaped half reads.
 func TestBotAdaptersAgreeOverCommanderGame(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -240,7 +238,7 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		if !reflect.DeepEqual(boardView.Commanders.Map(), boardGame.Commanders.Map()) {
 			t.Fatalf("intent %d: commander facts diverged:\nview: %+v\ngame: %+v (step %s)", n, boardView.Commanders.Map(), boardGame.Commanders.Map(), eGame.G.Step)
 		}
-		// op6 (the tap gate's pool), the commander twin of the whole-game
+		// The tap gate's pool, the commander twin of the whole-game
 		// test's own pool agreement.
 		// The RepeatOptional$ stop gate's zone counts (the deciding seat's
 		// own library and hand sizes) must agree too.
@@ -260,7 +258,7 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
-		// The public stack census (C8's facts, task botcounter1), the
+		// The public stack census (C8's facts), the
 		// commander twin of the whole-game test's own agreement.
 		if !slices.Equal(boardView.Stack, boardGame.Stack) {
 			t.Fatalf("intent %d: stack census diverged: view %v vs game %v (step %s)", n, boardView.Stack, boardGame.Stack, eGame.G.Step)
@@ -355,14 +353,14 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 	t.Helper()
 	// Scenario 1: the historical SampleDecks(4) whole game -- every decision
 	// of a full four-seat Constructed game. Its decks carry no Aura/Equipment,
-	// so (op3) a second scenario below is what actually exercises Card.
+	// so a second scenario below is what actually exercises Card.
 	// AttachedTo non-zero; this one pins the general two-adapter agreement
 	// over the whole game, including an AttachedTo that stays at 0 on both
 	// halves (the agreement must still hold when the fact is "unattached").
 	names, decks := testutil.SampleDecks(t, 4)
 	agreeOverGame(t, names, decks, 0, false, false, newBot)
 
-	// Scenario 1b (botcounter1, the counter identity): a two-seat mirror
+	// Scenario 1b (the counter identity): a two-seat mirror
 	// whose seat-1 list carries a real SP$ Counter (authored inline, no
 	// corpus fixture) opposite seat 0's vanilla creatures, so the game
 	// genuinely produces foreign stack spells the seat-1 bot counters —
@@ -372,7 +370,7 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 	namesC, decksC := counterMirrorDecks(t)
 	agreeOverGame(t, namesC, decksC, 5, false, true, newBot)
 
-	// Scenario 2 (op3, the attachment fact): a controlled two-seat game
+	// Scenario 2 (the attachment fact): a controlled two-seat game
 	// whose seat-0 deck includes two free Equip:0 Equipments (bareGreavesSrc,
 	// the Lightning Greaves shape) beside lands and creatures, so across the
 	// game the bot casts and equips them onto its own creatures and both
@@ -386,10 +384,10 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 	agreeOverGame(t, names2, decks2, 3, true, false, newBot)
 }
 
-// TestOp3Seed13GreavesLoopTerminates is the measured op3 regression test: a
+// TestGreavesEquipLoopTerminates is a measured regression test: a
 // whole two-seat game of foundations-keen-engineering (seat 0) vs
-// mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Before the
-// fix-round-2 A1 (bots/botpolicy/ability.go) this exact game froze: from turn 25,
+// mono-red-goblins (seat 1) at engine seed 13 must TERMINATE. Without the A1
+// rule (bots/botpolicy/ability.go) this exact game froze: from turn 25,
 // a free Lightning Greaves Equip re-attached the equipment onto the creature
 // it already carried at every main-phase priority — byte-stable, to the
 // bench's -max-intents cap. The fix reads the attachment state (AttachedTo)
@@ -401,7 +399,7 @@ func agreeOverWholeGame(t testing.TB, newBot func(uint64) *Bot) {
 // default -format constructed), and 20000 is the bench's default
 // -max-intents — the cap the broken build reached before recording the
 // stall.
-func TestOp3Seed13GreavesLoopTerminates(t *testing.T) {
+func TestGreavesEquipLoopTerminates(t *testing.T) {
 	reg := testutil.CorpusRegistry(t) // skips without a corpus, like the repo-deck tests in engine/rules/
 	names := []string{"foundations-keen-engineering", "mono-red-goblins"}
 	e := rules.New(rules.Config{Seed: 13, Names: names,
@@ -453,11 +451,11 @@ func equippingDeck(t testing.TB) ([]string, [][]*cards.Card) {
 // view-shaped half (seat/Bot.Decide off a projected View, exactly like a real
 // client) and the game-shaped half (botpolicy.BoardFromGame + Decide, like
 // the rules test host) -- and demands they agree on every intent, every
-// Card in the casting census (which since op3 includes AttachedTo), and the
+// Card in the casting census (which includes AttachedTo), and the
 // final chain head. wantAttached additionally requires that at least one
 // decision carried a non-zero Card.AttachedTo, so a deck-set that never
 // attaches the two halves can not pass the AttachedTo agreement vacuously;
-// wantCounter does the same for the botcounter1 facts — a Card.Counter true
+// wantCounter does the same for the counter facts — a Card.Counter true
 // and a foreign stack spell for the decider — so a deck-set without a
 // counter cannot pass the C8-fact agreement vacuously.
 func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uint64, wantAttached, wantCounter bool, newBot func(uint64) *Bot) {
@@ -490,12 +488,11 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		boardGame := botpolicy.BoardFromGame(eGame.G, eGame, d.Player)
 		// The casting Card census (B4): the view-shaped half fills the same
 		// map for the same deciding player off the projected Hand/Graveyard/
-		// Battlefield CardViews. It is the new field this task's widening adds
-		// to Board, so it is pinned here explicitly -- not only through the
+		// Battlefield CardViews. It is pinned here explicitly -- not only through the
 		// intents below (which would catch a divergence only when a ranking
 		// actually flips a choice): a Cards map one half fills and the other
 		// leaves zero is a bot that casts differently depending on who asked.
-		// Since op3 the comparison also covers Card.AttachedTo (the A1
+		// The comparison also covers Card.AttachedTo (the A1
 		// attachment fact): BoardFromView fills it off CardView.AttachedTo,
 		// BoardFromGame off state.Object.AttachedTo, so a divergence here is
 		// the two adapters reading different attachment facts.
@@ -551,7 +548,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		if !boardGame.Step.IsMain() {
 			stepN++
 		}
-		// op6 (the tap gate's pool): the deciding seat's own mana pool must
+		// The tap gate's pool: the deciding seat's own mana pool must
 		// be the same numbers on both halves -- the projected poolView map
 		// and state.Game's Pool field -- and it must actually go non-zero
 		// over the game (poolN), so the T1 need gate is exercised with a
@@ -565,7 +562,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 		if boardView.Pool.Total() > 0 {
 			poolN++
 		}
-		// The public stack census (C8's facts, task botcounter1): bottom-to-top
+		// The public stack census (C8's facts): bottom-to-top
 		// order on both halves, pinned on every intent — and counted when
 		// non-empty so the pin is not vacuous (a whole game always resolves
 		// something through the stack).
@@ -591,7 +588,7 @@ func agreeOverGame(t testing.TB, names []string, decks [][]*cards.Card, seed uin
 				break
 			}
 		}
-		// op3 (A1, the attachment fact): an AttachedTo divergence is the
+		// A1, the attachment fact: an AttachedTo divergence is the
 		// adapters reading different facts, and the non-zero count besides
 		// proves the field actually BOTHERS to run rather than staying at 0
 		// on both halves by luck (the wantAttached assertion below).
@@ -682,7 +679,7 @@ func counterMirrorDecks(t testing.TB) ([]string, [][]*cards.Card) {
 	return []string{"a", "b"}, [][]*cards.Card{d0, d1}
 }
 
-// bareGreavesSrc is a free Equip:0 Equipment, the op3 hang's own shape
+// bareGreavesSrc is a free Equip:0 Equipment, the shape of the Greaves hang
 // (Lightning Greaves), authored inline so the adapter-agreement test drives
 // a real non-zero AttachedTo without a corpus fixture.
 const bareGreavesSrc = `Name:Bare Greaves

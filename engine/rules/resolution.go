@@ -3,8 +3,8 @@
 // ask inside it is answered in place from the intent tape. What remains of the
 // old suspend/resume machinery is the body re-entry three flows need after
 // they have settled their own window in line: a triggered ability's Cost$
-// window (kind "effect_paid"), an optional trigger's yes (kind "optional",
-// CR 603.5) and a copy's new-target election (kind "copy_targets").
+// window (kind "effect_paid") and an optional trigger's yes (kind "optional",
+// CR 603.5).
 
 package rules
 
@@ -16,34 +16,30 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// finishCopyTargets records a copy's accumulated per-declaration answers once
-// the last declaration is passed. The ROOT declarations' answers are
-// flattened in declaration order (option 0 replaces, the rest append) and
-// published as the per-declaration split for a fused copy, so resolveFused
-// hands each half exactly the targets chosen FOR it (the same split a cast
-// publishes at payment). Each CHAINED declaration's answer is the copy's
-// record for that link (castSubTargets, which resolution consumes line by
-// line) and a sub-target TargetsChosen that folds into Object.SubTargets, the
-// shape a cast's installSubPreAsk/recordSubTargets leave. chosen is the last
-// answer given, the fallback when no root declaration was answered.
-func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
-	ans := e.copyAnswerTargets[obj]
+// finishCopyTargets records a copy's per-declaration answers. The ROOT
+// declarations' answers are flattened in declaration order (option 0 replaces,
+// the rest append) and published as the per-declaration split for a fused copy,
+// so resolveFused hands each half exactly the targets chosen FOR it (the same
+// split a cast publishes at payment). Each CHAINED declaration's answer is the
+// copy's record for that link (castSubTargets, which resolution consumes line
+// by line) and a sub-target TargetsChosen that folds into Object.SubTargets in
+// place of the link's inherited entries, the shape a cast's
+// installSubPreAsk/recordSubTargets leave.
+func (e *Engine) finishCopyTargets(obj state.ObjID, answers [][]decision.Option) {
 	rootDecls, chainDecls := e.copyDeclarationSplit(e.G.Obj(obj))
-	nRoot := len(rootDecls)
-	if nRoot > len(ans) {
-		nRoot = len(ans)
-	}
-	flat := make([]decision.Option, 0, len(chosen))
-	stages := make([][]state.Target, nRoot)
-	for i, sl := range ans[:nRoot] {
+	flat := make([]decision.Option, 0, len(rootDecls))
+	stages := make([][]state.Target, len(rootDecls))
+	for i, sl := range answers[:len(rootDecls)] {
 		flat = append(flat, sl...)
 		stages[i] = targetOptions(sl)
 	}
-	if len(flat) == 0 && len(chainDecls) == 0 {
-		flat = chosen
-	}
-	if len(flat) > 0 || len(chainDecls) == 0 {
+	if len(rootDecls) > 0 {
 		e.recordChosenTargets(obj, flat, false)
+		// An "up to" declaration answered with nothing: the copy keeps none of
+		// its inherited targets.
+		if o := e.G.Obj(obj); len(flat) == 0 && o != nil && len(o.Targets) > 0 {
+			e.emit(events.Event{Kind: events.TargetsChosen, Obj: obj})
+		}
 	}
 	if o := e.G.Obj(obj); o != nil && o.CastFlags&state.FlagFused != 0 {
 		if ff, _ := fusedSplitFaces(o); ff != nil {
@@ -56,15 +52,17 @@ func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 		}
 		e.fuseTargets[obj] = stages
 	}
+	if _, ok := e.charmTargets[obj]; ok {
+		e.charmTargets[obj] = stages
+	}
 	for i, sa := range chainDecls {
-		ts := []state.Target{}
-		if idx := len(rootDecls) + i; idx < len(ans) {
-			ts = targetOptions(ans[idx])
+		ts := append([]state.Target{}, targetOptions(answers[len(rootDecls)+i])...)
+		for _, old := range e.castSubTargets[obj][sa.Line] {
+			e.removeSubTarget(obj, old)
 		}
 		e.recordCastSub(obj, sa.Line, ts)
 		e.recordSubTargets(obj, ts)
 	}
-	delete(e.copyAnswerTargets, obj)
 }
 
 // resumeResolution re-enters the body of the stack object rp names and then
@@ -74,42 +72,6 @@ func (e *Engine) finishCopyTargets(obj state.ObjID, chosen []decision.Option) {
 // re-runs rp's ability through effects.Resolve, and finally moves the
 // fully-resolved object off the stack as resolveTop's own tail would have.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
-	if rp.kind == "copy_targets" {
-		if rp.obj != 0 {
-			// A multi-declaration copy (a fused half, a modal declaration) is
-			// asked once per declaration. Each answer is ACCUMULATED here and
-			// the whole flat list is recorded ONCE, after the LAST
-			// declaration -- recording the first stage's answer immediately
-			// would REPLACE o.Targets and destroy the later declarations'
-			// inherited keep-current slots. copyTargetStage[obj] is the NEXT
-			// stage, so the stage just answered is one less.
-			stage := e.copyTargetStage[rp.obj] - 1
-			if stage < 0 {
-				stage = 0
-			}
-			if e.copyAnswerTargets == nil {
-				e.copyAnswerTargets = make(map[state.ObjID][][]decision.Option)
-			}
-			ans := e.copyAnswerTargets[rp.obj]
-			for len(ans) <= stage {
-				ans = append(ans, nil)
-			}
-			ans[stage] = append(ans[stage][:0], chosen...)
-			e.copyAnswerTargets[rp.obj] = ans
-			// More declarations still owe an ask: re-enter resolveTop, whose
-			// AskCopyTargets guard reads copyTargetStage and poses the next
-			// one. Nothing is recorded yet.
-			decls := e.copyTargetDeclarations(e.G.Obj(rp.obj))
-			if e.copyTargetStage[rp.obj] < len(decls) {
-				e.resolveTop()
-				return
-			}
-			// Every declaration answered: record them.
-			e.finishCopyTargets(rp.obj, chosen)
-		}
-		e.resolveTop()
-		return
-	}
 	savedResolving := e.resolvingObj
 	e.resolvingObj = rp.obj
 	defer func() { e.resolvingObj = savedResolving }()
@@ -229,7 +191,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	tc := e.triggerContexts[rp.obj]
 	armed := rp.kind == "optional" && rp.sa != nil &&
 		(e.triggerBodyNeedsCostWindow(rp.sa) ||
-			// abcopy1: an OptionalDecider$ copy trigger's AB$ CopySpellAbility
+			// An OptionalDecider$ copy trigger's AB$ CopySpellAbility
 			// with a real Cost$ pays through the same window whenever the
 			// trigger context carries an event role.
 			(rp.sa.API == "CopySpellAbility" && rp.sa.ParamStr(cards.PKCost) != "" &&

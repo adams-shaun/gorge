@@ -32,7 +32,7 @@ import (
 //     Object.ImprintTokens through the shared imprintPileTargets resolver
 //     (engine/effects/context.go), so the pile the trigger just wrote is what
 //     `AttachedTo$ Imprinted` resolves; and
-//   - agent-20260921T012459Z-a863ff76 (merged) resolves CopyPermanent's
+//   - effCopyPermanent resolves its
 //     `AttachedTo$` endpoint through Defined (engine/effects/copypermanent.go), so
 //     the named imprint pile becomes the minted copy's Attach target.
 //
@@ -40,7 +40,7 @@ import (
 // does not write the token onto the source's ImprintTokens pile (no imprint
 // written), the CopyPermanent legs mints no copy at all (no copy minted), or
 // the copy enters unattached because the endpoint resolved to nothing (copy
-// unattached) -- exactly the symptom the ticket was filed for.
+// unattached).
 func TestStanggEchoWarriorCopyAttachesToTheImprintedTwin(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	h, c := fixtureHostWithTokens(t)

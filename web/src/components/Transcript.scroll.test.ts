@@ -3,7 +3,7 @@ import { browserURL, sharedBrowser } from '../test/browser';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * The transcript's scroll behaviour (fb-20260928T043757Z, "it should
+ * The transcript's scroll behaviour ("it should
  * automatically scroll to the most recent action — follow the end of the
  * log"). The SSR harness has no DOM and no layout, so only a real browser
  * can prove a scroll position. The fixture
@@ -73,7 +73,7 @@ const rowVisible = (page: Page, selector: string) =>
     return rr.top >= lr.top - 1 && rr.bottom <= lr.bottom + 1;
   }, selector);
 
-describe('the transcript follows the end of the log while live (fb-20260928T043757Z)', () => {
+describe('the transcript follows the end of the log while live', () => {
   it('follows the rendered tail when the newest line is filtered out and the cursor names no row', async () => {
     const page = await browser.newPage();
     await goto(page);

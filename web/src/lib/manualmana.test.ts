@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { Decision, Option, PaymentAction, PotentialAction, View } from '../protocol';
 import { isManualManaOption, isPlainManualTap, manualManaHidden } from './manualmana';
 
-// Spec §8 (as amended by aph-web-manual-only-plays): with the seat's auto-pay
+// With the seat's auto-pay
 // preference on, "manual mana taps are hidden under auto-pay only when every
 // play the window can reach is reachable without them". manualManaHidden is
 // the ONE predicate all three surfaces read, and isPlainManualTap the one
-// per-option test they apply it to. The shapes below are the measured wire
-// (aph-web-autopay-policy Go probe at e77928ae9): a mana-costed play is
+// per-option test they apply it to. The shapes below are the measured wire: a mana-costed play is
 // offered FLOAT-FIRST, so on an empty pool it is absent from the options and
 // present only in the seat's potential_actions.
 
@@ -87,7 +86,7 @@ describe('isPlainManualTap — only a bare tap is ever hidden (a costly mana act
   });
 });
 
-describe('manualManaHidden — the predicate table (spec §8)', () => {
+describe('manualManaHidden — the predicate table', () => {
   it('hides manual mana on a priority decision offering only casts and manual mana', () => {
     const d = priority([plains, opt(7, 'cast', 'Cast Opt', { obj: 22 }), pass, concede], [planned(7)]);
     expect(manualManaHidden(d, view(), 0, true)).toBe(true);
@@ -181,8 +180,7 @@ describe('manualManaHidden — the predicate table (spec §8)', () => {
   });
 
   it('a payment action carrying zero plans keeps manual mana visible (the panel says "use the manual mana controls")', () => {
-    // Resolves aph-web-autopay-policy's open question under the amended §8:
-    // a cast no plan pays is reachable only by floating mana by hand. The
+    // A cast no plan pays is reachable only by floating mana by hand. The
     // engine never publishes this shape today (rules/payment_plan.go skips a
     // nil plan); the panel's own line must still be true when it does.
     const d = priority([plains, mountain, pass, concede], [planned(null, [])]);

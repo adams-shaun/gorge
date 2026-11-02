@@ -1,5 +1,4 @@
-// Count$Valid <spec>$CardCounters.<KIND> — the summed counter property
-// (ticket count-cardcounters-prop).
+// Count$Valid <spec>$CardCounters.<KIND> — the summed counter property.
 //
 // engine/effects/count.go's zone-count head recognised CardPower/CardToughness/
 // CardManaCost/CardTypes/Colors as `$<Property>` suffixes but not
@@ -33,10 +32,8 @@ func seedObjectCounter(t *testing.T, e *Engine, id state.ObjID, kind string, n i
 
 // TestKateStewartXCountsTimeCounters runs the real corpus card end to end:
 // with three time counters spread over seat 0's permanents and eight mana in
-// the pool, Kate Stewart's attack trigger's pay-{8} pump grants each attacking
-// creature +3/+3. Before the fix X resolved to 0 (the whole
-// `Permanent.YouCtrl$CardCounters.TIME` token was treated as the spec, matched
-// nothing) and the pump was +0/+0.
+// the pool, Kate Stewart's attack trigger's pay-{8} pump grants each
+// attacking creature +3/+3.
 func TestFerraforETBCreatesSaprolingsForTargetPlayersCreatureCounters(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

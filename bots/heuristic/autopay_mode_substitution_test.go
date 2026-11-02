@@ -4,11 +4,10 @@ package heuristic
 // decision offers a legacy cast option with a non-ordinary shape (an evoke,
 // pitch, dash, surge or other alternative mode the empty pool can already
 // pay) AND a payment plan for the same object's ordinary cast, the candidate
-// must carry BOTH entries and map the pick back by candidate option
-// identity: a pick of the legacy mode is submitted as itself, and only a
-// pick of the plan-only entry (or of a legacy ordinary cast) pays the plan.
-// Measured on the audit harness: 23 mode substitutions in 1,050 commander
-// games before the fix (e:mode_substituted_by_plan).
+// must carry BOTH entries and map the pick back by candidate option identity:
+// a pick of the legacy mode is submitted as itself, and only a pick of the
+// plan-only entry (or of a legacy ordinary cast) pays the plan. The audit
+// harness counts these as e:mode_substituted_by_plan.
 
 import (
 	"testing"

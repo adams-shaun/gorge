@@ -4,8 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * FocusReleaseCardTile.test.ts pins the card-tile half of the
- * hotkey-focus-nonaction defect (the ticket is the verify-and-pin twin of
- * hotkey-focus2, whose F1–F7 suite lives in FocusRelease.test.ts): a pointer
+ * hotkey-focus defect (FocusRelease.test.ts has the F1–F7 suite): a pointer
  * click on a battlefield CardTile — role=button, tabindex=0, the exact
  * ACTIVATABLE control `lib/hotkeys.ts` `focusOwnsKey` defers to — used to
  * park focus there, after which Space never reached the table hotkey again

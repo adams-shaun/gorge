@@ -55,7 +55,7 @@ type fakeHost struct {
 	// collected as evidence. The real engine's log-scan read is pinned in
 	// rules (Analyze the Pollen's corpus test).
 	evidence []state.ObjID
-	// wasCast is the WasCast answer the double reports (task ifcastmain1):
+	// wasCast is the WasCast answer the double reports:
 	// the eval-level Count$IfCastInOwnMainPhase tests flip it to pin the
 	// true/false branches independently of the live main-phase read.
 	wasCast bool
@@ -257,6 +257,7 @@ func (h *fakeHost) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.
 	return h.LegalTargets(h.g.Obj(obj).Controller, obj, sa)
 }
 func (h *fakeHost) AnnouncedLinkTargets(obj state.ObjID, link *cards.SA) []state.Target { return nil }
+func (h *fakeHost) AskCopyTargets(id state.ObjID)                                       {}
 func (h *fakeHost) RetargetLink(obj state.ObjID, link *cards.SA, ts []state.Target)     {}
 func (h *fakeHost) LegalTargets(chooser state.PlayerID, source state.ObjID, sa *cards.SA) []state.Target {
 	var out []state.Target
@@ -497,7 +498,7 @@ func (h *fakeHost) CostMovesInWindow(_ state.ObjID, kind events.CostMoveKind) []
 	return nil
 }
 
-// The bare wasCastFromYourHand family's read (castprov3): the fake has no
+// The bare wasCastFromYourHand family's read: the fake has no
 // cast log either, so it reports the same single flag the ByYou double reads
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
 // provenance is pinned end to end on the real engine in rules.
@@ -560,8 +561,7 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // so a mid-resolution ask falls back to the primitive's deterministic
 // stand-in (effCharm's first mode, effCopySpellAbility's may-copy election --
 // which MAKES the copy, the documented pre-ask behaviour) -- which is exactly
-// today's no-ask behaviour, now with the engines it is a fallback for clearly
-// named (R-9).
+// the no-ask behaviour.
 func (h *fakeHost) Ask(d *decision.Decision) bool { h.askCount++; h.lastAsk = d; return h.askResult }
 
 // TypeChoices serves the double's configured typeChoices list (nil by
@@ -717,7 +717,7 @@ func TestDefinedResolvesEachForm(t *testing.T) {
 	check("SP$ X | Defined$ Remembered", []state.Target{{Obj: 9}})
 	check("SP$ X | Defined$ Targeted", []state.Target{{Player: 3, IsPlayer: true}})
 	// No Defined$ and no ValidTgts$ falls back to the ability's own source
-	// (object 7), not the chosen targets -- Forge's default (R-10).
+	// (object 7), not the chosen targets -- Forge's default.
 	check("SP$ X | NumDmg$ 1", []state.Target{{Obj: 7}})
 	// No Defined$ but ValidTgts$ present falls back to the chosen targets.
 	check("SP$ X | ValidTgts$ Player | NumDmg$ 1", []state.Target{{Player: 3, IsPlayer: true}})
@@ -954,12 +954,10 @@ func TestCompiledAPIRegistryDispatchParity(t *testing.T) {
 
 // TestRegistryConcurrentRegisterAndReadDoesNotRace guards the process-global
 // registry against the case Register's own doc comment advertises as
-// supported: registering (or re-registering, e.g. M3's plugin tier
+// supported: registering (or re-registering, e.g. a plugin tier
 // overriding a native primitive) after init time, concurrently with the
 // engine's per-match goroutines calling Supported()/Resolve(). Run with
-// `go test -race`, this failed against the plain, unsynchronized map that
-// registry.go used before the copy-on-write atomicMap fix — see the task-15
-// fix report for the before/after -race output.
+// `go test -race`, this fails against a plain, unsynchronized map.
 func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
 	Register("TestRace", func(Host, *Ctx, *cards.SA) {})
 	t.Cleanup(func() { unregister("TestRace") })
@@ -995,11 +993,11 @@ func TestRegistryConcurrentRegisterAndReadDoesNotRace(t *testing.T) {
 }
 
 // TestKnownDefinedTargetsRecognisesBareValidBattlefieldForm pins the resolver
-// contract behind the copyp2 fix: the bare "Defined$ Valid <filter>"
-// battlefield form must be classified as KNOWN by knownDefinedTargets, not as
-// an unresolvable fetch list. Before the fix definedSpec recognised only the
-// zone-suffixed forms (ValidGraveyard/ValidHand/...) and ValidStack, so every
-// fail-closed caller (effCopyPermanent, effChangeZone's hidden search,
+// contract: the bare "Defined$ Valid <filter>" battlefield form must be
+// classified as KNOWN by knownDefinedTargets, not as an unresolvable fetch
+// list. A definedSpec recognising only the zone-suffixed forms
+// (ValidGraveyard/ValidHand/...) and ValidStack would leave every fail-closed
+// caller (effCopyPermanent, effChangeZone's hidden search,
 // effCopySpellAbility, the DamageSource$/ValidPlayers$ resolvers) treated a
 // bare Valid spec as "unknown" and acted on nothing -- Redoubled Stormsinger
 // (Defined$ Valid Creature.token+YouCtrl+ThisTurnEntered) minted no copy.

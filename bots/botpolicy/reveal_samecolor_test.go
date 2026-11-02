@@ -7,8 +7,8 @@ import (
 )
 
 // TestBotAnswersSameColorRevealOnSharedClass pins the bot arm of the
-// Reveal<2/SameColor> cost (Illuminated Folio, ticket
-// agent-20260928T173851Z-05a69598) on the ONE home for the answer rule: the
+// Reveal<2/SameColor> cost (Illuminated Folio) on the ONE home for the answer
+// rule: the
 // decision the engine poses is a Min 2 / Max 2 KChoose with
 // SetPropMode SetPropShared over each candidate's DERIVED colour tokens
 // (rules' revealCostAsk). If the bot's answer is not repaired onto a shared

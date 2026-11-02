@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 )
 
-// explainTape is one recorded game's decision overlay (match-reviewer design
-// §3): the per-intent bots/explain notes PlayGame writes into the record's
+// explainTape is one recorded game's decision overlay: the
+// per-intent bots/explain notes PlayGame writes into the record's
 // Explain. It exists only while Hooks.Record is set; with Record nil
 // PlayGame never builds one and every explain site is one nil check.
 //

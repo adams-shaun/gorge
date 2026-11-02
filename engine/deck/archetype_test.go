@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestManifestCarriesArchetype is the ticket's proof that the deck file's
+// TestManifestCarriesArchetype proves that the deck file's
 // authoring archetype survives into the manifest (and therefore into
 // view.View.OwnDeck): NewManifest stamps it, Clone preserves it, and it
 // marshals only when declared. Without the Manifest.Archetype field this

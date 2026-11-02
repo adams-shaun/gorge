@@ -232,17 +232,17 @@ func (e *Engine) sbaActStale(ev events.Event) bool {
 // state-based actions outstanding.
 func (e *Engine) checkStateBased() {
 	// A parked CR 704.5j batch whose ask is no longer outstanding re-poses it
-	// before any SBA work: the batch is parked only together with its ask, and
-	// an outstanding ask is the ONE reason the pass below refuses to apply. A
-	// caller that posed its own decision at an unguarded point (the pre-fix
-	// completeCombatPass tail) could displace the ask; without this re-pose the
-	// parked batch would never be answered and -- because the pass below halts
-	// while it is parked -- no state-based action would ever apply again. The
-	// re-pose restores exactly the invariant parkLegendChoice establishes:
-	// parked implies asked. It does not fire while another decision is
-	// outstanding (nothing is re-asked under one); a stale flow marker in
-	// e.choosing is deliberately NOT consulted, because the displaced ask left
-	// e.choosing == chooseLegend behind and askLegendChoice re-sets it anyway.
+	// before any SBA work: the batch is parked only together with its ask,
+	// and an outstanding ask is the ONE reason the pass below refuses to
+	// apply. A caller that posed its own decision at an unguarded point could
+	// displace the ask; without this re-pose the parked batch would never be
+	// answered and -- because the pass below halts while it is parked -- no
+	// state-based action would ever apply again. The re-pose restores exactly
+	// the invariant parkLegendChoice establishes: parked implies asked. It
+	// does not fire while another decision is outstanding (nothing is
+	// re-asked under one); a stale flow marker in e.choosing is deliberately
+	// NOT consulted, because the displaced ask left e.choosing ==
+	// chooseLegend behind and askLegendChoice re-sets it anyway.
 	if e.legendBatch != nil && e.pending == nil {
 		e.askLegendChoice()
 		return
@@ -326,6 +326,10 @@ func (e *Engine) checkStateBased() {
 		// CR 702.145d/g: the neither-to-day and neither-to-night checks.
 		if e.sbaFacts(facts).dayNight {
 			e.dayNightStateCheck(&b)
+		}
+		// CR 704.5aa: a seat with a Start your engines! permanent and no speed.
+		if e.sbaFacts(facts).speedStart {
+			e.checkSpeedStart()
 		}
 		// The losses are made first: a player who has left makes no CR 704.5j
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
@@ -1272,8 +1276,7 @@ func (e *Engine) ceaseDeadTokens(b *sbaBatch, tried *sbaAttempts) {
 				continue
 			}
 			markTried(&tried.tokens, o.ID)
-			b.add(events.Event{Kind: events.MoveZone, Obj: o.ID,
-				From: o.Zone, To: state.ZCeased, Text: "ceased to exist"})
+			b.add(events.Cease(o.ID, o.Zone))
 		}
 	}
 }

@@ -9,12 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file closes the "cannot be attacked" half of AGENTS.md's (battle1)
-// row: CR 310.7 makes a battle a legal defender for its protector's
+// This file pins attacking a battle: CR 310.7 makes a battle a legal defender for its protector's
 // opponents, the declare-attackers step offers it, and combat damage dealt
 // to it removes that many defense counters (CR 310.8a) through the ordinary
-// Damage fold. The zero-defense SBA / CR 310.11 defeated arm is a sibling
-// ticket's scope and is not touched here.
+// Damage fold. The zero-defense SBA / CR 310.11 defeated arm is tested elsewhere.
 
 // battleAttackBoard seats a real corpus Battle Siege under seat 0, answers
 // its CR 310.10 protector ask (option 0 = seat 1 in this four-seat game),

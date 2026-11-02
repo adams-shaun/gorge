@@ -46,9 +46,8 @@ func combatLegendBoard(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
 
 // TestLegendRuleSurvivesFirstStrikeCombatTail drives the first-strike combat
 // damage tail (completeCombatPass(true)) on a board with a legend duplicate
-// set. Before the fix that tail posed the between-passes priority round over
-// the legend ask and wedged the SBA pass. The ask must be the surviving
-// pending decision, and answering it must settle the batch.
+// set. The ask must be the surviving pending decision, and answering it must
+// settle the batch.
 func TestLegendRuleSurvivesFirstStrikeCombatTail(t *testing.T) {
 	t.Parallel()
 	e, id1, id2 := combatLegendBoard(t)

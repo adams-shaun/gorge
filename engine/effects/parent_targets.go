@@ -85,6 +85,7 @@ func (c *Ctx) ResumeParentLinks(links [][]state.Target, answer []state.Target, a
 		c.parentLinks = make([][]state.Target, len(links))
 		for i, ts := range links {
 			c.parentLinks[i] = copyTargets(ts)
+			notePlayerLink(c, c.parentLinks[i])
 		}
 	}
 	if answered {
@@ -140,4 +141,13 @@ func recordParentLink(c *Ctx, sa *cards.SA, fromPreAsk []state.Target, preAsked 
 		return
 	}
 	c.parentLinks = append(c.parentLinks, copyTargets(answer))
+	notePlayerLink(c, c.parentLinks[len(c.parentLinks)-1])
+}
+
+// notePlayerLink keeps a link's answer as the one "target player" reads when it
+// names a player.
+func notePlayerLink(c *Ctx, ts []state.Target) {
+	if hasPlayerTarget(ts) {
+		c.playerLink = ts
+	}
 }

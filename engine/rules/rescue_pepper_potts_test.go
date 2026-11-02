@@ -12,10 +12,9 @@ import (
 // rescue_pepper_potts_test.go pins the ConditionDefined$ Targeted gate on the
 // real repo-deck carrier (avengers-assemble's Rescue, Pepper Potts): "return up
 // to one other target artifact or creature you control to its owner's hand. If
-// it was an artifact, put a +1/+1 counter on NICKNAME." Before the gate read
-// the Targeted group it failed OPEN, so Rescue took the counter whatever it
-// bounced -- a plain creature, or nothing at all. That fix is what moved the
-// botbench constructed-default golden (ticket agent-20260918T210307Z-25a7b039).
+// it was an artifact, put a +1/+1 counter on NICKNAME." A gate that does not
+// read the Targeted group fails OPEN, so Rescue takes the counter whatever it
+// bounces -- a plain creature, or nothing at all.
 
 const rescueTrinketSrc = "Name:Trinket\nManaCost:1\nTypes:Artifact\nOracle:x\n"
 

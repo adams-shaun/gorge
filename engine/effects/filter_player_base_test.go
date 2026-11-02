@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestPlayerChosenRememberedQualifierChecksBase pins the review-found defect in
+// TestPlayerChosenRememberedQualifierChecksBase pins a defect in
 // matchesPlayerSingleSpec's Chosen/IsRemembered membership read: membership
 // alone admitted a seat regardless of the qualified base, so a remembered
 // controller matched `Opponent.IsRemembered` (Will the Wise's chain would then

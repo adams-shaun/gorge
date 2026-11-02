@@ -15,7 +15,7 @@ import (
 // loop reached option 1's Ability match, so a step naming ability_index 1
 // activated ability 0: with no creatures on the battlefield the X ability
 // produces nothing, but the scenario measured a floating G and diverged from
-// XMage (level-B D6 row, Growing Rites of Itlimoc/activate#1.1).
+// XMage (Growing Rites of Itlimoc/activate#1.1).
 //
 // Scenario copied from the generated level-B item (LCI), scenario alone.
 const manaStageItlimocScenario = `{"name":"mana-stage-index-1","cr":["602.2"],"why":"ability_index must select its own wheel option","setup":{"p0":{"battlefield":["Growing Rites of Itlimoc"],"back_face":["Growing Rites of Itlimoc"]},"p1":{"battlefield":["Grizzly Bears"]}},"steps":[{"op":"activate","seat":0,"card":"p0:Growing Rites of Itlimoc","ability_index":1}]}`

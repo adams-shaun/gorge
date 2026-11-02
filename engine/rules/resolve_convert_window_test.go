@@ -1,6 +1,6 @@
 package rules
 
-// W3 step 4 (the suspension holders): the engine-posed resolution-time
+// The suspension holders: the engine-posed resolution-time
 // payment windows (window_tape.go) are served from the tape -- the
 // triggered-effect Cost$ window's pay/decline election, its mana window as
 // a multi-intent answer, and its component walk. Every case runs on legacy

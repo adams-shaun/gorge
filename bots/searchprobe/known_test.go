@@ -204,6 +204,20 @@ func TestKnownCardsUnseenDrawOfKnownCard(t *testing.T) {
 	wantRefs(t, "drawer hand", knownHand(k, 1))
 }
 
+func TestKnownCardsPublicRevealsStateTheHand(t *testing.T) {
+	for _, text := range []string{"revealed Dragon as a cost", "beheld Dragon as a cost", "reveals Dragon (miracle)"} {
+		me, opp := seatBoard{seat: 0, lib: 30}, seatBoard{seat: 1, lib: 30, hand: 7}
+		k, err := ProjectKnownCards(History{Actor: 0, Frames: []Frame{
+			{Events: []ObservedEvent{{Kind: events.Shuffle, Player: 1}}, Board: knownTestBoard(t, me, opp)},
+			{Identities: []Identity{{ID: 9, Name: "Dragon", Owner: 1}}, Events: []ObservedEvent{{Kind: events.Note, Player: 1, IDs: []uint32{9}, Text: text}}, Board: knownTestBoard(t, me, opp)},
+		}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantRefs(t, text, knownHand(k, 1), 9)
+	}
+}
+
 func TestKnownCardsRevealedHandCardStaysKnownUntilItLeaves(t *testing.T) {
 	ids := []Identity{{ID: 9, Name: "Dragon", Owner: 1}}
 	opp := func(hand int) seatBoard { return seatBoard{seat: 1, lib: 30, hand: hand} }

@@ -68,7 +68,7 @@ func cr733CounterProposal(t *testing.T, reg *cards.Registry, deckName, name stri
 // must not make the reversal test vacuous. It does not hand-construct an SA or
 // mutate Game. beginCast is the same entry called by handlePriority.
 // The client arm independently asserts the impossible option is ABSENT from
-// legalActions (I-2), even once withholding it means no Submit is possible.
+// legalActions, even once withholding it means no Submit is possible.
 // The direct proposal must still be rejected/reversed without loss.
 func cr733Propose(t *testing.T, e *Engine, source state.ObjID, direct bool) {
 	t.Helper()

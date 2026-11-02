@@ -30,7 +30,7 @@ import (
 //
 // A legal client may answer the delve ask with any count from Min (0) to Max,
 // so answering with fewer than Max is the conforming decline that used to
-// spin the engine until the host's intent cap fired (E2 main).
+// spin the engine until the host's intent cap fired.
 
 const (
 	livenessAngler = "Name:Angler\nManaCost:6 B\nTypes:Creature Zombie Fish\nPT:5/5\nK:Delve\nOracle:x\n"
@@ -208,8 +208,8 @@ func TestDeclineThenOtherLegalPlayDoesNotEndTheMatch(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestDeclinesOnDifferentCardsDoNotEndTheMatch is the finding-2 regression,
-// strengthened for CR 733.2: two DIFFERENT unpayable casts in
+// TestDeclinesOnDifferentCardsDoNotEndTheMatch is a regression test
+// for CR 733.2: two DIFFERENT unpayable casts in
 // a row (decline on spell A, then spell B) are ordinary exploration and must
 // never be treated as one accumulating spin. Each card's no-progress count is
 // per-card, so one decline on each of two different cards combines into

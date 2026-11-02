@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Legal-walk S1: a `ValidCard$ Card.Self` cost static sourced by another
+// Legal walk: a `ValidCard$ Card.Self` cost static sourced by another
 // object cannot price the object under test, so it must not defeat
 // offerFloorRefuses (engine/rules/offer_floor_selfstatic.go).
 

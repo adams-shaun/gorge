@@ -1,10 +1,10 @@
 package host
 
-// BP-09 (spec 2026-09-28-hosted-bot-packages §5.2 Undo): after an undo, every
+// Hosted-bot design (2026-09-28-hosted-bot-packages §5.2 Undo): after an undo, every
 // live EnvSeat feed equals searchseat.RebuildFeed at the new head, and play
 // continues. The pre-undo feed observed every decision of the discarded tail,
 // so only a rebuild from the truncated log restores the live-equals-rebuild
-// invariant BP-07 pinned (TestHostFeedEqualsRebuildFeed).
+// invariant (TestHostFeedEqualsRebuildFeed).
 
 import (
 	"reflect"

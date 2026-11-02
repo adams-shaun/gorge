@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mid-resolution ChooseType ask (task ct1): a resolution-time
+// The mid-resolution ChooseType ask: a resolution-time
 // "Choose a creature type" poses a real KChoose over the shared creature-type
 // enumeration (engine/rules/cast.go's creatureTypeOptions, the same list the
 // cast-time "as this enters" ask builds), and the answered type is what the
@@ -22,7 +22,7 @@ import (
 
 // TestHauntingVoyageForetoldReturnsTheChosenTypeNotTheFallback casts the
 // foretelled Haunting Voyage over a graveyard stocked with Elves AND a
-// Zombie and answers the type ask "Zombie" — the OPPOSITE of the pre-ct1
+// Zombie and answers the type ask "Zombie" — the OPPOSITE of an
 // object-id-order fallback ("Elf"). The foretold arm's ReturnAll must then
 // move the Zombie and leave every Elf, proving the CHOSEN type governs.
 func TestHauntingVoyageForetoldReturnsTheChosenTypeNotTheFallback(t *testing.T) {
@@ -40,8 +40,8 @@ func TestHauntingVoyageForetoldReturnsTheChosenTypeNotTheFallback(t *testing.T) 
 	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 5, 2
 	submitOption(t, e, "foretell_cast", "Cast Haunting Voyage (foretold)")
 	// Pass priority once: the spell resolves and suspends on the
-	// mid-resolution creature-type ask (ct1). Answer it "Zombie" — the
-	// OPPOSITE of the pre-ct1 object-id-order fallback ("Elf") — so the
+	// mid-resolution creature-type ask. Answer it "Zombie" — the
+	// OPPOSITE of an object-id-order fallback ("Elf") — so the
 	// foretold arm's ReturnAll provably returns the CHOSEN type.
 	passUntilAsk(t, e)
 	d := e.Pending()

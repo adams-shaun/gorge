@@ -3,7 +3,7 @@ package rules
 // Set audit: Avatar: The Last Airbender (tla). One seat's audit of the set's
 // named mechanics and its corner cases.
 //
-// The brief for this file: every finding gets a FAILING unit test, guarded by
+// Every finding gets a FAILING unit test, guarded by
 // GORGE_SET_AUDIT so the committed suite stays green (a skip is allowed). A test that asserts behaviour the
 // engine already gets right stays unguarded: that is regression coverage.
 //

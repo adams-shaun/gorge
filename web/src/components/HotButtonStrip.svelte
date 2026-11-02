@@ -68,7 +68,7 @@
   // the moment the decision is answered.
   const awaiting = $derived(toneOf(decision));
   // A required response is anchored to the ACTIONS control as soon as it
-  // arrives — unless the prompt dock answers it (UI rework spec §4: the
+  // arrives — unless the prompt dock answers it (the
   // dock is the answer surface for every non-priority decision while it is
   // mounted, so ACTIONS stays shut instead of opening a second copy over
   // the board). Otherwise it stays open until the answer changes it.
@@ -106,7 +106,7 @@
     action.base_option_index === undefined || action.base_option_index === null ? [] : [action.base_option_index],
   )));
   // The strip counts exactly what its nested seat-panel list shows: the one
-  // shared manual-mana rule (lib/manualmana.ts, spec §8) decides whether the
+  // shared manual-mana rule (lib/manualmana.ts) decides whether the
   // manual taps are hidden, never a rule of the strip's own.
   const hideManualMana = $derived(manualManaHidden(decision, view, ctx.seat, logic.hidesManualMana));
   const actionCount = $derived(
@@ -127,7 +127,7 @@
   // action then landed a moment later. Wait for the shared post latch; the
   // normal rewind frame will reset the panel and leave Undo usable again.
   const undoAllowed = $derived(humanSeats.length === 1 && humanSeats[0] === ctx.seat && !undoPosting && !logic.busy);
-  // Fast forward became End Turn (prio3): a one-shot to the end of the
+  // Fast forward became End Turn: a one-shot to the end of the
   // CURRENT turn. It can only advance through a real pass option, and it
   // only makes sense on a turn the seat OWNS — arming it on the opponent's
   // turn would just auto-pass their turn, machinery the player never asked
@@ -243,7 +243,7 @@
   const autoStatus = $derived(logic.machinePaused ? autoNoteText(logic.note) : playModeLabel);
 
   onMount(() => {
-    // The document-level hotkeys (prio3). The grammar lives in lib/hotkeys
+    // The document-level hotkeys. The grammar lives in lib/hotkeys
     // (pure, tested); this is only its wiring. The modal-picker probe reads
     // the live DOM via lib/modals (both card-action picker shapes AND the
     // pile modals — reviews found each unmarked surface could read hotkeys

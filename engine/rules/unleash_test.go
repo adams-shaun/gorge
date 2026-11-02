@@ -298,7 +298,7 @@ func TestRiotFaceDownEntryPosesNothing(t *testing.T) {
 }
 
 // TestRiotFaceDownEntryDoesNotDisableTheNextRiotAsk is the regression pin
-// for the placement defect findings-sol1 named on the r2 guard: the
+// for a placement defect: the
 // face-down check MUST run BEFORE applyRiotReplacement parks its move. A
 // face-down entry that parked e.riotMove and then returned false would
 // leave a stale parked move that is never emitted and never cleared

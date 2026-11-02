@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// activation_after_blockers_test.go pins ActivationAfterBlockers$ True (task
-// ds1017-afterblockers): the offer exists during combat AFTER blockers are
+// activation_after_blockers_test.go pins ActivationAfterBlockers$ True:
+// the offer exists during combat AFTER blockers are
 // declared, and a priority window IN StepDeclareBlockers is by construction
 // after that, because CR 509.1 makes declaring blockers a turn-based action
 // at the START of the step and CR 509.4 grants priority only once it is done.

@@ -3,8 +3,7 @@ package effects
 import "testing"
 
 // TestResolvedThisTurnCountHead pins the Count$ResolvedThisTurn head the
-// Sephiroth, Fabled SOLDIER feedback (fb-20260923T005857Z) turned on: the
-// head was unmodelled, so EvalCountOK returned (0, false) and the SVar gate
+// Sephiroth, Fabled SOLDIER turns on: unmodelled, EvalCountOK returns (0, false) and the SVar gate
 // over it failed OPEN -- SetState's ConditionCheckSVar$ X transformed the
 // creature on the FIRST resolution instead of the fourth. The head now reads
 // the tally rules binds onto Ctx, and an unbound Ctx is a modelled zero (the

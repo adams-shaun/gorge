@@ -7,7 +7,7 @@ import (
 )
 
 // TestRememberedCaptureExcludedFromPlainReads pins the capture exclusion every
-// plain `Remembered$...` read now applies (task rememberedcapture1).
+// plain `Remembered$...` read applies.
 //
 // rules seeds a firing trigger's execution ctx with Remembered == Captured ==
 // the trigger's fire-time event capture. Forge's host remembered list never

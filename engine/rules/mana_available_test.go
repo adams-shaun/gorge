@@ -164,11 +164,10 @@ func TestAvailableManaMatchesCardProjection(t *testing.T) {
 	}
 }
 
-// TestAvailableManaComboDualNamesItsColoursOnly is the fb-windgrace fix on
-// the aggregate side: a Blackcleave-Cliffs-shaped source ("Produced$ Combo
-// B R") contributes its two real colours and NO colourless -- the old rune
-// walk counted the letters of the word "Combo" as five phantom colourless,
-// which the mana rail then advertised as tappable.
+// TestAvailableManaComboDualNamesItsColoursOnly is the aggregate side: a
+// Blackcleave-Cliffs-shaped source ("Produced$ Combo B R") contributes its two
+// real colours and NO colourless (no five phantom colourless from a rune walk
+// of the word "Combo", which the mana rail would advertise as tappable).
 func TestAvailableManaComboDualNamesItsColoursOnly(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

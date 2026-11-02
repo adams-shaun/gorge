@@ -7,7 +7,7 @@ import (
 )
 
 // TestFaceDownHidesPrintedSubtypes pins the CR 708.8 type gate every
-// printed-face fallback shares (task d8b-permanents): a face-down battlefield
+// printed-face fallback shares: a face-down battlefield
 // permanent's type words are exactly its folded face-down set, never the
 // hidden face's printed line. Before the gate, "Whenever a Detective you
 // control enters" (Case of the Pilfered Proof) and "Whenever another Detective

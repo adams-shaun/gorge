@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Kinds are the searched decision kinds (spec §1). Every other decision --
+// Kinds are the searched decision kinds (design §1). Every other decision --
 // and a decision of a searched kind whose candidates cannot be built -- is
 // answered by the bot.
 type Kinds struct {
@@ -90,16 +90,16 @@ type Options struct {
 	// Sims is the simulation budget per searched decision (-az-sims). 0 or
 	// less never builds a tree: the bot's answer is played.
 	Sims int
-	// CPUCT is PUCT's exploration constant c (spec §2: 1.5).
+	// CPUCT is PUCT's exploration constant c (design §2: 1.5).
 	CPUCT float64
 	// FPU is the first-play-urgency reduction: an unvisited child's Q is its
-	// parent's Q minus FPU (spec §2: 0.1).
+	// parent's Q minus FPU (design §2: 0.1).
 	FPU float64
 	// Limit caps the candidates per searched decision, the bot's answer
 	// first (the enumerators' limit argument).
 	Limit int
 	// MaxSteps caps the environment's submits per simulation, the livelock
-	// guard of spec §2; a walk that reaches it is evaluated where it stopped.
+	// guard of design §2; a walk that reaches it is evaluated where it stopped.
 	MaxSteps int
 	// Kinds are the searched decision kinds.
 	Kinds Kinds
@@ -112,7 +112,7 @@ type Options struct {
 	// environment bots' streams.
 	Seed uint64
 	// Noise mixes Dirichlet(DirichletAlpha) noise into the root prior with
-	// weight DirichletEps. Generation only (spec §2); eval leaves it false.
+	// weight DirichletEps. Generation only (design §2); eval leaves it false.
 	Noise                        bool
 	DirichletAlpha, DirichletEps float64
 	// Sample picks the move with probability proportional to its root
@@ -330,7 +330,7 @@ func ParseDiscountUnit(s string) (DiscountUnit, error) {
 // and RootTruncated count every cut that happens anyway).
 const BenchCandidateLimit = 512
 
-// DefaultOptions are the spec's values (§2) and this plan's candidate and
+// DefaultOptions are the design's values (§2) and the candidate and
 // step caps.
 func DefaultOptions() Options {
 	return Options{
@@ -339,7 +339,7 @@ func DefaultOptions() Options {
 	}
 }
 
-// Stats are spec §4's failure-handling counters plus the work counts the
+// Stats are design §4's failure-handling counters plus the work counts the
 // cost report needs. Every fallback lands here; none is silent.
 type Stats struct {
 	Searched       int // decisions a tree was built for

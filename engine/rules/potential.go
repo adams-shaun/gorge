@@ -515,9 +515,8 @@ func (e *Engine) PotentialActions(p state.PlayerID) []decision.PotentialAction {
 //   - "unlock" (a Room's locked door, CR 309.5), "turn_face_up" (the morph
 //     family, CR 708.6) and "specialize" (Mode = the face index): the
 //     mana-costed special actions, projected on an empty pool once the
-//     hypothetical pool pays them (aph-web-manual-only-plays: before, they
-//     were neither offered nor projected there, so the web's auto-pay mode
-//     hid the manual taps they need);
+//     hypothetical pool pays them, so the web's auto-pay mode keeps the
+//     manual taps they need;
 //   - "play_land" and "station": never mana-costed, so never float-gated,
 //     projected for completeness.
 //

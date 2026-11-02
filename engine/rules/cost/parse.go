@@ -55,7 +55,7 @@ const discardXCost = `^Discard<X/([^/>]+)(?:/([^>]*))?>$`
 // card from your graveyard"). AnyGrave is the same graveyard payment with the
 // "any card" shape -- the payer picks the card, and beyond the spec's own
 // predicates there is no zone provenance beyond "a graveyard" -- so it lands
-// on the identical Exile part with Zone ZGraveyard (exg1: the 18-carrier
+// on the identical Exile part with Zone ZGraveyard (the 18-carrier
 // Cavalier of Thorns / Thelon of Havenwood family). As with the other
 // non-mana tokens the trailing "/description" is captured into CostPart.Desc
 // and ";" alternations fold to ",".
@@ -94,11 +94,11 @@ func appendParsedExileCost(c *Cost, token string, m groups) {
 func appendExileCtrlOrGrave(c *Cost, token string, match groups) {
 	part, ok := parseExileCtrlOrGrave(match[2], match[3], match[4])
 	// The ExileCtrlOrGrave head is a NON-mana cost: <N/Spec> is the number of
-	// cards the part exiles, never a generic amount. A phantom {1} charged here
-	// (the pre-fix behavior) made a cost with one material mispriced by one and
-	// a four-slot Craft mispriced by four, so a legal craft was never offered.
-	// Fail closed only on a token this head cannot parse, the same shape the
-	// sibling ExileFromGrave branch above uses.
+	// cards the part exiles, never a generic amount. A phantom {1} charged
+	// here would misprice a cost with one material by one and a four-slot
+	// Craft by four, so a legal craft would never be offered. Fail closed
+	// only on a token this head cannot parse, the same shape the sibling
+	// ExileFromGrave branch above uses.
 	if !ok {
 		c.Generic = AddClampedGeneric(c.Generic, 1)
 		c.reportUnknown(token)

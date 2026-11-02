@@ -22,8 +22,8 @@ func (h *repeatRestartHost) RequestRestart(c *Ctx, keep []state.ObjID, rest *car
 // TestRepeatEachStopsAtRestart: RepeatEach resolves each iteration on a Ctx
 // COPY, so a RestartGame body's Restarted flag must be carried back to the
 // outer Ctx; otherwise the loop keeps resolving the remaining iterations in
-// the old game (CR 727.4). Two subjects, so the pre-fix loop asks for two
-// restarts.
+// the old game (CR 727.4). Two subjects, so a loop that drops the flag asks
+// for two restarts.
 func TestRepeatEachStopsAtRestart(t *testing.T) {
 	h := &repeatRestartHost{fakeHost: newHost(t, 2)}
 	if got := len(h.g.AliveFrom(0)); got != 2 {

@@ -3,11 +3,11 @@ package rules
 // CR 103.1's second half: the winner of the pre-game toss chooses who takes
 // the first turn. rules.New draws and announces the toss, then leaves the
 // choice available; a harness that can answer calls Engine.AskStartingPlayer
-// before Advance, and any caller that cannot gets the deterministic R-9
+// before Advance, and any caller that cannot gets the deterministic
 // fallback (the toss winner) from Advance. This file pins both halves, the
 // botpolicy arm, and the replay of a game whose choice was really answered.
 // Every game here is built with NewStartingPlayerChoice (engine/rules/engine.go) --
-// the harness-facing constructor that offers the ask; plain New is the R-9
+// the harness-facing constructor that offers the ask; plain New is the
 // no-host fallback and never sets tossChoice.
 
 import (
@@ -108,7 +108,7 @@ func TestStartingPlayerChoiceIsPosedToTheTossWinner(t *testing.T) {
 	}
 }
 
-// TestStartingPlayerChoiceDefaultsToTheTossWinner pins the R-9 fallback: a
+// TestStartingPlayerChoiceDefaultsToTheTossWinner pins the fallback: a
 // caller with no decision channel (a scenario test, the fuzzer) never calls
 // AskStartingPlayer, and Advance resolves the choice to the toss winner --
 // the pre-choice seat -- so the game proceeds exactly as before.

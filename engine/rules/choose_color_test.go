@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The mid-resolution ChooseColor ask (task cli-20260923T060000Z-choose-color):
+// The mid-resolution ChooseColor ask:
 // a resolution-time "choose a color" poses a real KChoose over the fixed
 // WUBRG colour list, and the ANSWERED colour is what the downstream
 // Count$Devotion.Chosen reader counts -- the reader Hotel of Fears' "Praise
@@ -16,8 +16,7 @@ import (
 // exact downstream shape (PutCounter X = Count$Devotion.Chosen): the corpus
 // SP$ ChooseColor carriers' own downstreams (Wash Out's ChangeType$
 // Permanent.ChosenColor, Akroma's Blessing's Gains$ ChosenColor) are
-// unregistered filter vocabulary -- a separate, pre-existing gap reported in
-// the ticket, not this ask's.
+// unregistered filter vocabulary, a separate gap.
 
 // devotionRite is the fixture spell: choose a color, then put X +1/+1
 // counters on itself, where X is the caster's devotion to the chosen colour
@@ -84,10 +83,10 @@ func TestChosenColorAskIsPosedOverTheWUBRGList(t *testing.T) {
 }
 
 // TestChosenColorAnswerGovernsTheDownstreamDevotionCount answers "Black" --
-// the OPPOSITE of the pre-fix first-WUBRG fallback ("White") -- so the
-// downstream Devotion.Chosen must count ZERO (no black pips on the board),
-// gain no life, and record the answer "B" on the object. Without the fix
-// the resolution silently chose White, counted 1, and gained the life.
+// the OPPOSITE of a first-WUBRG fallback ("White") -- so the downstream
+// Devotion.Chosen must count ZERO (no black pips on the board), gain no life,
+// and record the answer "B" on the object. Without the fix the resolution
+// silently chose White, counted 1, and gained the life.
 func TestChosenColorAnswerGovernsTheDownstreamDevotionCount(t *testing.T) {
 	t.Parallel()
 	e, rite, _ := castRite(t)

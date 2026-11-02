@@ -1,6 +1,6 @@
 package rules
 
-// K:Ascend (CR 702.131, task ascend1): the city's blessing. The grant has two
+// K:Ascend (CR 702.131): the city's blessing. The grant has two
 // halves -- a permanent with the keyword grants continuously while its
 // controller controls ten or more permanents (engine/rules/ascend.go's emit-side
 // scan), and an instant/sorcery with the keyword grants AS IT RESOLVES,

@@ -555,22 +555,26 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 			e.fuseTargets[copyID] = cp
 		}
+		// A charm's per-mode target groups are the same split: each mode of the
+		// copy acts on its own group (CR 707.10 copies modes and targets).
+		if groups, ok := e.charmTargets[ev.Obj]; ok && len(ev.IDs) == 0 {
+			cp := make([][]state.Target, len(groups))
+			for i, targets := range groups {
+				cp[i] = append([]state.Target(nil), targets...)
+			}
+			e.charmTargets[copyID] = cp
+		}
 		// CR 707.10: "If an effect of the copy refers to objects used to pay
 		// its costs, it uses the objects used to pay the costs of the
 		// original spell or ability" (a copied Fling deals the ORIGINAL's
 		// sacrificed creature's power). The copy takes its own copy of each
 		// cost-paid record the original's resolution Ctx reads (Forge
 		// SpellAbility.copy shares the paid hash the same way).
-		// CR 707.10c: a copy copies the chain's announced targets too. A copy
-		// whose SubAbility$ chain it announces (copyChainDeclarations) takes
-		// the original's per-link record under its own id; an electing copy
-		// overwrites each link as its copy_targets answers arrive
-		// (finishCopyTargets), a non-electing one resolves with them as they
-		// stand.
-		if copyChainRoot(e, e.G.Obj(copyID)) != nil {
-			for line, ts := range e.castSubTargets[ev.Obj] {
-				e.recordCastSub(copyID, line, append([]state.Target{}, ts...))
-			}
+		// CR 707.10: a copy copies the chain's announced targets too, each link's
+		// under the copy's id. An electing copy overwrites a link as its
+		// copy_targets answer arrives (finishCopyTargets).
+		for line, ts := range e.castSubTargets[ev.Obj] {
+			e.recordCastSub(copyID, line, append([]state.Target{}, ts...))
 		}
 		inheritCopyRecord(e.sacrificedLKI, ev.Obj, copyID)
 		inheritCopyRecord(e.castExiled, ev.Obj, copyID)
@@ -653,8 +657,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.castTapped, ev.Obj)
 		delete(e.castReturned, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
-		delete(e.copyTargetStage, ev.Obj)
-		delete(e.copyAnswerTargets, ev.Obj)
 		delete(e.castSubTargets, ev.Obj)
 		delete(e.resolutionTargets, ev.Obj)
 		delete(e.tpCtlChooser, ev.Obj)
@@ -714,8 +716,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.sweepEffectDelayed(ev)
 	}
 	if ev.Kind == events.CounterChange {
-		// Effect-created continuous effects' counter-driven lifetime (task
-		// vow1; ForgetCounter$): after a counter REMOVAL is applied, a
+		// Effect-created continuous effects' counter-driven lifetime
+		// (ForgetCounter$): after a counter REMOVAL is applied, a
 		// remembered card whose count of the named kind reached zero leaves
 		// the effect's Remembered set -- Promise of Loyalty's "for as long
 		// as it has a vow counter on it". Applied before this event's own

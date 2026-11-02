@@ -1,7 +1,7 @@
 package rules
 
 // Sarkhan, Soul Aflame is the corpus-pinned carrier for api:Clone's
-// trigger-driven, RESOLVING shape (ticket api-clone-trigger-copy): a Dragon
+// trigger-driven, RESOLVING shape: a Dragon
 // entering under your control fires the ChangesZone trigger whose Execute$
 // is `DB$ Clone | Defined$ TriggeredCardLKICopy | NewName$ Sarkhan, Soul
 // Aflame | AddTypes$ Legendary | Duration$ UntilEndOfTurn | Optional$ True`.
@@ -94,8 +94,8 @@ func TestSarkhanDragonEntryPosesTheMayCopyElectionAndDeclineKeepsSarkhan(t *test
 	replayCheck(t, e, cfg)
 }
 
-// TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks pins the findings-sol1
-// MAJOR: Sarkhan leaves the battlefield (two Shocks, while its Dragon-entry
+// TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks:
+// Sarkhan leaves the battlefield (two Shocks, while its Dragon-entry
 // trigger waits on the stack) before that trigger resolves. Resolving the
 // trigger must NOT pose the may-copy election -- every become pair is dead
 // (the copy loop would skip Sarkhan either way), so a decision whose every
@@ -203,10 +203,9 @@ func TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks(t *testing.T) {
 		t.Fatal("the Dragon-entry trigger left the stack before resolution")
 	}
 
-	// Drain the stack: with the fix the trigger resolves without posing any
-	// ask (passUntilStackEmpty fatals on a non-priority decision, so a
-	// returned election fails the test here); with the pre-fix engine the
-	// election appears exactly at this point.
+	// Drain the stack: the trigger resolves without posing any ask
+	// (passUntilStackEmpty fatals on a non-priority decision, so a returned
+	// election fails the test here).
 	passUntilStackEmpty(t, e, 40)
 	// The silence must be effClone's own dead-become return, not the
 	// generic unimplemented-API fallback (which also asks nothing and clones

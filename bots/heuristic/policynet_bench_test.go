@@ -16,8 +16,8 @@ import (
 // BenchmarkPolicyNetDecideAttackers is one scored PolicyNetBot decision (a
 // random checkpoint scoring an attackers declaration, the default kind) at
 // a fixed position, with no note sink installed. Its allocs/op and B/op must
-// not move when a diagnostic lands on the seat (ticket T3's zero-cost-off
-// check); compare it against the same file at the base revision.
+// not move when a diagnostic lands on the seat (a zero-cost-off check); compare
+// it against the same file at the base revision.
 func BenchmarkPolicyNetDecideAttackers(b *testing.B) {
 	m := policynet.NewModel(policynet.TableRows, 16, 8, rand.New(rand.NewPCG(77, 77^0x5eed)))
 	var buf bytes.Buffer

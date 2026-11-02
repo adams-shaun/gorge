@@ -1,6 +1,8 @@
 package searchseat
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/adams-shaun/gorge/bots/searchprobe"
@@ -51,14 +53,30 @@ type Feed struct {
 	known KnownTracker
 }
 
+// ErrFeedStopped says a rebuild reached an observation the feed cannot capture,
+// the rebuild's form of a live feed stopping: a seat plays without its feed from
+// that point on.
+var ErrFeedStopped = errors.New("searchseat: feed stopped")
+
 // RebuildFeed reconstructs an actor's observation stream from the first n
 // intents of a log. It captures each intent boundary and records the logged
 // answer when that boundary belongs to actor, matching the live driver.
 func RebuildFeed(cfg rules.Config, l *events.Log, n int, actor state.PlayerID) (*Feed, error) {
+	f, _, err := RebuildFeedEngine(context.Background(), cfg, l, n, actor)
+	return f, err
+}
+
+// RebuildFeedEngine is RebuildFeed that also returns the replayed engine at
+// boundary n, and stops with ctx's error at the next intent boundary once ctx
+// is done. The engine shares nothing with whatever produced l.
+func RebuildFeedEngine(ctx context.Context, cfg rules.Config, l *events.Log, n int, actor state.PlayerID) (*Feed, *rules.Engine, error) {
 	f := NewFeed(actor)
-	_, err := replay.Walk(l, cfg, n, func(e *rules.Engine, i int) error {
+	e, err := replay.Walk(l, cfg, n, func(e *rules.Engine, i int) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if _, ok := f.Observe(e); !ok {
-			return fmt.Errorf("searchseat: observe at intent %d: %s", i, f.StopReason())
+			return fmt.Errorf("%w: observe at intent %d: %s", ErrFeedStopped, i, f.StopReason())
 		}
 		if i < len(l.Intents) && i < n {
 			d := e.Pending()
@@ -85,9 +103,9 @@ func RebuildFeed(cfg rules.Config, l *events.Log, n int, actor state.PlayerID) (
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return f, nil
+	return f, e, nil
 }
 
 // NewFeed starts the observation stream for one actor.

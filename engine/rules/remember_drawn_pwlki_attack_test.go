@@ -1,6 +1,6 @@
 package rules
 
-// Corpus-backed engine proofs for the two readers this ticket fixed:
+// Corpus-backed engine proofs for two readers:
 //
 //   - engine/effects/cardflow.go effDraw's RememberDrawn$ read. The old read treated
 //     the parameter as a boolean True/False, so the corpus's other spelling
@@ -125,11 +125,7 @@ func resolveBrewingETB(t *testing.T, e *Engine, wantSeats []state.PlayerID) stat
 // TestCommunalBrewingIngredientCountersPerCardDrawn is the reported defect:
 // "any number of target opponents each draw a card. Put an ingredient counter
 // on CARDNAME, then put an ingredient counter on it for each card drawn this
-// way." The pre-fix RememberDrawn$ read treated AllReplaced as false, so
-// Remembered stayed at just the trigger's fire-time capture (the entering
-// Brewing), SVar:X:Remembered$Amount read 1, and the card put only 1 base + 1
-// phantom = 2 counters no matter how many opponents drew. The correct totals
-// are 1 base + the number of cards actually drawn.
+// way." The correct totals are 1 base + the number of cards actually drawn.
 func TestCommunalBrewingIngredientCountersPerCardDrawn(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -165,8 +161,7 @@ func TestCommunalBrewingIngredientCountersPerCardDrawn(t *testing.T) {
 // Kwain's "{T}: Each player may draw a card, then each player who drew a card
 // this way gains 1 life." RememberDrawn$ AllReplaced populates the
 // resolution's Remembered, and DBGainLife's Defined$ RememberedController
-// resolves to the controllers of those remembered cards. The pre-fix read
-// left Remembered empty, so no player gained life at all.
+// resolves to the controllers of those remembered cards.
 func TestKwainAllReplacedDrawGainsLifeForEachDrawer(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -327,10 +322,8 @@ func declareAttacks(t *testing.T, e *Engine, picks []int) (int, int) {
 	return before, len(e.G.Zone(state.ZHand, 0))
 }
 
-// TestMangaraDiplomatAttackTrigger draws when two or more creatures attack its
-// controller or that controller's planeswalkers. The pre-fix
-// attackingYouOrYourPWLKI predicate did not exist, so the SVar count was 0 and
-// the GE2 gate never held.
+// TestMangaraDiplomatAttackTrigger draws when two or more creatures attack
+// its controller or that controller's planeswalkers.
 func TestMangaraDiplomatAttackTrigger(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

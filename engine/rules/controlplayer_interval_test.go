@@ -7,7 +7,7 @@ package rules
 // seat gets on the controller's own turn the grant resolved on -- must reach
 // the controlled seat itself, never the controller.
 //
-// findings-t2 MAJOR: controlPlayerRedirect read only ControlledBy and had no
+// controlPlayerRedirect read only ControlledBy and had no
 // turn gating, so the controlled seat's on-controller-turn response priority
 // was posed to the controller before their controlled turn. The redirect is
 // now scoped by the same Turn > armed test expirePlayerControl uses.

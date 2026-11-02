@@ -66,8 +66,7 @@ func TestBeltOfGiantStrengthEquipOfferedAtTargetDiscountedPrice(t *testing.T) {
 	if got := e.Power(bruteID); got != 4 {
 		t.Fatalf("fixture target power = %d, want 4 (the reduction depends on it)", got)
 	}
-	// {6} is exactly {10} minus the 4-power target's reduction. Before the fix
-	// the offer gate read the reduction as 0 and withheld the equip.
+	// {6} is exactly {10} minus the 4-power target's reduction.
 	addMana(t, e, 0, "CCCCCC")
 	opt, ok := findAbilityOption(e, beltID, 0)
 	if !ok {
@@ -147,8 +146,8 @@ func TestBeltOfGiantStrengthEquipWithheldWhenBestTargetStillTooSmall(t *testing.
 	}
 }
 
-// TestBeltOfGiantStrengthEquipWeakTargetNotOfferedAtBestOnlyPool pins the
-// review-r2 MAJOR: the offer gate prices the activation at the BEST legal
+// TestBeltOfGiantStrengthEquipWeakTargetNotOfferedAtBestOnlyPool:
+// the offer gate prices the activation at the BEST legal
 // target's reduction, so from a {6} pool only the 4-power target's price is
 // payable. The CR 601.2c target ask must then withhold the 2-power target
 // (affordableTargetCandidates reprices it to {8} against a {6} pool with no

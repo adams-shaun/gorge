@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The legal-walk S2 fast path (engine/rules/legal_walk_flash.go): the walk answers
+// The legal walk's flash fast path (engine/rules/legal_walk_flash.go): the walk answers
 // castWithFlash's emptiness test from two precomputed bits -- a per-walk
 // board bit and a per-face own-static bit -- instead of running
 // activeStatics + withSelfStatics per card. These tests pin the two bits

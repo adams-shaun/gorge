@@ -1,5 +1,5 @@
-// Count$FinishedEndOfTurnsThisTurn — the per-turn end-step count head
-// (ticket cli-20261005T092134Z-fed167ca, part 1). FIN Y'shtola Rhul grants an
+// Count$FinishedEndOfTurnsThisTurn — the per-turn end-step count head.
+// FIN Y'shtola Rhul grants an
 // additional end step only when the resolving end step is the first of the
 // turn: `SVar:X:Count$FinishedEndOfTurnsThisTurn` with a `ConditionSVarCompare$
 // LT1` gate on DB$ AddPhase. Forge answers

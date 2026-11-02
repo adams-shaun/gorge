@@ -15,8 +15,7 @@ import (
 // card -> missing-primitive set TestEveryRepoDeckIsFullySupported measures
 // over the repo decks. It lives one file per card,
 // testdata/known-unsupported/<slug>.json, {"card": "<Card>", "labels":
-// [...]} (spec 2026-10-03-rules-engine-layering-design.md W2): a shared
-// table made every ticket that retired an entry conflict with every other.
+// [...]}: a shared table made every change that retired an entry conflict with every other.
 // The test asserts the MEASURED set equals the files EXACTLY, in both
 // directions -- a newly-missing card is a regression, a file whose card is
 // now fully supported is stale and must be deleted -- so, for a fixed deck
@@ -25,8 +24,7 @@ import (
 // to make the ratchet green). A newly imported deck can extend it; its
 // entries must be measured from the compiled corpus, never marked supported
 // without an implementation. Which task retired an entry goes in the commit
-// message (git log -- engine/rules/acceptance_test.go holds the history to
-// 2026-10-03).
+// message (git log -- engine/rules/acceptance_test.go holds the history).
 func knownUnsupported(t *testing.T) map[string][]string {
 	t.Helper()
 	return loadPerCardLabels(t, filepath.Join("testdata", "known-unsupported"))
@@ -39,8 +37,8 @@ func TestKnownUnsupportedFilesWellFormed(t *testing.T) {
 	knownUnsupported(t)
 }
 
-// TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
-// across every deck file (the 12 Legacy decks and the m38 commander decks)
+// TestEveryRepoDeckIsFullySupported is the coverage ratchet: every card
+// across every deck file (the 12 Legacy decks and the commander decks)
 // is either fully playable, or is named in
 // knownUnsupported with the exact primitives it is missing. A card missing
 // something knownUnsupported does not list is a regression (fails); a card
@@ -159,7 +157,7 @@ func acceptanceHead(t *testing.T, reg *cards.Registry, seats int) string {
 	return playAcceptance(t, reg, seats, nil)
 }
 
-// TestRepoDecksPlayAtEverySeatCount is the M1 acceptance gate: the 12 repo
+// TestRepoDecksPlayAtEverySeatCount is the acceptance gate: the 12 repo
 // decks, round-robined across 2, 4, 6 and 8 seats, must each play a
 // complete game -- termination under budget, every invariant holding
 // throughout -- with the cards knownUnsupported lists still shuffled in and
@@ -217,9 +215,9 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 			decks[i] = testutil.RepoDeck(t, reg, names[i])
 		}
 		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe(),
-			// R-8.4: Mulligans must travel in the same Config replay is handed;
+			// Mulligans must travel in the same Config replay is handed;
 			// this replay-exactness test exercises the round so a concession of
-			// mutating it silently would be caught here (M2d-1).
+			// mutating it silently would be caught here.
 			Mulligans: 1}
 		e := New(cfg)
 		b := newTestBot(seed)
@@ -266,7 +264,7 @@ func replayFor(cfg Config, l *events.Log) (*Engine, error) {
 		e = New(cfg)
 	}
 	if asked {
-		// Re-pose the recorded ask, before Advance's R-9 fallback would
+		// Re-pose the recorded ask, before Advance's no-host fallback would
 		// default it, so the recorded choice Intent lands on the decision it
 		// answered.
 		if e.AskStartingPlayer() == nil {

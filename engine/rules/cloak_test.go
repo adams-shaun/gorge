@@ -237,7 +237,7 @@ func cloakedDerived(t *testing.T, e *Engine, id state.ObjID, controller state.Pl
 	}
 }
 
-// TestVeiledAscensionUpkeepCloaksFaceDown is the ticket's primary carrier end
+// TestVeiledAscensionUpkeepCloaksFaceDown is the primary carrier end
 // to end: Veiled Ascension's upkeep trigger (OptionalDecider$ You -- the ask
 // is real) resolves DB$ Cloak | Amount$ 1 | Defined$ TopOfLibrary, the top
 // card of the controller's library lands face down as a cloaked 2/2 with the

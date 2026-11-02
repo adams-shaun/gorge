@@ -46,7 +46,7 @@ type Bot struct {
 	// Configured once by an opt-in constructor; the zero value leaves every
 	// cast decision unchanged.
 	removal botpolicy.RemovalRules
-	// posture selects the opt-in A4 deck-shape posture rules
+	// posture selects the opt-in deck-shape posture rules
 	// (botpolicy.PostureRules). Configured once by an opt-in constructor;
 	// the zero value leaves every combat and cast decision unchanged.
 	posture botpolicy.PostureRules
@@ -63,7 +63,7 @@ type Bot struct {
 	// creature; Carrier and HoldOwnAura stay opt-in.
 	attach botpolicy.AttachRules
 	// skipLifePlans withholds every offered payment plan with a step that
-	// pays life (spec §6: a caretaker standing in for a human never
+	// pays life (a caretaker standing in for a human never
 	// auto-selects a life-paying plan -- a human confirms life payments in
 	// the client). Set only for a hosted human seat's timeout caretaker; a
 	// hosted bot or tool seat that submits such a plan has consented.
@@ -157,7 +157,7 @@ func (b *Bot) RemovalRules() botpolicy.RemovalRules {
 	return b.removal
 }
 
-// EnablePostureRules arms the A4 deck-shape posture rules
+// EnablePostureRules arms the deck-shape posture rules
 // (botpolicy.PostureRules) on this bot and returns it, so an opt-in
 // constructor chains like the other Enable* methods. The default bot never
 // calls it.
@@ -166,7 +166,7 @@ func (b *Bot) EnablePostureRules(r botpolicy.PostureRules) *Bot {
 	return b
 }
 
-// PostureRules reports the A4 posture rules armed on this bot.
+// PostureRules reports the posture rules armed on this bot.
 func (b *Bot) PostureRules() botpolicy.PostureRules {
 	return b.posture
 }

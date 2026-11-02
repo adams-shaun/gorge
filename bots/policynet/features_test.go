@@ -105,7 +105,7 @@ func TestMZStateIsAdditiveAndGated(t *testing.T) {
 	}
 }
 
-// The pn03 finding, pinned: v1 sets the decision-kind "other" slot at
+// v1 sets the decision-kind "other" slot at
 // 24+len(decision.Kinds) == typeOffset, the Land bit. MZ drops that bit
 // (keeping a real Land's own bit) and hashes the unknown kind instead.
 func TestMZDecisionKindOtherDoesNotSetLandBit(t *testing.T) {

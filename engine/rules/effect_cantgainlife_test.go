@@ -1,7 +1,7 @@
 package rules
 
 // effect_cantgainlife_test.go — the READER half of the Effect-delivered
-// CR 614.1 CantGainLife static (task cantgainlife1): lifeGainForbidden must
+// CR 614.1 CantGainLife static: lifeGainForbidden must
 // consult the REGISTERED CantGainLife restrictions the Effect route creates
 // (engine/rules/replacement_life.go), beside the printed battlefield statics it
 // already read. Each test asserts its own precondition (the lock binds the
@@ -71,8 +71,7 @@ func TestEffectCantGainLifeOpponentScopeLetsControllerGain(t *testing.T) {
 // TestEffectCantGainLifeRememberedScope pins the IsRemembered resolution:
 // ValidPlayer$ Player.IsRemembered (Screaming Nemesis / Stigma Lasher) binds
 // exactly the player the Effect captured, and an EMPTY captured set binds
-// nobody (fail closed -- the pre-fix behaviour must never become
-// "nobody gains").
+// nobody (fail closed).
 func TestEffectCantGainLifeRememberedScope(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)

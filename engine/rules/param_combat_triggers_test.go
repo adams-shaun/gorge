@@ -207,7 +207,7 @@ func TestAttacksSecondaryFiresAlone(t *testing.T) {
 //
 // The pair deliberately shares Mode AND Execute$: with the two halves
 // sharing the one Execute$ SVar, the yield's pairing (strictly by shared
-// Execute$ since the r2 review) recognises them as one card text. A pair of
+// Execute$) recognises them as one card text. A pair of
 // same-Mode triggers with DISTINCT Execute$ SVars is two card texts -- the
 // Zoraline shape -- and never yields; that contract is pinned on the real
 // corpus card below.
@@ -256,8 +256,8 @@ func TestSecondaryYieldsToItsPairedPrimary(t *testing.T) {
 	}
 }
 
-// TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger pins the r2
-// review's MAJOR finding on the real corpus card: Zoraline, Cosmos Caller
+// TestSecondaryDoesNotSuppressAnIndependentCoFiringTrigger pins this
+// on the real corpus card: Zoraline, Cosmos Caller
 // carries two Attacks triggers on ONE face -- her printed "Whenever a Bat
 // you control attacks, you gain 1 life" (Execute$ TrigGainLife) and the
 // Secondary$-marked "enters or attacks" half (Execute$ TrigImmediateTrig).

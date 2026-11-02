@@ -9,14 +9,14 @@ import (
 )
 
 // TestChooseTapAimsAReflectedSourceAtANeededPip pins the tap-to-pay half of
-// the api:ManaReflected ticket. A reflected source now reaches the Board as a
-// conditional production with cards.ManaProduction.Reflected set
+// api:ManaReflected. A reflected source reaches the Board as a conditional
+// production with cards.ManaProduction.Reflected set
 // (cards.ManaProduction.addReflected), and the need-aware tap gate must treat
 // it as able to answer a needed coloured pip: the engine asks for the colour
-// when the source is actually tapped, so it can pay any pip. Before the fix a
-// reflected source projected as producing nothing, so the satisfiability
-// filter found the colour unpayable and chooseTap returned -1 (pass) instead
-// of tapping it.
+// when the source is actually tapped, so it can pay any pip. A reflected
+// source projected as producing nothing would make the satisfiability filter
+// find the colour unpayable, and chooseTap would return -1 (pass) instead of
+// tapping it.
 func TestChooseTapAimsAReflectedSourceAtANeededPip(t *testing.T) {
 	const (
 		spell  = state.ObjID(1)

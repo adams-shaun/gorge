@@ -46,7 +46,7 @@ describe('DiscardModal — the discard-pick ask’s "Open the card view" popup',
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('data-pile-modal');
-    expect(html).toContain('Choose 1 card(s) to discard');
+    expect(html).toContain('Choose 1 card to discard');
     // Every offered option renders as a real face, in offered order.
     expect(html).toContain('data-discard-grid');
     expect(html).toMatch(/data-discard-card="0"/);
@@ -88,7 +88,7 @@ describe('DiscardModal — the discard-pick ask’s "Open the card view" popup',
     expect(html).not.toContain('data-discard-submit');
   });
 
-  // fb-20260914T120705Z's requirement, carried over: "mouseover oracle help
+  // The requirement: "mouseover oracle help
   // popup like every other view" — the aside resolves the hovered card's
   // printed description by name through lib/oracle.
   describe('the preview aside', () => {

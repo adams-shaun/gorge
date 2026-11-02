@@ -54,8 +54,8 @@ func peacekeeperUnlessFixture(t *testing.T, plains int) (*Engine, state.ObjID, s
 	return nil, 0, 0
 }
 
-// TestUnlessManaWindowClosesOncePayable pins the engine half of the cardfuzz
-// batch3 lines 9/11 livelock: the mid-resolution unless-cost window offers
+// TestUnlessManaWindowClosesOncePayable pins the engine half of a cardfuzz
+// livelock: the mid-resolution unless-cost window offers
 // sources only while the pool cannot pay the charge (the predicate that
 // opened it, and the one the cast and cumulative windows close on), and each
 // offered source carries the beyond-tap cost marker every other "activate"
@@ -115,7 +115,7 @@ func TestUnlessManaWindowClosesOncePayable(t *testing.T) {
 // second Plains (battlefield order), and the Priest pays its {1} with that
 // {W} and adds it straight back. The bot used to take the first "activate"
 // option for as long as one was offered -- the Priest is never tapped, so
-// forever (the cardfuzz batch3 lines 9/11 cycle). It must never activate the
+// forever. It must never activate the
 // Priest, tap both Plains and pay: Peacekeeper survives.
 func TestBotNeverLoopsAConverterInAPaymentWindow(t *testing.T) {
 	t.Parallel()

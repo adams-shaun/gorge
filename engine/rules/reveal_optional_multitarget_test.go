@@ -93,8 +93,7 @@ func TestOptionalRevealPerTargetAskThroughTheEngine(t *testing.T) {
 		t.Fatalf("notes before the answer: %+v", mayRevealNotes(e))
 	}
 
-	// Answer DECLINE (option 1). Seat 2 must then be asked its own question;
-	// the pre-fix bug applied the "no" to seat 2 and finished the resolution.
+	// Answer DECLINE (option 1). Seat 2 must then be asked its own question.
 	submitChoices(t, e, 1)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "reveal_optional" {

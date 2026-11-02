@@ -53,11 +53,10 @@ func grantTargetEffect(t *testing.T, staticName, staticBody string) (*Engine, *c
 	return e, sa
 }
 
-// TestTargetEffectPublishesGrantedStaticModes is the fb-20260927T153930Z
-// engine-side half: an Effect SA granting a CantBlockBy static must publish
-// that Mode$ on its target decision, because the bot's polarity branch reads
-// TargetEffect.Statics to know the grant is a boon. Before the fix the payload
-// carried statics nowhere and the bot aimed the grant at an opponent.
+// TestTargetEffectPublishesGrantedStaticModes is the engine-side half: an
+// Effect SA granting a CantBlockBy static must publish that Mode$ on its target
+// decision, because the bot's polarity branch reads TargetEffect.Statics to
+// know the grant is a boon; without it the bot aims the grant at an opponent.
 func TestTargetEffectPublishesGrantedStaticModes(t *testing.T) {
 	t.Parallel()
 	e, _ := grantTargetEffect(t, "Unblockable", "Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered")

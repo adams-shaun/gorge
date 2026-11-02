@@ -138,7 +138,7 @@ async function measure(page: Awaited<ReturnType<typeof browser.newPage>>, obj = 
   }, obj);
 }
 
-describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => {
+describe('HandFan — the hand-card peek', () => {
   it('at rest exactly the top half of a hand card is visible inside the clipped board; hover and keyboard focus each raise it fully inside, above its neighbours', { timeout: 20_000 }, async () => {
     for (const { width, height } of VIEWPORTS) {
       const page = await browser.newPage({ viewport: { width, height } });
@@ -342,7 +342,7 @@ describe('HandFan — the hand-card peek (fb-20260916T024357Z-9005ad6a)', () => 
   });
 
   it('keyboard focus stays fully raised when it moves from the face onto the card’s action controls (direct icon and open menu item)', { timeout: 30_000 }, async () => {
-    // The r3 finding: the raise arm was `.card:has(.face:focus-visible)` —
+    // The raise arm was `.card:has(.face:focus-visible)` —
     // qualified to the FACE. A hand card with an offered action has more
     // focusables inside it: the direct `.action-icon` (one option) and the
     // count badge plus its `.menu__item` controls (several). Tabbing from

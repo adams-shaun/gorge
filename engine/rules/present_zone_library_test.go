@@ -49,14 +49,12 @@ func TestLivingConundrumPresentZoneLibrary(t *testing.T) {
 	}
 }
 
-// TestCorpusPresentZoneHiddenZones is the census of every corpus carrier whose
-// IsPresent$ gate counts a hidden zone (PresentZone$ Library or Hand): S:
-// statics, T: triggers, R: replacements, A: abilities and SVar-defined lines
-// (Temporal Aperture's StillTopCheck, Thoughtweft's Call's delayed trigger).
-// Before the fix the static/delayed-trigger mapper knew no "Library" word, so
-// an unknown zone failed closed to a count of 0 and every PresentCompare$ EQ0
-// static (Living Conundrum) applied with a full library. Every hidden-zone
-// word must now map, through the one shared mapper, to the zone it names.
+// TestCorpusPresentZoneHiddenZones is the census of every corpus carrier
+// whose IsPresent$ gate counts a hidden zone (PresentZone$ Library or Hand):
+// S: statics, T: triggers, R: replacements, A: abilities and SVar-defined
+// lines (Temporal Aperture's StillTopCheck, Thoughtweft's Call's delayed
+// trigger). Every hidden-zone word must now map, through the one shared
+// mapper, to the zone it names.
 func TestCorpusPresentZoneHiddenZones(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

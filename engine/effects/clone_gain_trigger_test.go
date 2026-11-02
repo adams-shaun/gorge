@@ -2,7 +2,7 @@ package effects
 
 // api:Clone GainThisAbility$ True under a TRIGGER: the copy must keep exactly
 // the ROOT trigger of the resolving chain, not the become object's whole
-// ability/trigger list and not nothing (ticket agent-20260923T090459Z-a4d7eb3b).
+// ability/trigger list and not nothing.
 // Forge's CloneEffect.getCloneStates appends root.getTrigger().copy(...) when
 // the root is a trigger; the DB$-under-trigger carriers (Cryptoplasm, Lazav,
 // Crystalline Resonance, ...) are recurring copies whose trigger is what makes
@@ -22,8 +22,8 @@ const cryptoplasmCarrier = "Name:Cryptoplasm\n" +
 	"ManaCost:1 U U\n" +
 	"Types:Creature Shapeshifter\n" +
 	"PT:2/2\n" +
-	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$ Battlefield | Execute$ CryptoplasmCopy | OptionalDecider$ You | TriggerDescription$ At the beginning of your upkeep, you may have CARDNAME become a copy of another target creature, except it has this ability.\n" +
-	"SVar:CryptoplasmCopy:DB$ Clone | ValidTgts$ Creature.Other | TgtPrompt$ Select another target creature to copy. | Optional$ True | GainThisAbility$ True | AddSVars$ CryptoplasmCopy | AILogic$ CloneBestCreature\n" +
+	"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | Execute$ CopyBody | OptionalDecider$ You\n" +
+	"SVar:CopyBody:DB$ Clone | ValidTgts$ Creature.Other | Optional$ True | GainThisAbility$ True | AddSVars$ CopyBody\n" +
 	"Oracle:x\n"
 
 // cloneTriggerFixture puts the Cryptoplasm-like carrier (the become operand and

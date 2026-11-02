@@ -17,75 +17,17 @@ import (
 // TestHistoryDigestMatchesTheJSONBoardEncoding pins the seed root across the
 // change that made Frame.Board typed: before it, Sample hashed
 // json.Marshal(h) with every board as its JSON bytes. The golden digests are
-// that old hash of the bench fixture's history and three of its prefixes,
-// measured on the tree before the change (2026-09-30, 308f7e0b9). If one
+// that hash of the bench fixture's history and three of its prefixes. If one
 // moves, every sampled world, label and seeded search moves with it.
 //
-// Re-pinned 2026-10-06 for CR 103.8a's turn-1 draw STEP skip: the bench
-// fixture game loses the starting player's turn-1 draw-step priority frames
-// (122 -> 120 frames), so every prefix's history moves. The legacy-encoding
-// equivalence itself stays held on every prefix of a real game by
-// TestHistoryChainEqualsTheLegacyEncodingOnEveryPrefix; these goldens are
-// the new fixture's chained digests.
-//
-// Re-pinned 2026-10-12 (eng-turnwatch): view.PlayerView gained the four
-// per-turn watcher fields (SpellsCastThisTurn, LifeGainedThisTurn,
-// LifeLostThisTurn, TokensCreatedThisTurn), which every board's JSON and
-// canonical encoding now carries, so every prefix digest moves; the
-// legacy-encoding equivalence tests above still hold.
-//
-// Re-pinned 2026-10-16 (token-art-pt-key): view.CardView gained PrintedPT
-// (the face's printed P/T, so the token-art cache key stops keying on the
-// current, counter-modified value), which every board's JSON and canonical
-// encoding now carries, so every prefix digest moves. Attributed by hiding
-// only that field (json:"-"): the old digests return byte-for-byte.
-//
-// Re-pinned 2026-10-17 for the combat priority fixes (rules e7aaf1530 and
-// 93b6057e4, CR 510.4/117.3a): the fixture game poses more combat priority
-// windows before its root (120 -> 124 frames), so the history and every
-// prefix digest move (a prefix keeps the whole Answers map, so even the
-// one-frame prefix moves with a later answer's index). The view's derived
-// type line (26ea2ed4f) moves none of them: measured with Engine.ViewTypes
-// unwired from the projector, the same digests.
-//
-// Re-pinned again for the CR 510.3 post-damage priority round (rules
-// 24bbba791): two more frames before the root (124 -> 126).
-//
-// Re-pinned for the A2 targeting port (view.CardView.ColourIdentity): the
-// frame encoding gained a field, so every prefix digest moves; the fixture
-// is still 126 frames, so no game moved. Attributed by tagging only that
-// field json:"-": the old digests return byte-for-byte.
-//
-// Re-pinned for the A1 removal-now port (view.CardView.RemovalKind,
-// RemovalTargets, RemovalDamage): the frame encoding gained three fields, so
-// every prefix digest moves; the fixture is still 126 frames, so no game
-// moved. Attributed by tagging the three fields json:"-": the old digests
-// return byte-for-byte.
-//
-// Re-pinned for the A3 Forge AI-hint port (view.CardView.PlayMain1,
-// RemoveDeck): the frame encoding gained two fields, so every prefix that
-// holds a card moves; frames 1 and 2 are unchanged, and the fixture is still
-// 126 frames. Attributed by tagging the two fields json:"-": the old digests
-// return byte-for-byte.
-//
-// Re-pinned for the A6a pump-timing port (view.CardView.PumpPower,
-// PumpToughness): the frame encoding gained two fields, so every prefix
-// digest moves; the fixture is still 126 frames, so no game moved.
-// Attributed by tagging the two fields json:"-": the old digests return
-// byte-for-byte.
-//
-// Re-pinned again for the A6a restricted-target-scope fact
-// (view.CardView.PumpOwn): the frame encoding gained one more field, so every
-// prefix digest moves; the fixture is still 126 frames, so no game moved.
-// Attributed by tagging the field json:"-": the previous digests return
-// byte-for-byte. Re-measured for CR 602.2a: an activation's mint
-// now precedes its first decision, so the 126-frame history moves; the 1-, 2-
-// and 17-frame digests do not.
-//
-// Re-pinned for the instant-speed hold rule (view.CardView.CombatTrick): the
-// frame encoding gained one field, so every prefix that holds a card moves;
-// the fixture is still 126 frames, so no game moved. Attributed by tagging the
-// field json:"-": the previous digests return byte-for-byte.
+// A rules change that alters the fixture game's priority windows moves the
+// history and every prefix digest (a prefix keeps the whole Answers map, so
+// even the one-frame prefix moves with a later answer's index); the
+// legacy-encoding equivalence stays held on every prefix of a real game by
+// TestHistoryChainEqualsTheLegacyEncodingOnEveryPrefix. A view field added to
+// the frame encoding moves every prefix that holds a card with no game moving:
+// attribute that by tagging the field json:"-", which must restore the old
+// digests.
 func TestHistoryDigestMatchesTheJSONBoardEncoding(t *testing.T) {
 	f := benchRoot(t)
 	golden := map[int]string{

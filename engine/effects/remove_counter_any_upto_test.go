@@ -24,7 +24,7 @@ type anyUpToAnswer struct {
 
 // anyUpToHost serves a scripted answer sequence through the ask seam, so the
 // effects-level test exercises the real per-counter election rather than the
-// R-9 stand-in.
+// no-host stand-in.
 type anyUpToHost struct {
 	*fakeHost
 	answers []anyUpToAnswer
@@ -35,7 +35,7 @@ func (h *anyUpToHost) AskCount() uint64 { return 0 }
 
 func (h *anyUpToHost) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
 	if d.ResumeKind != "counter_kind" {
-		// Leave the ordinary target ask to the R-9 fallback (Ctx.Targets).
+		// Leave the ordinary target ask to the no-host fallback (Ctx.Targets).
 		return decision.Intent{}, false
 	}
 	h.asks = append(h.asks, d)

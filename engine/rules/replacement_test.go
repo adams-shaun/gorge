@@ -5,8 +5,8 @@
 // the Void-shaped replacement ("if a card would be put into a graveyard from
 // anywhere, exile it instead") relocated NOTHING -- the card it was supposed
 // to exile stayed wherever it was, and resolveTop's totality guard
-// (ensureLeftTheStack) had to park it in exile as a backstop. This task
-// wires the pair: engine/rules/replacement.go sets Ctx.Replaced to the object the
+// (ensureLeftTheStack) had to park it in exile as a backstop. The pair is
+// wired here: engine/rules/replacement.go sets Ctx.Replaced to the object the
 // replaced event was about, and Defined$ ReplacedCard yields it.
 //
 // Card text below is authored for this test, in the same R:/SVar$ shape as
@@ -47,7 +47,7 @@ A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3
 Oracle:x
 `
 
-// TestRestInPeaceShapedReplacementExilesTheReplacedCard is the task's
+// TestRestInPeaceShapedReplacementExilesTheReplacedCard is the
 // regression test. Seed seat 0 with the Peace enchantment plus a bear and a
 // bolt, so every object is a real deck card replayFromLog reconstructs (the
 // logged Moves below -- Peace hand->battlefield, bear hand->battlefield,

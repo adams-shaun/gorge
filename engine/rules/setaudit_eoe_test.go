@@ -1,7 +1,7 @@
 package rules
 
-// Set audit for Edge of Eternities (eoe), 266 cards. An AUDIT ticket: its
-// product is failing tests plus follow-up tickets, not fixes. Each guarded
+// Set audit for Edge of Eternities (eoe), 266 cards. Its product is failing
+// tests, not fixes. Each guarded
 // test names one defect and cites the CR rule; the unguarded tests are
 // regression coverage for behaviour verified CORRECT during the audit.
 //
@@ -149,8 +149,8 @@ func TestSetAudit_eoe_MutinousMassacre_ChooseEvenOdd(t *testing.T) {
 		}
 	}
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 {
-		// Name the engine's actual stand-in in the failure, so the ticket's
-		// evidence points at the unimplemented API rather than a bare nil.
+		// Name the engine's actual stand-in in the failure, so the evidence points
+		// at the unimplemented API rather than a bare nil.
 		var notes []string
 		for _, ev := range e.L.Events {
 			if ev.Kind == events.Note {
@@ -215,8 +215,7 @@ func TestSetAudit_eoe_TheEndstone_EndStepSetsHalfStartingLife(t *testing.T) {
 // 601.2c's target legality, per CR 202.3's mana-value sum.) The engine now
 // reads TargetMin$/TargetMax$/ValidTgts$ and `MaxTotalTargetCMC$`, so a set
 // of three mana-value-3 creatures (total 9) is not a legal answer under the
-// MV-3 cap. This was the set-audit finding that the MaxTotalTargetCMC$ ticket
-// closed, so the test is unguarded and runs in every gate.
+// MV-3 cap. The test is unguarded and runs in every gate.
 // ---------------------------------------------------------------------------
 
 func TestSetAudit_eoe_ScoutForSurvivors_TotalManaValueCap(t *testing.T) {

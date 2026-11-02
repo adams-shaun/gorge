@@ -357,7 +357,7 @@ func mutateDrain(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestMergedTriggerResolvesTheUnderCardsOwnBody is the finding-r2 regression:
+// TestMergedTriggerResolvesTheUnderCardsOwnBody is a regression test:
 // the pile's top card and an under-card can both define an SVar of the SAME
 // name -- Forge's canonical token body name TrigToken -- and the under-card's
 // "whenever this creature mutates" trigger must run the UNDER-CARD's body,
@@ -367,12 +367,11 @@ func mutateDrain(t *testing.T, e *Engine, limit int) {
 // exactly the bodies' own tokens and never a cross-body steal.
 //
 //   - Phoenix mutated ON TOP of Cubwarden: the top Phoenix's own trigger makes
-//     1 Feather, the under Cubwarden's makes 2 Cats (pre-fix: 0 Cats, 2
-//     Feathers -- the under-card's Execute$ resolved against the TOP face's
-//     TrigToken).
+//
+// 1 Feather, the under Cubwarden's makes 2 Cats.
 //   - Cubwarden mutated ON TOP of the Phoenix: the top Cubwarden's own trigger
-//     makes 2 Cats, the under Phoenix's makes 1 Feather (pre-fix: 4 Cats, 0
-//     Feathers -- the under Phoenix ran the top Cubwarden's body twice).
+//
+// makes 2 Cats, the under Phoenix's makes 1 Feather.
 func TestMergedTriggerResolvesTheUnderCardsOwnBody(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -453,7 +452,7 @@ func TestCountTimesMutatedDrivesTheRealReader(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestEssenceSymbioteWatchesATeamMutation is the round-3 regression for the
+// TestEssenceSymbioteWatchesATeamMutation is the regression for the
 // ONLY non-Card.Self Mutates carrier in the corpus: Essence Symbiote's
 // "Whenever a creature you control mutates, put a +1/+1 counter on that
 // creature and you gain 2 life." (ValidCard$ Creature.YouCtrl). The scanning
@@ -492,12 +491,11 @@ func TestEssenceSymbioteWatchesATeamMutation(t *testing.T) {
 
 // TestMutateCostIsPaidInsteadOfTheManaCost pins CR 702.140a's cost
 // substitution on a card where the two costs are distinguishable: Huntmaster
-// Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a
-// WWW pool pays the mutate cast and can NOT pay the plain cast. The mutated
-// cast must be offered while the plain cast is withheld, the cast must
-// complete, and the mana actually spent must be the mutate cost's 3 (not the
-// printed cost's 4 -- the pre-fix engine charged the plain cost here and
-// aborted the cast as "cost no longer payable").
+// Liger's mutate cost is {2}{W} but its printed mana cost is {3}{W}, so a WWW
+// pool pays the mutate cast and can NOT pay the plain cast. The mutated cast
+// must be offered while the plain cast is withheld, the cast must complete,
+// and the mana actually spent must be the mutate cost's 3 (not the printed
+// cost's 4).
 func TestMutateCostIsPaidInsteadOfTheManaCost(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	liger := mustCorpusCard(t, reg, "Huntmaster Liger")
@@ -576,8 +574,8 @@ func drainUntilOptional(t *testing.T, e *Engine, limit int) *decision.Decision {
 	return nil
 }
 
-// TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar is the verdict-sol1
-// MAJOR-1 regression: a mutated pile's UNDER-CARD triggered ability used to
+// TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar is a
+// regression test: a mutated pile's UNDER-CARD triggered ability used to
 // resolve its SVar-indirect parameters against the pile's TOP face.
 //
 // Huntmaster Liger's trigger body is "DB$ PumpAll | NumAtt$ +X | NumDef$ +X"
@@ -631,8 +629,8 @@ func TestHuntmasterLigerUnderAForeignTopPumpsWithItsOwnSVar(t *testing.T) {
 	}
 }
 
-// TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider is the
-// verdict-sol1 MAJOR-2 regression: an under-card trigger's OptionalDecider$
+// TestPouncingShoresharkUnderAForeignTopAsksItsOptionalDecider is a
+// regression test: an under-card trigger's OptionalDecider$
 // gate was skipped entirely, so "you may return target creature an opponent
 // controls" silently became "you must".
 //

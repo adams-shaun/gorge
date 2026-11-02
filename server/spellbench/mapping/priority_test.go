@@ -584,7 +584,7 @@ func TestPriorityFailsClosed(t *testing.T) {
 		want error
 		opts []decision.Option
 	}{
-		// Two variants that would share one candidate (Minor 1): a plain cast
+		// Two variants that would share one candidate: a plain cast
 		// and a may-play cast, or two optional-cost statics of one card.
 		{"plain collision", mapping.ErrDuplicate, []decision.Option{{Kind: "cast", Obj: a}, {Kind: "cast", Obj: a, Mode: "mayplay"}}},
 		{"optional collision", mapping.ErrDuplicate, []decision.Option{{Kind: "cast", Obj: a}, {Kind: "cast", Obj: a, Mode: "optionalcost", AltCostIndex: 1}, {Kind: "cast", Obj: a, Mode: "optionalcost", AltCostIndex: 2}}},

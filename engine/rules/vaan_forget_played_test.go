@@ -11,26 +11,24 @@ import (
 
 // The ForgetPlayed$ pin (task param:api:Play.ForgetPlayed) on Vaan, Street
 // Thief's REAL compiled corpus script. Vaan's combat-damage trigger digs the
-// top card of the damaged player's library to exile, remembers it, and
-// chains DB$ Play | Defined$ Remembered | ValidSA$ Spell | Optional$ True |
+// top card of the damaged player's library to exile, remembers it, and chains
+// DB$ Play | Defined$ Remembered | ValidSA$ Spell | Optional$ True |
 // ForgetPlayed$ True followed by DB$ Token gated on ConditionDefined$
 // Remembered | ConditionPresent$ Card | ConditionCompare$ GT0 — the "you may
-// cast it. If you don't, create a Treasure token." oracle. Before the fix
-// the played card stayed in the remembered set, so the Treasure gate passed
-// even when the cast was taken: a player who took the free cast also got the
-// Treasure. The fix reads ForgetPlayed$ at effPlay's PlayDone pass and
-// drops the played card from BOTH remembered halves through the
-// one shared forget body (effects.forgetRememberedOne, the ForgetChanged$
-// machinery — the same "forget-remembered" Choose event, no new event kind).
+// cast it. If you don't, create a Treasure token." oracle. The fix reads
+// ForgetPlayed$ at effPlay's PlayDone pass and drops the played card from
+// BOTH remembered halves through the one shared forget body
+// (effects.forgetRememberedOne, the ForgetChanged$ machinery — the same
+// "forget-remembered" Choose event, no new event kind).
 //
 // Boundaries recorded:
 //   - The DECLINE path needs no forget and keeps none: an empty answer
 //     leaves ctx.Play at 0, so the guard `id != 0` never fires and the
 //     Treasure is created exactly when nothing was played (the second test).
-//   - The R-9 no-host branch (bottom of effPlay: a fuzz/no-engine host
+//   - The no-host branch (bottom of effPlay: a fuzz/no-engine host
 //     "plays" the first candidate without beginning any cast) is deliberately
 //     LEFT UNTOUCHED: no cast was begun there, the card never moves, and the
-//     pre-existing stand-in divergence is not this ticket's business; a
+//     stand-in divergence is out of scope; a
 //     forget on that path would also move fuzz-only event streams.
 //   - An Amount$ Play that begins SEVERAL cards would only forget the first
 //     (ctx.Play holds one card) — measured corpus-unreachable: every

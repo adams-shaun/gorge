@@ -87,7 +87,7 @@ func TestClampLeavesBudgetFreeAttackersUntouched(t *testing.T) {
 	}
 }
 
-// TestClampMeetsTheRequiredQuotaUnderBudget is the attackprop1 review's
+// TestClampMeetsTheRequiredQuotaUnderBudget is a
 // livelock at the policy layer: two Required creatures, each offered at a
 // {2} defender and a free one, under a {3} budget. The heuristic's preferred
 // answer (both at the dear defender, {4}) used to be trimmed to ONE required

@@ -61,8 +61,7 @@ func sideboardConfig(sb [][]*cards.Card) [][]*cards.Card {
 }
 
 // Format is a table's construction format, named on the wire like a
-// Visibility: "constructed" is the zero value and the only value every
-// table before m39 carried; "commander" runs the CR 903 rules the engine
+// Visibility: "constructed" is the zero value; "commander" runs the CR 903 rules the engine
 // gates on its own rules.Format. The host-local enum exists so TableConfig
 // — persisted verbatim in tables.json — reads as names, the same
 // convention Spectator follows; newMatch converts it to the engine's int
@@ -190,7 +189,7 @@ type TableConfig struct {
 	// replaying). Negative values are rejected by validate.
 	Mulligans int `json:"mulligans,omitempty"`
 	// Format names the table's construction format: constructed (the zero
-	// value, and every table before m39) or commander. A commander table
+	// value) or commander. A commander table
 	// plays the CR 903 rules — 40 life (CR 903.6), a command zone built
 	// from each seat's deck's commanders, the CR 903.8 tax and the CR
 	// 903.10 clock — so every deck it deals must itself name a commander
@@ -218,6 +217,10 @@ type TableConfig struct {
 	// loads as false, and restart skips a persisted table the new rule
 	// refuses rather than failing the whole process.
 	AllowDecklistBots bool `json:"allow_decklist_bots,omitempty"`
+	// AllowPairedBot lets a table with more than one human offer the paired
+	// bot (Options.PairedBot); every seat can read that it is on
+	// (Registry.PairedBotStatus). A table with one human needs no opt-in.
+	AllowPairedBot bool `json:"allow_paired_bot,omitempty"`
 	// SeatBotPolicies names a bot policy per seat index: seat i of every match
 	// is played by SeatBotPolicies[i] when that entry is non-empty, else by
 	// BotPolicy. Like PlayerNames it never rotates with the decks. An entry
@@ -421,6 +424,9 @@ type table struct {
 	// its one match, ReviewDecisions), built by AddReviewTable's load walk
 	// and never changed after registration. nil on every live table.
 	decisions []protocol.ReviewDecision
+
+	// advice is the table's paired-bot search, at most one at a time.
+	advice adviceSlot
 
 	mu    sync.RWMutex
 	state string // protocol.Table*

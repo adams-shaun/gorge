@@ -1,6 +1,6 @@
 package effects
 
-// ds2: Defined$ TriggeredTargetLKICopy must name the referent the CAUSING
+// Defined$ TriggeredTargetLKICopy must name the referent the CAUSING
 // mode captured (CR 603.2, 608.2c), not one fixed role.
 //
 // The spelling used to answer Ctx.TriggerBearer when an Attached trigger set

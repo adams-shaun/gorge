@@ -96,7 +96,7 @@ func TestCR601NoMandatoryCounterCastOnEmptyStack(t *testing.T) {
 	}
 }
 
-// TestCR601TargetsPrecedeManaPayment isolates a LEGAL cast, so I-2 cannot
+// TestCR601TargetsPrecedeManaPayment isolates a LEGAL cast, so target feasibility cannot
 // account for its failure. Real compiled burn spells can target either living
 // player. At the unanswered target decision, their mana must still be unspent:
 // CR 601.2 requires the listed order, with 601.2c before 601.2h.

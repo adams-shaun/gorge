@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The dynamic Draw-cost ticket (cost:Draw). ParseCost used to model only the
-// literal Draw<N/Spec> form; Forge's non-literal amount Draw<X/Spec> fell
+// The dynamic Draw cost (cost:Draw). ParseCost handles the literal
+// Draw<N/Spec> form; Forge's non-literal amount Draw<X/Spec> would fall
 // through the nonManaCost regex to the unrecognised-symbol fallback, which
 // substituted ONE GENERIC MANA for the whole cost and reported the head (the
 // parameter census's `cost:Draw` label). Champion of Wits is the class's

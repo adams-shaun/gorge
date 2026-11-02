@@ -93,10 +93,8 @@ func TestStackedAllCreatureTypesGrantsStayCheap(t *testing.T) {
 	}
 	// The first grant materialises the vocabulary into the owned list (one
 	// copy and its growth); every later grant and every dependency probe
-	// finds it already there. Measured 7. The pre-fix walk allocated a
-	// vocabulary-sized match list per probe: 151 allocations and ~4 ms per
-	// walk (105 and ~3.5 ms with only the quadratic dedup restored), against
-	// ~4 us now (BenchmarkStackedAllCreatureTypesWalk).
+	// finds it already there. Measured 7
+	// (BenchmarkStackedAllCreatureTypesWalk).
 	allocs := testing.AllocsPerRun(20, func() {
 		TypesAndAllCreatureTypes(board, board.active, id, 0)
 	})

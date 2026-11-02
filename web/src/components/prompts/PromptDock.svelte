@@ -12,7 +12,7 @@
   import PromptBody from './PromptBody.svelte';
 
   /**
-   * PromptDock is the prompt system's shell (UI rework spec §4): the source
+   * PromptDock is the prompt system's shell: the source
    * card's art as a banner (rail) or spine (floating), the source line, a
    * serif title that asks the question, one plain-language line, the
    * decision's renderer (numbered options), and the renderer's footer.
@@ -145,7 +145,7 @@
     drag = null;
     if (pos !== null) setPosition(pos);
   }
-  /** Arrow keys nudge a floating dock, so moving it never requires dragging (spec principle 3). */
+  /** Arrow keys nudge a floating dock, so moving it never requires dragging. */
   function gripKey(e: KeyboardEvent): void {
     if (placement !== 'floating' || pos === null) return;
     const step = e.shiftKey ? 40 : 10;
@@ -431,7 +431,14 @@
     gap: 4px;
     z-index: 3;
   }
-  .rail .tools { top: -3.6rem; }
+  .rail .tools,
+  .rail-bottom .tools { top: -3.6rem; }
+  /* Beside the art spine there is no banner to hold the tools, so the words
+     stop short of them. */
+  .floating .src,
+  .floating .title,
+  .table .src,
+  .table .title { padding-right: 3.5rem; }
   .tool {
     border: 0;
     border-radius: 5px;

@@ -95,9 +95,8 @@ func TestUnlessCostPayableNeedsEnoughAndRightColourFromRealCards(t *testing.T) {
 // TestCounterUnlessCostManaLeakTapsRealManaSources is the end-to-end pin: a
 // real Mana Leak counters a real creature spell, the payer (empty pool) is
 // offered the pay branch, taps three real Islands one at a time through the
-// mana window, and the creature survives. This is the headline
-// defect -- before the fix Mana Leak was a hard counter against a
-// pool-empty payer because no window existed.
+// mana window, and the creature survives. Otherwise Mana Leak would be a hard
+// counter against a pool-empty payer.
 func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -163,8 +162,8 @@ func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {
 	}
 }
 
-// TestCounterUnlessCostManaLeakWithOneIslandPayNotOffered is the t1 review's
-// regression: with an empty pool and ONE Island the window cannot reach the
+// TestCounterUnlessCostManaLeakWithOneIslandPayNotOffered is a
+// regression test: with an empty pool and ONE Island the window cannot reach the
 // {3}, so the pay branch must not be offered at all (offering it, tapping the
 // Island and still countering the spell strands the payer). The ask is a
 // single decline option and the Bear is countered.

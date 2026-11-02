@@ -1,5 +1,4 @@
-// Count$ImprintedSize — the source-object imprint count head (ticket
-// cli-20261005T092134Z-fed167ca, part 1). Three corpus faces carry it: TDM
+// Count$ImprintedSize — the source-object imprint count head. Three corpus faces carry it: TDM
 // Unexpected Conversion and Grizzled Huntmaster write `SVar:Y:Count$ImprintedSize`
 // directly, and DSK Oblivious Bookworm writes `SVar:Condition:Count$ImprintedSize/Plus.Y`.
 // Forge reads c.getImprintedCards().size() -- the cards Imprint$/ImprintCards$

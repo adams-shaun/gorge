@@ -7,8 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The SVar-valued SetMaxHandSize$ read (ticket
-// agent-20261009T055739Z-b43f3480): Winter, Misanthropic Guide prints
+// The SVar-valued SetMaxHandSize$ read: Winter, Misanthropic Guide prints
 // "Delirium -- each opponent's maximum hand size is equal to seven minus the
 // number of those card types", Y = Number$7/Minus.X over X = the card types
 // in the controller's graveyard. maxHandSizeFor prices the SVar through the

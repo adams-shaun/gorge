@@ -53,7 +53,7 @@ const vsBotSeats: SeatInfo[] = [
   { name: 'Bot', deck: 'Mono-Green', colour: '#22c55e', deck_id: 'mono-green' },
 ];
 
-describe('Table.svelte — Restart control eligibility and placement (fb-20260922T202722Z)', () => {
+describe('Table.svelte — Restart control eligibility and placement', () => {
   it('the seated human of a 2-seat vs-bot table gets the Restart control inside the rail', () => {
     initSeatContext('?seat=0&token=tok');
     fakeMatch.shared.view = view();

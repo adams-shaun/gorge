@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestRepoCommanderDecksPlayAndCastTheirCommanderKernel is the m38 play
+// TestRepoCommanderDecksPlayAndCastTheirCommanderKernel is the play
 // evidence on the kernel-only engine: one real Commander game
 // per interim deck -- command zone, CR 903.8 tax on, 40 life, London
 // mulligan -- driven by the test bot to completion and replayed to the same
@@ -33,7 +33,7 @@ func TestRepoCommanderDecksPlayAndCastTheirCommanderKernel(t *testing.T) {
 			// The commander's flat position in each resolved deck is the
 			// index Config.Commanders wants (genesis moves that object to
 			// the command zone); deck.File owns the one shared resolution
-			// (deck.CommanderIndex, m39) so gorged cannot disagree with the
+			// (deck.CommanderIndex) so gorged cannot disagree with the
 			// engine on where a commander sits.
 			cmdr0 := testutil.RepoDeckFile(t, this).CommanderIndex()
 			cmdr1 := testutil.RepoDeckFile(t, that).CommanderIndex()
@@ -45,7 +45,7 @@ func TestRepoCommanderDecksPlayAndCastTheirCommanderKernel(t *testing.T) {
 					Decks:  [][]*cards.Card{deck0, deck1},
 					Tokens: reg.Tokens,
 					Format: FormatCommander,
-					// CR 903.9's 40-life start; the m31 CR 903.8 tax and m33
+					// CR 903.9's 40-life start; the CR 903.8 tax and the
 					// 21-damage clock run because FormatCommander is set.
 					StartingLife: 40,
 					Commanders: [][]int{
@@ -53,7 +53,7 @@ func TestRepoCommanderDecksPlayAndCastTheirCommanderKernel(t *testing.T) {
 						{cmdr1},
 					},
 					// Mulligans: 1 runs the London keep/mulligan round, as every
-					// acceptance game does (R-M1); a commander game that cannot
+					// acceptance game does; a commander game that cannot
 					// survive its own mulligan round is a deck nobody plays.
 					Mulligans: 1,
 				}

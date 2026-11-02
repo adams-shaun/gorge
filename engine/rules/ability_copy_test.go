@@ -1,6 +1,6 @@
 package rules
 
-// The ability-cast copy trigger (abcopy1): "whenever you activate an ability
+// The ability-cast copy trigger: "whenever you activate an ability
 // ... copy that ability" fires on events.AbilityPush, whose Obj is the SOURCE
 // PERMANENT -- the ability's stack wrapper is minted inside events.Apply and
 // never travels on the event. Before the TriggerAbility role the trigger's
@@ -64,7 +64,7 @@ const verrakUnpriceableCopySrc = "Name:Test Verrak\nManaCost:2 B\nTypes:Creature
 	"DeckHas:Ability$Life\n" +
 	"Oracle:x\n"
 
-// The spell-cast arm (abcopy2): a Mode$ SpellCast trigger fires on
+// The spell-cast arm: a Mode$ SpellCast trigger fires on
 // PutOnStack, whose Obj IS the cast spell -- no ability wrapper is minted, so
 // the trigger context carries TriggerCard, not TriggerAbility. The gates that
 // arm the pay/decline window accept either role; the copy source resolves
@@ -91,7 +91,7 @@ const clovenCastingSpellCopySrc = "Name:Test Cloven Casting\nManaCost:5 U R\nTyp
 // VERBATIM -- the mandatory spell-cast arm with Cost$ C C, the repo-deck
 // commander. The main copy's Defined$ ValidStack Spell.YouCtrl resolves
 // through effCopySpellAbility's ValidStack arm; the SubAbility$'s
-// Ability.YouCtrl+otherAbility half now parses too (task abcopy3: the
+// Ability.YouCtrl+otherAbility half parses too (the
 // `Ability` base, the otherAbility exclusion anchored on Ctx.ResolvingObj
 // and its same-printed-ability family) -- see the paid leaf and the
 // sub-copy pin below. The arm stays SINGLE-TARGET: with several matches it
@@ -239,10 +239,8 @@ func allStackCopies(e *Engine) []state.ObjID {
 
 // TestUFActivationCopyResolvesTheAbility is the pin: activate an X-cost
 // ability under Unbound Flourishing, accept the trigger, and assert exactly
-// one StackCopy OF THE ABILITY WRAPPER -- and that the copy actually
-// RESOLVES (the copied Draw X draws its cards: hand +2, ability and copy one
-// each). Before the fix this emitted 0 StackCopy events (the trigger's
-// Remembered named the battlefield permanent; the copy's zone guard no-oped).
+// one StackCopy OF THE ABILITY WRAPPER -- and that the copy actually RESOLVES
+// (the copied Draw X draws its cards: hand +2, ability and copy one each).
 func TestUFActivationCopyResolvesTheAbility(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 140, unboundFlourishingSrc, changeXSifterSrc, plainSifterSrc)
@@ -360,9 +358,7 @@ func TestUnpriceableCopyCostIsHardDecline(t *testing.T) {
 // copy names ITS OWN activation -- the changex1 topmost-wrapper scan got
 // exactly this wrong; the fire-time role fixes it. Asserted through the
 // copies' {X}: the X=1 activation's copy draws 1, the X=2 activation's copy
-// draws 2 (hand +6 total: 1+1+2+2; a topmost-binding defect would copy the
-// newer wrapper twice and draw 1+1+2+2's counterpart 7, and the pre-fix
-// engine copies nothing at all).
+// draws 2 (hand +6 total: 1+1+2+2).
 func TestEachTriggerCopiesItsOwnActivation(t *testing.T) {
 	t.Parallel()
 	e, cfg, _ := newFixtureDeck(t, 145, unboundFlourishingSrc, taplessXSifterSrc, plainSifterSrc)

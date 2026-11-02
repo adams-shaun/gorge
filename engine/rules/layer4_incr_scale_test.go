@@ -10,19 +10,16 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The whole-emit-path benchmark for the cardfuzz bigboard class is
-// BenchmarkEmitTokenCreateOnLargeBoard in emit_scale_test.go (added on main by
-// the trigger-walk ticket, seed 6181111140895991800). It is the emit-path
-// witness, so this file does not declare a second copy: the
-// two pins below cover the layer-4 refresh in isolation, which is the residual
-// linear term this ticket removed.
+// The whole-emit-path benchmark for the bigboard class is
+// BenchmarkEmitTokenCreateOnLargeBoard in emit_scale_test.go. The
+// two pins below cover the layer-4 refresh in isolation.
 
 // The layer-4 derived-type table's incremental rebuild (layer4types.go):
 // scaling pins. The table is refreshed after
 // every emitted non-inert event while a layer-4 type effect is live, so its
 // per-event cost -- before the incremental rebuild, two whole-board passes
 // (the staticsMayChangeTypes face probe and the walk's candidate scan) -- is
-// paid once per event for as long as the effect lives. The cardfuzz bigboard
+// paid once per event for as long as the effect lives. The bigboard
 // class (seed 6181111140895991800: Krenko doubling thousands of Goblin tokens
 // beside a crewed Clown Car) made every emitted event O(battlefield) there.
 //

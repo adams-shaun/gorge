@@ -10,11 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// fb-20260916T022949Z-10e9a496: the Hearthhull feedback. The Station
-// implementation itself landed with the mass-turn/new-mechanics merge
-// (engine/rules/station.go); these tests pin the integration on the reported card --
-// Hearthhull, the Worldseed -- and close the gaps the landed tests left: the
-// negative offer gates and the KChoose continuation across Engine.Clone.
+// The Hearthhull report: these tests pin the Station integration
+// (engine/rules/station.go) on the reported card -- Hearthhull, the Worldseed --
+// including the negative offer gates and the KChoose continuation across
+// Engine.Clone.
 
 // findStationOption returns the "station" option for spacecraft id in d, or -1.
 func findStationOption(d *decision.Decision, id state.ObjID) int {

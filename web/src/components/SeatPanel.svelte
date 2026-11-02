@@ -9,13 +9,15 @@
   import { pointerRelease } from '../lib/pointer';
   import PromptBody from './prompts/PromptBody.svelte';
   import { dockAnswers } from '../lib/prompts/renderer';
+  import { promptWords } from '../lib/prompts/words';
+  import { actingSeat } from '../lib/board';
 
   /**
    * SeatPanel is a human seat's decision surface: the status readout,
    * auto/manual controls, floating mana, prompt and options, with the primary
    * button resolved by kind. The options themselves are drawn by the
-   * one renderer per decision kind (components/prompts/PromptBody, UI rework
-   * spec §4); this panel owns the seat's lifecycle around them — the pending
+   * one renderer per decision kind (components/prompts/PromptBody); this
+   * panel owns the seat's lifecycle around them — the pending
    * poll, the autopilot loop and the Escape panic key. Priority mounts under
    * the clock's ACTIONS tab; mulligan mounts over the board; every other
    * decision is answered in the prompt dock when one is mounted (the strip
@@ -55,14 +57,14 @@
   // the panel's first paint already carries the decision — including on the
   // server, where effects never run.
   // svelte-ignore state_referenced_locally
-  logic.adoptView(view.decision ?? null);
+  logic.adoptView(view.decision ?? null, view);
 
   // The pending decision comes from view.decision (the seat-scoped view at
   // head carries exactly the decision asked of this seat); fetchPending on
   // mount covers the first-view race and is the recovery path after a
   // rejected intent.
   $effect(() => {
-    logic.adoptView(view.decision ?? null);
+    logic.adoptView(view.decision ?? null, view);
   });
   onMount(() => {
     void logic.refreshPending();
@@ -72,7 +74,7 @@
     // Escape is the panic key: it ends a one-shot run wherever the focus
     // happens to be. It is on the window because the player's hands are not
     // necessarily on the panel when a run does something they did not expect.
-    // CAPTURE phase (r2 review): this listener must evaluate the modal guard
+    // CAPTURE phase: this listener must evaluate the modal guard
     // BEFORE the bubble-phase handlers — OptionPicker's and PileModal's own
     // Escape-close — can close the modal out from under the probe. While a
     // modal picker is open, Escape closes THE MODAL and the run underneath
@@ -151,7 +153,7 @@
     });
   });
   // The paced pass is abandoned when the panel goes away: a timer owned by a
-  // destroyed surface must not post (prio5). The state object itself is
+  // destroyed surface must not post. The state object itself is
   // per-match and survives, so this is the timer's cancellation edge only.
   onDestroy(() => logic.cancelPass());
 
@@ -164,7 +166,7 @@
   // the fallback must be that name, not the 0-based `Seat N`
   // placeholder, exactly as IdentityBar does.
   const waitingName = $derived(
-    seats[view.priority]?.name ?? view.players.find((p) => p.seat === view.priority)?.name ?? `Seat ${view.priority}`,
+    seats[actingSeat(view)]?.name ?? view.players.find((p) => p.seat === actingSeat(view))?.name ?? `Seat ${actingSeat(view)}`,
   );
   const stepLabel = $derived(view.step.charAt(0).toUpperCase() + view.step.slice(1));
 
@@ -209,7 +211,7 @@
       <div class="readout" role="status">
         <div class="fact">
           <span class="k">Priority</span>
-          <span class="v">{view.priority === ctx.seat ? 'you' : waitingName}</span>
+          <span class="v">{actingSeat(view) === ctx.seat ? 'you' : waitingName}</span>
         </div>
         <div class="fact">
           <span class="k">Stack</span>
@@ -295,9 +297,9 @@
     {/if}
 
     {#if decision && deferred}
-      <p class="prompt pointer" data-dock-pointer>{decision.prompt} — answer in the prompt panel</p>
+      <p class="prompt pointer" data-dock-pointer>{promptWords(decision.prompt)} — answer in the prompt panel</p>
     {:else if decision}
-      <p class="prompt" data-prompt>{decision.prompt}</p>
+      <p class="prompt" data-prompt>{promptWords(decision.prompt)}</p>
       {#if ctxText !== null}
         <p class="ctx" data-prompt-ctx>{ctxText}</p>
       {/if}

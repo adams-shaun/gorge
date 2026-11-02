@@ -8,18 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestAttackPropRequiredBotAnswerNeverLivelocks pins the attackprop1 review's
-// MAJOR end to end, through the real bot (botpolicy.Decide + Clamp) and the
-// real Submit path: two Valley Dashers ("attacks each combat if able", CR
-// 508.1d) on seat 1, Ghostly Prison on seat 0, three untapped Mountains, and
-// seat 0 at 2 life. The pair list offers each Dasher at seat 0 for {2}
-// (Required) and at seat 2 for free (Required), under a {3} budget. The
-// combat heuristic wants both Dashers at the 2-life seat ({4}, over budget).
-// Before the fix the engine derived the requirement from each creature's
-// CHEAPEST pair (quota 2: both free seat-2 pairs fit) while the bot's
-// budget trim dropped a Required pick priced on the DEAR pair, so every
-// answer the deterministic bot produced was rejected by Submit and the
-// decision was never consumed -- a livelock. Now both sides read one rule
+// TestAttackPropRequiredBotAnswerNeverLivelocks pins this end to end, through
+// the real bot (botpolicy.Decide + Clamp) and the real Submit path: two
+// Valley Dashers ("attacks each combat if able", CR 508.1d) on seat 1,
+// Ghostly Prison on seat 0, three untapped Mountains, and seat 0 at 2 life.
+// The pair list offers each Dasher at seat 0 for {2} (Required) and at seat 2
+// for free (Required), under a {3} budget. The combat heuristic wants both
+// Dashers at the 2-life seat ({4}, over budget). Both sides read one rule
 // (decision.RequiredQuota / FitRequired): the bot's answer is accepted, both
 // Dashers attack, and the one pair the budget can carry keeps the bot's
 // preferred defender.

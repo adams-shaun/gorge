@@ -9,8 +9,8 @@ import (
 )
 
 // TestLegacyDecideBlockNeverLoneBlocksATeamNeedingAttacker pins the legacy
-// KBlockers arm's post-coin legality drop across the whole class the ticket
-// names, not just the lone-block case: a Menace attacker (derived keyword on
+// KBlockers arm's post-coin legality drop across the whole class,
+// not just the lone-block case: a Menace attacker (derived keyword on
 // Board.Creatures) needs >= 2, and an attacker whose offered options publish
 // MinBlockers: 3 needs >= 3. A count strictly between 0 and the required
 // minimum is the illegal shape the engine rejects (`attacker ... can't be

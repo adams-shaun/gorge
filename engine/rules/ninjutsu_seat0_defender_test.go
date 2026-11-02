@@ -11,11 +11,11 @@ import (
 
 // TestNinjutsuAgainstSeatZeroDefender is the regression pin for the seat-0
 // discriminator bug: K:Ninjutsu against player 0 must place the ninja tapped
-// AND attacking seat 0. Before the fix, pendingCast.ninjutsuDefender used 0
-// both for "no defender captured" and for "the defender is seat 0", so this
-// shape (the activator is player 1, the defender is player 0) silently lost
-// the CR 702.49b binding and the permanent entered tapped but not attacking.
-// This is half of all two-seat games, not a multiplayer corner.
+// AND attacking seat 0. pendingCast.ninjutsuDefender must tell "no defender
+// captured" from "the defender is seat 0", so this shape (the activator is
+// player 1, the defender is player 0) silently lost the CR 702.49b binding
+// and the permanent entered tapped but not attacking. This is half of all
+// two-seat games, not a multiplayer corner.
 func TestNinjutsuAgainstSeatZeroDefender(t *testing.T) {
 	reg := searchTestRegistry(t)
 	ninja := searchCorpusCard(t, reg, "Walker of Secret Ways")

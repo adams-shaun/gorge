@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PROBE_KEY, safeStorage, storageWritable } from './storage';
 
 /**
- * Tests for the ONE shared localStorage handle (fb-20260917T232814Z). Every
+ * Tests for the ONE shared localStorage handle. Every
  * persistent store — playsettings, layoutsettings, remembered decisions,
  * logshown, the art cache, the oracle cache — routes through safeStorage()
  * here; storageWritable() is the single availability signal the Game
  * Options panel renders as its refusal notice. The stub shapes mirror the
- * fixtures seatpanel.prio6.test.ts and PlaySettingsPanel.svelte.test.ts
+ * fixtures seatpanel.yields.test.ts and PlaySettingsPanel.svelte.test.ts
  * already use for refusing browsers.
  */
 
@@ -24,7 +24,7 @@ function workingStorage() {
   };
 }
 
-describe('storage — the one shared handle (fb-20260917T232814Z)', () => {
+describe('storage — the one shared handle', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });

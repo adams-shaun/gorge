@@ -113,7 +113,7 @@ func TestEvalCountDifferentCardNamesDedupsNames(t *testing.T) {
 }
 
 // TestDifferentPropertyValueNilFaceContributesNothing pins the defensive
-// guard a review round added: a remembered/targeted shell object with no
+// guard: a remembered/targeted shell object with no
 // card face (Face() nil -- a Card==nil or out-of-range FaceIdx object,
 // engine/state/object.go) contributes nothing to a distinct-value set instead of
 // panicking the match. Called directly because no public EvalCount path

@@ -15,7 +15,7 @@ import (
 // answering the same decision sequence produces identical intents, so a
 // match is reproducible from (engine seed, bot seed) alone. The sequence
 // below deliberately includes the KMulligan keep/mulligan coin (the one
-// rng-consuming path; dp1 made KBlockers/KTriggerOrder/KTriggerOptional
+// rng-consuming path; KBlockers/KTriggerOrder/KTriggerOptional are
 // deterministic), since a bot whose rng leaked from the engine or the
 // process clock would only show it on paths that actually draw from it.
 //
@@ -77,9 +77,9 @@ func TestBotIsDeterministic(t *testing.T) {
 	// rng); the KMulligan keep/mulligan coin above is the one path that still
 	// draws from the stream, so across a spread of seeds the outcome sequence
 	// must not be constant -- that is what proves the seed is load-bearing
-	// rather than a fixed choice behind a seeded-looking API. The M1 fix
-	// round's point stands: run(7) alone cannot tell "seeded" from
-	// "constant", so we compare across seeds, not to itself.
+	// rather than a fixed choice behind a seeded-looking API. run(7) alone
+	// cannot tell "seeded" from "constant", so we compare across seeds, not to
+	// itself.
 	seen := map[string]bool{}
 	for s := uint64(0); s < 64; s++ {
 		seen[fmt.Sprint(run(s))] = true
@@ -90,8 +90,7 @@ func TestBotIsDeterministic(t *testing.T) {
 }
 
 // TestBotOnlyChoosesOfferedOptions is the completeness requirement
-// made concrete: every decision.Kind decision.go defines (eight today --
-// the brief and supplement both say seven, predating KModes) gets a
+// made concrete: every decision.Kind decision.go defines gets a
 // representative Decision here, including the two edge shapes the fuzz gate
 // depends on (Min == Max == N for KTriggerOrder, Min == Max == 1 over two
 // options for KTriggerOptional) and an empty option list with Min == 0 (the
@@ -182,13 +181,11 @@ func TestBotOnlyChoosesOfferedOptions(t *testing.T) {
 // test, using the engine's REAL shape for a non-main priority decision
 // (engine/rules/legal.go's legalActions never offers play_land or cast outside
 // sorcery speed/an affordable instant): one or more "activate" options
-// followed by "pass" last. Fix round 1's own regression case for this
-// (TestBotAlwaysAnswersEveryDecisionKind's "priority (combat)" case, above)
-// included a play_land option that the switch's un-gated second loop
-// matches regardless of phase, so it never actually reached the fallback
-// path that reintroduced I-1(b) in a live game (clamp topping up a
-// Min:1/Max:1 decision with the first unused option, which legalActions
-// always lists as an activation before pass). This decision has no
+// followed by "pass" last. A case that includes a play_land option never
+// reaches the fallback, because the switch's un-gated second loop matches it
+// regardless of phase; the fallback path is the clamp topping up a Min:1/Max:1
+// decision with the first unused option, which legalActions always lists as an
+// activation before pass. This decision has no
 // play_land and no cast, so the bot must fall through to the explicit pass
 // added in botDecide's KPriority case -- not clamp's top-up -- for every
 // phase that isn't a main phase.
@@ -224,7 +221,7 @@ func TestBotPassesOutsideMainWithNoCastOrLandDrop(t *testing.T) {
 	if err != nil || len(in.Choices) != 1 || d.Options[in.Choices[0]].Kind != "activate" {
 		t.Errorf("phase \"main1\": priority = %+v (err=%v), want an activation chosen", in, err)
 	}
-	// M2d-3: the trailing "concede" option is never chosen in either phase
+	// The trailing "concede" option is never chosen in either phase
 	// -- the whole reason it sits after "pass", where only an explicit
 	// pick (or a blind default-to-final client) could reach it.
 	for _, phase := range []string{"", "beginning", "combat", "ending", "main1", "main2"} {
@@ -282,7 +279,7 @@ func TestBoardFromViewCommanderClockFill(t *testing.T) {
 
 // TestCombinedLethalBotForcesCombinedAttack pins the AR8 seat wiring: the
 // bench-only NewCombinedLethalBot answers a KAttackers decision through the
-// game-shaped adapter with the combined-attacker subset (the brief's board:
+// game-shaped adapter with the combined-attacker subset (the board:
 // two 3/3s against 5 life and a lone 2/2 blocker), while the production bot
 // and the AR7 bot keep one 3/3 home (AR4 holds a blocker back when no single
 // attacker is lethal). This is the seat-level proof that the opt-in policy
@@ -386,8 +383,8 @@ func TestBlocksBotTakesLethalChumps(t *testing.T) {
 }
 
 // TestBoardFromViewCarriesRestrictedPool pins the view half of
-// Board.PoolRestricted (the T3 converter gate's restricted share of the
-// pool, cardfuzz batch5 line 9): the viewer's own PoolRestrictions land in
+// Board.PoolRestricted (the converter gate's restricted share of the pool):
+// the viewer's own PoolRestrictions land in
 // the slot their producing counter names, the same fold the game half's
 // botpolicy.RestrictedPool makes from state.Player.RestrictedMana.
 func TestBoardFromViewCarriesRestrictedPool(t *testing.T) {

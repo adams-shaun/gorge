@@ -1,4 +1,4 @@
-// NotThisAbility$ True (task nta1): a ChangesZone trigger's self-exclusion
+// NotThisAbility$ True: a ChangesZone trigger's self-exclusion
 // clause -- "if it wasn't put onto the battlefield with this ability". The
 // corpus's one carrier is Kodama of the East Tree, whose ETB rider drops a
 // hand permanent and would re-fire on that very placement without the gate

@@ -15,7 +15,7 @@ import (
 // per opponent, which fires on that opponent's first cast and counters the
 // spell unless its controller pays {1}. The Phase half
 // (TestChancellorOpeningEffectRegistersAndRunsItsPhaseTrigger) already has a
-// pin; these cover the shape findings-sol5 broke: the prior
+// pin; these cover the shape that broke: the prior
 // registerOpeningEffectTriggers silently dropped every non-Phase child.
 
 // slowSpellCard is a targetless zero-cost spell whose resolution draws one:

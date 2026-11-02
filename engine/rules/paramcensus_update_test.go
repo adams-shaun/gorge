@@ -1,6 +1,6 @@
 package rules
 
-// The known-key tables' regenerate path (task cli-20261014T200058Z-8bfb5843):
+// The known-key tables' regenerate path:
 // rules' Test<Api>KnownKeysMatchTheCensus family holds each effects known-key
 // table (the sorted `[...]string` var every <api> compiler binary-searches for
 // its unread report) equal to the parameter census's measured read set. The

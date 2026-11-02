@@ -33,7 +33,7 @@ type SeatConfig struct {
 	SimsByKind map[decision.Kind]int
 	// Explore is generation mode (azgen): Dirichlet noise at every
 	// searched root, and moves sampled proportional to visits while the game
-	// turn is <= ExploreTurns (spec §2: turns 1-4). Eval leaves it false:
+	// turn is <= ExploreTurns (design §2: turns 1-4). Eval leaves it false:
 	// argmax, no noise.
 	Explore      bool
 	ExploreTurns int32
@@ -161,7 +161,7 @@ var Watch func(Diag)
 // derivation, so its delegation consumes exactly the bot's stream) with
 // Search answering the searched kinds. It is a searchseat.SearchSeat, so
 // testkit/bench.PlayGame hands it the live engine at its own decisions --
-// the route the L10 search seat takes. Stage 1 reads only the engine; the
+// the route the search seat takes. Stage 1 reads only the engine; the
 // driver's observation feed is for sampled worlds.
 type Seat struct {
 	def  *heuristic.Bot

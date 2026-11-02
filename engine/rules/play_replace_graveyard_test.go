@@ -232,9 +232,9 @@ func TestGoblinDarkDwellersFizzleExilesThePlayedCard(t *testing.T) {
 //     opponent's graveyard without paying its mana cost"), the exact mirror
 //     of Goblin Dark-Dwellers' trigger shape with the rider omitted. The
 //     scenario ASSERTS a ResumeKind=="play" ask actually occurred, so a dead
-//     Play path can never masquerade as a passing negative (the round-1
-//     negative half used Jace's Mindseeker, whose RememberMilled$
-//     dependency is unimplemented, so its Play was never offered at all).
+//     Play path can never masquerade as a passing negative (Jace's Mindseeker
+//     would not do, because its RememberMilled$ dependency is unimplemented,
+//     so its Play is never offered at all).
 func TestPlayReplaceGraveyardDoesNotLeak(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -330,8 +330,8 @@ func TestPlayReplaceGraveyardDoesNotLeak(t *testing.T) {
 		}
 	}
 	// The negative is only meaningful if the Play path actually ran: assert
-	// the ResumeKind=="play" ask fired (round-1's Jace's Mindseeker half
-	// never offered one, so it could not fail).
+	// the ResumeKind=="play" ask fired (Jace's Mindseeker never offers one, so a
+	// negative built on it could not fail).
 	if playAsks == 0 {
 		t.Fatal("the rider-less Play never posed a ResumeKind==\"play\" ask")
 	}

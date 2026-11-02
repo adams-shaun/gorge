@@ -6,7 +6,7 @@
  * reads it as a structural merge: a plain object recurses, a `$`-object is
  * an edit, anything else is a replacement (`null` included).
  *
- * gorge's server does not send patches (scope spec Q7); this exists because
+ * gorge's server does not send patches; this exists because
  * conforming clients should accept them. Anything it cannot apply throws
  * PatchError, and the caller resynchronises from `GET …/state`.
  */

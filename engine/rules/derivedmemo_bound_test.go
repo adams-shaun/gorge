@@ -6,8 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestDerivedMemoKeepsEmptyKeywordListBound pins the round-8 fuzz root cause
-// (cardfuzz replay divergences, seeds 20814263898706950, 1777867497197181625
+// TestDerivedMemoKeepsEmptyKeywordListBound pins a fuzzer root cause
+// (replay divergences, seeds 20814263898706950, 1777867497197181625
 // and 2567947918426673293; paymirror random2 control pending.Options.len,
 // seed 8090). matchesSpec binds Derived's keyword list as
 // SpecContext.ExtraKeywords, and a NIL ExtraKeywords means "unbound: read the

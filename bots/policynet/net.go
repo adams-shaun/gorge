@@ -8,11 +8,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 )
 
-// This file is the model half of the learned per-option scorer (plan L9b,
-// R1 §1.4/§3.2/§3.4): a shared hashed embedding table over the encoder's
+// This file is the model half of the learned per-option scorer: a shared
+// hashed embedding table over the encoder's
 // sparse rows, a dense projection of the state's dense vector, and a
 // one-hidden-layer ReLU MLP that scores [state ‖ option]. Forward and
-// backward are HAND-DERIVED — there is no autodiff (R1 §3.4); the gradients
+// backward are HAND-DERIVED — there is no autodiff; the gradients
 // are pinned by a finite-difference test (net_test.go).
 //
 // Shape (all widths fixed by the encoder contract in policynet.go/option.go):
@@ -24,11 +24,11 @@ import (
 //	score        y = w_o·a + b_o  (scalar — one per offered option)
 //
 // The option's one-hot slots and 24 dense scalars enter RAW (concatenated),
-// not embedded: they are already a fixed-width learned-input space (R1 §1.4's
+// not embedded: they are already a fixed-width learned-input space (the
 // 106 categorical slots + 24 dense), and giving each its own embedding row
 // would duplicate them. The hashed ids share the STATE's table, so a card
 // seen in the state bag and the same card offered as an option land on the
-// same embedding row — that is the R1 §1.4 sharing.
+// same embedding row.
 //
 // Everything is float32; the LOSS arithmetic is float64 (softmax/LSE
 // stability), which does not affect weight determinism. No map iteration
@@ -42,22 +42,22 @@ const (
 )
 
 // LossMode selects which loss terms train. The measured collapse driver
-// (L9b-fix2) is the VALUE term: the teacher's candidate values inside one
+// is the VALUE term: the teacher's candidate values inside one
 // decision differ by a median of one sampled world (0.062 at K=16), so
 // regressing the absolute value is minimised by predicting the decision
 // mean — every option scores alike and the argmax collapses onto the
 // option-order baseline. The modes:
 //
-//   - LossCE — PURE argmax cross-entropy (the trainer's default, the
-//     L9b-fix2 control): only the softmax cross-entropy over the labelled
+//   - LossCE — PURE argmax cross-entropy (the trainer's default):
+//     only the softmax cross-entropy over the labelled
 //     options toward the teacher-preferred set, LSE(z) − LSE(z_pref), with
 //     the max-subtracting log-sum-exp; the Huber value term is OFF. The
 //     per-example weight is RankWeight alone — NOT scaled by Margin, so a
 //     tiny-margin decision trains at full imitation strength. This is what
 //     the closest published analogue (LOCM PIMC distillation) trains.
-//   - LossHybrid — the pre-fix behaviour: value term + margin-weighted rank
+//   - LossHybrid — value term + margin-weighted rank
 //     term (RankWeight·Margin). LossConfig's zero Mode means hybrid, so
-//     every existing caller and test keeps today's geometry.
+//     every existing caller and test keeps this geometry.
 //   - LossValue — the value term only (the diagnosis arm: the collapse
 //     reproduced with the rank term removed).
 type LossMode string
@@ -81,9 +81,8 @@ const (
 )
 
 // ParseLossMode maps the trainer flag's spelling onto a LossMode. An empty
-// string is the LossConfig zero value and means hybrid (the pre-fix
-// default); anything else is an error so a typo'd flag cannot silently train
-// the wrong loss.
+// string is the LossConfig zero value and means hybrid; anything else is an
+// error so a typo'd flag cannot silently train the wrong loss.
 func ParseLossMode(s string) (LossMode, error) {
 	switch LossMode(s) {
 	case "":
@@ -125,8 +124,8 @@ type Model struct {
 	// ResidualW is the fixed weight of the bot-prior residual: an option the
 	// bot's own answer contains (Option.BotPick) scores ResidualW higher, so
 	// with a large prior the model starts at the bot baseline and the learned
-	// head only has to supply the overrides (residual policy learning,
-	// L9b-fix2 item 3). It is NOT a trained parameter — it is a prior the
+	// head only has to supply the overrides (residual policy learning).
+	// It is NOT a trained parameter — it is a prior the
 	// trainer sets once from Config.ResidualInit — so the CE gradient can
 	// never decay the baseline away. Zero (the default) makes the residual a
 	// no-op and reproduces pure CE byte for byte. Not covered by EncoderHash
@@ -240,16 +239,15 @@ func (m *Model) Value(st State) float32 {
 
 // LossConfig carries the loss weights and the mode. HuberDelta is the Huber
 // loss's transition point in value units (the teacher's candidate means live
-// in [0,1]); RankWeight scales the ranking term against the value term —
-// in hybrid mode through the per-example margin (RankWeight · Example.Margin,
-// a decision the teacher covered with a large margin pulls harder), in CE
-// mode directly (RankWeight per example, margin not applied). OverrideWeight
+// in [0,1]); RankWeight scales the ranking term against the value term — in
+// hybrid mode through the per-example margin (RankWeight · Example.Margin, a
+// decision the teacher covered with a large margin pulls harder), in CE mode
+// directly (RankWeight per example, margin not applied). OverrideWeight
 // multiplies every example whose label records a teacher OVERRIDE of the bot
 // (Example.TeacherChoice != Example.BotIndex): those are the decisions that
 // carry the information, while agreeing examples only teach "do what the bot
-// does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is
-// treated as 1. Mode selects the term mix (see LossMode); the zero value is
-// hybrid — the pre-fix geometry — so existing callers keep today's loss.
+// does". 1 means no reweighting, >1 up-weights the overrides, <= 0 is treated
+// as 1. Mode selects the term mix (see LossMode); the zero value is hybrid.
 //
 // RankWeight is a TERM-MIX weight, not a step-size knob. In hybrid mode it
 // trades the rank term against the value term — two different gradient
@@ -299,7 +297,7 @@ type LossConfig struct {
 
 // modeFor resolves the loss mode for one example: the per-kind override when
 // present, else the config's global Mode (with the "" zero value meaning
-// hybrid, the pre-fix geometry).
+// hybrid).
 func (lc LossConfig) modeFor(ex Example) LossMode {
 	m := lc.Mode
 	if o, ok := lc.KindModes[ex.Kind]; ok {
@@ -334,9 +332,9 @@ func (lc LossConfig) exampleWeight(ex Example) float64 {
 }
 
 // DefaultLossConfig returns the default loss weights in the DEFAULT mode,
-// pure argmax CE (the L9b-fix2 control: the value term is what collapses).
+// pure argmax CE (the value term is what collapses).
 // Note the distinction: the Go zero value of LossConfig (Mode "") is the
-// pre-fix hybrid geometry, kept so every caller that does not opt in keeps
+// hybrid geometry, kept so every caller that does not opt in keeps
 // today's loss; the DEFAULT — what the trainer and this constructor hand a
 // fresh run — is CE.
 func DefaultLossConfig() LossConfig {
@@ -536,7 +534,7 @@ func (m *Model) residual(o Option) float32 {
 	return 0
 }
 
-// Score scores every offered option (the inference path, L9c's entry point):
+// Score scores every offered option (the inference path):
 // the state trunk is computed once, then each option gets its own head
 // forward. The returned slice parallels opts.
 func (m *Model) Score(st State, opts []Option) []float32 {

@@ -4,6 +4,7 @@
   import { arrangeCard, arrangeDestination, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
   import { oracle, type OracleCard } from '../lib/oracle';
   import CardImage from './CardImage.svelte';
+  import { promptWords } from '../lib/prompts/words';
 
   /**
    * ArrangeModal is the arrange popup: the card-face surface
@@ -237,7 +238,7 @@
       bind:this={dialog}
     >
       <header>
-        <h2 id="arrange-modal-title">{decision.prompt}</h2>
+        <h2 id="arrange-modal-title">{promptWords(decision.prompt)}</h2>
         <button type="button" class="close" aria-label="Close the arrange view" onclick={onClose}>×</button>
       </header>
       <div class="body" data-arrange-body>

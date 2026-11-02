@@ -60,13 +60,11 @@ func ds2RowanRegistration(source state.ObjID, params map[string]string, remember
 }
 
 // TestMustAttackRememberedPlayerCtrlBindsTheCapturedPlayer is the Rowan
-// Kenrith half (CR 508.1d): an Effect-registered
-// `Mode$ MustAttack | ValidCreature$ Creature.RememberedPlayerCtrl` with no
-// MustAttack$ reference requires exactly the creatures the captured player
-// controls, so the captured (active) player's creature must be declared and a
-// different player's creature is untouched. Before the fix
-// mustAttackLineSelects passed nil for the remembered players, the predicate
-// failed closed, and the line contributed nothing.
+// Kenrith half (CR 508.1d): an Effect-registered `Mode$ MustAttack |
+// ValidCreature$ Creature.RememberedPlayerCtrl` with no MustAttack$ reference
+// requires exactly the creatures the captured player controls, so the
+// captured (active) player's creature must be declared and a different
+// player's creature is untouched.
 func TestMustAttackRememberedPlayerCtrlBindsTheCapturedPlayer(t *testing.T) {
 	t.Parallel()
 	e, victim, control := ds2MustAttackBoard(t)
@@ -110,8 +108,6 @@ func TestMustAttackRememberedPlayerCtrlBindsTheCapturedPlayer(t *testing.T) {
 // the fix (CR 508.1d): binding the registration's captured players must
 // select the creatures that player controls and nothing else, so a
 // registration that captured a DIFFERENT player leaves the creature alone.
-// Before the fix the captured players were dropped (nil), so the first half
-// was empty and this pair of boards behaved identically.
 func TestMustAttackRememberedPlayerCtrlIsPlayerScoped(t *testing.T) {
 	t.Parallel()
 	params := map[string]string{"Mode": "MustAttack", "ValidCreature": "Creature.RememberedPlayerCtrl"}

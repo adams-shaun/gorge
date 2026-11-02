@@ -9,14 +9,12 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Exile-head UnlessCost$ ticket. Grip of Amnesia is the corpus carrier:
+// The Exile-head UnlessCost$. Grip of Amnesia is the corpus carrier:
 // `A:SP$ Counter | ... | UnlessCost$ ExileFromGrave<1/All> | SubAbility$
 // DBDraw` -- "Counter target spell unless its controller exiles all cards
-// from their graveyard. Draw a card." Before this ticket ParseUnlessCost had
-// no Exile arm, so the whole cost parsed to Cost{}, false, the resolution arm
-// hard-declined, and the target spell's controller was NEVER offered a way to
-// save the spell: the counter always succeeded even when the player wanted to
-// exile their graveyard. The fix models the Exile head on the unless path.
+// from their graveyard. Draw a card." Without an Exile arm ParseUnlessCost
+// parses the whole cost to Cost{}, false, the resolution arm hard-declines,
+// and the target spell's controller is NEVER offered a way to save the spell.
 
 // TestParseUnlessCostExileComponents pins the strict parser boundary for the
 // Exile head: the fixed zone-headed forms the corpus carries are priceable

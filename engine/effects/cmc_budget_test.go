@@ -10,7 +10,7 @@ import (
 )
 
 // The WithTotalCMC$ budget tests on the three non-Dig pickers the parameter
-// rides (the Dig window was fixed by budget1; these are its three siblings):
+// rides (these are the Dig window's three siblings):
 //
 //   - effHiddenPick  -- Lively Dirge's DBReturn graveyard shape;
 //   - effSearchLibrary -- Protean Hulk's death-trigger library search;
@@ -121,11 +121,11 @@ func TestMandatoryBudgetHiddenPickLowersMin(t *testing.T) {
 	}
 }
 
-// proteanHulkSearch is Protean Hulk's real TrigChangeZone SVar line verbatim;
-// its ChangeNum$ X resolves through the card's own
-// SVar:X:Count$ValidLibrary Creature.YouCtrl, supplied in the Ctx here.
+// proteanHulkSearch is a library search budgeted by WithTotalCMC$, the shape of
+// Protean Hulk's trigger; its ChangeNum$ X resolves through the
+// Count$ValidLibrary body supplied in the Ctx here.
 const proteanHulkSearch = "DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | " +
-	"ChangeNum$ X | WithTotalCMC$ 6 | ChangeType$ Creature.YouCtrl"
+	"ChangeType$ Creature.YouCtrl | ChangeNum$ X | WithTotalCMC$ 6"
 
 // TestProteanHulkSearchBudgetNarrowsEligible: the library search narrows to
 // the affordable pool and carries the budget on the wire. Library

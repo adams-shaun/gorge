@@ -89,13 +89,11 @@ func playerDamage(h *fakeHost, p state.PlayerID) int {
 	return n
 }
 
-// TestVexingDevilOffersEachOpponentTheDamage is the head regression test for
-// fb-20260916T070855Z-0532c816: the REAL compiled Vexing Devil trigger is
-// driven through effSacrifice, and the opponent must be ASKED (the pre-fix
-// engine sacrificed the Devil unconditionally, asked nobody, dealt no
-// damage). Asserts the ask's shape, then both branches: accepting (the
-// UnlessPay "pay" answer) sacrifices the Devil;
-// declining (every opponent, here the single one) leaves it in play.
+// TestVexingDevilOffersEachOpponentTheDamage: the REAL compiled Vexing Devil
+// trigger is driven through effSacrifice, and the opponent must be ASKED.
+// Asserts the ask's shape, then both branches: accepting (the UnlessPay "pay"
+// answer) sacrifices the Devil; declining (every opponent, here the single
+// one) leaves it in play.
 func TestVexingDevilOffersEachOpponentTheDamage(t *testing.T) {
 	h, devil, sac := devilBoard(t, "Vexing Devil", 0)
 	if got := sac.Params["UnlessCost"]; got != "DamageYou<4>" {
@@ -234,7 +232,7 @@ func TestLonghornFirebeastOfferRendersItsFive(t *testing.T) {
 	}
 }
 
-// TestVexingDevilNoAskHostDeclines pins the R-9 stand-in the shared unless
+// TestVexingDevilNoAskHostDeclines pins the no-host stand-in the shared unless
 // gate gives every API: a host that cannot ask records the deterministic
 // decline — the Devil stays in play and nobody takes damage. In a real
 // engine this path is unreachable (Engine.Ask always returns true); the

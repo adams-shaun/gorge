@@ -379,7 +379,7 @@ func TestCompileDirIgnoresNamelessAlternateFace(t *testing.T) {
 // strips the expanded ability to reconstruct the pre-expansion cache bytes.
 func TestLoadRegistryRelinksStaleCacheTransmuteWithItsManaValue(t *testing.T) {
 	src := "Name:Dizzy Spell\nManaCost:U\nTypes:Instant\n" +
-		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -3 | IsCurse$ True | SpellDescription$ Target creature gets -3/-0 until end of turn.\n" +
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ -3\n" +
 		"K:Transmute:1 U U\nOracle:x\n"
 	c, _ := ParseBytes("dizzy_spell.txt", []byte(src))
 	c.Link()

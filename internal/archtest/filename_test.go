@@ -20,7 +20,7 @@ var sizeOnlyFileName = regexp.MustCompile(
 	`(^|_)(rest|more|extra|part|cont|continued|tail|remainder|overflow|helpers?|misc|utils?)\d*\.go$|_\d+\.go$`)
 
 // sizeOnlyFileNamesAllowed are the size-only names that existed when the
-// lint landed (main at 49bd9af8d). They are grandfathered, not endorsed:
+// lint landed. They are grandfathered, not endorsed:
 // splitting one by concern behind a named seam deletes its entry here.
 // NEVER add an entry.
 var sizeOnlyFileNamesAllowed = map[string]bool{
@@ -29,7 +29,7 @@ var sizeOnlyFileNamesAllowed = map[string]bool{
 	"engine/rules/token_rest.go":       true,
 }
 
-// TestNoNewSizeOnlyFileNames is the rules-engine refactor spec's W0 file-name
+// TestNoNewSizeOnlyFileNames is the file-name
 // lint: a new non-test file in engine/rules/ or engine/effects/ (recursively) may not be
 // named for its size. It checks names only; it does not measure file length.
 func TestNoNewSizeOnlyFileNames(t *testing.T) {

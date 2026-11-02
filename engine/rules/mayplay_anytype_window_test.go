@@ -26,10 +26,10 @@ func stashBoard(t *testing.T, e *Engine, owner state.PlayerID, c *cards.Card) st
 // mana window: Eaten Alive (an opponent's card with a stash counter) is cast
 // with its {3}{B} additional cost from one floating {B} and four untapped
 // Forests. The rider must reach the target ask's window-reachability probe
-// and the window's per-source usefulness clamp; before the fix the first
-// dropped every target ("cast aborted: no legal target") and the second
-// withheld the last Forest (no {B} demand it could fill), so the cast was
-// reversed at payment (census pairs 30973 40713 68533 97976).
+// and the window's per-source usefulness clamp; without it the first drops
+// every target ("cast aborted: no legal target") and the second withheld the
+// last Forest (no {B} demand it could fill), so the cast was reversed at
+// payment (census pairs 30973 40713 68533 97976).
 func TestStashCastAnyTypeManaThroughWindow(t *testing.T) {
 	t.Parallel()
 	e := mayPlayBase(t)

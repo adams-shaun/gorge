@@ -103,9 +103,9 @@ func TestAltCastFaceCostSidecar(t *testing.T) {
 }
 
 // BenchmarkAltCastFaceCostCached is the per-offer read the offer walk, the
-// command-zone offer, the potential-plan pricing and the charge now make:
-// one sidecar lookup. BenchmarkAltCastFaceCostParse is the parse that read
-// replaced (altCastMode.faceCostRaw), the per-offer work before this ticket.
+// command-zone offer, the potential-plan pricing and the charge make:
+// one sidecar lookup. BenchmarkAltCastFaceCostParse is the parse it replaces
+// (altCastMode.faceCostRaw).
 // Run both in one invocation: `go test -run '^$' -bench
 // 'BenchmarkAltCastFaceCost' ./engine/rules/`.
 func BenchmarkAltCastFaceCostCached(b *testing.B) {

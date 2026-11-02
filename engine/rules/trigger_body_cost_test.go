@@ -9,12 +9,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trigger-body Cost$ ticket (trigcost1). Forge's `Cost$ <cost>` on a
-// trigger body is the "you may pay <cost>. If you do, ..." idiom; before this
-// ticket only the Untap / ImmediateTrigger / Draw / dyn-tap / CopySpellAbility
-// shapes entered the triggered-cost pay/decline window, so e.g. Kalastria
-// Highborn's `Cost$ B` executed its drain for FREE (no ask, no payment). The
-// fix widens both gate sites (resolveTop's mandatory arm and resumeResolution's
+// The trigger-body Cost$ window. Forge's `Cost$ <cost>` on a trigger body is
+// the "you may pay <cost>. If you do, ..." idiom. If only the Untap /
+// ImmediateTrigger / Draw / dyn-tap / CopySpellAbility shapes enter the
+// triggered-cost pay/decline window, Kalastria Highborn's `Cost$ B` executes
+// its drain for FREE (no ask, no payment). Both gate sites (resolveTop's mandatory arm and resumeResolution's
 // "optional" arm) through the shared triggerBodyNeedsCostWindow helper; the
 // `Mandatory`-prefixed family is deliberately carved out (its real payment is
 // a non-mana settle rules does not yet run, and a decline-only ask would be
@@ -385,7 +384,7 @@ func TestDalekIntensiveCareMandatoryExileIsAChoice(t *testing.T) {
 }
 
 // Kuldotha Flamefiend's ETB body carries `Cost$ Sac<1/Artifact>` (a real
-// non-mana component payMana cannot charge). trigcost2 makes it genuinely
+// non-mana component payMana cannot charge). The window makes it genuinely
 // payable: the window's pay arm walks the Sac component and settles it for
 // real. The PAY half pins: with an artifact on the battlefield the "pay"
 // answer sacrifices it (a real events.Sacrifice) BEFORE the body runs, and
@@ -649,7 +648,7 @@ func TestVizkopaConfessorETBChoosesLifeAndExilesRevealed(t *testing.T) {
 	submitChoices(t, e, pay)
 
 	// The body: the opponent CHOOSES which 2 of their hand to reveal (the
-	// infernaltutor1 fix -- a hand reveal with NumCards$ < hand size is a
+	// infernal-tutor rule -- a hand reveal with NumCards$ < hand size is a
 	// choice for the hand's owner), then the caster picks one of the 2
 	// revealed to exile.
 	d = passUntilNonPriority(t, e, 40)

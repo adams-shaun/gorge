@@ -171,7 +171,7 @@ func TestOffStackManaModesAskResumesManaRider(t *testing.T) {
 // on the off-stack mana continuation: a SubAbility$ NameCard answer must be
 // interpreted exactly as handleChoose interprets the same KChoose "name"
 // answer (option 0's label becomes the chosen name), not re-posed forever.
-// main 7fb66ee5f re-asked "name" immediately after a valid answer because
+// A resolution that re-asks "name" immediately after a valid answer would mean
 // answerManaColor resumed the rider without that binding, and the resumed
 // NameCard saw an empty Ctx.NameChoice and asked again.
 func TestOffStackManaNameAskCommitsOnce(t *testing.T) {
@@ -253,8 +253,8 @@ func TestOffStackManaNameAskCommitsOnce(t *testing.T) {
 // off-stack mana continuation: a SubAbility$ Scry/RearrangeTopOfLibrary
 // rider's ordered answer must resume the mana ability's own chain, not be
 // dropped (handleArrange's no-suspended-resolution Note) and not re-enter
-// the unrelated spell on top of the stack. main 7fb66ee5f had no off-stack
-// KArrange routing at all, so the answer landed on the stack top; the fix
+// the unrelated spell on top of the stack. Without off-stack KArrange routing
+// the answer would land on the stack top; the fix
 // parks and re-enters the rider under the mana frame (engine/rules/arrange.go).
 func TestOffStackManaArrangeAskResumesManaRider(t *testing.T) {
 	t.Parallel()

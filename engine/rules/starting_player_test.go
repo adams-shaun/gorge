@@ -95,8 +95,8 @@ func TestTossNoteIsEmittedExactlyOnceAndNamesTheStartingPlayer(t *testing.T) {
 	}
 }
 
-// TestTossNotePrecedesTheFirstShuffle is the CR 103.1 ordering gate (fix
-// round rv2a): the toss announcement must be public before the decks are
+// TestTossNotePrecedesTheFirstShuffle is the CR 103.1 ordering gate: the toss
+// announcement must be public before the decks are
 // shuffled and the opening hands dealt -- Forge's GameAction and manabrew's
 // game loop announce the toss before their deal, and the whole point is that
 // the keep/mulligan decisions are made with the toss already read. The old
@@ -275,17 +275,14 @@ func TestMulliganPromptNamesTheDisplayPlayerWithDuplicateDecks(t *testing.T) {
 	}
 }
 
-// TestTossIsUniformOverGenesisSurvivors is the survivor-bias regression
-// test: when the deal itself eliminates a seat, the toss must
-// stay uniform over the SURVIVORS -- not be reduced modulo the survivor
-// count. Three seats with seat 0's three-card deck (it decks out during its
-// opening hand, CR 704.5c) leave seats 1 and 2 alive; the pre-fix engine
-// drew IntN(3) and took alive[toss%2], so two of the three toss outcomes
-// mapped onto one survivor -- measured map[1:395 2:205] over 600 seeds
-// (true p=1/2 would put the minority near 300, sigma ~12). The assertion is
-// "both survivors observed, minority >= 240": under uniformity that bound
-// sits ~5 sigma below the mean (failure probability ~1e-6), while the biased
-// 1/3 mapping (minority ~200) fails it overwhelmingly.
+// TestTossIsUniformOverGenesisSurvivors is the survivor-bias regression test:
+// when the deal itself eliminates a seat, the toss must stay uniform over the
+// SURVIVORS -- not be reduced modulo the survivor count. Three seats with
+// seat 0's three-card deck (it decks out during its opening hand, CR 704.5c)
+// leave seats 1 and 2 alive. The assertion is "both survivors observed,
+// minority >= 240": under uniformity that bound sits ~5 sigma below the mean
+// (failure probability ~1e-6), while the biased 1/3 mapping (minority ~200)
+// fails it overwhelmingly.
 func TestTossIsUniformOverGenesisSurvivors(t *testing.T) {
 	t.Parallel()
 	census := map[state.PlayerID]int{}

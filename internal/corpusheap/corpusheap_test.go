@@ -27,48 +27,30 @@ import (
 	_ "github.com/adams-shaun/gorge/engine/rules"
 )
 
-// The ceilings, in absolute bytes/objects. They are the values the spec's §1.1
-// probe measured on main at 7b37cc0eb (102.2 MB scan, 1,685,473 objects,
-// 163.1 MB heap) rounded to a stable value; the census logs the live numbers so
-// a later step can lower them.
+// The ceilings, in absolute bytes/objects. They are measured values rounded to a
+// stable value; the census logs the live numbers so a later step can lower them.
 const (
-	// Lowered at S4 (the imaged lazy registry): measured 1.4 MB scan,
-	// 40.5 MB heap, 18,405 objects. S4 set the heap ceiling to 35.6 MB from
-	// the design's ESTIMATE ("~35-40 MB") rather than from the measurement
-	// it logged, so it landed just above the ceiling; a bench runner failed
-	// first in the same batch run and masked it.
+	// The census builds its OWN gob cache in t.TempDir() (compile -> Save ->
+	// LoadRegistry) rather than calling cards.OpenCorpus on the shared .cards, so
+	// it measures the SAME imaged registry whether .cards already holds an
+	// ir-<fingerprint>.gob.gz or is read-only.
 	//
-	// Re-pinned 2026-10-07 (agent-20261007T001003Z-312ebafa) when the census
-	// was made cache-independent. The census now builds its OWN gob cache in
-	// t.TempDir() (compile -> Save -> LoadRegistry) instead of calling
-	// cards.OpenCorpus on the shared .cards, so it measures the SAME imaged
-	// registry whether .cards already holds an ir-<fingerprint>.gob.gz or is
-	// read-only. That deterministic path measures 35.5 MB heap here.
-	//
-	// Why 35.5 and not the old cache-hit 35.6: the imaged registry embeds the
-	// card-script path string on every card, so a compile run from an ABSOLUTE
-	// root carries that root's length. Measured 2026-10-07 (byte-identical
-	// corpora, same 34074 cards): this worktree's ~95-char .cards prefix -> 40.5
-	// MB, the main checkout's ~33-char prefix -> 35.6 MB, a short /tmp copy ->
-	// 35.5 MB. The old census therefore varied with WHERE the checkout lived,
-	// not with the code. The census now t.Chdir()s into the corpus dir and
-	// compiles the RELATIVE root "cardsfolder", so the stored paths carry a
-	// fixed short prefix and the measurement is identical from .cards or any
-	// copy: measured 37.19 MB (35.5 MB) on six fresh processes, two roots.
-	// (CompileDir's gob BYTES still vary slightly run to run, but the decoded
-	// heap is identical to <0.01 MB, which is what this ratchet reads.)
+	// The imaged registry embeds the card-script path string on every card, so a
+	// compile from an ABSOLUTE root carries that root's length: byte-identical
+	// corpora measured 40.5 MB from a ~95-char prefix and 35.5 MB from a short one.
+	// The census therefore t.Chdir()s into the corpus dir and compiles the RELATIVE
+	// root "cardsfolder", so the stored paths carry a fixed short prefix and the
+	// measurement does not vary with WHERE the checkout lives. (CompileDir's gob
+	// BYTES still vary slightly run to run, but the decoded heap is identical to
+	// <0.01 MB, which is what this ratchet reads.)
 	//
 	// The compile is OUTSIDE the measured window: it builds an eager *Card tree
 	// that is dropped before the baseline, so the delta is the imaged registry
 	// alone, exactly what a server that hits a cache holds.
 	//
-	// Raised 2026-10-17 (wt/no-strings), scan only: each face now carries its
-	// compiled PrintedFacts (type-line masks, joined line, cost pips) and each
-	// ability a Cost$ slot, so the engine and the policy encoder test bits
-	// instead of re-parsing that text per object per walk. Measured 1.56 MB
-	// scan (develop: 1.30 MB), 35.6 MB heap, 18,020 objects. origin/develop's
-	// 1_380_000 (1.34 MB, CI 2026-10-17 nightly) predates this change and
-	// is superseded here.
+	// Each face carries its compiled PrintedFacts (type-line masks, joined line,
+	// cost pips) and each ability a Cost$ slot, so the engine and the policy
+	// encoder test bits instead of re-parsing that text per object per walk.
 	ceilingScanBytes   int64 = 1_650_000  // 1.56 MB: /gc/scan/heap:bytes
 	ceilingHeapBytes   int64 = 39_200_000 // 35.5 MB measured + ~5% headroom: HeapAlloc
 	ceilingHeapObjects int64 = 18_400     // /gc/heap/objects:objects

@@ -36,9 +36,9 @@ func ringEmblemLabel(level int) string {
 }
 
 // putTriggersOnStack drains pendingTriggers onto the stack, asking each
-// controller who has two or more of them for the order (CR 603.3b, user
-// requirement R1) and asking each optional trigger's decider whether it goes
-// on the stack at all (Forge's OptionalDecider$, user requirement R2).
+// controller who has two or more of them for the order (CR 603.3b) and
+// asking each optional trigger's decider whether it goes on the stack at all
+// (Forge's OptionalDecider$).
 //
 // It reports whether it asked a decision and so has NOT finished. A true
 // return means e.pending is set: the caller must return immediately without
@@ -139,9 +139,9 @@ func (e *Engine) putTriggersOnStack() bool {
 			// see the same grouped queue.
 			e.groupOrderDuplicates(n)
 			if n >= 2 {
-				// R1. Exactly one trigger is never asked about: there is no
+				// Exactly one trigger is never asked about: there is no
 				// choice to make, and a decision with a single legal answer is
-				// noise on the wire (definition of done, item 2).
+				// noise on the wire.
 				e.askTriggerOrder(e.pendingTriggers[0].Controller, n)
 				return true
 			}
@@ -159,8 +159,8 @@ func (e *Engine) putTriggersOnStack() bool {
 		if who, optional, askable := e.optionalDecider(pt); optional && pt.Miracle {
 			if !askable {
 				// The decider left the game between this trigger matching and
-				// its turn to be placed. R2 forbids assuming the answer, so
-				// the trigger is declined rather than silently placed.
+				// its turn to be placed. Its answer can't be assumed, so the
+				// trigger is declined rather than silently placed.
 				e.popFrontTrigger()
 				continue
 			}
@@ -1493,16 +1493,14 @@ func (e *Engine) faceOwningTrigger(source state.ObjID, t cards.Trigger) *cards.F
 // TriggeredCardController read the wrong creature's controller whenever it
 // attacks alongside another creature that happened to be declared first.
 //
-// LIMITATION, stated rather than assumed: the remaining ten T: lines
-// (TriggeredPlayer, EnchantedController, TriggeredAttackingPlayer,
-// TriggeredActivator -- 0.7% of the corpus's optional triggers, and none of
-// them in a mode this milestone implements) name a player this engine's
-// pendingTrigger cannot derive, because events.Event carries no attacking
-// player, no activator and no enchant link. Those fall back to asking the
-// controller. That still satisfies R2 -- a human is asked, and no outcome is
-// assumed -- but it can ask the wrong human, so it is a real gap and not a
-// silent approximation. Closing it needs the trigger to capture the player at
-// match time, which is a change to what checkTriggers records.
+// LIMITATION: the remaining ten T: lines (TriggeredPlayer, EnchantedController,
+// TriggeredAttackingPlayer, TriggeredActivator, on Phase, SpellCast,
+// AttackersDeclared and AttackerUnblocked triggers; 0.7% of the corpus's
+// optional triggers) have no case in deciderFromSpec, so they ask the controller.
+// A human is still asked and no outcome is assumed, but it can ask the wrong
+// human, so it is a real gap and not a silent approximation. TriggerContext
+// already carries the triggering player, the attacking player and the activator;
+// the enchanted controller would read the source's attachment.
 func (e *Engine) optionalDecider(pt pendingTrigger) (who state.PlayerID, optional, askable bool) {
 	// A Miracle offer is always optional and its decider is always the
 	// owner (the controller of the drawn card). It has no T: line to read, so
@@ -1810,7 +1808,7 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 		// A mutated pile's under-card ability is labelled with the UNDER-CARD's
 		// own name: the ability belongs to the card beneath the top card
 		// (CR 702.140d), and the pile's top face can be any creature. A
-		// HAS-ALL-ABILITIES-OF trigger (r3) is covered inside the recovery
+		// HAS-ALL-ABILITIES-OF trigger is covered inside the recovery
 		// function itself, so the foreign face's own name wins here too.
 		if _, mf, ok := e.findTriggerForAbilityFace(o.Source, t.Effect); ok && mf != nil && mf.Name != "" {
 			name = mf.Name
@@ -1898,7 +1896,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		// modal trigger must not read the pile's top face's same-named SVar --
 		// the same top-face steal the MergedTriggerPush body resolution
 		// prevents. Ordinary triggers find their own face (the top one) and
-		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper (r3) is
+		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper is
 		// covered inside the recovery function itself.
 		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
 			svars = mf.SVars
@@ -1954,11 +1952,11 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	return true
 }
 
-// askTriggerOrder is R1: the controller of two or more simultaneous triggers
-// chooses the order. Min == Max == n over exactly that controller's own n
+// askTriggerOrder has the controller of two or more simultaneous triggers
+// choose the order. Min == Max == n over exactly that controller's own n
 // pending triggers, so Decision.Validate's existing rules (n choices, all
 // distinct, all in range) already mean "a permutation of these n" and
-// U2 needs no wire-format change at all.
+// the decision needs no wire-format change at all.
 //
 // Option i is e.pendingTriggers[i]; that positional correspondence is the only
 // binding between the decision and the queue, and handleTriggerOrder rechecks
@@ -2053,8 +2051,8 @@ func (e *Engine) frontIsTheOfferedGroup(d *decision.Decision) bool {
 	return true
 }
 
-// askTriggerOptional is R2: an optional trigger reaches the stack only on an
-// explicit yes. Min == Max == 1 over two options, "yes" first.
+// askTriggerOptional asks whether an optional trigger goes on the stack; it
+// does only on an explicit yes. Min == Max == 1 over two options, "yes" first.
 func (e *Engine) askTriggerOptional(who state.PlayerID, pt pendingTrigger) {
 	label := e.triggerLabel(pt)
 	d := &decision.Decision{Player: who, Kind: decision.KTriggerOptional, Min: 1, Max: 1,

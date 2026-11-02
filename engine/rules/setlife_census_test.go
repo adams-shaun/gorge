@@ -17,11 +17,9 @@ import (
 // test).
 //
 // The 45 files are every card with a `DB$`/`SP$`/`AB$`/`AP$`/`A$ SetLife`
-// line. The brief that dispatched this ticket reported 35 using the
-// `(DB|AP|A)$ SetLife` spelling, which MISSES the `SP$` (spell) and `AB$`
-// (activated) prefixes entirely; the measured population is 45, and `SP$`
-// and `AB$` abilities reach the same registry entry, so all five prefixes
-// are censused. Plain `SetLife` also occurs inside SVar names (45 files by
+// line; a `(DB|AP|A)$ SetLife` search finds only 35, because it MISSES the
+// `SP$` (spell) and `AB$` (activated) prefixes, which reach the same registry
+// entry. Plain `SetLife` also occurs inside SVar names (45 files by
 // substring); those are not the API line this primitive implements.
 func TestSetLifeCorpusCensus(t *testing.T) {
 	dir := filepath.Join("..", "..", ".cards", "cardsfolder")

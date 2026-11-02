@@ -3,8 +3,8 @@ import { browserURL, sharedBrowser } from '../test/browser';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * HotkeyGuard.test.ts is the mounted half of the modal-picker guard (prio3
- * review r2 through sol2): the pure grammar test passes a synthetic picker
+ * HotkeyGuard.test.ts is the mounted half of the modal-picker guard:
+ * the pure grammar test passes a synthetic picker
  * predicate, so it cannot catch a modal surface that markup failed to expose.
  * Here every transient picker kind found by the structural audit is mounted
  * over the real HotButtonStrip/SeatPanel wiring: OptionPicker's radial and

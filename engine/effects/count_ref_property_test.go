@@ -7,10 +7,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The <Ref>$<Property> count family the DamageSource$ work rides on: before
-// the evaluator these bodies evaluated to zero (Kiku's Shadow dealt no
-// damage at all), so every branch here pins a formerly-dead head answering
-// its object's real property.
+// The <Ref>$<Property> count family the DamageSource$ work rides on.
+// Evaluated to zero these bodies leave Kiku's Shadow dealing no damage, so
+// every branch here pins a head answering its object's real property.
 func TestRefPropertyCounts(t *testing.T) {
 	h := newHost(t, 2)
 	power := mkCard(t, "Name:Ox\nTypes:Creature Ox\nPT:3/4\nOracle:x\n")
@@ -83,10 +82,10 @@ func mkPlayerZoneCard(t *testing.T, g *state.Game, owner state.PlayerID, zone st
 }
 
 // TestTargetedPlayerRefProperty pins the player-valued half of the
-// <Ref>$<Property> count family (task tgtplayer1): before the evaluator,
-// TargetedPlayer$/ThisTargetedPlayer$ bodies fell through every head and
-// answered zero, so Knollspine Dragon drew nothing and The Mouth of Sauron
-// always amassed 0. The referenced player is the filter's You for the Valid
+// <Ref>$<Property> count family: without the evaluator,
+// TargetedPlayer$/ThisTargetedPlayer$ bodies fall through every head and
+// answer zero, so Knollspine Dragon draws nothing and The Mouth of Sauron
+// always amasses 0. The referenced player is the filter's You for the Valid
 // family -- The Mouth of Sauron's `Instant.YouOwn,Sorcery.YouOwn` must count
 // the TARGET's own graveyard cards, not the resolving controller's.
 func TestTargetedPlayerRefProperty(t *testing.T) {

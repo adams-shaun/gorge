@@ -1,10 +1,10 @@
 // The attack/block prop payment windows must resolve the EXACT alternative a
-// tap answer selected. Round 1 widened the window to one option per priceable
-// ability but identified every option only by its Obj: a permanent with two
+// tap answer selected. The window offers one option per priceable
+// ability, and identifying an option only by its Obj fails: a permanent with two
 // free abilities producing DIFFERENT quantities (one {C}, one {C}{C}) had its
 // budget counted at the maximum (2), a {2} charge was offered, and selecting
 // the second option still activated the FIRST ability -- the payer came up
-// short and the declaration aborted. The window now stores the posed tap list
+// short and the declaration aborted. The window stores the posed tap list
 // and resolves the chosen option's Index, and each option's label names its
 // production, so the alternatives are distinguishable on the wire and the
 // handler activates the ability that was selected.
@@ -45,11 +45,9 @@ func attackPropSeatUnequal(t *testing.T, propName string) (*Engine, state.ObjID)
 
 // TestAttackPropPaysTheSelectedAlternative pins the end-to-end unequal-output
 // fix: Ghostly Prison charges {2}, the payer's only source is one land whose
-// two free abilities make {C} and {C}{C}, so the budget is the MAX (2) and the
-// pair is offered; selecting the SECOND option must activate the {C}{C}
-// ability and commit the attack. Before the fix the answer resolved the first
-// alternative sharing the Obj ({C}), the payer came up short, the window found
-// no source left (the land is tapped) and ABORTED the declaration.
+// two free abilities make {C} and {C}{C}, so the budget is the MAX (2) and
+// the pair is offered; selecting the SECOND option must activate the {C}{C}
+// ability and commit the attack.
 func TestAttackPropPaysTheSelectedAlternative(t *testing.T) {
 	t.Parallel()
 	e, bear := attackPropSeatUnequal(t, "Ghostly Prison")
@@ -106,9 +104,7 @@ func TestAttackPropPaysTheSelectedAlternative(t *testing.T) {
 // TestBlockPropPaysTheSelectedAlternative pins the same identity rule on the
 // block side: Qal Sisma Behemoth charges {2} to block, the defender's only
 // source is the unequal land, and selecting the {C}{C} option must resolve
-// THAT ability and commit the block. Before the fix the answer resolved the
-// first alternative ({C}), the window found no source left, cleared itself
-// silently, and the block never committed.
+// THAT ability and commit the block.
 func TestBlockPropPaysTheSelectedAlternative(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)

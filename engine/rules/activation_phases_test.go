@@ -10,7 +10,7 @@ import (
 )
 
 // activation_phases_test.go pins the ActivationPhases$ cast/activation
-// window restriction (task actphase1) and its rider qualifiers:
+// window restriction and its rider qualifiers:
 // PlayerTurn$, OpponentTurn$, ActivationFirstCombat$. The gate is a pure
 // offer-time read (activationPhasesOK, engine/rules/activation_phases.go)
 // consulted through spellTimingOK (every way a card is cast) and the AB$

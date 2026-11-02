@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestSharedSetPropCountsCandidatesNotTokens is cardfuzz all seed
+// TestSharedSetPropCountsCandidatesNotTokens is cardfuzz seed
 // 3286887339596248657: an amassed Sliver Army token derives "Sliver" twice
 // (its token script's Sliver Army types plus amass's permanent "it's also a
 // Sliver" layer-4 grant, CR 701.55b). SetPropCapacity counted the token's two

@@ -4,9 +4,8 @@ package main
 // generated placement: the field documentation the human payment-plan UI
 // reads in web/src/protocol.ts must be the Go source's own comment, emitted
 // as a block comment immediately before `auto_mana: boolean;` in the
-// committed file. Commit 7022042e6 hand-edited the committed TypeScript to a
-// different comment and drifted from the generator; fc7d924ad regenerated it.
-// This test fails on any renewed drift in either direction.
+// committed file. Hand-editing the committed TypeScript to a different comment
+// drifts from the generator; this test fails on drift in either direction.
 
 import (
 	"go/ast"

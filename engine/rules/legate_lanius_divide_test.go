@@ -77,7 +77,7 @@ func legateEngine(t *testing.T, reg *cards.Registry, opponentCreatures int) *Eng
 
 // TestLegateLaniusSacrificesATenthRoundedUp is the reported wrong-value
 // divergence: eleven opponent creatures must sacrifice ceil(11/10) = 2, not
-// the whole eleven the pre-fix undivided count produced.
+// the whole eleven.
 func TestLegateLaniusSacrificesATenthRoundedUp(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -98,8 +98,7 @@ func TestLegateLaniusSacrificesATenthRoundedUp(t *testing.T) {
 	if d.Player != 1 {
 		t.Fatalf("sacrifice ask player = %d, want the opponent (1)", d.Player)
 	}
-	// ceil(11/10) = 2. The pre-fix undivided read was 11, which exceeds the
-	// eligible count, so no ask was posed at all and all eleven were taken.
+	// ceil(11/10) = 2.
 	if d.Min != 2 || d.Max != 2 {
 		t.Fatalf("sacrifice ask range = %d..%d, want 2..2 (a tenth of 11, rounded up)", d.Min, d.Max)
 	}
@@ -140,8 +139,8 @@ func TestLegateLaniusSacrificesATenthRoundedUp(t *testing.T) {
 // TestLegateLaniusRoundsATenthUp is the tight-boundary rounding case: exactly
 // ten creatures converts to one sacrificed (ceil(10/10) = 1). Ten eligibles
 // against an amount of one still leaves a real WHICH-one choice, so the ask
-// is a Min == Max == 1 KChoose -- not the whole ten the pre-fix undivided
-// count would have taken (eligible 10 == amount 10: no ask, all ten gone).
+// is a Min == Max == 1 KChoose -- not the whole ten (eligible 10 == amount 10
+// would pose no ask).
 func TestLegateLaniusRoundsATenthUp(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

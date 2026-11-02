@@ -214,15 +214,13 @@ func TestVoteFinishedCarrierGatedOnVoteTriggerFaces(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGrudgeKeeperEmptyBallotDrainsNobody is the empty-ballot regression
-// end to end on a real card-ballot cast: Council's Judgment
-// with NO eligible permanent on any opponent's battlefield (its VoteCard$
-// filters to a nonland permanent you don't control; the opponents control
-// only Mountains). Nobody could vote for anything, so both List$ sets are
-// empty and Grudge Keeper's Defined$ TriggeredOpponentVotedDiff acts on
-// nobody -- the trigger still fires (the canonical carrier is emitted), but
-// no opponent loses life. Before the fix every voting opponent landed in the
-// diff set and each drained 2.
+// TestGrudgeKeeperEmptyBallotDrainsNobody is the empty-ballot regression end
+// to end on a real card-ballot cast: Council's Judgment with NO eligible
+// permanent on any opponent's battlefield (its VoteCard$ filters to a nonland
+// permanent you don't control; the opponents control only Mountains). Nobody
+// could vote for anything, so both List$ sets are empty and Grudge Keeper's
+// Defined$ TriggeredOpponentVotedDiff acts on nobody -- the trigger still
+// fires (the canonical carrier is emitted), but no opponent loses life.
 func TestGrudgeKeeperEmptyBallotDrainsNobody(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

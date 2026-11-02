@@ -11,8 +11,7 @@ import (
 // MatchedAbility$/UnmatchedAbility$ shape): Expert-Level Safe's `{1},{T}`
 // ability asks the controller AND the target opponent each to secretly pick
 // 1, 2 or 3, reveals both, then runs DBSacrifice (matched) or DBFillSafe
-// (unmatched). Before the fix only the controller was asked, the two picks
-// were never compared and neither branch ran.
+// (unmatched).
 //
 // The tests drive the REAL corpus card end to end: cast it (funding {2}),
 // activate the ability through the ordinary priority walk, answer the target

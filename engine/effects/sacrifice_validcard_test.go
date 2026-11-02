@@ -12,9 +12,9 @@ import (
 // the ValidCard$ fix: Expert-Level Safe's real compiled corpus SA is the one
 // player-targeted Sacrifice line in the corpus that carries `ValidCard$
 // Card.Self` (its `DBSacrifice` SVar body, reached when its secret-choice
-// ability matches). Before the fix effSacrifice read only SacValid$ (absent
-// here, defaulting to "Permanent"), so the controller handed over whichever
-// permanent sat first in zone order rather than "this artifact".
+// ability matches). Reading only SacValid$ (absent here, defaulting to
+// "Permanent") would have the controller hand over whichever permanent sits
+// first in zone order rather than "this artifact".
 //
 // The board puts a land and a creature on FIRST, in zone order, so an
 // implementation that ignores ValidCard$ deterministically sacrifices the
@@ -46,7 +46,7 @@ func TestExpertLevelSafeSacrificesItselfNotTheFirstPermanent(t *testing.T) {
 	}
 
 	h := newHost(t, 2)
-	// Zone order: land, creature, Safe. The pre-fix code sacrifices the land.
+	// Zone order: land, creature, Safe.
 	land := putBattlefield(h, 0, "Name:Mountainside\nTypes:Basic Land Mountain\nOracle:x\n")
 	creature := putBattlefield(h, 0, "Name:Grizzly\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	safe := h.g.AddObject(card, 0)

@@ -8,8 +8,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestETBNameCardWithNoVisibleMatchStillAnswerable is the cardfuzz batch1
-// line 14 error ("expected 1..1 choices, got 0"): Alpine Moon's "as this
+// TestETBNameCardWithNoVisibleMatchStillAnswerable guards the error
+// "expected 1..1 choices, got 0": Alpine Moon's "as this
 // enters, choose a nonbasic land card name" on a no-universe engine, with no
 // nonbasic land anywhere in view, posed a Min 1 / Max 1 name ask with ZERO
 // options -- a decision no answer satisfies. The ask must always carry a

@@ -11,11 +11,10 @@ import (
 // Zurgo, Thunder's Decree: "During your end step, Warrior tokens you control
 // have 'This token can't be sacrificed.'" The grant is an AddStaticAbility$
 // CantSacrifice (CR 701.21a: a permanent that can't be sacrificed isn't), so
-// mobilize's own "sacrifice them at the beginning of the next end step"
-// (CR 702.181a) leaves the Warrior tokens on the battlefield. Before the fix
-// SacrificeBlocked read only printed CantSacrifice statics and the tokens
-// died. The grant is gated on the end step (Phases$ End of Turn): in the
-// second main phase the same tokens can be sacrificed.
+// mobilize's own "sacrifice them at the beginning of the next end step" (CR
+// 702.181a) leaves the Warrior tokens on the battlefield. The grant is gated
+// on the end step (Phases$ End of Turn): in the second main phase the same
+// tokens can be sacrificed.
 const zurgoEndStepScenario = `{
   "name": "zurgo-end-step",
   "setup": {"p0": {"battlefield": ["Zurgo, Thunder's Decree"]}, "p1": {"battlefield": ["Grizzly Bears"]}},

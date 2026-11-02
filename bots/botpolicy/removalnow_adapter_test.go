@@ -34,26 +34,26 @@ func TestRemovalKindAdaptersAgree(t *testing.T) {
 	}{
 		{
 			name:    "destroy",
-			src:     "Name:Doom Blade\nManaCost:1 B\nTypes:Instant\nOracle:Destroy target creature.\nA:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\n",
+			src:     "Name:Doom Blade\nManaCost:1 B\nTypes:Instant\nOracle:Destroy target creature.\nA:SP$ Destroy | ValidTgts$ Creature\n",
 			kind:    "destroy",
 			targets: "creature",
 		},
 		{
 			name:    "damage",
-			src:     "Name:Shock\nManaCost:R\nTypes:Instant\nOracle:Deal 2 damage to any target.\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2 | SpellDescription$ Deal 2 damage to any target.\n",
+			src:     "Name:Shock\nManaCost:R\nTypes:Instant\nOracle:Deal 2 damage to any target.\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 2\n",
 			kind:    "damage",
 			targets: "any",
 			damage:  2,
 		},
 		{
 			name:    "artifact destroy has no creature scope",
-			src:     "Name:Shatter\nManaCost:1 R\nTypes:Instant\nOracle:Destroy target artifact.\nA:SP$ Destroy | ValidTgts$ Artifact | SpellDescription$ Destroy target artifact.\n",
+			src:     "Name:Shatter\nManaCost:1 R\nTypes:Instant\nOracle:Destroy target artifact.\nA:SP$ Destroy | ValidTgts$ Artifact\n",
 			kind:    "destroy",
 			targets: "",
 		},
 		{
 			name:    "bounce",
-			src:     "Name:Unsummon\nManaCost:U\nTypes:Instant\nOracle:Return target creature to its owner's hand.\nA:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SpellDescription$ Return target creature to its owner's hand.\n",
+			src:     "Name:Unsummon\nManaCost:U\nTypes:Instant\nOracle:Return target creature to its owner's hand.\nA:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand\n",
 			kind:    "bounce",
 			targets: "creature",
 		},

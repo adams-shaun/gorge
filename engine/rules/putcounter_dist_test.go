@@ -166,8 +166,8 @@ func TestVastwoodHydraDistributionSkipsTheAskWhenOneCreatureIsEligible(t *testin
 
 // TestPutCounterDividedAmongTargetsSplitsTheTotal pins the target-based
 // carrier (Choices$ absent, 53 further raw corpus lines): DividedAsYouChoose$
-// makes the CounterNum$ total a split over the chosen targets, NOT the
-// pre-fix n-per-target misread -- 4 counters over two targets are 2 and 2.
+// makes the CounterNum$ total a split over the chosen targets, NOT n per
+// target -- 4 counters over two targets are 2 and 2.
 func TestPutCounterDividedAmongTargetsSplitsTheTotal(t *testing.T) {
 	t.Parallel()
 	src := "Name:Distributor\nManaCost:2 G\nTypes:Creature Elf Druid\nPT:1/1\n" +

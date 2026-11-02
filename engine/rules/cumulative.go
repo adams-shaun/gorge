@@ -85,7 +85,7 @@ type triggeredEffectCost struct {
 	// (mandatorySettleShape); everything else keeps the free-executor
 	// carve-out in triggerBodyNeedsCostWindow.
 	mandatory bool
-	// trig is the trigger context of the ability the window parks (exg1):
+	// trig is the trigger context of the ability the window parks:
 	// a cost spec naming a trigger referent -- Forge's bare
 	// Card.TriggeredNewCard in the `Cost$ ExileAnyGrave<1/Card.
 	// TriggeredNewCard>` "you may exile it" family -- resolves against THIS
@@ -393,7 +393,7 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 // the split: a Priceable cost (plain mana, fixed PayLife<N>) offers a real
 // "pay"; a cost whose choice-bearing components are exactly Sac/Exile/Discard
 // parts and whose draws and mana half resolve offers a real pay and settles
-// the components for real (trigcost2, triggeredCostComponentsPayable);
+// the components for real (triggeredCostComponentsPayable);
 // everything else lands decline-only (the ParseUnlessCost hard-decline
 // convention -- never a free execution, never a zero-amount payment).
 //
@@ -428,7 +428,7 @@ func (e *Engine) triggerBodyNeedsCostWindow(sa *cards.SA) bool {
 	if costCarriesDynTap(c) {
 		return true
 	}
-	// trigmand1: the `Mandatory Sac<...>` / `Mandatory Exile<...>` shapes are
+	// The `Mandatory Sac<...>` / `Mandatory Exile<...>` shapes are
 	// now settled for real by the mandatory path in this window (a pick where
 	// a choice exists, the exact Sacrifice/Exile event otherwise), so they
 	// enter it. Any other mandatory component keeps the free-executor
@@ -660,7 +660,7 @@ func (e *Engine) cumulativePaymentAsk() {
 // costCauseTriggered: an Effect-registered CantSacrifice or a bare
 // `ForCost$ True` face static blocks the permanent, a `ValidCause$
 // Spell,Activated` carrier (Angel of Jubilation) scopes past it, and a
-// `ValidCause$ Triggered` one admits the block (cantsac1 r2).
+// `ValidCause$ Triggered` one admits the block.
 func (e *Engine) cumulativeSacObjects(cu *cumulativeUpkeep) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range e.cumulativeObjects(cu, state.ZBattlefield, cu.action.spec) {
@@ -935,7 +935,7 @@ func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object,
 // the Weaver's head), both fail closed: no announcement ask, the amount stays
 // unfolded, and the ordinary unpriceable path below poses decline only -- the
 // no-SVar case is what keeps the synthetic copy-cost shapes (Verrak's
-// PayLife<X> copy execute) hard-decline as abcopy1 pinned them. Returns true
+// PayLife<X> copy execute) hard-decline. Returns true
 // when the announcement ask was posed; the answer re-enters through
 // triggeredCostAnswer's trigger_cost_x arm.
 func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
@@ -1247,8 +1247,8 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		return tc.foragePayable(e, rest)
 	}
 	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave)+len(rest.Return) > 0 || len(rest.Evidence) > 0 || len(rest.Blight) > 0 {
-		// A component-bearing cost is payable ONLY through the settle gate
-		// (trigcost2): the Draw arm alone would offer "pay" while silently
+		// A component-bearing cost is payable ONLY through the settle gate:
+		// the Draw arm alone would offer "pay" while silently
 		// skipping the components. An Evidence part counts here too -- an
 		// evidence-only cost must NEVER fall through to the mana half, which
 		// is empty and would free-settle it.
@@ -1287,7 +1287,7 @@ func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost
 }
 
 // triggeredCostComponentsPayable reports whether the window can settle a
-// non-Priceable cost's choice-bearing components for real (trigcost2): every
+// non-Priceable cost's choice-bearing components for real: every
 // component is a Sac/Exile/Discard/Return part (no Announced Sac -- the announced
 // count has no channel here), no OTHER non-mana component rides the cost,
 // no {X}/tap demand needs an announcement the window cannot make, every
@@ -1858,7 +1858,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			}
 			paid = tc.subCounterSettle(e, announced)
 		} else if len(announced.Sac)+len(announced.Discard)+len(announced.Exile)+len(announced.MoveToGrave)+len(announced.Return) > 0 || len(announced.Evidence) > 0 || len(announced.Blight) > 0 {
-			// The settleable-component cost (trigcost2): the election is
+			// The settleable-component cost: the election is
 			// "pay"; walk the components (the mandatory walk's picks -- a
 			// real KChoose where a choice exists, the Hand/Random discard
 			// specials without one) and settle. The walk ends in
@@ -1940,8 +1940,7 @@ func (e *Engine) triggeredCostDecline(tc *triggeredEffectCost) {
 // Discard and Return last) so a replay settles the same picks in the same
 // sequence. The mandatory walk only ever carries Sac/Exile
 // (mandatorySettleShape); the Discard, MoveToGrave and Return ranges serve the
-// optional window's pay arm, which walks the same list after the pay election
-// (trigcost2).
+// optional window's pay arm, which walks the same list after the pay election.
 func triggeredMandatoryParts(c Cost) []CostPart {
 	parts := make([]CostPart, 0, len(c.Sac)+len(c.Exile)+len(c.MoveToGrave)+len(c.Discard)+len(c.Return))
 	parts = append(parts, c.Sac...)
@@ -2028,7 +2027,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// settle walk both read it -- so the whole-zone reading cannot diverge
 	// between them.
 	wholeZone := !isSac && !isReturn && !triggeredPartIsDiscard(tc.amount, idx) && isWholeZoneExileSpec(spec)
-	// exg1: the window's trigger context rides the spec evaluation, so a
+	// The window's trigger context rides the spec evaluation, so a
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
 	// captured. A zero context is the filter's fail-closed default.
@@ -2041,8 +2040,8 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		}
 		if isSac && e.sacrificeBlockedForCost(id, pay.CostCauseTriggered) {
 			// The window's cost components are demanded by the RESOLVING
-			// triggered ability (a `Cost$ Mandatory Sac<...>` body, TrigsMand1),
-			// so the cause is costCauseTriggered (cantsac1 r2).
+			// triggered ability (a `Cost$ Mandatory Sac<...>` body),
+			// so the cause is costCauseTriggered.
 			continue
 		}
 		if wholeZone || e.matchesSpec(spec, id, sc) {

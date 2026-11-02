@@ -8,10 +8,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestAshnodsAltarPrioritySacrificeAsksWhichCreature pins the reported
-// fb-20260921T193934Z-c815f630 shape on the card itself: activating Ashnod's
+// TestAshnodsAltarPrioritySacrificeAsksWhichCreature pins the shape on the card itself: activating Ashnod's
 // Altar for mana at priority with two creatures poses a one-of-two
-// sacrifice ask (fixed by 3946193d) instead of auto-sacrificing the
+// sacrifice ask instead of auto-sacrificing the
 // first-eligible creature.
 func TestAshnodsAltarPrioritySacrificeAsksWhichCreature(t *testing.T) {
 	t.Parallel()

@@ -122,6 +122,9 @@ type Search struct {
 type Row struct {
 	// Choices is the candidate intent's Choices.
 	Choices []int `json:"choices"`
+	// Payment is the id of the decision's payment action a planned cast
+	// selects (decision.PaymentAction.ID); such a candidate has no Choices.
+	Payment string `json:"payment,omitempty"`
 	// Visits is the candidate's visit count: azmcts's root-child visits;
 	// searchseat's worlds, since every candidate is rolled out once per
 	// sampled world.

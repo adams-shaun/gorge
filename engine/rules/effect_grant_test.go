@@ -8,8 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Fix round for the AGENTS.md "Known approximations" row about api:Effect's
-// general registration (cli-20260922T225138Z-504a0e97):
+// api:Effect's general registration:
 //
 //   1. parseStaticEffectGrant advertised AddPower$/AddToughness$ (the layer-7c
 //      ADDITIVE parameters) but registered no LPT/SubModify effect, so an
@@ -47,11 +46,10 @@ func effectNotesContaining(e *Engine, sub string) []string {
 	return out
 }
 
-// TestEffectDeliveredContinuousGrantAppliesAddPower pins the layer-7c additive
-// P/T half (the finding's Vivien Reid shape): an Effect-delivered
-// `AddPower$ +2 | AddToughness$ +2 | AddKeyword$ Vigilance` must register BOTH
-// layers. Before the fix only the keyword registration survived, so a 2/2
-// creature stayed 2/2.
+// TestEffectDeliveredContinuousGrantAppliesAddPower pins the layer-7c
+// additive P/T half (the finding's Vivien Reid shape): an Effect-delivered
+// `AddPower$ +2 | AddToughness$ +2 | AddKeyword$ Vigilance` must register
+// BOTH layers.
 func TestEffectDeliveredContinuousGrantAppliesAddPower(t *testing.T) {
 	t.Parallel()
 	grant := card(t, "Name:EmblemOfMight\nManaCost:U\nTypes:Sorcery\n"+

@@ -6,8 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The ForgetOtherRemembered$ continuation leaves (ticket: preserve
-// IsRemembered selectors across a suspended ForgetOtherRemembered). The
+// The ForgetOtherRemembered$ continuation leaves: IsRemembered selectors are
+// preserved across a suspended ForgetOtherRemembered. The
 // synchronous leaves are forget_other_remembered_test.go's; these pin the
 // ASKED passes: a walk whose first pass clears the remembered set and then
 // asks a player, answered in a FRESH Ctx, so only the ask's own ride

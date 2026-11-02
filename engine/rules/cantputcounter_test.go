@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The CantPutCounter restriction static (task cantputcounter1), pinned on the
+// The CantPutCounter restriction static, pinned on the
 // real corpus carriers' printed S: forms: Phila, Unsealed (player form, poison
 // only), Melira's Keepers (object form, self, every kind) and Blightbeetle
 // (object form, opponents' creatures, +1/+1 only). Each leaf places a counter

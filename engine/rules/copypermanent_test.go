@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// These tests pin task copyp1: the registered DB$ CopyPermanent primitive, on
+// These tests pin the registered DB$ CopyPermanent primitive, on
 // real corpus cards, end to end. Every one asserts there is no
 // "unimplemented API CopyPermanent" note anywhere in the log, and that the
 // whole game replays byte-identically from its log.
@@ -69,7 +69,7 @@ func exiledTo(t *testing.T, e *Engine, id state.ObjID) {
 }
 
 // TestFlamerushRiderCopiesTheOtherAttackerExiledAtEndOfCombat is the
-// ticket's headline carrier end to end: attack with Flamerush Rider plus one
+// headline carrier end to end: attack with Flamerush Rider plus one
 // other creature, answer the trigger's target ask with the other attacker,
 // and the copy exists -- tapped, attacking the same defender, printed
 // characteristics of the copied bear -- and is exiled when the combat ends.

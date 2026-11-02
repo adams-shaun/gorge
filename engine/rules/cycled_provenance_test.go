@@ -20,10 +20,6 @@ import (
 //   - a bare cost discard of a card that DOES print Cycling does not fire (the
 //     false-fire direction: an unrelated ability's discard cost is not a
 //     cycle).
-//
-// The row is FROZEN and is not edited here; the sibling ticket
-// cli-20260923T060000Z-trig-attackerblocked deletes it once every sub-shape
-// lands.
 
 // cycledSelfTriggerSrc is a card whose ONLY cycling relationship is the
 // Mode$ Cycled trigger; no cycling keyword is printed, so the old

@@ -338,9 +338,9 @@ func tiedExample(rng *rand.Rand) (*Model, Example) {
 // TestValueTermSkipsTiedDecisions pins the anti-collapse contract at the loss
 // level: a decision whose labelled values are all tied contributes zero value
 // loss and zero gradient, so training it cannot drive option-discriminating
-// features toward zero. A raw-target value term (the pre-fix behaviour) gives
-// this example a nonzero loss and a nonzero output-bias gradient, which is
-// precisely the collapse the trainer fix removes.
+// features toward zero. A raw-target value term would give this example a
+// nonzero loss and a nonzero output-bias gradient, which is precisely the
+// collapse this guards against.
 func TestValueTermSkipsTiedDecisions(t *testing.T) {
 	rng := rand.New(rand.NewPCG(31, 31+1))
 	m, ex := tiedExample(rng)
@@ -417,7 +417,7 @@ func TestOverrideWeightScalesExample(t *testing.T) {
 	}
 }
 
-// TestLossModeSwitchPinsTermMix pins the L9b-fix2 mode contract at the loss
+// TestLossModeSwitchPinsTermMix pins the loss-mode contract at the loss
 // level: CE contributes ONLY the rank term (Parts.Value exactly 0) and its
 // per-example weight ignores the margin (pure imitation: a one-world margin
 // must not silence the CE signal the way it silenced the margin-weighted rank
@@ -467,7 +467,7 @@ func TestLossModeSwitchPinsTermMix(t *testing.T) {
 	}
 }
 
-// TestResidualIsAFixedBotPrior pins the L9b-fix2 item-3 residual head: an
+// TestResidualIsAFixedBotPrior pins the residual head: an
 // option in the bot's own answer (Option.BotPick) scores exactly Model.ResidualW
 // higher and nothing else moves; ResidualW is a constant prior, never a
 // trained parameter (no Grads field touches it); and ResidualW 0 makes the
@@ -510,10 +510,10 @@ func TestResidualIsAFixedBotPrior(t *testing.T) {
 
 // TestLossFiniteOnDivergedScores pins the numerical-stability contract: the
 // loss and its score gradient stay finite even when the forward pass hands
-// back ±Inf/NaN scores (a diverged run). The pre-fix loss fed the raw scores
-// to logSumExp, so an Inf made `LSE(labelled) − LSE(preferred)` compute
-// Inf − Inf = NaN, which then poisoned every weight; the score clamp plus the
-// max-subtracting log-sum-exp keep the whole term finite.
+// back ±Inf/NaN scores (a diverged run). Raw scores fed to logSumExp would
+// let an Inf make `LSE(labelled) − LSE(preferred)` compute Inf − Inf = NaN,
+// which then poisons every weight; the score clamp plus the max-subtracting
+// log-sum-exp keep the whole term finite.
 func TestLossFiniteOnDivergedScores(t *testing.T) {
 	ex := Example{Kind: "attackers", Margin: 0.3, TeacherChoice: 1, BotIndex: 0,
 		State: State{Dense: make([]float32, DenseWidth)}}
@@ -549,7 +549,7 @@ func TestLossFiniteOnDivergedScores(t *testing.T) {
 }
 
 // TestClipCapsTheNormAndPreservesDirection pins the per-batch global-L2
-// clip's contract (ticket policytrain-clip-rankweight-interaction): when the
+// clip's contract: when the
 // summed gradient's norm exceeds the cap, EVERY block is rescaled by the
 // SAME factor (the direction — and with it every direction-carrying weight,
 // per-example or per-term — is untouched) and the norm lands exactly on the

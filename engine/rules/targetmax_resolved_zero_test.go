@@ -1,10 +1,9 @@
 package rules
 
-// The resolved-zero half of the dynamic TargetMin$/TargetMax$ bound task
-// (agent-20260918T233200Z-e0817443). The X/Y resolver itself landed in
-// b3786f11 and is pinned by engine/rules/targetmax_x_test.go; what remained is the
-// "instead" idiom, where BOTH bounds resolve to 0 and the engine's
-// post-resolution max >= 1 clamp asked for a target the spell must not take.
+// The resolved-zero half of the dynamic TargetMin$/TargetMax$ bound. The X/Y
+// resolver itself is pinned by engine/rules/targetmax_x_test.go; this file pins
+// the "instead" idiom, where BOTH bounds resolve to 0 and a post-resolution
+// max >= 1 clamp would ask for a target the spell must not take.
 // Tear Asunder writes exactly that: kicked, its main SA is
 // TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1 (X = 0) and its
 // chained sub is TargetMin$ Y | TargetMax$ Y over SVar:Y:Count$Kicked.1.0
@@ -81,8 +80,6 @@ func countType(t *testing.T, e *Engine, p state.PlayerID) int {
 	return n
 }
 
-// TestResolvedTargetBoundsResolvedZeroIsHonoured pins the resolver contract
-// this ticket changes: when BOTH TargetMin$ X and TargetMax$ X are dynamic and
 // resolve to 0, the pair is honoured as written (0, 0), not clamped up to
 // Max 1. This is the shared input to targetAsk, subTargetAsk AND askTarget, so
 // it is the class fix's unit pin. A bare TargetMax$ X (no TargetMin) that
@@ -161,8 +158,7 @@ func TestTearAsunderKickedTakesOnlyTheSubTarget(t *testing.T) {
 	if o := e.G.Obj(pick); o == nil || o.Zone != state.ZExile {
 		t.Fatalf("chosen nonland permanent %d not exiled: %+v", pick, o)
 	}
-	// Exactly one exile: the pre-fix bug exiled the artifact AND the sub's
-	// pick because the main SA still demanded a target.
+	// Exactly one exile, not the artifact AND the sub's pick.
 	if n := len(e.G.Zone(state.ZExile, 0)); n != 1 {
 		t.Fatalf("exile zone has %d cards, want exactly 1", n)
 	}

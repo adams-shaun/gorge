@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// effDigUntil implements Forge's reveal-until search (DigUntilEffect; task
-// diguntil1) — a DIFFERENT primitive from Dig, with its own param family:
+// effDigUntil implements Forge's reveal-until search (DigUntilEffect)
+// — a DIFFERENT primitive from Dig, with its own param family:
 // reveal cards from the top of Defined$'s library (default: the resolving
 // controller) in zone order until one matches Valid$, publicly reveal every
 // card turned over INCLUDING the found one (the same non-Secret ids-Note

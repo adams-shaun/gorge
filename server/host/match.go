@@ -429,7 +429,7 @@ type parkedDecision struct {
 	err error
 	// data is the projected decision this parking was installed for. A human
 	// refusal keeps the pending decision alive and re-parks the same data, so
-	// the seat can answer it again without re-projecting the engine (D1b).
+	// the seat can answer it again without re-projecting the engine.
 	// Nil for a bot parking, whose answer is already resolved.
 	data *parkedData
 	// searchSlot marks a decision that parked on the
@@ -902,7 +902,7 @@ func (r *Registry) play(ctx context.Context, t *table, m *match) (final string) 
 	if maxIntents == 0 {
 		maxIntents = defaultMaxIntents
 	}
-	// Task HW1: the per-turn progress guard. lastTurn is the turn the game
+	// The per-turn progress guard. lastTurn is the turn the game
 	// was in when the previous decision was answered; decisionsThisTurn is
 	// how many decisions have been answered since the last turn advance. A
 	// turn that ADVANCES resets the count — a legitimately long turn of
@@ -1020,7 +1020,7 @@ playLoop:
 		// synchronously in parkSeat and returns immediately; a human seat
 		// parks here on its slot until a SubmitIntent arrives or ctx/timeout
 		// fires the caretaker. The loop re-parks a human whose answer the
-		// engine refused (D1b): refusal preserves the pending decision, so the
+		// engine refused: refusal preserves the pending decision, so the
 		// same seat answers it again instead of the match crashing.
 		var in decision.Intent
 		var next *parkedDecision
@@ -1229,7 +1229,7 @@ playLoop:
 			}
 			break
 		}
-		// Task HW1: advance the per-turn progress counter now that the
+		// Advance the per-turn progress counter now that the
 		// Submit's burst is applied. G.Turn only ever increases, so a turn
 		// greater than lastTurn means this very decision carried the game
 		// into a new turn — reset the count. Otherwise count the decision

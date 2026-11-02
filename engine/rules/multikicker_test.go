@@ -1,6 +1,6 @@
 package rules
 
-// Multikicker (CR 702.43, task multikicker1) pins: the "multikicked" cast
+// Multikicker (CR 702.43) pins: the "multikicked" cast
 // option, the count ask (multikickAsk, the replicateAsk shape), the trailing
 // pay-time FlagMultikicked CastInfo carrying the count into
 // state.Object.TimesKicked, the Count$TimesKicked head, and the legacy

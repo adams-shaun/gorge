@@ -14,9 +14,7 @@ import (
 // therefore its own legal set. AskCopyTargets must ask them in order -- one
 // KNOCK for the artifact (Wear's declaration) and a SECOND for the
 // enchantment (Tear's declaration) -- rather than collapsing both into one
-// flat ask built from the front half alone. Before the fix the copy was asked
-// only once, from Wear's artifact spec, so Tear's enchantment was never
-// offered, the copy's answer dropped it, and Tear did nothing.
+// flat ask built from the front half alone.
 //
 // The carriers are the REAL corpus cards: Wear // Tear (fused through its own
 // K:Fuse) cast and copied through Mirrorpool's MayChooseTarget$ ability. No
@@ -173,8 +171,7 @@ func TestCopyOfFusedSpellAsksPerDeclaration(t *testing.T) {
 	submitChoices(t, eng, stage1Prison)
 
 	// Both declarations recorded: the copy resolves BOTH halves, destroying
-	// the artifact and the enchantment. Before the fix Tear had no target and
-	// the enchantment survived.
+	// the artifact and the enchantment.
 	if n := countTargetsChosenOn(eng, copyID); n != 2 {
 		t.Fatalf("copy recorded %d TargetsChosen events, want 2 (one per declaration)", n)
 	}

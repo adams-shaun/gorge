@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestExchangeLifeSettlesAfterLichDrawSuspendsOnDredge is the finding-t2
-// MAJOR repro: a consumed GainLife→Draw replacement body (Lich) that itself
+// TestExchangeLifeSettlesAfterLichDrawSuspendsOnDredge is a
+// reproduction: a consumed GainLife→Draw replacement body (Lich) that itself
 // suspends on a Dredge ask must not orphan the exchange transaction. The
 // losing side (seat 0) is emitted first and settles; the gaining side
 // (seat 1) is consumed by Lich, whose draw seats a Dredge ask and suspends.
@@ -238,7 +238,7 @@ func TestMisterNegativeExchangeSettlesOnStackWhenGainReplaced(t *testing.T) {
 	if got := len(e.G.Zone(state.ZHand, 1)) - 0; got == 0 {
 		t.Fatal("Lich replacement drew no cards for seat 1")
 	}
-	// The rider (agent-20260928T235256Z-127d875e): seat 0 lost 5 life in the
+	// The rider: seat 0 lost 5 life in the
 	// exchange, so the RememberOwnLoss publication must read 5 on the resumed
 	// SubAbility$ DBDraw and draw exactly 5 cards for seat 0 -- the value has
 	// to survive BOTH the Ctx rebuild the Dredge suspension causes and the

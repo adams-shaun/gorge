@@ -1,6 +1,6 @@
 package cards
 
-// Task agent-20261009T091513Z-3c5153cc: the chain-aware mana-ability
+// The chain-aware mana-ability
 // classifier (IsManaAbilitySA). A Forge "AB$ ChooseColor | SubAbility$
 // DBMana" head is an activated mana ability by CR 605.1a -- no target, could
 // add mana as it resolves -- but the head's own API word is not Mana, so the
@@ -17,7 +17,7 @@ import (
 )
 
 // manaChainHeads are the corpus cards whose AB$ ChooseColor head reaches a
-// DB$ Mana sub-ability. Measured at the 2026-10-09 pin: 31 files carry
+// DB$ Mana sub-ability. Measured at the corpus pin: 31 files carry
 // AB$ ChooseColor; exactly these four chain to DB$ Mana.
 var manaChainHeads = []string{
 	"Foraging Wickermaw",

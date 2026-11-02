@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The std3 condition census: the corpus-wide carriers of the two mechanisms
-// this ticket modelled (the Adamant Count$ head and the comma-delimited
+// The condition census: the corpus-wide carriers of two mechanisms
+// (the Adamant Count$ head and the comma-delimited
 // WithCountersType$ list).
 //
 // The Adamant Count$ bodies are pinned as the COMPLETE distinct set the

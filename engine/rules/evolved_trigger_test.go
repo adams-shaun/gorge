@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The trig:Evolved notification (CR 702.99b, task agent-20260919T183836Z-df01c8be):
+// The trig:Evolved notification (CR 702.99b):
 // the Evolve keyword's own counter trigger is unchanged, but when it actually
 // puts its +1/+1 counter the engine emits the events.Evolved marker so a
 // sibling T:Mode$ Evolved ability on the same creature fires. These tests use

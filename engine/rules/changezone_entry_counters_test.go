@@ -12,9 +12,9 @@ import (
 // on it") puts the counters on as part of the entry (CR 122.6, 614.1c), so
 // the permanent is already a 4/3 when "whenever a creature with power 4 or
 // greater enters" looks at it. Infernal Vessel dies, its own trigger returns
-// it with two counters, and Garruk's Uprising draws a card. Before the fix
-// the counters were a separate CounterChange after the move and the Uprising
-// saw a 2/1 (dirac census pairs 1664 3312 3457 9536).
+// it with two counters, and Garruk's Uprising draws a card. As a separate
+// CounterChange after the move the Uprising would see a 2/1 (dirac census
+// pairs 1664 3312 3457 9536).
 func TestReturnWithCountersEntersWithThem(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

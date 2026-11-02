@@ -11,7 +11,7 @@ beforeAll(async () => {
 });
 
 /**
- * PromptDock near-table geometry (ui24): the default placement pins the dock
+ * PromptDock near-table geometry: the default placement pins the dock
  * above the action button and grows it UP OVER the board, so its rect covers
  * board cards. The contract this pins: the dock's chrome is
  * pointer-transparent — a click aimed at a board target under it reaches the
@@ -56,7 +56,7 @@ async function openWithBadgeUnderDock(page: Awaited<ReturnType<Browser['newPage'
   });
 }
 
-describe('PromptDock near-table placement (ui24)', () => {
+describe('PromptDock near-table placement', () => {
   it('a board badge under the dock is clickable: the dock chrome does not intercept the pointer', { timeout: 60_000 }, async () => {
     const page = await browser.newPage();
     await openWithBadgeUnderDock(page);
@@ -207,7 +207,7 @@ describe('PromptDock near-table auto-yield (promptdock2)', () => {
       expect(rows).toBeGreaterThanOrEqual(7);
 
       // Pin the board option carrier (the pile badge) entirely inside one of
-      // the dock's own option rows — the measured ui24 overlap.
+      // the dock's own option rows — the measured overlap.
       await page.evaluate(() => {
         const row = document.querySelectorAll('[data-prompt-dock] .row')[2] as HTMLElement;
         const r = row.getBoundingClientRect();
@@ -236,6 +236,28 @@ describe('PromptDock near-table auto-yield (promptdock2)', () => {
       expect(after.anyCovered).toBe(false);
       await page.click('[data-pile-badge]', { timeout: 5000 });
       await page.waitForFunction(() => document.body.getAttribute('data-badge-clicked') === '1', undefined, { timeout: 5000 });
+    } finally {
+      await page.close();
+    }
+  });
+
+  it('the title never runs under the tools, in any placement', { timeout: 60_000 }, async () => {
+    const page = await browser.newPage();
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`${url}src/components/PromptDock.geometry.html?ask=toss`, { waitUntil: 'domcontentloaded' });
+      for (const placement of ['table', 'rail', 'rail-bottom', 'floating']) {
+        await page.waitForSelector(`[data-prompt-dock][data-placement="${placement}"]`, { timeout: 5000 });
+        const overlaps = await page.evaluate(() => {
+          const range = document.createRange();
+          range.selectNodeContents(document.querySelector('[data-prompt-title]')!);
+          const words = [...range.getClientRects()];
+          const tools = [...document.querySelectorAll('.tools .tool')].map((t) => t.getBoundingClientRect());
+          return words.filter((w) => tools.some((t) => w.left < t.right && t.left < w.right && w.top < t.bottom && t.top < w.bottom)).length;
+        });
+        expect(overlaps, placement).toBe(0);
+        await page.click('[data-dock-placement-toggle]');
+      }
     } finally {
       await page.close();
     }

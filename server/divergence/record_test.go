@@ -128,7 +128,7 @@ func TestRecordRoundTripBytes(t *testing.T) {
 		t.Fatalf("round trip not byte-identical:\nfirst:\n%s\nsecond:\n%s", first.String(), second.String())
 	}
 
-	// Spot-check the shape against design §5.6's example keys.
+	// Spot-check the shape against the human-divergence design §5.6's example keys.
 	if !strings.Contains(lines[2], `"record_type":"divergence-v1"`) ||
 		!strings.Contains(lines[2], `"schema_version":1`) ||
 		!strings.Contains(lines[2], `"shadow_seed":1234567890123`) ||

@@ -60,9 +60,9 @@ func TestCorpusRegistryCacheSharesFailure(t *testing.T) {
 // Git exports GIT_DIR to every hook it runs, commonly as the relative path
 // ".git". A test binary's working directory is its own package directory, not
 // the repo root, so a relative GIT_DIR resolves to a path that does not exist
-// and `git rev-parse --show-toplevel` fails. Before the fix, CorpusRegistry ran
-// its child git with the inherited environment, so under a pre-commit hook the
-// corpus went missing and every corpus test in the package silently stopped
+// and `git rev-parse --show-toplevel` fails. Were CorpusRegistry to run its
+// child git with the inherited environment, the corpus would go missing under
+// a pre-commit hook and every corpus test in the package would silently stop
 // exercising the corpus -- a fast, green, entirely fictional run.
 //
 // The test arms exactly that environment and asserts the corpus is still found.

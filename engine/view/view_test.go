@@ -285,8 +285,8 @@ func TestCardViewUsesDerivedCharacteristics(t *testing.T) {
 // Tapped/Damage/Attacking/Controller/Owner/SummonSick from
 // cardView left the suite green. Controller is deliberately set to a THIRD
 // value, neither 0 nor the object's own Owner, to prove the two are read
-// independently rather than one accidentally aliasing the other (supplement
-// §9: "Controller and Owner can differ").
+// independently rather than one accidentally aliasing the other: Controller
+// and Owner can differ.
 func TestCardViewCarriesBattlefieldOnlyState(t *testing.T) {
 	g := fourSeatBoard(t)
 	id := g.Zone(state.ZBattlefield, 0)[0]
@@ -401,12 +401,10 @@ func (c boostedChars) Toughness(id state.ObjID) int32 {
 	return c.flatChars.Toughness(id) + c.g.Obj(id).Counter("P1P1")
 }
 
-// TestRedactStripsSecretPayloadsFromOtherSeats is the brief's own test,
-// updated for RedactEvents' new (g, evs, viewer) signature (review C-1) and
-// strengthened per the coordinator's fix-round item 1: the Secret event now
+// TestRedactStripsSecretPayloadsFromOtherSeats pins redaction: the Secret event
 // carries Amount/Counter/Pairs too, so the "keep ONLY the shape" allowlist
-// (rule 1) is proven to zero every payload field it names, not merely the
-// three the brief's own snippet happened to touch (IDs/Obj/Text). It uses a
+// (rule 1) is proven to zero every payload field it names, not merely
+// IDs/Obj/Text. It uses a
 // Secret Note (a private look) rather than a Shuffle or a LibraryOrder
 // because those library-order kinds are hidden from their owner too (CR
 // 701.20a, CR 401.2); a private look stays the owner's own record.
@@ -449,7 +447,7 @@ func TestRedactStripsSecretPayloadsFromOtherSeats(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Review finding C-1 / fix-round item 1: RedactEvents is state-aware, not
+// RedactEvents is state-aware, not
 // merely Secret-flag-aware. Two pre-existing, non-Secret emitters put
 // hidden-zone object ids into a payload -- rules/trigger.go's TriggerPush
 // (Ctx.Remembered) and engine/effects/cardflow.go's RearrangeTopOfLibrary Note --
@@ -787,7 +785,7 @@ func driveRepeatedCastsWithinMainPhase(t *testing.T, e *rules.Engine, permanent,
 	t.Fatalf("did not accumulate %d TriggerPush events within %d iterations", minPushes, iterLimit)
 }
 
-// TestRedactEventsClosesTheTriggerPushLeakMeasured is the fix-round gate: a
+// TestRedactEventsClosesTheTriggerPushLeakMeasured is the gate: a
 // real game accumulates >=20 TriggerPush events (seat 0 casts DrawSpell
 // repeatedly, drawSpellSrc's own doc says why this stays within turn 1's
 // Main1), each one remembering that draw's card -- the same event shape as
@@ -865,7 +863,7 @@ func nCopies(t *testing.T, src string, n int) []*cards.Card {
 }
 
 // ---------------------------------------------------------------------------
-// Supplement §4: Draw before Winner.
+// Draw before Winner.
 
 // TestWinnerDistinguishesAWinFromADrawFromSeatZero:
 // Winner's zero value is PlayerID(0), a real seat, so Over alone cannot say
@@ -912,8 +910,7 @@ func TestWinnerDistinguishesAWinFromADrawFromSeatZero(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Supplement §5: the decision-marshal test the brief's prose promises but
-// its code omits.
+// The decision-marshal test.
 
 func TestDecisionMarshalOmitsServerOnlyFields(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTarget, Source: 42,
@@ -927,7 +924,7 @@ func TestDecisionMarshalOmitsServerOnlyFields(t *testing.T) {
 	// ResumeKind and ResumeSA are the only fields left server-only: they
 	// carry a *cards.SA and are the engine's mid-resolution bookkeeping
 	// (how it re-enters a suspended Ask). The five Part-A discriminators and
-	// the block option's attacker are on the wire since Task U0/W1.
+	// the block option's attacker are on the wire.
 	for _, forbidden := range []string{"resume_kind", "resume_sa", "ResumeKind", "ResumeSA"} {
 		if strings.Contains(s, forbidden) {
 			t.Fatalf("marshalled decision leaked a server-only field %q: %s", forbidden, s)
@@ -991,7 +988,7 @@ func TestCardViewAttachedToRoundTripsJSON(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Supplement §7: totality. Project and RedactEvents must never panic.
+// Totality. Project and RedactEvents must never panic.
 
 func TestProjectAndRedactEventsAreTotal(t *testing.T) {
 	for _, tc := range []struct {
@@ -1145,7 +1142,7 @@ func TestEmptyHandMarshalsEmptyArrayForViewerAndNullForOthersButPoolAlwaysObject
 }
 
 // ---------------------------------------------------------------------------
-// Supplement §10: no aliasing.
+// No aliasing.
 
 // TestProjectDoesNotAliasEngineOrDecisionState mutates the returned view's
 // keyword slice and the attached decision's options, then asserts the
@@ -1178,7 +1175,7 @@ func TestProjectDoesNotAliasEngineOrDecisionState(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Supplement §12: the R3 integration test, driven through a real engine.
+// The integration test, driven through a real engine.
 
 // cardFromSrc parses and links a standalone card the same two-step way rules'
 // own test fixtures do (engine/rules/turn_test.go's card helper) -- view_test.go
@@ -1339,8 +1336,7 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 		t.Fatalf("both enchantments must be on the battlefield: gainer=%d drainer=%d", gainerID, drainerID)
 	}
 
-	// Review finding I-3's own remedy applied here too: the same
-	// collectIDs-based walk the (now-rewritten) leak test uses, run
+	// The same collectIDs-based walk the leak test uses, run
 	// against a projection with Pending, an attached Decision and a
 	// non-empty Stack all populated at once -- the richest shape this
 	// package produces -- to prove the leak property still holds at
@@ -1410,7 +1406,7 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 	want := []struct {
 		source state.ObjID
 		name   string
-		text   string // TriggerDescription$, by Effect pointer identity (supplement §3c)
+		text   string // TriggerDescription$, by Effect pointer identity
 	}{
 		{gainerID, "Gainer", "gain 5 life"},
 		{drainerID, "Drainer", "lose life equal to your life total"},
@@ -1429,8 +1425,8 @@ func TestPendingTriggersAndStackAreObservableThroughAFullEngine(t *testing.T) {
 		if sv.Name != w.name {
 			t.Errorf("Stack[%d].Name = %q, want %q", i, sv.Name, w.name)
 		}
-		// Review finding I-1: Text (abilityText's Effect-pointer lookup, the
-		// most intricate logic in view.go) had no assertion anywhere.
+		// Text is abilityText's Effect-pointer lookup, the most intricate logic in
+		// view.go.
 		if sv.Text != w.text {
 			t.Errorf("Stack[%d].Text = %q, want %q", i, sv.Text, w.text)
 		}

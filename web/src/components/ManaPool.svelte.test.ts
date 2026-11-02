@@ -68,7 +68,7 @@ describe('ManaPool', () => {
     expect(drawn(html)).toBe('');
   });
 
-  // --- available mana (task mp1): the public, battlefield-derived half ---
+  // --- available mana: the public, battlefield-derived half ---
 
   it('available mana renders its own group, distinct from the floating pool', () => {
     const { html } = render(ManaPool, { props: { pool: {}, available: { G: 2, W: 1 } } });
@@ -118,7 +118,7 @@ describe('ManaPool', () => {
     expect(availChip).toBeGreaterThan(tapIdx);
   });
 
-  // --- restricted floating mana (task fb-20260922T145544Z) ---
+  // --- restricted floating mana ---
 
   it('renders a restricted batch\'s spend text as persistent text, not a tooltip', () => {
     const { html } = render(ManaPool, {

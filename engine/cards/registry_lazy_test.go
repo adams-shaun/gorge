@@ -8,7 +8,7 @@ import (
 
 // TestRegistryLazyConcurrent materializes one deck's worth of cards from 8
 // goroutines at once and asserts the imaged registry hands out exactly one
-// pointer per ordinal (spec §2.5 contract 2). Run it under -race.
+// pointer per ordinal. Run it under -race.
 func TestRegistryLazyConcurrent(t *testing.T) {
 	// corpusDir Skips when there is no corpus and names its cardsfolder.
 	reg, err := OpenCorpus(filepath.Dir(corpusDir(t)))

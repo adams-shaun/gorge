@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// The round-2 review's Optional$ fix (Liar's Pendulum's "you may reveal your
-// hand" used to be a forced reveal), driven through the REAL engine: the
+// The Optional$ read (Liar's Pendulum's "you may reveal your hand" is no forced
+// reveal), driven through the REAL engine: the
 // may-reveal ask suspends the resolution, the decline reveals nothing, the
 // acceptance emits the ordinary public reveal Note. The effects-level halves
 // of this contract are pinned in engine/effects/look_test.go; this file is the

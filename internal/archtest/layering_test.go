@@ -12,7 +12,7 @@ import (
 
 // costVocabularyImports is the closed set of module packages engine/rules/cost may
 // import directly (the standard library is always allowed). engine/rules/cost is the
-// L2 leaf of the rules-engine layering (spec 2026-10-03 §3, W5 step E1): the
+// L2 leaf of the rules-engine layering (layering design §3): the
 // Cost/CostPart vocabulary, cost parsing and cost formatting that every rules
 // subsystem shares. It reads only the L1 state vocabulary (state.Mana,
 // state.Zone, state.ObjID); anything wider -- effects, events, rules or a rules
@@ -27,8 +27,7 @@ var costVocabularyImports = map[string]bool{
 
 // TestCostVocabularyIsALeaf pins engine/rules/cost's direct module imports to
 // costVocabularyImports. It skips until the package exists, so the row lands
-// before the package (spec §9: "archtest rows for the new package land
-// first").
+// before the package.
 func TestCostVocabularyIsALeaf(t *testing.T) {
 	const leaf = module + "/engine/rules/cost"
 	p, ok := packages(t)[leaf]
@@ -53,8 +52,8 @@ func TestCostVocabularyIsALeaf(t *testing.T) {
 
 // trigmatchImports is the closed set of module packages engine/rules/trigmatch may
 // import directly (the standard library is always allowed). engine/rules/trigmatch is
-// the L5 trigger-matching layer of the rules-engine layering (spec 2026-10-03
-// §3, W5 step E3): the Mode$ registry and the per-mode matchers, reading the
+// the L5 trigger-matching layer of the rules-engine layering (layering design
+// §3): the Mode$ registry and the per-mode matchers, reading the
 // game through trigmatch.Board. It reads the L0/L1 vocabulary (cards, state,
 // events), the L2 cost vocabulary and the L3 effects filter and count
 // evaluators (matchesSpec's grammar, MatchesPlayerSpec, EvalCountOK).
@@ -146,7 +145,7 @@ func sortedKeys(m map[string]bool) []string {
 
 // combatImports is the closed set of module packages engine/rules/combat may import
 // directly. engine/rules/combat is an L5 subsystem package of the rules-engine
-// layering (spec 2026-10-03 §3, W5 step E5): attack and block legality, read
+// layering (layering design §3): attack and block legality, read
 // through the combat.Board interface package rules implements. It reads the
 // L0/L1 vocabulary (cards, state, events) and the L3 filter and restriction
 // grammar (effects); anything else -- rules, a sibling subsystem, decision or
@@ -188,7 +187,7 @@ func TestCombatImportsStayBelowRules(t *testing.T) {
 // combatBoardMethods is the method count of combat.Board, the read-only
 // interface engine/rules/combat reads the game through (engine/rules/combat/board.go). It
 // is a SHRINK-ONLY ratchet on the pattern of internal/codeshape's: measured
-// 17 when the package landed (W5 step E5). A change that removes a method
+// 17 when the package landed. A change that removes a method
 // lowers the constant in the same commit; NEVER raise it -- derive a new fact
 // from an existing method (Game, Keywords, MatchesSpec) instead of widening
 // the interface.

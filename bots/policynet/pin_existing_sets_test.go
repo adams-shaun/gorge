@@ -146,30 +146,13 @@ func TestExistingFeatureSetsArePinnedOverARealGame(t *testing.T) {
 	for i := range digests {
 		digests[i] = hs[i].Sum64()
 	}
-	// Re-pinned at 0e5196eb7 (CR 103.8a: the starting player skips the whole
-	// turn-1 draw step): the pinned GAME changed, not any set's encoding.
-	// Re-pinned after 93b6057e4 (CR 117.3a: the end of combat step opens
-	// with the active player holding priority): the game poses four more
-	// decisions (282 -> 286), again the GAME, not an
-	// encoding; the derived-type-line view change (26ea2ed4f) moves none of
-	// the three (measured with it disabled).
-	// Re-pinned after 24bbba791 (CR 510.3: players receive priority in the
-	// combat damage step after the regular damage): 286 -> 298 decisions,
-	// the GAME again, not an encoding.
-	// Re-pinned for CR 601.2a (the spell is on the stack at its
-	// cast-time decisions): the GAME's views changed, not an encoding; 298
-	// decisions.
-	// Re-pinned for CR 601.2h: the game's decisions answer in a different
-	// order (cost objects are chosen at payment), not an encoding; 298
-	// decisions.
-	// entity-full is the untruncated entity encoding: it moves whenever the
-	// relational slots do (ENTREL-A sets it; ENTREL-B re-pins it with the
-	// combat slots, format 3).
-	// Re-pinned after the v2 block (colour, pip counts, coarse category at
-	// 84..99) began writing values, not just reserving the slots: only
-	// entity-full moves. v1, mz and entity keep their pins because the block
-	// is appended above every slot those sets read, which this test's other
-	// three digests prove.
+	// The digests pin the GAME as well as the encodings, so a rules change that
+	// alters the pinned game's views or decisions (298 today) moves them with no
+	// encoding having changed. entity-full is the untruncated entity encoding: it
+	// moves whenever the relational slots or the v2 block (colour, pip counts,
+	// coarse category at 84..99) do. v1, mz and entity keep their pins through
+	// the v2 block because it is appended above every slot those sets read, which
+	// this test's other three digests prove.
 	want := []uint64{0xa18e3b3aa51a7cbb, 0xcc0da53e80b20357, 0xadbda00837a5504b, 0xaf64d95f4b2b2145}
 	t.Logf("decisions %d, digests v1=%#016x mz=%#016x entity=%#016x entity-full=%#016x relDecisions=%d combatDecisions=%d",
 		decisions, digests[0], digests[1], digests[2], digests[3], relDecisions, combatDecisions)

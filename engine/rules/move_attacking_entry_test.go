@@ -222,23 +222,19 @@ func TestPreeminentCaptainSoldierEntersAttacking(t *testing.T) {
 // the graveyard TAPPED and ATTACKING, it is blockable, and its blocked
 // damage kills it against the blocker.
 //
-// It stands in for Alesha coverage, which was
-// unreachable through a gap since closed by agent-20260922T232740Z-cf0357bb:
-// her trigger's Cost$ WB WB used to be decline-only at the triggered-cost
-// window (Cost.Priceable() rejected the hybrid pips and no announcement ask
-// existed). The window now poses the CR 601.2b pip election and pays the
-// resolved cost; engine/rules/alesha_hybrid_trigger_test.go drives that real card
-// end to end. This test keeps the cost-free Yore-Tiller carrier because it
-// isolates the graveyard object path itself from any cost window.
-// Thunderkin Awakener, the other object-path carrier, was blocked by its
-// ValidTgts$ ...toughnessLTX SVar-X comparison resolving no target; that was
-// fixed by 7454592e ("fix(rules): resolve trigger target X from source
-// SVar") and is now pinned by
+// It stands in for Alesha coverage: her trigger's Cost$ WB WB is decline-only
+// at the triggered-cost window (Cost.Priceable() rejected the hybrid pips and
+// no announcement ask existed). The window now poses the CR 601.2b pip
+// election and pays the resolved cost;
+// engine/rules/alesha_hybrid_trigger_test.go drives that real card end to
+// end. This test keeps the cost-free Yore-Tiller carrier because it isolates
+// the graveyard object path itself from any cost window. Thunderkin Awakener,
+// the other object-path carrier, was blocked by its ValidTgts$
+// ...toughnessLTX SVar-X comparison resolving no target; that is pinned by
 // engine/rules/thunderkin_awakener_test.go
 // TestThunderkinAwakenerReturnsToughnessLessElementalTappedAndAttacking
-// (agent-20260922T221917Z-aa93a144). Yore-Tiller carries the same inlined
-// object-loop move with a literal spec and no cost, so the path under test is
-// identical.
+// Yore-Tiller carries the same inlined object-loop move with a literal spec
+// and no cost, so the path under test is identical.
 func TestYoreTillerNephilimReturnsCreatureTappedAndAttacking(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

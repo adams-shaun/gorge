@@ -176,15 +176,14 @@ func TestKrotiqNestguardEffectSourceGrant(t *testing.T) {
 }
 
 // TestKrotiqNestguardGrantExpiresAtEndOfTurn is the canattackdefender1-r2
-// expiry regression. Krotiq Nestguard's grant body writes no inline
-// Duration$, and its card text names THIS TURN only ("{2}{G}: This creature
-// can attack this turn as though it didn't have defender"). Before the fix
-// effEffect's absent-Duration default ("Permanent") registered the grant as a
-// one-shot that survives its source (CR 611.2a), so the permission stayed live
-// for the rest of the game -- the wall was still lifted on later turns while
-// the Nestguard stayed on the battlefield. The class helper
-// effects.absentDurationMeansThisTurn now routes this mode's absent Duration$
-// to UntilEOT.
+// expiry. Krotiq Nestguard's grant body writes no inline Duration$, and its
+// card text names THIS TURN only ("{2}{G}: This creature can attack this turn
+// as though it didn't have defender"). effEffect's absent-Duration default
+// ("Permanent") would register the grant as a one-shot that survives its
+// source (CR 611.2a), so the permission stayed live for the rest of the game
+// -- the wall was still lifted on later turns while the Nestguard stayed on
+// the battlefield. The class helper effects.absentDurationMeansThisTurn now
+// routes this mode's absent Duration$ to UntilEOT.
 //
 // The test drives the source through a real activation and then ends the turn
 // with the source STILL ON THE BATTLEFIELD, which is the condition that

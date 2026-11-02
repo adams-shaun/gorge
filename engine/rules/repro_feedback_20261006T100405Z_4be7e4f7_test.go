@@ -12,7 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil/feedback"
 )
 
-// fb-20261006T100405Z: at turn 9, main1, seat 0 held "Name Sticker" Goblin
+// At turn 9, main1, seat 0 held "Name Sticker" Goblin
 // ({2}{R}) and Treasonous Ogre ({3}{R}) with two mana sources (Badlands,
 // Command Tower) untapped, and Rakdos, the Muscle in the command zone. The
 // hand card rendered a disabled "(tap other mana first)" row even though the

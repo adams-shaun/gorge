@@ -42,7 +42,7 @@ const ev = (seq: number, kind: string, obj?: number): EventBody =>
 const viewWithGraveyard = (id: number, name: string): View =>
   baseView({ players: [spectatorPlayer(0, 'Ari', { graveyard: [card({ id, name })] }), spectatorPlayer(1, 'Bo')] });
 
-describe('ResolvedCard — the resolved card lives in the stack frame (fb-20260916T225456Z)', () => {
+describe('ResolvedCard — the resolved card lives in the stack frame', () => {
   it('renders the last resolved card, labelled, when a resolve sits inside the event window', () => {
     const v = viewWithGraveyard(42, 'Grizzly Bears');
     const { html } = render(ResolvedCard, { props: { view: v, events: [ev(1, 'stack_push', 42), ev(2, 'stack_resolve', 42), ev(3, 'tap', 9)] } });
@@ -70,7 +70,7 @@ describe('ResolvedCard — the resolved card lives in the stack frame (fb-202609
     expect(html).not.toContain('data-resolved');
   });
 
-  it('renders nothing when a turn or step event postdates the resolve (fb-20260917T231516Z)', () => {
+  it('renders nothing when a turn or step event postdates the resolve', () => {
     const v = viewWithGraveyard(42, 'Gone Card');
     const { html } = render(ResolvedCard, {
       props: { view: v, events: [ev(1, 'stack_resolve', 42), ev(2, 'step')], },
@@ -103,7 +103,7 @@ describe('ResolvedCard — the resolved card lives in the stack frame (fb-202609
   });
 });
 
-describe('ResolvedCard — the row names the card, is hoverable, and reads its owner (fb-20260917T131253Z-41d199c8)', () => {
+describe('ResolvedCard — the row names the card, is hoverable, and reads its owner', () => {
   const anchor: AnchorRect = { left: 10, top: 20, right: 66 };
   const seats: SeatInfo[] = [
     { name: 'Ari', deck: 'deck-a', colour: '#ff0000' },

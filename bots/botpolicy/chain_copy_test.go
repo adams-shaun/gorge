@@ -9,7 +9,7 @@ import (
 // CH1: the bot accepts the first link of a may-copy chain (the original
 // spell) and declines a copy_optional election whose spell is itself a copy
 // (decision.Decision.CopyOfCopy), so two bots cannot hand Chain of Smog back
-// and forth until the intent cap (cardfuzz batch1 lines 13/15/20).
+// and forth until the intent cap.
 func TestChainCopyDeclinesCopyOfCopy(t *testing.T) {
 	election := func(copyOfCopy bool) *decision.Decision {
 		return &decision.Decision{Seq: 4, Player: 1, Kind: decision.KChoose, Min: 1, Max: 1,

@@ -3,7 +3,7 @@ import type { MatchInfo, View } from '../../protocol';
 import { fetchPending, postIntent, postUndo } from '../api';
 import { WireError } from '../wire/http';
 import { Sbv2Match } from './source.svelte';
-import type { Transport } from './transport';
+import { streamURL, type Transport } from './transport';
 import type { NativeOp, Sbv2Request, Sbv2Send } from './wire';
 
 const seats = [{ name: 'You', deck: 'a', colour: '', human: true }, { name: 'Bot', deck: 'b', colour: '' }];
@@ -63,6 +63,10 @@ afterEach(() => {
 });
 
 describe('Sbv2Match', () => {
+  it('asks for the asks the host otherwise answers for an agent', () => {
+    expect(streamURL('g1', 1, 'tok')).toContain('asks=native');
+  });
+
   it('falls back quietly on a table v2 does not cover', async () => {
     const { res, f } = await started(null, { stateError: new WireError(409, 'unsupported', 'unsupported') });
     expect(res).toMatchObject({ ok: false, quiet: true });

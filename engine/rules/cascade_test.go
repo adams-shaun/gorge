@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Cascade (CR 702.85, task cascade1). The engine deals seat 0 a corpus-only
+// Cascade (CR 702.85). The engine deals seat 0 a corpus-only
 // deck (no Forge script text is committed here — the helpers come from
 // search_library_test.go), arranges the top of its library with a logged
 // LibraryOrder event, and drives the whole exile-until + may-cast sequence

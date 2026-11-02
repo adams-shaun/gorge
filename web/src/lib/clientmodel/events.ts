@@ -3,7 +3,7 @@ import { locate, type Located } from './snapshotdiff';
 import { asZone, type ClientView, type Transition, type ZoneRef } from './types';
 
 /**
- * events maps explicit gorge events to transitions (sub-project 0, gorge
+ * events maps explicit gorge events to transitions (gorge
  * adapter). Objects keep their ObjID across zone moves (events/apply.go
  * MoveZone), so a move's seats are read from the views on either side of the
  * step: the card's place in `prev` for the source, in `next` for the

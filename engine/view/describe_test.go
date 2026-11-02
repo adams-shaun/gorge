@@ -106,7 +106,7 @@ func TestDescribeTemplates(t *testing.T) {
 		{"ask", events.Event{Kind: events.DecisionAsk, Player: 0, Text: "priority"}, "Ann is asked: priority"},
 		{"answer", events.Event{Kind: events.DecisionMade, Player: 0, Text: "priority:[2]"}, "Ann answers priority:[2]"},
 		{"note", events.Event{Kind: events.Note, Text: "Bob reveals Bolt"}, "Bob reveals Bolt"},
-		// effReveal's reveal (task fb-20260914T033246Z-3f1cc033, defect 1):
+		// effReveal's reveal:
 		// the Note carries the ids and no text, and Describe names what was
 		// revealed — the client's only data path for hidden-zone ids.
 		{"reveal note", events.Event{Kind: events.Note, Player: 1, IDs: []state.ObjID{bolt}}, "Bob reveals Bolt #2"},
@@ -165,17 +165,18 @@ func TestDescribeTemplates(t *testing.T) {
 	}
 }
 
-// TestDescribeAbilityObjectNamesSource pins the lc1 object-rendering change:
+// TestDescribeAbilityObjectNamesSource pins object rendering:
 // a faceless ability stack object (minted by events.Apply's
 // TriggerPush/AbilityPush/DelayedPush paths, which set o.Source to the source
 // permanent) must be named by its source card rather than the unhelpful "an
-// ability", and must degrade to the old phrasing when the source is 0,
+// ability", and must degrade to "an ability" when the source is 0,
 // unresolvable, or itself faceless.
 func TestDescribeAbilityObjectNamesSource(t *testing.T) {
 	bear, _ := cards.ParseBytes("b.txt", []byte("Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
 	// A source card with a real face, plus a faceless ability object.
 	g := state.NewGame([]string{"Ann", "Bob"})
 	b := g.AddObject(bear, 0)
+	b.Zone = state.ZBattlefield
 
 	mint := func(source state.ObjID) *state.Object {
 		o := g.AddObject(nil, 0)
@@ -184,7 +185,7 @@ func TestDescribeAbilityObjectNamesSource(t *testing.T) {
 		return o
 	}
 
-	// A triggered/activated ability names its source card (task lc1 req 3).
+	// A triggered/activated ability names its source card.
 	sourced := mint(b.ID)
 	if got := obj(g, sourced.ID); got != "Bear's ability #"+itoa(int64(sourced.ID)) {
 		t.Fatalf("obj with resolvable source = %q", got)
@@ -228,6 +229,7 @@ func TestDescribeCastInfoOnAnActivatedAbilitySaysActivates(t *testing.T) {
 	crier.Link()
 	g := state.NewGame([]string{"Ann", "Bob"})
 	b := g.AddObject(bear, 0)
+	b.Zone = state.ZBattlefield
 	c := g.AddObject(crier, 0)
 
 	mint := func(source state.ObjID, sa *cards.SA) *state.Object {

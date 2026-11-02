@@ -47,8 +47,7 @@ func TestDoubleAmountResolvesPerAffectedObject(t *testing.T) {
 				t.Fatalf("P/T registrations = %d, want 2 (one per affected creature): %+v", len(got), h.continuous)
 			}
 			// The bear must get +2/+2 and the flier +1/+1. A scalar resolver
-			// that read the first object would give BOTH +2/+2 (or, for the
-			// PumpAll form before the fix, no registration at all).
+			// that read the first object would give BOTH +2/+2.
 			if want := [2]int32{2, 2}; got[ids["myBear"]] != want {
 				t.Errorf("bear Double = %v, want %v (its own 2/2)", got[ids["myBear"]], want)
 			}

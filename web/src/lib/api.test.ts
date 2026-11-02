@@ -129,7 +129,7 @@ describe('base path', () => {
   });
 });
 
-describe('createGame (Task ui11)', () => {
+describe('createGame', () => {
   it('fetches the deck catalogue and POSTs selected decks to /api/games', async () => {
     fetchMock.mockReset();
     const decks = [{ id: 'angels', name: 'Angels', format: 'commander', archetype: 'tribal', commander: 'Giada' }];

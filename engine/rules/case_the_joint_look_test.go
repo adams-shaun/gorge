@@ -1,8 +1,7 @@
 package rules
 
 // The multi-target bare look's pacing ack, pinned END TO END on the real
-// corpus card (lookack, task fb-20260917T232325Z-35cfca4b; the r2 review's
-// CRITICAL): Case the Joint ("Draw two cards, then look at the top card of
+// corpus card: Case the Joint ("Draw two cards, then look at the top card of
 // each player's library") carries `DB$ PeekAndReveal | Defined$ Player |
 // NoReveal$ True`, and `Defined$ Player` resolves to BOTH seats — so the
 // resolution walk holds two bare-look targets. The r1 gate consumed its

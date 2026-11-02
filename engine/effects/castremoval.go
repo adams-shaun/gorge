@@ -83,7 +83,7 @@ func CastRemovalTargets(sa *cards.SA) string {
 // CastRemovalKind is empty -- the scope's own pairing rule, so the damage is
 // only ever carried next to a held shape. A 0 answers "unknown", never "no
 // damage": the hold rule treats an unknown figure as no face candidate at
-// all (the ft1 contract's standing rule, an unknown must never be treated as
+// all (an unknown must never be treated as
 // lethal). The negative clamp mirrors DealDamage's own
 // (engine/effects/damage_deal.go): a negative NumDmg deals 0, so it is no
 // face candidate either. The read goes through DamageAmount -- NumDmg$'s one

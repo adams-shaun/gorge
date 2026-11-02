@@ -105,9 +105,9 @@ type View struct {
 	// players still alive, folded over the ordered event stream (RoundOf) by
 	// host, which has the log in hand when it builds this view; a caller with
 	// only a snapshot gets the roundOf approximation instead. Both Turn and
-	// Round are sent because the raw engine counter is what the transcript
-	// ("Turn N: <player>") refers to, and the round is what the board's
-	// clock shows.
+	// Round are sent because the raw engine counter is what the client and the
+	// transcript ("Turn N: <player>") show, and the round says how far around
+	// the table the game has come.
 	Turn     int32          `json:"turn"`
 	Round    int32          `json:"round"`
 	Step     string         `json:"step"`
@@ -322,7 +322,7 @@ type PlayerView struct {
 	// is not a hidden zone, and commander identity is open information.
 	Command []CardView `json:"command"`
 	// Commanders is the player's full commander roster -- the same list
-	// m30's genesis built, in the same order, never shrunk as commanders
+	// genesis built, in the same order, never shrunk as commanders
 	// are cast or die. A roster CardView projects the commander's CURRENT
 	// zone's state (a cast commander is a battlefield object, a dead one a
 	// graveyard object), so the roster is what lets a client -- and the bot
@@ -629,7 +629,7 @@ func projectInto(dst *View, g *state.Game, ch Chars, viewer state.PlayerID, d *d
 	if ch != nil {
 		pts = ch.PendingTriggers()
 	}
-	v.Pending = pendingViews(pending, pts)
+	v.Pending = pr.pendingViews(pending, pts, m.revealFaceDown)
 
 	// A viewer index that names no real seat is a spectator: everything
 	// below that gates on "is this the viewer's own seat" naturally stays

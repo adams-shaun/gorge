@@ -7,12 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// manaOfferGrantBoard builds the cardfuzz shape this ticket reproduces: a
+// manaOfferGrantBoard builds the fuzzer's shape: a
 // battlefield Enchantment granting a recipient Artifact a tap-for-mana
 // activated ability through S:Mode$ Continuous | AddAbility$. It returns the
 // engine and the recipient/grantor ids.
 //
-// The exact repro (cardfuzz seed 12345) is a
+// The exact repro (fuzzer seed 12345) is a
 // phased-out permanent whose Continuous AddAbility$ grant stayed in the offer
 // walk's pass-scoped statics snapshot while the guard/handler's fresh walk
 // dropped it, so the seat was offered "Activate ... for mana" and Submit

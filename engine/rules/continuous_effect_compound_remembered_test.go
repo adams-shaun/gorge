@@ -6,13 +6,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestCompoundRememberedRestrictionDoesNotOverapply is fix F2: a restriction
+// TestCompoundRememberedRestrictionDoesNotOverapply pins this: a restriction
 // whose valid-spec carries IsRemembered combined with an extra predicate
 // (Card.IsRemembered+Creature, a + AND or a , OR list) must never over-apply
-// to a remembered object that fails the extra predicate. The mechanism is now
-// the general filter's IsRemembered (the compound resolves faithfully through
-// the object matcher with the registered remembered set bound), but the
-// pinned behaviour is the same one F2 guarded: the remembered non-creature is
+// to a remembered object that fails the extra predicate. The compound resolves
+// through the general filter's IsRemembered (the object matcher with the
+// registered remembered set bound): the remembered non-creature is
 // NOT blocked, and a bare IsRemembered spec still blocks a remembered object
 // of ANY type.
 func TestCompoundRememberedRestrictionDoesNotOverapply(t *testing.T) {

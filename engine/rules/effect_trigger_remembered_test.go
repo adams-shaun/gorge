@@ -141,7 +141,7 @@ const (
 // the one it always had: both returned creatures, and the next-upkeep body
 // still fires. (The token COUNT that body derives is a separate defect: every
 // delayed fire seeds Ctx.Captured with this same set, so Remembered$Amount
-// excludes it and reads 0 -- filed as a ticket, not asserted here.)
+// excludes it and reads 0; that is not asserted here.)
 func TestEaglesAreComingRegistrationCaptureUnchanged(t *testing.T) {
 	eagles := lookup(t, testutil.CorpusRegistry(t), "The Eagles Are Coming!")
 	bearA, bearB := card(t, eaglesBearASrc), card(t, eaglesBearBSrc)

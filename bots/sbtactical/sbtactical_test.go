@@ -1,9 +1,9 @@
 package sbtactical
 
-// BP-13 (spec 2026-09-28-hosted-bot-packages §11): the sb-tactical adapter's
-// own gate. The host-level rows for the entry live in host/hosted_policies_
+// The sb-tactical adapter's own gate (docs/design/2026-09-28-hosted-bot-packages.md §3.1).
+// The host-level rows for the entry live in host/hosted_policies_
 // test.go (determinism, leak); this file covers the adapter's contract and
-// the §5.1 INFERRED claim the brief charges BP-13 with measuring:
+// the spec's §5.1 INFERRED claim:
 //
 //   - the registry entry refuses a zero Deps and builds with one (factory);
 //   - WantsEnv is a pure function of d and fires at priority only;

@@ -21,7 +21,7 @@ type burstObs struct {
 	in  *decision.Intent
 }
 
-// TestOnBurstSinksTheWholeChainAndReplaysToTheSameHead is Task M2c-1's point:
+// TestOnBurstSinksTheWholeChainAndReplaysToTheSameHead is the point:
 // an embedder's OnBurst/OnMatchEnd sink must see every event and intent of an
 // in-memory (Dir="") bot match, in chain order from genesis through the final
 // GameOver, with OnMatchEnd firing exactly once carrying the finished
@@ -223,8 +223,8 @@ func TestGenesisOnBurstErrorCrashesTheMatch(t *testing.T) {
 	}
 }
 
-// TestOnMatchEndFiresForARestartedAbortedMatch pins the restart.go half of
-// Task M2c-1: a match the previous process was cut off in (sidecar still
+// TestOnMatchEndFiresForARestartedAbortedMatch pins the restart.go half:
+// a match the previous process was cut off in (sidecar still
 // MatchLive on disk) is rewritten aborted during a restart, and an embedder
 // that persists every match must observe that terminal transition — OnMatchEnd
 // fires once with the aborted MatchInfo, exactly as it would for a live match.

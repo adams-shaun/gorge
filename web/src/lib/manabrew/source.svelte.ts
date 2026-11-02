@@ -14,7 +14,7 @@ import { httpTransport, streamURL, type Transport } from './transport';
 import type { AgentPrompt, ClientMessage, EngineMessage, GameViewDto } from './wire';
 
 /**
- * ManaBrewMatch is the ManaBrew adapter (UI rework sub-project 0): the table
+ * ManaBrewMatch is the ManaBrew adapter: the table
  * route's game source when the protocol setting is ManaBrew. The protocol has
  * no event log, so transitions come from diffing successive projected
  * snapshots (diffViews) and the transcript is built from those transitions

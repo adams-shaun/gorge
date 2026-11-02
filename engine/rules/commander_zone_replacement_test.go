@@ -37,8 +37,8 @@ Oracle:x
 `
 
 // tinyCmdSrc2 is tinyCmdSrc under a DIFFERENT name: a test that fields TWO
-// commanders for one player must give them different names (the m33
-// convention, commander_damage_test.go) -- two identically-named legendaries
+// commanders for one player must give them different names (the
+// convention in commander_damage_test.go) -- two identically-named legendaries
 // under one controller is a board CR 704.5j forbids, and the legend rule's
 // controller choice would be asked before any sweep of this test's own.
 const tinyCmdSrc2 = `Name:Tiny Two
@@ -243,8 +243,7 @@ func TestCounteredCommanderOnTheStackIsOfferedTheChoice(t *testing.T) {
 	t.Parallel()
 	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc}, {}})
 	cmd := fieldCommander(t, e, 0, 0)
-	// Stands in for the cast: a real cast (the m31 tax task's commitCast,
-	// not merged yet) emits PutOnStack, which events.Apply moves to the shared
+	// Stands in for the cast: a real cast emits PutOnStack, which events.Apply moves to the shared
 	// stack the same way this MoveZone does; the counter below is
 	// effCounter's exact emit shape.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: cmd, From: state.ZBattlefield, To: state.ZStack})
@@ -347,7 +346,7 @@ func TestStolenCommanderGoesToItsOwnersCommandZoneByItsOwnersChoice(t *testing.T
 
 // TestCommanderMovingToBattlefieldOrStackIsNotReplaced pins the four-
 // destination guard from the outside: a commander entering the battlefield
-// (a recast -- the m31/tax casts land here) or the stack sits untouched,
+// (a recast: the tax suite's casts land here) or the stack sits untouched,
 // with no decision asked and nothing parked. This is the mutation guard for
 // the destination switch: adding ZBattlefield or ZStack to the replaced set
 // makes fieldCommander itself (and this test) ask a decision where CR 903.9
@@ -376,7 +375,7 @@ func TestCommanderMovingToBattlefieldOrStackIsNotReplaced(t *testing.T) {
 
 // TestNonCommanderGameNeverRunsTheReplacement is the FormatCommander gate: a
 // Constructed-format game, even one whose Config carries a Commanders list
-// (so m30's genesis parked a commander and sized the bookkeeping), must not
+// (so genesis parked a commander and sized the bookkeeping), must not
 // offer the choice at all -- the commander dies to the graveyard with no
 // decision, no queue and no commander-zone events anywhere in the log.
 // Deleting the format gate fails this test by name.
@@ -535,8 +534,8 @@ func TestCommanderZoneChoiceIsInTheLog(t *testing.T) {
 // outstanding carries the same pending decision AND the same parked move,
 // so the clone answers the decision the way the original would (the
 // commander moves where the answer says), and the two engines then evolve
-// independently (m32's own branch of the m33 clone test: the queue is new
-// engine state, and dropping it from Clone would make the clone's answer
+// independently (the queue is engine state, and dropping it from Clone would
+// make the clone's answer
 // find no parked move and leave the commander stranded).
 func TestCommanderZoneDecisionSurvivesClone(t *testing.T) {
 	t.Parallel()

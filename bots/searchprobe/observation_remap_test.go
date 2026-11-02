@@ -20,8 +20,8 @@ import (
 //
 // Two things must hold at once, or the strip is either missing or vacuous:
 //
-//   - the PROJECTION still carries a non-empty own library (the view fact this
-//     ticket exposes is real and the fixture exercises it), and
+//   - the PROJECTION still carries a non-empty own library (the view fact is
+//     real and the fixture exercises it), and
 //   - the CAPTURED FRAME carries no `library` member for any seat, while a
 //     sibling hidden zone the frame IS allowed to know (the actor's own hand)
 //     is present, so "no library" cannot be an all-empty board.

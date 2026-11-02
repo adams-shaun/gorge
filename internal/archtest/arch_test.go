@@ -146,7 +146,7 @@ func set(s string) map[string]bool {
 // time.Now, and the CLI's progress line prints per-game elapsed seconds. The
 // testkit/paymirror library itself imports no time and is a pure function of
 // its seeds and the corpus for a completed game; a game the CLI's budget
-// truncated says so (Err "truncated: budget"). cmd/enginebench (the docs/015
+// truncated says so (Err "truncated: budget"). cmd/enginebench (the
 // engine-speed rows) reads it only to report each row's elapsed wall time
 // beside its CPU time; every game and seed is fixed by its flags.
 // server/host/manabrewhttp uses time only for SSE keep-alive and write
@@ -203,13 +203,13 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/server/gorged", module + "/testkit/testutil"},
 		{module + "/engine/cards", module + "/engine/state"},
 		{module + "/engine/deck", module + "/engine/rules"},
-		// The shadow answer (HD-3, human-divergence design §5.4) is computed by
+		// The shadow answer (human-divergence design §5.4) is computed by
 		// a package the host calls and the offline triage tool recomputes
 		// through: it may not depend on the host that calls it, nor on test
 		// scaffolding.
 		{module + "/server/divergence/shadow", module + "/server/host"},
 		{module + "/server/divergence/shadow", module + "/testkit/testutil"},
-		// The package layering (spec 2026-10-03 §3): engine/rules/cost is the L2
+		// The package layering (layering design §3): engine/rules/cost is the L2
 		// cost vocabulary leaf. It sits below effects and below every rules
 		// subsystem package, so none of them -- and never rules itself -- may
 		// be reachable from it. TestCostVocabularyIsALeaf pins its whole
@@ -224,7 +224,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/engine/rules/cost", module + "/engine/rules/trigmatch"},
 		{module + "/engine/rules/cost", module + "/engine/rules/combat"},
 		{module + "/engine/rules/cost", module + "/engine/rules/resolve"},
-		// engine/rules/combat is an L5 subsystem package (W5 step E5): attack and
+		// engine/rules/combat is an L5 subsystem package: attack and
 		// block legality behind combat.Board. It never reaches back into
 		// rules (Go forbids the direct cycle once rules imports it; these
 		// rows also forbid the transitive one), never into a sibling
@@ -238,7 +238,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/engine/rules/combat", module + "/engine/rules/trigmatch"},
 		{module + "/engine/rules/combat", module + "/engine/rules/resolve"},
 		{module + "/engine/rules/combat", module + "/bots/botpolicy"},
-		// engine/rules/trigmatch (W5 E3) is an L5 subsystem package: the trigger
+		// engine/rules/trigmatch is an L5 subsystem package: the trigger
 		// matchers read the engine through trigmatch.Board, never through
 		// *rules.Engine, so it may not reach rules, its sibling L5 packages
 		// (pay, combat) or the L6 resolution kernel. It may sit on engine/rules/chars
@@ -293,7 +293,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 // boundary violation, for the synthetic or live package map pkgs.
 //
 // The from-manabrew rows check DIRECT imports only, deliberately. The
-// translator is allowed to import view, decision and state (spec §5.1), and
+// translator is allowed to import view, decision and state, and
 // view imports events; the transport is allowed to import host, and host
 // imports rules. A transitive check on those rows would therefore forbid the
 // imports §5.1 requires, and note that server/host/manabrewhttp cannot avoid host.
@@ -440,9 +440,9 @@ func TestNoLegacyMathRand(t *testing.T) {
 // function that assigns to the Engine.resume state, keyed by the receiver-
 // qualified function name (e.g. "(*Engine).Ask") with the sites it writes.
 // A write reachable through the resume field is a write to the resume state:
-// e.resume, e.resume.outer and e.resume.outer.sa all count (fx40), because
+// e.resume, e.resume.outer and e.resume.outer.sa all count, because
 // resolution.go carries a real nested write of the shape e.resume.outer = ...
-// that the pre-fx40 outermost-selector-only match never saw. It is the census
+// that an outermost-selector-only match never sees. It is the census
 // that TestResumeStateOwnedOnlyByTheResolutionMachinery both enforces against
 // and keeps exact.
 func resumeFieldWriters(t *testing.T) map[string][]string {
@@ -516,7 +516,7 @@ func resumeFieldWriters(t *testing.T) map[string][]string {
 // goSourcesUnder returns every non-test .go file under dir, RECURSIVELY
 // (testdata and dot/underscore directories excluded), sorted. A census that
 // globbed only dir/*.go would silently drop every file a refactor moves into
-// a subpackage (the rules-engine refactor spec's W5 package extraction).
+// a subpackage.
 func goSourcesUnder(t *testing.T, dir string) []string {
 	t.Helper()
 	var files []string
@@ -546,10 +546,9 @@ func goSourcesUnder(t *testing.T, dir string) []string {
 // resumeSelectorInChain reports whether any selector in an assignment target's
 // selector chain is named "resume", and if so returns that selector. It is
 // what makes e.resume, e.resume.outer and e.resume.outer.sa all writes to the
-// engine's resume state: the pre-fx40 census compared only the outermost
-// selector's name, so a nested write through the field (the e.resume.outer =
-// ... line resolution.go has carried since fx34) never registered. It is
-// still a syntactic approximation — an alias bound from e.resume and then
+// engine's resume state: a census comparing only the outermost selector's
+// name would miss a nested write through the field (the e.resume.outer = ...
+// line in resolution.go). It is
 // assigned through would defeat it (see the alias-hole limit recorded in
 // TestResumeStateOwnedOnlyByTheResolutionMachinery).
 func resumeSelectorInChain(expr ast.Expr) (ast.Expr, bool) {

@@ -34,7 +34,7 @@ func loneClassDecision() *decision.Decision {
 	}
 }
 
-// TestTargetSetSharedClampReanchorsLoneClass pins the MAJOR: a preferred first
+// TestTargetSetSharedClampReanchorsLoneClass: a preferred first
 // pick alone in its shared class must not leave Clamp returning a short answer
 // Validate rejects. The precondition asserts the trap really exists -- option
 // 0 shares its token with no other option, while {1,2} is a legal pair.

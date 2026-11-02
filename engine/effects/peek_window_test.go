@@ -19,9 +19,9 @@ const (
 
 // TestPeekAndRevealWindowFiltersWithinWindow pins the peek window: with
 // PeekAmount$ 1 the filter sees only the top card, so a creature anywhere
-// below a nonmatching top card is NOT revealed (ECL Gathering Stone's
-// reported defect). Pre-fix RevealValid$ filtered the whole library and then
-// truncated, so the first creature below the window was revealed instead.
+// below a nonmatching top card is NOT revealed (ECL Gathering Stone).
+// Filtering the whole library and then truncating would reveal the first
+// creature below the window instead.
 func TestPeekAndRevealWindowFiltersWithinWindow(t *testing.T) {
 	h, src, lib := riderBoard(t, peekBolt, peekIsle, peekBear)
 	sa := &cards.SA{API: "PeekAndReveal", Params: map[string]string{

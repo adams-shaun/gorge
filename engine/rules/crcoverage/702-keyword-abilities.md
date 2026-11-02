@@ -27,7 +27,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.13a-c | partial | `engine/rules/combat/block.go#CanBlock` | - | artifact test reads printed face (bf.IsArtifact), colour derived |
 | 702.14a-e | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block.go#LandwalkSpec` | - | layer-4 land types; nonbasic/snow forms |
 | 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
-| 702.15e | deviates | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/events/event.go#LifeChange` | - | one source to two recipients = two gain events |
+| 702.15e | follows | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/lifelink_batch.go#Engine.flushLifelinkBatch` | `TestLifelinkTrampleOverIsOneLifeGainEvent` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` |  |
 | 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | `TestProtectionFromATypeReadsTheSourceNow` |  |
 | 702.16k | unknown | - | - | protection from a player not located |
 | 702.16n,p | unknown | - | - | "doesn't remove" Auras not located |
@@ -119,7 +119,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.70a,b | not-impl | - | - | SILENT: granted keyword does nothing |
 | 702.71a | not-impl | - | - | LOUD (1) |
 | 702.72a-c | not-impl | - | - | LOUD (12) |
-| 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` | `TestCloneChangelingCDAAfterEarlierStrip` |  |
+| 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` `engine/rules/setprops.go#Engine.setPropTokens` | `TestCloneChangelingCDAAfterEarlierStrip` `TestChangelingSharesACreatureTypeInEveryZone` |  |
 | 702.74a | follows | `engine/rules/altcast_modes.go#altCastModes` `engine/rules/altcast.go#Engine.altCostEnter` | `TestEvokeCastPaysTheEvokeCostAndSacrifices` |  |
 | 702.75a,b | follows | `engine/cards/kw_hideaway.go#kwHideaway` `engine/effects/cardflow.go#effHideaway` `engine/effects/cardflow.go#hideawayPicked` `engine/effects/cardflow.go#hideawayBottom` | `TestRiotAndHideawayUseRealCorpusCards` `TestHideawayExileIsSeatOnesSecretNotSeatZeros` `TestHideawayNoHostExileIsTheControllersSecret` `TestHideawayControllerStillSeesTheHiddenFace` `TestCRHideawayRestGoesToBottomInRandomOrder` | the exile is the controller's secret and look, fixed at the exile (the CR's look follows the permanent's controller); the rest goes to the bottom in a seeded random order |
 | 702.76a | not-impl | - | - | LOUD (10); SILENT granted (Hunting Velociraptor) |
@@ -204,7 +204,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.141 | follows | `engine/cards/kw_encore.go#kwEncore` `engine/effects/encore.go#effEncore` | `TestEncoreActivatesFromTheGraveyardIntoHastedTokenCopies` `TestEncoreCreatesOneDelayedTriggerForAllOpponentTokens` | Exile from graveyard |
 | 702.142 | follows | `engine/rules/legal_loyalty.go#Engine.boastGateOK` | `TestBroadsideBombardiersBoastGateOfferedAfterAttacking` `TestBroadsideBombardiersBoastOncePerTurn` |  |
 | 702.143 | follows | `engine/rules/altcast.go#Engine.foretellCastAvailable` `engine/rules/scriptfacts/foretell_cost.go#ForetellCost` `engine/rules/cast_commit.go#Engine.payCast` `engine/view/describe.go#Describe` | `TestDelayedBlastFireballForetellCastDealsFive` `TestCosmosChargerWidensForetellToAnyPlayersTurn` `TestForetellActionNamesNoCardToTheOpponent` `TestForetellActionIsAForetellNotACast` | {2} exile face down on your turn; only the foreteller may look, and the action reads "foretells" (cr-g62, cr-g64) |
-| 702.144 | follows | `engine/cards/kw_demonstrate.go#kwDemonstrate` `engine/effects/demonstrate.go#effDemonstrate` | `TestSilverquillLecturerDemonstrateCopyAndOpponentToken` `TestDemonstrateElectionDeclineCopiesNothing` | Optional copy |
+| 702.144 | follows | `engine/cards/kw_demonstrate.go#kwDemonstrate` `engine/effects/demonstrate.go#effDemonstrate` | `TestSilverquillLecturerDemonstrateCopyAndOpponentToken` `TestDemonstrateElectionDeclineCopiesNothing` `TestDemonstrateCopiesMayChooseNewTargets` `TestDemonstrateCasterInSeatOneCopiesForSeatZero` | Optional copy; each copier elects new targets; seat 0 is an opponent like any other |
 | 702.145 | follows | `engine/rules/daynight.go#Engine.syncDayNightFaces` `engine/rules/daynight.go#Engine.dayNightStateCheck` `engine/events/daynight_entry.go#entersTransformedAtNight` `engine/effects/daynight_bound.go#dayNightBound` | `TestCR702_145cDayboundTransformsAsItBecomesNight` `TestCR702_145fNightboundTransformsAsItBecomesDay` `TestCR702_145bDayboundEntersTransformedAtNight` `TestCR702_145bDayboundCantBeTransformedByOtherEffects` `TestCR702_145gNightboundAloneMakesItNight` | 35/36 carriers playable; Tovolar also needs api:DayTime |
 | 702.146 | not-impl | - | - |  |
 | 702.147 | follows | `engine/rules/combat/restrictions.go#ParseHiddenKeyword` `engine/rules/trigger_granted.go#Engine.checkGrantedAttackKeywordTriggers` | `TestDecayedCannotBlock` `TestDecayedCounterGrantsBothRules` | Can't block |
@@ -237,7 +237,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.177a | follows | `engine/rules/legal_loyalty.go#Engine.activationLimitBlocked` | `TestExhaustMaiJadedEdgeWithheldAfterOneUse` `TestExhaustInlineWithheldSameTurnAndLaterTurn` |  |
 | 702.177b | unknown | `engine/rules/legal_loyalty.go#Engine.additionalActivationLimit` | - |  |
 | 702.178 | follows | `engine/rules/speed.go#Engine.maxSpeedAbilities` | `TestMaxSpeedAddAbilityOfferedExactlyOnce` `TestMaxSpeedPlayerProperty` |  |
-| 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` | Speed starts at 1 |
+| 702.179 | follows | `engine/rules/speed.go#Engine.checkSpeedStart` `engine/rules/speed.go#Engine.checkSpeedGain` | `TestStartYourEnginesSpeedLifecycle` `TestStartYourEnginesSpeedStartsWithControlChange` `TestStartYourEnginesSpeedStartsPastAReplacedEntry` | Speed starts at 1 |
 | 702.180 | follows | `engine/rules/cast_altcost.go#harmonizeCost` `engine/rules/cast_altcost.go#Engine.harmonizePayment` | `TestHarmonizePaysDerivedPowerNotPrinted` `TestHarmonizeAnnouncementSkipsNonCreaturePower` `TestHarmonizeTapsAnimatedLandForItsPower` | Graveyard cast; tap one creature to reduce by power |
 | 702.181 | follows | `engine/cards/kw_mobilize.go#kwMobilize` | `TestMobilizeSacrificesAtTheNextEndStep` `TestMobilizeSecondTriggerCountsOnlyItsOwnTokens` |  |
 | 702.182 | follows | `engine/cards/kw_jobselect.go#kwJobSelect` | `TestJobSelectExpandsToHeroEtbAttach` `TestBlackMagesRodJobSelectCreatesHeroAndAttaches` |  |

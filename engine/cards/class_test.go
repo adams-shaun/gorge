@@ -3,7 +3,7 @@ package cards
 import "testing"
 
 // TestClassExpandsEntryCounterActivatorsAndGrants pins the kw:Class expansion
-// on Fortune Teller's Talent's real script shape: level 1 is intrinsic (no
+// on a Class with a grant at each of levels 2 and 3: level 1 is intrinsic (no
 // entry counter or replacement), one sorcery-speed level-up activator per
 // level gated on the Class being at EXACTLY that level minus one (CR
 // 716.2b/716.2d: "activate only if this Class's level is less than N" is
@@ -11,12 +11,12 @@ import "testing"
 // level's granted static appended with a ClassBand$<N> gate so it is live
 // from level N on.
 func TestClassExpandsEntryCounterActivatorsAndGrants(t *testing.T) {
-	f := expanded(t, "Name:Fortune Teller's Talent\nManaCost:U\nTypes:Enchantment Class\n"+
-		"K:Class:2:3 U:AddStaticAbility$ SFutureSight\n"+
-		"K:Class:3:2 U:AddStaticAbility$ SReduceCost\n"+
-		"SVar:SFutureSight:Mode$ Continuous | Affected$ Card.TopLibrary+YouCtrl | CheckSVar$ X | AffectedZone$ Library | MayPlay$ True\n"+
-		"SVar:SReduceCost:Mode$ ReduceCost | ValidCard$ Card.!wasCastFromYourHand | Type$ Spell | Activator$ You | Amount$ 2\n"+
-		"SVar:X:Count$ThisTurnCast_Card.YouCtrl\nOracle:x\n")
+	f := expanded(t, "Name:Two Grants\nManaCost:U\nTypes:Enchantment Class\n"+
+		"K:Class:2:3 U:AddStaticAbility$ SPlay\n"+
+		"K:Class:3:2 U:AddStaticAbility$ SCheaper\n"+
+		"SVar:SPlay:Mode$ Continuous | Affected$ Card.YouCtrl | CheckSVar$ X | MayPlay$ True\n"+
+		"SVar:SCheaper:Mode$ ReduceCost | Amount$ 2\n"+
+		"SVar:X:Number$1\nOracle:x\n")
 
 	// Level 1 is intrinsic: there is no counter-placing entry replacement.
 	if len(f.Repls) != 0 {
@@ -81,16 +81,16 @@ func TestClassExpandsEntryCounterActivatorsAndGrants(t *testing.T) {
 
 // TestClassExpandsTriggerAndAmpersandGrants pins the other two grant kinds:
 // AddTrigger$ appends a trigger with the level band (Warlock Class's
-// TriggerClassLevel shape) and an "A & B" AddStaticAbility$ value yields one
+// shape) and an "A & B" AddStaticAbility$ value yields one
 // static per named body (with_two_of_everything? -> SMayLook & SMayPlay). The
 // trigger body here also carries its OWN ClassLevel$ crossing gate (the real
 // Mode$ ClassLevelGained param), which the band must NOT overwrite -- the band
 // is ClassBand$, a distinct name.
 func TestClassExpandsTriggerAndAmpersandGrants(t *testing.T) {
-	f := expanded(t, "Name:Warlock Class\nManaCost:B\nTypes:Enchantment Class\n"+
-		"K:Class:2:1 B:AddTrigger$ TriggerClassLevel\n"+
+	f := expanded(t, "Name:Grant Kinds\nManaCost:B\nTypes:Enchantment Class\n"+
+		"K:Class:2:1 B:AddTrigger$ TLevel\n"+
 		"K:Class:3:2 U:AddStaticAbility$ SMayLook & SMayPlay\n"+
-		"SVar:TriggerClassLevel:Mode$ ClassLevelGained | ClassLevel$ 2 | ValidCard$ Card.Self | Execute$ TrigDig | TriggerZones$ Battlefield\n"+
+		"SVar:TLevel:Mode$ ClassLevelGained | ClassLevel$ 2 | ValidCard$ Card.Self | Execute$ TrigDig\n"+
 		"SVar:TrigDig:DB$ Dig | DigNum$ 3\n"+
 		"SVar:SMayLook:Mode$ Continuous | Affected$ Card.TopLibrary+YouCtrl | AffectedZone$ Library | MayLookAt$ You\n"+
 		"SVar:SMayPlay:Mode$ Continuous | Affected$ Card.TopLibrary+YouCtrl | AffectedZone$ Library | MayPlay$ True\n"+
@@ -129,13 +129,13 @@ func TestClassExpandsTriggerAndAmpersandGrants(t *testing.T) {
 // trigger gate reads as a UNION with IsPresent$ (Hunter's Talent's end-step
 // draw fired at level 1), and which the replacement gate never read at all.
 func TestClassGrantKeepsTheBodysOwnIsPresent(t *testing.T) {
-	f := expanded(t, "Name:Hunter's Talent\nManaCost:G\nTypes:Enchantment Class\n"+
-		"K:Class:3:3 G:AddTrigger$ TriggerEndStep\n"+
+	f := expanded(t, "Name:Own Present\nManaCost:G\nTypes:Enchantment Class\n"+
+		"K:Class:3:3 G:AddTrigger$ TEnd\n"+
 		"K:Class:2:1 G:AddReplacementEffect$ SRepl\n"+
-		"SVar:TriggerEndStep:Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | TriggerZones$ Battlefield | IsPresent$ Creature.powerGE4+YouCtrl | Execute$ TrigDraw\n"+
+		"SVar:TEnd:Mode$ Phase | Phase$ End of Turn | IsPresent$ Creature.powerGE4+YouCtrl | Execute$ TrigDraw\n"+
 		"SVar:TrigDraw:DB$ Draw\n"+
-		"SVar:SRepl:Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplaceWith$ DBPutCounter | IsPresent$ Creature.YouCtrl\n"+
-		"SVar:DBPutCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1\n"+
+		"SVar:SRepl:Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplaceWith$ RCounter | IsPresent$ Creature.YouCtrl\n"+
+		"SVar:RCounter:DB$ PutCounter | Defined$ Self\n"+
 		"Oracle:x\n")
 	if len(f.Triggers) != 1 {
 		t.Fatalf("want one granted trigger, got %+v", f.Triggers)
@@ -172,9 +172,9 @@ func TestClassGrantKeepsTheBodysOwnIsPresent(t *testing.T) {
 // static arm of the `has` check a second Link double-appends every level's
 // granted static and activator.
 func TestClassExpansionIsIdempotent(t *testing.T) {
-	c, diags := ParseBytes("k.txt", []byte("Name:Warlock Class\nManaCost:B\nTypes:Enchantment Class\n"+
-		"K:Class:2:1 B:AddStaticAbility$ SBoost\n"+
-		"SVar:SBoost:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1\n"+
+	c, diags := ParseBytes("k.txt", []byte("Name:One Grant\nManaCost:B\nTypes:Enchantment Class\n"+
+		"K:Class:2:1 B:AddStaticAbility$ SGrant\n"+
+		"SVar:SGrant:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ 1\n"+
 		"Oracle:x\n"))
 	if len(diags) > 0 {
 		t.Fatal(diags)

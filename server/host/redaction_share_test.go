@@ -1,6 +1,6 @@
 package host
 
-// Task d3: a burst's redacted, described bodies are a pure function of the
+// A burst's redacted, described bodies are a pure function of the
 // (viewer, vis) pair handed to eventBodiesFor, and two subscribers may share
 // a result ONLY when that pair is identical. Three things are pinned here:
 //

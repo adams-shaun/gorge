@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestNestedCharmDoesNotInheritOuterModes pins the fx41 defect: a Charm whose
+// TestNestedCharmDoesNotInheritOuterModes pins the defect: a Charm whose
 // chosen mode's sub-chain reaches a SECOND Charm must pose its own modal ask.
 //
 // THE SHAPE IS CORPUS-UNREACHABLE TODAY. A walker over the compiled corpus

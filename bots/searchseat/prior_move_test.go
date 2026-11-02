@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// preMoveCandidateScore is candidateScore exactly as it stood at 457efcb9
-// (prior.go:155-185), kept here so the move to policynet is pinned bit for
-// bit: the pn10 prior's ranking must not change.
+// preMoveCandidateScore is candidateScore as it stood before the move to
+// policynet, kept here so the move is pinned bit for bit: the prior's ranking
+// must not change.
 func preMoveCandidateScore(kind string, scores []float32, choices []int) float64 {
 	sp := func(z float64) float64 {
 		if z > 0 {

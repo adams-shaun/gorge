@@ -324,7 +324,7 @@ func TestContinuousConditionTable(t *testing.T) {
 // TestContinuousConditionUnknownNeverApplies pins the fail-closed direction: a
 // Condition$ value this gate does not implement (FatefulHour) never grants.
 // Blessing USED to be this test's unknown example and now reads the real
-// CR 702.131 latch (ascend1) -- see TestContinuousConditionTable's Blessing
+// CR 702.131 latch -- see TestContinuousConditionTable's Blessing
 // entry and rules/ascend_test.go.
 func TestContinuousConditionUnknownNeverApplies(t *testing.T) {
 	t.Parallel()

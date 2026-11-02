@@ -539,7 +539,7 @@ type CastWeights struct {
 	// LifeDelta is the deciding seat's life minus the lowest opponent's.
 	LifeDelta int32
 
-	// Everything below is an L1b INTERACTION feature (C10): a per-option
+	// Everything below is an INTERACTION feature (C10): a per-option
 	// conjunction of the card's own class (creature vs not, instant-speed
 	// vs not) with a decision-level context, so a tuner can price a
 	// creature differently from a one-shot in the same board instead of
@@ -603,7 +603,7 @@ type CastWeights struct {
 	// end step apart from the rest of the opponent's turn.
 	InstantOppEnd int32
 
-	// SetValue is the L1c within-turn mana-efficiency feature (C11): it
+	// SetValue is the within-turn mana-efficiency feature (C11): it
 	// prices the FOLLOW-UP a cast leaves behind. For each offered cast
 	// option o the scorer computes the best total castScore obtainable this
 	// turn by casting o first and then a best affordable subset of the
@@ -622,7 +622,7 @@ type CastWeights struct {
 	// ranks with.
 	//
 	// Weight 0 in the default profile: the feature is not even evaluated,
-	// so every default pick is byte-identical to the pre-L1c arithmetic.
+	// so every default pick is byte-identical to the arithmetic without it.
 	SetValue int32
 }
 
@@ -861,7 +861,7 @@ func (b Board) chooseCast(d *decision.Decision) int {
 	// commander does). A hard block, by contrast, made the bot decline
 	// casting its good hands and sat passively on mana the phase threw away.
 	res := b.reserve()
-	// A4's R4: the reserve's weight by deck posture (posture.go).
+	// The reserve's weight by deck posture (posture.go).
 	resScale := b.reserveScale(w)
 	// The foreign-spell census: is there a foreign spell on the stack for a counter to
 	// eat? ForeignSpell is its one home, read in b.Stack's own order.

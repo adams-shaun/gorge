@@ -19,7 +19,7 @@ import (
 // re-checks with every chosen attacker excluded, so the combined charge can be
 // rejected even though its priced non-mana components are all zero.
 //
-// The recorded cardfuzz B-off/batch2.jsonl reproduction (seed
+// The recorded fuzz reproduction (seed
 // 11612869535247757) hits exactly this: Myr Prototype has 9 +1/+1 counters
 // ({9} tax), the board offers six attackers, and the bot declares all six. The
 // rejection message used to print only the non-mana components
@@ -275,7 +275,7 @@ func TestWholeDeclarationDiagnosticNamesMana(t *testing.T) {
 	}
 	// PRECONDITION: the folded Values fit the published budget, so the wire
 	// lets the declaration through and the engine diagnostic is what rejects
-	// it -- the layer this ticket fixed.
+	// it.
 	if !d.HasBudget() || gopt.Value+dopt.Value > d.MaxSum {
 		t.Fatalf("precondition: folded sum %d exceeds MaxSum %d, so Validate rejects before the engine check", gopt.Value+dopt.Value, d.MaxSum)
 	}
@@ -347,7 +347,7 @@ func TestFlatAttackTaxSingleAttackerIsPayable(t *testing.T) {
 	drainCombatPriority(t, e)
 }
 
-// ---- attackcost-manawindow (agent-20260927T081629Z-fcfe8bd3) end-to-end suite ----
+// ---- attack-cost mana window end-to-end suite ----
 //
 // The suites above pin the wire-budget fold and the diagnostic at main's
 // layer; the suite below is the reviewed regression the filed report asked

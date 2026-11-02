@@ -3,9 +3,8 @@ package effects
 // The behavioural consequence of the `Card.OwnedBy Player.NotedFor<label>`
 // referent: TMT Turtles in Time / TMT Step Between Worlds' DBTimetwister
 // ChangeZoneAll sweep must move exactly the noted seats' cards from hand and
-// graveyard into their libraries. Before this ticket the predicate was
-// unknown and failed closed, so the sweep moved NOTHING for anyone -- the
-// player-visible bug this ticket exists to fix. This drives the real corpus
+// graveyard into their libraries. If the predicate is unknown it fails closed
+// and the sweep moves NOTHING for anyone. This drives the real corpus
 // SA rather than a hand-built spec string, so a corpus spelling change is
 // caught here too.
 

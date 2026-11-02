@@ -70,8 +70,6 @@ func afterlifeSpiritTokens(t *testing.T, e *Engine) []*state.Object {
 // TestAfterlifeTitheTakerMintsSpiritTokens drives Tithe Taker's real
 // K:Afterlife:1 line end to end: the creature dies and exactly one 1/1
 // white-and-black Spirit token with flying appears under its controller.
-// Before the fix the printed keyword never expanded and the death created
-// nothing.
 func TestAfterlifeTitheTakerMintsSpiritTokens(t *testing.T) {
 	e, cfg, _ := afterlifeDies(t, "Tithe Taker", 3)
 	toks := afterlifeSpiritTokens(t, e)

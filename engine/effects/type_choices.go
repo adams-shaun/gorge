@@ -175,8 +175,9 @@ func filterTypeLabels(vocabulary []string, validTypes, invalidTypes string, card
 // Order is the VOCABULARY's, not ValidTypes$'s: the caller's ordering carries
 // meaning (creatureTypeOptions puts the chooser's own battlefield types
 // first), and a filter must not reshuffle the list it filters. That also
-// keeps a chosen answer stable against a pre-fix recording (A Killer Among
-// Us's Goblin stayed first once ValidTypes$ narrowed the 362-type offer).
+// keeps a chosen answer stable against a recording made over the unfiltered
+// list (A Killer Among Us's Goblin stays first once ValidTypes$ narrows the
+// 362-type offer).
 func FilterTypeWords(vocabulary []string, validTypes, invalidTypes string) []string {
 	valid := strings.TrimSpace(validTypes)
 	allow := map[string]bool{}

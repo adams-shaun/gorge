@@ -68,7 +68,7 @@ func TestReidentifyHiddenIsHypotheticalOnly(t *testing.T) {
 	}
 }
 
-// Spec §7.3 with a closed-list world: a world forked at a posed tape
+// With a closed-list world, a world forked at a posed tape
 // resolution whose library was RE-IDENTIFIED re-runs from S0 (the real
 // cards) and re-applies the HiddenIdentity events, so the card it draws
 // after the fork is the re-identified one -- the world's card table and pool

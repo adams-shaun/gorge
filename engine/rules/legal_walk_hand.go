@@ -91,15 +91,7 @@ func (w *legalWalk) handWalk() {
 			// and never charges the printed keyword parameter (the later
 			// turn-face-up cost).
 			if ph.has(phMorph | phMegamorph | phDisguise) {
-				if fam := morphDownFamily(f); fam != "" && !e.castSuppressed(p, id) &&
-					// The face-down cast pays the fixed {3}, never the printed
-					// cost, so it announces no X (CR 107.3b) and CR 601.3a's X
-					// lookahead does not apply to it.
-					!w.castRestrictedCost(p, id, Cost{Generic: 3}) && w.spellTimingOK(p, id, f, sorcery) &&
-					w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
-					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-						Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
-				}
+				w.appendFaceDownCast(p, id, f, sorcery)
 			}
 			// CR 715.3a: a land front is never cast, but its Adventure half
 			// still is -- only the alternative characteristics are evaluated.
@@ -141,7 +133,7 @@ func (w *legalWalk) handWalk() {
 		// like room_alt) and, when the card carries K:Fuse, BOTH halves may be
 		// cast as one fused spell (mode fuse, paying the combined cost and
 		// resolving both halves). The split_alt offer reads the half's OWN
-		// timing (review MAJOR 2), targets and cost through
+		// timing, targets and cost through
 		// splitCastTargetsAvailable, so a half with no legal target -- or one
 		// the seat cannot pay for -- is withheld independently of the front
 		// face. It stands ABOVE the front-face spellTimingOK gate below on
@@ -151,14 +143,14 @@ func (w *legalWalk) handWalk() {
 		// said_done, spring_mind). For that reason it also precedes the plain
 		// cast in the option list for a split card.
 		//
-		// The prohibition gate is castRestrictedAsFace on the HALF being cast,
-		// not the card-level castRestricted continue below (which reads the
-		// front face). A restriction matching only the front half must not
-		// withhold this half's offer, and one matching only this half must not
-		// be missed by probing the front (the same two directions the
-		// modal_spell offer fixed in e89e1a48b; regression-tested in
-		// engine/rules/alternate_face_restriction_test.go). castSuppressed above
-		// stays shared: casting a half is casting the card.
+		// The prohibition gate is castRestrictedAsFace on the HALF being
+		// cast, not the card-level castRestricted continue below (which reads
+		// the front face). A restriction matching only the front half must
+		// not withhold this half's offer, and one matching only this half
+		// must not be missed by probing the front (the same two directions as
+		// the modal_spell offer; see
+		// engine/rules/alternate_face_restriction_test.go). castSuppressed
+		// above stays shared: casting a half is casting the card.
 		if sf := splitAlternateCastFace(o); sf != nil {
 			// The target-conditional read is FACE-SCOPED (castWithFlashAsFace):
 			// a grant on one half is judged against THAT half's own potential
@@ -226,6 +218,11 @@ func (w *legalWalk) handWalk() {
 		// alternate-face offers above already ran, each probed against its own
 		// face.
 		if w.castRestricted(p, id) {
+			// A prohibition on the printed card doesn't reach its face-down
+			// spell, which is judged by its own characteristics (CR 708.4).
+			if ph.has(phMorph | phMegamorph | phDisguise) {
+				w.appendFaceDownCast(p, id, f, sorcery)
+			}
 			continue
 		}
 		// CR 709.5: a fuse card's fused cast is a single spell with BOTH
@@ -657,11 +654,7 @@ func (w *legalWalk) handWalk() {
 		// spellTimingOK the walk already ran above (CR 702.37a's "any time
 		// you could cast a sorcery" -- morph prints only on creature faces).
 		if ph.has(phMorph | phMegamorph | phDisguise) {
-			if fam := morphDownFamily(f); fam != "" &&
-				w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
-			}
+			w.appendFaceDownCast(p, id, f, sorcery)
 		}
 		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
 		// paying the emerge cost reduced by that creature's mana value". It is

@@ -24,7 +24,7 @@ var implementedStats = []struct {
 // TestImplementedStatsAreRegistered pins the coverage half of the fix: each
 // implemented-but-previously-unregistered static must be in the engine's
 // supported set, or the coverage walk still reports every printed carrier as
-// unsupported -- the ticket's headline symptom. The engine genuinely reads
+// unsupported. The engine genuinely reads
 // each mode through activeStatics (proved by the existing per-primitive proof
 // tests named in engine/rules/statics.go's registration comment), so the
 // registration is honest.

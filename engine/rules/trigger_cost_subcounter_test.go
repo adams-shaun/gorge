@@ -184,10 +184,9 @@ func TestTriggeredCostSubCounterPayable(t *testing.T) {
 // TestTriggeredCostSubCounterAmongPermanents is the filtered counter-removal
 // trigger cost: Overseer of Vault 76's `ImmediateTrigger | Cost$
 // RemoveAnyCounter<3/QUEST/Permanent/permanents>` ("remove three quest
-// counters from among permanents you control") is a TOTAL across the
-// payer's permanents (CR 118.3), not three counters on the source or on any
-// one permanent. Before the fix the window offered only the decline unless
-// the source itself held all three.
+// counters from among permanents you control") is a TOTAL across the payer's
+// permanents (CR 118.3), not three counters on the source or on any one
+// permanent.
 func TestTriggeredCostSubCounterAmongPermanents(t *testing.T) {
 	// Overseer holds one quest counter and a Grizzly Bears two: no single
 	// permanent holds three, three are held in total.

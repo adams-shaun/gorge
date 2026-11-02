@@ -133,11 +133,10 @@ func countLifeChanges(t *testing.T, e *Engine, p state.PlayerID, amount int32) i
 	return n
 }
 
-// TestBrionStoutarmThrowGainsLife pins the reported defect on the real
-// corpus card: Brion Stoutarm's throw ({R}, {T}, sacrifice another creature)
-// deals damage equal to the sacrificed creature's power to a player, and
-// Brion has printed lifelink -- so his controller gains that much life with
-// the damage. Before the fix the damage landed and nobody gained any.
+// TestBrionStoutarmThrowGainsLife pins the reported defect on the real corpus
+// card: Brion Stoutarm's throw ({R}, {T}, sacrifice another creature) deals
+// damage equal to the sacrificed creature's power to a player, and Brion has
+// printed lifelink -- so his controller gains that much life with the damage.
 func TestBrionStoutarmThrowGainsLife(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -284,9 +283,8 @@ func TestLifelinkAbilityDamageToCreatureGainsLife(t *testing.T) {
 		t.Fatalf("logged %d lifelink LifeChange(0, +2) events, want 1", n)
 	}
 	// The rider is not a trigger: the LifeChange is logged immediately after
-	// the Damage it rides, in the same resolution. Since the game-long
-	// damage-provenance record (the_fallen, diseased_vermin,
-	// task agent-20260923T114033Z-a57ee463) every landed Damage through
+	// the Damage it rides, in the same resolution. With the game-long
+	// damage-provenance record (the_fallen, diseased_vermin), every landed Damage through
 	// Engine.emit also emits one DamageProvenance bookkeeping event between
 	// the Damage and the rider, so "immediately after" skips those.
 	lastDamage, lastLife := -1, -1

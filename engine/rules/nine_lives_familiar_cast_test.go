@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The bare wasCastByYou family (task castprov2), pinned on real corpus cards
+// The bare wasCastByYou family, pinned on real corpus cards
 // in both directions:
 //
 //   - Nine-Lives Familiar's `K:etbCounter:REVIVAL:8:ValidCard$

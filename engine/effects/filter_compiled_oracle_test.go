@@ -230,10 +230,10 @@ func loadOracleFixture(t *testing.T) ([]string, []*state.Game, [][]effects.SpecC
 // oracleChunks is how many independent tests the compiled-vs-textual sweep
 // (spec x game x context x object, ~143M comparisons) is sharded into. Run
 // as one test (four parallel subtests) it was 29 s under gate contention and
-// ~12 s + setup alone at 4 vCPU (2026-10-12). Chunk c owns the strided spec
+// ~12 s + setup alone at 4 vCPU. Chunk c owns the strided spec
 // slice specs[c], specs[c+K], ... -- strided, because the work per spec
 // varies with the spec's selectivity and contiguous slices measured 4.8-8.4 s
-// per chunk against a 4.8 s floor (2026-10-09) -- so the chunks partition the
+// per chunk against a 4.8 s floor -- so the chunks partition the
 // sorted spec list exactly (TestCompiledFilterChunksPartitionTheSpecs).
 const oracleChunks = 8
 

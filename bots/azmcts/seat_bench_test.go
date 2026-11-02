@@ -13,8 +13,8 @@ import (
 // clairvoyant Search, heuristic leaf) at a fixed early position, with no
 // note sink installed: the seat path every bench and hosted game runs. Its
 // allocs/op and B/op must not move when a diagnostic lands on the seat (the
-// decision-note emitter's zero-cost-off check, ticket T3); compare it against
-// the same file at the base revision.
+// decision-note emitter's zero-cost-off check); compare it against the same
+// file at the base revision.
 func BenchmarkSeatDecideSearch(b *testing.B) {
 	e, d, _ := stagePosition(b, 3)
 	sc := DefaultSeatConfig()

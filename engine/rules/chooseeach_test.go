@@ -1,7 +1,7 @@
 package rules
 
 // The real-corpus end-to-end pin for param:api:ChooseCard.ChooseEach: Tragic
-// Arrogance (the ticket's deck carrier) casts for real, its RepeatEach walk
+// Arrogance casts for real, its RepeatEach walk
 // runs one ChooseCard per player with ChooseEach$ Artifact & Creature &
 // Enchantment & Planeswalker, and the spell's controller answers one ask per
 // GROUP per player through the ordinary "choice" ask. Each player

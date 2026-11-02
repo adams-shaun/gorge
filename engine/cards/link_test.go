@@ -36,8 +36,8 @@ const trigSrc = `Name:Trigger Card
 ManaCost:1 W
 Types:Creature Human
 PT:1/1
-T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigGain
-SVar:TrigGain:DB$ GainLife | LifeAmount$ 3
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ OnEnter
+SVar:OnEnter:DB$ GainLife | LifeAmount$ 3
 R:Event$ Moved | Destination$ Graveyard | ValidCard$ Card.Self | ReplaceWith$ RepExile
 SVar:RepExile:DB$ ChangeZone | Origin$ Graveyard | Destination$ Exile | Defined$ Self
 Oracle:x

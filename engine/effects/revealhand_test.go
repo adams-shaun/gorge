@@ -74,8 +74,8 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	Resolve(h, ctx, trig)
 
 	// Two Notes: the public whole-hand reveal, then the sub-ability's
-	// hand-move. Pre-rv2b-r2 the DBExile sub-ability silently no-op'd (the
-	// DefinedPlayer$ target is a PLAYER the object path skipped); now it
+	// hand-move. The object path would silently no-op the DBExile sub-ability (the
+	// DefinedPlayer$ target is a PLAYER it skips); it
 	// asks (the chooser is seat 0, Chooser$ You) and the no-host stand-in
 	// answers deterministically with its own Note.
 	var notes []*events.Event
@@ -94,12 +94,12 @@ func TestThoughtKnotSeerRevealHandRevealsTheWholeHand(t *testing.T) {
 	if !slices.Equal(note.IDs, hand) {
 		t.Fatalf("Note ids = %v, want the WHOLE hand %v", note.IDs, hand)
 	}
-	r9 := notes[1]
-	if r9.Player != 0 || r9.Text != "moves the first matching card(s) from hand (no engine host to ask)" {
-		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) R-9 stand-in", r9)
+	handMove := notes[1]
+	if handMove.Player != 0 || handMove.Text != "moves the first matching card(s) from hand (no engine host to ask)" {
+		t.Fatalf("hand-move Note = %+v, want the chooser's (seat 0) no-host stand-in", handMove)
 	}
-	// The sub-ability now really moves the first eligible nonland card from
-	// the revealed hand to exile (the pre-fix silent no-op is gone).
+	// The sub-ability moves the first eligible nonland card from the revealed
+	// hand to exile.
 	if o := h.g.Obj(hand[0]); o.Zone != state.ZExile {
 		t.Fatalf("first eligible card on %s, want exile (DBExile no longer no-ops)", o.Zone)
 	}

@@ -1,8 +1,8 @@
 import { HAND_SCALE_DEFAULT, type Overflow } from './layoutprofile';
 
 /**
- * cardsizing is the pure maths behind the table's card sizes (UI rework spec
- * §2, "Sizing rules" — these replace per-zone scale):
+ * cardsizing is the pure maths behind the table's card sizes
+ * (these replace per-zone scale):
  *
  *  - the board's height splits into the opponents' share (the centre bar's
  *    `split`), the centre strip, the viewer's rows and a peeking hand row,

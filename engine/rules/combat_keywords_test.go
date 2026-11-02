@@ -12,7 +12,7 @@ import (
 )
 
 // corpusKeywordCard keeps these proofs tied to the actual Forge scripts whose
-// coverage entries this ticket retires, rather than lookalike handwritten cards.
+// coverage entries they satisfy, rather than lookalike handwritten cards.
 func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	t.Helper()
 	// The checked-in IR is intentionally a cache. Parse the live GPL corpus

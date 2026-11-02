@@ -284,11 +284,10 @@ func TestArachnogenesisCreatesTokensForAttackersAtYou(t *testing.T) {
 	if e.G.Obj(id).Zone != state.ZGraveyard {
 		t.Fatalf("Arachnogenesis zone %s after resolving", e.G.Obj(id).Zone)
 	}
-	// The curse rider resolved with the spell (the reported "only registers
-	// its curse replacement" state was the pre-fix half-behaviour; the fix
-	// keeps the registration AND adds the tokens). The bodyless Prevent$
-	// True DamageDone form is the complete-replacement idiom the Effect
-	// registration keeps (engine/effects/misc.go's bodyless-prevent arm).
+	// The curse rider resolved with the spell (the registration AND the
+	// tokens). The bodyless Prevent$ True DamageDone form is the
+	// complete-replacement idiom the Effect registration keeps
+	// (engine/effects/misc.go's bodyless-prevent arm).
 	curse := false
 	for _, ce := range e.continuous {
 		if ce.Source == id && ce.ReplacementEvent == "DamageDone" &&

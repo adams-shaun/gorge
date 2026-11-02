@@ -46,11 +46,9 @@ func cdaMoveTo(t *testing.T, e *Engine, p state.PlayerID, name string, to state.
 }
 
 // TestTransguildCourierIsAllColoursInEveryZone is the filed report made
-// executable: the courier's CDA SetColor$ All is read in every zone, so it
-// is WUBRG at hand, on the stack, in the graveyard AND on the battlefield --
-// before the fix the off-battlefield reads saw only the printed colours and
-// read "" (a colourless artifact with no colour indicator), turning
-// five-coloured only when it entered.
+// executable: the courier's CDA SetColor$ All is read in every zone, so it is
+// WUBRG at hand, on the stack, in the graveyard AND on the battlefield -- not
+// "" off the battlefield (a colourless artifact with no colour indicator).
 func TestTransguildCourierIsAllColoursInEveryZone(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -93,11 +91,11 @@ func TestTransguildCourierIsAllColoursInEveryZone(t *testing.T) {
 
 // TestGhostfireIsColourlessInEveryZone is the same defect in the opposite
 // direction: Ghostfire's CDA is SetColor$ Colorless, so the printed {2}{R}
-// never shows -- before the fix an off-battlefield Ghostfire read "R", a red
-// spell CR says is colourless (uncountereable by "counter target red spell",
-// unblockable-vs-protection-from-red). The battlefield read is unchanged
-// ("" -- the scan-emitted CDA already overwrote it there; the withheld scan
-// now leaves the base claim as the single application).
+// never shows -- an off-battlefield Ghostfire must not read "R", a red spell
+// CR says is colourless (uncountereable by "counter target red spell",
+// unblockable-vs-protection-from-red). The battlefield read is unchanged (""
+// -- the scan-emitted CDA already overwrote it there; the withheld scan now
+// leaves the base claim as the single application).
 func TestGhostfireIsColourlessInEveryZone(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -139,8 +137,7 @@ func TestGhostfireIsColourlessInEveryZone(t *testing.T) {
 // the gate's quality read is the SHARED colour read. The Sphinx itself (all
 // five colours) is not monocolored; an opponent's Shock on the stack (one
 // colour) IS blocked by the gate exactly as before; and an opponent's
-// Ghostfire on the stack is NOT -- Ghostfire is colourless, not monocolored,
-// which the pre-fix "R" off-battlefield read got wrong.
+// Ghostfire on the stack is NOT -- Ghostfire is colourless, not monocolored.
 func TestSphinxOfTheGuildpactHexproofGateReadsTheFullSet(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

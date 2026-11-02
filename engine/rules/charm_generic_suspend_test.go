@@ -1,8 +1,7 @@
 package rules
 
 // The generic (non-cross-mode) Charm mode loop's mid-mode suspension
-// contract (task cli-20260922T225138Z-a850f8be, closing the AGENTS.md
-// "effCharm's inner Resolve has no Suspended() guard" row).
+// contract.
 //
 // effCharm runs the chosen Choices$ sub-abilities in order. When a mode's
 // own chain poses a mid-resolution ask, the answer is applied in place and

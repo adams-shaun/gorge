@@ -96,14 +96,14 @@ type Leaf struct {
 	Err error
 }
 
-// Env is one simulation's private world -- the fake-env seam spec §4 asks
+// Env is one simulation's private world -- the fake-env seam design §4 asks
 // for ("clone, pending, submit, over, winner"): EnvSource.Env is the clone,
 // Root and Play's returned Point are the pending searched decision, Play is
 // the submit plus the environment's answers up to the next searched
 // decision, and Leaf carries over/winner.
 type Env interface {
 	// Root is the root decision as this world offers it. A candidate the
-	// tree knows but this world does not offer is unavailable here (spec §2,
+	// tree knows but this world does not offer is unavailable here (design §2,
 	// the ISMCTS availability rule).
 	Root() *Point
 	// Play submits candidate k at the current point and advances to the
@@ -220,7 +220,7 @@ func hasKey(keys []Key, k Key) bool {
 	return false
 }
 
-// puctScore is Q + c * P * sqrt(N_avail) / (1 + N) (spec §2).
+// puctScore is Q + c * P * sqrt(N_avail) / (1 + N) (design §2).
 func puctScore(q, prior float64, avail, n int, c float64) float64 {
 	return q + c*prior*math.Sqrt(float64(avail))/float64(1+n)
 }
@@ -291,7 +291,7 @@ func selectAt(nd *node, root bool, pt *Point, opts Options, st *Stats) *edge {
 // Each simulation takes a fresh Env, walks the tree by
 // PUCT, expands exactly one new node (or stops where the walk ended),
 // evaluates that position once and backs the value up the path: no rollouts
-// (spec §2). A simulation whose Env or Play fails is discarded and counted in
+// (design §2). A simulation whose Env or Play fails is discarded and counted in
 // st by its error class; it changes no visit, value or availability count.
 // The first Env the source produces also evaluates the root itself
 // (AlphaZero's expansion value), the parent Q first-play urgency reads there.
@@ -573,7 +573,7 @@ func uniform(n int) []float64 {
 	return out
 }
 
-// noisyPrior is (1-eps)*prior + eps*Dirichlet(alpha) (spec §2).
+// noisyPrior is (1-eps)*prior + eps*Dirichlet(alpha) (design §2).
 func noisyPrior(prior []float64, rng *rand.Rand, alpha, eps float64) []float64 {
 	eta := dirichlet(rng, len(prior), alpha)
 	out := make([]float64, len(prior))

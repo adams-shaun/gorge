@@ -1168,7 +1168,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return copyTargets(c.Remembered), true
 	case definedSpecTriggeredSpellAbility:
-		// The activation arm (abcopy1): an ability-cast trigger's Remembered
+		// The activation arm: an ability-cast trigger's Remembered
 		// names the SOURCE PERMANENT (an AbilityPush's Obj -- the minted
 		// ability wrapper never travels on the event), so the fire-time
 		// TriggerAbility role is the only exact referent: the wrapper is on
@@ -1213,8 +1213,8 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return copyTargets(c.Targets), true
 	case definedSpecTriggeredSource:
-		// The damage source the causing event recorded (pg2's
-		// TriggerContext.TriggerSource): a DamageDone execute's "that source
+		// The damage source the causing event recorded
+		// (TriggerContext.TriggerSource): a DamageDone execute's "that source
 		// deals ..." reading, and its PLURAL batch spelling (Zurgo and
 		// Ojutai's `ChooseFromDefined$ TriggeredSources` -- the Dragon that
 		// dealt the combat damage the trigger fired for, the same role
@@ -2617,7 +2617,7 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 //     deterministic host answers it the same way every time -- the walk
 //     never terminates. Oracle text would copy other instances and let
 //     each copy's controller decline; this build's hosts cannot express a
-//     decline (the recorded stand-in, see the abcopy3 row). A context with
+//     decline (a recorded stand-in). A context with
 //     ResolvingObj zero (a hand-built one, or a resolution path that never
 //     set it) falls back to the Ctx.Source id alone -- never widened.
 type validStackToken struct {

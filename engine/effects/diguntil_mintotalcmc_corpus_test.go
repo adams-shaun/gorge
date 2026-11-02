@@ -10,9 +10,7 @@ import (
 )
 
 // This file pins DigUntil's MinTotalCMC$ threshold against the REAL compiled
-// Dream Harvest SA (ECL), not a synthetic script. The fix that reads the
-// threshold is 73c9cc2e5 ("consume six unread std3 effect params at their
-// readers"); before it effDigUntil fell through to the ordinary Amount$ scan
+// Dream Harvest SA (ECL), not a synthetic script. Without the threshold read effDigUntil falls through to the ordinary Amount$ scan
 // (amount defaults to 1) and stopped after the first matching card.
 //
 // The parent test (TestDigUntilMinTotalCMCRevealsPastTheThreshold in

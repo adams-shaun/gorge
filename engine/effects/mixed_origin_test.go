@@ -44,9 +44,9 @@ func zoneOfObj(g *state.Game, id state.ObjID) state.Zone {
 // TestDreamsOfSteelAndOilMixedOriginExilesBothChosenCards closes the row the
 // mixed-origin Note once covered: Dreams of Steel and Oil's DBExileBoth is a
 // real corpus `ChangeZone | Defined$ RememberedCard | Origin$ Graveyard,Hand`
-// whose two ChooseCard answers must BOTH exile. Before the fix the unmodelled
-// RememberedCard selector fell through Defined to the source default, the
-// Origin$ precondition skipped it, and the resolution emitted one replay-note
+// whose two ChooseCard answers must BOTH exile. An unmodelled RememberedCard
+// selector would fall through Defined to the source default, the Origin$
+// precondition would skip it, and the resolution would emit one replay-note
 // and moved nothing. Precondition: the two staged candidates sit in the two
 // origin zones, are distinct, and the resolution's Remembered names both.
 func TestDreamsOfSteelAndOilMixedOriginExilesBothChosenCards(t *testing.T) {

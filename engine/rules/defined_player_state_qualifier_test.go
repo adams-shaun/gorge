@@ -10,8 +10,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Issue agent-20260918T234402Z-b031583b: `Defined$ Player.<state-qualifier>`
-// at resolution time resolved to NOBODY. A compound state-qualifier spelling
+// `Defined$ Player.<state-qualifier>` at resolution time must not resolve to
+// nobody. A compound state-qualifier spelling
 // such as Player.controlsCreature.powerGE4_GE1 or Player.lifeEQ13 fell through
 // engine/effects/context.go's definedSpec catch-all to the chosen-targets fallback
 // (nil for these effects), so "each player who controls a creature with power
@@ -147,9 +147,8 @@ func drainPriority(t *testing.T, e *Engine, limit int) {
 
 // TestDefinedPlayerStateQualifierShatterTheSky is the reported symptom: "Each
 // player who controls a creature with power 4 or greater draws a card. Then
-// destroy all creatures." drew for NOBODY before the fix. Seat 0 controls a
-// 5/5 (draws), seat 1 a 2/2 (does not); the destroy-all half still sweeps
-// every creature.
+// destroy all creatures." Seat 0 controls a 5/5 (draws), seat 1 a 2/2 (does
+// not); the destroy-all half still sweeps every creature.
 func TestDefinedPlayerStateQualifierShatterTheSky(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _ := qualifierEngine(t, reg, "Shatter the Sky")

@@ -6,8 +6,8 @@ import { manaWindow } from '../announcepay';
 import { mulliganPhase } from './decision';
 
 /**
- * RendererKind names the one renderer a decision is drawn by (UI rework
- * spec §4: "one renderer per decision kind"). It is resolved from wire facts
+ * RendererKind names the one renderer a decision is drawn by: one renderer
+ * per decision kind. It is resolved from wire facts
  * only — the decision kind first, then the option-shape families that cut
  * across kinds (a discard pick is a KModes or a KChoose; a library search
  * and a name pick are KChoose) — never from label text.
@@ -53,7 +53,7 @@ export type Placement = 'board' | 'flyout' | 'strip' | 'dock';
 
 /**
  * dockAnswers reports whether the prompt dock is the answer surface for a
- * decision: every kind except priority (the action button, spec §4) and the
+ * decision: every kind except priority (the action button) and the
  * London mulligan (it keeps the board-centred panel: the opening hand needs
  * the board's width). While a dock is mounted, the ACTIONS strip defers
  * exactly these decisions to it.

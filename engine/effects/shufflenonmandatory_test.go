@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// searchmay1: the two ShuffleNonMandatory$ remainders the AGENTS.md row named.
+// The two ShuffleNonMandatory$ remainders.
 //
 //   (a) the fail-to-find shape (a hidden-library search that moved nothing)
 //       still owes its mandatory shuffle, and now poses the may-shuffle
@@ -20,10 +20,10 @@ import (
 // but the effects package drives the primitive directly so each precondition
 // (nothing moved / the compared zone actually differs) is asserted here and
 // the mandatory object-path and fail-to-find corpus paths are pinned in
-// rules. Since task spcz1 SP-parented DB subs ask their own graveyard
+// rules. SP-parented DB subs ask their own graveyard
 // targeting at resolution (changeZoneChosenTargets no longer inherits the
 // parent's targets), so they DO reach this tail in live play; engine/rules/
-// searchmay-style pins cover that live path end to end.
+// Search-may pins cover that live path end to end.
 
 // shuffleTailBoard builds a 2-seat board with one graveyard card owned by
 // seat 0 and a resolving source object. Returns the recording+suspending
@@ -61,8 +61,7 @@ func ctxSearchShuffleLabel(accept bool) string {
 // TestObjectPathShuffleMandatoryShufflesWithoutFlag is half (b)'s silent
 // branch: the same object-target move stating only Shuffle$ True (the 76
 // corpus "shuffle it into their library" lines that do not carry the
-// non-mandatory flag) now shuffles with no ask. Before the fix the path
-// shuffled nothing.
+// non-mandatory flag) shuffles with no ask.
 func TestObjectPathShuffleMandatoryShufflesWithoutFlag(t *testing.T) {
 	ah, ctx, gy := shuffleTailBoard(t)
 	s := sa(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Library | ValidTgts$ Card.YouOwn | Shuffle$ True")

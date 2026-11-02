@@ -6,8 +6,8 @@ package rules
 // up" an event, and the counters its instruction places are themselves an
 // event that other CR 614 AddCounter replacements can modify; CR 616.1e: each
 // applicable replacement reads the running total. The placement is routed
-// through the AddCounter pass (counterReplacementFold, cli-20260922T225140Z);
-// what this ticket adds is the PROVENANCE the matcher's own gates read when
+// through the AddCounter pass (counterReplacementFold); the PROVENANCE is what
+// the matcher's own gates read when
 // the body emits: the wrapper is off the stack by then, so EffectOnly$
 // (Doubling Season) and ValidSource$ (Vorinclex) failed the new event closed.
 

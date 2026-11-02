@@ -85,11 +85,11 @@ func TestThoughtseizeLosesExactlyTwoLife(t *testing.T) {
 
 // TestCharmSubAbilityRunsOnce is the modes-caller guard (B1 test #2): an
 // existing modal caller with a SubAbility$ must still run its chain exactly
-// once. effCharm poses the KModes ask; before the fix, effects.Resolve kept
-// walking into sa.Sub on the first pass AND the resume pass, so the
-// SubAbility fired twice around the chosen mode. The fix suspends the chain
-// generically for every asking primitive (not just Discard), so a Charm with
-// a SubAbility$ fires that SubAbility once, after the chosen mode.
+// once. effCharm poses the KModes ask; were effects.Resolve to walk into
+// sa.Sub on the first pass AND the resume pass, the SubAbility fired twice
+// around the chosen mode. The fix suspends the chain generically for every
+// asking primitive (not just Discard), so a Charm with a SubAbility$ fires
+// that SubAbility once, after the chosen mode.
 //
 // The shape is deliberately one that must keep working: a Charm
 // carrying a SubAbility$. Net effect with the mode "Lose 5 life" chosen:

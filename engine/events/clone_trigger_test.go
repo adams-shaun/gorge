@@ -8,8 +8,7 @@ import (
 )
 
 // TestClonePermanentGainThisTriggerAppendsOnlyTheTrigger pins the fold level
-// of the DB$/SVar-under-trigger GainThisAbility$ form (ticket
-// agent-20260923T090459Z-a4d7eb3b): with Counter "gain-this-trigger", the fold
+// of the DB$/SVar-under-trigger GainThisAbility$ form: with Counter "gain-this-trigger", the fold
 // appends exactly the one indexed trigger to the copied face's Triggers, leaves
 // its Abilities untouched, merges the become face's SVars and latches
 // CopyGainThisAbility. It is the trigger counterpart of

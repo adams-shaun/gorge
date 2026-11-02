@@ -5,9 +5,7 @@ package rules
 // (`WithCountersType$ Hexproof,Indestructible`, Perennation) or as one entry
 // in a named SVar sub-ability (`SVar:TrigReturn:DB$ ChangeZone | ...
 // WithCountersType$ Vigilance,Lifelink`, Gilraen). The move must place EACH
-// kind as its own counter event -- the pre-fix emission wrote one
-// `HEXPROOF,INDESTRUCTIBLE` counter that no counter-kind lookup can ever
-// read.
+// kind as its own counter event.
 //
 // This exercises the real card resolution (cast, target, resolve) rather
 // than the shared emission helper alone, so a route that skipped the helper

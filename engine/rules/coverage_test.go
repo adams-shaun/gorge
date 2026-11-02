@@ -19,8 +19,8 @@ import (
 // effects.Supported() sees them.
 //
 // That gap is exactly the bug: cmd/forgec's report command imports
-// cards and effects but, before this task, never imported rules, so none of
-// these three init()s ran in that separate binary and its
+// cards and effects and must import rules, or none of
+// these three init()s run in that separate binary and its
 // effects.Supported() returned "api:" primitives only -- understating
 // coverage by thousands of cards (trig:ChangesZone alone gated 7008 of
 // them). Proving the forgec binary itself is fixed needs a check that does
@@ -119,7 +119,7 @@ func TestScryReplacementPrimitiveIsRegistered(t *testing.T) {
 // rules/trigger.go and therefore runs their init()s before its own report
 // command ever calls effects.Supported(). This is what the blank import
 // `_ "github.com/adams-shaun/gorge/engine/rules"` in cmd/forgec/main.go
-// W1) actually fixes; skip only if the go tool itself is unavailable to run
+// actually fixes; skip only if the go tool itself is unavailable to run
 // this check with, not if the corpus is absent -- this test needs neither
 // .cards/ nor a build, only the module's own source tree.
 func TestForgecBinaryImportsRules(t *testing.T) {

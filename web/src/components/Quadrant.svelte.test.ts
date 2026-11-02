@@ -5,7 +5,7 @@ import Quadrant from './Quadrant.svelte';
 import { layoutStore } from '../lib/layouts.svelte';
 
 /**
- * CZ2: a commander is a creature, so its tile belongs in the creatures row,
+ * A commander is a creature, so its tile belongs in the creatures row,
  * at the row's own --card-w (104px), not in a private rim-pinned area at
  * land scale. These tests assert the DOM structure that claim depends on —
  * the commander tile's markup falls inside the same span of html as the
@@ -31,7 +31,7 @@ const player = (over: Partial<PlayerView> = {}): PlayerView => ({
   command: [], commanders: [], commander_casts: [], ...over,
 });
 
-describe('Quadrant — commanders share the creatures row at creature scale (CZ2)', () => {
+describe('Quadrant — commanders share the creatures row at creature scale', () => {
   it('the commander tile and the real creature permanent both fall inside the creatures row"s own markup', () => {
     const cmd = card(1, 'Isamaru', 'Legendary Creature');
     const creature = card(2, 'Grizzly Bears');
@@ -78,7 +78,7 @@ describe('Quadrant — commanders share the creatures row at creature scale (CZ2
     const packIdx = html.indexOf('data-cmd-pack');
     const creatureIdx = html.indexOf('data-obj="2"');
     // the pack renders inside the creatures row's markup, before the creatures
-    // row's own CardStacks — the commanders-draw-first order CZ2 established
+    // row's own CardStacks — the commanders-draw-first order
     expect(packIdx).toBeGreaterThan(rowStart);
     expect(packIdx).toBeLessThan(rowOthersStart);
     expect(packIdx).toBeLessThan(creatureIdx);
@@ -102,7 +102,7 @@ describe('Quadrant — an eliminated seat is greyed out on the board', () => {
   });
 });
 
-describe('Quadrant — lands always stack, creatures keep the tapped split (fb-20260916T201423Z)', () => {
+describe('Quadrant — lands always stack, creatures keep the tapped split', () => {
   const land = (id: number, tapped: boolean): CardView =>
     ({ id, name: 'Swamp', types: 'Basic Land Swamp', tapped, power: 0, toughness: 0, damage: 0, attacking: false, controller: 0, owner: 0, summon_sick: false, printing: { name: 'Swamp', set: 'LEB', number: '1' }, token: `#${id}` });
   const bear = (id: number, tapped: boolean): CardView =>
@@ -136,7 +136,7 @@ describe('Quadrant — lands always stack, creatures keep the tapped split (fb-2
   });
 });
 
-describe('Quadrant — the board template and sizes (UI rework §2)', () => {
+describe('Quadrant — the board template and sizes', () => {
   const bear = (id: number): CardView => card(id, 'Grizzly Bears');
   const forest = (id: number): CardView => ({ ...card(id, 'Forest', 'Basic Land Forest'), printing: { name: 'Forest', set: 'X', number: '1' } });
 

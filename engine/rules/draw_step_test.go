@@ -161,14 +161,12 @@ func assertDrawPrecedesPriorityInStep(t *testing.T, e *Engine, since int) {
 	}
 }
 
-// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the
-// measurement case. Against the pre-fix code, resolveTop's post-resolution
-// Priority{Active, 0} emit (CR 117.3b) recreates exactly the state
-// priorityRound's old guard read as "the step just began", so the mandatory
-// trigger this test attaches makes the engine draw again, and again, until
-// the library runs dry -- a large hand delta instead of exactly 1. See the
-// RED measurement for the actual pre-fix
-// number.
+// TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw is the measurement case.
+// resolveTop's post-resolution Priority{Active, 0} emit (CR 117.3b) can
+// recreate exactly the state priorityRound's old guard read as "the step just
+// began", so the mandatory trigger this test attaches makes the engine draw
+// again, and again, until the library runs dry -- a large hand delta instead
+// of exactly 1.
 func TestDrawTriggerResolvingInTheDrawStepDoesNotRedraw(t *testing.T) {
 	t.Parallel()
 	e := newSeats(t, 2)
@@ -421,7 +419,7 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 	if overIdx < 0 {
 		t.Fatal("e.G.Over is true but no GameOver event was logged")
 	}
-	// Fix round 1 (review Important #1a): Advance's own `for !e.G.Over` loop
+	// Advance's own `for !e.G.Over` loop
 	// already suppresses any DecisionAsk once the game ends, so the scan
 	// above passes whether or not advanceStep's own `if e.G.Over { return }`
 	// (turn.go, right after the draw) is even there -- deleting that guard
@@ -442,7 +440,7 @@ func TestDrawStepDeckOutEndsTheGameBeforePriority(t *testing.T) {
 
 // TestReplayFoldsADrawTriggerFaithfully pins that replay folds it (see
 // TestReplayFromLogAloneReconstructsOrderedAndOptionalTriggers) applied to
-// this task: a game whose log contains a draw-step trigger firing folds,
+// the draw step: a game whose log contains a draw-step trigger firing folds,
 // from the log alone via events.Apply, into exactly the live game. The draw
 // moving from priorityRound to advanceStep changes the ORDER two event kinds
 // appear in relative to each other (Draw now precedes the step's own

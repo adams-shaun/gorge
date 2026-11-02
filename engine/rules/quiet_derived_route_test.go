@@ -1,6 +1,6 @@
 package rules
 
-// The derived-keyword route fixtures (findings-t2 MAJOR): the proof's
+// The derived-keyword route fixtures: the proof's
 // graveyard, exile and hand-route blockers must read the object's DERIVED
 // keyword list, not only the printed face. A layer-6 AddKeyword$ grant
 // (Snapcaster Mage's Flashback, Underworld Breach's Escape, Dream Devourer's

@@ -14,12 +14,9 @@ import (
 // from your graveyard to your hand. Target player shuffles up to four target
 // cards from their graveyard into their library." The second sentence's
 // targets are chosen as the spell is cast, and their legal set depends on the
-// earlier "target player" choice (TargetsWithDefinedController$ ParentTarget).
-// Before the fix the chain link was never announced on cast (castSubPreAskable
-// deferred it because the census could not bind the parent at offer time) and
-// the slot was asked at RESOLUTION, where XMage chose nothing -- the reported
-// divergence. This pins the cast-time ask, the parent-relative offer and the
-// resolution that moves exactly the announced card.
+// earlier "target player" choice (TargetsWithDefinedController$
+// ParentTarget). This pins the cast-time ask, the parent-relative offer and
+// the resolution that moves exactly the announced card.
 func TestRiteOfRenewalDependentGraveyardTargetsAnnouncedOnCast(t *testing.T) {
 	t.Parallel()
 	e, cfg, mine, theirs := cr601Board(t, 62004,

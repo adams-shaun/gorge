@@ -216,7 +216,7 @@ func pickOption(t *testing.T, e *Engine, obj state.ObjID) {
 	t.Fatalf("replacement-order options %+v do not offer object %d", d.Options, obj)
 }
 
-// TestSelflessSquireOrderedAfterPartialPrevention (r2 finding 1): Squire +
+// TestSelflessSquireOrderedAfterPartialPrevention: Squire +
 // Thunderstaff, combat damage 3 to the controller, order answer =
 // Thunderstaff first. CR 616.1e recomputes applicability after each
 // modification, so the recomputed candidate set must STILL hold the Squire's
@@ -260,7 +260,7 @@ func TestSelflessSquireOrderedAfterPartialPrevention(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSelflessSquireOrderedPathStoresPrevention (r2 finding 2): two
+// TestSelflessSquireOrderedPathStoresPrevention: two
 // same-controller Squires, damage 3, order answer = candidate 0 — the
 // effect-created match a bot's clamp fallback picks. The chosen full
 // prevention is terminal (the held event never lands), so its re-entrant
@@ -306,7 +306,7 @@ func TestSelflessSquireOrderedPathStoresPrevention(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestDamageReplacementPreventsCaseInsensitive (r2 finding 3): the
+// TestDamageReplacementPreventsCaseInsensitive: the
 // registration (effEffect) and collection (applyReplacementsDispatch)
 // classifiers read the Prevent$ param case-insensitively, so the application
 // classifier (damageReplacementPrevents) and both full-prevention arms must

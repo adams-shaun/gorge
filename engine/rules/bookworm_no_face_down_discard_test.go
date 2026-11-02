@@ -71,8 +71,7 @@ func TestObliviousBookwormNoFaceDownNoTurnUpDiscardsAfterDraw(t *testing.T) {
 		t.Fatal("precondition: the optional draw was not answered yes")
 	}
 
-	// The two sizes differ from the pre-fix failure (hand 2 / graveyard 0):
-	// the draw took one and the discard took the remembered card.
+	// The draw took one and the discard took the remembered card.
 	last := res.Snapshots[len(res.Snapshots)-1]
 	if got := len(last.Players[0].Hand); got != 1 {
 		t.Fatalf("p0 hand size %d, want 1", got)
@@ -139,7 +138,6 @@ func TestObliviousBookwormEmptyHandDiscardsTheDrawnCard(t *testing.T) {
 		t.Fatal("precondition: the optional draw was not answered yes")
 	}
 
-	// Pre-fix the drawn card stayed in hand (hand 1 / graveyard 0).
 	last := res.Snapshots[len(res.Snapshots)-1]
 	if got := len(last.Players[0].Hand); got != 0 {
 		t.Fatalf("p0 hand %v, want empty", last.Players[0].Hand)

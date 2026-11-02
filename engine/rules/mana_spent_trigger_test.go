@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The TriggersWhenSpent$ rider (mtsp1): a mana ability's "when that mana is
+// The TriggersWhenSpent$ rider: a mana ability's "when that mana is
 // spent to cast a <spec> spell, <effect>". Path of Ancestry is the corpus
 // pin: its Combo ColorIdentity mana is unattributable today, and its
 // SVar:TrigScry trigger body is never scanned (it lives in the face's SVar

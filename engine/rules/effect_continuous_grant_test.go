@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// api:Effect delivering a general Mode$ Continuous static body is the bulk of
-// the AGENTS.md "Known approximations" row this ticket closes: before it, only
+// api:Effect delivering a general Mode$ Continuous static body, beyond the
 // four hand-picked Continuous sub-shapes (GainsAbilitiesOfDefined$, MayPlay$,
 // AddKeyword$ Cascade, SetMaxHandSize$) registered, and every other layer
 // grant -- AddKeyword$/AddType$/AddPower$/SetColor$/RemoveAllAbilities$ -- was

@@ -143,8 +143,8 @@ func TestKnightsOfTheBlackRoseSilentWhenSelfBecomesMonarch(t *testing.T) {
 	}
 }
 
-// TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger is the
-// regression for the review MAJOR: an unconditional MonarchChange emit made
+// TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger is a
+// regression test: an unconditional MonarchChange emit made
 // a repeat DB$ BecomeMonarch on the REIGNING monarch fire "whenever you
 // become the monarch" again. The mode fires on a TRANSITION (CR 720.2), so
 // effBecomeMonarch now suppresses the event when its target already holds the
@@ -176,8 +176,7 @@ func TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger(t *testing.T) {
 		t.Fatal("precondition: Custodi Lich's TrigMonarch SVar did not resolve")
 	}
 	// Resolve the real DB$ BecomeMonarch body naming seat 0: the reigning
-	// monarch. Before the fix this emitted MonarchChange and queued the
-	// ValidPlayer$ You trigger.
+	// monarch.
 	effects.Resolve(e, &effects.Ctx{Source: lich, Controller: 0}, sa)
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("a repeat BecomeMonarch on the reigning monarch queued %d trigger(s), want 0",
@@ -244,7 +243,7 @@ func TestCustodiLichFirstBecomeMonarchFiresSelfTrigger(t *testing.T) {
 	requireOneEventTrigger(t, e, "Custodi Lich")
 }
 
-// TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the pg2 role the
+// TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the role the
 // body reads: Defined$ TriggeredPlayer must resolve the NEW monarch (the seat
 // that just took the crown), not the trigger's controller -- so the 2 life is
 // taken from the opponent, and the gain goes to seat 0.

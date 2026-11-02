@@ -14,10 +14,9 @@ import (
 // ForEachPlayer$ Opponent enumeration order (Mutalith Vortex Beast): the
 // flipper walk must be controller-relative AliveFrom(c.Controller) order --
 // the SAME order the shared Defined$ Opponent resolver uses -- not seat
-// number order. In this 4-seat fixture the resolving controller is seat 1,
-// so the flips (and the seeded RNG outcomes bound to them) must run for
-// seats 2, 3, 0 in that order; the pre-fix AliveFrom(0) walk visited seats
-// 0 and 2 instead (two flips, wrong order and wrong flippers).
+// number order. In this 4-seat fixture the resolving controller is seat 1, so
+// the flips (and the seeded RNG outcomes bound to them) must run for seats 2,
+// 3, 0 in that order.
 func TestFlipCoinForEachPlayerOpponentOrderIsControllerRelative(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

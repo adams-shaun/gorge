@@ -5,7 +5,7 @@ package rules
 // behaviour and passes is regression coverage and stays unguarded. A test
 // that asserts correct behaviour the engine does NOT have is guarded by
 // GORGE_SET_AUDIT so the committed suite stays green; its guard names the
-// defect and the follow-up ticket.
+// defect and the follow-up.
 
 import (
 	"os"

@@ -21,8 +21,7 @@ func TestKrrikCumulativeUpkeepPosesManaWindowWhenSourceCanPay(t *testing.T) {
 	resolveCumulativeUpkeep(t, e)
 
 	// The window must be posed: the pool alone cannot pay the {B} pip, but
-	// the untapped Swamp can. Before the fix the grant made the gate count
-	// the life route as paid and this ask was SKIPPED entirely.
+	// the untapped Swamp can.
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || d.Source != bear {
 		t.Fatalf("the cumulative-upkeep election must be posed, got %+v", d)

@@ -24,8 +24,8 @@ import (
 // the test logs the summary counts. A rename that orphans a reference fails
 // here, so the table is fixed in the same change.
 //
-// The counts are not committed (2026-10-21): every CR ticket changed the same
-// summary lines, so any two open CR tickets conflicted at landing. Run this
+// The counts are not committed: every CR change would touch the same
+// summary lines, so any two open changes would conflict at landing. Run this
 // test with -v to read them. GORGE_UPDATE_CRCOVERAGE=1 deletes a stale summary
 // block that an older branch still carries; references are never rewritten.
 

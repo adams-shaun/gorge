@@ -1,4 +1,4 @@
-// The BARE wasCastFromYourHand filter predicate (task castprov3) — the
+// The BARE wasCastFromYourHand filter predicate — the
 // third cast-provenance family, the one the "from anywhere other than your
 // hand" carriers print WITHOUT the ByYou suffix — pinned end to end on real
 // corpus carriers in both directions:

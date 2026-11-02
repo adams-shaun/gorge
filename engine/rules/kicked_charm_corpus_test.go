@@ -27,7 +27,7 @@ func kickedCorpusModeAsk(t *testing.T, kicked bool) *decision.Decision {
 	e, _ := corpusEngineCfg(t, reg,
 		[]*cards.Card{inscription, bears}, []*cards.Card{bears})
 	// Precondition: the real card carries the Kicker keyword and the
-	// Count$Kicked-backed bounds the ticket names, so a corpus-pin move that
+	// Count$Kicked-backed bounds, so a corpus-pin move that
 	// reshapes it fails here rather than silently passing.
 	f := e.G.Obj(moveByName(t, e, 0, "Inscription of Abundance", state.ZHand)).Face()
 	if f == nil || !f.HasKeyword("Kicker") {
@@ -67,8 +67,7 @@ func kickedCorpusModeAsk(t *testing.T, kicked bool) *decision.Decision {
 	return d
 }
 
-// TestInscriptionOfAbundanceCorpusModeBounds pins the real corpus card the
-// ticket names: kicked offers 0..3 modes (Count$Kicked.0.1 / Count$Kicked.3.1),
+// TestInscriptionOfAbundanceCorpusModeBounds pins the real corpus card: kicked offers 0..3 modes (Count$Kicked.0.1 / Count$Kicked.3.1),
 // unkicked exactly one. This is the corpus-backed counterpart to
 // TestKickedCharmModeBoundsInTheRealCast's inline shape.
 func TestInscriptionOfAbundanceCorpusModeBounds(t *testing.T) {

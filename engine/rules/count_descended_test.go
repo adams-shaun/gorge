@@ -1,12 +1,11 @@
-// Count$YouDescendedThisTurn — the per-turn descend count head (ticket
-// count-descended). Before the fix the head did not exist in evalCountBody
+// Count$YouDescendedThisTurn — the per-turn descend count head. Without it the head does not exist in evalCountBody
 // and degraded to 0 through the unresolvable-count convention, so The
 // Mycotyrant's SVar X fed TokenAmount$ X with X = 0 and its end-step trigger
 // minted nothing no matter how many permanent cards had gone to the
 // graveyard, and Molten Collapse's CharmNum$ Count$Compare Y GE1.2.1 never
 // held.
 //
-// The head reads the fx20 descend provenance through the SAME helper the
+// The head reads the descend provenance through the SAME helper the
 // Player.descended predicate uses (effects.descendedThisTurn), so the head
 // and the predicate can never drift apart. The eval-level pin runs on The
 // Mycotyrant's real compiled face (its SVar body and permanent anchor the
@@ -57,7 +56,7 @@ func TestYouDescendedThisTurnHeadFoldsTheLedger(t *testing.T) {
 	myco := onBoardCard(t, e, 0, corpusCard(t, "The Mycotyrant"))
 	ctx := &effects.Ctx{Controller: 0, Source: myco}
 
-	// Precondition: the corpus SVar is the head this ticket implements, and
+	// Precondition: the corpus SVar is this head, and
 	// the head is MODELLED (a legitimate zero, not the unresolvable verdict).
 	body, ok := e.G.Obj(myco).Face().SVars["X"]
 	if !ok || body != "Count$YouDescendedThisTurn" {

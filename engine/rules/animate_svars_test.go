@@ -1,5 +1,5 @@
 // The sVars$ grant on a DB$ Animate body, pinned end to end on the real
-// corpus carrier the ticket named: Guardian Scalelord's BackupAbilities SVar
+// corpus carrier Guardian Scalelord's BackupAbilities SVar
 // is `DB$ Animate | Keywords$ Flying | Triggers$ AttackTrig | sVars$ AE`, and
 // the card's own SVar table carries `AE` as the nested declaration
 // `SVar:AE:SVar:HasAttackEffect:TRUE` (cards/../g/guardian_scalelord.txt). The

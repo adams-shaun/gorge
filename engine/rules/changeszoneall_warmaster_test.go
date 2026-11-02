@@ -6,8 +6,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Elvish Warmaster pins the report card (issue agent-20260918T211532Z-*-*
-// family) end to end on the current real-corpus path. It is the sibling
+// Elvish Warmaster pins the report card
+// end to end on the current real-corpus path. It is the sibling
 // carrier engine/rules/changeszoneall_test.go does not name: a ChangesZoneAll
 // trigger whose ValidCards$ is a creature TYPE filter with the Other+YouCtrl
 // predicates ("Whenever one or more OTHER Elves YOU CONTROL enter") and

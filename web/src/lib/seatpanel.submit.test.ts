@@ -29,7 +29,7 @@ const attack = (index: number, obj: number): Option => ({
  * does: Min 0 (declining to attack is always legal, CR 508.1a), Max the
  * number of (attacker, defender) pairs offered, and EVERY option of kind
  * "attacker" — there is no `pass` and no `resolve` on the wire, so the
- * panel's primary-by-kind button (R-E4-1) never appears for one.
+ * panel's primary-by-kind button never appears for one.
  */
 const attackers = (n: number): Decision => ({
   seq: 7,
@@ -101,7 +101,7 @@ describe('showSubmit — a decision a click cannot answer must offer a way to co
 });
 
 describe('continueEmpty — the Pending tray Continue answers an option-less decision', () => {
-  // The live soft-lock's wire decision (demo game g4, seat 0): the Squadron
+  // The wire decision from a live soft-lock, seat 0: the Squadron
   // Hawk search posed Min 0 / Max 0 with NO options. No picker can render
   // it, so the Pending tray's Continue is the only way to answer; it must
   // post the empty answer through the ordinary submit gate.

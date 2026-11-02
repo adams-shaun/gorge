@@ -1,20 +1,17 @@
 package host
 
-// Task M2b-5: a human seat plays a full bot-table match, replay-identically.
+// A human seat plays a full bot-table match, replay-identically.
 //
-// M2b-1..4 each landed unit tests; nothing yet drives all of them together
-// through one real game. This is that integration seam: a non-perpetual
-// 4-seat table loaded from the repo decks, seat 0 a HumanSeat (M2b-2), the
-// other three the ordinary bots M2b-1's defaultSeats builds, with the M2b-3
-// think-timeout caretaker armed but -- because the human answers everything
-// it is asked -- never allowed to fire. The embedder-facing loop reads the
-// human seat through Pending and answers through SubmitIntent, exactly "the
-// way an embedder would": a human and three bots all committed to the same
-// intent stream, so the whole log is as if every seat had been a bot all
-// along (D3).
+// This is the integration seam: a non-perpetual 4-seat table loaded from the
+// repo decks, seat 0 a HumanSeat, the other three the ordinary bots
+// defaultSeats builds, with the think-timeout caretaker armed but -- because
+// the human answers everything it is asked -- never allowed to fire. The
+// embedder-facing loop reads the human seat through Pending and answers through
+// SubmitIntent, exactly "the way an embedder would": a human and three bots all
+// committed to the same intent stream, so the whole log is as if every seat had
+// been a bot all along.
 //
-// The three assertions are the three properties M2b-1..4 each assumed the
-// others would guarantee:
+// The three assertions:
 //
 //  1. the match reaches MatchFinished -- completion, not a crash, not a stall;
 //  2. the caretaker never fires -- the human answers every decision it is
@@ -126,7 +123,7 @@ func driveHumanSeat(t *testing.T, r *Registry, id TableID) {
 	}
 }
 
-// TestHumanSeatPlaysAFullBotTableAndReplaysIdentically is Task M2b-5's one
+// TestHumanSeatPlaysAFullBotTableAndReplaysIdentically is the one
 // acceptance test. It is deliberately not t.Parallel: it is the heaviest
 // single match in the suite (four full repo decks), and running it alone in
 // the sequential phase keeps it from fighting the parallel tests for a
@@ -174,8 +171,8 @@ func TestHumanSeatPlaysAFullBotTableAndReplaysIdentically(t *testing.T) {
 	// (2) The caretaker never substituted an answer. With ThinkTimeout 0 and
 	// the match completing before Close ever cancels the table context, the
 	// only way this counter is non-zero is a decision the human left
-	// unanswered -- the exact failure the caretaker exists to paper over
-	// (M2b-3, D3). Combined with (1), a finished match and a silent caretaker
+	// unanswered -- the exact failure the caretaker exists to paper over.
+	// Combined with (1), a finished match and a silent caretaker
 	// positively prove the human seat answered every decision it was asked.
 	if got := human.caretakerCount(); got != 0 {
 		t.Fatalf("the caretaker answered %d decisions; every decision was meant for the human seat", got)

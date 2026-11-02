@@ -102,7 +102,7 @@ func castRollercrusherForX(t *testing.T, e *Engine, x int) {
 	submitChoices(t, e, x)
 }
 
-// TestEtbTriggerXBoundSurvivesLegendRule is the ticket's headline: cast the
+// TestEtbTriggerXBoundSurvivesLegendRule: cast the
 // second copy with X=2, keep the OLDER copy at the legend ask, and the ETB
 // trigger must still ask for up to two targets and deal 2 to each.
 func TestEtbTriggerXBoundSurvivesLegendRule(t *testing.T) {

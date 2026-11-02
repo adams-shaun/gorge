@@ -13,7 +13,6 @@ func TestEngineCompiledTextSharesWithCloneAndFallsBack(t *testing.T) {
 	// Deliberately not t.Parallel(): this identity assertion must not race the
 	// cache-flood test. FIFO makes one overflow preserve this entry, but 64
 	// newer inserts can still evict it, so keep the identity window sequential.
-	// Reported by the kw:Backup ticket (CR 702.165).
 	c := card(t, "Name:Cache Test\nManaCost:1 U\nTypes:Creature Test\nPT:1/1\nA:AB$ Draw | Cost$ GWP 2B Sac<1/Creature> | ValidTgts$ Creature.YouCtrl+untapped\nOracle:x\n")
 	e := New(Config{Names: []string{"you"}, Decks: [][]*cards.Card{{c}}})
 	if e.compiledText == nil || e.compiledText.predicates == nil {

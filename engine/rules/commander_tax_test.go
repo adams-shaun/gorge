@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// commanderBeatstickSrc and commanderBattleGolemSrc are the m31 fixture
+// commanderBeatstickSrc and commanderBattleGolemSrc are the fixture
 // commanders: minimal, behaviour-free 1/1 creatures with a {0} cost and no
 // abilities. A creature is sorcery-speed (no Flash), so the command-zone cast
 // only ever fires in a main phase -- which driveToStep's StepMain1 provides.
@@ -48,7 +48,7 @@ func twoCommanderDeck(t *testing.T, cmd0Src, cmd1Src string) []*cards.Card {
 	return append([]*cards.Card{c0, c1}, mountainDeck(t, 38)...)
 }
 
-// commanderTaxGame is the m31 commander-tax fixture, now a thin wrapper over
+// commanderTaxGame is the commander-tax fixture, a thin wrapper over
 // the ONE shared commanderGame (engine/rules/commander_damage_test.go): both seats
 // lead their deck with the same decision-free Beatstick commander (one per
 // seat, at deck index 0), life is the default 20 (StartingLife 0 -- the zero
@@ -101,7 +101,7 @@ func fundAndRefresh(t *testing.T, e *Engine, generic int32) {
 // the battlefield), then returns the commander to the command zone. The
 // MoveZone back to ZCommand is a test fixture -- the CR 903.9
 // "return a commander to the command zone" replacement is a later milestone
-// (m33) -- so it stands in for the post-return game state rather than
+// -- so it stands in for the post-return game state rather than
 // inventing that rule here.
 func castCommanderAndReturn(t *testing.T, e *Engine, id state.ObjID) {
 	t.Helper()
@@ -392,7 +392,7 @@ func TestCommanderCastCountReplaysExactlyFromTheEventStream(t *testing.T) {
 
 // TestCommanderTaxGatedOffOutsideCommanderFormat is the explicit-format-gate
 // test. A Constructed-format game (Format left at its zero value) with a
-// commander deliberately present in the command zone (m30 genesis places
+// commander deliberately present in the command zone (genesis places
 // commanders on Config.Commanders regardless of format) must exercise NONE of
 // the Commander rules -- not because the command zone is empty (it is not),
 // but because the format gate says so. All three enforcement points are

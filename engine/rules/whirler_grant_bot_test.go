@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// whirlerRogueBoard builds the fb-20260927T153930Z board with REAL card flow:
+// whirlerRogueBoard builds the board with REAL card flow:
 // Whirler Rogue plus two untapped artifacts for seat 0, an enemy creature for
 // seat 1, and -- when ownCreature -- an own creature. The engine is driven to
 // a posed main1 priority decision for seat 0, so the option list the tests
@@ -62,7 +62,7 @@ func passIdx(t *testing.T, e *Engine) int {
 	return -1
 }
 
-// TestBotDeclinesWhirlerGrantWithoutOwnCreature is the fb-20260927T153930Z
+// TestBotDeclinesWhirlerGrantWithoutOwnCreature is the
 // regression, the ACTIVATION half: Whirler Rogue and two untapped artifacts
 // are on the bot's side but its only creature is Whirler Rogue itself (the
 // enemy has the other one). Activating "Target creature can't be blocked
@@ -71,7 +71,7 @@ func passIdx(t *testing.T, e *Engine) int {
 // scorer (A1c) reading the offer-time GrantStatics polarity over a census
 // that EXCLUDES the source permanent -- with the source included,
 // Whirler Rogue would always count as its own sensible target and the gate
-// would never fire. The target ask that round 1 fixed is never even posed.
+// would never fire. The target ask is never even posed.
 func TestBotDeclinesWhirlerGrantWithoutOwnCreature(t *testing.T) {
 	t.Parallel()
 	e, whirler := whirlerRogueBoard(t, false)
@@ -89,7 +89,7 @@ func TestBotDeclinesWhirlerGrantWithoutOwnCreature(t *testing.T) {
 	}
 }
 
-// TestBotWhirlerGrantAimsOwnCreature is the fb-20260927T153930Z regression,
+// TestBotWhirlerGrantAimsOwnCreature is the regression,
 // the TARGET half, through the real ability flow: activating Whirler Rogue
 // pays its cost and poses the target ask, and the bot's answer there must be
 // its OWN creature -- never the enemy's. The grant then really resolves onto

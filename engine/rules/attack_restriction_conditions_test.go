@@ -1,8 +1,8 @@
 package rules
 
-// combatres-cantattack: the conditional parameter family on a face CantAttack
-// static. Before this task, effects.CantRestrictionParamsReadable rejected a
-// static carrying UnlessDefender$, Condition$ or CheckSVar$, so
+// The conditional parameter family on a face CantAttack
+// static. If effects.CantRestrictionParamsReadable rejected a
+// static carrying UnlessDefender$, Condition$ or CheckSVar$,
 // engine/rules/layers.go's attackBlocked skipped it whole. attackBlocked now reads
 // the family: continuousGateHolds evaluates IsPresent$/CheckSVar$/SVarCompare$/
 // Condition$/ClassBand$ and effects.UnlessDefenderHolds evaluates

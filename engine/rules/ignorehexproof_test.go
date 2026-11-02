@@ -202,9 +202,7 @@ func TestIgnoreHexproofCarriersCarryTheMode(t *testing.T) {
 
 // TestIgnoreHexproofFalseGateDoesNotLift is the static-gate regression: an
 // IgnoreHexproof static whose Condition$ PlayerTurn gate is FALSE (its
-// controller is not the active player) must NOT lift hexproof. Before the fix
-// the read matched ValidEntity$ without evaluating the gate, so a false-gated
-// static granted the exception anyway.
+// controller is not the active player) must NOT lift hexproof.
 func TestIgnoreHexproofFalseGateDoesNotLift(t *testing.T) {
 	t.Parallel()
 	hexed := "Name:Hexed Elf\nManaCost:G\nTypes:Creature Elf\nK:Hexproof\nPT:2/2\nOracle:x\n"

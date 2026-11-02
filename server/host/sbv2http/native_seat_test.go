@@ -258,7 +258,7 @@ func TestThinkTimeoutAnswersAPassiveAndAnAttachedSeat(t *testing.T) {
 		t.Fatalf("heads differ: flag off %s, passive seat %s", off, passive)
 	}
 	hub := NewHub()
-	hub.seat(seatKey{table: "t", match: 1, seat: 0}).attach()
+	hub.seat(seatKey{table: "t", match: 1, seat: 0}).attach(false)
 	finish(nativeSeatTable(t, reg, hub, think, 11, 0))
 }
 
@@ -444,6 +444,77 @@ func TestV2AttachHoldAndHandBack(t *testing.T) {
 	}
 	if status, body := postSBV2Send(t, srv.URL, route+"send", "tok", fmt.Sprint(third.id), 0); status != http.StatusNoContent {
 		t.Fatalf("send after re-attaching: %d %s", status, body)
+	}
+}
+
+// TestV2LeavesAsksToAClientThatTakesThem: a stream with asks=native is told
+// about every ask the codec otherwise answers itself, as a native_only request,
+// and answers it on the native routes while the seat stays attached.
+func TestV2LeavesAsksToAClientThatTakesThem(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	hub := NewHub()
+	r := nativeSeatTable(t, reg, hub, 0, 11, 0, 1)
+	mux := http.NewServeMux()
+	mux.Handle("/api/sbv2/v1/tables/", http.StripPrefix("/api/sbv2/v1/tables", NewHandler(r, hub, Options{Seat: func(req *http.Request) (SeatClaim, bool) {
+		tok := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+		return SeatClaim{Table: "t", Seat: state.PlayerID(strings.TrimPrefix(tok, "tok")[0] - '0')}, strings.HasPrefix(tok, "tok")
+	}})))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	const route = "/api/sbv2/v1/tables/t/matches/1/"
+
+	own := map[string]bool{"choose/mana": true, "choose/mana_window": true, "choose/trigger_cost": true, "choose/division": true, "choose/pay_pip": true}
+	s := &nativeScript{asked: map[string]int{}}
+	var seats [2]*seatState
+	for i := range seats {
+		seats[i] = hub.seat(seatKey{table: "t", match: 1, seat: state.PlayerID(i)})
+		frames, closeStream := dialSBV2Stream(t, srv.URL, route+"stream?asks=native", fmt.Sprintf("tok%d", i))
+		t.Cleanup(closeStream)
+		go func() {
+			for range frames {
+			}
+		}()
+	}
+	var last [2]uint64
+	deadline := time.Now().Add(45 * time.Second)
+	for s.asked["choose/mana"] == 0 || s.asked["choose/trigger_cost"] == 0 || s.asked["choose/division"] == 0 {
+		if time.Now().After(deadline) {
+			t.Fatalf("not every ask reached the client; asked %v", s.asked)
+		}
+		if fin, _ := matchDone(t, r, "t"); fin {
+			t.Fatalf("the game ended first; asked %v", s.asked)
+		}
+		progressed := false
+		for i, ss := range seats {
+			req, _ := ss.snapshot()
+			if req == nil || req.id == last[i] {
+				continue
+			}
+			last[i] = req.id
+			progressed = true
+			if req.nativeOnly {
+				d, err := r.Pending("t", 1, state.PlayerID(i))
+				if err != nil {
+					t.Fatalf("native_only with nothing pending: %v", err)
+				}
+				if rt := mapping.Route(d); !own[rt] {
+					t.Fatalf("native_only for %s", rt)
+				}
+				if err := r.SubmitIntent("t", 1, state.PlayerID(i), s.answer(d)); err != nil {
+					t.Fatalf("native answer to %s: %v", mapping.Route(d), err)
+				}
+				if !ss.held() {
+					t.Fatal("the seat lost its stream")
+				}
+				continue
+			}
+			if err := r.SubmitIntent("t", 1, state.PlayerID(i), s.answer(req.ask.Pose.Native)); err != nil {
+				t.Fatalf("seat %d: %v", i, err)
+			}
+		}
+		if !progressed {
+			time.Sleep(100 * time.Microsecond)
+		}
 	}
 }
 

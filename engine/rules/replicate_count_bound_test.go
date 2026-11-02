@@ -22,8 +22,7 @@ import (
 // ("Instant and sorcery spells you cast cost {1} less to cast") and a pool of
 // four red and three colourless. The pool affords three payments only with
 // Baral's reduction: the raw total for N payments is 2N+2 (so a seventh unit
-// is short of N=3), the composed total 2N+1 (N=3 costs exactly seven). The
-// pre-fix bound priced the raw cost and offered 0..2.
+// is short of N=3), the composed total 2N+1 (N=3 costs exactly seven).
 func TestReplicateCountBoundSeesReduceCostModifier(t *testing.T) {
 	t.Parallel()
 	e, cfg, reg := replicateTapEngine(t, "Pyromatics", "Baral, Chief of Compliance")
@@ -84,14 +83,13 @@ func TestReplicateCountBoundSeesReduceCostModifier(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestReplicateCountBoundSeesImproviseContribution: Pyromatics with Ironheart,
-// Clever Champion ("Noncreature spells you cast have improvise") and a second
-// artifact on the battlefield, against a pool of three red and one colourless.
-// The pool alone affords the replicated-mode OFFER (base {1}{R} + one
-// {1}{R} = {2}{R}{R}, four units) and exactly one payment in the count ask;
-// improvise taps the two artifacts for two generic, so N=2 costs
-// {3}{R}{R}{R} - {2} = {1}{R}{R}{R}, four units, and is payable. The pre-fix
-// count bound offered 0..1.
+// TestReplicateCountBoundSeesImproviseContribution: Pyromatics with
+// Ironheart, Clever Champion ("Noncreature spells you cast have improvise")
+// and a second artifact on the battlefield, against a pool of three red and
+// one colourless. The pool alone affords the replicated-mode OFFER (base
+// {1}{R} + one {1}{R} = {2}{R}{R}, four units) and exactly one payment in the
+// count ask; improvise taps the two artifacts for two generic, so N=2 costs
+// {3}{R}{R}{R} - {2} = {1}{R}{R}{R}, four units, and is payable.
 func TestReplicateCountBoundSeesImproviseContribution(t *testing.T) {
 	t.Parallel()
 	e, cfg, reg := replicateTapEngine(t, "Pyromatics",

@@ -11,7 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// TestTableInfoSeriesFlag is E3-fx2's first half: TableInfo carries the
+// TestTableInfoSeriesFlag is the first half: TableInfo carries the
 // table's series flag so a client can tell a series table (which autoplays
 // until its hook says stop) from an ordinary one. The wire omits the key for
 // a non-series table (omitempty), so an old client sees no change.
@@ -66,11 +66,10 @@ func TestTableInfoSeriesFlag(t *testing.T) {
 	}
 }
 
-// TestSeriesTableEmitsBetweenGamesThenLive is E3-fx2's second half: a
+// TestSeriesTableEmitsBetweenGamesThenLive is the second half: a
 // subscriber to a series table sees a table_state "between_games" frame while
 // the table sideboards between two games, then a table_state "live" frame when
-// the next game starts — the signal the E3-9 client had to guess from
-// match_end.
+// the next game starts.
 func TestSeriesTableEmitsBetweenGamesThenLive(t *testing.T) {
 	t.Parallel()
 	var s *Session
@@ -158,7 +157,7 @@ func TestSeriesTableEmitsBetweenGamesThenLive(t *testing.T) {
 	}
 }
 
-// TestNonSeriesTableEmitsNoTableState pins E3-fx2's scope: table_state is a
+// TestNonSeriesTableEmitsNoTableState pins the scope: table_state is a
 // series-table signal only. An ordinary table's idle/live/cooldown is already
 // carried by match_start/match_end and the overview widget, so emitting
 // table_state for it injects an unrequested frame into every non-series

@@ -1,7 +1,7 @@
 import type { ReviewDecision } from '../protocol';
 
 /**
- * The match reviewer's decision overlay (design §3-§4): pure functions over
+ * The match reviewer's decision overlay: pure functions over
  * the review server's decision index (GET .../decisions, one entry per
  * intent). The DecisionPanel and the transport's marks read them; nothing
  * here touches the DVR — a jump is the caller's 'scrub' to an entry's
@@ -21,7 +21,10 @@ export type ExplainSource =
 
 /** One searched candidate (bots/explain.Row). Values are the deciding seat's perspective. */
 export interface ExplainRow {
-  choices: number[];
+  /** null on a planned cast's row, which has a payment instead. */
+  choices: number[] | null;
+  /** The id of the decision's payment action a planned cast selects; such a row has no choices. */
+  payment?: string;
   visits: number;
   prior: number;
   q: number;

@@ -10,10 +10,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// api:Proliferate (CR 701.27) end to end on the REAL corpus
-// carriers. Before this task `DB$ Proliferate` was unregistered, so
-// Tezzeret's Gambit's "then proliferate" half was one "unimplemented API
-// Proliferate" Note, and Karn's Bastion's {4},{T} activation did nothing.
+// api:Proliferate (CR 701.27) end to end on the REAL corpus carriers:
+// Tezzeret's Gambit's "then proliferate" half and Karn's Bastion's {4},{T}
+// activation.
 //
 // Every fixture mutation goes through e.emit, so every test ends
 // replay-verified.

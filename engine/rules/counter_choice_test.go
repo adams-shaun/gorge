@@ -635,7 +635,7 @@ func TestDramatistsPuppetElectsForEachKind(t *testing.T) {
 // pending ask is an intent boundary) must carry the first answered kind
 // forward. Without the copy the clone re-asks the already-answered PUT kind
 // the moment the second election is answered — a decision and event stream
-// the original never produces (counterchoice1 round 2).
+// the original never produces.
 func TestDramatistsPuppetCloneKeepsTheAnsweredKindCursor(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

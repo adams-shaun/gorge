@@ -8,8 +8,8 @@
   import type { FooterButton } from './PromptFooter.svelte';
 
   /**
-   * CombatPrompt is the attackers/blockers renderer (UI rework spec §4:
-   * "assigned by clicking the board, and the dock summarises the
+   * CombatPrompt is the attackers/blockers renderer
+   * ("assigned by clicking the board, and the dock summarises the
    * assignments"). The board tiles are the primary surface — they carry the
    * same options through the shared card-options index and post through the
    * same click path — so this renderer is the summary: who attacks whom, or

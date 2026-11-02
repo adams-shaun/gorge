@@ -24,7 +24,7 @@ func reflectedBoard(t *testing.T) (*fakeHost, *Ctx, *cards.SA) {
 	return h, &Ctx{Source: src.ID, Controller: 0}, s
 }
 
-// TestManaReflectedStandaloneFallsBackWhenHostCannotAsk is R-9's no-ask
+// TestManaReflectedStandaloneFallsBackWhenHostCannotAsk is the no-ask
 // contract for this effect: a host whose Ask returns false still resolves
 // deterministically — the first candidate in the fixed order (W before U) —
 // and records the Note naming the stand-in.

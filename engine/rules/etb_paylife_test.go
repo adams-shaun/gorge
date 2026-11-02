@@ -20,9 +20,9 @@ import (
 //     stores it (events.StoreSVar) so the card's characteristic-defining
 //     P/T (or its token's P/T) reads it back.
 //
-// Before the fix the body ran for free: an `unimplemented API StoreSVar`
-// Note, no life paid, and the stored default (LifePaidOnETB:Number$0) read
-// as 0 so the card entered as a 0/0.
+// The body must not run for free: an `unimplemented API StoreSVar` Note, no
+// life paid, and the stored default (LifePaidOnETB:Number$0) read as 0 so the
+// card entered as a 0/0.
 
 // enterWithPayLife emits the entry Move for a card in seat p's hand and
 // answers the pending paylife announcement with x life, returning the

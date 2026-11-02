@@ -7,10 +7,8 @@ import (
 
 // lb4w2-diverge: a `pass` that completes a priority round resolves the top
 // object (CR 117.4, 608.1); when that resolution asks (Occult Epiphany's
-// "then discard X cards", CR 608.2c) the generated scenario's checkpoint shows
-// the finished resolution, as XMage's pass pair does. Before the fix gorge
-// snapshotted the drawn-but-not-discarded hand (Entropic Battlecruiser
-// static#0.0: p1.hand [Grizzly Bears, Wastes, Wastes] vs XMage [Wastes]).
+// "then discard X cards", CR 608.2c) the generated scenario's checkpoint
+// shows the finished resolution, as XMage's pass pair does.
 const settleResolutionScenario = `{
   "name": "settle-resolution-ask",
   "setup": {"p0": {"battlefield": ["Entropic Battlecruiser"], "counters": {"Entropic Battlecruiser": {"CHARGE": 1}}},

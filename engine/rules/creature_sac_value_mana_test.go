@@ -58,8 +58,7 @@ func TestSacrificeValueManaAbilityProducesManaValue(t *testing.T) {
 		t.Fatalf("sacrificed relic zone = %v, want graveyard (cost not paid)", o.Zone)
 	}
 	// The sacrificed artifact's mana value was 3, so the ability adds three
-	// black mana. Pre-fix this is 0 (the amount SVar resolved without the
-	// sacrificed LKI).
+	// black mana.
 	if got := e.G.Players[0].Pool[state.MB]; got != 3 {
 		t.Fatalf("Priest produced B=%d, want 3 (mana value of the sacrificed artifact)", got)
 	}

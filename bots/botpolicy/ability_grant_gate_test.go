@@ -24,12 +24,12 @@ func gateDecision(b Board, statics []string) (int, *decision.Decision) {
 	return in.Choices[0], &d
 }
 
-// TestBoonActivationDeclinedWithoutOwnCreature is the A1c regression for
-// fb-20260927T153930Z: with Whirler Rogue and two untapped artifacts on the
+// TestBoonActivationDeclinedWithoutOwnCreature is the A1c regression: with
+// Whirler Rogue and two untapped artifacts on the
 // board but NO own creature (the enemy has the only creature), the bot must
 // pass instead of activating, because the grant could then only land on an
-// opponent's creature. Before the gate the ability scored 980 and was
-// activated, and the follow-up target ask was answered with an opponent.
+// opponent's creature; ungated, the ability scores 980, is activated, and the
+// follow-up target ask is answered with an opponent.
 func TestBoonActivationDeclinedWithoutOwnCreature(t *testing.T) {
 	b := boardOf(def(1, 2, 2))
 	pick, d := gateDecision(b, []string{"CantBlockBy"})

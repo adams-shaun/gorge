@@ -5,6 +5,7 @@
   import { digitMap, orderedOptions } from '../../lib/prompts/order';
   import { primaryOf } from '../../lib/prompts/decision';
   import { selectionStatus, submitLabel } from '../../lib/prompts/anatomy';
+  import { promptWords } from '../../lib/prompts/words';
   import { hoverLinkOf, promptHover } from '../../lib/prompts/hover.svelte';
   import { pointerRelease } from '../../lib/pointer';
   import Digit from './Digit.svelte';
@@ -107,7 +108,7 @@
         disabled={logic.busy || (full && at < 0)}
       >
         <Digit n={digits.get(opt.index)} on={at >= 0} />
-        <span class="label">{#if pips !== null}Add <ManaSymbols cost={pips} />{:else}{rowText ? rowText(opt) : (startingPlayerLabel(decision, opt) ?? opt.label)}{/if}</span>
+        <span class="label">{#if pips !== null}Add <ManaSymbols cost={pips} />{:else}{rowText ? rowText(opt) : (startingPlayerLabel(decision, opt) ?? promptWords(opt.label))}{/if}</span>
         {#if at >= 0 && multi}<span class="order" data-pick-order>{decision.repeatable ? `×${count}` : at + 1}</span>{/if}
       </button>
     {/each}

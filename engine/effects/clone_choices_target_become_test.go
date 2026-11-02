@@ -1,13 +1,13 @@
 package effects
 
-// Clone with Choices$ + ValidTgts$ and no CloneTarget$ (ticket lb-clonetgt).
+// Clone with Choices$ + ValidTgts$ and no CloneTarget$.
 //
 // Forge's CloneEffect reads the Choices$ pick as the copy SOURCE and, on a
 // targeting ability with no CloneTarget$, the SA's own target as the BECOME
 // operand: "target token you control becomes a copy of it" (Kaya, Spirits'
 // Justice), "target creature becomes a copy of that creature" (Cytoshape,
-// Duplication Device). Before the fix cloneBecome's absent-CloneTarget$ arm
-// always answered Self, so Kaya turned herself into the chosen creature.
+// Duplication Device). An absent-CloneTarget$ arm that always answers Self
+// would turn Kaya herself into the chosen creature.
 
 import (
 	"sort"

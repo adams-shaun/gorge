@@ -77,7 +77,7 @@ func mobVerdictEngine(t *testing.T, reg *cards.Registry) (*Engine, Config) {
 }
 
 // TestMobVerdictPlayerBallotDamageAndDrawPerVote is the end-to-end pin for
-// api:Vote's PLAYER ballot (task votepb1): SP$ Vote | Defined$ Player |
+// api:Vote's PLAYER ballot: SP$ Vote | Defined$ Player |
 // Secret$ True | VotePlayer$ Other | StoreVoteNum$ True | SubAbility$
 // DBRepeatOpp, whose two AmountFromVotes$ RepeatEach bodies read the per-player
 // tally (SVar$Votes/Times.2 damage, NumCards$ Votes draw).
@@ -151,7 +151,7 @@ func TestMobVerdictPlayerBallotDamageAndDrawPerVote(t *testing.T) {
 		// asserted below). The omniscient spectator carries a read-only COPY
 		// of the pending ask since the spectator-decision contract
 		// (approx row 33) -- it shows the ballot's shape, never a vote.
-		// The option labels are the ballot entries' F3-safe seat identities.
+		// The option labels are the ballot entries' seat identities.
 		for _, o := range d.Options {
 			if o.Label != e.G.Players[o.Player].Name {
 				t.Fatalf("ask %d option for seat %d label = %q, want the deck identity %q",

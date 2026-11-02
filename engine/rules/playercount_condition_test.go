@@ -14,12 +14,11 @@ package rules
 //   - Hot Pursuit: `CheckSVar$ PlayerCountHasLost$Amount | SVarCompare$ GE2`,
 //     the intervening-if on its begin-combat gain-control trigger.
 //
-// The brief claimed Hot Pursuit and Anya failed OPEN (wrong-wide). Both
-// gate paths fail CLOSED on an unresolvable count head
+// Both gate paths fail CLOSED on an unresolvable count head
 // (engine/rules/trigger_condition.go's `!evaluated || !holds` and
-// engine/rules/statics.go's `!evaluated` branch), so the pre-fix behaviour was
-// wrong-DEAD, not wrong-wide; these tests pin the post-fix CORRECT firing
-// (fires exactly at the threshold), which is the defect.
+// engine/rules/statics.go's `!evaluated` branch), so a head they cannot read
+// leaves Hot Pursuit and Anya dead, not wide; these tests pin the correct
+// firing, exactly at the threshold.
 
 import (
 	"testing"

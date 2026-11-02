@@ -1,16 +1,13 @@
 package host
 
-// Task m39: making Commander reachable from the product. The engine has had
-// rules.Format/StartingLife/Commanders since m30-m35, but a TableConfig
-// could not say "commander" — every table gorged served was a 20-life
-// constructed game and the command-zone panel m36 built rendered empty on
-// every table that would ever exist. This file pins the host half: a
-// commander table builds its matches with the format's rules.Config (40
-// life, a command zone per seat from the deck's own commanders), replays
-// them through the host's own replay build (R-8.4 — the sidecar must carry
-// the format/life/commanders or a Commander match stops replaying), and
+// Commander reachable from the product: a TableConfig says "commander" and
+// the table plays the format. This file pins the host half: a commander table
+// builds its matches with the format's rules.Config (40 life, a command zone
+// per seat from the deck's own commanders), replays them through the host's own
+// replay build (the sidecar must carry the format/life/commanders or a
+// Commander match stops replaying), and
 // rejects at the config boundary a commander table dealt a deck without a
-// commander. The decks are the m38 interim Foundations decks, resolved
+// commander. The decks are the interim Foundations decks, resolved
 // through the same deck.File.CommanderIndex the product uses.
 
 import (
@@ -26,7 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// commanderDeckNames is the five m38 interim mono-colour Commander decks,
+// commanderDeckNames is the five interim mono-colour Commander decks,
 // the smallest real set a commander table can deal (an invalid or
 // commandless deck would make these tests about the fixture, not the host).
 var commanderDeckNames = [...]string{
@@ -64,8 +61,8 @@ func commanderDeckLoader(t *testing.T) func(string) (Deck, error) {
 }
 
 // commanderTable is a two-seat commander table: the smallest shape that has
-// a command zone at all, seeded for a real game (m39 measured seeds
-// 1000-1015 to produce games that reach a winner with commanders cast —
+// a command zone at all, seeded for a real game (seeds 1000-1015 were
+// measured to produce games that reach a winner with commanders cast —
 // see engine/rules/commander_decks_test.go's repoCommanderGames — and 1001 is the
 // keen-engineering-as-seat-0 evidence seed).
 func commanderTable(id TableID, deck0, deck1 string) TableConfig {
@@ -108,7 +105,7 @@ func finishedCommanderMatch(t *testing.T) (*Registry, *table, *match, string) {
 // TestCommanderTableBuildsACommanderMatch is the format gate's host half: a
 // TableConfig with FormatCommander builds its match with the format's
 // rules.Config — the engine's FormatCommander, 40 life at genesis, and a
-// command zone per seat from the deck's own commanders — so the m36
+// command zone per seat from the deck's own commanders — so the
 // command-zone projection is populated on a table that will actually exist.
 // The observed surface is the projected View: at genesis every seat starts
 // at 40 life with its commander in the zone, and at the head every seat's
@@ -176,9 +173,8 @@ func TestCommanderTableBuildsACommanderMatch(t *testing.T) {
 // table that never sets StartingLife (0, the zero value) must still play 40
 // — the default is resolved by the host, once, at match build, so the
 // sidecar records the life the match actually played with and a replay
-// rebuilds it exactly. Killing this resolution is the mutation the task
-// gates on: a commander table that silently plays 20 is the pre-m39
-// disease.
+// rebuilds it exactly. Killing this resolution makes a commander table silently
+// play 20.
 func TestCommanderTableDefaultsLife40(t *testing.T) {
 	r, _, m, _ := finishedCommanderMatch(t)
 	if m.gc.StartingLife != 40 {
@@ -201,7 +197,7 @@ func TestCommanderTableDefaultsLife40(t *testing.T) {
 // with no command zone — a commander table's commands cannot leak onto a
 // constructed table, and a constructed table cannot accidentally become a
 // Commander game. This is what keeps the default gorged table byte-
-// identical to every pre-m39 table, and the m39 default -format
+// identical to a table with no format set: the default -format
 // constructed is exactly this TableConfig.
 func TestConstructedTableStays20Life(t *testing.T) {
 	takeMatchSlot(t)
@@ -251,7 +247,7 @@ func TestConstructedTableStays20Life(t *testing.T) {
 	}
 }
 
-// TestCommanderMatchReplaysExactly is R-8.4 for the format, asserted
+// TestCommanderMatchReplaysExactly is the replay rule for the format, asserted
 // directly: the match replays from its log through the host's own replay
 // build (matchForLog, server/host/viewat.go — a Config rebuilt from the sidecar
 // alone). A sidecar that dropped the format, life or commanders would
@@ -306,11 +302,10 @@ func TestCommanderMatchReplaysExactly(t *testing.T) {
 		t.Fatalf("commander replay head %s, live head %s", got, want)
 	}
 
-	// And the old-sidecar shape still loads (R-E5-2): a sidecar written
-	// before m39 has no format/life/commanders keys and must read as Format
-	// zero (constructed), life 0 (the engine's 20) and no commanders — the
-	// values those matches played with — so an on-disk history predating
-	// the task keeps serving untouched.
+	// And the old-sidecar shape still loads: a sidecar with no
+	// format/life/commanders keys must read as Format zero (constructed), life 0
+	// (the engine's 20) and no commanders — the values those matches played with —
+	// so an on-disk history keeps serving untouched.
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "t1"), 0o755); err != nil {
 		t.Fatal(err)

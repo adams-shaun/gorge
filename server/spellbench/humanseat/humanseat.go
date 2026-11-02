@@ -132,7 +132,15 @@ type Config struct {
 	// native answer leaves a held seat attached and hands any other back to
 	// native. Nil means never held.
 	Held func() bool
+	// LeaveAsks reports whether the attached client answers, on the native
+	// routes, the asks the codec otherwise answers itself: a mana ability's
+	// colour, a triggered cost, a mana window, a division and a flexible pip.
+	// A person decides those; a v2 agent never sees them. Nil means never.
+	LeaveAsks func() bool
 }
+
+// errLeftToClient is why a decision goes native under Config.LeaveAsks.
+var errLeftToClient = errors.New("the client answers this ask on the native routes")
 
 // Seat is the v2 codec of one human seat of one match. Install it with
 // host.HumanSeat.SetTap.
@@ -142,6 +150,7 @@ type Seat struct {
 	// nameWindow is Config.NameWindow.
 	nameWindow int
 	held       func() bool
+	leaveAsks  func() bool
 
 	mu       sync.Mutex
 	attached bool
@@ -186,7 +195,7 @@ func New(cfg Config) (*Seat, error) {
 	if cfg.Answerer == nil {
 		return nil, errors.New("v2 human seat: nil answerer")
 	}
-	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend, nameWindow: cfg.NameWindow, held: cfg.Held}, nil
+	return &Seat{answerer: cfg.Answerer, extend: cfg.Extend, nameWindow: cfg.NameWindow, held: cfg.Held, leaveAsks: cfg.LeaveAsks}, nil
 }
 
 func checkTable(seats int, format string) error {
@@ -441,7 +450,9 @@ func (s *Seat) signalNativeOnly(gen uint64, v view.View, d *decision.Decision, e
 	canUndo := s.canUndo(d.Player)
 	gameID, board, evs := s.gameID, s.g.Board(), s.g.Log().Events
 	s.mu.Unlock()
-	s.logf("v2 human seat %d: native only (%s): %v", d.Player, mapping.Route(d), err)
+	if !errors.Is(err, errLeftToClient) {
+		s.logf("v2 human seat %d: native only (%s): %v", d.Player, mapping.Route(d), err)
+	}
 	s.answerer.NativeOnly(NativeOnly{Seat: d.Player, Seq: d.Seq, Route: mapping.Route(d), Err: err, Decision: *d, View: v, GameID: gameID, Game: board, Events: evs, CanUndo: canUndo})
 }
 
@@ -477,7 +488,7 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 	s.mu.Unlock()
 	if !resume {
 		if in, ok := autoPayment(&d); ok {
-			_ = answer(in)
+			s.answerOwn(gen, v, &d, in, answer)
 			return
 		}
 		var (
@@ -494,7 +505,7 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 				s.signalNativeOnly(gen, v, &d, err)
 				return
 			}
-			_ = answer(in)
+			s.answerOwn(gen, v, &d, in, answer)
 			return
 		}
 		if !s.section(gen, gone, &d, func() { tx, err = mapping.Begin(s.env, &d) }) {
@@ -555,6 +566,16 @@ func (s *Seat) drive(ctx context.Context, cancel context.CancelFunc, gen uint64,
 		}
 		return
 	}
+}
+
+// answerOwn gives the codec's own answer to an ask v2 has no candidate for, or
+// leaves the ask to a client that takes those on the native routes.
+func (s *Seat) answerOwn(gen uint64, v view.View, d *decision.Decision, in decision.Intent, answer func(decision.Intent) error) {
+	if s.leaveAsks != nil && s.leaveAsks() {
+		s.signalNativeOnly(gen, v, d, errLeftToClient)
+		return
+	}
+	_ = answer(in)
 }
 
 // pose asks the open transaction for its next substep and builds the v2

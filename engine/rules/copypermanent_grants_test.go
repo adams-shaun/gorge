@@ -1,7 +1,7 @@
 package rules
 
 // This file pins DB$ CopyPermanent's ability/trigger/attachment/choice riders
-// on real corpus cards (task copyp1's second follow-up): AddTriggers$ +
+// on real corpus cards: AddTriggers$ +
 // AddSVars$, AddAbilities$, AttachedTo$ and the sole supported Choices$/
 // Chooser$ shape. Every test asserts the rider's end-to-end effect on the
 // MINTED COPY (never on the source), that the implemented families are absent
@@ -341,7 +341,7 @@ func drainOptionalYes(t *testing.T, e *Engine, limit int) {
 // that same attacker. The carrier is Arna, Skycaptain's real DBCopyPermanents
 // body, but its own Defined$ filter is the real source filter
 // (`Permanent.!token+AttachedTo TriggeredAttackerLKICopy`); the bare `Attached`
-// and the `AttachedTo <ref>` predicates are now implemented (task attached1)
+// and the `AttachedTo <ref>` predicates are implemented
 // and the real source filter is driven end to end by
 // TestArnaRealSourceFilterReachesCopyRider in arna_source_filter_test.go. This
 // test keeps its historical `Defined$ Valid Permanent` substitution so the
@@ -431,13 +431,13 @@ func TestArnaCopy(t *testing.T) {
 }
 
 // noAskHost embeds the engine but refuses every mid-resolution ask, forcing
-// the R-9 no-host stand-in while every state change still goes through the
+// the no-host stand-in while every state change still goes through the
 // engine's real event path.
 type noAskHost struct{ *Engine }
 
 func (noAskHost) Ask(*decision.Decision) bool { return false }
 
-// TestZndrspltNoHostCopy pins the R-9 no-host
+// TestZndrspltNoHostCopy pins the no-host
 // degradation for the Choices$ rider: a host that cannot ask copies the first
 // eligible friend creature deterministically and records the no-host Note,
 // never the resolving spell.
@@ -483,7 +483,7 @@ func TestZndrspltNoHostCopy(t *testing.T) {
 		}
 	}
 	if !sawNote {
-		t.Fatalf("the no-host fallback recorded no R-9 Note (notes: %v)", copyNotes(e))
+		t.Fatalf("the no-host fallback recorded no stand-in Note (notes: %v)", copyNotes(e))
 	}
 	replayCheck(t, e, cfg)
 }

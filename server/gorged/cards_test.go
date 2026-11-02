@@ -219,8 +219,7 @@ func TestCardTextTakesTheFrontFaceOfADoubleFacedCard(t *testing.T) {
 
 // A lookup by the BACK face's printed name takes that face's facts: a
 // transformed Delver of Secrets is on the wire as "Insectile Aberration",
-// and its sidecar must carry the Insectile Aberration face (task
-// fb-20260914T033246Z-3f1cc033, defect 3).
+// and its sidecar must carry the Insectile Aberration face.
 func TestCardTextTakesTheMatchedFaceOfADoubleFacedCard(t *testing.T) {
 	ac, _ := factsFixture(t, map[string]scryNamed{
 		"Insectile Aberration": {

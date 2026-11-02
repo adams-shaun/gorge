@@ -1,6 +1,6 @@
 <script lang="ts">
   /**
-   * The 17Lands credit (spec Q5, §4.6): the bot drafters' pick ratings and
+   * The 17Lands credit: the bot drafters' pick ratings and
    * the builder's suggestion come from 17Lands public data, CC BY 4.0, which
    * requires attribution wherever that data shapes what the player sees.
    */

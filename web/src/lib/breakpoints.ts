@@ -2,7 +2,7 @@ import type { View } from '../protocol';
 import type { Breakpoints } from './playsettings';
 
 /**
- * breakpoints is the pure "pause on X" check (UI rework spec §1). It answers
+ * breakpoints is the pure "pause on X" check. It answers
  * one question for decide(): does a rule the player set want this priority
  * window shown to them? It never decides a pass. Firing is keyed: each hit
  * names the object or turn it fired for, and the caller remembers the

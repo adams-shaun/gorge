@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestEveryConfiguredAbilityHasItsFactsRecord holds W4 step 1's binding
+// TestEveryConfiguredAbilityHasItsFactsRecord holds the binding
 // total over every repo deck card and every token script: each ability
 // reachable from a configured face (its Abilities and their SubAbility$
 // chains, trigger Execute$ bodies, replacement bodies) has its compiled

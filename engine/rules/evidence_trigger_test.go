@@ -75,8 +75,7 @@ func spiderTokens(e *Engine, p state.PlayerID) int {
 // each) in the graveyard, Izoni's ETB trigger offers the evidence cost for
 // real; paying poses the mana-value-descending evidence selection, exiles
 // exactly the chosen cards with the canonical evidence marker, and only then
-// creates the two Spider tokens. Before the fix the pay option settled
-// nothing (0 evidence events, graveyard untouched) yet ran the body.
+// creates the two Spider tokens.
 func TestIzoniEvidenceTriggerPaysAndExiles(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)

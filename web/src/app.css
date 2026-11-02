@@ -43,7 +43,7 @@
   --mana-g: #4a9e63;
   --mana-c: #9a958c;
 
-  /* The UI rework's three state colours (spec "Visual language"). Every
+  /* The three state colours. Every
      other hue comes from cards, mana symbols and seat colours.
        gilt       you: your seat, your priority, the primary action, a
                   selected option;

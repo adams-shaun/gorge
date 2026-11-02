@@ -26,8 +26,7 @@ import (
 //     is a real choice exactly as for any other draw; the global draw cursor
 //     (ctx.Draw.Done) lets the connive finish the remaining draws before
 //     its discard, counter and record. A bare DrawFor loop would pose a
-//     second ask over the outstanding one (the orphaned-decision panic
-//     findings-sol4 proved).
+//     second ask over the outstanding one (an orphaned-decision panic).
 //   - The discards follow: N cards from the conniver's controller's hand.
 //     Connive has no discard filter ("discard a card"), so the eligible set
 //     is the whole hand. The strict-supersets rule (the effDiscard

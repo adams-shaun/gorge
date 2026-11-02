@@ -19,7 +19,7 @@ func mustBeBlockedCorpusCard(t *testing.T, name string) *cards.Card {
 	return c
 }
 
-// TestRealCorpusMustBeBlockedKeywordIsRead pins the ticket's CR 509.1a
+// TestRealCorpusMustBeBlockedKeywordIsRead pins the CR 509.1a
 // requirement on the REAL corpus card rather than a synthetic fixture. Forge
 // encodes "Raphael must be blocked if able." as the sentence keyword
 // `K:CARDNAME must be blocked if able.`; engine/cards/parse.go canonicalises that

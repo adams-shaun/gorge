@@ -5,7 +5,7 @@ import { setBasePathForTests, withBase } from './basepath';
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-describe('startRematch (fb-20260922T202722Z)', () => {
+describe('startRematch', () => {
   it('POSTs the whole matchup — format, both exact deck ids, bot_policy and mulligans — and returns the base-relative join path', async () => {
     setBasePathForTests('/x');
     fetchMock.mockReset();

@@ -108,7 +108,7 @@ describe('a pointer click on every focusable table family releases focus (hotkey
     // The fix: focus released...
     expect(await activeIs(page, '[data-skip-toggle]')).toBe(false);
     // ...without arming the wrapper's close timer (a programmatic blur is a
-    // null-relatedTarget focusout, not a departure — e681cd3c5's guard).
+    // null-relatedTarget focusout, not a departure).
     await page.waitForTimeout(350);
     expect(await page.locator('#strip [data-hot-tab="actions"]').getAttribute('aria-expanded')).toBe('true');
     await page.keyboard.press('Space');
@@ -264,9 +264,7 @@ describe('a pointer click on every focusable table family releases focus (hotkey
   // The battlefield CardTile is the one ACTIVATABLE control that is not a
   // <button>: tabindex=0 + role=button (CardTile.svelte L210–L212) put it
   // inside lib/hotkeys.ts's ACTIVATABLE set, so it is the first-named
-  // instance of the defect this suite pins. Regression pin for
-  // agent-20260929T101809Z-adba832d over dde071f91's wiring — no production
-  // change of its own.
+  // instance of the defect this suite pins.
   it('F8: a pointer click on a battlefield CardTile releases focus so Space reaches the pass hotkey; keyboard focus still gives the tile Space', async () => {
     const page = await browser.newPage();
     await page.goto(`${url}src/components/FocusRelease.fixture.html`);

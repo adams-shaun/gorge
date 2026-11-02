@@ -1,16 +1,15 @@
 package rules
 
-// Ticket agent-20260918T233200Z-1c109bcc: Augur of Autumn's Coven gate --
+// Augur of Autumn's Coven gate --
 // S:Mode$ Continuous | CheckSVar$ X | SVarCompare$ GE3 |
 //   Affected$ Creature.TopLibrary+nonLand+YouCtrl | AffectedZone$ Library |
 //   MayPlay$ True
 // SVar:X:Count$Valid Creature.YouCtrl$DifferentCardPower
 //
-// The count head's $DifferentCardPower property was unread when the World
-// Shaper (eoc commander precon) deck census filed the ticket, so X always
-// read 0 and the Coven "may cast creature spells from the top of your
+// While the count head's $DifferentCardPower property is unread, X always
+// reads 0 and the Coven "may cast creature spells from the top of your
 // library" static never activated. The Different* distinct-set family is
-// implemented since diffcount1 (engine/effects/count.go differentPropertyKindOf)
+// implemented (engine/effects/count.go differentPropertyKindOf)
 // and pinned at the evaluator level in engine/effects/count_different_test.go; the
 // statics side of the gate (CheckSVar$/SVarCompare$ on a may-play static) is
 // pinned by TestVergeRangersOffersTopLibraryLandWhenOpponentAhead. What was
@@ -196,9 +195,7 @@ func distinctCreaturePowers(t *testing.T, e *Engine, p state.PlayerID) int {
 	return len(distinct)
 }
 
-// TestAugurOfAutumnFullySupported pins the deck-side premise: the World
-// Shaper census that filed the ticket measured Augur of Autumn's gap through
-// the count head, and with the Different* family read the card's measured gap
+// TestAugurOfAutumnFullySupported pins the deck-side premise: with the Different* family read the card's measured gap
 // set is EMPTY -- a future deck import would admit it into the ratchet's
 // supported set rather than into knownUnsupported.
 func TestAugurOfAutumnFullySupported(t *testing.T) {

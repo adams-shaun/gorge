@@ -127,7 +127,7 @@ func TestAttachedToReferentPluralBindingFailsClosed(t *testing.T) {
 			t.Errorf("UnknownPredicates(%q) = %v, want empty", spec, un)
 		}
 
-		// Single remembered object keeps the round-1 behaviour.
+		// A single remembered object is unambiguous.
 		single := SpecContext{You: 0, Resolving: true, Remembered: []state.Target{
 			{Obj: second.ID},
 		}}

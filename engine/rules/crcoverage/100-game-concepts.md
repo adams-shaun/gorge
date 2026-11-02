@@ -22,7 +22,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 103.3-103.3a | follows | `engine/rules/genesis.go#Engine.genesisDeal` | - | shuffle precedes the choice; outcome-equivalent; no supplementary decks |
 | 103.4 | follows | `engine/rules/genesis.go#newEngineShell` `server/host/match.go#Registry.newMatchWith` | - | 20 / Commander 40 |
 | 103.4a-103.4e | n/a | - | - | 2HG/Vanguard/Brawl/Archenemy absent (103.4c follows) |
-| 103.5-103.5a | deviates | `engine/rules/mulligan.go#newMulliganRound` `engine/rules/mulligan.go#Engine.stepPregame` `server/gorged/gorged.go#serveFlags` | `TestMulliganRedrawWaitsForAllSeats` `TestPregameSkippedWhenMulligansZero` | allowance cap (0 default, 1 served); bottoming deferred |
+| 103.5-103.5a | deviates | `engine/rules/mulligan.go#newMulliganRound` `engine/rules/mulligan.go#Engine.stepPregame` `server/gorged/gorged.go#serveFlags` | `TestMulliganRedrawWaitsForAllSeats` `TestPregameSkippedWhenMulligansZero` `TestServedMulliganAllowanceReachesAnEmptyHand` | allowance cap (0 default, 7 served, which a seven-card hand can't outlast); bottoming deferred |
 | 103.5b | not-impl | - | - | SILENT; Serum Powder text only |
 | 103.5c | deviates | `engine/rules/mulligan.go#newMulliganRound` | `TestCR800MultiplayerFirstMulliganIsFree` | free mulligan counts toward allowance |
 | 103.5d | n/a | - | - | shared team turns absent |
@@ -78,7 +78,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 110.5-110.5d | follows | `engine/state/object.go#Object.Tapped` `engine/state/object.go#Object.PhasedOut` | - | status fields; not characteristics |
 | 111.1-111.6 | follows | `engine/effects/token.go#effToken` `engine/effects/token.go#runTokenMints` | - | - |
 | 111.7 | follows | `engine/rules/sba.go#Engine.ceaseDeadTokens` | `TestATokenBouncedToHandCeasesToExist` `TestATokenThatDiesCeasesToExist` | - |
-| 111.8 | follows | `engine/effects/zone_change.go#changeZoneMoveSkip` | `TestATokenFlickeredByChangeZoneDoesNotReturn` `TestANonTokenFlickeredByChangeZoneReturns` | - |
+| 111.8 | follows | `engine/effects/zone_change.go#changeZoneMoveSkip` `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/events/actions.go#IsCease` `engine/events/apply_zone.go#Move` | `TestATokenFlickeredByChangeZoneDoesNotReturn` `TestANonTokenFlickeredByChangeZoneReturns` `TestATokenCeasingDoesNotLeaveAZone` | ceasing is no zone change: no zone-change trigger or zone-entry count reads it |
 | 111.9-111.13 | unknown | - | - | not reached |
 | 112.1-112.4 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | spell on stack; copy owner per OPS.md |
 | 113.1-113.3d | follows | `engine/cards/ir.go#SA` | - | ability IR categories |

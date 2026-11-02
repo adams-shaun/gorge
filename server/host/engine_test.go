@@ -15,6 +15,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/azredeal"
+	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/forgeheuristic"
 	"github.com/adams-shaun/gorge/bots/sbtactical"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
@@ -524,6 +525,36 @@ func TestReviewDecisionsRefuseOtherEngines(t *testing.T) {
 		t.Fatalf("missing table: %v", err)
 	}
 }
+
+func TestPairedBotRefusesOtherEngines(t *testing.T) {
+	t.Parallel()
+	o := scriptOptions("", scriptEngine{})
+	o.PairedBot = &bots.Entry{Info: bots.Info{Name: "advisor"}, New: func(bots.Options) (seat.Seat, error) { return closedAdvisor{}, nil }}
+	r, err := host.New(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.AddTable(scriptTable()); err != nil {
+		t.Fatal(err)
+	}
+	st, err := r.PairedBotStatus("s")
+	if err != nil || st.Offered {
+		t.Fatalf("status %+v, %v", st, err)
+	}
+	_, err = r.Advice(context.Background(), "s", 1, 0, 1)
+	wantEngineRefusal(t, err)
+}
+
+// closedAdvisor passes the paired bot's startup check and never runs.
+type closedAdvisor struct{ seat.Seat }
+
+func (closedAdvisor) WantsEnv(*decision.Decision) bool { return false }
+func (closedAdvisor) DecideEnv(context.Context, bots.Env, decision.Decision) (decision.Intent, error) {
+	return decision.Intent{}, nil
+}
+func (closedAdvisor) SetExplain(func(explain.Note))     {}
+func (closedAdvisor) SearchBelief() *searchprobe.Belief { return &searchprobe.Belief{} }
 
 // A finished match on another engine records it, is served from disk through
 // that engine after a restart, and refuses to start a server that no longer

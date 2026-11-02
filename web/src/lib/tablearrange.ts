@@ -1,7 +1,7 @@
 import type { Arrangement } from './layoutprofile';
 
 /**
- * tablearrange is the ONE seat-placement function (UI rework spec §2). It
+ * tablearrange is the ONE seat-placement function. It
  * replaces the four duplicated corner maps the board used to carry
  * (seattable.seatCorner, Board's CELL, Quadrant's OUTER/FACING and
  * IdentityBar's CORNER), which only ever indexed four corners, so seats 5–8

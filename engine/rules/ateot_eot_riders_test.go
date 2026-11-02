@@ -440,7 +440,7 @@ func TestAtEOTCrazedArmodonDestroysItself(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestAtEOTDestroyRegistrationTracksIncarnation pins the round-2 finding on
+// TestAtEOTDestroyRegistrationTracksIncarnation pins a rule on
 // the fold: the __kwAtEOTDestroy promise must be incarnation-tracked like
 // the dash/warp bodies it sits beside (a Destroy-rider permanent that left
 // and returned as a new incarnation is not destroyed by the stale promise),

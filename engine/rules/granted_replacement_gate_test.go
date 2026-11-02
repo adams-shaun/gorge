@@ -8,7 +8,7 @@ import (
 )
 
 // TestGrantedReplacementCrossObjectGate pins the granting-face SVar frame of
-// a granted static replacement (ticket agent-20261009T094023Z-cd4b2f74). Scion
+// a granted static replacement. Scion
 // of Halaster grants the commander creatures you own "The first time you would
 // draw a card each turn, instead look at the top two cards ... Then draw a
 // card." The granted R: body is `Event$ Draw | ValidPlayer$ You | ReplaceWith$

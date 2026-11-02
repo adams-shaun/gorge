@@ -15,7 +15,7 @@ import (
 	gbench "github.com/adams-shaun/gorge/testkit/bench"
 )
 
-// CV-8: the shared drive loop arms the default object cap (rules.DefaultMaxObjs)
+// The shared drive loop arms the default object cap (rules.DefaultMaxObjs)
 // on every config that sets no explicit budget, and a game that trips a
 // volume reason ends as a recorded bigboard stall, never an engine-bug
 // livelock abort.
@@ -52,7 +52,7 @@ func botSeats(seed uint64, n int) []seat.Seat {
 // LoopGuard plays under rules.DefaultMaxObjs, observed through the
 // constructor the drive loop actually built the engine with, and an ordinary
 // game under it finishes normally (the cap is a volume bound far above the
-// measured ordinary high-water, CV-8's probe: 554).
+// measured ordinary high-water: 554).
 func TestPlayGameArmsDefaultObjectCap(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	var armed *rules.LoopGuard
@@ -95,7 +95,7 @@ func fdnPairDecks(t *testing.T, reg *cards.Registry) [][]*cards.Card {
 
 // TestPlayGameObjectCapStallIsBigboard pins the classification: a game that
 // crosses an armed cap mid-resolution is recorded as a bigboard STALL (the
-// CV-2 vocabulary for degenerate volume), with the watcher's object-cap
+// vocabulary for degenerate volume), with the watcher's object-cap
 // diagnostic and a bounded arena -- never as a "livelock" engine-bug abort.
 func TestPlayGameObjectCapStallIsBigboard(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

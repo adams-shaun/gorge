@@ -194,9 +194,10 @@ func TestCopyAsksChainedTargetAtCreation(t *testing.T) {
 	}
 	submitChoices(t, eng, chainOptIndex(t, d1, func(o decision.Option) bool { return o.Obj == b.bearB }))
 
-	// The copy resolved on the spot with the new chained target: bearB tapped,
-	// bearA (the original's, which has not resolved yet) untouched, and the
-	// choice was announced as a real targeting on the copy.
+	// The copy resolves with the new chained target: bearB tapped, bearA (the
+	// original's, which has not resolved yet) untouched, and the choice was
+	// announced as a real targeting on the copy.
+	passNoLateAsk(t, eng, func() bool { return eng.G.Obj(copyID).Zone != state.ZStack })
 	if eng.G.Obj(b.bearB).Tapped != true || eng.G.Obj(b.bearA).Tapped {
 		t.Fatalf("copy did not tap the NEW chained target: bearA tapped=%v bearB tapped=%v",
 			eng.G.Obj(b.bearA).Tapped, eng.G.Obj(b.bearB).Tapped)
@@ -227,6 +228,7 @@ func TestCopyChainedTargetDefaultsToOriginal(t *testing.T) {
 		t.Fatalf("chained ask is not pre-filled with bearA among creatures: %+v", d1.Options)
 	}
 	submitChoices(t, eng, 0)
+	passNoLateAsk(t, eng, func() bool { return eng.G.Obj(copyID).Zone != state.ZStack })
 	if !eng.G.Obj(b.bearA).Tapped || eng.G.Obj(b.bearB).Tapped {
 		t.Fatalf("copy did not keep bearA: bearA tapped=%v bearB tapped=%v",
 			eng.G.Obj(b.bearA).Tapped, eng.G.Obj(b.bearB).Tapped)

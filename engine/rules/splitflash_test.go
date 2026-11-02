@@ -8,7 +8,7 @@ import (
 )
 
 // splitflash_test.go pins the split/fuse half of target-conditional
-// CastWithFlash (task agent-20260926T040050Z-551a6e08). No corpus card
+// CastWithFlash. No corpus card
 // combines a split/fuse face with a target-conditional cast-with-flash
 // grant, so every card here is an inline synthetic fixture (never a Forge
 // script file, per the licensing rule): two non-Room faces with disjoint

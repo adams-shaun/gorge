@@ -1,5 +1,5 @@
 // embalm_test.go pins kw:Embalm (CR 702.128) and kw:Eternalize (CR 702.129)
-// on the real corpus cards the ticket names: the keyword expands (in
+// on the real corpus cards: the keyword expands (in
 // engine/cards/keywords.go) into ONE graveyard-zone activated ability whose cost
 // exiles the card itself and whose DB$ CopyPermanent effect mints a token
 // copy carrying the keyword's modified characteristics -- white Zombie for

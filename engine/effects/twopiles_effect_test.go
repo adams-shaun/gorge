@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// This is the item-2 census pin (ticket CV-3): noShuffleBody forces
+// This is the census pin: noShuffleBody forces
 // NoShuffle$ True onto EVERY pile body, so every pile-body API that carries an
 // unread-report path must read the key. ChangeZone and ChangeZoneAll do; Effect
 // did not, so Fight or Flight's chosen pile (ChosenPile$ DBEffect, a
@@ -17,15 +17,13 @@ import (
 // is meaningless for an Effect body, so the fix is to read (acknowledge) it,
 // not to move it.
 
-// fightOrFlightSA parses a TwoPiles sub-ability whose chosen pile is Fight or
-// Flight's real Effect body (its `DBEffect` SVar); the card set is fed from
+// fightOrFlightSA parses a TwoPiles sub-ability whose chosen pile is an Effect
+// body in the shape of Fight or Flight's; the card set is fed from
 // Ctx.Remembered so the note pin needs no battlefield.
 func fightOrFlightSA(t *testing.T) *cards.SA {
 	t.Helper()
 	src := "Name:Fight or Flight\nTypes:Enchantment\nOracle:x\n" +
-		"SVar:TrigTwoPile:DB$ TwoPiles | Defined$ You | Chooser$ Opponent | DefinedCards$ Remembered | Separator$ You | ChosenPile$ DBEffect\n" +
-		"SVar:DBEffect:DB$ Effect | RememberObjects$ Remembered | StaticAbilities$ STCantAttack\n" +
-		"SVar:STCantAttack:Mode$ CantAttack | ValidCard$ Creature.!IsRemembered | Description$ Only creatures in the pile of their choice can attack this turn.\n"
+		"SVar:TrigTwoPile:DB$ TwoPiles | Defined$ You | Chooser$ Opponent | DefinedCards$ Remembered | Separator$ You | ChosenPile$ DBEffect\n"
 	c, d := cards.ParseBytes("fight_or_flight.txt", []byte(src))
 	if len(d) != 0 {
 		t.Fatalf("diags: %v", d)
@@ -43,7 +41,7 @@ func fightOrFlightSA(t *testing.T) *cards.SA {
 func fightOrFlightSVars() map[string]string {
 	return map[string]string{
 		"DBEffect":     "DB$ Effect | RememberObjects$ Remembered | StaticAbilities$ STCantAttack",
-		"STCantAttack": "Mode$ CantAttack | ValidCard$ Creature.!IsRemembered | Description$ Only creatures in the pile of their choice can attack this turn.",
+		"STCantAttack": "Mode$ CantAttack | ValidCard$ Creature.!IsRemembered",
 	}
 }
 

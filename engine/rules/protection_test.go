@@ -146,8 +146,8 @@ func TestProtectedBlockerTakesNoDeathtouchAndGivesNoLifelink(t *testing.T) {
 	}
 }
 
-// TestAbilityFizzlesWhenTargetGainsProtectionBeforeResolving is a
-// round 1's Important I1 pin for the legalTargets filter (stack.go's CR
+// TestAbilityFizzlesWhenTargetGainsProtectionBeforeResolving pins the
+// legalTargets filter (stack.go's CR
 // 608.2b recheck at resolution). legalTargets was mutation-tested to be
 // uncovered -- no test exercised dropping a target that became PROTECTED
 // between being chosen and the ability resolving (the existing pin covered

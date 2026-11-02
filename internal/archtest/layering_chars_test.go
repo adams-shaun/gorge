@@ -11,11 +11,10 @@ import (
 )
 
 // layering_chars_test.go pins engine/rules/chars, the L4 characteristic-computation
-// package of the rules-engine layering (spec 2026-10-03 §3, W5 step E4): the
+// package of the rules-engine layering (layering design §3): the
 // CR 613 layer walk, read through the chars.Board interface package rules
-// implements. Its rows live in their own file (not TestDependencyOrderHolds'
-// slice) so the W5 extraction steps running in parallel do not edit the same
-// lines; the check is the same transitive one.
+// implements. Its rows live in their own file; the check is the same
+// transitive one as TestDependencyOrderHolds'.
 
 // charsImports is the closed set of module packages engine/rules/chars may import
 // directly: the L0/L1 vocabulary (cards, state) and the L3 filter and count
@@ -74,7 +73,7 @@ func TestCharsImportsStayBelowRules(t *testing.T) {
 // charsBoardMethods is the method count of chars.Board, the read-only
 // interface engine/rules/chars reads the game through (engine/rules/chars/board.go). It is
 // a SHRINK-ONLY ratchet on the pattern of combatBoardMethods: measured 8 when
-// the package landed (W5 step E4). A change that removes a method lowers the
+// the package landed. A change that removes a method lowers the
 // constant in the same commit; NEVER raise it -- derive a new fact from an
 // existing method (Game, Active, Matches) instead of widening the interface.
 const charsBoardMethods = 8

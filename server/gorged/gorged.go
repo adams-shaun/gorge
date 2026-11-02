@@ -37,6 +37,11 @@ import (
 // Command gorged runs perpetual bot tables and serves them to browsers:
 // the host library behind a net/http server with the Svelte client
 // embedded.
+
+// defaultMulligans lets a seven-card hand go all the way to nothing: CR 103.5
+// puts no number on how often a player may mulligan.
+const defaultMulligans = 7
+
 type config struct {
 	addr, cards, decks, dir, spectator string
 	tables, seats                      int
@@ -45,8 +50,7 @@ type config struct {
 	perpetual                          bool
 	// mulligans is the London mulligan allowance the served tables hand the
 	// engine: each player may take up to this many mulligans between the deal
-	// and turn 1. Defaults to 1 — a mulligan is the first decision of
-	// a real game — and 0 runs no mulligan round.
+	// and turn 1. The default is defaultMulligans, and 0 runs no mulligan round.
 	mulligans int
 	// ext is what the binary links in beyond the platform (Main's argument).
 	ext Extensions
@@ -67,6 +71,10 @@ type config struct {
 	// beside 4-seat commander pods. Zero (the default) means -seats, the
 	// single count every table had before the flag existed.
 	commanderSeats int
+	// The -paired-bot flags (pairedbot.go).
+	pairedBot, pairedBotDecks        string
+	pairedBotSims, pairedBotSearches int
+	pairedBotShared                  bool
 	// humansRaw is the -humans flag: a comma-separated list of table t1's
 	// slot indices that are real people. Empty stays all-bot, identical to
 	// today. applyHumans parses it into humans at serve time so a malformed
@@ -386,7 +394,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.StringVar(&c.spectator, "spectator", "public", "spectator visibility: public (default, every hand hidden) or omniscient (every hand visible)")
 	fs.Uint64Var(&c.seed, "seed", 1, "seed of table 1; table i uses seed+i-1")
 	fs.BoolVar(&c.perpetual, "perpetual", true, "start a new match when one ends")
-	fs.IntVar(&c.mulligans, "mulligans", 1, "London mulligans per player before turn 1; 0 disables the pre-game round")
+	fs.IntVar(&c.mulligans, "mulligans", defaultMulligans, "London mulligans per player before turn 1; 0 disables the pre-game round")
 	fs.StringVar(&c.formatsRaw, "format", "constructed", "comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each")
 	fs.StringVar(&c.humansRaw, "humans", "", "comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables")
 	fs.StringVar(&c.seatToken, "seat-token", "", "fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot)")
@@ -434,6 +442,11 @@ func serveFlags() (*flag.FlagSet, *config) {
 		c.nets[i].registerFlags(fs)
 	}
 	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist; such a policy never seats against a human")
+	fs.StringVar(&c.pairedBot, "paired-bot", "", "let a human player ask a bot to evaluate the decision in front of them: "+pairedBotBuiltin+", or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty")
+	fs.IntVar(&c.pairedBotSims, "paired-bot-sims", 100, "with -paired-bot "+pairedBotBuiltin+": simulations per request")
+	fs.StringVar(&c.pairedBotDecks, "paired-bot-decks", "", "with -paired-bot "+pairedBotBuiltin+": directory of the decks the bot guesses an opponent's list from (default -decks)")
+	fs.IntVar(&c.pairedBotSearches, "paired-bot-searches", 2, "with -paired-bot: maximum paired-bot searches at once across the server; further requests wait (>= 1)")
+	fs.BoolVar(&c.pairedBotShared, "paired-bot-shared", false, "with -paired-bot: also offer it at a table with more than one human (t1 under -humans), where every seat is told it is on")
 	fs.BoolVar(&c.manabrew, "manabrew", false, "mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot")
 	fs.StringVar(&c.manabrewAddr, "manabrew-addr", "", "serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew)")
 	fs.DurationVar(&c.manabrewThink, "manabrew-think", 0, "override the human-seat think timeout while -manabrew is on (0 = inherit the server default)")
@@ -586,6 +599,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	hopts := c.hostOptions(reg, load)
 	ew.hook(&hopts)
+	if hopts.PairedBot, err = c.pairedBotEntry(reg, load, conPool); err != nil {
+		return err
+	}
+	hopts.PairedBotSearches = c.pairedBotSearches
 	sbv2hub := c.applySBV2(&hopts)
 	r, err := host.New(hopts)
 	if err != nil {
@@ -870,7 +887,7 @@ func (c config) wantsFormat(f host.Format) bool {
 
 // splitDecks lists the deck stems in dir (deckFiles) and splits them into
 // the commander and constructed pools a table of each format deals, then
-// validates every commander deck up front (deck.ValidateCommander, the m35
+// validates every commander deck up front (deck.ValidateCommander, the
 // CR 903.4/903.5 gate) so a deployed commander table can never half-start
 // on an illegal deck — the deck is named in the error. A file that names a
 // commander belongs to the commander pool and every other file to the
@@ -976,6 +993,7 @@ func (c config) tableConfigs(cmdPool, conPool []string, vis view.Visibility) []h
 		if i == 1 && len(c.humans) > 0 {
 			cfg.Humans = c.humans
 			cfg.Perpetual = false
+			cfg.AllowPairedBot = c.pairedBotShared
 		}
 		cfgs = append(cfgs, cfg)
 	}
@@ -1007,7 +1025,7 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	// package's only sanctioned clock read, so a long pace or cooldown still
 	// yields to Close.
 	//
-	// MaxDecisionsPerTurn arms the host's per-turn progress guard (Task HW1)
+	// MaxDecisionsPerTurn arms the host's per-turn progress guard
 	// for every served table at the recommended value: a bot policy stall
 	// that re-offers one no-op action forever — the 36-of-200 frozen
 	// four-seat Commander games measured on main — previously left the table

@@ -1,8 +1,8 @@
 package rules
 
-// The max-speed player property (D8): two DFT cards read "max speed" as a
+// The max-speed player property: two DFT cards read "max speed" as a
 // property of a PLAYER rather than as a `Condition$ MaxSpeed` static, and
-// gorge read neither spelling before this ticket.
+// gorge reads both spellings.
 //
 //   - Hazoret, Godseeker's
 //     `S:Mode$ CantAttack,CantBlock | ValidCard$ Card.Self |
@@ -31,7 +31,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestMaxSpeedPlayerProperty is the D8 end-to-end pin: at max speed the two
+// TestMaxSpeedPlayerProperty is the end-to-end pin: at max speed the two
 // spells behave as printed; below it they behave the other way. Each leg
 // asserts its preconditions (the card on the battlefield, the two seats' speeds
 // really straddling max speed, the compared life totals really differing).

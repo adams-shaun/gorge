@@ -91,8 +91,8 @@ func TestStormCopiesTheSpellOncePerSpellCastBefore(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid is the M2d-2
-// carrier for the mid-resolution ask closing R-8: Chain Lightning's
+// TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid is the
+// carrier for the mid-resolution ask: Chain Lightning's
 // CopySpellAbility has an UnlessCost (RR), so on the first pass the target's
 // controller is asked a KModes pay/decline decision mid-resolution — the
 // engine must present it with the spell STILL on the stack — and on "pay"
@@ -180,9 +180,8 @@ func TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid(t *testing.T) {
 // shape with NO red in the payer's pool: the bot-shaped answer is "pay"
 // (option 0), but the engine cannot make the payment, so it declines and no
 // copy is made — deterministic, and the log still replays. This is the
-// acceptance games' ordinary Chain Lightning (a tapped-out opponent) and the
-// keep of the old R-8 decline behaviour, now via a real ask instead of a
-// blanket Note.
+// acceptance games' ordinary Chain Lightning (a tapped-out opponent), through
+// a real ask rather than a blanket Note.
 func TestChainLightningDeclinesThePayWhenThePayerCannotAffordIt(t *testing.T) {
 	t.Parallel()
 	chain := "Name:Chain\nManaCost:R\nTypes:Sorcery\nA:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3 | SubAbility$ DBCopy1\n" +

@@ -26,7 +26,7 @@ import (
 // computed from pc.player exactly as before, and only the answering seat
 // moves -- except for an SA carrying TargetingPlayerControls$ True, whose
 // object candidates are restricted to the answering seat's permanents
-// (tpc1; see engine/rules/targetingplayer_controls_test.go).
+// (see engine/rules/targetingplayer_controls_test.go).
 
 // targetingChooserBoard seats `seats` players at Main 1 of seat 0's first
 // turn. Seat 0's deck opens with the named corpus carrier plus one Grizzly

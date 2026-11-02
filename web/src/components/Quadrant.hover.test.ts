@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
  * The mounted half of the hover-inspector lifetime regression
- * (fb-20260915T182335Z: "mouseover popup oracle should not disappear when the
+ * ("mouseover popup oracle should not disappear when the
  * game state progresses between phases"). The CardTile unit pins prove the
  * HoverCard guard, but the reported path is the PARENT keyed list: Quadrant
  * keyed every CardStack by the mutable stacking-equivalence string (g.key),
@@ -53,7 +53,7 @@ async function openInspector(page: Page): Promise<{ hooks: Hooks; panel: Element
 /** the SAME panel node is still connected: proves the inspector SURVIVED the update rather than being destroyed and re-opened by a synthetic pointer event (Chromium re-hit-tests a stationary cursor after a layout change, so under the mutable key a remounted tile can reopen a panel — a NEW node, never the one the reader was reading). */
 const stillConnected = (page: Page, panel: ElementHandle) => page.evaluate((el) => el.isConnected, panel);
 
-describe('the battlefield hover inspector across a keyed-list view update (fb-20260915T182335Z)', () => {
+describe('the battlefield hover inspector across a keyed-list view update', () => {
   it('a state update that changes the stacking key keeps the open inspector on the same object (tapped)', async () => {
     const page = await browser.newPage();
     const { hooks: h, panel } = await openInspector(page);

@@ -13,15 +13,14 @@ import (
 // commanders' color identity: Draw a card.", offered only in a game of
 // Commander (Brawl/TinyLeaders/Oathbreaker are not modelled formats here).
 //
-// Before the fix the ability was dead everywhere, fail-closed: fixLifeXCost
-// could not resolve SVar:X (Count$ColorsColorIdentity had no evalCountBody
-// head), so offerCastable withheld it -- including in a Commander game,
-// where the ability should be playable and priced at the identity count.
-// The fix adds the count head (through the Host's
-// CommanderIdentityColourCount, replay-derivable) AND the ActivationGameTypes$
-// gate in the same change: without the gate the now-resolvable count (0 in
-// a Constructed game, which has no commanders) would have made the ability
-// a free {3},{T} draw there -- the worse defect.
+// The ability needs fixLifeXCost to resolve SVar:X (Count$ColorsColorIdentity
+// through evalCountBody head), so offerCastable withheld it -- including in a
+// Commander game, where the ability should be playable and priced at the
+// identity count. The fix adds the count head (through the Host's
+// CommanderIdentityColourCount, replay-derivable) AND the
+// ActivationGameTypes$ gate in the same change: without the gate the
+// now-resolvable count (0 in a Constructed game, which has no commanders)
+// would have made the ability a free {3},{T} draw there -- the worse defect.
 
 // TestWarRoomDrawWithheldInConstructed: in FormatConstructed the draw
 // ability is NOT among seat 0's priority options (ActivationGameTypes$ has

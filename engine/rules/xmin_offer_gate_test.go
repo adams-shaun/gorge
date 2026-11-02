@@ -9,11 +9,11 @@ import (
 )
 
 // The ability-level `XMin$ N` parameter
-// must gate the ACTIVATION OFFER, not only the X ask. Before this ticket the
-// offer's cheapest legal announced-X price (costMods.feasibleAny's bound
-// pricing) read only the cost-embedded XMin<N> token, so an activated
-// ability with `Cost$ X | XMin$ 2` was offered with one generic mana in the
-// pool; choosing it led to an X ask whose legal range was empty and the
+// must gate the ACTIVATION OFFER, not only the X ask. If the offer's cheapest
+// legal announced-X price (costMods.feasibleAny's bound pricing) reads only the
+// cost-embedded XMin<N> token, an activated
+// ability with `Cost$ X | XMin$ 2` is offered with one generic mana in the
+// pool; choosing it leads to an X ask whose legal range was empty and the
 // activation aborted -- an erroneous offer, not a livelock. The offer gate
 // now raises the cost's own XMin bound by the same parsed ability parameter
 // xAsk folds (xMinAbilityParam), so the offer and the ask share one floor.

@@ -9,8 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This is a verify-and-pin of behaviour already implemented by 0698da6eb,
-// 25dbdf994, and 44fd958de; it adds no production behaviour. It resolves the
+// This pins existing behaviour. It resolves the
 // real corpus SVar rather than constructing a synthetic copy. The focused
 // fixture uses effects.Resolve with the trigger's remembered attacker instead
 // of building a trigger harness, which independently pins the printed body

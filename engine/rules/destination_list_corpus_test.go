@@ -15,7 +15,7 @@ import (
 // The trigger grants "put a +1/+1 counter on target creature you control", so
 // a target creature must be on p0's battlefield or the mandatory-target gate
 // would drop the trigger for want of a target and the assertion would be
-// vacuous (I-2).
+// vacuous.
 func TestThreeTreeScribeFiresOnRealCorpusDestinationList(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

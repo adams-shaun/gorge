@@ -16,6 +16,7 @@
   import Transcript from '../components/Transcript.svelte';
   import ReplayTransport from '../components/ReplayTransport.svelte';
   import DecisionPanel from '../components/DecisionPanel.svelte';
+  import PairedBotPanel from '../components/PairedBotPanel.svelte';
   import { decisionStops, timelineMarks } from '../lib/review';
   import type { ReviewDecision } from '../protocol';
   import { parseReplayQuery, replaySearch, resolveStart, type StepUnit } from '../lib/replay';
@@ -154,7 +155,13 @@
   const idle = $derived.by(() => {
     if (finished) return false;
     const state = tables.list.find((t) => t.info.id === table)?.info.state;
+    // A seat keeps the board of the game it played, with the result on it.
+    if (state === 'idle' && seated && m.match !== null) return false;
     return state === 'idle' || state === 'halted';
+  });
+
+  $effect(() => {
+    if (idle && seated && m instanceof MatchState) void m.showLastGame();
   });
 
   // One SeatPanelState per match, created here rather than inside SeatPanel
@@ -175,7 +182,7 @@
       // Seed the first SSR/client paint. SeatPanel's effect keeps later views
       // adopted; doing the first one here lets the route place mulligan and
       // the page-level concede control correctly before that child mounts.
-      state.adoptView(m.view?.decision ?? null);
+      state.adoptView(m.view?.decision ?? null, m.view);
       panelCache = { match: mm, state };
     }
     return panelCache.state;
@@ -408,7 +415,7 @@
     // once the mana floats -- and a costly activation (Lion's Eye Diamond, a
     // Treasure) is a play of its own, never hidden. WHEN and WHICH are the
     // one shared rule the option list and the hot strip read too
-    // (lib/manualmana.ts, §8).
+    // (lib/manualmana.ts).
     if (manualManaHidden(d, m.view, seatCtx?.seat, panel.hidesManualMana)) {
       for (const [obj, offered] of byObj) {
         const visible = offered.filter((option) => !isPlainManualTap(option));
@@ -480,7 +487,7 @@
   /**
    * applyReplayQuery positions a finished replay from its URL: ?seq= (or
    * ?event=), ?intent= (the board with that intent pending, as `repro -at N`
-   * prints it), or ?turn= (the round the phase bar calls "Turn N"); plus
+   * prints it), or ?turn= (the "Turn N" the board shows); plus
    * ?unit=, ?speed= and ?play=1.
    */
   function applyReplayQuery(fm: MatchState) {
@@ -580,7 +587,7 @@
   </main>
 {:else}
   <main class="table rail-{railSide}" style={tableStyle} class:log-hidden={!showLog} class:rail-peek={optionsOpen} class:with-transport={!seated && !!m.view}>
-    <!-- Motion overlay (spec sub-project 5): renders nothing here; it plays
+    <!-- Motion overlay: renders nothing here; it plays
          the client model's transitions in a fixed layer on <body>. Mounted
          outside the view guard so a match change does not remount it. -->
     {#key m}<MotionLayer source={m} viewerSeat={seated ? (seatCtx?.seat ?? null) : null} />{/key}
@@ -647,7 +654,7 @@
         {/if}
       {/snippet}
       <aside class="rail" data-rail-side={railSide}>
-        <!-- The prompt dock's mount point (UI rework §4, lane C): the
+        <!-- The prompt dock's mount point: the
              decision prompt docks at the top of the rail, next to the stack
              it concerns, unless the layout profile floats it
              (layoutStore.prompt, which PromptDock reads). ONE dock: priority
@@ -659,6 +666,9 @@
         {/if}
         {#if reviewMatch !== null}
           <DecisionPanel {table} match={reviewMatch} seats={m.seats} cursor={m.dvr.cursor} onScrub={reviewScrub} bind:entries={reviewEntries} />
+        {/if}
+        {#if liveSeated && seatCtx && !seatCtx.transport && m.match !== null}
+          <PairedBotPanel {table} match={m.match} ctx={seatCtx} decision={m.view?.decision ?? null} />
         {/if}
         <div class="rail-main">
         <!-- The concede control (when a concede option is pending) is passed

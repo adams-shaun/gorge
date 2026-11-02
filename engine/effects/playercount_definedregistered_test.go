@@ -170,13 +170,13 @@ func TestPlayerCountDefinedRegisteredCombatDamageProperty(t *testing.T) {
 	}
 }
 
-// TestPlayerCountDefinedRegisteredHasPropertyAcrossGroups pins the class
-// fix: the same HasPropertyLostLifeThisTurn property must resolve on the
-// Players$ and Opponents$ arms too (reapers_scythe, strefan_maurer_progenitor,
-// belbe_corrupted_observer), not just the new group -- before the fix those
-// arms fell through to playerCountExtreme and reported (0, false), so the
-// property resolved on one sibling group and failed closed on another. It
-// also pins Forge's /Op suffix (belbe's /Twice) through applyCountOp.
+// TestPlayerCountDefinedRegisteredHasPropertyAcrossGroups pins the class fix:
+// the same HasPropertyLostLifeThisTurn property must resolve on the Players$
+// and Opponents$ arms too (reapers_scythe, strefan_maurer_progenitor,
+// belbe_corrupted_observer), not just this group; falling through to
+// playerCountExtreme those arms report (0, false), resolving the property on
+// one sibling group and failing closed on another. It also pins Forge's /Op
+// suffix (belbe's /Twice) through applyCountOp.
 func TestPlayerCountDefinedRegisteredHasPropertyAcrossGroups(t *testing.T) {
 	h, c := fixtureHost(t) // 2 seats, controller 0
 	h.lifeLost = map[state.PlayerID]int32{0: 0, 1: 3}

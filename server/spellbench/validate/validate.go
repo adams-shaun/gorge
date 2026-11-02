@@ -1,8 +1,11 @@
-// Package validate is a Go subset of the Section 11.3 live validator, used by
+// Package validate is a Go subset of the live validator in Section 11.3 of the
+// SpellBench v2 protocol (spec/SPELLBENCH_PROTOCOL_V2.md in
+// github.com/jackmaiorino/spellbench), used by this adapter's tests and
+// qualification. V1 to V10 are that section's checks; Section numbers below are
+// that document's.
 //
 // Ported from github.com/jackmaiorino/spellbench/engines/gorge/internal/validate
 // at revision 1beea4c104911bba77a5672c644e570ed9afe28a (MIT).
-// this adapter's tests and qualification until sub-project P's validator runs.
 //
 // Not covered: V1 for the observation (field types, vocabularies, NFC names)
 // and for the decision's own fields (acting_seat as a seat, context purpose

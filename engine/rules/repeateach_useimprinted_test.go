@@ -181,8 +181,8 @@ func TestUseImprintedSoulOfEmancipationUnchanged(t *testing.T) {
 	// Seat 1's Bears is the only subject controlled by seat 1, so its Angel
 	// proves the token went to the subject's controller. Seat 0 gets at least
 	// the Hill Giant's: the loop today also visits the entering Soul itself
-	// (the trigger's own card sits in Remembered), a separate defect filed as
-	// a ticket, so seat 0's count is not pinned exactly.
+	// (the trigger's own card sits in Remembered), a separate defect, so seat 0's
+	// count is not pinned exactly.
 	if got := angels(1); got != 1 {
 		t.Fatalf("seat 1 controls %d Angel tokens, want 1", got)
 	}

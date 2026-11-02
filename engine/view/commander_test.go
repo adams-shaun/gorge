@@ -38,8 +38,8 @@ func commanderFixture(t *testing.T) *state.Game {
 	return g
 }
 
-// TestProjectProjectsCommandZoneForEverySeat is the m30 promise kept on the
-// wire: the command zone (ZCommand is not Hidden) projects for EVERY seat —
+// TestProjectProjectsCommandZoneForEverySeat pins the command zone on the
+// wire: the zone (ZCommand is not Hidden) projects for EVERY seat —
 // alice sees bob's command zone as fully as her own — together with the
 // roster (each seat's full Commanders list, never shrunk), the parallel CR
 // 903.8 cast counts, and the CR 903.10 clock on the player who took it.

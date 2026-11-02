@@ -9,8 +9,7 @@ import (
 )
 
 // TestTargetsForEachPlayerSubAskGroupsPerController pins the effect-side
-// pre-ask's TargetsForEachPlayer$ handling (pfpe1; the mvts1 round
-// deliberately skipped the shape): a depth-2 SubAbility$ carrier (Kaya,
+// pre-ask's TargetsForEachPlayer$ handling: a depth-2 SubAbility$ carrier (Kaya,
 // Spirits' Justice's exile-each, measured one of exactly 4 sub-only corpus
 // carriers) poses its ask with the OneEach bounds read against the
 // distinct-controller count and each option bound to its controller's Group

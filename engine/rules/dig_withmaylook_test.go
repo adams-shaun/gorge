@@ -12,8 +12,7 @@ import (
 )
 
 // TestIxhelFaceDownExileIsVisibleOnlyToTheDigController pins api:Dig's
-// WithMayLook$ True on the real corpus carrier Ixhel, Scion of Atraxa
-// (ticket agent-20260919T181318Z-631ddc68).
+// WithMayLook$ True on the real corpus carrier Ixhel, Scion of Atraxa.
 //
 // Ixhel's corrupted end-step trigger runs
 //

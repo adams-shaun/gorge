@@ -51,17 +51,13 @@ func activateCloneAbilityIdx(t *testing.T, e *Engine, mimic, target state.ObjID,
 	passUntilStackEmpty(t, e, 40)
 }
 
-// TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy is the MAJOR
-// regression: a PERMANENT clone made first and an UntilEndOfTurn clone made
+// TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy is a
+// regression test: a PERMANENT clone made first and an UntilEndOfTurn clone made
 // second are two units sharing one CopyFace basis. When the temporary one
 // expires at cleanup the object must fall BACK to the permanent copy (CR
 // 613.1a: the highest-timestamp surviving copy effect applies), not revert to
 // its printed face -- and the permanent unit's own AddKeywords$ modifier must
 // survive the sibling drop.
-//
-// Against the pre-fix build this fails twice over: EndOfTurnCleanup emitted
-// ClonePermanent{Obj: id} with no IDs (an unconditional CopyFace clear) and
-// dropped every effect whose CloneTarget was the object, modifiers included.
 func TestOverlappingClonesTemporaryExpiryKeepsThePermanentCopy(t *testing.T) {
 	t.Parallel()
 	// The first copy keeps only its resolving ability, not Twinmimic's

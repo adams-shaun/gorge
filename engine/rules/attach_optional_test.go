@@ -1,11 +1,11 @@
-// api:Attach.Optional was unread -- a may-attach Attach
-// always attached, and (for Ajani's Chosen) attached the WRONG object, because
-// Object$ TriggeredCardLKICopy also fell to the Self default. Both defects are
-// fixed in effAttach (engine/effects/attach.go): the optional election is a real
-// yes/no KChoose through the shared Ask boundary (an "attach_optional"
-// ask answered in place), and every Object$ spec the shared definedSpec resolver supports
-// now names the object it says. These tests pin both, on the real corpus
-// cards, end to end -- never copied script text (the licensing rule).
+// api:Attach.Optional was unread -- a may-attach Attach always attached, and
+// (for Ajani's Chosen) attached the WRONG object, because Object$
+// TriggeredCardLKICopy also fell to the Self default. effAttach
+// (engine/effects/attach.go) handles both: the optional election is a real
+// yes/no KChoose through the shared Ask boundary (an "attach_optional" ask
+// answered in place), and every Object$ spec the shared definedSpec resolver
+// supports now names the object it says. These tests pin both, on the real
+// corpus cards, end to end -- never copied script text (the licensing rule).
 //
 // Batterskull's Living-Weapon SVar (Object$ Self) and the kw:Equip/kw:Enchant
 // expansions (no Object$ at all) keep their byte-identical Self default: the
@@ -206,8 +206,7 @@ func ajanisChosenGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, 
 // TestAjanisChosenMayAttachAskPosesAndYesAttachesTheAura: the trigger's
 // Optional$ Attach poses a real yes/no KChoose, and YES attaches the ENTERING
 // AURA (Object$ TriggeredCardLKICopy -- Rancor, not Ajani's Chosen itself) to
-// the Cat token. Before the fix the ask never fired and the resolving source
-// attached itself to the Aura.
+// the Cat token.
 func TestAjanisChosenMayAttachAskPosesAndYesAttachesTheAura(t *testing.T) {
 	t.Parallel()
 	e, cfg, ajaniID, rancorID, d := ajanisChosenGame(t, 901)

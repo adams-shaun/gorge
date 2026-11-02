@@ -116,7 +116,7 @@ adapters to the same `RemovalKind`, `RemovalTargets` and `RemovalDamage`.
 
 ## What was not ported
 
-- `useRemovalNow`'s `Pump` branch (outside this ticket).
+- `useRemovalNow`'s `Pump` branch.
 - Forge's full target-legality read. The fold's filter is keyword-shaped
   (Hexproof/Shroud/Protection/Indestructible) at the grain the Board
   carries; it does NOT model a protection quality against the spell's
@@ -134,6 +134,6 @@ adapters to the same `RemovalKind`, `RemovalTargets` and `RemovalDamage`.
 ## Why it is opt-in
 
 The A2 measurement showed that the 30-deck constructed corpus poses only a
-handful of removal-shaped asks per game, and the ticket's gate is a win-rate
+handful of removal-shaped asks per game, and this work's gate is a win-rate
 change. A1 can change those asks, but no measurement has been run, so the
 rule stays on the experimental policy and the default path is untouched.

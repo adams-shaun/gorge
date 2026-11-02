@@ -56,8 +56,8 @@ func seamCache(t *testing.T, client *http.Client, namedBase string, clk *fakeClo
 	}
 }
 
-// TestArtFillBudgetStopsA429StormAndReportsTheSummary is the opus1 MAJOR's
-// Go-side regression. Ten deck names against a Scryfall that answers every
+// TestArtFillBudgetStopsA429StormAndReportsTheSummary is the
+// Go-side regression test. Ten deck names against a Scryfall that answers every
 // request 429 cost 60.5s each on the retry budget — 605s for ten, about 9.7h
 // for the real 579 — and nothing bounded the pass. With
 // -prewarm-art-budget 240s the one-shot must stop at exactly 240s of FAKE
@@ -142,7 +142,7 @@ func TestArtFillStopsAfterAFailureStreak(t *testing.T) {
 	}
 }
 
-// TestRetryAfterIsCapped is the opus1 Retry-After regression: every 429
+// TestRetryAfterIsCapped is the Retry-After regression test: every 429
 // backoff sleeps holding the pacing semaphore, so a server-sent
 // `Retry-After: 86400` used to park every cold art fetch in the process for
 // a day. The delay is capped at scryMaxRetryAfter, including for values a
@@ -192,7 +192,7 @@ func TestRetryAfterIsCapped(t *testing.T) {
 	}
 }
 
-// TestLegacyEntryWhoseNameNow404sSettles is the opus1 re-lookup regression:
+// TestLegacyEntryWhoseNameNow404sSettles is the re-lookup regression test:
 // an entry cached with art and facts (no face manifest) whose name Scryfall
 // no longer knows was looked up again on EVERY pass, because only a .miss
 // WITHOUT a .jpg counted as settled. Three passes must make one lookup, each
@@ -228,8 +228,8 @@ func TestLegacyEntryWhoseNameNow404sSettles(t *testing.T) {
 	}
 }
 
-// TestFillRefusesAnUnwritableArtDirBeforeAnyLookup is the opus1 read-only
-// regression: from a jail that binds the art dir read-only, the one-shot
+// TestFillRefusesAnUnwritableArtDirBeforeAnyLookup is the read-only
+// regression test: from a jail that binds the art dir read-only, the one-shot
 // used to spend one Scryfall lookup per deck name before each first write
 // failed (579 on the real decks). One probe write now fails the pass with
 // zero requests and a message naming the directory.
@@ -277,8 +277,8 @@ func TestFillRefusesAnUnwritableArtDirBeforeAnyLookup(t *testing.T) {
 	}
 }
 
-// TestScryfallPaceIsSharedByEveryCacheOnTheDirectory is the opus1 pacing
-// regression: the limiter was per process, so the deploy fill, the old
+// TestScryfallPaceIsSharedByEveryCacheOnTheDirectory is the pacing
+// regression test: the limiter was per process, so the deploy fill, the old
 // servers it overlaps and both new servers could each send 10 req/s. Two
 // caches on ONE directory (two processes, as far as the lock is concerned)
 // with the real 100ms pace on a shared fake clock must space all four of

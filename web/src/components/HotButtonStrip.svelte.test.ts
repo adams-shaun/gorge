@@ -74,7 +74,7 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
     expect(unavailable).toMatch(/data-hot-tab="pass"[^>]*aria-disabled="true"/);
     // The button is always present now -- it is a transport control, not a
     // menu that appears only when it has something in it. Unavailable means
-    // DISABLED, which is what keeps R-E4-2 true: the strip never offers an
+    // DISABLED, which is what keeps the client rules-ignorant: the strip never offers an
     // action the wire did not send.
     expect(unavailable).toMatch(/data-pass-action[^>]*disabled/);
 
@@ -150,7 +150,7 @@ describe('HotButtonStrip — server options regrouped into one instrument', () =
 });
 
 describe('HotButtonStrip — the ACTIONS tab projects the seat tone', () => {
-  // toneOf resolves from option KINDS only (R-E4-1): initiative is a decision
+  // toneOf resolves from option KINDS only: initiative is a decision
   // with no pass option — the game is blocked on this seat; offered is a
   // window this seat may decline. The tab must carry that state machine-
   // readably in data-awaiting, with the dropdown closed.
@@ -314,7 +314,7 @@ describe('HotButtonStrip — END TURN is gated to the seat\'s own turn', () => {
 
 // Prio6: Resolve All owns a fixed slot so stack changes cannot shift the
 // action strip. It is enabled only in a pending stack priority window.
-describe('HotButtonStrip — Resolve All (prio6)', () => {
+describe('HotButtonStrip — Resolve All', () => {
   const option = (index: number, kind: string, label: string) => ({ index, kind, label, player: 0 });
   const priorityOnStack: Decision = {
     seq: 1, player: 0, kind: 'priority', prompt: 'Priority', min: 1, max: 1,
@@ -435,7 +435,7 @@ describe('HotButtonStrip — Auto Mana action availability', () => {
   });
 });
 
-// Spec §8: the hot strip hides manual mana under auto-pay by the SAME rule as
+// The hot strip hides manual mana under auto-pay by the SAME rule as
 // the option list and the board badges (lib/manualmana.ts manualManaHidden).
 // Measured float-first: on an empty pool an Equip {1} is not an option, only a
 // potential action, so the strip must keep counting (and its nested list keep

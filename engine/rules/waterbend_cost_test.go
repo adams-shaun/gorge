@@ -101,7 +101,7 @@ func TestWaterbendCostCensus(t *testing.T) {
 				}
 				// Precondition: the cost really carries the head, and it
 				// parses to a modelled waterbend part. A `Waterbend` Unknown
-				// here is the defect this ticket closed.
+				// here is the defect.
 				c := ParseCost(raw)
 				if len(c.Unknown) != 0 {
 					t.Errorf("%s ability Cost$ %q still reports Unknown %v", f.Name, raw, c.Unknown)
@@ -141,5 +141,31 @@ func TestWaterbendCostCensus(t *testing.T) {
 	}
 	if !equalStrings(gotOptional, waterbendOptionalCostCards) {
 		t.Errorf("optional-cost Waterbend carriers = %v, want %v", gotOptional, waterbendOptionalCostCards)
+	}
+}
+
+// TestWaterbendingTriggersHoweverItIsPaid: a player waterbends by paying the cost,
+// with mana alone too (CR 701.67c). Avatar Aang draws a card each time.
+func TestWaterbendingTriggersHoweverItIsPaid(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	for name, sc := range map[string]string{
+		"an activation": `"setup":{"p0":{"battlefield":["Avatar Aang","Giant Koi"]},"p1":{}},
+			"steps":[{"op":"activate","seat":0,"card":"p0:Giant Koi","mana":"UUU"},{"op":"resolve"},{"op":"resolve"}],
+			"expect":[{"hand_size":{"p0":1}}]`,
+		"a tapped activation": `"setup":{"p0":{"battlefield":["Avatar Aang","Giant Koi","Ornithopter","Memnite","Hill Giant"]},"p1":{}},
+			"steps":[{"op":"activate","seat":0,"card":"p0:Giant Koi","answers":[{"kind":"any","pick":["p0:Ornithopter","p0:Memnite","p0:Hill Giant"]}]},{"op":"resolve"},{"op":"resolve"}],
+			"expect":[{"hand_size":{"p0":1}}]`,
+		"an additional cost": `"setup":{"p0":{"hand":["Water Whip"],"battlefield":["Avatar Aang"]},"p1":{"battlefield":["Hill Giant"]}},
+			"steps":[{"op":"cast","seat":0,"card":"p0:Water Whip","mana":"UUUUUUU","targets":["p1:Hill Giant"]},{"op":"resolve"},{"op":"resolve"}],
+			"expect":[{"hand_size":{"p0":3}}]`,
+		"an unless cost": `"setup":{"p0":{"hand":["Waterbending Lesson","Island","Island"],"battlefield":["Avatar Aang"]},"p1":{}},
+			"steps":[{"op":"cast","seat":0,"card":"p0:Waterbending Lesson","mana":"UUUUU"},{"op":"resolve","answers":[{"kind":"any","pick":["yes"]}]},{"op":"resolve"}],
+			"expect":[{"hand_size":{"p0":6}}]`,
+	} {
+		res, err := RunOracleAuditScenarioJSON(reg, []byte(`{"name":"waterbend","cr":["701.67c"],"why":"paid","`+sc[1:]+`}`), true)
+		if err != nil || len(res.Fails) != 0 {
+			t.Errorf("%s: err=%v fails=%v", name, err, res.Fails)
+		}
 	}
 }

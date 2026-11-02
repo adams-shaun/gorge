@@ -18,9 +18,7 @@ import (
 // Creature.greatestPowerControlledByTargeted`) through effSacrifice's pool
 // walk with a real LPT/SubModify +5/+5 pump on the 2/2 Grizzly Bears. The
 // pumped bear is the derived-greatest (7 vs the Hill Giant's 3), so the pool
-// must admit only the bear and sacrifice it. Before the fix the pool sized
-// the comparison at printed-plus-counter power, admitted the printed-greatest
-// Hill Giant and sacrificed it instead.
+// must admit only the bear and sacrifice it.
 func TestGreatestPowerSacValidPoolReadsDerivedPower(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -76,12 +74,11 @@ func TestGreatestPowerSacValidPoolReadsDerivedPower(t *testing.T) {
 // Creature.greatestPower`) with a real LPT/SubModify +5/+5 pump on the 2/2
 // Grizzly Bears so the pumped bear (derived 7) outranks the targeted 6/6
 // Colossal Dreadmaw. The condition means "no other creature has greater
-// power", so it must FAIL and the Dreadmaw must survive; before the fix the
-// defined-group walk matched members with an unbound context, read the bear
-// at printed 2, and destroyed the Dreadmaw. The unpumped positive control
-// proves the resolution really reaches effDestroy and the condition really
-// gates it (a test that passes only because the pre-ask suspended would be
-// vacuous).
+// power", so it must FAIL and the Dreadmaw must survive; a defined-group walk
+// matching members with an unbound context would read the bear at printed 2,
+// and destroyed the Dreadmaw. The unpumped positive control proves the
+// resolution really reaches effDestroy and the condition really gates it (a
+// test that passes only because the pre-ask suspended would be vacuous).
 func TestGreatestPowerConditionDefinedGroupReadsDerivedPower(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

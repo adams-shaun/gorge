@@ -24,7 +24,7 @@ func caretakerLifeDecision(life, damage uint32) (decision.Decision, botpolicy.Bo
 	return d, brd
 }
 
-// Spec §6 / aph-last-resort-plans: a caretaker standing in for a human never
+// A caretaker standing in for a human never
 // auto-selects a life-paying plan; it answers from the ordinary options.
 // The same bot without the option (a hosted bot or tool seat) submits it.
 func TestAutoPayCaretakerSkipsLifePayingPlan(t *testing.T) {

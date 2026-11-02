@@ -21,7 +21,7 @@ import (
 
 // archDrawOffered reports whether the priority decision offers Arch of
 // Orazca's {5},{T} draw -- the second printed ability (Ability index 1) whose
-// Activation$ Blessing gate this task implements. The fixture asserts it is
+// Activation$ Blessing gate. The fixture asserts it is
 // at priority and that the FIRST ability (the {T}: Add {C} mana ability) is
 // still offered, so a failure to reach the offer loop cannot masquerade as
 // the gate withholding the draw.

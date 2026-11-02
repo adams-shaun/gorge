@@ -43,11 +43,10 @@ func sacZone(h *fakeHost, id state.ObjID) state.Zone {
 }
 
 // TestGatekeeperOfMalakirKickedETBMakesPlayerSacrifice is the head test of
-// this fix: the ACTUAL compiled corpus SA for Gatekeeper of Malakir's kicked
+// this path: the ACTUAL compiled corpus SA for Gatekeeper of Malakir's kicked
 // enters-the-battlefield trigger is driven through effSacrifice, and the
-// targeted (opponent) player must give up a creature. Before the fix the
-// player target was skipped entirely (`t.IsPlayer -> continue`), so the
-// effect did nothing at all.
+// targeted (opponent) player must give up a creature. Skipping the player
+// target would leave the effect doing nothing at all.
 func TestGatekeeperOfMalakirKickedETBMakesPlayerSacrifice(t *testing.T) {
 	r := testutil.CorpusRegistry(t)
 	card, ok := r.Lookup("Gatekeeper of Malakir")
@@ -236,9 +235,9 @@ func TestSacrificeOutOfRangePlayerTargetDoesNotPanic(t *testing.T) {
 
 // TestSacrificeObjectTargetPathUnchanged guards the existing non-player
 // Defined$ path: a concrete object target is sacrificed as-is, with no
-// SacValid$ re-filter, exactly as before the fix.
-// TestSacrificeZeroAmountDoesNotAsk guards the empty-answer boundary: even
-// with eligible permanents, Amount$ X at X=0 is a no-op, not a 0..0 KChoose.
+// SacValid$ re-filter. TestSacrificeZeroAmountDoesNotAsk guards the
+// empty-answer boundary: even with eligible permanents, Amount$ X at X=0 is a
+// no-op, not a 0..0 KChoose.
 func TestSacrificeZeroAmountDoesNotAsk(t *testing.T) {
 	h := &askHost{fakeHost: fakeHost{g: state.NewGame(names(2))}}
 	creature := putBattlefield(&h.fakeHost, 1, "Name:Victim\nTypes:Creature\nPT:1/1\nOracle:x\n")

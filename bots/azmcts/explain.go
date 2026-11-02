@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The az seat's decision notes (bots/explain, match-reviewer design §3).
+// The az seat's decision notes (bots/explain).
 // Everything here runs only when a driver installed a sink (SetExplain): the
 // seat's Decide paths test s.note for nil and call in, so with no sink the
 // seat builds no note, no row and no copy.
@@ -128,6 +128,9 @@ func (s *Seat) searchRows(sn *searchNote) *explain.Search {
 	}
 	rows, dropped := explain.Rows(len(res.Candidates), visits, chosen, bot, func(i int) explain.Row {
 		r := explain.Row{Choices: res.Candidates[i].Choices, Visits: visits(i)}
+		if pay := res.Candidates[i].Payment; pay != nil {
+			r.Payment = pay.ActionID
+		}
 		if i < len(res.Prior) {
 			r.Prior = explain.Round(res.Prior[i])
 		}

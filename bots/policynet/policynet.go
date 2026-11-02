@@ -4,12 +4,10 @@
 // hashed sparse rows, and a streaming loader for the search-teacher label
 // corpus (the search teacher -labels).
 //
-// The design contract comes from R1 §1.4 and §2.2
-// (archived 2026-09-06-gorge-learned-policy-research.md (docs/design/ARCHIVE.md)):
+// The design contract:
 //
 //   - Everything is read from the view only — never the record's
-//     traceboard board snapshot, never the card corpus registry (R1 §2.3
-//     defers the registry-feature path).
+//     traceboard board snapshot, never the card corpus registry.
 //   - The hash is FNV-1a 64 over the exact feature string, masked to the
 //     shared 16,384-row table. It is pinned by a golden test because a
 //     trained checkpoint is worthless if the hash drifts.
@@ -30,8 +28,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 )
 
-// TableRows is the shared hashed-embedding row count (R1 §1.4: one shared
-// 16,384-row table serves the state bag and the option's hashed ids).
+// TableRows is the shared hashed-embedding row count: one shared 16,384-row
+// table serves the state bag and the option's hashed ids.
 const TableRows = 1 << 14
 
 const rowMask = TableRows - 1
@@ -129,7 +127,7 @@ const (
 )
 
 // EncodeState encodes the seat's view into the fixed-width dense vector and
-// the sorted hashed sparse bag (R1 §2.2).
+// the sorted hashed sparse bag.
 //
 // Dense layout (68 floats, each section pinned by the golden test):
 //

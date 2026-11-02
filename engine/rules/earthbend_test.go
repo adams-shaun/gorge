@@ -1,6 +1,6 @@
 package rules
 
-// api:Earthbend end-to-end pins on real corpus cards (task earthbend1). The
+// api:Earthbend end-to-end pins on real corpus cards. The
 // keyword action is Forge's EarthbendEffect: "target land you control becomes
 // a 0/0 creature with haste that's still a land. Put N +1/+1 counters on it.
 // When it dies or is exiled, return it to the battlefield tapped."
@@ -315,7 +315,7 @@ func TestEarthbendBeifongDynamicCountsDyingCreaturePower(t *testing.T) {
 // Toph's chained SubAbility DBPutCounter gates on ConditionDefined$
 // TriggeredCardLKICopy | ConditionPresent$ Lesson (put an EXTRA counter only
 // when the cast spell is a Lesson), which is pinned on Toph itself in
-// toph_lesson_gate_test.go (task agent-20260930T003623Z-97c7643c) and in the
+// toph_lesson_gate_test.go and in the
 // trigger-condition oracle fixture; using Toph here would fold the rider's
 // second counter into every leaf's count.
 func TestEarthbendBadgermoleCubETBOne(t *testing.T) {
@@ -353,8 +353,8 @@ func earthbendDepart(t *testing.T, e *Engine, id state.ObjID, dest state.Zone) {
 // layer-4 filter limitation): the animated Forest is a creature only through
 // the layer walk, so no `ValidTgts$ Creature` spell sees it. A `ValidTgts$
 // Land` destruction still reaches it, and the Destroy fires the same
-// departure. (Lethal combat/damage now DOES kill the animated land: as of
-// ticket agent-20260930T003623Z-089d5c9e, engine/rules/sba.go's destroyLethalDamage
+// departure. (Lethal combat/damage does kill the animated land:
+// engine/rules/sba.go's destroyLethalDamage
 // gates creature-ness on the layer-derived type list (`e.IsCreature`), so an
 // animated land is mortal to both the CR 704.5f zero-toughness and the CR
 // 704.5g lethal-damage sweeps -- see rules/sba_animated_toughness_test.go.

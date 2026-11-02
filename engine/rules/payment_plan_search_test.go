@@ -18,7 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Boards for aph-rank-search (spec 5, amended 2026-09-26): the planner
+// Boards for the plan search: the planner
 // chooses a COUNT per class of interchangeable units, solves coloured pips
 // before generic, and prunes by branch-and-bound on the rank, so ordinary wide
 // boards return the rank-best plan well inside the node budget. The
@@ -180,7 +180,7 @@ func srchDuals(plan *decision.PaymentPlan, duals map[state.ObjID]bool) int {
 	return n
 }
 
-// Done-means 1 (research probe P10, spec 5's PP-26 boards): basics plus as
+// Basics plus as
 // many typed duals, the duals seated FIRST so battlefield order favours them.
 // Enough Islands exist every time, so the rank-best plan taps no dual; the
 // old walk hit the node limit and tapped 1, 3 and 4 duals.
@@ -608,7 +608,7 @@ func TestPaymentPlanSearchMatchesOracleOnRandomBoards(t *testing.T) {
 // normal plus last-resort alternatives), in paymentPlanUnitAlternatives'
 // exact shape but keeping each last-resort alternative with the consequence
 // the real classifier (paymentPlanAbilityTier, interference included)
-// reports. aph-last-resort-plans wires phase 2; this only lets the search's
+// reports. This only lets the search's
 // irreversible-cost level be checked against the oracle with real tiers.
 func srchPhaseTwoChoices(t *testing.T, e *Engine, p state.PlayerID) [][]pay.Alt {
 	t.Helper()

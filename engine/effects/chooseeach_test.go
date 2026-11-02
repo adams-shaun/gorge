@@ -62,7 +62,7 @@ func tragicArroganceBoard(t *testing.T) (*countingAskHost, *Ctx, *state.Object, 
 
 // TestChooseCardChooseEachNoHostTakesFirstPerGroup pins the no-host stand-in:
 // with a host that cannot ask, every Mandatory group takes its first
-// eligible candidate in group order (the same R-9 deterministic path the
+// eligible candidate in group order (the same deterministic path the
 // single-pool shape runs, applied per group).
 func TestChooseCardChooseEachNoHostTakesFirstPerGroup(t *testing.T) {
 	card, chooseSA := corpusSA(t, "Tragic Arrogance", "YouChoose")

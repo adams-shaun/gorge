@@ -20,7 +20,7 @@
    */
 
   /**
-   * The lobby rail, in two registers (Task L2).
+   * The lobby rail, in two registers.
    *
    * Its content is `widget.last`: one line per burst per table, and today
    * essentially every one of them reads "<deck> is asked: priority". A single

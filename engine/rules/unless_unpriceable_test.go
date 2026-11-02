@@ -42,7 +42,7 @@ func walkAllSAs(face *cards.Face, visit func(*cards.SA)) {
 
 // unpriceableCounterCards returns the sorted set of card names whose
 // compiled corpus carries a Counter SA with a non-empty UnlessCost$ that
-// ParseCost cannot price -- the population I-5 protects. The walker dedups
+// ParseCost cannot price -- the population this protects. The walker dedups
 // per (face name, SA line) so a signature reached twice (printed and through
 // an SVar) counts once.
 func unpriceableCounterCards(reg *cards.Registry) []string {
@@ -73,7 +73,7 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 
 // TestUnlessCostUnpriceablePopulation pins the corpus population of Counter
 // SAs whose UnlessCost$ ParseCost cannot price. It is the executable version
-// of the I-5 scope, and it reads the RAW parameter: every one of them must
+// of the scope, and it reads the RAW parameter: every one of them must
 // satisfy the same !Priceable() predicate (so no SVar-sourced X, cast-time X
 // or Sac component escapes as a special case at the strict-parser level), and
 // the set itself is a golden -- a corpus or grammar change that adds or
@@ -84,7 +84,7 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 // the unless-pay ask with a concrete generic amount even though its raw
 // UnlessCost$ stays in this population. Measured on the compiled
 // .cards/ir.gob.gz corpus at FORGE_REF: 29 distinct cards, of which 21 carry
-// UnlessCost$ X (the I-5 population the issue names), 3 a Sac<...> part
+// UnlessCost$ X, 3 a Sac<...> part
 // (Blood Funnel, Brain Gorgers, Mana Vortex), 3 a Discard<...> part
 // (Perplex, Phantasmagorian, Reality Smasher), 1 an ExileFromGrave part
 // (Grip of Amnesia -- its UnlessCost$ ExileFromGrave<1/All> flattened to one
@@ -192,8 +192,8 @@ func xCounterFixture(t *testing.T, reg *cards.Registry, counter, creature string
 // Count$xPaid into a concrete "{2}" for X=2, so the ask label shows the
 // amount and the charge agrees; with nothing in the pool the payment still
 // fails, so Power Sink counters the targeted spell rather than resolving
-// inertly. It is the case the old reading of I-5 got wrong.
-// Under the unless-pay mana window (cli-20260922T150843Z-daf1bd3e) the offer
+// inertly.
+// Under the unless-pay mana window the offer
 // gate also proves the pay branch REACHABLE before it is offered: this payer
 // has an empty pool and no window-eligible source, so the ask is decline-only
 // and the assertion below pins that shape.
@@ -280,7 +280,7 @@ func TestMausoleumWandererUnlessCostX(t *testing.T) {
 	}
 }
 
-// TestParseCostPriceable is the unit-level predicate test behind I-5: it pins
+// TestParseCostPriceable is the unit-level predicate test: it pins
 // exactly which parsed shapes the payment API can price, so the "unpriceable
 // cost" property travels through Cost.Priceable and not through a
 // `if cost == "X"` special case.
@@ -295,7 +295,7 @@ func TestParseCostPriceable(t *testing.T) {
 		{"1", true},                // one generic
 		{"2 U", true},              // generic + colour
 		{"R R", true},              // two red
-		{"X", false},               // the I-5 shape: unpriceable
+		{"X", false},               // unpriceable
 		{"X 2", false},             // X alongside a real generic amount is still unpriceable
 		{"Y", true},                // Y collapses to {1} -- a substitution, but priceable
 		{"Z", true},                // Z likewise, priceable
@@ -365,7 +365,7 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 
 // TestUnlessCostStrictParsePopulation pins the corpus population whose
 // UnlessCost$ the strict unless-pay parser declines. It is the executable
-// boundary of the payment grammar this task built: mana symbols, fixed
+// boundary of the payment grammar: mana symbols, fixed
 // PayLife<N>, and Sac/Discard/SubCounter/Draw/Reveal/Return/Exile components
 // are chargeable mid-resolution (Sac/Discard/Reveal/Return/Exile through the
 // payer-choice continuation); everything else is a hard decline (a

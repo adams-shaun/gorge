@@ -1,7 +1,7 @@
 // This file is package view_test (same reason as describe_replay_test.go:
 // the pregame projection is a rules-and-view contract, and rules cannot be
 // imported from an internal view test file without an import cycle). It
-// pins the rv2a pregame fixes: during the London mulligan round the
+// pins the pregame rules: during the London mulligan round the
 // projected active seat is the CR 103.1 toss winner -- never the seat-0
 // zero value -- and the toss transcript renders through the seat's display
 // name like every other seat-naming line.
@@ -69,7 +69,7 @@ func tossedEngine(t *testing.T, seed uint64, mulligans int, playerNames []string
 	}
 }
 
-// TestPregameViewProjectsTheTossWinnerAsActive is the rv2a pregame gate:
+// TestPregameViewProjectsTheTossWinnerAsActive is the pregame gate:
 // during the mulligan round the projected active seat is the toss winner
 // for a seed where seat 1 wins -- the pre-toss engine's view reported the
 // seat-0 zero value here, and the board marked the wrong player active

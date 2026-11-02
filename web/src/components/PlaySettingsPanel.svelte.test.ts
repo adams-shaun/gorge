@@ -22,7 +22,7 @@ import { layoutStore } from '../lib/layouts.svelte';
 const ctx = { seat: 0, token: 'tok' };
 
 /** panel renders the editor bound to a fresh (or caller-prepared) seat state.
- *  The optional log props (fb-20260917T231628Z's switch) ride along when given. */
+ *  The optional log props ride along when given. */
 function panel(state: SeatPanelState, log?: { showLog: boolean; onToggleLog: () => void }): string {
   return render(PlaySettingsPanel, { props: log ? { state, ...log } : { state } }).html;
 }
@@ -50,7 +50,7 @@ function selectHtml(html: string, which: string): string {
   return m[0];
 }
 
-describe('PlaySettingsPanel — Clear yields (prio6)', () => {
+describe('PlaySettingsPanel — Clear yields', () => {
   // One DISTINCT table id per test: the yield store's in-memory layer is
   // module-level and shared by every SeatPanelState this file constructs.
   it('is disabled with nothing yielded, showing None', () => {
@@ -70,7 +70,7 @@ describe('PlaySettingsPanel — Clear yields (prio6)', () => {
   });
 });
 
-describe('PlaySettingsPanel — Remembered trigger answers (fb-20260914T062319Z-88b4069a B4)', () => {
+describe('PlaySettingsPanel — Remembered trigger answers', () => {
   it('with nothing remembered it says so and offers no list, no Forget, no clear', () => {
     const html = panel(new SeatPanelState('rt-empty', 1, ctx, null));
     expect(html).toContain('data-remembered-empty');
@@ -219,7 +219,7 @@ describe('PlaySettingsPanel — the OPTIONS editor (rendered)', () => {
     expect(tag(html, 'data-toggle="log-auto-passes"')).toContain('aria-checked="true"');
     // The plain-word legend for Smart.
     expect(html).toContain('Smart = only if I have a play');
-    // The plain-word option labels the brief names.
+    // The plain-word option labels.
     for (const label of ['If I can respond', 'Always', 'Never', 'If it targets me or my stuff and I can respond', "Don't stop", 'Stop if I can respond']) {
       expect(html).toContain(label);
     }
@@ -244,7 +244,7 @@ describe('PlaySettingsPanel — the OPTIONS editor (rendered)', () => {
     expect(tag(html, 'data-toggle="auto-pass"')).toContain('aria-checked="true"');
   });
 
-  it('while the undo pause holds, the Auto pass switch reads Paused (fb-20260914T063523Z)', () => {
+  it('while the undo pause holds, the Auto pass switch reads Paused', () => {
     const state = new SeatPanelState('t1', 1, ctx, null);
     state.rewind();
     const html = panel(state);
@@ -300,7 +300,7 @@ describe('PlaySettingsPanel — the OPTIONS editor (rendered)', () => {
     // The exact call the Short segment's onclick makes.
     state.editSettings({ pacing: { stepMs: 100, resolveMs: 200 } });
     expect(tag(panel(state), 'data-pacing="short"')).toContain('aria-pressed="true"');
-    // An unmatched pair (fb-20260917T004341Z): Custom now reads selected.
+    // An unmatched pair: Custom reads selected.
     state.editSettings({ pacing: { stepMs: 37, resolveMs: 91 } });
     const html = panel(state);
     for (const id of ['off', 'short', 'normal', 'slow']) {
@@ -309,9 +309,9 @@ describe('PlaySettingsPanel — the OPTIONS editor (rendered)', () => {
     expect(tag(html, 'data-pacing="custom"')).toContain('aria-pressed="true"');
   });
 
-  // fb-20260917T004341Z: the row is the reporter's "step delay", and the
+  // The row is the reporter's "step delay", and the
   // picker carries four canned pairs plus the Custom affordance.
-  describe('the step delay row (fb-20260917T004341Z)', () => {
+  describe('the step delay row', () => {
     it('is labelled with the reporter\'s term, keeping the old meaning in parentheses', () => {
       const html = panel(new SeatPanelState('t1', 1, ctx, null));
       expect(html).toContain('Step delay (pause between auto-passes)');
@@ -506,7 +506,7 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
-  it('pressing the real Auto pass switch while the UNDO pause holds resumes the machine and preserves the enabled preference (r2 finding)', async () => {
+  it('pressing the real Auto pass switch while the UNDO pause holds resumes the machine and preserves the enabled preference', async () => {
     const page = await open();
     // Rewind the fixture's real state the way the stream's rewind frame
     // does: the machine pauses, the persisted preference stays on.
@@ -545,7 +545,7 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
-  it('a real click on the fixture game log switch calls onToggleLog — its only write path (fb-20260917T231628Z)', async () => {
+  it('a real click on the fixture game log switch calls onToggleLog — its only write path', async () => {
     const page = await open();
     const sw = page.locator('[data-toggle="show-game-log"]');
     // The fixture mounts with showLog: false (the seated default).
@@ -561,7 +561,7 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
-  // fb-20260914T062319Z-88b4069a B4: the remembered-answers management list
+  // The remembered-answers management list
   // against the REAL state — a real click on Forget deletes just that entry,
   // Forget all empties it, and the panel follows the store (the empty-state
   // line returns). The store is seeded through the published state, exactly
@@ -592,7 +592,7 @@ describe('PlaySettingsPanel — real clicks in a real browser (PlaySettingsPanel
     await page.close();
   });
 
-  // fb-20260917T004341Z: the step delay row against the REAL state — Slow
+  // The step delay row against the REAL state — Slow
   // writes its pair, the Custom inputs write through on change (not per
   // keystroke), out-of-range clamps / empty leaves the value, and a canned
   // pair re-selected highlights its segment with the revealed inputs showing
@@ -687,8 +687,8 @@ describe('PlaySettingsPanel — Layout section', () => {
     expect(html).not.toContain('data-layout-zone');
   });
 
-  // fb-20260917T231628Z: the transcript's show/hide switch moved into the
-  // Layout section from the rail's top row. Same role="switch" row idiom as
+  // The transcript's show/hide switch lives in the
+  // Layout section. Same role="switch" row idiom as
   // the toggle above, but its state and write path are PROPS (Table.svelte's
   // showLog/toggleLog, persisted through logshown.ts) — never the layout
   // store, never logic.editSettings, never a PlaySettings field.
@@ -712,11 +712,11 @@ describe('PlaySettingsPanel — Layout section', () => {
   });
 });
 
-describe('PlaySettingsPanel — persistence notice (fb-20260917T232814Z)', () => {
+describe('PlaySettingsPanel — persistence notice', () => {
   // The notice is the ONE visible signal that every preference store is
   // memory-only (lib/storage.ts storageWritable, probed live at mount). The
   // node test env has no localStorage, so the "works" case stubs a fake and
-  // the "refuses" case stubs the throwing shape the brief names.
+  // the "refuses" case stubs the throwing shape.
   const refusing = {
     getItem: () => null,
     setItem: () => {

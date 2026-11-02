@@ -66,7 +66,7 @@ func TestSVarCountScopeIsUnknownNotBothPlayers(t *testing.T) {
 	}
 }
 
-// TestSVarCountUnknownPredicateIsUnknown pins the second MAJOR defect: a
+// TestSVarCountUnknownPredicateIsUnknown: a
 // predicate the evaluator cannot read must not fall through to a type-line
 // test and report a confident zero. Creature.attacking and friends are real
 // corpus bodies; none can be decided from a printed face alone.

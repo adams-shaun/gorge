@@ -1,8 +1,7 @@
 # Rules package split: compile-time slicing plan (2026-10-06)
 
 Status: **plan + first slice landed** (`engine/rules/scriptfacts`).
-This plan sequences the remaining slices
-as independent tickets; it does not queue them.
+This plan sequences the remaining slices as independent changes.
 
 Related design (the wider layering refactor this serves):
 `docs/design/2026-10-03-rules-engine-layering-design.md` §3 (layers)
@@ -114,16 +113,16 @@ Two mechanical rules from the landed slices:
    for `trigmatch.`/`pay.`/`combat.`/`chars.` (`scanCall`,
    `engine/rules/paramcensus_test.go`); this slice added `scriptfacts.` there.
 
-## 4. Ordered slice list (each is one landable ticket)
+## 4. Ordered slice list (each is one landable change)
 
 Order is by (fewest Engine refs first) × (avoid the two live hot-file sets:
 `engine/rules/legal*` S1–S3 and `engine/rules/decision_arena.go`).
 
-| # | ticket title | scope (files → package) | Engine surface | notes |
+| # | commit title | scope (files → package) | Engine surface | notes |
 |---|---|---|---|---|
 | 1 | `refactor(rules): move the pure card-fact queries to engine/rules/scriptfacts` | `printed_heads.go`, `foretell_cost.go`, `trigger_optional_permission.go`, `granted_keyword_trigger.go` → `engine/rules/scriptfacts` + bridge | none | **LANDED this ticket** |
-| 2 | `refactor(rules): move the remaining zero-Engine script/printed helpers` | the other ~50 zero-Engine root files (3,938 lines total; `card_mentions.go`, `specderived.go` after its `provGateSlot` dep moves, `present_spec.go`, `trigger_condition_hellbent.go`, `pool_probes.go`, `resume_modes.go`, `resolution_targets.go`, `intent_clone.go`, `acting_view.go`, …) → `engine/rules/scriptfacts` (or split: `rules/query` for pure state reads) | none | one ticket per coherent group; `ability_selfskip.go` needs a `paramcensus` root key rename (its exported name) |
-| 3 | `refactor(rules): extract the oracle audit harness to rules/oracle` | `oracle_{run,run_faces,snapshot,snapshot_offers,setup_state,setup_triggers,trigchain,export,can_attack}.go` (~2,800 lines) → `rules/oracle` behind `oracle.Board` | ~12 methods | exported API (`RunOracleScenarioJSON`) keeps its name via a bridge; touches `lab/cmd/oraclediff`/`compliance` only through that name |
+| 2 | `refactor(rules): move the remaining zero-Engine script/printed helpers` | the other ~50 zero-Engine root files (3,938 lines total; `card_mentions.go`, `specderived.go` after its `provGateSlot` dep moves, `present_spec.go`, `trigger_condition_hellbent.go`, `pool_probes.go`, `resume_modes.go`, `resolution_targets.go`, `intent_clone.go`, `acting_view.go`, …) → `engine/rules/scriptfacts` (or split: `rules/query` for pure state reads) | none | one change per coherent group; `ability_selfskip.go` needs a `paramcensus` root key rename (its exported name) |
+| 3 | `refactor(rules): extract the oracle audit harness to rules/oracle` | `oracle_{run,run_faces,snapshot,snapshot_offers,setup_state,setup_triggers,trigchain,export,can_attack}.go` (~2,800 lines) → `rules/oracle` behind `oracle.Board` | ~12 methods | exported API (`RunOracleScenarioJSON`) keeps its name via a bridge; touches `oraclediff` and the compliance oracle only through that name |
 | 4 | `refactor(rules): lower the static-view vocabulary to a leaf` | the `staticView`/`costStaticViews` type homes → `rules/statics` (vocabulary only, no walk) | none | precondition for slices 5–6 (spec §9.2) |
 | 5 | `refactor(rules): extract the cost-static scan to rules/statics` | `statics.go`, `statics_cost*.go`, `static_condition.go`, `static_gatememo.go`, `static_scan_reuse.go`, `statics_assignment.go` behind `statics.Board` | ~20 methods | reads `activeStatics`; sequence after slice 4 |
 | 6 | `refactor(rules): extract the E4 layer read to chars` | `layers_derived.go`, `layers_types.go`, `layers_static.go`, `layer5colors.go`, `layer6keywords.go` behind `chars.Reader` + `chars.Eval` | existing 11 + ~8 | the recursion blocker (`Derived → matchesSpec → Derived`) is the ticket's main risk; measure it first |
@@ -135,7 +134,7 @@ Order is by (fewest Engine refs first) × (avoid the two live hot-file sets:
 **Do not reorder 9 or 10 ahead of 6/7/8**: both read `chars`, the statics view
 and the replacement engine, and both are the live hot files.
 
-### What each ticket must prove (same contract as slice 1)
+### What each slice must prove (same contract as slice 1)
 
 - `go build ./... && go vet ./engine/rules/...` clean.
 - `TestHeads`, `TestRepoDeckGamesReplayExactly` unchanged, no golden edits.
@@ -187,13 +186,11 @@ edits in the leaf do stay cheap (0.18 s; Go keys dependents on export data).
 The compile-time payoff compounds only as slices 3–8 give the leaf real
 independent importers (`pay`, `chars`, `trigmatch`, the oracle harness).
 
-## 6. Measurements (this box: 2 vCPU, 14 GB free)
+## 6. Measurements (2 vCPU, 14 GB free)
 
 Method: cold build with a private empty cache —
 `/usr/bin/time -v env GOCACHE=$PWD/scratch/gocache-<x> GOMAXPROCS=2
-go build -o /dev/null ./engine/rules`. (`$DATA` named in the brief
-is **read-only inside the task jail**; `mktemp -d -p` there fails with
-`Read-only file system`, so the cache lives inside the worktree.)
+go build -o /dev/null ./engine/rules`.
 
 | metric | before slice | after slice |
 |---|---|---|
@@ -211,7 +208,7 @@ that *other packages* import, not just `rules` itself.
 ## 7. Risks
 
 - **Hot files.** The plan's slices 9/10 must not open until the live legal-walk
-  and `decision_arena.go` tickets land. Slices 1–8 were chosen to touch neither;
+  and `decision_arena.go` work lands. Slices 1–8 were chosen to touch neither;
   slice 1 edited no hot file (bridge only).
 - **Census attribution.** Every slice must teach
   `engine/rules/paramcensus_test.go`'s `scanCall` its new package prefix (the

@@ -50,8 +50,8 @@ func (f *Face) ApplyIntrinsics() {
 	// still equal what the gob decode route (which re-derives after decode,
 	// over the same final content) computes. Deriving only inside the land
 	// branch left every non-land face on the parse route holding the
-	// pre-Link identity (the rv2c route-diff defect: Clay Champion, Dredging
-	// Claw, Lashwrithe, Veteran's Powerblade).
+	// pre-Link identity (Clay Champion, Dredging Claw, Lashwrithe, Veteran's
+	// Powerblade).
 	defer f.derive()
 	if !f.IsLand() {
 		return

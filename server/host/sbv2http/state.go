@@ -4,6 +4,12 @@ import (
 	"net/http"
 )
 
+// leavesAsks reads a v2 read's asks=native: this client answers, on the native
+// routes, the asks the codec otherwise answers itself.
+func leavesAsks(r *http.Request) bool {
+	return r.URL.Query().Get("asks") == "native"
+}
+
 // state is GET .../state: the current v2 choose request for the caller's seat,
 // or {"request":null} when the seat is between decisions (or the codec left the
 // decision to the native wire). It reads exactly what the stream's initial
@@ -22,6 +28,6 @@ func (h *handler) state(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := seatKey{table: t, match: k, seat: claim.Seat}
-	h.hub.seat(key).attach()
+	h.hub.seat(key).attach(leavesAsks(r))
 	writeJSON(w, http.StatusOK, h.stateBody(key))
 }

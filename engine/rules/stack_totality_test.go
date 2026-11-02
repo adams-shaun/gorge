@@ -64,7 +64,7 @@ Oracle:x
 `
 
 // exileBlockingReplacementSrc mirrors graveyardBlockingSpellsReplacementSrc
-// (the review's I-2 shape: an ability object's own ceases-to-exist move,
+// (the same shape: an ability object's own ceases-to-exist move,
 // normally parked in exile per CR 608.2m, discarded by an unrelated
 // replacement) but for Destination$ Exile instead of Graveyard, and for the
 // same reason as above it is deliberately NON-relocating: the earlier "Void

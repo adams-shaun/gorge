@@ -18,8 +18,8 @@ import (
 // SacTopPower chain with a REAL continuous pump on the SMALLER creature: the
 // Choices$ pool must be sized at derived power, so the pumped 2/2 Grizzly
 // Bears (derived 7) displaces the printed-greatest 3/3 Hill Giant and is the
-// only creature offered -- before the fix the pool offered the Hill Giant,
-// because choiceMatches sized the comparison at printed-plus-counter power.
+// only creature offered, since choiceMatches compares derived power, not
+// printed-plus-counter power.
 func TestMyrkulsEdictChoicePoolReadsDerivedPower(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

@@ -256,7 +256,7 @@ func TestDisruptionAuraAttachAILogicDoesNotRestrictTargets(t *testing.T) {
 	}
 	// The offer/ask agreement must be a COMPLETING cast, not merely an
 	// askable one: submit the artifact and assert the spell left the hand
-	// without the CR 733.1 reversal (r2 review MINOR).
+	// without the CR 733.1 reversal.
 	submitChoices(t, e, idx)
 	if hasNote(e, "cast aborted: no legal target") {
 		t.Fatal("the aura's cast aborted with a legal artifact target available")

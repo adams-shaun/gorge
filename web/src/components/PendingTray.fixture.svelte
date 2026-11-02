@@ -8,9 +8,8 @@
    * PendingTray fixture: the tray states the empty-answer safety-net test
    * drives in a real browser. `case` picks the seat's pending decision:
    *
-   *  - 'empty' — no decision and an empty trigger queue: "Nothing waiting",
-   *    exactly as before this fix.
-   *  - 'stuck' — the live bug's wire decision (demo game g4, seat 0): the
+   *  - 'empty' — no decision and an empty trigger queue: "Nothing waiting".
+   *  - 'stuck' — the wire decision from a live soft-lock, seat 0: the
    *    Squadron Hawk search's Min 0 / Max 0 KChoose with NO options, which no
    *    picker can render. The tray entry and its Continue are wired the way
    *    Table.svelte wires them — stuckDecision classifies the decision and

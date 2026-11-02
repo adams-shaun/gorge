@@ -15,16 +15,16 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// potential_kinds_test.go pins aph-web-manual-only-plays' server half:
+// potential_kinds_test.go pins the server half of manual-only plays:
 // rules.PotentialActions projects EVERY real play kind the priority offer walk
 // (legalActionsPriced) can emit, not only "cast", "ability" and "play_land".
 // A mana-costed non-cast play is offered FLOAT-FIRST (the walk prices it
 // against the floating pool), so on an empty pool it is absent from the
-// priority options; before this ticket a Room unlock, a morph turn-face-up, a
-// specialize or a max-speed granted ability was then neither offered nor
-// projected, and the web client -- which keeps the manual mana taps visible
-// under auto-pay exactly while such a play is reachable (web/src/lib/
-// manualmana.ts) -- hid the very taps that would make it appear.
+// priority options; unless it is projected here, a Room unlock, a morph
+// turn-face-up, a specialize or a max-speed granted ability is invisible, and
+// the web client -- which keeps the manual mana taps visible under auto-pay
+// exactly while such a play is reachable (web/src/lib/manualmana.ts) -- hides
+// the very taps that would make it appear.
 
 // notAPlayKinds are the option kinds every priority window offers and which
 // are never a play: the mana tap, pass and concede.

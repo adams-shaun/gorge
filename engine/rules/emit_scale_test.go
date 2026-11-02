@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// tokenScaleBoard builds the mass-token-creation board the cardfuzz hang seed
+// tokenScaleBoard builds the mass-token-creation board a fuzzer hang seed
 // 6181111140895991800 reached: n Goblin creature tokens (Krenko, Mob Boss's
 // doubling payoff), Krenko itself, and a Clown Car crewed into a creature by
 // four live `Affected$ Card.Self` layer-4 effects (the crew's own type change,
@@ -91,8 +91,8 @@ func tokenScaleBoard(tb testing.TB, n int) *Engine {
 
 // BenchmarkEmitTokenCreateOnLargeBoard measures one TokenCreate emitted onto a
 // board that already holds n creatures. Per-event cost must stay flat as n
-// grows (the emit path's whole-board scans are the cardfuzz hang's residual
-// cost); this benchmark is the before/after witness.
+// grows (the emit path's whole-board scans are that hang's residual
+// cost).
 func BenchmarkEmitTokenCreateOnLargeBoard(b *testing.B) {
 	for _, n := range []int{4000, 8000} {
 		b.Run(fmt.Sprint(n), func(b *testing.B) {

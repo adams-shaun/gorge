@@ -42,7 +42,7 @@ type engineEmitCtx struct {
 	// 702.1x names the combat damage step's own assignments) WITHOUT touching
 	// events.Event: the event struct's binary encoding is hash-chained and
 	// replayed, so per-event context lives in engine state and is rebuilt by
-	// replay because replay re-executes the same setter (the pg2 precedent).
+	// replay because replay re-executes the same setter.
 	// dealCombatDamage (combat.go) sets it true alongside e.damaging for the
 	// length of each assignment and clears it with the same reset; triggers
 	// are checked synchronously inside emit (checkTriggers on the stored

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Decision, Option } from '../protocol';
 import { SeatPanelState, followUpArm } from './seatpanel.svelte';
 
-// fb-20260923T050205Z: the card-follow-up expectation is armed by the HAND
+// The card-follow-up expectation is armed by the HAND
 // post (click()'s post-on-click and submit()'s multi-pick commit), wherever
 // the click came from — the board tile or the seat panel's own option
 // buttons. The panel is the surface the treasure report used, and before this
@@ -13,7 +13,7 @@ import { SeatPanelState, followUpArm } from './seatpanel.svelte';
 // hand-built decisions, no DOM): a hand post whose answered option is an
 // `activate` or a `mana` (the only two answers the engine follows with a
 // same-object mana ask -- see MANA_FOLLOW_UP_KINDS) arms followUpExpected with
-// that option's OWN obj (R-E4-1), whatever the decision kind; every other
+// that option's OWN obj, whatever the decision kind; every other
 // object-bearing answer (ability, target, arrange, multi-pick sacrifice)
 // disarms; a machine post -- passClick/primaryClick -- arms nothing.
 const { postIntentMock, fetchPendingMock } = vi.hoisted(() => ({ postIntentMock: vi.fn(), fetchPendingMock: vi.fn() }));
@@ -59,7 +59,7 @@ const multi = (seq: number): Decision => ({
 
 /**
  * stageOne is the multi-ability mana source's stage-1 ability pick as
- * rules/mana_activation.go activateManaFor poses it (fb-e079def5; pinned
+ * rules/mana_activation.go activateManaFor poses it (pinned
  * engine-side by rules TestManaProducedAnyStageOneLabel): a `choose`
  * decision whose options are Kind "mana" on the source. Answering the Any
  * ability poses askManaColor's five-colour stage-2 wheel on the SAME source
@@ -128,7 +128,7 @@ describe('the hand post arms the card-follow-up expectation', () => {
     postIntentMock.mockResolvedValue(undefined);
   });
 
-  it('followUpArm reads the answered option its OWN obj (R-E4-1), never the decision source', () => {
+  it('followUpArm reads the answered option its OWN obj, never the decision source', () => {
     // PRECONDITION: the two activate options differ in obj, so which one the
     // rule reads is observable — a rule that rebuilt the obj from the
     // decision source or a list position could not produce 207 here.
@@ -156,8 +156,8 @@ describe('the hand post arms the card-follow-up expectation', () => {
   });
 
   it('a panel click on the stage-1 mana-ability pick (choose/mana) arms for the stage-2 wheel', async () => {
-    // The round-2 regression: a priority-only rule returned null here, so a
-    // Vivid Marsh's "Add any color" stage-2 ask fell back to plain buttons.
+    // A priority-only rule would return null here, so a
+    // Vivid Marsh's "Add any color" stage-2 ask would fall back to plain buttons.
     const d = stageOne(400);
     // PRECONDITION: this is NOT a priority decision and the option is NOT an
     // activate -- the shapes a priority/activate-only rule would accept.

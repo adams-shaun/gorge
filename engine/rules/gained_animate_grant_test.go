@@ -9,8 +9,8 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestGainedAnimateGrantResolvesOffTheForeignCard pins cardfuzz batch7 line
-// 2 on the real corpus pair: Manascape Refractor has all activated abilities
+// TestGainedAnimateGrantResolvesOffTheForeignCard pins a fuzzer failure
+// on the real corpus pair: Manascape Refractor has all activated abilities
 // of all lands, so it gains Spawning Pool's "{1}{B}: becomes a 1/1 Skeleton
 // with '{B}: Regenerate this creature'". The Animate resolves as a gained
 // wrapper, so its Abilities$ ABRegen names an SVar on SPAWNING POOL's face,

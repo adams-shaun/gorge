@@ -14,10 +14,9 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The round-2 review's defect (merge c7f5485, Gitaxian Probe): a Look$ True
-// RevealHand used to emit its look as a PUBLIC Note carrying the target's
-// whole hand, so every seat and every spectator — live and on replay —
-// learned the hand. These tests pin the fix end to end on the REAL corpus
+// A Look$ True RevealHand must not emit its look as a PUBLIC Note carrying the
+// target's whole hand, or every seat and every spectator — live and on replay —
+// learns the hand. These tests pin that end to end on the REAL corpus
 // card driven through a real 3-seat engine: the activator's own copy of the
 // Secret look Note carries the hand, every other seat's and a Public
 // spectator's copy is stripped to its shape, an Omniscient spectator keeps
@@ -169,7 +168,7 @@ func handHas(e *rules.Engine, p state.PlayerID, name string) bool {
 	return false
 }
 
-// TestGitaxianProbeLookStaysPrivateFromEveryOtherViewer is the brief's own
+// TestGitaxianProbeLookStaysPrivateFromEveryOtherViewer is the
 // redaction test: 3 seats, the real probe. The activator sees the names;
 // the other seat, a public spectator (and a plain seat redaction of either)
 // get no ids/names; an Omniscient spectator keeps the payload their
@@ -254,7 +253,7 @@ func TestGitaxianProbeLookDescribeLines(t *testing.T) {
 }
 
 // TestGitaxianProbeGameReplaysAndDescribesIdentically is the replay half of
-// the brief's Done-means: the game containing the new Secret look event
+// the look: the game containing the new Secret look event
 // replays byte-identically (replay.Replay's chain compare), and the
 // transcript lines the replay produces match the original run's — the look
 // line included.

@@ -1,12 +1,10 @@
 package rules
 
 // stat:SurveilNum — "You may look at an additional two cards each time you
-// surveil" (Enhanced Surveillance). Before this ticket the mode was unread:
-// effects.Supported() did not report it, nothing collected the static, and
-// effects' effSurveil always used the surveil instruction's own count. The
-// reader is rules.Engine.SurveilLookExtra (the canonical activeStatics walk,
-// exposed to effects through the Host interface), the election is a real
-// yes/no ask, and the no-host path declines deterministically (R-9).
+// surveil" (Enhanced Surveillance). The reader is
+// rules.Engine.SurveilLookExtra (the canonical activeStatics walk, exposed to
+// effects through the Host interface), the election is a real yes/no ask, and
+// the no-host path declines deterministically.
 
 import (
 	"strings"
@@ -208,8 +206,7 @@ func mandatoryStaticFixture(t *testing.T, seed uint64) (*Engine, Config, state.O
 }
 
 // countArrangeAsks counts the DecisionAsk events of the given decision kinds
-// after index mark -- the "exactly one election, exactly one arrange" probe
-// the pre-fix ping-pong failed (it re-posed both every round).
+// after index mark -- the "exactly one election, exactly one arrange" probe.
 func countArrangeAsks(e *Engine, mark int, kinds ...decision.Kind) int {
 	want := make(map[decision.Kind]bool, len(kinds))
 	for _, k := range kinds {
@@ -396,7 +393,7 @@ func twoOptionalFixture(t *testing.T, seed uint64, surveilSrc string) (*Engine, 
 }
 
 // TestSurveilNumOptionalStaticsAreIndependentElections pins the
-// surveilnum-r2 fix: two optional statics offer TWO election options and the
+// rule: two optional statics offer TWO election options and the
 // controller can accept either subset. Accepting only the Num$-2 static must
 // raise the Surveil 1 to 3 (not the summed 6), and a second engine that
 // accepts both must look at 6 -- so neither election collapses into the

@@ -92,7 +92,7 @@ const plainSifterSrc = "Name:Plain Sifter\nTypes:Artifact\n" +
 // line's OptionalDecider$ You makes the trigger optional with the choice at
 // resolution (engine/rules/trigger_queue.go's optionalDecider), so the drain helper
 // answers that ask; OptionalDecider$ and ResolvedLimit$ reads beyond that are
-// NOT this ticket's scope.
+// not in scope here.
 const glavaSrc = "Name:Glava, Five-Advents Mage\nManaCost:5 G G\nTypes:Legendary Creature Human Wizard\nPT:5/5\n" +
 	"T:Mode$ SpellAbilityCast | ValidSA$ Spell.Permanent,Activated.!ManaAbility | ValidActivatingPlayer$ You | HasXManaCost$ True | TriggerZones$ Battlefield | Execute$ TrigSetX | OptionalDecider$ You | ResolvedLimit$ 1 | TriggerDescription$ Whenever you cast a permanent spell with {X} in its mana cost or activate an ability with {X} in its activation cost that isn't a mana ability, you may have the value of X become 5. Do this only once each turn.\n" +
 	"SVar:TrigSetX:DB$ ChangeX | Defined$ TriggeredSpellAbility | Value$ 5\n" +

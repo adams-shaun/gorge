@@ -115,8 +115,7 @@ func hasTypeWord(types []string, word string) bool {
 
 // TestMobilizeUsesRealCorpusCard drives Zurgo Stormrender's real K:Mobilize:1
 // line end to end: the attack creates exactly one 1/1 red Warrior token that
-// entered tapped and attacking the defender. Before the fix the printed
-// keyword never expanded and Zurgo attacked bare.
+// entered tapped and attacking the defender.
 func TestMobilizeUsesRealCorpusCard(t *testing.T) {
 	e, cfg, _ := mobilizeCombat(t, "Zurgo Stormrender", 3)
 	toks := mobilizeTokens(t, e)

@@ -1,9 +1,6 @@
 package rules
 
-// Derived, compiled-registry corpus census for the eight "std3" parameter
-// shapes (ticket agent-20261005T011820Z-734eaec3; the shapes were fixed by
-// cli-20261004T233421Z-7517756b, merge ff64dcd32, whose carrier ratchets
-// landed in e5cdd8350).
+// Derived, compiled-registry corpus census for eight parameter shapes.
 //
 // The existing engine/effects/ ratchets (engine/effects/unread_param_corpus_test.go
 // TestUnreadEffectParamCorpusCarriers and engine/effects/count_pow_test.go
@@ -37,25 +34,25 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// std3 param census labels: one constant label per shape naming the mechanism
+// Param census labels: one constant label per shape naming the mechanism
 // (mirroring oracle_carrier_census_test.go's censusLabelSacrificedPower style).
 // The values are the label strings carried by every file in the matching
-// engine/rules/testdata/corpus-std3-* directory.
+// engine/rules/testdata/corpus-param-fix-* directory.
 const (
-	std3LabelPumpReplaceDying      = "param:api:Pump.ReplaceDyingDefined"
-	std3LabelChangeZoneThisAndTgts = "param:api:ChangeZone.ThisDefinedAndTgts"
-	std3LabelDigUntilMinTotalCMC   = "param:api:DigUntil.MinTotalCMC"
-	std3LabelCopyPermanentDefName  = "param:api:CopyPermanent.DefinedName"
-	std3LabelPutCounterTypes       = "param:api:PutCounter.CounterTypes"
-	std3LabelAnimateColors         = "param:api:Animate.Colors"
-	std3LabelChooseTypeTypes       = "param:api:ChooseType.ValidTypes+InvalidTypes"
-	std3LabelNumberPow             = "count:Number.Pow"
+	paramFixLabelPumpReplaceDying      = "param:api:Pump.ReplaceDyingDefined"
+	paramFixLabelChangeZoneThisAndTgts = "param:api:ChangeZone.ThisDefinedAndTgts"
+	paramFixLabelDigUntilMinTotalCMC   = "param:api:DigUntil.MinTotalCMC"
+	paramFixLabelCopyPermanentDefName  = "param:api:CopyPermanent.DefinedName"
+	paramFixLabelPutCounterTypes       = "param:api:PutCounter.CounterTypes"
+	paramFixLabelAnimateColors         = "param:api:Animate.Colors"
+	paramFixLabelChooseTypeTypes       = "param:api:ChooseType.ValidTypes+InvalidTypes"
+	paramFixLabelNumberPow             = "count:Number.Pow"
 )
 
-// std3Shape is one measured parameter shape. extra, when non-nil, narrows a
+// paramFixShape is one measured parameter shape. extra, when non-nil, narrows a
 // compiled (API, key) match further -- the Animate shape's Colors$ value must
 // name the literal ChosenColor, not any colour token.
-type std3Shape struct {
+type paramFixShape struct {
 	label string
 	api   string
 	key   string
@@ -64,27 +61,27 @@ type std3Shape struct {
 	value string
 }
 
-// std3Shapes is the eight-shape registry. It is the ONE home of the shape
+// paramFixShapes is the eight-shape registry. It is the ONE home of the shape
 // definitions; the walk and every test below derive from it.
-var std3Shapes = []std3Shape{
-	{label: std3LabelPumpReplaceDying, api: "Pump", key: "ReplaceDyingDefined"},
-	{label: std3LabelChangeZoneThisAndTgts, api: "ChangeZone", key: "ThisDefinedAndTgts"},
-	{label: std3LabelDigUntilMinTotalCMC, api: "DigUntil", key: "MinTotalCMC"},
-	{label: std3LabelCopyPermanentDefName, api: "CopyPermanent", key: "DefinedName"},
-	{label: std3LabelPutCounterTypes, api: "PutCounter", key: "CounterTypes"},
-	{label: std3LabelAnimateColors, api: "Animate", key: "Colors", value: "ChosenColor"},
-	{label: std3LabelChooseTypeTypes, api: "ChooseType", key: "ValidTypes"},
-	{label: std3LabelChooseTypeTypes, api: "ChooseType", key: "InvalidTypes"},
+var paramFixShapes = []paramFixShape{
+	{label: paramFixLabelPumpReplaceDying, api: "Pump", key: "ReplaceDyingDefined"},
+	{label: paramFixLabelChangeZoneThisAndTgts, api: "ChangeZone", key: "ThisDefinedAndTgts"},
+	{label: paramFixLabelDigUntilMinTotalCMC, api: "DigUntil", key: "MinTotalCMC"},
+	{label: paramFixLabelCopyPermanentDefName, api: "CopyPermanent", key: "DefinedName"},
+	{label: paramFixLabelPutCounterTypes, api: "PutCounter", key: "CounterTypes"},
+	{label: paramFixLabelAnimateColors, api: "Animate", key: "Colors", value: "ChosenColor"},
+	{label: paramFixLabelChooseTypeTypes, api: "ChooseType", key: "ValidTypes"},
+	{label: paramFixLabelChooseTypeTypes, api: "ChooseType", key: "InvalidTypes"},
 }
 
-// std3ParamCarriers walks the compiled corpus and returns, per label, the set
+// paramFixCarriers walks the compiled corpus and returns, per label, the set
 // of card names carrying that shape. It follows the same traversal
 // Face.Primitives uses -- direct Abilities, Trigger effects, Repl With bodies,
 // every SVar-resolved ability chain (EachSVarAbility), and typed raw
 // effect children -- because those are exactly the reachable SAs the engine
 // runs. The Pow shape is a value body, not an ability, so it is measured from
 // the face's SVar text (the compiled form of a `Number$.../Pow.` operand).
-func std3ParamCarriers(reg *cards.Registry) map[string]map[string]bool {
+func paramFixCarriers(reg *cards.Registry) map[string]map[string]bool {
 	out := map[string]map[string]bool{}
 	add := func(label, card string) {
 		if label == "" || card == "" {
@@ -99,7 +96,7 @@ func std3ParamCarriers(reg *cards.Registry) map[string]map[string]bool {
 	// comparison, so AnimateAll never matches Animate and PutCounterAll never
 	// matches PutCounter.
 	matchOne := func(card string, sa *cards.SA) {
-		for _, s := range std3Shapes {
+		for _, s := range paramFixShapes {
 			if sa.API != s.api {
 				continue
 			}
@@ -148,22 +145,22 @@ func std3ParamCarriers(reg *cards.Registry) map[string]map[string]bool {
 				}
 			}
 			if svar {
-				add(std3LabelNumberPow, f.Name)
+				add(paramFixLabelNumberPow, f.Name)
 			}
 		}
 	}
 	return out
 }
 
-// checkStd3Census compares the measured carrier set for one label against the
+// checkFixedParamCensus compares the measured carrier set for one label against the
 // per-card table in both directions, with a loud precondition that the walk
 // reached the class and a named card is a measured member. A registry that
 // failed to load, or a walk whose Sub/SVar traversal stopped, must FAIL rather
 // than pass vacuously.
-func checkStd3Census(t *testing.T, label, dir, mustCarry string) {
+func checkFixedParamCensus(t *testing.T, label, dir, mustCarry string) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	got := std3ParamCarriers(reg)[label]
+	got := paramFixCarriers(reg)[label]
 	want := loadCensusLabels(t, dir)
 
 	if len(got) == 0 {
@@ -199,14 +196,14 @@ func checkStd3Census(t *testing.T, label, dir, mustCarry string) {
 func TestFixedParamCensusFilesWellFormed(t *testing.T) {
 	t.Parallel()
 	for _, dir := range []string{
-		"corpus-std3-pump-replacedying",
-		"corpus-std3-changezone-thisdefinedandtgts",
-		"corpus-std3-diguntil-mintotalcmc",
-		"corpus-std3-copypermanent-definedname",
-		"corpus-std3-putcounter-countertypes",
-		"corpus-std3-animate-chosencolor",
-		"corpus-std3-choosetype-validinvalidtypes",
-		"corpus-std3-number-pow",
+		"corpus-param-fix-pump-replacedying",
+		"corpus-param-fix-changezone-thisdefinedandtgts",
+		"corpus-param-fix-diguntil-mintotalcmc",
+		"corpus-param-fix-copypermanent-definedname",
+		"corpus-param-fix-putcounter-countertypes",
+		"corpus-param-fix-animate-chosencolor",
+		"corpus-param-fix-choosetype-validinvalidtypes",
+		"corpus-param-fix-number-pow",
 	} {
 		if got := loadCensusLabels(t, dir); len(got) == 0 {
 			t.Errorf("%s: no per-card files; the table would compare vacuous", dir)
@@ -216,68 +213,68 @@ func TestFixedParamCensusFilesWellFormed(t *testing.T) {
 
 // TestFixedParamCensusPump pins Pump's ReplaceDyingDefined$ carriers.
 func TestFixedParamCensusPump(t *testing.T) {
-	checkStd3Census(t, std3LabelPumpReplaceDying, "corpus-std3-pump-replacedying", "Gnashing of Teeth")
+	checkFixedParamCensus(t, paramFixLabelPumpReplaceDying, "corpus-param-fix-pump-replacedying", "Gnashing of Teeth")
 }
 
 // TestFixedParamCensusChangeZone pins ChangeZone's ThisDefinedAndTgts$ carriers.
 func TestFixedParamCensusChangeZone(t *testing.T) {
-	checkStd3Census(t, std3LabelChangeZoneThisAndTgts, "corpus-std3-changezone-thisdefinedandtgts", "Mangara of Corondor")
+	checkFixedParamCensus(t, paramFixLabelChangeZoneThisAndTgts, "corpus-param-fix-changezone-thisdefinedandtgts", "Mangara of Corondor")
 }
 
 // TestFixedParamCensusDigUntil pins DigUntil's MinTotalCMC$ carriers.
 func TestFixedParamCensusDigUntil(t *testing.T) {
-	checkStd3Census(t, std3LabelDigUntilMinTotalCMC, "corpus-std3-diguntil-mintotalcmc", "Dream Harvest")
+	checkFixedParamCensus(t, paramFixLabelDigUntilMinTotalCMC, "corpus-param-fix-diguntil-mintotalcmc", "Dream Harvest")
 }
 
 // TestFixedParamCensusCopyPermanent pins CopyPermanent's DefinedName$ carriers.
 func TestFixedParamCensusCopyPermanent(t *testing.T) {
-	checkStd3Census(t, std3LabelCopyPermanentDefName, "corpus-std3-copypermanent-definedname", "Mutable Explorer")
+	checkFixedParamCensus(t, paramFixLabelCopyPermanentDefName, "corpus-param-fix-copypermanent-definedname", "Mutable Explorer")
 }
 
 // TestFixedParamCensusPutCounter pins PutCounter's CounterTypes$ carriers.
 func TestFixedParamCensusPutCounter(t *testing.T) {
-	checkStd3Census(t, std3LabelPutCounterTypes, "corpus-std3-putcounter-countertypes", "Abigale, Eloquent First-Year")
+	checkFixedParamCensus(t, paramFixLabelPutCounterTypes, "corpus-param-fix-putcounter-countertypes", "Abigale, Eloquent First-Year")
 }
 
 // TestFixedParamCensusAnimate pins the Animate Colors$ ChosenColor carriers.
 func TestFixedParamCensusAnimate(t *testing.T) {
-	checkStd3Census(t, std3LabelAnimateColors, "corpus-std3-animate-chosencolor", "Puca's Eye")
+	checkFixedParamCensus(t, paramFixLabelAnimateColors, "corpus-param-fix-animate-chosencolor", "Puca's Eye")
 }
 
 // TestFixedParamCensusChooseType pins the ChooseType ValidTypes$/InvalidTypes$
 // carriers (both spellings share one table and one label).
 func TestFixedParamCensusChooseType(t *testing.T) {
-	checkStd3Census(t, std3LabelChooseTypeTypes, "corpus-std3-choosetype-validinvalidtypes", "Dawn-Blessed Pennant")
+	checkFixedParamCensus(t, paramFixLabelChooseTypeTypes, "corpus-param-fix-choosetype-validinvalidtypes", "Dawn-Blessed Pennant")
 }
 
 // TestFixedParamCensusNumberPow pins the Number$/Pow. carriers.
 func TestFixedParamCensusNumberPow(t *testing.T) {
-	checkStd3Census(t, std3LabelNumberPow, "corpus-std3-number-pow", "Mathemagics")
+	checkFixedParamCensus(t, paramFixLabelNumberPow, "corpus-param-fix-number-pow", "Mathemagics")
 }
 
-// std3CensusDirForLabel maps a label back to its table directory so
+// paramFixDirForLabel maps a label back to its table directory so
 // TestFixedParamCensusAllShapesMeasured can hold the shape list and the
 // directories in sync.
-var std3CensusDirForLabel = map[string]string{
-	std3LabelPumpReplaceDying:      "corpus-std3-pump-replacedying",
-	std3LabelChangeZoneThisAndTgts: "corpus-std3-changezone-thisdefinedandtgts",
-	std3LabelDigUntilMinTotalCMC:   "corpus-std3-diguntil-mintotalcmc",
-	std3LabelCopyPermanentDefName:  "corpus-std3-copypermanent-definedname",
-	std3LabelPutCounterTypes:       "corpus-std3-putcounter-countertypes",
-	std3LabelAnimateColors:         "corpus-std3-animate-chosencolor",
-	std3LabelChooseTypeTypes:       "corpus-std3-choosetype-validinvalidtypes",
-	std3LabelNumberPow:             "corpus-std3-number-pow",
+var paramFixDirForLabel = map[string]string{
+	paramFixLabelPumpReplaceDying:      "corpus-param-fix-pump-replacedying",
+	paramFixLabelChangeZoneThisAndTgts: "corpus-param-fix-changezone-thisdefinedandtgts",
+	paramFixLabelDigUntilMinTotalCMC:   "corpus-param-fix-diguntil-mintotalcmc",
+	paramFixLabelCopyPermanentDefName:  "corpus-param-fix-copypermanent-definedname",
+	paramFixLabelPutCounterTypes:       "corpus-param-fix-putcounter-countertypes",
+	paramFixLabelAnimateColors:         "corpus-param-fix-animate-chosencolor",
+	paramFixLabelChooseTypeTypes:       "corpus-param-fix-choosetype-validinvalidtypes",
+	paramFixLabelNumberPow:             "corpus-param-fix-number-pow",
 }
 
 // TestFixedParamCensusAllShapesMeasured is the self-check that every registered
 // shape has a table directory and a measured member: a shape added to
-// std3Shapes with no directory, or one whose walk silently measured nothing,
+// paramFixShapes with no directory, or one whose walk silently measured nothing,
 // fails here rather than being quietly untested.
 func TestFixedParamCensusAllShapesMeasured(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	got := std3ParamCarriers(reg)
-	for _, s := range std3Shapes {
-		dir, ok := std3CensusDirForLabel[s.label]
+	got := paramFixCarriers(reg)
+	for _, s := range paramFixShapes {
+		dir, ok := paramFixDirForLabel[s.label]
 		if !ok {
 			t.Errorf("shape %s has no census directory mapping", s.label)
 			continue

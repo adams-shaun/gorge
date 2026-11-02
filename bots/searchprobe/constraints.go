@@ -86,8 +86,8 @@ type constraintCounter struct {
 	// one; unseenTracked records, per relevant name, whether the name is
 	// carried by at least one unseen position. The per-name unseen-remaining
 	// dimension only exists for tracked names, so a constraint problem with
-	// no unseen positions produces exactly the pre-fix counts, weights and
-	// unranking order.
+	// no unseen positions produces the same counts, weights and unranking
+	// order as an unconstrained one.
 	unseenIndex   map[int]bool
 	unseenTracked []bool
 	exactPrefix   [][]int
@@ -342,7 +342,7 @@ func newConstraintCounterWithExclusions(cards []proposalCard, positions []positi
 	}
 	// Only names carried by an unseen position need the unseen-remaining
 	// dimension; for every other name it stays zero and the count branches
-	// collapse to the pre-fix single-class form.
+	// collapse to the single-class form.
 	unseenNames := make([]bool, len(c.names))
 	for pos, isUnseen := range c.unseenIndex {
 		if !isUnseen {

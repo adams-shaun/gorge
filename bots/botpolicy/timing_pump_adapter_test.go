@@ -29,7 +29,7 @@ func TestPumpAdaptersAgree(t *testing.T) {
 	}{
 		{
 			name:  "literal pump",
-			src:   "Name:Giant Growth\nManaCost:G\nTypes:Instant\nOracle:Target creature gets +3/+3 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +3 | NumDef$ +3 | SpellDescription$ Target creature gets +3/+3 until end of turn.\n",
+			src:   "Name:Giant Growth\nManaCost:G\nTypes:Instant\nOracle:Target creature gets +3/+3 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +3 | NumDef$ +3\n",
 			power: 3,
 			tough: 3,
 			own:   true,
@@ -42,11 +42,11 @@ func TestPumpAdaptersAgree(t *testing.T) {
 		},
 		{
 			name: "negative bonus",
-			src:  "Name:Shrink\nManaCost:U\nTypes:Instant\nOracle:Target creature gets -2/-2 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ -2 | NumDef$ -2 | SpellDescription$ Target creature gets -2/-2 until end of turn.\n",
+			src:  "Name:Shrink\nManaCost:U\nTypes:Instant\nOracle:Target creature gets -2/-2 until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ -2 | NumDef$ -2\n",
 		},
 		{
 			name: "dynamic amount",
-			src:  "Name:Untamed Might\nManaCost:X G\nTypes:Instant\nOracle:Target creature gets +X/+X until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +X | NumDef$ +X | SpellDescription$ Target creature gets +X/+X until end of turn.\n",
+			src:  "Name:Untamed Might\nManaCost:X G\nTypes:Instant\nOracle:Target creature gets +X/+X until end of turn.\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +X | NumDef$ +X\n",
 		},
 		{
 			name: "not a creature",

@@ -13,6 +13,7 @@
   import CentreStrip from './CentreStrip.svelte';
   import ActionCluster from './ActionCluster.svelte';
   import SeatBox from './SeatBox.svelte';
+  import { actingSeat } from '../lib/board';
 
   /**
    * BoardStage is the felt: Board (the arranged seats) with the centre strip
@@ -92,7 +93,7 @@
               name={nameOf(own.seat)}
               colour={seatColour(own.seat, seats)}
               active={view.active === own.seat}
-              priority={view.priority === own.seat}
+              priority={actingSeat(view) === own.seat}
               glow={seatGlow(view, options, own.seat)}
               {options}
             />

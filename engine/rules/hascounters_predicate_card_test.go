@@ -12,7 +12,7 @@ import (
 
 // TestHasCountersPredicateUnlocksTargeting is the gameplay-visible leaf for
 // the HasCounters `predicate` family: a real corpus card whose printed
-// behaviour was broken when `Creature.HasCounters` matched NOTHING.
+// behaviour needs `Creature.HasCounters` to match.
 //
 // Razorfin Abolisher reads:
 //

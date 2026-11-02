@@ -9,7 +9,7 @@ import (
 )
 
 // chooseNumberHost is a scripted-ask double for the mid-resolution
-// ChooseNumber ask (task cli-20260923T060000Z-choose-number): Ask records
+// ChooseNumber ask: Ask records
 // every posed decision and reports suspended, so the test can drive the
 // engine's two passes (ask, then answer through Ctx.ChosenNumberPick /
 // ChosenNumberAnswered) the way rules' resumeResolution does.
@@ -47,9 +47,9 @@ func chooseNumberSrc(t *testing.T, h *fakeHost) state.ObjID {
 	return h.g.AddObject(mkCard(t, "Name:Source\nTypes:Land\nOracle:x\n"), 0).ID
 }
 
-// TestChooseNumberNoHostDegradesToZero pins R-9: on a host that cannot ask
+// TestChooseNumberNoHostDegradesToZero pins the no-host path: on a host that cannot ask
 // (the plain fakeHost), the ask falls through to the deterministic fallback
-// 0 with no extra Note, preserving the old stand-in's event byte-for-byte.
+// 0 with no extra Note, matching the stand-in's event byte-for-byte.
 func TestChooseNumberNoHostDegradesToZero(t *testing.T) {
 	h := newHost(t, 2)
 	src := chooseNumberSrc(t, h)

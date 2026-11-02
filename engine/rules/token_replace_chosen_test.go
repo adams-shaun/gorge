@@ -240,10 +240,7 @@ func TestMoonlitChosenTokenCopy(t *testing.T) {
 // token IS the copied creature's printed face), a later CreateToken
 // replacement in deterministic scan order (Divine Visitation, whose
 // ValidToken$ is `Creature.YouCtrl`) must still match that copy mint and
-// replace it with its own Angel. Before the fix the recheck built the mint's
-// event from the empty `TokenScript$ Chosen` script, so the ValidToken$
-// snapshot failed closed and the bear copy stood -- this test asserts the
-// composition, not either replacement alone.
+// replace it with its own Angel.
 func TestEsixChosenCopyThenDivineVisitationComposes(t *testing.T) {
 	t.Parallel()
 	esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")

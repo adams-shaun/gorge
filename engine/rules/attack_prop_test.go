@@ -261,16 +261,13 @@ func TestWindbornMusePropIsTheSameShape(t *testing.T) {
 	drainCombatPriority(t, e)
 }
 
-// TestGhostlyPrisonWindowKeepsCrossDefenderTraining pins the MAJOR finding
-// from review round 1: the declare-attackers scratch (Engine.declaredAttackers)
+// TestGhostlyPrisonWindowKeepsCrossDefenderTraining: the declare-attackers scratch (Engine.declaredAttackers)
 // must survive the attack-cost payment window, because the DeclareAttackers
 // events are emitted by finishAttackers AFTER the window's taps are answered
 // -- not inside handleAttackers' own frame. Gryff Rider (Training, 2/1)
 // attacks the Ghostly Prison seat (charged {2}) while Craw Wurm (6/4)
 // attacks the free seat, in ONE declaration paid through the tap window; the
 // rider must still get its +1/+1 counter from the cross-defender companion.
-// Before the fix the window's finishAttackers ran with an emptied scratch and
-// the trainee got nothing.
 func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
 	t.Parallel()
 	e := threeSeatEngine(t)
@@ -340,8 +337,7 @@ func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
 	}
 }
 
-// TestAttackPropsAcrossDefendersAllowAPayableDeclaration pins the MAJOR
-// finding from review round 1: the offer list must not deny a payable
+// TestAttackPropsAcrossDefendersAllowAPayableDeclaration: the offer list must not deny a payable
 // declaration through a list-order greedy budget. Ghostly Prison {2} on seat
 // 1 and Archangel of Tithes {1} on seat 2, payer budget 3 (three Mountains),
 // two attackers -- declaring BOTH at seat 2 costs {2} <= 3 and is legal. The

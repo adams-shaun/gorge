@@ -3,8 +3,8 @@ import { browserURL, sharedBrowser } from '../test/browser';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 /**
- * HotkeyHint.test.ts is the mounted half of the suppression cue
- * (fb-20260929T080219Z): the pure suite (hotkeys.ownership.test.ts,
+ * HotkeyHint.test.ts is the mounted half of the suppression cue: the pure suite
+ * (hotkeys.ownership.test.ts,
  * hotkeyhint.test.ts) proves the classifier and the store, but only a mounted
  * page proves the REAL HotButtonStrip wiring notes the suppression, renders
  * the chip, records the breadcrumb, and leaves a key the felt owns alone.
@@ -34,8 +34,8 @@ describe('the hotkey suppression cue — mounted through the real strip', () => 
     const page = await browser.newPage();
     await page.goto(`${url}src/components/HotkeyHint.fixture.html`);
 
-    // Keyboard focus, NOT a click: the pointer path releases focus (the
-    // sibling ticket), so a click would not reproduce the reported confusion.
+    // Keyboard focus, NOT a click: the pointer path releases focus, so a click
+    // would not reproduce the reported confusion.
     // The ACTIONS tab is a real strip button whose native Space activation
     // opens its panel without posting an intent — so any POST here would be a
     // hotkey leak, and any chip is a genuine suppression (the PASS button's

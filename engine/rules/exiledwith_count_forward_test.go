@@ -1,7 +1,7 @@
 package rules
 
 // exiledwith_count_forward_test.go pins the `ExiledWith$` count head on the
-// FORWARD exiled-with link (wave-5 group X, CR 406.6 / 607.2a): Veteran
+// FORWARD exiled-with link (CR 406.6 / 607.2a): Veteran
 // Survivor's "As long as there are three or more cards exiled with Veteran
 // Survivor" counts the cards its own Survival trigger exiled. That trigger
 // names no ExiledWithSource, so its ChangeZone records only the source's

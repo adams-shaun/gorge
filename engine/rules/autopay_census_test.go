@@ -1162,7 +1162,7 @@ func (cz *autopayCensus) v1Structural(e *Engine, id state.ObjID, ma *cards.SA) s
 	}
 	viaWindow := (any && total == 1 && counts[5] == 1) || (!any && total > 0)
 	viaAny := produced == "Any" && any
-	// aph-combo-chosen-identity: the finite choice shapes are planned too --
+	// The finite choice shapes are planned too --
 	// an amount-1 Combo/Chosen/ColorIdentity (one alternative per resolvable
 	// colour) alongside Produced$ Any. Combo Any and an allocation (amount >
 	// 1) stay deferred. The mirror is the SHAPE gate only; whether the choice
@@ -2004,7 +2004,7 @@ func (cz *autopayCensus) writeSummary(path string, rows []censusRow) {
 
 // censusInterferenceReasons names one face's tap/mana text: every
 // Taps/TapsForMana trigger mode and every replacement event naming mana or a
-// tap (the pre-aph-interference-scope whole-board scan, kept so a killswitch
+// tap (a whole-board scan, kept so a killswitch
 // row still says which line a decline would come from), plus a ManaConvert
 // static -- the one printed shape paymentPlanGlobalManaEffect treats as
 // global.

@@ -1,7 +1,7 @@
 package rules
 
 // This file pins the DOTTED `AttachedTo <referent>` Defined selector on the
-// four real corpus carriers the ticket names -- Murderous Spoils, Fumble,
+// four real corpus carriers -- Murderous Spoils, Fumble,
 // Rhuk, Hexgold Nabber and Cass, Hand of Vengeance -- plus the real
 // events.Apply fold that backs the "were attached" half.
 //

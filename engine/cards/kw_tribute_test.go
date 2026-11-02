@@ -10,7 +10,7 @@ import "testing"
 // SpellDescription$ as its description.
 func TestTributeExpandsToETBReplacementAndUnpaidTrigger(t *testing.T) {
 	f := expanded(t, "Name:C\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Tribute:2\n"+
-		"SVar:TrigNotTribute:DB$ GainLife | LifeAmount$ 4 | SpellDescription$ When CARDNAME enters, if tribute wasn't paid, you gain 4 life.\n"+
+		"SVar:TrigNotTribute:DB$ GainLife | LifeAmount$ 1 | SpellDescription$ Tribute went unpaid.\n"+
 		"Oracle:x\n")
 	if len(f.Repls) != 1 {
 		t.Fatalf("%d repls, want 1", len(f.Repls))
@@ -37,7 +37,7 @@ func TestTributeExpandsToETBReplacementAndUnpaidTrigger(t *testing.T) {
 		tr.Params["Keyword"] != "Tribute" || tr.Params["KeywordLine"] != "Tribute:2" {
 		t.Fatalf("unpaid trigger: %+v", tr)
 	}
-	if got := tr.Params["TriggerDescription"]; got != "When CARDNAME enters, if tribute wasn't paid, you gain 4 life." {
+	if got := tr.Params["TriggerDescription"]; got != "Tribute went unpaid." {
 		t.Fatalf("TriggerDescription = %q", got)
 	}
 }

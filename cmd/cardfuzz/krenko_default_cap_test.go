@@ -9,10 +9,10 @@ import (
 )
 
 // TestKrenkoBoardDefaultCapFiresMidResolution is the DEFAULT budget's storm
-// proof (CV-8): the shared drive loop (testkit/bench) and the host arm
+// proof: the shared drive loop (testkit/bench) and the host arm
 // LoopGuard.MaxObjs = rules.DefaultMaxObjs on every config that set no
 // explicit budget, and the value must sit far above every ordinary game's
-// arena (measured high-water 554, CV-8's probe) while still truncating the
+// arena (measured high-water 554) while still truncating the
 // documented Krenko, Mob Boss storm: a staged board 320 objects under the
 // default cap whose very next Krenko resolution (X = the number of Goblins
 // you control, so it mints far more than the remaining headroom) aborts

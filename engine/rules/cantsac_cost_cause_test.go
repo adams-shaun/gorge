@@ -1,7 +1,7 @@
 package rules
 
-// cantsac1 r2: the COST-path cause semantics for the three cost sites r1
-// left on costCauseNone, defined per the costCause table in engine/rules/layers.go:
+// The COST-path cause semantics for the three cost sites,
+// defined per the costCause table in engine/rules/layers.go:
 //
 //   - a ward cost is demanded by the ward trigger (CR 702.22), so its cause
 //     is costCauseTriggered;

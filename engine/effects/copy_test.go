@@ -84,7 +84,7 @@ func TestCopySpellAbilityDuplicatesTheSourceNamedByParent(t *testing.T) {
 // named corpus card, walking every face's abilities, triggers and their
 // SubAbility chains. The copy shapes hide in different places: Chain
 // Lightning's lives in a spell's SubAbility (DBCopy1), Wandering Archaic's
-// in a trigger's Effect (TrigCopySpell). The brief insists on real compiled
+// in a trigger's Effect (TrigCopySpell). Real compiled
 // SAs rather than a synthetic map fixture -- a hand-built bag is exactly
 // what let the inverted unswitched orientation look right (B2).
 func corpusCopySA(t *testing.T, name string) *cards.SA {

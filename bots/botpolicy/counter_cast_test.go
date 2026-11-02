@@ -1,13 +1,12 @@
 package botpolicy
 
-// The C8 leaf pins (task botcounter1): a counter cast is worth its mana
+// The C8 leaf pins: a counter cast is worth its mana
 // only at a stack holding a FOREIGN spell. The commit point is the cast
 // choice — once cast, the target ask's Min-1 leaves no exit and the bot
 // counters its own play — so the rule is stated and enforced here, on the
 // plain-data Board both adapter halves build identically. These tests are
 // synthetic Board fixtures (no engine, no corpus): the facts the rule reads
-// (Card.Counter, Board.Stack) are plain data, and the real-game behaviour
-// the rule changes is measured over whole bot games in the task report.
+// (Card.Counter, Board.Stack) are plain data.
 
 import (
 	"testing"

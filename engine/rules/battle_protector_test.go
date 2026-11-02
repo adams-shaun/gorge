@@ -10,12 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// This file closes the battle-protector half of AGENTS.md's (battle1) row:
-// the CR 310.10 protector ask now has a real botpolicy arm (botpolicy's own
+// This file pins the battle protector: the CR 310.10 protector ask has a real botpolicy arm (botpolicy's own
 // test), is re-derived when the recorded protector leaves the game, and is
 // posed for every Battle rather than the Siege subtype alone. Attacking a
-// battle and the zero-defense SBA are the sibling tickets' scope and are not
-// touched here.
+// battle and the zero-defense SBA are tested elsewhere.
 
 // battleProtectorDeck builds a four-player game whose seat 0 deck holds the
 // given Battle card first, puts the battle onto the battlefield through a

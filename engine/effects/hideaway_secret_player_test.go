@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestHideawayNoHostExileIsTheControllersSecret: the R-9 no-host
+// TestHideawayNoHostExileIsTheControllersSecret: the no-host
 // Hideaway stand-in, resolved by seat 1 over its own library, exiles the
 // first card face down with a Secret MoveZone whose Player is seat 1 -- the
 // controller who looked (CR 702.75a). An omitted Player reads as seat 0, and

@@ -854,7 +854,11 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// (Hand_from_Stack does, and the double entry it sees is the honest
 	// record of the two moves).
 	permanentCard := !o.IsToken && !o.IsCopy && o.Card != nil && o.Face() != nil && o.Face().IsPermanent()
-	if !ceasedAbility {
+	// A token or copy ceasing where it sits has left nothing (CR 111.8): "cards
+	// left your graveyard this turn" must not count it. Leaving the battlefield
+	// with a departing player is still a departure.
+	ceasedInPlace := to == state.ZCeased && enteredFrom != state.ZBattlefield && (o.IsToken || o.IsCopy)
+	if !ceasedAbility && !ceasedInPlace {
 		// A ceased ability is no zone entry: a Count$ThisTurnEntered_Exile
 		// head counts cards put into exile, never retired abilities.
 		g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,

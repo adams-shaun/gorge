@@ -8,9 +8,9 @@ import (
 
 func TestParseCostExileCtrlOrGrave(t *testing.T) {
 	c := ParseCost("5 G ExileCtrlOrGrave<1/Cave.Other>")
-	// ExileCtrlOrGrave is a NON-mana cost: the <1/Spec> count is cards exiled,
-	// never a generic amount, so the printed {5}{G} parses to Generic 5 with
-	// no phantom pip (the pre-fix parser charged one extra generic per part).
+	// ExileCtrlOrGrave is a NON-mana cost: the <1/Spec> count is cards
+	// exiled, never a generic amount, so the printed {5}{G} parses to Generic
+	// 5 with no phantom pip.
 	if c.Generic != 5 || c.Colored[4] != 1 || c.XMin != 0 || len(c.Exile) != 1 || len(c.Unknown) != 0 {
 		t.Fatalf("parsed cost = %+v", c)
 	}

@@ -1,8 +1,7 @@
 package gorged
 
-// Cross-interface privacy acceptance over the REAL transports (ticket
-// seat-deck-03-acceptance, spec
-// docs/design/2026-09-29-seat-deck-manifest.md). This file mounts
+// Cross-interface privacy acceptance over the REAL transports
+// (docs/design/2026-09-29-seat-deck-manifest.md). This file mounts
 // the native httpapi handler and the ManaBrew adapter on one mux against one
 // registry and proves that, at the SAME match sequence:
 //
@@ -150,7 +149,7 @@ func crossGet(t *testing.T, url, token string) (int, []byte) {
 	return resp.StatusCode, raw
 }
 
-// TestSeatDeckManifestCrossInterfaceAgreement is the brief's central leaf: the
+// TestSeatDeckManifestCrossInterfaceAgreement is the central leaf: the
 // native HTTP /view own_deck, the negotiated ManaBrew state extension, and the
 // registry's own seat projection all carry the identical owner manifest at the
 // same sequence.

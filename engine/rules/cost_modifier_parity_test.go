@@ -1,6 +1,6 @@
 package rules
 
-// The rv2c cost-modifier parity task: RaiseCost/ReduceCost/SetCost read the
+// Cost-modifier parity: RaiseCost/ReduceCost/SetCost read the
 // same parameters Forge's CostAdjustment reads (ValidSpell$, SVar Amount$,
 // Color$, IgnoreGeneric$, MinMana$, EffectZone$ host-self statics, IsPresent$,
 // RaiseTo$), and ParseCost prices the monocolour-hybrid (twobrid),
@@ -975,7 +975,7 @@ func TestColorReductionAssignedToLaterHybridPip(t *testing.T) {
 	if firstW < 0 || firstU < 0 {
 		t.Fatalf("both faces of the first {W/U} pip must be offered (each has a completing assignment): %+v", d.Options)
 	}
-	// Choose the formerly-rejected U-first face.
+	// Choose the U-first face.
 	submitChoices(t, e, firstU)
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KChoose {

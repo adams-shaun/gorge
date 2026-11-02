@@ -150,7 +150,7 @@ describe('PromptDock', () => {
   });
 });
 
-describe('starting_player: Play first / Draw first (E3-9)', () => {
+describe('starting_player: Play first / Draw first', () => {
   const ask = (prompt: string, options: Option[], player = 0): Decision => ({
     seq: 3, player, kind: 'starting_player', prompt, min: 1, max: 1, options,
   } as Decision);

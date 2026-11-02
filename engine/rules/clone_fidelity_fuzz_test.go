@@ -16,8 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The clone-fidelity fuzz (layering design §5 W1a step 5, the W3 / spike S3
-// prerequisite): real-deck games are played with the botpolicy bot (plus a
+// The clone-fidelity fuzz: real-deck games are played with the botpolicy bot (plus a
 // seeded share of uniform-random intents, for states the bot never makes),
 // and at decision points the engine is cloned and three properties are
 // checked:

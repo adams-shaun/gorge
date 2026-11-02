@@ -140,7 +140,7 @@ func TestRepeatEachChooseOrderGovernsIterationOrder(t *testing.T) {
 const ezuriBeastStem = "g_4_4_phyrexian_beast"
 
 // TestRepeatEachChooseOrderEzurisPredationAsksBeforeLoop pins the real
-// corpus carrier from the ticket: Ezuri's Predation carries
+// corpus carrier: Ezuri's Predation carries
 // ChooseOrder$ True over Creature.OppCtrl, so its RepeatEach must pose the
 // ordering ask with every opposing creature before the first iteration's
 // body runs. It asserts its own precondition (two distinct opposing

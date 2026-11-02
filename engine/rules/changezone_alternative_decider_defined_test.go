@@ -9,7 +9,7 @@ package rules
 // AbilityUtils.getDefinedPlayers), so ThisTargetedOwner is a first-class
 // spelling of the same owner referent, not a new vocabulary entry.
 //
-// Corpus carriers at FORGE_REF 76fd7691ab: `TargetedOwner` 34 (Uncharted
+// Corpus carriers at the corpus pin: `TargetedOwner` 34 (Uncharted
 // Voyage and friends, unchanged), `ThisTargetedOwner` 1 (Jailbreak Scheme),
 // `RememberedOwner` 1 (Tolarian Contempt). The 19 Standard
 // `TargetedOwner` carriers must not change, and the dedicated

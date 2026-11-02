@@ -282,7 +282,7 @@ func TestPumpInCombatTargetsBestClass(t *testing.T) {
 	}
 }
 
-// TestPumpTargetsOwnCombatant: the brief's Giant Growth case. The ordinary
+// TestPumpTargetsOwnCombatant: the Giant Growth case. The ordinary
 // ranking leads with the opposing creature; the armed rule names the seat's
 // own saving combatant.
 func TestPumpTargetsOwnCombatant(t *testing.T) {

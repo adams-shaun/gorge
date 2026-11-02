@@ -6,7 +6,7 @@ usage: analyze.py results.jsonl [--md]
 import json, statistics, sys
 from collections import defaultdict
 
-# docs/015 §1's gorge column (M1 Pro, gorge a4af596).
+# Reference figures measured on an M1 Pro at gorge a4af596.
 UPSTREAM = {
     ("random", "A", "turns_per_s"): 731, ("random", "B", "turns_per_s"): 1444,
     ("random", "burn", "turns_per_s"): 2703,
@@ -81,7 +81,7 @@ def main():
             cells.append(f"{md:.4g} [{lo:.3g},{hi:.3g}] n{len(xs)}".rjust(24))
         print(f"{row}/{pair}/{m}".ljust(42) + "".join(cells))
     print()
-    print("machine factor (docs/015 M1 Pro / ours at a4af596) and main vs a4af596:")
+    print("machine factor (M1 Pro / ours at a4af596) and main vs a4af596:")
     for (row, pair, m), up in UPSTREAM.items():
         a = rows.get((row, pair, m), {}).get("a4af596")
         b = rows.get((row, pair, m), {}).get("e0496f062")

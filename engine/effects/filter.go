@@ -743,7 +743,7 @@ type ObjectKeywords struct {
 // for objects whose derived characteristics differ from their printed face
 // -- held as the ONE field Layers in Ctx, SpecContext and PlayerSpecCtx, so
 // every derivation copies them together (a table added here reaches every
-// context at once, W1d) and (*Ctx).SpecContext stays within the inlining
+// context at once) and (*Ctx).SpecContext stays within the inlining
 // budget (a warm caller-built Ctx must not escape --
 // TestEvalCountValidZoneScanIsAllocationFree and rules' warm Derived pin).
 type LayerTables struct {
@@ -1293,14 +1293,14 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 // both or unknown to both. Two referents are bound: TriggeredProduced
 // (C.A.M.P.'s mana set) and ChosenCard (Guard Dogs' chosen permanent).
 //
-// ChosenCard was held back until the sub-target-before-gate ordering landed: its carrier's
-// ConditionDefined$ Targeted gate is evaluated by effects.conditionMet BEFORE
-// the DB sub's own mid-resolution target ask is posed, so on the empty group
-// a recognised predicate resolved the gate false and the whole sub -- target
-// ask included -- was skipped. That ordering is now fixed in conditionMet's
-// Targeted branch (an empty group on an SA that carries ValidTgts$ and whose
-// ask has not run is UNRESOLVED, so Resolve dispatches the sub and its ask
-// is posed there).
+// ChosenCard was held back until the sub-target-before-gate ordering landed:
+// its carrier's ConditionDefined$ Targeted gate is evaluated by
+// effects.conditionMet BEFORE the DB sub's own mid-resolution target ask is
+// posed, so on the empty group a recognised predicate resolved the gate false
+// and the whole sub -- target ask included -- was skipped. conditionMet's
+// Targeted branch handles that ordering (an empty group on an SA that carries
+// ValidTgts$ and whose ask has not run is UNRESOLVED, so Resolve dispatches
+// the sub and its ask is posed there).
 func sharesColorBareReferent(arg string) bool {
 	return arg == "TriggeredProduced" || arg == "ChosenCard"
 }
@@ -2303,7 +2303,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// (CardProperty "the card that triggered this ability") inside an
 		// ordinary filter spec -- the "you may exile it" cost idiom's
 		// `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` (Cavalier of Thorns,
-		// Doombot Harbinger, Creeping Chill's TriggeredCard; exg1, 18 corpus
+		// Doombot Harbinger, Creeping Chill's TriggeredCard; 18 corpus
 		// carriers). Cost-part specs evaluate through this same grammar, so
 		// the binding arrives through SpecContext.TriggerContext: the
 		// triggered-cost window binds the resolving ability's trigger
@@ -2665,7 +2665,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 				return false, false
 			}
 		}
-		// The pc1 context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
+		// The context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
 		// IsImprinted) are likewise recognised so the census reports them, but
 		// their binding may be absent outside a resolution/combat trigger/no
 		// source. An unbound one must fail closed for the NEGATED spelling as
@@ -2814,6 +2814,12 @@ type SpecContext struct {
 	// its own targets have been chosen. Resolving distinguishes a real empty
 	// target list from no resolving object at all.
 	ResolutionTargets []state.Target
+	// PlayerLinkTargets is the answer of the resolving chain's nearest link that
+	// targets a player, the resolving link itself included. ResolutionTargets
+	// stays the chain root's list, so this is what "target player" reads when a
+	// later link is the one that named the player (Quick Draw's opponent, behind
+	// its creature target; CR 608.2b).
+	PlayerLinkTargets []state.Target
 	// ParentTargets are the PARENT ability's already-chosen targets, bound
 	// (ParentBound) only while the offer for a SubAbility$'s OWN ValidTgts$ is
 	// built during the parent's resolution. "Exile up to one target Equipment
@@ -3758,7 +3764,7 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 	if f == nil {
 		return false
 	}
-	if o.FaceDown && o.Zone == state.ZBattlefield {
+	if o.FaceDownHidden() {
 		return true
 	}
 	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
@@ -3819,7 +3825,7 @@ func costOnlyMana(raw string) bool {
 // object's printed face's activated (AB) abilities.
 func objectHasAbility(o *state.Object, sub string) bool {
 	f := o.Face()
-	if f == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if f == nil || o.FaceDownHidden() {
 		return false
 	}
 	for _, a := range f.Abilities {

@@ -53,8 +53,7 @@ func namedFirst(e *Engine, id state.ObjID) bool {
 	return effects.MatchesSpecCtx(e.G, "Card.namedFirst_Name", id, e.specCtx(0, 0))
 }
 
-// TestClonedGameSetNameIsScopedToItsOwnEngine is the reviewer's mandated
-// regression on the boundary this ticket's first implementation got wrong.
+// TestClonedGameSetNameIsScopedToItsOwnEngine pins the boundary between games.
 //
 // The layer-3 rename that a name filter reads must come from the game the
 // filter is evaluating, never from another one. The rejected design put a

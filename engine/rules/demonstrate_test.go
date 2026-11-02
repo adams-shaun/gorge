@@ -240,6 +240,61 @@ func TestDemonstrateSoleOpponentAsksNothing(t *testing.T) {
 	}
 }
 
+// TestDemonstrateCasterInSeatOneCopiesForSeatZero holds CR 702.144a's "choose
+// an opponent to also copy it" to seat 0 being an opponent like any other, both
+// as the sole opponent and as the one picked.
+func TestDemonstrateCasterInSeatOneCopiesForSeatZero(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	lecturer := searchCorpusCard(t, reg, "Silverquill Lecturer")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	caster := []*cards.Card{lecturer, bear}
+	for _, tc := range []struct {
+		name   string
+		others [][]*cards.Card
+	}{
+		{"sole opponent", [][]*cards.Card{caster}},
+		{"picked opponent", [][]*cards.Card{caster, nil}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _ := demonstrateEngine(t, reg, nil, tc.others...)
+			driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
+			demonstrateMove(t, e, 1, "Silverquill Lecturer", state.ZBattlefield)
+			bearID := demonstrateMove(t, e, 1, "Grizzly Bears", state.ZHand)
+			addMana(t, e, 1, "GG")
+			castFixture(t, e, bearID, -1)
+
+			d := e.Pending()
+			if d == nil || d.ResumeKind != "demonstrate" || d.Player != 1 {
+				t.Fatalf("pending after the cast = %+v, want seat 1's demonstrate election", d)
+			}
+			submitChoices(t, e, d.Options[0].Index) // yes
+			if d = e.Pending(); d != nil && d.ResumeKind == "demonstrate" {
+				pick := -1
+				for _, o := range d.Options {
+					if o.Kind == "player" && o.Player == 0 {
+						pick = o.Index
+					}
+				}
+				if pick < 0 {
+					t.Fatalf("opponent ask %+v does not offer seat 0", d.Options)
+				}
+				submitChoices(t, e, pick)
+			}
+			if got := demonstrateStackCopies(e); got != 2 {
+				t.Fatalf("%d StackCopy events, want the caster's and seat 0's", got)
+			}
+			drainStack(t, e, 200)
+			toks0, _ := demonstrateBearsOnBattlefield(e, 0, "Grizzly Bears")
+			toks1, real1 := demonstrateBearsOnBattlefield(e, 1, "Grizzly Bears")
+			if toks0 != 1 || toks1 != 1 || real1 != 1 {
+				t.Fatalf("seat 0: %d tokens; seat 1: %d tokens %d real; want one token per seat and the original",
+					toks0, toks1, real1)
+			}
+		})
+	}
+}
+
 // TestPrintedDemonstrateCarrierOffersTheElection pins the printed expansion
 // (engine/cards/kw_demonstrate.go): Excavation Technique carries K:Demonstrate on
 // its face, the compiled face grows the SpellCast trigger, and casting it
@@ -318,4 +373,54 @@ func TestPrintedDemonstrateCarrierOffersTheElection(t *testing.T) {
 		t.Fatalf("seat 1's bear survived a resolved Excavation Technique: %+v", o)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestDemonstrateCopiesMayChooseNewTargets: CR 702.144a, "players who copy this
+// spell may choose new targets for their copies". Each player elects for their
+// own copy, the caster first.
+func TestDemonstrateCopiesMayChooseNewTargets(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	eng, cfg := miscHandsEngine(t, reg, []string{"Replication Technique"}, nil, []string{"Grizzly Bears"}, []string{"Serra Angel"})
+	addMana(t, eng, 0, "UUUUU")
+	bear := miscBoardObj(t, eng, 0, "Grizzly Bears")
+	angel := miscBoardObj(t, eng, 1, "Serra Angel")
+	submitChoices(t, eng, miscCastOption(t, eng, miscHandObj(t, eng, 0, "Replication Technique")))
+	d := eng.Pending()
+	for _, o := range d.Options {
+		if o.Obj == bear {
+			submitChoices(t, eng, o.Index)
+			break
+		}
+	}
+	d = passUntilNonPriority(t, eng, 10)
+	if d == nil || d.ResumeKind != "demonstrate" {
+		t.Fatalf("expected the may-copy election, got %+v", d)
+	}
+	submitChoices(t, eng, 0)
+	for _, seat := range []state.PlayerID{0, 1} {
+		d = eng.Pending()
+		if d == nil || d.ResumeKind != "copy_targets" || d.Player != seat || d.Options[0].Obj != bear {
+			t.Fatalf("seat %d's election: %+v", seat, d)
+		}
+		if seat == 0 {
+			submitChoices(t, eng, d.Options[0].Index)
+			continue
+		}
+		pick := -1
+		for _, o := range d.Options {
+			if o.Obj == angel {
+				pick = o.Index
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("Serra Angel not offered to its controller: %+v", d.Options)
+		}
+		submitChoices(t, eng, pick)
+	}
+	top := eng.G.Obj(eng.G.Stack[len(eng.G.Stack)-1])
+	if len(top.Targets) != 1 || top.Targets[0].Obj != angel {
+		t.Fatalf("seat 1's copy targets %+v, want the Serra Angel", top.Targets)
+	}
+	replayCheck(t, eng, cfg)
 }

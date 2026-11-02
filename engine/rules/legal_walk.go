@@ -80,7 +80,7 @@ func (w *legalWalk) add(kind, label string, obj state.ObjID) {
 // each read is counted: a block whose restriction answer depends on the
 // pool must never be served to the other walk (walk_block_reuse.go).
 func (w *legalWalk) castRestricted(p state.PlayerID, id state.ObjID) bool {
-	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, Cost{}, true, castPricingPool{w: w}, false)
+	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, Cost{}, true, castPricingPool{w: w}, castAsPrinted)
 }
 
 // castRestrictedCost is castRestricted for an alternative cast route whose
@@ -88,14 +88,33 @@ func (w *legalWalk) castRestricted(p state.PlayerID, id state.ObjID) bool {
 // itself carries {X} (CR 107.3b), and the candidate X values are priced
 // over it (castRestrictedCost) against the walk's pricing pool.
 func (w *legalWalk) castRestrictedCost(p state.PlayerID, id state.ObjID, cost Cost) bool {
-	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, cost, false, castPricingPool{w: w}, false)
+	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, cost, false, castPricingPool{w: w}, castAsPrinted)
+}
+
+// castRestrictedFaceDown is castRestrictedCost for a face-down cast's {3}.
+func (w *legalWalk) castRestrictedFaceDown(p state.PlayerID, id state.ObjID) bool {
+	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, Cost{Generic: 3}, false, castPricingPool{w: w}, castAsFaceDown)
+}
+
+// appendFaceDownCast offers a morph-family card's face-down cast for {3}. It
+// carries its own prohibition, timing and affordability gates, so it needs none
+// from the printed cast's offer: the face-down spell has other characteristics
+// (CR 708.4). It doesn't gate on targets, since a face-down spell has none.
+func (w *legalWalk) appendFaceDownCast(p state.PlayerID, id state.ObjID, f *cards.Face, sorcery bool) {
+	e := w.e
+	if fam := morphDownFamily(f); fam != "" && !e.castSuppressed(p, id) &&
+		!w.castRestrictedFaceDown(p, id) && w.spellTimingOK(p, id, f, sorcery) &&
+		w.offerCastable(p, id, Cost{Generic: 3}, spellScope(fam), false) {
+		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
+			Label: "Cast " + f.Name + " (face down)", Obj: id, Mode: fam})
+	}
 }
 
 // castRestrictedCostPrototype is castRestrictedCost for the prototyped cast
 // route, whose restriction specs read the K:Prototype inset characteristics
 // (CR 718.3a).
 func (w *legalWalk) castRestrictedCostPrototype(p state.PlayerID, id state.ObjID, cost Cost) bool {
-	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, cost, false, castPricingPool{w: w}, true)
+	return w.e.castRestrictedCostAs(w.actionStatics.get().cantCast, p, id, cost, false, castPricingPool{w: w}, castAsPrototype)
 }
 
 func (w *legalWalk) abilityRestricted(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
@@ -219,7 +238,7 @@ func (w *legalWalk) castRestrictedAsFace(p state.PlayerID, id state.ObjID, face 
 	// walk_block_reuse.go): a restriction answer that depends on the pool
 	// must not be reused across walks.
 	return w.e.offerAsFace(id, face, func() bool {
-		return w.e.castRestrictedCostAs(statics, p, id, Cost{}, true, castPricingPool{w: w}, false)
+		return w.e.castRestrictedCostAs(statics, p, id, Cost{}, true, castPricingPool{w: w}, castAsPrinted)
 	})
 }
 

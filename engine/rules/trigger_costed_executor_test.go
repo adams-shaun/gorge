@@ -8,13 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The trig:CostedExecutor ticket (costedexec1). Forge's "you may pay {N}. If
+// The trig:CostedExecutor shape. Forge's "you may pay {N}. If
 // you do, ..." trigger idiom is a `T:Mode$ ... | Execute$ SVar` whose SVar
-// body is an AB$ carrying a Cost$. The triggered-cost window (trigcost1) runs
+// body is an AB$ carrying a Cost$. The triggered-cost window runs
 // the pay/decline election for such a body, but its payable gate only knew
 // the mana/life half and the component families -- a PayEnergy<N> part was
 // unPriceable with no settle, so the window offered DECLINE ONLY and the body
-// ran for free on a decline (the defect this ticket closes). These tests pin
+// ran for free on a decline. These tests pin
 // the real Creative Energy Commander carriers end to end on the compiled
 // corpus: the energy is charged on pay and untouched on decline, and a payer
 // who cannot cover the cost is offered no "pay" at all.

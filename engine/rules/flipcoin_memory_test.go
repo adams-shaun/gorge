@@ -212,8 +212,7 @@ func TestFlipCoinMutalithForEachPlayer(t *testing.T) {
 
 // TestFlipCoinCrazedFirecatWinsCounter pins the RememberNumber$ Wins read: a
 // FlipUntilYouLose$ loop's win branch puts a +1/+1 counter per flip won
-// (CounterNum$ Wins). Before the fix Wins was unbound, so Crazed Firecat
-// always entered with zero counters.
+// (CounterNum$ Wins).
 func TestFlipCoinCrazedFirecatWinsCounter(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)

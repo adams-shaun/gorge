@@ -94,8 +94,8 @@ func TestCastCommanderRefusedWhenTaxLoses(t *testing.T) {
 	}
 }
 
-// TestCastCommanderCheapOutlastsExpensive is the finding-ck asymmetry the
-// new CR1 is built around: at the SAME number of prior command-zone casts,
+// TestCastCommanderCheapOutlastsExpensive pins the asymmetry
+// CR1 is built around: at the SAME number of prior command-zone casts,
 // a cheap commander is still recast while an expensive one is priced out. A
 // 2/2 (CMC 2) on its third command-zone cast scores 38 - 5*2*2 = 18 and
 // casts; a 12/12 (CMC 12) on the same third cast scores 78 - 5*2*12 = -42

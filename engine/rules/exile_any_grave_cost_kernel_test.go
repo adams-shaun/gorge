@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// TestCavalierOfThornsDiesPaysTheExileAndResumes (exg1 class C): the dies
+// TestCavalierOfThornsDiesPaysTheExileAndResumes (class C): the dies
 // trigger's `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` opens the
 // triggered-cost window with a real pay; answering it exiles the CAVALIER
 // (the triggering card -- never a graveyard decoy), then the body's target
@@ -159,7 +159,7 @@ func TestCavalierOfThornsDiesPaysTheExileAndResumes(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
-// TestDoombotHarbingerExileCostWindowPaysTheExile (exg1 class B): the
+// TestDoombotHarbingerExileCostWindowPaysTheExile (class B): the
 // ImmediateTrigger body's `Cost$ ExileAnyGrave<1/Card.TriggeredNewCard>` is
 // paid with the REAL exile (the triggering card leaves the graveyard) and the
 // body then runs; a decline leaves the Harbinger in the graveyard and the

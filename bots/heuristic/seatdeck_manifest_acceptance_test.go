@@ -1,8 +1,7 @@
 package heuristic
 
 // Cross-interface privacy acceptance for the seat deck manifest contract
-// (docs/design/2026-09-29-seat-deck-manifest.md, ticket
-// seat-deck-03-acceptance). The per-interface unit pins live beside the code
+// (docs/design/2026-09-29-seat-deck-manifest.md). The per-interface unit pins live beside the code
 // they cover (engine/deck/manifest_test.go, engine/rules/deck_manifest_test.go,
 // engine/view/own_deck_test.go, server/manabrew/own_deck_test.go,
 // server/host/manabrewhttp/own_deck_test.go, server/host/httpapi/own_deck_test.go); this
@@ -42,7 +41,7 @@ func parseAcceptanceCard(t *testing.T, script string) *cards.Card {
 	return c
 }
 
-// acceptanceFixture is the compact genesis list the brief asks for: duplicate
+// acceptanceFixture is a compact genesis list: duplicate
 // main-deck names, one legendary commander, and a two-card sideboard. The
 // card names are deliberately unique to this fixture so a leak assertion can
 // search any wire blob for them without false positives.
@@ -177,7 +176,7 @@ func manifestNames(m *deck.Manifest, name string) bool {
 	return slices.Contains(m.Commanders, name)
 }
 
-// TestSeatDeckManifestEveryOwnerInterfaceAgrees is the brief's cross-interface
+// TestSeatDeckManifestEveryOwnerInterfaceAgrees is the cross-interface
 // agreement leaf: at ONE sequence, the engine's genesis manifest, the native
 // HTTP/SSE seat projection (view.ProjectFor, the same projection the /view
 // endpoint and seat stream frames serve), the ordinary seat/board adapter

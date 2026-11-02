@@ -26,15 +26,15 @@ import {
 // cardoptions.ts is the mechanism behind "options on the card", "highlight
 // cards with options" and "highlight valid targets" — one index keyed on
 // Option.obj. These tests build the decision by hand and assert nothing
-// about creatures, combat or rules: the client (R-E4-2) only groups options
+// about creatures, combat or rules: the client only groups options
 // the server already sent, and the only selection constraint is the option's
-// own index (R-E4-1).
+// own index.
 
 const opt = (index: number, obj: number | undefined, kind = 'cast', label = `option ${index}`): Option => ({
   index, kind, label, obj, player: 0,
 });
 
-describe('pileTone — a whole pile affordance tone (fb-20260916T225802Z)', () => {
+describe('pileTone — a whole pile affordance tone', () => {
   const bundleFor = (options: Option[], tone: 'initiative' | 'offered' = 'initiative'): CardOptions => {
     const d: Decision = {
       seq: 1, player: 0, kind: 'priority', prompt: 'pile tone', min: 0, max: 1, options,
@@ -97,7 +97,7 @@ describe('optionsByObj — index a decision by the object each option concerns',
     expect(optionsByObj(null).size).toBe(0);
   });
 
-  it('two options on the same obj keep their own indices (R-E4-1: index is the identity, not position)', () => {
+  it('two options on the same obj keep their own indices (index is the identity, not position)', () => {
     const d: Decision = {
       seq: 1, player: 0, kind: 'priority', prompt: 'You have priority',
       min: 0, max: 1,
@@ -207,7 +207,7 @@ describe('single-action card affordance', () => {
     expect(singleActionIcon(opt(7, 9, 'permanent'))).toBe('target');
   });
 
-  it('maps every scenario the reporter named to its own icon (task fb-9946410e)', () => {
+  it('maps every scenario the reporter named to its own icon', () => {
     // play from hand → cast (✦, kept); target of a spell/ability/trigger →
     // bullseye; select as attacker → sword; select as defender → shield;
     // tap/activate → ↻ (kept); everything else stays neutral.
@@ -234,7 +234,7 @@ describe('single-action card affordance', () => {
     }
   });
 
-  it('actionAccessibleLabel prefixes a target candidate with its scenario verb, in one place (fb-9946410e r2)', () => {
+  it('actionAccessibleLabel prefixes a target candidate with its scenario verb, in one place', () => {
     // A target option's wire label is only the candidate's own name, so the
     // direct badge's accessible name would read neither "target" nor the
     // scenario. The prefix lives here, once, not per renderer.
@@ -282,7 +282,7 @@ describe('single-action card affordance', () => {
     });
   });
 
-  it('posts the sole option own wire index, never its list position (R-E4-1)', () => {
+  it('posts the sole option own wire index, never its list position', () => {
     const post = vi.fn();
     const tile: import('./cardoptions').TileOptions = {
       list: [opt(17, 9, 'cast', 'Cast Wasteland')],
@@ -320,7 +320,7 @@ describe('single-action card affordance', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it('does not turn a multi-option menu into an invented direct action (R-E4-2)', () => {
+  it('does not turn a multi-option menu into an invented direct action', () => {
     const post = vi.fn();
     postSingleAction({
       list: [opt(3, 9), opt(8, 9)], pickedOrder: [], tone: 'offered', post,
@@ -328,7 +328,7 @@ describe('single-action card affordance', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  // prio3 review r2: the tile affordances (direct icon, radial wheel, list
+  // The tile affordances (direct icon, radial wheel, list
   // menu) are the one path a Ctrl-held cast/ability takes, and Ctrl must
   // arrive at SeatPanelState.click as `{ holdPriority: true }` — otherwise
   // the action arms pass-after-acting. These are the pure half; the mounted
@@ -340,7 +340,7 @@ describe('single-action card affordance', () => {
       pickedOrder: [], tone: 'offered', post,
     });
 
-    it('postTileOption arms the follow-up and carries the modifier as post\'s third argument (fb-e079def5)', () => {
+    it('postTileOption arms the follow-up and carries the modifier as post\'s third argument', () => {
       postTileOption(tile(), tile().list[0]);
       expect(post).toHaveBeenLastCalledWith(3, true, false);
       postTileOption(tile(), tile().list[1], true);
@@ -360,7 +360,7 @@ describe('single-action card affordance', () => {
     });
   });
 
-  // fb-e079def5: the stage-2 colour wheel never opened after a wheel-answered
+  // The stage-2 colour wheel must open after a wheel-answered
   // stage-1 (a Talisman's ability pick), because only the single-action badge
   // path armed the follow-up expectation. resolveCardFollowUp is the ONE
   // decoder Table.svelte's $effect runs; these pin its contract.
@@ -391,7 +391,7 @@ describe('single-action card affordance', () => {
       expect(resolveCardFollowUp(expected, decision(10, [opt(0, 83, 'mana', 'Add B')]))).toBeNull();
     });
 
-    // fb-20260917T233137Z: playing a land arms the follow-up expectation, and
+    // Playing a land arms the follow-up expectation, and
     // a shock land's pay/decline election arrives next as 2 'mode' options on
     // the land (Steam Vents, view.json seq 1295). It must NOT auto-open the
     // radial picker -- the player knows that wheel as the mana bubble -- it
@@ -456,7 +456,7 @@ describe('tileOptions / tileOptionsMany — the bundle reductions the components
     expect(tileOptionsMany(b, [5, 6])?.list.map((o) => o.index)).toEqual([3, 4]);
   });
 
-  it('the posted index is the option\'s OWN index, never a position in a rebuilt list (R-E4-1)', () => {
+  it('the posted index is the option\'s OWN index, never a position in a rebuilt list', () => {
     // Reorder the DECISION's options so a naive "first in my rebuilt list"
     // position would pick the wrong option; the bundle must still hand back
     // the option's OWN index field, which is unrelated to its array position.

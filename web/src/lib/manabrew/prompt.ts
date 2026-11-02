@@ -82,6 +82,11 @@ function isOptionalTriggerPrompt(title: string): boolean {
     title.startsWith("Apply this triggered ability's effect? — ");
 }
 
+/** isModesPrompt infers a modal spell's selection from its engine title (presentation only). */
+function isModesPrompt(title: string): boolean {
+  return / mode\(s\)$/.test(title);
+}
+
 /** pickVerb infers a card pick's option kind from its title (presentation only). */
 function pickVerb(title: string): string {
   const t = title.toLowerCase();
@@ -230,12 +235,13 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
     case 'chooseFromSelection': {
       const names = new Map((v?.players ?? []).map((pl) => [pl.name, pl.seat]));
       const players = input.options.length === (v?.players.length ?? -1) && input.options.every((o) => names.has(o.label));
+      const modes = isModesPrompt(title);
       input.options.forEach((o, i) => {
         if (players) add({ kind: 'player', label: o.label, player: names.get(o.label) ?? 0 }, { t: 'index', i });
-        else add({ kind: 'choice', label: o.label, ...(o.weight !== undefined && o.weight !== 1 ? { amount: o.weight } : {}) }, { t: 'index', i });
+        else add({ kind: modes ? 'mode' : 'choice', label: o.label, ...(o.weight !== undefined && o.weight !== 1 ? { amount: o.weight } : {}) }, { t: 'index', i });
       });
       const repeat = input.options.some((o) => o.canRepeat);
-      d = { ...base, kind: players ? 'starting_player' : 'choose', min: input.minTotal, max: input.maxTotal, options: opts, ...(repeat ? { repeatable: true } : {}) };
+      d = { ...base, kind: players ? 'starting_player' : modes ? 'modes' : 'choose', min: input.minTotal, max: input.maxTotal, options: opts, ...(repeat ? { repeatable: true } : {}) };
       break;
     }
     case 'chooseBoolean': {
@@ -259,7 +265,8 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
       d = { ...base, kind: 'choose', min: 1, max: 1, options: opts };
       break;
     case 'chooseColor':
-      for (const c of input.validColors) add({ kind: 'color', label: COLOR_NAME[c] ?? c, mana_symbol: c }, { t: 'color', color: c });
+      // The wire doesn't order them; the panel numbers colours in WUBRG on every wire.
+      for (const c of [...input.validColors].sort((x, y) => MANA_SLOTS.indexOf(x) - MANA_SLOTS.indexOf(y))) add({ kind: 'color', label: COLOR_NAME[c] ?? c, mana_symbol: c }, { t: 'color', color: c });
       d = { ...base, kind: 'choose', min: input.amount, max: input.amount, options: opts, ...(input.repeatAllowed ? { repeatable: true } : {}) };
       break;
     case 'reorder':
@@ -401,7 +408,7 @@ export function bindPrompt(p: AgentPrompt, ctx: PromptContext): PromptBinding {
 /** concedeMessage is the out-of-band concession (legal at any time). */
 export const concedeMessage = (): ClientMessage => ({ kind: 'directive', directive: { type: 'concede' } });
 
-/** undoMessage asks the server to undo this seat's last answer (scope spec §6.4): only while a chooseAction is open. */
+/** undoMessage asks the server to undo this seat's last answer: only while a chooseAction is open. */
 export function undoMessage(p: AgentPrompt | null): ClientMessage {
   if (!p || p.input.type !== 'chooseAction') throw new AnswerError('undo is only available at a priority prompt over ManaBrew');
   return { kind: 'response', promptId: p.promptId, action: out('chooseAction', { type: 'restoreSnapshot', checkpointId: p.promptId }) };

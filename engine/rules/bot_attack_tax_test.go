@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// TestBotAttackDeclarationFitsCombinedPhyrexianTax (general; cardfuzz sig
+// TestBotAttackDeclarationFitsCombinedPhyrexianTax (general; the fuzzer signature
 // "error: seed #, intent #: declaration's attack cost (# mana, # life, # taps,
 // # sacrifices, # returns, # Phyrexian, unpriceable=#) is not payable", off and
 // auto-pay lanes alike): with Norn's Annex out, each attacking creature costs {W/P}.

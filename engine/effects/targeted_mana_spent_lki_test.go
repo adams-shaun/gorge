@@ -13,7 +13,7 @@ import (
 // mana spent to cast that spell was less than its mana value, you draw a
 // card."
 //
-// The chained DBDraw condition reads SVar:X:Targeted$CastTotalManaSpent AFTER
+// The chained DBDraw condition reads Targeted$CastTotalManaSpent AFTER
 // the Counter has moved the target spell off the stack. events.Apply zeroes
 // the cast-time captures on that move (CR 400.7), so the live read is a
 // legitimate-looking 0 and the gate wrongly fires. This file pins the
@@ -109,7 +109,7 @@ func TestTargetedCastTotalManaSpentCapturedAtResolveEntry(t *testing.T) {
 // TestTargetedCastTotalManaSpentReadsTheRealCorpusSVar proves the real
 // compiled Unravel script reaches the head: its SVar:X is exactly this
 // spelling, and the same evaluation the chained DBDraw makes returns the real
-// pre-move total instead of the pre-fix zero.
+// pre-move total, not zero.
 func TestTargetedCastTotalManaSpentReadsTheRealCorpusSVar(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Unravel")

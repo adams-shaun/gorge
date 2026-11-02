@@ -4,7 +4,7 @@ import { browserURL, sharedBrowser } from '../../test/browser';
 
 /**
  * PriorityOptions.svelte.test.ts is the mounted proof for the ManaBrew
- * plan-less cast affordance (fb-20260929T075330Z + its Auto-pay-ON follow-up):
+ * plan-less cast affordance:
  * the wire offers a `pay-<id>` cast with no payment plan, and PriorityOptions
  * must render a cast affordance for it and POST the announce when that
  * rendered control is CLICKED — not merely when submitAnnounce is called

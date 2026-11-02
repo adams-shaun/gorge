@@ -167,7 +167,7 @@ func crewListHas(list []state.ObjID, id state.ObjID) bool {
 }
 
 // TestCrewedThisTurnBlinkBreaksThePairing pins the CR 400.7 half of the crew
-// pairing (review round 2): a Vehicle that leaves the battlefield and returns
+// pairing: a Vehicle that leaves the battlefield and returns
 // in the same turn is a NEW object, and the crew record keyed by its stable
 // ObjID must not carry over -- the returning Van's attack trigger must not
 // offer a creature that crewed its OLD stint. events.Apply's

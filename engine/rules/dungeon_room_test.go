@@ -13,7 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The dungeon chain's slice 3: CR 309.4c room abilities and CR 704.5t's
+// The dungeon chain: CR 309.4c room abilities and CR 704.5t's
 // completion state-based action. The corpus's four dungeon token scripts are
 // the fixture (never committed -- they live in the gitignored .cards/): Lost
 // Mine of Phandelver, Dungeon of the Mad Mage, Tomb of Annihilation and

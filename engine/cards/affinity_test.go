@@ -56,10 +56,10 @@ func TestAffinityExpandsToSelfReduceCostStatic(t *testing.T) {
 
 // TestAffinityDropsTrailingDescription covers the 3 corpus lines whose
 // keyword line carries a display field after a second colon
-// ("K:Affinity:Land.Snow:snow land"): the spec is everything up to the
+// (K:Affinity:<spec>:<display>): the spec is everything up to the
 // SECOND colon, the tail is display text only.
 func TestAffinityDropsTrailingDescription(t *testing.T) {
-	f := expanded(t, "Name:Snowy\nManaCost:2\nTypes:Snow Creature\nPT:2/2\nK:Affinity:Land.Snow:snow land\nOracle:x\n")
+	f := expanded(t, "Name:Snowy\nManaCost:2\nTypes:Snow Creature\nPT:2/2\nK:Affinity:Land.Snow:display text\nOracle:x\n")
 	if len(f.Statics) != 1 {
 		t.Fatalf("%+v", f.Statics)
 	}

@@ -14,8 +14,8 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 )
 
-// This file is the server-side half of the feedback capture (task
-// fbrepro1): when a player files a bug report naming a table, the report
+// This file is the server-side half of the feedback capture:
+// when a player files a bug report naming a table, the report
 // must carry enough to reproduce the match they were in — because the
 // event log a deploy wipes is the one thing a later retelling loses. The
 // shapes here are what Registry.SnapshotForFeedback hands the caller

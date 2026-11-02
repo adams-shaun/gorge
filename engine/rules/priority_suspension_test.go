@@ -9,7 +9,7 @@ import (
 )
 
 // TestSuspendedResolutionLogsPriorityOnlyAtCompletion pins the priority-log
-// contract this task restores: CR 117.5, nobody receives priority in the
+// contract: CR 117.5, nobody receives priority in the
 // middle of a resolution. When a resolution suspends on a mid-resolution ask
 // (a modal spell's KModes, an unless-pay, a discard), the engine is parked on
 // that question and NOTHING has priority — so the log must carry no Priority

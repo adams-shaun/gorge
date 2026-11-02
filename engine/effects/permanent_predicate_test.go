@@ -10,12 +10,12 @@ import (
 
 // TestPermanentPredicateMatchesPermanentCards is the effects leaf for Forge's
 // CardProperty.Permanent as a POSITIVE predicate (card.isPermanent()): the
-// printed face is a permanent type, in any zone (CR 109.2). Before the fix the
-// word was classified unknown, so Card.Permanent and every
-// <base>.Permanent/<base>+Permanent spelling failed closed and matched nothing
-// (22 corpus carriers: Badlands Revival's return-a-permanent-card, Deadly
-// Brew's ConditionPresent$ gate, Auntie's Sentence's DiscardValid$, Six's
-// retrace grant among them).
+// printed face is a permanent type, in any zone (CR 109.2). Classified
+// unknown, the word would fail Card.Permanent and every
+// <base>.Permanent/<base>+Permanent spelling closed, matching nothing (22
+// corpus carriers: Badlands Revival's return-a-permanent-card, Deadly Brew's
+// ConditionPresent$ gate, Auntie's Sentence's DiscardValid$, Six's retrace
+// grant among them).
 //
 // The PREDICATE (Card.Permanent) and the BASE (Permanent) are two different
 // readings and both are pinned here: the base stays the on-the-battlefield

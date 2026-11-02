@@ -97,15 +97,15 @@ func TestViewMarshalsClosed(t *testing.T) {
 		"draw": true, "winner": true, "players": true, "stack": true,
 		"pending": true, "decision": true, "day_night": true,
 	})
-	// round (added by task ui12) is a projection of the public turn counter
+	// round is a projection of the public turn counter
 	// and the public per-seat lost flags -- how many full passes the surviving
 	// seats have made -- not a hidden-zone carrier, so it joins the public
 	// facts here rather than the hidden-zone class this test guards against.
 	// PlayerView is where the hidden zones actually live, so it gets the
 	// same strict allowlist View does — a future LibraryTop/Sideboard/
 	// Revealed/untagged Deck here fails even when it is not one of the two
-	// names this test used to spot-check. The four commander fields added
-	// by Task m37 (command/commanders/commander_casts/cmd_damage) carry
+	// names spot-checked. The four commander fields
+	// (command/commanders/commander_casts/cmd_damage) carry
 	// public-for-every-seat facts — the command zone, the roster, the CR
 	// 903.8 cast counts and the CR 903.10 clock — so they join the other
 	// public zones here, not the hidden-zone class the test guards against.
@@ -118,7 +118,7 @@ func TestViewMarshalsClosed(t *testing.T) {
 		"planar_deck": true,
 		"pool":        true, "command": true, "commanders": true,
 		"commander_casts": true, "cmd_damage": true,
-		// available (task mp1) is a public battlefield-derived quantity —
+		// available is a public battlefield-derived quantity —
 		// what the seat could tap for right now — never a hidden-zone
 		// carrier, so it joins the public facts class here. See the
 		// Pool/available doc on view.PlayerView for how the two differ.
@@ -150,14 +150,14 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// order-free projection is pinned end to end by
 		// view/own_library_test.go.
 		"library": true,
-		// potential_actions (rv2c) is DERIVED from the seat's own hidden zones
+		// potential_actions is DERIVED from the seat's own hidden zones
 		// (the legal-offer walk reads the seat's hand, command zone and
 		// graveyard), which is exactly why it is gated on "is this the
 		// viewer's own seat" in project(), like Hand above — for every other
 		// seat it is never filled and omitempty drops the key. The payload
 		// itself carries only action kinds and object ids, never a card list.
 		"potential_actions": true,
-		// pool_restrictions (task fb-20260922T145544Z) annotates Pool: it is
+		// pool_restrictions annotates Pool: it is
 		// derived from a public battlefield permanent's own mana ability (the
 		// CR 106.4a/106.4b announcement the Pool field already documents), so
 		// like available it is a public fact projected for every seat under
@@ -180,7 +180,7 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// list, so it joins the public facts class here, never the hidden-zone
 		// class this test guards.
 		"has_initiative": true,
-		// archetype (task agent-20260930T000950Z-25c1cb85) is the per-opponent
+		// archetype is the per-opponent
 		// archetype posterior the obs checklist's opp_archetype_posterior fact
 		// names. It is DERIVED from the public battlefield/graveyard/exile/
 		// command card lists this projection already sends for that seat (the

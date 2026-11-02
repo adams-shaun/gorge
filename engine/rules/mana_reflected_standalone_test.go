@@ -11,8 +11,7 @@ import (
 // api:ManaReflected approximation that is NOT the mana-activation path: a DB$
 // ManaReflected body reached on its own (here the SubAbility$ of an ordinary
 // activated ability) resolves a reflected set that offers several colours, so
-// its controller must be ASKED which one to add. Before the fix the effect
-// always emitted a Note and silently took the fixed first candidate.
+// its controller must be ASKED which one to add.
 func TestStandaloneManaReflectedAsksForTheColour(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, card(t,

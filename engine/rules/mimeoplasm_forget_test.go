@@ -11,8 +11,8 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// The Mimeoplasm regression (ticket: ChooseCard.ForgetChosen +
-// ChangeZone-family ForgetOtherRemembered). Its printed chain exercises both
+// The Mimeoplasm regression (ChooseCard.ForgetChosen and ChangeZone-family
+// ForgetOtherRemembered). Its printed chain exercises both
 // parameters exactly as Forge plays it:
 //
 //	MimeoChooseTwo  ChooseCard  RememberChosen$ True  -- remember 2 yard creatures
@@ -47,10 +47,10 @@ func TestMimeoplasmForgetChosenLeavesTheOtherRemembered(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	mimeo, ok := reg.Lookup("The Mimeoplasm")
 	if !ok {
-		t.Fatal("corpus is missing The Mimeoplasm -- the ticket's real carrier")
+		t.Fatal("corpus is missing The Mimeoplasm -- the real carrier")
 	}
-	// Script preconditions: the chain rides exactly the two parameters this
-	// ticket implements. If the carrier's SVars change shape, this pin must
+	// Script preconditions: the chain rides exactly these two parameters.
+	// If the carrier's SVars change shape, this pin must
 	// be re-measured, not silently skipped.
 	var exileSA, copySA *cards.SA
 	for _, f := range mimeo.Faces {
@@ -197,10 +197,10 @@ func TestMimeoplasmForgetParamsAreRead(t *testing.T) {
 	t.Parallel()
 	_, d := measureParamCensus(t, nil)
 	if !d.api["ChangeZoneAll"]["ForgetOtherRemembered"] {
-		t.Fatal("api:ChangeZoneAll no longer derives the ForgetOtherRemembered read -- the census cannot see the parameter this ticket implemented")
+		t.Fatal("api:ChangeZoneAll no longer derives the ForgetOtherRemembered read -- the census cannot see the parameter")
 	}
 	if !d.api["ChooseCard"]["ForgetChosen"] {
-		t.Fatal("api:ChooseCard no longer derives the ForgetChosen read -- the census cannot see the parameter this ticket implemented")
+		t.Fatal("api:ChooseCard no longer derives the ForgetChosen read -- the census cannot see the parameter")
 	}
 	reg := testutil.CorpusRegistry(t)
 	c, ok := reg.Lookup("The Mimeoplasm")

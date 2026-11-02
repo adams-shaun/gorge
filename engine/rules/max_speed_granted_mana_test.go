@@ -90,7 +90,7 @@ func TestMaxSpeedGrantedManaGate(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.card, func(t *testing.T) {
 			var below, at int
-			for _, speed := range []int32{0, 3, 4} {
+			for _, speed := range []int32{1, 3, 4} {
 				r, id := maxSpeedManaBoard(t, tc.card, speed)
 				members := maxSpeedManaMembers(t, r.e, id)
 				if speed < maxSpeed {
@@ -112,7 +112,7 @@ func TestMaxSpeedGrantedManaGate(t *testing.T) {
 	}
 
 	t.Run("Muraganda Raceway activation", func(t *testing.T) {
-		for _, speed := range []int32{0, 3} {
+		for _, speed := range []int32{1, 3} {
 			r, id := maxSpeedManaBoard(t, "Muraganda Raceway", speed)
 			labels := r.manaAbilityLabels(0, id)
 			if grantedCCCount(labels, "Add C") != 1 {
@@ -218,7 +218,7 @@ func TestMaxSpeedGrantedManaPaymentWindow(t *testing.T) {
 	}
 
 	t.Run("below max speed", func(t *testing.T) {
-		for _, speed := range []int32{0, 3} {
+		for _, speed := range []int32{1, 3} {
 			r, raceway, d := castMindStone(t, speed)
 			submitChoices(t, r.e, windowActivate(t, d, raceway))
 			// The Raceway is a singleton here: no ability choice, one C.

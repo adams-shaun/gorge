@@ -78,8 +78,7 @@ func TestUntapConditionZoneGraveyardMet(t *testing.T) {
 }
 
 // TestUntapConditionZoneGraveyardUnmet: one instant fails GE2, so the untap
-// is skipped and the lands stay tapped -- the under-delivery the corpus
-// carrier showed before the fix.
+// is skipped and the lands stay tapped.
 func TestUntapConditionZoneGraveyardUnmet(t *testing.T) {
 	h, c, lands := untapCondBoard(t)
 	untapCondInstants(t, h, state.ZGraveyard, 1)
@@ -95,10 +94,9 @@ func TestUntapConditionZoneGraveyardUnmet(t *testing.T) {
 }
 
 // TestUntapConditionZoneAbsentCountsBattlefield: with no ConditionZone$ the
-// gate keeps counting the battlefield -- the pre-fix default -- so two
-// instants on the battlefield meet GE2. A graveyard full of instants alone
-// does NOT (the old hardcoded shape, pinned so a future change cannot widen
-// silently in the other direction either).
+// gate keeps counting the battlefield, so two instants on the battlefield
+// meet GE2. A graveyard full of instants alone does NOT (pinned so a future
+// change cannot widen silently in the other direction either).
 func TestUntapConditionZoneAbsentCountsBattlefield(t *testing.T) {
 	line := "DB$ Untap | Defined$ Remembered | ConditionPresent$ Instant.YouOwn,Sorcery.YouOwn | ConditionCompare$ GE2"
 	h, c, _ := untapCondBoard(t)

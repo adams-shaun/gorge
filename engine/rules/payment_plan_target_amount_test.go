@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cardfuzz fuzz-1003 planfb "cost_changed" (Call to Heel, Press the Enemy,
+// A planned cast fell back on "cost_changed" (Call to Heel, Press the Enemy,
 // Symbol of Unsummoning, each beside the caster's Battlefield Thaumaturge):
 // "Each instant and sorcery spell you cast costs {1} less to cast for each
 // creature it targets" is a ReduceCost whose AMOUNT counts the announced

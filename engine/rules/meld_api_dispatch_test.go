@@ -1,6 +1,6 @@
 package rules
 
-// api:Meld dispatch (ticket cli-20261005T172935Z-a198a472). The primitive's
+// api:Meld dispatch. The primitive's
 // own lifecycle is covered in meld_test.go; these tests prove the registered
 // api:Meld handler is what a real corpus carrier reaches through the ordinary
 // legal walker, i.e. that effects.Register("Meld", effMeld) is doing the work

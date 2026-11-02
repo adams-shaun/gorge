@@ -491,8 +491,7 @@ func TestShalaiVoiceOfPlentyPutsACounterOnEachCreatureYouControl(t *testing.T) {
 // TestMethodsOfTheMightyCharmModePutsCounters pins the one repo-deck card
 // whose behaviour this registration changes (avengers-assemble.json carries
 // Methods of the Mighty): choosing its DB$ PutCounterAll Charm mode places a
-// real +1/+1 batch on every creature you control -- before the fix the mode
-// emitted the fallback Note and did nothing.
+// real +1/+1 batch on every creature you control.
 func TestMethodsOfTheMightyCharmModePutsCounters(t *testing.T) {
 	t.Parallel()
 	methods := corpusCard(t, "Methods of the Mighty")

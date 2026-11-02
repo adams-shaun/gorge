@@ -8,15 +8,15 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestCastOriginEndsOnAnyZoneChangeAfterTheCast extends b5974a42e's CR 400.7
-// rule to the remaining provenance reads: WasCast (Forge's castFrom != null)
-// and latestCastOrigin (Object.HasLatestCast, behind WasCastFromHand,
+// TestCastOriginEndsOnAnyZoneChangeAfterTheCast extends the CR 400.7 rule to
+// the remaining provenance reads: WasCast (Forge's castFrom != null) and
+// latestCastOrigin (Object.HasLatestCast, behind WasCastFromHand,
 // WasCastFromExile and the wasCastFrom<zone> filter family). After its latest
 // cast, any zone change of the object other than the resolution's stack ->
-// battlefield entry makes a new object that was never cast. Before the fix a
-// countered creature reanimated from the graveyard still read "cast from
-// hand", because the folded origin was never reset and WasCast scanned for
-// any PutOnStack at all.
+// battlefield entry makes a new object that was never cast. A countered
+// creature reanimated from the graveyard must not read "cast from hand": the
+// folded origin was never reset and WasCast scanned for any PutOnStack at
+// all.
 func TestCastOriginEndsOnAnyZoneChangeAfterTheCast(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Grizzly Bears"))

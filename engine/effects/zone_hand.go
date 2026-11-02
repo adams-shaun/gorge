@@ -16,7 +16,7 @@ import (
 // outside a decision count's signed 32-bit range -- and the caller routes
 // that SA to the pre-existing object path
 // instead: evaluating SVar/Count$ count expressions here is a scoped-out
-// follow-up, not part of handmove1.
+// follow-up.
 func handChangeNum(cz *ChangeZoneParams) (int32, bool) {
 	v, present := cz.ChangeNum.Text, cz.ChangeNum.Present
 	if !present || v == "" {
@@ -29,11 +29,11 @@ func handChangeNum(cz *ChangeZoneParams) (int32, bool) {
 	return int32(n), true
 }
 
-// effChangeZoneHand is the whole-hand shape (handmove1/rv2b r1): Origin$ Hand
+// effChangeZoneHand is the whole-hand shape: Origin$ Hand
 // with no player selector -- the resolving controller's own hand is the one
 // owner, and the controller is its own chooser (Brainstorm, Jace the Mind
 // Sculptor's [0], Sawtooth Loon, Burgeoning). The mechanics -- the ask gate
-// (the dig1/effDiscard strict-supersets rule), explicit markers plus real
+// (the Dig/effDiscard strict-supersets rule), explicit markers plus real
 // card/script text for markerless optionality (never an assumed "may"), the
 // no-host stand-in, the Destination$ Library placement
 // (absent LibraryPosition$ = TOP in answer order; Shuffle$ True randomises instead)
@@ -175,8 +175,8 @@ func handMoveCountOf(h Host, c *Ctx, cz *ChangeZoneParams) (handMoveCount, bool)
 	return handMoveCount{fixed: n}, true
 }
 
-// effChangeZoneHandOwners implements the owner-SELECTED hidden-hand shape
-// (rv2b r2): Origin$ Hand with DefinedPlayer$-alone (Kynaios and Tiro's "each
+// effChangeZoneHandOwners implements the owner-SELECTED hidden-hand shape:
+// Origin$ Hand with DefinedPlayer$-alone (Kynaios and Tiro's "each
 // player may put a land card from their hand onto the battlefield", Braids,
 // Conjurer Adept, Mindleech Ghoul) or ValidTgts$-alone naming the players
 // whose hand moves (Karn Liberated's "[+4]: Target player exiles a card from
@@ -349,7 +349,7 @@ func handMoveChooserFor(h Host, c *Ctx, cz *ChangeZoneParams, owner state.Player
 // moves nothing). An answer is moved exactly as answered, revalidated against
 // the CURRENT hand and filter; a host with no answer takes the no-host stand-in.
 //
-// The whole-hand shape (handmove1/rv2b r1) is the one-owner case of this
+// The whole-hand shape is the one-owner case of this
 // walk, with the chooser == the owner -- the contracts (ask shape, card
 // text/explicit-marker optionality, no-host stand-in text, zero-eligible silence,
 // library tail) are this walk's contracts, unchanged. Still unread here, each
@@ -361,7 +361,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 	eventPlayer bool) {
 	spec := cz.ChangeType // "Card" when absent: the whole hand (Brainstorm, Jace's [0], Sawtooth Loon)
 	// A leading `Permanent` base in a HAND-origin move must read Forge's
-	// "permanent CARD" (nta1): every candidate here is a card in a hand, so
+	// "permanent CARD": every candidate here is a card in a hand, so
 	// the shared matcher's on-the-battlefield base reading (matchesBase)
 	// can never be what the script meant -- `ChangeType$ Permanent...` from
 	// hand matched NOTHING and the whole walk was a silent no-op (Kodama of
@@ -551,7 +551,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				Text: "cannot determine whether the markerless hand move is optional; no hand card moves"})
 			return
 		}
-		// The per-type pick structure (each1's object-path fix): an EACH hand
+		// The per-type pick structure: an EACH hand
 		// move is one move of EACH listed type, never a flat count over the
 		// union -- Michelangelo Improvisers' "EACH Creature & Land" must be
 		// able to move a creature AND a land, not one card from the union. The

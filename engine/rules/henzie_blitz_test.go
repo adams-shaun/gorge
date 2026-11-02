@@ -1,6 +1,6 @@
 package rules
 
-// Henzie "Toolbox" Torre's GRANTED blitz (ticket agent-20260926T031204Z):
+// Henzie "Toolbox" Torre's GRANTED blitz:
 // the corpus card declares a layer-6, stack-zone keyword grant
 //
 //	S:Mode$ Continuous | Affected$ Creature.YouCtrl+wasCast | AffectedZone$ Stack

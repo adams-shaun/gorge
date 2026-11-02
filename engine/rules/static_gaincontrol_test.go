@@ -13,12 +13,10 @@ import (
 // The static GainControl reader (S:Mode$ Continuous | ... | GainControl$),
 // pinned end to end on REAL corpus cards: Mind Control's "You control
 // enchanted creature" and Fealty to the Realm's "The monarch controls
-// enchanted creature". Before the fix the statics scan built no effect for a
-// GainControl$ parameter, so every control-stealing Aura in the corpus (42
-// carriers) sat on its bearer doing nothing. The realization is the static
-// control reconcile (engine/rules/control_static.go): a real tracked control grant
-// plus a real events.ControlChange, ended -- through the ordinary
-// expireControl chain -- when the static stops being live.
+// enchanted creature". The realization is the static control reconcile
+// (engine/rules/control_static.go): a real tracked control grant plus a real
+// events.ControlChange, ended -- through the ordinary expireControl chain --
+// when the static stops being live.
 
 const staticBearFixture = "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
