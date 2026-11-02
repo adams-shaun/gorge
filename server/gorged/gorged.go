@@ -472,7 +472,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return fmt.Errorf("-pprof requires a loopback listener (got %s)", ln.Addr())
 	}
 	if !c.diracOn() {
-		if _, err := host.LookupEngine(c.engines(), c.engine); err != nil {
+		if _, err := host.LookupEngine(c.startableEngines(), c.engine); err != nil {
 			return fmt.Errorf("-engine: %w", err)
 		}
 	}

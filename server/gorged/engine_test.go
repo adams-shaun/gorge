@@ -311,3 +311,10 @@ func TestServesADiracGame(t *testing.T) {
 		t.Fatalf("a replayed view of the finished game: %d %s", s, raw)
 	}
 }
+
+func TestUnknownEngineNamesEveryEngine(t *testing.T) {
+	err := serve(t.Context(), config{engine: "x"}, nil)
+	if err == nil || !strings.Contains(err.Error(), `engine "x" is not linked into this server (available: dirac, gorge)`) {
+		t.Fatalf("-engine x: %v", err)
+	}
+}

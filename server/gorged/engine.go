@@ -167,6 +167,16 @@ func seatablePolicies(offered []string) []string {
 	return out
 }
 
+// startableEngines is every engine -engine may name: those this binary links, and dirac,
+// which is opened from its tables only once the flags are checked.
+func (c config) startableEngines() map[string]game.Engine {
+	out := c.engines()
+	if _, ok := out[adapter.Name]; !ok {
+		out[adapter.Name] = nil
+	}
+	return out
+}
+
 // withDirac is the engines of a server whose tables run on e.
 func (c *config) withDirac(e *adapter.Engine) {
 	engines := maps.Clone(c.ext.Engines)
