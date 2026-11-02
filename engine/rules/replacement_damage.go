@@ -505,12 +505,12 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		}
 	}
 	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil {
+		f := e.replacementFace(id, ev)
+		if f == nil {
 			return
 		}
-		for i := range o.Face().Repls {
-			r := &o.Face().Repls[i]
+		for i := range f.Repls {
+			r := &f.Repls[i]
 			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}

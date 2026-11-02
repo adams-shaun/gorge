@@ -454,7 +454,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 	}
 	e.forEachObject(func(source state.ObjID) {
 		o := e.G.Obj(source)
-		if o == nil || o.Face() == nil {
+		if o == nil || o.Face() == nil || e.printedAbilitiesGone(o) {
 			return
 		}
 		for i := range o.Face().Repls {
