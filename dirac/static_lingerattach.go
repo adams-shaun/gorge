@@ -57,6 +57,36 @@ func (s *State) lingerPut(q Slot, o Obj) {
 	s.capFull(StallLinger)
 }
 
+// lingerDrain is the state-based check's unattaching. A phased-out attachment is
+// not checked (gorge attachmentSBAs skips it, CR 702.26b), and an Aura whose own
+// move to the graveyard competes keeps showing its host until that move is answered.
+//
+//go:noinline
+func (s *State) lingerDrain(k *prep) {
+	g := &s.g
+	var keep slotMask
+	if k.phasing {
+		keep = g.lingerM.and(s.phasedSlots())
+	}
+	for m := g.lingerM; m.any(); m = m.rest() {
+		sl := m.first()
+		if cd := &k.t.Cards[s.cardAt(sl)]; s.typesAt(k, sl)&kop.TAura != 0 && !cd.HasBestow && s.graveMoveCompetes(k, s.perms[sl].obj) {
+			keep = keep.with(sl)
+		}
+	}
+	for m := g.lingerM.andNot(keep); m.any(); m = m.rest() {
+		s.touchSl(m.first())
+	}
+	n := uint8(0)
+	for i := uint8(0); i < g.nlinger; i++ {
+		if r := g.linger[i]; keep.has(r.sl) {
+			g.linger[n] = r
+			n++
+		}
+	}
+	g.lingerM, g.nlinger = keep, n
+}
+
 // lingerObj is slot q's lingering host object; the caller checks
 // lingerM.has(q) first. Cold: projections only.
 //

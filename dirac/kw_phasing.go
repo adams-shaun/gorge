@@ -197,25 +197,3 @@ func (s *State) phasedCtrl(p uint8) slotMask {
 	}
 	return m
 }
-
-// lingerKeepPhased is the state-based check's drain of the lingering
-// attachments (genState.linger) in a table with phasing: a phased-out
-// attachment is not checked (gorge attachmentSBAs skips it, CR 702.26b), so
-// it keeps showing the host that left until it phases in.
-//
-//go:noinline
-func (s *State) lingerKeepPhased() {
-	g := &s.g
-	keep := g.lingerM.and(s.phasedSlots())
-	for m := g.lingerM.andNot(keep); m.any(); m = m.rest() {
-		s.touchSl(m.first())
-	}
-	n := uint8(0)
-	for i := uint8(0); i < g.nlinger; i++ {
-		if r := g.linger[i]; keep.has(r.sl) {
-			g.linger[n] = r
-			n++
-		}
-	}
-	g.lingerM, g.nlinger = keep, n
-}

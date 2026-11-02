@@ -447,19 +447,12 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
-		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
+		if s.g.lingerM.any() && (!s.parkedWaiting() || s.parkedBeforeFirstAnswer()) && !s.legendOwed(k) {
 			// state-based checks unattach (each pass: a host that died in
-			// the last one too), and a casualty's parked ask or a legend ask
-			// is still that pass (CR 704.3, 704.5n, 704.5p)
-			if k.phasing {
-				s.lingerKeepPhased() // a phased-out attachment is not checked (kw_phasing.go)
-			} else {
-				for m := s.g.lingerM; m.any(); m = m.rest() {
-					s.touchSl(m.first())
-				}
-				s.g.lingerM = slotMask{}
-				s.g.nlinger = 0
-			}
+			// the last one too), and a casualty's later ask or a legend ask
+			// is still that pass (CR 704.3, 704.5n, 704.5p); a casualty dying
+			// beside the first parked one leaves its attachment to the next pass
+			s.lingerDrain(k)
 		}
 		for p := uint8(0); p < 2; p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLose(k, p) {

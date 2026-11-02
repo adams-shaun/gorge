@@ -238,6 +238,13 @@ func (s *State) parkedWaiting() bool {
 	return len(s.cold.parked) != 0 && s.cold.parked[0].kind != parkNone && s.cold.parked[0].kind != parkAnswered
 }
 
+// parkedBeforeFirstAnswer: a state-based check's casualties are parked and its first
+// ask is not answered yet. gorge's passes run on under that ask.
+func (s *State) parkedBeforeFirstAnswer() bool {
+	r := &s.cold.parked[0]
+	return r.kind == parkSBA && !r.later
+}
+
 // exileOrderAsk parks the casualties of a state-based pass with several
 // exile-instead effects before any of the pass moves: a source dying beside
 // them still applies (CR 704.3), and they do not depart with it. It poses gorge's
