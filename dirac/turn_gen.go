@@ -888,7 +888,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		} else if !s.revealAnswer(k, ask, a) { // repl_revealland.go
 			return
 		}
-		if ask.ts == 1 {
+		if ask.ts&askEntryTapped != 0 {
+			s.perms[ask.sl].flags |= pfTapped
+		}
+		if ask.ts&askLandPlay != 0 {
 			// a played land's election: the answer completes the play
 			s.pl[s.perms[ask.sl].ctrl].landsPlayed++
 		}

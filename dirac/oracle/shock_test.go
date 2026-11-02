@@ -47,6 +47,18 @@ func kshockWoodElves() []cardset.Entry {
 	return d
 }
 
+// kshockFarseek is deck B with Farseek for Coiling Oracle: a shock land it finds
+// enters tapped whatever the election's answer, tapping after the answer.
+func kshockFarseek() []cardset.Entry {
+	d := append([]cardset.Entry(nil), kshockDecks[1]...)
+	for i := range d {
+		if d[i].Name == "Coiling Oracle" {
+			d[i].Name = "Farseek"
+		}
+	}
+	return d
+}
+
 // kshockTally counts the elections gorge posed and the answers taken.
 type kshockTally struct {
 	games, divs, stalls              int
@@ -108,6 +120,9 @@ func TestShockLockstep(t *testing.T) {
 	t.Run("coiling-oracle", func(t *testing.T) { kshockLockstep(t, kshockDecks, false) })
 	t.Run("wood-elves", func(t *testing.T) {
 		kshockLockstep(t, [2][]cardset.Entry{kshockDecks[0], kshockWoodElves()}, true)
+	})
+	t.Run("farseek", func(t *testing.T) {
+		kshockLockstep(t, [2][]cardset.Entry{kshockDecks[0], kshockFarseek()}, true)
 	})
 }
 
@@ -177,7 +192,7 @@ func kshockLockstep(t *testing.T, kdecks [2][]cardset.Entry, wood bool) {
 		t.Fatalf("%d divergences, %d stalls", tal.divs, tal.stalls)
 	}
 	if wood {
-		// the elections taken with a Wood Elves trigger on the stack
+		// the elections taken with the search on the stack
 		if tal.mid < 10 {
 			t.Errorf("only %d mid-search elections, want >= 10", tal.mid)
 		}

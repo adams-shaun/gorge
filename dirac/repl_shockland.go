@@ -16,6 +16,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // TestShockLockstep's mutation: it must diverge on a decline-only ask.
 var DebugShockFree bool
 
+// askRec.ts of a queued election.
+const (
+	askLandPlay    uint16 = 1 << iota // the answer completes a land play
+	askEntryTapped                    // the permanent taps once the election is answered
+)
+
 // shock result of shockAt.
 const (
 	shockNo     = iota // not the shock election: the ordinary pay op runs
@@ -86,7 +92,7 @@ func (s *State) shockOptions(k *prep, d *Decision) {
 // this instruction, as gorge defers it behind the suspended resolution.
 func (s *State) shockAt(k *prep, sl Slot, c CardID, ab uint8, in *kop.Instr, pc int) (res, skip int) {
 	if pc == 0 && revealElection(in) {
-		s.queueAskAt(sl, akReveal, c, ab, 0) // repl_revealland.go
+		s.queueElection(sl, akReveal, c, ab, 0) // repl_revealland.go
 		return shockQueued, 0
 	}
 	if pc != 0 || in.Op != kop.OpUnlessPaid || int(in.C&0xF) != kop.PayLife {
@@ -107,19 +113,30 @@ func (s *State) shockAt(k *prep, sl Slot, c CardID, ab uint8, in *kop.Instr, pc 
 		}
 		return shockApply, 0
 	}
-	s.queueAskAt(sl, akPayLife, c, ab, uint8(pc))
+	s.queueElection(sl, akPayLife, c, ab, uint8(pc))
 	return shockQueued, 0
 }
 
-// shockLandCount marks the play's queued election (ask.ts = 1) so
+// queueElection queues an as-enters election. A permanent an effect puts onto the
+// battlefield tapped stays untapped until the answer: gorge runs the election
+// inside the move and emits Tapped$ after it (engine/effects/zone_change.go).
+func (s *State) queueElection(sl Slot, kind uint8, c CardID, ab, pc uint8) {
+	n := s.g.nask
+	s.queueAskAt(sl, kind, c, ab, pc)
+	if s.g.nask > n && s.perms[sl].flags&pfTapped != 0 {
+		s.perms[sl].flags &^= pfTapped
+		s.g.ask[n].ts = askEntryTapped
+	}
+}
+
+// shockLandCount marks the play's queued election (askLandPlay) so
 // answerQueuedAsk takes the land count when the answer completes the play;
 // a play that queued no ask (the ask table's capacity stall) takes it now.
-// ts is otherwise read only by the NoSlot returning-Aura host ask.
 func (s *State) shockLandCount(o Obj, p uint8) {
 	if s.g.nask > 0 {
 		a := &s.g.ask[s.g.nask-1]
 		if (a.kind == akPayLife || a.kind == akReveal) && a.sl == s.objs[o].slot {
-			a.ts = 1
+			a.ts |= askLandPlay
 			return
 		}
 	}
