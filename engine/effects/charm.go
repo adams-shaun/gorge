@@ -1016,12 +1016,9 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 // ordinary ask keeps the choice, never a fake random. Any other Random$
 // value is unread: the ordinary ask applies.
 //
-// Both mode-ask SITES consult this beside effCharm itself: the trigger
-// placement ask (rules' askTriggerModes) and the cast-time announcement
-// (rules' castModeAsk) skip their ask for a random Charm, so the pick (or
-// the failed comparison's ask) happens once, at resolution, in effCharm --
-// the rng draw stays in the replay-exact resolution path instead of
-// split-braining a placement-time pick with a resolution-time run.
+// A triggered Charm draws as it goes on the stack (rules'
+// placeRandomCharmMode, CR 700.2b). effCharm's own draw serves a Charm reached
+// only during a resolution, which never had a placement to draw at.
 func CharmRandomChosen(h Host, c *Ctx, sa *cards.SA) bool {
 	p := CharmOf(sa)
 	switch charmRandomChosenCodes.Code(string(p.Random)) {

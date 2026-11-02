@@ -275,3 +275,109 @@ func TestCharmRandomUnresolvableComparisonAsks(t *testing.T) {
 	}
 	// Decline nothing further; the ask's existence is the pin.
 }
+
+// randomCharmEngine is combatEngine at a chosen seed, so a test can cover the
+// draw's outcomes.
+func randomCharmEngine(t *testing.T, seed uint64) *Engine {
+	t.Helper()
+	e := New(seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}}))
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	return e
+}
+
+// TestRandomCharmModeIsChosenAsTheTriggerGoesOnTheStack is CR 700.2b on a mode
+// that targets: the draw and the target ask both come before anyone can
+// respond, and the drawn mode resolves against that target.
+func TestRandomCharmModeIsChosenAsTheTriggerGoesOnTheStack(t *testing.T) {
+	t.Parallel()
+	script := "Name:Random Target Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
+		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
+		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ DBDraw,DBBolt\n" +
+		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+		"SVar:DBBolt:DB$ DealDamage | ValidTgts$ Player | NumDmg$ 3 | SpellDescription$ Deal 3 damage to target player.\n" +
+		"Oracle:x\n"
+	targeted := 0
+	for seed := uint64(1); seed <= 16; seed++ {
+		e := randomCharmEngine(t, seed)
+		id := onBoardCard(t, e, 0, card(t, script))
+		e.G.Obj(id).SummonSick = false
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{id}})
+		e.putTriggersOnStack()
+		if len(e.G.Stack) != 1 {
+			t.Fatalf("seed %d: stack %v, want the trigger", seed, e.G.Stack)
+		}
+		chosen := e.G.Obj(e.G.Stack[0]).ChosenModes
+		if len(chosen) != 1 {
+			t.Fatalf("seed %d: the trigger is on the stack with modes %v, want one drawn", seed, chosen)
+		}
+		if chosen[0] != "DBBolt" {
+			continue
+		}
+		targeted++
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("seed %d: the drawn targeted mode posed %+v, want its target ask", seed, d)
+		}
+		life := e.G.Players[1].Life
+		pick := -1
+		for _, o := range d.Options {
+			if o.Player == 1 {
+				pick = o.Index
+			}
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{pick}}); err != nil {
+			t.Fatalf("seed %d: answering the target ask: %v", seed, err)
+		}
+		e.resolveTop()
+		if got := life - e.G.Players[1].Life; got != 3 {
+			t.Fatalf("seed %d: the targeted player lost %d, want 3", seed, got)
+		}
+	}
+	if targeted == 0 {
+		t.Fatal("no seed in 1..16 drew the targeted mode")
+	}
+}
+
+// TestRandomCharmDrawsOnlyChoosableModes is CR 700.2b's "that mode can't be
+// chosen": with no creature to target, every seed draws the other mode.
+func TestRandomCharmDrawsOnlyChoosableModes(t *testing.T) {
+	t.Parallel()
+	script := "Name:Random Choosy Hound\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
+		"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, choose one at random.\n" +
+		"SVar:TrigCharm:DB$ Charm | Random$ True | Choices$ DBDraw,DBBolt\n" +
+		"SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n" +
+		"SVar:DBBolt:DB$ DealDamage | ValidTgts$ Creature.OppCtrl | NumDmg$ 3 | SpellDescription$ Deal 3 damage to target creature an opponent controls.\n" +
+		"Oracle:x\n"
+	for seed := uint64(1); seed <= 16; seed++ {
+		e := randomCharmEngine(t, seed)
+		id := onBoardCard(t, e, 0, card(t, script))
+		e.G.Obj(id).SummonSick = false
+		hand := len(e.G.Zone(state.ZHand, 0))
+		resolveAttackPump(t, e, id)
+		if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != 1 {
+			t.Fatalf("seed %d: drew %d, want the only choosable mode's 1", seed, got)
+		}
+	}
+}
+
+// TestSummonMagusSistersChapterDrawsWithItsTarget runs the corpus Saga: each
+// chapter's random mode is drawn with the chapter ability going on the stack,
+// and that mode's target is asked before the ability can be responded to.
+func TestSummonMagusSistersChapterDrawsWithItsTarget(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Summon: Magus Sisters")}, []*cards.Card{})
+	moveByName(t, e, 0, "Summon: Magus Sisters", state.ZBattlefield)
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack %v, want chapter I", e.G.Stack)
+	}
+	if chosen := e.G.Obj(e.G.Stack[0]).ChosenModes; len(chosen) != 1 {
+		t.Fatalf("chapter I is on the stack with modes %v, want one drawn", chosen)
+	}
+	if d := e.Pending(); d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("chapter I posed %+v, want the drawn mode's target ask", d)
+	}
+}

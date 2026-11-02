@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -25,6 +26,55 @@ func triggerModesWithTargets(e *Engine, p state.PlayerID, obj state.ObjID, svars
 		out = append(out, name)
 	}
 	return out
+}
+
+// placeRandomCharmMode is CR 700.2b for a triggered Charm whose mode is chosen
+// at random: the draw is among the modes that can be chosen and happens as the
+// ability goes on the stack, so a targeted mode's targets are chosen then too
+// (CR 603.3d). It reports whether it settled the placement; false leaves it to
+// askTriggerModes (not a random Charm, a failed comparison, or several slots).
+func (e *Engine) placeRandomCharmMode(p state.PlayerID, obj state.ObjID, sa *cards.SA) bool {
+	if sa.API != "Charm" {
+		return false
+	}
+	source, svars := e.triggerModeSVars(obj, sa)
+	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
+	effects.SetSVars(ctx, svars)
+	if !effects.CharmRandomChosen(e, ctx, sa) {
+		return false
+	}
+	choices := effects.CharmOf(sa).Modes
+	for _, name := range choices {
+		if cards.ResolveSVar(svars, name) == nil {
+			return false
+		}
+	}
+	eligible := effects.CharmEligibleModes(e, source, sa, choices)
+	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
+	if len(eligible) == 0 {
+		removeModelessTrigger(e, obj)
+		return true
+	}
+	if min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible)); min != 1 || max != 1 || repeat {
+		return false
+	}
+	name := eligible[e.Rand(len(eligible))]
+	mode := cards.ResolveSVar(svars, name)
+	label := effects.CharmModeLabel(mode, name)
+	e.emit(events.Event{Kind: events.Note, Obj: source, Text: "chose a mode at random: " + label})
+	if effects.GameReadsDilemmas(e.G) {
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: obj, Player: p,
+			Counter: events.DilemmaFacedAtRandom, Text: label})
+	}
+	names := []string{name}
+	if o := e.G.Obj(obj); o != nil {
+		o.ChosenModes = names
+	}
+	effects.RecordCharmChoices(e, source, sa, names)
+	if effects.TargetsOf(mode).Targeted() {
+		e.askTarget(p, obj, mode)
+	}
+	return true
 }
 
 // removeModelessTrigger is CR 603.3c's "if no mode is chosen, the ability is

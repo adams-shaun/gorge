@@ -434,6 +434,9 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	announce := func(id state.ObjID, drainAlways bool) {
 		handled := false
 		if pt.SA.ParamStr(cards.PKChoices) != "" {
+			if e.placeRandomCharmMode(pt.Controller, id, pt.SA) {
+				return
+			}
 			handled = e.askTriggerModes(pt.Controller, id, pt.SA)
 			if handled && (drainAlways || e.Pending() != nil) {
 				e.drainAwaitsModes = true
@@ -1907,6 +1910,39 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			return false
 		}
 	}
+	source, svars := e.triggerModeSVars(obj, sa)
+	choices := effects.CharmOf(sa).Modes
+	for i := range choices {
+		if cards.ResolveSVar(svars, choices[i]) == nil {
+			return false // not modal: the primitive asks at resolution
+		}
+	}
+	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
+	effects.SetSVars(ctx, svars)
+	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
+	// game"): a later instance of the same triggered Charm on the same source
+	// must not offer a mode an earlier instance already chose, so the eligible
+	// list is filtered before the bounds clamp and the options are built. With
+	// every mode exhausted, the min-over-modes guard below removes the
+	// trigger. CR 700.2a: a mode whose mandatory targets have no legal
+	// candidate can't be chosen either, so it is filtered the same way. With
+	// no mode left at all the trigger is removed even when its minimum is 0
+	// (Optional$): CR 603.3c, no mode chosen, and a zero-option ask is never
+	// posted.
+	eligible := effects.CharmEligibleModes(e, source, sa, choices)
+	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
+	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
+	if len(eligible) == 0 || (min > len(eligible) && !repeat) {
+		removeModelessTrigger(e, obj)
+		return true
+	}
+	e.ask(modeDecisionForChoices(e, p, source, sa, svars, eligible, min, max, repeat))
+	return true
+}
+
+// triggerModeSVars is the trigger object's source and the SVar table its modal
+// Choices$ names resolve against.
+func (e *Engine) triggerModeSVars(obj state.ObjID, sa *cards.SA) (state.ObjID, map[string]string) {
 	var source state.ObjID
 	var svars map[string]string
 	wr := e.G.Obj(obj)
@@ -1930,49 +1966,7 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	if owned, ok := e.triggerLineSVars[obj]; ok {
 		svars = owned
 	}
-	choices := effects.CharmOf(sa).Modes
-	for i := range choices {
-		if cards.ResolveSVar(svars, choices[i]) == nil {
-			return false // not modal: the primitive asks at resolution
-		}
-	}
-	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
-	effects.SetSVars(ctx, svars)
-	if sa.API == "Charm" && effects.CharmRandomChosen(e, ctx, sa) {
-		// param:api:Charm.Random: a random Charm's mode is never asked at
-		// placement. The Charm gate keeps this site's other modal families
-		// (Vote, GenericChoice, VillainousChoice) untouched -- measured, no
-		// corpus carrier of those carries `Random$` (GenericChoice's own
-		// spelling is `AtRandom$`, a different unread parameter). Returning
-		// false is this function's own "not modal: the primitive asks at
-		// resolution" verdict -- resolution's effCharm then
-		// picks the mode with the engine's rng (Random$ True, or Random$
-		// Compare while the comparison holds) or poses the ordinary KModes
-		// ask (a failed or unresolvable comparison). The rng draw must happen
-		// at RESOLUTION, where a replay re-derives it byte-identically; a
-		// placement-time pick would consume the stream before the trigger is
-		// even on the stack.
-		return false
-	}
-	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
-	// game"): a later instance of the same triggered Charm on the same source
-	// must not offer a mode an earlier instance already chose, so the eligible
-	// list is filtered before the bounds clamp and the options are built. With
-	// every mode exhausted, the min-over-modes guard below removes the
-	// trigger. CR 700.2a: a mode whose mandatory targets have no legal
-	// candidate can't be chosen either, so it is filtered the same way. With
-	// no mode left at all the trigger is removed even when its minimum is 0
-	// (Optional$): CR 603.3c, no mode chosen, and a zero-option ask is never
-	// posted.
-	eligible := effects.CharmEligibleModes(e, source, sa, choices)
-	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
-	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
-	if len(eligible) == 0 || (min > len(eligible) && !repeat) {
-		removeModelessTrigger(e, obj)
-		return true
-	}
-	e.ask(modeDecisionForChoices(e, p, source, sa, svars, eligible, min, max, repeat))
-	return true
+	return source, svars
 }
 
 // askTriggerOrder has the controller of two or more simultaneous triggers
