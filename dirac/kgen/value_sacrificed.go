@@ -7,9 +7,8 @@ import "fmt"
 // ) to ExSacrificedThisTurn. The kernel keeps three tallies
 // per player, so only the three exact spellings read: Permanent (N 0,
 // every sacrifice), Artifact (N 1, artifact cards) and Food (N 2, the printed
-// Food subtype). Any other spec, including the empty one,
-// refuses by name; so does an /Op suffix on the head (svarValue: the corpus
-// carrier is Bonecache Overseer, held by design).
+// Food subtype). Any other spec, including the empty one, refuses by name;
+// an /Op suffix on the head applies to the count (svarValue).
 func sacrificedThisTurnValue(rest string) (lValue, error) {
 	switch rest {
 	case "SacrificedThisTurn Permanent":

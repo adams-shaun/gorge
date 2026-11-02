@@ -1,0 +1,14 @@
+# a draw gated on cards that left the graveyard or Foods sacrificed (dirac/oracle/leftgraveyardgate_test.go)
+Bonecache Overseer
+Raise Dead
+Gravedigger
+Regrowth
+Bake into a Pie
+Thought Scour
+Cauldron Familiar
+Gravecrawler
+Tragic Slip
+Duress
+Mulldrifter
+Swamp
+Island

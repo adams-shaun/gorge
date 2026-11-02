@@ -501,16 +501,6 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "HasPropertyMaxSpeed":
 			v = lValue{Kind: vYourSpeed, N: 1} // 1 at max speed (gorge playerMaxSpeedProperty), else 0
 		default:
-			if len(mods) > 0 {
-				// (gorge count_cov3.go evalCov3PlayerHead) peels a
-				// PlayerCountProperty* head's trailing /Op and applies it to
-				// the property count. The suffix is now lowerable in general,
-				// but the corpus carrier is Bonecache Overseer, whose
-				// LeftGraveyardThisTurn OR gate is not modelled: by design it
-				// stays refused by name rather than lifting the card.
-				err = fmt.Errorf("PlayerCountPropertyYou$%s with an op suffix: Bonecache Overseer's LeftGraveyardThisTurn gate stays refused by design", rest)
-				break
-			}
 			v, err = sacrificedThisTurnValue(rest) // value_sacrificed.go; refuses any other property
 		}
 	case "PlayerCountRemembered":
