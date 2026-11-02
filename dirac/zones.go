@@ -161,7 +161,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 			z = s.exileAnyDest(k, o) // Rest in Peace from any zone (repl_exileonleave.go)
 		}
 	}
-	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, ob.card, z) == kop.ZoneLibrary {
+	if z == kop.ZoneGraveyard && s.g.on && !s.g.graveKept && s.graveRedirect(k, ob.card, z) == kop.ZoneLibrary {
 		// Progenitus: onto the library top, then its owner shuffles (gorge's
 		// ChangeZone object path: one shuffle per replaced move; the top, not
 		// the bottom, is what matches gorge's shuffle in lockstep, pair 9856)
@@ -497,8 +497,8 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	}
 	p := &s.perms[sl]
 	n0 := s.npend
-	if k.gen != nil && z == kop.ZoneGraveyard {
-		z = s.graveRedirect(k, p.card, z) // Progenitus does not die
+	if k.gen != nil && z == kop.ZoneGraveyard && !s.genLost(k, sl) {
+		z = s.graveRedirect(k, p.card, z) // Progenitus does not die, while it has that ability
 	}
 	if z == kop.ZoneGraveyard {
 		cr := s.isCreature(k, sl)
@@ -539,6 +539,8 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	p := &s.perms[sl]
 	o := p.obj
+	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)
+	s.g.graveKept = k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && s.genLost(k, sl)
 	// CR 603.10a: the departure-time creature status, read before the
 	// permanent is cleared. Every departure records it (not only a death).
 	wasCreature := s.g.enteredOn && s.isCreature(k, sl)
@@ -640,6 +642,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.stashClr(k, o) // a land played from exile loses its stash counter as it leaves (a new object, CR 400.7)
 	}
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature)
+	s.g.graveKept = false
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}

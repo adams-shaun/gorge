@@ -1273,7 +1273,7 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	// a mark lasts whatever the object is by then: a planeswalker with no
 	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
 	exileEx := s.mSl(k, mechExileEx, sl)
-	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 &&
+	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && !s.genLost(k, sl) &&
 		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard) == kop.ZoneLibrary
 	// Each matching replacement is a separate CR 616.1 effect. Gorge asks
 	// the affected player to order them when two or more apply, even when

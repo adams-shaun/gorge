@@ -1302,16 +1302,17 @@ type xTargets struct {
 
 // genState is the generated-table part of State.
 type genState struct {
-	fx     [maxFx]fxRec
-	nfx    uint8
-	xtp    [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
-	atkHi  uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
-	tli    uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
-	energy [2]uint8            // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
-	roll   uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
-	_      uint8               // padding (the layout stays)
-	conn   uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
-	held   uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
+	graveKept bool // removePerm: this move to a graveyard takes no "from anywhere" redirect
+	fx        [maxFx]fxRec
+	nfx       uint8
+	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
+	atkHi     uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
+	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
+	energy    [2]uint8            // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
+	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
+	_         uint8               // padding (the layout stays)
+	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
+	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 
 	rem     [maxRem]Obj // the resolution's remembered set
 	nrem    uint8
