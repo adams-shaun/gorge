@@ -22,10 +22,14 @@ import (
 // effect runs, which would otherwise overcount by exactly one.
 func (e *Engine) CastThisTurn() int {
 	n := 0
+	var rev events.CastReversals
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			continue
 		}
 		if ev.Kind == events.PutOnStack {
 			n++
@@ -117,10 +121,22 @@ func (e *Engine) castsThisTurnMatching(you state.PlayerID, spec string, exclude 
 	var buckets [8]castSpendFacts
 	useAcc := len(saTokens) > 0
 	var out []state.ObjID
+	var rev events.CastReversals
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			// A CR 733.1 reversed cast was never cast: it is no count, and its
+			// spend window closes with it.
+			if useAcc && int(ev.Player) < len(buckets) {
+				buckets[ev.Player] = castSpendFacts{}
+			}
+			if wantFlags {
+				delete(castFlags, ev.Obj)
+			}
+			continue
 		}
 		switch ev.Kind {
 		case events.CastInfo:
@@ -600,10 +616,14 @@ func (e *Engine) SpellsCastThisTurnBy(p state.PlayerID) int {
 // (castLimitBinds) needs no Engine receiver.
 func castsThisTurnMatchingBy(log []events.Event, p state.PlayerID, exclude state.ObjID, match func(state.ObjID) bool) int {
 	n := 0
+	var rev events.CastReversals
 	for i := len(log) - 1; i >= 0; i-- {
 		ev := log[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			continue
 		}
 		if ev.Kind != events.PutOnStack || ev.Player != p || (exclude != 0 && ev.Obj == exclude) {
 			continue

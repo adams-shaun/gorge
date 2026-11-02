@@ -416,10 +416,17 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID) bool {
 	spellSpec, hasSpellSpec := sv.Param(cards.PKValidSpell)
 	sc := e.staticSpecCtxNamed(sv)
 	facts := make(map[state.ObjID]*priorCastFacts)
+	var rev events.CastReversals
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			// A CR 733.1 reversed cast used no first-spell discount; its
+			// facts must not leak to an older push of the same object.
+			delete(facts, ev.Obj)
+			continue
 		}
 		switch ev.Kind {
 		case events.CastInfo:

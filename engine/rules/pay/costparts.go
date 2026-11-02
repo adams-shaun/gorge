@@ -246,10 +246,14 @@ func DiscardCostPayable(e Engine, p state.PlayerID, source state.ObjID, parts []
 // TurnChange in the log (or since the start of the log, on turn 1).
 func SpellsCastThisTurn(e Engine, p state.PlayerID) int {
 	n := 0
+	var rev events.CastReversals
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		ev := e.Log().Events[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			continue
 		}
 		if ev.Kind == events.PutOnStack && ev.Player == p {
 			n++

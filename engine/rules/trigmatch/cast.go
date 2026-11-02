@@ -1054,10 +1054,14 @@ func spellsCastThisTurnByMatching(e Board, p state.PlayerID, spec string, exclSe
 		}
 	}
 	n := 0
+	var rev events.CastReversals
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		ev := e.Log().Events[i]
 		if ev.Kind == events.TurnChange {
 			break
+		}
+		if rev.Undone(&ev) {
+			continue
 		}
 		if ev.Kind != events.PutOnStack || ev.Player != p {
 			continue
