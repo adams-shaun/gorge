@@ -22,9 +22,10 @@ import (
 // truncating.
 //
 // CR 733.1: gorge's abortCast leaves the reversed cast's PutOnStack in the
-// append-only log (its SpellCastReversed companion undoes only the
-// SpellsCastThisTurn tally), so the ledger keeps counting an aborted cast;
-// unpushSpell leaves the ring entry in place for the same reason.
+// append-only log, but its readers pair the SpellCastReversed with the cast it
+// undid (events.CastReversals) and count no cast. unpushSpell marks the ring
+// entry reversed (castReversedPush) and every count skips it; the entry keeps
+// its slot, for stackedThisTurn reads the log's PutOnStack, which stays.
 
 // castRingN is the pushes per player per turn the ring records.
 const castRingN = 12
@@ -50,6 +51,9 @@ const (
 	// card's Adventure half, which CastSpecAsCast reads as that half although
 	// the card now shows its creature face from exile.
 	castAdventurePush uint8 = 16
+
+	// castReversedPush: the cast was reversed (CR 733.1), and no count reads it.
+	castReversedPush uint8 = 32
 )
 
 // castPushes is player p's pushes this turn. A table with no reader has no ring.
@@ -59,6 +63,18 @@ func (s *State) castPushes(p uint8) []castPush {
 		return nil
 	}
 	return s.cold.castRing[int(p)*castRingN:][:n]
+}
+
+// noteReversed marks caster's latest push of o reversed (CR 733.1), the cast
+// gorge's events.CastReversals pairs with the SpellCastReversed.
+func (s *State) noteReversed(o Obj, caster uint8) {
+	ring := s.castPushes(caster)
+	for i := len(ring) - 1; i >= 0; i-- {
+		if ring[i].obj == uint8(o)+1 && ring[i].prov&castReversedPush == 0 {
+			ring[i].prov |= castReversedPush
+			return
+		}
+	}
 }
 
 // noteCast appends the push of spell o by caster (pushBuild, CR 601.2a).
@@ -140,6 +156,9 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 			ring = ring[:len(ring)-1] // the in-flight cast's own (latest) push
 		}
 		for _, r := range ring {
+			if r.prov&castReversedPush != 0 {
+				continue
+			}
 			o := Obj(r.obj - 1)
 			if x.N&kop.CastSpecExclude != 0 && o == ctx.src {
 				continue
@@ -188,7 +207,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 func (s *State) castPushesMatching(k *prep, f kop.FilterID, caster uint8, l trigListener) int {
 	n := 0
 	for _, r := range s.castPushes(caster) {
-		if s.castRingMatch(k, f, Obj(r.obj-1), evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+		if r.prov&castReversedPush == 0 && s.castRingMatch(k, f, Obj(r.obj-1), evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 			n++
 		}
 	}

@@ -262,6 +262,9 @@ func (s *State) unpushSpell(k *prep) {
 	ob := &s.objs[o]
 	pl := &s.pl[ob.owner()]
 	s.touch(o)
+	if k.gen != nil && k.gen.castRingOn {
+		s.noteReversed(o, e.ctrl)
+	}
 	if k.gen != nil && k.gen.anyCopyCast && ob.of&(ofCopy|ofToken) == ofCopy && s.bld().origin == kop.ZoneLibrary {
 		s.capFull(StallCopyCast) // CR 733.1: gorge leaves a reversed copy in its holding zone
 		ob.zone = kop.ZoneNone

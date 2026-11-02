@@ -125,12 +125,10 @@ func TestThisturncastCostExclusion(t *testing.T) {
 
 // TestThisturncastAbortCounts pins gorge's CR 733.1 reversal: abortCast
 // (rules/cast_commit.go) moves the pushed spell back to the zone it came
-// from and emits SpellCastReversed, which only undoes the
-// SpellsCastThisTurn turn watcher; the PutOnStack stays in the append-only
-// log and spellsCastThisTurnMatching (rules/host_cast_ledger.go) never
-// reads SpellCastReversed. So the reversed cast still counts, matched
-// against the card back in its owner's hand, and unpushSpell leaves the
-// ring entry in place.
+// from and emits SpellCastReversed. The PutOnStack stays in the append-only
+// log, but spellsCastThisTurnMatching pairs the reversal with the cast it
+// undid (events.CastReversals) and counts no cast, so unpushSpell marks the
+// ring entry reversed and no count reads it.
 func TestThisturncastAbortCounts(t *testing.T) {
 	sc, id := kcastScen(t)
 	scour := id("Thought Scour")
@@ -142,18 +140,17 @@ func TestThisturncastAbortCounts(t *testing.T) {
 	}
 	x := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou}
 	ctx := evalCtx{src: NoObj, srcSl: NoSlot, ctrl: 0}
-	if n := sc.s.thisTurnCastSpec(sc.k, x, ctx); n != 1 {
-		t.Fatalf("a reversed cast: got %d, want 1 (gorge keeps its PutOnStack)", n)
+	if n := sc.s.thisTurnCastSpec(sc.k, x, ctx); n != 0 {
+		t.Fatalf("a reversed cast: got %d, want 0 (CR 733.1: no cast)", n)
 	}
 	hand := &kop.Expr{Kind: kop.ExThisTurnCastSpec, N: kop.CastSpecYou | kop.CastSpecHand}
-	if n := sc.s.thisTurnCastSpec(sc.k, hand, ctx); n != 1 {
-		t.Fatalf("a reversed cast from the hand: got %d, want 1", n)
+	if n := sc.s.thisTurnCastSpec(sc.k, hand, ctx); n != 0 {
+		t.Fatalf("a reversed cast from the hand: got %d, want 0", n)
 	}
-	// Cast again: the same object is listed twice, as gorge's log holds
-	// two pushes.
+	// Cast again: the reversed push is skipped, the recast counts once.
 	sc.kcastBuild(o, scour, 0)
-	if n := sc.s.thisTurnCastSpec(sc.k, x, ctx); n != 2 {
-		t.Fatalf("recast after a reversal: got %d, want 2", n)
+	if n := sc.s.thisTurnCastSpec(sc.k, x, ctx); n != 1 {
+		t.Fatalf("recast after a reversal: got %d, want 1", n)
 	}
 }
 
