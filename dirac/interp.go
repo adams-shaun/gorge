@@ -74,8 +74,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.touchSl(sl)
 			p := &s.perms[sl]
-			p.eotP += int8(s.value(k, in.A))
-			p.eotT += int8(s.value(k, in.B))
+			if !s.eotAdd(p, s.value(k, in.A), s.value(k, in.B)) {
+				break
+			}
 		}
 	case kop.OpGrantKeyword:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
@@ -479,8 +480,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// indestructible").
 			if s.isCreature(k, sl) {
 				p := &s.perms[sl]
-				p.eotP += int8(a)
-				p.eotT += int8(b)
+				if !s.eotAdd(p, a, b) {
+					break
+				}
 			}
 			if in.C != 0 {
 				kw := kop.KwMask(uint16(in.C))

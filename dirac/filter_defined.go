@@ -239,6 +239,18 @@ func (s *State) execDefined(k *prep, in *kop.Instr) (ok, done bool) {
 	return true, true
 }
 
+// eotAdd adds an end-of-turn pump; an amount that leaves the int8 range stalls
+// loudly (StallPT) and adds nothing.
+func (s *State) eotAdd(p *perm, a, b int) bool {
+	np, nt := int(p.eotP)+a, int(p.eotT)+b
+	if np != int(int8(np)) || nt != int(int8(nt)) {
+		s.capFull(StallPT)
+		return false
+	}
+	p.eotP, p.eotT = int8(np), int8(nt)
+	return true
+}
+
 // pumpAllEach is OpPumpAllEach (gorge effPump over a multi-object Defined$:
 // numForObjectText per object, so Double reads that creature's own derived
 // power / toughness). An amount that leaves the int8 end-of-turn range
