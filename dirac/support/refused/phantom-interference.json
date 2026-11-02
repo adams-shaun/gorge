@@ -1,0 +1,13 @@
+{
+  "card": "Phantom Interference",
+  "class": "options",
+  "why": "a Spree cast whose chosen mode the lands cannot pay aborts and leaves its mana floating; from there the engines offer different plain casts from the pool; 1 game in the corpus",
+  "repro": {
+    "pool": "std-otj",
+    "surface": "full",
+    "seed": 1,
+    "pair": 116,
+    "policy": "random",
+    "mulligans": 0
+  }
+}
