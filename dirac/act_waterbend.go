@@ -276,7 +276,7 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, a *kop.Ability) int 
 // spend understates what the window can produce (CR 106.6). Gorge:
 // castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
-	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR {
+	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra {
 		return true
 	}
 	d := s.payDescNow(NoObj)
@@ -291,6 +291,13 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		for j := range cd.Abilities {
 			a := &cd.Abilities[j]
 			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) {
+				return false
+			}
+		}
+		// A tap trigger that adds mana to this source's production is one the
+		// window census doesn't price (gorge manaProductionAltered, CR 605.1b).
+		if k.gen.anyTapExtra {
+			if _, hit := s.srcExtraHit(k, sl, s.manaPCAt(k, sl)); hit {
 				return false
 			}
 		}

@@ -75,3 +75,11 @@ func TestTapExtraLockstepMutation(t *testing.T) {
 		})
 	}
 }
+
+// A source whose tap brings extra mana (an earthbent land beside Badgermole Cub) makes
+// gorge's window census incomplete (CR 605.1b), so a waterbend announcement may close
+// without a tap.
+func TestTapExtraWaterbendCensusLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "waterbend_done_with_tap_extra", "std-tla", Config{})
+}

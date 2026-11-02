@@ -26,11 +26,22 @@ func init() { stallNames[StallTapExtra] = "tapextra" }
 // source the extra cannot be modelled on stalls (StallTapExtra) and adds
 // nothing.
 func (s *State) srcExtra(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint8) {
+	xv, hit := s.srcExtraHit(k, sl, pc)
+	if hit && (!s.tapExtraPlain(pc) || xv == [kop.NumManaKinds]uint8{}) {
+		s.capFull(StallTapExtra)
+		return [kop.NumManaKinds]uint8{}
+	}
+	return xv
+}
+
+// srcExtraHit is srcExtra without the stall: the extra vector, and whether any
+// StatTapExtra of the controller reaches a tap of sl for mana (the vector is
+// empty when the extra depends on the pick).
+func (s *State) srcExtraHit(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint8, hit bool) {
 	if pc.manaAb < 0 || pc.manaSacOnly {
-		return xv // no tap: the trigger does not fire
+		return xv, false // no tap: the trigger does not fire
 	}
 	ctl := s.perms[sl].ctrl
-	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.ctrl != ctl || st.sl == NoSlot ||
@@ -51,11 +62,7 @@ func (s *State) srcExtra(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint
 		hit = true
 		return true
 	})
-	if hit && (!s.tapExtraPlain(pc) || xv == [kop.NumManaKinds]uint8{}) {
-		s.capFull(StallTapExtra)
-		return [kop.NumManaKinds]uint8{}
-	}
-	return xv
+	return xv, hit
 }
 
 // tapExtraPlain: the source is one plain {T} ability whose mana is n of one
