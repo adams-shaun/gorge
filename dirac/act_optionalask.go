@@ -228,20 +228,19 @@ func (s *State) optaskFireDiscard(k *prep) {
 	r.peekI, r.peekN = 0, 0
 }
 
-// optaskFireSac sacrifices the picks recorded so far, in pick order.
+// optaskFireSac sacrifices the picks recorded so far together, in pick order
+// (CR 701.21a: gorge moves them as one batch, so a permanent that sees
+// another die, Rakish Crew's outlaws, sees the other picks go with it).
 func (s *State) optaskFireSac(k *prep) {
 	r := &s.res
 	for i := 0; i < int(r.peekI); i++ {
-		o := r.arr[i]
-		s.fireSac(k, s.objs[o].slot)
-		s.leave(k, s.objs[o].slot, kop.ZoneGraveyard, false)
+		s.addSac(s.objs[r.arr[i]].slot)
 	}
 	for i := 0; i < int(r.peekN); i++ {
-		o := r.peek[i]
-		s.fireSac(k, s.objs[o].slot)
-		s.leave(k, s.objs[o].slot, kop.ZoneGraveyard, false)
+		s.addSac(s.objs[r.peek[i]].slot)
 	}
 	r.peekI, r.peekN = 0, 0
+	s.flushSac(k)
 }
 
 // optaskPick records a pick, or applies it at once beyond the 8-pick array
