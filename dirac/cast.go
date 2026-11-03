@@ -1176,10 +1176,11 @@ func (s *State) applyBuild(k *prep, a Action) {
 // discard comes first, the cost picks, life.
 func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	e := *ep
-	if s.discardPicked() {
+	if s.discardPicked() && s.bld().bfl&bflLowered == 0 {
 		// gorge's planner picks the sources at priority, before the
 		// discard is chosen: the cards discarded for the cost still
-		// count toward the hand demand (HandReserve, rank key 6)
+		// count toward the hand demand (HandReserve, rank key 6). A
+		// lowered cast has no plan: its window pays (finishBuild)
 		cost := s.buildCost(k)
 		if e.flags&sfAnyMana != 0 || anyColor {
 			s.tapRiderPlan(k, e)
