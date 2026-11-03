@@ -958,7 +958,7 @@ func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 // is known spendable on it: spent before the ordinary mana of its colour.
 func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	pl := &s.pl[p]
-	if s.poolRx[p&1] != 0 {
+	if s.poolRx[p&1] != 0 || k.gen.rs != nil && k.gen.rs.wide {
 		s.payRestrX(k, p, cost, x, o, anyColor) // several restricted colours (mana_reflected.go)
 		return
 	}
