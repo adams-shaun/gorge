@@ -109,3 +109,32 @@ func TestResolvingFilterReadsAReturnedSourceAsANewObject(t *testing.T) {
 		}
 	}
 }
+
+// A connive trigger whose source left and came back is about the old permanent,
+// which is gone: its controller still draws and discards, and the new permanent
+// gets no counter (CR 701.50a, 701.50b, 400.7).
+func TestConniveCounterSkipsAReturnedSource(t *testing.T) {
+	c := card(t, "Name:Tester\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\nT:Mode$ Attacks | ValidCard$ Card.Self | Execute$ Body | TriggerDescription$ x\nSVar:Body:DB$ Connive\nOracle:x\n")
+	for _, returned := range []bool{false, true} {
+		e := New(Config{Seed: 717, Names: []string{"a", "b"},
+			Decks: [][]*cards.Card{{c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c}, mountainDeck(t, 40)}})
+		src := onBoardReadyCard(t, e, 0, c)
+		e.G.Active, e.G.Step = 0, state.StepDeclareAttackers
+		e.askAttackers()
+		submitAttackersOnly(t, e, src)
+		if returned {
+			flicker(e, src)
+		}
+		for _, id := range append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...) {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZLibrary})
+		}
+		passUntilStackEmpty(t, e, 8)
+		want := int32(1)
+		if returned {
+			want = 0
+		}
+		if got := counterCount(e.G.Obj(src), "P1P1"); got != want {
+			t.Fatalf("returned=%v: %d +1/+1 counters, want %d", returned, got, want)
+		}
+	}
+}
