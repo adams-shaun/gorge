@@ -64,6 +64,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tla", "first_filter_beside_granted_lands_funds_from_the_first_land"}, // Barrels of Blasting Jelly's {1} filter beside Great Divide Guide's any-colour lands: gorge's prefix search taps a Forest, pays the filter with its mana, then the Guide, so the kernel's grant search holds the filter among its candidates (CR 605.3a)
 		{"std-tla", "land_made_an_island_asks_its_own_colour_first"},               // a Forest an Earthbend made an Island asks G, then U, then the Guide's any colour: the face's own ability precedes the type's intrinsic one (CR 305.6)
 		{"std-woe", "trigger_cost_filter_window_lowest_colour"},                    // Icewrought Sentry's {1}{U} paid with a Swamp and Scarecrow Guide's {1}-for-any-colour filter: the trigger cost's window has no cost to read, so the filter answers white
+		{"std-fdn", "joraga_grant_after_witness_protection_loss"},                  // Joraga Invocation cast after Witness Protection took a Helpful Hunter's abilities: the grant is a later layer-6 effect (CR 613.7), so the Hunter must be blocked with the others and the lone Reaver token is offered no other pair
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

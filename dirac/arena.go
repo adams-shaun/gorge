@@ -17,24 +17,25 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 type mech uint8
 
 const (
-	mechGoad0       mech = iota // goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)
-	mechGoad1                   // goad[1]: the same for player 1
-	mechMonstrous               // slots whose permanent is monstrous (CR 701.37b; act_monstrosity.go)
-	mechRegen                   // bit sl: slot sl's regeneration shields count +4 (repl_regenerate.go)
-	mechExileEx                 // slots exiled instead of dying this turn (DmgExileIfDiesThisTurn)
-	mechKicked                  // slots whose permanent's spell was kicked (Kicker, Bargain, Offspring)
-	mechStash                   // object mask: exiled cards with a stash counter (marks.go)
-	mechFBLo                    // object mask: bit 0 of a graveyard card's granted-flashback count
-	mechFBHi                    // object mask: bit 1 of that count; assigned right after mechFBLo
-	mechSuspected               // slots whose permanent is suspected (CR 701.60; act_suspect.go)
-	mechMayhem                  // object mask: graveyard cards discarded this turn (CR 702.187; kw_mayhem.go)
-	mechSneaked                 // slots whose permanent's spell was cast for its sneak cost (CR 702.190a; kw_sneak.go)
-	mechAttacked                // slots whose permanent was declared an attacker this turn (filter_permmarks.go)
-	mechDealtTurn               // slots whose permanent dealt damage this turn
-	mechDealtAny                // slots whose permanent has dealt damage since it entered
-	mechDealtCombat             // slots whose permanent has dealt combat damage since it entered
-	mechAttackedObj             // object mask: objects declared as attackers this turn, wherever they are now (value_turntallies.go)
-	mechMustBlocked             // slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)
+	mechGoad0           mech = iota // goad[0]: slots whose permanent player 0 goaded (CR 701.15; act_goad.go)
+	mechGoad1                       // goad[1]: the same for player 1
+	mechMonstrous                   // slots whose permanent is monstrous (CR 701.37b; act_monstrosity.go)
+	mechRegen                       // bit sl: slot sl's regeneration shields count +4 (repl_regenerate.go)
+	mechExileEx                     // slots exiled instead of dying this turn (DmgExileIfDiesThisTurn)
+	mechKicked                      // slots whose permanent's spell was kicked (Kicker, Bargain, Offspring)
+	mechStash                       // object mask: exiled cards with a stash counter (marks.go)
+	mechFBLo                        // object mask: bit 0 of a graveyard card's granted-flashback count
+	mechFBHi                        // object mask: bit 1 of that count; assigned right after mechFBLo
+	mechSuspected                   // slots whose permanent is suspected (CR 701.60; act_suspect.go)
+	mechMayhem                      // object mask: graveyard cards discarded this turn (CR 702.187; kw_mayhem.go)
+	mechSneaked                     // slots whose permanent's spell was cast for its sneak cost (CR 702.190a; kw_sneak.go)
+	mechAttacked                    // slots whose permanent was declared an attacker this turn (filter_permmarks.go)
+	mechDealtTurn                   // slots whose permanent dealt damage this turn
+	mechDealtAny                    // slots whose permanent has dealt damage since it entered
+	mechDealtCombat                 // slots whose permanent has dealt combat damage since it entered
+	mechAttackedObj                 // object mask: objects declared as attackers this turn, wherever they are now (value_turntallies.go)
+	mechMustBlocked                 // slots whose permanent must be blocked this turn if able (CR 509.1c; combat_mustbeblocked.go)
+	mechMustBlockedPost             // slots marked must-be-blocked while their permanent had lost all abilities: the grant postdates the loss and survives it (CR 613.7)
 	numMech
 )
 
@@ -46,27 +47,28 @@ const (
 )
 
 var mechWidth = [numMech]uint8{
-	mechGoad0:       wSlot,
-	mechGoad1:       wSlot,
-	mechMonstrous:   wSlot,
-	mechRegen:       wSlot,
-	mechExileEx:     wSlot,
-	mechKicked:      wSlot,
-	mechStash:       wObj,
-	mechFBLo:        wObj,
-	mechFBHi:        wObj,
-	mechSuspected:   wSlot,
-	mechMayhem:      wObj,
-	mechSneaked:     wSlot,
-	mechAttacked:    wSlot,
-	mechDealtTurn:   wSlot,
-	mechDealtAny:    wSlot,
-	mechDealtCombat: wSlot,
-	mechAttackedObj: wObj,
-	mechMustBlocked: wSlot,
+	mechGoad0:           wSlot,
+	mechGoad1:           wSlot,
+	mechMonstrous:       wSlot,
+	mechRegen:           wSlot,
+	mechExileEx:         wSlot,
+	mechKicked:          wSlot,
+	mechStash:           wObj,
+	mechFBLo:            wObj,
+	mechFBHi:            wObj,
+	mechSuspected:       wSlot,
+	mechMayhem:          wObj,
+	mechSneaked:         wSlot,
+	mechAttacked:        wSlot,
+	mechDealtTurn:       wSlot,
+	mechDealtAny:        wSlot,
+	mechDealtCombat:     wSlot,
+	mechAttackedObj:     wObj,
+	mechMustBlocked:     wSlot,
+	mechMustBlockedPost: wSlot,
 }
 
-var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked"}
+var mechName = [numMech]string{"goad0", "goad1", "monstrous", "regen", "exileEx", "kicked", "stash", "fbLo", "fbHi", "suspected", "mayhem", "sneaked", "attacked", "dealtTurn", "dealtAny", "dealtCombat", "attackedObj", "mustBlocked", "mustBlockedPost"}
 
 // arenaNone is the index of a mechanic the table does not use.
 const arenaNone = 0xFF
