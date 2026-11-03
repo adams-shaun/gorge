@@ -14,9 +14,9 @@ import (
 // be destroyed, instead remove all +1/+1 counters from it and all damage already
 // dealt to it is healed".
 const destroyLineMedicSrc = "Name:Surly Medic\nManaCost:2 W W\nTypes:Legendary Creature Human Doctor\nPT:2/2\n" +
-	"R:Event$ Destroy | ActiveZones$ Battlefield | ValidCard$ Creature.Other+YouCtrl+counters_GE1_P1P1 | ReplaceWith$ DBRemove | Description$ x\n" +
-	"SVar:DBRemove:DB$ RemoveCounter | Defined$ ReplacedCard | CounterType$ P1P1 | CounterNum$ All | SubAbility$ DBHeal\n" +
-	"SVar:DBHeal:DB$ HealDamage | Defined$ ReplacedCard\n" +
+	"R:Event$ Destroy | ActiveZones$ Battlefield | ValidCard$ Creature.Other+YouCtrl+counters_GE1_P1P1 | ReplaceWith$ MedStrip | Description$ x\n" +
+	"SVar:MedStrip:DB$ RemoveCounter | CounterType$ P1P1 | Defined$ ReplacedCard | CounterNum$ All | SubAbility$ MedHeal\n" +
+	"SVar:MedHeal:DB$ HealDamage | Defined$ ReplacedCard\n" +
 	"Oracle:x\n"
 
 const destroyLineBearSrc = "Name:Line Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"

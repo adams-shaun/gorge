@@ -66,7 +66,8 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # Triumph, Disciple of Perdition, Last Rites) + 91402ac51 (Mandatory$ True on 48
 # ChooseCard lines of 44 cards whose Oracle says "choose"; Card-Forge/forge#12481/#12482).
 # 07d4f918d = Card-Forge master 2026-11-02, which holds those fixes and scripts Star Trek (TRK, TRC).
-FORGE_REF  ?= 07d4f918dadea14522c40a7a276ab46fff93b38a
+# e5904606 = 07d4f918d + the fork's Star Trek scripts (16 upstream PRs, 55 authored against the printed cards, a Romulan Bird-of-Prey fix).
+FORGE_REF  ?= e59046060a4660b7724a70743239d74ba471da52
 
 .PHONY: help
 help:
