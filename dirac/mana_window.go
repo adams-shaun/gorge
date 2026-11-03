@@ -51,6 +51,18 @@ func (s *State) altAddWindowTap(k *prep) {
 	s.windowTap(k, e.ctrl, &c, true)
 }
 
+// DebugAltAddNoPipsFirst reverses an unpayable either-or part at the choice,
+// before the pips (TestTitaniaLockstepMutation).
+var DebugAltAddNoPipsFirst bool
+
+// altAddPipsFirst: a hybrid spell with no required target announces its pips
+// (gorge manaAsk) after the either-or choice, so choosing a part it cannot pay
+// reverses the cast only once they are answered, in the payment (CR 601.2b, 601.2g).
+func (s *State) altAddPipsFirst(k *prep) bool {
+	e := &s.bld().e
+	return !DebugAltAddNoPipsFirst && e.kind == seSpell && k.gen != nil && k.t.Cards[e.card].HasAltAdd && !s.requiredTarget(k) && k.t.Cards[e.card].Cost.Hyb[0] != 0
+}
+
 // altAddOpenTargets: gorge cannot tell the unpayable part from a payable one yet.
 // A restricted source this payment may spend leaves its window census incomplete,
 // and with any source untapped the target menu keeps its candidates

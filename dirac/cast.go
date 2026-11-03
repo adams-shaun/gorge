@@ -767,6 +767,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if e.kind != seTrigger && s.pipOptions(k, d) {
 				return true
 			}
+			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && s.bld().altAdd <= 1 && !s.altAddPayable(k, s.bld().altAdd) {
+				// the pips are answered and the part chosen cannot be paid:
+				// gorge's payment window reverses the cast (CR 733.1)
+				s.altAddWindowTap(k)
+				s.reverseCast(k)
+				return false
+			}
 			s.nextStage(k)
 			continue
 		case bsTargets:
@@ -1056,7 +1063,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 		if s.bld().stage == bsAltAdd {
 			s.bld().altAdd = a.Target()
 			s.nextStage(k)
-			if !s.altAddPayable(k, a.Target()) && !s.altAddOpenTargets(k) {
+			if !s.altAddPayable(k, a.Target()) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				// gorge offers an unpayable part too (Config.GorgeAltAdd);
 				// choosing it undoes the cast and returns to priority;
 				// gorge reverses the cast (CR 733.1), the card moving back
