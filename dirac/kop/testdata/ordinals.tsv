@@ -726,6 +726,7 @@ PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubEvidence	untyped int	2
+PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11

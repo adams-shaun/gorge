@@ -920,6 +920,15 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		in.CS, in.A = "SacrificeSelf", cst(1)
 		c.SacSelf = false
 	}
+	if c.SacHost && n == 0 && lc.trigOwnCost && lc.grantAttached {
+		// Sac<1/OriginalHost> as the own cost of a trigger an Equipment or Aura
+		// grants (Sunfire Torch, Spare Dagger; gorge's triggered-cost window binds
+		// the part to the granting host): the host is sacrificed, the one
+		// candidate settled unasked (CR 701.21a)
+		n++
+		in.CS, in.A = "SacrificeHost", cst(1)
+		c.SacHost = false
+	}
 	if c.BlightN > 0 {
 		// Blight<N> as a trigger's own cost or an UnlessCost (gorge
 		// trigger_cost_blight / unlessflow): the payer chooses a creature

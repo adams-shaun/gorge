@@ -204,6 +204,11 @@ const PayBSubEvidence = 2
 // cost (the triggered card exiled from any graveyard), not a filter exile.
 const PayBSubTrigNew = 3
 
+// PayBSubSacHost: a PaySacSelf whose B.N carries this sentinel is a granted
+// trigger's own Sac<1/OriginalHost> cost: the Equipment or Aura whose static
+// grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
+const PayBSubSacHost = 7
+
 // ReduceAbUnlock (bit 1 of a StatReduceAbility static's B): the reduction
 // reaches Room unlock special actions rather than activated abilities
 // (Inquisitive Glimmer's ValidSpell$ Static.Unlock).

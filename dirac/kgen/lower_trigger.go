@@ -2319,6 +2319,11 @@ func creatureOnly(f *lFilter) bool {
 func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, error) {
 	lc.granted++
 	defer func() { lc.granted-- }()
+	// An attached grant names its host: the kernel finds it as the card's own
+	// permanent attached to the carrier (cost_sachost.go).
+	aff := sp.str("Affected") // AffectedDefined$ Equipped/Enchanted arrives as .EquippedBy/.EnchantedBy
+	lc.grantAttached = !strings.Contains(aff, ",") && (strings.Contains(aff, ".EquippedBy") || strings.Contains(aff, ".EnchantedBy"))
+	defer func() { lc.grantAttached = false }()
 	if st.F == nil || st.F.Players != 0 || len(st.F.Clauses) == 0 {
 		return 0, refuse("AddTrigger affected %s", st.F)
 	}
@@ -2346,9 +2351,11 @@ func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, e
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") }); err != nil {
 		return 0, err
 	}
-	if len(lc.out.Abilities) != idx+1 {
+	if len(lc.out.Abilities) < idx+1 {
 		return 0, refuse("AddTrigger lowering")
 	}
+	// (an ImmediateTrigger body appends its reflexive ability after the
+	// granted one; it is reached through the body's own spawn, not granted)
 	lc.out.Abilities[idx].Latent = true
 	lc.out.Abilities[idx].Name = "Granted"
 	return idx, nil

@@ -148,6 +148,9 @@ type lowerCtx struct {
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
+	// grantAttached while the trigger an Equipment's or Aura's static grants
+	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
+	grantAttached bool
 	// repeatPl > 0 while a RepeatEach-over-players body is lowered: its
 	// Defined$ Player.IsRemembered is the repeated player (lower_repeatplayers.go)
 	repeatPl int

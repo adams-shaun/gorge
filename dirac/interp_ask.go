@@ -56,6 +56,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case kop.PaySacSelf:
 		sl := s.resSrcSlot(k)
 		return sl != NoSlot && s.perms[sl].ctrl == p
+	case payKindSacHost:
+		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
 		return true // gorge triggeredCostDrawCounts: payable once the count resolves
 	case kop.PaySubCounter:
@@ -89,6 +91,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
+	}
+	if kind == kop.PaySacSelf && in.B.N == kop.PayBSubSacHost {
+		kind = payKindSacHost // a granted trigger's own Sac<1/OriginalHost> cost rides PaySacSelf (cost_sachost.go)
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
@@ -626,6 +631,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		case kop.PaySacSelf:
 			s.paySacSelf(k)
+		case payKindSacHost:
+			s.paySacHost(k)
 		case kop.PayDraw:
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
 		case kop.PaySubCounter:
