@@ -87,18 +87,19 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"convoke_colour_no_owed", "std-fra"},              // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
-		{"convoke_colour_no_picks", "std-fra"},             // ... with no creature announced, and the cast reversed
-		{"improvise_treasure_census", "std-msh"},           // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
-		{"excess_of_a_replaced_amount", "std-fra"},         // CR 120.10: Violent Echoes' excess reads the damage as replaced
-		{"free_cast_two_statics", "std-fra"},               // two Omnipresences list one free cast
-		{"ward_discard_is_a_discard", "std-fra"},           // CR 701.9a: Tinybones sees the discard ward was paid with
-		{"cast_trigger_second_target", "std-fra"},          // Danitha, on the second object of a multi-object slot
-		{"restricted_any_colour_window", "std-fra"},        // Gideon's Memorial in a window makes the announced pip's colour
-		{"ward_counters_the_targeting_ability", "std-fra"}, // Koth's two triggers: ward counters the one that targeted
-		{"eot_pump_past_int8", "std-fra"},                  // Aerid Konstrari's pump past int8 stalls loudly
-		{"attached_equipment_becomes_a_copy", "std-msh"},   // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
-		{"unless_evaluated_amount", "std-msh"},             // Doc Samson's mana can pay an unless cost
+		{"convoke_colour_no_owed", "std-fra"},                        // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
+		{"convoke_colour_no_picks", "std-fra"},                       // ... with no creature announced, and the cast reversed
+		{"improvise_treasure_census", "std-msh"},                     // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
+		{"excess_of_a_replaced_amount", "std-fra"},                   // CR 120.10: Violent Echoes' excess reads the damage as replaced
+		{"free_cast_two_statics", "std-fra"},                         // two Omnipresences list one free cast
+		{"ward_discard_is_a_discard", "std-fra"},                     // CR 701.9a: Tinybones sees the discard ward was paid with
+		{"cast_trigger_second_target", "std-fra"},                    // Danitha, on the second object of a multi-object slot
+		{"restricted_any_colour_window", "std-fra"},                  // Gideon's Memorial in a window makes the announced pip's colour
+		{"ward_counters_the_targeting_ability", "std-fra"},           // Koth's two triggers: ward counters the one that targeted
+		{"eot_pump_past_int8", "std-fra"},                            // Aerid Konstrari's pump past int8 stalls loudly
+		{"attached_equipment_becomes_a_copy", "std-msh"},             // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
+		{"unless_evaluated_amount", "std-msh"},                       // Doc Samson's mana can pay an unless cost
+		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"}, // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)

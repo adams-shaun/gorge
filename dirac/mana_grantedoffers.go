@@ -593,7 +593,9 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			// cost, not the front's: the search priced it as the front and
 			// removed a cast gorge offers
 			c := s.objs[a.Source()].card
-			if cd := &k.t.Cards[c]; len(cd.Faces) == 2 && a.Target() == 1 {
+			if cd := &k.t.Cards[c]; roomDef(k, c) {
+				c = cd.Faces[a.Target()] // a room_alt cast: the other door, whichever door the card shows
+			} else if len(cd.Faces) == 2 && a.Target() == 1 {
 				c = cd.Faces[1]
 			}
 			return s.adjustCost(k, p, c, Obj(a.Source()), k.cards[c].cost), ex, true
