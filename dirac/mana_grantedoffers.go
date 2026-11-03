@@ -342,18 +342,22 @@ type grantSrch struct {
 	seen  [potentialScriptNodes]grantKey
 	np    int
 	path  [MaxPerm]grantStep
-	// stk counts the triggers the path's taps have stacked and a pass has not
-	// resolved: gorge's search prices a sorcery-speed play only once they have
-	// (potential_script.go waitsForStack), so it taps on before it passes
-	stk uint8
+	// sp0 is the stack at the root: a deeper one is a trigger a prefix step
+	// caused, which gorge's search lets resolve (a pass) once its activations are
+	// spent. tapsLive: a tap can fire such a trigger (Gran-Gran's "whenever this
+	// becomes tapped, draw a card, then discard a card"), so those steps run on real
+	// transitions (settle).
+	sp0      uint8
+	tapsLive bool
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
 // each own permanent's tapped bit).
 type grantKey struct {
-	stk    uint8
 	tapped slotMask
 	pool   [kop.NumManaKinds]uint8
+	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
+	sp, hand, gy uint8
 }
 
 // grantStep is one prefix activation: candidate i tapped for n mana of
@@ -433,10 +437,11 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if g.stk == 0 && t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
+	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
 		return true
 	}
-	key := grantKey{stk: g.stk, tapped: t.tappedOf(g.p), pool: t.pl[g.p&1].pool}
+	pl := &t.pl[g.p&1]
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i] == key {
 			return false
@@ -487,14 +492,57 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 		}
 	}
-	if g.stk != 0 {
-		// a trigger a tap stacked: let it resolve, the pool floats (the search's last option)
-		g.stk--
-		ok := g.visit(t)
-		g.stk++
+	if t.sp > g.sp0 {
+		// a trigger a step caused: let it resolve, the pool floats (gorge
+		// scriptSearch.visit, the last resort at a node). The found prefix does not
+		// record it: the play's trigger flush resolves the trigger before the play.
+		c := t.fork()
+		c.Apply(MakeAction(AkPass, 0, 0, 0))
+		ok := g.settle(c)
+		t.unfork()
 		return ok
 	}
 	return false
+}
+
+// settle continues the search at t after a pass or a tap whose trigger is
+// queued: t runs to p's next decision, a priority being a node (visit) and an
+// ask the trigger poses (the discard of Gran-Gran's loot) a node branching on its
+// answers (gorge scriptSearch.visit's scriptAnswers).
+func (g *grantSrch) settle(t *State) bool {
+	var d Decision
+	if !t.tapXNext(g.p, &d) {
+		return false
+	}
+	if d.Kind == DkPriority {
+		return g.visit(t)
+	}
+	if !g.node() {
+		return false
+	}
+	for i := 0; i < int(d.N); i++ {
+		c := t.fork()
+		c.Apply(d.Options[i])
+		ok := g.settle(c)
+		t.unfork()
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// next continues the search after sl's tap: a tap that fires a trigger runs on a
+// copy whose trigger is stacked.
+func (g *grantSrch) next(t *State, sl Slot) bool {
+	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) {
+		return g.visit(t)
+	}
+	u := t.fork()
+	u.manaTapped(g.k, sl)
+	ok := g.settle(u)
+	t.unfork()
+	return ok
 }
 
 // branch tries tapping candidate i (slot sl) for each colour of mask in
@@ -524,18 +572,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
-		var stacked uint8
-		if g.d.sorc && g.k.gen.manaTaps {
-			u := t.fork()
-			n0 := u.npend
-			u.manaTapped(g.k, sl)
-			stacked = u.npend - n0
-			t.unfork()
-		}
-		g.stk += stacked
-		ok := g.visit(t)
-		g.stk -= stacked
-		if ok {
+		if g.next(t, sl) {
 			return true
 		}
 		g.np--
@@ -591,7 +628,12 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 		u.filtDo(g.k, g.p, filtStep{sl: sl, gap: true, ans: 1 + c})
 		g.path[g.np] = grantStep{i: uint8(i), col: c, gi: stepFilt, sl: sl}
 		g.np++
-		ok := g.visit(u)
+		var ok bool
+		if g.tapsLive {
+			ok = g.settle(u) // (the filter's tap may have fired a trigger)
+		} else {
+			ok = g.visit(u)
+		}
 		t.unfork()
 		if ok {
 			return true
@@ -646,7 +688,7 @@ func (s *State) grantPayDesc(a Action) payDesc {
 //
 //go:noinline
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, g *grantSrch) bool {
-	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d}
+	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps}
 	g.candidates(s)
 	if g.n == 0 {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
