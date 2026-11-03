@@ -593,6 +593,7 @@ func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) in
 	if v.K == kop.VExpr {
 		c := s.ctxEntry(&s.res.e)
 		c.ctrl = ctrl
+		c.src, c.srcSl = s.perms[sl].obj, sl
 		return s.expr(k, v.N, c)
 	}
 	if v.K != kop.VCountFilter {

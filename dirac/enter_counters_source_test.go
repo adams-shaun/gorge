@@ -87,3 +87,24 @@ func TestEnterCountersLedgerCountsTheEnteringControllers(t *testing.T) {
 		t.Fatalf("the effect controller's ledger: got %d, want 0 (the pair has to differ to prove the override)", got)
 	}
 }
+
+// TestEnterCountersExprExcludesTheEnteringPermanent: an enters-with count
+// written as an expression ("one for each other creature you control", Sheriff
+// of Safe Passage) leaves out the permanent entering and nothing else, whatever
+// effect put it onto the battlefield (Annie Flash returning it from the
+// graveyard).
+func TestEnterCountersExprExcludesTheEnteringPermanent(t *testing.T) {
+	tbl := *v.Table
+	tbl.Filters = append(append([]kop.Filter(nil), v.Table.Filters...), kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Zone: kop.ZoneBattlefield, Flags: kop.FOther})
+	fid := kop.FilterID(len(v.Table.Filters))
+	tbl.Exprs = []kop.Expr{{Kind: kop.ExCount, F: fid, From: -1}}
+	sc := newScenTable(t, &tbl, Config{})
+	src := sc.perm(v.GrizzlyBears, 1) // the effect's source, on the other side
+	entrant := sc.perm(v.GrizzlyBears, 0)
+	sc.perm(v.GrizzlyBears, 0)
+	sc.s.res.e.obj, sc.s.res.e.ctrl = src, 1
+	val := kop.ValueRef{K: kop.VExpr, N: 0}
+	if got := sc.s.enterCountValue(sc.k, val, sc.s.objs[entrant].slot, 0); got != 1 {
+		t.Fatalf("other creatures beside the entrant: got %d, want 1", got)
+	}
+}
