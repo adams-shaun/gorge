@@ -690,11 +690,10 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
-			if k.gen != nil && len(k.gen.grantPC) != 0 {
-				// the planner's census has no granted source (Imprisoned in the Moon's {C})
-				return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
-			}
-			return s.affordsFor(k, p, &cost)
+			// the planner's census (potentialTargetPricedPlan): no granted source
+			// (Imprisoned in the Moon's {C}), and a painful source makes its
+			// colours while one point of damage is not lethal (Starting Town's W)
+			return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 		}
 	}
 	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
