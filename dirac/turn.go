@@ -46,13 +46,14 @@ func (s *State) beginTurn(p uint8) {
 	s.step = kop.StepUntap
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
+	s.g.declM = slotMask{}
 	for m := s.occ; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
-		if pm.actUsed != 0 || pm.flags&(pfLoyaltyUsed|pfDeclared) != 0 {
+		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
 			s.touch(pm.obj)
 		}
 		pm.actUsed = 0
-		pm.flags &^= pfLoyaltyUsed | pfDeclared
+		pm.flags &^= pfLoyaltyUsed
 	}
 	for i := 0; i < int(s.nobj); i++ {
 		if s.objs[i].activations() != 0 {
@@ -168,7 +169,9 @@ func (s *State) beginStep(k *prep) {
 			s.step = kop.StepMain1
 			return
 		}
+		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
 		s.draw(s.active)
+		s.g.drawFirst = false
 		if s.over {
 			return
 		}
@@ -324,6 +327,9 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		s.kwx, s.nkwx = [maxKwRepX]kwRepX{}, 0
 	}
+	// each slot's inline pump is zeroed below
+	s.ptx, s.nptx = [maxPtX]ptRepX{}, 0
+
 	s.mSlZero(k, mechRegen) // the shields' third bit (repl_regenerate.go), cleared with pfRegen below
 	m := s.occ
 	if k.phasing {
@@ -447,11 +453,11 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
-		if s.g.lingerM.any() && (!s.parkedWaiting() || s.parkedBeforeFirstAnswer()) && !s.legendOwed(k) {
+		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
 			// state-based checks unattach (each pass: a host that died in
-			// the last one too), and a casualty's later ask or a legend ask
-			// is still that pass (CR 704.3, 704.5n, 704.5p); a casualty dying
-			// beside the first parked one leaves its attachment to the next pass
+			// the last one too), and a casualty's parked ask or a legend ask
+			// is still that pass (CR 704.3, 704.5n, 704.5p): gorge's check
+			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
 		for p := uint8(0); p < 2; p++ {

@@ -6,7 +6,7 @@
     "pool": "tail-46",
     "surface": "autopay",
     "seed": 1,
-    "pair": 48,
+    "pair": 34,
     "policy": "random",
     "mulligans": 1
   }

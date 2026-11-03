@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -24,6 +25,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	}
 	if _, ok := ps.get("Duration"); ok {
 		return refuse("Effect replacement Duration$")
+	}
+	if ok, err := lc.effectPreventScope(ps); ok || err != nil {
+		return err
 	}
 	for _, k := range []string{"ExileOnMoved", "ForgetOnMoved"} {
 		if v, ok := ps.get(k); ok && strings.TrimSpace(v) != "Battlefield" {
@@ -74,4 +78,62 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	}
 	lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(kws, "&")})
 	return nil
+}
+
+// effectPreventScope lowers the this-turn prevention Effect that names no
+// remembered object: one bodyless Event$ DamageDone | Prevent$ True line in
+// the Command zone whose ValidTarget$ is You, Creature.YouCtrl or both, with
+// ValidSource$ Creature.inZoneBattlefield or none, and no IsCombat$ (combat
+// and noncombat alike). One OpExt PreventDamageScope. It reports false for
+// any other shape so effectPrevent's own arms read it.
+func (lc *lowerCtx) effectPreventScope(ps *params) (bool, error) {
+	if _, ok := ps.get("RememberObjects"); ok {
+		return false, nil
+	}
+	if _, ok := ps.get("ValidTgts"); ok {
+		return false, nil
+	}
+	name := strings.TrimSpace(ps.str("ReplacementEffects"))
+	if strings.Contains(name, ",") {
+		return false, nil
+	}
+	r, ok := cards.ParseReplacementLine(lc.face.SVars[name])
+	if !ok || r.Event != "DamageDone" {
+		return false, nil
+	}
+	rp := newParams(r.Params)
+	rp.consume("Event")
+	if !rp.is("Prevent", "True") || !rp.is("ActiveZones", "Command") {
+		return false, nil
+	}
+	if _, ok := rp.get("IsCombat"); ok {
+		return false, nil
+	}
+	bits := 0
+	for _, w := range strings.Split(rp.str("ValidTarget"), ",") {
+		switch strings.TrimSpace(w) {
+		case "You":
+			bits |= kop.PrevScopePlayer
+		case "Creature.YouCtrl":
+			bits |= kop.PrevScopeCreatures
+		default:
+			return false, nil
+		}
+	}
+	if bits == 0 {
+		return false, nil
+	}
+	switch rp.str("ValidSource") {
+	case "":
+	case "Creature.inZoneBattlefield":
+		bits |= kop.PrevScopeSrcCreature
+	default:
+		return false, nil
+	}
+	if left := rp.unread(); len(left) > 0 {
+		return true, refuse("Effect replacement unread %v", left)
+	}
+	ps.consume("ReplacementEffects", "AILogic")
+	lc.emit(lInstr{Op: "PreventDamageScope", C: bits, Note: "prevent the damage the controller and their creatures would take this turn"})
+	return true, nil
 }

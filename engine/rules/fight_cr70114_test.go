@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -110,33 +109,26 @@ func TestCR701_14aHansErikssonFightsTheRevealedCreature(t *testing.T) {
 	}
 }
 
-// TestFightTargetlessDefinedMisresolutionIsLoud: Grothama's granted trigger
-// is `DB$ Fight | Defined$ TriggeredAttackerLKICopy & OriginalHost`. This
-// build resolves OriginalHost of a static-granted trigger to the attacker
-// itself, so both members name the same creature. The fight must not happen
-// (no self-fight from a mis-resolved selector) and must say so in the log --
-// never a silent no-op that counts the card as supported.
-func TestFightTargetlessDefinedMisresolutionIsLoud(t *testing.T) {
+// TestFightGrantedTriggerNamesTheGrantor: Grothama's granted trigger is
+// `DB$ Fight | Defined$ TriggeredAttackerLKICopy & OriginalHost`. OriginalHost
+// of a static-granted trigger is the granting Grothama, not the attacker, so
+// the attacker (3/3) and Grothama (10/8) fight each other: CR 701.14a.
+func TestFightGrantedTriggerNamesTheGrantor(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	e := cr70114AttackTable(t)
-	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grothama, All-Devouring"))
+	grothama := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Grothama, All-Devouring"))
 	giant := onBoardReady(t, e, 0, "Name:Giant\nManaCost:3 R\nTypes:Creature Giant\nPT:3/3\nOracle:x\n")
 	mark := len(e.L.Events)
 	e.askAttackers()
 	submitAttackersOnly(t, e, giant)
 	cr70114Drain(t, e)
-	if got := cr70114DamageSince(e, mark); len(got) != 0 {
-		t.Fatalf("Grothama fight dealt %+v, want nothing (both Defined$ members are the attacker)", got)
+	dealt := map[state.ObjID]int32{}
+	for _, ev := range cr70114DamageSince(e, mark) {
+		dealt[ev.Obj] += ev.Amount
 	}
-	loud := false
-	for _, ev := range e.L.Events[mark:] {
-		if ev.Kind == events.Note && strings.HasPrefix(ev.Text, "Fight Defined$ named the same creature twice") {
-			loud = true
-		}
-	}
-	if !loud {
-		t.Fatal("the unresolvable targetless Fight emitted no Note: a fight that cannot happen must not be silent")
+	if dealt[grothama] != 3 || dealt[giant] != 10 || len(dealt) != 2 {
+		t.Fatalf("fight damage = %v, want Grothama 3 and the Giant 10 (CR 701.14a)", dealt)
 	}
 }
 

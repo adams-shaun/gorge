@@ -4,9 +4,9 @@
   "why": "its {2},{T} mana ability of a dynamic amount: gorge's prefix search activates it for a play, dirac's filter search does not model it; 53 of 61 divergent std-blb games at 12,000 pairs",
   "repro": {
     "pool": "std-blb",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 2034,
+    "pair": 30,
     "policy": "random",
     "mulligans": 0
   }

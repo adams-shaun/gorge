@@ -428,7 +428,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		miss := o == NoObj
 		if o != NoObj {
 			z := s.objs[o].zone
-			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o])
+			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o]) || s.instantStays(k, o, kop.Zone(in.C))
 		}
 		s.g.retMiss = miss
 		if kop.Zone(in.C) != kop.ZoneBattlefield || o == NoObj || k.cards[s.objs[o].card].types&kop.TAura == 0 {
@@ -1349,14 +1349,13 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 		s.countMayPlayLand(k, o, from)
 	}
 	var sl Slot
+	s.enterOnto(host)
 	if from == kop.ZoneGraveyard {
 		sl = s.enterFromGrave(k, o, ctrl, false)
 	} else {
 		sl = s.enter(k, o, ctrl, false, from)
 	}
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 	return false
 }
 
@@ -1381,7 +1380,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) {
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C)) {
 		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
@@ -1473,6 +1472,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
 	default:
+		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
 	s.g.enterCtr.n = 0
@@ -1481,7 +1481,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.enterAttacking(k, sl, ctrl)
 	}
 	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
+		s.attachedTo(k, sl, host)
 	} else if host == NoSlot && in.B.N&kop.RetAttachTo != 0 && in.F != 0 {
 		return s.czBearerAfter(k, in, o) // an Equipment's filter bearer is asked after it enters (tgt_attachedto.go)
 	}
@@ -1599,7 +1599,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 			nl := 0 // library-bound cards, compacted into list[:nl]
 			for i := 0; i < n; i++ {
 				o := list[i]
-				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) {
+				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
 					continue
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
@@ -1662,6 +1662,16 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					}
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
+					}
+					if s.parkTail(k, tailSearchEnter) {
+						// the entered card queued an as-enters ask (a shock land's
+						// pay-life election): gorge suspends the sweep there, the
+						// cards after it stay where they were until it is answered
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
 					}
 				} else if z == kop.ZoneLibrary {
 					list[nl] = o // placed below, in gorge's order
@@ -1942,14 +1952,14 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 	}
+	if host != NoSlot && s.occ.has(host) {
+		s.attachTo(k, sl, host) // a copy that enters attached is attached when its enters check looks (CR 303.4f, 603.6a)
+	}
 	if eb != nil && eb.n < len(eb.sl) {
 		eb.sl[eb.n], eb.o[eb.n] = sl, t
 		eb.n++
 	} else if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
-	}
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
 	}
 	if in.B.N>>kop.CopyPumpShift != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant

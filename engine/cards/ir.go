@@ -61,6 +61,10 @@ type Trigger struct {
 	// mode is Mode resolved at load (modeBound); see ModeKind.
 	mode      TriggerMode
 	modeBound bool
+	// offBF is ValidTarget$ offBFFor as it applies to an object off the
+	// battlefield (offBattlefieldTargetSpec), bound at load.
+	offBFFor, offBF string
+	offBFChanged    bool
 }
 
 // Static is an S: line: a continuous effect or a play restriction.

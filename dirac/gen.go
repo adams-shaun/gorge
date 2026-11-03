@@ -105,7 +105,11 @@ type genPrep struct {
 	// Continuous static grants to the permanent its source is attached to
 	// (AddTrigger$): their listeners include those hosts (kw_protection.go trigSubs)
 	grantTrigEv uint32
-	anyProtF    bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
+	// globTrigGrant: a Continuous static grants a triggered ability beyond its
+	// source's host ("artifact creatures you control have ..."), so any
+	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
+	globTrigGrant bool
+	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -190,6 +194,7 @@ type genPrep struct {
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
+	anyStorm       bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
@@ -309,9 +314,10 @@ type genPrep struct {
 	// restrF: the distinct spend restrictions (ManaRestrict filters) of the
 	// table's restricted mana abilities, in table order; the restricted
 	// mana floating beside a pool names its restriction by index
-	// (player.poolR's kind bit), so two are encodable (Giada's Angel
-	// spells, Secluded Courtyard's creature spells of the chosen type)
-	restrF [2]kop.FilterID
+	// (player.poolR's kind bits), so restrKinds are encodable (Giada's Angel
+	// spells, Secluded Courtyard's creature spells of the chosen type, a
+	// Standard table's three restricted lands)
+	restrF [restrKinds]kop.FilterID
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census
@@ -372,6 +378,7 @@ const (
 	rbPrevCol                         // Ext PreventColor: damage from sources of a chosen colour is prevented this turn (anyRepl only; cast_altfree.go)
 	rbDblLoss                         // ReplLifeLossDouble (repl_lifelossdouble.go)
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
+	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -808,6 +815,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifePlus:
 					g.replBits[i] |= rbPlusLife
 					pc.hasStat = true
+				case kop.ReplDrawMore:
+					g.replBits[i] |= rbDrawMore
+					pc.hasStat = true
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
@@ -891,6 +901,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if !filterAttachedOnly(t, a.Static.Filter) {
 						if a.Static.Kind == kop.StatContinuous {
 							g.setFlag(CardID(i), gfGlobGrant)
+							if int(a.Static.Grant) <= len(t.Cards[i].Abilities) && t.Cards[i].Abilities[a.Static.Grant-1].Kind == kop.AbTriggered {
+								g.globTrigGrant = true
+							}
 						}
 						if int(a.Static.Grant) <= len(t.Cards[i].Abilities) && t.Cards[i].Abilities[a.Static.Grant-1].Kind != kop.AbMana {
 							g.globGrant = true
@@ -1091,7 +1104,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigLifeGained:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained:
 					g.embCombatEv |= 1 << a.Trig.Event
 				}
 			}
@@ -1312,7 +1325,7 @@ type genState struct {
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
 	energy    [2]uint8            // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
-	_         uint8               // padding (the layout stays)
+	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
 	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 
@@ -1330,6 +1343,7 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
+	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
 	dmg  [maxDmgMap]struct{ code, amt uint8 }
 	ndmg uint8
@@ -1409,7 +1423,11 @@ type genState struct {
 	disc        Obj      // the card being discarded (TrigDiscarded)
 	nlB         [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
-	redNC       [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
+	redNC [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
+	// grantSrc is the granting permanent plus one (0 = none) while a grant
+	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
+	// the pad after redNC.
+	grantSrc    uint8
 	cast        slotMask // slots whose permanent was cast by its controller
 	zoneTurn    objBits  // objects put into their current zone this turn
 	enteredN    uint8    // the live prefix of State.cold.entered
@@ -1455,8 +1473,16 @@ type genState struct {
 	prevCol [3]struct {
 		obj Obj
 		col kop.ColorMask
+		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
+		// damage its controller ctl (a player) or the creatures ctl controls
+		// would take; sc holds the kop.PrevScope* bits and col is 0
+		sc, ctl uint8
 	}
-	lingerM  slotMask
+	lingerM slotMask
+	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
+	// counts each creature once across extra combats). perm.flags has no free bit, so
+	// the mark lives here; it ends with the permanent (removePerm) and with the turn.
+	declM    slotMask
 	replaced Obj // the object an as-enters replacement program is modifying
 
 	// OpCastFree: cards still castable this resolution
@@ -1664,7 +1690,7 @@ const (
 	StallEntered   = 38 // more than maxEntered zone entries in one turn (genState.entered)
 	StallConvoke   = 39 // more convoke picks than the cast build holds, or more convoke options than a decision holds (kw_convoke.go)
 	StallCastRing  = 40 // a player pushes more than castRingN spells in one turn (State.cold.castRing)
-	StallPT        = 41 // a power or toughness pump leaves the int8 end-of-turn range (eotAdd, OpPumpAllEach; filter_defined.go)
+	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range, or needs a fifth of the maxPtX slots (eotAdd, OpPumpAllEach; filter_defined.go)
 	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
 	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
 	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)
@@ -1925,7 +1951,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && s.newerOvRec(sl, i) {
+				if p.r.fl&ovReps == ovReps || grants && s.newerLayer6Fx(sl, i) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -1958,10 +1984,22 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	return true
 }
 
-// newerOvRec reports an override record on sl after pool position i.
-func (s *State) newerOvRec(sl Slot, i int) bool {
+// newerLayer6Fx reports an effect record on sl after pool position i that
+// can reorder a layer-6 effect: a keyword or ability grant or removal, a loss
+// of abilities, or any record that is not an override. A layer-6 effect is
+// ordered by timestamp among layer-6 effects only (CR 613.1f, 613.7), so a
+// newer record of another layer (a P/T, colour or type setter) lets a repeat
+// of an older keyword record merge into it.
+func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 	for j := i + 1; j < int(s.g.nfx); j++ {
-		if p := &s.g.fx[j]; p.sl == sl && p.kind == fxOverride {
+		p := &s.g.fx[j]
+		if p.sl != sl {
+			continue
+		}
+		if p.kind != fxOverride {
+			return true
+		}
+		if ov := &s.k().t.Overrides[p.r.idx-1]; ov.Grant[0] != 0 || ov.Grant[1] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.CantAttack {
 			return true
 		}
 	}

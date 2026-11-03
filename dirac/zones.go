@@ -223,6 +223,12 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 // 121.6: gorge replaces the empty-library mark of a player under
 // drawForbidden with a Note, replacement.go).
 func (s *State) draw(p uint8) {
+	s.drawExcl(p, drawChain{})
+}
+
+// drawExcl is draw with the draw replacements already applied to this
+// draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
+func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl := &s.pl[p]
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw) {
 		return // static_cantdraw.go: before the empty-library mark
@@ -233,10 +239,14 @@ func (s *State) draw(p uint8) {
 		pl.drewEmpty = true
 		return
 	}
+	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
+		return // repl_draw.go: the replacement drew in this draw's place
+	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)
 		return
 	}
+	s.g.drawFirst = false
 	o := pl.lib[pl.libLo]
 	pl.libLo++
 	s.touch(o)
@@ -325,6 +335,9 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
 	}
+	if s.g.entHost != 0 {
+		s.attachEntering(k, sl) // zone_handmoveaura.go
+	}
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
@@ -359,6 +372,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	pc := &k.cards[ob.card]
 	if s.nkwx != 0 {
 		s.dropKwRepX(sl)
+	}
+	if s.nptx != 0 {
+		s.dropPtX(sl)
 	}
 	s.ts++
 	fl := pfSick
@@ -566,6 +582,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.objs[o].of &^= ofSickLeft
 	}
 	s.g.lingerM.clr(sl)
+	s.g.declM.clr(sl)
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
 	if s.g.nlA[0] != 0 {
 		s.netDrop(o) // the lock ends when the permanent leaves (act_lockpermanent.go)
@@ -586,8 +603,8 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.clearFaceDown(sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
-	if p.ovr.flags&ovCopy != 0 && k.gen != nil && k.gen.anyCloneCopy {
-		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables)
+	if p.ovr.flags&ovCopy != 0 {
+		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables): whatever made the copy (a clone op, an as-enters clone, an Aegis)
 	}
 	if p.attached != NoSlot {
 		s.recordAttLKI(o, p.attached)

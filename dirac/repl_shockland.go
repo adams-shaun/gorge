@@ -20,6 +20,7 @@ var DebugShockFree bool
 const (
 	askLandPlay    uint16 = 1 << iota // the answer completes a land play
 	askEntryTapped                    // the permanent taps once the election is answered
+	askUntapWins                      // a competing untap was applied after the election's tap (CR 616.1): declining taps nothing
 )
 
 // shock result of shockAt.
@@ -160,9 +161,22 @@ func (s *State) shockAnswer(k *prep, ask askRec, a Action) {
 	if a.Mode() == 1 && n > 0 && (DebugShockFree || int(s.pl[ctrl].life) >= n) {
 		s.loseLife(k, ctrl, n)
 		next += skip
+	} else if ask.ts&askUntapWins != 0 {
+		next += skip // the tap body ran before the untap that wins: nothing taps
 	}
 	saveRep := s.g.replaced
 	s.g.replaced = s.perms[ask.sl].obj
 	s.runReplProg(k, ask.sl, ask.card, ask.ab, uint8(next))
 	s.g.replaced = saveRep
+}
+
+// shockUntapWins marks the permanent at sl's queued election: a body that
+// untaps it was applied after the election's tap (CR 616.1, the order the
+// affected player chose), so the answer taps nothing, though it is still asked.
+func (s *State) shockUntapWins(sl Slot) {
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
+			a.ts |= askUntapWins
+		}
+	}
 }

@@ -99,6 +99,7 @@ CostExileCtrlOrGrave	CostFlags	1073741824
 CostExileGrave	CostFlags	512
 CostExileSelf	CostFlags	1048576
 CostForage	CostFlags	65536
+CostHostSac	uint8	1
 CostLoyalty	CostFlags	4096
 CostLoyaltyX	CostFlags	536870912
 CostOncePerGame	CostFlags	8192
@@ -390,6 +391,7 @@ ExtNumTimes	ExtOp	50
 ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
+ExtPreventDamageScope	ExtOp	246
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -725,6 +727,7 @@ PayBRemember	untyped int	4
 PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubEvidence	untyped int	2
+PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
@@ -809,6 +812,9 @@ PropCardManaCost	uint8	3
 PropCardPower	uint8	1
 PropCardToughness	uint8	2
 PropNone	uint8	0
+PrevScopeCreatures	untyped int	2
+PrevScopePlayer	untyped int	1
+PrevScopeSrcCreature	untyped int	4
 PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
@@ -863,7 +869,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	29
+ReplCount	ReplKind	30
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -881,6 +887,8 @@ ReplDoubleCountersOn	ReplKind	20
 ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
+ReplDrawMore	ReplKind	29
+ReplDrawNotFirst	untyped int	1
 ReplEntersAsChoice	ReplKind	5
 ReplEntersProgram	ReplKind	6
 ReplEntersTapped	ReplKind	1
@@ -951,6 +959,7 @@ StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
+StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
@@ -1186,6 +1195,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttackingAlone	int16	3
 W7AttackingOpp	int16	7
+W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
@@ -1193,9 +1203,11 @@ W7FaceUp	int16	5
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7InZone	int16	4
+W7IsCommander	int16	16
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
+W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesNameLegend	int16	10
 W7WithWarp	int16	11

@@ -7,7 +7,7 @@
 //	bin/kgen -synth-pools                                             # the synthetic evidence pools' tables (make dirac-tables)
 //	go run ./dirac/cmd/kgen -pool x -card-list <file> -cards <dir> -out <dir> # one ad-hoc pool: x.ktab, x.coverage.md, ids.tsv
 //	go run ./dirac/cmd/kgen -decks <dir> -cards <dir> -dump <scratch dir>   # IR study dump
-//	go run ./dirac/cmd/kgen -census-std -cards <dir> [-sets A,B] [-tsv f]   # refusal classes by Standard carry
+//	go run ./dirac/cmd/kgen -census-std -cards <dir> [-sets A,B] [-tsv f] [-all-blockers]   # refusal classes by Standard carry
 //	go run ./dirac/cmd/kgen -supported <pool>                               # name<TAB>true|false, every pool entry
 //	go run ./dirac/cmd/kgen -show <pool> <card>                             # one card's kop.CardDef literal
 //	go run ./dirac/cmd/kgen -ops <pool> -out <file>                         # one pool's OPS.md
@@ -37,6 +37,7 @@ func Main(args []string) int {
 	layerCensus := flags.Bool("layer-census", false, "print the interim layer guard's reach (classified cards, refused pairs and deck pairs) instead of generating")
 	censusStd := flags.Bool("census-std", false, "print refusal classes ranked by Standard-set carry instead of generating")
 	setsFlag := flags.String("sets", "", "with -census-std: comma-separated set codes (default dirac/cardset/standard.txt)")
+	allBlockers := flags.Bool("all-blockers", false, "with -census-std: keep lowering past a refusal and report every blocker of a card, not only the first of each node")
 	tsvFlag := flags.String("tsv", "", "with -census-std: write a per-refusal TSV dump here")
 	whatIf := flags.String("whatif", "", "with -lir: also refuse these cards (comma list) and report coverage")
 	tables := flags.Bool("tables", false, "write every pool's binary table under the corpus (make dirac-tables): exit 3 means an ids.tsv changed, rebuild kgen and rerun")
@@ -80,6 +81,7 @@ func Main(args []string) int {
 		return (runTables(cards, os.Stdout, os.Stderr))
 	}
 	if *censusStd {
+		censusAllBlockers = *allBlockers
 		std, err := stdSetCodes(*setsFlag)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "kgen:", err)

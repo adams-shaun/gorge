@@ -6,7 +6,7 @@
     "pool": "std-tla",
     "surface": "full",
     "seed": 1,
-    "pair": 232,
+    "pair": 598,
     "policy": "random",
     "mulligans": 0
   }

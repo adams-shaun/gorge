@@ -47,7 +47,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	p.chosen = 255
 	s.g.cast.clr(sl)
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		s.g.cast.set(sl)
+		if s.objs[o].of&(ofCopy|ofToken) == 0 {
+			s.g.cast.set(sl) // a spell's copy is never cast (CR 707.10), and is a token by now (permCopyEnters)
+		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
 		}
@@ -157,11 +159,17 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 	}
 	s.g.replaced = saveRep
+	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
 	switch ovr {
 	case entOvrTap:
-		p.flags |= pfTapped // the last body applied taps it
+		if !shock {
+			p.flags |= pfTapped // the last body applied taps it
+		} // a shock land's own body is that tap: the election's answer applies it
 	case entOvrUntap:
 		p.flags &^= pfTapped // the last body applied untaps it
+		if shock {
+			s.shockUntapWins(sl) // the election is still asked, its tap came first
+		}
 	}
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl].set(sl)
@@ -317,10 +325,9 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 // attached to host (CR 303.4f).
 func (s *State) enterRetAura(k *prep, o Obj, host Slot) {
 	from := s.detach(o)
+	s.enterOnto(host)
 	sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 }
 
 // leaveGen runs at the end of the core's removePerm for the object o that left
@@ -475,10 +482,7 @@ func (s *State) newTurnGen() {
 	if s.ndly != 0 {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
-	s.g.prevCol = [3]struct {
-		obj Obj
-		col kop.ColorMask
-	}{}
+	clear(s.g.prevCol[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}

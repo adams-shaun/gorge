@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -436,6 +437,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zBattlefield && (dest == zHand || dest == zExile) ||
 			origin == zGraveyard && (dest == zHand || dest == zExile) && ps.is("Hidden", "True") {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
+		}
+		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
+			// Command Beacon's "put your commander into your hand": no seat
+			// has a commander in a kernel game (kop.W7IsCommander), the
+			// command zone holds no other card, and gorge's pick over the
+			// empty pool moves nothing and poses no decision
+			ps.consume("SelectPrompt")
+			return nil
 		}
 		return refuse("ChangeType$ move %s->%s", zoneLabel[origin], zoneLabel[dest])
 	}
@@ -2035,7 +2044,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	defer func() { lc.granted-- }()
 	_, hasDur := ps.get("Duration")
 	eot := !hasDur
-	if hasDur && !ps.is("Duration", "Permanent") {
+	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
+	if hasDur && !next && !ps.is("Duration", "Permanent") {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	ps.consume("Name", "Image", "Stackable")
@@ -2054,10 +2064,12 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if !ok {
 		return refuse("emblem trigger %q", tr)
 	}
-	if eot && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && t.Mode != "AttackersDeclared" {
+	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" &&
+		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
-		// the command zone at cleanup) is the kernel's EOT emblem, which
-		// fires only for the events emblems listen to
+		// the command zone at cleanup) is the kernel's EOT emblem, and an
+		// until-your-next-turn one its next-turn emblem; both fire only for
+		// the events emblems listen to
 		return refuse("Effect triggers without a permanent duration")
 	}
 	if t.Effect == nil {
@@ -2071,7 +2083,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
-	if eot {
+	if eot || next {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
 		}
@@ -2081,7 +2093,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
 	return nil
 }
@@ -2909,6 +2921,13 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			// Toshiro); the kernel prices no restricted last-resort unit
 			return refuse("mana restriction on a PayLife source: gorge plans it last-resort")
 		}
+		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) {
+			// the kernel's window prices a restricted mana ability only when
+			// its cost is a plain {T}; gorge's cast-window probe also prices
+			// one that sacrifices, pays mana or taps another permanent
+			// (Jeweled Lotus' sacrifice), so the census would run short
+			return refuse("mana restriction on a source whose cost goes beyond {T}")
+		}
 		if err := lc.manaRestrict(rv, m); err != nil {
 			return err
 		}
@@ -3350,4 +3369,25 @@ func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, ob
 	o.HasSetPT, o.LivePT, o.KeepP, o.KeepT = true, true, !okP, !okT
 	o.PVal, o.TVal = pv, tv
 	return nil
+}
+
+// plainTapCost reports whether c is a bare {T}: no mana, no other part.
+func plainTapCost(c lCost) bool {
+	m := c.Mana
+	if m.Generic != 0 || m.Pips != [5]int{} || len(m.Hybrid) != 0 || len(m.Twobrid) != 0 || len(m.Phyrexian) != 0 || m.X {
+		return false
+	}
+	c.Tap, c.Mana = false, manaCost{}
+	return reflect.DeepEqual(c, lCost{})
+}
+
+// noCost reports whether c has no part at all (a spell's or a resolving
+// effect's mana, which has no activation cost).
+func noCost(c lCost) bool {
+	return !c.Tap && plainTapCostIgnoringTap(c)
+}
+
+func plainTapCostIgnoringTap(c lCost) bool {
+	c.Tap = true
+	return plainTapCost(c)
 }

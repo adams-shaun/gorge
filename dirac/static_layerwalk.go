@@ -366,6 +366,9 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 		if e := &fx[i]; e.o != nil && e.o.HasPT && s.lfxLocked(k, sl, e, &c) {
 			ep, et := e.p, e.t
 			if e.o.LivePT {
+				if s.livePTLost(k, sl, e.ts) {
+					continue
+				}
 				ep, et = s.livePT(k, sl, e.o, ep) // static_animategrants.go
 			}
 			if !e.o.KeepP {

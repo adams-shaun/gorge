@@ -266,7 +266,7 @@ func (s *State) PoolOf(p uint8) (pool [kop.NumManaKinds]uint8, rColour, rN uint8
 	pl := &s.pl[p&1]
 	pool = pl.poolProj(s.poolRx[p&1]) // (the restricted part below is poolR's colour only)
 	if n := pl.poolR & poolRCnt; n != 0 {
-		return pool, pl.poolR >> poolRShift, n
+		return pool, uint8(pl.poolR >> poolRShift), uint8(n)
 	}
 	return pool, 0, 0
 }

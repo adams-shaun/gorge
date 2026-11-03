@@ -37,8 +37,8 @@ func (s *State) enterCast(o Obj) (cast bool, from uint8) {
 		return true, uint8(kop.ZoneHand)
 	}
 	e := s.resSpellOf(o)
-	if e == nil || s.objs[o].of&ofCopy != 0 {
-		return false, 0 // a copy is never cast (CR 707.10)
+	if e == nil || s.objs[o].of&(ofCopy|ofToken) != 0 {
+		return false, 0 // a copy is never cast (CR 707.10); a permanent copy is already a token when its enter triggers match (permCopyEnters)
 	}
 	return true, e.prov & 7
 }

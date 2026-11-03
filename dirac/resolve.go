@@ -156,14 +156,13 @@ func (s *State) resolveTop(k *prep) {
 			ob := &s.objs[e.obj]
 			if ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
 				s.touch(e.obj)
-				p := &s.perms[ob.slot]
-				p.eotP++
-				p.eotT++
+				op, ot := s.eotPT(ob.slot)
+				s.setEotPT(ob.slot, op+1, ot+1)
 			}
 			s.finishResolve(k, false)
 			return
 		}
-		if e.ab == abCascade {
+		if e.ab == abCascade || e.ab == abStorm {
 			s.runProg(k)
 			return
 		}
@@ -401,6 +400,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 	if e.ab >= abCascade {
 		if e.ab == abCascade {
 			return cascadeProg[:]
+		}
+		if e.ab == abStorm {
+			return stormProg[:]
 		}
 		return nil
 	}

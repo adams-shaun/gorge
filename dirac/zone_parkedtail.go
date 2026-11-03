@@ -23,11 +23,12 @@ import (
 // no State byte is added. The marker is only ever read at a search/dig op
 // (tailOp), so a stale res.left from an earlier op cannot run a tail.
 const (
-	tailSearch     uint8 = 1 + iota // the library shuffle and ThenTop of a search
-	tailDig                         // a dig's rest ordering and placement
-	tailDigArrange                  // a dig's raGenDigArrange pose
-	tailDigUntil                    // a reveal-until's later found cards and the rest
-	tailDigEnter                    // a dig's later taken cards, then its tail
+	tailSearch      uint8 = 1 + iota // the library shuffle and ThenTop of a search
+	tailDig                          // a dig's rest ordering and placement
+	tailDigArrange                   // a dig's raGenDigArrange pose
+	tailDigUntil                     // a reveal-until's later found cards and the rest
+	tailDigEnter                     // a dig's later taken cards, then its tail
+	tailSearchEnter                  // a search's later found cards, then its shuffle
 )
 
 // parkTail parks the tail kind when the resolution will suspend at the
@@ -45,7 +46,7 @@ func (s *State) parkTail(k *prep, kind uint8) bool {
 // tailOp: the op at pc is one that parks a tail.
 func (s *State) tailOp(k *prep) bool {
 	switch s.prog(k)[s.res.pc].Op {
-	case kop.OpSearchEx, kop.OpChooseMove, kop.OpDigEx, kop.OpDigUntil:
+	case kop.OpSearchEx, kop.OpChooseMove, kop.OpDigEx, kop.OpDigUntil, kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
 		return true
 	}
 	return false
@@ -71,7 +72,7 @@ func (s *State) unparkTail(k *prep) bool {
 	case tailDigArrange:
 		s.res.ask, s.res.askP = raGenDigArrange, s.g.pickP
 		return true
-	case tailDigUntil, tailDigEnter:
+	case tailDigUntil, tailDigEnter, tailSearchEnter:
 		s.res.ask = raNone
 		return s.rerunMove(k, &s.prog(k)[s.res.pc])
 	}

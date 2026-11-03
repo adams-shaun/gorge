@@ -343,6 +343,26 @@ func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state
 // target-independent gate (costStaticGate) -- false means no member can
 // apply under any target assignment.
 func (e *Engine) costModifiersCompose(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
+	// A spell priced in its graveyard (a flashback or may-play offer, and the
+	// payment plan made from it) is priced as the cast will charge it: the
+	// card is on the stack, having left the graveyard, before the cost is
+	// determined (CR 601.2a, 601.2f), so a cost reduced by cards that left the
+	// graveyard this turn (Wilt in the Heat) applies to its own cast. Mid-cast
+	// the card is already on the stack and its move is in the ledger.
+	if o := e.G.Obj(id); scope.Kind != "Ability" && o != nil && o.Zone == state.ZGraveyard && e.pricedFromGraveyard == 0 {
+		e.pricedFromGraveyard = id
+		e.retireCrossWalkMemo()
+		e.invalidateScratchLayerLists()
+		mods := e.costModifiersCompose0(statics, p, id, scope, targets, potential, x, mayApply)
+		e.pricedFromGraveyard = 0
+		e.retireCrossWalkMemo()
+		e.invalidateScratchLayerLists()
+		return mods
+	}
+	return e.costModifiersCompose0(statics, p, id, scope, targets, potential, x, mayApply)
+}
+
+func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, potential bool, x int32, mayApply *bool) costMods {
 	// Each pass owns the provenance capture: cleared here, set by
 	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
 	e.CostProvenanceSeen = false

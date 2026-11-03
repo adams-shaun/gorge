@@ -1222,6 +1222,15 @@ func (g *GorgeSide) Apply(a Canon) {
 		return
 	}
 	g.repose(fr)
+	if fr.d.Kind == decision.KChoose && fr.d.ResumeKind == "hand_move" && !fr.restable && len(fr.cur.Options) == 1 && fr.curAt[0] == -1 {
+		// Only Done is left: no candidate remains to pick, and the kernel's
+		// optional hand pick ("put up to N cards from your hand onto the
+		// battlefield") ends there rather than posing a lone Done (CR 107.1c).
+		// A target list and a convoke pick keep their Done: the kernel asks it
+		// after the last candidate.
+		g.commit(fr, fr.chosen)
+		return
+	}
 	if len(fr.cur.Options) == 0 {
 		// No pick and no valid Done: the published constraints cannot
 		// finish this answer; let gorge's repair have it.

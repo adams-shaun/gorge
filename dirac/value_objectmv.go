@@ -22,6 +22,26 @@ func (s *State) sacrificedMV(ctx evalCtx) int {
 	return 0
 }
 
+// triggerLKIMV is TriggeredCard$CardManaCost on a trigger whose entry holds the
+// triggering permanent's last-known information: the mana value it had on the
+// battlefield, the copied card's on a copy (CR 707.2, 608.2h, 603.10a; gorge
+// reads the zone-change snapshot, count_ref_property.go), not the printed card
+// it became in the graveyard (a Mockingbird that copied a three-drop reads 3,
+// not its own X cost). ok is false when there is no record of o.
+func (s *State) triggerLKIMV(r kop.Ref, o Obj, ctx evalCtx) (int, bool) {
+	if r != kop.RefTriggerObj || ctx.e == nil || ctx.e.li == 0 {
+		return 0, false
+	}
+	l := s.lk(ctx.e.li)
+	if l.obj != o || l.ver != s.objs[o].ver && s.objs[o].zone == kop.ZoneBattlefield {
+		return 0, false
+	}
+	if l.bits&lkiFaceDown != 0 {
+		return 0, true
+	}
+	return int(l.mv), true
+}
+
 // targetMV is Targeted$CardManaCost (gorge evalRefProperty over the
 // targeted object, whose id survives its moves): the mana value of the
 // chosen target's card -- the copied card while it is on the battlefield

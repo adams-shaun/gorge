@@ -1021,6 +1021,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
 			e.keepTriggerLKI(id, &pt)
+			e.bindReflexiveContext(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, false)
 		}

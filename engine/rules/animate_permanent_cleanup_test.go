@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -60,6 +61,32 @@ func TestKarnAnimateUntilYourNextTurnSurvivesTheOpponentsTurn(t *testing.T) {
 	driveToStep(t, e, 3, 0, state.StepMain1)
 	if e.IsCreature(ring) {
 		t.Fatal("Karn's animation survived into Karn's next turn")
+	}
+}
+
+// TestAnimateUntilYourNextTurnEndsWithTheObject: a creature that is exiled and
+// returned is a new object (CR 400.7), so Karn's animation of it, which lasts
+// until Karn's next turn, does not reach the returned artifact.
+func TestAnimateUntilYourNextTurnEndsWithTheObject(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{
+		lookup(t, reg, "Karn, the Great Creator"), lookup(t, reg, "Sol Ring"),
+	}, []*cards.Card{})
+	karn := moveByName(t, e, 0, "Karn, the Great Creator", state.ZBattlefield)
+	ring := moveByName(t, e, 0, "Sol Ring", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	submitChoices(t, e, abilityOption(t, e, karn, 0).Index)
+	submitTarget(t, e, ring)
+	passUntilStackEmpty(t, e, 40)
+	if !e.IsCreature(ring) {
+		t.Fatal("Karn's +1 did not animate Sol Ring")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: ring, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: ring, From: state.ZExile, To: state.ZBattlefield})
+	if e.IsCreature(ring) {
+		t.Fatal("the animation followed Sol Ring through exile and back")
 	}
 }
 

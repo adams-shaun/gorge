@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math"
 	"math/bits"
 	"sync"
 	"sync/atomic"
@@ -183,7 +184,6 @@ const (
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
 	pfPanhGone    // a Panharmonicon host departing in the batch being fired: gorge reads its statics after the batch (trig_doubling.go)
-	pfDeclared    // was declared as an attacker earlier this turn (Count$AttackersDeclared counts each creature once across extra combats)
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;
@@ -255,7 +255,7 @@ type perm struct {
 	obj      Obj
 	ctrl     uint8
 	damage   uint8
-	eotP     int8
+	eotP     int8 // until-end-of-turn pump, saturated to the int8 range; the true amount of a larger one is in State.ptx
 	eotT     int8
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
@@ -391,10 +391,10 @@ type player struct {
 	scry        uint8 // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	// poolR is restricted mana floating beside pool (Giada's Angel-only
 	// {W}; gorge's Players[p].RestrictedMana): the count in bits 0-3, the
-	// restriction (genPrep.restrF index) in bit 4, the colour index in
-	// bits 5-7. Spent only by a spell the restriction allows (payRestr);
+	// restriction (genPrep.restrF index) in bits 4-5, the colour index in
+	// bits 6-8. Spent only by a spell the restriction allows (payRestr);
 	// projected as pool mana (mana_window.go). It takes the padding byte.
-	poolR uint8
+	poolR uint16
 	sac   [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc  uint8    // cards this player discarded this turn
 }
@@ -451,7 +451,9 @@ type stackEntry struct {
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
 	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
-	// A spell has no remembered object: see spellGainedDeathtouch.
+	// A spell has no remembered object: see spellGainedDeathtouch. A granted
+	// trigger has none either, and keeps the permanent that granted it here
+	// instead: see trigHost.
 	remVer uint8
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
@@ -501,7 +503,9 @@ type pendingTrig struct {
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
-	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
+	// A granted trigger has no remembered object and keeps the permanent that
+	// granted it here instead (stackEntry.trigHost)
 	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
 	remVer uint8
 	// x is the trigger object's spell's paid X, bound as it triggered
@@ -654,6 +658,7 @@ type build struct {
 	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
 	pipN      uint8    // hybrid pips announced so far
 	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
+	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
 	fbGrants  uint8    // the card's flashback grants before this cast ended them (the undo restores them)
 	divSlot   uint8    // bsDivide: the divided target slot
 	divLeft   uint8    // bsDivide: points still to place beyond each target's 1
@@ -805,6 +810,8 @@ type stateCore struct {
 	lstamp [MaxPerm]uint16   // CR 613.7e layer restamp on attach (static_attachtimestamp.go layerTs)
 	kwx    [maxKwRepX]kwRepX // until-end-of-turn keyword repeats past the third (grantEOT)
 	nkwx   uint8
+	ptx    [maxPtX]ptRepX // until-end-of-turn pumps past the int8 range (eotPT)
+	nptx   uint8
 	occ    slotMask    // occupied battlefield slots
 	ctrlM  [2]slotMask // slots by controller
 	subs   [nSubEvents]slotMask
@@ -953,6 +960,75 @@ const kwSup = 0x40
 // maxKwRepX bounds the kwRepX records live at once; a grant past it is
 // not counted (feature lists only, no rules effect).
 const maxKwRepX = 8
+
+// ptRepX holds the true until-end-of-turn pump of a permanent whose pump
+// left the int8 range perm.eotP and perm.eotT hold (Jumbo Cactuar's
+// +9999/+0 on attack). The perm keeps the amount saturated to int8, so its
+// sign is right wherever it is read without the table.
+type ptRepX struct {
+	sl   Slot
+	p, t int16
+}
+
+// maxPtX bounds the ptRepX records live at once; a pump that needs a fifth
+// stalls (StallPT).
+const maxPtX = 4
+
+// eotPT is sl's until-end-of-turn power and toughness pump.
+func (s *State) eotPT(sl Slot) (int, int) {
+	if s.nptx != 0 {
+		for i := 0; i < int(s.nptx); i++ {
+			if r := &s.ptx[i]; r.sl == sl {
+				return int(r.p), int(r.t)
+			}
+		}
+	}
+	p := &s.perms[sl]
+	return int(p.eotP), int(p.eotT)
+}
+
+// setEotPT stores sl's pump (each within int16): inline when both fit int8,
+// else saturated inline with the true amounts in ptx. A full table stalls
+// (StallPT) and changes nothing.
+func (s *State) setEotPT(sl Slot, np, nt int) bool {
+	p := &s.perms[sl]
+	i := 0
+	for i < int(s.nptx) && s.ptx[i].sl != sl {
+		i++
+	}
+	if np == int(int8(np)) && nt == int(int8(nt)) {
+		if i < int(s.nptx) {
+			s.dropPtX(sl)
+		}
+		p.eotP, p.eotT = int8(np), int8(nt)
+		return true
+	}
+	if i == int(s.nptx) {
+		if i >= maxPtX {
+			s.capFull(StallPT)
+			return false
+		}
+		s.nptx++
+	}
+	s.ptx[i] = ptRepX{sl: sl, p: int16(np), t: int16(nt)}
+	p.eotP, p.eotT = int8(max(min(np, math.MaxInt8), math.MinInt8)), int8(max(min(nt, math.MaxInt8), math.MinInt8))
+	return true
+}
+
+// dropPtX forgets sl's out-of-range pump (it left, or the turn ended).
+func (s *State) dropPtX(sl Slot) {
+	n := 0
+	for i := 0; i < int(s.nptx); i++ {
+		if s.ptx[i].sl != sl {
+			s.ptx[n] = s.ptx[i]
+			n++
+		}
+	}
+	for i := n; i < int(s.nptx); i++ {
+		s.ptx[i] = ptRepX{}
+	}
+	s.nptx = uint8(n)
+}
 
 // grantEOT grants the permanent at sl keywords m until end of turn,
 // counting the repeats past the third in kwx.

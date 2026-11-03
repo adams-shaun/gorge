@@ -134,6 +134,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 	board := lw.boardFacts()
 	restricted := false
 	tapExtra := e.tapExtraTriggerOnBoard()
+	var sparePass state.Mana // the fee-only mana the last pass found (potentialSpareGrew)
 	for {
 		progressed := false
 		for zi, id := range zone {
@@ -194,7 +195,8 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 			admittedAny := false
 			for k := sp.start; k < sp.end; k++ {
 				if ma := flat[k]; !admitted[k] && potentialRestrictionAdmits(e, p, id, ma, payment) &&
-					e.manaAbilityPayablePool(p, id, ma, &others) {
+					(e.manaAbilityPayablePool(p, id, ma, &others) ||
+						payment != nil && e.potentialFeeSpareCovers(p, payment, id, ma, zone, spans, flat, &others)) {
 					admitted[k] = true
 					admittedAny = true
 					if effects.ManaOf(ma).RestrictValid != "" {
@@ -212,6 +214,9 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 				}
 			}
 			if !admittedAny {
+				if payment != nil && e.potentialSpareGrew(p, payment, zone, spans, flat, &sparePass) {
+					progressed = true // a refused source later in the zone now funds a fee
+				}
 				continue
 			}
 			progressed = true
@@ -229,6 +234,59 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 		e.potentialRestricted = restricted
 	}
 	return out
+}
+
+// potentialFeeSpare is the mana of p's untapped sources whose RestrictValid$
+// the payment refuses but an activation of source act admits: it cannot pay
+// the spell (CR 106.6) yet pays a mana ability's own fee (Hydraulic Helper's
+// "can't be spent to cast a nonartifact spell" {U} pays Surveillance Room's
+// {1} when the Room's mana pays the spell). Members of the zone walked so far
+// are read from the fixpoint's scratch; act's own production never funds its
+// own fee.
+func (e *Engine) potentialFeeSpare(p state.PlayerID, payment *paymentDescriptor, act state.ObjID, zone []state.ObjID, spans []potentialManaSpan, flat []*cards.SA, others *state.Mana) state.Mana {
+	var spare state.Mana
+	for zi, zid := range zone {
+		if zid == act || !spans[zi].walked {
+			continue
+		}
+		for k := spans[zi].start; k < spans[zi].end; k++ {
+			ma := flat[k]
+			rv := effects.ManaOf(ma).RestrictValid
+			if rv == "" || pay.RestrictValidMatches(asPayer(e), p, *payment, rv, zid) {
+				continue // unrestricted or admitted by the spell: the fixpoint's own sum
+			}
+			d := paymentDescriptor{Class: pay.PurposeActivated, ID: act}
+			if pay.RestrictValidMatches(asPayer(e), p, d, rv, zid) && e.manaAbilityPayablePool(p, zid, ma, others) {
+				e.addPotentialManaOf(&spare, ma)
+			}
+		}
+	}
+	return spare
+}
+
+// potentialFeeSpareCovers reports whether ma's paid activation is payable
+// from the pool of the other sources plus the fee-only mana.
+func (e *Engine) potentialFeeSpareCovers(p state.PlayerID, payment *paymentDescriptor, id state.ObjID, ma *cards.SA, zone []state.ObjID, spans []potentialManaSpan, flat []*cards.SA, others *state.Mana) bool {
+	spare := e.potentialFeeSpare(p, payment, id, zone, spans, flat, others)
+	if spare == (state.Mana{}) {
+		return false
+	}
+	withSpare := *others
+	for c := range withSpare {
+		withSpare[c] = saturatingPotentialMana(withSpare[c], spare[c])
+	}
+	return e.manaAbilityPayablePool(p, id, ma, &withSpare)
+}
+
+// potentialSpareGrew reports whether the fee-only mana grew since the last
+// pass (last holds the previous total), which a source earlier in the zone may
+// now spend.
+func (e *Engine) potentialSpareGrew(p state.PlayerID, payment *paymentDescriptor, zone []state.ObjID, spans []potentialManaSpan, flat []*cards.SA, last *state.Mana) bool {
+	var none state.Mana
+	now := e.potentialFeeSpare(p, payment, 0, zone, spans, flat, &none)
+	grew := now != *last
+	*last = now
+	return grew
 }
 
 // tapExtraTriggerOnBoard reports whether any object prints a static

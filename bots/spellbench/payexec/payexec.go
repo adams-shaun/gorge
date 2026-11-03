@@ -466,7 +466,13 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 				return c >= 0 && want[c] > 0
 			}
 			_, any, combo, ok := labelProduction(o.Label)
-			if !ok || any {
+			if ok && any {
+				// an any-colour pick (Turtle Lair's restricted {T}: Add any
+				// color beside a Groundchuck & Dirtbag): its colour ask
+				// follows and takes the first colour the witness holds
+				return anyLabelFits(o.Label, want)
+			}
+			if !ok {
 				return false
 			}
 			for _, c := range combo {

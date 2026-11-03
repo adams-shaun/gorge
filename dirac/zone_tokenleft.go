@@ -22,3 +22,11 @@ func (s *State) tokenLeftBattlefield(o Obj) bool {
 	ob := &s.objs[o]
 	return ob.of&ofToken != 0 && ob.zone != kop.ZoneBattlefield && ob.zone != kop.ZoneStack && !DebugTokenMoves
 }
+
+// instantStays reports whether o is an instant or sorcery card bound for the
+// battlefield: it remains in its previous zone (CR 304.4, 307.4), as gorge's
+// movers leave it (effects.instantCannotEnter). A token has no printed type.
+func (s *State) instantStays(k *prep, o Obj, z kop.Zone) bool {
+	ob := &s.objs[o]
+	return z == kop.ZoneBattlefield && ob.of&ofToken == 0 && k.cards[ob.card].types&(kop.TInstant|kop.TSorcery) != 0
+}

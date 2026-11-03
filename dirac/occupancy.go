@@ -34,6 +34,7 @@ const (
 	PoolFreeQ             // queued free casts (gen.freeQ)
 	PoolAsk               // queued as-enters choices (gen.ask)
 	PoolCtrKinds          // distinct counter kinds on the permanent with most (no cap)
+	PoolPtX               // pumps past the int8 range (maxPtX)
 	PoolTs                // the layer clock State.ts (uint16; this counts its peak)
 	NumPools
 )
@@ -41,10 +42,10 @@ const (
 // PoolNames names the pools; PoolCaps is each one's capacity (0 = none).
 var (
 	PoolNames = [NumPools]string{"obj", "perm", "stack", "pending", "delayed", "rem", "chosen", "may", "dprog",
-		"emblem", "dmgmap", "xtgt", "xtpool", "used", "kwrepx", "ovpool", "ovr", "trigturn", "links", "exiledwith", "free", "freeq", "ask", "ctrkinds", "ts"}
+		"emblem", "dmgmap", "xtgt", "xtpool", "used", "kwrepx", "ovpool", "ovr", "trigturn", "links", "exiledwith", "free", "freeq", "ask", "ctrkinds", "ptx", "ts"}
 	PoolCaps = [NumPools]int{MaxObj, MaxPerm, MaxStack, MaxPending, MaxDelayed, maxRem, maxRem, maxMay, maxDProg,
 		maxEmb, maxDmgMap, maxXTgt, maxXTPool, maxUsed, maxKwRepX, maxFx, maxOvr, maxTrigTurn,
-		len(State{}.g.links), maxExw, len(State{}.g.free), len(State{}.g.freeQ), len(State{}.g.ask), 0, 1<<16 - 1}
+		len(State{}.g.links), maxExw, len(State{}.g.free), len(State{}.g.freeQ), len(State{}.g.ask), 0, maxPtX, 1<<16 - 1}
 )
 
 // Occupancy fills o with s's current pool occupancy.
@@ -76,6 +77,7 @@ func (s *State) Occupancy(o *Occupancy) {
 	o.N[PoolFree] = int(s.g.nfree)
 	o.N[PoolFreeQ] = int(s.g.nfq)
 	o.N[PoolAsk] = int(s.g.nask)
+	o.N[PoolPtX] = int(s.nptx)
 	o.N[PoolTs] = int(s.ts)
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()

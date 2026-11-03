@@ -56,6 +56,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case kop.PaySacSelf:
 		sl := s.resSrcSlot(k)
 		return sl != NoSlot && s.perms[sl].ctrl == p
+	case payKindSacHost:
+		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
 		return true // gorge triggeredCostDrawCounts: payable once the count resolves
 	case kop.PaySubCounter:
@@ -89,6 +91,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
+	}
+	if kind == kop.PaySacSelf && in.B.N == kop.PayBSubSacHost {
+		kind = payKindSacHost // a granted trigger's own Sac<1/OriginalHost> cost rides PaySacSelf (cost_sachost.go)
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
@@ -626,6 +631,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		case kop.PaySacSelf:
 			s.paySacSelf(k)
+		case payKindSacHost:
+			s.paySacHost(k)
 		case kop.PayDraw:
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
 		case kop.PaySubCounter:
@@ -965,10 +972,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
+				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-				if host != NoSlot && s.occ.has(host) {
-					s.attachTo(k, sl, host)
-				}
+				s.attachedTo(k, sl, host)
 			}
 			s.continueRes(k, 0)
 			return
@@ -1391,7 +1397,7 @@ func (s *State) finishSearchNow(k *prep) {
 		}
 	} else {
 		s.moveFound(k)
-		if s.moveAsked() {
+		if s.moveAsked() || s.res.left == tailSearchEnter {
 			return
 		}
 		if s.parkTail(k, tailSearch) {
@@ -1482,6 +1488,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			if hg {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
+			s.enterOnto(host)
 			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
@@ -1489,9 +1496,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			if hg {
 				s.g.enterCtr.n = 0
 			}
-			if host != NoSlot && s.occ.has(host) {
-				s.attachTo(k, sl, host) // CR 303.4f: an Aura enters attached
-			}
+			s.attachedTo(k, sl, host) // CR 303.4f: an Aura enters attached
 			if fl&kop.SrAttacking != 0 {
 				s.enterAttacking(k, sl, ep)
 			}
@@ -1513,6 +1518,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 		}
 		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		if z == kop.ZoneBattlefield && i+1 < int(s.g.nlook) && s.parkTail(k, tailSearchEnter) {
+			// the entered card queued an as-enters ask (a shock land's pay-life
+			// election): gorge suspends the search there, so the cards after it
+			// stay where they were until it is answered
+			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
+			return
+		}
 	}
 	s.g.nlook = 0
 }
@@ -1901,10 +1913,9 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	switch {
 	case z == kop.ZoneBattlefield:
 		host := s.digAuraHost(k, o, p)
+		s.enterOnto(host)
 		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
-		if host != NoSlot && s.occ.has(host) {
-			s.attachTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
-		}
+		s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

@@ -44,10 +44,21 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 		return false
 	}
 	src := e.G.Obj(c.Source)
-	if src == nil || src.Face() == nil || !reflexiveTableIsSources(c, src) {
+	if src == nil || src.Face() == nil {
 		return false
 	}
-	sa := events.ResolveSVarAcrossFaces(src, execute)
+	// A body a static granted lives on the granting object's table, not the
+	// source's (Sunfire Torch's "when you do, this creature deals 2 damage"):
+	// the reflexive ability is minted the way the granted trigger itself was,
+	// from the grantor (CR 603.12, 613.1f).
+	tableOwner, granted := src, false
+	if g := e.G.Obj(c.Grantor); c.Grantor != 0 && g != nil && g.Face() != nil {
+		tableOwner, granted = g, true
+	}
+	if !reflexiveTableIsSources(c, tableOwner) {
+		return false
+	}
+	sa := events.ResolveSVarAcrossFaces(tableOwner, execute)
 	if sa == nil || sa.Line != body.Line {
 		return false
 	}
@@ -72,6 +83,10 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 		Execute:    execute,
 		SA:         sa,
 		Ctx:        c.ForTrigger(tc),
+	}
+	if granted {
+		pt.Delayed, pt.DelayedID = false, 0
+		pt.Granted, pt.Grantor = true, c.Grantor
 	}
 	pt.Ctx.Remembered = append([]state.Target(nil), remembered...)
 	e.pendingTriggers = append(e.pendingTriggers, pt)

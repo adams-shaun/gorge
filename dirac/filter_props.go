@@ -146,6 +146,9 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 //
 //go:noinline
 func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
+	if n := fl.PredN & 0xff; n == kop.W7BottomLibrary || n == kop.W7NotBottomLibrary {
+		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
+	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordCard3(k, fl, c, fd) // filter_props.go
 	}
@@ -240,6 +243,10 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// permanent has none (CR 708.2)
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && !s.faceDown(k, sl) && k.t.Cards[c].Cost.HasColour(1)
+	case kop.W7IsCommander:
+		// gorge CommanderOf: no seat has a commander in a kernel game (CR 903.3)
+	case kop.W7NotBottomLibrary:
+		ans = true // a battlefield permanent is no library's bottom card
 	case kop.W7CrewedBySrc:
 		// the source crewed this Vehicle this turn (gorge CrewedBySourceThisTurn);
 		// no source fails closed
@@ -259,6 +266,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	switch fl.PredN & 0xff {
 	case kop.W7WithWarp:
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
+	case kop.W7IsCommander:
+		// no seat has a commander in a kernel game (CR 903.3)
 	case kop.W7CostBlue:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].Cost.HasColour(1)
 	case kop.W7NoAbilities:
@@ -348,4 +357,13 @@ func (s *State) crewerRecorded(k *prep, crewer Slot) bool {
 	}
 	c := s.cardAt(crewer)
 	return int(c) < len(k.gen.crewerRec) && k.gen.crewerRec[c]
+}
+
+// bottomLibrary reports whether o is the last card of its owner's library.
+func (s *State) bottomLibrary(o Obj) bool {
+	if o == NoObj || s.objs[o].zone != kop.ZoneLibrary {
+		return false
+	}
+	pl := &s.pl[s.objs[o].owner()]
+	return pl.libLo < pl.libHi && pl.lib[pl.libHi-1] == o
 }

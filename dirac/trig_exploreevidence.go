@@ -14,9 +14,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // ValidExplored$ against the revealed card wherever it now is.
 //
 // events.CollectEvidenceAction is emitted once per cost payment that exiled
-// at least one card (cast_commit.go, cumulative.go, pay/evidence.go), after
-// the exiles; the ward evidence payment (pay.PayEvidence) records none, so
-// settleWardEvidence fires nothing. Neither event has a slot subscription:
+// at least one card (cast_commit.go, cumulative.go, pay/evidence.go,
+// pay/unlessspecial.go), after the exiles, so a ward evidence payment
+// (settleWardEvidence) fires it too. Neither event has a slot subscription:
 // the battlefield is scanned, as for TrigScry.
 
 // DebugExplEvAnyPlayer is a mutation hook (TestTrigexplevMutation): a

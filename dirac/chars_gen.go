@@ -437,6 +437,9 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 			}
 			rp, rt := r.r.p, r.r.t
 			if o.LivePT {
+				if s.livePTLost(k, sl, r.r.ts) {
+					continue
+				}
 				rp, rt = s.livePT(k, sl, o, rp) // static_animategrants.go
 			}
 			if !o.KeepP {
@@ -481,8 +484,12 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	p := &s.perms[sl]
 	bp, bt := s.basePTGen(k, sl)
 	c := p.ctrLow(int(kop.CtrP1P1)) - p.ctrLow(int(kop.CtrM1M1))
-	bp += c + int(p.eotP)
-	bt += c + int(p.eotT)
+	ep, et := int(p.eotP), int(p.eotT)
+	if s.nptx != 0 {
+		ep, et = s.eotPT(sl)
+	}
+	bp += c + ep
+	bt += c + et
 	if k.ctrMana {
 		bt -= p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
 	}
@@ -684,12 +691,18 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 			case kop.StatOverride:
 				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
 					if g != 0 {
+						prev := s.g.grantSrc
+						s.g.grantSrc = uint8(s.perms[src].obj) + 1
 						f(cid, g-1, 1)
+						s.g.grantSrc = prev
 					}
 				}
 			case kop.StatContinuous:
 				if a.Static.Grant != 0 && s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
+					prev := s.g.grantSrc
+					s.g.grantSrc = uint8(s.perms[src].obj) + 1
 					f(cid, a.Static.Grant-1, 1)
+					s.g.grantSrc = prev
 				}
 			}
 		}

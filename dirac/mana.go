@@ -460,6 +460,9 @@ type utype struct {
 	pain uint8
 	pair uint8
 	alt  bool
+	// rb: a restricted source's larger alternative (restrPairUnit): the
+	// mana a tap makes floats restricted
+	rb bool
 	// irr: key 1's irreversible cost of one unit (pay.ConsequenceCost: 10
 	// a sacrificed source, 20 a creature, 3 a point of damage); nocol: a
 	// last-resort unit, whose colours take nothing from the remainder
@@ -527,6 +530,9 @@ type planner struct {
 	rdyn   Slot
 	rdynOn bool
 	rF     kop.FilterID
+	// rbOn: the plan tapped a restricted pair unit's larger alternative,
+	// whose mana floats restricted (restrPairUnit)
+	rbOn bool
 	// rkind: the restricted record kind (rkWiden, rkExt) of each unit's
 	// source, 0 for a plain one; rtap: the restricted-kind units a tap made,
 	// with the colour each made (witnessManaRestricted)
@@ -1032,6 +1038,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				} else if pass == 2 || (pass == 0) == choice {
 					continue
 				}
+				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i) {
+					continue
+				}
 				cr := s.isCreature(k, sl)
 				dmk := mask
 				if dm[i] != 0 {
@@ -1174,6 +1183,15 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.rtapN++
 		}
 		s.pl[p].pool[col] += ty.n
+		if ty.rb && DebugRestrictedSource != 5 {
+			// a restricted source's larger alternative: its mana floats
+			// restricted (restrPairUnit)
+			s.pl[p].pool[col] -= ty.n
+			if !s.pl[p].addRestr(k, &s.poolRx[p&1], k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab].ManaRestrict, col, ty.n) {
+				s.capFull(StallRestrSrc)
+			}
+			pk.rbOn = true
+		}
 		if ty.xt != 0 {
 			s.addXv(p, &ty.xv)
 		}
@@ -1570,7 +1588,7 @@ func (pk *planner) consider() {
 			n := pk.lexLeast(&kv, &cur)
 			pk.seqTypes(&kv, &cur, n, &ty)
 			pk.seqCols(&ty, n, &col)
-			if pk.seqLess(&cur, &col, n, &pk.bestSeq, &pk.bestCol, pk.bestN) {
+			if pk.seqLess(&cur, &col, &ty, n, &pk.bestSeq, &pk.bestCol, &pk.bestTy, pk.bestN) {
 				pk.bestSeq, pk.bestCol, pk.bestTy, pk.bestN = cur, col, ty, n
 			}
 			return
@@ -1674,11 +1692,14 @@ func (pk *planner) lexLeast(kv *[maxTypes]uint8, out *[maxUnits]uint8) int {
 // is the smaller, whichever colour it makes), then the mana it produces as a
 // WUBRGC vector (so a later colour in that order is the smaller: {U} before
 // {W}, pair 8715), then the length.
-func (pk *planner) seqLess(a, ac *[maxUnits]uint8, an int, b, bc *[maxUnits]uint8, bn int) bool {
+func (pk *planner) seqLess(a, ac, at *[maxUnits]uint8, an int, b, bc, bt *[maxUnits]uint8, bn int) bool {
 	for i := 0; i < an && i < bn; i++ {
 		x, y := pk.uobj[a[i]], pk.uobj[b[i]]
 		if x != y {
 			return x < y
+		}
+		if aa, ba := pk.types[at[i]].alt, pk.types[bt[i]].alt; aa != ba {
+			return ba // the source's census ability has the smaller index
 		}
 		if ac[i] != bc[i] {
 			if f := pk.types[pk.utyp[a[i]]].first; f != 0 {

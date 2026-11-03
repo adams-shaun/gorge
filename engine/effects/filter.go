@@ -302,6 +302,11 @@ var predicates = map[string]predFn{
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
+	// nonToken is the CR 111 test the scripts that spell it mean ("nontoken
+	// permanent": Spock, Voice of Reason; The Guardian of Forever). Forge reads
+	// it as a type word no object carries, which is true of every permanent
+	// tokens included, so it follows the rule here and not that reading.
+	"nonToken": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},

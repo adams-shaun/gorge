@@ -84,7 +84,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.37g | n/a | - | - | cross-reference to 708 |
 | 702.38a,b | n/a | - | - | LOUD (9) |
 | 702.39a,b | n/a | - | - | LOUD printed (8); SILENT granted (Hunter Sliver) |
-| 702.40a | n/a | - | - | storm count read at resolution, responses inflate it (helper) |
+| 702.40a | follows | `dirac/kw_storm.go#State.queueStorm` `dirac/copy_gen.go#State.execCopySpell` | `TestStormGrantLockstep` `TestStormGrantMutation` | storm only as an AffectedZone$ Stack grant (Prismari, the Inspiration; the Ral, Crackling Wit emblem), one trigger however many statics grant it; the count (every player's spells cast this turn, the spell excluded) is fixed when the trigger fires, so a response does not inflate it; copies may take new targets |
 | 702.40b | n/a | - | - |  |
 | 702.41a,b | follows | `dirac/kgen/lower.go#expandedKeywords` `dirac/kgen/lower_stackkw.go#lowerCtx.stackKwGrant` `dirac/cast.go#State.buildCost0` | `TestStackkwLockstep` `TestStackkwMutation` | Frogmite, Scales of Shale, Claws Out lowered; a granted AffectedZone$ Stack Affinity (Sami, Witherbloom) lowers to a ReduceCost over the rewritten Affected$, live from the battlefield only (CR 113.6) |
 | 702.42a,b | n/a | - | - |  |

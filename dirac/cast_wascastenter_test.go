@@ -52,6 +52,10 @@ func TestWasCastEnterReads(t *testing.T) {
 	if s.wasCastPred(pred(0), o, 0) || !s.wasCastPred(pred(4), o, 0) {
 		t.Error("a copy read as cast")
 	}
+	s.objs[o].of = ofToken // a permanent spell's copy, flipped to a token as it enters
+	if s.wasCastPred(pred(0), o, 0) || !s.wasCastPred(pred(4), o, 0) {
+		t.Error("a copy that has become a token read as cast")
+	}
 	s.objs[o].of = 0
 	s.res.e.kind = seTrigger
 	if s.wasCastPred(pred(0), o, 0) {

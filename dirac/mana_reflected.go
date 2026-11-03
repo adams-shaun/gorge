@@ -136,7 +136,7 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 	pl := &s.pl[p]
 	kind := pl.poolR & poolRKind
 	var rn [kop.NumManaKinds]uint8
-	rn[pl.poolR>>poolRShift] += pl.poolR & poolRCnt
+	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
 	restrXInto(s.poolRx[p&1], &rn)
 	var ord [kop.NumManaKinds]uint8
 	for c := range rn {
@@ -148,9 +148,32 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 		h := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &h
 	}
-	s.tapForRider(k, p, cost, x, o, anyColor)
+	var pk planner
+	s.tapForPK(k, p, cost, x, o, false, anyColor, &pk)
+	if pk.rbOn {
+		// the plan's own restricted taps join the restricted mana spent first
+		// (restrPairUnit): they float in poolR, poolRx
+		kind = pl.poolR & poolRKind
+		var tn [kop.NumManaKinds]uint8
+		tn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
+		restrXInto(s.poolRx[p&1], &tn)
+		for c := range tn {
+			rn[c] += tn[c]
+			pl.pool[c] += tn[c]
+		}
+		pl.poolR, s.poolRx[p&1] = 0, 0
+	}
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
+	s.restrLeftover(p, &rn, &ord, &pre, kind)
+}
+
+// restrLeftover floats again what is left of the restricted mana rn that
+// the payment (pool before it: pre) did not spend: per colour the restricted
+// mana is spent before the ordinary mana of its colour, ord of which was
+// there before.
+func (s *State) restrLeftover(p uint8, rn, ord, pre *[kop.NumManaKinds]uint8, kind uint16) {
+	pl := &s.pl[p]
 	typed := s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst
 	for c := range rn {
 		spent := pre[c] - pl.pool[c]
@@ -163,7 +186,7 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 		}
 		pl.pool[c] -= left
 		if pl.poolR == 0 {
-			pl.poolR = uint8(c)<<poolRShift | kind | left
+			pl.poolR = uint16(c)<<poolRShift | kind | uint16(left)
 		} else {
 			s.poolRx[p&1] += uint16(left) << (3 * c)
 		}
@@ -196,7 +219,7 @@ type reflStep struct {
 
 type reflKey struct {
 	pool   [kop.NumManaKinds]uint8
-	r      uint8
+	r      uint16
 	rx     uint16
 	tapped slotMask
 }

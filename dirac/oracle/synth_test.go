@@ -529,7 +529,7 @@ func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
 // of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
 // matchup's table keeps it.
 func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	synthPairsReaching(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 14, 32}, onBattlefield("PuPu UFO"))
+	synthPairsReaching(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 14, 0}, onBattlefield("PuPu UFO"))
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
@@ -580,14 +580,14 @@ func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
 // work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
 func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{7, 19, 25}, madeRestrictedMana)
+	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{17, 74}, madeRestrictedMana)
 	synthPairsReaching(t, "std-msh", Config{GorgeAutopaySurface: true}, []int{4, 11, 22}, madeRestrictedMana)
 }
 
 // TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
 // power to each of two other targets, not the first alone (CR 120.3, 608.2b).
 func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	synthPairsReaching(t, "std-otj", Config{GorgeAutopaySurface: true}, []int{13, 15, 39}, cardOut("Betrayal at the Vault"))
+	synthPairsReaching(t, "std-otj", Config{GorgeAutopaySurface: true}, []int{1, 15, 3}, cardOut("Betrayal at the Vault"))
 }
 
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little

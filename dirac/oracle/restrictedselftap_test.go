@@ -8,5 +8,5 @@ import "testing"
 // {C}, because the {T} cost leaves the Processor unable to tap for mana.
 func TestRestrictedSourceTapCostExcludesItselfLockstep(t *testing.T) {
 	t.Parallel()
-	synthPairsReachingRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{27, 42, 70}, nil, onBattlefield("Isolinear Processor"))
+	synthPairsReachingRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{8, 10, 27}, nil, onBattlefield("Isolinear Processor"))
 }

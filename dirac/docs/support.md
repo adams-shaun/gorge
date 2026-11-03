@@ -9,28 +9,28 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 8 | 14 |
-| BLB | 278 | 255 | 5 | 30 | 220 |
-| DFT | 276 | 245 | 4 | 17 | 224 |
-| DSK | 276 | 231 | 8 | 35 | 188 |
+| BLB | 278 | 256 | 4 | 33 | 219 |
+| DFT | 276 | 246 | 0 | 22 | 224 |
+| DSK | 276 | 231 | 7 | 36 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 0 | 118 | 118 |
 | FDN | 517 | 505 | 5 | 7 | 493 |
-| FIN | 312 | 264 | 10 | 9 | 245 |
-| FRA | 269 | 242 | 8 | 14 | 220 |
-| HOB | 172 | 151 | 4 | 4 | 143 |
-| LCI | 290 | 247 | 6 | 13 | 228 |
+| FIN | 312 | 266 | 3 | 18 | 245 |
+| FRA | 269 | 244 | 4 | 20 | 220 |
+| HOB | 172 | 152 | 0 | 9 | 143 |
+| LCI | 290 | 249 | 2 | 19 | 228 |
 | MKM | 279 | 227 | 4 | 37 | 186 |
 | MSH | 276 | 223 | 8 | 8 | 207 |
-| OTJ | 276 | 237 | 9 | 16 | 212 |
-| SOS | 270 | 246 | 7 | 18 | 221 |
+| OTJ | 276 | 238 | 5 | 21 | 212 |
+| SOS | 270 | 247 | 4 | 22 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
 | TDM | 276 | 242 | 8 | 45 | 189 |
-| TLA | 285 | 244 | 11 | 48 | 185 |
-| TMT | 194 | 169 | 3 | 6 | 160 |
-| TRC | 337 | 257 | 1 | 94 | 162 |
-| TRK | 311 | 244 | 0 | 156 | 88 |
-| WOE | 281 | 250 | 3 | 8 | 239 |
-| ALL | 34442 | 21055 | 123 | 16765 | 4167 |
+| TLA | 285 | 244 | 10 | 49 | 185 |
+| TMT | 194 | 170 | 1 | 9 | 160 |
+| TRC | 337 | 267 | 1 | 104 | 162 |
+| TRK | 311 | 248 | 0 | 160 | 88 |
+| WOE | 281 | 251 | 1 | 11 | 239 |
+| ALL | 34442 | 21189 | 86 | 16937 | 4166 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,35 +70,34 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-123 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+86 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 24 |
+| lockstep | 1 |
+| options | 18 |
 | projection | 1 |
-| projection-Cards.AttachedTo | 1 |
 | projection-Cards.Chars.Colors | 2 |
-| projection-Cards.Chars.Keywords | 2 |
+| projection-Cards.Chars.Keywords | 1 |
 | projection-Cards.Counters | 3 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 15 |
-| projection-Cards.Pos | 10 |
-| projection-Cards.Power | 8 |
-| projection-Cards.Zone | 7 |
-| projection-Life | 4 |
+| projection-Cards.Flags | 11 |
+| projection-Cards.Pos | 7 |
+| projection-Cards.Power | 5 |
+| projection-Cards.Zone | 3 |
+| projection-Life | 3 |
 | projection-NInst | 1 |
-| projection-NStack | 16 |
-| projection-Pool | 6 |
+| projection-NStack | 10 |
+| projection-Pool | 3 |
 | projection-Stack.Ability | 1 |
 | projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
 | unmodelled-copycast | 2 |
-| unmodelled-entryorder | 5 |
 | unmodelled-gravepower | 1 |
 | unmodelled-handsize | 1 |
 | unmodelled-landgrant | 1 |
 | unmodelled-outsidetype | 1 |
-| unmodelled-tokatkask | 3 |
+| unmodelled-tokatkask | 2 |
 | unmodelled-tokenpt | 1 |

@@ -344,9 +344,19 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 						// the Aura enters, with no second CR 303.4f choice.
 						events.MarkNamedAttachEntry(&ev, []state.ObjID{bearer})
 					}
+					// A card put onto the battlefield tapped enters tapped
+					// (CR 614.12), so an "enters untapped" trigger of its own
+					// is checked after the tap, not between the move and it.
+					batchEntry := tapped && dest == state.ZBattlefield
+					if batchEntry {
+						h.BeginZoneBatch()
+					}
 					emitEntryMove(h, c, digGainControl(gainControl), dest, ev)
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+					}
+					if batchEntry {
+						h.EndZoneBatch()
 					}
 					rider.apply(h, c, id, p, dest)
 					if o := g.Obj(id); bearer != 0 && o != nil && o.Zone == state.ZBattlefield && o.AttachedTo == 0 {

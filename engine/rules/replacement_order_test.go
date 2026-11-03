@@ -306,3 +306,65 @@ func TestLifeCompetitionParkedBehindOutstandingDecision(t *testing.T) {
 		lifeOrdered(t, e, b, 25, "double then plus 1: 2 -> 4 -> 5")
 	})
 }
+
+// TestShockLandBehindUntapCompetitionAsksItsElection drives a shock land's
+// entry against Spelunking's untap: the two compete over the tapped bit, the
+// land's controller picks the order, and the land's own pay-life election is
+// still posed whichever body goes first. The election used to take its
+// no-host default (declined unasked) because the order answer ran the chosen
+// body outside a tape run. Declining taps the land only when the shock body
+// is the last applied.
+func TestShockLandBehindUntapCompetitionAsksItsElection(t *testing.T) {
+	t.Parallel()
+	reg := sharedCorpus(t)
+	for _, tc := range []struct {
+		name       string
+		first      string
+		wantTapped bool
+	}{
+		{"untap first, the declined shock taps", "Spelunking", true},
+		{"shock first, the untap wins", "Blood Crypt", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newSeats(t, 2)
+			e.pending = nil
+			onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Spelunking"))
+			land := e.G.AddObject(mustCorpusCard(t, reg, "Blood Crypt"), 0)
+			land.Zone = state.ZHand
+			e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), land.ID))
+			e.emit(events.Event{Kind: events.MoveZone, Obj: land.ID, From: state.ZHand, To: state.ZBattlefield})
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KReplacement || len(d.Options) != 2 {
+				t.Fatalf("pending = %+v, want the order ask over 2 candidates", d)
+			}
+			pick := -1
+			for _, o := range d.Options {
+				if so := e.G.Obj(o.Obj); so != nil && so.Face() != nil && so.Face().Name == tc.first {
+					pick = o.Index
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("no order option names %s", tc.first)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{pick}}); err != nil {
+				t.Fatal(err)
+			}
+			d = e.Pending()
+			if d == nil || d.ResumeKind != "unless_pay" {
+				t.Fatalf("pending = %+v, want the shock land's pay-life election", d)
+			}
+			decline := -1
+			for _, o := range d.Options {
+				if o.Mode == decision.ModeUnlessDecline {
+					decline = o.Index
+				}
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{decline}}); err != nil {
+				t.Fatal(err)
+			}
+			if got := e.G.Obj(land.ID).Tapped; got != tc.wantTapped {
+				t.Fatalf("tapped = %v, want %v", got, tc.wantTapped)
+			}
+		})
+	}
+}

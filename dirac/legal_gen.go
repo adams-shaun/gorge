@@ -71,6 +71,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 		if !s.grantMay(k, sl) {
 			continue
 		}
+		first := int(d.N)
 		s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
 			a := &k.t.Cards[c].Abilities[ab]
 			if a.Kind != kop.AbActivated {
@@ -83,11 +84,22 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}
+			if a.Cost.Host == kop.CostHostSac && s.perms[host].ctrl != p {
+				return // only a permanent the payer controls can be sacrificed (CR 701.21a)
+			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
 				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
 			}
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
-				d.add(MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab))
+				// two copies of one grantor give the same ability: the second is the
+				// first's option (gorge's offer list collapses them the same way)
+				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab)
+				for i := first; i < int(d.N); i++ {
+					if d.Options[i] == act {
+						return
+					}
+				}
+				d.add(act)
 			}
 		})
 	}
@@ -179,15 +191,30 @@ func anyTypePips(c kop.ManaCost) kop.ManaCost {
 
 // planUnderRider is the mana gorge's planner funds for a cast under a may-play
 // rider (pay.PlanManaUnderRider): a pip the rider lets any mana pay is generic to
-// the plan, and a hybrid pip stays as printed. An any-colour rider leaves {C}.
+// the plan, a hybrid pip included (it is two colours, never {C}). An any-colour
+// rider leaves {C}.
 func planUnderRider(c kop.ManaCost, anyMana, anyColor bool) kop.ManaCost {
 	if anyMana {
-		return anyTypePips(c)
-	}
-	if anyColor {
+		c = anyTypePips(c)
+	} else if anyColor {
 		for i := 0; i < kop.C; i++ {
 			c.Generic += c.Pips[i]
 			c.Pips[i] = 0
+		}
+	}
+	if anyMana || anyColor {
+		c = hybridGeneric(c)
+	}
+	return c
+}
+
+// hybridGeneric turns each hybrid pip of c into one generic: the pips left
+// after a face was chosen, paid by mana of any type, are payable by any mana.
+func hybridGeneric(c kop.ManaCost) kop.ManaCost {
+	for i := range c.Hyb {
+		if c.Hyb[i] != 0 && c.Hyb[i] != kop.HybTwobrid {
+			c.Generic++
+			c.Hyb[i] = 0
 		}
 	}
 	return c
@@ -800,4 +827,19 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 		}
 	}
 	return true
+}
+
+// sacHostCost pays CostHostSac: sacrifice the permanent that granted the
+// ability, the one candidate settled unasked.
+func (s *State) sacHostCost(k *prep, e *stackEntry) {
+	h := e.trigObj
+	if h == NoObj || s.objs[h].zone != kop.ZoneBattlefield {
+		return
+	}
+	sl := s.objs[h].slot
+	s.snapSacPick(h)
+	s.fireSac(k, sl)
+	if !s.parkCost(k, h, parkLeave, 0) {
+		s.leave(k, sl, kop.ZoneGraveyard, false)
+	}
 }

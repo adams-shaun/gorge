@@ -920,6 +920,15 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		in.CS, in.A = "SacrificeSelf", cst(1)
 		c.SacSelf = false
 	}
+	if c.SacHost && n == 0 && lc.trigOwnCost && lc.grantAttached {
+		// Sac<1/OriginalHost> as the own cost of a trigger an Equipment or Aura
+		// grants (Sunfire Torch, Spare Dagger; gorge's triggered-cost window binds
+		// the part to the granting host): the host is sacrificed, the one
+		// candidate settled unasked (CR 701.21a)
+		n++
+		in.CS, in.A = "SacrificeHost", cst(1)
+		c.SacHost = false
+	}
 	if c.BlightN > 0 {
 		// Blight<N> as a trigger's own cost or an UnlessCost (gorge
 		// trigger_cost_blight / unlessflow): the payer chooses a creature
@@ -1020,7 +1029,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileTrigNew = false
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.BlightN != 0 || c.EvidenceN != 0 {
+	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
@@ -2136,6 +2145,16 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 	if ds, ok := ps.get("DamageSource"); ok {
 		return lc.sweepFrom(ps, ds, n) // lower_sweepfrom.go
 	}
+	if vp := ps.str("ValidPlayers"); vp == "OppNonTriggeredTarget" && ps.m["ValidCards"] == "" {
+		// every opponent but the damaged one (gorge validPlayers): in a
+		// two-player game the damaged player is the one opponent, so no
+		// player is left to hit (CR 102.2)
+		if !lc.damagedPlayerIsTriggerPlayer() {
+			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
+		}
+		ps.consume("ValidPlayers")
+		return nil
+	}
 	in := lInstr{Op: "DamageAll", A: n}
 	if vc, ok := ps.get("ValidCards"); ok {
 		if in.F, err = lc.filter(vc); err != nil {
@@ -2452,6 +2471,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if a, ok := ps.get("NumAtt"); ok {
 		if a == "Double" {
 			att = lValue{Kind: vPowerOf, Ref: obj}
+		} else if a == "Triple" {
+			// gorge statAddMultiplier: Triple adds twice the object's
+			// current power (final 3x)
+			att = lValue{Kind: vPowerOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(a); err != nil {
 			return err
 		} else {
@@ -2462,6 +2485,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if d == "Double" {
 			// gorge NumForObject: the object's current toughness
 			def = lValue{Kind: vToughnessOf, Ref: obj}
+		} else if d == "Triple" {
+			def = lValue{Kind: vToughnessOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(d); err != nil {
 			return err
 		} else {

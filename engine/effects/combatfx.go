@@ -1138,7 +1138,11 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	if ag.endOnLeave || strings.EqualFold(ag.leaveExile, "Exile") {
 		exileOn = "Battlefield"
 		remembered = []state.ObjID{id}
-	} else if ag.permanent || animateHostScoped(ag.duration) {
+	} else if ag.permanent || animateHostScoped(ag.duration) || !permanent {
+		// A timed grant (until end of turn, until your next turn) ends with
+		// the object it was made for just as a permanent one does: a creature
+		// that is exiled and returned is a new object (CR 400.7) the earlier
+		// animation never reaches.
 		// Duration$ Permanent without a rider ends when its animated object
 		// leaves the zone it was granted in. A host-scoped grant ends on EITHER
 		// the target's departure (CR 400.7) or the host's departure, so neither

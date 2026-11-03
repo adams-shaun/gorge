@@ -47,7 +47,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 304.1 | follows | `dirac/legal.go#State.priorityOptions` | - | instant timing |
 | 304.2 | follows | `dirac/resolve.go#State.resolveTop` | - | instant resolves to graveyard |
 | 304.3 | follows | `dirac/kop/table.go#CardDef.Subtypes` | - | subtype syntax |
-| 304.4 | follows | `dirac/cardset/pooldata.go#PoolData` | - | SILENT; gorge relies on script filters; dirac pool filters |
+| 304.4 | follows | `dirac/zone_tokenleft.go#State.instantStays` | - | an instant or sorcery card a move would put onto the battlefield stays in its zone |
 | 304.5 | follows | `dirac/legal.go#State.sorcerySpeed` | - | - |
 | 305.1 | follows | `dirac/legal.go#State.priorityOptions` | - | - |
 | 305.2-305.2a | follows | `dirac/legal.go#State.priorityOptions` `dirac/statics_gen.go#State.landLimit` | - | effect plays capped at one land regardless of extra drops; |
@@ -70,7 +70,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 307.1 | follows | `dirac/legal.go#State.sorcerySpeed` | - | sorcery timing |
 | 307.2 | follows | `dirac/resolve.go#State.resolveTop` | - | sorcery resolves to graveyard |
 | 307.3 | follows | `dirac/kop/table.go#CardDef.Subtypes` | - | subtype syntax |
-| 307.4 | follows | `dirac/cardset/pooldata.go#PoolData` | - | SILENT; gorge relies on script filters; dirac pool filters |
+| 307.4 | follows | `dirac/zone_tokenleft.go#State.instantStays` | - | an instant or sorcery card a move would put onto the battlefield stays in its zone |
 | 307.5 | follows | `dirac/legal.go#State.sorcerySpeed` | - | - |
 | 307.5a | n/a | - | - | - |
 | 308.1 | n/a | - | - | no kindred in pools |

@@ -395,6 +395,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostSorcery != 0 && !sorc {
 		return false
 	}
+	if a.Cost.Host != 0 && ab != 255 {
+		return false // a granting host's cost part: only a granted ability has a host (gorge leaves the referent unbound)
+	}
 	if a.Evidence != 0 && s.graveTotalMV(k, p.ctrl) < int(a.Evidence) {
 		return false // CollectEvidence<N> needs a graveyard worth N (gorge pay.EvidencePayable)
 	}
@@ -1441,7 +1444,7 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 	} else {
 		s.enter(k, o, p, false, from)
 	}
-	if deferCount {
+	if deferCount && !counted {
 		s.shockLandCount(o, p)
 	}
 	s.passes = 0

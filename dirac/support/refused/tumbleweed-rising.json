@@ -6,7 +6,7 @@
     "pool": "std-otj",
     "surface": "autopay",
     "seed": 1,
-    "pair": 754,
+    "pair": 80,
     "policy": "random",
     "mulligans": 0
   }

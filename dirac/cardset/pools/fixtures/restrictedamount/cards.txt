@@ -1,0 +1,37 @@
+# a mana source whose alternatives make different amounts: a fixed {T} ability
+# beside a restricted Produced$ Any ability of a literal amount above one
+# (gorge planner alternatives of {G} or two mana of one colour); the oracle's
+# constructed lockstep is dirac/oracle/restrictedamount_test.go
+Plains
+Island
+Swamp
+Mountain
+Forest
+Intrepid Stablemaster
+Llanowar Elves
+Mind Stone
+Alacrian Jaguar
+Bulwark Ox
+Bridled Bighorn
+Adventurer's Airship
+Smuggler's Copter
+Grizzly Bears
+Wind Drake
+Hill Giant
+Craw Wurm
+Serra Angel
+Shivan Dragon
+Centaur Courser
+Lightning Bolt
+Divination
+Giant Growth
+Gilded Assault Cart
+Mizzium Tank
+Thunderous Velocipede
+Boosted Sloop
+Haunted Hellride
+Rocketeer Boostbuggy
+Seraphic Steed
+Congregation Gryff
+Debris Beetle
+Apocalypse Runner

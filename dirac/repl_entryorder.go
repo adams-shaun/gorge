@@ -170,8 +170,8 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 			c.other = true
 		}
 		if g.has(cid, gfEnterRepl) {
-			if s.condEnterTapped(k, cid) != nil {
-				c.add(o, entClsTap)
+			if s.condEnterTapped(k, cid) != nil || s.shockCardAmount(k, cid) > 0 {
+				c.add(o, entClsTap) // a shock land's body is a Tap behind its pay-life gate: gorge classes it a tap
 			} else {
 				c.other = true
 			}

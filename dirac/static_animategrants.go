@@ -40,3 +40,12 @@ func (s *State) livePT(k *prep, sl Slot, o *kop.Override, ctrl int16) (p, t int1
 	}
 	return
 }
+
+// livePTLost reports that an effect making sl lose all abilities is newer than
+// the Animate record applied at ts: the granted static is an ability, so the
+// later layer-6 loss removes it and its set P/T no longer applies (CR 613.1f,
+// 613.7; Beorn's Hospitality animated, then enchanted by Enchanted River's Grasp).
+func (s *State) livePTLost(k *prep, sl Slot, ts uint16) bool {
+	lt, lost := s.loss6(k, sl)
+	return lost && lt > ts
+}

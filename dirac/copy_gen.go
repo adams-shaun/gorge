@@ -50,6 +50,9 @@ func (s *State) FeatStackCopy(o Obj) bool {
 // execCopySpell runs OpCopySpell (stalling the game at capacity); false: a
 // copy's election is posed.
 func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
+	if s.res.e.ab == abStorm {
+		return s.copySpells(k, in, int(s.res.e.trigAmt)) // the count fixed when the cast trigger fired (kw_storm.go)
+	}
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 

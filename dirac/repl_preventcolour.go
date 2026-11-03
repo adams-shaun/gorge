@@ -4,6 +4,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// prevTgt is the recipient of a damage event: the player rcp it hits (dst
+// NoSlot) or the permanent at dst whose controller is rcp.
+type prevTgt struct {
+	rcp uint8
+	dst Slot
+}
+
 // raPrevColor: Ext PreventColor's colour ask (ChGenColor, mode = W U B R G).
 const raPrevColor uint8 = 251
 
@@ -13,7 +20,7 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Ext() == kop.ExtPreventColor {
+				if e := in.Ext(); e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope {
 					g.anyRepl |= rbPrevCol
 					return
 				}
@@ -26,12 +33,20 @@ func prepPrevCol(t *kop.Table, g *genPrep) {
 // a colour an Ext PreventColor record prevents this turn (CR 615.1a: the
 // source's colour as the damage would be dealt). Two or more such records
 // on one event are the CR 616.1 order ask (prevColCands).
-func (s *State) prevColHit(k *prep, sl Slot, c CardID) bool {
+func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt) bool {
 	var m kop.ColorMask
 	for i := range s.g.prevCol {
 		m |= s.g.prevCol[i].col
 	}
-	return m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol
+	if m != 0 && s.srcColors(k, sl, c)&m != 0 && !DebugNoPrevCol {
+		return true
+	}
+	for i := range s.g.prevCol {
+		if r := &s.g.prevCol[i]; r.sc != 0 && s.prevScopeHit(k, r.sc, r.ctl, sl, t) {
+			return true
+		}
+	}
+	return false
 }
 
 // DebugPrevColRecolor (TestStrandsLockstepRecolorMutation): a card
@@ -47,10 +62,14 @@ var DebugNoPrevCol bool
 // source of colours col to cand after its first n entries (gorge collects
 // each Effect's replacement as its own candidate, in registration order),
 // marking each in *pm; -1 when cand overflows (a loud stall).
-func (s *State) prevColCands(k *prep, col kop.ColorMask, cand *[4]Obj, n int, _ *[4]Obj, pm *uint8) int {
+func (s *State) prevColCands(k *prep, col kop.ColorMask, srcSl Slot, t prevTgt, cand *[4]Obj, n int, _ *[4]Obj, pm *uint8) int {
 	for i := range s.g.prevCol {
 		r := &s.g.prevCol[i]
-		if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {
+		if r.sc != 0 {
+			if !s.prevScopeHit(k, r.sc, r.ctl, srcSl, t) {
+				continue
+			}
+		} else if r.col == 0 || r.col&col == 0 || DebugNoPrevCol {
 			continue
 		}
 		if n == len(cand) {

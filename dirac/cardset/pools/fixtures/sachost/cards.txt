@@ -1,0 +1,14 @@
+# the sacrifice-the-grantor pool: equipment whose granted ability or granted
+# trigger's optional cost sacrifices the equipment itself, beside vanilla
+# creatures and basics (dirac/oracle/sachost_test.go)
+Sunfire Torch
+Spare Dagger
+Trickster's Talisman
+Deconstruction Hammer
+Citizen's Crowbar
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Plains
+Mountain
+Island

@@ -115,6 +115,14 @@ type stdCensusResult struct {
 	allListed     int
 }
 
+// censusAllBlockers (-census-std -all-blockers) lowers each list in the
+// every-blocker mode: past a refusal to the next node of the chain, the next
+// ability, trigger, static or replacement, recording each refusal. Rows of
+// class partialClass name a refused node's params left unread.
+var censusAllBlockers bool
+
+const partialClass = "partial:unread-after-refusal"
+
 // stdList is one registered set list (the ALL list is kept separately).
 type stdList struct {
 	set   string
@@ -392,6 +400,7 @@ func lowerStdList(l stdList, cardsDir string) (*listResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.allBlockers = censusAllBlockers
 	lw := lowerPool(p)
 	if _, _, _, err := buildPool(lw); err != nil {
 		return nil, err
@@ -416,6 +425,10 @@ func lowerStdList(l stdList, cardsDir string) (*listResult, error) {
 		}
 		rows := cardTSVRows(l.set, c, tokens)
 		lr.rows = append(lr.rows, rows...)
+		for _, u := range c.Unreadable {
+			// beside the card's rows, not among them: not a blocker class
+			lr.rows = append(lr.rows, stdTSVRow{set: l.set, card: c.Name, node: u.Node, class: partialClass, reason: u.Reason})
+		}
 		lr.byCard[c.Name] = rows
 		lr.expanded[c.Name] = classesFromRows(rows)
 		lr.refined[c.Name] = labelsFromRows(rows)

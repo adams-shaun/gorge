@@ -79,7 +79,7 @@ var stallCapacityReasons = [...]uint8{
 }
 
 var stallUnmodelledReasons = [...]uint8{
-	StallInfect, StallReplPlus, StallLifeRepl, StallProlif, StallCtrOrder,
+	StallInfect, StallReplPlus, StallLifeRepl, StallDrawRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
@@ -146,7 +146,9 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		b = func(c *kop.CardDef, i int) bool {
 			return g.replBits[i]&(rbDblDmg|rbPrevNC|rbPlusDmg|rbPrevCol|rbPlProt) != 0 || abilityOn(func(x *kop.Ability) bool {
 				return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigCounterAddedOnce ||
-					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor })
+					progHas(x, func(in *kop.Instr) bool {
+						return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor || in.Ext() == kop.ExtPreventDamageScope
+					})
 			})(c, i)
 		}
 	case StallLifeRepl:

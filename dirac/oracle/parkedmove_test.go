@@ -55,6 +55,17 @@ func synthPairsPlay(t *testing.T, name string, rc RunConfig, pairs []int, each f
 // synthPairsPlayMulligans is synthPairsPlay with the mulligans each player may take.
 func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans int, pairs []int, each func(pair int, res *Result)) {
 	t.Helper()
+	play := newSynthPlayer(t, name, rc, mulligans)
+	for _, i := range pairs {
+		res := play(i)
+		each(i, &res)
+	}
+}
+
+// newSynthPlayer deals the synthetic pool name once and returns a function that plays
+// one of its pairs in lockstep.
+func newSynthPlayer(t *testing.T, name string, rc RunConfig, mulligans int) func(pair int) Result {
+	t.Helper()
 	cfg := rc.Config
 	rc.MaxDecisions, rc.MaxTurns = 20000, 100
 	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
@@ -64,7 +75,7 @@ func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans 
 		t.Fatal(err)
 	}
 	c.AddDecks(files)
-	for _, i := range pairs {
+	return func(i int) Result {
 		p := PairingAt(pool, i, 1)
 		m, tbl, err := SetMatchup(set, c, p.A, p.B, mulligans)
 		if err != nil {
@@ -76,7 +87,7 @@ func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans 
 		}
 		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), rc)
 		CloseSide(k)
-		each(i, &res)
+		return res
 	}
 }
 
@@ -183,7 +194,7 @@ func TestCopiedEquipmentCreatureUnattaches(t *testing.T) {
 // autopay surface offers Guardian of the Great Door only when the pool pays it.
 func TestTapAdditionalCostOutsideThePlanner(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-lci", Config{GorgeAutopaySurface: true}, []int{31, 98, 114}, cardSeen("Guardian of the Great Door"))
+	synthPairsReaching(t, "std-lci", Config{GorgeAutopaySurface: true}, []int{29, 52, 58}, cardSeen("Guardian of the Great Door"))
 }
 
 // Krovod Haunch's "you may pay {1}{W}" is one question: the decider is the
@@ -215,7 +226,7 @@ func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
 // engines name it alike on the stack (CR 702.174c; Starforged Sword, Scrapshooter).
 func TestGiftTriggerOnTheStack(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{}, []int{6, 11, 14}, anyOut("Starforged Sword", "Scrapshooter"))
+	synthPairsReaching(t, "std-blb", Config{}, []int{1, 2, 13}, anyOut("Starforged Sword", "Scrapshooter"))
 }
 
 // A cast with an either-or additional cost is lowered only on a witness from the
@@ -241,8 +252,17 @@ func TestParkedMassAndPayment(t *testing.T) {
 // with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
 // whose host dies ahead of one that was already unattached (std-dft 469).
 func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
-	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{161, 19}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
+	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{31, 37, 59}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
 	synthPairsOn(t, "std-dft", Config{}, []int{469}, nil)
+}
+
+// An enchantment animated with a granted set-P/T static (Beorn's Hospitality) that then
+// loses all abilities to Enchanted River's Grasp is a 0/0 Bear: the later layer-6 loss
+// removes the granted static, so it dies and the Aura goes with it (CR 613.1f, 613.7,
+// 704.5f; std-hob 66, 276).
+func TestLoseAllAbilitiesEndsAnAnimateGrantedStatic(t *testing.T) {
+	t.Parallel()
+	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{66, 276}, onBattlefield("Beorn's Hospitality"), cardOut("Enchanted River's Grasp"))
 }
 
 // A reduction for targeting your own permanent reads every announced target, a second
@@ -250,7 +270,7 @@ func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
 // Enough).
 func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-otj", Config{}, []int{18, 71, 0}, cardSeen("This Town Ain't Big Enough"))
+	synthPairsReaching(t, "std-otj", Config{}, []int{6, 9, 0}, cardSeen("This Town Ain't Big Enough"))
 }
 
 // A Gift spell is lowered only on the witness of its composed cost, which has no source
@@ -258,7 +278,7 @@ func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 // Grotto's {1}.
 func TestGiftLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{}, []int{6, 17, 38}, anyOf(cardSeen("Cruelclaw's Heist"), cardSeen("Dawn's Truce")), onBattlefield("Hidden Grotto"))
+	synthPairsReaching(t, "std-blb", Config{}, []int{14, 18, 41}, anyOf(cardSeen("Cruelclaw's Heist"), cardSeen("Dawn's Truce")), onBattlefield("Hidden Grotto"))
 }
 
 // Copying each nontoken creature is one batch of tokens entering: Mister Fantastic's
@@ -279,7 +299,7 @@ func TestBeholdLoweredOnAWitness(t *testing.T) {
 // its zone, and it enters once answered (CR 614.12): Tune Up on Lifecraft Engine.
 func TestReturnAsksItsChoiceBeforeItMoves(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-dft", Config{}, []int{165, 178, 206}, cardOut("Tune Up"), onBattlefield("Lifecraft Engine"))
+	synthPairsReaching(t, "std-dft", Config{}, []int{112, 247, 438}, cardOut("Tune Up"), onBattlefield("Lifecraft Engine"))
 }
 
 // A card's own leaves-the-battlefield trigger reads the counters it left with (CR

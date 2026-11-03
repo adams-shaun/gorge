@@ -27,7 +27,7 @@ func grantedManaShape(ab *lAbility) string {
 	}
 	c := &ab.Cost
 	if !c.Tap || c.Untap || c.SacSelf || c.Sac != nil || c.DiscardN > 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
-		c.PayLife > 0 || c.TapN > 0 || c.TapHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
+		c.PayLife > 0 || c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
 		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 {
 		return "granted mana ability whose cost is not {T}"
 	}

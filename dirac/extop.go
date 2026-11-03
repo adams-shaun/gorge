@@ -19,6 +19,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		// (cast_altfree.go applyAskStdmech)
 		s.res.ask, s.res.askP = raPrevColor, s.res.e.ctrl
 		return false, true
+	case kop.ExtPreventDamageScope:
+		s.prevScopeAdd(k, in) // repl_preventscope.go
+		return true, true
 	case kop.ExtEachDamage:
 		s.eachDamage(k, in)
 		return true, true

@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // StallRestrSrc: restricted mana a planner-tapped source leaves floating past
 // what poolR holds (a second colour or restriction, or more than 15).
@@ -42,7 +46,9 @@ const (
 // DebugRestrictedSource is the lockstep mutation switch of TestKf24Restr*: 1 admits
 // every restricted source for every payment, 2 none, 3 puts a widened unit
 // (Secluded Courtyard) with the choice-shaped ones instead of its census
-// position. Zero in every real run.
+// position, 4 counts a restricted ability of a larger amount as one mana
+// (Intrepid Stablemaster's two), 5 floats the mana of that alternative as
+// ordinary mana. Zero in every real run.
 var DebugRestrictedSource uint8
 
 // payment classes (gorge pay.Purpose).
@@ -86,6 +92,10 @@ type restrData struct {
 	// is not a spell (AfManaNonSpell, or an activated restriction). Both
 	// let restrSrcAffords answer without walking the battlefield.
 	ext, nonSpell bool
+	// wide: some record is a widened source whose restricted ability makes
+	// more mana than its census one (pcard.wideN): a tap of it can overpay,
+	// and what it overpays floats restricted
+	wide bool
 }
 
 // restrSrcAb: a is a plain tap mana ability with a spend restriction that
@@ -120,13 +130,19 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			rec.kind = rkWiden
 			v := *pc
 			v.manaCol |= a.ManaColors & 0x3f
+			if n > pc.manaN && a.ManaColors&kop.ColAny == kop.ColAny && a.AFlags&kop.AfManaChoice == 0 {
+				// two mana of one colour beside the census ability's one:
+				// gorge's planner offers both alternatives (restrPairUnit)
+				v.wideN, v.wideCol = n, a.ManaColors&kop.ColAny
+				g.rs.wide = true
+			}
 			g.rs.views = append(g.rs.views, v)
 		default:
 			rec.kind = rkExt
 			g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: n, manaTap: true})
 		}
 		g.rs.recs = append(g.rs.recs, rec)
-		g.rs.ext = g.rs.ext || rec.kind != rkWiden
+		g.rs.ext = g.rs.ext || rec.kind != rkWiden || g.rs.views[rec.view].wideN != 0
 		g.rs.nonSpell = g.rs.nonSpell || a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrictAb != 0
 		return
 	}
@@ -199,10 +215,7 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
 	if r&poolRCnt == 0 || k.gen == nil {
 		return false
 	}
-	f := k.gen.restrF[0]
-	if r&poolRKind != 0 {
-		f = k.gen.restrF[1]
-	}
+	f := k.gen.restrFOf(r)
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -396,6 +409,14 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 		switch kind {
 		case rkWiden:
 			t.remove(s.srcMaskAt(own, sl), own.manaN)
+			if v.wideN != 0 && DebugRestrictedSource != 4 {
+				// the larger alternative holds everything the census one
+				// makes (its colours include them), so the source counts as
+				// wideN mana of one colour of its choosing
+				t.addUnits(uint8(v.wideCol), v.wideN)
+				s.addOneColour(&t, v.wideN)
+				break
+			}
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 		case rkExt:
 			t.addUnits(srcMask(v), v.manaN)
@@ -458,20 +479,47 @@ func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclu
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
 	pl := &s.pl[p]
+	if pk.rbOn {
+		s.payRestrFloated(k, p, cost, x, anyColor)
+		return
+	}
 	r := pl.poolR
 	if !pk.rdynOn || r&poolRCnt == 0 || s.poolRx[p&1] != 0 {
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 		return
 	}
-	col, n := int(r>>poolRShift), r&poolRCnt
+	col, n := int(r>>poolRShift), uint8(r&poolRCnt)
 	pl.pool[col] += n
 	pl.poolR = 0
 	pre := pl.pool[col]
 	s.payFromPoolRider(k, p, cost, x, anyColor)
 	if left := n - min(pre-pl.pool[col], n); left != 0 {
 		pl.pool[col] -= left
-		pl.poolR = r&^poolRCnt | left
+		pl.poolR = r&^poolRCnt | uint16(left)
 	}
+}
+
+// payRestrFloated pays cost from p's pool once the plan's taps have floated
+// their restricted mana (a restricted pair unit's larger alternative): all of
+// the restricted mana joins the pool, per colour it is spent before the
+// ordinary mana of its colour (gorge emitRestrictedManaSpend), and what is
+// left floats restricted again.
+//
+//go:noinline
+func (s *State) payRestrFloated(k *prep, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
+	pl := &s.pl[p]
+	kind := pl.poolR & poolRKind
+	var rn, ord [kop.NumManaKinds]uint8
+	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
+	restrXInto(s.poolRx[p&1], &rn)
+	for c := range rn {
+		ord[c] = pl.pool[c]
+		pl.pool[c] += rn[c]
+	}
+	pl.poolR, s.poolRx[p&1] = 0, 0
+	pre := pl.pool
+	s.payFromPoolRider(k, p, cost, x, anyColor)
+	s.restrLeftover(p, &rn, &ord, &pre, kind)
 }
 
 // filtRestrMask: the colours of the restricted ability of the source at sl
@@ -662,4 +710,87 @@ func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) 
 	t := *av
 	s.restrAvailAdd(p, &t)
 	return t.affords(cost, pipMaskOf(cost), 0)
+}
+
+// Restricted sources whose alternatives make different amounts (gorge
+// pay/planalts.go appendUnitAlternatives): a source with a census ability
+// of one mana and a restricted Produced$ Any ability of a literal amount
+// above one (Intrepid Stablemaster: {G}, or two mana of one colour that only
+// a Mount or Vehicle spell may spend) is one unit whose alternatives are the
+// census one and one of the larger amount per colour. A payment that admits
+// the restriction plans it as a pair of unit types sharing the source (the
+// painland's pair of mana_pain.go): the census alternative and the larger
+// one, which ranks as the source it is (flexibility and colours over every
+// alternative) and whose taps float restricted, so the plan's surplus (rank
+// key 4) is restricted mana left over (CR 106.6; a payment spends the
+// restricted mana of a colour before the ordinary one, gorge
+// emitRestrictedManaSpend). The witness hands a class's chosen units the
+// census alternative first (pay.CompareSteps: ability index).
+
+// restrPairUnit registers the widened source sl (view v, whose wideN is
+// set) at pcs index i as a pair of unit types. It reports whether it
+// handled the source (a source the planner has no room for stalls loud).
+//
+//go:noinline
+func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int) bool {
+	own := s.manaPCGen(k, sl)
+	ma, na := s.srcMaskAt(own, sl), own.manaN
+	mb, nb := uint8(v.wideCol), v.wideN
+	if ma&^mb != 0 || own.manaAb < 0 || DebugRestrictedSource == 4 {
+		return false // not the shape kgen lowers: the ordinary widened unit
+	}
+	cr := s.isCreature(k, sl)
+	dmk := srcMask(v) // the colours both alternatives rank over
+	var xv [kop.NumManaKinds]uint8
+	var xm, xt uint8
+	if k.gen != nil && k.gen.anyTapExtra {
+		xv = s.srcExtra(k, sl, own) // the same fixed extra on either alternative
+		for c, n := range xv {
+			if n > 0 {
+				xm |= 1 << c
+				xt += n
+			}
+		}
+	}
+	ta, tb := -1, -1
+	for t := 0; t < pk.nt && ta < 0; t++ {
+		a := &pk.types[t]
+		if a.pair == 0 || a.alt || a.rb || a.pain != 0 || a.mask != ma || a.n != na || a.dmask != dmk || a.creat != cr || a.xv != xv {
+			continue
+		}
+		if b := &pk.types[a.pair-1]; b.rb && b.mask == mb && b.n == nb {
+			ta, tb = t, int(a.pair)-1
+		}
+	}
+	if ta < 0 {
+		if pk.nt+2 > maxTypes || pk.nu >= maxUnits {
+			s.capFull(StallRestrSrc)
+			return true
+		}
+		fl := uint8(bits.OnesCount8(dmk | xm))
+		ta, tb = pk.nt, pk.nt+1
+		pk.nt += 2
+		pk.types[ta] = utype{mask: ma, dmask: dmk, n: na, creat: cr, flex: fl, pair: uint8(tb) + 1, xv: xv, xmask: xm, xt: xt}
+		pk.types[tb] = utype{mask: mb, dmask: dmk, n: nb, creat: cr, flex: fl, pair: uint8(ta) + 1, alt: true, rb: true, xv: xv, xmask: xm, xt: xt}
+		pk.maxXt = pk.maxXt || xt != 0
+		pk.maxN = max(pk.maxN, int(max(na, nb))+int(xt))
+		pk.pairs = true
+	}
+	pk.types[ta].avail++
+	pk.types[tb].avail++
+	pk.units[pk.nu] = sl
+	if pk.bfl {
+		pk.uobj[pk.nu] = Obj(i)
+	} else {
+		pk.uobj[pk.nu] = s.perms[sl].obj
+	}
+	pk.utyp[pk.nu] = uint8(ta)
+	pk.rkind[pk.nu] = 0
+	pk.nu++
+	for c := 0; c < 5; c++ {
+		if (dmk|xm)&(1<<c) != 0 {
+			pk.colSrc[c]++
+		}
+	}
+	return true
 }

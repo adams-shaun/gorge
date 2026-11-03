@@ -149,7 +149,7 @@ func TestHybridWitnessFloatsRestrictedMana(t *testing.T) {
 	}
 	sc.s.Step()
 	pl := &sc.s.pl[0]
-	if pl.pool[kop.G] != 1 || pl.poolR != 1|uint8(kop.G)<<poolRShift {
+	if pl.pool[kop.G] != 1 || pl.poolR != 1|uint16(kop.G)<<poolRShift {
 		t.Fatalf("after the cast: pool %v poolR %#x, want one ordinary {G} (the Forest's) and one restricted {G} (the Village's)", pl.pool, pl.poolR)
 	}
 }

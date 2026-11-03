@@ -429,7 +429,7 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 		// zero exactly as the ordinary body's Num would, so nothing is lost.
 		ids = append(ids, replIdentity(m))
 		pc := effects.PutCounterOf(m.repl.With)
-		n, ok := pc.CounterNumResolved(e, e.replCtx(m, ev))
+		n, ok := pc.CounterNumResolved(e, e.replCtx(m, matchEv))
 		if !ok || n <= 0 {
 			return
 		}

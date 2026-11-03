@@ -2310,21 +2310,22 @@ func creatureOnly(f *lFilter) bool {
 // grantedTrigger lowers a static's AddTrigger$ (gorge layer 6: the
 // affected permanent has the triggered ability; its own controller
 // controls the trigger and Self is that permanent). The kernel's static
-// grant walk (grantedAbilitiesN) reaches only the permanent the static's
-// source is attached to, so the affected filter must be the Equipment's or
-// Aura's host (every clause EquippedBy / EnchantedBy); a global grant
-// (Sliver lords, anthems) needs the M3 layer-6 record and refuses. AddSVar$
+// grant walk (grantedAbilitiesN) reports the grant for an attached host (an
+// Equipment's or Aura's) and, for any other affected filter, for every
+// permanent the filter matches (globalGrantsGen: "artifact creatures you
+// control have ..."), one instance per granting static in timestamp order.
+// AddSVar$
 // names SVars of this face the granted body reads (consumed).
 func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, error) {
 	lc.granted++
 	defer func() { lc.granted-- }()
+	// An attached grant names its host: the kernel finds it as the card's own
+	// permanent attached to the carrier (cost_sachost.go).
+	aff := sp.str("Affected") // AffectedDefined$ Equipped/Enchanted arrives as .EquippedBy/.EnchantedBy
+	lc.grantAttached = !strings.Contains(aff, ",") && (strings.Contains(aff, ".EquippedBy") || strings.Contains(aff, ".EnchantedBy"))
+	defer func() { lc.grantAttached = false }()
 	if st.F == nil || st.F.Players != 0 || len(st.F.Clauses) == 0 {
 		return 0, refuse("AddTrigger affected %s", st.F)
-	}
-	for _, c := range st.F.Clauses {
-		if c.Flags&(fEquippedBy|fEnchantedBy) == 0 {
-			return 0, refuse("AddTrigger to a non-attached affected %s (layer-6 grant record, M3)", st.F)
-		}
 	}
 	if strings.Contains(name, "&") || strings.Contains(name, ",") {
 		return 0, refuse("AddTrigger %q: more than one trigger", name)
@@ -2350,9 +2351,11 @@ func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, e
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") }); err != nil {
 		return 0, err
 	}
-	if len(lc.out.Abilities) != idx+1 {
+	if len(lc.out.Abilities) < idx+1 {
 		return 0, refuse("AddTrigger lowering")
 	}
+	// (an ImmediateTrigger body appends its reflexive ability after the
+	// granted one; it is reached through the body's own spawn, not granted)
 	lc.out.Abilities[idx].Latent = true
 	lc.out.Abilities[idx].Name = "Granted"
 	return idx, nil
@@ -2796,6 +2799,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		}
 	case "GainLife":
 		if err := lc.lifeGainRepl(rp, r.With, &rl); err != nil {
+			return err
+		}
+	case "Draw":
+		if err := lc.drawRepl(rp, r.With, &rl); err != nil { // lower_drawrepl.go
 			return err
 		}
 	case "LifeReduced":

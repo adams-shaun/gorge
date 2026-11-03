@@ -12,20 +12,24 @@ import "reflect"
 // refusal). An AttackersDeclared one counts every attacker of the
 // declaration.
 func eotCombatEmblemRefuse(ab *lAbility) error {
-	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "AttackersDeclared") {
+	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "AttackersDeclared" || t.Event == "Attacks") {
 		// the hooks read only these fields: any other trigger rider (an
 		// intervening if, once per turn, your turn only, a batch, ...)
 		// would be dropped
 		z := *t
 		z.Event, z.F, z.F2, z.Whose, z.Zone, z.Combat, z.Optional, z.MinAttackers, z.SrcInPlay, z.DefPlayer = "", nil, nil, 0, 0, 0, false, 0, false, 0
+		if t.Event == "Attacks" {
+			z.Alone, z.Attacked = false, 0 // the per-attacker hook reads both (fireAttacksGen)
+		}
 		if !reflect.DeepEqual(z, lTrigger{}) {
 			return refuse("Effect %s trigger rider", t.Event)
 		}
 	}
-	if ab.Trigger != nil && ab.Trigger.Event == "AttackersDeclared" && (ab.Trigger.F != nil || ab.Trigger.DefPlayer != 0) {
-		// the kernel's emblem hook counts every attacker of the one
-		// declaration (fireEmblemsAttack): no ValidAttackers$ or
-		// per-defender line
+	if ab.Trigger != nil && ab.Trigger.Event == "AttackersDeclared" && ab.Trigger.DefPlayer == 0 && ab.Trigger.F != nil {
+		// without a defender line the kernel's emblem hook counts every
+		// attacker of the one declaration (fireEmblemsAttack): no
+		// ValidAttackers$; the per-defender line is walked with the
+		// declaration's groups (fireAttacksGen)
 		return refuse("Effect AttackersDeclared trigger with ValidAttackers or AttackedTarget")
 	}
 	if ab.Trigger == nil || ab.Trigger.Event != "DamageDone" {

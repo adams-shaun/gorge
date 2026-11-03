@@ -1780,11 +1780,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if head == "Improvise" {
 				st.A = kop.StackKwImprovise
 			}
-		case "Lifelink":
+		case "Lifelink", "Storm":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
+			if head == "Storm" {
+				st.A = kop.StackKwStorm
+			}
 		case "Casualty":
 			n, err := strconv.Atoi(param)
 			if err != nil || n < 1 || n > 127 {
@@ -1967,6 +1970,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
+	case "DrawMore":
+		rp.Kind = kop.ReplDrawMore // lower_drawrepl.go
+		if !r.N.isConst() || r.N.N < 2 {
+			return ka, fmt.Errorf("draw more %v", r.N)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":
@@ -2126,7 +2135,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2139,6 +2148,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "Evidence" {
 			ki.B = kop.Const(kop.PayBSubEvidence) // CollectEvidence, not {X}: PayEvidence's nibble value is PayManaX's
+		}
+		if in.CS == "SacrificeHost" {
+			ki.B = kop.Const(kop.PayBSubSacHost) // the granting host, not the source
 		}
 		if in.CS == "ExileTrigNew" {
 			ki.B = kop.Const(kop.PayBSubTrigNew) // ExileAnyGrave<1/Card.TriggeredNewCard>, not a filter exile
@@ -2295,7 +2307,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
-		if in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+		if (in.Obj.Kind == rSelf || in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredSource) && fl["from"] == "Battlefield" {
+			// a triggering permanent that left before the exile resolved is
+			// a new object this ability cannot find (CR 400.7, 608.2b)
 			ki.C |= kop.MvFromBattlefield
 		}
 		if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -3223,6 +3237,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
+	case "PreventDamageScope":
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel

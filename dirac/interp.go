@@ -534,7 +534,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.g.retMiss = true // until the move: an OpOverride rider tests it
 		}
 		ob := &s.objs[o]
-		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) {
+		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) || s.instantStays(k, o, kop.Zone(in.C)) {
 			break
 		}
 		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
