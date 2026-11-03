@@ -14,14 +14,14 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DSK | 276 | 233 | 5 | 40 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 0 | 118 | 118 |
-| FDN | 517 | 505 | 5 | 7 | 493 |
+| FDN | 517 | 506 | 1 | 12 | 493 |
 | FIN | 312 | 266 | 3 | 18 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 249 | 2 | 19 | 228 |
 | MKM | 279 | 227 | 4 | 37 | 186 |
 | MSH | 276 | 223 | 7 | 9 | 207 |
-| OTJ | 276 | 238 | 5 | 21 | 212 |
+| OTJ | 276 | 239 | 4 | 23 | 212 |
 | SOS | 270 | 247 | 4 | 22 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
 | TDM | 276 | 243 | 8 | 46 | 189 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 268 | 1 | 105 | 162 |
 | TRK | 311 | 249 | 0 | 161 | 88 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21227 | 73 | 16987 | 4167 |
+| ALL | 34442 | 21232 | 68 | 16997 | 4167 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-73 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+68 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -81,13 +81,13 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Chars.Keywords | 1 |
 | projection-Cards.Counters | 1 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 10 |
-| projection-Cards.Pos | 6 |
-| projection-Cards.Power | 3 |
+| projection-Cards.Flags | 9 |
+| projection-Cards.Pos | 4 |
+| projection-Cards.Power | 2 |
 | projection-Cards.Zone | 2 |
 | projection-Life | 2 |
 | projection-NInst | 1 |
-| projection-NStack | 10 |
+| projection-NStack | 9 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |
 | projection-Step | 1 |
