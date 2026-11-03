@@ -217,6 +217,9 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return uniqueTargets(ts), ok
 	}
 	if !strings.Contains(spec, " & ") {
+		if ts, ok := oppNonComplementTargets(h, c, spec); ok {
+			return ts, true
+		}
 		return nonComplementTargets(h, c, spec)
 	}
 	var out []state.Target
@@ -253,6 +256,35 @@ func nonComplementTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	var out []state.Target
 	for _, p := range h.Game().AliveFrom(c.Controller) {
 		if !excluded[p] {
+			out = append(out, state.Target{Player: p, IsPlayer: true})
+		}
+	}
+	return out, true
+}
+
+// oppNonComplementTargets is Forge's `OppNon<referent>` player selector
+// (AbilityUtils.getDefinedPlayers: the resolving controller's opponents minus
+// the players `<referent>` names): Kynaios and Tiro of Meletis' "each opponent
+// who didn't" (OppNonRememberedOwner), the schemes' "each of your other
+// opponents" (OppNonParentTarget). The same shape as nonComplementTargets,
+// over the opponents rather than every seat. An unknown referent stays
+// unknown.
+func oppNonComplementTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	rest, ok := strings.CutPrefix(spec, "OppNon")
+	if !ok || rest == "" {
+		return nil, false
+	}
+	named, ok := knownDefinedTargets(h, c, rest)
+	if !ok {
+		return nil, false
+	}
+	excluded := make(map[state.PlayerID]bool)
+	for _, p := range playerIDsFromTargets(h, c, rest, named) {
+		excluded[p] = true
+	}
+	var out []state.Target
+	for _, p := range h.Game().AliveFrom(c.Controller) {
+		if p != c.Controller && !excluded[p] {
 			out = append(out, state.Target{Player: p, IsPlayer: true})
 		}
 	}
@@ -469,7 +501,7 @@ func paidCostTargets(c *Ctx, ref string) []state.Target {
 	switch ref {
 	case "Revealed", "RevealedCards":
 		ids = c.Paid.Revealed
-	case "Discarded":
+	case "Discarded", "DiscardedCards":
 		ids = c.Paid.Discarded
 	case "Tapped", "TappedCards":
 		ids = c.Paid.Tapped
@@ -2935,6 +2967,8 @@ var definedSpecCodes = state.NewStrCodes(
 	state.StrEntry[definedSpecCode]{Key: "Revealed", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "ExiledCards", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "RevealedCards", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "Discarded", Val: definedSpecExiled},
+	state.StrEntry[definedSpecCode]{Key: "DiscardedCards", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "Tapped", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "TappedCards", Val: definedSpecExiled},
 	state.StrEntry[definedSpecCode]{Key: "Returned", Val: definedSpecExiled},
