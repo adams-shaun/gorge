@@ -110,7 +110,7 @@ func (s *State) offerMayKind(k *prep, d *Decision, p uint8, r mayPlay, sorc, lan
 		c := s.objs[r.obj].card
 		cost := s.adjustCostGen(k, p, c, r.obj, k.cards[c].cost)
 		cost = planUnderRider(cost, anyMana, anyColor)
-		unpriced = !av.affords(&cost, pipMaskOf(&cost), 0)
+		unpriced = !s.castAffordsR(k, p, c, s.restrOriginOfObj(r.obj), &cost, av) // (restricted mana the pool holds, or a restricted source the planner counts, prices it too, as in priorityMayPlay)
 	}
 	if r.kind&mayKindRaise != 0 {
 		s.g.raiseO = uint8(r.turn) // priced into adjustCostGen while offered
