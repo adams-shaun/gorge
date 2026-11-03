@@ -600,8 +600,8 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.clearFaceDown(sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
-	if p.ovr.flags&ovCopy != 0 && k.gen != nil && k.gen.anyCloneCopy {
-		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables)
+	if p.ovr.flags&ovCopy != 0 {
+		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables): whatever made the copy (a clone op, an as-enters clone, an Aegis)
 	}
 	if p.attached != NoSlot {
 		s.recordAttLKI(o, p.attached)
