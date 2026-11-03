@@ -287,7 +287,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 {
+				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -302,6 +302,30 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the
+// printed mana cost but fixed-count tapXType parts (Guardian of the Great Door's
+// "tap four untapped artifacts, creatures, and/or lands"). planComposedCost models
+// those exactly: it withholds each assignment of candidates from the mana plan
+// and requires the plan to leave them untapped, so its verdict, proof included,
+// stands where the cast planner declines the shape (CR 601.2g-h).
+func spellExtrasAreFixedTaps(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	extras := pay.WithSpellAbilityExtras(f, Cost{})
+	if len(extras.TapPermanent) == 0 {
+		return false
+	}
+	for _, part := range extras.TapPermanent {
+		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 {
+			return false
+		}
+	}
+	rest := extras
+	rest.TapPermanent = nil
+	return rest.IsZero()
 }
 
 // manaSpentReaderComposed reports a spell the cast planner declined only

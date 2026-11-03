@@ -664,3 +664,36 @@ func TestPotentialPlanPricesAnEitherOrCost(t *testing.T) {
 		})
 	}
 }
+
+const (
+	ppTapFour = "Name:Roster Angel\nManaCost:W W\nTypes:Creature Angel\nPT:4/4\n" +
+		"A:SP$ PermanentCreature | Cost$ W W tapXType<4/Artifact,Creature,Land/permanents>\nOracle:x\n"
+	ppFilterLand = "Name:Filter Cave\nManaCost:no cost\nTypes:Land Cave\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C\n" +
+		"A:AB$ Mana | Cost$ 1 T | Produced$ Any\nOracle:x\n"
+	ppOgre = "Name:Roster Ogre\nManaCost:1\nTypes:Creature Ogre\nPT:2/2\nOracle:x\n"
+)
+
+// TestPotentialPaymentPlansPricesASpellWithAFixedTapCost: a spell costing {W}{W}
+// and four tapped permanents, on a board whose one white source is a Plains and
+// whose second is a {1}-costed any-colour filter. Seven permanents pay it
+// (Plains and the filter for the {W}{W}, a Forest for the filter's {1}, and the
+// four others tapped for the cost, CR 601.2g-h), so the planner prices the cast
+// instead of declining the additional cost as an unsupported shape.
+func TestPotentialPaymentPlansPricesASpellWithAFixedTapCost(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9406, ppFiller, ppTapFour)
+	onBoard(t, e, 0, lrPlains)
+	onBoard(t, e, 0, ppFilterLand)
+	for range 2 {
+		onBoard(t, e, 0, lrForest)
+	}
+	onBoard(t, e, 0, ppOgre)
+	onBoard(t, e, 0, ppOgre)
+	angel := addToHand(t, e, 0, ppTapFour)
+	ppPriority(t, e)
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", angel)
+	if pp.Detail == "shape:additional_cost" {
+		t.Fatalf("the fixed tap cost was declined as an unsupported shape: %+v", pp)
+	}
+}
