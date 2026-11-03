@@ -171,6 +171,18 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 	return !s.genLost(k, sl)
 }
 
+// windowGrantMask is the colours of the mana abilities effects grant sl,
+// joined: what the cast window's clamp reads beside the source's own ability.
+//
+//go:noinline
+func (s *State) windowGrantMask(k *prep, sl Slot) (mask uint8) {
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		mask |= s.srcMaskAt(s.grantView(k.gen, gi[i], sl), sl)
+	}
+	return mask
+}
+
 // availGrant adds slot sl's unit(s) to a (availFor) on a table with
 // Continuous mana grants: its own ability's colours (pc) joined with
 // every granted ability's, one unit (the permanent taps once; gorge's
@@ -491,10 +503,9 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	if g.k.gen.anyTapExtra && g.k.gen.anyContGrant {
 		pc = t.stepView(g.k, sl, gi)
 	}
-	for c := uint8(0); c < kop.NumManaKinds; c++ {
-		if mask&(1<<c) == 0 {
-			continue
-		}
+	var order [kop.NumManaKinds]uint8
+	no := t.stepColours(g.k, sl, gi, mask, &order)
+	for _, c := range order[:no] {
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += n
 		xv := t.srcExtraPick(g.k, sl, pc, int(c))
@@ -510,6 +521,37 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.perms[sl].flags &^= pfTapped
 	}
 	return false
+}
+
+// stepColours lists the colours of mask a prefix step on sl may answer, in the
+// order gorge's ask offers them: a Combo ability's printed order (Sun-Blessed
+// Peak's "R or W"; manaColourOrder), else W U B R G C. gi is the granted
+// ability the step taps, -1 for the source's own.
+func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.NumManaKinds]uint8) (n int) {
+	var ab *kop.Ability
+	if gi < 0 {
+		if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
+			ab = &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+		}
+	} else if r := k.gen.grantOf[gi]; !k.gen.grantSelf[gi] {
+		ab = &k.t.Cards[r.card].Abilities[r.ab]
+	}
+	var seen uint8
+	if ab != nil && ab.ManaColOrd != 0 && uint8(ab.ManaColors)&0x1f == mask&0x1f {
+		var ord [5]uint8
+		for _, c := range ord[:manaColourOrder(ab, &ord)] {
+			out[n] = c
+			n++
+			seen |= 1 << c
+		}
+	}
+	for c := uint8(0); c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 && seen&(1<<c) == 0 {
+			out[n] = c
+			n++
+		}
+	}
+	return n
 }
 
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out

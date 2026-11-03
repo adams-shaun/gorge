@@ -357,7 +357,7 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 // there is nothing to owe, so the source takes its lowest colour, which for
 // a plain any-colour source is W (gorge's trigger-cost manual window).
 func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
-	mask := s.windowSrcMask(k, sl)
+	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
 		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
@@ -367,8 +367,9 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				return c0 // a Verge's ability 0 comes before its lower colour
 			}
 		}
+		all := s.windowSrcMask(k, sl) // a granted ability's colour a pip owes counts too
 		for c := 0; c < 5; c++ {
-			if mask&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
 				return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
 			}
 		}
@@ -1347,9 +1348,21 @@ func (s *State) loweredPoolPays(k *prep, e *stackEntry, cost kop.ManaCost, anyCo
 	return s.windowPoolPays(e.ctrl, &cost, anyColor)
 }
 
-// windowSrcMask is the colours sl's mana ability makes in the window
-// (colourless when it names none).
+// windowSrcMask is the colours the window can take from sl: its own mana
+// ability's (colourless when it names none) joined with every granted ability's,
+// as gorge's clamp reads the colours of each ability the source offers
+// (paymentSourceUseful over availableManaAbilitiesForWindow).
 func (s *State) windowSrcMask(k *prep, sl Slot) uint8 {
+	mask := s.windowOwnMask(k, sl)
+	if k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) {
+		mask |= s.windowGrantMask(k, sl)
+	}
+	return mask
+}
+
+// windowOwnMask is the colours sl's own mana ability makes in the window
+// (colourless when it names none).
+func (s *State) windowOwnMask(k *prep, sl Slot) uint8 {
 	pc := &k.cards[s.cardAt(sl)]
 	if k.gen != nil {
 		pc = s.manaPCGen(k, sl)

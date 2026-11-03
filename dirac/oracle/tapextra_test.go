@@ -145,3 +145,20 @@ func TestTapExtraGrantedWalkLockstep(t *testing.T) {
 	synthReproLockstep(t, "tap_extra_granted_walk_cap", "std-tla", Config{GorgeAutopaySurface: true})
 	synthReproLockstep(t, "tap_extra_granted_walk_activation", "std-tla", Config{GorgeAutopaySurface: true})
 }
+
+// A cast's payment window takes a source for the colour the cost still owes when any ability
+// of it makes that colour, a granted one too: with Great Divide Guide in play a Swamp pays
+// a {G} pip (gorge's clamp reads each ability the source offers), and the window reaches it
+// before a later Forest.
+func TestWindowGrantedColourLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "window_grant_colour_owed", "std-tla", Config{})
+}
+
+// A prefix step that taps a Combo ability tries its colours in the order gorge's ask offers
+// them, the printed one: Sun-Blessed Peak's "R or W" floats {R} where W U B R G order
+// would float {W}, and the difference reaches the pool the activation spends from.
+func TestPrefixComboPrintedOrderLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "prefix_combo_printed_order", "std-tla", Config{})
+}
