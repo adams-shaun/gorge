@@ -2299,6 +2299,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.discardSelfCost(k, e)
 	}
 	s.payPicks(k)
+	if a.Cost.Host == kop.CostHostSac {
+		s.sacHostCost(k, e)
+	}
 	if a.Evidence != 0 {
 		s.payCostEvidence(k) // cost_collectevidence.go
 	}

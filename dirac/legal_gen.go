@@ -83,6 +83,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}
+			if a.Cost.Host == kop.CostHostSac && s.perms[host].ctrl != p {
+				return // only a permanent the payer controls can be sacrificed (CR 701.21a)
+			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
 				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
 			}
@@ -815,4 +818,19 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 		}
 	}
 	return true
+}
+
+// sacHostCost pays CostHostSac: sacrifice the permanent that granted the
+// ability, the one candidate settled unasked.
+func (s *State) sacHostCost(k *prep, e *stackEntry) {
+	h := e.trigObj
+	if h == NoObj || s.objs[h].zone != kop.ZoneBattlefield {
+		return
+	}
+	sl := s.objs[h].slot
+	s.snapSacPick(h)
+	s.fireSac(k, sl)
+	if !s.parkCost(k, h, parkLeave, 0) {
+		s.leave(k, sl, kop.ZoneGraveyard, false)
+	}
 }

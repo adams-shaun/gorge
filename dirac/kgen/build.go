@@ -818,6 +818,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.TapHost {
 		out.Flags |= kop.CostTapHost
 	}
+	if c.SacHost {
+		out.Host = kop.CostHostSac
+	}
 	if c.Sac != nil {
 		set(kop.CostSac, c.SacN)
 		// You can only sacrifice what you control: say so in the filter, as

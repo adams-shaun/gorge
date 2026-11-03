@@ -1,0 +1,9 @@
+# the sacrifice-the-grantor pool: equipment whose granted activated ability
+# sacrifices the equipment itself, beside vanilla creatures and basics, for
+# the oracle's constructed lockstep (dirac/oracle/sachost_test.go)
+Deconstruction Hammer
+Citizen's Crowbar
+Hill Giant
+Raging Goblin
+Plains
+Mountain

@@ -100,7 +100,7 @@ func plainTapMana(a *lAbility, paid bool) bool {
 	c := &a.Cost
 	m := &c.Mana
 	if !c.Tap || c.SacSelf || c.Sac != nil || c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.PayLife != 0 ||
-		c.TapN != 0 || c.TapHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
+		c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
 		return false
 	}
 	if m.Pips != [5]int{} || len(m.Hybrid) > 0 || m.X || m.C != 0 || (m.Generic != 0) != paid {

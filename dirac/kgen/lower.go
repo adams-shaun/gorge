@@ -1546,6 +1546,15 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				c.SacSelf = true
 				continue
 			}
+			if parts[1] == "OriginalHost" {
+				// the granting Equipment or Aura (gorge bindGrantedCostReferents:
+				// the one candidate is the grantor, settled unasked)
+				if n != 1 || c.SacHost {
+					return c, refuse("cost token %q", t)
+				}
+				c.SacHost = true
+				continue
+			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {
@@ -2083,7 +2092,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("mana ability with a return cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 || cost.ReturnSelf {
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 || cost.ReturnSelf {
 				return refuse("return cost beside another non-mana part")
 			}
 		}
@@ -2094,7 +2103,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// gorge pays returns before the sacrifices: refuse beside any
 			// other non-mana part but {T} (the kernel orders only these)
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 {
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 {
 				return refuse("return-self cost beside another non-mana part")
 			}
 		}
@@ -2103,7 +2112,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("mana ability with an exile-self cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil && !cost.ExileGBf || cost.Energy != 0 ||
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil && !cost.ExileGBf || cost.Energy != 0 ||
 				cost.ReturnSelf || cost.Return != nil {
 				// (Craft's ExileCtrlOrGrave material beside its Exile<1/CARDNAME>:
 				// the material picks are paid first, then the source, gorge
@@ -2127,7 +2136,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("waterbend cost with an {X} in the mana cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.TapPowN != 0 || cost.Forage != nil || cost.ExileG != nil ||
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.TapPowN != 0 || cost.Forage != nil || cost.ExileG != nil ||
 				cost.Energy != 0 || cost.ReturnSelf || cost.ExileSelf || cost.Untap || cost.Return != nil || cost.DrawN > 0 {
 				return refuse("waterbend cost beside another non-mana part")
 			}

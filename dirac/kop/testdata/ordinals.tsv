@@ -99,6 +99,7 @@ CostExileCtrlOrGrave	CostFlags	1073741824
 CostExileGrave	CostFlags	512
 CostExileSelf	CostFlags	1048576
 CostForage	CostFlags	65536
+CostHostSac	uint8	1
 CostLoyalty	CostFlags	4096
 CostLoyaltyX	CostFlags	536870912
 CostOncePerGame	CostFlags	8192

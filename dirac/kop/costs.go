@@ -164,7 +164,16 @@ type Cost struct {
 	N      uint8 // count for Sac / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
 	Ctr    CounterKind
 	Filter FilterID
+	// Host names a cost part paid on the permanent that granted the ability
+	// (an Equipment's or Aura's static): CostHostSac. The CostFlags words are
+	// full, so the part rides its own byte. Only a granted ability reads it.
+	Host uint8
 }
+
+// CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction
+// Hammer's granted ability). The host must be the payer's own permanent on the
+// battlefield (CR 701.21a); the one candidate is settled unasked.
+const CostHostSac uint8 = 1
 
 // CostSubCtrPick: remove Cost.N counters of kind Cost.Ctr
 // (or any kind for CtrAll) from the source (Cost.Filter 0) or from the
