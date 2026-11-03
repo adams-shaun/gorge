@@ -395,3 +395,31 @@ func (s *State) pendNeedsDecision(k *prep, i int) bool {
 	a := &cd.Abilities[pt.ab]
 	return a.NTargets != 0 || a.NModes != 0
 }
+
+// castNeedsEmptyStack reports whether the plain cast a is sorcery-speed: a
+// card that is neither an instant nor flashed may be cast only with the stack
+// empty (CR 307.1, 117.1a). gorge's script search keeps going through a pass
+// while the prefix's trigger is on the stack until the play is offered
+// (potential_script.go waitsForStack), so the trigger resolves first.
+func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() != AkCast || a.Mode() != 0 {
+		return false
+	}
+	o := Obj(a.Source())
+	c := s.objs[o].card
+	return !k.cards[c].instant && !s.castFlash(k, s.prio, c)
+}
+
+// resolvePrefixStack resolves what a scripted prefix left on the stack above
+// depth sp0, the other player passing as the search assumed, before a
+// sorcery-speed play is submitted (flushPrefixTriggers stacked it). A trigger
+// the resolution queues is placed and resolved too.
+func (s *State) resolvePrefixStack(k *prep, sp0 uint8) {
+	for s.sp > sp0 && s.ctl == ctlPriority && !s.over {
+		s.passes = 1
+		s.pass(k)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
+}

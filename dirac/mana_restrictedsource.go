@@ -62,6 +62,10 @@ type payDesc struct {
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
+	// sorc: the play is a sorcery-speed cast, offered only with the stack empty
+	// (CR 307.1): a prefix whose tap stacked a trigger is searched on through
+	// the trigger's resolution (grantSrch.visit)
+	sorc bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability

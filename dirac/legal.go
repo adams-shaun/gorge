@@ -1259,6 +1259,7 @@ func potentialCovers(others *[kop.NumManaKinds]int, cost *kop.ManaCost) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	sp0 := s.sp
 	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
@@ -1270,6 +1271,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
+	}
+	if s.sp > sp0 && s.castNeedsEmptyStack(k, a) {
+		s.resolvePrefixStack(k, sp0)
 	}
 	switch a.Kind() {
 	case AkPass:

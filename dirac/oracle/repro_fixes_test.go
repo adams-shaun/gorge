@@ -69,6 +69,14 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-tla's: the first decision of each once diverged.
+func TestStdTlaReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-tla", []stdRepro{
+		{"sorcery_play_waits_for_prefix_trigger", false}, // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
+	})
+}
+
 type stdRepro struct {
 	name    string
 	autopay bool

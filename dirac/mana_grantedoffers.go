@@ -342,11 +342,16 @@ type grantSrch struct {
 	seen  [potentialScriptNodes]grantKey
 	np    int
 	path  [MaxPerm]grantStep
+	// stk counts the triggers the path's taps have stacked and a pass has not
+	// resolved: gorge's search prices a sorcery-speed play only once they have
+	// (potential_script.go waitsForStack), so it taps on before it passes
+	stk uint8
 }
 
 // grantKey identifies a payer state (gorge scriptStateKey: the pool and
 // each own permanent's tapped bit).
 type grantKey struct {
+	stk    uint8
 	tapped slotMask
 	pool   [kop.NumManaKinds]uint8
 }
@@ -428,10 +433,10 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
+	if g.stk == 0 && t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
 		return true
 	}
-	key := grantKey{tapped: t.tappedOf(g.p), pool: t.pl[g.p&1].pool}
+	key := grantKey{stk: g.stk, tapped: t.tappedOf(g.p), pool: t.pl[g.p&1].pool}
 	for i := 0; i < g.nseen; i++ {
 		if g.seen[i] == key {
 			return false
@@ -482,6 +487,13 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 		}
 	}
+	if g.stk != 0 {
+		// a trigger a tap stacked: let it resolve, the pool floats (the search's last option)
+		g.stk--
+		ok := g.visit(t)
+		g.stk++
+		return ok
+	}
 	return false
 }
 
@@ -512,7 +524,18 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
-		if g.visit(t) {
+		var stacked uint8
+		if g.d.sorc && g.k.gen.manaTaps {
+			u := t.fork()
+			n0 := u.npend
+			u.manaTapped(g.k, sl)
+			stacked = u.npend - n0
+			t.unfork()
+		}
+		g.stk += stacked
+		ok := g.visit(t)
+		g.stk -= stacked
+		if ok {
 			return true
 		}
 		g.np--
@@ -605,7 +628,7 @@ func (s *State) grantPayDesc(a Action) payDesc {
 	switch a.Kind() {
 	case AkCast, AkCastCasualty:
 		og := restrOrigin{from: s.objs[o].zone}
-		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
+		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og, sorc: s.castNeedsEmptyStack(s.k(), a)}
 	case AkActivate:
 		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
