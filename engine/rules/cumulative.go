@@ -2043,7 +2043,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	sc := e.withNames(effects.NewSpecContext(tc.player, tc.specSource(e)))
 	sc.TriggerContext = tc.trig
 	var out []state.ObjID
-	for _, id := range e.G.Zone(zone, tc.player) {
+	for _, id := range pay.ExileZoneCards(e.G, zone, tc.player, part) {
 		if used[id] {
 			continue
 		}

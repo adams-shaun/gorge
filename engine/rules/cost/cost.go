@@ -25,6 +25,10 @@ type CostPart struct {
 	// nonzero it takes precedence over Zone.
 	Zone    state.Zone
 	ZoneSet uint8
+	// AnyGrave marks Forge's ExileAnyGrave<N/Spec>: the card exiled may lie in
+	// any player's graveyard, not only the payer's (a creature that died under
+	// another player's control goes to its owner's graveyard, CR 404.1, 700.4).
+	AnyGrave bool
 	// Announced marks a variable-count Sac<X/Spec> or ExileFromGrave<X/Spec>
 	// part: the player announces the count as the cast's X (CR 601.2b)
 	// and exactly that many matching objects are paid. N is unused for an Announced part.
