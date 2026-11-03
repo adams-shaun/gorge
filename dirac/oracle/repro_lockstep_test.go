@@ -324,3 +324,11 @@ func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "archaic_flashback_no_other_target", "std-sos", Config{GorgeAutopaySurface: true})
 }
+
+// This Town Ain't Big Enough with two mana in the pool: a permanent the caster does
+// not control leaves the cost at five, which the pool cannot pay, so a multi-target ask
+// offers only the caster's own permanent (CR 601.2b-f), as the single-target ask does.
+func TestMultiTargetAskDropsTheTargetItsCostCannotPayLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "this_town_multi_target_unaffordable", "std-otj", Config{})
+}
