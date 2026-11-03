@@ -103,7 +103,10 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	if a.Trig.Flags3 != 0 {
 		s.bindTrigConverge(a, tobj) // mana_converge.go
 	}
-	if k.gen.anyPanharm && s.npend > n {
+	if k.gen.anyPanharm && s.npend > n && a.Trig.Flags&kop.TfOncePerTurn == 0 && a.Trig.Flags3&kop.Tf3GameOnce == 0 {
+		// a line limited to once per turn or per game has spent its one trigger
+		// on the original: an additional time would pass the limit again (gorge
+		// queueTriggerLimited, CR 603.2d)
 		s.panharmEcho(k, l, a.Trig.Event, tobj, n) // trig_doubling.go
 	}
 }

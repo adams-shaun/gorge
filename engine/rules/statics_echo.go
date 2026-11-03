@@ -43,6 +43,17 @@ func (e *Engine) queueTrigger(observer *Engine, pt pendingTrigger, ev events.Eve
 // An empty trigMode is a keyword's synthetic trigger, which has no line of its
 // own and reads the event's family.
 func (e *Engine) queueTriggerMode(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string) {
+	e.queueTriggerLimited(observer, pt, ev, causes, trigMode, nil, triggerKey{})
+}
+
+// queueTriggerLimited is queueTriggerMode for a line whose per-turn and
+// per-game limits (ActivationLimit$, GameActivationLimit$) bound the times it
+// triggers: the first queueing was reserved by the caller, and each CR 603.2d
+// additional time must pass and reserve both gates again, so "this ability
+// triggers only once each turn" stays one trigger beside a Panharmonicon, as
+// Forge's TriggerHandler limits the doubled count by the activations left. A
+// nil limited is the ungated queueing.
+func (e *Engine) queueTriggerLimited(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string, limited *cards.Trigger, key triggerKey) {
 	if o := e.G.Obj(pt.Source); o != nil && o.Zone != state.ZBattlefield {
 		// A battlefield trigger queued once its source has left (it died with
 		// the permanent it watches, CR 603.10a) refers to that departed
@@ -56,6 +67,12 @@ func (e *Engine) queueTriggerMode(observer *Engine, pt pendingTrigger, ev events
 		return
 	}
 	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode); n > 0; n-- {
+		if limited != nil {
+			if !e.triggerGameActivationLimitAllows(*limited, key) || !e.triggerActivationLimitAllows(*limited, key) {
+				break
+			}
+			e.reserveTriggerLimits(*limited, key)
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pt)
 	}
 }
