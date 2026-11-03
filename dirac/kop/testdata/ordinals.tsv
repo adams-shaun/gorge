@@ -42,6 +42,7 @@ BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
+CantLoseLife	untyped int	1
 CastSpecAsCast	untyped int	512
 CastSpecCtrlTrig	untyped int	128
 CastSpecExclude	untyped int	2
