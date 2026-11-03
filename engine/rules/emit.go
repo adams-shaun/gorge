@@ -764,6 +764,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// token. Hand it a COPY carrying the minted id; stored itself is
 		// already logged and must stay byte-identical for replay.
 		check := triggerCheckEvent(stored, tokenMintWant)
+		proposalEv := e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj &&
+			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
+				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced)
+		var preTurn map[triggerKey]turnFires
+		var preGame map[triggerKey]gameFires
+		if proposalEv {
+			preTurn, preGame = e.limitSnapshot()
+		}
 		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
 			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
 		}
@@ -774,9 +782,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// proposal's dilemma: remember which queue entries it produced so
 		// abortCast can drop them if the cast is reversed (CR 733.1 -- see
 		// pendingCast.proposalTriggers).
-		if e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj && len(e.pendingTriggers) > before &&
-			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
-				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced) {
+		if proposalEv && len(e.pendingTriggers) > before {
+			e.cast.proposalLimits = append(e.cast.proposalLimits, e.limitChanges(preTurn, preGame)...)
 			e.cast.proposalTriggers = append(e.cast.proposalTriggers, [2]int{before, len(e.pendingTriggers)})
 		}
 	}

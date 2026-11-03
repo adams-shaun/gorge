@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -51,6 +53,11 @@ func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[
 func (e *Engine) dropProposalTriggers(pc *pendingCast) {
 	ranges := pc.proposalTriggers
 	pc.proposalTriggers = nil
+	undo := pc.proposalLimits
+	pc.proposalLimits = nil
+	for i := len(undo) - 1; i >= 0; i-- {
+		e.restoreTriggerLimits(undo[i])
+	}
 	for i := len(ranges) - 1; i >= 0; i-- {
 		start, end := ranges[i][0], ranges[i][1]
 		if start < e.orderedTriggers || start >= end || end > len(e.pendingTriggers) {
@@ -928,4 +935,84 @@ func (e *Engine) targetCountAffordable(pc *pendingCast, candidates []targetCandi
 		best = n
 	}
 	return best
+}
+
+// limitUndo is one trigger-limit entry as it stood before a proposal's target
+// choice queued a trigger: the per-turn and lifetime counts, each with whether
+// the key had an entry at all.
+type limitUndo struct {
+	key     triggerKey
+	turn    turnFires
+	hadTurn bool
+	game    gameFires
+	hadGame bool
+}
+
+// limitSnapshot copies both trigger-limit tables so limitChanges can report
+// what a queue pass consumed.
+func (e *Engine) limitSnapshot() (map[triggerKey]turnFires, map[triggerKey]gameFires) {
+	var t map[triggerKey]turnFires
+	var g map[triggerKey]gameFires
+	if len(e.triggerTurnFires) > 0 {
+		t = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			t[k] = v
+		}
+	}
+	if len(e.triggerGameFires) > 0 {
+		g = make(map[triggerKey]gameFires, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			g[k] = v
+		}
+	}
+	return t, g
+}
+
+// limitChanges lists, for every key whose count moved since the snapshot, the
+// entry it held in the snapshot. The order is the keys' own (source, line), so
+// no map order reaches a result.
+func (e *Engine) limitChanges(t map[triggerKey]turnFires, g map[triggerKey]gameFires) []limitUndo {
+	var out []limitUndo
+	at := func(k triggerKey) *limitUndo {
+		for i := range out {
+			if out[i].key == k {
+				return &out[i]
+			}
+		}
+		out = append(out, limitUndo{key: k})
+		return &out[len(out)-1]
+	}
+	for k, v := range e.triggerTurnFires {
+		if old, ok := t[k]; !ok || old != v {
+			u := at(k)
+			u.turn, u.hadTurn = old, ok
+		}
+	}
+	for k, v := range e.triggerGameFires {
+		if old, ok := g[k]; !ok || old != v {
+			u := at(k)
+			u.game, u.hadGame = old, ok
+		}
+	}
+	slices.SortFunc(out, func(a, b limitUndo) int {
+		if a.key.Source != b.key.Source {
+			return cmp.Compare(a.key.Source, b.key.Source)
+		}
+		return cmp.Compare(a.key.Idx, b.key.Idx)
+	})
+	return out
+}
+
+// restoreTriggerLimits puts one key's counts back to what limitChanges saw.
+func (e *Engine) restoreTriggerLimits(u limitUndo) {
+	if u.hadTurn {
+		e.triggerTurnFires[u.key] = u.turn
+	} else {
+		delete(e.triggerTurnFires, u.key)
+	}
+	if u.hadGame {
+		e.triggerGameFires[u.key] = u.game
+	} else {
+		delete(e.triggerGameFires, u.key)
+	}
 }
