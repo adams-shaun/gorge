@@ -28,3 +28,11 @@ func TestShockLandUnderEntersUntappedOrder(t *testing.T) {
 		t.Fatal("no land's entry-order ask was posed: the pairs no longer reach the competition")
 	}
 }
+
+// Spock, Voice of Reason draws a card for each nontoken permanent its
+// controller has that entered this turn. gorge read the nonToken property as
+// unknown and drew none, the kernel drew for each.
+func TestNonTokenEnteredThisTurnCount(t *testing.T) {
+	t.Parallel()
+	synthPairsMulligans(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{59, 152, 177}, nil)
+}
