@@ -193,6 +193,8 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"window_combo_answers_its_own_colour", "std-tla"},        // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
 		{"token_bounced_if_you_do", "std-hob"},                    // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
 		{"token_in_graveyard_is_no_card", "std-woe"},              // CR 111.7: a sacrificed Rat token waiting for the next check is no creature card, so Cruel Somnophage counts the graveyards without it
+
+		{"sacrificed_token_is_no_card_in_graveyard_count", "std-lci"}, // CR 111.1, 704.5d: a Treasure sacrificed for mana waits for the next check, and is no permanent card for Souls of the Lost to count
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
