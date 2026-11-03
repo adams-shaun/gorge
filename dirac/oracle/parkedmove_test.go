@@ -241,8 +241,17 @@ func TestParkedMassAndPayment(t *testing.T) {
 // with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
 // whose host dies ahead of one that was already unattached (std-dft 469).
 func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
-	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{161, 19}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
+	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{31, 37, 59}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
 	synthPairsOn(t, "std-dft", Config{}, []int{469}, nil)
+}
+
+// An enchantment animated with a granted set-P/T static (Beorn's Hospitality) that then
+// loses all abilities to Enchanted River's Grasp is a 0/0 Bear: the later layer-6 loss
+// removes the granted static, so it dies and the Aura goes with it (CR 613.1f, 613.7,
+// 704.5f; std-hob 66, 276).
+func TestLoseAllAbilitiesEndsAnAnimateGrantedStatic(t *testing.T) {
+	t.Parallel()
+	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{66, 276}, onBattlefield("Beorn's Hospitality"), cardOut("Enchanted River's Grasp"))
 }
 
 // A reduction for targeting your own permanent reads every announced target, a second
