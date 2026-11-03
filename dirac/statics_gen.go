@@ -250,6 +250,19 @@ func (s *State) landLimit(k *prep, p uint8) uint8 {
 // Eternal Dawn: "you can't lose" for its controller, "your opponents can't
 // win" for its controller's opponent).
 func (s *State) cantLose(k *prep, p uint8) bool {
+	return s.cantLoseFor(k, p, 0)
+}
+
+// cantLoseLife is cantLose for the state-based loss at 0 or less life (CR
+// 704.5a): it also honours a replacement that names only that reason.
+func (s *State) cantLoseLife(k *prep, p uint8) bool {
+	return s.cantLoseFor(k, p, kop.CantLoseLife)
+}
+
+// cantLoseFor reports whether a replacement stops player p losing for the
+// reason (0: any other cause; kop.CantLoseLife): a Repl.C naming a reason
+// applies only to that one.
+func (s *State) cantLoseFor(k *prep, p uint8, reason int16) bool {
 	if k.gen == nil {
 		return false
 	}
@@ -260,7 +273,7 @@ func (s *State) cantLose(k *prep, p uint8) bool {
 		}
 		switch st.a.Repl.Kind {
 		case kop.ReplCantLoseGame:
-			hit = st.ctrl == p
+			hit = st.ctrl == p && (st.a.Repl.C == 0 || st.a.Repl.C == reason)
 		case kop.ReplOppsCantWinGame:
 			// the opponent of this player can't win: p (that opponent's
 			// opponent) can't lose

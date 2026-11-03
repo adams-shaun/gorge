@@ -1876,6 +1876,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "YouCantLose":
 		rp.Kind = kop.ReplCantLoseGame
+		rp.C = int16(r.Bits) // 0: any loss; kop.CantLoseLife: only the loss for 0 or less life
 	case "OppsCantWin":
 		rp.Kind = kop.ReplOppsCantWinGame
 	case "DoubleDamageToOpps":

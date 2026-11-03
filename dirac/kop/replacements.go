@@ -67,6 +67,12 @@ type Repl struct {
 	Cond   CondID   // the replacement applies only while Table.Conds[Cond] holds (0 = always)
 }
 
+// Repl.C of a ReplCantLoseGame: 0 stops every loss of the game; CantLoseLife
+// stops only the loss for having 0 or less life (ValidLoseReason$
+// LifeReachedZero: Phyrexian Unlife, Lich's Tomb), leaving poison, a draw from
+// an empty library and "loses the game" effects to take their course.
+const CantLoseLife = 1
+
 // Repl.C of ReplDoubleCountersOn / ReplAddCountersOn is a counter kind, or one
 // of these wildcards: the replacement names no
 // ValidCounterType$ and applies to every kind placed (Loading Zone, Doc

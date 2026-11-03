@@ -2776,6 +2776,17 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		switch {
 		case r.Event == "GameLoss" && vp == "You":
 			rl.Kind = "YouCantLose"
+			// ValidLoseReason$ LifeReachedZero narrows the replacement to the
+			// loss for 0 or less life (CR 704.5a): poison, a drawn-from-empty
+			// library and "loses the game" effects still lose (gorge
+			// replacement_match.go compares the reason to the loss event's).
+			// Any other reason refuses.
+			if reason, ok := rp.get("ValidLoseReason"); ok {
+				if strings.TrimSpace(reason) != "LifeReachedZero" {
+					return refuse("GameLoss ValidLoseReason %q", reason)
+				}
+				rl.Bits = kop.CantLoseLife
+			}
 		case r.Event == "GameWin" && vp == "Opponent":
 			rl.Kind = "OppsCantWin"
 		default:

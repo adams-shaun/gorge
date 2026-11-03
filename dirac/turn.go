@@ -461,7 +461,7 @@ func (s *State) sba(k *prep) bool {
 			s.lingerDrain(k)
 		}
 		for p := uint8(0); p < 2; p++ {
-			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLose(k, p) {
+			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
 			}
 			if s.pl[p].drewEmpty {

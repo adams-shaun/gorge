@@ -1959,13 +1959,18 @@ func changelingSubs(pt *poolTables, subs []uint8) []uint8 {
 }
 
 // putsTimeCounters reports whether d's programs put time counters
-// (kop.CtrTime) on something (buildCard's Impending guard).
+// (kop.CtrTime) on something other than the card itself (buildCard's
+// Impending guard). The kernel's impending dormancy reads a time counter on a
+// permanent whose card is printed with Impending, so a card without Impending
+// putting them on itself (a time-counter clock: Cursed Recording) can never
+// make anything dormant, while a counter placed on another permanent could
+// land on an Impending card cast for its full cost and wrongly silence it.
 func putsTimeCounters(d *kop.CardDef) bool {
 	for i := range d.Abilities {
 		for _, in := range d.Abilities[i].Prog {
 			switch in.Op {
 			case kop.OpPutCounter, kop.OpPutCounterAll, kop.OpEnterWithCounters, kop.OpDoubleCounters, kop.OpDigCounters:
-				if kop.CounterKind(in.C) == kop.CtrTime {
+				if kop.CounterKind(in.C) == kop.CtrTime && !(in.Op == kop.OpPutCounter && in.Obj == kop.RefSelf) {
 					return true
 				}
 			case kop.OpMoveCounter, kop.OpReturnEx:
