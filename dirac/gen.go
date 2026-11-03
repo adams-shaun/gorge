@@ -550,7 +550,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCantAct(t, g)   // cast_cantactivate.go
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
-	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra)
+	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)

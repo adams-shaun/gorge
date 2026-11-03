@@ -1,0 +1,20 @@
+# a mana ability adding several colours at once beside spells only its
+# colours pay (dirac/oracle/eachmana_test.go)
+Timeless Lotus
+Mind Stone
+Llanowar Elves
+Elvish Mystic
+Hill Giant
+Gravedigger
+Divination
+Shock
+Duress
+Serra Angel
+Grizzly Bears
+Giant Growth
+Shivan Dragon
+Air Elemental
+Izzet Boilerworks
+Coral Atoll
+Forest
+Island

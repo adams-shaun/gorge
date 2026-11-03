@@ -43,7 +43,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
-	if lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) {
+	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) {
 		return
 	}
 	if len(ms) < 2 {
@@ -292,3 +292,45 @@ func painTapMana(a *lAbility) bool {
 	}
 	return false
 }
+
+// refuseEachMana guards a mana ability that adds several colours at once
+// (lMana.Each: Timeless Lotus's {W}{U}{B}{R}{G}). gorge's planner prices
+// such a source as one fixed-production alternative whose Alt.Mana holds
+// every colour (pay appendUnitAlternatives); the kernel models it as a unit
+// of its first colour with the rest a fixed vector beside it, the shape of a
+// tap's extra mana (kernel mana_tapextra.go, pcard.manaXv). Only the plain
+// shape is modelled: the card's one mana ability, a bare {T}, unrestricted,
+// a literal amount of each colour. It reports whether it refused.
+func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
+	for _, a := range lc.out.Abilities {
+		if a.Kind != akMana || a.Mana == nil || !a.Mana.Each {
+			continue
+		}
+		m := a.Mana
+		switch {
+		case a.Latent:
+			lc.refuseNode("card", "granted mana ability adding several colours at once")
+		case len(ms) != 1:
+			lc.refuseNode("card", "mana ability adding several colours at once beside another mana ability")
+		case m.Restrict != nil || m.RestrictAb != nil || m.NonSpell:
+			// a restricted planner unit floats one restricted colour per tap
+			// (kernel mana_restrictedsource.go)
+			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
+		case !plainTapMana(a, false):
+			// gorge's planner defers any cost beyond {T} (a filter's fee, a
+			// sacrifice of another permanent, removed counters): a census gap
+			// the kernel's gap searches model for one colour only
+			lc.refuseNode("card", "mana ability adding several colours at once from a cost beyond {T}")
+		case !m.Amount.isConst() || m.Amount.N < 1 || m.Amount.N > maxEachMana:
+			lc.refuseNode("card", "mana ability adding several colours at once, %v of each", m.Amount)
+		default:
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// maxEachMana bounds the amount of each colour an all-at-once mana ability
+// adds (the kernel's unit and extra vector are bytes; no card makes more).
+const maxEachMana = 4

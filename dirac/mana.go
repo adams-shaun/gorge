@@ -100,7 +100,7 @@ const maxOneColour = 4
 // (Kami of Whispered Hopes, "X mana of any one color"), as opposed to a Combo's
 // colour per unit.
 func manaOneColour(a *kop.Ability, n uint8) bool {
-	return n > 1 && a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice == 0
+	return n > 1 && a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice == 0 && !a.ManaEach
 }
 
 //go:noinline

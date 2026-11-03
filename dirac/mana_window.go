@@ -286,7 +286,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
 		if s.canTapForMana(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
-			if decided && s.windowSrcMask(k, o)&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
+			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
 				continue
 			}
 			return o, false

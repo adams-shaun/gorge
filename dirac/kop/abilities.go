@@ -81,6 +81,10 @@ type Ability struct {
 	// static or an effect grants by AddTrigger$ is listed with its own kind
 	// (grantedAbilitiesN). A table byte: AbilityFlags has no free bit.
 	GrantedKw bool
+	// ManaEach: the mana ability adds ManaN mana of EACH colour in ManaColors
+	// at once (Produced$ "W U", Timeless Lotus's {W}{U}{B}{R}{G}; CR 106.1),
+	// not one of them. A table byte: AbilityFlags has no free bit.
+	ManaEach bool
 }
 
 // Timing is when a card may be cast.

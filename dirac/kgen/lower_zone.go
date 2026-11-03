@@ -2821,22 +2821,37 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Colors = "WUBRG"
 	default:
 		// "R R": one colour named N times is N mana of it (gorge adds
-		// each symbol); a mix of colours is simultaneous production the
-		// kernel's single-colour sources do not model
+		// each symbol); a mix of colours ("W U", "W W U U B B R R G G")
+		// is simultaneous production, the same count of each listed
+		// colour (lMana.Each; the kernel's shape guard is refuseMultiMana)
 		syms := strings.Fields(prod)
-		if len(syms) < 2 || len(syms[0]) != 1 || !strings.Contains("WUBRGC", syms[0]) {
+		if len(syms) < 2 {
 			return refuse("mana %q", prod)
 		}
-		for _, s := range syms[1:] {
-			if s != syms[0] {
+		var cnt [6]int
+		for _, s := range syms {
+			i := strings.Index("WUBRGC", s)
+			if len(s) != 1 || i < 0 {
 				return refuse("mana %q", prod)
 			}
+			cnt[i]++
 		}
 		if _, ok := ps.m["Amount"]; ok {
 			return refuse("mana %q with Amount$", prod)
 		}
-		m.Colors = syms[0]
-		m.Amount = cst(len(syms))
+		cols, n := "", 0
+		for i, c := range cnt {
+			if c == 0 {
+				continue
+			}
+			if n != 0 && c != n {
+				return refuse("mana %q: unequal counts of its colours", prod)
+			}
+			cols, n = cols+"WUBRGC"[i:i+1], c
+		}
+		m.Colors = cols
+		m.Amount = cst(n)
+		m.Each = len(cols) > 1
 		return lc.finishMana(sa, ps, ab, m)
 	}
 	amt, err := lc.amount(ps, "Amount", 1)
@@ -2944,6 +2959,11 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
+		if m.Each {
+			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
+			// of a restriction (poolR); several at once have no carrier
+			return refuse("loyalty ability adding several colours at once")
+		}
 		if m.Choice || len(m.Colors) > 1 {
 			// a colour choice at resolution (gorge askManaChoice): one pick
 			// per mana of a Combo, one for the whole amount of Any; the

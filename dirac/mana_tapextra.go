@@ -25,12 +25,16 @@ func init() { stallNames[StallTapExtra] = "tapextra" }
 // permanent at sl taps for mana through the ability pc describes. A
 // source the extra cannot be modelled on stalls (StallTapExtra) and adds
 // nothing.
+//
+// An all-at-once source's own rest (pcard.manaXv, mana_eachcolour.go) is
+// part of it, carrier or none.
 func (s *State) srcExtra(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKinds]uint8) {
 	xv, hit := s.srcExtraHit(k, sl, pc)
 	if hit && (!s.tapExtraPlain(pc) || pc.painCol != 0 || xv == [kop.NumManaKinds]uint8{}) {
 		s.capFull(StallTapExtra)
 		return [kop.NumManaKinds]uint8{}
 	}
+	addOwnXv(&xv, pc)
 	return xv
 }
 
@@ -135,6 +139,7 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 		s.capFull(StallTapExtra)
 		return [kop.NumManaKinds]uint8{}
 	}
+	addOwnXv(&xv, pc)
 	return xv
 }
 
@@ -167,7 +172,7 @@ func (s *State) tapExtraStall(k *prep, sl Slot) {
 		return
 	}
 	pc := s.manaPCAt(k, sl)
-	if x := s.srcExtra(k, sl, pc); x != [kop.NumManaKinds]uint8{} {
+	if x := s.srcExtra(k, sl, pc); x != pc.manaXv {
 		s.capFull(StallTapExtra)
 	}
 }
