@@ -24,8 +24,8 @@ func TestOnlyTargetPaidShapesAreCastable(t *testing.T) {
 		{"additional_cost", head + "A:SP$ Destroy | Cost$ 1 R PayLife<1> | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem\nOracle:x\n", nil},
 		{"optional_cost", head + "K:Multikicker:2\nA:SP$ Destroy | Cost$ 1 R | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem\nOracle:x\n", nil},
 		{"contribution", head + "K:Convoke\nA:SP$ Destroy | Cost$ 1 R | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem\nOracle:x\n", nil},
-		{"mana_spent_reader", head + "A:SP$ Destroy | Cost$ 1 R | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem | SubAbility$ DBGain\n" +
-			"SVar:DBGain:DB$ GainLife | LifeAmount$ X\nSVar:X:Count$Converge\nOracle:x\n", nil},
+		{"mana_spent_reader", head + "A:SP$ Destroy | Cost$ 1 R | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem | SubAbility$ DBHeal\n" +
+			"SVar:DBHeal:DB$ GainLife | LifeAmount$ X\nSVar:X:Count$Converge\nOracle:x\n", nil},
 		{"target_dependent_cost", head + "A:SP$ Destroy | Cost$ 1 R | ValidTgts$ Artifact.Treasure | TgtPrompt$ Choose a gem\nOracle:x\n",
 			[]string{"Name:Gem Discount\nTypes:Enchantment\nS:Mode$ ReduceCost | ValidCard$ Card | Type$ Spell | Activator$ You | ValidTarget$ Artifact | Amount$ 1 | Description$ Spells you cast that target an artifact cost less.\nOracle:x\n"}},
 	}

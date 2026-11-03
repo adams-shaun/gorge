@@ -131,9 +131,10 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 	return false
 }
 
-// modalCostPlanned: gorge's cast planner takes a Spree or Tiered face when
-// the cast is payable only by paying with a permanent its own announcements
-// need (rules payment_plan.go modalCostNeedsPlannedPayment). The witness at
+// targetPaidPlanned: gorge's cast planner takes a Spree or Tiered face, an
+// additional or optional cost, a convoke-like credit, a mana-spent reader or a
+// target-dependent price when the cast is payable only by paying with a permanent its own announcements
+// need (rules payment_plan.go targetPaidNeedsPlannedPayment). The witness at
 // the printed cost sacrifices a source, no mode still has a target and a
 // price the pool can pay once it has run (the lowering would float that mana
 // before the cast, potentialWitnessReaches), and no witness that keeps its
@@ -142,7 +143,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 // take the manual CR 601.2g window with the targets already chosen.
 //
 //go:noinline
-func (s *State) modalCostPlanned(k *prep, p uint8, o Obj) bool {
+func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 	if !k.sacMana || !s.anySacSource(k, p) {
 		return false
 	}
@@ -157,7 +158,12 @@ func (s *State) modalCostPlanned(k *prep, p uint8, o Obj) bool {
 	reaches := false
 	if consumes {
 		ab := spellAb(k, c)
-		for m := 0; ab != 255 && m < int(cd.Abilities[ab].NModes); m++ {
+		if ab == 255 || !cd.HasModeCost {
+			// no target to lose, or an unmoded spell: reached when its targets
+			// all remain after the payment
+			reaches = ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)
+		}
+		for m := 0; ab != 255 && cd.HasModeCost && m < int(cd.Abilities[ab].NModes); m++ {
 			if t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 1<<m) {
 				reaches = true
 				break
