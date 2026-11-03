@@ -22,3 +22,13 @@ func TestGrantedPrefixSorceryWaitsForTriggerLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "granted_prefix_sorcery_waits_for_trigger", "std-tla", Config{})
 }
+
+// gorge plans a hybrid cost's resolutions over printed mana abilities alone, the first
+// resolution with a witness winning (CR 107.4e): Platypus-Bear's {1}{G/U} resolves to
+// {1}{G} first, which no printed source pays, so it falls to {1}{U} and taps two Islands.
+// The kernel's trial counted Earthen Ally's granted any-colour ability in that first
+// resolution and paid G from the Ally; a trial now plans from printed sources only (CR 601.2h).
+func TestHybridPlanPrefersPrintedResolutionLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "hybrid_plan_ignores_granted_first", "std-tla", Config{})
+}
