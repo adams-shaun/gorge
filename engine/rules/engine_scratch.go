@@ -134,6 +134,11 @@ type engineScratch struct {
 	// mana ability with a RestrictValid$, so a payment priced against it must
 	// rebuild the bound for itself (potentialPoolFor). Clone copies none.
 	potentialRestricted bool `clone:"reset"`
+	// potentialWitness is set while potentialWitnessOffers walks a planner's
+	// witness: the hypothetical pool is then exactly what the plan floats, and
+	// potentialPoolFor must not rebuild it from the board's whole over-bound.
+	// Clone copies none.
+	potentialWitness bool `clone:"reset"`
 	// walkBlocksServed counts the blocks a potential walk served from the
 	// record (a test-visible diagnostic, like legalActionWalks).
 	walkBlocksServed uint64 `clone:"reset"`

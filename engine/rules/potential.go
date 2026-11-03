@@ -280,7 +280,12 @@ func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.S
 // payment satisfies (CR 106.6), so an Orb of Dragonkind's mana funds a
 // Dragon's ability as a potential action and never an Equip.
 func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
-	if !e.potentialRestricted {
+	if !e.potentialRestricted || e.potentialWitness {
+		// A witness walk's pool is what the plan floats, built by the payment
+		// planner for this very payment: it already spent only mana the
+		// restriction admits. Rebuilding it from the board's over-bound (which
+		// counts a Combo source in both its colours) would price the offer
+		// against mana the plan never makes.
 		return hyp
 	}
 	return e.potentialManaFor(p, &d)
