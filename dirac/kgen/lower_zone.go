@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -2920,6 +2921,13 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			// Toshiro); the kernel prices no restricted last-resort unit
 			return refuse("mana restriction on a PayLife source: gorge plans it last-resort")
 		}
+		if !plainTapCost(ab.Cost) {
+			// the kernel's window prices a restricted mana ability only when
+			// its cost is a plain {T}; gorge's cast-window probe also prices
+			// one that sacrifices, pays mana or taps another permanent
+			// (Jeweled Lotus' sacrifice), so the census would run short
+			return refuse("mana restriction on a source whose cost goes beyond {T}")
+		}
 		if err := lc.manaRestrict(rv, m); err != nil {
 			return err
 		}
@@ -3361,4 +3369,14 @@ func (lc *lowerCtx) animateLivePT(name string, st cards.Static, o *lOverride, ob
 	o.HasSetPT, o.LivePT, o.KeepP, o.KeepT = true, true, !okP, !okT
 	o.PVal, o.TVal = pv, tv
 	return nil
+}
+
+// plainTapCost reports whether c is a bare {T}: no mana, no other part.
+func plainTapCost(c lCost) bool {
+	m := c.Mana
+	if m.Generic != 0 || m.Pips != [5]int{} || len(m.Hybrid) != 0 || len(m.Twobrid) != 0 || len(m.Phyrexian) != 0 || m.X {
+		return false
+	}
+	c.Tap, c.Mana = false, manaCost{}
+	return reflect.DeepEqual(c, lCost{})
 }

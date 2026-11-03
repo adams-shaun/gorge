@@ -510,7 +510,7 @@ func (s *State) payRestrFloated(k *prep, p uint8, cost *kop.ManaCost, x int, any
 	pl := &s.pl[p]
 	kind := pl.poolR & poolRKind
 	var rn, ord [kop.NumManaKinds]uint8
-	rn[pl.poolR>>poolRShift] += pl.poolR & poolRCnt
+	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
 	restrXInto(s.poolRx[p&1], &rn)
 	for c := range rn {
 		ord[c] = pl.pool[c]

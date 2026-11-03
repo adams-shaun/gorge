@@ -155,7 +155,7 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 		// (restrPairUnit): they float in poolR, poolRx
 		kind = pl.poolR & poolRKind
 		var tn [kop.NumManaKinds]uint8
-		tn[pl.poolR>>poolRShift] += pl.poolR & poolRCnt
+		tn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
 		restrXInto(s.poolRx[p&1], &tn)
 		for c := range tn {
 			rn[c] += tn[c]
@@ -172,7 +172,7 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 // the payment (pool before it: pre) did not spend: per colour the restricted
 // mana is spent before the ordinary mana of its colour, ord of which was
 // there before.
-func (s *State) restrLeftover(p uint8, rn, ord, pre *[kop.NumManaKinds]uint8, kind uint8) {
+func (s *State) restrLeftover(p uint8, rn, ord, pre *[kop.NumManaKinds]uint8, kind uint16) {
 	pl := &s.pl[p]
 	typed := s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst
 	for c := range rn {
