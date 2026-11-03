@@ -650,7 +650,13 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(p, a) {
 				continue // kw_maxspeed.go
 			}
-			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc || !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) {
+			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+				continue
+			}
+			// a restricted source (Heartwood Crafter's {C}) pays an activated
+			// ability from the graveyard as from the hand (CR 106.6)
+			if !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) &&
+				!(k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}, &a.Cost.Mana, av, NoSlot, 0)) {
 				continue
 			}
 			if a.Trig.Cond != 0 && !s.graveActCond(k, a, p, o) {
