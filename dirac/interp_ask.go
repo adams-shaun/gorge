@@ -965,10 +965,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
+				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-				if host != NoSlot && s.occ.has(host) {
-					s.attachTo(k, sl, host)
-				}
+				s.attachedTo(k, sl, host)
 			}
 			s.continueRes(k, 0)
 			return
@@ -1482,6 +1481,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			if hg {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
+			s.enterOnto(host)
 			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
@@ -1489,9 +1489,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			if hg {
 				s.g.enterCtr.n = 0
 			}
-			if host != NoSlot && s.occ.has(host) {
-				s.attachTo(k, sl, host) // CR 303.4f: an Aura enters attached
-			}
+			s.attachedTo(k, sl, host) // CR 303.4f: an Aura enters attached
 			if fl&kop.SrAttacking != 0 {
 				s.enterAttacking(k, sl, ep)
 			}
@@ -1901,10 +1899,9 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	switch {
 	case z == kop.ZoneBattlefield:
 		host := s.digAuraHost(k, o, p)
+		s.enterOnto(host)
 		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
-		if host != NoSlot && s.occ.has(host) {
-			s.attachTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
-		}
+		s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

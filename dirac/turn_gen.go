@@ -319,10 +319,9 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 // attached to host (CR 303.4f).
 func (s *State) enterRetAura(k *prep, o Obj, host Slot) {
 	from := s.detach(o)
+	s.enterOnto(host)
 	sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 }
 
 // leaveGen runs at the end of the core's removePerm for the object o that left

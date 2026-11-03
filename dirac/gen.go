@@ -1341,6 +1341,7 @@ type genState struct {
 	excess         int16
 	lostAmt        int16
 	tokMade        uint8
+	entHost        uint8 // host slot + 1 of an Aura about to enter attached: enter attaches it before its enters check (zone_handmoveaura.go; transient, 0 between moves)
 
 	dmg  [maxDmgMap]struct{ code, amt uint8 }
 	ndmg uint8

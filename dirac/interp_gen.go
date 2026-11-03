@@ -1349,14 +1349,13 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 		s.countMayPlayLand(k, o, from)
 	}
 	var sl Slot
+	s.enterOnto(host)
 	if from == kop.ZoneGraveyard {
 		sl = s.enterFromGrave(k, o, ctrl, false)
 	} else {
 		sl = s.enter(k, o, ctrl, false, from)
 	}
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 	return false
 }
 
@@ -1473,6 +1472,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
 	default:
+		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
 	s.g.enterCtr.n = 0
@@ -1481,7 +1481,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.enterAttacking(k, sl, ctrl)
 	}
 	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
+		s.attachedTo(k, sl, host)
 	} else if host == NoSlot && in.B.N&kop.RetAttachTo != 0 && in.F != 0 {
 		return s.czBearerAfter(k, in, o) // an Equipment's filter bearer is asked after it enters (tgt_attachedto.go)
 	}
@@ -1942,14 +1942,14 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 	}
+	if host != NoSlot && s.occ.has(host) {
+		s.attachTo(k, sl, host) // a copy that enters attached is attached when its enters check looks (CR 303.4f, 603.6a)
+	}
 	if eb != nil && eb.n < len(eb.sl) {
 		eb.sl[eb.n], eb.o[eb.n] = sl, t
 		eb.n++
 	} else if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
-	}
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
 	}
 	if in.B.N>>kop.CopyPumpShift != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
