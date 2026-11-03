@@ -132,7 +132,7 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}
-	ce.sid = 0             // nor its FINALITY riders: a spell's sid is the rider count (trig_mayplaystatic.go)
+	ce.sid = 0 // nor its FINALITY riders: a spell's sid is the rider count (trig_mayplaystatic.go)
 	// nor was it sneaked (CR 707.10: gorge's FlagSneaked is a cast
 	// provenance flag): it enters as an ordinary permanent
 	if ce.trigPl == trigPlMayhem {
