@@ -295,6 +295,13 @@ const (
 // granted or lost ability would change the answer.
 const W7NoAbilities int16 = 15
 
+// W7IsCommander (PredWord7 sub-kind 16): the object is one of a seat's
+// commanders (gorge's IsCommander word, state.Game.CommanderOf, CR 903.3).
+// The kernel plays two-player games with no commander registered, so the
+// answer is false for every object, on the battlefield and off it; the
+// negated word is true for every object and lowers to no predicate.
+const W7IsCommander int16 = 16
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

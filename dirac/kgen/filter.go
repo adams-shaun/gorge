@@ -826,6 +826,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			c.NotTypes |= bits
 			return nil
 		}
+		if w == "IsCommander" {
+			// gorge's negated IsCommander: no object is a commander in the
+			// games the kernel plays (kop.W7IsCommander), so it always holds
+			return nil
+		}
 		if w == "wasDealtDamageThisTurn" {
 			return refuse("!wasDealtDamageThisTurn: gorge keeps the damage record on the destroyed target in the graveyard; the kernel has no per-card record")
 		}

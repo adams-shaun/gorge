@@ -2452,6 +2452,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if a, ok := ps.get("NumAtt"); ok {
 		if a == "Double" {
 			att = lValue{Kind: vPowerOf, Ref: obj}
+		} else if a == "Triple" {
+			// gorge statAddMultiplier: Triple adds twice the object's
+			// current power (final 3x)
+			att = lValue{Kind: vPowerOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(a); err != nil {
 			return err
 		} else {
@@ -2462,6 +2466,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if d == "Double" {
 			// gorge NumForObject: the object's current toughness
 			def = lValue{Kind: vToughnessOf, Ref: obj}
+		} else if d == "Triple" {
+			def = lValue{Kind: vToughnessOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(d); err != nil {
 			return err
 		} else {

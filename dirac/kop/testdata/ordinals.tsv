@@ -1193,6 +1193,7 @@ W7FaceUp	int16	5
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7InZone	int16	4
+W7IsCommander	int16	16
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9

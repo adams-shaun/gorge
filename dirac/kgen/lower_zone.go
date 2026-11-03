@@ -437,6 +437,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			origin == zGraveyard && (dest == zHand || dest == zExile) && ps.is("Hidden", "True") {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
+		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
+			// Command Beacon's "put your commander into your hand": no seat
+			// has a commander in a kernel game (kop.W7IsCommander), the
+			// command zone holds no other card, and gorge's pick over the
+			// empty pool moves nothing and poses no decision
+			ps.consume("SelectPrompt")
+			return nil
+		}
 		return refuse("ChangeType$ move %s->%s", zoneLabel[origin], zoneLabel[dest])
 	}
 	if _, ok := ps.m["Hidden"]; ok && !hiddenDefinedInert(ps) { // lower_hiddendefined.go

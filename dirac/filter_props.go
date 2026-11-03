@@ -240,6 +240,8 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// permanent has none (CR 708.2)
 		c := s.cardAt(sl)
 		ans = c != kop.NoCard && !s.faceDown(k, sl) && k.t.Cards[c].Cost.HasColour(1)
+	case kop.W7IsCommander:
+		// gorge CommanderOf: no seat has a commander in a kernel game (CR 903.3)
 	case kop.W7CrewedBySrc:
 		// the source crewed this Vehicle this turn (gorge CrewedBySourceThisTurn);
 		// no source fails closed
@@ -259,6 +261,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	switch fl.PredN & 0xff {
 	case kop.W7WithWarp:
 		ans = c != kop.NoCard && k.t.Cards[c].HasWarp
+	case kop.W7IsCommander:
+		// no seat has a commander in a kernel game (CR 903.3)
 	case kop.W7CostBlue:
 		ans = c != kop.NoCard && !fd && k.t.Cards[c].Cost.HasColour(1)
 	case kop.W7NoAbilities:
