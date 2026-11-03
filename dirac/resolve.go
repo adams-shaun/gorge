@@ -156,9 +156,8 @@ func (s *State) resolveTop(k *prep) {
 			ob := &s.objs[e.obj]
 			if ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
 				s.touch(e.obj)
-				p := &s.perms[ob.slot]
-				p.eotP++
-				p.eotT++
+				op, ot := s.eotPT(ob.slot)
+				s.setEotPT(ob.slot, op+1, ot+1)
 			}
 			s.finishResolve(k, false)
 			return

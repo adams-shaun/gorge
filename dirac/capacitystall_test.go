@@ -237,11 +237,10 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		hsc.s.applyOverridePT(hsc.k, hsl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
 	}
-	// Computed at 38babcfc with the base [4]ovRec layout; ObjHash and ViewHash re-pinned when a
-	// permanent's end-of-turn pump became 16 bits.
+	// Computed at 38babcfc with the base [4]ovRec layout.
 	const (
-		wantObjHash  uint64 = 0x4e3d12e2ea2649c2
-		wantViewHash uint64 = 0xa5e4c66312ee15ff
+		wantObjHash  uint64 = 0xdc072663b2b01bd1
+		wantViewHash uint64 = 0x5656c18984bb7996
 	)
 	if got := hsc.s.ObjHash(ht); got != wantObjHash {
 		t.Fatalf("ObjHash %#x, want %#x", got, wantObjHash)

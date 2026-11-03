@@ -176,13 +176,16 @@ func (s *State) execTriggerAttackers(k *prep, in *kop.Instr) {
 			p := &s.perms[sl]
 			switch in.Op {
 			case kop.OpPumpUntilEOT:
-				np, nt := int(p.eotP)+a, int(p.eotT)+b
+				op, ot := s.eotPT(sl)
+				np, nt := op+a, ot+b
 				if np != int(int16(np)) || nt != int(int16(nt)) {
 					s.capFull(StallPT)
 					return
 				}
 				s.touchSl(sl)
-				p.eotP, p.eotT = int16(np), int16(nt)
+				if !s.setEotPT(sl, np, nt) {
+					return
+				}
 			case kop.OpGrantKeyword:
 				m := kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
 				s.grantEOT(sl, m)

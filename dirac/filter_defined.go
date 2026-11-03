@@ -247,22 +247,22 @@ func (s *State) execDefined(k *prep, in *kop.Instr) (ok, done bool) {
 // still zero or less, because it is put into the graveyard at the next state-
 // based action check (CR 704.5f) and the magnitude is never read again.
 func (s *State) eotAdd(k *prep, sl Slot, a, b int) bool {
-	p := &s.perms[sl]
-	np, nt := int(p.eotP)+a, int(p.eotT)+b
+	op, ot := s.eotPT(sl)
+	np, nt := op+a, ot+b
 	if np != int(int16(np)) || nt != int(int16(nt)) {
 		if np == int(int16(np)) && nt < math.MinInt16 {
-			op, ot := p.eotP, p.eotT
-			p.eotP, p.eotT = int16(np), math.MinInt16
+			if !s.setEotPT(sl, np, math.MinInt16) {
+				return false
+			}
 			if _, tough := s.pt(k, sl); tough <= 0 {
 				return true
 			}
-			p.eotP, p.eotT = op, ot
+			s.setEotPT(sl, op, ot)
 		}
 		s.capFull(StallPT)
 		return false
 	}
-	p.eotP, p.eotT = int16(np), int16(nt)
-	return true
+	return s.setEotPT(sl, np, nt)
 }
 
 // pumpAllEach is OpPumpAllEach (gorge effPump over a multi-object Defined$:
@@ -297,14 +297,16 @@ func (s *State) pumpAllEach(k *prep, in *kop.Instr) {
 		if in.Obj&kop.PumpEachTough != 0 {
 			dt = tg
 		}
-		p := &s.perms[sl]
-		np, nt := int(p.eotP)+dp, int(p.eotT)+dt
+		op, ot := s.eotPT(sl)
+		np, nt := op+dp, ot+dt
 		if np != int(int16(np)) || nt != int(int16(nt)) {
 			s.capFull(StallPT)
 			return
 		}
 		s.touchSl(sl)
-		p.eotP, p.eotT = int16(np), int16(nt)
+		if !s.setEotPT(sl, np, nt) {
+			return
+		}
 		s.grantEOT(sl, kop.KwMask(uint16(in.C)))
 		s.promoKw(k, sl, kop.KwMask(uint16(in.C)))
 	}

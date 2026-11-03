@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -49,5 +50,36 @@ func TestAttackPumpOf9999Fits(t *testing.T) {
 	}
 	if pw, _ := sc.s.pt(sc.k, sl); pw != 2+2*9999 {
 		t.Fatalf("power %d, want %d", pw, 2+2*9999)
+	}
+}
+
+// TestOverrangePumpTable: a pump past int8 keeps its true amount in the small
+// table, saturated inline; the amount stacks and reads back exactly, it is
+// dropped when the pump returns to range and at cleanup, and a fifth
+// permanent past the table stalls (StallPT) and changes nothing.
+func TestOverrangePumpTable(t *testing.T) {
+	sc, c := actProliferateScen(t)
+	sl := sc.slot(sc.perm(c.bear, 0))
+	p := &sc.s.perms[sl]
+	if !sc.s.eotAdd(sc.k, sl, 300, -200) || sc.s.nptx != 1 || p.eotP != math.MaxInt8 || p.eotT != math.MinInt8 {
+		t.Fatalf("+300/-200: nptx=%d inline %d/%d", sc.s.nptx, p.eotP, p.eotT)
+	}
+	if pw, tg := sc.s.pt(sc.k, sl); pw != 302 || tg != -198 {
+		t.Fatalf("pt %d/%d, want 302/-198", pw, tg)
+	}
+	if !sc.s.eotAdd(sc.k, sl, -300, 200) || sc.s.nptx != 0 || p.eotP != 0 || p.eotT != 0 {
+		t.Fatalf("back in range: nptx=%d inline %d/%d", sc.s.nptx, p.eotP, p.eotT)
+	}
+	sc.s.eotAdd(sc.k, sl, 9999, 0)
+	sc.s.finishCleanup(sc.k)
+	if sc.s.nptx != 0 || p.eotP != 0 {
+		t.Fatalf("after cleanup nptx=%d eotP=%d", sc.s.nptx, p.eotP)
+	}
+	for i := 0; i < maxPtX; i++ {
+		sc.s.ptx[i] = ptRepX{sl: Slot(100 + i), p: 200}
+	}
+	sc.s.nptx = maxPtX
+	if sc.s.eotAdd(sc.k, sl, 500, 0) || sc.s.g.stalled != StallPT || p.eotP != 0 {
+		t.Fatalf("a fifth overrange permanent stalled=%d eotP=%d, want StallPT and no change", sc.s.g.stalled, p.eotP)
 	}
 }

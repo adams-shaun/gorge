@@ -484,8 +484,12 @@ func (s *State) ptGen(k *prep, sl Slot) (int, int) {
 	p := &s.perms[sl]
 	bp, bt := s.basePTGen(k, sl)
 	c := p.ctrLow(int(kop.CtrP1P1)) - p.ctrLow(int(kop.CtrM1M1))
-	bp += c + int(p.eotP)
-	bt += c + int(p.eotT)
+	ep, et := int(p.eotP), int(p.eotT)
+	if s.nptx != 0 {
+		ep, et = s.eotPT(sl)
+	}
+	bp += c + ep
+	bt += c + et
 	if k.ctrMana {
 		bt -= p.ctrN(s, int(kop.CtrM0M1)) // -0/-1 counters (mana_countercost.go)
 	}

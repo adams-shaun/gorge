@@ -1690,7 +1690,7 @@ const (
 	StallEntered   = 38 // more than maxEntered zone entries in one turn (genState.entered)
 	StallConvoke   = 39 // more convoke picks than the cast build holds, or more convoke options than a decision holds (kw_convoke.go)
 	StallCastRing  = 40 // a player pushes more than castRingN spells in one turn (State.cold.castRing)
-	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range (eotAdd, OpPumpAllEach; filter_defined.go)
+	StallPT        = 41 // a power or toughness pump leaves the int16 end-of-turn range, or needs a fifth of the maxPtX slots (eotAdd, OpPumpAllEach; filter_defined.go)
 	StallActRing   = 42 // a player activates more than actRingN abilities in one turn (genState.actRing)
 	StallCharmOpts = 43 // a multi-pick charm's combined target ask has more than MaxOptions options
 	StallCopyFace  = 44 // a permanent-spell copy of a multi-face card (CR 707.10g; copy_permanentspell.go)

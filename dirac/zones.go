@@ -373,6 +373,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	if s.nkwx != 0 {
 		s.dropKwRepX(sl)
 	}
+	if s.nptx != 0 {
+		s.dropPtX(sl)
+	}
 	s.ts++
 	fl := pfSick
 	if sl >= s.permHi {

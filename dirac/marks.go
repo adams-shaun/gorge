@@ -135,6 +135,11 @@ func (s *State) ObjHash(o Obj) uint64 {
 			h = hmix(h, 0x6b777800<<16|uint64(r.bit)<<8|uint64(r.n))
 		}
 	}
+	for i := 0; i < int(s.nptx); i++ {
+		if r := &s.ptx[i]; r.sl == ob.slot {
+			h = hmix(h, 0x707478<<32|uint64(uint16(r.p))<<16|uint64(uint16(r.t))) // a pump past int8 (perm holds it saturated)
+		}
+	}
 	if s.hasOvRec(ob.slot) || s.fxM.has(ob.slot) && s.copyExcHash(ob.slot) != 0 {
 		// a generated table's override records and extra subtype on the slot
 		r := s.ovRecs(ob.slot)

@@ -327,6 +327,9 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		s.kwx, s.nkwx = [maxKwRepX]kwRepX{}, 0
 	}
+	// each slot's inline pump is zeroed below
+	s.ptx, s.nptx = [maxPtX]ptRepX{}, 0
+
 	s.mSlZero(k, mechRegen) // the shields' third bit (repl_regenerate.go), cleared with pfRegen below
 	m := s.occ
 	if k.phasing {

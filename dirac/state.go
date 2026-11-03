@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math"
 	"math/bits"
 	"sync"
 	"sync/atomic"
@@ -230,7 +231,7 @@ type override struct {
 
 // perm is a battlefield slot.
 type perm struct {
-	// (fields ordered widest first, 60 bytes; eotP/eotT are 16 bits so a +9999 attack pump fits)
+	// (fields ordered widest first, 56 bytes)
 	eotKw kop.KwMask
 	// eotKwRep are the bits granted until end of turn at least twice and
 	// three times (gorge lists a keyword once per granting effect)
@@ -254,8 +255,8 @@ type perm struct {
 	obj      Obj
 	ctrl     uint8
 	damage   uint8
-	eotP     int16
-	eotT     int16
+	eotP     int8 // until-end-of-turn pump, saturated to the int8 range; the true amount of a larger one is in State.ptx
+	eotT     int8
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8
@@ -809,6 +810,8 @@ type stateCore struct {
 	lstamp [MaxPerm]uint16   // CR 613.7e layer restamp on attach (static_attachtimestamp.go layerTs)
 	kwx    [maxKwRepX]kwRepX // until-end-of-turn keyword repeats past the third (grantEOT)
 	nkwx   uint8
+	ptx    [maxPtX]ptRepX // until-end-of-turn pumps past the int8 range (eotPT)
+	nptx   uint8
 	occ    slotMask    // occupied battlefield slots
 	ctrlM  [2]slotMask // slots by controller
 	subs   [nSubEvents]slotMask
@@ -957,6 +960,75 @@ const kwSup = 0x40
 // maxKwRepX bounds the kwRepX records live at once; a grant past it is
 // not counted (feature lists only, no rules effect).
 const maxKwRepX = 8
+
+// ptRepX holds the true until-end-of-turn pump of a permanent whose pump
+// left the int8 range perm.eotP and perm.eotT hold (Jumbo Cactuar's
+// +9999/+0 on attack). The perm keeps the amount saturated to int8, so its
+// sign is right wherever it is read without the table.
+type ptRepX struct {
+	sl   Slot
+	p, t int16
+}
+
+// maxPtX bounds the ptRepX records live at once; a pump that needs a fifth
+// stalls (StallPT).
+const maxPtX = 4
+
+// eotPT is sl's until-end-of-turn power and toughness pump.
+func (s *State) eotPT(sl Slot) (int, int) {
+	if s.nptx != 0 {
+		for i := 0; i < int(s.nptx); i++ {
+			if r := &s.ptx[i]; r.sl == sl {
+				return int(r.p), int(r.t)
+			}
+		}
+	}
+	p := &s.perms[sl]
+	return int(p.eotP), int(p.eotT)
+}
+
+// setEotPT stores sl's pump (each within int16): inline when both fit int8,
+// else saturated inline with the true amounts in ptx. A full table stalls
+// (StallPT) and changes nothing.
+func (s *State) setEotPT(sl Slot, np, nt int) bool {
+	p := &s.perms[sl]
+	i := 0
+	for i < int(s.nptx) && s.ptx[i].sl != sl {
+		i++
+	}
+	if np == int(int8(np)) && nt == int(int8(nt)) {
+		if i < int(s.nptx) {
+			s.dropPtX(sl)
+		}
+		p.eotP, p.eotT = int8(np), int8(nt)
+		return true
+	}
+	if i == int(s.nptx) {
+		if i >= maxPtX {
+			s.capFull(StallPT)
+			return false
+		}
+		s.nptx++
+	}
+	s.ptx[i] = ptRepX{sl: sl, p: int16(np), t: int16(nt)}
+	p.eotP, p.eotT = int8(max(min(np, math.MaxInt8), math.MinInt8)), int8(max(min(nt, math.MaxInt8), math.MinInt8))
+	return true
+}
+
+// dropPtX forgets sl's out-of-range pump (it left, or the turn ended).
+func (s *State) dropPtX(sl Slot) {
+	n := 0
+	for i := 0; i < int(s.nptx); i++ {
+		if s.ptx[i].sl != sl {
+			s.ptx[n] = s.ptx[i]
+			n++
+		}
+	}
+	for i := n; i < int(s.nptx); i++ {
+		s.ptx[i] = ptRepX{}
+	}
+	s.nptx = uint8(n)
+}
 
 // grantEOT grants the permanent at sl keywords m until end of turn,
 // counting the repeats past the third in kwx.
