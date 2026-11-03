@@ -361,6 +361,18 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContextCap(ctrl, source, remembered, cc)) {
 				return false
 			}
+		} else if len(rememberedPlayers) > 0 {
+			// An Effect-created line names the players it captured: a Player.IsRemembered
+			// alternative reads that capture, not the source's own list (Lightning, Army of
+			// One's Stagger doubles damage to the player it hit).
+			rp := make([]state.Target, len(rememberedPlayers))
+			for i, p := range rememberedPlayers {
+				rp[i] = state.Target{Player: p, IsPlayer: true}
+			}
+			if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl,
+				effects.PlayerSpecCtx{Source: source, Remembered: rp, RememberedBound: true}) {
+				return false
+			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
 			return false
 		}
