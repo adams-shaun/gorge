@@ -147,6 +147,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
 		{"sorcery_play_waits_for_prefix_trigger", false}, // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
+		{"airbent_card_with_self_flash", true},           // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
 	})
 }
 
