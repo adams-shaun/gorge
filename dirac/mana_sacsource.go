@@ -102,14 +102,13 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 }
 
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast
-// whose plan sacrifices a source: the witness lets at most four stacked
-// triggers resolve before it gives up (potential_script.go's wait budget),
-// so a plan whose sacrifices trigger more than four abilities is not
-// offered. The plan is executed on a copy of the state.
-func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if !s.subs[kop.TrigSacrificed].any() {
-		return true
-	}
+// whose plan sacrifices a source: the witness lowers the plan before the
+// cast, so a spell whose targets the sacrifices consume is not offered
+// (the kicked cast is no planned cast, targetPaidPlanned), and it lets at
+// most four stacked triggers resolve before it gives up (potential_script.go's
+// wait budget), so a plan whose sacrifices trigger more than four abilities
+// is not offered. The plan is executed on a copy of the state.
+func (s *State) kickWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
 	if !s.anySacSource(k, p) {
 		return true // no source the plan could sacrifice
 	}
@@ -122,7 +121,10 @@ func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
 	if !pk.found {
 		return true
 	}
-	return int(tmp.npend)-int(n0) <= witnessWaits
+	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
+		return false
+	}
+	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits
 }
 
 // canSacOnlyForMana reports whether the autopay planner may price sl as a

@@ -97,6 +97,11 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seSpell]
 	s.ctl = ctlBuild
+	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
+		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
+			s.bld().bfl |= bflTargetPaid
+		}
+	}
 	// a cast only a typed permission allows (Muldrotha's per-type statics,
 	// gorge's MayPlayPerm) has no planned payment: gorge always lowers it
 	// (rules payment_plan.go: "a typed MayPlayText$ permission carries a

@@ -682,6 +682,11 @@ const (
 	bflTre      // this cast tapped a Treasure source for mana (CastSpecTreasure)
 )
 
+// bflTargetPaid: a convoke cast gorge's planner takes because only its own
+// target pays it (targetPaidPlanned): with no creature announced, its plan runs
+// at the printed cost as any planned cast's does, not the manual window.
+const bflTargetPaid uint16 = 1 << 8
+
 // bflCostFixed: the spell's mana step priced it, and paying (a Treasure's
 // sacrifice under affinity, a cost's discard) does not move its total cost.
 const bflCostFixed uint16 = 1 << 9

@@ -592,7 +592,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
 		// except for a cast payable only by paying with a permanent its own
 		// announcements need (targetPaidPlanned)
-		if mode&3 != 0 || !s.targetPaidPlanned(k, p, o) || planNeverPricesCore(k, c, hyb, composed, true) {
+		if mode&3 != 0 || planNeverPricesCore(k, c, hyb, composed, true) || !s.targetPaidPlanned(k, p, o) {
 			return kop.ManaCost{}, false
 		}
 	}
