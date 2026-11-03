@@ -331,4 +331,6 @@ func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
 func TestMultiTargetAskDropsTheTargetItsCostCannotPayLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "this_town_multi_target_unaffordable", "std-otj", Config{})
+func TestTapAnotherSourceBesideAnEachColourSourceLockstep(t *testing.T) {
+	synthReproLockstep(t, "tapx_beside_each_colour_source", "std-ecl", Config{})
 }
