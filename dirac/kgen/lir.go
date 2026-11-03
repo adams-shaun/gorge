@@ -908,9 +908,10 @@ type lCard struct {
 	FaceMode uint8
 	// RoomSplit is a Room state def's count of leading Abilities lowered
 	// from door Face (lower_rooms.go); the rest are the other door's.
-	RoomSplit int
-	Emblems   []lEmblem
-	Refusals  []refusal
+	RoomSplit  int
+	Emblems    []lEmblem
+	Refusals   []refusal
+	Unreadable []refusal // every-blocker census only: params a refused node left unread
 
 	overrides []*lOverride // override records the Override ops index
 }

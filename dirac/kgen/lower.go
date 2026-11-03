@@ -131,6 +131,8 @@ type lowerCtx struct {
 	head        bool      // the node being lowered heads its chain
 	inGroup     bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
 	czForgetSet bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
+	chains      int       // chain entries so far (every-blocker census: did a node's body get read?)
+	guardNode   string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
 	curNode     *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own         ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -279,7 +281,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			continue
 		}
 		n := len(out.Abilities)
-		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error { return lc.lowerAbility(a) })
+		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
+			entered := lc.chains
+			err := lc.lowerAbility(a)
+			if err != nil {
+				lc.probeBody(a, entered)
+			}
+			return err
+		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
 		}
@@ -291,7 +300,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
 		}
-		lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.lowerTriggered(t, "") })
+		lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error {
+			entered := lc.chains
+			err := lc.lowerTriggered(t, "")
+			if err != nil {
+				lc.probeBody(t.Effect, entered)
+			}
+			return err
+		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = 0x80|i, true
 		}
@@ -466,7 +482,9 @@ func (lc *lowerCtx) refuseNode(node, format string, a ...any) {
 
 // guard runs one top-level node's lowering, recording a refusal on error.
 func (lc *lowerCtx) guard(node string, fn func() error) {
-	saved := lc.ab
+	saved, savedNode := lc.ab, lc.guardNode
+	lc.guardNode = node
+	defer func() { lc.guardNode = savedNode }()
 	lc.excess = ""
 	if err := fn(); err != nil {
 		lc.refuseNode(node, "%s", err.Error())
@@ -2461,6 +2479,7 @@ func (lc *lowerCtx) lowerChapters(param string) {
 // chain lowers an SA and its Sub chain into the current ability's program.
 // ps carries the head node's params (already partly read by the caller).
 func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
+	lc.chains++
 	lc.depth++
 	prevHead, prevRoot := lc.head, lc.chainRoot
 	if lc.depth == 1 {
@@ -2468,6 +2487,7 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 	}
 	defer func() { lc.depth--; lc.head, lc.chainRoot = prevHead, prevRoot }()
 	usBase := len(lc.unlessSubs)
+	var blockers []error // every-blocker census only: this chain's refusals, in order
 	for node := sa; node != nil; node = node.Sub {
 		lc.head = node == sa
 		lc.curNode = node
@@ -2485,7 +2505,15 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			err = lc.checkTriggerAttackers(at) // lower_triggerattackers.go
 		}
 		if err != nil {
-			return fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
+			err = fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
+			if lc.p != nil && lc.p.allBlockers {
+				// every-blocker census: keep reading the Sub chain, noting
+				// what the failed node left unread
+				lc.noteUnreadable(p, node)
+				blockers = append(blockers, err)
+				continue
+			}
+			return err
 		}
 		for i := nt; i < len(lc.ab.Targets); i++ {
 			if t := &lc.ab.Targets[i]; t.SubDecl && t.Divided > 0 {
@@ -2509,11 +2537,24 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			lc.ab.Prog[pos] = lInstr{Op: "ChooseTargets", C: i}
 		}
 		if left := p.unread(); len(left) > 0 {
-			return refuse("%s$ %s: unread params %v", node.Kind, node.API, left)
+			err := refuse("%s$ %s: unread params %v", node.Kind, node.API, left)
+			if lc.p != nil && lc.p.allBlockers {
+				blockers = append(blockers, err)
+				continue
+			}
+			return err
 		}
 		if err := lc.unionUses(at); err != nil {
 			return fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
 		}
+	}
+	if len(blockers) > 0 {
+		// the first is the node's refusal (as without the mode); the rest
+		// are recorded beside it
+		for _, e := range blockers[1:] {
+			lc.refuseNode(lc.blockerNode(), "%s", e.Error())
+		}
+		return blockers[0]
 	}
 	if err := lc.applyUnlessSubs(usBase); err != nil {
 		return err
@@ -2635,4 +2676,74 @@ func (lc *lowerCtx) impendingTick() error {
 		return fmt.Errorf("tick lowering")
 	}
 	return nil
+}
+
+// blockerNode names the top-level node an extra every-blocker refusal
+// belongs to.
+func (lc *lowerCtx) blockerNode() string {
+	if lc.guardNode == "" {
+		return "card"
+	}
+	return lc.guardNode
+}
+
+// noteUnreadable records, in the every-blocker census, that a refused node
+// stopped before reading some of its params, so further blockers may sit
+// among them.
+func (lc *lowerCtx) noteUnreadable(p *params, sa *cards.SA) {
+	var left []string
+	for _, k := range p.unread() {
+		if err := lc.probeParam(k, p.m[k]); err != nil {
+			lc.refuseNode(lc.blockerNode(), "%s$ %s: %s", sa.Kind, sa.API, err.Error())
+			p.used[k] = true
+			continue
+		}
+		left = append(left, k)
+	}
+	if len(left) > 0 {
+		lc.out.Unreadable = append(lc.out.Unreadable, refusal{Card: lc.name, Node: lc.blockerNode(), Reason: fmt.Sprintf("unread after refusal %v", left)})
+	}
+}
+
+// probeAmountKeys are the amount params a refused node's stopped reading
+// can hide; probeParam reads one on its own, as the node would have.
+var probeAmountKeys = map[string]bool{"NumDmg": true, "NumCards": true, "NumAtt": true, "NumDef": true, "LifeAmount": true, "CounterNum": true,
+	"TokenAmount": true, "Amount": true, "ChangeNum": true, "DigNum": true, "NumTurns": true}
+
+// probeFilterKeys are the filter params probeParam reads on their own, with
+// every Valid* key.
+var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "SacValid": true, "Choices": true, "IsPresent": true, "ConditionPresent": true, "Affected": true}
+
+func (lc *lowerCtx) probeParam(k, v string) error {
+	v = strings.TrimSpace(v)
+	switch {
+	case v == "":
+		return nil
+	case probeAmountKeys[k]:
+		switch v {
+		case "All", "Any", "Double", "Triple", "Half":
+			return nil
+		}
+		_, err := lc.value(v)
+		return err
+	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		_, err := lc.filter(v)
+		return err
+	}
+	return nil
+}
+
+// probeBody lowers a refused ability's or trigger's body on its own when the
+// refusal came before the body was read, so its blockers are listed too.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
+		return
+	}
+	saved := lc.guardNode
+	lc.guardNode = saved + " body"
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	if err != nil {
+		lc.refuseNode(lc.guardNode, "%s", err.Error())
+	}
+	lc.guardNode = saved
 }
