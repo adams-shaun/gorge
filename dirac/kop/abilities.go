@@ -76,6 +76,11 @@ type Ability struct {
 	// cast_targets.go evidenceAsk); 0 = none. A table byte: CostFlags has no
 	// free bit.
 	Evidence uint8
+	// GrantedKw: the trigger a granted keyword gives its holder (Firebending),
+	// a layer-6 grant listed by timestamp among the grants, where a trigger a
+	// static or an effect grants by AddTrigger$ is listed with its own kind
+	// (grantedAbilitiesN). A table byte: AbilityFlags has no free bit.
+	GrantedKw bool
 }
 
 // Timing is when a card may be cast.

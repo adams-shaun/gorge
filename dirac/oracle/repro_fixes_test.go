@@ -224,6 +224,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"spree_pays_with_its_only_target", "std-otj"},                      // Explosive Derailment aimed at the Treasure that pays for it: the cast is planned at {R}, targets chosen first, the window sacrifices the Treasure and the cast stands (CR 601.2c, 601.2g)
 		{"twobrid_face_reached_through_converter", "std-tdm"},               // CR 601.2b: Temur Tawnyback's {2/R} is offered when an Island and Jeskai Devotee's {1} for {R} are the only red
 		{"lose_gain_run_sacrifice_trigger_resolves_before_cast", "std-fin"}, // CR 603.3, 601.2g: Al Bhed Salvagers' "target opponent loses 1 life and you gain 1" fires on a Treasure sacrificed for Tonberry's mana and resolves before the spell is cast
+		{"static_trigger_grants_list_before_effect_grants", "std-fin"},      // Summon: Primal Odin under Thief's Knife and Zantetsuken: the Knife's static grant lists its draw before the Animate grant's lose-game, so the one order ask means the same order on both sides (CR 603.3b)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
