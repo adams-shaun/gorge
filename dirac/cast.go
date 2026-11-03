@@ -123,7 +123,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// which plans with PlannedCast{}: its hand demand (rank key 6)
 		// counts the card being cast too, so nothing is excluded.
 		cost := s.buildCost(k)
-		if s.pl[p].poolR != 0 {
+		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
 			// {R} for a Goblin, tapped by the play's script prefix) is in
 			// the witness's pool: tap only for the rest
@@ -648,10 +648,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			s.availXWindow(k, e.ctrl, &av)
 			if e.kind == seAbility {
 				s.excludeTapSource(k, &av)
-				if d := s.payDescNow(NoObj); s.pl[e.ctrl&1].poolR != 0 && s.restrPoolAct(k, e.ctrl, &d) {
-					s.restrAvailAdd(e.ctrl, &av)
+				if m := s.restrActNow(k, e.ctrl); m != 0 {
+					s.restrAvailAdd(e.ctrl, m, &av)
 				}
-			} else if s.pl[e.ctrl&1].poolR != 0 {
+			} else if s.rbAny(e.ctrl & 1) {
 				// restricted mana a spell may spend (Secluded Courtyard's
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
@@ -952,7 +952,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	s.availCastWindowFor(k, e.ctrl, &av)
 	if e.kind == seAbility {
 		s.excludeTapSource(k, &av)
-	} else if s.pl[e.ctrl&1].poolR != 0 {
+	} else if s.rbAny(e.ctrl & 1) {
 		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenPip, e.ctrl
@@ -1237,7 +1237,7 @@ func (s *State) finishBuild(k *prep) {
 			// gorge's planner declines a Spree face ("shape:modal_cost"):
 			// it pays through the mana window (kw_spree.go)
 			s.payCastWindow(k, e.ctrl, &cost, e.flags&sfAnyMana != 0, s.bld().bfl&bflAnyColor != 0)
-		} else if s.pl[e.ctrl].poolR != 0 {
+		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
 		} else {
 			s.payRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
@@ -1293,8 +1293,8 @@ func (s *State) finishBuild(k *prep) {
 		if !early {
 			cost = s.buildCostCharge(k)
 		}
-		if d := s.payDescNow(NoObj); s.pl[e.ctrl].poolR != 0 && s.restrPoolAct(k, e.ctrl, &d) {
-			s.payRestrSpend(k, e.ctrl, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
+		if m := s.restrActNow(k, e.ctrl); m != 0 {
+			s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
 		} else {
 			s.pay(k, e.ctrl, &cost, int(e.x), NoObj)
 		}
@@ -2143,7 +2143,7 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 // Catharsis, where a witness over the pool would take the {W}{R} face first
 // and tap the Mountain).
 func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
-	if s.pl[p&1].poolR == 0 {
+	if !s.rbAny(p & 1) {
 		return false
 	}
 	var av avail

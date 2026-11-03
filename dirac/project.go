@@ -327,7 +327,7 @@ func (s *State) projRest(p *Projection, lib bool) {
 		}
 		p.Life[pi] = pl.life
 		p.Lands[pi] = pl.landsPlayed
-		p.Pool[pi] = pl.poolProj(s.poolRx[pi&1])
+		p.Pool[pi] = s.poolProj(uint8(pi & 1))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN

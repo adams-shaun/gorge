@@ -388,15 +388,9 @@ type player struct {
 	lifeGained  int16 // this turn
 	lifeLost    int16 // this turn
 	extraTurns  uint8
-	scry        uint8 // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
-	// poolR is restricted mana floating beside pool (Giada's Angel-only
-	// {W}; gorge's Players[p].RestrictedMana): the count in bits 0-3, the
-	// restriction (genPrep.restrF index) in bits 4-5, the colour index in
-	// bits 6-8. Spent only by a spell the restriction allows (payRestr);
-	// projected as pool mana (mana_window.go). It takes the padding byte.
-	poolR uint16
-	sac   [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
-	disc  uint8    // cards this player discarded this turn
+	scry        uint8    // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
+	sac         [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
+	disc        uint8    // cards this player discarded this turn
 }
 
 // stack entry kinds.
@@ -857,18 +851,17 @@ type stateCore struct {
 	divI        uint8    // index (in block order) of the blocker being assigned
 	divRem      uint8    // damage left to assign
 	divFirst    bool     // the division is for the first-strike damage step
-	// poolRx[p] is player p's restricted mana of poolR's restriction in
-	// colours other than poolR's (two Plazas of Heroes tapped for
-	// {W} and {R} to cast a legendary RW spell), 3 bits per colour W U B R G
-	// (bits 3c..); nonzero only while poolR is. It takes the padding before divDone
-	// (mana_reflected.go).
-	poolRx [2]uint16
 	// fbR[p] is player p's firebending red (CR 702.189a): the red units of
 	// a PersistentUntilEndOfCombat AddMana this combat that survive step
 	// boundaries until the end-of-combat step ends. Spends are
 	// ordinary-first, so the units still floating at a boundary are
-	// min(fbR[p], pool[R]) (kw_firebend.go). Takes padding beside poolRx.
+	// min(fbR[p], pool[R]) (kw_firebend.go).
 	fbR [2]uint8
+	// rb[p] is player p's restricted mana floating beside the pool, batch by
+	// batch in gorge's order (Giada's Angel-only {W}, a Village's {U};
+	// gorge's Players[p].RestrictedMana): spent only by a payment its
+	// restriction admits, projected as pool mana (mana_restrbatch.go).
+	rb [2][maxRB]rbatch
 	// pm[p][c] is player p's persistent units of colour c (PersistentMana$
 	// True, B = 2 on the AddMana): they survive step boundaries and the
 	// cleanup step, and become ordinary mana at the turn change. Spends are

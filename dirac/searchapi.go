@@ -261,14 +261,10 @@ func (s *State) BuildTargetSlot() (slot int, ok bool) {
 }
 
 // PoolOf is player p's floating mana W U B R G C (restricted mana
-// included), and the restricted part's colour index and amount (n 0 none).
-func (s *State) PoolOf(p uint8) (pool [kop.NumManaKinds]uint8, rColour, rN uint8) {
-	pl := &s.pl[p&1]
-	pool = pl.poolProj(s.poolRx[p&1]) // (the restricted part below is poolR's colour only)
-	if n := pl.poolR & poolRCnt; n != 0 {
-		return pool, uint8(pl.poolR >> poolRShift), uint8(n)
-	}
-	return pool, 0, 0
+// included), and its restricted part per colour (every batch's).
+func (s *State) PoolOf(p uint8) (pool, restr [kop.NumManaKinds]uint8) {
+	s.rbUnits(p, s.rbAll(p), &restr)
+	return s.poolProj(p & 1), restr
 }
 
 // StackLen is the number of stack entries; StackEntry is entry i (bottom

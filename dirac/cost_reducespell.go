@@ -150,8 +150,7 @@ func (s *State) bargainOffers(k *prep, p uint8, o Obj) bool {
 // payable is still offered (Hamlet Glutton with {3}{G}{G} floating). The
 // gates are the ones the plain cast ran, the price is the bargained one.
 func (s *State) offerBargainOnly(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
-	pl := &s.pl[p]
-	if k.gen == nil || !k.t.Cards[c].Bargain || pl.poolR != 0 || k.restrSrc || !s.bargainOffer(k, p, c) {
+	if k.gen == nil || !k.t.Cards[c].Bargain || s.rbAny(p) || k.restrSrc || !s.bargainOffer(k, p, c) {
 		return
 	}
 	cost := s.bargainedPrice(k, p, c, o, k.cards[c].cost)

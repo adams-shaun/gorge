@@ -82,7 +82,7 @@ func (e *stackEntry) evoked() bool { return e.kind == seSpell && e.spc&spcEvoked
 func (s *State) offerEvokeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	ec := s.adjustCost(k, p, c, o, cd.EvokeCost) // the reduction applies to an alternative cost too (CR 601.2f)
-	if !av.affords(&ec, pipMaskOf(&ec), 0) && (s.pl[p].poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &ec, av)) {
+	if !av.affords(&ec, pipMaskOf(&ec), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &ec, av)) {
 		return
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &ec, av) {

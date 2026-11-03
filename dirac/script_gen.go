@@ -352,7 +352,7 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 // scriptPrefix plays gorge's script for play a: p's gaps tapped in
 // battlefield (entry) order, a restricted source among them (Giada), until
 // the plain walk lists a (nothing when it already does). The restricted
-// mana floats beside the pool (player.poolR), priced by the search's walk
+// mana floats beside the pool (State.rb), priced by the search's walk
 // as gorge's prefix search does (restrOptions).
 func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	if s.mixBoard(k, p) {

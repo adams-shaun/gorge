@@ -113,7 +113,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
-		if !av.affords(cost, pipMaskOf(cost), 0) && (pl.poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
+		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 			}
@@ -519,7 +519,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 			pc = s.manaPCGen(k, sl)
 		}
 		s.removeSrc(k, &av2, sl, pc)
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, &av2)) {
+		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -537,7 +537,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {

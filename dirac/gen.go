@@ -315,7 +315,7 @@ type genPrep struct {
 	// restrF: the distinct spend restrictions (ManaRestrict filters) of the
 	// table's restricted mana abilities, in table order; the restricted
 	// mana floating beside a pool names its restriction by index
-	// (player.poolR's kind bits), so restrKinds are encodable (Giada's Angel
+	// (a State.rb batch's kind), so restrKinds are encodable (Giada's Angel
 	// spells, Secluded Courtyard's creature spells of the chosen type, a
 	// Standard table's three restricted lands)
 	restrF [restrKinds]kop.FilterID
@@ -1416,15 +1416,13 @@ type genState struct {
 	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
 	noTgtRed   bool     // cost computation without target-dependent reductions
 	mayPlayAny bool     // the may-play cast being priced is under the any-type rider
-	// poolRChosen is, per player, the creature type the source of poolR's mana chose.
-	poolRChosen [2]uint8
-	probe       probe    // the spell / ability a priority feasibility check is for
-	tgtSelf     uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
-	inLoop      bool     // executing one object of a multi-object target slot
-	mt          multiTgt // the multi-object target slot being chosen
-	lastCK      kop.CounterKind
-	disc        Obj      // the card being discarded (TrigDiscarded)
-	nlB         [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	probe      probe    // the spell / ability a priority feasibility check is for
+	tgtSelf    uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
+	inLoop     bool     // executing one object of a multi-object target slot
+	mt         multiTgt // the multi-object target slot being chosen
+	lastCK     kop.CounterKind
+	disc       Obj      // the card being discarded (TrigDiscarded)
+	nlB        [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
@@ -1710,7 +1708,7 @@ const (
 	StallEnterDefender = 55  // an Attacking$ True move onto the battlefield while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (zone_changezoneparams.go)
 	StallPrevCol       = 56  // a fourth Ext PreventColor record in one turn (genState.prevCol; cast_altfree.go)
 	StallColGrant      = 57  // more than maxColG Ext ColorGrant records in one turn (genState.colG; static_colourgrant.go)
-	StallRestrX        = 58  // a restricted colour past 7 mana beside another (State.poolRx; mana_reflected.go)
+	StallRestrX        = 58  // a reflected search's restricted mana past the batches State.rb holds (mana_reflected.go)
 	StallEndureN       = 59  // an Endure Spirit mint a CreateToken replacement multiplies (act_endure.go)
 	StallLinkCtr       = 60  // an until-leaves return rider's counters on a card that does not enter inline (a returning Aura asked its host, an as-enters choice asked first; zone_untilleaves.go)
 	StallNumTimes      = 61  // an open Announce$ NumTimes (no AnnounceMax$) whose eighth repetition is still payable (cast_announcetimes.go)

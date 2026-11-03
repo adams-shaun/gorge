@@ -13,18 +13,32 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // priced as pdOther and no class constant is added. Cold code, out of
 // line.
 
-// restrPoolNonSpell reports whether p's restricted mana (poolR, with its
-// other colours) came from a restriction that admits a non-spell payment:
-// a source of the table with that spend restriction carries AfManaNonSpell.
-// The byte names the restriction by genPrep.restrF index, not the source.
+// restrPoolNonSpell is the mask of p's restricted batches (State.rb) whose
+// restriction admits a non-spell payment: a source of the table with that
+// spend restriction carries AfManaNonSpell. A batch names its restriction by
+// genPrep.restrF index, not the source.
 //
 //go:noinline
-func (s *State) restrPoolNonSpell(k *prep, p uint8) bool {
-	r := s.pl[p&1].poolR
-	if r&poolRCnt == 0 || k.gen == nil {
-		return false
+func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
+	if k.gen == nil {
+		return 0
 	}
-	f := k.gen.restrFOf(r)
+	var m uint8
+	for i := range s.rb[p&1] {
+		b := &s.rb[p&1][i]
+		if b.kind == 0 {
+			break
+		}
+		if b.units() != 0 && s.restrNonSpellF(k, k.gen.restrFOf(b.kind)) {
+			m |= 1 << i
+		}
+	}
+	return m
+}
+
+// restrNonSpellF: a source of the table with spend restriction f admits a
+// non-spell payment.
+func (s *State) restrNonSpellF(k *prep, f kop.FilterID) bool {
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -45,8 +59,8 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) bool {
 //go:noinline
 func (s *State) plotRestrFallback(k *prep, p uint8, cost *kop.ManaCost, av *avail) bool {
 	t := *av
-	if s.pl[p].poolR != 0 && s.restrPoolNonSpell(k, p) {
-		s.restrAvailAdd(p, &t)
+	if m := s.restrPoolNonSpell(k, p); m != 0 {
+		s.restrAvailAdd(p, m, &t)
 		if t.affords(cost, pipMaskOf(cost), 0) {
 			return true
 		}
@@ -65,8 +79,8 @@ func (s *State) plotRestrFallback(k *prep, p uint8, cost *kop.ManaCost, av *avai
 //
 //go:noinline
 func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
-	if s.restrPoolNonSpell(k, p) {
-		s.payRestrSpend(k, p, cost, 0, o, false)
+	if m := s.restrPoolNonSpell(k, p); m != 0 {
+		s.payRestrSpend(k, p, m, cost, 0, o, false)
 		return
 	}
 	s.payFromPool(p, cost, 0)

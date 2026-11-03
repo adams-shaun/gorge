@@ -137,7 +137,7 @@ func TestSacShortReverses(t *testing.T) {
 	if d := sc.s.Step(); d.Kind != DkPriority {
 		t.Fatalf("decision %d after the cast, want priority (the reversal)", d.Kind)
 	}
-	pool, _, _ := sc.s.PoolOf(0)
+	pool, _ := sc.s.PoolOf(0)
 	n := 0
 	for _, u := range pool {
 		n += int(u)

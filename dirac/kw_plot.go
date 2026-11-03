@@ -129,7 +129,7 @@ func (s *State) plotLive(r mayPlay) bool {
 func (s *State) offerPlotHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	pc := s.adjustCost(k, p, c, o, cd.PlotCost) // a Spell-scope modifier applies (CR 601.2f)
-	if !av.affords(&pc, pipMaskOf(&pc), 0) && (s.pl[p].poolR == 0 && !k.restrSrc || !s.plotRestrFallback(k, p, &pc, av)) {
+	if !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.plotRestrFallback(k, p, &pc, av)) {
 		return
 	}
 	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
@@ -150,12 +150,12 @@ func (s *State) plotAction(k *prep, o Obj, p uint8) {
 		// gorge's potential witness: the plot action's plan taps the
 		// sources at priority, then the action pays from the floating pool
 		short := cost
-		if s.pl[p].poolR != 0 && s.restrPoolNonSpell(k, p) {
-			short = s.restrShortAdm(p, cost) // mana_specialaction.go: only a non-spell restriction funds it
+		if m := s.restrPoolNonSpell(k, p); m != 0 {
+			short = s.restrShortAdm(p, m, cost) // mana_specialaction.go: only a non-spell restriction funds it
 		}
 		s.tapFor(k, p, &short, 0, NoObj)
 	}
-	if s.pl[p].poolR != 0 {
+	if s.rbAny(p) {
 		s.payPlotRestr(k, p, &cost, o) // mana_specialaction.go
 	} else {
 		s.payFromPool(p, &cost, 0)

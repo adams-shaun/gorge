@@ -62,7 +62,7 @@ func TestManaEffectDefinedOpponentRefused(t *testing.T) {
 // a loyalty ability's fixed-colour AB$ Mana with
 // RestrictValid$ Spell.<spec> adds its mana on resolution (CR 605.1a) as
 // restricted mana (CR 106.6): the AddMana carries the filter, which the
-// kernel floats in poolR (mana_resolverestriction.go).
+// kernel floats in State.rb (mana_resolverestriction.go).
 var chandraLoyaltyForms = []formCase{
 	{card: "Chandra, Chill of Compliance", form: "a loyalty AB$ Mana with RestrictValid$ Spell.nonCreature lowers to a filtered AddMana", lir: "AddMana obj=You A=1 CS=U F={types=0x0 not=0x2}"},
 }

@@ -39,7 +39,7 @@ const (
 func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	cd := &k.t.Cards[c]
 	wc := s.adjustCost(k, p, c, o, cd.WarpCost) // the reduction applies to an alternative cost too (CR 601.2f)
-	if !av.affords(&wc, pipMaskOf(&wc), 0) && (s.pl[p].poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
+	if !av.affords(&wc, pipMaskOf(&wc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &wc, av)) {
 		return
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &wc, av) {

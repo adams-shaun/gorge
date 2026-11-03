@@ -28,7 +28,7 @@ func typedManaSubtypes(t *kop.Table) kop.SubMask {
 	return m
 }
 
-// poolArtRestr marks, in poolArt, that p's restricted mana (poolR, poolRx) came
+// poolArtRestr marks, in poolArt, that p's restricted mana (State.rb) came
 // from a typed source (Interdimensional Web Watch is an artifact): gorge spends
 // the plain units of a colour before such a unit, as it does a tagged one.
 const poolArtRestr = 1 << 6

@@ -71,7 +71,7 @@ func (s *State) hasBeamGrant(k *prep, sl Slot) bool {
 func (s *State) beamPoolPays(k *prep, p uint8, o Obj, mana kop.ManaCost) bool {
 	a := s.poolAvailPlus(p, nil)
 	c := s.objs[o].card
-	if s.pl[p&1].poolR != 0 {
+	if s.rbAny(p & 1) {
 		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a)
 	}
 	cost := s.featCost(k, p&1, c, o, mana)

@@ -128,13 +128,10 @@ func (b *board) fillAs(s *dirac.State, f *Facts, me uint8, full bool) {
 	for p := uint8(0); p < 2; p++ {
 		b.life[p] = int32(s.LifeOf(p))
 	}
-	pool, rc, rn := s.PoolOf(me)
+	pool, restr := s.PoolOf(me)
 	for i := 0; i < 6; i++ {
 		b.pool[i] = int32(pool[i])
-		b.poolR[i] = 0
-	}
-	if rn != 0 && rc < 6 {
-		b.poolR[rc] = int32(rn)
+		b.poolR[i] = int32(restr[i])
 	}
 	b.libSize = int32(s.LibrarySize(me))
 	b.handSize = int32(s.HandSize(me))

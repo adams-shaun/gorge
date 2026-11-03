@@ -69,8 +69,8 @@ func TestCourtyardGap(t *testing.T) {
 	if !sc.tapped(court) {
 		t.Fatal("the Courtyard is not tapped by the plan")
 	}
-	if s.pl[0].poolR != 0 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 {
-		t.Fatalf("after the Hawk: poolR %#x pool %v stack %d, want nothing floating and the Hawk on the stack", s.pl[0].poolR, s.pl[0].pool, s.sp)
+	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 {
+		t.Fatalf("after the Hawk: restricted %v pool %v stack %d, want nothing floating and the Hawk on the stack", s.rb[0], s.pl[0].pool, s.sp)
 	}
 
 	sc, _, hawk = courtScen(t, "")

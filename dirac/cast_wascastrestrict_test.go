@@ -53,7 +53,7 @@ func kwrSet(k *prep, f kop.FilterID, n int16, types kop.TypeMask) func() {
 
 // TestWascastrestrictOrigin: the restriction matchers read the cast's origin
 // as gorge's castProvenanceAdmitsPending does (restrSpendable, the floating
-// poolR read; restrSpellMatch, the restricted planner source's read). An
+// State.rb read; restrSpellMatch, the restricted planner source's read). An
 // offer (cast false) reads every family from the object's current zone, as the
 // charge will (gorge castProvenanceAdmitsPending); the payment (cast true) reads
 // the pushed entry honestly. A
@@ -62,7 +62,7 @@ func TestWascastrestrictOrigin(t *testing.T) {
 	sc, id, f := kwrScen(t, "Mm'menon, the Right Hand")
 	s, k := sc.s, sc.k
 	shock, giant := id["Shock"], id["Hill Giant"]
-	if !s.pl[0].addRestr(k, &s.poolRx[0], f, int(kop.U), 1) {
+	if !s.addRestr(k, 0, f, int(kop.U), 1) {
 		t.Fatal("restricted mana did not float")
 	}
 	zones := []kop.Zone{kop.ZoneHand, kop.ZoneExile, kop.ZoneGraveyard, kop.ZoneLibrary}
@@ -87,7 +87,7 @@ func TestWascastrestrictOrigin(t *testing.T) {
 		restore := kwrSet(k, f, c.n, c.types)
 		for _, z := range zones {
 			og := restrOrigin{from: z, cast: c.cast, byYou: true}
-			if got := s.restrSpendable(k, 0, c.card, og); got != c.want(z) {
+			if got := s.restrSpendable(k, 0, c.card, og) != 0; got != c.want(z) {
 				t.Errorf("%s from zone %d: restrSpendable %v, want %v", c.name, z, got, c.want(z))
 			}
 			if got := s.restrSpellMatch(k, 0, NoSlot, f, c.card, og); got != c.want(z) {
@@ -100,20 +100,20 @@ func TestWascastrestrictOrigin(t *testing.T) {
 	// the zero origin fails closed; the mutation makes every restriction hold
 	restore := kwrSet(k, f, 3, 0)
 	defer restore()
-	if s.restrSpendable(k, 0, shock, restrOrigin{}) {
+	if s.restrSpendable(k, 0, shock, restrOrigin{}) != 0 {
 		t.Errorf("the zero origin admitted an exile restriction")
 	}
 	DebugRestrProvIgnored = true
 	defer func() { DebugRestrProvIgnored = false }()
-	if !s.restrSpendable(k, 0, shock, restrOrigin{from: kop.ZoneHand}) {
+	if s.restrSpendable(k, 0, shock, restrOrigin{from: kop.ZoneHand}) == 0 {
 		t.Errorf("DebugRestrProvIgnored did not admit a hand cast")
 	}
 }
 
 // TestWascastrestrictGrantSearch: the grant prefix search skips a restricted
 // granted source the play's origin does not admit, uses one it does, and the
-// found prefix floats the mana in poolR, never the ordinary pool; a prefix
-// that cannot float it (poolR holds another colour) stalls loudly
+// found prefix floats the mana in State.rb, never the ordinary pool; a prefix
+// that cannot float it (State.rb holds another colour) stalls loudly
 // (StallRestrSrc) rather than spilling.
 func TestWascastrestrictGrantSearch(t *testing.T) {
 	sc, id, f := kwrScen(t, "Mm'menon, the Right Hand", "Ornithopter")
@@ -153,22 +153,23 @@ func TestWascastrestrictGrantSearch(t *testing.T) {
 		t.Fatalf("wasCastFromExile from exile: found %v steps %d", g.np == 1, g.np)
 	}
 	s.grantApply(k, &g)
-	if pl := &s.pl[0]; pl.pool[kop.U] != 0 || pl.poolR&poolRCnt != 1 || int(pl.poolR>>poolRShift) != int(kop.U) {
-		t.Errorf("applied prefix: pool U %d, poolR %#x; want the mana in poolR", pl.pool[kop.U], pl.poolR)
+	if pl := &s.pl[0]; pl.pool[kop.U] != 0 || s.restrN(0) != 1 || s.restrOf(0, kop.U) != 1 {
+		t.Errorf("applied prefix: pool U %d, restricted %v; want the mana restricted", pl.pool[kop.U], s.rb[0])
 	}
 	if s.g.stalled != 0 {
 		t.Errorf("a floatable restricted grant stalled %s", StallName(s.g.stalled))
 	}
 
-	// the grant's colour is full beside another restricted colour: it cannot
-	// float, and never spills into the ordinary pool
+	// every batch the pool holds is taken (another chosen type's each): the
+	// grant cannot float, and never spills into the ordinary pool
 	sc2, id2, f2 := kwrScen(t, "Mm'menon, the Right Hand", "Ornithopter")
 	s2, k2 := sc2.s, sc2.k
 	defer kwrSet(k2, f2, 3, 0)()
-	if !s2.pl[0].addRestr(k2, &s2.poolRx[0], f2, int(kop.W), 1) {
-		t.Fatal("setup: restricted W did not float")
+	kind, _ := k2.gen.restrKind(f2)
+	for i := range s2.rb[0] {
+		s2.rb[0][i] = rbatch{kind: kind, chosen: uint8(i + 1)}
+		s2.rb[0][i].n[kop.U] = 1
 	}
-	s2.poolRx[0] = 7 << (3 * kop.U)
 	d := payDesc{class: pdSpell, card: id2["Shock"], src: NoSlot, og: restrOrigin{from: kop.ZoneExile}}
 	if !s2.grantSearch(k2, 0, &cost, NoSlot, d, &g) || g.np != 1 {
 		t.Fatalf("full colour: found %v steps %d", g.np == 1, g.np)

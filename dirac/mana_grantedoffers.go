@@ -846,9 +846,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
 		if r := restrOfStep(k, st); r != 0 {
-			// a restricted grant floats beside the pool (poolR), spendable only
+			// a restricted grant floats beside the pool (State.rb), spendable only
 			// as its restriction allows; never a silent spill into the pool
-			if !s.pl[g.p&1].addRestr(k, &s.poolRx[g.p&1], r, int(st.col), st.n) {
+			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {

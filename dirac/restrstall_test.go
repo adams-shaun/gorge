@@ -30,12 +30,11 @@ func TestFilterSearchOverAThirdRestriction(t *testing.T) {
 func TestRestrictedManaOfAThirdKindFloats(t *testing.T) {
 	sc, _ := synthScen(t, "std-msh", "Villainous Hideout", "Avengers Tower", "Castle Doom")
 	for i, f := range sc.k.gen.restrF[:3] {
-		var pl player
-		var rx uint16
-		if !pl.addRestr(sc.k, &rx, f, 4, 1) {
+		var s State
+		if !s.addRestr(sc.k, 0, f, 4, 1) {
 			t.Fatalf("restriction %d does not float", i)
 		}
-		if got := sc.k.gen.restrFOf(pl.poolR); got != f {
+		if got := sc.k.gen.restrFOf(s.rb[0][0].kind); got != f {
 			t.Fatalf("restriction %d reads back as %d, want %d", i, got, f)
 		}
 	}

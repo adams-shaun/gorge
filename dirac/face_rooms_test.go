@@ -249,7 +249,7 @@ func TestRoomFace1NotPlanned(t *testing.T) {
 	if ob := &sc.s.objs[b]; ob.zone != kop.ZoneHand || ob.card != cd.Faces[1] {
 		t.Fatalf("bounced: zone %d, face 1 %v", ob.zone, ob.card == cd.Faces[1])
 	}
-	if sc.s.pl[0].poolR != 0 || sc.s.pl[0].pool != [kop.NumManaKinds]uint8{} {
+	if sc.s.rbAny(0) || sc.s.pl[0].pool != [kop.NumManaKinds]uint8{} {
 		t.Fatal("the pool is not empty")
 	}
 	if sc.s.FeatPlannedCast(0, b, 0) {

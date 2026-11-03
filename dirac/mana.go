@@ -525,7 +525,7 @@ type planner struct {
 	pairs bool
 	life  int
 	// rdyn: the restricted evaluated-amount source (Helga) the plan taps and
-	// its restriction: its mana floats restricted (poolR), spent first by
+	// its restriction: its mana floats restricted (State.rb), spent first by
 	// the payment (mana_restrictedsource.go payRiderRestr)
 	rdyn   Slot
 	rdynOn bool
@@ -724,10 +724,10 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short b
 		}
 		s.g.winHeld = [kop.NumManaKinds]uint8{}
 	}
-	if s.pl[p].poolR != 0 && s.restrPoolNonSpell(k, p) {
+	if m := s.restrPoolNonSpell(k, p); m != 0 {
 		// the restricted mana its restriction admits here pays first (CR 106.6)
-		if c := s.restrShortAdm(p, *cost); s.poolPays(p, &c) {
-			s.payRestrSpend(k, p, cost, 0, NoObj, false)
+		if c := s.restrShortAdm(p, m, *cost); s.poolPays(p, &c) {
+			s.payRestrSpend(k, p, m, cost, 0, NoObj, false)
 			for c := range held {
 				s.pl[p].pool[c] += held[c]
 			}
@@ -1197,7 +1197,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			// a restricted source's larger alternative: its mana floats
 			// restricted (restrPairUnit)
 			s.pl[p].pool[col] -= ty.n
-			if !s.pl[p].addRestr(k, &s.poolRx[p&1], k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab].ManaRestrict, col, ty.n) {
+			if !s.addRestrSrc(k, p, sl, k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab].ManaRestrict, col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 			pk.rbOn = true
@@ -1209,9 +1209,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if pk.rdynOn && sl == pk.rdyn {
 			// a restricted evaluated amount (Helga) floats restricted beside
 			// the pool: the payment spends it first and what it leaves stays
-			// (payRestrRider); a poolR that cannot hold it stalls loud
+			// (payRestrRider); a State.rb that cannot hold it stalls loud
 			s.pl[p].pool[col] -= ty.n
-			if !s.pl[p].addRestr(k, &s.poolRx[p&1], pk.rF, col, ty.n) {
+			if !s.addRestrSrc(k, p, sl, pk.rF, col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 		}
