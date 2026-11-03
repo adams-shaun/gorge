@@ -1,0 +1,8 @@
+# a draw gated on a Food sacrificed this turn, with no other card naming the Food subtype (dirac/oracle/foodtallyonly_test.go)
+Bonecache Overseer
+Bake into a Pie
+Tragic Slip
+Gravedigger
+Grizzly Bears
+Swamp
+Island
