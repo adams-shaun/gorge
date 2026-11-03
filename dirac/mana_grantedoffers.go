@@ -524,12 +524,28 @@ func (g *grantSrch) visit(t *State) bool {
 // on the stack, so the play is not offered until it resolves (CR 307.1, 602.5d;
 // gorge scriptSearch.waitsForStack) and the search continues through a pass.
 func (g *grantSrch) waitsForStack(t *State) bool {
-	if t.sp <= g.sp0 || !g.d.hasPlay {
+	if !g.d.hasPlay {
+		return false
+	}
+	// a stack the prefix grew, or a trigger's answer that may have moved the
+	// play's own card (Gran-Gran's loot discarding the spell: gorge prices a
+	// cast from a card no longer in its origin zone as unsupported)
+	if t.sp <= g.sp0 && !g.answered() {
 		return false
 	}
 	var d Decision
 	t.plainOptions(g.k, &d, 0)
 	return !hasOption(&d, g.d.play)
+}
+
+// answered: the path holds an answer to a trigger's ask.
+func (g *grantSrch) answered() bool {
+	for i := 0; i < g.np; i++ {
+		if g.path[i].kind == stepAnswer {
+			return true
+		}
+	}
+	return false
 }
 
 // settle continues the search at t after a pass or a tap whose trigger is
