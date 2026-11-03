@@ -271,10 +271,21 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, a *kop.Ability) int 
 	return 0
 }
 
+// windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
+// at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
+// census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature
+// spell). An amount read off the board is priced only when it is positive.
+func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
+	if !restrSrcAb(a) {
+		return false
+	}
+	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0
+}
+
 // windowCensusComplete reports whether gorge's window census prices every source of
 // the payer: a permanent that can tap for a restricted mana ability this payment may
-// spend understates what the window can produce (CR 106.6). Gorge:
-// castWindowCensusComplete.
+// spend, and the window probe does not price, understates what the window can produce
+// (CR 106.6). Gorge: castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra {
 		return true
@@ -290,7 +301,8 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
 			a := &cd.Abilities[j]
-			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) {
+			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
+				!s.windowPricesRestr(k, sl, a) {
 				return false
 			}
 		}

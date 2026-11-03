@@ -1942,7 +1942,8 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 	s.bld().altAdd = 1
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
-	return av.affords(&c, pipMaskOf(&c), 0)
+	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
+	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0)
 }
 
 // altAddOptions poses gorge's either-or additional cost ask (cast_asks.go
