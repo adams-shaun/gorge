@@ -506,6 +506,14 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		// copied the Dollmaker whose ETB fired, and with no target copied it
 		// alone -- the new token's ETB then did the same, forever.
 		targets = rememberedWrittenByResolution(c)
+		if len(targets) == 0 {
+			// Nothing remembered (X = 0 exiled nothing): no copy, but the
+			// instruction still creates its delayed triggered ability.
+			if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
+				scheduleAtEOTNone(h, c.Controller, c.Source, r)
+			}
+			return
+		}
 	case spec != "":
 		ts, ok := knownDefinedTargets(h, c, spec)
 		if !ok {
@@ -683,6 +691,8 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// copy as a permanent. It runs only once the copy's battlefield entry has
 	// completed.
 	var minted []state.ObjID
+	var grouped []state.ObjID
+	var groupedOwner state.PlayerID
 	postEntry := func(owner state.PlayerID, want state.ObjID) {
 		minted = append(minted, want)
 		if attachTo != 0 {
@@ -725,7 +735,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		// value is the shared one-shot rider, the token the affected object
 		// and this CopyPermanent resolution's source the creator (CR 603.7d).
 		if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
-			scheduleAtEOTRider(h, owner, c.Source, r, []state.ObjID{want})
+			if groupedSacrifice(string(atEOT), r) {
+				grouped = append(grouped, want)
+				groupedOwner = owner
+			} else {
+				scheduleAtEOTRider(h, owner, c.Source, r, []state.ObjID{want})
+			}
 		}
 	}
 	targetObjs := make([]state.ObjID, 0, len(targets))
@@ -845,6 +860,25 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.EmitTokenCreate(entry)
 			postEntry(owner, want)
+		}
+	}
+	// A sacrifice rider over the copies of one resolution is one delayed
+	// triggered ability naming all of them, created even when no copy was made
+	// (CR 603.7; Forge's TokenEffectBase registers it unconditionally).
+	if r, ok := atEOTRiders.Get(string(atEOT)); ok && groupedSacrifice(string(atEOT), r) {
+		var live []state.ObjID
+		for _, id := range grouped {
+			if g.Obj(id) != nil {
+				live = append(live, id)
+			}
+		}
+		switch len(live) {
+		case 0:
+			scheduleAtEOTNone(h, c.Controller, c.Source, r)
+		case 1:
+			scheduleAtEOTRider(h, groupedOwner, c.Source, r, live)
+		default:
+			h.Emit(groupRegistration(h, c.Controller, c.Source, r, live))
 		}
 	}
 	// ImprintTokens$ True records the created tokens on the SOURCE, the same

@@ -14,9 +14,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // lockstep mutation test flips it and requires a divergence.
 var DebugAteotMoversSkip bool
 
-// entryAtEOT registers the sweep's next-end-step promise on entrant o.
-func (s *State) entryAtEOT(r *sweepRiders, o Obj) {
+// entryAtEOT registers the sweep's next-end-step promise on entrant o. A
+// sacrifice over several entrants is one delayed triggered ability naming all
+// of them (gorge scheduleAtEOTGroup, CR 603.7): later is true for every
+// entrant after the first, which joins the first one's trigger.
+func (s *State) entryAtEOT(r *sweepRiders, o Obj, later bool) {
 	if !r.eot || DebugAteotMoversSkip {
+		return
+	}
+	if later && !r.eotExile && s.sacAtEndJoin(o) {
 		return
 	}
 	s.atEOTRider(o, r.eotExile)
