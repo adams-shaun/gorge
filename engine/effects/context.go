@@ -78,6 +78,17 @@ func DefinedSpec(h Host, c *Ctx, spec string) []state.Target {
 // supplies only the no-selector fallback -- an ability declaring ValidTgts$
 // acts on its chosen targets, any other on its source.
 func DefinedRef(h Host, c *Ctx, r Ref, sa *cards.SA) []state.Target {
+	// A link that reuses its parent's referent (Defined$ Targeted,
+	// ParentTarget) yet carries its own ValidTgts$ never reaches the generic
+	// pre-ask; Forge's getDefinedCardsOrTargeted reads such a link's own
+	// target choice, which lives only in the cast-time record (the
+	// resolution's list is the parent's: Rules of Acquisition's "target
+	// nonland permanent you control" beside the Pump's player).
+	if sa != nil && c.SubPreAsk != nil && TargetsOf(sa).Has(TgtValidPresent) && TargetAskReusesPrior(sa) {
+		if ts, ok := c.SubPreAsk[sa.Line]; ok {
+			return copyTargets(ts)
+		}
+	}
 	if ts, ok := knownDefinedTargets(h, c, r.Raw); ok {
 		return ts
 	}
