@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-func TestFinalityDestroyRespectsDerivedNonCreatureType(t *testing.T) {
+func TestFinalityDestroyExilesWhateverTypesItHas(t *testing.T) {
 	t.Parallel()
 	e, cfg, bear := newFixtureDeck(t, 91203, "Name:Finality Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZHand, To: state.ZBattlefield})
@@ -27,8 +27,8 @@ func TestFinalityDestroyRespectsDerivedNonCreatureType(t *testing.T) {
 
 	effects.Resolve(e, &effects.Ctx{Source: bear, Controller: 0, Targets: []state.Target{{Obj: bear}}},
 		&cards.SA{Kind: "DB", API: "Destroy", Params: map[string]string{}})
-	if got := e.G.Obj(bear).Zone; got != state.ZGraveyard {
-		t.Fatalf("derived noncreature with finality went to %s, want graveyard", got)
+	if got := e.G.Obj(bear).Zone; got != state.ZExile {
+		t.Fatalf("derived noncreature with finality went to %s, want exile (CR 122.1h)", got)
 	}
 	replayCheck(t, e, cfg)
 }

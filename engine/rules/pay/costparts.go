@@ -575,14 +575,16 @@ func ManaTapsPayable(e Engine, p state.PlayerID, source state.ObjID, cost costvo
 }
 
 // ManaTapCandidates returns, in battlefield order, the untapped permanents
-// that can pay one literal tapXType<N/Spec> part and are not already claimed.
+// that can pay one literal tapXType<N/Spec> part and are not already claimed
+// by this part's own cost or by the cast being paid for (a convoking creature
+// is tapped when that payment settles, so it is not untapped to tap again).
 // It is the one candidate walk shared by the offer gate (manaTapsPayable)
 // and the payment election (continueManaDiscard), so the count the offer is
 // priced on and the objects the payer may tap cannot diverge.
 func ManaTapCandidates(e Engine, p state.PlayerID, source state.ObjID, spec string, claimed map[state.ObjID]bool) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range CostCandidates(e, p, source, state.ZBattlefield, spec, false, true) {
-		if !claimed[id] {
+		if !claimed[id] && !e.CastCommitted(id) {
 			out = append(out, id)
 		}
 	}

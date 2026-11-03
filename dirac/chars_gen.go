@@ -237,13 +237,14 @@ func (s *State) eachOverrideStaticTs(k *prep, sl Slot, f func(o *kop.Override, t
 			continue
 		}
 		sp := &s.perms[src]
-		if sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
-			continue
-		}
+		lost := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
+				if lost && !keptOnLoss(k.t, a) {
+					continue // CR 613.6: only an override with a part before layer 6 outlives the loss
+				}
 				f(&k.t.Overrides[a.Static.Override-1], s.layerTs(src))
 			}
 		}
@@ -452,13 +453,11 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 			if s.perms[src].attached != sl || src == sl || !k.gen.has(s.cardAt(src), gfOvrStat) {
 				continue
 			}
-			if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
-				continue
-			}
+			lost := s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
 			cd := &k.t.Cards[s.cardAt(src)]
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
-				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override <= 0 {
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override <= 0 || lost && !keptOnLoss(k.t, a) {
 					continue
 				}
 				o := &k.t.Overrides[a.Static.Override-1]
@@ -594,38 +593,73 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 	// grant is found (this walk runs per trigger listener)
 	var lts uint16
 	lost, read := false, false
+	// With a static in play, gorge's AddTrigger$ grants of statics are
+	// effects of layer 0 and list ahead of the effects registered at layer 6
+	// (an Animate grant, a Pump's), however their timestamps compare; a
+	// granted keyword's trigger (Firebending) is a layer-6 effect and keeps
+	// its place by timestamp. wm is the timestamp the walk has reached: the
+	// keyword records and the attached statics stamped before the next
+	// global grant are listed first (grantsBetween), then that grant, so
+	// the statics come out in one timestamp order, then the plain records.
+	wm := uint32(0)
+	kinds := uint8(grantAny)
+	if k.gen.globGrant || s.grantM.any() {
+		kinds = grantKw
+	}
 	if k.gen.globGrant {
+		lts, lost = s.lossAt(k, sl)
+		read = true
+		g := func(c CardID, ab uint8, n int, ts uint16) {
+			lts, lost, read = s.grantsBetween(k, sl, wm, uint32(ts), kinds, lts, lost, read, f)
+			wm = uint32(ts)
+			f(c, ab, n)
+		}
+		s.globalGrants(k, sl, lost, lts, g)
+		s.globalGrantsGen(k, sl, lost, lts, g)
+	}
+	lts, lost, read = s.grantsBetween(k, sl, wm, 1<<16, kinds, lts, lost, read, f)
+	if kinds == grantKw && s.fxM.has(sl) {
+		// the triggers an effect grants come after those a static grants
+		s.ovGrantsBetween(k, sl, 0, 1<<16, lost, lts, read, grantPlain, f)
+	}
+	if k.gen.anyContGrant {
+		// a Continuous grant of a mana ability from an unattached source
+		// (Springleaf Parade's tokens; mana_grantedoffers.go)
 		if !read {
 			lts, lost = s.lossAt(k, sl)
-			read = true
 		}
-		if s.fxM.has(sl) {
-			// gorge lists the grants in layer-6 timestamp order (derived
-			// keywords, rules/trigger_granted.go), so an override record
-			// older than a global grant goes first (Fire Nation Cadets'
-			// static beside a Pump's Firebending): each global grant first
-			// flushes the records stamped before it
-			wm := uint32(0)
-			g := func(c CardID, ab uint8, n int, ts uint16) {
-				s.ovGrantsBetween(k, sl, wm, uint32(ts), lost, lts, true, f)
-				wm = uint32(ts)
-				f(c, ab, n)
-			}
-			s.globalGrants(k, sl, lost, lts, g)
-			s.globalGrantsGen(k, sl, lost, lts, g)
-			s.ovGrantsBetween(k, sl, wm, 1<<16, lost, lts, true, f)
-		} else {
-			g := func(c CardID, ab uint8, n int, _ uint16) { f(c, ab, n) }
-			s.globalGrants(k, sl, lost, lts, g)
-			s.globalGrantsGen(k, sl, lost, lts, g)
-		}
-	} else if s.fxM.has(sl) {
-		s.ovGrantsBetween(k, sl, 0, 1<<16, false, 0, false, f)
+		s.contGrants(k, sl, lost, lts, f)
 	}
-	// Imprisoned in the Moon's static override grants its mana ability
-	for m := s.grantM; m.any(); m = m.rest() {
-		src := m.first()
-		if s.perms[src].attached != sl || s.genLost(k, src) {
+}
+
+// grantsBetween lists, in layer-6 timestamp order, the grants of the override
+// records on sl and of the statics attached to it stamped in [lo, hi). Gorge
+// lists granted abilities in timestamp order across every source (an
+// Equipment's timestamp is restamped when it is attached, CR 613.7e), so
+// two Equipment on one creature queue their triggers oldest attachment first
+// and an Animate grant stamped between them falls between them; the
+// controller's trigger-order choice indexes that queue. The records between
+// two attached statics keep pool order (ovGrantsBetween). It returns the
+// loss read (lts, lost, read) for the next call.
+func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts uint16, lost, read bool, f func(c CardID, ab uint8, n int)) (uint16, bool, bool) {
+	cur := lo
+	for m := s.grantM; m.any(); {
+		src, found := NoSlot, false
+		var best uint16
+		for r := m; r.any(); r = r.rest() {
+			c := r.first()
+			if s.perms[c].attached != sl {
+				continue
+			}
+			if ts := s.layerTs(c); uint32(ts) >= cur && uint32(ts) < hi && (!found || ts < best) {
+				src, best, found = c, ts, true
+			}
+		}
+		if !found {
+			break
+		}
+		m = m.without(src)
+		if s.genLost(k, src) {
 			continue
 		}
 		if !read {
@@ -635,6 +669,10 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 		if lost && s.layerTs(src) < lts {
 			continue
 		}
+		if s.fxM.has(sl) {
+			s.ovGrantsBetween(k, sl, cur, uint32(best), lost, lts, true, kinds, f)
+		}
+		cur = uint32(best)
 		cid := s.cardAt(src)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {
@@ -656,22 +694,26 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 			}
 		}
 	}
-	if k.gen.anyContGrant {
-		// a Continuous grant of a mana ability from an unattached source
-		// (Springleaf Parade's tokens; mana_grantedoffers.go)
-		if !read {
-			lts, lost = s.lossAt(k, sl)
-		}
-		s.contGrants(k, sl, lost, lts, f)
+	if s.fxM.has(sl) {
+		s.ovGrantsBetween(k, sl, cur, hi, lost, lts, read, kinds, f)
 	}
+	return lts, lost, read
 }
+
+// The kinds of override-record grant ovGrantsBetween lists: every one, a
+// granted keyword's trigger (kop.Ability.GrantedKw), or any other.
+const (
+	grantAny = iota
+	grantKw
+	grantPlain
+)
 
 // ovGrantsBetween calls f for the abilities the override records on sl
 // stamped in [lo, hi) grant, in pool order (the pool walked in place:
 // eachOvRec's closure would put the caller's state in memory). known says
 // lost and lts are already read; otherwise the loss is read at the first
 // record.
-func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts uint16, known bool, f func(c CardID, ab uint8, n int)) {
+func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts uint16, known bool, kinds uint8, f func(c CardID, ab uint8, n int)) {
 	for i, n := 0, 0; i < int(s.g.nfx) && n < maxOvr; i++ {
 		r := s.g.fx[i].r
 		if s.g.fx[i].sl != sl || s.g.fx[i].kind != fxOverride {
@@ -690,9 +732,13 @@ func (s *State) ovGrantsBetween(k *prep, sl Slot, lo, hi uint32, lost bool, lts 
 		}
 		o := &k.t.Overrides[r.idx-1]
 		for _, g := range o.Grant {
-			if g != 0 {
-				f(r.src, g-1, r.reps())
+			if g == 0 {
+				continue
 			}
+			if kinds != grantAny && (k.t.Cards[r.src].Abilities[g-1].GrantedKw) != (kinds == grantKw) {
+				continue
+			}
+			f(r.src, g-1, r.reps())
 		}
 	}
 }
@@ -755,7 +801,18 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
 	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
-	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0) {
+	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
+		// An override static on the host (an Aura that removes card types)
+		// sits between the older application and this one in timestamp
+		// order, so the newer application takes the newest position too
+		// (Crew again on a Vehicle under Eaten by Piranhas: artifact again).
+		merge = false
+	}
+	// A keyword grant or removal is a layer-6 effect ordered by its timestamp
+	// (CR 613.1f, 613.7), like a granted ability: it merges with the newest record only, or
+	// a repeat of The Fire Nation Drill's removal resolved after Enter the Avatar State would
+	// sit before it and leave the hexproof the Avatar gave.
+	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities) {
 		s.stall(StallTables)
 		return
 	}

@@ -1077,7 +1077,11 @@ func (e *Engine) continueCast() {
 	// moves.
 	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
 		pc.provenanceRepriced = true
-		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
+		// The pending cast's own push is in the log now but is not yet a cast
+		// for pricing (CR 601.2f): a "second spell you cast each turn" gate
+		// must not count the spell being priced, so the compose runs under
+		// the cost-composition exclusion like every other post-push pricing.
+		pc.mods = e.costModifiersForTargets(pc.player, pc.card, spellScope(pc.mode), nil)
 	}
 	// CR 601.2b: a modal spell announces its modes after reaching the stack
 	// and before targets are chosen or costs are paid — before every

@@ -171,7 +171,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 122.1e | follows | `dirac/turn.go#State.sba` | - | - |
 | 122.1f | partial | `dirac/kw_infect.go#State.addPoison` `dirac/kw_infect.go#State.poisonSBA` `dirac/dispatch.go#State.execCold5` `dirac/filter_valueheads.go#State.exprKvf` | `TestPoisonSBA` `TestPoisonOp` `TestValueHeadLockstep` | poison counters from infect and toxic damage and OpPoison (gorge effPoison); proliferate in an infect table stalls (StallInfect); ExPoisonOf reads a player's count (TargetedController$Counters.Poison, Anoint with Affliction's Corrupted); Melira's ReplOnePoison (one counter, then none this turn: `dirac/repl_onepoison.go#State.onePoison`, `TestMeliraPoisonLockstep`) |
 | 122.1g | n/a | - | - | - |
-| 122.1h | n/a | - | - | finality applies to creatures only |
+| 122.1h | follows | `dirac/interp_gen.go#State.dieZone` | - | any permanent with a finality counter is exiled instead |
 | 122.1i | n/a | - | - | rad counters trigger |
 | 122.1j | follows | `dirac/chars_gen.go#State.ptGen` `dirac/ctr_hone.go#State.honePower` `dirac/ctr_hone.go#prepHone` | `TestCtrhoneHone` `TestCtrhoneDwalin` `TestCtrnamedLockstep` | hone counter on an attached permanent is +1/+0 for the creature (Dwalin); |
 | 122.2 | unknown | - | - | not line-checked |

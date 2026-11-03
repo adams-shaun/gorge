@@ -88,8 +88,8 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 		}
 	}
 	s.res.active = true
-	if s.res.ask == raGenTokChoice {
-		s.res.e.trigAmt, s.res.e.x, s.res.e.spc = 0, 0, 0 // a minted token was never cast: no mana spent, no colours (gorge reads 0)
+	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
+		s.res.e.trigAmt, s.res.e.x, s.res.e.spc = 0, 0, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
 	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {

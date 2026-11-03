@@ -1,12 +1,12 @@
 {
   "card": "Ezrim, Agency Chief",
-  "class": "projection-Cards.Zone",
-  "why": "the engines' state differs at projection Cards[].Zone; 4 games in the corpus",
+  "class": "unmodelled-copycast",
+  "why": "gorge does something the kernel does not model here (stall copycast); Ezrim, Agency Chief is among the latest actions",
   "repro": {
     "pool": "std-mkm",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1044,
+    "pair": 2465,
     "policy": "random",
     "mulligans": 0
   }

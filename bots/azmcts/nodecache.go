@@ -183,6 +183,7 @@ func (c *nodeCache) simulate(top *node, sim int, opts Options, st *Stats) error 
 		for j, k := range pt.Keys {
 			if nd.child(k) == nil {
 				kid := &edge{key: k, prior: pt.Prior[j]}
+				pt.annotate(kid)
 				nd.kids = append(nd.kids, kid)
 				marks = append(marks, kid)
 			}

@@ -28,7 +28,7 @@ var nonCreatureTypeTokens = map[string]bool{
 	// into a Food, Equipment, or Shrine.
 	"Background": true, "Book": true, "Clue": true, "Equipment": true,
 	"Food": true, "Forest": true, "Island": true, "Mountain": true,
-	"Saga": true, "Shrine": true, "Treasure": true,
+	"Saga": true, "Shrine": true, "Spacecraft": true, "Treasure": true,
 }
 
 func TestCreatureTypeWordsCoverCorpusCreatureTypes(t *testing.T) {

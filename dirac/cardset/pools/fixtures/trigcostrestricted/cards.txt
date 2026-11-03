@@ -1,0 +1,7 @@
+# a trigger's own mana cost paid from a restricted-only source (dirac/oracle/trigcostrestrictedsource_test.go)
+Ant-Man, Colony Commander
+Hydraulic Helper
+Grizzly Bears
+Hill Giant
+Forest
+Island

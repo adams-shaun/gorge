@@ -1,12 +1,12 @@
 {
   "card": "Fire Magic",
-  "class": "projection-NStack",
-  "why": "the engines' state differs at projection NStack",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone",
   "repro": {
     "pool": "std-fin",
-    "surface": "full",
+    "surface": "autopay",
     "seed": 1,
-    "pair": 1290,
+    "pair": 1850,
     "policy": "random",
     "mulligans": 1
   }

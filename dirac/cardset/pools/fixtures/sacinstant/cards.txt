@@ -1,0 +1,12 @@
+# an instant paid by sacrificing a Treasure, with a permanent out whose sacrifice trigger goes on
+# the stack (sacinstant): Treasure makers, sacrifice watchers and cheap instants
+Burst Lightning
+Forest
+Giant Fly
+Giant Growth
+Go for the Throat
+Lightning Bolt
+Mountain
+Prosperous Innkeeper
+Swamp
+Zhao, Ruthless Admiral

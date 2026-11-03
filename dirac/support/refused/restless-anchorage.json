@@ -1,12 +1,12 @@
 {
   "card": "Restless Anchorage",
-  "class": "unmodelled-entryorder",
-  "why": "gorge does something the kernel does not model here (stall entryorder); 9 games in the corpus",
+  "class": "unmodelled-tokatkask",
+  "why": "gorge does something the kernel does not model here (stall tokatkask); Restless Anchorage is among the latest actions",
   "repro": {
     "pool": "std-lci",
     "surface": "autopay",
     "seed": 1,
-    "pair": 849,
+    "pair": 2849,
     "policy": "random",
     "mulligans": 1
   }

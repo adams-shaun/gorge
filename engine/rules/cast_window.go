@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -51,6 +53,11 @@ func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[
 func (e *Engine) dropProposalTriggers(pc *pendingCast) {
 	ranges := pc.proposalTriggers
 	pc.proposalTriggers = nil
+	undo := pc.proposalLimits
+	pc.proposalLimits = nil
+	for i := len(undo) - 1; i >= 0; i-- {
+		e.restoreTriggerLimits(undo[i])
+	}
 	for i := len(ranges) - 1; i >= 0; i-- {
 		start, end := ranges[i][0], ranges[i][1]
 		if start < e.orderedTriggers || start >= end || end > len(e.pendingTriggers) {
@@ -629,6 +636,14 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	return e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
+}
+
+// castWindowReachableAfter is castWindowReachable remembering exhausted states
+// once its walk passes deadAfter nodes. A negative deadAfter is the plain walk,
+// with neither that memory nor the reach cap (a test compares the two).
+func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
 	if asEval(e).LifeChangeForbidden(p) {
@@ -668,6 +683,44 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	}
 	nodes := 0
 	used := make([]bool, len(ordered))
+	// canReach caps what the walk can still bring: the units' best production,
+	// largest first. A walk whose pool plus the most the remaining
+	// activations could add falls short of the units the cost spends
+	// (PoolUnitsFloor) is dead before it starts, which is how most refusals
+	// end: an {X} one past what the sources hold. Fees only spend, so
+	// ignoring them keeps the cap an upper bound.
+	need := cost.PoolUnitsFloor()
+	held := int64(snow.Total())
+	for _, t := range typed {
+		held += int64(t.Total())
+	}
+	best := make([]int32, len(ordered))
+	for i := range ordered {
+		for _, a := range ordered[i].Alts {
+			best[i] = max(best[i], a.Mana().Total())
+		}
+	}
+	rank := make([]int, len(ordered))
+	for i := range rank {
+		rank[i] = i
+	}
+	slices.SortStableFunc(rank, func(a, b int) int { return cmp.Compare(best[b], best[a]) })
+	canReach := func(pool state.Mana, remaining int) bool {
+		if deadAfter < 0 {
+			return true
+		}
+		have := int64(pool.Total()) + held
+		for _, i := range rank {
+			if remaining == 0 || have >= need {
+				break
+			}
+			if !used[i] {
+				have += int64(best[i])
+				remaining--
+			}
+		}
+		return have >= need
+	}
 	// prevFree is the ordered index of the unit the previous step activated
 	// through a FREE alternative (no generic fee, no life), or -1. Two free
 	// activations in a row commute: neither spends anything, so either order
@@ -679,6 +732,20 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	// ran out before the right production was tried: a payable {G}{U}
 	// activation was judged unreachable and every target dropped off its
 	// Min 0 ask (lockstep pairs 1509 3986, Zimone, Paradox Sculptor).
+	//
+	// dead remembers the states the walk has exhausted. Two orders of the same
+	// activations meet at one state (the same units spent, the same pools), and
+	// with several mana sources the walk met it again for every order of them:
+	// a cast no order of ten untapped sources could pay took tens of thousands
+	// of nodes to refuse, and an {X} spell asks it once per X. The state
+	// determines what the walk can still do, except for the free-first
+	// pruning, which only removes moves: a state that failed with prevFree
+	// pruning from p also fails under any pruning from q >= p, so the least p
+	// is kept. It is built after the first nodes so a small search allocates
+	// nothing.
+	var dead map[cwDead]int
+	var spentMask uint64
+	trackDead := len(ordered) <= 64
 	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool
 	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool {
 		if payable(pool, spellSnow, lifeLeft) {
@@ -687,9 +754,21 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		if remaining <= 0 {
 			return false
 		}
+		if !canReach(pool, remaining) {
+			return false
+		}
+		key := cwDead{spentMask, pool, spellSnow, activationPool, activationSnow, lifeLeft}
+		if dead != nil {
+			if p, ok := dead[key]; ok && p <= prevFree {
+				return false
+			}
+		}
 		nodes++
 		if nodes > 1<<18 {
 			return false
+		}
+		if trackDead && deadAfter >= 0 && dead == nil && nodes > deadAfter {
+			dead = map[cwDead]int{}
 		}
 		for i := range ordered {
 			if used[i] {
@@ -729,6 +808,7 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				// out of W G G, from W does not. Try resolveMana's, then every
 				// other split of the unrestricted pool.
 				used[i] = true
+				spentMask |= 1 << uint(i&63)
 				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
 					spent := manaSub(activationPool, afterFee)
 					snowSpent := manaSub(activationSnow, afterFeeSnow)
@@ -742,15 +822,33 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 					})
 				}
 				used[i] = false
+				spentMask &^= 1 << uint(i&63)
 				if found {
 					return true
 				}
+			}
+		}
+		if dead != nil && nodes <= 1<<18 {
+			if p, ok := dead[key]; !ok || prevFree < p {
+				dead[key] = prevFree
 			}
 		}
 		return false
 	}
 	return rec(spellPool, snow, free, snow, life, -1, budget)
 }
+
+// cwDead is one state of castWindowReachable's walk: the units spent (a mask) and
+// the pools and life the walk stands at.
+type cwDead struct {
+	spent                             uint64
+	pool, spellSnow, actPool, actSnow state.Mana
+	life                              int32
+}
+
+// cwDeadAfter is how many nodes castWindowReachable walks before it starts
+// remembering the states it has exhausted.
+const cwDeadAfter = 64
 
 // forEachFeeSplit calls try with pool less each way of spending n mana from it,
 // in colour order, until try accepts one.
@@ -928,4 +1026,84 @@ func (e *Engine) targetCountAffordable(pc *pendingCast, candidates []targetCandi
 		best = n
 	}
 	return best
+}
+
+// limitUndo is one trigger-limit entry as it stood before a proposal's target
+// choice queued a trigger: the per-turn and lifetime counts, each with whether
+// the key had an entry at all.
+type limitUndo struct {
+	key     triggerKey
+	turn    turnFires
+	hadTurn bool
+	game    gameFires
+	hadGame bool
+}
+
+// limitSnapshot copies both trigger-limit tables so limitChanges can report
+// what a queue pass consumed.
+func (e *Engine) limitSnapshot() (map[triggerKey]turnFires, map[triggerKey]gameFires) {
+	var t map[triggerKey]turnFires
+	var g map[triggerKey]gameFires
+	if len(e.triggerTurnFires) > 0 {
+		t = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			t[k] = v
+		}
+	}
+	if len(e.triggerGameFires) > 0 {
+		g = make(map[triggerKey]gameFires, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			g[k] = v
+		}
+	}
+	return t, g
+}
+
+// limitChanges lists, for every key whose count moved since the snapshot, the
+// entry it held in the snapshot. The order is the keys' own (source, line), so
+// no map order reaches a result.
+func (e *Engine) limitChanges(t map[triggerKey]turnFires, g map[triggerKey]gameFires) []limitUndo {
+	var out []limitUndo
+	at := func(k triggerKey) *limitUndo {
+		for i := range out {
+			if out[i].key == k {
+				return &out[i]
+			}
+		}
+		out = append(out, limitUndo{key: k})
+		return &out[len(out)-1]
+	}
+	for k, v := range e.triggerTurnFires {
+		if old, ok := t[k]; !ok || old != v {
+			u := at(k)
+			u.turn, u.hadTurn = old, ok
+		}
+	}
+	for k, v := range e.triggerGameFires {
+		if old, ok := g[k]; !ok || old != v {
+			u := at(k)
+			u.game, u.hadGame = old, ok
+		}
+	}
+	slices.SortFunc(out, func(a, b limitUndo) int {
+		if a.key.Source != b.key.Source {
+			return cmp.Compare(a.key.Source, b.key.Source)
+		}
+		return cmp.Compare(a.key.Idx, b.key.Idx)
+	})
+	return out
+}
+
+// restoreTriggerLimits puts one key's counts back to what limitChanges saw.
+func (e *Engine) restoreTriggerLimits(u limitUndo) {
+	if u.hadTurn {
+		e.triggerTurnFires[u.key] = u.turn
+	} else {
+		delete(e.triggerTurnFires, u.key)
+	}
+	if u.hadGame {
+		e.triggerGameFires[u.key] = u.game
+	} else {
+		delete(e.triggerGameFires, u.key)
+	}
 }

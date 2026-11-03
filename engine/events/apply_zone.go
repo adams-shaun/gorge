@@ -838,6 +838,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// state even from a malformed caller-supplied From.
 	o.EnteredThisTurn = true
 	o.EnteredFrom = enteredFrom
+	if to == state.ZBattlefield && enteredFrom != state.ZBattlefield {
+		// CR 400.7: a permanent that enters is a new object, so a creature
+		// that was dealt damage and died earlier this turn is not "dealt
+		// damage this turn" once it returns. The graveyard copy keeps its
+		// record until it enters.
+		o.WasDealtDamageThisTurn = false
+	}
 	if to == state.ZBattlefield && enteredFrom != state.ZBattlefield && o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0].IsRoom() {
 		// A stack copy is put onto the stack, not cast (CR 707.10). It
 		// resolves from ZStack too, but does not designate a cast door.
@@ -1282,10 +1289,16 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// resets here. The pre-clear bearer is preserved as LastBearer so a
 		// trigger that resolves after the sweep can still resolve "objects
 		// that were attached to it" (state.Object.LastBearer's contract).
-		// When AttachedTo is already 0 (an earlier Unattached set it) the
-		// existing LastBearer stands.
+		// A permanent leaving the battlefield unattached (an Equipment whose
+		// bearer stopped being a creature, detached by a state-based action
+		// turns earlier) was attached to nothing as it left, so a bearer an
+		// earlier Unattached recorded is stale and is dropped (CR 608.2h); a
+		// queued bearer-departure detach is the exception, its bearer is the one
+		// the permanent left with.
 		if o.AttachedTo != 0 {
 			o.LastBearer = o.AttachedTo
+		} else if wasBattlefield && !o.UnattachPending {
+			o.LastBearer = 0
 		}
 		// Its own departure spends any queued bearer-departure detach: the
 		// look-back arm of Mode$ Unattached (engine/rules/

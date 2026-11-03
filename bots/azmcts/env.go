@@ -88,6 +88,9 @@ type walkConfig struct {
 	// children all exist never projects, encodes or scores. Off under the
 	// node cache, which compares a replayed point's key order.
 	lazyPrior bool
+	// line is Options.Line: when positive, every in-walk point describes
+	// its candidates (Point.lines).
+	line int
 }
 
 // priorNet is the network in-walk priors read: nil under uniformPrior.
@@ -514,6 +517,7 @@ func (e *engineEnv) advance() (*Point, error) {
 						countTopK(e.cfg.stats, true, 0)
 					}
 					pt := &Point{Keys: candKeys(cands), cut: cut, ranked: e.cfg.priorTopK > 0, extra: extraOf(kind), resolve: res}
+					pt.lines = e.lineInfos(e.obs, pd, cands, false)
 					countPoint(e.cfg.stats, pt)
 					return pt, nil
 				}
@@ -533,6 +537,7 @@ func (e *engineEnv) advance() (*Point, error) {
 				if e.cfg.priorTopK > 0 {
 					countTopK(e.cfg.stats, true, before)
 					pt := &Point{Keys: candKeys(cands), Prior: prior, cut: cut, fell: fell, ranked: true, before: before, extra: extraOf(kind)}
+					pt.lines = e.lineInfos(e.obs, pd, cands, false)
 					countPoint(e.cfg.stats, pt)
 					return pt, nil
 				}
@@ -541,6 +546,7 @@ func (e *engineEnv) advance() (*Point, error) {
 					keys[i] = c.key
 				}
 				pt := &Point{Keys: keys, Prior: prior, cut: cut, fell: fell, extra: extraOf(kind)}
+				pt.lines = e.lineInfos(e.obs, pd, cands, false)
 				countPoint(e.cfg.stats, pt)
 				return pt, nil
 			}
@@ -618,6 +624,7 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 		}
 		e.cur, e.cands = pd, cands
 		pt := &Point{Keys: candKeys(cands), cut: cut, Opp: true, extra: extraOf(kind), oppPay: autoPay && kind == "priority", resolve: res}
+		pt.lines = e.lineInfos(obs, pd, cands, true)
 		if topK > 0 {
 			countTopK(e.cfg.stats, true, 0)
 			pt.ranked = true
@@ -636,6 +643,7 @@ func (e *engineEnv) oppPoint(pd *decision.Decision, in decision.Intent) *Point {
 		e.cfg.stats.PriorFallbacks++
 	}
 	pt := &Point{Keys: keys, Prior: prior, cut: cut, fell: fell, Opp: true, extra: extraOf(kind), oppPay: autoPay && kind == "priority"}
+	pt.lines = e.lineInfos(obs, pd, cands, true)
 	if topK > 0 {
 		countTopK(e.cfg.stats, true, before)
 		pt.ranked, pt.before = true, before

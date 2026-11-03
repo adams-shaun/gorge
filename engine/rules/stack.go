@@ -486,7 +486,7 @@ func (e *Engine) resolveTop() {
 		// and for any modal one the announcement never reached.
 		ctx.Modes = o.ChosenModes
 		e.damaging = o.Source
-		e.endTurnRequested = false
+		e.endTurnRequested, e.endCombatRequested = false, false
 		effects.Resolve(e, ctx, o.Ability)
 		e.damaging = 0
 		if e.restart != nil {
@@ -495,6 +495,10 @@ func (e *Engine) resolveTop() {
 		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
+			return
+		}
+		if e.endCombatRequested {
+			e.finishEndCombatPhase()
 			return
 		}
 		// CR 702.99b (task trig:Evolved): when this resolving ability is the
@@ -773,7 +777,7 @@ func (e *Engine) resolveTop() {
 		// targets and payment. Pre-seeding Modes makes effCharm execute exactly
 		// that announcement instead of posing its old resolution-time ask.
 		ctx.Modes = o.ChosenModes
-		e.endTurnRequested = false
+		e.endTurnRequested, e.endCombatRequested = false, false
 		effects.Resolve(e, ctx, resolveSA)
 		e.damaging = 0
 		if e.restart != nil {
@@ -782,6 +786,10 @@ func (e *Engine) resolveTop() {
 		}
 		if e.endTurnRequested {
 			e.finishEndTurn()
+			return
+		}
+		if e.endCombatRequested {
+			e.finishEndCombatPhase()
 			return
 		}
 	}

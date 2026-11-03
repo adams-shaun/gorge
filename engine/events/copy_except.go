@@ -38,6 +38,10 @@ type CopyExceptions struct {
 	// Triggers are raw trigger bodies the copy has (CR 707.9a), in grant
 	// order; each Execute$ is resolved against the merged SVar table.
 	Triggers []string `json:"triggers,omitempty"`
+	// Back marks the payload as the exceptions' final values for the OTHER
+	// face of a double-faced token copy (CR 707.8a): the fold edits that
+	// face and keeps it as the token's CopyFaceBack.
+	Back bool `json:"back,omitempty"`
 }
 
 // Empty reports whether x carries no exception.
@@ -114,6 +118,18 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		return
 	}
 	f := *o.Face()
+	if x.Back {
+		// The other face of a double-faced token (CR 707.8a): edit what it
+		// would show, the earlier edit of it when a copy of a token copied one.
+		base := o.CopyFaceBack
+		if base == nil {
+			if !o.Card.IsTransformingDFC() {
+				return
+			}
+			base = o.Card.Faces[1-o.FaceIdx]
+		}
+		f = *base
+	}
 	// The edited face is no longer the catalog row it may be bound to (a
 	// compiled TypeMask or trigger-interest prefilter would answer for the
 	// unedited text), so it takes the computed paths a token face takes.
@@ -175,5 +191,11 @@ func foldCopyExcept(g *state.Game, e *Event) {
 			}
 		}
 	}
+	if x.Back {
+		o.CopyFaceBack = &f
+		return
+	}
+	back := o.CopyFaceBack // a copy of a double-faced token copy keeps the edited other face
 	o.SetCopyFace(&f)
+	o.CopyFaceBack = back
 }

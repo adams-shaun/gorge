@@ -283,3 +283,30 @@ func TestCountStaysInclusiveOutsideTheGrantWalk(t *testing.T) {
 	}
 	drainEtb(t, e)
 }
+
+// A cast's spend window ends where priority is first granted with it on the
+// stack (CR 601.2h): a spell cast in response, paid with mana the same player
+// spends afterwards, does not make the first spell a paid cast. A spell put
+// on the stack for no mana, such as a plotted card cast for free, reads
+// "no mana was spent to cast it" whatever its caster pays next, and a cast
+// paid before the grant reads its payment (Satoru, the Infiltrator's second
+// alternative).
+func TestCastSpendWindowEndsAtThePriorityGrant(t *testing.T) {
+	e, _ := fdnCensusEngine(t, "Grizzly Bears", "Giant Growth")
+	free := moveByName(t, e, 0, "Grizzly Bears", state.ZHand)
+	paid := moveByName(t, e, 0, "Giant Growth", state.ZHand)
+	log := func(evs ...events.Event) { e.L.Events = append(e.L.Events, evs...) }
+	log(
+		events.Event{Kind: events.PutOnStack, Obj: free, Player: 0, From: state.ZExile, To: state.ZStack},
+		events.Event{Kind: events.Priority, Player: 0},
+		events.Event{Kind: events.PutOnStack, Obj: paid, Player: 0, From: state.ZHand, To: state.ZStack},
+		events.Event{Kind: events.ManaAdd, Player: 0, Amount: -1, Counter: "G"},
+		events.Event{Kind: events.Priority, Player: 0},
+	)
+	if got := e.castSpendWindow(free); !got.ok || got.spent != 0 {
+		t.Errorf("the free cast's window = %+v, want ok with nothing spent", got)
+	}
+	if got := e.castSpendWindow(paid); !got.ok || got.spent != 1 {
+		t.Errorf("the paid cast's window = %+v, want ok with 1 spent", got)
+	}
+}

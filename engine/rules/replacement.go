@@ -48,16 +48,9 @@ import (
 // the same object forever (see the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
+	// CR 122.1h: any permanent with a finality counter, a creature or not.
 	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZBattlefield || o.Counter("FINALITY") <= 0 {
-		return false
-	}
-	for _, typ := range e.typeCharacteristics(id, 0) {
-		if typ == "Creature" {
-			return true
-		}
-	}
-	return false
+	return o != nil && o.Zone == state.ZBattlefield && o.Counter("FINALITY") > 0
 }
 
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
@@ -136,10 +129,9 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// CantPutCounter is enforced in Engine.emit before this dispatch, even
 	// while a replacement body is in flight.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
-	// a creature with a finality counter that would go from the battlefield to
-	// a graveyard is exiled instead. This covers destruction, toughness-based
-	// SBAs, legend-rule departures and sacrifices alike. The derived type walk
-	// also handles a permanent animated into a creature, while the battlefield
+	// a permanent with a finality counter that would go from the battlefield to
+	// a graveyard is exiled instead (CR 122.1h). This covers destruction, toughness-based
+	// SBAs, legend-rule departures and sacrifices alike. The battlefield
 	// origin guard prevents unrelated graveyard moves from being widened.
 	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
 		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {

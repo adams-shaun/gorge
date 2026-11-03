@@ -373,6 +373,11 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	if n <= 0 {
+		// X = 0 makes no copy, but the resolving spell still creates its
+		// delayed triggered ability (CR 603.7), which then does nothing.
+		if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
+			scheduleAtEOTNone(h, c.Controller, c.Source, r)
+		}
 		return
 	}
 
@@ -458,6 +463,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			d.Options = append(d.Options, decision.Option{Index: i, Obj: t.Obj, Kind: "permanent"})
 		}
 		if len(d.Options) == 0 {
+			// No creature to copy (Calamity, Galloping Inferno with only legendary
+			// saddlers): no copy is made, but the instruction still creates its
+			// delayed triggered ability (CR 603.7), which then does nothing.
+			if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
+				scheduleAtEOTNone(h, c.Controller, c.Source, r)
+			}
 			return
 		}
 		{
@@ -765,6 +776,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if x := copyExceptions(g.Obj(want), exc); !x.Empty() {
 				h.Emit(events.Event{Kind: events.CopyExcept, Obj: want, Text: x.Text()})
+				if bx := copyBackExceptions(g.Obj(want), exc); !bx.Empty() {
+					h.Emit(events.Event{Kind: events.CopyExcept, Obj: want, Text: bx.Text()})
+				}
 			}
 			if len(tokenMemory) > 0 {
 				remembered := make([]state.ObjID, 0, len(tokenMemory))

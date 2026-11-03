@@ -1,0 +1,5 @@
+# an either-or additional cost whose only mana is a granted ability (grantsac): Great Divide Guide gives every
+# land and Ally "{T}: Add one mana of any color", and is the creature Deadly Precision sacrifices
+Deadly Precision
+Forest
+Great Divide Guide

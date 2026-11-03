@@ -1,12 +1,12 @@
 {
   "card": "Professor Dellian Fel",
-  "class": "projection-NStack",
-  "why": "the engines' state differs at projection NStack; 20 games in the corpus",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards[].Pos",
   "repro": {
     "pool": "std-sos",
     "surface": "autopay",
     "seed": 1,
-    "pair": 855,
+    "pair": 2873,
     "policy": "random",
     "mulligans": 0
   }

@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -74,4 +75,27 @@ func TestDepartedCopySourceTriggerDoesNotCounterTheGraveyardCard(t *testing.T) {
 		}
 	}
 	replayCheck(t, e, cfg)
+}
+
+// CR 400.7, 603.2: a trigger with no stated zone fires from the battlefield
+// alone, so when its source is found elsewhere as the ability is put on the
+// stack, the source left first and "untap it" cannot reach the new object that
+// later returns (a granted combat-damage trigger on a creature that dealt the
+// damage and died with it). Modes the gate admits from other zones are not so.
+func TestUnzonedTriggerSourceFoundElsewhereLeftTheBattlefield(t *testing.T) {
+	for _, tc := range []struct {
+		trig cards.Trigger
+		want bool
+	}{
+		{cards.Trigger{Mode: "DamageDealtOnce", Params: map[string]string{"CombatDamage": "True", "ValidSource": "Card.Self"}}, true},
+		{cards.Trigger{Mode: "Phase", Params: map[string]string{"Phase": "Upkeep"}}, true},
+		{cards.Trigger{Mode: "DamageDealtOnce", Params: map[string]string{"TriggerZones": "Battlefield"}}, true},
+		{cards.Trigger{Mode: "Discarded", Params: map[string]string{"ValidCard": "Card.Self"}}, false},
+		{cards.Trigger{Mode: "ChangesZone", Params: map[string]string{"ValidCard": "Card.Self"}}, false},
+		{cards.Trigger{Mode: "DamageDealtOnce", Params: map[string]string{"TriggerZones": "Graveyard"}}, false},
+	} {
+		if got := triggerOnlyFromBattlefield(tc.trig); got != tc.want {
+			t.Errorf("%s %v: got %v, want %v", tc.trig.Mode, tc.trig.Params, got, tc.want)
+		}
+	}
 }

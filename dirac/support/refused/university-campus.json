@@ -1,12 +1,12 @@
 {
   "card": "University Campus",
   "class": "options",
-  "why": "the engines offer different options; 8 games in the corpus",
+  "why": "the engines offer different options",
   "repro": {
     "pool": "std-spm",
     "surface": "autopay",
     "seed": 1,
-    "pair": 937,
+    "pair": 2027,
     "policy": "random",
     "mulligans": 1
   }

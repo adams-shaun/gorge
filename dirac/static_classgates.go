@@ -70,13 +70,17 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 func (s *State) eachStaticC(k *prep, cls uint8, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		if k.gen.sCls[s.cardAt(sl)]&cls == 0 || s.genLost(k, sl) {
+		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
 			continue
 		}
+		lost := s.genLost(k, sl)
 		p := &s.perms[sl]
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
+			if lost && !keptOnLoss(k.t, a) {
+				continue // a source that lost its abilities keeps only the effects that began before layer 6
+			}
 			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {
 				if !f(statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
 					return

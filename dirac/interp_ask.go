@@ -32,7 +32,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		}
 		c := manaOf(amt, pips)
 		var av avail
+		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
+		av.xdOn = false
 		return av.affords(&c, pipMaskOf(&c), 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
@@ -171,7 +173,8 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 }
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
-// a tap source or the untapped sacrifice-only arm.
+// a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
+// or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
@@ -183,6 +186,22 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
+		}
+		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
+		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 {
+			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
+				return true
+			}
+		}
+		// gorge untappedManaSource: any available mana ability counts here,
+		// whatever its RestrictValid$ (availPotentialFor prices the
+		// restriction against this payment next), so a source whose only
+		// ability is restricted (Hydraulic Helper) funds a trigger's cost.
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.potentialAdmits(k, p, sl, j, ab, nil) {
+				return true
+			}
 		}
 	}
 	return false
@@ -580,6 +599,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated
 				// mana stay, the charge fails and the flow declines
+				if s.res.ask == raGenWinTap {
+					return // a tap-another source's pick (mana_windowtapx.go)
+				}
 				s.payDone(k, false)
 				return
 			}
@@ -925,6 +947,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		o := s.g.pre.obj
 		if s.g.pre.kind == akClone {
 			s.answerCloneReturn(k, a)
+			return
+		}
+		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
+			s.res.ask = raNone
+			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.state = preDigEnchantDone
+			if s.rerunMove(k, &s.prog(k)[r.pc]) {
+				return // suspended again at another Aura's choice
+			}
+			s.g.pre = preAsk{}
+			s.continueRes(k, 0)
 			return
 		}
 		if s.g.pre.kind == akEnchant {
@@ -1602,6 +1635,13 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
 				return true
 			}
+			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
+				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
+			}
+			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
+				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
+				continue
+			}
 			s.detach(o)
 			s.digTake(k, o, z, fl)
 			if s.g.pre.obj == o {
@@ -1623,13 +1663,14 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 		return true
 	}
 	if z == kop.ZoneBattlefield {
-		for i := 0; i < n; i++ {
-			if s.g.lookSel&(1<<i) == 0 {
-				s.touch(s.resArm().look[i])
-				s.objs[s.resArm().look[i]].zone = kop.ZoneNone
-				pl.libLo++
-			}
+		// a taken card's queued as-enters ask suspends the dig with the rest
+		// still in the library, as gorge's parked effect has them
+		if park && s.parkTail(k, tailDig) {
+			return true
 		}
+		s.digRestAside(n)
+		s.finishDigTail(k)
+		return false
 	} else {
 		for i := 0; i < n; i++ {
 			s.touch(s.resArm().look[i])
@@ -1647,6 +1688,68 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	}
 	s.finishDigTail(k)
 	return false
+}
+
+// digAuraHost is the one permanent a taken Aura o enters enchanting when it
+// has exactly one legal host (CR 303.4f); NoSlot for any other card, and for
+// two or more hosts, whose controller's choice the dig does not pose yet.
+func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
+	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchantDone {
+		return Slot(s.g.pre.val) // the answered choice among two or more hosts
+	}
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return NoSlot
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) != 1 {
+		return NoSlot
+	}
+	return s.objs[buf[0]].slot
+}
+
+// digAuraPark poses the enchant election of a taken Aura with two or more
+// legal hosts (gorge's auraEntryGate asks before the move folds): the card waits
+// in the library with the rest, and the answer runs the dig again from it.
+//
+//go:noinline
+func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || !s.res.active || s.g.pre.state != 0 || s.res.ask != raNone ||
+		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) < 2 {
+		return false
+	}
+	s.g.pre = preAsk{obj: o, kind: akEnchant, state: preDigEnchant}
+	s.res.ask, s.res.askP = raGenRetChoice, p
+	return true
+}
+
+// digAuraStays reports whether taken card o is an Aura with no legal host
+// (CR 303.4g), which cannot enter.
+func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	return s.enchantCands(k, c, p, &buf) == 0
+}
+
+// digRestAside takes the n looked-at cards a battlefield dig did not take
+// out of the library window, ahead of finishDigTail placing them.
+func (s *State) digRestAside(n int) {
+	pl := &s.pl[s.g.pickP]
+	for i := 0; i < n; i++ {
+		if s.g.lookSel&(1<<i) == 0 {
+			s.touch(s.resArm().look[i])
+			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+			pl.libLo++
+		}
+	}
 }
 
 // --- choose each type (Liliana) ---
@@ -1797,7 +1900,11 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	}
 	switch {
 	case z == kop.ZoneBattlefield:
-		s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		host := s.digAuraHost(k, o, p)
+		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		if host != NoSlot && s.occ.has(host) {
+			s.attachTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
+		}
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

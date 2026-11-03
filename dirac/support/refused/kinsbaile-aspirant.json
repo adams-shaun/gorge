@@ -1,12 +1,12 @@
 {
   "card": "Kinsbaile Aspirant",
-  "class": "options",
-  "why": "the engines offer different options; 35 games in the corpus",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; Kinsbaile Aspirant is among the latest actions and Swamp is the card the divergence implicates",
   "repro": {
     "pool": "std-ecl",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1490,
+    "pair": 1788,
     "policy": "random",
     "mulligans": 1
   }

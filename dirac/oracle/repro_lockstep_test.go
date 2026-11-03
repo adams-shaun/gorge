@@ -127,6 +127,37 @@ func TestWitnessSacrificeMillsBeforeTheCastLockstep(t *testing.T) {
 	synthReproLockstep(t, "witness_sac_mill_trigger", "std-blb", Config{})
 }
 
+// An Adventure creature's face cast paid with a Treasure under The Sackville-Bagginses: the
+// witness is tapped at priority, so the Treasure's sacrifice trigger (the opponent loses 1
+// life) resolves before the spell is cast, not above it on the stack.
+func TestFaceCastWitnessSacrificeTriggerResolvesFirstLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "face_cast_witness_sac_trigger", "std-hob", Config{GorgeAutopaySurface: true})
+}
+
+// Trystan's "you may pay {B}" with a Springleaf Drum as the only black the board could make:
+// gorge's potential mana counts a tap-another-permanent source whose creature is there to
+// tap, so the pay is offered beside the decline.
+func TestTriggerCostCountsATapAnotherSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "trigger_cost_tap_another_source", "std-ecl", Config{})
+}
+
+// Trystan's "you may pay {B}" with a Bloom Tender as the only source that could make black:
+// gorge's potential mana reads its each-colour production as open, so the pay is offered.
+func TestTriggerCostCountsAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "trigger_cost_each_colour_source", "std-ecl", Config{GorgeAutopaySurface: true})
+}
+
+// An Optional$ hand-to-battlefield move that enters attacking asks whether to do it before
+// it asks which player or planeswalker the creature attacks (CR 508.4, as it enters):
+// Kinscaer Sentry's attack trigger against a player who controls Ajani, Outland Chaperone.
+func TestEnteringAttackingAsksTheMayFirstLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "enter_attacking_declined_asks_no_defender", "std-ecl", Config{GorgeAutopaySurface: true})
+}
+
 // A mass move onto the battlefield asks each as-enters choice with that card and the later
 // ones still in their zones, under the controller it will have: Rise of the Dark Realms and
 // Diamond Mare, Lumra and Uncharted Haven.
@@ -284,4 +315,53 @@ func TestConvokeSpellCastThroughAPermissionIsOfferedLockstep(t *testing.T) {
 func TestUnlessWindowSkipsATapAnotherSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "unless_window_skips_tap_another_source", "std-eoe", Config{GorgeAutopaySurface: true})
+}
+
+// The Dawning Archaic's attack trigger aimed at Flashback with no other instant or
+// sorcery in the graveyard: the card leaves the graveyard for the stack, so it has no
+// target of its own and is not offered (CR 601.2c); both engines play no card.
+func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "archaic_flashback_no_other_target", "std-sos", Config{GorgeAutopaySurface: true})
+}
+
+// This Town Ain't Big Enough with two mana in the pool: a permanent the caster does
+// not control leaves the cost at five, which the pool cannot pay, so a multi-target ask
+// offers only the caster's own permanent (CR 601.2b-f), as the single-target ask does.
+func TestMultiTargetAskDropsTheTargetItsCostCannotPayLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "this_town_multi_target_unaffordable", "std-otj", Config{})
+}
+
+// A Springleaf Drum tapping a Bloom Tender is the only white mana on the board: the
+// tap-another search activates the each-colour source as one of its own steps, so
+// both engines offer Clachan Festival and Evershrike's Gift.
+func TestTapAnotherSourceBesideAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tapx_beside_each_colour_source", "std-ecl", Config{})
+}
+
+// Bogslither's Embrace with a Swamp and a Bloom Tender untapped and a creature to take the
+// blight: its mana part is {1}{B}, which the Swamp and the each-colour source pay, so both
+// engines offer the cast (CR 601.2b, 601.2f).
+func TestEitherOrAdditionalCostBesideAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "bogslither_alt_add_each_colour_source", "std-ecl", Config{})
+}
+
+// Maralen's free cast of Bogslither's Embrace is reversed for want of a target: the
+// once-each-turn permission was never used, so Unforgiving Aim exiled beside it is
+// still offered in both engines (CR 733.1).
+func TestReversedPermissionCastKeepsTheOncePerTurnPermissionLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "maralen_reversed_cast_spends_nothing", "std-ecl", Config{})
+}
+
+// Laughing Jasper Flint under a Stop Cold: the enchanted creature loses all
+// abilities in layer 6, but the layer-4 effect that makes the creatures its
+// controller does not own Mercenaries began earlier and keeps applying
+// (CR 613.6), so the Outlaw Stitcher it stole is still a Mercenary.
+func TestSubtypeGrantOutlivesItsSourceLosingAbilitiesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flint_under_stop_cold_mercenary", "std-otj", Config{})
 }

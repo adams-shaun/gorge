@@ -285,6 +285,18 @@ func counterKindMode(name string) int {
 		return int(kop.CtrStun)
 	case "SHIELD", "Shield":
 		return int(kop.CtrShield)
+	case "INCUBATION":
+		return int(kop.CtrIncubation)
+	case "BAIT":
+		return int(kop.CtrBait)
+	case "SOUL":
+		return int(kop.CtrSoul)
+	case "FELLOWSHIP":
+		return int(kop.CtrFellowship)
+	case "REVIVAL":
+		return int(kop.CtrRevival)
+	case "STASH":
+		return int(kop.CtrStash)
 	}
 	for i, n := range kop.CtrXNames {
 		if n == name {

@@ -1,12 +1,12 @@
 {
   "card": "Crossroads Village",
-  "class": "projection-Cards.Zone",
-  "why": "the engines' state differs at projection Cards[].Zone; 39 games in the corpus",
+  "class": "unmodelled-entryorder",
+  "why": "gorge does something the kernel does not model here (stall entryorder); Crossroads Village is among the latest actions",
   "repro": {
     "pool": "std-fin",
     "surface": "autopay",
     "seed": 1,
-    "pair": 120,
+    "pair": 1280,
     "policy": "random",
     "mulligans": 1
   }

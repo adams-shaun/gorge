@@ -392,8 +392,46 @@ func (s *State) waterbendManualPay(k *prep, e *stackEntry, saved *[len(build{}.p
 	if !s.abilityPlanSettles(k, e, full, credited, cost, saved) {
 		return true
 	}
+	if s.waterbendWitnessStands(k, e, full, credited, cost, saved) {
+		return false
+	}
 	s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
 	return false
+}
+
+// waterbendWitnessStands taps the witness the offer armed when gorge's payment keeps
+// it. The plan was ranked as the activation began, with every pick still untapped
+// and so still a source (a Bender's Waterskin is one), for the offer credit's price
+// because the sources could not fund the printed cost. When the picks bring the
+// cost to exactly that price and the witness taps none of them, the check finds
+// it unchanged (paymentPlanCheckUnits) and it runs as armed; otherwise gorge plans
+// again without the picks, which tapFor does. It reports whether the armed witness
+// was tapped.
+func (s *State) waterbendWitnessStands(k *prep, e *stackEntry, full, credited, cost kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if credited != cost || credited.X != 0 || full.X != 0 {
+		return false
+	}
+	s.releaseCostTaps(k, saved)
+	var chk planner
+	chk.dry, chk.noGrant = true, true
+	s.tapForPK(k, e.ctrl, &full, 0, NoObj, false, false, &chk)
+	if chk.needT == 0 || chk.found {
+		s.retakeCostTaps(saved) // armed for the printed cost, which the picks changed
+		return false
+	}
+	probe := s.fork()
+	s.tapFor(k, e.ctrl, &credited, 0, NoObj)
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().pickKs[i] == pkWaterbend && s.perms[s.objs[s.bld().picks[i]].slot].flags&pfTapped != 0 {
+			s.CopyFrom(probe) // the witness names a pick: gorge plans again
+			s.unfork()
+			s.retakeCostTaps(saved)
+			return false
+		}
+	}
+	s.unfork()
+	s.retakeCostTaps(saved)
+	return true
 }
 
 // waterbendTargetAbort reports whether the pending waterbend activation can

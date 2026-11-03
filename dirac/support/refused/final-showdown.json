@@ -1,12 +1,12 @@
 {
   "card": "Final Showdown",
-  "class": "projection-Cards.Zone",
-  "why": "the engines' state differs at projection Cards[].Zone; 3 games in the corpus",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]; Final Showdown is among the latest actions and Smuggler's Surprise is the card the divergence implicates",
   "repro": {
     "pool": "std-otj",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 1184,
+    "pair": 476,
     "policy": "random",
     "mulligans": 1
   }

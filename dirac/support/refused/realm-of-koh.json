@@ -1,12 +1,12 @@
 {
   "card": "Realm of Koh",
   "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]; 5 games in the corpus",
+  "why": "the engines' state differs at projection Pool[][]",
   "repro": {
     "pool": "std-tla",
     "surface": "autopay",
     "seed": 1,
-    "pair": 686,
+    "pair": 1701,
     "policy": "random",
     "mulligans": 0
   }

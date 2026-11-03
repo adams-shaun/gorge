@@ -24,6 +24,7 @@ var genericChoicePlayerTgtsClass = map[string]bool{
 	"Soul Echo":                 true,
 	"Starseer Mentor":           true,
 	"Surrender Your Thoughts":   true,
+	"Tell Me What You See":      true,
 	"Terrapact Intimidator":     true,
 	"The Fate of the Flammable": true,
 	"Thornplate Intimidator":    true,

@@ -62,7 +62,11 @@ func (s *State) windowTapHeld(k *prep, p uint8, cost *kop.ManaCost) {
 // again -- the plan of the whole cost can leave a different source
 // untapped (kverify-c4: Digsite Conservator's {4} over a Swamp and five
 // Forests). The manual window's decision carries no owed cost, so an
-// any-colour source answers its first colour, W (windowTapNoOwed).
+// any-colour source answers its first colour, W (windowTapNoOwed). The
+// planner's witness has printed abilities only: a granted one (Great Divide
+// Guide's any-colour mana) is a V1 exclusion (pay.PaymentAbility), so a
+// payment only granted sources could fund has no witness and takes the
+// manual window.
 // When the planner has no witness at all -- a pay
 // gorge offered on its potential bound the sources cannot actually fund
 // (respay.go:84, potential.go:324) -- gorge funds through that same manual
@@ -79,14 +83,14 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		c = s.hybResolve(k, p, c, 0)
 	}
 	var dry planner
-	dry.dry = true
+	dry.dry, dry.noGrant = true, true
 	s.tapPlanNeed(k, p, &c, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
-		s.windowTapNoOwed(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
-		return false
+		return s.trigWindowPays(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 	}
 	for i := 0; i < MaxPerm && !s.poolPays(p, &c); i++ {
-		sl := s.tapForN(k, p, &c, 0, NoObj, true)
+		pk := planner{noGrant: true}
+		sl := s.tapForPK(k, p, &c, 0, NoObj, true, false, &pk)
 		if sl == NoSlot {
 			break
 		}
@@ -95,9 +99,24 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		}
 	}
 	if !s.poolPays(p, &c) {
-		s.windowTapNoOwed(k, p, &c)
-		return false
+		return s.trigWindowPays(k, p, &c)
 	}
 	s.payFromPool(p, &c, 0)
+	return true
+}
+
+// trigWindowPays runs the manual window for a payment the planner has no
+// witness for and charges the cost when what the window floated pays it, as
+// gorge's resolution pay does after the window (Mardu Devotee turning one
+// Swamp's black into the white a {1}{W} cost needs); a window that stops short
+// leaves its taps and the mana floating, and a paused one finishes on its
+// answer.
+//
+//go:noinline
+func (s *State) trigWindowPays(k *prep, p uint8, c *kop.ManaCost) bool {
+	if s.trigWindowTap(k, p, c) || !s.poolPays(p, c) {
+		return false
+	}
+	s.payFromPool(p, c, 0)
 	return true
 }

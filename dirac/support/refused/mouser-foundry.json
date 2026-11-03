@@ -1,12 +1,12 @@
 {
   "card": "Mouser Foundry",
-  "class": "projection-Stack.Kind",
-  "why": "the engines' state differs at projection Stack[].Kind; 3 games in the corpus",
+  "class": "options",
+  "why": "the engines offer different options; Mouser Foundry is among the latest actions and Paramecia Coloniex is the card the divergence implicates",
   "repro": {
     "pool": "std-tmt",
-    "surface": "full",
+    "surface": "autopay",
     "seed": 1,
-    "pair": 1059,
+    "pair": 881,
     "policy": "random",
     "mulligans": 0
   }

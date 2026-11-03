@@ -691,6 +691,7 @@ func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap
 func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.choosing = e.choosing
 	c.cleanupWindow = e.cleanupWindow
+	c.cleanupSBAHeld = e.cleanupSBAHeld
 	c.oppSel = e.oppSel
 	if e.oppPicksMid != nil {
 		c.oppPicksMid = make(map[string]state.PlayerID, len(e.oppPicksMid))
@@ -795,6 +796,7 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			}
 		}
 		p0.proposalTriggers = append([][2]int(nil), e.cast.proposalTriggers...)
+		p0.proposalLimits = append([]limitUndo(nil), e.cast.proposalLimits...)
 		p0.returns = append([]state.ObjID(nil), e.cast.returns...)
 		p0.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
 		p0.putToLibs = append([]state.ObjID(nil), e.cast.putToLibs...)
@@ -1187,6 +1189,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			}
 		}
 	}
+	c.sbaChain = append([]state.ObjID(nil), e.sbaChain...)
 }
 
 func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {

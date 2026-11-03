@@ -138,7 +138,9 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 	var rn [kop.NumManaKinds]uint8
 	rn[pl.poolR>>poolRShift] += pl.poolR & poolRCnt
 	restrXInto(s.poolRx[p&1], &rn)
+	var ord [kop.NumManaKinds]uint8
 	for c := range rn {
+		ord[c] = pl.pool[c]
 		pl.pool[c] += rn[c]
 	}
 	pl.poolR, s.poolRx[p&1] = 0, 0
@@ -149,8 +151,13 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 	s.tapForRider(k, p, cost, x, o, anyColor)
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
+	typed := s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst
 	for c := range rn {
-		left := rn[c] - min(pre[c]-pl.pool[c], rn[c])
+		spent := pre[c] - pl.pool[c]
+		if typed {
+			spent -= min(spent, ord[c]) // a typed unit is spent after the plain ones of its colour (pay.takeUnit)
+		}
+		left := rn[c] - min(spent, rn[c])
 		if left == 0 {
 			continue
 		}
@@ -160,6 +167,9 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 		} else {
 			s.poolRx[p&1] += uint16(left) << (3 * c)
 		}
+	}
+	if pl.poolR == 0 {
+		s.g.poolArt[p&1] &^= poolArtRestr
 	}
 }
 

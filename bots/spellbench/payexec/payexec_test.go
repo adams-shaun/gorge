@@ -551,3 +551,21 @@ func TestWindowChoicesAnswersWholeColourAsk(t *testing.T) {
 		t.Errorf("a single-mana ask answered with %v", got)
 	}
 }
+
+// A tap that a static TapsForMana trigger adds a second mana to puts both in
+// the witness, so the colour ask for the land's own pick has no single-colour
+// want: the pick naming a colour the witness holds answers it.
+func TestMatchManaTapExtra(t *testing.T) {
+	ask := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add U", ManaSymbol: "U"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add R", ManaSymbol: "R"},
+	}}
+	rg := decision.ManaAmount{0, 0, 0, 1, 1, 0}
+	if c, ok := matchMana(ask, decision.PaymentActivation{Source: 5, Produces: rg}); !ok || c[0] != 1 {
+		t.Fatalf("R with an extra G: %v %v", c, ok)
+	}
+	gw := decision.ManaAmount{1, 0, 0, 0, 1, 0}
+	if _, ok := matchMana(ask, decision.PaymentActivation{Source: 5, Produces: gw}); ok {
+		t.Fatal("W and G matched a U or R ask")
+	}
+}

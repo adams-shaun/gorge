@@ -1924,7 +1924,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 						continue
 					}
 				}
-				e.queueTriggerMode(observer, pt, *ev, e.echoCauses(t, *ev), t.Mode)
+				e.queueTriggerLimited(observer, pt, *ev, e.echoCauses(t, *ev), t.Mode, &t, key)
 			}
 		}
 		if len(grantedStatics) > 0 {

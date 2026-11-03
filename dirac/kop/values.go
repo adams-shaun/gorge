@@ -112,7 +112,7 @@ const (
 	AggSumToughness      = 4  // total derived toughness
 	AggSumMV             = 5  // total mana value
 	AggDistinctPower     = 6  // distinct derived powers
-	AggColors            = 7  // colours among the matches (printed, copy-aware)
+	AggColors            = 7  // colours among the matches (live layer-5 colours)
 	AggDistinctMV        = 8  // distinct mana values (ExGraveAgg only)
 	AggDistinctNames     = 9  // distinct card names among the matches (CR 201.2)
 	AggCardTypes         = 10 // distinct card types on the matches' faces (CR 205.2a)
@@ -414,6 +414,15 @@ const (
 // colours); a face-down object has no mana cost (CR 708.2) and counts none.
 // A SpellCast trigger's spell on the stack is the one reader.
 const ExChromaOf ExprKind = 231
+
+// ExOppsAttacked (high expr kind): the number of opponents the controller
+// attacked this turn (gorge Engine.OpponentsAttackedThisTurn,
+// PlayerCountPropertyYou$OpponentsAttackedThisTurn): the distinct players a
+// declared attack named as its defender, so an attacker aimed at a
+// planeswalker or battle does not count its controller. Only the active
+// player attacks, so any other controller reads 0. With one opponent the
+// value is 0 or 1.
+const ExOppsAttacked ExprKind = 229
 
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,

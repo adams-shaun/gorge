@@ -43,14 +43,18 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
-// spreeAffordable: the chosen modes' total cost can be paid.
+// spreeAffordable: the chosen modes' total cost can be paid, by the sources
+// as they stand or with some of the controller's filters activated in the
+// CR 601.2g window (faceReachable): a Conduit Pylons' {1}, {T} any-colour
+// ability makes the second {B} the base cost and a mode's cost owe.
 //
 //go:noinline
 func (s *State) spreeAffordable(k *prep) bool {
 	c := s.buildCost(k)
 	var av avail
-	s.availFor(k, s.bld().e.ctrl, &av)
-	return av.affords(&c, pipMaskOf(&c), 0)
+	ctrl := s.bld().e.ctrl
+	s.availFor(k, ctrl, &av)
+	return s.faceReachable(k, ctrl, &av, &c, 0)
 }
 
 // spreeCastWindowAbort pays the stranded Spree cost through the window and
@@ -129,4 +133,54 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 		}
 	}
 	return false
+}
+
+// targetPaidPlanned: gorge's cast planner takes a Spree or Tiered face, an
+// additional or optional cost, a convoke-like credit, a mana-spent reader or a
+// target-dependent price when the cast is payable only by paying with a permanent its own announcements
+// need (rules payment_plan.go targetPaidNeedsPlannedPayment). The witness at
+// the printed cost sacrifices a source, no mode still has a target and a
+// price the pool can pay once it has run (the lowering would float that mana
+// before the cast, potentialWitnessReaches), and no witness that keeps its
+// sources pays the printed cost (potentialWitnessKeeping). The cast is then
+// priced at the printed cost, and the chosen modes' costs, which change it,
+// take the manual CR 601.2g window with the targets already chosen.
+//
+//go:noinline
+func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
+	if !k.sacMana || !s.anySacSource(k, p) {
+		return false
+	}
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	cost := s.featCost(k, p&1, c, o, k.cards[c].cost)
+	t := s.fork()
+	var pk planner
+	pk.try = true
+	t.tapForPK(k, p, &cost, 0, NoObj, false, false, &pk)
+	consumes := pk.found && plannerConsumesSac(&pk)
+	reaches := false
+	if consumes {
+		ab := spellAb(k, c)
+		if ab == 255 || !cd.HasModeCost {
+			// no target to lose, or an unmoded spell: reached when its targets
+			// all remain after the payment
+			reaches = ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)
+		}
+		for m := 0; ab != 255 && cd.HasModeCost && m < int(cd.Abilities[ab].NModes); m++ {
+			if t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 1<<m) {
+				reaches = true
+				break
+			}
+		}
+	}
+	s.unfork()
+	if !consumes || reaches {
+		return false
+	}
+	held := s.sacSourcesHeld(k, p)
+	var av avail
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return !av.affords(&cost, pipMaskOf(&cost), 0)
 }

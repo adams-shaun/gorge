@@ -173,14 +173,18 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.ctrGap(k, p, sl) // the counter, the use, the mana (mana_countercost.go)
 				continue
 			}
-			if s.g.winMode != winNone && s.scriptTapX(k, p).has(sl) {
-				if s.windowTapXGo(k, p, cost, sl, anyColor, noOwed) {
-					return false, held // the pick is posed; the answer runs the walk on
+			if (s.g.winMode != winNone || s.castTapX(k)) && s.scriptTapX(k, p).has(sl) {
+				if s.windowTapXGo(k, p, cost, useful, sl, clamp, anyColor, noOwed) {
+					return s.g.winMode == winNone, held // the pick is posed (a cast pauses, not fails); the answer runs the walk on
 				}
 				continue
 			}
 			if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
 				s.windowFiltFirst(k, p, sl, useful) // mana_filterfirst.go
+				continue
+			}
+			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) && !noOwed {
+				s.windowWideTap(k, p, sl, cost, useful, clamp, &held)
 				continue
 			}
 			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
@@ -272,7 +276,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, false
 		}
-		if s.g.winMode != winNone && s.windowTapXOffer(k, p, o, decided, want) {
+		if (s.g.winMode != winNone || s.castTapX(k)) && s.windowTapXOffer(k, p, o, decided, want) {
 			return o, true // a tap-another source (mana_windowtapx.go)
 		}
 		if s.windowCtrOffer(k, p, o, decided, want) {
@@ -293,8 +297,57 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) {
 			return o, true
 		}
+		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
+			return o, true // a wide any-colour restricted source (windowWideTap)
+		}
 	}
 	return NoSlot, false
+}
+
+// windowWide: sl is p's untapped wide any-colour restricted source (Flamebraider)
+// whose mana the payment being built may spend (CR 106.6): an activate option of
+// gorge's cast window, though its census mana is a gap, not a planner unit.
+func (s *State) windowWide(k *prep, p uint8, sl Slot) bool {
+	if !s.scriptWide(k, p).has(sl) {
+		return false
+	}
+	d := s.payDescNow(NoObj)
+	return s.restrSrcAdmits(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))], &d)
+}
+
+// windowWideTap activates wide source sl in the window and floats its two mana
+// beside the pool (restricted, poolR). The ask lists the colours the clamp keeps
+// (paymentUsefulColours) once per mana, and each mana answers a colour the cost
+// still owes, else the lowest listed (payexec.WindowChoices), the owed amount
+// falling by what the first mana covers. Mana the byte cannot hold as restricted
+// floats plain (held).
+func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp bool, held *[kop.NumManaKinds]uint8) {
+	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	mask := uint8(kop.ColAny)
+	if clamp {
+		if want, decided := s.windowUseful(p, useful); decided && want&mask != 0 {
+			mask &= want
+		}
+	}
+	owed := cost.Pips
+	for c := range owed {
+		owed[c] -= min(owed[c], s.pl[p].pool[c])
+	}
+	for i := 0; i < 2; i++ {
+		col := bits.TrailingZeros8(mask)
+		for c := 0; c < 5; c++ {
+			if mask&(1<<c) != 0 && owed[c] > 0 {
+				col = c
+				owed[c]--
+				break
+			}
+		}
+		if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
+			held[col]++
+		}
+	}
 }
 
 // windowCol is the colour the window's source sl (mana facts pc) makes: a
@@ -304,7 +357,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 // there is nothing to owe, so the source takes its lowest colour, which for
 // a plain any-colour source is W (gorge's trigger-cost manual window).
 func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pcard, anyColor, noOwed bool) int {
-	mask := s.windowSrcMask(k, sl)
+	mask := s.windowOwnMask(k, sl)
 	col := bits.TrailingZeros8(mask)
 	if anyColor {
 		col = s.windowAnyColour(p, cost, mask, pc.manaMulti)
@@ -314,8 +367,17 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 				return c0 // a Verge's ability 0 comes before its lower colour
 			}
 		}
+		all := s.windowSrcMask(k, sl) // a granted ability's colour a pip owes counts too
+		if !pc.manaMulti && !pc.manaChosen && pc.manaCol != kop.ColAny && pc.painCol == 0 && bits.OnesCount8(mask&0x1f) > 1 {
+			// a printed Combo is flattened into one option per colour, each with
+			// its symbol, and the window answers the first such option an owed
+			// colour matches, else the lowest: a granted ability's option has no
+			// symbol and is never taken beside them (Misty Palms Oasis under a
+			// Great Divide Guide owing {R} answers {W})
+			all = mask
+		}
 		for c := 0; c < 5; c++ {
-			if mask&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
+			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
 				return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
 			}
 		}
@@ -792,6 +854,9 @@ func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col in
 		return false
 	}
 	s.g.poolRChosen[p&1] = ch
+	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
+		s.g.poolArt[p&1] |= poolArtRestr
+	}
 	return s.pl[p&1].addRestr(k, &s.poolRx[p&1], f, col, n)
 }
 
@@ -899,6 +964,7 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 	}
 	r := pl.poolR
 	col, n := int(r>>poolRShift), r&poolRCnt
+	ord := pl.pool[col]
 	pl.pool[col] += n
 	pl.poolR = 0
 	if cost.Hyb[0] != 0 {
@@ -906,11 +972,18 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 		cost = &h
 	}
 	s.tapForRider(k, p, cost, x, o, anyColor)
+	ord += pl.pool[col] - ord - n // what the taps added joins the plain units
 	pre := pl.pool[col]
 	s.payFromPoolRider(k, p, cost, x, anyColor)
-	if left := n - min(pre-pl.pool[col], n); left != 0 {
+	spent := pre - pl.pool[col]
+	if s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst {
+		spent -= min(spent, ord) // a typed unit is spent after the plain ones of its colour (pay.takeUnit)
+	}
+	if left := n - min(spent, n); left != 0 {
 		pl.pool[col] -= left
 		pl.poolR = r&^poolRCnt | left
+	} else {
+		s.g.poolArt[p&1] &^= poolArtRestr
 	}
 }
 
@@ -1279,6 +1352,12 @@ func (s *State) lkiAttached(o Obj) Obj {
 // owed cost, only the pips the caster announced.
 func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
 	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	if s.winPaused() {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return // the pick is posed; the cast pays when the window ends
+	}
 	s.payFromPoolRider(k, p, cost, 0, anyColor)
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
@@ -1294,9 +1373,21 @@ func (s *State) loweredPoolPays(k *prep, e *stackEntry, cost kop.ManaCost, anyCo
 	return s.windowPoolPays(e.ctrl, &cost, anyColor)
 }
 
-// windowSrcMask is the colours sl's mana ability makes in the window
-// (colourless when it names none).
+// windowSrcMask is the colours the window can take from sl: its own mana
+// ability's (colourless when it names none) joined with every granted ability's,
+// as gorge's clamp reads the colours of each ability the source offers
+// (paymentSourceUseful over availableManaAbilitiesForWindow).
 func (s *State) windowSrcMask(k *prep, sl Slot) uint8 {
+	mask := s.windowOwnMask(k, sl)
+	if k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) {
+		mask |= s.windowGrantMask(k, sl)
+	}
+	return mask
+}
+
+// windowOwnMask is the colours sl's own mana ability makes in the window
+// (colourless when it names none).
+func (s *State) windowOwnMask(k *prep, sl Slot) uint8 {
 	pc := &k.cards[s.cardAt(sl)]
 	if k.gen != nil {
 		pc = s.manaPCGen(k, sl)
@@ -1396,7 +1487,31 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	s.witnessAtCheapest(k, p, &cost, &av)
 	if s.pl[p&1].poolR != 0 && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
-		cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+		if cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid &&
+			s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)) {
+			// a hybrid pip resolves in gorge's planHybridCost order over that
+			// pool (the first resolution with a witness wins), so the
+			// restricted mana stands in the pool while the plan taps for the
+			// resolved remainder: {R/W}{R/W} evoked with Flamebraider's two
+			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
+			// {W}{U} and a Treasure's {U} taps no further
+			pl := &s.pl[p&1]
+			r, rx := pl.poolR, s.poolRx[p&1]
+			pl.pool[r>>poolRShift] += r & poolRCnt
+			for c := 0; c < 5; c++ {
+				pl.pool[c] += uint8(rx>>(3*c)) & 7
+			}
+			pl.poolR, s.poolRx[p&1] = 0, 0
+			defer func() {
+				pl.pool[r>>poolRShift] -= r & poolRCnt
+				for c := 0; c < 5; c++ {
+					pl.pool[c] -= uint8(rx>>(3*c)) & 7
+				}
+				pl.poolR, s.poolRx[p&1] = r, rx
+			}()
+		} else {
+			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+		}
 	}
 	cost, _ = s.waterbendBuildCredit(k, p, cost)
 	x := 0
@@ -1435,7 +1550,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.ctrlM[p] = s.ctrlM[p].or(held)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd {
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
 		s.tapForRider(k, p, &cost, x, excl, anyColor)
 		return
 	}
@@ -1446,8 +1561,9 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			untapped = untapped.or(slotBit(sl))
 		}
 	}
-	s.tapForRider(k, p, &cost, x, excl, anyColor)
-	s.witnessManaRestricted(k, p, &pool, untapped)
+	var pk planner
+	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
+	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
@@ -1461,7 +1577,7 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 	}
 	cd := &k.t.Cards[e.card]
 	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
-		*cost = addCost(*cost, s.altAddManaPart(k, e.card))
+		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
 	if cardTgtDepCost(cd) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
@@ -1476,6 +1592,29 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 	}
 }
 
+// altAddReduced is the total cost of a cast paying its either-or additional
+// cost's mana part: the part joins the spell's cost before the reductions
+// take their generic off the total (CR 601.2f), as gorge's offer cost composes
+// it, so Uncle Iroh's {1} off Redirect Lightning's {R} plus {2} leaves {1}{R}. cost is the
+// spell's own priced cost, kept when the total cannot be composed again (a cost already
+// fixed, or an alternative cost in build).
+func (s *State) altAddReduced(k *prep, cost, part kop.ManaCost) kop.ManaCost {
+	b := s.bld()
+	if b.altAdd != 0 || b.bfl&bflCostFixed != 0 || (!s.statM.any() && k.gen == nil) {
+		return addCost(cost, part)
+	}
+	fl, bf, fg := b.e.flags, b.bfl, b.fixedGen
+	b.e.flags &^= sfAnyMana
+	b.bfl &^= bflAnyColor
+	b.altAdd = 1
+	s.g.noTgtRed = true
+	c := s.buildCost(k)
+	s.g.noTgtRed = false
+	b.altAdd = 0
+	b.e.flags, b.bfl, b.fixedGen = fl, bf, fg
+	return c
+}
+
 // availForBuilt is availFor for the spell being built, with the floating restricted
 // mana it may spend.
 func (s *State) availForBuilt(k *prep, e *stackEntry, av *avail) {
@@ -1488,12 +1627,25 @@ func (s *State) availForBuilt(k *prep, e *stackEntry, av *avail) {
 // witnessManaRestricted floats a witness's restricted mana as restricted: the plan
 // taps a restricted source like any unit, but what it taps floats under its
 // restriction, which a reversal leaves in the pool (CR 106.6, 733.1). pool is p's
-// pool before the witness and untapped the restricted sources it could tap.
-func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]uint8, untapped slotMask) {
+// pool before the witness, untapped the restricted sources it could tap and pk
+// the plan that tapped: only a source the plan tapped as its restricted unit
+// floats restricted, in the colour the plan made (Turtle Lair tapped for its
+// plain {C} floats nothing), and a widened unit, which may have made its own
+// colour, by the mana it added to the pool.
+func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]uint8, untapped slotMask, pk *planner) {
 	for m := untapped; m.any(); m = m.rest() {
 		sl := m.first()
 		c := s.cardAt(sl)
 		if s.perms[sl].flags&pfTapped == 0 {
+			continue
+		}
+		tapped, ext, tcol := false, false, 0
+		for i := 0; i < pk.rtapN; i++ {
+			if pk.rtap[i].sl == sl {
+				tapped, ext, tcol = true, pk.rtap[i].ext, int(pk.rtap[i].col)
+			}
+		}
+		if !tapped {
 			continue
 		}
 		rec := k.gen.restrRecOf(c)
@@ -1503,6 +1655,9 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		ab := &k.t.Cards[c].Abilities[rec.ab]
 		n := max(ab.ManaN, 1)
 		for col := 0; col < 5; col++ {
+			if ext && col != tcol {
+				continue
+			}
 			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 				s.pl[p].pool[col] -= n
 				if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
@@ -1775,6 +1930,8 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
+	planCut := s.bld().bfl&bflPlanCut != 0
+	s.bld().bfl &^= bflPlanCut
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
@@ -1788,10 +1945,15 @@ func (s *State) manaStep(k *prep) bool {
 		s.holdCostTaps(k, &saved)
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
-		if e.flags&sfAnyMana != 0 || anyColor {
-			s.tapRiderPlan(k, *e)
+		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
+			s.tapRiderPlan(k, *e) // (not again after a tap-another pick: the window runs on)
 		}
-		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) {
+		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) && s.bld().bfl&bflTargetPaid != 0 && s.convokePickCount() == 0 {
+			// a target-paid convoke cast with no creature announced keeps its
+			// plan at the printed cost (state.go bflTargetPaid): the planner
+			// pays, the Treasure for the colour the cost owes
+			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
+		} else if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) {
 			// the announced creatures pay their share before the plan runs
 			// (CR 702.51a; gorge convokeAsk before manaWindowAsk) and are
 			// withheld from the planner as mana sources. Gorge's planner
@@ -1802,7 +1964,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.occ = s.occ.andNot(s.convokeHidden())
 			raw := cost
 			cost = s.convokeApplyPicks(k, cost)
-			if s.paymentStranded(k, e, &cost) {
+			if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &cost) {
 				s.occ = occ
 				s.releaseCostTaps(k, &saved)
 				s.reverseCast(k)
@@ -1810,6 +1972,8 @@ func (s *State) manaStep(k *prep) bool {
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
+		} else if planCut {
+			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
 		} else if k.t.Cards[e.card].HasModeCost {
 			// Spree: gorge's planner declines the face ("shape:modal_cost"),
 			// so the cast pays through the manual CR 601.2g window, the
@@ -1846,6 +2010,9 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl &^= bflManaStep
 		s.releaseCostTaps(k, &saved)
+		if !s.winPaused() {
+			s.bld().bfl &^= bflMsDone
+		}
 	case seAbility:
 		cost := s.buildCost(k)
 		if d := s.payDescNow(NoObj); s.pl[e.ctrl].poolR != 0 && s.restrPoolAct(k, e.ctrl, &d) {
@@ -1868,6 +2035,8 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl |= bflManaStep
 		switch {
+		case planCut:
+			s.windowTapRider(k, e.ctrl, &cost, true, false)
 		case s.paymentStranded(k, e, &cost):
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
@@ -2026,7 +2195,9 @@ func (s *State) committedPicks() bool {
 // announcements settle the cost, gorge plans again without the permanents committed
 // to it (CR 601.2g-h, 602.2b: one permanent does not pay two costs;
 // rearmAbilityAutoPay, announcedAutoFillPlan). The picks saved names are tapped on
-// entry and on return.
+// entry and on return. The plans hold printed sources only: an ability's planner
+// has no prefix search, so a creature a Honest Work gives {T}: Add {C} is no unit
+// of it and the manual window taps it instead (planComposedCost).
 //
 //go:noinline
 func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, settled kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
@@ -2034,12 +2205,11 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
-	var chk planner
-	chk.dry = true
+	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &offer, 0, NoObj, false, false, &chk)
 	armed := chk.needT != 0
 	if armed && !chk.found {
-		chk = planner{dry: true}
+		chk = planner{dry: true, noGrant: true}
 		s.tapForPK(k, e.ctrl, &fallback, 0, NoObj, false, false, &chk)
 		armed = chk.found
 	}
@@ -2047,7 +2217,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 	if !armed {
 		return false
 	}
-	chk = planner{dry: true}
+	chk = planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
 	return chk.found || chk.needT == 0
 }
@@ -2142,4 +2312,88 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 			s.leave(k, sl, kop.ZoneGraveyard, false)
 		}
 	}
+}
+
+// A tap-another-permanent mana source (Springleaf Drum, Saruli Caretaker) in gorge's
+// manual cast window (CR 601.2g). The window lists every source in battlefield order and
+// its answer takes the first that helps, so the Drum is activated where it stands and
+// gorge asks which permanent to tap (a "tapcost" choose, only with two or more
+// candidates), as the unless and ward windows do (mana_windowtapx.go). Those windows
+// serve a resolution; this one serves the spell being built, in manaStep (bsMana) or
+// finishBuild (bsPay): the walk stops at the source, the build waits on the pick
+// (bflWinTap, ChWindowTap), and the answer taps, floats the mana and lets the stage run
+// again from its start, the pool already holding what the walk took. Everything is behind
+// prep.tapMana; an activation's own window and a probe on a fork still take the first candidate.
+
+// DebugNoCastWinTap leaves a tap-another source out of the cast window (the mutation test).
+var DebugNoCastWinTap bool
+
+// castTapX: the window being walked pays the spell the build is putting on the stack, so it
+// lists a tap-another-permanent source.
+func (s *State) castTapX(k *prep) bool {
+	if !k.tapMana || DebugNoCastWinTap || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	if s.g.probeWin {
+		return b.e.kind == seSpell
+	}
+	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay)
+}
+
+// isFork: s is a probe copy (fork), whose window never waits on an answer.
+func (s *State) isFork() bool {
+	if s.g.probeWin {
+		return true
+	}
+	p := s.pool
+	if p == nil {
+		return false
+	}
+	for i := 0; i < p.depth; i++ {
+		if p.forks[i] == s {
+			return true
+		}
+	}
+	return false
+}
+
+// winPaused: the cast window is waiting on its tap-another pick.
+func (s *State) winPaused() bool {
+	return s.buildLive() && s.bld().bfl&bflWinTap != 0
+}
+
+// castWinTapPause poses the pick of the cast window's tap-another source sl, whose mana is
+// colour col; false on a probe, which taps the first candidate instead.
+func (s *State) castWinTapPause(sl Slot, col uint8) bool {
+	if s.isFork() {
+		return false
+	}
+	s.g.winSrc, s.g.winCol = sl, col
+	if s.bld().stage == bsPay {
+		s.bld().bfl |= bflWinTap | bflPayDone
+	} else {
+		s.bld().bfl |= bflWinTap | bflMsDone
+	}
+	return true
+}
+
+// castWinTapOptions builds the pick: the source's candidates in battlefield order.
+func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
+	p := s.bld().e.ctrl
+	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
+	var cs [MaxPerm]Slot
+	n := s.tapXCands(k, p, s.g.winSrc, &cs)
+	for _, sl := range cs[:n] {
+		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+	}
+	return true
+}
+
+// applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
+// stage then runs the window on.
+func (s *State) applyCastWinTap(k *prep, a Action) {
+	b := s.bld()
+	b.bfl &^= bflWinTap
+	s.tapXDo(k, b.e.ctrl, tapXStep{sl: s.g.winSrc, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: s.g.winCol})
 }

@@ -255,8 +255,12 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 	for p := uint8(0); p < 2; p++ {
 		n = s.battlefieldOrder(p, die.or(*gy).and(s.ctrlM[p]), order[:], n)
 	}
+	fresh := false
 	for _, sl := range order[:n] {
-		if s.park(k, s.perms[sl].obj, parkSBA, 0) {
+		o := s.perms[sl].obj
+		was := s.parkedWaitingOn(o)
+		if s.park(k, o, parkSBA, 0) {
+			fresh = fresh || !was
 			*die, *gy, *pwz, *aur = die.without(sl), gy.without(sl), pwz.without(sl), aur.without(sl)
 		}
 	}
@@ -264,8 +268,11 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 		return false
 	}
 	// The batch's later asks follow the first with no state-based check between them
-	// (CR 704.3): a token an earlier answer exiled is still there.
-	if !s.cold.parked[0].later {
+	// (CR 704.3): a token an earlier answer exiled is still there. So is one that
+	// died beside the parked casualties and moved in an earlier pass of this check:
+	// it ceases at the next check. Only a pass that parks them now first ceases the
+	// tokens already outside the battlefield, as gorge's pass does before its ask.
+	if fresh && !s.cold.parked[0].later {
 		s.ceaseTokensGen()
 	}
 	s.ctl = ctlExileOrder

@@ -20,6 +20,19 @@ func stdReproLockstep(t *testing.T, path, table string) {
 // still change what its game does.
 func stdReproLockstepReaching(t *testing.T, path, table string, reached ...func(ref *GorgeSide) bool) {
 	t.Helper()
+	res := stdReproPlay(t, path, table, reached...)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v\n gorge %v\n dirac %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.RefOptions, res.Div.KerOptions)
+	}
+	if res.StallUnmodelled {
+		t.Fatalf("dirac stopped at a rule it does not model: %s", res.Stall)
+	}
+}
+
+// stdReproPlay replays a recorded repro in lockstep and returns the game's result, judging
+// only that each reached predicate held at some decision.
+func stdReproPlay(t *testing.T, path, table string, reached ...func(ref *GorgeSide) bool) Result {
+	t.Helper()
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, table)
 	r, err := ReadRepro(path)
@@ -60,15 +73,10 @@ func stdReproLockstepReaching(t *testing.T, path, table string, reached ...func(
 	}
 	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 	CloseSide(k)
-	if res.Div != nil {
-		t.Fatalf("divergence at %d: %s %s %v\n gorge %v\n dirac %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.RefOptions, res.Div.KerOptions)
-	}
-	if res.StallUnmodelled {
-		t.Fatalf("dirac stopped at a rule it does not model: %s", res.Stall)
-	}
 	for i := range hit {
 		if !hit[i] {
 			t.Errorf("%s never reaches condition %d of %d: the pin tests nothing", path, i+1, len(hit))
 		}
 	}
+	return res
 }

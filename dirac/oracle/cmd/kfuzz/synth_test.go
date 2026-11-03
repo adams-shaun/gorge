@@ -62,3 +62,95 @@ func TestFuzzSynthFlags(t *testing.T) {
 		t.Errorf("unknown pool: exit %d, stderr %q", code, stderr)
 	}
 }
+
+// TestFuzzAutopayXCastPaysThroughTheWindow replays the std-sos pair whose
+// Traumatic Critique, offered because the floating restricted {U}{R} pays its
+// pips at X = 0, is cast with X = 6. gorge's planner prices no {X} spell, so
+// the seat's cast pays the six through the manual window in battlefield order;
+// dirac used to tap a witness plan (three Mountains, three Islands).
+func TestFuzzAutopayXCastPaysThroughTheWindow(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-sos")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-sos", "-first-pair", "1104", "-pairs", "1", "-seed", "1", "-surface", "autopay", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 1104 diverged:\n%s", stdout)
+	}
+}
+
+// TestFuzzFullSpreeCastPaysThroughAFilter replays the std-otj pair whose
+// Unfortunate Accident is cast with both modes, {3}{B}{B} in all, when the
+// second {B} can come only from Conduit Pylons' {1}, {T} any-colour ability.
+// gorge's target menu keeps the destroy mode's target (the window can pay),
+// where dirac used to reverse the cast at that ask for lack of the filter.
+func TestFuzzFullSpreeCastPaysThroughAFilter(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-otj")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "707", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 707 diverged:\n%s", stdout)
+	}
+}
+
+// TestFuzzCleanupLegendRuleGivesPriority replays the std-otj pair where an
+// Oko's copy of an Elk ends at cleanup beside a second Oko: the legend rule's
+// keep choice, answered in the cleanup step, is a state-based action that
+// performed, so the active player gets priority there (CR 514.3a, 704.5j)
+// and the turn does not pass at once.
+func TestFuzzCleanupLegendRuleGivesPriority(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-otj")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "231", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 231 diverged:\n%s", stdout)
+	}
+}
+
+// TestFuzzPlottedCastSpendIsNotAResponseCastsPayment replays the std-otj pair
+// where a plotted Slickshot Lockpicker is cast for no mana and the same
+// player then casts This Town Ain't Big Enough in response, paying with
+// floating mana: no mana was spent to cast the Lockpicker, so Satoru, the
+// Infiltrator's second alternative holds when it enters (CR 601.2h).
+func TestFuzzPlottedCastSpendIsNotAResponseCastsPayment(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-otj")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "806", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 806 diverged:\n%s", stdout)
+	}
+}

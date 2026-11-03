@@ -18,12 +18,36 @@ import (
 func (e *Engine) panharmoniconStatics() []staticView {
 	printed := e.activeStatics("Panharmonicon")
 	granted := e.grantedStatics("Panharmonicon")
-	if len(granted) == 0 {
+	delivered := e.effectPanharmoniconStatics()
+	if len(granted) == 0 && len(delivered) == 0 {
 		return printed
 	}
-	out := make([]staticView, 0, len(printed)+len(granted))
+	out := make([]staticView, 0, len(printed)+len(granted)+len(delivered))
 	out = append(out, printed...)
 	out = append(out, granted...)
+	out = append(out, delivered...)
+	return out
+}
+
+// effectPanharmoniconStatics is every live Effect-delivered Panharmonicon body
+// (Lwaxana Troi's STExtraTrigger), in registry order. The view's Remembered
+// set rides along: a ValidCard$ Card.IsRemembered clause is answered against
+// the cards the delivering Effect captured (panharmoniconEchoes binds it).
+func (e *Engine) effectPanharmoniconStatics() []staticView {
+	var out []staticView
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticPanharmonicon ||
+			!effects.PanharmoniconParamsReadable(ce.RestrictParams) {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, effectDelivered: true,
+		})
+	}
 	return out
 }
 
@@ -43,11 +67,36 @@ func (e *Engine) queueTrigger(observer *Engine, pt pendingTrigger, ev events.Eve
 // An empty trigMode is a keyword's synthetic trigger, which has no line of its
 // own and reads the event's family.
 func (e *Engine) queueTriggerMode(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string) {
+	e.queueTriggerLimited(observer, pt, ev, causes, trigMode, nil, triggerKey{})
+}
+
+// queueTriggerLimited is queueTriggerMode for a line whose per-turn and
+// per-game limits (ActivationLimit$, GameActivationLimit$) bound the times it
+// triggers: the first queueing was reserved by the caller, and each CR 603.2d
+// additional time must pass and reserve both gates again, so "this ability
+// triggers only once each turn" stays one trigger beside a Panharmonicon, as
+// Forge's TriggerHandler limits the doubled count by the activations left. A
+// nil limited is the ungated queueing.
+func (e *Engine) queueTriggerLimited(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string, limited *cards.Trigger, key triggerKey) {
+	if o := e.G.Obj(pt.Source); o != nil && o.Zone != state.ZBattlefield {
+		// A battlefield trigger queued once its source has left (it died with
+		// the permanent it watches, CR 603.10a) refers to that departed
+		// object, whatever stands in its place at the push.
+		if t, ok := e.triggerOf(pt); ok && triggerOnlyFromBattlefield(t) {
+			pt.Ctx.TriggerContext.SourceLeftBeforePush = true
+		}
+	}
 	e.pendingTriggers = append(e.pendingTriggers, pt)
 	if e.effectMatchOverride {
 		return
 	}
 	for n := e.panharmoniconEchoes(observer, pt.Source, ev, causes, trigMode); n > 0; n-- {
+		if limited != nil {
+			if !e.triggerGameActivationLimitAllows(*limited, key) || !e.triggerActivationLimitAllows(*limited, key) {
+				break
+			}
+			e.reserveTriggerLimits(*limited, key)
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pt)
 	}
 }
@@ -219,7 +268,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 			}
 			matched := false
 			for _, cause := range candidates {
-				if cause != 0 && observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
+				if cause != 0 && observer.echoSpecMatches(sv, spec, cause) {
 					matched = true
 					break
 				}
@@ -292,7 +341,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		if spec == "" {
 			continue
 		}
-		if observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
+		if observer.echoSpecMatches(sv, spec, src) {
 			n++
 		}
 	}
@@ -421,4 +470,15 @@ func (e *Engine) unspentManaFold(p state.PlayerID, params map[string]string, you
 	for _, l := range letters {
 		keep[state.ManaIndex(l[0])] = true
 	}
+}
+
+// echoSpecMatches is matchesSpecFrom for a Panharmonicon view: an
+// Effect-delivered one binds the cards its Effect captured so a
+// Card.IsRemembered clause names them; a printed or granted static resolves
+// exactly as before.
+func (e *Engine) echoSpecMatches(sv staticView, spec string, id state.ObjID) bool {
+	if sv.effectDelivered {
+		return e.matchesSpec(spec, id, e.assignmentStaticSpecCtx(sv))
+	}
+	return e.matchesSpecFrom(spec, id, sv.Controller, sv.Source)
 }

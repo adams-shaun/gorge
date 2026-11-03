@@ -1,12 +1,12 @@
 {
   "card": "Blessed Ghoul",
-  "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]; 3 games in the corpus",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack",
   "repro": {
     "pool": "std-fra",
     "surface": "full",
     "seed": 1,
-    "pair": 1223,
+    "pair": 1035,
     "policy": "random",
     "mulligans": 0
   }

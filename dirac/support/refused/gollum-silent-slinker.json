@@ -1,13 +1,13 @@
 {
   "card": "Gollum, Silent Slinker",
-  "class": "projection-Life",
-  "why": "the engines' state differs at projection Life[]; 6 games in the corpus",
+  "class": "options",
+  "why": "the engines offer different options; Gollum, Silent Slinker is among the latest actions and Stir Up Trouble is the card the divergence implicates",
   "repro": {
     "pool": "std-hob",
     "surface": "autopay",
     "seed": 1,
-    "pair": 837,
+    "pair": 394,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

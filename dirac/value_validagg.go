@@ -20,7 +20,7 @@ const cardTypeBits = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantmen
 // -ManaCost; 0 when nothing matches), the CardToughness/CardManaCost sums
 // (derived toughness on the battlefield, extremePropertyValue), the
 // DifferentCardPower distinct set (refPower, derived) and Colors (the
-// matches' face colours, ColorMaskOf).
+// matches' live layer-5 colours, ObjectColors).
 //
 //go:noinline
 func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
@@ -50,7 +50,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			} // else CR 708.2: a face-down permanent has no mana cost
 		case kop.AggColors:
 			if !s.faceDown(k, sl) { // CR 708.2: a face-down permanent is colourless
-				col |= k.t.Cards[s.cardAt(sl)].Colors
+				col |= s.colorsAt(k, sl) // CR 613.1e: the live colours (an Animate's SetColor), as gorge's ObjectColors reads
 			}
 			continue
 		case kop.AggDistinctNames:
@@ -69,11 +69,16 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggCardTypes:
-			// CR 205.2a: the face's printed card types (gorge o.Face().Types
-			// in cardTypeWords), not the layer-derived ones; a face-down
-			// permanent has none (CR 708.2)
+			// CR 205.2a: the face's card types (gorge o.Face().Types in
+			// cardTypeWords), not the layer-derived ones; a copy's face
+			// carries its copy exception's added types (CR 707.9b), so a
+			// token copied "except it's an artifact creature" counts the
+			// creature; a face-down permanent has none (CR 708.2)
 			if !s.faceDown(k, sl) {
 				types |= k.t.Cards[s.cardAt(sl)].Types
+				if k.gen.cpxTy && s.fxM.has(sl) {
+					types |= s.copyExcTypes(k, sl)
+				}
 			}
 			continue
 		case kop.AggCreatureTypes:

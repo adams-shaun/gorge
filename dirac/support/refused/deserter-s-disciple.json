@@ -1,12 +1,12 @@
 {
   "card": "Deserter's Disciple",
-  "class": "unmodelled-landgrant",
-  "why": "gorge does something the kernel does not model here (stall landgrant); 3 games in the corpus",
+  "class": "projection-Cards.AttachedTo",
+  "why": "the engines' state differs at projection Cards[].AttachedTo; Deserter's Disciple is among the latest actions and Trusty Boomerang is the card the divergence implicates",
   "repro": {
     "pool": "std-tla",
     "surface": "autopay",
     "seed": 1,
-    "pair": 621,
+    "pair": 1790,
     "policy": "random",
     "mulligans": 0
   }

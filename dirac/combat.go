@@ -182,13 +182,22 @@ func (s *State) applyAttack(k *prep, a Action) {
 func (s *State) finishAttacks(k *prep) {
 	fs := false
 	var tapped slotMask
+	fresh := 0 // attackers not declared in an earlier combat this turn
 	m := s.ctrlM[s.active]
+	if k.anyOppsAtt {
+		s.noteOppsAttacked(m) // before any Attacks trigger reads it
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
 		p := &s.perms[sl]
 		if p.flags&pfAttacking == 0 {
 			continue
+		}
+		if p.flags&pfDeclared == 0 {
+			p.flags |= pfDeclared
+			s.touch(p.obj)
+			fresh++
 		}
 		kw := s.kw(k, sl)
 		if kw&kop.KwVigilance == 0 {
@@ -209,7 +218,7 @@ func (s *State) finishAttacks(k *prep) {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markAttackers(k) // filter_permmarks.go
 	}
-	s.g.attacked[s.active] += s.nAttackers
+	s.g.attacked[s.active] += uint8(fresh) // each creature once across extra combats (gorge de-duplicates the turn's declared attackers)
 	s.declared = s.nAttackers > 0
 	if k.gen != nil {
 		s.fireAttacksGen(k)

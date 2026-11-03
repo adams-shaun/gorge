@@ -1,12 +1,12 @@
 {
   "card": "My Precious",
-  "class": "projection-Life",
-  "why": "the engines' state differs at projection Life[]; 5 games in the corpus",
+  "class": "options",
+  "why": "the engines offer different options; My Precious is among the latest actions and Stir Up Trouble is the card the divergence implicates",
   "repro": {
     "pool": "std-hob",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1101,
+    "pair": 2387,
     "policy": "random",
     "mulligans": 0
   }

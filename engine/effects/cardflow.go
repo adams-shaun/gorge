@@ -1182,6 +1182,21 @@ func manaValueOf(g *state.Game, id state.ObjID) int {
 // must not import rules), only the rule, and only the leading token is
 // rewritten -- every qualifier rides along.
 func permanentCardSpec(spec string) string {
+	if !strings.Contains(spec, ",") {
+		return permanentCardAlt(spec)
+	}
+	// Each comma-separated alternative is a spec of its own (There's Coffee
+	// in that Nebula's `Plains,Permanent.nonLand+cmcLE3`), so a Permanent
+	// base after the first alternative reads as a permanent card too.
+	alts := strings.Split(spec, ",")
+	for i, a := range alts {
+		alts[i] = permanentCardAlt(a)
+	}
+	return strings.Join(alts, ",")
+}
+
+// permanentCardAlt is permanentCardSpec for one alternative.
+func permanentCardAlt(spec string) string {
 	if spec == "Permanent" {
 		return "PermanentCard"
 	}

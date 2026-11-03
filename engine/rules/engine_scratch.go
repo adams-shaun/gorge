@@ -54,8 +54,11 @@ type engineScratch struct {
 	planFace *cards.Face `clone:"reset"`
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
-	planKeepSources bool   `clone:"reset"`
-	derivedMemoGen  uint64 `clone:"reset"`
+	planKeepSources bool `clone:"reset"`
+	// planIgnoreCredit makes a potential cast's plan price the printed cost
+	// where a convoke-like credit would decline it (targetPaidNeedsPlannedPayment).
+	planIgnoreCredit bool   `clone:"reset"`
+	derivedMemoGen   uint64 `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*
@@ -134,6 +137,11 @@ type engineScratch struct {
 	// mana ability with a RestrictValid$, so a payment priced against it must
 	// rebuild the bound for itself (potentialPoolFor). Clone copies none.
 	potentialRestricted bool `clone:"reset"`
+	// potentialWitness is set while potentialWitnessOffers walks a planner's
+	// witness: the hypothetical pool is then exactly what the plan floats, and
+	// potentialPoolFor must not rebuild it from the board's whole over-bound.
+	// Clone copies none.
+	potentialWitness bool `clone:"reset"`
 	// walkBlocksServed counts the blocks a potential walk served from the
 	// record (a test-visible diagnostic, like legalActionWalks).
 	walkBlocksServed uint64 `clone:"reset"`
@@ -151,6 +159,12 @@ type engineScratch struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot `clone:"reset"`
+	// lkiTypes is the layer-4 type list a permanent had the moment before it
+	// left the battlefield, held for the one emission whose triggers look back
+	// at it (CR 603.10a). The live type table no longer carries a departed
+	// object's animation, so a leaves-the-battlefield match on the live board
+	// reads this instead.
+	lkiTypes lkiTypeList `clone:"reset"`
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
@@ -308,4 +322,12 @@ type engineScratch struct {
 	// hypSpares recycles the hypothetical clones' storage (hypclone.go).
 	// Owner-guarded like decArena; Clone leaves it nil.
 	hypSpares *hypSparePool `clone:"reset"`
+}
+
+// lkiTypeList is a departing permanent's derived type list (see
+// Engine.lkiTypes).
+type lkiTypeList struct {
+	id    state.ObjID
+	types []string
+	set   bool
 }

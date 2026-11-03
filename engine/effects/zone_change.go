@@ -1822,6 +1822,7 @@ const (
 	attackingEntryAttacks                               // literal True with a bound trigger defender
 	attackingEntryNoDefender                            // literal True, but no defender in context
 	attackingEntryUnsupported                           // a selector form (Remembered, TriggeredDefender, ...)
+	attackingEntryDeferred                              // literal True, defender not yet chosen (CR 508.4: as the object enters)
 )
 
 // attackingEntry is ONE move call's classification of its `Attacking$` entry
@@ -1837,8 +1838,11 @@ const (
 // Dig window would otherwise produce. It mirrors engine/effects/token.go's
 // TokenAttacking$ read, whose single-mint shape gets that for free.
 type attackingEntry struct {
-	kind     attackingEntryKind
-	defender state.PlayerID
+	kind attackingEntryKind
+	// controller is the seat that chooses the defender once the entry is
+	// deferred (attackingEntryDeferred).
+	controller state.PlayerID
+	defender   state.PlayerID
 	// battle is the planeswalker or battle object the moved permanent
 	// enters attacking (CR 702.49b's non-player defender), when the rider's
 	// context carries one. It is appended to the TokenAttacks event's IDs so
@@ -1854,6 +1858,17 @@ func classifyAttackingEntry(h Host, c *Ctx, sa *cards.SA, to state.Zone, control
 		return attackingEntry{}
 	}
 	return classifyAttackingEntryText(h, c, attackingParam(sa), to, controller)
+}
+
+// deferAttackingEntry is classifyAttackingEntryText for a mover that asks before it moves
+// (an Optional$ confirmation, a card pick): an unnamed Attacking$ True entry's defender is
+// chosen as the first object enters (CR 508.4; Forge's addToCombat runs after the move), so
+// a move declined, or one that finds no card, asks nothing. The choice waits for apply.
+func deferAttackingEntry(h Host, c *Ctx, attack string, to state.Zone, controller state.PlayerID) attackingEntry {
+	if to == state.ZBattlefield && strings.EqualFold(attack, "True") {
+		return attackingEntry{kind: attackingEntryDeferred, controller: controller}
+	}
+	return classifyAttackingEntryText(h, c, attack, to, controller)
 }
 
 // classifyAttackingEntryText is classifyAttackingEntry over a compiled
@@ -1887,6 +1902,14 @@ func classifyAttackingEntryText(h Host, c *Ctx, attack string, to state.Zone, co
 func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.PlayerID, to state.Zone) {
 	if a == nil || a.kind == attackingEntryNone || to != state.ZBattlefield {
 		return
+	}
+	if a.kind == attackingEntryDeferred {
+		if d, ok := resolveEnteringDefender(h, c, a.controller, true, "permanent"); ok {
+			*a = attackingEntry{kind: attackingEntryAttacks, defender: d.Player, battle: d.Obj}
+		} else {
+			*a = attackingEntry{kind: attackingEntryNoDefender,
+				note: "Attacking$ with no defending player in context; the permanent enters but does not attack"}
+		}
 	}
 	if a.kind == attackingEntryAttacks {
 		if !EnteringAttackLegal(h, a.defender, a.battle) {

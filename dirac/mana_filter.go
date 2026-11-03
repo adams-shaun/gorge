@@ -145,6 +145,9 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 	if k.restrSrc && s.restrFaceAffords(k, p, r, av, extra) {
 		return true
 	}
+	if k.gen != nil && k.gen.anyMultiR && s.wideFaceAffords(k, p, r, av, extra) {
+		return true
+	}
 	if k.gen == nil || !k.gen.anyFilt {
 		return false
 	}

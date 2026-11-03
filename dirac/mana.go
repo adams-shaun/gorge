@@ -85,6 +85,11 @@ type avail struct {
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
+	// xd: the payment an {X} ask is bounded by, when xdOn; a granted ability
+	// whose spend restriction refuses it adds nothing (availGrant). A value, not
+	// a pointer, so an avail on the stack keeps no reference to a local.
+	xd   payDesc
+	xdOn bool
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls
@@ -202,7 +207,6 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if dual {
-			s.tapExtraStall(k, sl)
 			s.availGrant(k, sl, pc, a)
 			continue
 		}
@@ -523,9 +527,23 @@ type planner struct {
 	rdyn   Slot
 	rdynOn bool
 	rF     kop.FilterID
+	// rkind: the restricted record kind (rkWiden, rkExt) of each unit's
+	// source, 0 for a plain one; rtap: the restricted-kind units a tap made,
+	// with the colour each made (witnessManaRestricted)
+	rkind [maxUnits]uint8
+	rtapN int
+	rtap  [maxUnits]struct {
+		sl  Slot
+		col uint8
+		ext bool
+	}
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
 	keepCols bool
+	// noGrant: a hybrid resolution's trial leaves the granted sources out
+	// of the plan (phase 2): gorge's planHybridCost resolution has a
+	// witness only from printed sources
+	noGrant bool
 	// maxXt: some unit type carries a fixed extra (mana_tapextra.go)
 	maxXt bool
 }
@@ -664,12 +682,12 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 	for m := 0; m < 1<<n; m++ {
 		r := f.resolve(*cost, n, hybWitnessMask(m, n))
 		tp := *pk
-		tp.found, tp.try = false, true
+		tp.found, tp.try, tp.noGrant = false, true, true
 		s.tapPlanNeed(k, p, &r, x, exclude, first, anyColor, &tp)
 		if tp.needT > 0 && !tp.found {
 			continue // this resolution has no source plan; try the next
 		}
-		tp.try = pk.try
+		tp.try, tp.noGrant = pk.try, pk.noGrant
 		*pk = tp
 		return r, true
 	}
@@ -926,6 +944,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// each source's mana facts, read once for the three passes of every phase
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
+	var rv [MaxPerm]uint8
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
 	for i := 0; i < no; i++ {
 		sl := order[i]
@@ -935,7 +954,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
-					pcs[i], rk[i] = v, kd
+					pcs[i], rk[i], rv[i] = v, kd, kd
 					if kd == rkDyn {
 						pk.rdyn, pk.rdynOn, pk.rF = sl, true, ab.ManaRestrict
 					}
@@ -946,7 +965,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 	}
 	for phase := 0; phase < 3; phase++ {
-		if phase == 1 && !hasSac && !hasPain || phase == 2 && !hasGrant {
+		if phase == 1 && !hasSac && !hasPain || phase == 2 && (!hasGrant || pk.noGrant) {
 			continue
 		}
 		if phase > 0 {
@@ -990,6 +1009,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// order (payment_plan.go paymentPlanManaUnitsOnlyCompute)
 				mask := s.srcMaskAt(pc, sl)
 				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen) && !pc.manaMulti
+				if choice && k.gen != nil && k.gen.blgOn && pc.manaCol == kop.ColAny && s.blgMask(k, sl) != 0 {
+					// a Produced$ Any land with a granted basic land type
+					// also has the intrinsic abilities, which are
+					// deterministic: gorge's census lists it with the
+					// fixed-production sources, the Any ability appended to
+					// that unit
+					choice = false
+				}
 				// a tap-and-sacrifice source of fixed production (Basal
 				// Thrull's {B}{B}) is outside gorge's shared census (free-cost
 				// abilities only): it is appended with the choice-shaped ones,
@@ -1073,6 +1100,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.uobj[pk.nu] = s.perms[sl].obj
 				}
 				pk.utyp[pk.nu] = uint8(ti)
+				pk.rkind[pk.nu] = rv[i]
 				pk.nu++
 				if sac {
 					// a last-resort source has no normal alternative, so
@@ -1137,6 +1165,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			s.manaTapped(k, sl)
 		}
 		pk.lastSl = sl
+		if r := pk.rkind[u]; (r == rkExt || r == rkWiden) && pk.rtapN < maxUnits {
+			pk.rtap[pk.rtapN] = struct {
+				sl  Slot
+				col uint8
+				ext bool
+			}{sl, uint8(col), r == rkExt}
+			pk.rtapN++
+		}
 		s.pl[p].pool[col] += ty.n
 		if ty.xt != 0 {
 			s.addXv(p, &ty.xv)
@@ -1158,6 +1194,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			o := s.perms[sl].obj
 			s.fireSac(k, sl)
 			if s.manaSacParks() && s.park(k, o, parkLeave, parkManaHold(col, ty.n)) {
+				if s.buildLive() && s.bld().bfl&bflManaStep != 0 {
+					s.bld().bfl |= bflPlanCut
+				}
 				s.pl[p].pool[col] -= ty.n // it floats once the move has its answer (CR 605.3b)
 				return                    // and the plan's other sources wait for it too: the mana step runs again after the answer
 			} else {
@@ -1363,12 +1402,16 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 	if pk.anyColor {
 		return true
 	}
+	// A tap makes one colour, so c-1 units of an any-colour kind cover at
+	// most c-1 of the colours still owed: the units each colour needs add up
+	// (a Lotus token's three {R} or three {G}, for {R}{G}, takes two).
+	owed := 0
 	for col := range pk.need {
-		if ty.mask&(1<<col) != 0 && pk.need[col] > (c-1)*int(ty.n) {
-			return true
+		if ty.mask&(1<<col) != 0 && pk.need[col] > 0 {
+			owed += (pk.need[col] + int(ty.n) - 1) / int(ty.n)
 		}
 	}
-	return false
+	return owed > c-1
 }
 
 // valid: the chosen units can cover the pips (Hall over colour subsets).

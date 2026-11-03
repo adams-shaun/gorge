@@ -61,7 +61,7 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 	// CR 107.3: "you may pay {X}. When you do, ... X ..." -- the reflexive
 	// ability's X is the value the spawning ability was paid or announced
 	// with (triggerPaidX reads it back for the minted ability).
-	if c.X != 0 {
+	if c.X != 0 || c.XAnnounced {
 		tc.TriggerPaidX = c.X
 	}
 	pt := pendingTrigger{

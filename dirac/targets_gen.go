@@ -107,6 +107,12 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	n := 0
 	if mt.picked < mt.max {
 		n = s.multiCands(k, t, ti, &buf)
+		if e.kind == seSpell {
+			// gorge prices each candidate as the sole selection and drops the
+			// ones the cast cannot pay for, for a multi-target ask as for a
+			// single one (cast_pricing.go affordableTargetCandidates)
+			n = s.affordableTargets(k, &buf, n)
+		}
 		if k.gen.anyUniqLater {
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go
 		}

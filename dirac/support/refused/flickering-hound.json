@@ -1,13 +1,13 @@
 {
   "card": "Flickering Hound",
-  "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; Flickering Hound is among the latest actions and Massacre Girl, Most Wanted is the card the divergence implicates",
   "repro": {
     "pool": "std-fra",
     "surface": "full",
     "seed": 1,
-    "pair": 816,
+    "pair": 2739,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 0
   }
 }

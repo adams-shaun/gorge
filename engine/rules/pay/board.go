@@ -74,7 +74,7 @@ func ManaExiles(e Engine, p state.PlayerID, source state.ObjID, cost Cost) ([]st
 		}
 		var candidates []state.ObjID
 		for _, id := range e.Game().Zone(zone, p) {
-			if !reserved[id] && e.MatchesSpecFrom(part.Spec, id, p, source) {
+			if !reserved[id] && !e.CastCommitted(id) && e.MatchesSpecFrom(part.Spec, id, p, source) {
 				candidates = append(candidates, id)
 			}
 		}
@@ -151,6 +151,21 @@ func ChargeEnergyCost(e Engine, p state.PlayerID, c Cost, x int32) {
 	}
 }
 
+// ExileZoneCards is the cards in zone an Exile cost part of payer p may pay
+// with: p's own, and for an ExileAnyGrave part every player's graveyard, p's
+// first and the rest in seat order (Forge's CostExile with zone restriction -1).
+func ExileZoneCards(g *state.Game, zone state.Zone, p state.PlayerID, part cost.CostPart) []state.ObjID {
+	own := g.Zone(zone, p)
+	if !part.AnyGrave || zone != state.ZGraveyard {
+		return own
+	}
+	out := append([]state.ObjID(nil), own...)
+	for i := 1; i < len(g.Players); i++ {
+		out = append(out, g.Zone(zone, state.PlayerID((int(p)+i)%len(g.Players)))...)
+	}
+	return out
+}
+
 // ExileCostCandidates is the zone scan both the offerability walk
 // (nonManaCastable) and the payment chooser (exAsk) use for one Exile cost
 // part. A bound referent (a granted ability's OriginalHost -- The Dominion
@@ -162,7 +177,7 @@ func ChargeEnergyCost(e Engine, p state.PlayerID, c Cost, x int32) {
 // ordinary filter path below stays payer-only. One helper means offer and
 // payment can never disagree about which objects can pay.
 func ExileCostCandidates(g *state.Game, zone state.Zone, p state.PlayerID, part cost.CostPart) []state.ObjID {
-	cands := g.Zone(zone, p)
+	cands := ExileZoneCards(g, zone, p, part)
 	if part.Referent == 0 {
 		return cands
 	}

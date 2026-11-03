@@ -78,7 +78,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		}
 		sv := s.objs[d.src].ver
 		if d.n&dpTrack != 0 {
-			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: takePending drops it if the object left
+			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: resolves doing nothing if the object left
 		}
 		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {

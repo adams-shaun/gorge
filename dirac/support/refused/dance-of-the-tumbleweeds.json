@@ -1,12 +1,12 @@
 {
   "card": "Dance of the Tumbleweeds",
   "class": "projection-NStack",
-  "why": "the engines' state differs at projection NStack; 3 games in the corpus",
+  "why": "the engines' state differs at projection NStack",
   "repro": {
     "pool": "std-otj",
     "surface": "full",
     "seed": 1,
-    "pair": 1428,
+    "pair": 2368,
     "policy": "random",
     "mulligans": 0
   }

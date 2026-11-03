@@ -50,6 +50,29 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// lifePainLandAb: a is the paid-life ability of a life-pain land of c: its
+// two mana abilities are a plain {T}: Add {C} and a, {T} and N life for a
+// colour (Starting Town). gorge's planner prices that cost as a last-resort
+// choice (pay.PlanLastResortCostOK), not a census gap.
+func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
+	if _, ok := manaLifePain(a); !ok {
+		return false
+	}
+	n := 0
+	first := true
+	for j := range c.Abilities {
+		b := &c.Abilities[j]
+		if b.Kind != kop.AbMana || b.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		n++
+		if n == 1 {
+			first = b.ManaColors == kop.ColC && len(b.Prog) == 0 && b.Cost.Flags == kop.CostTap
+		}
+	}
+	return n == 2 && first
+}
+
 // prepPainMana sets pc's pain alternative for a painland: the card's mana
 // abilities are a plain {T}: Add {C} and a painful {T} ability of one or two
 // colours (kgen refuseMultiMana's painland shape). It reports whether it did.
@@ -463,6 +486,12 @@ func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
 //go:noinline
 func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
 	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	if ok && s.winPaused() {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return true // the pick is posed; the cast pays when the window ends (mana_window.go)
+	}
 	if !ok {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]

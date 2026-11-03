@@ -107,7 +107,11 @@ func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 		cfg := Hosted()
 		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
 		cfg.Search.Sims = sims
+		// A human meets modes, may-triggers, small choices and multi-target
+		// picks, so the paired bot weighs them; they stay off for hosted seats.
+		cfg.Search.Kinds = azmcts.FullKinds()
 		cfg.Search.AutoPayment = o.AutoPayMana
+		cfg.Search.Line = o.ExpectedLine
 		return New(o, cfg)
 	}
 }

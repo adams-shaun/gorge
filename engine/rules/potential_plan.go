@@ -213,7 +213,13 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			// The witness sacrifices or returns a permanent the play
 			// itself needed (its only target): not a way to pay it, though a
 			// smaller X may pay without that permanent.
+			planned := got
 			got = e.potentialWitnessKeeping(p, o)
+			if got.Plan == nil && e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+				// No colouring keeps every source, but the one that
+				// pays by consuming one ends the game in p's favour.
+				got = planned
+			}
 		}
 		pp.Reason, pp.Detail = got.Reason, got.Detail
 		if witness && got.Plan != nil && got.Reason == "" {
@@ -287,7 +293,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 {
+				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -302,6 +308,30 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return e.potentialModeCastPlan(p, o), true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the
+// printed mana cost but fixed-count tapXType parts (Guardian of the Great Door's
+// "tap four untapped artifacts, creatures, and/or lands"). planComposedCost models
+// those exactly: it withholds each assignment of candidates from the mana plan
+// and requires the plan to leave them untapped, so its verdict, proof included,
+// stands where the cast planner declines the shape (CR 601.2g-h).
+func spellExtrasAreFixedTaps(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	extras := pay.WithSpellAbilityExtras(f, Cost{})
+	if len(extras.TapPermanent) == 0 {
+		return false
+	}
+	for _, part := range extras.TapPermanent {
+		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 {
+			return false
+		}
+	}
+	rest := extras
+	rest.TapPermanent = nil
+	return rest.IsZero()
 }
 
 // manaSpentReaderComposed reports a spell the cast planner declined only
@@ -390,7 +420,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	f := obj.Face()
-	if e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id) {
+	if !e.planIgnoreCredit && (e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id)) {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
 	}
 	base, ok := e.potentialModeBaseCost(p, id, f, o)
@@ -401,7 +431,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
 	}
 	scope := spellScope(o.Mode)
-	if pay.CostAnnouncesSacX(base) || e.costModifiers(p, id, scope).Waterbend > 0 {
+	if pay.CostAnnouncesSacX(base) || !e.planIgnoreCredit && e.costModifiers(p, id, scope).Waterbend > 0 {
 		// An announced Sac<X> or a waterbend credit reprices the cast by
 		// what the payment taps or sacrifices: not composed here.
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
@@ -490,6 +520,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 			}
 		}
 	}
+	if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" && best.Plan != nil && best.Reason == "" {
+		if got, sacrificeOnly := e.potentialAltAddSacrificePlan(p, o, base, parts); sacrificeOnly {
+			return got
+		}
+	}
 	if !e.potentialWitnessOffers(p, o, *best.Plan) {
 		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
 			return e.potentialAltAddPlan(p, o, base, parts)
@@ -522,6 +557,34 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// potentialAltAddSacrificePlan prices an either-or additional cost none of
+// whose mana-free parts is free of a sacrifice (Dusk Rose Reliquary's artifact
+// or creature; Stir Up Trouble's, beside its {4}) with the sacrifice beside the
+// spell's mana, as an ordinary sacrifice cost is priced: the permanent given up
+// is not also a source of the mana that pays the spell (CR 601.2b, 601.2g,
+// 601.2h). decided is false when a part that costs neither mana nor a
+// sacrifice exists, so the mana witness alone stands for that part.
+func (e *Engine) potentialAltAddSacrificePlan(p state.PlayerID, o decision.Option, base Cost, parts []string) (PaymentPlanOutcome, bool) {
+	var sacs []Cost
+	for _, part := range parts {
+		c := ParseCost(part)
+		if c.HasManaPayment() {
+			continue
+		}
+		if len(c.Sac) == 0 {
+			return PaymentPlanOutcome{}, false
+		}
+		sacs = append(sacs, c)
+	}
+	for _, c := range sacs {
+		got := e.planComposedCost(p, o.Obj, e.offerCostFor(p, o.Obj, base.Plus(c), spellScope(o.Mode)), false, false)
+		if got.Plan != nil && got.Reason == "" && e.potentialWitnessOffers(p, o, *got.Plan) {
+			return got, true
+		}
+	}
+	return e.potentialAltAddPlan(p, o, base, parts), true
 }
 
 // potentialAltAddPlan is a witness for an either-or additional cost (CR 601.2f)
@@ -746,7 +809,9 @@ func (e *Engine) potentialWitnessOffers(p state.PlayerID, o decision.Option, pla
 	// A cast play is looked up among the walk's cast options only, which
 	// the casts-only walk lists exactly as the full walk does
 	// (castsOnlyWalkVerify), without pricing every battlefield ability.
+	e.potentialWitness = true
 	opts := e.legalActionsWalkTemp(p, &pool, o.Kind == "cast")
+	e.potentialWitness = false
 	defer e.optRelease(opts)
 	for _, opt := range opts {
 		if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
@@ -893,7 +958,14 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	desc := pay.DescriptorFor(id, ability, composed)
 	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
-		return pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		out := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		if out.Plan != nil && out.Reason == "search_limit" {
+			// The node budget only stops the hunt for the rank-best plan; the
+			// plan it holds pays the cost, so it is a witness like any other
+			// (a cost with hybrid pips and a dozen sources used to lose it).
+			out.Reason = ""
+		}
+		return out
 	})
 }
 
@@ -999,6 +1071,13 @@ func (e *Engine) planHybridCost(p state.PlayerID, id state.ObjID, composed Cost,
 			c.Colored[idx]++
 		}
 		got := e.planComposedCost(p, id, c, ability, selfSource)
+		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+			// A witness that must keep every source is asked of each
+			// colouring: the first one that pays may need a source the
+			// cast cannot spare (a Treasure) while another pays from
+			// the lands alone.
+			got = PaymentPlanOutcome{Reason: "insufficient"}
+		}
 		if got.Plan != nil && got.Reason == "" {
 			return got
 		}
@@ -1320,8 +1399,15 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	mp := effects.ManaOf(ma)
 	counts, any := mp.Counts, mp.CountsAny
 	creature := e.IsCreature(id)
+	// The tap fires the static TapsForMana triggers whichever colour it takes,
+	// so each relaxed production carries the largest extra they add (CR 605.4a):
+	// a relaxation may only over-produce.
+	extra := e.potentialTapExtra(id, ma)
 	var out []pay.Alt
 	add := func(m state.Mana) {
+		for i := range m {
+			m[i] += extra[i]
+		}
 		out = append(out, pay.Alt{Activation: decision.PaymentActivation{Source: id},
 			Mana: m, Creature: creature, Ma: ma, Tier: pay.TierNormal, Flex: 1, FlexAll: 1})
 	}

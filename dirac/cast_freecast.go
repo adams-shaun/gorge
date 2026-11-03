@@ -75,7 +75,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		}
 		// CR 601.2c: a spell whose mandatory targets cannot all be chosen is
 		// never offered (gorge effPlay filters through castTargetsHost)
-		if !s.spellTargetsFeasible(k, ob.card, e.ctrl) {
+		if !s.spellTargetsFeasibleFrom(k, ob.card, e.ctrl, o) {
 			return true
 		}
 		if k.gen.anyCantCast && s.castForbidden(k, e.ctrl, ob.card, o) {

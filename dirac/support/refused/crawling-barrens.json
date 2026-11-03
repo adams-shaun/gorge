@@ -1,13 +1,13 @@
 {
   "card": "Crawling Barrens",
-  "class": "projection-Cards.Flags",
-  "why": "the engines' state differs at projection Cards[].Flags; 5 games in the corpus",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; Crawling Barrens is among the latest actions and Battle-Rattle Shaman is the card the divergence implicates",
   "repro": {
     "pool": "std-fdn",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 194,
+    "pair": 2629,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

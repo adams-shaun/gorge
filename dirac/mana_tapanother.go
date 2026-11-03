@@ -97,6 +97,15 @@ func (s *State) scriptTapXModelled(k *prep, p uint8) slotMask {
 	return s.scriptTapX(k, p)
 }
 
+// tapXEachGaps: p's each-colour sources the tap-another search activates beside
+// its own gaps: none unless a tap-another source is live on the board.
+func (s *State) tapXEachGaps(k *prep, p uint8) slotMask {
+	if !k.tapMana || !s.scriptTapX(k, p).any() || s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
+		return slotMask{}
+	}
+	return s.scriptGaps(k, p)
+}
+
 // tapXCands lists the permanents source sl's tap cost can tap, in gorge's
 // candidate order (battlefield entry): p's untapped permanents matching the
 // cost's filter, the source itself excluded (its own {T} is paid first;
@@ -105,9 +114,16 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	c := s.cardAt(sl)
 	f := k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Filter
 	var m slotMask
+	// A creature the cast being paid for announced for convoke is tapped when
+	// that payment settles, so it is not untapped to tap again here (CR 601.2g-h;
+	// gorge pay.ManaTapCandidates, CastCommitted).
+	var spoken slotMask
+	if s.buildLive() {
+		spoken = s.convokeHidden()
+	}
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || !s.matchPerm(k, f, x, p, sl) {
+		if x == sl && k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
 			continue
 		}
 		m = m.with(x)
@@ -140,9 +156,14 @@ func (s *State) scriptCtrModelled(k *prep, p uint8) slotMask {
 }
 
 // tapXBoard: p's census gaps are tap-another-permanent and counter-cost
-// sources only, or a mix the filter search runs (mixBoard).
+// sources only, those beside each-colour sources (a Bloom Tender; the search
+// activates them as steps, tapXEach), or a mix the filter search runs
+// (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
-	return !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() || s.mixBoard(k, p)
+	if s.scriptRestr(k, p).or(s.scriptAnyR(k, p)).or(s.scriptFilt(k, p)).any() {
+		return s.mixBoard(k, p)
+	}
+	return !s.scriptGaps(k, p).any() || s.scriptTapX(k, p).any()
 }
 
 // tapXPrefix plays the search's script for play a at a tapX board; it
@@ -177,6 +198,7 @@ const (
 	tapXAct    uint8 = iota // an activation
 	tapXAnswer              // act answers the ask then pending
 	tapXPass                // p passes with a trigger of the path on the stack
+	tapXEach                // an each-colour gap (a Bloom Tender) taps for its colours
 )
 
 type tapXKey struct {
@@ -207,7 +229,7 @@ type tapXSearch struct {
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
-	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
+	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
 	t := s.fork()
 	defer s.unfork()
 	if !rs.settle(k, t, false) || rs.n == 0 {
@@ -253,7 +275,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 		if !s.tapXNext(p, &d) {
 			break
 		}
-		if st.kind == tapXAct {
+		if st.kind == tapXAct || st.kind == tapXEach {
 			s.tapXDo(k, p, st)
 		} else if hasOption(&d, st.act) {
 			s.Apply(st.act)
@@ -264,7 +286,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 }
 
 // gorgeTargetOrder puts a target ask's options in the order gorge offers
-// them (target_legal.go candidatesFor: the players by seat, then each seat's
+// them (the empty answer of an up-to-one ask first, scriptAnswers; target_legal.go candidatesFor: the players by seat, then each seat's
 // battlefield in entry order, then the rest as listed): the script takes the
 // first answer that works, so the kernel's slot order would pick another
 // creature.
@@ -274,8 +296,10 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 	for i := 0; i < n; i++ {
 		c := d.Options[i].Target()
 		switch {
+		case c == NoTarget:
+			keys[i] = 0 // gorge scriptAnswers tries the empty answer of an up-to-one ask first
 		case isPlayerTarget(c):
-			keys[i] = uint32(c-PlayerTarget0) << 8
+			keys[i] = 1<<8 + uint32(c-PlayerTarget0)
 		case c < MaxObj && t.objs[c].zone == kop.ZoneBattlefield && t.objs[c].slot != NoSlot:
 			pm := &t.perms[t.objs[c].slot]
 			keys[i] = 1<<24 | uint32(pm.ctrl)<<20 | uint32(pm.ts)
@@ -338,6 +362,11 @@ func (rs *tapXSearch) tick() bool {
 // (gorge commitManaDiscard: the tapXType picks, then the source's {T}), and
 // the chosen colour floats.
 func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
+	if st.kind == tapXEach {
+		var held [kop.NumManaKinds]uint8
+		s.tapGap(k, p, st.sl, slotMask{}, &held)
+		return
+	}
 	if st.cand == NoSlot {
 		s.ctrGap(k, p, st.sl) // a counter-cost gap: its counter, its use, its mana
 		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
@@ -411,11 +440,20 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	}
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
+	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if !rs.gaps.has(sl) {
+			continue
+		}
+		if each.has(sl) {
+			// an each-colour gap has one answer and asks nothing; tapped for
+			// its own mana it is no longer there for a tap-another cost
+			if rs.try(k, t, tapXStep{kind: tapXEach, sl: sl, cand: NoSlot, cand2: NoSlot}) {
+				return true
+			}
 			continue
 		}
 		if ctr.has(sl) {

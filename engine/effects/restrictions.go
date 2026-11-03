@@ -1503,6 +1503,22 @@ var cantExileRestrictionParamsReadableKeys = state.NewNameSet("Mode", "ValidCard
 
 var cantPutCounterParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary")
 
+var panharmoniconParamsReadableKeys = state.NewNameSet("Mode", "ValidCard", "ValidMode", "ValidZone", "ValidCause", "Origin", "Destination", "ValidSource", "ValidTarget", "ValidActivator", "ValidPlayer", "CombatDamage", "ValidTurned", "Description", "Secondary")
+
+// PanharmoniconParamsReadable is the parameter whitelist an Effect-delivered
+// Panharmonicon body must pass: the keys rules' panharmoniconEchoes evaluates,
+// plus display text. Any other term (Condition$, IsPresent$, ...) is one the
+// echo count does not read, so the body reports unimplemented rather than
+// doubling every matching trigger blanket.
+func PanharmoniconParamsReadable(params map[string]string) bool {
+	for k := range params {
+		if !panharmoniconParamsReadableKeys.Has(k) {
+			return false
+		}
+	}
+	return true
+}
+
 var cantGainLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")
 
 var cantChangeLifeParamsReadableKeys = state.NewNameSet("Mode", "ValidPlayer", "Description", "Secondary")

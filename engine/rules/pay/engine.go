@@ -40,6 +40,12 @@ type Engine interface {
 	// of spec and evaluates them for objID, pending-cast aware: the rest of
 	// the spec, and whether the provenance admits.
 	CastProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool)
+	// CastCommitted reports whether the cast or activation being paid for
+	// has already committed id to its own payment (a Convoke, Harmonize,
+	// Improvise or waterbend contribution, or a tapXType election): it is
+	// tapped when that payment settles, so a mana ability activated inside
+	// the payment cannot tap it again as its own cost (CR 601.2g-h).
+	CastCommitted(id state.ObjID) bool
 
 	// CostBlocked reports whether a static forbids sacrificing (BlockSacrifice:
 	// a CantSacrifice ForCost$/ValidCause$ line) or exiling (BlockExile: a

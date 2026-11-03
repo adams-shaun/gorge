@@ -61,8 +61,8 @@ func TestUntapChoiceHeadIsClassifiedSupported(t *testing.T) {
 			t.Errorf("card %q reports %q unsupported: the head is not classified", name, untapChoiceHead)
 		}
 	}
-	if carriers != 45 {
-		t.Errorf("corpus carriers of the untap-choice sentence = %d, want 45 (the measured count at this corpus pin)", carriers)
+	if carriers != 46 {
+		t.Errorf("corpus carriers of the untap-choice sentence = %d, want 46 (the measured count at this corpus pin)", carriers)
 	}
 	for _, name := range untapChoiceCarrierNames {
 		if !slices.ContainsFunc(reg.AllCards(), func(c *cards.Card) bool { return c.Faces[0].Name == name }) {

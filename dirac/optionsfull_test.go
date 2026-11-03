@@ -9,8 +9,8 @@ import (
 )
 
 // TestBlockPairsPastMaxOptionsStall: the blockers declaration offers one
-// option per (blocker, attacker) pair, as gorge does; 32 untapped blockers
-// against 14 attackers are 448 pairs, past MaxOptions (384). The kernel
+// option per (blocker, attacker) pair, as gorge does; 40 untapped blockers
+// against 14 attackers are 560 pairs, past MaxOptions (512). The kernel
 // stalls (StallOptions) instead of panicking "decision option overflow"
 // in blockerOptions (random-policy FDN games 359575 and 370308 of a random-deck
 // hunt: 32 x 14 and 37 x 12).
@@ -20,7 +20,7 @@ func TestBlockPairsPastMaxOptionsStall(t *testing.T) {
 	for i := 0; i < 14; i++ {
 		atk = append(atk, sc.perm(v.HillGiant, 0))
 	}
-	for i := 0; i < 32; i++ {
+	for i := 0; i < 40; i++ {
 		sc.perm(v.HillGiant, 1)
 	}
 	sc.passUntil(t, kop.StepAttackers)
@@ -44,8 +44,8 @@ func TestBlockPairsPastMaxOptionsStall(t *testing.T) {
 }
 
 // TestAttackPairsPastMaxOptionsStall: the attackers declaration offers each
-// creature the player and each planeswalker; 70 attackers against FDN's
-// five walkers are 420 pairs. The kernel stalls (StallOptions) instead of
+// creature the player and each planeswalker; 90 attackers against FDN's
+// five walkers are 540 pairs. The kernel stalls (StallOptions) instead of
 // panicking in attackerOptions.
 func TestAttackPairsPastMaxOptionsStall(t *testing.T) {
 	walkers := []string{"Ajani, Caller of the Pride", "Chandra, Flameshaper", "Kaito, Cunning Infiltrator", "Liliana, Dreadhorde General", "Vivien Reid"}
@@ -54,7 +54,7 @@ func TestAttackPairsPastMaxOptionsStall(t *testing.T) {
 		deck = append(deck, cardset.Entry{Name: w, Count: 1})
 	}
 	sc, id := newObjScen(t, deck)
-	for i := 0; i < 70; i++ {
+	for i := 0; i < 90; i++ {
 		sc.perm(id["Llanowar Elves"], 0)
 	}
 	for _, w := range walkers {

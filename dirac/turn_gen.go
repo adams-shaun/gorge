@@ -37,9 +37,6 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.g.entExc = 0
 		s.copyExcAdd(k, sl, Slot(x>>8), uint8(x))
 	}
-	if k.gen.anyAegis {
-		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go
-	}
 	if s.g.nexw != 0 {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
@@ -99,6 +96,13 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	if face == 0 && g.has(cid, gfEnterRepl) {
 		cd := &k.t.Cards[cid]
+		// the entering permanent's own X (CR 107.3f): its cast X when it is
+		// the resolving spell, 0 when another effect put it onto the
+		// battlefield, never that effect's X (Mind into Matter's)
+		selfX := s.res.e.x
+		if s.res.active {
+			s.res.e.x = s.spellX(o)
+		}
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
@@ -126,6 +130,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 				}
 			}
 		}
+		s.res.e.x = selfX
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
@@ -322,6 +327,9 @@ func (s *State) enterRetAura(k *prep, o Obj, host Slot) {
 // slot sl: a permanent exiled "until this leaves" comes back, at once or, in
 // an open departure frame, at its end (zone_untilleavesbatch.go).
 func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
+	if k.gen.anyAegis {
+		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go: before returnLinked drops the link's bit
+	}
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}
@@ -475,6 +483,7 @@ func (s *State) newTurnGen() {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
 	s.g.attacked = [2]uint8{}
+	s.g.oppAtt = 0
 	s.g.isCast = [2]uint8{}
 	s.g.hist = [2][3]uint8{}
 	clear(s.cold.castRing)
@@ -730,7 +739,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 			s.bld().e.flags |= sfFree
 			return false
 		}
-		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) {
+		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) || !s.spellCostsFeasible(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
 		}
 		holder := s.prio
@@ -1005,7 +1014,11 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		d.Sub = ChGenEnchant
 		o := s.g.pre.obj
 		var buf [MaxOptions]uint8
-		n := s.enchantCands(k, s.objs[o].card, s.objs[o].owner(), &buf)
+		who := s.objs[o].owner()
+		if s.g.pre.state == preDigEnchant {
+			who = s.res.askP
+		}
+		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}

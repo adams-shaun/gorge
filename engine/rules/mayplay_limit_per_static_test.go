@@ -318,3 +318,33 @@ func TestMayPlayAltCostLimitIsPerStatic(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// A once-each-turn permission belongs to the static of one object. When its
+// source leaves the battlefield and returns it is a new object (CR 400.7) with
+// a fresh static, so the permission can be used again the same turn (Forge
+// keeps the count on the static instance).
+func TestMayPlayLimitResetsWhenTheSourceReturnsAsANewObject(t *testing.T) {
+	t.Parallel()
+	e, cfg, _ := newFixtureDeck(t, 207, perStaticEnchant("Gravebinder"),
+		perStaticZap("ZapA"), perStaticZap("ZapB"))
+	src := moveSeeded(t, e, 0, perStaticEnchant("Gravebinder"), state.ZBattlefield)
+	a := moveSeeded(t, e, 0, perStaticZap("ZapA"), state.ZGraveyard)
+	b := moveSeeded(t, e, 0, perStaticZap("ZapB"), state.ZGraveyard)
+	addMana(t, e, 0, "RR")
+
+	perStaticCast(t, e, a)
+	if perStaticOffer(e, "cast", b) {
+		t.Fatalf("the static's one use is spent: %+v", e.legalActions(0))
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZBattlefield, To: state.ZExile})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: state.ZExile, To: state.ZBattlefield})
+	e.pending = nil
+	if !perStaticOffer(e, "cast", b) {
+		t.Fatalf("the returned source is a new object with an unused permission: %+v", e.legalActions(0))
+	}
+	perStaticCast(t, e, b)
+	if perStaticOffer(e, "cast", a) {
+		t.Fatalf("the new object's permission is spent too")
+	}
+	replayCheck(t, e, cfg)
+}

@@ -64,12 +64,19 @@ func (b *Best23) card(name string) *cards.Card {
 	return b.Lookup(name)
 }
 
-// candidates rates and sorts every pool card that is not a basic land:
+// candidates rates and sorts every pool card that is not a basic land and,
+// when the builder has a Lookup, that the corpus resolves:
 // rating descending, name then ID ascending for a deterministic tie-break.
 func (b *Best23) candidates(set string, pool []limited.CardRef) []candidate {
 	t := b.tuning()
 	out := make([]candidate, 0, len(pool))
 	for _, ref := range pool {
+		if b.Lookup != nil && b.Lookup(ref.Name) == nil {
+			// The card corpus has no script for it (a set drafted before
+			// its cards are scripted): the engine cannot play it, so the
+			// deck does not include it.
+			continue
+		}
 		facts := factsOf(b.Lookup, ref.Name)
 		c := candidate{
 			id:   ref.ID,

@@ -420,6 +420,26 @@ func (e *Engine) objColors(o *state.Object) string {
 	return effects.ColorsOf(o)
 }
 
+// LayerColors is objColors cut off after layer 5 (CR 613.1e): a battlefield
+// permanent's colours with no layer-7 work, so a P/T-defining static that
+// counts colours among permanents (itself among them) never re-enters the
+// layer-7 walk it is part of. Off the battlefield it is the face read.
+func (e *Engine) LayerColors(o *state.Object) string {
+	if o == nil || o.Zone != state.ZBattlefield {
+		return effects.ColorsOf(o)
+	}
+	if e.charsWalk.ColorsSet && e.charsWalk.ColorsID == o.ID {
+		return e.charsWalk.Colors
+	}
+	if o.Face() == nil {
+		return ""
+	}
+	if l4, ok := e.layer4Top(o.ID); ok {
+		return chars.ComputeColors(asChars(e), &e.charsWalk, o.ID, 0, &l4)
+	}
+	return chars.ComputeColors(asChars(e), &e.charsWalk, o.ID, 0, nil)
+}
+
 // Keywords exists for view.Chars: interface needs a
 // Keywords(state.ObjID) []string method, and Engine.Derived already returns
 // a Derived struct — a method of the same name on Engine could not satisfy

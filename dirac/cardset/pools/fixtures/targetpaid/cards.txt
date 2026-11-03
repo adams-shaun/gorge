@@ -1,0 +1,7 @@
+# a Treasure beside spells whose only legal target is the Treasure paying for them:
+# Into the Roil (kicker) and Temporal Cleansing (convoke), for the oracle lockstep
+# (dirac/oracle/targetpaid_test.go)
+Strike It Rich
+Into the Roil
+Temporal Cleansing
+Mountain

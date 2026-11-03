@@ -257,21 +257,29 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 // extra per colour over the colours the ability can produce, and an ability
 // that does not tap adds none.
 func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.SA) {
-	if !e.abilityCompiledCost(ma).Cost.Tap {
-		return
+	most := e.potentialTapExtra(id, ma)
+	for i, n := range most {
+		if n > 0 {
+			m[i] = saturatingPotentialMana(m[i], n)
+		}
 	}
+}
+
+// potentialTapExtra is the largest extra per colour the static TapsForMana
+// triggers add when id taps for ma, over the colours ma can produce; zero for
+// an ability that does not tap.
+func (e *Engine) potentialTapExtra(id state.ObjID, ma *cards.SA) state.Mana {
 	var most state.Mana
+	if !e.abilityCompiledCost(ma).Cost.Tap {
+		return most
+	}
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		x := e.paymentPlanTapExtraMana(id, produced)
 		for i := range most {
 			most[i] = max(most[i], x[i])
 		}
 	}
-	for i, n := range most {
-		if n > 0 {
-			m[i] = saturatingPotentialMana(m[i], n)
-		}
-	}
+	return most
 }
 
 // potentialPoolFor is the hypothetical bound a payment may be priced against:
@@ -280,7 +288,12 @@ func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.S
 // payment satisfies (CR 106.6), so an Orb of Dragonkind's mana funds a
 // Dragon's ability as a potential action and never an Equip.
 func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
-	if !e.potentialRestricted {
+	if !e.potentialRestricted || e.potentialWitness {
+		// A witness walk's pool is what the plan floats, built by the payment
+		// planner for this very payment: it already spent only mana the
+		// restriction admits. Rebuilding it from the board's over-bound (which
+		// counts a Combo source in both its colours) would price the offer
+		// against mana the plan never makes.
 		return hyp
 	}
 	return e.potentialManaFor(p, &d)

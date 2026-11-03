@@ -292,3 +292,21 @@ func TestSplitHalfCast(t *testing.T) {
 		t.Fatalf("Fire on the stack: mana value %d, want 2", mv)
 	}
 }
+
+// TestSplitCardCountsBothHalvesAsEvidence: Fuss // Bother in the graveyard is
+// nine mana value toward a collect evidence cost or a ward-evidence payment,
+// its halves' sum (CR 709.4b, 701.59a), not the front's three.
+func TestSplitCardCountsBothHalvesAsEvidence(t *testing.T) {
+	sc, id := facesScen(t, "Fuss", "Grizzly Bears")
+	fuss := sc.grave(id["Fuss"], 0, 1)[0]
+	if mv := sc.s.graveMV(sc.k, fuss); mv != 9 {
+		t.Fatalf("Fuss // Bother in the graveyard counts %d toward evidence, want 9", mv)
+	}
+	bear := sc.grave(id["Grizzly Bears"], 0, 1)[0]
+	if mv := sc.s.graveMV(sc.k, bear); mv != 2 {
+		t.Fatalf("Grizzly Bears in the graveyard counts %d toward evidence, want 2", mv)
+	}
+	if tot := sc.s.graveTotalMV(sc.k, 0); tot != 11 {
+		t.Fatalf("graveyard total %d, want 11", tot)
+	}
+}

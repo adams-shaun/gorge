@@ -1,12 +1,12 @@
 {
   "card": "Vitu-Ghazi Inspector",
-  "class": "options",
-  "why": "the engines offer different options; 5 games in the corpus",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; Vitu-Ghazi Inspector is among the latest actions and Plains is the card the divergence implicates",
   "repro": {
     "pool": "std-mkm",
     "surface": "full",
     "seed": 1,
-    "pair": 349,
+    "pair": 1416,
     "policy": "random",
     "mulligans": 1
   }

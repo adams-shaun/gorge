@@ -62,6 +62,10 @@ type payDesc struct {
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
+	// play is the action the payment funds when the search needs its timing
+	// (grantPayDesc): a sorcery-speed play waits for a stack its prefix grew
+	play    Action
+	hasPlay bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability
@@ -562,6 +566,36 @@ func (s *State) restrFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, e
 		skip = d.src
 	}
 	return s.restrSrcAffords(k, p, d, r, av, skip, extra)
+}
+
+// wideFaceAffords: a hybrid pip's face r (plus extra generic) is payable once
+// the wide any-colour restricted sources the payment being built may spend are
+// counted (CR 601.2b, 601.2g, 106.6): Flamebraider's two mana of any colours
+// pay an Elemental's pip in either colour. gorge's offer gate reaches the
+// face through the cast window, which activates such a source like any other;
+// restrFaceAffords does not see it (its census mana is a gap, not a planner
+// unit). av does not pay r alone.
+//
+//go:noinline
+func (s *State) wideFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, extra int) bool {
+	d := s.payDescNow(NoObj)
+	skip := NoSlot
+	if d.class == pdAct {
+		skip = d.src
+	}
+	t := *av
+	any := false
+	for b := s.scriptWide(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if sl == skip {
+			continue
+		}
+		if s.restrSrcAdmits(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))], &d) {
+			t.addUnits(uint8(kop.ColAny), 2)
+			any = true
+		}
+	}
+	return any && t.affords(r, pipMaskOf(r), extra)
 }
 
 // restrSrcMaxX is the largest X the payment being built can announce with

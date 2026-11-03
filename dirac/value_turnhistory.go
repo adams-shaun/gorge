@@ -93,27 +93,59 @@ const resolveMark = 0x80
 // ver as the ability was created; the pool's cap stalls loud (StallUsed).
 //
 //go:noinline
-func (s *State) countResolve(e *stackEntry) {
+func (s *State) countResolve(k *prep, e *stackEntry) {
 	if int(s.g.nused) < maxUsed {
-		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: resolveMark | e.ab, ver: e.srcVer}
+		s.g.used[s.g.nused] = usedRec{obj: e.obj, ab: resolveMark | resolveTally(k, e), ver: e.srcVer}
 		s.g.nused++
 	} else {
 		s.capFull(StallUsed)
 	}
 }
 
+// resolveTally is the ability index a resolution is tallied under: the
+// first counted ability of the card whose body is the same program. Two
+// trigger lines sharing one Execute$ body are one ability to the oracle text
+// (Victor's "whenever an enchantment you control enters and whenever you
+// fully unlock a Room" is one Eerie ability) and gorge keys the tally by the
+// body (events.ResolvedAbilityKey), so a resolution through either line
+// counts into the one tally.
+//
+//go:noinline
+func resolveTally(k *prep, e *stackEntry) uint8 {
+	abs := k.t.Cards[e.card].Abilities
+	a := &abs[e.ab]
+	for j := uint8(0); j < e.ab; j++ {
+		b := &abs[j]
+		if b.AFlags&kop.AfResolveCount == 0 || b.Kind != a.Kind || len(b.Prog) != len(a.Prog) {
+			continue
+		}
+		same := true
+		for i := range a.Prog {
+			if a.Prog[i] != b.Prog[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			return j
+		}
+	}
+	return e.ab
+}
+
 // resolvedThisTurn is ExResolvedThisTurn: the resolving ability's
 // resolutions this turn (Count$ResolvedThisTurn).
 //
 //go:noinline
-func (s *State) resolvedThisTurn() int {
+func (s *State) resolvedThisTurn(k *prep) int {
 	if !s.res.active {
 		return 0
 	}
 	e := &s.res.e
+	ab := resolveMark | resolveTally(k, e)
 	n := 0
 	for i := 0; i < int(s.g.nused); i++ {
-		if r := s.g.used[i]; r.obj == e.obj && r.ab == resolveMark|e.ab && r.ver == e.srcVer {
+		if r := s.g.used[i]; r.obj == e.obj && r.ab == ab && r.ver == e.srcVer {
 			n++
 		}
 	}

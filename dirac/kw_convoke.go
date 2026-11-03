@@ -319,6 +319,13 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.reverseCast(k)
 		return false
 	}
+	if s.winPaused() {
+		for c := range held {
+			s.pl[e.ctrl].pool[c] += held[c]
+		}
+		s.occ = saved.occ
+		return true // the pick is posed; the announced creatures tap when the window ends (mana_window.go)
+	}
 	s.payFromPoolRider(k, e.ctrl, &red, 0, anyColor)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
@@ -370,6 +377,20 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 		}
 	}
 	s.occ = s.occ.andNot(hide)
+	// gorge's affordableTargetCandidates probes every production the window
+	// offers, a tap-another source (Springleaf Drum) included; the probe
+	// takes its first candidate and never waits on the pick.
+	s.g.probeWin = true
+	if k.gen.anyWindowGap {
+		// a window-gap source (Bloom Tender) is one gorge's census cannot
+		// price, so the menu keeps its candidates (the census-incomplete arm).
+		for m := s.ctrlM[e.ctrl].and(s.occ); m.any(); m = m.rest() {
+			if s.windowGap(k, e.ctrl, m.first()) {
+				s.CopyFrom(saved)
+				return false
+			}
+		}
+	}
 	ok, _ := s.windowTapRider(k, e.ctrl, &cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)
 	return !ok

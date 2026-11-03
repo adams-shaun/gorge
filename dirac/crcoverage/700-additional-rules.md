@@ -414,7 +414,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 724.1b | follows | `dirac/interp_gen.go#State.execGen` | - | whole stack exiled, resolving spell included. dirac inherits gorge |
 | 724.1c | partial | `dirac/turn.go#State.finishCleanup` | - | dirac checks SBAs only after cleanup's 514.2 damage removal; unobservable with Time Stop |
 | 724.1d-724.1e | follows | `dirac/turn_gen.go#State.stepGen` `dirac/turn.go#State.clearCombat` | `TestEndTheTurnRemovesFromCombat` | combat removed, straight to cleanup, end step never entered. dirac inherits gorge |
-| 724.2-724.2g | n/a | - | - | LOUD: api:EndCombatPhase unregistered, Mandate of Peace unsupported. dirac: no end-combat effects in FDN/BLB |
+| 724.2-724.2g | n/a | - | - | kgen refuses api EndCombatPhase by name (`TestEndCombatPhaseIsRefusedByName`); no supported card ends the combat phase |
 | 725.1 | n/a | - | - | dirac n/a: no monarch cards in FDN/BLB |
 | 725.2 | n/a | - | - | end-step draw triggers (borrows an arbitrary Source); combat-damage steal is immediate, not a trigger. SILENT |
 | 725.3 | n/a | - | - | single holder field; dirac n/a: no monarch cards in FDN/BLB |

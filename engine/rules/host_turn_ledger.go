@@ -207,6 +207,23 @@ func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 	return e.turnsTaken[p]
 }
 
+// ExtraTurnsBegun satisfies effects.Host's ExtraTurnsBegun: the extra turns
+// that have begun with p as the active player this game. The turn structure
+// consumes a pending grant with one -1 ExtraTurn event at the boundary where
+// it repeats the seat (CR 500.7); a consumption marked skipped by a BeginTurn
+// replacement never began a turn, so it does not count. Whole-log walk, like
+// TurnsTaken: the count spans the game, and a restart's new game counts from
+// its own base.
+func (e *Engine) ExtraTurnsBegun(p state.PlayerID) int32 {
+	var n int32
+	for _, ev := range e.L.Events[e.turnLedgerBase:] {
+		if ev.Kind == events.ExtraTurn && ev.Player == p && ev.Amount < 0 && ev.Text != events.ExtraTurnSkippedText {
+			n++
+		}
+	}
+	return n
+}
+
 // AttackersThisTurn satisfies effects.Host's AttackersThisTurn for
 // Count$AttackersDeclared (the Raid family's "attacked this turn" read): the
 // number of attackers declared this turn, summed from every DeclareAttackers

@@ -387,6 +387,15 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	if f == 0 {
 		return n
 	}
+	for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
+		if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
+			// an earlier slot's target already satisfies the reduction, so the
+			// cost is reduced whatever this slot picks (Run Over's second
+			// target, the creature an opponent controls, once its first is a
+			// Vehicle; gorge asks a later chain link's target unfiltered)
+			return n
+		}
+	}
 	s.g.noTgtRed = true
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)
 	s.g.noTgtRed = false

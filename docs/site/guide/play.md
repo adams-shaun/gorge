@@ -286,7 +286,7 @@ for that game: the server's default, another bot the server offers, or none, whi
 restart keeps the choice.
 
 For each of your decisions the panel lists the options the search weighed, each with the share of its lines
-that looked at it and its estimated chance of winning, and marks the one it recommends. It also marks what the
+that looked at it and its estimated chance of winning, and marks the one it recommends. Below the recommendation it lists the line the search expects to follow: up to four of the most-visited plies after that play, who makes each, how much of the search went that way and where those lines end up. The line stops before any ply that depends on cards you can't see, and the panel says when it was cut short. It also marks what the
 bot's own rules would do without searching, and says when search overrules them; a setting in the panel turns
 that off, and your browser remembers it. It only advises.
 Pressing a row does nothing, and you still answer. If you answer differently, a note in the panel and in

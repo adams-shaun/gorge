@@ -143,7 +143,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false
-		if !s.altAddCastable(k, c, p, o, &cost, av) || !offers || s.castHeldOut(o) {
+		if !s.altAddCastableFrom(k, c, p, o, &cost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
@@ -237,6 +237,7 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 		}
 		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
 			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+			s.bld().bfl |= bflUsedMark
 		}
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 {
 			s.bld().subCtr = uint8(st.a.Static.A) // Static.A counters (Quilled 6, Dawnhand 3), chosen one counter at a time (subCtrOptions)
@@ -650,7 +651,13 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(p, a) {
 				continue // kw_maxspeed.go
 			}
-			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc || !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) {
+			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+				continue
+			}
+			// a restricted source (Heartwood Crafter's {C}) pays an activated
+			// ability from the graveyard as from the hand (CR 106.6)
+			if !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) &&
+				!(k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}, &a.Cost.Mana, av, NoSlot, 0)) {
 				continue
 			}
 			if a.Trig.Cond != 0 && !s.graveActCond(k, a, p, o) {
@@ -761,7 +768,14 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	}
 	// gorge's colour ask lists a source's colours in WUBRG order and
 	// the failed payment takes the first (oracle payWindowAnswer)
-	for _, c := range [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C} {
+	// A granted basic land type lists the land's own ability first (Mountain
+	// under Leyline of the Guildpact: {R}, then the granted colours), and the
+	// failed payment takes that one (windowCol's blgFirst).
+	order := [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C}
+	if pc.blgFirst != 0 && int(pc.blgFirst-1) < len(order) && mask&(1<<(pc.blgFirst-1)) != 0 {
+		order = [6]int{int(pc.blgFirst - 1)} // taken at once: its bit is in mask
+	}
+	for _, c := range order {
 		if mask&(1<<c) != 0 {
 			if !sacOnly {
 				s.perms[sl].flags |= pfTapped

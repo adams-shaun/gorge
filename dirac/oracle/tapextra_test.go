@@ -107,3 +107,58 @@ func TestTapExtraPainfulSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "talisman_beside_monument", "std-trc", Config{})
 }
+
+// A source whose own ability a Continuous grant joins (Great Divide Guide's "{T}: Add one
+// mana of any color" on every land and Ally) is one availability unit that carries the
+// extra its tap brings, and the prefix that activates the granted ability floats it:
+// gorge prices the extra on each alternative and a real activation adds it.
+func TestTapExtraGrantedUnitLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_unit", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+func TestTapExtraGrantedPrefixLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_prefix", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// A land that taps for several fixed colours (a basic type added by an effect) and a source
+// whose amount is evaluated (Raucous Audience, an any-colour amount of the Legend of Kyoshi)
+// bring the same extra as a plain tap, whichever ability or amount.
+func TestTapExtraSeveralAbilitiesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_several_abilities", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+func TestTapExtraEvaluatedAmountLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_evaluated_amount", "std-tla", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "tap_extra_evaluated_one_colour", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// A granted-only source's extra counts toward the offer's availability only: gorge's
+// potential walk relaxes a granted ability to its own free unit, which brings none, so a
+// play that extra alone funds is not searched (the Rockalanche flashback; Meditation
+// Pools' activation).
+func TestTapExtraGrantedWalkLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_walk_cap", "std-tla", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "tap_extra_granted_walk_activation", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// A cast's payment window takes a source for the colour the cost still owes when any ability
+// of it makes that colour, a granted one too: with Great Divide Guide in play a Swamp pays
+// a {G} pip (gorge's clamp reads each ability the source offers), and the window reaches it
+// before a later Forest.
+func TestWindowGrantedColourLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "window_grant_colour_owed", "std-tla", Config{})
+}
+
+// A prefix step that taps a Combo ability tries its colours in the order gorge's ask offers
+// them, the printed one: Sun-Blessed Peak's "R or W" floats {R} where W U B R G order
+// would float {W}, and the difference reaches the pool the activation spends from.
+func TestPrefixComboPrintedOrderLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "prefix_combo_printed_order", "std-tla", Config{})
+}

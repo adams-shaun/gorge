@@ -1,12 +1,12 @@
 {
   "card": "Marketback Walker",
-  "class": "projection-Cards.Zone",
-  "why": "the engines' state differs at projection Cards[].Zone; 3 games in the corpus",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; Marketback Walker is among the latest actions and Camera Launcher is the card the divergence implicates",
   "repro": {
     "pool": "std-dft",
     "surface": "full",
     "seed": 1,
-    "pair": 550,
+    "pair": 1328,
     "policy": "random",
     "mulligans": 1
   }

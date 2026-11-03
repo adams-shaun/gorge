@@ -466,6 +466,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.PeekMayReveal != 0 {
 				return s.peekMayReveal(k, in, p), true // act_peekreveal.go
 			}
+			if in.Obj == kop.RefEachPlayer {
+				// Defined$ Player: every player reveals, the resolving
+				// controller first, as gorge's definedPlayers walks AliveFrom.
+				first, second := s.eachPlayers(k, in.Obj)
+				s.peekPublic(k, in, first)
+				s.peekPublic(k, in, second)
+				break
+			}
 			s.peekPublic(k, in, p)
 			break
 		}
@@ -1259,12 +1267,12 @@ func (s *State) markExileEx(k *prep, sl Slot) {
 	}
 }
 
-// dieZone is where a creature that dies goes (exile when an effect said so
+// dieZone is where a permanent that goes to the graveyard goes (exile when an effect said so
 // this turn); two or more competing replacements stall (StallReplLeave) unless
 // a parked move's ask has settled them (repl_exilemark.go).
 func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
-	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 && s.isCreature(k, sl) {
-		// CR 122.1: a creature with a finality counter is exiled instead,
+	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 {
+		// CR 122.1h: a permanent with a finality counter is exiled instead,
 		// a game rule gorge applies at the move boundary before the
 		// replacements (finalityReplacementApplies)
 		return kop.ZoneExile
@@ -1324,11 +1332,12 @@ func (s *State) auraEntry(k *prep, o Obj, ctrl uint8) (host Slot, ask, stay bool
 	return NoSlot, true, false
 }
 
-// returnAura is the core's OpReturn of an Aura card to the battlefield under the
-// resolving entry's controller (auraEntry); host != NoSlot is the answered
-// enchant ask. It reports whether the ask is posed.
+// returnAura is the core's OpReturn of an Aura card to the battlefield under its
+// owner's control, as execReturnSimple enters any plain return (auraEntry: the
+// owner is who chooses what it enchants, CR 303.4f); host != NoSlot is the
+// answered enchant ask. It reports whether the ask is posed.
 func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
-	ctrl := s.res.e.ctrl
+	ctrl := s.objs[o].owner()
 	if host == NoSlot {
 		var ask, stay bool
 		if host, ask, stay = s.auraEntry(k, o, ctrl); ask || stay {
@@ -1604,6 +1613,23 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				if mv&kop.MvUnderYourControl != 0 {
 					ctrl = e.ctrl
 				}
+				// CR 303.4f/g, in gorge's move order (Forge's per-card moveTo): an
+				// Aura card enters attached to the one host it can enchant, waits
+				// for its controller's pick among two or more with the cards
+				// before it already entered, and stays where it is with none
+				host := NoSlot
+				if z == kop.ZoneBattlefield && k.gen != nil {
+					if s.digAuraStays(k, o, ctrl) {
+						continue
+					}
+					if host = s.digAuraHost(k, o, ctrl); host == NoSlot && s.digAuraPark(k, o, ctrl) {
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
+					}
+				}
 				if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
 					if !resume {
 						s.g.held, s.g.retTS = 0, stamp
@@ -1625,6 +1651,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					sl := s.enterHeld(k, &eb, o, ctrl, mv&kop.MvTapped != 0, from)
 					if s.g.pre.obj == o {
 						s.g.pre = preAsk{}
+					}
+					if host != NoSlot && s.occ.has(host) {
+						s.attachTo(k, sl, host)
 					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
@@ -1792,8 +1821,14 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
-	n := s.replTokens(k, e.ctrl, c, s.value(k, in.A))
-	return s.copyTokens(k, in, c, n)
+	v := s.value(k, in.A)
+	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
+		// created all the same (CR 603.7): it goes on the stack at the end
+		// step and does nothing (gorge scheduleAtEOTNone)
+		s.delayEmpty(e)
+	}
+	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's

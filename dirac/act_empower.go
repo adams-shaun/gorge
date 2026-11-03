@@ -172,14 +172,15 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		cid := s.cardAt(src)
-		if !k.gen.has(cid, gfGlobGrant) || s.genLost(k, src) || lost && s.layerTs(src) < lts {
+		if !k.gen.has(cid, gfGlobGrant) || lost && s.layerTs(src) < lts {
 			continue
 		}
+		srcLost := s.genLost(k, src)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant == 0 ||
-				filterAttachedOnly(k.t, a.Static.Filter) {
+				filterAttachedOnly(k.t, a.Static.Filter) || srcLost && !keptOnLoss(k.t, a) {
 				continue
 			}
 			ab := a.Static.Grant - 1

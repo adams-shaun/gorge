@@ -1919,8 +1919,10 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		// frame into the body, the same channel the dyn-tap election's count
 		// takes (rp.tapPaidX). The body's Count$xPaid then reads THIS
 		// payment, not the source permanent's cast-time X.
-		if tc.xPaid != 0 {
-			rp.winPaidX = tc.xPaid
+		if tc.xDone || tc.xPaid != 0 {
+			// An announced X of 0 binds too: the body reads the amount its
+			// controller paid, not the causing permanent's X (CR 107.3m).
+			rp.winPaidX, rp.winXBound = tc.xPaid, true
 		}
 		rp.kind = "effect_paid"
 		e.resumeResolution(rp, nil)
@@ -2041,7 +2043,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	sc := e.withNames(effects.NewSpecContext(tc.player, tc.specSource(e)))
 	sc.TriggerContext = tc.trig
 	var out []state.ObjID
-	for _, id := range e.G.Zone(zone, tc.player) {
+	for _, id := range pay.ExileZoneCards(e.G, zone, tc.player, part) {
 		if used[id] {
 			continue
 		}
@@ -2377,8 +2379,8 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	}
 	// The announced X (the evidence fold) binds into the body exactly like
 	// the pay arm's fold does.
-	if tc.xPaid != 0 {
-		rp.winPaidX = tc.xPaid
+	if tc.xDone || tc.xPaid != 0 {
+		rp.winPaidX, rp.winXBound = tc.xPaid, true
 	}
 	rp.kind = "effect_paid"
 	e.resumeResolution(rp, nil)

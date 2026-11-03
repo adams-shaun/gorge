@@ -89,6 +89,11 @@ type Options struct {
 	// is aborted by the search's own bail-out and the policy's non-searched
 	// fallback answers. See bots.BudgetedSeat.
 	DecisionDeadlineMS int
+	// ExpectedLine > 0 asks a tree-searching seat to report the principal
+	// line of up to that many plies in its explain note (explain.Search.Line).
+	// Only the paired bot's advice sets it; a seat that has no tree ignores
+	// it, and 0 costs nothing.
+	ExpectedLine int
 	// CommonSense opts the `bot`, `forge-heuristic` and `sb-tactical` factories into the
 	// bots/sanity guard (sanity.Wrap): hostile removal the engine says can
 	// only hit the seat's own permanents or player is dropped from the

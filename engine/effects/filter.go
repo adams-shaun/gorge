@@ -3451,6 +3451,15 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // that was exiled). A departure's controller is the one it left under: the
 // object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
+	if e.To == state.ZBattlefield && e.From != state.ZBattlefield {
+		// A permanent that entered and has since left (an Aura returned to hand,
+		// a creature that died) still entered this turn (CR 700.14, 603.10a):
+		// match the card where it now lies, as a card, since the battlefield
+		// matcher rejects an object that is no longer a permanent.
+		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+			return matchesZoneSpecCtx(g, spec, e.Obj, sc, o.Zone)
+		}
+	}
 	if e.From != state.ZBattlefield {
 		return matchesZoneSpecCtx(g, spec, e.Obj, sc, e.To)
 	}

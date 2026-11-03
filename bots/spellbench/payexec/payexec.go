@@ -453,6 +453,29 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 			amt, any, combo, ok := labelProduction(o.Label)
 			return single && ok && !any && combo == nil && total(amt) == 1 && amt[col] == 1
 		},
+		// A tap that also adds mana through a static TapsForMana trigger
+		// records that mana in the witness beside the colour the player picks,
+		// so the witness is no single colour: take an option naming any
+		// colour it holds. The pool check after the tap catches a wrong guess.
+		func(o *decision.Option) bool {
+			if single {
+				return false
+			}
+			if o.ManaSymbol != "" {
+				c := symIndex(o.ManaSymbol)
+				return c >= 0 && want[c] > 0
+			}
+			_, any, combo, ok := labelProduction(o.Label)
+			if !ok || any {
+				return false
+			}
+			for _, c := range combo {
+				if want[c] > 0 {
+					return true
+				}
+			}
+			return false
+		},
 	}
 	costly := act.Consequence != nil
 	for _, cls := range classes {

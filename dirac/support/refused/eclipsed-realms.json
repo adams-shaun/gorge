@@ -1,12 +1,12 @@
 {
   "card": "Eclipsed Realms",
   "class": "projection-Cards.Flags",
-  "why": "the engines' state differs at projection Cards[].Flags; 20 games in the corpus",
+  "why": "the engines' state differs at projection Cards[].Flags",
   "repro": {
     "pool": "std-ecl",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1394,
+    "pair": 338,
     "policy": "random",
     "mulligans": 1
   }

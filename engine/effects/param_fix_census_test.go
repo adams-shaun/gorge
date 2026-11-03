@@ -55,6 +55,7 @@ var adamantCountBodies = []string{
 // commaWithCountersTypeCarriers is the complete corpus set (sorted) of cards
 // whose WithCountersType$ parameter carries a comma-delimited list.
 var commaWithCountersTypeCarriers = []string{
+	"Chief Montgomery Scott",
 	"Gilraen, Dúnedain Protector",
 	"Perennation",
 }

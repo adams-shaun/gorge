@@ -1,13 +1,13 @@
 {
   "card": "Spyglass Siren",
-  "class": "projection-Cards.Power",
-  "why": "the engines' state differs at projection Cards[].Power; 2 games in the corpus",
+  "class": "unmodelled-entryorder",
+  "why": "gorge does something the kernel does not model here (stall entryorder); Spyglass Siren is among the latest actions",
   "repro": {
     "pool": "std-lci",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 1150,
+    "pair": 991,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

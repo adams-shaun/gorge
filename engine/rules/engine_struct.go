@@ -12,12 +12,13 @@ type Engine struct {
 	// prioMemo is the posed-priority option memo (prio_memo.go), per seat.
 	prioMemo []prioMemoEnt `clone:"reset"`
 
-	G                *state.Game     `clone:"deep"`
-	deckManifests    []deck.Manifest `clone:"share"`
-	endTurnRequested bool            `clone:"reset"`
-	L                *events.Log     `clone:"deep"`
-	compiledText     *compiledText   `clone:"share"`
-	landTypeWords    []string        `clone:"share"`
+	G                  *state.Game     `clone:"deep"`
+	deckManifests      []deck.Manifest `clone:"share"`
+	endTurnRequested   bool            `clone:"reset"`
+	endCombatRequested bool            `clone:"reset"`
+	L                  *events.Log     `clone:"deep"`
+	compiledText       *compiledText   `clone:"share"`
+	landTypeWords      []string        `clone:"share"`
 
 	// restart is a CR 727 restart effRestartGame requested and the
 	// resolving caller has not yet performed (engine/rules/restart.go).

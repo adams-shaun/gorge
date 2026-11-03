@@ -183,6 +183,7 @@ const (
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
 	pfPanhGone    // a Panharmonicon host departing in the batch being fired: gorge reads its statics after the batch (trig_doubling.go)
+	pfDeclared    // was declared as an attacker earlier this turn (Count$AttackersDeclared counts each creature once across extra combats)
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;
@@ -513,7 +514,7 @@ type pendingTrig struct {
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
-	// skw is the source's departure keywords (stackEntry.skw), with skwRem above them
+	// skw is the source's departure keywords (stackEntry.skw), with skwMany and skwRem above them
 	skw uint8
 }
 
@@ -681,6 +682,11 @@ const (
 	bflTre      // this cast tapped a Treasure source for mana (CastSpecTreasure)
 )
 
+// bflTargetPaid: a convoke cast gorge's planner takes because only its own
+// target pays it (targetPaidPlanned): with no creature announced, its plan runs
+// at the printed cost as any planned cast's does, not the manual window.
+const bflTargetPaid uint16 = 1 << 8
+
 // bflCostFixed: the spell's mana step priced it, and paying (a Treasure's
 // sacrifice under affinity, a cost's discard) does not move its total cost.
 const bflCostFixed uint16 = 1 << 9
@@ -690,8 +696,28 @@ const bflCostFixed uint16 = 1 << 9
 // interval, and dirac's has already gone (reverseCast).
 const bflTokenGone uint16 = 1 << 10
 
+// bflUsedMark: this cast marked a once-per-turn permission static used (legal_gen.go
+// castMayPlay), which a reversed cast gives back (CR 733.1; reverseCast).
+const bflUsedMark uint16 = 1 << 14
+
 // bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
 const bflDilemma uint16 = 1 << 15
+
+// bflWinTap: the cast window stopped at a tap-another-permanent source with several
+// permanents to tap, and the build waits on that pick (ChWindowTap, mana_window.go).
+// bflMsDone: manaStep's own steps before the window have run, so the window's re-entry
+// after the pick does not repeat them. bflPayDone: the same for finishBuild's cost
+// payments before the mana.
+const (
+	bflWinTap  uint16 = 1 << 11
+	bflMsDone  uint16 = 1 << 12
+	bflPayDone uint16 = 1 << 13
+	// bflPlanCut: a Treasure sacrificed by the planner's tap parked behind a
+	// replacement ask. Gorge's payment plan stops at a step that poses a decision
+	// (paymentFallbackChoiceRequired), so the rest of the cost is paid through the
+	// manual window, not a fresh plan: manaStep's re-entry taps through the window.
+	bflPlanCut uint16 = 1 << 14
+)
 
 // resolution ask kinds (resCtx.ask).
 const (

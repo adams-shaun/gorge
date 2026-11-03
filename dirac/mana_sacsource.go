@@ -102,14 +102,13 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 }
 
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast
-// whose plan sacrifices a source: the witness lets at most four stacked
-// triggers resolve before it gives up (potential_script.go's wait budget),
-// so a plan whose sacrifices trigger more than four abilities is not
-// offered. The plan is executed on a copy of the state.
-func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if !s.subs[kop.TrigSacrificed].any() {
-		return true
-	}
+// whose plan sacrifices a source: the witness lowers the plan before the
+// cast, so a spell whose targets the sacrifices consume is not offered
+// (the kicked cast is no planned cast, targetPaidPlanned), and it lets at
+// most four stacked triggers resolve before it gives up (potential_script.go's
+// wait budget), so a plan whose sacrifices trigger more than four abilities
+// is not offered. The plan is executed on a copy of the state.
+func (s *State) kickWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
 	if !s.anySacSource(k, p) {
 		return true // no source the plan could sacrifice
 	}
@@ -122,7 +121,10 @@ func (s *State) kickWitness(k *prep, p uint8, cost *kop.ManaCost) bool {
 	if !pk.found {
 		return true
 	}
-	return int(tmp.npend)-int(n0) <= witnessWaits
+	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
+		return false
+	}
+	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits
 }
 
 // canSacOnlyForMana reports whether the autopay planner may price sl as a
@@ -173,13 +175,21 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 
 // resolveLowerCounterTriggers resolves the pending triggers a lowered
 // cast's payment created before the cast's own triggers are placed. gorge
-// resolves a payment trigger before it puts the spell's cast triggers on the
-// stack (its lowering pays before the cast), so a trigger whose whole
-// program is one OpPutCounter lands its counter at once, and one that mills a
-// target player (Scavenger's Talent on a Treasure sacrificed for the witness)
-// mills the first player gorge's default answer names. Any other trigger stays
-// pending for the ordinary stack path.
+// lowers a cast by activating each witness source at priority
+// (payexec.Execution), so a sacrifice's trigger goes on the stack before the
+// spell does, and the lowering passes priority until it resolves. A trigger
+// that asks nothing when it is put on the stack or when it resolves therefore
+// lands its whole effect at once: a program with no target, no mode and no
+// "may", that runs through without suspending (runsPreCast, tried on a copy).
+// One that asks is answered by the lowering's default (botpolicy.Clamp on an
+// empty intent: the fewest, first options), and stays pending here for the
+// ordinary stack path; so do a program that adds mana (the lowering's pool
+// check would end the witness) and an optional trigger. A trigger that
+// mills, loses life, gains life or draws for a target player is answered
+// with the first player gorge's default answer names.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
+	b := s.bld()
+	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
 	for i := int(n0); i < int(s.npend); {
 		pt := &s.pend[i]
 		if int(pt.card) >= len(k.t.Cards) {
@@ -192,28 +202,141 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 			continue
 		}
 		a := &cd.Abilities[pt.ab]
-		mills := len(a.Prog) == 1 && a.Prog[0].Op == kop.OpMill && a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer && a.Prog[0].C&kop.MvMayMill == 0
-		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || a.Prog[0].Op != kop.OpPutCounter && !mills || a.NTargets != 0 && !mills || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
+		var op kop.Op
+		if len(a.Prog) == 1 {
+			op = a.Prog[0].Op
+		}
+		// a one-op program with no ask: the counter, the mill and the life or draw of a player
+		// (a target player gorge's default answer names)
+		plTgt := a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer
+		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
+		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
+		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw)
+		// a straight run of life losses, gains and draws, one of them aimed at a target
+		// player gorge's default answer names (Al Bhed Salvagers: target opponent loses
+		// 1 life and you gain 1)
+		plRun := !single && plTgt && lifeRun(a.Prog)
+		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
 			i++
 			continue
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
+		if instant {
+			// the lowering is done as soon as the play is offered, and an
+			// instant-speed cast is offered with the trigger still on the stack
+			// (payexec.priority): the trigger goes on below the spell
+			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt) {
+				i++
+				continue
+			}
+			if plTgt {
+				e.tgt[0], e.nt = PlayerTarget0, 1
+				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+					e.tgt[0] = PlayerTarget0 + 1
+				}
+			}
+			s.pushBelowCast(k, e, pt)
+			copy(s.pend[i:], s.pend[i+1:s.npend])
+			s.npend--
+			continue
+		}
+		if plRun {
+			e.tgt[0], e.nt = PlayerTarget0, 1
+			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+				e.tgt[0] = PlayerTarget0 + 1
+			}
+		}
+		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
+			i++
+			continue
+		}
 		save := s.res
 		s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-		if mills {
-			s.res.e.tgt[0] = PlayerTarget0
-			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
-				s.res.e.tgt[0] = PlayerTarget0 + 1
+		switch {
+		case single && op == kop.OpPutCounter:
+			s.putCounterProg(k, &a.Prog[0])
+		case single:
+			if plTgt {
+				s.res.e.tgt[0] = PlayerTarget0
+				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+					s.res.e.tgt[0] = PlayerTarget0 + 1
+				}
 			}
 			s.exec(k, &a.Prog[0])
-		} else {
-			s.putCounterProg(k, &a.Prog[0])
+		default:
+			s.runPreCast(k, a.Prog)
 		}
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
 	}
+}
+
+// lifeRun reports whether prog is only life losses, life gains and draws.
+func lifeRun(prog []kop.Instr) bool {
+	for i := range prog {
+		switch prog[i].Op {
+		case kop.OpLoseLife, kop.OpGainLife, kop.OpDraw:
+		default:
+			return false
+		}
+	}
+	return len(prog) != 0
+}
+
+// pushBelowCast puts trigger entry e on the stack ahead of the cast being built,
+// whose own push (CR 601.2a) comes after the lowering: what takePending does for a
+// trigger that asks nothing, without the build it would otherwise take over.
+func (s *State) pushBelowCast(k *prep, e stackEntry, pt *pendingTrig) {
+	saved := *s.bld()
+	*s.bld() = build{e: e, stage: stageFirst[seTrigger]}
+	if k.gift {
+		s.giftPushed(k, pt)
+	}
+	s.pushBuild(k)
+	s.syncBuild()
+	*s.bld() = saved
+}
+
+// runsPreCast reports whether trigger entry e's program runs to its end
+// without suspending on an ask, on a copy of the state, and adds no mana.
+func (s *State) runsPreCast(k *prep, e stackEntry, prog []kop.Instr) bool {
+	if len(prog) == 0 {
+		return false
+	}
+	for i := range prog {
+		if prog[i].Op == kop.OpAddMana {
+			return false
+		}
+	}
+	t := s.fork()
+	defer s.unfork()
+	t.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	return t.runPreCast(k, prog)
+}
+
+// runPreCast executes prog from the top outside a resolution (runProg
+// without the stack entry's cleanup) and reports whether it ran through; false
+// when an op asked, or parked an order or a replacement choice.
+func (s *State) runPreCast(k *prep, prog []kop.Instr) bool {
+	for int(s.res.pc) < len(prog) {
+		if !s.exec(k, &prog[s.res.pc]) {
+			return false
+		}
+		if s.over {
+			return true
+		}
+		if k.gen != nil && (s.g.pre.state == preReturn || s.g.nc.n != 0 || s.entryLatePark()) {
+			return false
+		}
+		if s.g.nask != 0 && s.midResAsk(k) || len(s.cold.parked) != 0 && s.parkedWaiting() {
+			return false
+		}
+		s.res.pc++
+		s.loopBack(k)
+	}
+	return true
 }
 
 // putCounterProg is the OpPutCounter effect of the interpreter (interp.go),
@@ -295,4 +418,64 @@ func (s *State) pendNeedsDecision(k *prep, i int) bool {
 	}
 	a := &cd.Abilities[pt.ab]
 	return a.NTargets != 0 || a.NModes != 0
+}
+
+// castNeedsEmptyStack reports whether the plain cast a is sorcery-speed: a
+// card that is neither an instant nor flashed may be cast only with the stack
+// empty (CR 307.1, 117.1a). gorge's script search keeps going through a pass
+// while the prefix's trigger is on the stack until the play is offered
+// (potential_script.go waitsForStack), so the trigger resolves first.
+func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() != AkCast || a.Mode() != 0 {
+		return false
+	}
+	o := Obj(a.Source())
+	c := s.objs[o].card
+	return !k.cards[c].instant && !s.castFlash(k, s.prio, c)
+}
+
+// activateNeedsEmptyStack reports whether the activation a is sorcery-speed
+// (SorcerySpeed$ True, which gorge's waitsForStack reads: equip, level up,
+// outlast, a Class level, a land's sorcery-speed ability): it is offered only
+// with the stack empty (CR 602.5d), as a cast is.
+func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() != AkActivate || k.gen == nil {
+		return false
+	}
+	ob := &s.objs[Obj(a.Source())]
+	c, ab := ob.card, a.Mode()
+	switch {
+	case ab&0x80 != 0:
+		host := &s.objs[Obj(a.Target())]
+		c, ab = host.card, ab&^0x80
+		if host.zone == kop.ZoneBattlefield {
+			c = s.cardAt(host.slot)
+		}
+	case ob.zone == kop.ZoneBattlefield:
+		c = s.cardAt(ob.slot)
+	}
+	if ab >= abCascade || int(ab) >= len(k.t.Cards[c].Abilities) {
+		return false
+	}
+	return k.t.Cards[c].Abilities[ab].Cost.Flags&kop.CostSorcery != 0
+}
+
+// playNeedsEmptyStack is castNeedsEmptyStack or activateNeedsEmptyStack: the
+// play a is offered only with the stack empty.
+func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
+	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
+}
+
+// resolvePrefixStack resolves what a scripted prefix left on the stack above
+// depth sp0, the other player passing as the search assumed, before a
+// sorcery-speed play is submitted (flushPrefixTriggers stacked it). A trigger
+// the resolution queues is placed and resolved too.
+func (s *State) resolvePrefixStack(k *prep, sp0 uint8) {
+	for s.sp > sp0 && s.ctl == ctlPriority && !s.over {
+		s.passes = 1
+		s.pass(k)
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
 }

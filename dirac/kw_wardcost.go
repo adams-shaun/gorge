@@ -149,9 +149,15 @@ func (s *State) resolveWardEvidence(k *prep) {
 }
 
 // graveMV is the mana value of the payer's graveyard card o (gorge
-// wardManaValue: state.ManaValue in the graveyard).
+// wardManaValue: state.ManaValue in the graveyard, so a split card counts
+// both halves, CR 709.4b).
 func (s *State) graveMV(k *prep, o Obj) int {
-	return int(k.cards[s.objs[o].card].total)
+	c := s.objs[o].card
+	mv := int(k.cards[c].total)
+	if k.gen.anySplit {
+		mv = s.splitMV(k, c, o, mv) // face_castface.go
+	}
+	return mv
 }
 
 // startWardEvidence answers "pay": the graveyard's total short of N

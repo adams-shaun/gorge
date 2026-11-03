@@ -599,6 +599,13 @@ type pendingCast struct {
 	// emits); nil outside a spell proposal with targets.
 	proposalTriggers [][2]int `clone:"deep"`
 
+	// proposalLimits are the trigger-limit counts (ActivationLimit$,
+	// GameActivationLimit$) the same queue entries consumed, with what each key
+	// held before. abortCast puts them back with the entries: an undone action
+	// triggered nothing (CR 733.1), so a once-each-turn trigger it queued has
+	// not used its turn.
+	proposalLimits []limitUndo `clone:"deep"`
+
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
 	// spell, sacrifice a creature or pay {3}{B}"): one KChoose over them at

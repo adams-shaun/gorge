@@ -473,7 +473,7 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // the same at announcement.
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -551,6 +551,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		ka.Exhaust = a.Exhaust
 		ka.Evidence = uint8(a.Cost.EvidenceN)
+		ka.GrantedKw = a.Latent && strings.HasPrefix(a.Name, "GrantedFirebending")
 		if a.PowerUp {
 			if a.Latent {
 				return ka, fmt.Errorf("power-up on a latent ability")

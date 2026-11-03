@@ -1,13 +1,13 @@
 {
   "card": "Multiversal Incursion",
-  "class": "options",
-  "why": "the engines offer different options; 4 games in the corpus",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags; Multiversal Incursion is among the latest actions and Island is the card the divergence implicates",
   "repro": {
     "pool": "std-msh",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 983,
+    "pair": 388,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

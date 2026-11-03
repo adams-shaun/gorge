@@ -151,7 +151,12 @@ func (e *Engine) queueUnlockTriggers(o *state.Object, face *cards.Face) {
 			DelayedID:  ^uint32(0),
 			Execute:    exec,
 			SA:         t.Effect,
-			Ctx:        effects.NewCtx(o.ID, o.Controller, effects.CtxInit{}),
+			// The body resolves against the unlocked half's own script table: a
+			// Room cast as its other half has a different face live, and an
+			// SVar the unlocked door's trigger reads (its X) is not there.
+			Trigger:      t,
+			TriggerSVars: face.SVars,
+			Ctx:          effects.NewCtx(o.ID, o.Controller, effects.CtxInit{}),
 		}, events.Event{Kind: events.DoorUnlock, Obj: o.ID}, nil)
 	}
 }

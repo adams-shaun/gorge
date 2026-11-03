@@ -1,12 +1,12 @@
 {
   "card": "Room of Refuge",
-  "class": "projection-Cards.Pos",
-  "why": "the engines' state differs at projection Cards[].Pos; 3 games in the corpus",
+  "class": "projection-Cards.Counters",
+  "why": "the engines' state differs at projection Cards[].Counters[]",
   "repro": {
     "pool": "std-fra",
     "surface": "full",
     "seed": 1,
-    "pair": 1319,
+    "pair": 2471,
     "policy": "random",
     "mulligans": 1
   }

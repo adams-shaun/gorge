@@ -319,6 +319,7 @@ ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNumColorsOf	ExprKind	57
 ExOppLifeLostThisTurn	ExprKind	17
+ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
 ExParty	ExprKind	39
 ExPhaseCount	ExprKind	232

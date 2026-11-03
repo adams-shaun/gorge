@@ -425,6 +425,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExYourTurns && t.Exprs[i].N == 0 {
 			p.anyYourTurns = true // value_exprs.go
 		}
+		if t.Exprs[i].Kind == kop.ExOppsAttacked {
+			p.anyOppsAtt = true // value_oppsattacked.go
+		}
 		if t.Exprs[i].Kind == kop.ExRedNCDmg {
 			p.anyRedNC = true // the tally rides replDamage, which anyRepl&rbPlusDmg gates open (value_damagetally.go)
 		}
@@ -946,7 +949,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfFilt)
 					g.anyFilt = true
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && g.gapOther(CardID(i)) < 0 {
+				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
@@ -1357,6 +1360,7 @@ type genState struct {
 
 	died     uint8    // creatures put into a graveyard from the battlefield this turn
 	attacked [2]uint8 // creatures each player attacked with this turn
+	oppAtt   uint8    // 1 once a declaration this turn named a player as defender (prep.anyOppsAtt only; value_oppsattacked.go)
 	isCast   [2]uint8 // instants and sorceries each player cast this turn (Tf2CastSnapshot)
 	// the turn history bank (value_turnhistory.go): per player, counters kgen's
 	// readers name by slot (histSpells: spells cast), and the mana spent
@@ -1398,6 +1402,7 @@ type genState struct {
 	// poolRChosen is, per player, the creature type the source of poolR's mana chose.
 	poolRChosen [2]uint8
 	probe       probe    // the spell / ability a priority feasibility check is for
+	tgtSelf     uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
 	inLoop      bool     // executing one object of a multi-object target slot
 	mt          multiTgt // the multi-object target slot being chosen
 	lastCK      kop.CounterKind
@@ -1481,11 +1486,13 @@ type genState struct {
 	pickF     uint16                  // the pick op's flags
 	winSrc    Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
 	winMode   uint8                   // the payment that window serves (winNone: none)
+	winCol    uint8                   // the colour a cast window's paused tap-another source makes once the pick is answered (mana_window.go)
 	winHeld   [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
 	nlook     uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
 	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
 	evSel     uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
 	endTurn   bool                    // OpEndTurn: skip to cleanup after this resolution
+	probeWin  bool                    // convokeTargetAbort's probe window: a tap-another source is listed and never waits on a pick (padding)
 	fog       bool                    // OpFog: all combat damage this turn is prevented (padding)
 	beamPick  bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast   bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
@@ -2148,6 +2155,14 @@ const preReturn uint8 = 3
 // preReturnOp is preAsk.state for a card a resolution's return op parked with its
 // as-enters choice: the answer runs the op again.
 const preReturnOp uint8 = 4
+
+// preDigEnchant is preAsk.state for an Aura a battlefield dig took, waiting
+// in the library for its controller's choice among two or more hosts;
+// preDigEnchantDone once answered (val is the host's slot).
+const (
+	preDigEnchant     uint8 = 5
+	preDigEnchantDone uint8 = 6
+)
 
 type preAsk struct {
 	obj   Obj

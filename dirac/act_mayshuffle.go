@@ -129,7 +129,10 @@ func (s *State) mayShuffleMove(k *prep, in *kop.Instr) bool {
 // shuffleRefs collects target slot's chosen object referents in target order
 // (the primary target, then the extras) and whether each is still legal to
 // move. A referent that has left the game is skipped: gorge's
-// objectPathMayShuffle/objectPathShuffleOwners see nil.
+// objectPathMayShuffle/objectPathShuffleOwners see nil. Origin$ Graveyard is a
+// precondition of the move (gorge changeZoneMoveSkip), so a referent an earlier
+// step of the same resolution took elsewhere (Rite of Renewal's cards returned
+// to hand) is not legal to move, though its owner's library is still shuffled.
 func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt + 1]Obj, legal *[maxXTgt + 1]bool) int {
 	n := 0
 	if slot >= kop.MaxTargets {
@@ -137,7 +140,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 	}
 	if c := e.tgt[slot]; c != NoTarget && isObjTarget(c) && s.objs[c].zone != kop.ZoneNone {
 		refs[n] = Obj(c)
-		legal[n] = s.res.bad&(1<<slot) == 0
+		legal[n] = s.res.bad&(1<<slot) == 0 && s.objs[c].zone == kop.ZoneGraveyard
 		n++
 	}
 	x := s.xtOf(e)
@@ -150,7 +153,7 @@ func (s *State) shuffleRefs(k *prep, e *stackEntry, slot uint8, refs *[maxXTgt +
 			continue
 		}
 		refs[n] = Obj(c)
-		legal[n] = s.xtLegal(k, e, j)
+		legal[n] = s.xtLegal(k, e, j) && s.objs[c].zone == kop.ZoneGraveyard
 		n++
 	}
 	return n

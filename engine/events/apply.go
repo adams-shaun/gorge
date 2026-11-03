@@ -222,6 +222,8 @@ func applyKind(g *state.Game, e *Event) {
 		}
 	case EndTurn:
 		foldEndTurn(g, e)
+	case EndCombatPhase:
+		foldEndCombatPhase(g, e)
 	case Resolve:
 		foldResolve(g, e)
 	case Mutate:

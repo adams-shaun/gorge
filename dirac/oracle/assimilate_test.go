@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The assimilate lockstep: Borg Queen takes a creature card from an opponent's
@@ -78,20 +79,31 @@ func TestAssimilateLockstep(t *testing.T) {
 
 // Two Borg Queens passing each other back through the legend rule reach gorge's trigger
 // cap (maxTriggerFires), which the kernel does not count. That game is a counted stall,
-// not a divergence, and still Clean: it agreed up to the decision the cap cut.
+// not a divergence, and still Clean: it agreed up to the decision the cap cut. The game is
+// a recorded repro, since a synthetic pair holds whatever the lowered card list deals it;
+// it must still pass the Queen back and forth (a Queen on the battlefield under each seat's
+// control) before the cap cuts it.
 func TestAssimilateTriggerCapIsAStall(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	synthPairsPlay(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, []int{235}, func(pair int, res *Result) {
-		if res.Div != nil {
-			t.Fatalf("pair %d diverged at %d: %s %s %v", pair, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	queens := func(ref *GorgeSide) bool {
+		n := 0
+		for p := range ref.E.G.Players {
+			if inZoneNamed(ref.E.G, state.ZBattlefield, state.PlayerID(p), "Borg Queen, Perfection Manifest") {
+				n++
+			}
 		}
-		if res.Stall != GorgeTriggerCapStall {
-			t.Fatalf("pair %d: stall %q after %d decisions, want %q", pair, res.Stall, res.Decisions, GorgeTriggerCapStall)
-		}
-		if !res.Clean() {
-			t.Fatalf("pair %d: a trigger-cap stall is not clean", pair)
-		}
-	})
+		return n == 2
+	}
+	res := stdReproPlay(t, "testdata/trigger_cap_borg_queens.repro.json", "std-trc", queens)
+	if res.Div != nil {
+		t.Fatalf("diverged at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Stall != GorgeTriggerCapStall {
+		t.Fatalf("stall %q after %d decisions, want %q", res.Stall, res.Decisions, GorgeTriggerCapStall)
+	}
+	if !res.Clean() {
+		t.Fatal("a trigger-cap stall is not clean")
+	}
 }

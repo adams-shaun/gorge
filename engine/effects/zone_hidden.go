@@ -79,7 +79,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to state.
 	// would name the zone owner instead. No corpus carrier exercises that
 	// shape; the pick's actual owner is only
 	// known after the hidden pick, which is asked below.
-	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+	rider := deferAttackingEntry(h, c, cz.Riders.Attacking, to,
 		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, players, cz.Riders.GainControl))
 	// ChooseFromDefined$ narrows the offered pool to the objects a defined
 	// selector names -- Cass, Hand of Vengeance's `ChooseFromDefined$ AttachedTo

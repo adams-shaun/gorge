@@ -3,6 +3,7 @@ package effects
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -43,11 +44,33 @@ type copyExceptSpec struct {
 // characteristic no exception names is left unset, so the fold keeps the
 // copied value.
 func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
-	var x events.CopyExceptions
 	f := o.Face()
 	if f == nil {
-		return x
+		return events.CopyExceptions{}
 	}
+	return copyExceptionsOf(f, ColorMaskOf(o), s)
+}
+
+// copyBackExceptions is copyExceptions for the other face of a double-faced
+// token copy o (CR 707.8a: each face takes the exceptions, as Forge applies
+// them to every state it copies), marked Back; the zero value when o has no
+// other face.
+func copyBackExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
+	if o.Card == nil || !o.Card.IsTransformingDFC() {
+		return events.CopyExceptions{}
+	}
+	back := o.CopyFaceBack
+	if back == nil {
+		back = o.Card.Faces[1-o.FaceIdx]
+	}
+	x := copyExceptionsOf(back, faceColorMask(back), s)
+	x.Back = !x.Empty()
+	return x
+}
+
+// copyExceptionsOf settles s against face f, whose colours are colours.
+func copyExceptionsOf(f *cards.Face, colours ColorMask, s copyExceptSpec) events.CopyExceptions {
+	var x events.CopyExceptions
 	if s.removeCardTypes || s.removeCreatureTypes || s.removeSubTypes || s.removeLegendary || len(s.addTypes) > 0 {
 		x.TypesSet = true
 		subtypes := SubtypesKeptBy(s.addTypes)
@@ -70,7 +93,7 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 	if s.setColorsPresent || len(s.addColors) > 0 {
 		var m ColorMask
 		if !s.setColorsPresent {
-			m = ColorMaskOf(o)
+			m = colours
 		}
 		for _, l := range append(append([]string(nil), s.setColors...), s.addColors...) {
 			if l != "" {

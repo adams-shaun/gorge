@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import type { Advice, Decision, PairedBotStatus } from '../protocol';
   import { ApiError, fetchAdvice, fetchPairedBotStatus } from '../lib/api';
-  import { adviceRows, differedNote, loadPairedBotOn, loadShowRules, pairedRowLabel, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
+  import { adviceRows, differedNote, expectedLine, loadPairedBotOn, loadShowRules, pairedRowLabel, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
   import type { ExplainNote, ExplainSearch } from '../lib/review';
   import { signed, sourceBadge } from '../lib/review';
   import type { SeatCtx } from '../lib/seat';
@@ -124,6 +124,7 @@
   const pick = $derived(note?.bot && decision && note.bot.length > 0 ? pairedRowLabel(decision, { choices: note.bot }) : null);
   const rows = $derived(note?.search && decision ? adviceRows(decision, note.search) : []);
   const list = $derived(shownRows(rows, ROWS, note?.search?.dropped ?? 0));
+  const expected = $derived(note?.search ? expectedLine(note.search) : null);
   const overruled = $derived(rows.some((r) => r.rules && !r.recommended) && rows.some((r) => r.recommended));
   const standing = $derived(note?.search ? winChance({ visits: note.search.sims ?? 0, q: note.search.root_value }) : null);
 </script>
@@ -172,6 +173,17 @@
               </tbody>
             </table>
             {#if list.more}<p class="quiet">and {list.more} more</p>{/if}
+            {#if expected && (expected.steps.length > 0 || expected.cutShort)}
+              <div class="expected" data-paired-expected>
+                <p class="quiet">Search expects, if you follow it:</p>
+                <ol>
+                  {#each expected.steps as step, i (i)}
+                    <li title={`${step.share}% of the lines that got here went this way. About ${step.chance}% for you after it.`}><span class="who">{step.who}</span> {step.label}<span class="quiet"> ({step.share}%)</span></li>
+                  {/each}
+                </ol>
+                {#if expected.cutShort}<p class="quiet">It goes no further: what comes next depends on cards you can't see.</p>{/if}
+              </div>
+            {/if}
             {#if showRules && overruled}<p class="quiet" data-paired-overruled>Search overrules what the bot's rules would do here.</p>{/if}
           {:else if note.source === 'forced'}
             <p class="pick" title={badge?.tip}>Nothing to weigh here{#if pick}: <b>{pick}</b>{/if}</p>
@@ -249,5 +261,8 @@
     .advice .c-vis { display: none; }
     .advice .num { width: 28%; }
   }
+  .expected ol { margin: var(--sp-1) 0 0; padding-left: 1.4em; }
+  .expected li { margin: 1px 0; overflow-wrap: anywhere; }
+  .expected .who { color: var(--ink); }
   .pick b { font-weight: 600; color: var(--ink); }
 </style>

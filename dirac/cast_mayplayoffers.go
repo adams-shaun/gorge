@@ -42,20 +42,6 @@ func (s *State) mayPlayOffers(k *prep, p uint8, o Obj) int {
 	return n
 }
 
-// handFreeOffered: a static lets p cast hand card o without paying its mana
-// cost (Zaffai and the Tempests), an offer beside the plain cast.
-func (s *State) handFreeOffered(k *prep, p uint8, o Obj) bool {
-	if k.gen == nil || s.objs[o].zone != kop.ZoneHand {
-		return false
-	}
-	found := false
-	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
-		found = st.a.Static.StFlags&kop.StWithoutManaCost != 0
-		return !found
-	})
-	return found
-}
-
 // mayPlayFolds reports whether some unlimited static lets p play o: gorge
 // then lists the empty-key offer first and the lockstep takes it, so the
 // cast spends no limited static's use (mayPlayPermissions).

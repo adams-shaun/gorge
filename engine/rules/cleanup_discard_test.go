@@ -400,3 +400,34 @@ func TestCleanupRepeatGivesActivePlayerPriority(t *testing.T) {
 		})
 	}
 }
+
+// TestCleanupDiscardReplacementChoiceBeforeDamageRemoval: a discard that parks a
+// CR 616.1 choice (two Rest in Peace compete for it) is part of CR 514.1, so
+// the CR 514.2 removal of marked damage waits for the answer rather than
+// running while the choice is still open.
+func TestCleanupDiscardReplacementChoiceBeforeDamageRemoval(t *testing.T) {
+	t.Parallel()
+	e := layerEngine(t)
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+	onBoardCard(t, e, 0, corpusAlternativeCard(t, "Rest in Peace"))
+	onBoardCard(t, e, 1, corpusAlternativeCard(t, "Rest in Peace"))
+	bear := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.Damage, Obj: bear, Amount: 1})
+	extra := onHand(t, e, 0, "Name:Wolf\nManaCost:2 G\nTypes:Creature Wolf\nPT:3/2\nOracle:x\n")
+
+	e.priorityRound()
+	submitDiscard(t, e, extra)
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending after the discard = %+v, want the replacement choice", d)
+	}
+	if got := e.G.Obj(bear).Damage; got != 1 {
+		t.Fatalf("damage on the Bear while the discard's choice is open = %d, want 1 (CR 514.2 follows CR 514.1)", got)
+	}
+	submitChoices(t, e, 0)
+	if got := e.G.Obj(bear).Damage; got != 0 {
+		t.Fatalf("damage on the Bear after the choice = %d, want 0 (removed at cleanup)", got)
+	}
+}

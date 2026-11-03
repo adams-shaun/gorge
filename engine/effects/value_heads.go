@@ -219,6 +219,7 @@ var modelledValueHeads = []string{
 	"YourCountersRAD",
 	"YourLifeTotal",
 	"YourStartingLife",
+	"YourExtraTurns",
 	"YourTurns",
 	"wasCastFromExile",
 	"wasCastFromGraveyard",

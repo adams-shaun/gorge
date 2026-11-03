@@ -211,6 +211,13 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 			filt(kop.FilterID(v.N))
 		case kop.VExpr:
 			e := pt.exprs[v.N]
+			if e.Kind == kop.ExSacrificedThisTurn && e.N == kop.SacrificedFood {
+				// the kernel tallies the Food cards by subtype name
+				// (prepTurnTallies), so the matchup keeps it
+				if i, ok := pt.subIdx["Food"]; ok {
+					set[uint8(i)] = true
+				}
+			}
 			filt(e.F)
 			val(e.Sub[0])
 			val(e.Sub[1])

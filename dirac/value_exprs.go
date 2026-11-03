@@ -17,6 +17,8 @@ var DebugNoRedNC bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExOppsAttacked:
+		return s.exOppsAttacked(ctx) // value_oppsattacked.go
 	case kop.ExScriedThisTurn:
 		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
 	case kop.ExDilemmasFaced:
@@ -181,7 +183,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return s.evalV(k, x.Sub[1], ctx)
 	case kop.ExResolvedThisTurn:
-		return s.resolvedThisTurn()
+		return s.resolvedThisTurn(k)
 	case kop.ExThisTurnCast:
 		return s.thisTurnCast(k, x, ctx)
 	case kop.ExSelfPrepared:

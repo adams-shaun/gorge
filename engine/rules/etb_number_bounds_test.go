@@ -91,8 +91,8 @@ func TestETBNumberCarriersAreBounded(t *testing.T) {
 			}
 		}
 	}
-	if bounded != 5 {
-		t.Fatalf("bounded as-enters ChooseNumber carriers = %d, want 5 (update after review)", bounded)
+	if bounded != 6 {
+		t.Fatalf("bounded as-enters ChooseNumber carriers = %d, want 6 (update after review)", bounded)
 	}
 }
 
