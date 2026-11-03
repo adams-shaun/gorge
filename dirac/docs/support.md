@@ -10,27 +10,27 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 |---|---:|---:|---:|---:|---:|
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 255 | 5 | 30 | 220 |
-| DFT | 276 | 246 | 4 | 18 | 224 |
+| DFT | 276 | 246 | 0 | 22 | 224 |
 | DSK | 276 | 231 | 8 | 35 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 0 | 118 | 118 |
 | FDN | 517 | 505 | 5 | 7 | 493 |
-| FIN | 312 | 265 | 10 | 10 | 245 |
-| FRA | 269 | 242 | 8 | 14 | 220 |
-| HOB | 172 | 152 | 4 | 5 | 143 |
+| FIN | 312 | 265 | 5 | 15 | 245 |
+| FRA | 269 | 242 | 6 | 16 | 220 |
+| HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 247 | 6 | 13 | 228 |
 | MKM | 279 | 227 | 4 | 37 | 186 |
 | MSH | 276 | 223 | 8 | 8 | 207 |
 | OTJ | 276 | 237 | 9 | 16 | 212 |
-| SOS | 270 | 246 | 7 | 18 | 221 |
+| SOS | 270 | 246 | 6 | 19 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
 | TDM | 276 | 242 | 8 | 45 | 189 |
-| TLA | 285 | 244 | 11 | 48 | 185 |
-| TMT | 194 | 169 | 3 | 6 | 160 |
+| TLA | 285 | 244 | 10 | 49 | 185 |
+| TMT | 194 | 169 | 2 | 7 | 160 |
 | TRC | 337 | 267 | 1 | 104 | 162 |
 | TRK | 311 | 247 | 0 | 159 | 88 |
 | WOE | 281 | 250 | 3 | 8 | 239 |
-| ALL | 34442 | 21167 | 123 | 16877 | 4167 |
+| ALL | 34442 | 21167 | 105 | 16895 | 4167 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,32 +70,31 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-123 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+105 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 24 |
+| options | 20 |
 | projection | 1 |
-| projection-Cards.AttachedTo | 1 |
 | projection-Cards.Chars.Colors | 2 |
 | projection-Cards.Chars.Keywords | 2 |
 | projection-Cards.Counters | 3 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 15 |
+| projection-Cards.Flags | 13 |
 | projection-Cards.Pos | 10 |
-| projection-Cards.Power | 8 |
-| projection-Cards.Zone | 7 |
+| projection-Cards.Power | 6 |
+| projection-Cards.Zone | 5 |
 | projection-Life | 4 |
 | projection-NInst | 1 |
-| projection-NStack | 16 |
-| projection-Pool | 6 |
+| projection-NStack | 13 |
+| projection-Pool | 4 |
 | projection-Stack.Ability | 1 |
 | projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
 | unmodelled-copycast | 2 |
-| unmodelled-entryorder | 5 |
+| unmodelled-entryorder | 3 |
 | unmodelled-gravepower | 1 |
 | unmodelled-handsize | 1 |
 | unmodelled-landgrant | 1 |
