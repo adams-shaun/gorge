@@ -52,6 +52,23 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-big's, on the same terms.
+func TestStdBigReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-big", []stdRepro{
+		{"copy_exception_types_count", false},               // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
+		{"discard_replacement_before_damage_removal", true}, // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
+	})
+}
+
+// std-tdm's, on the same terms.
+func TestStdTdmReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-tdm", []stdRepro{
+		{"shuffle_target_already_returned", false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+	})
+}
+
 type stdRepro struct {
 	name    string
 	autopay bool

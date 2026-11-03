@@ -2942,6 +2942,13 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 	for _, opt := range chosen {
 		e.emit(events.Discard(opt.Obj, e.G.Active))
 	}
+	if e.pending != nil {
+		// A discard parked a CR 616.1 replacement choice (two Rest in Peace):
+		// CR 514.1 is not finished, so the CR 514.2 damage removal waits. The
+		// answer returns to the cleanup step, which finds the hand within its
+		// limit and runs the body then.
+		return
+	}
 	e.cleanupBody()
 	e.finishCleanupStep()
 }
