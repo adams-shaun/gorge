@@ -210,6 +210,10 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
 		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
 		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw)
+		// a straight run of life losses, gains and draws, one of them aimed at a target
+		// player gorge's default answer names (Al Bhed Salvagers: target opponent loses
+		// 1 life and you gain 1)
+		plRun := !single && plTgt && lifeRun(a.Prog)
 		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
 			i++
 			continue
@@ -235,7 +239,13 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 			s.npend--
 			continue
 		}
-		if !single && (a.NTargets != 0 || !s.runsPreCast(k, e, a.Prog)) {
+		if plRun {
+			e.tgt[0], e.nt = PlayerTarget0, 1
+			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+				e.tgt[0] = PlayerTarget0 + 1
+			}
+		}
+		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
 			i++
 			continue
 		}
@@ -259,6 +269,18 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
 	}
+}
+
+// lifeRun reports whether prog is only life losses, life gains and draws.
+func lifeRun(prog []kop.Instr) bool {
+	for i := range prog {
+		switch prog[i].Op {
+		case kop.OpLoseLife, kop.OpGainLife, kop.OpDraw:
+		default:
+			return false
+		}
+	}
+	return len(prog) != 0
 }
 
 // pushBelowCast puts trigger entry e on the stack ahead of the cast being built,

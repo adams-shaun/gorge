@@ -219,10 +219,11 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"token_bounced_if_you_do", "std-hob"},                    // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
 		{"token_in_graveyard_is_no_card", "std-woe"},              // CR 111.7: a sacrificed Rat token waiting for the next check is no creature card, so Cruel Somnophage counts the graveyards without it
 
-		{"sacrificed_token_is_no_card_in_graveyard_count", "std-lci"}, // CR 111.1, 704.5d: a Treasure sacrificed for mana waits for the next check, and is no permanent card for Souls of the Lost to count
-		{"equipment_unattached_earlier_names_no_bearer", "std-lci"},   // CR 608.2h: Tarrian's Soulcleaver detached when its bearer stopped being a creature, so its dies trigger names no equipped creature
-		{"spree_pays_with_its_only_target", "std-otj"},                // Explosive Derailment aimed at the Treasure that pays for it: the cast is planned at {R}, targets chosen first, the window sacrifices the Treasure and the cast stands (CR 601.2c, 601.2g)
-		{"twobrid_face_reached_through_converter", "std-tdm"},         // CR 601.2b: Temur Tawnyback's {2/R} is offered when an Island and Jeskai Devotee's {1} for {R} are the only red
+		{"sacrificed_token_is_no_card_in_graveyard_count", "std-lci"},       // CR 111.1, 704.5d: a Treasure sacrificed for mana waits for the next check, and is no permanent card for Souls of the Lost to count
+		{"equipment_unattached_earlier_names_no_bearer", "std-lci"},         // CR 608.2h: Tarrian's Soulcleaver detached when its bearer stopped being a creature, so its dies trigger names no equipped creature
+		{"spree_pays_with_its_only_target", "std-otj"},                      // Explosive Derailment aimed at the Treasure that pays for it: the cast is planned at {R}, targets chosen first, the window sacrifices the Treasure and the cast stands (CR 601.2c, 601.2g)
+		{"twobrid_face_reached_through_converter", "std-tdm"},               // CR 601.2b: Temur Tawnyback's {2/R} is offered when an Island and Jeskai Devotee's {1} for {R} are the only red
+		{"lose_gain_run_sacrifice_trigger_resolves_before_cast", "std-fin"}, // CR 603.3, 601.2g: Al Bhed Salvagers' "target opponent loses 1 life and you gain 1" fires on a Treasure sacrificed for Tonberry's mana and resolves before the spell is cast
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
