@@ -119,6 +119,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"unless_evaluated_amount", "std-msh"},                       // Doc Samson's mana can pay an unless cost
 		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"}, // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
 		{"lotus_pair_pays_two_colours", "std-fra"},                   // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
+		{"granted_types_any_land_census_position", "std-mkm"},        // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)

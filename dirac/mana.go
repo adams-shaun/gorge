@@ -989,6 +989,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// order (payment_plan.go paymentPlanManaUnitsOnlyCompute)
 				mask := s.srcMaskAt(pc, sl)
 				choice := (pc.manaCol == kop.ColAny || bits.OnesCount8(mask) > 1 || pc.manaChosen) && !pc.manaMulti
+				if choice && k.gen != nil && k.gen.blgOn && pc.manaCol == kop.ColAny && s.blgMask(k, sl) != 0 {
+					// a Produced$ Any land with a granted basic land type
+					// also has the intrinsic abilities, which are
+					// deterministic: gorge's census lists it with the
+					// fixed-production sources, the Any ability appended to
+					// that unit
+					choice = false
+				}
 				// a tap-and-sacrifice source of fixed production (Basal
 				// Thrull's {B}{B}) is outside gorge's shared census (free-cost
 				// abilities only): it is appended with the choice-shaped ones,
