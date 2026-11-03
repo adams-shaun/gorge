@@ -144,6 +144,17 @@ func triggerOnlyFromBattlefield(t cards.Trigger) bool {
 	if spec == "" {
 		spec = t.ParamStr(cards.PKOrigin)
 	}
+	if spec == "" {
+		// zoneGate's default is the battlefield for every mode but the few it
+		// admits from elsewhere: a granted "whenever this creature deals combat
+		// damage" (Quintessential Katana) on a creature that dealt it and died
+		// in the same step is queued after the departure.
+		switch t.Mode {
+		case "Discarded", "Cycled", "ChangesZone", "ChangesZoneAll", "SpellCast", "SpellCastOrCopy", "Drawn":
+			return false
+		}
+		return true
+	}
 	return spec == "Battlefield"
 }
 
