@@ -37,9 +37,6 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.g.entExc = 0
 		s.copyExcAdd(k, sl, Slot(x>>8), uint8(x))
 	}
-	if k.gen.anyAegis {
-		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go
-	}
 	if s.g.nexw != 0 {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
@@ -322,6 +319,9 @@ func (s *State) enterRetAura(k *prep, o Obj, host Slot) {
 // slot sl: a permanent exiled "until this leaves" comes back, at once or, in
 // an open departure frame, at its end (zone_untilleavesbatch.go).
 func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
+	if k.gen.anyAegis {
+		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go: before returnLinked drops the link's bit
+	}
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}
