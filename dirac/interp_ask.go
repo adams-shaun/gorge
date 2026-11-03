@@ -1622,6 +1622,10 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
 				return true
 			}
+			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
+				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
+				continue
+			}
 			s.detach(o)
 			s.digTake(k, o, z, fl)
 			if s.g.pre.obj == o {
@@ -1668,6 +1672,32 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	}
 	s.finishDigTail(k)
 	return false
+}
+
+// digAuraHost is the one permanent a taken Aura o enters enchanting when it
+// has exactly one legal host (CR 303.4f); NoSlot for any other card, and for
+// two or more hosts, whose controller's choice the dig does not pose yet.
+func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return NoSlot
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) != 1 {
+		return NoSlot
+	}
+	return s.objs[buf[0]].slot
+}
+
+// digAuraStays reports whether taken card o is an Aura with no legal host
+// (CR 303.4g), which cannot enter.
+func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	return s.enchantCands(k, c, p, &buf) == 0
 }
 
 // digRestAside takes the n looked-at cards a battlefield dig did not take
@@ -1831,7 +1861,11 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	}
 	switch {
 	case z == kop.ZoneBattlefield:
-		s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		host := s.digAuraHost(k, o, p)
+		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		if host != NoSlot && s.occ.has(host) {
+			s.attachTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
+		}
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

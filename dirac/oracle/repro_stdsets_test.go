@@ -38,6 +38,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-blb", "hybrid_face_restricted_source"},                      // a Village's restricted mana is the only source of a hybrid pip's colour: Cindering Cutthroat's pip ask offers it beside the other
 		{"std-tdm", "dragonstorm_return_trigger_source_destroyed"},        // Encroaching Dragonstorm destroyed with its return-to-hand trigger on the stack: the trigger finds a new object in the graveyard and moves nothing
 		{"std-tdm", "dig_rest_stays_in_library_at_taken_cards_enter_ask"}, // United Battlefront takes Hollowmurk Siege and its choose-a-mode ask is pending: the six cards not taken are still in the library
+		{"std-tdm", "dig_aura_enters_attached_to_its_one_host"},           // United Battlefront puts Wingspan Stride onto the battlefield with Host of the Hereafter its only legal host: it enters enchanting it
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
