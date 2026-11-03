@@ -270,7 +270,19 @@ func (e *Engine) attachedKindIllegal(o *state.Object) string {
 // granted Equip by an Animate effect) is left attached: the grant is the only
 // route that attaches it.
 func printsAttachmentType(o *state.Object) bool {
-	f := o.Face()
+	if faceTypesAttachment(o.Face()) {
+		return true
+	}
+	// A copy effect rewrote the face (CR 707.2): an Equipment that became a
+	// copy of a plain artifact printed the subtype on its own card, so it is
+	// no longer one and detaches (CR 301.5c, 704.5p).
+	if o.CopyFace != nil && o.Card != nil && int(o.FaceIdx) < len(o.Card.Faces) {
+		return faceTypesAttachment(o.Card.Faces[o.FaceIdx])
+	}
+	return false
+}
+
+func faceTypesAttachment(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
