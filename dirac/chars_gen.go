@@ -687,18 +687,18 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 			case kop.StatOverride:
 				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
 					if g != 0 {
-						prev := s.grantSrc
-						s.grantSrc = uint8(s.perms[src].obj) + 1
+						prev := s.g.grantSrc
+						s.g.grantSrc = uint8(s.perms[src].obj) + 1
 						f(cid, g-1, 1)
-						s.grantSrc = prev
+						s.g.grantSrc = prev
 					}
 				}
 			case kop.StatContinuous:
 				if a.Static.Grant != 0 && s.matchPermGen(k, a.Static.Filter, sl, s.perms[src].ctrl, src, layerKw) {
-					prev := s.grantSrc
-					s.grantSrc = uint8(s.perms[src].obj) + 1
+					prev := s.g.grantSrc
+					s.g.grantSrc = uint8(s.perms[src].obj) + 1
 					f(cid, a.Static.Grant-1, 1)
-					s.grantSrc = prev
+					s.g.grantSrc = prev
 				}
 			}
 		}

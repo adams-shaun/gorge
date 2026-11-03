@@ -1422,7 +1422,11 @@ type genState struct {
 	disc        Obj      // the card being discarded (TrigDiscarded)
 	nlB         [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
-	redNC       [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
+	redNC [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
+	// grantSrc is the granting permanent plus one (0 = none) while a grant
+	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
+	// the pad after redNC.
+	grantSrc    uint8
 	cast        slotMask // slots whose permanent was cast by its controller
 	zoneTurn    objBits  // objects put into their current zone this turn
 	enteredN    uint8    // the live prefix of State.cold.entered

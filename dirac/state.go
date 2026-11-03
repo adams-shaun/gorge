@@ -447,13 +447,12 @@ type stackEntry struct {
 	trigPl  uint8
 	trigAmt int16
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
-	// host is the permanent that granted a granted trigger, plus one (0 = none):
-	// Forge's OriginalHost, read by Sac<1/OriginalHost> (cost_sachost.go)
-	host uint8
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
 	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
-	// A spell has no remembered object: see spellGainedDeathtouch.
+	// A spell has no remembered object: see spellGainedDeathtouch. A granted
+	// trigger has none either, and keeps the permanent that granted it here
+	// instead: see trigHost.
 	remVer uint8
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
@@ -501,10 +500,11 @@ type pendingTrig struct {
 	trigPl  uint8
 	trigAmt int16
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
-	host    uint8 // the granting permanent plus one (stackEntry.host)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
-	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
+	// A granted trigger has no remembered object and keeps the permanent that
+	// granted it here instead (stackEntry.trigHost)
 	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
 	remVer uint8
 	// x is the trigger object's spell's paid X, bound as it triggered
@@ -797,11 +797,8 @@ type stateCore struct {
 	prio    uint8
 	passes  uint8
 	startPl uint8
-	// grantSrc is the granting permanent plus one (0 = none) while a grant
-	// walk (grantedAbilitiesN) reports one ability to its callback.
-	grantSrc uint8
-	cfgx     uint8 // more Config bits (cfgx*) and transient latches, in the header's padding byte
-	ts       uint16
+	cfgx    uint8 // more Config bits (cfgx*) and transient latches, in the header's padding byte
+	ts      uint16
 
 	rng rng
 
