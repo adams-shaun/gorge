@@ -213,7 +213,7 @@ func (p *hbotParityPol) gorgeAnswer(c *PickCtx, gd *decision.Decision) ([]Canon,
 		case "play_land":
 			return []Canon{Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode))}, false
 		case "cast":
-			return []Canon{castOptCanon(ref(o.Obj), o.Mode, o.AltCostIndex)}, false
+			return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}, false
 		case "ability":
 			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}, false
 		case "activate":
@@ -298,7 +298,7 @@ func (p *hbotParityPol) followManual(c *PickCtx, in decision.Intent) []Canon {
 		case "play_land":
 			return []Canon{Pack(ActPlayLand, ref(o.Obj), RefNone, landFaceCode(o.Mode))}
 		case "cast":
-			return []Canon{castOptCanon(ref(o.Obj), o.Mode, o.AltCostIndex)}
+			return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 		case "ability":
 			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}
 		}

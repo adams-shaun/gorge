@@ -139,10 +139,10 @@ func TestGreatwurmOwnPermissionUnpayableNotAmbiguous(t *testing.T) {
 }
 
 // TestScriptSearchCountsXCast: gorge searches a scripted prefix (Bloom
-// Tender's mana) for the first four insufficient potential plays in walk
-// order only; an {X} cast (Goblin Negotiation) is one of them although the
-// autopay surface never offers it. Here the hand's four casts take the
-// four searches, so Goldvein Pick's equip is left "census_incomplete" and
+// Tender's mana) for the first potentialScriptPlays insufficient potential
+// plays in walk order only; an {X} cast (Goblin Negotiation) is one of them
+// although the autopay surface never offers it. Here the hand's casts take
+// every search, so Goldvein Pick's equip is left "census_incomplete" and
 // not offered (pair 16186). Before, the kernel's walk skipped the {X} cast
 // and searched the equip.
 func TestScriptSearchCountsXCast(t *testing.T) {
@@ -167,11 +167,12 @@ func TestScriptSearchCountsXCast(t *testing.T) {
 		s := sc.s
 		sc.perm(id["Bloom Tender"], 0)
 		pick := sc.perm(id["Goldvein Pick"], 0)
-		for _, n := range []string{"Tatyova, Benthic Druid", "Gorehorn Raider", "Goblin Negotiation", "Axgard Cavalry"} {
-			if n == "Goblin Negotiation" && !withX {
-				continue
-			}
-			sc.hand(id[n], 0)
+		plain := []string{"Tatyova, Benthic Druid", "Gorehorn Raider", "Axgard Cavalry"}
+		for i := 0; i < potentialScriptPlays-1; i++ {
+			sc.hand(id[plain[i%len(plain)]], 0)
+		}
+		if withX {
+			sc.hand(id["Goblin Negotiation"], 0)
 		}
 		d := s.Step()
 		got := false

@@ -122,3 +122,21 @@ func TestWascastrestrictRefusals(t *testing.T) {
 		}
 	}
 }
+
+// TestCantCastSpellFromHandLowering: the bare CantCastSpellFromHand term is a
+// spell restriction on the hand-provenance word with every non-spell payment
+// admitted.
+func TestCantCastSpellFromHandLowering(t *testing.T) {
+	lc := kwrLower(t, kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ CantCastSpellFromHand")
+	if len(lc.Refusals) != 0 {
+		t.Fatalf("refused: %v", lc.Refusals)
+	}
+	if cl := kwrRestrOf(t, lc); cl.CmpStat != cmpWasCastSpell || cl.CmpN != spellHand|spellNot {
+		t.Errorf("restriction CmpStat %v CmpN %d, want cmpWasCastSpell %d", cl.CmpStat, cl.CmpN, spellHand|spellNot)
+	}
+	for _, ab := range lc.Abilities {
+		if ab.Kind == akMana && !ab.Mana.NonSpell {
+			t.Error("the non-spell payments are not admitted")
+		}
+	}
+}

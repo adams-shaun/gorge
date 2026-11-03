@@ -402,3 +402,40 @@ func TestBlocksModeEligibilityMask(t *testing.T) {
 		t.Fatal("trig:Blocks is not declared supported (effects.RegisterNonAPI)")
 	}
 }
+
+// A creature that has lost all abilities (CR 613.1f) has no become-blocked
+// trigger: the combat scanners read the printed triggers through the same
+// loss gate the ordinary trigger walk applies. The control arm shows the
+// trigger draws a card when the creature keeps its abilities.
+func TestBlockedTriggerNeedsTheCreatureToKeepItsAbilities(t *testing.T) {
+	t.Parallel()
+	const watcher = "Name:Blocked Watcher\nManaCost:1 R\nTypes:Creature Goblin\nPT:2/2\n" +
+		"T:Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ BlockDrawOne | TriggerDescription$ x\n" +
+		"SVar:BlockDrawOne:DB$ Draw | NumCards$ 1\nOracle:x\n"
+	for _, tc := range []struct {
+		name  string
+		humus bool
+		draws int
+	}{{"keeps its abilities", false, 1}, {"loses all abilities", true, 0}} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := blocksCombatEngine(t, 0)
+			if tc.humus {
+				onBoard(t, e, 1, "Name:Bare Hands\nManaCost:1\nTypes:Enchantment\n"+
+					"S:Mode$ Continuous | Affected$ Creature | RemoveAllAbilities$ True\nOracle:x\n")
+			}
+			a := onBoardReady(t, e, 0, watcher)
+			b := onBoard(t, e, 1, "Name:Memnite\nManaCost:0\nTypes:Artifact Creature Construct\nPT:1/1\nOracle:x\n")
+			hand := len(e.G.Zone(state.ZHand, 0))
+			e.askAttackers()
+			submitAttackersOnly(t, e, a)
+			drainCombatPriority(t, e)
+			submitBlockersOnly(t, e, b)
+			for len(e.G.Stack) > 0 {
+				e.resolveTop()
+			}
+			if got := len(e.G.Zone(state.ZHand, 0)) - hand; got != tc.draws {
+				t.Fatalf("cards drawn by the become-blocked trigger = %d, want %d", got, tc.draws)
+			}
+		})
+	}
+}

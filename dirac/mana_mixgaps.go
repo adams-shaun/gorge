@@ -50,7 +50,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.scriptTapX(k, p).any() {
 		n++
 	}
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptSac(k, p)).or(s.scriptCtr(k, p)).any()
+	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptCtr(k, p)).any()
 }
 
 // otherGaps: the gaps a filter search on p's board activates beside its filters.
@@ -230,6 +230,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			return
 		}
 		s.pl[p&1].pool[o.ans] += o.n
+		s.tapExtraStall(k, st.sl)
 		s.artTag(k, p, st.sl, int(o.ans))
 	}
 }
@@ -259,7 +260,7 @@ func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
 	if n := min(left, int(pl.poolR&poolRCnt)); n > 0 {
 		left -= n
 		if c := int(pl.poolR&poolRCnt) - n; c > 0 {
-			pl.poolR = pl.poolR&^poolRCnt | uint8(c)
+			pl.poolR = pl.poolR&^poolRCnt | uint16(c)
 		} else {
 			pl.poolR = 0
 		}

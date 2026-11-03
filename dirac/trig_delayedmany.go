@@ -77,6 +77,7 @@ func (s *State) dpManyObj(d *dprog, i int) Obj {
 //go:noinline
 func (s *State) dpManyCarry(d *dprog, pt *pendingTrig) {
 	pt.trigAmt, pt.x, pt.trigMV = 0, 0, 0
+	pt.skw |= skwMany
 	if o := s.dpManyObj(d, 1); o != NoObj {
 		pt.trigAmt = int16(o) + 1
 	}
@@ -88,18 +89,37 @@ func (s *State) dpManyCarry(d *dprog, pt *pendingTrig) {
 	}
 }
 
+// dpManyVers stamps on the stacking entry e the versions of the objects 2..4
+// its carriers name (stackEntry.tver, which a delayed entry has no targets to
+// use): no pending trigger waits through an object's zone change, so they are
+// the versions the program remembered.
+func (s *State) dpManyVers(e *stackEntry) {
+	if e.trigAmt > 0 {
+		e.tver[0] = s.objs[e.trigAmt-1].ver
+	}
+	if e.x > 0 {
+		e.tver[1] = s.objs[e.x-1].ver
+	}
+	if e.trigMV > 0 {
+		e.tver[2] = s.objs[e.trigMV-1].ver
+	}
+}
+
 // bounceMany is BncDelayedMany: each object the resolving entry names, in
-// registration order, that is still on the battlefield returns to its
-// owner's hand (the body's Origin$ Battlefield).
+// registration order, that is still on the battlefield and still the object
+// the program remembered returns to its owner's hand (the body's Origin$
+// Battlefield). An object another trigger exiled and returned in between,
+// Y'shtola Rhul's, is a new one with nothing to return (CR 400.7, 603.7c).
 //
 //go:noinline
 func (s *State) bounceMany(k *prep) {
 	e := &s.res.e
 	for i := 0; i < 4; i++ {
 		var o Obj
+		var ver uint8
 		switch i {
 		case 0:
-			o = e.trigObj
+			o, ver = e.trigObj, e.remVer
 		case 1:
 			o = Obj(e.trigAmt - 1)
 			if e.trigAmt <= 0 {
@@ -116,7 +136,10 @@ func (s *State) bounceMany(k *prep) {
 				o = NoObj
 			}
 		}
-		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+		if i > 0 {
+			ver = e.tver[i-1]
+		}
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].ver != ver {
 			continue
 		}
 		s.leave(k, s.objs[o].slot, kop.ZoneHand, false)

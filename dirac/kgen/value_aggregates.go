@@ -32,6 +32,7 @@ var validAggs = map[string]int{
 	"Colors":                kop.AggColors,
 	"DifferentCardNames":    kop.AggDistinctNames,
 	"CardTypes":             kop.AggCardTypes,
+	"CreatureType":          kop.AggCreatureTypes,
 }
 
 // ptAggIn reports whether v reads a derived P/T aggregate (a CDA reading

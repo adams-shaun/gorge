@@ -1182,6 +1182,21 @@ func manaValueOf(g *state.Game, id state.ObjID) int {
 // must not import rules), only the rule, and only the leading token is
 // rewritten -- every qualifier rides along.
 func permanentCardSpec(spec string) string {
+	if !strings.Contains(spec, ",") {
+		return permanentCardAlt(spec)
+	}
+	// Each comma-separated alternative is a spec of its own (There's Coffee
+	// in that Nebula's `Plains,Permanent.nonLand+cmcLE3`), so a Permanent
+	// base after the first alternative reads as a permanent card too.
+	alts := strings.Split(spec, ",")
+	for i, a := range alts {
+		alts[i] = permanentCardAlt(a)
+	}
+	return strings.Join(alts, ",")
+}
+
+// permanentCardAlt is permanentCardSpec for one alternative.
+func permanentCardAlt(spec string) string {
 	if spec == "Permanent" {
 		return "PermanentCard"
 	}
@@ -1340,7 +1355,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// scope to its controller (Summon: Valefor's per-opponent loop).
 			continue
 		}
-		p := PlayerOf(h, c, t)
+		p := definedPlayerOf(h, c, revealRef, t)
 		pool := zoneOf(g, zone, p)
 		if revealDefined != "" && !t.IsPlayer {
 			// A RevealDefined object is itself the card to reveal, not a

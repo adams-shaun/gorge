@@ -43,6 +43,7 @@ const (
 	StackKwCasualty  int16 = 2
 	StackKwCascade   int16 = 3
 	StackKwLifelink  int16 = 4
+	StackKwStorm     int16 = 5
 )
 
 // Appended keyword bits.

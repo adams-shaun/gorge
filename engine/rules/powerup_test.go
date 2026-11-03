@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -86,5 +87,38 @@ func TestPowerUpRealCorpusBoldBiochemistWithholdsSecondActivation(t *testing.T) 
 	}
 	if _, ok := findAbilityOption(e, id, ability); ok {
 		t.Fatalf("Bold Biochemist PowerUp offered a second time with two {5}{U} payments funded: %+v", e.Pending().Options)
+	}
+}
+
+// TestActivationCountBelongsToTheCopyBasis: a permanent that becomes a copy of
+// another has that card's abilities, which nothing has activated, so a Power-up
+// (once per ability) is open to it even though its own ability at the same index
+// was used many times; when the basis ends the printed ability's count returns
+// (CR 613.1a, 702.193).
+func TestActivationCountBelongsToTheCopyBasis(t *testing.T) {
+	t.Parallel()
+	e, _, id := newFixtureDeck(t, 77, powerUpFixtureSrc)
+	moveByName(t, e, 0, "PowerUpBeast", state.ZBattlefield)
+	src := e.G.Zone(state.ZLibrary, 1)[0]
+	for range 3 {
+		e.emit(events.Event{Kind: events.AbilityPush, Obj: id, Player: 0, Amount: 0})
+	}
+	count := func() [2]int {
+		return [2]int{e.activationUsedCount(id, 0, "", false), e.activationUsedCount(id, 0, "", true)}
+	}
+	if got := count(); got != [2]int{3, 3} {
+		t.Fatalf("printed ability used three times: counts %v", got)
+	}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: id, IDs: []state.ObjID{src}})
+	if got := count(); got != [2]int{0, 0} {
+		t.Fatalf("a copy's ability is a new one: counts %v, want 0", got)
+	}
+	e.emit(events.Event{Kind: events.AbilityPush, Obj: id, Player: 0, Amount: 0})
+	if got := count(); got != [2]int{1, 1} {
+		t.Fatalf("the copy's own activation: counts %v, want 1", got)
+	}
+	e.emit(events.Event{Kind: events.ClonePermanent, Obj: id})
+	if got := count(); got != [2]int{3, 3} {
+		t.Fatalf("the printed count returns with the basis gone: counts %v, want 3", got)
 	}
 }

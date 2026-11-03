@@ -104,7 +104,7 @@ func SettleCounterAnyFallback(e Engine, obj state.ObjID, amt int32) {
 		if left <= 0 {
 			break
 		}
-		if c.N <= 0 {
+		if c.N <= 0 || state.InternalCounterMarker(c.Kind) {
 			continue
 		}
 		n := c.N

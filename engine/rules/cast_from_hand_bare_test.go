@@ -26,6 +26,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/decision"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -400,4 +401,31 @@ func offersCastMode(e *Engine, id state.ObjID, mode string) bool {
 		}
 	}
 	return false
+}
+
+// A copy of a flashed-back Otterball Antics was never cast (CR 707.10), so its
+// token takes no counter; the flashback spell it was copied from still does.
+func TestOtterballAnticsCopyOfAFlashbackCastEntersTokenWithoutCounter(t *testing.T) {
+	t.Parallel()
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Otterball Antics"))
+	ott := e.G.Zone(state.ZHand, 0)[0]
+	moveToGraveyard(t, e, ott)
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MU] = 3, 1
+	castMode(t, e, ott, "flashback")
+	if o := e.G.Obj(ott); o == nil || o.Zone != state.ZStack || e.Pending() != nil && e.Pending().Kind != decision.KPriority {
+		t.Fatalf("setup: the flashback cast is not on the stack: %+v, pending %+v", o, e.Pending())
+	}
+	e.emit(events.Event{Kind: events.StackCopy, Obj: ott, Player: 0})
+	for i := 0; i < 4 && len(e.G.Stack) > 0; i++ {
+		e.resolveTop()
+	}
+	var counters []int32
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.IsToken {
+			counters = append(counters, o.Counter("P1P1"))
+		}
+	}
+	if len(counters) != 2 || counters[0]+counters[1] != 1 {
+		t.Fatalf("otter tokens carry %v P1P1, want one with the flashback cast's counter and one without", counters)
+	}
 }

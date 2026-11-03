@@ -291,6 +291,21 @@ type Layer4 struct {
 // depth and board; rules' verify mode holds every served answer to a fresh
 // walk.
 func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) effects.Chars {
+	return computeWith(b, s, id, atStack, pre, false)
+}
+
+// ComputeColors is the object's layer-5 colour letters and nothing later: the
+// walk ComputeWith runs up to the colour result, returned before layer 7
+// (CR 613.1e, 613.4), so no P/T or characteristic-defining power/toughness
+// ability is evaluated. A reader that is itself inside a layer-7 walk (a
+// P/T-defining static counting colours) calls this instead of Compute, which
+// would re-enter that walk. It binds no scratch buffers, so it cannot disturb
+// a borrowed Derived list.
+func ComputeColors(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4) string {
+	return computeWith(b, s, id, atStack, pre, true).Colors
+}
+
+func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *Layer4, colorsOnly bool) effects.Chars {
 	o := b.Game().Obj(id)
 	if o == nil || o.Face() == nil {
 		return effects.Chars{}
@@ -315,12 +330,11 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	s.Depth++
 	kw := s.KW
 	ty := s.Types
-	if s.Depth > 1 {
-		// Re-entrant (a nested Derived mid-build): own private buffers rather
-		// than overwrite the outer call's backing arrays mid-range. Same guard
-		// forEachObject uses and rules uses for active(). (This
-		// path is effectively unreachable — MatchesSpecFrom reads faces, never
-		// calls Derived — but it keeps the buffer discipline airtight.)
+	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly {
+		// Re-entrant (a nested Derived mid-build), or a finished build's lists
+		// are bound into a match still running: own private buffers rather
+		// than overwrite the backing arrays another reader holds. Same guard
+		// forEachObject uses and rules uses for active().
 		kw = nil
 		ty = nil
 	}
@@ -509,7 +523,11 @@ func ComputeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		kw = kept
 	}
 	colors := col.String()
-	if s.Depth <= 1 {
+	if colorsOnly {
+		s.Depth--
+		return effects.Chars{Colors: colors}
+	}
+	if s.Depth <= 1 && s.Borrowed == 0 {
 		// Keep the grown buffers on the scratch for the next build; a re-entrant
 		// build's private buffers are discarded on return.
 		s.KW = kw
@@ -577,7 +595,7 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 		if !built {
 			built = true
 			s.Depth++
-			if s.Depth == 1 {
+			if s.Depth == 1 && s.Borrowed == 0 {
 				kw, ty = s.KW, s.Types
 			}
 			kw = BaseKeywords(kw, o, f, faceDown)
@@ -601,7 +619,7 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 		name, nameSet = ce.SetName, true
 	}
 	if built {
-		if s.Depth == 1 {
+		if s.Depth == 1 && s.Borrowed == 0 {
 			s.KW, s.Types = kw, ty
 		}
 		s.Depth--

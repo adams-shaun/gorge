@@ -34,7 +34,7 @@ func TestMockChooseCardsHonoursFloorAndCeilingTogether(t *testing.T) {
 	in := mb.ChooseCardsInput{
 		PromptBase: mb.PromptBase{Presentation: mb.PromptPresentation{
 			Title:       "Choose 1 to 1.",
-			Description: "Choose 1 to 1. Total value must not exceed 6. Total value must be at least 5.",
+			Description: "Choose 1 to 1. Total value must not exceed 6. Total value must be at least 5. Card values: c10 10, c5 5.",
 		}},
 		Cards: []mb.CardDto{powerCard("c10", "10"), powerCard("c5", "5")},
 		Min:   1, Max: 1,
@@ -62,7 +62,7 @@ func TestMockChooseCardsCeilingOnlyStillPicksCheap(t *testing.T) {
 	in := mb.ChooseCardsInput{
 		PromptBase: mb.PromptBase{Presentation: mb.PromptPresentation{
 			Title:       "Choose 1 to 1.",
-			Description: "Choose 1 to 1. Total value must not exceed 3.",
+			Description: "Choose 1 to 1. Total value must not exceed 3. Card values: c10 10, c2 2.",
 		}},
 		Cards: []mb.CardDto{powerCard("c10", "10"), powerCard("c2", "2")},
 		Min:   1, Max: 1,
@@ -79,7 +79,7 @@ func TestMockChooseCardsFloorOnlyReachesFloor(t *testing.T) {
 	in := mb.ChooseCardsInput{
 		PromptBase: mb.PromptBase{Presentation: mb.PromptPresentation{
 			Title:       "Choose 1 to 2.",
-			Description: "Choose 1 to 2. Total value must be at least 5.",
+			Description: "Choose 1 to 2. Total value must be at least 5. Card values: c10 10, c2 2.",
 		}},
 		Cards: []mb.CardDto{powerCard("c10", "10"), powerCard("c2", "2")},
 		Min:   1, Max: 2,
@@ -87,6 +87,22 @@ func TestMockChooseCardsFloorOnlyReachesFloor(t *testing.T) {
 	got := chosenIDs(t, NewFirstLegalClient().answerChooseCards(in))
 	if len(got) != 1 || got[0] != "c10" {
 		t.Fatalf("chosen = %v, want the strongest single card [c10]", got)
+	}
+}
+
+// A card's value under a sum bound is the prompt's, not its power: a Pilot token
+// is power 1 and crews for 3, so it alone clears Crew 3 and the power 1 creature
+// offered first doesn't.
+func TestMockChooseCardsReadsThePromptsValues(t *testing.T) {
+	in := mb.ChooseCardsInput{
+		PromptBase: mb.PromptBase{Presentation: mb.PromptPresentation{
+			Description: "Choose 1 to 2. Total value must be at least 3. Card values: assassin 1, pilot 3.",
+		}},
+		Cards: []mb.CardDto{powerCard("assassin", "1"), powerCard("pilot", "1")},
+		Min:   1, Max: 2,
+	}
+	if got := chosenIDs(t, NewFirstLegalClient().answerChooseCards(in)); len(got) != 1 || got[0] != "pilot" {
+		t.Fatalf("chosen = %v, want [pilot]", got)
 	}
 }
 
@@ -99,7 +115,7 @@ func TestMockChooseCardsZeroCeilingIsHonoured(t *testing.T) {
 	in := mb.ChooseCardsInput{
 		PromptBase: mb.PromptBase{Presentation: mb.PromptPresentation{
 			Title:       "Choose 1 to 2.",
-			Description: "Choose 1 to 2. Total value must not exceed 0.",
+			Description: "Choose 1 to 2. Total value must not exceed 0. Card values: up 1, down -1.",
 		}},
 		Cards: []mb.CardDto{powerCard("up", "1"), powerCard("down", "-1")},
 		Min:   1, Max: 2,

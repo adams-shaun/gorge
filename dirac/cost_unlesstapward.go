@@ -70,7 +70,7 @@ func wardML(amt int16) (int, int) {
 //go:noinline
 func (s *State) resolveWardManaLife(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
@@ -96,13 +96,16 @@ func (s *State) resolveWardManaLife(k *prep) {
 //go:noinline
 func (s *State) applyWardManaLife(k *prep, a Action) {
 	r := &s.res
-	idx := s.stackIndexOf(r.e.trigObj)
+	idx := s.wardedIndex(&r.e)
 	n, l := wardML(r.e.trigAmt)
 	p := r.e.trigPl
 	c := kop.ManaCost{Generic: uint8(n)}
 	if a.Mode() == 1 && int(s.pl[p].life) >= l && (k.gen == nil || s.affordsFor(k, p, &c) || s.windowAffords(k, p, &c)) {
-		s.payWindow(k, p, &c)
-		if !DebugWardMLNoLife {
+		if _, short := s.payWindow(k, p, &c); short {
+			if idx >= 0 {
+				s.counterAt(k, idx) // the colours taken left the mana unpaid, so the life is not
+			}
+		} else if !DebugWardMLNoLife {
 			s.loseLife(k, p, l)
 		}
 	} else if idx >= 0 {

@@ -325,10 +325,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// gorge tapsMatches: every real Tap event (not an entry-tapped
 		// state) of a permanent matching ValidCard$. Only "whenever this
 		// becomes tapped" of a card with no mana ability is lowered: the
-		// kernel fires TrigTaps where a permanent is tapped other than for
-		// mana (attack, {T} and tap-a-creature costs, Tap effects,
-		// regeneration), and stalls a table where a granted mana ability
-		// could tap a Taps listener (gen tapsMana). A non-Self ValidCard$
+		// kernel fires TrigTaps where a permanent is tapped (attack, {T} and
+		// tap-a-creature costs, Tap effects, regeneration, and a granted
+		// mana ability's {T}: gen manaTaps). A non-Self ValidCard$
 		// lowers only as "whenever you tap an untapped creature an
 		// opponent controls" (ValidPlayer$ You, every clause OppCtrl):
 		// ValidPlayer$ is the TAPPER (gorge TapActor), which the kernel
@@ -934,6 +933,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	case "Proliferate":
 		if err := lc.proliferateTrigger(tp, tr); err != nil {
+			return err
+		}
+	case "FacesDilemma":
+		if err := lc.facesDilemmaTrigger(tp, tr); err != nil {
 			return err
 		}
 	case "Scry", "Surveil":
@@ -1649,6 +1652,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		if a, ok := sp.get("Activator"); ok && a != "You" {
 			return nil, refuse("ReduceCost Activator %q", a)
+		} else if !ok && sp.str("ValidCard") != "Card.Self" {
+			// no Activator$: either player's spells (CR 601.2f; Forge
+			// StaticAbilityCostChange applies it to every payer)
+			st.Flags = append(st.Flags, "AnyCaster")
 		}
 		if ez, ok := sp.get("EffectZone"); ok {
 			if ez != "All" {
@@ -1699,6 +1706,17 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantBlock":
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err
+		}
+	case "CantBeBeamedUp":
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
+		if v, ok := sp.get("ValidSA"); ok {
+			if v != "Spell.KeywordSource" {
+				return nil, refuse("CantBeBeamedUp ValidSA %q", v)
+			}
+			st.Flags = append(st.Flags, "BeamGranted")
 		}
 	case "MinMaxBlocker":
 		// Max$ 1 only (gorge MinMaxBlockerBounds reads the
@@ -1957,6 +1975,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, nil
 		}
 		return nil, refuse("MayLookAt shape")
+	}
+	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
+		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
 	}
 	if az, ok := sp.get("AffectedZone"); ok {
 		if az == "Battlefield" {
@@ -2289,21 +2310,22 @@ func creatureOnly(f *lFilter) bool {
 // grantedTrigger lowers a static's AddTrigger$ (gorge layer 6: the
 // affected permanent has the triggered ability; its own controller
 // controls the trigger and Self is that permanent). The kernel's static
-// grant walk (grantedAbilitiesN) reaches only the permanent the static's
-// source is attached to, so the affected filter must be the Equipment's or
-// Aura's host (every clause EquippedBy / EnchantedBy); a global grant
-// (Sliver lords, anthems) needs the M3 layer-6 record and refuses. AddSVar$
+// grant walk (grantedAbilitiesN) reports the grant for an attached host (an
+// Equipment's or Aura's) and, for any other affected filter, for every
+// permanent the filter matches (globalGrantsGen: "artifact creatures you
+// control have ..."), one instance per granting static in timestamp order.
+// AddSVar$
 // names SVars of this face the granted body reads (consumed).
 func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, error) {
 	lc.granted++
 	defer func() { lc.granted-- }()
+	// An attached grant names its host: the kernel finds it as the card's own
+	// permanent attached to the carrier (cost_sachost.go).
+	aff := sp.str("Affected") // AffectedDefined$ Equipped/Enchanted arrives as .EquippedBy/.EnchantedBy
+	lc.grantAttached = !strings.Contains(aff, ",") && (strings.Contains(aff, ".EquippedBy") || strings.Contains(aff, ".EnchantedBy"))
+	defer func() { lc.grantAttached = false }()
 	if st.F == nil || st.F.Players != 0 || len(st.F.Clauses) == 0 {
 		return 0, refuse("AddTrigger affected %s", st.F)
-	}
-	for _, c := range st.F.Clauses {
-		if c.Flags&(fEquippedBy|fEnchantedBy) == 0 {
-			return 0, refuse("AddTrigger to a non-attached affected %s (layer-6 grant record, M3)", st.F)
-		}
 	}
 	if strings.Contains(name, "&") || strings.Contains(name, ",") {
 		return 0, refuse("AddTrigger %q: more than one trigger", name)
@@ -2329,9 +2351,11 @@ func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, e
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") }); err != nil {
 		return 0, err
 	}
-	if len(lc.out.Abilities) != idx+1 {
+	if len(lc.out.Abilities) < idx+1 {
 		return 0, refuse("AddTrigger lowering")
 	}
+	// (an ImmediateTrigger body appends its reflexive ability after the
+	// granted one; it is reached through the body's own spawn, not granted)
 	lc.out.Abilities[idx].Latent = true
 	lc.out.Abilities[idx].Name = "Granted"
 	return idx, nil
@@ -2777,6 +2801,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.lifeGainRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
+	case "Draw":
+		if err := lc.drawRepl(rp, r.With, &rl); err != nil { // lower_drawrepl.go
+			return err
+		}
 	case "LifeReduced":
 		if err := lc.lifeLossRepl(rp, r.With, &rl); err != nil {
 			return err
@@ -3106,9 +3134,9 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			// entering permanent's controller, and offers pay only while
 			// life >= N (CR 119.4, UnlessCostPayableFromCtx). Only the exact
 			// shape lowers: the whole replacement is the one unswitched Tap
-			// with no other condition, and the cost is a literal PayLife<N>.
-			// Anything else refuses (Theorist's Sanctum's Behold<1/Jace>
-			// stays refused).
+			// with no other condition, and the cost is a literal PayLife<N> or
+			// a one-card Reveal or Behold (revealLandCost). Anything else
+			// refuses.
 			if uc, ok := ps.get("UnlessCost"); ok {
 				if other || node != sa || sa.Sub != nil || cond.Kind != cNone {
 					return refuse("ETB tap UnlessCost on a chained ETB replacement")
@@ -3118,6 +3146,12 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				}
 				if sw, ok := ps.get("UnlessSwitched"); ok {
 					return refuse("ETB tap UnlessCost UnlessSwitched$ %s", sw)
+				}
+				if verb, spec, ok := revealLandCost(uc); ok {
+					if err := lc.revealLandElection(verb, spec); err != nil {
+						return err
+					}
+					break
 				}
 				n, literal := 0, false
 				if rest, has := strings.CutPrefix(strings.TrimSpace(uc), "PayLife<"); has {

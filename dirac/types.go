@@ -110,8 +110,9 @@ const (
 )
 
 // MaxOptions bounds a Decision's options: an any-target choice over a full
-// battlefield, and a creature-type choice over gorge's 362 creature types.
-const MaxOptions = 384
+// battlefield, and a creature-type choice over gorge's 388 creature types
+// (the Star Trek words took the vocabulary past the former 384).
+const MaxOptions = 512
 
 // ChoiceKind says what a DkChoose decision (and its AkChoose picks) chooses.
 type ChoiceKind uint8

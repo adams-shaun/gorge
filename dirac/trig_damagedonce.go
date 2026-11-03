@@ -12,13 +12,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // referent's first matching event, with the batch total of the matching
 // events to that referent; trigger_match.go damageBatchKey).
 //
-// Only a combat damage step coalesces: every noncombat batch hits each
-// referent at most once (DamageAll, a damage map, a fight's two hits, a
-// replacement-mediated sequence deal one event per distinct recipient), so
-// there a line is its own batch of one and queues on the event's amount.
-// The step's latch is the stack-local refLatch (no State); the batch total
-// is a forward scan of the step's events, so the instance is queued at the
-// first event, in gorge's order, with gorge's closed amount.
+// Only a combat damage step and ExtEachDamage (dealHitsToOne) coalesce: every
+// other noncombat batch hits each referent at most once (DamageAll, a damage
+// map, a fight's two hits, a replacement-mediated sequence deal one event per
+// distinct recipient), so there a line is its own batch of one and queues on
+// the event's amount. The step's latch is the stack-local refLatch (no State);
+// the batch total is a forward scan of the step's events, so the instance is
+// queued at the first event, in gorge's order, with gorge's closed amount.
 
 // maxRefLatch is the (listener, referent) latches one combat damage step holds.
 const maxRefLatch = 16
@@ -40,6 +40,7 @@ type refEnt struct {
 type refLatch struct {
 	r    *dmgRec
 	only bool
+	agg  bool  // damageBatch's aggregate fire: only the once-per-batch lines queue
 	at   uint8 // the combat event (index + 1) being fired
 	n    int
 	e    [maxRefLatch]refEnt
@@ -74,14 +75,13 @@ func recipientPlayer(rcp uint8) (uint8, bool) {
 // for one damage event (source obj srcObj controlled by srcCtrl, slot src
 // when it is a permanent) of amt to recipient rcp (NoTarget: a multi-
 // recipient aggregate), and returns the queued amount, trigger object and
-// trigger player. A line without a referent read queues as before (the
-// per-recipient pass skips it).
+// trigger player. A line without a referent read queues on the event's amount.
 //
 //go:noinline
 func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcObj Obj, srcCtrl uint8, amt int16, rcp uint8, rl *refLatch) (int16, Obj, uint8, bool) {
 	t := &a.Trig
 	if t.Filter2 == 0 && t.Flags2&(kop.Tf2PerReferent|kop.Tf2ToYou) == 0 {
-		return amt, srcObj, 1 - srcCtrl, rl == nil || !rl.only
+		return amt, srcObj, 1 - srcCtrl, true
 	}
 	if rcp == NoTarget {
 		return 0, NoObj, 0, false // damageBatch's aggregate fire: its per-recipient pass handles it
@@ -195,7 +195,8 @@ func (s *State) combatRcp(ev *dmgEv) uint8 {
 }
 
 // fireDamageRefs is damageBatch's per-recipient pass: one Damage event per
-// recipient that took damage, for the lines that read the referent.
+// recipient that took damage, for every line but a DamageDealtOnce line with
+// no referent read, which the aggregate fire queued.
 //
 //go:noinline
 func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
@@ -212,4 +213,16 @@ func (s *State) fireDamageRefs(k *prep, codes []uint8, dn []int16) {
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, dn[i], dmgPl(code), code, &rl)
 		}
 	}
+}
+
+// batchLineSkips reports a line damageBatch's other fire queues: the aggregate
+// fire is for the DamageDealtOnce lines with no referent read, the per-recipient
+// pass for the rest (gorge: a Damage event per recipient; DamageDealtOnce once
+// per source per batch).
+func (rl *refLatch) batchLineSkips(t *kop.Trigger) bool {
+	if rl == nil || !rl.agg && !rl.only {
+		return false
+	}
+	once := t.Event == kop.TrigDamageDealtOnce && t.Filter2 == 0 && t.Flags2&(kop.Tf2PerReferent|kop.Tf2ToYou) == 0
+	return once == rl.only
 }

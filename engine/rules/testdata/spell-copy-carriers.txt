@@ -229,6 +229,8 @@ t/tzaangor_shaman.txt
 u/ulalek_fused_atrocity.txt
 u/unbound_flourishing.txt
 u/uyo_silent_prophet.txt
+upcoming/cmdr_troi_outgoing_empath.txt
+upcoming/combadge.txt
 upcoming/starfleet_communicator.txt
 v/venser_fervent_forger.txt
 v/verazol_the_split_current.txt

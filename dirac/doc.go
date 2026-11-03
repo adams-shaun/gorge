@@ -345,10 +345,10 @@
 //     control", AfManaEachColor) is no autopay source: gorge's planner
 //     census misses it, so a play the planner proves insufficient gets a
 //     scripted prefix that activates it first (rules potentialPrefixScript;
-//     only the first four insufficient plays of the walk are searched; the
+//     only the first sixteen insufficient plays of the walk are searched; the
 //     autopay surface drops a scripted plain cast). script_gen.go mirrors
 //     it: the play is offered when the sources plus its mana pay, and at the
-//     play it is tapped into the pool first. The four searched plays are
+//     play it is tapped into the pool first. The sixteen searched plays are
 //     taken in gorge's walk order (hand, other zones, then activations in
 //     battlefield entry order), and the gaps are tapped in battlefield
 //     order (two Tenders). A restricted source is no gap since gorge
@@ -366,7 +366,7 @@
 //     restricted mana in its pool and spends it first (gorge AvailableFor,
 //     emitRestrictedManaSpend; restrSpendable, payRestr). With only
 //     restricted gaps gorge's census is relaxable: a play the gaps' mana
-//     cannot pay takes none of the four searches. A reflected restricted
+//     cannot pay takes none of the searches. A reflected restricted
 //     any-colour ability is a gap too (genPrep.anyR): the search branches
 //     on its answers ({C} first, then W U B R G) depth first along the
 //     battlefield-order chain (scriptDFS); so is a restricted two-mana

@@ -17,6 +17,8 @@ const staticBufferGrantSrc = "Name:Buffer grant\nTypes:Enchantment\n" +
 
 // Allocating a fresh outer slice after every event must fail this test.
 // Keeping the old pointer live makes address reuse by the allocator impossible.
+// The scan alternates between two retained outer slices (rescanStatic), so the
+// first rebuild takes the second one and the next returns to the first.
 func TestStaticEffectsReusesBackingAcrossEvents(t *testing.T) {
 	e := layerEngine(t)
 	onBoardGrant(t, e, 0, staticBufferGrantSrc)
@@ -45,14 +47,22 @@ func TestStaticEffectsReusesBackingAcrossEvents(t *testing.T) {
 	if e.staticEpoch <= epoch || e.staticEpoch != len(e.L.Events) || e.staticBuildSeq == seq {
 		t.Fatal("a non-quiet event did not rebuild the static memo")
 	}
-	if &e.staticContinuous[0] != backing {
-		t.Error("event-backed rebuild allocated new static effect storage")
+	other := &e.staticContinuous[0]
+	if other == backing {
+		t.Error("rebuild wrote the memo in place, where a nested read would see it half-written")
 	}
 	if &e.staticContinuous[1].AddKeywords[0] == &keywords[0] || &e.staticContinuous[2].AddTypes[0] == &types[0] {
 		t.Error("rebuild reused nested keyword/type storage; only the outer slice may be reused")
 	}
 	if keywords[0] != "Flying" || types[0] != "Bird" {
 		t.Fatal("rebuild mutated previously borrowed keyword/type payloads")
+	}
+	for i, want := range []*ContinuousEffect{backing, other} {
+		e.emit(events.Event{Kind: events.Exert, Obj: bear})
+		e.active()
+		if &e.staticContinuous[0] != want {
+			t.Errorf("rebuild %d after the pair was warm allocated new static effect storage", i+2)
+		}
 	}
 	d := e.Derived(bear)
 	if d.Power != 3 || d.Toughness != 3 || !slices.Contains(d.Keywords, "Flying") || !slices.Contains(d.Types, "Bird") {
@@ -61,7 +71,9 @@ func TestStaticEffectsReusesBackingAcrossEvents(t *testing.T) {
 }
 
 // A reslice without clearing leaves departed sources and their payloads
-// reachable. Dropping capacity on the empty board also loses warm reuse.
+// reachable. Dropping capacity on the empty board also loses warm reuse. The
+// scan alternates between two retained arrays (rescanStatic), so the live memo
+// is always one of the pair and never a third.
 func TestStaticEffectsClearsDroppedSlotsAndRetainsCapacity(t *testing.T) {
 	e := layerEngine(t)
 	first := onBoardGrant(t, e, 0, staticBufferGrantSrc)
@@ -70,14 +82,26 @@ func TestStaticEffectsClearsDroppedSlotsAndRetainsCapacity(t *testing.T) {
 	if len(e.staticContinuous) != 6 {
 		t.Fatalf("initial static effects = %d, want 6", len(e.staticContinuous))
 	}
-	storage := e.staticContinuous[:cap(e.staticContinuous)]
+	var arrays [][]ContinuousEffect
+	note := func() []ContinuousEffect {
+		live := e.staticContinuous[:cap(e.staticContinuous)]
+		for _, a := range arrays {
+			if &a[0] == &live[0] {
+				return a
+			}
+		}
+		arrays = append(arrays, live)
+		return live
+	}
+	note()
 	checkStorage := func(wantLen int) {
 		t.Helper()
+		storage := note()
 		if len(e.staticContinuous) != wantLen || cap(e.staticContinuous) != len(storage) {
 			t.Fatalf("static len/cap = %d/%d, want %d/%d", len(e.staticContinuous), cap(e.staticContinuous), wantLen, len(storage))
 		}
-		if &e.staticContinuous[:cap(e.staticContinuous)][0] != &storage[0] {
-			t.Error("shrinking/empty/regrowing static effects replaced the backing array")
+		if len(arrays) > 2 {
+			t.Errorf("shrinking/empty/regrowing static effects used %d backing arrays, want the retained pair", len(arrays))
 		}
 		for i := wantLen; i < len(storage); i++ {
 			if !reflect.DeepEqual(storage[i], ContinuousEffect{}) {
@@ -130,8 +154,15 @@ func TestStaticEffectsCloneOwnsBacking(t *testing.T) {
 	cloneBacking := &c.staticContinuous[0]
 	c.emit(events.Event{Kind: events.ControlChange, Obj: source, Player: 1})
 	c.active()
+	if &c.staticContinuous[0] == &e.staticContinuous[0] {
+		t.Error("clone's event-backed rebuild landed in its parent's static storage")
+	}
+	// The pair is warm after one rebuild: the next returns to the clone's own
+	// first array rather than allocating a third.
+	c.emit(events.Event{Kind: events.Exert, Obj: source})
+	c.active()
 	if &c.staticContinuous[0] != cloneBacking {
-		t.Error("clone's event-backed rebuild allocated new static storage")
+		t.Error("clone's second event-backed rebuild allocated new static storage")
 	}
 	for _, ce := range c.staticContinuous {
 		if ce.Controller != 1 {

@@ -88,6 +88,7 @@ func appendParsedExileCost(c *Cost, token string, m groups) {
 	if m[1] != "FromHand" {
 		part.Zone = state.ZGraveyard
 	}
+	part.AnyGrave = m[1] == "AnyGrave"
 	c.Exile = append(c.Exile, part)
 }
 
@@ -1437,6 +1438,7 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				if m[1] != "FromHand" {
 					part.Zone = state.ZGraveyard
 				}
+				part.AnyGrave = m[1] == "AnyGrave"
 				c.Exile = append(c.Exile, part)
 				continue
 			}

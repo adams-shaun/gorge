@@ -39,6 +39,34 @@ const (
 type MockClient struct {
 	mode Mode
 	rng  *rand.Rand
+
+	turn     int32  // the turn SetTurn last named
+	acts     int    // actions taken this turn
+	payCard  string // the card whose payment this client is stepping through
+	paySteps int    // steps taken on payCard's payment
+}
+
+// maxActsPerTurn is how many actions a client takes in a turn before it only
+// passes. An ability with no cost stays offered after each use, so a client that
+// acts at random stacks them faster than they resolve and the turn never ends: a
+// game of 20,000 intents is thousands of en-Kor redirects. Over 300 fuzz games
+// both seats together took 33 actions in their busiest turn without such an
+// ability, and passing priority is always legal (CR 117.3b).
+const maxActsPerTurn = 24
+
+// maxPaymentSteps is how many steps a client takes on one card's payment before
+// it settles for what it has. A source that taps runs out, but one that turns mana
+// into mana with no tap (Bog Initiate, "{1}: Add {B}") stays offered with its own
+// output, so a client that always takes a step never reaches the end of the window.
+const maxPaymentSteps = 32
+
+// SetTurn names the turn the next prompt is asked in, which a real client reads
+// from the state message beside each prompt. A new turn renews the client's
+// budgets.
+func (c *MockClient) SetTurn(turn int32) {
+	if turn != c.turn {
+		c.turn, c.acts, c.payCard, c.paySteps = turn, 0, "", 0
+	}
 }
 
 // NewFirstLegalClient returns a MockClient in ModeFirstLegal.
@@ -195,21 +223,20 @@ func (c *MockClient) coin(num, den int) bool {
 // actions at random instead of always the first, so different mana sources
 // and abilities get exercised across a run.
 func (c *MockClient) answerChooseAction(in mb.ChooseActionInput) mb.PromptOutputValue {
-	if len(in.Actions) == 0 {
+	if len(in.Actions) == 0 || c.acts >= maxActsPerTurn {
 		return mb.PassOutput{}
 	}
 	idx := 0
 	if c.mode == ModeSeededRandom {
-		// Sometimes pass even when actions are advertised: an always-act
-		// policy livelocks on a repeatable zero-cost ability (Ghost Town's "{0}: becomes a creature" with an empty hand -- the
-		// one advertised action, re-offered at every priority window).
-		// Passing priority is always legal (CR 117.3b), so the extra
-		// out-of-range draw meaning "pass" keeps the answer in-policy.
+		// Sometimes pass even when actions are advertised, so a window with a
+		// repeatable ability in it can close before the budget runs out. The
+		// extra out-of-range draw means "pass".
 		if c.rng.IntN(len(in.Actions)+1) == len(in.Actions) {
 			return mb.PassOutput{}
 		}
 		idx = c.rng.IntN(len(in.Actions))
 	}
+	c.acts++
 	return mb.ActOutput{ActionID: in.Actions[idx].ID}
 }
 
@@ -262,16 +289,17 @@ func setConstraintBound(desc string) bool {
 // optional attacker too -- declaring no attacks at all is always legal
 // (CR 508.1a), so ModeFirstLegal only ever satisfies the forced attacks.
 func (c *MockClient) answerAttackers(in mb.ChooseAttackersInput) mb.PromptOutputValue {
+	together, bound := canGoTogether(in.Presentation, "attack")
 	var assignments []mb.AttackerAssignment
 	for _, a := range in.Attackers {
-		if len(a.ValidTargetIDs) == 0 {
+		if len(a.ValidTargetIDs) == 0 || (bound && !together[a.AttackerID]) {
 			continue
 		}
 		if !a.MustAttack && !c.coin(1, 2) {
 			continue
 		}
 		target := a.ValidTargetIDs[0]
-		if c.mode == ModeSeededRandom {
+		if c.mode == ModeSeededRandom && !bound {
 			target = a.ValidTargetIDs[c.rng.IntN(len(a.ValidTargetIDs))]
 		}
 		assignments = append(assignments, mb.AttackerAssignment{AttackerID: a.AttackerID, TargetID: target})
@@ -284,10 +312,30 @@ func (c *MockClient) answerAttackers(in mb.ChooseAttackersInput) mb.PromptOutput
 
 // cannotGoAlone reports whether the prompt's presentation names the creature
 // in the translator's "Can't attack alone" or "Can't block alone" sentence
-// (prompt_combat.go's alonePresentation). Declaring nothing is always legal, so
+// (prompt_combat.go's declarationPresentation). Declaring nothing is always legal, so
 // a lone declaration of such a creature becomes none.
 func cannotGoAlone(p *mb.PromptPresentation, verb, id string) bool {
 	return p != nil && strings.Contains(p.Description, "Can't "+verb+" alone: ") && strings.Contains(p.Description, "("+id+")")
+}
+
+// canGoTogether reads the translator's "These can attack together: <ids>."
+// sentence (prompt_combat.go's declarationPresentation): the creatures a
+// declaration bound as a whole can hold, each at its first offered target. bound
+// is false when the prompt has no such sentence.
+func canGoTogether(p *mb.PromptPresentation, verb string) (together map[string]bool, bound bool) {
+	if p == nil {
+		return nil, false
+	}
+	_, rest, ok := strings.Cut(p.Description, "These can "+verb+" together: ")
+	if !ok {
+		return nil, false
+	}
+	list, _, _ := strings.Cut(rest, ".")
+	together = map[string]bool{}
+	for _, id := range strings.Split(list, ", ") {
+		together[id] = true
+	}
+	return together, true
 }
 
 // answerBlockers assigns every MustBeBlocked attacker a blocker not already
@@ -306,6 +354,7 @@ func cannotGoAlone(p *mb.PromptPresentation, verb, id string) bool {
 // attacker takes none -- but the mandatory attackers go first so an
 // optional coin cannot consume a blocker a mandatory ask still needs.
 func (c *MockClient) answerBlockers(in mb.ChooseBlockersInput) mb.PromptOutputValue {
+	together, bound := canGoTogether(in.Presentation, "block")
 	used := map[string]bool{}
 	var assignments []mb.BlockerAssignment
 	assign := func(a mb.BlockableAttackerDto, want int) {
@@ -328,7 +377,7 @@ func (c *MockClient) answerBlockers(in mb.ChooseBlockersInput) mb.PromptOutputVa
 			if len(batch) == want {
 				break
 			}
-			if used[bid] {
+			if used[bid] || (bound && !together[bid]) {
 				continue
 			}
 			batch = append(batch, mb.BlockerAssignment{BlockerID: bid, AttackerID: a.AttackerID})
@@ -393,24 +442,28 @@ func (c *MockClient) answerChooseNumber(in mb.ChooseNumberInput) mb.PromptOutput
 }
 
 // answerChooseCards picks the smallest legal number of offered cards (Min).
-// A value constraint the prompt carries (chooseConstraint's
-// "Total value must be at least N." / "Total value must not exceed N."
-// sentences; engine/rules/cast.go's
-// tapcost asks pose that floor over Option.Value=power, which the
-// translator renders as the cards' power) is honoured from the cards'
-// power: the smallest count in [Min, Max] for which some subset's power sum
+// A set-level constraint's sentence (setConstraintBound) means the first Min
+// cards are one legal set, so it takes those, as answerBoardTargets does. A value
+// constraint (chooseConstraint's "Total value must be at least N." / "Total value
+// must not exceed N." sentences) is honoured from the prompt's card values
+// (cardValues): the smallest count in [Min, Max] for which some subset's sum
 // lies in [floor, ceiling], strongest cards first so a floor is reached with
 // as few cards as possible. Both bounds are honoured together -- a
 // strongest-first pick that clears the floor is rejected when it overshoots
 // the ceiling and the search backs off to a cheaper card. The deterministic
 // modes pick the same way -- a constraint-bound ask's legal answer is
-// near-forced. (A stat:TapPowerValue static that trades power for toughness
-// -- Tapestry Warden -- is invisible on the wire: the prompt's power is the
-// view's layer-derived power, so such an ask can still be under-shot.)
+// near-forced.
 func (c *MockClient) answerChooseCards(in mb.ChooseCardsInput) mb.PromptOutputValue {
 	n := len(in.Cards)
 	if n == 0 {
 		return mb.ChooseCardsDecision{ChosenCardIDs: []string{}}
+	}
+	if setConstraintBound(in.Presentation.Description) && in.Min > 0 && n >= in.Min {
+		ids := make([]string, 0, in.Min)
+		for _, card := range in.Cards[:in.Min] {
+			ids = append(ids, card.ID)
+		}
+		return mb.ChooseCardsDecision{ChosenCardIDs: ids}
 	}
 	floor, hasFloor := constraintNumber(in.Presentation.Description, "Total value must be at least ")
 	ceiling, hasCeiling := constraintNumber(in.Presentation.Description, "Total value must not exceed ")
@@ -419,13 +472,8 @@ func (c *MockClient) answerChooseCards(in mb.ChooseCardsInput) mb.PromptOutputVa
 		for i := range order {
 			order[i] = i
 		}
-		val := func(i int) int {
-			if in.Cards[i].Power == nil {
-				return 0
-			}
-			p, _ := strconv.Atoi(*in.Cards[i].Power)
-			return p
-		}
+		values := cardValues(in.Presentation.Description)
+		val := func(i int) int { return values[in.Cards[i].ID] }
 		// Strongest first: reaching a floor with the fewest cards, and the
 		// deterministic tie order the earlier policy used.
 		sort.SliceStable(order, func(a, b int) bool { return val(order[a]) > val(order[b]) })
@@ -539,6 +587,22 @@ func constraintNumber(desc, prefix string) (int, bool) {
 	return n, true
 }
 
+// cardValues reads the prompt's "Card values: <id> <n>, ..." sentence
+// (cardValueSentence's wording).
+func cardValues(desc string) map[string]int {
+	_, rest, ok := strings.Cut(desc, "Card values: ")
+	if !ok {
+		return nil
+	}
+	list, _, _ := strings.Cut(rest, ".")
+	values := map[string]int{}
+	for _, pair := range strings.Split(list, ", ") {
+		id, n, _ := strings.Cut(pair, " ")
+		values[id], _ = strconv.Atoi(n)
+	}
+	return values
+}
+
 // answerChooseColor spends Amount across ValidColors, repeating the first
 // colour when RepeatAllowed and spreading one-per-colour across the first
 // Amount colours otherwise -- both always legal by the prompt's own fields.
@@ -636,9 +700,9 @@ func (c *MockClient) answerReorder(in mb.ReorderInput) mb.PromptOutputValue {
 }
 
 // answerPayManaCost prefers an activation action (advancing the payment one
-// step, the engine re-prompts after each), then the wire "autofill" action
-// via pay{auto:true}, then confirming from the pool (pay{auto:false}), and
-// cancels only when none of those is offered. "autofill"-typed entries in
+// step, the engine re-prompts after each) until maxPaymentSteps, then the wire
+// "autofill" action via pay{auto:true}, then confirming from the pool
+// (pay{auto:false}), and cancels only when none of those is offered. "autofill"-typed entries in
 // Actions cannot be sent through act (only mana/activate/undoMana can); this
 // client tells them apart by PaymentAction.Type, as the payment
 // doc requires of a well-behaved client.
@@ -652,7 +716,11 @@ func (c *MockClient) answerPayManaCost(in mb.PayManaCostInput) mb.PromptOutputVa
 			stepActions = append(stepActions, a)
 		}
 	}
-	if len(stepActions) > 0 {
+	if in.CardID != c.payCard {
+		c.payCard, c.paySteps = in.CardID, 0
+	}
+	if len(stepActions) > 0 && c.paySteps < maxPaymentSteps {
+		c.paySteps++
 		idx := 0
 		if c.mode == ModeSeededRandom {
 			idx = c.rng.IntN(len(stepActions))

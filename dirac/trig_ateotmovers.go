@@ -49,20 +49,21 @@ func delayedAmt(d delayed) int16 {
 // second incarnation at once (even in response to its own reanimation, at the
 // end step the promise fired in), and the second promise then finds it gone.
 func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
-	ob := &s.objs[dlyRef(e.obj, e.trigObj)]
-	if ob.zone != kop.ZoneBattlefield {
-		return
+	head := dlyRef(e.obj, e.trigObj)
+	ob := &s.objs[head]
+	if ob.zone == kop.ZoneBattlefield {
+		sl := ob.slot
+		s.fireSac(k, sl)
+		s.leaveParked(k, sl)
 	}
-	sl := ob.slot
-	s.fireSac(k, sl)
-	s.leaveParked(k, sl)
+	s.sacAtEndFollowers(k, head)
 }
 
 // staleOrdered: a next-end-step action whose gorge body is incarnation-
 // tracked (__kwWarpExile, __kwUnearth, __kwAtEOTDestroy; AtEOT$ Exile reuses
 // the warp body, OpExile). Registered over a permanent that has since left,
-// it still takes part in the end step's trigger order and foldDelayedPush
-// then mints no trigger (takePending drops it).
+// it still takes part in the end step's trigger order, is put on the stack and
+// resolves doing nothing (CR 603.7, resolveDelayed's version check).
 func staleOrdered(op kop.Op) bool {
 	return op == kop.OpWarpExile || op == kop.OpUnearth || op == kop.OpDestroy || op == kop.OpExile
 }

@@ -164,20 +164,25 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		colors := make([]string, 0, 6)
 		seen := map[string]bool{}
 		allColor := true
+		// "Add X mana in any combination of colors" offers each colour once per
+		// unit, so a colour can repeat though no one option can.
+		repeat := d.Repeatable
 		for _, o := range d.Options {
 			c := colorCode(o.ManaSymbol, o.Label)
 			if c == "" {
 				allColor = false
 				break
 			}
-			if !seen[c] {
-				colors = append(colors, c)
-				seen[c] = true
+			if seen[c] {
+				repeat = true
+				continue
 			}
+			colors = append(colors, c)
+			seen[c] = true
 		}
 		if allColor && len(colors) > 0 {
 			sort.Strings(colors)
-			in = mb.ChooseColorInput{PromptBase: pres, ValidColors: colors, Amount: d.Min, RepeatAllowed: d.Repeatable}
+			in = mb.ChooseColorInput{PromptBase: pres, ValidColors: colors, Amount: d.Min, RepeatAllowed: repeat}
 		} else {
 			options := make([]mb.SelectionOption, 0, len(d.Options))
 			for _, o := range d.Options {
@@ -244,11 +249,7 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		// option index. The controller is presentation-only here (a
 		// CardDto has no controller field); the prompt's Title carries the
 		// card's own VoteMessage ("for a nonland permanent you don't control").
-		cards := make([]mb.CardDto, 0, len(d.Options))
-		for _, o := range d.Options {
-			cards = append(cards, t.optionCard(v, o))
-		}
-		in = mb.ChooseCardsInput{PromptBase: pres, Cards: cards, Min: d.Min, Max: d.Max}
+		in = t.chooseCardsInput(d, v, pres)
 	case "damage_split", "division":
 		options := make([]mb.SelectionOption, 0, len(d.Options))
 		for _, o := range d.Options {
@@ -300,16 +301,49 @@ func (t *Translator) promptChoose(d *decision.Decision, v *view.View) (mb.Prompt
 		// falls back to the generic label selection, which is
 		// always-answerable and cannot widen what Decision.Validate accepts.
 		if allOptionsHaveObjects(d.Options) {
-			cards := make([]mb.CardDto, 0, len(d.Options))
-			for _, o := range d.Options {
-				cards = append(cards, t.optionCard(v, o))
-			}
-			in = mb.ChooseCardsInput{PromptBase: pres, Cards: cards, Min: d.Min, Max: d.Max}
+			in = t.chooseCardsInput(d, v, pres)
 		} else {
 			return t.fallbackChoose(d, v, true)
 		}
 	}
 	return mb.PromptMessage{Kind: "prompt", AgentPrompt: mb.AgentPrompt{PromptID: promptID(d), DecidingPlayerID: playerID(d.Player), SourceCard: t.sourceCard(v, d.Source), Input: mb.PromptInput{Value: in}}}, false, nil
+}
+
+// chooseCardsInput builds a card pick's chooseCards prompt. What a card doesn't
+// show is said in the description. A set-level constraint reads as on a
+// chooseBoardTargets ask (prompt_target_set.go): its sentences, with the first
+// Min cards one legal set. A sum bound's total is over each option's Value, which
+// needn't be anything on the card (a Pilot crews at its power plus 2, an exile
+// cost counts mana value), so the sentence cardValueSentence writes lists them.
+func (t *Translator) chooseCardsInput(d *decision.Decision, v *view.View, pres mb.PromptBase) mb.ChooseCardsInput {
+	opts := orderTargetOptions(d)
+	if opts == nil {
+		opts = d.Options
+	}
+	cards := make([]mb.CardDto, 0, len(opts))
+	for _, o := range opts {
+		cards = append(cards, t.optionCard(v, o))
+	}
+	for _, sentence := range []string{targetSetSentences(d), cardValueSentence(d)} {
+		if sentence != "" {
+			pres.Presentation.Description += " " + sentence
+		}
+	}
+	return mb.ChooseCardsInput{PromptBase: pres, Cards: cards, Min: d.Min, Max: d.Max}
+}
+
+// cardValueSentence lists what each offered card counts for under the decision's
+// sum bound, in the wording mbtest's MockClient parses (chooseConstraint's
+// contract). Empty when the decision has no sum bound.
+func cardValueSentence(d *decision.Decision) string {
+	if d.MinSum <= 0 && !d.HasBudget() {
+		return ""
+	}
+	values := make([]string, 0, len(d.Options))
+	for _, o := range d.Options {
+		values = append(values, fmt.Sprintf("%s %d", cardID(o.Obj), o.Value))
+	}
+	return "Card values: " + strings.Join(values, ", ") + "."
 }
 
 // fallbackChoose is the class closer: any KChoose this package has no
@@ -392,12 +426,12 @@ func (t *Translator) parseChooseCards(out mb.PromptOutputValue, p *Pending) Outc
 	return Outcome{Intent: &in}
 }
 
-// parseChooseColor maps chooseColor's colorDecision: chosenColors is a
-// count per colour code, expanded into that many repeats of the matching
-// option's index. The map is walked in sorted key order -- never Go's own
-// map range order -- so the resulting Choices list, and therefore any event
-// it feeds, is deterministic (AGENTS.md's "no map range where iteration
-// order can reach an event").
+// parseChooseColor maps chooseColor's colorDecision: chosenColors is a count
+// per colour code, expanded into that many of the colour's options, repeating
+// its last where the ask is Repeatable and offers it once. The map is walked in
+// sorted key order -- never Go's own map range order -- so the resulting Choices
+// list, and therefore any event it feeds, is deterministic (AGENTS.md's "no map
+// range where iteration order can reach an event").
 func (t *Translator) parseChooseColor(out mb.PromptOutputValue, p *Pending) Outcome {
 	d := p.Decision
 	cur := p.Prompt.PromptID
@@ -413,18 +447,17 @@ func (t *Translator) parseChooseColor(out mb.PromptOutputValue, p *Pending) Outc
 	choices := make([]int, 0, len(colors))
 	for _, c := range colors {
 		n := dec.ChosenColors[c]
-		idx := -1
+		var offered []int
 		for _, o := range d.Options {
 			if colorCode(o.ManaSymbol, o.Label) == c {
-				idx = o.Index
-				break
+				offered = append(offered, o.Index)
 			}
 		}
-		if idx < 0 {
+		if len(offered) == 0 {
 			return Outcome{Err: errCode(mb.CodeInvalidShape, fmt.Sprintf("color %q is not offered", c), idPtr(cur))}
 		}
 		for i := 0; i < n; i++ {
-			choices = append(choices, idx)
+			choices = append(choices, offered[min(i, len(offered)-1)])
 		}
 	}
 	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}
@@ -652,8 +685,9 @@ func colorCode(symbol, label string) string {
 // presentation description every ManaBrew client sees. The wording is a
 // CONTRACT: mbtest's MockClient parses "Total value must be at least N."
 // and "Total value must not exceed N." to honour a Decision.MinSum/MaxSum
-// the wire shape itself cannot express, so rewording these
-// sentences changes what the mock can answer.
+// the wire shape itself cannot express, reading the cards' values from
+// cardValueSentence, so rewording these sentences changes what the mock can
+// answer.
 func chooseConstraint(d *decision.Decision) string {
 	if d == nil {
 		return ""

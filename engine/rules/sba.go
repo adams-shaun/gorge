@@ -185,11 +185,11 @@ func (e *Engine) applySBABatch(b *sbaBatch) {
 }
 
 // replaceSBADestruction offers a lethal-damage destruction to the replacements
-// the Destroy effects consult: the regeneration shield, a shield counter (CR
-// 122.1c), then umbra armor (CR 702.90), which removes the bearer's damage so
-// the next check cannot re-kill it.
+// the Destroy effects consult: R:Event$ Destroy lines, the regeneration shield,
+// a shield counter (CR 122.1c), then umbra armor (CR 702.90), which removes the
+// bearer's damage so the next check cannot re-kill it.
 func (e *Engine) replaceSBADestruction(id state.ObjID) bool {
-	return effects.ReplaceDestruction(e, id) || effects.ReplaceShieldCounter(e, id) ||
+	return effects.ReplaceDestroyLine(e, id, true) || effects.ReplaceDestruction(e, id) || effects.ReplaceShieldCounter(e, id) ||
 		effects.ReplaceUmbraArmor(e, id)
 }
 
@@ -303,6 +303,9 @@ func (e *Engine) checkStateBased() {
 		if e.sbaFacts(facts).battle {
 			e.battleZeroDefense(&b, tried)
 		}
+		if len(b.dead) == 0 {
+			e.sbaChain = nil
+		}
 		e.ceaseDeadTokens(&b, tried)
 		if e.sbaFacts(facts).combat {
 			e.removeNoncreatureCombatants(&b)
@@ -369,9 +372,25 @@ func (e *Engine) checkStateBased() {
 		for _, c := range b.dead {
 			markTried(&tried.objs, c.id)
 		}
+		askedBefore := e.pending
 		e.applySBABatch(&b)
+		asked := e.pending != nil && e.pending != askedBefore
+		if asked {
+			for _, c := range b.dead {
+				if !slices.Contains(e.sbaChain, c.id) {
+					e.sbaChain = append(e.sbaChain, c.id)
+				}
+			}
+		}
 		if e.sweepDepartedPlayers(tried) {
 			changed = true
+		}
+		if asked && len(b.dead) != 0 {
+			// The ask is outstanding: the next pass is the answer's, not this call's.
+			e.sbaUnquiet = true
+			e.checkGameOver()
+			e.releasePendingDecisionOfDepartedPlayer()
+			return
 		}
 		if !changed {
 			stable = true
@@ -1275,6 +1294,10 @@ func (e *Engine) ceaseDeadTokens(b *sbaBatch, tried *sbaAttempts) {
 		// does not cease.
 		if (o.IsToken || o.IsCopy) && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack && o.Zone != state.ZCeased {
 			if tried.tokens[o.ID] {
+				tried.skips++
+				continue
+			}
+			if slices.Contains(e.sbaChain, o.ID) {
 				tried.skips++
 				continue
 			}

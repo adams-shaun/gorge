@@ -46,6 +46,7 @@ func (s *State) beginTurn(p uint8) {
 	s.step = kop.StepUntap
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
+	s.g.declM = slotMask{}
 	for m := s.occ; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
 		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
@@ -168,7 +169,9 @@ func (s *State) beginStep(k *prep) {
 			s.step = kop.StepMain1
 			return
 		}
+		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
 		s.draw(s.active)
+		s.g.drawFirst = false
 		if s.over {
 			return
 		}
@@ -324,6 +327,9 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		s.kwx, s.nkwx = [maxKwRepX]kwRepX{}, 0
 	}
+	// each slot's inline pump is zeroed below
+	s.ptx, s.nptx = [maxPtX]ptRepX{}, 0
+
 	s.mSlZero(k, mechRegen) // the shields' third bit (repl_regenerate.go), cleared with pfRegen below
 	m := s.occ
 	if k.phasing {
@@ -447,11 +453,11 @@ func (s *State) sba(k *prep) bool {
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
-		if s.g.lingerM.any() && (!s.parkedWaiting() || s.parkedBeforeFirstAnswer()) && !s.legendOwed(k) {
+		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
 			// state-based checks unattach (each pass: a host that died in
-			// the last one too), and a casualty's later ask or a legend ask
-			// is still that pass (CR 704.3, 704.5n, 704.5p); a casualty dying
-			// beside the first parked one leaves its attachment to the next pass
+			// the last one too), and a casualty's parked ask or a legend ask
+			// is still that pass (CR 704.3, 704.5n, 704.5p): gorge's check
+			// returns at its first order ask and its answer re-enters it
 			s.lingerDrain(k)
 		}
 		for p := uint8(0); p < 2; p++ {
@@ -495,7 +501,7 @@ func (s *State) sba(k *prep) bool {
 				// A timestamped override record can set the base P/T (a
 				// value-driven Animate: HandSize can be 0), so the printed
 				// toughness is not enough for the no-damage shortcut.
-				if p.damage == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
+				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.fxM.has(sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
 					p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
 					goto noncreature
 				}
@@ -505,7 +511,9 @@ func (s *State) sba(k *prep) bool {
 					gy = gy.with(sl)
 					continue
 				}
-				if (int(p.damage) >= tough || (p.flags&pfDeathtouched != 0 && p.damage > 0)) &&
+				// The deathtouch mark alone is lethal (CR 704.5h): a wither or
+				// infect hit marks no damage (gorge destroyLethalDamage).
+				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
 					if p.flags&pfRegen != 0 {
 						s.regenerate(sl)
@@ -784,11 +792,18 @@ func (s *State) fireDelayed(k *prep) {
 	n := s.ndly
 	s.ndly = 0
 	var keep uint8
+	var fol [MaxDelayed]delayed
+	var nf uint8
 	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet) {
 		n, keep = s.splitLeaveDelayed(n) // leave-keyed records survive the end step
 	}
 	for i := 0; i < int(n); i++ {
 		d := s.dly[i]
+		if d.when == dlyGrpFollow {
+			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go)
+			nf++
+			continue
+		}
 		if d.when == dlyEndCombat && k.gen != nil && k.gen.anyTokEndCombat {
 			continue // gorge's |TT= expiry: this turn's end of combat has passed
 		}
@@ -801,10 +816,10 @@ func (s *State) fireDelayed(k *prep) {
 			// gorge drops a generated delayed program whose object left (a
 			// token copy that died). A keyword promise (Warp, Unearth) is not tied to
 			// its source's battlefield incarnation (CR 603.7): it still takes
-			// part in the end step's trigger order, and takePending then
-			// mints no trigger for the stale incarnation (gorge's
-			// foldDelayedPush checks TrackSource at push time). A token's
-			// AtEOT$ Destroy (__kwAtEOTDestroy) is the same:.
+			// part in the end step's trigger order, is put on the stack and
+			// resolves doing nothing for the stale incarnation (CR 603.7;
+			// gorge's DelayedPush stamps the registered incarnation). A
+			// token's AtEOT$ Destroy (__kwAtEOTDestroy) is the same.
 			continue
 		}
 		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))
@@ -812,6 +827,10 @@ func (s *State) fireDelayed(k *prep) {
 	if keep != 0 {
 		copy(s.dly[:keep], s.dly[n:n+keep])
 		s.ndly = keep
+	}
+	if nf != 0 {
+		copy(s.dly[s.ndly:], fol[:nf])
+		s.ndly += nf
 	}
 }
 

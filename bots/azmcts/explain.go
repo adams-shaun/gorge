@@ -143,6 +143,14 @@ func (s *Seat) searchRows(sn *searchNote) *explain.Search {
 	if res.Stats.Completed > 0 {
 		out.RootValue = explain.FromUnit(res.RootValue)
 	}
+	for _, st := range res.Line {
+		actor := "you"
+		if st.Opp {
+			actor = "opponent"
+		}
+		out.Line = append(out.Line, explain.Ply{Actor: actor, Label: st.Label, Visits: st.Visits, Share: explain.Round(st.Share), Q: explain.FromUnit(st.Q)})
+	}
+	out.LineEnd = res.LineEnd
 	return out
 }
 

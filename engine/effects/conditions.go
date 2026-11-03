@@ -260,6 +260,18 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	return p2met, true
 }
 
+// linkConditionMet is conditionMet for one link of a resolving chain. A link whose
+// targets were answered at cast time reads them in its own condition: Quag Feast's
+// `Targeted$CardManaCost` is the Destroy link's target, and the Mill at the root has
+// none (Forge's sa.getTargets, read; CR 608.2b).
+func linkConditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
+	if ts, ok := c.SubPreAsk[sa.Line]; ok && len(c.Targets) == 0 && TargetsOf(sa).Targeted() {
+		c.Targets = ts
+		defer func() { c.Targets = nil }()
+	}
+	return conditionMet(h, c, sa)
+}
+
 // conditionMetCore is conditionMet's primary evaluator: the ConditionDefined$/
 // ConditionPresent$ (with ConditionZone$) group, the ConditionCheckSVar$ gate,
 // the player-turn/phase preconditions and the bare Condition$. See the file

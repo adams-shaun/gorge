@@ -246,6 +246,9 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 			nodes += search.Nodes
 		}
 	}
+	if search.Best != nil {
+		SacrificesLast(search.Best)
+	}
 	switch {
 	case search.Best != nil && search.Limited:
 		return PlanOutcome{Plan: search.Best, Nodes: nodes, Reason: "search_limit"}
@@ -332,5 +335,34 @@ func PaymentSearchEnv(verify bool) Env {
 			return paid.Pool, ok
 		},
 		Verify: verify,
+	}
+}
+
+// SacrificesLast moves the plan's steps that sacrifice or return their source after
+// every other step, keeping each group's order. A source's production can read the
+// board (Overgrown Battlement adds {G} per creature with defender, Tinder Wall among
+// them), and the plan prices each step on the board before any of them ran, so a
+// sacrifice run ahead of a reader would leave the reader short: the plain taps go
+// first, as a manual-tap seat lowers the plan (payexec).
+func SacrificesLast(p *decision.PaymentPlan) {
+	consumes := func(a decision.PaymentActivation) bool {
+		return a.Consequence != nil && (a.Consequence.Sacrifice || a.Consequence.ReturnToHand)
+	}
+	seen := false
+	for _, a := range p.Activations {
+		if consumes(a) {
+			seen = true
+		} else if seen {
+			slices.SortStableFunc(p.Activations, func(x, y decision.PaymentActivation) int {
+				switch cx, cy := consumes(x), consumes(y); {
+				case cx == cy:
+					return 0
+				case cy:
+					return -1
+				}
+				return 1
+			})
+			return
+		}
 	}
 }

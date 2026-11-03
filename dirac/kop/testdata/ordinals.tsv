@@ -26,6 +26,7 @@ AfResolveCount	AbilityFlags	1024
 AfStation	AbilityFlags	4096
 AggCardTypes	untyped int	10
 AggColors	untyped int	7
+AggCreatureTypes	untyped int	13
 AggDistinctMV	untyped int	8
 AggDistinctNames	untyped int	9
 AggDistinctPower	untyped int	6
@@ -41,6 +42,7 @@ BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
 C	untyped int	5
+CastSpecAsCast	untyped int	512
 CastSpecCtrlTrig	untyped int	128
 CastSpecExclude	untyped int	2
 CastSpecExile	untyped int	64
@@ -97,6 +99,7 @@ CostExileCtrlOrGrave	CostFlags	1073741824
 CostExileGrave	CostFlags	512
 CostExileSelf	CostFlags	1048576
 CostForage	CostFlags	65536
+CostHostSac	uint8	1
 CostLoyalty	CostFlags	4096
 CostLoyaltyX	CostFlags	536870912
 CostOncePerGame	CostFlags	8192
@@ -278,6 +281,7 @@ ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
 ExCastManaSpent	ExprKind	35
 ExChosenMode	ExprKind	233
+ExChromaOf	ExprKind	231
 ExCommittedCrime	ExprKind	48
 ExCompare	ExprKind	36
 ExConst	ExprKind	1
@@ -292,6 +296,7 @@ ExCountersOn	ExprKind	18
 ExCreaturesDied	ExprKind	19
 ExCtrAdded	ExprKind	243
 ExDevotion	ExprKind	38
+ExDilemmasFaced	ExprKind	239
 ExDiscardedThisTurn	ExprKind	241
 ExDistinctCMC	ExprKind	6
 ExDrawnThisTurn	ExprKind	40
@@ -315,6 +320,7 @@ ExMorbid	ExprKind	8
 ExNone	ExprKind	0
 ExNumColorsOf	ExprKind	57
 ExOppLifeLostThisTurn	ExprKind	17
+ExOppsAttacked	ExprKind	229
 ExOppsLostLife	ExprKind	28
 ExParty	ExprKind	39
 ExPhaseCount	ExprKind	232
@@ -371,6 +377,7 @@ ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
+ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtFinalityCtr	ExtOp	198
 ExtHideaway	ExtOp	8
@@ -384,6 +391,7 @@ ExtNumTimes	ExtOp	50
 ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
+ExtPreventDamageScope	ExtOp	246
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -487,9 +495,11 @@ KwUnblockable	KwMask	262144
 KwVigilance	KwMask	128
 KwWard	KwMask	131072
 KwWither	KwMask	1048576
+LibBottomShuffle	untyped int	7
 LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopShuffle	untyped int	4
+LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
 MaxSubtypes	untyped int	128
 MaxTargets	untyped int	5
@@ -711,9 +721,13 @@ OptAll	untyped int	16
 OptAny	untyped int	8
 OptAsk	int16	4
 OvChosenColor	untyped int	1
+OvEnterWith	untyped int	2
+PayBBehold	untyped int	6
 PayBRemember	untyped int	4
+PayBReveal	untyped int	5
 PayBSubBlight	untyped int	1
 PayBSubEvidence	untyped int	2
+PayBSubSacHost	untyped int	7
 PayBSubTrigNew	untyped int	3
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
@@ -798,6 +812,9 @@ PropCardManaCost	uint8	3
 PropCardPower	uint8	1
 PropCardToughness	uint8	2
 PropNone	uint8	0
+PrevScopeCreatures	untyped int	2
+PrevScopePlayer	untyped int	1
+PrevScopeSrcCreature	untyped int	4
 PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
@@ -837,6 +854,7 @@ RefTargetOwner	Ref	17
 RefTargetSlot	Ref	24
 RefTargets01	Ref	25
 RefTargets012	Ref	26
+RefTargets0123	Ref	32
 RefTargets12	Ref	27
 RefTgtCtrl1	Ref	241
 RefTgtCtrl2	Ref	242
@@ -851,7 +869,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	29
+ReplCount	ReplKind	30
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -869,6 +887,8 @@ ReplDoubleCountersOn	ReplKind	20
 ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
+ReplDrawMore	ReplKind	29
+ReplDrawNotFirst	untyped int	1
 ReplEntersAsChoice	ReplKind	5
 ReplEntersProgram	ReplKind	6
 ReplEntersTapped	ReplKind	1
@@ -918,6 +938,7 @@ SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
+StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
@@ -927,8 +948,10 @@ StOncePerTurn	StaticFlags	2
 StPanhETB	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
+StReduceAny	StaticFlags	256
 StReduceColor	StaticFlags	8192
 StRemove6Counters	StaticFlags	32
+StTapOnC	StaticFlags	2
 StTargetsFilter2	StaticFlags	64
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
@@ -936,11 +959,14 @@ StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
+StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
+StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
 StatCanAttackDefender	StaticKind	250
 StatCantActivate	StaticKind	236
 StatCantAttack	StaticKind	8
+StatCantBeBeamedUp	StaticKind	244
 StatCantBeCast	StaticKind	16
 StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
@@ -966,6 +992,7 @@ StatPlayerHexproof	StaticKind	15
 StatReduceAbility	StaticKind	233
 StatReduceCost	StaticKind	2
 StatStackKw	StaticKind	251
+StatTapExtra	StaticKind	254
 StatUntapOther	StaticKind	246
 StepAttackers	Step	5
 StepBeginCombat	Step	4
@@ -980,6 +1007,7 @@ StepMain1	Step	3
 StepMain2	Step	10
 StepUntap	Step	0
 StepUpkeep	Step	1
+SurveilRememberKept	untyped int	2
 TArtifact	TypeMask	4
 TAura	TypeMask	512
 TBasic	TypeMask	2048
@@ -1118,8 +1146,9 @@ TrigDiscardedAll	TrigEvent	35
 TrigDiscover	TrigEvent	44
 TrigDrawn	TrigEvent	14
 TrigETB	TrigEvent	1
-TrigEventCount	TrigEvent	45
+TrigEventCount	TrigEvent	46
 TrigExplores	TrigEvent	39
+TrigFacesDilemma	TrigEvent	45
 TrigForage	TrigEvent	43
 TrigFullyUnlock	TrigEvent	34
 TrigGiveGift	TrigEvent	23
@@ -1166,14 +1195,19 @@ VX	VKind	1
 W	untyped int	0
 W7AttackingAlone	int16	3
 W7AttackingOpp	int16	7
+W7BottomLibrary	int16	17
+W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
 W7FaceUp	int16	5
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7InZone	int16	4
+W7IsCommander	int16	16
+W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
+W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesNameLegend	int16	10
 W7WithWarp	int16	11

@@ -145,3 +145,29 @@ func TestNoReaderLeavesTheMarkerAlone(t *testing.T) {
 		}
 	}
 }
+
+// TestModalCastDuringAResolutionFacesOneDilemma: a free cast's modes are answered
+// inside the resolution that casts it, and the choice is still one dilemma.
+func TestModalCastDuringAResolutionFacesOneDilemma(t *testing.T) {
+	t.Parallel()
+	const caster = "Name:Free Caster\nManaCost:U\nTypes:Sorcery\n" +
+		"A:SP$ Play | Valid$ Card.namedTwo Roads | ValidZone$ Hand | WithoutManaCost$ True | Optional$ True | Controller$ You\nOracle:x\n"
+	e, _, spell := newFixtureDeck(t, 952, caster, dilemmaCharm, dilemmaWatcher)
+	addMana(t, e, 0, "U")
+	putCreature(t, e, 0, dilemmaWatcher)
+	for _, id := range e.G.Zone(state.ZLibrary, 0) {
+		if e.G.Obj(id).Face().Name == "Two Roads" {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+			break
+		}
+	}
+	e.Advance()
+	submitChoices(t, e, miscCastOption(t, e, spell))
+	castFirst(t, e, "pass")
+	castFirst(t, e, "pass")
+	submitChoices(t, e, 0) // play it
+	submitChoices(t, e, 0) // one mode
+	if got := e.G.Players[0].DilemmasFacedThisTurn; got != 1 {
+		t.Fatalf("dilemmas faced = %d, want 1", got)
+	}
+}

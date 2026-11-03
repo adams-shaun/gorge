@@ -59,7 +59,7 @@ func TestGraveExileChangeZoneAllMutation(t *testing.T) {
 		sc.s.res.e = stackEntry{kind: seSpell, ctrl: 0}
 		in := kop.Instr{Op: kop.OpChangeZoneAllEx, Obj: kop.RefNone, F: kop.FilterID(len(tbl.Filters) - 1),
 			C: int16(kop.ZoneHand) | kop.MvGraveExile<<3}
-		sc.s.execChangeZoneAll(sc.k, &in)
+		sc.s.execChangeZoneAll(sc.k, &in, false)
 		return sc.s.objs[o].zone
 	}
 	if z := run(false); z != kop.ZoneHand {

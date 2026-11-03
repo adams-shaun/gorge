@@ -3182,6 +3182,9 @@ func (s *Session) optionalCost(sd *protocol.SeatDecision) ([]mapping.NativeOp, *
 	// UnlessCost body. A "other" optional cost whose source carries an
 	// UnlessCost elsewhere on its face is not this shape.
 	resume := s.unlessCostSA(src, &sd.Observation)
+	if resume == nil {
+		resume = s.grantedUnlessCostSA(src, &sd.Observation)
+	}
 	if str(first, "cost") != "unless_payment" && resume == nil {
 		return s.yesNo(sd)
 	}
@@ -3307,6 +3310,47 @@ func (s *Session) unlessCostSA(src protocol.ObjectRef, o *protocol.Observation) 
 		for _, sa := range chain(f, root) {
 			if sa.Params["UnlessCost"] != "" {
 				return sa
+			}
+		}
+	}
+	return nil
+}
+
+// grantedUnlessCostSA is unlessCostSA for a triggered ability the source does
+// not print: a permanent on the battlefield grants it with a static's AddTrigger$
+// (The Tabernacle at Pendrell Vale: every creature has "destroy this creature
+// unless you pay {1}"), and the ability's bodies are the granting face's own SVars.
+// Only a triggered ability on the stack can be one; the first granter in seat and
+// battlefield order that names an unless cost is the one read.
+func (s *Session) grantedUnlessCostSA(src protocol.ObjectRef, o *protocol.Observation) *cards.SA {
+	onStack := false
+	for i := range o.Stack {
+		if o.Stack[i].ObjectID == src.ObjectID && o.Stack[i].StackKind == "triggered_ability" {
+			onStack = true
+		}
+	}
+	if !onStack {
+		return nil
+	}
+	for i := range o.Players {
+		for j := range o.Players[i].Battlefield {
+			rec := &o.Players[i].Battlefield[j]
+			f := s.B.face(rec.CardName, rec.Token, rec.Characteristics)
+			if f == nil {
+				continue
+			}
+			for _, st := range f.Statics {
+				for _, name := range cards.SplitGrantNames(strings.TrimSpace(st.Params["AddTrigger"])) {
+					t, ok := cards.ParseTriggerLine(f.SVars[name])
+					if !ok {
+						continue
+					}
+					for _, sa := range chain(f, cards.ResolveSVar(f.SVars, strings.TrimSpace(t.Params["Execute"]))) {
+						if sa.Params["UnlessCost"] != "" {
+							return sa
+						}
+					}
+				}
 			}
 		}
 	}

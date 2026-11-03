@@ -10,8 +10,8 @@ import (
 // TestDealtDamageThisTurnPredicate is the effects leaf for Forge's
 // dealtDamageThisTurn -- the SOURCE side of combat damage, distinct from
 // wasDealtDamageThisTurn (the recipient side). It reads
-// state.Object.DamageDealtThisTurn, the record events.Apply's
-// DamageProvenance fold appends to. Corpus carriers: Avenging Arrow,
+// state.Object.DealtDamageThisTurnHere, the flag events.Apply's
+// DamageProvenance fold sets. Corpus carriers: Avenging Arrow,
 // Executioner's Swing, Restore the Peace, Red Guardian, Super Soldier and
 // Treacherous Greed's sacrifice cost. Asserting the precondition (the two
 // candidate objects actually differ in the record) keeps the test from
@@ -21,11 +21,11 @@ func TestDealtDamageThisTurnPredicate(t *testing.T) {
 	g := state.NewGame([]string{"you", "them"})
 
 	dealt := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
-	dealt.DamageDealtThisTurn = append(dealt.DamageDealtThisTurn, state.DamageDealtRecord{Amount: 2})
+	dealt.DealtDamageThisTurnHere = true
 	silent := g.Obj(corpusObject(t, reg, g, "Grizzly Bears").ID)
-	if len(dealt.DamageDealtThisTurn) == len(silent.DamageDealtThisTurn) {
-		t.Fatal("precondition failed: the two candidates must differ in DamageDealtThisTurn")
-	}
+	// A creature that dealt damage, left and came back keeps the turn-wide
+	// ledger, but it is a new object that has dealt none (CR 400.7).
+	silent.DamageDealtThisTurn = append(silent.DamageDealtThisTurn, state.DamageDealtRecord{Amount: 2})
 
 	if !MatchesObjectCtx(g, "Creature.dealtDamageThisTurn", dealt, SpecContext{You: 0}) {
 		t.Error("Creature.dealtDamageThisTurn must match a creature that dealt damage this turn")

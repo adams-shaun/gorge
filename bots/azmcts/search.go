@@ -64,6 +64,10 @@ type Result struct {
 	// under Sample, draws the move from. nil with ForcedK 0, or when no
 	// simulation completed.
 	Target []int
+	// Line is the principal line below the chosen root child (Options.Line),
+	// and LineEnd says why it stops short of the requested length.
+	Line    []LineStep
+	LineEnd string
 }
 
 // RootRow is one root child of a Search: its semantic key, a
@@ -278,7 +282,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		envSeed: splitmix(opts.Seed ^ 0x656e762d73656564), actor: root.Decision.Player, autoPayment: opts.AutoPayment, skipPass: opts.SkipPass,
 		uniformPrior: opts.UniformPrior, rootPerWorld: opts.RootPerWorld,
 		nameKeys: opts.NameKeys, rootRefs: root.Observer.Introduced(),
-		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats,
+		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats, line: opts.Line,
 		envBoard: &envBoard, enumBoard: &enumBoard, views: views,
 	}
 	if opts.OpponentNodes {
@@ -310,10 +314,11 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	if err != nil {
 		return res, err
 	}
-	if res.Stats.DeadlineHits > 0 {
+	if res.Stats.DeadlineHits > 0 && (opts.DeadlineMinSims <= 0 || res.Stats.Completed < opts.DeadlineMinSims) {
 		// The armed bail-out fired (ctx done at the call or between
 		// simulations): the tree stopped where it was and the bot's answer
-		// is played -- the partial tree's choice is never taken.
+		// is played -- the partial tree's choice is never taken, unless
+		// DeadlineMinSims simulations completed.
 		return res, nil
 	}
 	res.Visits, res.Q, res.Avail, res.RootValue = tr.Visits, tr.Q, tr.Avail, tr.RootValue
@@ -332,6 +337,9 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	res.Choice = chooseMove(played, opts, rng)
 	if res.Choice != 0 || !botFound {
 		res.Intent = cands[res.Choice].in
+	}
+	if tr.top != nil && res.Choice < len(tr.top.kids) {
+		res.Line, res.LineEnd = principalLine(tr.top.kids[res.Choice], opts.Line)
 	}
 	return res, nil
 }

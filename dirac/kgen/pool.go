@@ -95,6 +95,11 @@ type pool struct {
 	byName    map[string]*cards.Card
 	subs      map[string]bool // knownSubtype's lazily built set
 	typeWords map[string]bool // the corpus's type vocabulary (corpusTypeWords); nil on a synthetic pool
+
+	// allBlockers makes lowering keep reading past a refusal and record
+	// every one it can reach (-census-std -all-blockers). The lowered
+	// output of a card that lowers cleanly is the same either way.
+	allBlockers bool
 }
 
 // loadPool reads every *.json deck in decksDir and resolves its cards through

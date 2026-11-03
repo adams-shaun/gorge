@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -593,10 +594,11 @@ const (
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-// FlagPromisedGift joins the set: the promise is made as the spell is cast
-// (CR 702.168a), so a stack copy -- put on the stack, never cast -- cannot
-// inherit it and the copy's PromisedGift predicate and Count$PromisedGift
-// head read false.
+// FlagPromisedGift is deliberately NOT in the set: the promise is an
+// additional cost (CR 702.174a), and a copy copies the additional costs paid
+// for the spell (CR 707.10; Forge's CardFactory.copySpellAbilityAndPossiblyHost
+// copies it too), so the copy's PromisedGift predicate and Count$PromisedGift
+// head read true and its gift is given as it resolves.
 // FlagRebound joins the set for the same reason: CR 702.95a's rider is
 // conditioned on the cast ("If you cast this spell from your hand, exile it
 // as it resolves"), so a stack copy -- never cast, its origin a stack mint
@@ -619,7 +621,7 @@ const (
 // statement about the cast, and the prepared designation's exile copy is the
 // only object that was CAST with the grant; a copy OF that copy is put on the
 // stack, never cast (CR 707.10), so it must not re-fire Codie's trigger.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagPromisedGift | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay | FlagRebound | FlagBlitzed | FlagAddsCounters | FlagWebSlinged | FlagSneaked | FlagManaColorSpent | FlagImpending | FlagBargained | FlagPreparedCopy | FlagManaSourcesSpent | FlagAddsKeywords
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -762,11 +764,16 @@ type Object struct {
 	// continuous effects registered by the primitive, so this face stays the
 	// source's PRINTED face and the layer walk applies the exceptions in CR 613
 	// order on top. nil on every object that is not a copy.
-	CopyFace   *cards.Face
-	FaceIdx    uint8
-	Owner      PlayerID
-	Controller PlayerID
-	Zone       Zone
+	CopyFace *cards.Face
+	// CopyFaceBack is the other face of a double-faced token copy whose copy
+	// effect had exceptions (CR 707.8a, 707.9b: each face takes them): the
+	// edited face the token shows when it transforms. foldFlipFace swaps it
+	// with CopyFace. nil unless such a token; SetCopyFace clears it.
+	CopyFaceBack *cards.Face
+	FaceIdx      uint8
+	Owner        PlayerID
+	Controller   PlayerID
+	Zone         Zone
 
 	Tapped     bool
 	SummonSick bool
@@ -859,7 +866,8 @@ type Object struct {
 	// Ratonhnhaké:ton). Set by events.Apply's DamageProvenance fold alongside
 	// the per-turn DamageDealtThisTurn record, but GAME-LONG: the TurnChange
 	// clear that resets the per-turn records must never touch it. A plain
-	// bool, so the object clone copies it with the struct.
+	// bool, so the object clone copies it with the struct. Leaving the
+	// battlefield clears it with the rest of the stint's state (CR 400.7).
 	DealtDamageToAnyGame bool
 	// DealtCombatDamageToAnyGame is the combat-only half (Forge's
 	// dealtCombatDamagetoAny -- Ruric Thar, Magecrusher): set by the same
@@ -867,6 +875,12 @@ type Object struct {
 	// predicate and the provenance emitter cannot disagree. Non-combat
 	// damage leaves it false.
 	DealtCombatDamageToAnyGame bool
+	// DealtDamageThisTurnHere is Forge's dealtDamageThisTurn: this object dealt
+	// damage this turn. DamageDealtThisTurn outlives the source for the turn-wide
+	// counts, so it cannot answer that for a creature that left and came back,
+	// a new object (CR 400.7). Set by the DamageProvenance fold, cleared at
+	// TurnChange and on leaving the battlefield.
+	DealtDamageThisTurnHere bool
 	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
 	// object last came under its current controller's control on the
 	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
@@ -1554,8 +1568,7 @@ type Object struct {
 	// GiftPromisedTo is the CR 702.168 Gift promise's receiver: the opponent
 	// the cast's election named. The promise itself is the CastFlags bit
 	// state.FlagPromisedGift (folded by events.GiftPromise, preserved across
-	// the stack->battlefield move and stripped from a stack copy by
-	// CastProvenanceFlags), so the PromisedGift predicate, the
+	// the stack->battlefield move and kept by a stack copy), so the PromisedGift predicate, the
 	// Count$PromisedGift head and the Defined$ Promised referent share one
 	// home for the bit; this field carries only the receiver, read by
 	// Defined$ Promised / TokenOwner$ Promised. Zero when no promise was
@@ -1952,11 +1965,41 @@ type Object struct {
 	// DoorLock/DoorUnlock events alone update this per-face lock bitset.
 	LockedDoors uint8
 
+	// Intensity is the perpetual intensity the card has accumulated (Alchemy:
+	// "intensify", "perpetually increase the intensity"): the increments only,
+	// on top of the printed K:Starting intensity (IntensityTotal is the number
+	// the rules text reads). It belongs to the card, not to one zone stint, so
+	// Move leaves it alone: the object keeps its ObjID across zones and a
+	// perpetual effect outlasts every one of them. Only events.AlterAttribute
+	// "Intensity" writes it, so a replay rebuilds it.
+	Intensity int32
+
 	// _ pads the Object to 1472 bytes (23 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [48]byte
+	_ [36]byte
+}
+
+// IntensityTotal is the card's intensity as its text reads it: the printed
+// K:Starting intensity plus every perpetual increase. Forge's
+// Card.getIntensity(true); zero for a card with neither.
+func (o *Object) IntensityTotal() int32 {
+	n := o.Intensity
+	if f := o.Face(); f != nil {
+		for _, k := range f.Keywords {
+			if cards.KeywordHead(k) != "Starting intensity" {
+				continue
+			}
+			if _, v, ok := strings.Cut(k, ":"); ok {
+				if m, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+					n += int32(m)
+				}
+			}
+			break
+		}
+	}
+	return n
 }
 
 // DoorUnlocked reports the designation of a printed Room face. The cast
@@ -2154,7 +2197,16 @@ func (o *Object) SetFaceIdx(i uint8) {
 // SetCopyFace sets CopyFace and keeps the Face() cache coherent.
 func (o *Object) SetCopyFace(f *cards.Face) {
 	o.CopyFace = f
+	o.CopyFaceBack = nil
 	o.face = o.faceSlow()
+}
+
+// SwapCopyFaces shows a double-faced token copy's other edited face (the
+// token transformed) and keeps the one it leaves as the other.
+func (o *Object) SwapCopyFaces() {
+	front, back := o.CopyFace, o.CopyFaceBack
+	o.SetCopyFace(back)
+	o.CopyFaceBack = front
 }
 
 // SetCard sets Card and FaceIdx together and keeps the Face() cache coherent.

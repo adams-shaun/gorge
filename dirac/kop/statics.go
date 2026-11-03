@@ -251,9 +251,10 @@ const StatCantPutCounter StaticKind = 252
 // controller) cost A (or VA when StDynamic) generic less, floored at zero;
 // B = 1: Exhaust abilities only (CR 601.2f, 602.2b; gorge
 // costModifiersCompose, abilityScope). It follows its own ability's
-// ReduceCost$. The mana walk does not price it: kgen's matchup guard keeps
-// it out of a pool holding a mana-costed mana ability. An explicit ordinal
-// keeps the iota tail of StaticKind untouched.
+// ReduceCost$. It prices a filter land's fee (filtFee); any other mana
+// ability with a mana cost is not priced, and kgen's matchup guard keeps the
+// static out of a pool holding one it could lower. An explicit ordinal keeps
+// the iota tail of StaticKind untouched.
 const StatReduceAbility StaticKind = 233
 
 // two StaticFlags bits (explicit, outside the
@@ -289,6 +290,11 @@ const StatStackKw StaticKind = 251
 // StaticKind iota tail stays untouched.
 const StatCombatDmgToughness StaticKind = 245
 
+// StatCantBeBeamedUp: permanents matching Filter (battlefield, read with the
+// static's controller and source) can't be returned to pay beam me up (gorge
+// matchesBeamReturn). Explicit ordinal: the StaticKind iota tail stays untouched.
+const StatCantBeBeamedUp StaticKind = 244
+
 // TapPowToughness is TapPowerCrew / TapPowerSaddle's sentinel: the card
 // crews / saddles using its toughness rather than its power (Value$ Toughness).
 const TapPowToughness int8 = -128
@@ -299,3 +305,24 @@ const TapPowToughness int8 = -128
 // finishUntapStep, untap.go untapOtherStaticsMatch).
 // Explicit ordinal: the StaticKind iota tail stays untouched.
 const StatUntapOther StaticKind = 246
+
+// StatBeamGrant: during the controller's main phase each instant and sorcery card
+// in their graveyard has beam me up at its mana cost (Scotty, Miracle Worker). The
+// granter's CardDef.FbCost holds the return.
+const StatBeamGrant StaticKind = 253
+
+// StBeamGranted on a StatCantBeBeamedUp static: it bars only the return that pays
+// for a grant its own permanent makes.
+const StBeamGranted StaticFlags = 1 << 0
+
+// StatTapExtra: whenever the static's controller taps a permanent matching
+// Filter for mana, they add A-coloured mana, B of it (A is a mana index W U B R
+// G C), once per tap (a Mode$ TapsForMana | Static$ True trigger whose body is
+// one literal DB$ Mana: Groundchuck & Dirtbag, Badgermole Cub, Forsaken
+// Monument; gorge pay.PaymentPlanFoldableTapMana). StTapOnC restricts it to a
+// tap that declares {C} (Produced$ C). Explicit ordinal: the StaticKind iota
+// tail stays untouched.
+const StatTapExtra StaticKind = 254
+
+// StTapOnC on a StatTapExtra static: it fires only for a tap that makes {C}.
+const StTapOnC StaticFlags = 1 << 1

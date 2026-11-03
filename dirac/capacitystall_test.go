@@ -381,3 +381,28 @@ func TestTokenMintAtMaxObjStalls(t *testing.T) {
 	}()
 	sc.s.newToken(vanilla.GrizzlyBears, 0)
 }
+
+// TestStallBuildingOptionsPosesNothing: a counterspell's feasibility probe finds
+// a triggered ability past the stack range target codes can name. The game stalls
+// while the priority options are built, and Step returns no decision to answer.
+func TestStallBuildingOptionsPosesNothing(t *testing.T) {
+	tbl := *vanilla.Table
+	tbl.Cards = append([]kop.CardDef(nil), vanilla.Table.Cards...)
+	counter := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Counter", Types: kop.TInstant, Abilities: []kop.Ability{{Kind: kop.AbSpell,
+		Targets: [kop.MaxTargets]kop.TargetSpec{{Kind: kop.TgtStackObj}}, NTargets: 1,
+		Prog: []kop.Instr{{Op: kop.OpNop}}}}})
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	sc.hand(counter, 0)
+	for i := 0; i <= maxStackTgt; i++ {
+		sc.s.stack[i].kind = seTrigger
+	}
+	sc.s.sp = uint8(maxStackTgt + 1)
+	d := sc.s.Step()
+	if got := sc.s.StallReason(); got != StallTables {
+		t.Fatalf("stall %q, want tables", StallName(got))
+	}
+	if d.Kind != DkNone || d.N != 0 {
+		t.Fatalf("a stalled game posed decision kind %d with %d options", d.Kind, d.N)
+	}
+}

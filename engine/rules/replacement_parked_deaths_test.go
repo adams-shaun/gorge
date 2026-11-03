@@ -39,6 +39,9 @@ func TestParkedDeathsAskOncePerCreature(t *testing.T) {
 			}
 			e.pending = nil
 			e.checkStateBased()
+			if hasNote(e, "fixed point") {
+				t.Fatal("the pass found work in the parked deaths until its budget ran out")
+			}
 			var asked []state.ObjID
 			for d := e.Pending(); d != nil && d.Kind == decision.KReplacement; d = e.Pending() {
 				if o := e.G.Obj(d.Source); o.Zone != state.ZBattlefield {
@@ -77,6 +80,9 @@ func TestParkedDeathKeepsItsAskWhenASourceLeaves(t *testing.T) {
 	e.pending = nil
 	e.checkStateBased()
 	e.checkStateBased()
+	if hasNote(e, "fixed point") {
+		t.Fatal("the pass found work in the parked death until its budget ran out")
+	}
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KReplacement || d.Source != bear {
 		t.Fatalf("pending %+v, want the replacement choice about %d", d, bear)

@@ -20,10 +20,16 @@ func newBLBScen(t *testing.T, deck []cardset.Entry) (*scen, map[string]CardID) {
 // mechanic-bit arena is assigned from).
 func newBLBScenTweak(t *testing.T, deck []cardset.Entry, tweak func(*kop.Table, map[string]CardID)) (*scen, map[string]CardID) {
 	t.Helper()
-	set := cardsettest.Set(t, "blb")
+	return newSetScenTweak(t, "blb", deck, tweak)
+}
+
+// newSetScenTweak is newBLBScenTweak on any registered set's table.
+func newSetScenTweak(t *testing.T, setName string, deck []cardset.Entry, tweak func(*kop.Table, map[string]CardID)) (*scen, map[string]CardID) {
+	t.Helper()
+	set := cardsettest.Set(t, setName)
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not supported in the BLB table", e.Name)
+			t.Skipf("%s not supported in the %s table", e.Name, setName)
 		}
 	}
 	tbl, da, _, err := set.Matchup(deck, deck)

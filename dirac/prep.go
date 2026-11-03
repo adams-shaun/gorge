@@ -33,9 +33,15 @@ type pcard struct {
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
 	restrU    uint8         // a restricted source's planner view: 1 fixed colour, 2 widened {C} unit (mana_restrictedsource.go)
-	cdRec     bool          // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
-	food      bool          // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
-	manaTyped bool          // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	// wideN, wideCol: a widened restricted source's view whose restricted
+	// ability makes wideN mana (of one colour of wideCol) where the census
+	// ability makes manaN: the source's two alternatives differ in amount
+	// (mana_restrictedsource.go restrPairUnit). Zero: they make the same.
+	wideN     uint8
+	wideCol   kop.ColorMask
+	cdRec     bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
+	food      bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
+	manaTyped bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's
@@ -112,6 +118,9 @@ type prep struct {
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
+	// anyOppsAtt: some value reads ExOppsAttacked: finishAttacks records that the
+	// declaration named a player defender (value_oppsattacked.go)
+	anyOppsAtt bool
 	// w8: some filter is a PredWord7 sub-kind >= W7FaceUp:
 	// the one guard matchPermOne adds to pass ctrl and src
 	w8 bool
@@ -229,7 +238,7 @@ func prepare(t *kop.Table) *prep {
 		p.mayhem = p.mayhem || c.Mayhem
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.offspring = p.offspring || c.Offspring
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		pc.land = c.Types&kop.TLand != 0
 		pc.creature = c.Types&kop.TCreature != 0

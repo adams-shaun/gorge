@@ -473,7 +473,7 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // the same at announcement.
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {
@@ -551,6 +551,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		ka.Exhaust = a.Exhaust
 		ka.Evidence = uint8(a.Cost.EvidenceN)
+		ka.GrantedKw = a.Latent && strings.HasPrefix(a.Name, "GrantedFirebending")
 		if a.PowerUp {
 			if a.Latent {
 				return ka, fmt.Errorf("power-up on a latent ability")
@@ -859,7 +860,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "Untaps": kop.TrigUntaps,
-	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
+	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock,
 	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
@@ -1503,6 +1504,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			case "ReduceColor":
 				st.StFlags |= kop.StReduceColor
 				st.B = int16(s.RedCol)
+			case "AnyCaster":
+				st.StFlags |= kop.StReduceAny
 			case "EmbNum":
 				// the amount is the emblem's frozen
 				// SetChosenNumber$, read by adjustCostGen from embN
@@ -1510,6 +1513,31 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			default:
 				return ka, nil, fmt.Errorf("reduce cost flag %q", fl)
 			}
+		}
+	case "CantBeBeamedUp":
+		st.Kind = kop.StatCantBeBeamedUp
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			if fl != "BeamGranted" {
+				return ka, nil, fmt.Errorf("CantBeBeamedUp flag %q", fl)
+			}
+			st.StFlags |= kop.StBeamGranted
+		}
+	case "BeamGrant":
+		st.Kind = kop.StatBeamGrant
+	case "TapExtra":
+		st.Kind = kop.StatTapExtra
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
+		for _, fl := range s.Flags {
+			if fl != "TapOnC" {
+				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
+			}
+			st.StFlags |= kop.StTapOnC
 		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
@@ -1752,11 +1780,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			if head == "Improvise" {
 				st.A = kop.StackKwImprovise
 			}
-		case "Lifelink":
+		case "Lifelink", "Storm":
 			if param != "" {
 				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 			}
 			st.A = kop.StackKwLifelink
+			if head == "Storm" {
+				st.A = kop.StackKwStorm
+			}
 		case "Casualty":
 			n, err := strconv.Atoi(param)
 			if err != nil || n < 1 || n > 127 {
@@ -1939,6 +1970,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
+	case "DrawMore":
+		rp.Kind = kop.ReplDrawMore // lower_drawrepl.go
+		if !r.N.isConst() || r.N.N < 2 {
+			return ka, fmt.Errorf("draw more %v", r.N)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":
@@ -2078,6 +2115,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpDemonstrate
 	case "Ninjutsu":
 		ki.Op = kop.OpNinjutsu
+	case "Repeat":
+		ki.Op, ki.B = kop.OpRepeat, skip() // A: the pass count, read as the loop starts
 	case "RepeatWhile":
 		id, err := cb.cond(in.Cond)
 		if err != nil {
@@ -2096,7 +2135,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2110,8 +2149,17 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if in.CS == "Evidence" {
 			ki.B = kop.Const(kop.PayBSubEvidence) // CollectEvidence, not {X}: PayEvidence's nibble value is PayManaX's
 		}
+		if in.CS == "SacrificeHost" {
+			ki.B = kop.Const(kop.PayBSubSacHost) // the granting host, not the source
+		}
 		if in.CS == "ExileTrigNew" {
 			ki.B = kop.Const(kop.PayBSubTrigNew) // ExileAnyGrave<1/Card.TriggeredNewCard>, not a filter exile
+		}
+		if in.CS == "Reveal" {
+			ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
+		}
+		if in.CS == "Behold" {
+			ki.B = kop.Const(kop.PayBBehold) // a behold, not a discard: nothing moves
 		}
 		if pk == kop.PaySac && strings.HasPrefix(in.Note, noteRememberSacrificed) {
 			// a trigger's own IfPaid Sacrifice whose characteristic a value
@@ -2122,6 +2170,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		z := kop.ZoneBattlefield
 		if pk == kop.PayExileGrave {
 			z = kop.ZoneGraveyard
+		}
+		if in.CS == "Reveal" {
+			z = kop.ZoneHand
 		}
 		if err := objFilter(z); err != nil {
 			return ki, err
@@ -2256,7 +2307,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
-		if in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+		if (in.Obj.Kind == rSelf || in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredSource) && fl["from"] == "Battlefield" {
+			// a triggering permanent that left before the exile resolved is
+			// a new object this ability cannot find (CR 400.7, 608.2b)
 			ki.C |= kop.MvFromBattlefield
 		}
 		if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -2290,9 +2343,15 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpToLibrary, int16(in.C)
 		if _, ok := fl["TopShuffle"]; ok {
 			ki.C = kop.LibTopShuffle
+			if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
+				ki.C = kop.LibTopShuffleGrave
+			}
 		}
 		if _, ok := fl["TopShuffleSelf"]; ok {
 			ki.C = kop.LibTopShuffleSelf
+		}
+		if _, ok := fl["BottomShuffle"]; ok {
+			ki.C = kop.LibBottomShuffle
 		}
 		if in.C == 3 {
 			ki.Op, ki.C = kop.OpToLibraryChoice, 0
@@ -2642,7 +2701,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpMill
 	case "Surveil":
 		ki.Op = kop.OpSurveil
-		if err := remember3(in.CS, &ki); err != nil {
+		if in.CS == "RememberKept" {
+			ki.C |= kop.SurveilRememberKept
+		} else if err := remember3(in.CS, &ki); err != nil {
 			return ki, err
 		}
 	case "Scry":
@@ -2930,6 +2991,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "ExchangeControl":
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExchangeControl)), int16(in.C)
 	case "EachDamage":
 		// (Case of the Gateway Express) OpExt ExtEachDamage
 		// C: the recipient Ref (low byte) | the damager target slots << 8
@@ -3174,6 +3237,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
+	case "PreventDamageScope":
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel
@@ -3471,6 +3536,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			if err := cb.chosenColorOverridesOK(i); err != nil {
 				return ki, err
 			}
+		}
+		if _, ok := fl["enterWith"]; ok {
+			ki.B = kop.Const(kop.OvEnterWith)
 		}
 		switch strings.SplitN(in.CS, "|", 2)[0] {
 		case "EOT":

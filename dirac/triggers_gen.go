@@ -18,6 +18,7 @@ type trigListener struct {
 	ctrl uint8
 	card CardID
 	ab   uint8
+	host uint8 // the granting permanent plus one (stackEntry.trigHost); 0 = none
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -64,7 +65,7 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 		a := &k.t.Cards[c].Abilities[ab]
 		if a.Kind == kop.AbTriggered && ev(a) {
 			for ; n > 0; n-- {
-				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab}, a)
+				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
 			}
 		}
 	})
@@ -97,13 +98,19 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 	}
 	n := s.npend
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, l.ab, l.ctrl, tobj, tpl, amt)
+	if s.npend > n {
+		s.pend[n].remVer = l.host // a granted trigger's host rides remVer (stackEntry.trigHost)
+	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
 		s.bindTrigProv(a, tobj) // trig_xpaid.go, trig_gravedrawn.go
 	}
 	if a.Trig.Flags3 != 0 {
 		s.bindTrigConverge(a, tobj) // mana_converge.go
 	}
-	if k.gen.anyPanharm && s.npend > n {
+	if k.gen.anyPanharm && s.npend > n && a.Trig.Flags&kop.TfOncePerTurn == 0 && a.Trig.Flags3&kop.Tf3GameOnce == 0 {
+		// a line limited to once per turn or per game has spent its one trigger
+		// on the original: an additional time would pass the limit again (gorge
+		// queueTriggerLimited, CR 603.2d)
 		s.panharmEcho(k, l, a.Trig.Event, tobj, n) // trig_doubling.go
 	}
 }
@@ -177,9 +184,12 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		}
 		// ValidSource$ You: the player putting the counters (the
 		// resolving spell's or ability's controller; Fleeting Flight cast
-		// by an opponent on Exemplar of Light triggers nothing)
+		// by an opponent on Exemplar of Light triggers nothing). The
+		// counters a permanent enters with are put by its controller
+		// (CR 122.6a; gorge foldEntryWithPlaced): Parting Gust's return
+		// under the owner's control is the owner's put, whoever resolves it.
 		putter := evCtrl
-		if s.res.active {
+		if s.res.active && !s.g.ctrEntry {
 			putter = s.res.e.ctrl
 		}
 		if !whoseOK(a.Trig.Whose, l.ctrl, putter) {
@@ -217,6 +227,10 @@ func (s *State) firePlayerGen(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 	})
 	if ev == kop.TrigDrawn && s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireGraveDrawn(k, who, amt) // trig_gravedrawn.go
+	}
+	if ev == kop.TrigLifeGained {
+		// an Effect-created trigger (an emblem) follows the battlefield's listeners
+		s.fireEmblemsAmt(k, ev, who, NoObj, amt, func(*kop.Ability) bool { return true })
 	}
 }
 
@@ -309,6 +323,12 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 
 // fireEmblems queues the emblem triggers of event ev.
 func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extra func(a *kop.Ability) bool) {
+	s.fireEmblemsAmt(k, ev, who, tobj, 0, extra)
+}
+
+// fireEmblemsAmt is fireEmblems for an event that carries an amount (life
+// gained: Professor Dellian Fel's emblem reads TriggerCount$LifeAmount).
+func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, amt int16, extra func(a *kop.Ability) bool) {
 	for pp := uint8(0); pp < 2; pp++ {
 		for i := 0; i < int(s.g.nemb[pp]); i++ {
 			c := s.g.embC[pp][i]
@@ -324,7 +344,7 @@ func (s *State) fireEmblems(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, extr
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.g.embO[pp][i]
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, 0)
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, amt)
 						break
 					}
 				}
@@ -398,6 +418,9 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isDmg, func(l trigListener, a *kop.Ability) {
 			t := &a.Trig
+			if rl.batchLineSkips(t) {
+				return
+			}
 			if t.Flags&kop.TfCombat != 0 && !combat || t.Flags2&kop.Tf2NonCombat != 0 && combat {
 				return
 			}
@@ -478,6 +501,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		}
 		s.eachTrigger(k, ev, func(l trigListener, a *kop.Ability) {
 			t := &a.Trig
+			if rl.batchLineSkips(t) {
+				return
+			}
 			// ValidSource$ ...inZoneBattlefield: this source is no permanent
 			if t.Flags2&kop.Tf2SrcInPlay != 0 {
 				return
@@ -591,7 +617,7 @@ func (s *State) trigResolveOK(k *prep) bool {
 		return false
 	}
 	if a.AFlags&kop.AfResolveCount != 0 {
-		s.countResolve(e)
+		s.countResolve(k, e)
 	}
 	if a.Trig.Cond == 0 || a.AFlags&kop.AfCheckOnTrigger != 0 {
 		return true
@@ -659,7 +685,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	for i := 0; i < r.nev; i++ {
 		add(r.ev[i].src)
 	}
-	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any()
+	// a gain's plus-one (Angel of Vitality) is per source, each its own event
+	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0 ||
+		k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0
 	if !life && !dealt {
 		for pp := uint8(0); pp < 2; pp++ {
 			if r.toPl[pp] > 0 {

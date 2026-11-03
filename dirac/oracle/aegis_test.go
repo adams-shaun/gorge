@@ -19,12 +19,12 @@ import (
 var kaegisDecks = [2][]cardset.Entry{
 	{
 		{Name: "Assimilation Aegis", Count: 6}, {Name: "Prodigal Sorcerer", Count: 4}, {Name: "Serra Angel", Count: 3},
-		{Name: "Elvish Visionary", Count: 4}, {Name: "Savannah Lions", Count: 3}, {Name: "Mind Stone", Count: 2},
+		{Name: "Elvish Visionary", Count: 4}, {Name: "Savannah Lions", Count: 3}, {Name: "Mind Stone", Count: 2}, {Name: "Shatter", Count: 3},
 		{Name: "Plains", Count: 10}, {Name: "Island", Count: 8},
 	},
 	{
 		{Name: "Assimilation Aegis", Count: 3}, {Name: "Pestermite", Count: 4}, {Name: "Prodigal Sorcerer", Count: 4},
-		{Name: "Grizzly Bears", Count: 6}, {Name: "Serra Angel", Count: 2}, {Name: "Savannah Lions", Count: 3},
+		{Name: "Grizzly Bears", Count: 6}, {Name: "Serra Angel", Count: 2}, {Name: "Savannah Lions", Count: 3}, {Name: "Shatter", Count: 3},
 		{Name: "Plains", Count: 8}, {Name: "Island", Count: 5}, {Name: "Forest", Count: 3}, {Name: "Mountain", Count: 2},
 	},
 }

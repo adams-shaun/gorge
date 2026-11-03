@@ -526,3 +526,63 @@ func TestSacrificeLastKeepsTheDefenderCount(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+// TestWindowChoicesAnswersWholeColourAsk: "add two mana in any combination of
+// colours" lists its colours once per mana and takes Min of them, so a one-choice
+// answer is refused; each mana takes the colour still owed, what it pays coming off.
+func TestWindowChoicesAnswersWholeColourAsk(t *testing.T) {
+	var opts []decision.Option
+	for slot := 0; slot < 2; slot++ {
+		for _, s := range []string{"W", "U", "B", "R", "G"} {
+			opts = append(opts, decision.Option{Index: len(opts), Kind: "mana", ManaSymbol: s})
+		}
+	}
+	d := &decision.Decision{Kind: decision.KChoose, Min: 2, Max: 2, Options: opts}
+	owed := decision.ManaAmount{0, 0, 1, 1}
+	got := WindowChoices(d, owed)
+	if len(got) != 2 || got[0] != 2 || got[1] != 8 {
+		t.Fatalf("choices %v, want the B of the first slot and the R of the second ([2 8])", got)
+	}
+	if owed != (decision.ManaAmount{0, 0, 1, 1}) {
+		t.Errorf("the caller's owed amount was changed: %v", owed)
+	}
+	one := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: opts[:5]}
+	if got := WindowChoices(one, owed); len(got) != 1 {
+		t.Errorf("a single-mana ask answered with %v", got)
+	}
+}
+
+// A tap that a static TapsForMana trigger adds a second mana to puts both in
+// the witness, so the colour ask for the land's own pick has no single-colour
+// want: the pick naming a colour the witness holds answers it.
+func TestMatchManaTapExtra(t *testing.T) {
+	ask := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add U", ManaSymbol: "U"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add R", ManaSymbol: "R"},
+	}}
+	rg := decision.ManaAmount{0, 0, 0, 1, 1, 0}
+	if c, ok := matchMana(ask, decision.PaymentActivation{Source: 5, Produces: rg}); !ok || c[0] != 1 {
+		t.Fatalf("R with an extra G: %v %v", c, ok)
+	}
+	gw := decision.ManaAmount{1, 0, 0, 0, 1, 0}
+	if _, ok := matchMana(ask, decision.PaymentActivation{Source: 5, Produces: gw}); ok {
+		t.Fatal("W and G matched a U or R ask")
+	}
+	// an any-colour wheel option answers a witness of a colour and an extra
+	// mana, and its colour ask then takes the first colour the witness holds
+	wheel := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add C"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add any color"},
+	}}
+	if c, ok := matchMana(wheel, decision.PaymentActivation{Source: 5, Produces: gw}); !ok || c[0] != 1 {
+		t.Fatalf("W with an extra G on an any-colour wheel: %v %v", c, ok)
+	}
+	colours := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "W", ManaSymbol: "W"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "U", ManaSymbol: "U"},
+		{Index: 2, Kind: "mana", Obj: 5, Label: "G", ManaSymbol: "G"},
+	}}
+	if c, ok := matchMana(colours, decision.PaymentActivation{Source: 5, Produces: gw}); !ok || c[0] != 0 {
+		t.Fatalf("W with an extra G on the colour ask: %v %v", c, ok)
+	}
+}

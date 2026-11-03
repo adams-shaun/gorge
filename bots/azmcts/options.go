@@ -87,6 +87,11 @@ func ParseKinds(s string) (Kinds, error) {
 
 // Options are one Search's knobs; DefaultOptions holds the spec's values.
 type Options struct {
+	// Line > 0 asks Search for the principal line: up to Line plies of the
+	// most-visited continuation below the chosen root child (Result.Line).
+	// It only reads the tree, so the Result's choice, visits and values are
+	// the same with it on or off; 0 builds no label and keeps no node.
+	Line int
 	// Sims is the simulation budget per searched decision (-az-sims). 0 or
 	// less never builds a tree: the bot's answer is played.
 	Sims int
@@ -101,6 +106,13 @@ type Options struct {
 	// MaxSteps caps the environment's submits per simulation, the livelock
 	// guard of design §2; a walk that reaches it is evaluated where it stopped.
 	MaxSteps int
+	// DeadlineMinSims keeps the partial tree when Search's ctx is done
+	// between simulations and at least this many have completed: its choice
+	// is played instead of the bot's answer. 0 (the default) keeps the
+	// bail-out as it is, the bot's answer whatever the tree held. A host that
+	// bounds a decision's wall time sets it, and the answer then depends on
+	// how many simulations the clock allowed.
+	DeadlineMinSims int
 	// Kinds are the searched decision kinds.
 	Kinds Kinds
 	// AutoPayment lifts engine-provided automatic payment witnesses into

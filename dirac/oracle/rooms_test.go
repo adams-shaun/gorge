@@ -237,10 +237,11 @@ const roomsSeeds = 600
 // anywhere else, a moved or resized one, a changed value, or a pinned one
 // that no longer happens fails the test.
 //
-// Seeds 19, 169, 185, 351, 457, 497 and 595 are the non-live Room
-// door's trigger resolving against the live face's SVar table (Roaring Furnace's
-// X:Count$CardsInYourHand, Unholy Annex's DBBranch: the Demon drain and the
-// "otherwise" life loss). The face-down power filter deviation (Restricted
+// Seeds 19, 169, 185, 457 and 595 are the non-live Room
+// door's trigger resolving against the live face's SVar table (Unholy Annex's
+// DBBranch: the Demon drain and the "otherwise" life loss). Seeds 351 and 497, where
+// Roaring Furnace's X:Count$CardsInYourHand read the live face's table, agree since
+// gorge resolves an unlocked door's trigger against that door's own SVars. The face-down power filter deviation (Restricted
 // Office's DestroyAll powerGE3) is gone: gorge (mass effects read
 // current P/T) fixed it at pin 01fc61aa7, so those 13 seeds now agree.
 var roomsKnown = map[uint64]struct {
@@ -261,28 +262,8 @@ var roomsKnown = map[uint64]struct {
 		"Life[0]: ref=5 kernel=3",
 		"Life[1]: ref=12 kernel=14",
 	}},
-	351: {359, "projection", "Cards[3].Pos", "non-live Room door SVar", []string{
-		"Cards[3].Pos: ref=7 kernel=6",
-		"Cards[5].Pos: ref=6 kernel=5",
-		"Cards[30].Pos: ref=5 kernel=4",
-		"Cards[80].Zone: ref=2 kernel=127",
-		"Cards[80].Pos: ref=4 kernel=255",
-		"Cards[80].Power: ref=1 kernel=0",
-		"Cards[80].Toughness: ref=1 kernel=0",
-		"Cards[80].Chars.Types: ref=10 kernel=0",
-		"Cards[80].Chars.Colors: ref=1 kernel=0",
-	}},
 	457: {660, "projection", "Life[1]", "non-live Room door SVar", []string{
 		"Life[1]: ref=10 kernel=8",
-	}},
-	497: {739, "projection", "Cards[22].Zone", "non-live Room door SVar", []string{
-		"Cards[22].Zone: ref=2 kernel=3",
-		"Cards[22].Pos: ref=17 kernel=7",
-		"Cards[22].Flags: ref=2 kernel=0",
-		"Cards[22].Power: ref=2 kernel=0",
-		"Cards[22].Toughness: ref=1 kernel=0",
-		"Cards[22].Chars.Types: ref=2 kernel=0",
-		"Cards[22].Chars.Colors: ref=1 kernel=0",
 	}},
 	595: {512, "projection", "Life[1]", "non-live Room door SVar", []string{
 		"Life[1]: ref=19 kernel=17",

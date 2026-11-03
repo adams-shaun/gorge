@@ -63,6 +63,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.pendingTriggers, e.orderedTriggers = nil, 0
 		e.endTurnRequested = true
 	}
+	if ev.Kind == events.EndCombatPhase {
+		// CR 724.2a: the same drop as EndTurn's, before the fold exiles the
+		// stack (724.2b); an ability that triggers during the process
+		// survives into the next phase (724.2f; finishEndCombatPhase).
+		e.pendingTriggers, e.orderedTriggers = nil, 0
+		e.endCombatRequested = true
+	}
 	// CR 702.16d/e: prevent protected Damage and Attach events before
 	// replacement, reporting prevention as a Note. Damage uses the published
 	// source (or e.damaging); zero means no source. This precedes planeswalker
@@ -306,6 +313,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	var lki *state.Object
 	var lkiPower, lkiToughness int32
 	var lkiPTValid bool
+	var lkiTypes lkiTypeList
 	switch ev.Kind {
 	case events.MoveZone, events.Draw, events.PutOnStack, events.ControlChange:
 		if o := e.G.Obj(ev.Obj); o != nil {
@@ -313,6 +321,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			if o.Zone == state.ZBattlefield && o.Face() != nil {
 				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
 				lkiPTValid = true
+				if e.layer4InPool && ev.Kind == events.MoveZone && ev.To != state.ZBattlefield {
+					lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
+				}
 			}
 		}
 	case events.DoorUnlock:
@@ -757,19 +768,31 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// token. Hand it a COPY carrying the minted id; stored itself is
 		// already logged and must stay byte-identical for replay.
 		check := triggerCheckEvent(stored, tokenMintWant)
-		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
-			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
+		proposalEv := e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj &&
+			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
+				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced)
+		var preTurn map[triggerKey]turnFires
+		var preGame map[triggerKey]gameFires
+		if proposalEv {
+			preTurn, preGame = e.limitSnapshot()
 		}
-		if stored.Kind == events.EndTurn {
+		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
+			outerLKITypes := e.lkiTypes
+			if lkiTypes.set {
+				e.lkiTypes = lkiTypes
+			}
+			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
+			e.lkiTypes = outerLKITypes
+		}
+		if stored.Kind == events.EndTurn || stored.Kind == events.EndCombatPhase {
 			e.checkEndTurnExileTriggers(&stored)
 		}
 		// A pushed spell proposal's own target choice (CR 601.2c), or a pushed
 		// proposal's dilemma: remember which queue entries it produced so
 		// abortCast can drop them if the cast is reversed (CR 733.1 -- see
 		// pendingCast.proposalTriggers).
-		if e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj && len(e.pendingTriggers) > before &&
-			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
-				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced) {
+		if proposalEv && len(e.pendingTriggers) > before {
+			e.cast.proposalLimits = append(e.cast.proposalLimits, e.limitChanges(preTurn, preGame)...)
 			e.cast.proposalTriggers = append(e.cast.proposalTriggers, [2]int{before, len(e.pendingTriggers)})
 		}
 	}

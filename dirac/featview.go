@@ -373,7 +373,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	}
 	cost := k.cards[c].cost
 	if mode&2 != 0 {
-		cost = flashbackCost(&k.t.Cards[c])
+		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 {
 		cost = addCost(cost, k.t.Cards[c].Kicker)
 	}
@@ -386,7 +386,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// a reduction applies to the total cost, a flashback or kicked one
 		// too (CR 601.2f; the kernel's buildCost): Archmage of Runes on a
 		// flashback Inspiration from Beyond
-		cost = s.featCost(k, p&1, c, o, cost)
+		cost = s.adjustFit(k, &a, p&1, c, o, cost, false) // a twobrid cost is priced on the face the pool pays
 	}
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, p&1, cost) // gorge harmonizePayment prices the offer after the reductions
@@ -568,30 +568,37 @@ func planDeclinesAddCost(k *prep, c CardID) bool {
 // o in kernel cast mode (0 plain, bit 1 flashback); ok is false for the
 // casts it never plans (FeatPlannedCast).
 func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCost, bool) {
+	return s.plannedCastCostOf(k, p, o, mode, false, false)
+}
+
+// plannedCastCostOf is plannedCastCost with two prices the potential planner
+// reads where the cast planner declines. hyb prices a hybrid cost: the
+// potential planner resolves its pips (planHybridCost), so a scripted play of
+// a hybrid spell is priced on the pips as printed. composed prices the cast
+// that the planner declines only because a mana-spent reader is out ("shape:
+// mana_spent_reader": the card's own SpendRead or SpentSelf, or a Tf2CastSpent
+// listener on a battlefield) from its composed cost, as gorge's potential
+// planner does (potential_plan.go manaSpentReaderComposed): the reader changes
+// no price, and the cast then takes its place among the plays whose prefix
+// searches potentialScriptPlays caps.
+func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	cd := &k.t.Cards[c]
-	if planNeverPrices(k, c) {
-		return kop.ManaCost{}, false
-	}
-	if k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
-		// an OptionalCost static: gorge's planner declines the card's
-		// every cast ("shape:optional_cost"; cost_optional.go)
-		return kop.ManaCost{}, false
-	}
-	if k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k) {
-		// a mana-spent reader on a battlefield: gorge's planner prices no
-		// cast ("shape:mana_spent_reader", opus)
-		return kop.ManaCost{}, false
-	}
-	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
-		// gorge's planner refuses a convoke cost (payment_plan.go's
-		// "shape:contribution"): the cast is offered only when the floating
-		// pool plus the greedy credit pays it (FeatPoolPays)
-		return kop.ManaCost{}, false
+	refused := planNeverPricesCore(k, c, hyb, composed, false)
+	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
+	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
+	tapRefused := !refused && !optRefused && !spendRefused && s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand)
+	if refused || optRefused || spendRefused || tapRefused {
+		// gorge's planner declines the shape (modal_cost, additional_cost,
+		// optional_cost, mana_spent_reader, contribution, target_dependent_cost)
+		// except for a cast payable only by paying with a permanent its own
+		// announcements need (targetPaidPlanned)
+		if mode&3 != 0 || planNeverPricesCore(k, c, hyb, composed, true) || !s.targetPaidPlanned(k, p, o) {
+			return kop.ManaCost{}, false
+		}
 	}
 	cost := k.cards[c].cost
 	if mode&2 != 0 {
-		cost = flashbackCost(cd)
+		cost = s.flashbackCostOf(k, o)
 	}
 	if cost.Phyrexian() {
 		// gorge pay.PlanManaHalf: the witness funds the cost without its
@@ -618,7 +625,19 @@ func (s *State) FeatFaceDown(o Obj) bool {
 func (s *State) FeatPlanNeverPrices(c CardID) bool { return planNeverPrices(s.k(), c) }
 
 // planNeverPrices is plannedCastCost's refusals that read only the card.
-func planNeverPrices(k *prep, c CardID) bool {
+func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesOf(k, c, false, false) }
+
+// planNeverPricesOf is planNeverPrices with a hybrid cost priced when hyb and
+// the card's own mana-spent read left out when composed (plannedCastCostOf).
+func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
+	return planNeverPricesCore(k, c, hyb, composed, false)
+}
+
+// planNeverPricesCore is planNeverPricesOf with the shapes gorge's planner
+// admits for a cast payable only by paying with its own only target lifted when
+// modal is set (targetPaidPlanned): a Spree or Tiered face, an either-or or
+// life/energy additional cost, a mana-spent read, a target-dependent price.
+func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.Face != 0 {
 		// gorge's cast planner plans face 0 only (rules payment_plan.go
@@ -626,8 +645,13 @@ func planNeverPrices(k *prep, c CardID) bool {
 		// a Room back in the hand on door 1 is lowered or pool-paid
 		return true
 	}
-	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !cd.Cost.Phyrexian() || cd.SpendRead || cd.SpentSelf {
+	if cd.BeholdExile || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
+		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
+	}
+	if modal {
+		// gorge's PlanTargetPaidManaHalf funds the mana without life and energy
+		return spellAddCost(k, c).Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered|kop.CostPayLife|kop.CostPayEnergy) != 0
 	}
 	if planDeclinesAddCost(k, c) {
 		return true
@@ -713,16 +737,12 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 	return cost
 }
 
-// affordsUngranted: p's pool and untapped printed mana sources (not ex)
-// afford cost.
-func (s *State) affordsUngranted(k *prep, p uint8, cost *kop.ManaCost, ex Slot) bool {
-	return s.affordsUngrantedFor(k, p, cost, ex, payDesc{class: pdNone})
-}
-
-// affordsUngrantedFor is affordsUngranted for the payment d describes: the
-// restricted sources it may spend count too (pdNone: none).
+// affordsUngrantedFor: p's pool and untapped printed mana sources (not ex) afford
+// cost, for the payment d describes: the restricted sources it may spend count
+// too (pdNone: none).
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
+	var ms modalSet
 	pl := &s.pl[p&1]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
@@ -740,18 +760,30 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			if m := s.painAvailMask(pc, p&1); m != 0 {
-				av.addUnits(m, 1) // the planner's census has a pain ability (mana_pain.go)
-			}
+			s.addPainAvail(k, sl, pc, p&1, &av, &ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
 		av.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
 		if pc.manaOne {
 			s.addOneColour(&av, pc.manaN)
 		}
+		if k.gen.anyTapExtra {
+			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
+			for c := range xv {
+				if xv[c] > 0 {
+					av.addUnits(1<<c, xv[c])
+				}
+			}
+		}
 	}
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
-	return av.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &av, ex, 0)
+	for c := 0; c < 1<<ms.n; c++ {
+		b := ms.modes(av, c)
+		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+			return true
+		}
+	}
+	return false
 }
 
 // manaGranted reports whether slot sl's mana ability is one an effect
@@ -1247,11 +1279,12 @@ func (s *State) CastFreeIndex(o Obj) uint8 {
 	return n
 }
 
-// flashbackCost is a flashback cast's mana cost: the card's own flashback
-// cost, or its mana cost when the flashback is granted (Sphinx of Forgotten
-// Lore).
-func flashbackCost(cd *kop.CardDef) kop.ManaCost {
-	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem {
+// flashbackCostOf is object o's flashback cast's mana cost: the card's own
+// flashback cost, or its mana cost when the flashback is granted (Sphinx of
+// Forgotten Lore), printed beam me up or not.
+func (s *State) flashbackCostOf(k *prep, o Obj) kop.ManaCost {
+	cd := &k.t.Cards[s.objs[o].card]
+	if cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp && !s.fbGranted(k, o) {
 		return cd.AltCost
 	}
 	return cd.Cost

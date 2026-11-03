@@ -168,25 +168,81 @@ func TestTwobridNoWitness(t *testing.T) {
 	}
 }
 
-// TestTwobridStall: a twobrid card beside a cost reduction stalls the game
-// at its start (StallTwobridMod).
-func TestTwobridStall(t *testing.T) {
+// TestTwobridTable: a table with a twobrid card is flagged, and a cost
+// reduction beside it stalls nothing (the statics compose on the announced
+// faces, foldTb).
+func TestTwobridTable(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Plains", Count: 10}, {Name: "Spectral Procession", Count: 10}}
 	set := cardsettest.Set(t, "twobrid")
 	tbl, _, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, mod := tableTwobrid(tbl); mod {
-		t.Fatal("a table with no reduction flagged")
+	if !tableTwobrid(tbl) {
+		t.Fatal("a table with a twobrid card not flagged")
 	}
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Reducer", Types: kop.TEnchantment, Abilities: []kop.Ability{
 		{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatReduceCost, A: 1}}}})
-	if any, mod := tableTwobrid(tbl); !any || !mod {
-		t.Fatalf("twobrid %v mod %v, want true true", any, mod)
-	}
 	sc := newScenTable(t, tbl, Config{NoElide: true})
-	if sc.s.StallReason() != StallTwobridMod {
-		t.Fatalf("stall reason %d, want %d", sc.s.StallReason(), StallTwobridMod)
+	if r := sc.s.StallReason(); r != StallNone {
+		t.Fatalf("stall reason %d, want none", r)
+	}
+}
+
+// twobridReduced is twobridScen with a permanent that reduces every spell
+// by one generic mana on seat 0's battlefield.
+func twobridReduced(t *testing.T, names ...string) (*scen, map[string]CardID) {
+	t.Helper()
+	deck := []cardset.Entry{{Name: "Plains", Count: 8}}
+	set := cardsettest.Set(t, "twobrid")
+	for _, n := range names {
+		deck = append(deck, cardset.Entry{Name: n, Count: 1})
+	}
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Reducer", Types: kop.TEnchantment, Abilities: []kop.Ability{
+		{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatReduceCost, A: 1}}}})
+	id["Test Reducer"] = CardID(len(tbl.Cards) - 1)
+	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	sc.perm(id["Test Reducer"], 0)
+	return sc, id
+}
+
+// TestTwobridReducedGenericFaces: a generic reduction applies to the cost the
+// announced faces made (CR 601.2b, then 601.2f), where the unresolved {2/W}
+// has no generic for it to take. Three generic faces under a {1} reduction
+// are {5}: five colourless mana cast Spectral Procession, the first pip
+// offering only its generic face ({W} cannot be paid).
+func TestTwobridReducedGenericFaces(t *testing.T) {
+	sc, id := twobridReduced(t, "Spectral Procession")
+	o := sc.hand(id["Spectral Procession"], 0)
+	sc.s.pl[0].pool = [6]uint8{kop.C: 5}
+	asks := pipAsks(t, sc, o, func(_ int, m []uint8) uint8 { return m[0] })
+	if fmt.Sprint(asks) != fmt.Sprint([][]uint8{{6}, {6}, {6}}) {
+		t.Errorf("asks %v, want the generic face each pip", asks)
+	}
+	if sc.s.pl[0].pool != ([6]uint8{}) {
+		t.Errorf("pool after the cast %v, want empty", sc.s.pl[0].pool)
+	}
+}
+
+// TestTwobridReducedLaterPips: a pip's colour is offered when some completion
+// of the later pips makes the reduced total payable (the announcement walks
+// the completions as gorge FeasibleAny does). {2/W}{2/W}{2/W} under a {1}
+// reduction with {W}{C}{C}{C}: the colour face on pip 0 and two generic faces
+// cost {W}{4}-{1}, so pip 0 offers both faces.
+func TestTwobridReducedLaterPips(t *testing.T) {
+	sc, id := twobridReduced(t, "Spectral Procession")
+	o := sc.hand(id["Spectral Procession"], 0)
+	sc.s.pl[0].pool = [6]uint8{kop.W: 1, kop.C: 3}
+	asks := pipAsks(t, sc, o, func(_ int, m []uint8) uint8 { return m[0] })
+	if len(asks) != 3 || fmt.Sprint(asks[0]) != fmt.Sprint([]uint8{kop.W, 6}) {
+		t.Errorf("asks %v, want {W,6} on pip 0", asks)
 	}
 }

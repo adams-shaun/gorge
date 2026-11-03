@@ -112,12 +112,13 @@ const (
 	AggSumToughness      = 4  // total derived toughness
 	AggSumMV             = 5  // total mana value
 	AggDistinctPower     = 6  // distinct derived powers
-	AggColors            = 7  // colours among the matches (printed, copy-aware)
+	AggColors            = 7  // colours among the matches (live layer-5 colours)
 	AggDistinctMV        = 8  // distinct mana values (ExGraveAgg only)
 	AggDistinctNames     = 9  // distinct card names among the matches (CR 201.2)
 	AggCardTypes         = 10 // distinct card types on the matches' faces (CR 205.2a)
 	AggSumCounters       = 11 // total of counter kind Expr.Ctr over the matches (CR 122.1)
 	AggPermTypes         = 12 // distinct permanent card types (artifact, battle, creature, enchantment, land, planeswalker) on the matches' faces (CR 110.4; ExGraveAgg only)
+	AggCreatureTypes     = 13 // distinct current creature types among the matches (CR 205.3m), every one for a Changeling
 )
 
 // Expr is a computed amount: Kind over its operands, then *Mul (0 = 1),
@@ -162,6 +163,7 @@ const (
 	// Appended by.
 	CastSpecCtrlTrig // +ControlledBy TriggeredActivator: the object's current controller is the trigger's activating player
 	CastSpecTypes    // count-level $CardTypes: the distinct card types among the matching objects, not their count
+	CastSpecAsCast   // OnlyFirstSpell$ (gorge onlyFirstSpellUsed): a push of an Adventure half is read as that half, not as the creature face the card shows now; no push is dropped
 )
 
 // CondID indexes Table.Conds; 0 is "always".
@@ -360,6 +362,10 @@ const ExSacrificedThisTurn ExprKind = 242
 // performed this turn. Kept as two per-player tallies in State.
 const ExScriedThisTurn ExprKind = 238
 
+// ExDilemmasFaced: gorge Count$YouFaceDilemmaThisTurn (Player.DilemmasFacedThisTurn):
+// the times the reading controller chose modes this turn.
+const ExDilemmasFaced ExprKind = 239
+
 // ExChosenMode: the evaluating source permanent's chosen
 // mode index (gorge Card.ChosenMode<X>, effects/filter.go: the permanent's
 // ChosenModes holds X), 255 when the source is off the battlefield or has
@@ -401,6 +407,22 @@ const (
 	SacrificedFood   = 2
 	OppsHitLegendary = 1
 )
+
+// ExChromaOf: the mana symbols of colour N (W U B R G = 0..4) in the printed
+// mana cost of object Ref (gorge TriggeredCard$ChromaSource.<Colour>, Forge's
+// getTotalChroma: a hybrid or Phyrexian symbol counts once for either of its
+// colours); a face-down object has no mana cost (CR 708.2) and counts none.
+// A SpellCast trigger's spell on the stack is the one reader.
+const ExChromaOf ExprKind = 231
+
+// ExOppsAttacked (high expr kind): the number of opponents the controller
+// attacked this turn (gorge Engine.OpponentsAttackedThisTurn,
+// PlayerCountPropertyYou$OpponentsAttackedThisTurn): the distinct players a
+// declared attack named as its defender, so an attacker aimed at a
+// planeswalker or battle does not count its controller. Only the active
+// player attacks, so any other controller reads 0. With one opponent the
+// value is 0 or 1.
+const ExOppsAttacked ExprKind = 229
 
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,

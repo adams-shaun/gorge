@@ -49,6 +49,9 @@ Thrull Tiefling Time Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tos
 Unicorn Utrom Vampire Varmint Vedalken Villain Volver Vorta Vulcan Wall Walrus
 Warlock Warrior Weasel Weird Werewolf Whale Wizard Wolf Wolverine Wombat Worm
 Wraith Wurm Xindi Yeti Zombie Zubera
+Bajoran Betazoid Bolian Brikar Cardassian Denobulan Edosian El-Aurian Excalbian
+Ferengi Hirogen Illyrian Jem'Hadar Kwejian Medusan Melkotian Na'kuhl Ocampa
+Talaxian Tamarian Vau-N'Akat
 `) {
 		out[word] = true
 	}

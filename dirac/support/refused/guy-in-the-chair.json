@@ -1,12 +1,12 @@
 {
   "card": "Guy in the Chair",
   "class": "options",
-  "why": "the engines offer different options; 2 games in the corpus",
+  "why": "the engines offer different options",
   "repro": {
     "pool": "std-spm",
     "surface": "full",
     "seed": 1,
-    "pair": 404,
+    "pair": 773,
     "policy": "random",
     "mulligans": 1
   }

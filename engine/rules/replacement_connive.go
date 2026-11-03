@@ -11,7 +11,7 @@ import (
 // The proposal's completed event, if any, is emitted later through the normal
 // event path and is not itself a replacement window.
 func (e *Engine) ActionReplaced(proposal events.Event) bool {
-	if e.applyingReplacement {
+	if e.applyingReplacement && proposal.Kind != events.DestroyProposal {
 		return false
 	}
 	if proposal.Kind == events.Connive {

@@ -76,7 +76,7 @@ State-based actions run after each combat-damage pass.
 
 ## Decision and Action
 
-A `Decision` is a kind, a sub-kind, a player and up to 384 options (`MaxOptions`), 1,544 bytes in all, which is why
+A `Decision` is a kind, a sub-kind, a player and up to 512 options (`MaxOptions`), 2,056 bytes in all, which is why
 `StepInto` exists. An `Action` is one packed `uint32`:
 
 ```text

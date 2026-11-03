@@ -64,6 +64,32 @@ type ManaCost struct {
 // Phyrexian reports whether m's Tb pips are Phyrexian.
 func (m ManaCost) Phyrexian() bool { return m.Hyb[0] == HybTwobrid && m.Hyb[1] == HybPhyrexian }
 
+// HasColour reports whether m prints a symbol of colour c (W U B R G = 0..4):
+// a coloured pip, or a hybrid, monocoloured hybrid or Phyrexian pip of it
+// (CR 107.4e, 107.4f).
+func (m ManaCost) HasColour(c int) bool { return m.Chroma(c) != 0 }
+
+// Chroma counts the mana symbols of m that are colour c (W U B R G = 0..4), one
+// per symbol: a hybrid or Phyrexian pip counts once for either of its
+// colours (gorge's ChromaSource read, Forge's getTotalChroma).
+func (m ManaCost) Chroma(c int) int {
+	n := int(m.Pips[c])
+	if m.Hyb[0] == HybTwobrid {
+		for i := 0; i < m.TbN(); i++ {
+			if m.TbCol(i) == c {
+				n++
+			}
+		}
+		return n
+	}
+	for _, h := range m.Hyb {
+		if h&(1<<uint(c)) != 0 {
+			n++
+		}
+	}
+	return n
+}
+
 // TbN is the number of unresolved twobrid pips.
 func (m ManaCost) TbN() int {
 	n := 0
@@ -138,7 +164,16 @@ type Cost struct {
 	N      uint8 // count for Sac / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
 	Ctr    CounterKind
 	Filter FilterID
+	// Host names a cost part paid on the permanent that granted the ability
+	// (an Equipment's or Aura's static): CostHostSac. The CostFlags words are
+	// full, so the part rides its own byte. Only a granted ability reads it.
+	Host uint8
 }
+
+// CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction
+// Hammer's granted ability). The host must be the payer's own permanent on the
+// battlefield (CR 701.21a); the one candidate is settled unasked.
+const CostHostSac uint8 = 1
 
 // CostSubCtrPick: remove Cost.N counters of kind Cost.Ctr
 // (or any kind for CtrAll) from the source (Cost.Filter 0) or from the
@@ -168,6 +203,11 @@ const PayBSubEvidence = 2
 // this sentinel is a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>
 // cost (the triggered card exiled from any graveyard), not a filter exile.
 const PayBSubTrigNew = 3
+
+// PayBSubSacHost: a PaySacSelf whose B.N carries this sentinel is a granted
+// trigger's own Sac<1/OriginalHost> cost: the Equipment or Aura whose static
+// grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
+const PayBSubSacHost = 7
 
 // ReduceAbUnlock (bit 1 of a StatReduceAbility static's B): the reduction
 // reaches Room unlock special actions rather than activated abilities
@@ -212,6 +252,17 @@ const CostLoyaltyX CostFlags = 1 << 29
 // reflexive ability inherits; Ill-Timed Explosion). C's nibble is full, so
 // the sentinel rides the existing Instr.B value.
 const PayBRemember = 4
+
+// PayBReveal: a PayDiscard unless-cost whose B.N carries this sentinel reveals
+// A hand cards matching F instead of discarding them; nothing moves (gorge
+// AdvanceUnless's "revealcost"). It is the as-enters election of a reveal land
+// (dirac/repl_revealland.go), and C's nibble is full.
+const PayBReveal = 5
+
+// PayBBehold: a PayDiscard unless-cost whose B.N carries this sentinel beholds
+// A permanents the payer controls or hand cards matching F (CR 701.4a); nothing
+// moves. Theorist's Sanctum's as-enters election (dirac/repl_revealland.go).
+const PayBBehold = 6
 
 // PayKind is the cost an OpUnlessPaid / OpIfPaid offers (C & 0xF).
 const (

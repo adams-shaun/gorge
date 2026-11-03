@@ -78,6 +78,17 @@ func DefinedSpec(h Host, c *Ctx, spec string) []state.Target {
 // supplies only the no-selector fallback -- an ability declaring ValidTgts$
 // acts on its chosen targets, any other on its source.
 func DefinedRef(h Host, c *Ctx, r Ref, sa *cards.SA) []state.Target {
+	// A link that reuses its parent's referent (Defined$ Targeted,
+	// ParentTarget) yet carries its own ValidTgts$ never reaches the generic
+	// pre-ask; Forge's getDefinedCardsOrTargeted reads such a link's own
+	// target choice, which lives only in the cast-time record (the
+	// resolution's list is the parent's: Rules of Acquisition's "target
+	// nonland permanent you control" beside the Pump's player).
+	if sa != nil && c.SubPreAsk != nil && TargetsOf(sa).Has(TgtValidPresent) && TargetAskReusesPrior(sa) {
+		if ts, ok := c.SubPreAsk[sa.Line]; ok {
+			return copyTargets(ts)
+		}
+	}
 	if ts, ok := knownDefinedTargets(h, c, r.Raw); ok {
 		return ts
 	}
@@ -933,8 +944,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case definedSpecTargetedController:
 		// Forge's TargetedController: the controllers of the target objects. A
 		// target player contributes nothing, or Blightning's second discard
-		// leg would make "that player" discard twice.
-		return controllersOf(g, objectTargets(c.Targets)), true
+		// leg would make "that player" discard twice. A target that has left
+		// the battlefield answers with the controller captured when the
+		// resolution began (CR 608.2h; Forge's getChangeZoneLKIInfo): the live
+		// object's controller was reset to its owner by the departure.
+		return controllersOf(g, targetsControllerLKI(g, c, objectTargets(c.Targets))), true
 	case definedSpecTargetedPlayer:
 		return targetedPlayers(c), true
 	case definedSpecTargetedOwner:
@@ -1954,7 +1968,7 @@ func playerForTarget(h Host, c *Ctx, selector string, t state.Target) (state.Pla
 	if !t.IsPlayer && (plainRememberedSelector(selector) || selector == "Targeted") {
 		return 0, false
 	}
-	return PlayerOf(h, c, t), true
+	return definedPlayerOf(h, c, RefOf(selector), t), true
 }
 
 // playerIDsFromTargets applies playerForTarget to a resolved target set,
@@ -2063,6 +2077,31 @@ func objectTargets(ts []state.Target) []state.Target {
 	for _, t := range ts {
 		if !t.IsPlayer {
 			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// targetsControllerLKI rewrites each object target that is no longer on the
+// battlefield into the player who controlled it when c's resolution began, so
+// controllersOf reads the last-known controller (CR 608.2h). Targets still on
+// the battlefield, and those with no capture, are returned unchanged.
+func targetsControllerLKI(g *state.Game, c *Ctx, ts []state.Target) []state.Target {
+	if c == nil || len(c.Snap.TargetController) == 0 {
+		return ts
+	}
+	out := make([]state.Target, len(ts))
+	copy(out, ts)
+	for i, t := range out {
+		if t.IsPlayer {
+			continue
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || o.Zone == state.ZBattlefield {
+			continue
+		}
+		if p, ok := c.Snap.TargetController[t.Obj]; ok {
+			out[i] = state.Target{Player: p, IsPlayer: true}
 		}
 	}
 	return out
@@ -2580,6 +2619,16 @@ func PlayerOf(h Host, c *Ctx, t state.Target) state.PlayerID {
 		return o.Controller
 	}
 	return c.Controller
+}
+
+// definedPlayerOf is PlayerOf for one target of the Defined$ selector r. With no
+// Defined$ written the resolver answers with the source, and that names the
+// ability's controller, "you" (CR 109.5), who need not control the source any more.
+func definedPlayerOf(h Host, c *Ctx, r Ref, t state.Target) state.PlayerID {
+	if !r.Set() && !t.IsPlayer && t.Obj == c.Source {
+		return c.Controller
+	}
+	return PlayerOf(h, c, t)
 }
 
 // validStackToken is one comma-separated token of a Defined$ ValidStack spec.

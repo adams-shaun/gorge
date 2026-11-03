@@ -127,13 +127,13 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// of a Phase trigger, the drawer, the player who gained/lost life, the caster)
 		if tr := lc.ab.Trigger; tr != nil {
 			switch tr.Event {
-			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast":
+			case "Phase", "Drawn", "LifeGained", "LifeLost", "SpellCast", "FacesDilemma":
 				// SpellCast: gorge trigger_referents.go:244-258 sets
 				// TriggerPlayer to the caster, the TriggeredActivator below
 				return lRef{Kind: rTriggeredPlayer}, nil
 			}
 		}
-		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast trigger", v)
+		return lRef{}, refuse("Defined$ %q outside a Phase/Drawn/LifeGained/LifeLost/SpellCast/FacesDilemma trigger", v)
 	case "TriggeredTarget", "TriggeredTargetLKICopy":
 		// gorge definedSpecTriggeredTarget of a damage trigger: the damaged
 		// object or player. A per-referent DamageDone line whose ValidTarget$
@@ -203,6 +203,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %q outside an attack trigger of the controller's own attack", v)
 		}
 		return lRef{Kind: rDefending}, nil
+	case "Spawner>TriggeredTarget":
+		// the player the spawning trigger's source dealt combat damage to
+		// (gorge spawnerChain reads TriggeredTarget in the spawner's
+		// roles): two players, the one opponent (CR 506.4; the same
+		// reading as the ControlledBy form, lower_filterwords.go)
+		if !lc.spawnDmg {
+			return lRef{}, refuse("Defined$ %q outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", v)
+		}
+		return lRef{Kind: rEachOpp}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
 		// Object.GiftPromisedTo): in a two-player game, the opponent
@@ -911,6 +920,15 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		in.CS, in.A = "SacrificeSelf", cst(1)
 		c.SacSelf = false
 	}
+	if c.SacHost && n == 0 && lc.trigOwnCost && lc.grantAttached {
+		// Sac<1/OriginalHost> as the own cost of a trigger an Equipment or Aura
+		// grants (Sunfire Torch, Spare Dagger; gorge's triggered-cost window binds
+		// the part to the granting host): the host is sacrificed, the one
+		// candidate settled unasked (CR 701.21a)
+		n++
+		in.CS, in.A = "SacrificeHost", cst(1)
+		c.SacHost = false
+	}
 	if c.BlightN > 0 {
 		// Blight<N> as a trigger's own cost or an UnlessCost (gorge
 		// trigger_cost_blight / unlessflow): the payer chooses a creature
@@ -1011,7 +1029,7 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileTrigNew = false
 		n++
 	}
-	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.BlightN != 0 || c.EvidenceN != 0 {
+	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 {
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
@@ -1151,6 +1169,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		lc.emit(in)
 	case "ChangeZone":
 		return lc.changeZone(ps)
+	case "Assimilate":
+		return lc.assimilate(ps) // lower_assimilate.go
 	case "ChangeZoneAll":
 		return lc.changeZoneAll(ps)
 	case "Draw":
@@ -1226,6 +1246,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			return err
 		} else if rem {
 			in.CS = "Remember" // the cards put into the graveyard
+		}
+		if kept, err := rememberParam(ps, "RememberKept"); err != nil {
+			return err
+		} else if kept {
+			if in.CS != "" {
+				return refuse("Surveil RememberKept$ beside RememberMoved$")
+			}
+			in.CS = "RememberKept" // the cards left on top
 		}
 		lc.emit(in)
 	case "GainLife", "LoseLife":
@@ -1462,6 +1490,11 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "SacrificeDelayed", Obj: lRef{Kind: rDelayedRemembered}})
 			return nil
 		}
+		if ps.str("Mode") == "TgtChoose" {
+			// gorge effSacrifice never reads Mode$: a targeted player
+			// chooses what to sacrifice whether or not it says so
+			ps.consume("Mode")
+		}
 		_, hasD := ps.get("Defined")
 		_, hasT := ps.get("ValidTgts")
 		sv := strings.TrimSpace(ps.str("SacValid"))
@@ -1588,6 +1621,8 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		return lc.copyPermanent(ps)
 	case "GainControl":
 		return lc.gainControl(ps)
+	case "ExchangeControl":
+		return lc.exchangeControl(ps)
 	case "DelayedTrigger":
 		return lc.delayedTrigger(ps)
 	case "ImmediateTrigger":
@@ -2110,6 +2145,16 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 	if ds, ok := ps.get("DamageSource"); ok {
 		return lc.sweepFrom(ps, ds, n) // lower_sweepfrom.go
 	}
+	if vp := ps.str("ValidPlayers"); vp == "OppNonTriggeredTarget" && ps.m["ValidCards"] == "" {
+		// every opponent but the damaged one (gorge validPlayers): in a
+		// two-player game the damaged player is the one opponent, so no
+		// player is left to hit (CR 102.2)
+		if !lc.damagedPlayerIsTriggerPlayer() {
+			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
+		}
+		ps.consume("ValidPlayers")
+		return nil
+	}
 	in := lInstr{Op: "DamageAll", A: n}
 	if vc, ok := ps.get("ValidCards"); ok {
 		if in.F, err = lc.filter(vc); err != nil {
@@ -2426,6 +2471,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if a, ok := ps.get("NumAtt"); ok {
 		if a == "Double" {
 			att = lValue{Kind: vPowerOf, Ref: obj}
+		} else if a == "Triple" {
+			// gorge statAddMultiplier: Triple adds twice the object's
+			// current power (final 3x)
+			att = lValue{Kind: vPowerOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(a); err != nil {
 			return err
 		} else {
@@ -2436,6 +2485,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if d == "Double" {
 			// gorge NumForObject: the object's current toughness
 			def = lValue{Kind: vToughnessOf, Ref: obj}
+		} else if d == "Triple" {
+			def = lValue{Kind: vToughnessOf, Ref: obj, Mul: 2}
 		} else if v, err := lc.value(d); err != nil {
 			return err
 		} else {
@@ -3406,10 +3457,10 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 				return refuse("multi-pick charm with TargetUnique")
 			}
 			if t.SameCtrl || t.DiffCtrl || t.SharedCrType || t.DistinctName || t.MaxMV != 0 || t.Divided != 0 || t.ParentPlus1 != 0 || t.AtRes ||
-				!t.Min.isConst() || t.Min.N != 1 || !t.Max.isConst() || t.Max.N < 1 || t.Max.N > kop.MaxTargets {
+				!t.Min.isConst() || t.Min.N < 1 || t.Min.N > 2 || !t.Max.isConst() || t.Max.N < t.Min.N || t.Max.N > kop.MaxTargets {
 				return refuse("multi-pick charm mode target bounds %s..%s", t.Min, t.Max)
 			}
-			// a 1..N slot (N > 1) takes gorge's sequential per-mode asks
+			// a slot of more than one target takes gorge's sequential per-mode asks
 			// (askCharmSeqSlot), which the kernel derives from the slot
 			// bounds (modal_charmseq.go); the chain links' place among
 			// those asks is not read

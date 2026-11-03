@@ -21,6 +21,8 @@ const (
 	akClone   uint8 = 4 // an "enter as a copy" choice, cast or returned (s.g.pre only; copy_asenters.go)
 	akPayLife uint8 = 5 // a shock land's as-enters "pay N life or enter tapped" (repl_shockland.go)
 	akMode    uint8 = 6 // a Siege's as-enters mode (face_siegemode.go)
+	akReveal  uint8 = 7 // a reveal land's as-enters "reveal or enter tapped" (repl_revealland.go)
+	akRevPick uint8 = 8 // the card a reveal land's paid election reveals
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -35,9 +37,6 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.g.entExc = 0
 		s.copyExcAdd(k, sl, Slot(x>>8), uint8(x))
 	}
-	if k.gen.anyAegis {
-		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go
-	}
 	if s.g.nexw != 0 {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
@@ -48,7 +47,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	p.chosen = 255
 	s.g.cast.clr(sl)
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		s.g.cast.set(sl)
+		if s.objs[o].of&(ofCopy|ofToken) == 0 {
+			s.g.cast.set(sl) // a spell's copy is never cast (CR 707.10), and is a token by now (permCopyEnters)
+		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
 		}
@@ -97,6 +98,13 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	if face == 0 && g.has(cid, gfEnterRepl) {
 		cd := &k.t.Cards[cid]
+		// the entering permanent's own X (CR 107.3f): its cast X when it is
+		// the resolving spell, 0 when another effect put it onto the
+		// battlefield, never that effect's X (Mind into Matter's)
+		selfX := s.res.e.x
+		if s.res.active {
+			s.res.e.x = s.spellX(o)
+		}
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
@@ -124,6 +132,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 				}
 			}
 		}
+		s.res.e.x = selfX
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
@@ -150,11 +159,17 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 	}
 	s.g.replaced = saveRep
+	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
 	switch ovr {
 	case entOvrTap:
-		p.flags |= pfTapped // the last body applied taps it
+		if !shock {
+			p.flags |= pfTapped // the last body applied taps it
+		} // a shock land's own body is that tap: the election's answer applies it
 	case entOvrUntap:
 		p.flags &^= pfTapped // the last body applied untaps it
+		if shock {
+			s.shockUntapWins(sl) // the election is still asked, its tap came first
+		}
 	}
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl].set(sl)
@@ -310,16 +325,18 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 // attached to host (CR 303.4f).
 func (s *State) enterRetAura(k *prep, o Obj, host Slot) {
 	from := s.detach(o)
+	s.enterOnto(host)
 	sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 }
 
 // leaveGen runs at the end of the core's removePerm for the object o that left
 // slot sl: a permanent exiled "until this leaves" comes back, at once or, in
 // an open departure frame, at its end (zone_untilleavesbatch.go).
 func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
+	if k.gen.anyAegis {
+		s.aegisLeaves(k, sl, o) // zone_exilethenattach.go: before returnLinked drops the link's bit
+	}
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}
@@ -465,14 +482,12 @@ func (s *State) newTurnGen() {
 	if s.ndly != 0 {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
-	s.g.prevCol = [3]struct {
-		obj Obj
-		col kop.ColorMask
-	}{}
+	clear(s.g.prevCol[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
 	s.g.attacked = [2]uint8{}
+	s.g.oppAtt = 0
 	s.g.isCast = [2]uint8{}
 	s.g.hist = [2][3]uint8{}
 	clear(s.cold.castRing)
@@ -501,6 +516,7 @@ func (s *State) newTurnGen() {
 	}
 	s.mObjZero(s.k(), mechMayhem) // the discard-this-turn marks end with the turn (CR 702.187a; gorge's TurnChange bound)
 	s.g.trigTurn = 0
+	s.g.dilemmas = [2]uint8{}
 	if s.g.nchPick != 0 {
 		s.charmPickTurn() // modal_charmpick.go: ChoiceRestriction$ ThisTurn picks end
 	}
@@ -591,7 +607,7 @@ func (s *State) fireDelayedGen(k *prep) {
 		s.enqueue(d.src, s.objs[d.src].ver, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
-			s.pend[m].remVer, s.pend[m].remSet = remVer, remSet
+			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
 			if d.n&dpMany != 0 {
 				s.dpManyCarry(&d, &s.pend[m]) // trig_delayedmany.go
 			}
@@ -727,7 +743,7 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 			s.bld().e.flags |= sfFree
 			return false
 		}
-		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasible(k, c, ctrl) || !s.spellCostsFeasible(k, c, ctrl, o) {
+		if s.objs[o].zone != kop.Zone((s.g.freeP>>1)&7) || !s.spellTargetsFeasibleFrom(k, c, ctrl, o) || !s.spellCostsFeasible(k, c, ctrl, o) {
 			continue // no legal target any more: the card stays in its zone
 		}
 		holder := s.prio
@@ -879,10 +895,17 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	p := &s.perms[ask.sl]
 	s.touchSl(ask.sl)
-	if ask.kind == akPayLife {
-		s.shockAnswer(k, ask, a) // repl_shockland.go
-		if ask.ts == 1 {
-			// a played shock land: the answer completes the play
+	if ask.kind == akPayLife || ask.kind == akReveal || ask.kind == akRevPick {
+		if ask.kind == akPayLife {
+			s.shockAnswer(k, ask, a) // repl_shockland.go
+		} else if !s.revealAnswer(k, ask, a) { // repl_revealland.go
+			return
+		}
+		if ask.ts&askEntryTapped != 0 {
+			s.perms[ask.sl].flags |= pfTapped
+		}
+		if ask.ts&askLandPlay != 0 {
+			// a played land's election: the answer completes the play
 			s.pl[s.perms[ask.sl].ctrl].landsPlayed++
 		}
 		return
@@ -983,6 +1006,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		s.shockOptions(k, d) // repl_shockland.go
 		return
 	}
+	if kind == akReveal || kind == akRevPick {
+		s.revealOptions(k, d, kind) // repl_revealland.go
+		return
+	}
 	if kind == akMode {
 		siegeModeOptions(d) // face_siegemode.go
 		return
@@ -991,7 +1018,11 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		d.Sub = ChGenEnchant
 		o := s.g.pre.obj
 		var buf [MaxOptions]uint8
-		n := s.enchantCands(k, s.objs[o].card, s.objs[o].owner(), &buf)
+		who := s.objs[o].owner()
+		if s.g.pre.state == preDigEnchant {
+			who = s.res.askP
+		}
+		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}

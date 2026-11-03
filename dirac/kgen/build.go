@@ -233,6 +233,9 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 	if m.XX {
 		out.X = 2
 	}
+	if m.XXX {
+		out.X = 3
+	}
 	return out, nil
 }
 
@@ -560,6 +563,7 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	d.NoAbilities = c.NoAbilities
 	if c.Warp != nil {
 		// CR 702.185a: no KwMask bit is free, so the warp marker is its own
 		// field; the cost is the hand's alternate cost (dirac/kw_warp.go)
@@ -644,6 +648,12 @@ func (cb *cardBuilder) record() error {
 		}
 		d.Harmonize = true
 		if d.AltCost, err = manaCostOf(*c.Harmonize); err != nil {
+			return err
+		}
+	}
+	if c.BeamMeUp != nil {
+		d.BeamMeUp = true // dirac/kw_beammeup.go; FbCost holds the return
+		if d.AltCost, err = manaCostOf(*c.BeamMeUp); err != nil {
 			return err
 		}
 	}
@@ -807,6 +817,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	}
 	if c.TapHost {
 		out.Flags |= kop.CostTapHost
+	}
+	if c.SacHost {
+		out.Host = kop.CostHostSac
 	}
 	if c.Sac != nil {
 		set(kop.CostSac, c.SacN)
@@ -1295,6 +1308,10 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpPowerGTBase:
 		kf.Pred = kop.PredPowerGTBase // current power > base power (kernel powerGTBase)
 	case cmpWord7:
+		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
+			// a permanent's granted or lost abilities change the answer
+			return kf, refuse("NoAbilities on the battlefield")
+		}
 		kf.Pred, kf.PredN = kop.PredWord7, int16(c.CmpN) // (kernel wordPerm / wordCard)
 	case cmpNotF2:
 		// !targetedBy / !ThisTurnEntered / !wasDealtDamageThisTurn
@@ -1526,6 +1543,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 			return kop.RefTargets012, nil
 		case 6:
 			return kop.RefTargets12, nil
+		case 15:
+			return kop.RefTargets0123, nil
 		}
 	}
 	return 0, fmt.Errorf("ref %s", r)
@@ -1615,6 +1634,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vCountHand:          kop.ExCountHand,
 	vYourTurns:          kop.ExYourTurns,
 	vLowestLife:         kop.ExLowestLife,
+	vOppsAttacked:       kop.ExOppsAttacked,
 	vRedNCDmg:           kop.ExRedNCDmg,
 	vVoid:               kop.ExVoid,
 	vRevolt:             kop.ExRevolt,
@@ -1624,6 +1644,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSacrificedThisTurn: kop.ExSacrificedThisTurn,
 	vDiscardedThisTurn:  kop.ExDiscardedThisTurn,
 	vScriedThisTurn:     kop.ExScriedThisTurn,
+	vDilemmasFaced:      kop.ExDilemmasFaced,
 	vExiledWithN:        kop.ExExiledWithN,
 	vRemLKIPT:           kop.ExRemLKIPT,
 	vCastBattlefield:    kop.ExCastBattlefield,
@@ -1632,6 +1653,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vAttackedTurn:       kop.ExAttackedTurn,
 	vPhaseCount:         kop.ExPhaseCount,
 	vAdamant:            kop.ExAdamant,
+	vChromaOf:           kop.ExChromaOf,
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

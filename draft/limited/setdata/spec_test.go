@@ -22,12 +22,12 @@ func mustLoadCollation(t *testing.T, code string, c setdata.Collation) setdata.S
 	return spec
 }
 
-// TestSetdataCodesAreExactlyFDNAndBLB pins the loader's universe: exactly
-// the two embedded sets, sorted, and unknown or hostile codes refuse.
-func TestSetdataCodesAreExactlyFDNAndBLB(t *testing.T) {
+// TestSetdataCodesAreExactlyTheEmbeddedSets pins the loader's universe: exactly
+// the three embedded sets, sorted, and unknown or hostile codes refuse.
+func TestSetdataCodesAreExactlyTheEmbeddedSets(t *testing.T) {
 	codes := setdata.Codes()
-	if len(codes) != 2 || codes[0] != "BLB" || codes[1] != "FDN" {
-		t.Fatalf("setdata.Codes() = %v, want [BLB FDN]", codes)
+	if len(codes) != 3 || codes[0] != "BLB" || codes[1] != "FDN" || codes[2] != "TRK" {
+		t.Fatalf("setdata.Codes() = %v, want [BLB FDN TRK]", codes)
 	}
 	if _, err := setdata.Load("NOPE"); err == nil {
 		t.Error("Load(NOP) succeeded for an unembedded set")
@@ -234,6 +234,27 @@ func TestSetdataValidateAcceptsAndRejects(t *testing.T) {
 		breakIt(&s)
 		if err := s.Validate(); err == nil {
 			t.Errorf("Validate accepted a spec with %s", name)
+		}
+	}
+}
+
+// TestTRKPlayBoosterShape pins the authored Star Trek play booster: 14
+// cards (7 common, 3 uncommon, a rare or mythic, a basic land, a wildcard,
+// a foil), the same on both collations, every sheet populated.
+func TestTRKPlayBoosterShape(t *testing.T) {
+	for _, c := range []setdata.Collation{setdata.Play, setdata.Arena} {
+		spec := mustLoadCollation(t, "TRK", c)
+		if spec.PackSize != 14 || len(spec.Config.Variants) != 1 {
+			t.Fatalf("TRK %s = pack %d with %d variants, want 14 and 1", c, spec.PackSize, len(spec.Config.Variants))
+		}
+		want := map[string]int{"common": 7, "uncommon": 3, "rareMythicWithShowcase": 1, "land": 1, "wildcard": 1, "foil": 1}
+		for sheet, n := range want {
+			if got := spec.Config.Variants[0].Contents[sheet]; got != n {
+				t.Errorf("TRK %s draws %d from %s, want %d", c, got, sheet, n)
+			}
+			if len(spec.Config.Sheets[sheet].Cards) == 0 {
+				t.Errorf("TRK %s sheet %s is empty", c, sheet)
+			}
 		}
 	}
 }

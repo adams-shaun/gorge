@@ -832,6 +832,7 @@ func (m *match) trimLog() {
 		snaps[i].g = ne
 	}
 	m.snaps = snaps
+	m.viewResume = snapshot{}
 }
 
 // halt stops the table: it stays stopped,

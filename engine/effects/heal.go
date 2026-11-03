@@ -19,10 +19,17 @@ func init() {
 // zero and the helper emits nothing.
 func HealMarkedDamage(h Host, id state.ObjID) {
 	o := h.Game().Obj(id)
-	if o == nil || o.Damage <= 0 {
+	if o == nil {
 		return
 	}
-	h.Emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+	if o.Damage > 0 {
+		h.Emit(events.Event{Kind: events.Damage, Obj: id, Amount: -o.Damage})
+	}
+	// The mark stands for deathtouch damage among what was just healed; left
+	// alone, the next state-based check would destroy the permanent for it.
+	if n := o.Counter("Deathtouched"); n > 0 {
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "Deathtouched", Amount: -n})
+	}
 }
 
 // effHealDamage is Forge's HealDamage effect: "all (other) damage already

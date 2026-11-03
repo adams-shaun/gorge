@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -51,6 +53,11 @@ func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[
 func (e *Engine) dropProposalTriggers(pc *pendingCast) {
 	ranges := pc.proposalTriggers
 	pc.proposalTriggers = nil
+	undo := pc.proposalLimits
+	pc.proposalLimits = nil
+	for i := len(undo) - 1; i >= 0; i-- {
+		e.restoreTriggerLimits(undo[i])
+	}
 	for i := len(ranges) - 1; i >= 0; i-- {
 		start, end := ranges[i][0], ranges[i][1]
 		if start < e.orderedTriggers || start >= end || end > len(e.pendingTriggers) {
@@ -89,7 +96,51 @@ func (e *Engine) castWindowUnits(pc *pendingCast) []windowManaUnit {
 		}
 		out = append(out, u)
 	}
+	if len(pay.PaymentPlanInterferenceCarriers(asPayer(e))) > 0 {
+		out = e.castWindowTapExtras(out)
+	}
 	return out
+}
+
+// castWindowTapExtras adds to each single-symbol alternative the mana a tap
+// trigger brings with it (Forsaken Monument's additional {C}): the tap that
+// makes the alternative floats both, so the window's reach is the sum. The
+// alternative keeps its symbol and the extra joins its count; each unit gets
+// a fresh Alts slice, as the census spans may share backing.
+func (e *Engine) castWindowTapExtras(units []windowManaUnit) []windowManaUnit {
+	for ui := range units {
+		u := &units[ui]
+		var alts []windowManaAlt
+		for ai, a := range u.Alts {
+			sym, n := -1, 0
+			for i, c := range a.Counts {
+				if c > 0 {
+					sym, n = i, n+1
+				}
+			}
+			if n != 1 || a.Ma == nil || a.Any {
+				continue
+			}
+			extra := e.paymentPlanTapExtraMana(u.ID, string(rune(cards.ManaSymbol(sym))))
+			if extra == (state.Mana{}) {
+				continue
+			}
+			if alts == nil {
+				alts = append(make([]windowManaAlt, 0, len(u.Alts)), u.Alts...)
+			}
+			// one count per mana: the amount is 1 and the symbol's count is
+			// what the tap makes plus the extra
+			alts[ai].Counts[sym] = a.Counts[sym] * a.Amt
+			alts[ai].Amt = 1
+			for i := range alts[ai].Counts {
+				alts[ai].Counts[i] += extra[state.ManaIndex(cards.ManaSymbol(i))]
+			}
+		}
+		if alts != nil {
+			u.Alts = alts
+		}
+	}
+	return units
 }
 
 // castWindowReflectedUnits is castWindowUnits' reflected-mana pass: for each
@@ -178,10 +229,13 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 // Deliberately EXCLUDED (fail closed), each for a named reason:
 //
 //   - InstantSpeed$ True abilities: already withheld by the shared walk.
-//   - RestrictValid$-governed abilities: the produced batch may not pay the
-//     priced cost, and the dotted matcher only admits a subset of the
-//     grammar, so no restriction is priced here (AGENTS.md row 1's
-//     direction).
+//   - RestrictValid$-governed abilities this payment may not spend, and the
+//     ones that spend on only part of it (CantPayGenericCosts): the first can
+//     never close a gap (CR 106.6), the second would overstate reach. A
+//     RestrictValid$ ability whose restriction admits this whole payment
+//     (pay.RestrictValidMatches, the matcher the payment itself reads) is
+//     priced like an unrestricted one: Emperor of Palamecia's {U} or {R} pays
+//     for any noncreature spell.
 //   - tapXType, SubCounter, Mill, UnlessCost$, Return<>, coloured activation
 //     pips, multi-part or overlapping Sac costs, loyalty-ability mana
 //     producers (never exposed by availableManaAbilities), and every
@@ -189,6 +243,8 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaUnit) []windowManaUnit {
 	p := pc.player
 	pl := e.G.Players[p]
+	var desc pay.Descriptor
+	descRead := false
 	for _, id := range pay.BattlefieldManaSourceIDs(e.G, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
@@ -196,10 +252,16 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 		for _, ma := range e.castWindowProbeAbilities(p, id) {
 			mp := effects.ManaOf(ma)
-			if mp.RestrictValid != "" {
-				continue
+			restricted := mp.RestrictValid != ""
+			if restricted {
+				if !descRead {
+					desc, descRead = paymentForCast(pc, pc.resolvedMana()), true
+				}
+				if !e.castWindowRestrictedSpendable(p, id, desc, mp.RestrictValid) {
+					continue
+				}
 			}
-			cost := e.abilityCompiledCost(ma).Cost
+			cost := e.manaAbilityCC(p, id, ma).Cost
 			if pay.ActivationTapCostUnavailable(o, &cost) {
 				continue
 			}
@@ -253,7 +315,8 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				// free dynamic amount is the shape this layer adds. The shape
 				// is the printed one: that census withholds a recorded Chosen
 				// although the substitution above reads as a plain colour.
-				if !mp.CountsAny && availableAmountOf(mp) > 0 {
+				// A restricted one is never in that census.
+				if !restricted && !mp.CountsAny && availableAmountOf(mp) > 0 {
 					continue
 				}
 			}
@@ -272,6 +335,25 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 	}
 	return windowUnits
+}
+
+// castWindowRestrictedSpendable reports whether a RestrictValid$ mana ability
+// of source id may be priced in this payment's window: its restriction admits
+// the payment (CR 106.6) and does not confine the mana to part of it. A
+// CantPayGenericCosts term admits only a cost with no generic part and pays
+// only the coloured pips, so a whole-unit alt would overstate what it buys: the
+// restriction must still admit the cost with a generic part added.
+func (e *Engine) castWindowRestrictedSpendable(p state.PlayerID, id state.ObjID, desc pay.Descriptor, valid string) bool {
+	if !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+		return false
+	}
+	if desc.Cost == nil || desc.Cost.Generic > 0 {
+		return true
+	}
+	withGeneric := *desc.Cost
+	withGeneric.Generic = 1
+	desc.Cost = &withGeneric
+	return pay.RestrictValidMatches(asPayer(e), p, desc, valid, id)
 }
 
 // castWindowProbeAbilities is the cast-window probe's own member walk: the
@@ -320,7 +402,7 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 	}
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
 		mp := effects.ManaOf(ma)
-		cost := e.abilityCompiledCost(ma).Cost
+		cost := e.manaAbilityCC(p, id, ma).Cost
 		if pay.ActivationTapCostUnavailable(o, &cost) {
 			continue
 		}
@@ -401,7 +483,7 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 			continue
 		}
 		if priced[id] {
-			if e.castWindowRestrictedAdmits(p, id, desc) {
+			if e.castWindowRestrictedAdmits(p, id, desc, units) {
 				return false
 			}
 			continue
@@ -416,11 +498,31 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 // castWindowRestrictedAdmits reports whether a source priced by its plain mana
 // abilities also has a RestrictValid$ one this payment may spend (CR 106.6,
 // Tablet of Discovery's {R}{R} for an instant or sorcery): its units understate
-// what the window can produce.
-func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool {
+// what the window can produce. One the probe priced (castWindowRestrictedSpendable)
+// has its own alt in units and understates nothing.
+func (e *Engine) castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor, units []windowManaUnit) bool {
 	for _, ma := range e.castWindowProbeAbilities(p, id) {
-		if valid := effects.ManaOf(ma).RestrictValid; valid != "" && pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+		valid := effects.ManaOf(ma).RestrictValid
+		if valid == "" || !pay.RestrictValidMatches(asPayer(e), p, desc, valid, id) {
+			continue
+		}
+		if !castWindowUnitsPrice(units, id, ma) {
 			return true
+		}
+	}
+	return false
+}
+
+// castWindowUnitsPrice reports whether units carry an alt of ability ma of source id.
+func castWindowUnitsPrice(units []windowManaUnit, id state.ObjID, ma *cards.SA) bool {
+	for _, u := range units {
+		if u.ID != id {
+			continue
+		}
+		for _, a := range u.Alts {
+			if a.Ma == ma {
+				return true
+			}
 		}
 	}
 	return false
@@ -534,6 +636,14 @@ func appendCastWindowAlt(units []windowManaUnit, id state.ObjID, ma *cards.SA, c
 // each caller already applies it.
 func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
+	return e.castWindowReachableAfter(cwDeadAfter, p, cost, spellPool, snow, typed, life, conv, rider, units)
+}
+
+// castWindowReachableAfter is castWindowReachable remembering exhausted states
+// once its walk passes deadAfter nodes. A negative deadAfter is the plain walk,
+// with neither that memory nor the reach cap (a test compares the two).
+func (e *Engine) castWindowReachableAfter(deadAfter int, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
+	typed [7]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) bool {
 	// CR 119.8: under a CantChangeLife static no positive life may be paid,
 	// whether by the cost or by a PayLife source's activation.
 	if asEval(e).LifeChangeForbidden(p) {
@@ -573,6 +683,44 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	}
 	nodes := 0
 	used := make([]bool, len(ordered))
+	// canReach caps what the walk can still bring: the units' best production,
+	// largest first. A walk whose pool plus the most the remaining
+	// activations could add falls short of the units the cost spends
+	// (PoolUnitsFloor) is dead before it starts, which is how most refusals
+	// end: an {X} one past what the sources hold. Fees only spend, so
+	// ignoring them keeps the cap an upper bound.
+	need := cost.PoolUnitsFloor()
+	held := int64(snow.Total())
+	for _, t := range typed {
+		held += int64(t.Total())
+	}
+	best := make([]int32, len(ordered))
+	for i := range ordered {
+		for _, a := range ordered[i].Alts {
+			best[i] = max(best[i], a.Mana().Total())
+		}
+	}
+	rank := make([]int, len(ordered))
+	for i := range rank {
+		rank[i] = i
+	}
+	slices.SortStableFunc(rank, func(a, b int) int { return cmp.Compare(best[b], best[a]) })
+	canReach := func(pool state.Mana, remaining int) bool {
+		if deadAfter < 0 {
+			return true
+		}
+		have := int64(pool.Total()) + held
+		for _, i := range rank {
+			if remaining == 0 || have >= need {
+				break
+			}
+			if !used[i] {
+				have += int64(best[i])
+				remaining--
+			}
+		}
+		return have >= need
+	}
 	// prevFree is the ordered index of the unit the previous step activated
 	// through a FREE alternative (no generic fee, no life), or -1. Two free
 	// activations in a row commute: neither spends anything, so either order
@@ -584,6 +732,20 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 	// ran out before the right production was tried: a payable {G}{U}
 	// activation was judged unreachable and every target dropped off its
 	// Min 0 ask (lockstep pairs 1509 3986, Zimone, Paradox Sculptor).
+	//
+	// dead remembers the states the walk has exhausted. Two orders of the same
+	// activations meet at one state (the same units spent, the same pools), and
+	// with several mana sources the walk met it again for every order of them:
+	// a cast no order of ten untapped sources could pay took tens of thousands
+	// of nodes to refuse, and an {X} spell asks it once per X. The state
+	// determines what the walk can still do, except for the free-first
+	// pruning, which only removes moves: a state that failed with prevFree
+	// pruning from p also fails under any pruning from q >= p, so the least p
+	// is kept. It is built after the first nodes so a small search allocates
+	// nothing.
+	var dead map[cwDead]int
+	var spentMask uint64
+	trackDead := len(ordered) <= 64
 	var rec func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool
 	rec = func(pool, spellSnow, activationPool, activationSnow state.Mana, lifeLeft int32, prevFree, remaining int) bool {
 		if payable(pool, spellSnow, lifeLeft) {
@@ -592,9 +754,21 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 		if remaining <= 0 {
 			return false
 		}
+		if !canReach(pool, remaining) {
+			return false
+		}
+		key := cwDead{spentMask, pool, spellSnow, activationPool, activationSnow, lifeLeft}
+		if dead != nil {
+			if p, ok := dead[key]; ok && p <= prevFree {
+				return false
+			}
+		}
 		nodes++
 		if nodes > 1<<18 {
 			return false
+		}
+		if trackDead && deadAfter >= 0 && dead == nil && nodes > deadAfter {
+			dead = map[cwDead]int{}
 		}
 		for i := range ordered {
 			if used[i] {
@@ -623,29 +797,79 @@ func (e *Engine) castWindowReachable(p state.PlayerID, cost Cost, spellPool, sno
 				if !feeOK {
 					continue
 				}
-				spent := manaSub(activationPool, activationFee.Pool)
-				snowSpent := manaSub(activationSnow, activationFee.Snow)
-				nextPool := manaSub(pool, spent)
-				nextSpellSnow := manaSub(spellSnow, snowSpent)
-				nextActivation := activationFee.Pool
-				nextActivationSnow := activationFee.Snow
 				produced := a.Mana()
 				next := -1
 				if freeAlt {
 					next = i
 				}
+				// The fee's colours are the payer's choice (CR 601.2h), and the
+				// one the spell's cost can spare decides whether the search
+				// ends: Gravestone Strider's {1} from G leaves {W}{W} payable
+				// out of W G G, from W does not. Try resolveMana's, then every
+				// other split of the unrestricted pool.
 				used[i] = true
-				found := rec(pay.ManaAdd(nextPool, produced), nextSpellSnow,
-					pay.ManaAdd(nextActivation, produced), nextActivationSnow, lifeLeft-a.Life, next, remaining-1)
+				spentMask |= 1 << uint(i&63)
+				tryFee := func(afterFee, afterFeeSnow state.Mana) bool {
+					spent := manaSub(activationPool, afterFee)
+					snowSpent := manaSub(activationSnow, afterFeeSnow)
+					return rec(pay.ManaAdd(manaSub(pool, spent), produced), manaSub(spellSnow, snowSpent),
+						pay.ManaAdd(afterFee, produced), afterFeeSnow, lifeLeft-a.Life, next, remaining-1)
+				}
+				found := tryFee(activationFee.Pool, activationFee.Snow)
+				if !found && a.CostGeneric > 0 {
+					found = forEachFeeSplit(activationPool, a.CostGeneric, func(afterFee state.Mana) bool {
+						return afterFee != activationFee.Pool && tryFee(afterFee, activationSnow)
+					})
+				}
 				used[i] = false
+				spentMask &^= 1 << uint(i&63)
 				if found {
 					return true
 				}
 			}
 		}
+		if dead != nil && nodes <= 1<<18 {
+			if p, ok := dead[key]; !ok || prevFree < p {
+				dead[key] = prevFree
+			}
+		}
 		return false
 	}
 	return rec(spellPool, snow, free, snow, life, -1, budget)
+}
+
+// cwDead is one state of castWindowReachable's walk: the units spent (a mask) and
+// the pools and life the walk stands at.
+type cwDead struct {
+	spent                             uint64
+	pool, spellSnow, actPool, actSnow state.Mana
+	life                              int32
+}
+
+// cwDeadAfter is how many nodes castWindowReachable walks before it starts
+// remembering the states it has exhausted.
+const cwDeadAfter = 64
+
+// forEachFeeSplit calls try with pool less each way of spending n mana from it,
+// in colour order, until try accepts one.
+func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
+	var walk func(from int, left int32, cur state.Mana) bool
+	walk = func(from int, left int32, cur state.Mana) bool {
+		if left == 0 {
+			return try(cur)
+		}
+		for c := from; c < len(cur); c++ {
+			if cur[c] > 0 {
+				cur[c]--
+				if walk(c, left-1, cur) {
+					return true
+				}
+				cur[c]++
+			}
+		}
+		return false
+	}
+	return walk(0, n, pool)
 }
 
 func manaSub(a, b state.Mana) state.Mana {
@@ -802,4 +1026,84 @@ func (e *Engine) targetCountAffordable(pc *pendingCast, candidates []targetCandi
 		best = n
 	}
 	return best
+}
+
+// limitUndo is one trigger-limit entry as it stood before a proposal's target
+// choice queued a trigger: the per-turn and lifetime counts, each with whether
+// the key had an entry at all.
+type limitUndo struct {
+	key     triggerKey
+	turn    turnFires
+	hadTurn bool
+	game    gameFires
+	hadGame bool
+}
+
+// limitSnapshot copies both trigger-limit tables so limitChanges can report
+// what a queue pass consumed.
+func (e *Engine) limitSnapshot() (map[triggerKey]turnFires, map[triggerKey]gameFires) {
+	var t map[triggerKey]turnFires
+	var g map[triggerKey]gameFires
+	if len(e.triggerTurnFires) > 0 {
+		t = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
+		for k, v := range e.triggerTurnFires {
+			t[k] = v
+		}
+	}
+	if len(e.triggerGameFires) > 0 {
+		g = make(map[triggerKey]gameFires, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			g[k] = v
+		}
+	}
+	return t, g
+}
+
+// limitChanges lists, for every key whose count moved since the snapshot, the
+// entry it held in the snapshot. The order is the keys' own (source, line), so
+// no map order reaches a result.
+func (e *Engine) limitChanges(t map[triggerKey]turnFires, g map[triggerKey]gameFires) []limitUndo {
+	var out []limitUndo
+	at := func(k triggerKey) *limitUndo {
+		for i := range out {
+			if out[i].key == k {
+				return &out[i]
+			}
+		}
+		out = append(out, limitUndo{key: k})
+		return &out[len(out)-1]
+	}
+	for k, v := range e.triggerTurnFires {
+		if old, ok := t[k]; !ok || old != v {
+			u := at(k)
+			u.turn, u.hadTurn = old, ok
+		}
+	}
+	for k, v := range e.triggerGameFires {
+		if old, ok := g[k]; !ok || old != v {
+			u := at(k)
+			u.game, u.hadGame = old, ok
+		}
+	}
+	slices.SortFunc(out, func(a, b limitUndo) int {
+		if a.key.Source != b.key.Source {
+			return cmp.Compare(a.key.Source, b.key.Source)
+		}
+		return cmp.Compare(a.key.Idx, b.key.Idx)
+	})
+	return out
+}
+
+// restoreTriggerLimits puts one key's counts back to what limitChanges saw.
+func (e *Engine) restoreTriggerLimits(u limitUndo) {
+	if u.hadTurn {
+		e.triggerTurnFires[u.key] = u.turn
+	} else {
+		delete(e.triggerTurnFires, u.key)
+	}
+	if u.hadGame {
+		e.triggerGameFires[u.key] = u.game
+	} else {
+		delete(e.triggerGameFires, u.key)
+	}
 }

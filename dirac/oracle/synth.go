@@ -76,8 +76,8 @@ func kindOf(c *cards.Card) synthKind {
 	return kind
 }
 
-// SynthPool deals set's lowered cards into nDecks 40-card decks, a pure function of
-// set's list, the corpus and seed. Rule: a deck takes two colours from PCG(seed, deck);
+// SynthPool deals the cards set plays into nDecks 40-card decks, a pure function of
+// set's list, which entries it plays, the corpus and seed. Rule: a deck takes two colours from PCG(seed, deck);
 // 23 spells from a shuffled queue of the lowered nonlands whose pips are within its
 // colours, at most 2 copies, the oldest in the queue first; up to 4 of the set's
 // nonbasic lands, shuffled by the same generator; basics alternating over its colours
@@ -87,17 +87,22 @@ func kindOf(c *cards.Card) synthKind {
 // queue the deck takes that card's colours instead. Without this a three-colour card
 // is never dealt, and a set of them (TDM's clans) has a blind spot nothing reports.
 //
-// A card refused by name is still dealt, and a set that will not play it turns away the
-// pairs holding it, as with a real deck pool. So a refusal removes games and moves none:
-// pair p of a pool is the same two decks whatever the refused list says, and a refused
-// entry's repro goes on naming its game. Cards are classified from the compiled corpus,
-// never by re-parsing scripts. The returned map is keyed by deck name and is for lookup:
+// A deal is from the cards the set plays and nothing else, so no deck is turned away
+// for holding a card the run would refuse, and a pool plays its whole 1500 pairs. The
+// run that evidence is judged by plays everything lowered but the cards refused by name
+// (unverified ones included, they are what needs the games); the run that settles the
+// refused list, and a test pinning a pair, plays the refused cards too and so deals every
+// lowered one. A refused entry's repro names a pair of that second deal, which does not
+// move when the list does. Which cards a deck holds is chosen by the queue, never by how
+// a card plays: a card that is played is as likely as any other. Cards are classified
+// from the compiled corpus, never by re-parsing scripts. The returned map is keyed by deck name and is for lookup:
 // the order is the slice's.
 func SynthPool(reg *cards.Registry, set cardset.Set, seed uint64, nDecks int) ([]PoolDeck, map[string]deck.File, error) {
 	var spells, lands []string
 	var masks []uint8 // by index in spells
+	plays := set.Supported()
 	for i, name := range set.Names()[:set.NumCards()] {
-		if set.Status(i) == cardset.StatusNotLowered || cardset.IsSynthBasic(name) {
+		if set.Status(i) == cardset.StatusNotLowered || !plays[i] || cardset.IsSynthBasic(name) {
 			continue
 		}
 		c, ok := reg.Lookup(name)

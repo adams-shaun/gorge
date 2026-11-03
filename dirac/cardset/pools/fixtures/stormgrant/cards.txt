@@ -1,0 +1,13 @@
+# spells granted storm (Prismari, the Inspiration; the Ral, Crackling Wit emblem): instants and sorceries to copy, creatures and lands
+# (dirac/oracle/stormgrant_test.go)
+Prismari, the Inspiration
+Ral, Crackling Wit
+Shock
+Lightning Bolt
+Opt
+Brainstorm
+Impulse
+Divination
+Grizzly Bears
+Island
+Mountain

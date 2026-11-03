@@ -716,7 +716,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 	for _, f := range fetches {
 		fetchOwners = append(fetchOwners, f.owner)
 	}
-	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+	rider := deferAttackingEntry(h, c, cz.Riders.Attacking, to,
 		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, fetchOwners, cz.Riders.GainControl))
 	for i := range fetches {
 		f := &fetches[i]
@@ -1346,7 +1346,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// One classification for this search's whole mover loop: both branches
 	// below (the public-origin settle and the library-origin direct emit)
 	// share it, so a degrading rider is one Note per search, not one per card.
-	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, to,
+	rider := deferAttackingEntry(h, c, cz.Riders.Attacking, to,
 		enteringControllerForAttack(h, c, cz.Riders.Attacking, to, []state.PlayerID{owner}, cz.Riders.GainControl))
 	// The search's fetch is entered: Forge clears the source's remembered
 	// cards before the choose (ChangeZoneEffect.changeHiddenOriginResolve
@@ -1371,6 +1371,13 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			}
 		}
 		valid = nil
+	}
+	// Cards a search puts onto the battlefield enter together (CR 603.6a): the
+	// zone batch holds each entry's trigger check until the last has entered
+	// and its tapped entry state is set, so an "enters untapped" trigger
+	// (Quark's Bar) reads the land as it stands, tapped by the effect.
+	if to == state.ZBattlefield && len(valid) > 1 {
+		h.BeginZoneBatch()
 	}
 	for _, id := range valid {
 		o := g.Obj(id)
@@ -1483,6 +1490,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 		if to == state.ZBattlefield {
 			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
+	}
+	if to == state.ZBattlefield && len(valid) > 1 {
+		h.EndZoneBatch()
 	}
 	// The Imprint$ association, one batched event after the whole mover loop
 	// (the object-target path's own shape above): the source keeps the

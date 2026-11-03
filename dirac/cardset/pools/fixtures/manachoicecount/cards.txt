@@ -1,0 +1,15 @@
+# a mana colour choice whose amount is counted when the effect resolves (dirac/oracle/manachoicecount_test.go)
+Muerra, Trash Tactician
+Grand Warlord Radha
+Sanctum of Fruitful Harvest
+Sanctum of Stone Fangs
+Culling Ritual
+Walking Ballista
+Hill Giant
+Grizzly Bears
+Llanowar Elves
+Shock
+Forest
+Mountain
+Swamp
+Island

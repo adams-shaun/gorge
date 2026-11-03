@@ -88,3 +88,57 @@ func TestRhinosRampageGraveyardOrder(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// A fight that never happens deals no excess damage (CR 120.10): when the
+// fighting creature is gone as the spell resolves, the reflexive destroy is
+// not put on the stack.
+func TestRhinosRampageNoFightNoExcess(t *testing.T) {
+	rampage := corpusCardText(t, "r/rhinos_rampage.txt")
+	const trinketSrc = "Name:Small Trinket\nManaCost:2\nTypes:Artifact\nOracle:x\n"
+	const bearSrc = "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+
+	e, _, spell := newFixtureDeckWithOpponentCard(t, 60110, rampage, trinketSrc, bearSrc)
+	putCreature(t, e, 0, trinketSrc)
+	fighter := e.G.AddObject(card(t, bearSrc), 0)
+	fighter.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, append(e.G.Zone(state.ZBattlefield, 0), fighter.ID))
+	mine := fighter.ID
+	opp := putCreature(t, e, 1, bearSrc)
+	addMana(t, e, 0, "RG")
+	e.Advance()
+
+	opt := castOptionFor(t, e, spell)
+	submitChoices(t, e, opt.Index)
+	pick := func(want state.ObjID) {
+		t.Helper()
+		d := e.Pending()
+		for d != nil && d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind[:4] == "pay_" {
+			submitChoices(t, e, 0)
+			d = e.Pending()
+		}
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("expected a target ask, got %+v", d)
+		}
+		for _, o := range d.Options {
+			if o.Obj == want {
+				submitChoices(t, e, o.Index)
+				return
+			}
+		}
+		t.Fatalf("target %d not offered: %+v", want, d.Options)
+	}
+	pick(mine)
+	pick(opp)
+	// the fighter leaves in response
+	e.emit(events.Event{Kind: events.MoveZone, Obj: mine, From: state.ZBattlefield, To: state.ZGraveyard})
+	for i := 0; i < 20 && len(e.G.Stack) > 0; i++ {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("the spell left a pending %+v: a reflexive destroy was put on the stack with no fight", d)
+		}
+		submitChoices(t, e, 0)
+	}
+	if got := e.G.Obj(opp).Zone; got != state.ZBattlefield {
+		t.Fatalf("the opposing creature is in %s, want the battlefield", got)
+	}
+}

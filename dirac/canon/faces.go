@@ -126,6 +126,17 @@ func CastModeOf(c Canon) string {
 	return CastModeName(c.Mode() & 15)
 }
 
+// BeamAlt is the alt-cost nibble of a gorge cast option: its AltCostIndex, but 1
+// for the second beam me up permission of a card (rules beamMeUpInstances: the
+// printed one first, then a grant at the mana cost), which gorge tells apart by
+// Option.Cost alone.
+func BeamAlt(mode string, alt int, cost string) int {
+	if mode == "beam_me_up" && cost != "" {
+		return 1
+	}
+	return alt
+}
+
 // CastAlt is the Option.AltCostIndex of a cast's canonical action.
 func CastAlt(c Canon) int {
 	switch c.Kind() {

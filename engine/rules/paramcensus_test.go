@@ -170,7 +170,7 @@ var baseBuckets = map[string]bucket{
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA, "pa.SA": bSA,
 	// alt.ma is payment-plan's one concrete mana-ability alternative.  It is
 	// a *cards.SA just like ma; the qualified name makes that type explicit
 	// to the census rather than allowing this planner read to evade it.
@@ -2248,7 +2248,8 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier"},
+		"RaiseCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
+			"costStaticMayReachManaAbility"},
 		// quietSelfReducePipFloor (engine/rules/quiet_facts.go) prices the
 		// quiet-seat proof's §2.5 self-ReduceCost refinement: it scans the
 		// face's own Statics slice for self-scoped generic-only ReduceCost
@@ -2258,8 +2259,8 @@ var handRoots = struct {
 		// mustAttackRequired has. Its may-play key reads live in
 		// quietStaticMayPlay and are family-attributed below.
 		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX", "Engine.paymentPlanHasTargetDependentModifier",
-			"quietSelfReducePipFloor"},
-		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier"},
+			"quietSelfReducePipFloor", "costStaticMayReachManaAbility"},
+		"SetCost":      {"Engine.paymentPlanHasTargetDependentModifier", "costStaticMayReachManaAbility"},
 		"OptionalCost": {"Engine.optionalCostViews", "Engine.reduceColorOptionalViews"},
 		// paymentPlanManaConvertName (payment_plan_interference.go) names the
 		// restricting ManaConvert static behind a global auto-pay decline: it
@@ -2373,6 +2374,14 @@ var handRoots = struct {
 		// hidden zones the walk may pass over; the reads that give those
 		// params meaning stay in zoneGate/phaseGate under triggerMatches.
 		"Engine.faceTriggerZones",
+		// triggerOnlyFromBattlefield (engine/rules/source_char_lki.go) answers
+		// SourceLeftBattlefieldSince from a stored trigger's own text: whether
+		// it can only have triggered from the battlefield, read as syntax
+		// (TriggerZones$, its ActiveZones$ spelling, or a Battlefield Origin$)
+		// by the same spelling zoneGate gives those params meaning under
+		// triggerMatches. It runs from an effects hook on the resolving
+		// ability, outside the dispatch walk.
+		"triggerOnlyFromBattlefield",
 		// The event-matched delayed registrations (Chancellor of the Annex's
 		// opening-hand Mode$ SpellCast shape): the registration re-parses the
 		// stored trigger body, and the firing walker re-evaluates its

@@ -25,6 +25,7 @@ func init() {
 	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Proliferate", effProliferate)
 	Register("Regenerate", effRegenerate)
+	Register("Regeneration", effRegeneration)
 }
 
 // effMultiplyCounter is Forge's MultiplyCounterEffect: for each object or
@@ -111,25 +112,14 @@ func counterKinds(kind string, n int, at func(int) string, count func(int) int32
 	return out
 }
 
-// hasCounters reports whether a counter carrier holds at least one counter of
-// ANY kind, testing the COUNT and not the slice length (a drained slot stays in
-// the slice at N == 0). It includes the internal status markers; the CR 701.27a
-// proliferate gate is hasRealCounters, which excludes them.
-func hasCounters(kinds []state.Counter) bool {
-	for i := range kinds {
-		if kinds[i].N > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// hasRealCounters is hasCounters with the engine's internal status markers
-// ("Shield", "Deathtouched") excluded. They ride Object.Counters because the
-// engine has no per-object status field (state.InternalCounterMarker), but
-// they are not counters a spell or ability can see: CR 701.27a's proliferate
-// eligibility is "permanents and/or players that have a counter on them", so
-// a regeneration shield alone must not make a recipient choosable.
+// hasRealCounters reports whether a counter carrier holds at least one counter
+// of any kind, testing the COUNT and not the slice length (a drained slot stays
+// in the slice at N == 0). The engine's internal status markers ("Shield",
+// "Deathtouched") are excluded. They ride Object.Counters because the engine
+// has no per-object status field (state.InternalCounterMarker), but they are
+// not counters a spell or ability can see: CR 701.27a's proliferate eligibility
+// is "permanents and/or players that have a counter on them", so a regeneration
+// shield alone must not make a recipient choosable.
 func hasRealCounters(kinds []state.Counter) bool {
 	for i := range kinds {
 		if kinds[i].N > 0 && !state.InternalCounterMarker(kinds[i].Kind) {
@@ -327,12 +317,20 @@ func putCounterAllSweep(h Host, c *Ctx, sa *cards.SA, spec, kind string, n int32
 		}
 	}
 	g := h.Game()
+	rememberAmount := isTrue(sa.ParamStr(cards.PKRememberAmount))
 	for _, p := range players {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if !MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
+			t := state.Target{Obj: id}
+			before := putCounterHeld(g, t)
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: n})
+			if rememberAmount {
+				// RememberAmount$: one entry per counter that landed across the
+				// whole sweep, so Count$RememberedNumber reads the total.
+				c.Remembered = append(c.Remembered, putCounterLanded(g, t, before)...)
+			}
 		}
 	}
 }

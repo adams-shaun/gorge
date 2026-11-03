@@ -452,6 +452,98 @@ func TestEventsSinceReturnsRedactedDescribedTail(t *testing.T) {
 	_ = protocol.TEvent
 }
 
+// submitCounter counts the intents replayed on a game and its forks.
+type submitCounter struct {
+	game.Game
+	n *int
+}
+
+func (g submitCounter) Fork() game.Game { return submitCounter{g.Game.Fork(), g.n} }
+
+func (g submitCounter) Submit(in decision.Intent) error {
+	*g.n++
+	return g.Game.Submit(in)
+}
+
+// A view deep in a turn keeps the game its replay reached, and the next view
+// starts there and shows what a view from the turn's start shows.
+func TestViewAtResumesWhereTheLastReplayStopped(t *testing.T) {
+	t.Parallel()
+	_, m := finishedTable(t)
+	// The turn with the most intents, and its last two boundaries.
+	var start snapshot
+	var end int
+	for i, s := range m.snaps[:len(m.snaps)-1] {
+		if next := m.snaps[i+1]; next.intent-s.intent > end-start.intent {
+			start, end = s, next.intent-1
+		}
+	}
+	if end-start.intent <= viewResumeReplay {
+		t.Fatalf("no turn in the fixture has more than %d intents", viewResumeReplay)
+	}
+	replayed := 0
+	counted := []snapshot{{intent: start.intent, g: submitCounter{start.g, &replayed}}}
+	var kept []snapshot
+	src := m.replaySource()
+	src.remember = func(s snapshot) { kept = append(kept, s) }
+
+	first := m.bounds[end-1] - 1
+	if _, err := viewAt(src, m.e.L, counted, first, view.NoSeat, view.Omniscient, nil); err != nil {
+		t.Fatal(err)
+	}
+	if replayed < viewResumeReplay || len(kept) != 1 || kept[0].intent != end-1 {
+		t.Fatalf("replayed %d intents and kept %+v, want the game at boundary %d kept", replayed, kept, end-1)
+	}
+
+	replayed = 0
+	next := m.bounds[end] - 1
+	got, err := viewAt(src, m.e.L, kept, next, view.NoSeat, view.Omniscient, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayed > 1 || len(kept) != 1 {
+		t.Fatalf("the next view replayed %d intents and kept %d games", replayed, len(kept))
+	}
+	want, err := viewAt(m.replaySource(), m.e.L, m.snaps, next, view.NoSeat, view.Omniscient, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if viewJSON(t, got) != viewJSON(t, want) {
+		t.Fatalf("seq %d from the kept game differs from the turn's snapshot", next)
+	}
+}
+
+// A replay that began before an undo holds a history the match no longer has, and
+// only the furthest game is kept.
+func TestViewResumeKeepsOnlyThisHistorysFurthestGame(t *testing.T) {
+	t.Parallel()
+	_, fixture := finishedTable(t)
+	m := &match{g: fixture.g, gc: fixture.gc, engine: fixture.engine}
+	game := func(intent int) snapshot { return snapshot{intent: intent, g: fixture.g} }
+
+	src := m.resumingSource()
+	src.remember(game(10))
+	src.remember(game(5))
+	if m.viewResume.intent != 10 {
+		t.Fatalf("kept the game at %d, want the furthest, 10", m.viewResume.intent)
+	}
+
+	m.rewinds++
+	src.remember(game(20))
+	if m.viewResume.intent != 10 {
+		t.Fatalf("a replay from before the undo replaced the game: %d", m.viewResume.intent)
+	}
+
+	snaps := m.viewSnaps()
+	if len(snaps) != 1 || snaps[0].intent != 10 {
+		t.Fatalf("viewSnaps = %+v, want the kept game", snaps)
+	}
+	m.snaps = []snapshot{game(12)}
+	if snaps := m.viewSnaps(); len(snaps) != 1 || snaps[0].intent != 12 {
+		t.Fatalf("viewSnaps = %+v, want the later turn's snapshot alone", snaps)
+	}
+}
+
 // replayRecorder names the boundaries a replay was asked to reach.
 type replayRecorder struct {
 	game.Engine

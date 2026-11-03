@@ -1,0 +1,11 @@
+# a Craft whose material is two cards, not one: Visage of Dread exiles two
+# other creatures from the battlefield and/or graveyard (CR 702.167a), beside
+# vanilla creatures, burn and basics (dirac/oracle/craftn_test.go)
+Visage of Dread
+Walking Corpse
+Grizzly Bears
+Hill Giant
+Shock
+Swamp
+Mountain
+Forest

@@ -43,8 +43,8 @@ func (r *Registry) ViewAt(id TableID, k int, seq uint64) (view.View, error) {
 	// calls land near head anyway) and is freed the moment this call returns
 	// — unlike a stored snapshot, this copy never outlives the request.
 	l := m.g.Log().Clone()
-	snaps := append([]snapshot(nil), m.snaps...)
-	src, vis := m.replaySource(), t.cfg.Spectator
+	snaps := m.viewSnaps()
+	src, vis := m.resumingSource(), t.cfg.Spectator
 	m.mu.RUnlock()
 	return viewAt(src, l, snaps, seq, view.NoSeat, vis, nil)
 }
@@ -68,8 +68,8 @@ func (r *Registry) ViewAtSeat(id TableID, k int, seq uint64, player state.Player
 	}
 	m.mu.Lock()
 	l := m.g.Log().Clone()
-	snaps := append([]snapshot(nil), m.snaps...)
-	src := m.replaySource()
+	snaps := m.viewSnaps()
+	src := m.resumingSource()
 	// The decision belongs in the view only when the board is projected
 	// exactly at the live head. At an earlier seq the decision that went
 	// with that moment cannot be reconstructed here — the replayed engine
@@ -395,11 +395,45 @@ type replaySource struct {
 	engine game.Engine
 	config game.Config
 	caps   game.Caps
+	// remember, when set, keeps a game a long replay reached for later views.
+	remember func(snapshot)
 }
 
 // replaySource reads m.g, so call it under m.mu.
 func (m *match) replaySource() replaySource {
 	return replaySource{engine: m.engine, config: m.gc, caps: m.g.Caps()}
+}
+
+// viewResumeReplay is how many intents a view replays before it keeps its game
+// for the next view. Snapshots are per turn, so without this each view in a turn
+// replays the turn so far, and a turn of hundreds of decisions on a board of
+// hundreds of tokens takes minutes. Keeping every replay would fork the game
+// for views a few intents apart, which cost less to replay.
+const viewResumeReplay = 8
+
+// viewSnaps is the snapshots a view may start from, ending at viewResume when
+// it's ahead of them. Called with m.mu held.
+func (m *match) viewSnaps() []snapshot {
+	snaps := append(make([]snapshot, 0, len(m.snaps)+1), m.snaps...)
+	if r := m.viewResume; r.g != nil && (len(snaps) == 0 || r.intent > snaps[len(snaps)-1].intent) {
+		snaps = append(snaps, r)
+	}
+	return snaps
+}
+
+// resumingSource is replaySource for a view of this match, whose replay may become
+// the next view's start. Called with m.mu held.
+func (m *match) resumingSource() replaySource {
+	src := m.replaySource()
+	rewinds := m.rewinds
+	src.remember = func(s snapshot) {
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if m.rewinds == rewinds && (m.viewResume.g == nil || s.intent > m.viewResume.intent) {
+			m.viewResume = s
+		}
+	}
+	return src
 }
 
 // viewAt finds the last intent boundary j with bounds[j] <= seq+1, reaches
@@ -469,6 +503,9 @@ func viewAt(src replaySource, l *events.Log, snaps []snapshot, seq uint64, viewe
 		if err := g.Submit(l.Intents[i]); err != nil {
 			return view.View{}, fmt.Errorf("host: replay intent %d: %w", i, err)
 		}
+	}
+	if src.remember != nil && j-from >= viewResumeReplay {
+		src.remember(snapshot{intent: j, g: g.Fork()})
 	}
 	if d != nil && d.PotentialProofsBuilt {
 		// potential_actions read the proofs off the engine they project from, and

@@ -171,8 +171,12 @@ func recordModesAnswer(e *Engine, d *decision.Decision, p state.PlayerID, chosen
 			e.emit(events.Event{Kind: events.Choose, Obj: d.Source, Counter: "mode", Text: names[0]})
 		}
 	}
+	counter := e.dilemmaCounter(d.ResumeSA, len(chosen))
+	if d.ResumeKind == "cast_modes" {
+		counter = "" // handleModes' cast arm emits the choice's marker
+	}
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: obj, Player: p,
-		Counter: e.dilemmaCounter(d.ResumeSA, len(chosen)), Text: strings.Join(chosenModeLabels(chosen), ",")})
+		Counter: counter, Text: strings.Join(chosenModeLabels(chosen), ",")})
 	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
 	// source as well, so a later instance is restricted against it.
 	if o := e.G.Obj(obj); o != nil {

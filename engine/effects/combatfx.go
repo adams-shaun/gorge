@@ -2,6 +2,7 @@ package effects
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -31,6 +32,7 @@ func init() {
 	Register("Animate", effAnimate)
 	Register("AnimateAll", effAnimateAll)
 	Register("Protection", effProtection)
+	Register("ProtectionAll", effProtectionAll)
 	Register("RemoveFromCombat", effRemoveFromCombat)
 }
 
@@ -643,11 +645,14 @@ func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || sourceLeftSincePush(h, c, o) {
+		if o == nil || !animateRemembered(sa) && sourceLeftSincePush(h, c, o) {
 			// "This land becomes a 3/3 creature" names the permanent that
 			// activated it: a Soulstone Sanctuary put into its library in
 			// response is a new object the animation never reaches (CR
-			// 400.7; census pair 3988, where the drawn card was a 3/3).
+			// 400.7; census pair 3988, where the drawn card was a 3/3). A
+			// Defined$ Remembered animation names what the ability itself
+			// remembered, and that can be the source's own new incarnation:
+			// Retched Wretch's trigger returns it, then takes its abilities.
 			continue
 		}
 		if rememberAnimated {
@@ -1041,6 +1046,13 @@ func animateHostScoped(dur string) bool {
 	return false
 }
 
+// animateRemembered reports an Animate whose Defined$ names the ability's
+// remembered objects, which were recorded at resolution and so are the
+// current incarnations even when one is the source.
+func animateRemembered(sa *cards.SA) bool {
+	return strings.HasPrefix(sa.ParamStr(cards.PKDefined), "Remembered")
+}
+
 // animateUntilEOT is registerAnimateEffects' one UntilEOT decision, shared by
 // every half of one animation so the halves can never disagree about the
 // lifetime. A host-scoped duration is NOT UntilEOT (it ends on the host's
@@ -1126,7 +1138,11 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	if ag.endOnLeave || strings.EqualFold(ag.leaveExile, "Exile") {
 		exileOn = "Battlefield"
 		remembered = []state.ObjID{id}
-	} else if ag.permanent || animateHostScoped(ag.duration) {
+	} else if ag.permanent || animateHostScoped(ag.duration) || !permanent {
+		// A timed grant (until end of turn, until your next turn) ends with
+		// the object it was made for just as a permanent one does: a creature
+		// that is exiled and returned is a new object (CR 400.7) the earlier
+		// animation never reaches.
 		// Duration$ Permanent without a rider ends when its animated object
 		// leaves the zone it was granted in. A host-scoped grant ends on EITHER
 		// the target's departure (CR 400.7) or the host's departure, so neither
@@ -1405,8 +1421,8 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 func protectionGains(sa *cards.SA) string { return sa.ParamStr(cards.PKGains) }
 
 func effProtection(h Host, c *Ctx, sa *cards.SA) {
-	gains := resolveGains(protectionGains(sa), sa.ParamStr(cards.PKChoices), h.Game().Obj(c.Source))
-	if gains == "" {
+	qualities := protectionQualities(h, c, sa)
+	if len(qualities) == 0 {
 		return
 	}
 	for _, t := range Defined(h, c, sa) {
@@ -1417,12 +1433,162 @@ func effProtection(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		h.AddContinuous(state.ContinuousEffect{
-			Source: o.ID, Affects: "Card.Self", Controller: c.Controller,
-			Layer: state.LAbilities, AddKeywords: []string{"Protection from " + gains},
-			UntilEOT: true,
-		})
+		grantProtectionUntilEOT(h, c, o.ID, qualities)
 	}
+}
+
+// grantProtectionUntilEOT gives id "protection from" each quality until end
+// of turn.
+func grantProtectionUntilEOT(h Host, c *Ctx, id state.ObjID, qualities []string) {
+	kws := make([]string, len(qualities))
+	for i, q := range qualities {
+		kws[i] = "Protection from " + q
+	}
+	h.AddContinuous(state.ContinuousEffect{
+		Source: id, Affects: "Card.Self", Controller: c.Controller,
+		Layer: state.LAbilities, AddKeywords: kws,
+		UntilEOT: true,
+	})
+}
+
+// effProtectionAll is Forge's ProtectionAll: one quality is settled for the
+// whole sweep (the controller's choice for Gains$ Choice, the source's chosen
+// colour, the colours of the targeted card), then every battlefield permanent
+// matching ValidCards$ gains protection from it until end of turn. ValidPlayers$
+// names a player protection this engine does not model: it is said aloud and
+// the permanent half still runs.
+func effProtectionAll(h Host, c *Ctx, sa *cards.SA) {
+	if strings.TrimSpace(sa.ParamStr(cards.PKValidPlayers)) != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "ProtectionAll ValidPlayers$ is not modelled: a player cannot have protection"})
+	}
+	valid := strings.TrimSpace(sa.ParamStr(cards.PKValidCards))
+	if valid == "" {
+		return
+	}
+	qualities := protectionQualities(h, c, sa)
+	if len(qualities) == 0 {
+		return
+	}
+	g := h.Game()
+	sc := c.SpecContext(c.Controller)
+	var swept []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, valid, id, sc) {
+				swept = append(swept, id)
+			}
+		}
+	}
+	for _, id := range swept {
+		grantProtectionUntilEOT(h, c, id, qualities)
+	}
+}
+
+// protectionQualities is what Protection's and ProtectionAll's Gains$ names,
+// as the words after "protection from": the colour or type its controller
+// chooses (Choice), the source's chosen colour (ChosenColor), the colours of
+// the targeted card (TargetedCardColor), or the literal text.
+func protectionQualities(h Host, c *Ctx, sa *cards.SA) []string {
+	gains := protectionGains(sa)
+	if strings.EqualFold(gains, "TargetedCardColor") {
+		var out []string
+		for _, t := range targetedGroup(c) {
+			if t.IsPlayer {
+				continue
+			}
+			mask := ColorMaskOf(h.Game().Obj(t.Obj)).String()
+			for i := 0; i < len(mask); i++ {
+				if w := protectionColorWord(mask[i]); w != "" && !slices.Contains(out, w) {
+					out = append(out, w)
+				}
+			}
+		}
+		return out
+	}
+	choices := sa.ParamStr(cards.PKChoices)
+	if strings.EqualFold(gains, "Choice") {
+		if q := askProtectionChoice(h, c, sa, choices); q != "" {
+			return []string{q}
+		}
+	}
+	if q := resolveGains(gains, choices, h.Game().Obj(c.Source)); q != "" {
+		return []string{q}
+	}
+	return nil
+}
+
+// protectionColorWord is a colour's name as protection text spells it.
+func protectionColorWord(letter byte) string {
+	switch letter {
+	case 'W':
+		return "white"
+	case 'U':
+		return "blue"
+	case 'B':
+		return "black"
+	case 'R':
+		return "red"
+	case 'G':
+		return "green"
+	}
+	return ""
+}
+
+// protectionChoiceOffers is the qualities Choices$ lets the controller pick
+// from: AnyColor is the five colours; colorless and a named colour stand for
+// themselves. nil means the list names something this engine cannot ask (a
+// card type), and the caller keeps its deterministic stand-in.
+func protectionChoiceOffers(choices string) []string {
+	var out []string
+	for tok := range strings.SplitSeq(choices, ",") {
+		tok = strings.TrimSpace(tok)
+		switch {
+		case strings.EqualFold(tok, "AnyColor"):
+			for _, l := range []byte("WUBRG") {
+				out = append(out, protectionColorWord(l))
+			}
+		case strings.EqualFold(tok, "colorless"):
+			out = append(out, "colorless")
+		case colourLetter(tok) != 0:
+			out = append(out, protectionColorWord(colourLetter(tok)))
+		default:
+			return nil
+		}
+	}
+	return out
+}
+
+// askProtectionChoice poses Gains$ Choice to the controller (Forge's
+// chooseProtectionType) and returns the quality picked. With no engine host to
+// ask it keeps the deterministic first offer, the stand-in resolveGains
+// documents; an unaskable Choices$ returns "" and falls to that same path.
+func askProtectionChoice(h Host, c *Ctx, sa *cards.SA, choices string) string {
+	offers := protectionChoiceOffers(choices)
+	if len(offers) == 0 {
+		return ""
+	}
+	if len(offers) == 1 {
+		return offers[0]
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "protectionchoice", ResumeSA: sa,
+		Prompt: "Choose a quality to gain protection from"}
+	for i, q := range offers {
+		kind := "color"
+		if colourLetter(q) == 0 {
+			kind = "quality"
+		}
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: kind, Label: q, Player: c.Controller})
+	}
+	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+		for _, q := range offers {
+			if strings.EqualFold(q, strings.TrimSpace(ans[0].Label)) {
+				return q
+			}
+		}
+	}
+	return offers[0]
 }
 
 // resolveGains turns Protection's Gains$ parameter into a concrete quality

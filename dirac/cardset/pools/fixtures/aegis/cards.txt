@@ -12,3 +12,4 @@ Plains
 Island
 Forest
 Mountain
+Shatter

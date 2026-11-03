@@ -82,6 +82,14 @@ func (s *State) enterHeld(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, 
 	return sl
 }
 
+// holdBatch hands b's entrants to genState.held across a suspension: fireHeld runs their
+// checks with the rest once the last has entered.
+func (s *State) holdBatch(b *entBatch) {
+	for _, sl := range b.sl[:b.n] {
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+	}
+}
+
 // fireEntries runs b's held enters checks, in move order.
 //
 //go:noinline
@@ -178,9 +186,34 @@ func (b *hitBatch) add(s *State, src, dst Slot, n int) {
 //
 //go:noinline
 func (s *State) dealHits(k *prep, hs []dmgHit) {
+	s.dealHitsLatched(k, hs, nil)
+}
+
+// dealHitsToOne is dealHits for hits on one recipient (ExtEachDamage): the only
+// noncombat batch that lands on a referent twice, so a per-referent line
+// latches as in a combat damage step, queued once at the first event with the
+// batch's total to it (gorge trigger_match.go damageBatchKey).
+//
+//go:noinline
+func (s *State) dealHitsToOne(k *prep, hs []dmgHit) {
+	if k.gen == nil || !k.gen.anyDmgRef {
+		s.dealHits(k, hs)
+		return
+	}
+	var r dmgRec
+	s.dealHitsLatched(k, hs, &refLatch{r: &r})
+}
+
+// dealHitsLatched is dealHits with rl, whose dmgRec it fills, as the batch's
+// per-referent latch (nil: each hit is its own batch).
+func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
 	for i := range hs {
 		h := &hs[i]
 		h.n = int16(s.damageHit(k, h))
+		if rl != nil && h.n > 0 {
+			rl.r.ev[rl.r.nev] = dmgEv{src: h.src, dst: h.dst, n: h.n}
+			rl.r.nev++
+		}
 	}
 	if k.gen != nil && k.gen.anyPermMark {
 		for i := range hs {
@@ -190,10 +223,38 @@ func (s *State) dealHits(k *prep, hs []dmgHit) {
 		}
 	}
 	if k.gen != nil && s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
-		for i := range hs {
-			if h := &hs[i]; h.n > 0 && s.occ.has(h.src) {
-				s.fireDamage(k, h.src, h.n, false, false, uint8(s.perms[h.dst].obj))
+		at := uint8(0)
+		// One source dealing the whole batch (a creature's sweep) is one
+		// damage batch for its DamageDealtOnce lines: they queue once, at
+		// the first hit, carrying the batch total (gorge trigger_match.go
+		// damageBatchKey), as a combat damage step does.
+		var lt dmgLatch
+		var latch *dmgLatch
+		if s.subs[kop.TrigDamageDealtOnce].any() && rl == nil {
+			latch = &lt
+			for i := range hs {
+				if h := &hs[i]; h.n > 0 {
+					if h.src != hs[0].src {
+						latch = nil
+						break
+					}
+					lt.total += h.n
+				}
 			}
+		}
+		for i := range hs {
+			h := &hs[i]
+			if h.n <= 0 {
+				continue
+			}
+			at++
+			if !s.occ.has(h.src) {
+				continue
+			}
+			if rl != nil {
+				rl.at = at
+			}
+			s.fireDamageEvGen(k, h.src, h.n, false, false, latch, uint8(s.perms[h.dst].obj), rl)
 		}
 	}
 	for i := range hs {

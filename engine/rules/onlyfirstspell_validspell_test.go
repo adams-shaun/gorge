@@ -94,3 +94,54 @@ func TestOnlyFirstSpellValidSpellIsTargeting(t *testing.T) {
 	e.emit(events.Event{Kind: events.TargetsChosen, Obj: prior, IDs: []state.ObjID{bear}})
 	ofsWant(t, "after targeting-creature cast", ofsPrice(e, priced, spellScope(""), tg, "W B"), 2)
 }
+
+const ofsCreatureSrc = "Name:Slow\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+
+func ofsRadagastBoard(t *testing.T, extraHand ...string) (*Engine, state.ObjID, []state.ObjID) {
+	t.Helper()
+	e := handEngine(t, card(t, ofsCreatureSrc))
+	rad := e.G.AddObject(corpusAlternativeCard(t, "Radagast of Rhosgobel"), 0)
+	rad.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{rad.ID})
+	hand := e.G.Zone(state.ZHand, 0)
+	ids := []state.ObjID{hand[0]}
+	for _, name := range extraHand {
+		o := e.G.AddObject(corpusAlternativeCard(t, name), 0)
+		o.Zone = state.ZHand
+		hand = append(append([]state.ObjID(nil), hand...), o.ID)
+		e.G.SetZone(state.ZHand, 0, hand)
+		ids = append(ids, o.ID)
+	}
+	if e.G.Active != 0 {
+		t.Fatal("precondition: seat 0 active")
+	}
+	return e, rad.ID, ids
+}
+
+// TestOnlyFirstSpellCountsARecastOfThePricedObject: Radagast of Rhosgobel's
+// first creature spell each turn is spent by a creature cast, bounced and cast
+// again the same turn. The object keeps its id through the zone change; its
+// earlier cast is a real spell (Forge's thisTurnCast holds every cast).
+func TestOnlyFirstSpellCountsARecastOfThePricedObject(t *testing.T) {
+	t.Parallel()
+	e, _, ids := ofsRadagastBoard(t)
+	bear := ids[0]
+	ofsWant(t, "first cast", ofsPrice(e, bear, spellScope(""), nil, "1 G"), 1)
+	ofsPush(e, bear)
+	ofsWant(t, "recast of the same object", ofsPrice(e, bear, spellScope(""), nil, "1 G"), 2)
+}
+
+// TestOnlyFirstSpellReadsAnAdventureCastAsItsHalf: Rimrock Knight's Boulder Rush is
+// an instant, so casting it as the Adventure spends no creature discount, and
+// the Knight cast from exile afterwards is still the first creature spell.
+func TestOnlyFirstSpellReadsAnAdventureCastAsItsHalf(t *testing.T) {
+	t.Parallel()
+	e, _, ids := ofsRadagastBoard(t, "Rimrock Knight")
+	bear, knight := ids[0], ids[1]
+	ofsPush(e, knight)
+	e.emit(events.Event{Kind: events.CastInfo, Obj: knight, Player: 0, Counter: events.FlagsString(state.FlagAdventure)})
+	ofsWant(t, "another creature after the Adventure half", ofsPrice(e, bear, spellScope(""), nil, "1 G"), 1)
+	ofsWant(t, "the Knight itself after its Adventure half", ofsPrice(e, knight, spellScope(""), nil, "1 R"), 1)
+	ofsPush(e, knight)
+	ofsWant(t, "after the Knight's creature cast", ofsPrice(e, bear, spellScope(""), nil, "1 G"), 2)
+}

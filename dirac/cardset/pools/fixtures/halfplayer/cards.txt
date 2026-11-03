@@ -1,0 +1,12 @@
+# half of a targeted player's board, hand and life: Rush of Dread's spree
+# modes read ThisTargetedPlayer$ counts rounded up, and its sacrifice
+# says Mode$ TgtChoose, beside vanilla creatures, burn and basics
+# (dirac/oracle/halfplayer_test.go)
+Rush of Dread
+Walking Corpse
+Grizzly Bears
+Hill Giant
+Shock
+Swamp
+Mountain
+Forest

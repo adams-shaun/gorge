@@ -1,16 +1,15 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // TestValueLoweringSacrificedThisTurn:
-// exactly the three spellings the kernel keeps tallies for lower; any other
-// spec, and an /Op suffix on the head (Bonecache Overseer, held by
-// design), refuses by name.
+// exactly the three spellings the kernel keeps tallies for lower, with an /Op
+// suffix applied to the count (Bonecache Overseer's three per Food); any other
+// spec refuses by name.
 func TestValueLoweringSacrificedThisTurn(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}}
 	for _, c := range []struct {
@@ -27,8 +26,6 @@ func TestValueLoweringSacrificedThisTurn(t *testing.T) {
 		}
 	}
 	for _, body := range []string{
-		"PlayerCountPropertyYou$SacrificedThisTurn Food/Times.3", // Bonecache Overseer: the left-graveyard hold
-		"PlayerCountPropertyYou$SacrificedThisTurn Permanent/Times.2",
 		"PlayerCountPropertyYou$SacrificedThisTurn Clue",
 		"PlayerCountPropertyYou$SacrificedThisTurn Permanent.!token",
 		"PlayerCountPropertyYou$SacrificedThisTurn Creature",
@@ -43,9 +40,8 @@ func TestValueLoweringSacrificedThisTurn(t *testing.T) {
 			t.Errorf("%q lowered to %s; want a refusal", body, v)
 		}
 	}
-	// makes the suffix lowerable in general; Bonecache Overseer is a
-	// held card, so its refusal must name that hold.
-	if _, err := lc.svarValue("PlayerCountPropertyYou$SacrificedThisTurn Food/Times.3", 0); err == nil || !strings.Contains(err.Error(), "Bonecache Overseer's LeftGraveyardThisTurn gate") {
-		t.Errorf("Bonecache Overseer suffix: got %v; want the named hold", err)
+	v, err := lc.svarValue("PlayerCountPropertyYou$SacrificedThisTurn Food/Times.3", 0)
+	if err != nil || v.Kind != vSacrificedThisTurn || v.N != 2 || v.Mul != 3 {
+		t.Errorf("Food/Times.3: got %s N=%d Mul=%d, %v; want SacrificedThisTurn N=2 Mul=3", v, v.N, v.Mul, err)
 	}
 }

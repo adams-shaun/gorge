@@ -192,3 +192,22 @@ func TestL7GorgeTypeAddVsRecordSetter(t *testing.T) {
 		[]lsStep{activate("Omnibian", "", "Craw Wurm"), cast("Enchanted Evening", "WWUUU")},
 		[]lsStep{expectOf("Craw Wurm", "types", []string{"Creature", "Enchantment", "Frog"}, "no_types", []string{"Wurm"}, "pt", "3/3")}))
 }
+
+// TestL7GorgeLostSourceKeepsEarlierLayers (CR 613.6, 613.8a): Stop Cold on
+// a creature whose static begins in layer 4 leaves that whole effect
+// applying, parts in later layers included (Kudo's base 2/2, Ambush
+// Commander's 1/1 green Forests), while a static with nothing before layer
+// 6 (Lord of Atlantis's pump and landwalk) stops.
+func TestL7GorgeLostSourceKeepsEarlierLayers(t *testing.T) {
+	t.Parallel()
+
+	runLayerScen(t, layerScen("stop-cold-on-kudo", []string{"Kudo, King Among Bears", "Craw Wurm"}, []string{"Stop Cold"},
+		[]lsStep{cast("Stop Cold", "UUUU", "Kudo, King Among Bears")},
+		[]lsStep{expectOf("Craw Wurm", "types", []string{"Creature", "Bear", "Wurm"}, "pt", "2/2")}))
+	runLayerScen(t, layerScen("stop-cold-on-commander", []string{"Ambush Commander", "Forest"}, []string{"Stop Cold"},
+		[]lsStep{cast("Stop Cold", "UUUU", "Ambush Commander")},
+		[]lsStep{expectOf("Forest", "types", []string{"Land", "Creature", "Elf"}, "pt", "1/1", "colours", "G")}))
+	runLayerScen(t, layerScen("stop-cold-on-lord", []string{"Lord of Atlantis", "Merfolk Looter"}, []string{"Stop Cold"},
+		[]lsStep{cast("Stop Cold", "UUUU", "Lord of Atlantis")},
+		[]lsStep{expectOf("Merfolk Looter", "pt", "1/1")}))
+}

@@ -161,7 +161,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 			z = s.exileAnyDest(k, o) // Rest in Peace from any zone (repl_exileonleave.go)
 		}
 	}
-	if z == kop.ZoneGraveyard && s.g.on && s.graveRedirect(k, ob.card, z) == kop.ZoneLibrary {
+	if z == kop.ZoneGraveyard && s.g.on && !s.g.graveKept && s.graveRedirect(k, ob.card, z) == kop.ZoneLibrary {
 		// Progenitus: onto the library top, then its owner shuffles (gorge's
 		// ChangeZone object path: one shuffle per replaced move; the top, not
 		// the bottom, is what matches gorge's shuffle in lockstep, pair 9856)
@@ -223,6 +223,12 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 // 121.6: gorge replaces the empty-library mark of a player under
 // drawForbidden with a Note, replacement.go).
 func (s *State) draw(p uint8) {
+	s.drawExcl(p, drawChain{})
+}
+
+// drawExcl is draw with the draw replacements already applied to this
+// draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
+func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl := &s.pl[p]
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw) {
 		return // static_cantdraw.go: before the empty-library mark
@@ -233,10 +239,14 @@ func (s *State) draw(p uint8) {
 		pl.drewEmpty = true
 		return
 	}
+	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
+		return // repl_draw.go: the replacement drew in this draw's place
+	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)
 		return
 	}
+	s.g.drawFirst = false
 	o := pl.lib[pl.libLo]
 	pl.libLo++
 	s.touch(o)
@@ -322,6 +332,12 @@ func (s *State) objReferenced(o Obj) bool {
 // Count$ThisTurnEntered_from_.
 func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
 	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go
+	}
+	if s.g.entHost != 0 {
+		s.attachEntering(k, sl) // zone_handmoveaura.go
+	}
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
@@ -356,6 +372,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	pc := &k.cards[ob.card]
 	if s.nkwx != 0 {
 		s.dropKwRepX(sl)
+	}
+	if s.nptx != 0 {
+		s.dropPtX(sl)
 	}
 	s.ts++
 	fl := pfSick
@@ -418,7 +437,9 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		for c := 0; c < int(kop.NumCounterKinds3); c++ {
 			if n := p.ctrN(s, c); n > 0 && s.occ.has(sl) && kop.IsCounterKind(c) {
 				s.g.lastCK = kop.CounterKind(c)
+				s.g.ctrEntry = true
 				s.fireObj(k, kop.TrigCounterAddedOnce, sl, o, ctrl, int16(n))
+				s.g.ctrEntry = false
 			}
 		}
 	}
@@ -497,8 +518,8 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	}
 	p := &s.perms[sl]
 	n0 := s.npend
-	if k.gen != nil && z == kop.ZoneGraveyard {
-		z = s.graveRedirect(k, p.card, z) // Progenitus does not die
+	if k.gen != nil && z == kop.ZoneGraveyard && !s.genLost(k, sl) {
+		z = s.graveRedirect(k, p.card, z) // Progenitus does not die, while it has that ability
 	}
 	if z == kop.ZoneGraveyard {
 		cr := s.isCreature(k, sl)
@@ -539,12 +560,17 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	p := &s.perms[sl]
 	o := p.obj
+	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)
+	s.g.graveKept = k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && s.genLost(k, sl)
 	// CR 603.10a: the departure-time creature status, read before the
 	// permanent is cleared. Every departure records it (not only a death).
 	wasCreature := s.g.enteredOn && s.isCreature(k, sl)
 	leftCtrl := p.ctrl
 	if k.gen != nil && (s.sp|s.npend != 0 || s.res.active) {
 		s.settleFollowed(k, o)
+	}
+	if s.sp|s.npend != 0 || s.res.active || s.buildLive() {
+		s.settleSrcKw(k, sl, o)
 	}
 	if k.gen != nil && k.gen.anyPanharm {
 		p.flags &^= pfPanhGone
@@ -556,6 +582,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.objs[o].of &^= ofSickLeft
 	}
 	s.g.lingerM.clr(sl)
+	s.g.declM.clr(sl)
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
 	if s.g.nlA[0] != 0 {
 		s.netDrop(o) // the lock ends when the permanent leaves (act_lockpermanent.go)
@@ -576,8 +603,8 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.clearFaceDown(sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
-	if p.ovr.flags&ovCopy != 0 && k.gen != nil && k.gen.anyCloneCopy {
-		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables)
+	if p.ovr.flags&ovCopy != 0 {
+		s.subscribe(sl, &k.cards[p.ovr.copyOf], false) // the copied card's statics and triggers too (tables): whatever made the copy (a clone op, an as-enters clone, an Aegis)
 	}
 	if p.attached != NoSlot {
 		s.recordAttLKI(o, p.attached)
@@ -640,6 +667,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.stashClr(k, o) // a land played from exile loses its stash counter as it leaves (a new object, CR 400.7)
 	}
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature)
+	s.g.graveKept = false
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}

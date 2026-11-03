@@ -149,6 +149,13 @@ func (e *Engine) quietStaticHit(p state.PlayerID, o *state.Object, sf *cards.Fac
 		if v, has := cards.ParamSetParam(st.ParamSetOf(), st.Params, cards.PKValidCard); !(has && validCardSpecIsSelf(v)) {
 			h |= qbhCostStatic
 		}
+	case cards.StaticOptionalCost:
+		// A ReduceColor$ OptionalCost static (the Defiler cycle) takes a pip
+		// off any spell of its colour its controller casts: it prices cards the
+		// per-face floors never see, so it blocks like a reduce/set static.
+		if _, has := cards.ParamSetParam(st.ParamSetOf(), st.Params, cards.PKReduceColor); has {
+			h |= qbhCostStatic
+		}
 	case 0:
 		// PlotZone is outside the dense StaticMode vocabulary.
 		if z == state.ZBattlefield && st.Mode == "PlotZone" {
@@ -248,6 +255,9 @@ func (e *Engine) quietBoardStaticGuard(p state.PlayerID) {
 	// The effect-delivered arm is covered by continuousMintsCostStatic, which
 	// the caller ran first; only a printed (non-effect) view is compared.
 	check(quietCostStaticBoardBlocker(&cs) && !e.quietCostGrantLive(), qbhCostStatic, "a reduce/set cost static")
+	for _, sv := range cs.optional {
+		check(sv.ParamStr(cards.PKReduceColor) != "", qbhCostStatic, "a ReduceColor$ OptionalCost static")
+	}
 }
 
 // quietCostGrantLive reports whether some active effect mints a cost static

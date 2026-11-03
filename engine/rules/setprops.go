@@ -145,15 +145,14 @@ func cardTypeTokens(types []string) []string {
 	return out
 }
 
-// creatureTypeTokens filters a derived type list to creature SUBTYPES: every
-// word that is neither a card type nor a supertype. For a creature's type line
-// ("Creature — Elf Warrior") that is exactly its creature types; a noncreature
-// subtype (Aura, Equipment) is included but only matters when the card also
-// carries "Creature", which the specs already require.
+// creatureTypeTokens filters a derived type list to creature types: the words
+// effects.CreatureTypeWords names. A land, artifact or enchantment subtype
+// (Forest, Cave, Equipment) is not a creature type (CR 205.3g-205.3m), so two
+// lands that are creatures share a creature type only through one both carry.
 func creatureTypeTokens(types []string) []string {
 	var out []string
 	for _, t := range types {
-		if !chars.IsCreatureSubtype(t) {
+		if !effects.CreatureTypeWords(t) {
 			continue
 		}
 		out = append(out, strings.ToLower(t))

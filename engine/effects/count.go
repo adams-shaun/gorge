@@ -326,7 +326,7 @@ func EvalCountOK(h Host, c *Ctx, expr string) (int32, bool) {
 		return evalCountExprOK(h, c, expr, 0)
 	}
 	names, types := c.Layers.EffectiveNames, c.Layers.DerivedTypes
-	board := layerTablesFor(h, nil)
+	board := layerTablesFor(h, nil, nil)
 	if names == nil {
 		c.Layers.EffectiveNames = board.EffectiveNames
 	}

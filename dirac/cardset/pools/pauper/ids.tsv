@@ -1,0 +1,126 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Avenging Hunter
+1	card	Azorius Guildgate
+2	card	Balustrade Spy
+3	card	Basilisk Gate
+4	card	Black Mage's Rod
+5	card	Blood Fountain
+6	card	Brainstorm
+7	card	Burning-Tree Emissary
+8	card	Cast Down
+9	card	Chain Lightning
+10	card	Citadel Gate
+11	card	Cleansing Wildfire
+12	card	Clockwork Percussionist
+13	card	Counterspell
+14	card	Cryogen Relic
+15	card	Dispel
+16	card	Dread Return
+17	card	Drossforge Bridge
+18	card	Elves of Deep Shadow
+19	card	Elvish Mystic
+20	card	End the Festivities
+21	card	Eviscerator's Insight
+22	card	Experimental Synthesizer
+23	card	Faerie Miscreant
+24	card	Faerie Seer
+25	card	Faithless Looting
+26	card	Fanatical Offering
+27	card	Fiery Temper
+28	card	Fireblast
+29	card	Force Spike
+30	card	Forest
+31	card	Fyndhorn Elves
+32	card	Galvanic Blast
+33	card	Gatecreeper Vine
+34	card	Generous Ent
+35	card	Goblin Bushwhacker
+36	card	Goblin Tomb Raider
+37	card	Grab the Prize
+38	card	Great Furnace
+39	card	Guardian of the Guildpact
+40	card	Guttersnipe
+41	card	Harrier Strix
+42	card	Heap Gate
+43	card	Highway Robbery
+44	card	Humbling Elder
+45	card	Hunter's Blowgun
+46	card	Ichor Wellspring
+47	card	Idyllic Beachfront
+48	card	Island
+49	card	Journey to Nowhere
+50	card	Krark-Clan Shaman
+51	card	Land Grant
+52	card	Lava Dart
+53	card	Lead the Stampede
+54	card	Lembas
+55	card	Lightning Bolt
+56	card	Llanowar Elves
+57	card	Lotleth Giant
+58	card	Lotus Petal
+59	card	Lórien Revealed
+60	card	Makeshift Munitions
+61	card	Masked Meower
+62	card	Masked Vandal
+63	card	Mesmeric Fiend
+64	card	Mistvault Bridge
+65	card	Moon-Circuit Hacker
+66	card	Mountain
+67	card	Myr Enforcer
+68	card	Nihil Spellbomb
+69	card	Ninja of the Deep Hours
+70	card	Nyxborn Hydra
+71	card	Of One Mind
+72	card	Outlaw Medic
+73	card	Overgrown Battlement
+74	card	Preordain
+75	card	Priest of Titania
+76	card	Prismatic Strands
+77	card	Pulse of Murasa
+78	card	Quirion Ranger
+79	card	Rally at the Hornburg
+80	card	Reckless Impulse
+81	card	Reckoner's Bargain
+82	card	Refurbished Familiar
+83	card	Sacred Cat
+84	card	Sagu Wildling
+85	card	Saiba Cryptomancer
+86	card	Saruli Caretaker
+87	card	Sea Gate
+88	card	Seat of the Synod
+89	card	Silverbluff Bridge
+90	card	Slagwoods Bridge
+91	card	Snap
+92	card	Sneaky Snacker
+93	card	Snow-Covered Forest
+94	card	Spell Pierce
+95	card	Spellstutter Sprite
+96	card	Squadron Hawk
+97	card	Swamp
+98	card	The Modern Age
+99	card	Thoughtcast
+100	card	Thraben Charm
+101	card	Timberwatch Elf
+102	card	Tinder Wall
+103	card	Toxin Analysis
+104	card	Troll of Khazad-dûm
+105	card	Twisted Landscape
+106	card	Vault of Whispers
+107	card	Voldaren Epicure
+108	card	Wall of Roots
+109	card	Wellwisher
+110	card	Winding Way
+111	card	Writhing Chrysalis
+112	card	face:Sagu Wildling#1
+113	card	face:The Modern Age#1
+114	token	b_4_1_skeleton_menace
+115	token	c_0_1_eldrazi_spawn_sac
+116	token	c_1_1_hero
+117	token	c_a_blood_draw
+118	token	c_a_clue_draw
+119	token	c_a_food_sac
+120	token	c_a_map_sac_explore
+121	token	c_a_treasure_sac
+122	token	undercity
+123	token	w_1_1_human_soldier
+124	token	w_2_2_samurai_vigilance

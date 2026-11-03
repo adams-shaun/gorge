@@ -13,13 +13,24 @@ func TestSacrificedMV(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Valley Floodcaller", Count: 2}, {Name: "Plains", Count: 8}})
 	fc := id["Valley Floodcaller"]
 	a := sc.perm(fc, 0)
-	if got := sc.s.sacrificedMV(sc.k, sc.s.ctxEntry(&sc.s.res.e)); got != 0 {
+	if got := sc.s.sacrificedMV(sc.s.ctxEntry(&sc.s.res.e)); got != 0 {
 		t.Fatalf("no LKI: %d", got)
 	}
 	sc.s.res.e.li = sc.s.snapLKI(a)
 	sc.s.leave(sc.k, sc.slot(a), kop.ZoneGraveyard, false)
-	if got, want := sc.s.sacrificedMV(sc.k, sc.s.ctxEntry(&sc.s.res.e)), sc.k.t.Cards[fc].Cost.MV(); got != want || want == 0 {
+	if got, want := sc.s.sacrificedMV(sc.s.ctxEntry(&sc.s.res.e)), sc.k.t.Cards[fc].Cost.MV(); got != want || want == 0 {
 		t.Fatalf("sacrificed MV %d, want %d", got, want)
+	}
+
+	// A copy's last known mana value is the copied card's (CR 707.2).
+	cp := sc.perm(fc, 1)
+	cpSl := sc.slot(cp)
+	sc.s.perms[cpSl].ovr.flags |= ovCopy
+	sc.s.perms[cpSl].ovr.copyOf = id["Plains"]
+	sc.s.res.e.li = sc.s.snapLKI(cp)
+	sc.s.leave(sc.k, cpSl, kop.ZoneGraveyard, false)
+	if got := sc.s.sacrificedMV(sc.s.ctxEntry(&sc.s.res.e)); got != 0 {
+		t.Fatalf("a copy of a Plains left with mana value %d, want 0", got)
 	}
 
 	// A face-down permanent's last known mana value is 0 (CR 708.2; gorge
@@ -29,7 +40,7 @@ func TestSacrificedMV(t *testing.T) {
 	dsl := sc.s.enterFaceDown(sc.k, d, 0, kop.MorphMorph)
 	sc.s.res.e.li = sc.s.snapLKI(d)
 	sc.s.leave(sc.k, dsl, kop.ZoneGraveyard, false)
-	if got := sc.s.sacrificedMV(sc.k, sc.s.ctxEntry(&sc.s.res.e)); got != 0 {
+	if got := sc.s.sacrificedMV(sc.s.ctxEntry(&sc.s.res.e)); got != 0 {
 		t.Fatalf("face-down sacrificed MV %d, want 0", got)
 	}
 }

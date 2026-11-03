@@ -93,7 +93,7 @@ func TestCumulativeUpkeepUnpayableElectionStillSacrifices(t *testing.T) {
 	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("declined upkeep but the permanent is %+v", o)
 	}
-	if text := lastMoveZoneText(e, bear); text != "sacrificed for cumulative upkeep" {
+	if text := lastMoveZoneText(e, bear); text != "sacrificed" {
 		t.Fatalf("sacrifice move text = %q", text)
 	}
 	replayCheck(t, e, cfg)

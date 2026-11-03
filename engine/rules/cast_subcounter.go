@@ -787,7 +787,7 @@ func (e *Engine) wildcardCounterAsk(pc *pendingCast, part CostPart, amt int32) b
 			continue
 		}
 		for _, c := range o.Counters {
-			if c.N <= 0 {
+			if c.N <= 0 || state.InternalCounterMarker(c.Kind) {
 				continue
 			}
 			if used[oid] != nil && used[oid][c.Kind] >= c.N {
@@ -893,7 +893,7 @@ func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 				if left <= 0 {
 					break
 				}
-				if c.N <= 0 {
+				if c.N <= 0 || state.InternalCounterMarker(c.Kind) {
 					continue
 				}
 				take := c.N

@@ -130,7 +130,10 @@ func (e *Engine) armAbilityAutoPay(pc *pendingCast, idx int) {
 		return
 	}
 	out := e.planAbilityPayment(pc.player, pc.card, idx)
-	if out.Plan == nil || out.Reason != "" || len(out.Plan.Activations) == 0 {
+	// A search that reached its node limit still returns its best plan, which
+	// a cast is offered and pays (planCastPaymentMemo); an activation arms it
+	// the same way.
+	if out.Plan == nil || out.Reason != "" && out.Reason != "search_limit" || len(out.Plan.Activations) == 0 {
 		return
 	}
 	pc.Payment = &plannedCastPayment{ActionID: decision.OptAutoFill, Plan: decision.ClonePaymentPlan(*out.Plan)}

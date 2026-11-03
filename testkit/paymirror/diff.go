@@ -93,6 +93,7 @@ var excluded = map[excludedField]bool{
 	{"rules.Engine", "priorityWalk"}:        true,
 	// Layer/static rebuild caches keyed by epoch/version counters.
 	{"rules.Engine", "staticContinuous"}: true,
+	{"rules.Engine", "staticScanSpare"}:  true,
 	{"rules.Engine", "staticEpoch"}:      true,
 	{"rules.Engine", "staticVersion"}:    true,
 	{"rules.Engine", "staticObjs"}:       true,

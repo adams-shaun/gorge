@@ -266,7 +266,7 @@ func TestDigUntilProgenitusShuffle(t *testing.T) {
 	}
 	ab := &sc.k.t.Cards[id["Consuming Aberration"]].Abilities[0]
 	sc.s.res.e = stackEntry{kind: seTrigger, ctrl: 0, card: id["Consuming Aberration"], trigObj: NoObj}
-	sc.s.execDigUntil(sc.k, &ab.Prog[0])
+	sc.s.execDigUntil(sc.k, &ab.Prog[0], false)
 	got := sc.s.pl[1].lib[sc.s.pl[1].libLo:sc.s.pl[1].libHi]
 	want := ref.lib[ref.libLo:ref.libHi]
 	if len(got) != len(want) {

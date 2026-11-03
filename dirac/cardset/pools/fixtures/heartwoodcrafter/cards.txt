@@ -1,0 +1,10 @@
+# mana that can't be spent to cast a spell from hand (dirac/oracle/heartwoodcrafter_test.go)
+Heartwood Crafter
+Rimrock Knight
+Walking Ballista
+Mind Stone
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Forest
+Mountain

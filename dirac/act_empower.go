@@ -165,27 +165,36 @@ func staticGrants(t *kop.Table, st *kop.Static, ab uint8) bool {
 // walk in grantedAbilitiesN.
 func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
 	var seen [16]struct {
-		c  CardID
-		ab uint8
+		src Slot
+		ab  uint8
 	}
 	nseen := 0
-	for m := s.statM; m.any(); m = m.rest() {
+	// the sources in layer timestamp order (gorge lists active statics by
+	// timestamp; grantedAbilitiesN interleaves the attached grants by it)
+	for m := s.statM; m.any(); {
 		src := m.first()
+		for r := m.rest(); r.any(); r = r.rest() {
+			if c := r.first(); s.layerTs(c) < s.layerTs(src) {
+				src = c
+			}
+		}
+		m = m.without(src)
 		cid := s.cardAt(src)
-		if !k.gen.has(cid, gfGlobGrant) || s.genLost(k, src) || lost && s.layerTs(src) < lts {
+		if !k.gen.has(cid, gfGlobGrant) || lost && s.layerTs(src) < lts {
 			continue
 		}
+		srcLost := s.genLost(k, src)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Grant == 0 ||
-				filterAttachedOnly(k.t, a.Static.Filter) {
+				filterAttachedOnly(k.t, a.Static.Filter) || srcLost && !keptOnLoss(k.t, a) {
 				continue
 			}
 			ab := a.Static.Grant - 1
 			dup := false
 			for j := 0; j < nseen; j++ {
-				if seen[j].c == cid && seen[j].ab == ab {
+				if seen[j].src == src && seen[j].ab == ab {
 					dup = true
 					break
 				}
@@ -198,7 +207,7 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 				continue
 			}
 			if nseen < len(seen) {
-				seen[nseen].c, seen[nseen].ab = cid, ab
+				seen[nseen].src, seen[nseen].ab = src, ab
 				nseen++
 			}
 			f(cid, ab, 1, s.layerTs(src))

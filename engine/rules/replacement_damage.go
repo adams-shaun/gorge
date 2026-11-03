@@ -340,11 +340,16 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		// The source is the one the damage emitter published (CR 120.2b,
 		// 701.14a: a fighting or biting creature), not the resolving spell.
 		src := e.inFlightDamageSource()
-		if src == 0 ||
-			// nil remembered: only the chosen half is added here, so an
-			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
-			// exact match it had before ChooseSource landed.
-			!e.matchesSpec(v, src, e.rememberedSpecContextCap(ctrl, source, nil, cc)) {
+		if src == 0 {
+			return false
+		}
+		// nil remembered: only the chosen half is added here, so an
+		// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
+		// exact match it had before ChooseSource landed.
+		sc := e.rememberedSpecContextCap(ctrl, source, nil, cc)
+		sc.DamageSource = src
+		sc.DamageSourceLeft, sc.DamageSourceEntered = e.damageSourceLeftThisTurn(src)
+		if !e.matchesSpec(v, src, sc) {
 			return false
 		}
 	}
@@ -354,6 +359,18 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// Passage's `ValidTarget$ Card.IsRemembered` names the creature it
 			// targeted, and a ChosenCard spec reads the creation-time choice.
 			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContextCap(ctrl, source, remembered, cc)) {
+				return false
+			}
+		} else if len(rememberedPlayers) > 0 {
+			// An Effect-created line names the players it captured: a Player.IsRemembered
+			// alternative reads that capture, not the source's own list (Lightning, Army of
+			// One's Stagger doubles damage to the player it hit).
+			rp := make([]state.Target, len(rememberedPlayers))
+			for i, p := range rememberedPlayers {
+				rp[i] = state.Target{Player: p, IsPlayer: true}
+			}
+			if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl,
+				effects.PlayerSpecCtx{Source: source, Remembered: rp, RememberedBound: true}) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -366,6 +383,35 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		return false
 	}
 	return e.replacementAmountMatches(r.ParamStr(cards.PKDamageAmount), ev.Amount, e.replCtx(replMatch{id: source, repl: &r}, ev))
+}
+
+// damageSourceLeftThisTurn reports whether a damage source now off the battlefield
+// left it this turn, and if so whether that permanent had entered this turn: the
+// source as it last existed (CR 608.2h), as Forge's last-known host keeps the turn it
+// entered (DamageDealEffect's getChangeZoneLKIInfo, read). The object's own flag says
+// only that it reached its new zone this turn.
+func (e *Engine) damageSourceLeftThisTurn(src state.ObjID) (left, entered bool) {
+	o := e.G.Obj(src)
+	if o == nil || o.Zone == state.ZBattlefield || !o.EnteredThisTurn {
+		return false, false
+	}
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Obj != src || !zoneMovingKind(ev.Kind) || !ev.To.Valid() {
+			continue
+		}
+		if !left && ev.From != state.ZBattlefield {
+			return false, false
+		}
+		if left && ev.To == state.ZBattlefield {
+			return true, true
+		}
+		left = true
+	}
+	return left, false
 }
 
 // askReplacementChoice poses the CR 616.1 order choice for the FRONT parked
@@ -505,12 +551,12 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		}
 	}
 	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil || o.Face() == nil {
+		f := e.replacementFace(id, ev)
+		if f == nil {
 			return
 		}
-		for i := range o.Face().Repls {
-			r := &o.Face().Repls[i]
+		for i := range f.Repls {
+			r := &f.Repls[i]
 			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}

@@ -6,6 +6,7 @@
 Blood Crypt
 Breeding Pool
 Coiling Oracle
+Farseek
 Forest
 Godless Shrine
 Grizzly Bears

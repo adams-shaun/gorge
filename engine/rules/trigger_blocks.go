@@ -303,7 +303,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			return
 		}
-		for ti, t := range f.Triggers {
+		for ti, t := range e.printedTriggersOf(o, f) {
 			if t.Mode != "AttackerBlocked" && (byEffect || t.Mode != "AttackerBlockedByCreature") {
 				continue
 			}
@@ -548,7 +548,7 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			return
 		}
-		for ti, t := range f.Triggers {
+		for ti, t := range e.printedTriggersOf(o, f) {
 			e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, false, 0, nil, ev)
 		}
 	})
@@ -718,7 +718,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 		if !o.Unlocked && !e.faceMayTrigger(f, events.DeclareBlockers) {
 			return
 		}
-		for ti, t := range f.Triggers {
+		for ti, t := range e.printedTriggersOf(o, f) {
 			if t.Mode != "AttackerUnblockedOnce" {
 				continue
 			}
@@ -881,7 +881,7 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			return
 		}
-		for ti, t := range f.Triggers {
+		for ti, t := range e.printedTriggersOf(o, f) {
 			if t.Mode != "Blocks" {
 				continue
 			}
@@ -1013,4 +1013,16 @@ func (e *Engine) checkEffectCombatTriggers(ev events.Event, modes ...string) {
 			pt.Ctx.OptionalSpec = dt.OptionalSpec
 		}
 	}
+}
+
+// printedTriggersOf is f's printed triggered abilities as o has them: none while
+// o is face down (CR 708.2a, so a manifested Norin never sees a creature become
+// blocked) or while a "loses all abilities" effect applies to o (CR 613.1f), the
+// gates the ordinary trigger walk applies (printedAbilitiesGone). The
+// combat-trigger scanners above walk a face directly and read the list through it.
+func (e *Engine) printedTriggersOf(o *state.Object, f *cards.Face) []cards.Trigger {
+	if e.printedAbilitiesGone(o) {
+		return nil
+	}
+	return f.Triggers
 }

@@ -31,7 +31,11 @@ import (
 //     (len(e.G.Objs));
 //  3. the engine's non-event runtime fields, all at rest at a priority ask
 //     outside a cast, resolution or replacement (prioMemoUsable) and with no
-//     inert hold-out set (inertHeldOut, which filters the list);
+//     inert hold-out set (inertHeldOut, which filters the list) and no
+//     held-out cast (suppressedCast, which the walk reads to withhold an
+//     option and which emit clears on the next state-changing event, a plain
+//     step change among them: a list stored under it would outlive the
+//     hold-out and be served without the option the walk then offers);
 //  4. the step, which it reads in a fixed set of places: the sorcery-timing
 //     class (re-evaluated on every lookup and part of the key) and the
 //     script-token gates listed on faceStepSensitive.
@@ -115,7 +119,7 @@ func (e *Engine) prioMemoUsable(window *windowCollector) bool {
 	if prioMemoOff || window != nil || e.L == nil || e.G == nil || len(e.G.Players) > 8 ||
 		e.hostAsking != 0 || e.cast != nil || e.Suspended() || e.offStackMana != nil ||
 		e.resolvingObj != 0 || e.applyingReplacement || e.activeDepth != 0 ||
-		len(e.inertHeldOut) != 0 || !e.derivedMemoUsable() || e.tape.Watching() {
+		len(e.inertHeldOut) != 0 || len(e.suppressedCast) != 0 || !e.derivedMemoUsable() || e.tape.Watching() {
 		return false
 	}
 	for i := range e.G.Players {

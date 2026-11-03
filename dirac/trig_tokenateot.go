@@ -15,7 +15,72 @@ func (s *State) tokenAtEOT(in *kop.Instr, t Obj) {
 		s.tokenAtEOTExt(in, t) // an extended rider (trig_tokenateot.go)
 		return
 	}
+	if in.B.N&kop.TokExileAtEnd == 0 && s.g.tokMade > 1 && s.sacAtEndJoin(t) {
+		return // a later token of one resolution joins the first one's trigger
+	}
 	s.atEOTRider(t, in.B.N&kop.TokExileAtEnd != 0)
+}
+
+// dlyGrpFollow is delayed.when for a token whose "sacrifice them at the
+// beginning of the next end step" is carried by the trigger of the first token
+// its resolution made (gorge scheduleAtEOTTokens: one delayed triggered
+// ability naming every token, CR 603.7). The record is never put on the stack
+// itself; creator names the head token, whose trigger sacrifices it as well.
+const dlyGrpFollow = 6
+
+// sacAtEndJoin registers token t, made after another token by the same
+// resolution, as a follower of the previous token's end-step sacrifice, and
+// reports whether it did.
+//
+//go:noinline
+func (s *State) sacAtEndJoin(t Obj) bool {
+	if s.ndly == 0 || s.ndly >= MaxDelayed {
+		return false
+	}
+	prev := &s.dly[s.ndly-1]
+	head := prev.obj
+	switch {
+	case prev.when == dlyGrpFollow:
+		head = prev.creator
+	case prev.when != dlyUntracked || prev.creator != s.res.e.obj || prev.obj == t:
+		return false
+	}
+	s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: s.res.e.ctrl, obj: t, ver: s.objs[t].ver, when: dlyGrpFollow, creator: head}
+	s.ndly++
+	return true
+}
+
+// sacAtEndFollowers sacrifices the followers of head's end-step trigger as it
+// resolves, consuming their records (gorge's one Sacrifice over the group).
+//
+//go:noinline
+func (s *State) sacAtEndFollowers(k *prep, head Obj) {
+	var fol [MaxDelayed]Obj
+	nf := 0
+	w := uint8(0)
+	for i := uint8(0); i < s.ndly; i++ {
+		d := s.dly[i]
+		if d.when == dlyGrpFollow && d.creator == head {
+			fol[nf] = d.obj
+			nf++
+			continue
+		}
+		s.dly[w] = d
+		w++
+	}
+	for i := w; i < s.ndly; i++ {
+		s.dly[i] = delayed{}
+	}
+	s.ndly = w
+	for i := 0; i < nf; i++ {
+		ob := &s.objs[fol[i]]
+		if ob.zone != kop.ZoneBattlefield {
+			continue
+		}
+		sl := ob.slot
+		s.fireSac(k, sl)
+		s.leaveParked(k, sl)
+	}
 }
 
 // atEOTRider registers one next-end-step delayed action on object t (gorge

@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // layer4AuraScript is Witness Protection's layer-4 shape: an Aura whose
@@ -135,5 +136,28 @@ func TestRenameBoundedReachMatchesFullWalk(t *testing.T) {
 	e.Emit(events.Event{Kind: events.Tap, Obj: bear})
 	if got := e.EffectiveNames(); len(got) != 1 || got[0].ID != other {
 		t.Fatalf("rename table %v after the move, want only the newly enchanted creature", got)
+	}
+}
+
+// A manifested Aura is a face-down creature with no abilities, so the Aura's
+// own layer-4 static is not live while it is face down. The type table the
+// incremental build keeps is then empty (no LType effect is in active()), and
+// the verify-mode reference must be the gated full build, not the ungated walk,
+// which lists the face-down permanent. Seating it must neither panic under
+// layer4PrecheckVerify nor stop it being a creature.
+func TestLayer4TypeTableVerifyAcceptsFaceDownAuraWithNoLiveEffect(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	aura := lookup(t, reg, "Unable to Scream")
+	e := quietBaseWith(t, reg, []*cards.Card{aura})
+	id := pullByName(t, e, 0, "Unable to Scream")
+	from := e.G.Obj(id).Zone
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: 0, From: from, To: state.ZBattlefield,
+		Counter: events.ManifestEntryCounter, Secret: true})
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+		t.Fatalf("precondition: the Aura is not a face-down permanent: %+v", o)
+	}
+	if !e.IsCreature(id) {
+		t.Fatalf("a face-down permanent must be a creature, got types %v", e.derivedTypesOf(id))
 	}
 }

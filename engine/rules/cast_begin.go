@@ -592,7 +592,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		cost = cost.Plus(parts[opt.AltCostIndex-1])
 		optionalCost = parts[opt.AltCostIndex-1]
 	}
-	if (opt.AltCostIndex > 0 && opt.Mode == "mayplay") || opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "modal_spell" || opt.Mode == "room_alt" ||
+	if (opt.AltCostIndex > 0 && (opt.Mode == "mayplay" || opt.Mode == "")) || opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "modal_spell" || opt.Mode == "room_alt" ||
 		opt.Mode == "adventure_alt" || opt.Mode == "omen_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || castAnswerCodes.Code(opt.Mode) == castAnswerTeamworkMode || opt.Mode == "casualty" || castModeCodes.Code(opt.Mode) == castModeBargained || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart" || opt.Mode == "prototype" ||
 		// CR 702.34a/601.2f: flashback replaces only the mana cost; the
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
@@ -1077,7 +1077,11 @@ func (e *Engine) continueCast() {
 	// moves.
 	if pc := e.cast; pc != nil && pc.pushed && !pc.provenanceRepriced && e.CostProvenanceSeen {
 		pc.provenanceRepriced = true
-		pc.mods = e.costModifiers(pc.player, pc.card, spellScope(pc.mode))
+		// The pending cast's own push is in the log now but is not yet a cast
+		// for pricing (CR 601.2f): a "second spell you cast each turn" gate
+		// must not count the spell being priced, so the compose runs under
+		// the cost-composition exclusion like every other post-push pricing.
+		pc.mods = e.costModifiersForTargets(pc.player, pc.card, spellScope(pc.mode), nil)
 	}
 	// CR 601.2b: a modal spell announces its modes after reaching the stack
 	// and before targets are chosen or costs are paid — before every

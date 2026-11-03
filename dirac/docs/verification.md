@@ -107,8 +107,11 @@ derives each list from the set lists and the corpus on every build, and kfuzz de
 
 `oracle.SynthPool` deals `oracle.SynthDecks` 40-card decks from `-seed`: two colours, 23 spells from a
 shuffled queue at most two of each, up to 4 nonbasic lands, basics to 40. A card of three or more colours
-at the head of the queue makes the deck take its colours, or that card would never be dealt. The deal
-never avoids a card because it diverges or stalls: that would hide what the pool is for. A deck name
+at the head of the queue makes the deck take its colours, or that card would never be dealt. The deal is from the cards the run plays: the evidence
+run leaves out the cards refused by name, so no pair is lost to one, and the run that settles
+the refused list (`-play-refused`) deals every lowered card, which is what keeps a refused
+entry's repro pair fixed. Within the cards dealt, which ones a deck holds is the queue's and
+never depends on how a card plays. A deck name
 (`std-dsk_00017_WU`) and `-seed` reproduce a game: `kfuzz -synth std-dsk -first-pair N -pairs 1 -seed 1`.
 
 ```sh
@@ -161,6 +164,12 @@ such cap, so a capacity stall is reported separately and is a known dirac limit,
 game that hits a turn or decision cap agreed for its whole length and counts as clean. A game stopped at
 a dirac capacity agreed up to there and earns coverage for that much; one stopped at an unmodelled
 reason earns none. Lockstep records which in `Result.StallUnmodelled`.
+
+One capacity stall is gorge's: a trigger that reached the engine's hang guard (`maxTriggerFires`, 256
+fires of one source and trigger over a match) stops matching, and dirac does not count fires. When a
+game would be reported divergent and `rules.Engine.TriggerCapReached` holds, it ends as a stall named
+`oracle.GorgeTriggerCapStall`. It agreed up to the decision where the difference appeared, counts under
+the capacity reasons of the verdict, and is printed with `-v` and `-absolute`.
 
 ### How a divergence is reported
 

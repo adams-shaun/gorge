@@ -515,6 +515,10 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	}
 	label := rp.sa.ParamStr(cards.PKCost)
 	amount := e.parseCost(label)
+	// A granted trigger's OriginalHost cost part names the granting static's
+	// host (Sunfire Torch's "you may sacrifice [the Equipment]"), not the
+	// recipient the window's source is (CR 603.5, 701.21a).
+	bindGrantedCostReferents(&amount, o.GrantedBy)
 	// Bind the trigger capture the window's SVar and count reads will see,
 	// once, at creation -- the only encoding of which capture a triggered
 	// cost binds: the parked ability's TriggeredCard capture, else the parked
@@ -1620,8 +1624,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 	case cumulativeAnswerCumulativeActionSac:
 		for _, option := range chosen {
 			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZBattlefield {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZBattlefield,
-					To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+				pay.PaySacrificeCost(asPayer(e), []state.ObjID{o.ID})
 			}
 		}
 		cu.actionRemaining = 0
@@ -1630,8 +1633,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 	case cumulativeAnswerCumulativeActionDiscard:
 		for _, option := range chosen {
 			if o := e.G.Obj(option.Obj); o != nil && o.Zone == state.ZHand && o.Owner == cu.player {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZHand,
-					To: state.ZGraveyard, Text: "discarded for cumulative upkeep"})
+				pay.PayDiscardCost(asPayer(e), []state.ObjID{o.ID}, "")
 			}
 		}
 		cu.actionRemaining = 0
@@ -1673,8 +1675,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		return
 	}
 	if o := e.G.Obj(cu.source); o != nil && o.Zone == state.ZBattlefield {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: cu.source, From: state.ZBattlefield,
-			To: state.ZGraveyard, Text: "sacrificed for cumulative upkeep"})
+		pay.PaySacrificeCost(asPayer(e), []state.ObjID{cu.source})
 	}
 	e.finishCumulative()
 }
@@ -1922,8 +1923,10 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		// frame into the body, the same channel the dyn-tap election's count
 		// takes (rp.tapPaidX). The body's Count$xPaid then reads THIS
 		// payment, not the source permanent's cast-time X.
-		if tc.xPaid != 0 {
-			rp.winPaidX = tc.xPaid
+		if tc.xDone || tc.xPaid != 0 {
+			// An announced X of 0 binds too: the body reads the amount its
+			// controller paid, not the causing permanent's X (CR 107.3m).
+			rp.winPaidX, rp.winXBound = tc.xPaid, true
 		}
 		rp.kind = "effect_paid"
 		e.resumeResolution(rp, nil)
@@ -2044,7 +2047,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	sc := e.withNames(effects.NewSpecContext(tc.player, tc.specSource(e)))
 	sc.TriggerContext = tc.trig
 	var out []state.ObjID
-	for _, id := range e.G.Zone(zone, tc.player) {
+	for _, id := range pay.ExileZoneCards(e.G, zone, tc.player, part) {
 		if used[id] {
 			continue
 		}
@@ -2054,7 +2057,10 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 			// so the cause is costCauseTriggered.
 			continue
 		}
-		if wholeZone || e.matchesSpec(spec, id, sc) {
+		// A bound Referent (a granted trigger's OriginalHost) is the one
+		// object the part names; the spec is not a filter then.
+		if wholeZone || (part.Referent != 0 && id == part.Referent) ||
+			(part.Referent == 0 && e.matchesSpec(spec, id, sc)) {
 			out = append(out, id)
 		}
 	}
@@ -2380,8 +2386,8 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	}
 	// The announced X (the evidence fold) binds into the body exactly like
 	// the pay arm's fold does.
-	if tc.xPaid != 0 {
-		rp.winPaidX = tc.xPaid
+	if tc.xDone || tc.xPaid != 0 {
+		rp.winPaidX, rp.winXBound = tc.xPaid, true
 	}
 	rp.kind = "effect_paid"
 	e.resumeResolution(rp, nil)

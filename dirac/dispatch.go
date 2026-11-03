@@ -112,7 +112,7 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 			s.continueRes(k, 0) // declined: the owner is skipped
 			return true
 		}
-		if s.searchPick(k) && s.res.ask != raGenEnchant {
+		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
 	default:
@@ -505,6 +505,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 			}
 		}
 	default:
+		if s.askOptionsWinTap(k, d) { // mana_windowtapx.go
+			return true
+		}
 		if s.askOptionsBlight(k, d) { // act_blight.go
 			return true
 		}
@@ -570,6 +573,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 		r.peekN = 0
 		s.continueRes(k, 0)
 	default:
+		if s.applyAskWinTap(k, a) { // mana_windowtapx.go
+			return true
+		}
 		if s.applyAskBlight(k, a) { // act_blight.go
 			return true
 		}
@@ -668,7 +674,7 @@ func (s *State) applyAskStdmech(k *prep, a Action) bool {
 		r := &s.g.prevCol[i]
 		if DebugPrevColRecolor && r.col != 0 && r.obj == o {
 			r.col = col // the pre-690ed17f0 reading: the card's live ChosenColor
-		} else if r.col == 0 && free < 0 {
+		} else if r.col == 0 && r.sc == 0 && free < 0 {
 			free = i
 		}
 	}

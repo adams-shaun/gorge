@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -52,5 +53,63 @@ func TestPotentialUnpayableCastsOnlyOnAProof(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("precondition: obj %d absent from potential_actions", spell)
+	}
+}
+
+// TestPotentialPlainCastPricedBesideItsOwnAltCost: a card's own alternative cost
+// (Land Grant's reveal) is a second cast option with the plain cast's Action. Only
+// that option is ambiguous and unpriced; the plain cast of the printed {1}{G} is
+// priced on its own, so a cast only a scripted prefix pays (Heap Gate's filter
+// beside two Wastes) is still found rather than hidden.
+func TestPotentialPlainCastPricedBesideItsOwnAltCost(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9415, "Name:Potential Grant\nManaCost:1 G\nTypes:Instant\n"+
+		"S:Mode$ AlternativeCost | ValidSA$ Spell | ValidCard$ Card.Self | ValidPlayer$ You | Cost$ Reveal<1/Hand> | EffectZone$ All | Description$ x\n"+
+		"A:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	onBoardCard(t, e, 0, corpusCard(t, "Heap Gate"))
+	waste := "Name:Potential Wastes\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n"
+	onBoard(t, e, 0, waste)
+	onBoard(t, e, 0, waste)
+
+	ppPriority(t, e)
+	var plain, alt *PotentialPlan
+	plans := e.PotentialPaymentPlans(0)
+	for i := range plans {
+		if a := plans[i].Action; a.Kind == "cast" && a.Obj == spell {
+			if strings.Contains(a.Label, "alternative") {
+				alt = &plans[i]
+			} else {
+				plain = &plans[i]
+			}
+		}
+	}
+	if plain == nil || alt == nil {
+		t.Fatalf("precondition: plain %v, alternative %v; want both listed; plans %+v", plain, alt, plans)
+	}
+	if alt.Reason != "ambiguous" {
+		t.Errorf("alternative cost: %+v, want ambiguous", *alt)
+	}
+	if plain.Reason != "" || len(plain.Script) == 0 {
+		t.Errorf("plain cast: %+v, want payable through a scripted prefix", *plain)
+	}
+}
+
+// TestPotentialPlanPricesATappedSacrificeSource: a mana ability whose cost has no {T}
+// (an Eldrazi Spawn's "Sacrifice this creature: Add {C}") does not need its source
+// untapped (CR 602.2b), so a tapped Spawn is in the planner's census and pays a {1}
+// directly. Left out of the census it forced a scripted prefix that activates the
+// Spawn at priority first, and the sacrifice trigger it leaves on the stack (Writhing
+// Chrysalis) ends the sorcery window before the play.
+func TestPotentialPlanPricesATappedSacrificeSource(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9416, "Name:Potential One\nManaCost:1\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	spawn := onBoard(t, e, 0, "Name:Potential Spawn\nTypes:Creature Eldrazi Spawn\nPT:0/1\n"+
+		"A:AB$ Mana | Cost$ Sac<1/CARDNAME> | Produced$ C | Amount$ 1 | SpellDescription$ Add {C}.\nOracle:x\n")
+	e.G.Obj(spawn).Tapped = true
+
+	ppPriority(t, e)
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell)
+	if pp.Reason != "" || pp.Plan == nil || len(pp.Script) != 0 {
+		t.Errorf("cast beside a tapped sacrifice source: %+v, want priced by a plan with no scripted prefix", pp)
 	}
 }

@@ -158,3 +158,21 @@ func TestCantBeBeamedUpBarsAnEnchantedCreature(t *testing.T) {
 		t.Fatalf("enchanted creature was the only one and beam me up was offered: %+v", opts)
 	}
 }
+
+// TestBeamMeUpGrantHoldsInItsPhasesOnly: "during your main phase" (Scotty, Miracle
+// Worker's Phases$, which Forge's StaticAbility.checkConditions reads): outside it the
+// card has no beam me up.
+func TestBeamMeUpGrantHoldsInItsPhasesOnly(t *testing.T) {
+	t.Parallel()
+	const grantor = "Name:Main Phase Engineer\nManaCost:1 U U\nTypes:Creature Bear\nPT:2/3\n" +
+		"S:Mode$ Continuous | AddKeyword$ Beam me up | Affected$ Sorcery.YouOwn,Instant.YouOwn | AffectedZone$ Graveyard | Condition$ PlayerTurn | Phases$ Main1,Main2\nOracle:x\n"
+	e, _, spell := beamFixture(t, 806, "Name:Plain Note\nManaCost:U\nTypes:Sorcery\nA:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n", grantor)
+	putCreature(t, e, 0, grantor)
+	if !e.hasKeywordH(spell, kwhBeamMeUp) {
+		t.Fatal("no beam me up in the main phase")
+	}
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepEnd})
+	if e.hasKeywordH(spell, kwhBeamMeUp) {
+		t.Error("beam me up at the end step")
+	}
+}

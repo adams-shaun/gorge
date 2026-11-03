@@ -60,7 +60,7 @@ func (s *State) wardSacCands(k *prep, each func(Slot)) int {
 //go:noinline
 func (s *State) resolveWardSac(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -136,7 +136,7 @@ const ChWardEvidence ChoiceKind = 240
 //go:noinline
 func (s *State) resolveWardEvidence(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -149,9 +149,15 @@ func (s *State) resolveWardEvidence(k *prep) {
 }
 
 // graveMV is the mana value of the payer's graveyard card o (gorge
-// wardManaValue: state.ManaValue in the graveyard).
+// wardManaValue: state.ManaValue in the graveyard, so a split card counts
+// both halves, CR 709.4b).
 func (s *State) graveMV(k *prep, o Obj) int {
-	return int(k.cards[s.objs[o].card].total)
+	c := s.objs[o].card
+	mv := int(k.cards[c].total)
+	if k.gen.anySplit {
+		mv = s.splitMV(k, c, o, mv) // face_castface.go
+	}
+	return mv
 }
 
 // startWardEvidence answers "pay": the graveyard's total short of N
@@ -209,7 +215,9 @@ func (s *State) settleWardEvidence(k *prep) {
 		s.payDone(k, false)
 		return
 	}
-	s.exileEvidence()
+	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
+		s.fireEvidence(k, s.g.pickP) // the payment is a collect-evidence action (gorge pay.PayEvidence)
+	}
 	s.payDone(k, true)
 }
 
@@ -239,7 +247,7 @@ const ChWardDiscard ChoiceKind = 245
 //go:noinline
 func (s *State) resolveWardDiscard(k *prep) {
 	e := &s.res.e
-	if s.stackIndexOf(e.trigObj) < 0 {
+	if s.wardedIndex(e) < 0 {
 		s.finishResolve(k, false)
 		return
 	}
@@ -307,7 +315,7 @@ const wardPowBit int16 = 0x1000
 //go:noinline
 func (s *State) resolveWardPower(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return

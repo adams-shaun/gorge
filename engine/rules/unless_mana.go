@@ -30,7 +30,7 @@ func (e *Engine) unlessManaWindowNeeded(p state.PlayerID, cost Cost, obj state.O
 	if pay.CostPayableClassLife(asPayer(e), p, d, pipRider{}, cost, false) {
 		return false
 	}
-	return e.hasUntappedManaSource(p)
+	return e.hasUntappedManaSourceFor(p, d)
 }
 
 // unlessManaKind and unlessManaPrompt are the unless-cost mana window's

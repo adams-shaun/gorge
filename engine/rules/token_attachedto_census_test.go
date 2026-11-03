@@ -299,6 +299,7 @@ func TestAttachRememberedCensusNamesCarriers(t *testing.T) {
 		"Armored Skyhunter":           "ChosenCard",
 		"Balan, Wandering Knight":     "Self",
 		"Bruna, Light of Alabaster":   "Self",
+		"Gwyndala, the Progeny":       "Self",
 		"Inventory Management":        "",
 		"Outfitted Jouster":           "",
 		"The Invincible Iron Man":     "Self",

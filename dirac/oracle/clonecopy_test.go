@@ -209,6 +209,7 @@ func TestClonecopyLockstep(t *testing.T) {
 			tot.deepCopies += c.deepCopies
 			tot.st.Asked += c.st.Asked
 		}
+		tot.st.Moved += c.st.Moved
 		tot.st.EOT += c.st.EOT
 		tot.st.Reverted += c.st.Reverted
 		tot.st.Perm += c.st.Perm
@@ -221,9 +222,13 @@ func TestClonecopyLockstep(t *testing.T) {
 	declined := int(tot.st.Asked) - tot.deepCopies
 	t.Logf("all pairs: %d reverted, %d permanent, %d Oko attacks, %d Naga multi, %d declined (base pairs), %d copies left, %d minted, %d stacked, %d re-based",
 		tot.st.Reverted, tot.st.Perm, tot.okoAtk, tot.st.Multi, declined, tot.copyLeft, tot.st.Minted, tot.st.Stacked, tot.st.Rebased)
+	t.Logf("%d optional triggers asked after their source became a copy", tot.st.Moved)
 	t.Logf("%d of %d games ended in a stall", tot.stalls, 3*256)
 	if tot.stalls > 3*256/8 {
 		t.Errorf("games stalled %d (at most %d)", tot.stalls, 3*256/8)
+	}
+	if tot.st.Moved < 1 {
+		t.Errorf("no optional trigger was asked after its source became a copy (want at least 1)")
 	}
 	if tot.st.Stacked < 100 || tot.st.Rebased < 50 {
 		t.Errorf("stacked %d (want 100), re-based %d (50)", tot.st.Stacked, tot.st.Rebased)

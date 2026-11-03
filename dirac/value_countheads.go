@@ -246,6 +246,12 @@ func tableRemembersIfPaidSac(t *kop.Table) bool {
 // self-exile plus transformed return. A single-face source (a Champion whose
 // leaves trigger returns its exiled card, a flickered hideaway) keeps the
 // stamp it was written with, which the trigger's fire ver already matches.
+//
+// Only a link live at the departure is re-based: the stamp is the ver the
+// source held before this move. gorge re-bases the links of the incarnation that
+// just left (apply_zone.go, the craft arm of the battlefield entry); the
+// links of an earlier incarnation stay dead, so a crafted back face that was
+// bounced, recast and crafted again counts the second material only.
 func (s *State) exwSourceLeft(o Obj) {
 	if len(s.k().t.Cards[s.objs[o].card].Faces) == 0 {
 		return
@@ -253,7 +259,7 @@ func (s *State) exwSourceLeft(o Obj) {
 	ver := s.objs[o].ver
 	for i := 0; i < int(s.g.nexw); i++ {
 		r := &s.cold.exw[i]
-		if r.src == o && r.fl&exwRev != 0 {
+		if r.src == o && r.fl&exwRev != 0 && r.sver == ver-1 {
 			r.sver = ver
 		}
 	}

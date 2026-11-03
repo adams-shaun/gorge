@@ -53,8 +53,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.moveRef(k, in.Obj, kop.ZoneHand, false)
 	case kop.OpToLibrary:
 		switch in.C {
-		case kop.LibTopShuffle:
-			s.toLibraryShuffle(k, in)
+		case kop.LibTopShuffle, kop.LibTopShuffleGrave:
+			s.toLibraryShuffle(k, in, false)
+		case kop.LibBottomShuffle:
+			s.toLibraryShuffle(k, in, true)
 		case kop.LibTopShuffleSelf:
 			s.toLibraryShuffleSelf(k, in)
 		case kop.LibThird:
@@ -73,9 +75,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpPumpUntilEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.touchSl(sl)
-			p := &s.perms[sl]
-			p.eotP += int8(s.value(k, in.A))
-			p.eotT += int8(s.value(k, in.B))
+			if !s.eotAdd(k, sl, s.value(k, in.A), s.value(k, in.B)) {
+				break
+			}
 		}
 	case kop.OpGrantKeyword:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
@@ -187,9 +189,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.discRandom(k, p, n)
 			break
 		}
-		if n >= int(pl.handN) {
+		if n >= s.handDiscardable(p) {
 			for i := uint8(0); i < pl.handN; {
-				if s.park(k, pl.hand[i], parkDiscard, 0) {
+				if s.objs[pl.hand[i]].of&ofCopy != 0 || s.park(k, pl.hand[i], parkDiscard, 0) {
 					i++
 					continue
 				}
@@ -307,7 +309,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		s.dealHits(k, hb.h[:hb.n])
 		if track {
-			s.fightExcessRec(lethal, pa)
+			s.fightExcessRec(lethal, int(hb.h[0].n)) // the damage dealt, after replacement and prevention (CR 120.4a, gorge effFight)
 		}
 	case kop.OpTap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
@@ -478,9 +480,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// Magic's "Permanents you control gain hexproof and
 			// indestructible").
 			if s.isCreature(k, sl) {
-				p := &s.perms[sl]
-				p.eotP += int8(a)
-				p.eotT += int8(b)
+				if !s.eotAdd(k, sl, a, b) {
+					break
+				}
 			}
 			if in.C != 0 {
 				kw := kop.KwMask(uint16(in.C))
@@ -532,10 +534,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.g.retMiss = true // until the move: an OpOverride rider tests it
 		}
 		ob := &s.objs[o]
-		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) {
+		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) || s.instantStays(k, o, kop.Zone(in.C)) {
 			break
 		}
-		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, in, o, ob.owner()) {
+		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
 			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)
 		}
 		s.execReturnSimple(k, in, o)
@@ -717,8 +719,8 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
 	case kop.ZoneNone:
 	default:
-		if r == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
-			return // the activated ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response)
+		if r == kop.RefSelf && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
+			return // the ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response, Encroaching Dragonstorm destroyed with its return trigger on the stack)
 		}
 		if s.tokenLeftBattlefield(o) {
 			return // CR 111.8 (zone_tokenleft.go)
@@ -787,7 +789,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 					taken = true
 				}
 			}
-			if !taken && (k.gen == nil || s.discardOK(k, o)) {
+			if !taken && s.objs[o].of&ofCopy == 0 && (k.gen == nil || s.discardOK(k, o)) {
 				d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 			}
 		}
@@ -1018,9 +1020,15 @@ func (s *State) applyResolve(k *prep, a Action) {
 			s.applyWardManaLife(k, a) // cost_unlesstapward.go
 			return
 		}
-		idx := s.stackIndexOf(r.e.trigObj)
+		idx := s.wardedIndex(&r.e)
 		if c := (kop.ManaCost{Generic: uint8(r.e.trigAmt)}); a.Mode() == 1 && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c)) {
-			s.payWindow(k, r.e.trigPl, &c)
+			paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
+			if paused {
+				return // a tap-another source's pick (mana_windowtapx.go)
+			}
+			if short && idx >= 0 {
+				s.counterAt(k, idx) // the colours taken left the ward unpaid
+			}
 		} else if idx >= 0 {
 			if a.Mode() == 1 {
 				s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay
@@ -1064,6 +1072,9 @@ func (s *State) finishPeek(k *prep) {
 		s.objs[o].zone = kop.ZoneLibrary
 		pl.libTop(o)
 	}
+	if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
+		s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
+	}
 	for i := top; i < int(r.peekI); i++ { // the rest phase's picks
 		s.putRest(k, r.arr[i])
 	}
@@ -1089,4 +1100,20 @@ func (s *State) putRest(k *prep, o Obj) {
 	if s.prog(k)[s.res.pc].C&kop.MvRemember != 0 {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}
+}
+
+// handDiscardable counts the cards in p's hand a discard may take. A token copy
+// that bounced to the hand waits there for the state-based actions to cease it
+// (ceaseTokensGen) and is no card in the hand to Forge, whose zone never lists a
+// token off the battlefield; gorge's matcher rejects it too (CR 707.10h), so a
+// discard neither offers it nor counts it toward taking the whole hand.
+func (s *State) handDiscardable(p uint8) int {
+	pl := &s.pl[p]
+	n := int(pl.handN)
+	for i := 0; i < int(pl.handN); i++ {
+		if s.objs[pl.hand[i]].of&ofCopy != 0 {
+			n--
+		}
+	}
+	return n
 }

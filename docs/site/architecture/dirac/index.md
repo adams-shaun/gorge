@@ -101,7 +101,7 @@ dirac does less than gorge on purpose.
 | Stack | 24 entries | stalls (`stack`) |
 | Triggered abilities waiting | 24 | stalls (`pending`) |
 | Delayed triggers | 16 | stalls (`delayed`) |
-| Attack or block options in one declaration | 384 | stalls (`options`) |
+| Attack or block options in one declaration | 512 | stalls (`options`) |
 | Triggers resolved in one turn | 2,000 | stalls (`loop`, an endless mandatory loop, CR 104.4b) |
 
 **Stalls are named.** A game dirac can't continue correctly ends as a draw, `Terminal` reports `(true, -1)`

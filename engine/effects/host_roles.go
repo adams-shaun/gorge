@@ -668,6 +668,11 @@ type HostTurnLedger interface {
 	// threshold), the ONE game-wide value the relative-player property reads.
 	// Captured at genesis, so a replay derives the same number.
 	StartingLife() int32
+	// PricedFromGraveyard is the graveyard card whose cast is being priced
+	// before it moves (0: none). CR 601.2a puts the spell on the stack before
+	// its cost is determined (601.2f), so a count of cards that left the
+	// graveyard this turn includes the card being cast from there.
+	PricedFromGraveyard() state.ObjID
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's
@@ -675,6 +680,11 @@ type HostTurnLedger interface {
 	// Derived from the event log like LifeLostThisTurn, so a replay derives
 	// the same number; a turn that begins is one TurnChange event naming p.
 	TurnsTaken(p state.PlayerID) int32
+	// ExtraTurnsBegun reports how many extra turns have begun with p as the
+	// active player this game (CR 500.7): each is one consumption of a
+	// pending grant that was not skipped. Derived from the event log, so a
+	// replay derives the same number (Count$YourExtraTurns).
+	ExtraTurnsBegun(p state.PlayerID) int32
 	// AttackersThisTurn counts the attackers declared THIS turn — the sum of
 	// every DeclareAttackers event's attacker list since the last TurnChange,
 	// derived from the event log so a replay derives the same number. This is

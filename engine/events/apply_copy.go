@@ -133,7 +133,16 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// resolves, Move turns it into a token and clears IsCopy, and
 	// engine/rules/altcast.go's battlefield-entry hook has no IsCopy left to
 	// tell a never-cast token from the real cast.
-	x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
+	//
+	// A gift promise is not provenance but a paid additional cost (CR 702.174a),
+	// which a copy copies with every other decision made for the spell (CR
+	// 707.10): the copy keeps the promise and its receiver, so its gift is given
+	// as it resolves and its Count$PromisedGift targets are asked for.
+	x, castFlags := src.X, src.CastFlags&^(state.CastProvenanceFlags&^state.FlagPromisedGift)
+	giftTo := src.GiftPromisedTo
+	// A copy of a spell is a copy of the card as it stands, perpetual
+	// intensity included: "this spell's intensity" reads the same on both.
+	intensity := src.Intensity
 	// Teamwork is a paid additional cost, like Conspire: copies carry the
 	// cost-conditioned bit AND the boolean its count/filter readers inspect.
 	teamworkPaid := src.TeamworkPaid
@@ -189,6 +198,7 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o := g.AddObject(card, e.Player)
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.SetFaceIdx(faceIdx)
+	o.Intensity = intensity
 	o.Ability, o.Source = ability, source
 	o.CastBattlefield = castBattlefield
 	o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
@@ -202,6 +212,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	o.Division = division
 	o.ChosenModes = chosenModes
 	o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+	if castFlags&state.FlagPromisedGift != 0 {
+		o.GiftPromisedTo = giftTo
+	}
 	o.TeamworkPaid = teamworkPaid
 	// A copy was never cast (CR 707.10), so it carries no rider grants:
 	// the Spell.MayPlaySource/AddsCounters provenance is a statement about
@@ -308,6 +321,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.SetFaceIdx(faceIdx)
 	if basis != nil {
 		o.SetCopyFace(basis)
+		o.CopyFaceBack = copyTokenBack(src)
 	}
 	// CR 718.3c/d: a token copy of a prototyped permanent is also
 	// prototyped. A named-card copy has no source, so it is not.
@@ -360,6 +374,16 @@ func copyTokenBasis(src *state.Object) (*cards.Card, uint8, *cards.Face) {
 	}
 	cf := *src.CopyFace
 	return src.Card, src.FaceIdx, &cf
+}
+
+// copyTokenBack is the edited other face a token copy of src carries when src
+// is a double-faced token with exceptions (CR 707.8a): a private value copy.
+func copyTokenBack(src *state.Object) *cards.Face {
+	if src == nil || src.CopyFaceBack == nil || src.CopiesFaceDown() {
+		return nil
+	}
+	bf := *src.CopyFaceBack
+	return &bf
 }
 
 // foldCardToken folds Kind CardToken into state.
@@ -562,6 +586,9 @@ func foldFlipFace(g *state.Game, e *Event) {
 		e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
 		turned := o.FaceIdx != uint8(e.Amount)
 		o.SetFaceIdx(uint8(e.Amount))
+		if turned && o.CopyFaceBack != nil {
+			o.SwapCopyFaces() // a double-faced token copy shows its other edited face (CR 707.8a)
+		}
 		// CR 613.7g: a transforming double-faced permanent that changes face
 		// on the battlefield transformed. A flip card (CR 710) and a face
 		// chosen off the battlefield are not transforms.

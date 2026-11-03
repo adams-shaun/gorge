@@ -147,6 +147,21 @@ func evalCountBodySimple(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			}
 		}
 		return n, true, true
+	case evalCountBodyCostIntensity:
+		// Forge's Count$Intensity (Alchemy): the host card's intensity, its
+		// printed K:Starting intensity plus every perpetual increase -- "this
+		// spell's intensity" is read off the card, so a spell still on the
+		// stack, a permanent, and a source that has since left all read the
+		// same number. A bare head; no host reads zero.
+		if arg != "" {
+			return 0, false, true
+		}
+		if c != nil {
+			if o := g.Obj(c.Source); o != nil {
+				return o.IntensityTotal(), true, true
+			}
+		}
+		return 0, true, true
 	case evalCountBodyCostLastStateBattlefieldWithFallback:
 		// The battlefield as the spell was cast, from its frozen snapshot,
 		// else the live battlefield (see evalCastBattlefieldCount).

@@ -295,6 +295,10 @@ func (r *Registry) rewindToLastIntent(t *table, m *match, seats []seat.Seat, brd
 	m.bounds = append([]uint64(nil), m.bounds[:n+1]...)
 	m.turnStarts = turnStartsBefore(m.turnStarts, uint64(len(g.Log().Events)))
 	m.snaps = snapsBefore(m.snaps, n)
+	m.rewinds++
+	if m.viewResume.intent > n {
+		m.viewResume = snapshot{}
+	}
 	// The feeds (spec 2026-09-28-hosted-bot-packages §5.2 Undo) are
 	// derived from (config, log prefix, actor) and the swap just invalidated
 	// them — a pre-undo feed observed every decision of the discarded tail.

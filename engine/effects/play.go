@@ -382,8 +382,29 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			min = max
 		}
 	default:
-		if n, err := strconv.Atoi(amt); err == nil && n > 1 {
+		// A literal N, or a count the resolution can price (Infinite
+		// Diversity's X, Chandra's ChandraX). One that cannot be priced stays
+		// at one card rather than risk an over-wide offer.
+		n, err := strconv.Atoi(amt)
+		if err != nil {
+			if v, ok := NumResolved(h, c, sa, "Amount", 0); ok {
+				n, err = int(v), nil
+			}
+		}
+		if err == nil && n > 1 {
 			max = n
+			// AllowRepeats$ (Mnemonic Deluge, Chandra Pyromaster, Infinite
+			// Diversity): a chosen card is not struck from the list, so each
+			// of the N plays may be any candidate again, the same card
+			// included. The offer lists every candidate N times and the
+			// answer picks up to N of those entries.
+			if isTrue(sa.ParamStr(cards.PKAllowRepeats)) {
+				once := candidates
+				candidates = make([]state.ObjID, 0, n*len(once))
+				for range n {
+					candidates = append(candidates, once...)
+				}
+			}
 		}
 	}
 	if max > len(candidates) {

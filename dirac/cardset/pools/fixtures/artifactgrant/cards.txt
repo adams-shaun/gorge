@@ -1,0 +1,18 @@
+# the artifact-creature trigger grants (Locutus of Borg and its Borg
+# lords): artifact creatures you control gain a triggered ability, beside
+# artifact and plain creatures and a burn spell (dirac/oracle/artifactgrant_test.go)
+Locutus of Borg
+Supplementation Node
+Co-Option Adjutant
+Antagonist Incorporator
+Hive Mind Coprocessor
+Bio-Asset Allocator
+Memnite
+Ornithopter
+Grizzly Bears
+Shock
+Plains
+Mountain
+Unctus, Grand Metatect
+Wind Drake
+Island

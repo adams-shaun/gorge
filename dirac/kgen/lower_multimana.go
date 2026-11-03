@@ -70,7 +70,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		return
 	}
 	for i, a := range ms[1:] {
-		if !manaGapModelled(a) {
+		if !manaGapModelled(ms[0], a) {
 			lc.refuseNode("card", "%d mana abilities: mana ability %d (cost %v, produces %s) is not modelled beside the first", len(ms), i+1, a.Cost.Mana, a.Mana.Colors)
 			return
 		}
@@ -100,7 +100,7 @@ func plainTapMana(a *lAbility, paid bool) bool {
 	c := &a.Cost
 	m := &c.Mana
 	if !c.Tap || c.SacSelf || c.Sac != nil || c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.PayLife != 0 ||
-		c.TapN != 0 || c.TapHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
+		c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
 		return false
 	}
 	if m.Pips != [5]int{} || len(m.Hybrid) > 0 || m.X || m.C != 0 || (m.Generic != 0) != paid {
@@ -118,15 +118,28 @@ func plainTapMana(a *lAbility, paid bool) bool {
 
 // manaGapModelled: a, a mana ability beside a plain first one, is a census
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
-func manaGapModelled(a *lAbility) bool {
+func manaGapModelled(first, a *lAbility) bool {
 	switch {
 	case plainTapMana(a, false):
 		// a restricted {T} ability, amount 1 (Courtyard, whose restriction
 		// also names activated abilities; the Villages)
 		// of one colour or any colour (the kernel's anyR branches on all
 		// five: Tournament Grounds' {R}, {W} or {B} is not modelled)
-		return a.Mana.Restrict != nil && a.Mana.Amount.Kind == vConst && a.Mana.Amount.N == 1 &&
-			(len(a.Mana.Colors) == 1 || a.Mana.Colors == "WUBRG")
+		if a.Mana.Restrict == nil || a.Mana.Amount.Kind != vConst {
+			return false
+		}
+		if a.Mana.Amount.N == 1 {
+			return len(a.Mana.Colors) == 1 || a.Mana.Colors == "WUBRG"
+		}
+		// two or more mana of any one colour (Produced$ Any with a literal
+		// Amount$): gorge's planner prices it as one alternative per colour
+		// beside the first ability's, each of the larger amount, which the
+		// kernel's restricted pair unit (mana_restrictedsource.go) plans.
+		// Its colours must hold the first ability's, so the larger
+		// alternative serves everything the smaller does. A Combo of any
+		// colours (Hermitic Herbalist's) is no planner alternative: a gap.
+		return a.Mana.Colors == "WUBRG" && !a.Mana.Choice && a.Mana.Amount.N <= maxRestrictedAmount &&
+			!first.Mana.Choice && (first.Mana.Colors == "WUBRG" || len(first.Mana.Colors) == 1 && strings.Contains("WUBRG", first.Mana.Colors))
 	case plainTapMana(a, true):
 		// {N}, {T}: one mana of any colour, unrestricted (Hidden Grotto;
 		// Three Tree City's dynamic amount)
@@ -137,6 +150,11 @@ func manaGapModelled(a *lAbility) bool {
 	}
 	return false
 }
+
+// maxRestrictedAmount bounds the literal amount of a restricted any-colour
+// ability the kernel's pair unit plans (its planner's unit counts are bytes
+// of small width, and a larger Produced$ Any amount has no card).
+const maxRestrictedAmount = 4
 
 // unrestrictedOne: a's mana is unrestricted, amount 1.
 func unrestrictedOne(a *lAbility) bool {

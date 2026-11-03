@@ -134,7 +134,7 @@ func passToCopyResolved(t *testing.T, s *State) {
 }
 
 // TestCopyAbSyntheticNoDeclaration: an ability copy whose stack entry names a
-// kernel-native ability (ab >= abCascade: cascade, madness, delayed, ward,
+// kernel-native ability (ab >= abCascade: cascade, storm, madness, delayed, ward,
 // prowess) has no CardDef.Abilities entry, so copyDeclSlot reports no
 // declaration (-1) instead of indexing the card's printed abilities. The live
 // shape is Vantress Visions copying warp's delayed exile trigger (CR 702.185a,
@@ -164,7 +164,7 @@ func TestCopyAbSyntheticNoDeclaration(t *testing.T) {
 	if sc.k.gen == nil || !sc.k.gen.anyCopyAb {
 		t.Fatal("test table did not set anyCopyAb")
 	}
-	for _, ab := range []uint8{abCascade, abMadness, abDelayed, abWard, abProwess} {
+	for _, ab := range []uint8{abCascade, abStorm, abMadness, abDelayed, abWard, abProwess} {
 		e := &stackEntry{kind: seTrigger, card: one, ab: ab}
 		if slot := sc.s.copyDeclSlot(sc.k, e); slot != -1 {
 			t.Errorf("copyDeclSlot(ab %d) = %d, want -1 (a kernel-native ability has no declaration)", ab, slot)

@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -34,7 +35,11 @@ type engineLayerCaches struct {
 	// keyword/type slices. activeBuf copies the effect values into distinct
 	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect `clone:"deep,if=cloneCarriesStaticMemo,pool=static,release=clear"`
-	staticEpoch      int                `clone:"deep,if=cloneCarriesStaticMemo"`
+	// staticScanSpare is the buffer the next full scan writes while
+	// staticContinuous keeps the previous complete list (rescanStatic); the
+	// two swap. Per-scan scratch, never cloned.
+	staticScanSpare []ContinuousEffect `clone:"reset,pool=staticSpare,release=clear"`
+	staticEpoch     int                `clone:"deep,if=cloneCarriesStaticMemo"`
 	// staticVersion/staticObjs are continuousVersion and len(e.G.Objs) at the
 	// last staticEffects build: layerInertSince's reuse across a run of
 	// layer-inert events (layercache.go) additionally requires both unchanged.
@@ -58,6 +63,13 @@ type engineLayerCaches struct {
 	// state a quiet event writes, so staticSafeSince admits quiet events only
 	// when it is false. Reset and set exactly like staticMemoGated.
 	staticMemoStateRead bool `clone:"deep,if=cloneCarriesStaticMemo"`
+	// staticColorGate records whether the last full staticEffects build met an
+	// IsPresent$/IsPresent2$ gate naming a colour (Knight of Grace's black
+	// permanent). staticGateColors is the layer-5 table its second walk read
+	// such gates through (static_colorgate.go), kept beside the memo it made
+	// and replaced with a fresh slice, never written, by the next build.
+	staticColorGate  bool                   `clone:"deep,if=cloneCarriesStaticMemo"`
+	staticGateColors []effects.ObjectColors `clone:"deep,if=cloneCarriesStaticMemo"`
 	// staticGates is every continuous gate the last full staticEffects build
 	// evaluated, in scan order, with its outcome (static_gatememo.go): a
 	// gated, state-read-free build is re-stamped across a quiet run when

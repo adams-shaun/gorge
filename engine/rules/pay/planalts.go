@@ -48,12 +48,20 @@ func AnnouncedAbilityColours(e Engine, p state.PlayerID, id state.ObjID, ma *car
 // production_changed. It never names a substitute.
 func PaymentPlanStepReady(e Engine, p state.PlayerID, units []WindowUnit, pa decision.PaymentActivation) (Alt, string) {
 	o := e.Game().Obj(pa.Source)
-	if o == nil || o.Zone != state.ZBattlefield || o.Tapped || o.PhasedOut || o.Controller != p ||
+	if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut || o.Controller != p ||
 		pa.SourceZoneSeq != PaymentSourceZoneSeq(e, pa.Source) {
 		return Alt{}, FallbackSourceChanged
 	}
 	if step, ok := PaymentPlanStepAlternative(e, units, pa); ok {
+		// only a {T} cost needs the source untapped (CR 602.2b): a tapped Eldrazi Spawn
+		// still sacrifices for {C}, as the census prices it
+		if o.Tapped && (step.Ma == nil || AbilityCompiledCost(e, step.Ma).Cost.Tap) {
+			return Alt{}, FallbackSourceChanged
+		}
 		return step, ""
+	}
+	if o.Tapped {
+		return Alt{}, FallbackSourceChanged
 	}
 	for _, u := range units {
 		if u.ID != pa.Source {
@@ -117,7 +125,7 @@ func paymentPlanAbilityShapeTier(e Engine, p state.PlayerID, id state.ObjID, ma 
 	}
 	var cost costvocab.Cost
 	if ma != nil {
-		cost = AbilityCompiledCost(e, ma).Cost
+		cost = e.Eval().ManaAbilityCost(p, id, ma).Cost
 	}
 	tier, c, detail, rider := PaymentPlanShapeTierOf(ma, cost)
 	if !rider {
@@ -176,7 +184,7 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 		tier, consequence, _ := PaymentPlanAbilityTier(e, payer, u.ID, alt.Ma)
 		switch tier {
 		case TierNormal:
-			if !e.Eval().ManaStatic(alt.Ma).TapOnly {
+			if !e.Eval().ManaStaticFor(payer, u.ID, alt.Ma).TapOnly {
 				continue
 			}
 		case TierLastResort:

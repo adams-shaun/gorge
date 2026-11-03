@@ -12,7 +12,8 @@ import (
 )
 
 // The lockstep: RememberMoved$ on Surveil (Enlightened
-// Confidant, Chandra, Chill of Compliance), RememberDrawn$ on Draw (Trade
+// Confidant, Chandra, Chill of Compliance), RememberKept$ on Surveil (Starving
+// Revenant), RememberDrawn$ on Draw (Trade
 // Route Envoy) and RememberSacrificed$ on SacrificeAll (Bringer of the Last
 // Gift). Deck A is a black-green ramp deck (Bringer, Envoy, mana creatures
 // and rocks, counter sources), deck B a white-blue lifegain deck with
@@ -24,7 +25,7 @@ var kremw3Decks = [2][]cardset.Entry{
 		{Name: "Bringer of the Last Gift", Count: 4}, {Name: "Trade Route Envoy", Count: 4},
 		{Name: "Llanowar Elves", Count: 3}, {Name: "Elvish Mystic", Count: 3}, {Name: "Mind Stone", Count: 2},
 		{Name: "Sol Ring", Count: 1}, {Name: "Knight of Wundagore", Count: 4},
-		{Name: "Ambush Viper", Count: 3}, {Name: "Giant Growth", Count: 2},
+		{Name: "Starving Revenant", Count: 3}, {Name: "Giant Growth", Count: 2},
 		{Name: "Forest", Count: 9}, {Name: "Swamp", Count: 5},
 	},
 	{
@@ -40,6 +41,7 @@ var kremw3Decks = [2][]cardset.Entry{
 type kremw3Counts struct {
 	games                int
 	surveilRem, returned int
+	keptRem              int // Starving Revenant's surveils that kept a card on top
 	envoyETB, envoyCtr   int
 	bringerSweep, sacked int
 	chandraRestr         int // Chandra's restricted {U} units added
@@ -65,6 +67,9 @@ func kremw3Scan(g *GorgeSide, c *kremw3Counts) {
 	for _, ev := range g.E.L.Events {
 		switch ev.Kind {
 		case events.Choose:
+			if ev.Counter == "remembered" && name(ev.Obj) == "Starving Revenant" {
+				c.keptRem++
+			}
 			if ev.Counter == "remembered" && name(ev.Obj) == "Enlightened Confidant" {
 				c.surveilRem++
 				for _, id := range ev.IDs {
@@ -177,10 +182,13 @@ func kremw3Run(t *testing.T, seeds uint64, mutant bool) (c kremw3Counts, diverge
 func TestRememberWritesLockstep(t *testing.T) {
 	t.Parallel()
 	c, _, stalls := kremw3Run(t, 400, false)
-	t.Logf("%d games: %d surveils remembered a card, %d returned to hand; Trade Route Envoy %d ETBs (%d drew, %d counter); Bringer %d sweeps sacrificing %d permanents; Chandra %d restricted {U}; kernel stalls %v",
-		c.games, c.surveilRem, c.returned, c.envoyETB, c.envoyETB-c.envoyCtr, c.envoyCtr, c.bringerSweep, c.sacked, c.chandraRestr, stalls)
+	t.Logf("%d games: %d surveils remembered a card, %d returned to hand, Starving Revenant kept a card %d times; Trade Route Envoy %d ETBs (%d drew, %d counter); Bringer %d sweeps sacrificing %d permanents; Chandra %d restricted {U}; kernel stalls %v",
+		c.games, c.surveilRem, c.returned, c.keptRem, c.envoyETB, c.envoyETB-c.envoyCtr, c.envoyCtr, c.bringerSweep, c.sacked, c.chandraRestr, stalls)
 	if c.surveilRem < 10 {
 		t.Errorf("%d surveils remembered a card, want at least 10", c.surveilRem)
+	}
+	if c.keptRem < 5 {
+		t.Errorf("%d Starving Revenant surveils kept a card, want at least 5", c.keptRem)
 	}
 	if c.returned < 5 {
 		t.Errorf("%d remembered cards returned, want at least 5", c.returned)

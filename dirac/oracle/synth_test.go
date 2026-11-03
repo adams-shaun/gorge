@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"encoding/json"
-	"maps"
 	"math/bits"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 )
 
 // synthReg is the corpus for a synth test, skipping as the tables do when there is none.
@@ -126,9 +126,9 @@ func (r refusing) Status(i int) cardset.Status {
 	return r.Set.Status(i)
 }
 
-// TestRefusalMovesNoDeal: refusing a card leaves every pair of its pool the same two
-// decks and the same seed, or a refused entry's repro would name a different game and
-// a test pinning a pair would break with the list.
+// TestRefusalMovesNoDeal: a set that plays the refused cards (the run that settles the
+// list, and every test pinning a pair) deals the same decks whatever the list says, or a
+// refused entry's repro would name a different game.
 func TestRefusalMovesNoDeal(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-dsk")
@@ -140,10 +140,6 @@ func TestRefusalMovesNoDeal(t *testing.T) {
 		return pool, files
 	}
 	pool, files := dealt(set)
-	// A set turning refused cards away deals the same decks as one playing them.
-	if _, f := dealt(cardset.AllowUnverified(set)); !maps.EqualFunc(files, f, func(a, b deck.File) bool { return slices.Equal(a.Cards, b.Cards) }) {
-		t.Fatal("a view of the table dealt other decks")
-	}
 	refused := 0
 	for i, n := range set.Names()[:set.NumCards()] {
 		if set.Status(i) == cardset.StatusNotLowered || cardset.IsSynthBasic(n) || set.Status(i) == cardset.StatusRefused {
@@ -169,6 +165,51 @@ func TestRefusalMovesNoDeal(t *testing.T) {
 		}
 	}
 	t.Fatal("std-dsk has no card to refuse")
+}
+
+// TestSynthDealsNoRefusedCard: a set that turns refused cards away deals none of them, so
+// no pair of the evidence run is lost to one, and still deals every other lowered card,
+// unverified ones included.
+func TestSynthDealsNoRefusedCard(t *testing.T) {
+	reg := synthReg(t)
+	for _, name := range []string{"std-tla", "std-dsk"} {
+		set := cardsettest.Synth(t, name)
+		view := cardset.AllowUnverified(set)
+		pool, files, err := SynthPool(reg, view, EvidenceSeed, SynthDecks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		held := map[string]int{}
+		for _, d := range pool {
+			for _, e := range files[d.Name].Cards {
+				held[e.Name]++
+			}
+		}
+		refused := 0
+		for i, n := range view.Names()[:view.NumCards()] {
+			switch st := view.Status(i); {
+			case st == cardset.StatusRefused:
+				refused++
+				if held[n] != 0 {
+					t.Errorf("%s: refused %q was dealt into %d decks", name, n, held[n])
+				}
+			case st == cardset.StatusUnverified && kindOf(mustLookup(t, reg, n)) != synthUndealable && held[n] == 0:
+				t.Errorf("%s: unverified %q was dealt into no deck", name, n)
+			}
+		}
+		if refused == 0 {
+			t.Errorf("%s has no refused card to leave out", name)
+		}
+	}
+}
+
+func mustLookup(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("%q is not in the corpus", name)
+	}
+	return c
 }
 
 func TestSynthDecksAre40(t *testing.T) {
@@ -427,15 +468,42 @@ func TestEachPlayerDiscardMovesTogether(t *testing.T) {
 }
 
 // TestWaterbendAskRequiresTheTapsThePaymentNeeds: Done waits for the taps the mana
-// window can't do without (CR 601.2h, 701.67a).
+// window can't do without (CR 601.2h, 701.67a). The pairs are ones that diverge when
+// the ask offers Done at once, so each carries the case.
 func TestWaterbendAskRequiresTheTapsThePaymentNeeds(t *testing.T) {
-	synthPairs(t, "std-tla", []int{1, 10, 11, 12}, nil)
+	waterbendPairs(t, "std-tla", []int{1, 2, 3, 4})
 }
 
 // TestWaterbendIncompleteCensusKeepsTheOpenAsk: with a restricted mana source the
 // census doesn't price, the ask requires nothing and the target ask keeps its offer.
+// The pairs are ones that diverge when the census is taken as complete.
 func TestWaterbendIncompleteCensusKeepsTheOpenAsk(t *testing.T) {
-	synthPairs(t, "std-tla", []int{20, 145, 298}, nil)
+	waterbendPairs(t, "std-tla", []int{42, 116, 214, 681})
+}
+
+// waterbendPairs is synthPairs requiring a waterbend ask in each game: a pair is
+// two decks dealt from the lowered list, so a card lowered later moves what a pair
+// holds, and a pin whose pair no longer waterbends would pass having tested nothing.
+func waterbendPairs(t *testing.T, name string, pairs []int) {
+	t.Helper()
+	asks := 0
+	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+		if d := ref.Pending(); d != nil {
+			for _, o := range d.Options {
+				if strings.HasPrefix(o.Kind, "waterbend") {
+					asks++
+					break
+				}
+			}
+		}
+		return nil
+	}}
+	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
+		if asks == 0 {
+			t.Errorf("pair %d of %s poses no waterbend ask: the pin tests nothing", pair, name)
+		}
+		asks = 0
+	})
 }
 
 // TestAbilityPlanLeavesOutCommittedPermanents: the settled cost's plan is made
@@ -454,39 +522,72 @@ func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
 // TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
 // the library in the order the shuffle reads (CR 701.24).
 func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{7, 206, 298}, nil)
+	synthPairsReaching(t, "std-dsk", Config{GorgeAutopaySurface: true}, []int{7, 9, 19}, cardOut("Floodpits Drowner"))
 }
 
 // TestOverrideValueKeepsItsCountedSubtype: PuPu UFO's "base power becomes the number
 // of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
 // matchup's table keeps it.
 func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	synthPairs(t, "std-fin", []int{0, 2, 6, 14}, nil)
+	synthPairsReaching(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 14, 0}, onBattlefield("PuPu UFO"))
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
 // its source offered in the window whatever is being paid for (CR 106.6, 601.2g).
 func TestRestrictedSourceStaysInTheManualWindow(t *testing.T) {
-	synthPairs(t, "std-ecl", []int{40, 111, 125}, nil)
+	synthPairsReaching(t, "std-ecl", Config{GorgeAutopaySurface: true}, []int{125, 93, 194}, madeRestrictedMana)
 }
 
 // TestPowerUpOfferCountsRestrictedSources: the sources a power-up's printed cost is
 // priced against include a restricted one its activation may spend (CR 106.6, 702.193b).
 func TestPowerUpOfferCountsRestrictedSources(t *testing.T) {
-	synthPairs(t, "std-msh", []int{79, 109}, nil)
+	restrictedPowerUpPairs(t, "std-msh", []int{11, 88, 98, 112})
+}
+
+// restrictedPowerUpPairs is synthPairs requiring that each game activates a power-up
+// after restricted mana has been made: a pair is two decks dealt from the lowered list,
+// so a card lowered later moves what a pair holds, and a pin whose pair no longer
+// has both would pass having tested nothing.
+func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
+	t.Helper()
+	seen, hits, armed := 0, 0, false
+	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+		evs := ref.E.L.Events
+		for ; seen < len(evs); seen++ {
+			ev := &evs[seen]
+			switch ev.Kind {
+			case events.ManaAdd:
+				if ev.Amount > 0 && strings.HasPrefix(ev.Text, "mana-restriction:") {
+					armed = true
+				}
+			case events.AbilityPush:
+				if o := ref.E.G.Obj(ev.Obj); armed && o != nil && o.Face() != nil && int(ev.Amount) < len(o.Face().Abilities) &&
+					o.Face().Abilities[ev.Amount].Params["PowerUp"] == "True" {
+					hits++
+				}
+			}
+		}
+		return nil
+	}}
+	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
+		if hits == 0 {
+			t.Errorf("pair %d of %s activates no power-up beside restricted mana: the pin tests nothing", pair, name)
+		}
+		seen, hits, armed = 0, 0, false
+	})
 }
 
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
 // work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
 func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	synthPairs(t, "std-dft", []int{127, 443}, nil)
-	synthPairs(t, "std-msh", []int{7, 415}, nil)
+	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{17, 74}, madeRestrictedMana)
+	synthPairsReaching(t, "std-msh", Config{GorgeAutopaySurface: true}, []int{4, 11, 22}, madeRestrictedMana)
 }
 
 // TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
 // power to each of two other targets, not the first alone (CR 120.3, 608.2b).
 func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	synthPairs(t, "std-otj", []int{11, 32, 61, 226}, nil)
+	synthPairsReaching(t, "std-otj", Config{GorgeAutopaySurface: true}, []int{1, 15, 3}, cardOut("Betrayal at the Vault"))
 }
 
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
@@ -508,13 +609,33 @@ func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
 // permanent with its entry counters, not the card that was cast (CR 608.2h; Prime
 // Speaker Zegana).
 func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
-	synthPairs(t, "std-fdn", []int{6, 482}, nil)
+	synthPairsReaching(t, "std-fdn", Config{GorgeAutopaySurface: true}, []int{6, 482}, onBattlefield("Prime Speaker Zegana"))
 }
 
 // TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an
 // untapped one whose mana this payment can't spend, leaves the census complete, so a
 // waterbend ask still takes the taps the payment needs (CR 106.6, 601.2g, 701.67a).
+// The pairs diverge when a tapped restricted source (42, 66, 109, 503) or one whose
+// mana the payment can't spend (60, 100, 116, 760) is counted, and each must pose a
+// waterbend ask.
 func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
-	synthPairs(t, "std-tla", []int{20, 96, 144, 145, 196, 217, 276, 298}, nil)
-	synthPairs(t, "std-ecl", []int{338}, nil)
+	waterbendPairs(t, "std-tla", []int{42, 66, 109, 503, 60, 100, 116, 760})
+}
+
+// TestGrantedManaTapFiresTapsTriggers: a creature tapped for a granted mana ability
+// (Great Divide Guide gives every Ally one) becomes tapped, so its "whenever this
+// becomes tapped" trigger (Master Pakku, Gran-Gran, Compassionate Healer) fires
+// whether the tap is in the script before the play or in the payment (CR 603.2,
+// 605.1b). The pairs diverge when a mana tap fires nothing.
+func TestGrantedManaTapFiresTapsTriggers(t *testing.T) {
+	stdReproLockstepReaching(t, "testdata/granted_mana_tap_fires_taps.repro.json", "std-tla", tapTriggerFromManaTap(""))
+}
+
+// TestScriptTriggerWithATargetIsPlacedBeforeThePlay: a Taps trigger with a target
+// that a script's mana tap causes (Master Pakku's mill) is answered by the script and
+// stands on the stack below the play it was a prefix to, as gorge answers each prefix
+// activation as its own decision (CR 603.3). The pairs diverge when it is left to be
+// placed above the play.
+func TestScriptTriggerWithATargetIsPlacedBeforeThePlay(t *testing.T) {
+	stdReproLockstepReaching(t, "testdata/granted_mana_tap_fires_taps.repro.json", "std-tla", tapTriggerFromManaTap("Master Pakku"))
 }

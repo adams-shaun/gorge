@@ -20,7 +20,7 @@ import "slices"
 
 const (
 	saFieldCount       = 14
-	triggerFieldCount  = 6
+	triggerFieldCount  = 9
 	staticFieldCount   = 5
 	replFieldCount     = 8
 	paramSetFieldCount = 6
@@ -116,6 +116,7 @@ func TriggerEqual(a, b *Trigger) bool {
 		return false
 	}
 	return a.Mode == b.Mode && a.mode == b.mode && a.modeBound == b.modeBound &&
+		a.offBFFor == b.offBFFor && a.offBF == b.offBF && a.offBFChanged == b.offBFChanged &&
 		StringMapEqual(a.Params, b.Params) && paramSetEqual(a.ps, b.ps) && SAEqual(a.Effect, b.Effect)
 }
 

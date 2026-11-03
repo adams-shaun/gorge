@@ -428,7 +428,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		miss := o == NoObj
 		if o != NoObj {
 			z := s.objs[o].zone
-			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o])
+			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o]) || s.instantStays(k, o, kop.Zone(in.C))
 		}
 		s.g.retMiss = miss
 		if kop.Zone(in.C) != kop.ZoneBattlefield || o == NoObj || k.cards[s.objs[o].card].types&kop.TAura == 0 {
@@ -451,11 +451,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpSearchEx, kop.OpChooseMove:
 		return s.startSearch(k, in), true
 	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
-		s.execChangeZoneAll(k, in)
+		return s.execChangeZoneAll(k, in, false), true
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
-		s.execDigUntil(k, in)
+		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
+		return s.execDigUntil(k, in, false), true
 	case kop.OpPeek:
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
@@ -464,6 +465,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			if in.C&kop.PeekMayReveal != 0 {
 				return s.peekMayReveal(k, in, p), true // act_peekreveal.go
+			}
+			if in.Obj == kop.RefEachPlayer {
+				// Defined$ Player: every player reveals, the resolving
+				// controller first, as gorge's definedPlayers walks AliveFrom.
+				first, second := s.eachPlayers(k, in.Obj)
+				s.peekPublic(k, in, first)
+				s.peekPublic(k, in, second)
+				break
 			}
 			s.peekPublic(k, in, p)
 			break
@@ -481,6 +490,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpGrantKeyword:
+		if o := s.objRefObj(in.Obj); o != NoObj && s.objs[o].zone == kop.ZoneStack {
+			s.grantSpellKw(o, kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)
+			return true, true
+		}
 		// a graveyard card gains flashback with its mana cost until end of
 		// turn (Sphinx of Forgotten Lore); a permanent's grant is the core's
 		if kop.KwMask(uint16(in.B.N))<<16&kop.KwFlashbackOwnCost == 0 {
@@ -629,6 +642,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
 		}
+		if in.B.N == kop.OvEnterWith {
+			break // applied as the return entered (execReturnObj)
+		}
 		o := s.objRefObj(in.Obj)
 		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
 			break
@@ -725,7 +741,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.touch(o)
 			p := &s.perms[s.objs[o].slot]
-			amt := s.value(k, in.A)
+			amt := s.enterCountValue(k, in.A, s.objs[o].slot, p.ctrl)
 			if k.gen.anyEntryMerge && s.entryAcc(int(in.C), amt) {
 				break // ctr_entryperkind.go: joins the entry's one put of this kind
 			}
@@ -1007,8 +1023,16 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
-	hr := s.holdOpen(k)
+	var hr holdRec
+	if in.Op == kop.OpReturn && kop.Zone(in.C) == kop.ZoneBattlefield || in.Op == kop.OpReturnEx && kop.Zone(in.C&7) == kop.ZoneBattlefield {
+		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
+	} else {
+		hr = s.holdOpen(k)
+	}
 	defer s.holdClose(k, hr)
+	if s.leaveTogether(k, in, i) {
+		return
+	}
 	s.g.inLoop = true
 	s.exec(k, in)
 	for j := 0; j < int(s.xtOf(e).n); j++ {
@@ -1203,20 +1227,23 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 	}
 	if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield {
 		sl := s.objs[code].slot
+		lethal := 0
 		if in.C&kop.DmgTrackExcess != 0 {
-			lethal := s.excessLethalGen(k, sl)
+			lethal = s.excessLethalGen(k, sl)
 			if lethal < 0 || DebugExcessNoLethal {
 				lethal = 0
-			}
-			s.g.excess = int16(n - lethal)
-			if s.g.excess < 0 {
-				s.g.excess = 0
 			}
 		}
 		if in.C&kop.DmgExileIfDiesThisTurn != 0 && in.C&kop.DmgExileIfDealt == 0 {
 			s.markExileEx(k, sl)
 		}
-		if s.damageTo(k, code, n) > 0 {
+		dealt := s.damageTo(k, code, n)
+		if in.C&kop.DmgTrackExcess != 0 {
+			// CR 120.10: the excess of the damage dealt, after prevention and
+			// replacement (Tomik's +1), over what was lethal before it landed
+			s.g.excess = int16(max(dealt-lethal, 0))
+		}
+		if dealt > 0 {
 			s.damageDealt(k, in, Obj(code)) // cast_mayplaylimit.go
 		}
 		return
@@ -1240,12 +1267,12 @@ func (s *State) markExileEx(k *prep, sl Slot) {
 	}
 }
 
-// dieZone is where a creature that dies goes (exile when an effect said so
+// dieZone is where a permanent that goes to the graveyard goes (exile when an effect said so
 // this turn); two or more competing replacements stall (StallReplLeave) unless
 // a parked move's ask has settled them (repl_exilemark.go).
 func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
-	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 && s.isCreature(k, sl) {
-		// CR 122.1: a creature with a finality counter is exiled instead,
+	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 {
+		// CR 122.1h: a permanent with a finality counter is exiled instead,
 		// a game rule gorge applies at the move boundary before the
 		// replacements (finalityReplacementApplies)
 		return kop.ZoneExile
@@ -1254,8 +1281,10 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
 		exileN = s.exileOnLeaveN(k, sl)
 	}
-	exileEx := s.mSl(k, mechExileEx, sl) && s.isCreature(k, sl)
-	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 &&
+	// a mark lasts whatever the object is by then: a planeswalker with no
+	// loyalty dies too (CR 700.4; gorge registerReplaceDying matches any object)
+	exileEx := s.mSl(k, mechExileEx, sl)
+	graveLib := k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && !s.genLost(k, sl) &&
 		s.graveRedirect(k, s.perms[sl].card, kop.ZoneGraveyard) == kop.ZoneLibrary
 	// Each matching replacement is a separate CR 616.1 effect. Gorge asks
 	// the affected player to order them when two or more apply, even when
@@ -1303,11 +1332,12 @@ func (s *State) auraEntry(k *prep, o Obj, ctrl uint8) (host Slot, ask, stay bool
 	return NoSlot, true, false
 }
 
-// returnAura is the core's OpReturn of an Aura card to the battlefield under the
-// resolving entry's controller (auraEntry); host != NoSlot is the answered
-// enchant ask. It reports whether the ask is posed.
+// returnAura is the core's OpReturn of an Aura card to the battlefield under its
+// owner's control, as execReturnSimple enters any plain return (auraEntry: the
+// owner is who chooses what it enchants, CR 303.4f); host != NoSlot is the
+// answered enchant ask. It reports whether the ask is posed.
 func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
-	ctrl := s.res.e.ctrl
+	ctrl := s.objs[o].owner()
 	if host == NoSlot {
 		var ask, stay bool
 		if host, ask, stay = s.auraEntry(k, o, ctrl); ask || stay {
@@ -1319,14 +1349,13 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 		s.countMayPlayLand(k, o, from)
 	}
 	var sl Slot
+	s.enterOnto(host)
 	if from == kop.ZoneGraveyard {
 		sl = s.enterFromGrave(k, o, ctrl, false)
 	} else {
 		sl = s.enter(k, o, ctrl, false, from)
 	}
-	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
-	}
+	s.attachedTo(k, sl, host)
 	return false
 }
 
@@ -1351,7 +1380,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) {
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C)) {
 		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
@@ -1406,7 +1435,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 			return ask
 		}
 	}
-	if z == kop.ZoneBattlefield && s.cloneReturnPark(k, in, o, ctrl) {
+	if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
 		return true // the clone election is asked with the card still in its zone (copy_cloneenter.go)
 	}
 	if z == kop.ZoneBattlefield && host == NoSlot && fl&kop.MvTransformed == 0 && s.entryParkOp(k, in, o, ctrl) {
@@ -1434,16 +1463,17 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	var sl Slot
 	switch {
+	case s.enterWithOverride(k, in):
+		sl = s.enterAssimilated(k, o, ctrl, from)
 	case s.g.retAt != 0:
 		sl = s.enterNF(k, o, ctrl, fl&kop.MvTapped != 0, from, 0)
 		if from == kop.ZoneGraveyard {
 			s.fireLeavesGraveyardSelf(k, sl, o)
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
-	case from == kop.ZoneGraveyard:
-		sl = s.enterFromGrave(k, o, ctrl, fl&kop.MvTapped != 0)
 	default:
-		sl = s.enter(k, o, ctrl, fl&kop.MvTapped != 0, from)
+		s.enterOnto(host)
+		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
 	}
 	s.g.enterCtr.n = 0
 	s.g.retMiss = false
@@ -1451,18 +1481,30 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.enterAttacking(k, sl, ctrl)
 	}
 	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
+		s.attachedTo(k, sl, host)
 	} else if host == NoSlot && in.B.N&kop.RetAttachTo != 0 && in.F != 0 {
 		return s.czBearerAfter(k, in, o) // an Equipment's filter bearer is asked after it enters (tgt_attachedto.go)
 	}
 	return false
 }
 
-func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
+// execChangeZoneAll moves the instruction's cards; false when it suspends at a card's
+// as-enters ask, with that card and the later ones still in their zones and the batch and
+// its held enters checks open (gorge's zone batch). resume runs it again from the answer:
+// the cards already moved have left what it walks.
+func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
 	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // one graveyard-leave batch
+		old := s.batchOpen() // one graveyard-leave batch
+		if resume {
+			old &^= batchOpenMask
+		}
+		defer func() {
+			if done {
+				s.batchClose(old)
+			}
+		}()
 	}
 	z := kop.Zone(in.C & 7)
 	mv := int16(0)
@@ -1471,13 +1513,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 	}
 	if mv&kop.MvForgetOther != 0 || z == kop.ZoneExile && in.B.N&kop.CzUntilLeaves != 0 {
 		s.czall3(k, in, mv, z) // zone_changezoneall.go
-		return
+		return true
 	}
 	only := uint8(255)
 	if in.Obj != kop.RefNone {
 		only = s.playerRef(k, in.Obj)
 		if only == 255 {
-			return
+			return true
 		}
 	}
 	src := s.objRef(k, kop.RefSelf)
@@ -1494,10 +1536,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 		// one departure batch)
 		if mv&kop.MvRemember != 0 {
 			s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
-			return
+			return true
 		}
 		s.leaveAll(k, hit, z)
-		return
+		return true
 	}
 	// cards in a zone of each player, seat 0 first (gorge
 	// changeZoneAllPlayers: AliveFrom(0), not APNAP); a sweep onto the
@@ -1507,6 +1549,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 	// every player's Exile (gorge effChangeZoneAll's `for _, z := range from`
 	// outer loop) -- not one player's two zones.
 	var eb entBatch
+	stamp := s.ts
 	var rid sweepRiders // MvEntryRiders (zone_sweepriders.go)
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
@@ -1556,7 +1599,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 			nl := 0 // library-bound cards, compacted into list[:nl]
 			for i := 0; i < n; i++ {
 				o := list[i]
-				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) {
+				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
 					continue
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
@@ -1564,7 +1607,35 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 					// capacity, a draw like the token makers' (enter panics)
 					s.fireEntries(k, &eb)
 					s.stall(StallBoard)
-					return
+					return true
+				}
+				ctrl := p
+				if mv&kop.MvUnderYourControl != 0 {
+					ctrl = e.ctrl
+				}
+				// CR 303.4f/g, in gorge's move order (Forge's per-card moveTo): an
+				// Aura card enters attached to the one host it can enchant, waits
+				// for its controller's pick among two or more with the cards
+				// before it already entered, and stays where it is with none
+				host := NoSlot
+				if z == kop.ZoneBattlefield && k.gen != nil {
+					if s.digAuraStays(k, o, ctrl) {
+						continue
+					}
+					if host = s.digAuraHost(k, o, ctrl); host == NoSlot && s.digAuraPark(k, o, ctrl) {
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
+					}
+				}
+				if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
+					if !resume {
+						s.g.held, s.g.retTS = 0, stamp
+					}
+					s.holdBatch(&eb)
+					return false
 				}
 				from := s.detach(o)
 				if mv&kop.MvRemember != 0 {
@@ -1574,14 +1645,16 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 					s.countMayPlayLand(k, o, from)
 				}
 				if z == kop.ZoneBattlefield {
-					ctrl := p
-					if mv&kop.MvUnderYourControl != 0 {
-						ctrl = e.ctrl
-					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.armEntryCounters(&rid)
 					}
 					sl := s.enterHeld(k, &eb, o, ctrl, mv&kop.MvTapped != 0, from)
+					if s.g.pre.obj == o {
+						s.g.pre = preAsk{}
+					}
+					if host != NoSlot && s.occ.has(host) {
+						s.attachTo(k, sl, host)
+					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
 						s.entryOverride(k, &rid, sl)
@@ -1589,6 +1662,16 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 					}
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
+					}
+					if s.parkTail(k, tailSearchEnter) {
+						// the entered card queued an as-enters ask (a shock land's
+						// pay-life election): gorge suspends the sweep there, the
+						// cards after it stay where they were until it is answered
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
 					}
 				} else if z == kop.ZoneLibrary {
 					list[nl] = o // placed below, in gorge's order
@@ -1603,28 +1686,44 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr) {
 			}
 		}
 	}
+	if resume {
+		s.holdBatch(&eb)
+		s.fireHeld(k, s.g.retTS)
+		return true
+	}
 	s.fireEntries(k, &eb)
+	return true
 }
 
-func (s *State) execDigUntil(k *prep, in *kop.Instr) {
+// execDigUntil reveals until in.A cards match and moves them and the rest; false when
+// it suspends at a found card's as-enters ask. resume re-runs it from that ask: the
+// walk stopped at s.g.pickP with s.g.pickLeft found cards still to enter over s.g.nlook
+// revealed ones. A card found for the battlefield enters while it and the revealed
+// cards are still in the library, each ask answered in turn, and the rest move after
+// the last answer (gorge effDigUntil's emit order, Forge DigUntilEffect).
+func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 	first, second := s.eachPlayers(k, in.Obj)
 	for _, p := range [2]uint8{first, second} {
-		if p == 255 {
+		if p == 255 || resume && p != s.g.pickP {
 			continue
 		}
+		resumed := resume
+		resume = false
 		pl := &s.pl[p]
 		want := s.value(k, in.A)
+		scan := MaxDeck
+		if resumed {
+			want = int(s.g.pickLeft)
+			scan = want + int(s.g.nlook)
+		}
 		found := 0
 		var rev [MaxDeck]Obj
 		nr := 0
 		var fnd [MaxDeck]Obj
 		nf := 0
-		for found < want && pl.libLo < pl.libHi {
-			o := pl.lib[pl.libLo]
-			pl.libLo++
-			s.touch(o)
-			s.objs[o].zone = kop.ZoneNone
-			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && nf < len(fnd) {
+		for i := 0; (found < want || resumed) && i < scan && int(pl.libLo)+i < int(pl.libHi); i++ {
+			o := pl.lib[int(pl.libLo)+i]
+			if found < want && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, NoObj) && nf < len(fnd) {
 				fnd[nf] = o
 				nf++
 				found++
@@ -1636,11 +1735,17 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 		fl := in.C >> 3
 		fz := kop.Zone(in.C & 7)
 		rz := kop.Zone(fl & 7)
-		if fl&kop.DuRememberFound != 0 {
-			s.digUntilRemember(p == first, fnd[:nf])
+		entering := fz == kop.ZoneBattlefield && fl&kop.DuFoundWithRevealed == 0
+		if !entering {
+			s.digPop(pl, nr+nf, rev[:nr], fnd[:nf])
 		}
-		if fl&kop.DuDugMark != 0 {
-			s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)
+		if !resumed {
+			if fl&kop.DuRememberFound != 0 {
+				s.digUntilRemember(p == first, fnd[:nf])
+			}
+			if fl&kop.DuDugMark != 0 {
+				s.g.digLo = pl.exileN // the dug cards start here (act_discoverbottom.go)
+			}
 		}
 		if fl&kop.DuFoundWithRevealed != 0 {
 			for i := 0; i < nf; i++ {
@@ -1650,13 +1755,27 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 			nf = 0
 		}
 		for i := 0; i < nf; i++ {
-			if fz == kop.ZoneBattlefield {
+			if entering {
+				s.g.pickP, s.g.nlook, s.g.pickLeft = p, uint8(nr), uint8(nf-i)
+				if s.cloneReturnPark(k, fnd[i], p) {
+					return false
+				}
 				if !s.digEnter(k, p, fnd[i], fl&kop.DuFoundTapped != 0, fl&kop.DuFoundAttacking != 0) {
-					return
+					return true
+				}
+				if s.g.pre.obj == fnd[i] {
+					s.g.pre = preAsk{}
+				}
+				s.g.pickLeft--
+				if s.parkTail(k, tailDigUntil) {
+					return false
 				}
 				continue
 			}
 			s.digMove(k, p, fnd[i], fz, fnd[i+1:nf], rev[:nr])
+		}
+		if entering {
+			s.digPop(pl, nr, rev[:nr], nil)
 		}
 		if fl&kop.DuRandomOrder != 0 {
 			// gorge's DigUntil: a forward Fisher-Yates drawing once per
@@ -1680,6 +1799,20 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr) {
 			}
 		}
 	}
+	return true
+}
+
+// digPop takes the n cards off the top of pl's library into no zone: a and b.
+func (s *State) digPop(pl *player, n int, a, b []Obj) {
+	for _, o := range a {
+		s.touch(o)
+		s.objs[o].zone = kop.ZoneNone
+	}
+	for _, o := range b {
+		s.touch(o)
+		s.objs[o].zone = kop.ZoneNone
+	}
+	pl.libLo += uint8(n)
 }
 
 // execCopyToken creates the instruction's token copies. A copy of an Aura
@@ -1698,8 +1831,14 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
-	n := s.replTokens(k, e.ctrl, c, s.value(k, in.A))
-	return s.copyTokens(k, in, c, n)
+	v := s.value(k, in.A)
+	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
+		// created all the same (CR 603.7): it goes on the stack at the end
+		// step and does nothing (gorge scheduleAtEOTNone)
+		s.delayEmpty(e)
+	}
+	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's
@@ -1714,11 +1853,15 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 			}
 			t := s.newToken(c, e.ctrl)
 			s.objs[t].of |= ofCopy
-			s.copyTokenEnter(k, in, t, NoSlot)
+			s.copyTokenEnter(k, in, t, NoSlot, nil)
 		}
 		return false
 	}
 	aura := k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject
+	// one resolution's copies enter together (gorge effCopyPermanent's zone
+	// batch, CR 603.6a): each one's "another enters" sees the others
+	var eb entBatch
+	defer s.fireEntries(k, &eb)
 	for i := 0; i < n; i++ {
 		if s.nearCapacity() {
 			s.stall(StallBoard)
@@ -1759,24 +1902,24 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 		}
 		t := s.newToken(c, e.ctrl)
 		s.objs[t].of |= ofCopy
-		s.copyTokenEnter(k, in, t, host)
+		s.copyTokenEnter(k, in, t, host, &eb)
 	}
 	return false
 }
 
 // copyTokenEnter puts copy token t onto the battlefield, attached to host
 // when it is an Aura's.
-func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot) {
+func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot, eb *entBatch) {
 	tmpl := NoSlot
 	if src := s.objRefObj(in.Obj); src != NoObj && s.objs[src].zone == kop.ZoneBattlefield {
 		tmpl = s.objs[src].slot
 	}
-	s.copyTokenEnterFrom(k, in, t, host, tmpl)
+	s.copyTokenEnterFrom(k, in, t, host, tmpl, eb)
 }
 
 // copyTokenEnterFrom is copyTokenEnter with the copied permanent's slot tmpl
-// (NoSlot: none on the battlefield) given.
-func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot) {
+// (NoSlot: none on the battlefield) given. eb, when not nil, holds its enters check.
+func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch) {
 	e := &s.res.e
 	fl := in.B.N & 0xff
 	face := uint8(0)
@@ -1809,11 +1952,14 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if !early && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl)) && !elected {
 		s.copyExcAdd(k, sl, tmpl, uint8(in.C))
 	}
-	if s.anyETB(k) {
-		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
-	}
 	if host != NoSlot && s.occ.has(host) {
-		s.attachTo(k, sl, host)
+		s.attachTo(k, sl, host) // a copy that enters attached is attached when its enters check looks (CR 303.4f, 603.6a)
+	}
+	if eb != nil && eb.n < len(eb.sl) {
+		eb.sl[eb.n], eb.o[eb.n] = sl, t
+		eb.n++
+	} else if s.anyETB(k) {
+		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
 	}
 	if in.B.N>>kop.CopyPumpShift != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
@@ -1874,8 +2020,8 @@ const NoSubtypeIdx = 254
 
 // damageBatch deals damage from the resolving entry's source to several
 // recipients as one simultaneous event (a Drakuseth damage map, damage
-// divided at targeting): lifelink gains the total once and the source's
-// damage triggers fire once with the total, as for combat damage.
+// divided at targeting): lifelink gains the total once, a DamageDealtOnce line
+// fires once with the total, and every other damage trigger fires per recipient.
 func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 	kw := s.srcKw(k)
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -1933,14 +2079,13 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
 	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamage(k, sl, int16(total), toPl, false, NoTarget)
+			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, NoTarget, &agg)
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
-			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, nil)
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, NoTarget, &agg)
 		}
-		if k.gen.anyDmgRef {
-			s.fireDamageRefs(k, codes, dn[:len(codes)]) // one event per recipient for the lines that read the referent
-		}
+		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}
 }
 

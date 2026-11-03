@@ -327,6 +327,11 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			}
 		case "Suspected":
 			o.Suspected = e.Amount >= 1
+		case "Intensity":
+			// Alchemy's perpetual intensity: Amount is the signed increase.
+			// It rides the card across every zone change (Move never touches
+			// it), so no leaving-the-battlefield clear exists.
+			o.Intensity += e.Amount
 		case "Harnessed":
 			o.Harnessed = e.Amount >= 1
 		case "Prepared":

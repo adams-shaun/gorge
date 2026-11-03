@@ -37,7 +37,9 @@ import (
 // walks -- decision.SetPropAdmits/SetPropMerge for the set-property
 // constraints and Decision.GroupAdmits (the per-Group cap) for the group
 // marker -- so a prefix this file builds is a set the validator accepts --
-// one home for the legal-answer rule, not a parallel re-implementation.
+// one home for the legal-answer rule, not a parallel re-implementation. A set
+// they admit must also pass Decision.Validate itself, which is what keeps a
+// prefix inside a sum bound the ask carries too.
 
 // targetSetSentences renders d's set-level target constraints as the
 // presentation description of a target ask. Empty when the decision carries
@@ -207,10 +209,19 @@ func greedyPrefix(ordered []decision.Option, d *decision.Decision) []decision.Op
 			groups[o.Group]++
 		}
 	}
-	if len(chosen) < d.Min {
+	if len(chosen) < d.Min || !validPrefix(d, chosen) {
 		return nil
 	}
 	return chosen
+}
+
+// validPrefix reports whether Decision.Validate accepts chosen as the answer.
+func validPrefix(d *decision.Decision, chosen []decision.Option) bool {
+	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: make([]int, 0, len(chosen))}
+	for _, o := range chosen {
+		in.Choices = append(in.Choices, o.Index)
+	}
+	return d.Validate(in) == nil
 }
 
 // searchControllerPrefix tries searchLegalPrefix with each distinct
@@ -273,7 +284,7 @@ func searchLegalPrefix(opts []decision.Option, d *decision.Decision) []decision.
 	var walk func(start int, ctlSet bool, ctl state.PlayerID, acc []string, groups map[string]int) bool
 	walk = func(start int, ctlSet bool, ctl state.PlayerID, acc []string, groups map[string]int) bool {
 		if len(chosen) == d.Min {
-			return true
+			return validPrefix(d, chosen)
 		}
 		if budget <= 0 || len(chosen)+(len(opts)-start) < d.Min {
 			return false

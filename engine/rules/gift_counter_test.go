@@ -126,12 +126,14 @@ func TestGiftLongRiversPullDeclinedCountersOnlyACreatureSpell(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestGiftCopyCarriesNoPromise pins CR 702.168 against CR 707.10: a stack
-// COPY of a promised spell was never cast, so it inherits no promise. The
+// TestGiftCopyCarriesThePromise pins CR 702.174a against CR 707.10: the
+// promise is an additional cost, and a stack COPY of a promised spell copies
+// the additional costs paid, so it inherits the promise and its receiver. The
 // source object's promise is set through the real election event and then a
-// StackCopy is emitted; the minted copy must read PromisedGift false, so
-// Card.PromisedGift and Count$PromisedGift cannot act on a copied spell.
-func TestGiftCopyCarriesNoPromise(t *testing.T) {
+// StackCopy is emitted; the minted copy must read PromisedGift true, so
+// Card.PromisedGift and Count$PromisedGift act on a copied spell as Forge's
+// copySpellAbilityAndPossiblyHost makes them.
+func TestGiftCopyCarriesThePromise(t *testing.T) {
 	t.Parallel()
 	relic := card(t, lrpRelicSrc)
 	e, _ := tokenReplGame(t, 21, relic)
@@ -158,8 +160,8 @@ func TestGiftCopyCarriesNoPromise(t *testing.T) {
 		t.Fatal("precondition: no copy minted by StackCopy")
 	}
 	cp := e.G.Obj(copyID)
-	if cp.CastFlags&state.FlagPromisedGift != 0 || cp.GiftPromisedTo != 0 {
-		t.Fatalf("stack copy inherited the gift promise: flags=%s GiftPromisedTo=%d, want no promisedgift flag / 0",
+	if cp.CastFlags&state.FlagPromisedGift == 0 || cp.GiftPromisedTo != 1 {
+		t.Fatalf("stack copy lost the gift promise: flags=%s GiftPromisedTo=%d, want promisedgift / 1",
 			events.FlagsString(cp.CastFlags), cp.GiftPromisedTo)
 	}
 }

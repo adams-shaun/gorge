@@ -1,13 +1,13 @@
 {
   "card": "Rinoa Heartilly",
-  "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]",
+  "class": "projection-Life",
+  "why": "the engines' state differs at projection Life[]; Rinoa Heartilly is among the latest actions and Ice Magic is the card the divergence implicates",
   "repro": {
     "pool": "std-fin",
     "surface": "full",
     "seed": 1,
-    "pair": 563,
+    "pair": 801,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

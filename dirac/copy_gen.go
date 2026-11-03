@@ -50,6 +50,9 @@ func (s *State) FeatStackCopy(o Obj) bool {
 // execCopySpell runs OpCopySpell (stalling the game at capacity); false: a
 // copy's election is posed.
 func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
+	if s.res.e.ab == abStorm {
+		return s.copySpells(k, in, int(s.res.e.trigAmt)) // the count fixed when the cast trigger fired (kw_storm.go)
+	}
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 
@@ -127,8 +130,12 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}
+	ce.remVer = 0          // nor the keywords the spell gained (CR 707.2)
 	ce.prov, ce.spc = 0, 0 // nor cast from a zone, nor convoked, nor spent colours
-	ce.sid = 0             // nor its FINALITY riders: a spell's sid is the rider count (trig_mayplaystatic.go)
+	if ce.kind == seSpell {
+		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
+	}
+	ce.sid = 0 // nor its FINALITY riders: a spell's sid is the rider count (trig_mayplaystatic.go)
 	// nor was it sneaked (CR 707.10: gorge's FlagSneaked is a cast
 	// provenance flag): it enters as an ordinary permanent
 	if ce.trigPl == trigPlMayhem {

@@ -249,6 +249,43 @@ func uniqueChainViableCandidates(e *Engine, pc *pendingCast, links []*cards.SA, 
 		}
 		later = append(later, uniqueTargetSlot{cands: kept, need: min})
 	}
+	return uniqueViableAgainst(candidates, later, need)
+}
+
+// triggerUniqueChainViable is uniqueChainViableCandidates for a triggered
+// ability's placement (CR 603.3d, which takes the choices from CR 601.2c): the
+// same withholding, with the pools read from the ability on the stack. The
+// target of Itzquinth's "when you do" names a Dinosaur you control and "another
+// target creature"; with Itzquinth the only creature there is no legal choice,
+// so the ability leaves the stack without an ask.
+func (e *Engine) triggerUniqueChainViable(p state.PlayerID, id state.ObjID, links []*cards.SA, from int, chosen []state.Target, need int, candidates []targetCandidate) []targetCandidate {
+	if len(candidates) == 0 || from >= len(links) {
+		return candidates
+	}
+	var later []uniqueTargetSlot
+	for _, sub := range links[from:] {
+		if !effects.TargetUniqueRequested(sub) {
+			continue
+		}
+		min, _ := e.resolvedTargetBounds(p, id, sub, 0)
+		if min <= 0 {
+			continue
+		}
+		pool := e.legalTargetCandidates(p, id, id, sub)
+		kept := pool[:0]
+		for _, c := range pool {
+			if !targetCandidateIn(c, chosen) {
+				kept = append(kept, c)
+			}
+		}
+		later = append(later, uniqueTargetSlot{cands: kept, need: min})
+	}
+	return uniqueViableAgainst(candidates, later, need)
+}
+
+// uniqueViableAgainst keeps the candidates of an ask with mandatory minimum
+// need whose choice leaves the later slots a joint distinct assignment.
+func uniqueViableAgainst(candidates []targetCandidate, later []uniqueTargetSlot, need int) []targetCandidate {
 	if len(later) == 0 {
 		return candidates
 	}

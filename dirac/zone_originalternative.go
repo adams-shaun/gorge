@@ -149,7 +149,7 @@ func (s *State) applyAskCzAttach(k *prep, a Action) bool {
 		}
 		s.res.ask = raNone
 		s.g.lookSel |= altElected
-		if s.searchPick(k) && s.res.ask != raGenEnchant {
+		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
 	default:

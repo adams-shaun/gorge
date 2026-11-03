@@ -78,3 +78,24 @@ func TestDefinedSpecEquippedLastBearerOnlyOffBattlefield(t *testing.T) {
 		t.Fatalf("bearer-died battlefield Equipped = %v, %v; want the empty set", ts, ok)
 	}
 }
+
+// An Equipment detached by a state-based action while it stayed on the
+// battlefield (its bearer stopped being a creature) was attached to nothing when
+// it later left, so "equipped creature" names nothing (CR 608.2h) rather than
+// the bearer the earlier detach recorded.
+func TestDefinedSpecEquippedNotStaleAfterDetachThenLeave(t *testing.T) {
+	h := newHost(t, 2)
+	bear := h.g.AddObject(mkCard(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	equip := h.g.AddObject(mkCard(t, "Name:Splitter\nManaCost:1\nTypes:Artifact Equipment\nOracle:x\n"), 0)
+	h.g.Obj(bear.ID).Zone = state.ZBattlefield
+	h.g.Obj(equip.ID).Zone = state.ZBattlefield
+	h.g.SetZone(state.ZBattlefield, 0, []state.ObjID{bear.ID, equip.ID})
+	c := &Ctx{Source: equip.ID, Controller: 0}
+
+	h.Emit(events.Event{Kind: events.Attach, Obj: equip.ID, IDs: []state.ObjID{bear.ID}})
+	h.Emit(events.Event{Kind: events.Unattached, Obj: equip.ID, IDs: []state.ObjID{bear.ID}})
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: equip.ID, From: state.ZBattlefield, To: state.ZGraveyard})
+	if ts, ok := definedSpec(h, c, "Equipped"); !ok || len(ts) != 0 {
+		t.Fatalf("Equipped after leaving unattached = %v, %v; want nothing", ts, ok)
+	}
+}

@@ -243,6 +243,10 @@ type CardDef struct {
 	// count; 0 = not a Saga). The chapter abilities themselves are printed
 	// battlefield triggers on CtrLore, each gated at its chapter number.
 	SagaN uint8
+	// NoAbilities: the printed face has no ability of any kind, the card
+	// read of the NoAbilities filter word (W7NoAbilities; gorge
+	// FaceHasNoAbilities). Read off the battlefield only.
+	NoAbilities bool
 	// HasWarp is printed warp (CR 702.185a; no KwMask bit is free): the
 	// hand offers the warp cast (its warp cost in WarpCost), and a permanent
 	// spell cast that way is exiled at the beginning of the next end step
@@ -285,6 +289,10 @@ type CardDef struct {
 	// the card was discarded this turn (dirac/kw_mayhem.go). Never
 	// set with Flashback or Harmonize (kgen refuses them).
 	Mayhem bool
+	// BeamMeUp is printed beam me up: a graveyard cast for AltCost that also
+	// returns a creature you control to its owner's hand (FbCost), then exiles
+	// the spell (dirac/kw_beammeup.go).
+	BeamMeUp bool
 	// MorphCost is the turn-face-up cost of a printed Morph, Megamorph or
 	// Disguise keyword (CR 702.37e, 702.168c, 702.169b; zero with
 	// MorphFamily 0). MorphFamily says which (CardDef.Face*Family).

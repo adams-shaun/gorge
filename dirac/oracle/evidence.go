@@ -27,7 +27,7 @@ const (
 // seed, must start. A refused or unverified card takes every deck holding it out of the pool,
 // so the slice reads on past pairs the set turns away (PairingsPlayable); a pool too
 // short of decks to fill it fails, and lowering a floor is an edit a reviewer reads.
-var GateMinGames = map[string]int{"fdn": 1500, "blb": 1500}
+var GateMinGames = map[string]int{"fdn": 1500, "blb": 1500, "pauper": 1500}
 
 // SliceMinGames is the same floor on a committed slice, which holds SlicePairs pairs and
 // so has none to read on to: a clone with no pool plays what the refusals leave of them.

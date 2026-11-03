@@ -100,7 +100,9 @@ func (s *State) matchRemLKI(k *prep, f kop.FilterID, o Obj, ctx evalCtx) (m int,
 	if l == nil {
 		return 0, false
 	}
-	if s.matchCardGen(k, f, s.objs[o].card, l.ctrl, ctx.ctrl, o) {
+	// a token copy bounced to hand is still the permanent the capture
+	// describes (CR 608.2h, 111.8): it is read, not ceased, until the next check
+	if s.matchCardChain(k, f, s.objs[o].card, l.ctrl, ctx.ctrl, o, nil) {
 		return 1, true
 	}
 	return 0, true
@@ -178,9 +180,9 @@ func (s *State) pumpAllScoped(k *prep, in *kop.Instr) {
 		sl := m.first()
 		if s.isCreature(k, sl) && s.matchPerm(k, in.F, sl, e.ctrl, src) {
 			s.touchSl(sl)
-			p := &s.perms[sl]
-			p.eotP += int8(a)
-			p.eotT += int8(b)
+			if !s.eotAdd(k, sl, a, b) {
+				break
+			}
 			s.grantEOT(sl, kop.KwMask(uint16(in.C)))
 			s.promoKw(k, sl, kop.KwMask(uint16(in.C)))
 		}

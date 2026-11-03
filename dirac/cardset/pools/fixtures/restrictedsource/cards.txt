@@ -43,3 +43,6 @@ Giant Growth
 Divination
 Pacifism
 Mogg Fanatic
+Gallant Citizen
+Turtle Lair
+Slithering Cryptid

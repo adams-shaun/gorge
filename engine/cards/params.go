@@ -855,6 +855,9 @@ const (
 	PKBoon
 	PKBoonAmount
 	PKSameNameAsEach
+	// Play's AllowRepeats$: a chosen card stays a candidate for the next play.
+	PKAllowRepeats
+	PKRegeneration
 	paramKeyCount
 )
 
@@ -1660,6 +1663,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKReduceColor:                      "ReduceColor",
 	PKNoPrevention:                     "NoPrevention",
 	PKSameNameAsEach:                   "SameNameAsEach",
+	PKAllowRepeats:                     "AllowRepeats",
+	PKRegeneration:                     "Regeneration",
 }
 
 // String is the key's Forge text.
@@ -2045,6 +2050,7 @@ func (f *Face) deriveParamSets() {
 		t := &f.Triggers[i]
 		t.ps = newParamSet(t.Params)
 		t.mode, t.modeBound = TriggerModeOf(t.Mode), true
+		t.bindOffBattlefieldTarget()
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]

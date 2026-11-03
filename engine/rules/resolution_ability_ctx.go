@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"slices"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -40,6 +43,8 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 			svars = mf.SVars
 		} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
 			svars = mf.SVars
+		} else if pf := printedFaceOfActivated(src, o.Ability); pf != nil {
+			svars = pf.SVars
 		} else if sf := src.Face(); sf != nil {
 			svars = sf.SVars
 		}
@@ -48,6 +53,21 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 		svars = owned
 	}
 	return svars
+}
+
+// printedFaceOfActivated is the printed face owning sa for a source that became a
+// copy after sa was activated: the ability keeps its own text (CR 113.7a), and Forge
+// reads its SVars from the state it was created on (CardTraitBase.getSVar, read).
+func printedFaceOfActivated(src *state.Object, sa *cards.SA) *cards.Face {
+	if src.CopyFace == nil || src.Card == nil || sa == nil {
+		return nil
+	}
+	for _, f := range src.Card.Faces {
+		if f != nil && slices.Contains(f.Abilities, sa) {
+			return f
+		}
+	}
+	return nil
 }
 
 // bindNinjutsuDefender re-binds CR 702.49b's defender: a K:Ninjutsu

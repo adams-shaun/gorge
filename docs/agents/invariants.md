@@ -242,6 +242,14 @@ exactly the game the goldens pin. A legitimate behaviour change moves them:
   the branch (`go doc ./cmd/headdiff` has the reviewer recipe).
 - Only `legacyDeckNames` seat these games, so adding a deck file cannot move
   a head.
+- `TestSetHeads` (`engine/rules/setheads_test.go`) is the wider family under the
+  same rule: pinned two-seat games over decks from the Standard program's sets
+  (`testdata/setheads/games.txt` holds each game's seed and deck lists, so a
+  corpus bump never changes what a golden plays; `testdata/setheads/heads/<game>.txt`
+  holds one head per game). Re-pin with `GORGE_UPDATE_SETHEADS=1`; find the first
+  diverging event by diffing the `GORGE_DUMP_SETHEADS=<dir>` event files of the
+  base and the branch. The game list is chosen by `TestSetHeadsGenerate`
+  (`GORGE_GENERATE_SETHEADS=1`) and is not edited by hand.
 - Changing the default `bot` policy moves the heads. Its promotion regenerates
   them in the same merge.
 

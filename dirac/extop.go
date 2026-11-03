@@ -19,6 +19,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		// (cast_altfree.go applyAskStdmech)
 		s.res.ask, s.res.askP = raPrevColor, s.res.e.ctrl
 		return false, true
+	case kop.ExtPreventDamageScope:
+		s.prevScopeAdd(k, in) // repl_preventscope.go
+		return true, true
 	case kop.ExtEachDamage:
 		s.eachDamage(k, in)
 		return true, true
@@ -128,6 +131,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterAll:
 		s.counterAll(k) // act_stackrewrite.go
 		return true, true
+	case kop.ExtExchangeControl:
+		s.exchangeControl(k, in) // act_exchangecontrol.go
+		return true, true
 	case kop.ExtEnterUntapped:
 		// the entering permanent untaps: not OpUntap, whose
 		// stun substitution is wrong for an entrant (gorge effects/untap.go)
@@ -178,7 +184,7 @@ func (s *State) eachDamage(k *prep, in *kop.Instr) {
 			m++
 		}
 	}
-	s.dealHits(k, hs[:m])
+	s.dealHitsToOne(k, hs[:m])
 }
 
 // eachDamageSlots lists the battlefield permanents the resolving entry's

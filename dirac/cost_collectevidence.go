@@ -17,10 +17,9 @@ import (
 // after the targets and the division, before the payment): the build stage
 // bsEvidence asks the activator for any number of graveyard cards, AkDone
 // offered once the picked cards' total mana value reaches N (gorge refuses a
-// shorter answer and poses the ask again); all cards picked ends it. Gorge
-// offers the activation whatever the graveyard holds (pay.NonManaCastableP
-// reads no Evidence part): a graveyard that cannot reach N reverses the
-// activation at this stage (evidenceAsk's abortCast, CR 733.1). The picked
+// shorter answer and poses the ask again); all cards picked ends it. Both
+// engines offer the activation only while the graveyard's total mana value
+// reaches N (canActivate; gorge pay.EvidencePayable, CR 602.2b). The picked
 // cards are exiled with the other cost objects (payAbilityCosts).
 //
 // Trigger's own cost (gorge cumulative.go triggeredCostComponentsPayable,
@@ -57,19 +56,15 @@ type CostEvidenceStats struct {
 // counts the payments.
 var DebugCostEvidenceStats *CostEvidenceStats
 
-// prepCostEvidence sets anyCostEvid (some ability has an evidence cost) and
-// anyXBoundAb: gorge offers such an activation whatever the graveyard holds or
-// the X leaves, so a reversed one is held out like a card's second no-progress
-// abort (canActivate).
+// prepCostEvidence sets anyOptCost for a spell's evidence part and anyXBoundAb:
+// gorge offers such an activation whatever the X leaves, so a reversed one is
+// held out like a card's second no-progress abort (canActivate).
 func prepCostEvidence(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		if t.Cards[i].OptEvidence != 0 {
 			g.anyOptCost = true // a spell's evidence part is an OptionalCost part (cost_optionalevidence.go)
 		}
 		for j := range t.Cards[i].Abilities {
-			if t.Cards[i].Abilities[j].Evidence != 0 {
-				g.anyCostEvid = true
-			}
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbActivated {
 				for ti := 0; ti < int(a.NTargets); ti++ {
 					g.anyXBoundAb = g.anyXBoundAb || xBoundTarget(t, &a.Targets[ti])
@@ -204,19 +199,14 @@ func (s *State) exileEvidence() int {
 	return n
 }
 
-// evidenceStageOpts is buildStep's bsEvidence for an ability owing need: 0
-// the stage is passed, 1 the pick is posed in d, 2 the activation was
-// reversed (a graveyard that cannot reach need; gorge evidenceAsk's abort).
+// evidenceStageOpts is buildStep's bsEvidence for an ability or spell owing
+// need: it poses the pick in d. The offer already held a graveyard worth need
+// (canActivate, optCostOffer), and nothing between the offer and this stage
+// exiles from it.
 //
 //go:noinline
-func (s *State) evidenceStageOpts(k *prep, d *Decision, need int) int {
-	p := s.bld().e.ctrl
-	if s.g.evSel == 0 && s.graveTotalMV(k, p) < need {
-		s.reverseCast(k)
-		return 2
-	}
-	s.evidenceOptions(k, d, p, need)
-	return 1
+func (s *State) evidenceStageOpts(k *prep, d *Decision, need int) {
+	s.evidenceOptions(k, d, s.bld().e.ctrl, need)
 }
 
 // answerCostEvidence applies a bsEvidence answer: a pick, or Done.

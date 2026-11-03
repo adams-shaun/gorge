@@ -25,6 +25,19 @@ func foldEndTurn(g *state.Game, e *Event) {
 	resetCombat(g, 0)
 }
 
+// foldEndCombatPhase folds Kind EndCombatPhase into state: CR 724.2b exiles
+// every object on the stack (IDs is the effect's snapshot, the resolving
+// object included) and CR 724.2d removes every creature and planeswalker from
+// combat. The phase change itself is the engine's, through StepChange.
+func foldEndCombatPhase(g *state.Game, e *Event) {
+	for _, id := range e.IDs {
+		if o := g.Obj(id); o != nil && o.Zone == state.ZStack {
+			Move(g, id, state.ZStack, state.ZExile)
+		}
+	}
+	resetCombat(g, 0)
+}
+
 // foldSkipTurn folds Kind SkipTurn into state.
 func foldSkipTurn(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) && e.Amount != 0 {
@@ -49,7 +62,7 @@ func foldStepChange(g *state.Game, e *Event) {
 	// emptying them when it ends. A game with no combat-persistent mana
 	// (every game before this keyword, and every legacy deck) has all-zero
 	// tallies, so this fold is inert and its event stream is unchanged.
-	if g.Step == state.StepEndCombat && e.Step != state.StepEndCombat {
+	if (g.Step == state.StepEndCombat && e.Step != state.StepEndCombat) || (inCombatPhase(g.Step) && !inCombatPhase(e.Step)) {
 		for i := range g.Players {
 			p := &g.Players[i]
 			for j := range p.CombatMana {
@@ -172,6 +185,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 			g.Objs[i].WasDealtExcessDamageThisTurn = false
 			g.Objs[i].DamageReceivedThisTurn = 0
 			g.Objs[i].DamageDealtThisTurn = nil
+			g.Objs[i].DealtDamageThisTurnHere = false
 			g.Objs[i].DamageTakenThisTurnBy = nil
 			g.Objs[i].ActivatedThisTurn = 0
 			g.Objs[i].AttacksThisTurn = 0
@@ -465,4 +479,11 @@ func foldStartingPlayerChange(g *state.Game, e *Event) {
 	if validPlayer(g, e.Player) {
 		g.StartingPlayer, g.HasStartingPlayer = e.Player, true
 	}
+}
+
+// inCombatPhase reports whether s is one of the combat phase's steps. Mana
+// that lasts "until end of combat" expires on leaving the phase, which an
+// effect that ends the combat phase does from any of its steps (CR 724.2d).
+func inCombatPhase(s state.Step) bool {
+	return s >= state.StepBeginCombat && s <= state.StepEndCombat
 }

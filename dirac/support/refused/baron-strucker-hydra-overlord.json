@@ -1,13 +1,13 @@
 {
   "card": "Baron Strucker, HYDRA Overlord",
-  "class": "options",
-  "why": "the engines offer different options; 4 games in the corpus",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; Baron Strucker, HYDRA Overlord is among the latest actions and The Sentry, Golden Guardian is the card the divergence implicates",
   "repro": {
     "pool": "std-msh",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 1174,
+    "pair": 2427,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

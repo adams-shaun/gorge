@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -17,11 +18,16 @@ type ScriptPick struct {
 	Obj        state.ObjID
 	Label      string
 	ManaSymbol string
+	// Ability is the option's ability index: a source with several abilities
+	// of one label (Jasmine Dragon Tea Shop's restricted "any color" beside the
+	// one Great Divide Guide grants it) is told apart by it alone, and the
+	// replay must take the ability the search took.
+	Ability int
 }
 
 // Matches reports whether o is the picked option.
 func (k ScriptPick) Matches(o *decision.Option) bool {
-	return o.Kind == k.Kind && o.Obj == k.Obj && o.Label == k.Label && o.ManaSymbol == k.ManaSymbol
+	return o.Kind == k.Kind && o.Obj == k.Obj && o.Label == k.Label && o.ManaSymbol == k.ManaSymbol && o.Ability == k.Ability
 }
 
 // ScriptStep is one of the payer's answers along a PotentialPlan.Script: at
@@ -36,9 +42,14 @@ type ScriptStep struct {
 
 // potentialScriptPlays bounds the prefix searches one PotentialPaymentPlans
 // query runs, and potentialScriptNodes the clones one search makes: a play
-// beyond either stays unpriced (never a proof).
+// beyond either stays unpriced (never a proof). Both are stated limits, not
+// proofs of completeness: a query with more than sixteen plays the printed
+// sources cannot pay leaves the later ones census_incomplete, and so does a
+// search that needs more than 160 clones. (Four plays left a legal play
+// unoffered on boards with a gap source; sixteen was never reached in 1500
+// Standard games, at about 2% more clones than four.)
 const (
-	potentialScriptPlays = 4
+	potentialScriptPlays = 16
 	potentialScriptNodes = 160
 )
 
@@ -68,6 +79,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	sr.gaps, sr.gapsOnly, sr.funding, sr.printedOnly = gaps, true, funding, o.Kind == "ability"
+	sr.passes = true
 	script, found := sr.run(e)
 	return script, found && len(script) > 0
 }
@@ -145,6 +157,49 @@ func (sr *scriptSearch) ownTapSource(c *Engine, id state.ObjID) bool {
 	}
 	pa, ok := o.PileAbilityAt(sr.play.Ability)
 	return ok && pa.SA != nil && c.abilityCompiledCost(pa.SA).Cost.Tap
+}
+
+// tapsOwnSource reports whether answer in to the activation's ask taps the
+// source of the searched ability as the cost of the mana ability just
+// activated (Gene Pollinator's "tap an untapped permanent you control" chosen
+// as Nutrient Block): the play's own {T} is then unpayable, and the node
+// pricing, which does not read the tapped state, would still call it payable.
+func (sr *scriptSearch) tapsOwnSource(c *Engine, d *decision.Decision, in decision.Intent) bool {
+	for _, ch := range in.Choices {
+		for i := range d.Options {
+			if o := &d.Options[i]; o.Index == ch && o.Kind == "tapcost" && sr.ownTapSource(c, o.Obj) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// waitsForStack reports whether the searched play is sorcery-speed and the
+// path has left an object of its own on c's stack (Hemosymbic Mite's tap
+// trigger, from the tapped permanent Gene Pollinator's cost chose): the
+// planner prices the play, but it is not offered until that object resolves
+// (CR 307.1, 602.5d), so the line continues through a pass.
+func (sr *scriptSearch) waitsForStack(c *Engine) bool {
+	if len(c.G.Stack) <= sr.stack {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	if sr.play.Kind == "ability" {
+		pa, ok := o.PileAbilityAt(sr.play.Ability)
+		if !ok || pa.SA == nil {
+			return false
+		}
+		sa := pa.SA
+		return sa.ParamStr(cards.PKSorcerySpeed) == "True"
+	}
+	if sr.play.Kind == "cast" && sr.play.Mode == "" {
+		return !c.spellTimingOK(sr.p, sr.play.Obj, o.Face(), false)
+	}
+	return false
 }
 
 func (sr *scriptSearch) offered(o *decision.Option) bool {
@@ -231,6 +286,9 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 			sr.approx = true
 		}
 		for _, in := range answers {
+			if sr.tapsOwnSource(c, d, in) {
+				continue // the ask taps the play's own {T} cost source (CR 602.2b)
+			}
 			if sr.try(c, d, in, funded, gapUsed) {
 				return true
 			}
@@ -255,7 +313,7 @@ func (sr *scriptSearch) visit(c *Engine, funded int, gapUsed bool) bool {
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && sr.priced(c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && sr.priced(c) {
 		return true
 	}
 	// The uncovered sources first; then the others (under gapsOnly, while
@@ -319,7 +377,7 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 	for _, c := range in.Choices {
 		for i := range d.Options {
 			if o := &d.Options[i]; o.Index == c {
-				st.Picks = append(st.Picks, ScriptPick{Kind: o.Kind, Obj: o.Obj, Label: o.Label, ManaSymbol: o.ManaSymbol})
+				st.Picks = append(st.Picks, ScriptPick{Kind: o.Kind, Obj: o.Obj, Label: o.Label, ManaSymbol: o.ManaSymbol, Ability: o.Ability})
 				break
 			}
 		}
@@ -403,6 +461,12 @@ func (e *Engine) potentialWitnessReaches(p state.PlayerID, o decision.Option, pl
 // from pool's hypothetical-clone pool (pool is e, or the live engine whose
 // own hypothetical search made e).
 func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	return e.witnessReachesMode(pool, p, o, plan, false)
+}
+
+// witnessReachesMode is witnessReachesFrom, counting a game the witness's
+// own triggers end in p's favour as a reach when winOK.
+func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK bool) bool {
 	if e.Pending() == nil {
 		return false
 	}
@@ -434,6 +498,12 @@ func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.O
 				return false
 			}
 			d = c.Pending()
+		}
+		if winOK && c.G.Over && next == len(steps) && !c.G.Players[p].Lost {
+			// A trigger the paying sacrifice set off ended the game in p's
+			// favour: it waits for the cast to finish (CR 601.2i, 603.3b),
+			// so the play was payable.
+			return true
 		}
 		if d == nil || d.Player != p || c.G.Over || c.G.Turn != turn || c.G.Step != step {
 			return false

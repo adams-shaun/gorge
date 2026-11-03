@@ -223,7 +223,7 @@ func (p *sbtParityPol) prioCanon(c *PickCtx, gd *decision.Decision, k builtins.P
 			case "play_land":
 				return []Canon{Pack(ActPlayLand, ref(o.Obj), RefNone, 0)}
 			case "cast":
-				return []Canon{castOptCanon(ref(o.Obj), o.Mode, o.AltCostIndex)}
+				return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 			case "ability":
 				return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}
 			}

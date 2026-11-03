@@ -238,3 +238,25 @@ func TestCommandTowerNonCommanderGameStaysFailClosed(t *testing.T) {
 	}
 	_ = id
 }
+
+// TestColourIdentitySourceWithNoCommanderLeavesPaymentWindows: with no commander
+// the tap adds nothing (CR 903.4f, CR 106.5), so no payment window offers it.
+func TestColourIdentitySourceWithNoCommanderLeavesPaymentWindows(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	signet := corpusCommander(t, reg, "Arcane Signet")
+	e, _ := colourIdentityGame(t, 83, FormatConstructed, nil, nil, signet)
+	id := moveToBattlefieldByName(t, e, 0, "Arcane Signet")
+	if e.windowSourceYields(0, id) {
+		t.Error("windowSourceYields: the Signet yields nothing with no commander")
+	}
+	if e.paymentSourceUseful(&pendingCast{player: 0}, 0, id) {
+		t.Error("paymentSourceUseful: the Signet cannot help pay a cast")
+	}
+	d := wardManaDecision(e, &wardManaPayment{payer: 0, cost: Cost{Generic: 2}})
+	for _, o := range d.Options {
+		if o.Obj == id {
+			t.Errorf("ward window offers the Signet: %+v", o)
+		}
+	}
+}

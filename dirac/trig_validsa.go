@@ -39,8 +39,10 @@ func (s *State) castTargetsAny(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 	if debugValidSAMutate == 3 {
 		return false // test only: the target arm never matches
 	}
-	for i := 0; i < int(e.nt); i++ {
-		t := e.tgt[i]
+	var codes [kop.MaxTargets + maxXTgt]uint8 // a multi-object slot's extras too
+	n := s.chainTargets(e, &codes)
+	for i := 0; i < n; i++ {
+		t := codes[i]
 		if t >= PlayerTarget0 {
 			continue
 		}

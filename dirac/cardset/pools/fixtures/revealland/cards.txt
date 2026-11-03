@@ -1,0 +1,25 @@
+# the reveal lands' as-enters election pool:
+# the snarls and a tribal land with what they reveal, a changeling, and Growth Spiral
+# (a land from hand onto the battlefield, the mid-resolution election),
+# for the oracle's constructed lockstep (dirac/oracle/revealland_test.go)
+Changeling Outcast
+Choked Estuary
+Foreboding Ruins
+Forest
+Fortified Village
+Frostboil Snarl
+Furycalm Snarl
+Gilt-Leaf Palace
+Grizzly Bears
+Growth Spiral
+Island
+Llanowar Elves
+Mountain
+Opt
+Plains
+Port Town
+Shineshadow Snarl
+Shock
+Swamp
+Theorist's Sanctum
+Vineglimmer Snarl

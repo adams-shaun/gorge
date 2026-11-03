@@ -1302,10 +1302,24 @@ const (
 	// DayNightChange so every earlier ordinal, hash chain and golden replay is
 	// unchanged.
 	SubTargetRemoved
+	// DestroyProposal is the synthetic proposal of one permanent's destruction,
+	// offered to R:Event$ Destroy lines before the destruction's move. Obj is the
+	// permanent; Amount is 1 when the destruction can be regenerated from. It is
+	// never logged. Appended after SubTargetRemoved so every earlier ordinal,
+	// hash chain and golden replay is unchanged.
+	DestroyProposal
+	// EndCombatPhase is the replayable CR 724.2b/d action of an effect that
+	// ends the combat phase: it exiles the stack objects named by IDs (a
+	// snapshot of the whole stack taken by the effect, the resolving object
+	// included) and removes every creature and planeswalker from combat. The
+	// engine then skips straight to the phase after combat. Appended after
+	// DestroyProposal so every earlier ordinal, hash chain and golden replay
+	// is unchanged.
+	EndCombatPhase
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(SubTargetRemoved) + 1
+	NumKinds = int(EndCombatPhase) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

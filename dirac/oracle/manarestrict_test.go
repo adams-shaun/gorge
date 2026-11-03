@@ -8,7 +8,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The lockstep (gorge pay/payment.go:606-607, CR 106.6):
@@ -56,63 +55,52 @@ const (
 
 var kmrNames = [kmrN]string{"funds an activated ability", "funds an artifact spell", "funds a non-artifact spell"}
 
-// kmrScan walks gorge's log like restrSourceScan: a restricted positive ManaAdd
-// names its source (the " @id" suffix); the mana funds the push made since the
-// last decision, or the next one when floated before any push.
+// kmrScan walks gorge's log: a restricted ManaAdd with a negative amount is that
+// mana being spent (it names its source, the " @id" suffix), and gorge pushes a
+// spell or ability before it pays, so the spend funds the latest push. A decision
+// made in the middle of a payment (choosing the next source to tap) must not
+// detach the spend from the push it pays for.
 func kmrScan(g *GorgeSide, n *[kmrN]int) {
 	if g == nil {
 		return
 	}
-	var pending []state.ObjID
 	var cur *events.Event
-	credit := func(push *events.Event, src state.ObjID) {
-		name := ""
-		if ob := g.E.G.Obj(src); ob != nil && ob.Face() != nil {
-			name = ob.Face().Name
-		}
-		if name != "Guidelight Optimizer" && name != "Purple Dragon Punks" {
-			return
-		}
-		spell := push.Kind == events.PutOnStack
-		art := false
-		if ob := g.E.G.Obj(push.Obj); ob != nil && ob.Face() != nil {
-			for _, t := range ob.Face().Types {
-				art = art || t == "Artifact"
-			}
-		}
-		switch {
-		case !spell:
-			n[kmrAct]++
-		case art:
-			n[kmrArtCast]++
-		default:
-			n[kmrOtherCast]++
-		}
-	}
 	for i := range g.E.L.Events {
 		ev := &g.E.L.Events[i]
 		switch ev.Kind {
-		case events.DecisionMade:
-			cur = nil
-		case events.ManaAdd:
-			if ev.Amount <= 0 {
-				continue
-			}
-			if _, src, _, _, ok := events.ManaRestrictionFromText(restrSourceCutPersistent(ev.Text)); ok && src != 0 {
-				if cur != nil {
-					credit(cur, src)
-				} else {
-					pending = append(pending, src)
-				}
-			}
-		case events.ManaClear, events.TurnChange:
-			pending = pending[:0]
 		case events.PutOnStack, events.AbilityPush:
 			cur = ev
-			for _, src := range pending {
-				credit(ev, src)
+		case events.TurnChange:
+			cur = nil
+		case events.ManaAdd:
+			if ev.Amount >= 0 || cur == nil {
+				continue
 			}
-			pending = pending[:0]
+			_, src, _, _, ok := events.ManaRestrictionFromText(restrSourceCutPersistent(ev.Text))
+			if !ok || src == 0 {
+				continue
+			}
+			name := ""
+			if ob := g.E.G.Obj(src); ob != nil && ob.Face() != nil {
+				name = ob.Face().Name
+			}
+			if name != "Guidelight Optimizer" && name != "Purple Dragon Punks" {
+				continue
+			}
+			art := false
+			if ob := g.E.G.Obj(cur.Obj); ob != nil && ob.Face() != nil {
+				for _, t := range ob.Face().Types {
+					art = art || t == "Artifact"
+				}
+			}
+			switch {
+			case cur.Kind != events.PutOnStack:
+				n[kmrAct]++
+			case art:
+				n[kmrArtCast]++
+			default:
+				n[kmrOtherCast]++
+			}
 		}
 	}
 }

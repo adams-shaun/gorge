@@ -1,0 +1,17 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Forest
+1	card	Garruk, Curse Breaker
+2	card	Giant Growth
+3	card	Grizzly Bears
+4	card	Hill Giant
+5	card	Island
+6	card	Jace, Reality Sculptor
+7	card	Lightning Bolt
+8	card	Llanowar Elves
+9	card	Mountain
+10	card	Swamp
+11	card	The Last Ronin
+12	card	Wind Drake
+13	card	name:Jace Token
+14	token	g_4_4_beast_trample
+15	token	u_empower_jace

@@ -27,6 +27,21 @@ func (lc *lowerCtx) proliferateTrigger(tp *params, tr *lTrigger) error {
 	return nil
 }
 
+// facesDilemmaTrigger lowers Mode$ FacesDilemma (gorge facesDilemmaMatches): a
+// player chose one or more modes. Random$ True narrows it to modes chosen at
+// random, which no lowered charm does, and stays unread.
+func (lc *lowerCtx) facesDilemmaTrigger(tp *params, tr *lTrigger) error {
+	if tr.Zone != zNone && tr.Zone != zBattlefield {
+		return refuse("FacesDilemma trigger outside the battlefield")
+	}
+	w, ok := whoOfPlayer(tp.str("ValidPlayer"))
+	if !ok {
+		return refuse("FacesDilemma ValidPlayer %q", tp.str("ValidPlayer"))
+	}
+	tr.Event, tr.Whose = "FacesDilemma", w
+	return nil
+}
+
 // tokenCreatedOnce lowers Mode$ TokenCreatedOnce ("whenever you create one
 // or more tokens"; gorge): ValidToken$ against each created token,
 // ValidPlayer$ against its creator, the line latched once per token batch

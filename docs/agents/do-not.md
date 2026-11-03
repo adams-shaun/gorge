@@ -82,6 +82,14 @@ these hurt someone other than you.
   Put the detail in `docs/agents/` or `docs/design/` and link to it.
 - **Don't quote an unmeasured number as fact.** Name the command or report,
   or label it a hypothesis.
+- **Don't pin a synthetic pair by index alone.** A pair in `dirac/oracle` is two
+  decks dealt from the lowered card list, so lowering one more card moves what
+  every pair holds: a bare `synthPairs(t, pool, []int{...}, nil)` goes silently
+  empty, or red on a game unrelated to the test. Pin through
+  `synthPairsReaching` with a condition on the card or mechanism the test is
+  named for (`cardOut`, `onBattlefield`, `cardSeen`), or record a repro
+  (`stdReproLockstep`); re-pin a stale pair by the condition, or by mutating the
+  fix and keeping the pairs that then diverge.
 
 ## Running things
 

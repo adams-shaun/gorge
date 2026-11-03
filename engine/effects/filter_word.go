@@ -217,8 +217,8 @@ const (
 	// wordSourceDealtDamageThisTurn is Forge's dealtDamageThisTurn -- the
 	// object DEALT damage this turn (the SOURCE side, distinct from
 	// wordDealtDamageThisTurn's recipient side). It reads
-	// state.Object.DamageDealtThisTurn, the per-object record events.Apply's
-	// DamageProvenance case appends to and TurnChange clears. Corpus
+	// state.Object.DealtDamageThisTurnHere, the per-object flag events.Apply's
+	// DamageProvenance case sets and TurnChange and departure clear. Corpus
 	// carriers: Avenging Arrow, Executioner's Swing, Restore the Peace, Red
 	// Guardian, Super Soldier and Treacherous Greed's sacrifice cost.
 	wordSourceDealtDamageThisTurn
@@ -789,7 +789,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// ability object was activated, never cast. The AsStack override
 		// (rules.derivedWith) admits the spell a cast is announcing, which is
 		// still in hand at CR 601.2b but IS the spell being cast.
-		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
+		// A copy of a spell is put on the stack, never cast (CR 707.10).
+		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil && !o.IsCopy
 	case wordCopiedSpell:
 		// Forge's copiedSpell: the object IS a copy of a spell or permanent
 		// (CR 707.10), read off state.Object.IsCopy. The CR 707.10h guard in
@@ -886,8 +887,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// kind on it. Test the COUNT, not the slice length -- state's
 		// AddCounter clamps a drained kind at zero without pruning the slot
 		// (engine/state/object.go), so a permanent whose counters were all removed
-		// still carries a zero-count entry and must not match.
-		return hasCounters(o.Counters)
+		// still carries a zero-count entry and must not match. A regeneration
+		// shield or a deathtouch mark is not a counter (CR 122.1).
+		return hasRealCounters(o.Counters)
 	case wordSuspended:
 		// Forge's isSuspended: the card is in exile carrying the Suspend
 		// action's cast provenance. Time counters are deliberately NOT part
@@ -977,6 +979,9 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's ThisTurnEntered: the object entered a zone this turn (any
 		// zone). The flag is the same per-object provenance
 		// events.Move records that the Count$ThisTurnEntered_* heads read.
+		if sc.DamageSourceLeft && o.ID == sc.DamageSource {
+			return sc.DamageSourceEntered
+		}
 		return o.EnteredThisTurn
 	case wordThisTurnEnteredFrom:
 		// Forge's ThisTurnEnteredFrom_<Zone>: the object entered from <Zone>
@@ -997,7 +1002,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// turn. The flag is the per-object provenance events.Apply's Damage
 		// case sets (the same field the playercount HasProperty heads read)
 		// and TurnChange clears. dealtDamageThisTurn is the SOURCE side: the
-		// object DEALT damage (state.Object.DamageDealtThisTurn). The
+		// object DEALT damage (state.Object.DealtDamageThisTurnHere). The
 		// by-source refinement is a separate token and stays unknown.
 		return damageRecordPredicate(kind, o)
 	case wordAttackingPlayer:
@@ -1241,19 +1246,19 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 // side: state.Object.WasDealtDamageThisTurn, the flag events.Apply's Damage
 // case sets and TurnChange clears, so an object never damaged this turn reads
 // false. wordSourceDealtDamageThisTurn is Forge's dealtDamageThisTurn, the
-// SOURCE side: state.Object.DamageDealtThisTurn, the record the
-// DamageProvenance fold appends to and TurnChange clears, non-empty only when
-// the object itself dealt damage this turn -- the fail-closed direction.
-// wordDealtDamageToAny / wordDealtCombatDamageToAny are the GAME-LONG
-// source-side words: the bools the same fold sets from the record's combat
-// classification, which the TurnChange clear never touches. All four share
+// SOURCE side: state.Object.DealtDamageThisTurnHere, which the
+// DamageProvenance fold sets and TurnChange and leaving the battlefield clear,
+// true only when this object itself dealt damage this turn -- the fail-closed
+// direction. wordDealtDamageToAny / wordDealtCombatDamageToAny are the
+// GAME-LONG source-side words: the bools the same fold sets from the record's
+// combat classification, which the TurnChange clear never touches. All four share
 // one case so the added branch costs the long-function ratchet nothing
 // extra; wordDealtExcessDamageThisTurn (the recipient's excess) stays its
 // own case.
 func damageRecordPredicate(kind wordKind, o *state.Object) bool {
 	switch kind {
 	case wordSourceDealtDamageThisTurn:
-		return len(o.DamageDealtThisTurn) > 0
+		return o.DealtDamageThisTurnHere
 	case wordDealtDamageToAny:
 		return o.DealtDamageToAnyGame
 	case wordDealtCombatDamageToAny:

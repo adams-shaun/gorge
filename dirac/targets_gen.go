@@ -95,7 +95,9 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			}
 		}
 		if t.TFlags&kop.TgfDiffController != 0 {
-			s.diffCtrlCap(k, t, ti, mt) // zone_untilleaves.go
+			if s.diffCtrlCap(k, t, ti, mt) < mt.min { // zone_untilleaves.go
+				mt.max = 0 // fewer controllers than the minimum: no legal choice
+			}
 		}
 		if t.TFlags&(kop.TgfSharedCrType|kop.TgfDistinctNames) != 0 {
 			s.tgtSetBounds(k, t, e, mt) // tgt_setconstraints.go
@@ -105,6 +107,12 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	n := 0
 	if mt.picked < mt.max {
 		n = s.multiCands(k, t, ti, &buf)
+		if e.kind == seSpell {
+			// gorge prices each candidate as the sole selection and drops the
+			// ones the cast cannot pay for, for a multi-target ask as for a
+			// single one (cast_pricing.go affordableTargetCandidates)
+			n = s.affordableTargets(k, &buf, n)
+		}
 		if k.gen.anyUniqLater {
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go
 		}

@@ -434,13 +434,16 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	announce := func(id state.ObjID, drainAlways bool) {
 		handled := false
 		if pt.SA.ParamStr(cards.PKChoices) != "" {
+			if e.placeRandomCharmMode(pt.Controller, id, pt.SA) {
+				return
+			}
 			handled = e.askTriggerModes(pt.Controller, id, pt.SA)
 			if handled && (drainAlways || e.Pending() != nil) {
 				e.drainAwaitsModes = true
 			}
 		}
 		if !handled && effects.TargetsOf(pt.SA).Targeted() {
-			e.askTarget(pt.Controller, id, pt.SA)
+			e.askTargetChained(pt.Controller, id, pt.SA, e.triggerChainPreAsks(pt.SA))
 		}
 		if !handled {
 			e.startTriggerSubTargets(id, pt.Controller, pt.SA)
@@ -988,6 +991,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.keepTriggerLKI(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, true)
 		}
@@ -1016,6 +1020,8 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.keepTriggerLKI(id, &pt)
+			e.bindReflexiveContext(id, &pt)
 			e.recordTriggerLine(id, pt)
 			announce(id, false)
 		}
@@ -1137,7 +1143,11 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if e.triggerContexts == nil {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
-		e.triggerContexts[id] = pt.Ctx.TriggerContext
+		tc := pt.Ctx.TriggerContext
+		if pt.sourceCharLKIValid {
+			tc.SourceLeftBeforePush = true // it left while the trigger waited (captureSourceCharLKI)
+		}
+		e.triggerContexts[id] = tc
 		e.keepTriggerLKI(id, &pt)
 		if pt.Ctx.Snap.SourceLifelinkValid {
 			if e.sourceLifelinkLKI == nil {
@@ -1905,52 +1915,13 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			return false
 		}
 	}
-	var source state.ObjID
-	var svars map[string]string
-	wr := e.G.Obj(obj)
-	if wr != nil {
-		source = wr.Source
-	}
-	if so := e.G.Obj(source); so != nil {
-		// The modal SVar names resolve against the face that OWNS the trigger
-		// (the compiled SA pointer identifies it): a mutated pile's under-card
-		// modal trigger must not read the pile's top face's same-named SVar --
-		// the same top-face steal the MergedTriggerPush body resolution
-		// prevents. Ordinary triggers find their own face (the top one) and
-		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper is
-		// covered inside the recovery function itself.
-		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
-			svars = mf.SVars
-		} else if sf := so.Face(); sf != nil {
-			svars = sf.SVars
-		}
-	}
-	if owned, ok := e.triggerLineSVars[obj]; ok {
-		svars = owned
-	}
+	source, ctx := e.triggerModeCtx(p, obj, sa)
+	svars := ctx.SVars
 	choices := effects.CharmOf(sa).Modes
 	for i := range choices {
 		if cards.ResolveSVar(svars, choices[i]) == nil {
 			return false // not modal: the primitive asks at resolution
 		}
-	}
-	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
-	effects.SetSVars(ctx, svars)
-	if sa.API == "Charm" && effects.CharmRandomChosen(e, ctx, sa) {
-		// param:api:Charm.Random: a random Charm's mode is never asked at
-		// placement. The Charm gate keeps this site's other modal families
-		// (Vote, GenericChoice, VillainousChoice) untouched -- measured, no
-		// corpus carrier of those carries `Random$` (GenericChoice's own
-		// spelling is `AtRandom$`, a different unread parameter). Returning
-		// false is this function's own "not modal: the primitive asks at
-		// resolution" verdict -- resolution's effCharm then
-		// picks the mode with the engine's rng (Random$ True, or Random$
-		// Compare while the comparison holds) or poses the ordinary KModes
-		// ask (a failed or unresolvable comparison). The rng draw must happen
-		// at RESOLUTION, where a replay re-derives it byte-identically; a
-		// placement-time pick would consume the stream before the trigger is
-		// even on the stack.
-		return false
 	}
 	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
 	// game"): a later instance of the same triggered Charm on the same source
@@ -1971,6 +1942,35 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	}
 	e.ask(modeDecisionForChoices(e, p, source, sa, svars, eligible, min, max, repeat))
 	return true
+}
+
+// triggerModeCtx is the trigger object's source and the context, carrying the
+// SVar table (ctx.SVars) its modal Choices$ names resolve against.
+func (e *Engine) triggerModeCtx(p state.PlayerID, obj state.ObjID, sa *cards.SA) (state.ObjID, *effects.Ctx) {
+	var source state.ObjID
+	wr := e.G.Obj(obj)
+	if wr != nil {
+		source = wr.Source
+	}
+	ctx := effects.NewCtxPtr(source, p, effects.CtxInit{TriggerContext: e.triggerContexts[obj]})
+	if so := e.G.Obj(source); so != nil {
+		// The modal SVar names resolve against the face that OWNS the trigger
+		// (the compiled SA pointer identifies it): a mutated pile's under-card
+		// modal trigger must not read the pile's top face's same-named SVar --
+		// the same top-face steal the MergedTriggerPush body resolution
+		// prevents. Ordinary triggers find their own face (the top one) and
+		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper is
+		// covered inside the recovery function itself.
+		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
+			effects.SetSVars(ctx, mf.SVars)
+		} else if sf := so.Face(); sf != nil {
+			effects.SetSVars(ctx, sf.SVars)
+		}
+	}
+	if owned, ok := e.triggerLineSVars[obj]; ok {
+		effects.SetSVars(ctx, owned)
+	}
+	return source, ctx
 }
 
 // askTriggerOrder has the controller of two or more simultaneous triggers

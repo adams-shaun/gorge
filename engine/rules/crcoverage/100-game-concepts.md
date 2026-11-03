@@ -56,7 +56,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 106.1-106.3 | follows | `engine/state/game.go#Player.Pool` `engine/effects/mana_effect.go#effMana` `engine/rules/cast_window.go#Engine.castWindowProbeUnits` | `TestCastWindowChosenColourPaysHybridFace` | - |
 | 106.4-106.4b | follows | `engine/rules/turn.go#Engine.finishStepBoundary` `engine/rules/turn.go#Engine.advanceStep` `engine/events/event.go#ManaClear` | `TestCR510ManaEmptiesBetweenDamageSteps` | pool empties between steps, the two combat damage steps included |
 | 106.5 | partial | `engine/rules/cast_window.go#manaAbilityAddsNothing` | `TestManaAbilityThatAddsNothingLeavesTheCensusComplete` `TestTargetMenuPricesPastASourceThatAddsNothing` | a mana ability under a Condition$ this build does not evaluate adds no mana; other undefined types not reached |
-| 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` `engine/rules/pay/plancost.go#PlanPool` `engine/rules/potential.go#Engine.potentialPoolFor` | `TestPotentialActionsReadRestrictedMana` | LOUD (gorge register RestrictValid row); a potential action is priced only on the restricted mana its payment may spend |
+| 106.6-106.6a | partial | `engine/effects/mana_effect.go#effMana` `engine/rules/pay/payment.go#RestrictValidMatches` `engine/rules/pay/plancost.go#PlanPool` `engine/rules/potential.go#Engine.potentialPoolFor` `engine/rules/cast_paymentplan.go#Engine.untappedManaSourceFor` | `TestPotentialActionsReadRestrictedMana` `TestUnlessWindowOmitsSourceWhoseManaCannotPayIt` | LOUD (gorge register RestrictValid row); a potential action is priced only on the restricted mana its payment may spend, and a payment window lists no source whose mana it cannot spend |
 | 106.7-106.13 | unknown | - | - | not reached |
 | 107.1-107.1c | follows | `engine/state/game.go#Player.Life` | - | integer state throughout |
 | 107.2 | unknown | - | - | not reached |
@@ -72,7 +72,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 108.1-108.2b | n/a | - | - | reference rules |
 | 108.3-108.4a | follows | `engine/state/object.go#Object.Owner` `engine/state/object.go#Object.Controller` | - | owner = starting deck holder |
 | 108.5-108.6 | n/a | - | - | nontraditional cards; cross-reference |
-| 109.1,109.3-109.5 | follows | `engine/state/object.go#Object` `engine/effects/cardflow.go#rearrangeChooser` | `TestCRRearrangeTargetLibraryCasterChooses` `TestCRRearrangePlayerNamesTheChooser` | structural; RearrangeTopOfLibrary's "you" is the controller, RearrangePlayer$ names another chooser |
+| 109.1,109.3-109.5 | follows | `engine/state/object.go#Object` `engine/effects/cardflow.go#rearrangeChooser` `engine/effects/context.go#definedPlayerOf` | `TestCRRearrangeTargetLibraryCasterChooses` `TestCRRearrangePlayerNamesTheChooser` `TestRevealWithNoDefinedIsTheAbilitysController` | structural; RearrangeTopOfLibrary's "you" is the controller, RearrangePlayer$ names another chooser |
 | 109.2 | follows | `engine/rules/layers_types.go#affectsZone` `engine/state/continuous.go#ContinuousEffect.PermanentsOnly` | `TestBattlefieldStaticGrantsPermanentsOnly` `TestStaticNamingAZoneReachesIt` `TestEffectStaticZones` | a static's "creatures you control" are permanents: nothing off the battlefield unless it names the zone (AffectedZone$) |
 | 110.1-110.3 | follows | `engine/state/object.go#Object` | - | permanents on the battlefield |
 | 110.4-110.4c | unknown | - | - | not reached |
@@ -86,7 +86,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 113.4 | follows | `engine/rules/mana_activation.go#Engine.activateMana` | - |  |
 | 113.5 | follows | `engine/rules/legal_loyalty.go#Engine.loyaltyAbilityLimit` | `TestJaceLoyaltyAbilityOncePerTurnAndOwnTurnOnly` | - |
 | 113.6 | partial | `engine/rules/layers_static.go#Engine.stackSelfStaticOK` | `TestSpellOnTheStackGrantsNoStatic` | a spell's static functions on the battlefield unless it names the stack; the other subrules not reached |
-| 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/rules/pile.go#abilityOwnedFace` | `TestNegatedCopiedSpellTriggersCountExiledCard` `TestActivatedAbilityResolvesWithItsFacesSVars` | an ability object's stack exit is not a card changing zones |
+| 113.7a | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` `engine/rules/pile.go#abilityOwnedFace` `engine/rules/trigger_inactive_face.go#printedFaceTrigger` `engine/rules/resolution_ability_ctx.go#printedFaceOfActivated` | `TestNegatedCopiedSpellTriggersCountExiledCard` `TestActivatedAbilityResolvesWithItsFacesSVars` `TestTriggerKeepsItsSVarsWhenItsSourceBecomesACopy` | an ability object's stack exit is not a card changing zones |
 | 113.7b-113.12 | unknown | - | - | not reached |
 | 114.1-114.5 | follows | `engine/effects/effect.go#effEffect` | `TestKaitoEmblemOutlivesKaito` `TestTezzeretCruelCaptainEmblemFiresEveryCombat` `TestEffectPhaseTriggerRecursEachUpkeep` | an Effect's Mode$ Phase trigger recurs at every occurrence for the Effect's lifetime (OneOff$ True and a self-exiling body end it) |
 | 115.1 | partial | `engine/rules/cast_targets.go#Engine.subTargetAsk` `engine/effects/targets_ask.go#poseTargetsAsk` | - | gorge: depth-2+ chain targets asked at resolution |
@@ -157,14 +157,14 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 121.4 | follows | `engine/rules/sba.go#Engine.checkLoseConditions` `engine/rules/cantlose.go#Engine.markDrawEmpty` | `TestDrawStepDeckOutEndsTheGameBeforePriority` | - |
 | 121.5 | follows | `engine/events/event.go#MoveZone` | - | library-to-hand move is not a draw |
 | 121.6-121.9 | unknown | - | - | not reached |
-| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` | `TestPresentDefinedGateOverTheRealCorpusBodies` | P/T counters in layer 7c; any permanent can hold one |
+| 122.1-122.1a | follows | `engine/rules/chars/derive.go#PT` `engine/state/object.go#Object.CounterPTTotals` `engine/effects/filter_type.go#canReceiveCounter` `engine/effects/counters.go#hasRealCounters` `engine/state/object.go#InternalCounterMarker` | `TestPresentDefinedGateOverTheRealCorpusBodies` `TestStatusMarkersAreNotCounters` | P/T counters in layer 7c; any permanent can hold one; the Shield and Deathtouched status markers are not counters to any trigger, filter or cost |
 | 122.1b | follows | `engine/cards/counter_keyword.go#CounterKeyword` | - |  |
 | 122.1c | follows | `engine/effects/regeneration.go#ReplaceShieldCounter` `engine/rules/shield_counter.go#Engine.shieldCounterDamageMatches` | `TestCR122_1cShieldCounterReplacesDestruction` `TestCR122_1cShieldCounterPreventsDamage` | destruction order regen > shield > umbra is a deterministic CR 616.1 stand-in |
 | 122.1d | follows | `engine/effects/untap.go#TryUntap` `engine/rules/untap.go#Engine.UntapBlocked` | `TestBalothPrimeSacrificeTriggerRemovesAStunCounterInsteadOfUntapping` `TestStunCounterStaysOnADoesntUntapPermanent` `TestUntapAllRemovesAStunCounterInstead` | a permanent that doesn't untap keeps its stun counter |
 | 122.1e | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction` | - |
 | 122.1f | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | poison SBA; none in pools |
 | 122.1g | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestBattleEntersWithPrintedDefense` | - |
-| 122.1h | deviates | `engine/rules/replacement.go#Engine.finalityReplacementApplies` | - | finality applies to creatures only |
+| 122.1h | follows | `engine/rules/replacement.go#Engine.finalityReplacementApplies` | `TestFinalityExilesAnyPermanentGoingToGraveyard` | any permanent with a finality counter |
 | 122.1i | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - | rad counters trigger |
 | 122.1j | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestCR122_1jHoneCounterPumpsEquippedCreature` | layer 7c; reads attachment, not the Equipment subtype (as Forge) |
 | 122.2 | unknown | - | - | not line-checked |

@@ -375,3 +375,50 @@ func parseParams(val string) map[string]string {
 	}
 	return out
 }
+
+// offBattlefieldTargetSpec is a BecomesTarget ValidTarget$ spec as it applies
+// to a targeted object that is not on the battlefield. "A creature you
+// control" names a permanent (CR 109.4, 110.2): a creature card in a graveyard
+// or a creature spell on the stack is controlled by no one as a creature, so
+// an alternative that names a permanent type beside a control word applies
+// only on the battlefield (the script that spells inZoneBattlefield out says
+// so itself). changed is false when no alternative drops out; the spec is ""
+// when none can apply.
+func offBattlefieldTargetSpec(spec string) (out string, changed bool) {
+	if !strings.Contains(spec, "Ctrl") {
+		return spec, false
+	}
+	var keep []string
+	for _, alt := range strings.Split(spec, ",") {
+		head, _, _ := strings.Cut(alt, ".")
+		switch head {
+		case "Creature", "Permanent", "Artifact", "Enchantment", "Land", "Planeswalker", "Battle":
+			if strings.Contains(alt, "Ctrl") {
+				changed = true
+				continue
+			}
+		}
+		keep = append(keep, alt)
+	}
+	return strings.Join(keep, ","), changed
+}
+
+// bindOffBattlefieldTarget resolves the trigger's ValidTarget$ for objects off
+// the battlefield at load.
+func (t *Trigger) bindOffBattlefieldTarget() {
+	t.offBFFor = t.Params[paramKeyNames[PKValidTarget]]
+	t.offBF, t.offBFChanged = offBattlefieldTargetSpec(t.offBFFor)
+}
+
+// ValidTargetOffBattlefield is the trigger's ValidTarget$ spec (given) as it
+// applies to a targeted object off the battlefield; "" when no alternative can.
+func (t *Trigger) ValidTargetOffBattlefield(spec string) string {
+	if t.offBFFor == spec && t.modeBound {
+		if !t.offBFChanged {
+			return spec
+		}
+		return t.offBF
+	}
+	out, _ := offBattlefieldTargetSpec(spec)
+	return out
+}

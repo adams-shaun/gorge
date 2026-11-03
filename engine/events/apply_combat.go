@@ -330,6 +330,7 @@ func foldDamageProvenance(g *state.Game, e *Event) {
 			}
 		}
 		o.DamageDealtThisTurn = append(o.DamageDealtThisTurn, record)
+		o.DealtDamageThisTurnHere = true
 		// The game-long SOURCE-side record Forge's dealtDamagetoAny /
 		// dealtCombatDamagetoAny statics read (Karakyk Guardian, Ruric Thar,
 		// Magecrusher). The combat classification is the record's own bit,
@@ -417,6 +418,7 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 		o.SetFaceIdx(faceIdx)
 		if basis != nil {
 			o.SetCopyFace(basis)
+			o.CopyFaceBack = copyTokenBack(src)
 		}
 		// CR 718.3c/d: a Myriad token copy of a prototyped permanent is
 		// prototyped too. The token is put onto the battlefield, never cast,

@@ -317,6 +317,9 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			reserved[avail[i]] = true
 		}
 	}
+	if !EvidencePayable(e.Game(), p, cost) {
+		return false
+	}
 	for range cost.Blight {
 		if len(CostCandidates(e, p, id, state.ZBattlefield, "Creature.YouCtrl", false, false)) == 0 {
 			return false

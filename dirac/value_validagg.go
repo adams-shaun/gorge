@@ -20,7 +20,7 @@ const cardTypeBits = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantmen
 // -ManaCost; 0 when nothing matches), the CardToughness/CardManaCost sums
 // (derived toughness on the battlefield, extremePropertyValue), the
 // DifferentCardPower distinct set (refPower, derived) and Colors (the
-// matches' face colours, ColorMaskOf).
+// matches' live layer-5 colours, ObjectColors).
 //
 //go:noinline
 func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
@@ -32,6 +32,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var names [MaxPerm]CardID // distinct names seen (AggDistinctNames)
 	nn := 0
 	var types kop.TypeMask // the matches' face card types (AggCardTypes)
+	var crSubs kop.SubMask // the matches' current creature types (AggCreatureTypes)
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if !s.matchPermGen(k, x.F, sl, ctx.ctrl, ctx.srcSl, layerFull) {
@@ -49,7 +50,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			} // else CR 708.2: a face-down permanent has no mana cost
 		case kop.AggColors:
 			if !s.faceDown(k, sl) { // CR 708.2: a face-down permanent is colourless
-				col |= k.t.Cards[s.cardAt(sl)].Colors
+				col |= s.colorsAt(k, sl) // CR 613.1e: the live colours (an Animate's SetColor), as gorge's ObjectColors reads
 			}
 			continue
 		case kop.AggDistinctNames:
@@ -68,11 +69,26 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggCardTypes:
-			// CR 205.2a: the face's printed card types (gorge o.Face().Types
-			// in cardTypeWords), not the layer-derived ones; a face-down
-			// permanent has none (CR 708.2)
+			// CR 205.2a: the face's card types (gorge o.Face().Types in
+			// cardTypeWords), not the layer-derived ones; a copy's face
+			// carries its copy exception's added types (CR 707.9b), so a
+			// token copied "except it's an artifact creature" counts the
+			// creature; a face-down permanent has none (CR 708.2)
 			if !s.faceDown(k, sl) {
 				types |= k.t.Cards[s.cardAt(sl)].Types
+				if k.gen.cpxTy && s.fxM.has(sl) {
+					types |= s.copyExcTypes(k, sl)
+				}
+			}
+			continue
+		case kop.AggCreatureTypes:
+			if s.hasSubGen(k, sl, subOutside) {
+				return len(k.t.TypeVocab) // every creature type (CR 702.73a; gorge creatureTypeWordList)
+			}
+			for i := 0; i < len(k.t.Subtypes); i++ {
+				if k.gen.creatSub.Has(i) && s.hasSubGen(k, sl, uint8(i)) {
+					crSubs = crSubs.With(i)
+				}
 			}
 			continue
 		case kop.AggSumCounters:
@@ -109,6 +125,8 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return nn
 	case kop.AggCardTypes:
 		return bits.OnesCount16(uint16(types & cardTypeBits))
+	case kop.AggCreatureTypes:
+		return bits.OnesCount64(crSubs[0]) + bits.OnesCount64(crSubs[1])
 	case kop.AggColors:
 		return bits.OnesCount8(uint8(col))
 	}

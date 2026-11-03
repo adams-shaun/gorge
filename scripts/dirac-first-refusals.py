@@ -40,7 +40,7 @@ import sys
 
 BASICS = {"Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"}
 EVIDENCE_MIN_PLAYS = 3  # oracle.EvidenceMinPlays
-DECK_POOLS = ("fdn", "blb")
+DECK_POOLS = ("fdn", "blb", "pauper")
 DECK_CLEARED_PLAYS = 50
 REFUSED_DIR = "dirac/support/refused"
 EVIDENCE_DIR = "dirac/support/evidence"

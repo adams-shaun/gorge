@@ -140,3 +140,56 @@ func TestGreatestPowerConditionDefinedGroupReadsDerivedPower(t *testing.T) {
 		t.Fatalf("pumped targeted Colossal Dreadmaw zone = %s, want Battlefield (a pumped greater creature must defeat the condition)", z)
 	}
 }
+
+// TestGreatestPowerCountsAnAnimatedVehicle: Getaway Glamer's destroy condition
+// reads the derived type line, so a crewed Vehicle (a creature until end of
+// turn, CR 301.7) is a creature in the comparison set and a legal member of
+// it. Tied for the greatest power with the Grizzly Bears' pumped 3, the 3/3
+// Vehicle is destroyed; read off its printed Artifact Vehicle line it matched
+// nothing and survived.
+func TestGreatestPowerCountsAnAnimatedVehicle(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	srcCard := mustCorpusCard(t, reg, "Hill Giant")
+	bearCard := mustCorpusCard(t, reg, "Grizzly Bears")
+	vehicleCard := mustCorpusCard(t, reg, "Mobile Homestead")
+	for _, tc := range []struct {
+		name    string
+		bearAdd int32
+		want    state.Zone
+	}{
+		{"tied for the greatest power", 1, state.ZGraveyard},
+		{"out-powered", 2, state.ZBattlefield},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := New(Config{Seed: 12, Names: []string{"a", "b"},
+				Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40)}})
+			src := e.G.AddObject(srcCard, 0)
+			bear := e.G.AddObject(bearCard, 1)
+			vehicle := e.G.AddObject(vehicleCard, 1)
+			for _, o := range []*state.Object{src, bear, vehicle} {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+			}
+			e.AddContinuous(state.ContinuousEffect{Source: vehicle.ID, Controller: 1, Layer: LType, Affects: "Card.Self",
+				AddTypes: []string{"Creature"}, UntilEOT: true})
+			e.AddContinuous(state.ContinuousEffect{Source: bear.ID, Controller: 1, Layer: LPT, Sub: SubModify,
+				Affects: "Creature.Self", AddPower: tc.bearAdd, AddToughness: tc.bearAdd})
+			if !e.IsCreature(vehicle.ID) || e.Power(vehicle.ID) != 3 || e.Power(bear.ID) != 2+tc.bearAdd {
+				t.Fatalf("precondition: vehicle creature=%v power=%d, bear power=%d", e.IsCreature(vehicle.ID), e.Power(vehicle.ID), e.Power(bear.ID))
+			}
+			sa := &cards.SA{Kind: "SP", API: "Destroy", Line: "test:GetawayGlamer", Params: map[string]string{
+				"ValidTgts":        "Creature",
+				"ConditionDefined": "Targeted",
+				"ConditionPresent": "Creature.greatestPower",
+			}}
+			e.probe(func() {
+				effects.Resolve(e, &effects.Ctx{Source: src.ID, Controller: 0,
+					Targets:   []state.Target{{Obj: vehicle.ID}},
+					SubPreAsk: map[string][]state.Target{sa.Line: {{Obj: vehicle.ID}}}}, sa)
+			})
+			if z := e.G.Obj(vehicle.ID).Zone; z != tc.want {
+				t.Fatalf("targeted animated Vehicle zone = %s, want %s", z, tc.want)
+			}
+		})
+	}
+}

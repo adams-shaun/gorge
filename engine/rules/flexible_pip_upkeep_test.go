@@ -202,7 +202,7 @@ func TestEchoUnpayableElectionStillSacrifices(t *testing.T) {
 	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("declined echo but the permanent is %+v", o)
 	}
-	if text := lastMoveZoneText(e, bear); text != "sacrificed for echo" {
+	if text := lastMoveZoneText(e, bear); text != "sacrificed" {
 		t.Fatalf("sacrifice move text = %q", text)
 	}
 	replayCheck(t, e, cfg)

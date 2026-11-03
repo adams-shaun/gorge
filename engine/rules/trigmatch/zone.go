@@ -167,7 +167,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			if e.Facts().GoadProbe == 0 && strings.Contains(spec, "IsGoaded") {
 				opts.StaticGoads = e.StaticallyGoadedWithLKI(lki)
 			}
-			if !ok || !e.MatchesObject(spec, lki, source, ctrl, opts) {
+			if !ok || !e.MatchesObject(spec, resolvedCopyLKI(lki, ev), source, ctrl, opts) {
 				return false
 			}
 		} else {
@@ -327,6 +327,19 @@ func tokenCreatedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 		}
 	}
 	return true
+}
+
+// resolvedCopyLKI is the snapshot a copy of a permanent spell is matched against as
+// it enters: the snapshot was taken on the stack, and the copy enters as a token (CR
+// 608.3f), so Satoru's copy is no "nontoken creature". events' zone fold makes the
+// same change on the object.
+func resolvedCopyLKI(lki *state.Object, ev events.Event) *state.Object {
+	if !lki.IsCopy || ev.From != state.ZStack || ev.To != state.ZBattlefield {
+		return lki
+	}
+	entered := *lki
+	entered.IsToken, entered.IsCopy = true, false
+	return &entered
 }
 
 func init() {

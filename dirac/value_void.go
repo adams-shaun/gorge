@@ -48,7 +48,7 @@ func (s *State) voidHolds(k *prep) bool {
 			ring = ring[:len(ring)-1]
 		}
 		for _, r := range ring {
-			if r.prov&castWarpPush != 0 {
+			if r.prov&castWarpPush != 0 && r.prov&castReversedPush == 0 {
 				return true
 			}
 		}

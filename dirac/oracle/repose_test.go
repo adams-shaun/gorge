@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -46,5 +47,39 @@ func TestReposeMenaceOffersEitherBlockerFirst(t *testing.T) {
 	g.repose(fr)
 	if len(fr.cur.Options) != 1 || fr.cur.Options[0] != Pack(ActBlock, 1, 0, 0) {
 		t.Fatalf("after the Myr pick: options %v, want only the Lions block", fr.cur.Options)
+	}
+}
+
+// TestReposeBlockCeilingOnAWideBoard: an attacker under MinMaxBlocker Max$ 1 that
+// already has its blocker takes no more, on a board wide enough that searching the
+// over-ceiling answers for a completion would run out the budget and turn optimistic.
+func TestReposeBlockCeilingOnAWideBoard(t *testing.T) {
+	t.Parallel()
+
+	const capped, other = state.ObjID(1), state.ObjID(2)
+	d := &decision.Decision{Kind: decision.KBlockers, Player: 1, Min: 0, Max: 24}
+	fr := &frame{d: d, dk: DBlockers, multi: true}
+	for b := range 24 {
+		for a, atk := range []state.ObjID{capped, other} {
+			maxb := 0
+			if atk == capped {
+				maxb = 1
+			}
+			id := state.ObjID(40 + b)
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "block", Obj: id, Attacker: atk,
+				MaxBlockers: maxb, Group: "blocker:" + strconv.Itoa(int(id))})
+			fr.acts = append(fr.acts, Pack(ActBlock, uint8(id), uint8(a), 0))
+			fr.valid = append(fr.valid, true)
+		}
+	}
+	fr.chosen = []int{0} // the first creature blocks the capped attacker
+	(&GorgeSide{}).repose(fr)
+	for _, at := range fr.curAt {
+		if at >= 0 && d.Options[at].Attacker == capped {
+			t.Fatalf("offered a second blocker on the capped attacker: %+v", d.Options[at])
+		}
+	}
+	if want := 23 + 1; len(fr.cur.Options) != want { // the other attacker's blockers and Done
+		t.Fatalf("%d options, want %d", len(fr.cur.Options), want)
 	}
 }

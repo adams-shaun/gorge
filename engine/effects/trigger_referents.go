@@ -33,9 +33,17 @@ type TriggerContext struct {
 	// provenance rather than event provenance, carried here so the resolving
 	// Ctx's SpecContext inherits it through the embedded struct. Read
 	// through sourceChosen only.
-	SourceLKIValid    bool
-	SourceChosenType  string
-	SourceChosenColor string
+	SourceLKIValid bool
+	// SourceLeftBeforePush marks a triggered ability whose source left the
+	// battlefield after the trigger event and before the ability reached the
+	// stack, and so may be back on the battlefield by the push as a later
+	// incarnation (a creature that died with the permanent it watches and
+	// was returned before triggers were put on the stack). The push stamp
+	// then names the new object, which the ability does not refer to (CR
+	// 400.7); "this creature" effects read this to find nothing.
+	SourceLeftBeforePush bool
+	SourceChosenType     string
+	SourceChosenColor    string
 	// SourceManaColorSpent is the last-known cast-time spend of a source
 	// that has left the battlefield, read by Count$Adamant (an evoked
 	// Incarnation sacrificed before its enter trigger's intervening-if is

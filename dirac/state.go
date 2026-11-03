@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"math"
 	"math/bits"
 	"sync"
 	"sync/atomic"
@@ -254,7 +255,7 @@ type perm struct {
 	obj      Obj
 	ctrl     uint8
 	damage   uint8
-	eotP     int8
+	eotP     int8 // until-end-of-turn pump, saturated to the int8 range; the true amount of a larger one is in State.ptx
 	eotT     int8
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
@@ -390,10 +391,10 @@ type player struct {
 	scry        uint8 // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	// poolR is restricted mana floating beside pool (Giada's Angel-only
 	// {W}; gorge's Players[p].RestrictedMana): the count in bits 0-3, the
-	// restriction (genPrep.restrF index) in bit 4, the colour index in
-	// bits 5-7. Spent only by a spell the restriction allows (payRestr);
+	// restriction (genPrep.restrF index) in bits 4-5, the colour index in
+	// bits 6-8. Spent only by a spell the restriction allows (payRestr);
 	// projected as pool mana (mana_window.go). It takes the padding byte.
-	poolR uint8
+	poolR uint16
 	sac   [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc  uint8    // cards this player discarded this turn
 }
@@ -410,6 +411,14 @@ const (
 	sfKicked uint8 = 1 << iota
 	sfFlashback
 	sfCountered
+)
+
+// A spell entry's remVer, never a delayed program's, holds the keywords the
+// spell gained on the stack (OpGrantKeyword at a spell, Judith, Carnage
+// Connoisseur; grantSpellKw, srcKw). A copy does not keep them (CR 707.2).
+const (
+	spellGainedDeathtouch uint8 = 1 << iota
+	spellGainedLifelink
 )
 
 // stackEntry is one spell or ability on the stack.
@@ -441,11 +450,15 @@ type stackEntry struct {
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
-	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
+	// A spell has no remembered object: see spellGainedDeathtouch. A granted
+	// trigger has none either, and keeps the permanent that granted it here
+	// instead: see trigHost.
 	remVer uint8
 	remSet bool
 	xi     uint8 // multi-object target slots: genState.xtp index + 1 (gen.go)
 	grp    uint8 // an AttackersDeclared trigger's attacker group: State.cold.atkGrp index + 1 (trig_attackers.go)
+	skw    uint8 // an ability's source's deathtouch and lifelink as it left the battlefield (skwValid, skwDT, skwLL; kw_srcleft.go)
 	// trigMV is the triggering spell's pre-cast mana value, snapshotted
 	// when a SpellCast trigger is queued (value_spellmv.go): the
 	// triggering spell can leave the stack before the value is read.
@@ -490,9 +503,11 @@ type pendingTrig struct {
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
 	// and remSet whether it was captured: RefDelayedRemembered reads nothing
-	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx)
+	// once the object has changed zones since (CR 603.7c, 400.7; refObjCtx).
+	// A granted trigger has no remembered object and keeps the permanent that
+	// granted it here instead (stackEntry.trigHost)
+	// (the captured flag rides pendingTrig.skw's skwRem bit: no byte of its own)
 	remVer uint8
-	remSet bool
 	// x is the trigger object's spell's paid X, bound as it triggered
 	// (Tf2XBound, CR 107.3m; trig_xpaid.go): the stack entry's x.
 	// It takes the struct's padding byte.
@@ -503,6 +518,8 @@ type pendingTrig struct {
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
+	// skw is the source's departure keywords (stackEntry.skw), with skwMany and skwRem above them
+	skw uint8
 }
 
 // delayed is a delayed triggered ability (OpDelayedTrigger).
@@ -635,10 +652,13 @@ type build struct {
 	picks     [24]Obj // Lathril taps ten Elves; 24 since kcaps2x (was 12: a tap-any-number cost past 12 picks, c6)
 	pickKs    [24]pickKind
 	donePicks pickKind
+	dilLo     uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
+	dilHi     uint8
 	bfl       uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
 	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
 	pipN      uint8    // hybrid pips announced so far
 	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
+	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
 	fbGrants  uint8    // the card's flashback grants before this cast ended them (the undo restores them)
 	divSlot   uint8    // bsDivide: the divided target slot
 	divLeft   uint8    // bsDivide: points still to place beyond each target's 1
@@ -667,9 +687,42 @@ const (
 	bflTre      // this cast tapped a Treasure source for mana (CastSpecTreasure)
 )
 
+// bflTargetPaid: a convoke cast gorge's planner takes because only its own
+// target pays it (targetPaidPlanned): with no creature announced, its plan runs
+// at the printed cost as any planned cast's does, not the manual window.
+const bflTargetPaid uint16 = 1 << 8
+
 // bflCostFixed: the spell's mana step priced it, and paying (a Treasure's
 // sacrifice under affinity, a cost's discard) does not move its total cost.
 const bflCostFixed uint16 = 1 << 9
+
+// bflTokenGone: a token sacrificed for mana after this cast was pushed. gorge's token ceases at
+// the state-based check after the cast's reversal, an event that ends the no-progress
+// interval, and dirac's has already gone (reverseCast).
+const bflTokenGone uint16 = 1 << 10
+
+// bflUsedMark: this cast marked a once-per-turn permission static used (legal_gen.go
+// castMayPlay), which a reversed cast gives back (CR 733.1; reverseCast).
+const bflUsedMark uint16 = 1 << 14
+
+// bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
+const bflDilemma uint16 = 1 << 15
+
+// bflWinTap: the cast window stopped at a tap-another-permanent source with several
+// permanents to tap, and the build waits on that pick (ChWindowTap, mana_window.go).
+// bflMsDone: manaStep's own steps before the window have run, so the window's re-entry
+// after the pick does not repeat them. bflPayDone: the same for finishBuild's cost
+// payments before the mana.
+const (
+	bflWinTap  uint16 = 1 << 11
+	bflMsDone  uint16 = 1 << 12
+	bflPayDone uint16 = 1 << 13
+	// bflPlanCut: a Treasure sacrificed by the planner's tap parked behind a
+	// replacement ask. Gorge's payment plan stops at a step that poses a decision
+	// (paymentFallbackChoiceRequired), so the rest of the cost is paid through the
+	// manual window, not a fresh plan: manaStep's re-entry taps through the window.
+	bflPlanCut uint16 = 1 << 14
+)
 
 // resolution ask kinds (resCtx.ask).
 const (
@@ -757,6 +810,8 @@ type stateCore struct {
 	lstamp [MaxPerm]uint16   // CR 613.7e layer restamp on attach (static_attachtimestamp.go layerTs)
 	kwx    [maxKwRepX]kwRepX // until-end-of-turn keyword repeats past the third (grantEOT)
 	nkwx   uint8
+	ptx    [maxPtX]ptRepX // until-end-of-turn pumps past the int8 range (eotPT)
+	nptx   uint8
 	occ    slotMask    // occupied battlefield slots
 	ctrlM  [2]slotMask // slots by controller
 	subs   [nSubEvents]slotMask
@@ -905,6 +960,75 @@ const kwSup = 0x40
 // maxKwRepX bounds the kwRepX records live at once; a grant past it is
 // not counted (feature lists only, no rules effect).
 const maxKwRepX = 8
+
+// ptRepX holds the true until-end-of-turn pump of a permanent whose pump
+// left the int8 range perm.eotP and perm.eotT hold (Jumbo Cactuar's
+// +9999/+0 on attack). The perm keeps the amount saturated to int8, so its
+// sign is right wherever it is read without the table.
+type ptRepX struct {
+	sl   Slot
+	p, t int16
+}
+
+// maxPtX bounds the ptRepX records live at once; a pump that needs a fifth
+// stalls (StallPT).
+const maxPtX = 4
+
+// eotPT is sl's until-end-of-turn power and toughness pump.
+func (s *State) eotPT(sl Slot) (int, int) {
+	if s.nptx != 0 {
+		for i := 0; i < int(s.nptx); i++ {
+			if r := &s.ptx[i]; r.sl == sl {
+				return int(r.p), int(r.t)
+			}
+		}
+	}
+	p := &s.perms[sl]
+	return int(p.eotP), int(p.eotT)
+}
+
+// setEotPT stores sl's pump (each within int16): inline when both fit int8,
+// else saturated inline with the true amounts in ptx. A full table stalls
+// (StallPT) and changes nothing.
+func (s *State) setEotPT(sl Slot, np, nt int) bool {
+	p := &s.perms[sl]
+	i := 0
+	for i < int(s.nptx) && s.ptx[i].sl != sl {
+		i++
+	}
+	if np == int(int8(np)) && nt == int(int8(nt)) {
+		if i < int(s.nptx) {
+			s.dropPtX(sl)
+		}
+		p.eotP, p.eotT = int8(np), int8(nt)
+		return true
+	}
+	if i == int(s.nptx) {
+		if i >= maxPtX {
+			s.capFull(StallPT)
+			return false
+		}
+		s.nptx++
+	}
+	s.ptx[i] = ptRepX{sl: sl, p: int16(np), t: int16(nt)}
+	p.eotP, p.eotT = int8(max(min(np, math.MaxInt8), math.MinInt8)), int8(max(min(nt, math.MaxInt8), math.MinInt8))
+	return true
+}
+
+// dropPtX forgets sl's out-of-range pump (it left, or the turn ended).
+func (s *State) dropPtX(sl Slot) {
+	n := 0
+	for i := 0; i < int(s.nptx); i++ {
+		if s.ptx[i].sl != sl {
+			s.ptx[n] = s.ptx[i]
+			n++
+		}
+	}
+	for i := n; i < int(s.nptx); i++ {
+		s.ptx[i] = ptRepX{}
+	}
+	s.nptx = uint8(n)
+}
 
 // grantEOT grants the permanent at sl keywords m until end of turn,
 // counting the repeats past the third in kwx.

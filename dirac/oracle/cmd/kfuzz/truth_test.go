@@ -240,7 +240,7 @@ func TestVerdictSplitsStallClasses(t *testing.T) {
 	stall := func(why string, gap bool) played {
 		return played{res: oracle.Result{Stall: oracle.KernelStallPrefix + why, StallUnmodelled: gap}}
 	}
-	refused := played{skip: &cardset.InteractionRefusal{Reason: "tapsmana", Why: "w", Cards: []string{"T", "M"}}}
+	refused := played{skip: &cardset.InteractionRefusal{Reason: "infect", Why: "w", Cards: []string{"T", "M"}}}
 	for _, c := range []struct {
 		name  string
 		out   []played
@@ -260,7 +260,7 @@ func TestVerdictSplitsStallClasses(t *testing.T) {
 		}},
 		{"a table flag is a refused pair, not a stall", []played{clean, refused, refused, {skip: cardset.AbReduceRefusal([]string{"R"}, []string{"C"})}}, 0, []string{
 			"fdn: 1 games (0 refused-card, 3 refused-pair, 0 error), 1 clean, 0 divergent, 0 unmodelled [], 0 capacity [], 0 hang",
-			"refused-pair: tapsmana=2 abreduce=1",
+			"refused-pair: infect=2 abreduce=1",
 			"absolute: OK",
 		}},
 	} {

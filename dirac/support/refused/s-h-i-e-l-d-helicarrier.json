@@ -1,12 +1,12 @@
 {
   "card": "S.H.I.E.L.D. Helicarrier",
-  "class": "projection-Cards.AttachedTo",
-  "why": "the engines' state differs at projection Cards[].AttachedTo; 2 games in the corpus",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; S.H.I.E.L.D. Helicarrier is among the latest actions and The Mighty Thor, Jane Foster is the card the divergence implicates",
   "repro": {
     "pool": "std-msh",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1107,
+    "pair": 2393,
     "policy": "random",
     "mulligans": 1
   }

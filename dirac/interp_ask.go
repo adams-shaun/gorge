@@ -32,7 +32,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		}
 		c := manaOf(amt, pips)
 		var av avail
+		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
+		av.xdOn = false
 		return av.affords(&c, pipMaskOf(&c), 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt
@@ -54,6 +56,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case kop.PaySacSelf:
 		sl := s.resSrcSlot(k)
 		return sl != NoSlot && s.perms[sl].ctrl == p
+	case payKindSacHost:
+		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
 		return true // gorge triggeredCostDrawCounts: payable once the count resolves
 	case kop.PaySubCounter:
@@ -87,6 +91,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
+	}
+	if kind == kop.PaySacSelf && in.B.N == kop.PayBSubSacHost {
+		kind = payKindSacHost // a granted trigger's own Sac<1/OriginalHost> cost rides PaySacSelf (cost_sachost.go)
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
@@ -165,12 +172,14 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	}
 	c := manaOf(amt, pips)
 	var av avail
-	s.availPotentialFor(k, p, &av, true)
+	other := payDesc{class: pdOther}
+	s.availPotentialFor(k, p, &av, &other)
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
-// a tap source or the untapped sacrifice-only arm.
+// a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
+// or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
@@ -183,6 +192,22 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
 		}
+		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
+		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 {
+			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
+				return true
+			}
+		}
+		// gorge untappedManaSource: any available mana ability counts here,
+		// whatever its RestrictValid$ (availPotentialFor prices the
+		// restriction against this payment next), so a source whose only
+		// ability is restricted (Hydraulic Helper) funds a trigger's cost.
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.potentialAdmits(k, p, sl, j, ab, nil) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -194,22 +219,20 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 // else the card's first mana ability.
 //
 //go:noinline
-func (s *State) openManaRefused(k *prep, p uint8, sl Slot) bool {
+func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 	if k.gen != nil && len(k.gen.grantPC) > 0 {
 		if gi := s.grantIdx(k, sl); gi >= 0 && !s.ownManaUsable(k, sl) {
 			if k.gen.grantRestr[gi] == 0 {
 				return false
 			}
 			r := k.gen.grantOf[gi]
-			d := payDesc{class: pdOther}
-			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], &d)
+			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d)
 		}
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	j := firstManaAb(cd)
-	d := payDesc{class: pdOther}
 	return j >= 0 && cd.Abilities[j].ManaRestrict != 0 &&
-		!s.restrSrcAdmits(k, p, sl, &cd.Abilities[j], &d)
+		!s.restrSrcAdmits(k, p, sl, &cd.Abilities[j], d)
 }
 
 func (s *State) payerOf(k *prep, r kop.Ref) uint8 {
@@ -472,8 +495,8 @@ func (s *State) enchantingCard(k *prep) CardID { return s.objs[s.enchantingObj(k
 func (s *State) enchantingObj(k *prep) Obj {
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpReturnEx || in.Op == kop.OpReturn {
 		return s.objRefObj(in.Obj)
-	} else if in.Op == kop.OpChooseMove {
-		return s.resArm().look[0] // the hand move's parked Aura (handAuraEnter)
+	} else if in.Op == kop.OpChooseMove || in.Op == kop.OpSearchEx {
+		return s.resArm().look[0] // the move's parked Aura (handAuraEnter)
 	}
 	return s.res.lastTok
 }
@@ -566,7 +589,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		case kop.PayMana:
 			c := manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[r.pc].B.N))
 			if s.g.pickF&(pfWard|pfModes) != 0 {
-				s.payWindow(k, s.g.pickP, &c) // gorge's ward / unless mana window
+				paused, short := s.payWindowAsk(k, s.g.pickP, &c, winPay) // gorge's ward / unless mana window
+				if paused {
+					return // a tap-another source's pick (mana_windowtapx.go)
+				}
+				if short {
+					s.payDone(k, false) // the colours taken left it unpaid
+					return
+				}
 			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.parkedWaiting() {
 				s.ctl = ctlExileOrder // a sacrificed source's order ask (payManaResume)
 				return
@@ -574,6 +604,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated
 				// mana stay, the charge fails and the flow declines
+				if s.res.ask == raGenWinTap {
+					return // a tap-another source's pick (mana_windowtapx.go)
+				}
 				s.payDone(k, false)
 				return
 			}
@@ -598,6 +631,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return
 		case kop.PaySacSelf:
 			s.paySacSelf(k)
+		case payKindSacHost:
+			s.paySacHost(k)
 		case kop.PayDraw:
 			s.payDraw(s.g.pickP, int(s.g.pickLeft))
 		case kop.PaySubCounter:
@@ -756,8 +791,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				return
 			}
 		}
+		r.ask = raNone
 		if s.finishDig(k) {
-			return // the rest are arranged on the bottom
+			return // the rest are arranged on the bottom, or a taken card's as-enters ask
 		}
 		s.continueRes(k, 0)
 	case raGenDigArrange:
@@ -920,15 +956,25 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.answerCloneReturn(k, a)
 			return
 		}
+		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
+			s.res.ask = raNone
+			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.state = preDigEnchantDone
+			if s.rerunMove(k, &s.prog(k)[r.pc]) {
+				return // suspended again at another Aura's choice
+			}
+			s.g.pre = preAsk{}
+			s.continueRes(k, 0)
+			return
+		}
 		if s.g.pre.kind == akEnchant {
 			s.g.pre = preAsk{}
 			if s.objs[o].zone == kop.ZoneExile {
 				host := s.objs[a.Source()].slot
 				from := s.detach(o)
+				s.enterOnto(host)
 				sl := s.enterFromGrantedZone(k, o, s.objs[o].owner(), false, from)
-				if host != NoSlot && s.occ.has(host) {
-					s.attachTo(k, sl, host)
-				}
+				s.attachedTo(k, sl, host)
 			}
 			s.continueRes(k, 0)
 			return
@@ -960,7 +1006,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		t := r.lastTok
 		s.objs[t].of &^= ofPending
-		s.copyTokenEnter(k, in, t, NoSlot) // the enters program reads the choice
+		s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
 		s.g.pre = preAsk{}
 		r.ask = raNone
 		if s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft)) {
@@ -985,10 +1031,18 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.moveFoundAns(k, s.objs[a.Source()].slot) // zone_handmoveaura.go: enter, attach, remember
 			s.continueRes(k, 0)
 			return
+		case kop.OpSearchEx:
+			r.ask = raNone
+			s.moveFoundAns(k, s.objs[a.Source()].slot)
+			if !s.parkTail(k, tailSearch) {
+				s.finishSearchTail(k)
+				s.continueRes(k, 0)
+			}
+			return
 		}
 		t := r.lastTok
 		s.objs[t].of &^= ofPending
-		s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot)
+		s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
 		r.ask = raNone
 		if s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft)) {
 			return
@@ -1011,7 +1065,7 @@ func (s *State) payDone(k *prep, paid bool) {
 	if f&pfWard != 0 {
 		s.res.ask = raNone
 		if !paid {
-			if idx := s.stackIndexOf(s.res.e.trigObj); idx >= 0 {
+			if idx := s.wardedIndex(&s.res.e); idx >= 0 {
 				s.counterAt(k, idx)
 			}
 		}
@@ -1038,7 +1092,7 @@ func (s *State) payDone(k *prep, paid bool) {
 // resolveWardLife resolves a ward—pay N life trigger (trigAmt = -N).
 func (s *State) resolveWardLife(k *prep) {
 	e := &s.res.e
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
@@ -1185,7 +1239,13 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}
-	return s.searchPick(k) && s.res.ask != raGenEnchant
+	return s.searchPick(k) && !s.moveAsked()
+}
+
+// moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove).
+func (s *State) moveAsked() bool {
+	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1297,12 +1357,13 @@ func (s *State) picksHas(o Obj) bool {
 }
 
 func (s *State) finishSearch(k *prep) {
+	s.res.ask = raNone
 	if s.entryParkSearch(k) {
 		return // a land's CR 616.1 entry-order ask, the card still in the hand (repl_entryorder.go)
 	}
 	s.finishSearchNow(k)
-	if s.res.ask == raGenEnchant {
-		return // a hand move's Aura waits for its host (handAuraEnter)
+	if s.moveAsked() {
+		return
 	}
 	if s.entryLatePark() {
 		return // the order ask that follows the land's entry (repl_entryorder.go)
@@ -1336,7 +1397,7 @@ func (s *State) finishSearchNow(k *prep) {
 		}
 	} else {
 		s.moveFound(k)
-		if s.res.ask == raGenEnchant {
+		if s.moveAsked() || s.res.left == tailSearchEnter {
 			return
 		}
 		if s.parkTail(k, tailSearch) {
@@ -1401,30 +1462,41 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				continue
 			}
 		}
-		from := s.detach(o)
-		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
-			s.countMayPlayLand(k, o, from)
-		}
-		switch z {
-		case kop.ZoneBattlefield:
-			ep := p
+		ep := p
+		if z == kop.ZoneBattlefield {
 			if fl&kop.SrGraveExile != 0 && fl&kop.SrUnderYourControl == 0 {
 				ep = s.objs[o].owner() // graveexile: gorge enters a hidden pick under its owner unless GainControl$
 			}
 			if DebugGyBfOwnerEntry && fl&kop.SrUnderYourControl != 0 {
 				ep = s.objs[o].owner() // mutation: a GainControl$ graveyard pick keeps its owner
 			}
+			if host == NoSlot && s.cloneReturnPark(k, o, ep) {
+				// the card waits in its zone for the answer (rerunMove), which
+				// moves the cards from this one on
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
+		}
+		from := s.detach(o)
+		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
+			s.countMayPlayLand(k, o, from)
+		}
+		switch z {
+		case kop.ZoneBattlefield:
 			hg := from != kop.ZoneLibrary
 			if hg {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
+			s.enterOnto(host)
 			sl := s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
+			if s.g.pre.obj == o {
+				s.g.pre = preAsk{}
+			}
 			if hg {
 				s.g.enterCtr.n = 0
 			}
-			if host != NoSlot && s.occ.has(host) {
-				s.attachTo(k, sl, host) // CR 303.4f: an Aura enters attached
-			}
+			s.attachedTo(k, sl, host) // CR 303.4f: an Aura enters attached
 			if fl&kop.SrAttacking != 0 {
 				s.enterAttacking(k, sl, ep)
 			}
@@ -1446,6 +1518,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 		}
 		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		if z == kop.ZoneBattlefield && i+1 < int(s.g.nlook) && s.parkTail(k, tailSearchEnter) {
+			// the entered card queued an as-enters ask (a shock land's pay-life
+			// election): gorge suspends the search there, so the cards after it
+			// stay where they were until it is answered
+			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
+			return
+		}
 	}
 	s.g.nlook = 0
 }
@@ -1496,7 +1575,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255) && s.res.ask == raGenEnterAsk {
+			if s.finishDigAt(k, second == 255) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice) {
 				return false // a taken card's as-enters ask, the tail parked
 			}
 			continue
@@ -1551,32 +1630,69 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
-	if digArranges(n, s.g.lookSel, rz, fl) {
-		// "the rest on the bottom in any order": the taken cards move, the
-		// rest stay on top while their owner orders them, one pick per
-		// card, each going to the bottom in pick order (gorge's
-		// dig_arrange, a full permutation)
+	if z == kop.ZoneBattlefield {
+		// gorge effDig's zone batch: the taken cards enter together (CR 603.6a)
+		defer s.holdClose(k, s.holdEntries())
+	}
+	arranges := digArranges(n, s.g.lookSel, rz, fl)
+	if arranges || z == kop.ZoneBattlefield {
+		// the taken cards move one at a time with the rest still on top; one
+		// entering the battlefield is asked its as-enters choice in the library
+		// (gorge's parked entry), and this runs again from the answer
 		for i := 0; i < n; i++ {
-			if s.g.lookSel&(1<<i) != 0 {
-				o := s.resArm().look[i]
-				s.detach(o)
-				s.digTake(k, o, z, fl)
+			o := s.resArm().look[i]
+			if s.g.lookSel&(1<<i) == 0 || s.objs[o].zone != kop.ZoneLibrary {
+				continue
+			}
+			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
+				return true
+			}
+			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
+				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
+			}
+			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
+				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
+				continue
+			}
+			s.detach(o)
+			s.digTake(k, o, z, fl)
+			if s.g.pre.obj == o {
+				s.g.pre = preAsk{}
+			}
+			if z == kop.ZoneBattlefield && park && i+1 < n && s.g.lookSel>>(i+1) != 0 && s.parkTail(k, tailDigEnter) {
+				return true
 			}
 		}
+	}
+	if arranges {
+		// "the rest on the bottom in any order": the rest stay on top while their
+		// owner orders them, one pick per card, each going to the bottom in pick
+		// order (gorge's dig_arrange, a full permutation)
 		if park && s.parkTail(k, tailDigArrange) {
 			return true
 		}
 		s.res.ask, s.res.askP = raGenDigArrange, p
 		return true
 	}
-	for i := 0; i < n; i++ {
-		s.touch(s.resArm().look[i])
-		s.objs[s.resArm().look[i]].zone = kop.ZoneNone
-	}
-	pl.libLo += uint8(n)
-	for i := 0; i < n; i++ {
-		if s.g.lookSel&(1<<i) != 0 {
-			s.digTake(k, s.resArm().look[i], z, fl)
+	if z == kop.ZoneBattlefield {
+		// a taken card's queued as-enters ask suspends the dig with the rest
+		// still in the library, as gorge's parked effect has them
+		if park && s.parkTail(k, tailDig) {
+			return true
+		}
+		s.digRestAside(n)
+		s.finishDigTail(k)
+		return false
+	} else {
+		for i := 0; i < n; i++ {
+			s.touch(s.resArm().look[i])
+			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+		}
+		pl.libLo += uint8(n)
+		for i := 0; i < n; i++ {
+			if s.g.lookSel&(1<<i) != 0 {
+				s.digTake(k, s.resArm().look[i], z, fl)
+			}
 		}
 	}
 	if park && s.parkTail(k, tailDig) {
@@ -1584,6 +1700,68 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	}
 	s.finishDigTail(k)
 	return false
+}
+
+// digAuraHost is the one permanent a taken Aura o enters enchanting when it
+// has exactly one legal host (CR 303.4f); NoSlot for any other card, and for
+// two or more hosts, whose controller's choice the dig does not pose yet.
+func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
+	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchantDone {
+		return Slot(s.g.pre.val) // the answered choice among two or more hosts
+	}
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return NoSlot
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) != 1 {
+		return NoSlot
+	}
+	return s.objs[buf[0]].slot
+}
+
+// digAuraPark poses the enchant election of a taken Aura with two or more
+// legal hosts (gorge's auraEntryGate asks before the move folds): the card waits
+// in the library with the rest, and the answer runs the dig again from it.
+//
+//go:noinline
+func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || !s.res.active || s.g.pre.state != 0 || s.res.ask != raNone ||
+		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) < 2 {
+		return false
+	}
+	s.g.pre = preAsk{obj: o, kind: akEnchant, state: preDigEnchant}
+	s.res.ask, s.res.askP = raGenRetChoice, p
+	return true
+}
+
+// digAuraStays reports whether taken card o is an Aura with no legal host
+// (CR 303.4g), which cannot enter.
+func (s *State) digAuraStays(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	return s.enchantCands(k, c, p, &buf) == 0
+}
+
+// digRestAside takes the n looked-at cards a battlefield dig did not take
+// out of the library window, ahead of finishDigTail placing them.
+func (s *State) digRestAside(n int) {
+	pl := &s.pl[s.g.pickP]
+	for i := 0; i < n; i++ {
+		if s.g.lookSel&(1<<i) == 0 {
+			s.touch(s.resArm().look[i])
+			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+			pl.libLo++
+		}
+	}
 }
 
 // --- choose each type (Liliana) ---
@@ -1734,7 +1912,10 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 	}
 	switch {
 	case z == kop.ZoneBattlefield:
-		s.enter(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		host := s.digAuraHost(k, o, p)
+		s.enterOnto(host)
+		sl := s.enterMoved(k, o, p, fl&kop.DigTapped != 0, kop.ZoneLibrary)
+		s.attachedTo(k, sl, host) // CR 303.4f: an Aura put onto the battlefield enters attached
 	case z == kop.ZoneLibrary:
 		s.objs[o].zone = kop.ZoneLibrary
 		s.objs[o].ver++

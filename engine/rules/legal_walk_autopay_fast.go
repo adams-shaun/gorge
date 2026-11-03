@@ -184,7 +184,7 @@ func (w *legalWalk) autoPlainAltOK(p state.PlayerID, id state.ObjID, a windowMan
 	if !pay.PlanAltOK(a) {
 		return false
 	}
-	if !w.e.manaStaticOf(a.Ma).TapOnly {
+	if !w.e.manaStaticFor(p, id, a.Ma).TapOnly {
 		return false
 	}
 	if _, ok := pay.PaymentAbility(w.e.G, id, a.Ma); !ok {

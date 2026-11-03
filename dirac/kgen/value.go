@@ -113,6 +113,11 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if hok {
 		head = "\x00hascards"
 	}
+	if head == "ThisTargetedPlayer" && !strings.HasPrefix(rest, "Valid ") {
+		// gorge evalPlayerRefProperty binds both heads to one ref; only
+		// the Valid form has its own reading below
+		head = "TargetedPlayer"
+	}
 	switch head {
 	case "\x00hascards":
 		v, err = hv, herr
@@ -334,6 +339,15 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 				break
 			}
 			v = lValue{Kind: vNumColorsOf, Ref: ref}
+		case "ChromaSource.White", "ChromaSource.Blue", "ChromaSource.Black", "ChromaSource.Red", "ChromaSource.Green":
+			// the colour's mana symbols in the triggering spell's printed
+			// cost (gorge chromaObjectCount, Forge getTotalChroma)
+			tr := lc.ab.Trigger
+			if head != "TriggeredCard" || tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "SpellCast" {
+				err = refuse("TriggeredCard$ChromaSource outside a SpellCast trigger")
+				break
+			}
+			v = lValue{Kind: vChromaOf, Ref: ref, N: map[string]int{"White": 0, "Blue": 1, "Black": 2, "Red": 3, "Green": 4}[strings.TrimPrefix(rest, "ChromaSource.")]}
 		default:
 			if head == "ParentTargeted" && strings.HasPrefix(rest, "CardCounters.") && !strings.EqualFold(rest, "CardCounters.ALL") {
 				// the parent's first target's live counters
@@ -484,19 +498,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":
 			v = lValue{Kind: vDiscardedThisTurn}
+		case "OpponentsAttackedThisTurn":
+			// gorge Engine.OpponentsAttackedThisTurn: the distinct players the
+			// controller's declared attacks named (a planeswalker or battle
+			// defender is not its controller); the active player only.
+			v = lValue{Kind: vOppsAttacked}
 		case "HasPropertyMaxSpeed":
 			v = lValue{Kind: vYourSpeed, N: 1} // 1 at max speed (gorge playerMaxSpeedProperty), else 0
 		default:
-			if len(mods) > 0 {
-				// (gorge count_cov3.go evalCov3PlayerHead) peels a
-				// PlayerCountProperty* head's trailing /Op and applies it to
-				// the property count. The suffix is now lowerable in general,
-				// but the corpus carrier is Bonecache Overseer, whose
-				// LeftGraveyardThisTurn OR gate is not modelled: by design it
-				// stays refused by name rather than lifting the card.
-				err = fmt.Errorf("PlayerCountPropertyYou$%s with an op suffix: Bonecache Overseer's LeftGraveyardThisTurn gate stays refused by design", rest)
-				break
-			}
 			v, err = sacrificedThisTurnValue(rest) // value_sacrificed.go; refuses any other property
 		}
 	case "PlayerCountRemembered":
@@ -1130,6 +1139,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if rest == "YouDrewThisTurn" {
 		return lValue{Kind: vDrawnThisTurn}, nil // gorge CardsDrawnThisTurn
+	}
+	if rest == "YouFaceDilemmaThisTurn" {
+		return lValue{Kind: vDilemmasFaced}, nil // gorge Player.DilemmasFacedThisTurn
 	}
 	if rest == "YouScryThisTurn" {
 		return lValue{Kind: vScriedThisTurn, N: 0}, nil // gorge ScriedThisTurn

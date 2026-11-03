@@ -330,6 +330,15 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 	if _, has := ps.get("ValidTgts"); has {
 		return lRef{}, false, nil // the ValidTgts$ arm reads it
 	}
+	if r, err := lc.defined("Spawner>TriggeredTarget"); strings.TrimSpace(dp) == "Spawner>TriggeredTarget" {
+		// an ImmediateTrigger spawned by the card's combat damage to a
+		// player: the damaged player, the one opponent (Biting-Palm Ninja)
+		if err != nil {
+			return lRef{}, false, err
+		}
+		ps.consume("DefinedPlayer")
+		return r, true, nil
+	}
 	if strings.TrimSpace(dp) != "Targeted" {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
 	}

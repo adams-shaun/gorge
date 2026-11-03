@@ -51,7 +51,7 @@ func (e *Engine) paidCostShape(p state.PlayerID, id state.ObjID, cost Cost, life
 // life is what it spends. lifeLeft is the payer's life not yet committed to
 // other sources of this census.
 func (e *Engine) paidManaAbility(p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA, lifeLeft int32) (life int32, ok bool) {
-	mf := e.manaStaticOf(ma)
+	mf := e.manaStaticFor(p, id, ma)
 	if mf.RestrictValid || mf.FreeCost || mf.Amount <= 0 {
 		return 0, false
 	}
@@ -68,7 +68,7 @@ func (e *Engine) paidManaAbility(p state.PlayerID, id state.ObjID, o *state.Obje
 	if total <= 0 {
 		return 0, false
 	}
-	cost := e.abilityCompiledCost(ma).Cost
+	cost := e.manaAbilityCC(p, id, ma).Cost
 	if pay.ActivationTapCostUnavailable(o, &cost) {
 		return 0, false
 	}
@@ -168,20 +168,34 @@ func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
 // windowManaUnitsPaid plus the free abilities whose colour is chosen on
 // activation (CR 605.3a), which that census withholds. They arrive pinned, one
 // alt per colour: the shape the reach search prices, and a tap in the
-// component window that poses no colour ask.
+// component window that poses no colour ask. So do the bare-tap abilities whose
+// Amount$ only the evaluator can price (Doc Samson's X mana of one colour, X its
+// power), as the payment planner's evaluated-amount layer counts them.
 func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 	units := e.windowManaUnitsPaid(p)
 	e.beginDerivedMemo()
 	defer e.endDerivedMemo()
 	ids := pay.AppendBattlefieldManaSourceIDs(e.G, e.idsBorrow(), p)
 	defer e.idsRelease(ids)
+	var probe *Engine
 	for _, id := range ids {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil {
 			continue
 		}
 		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
-			mf := e.manaStaticOf(ma)
+			mf := e.manaStaticFor(p, id, ma)
+			if mf.Amount <= 0 && mf.TapOnly && !mf.RestrictValid && !o.Tapped {
+				if probe == nil {
+					probe = e.paymentPlanTappedProbe(p)
+				}
+				if amt, ok := e.paymentPlanStableAmount(probe, p, id, o, ma); ok {
+					for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: amt}, effects.ManaOf(ma).Counts) {
+						units = pay.AppendUnitAlt(units, id, a)
+					}
+				}
+				continue
+			}
 			if !mf.Any || !mf.FreeCost || mf.RestrictValid || mf.Amount <= 0 ||
 				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
 				continue

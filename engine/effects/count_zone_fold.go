@@ -165,6 +165,9 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 	if id == f.pricedSpell && id != 0 {
 		return
 	}
+	if o := f.g.Obj(id); o != nil && o.Ephemeral() {
+		return // a token off the battlefield is no card while it waits for the next check (CR 111.7, 704.5d)
+	}
 	matchSpec := f.spec
 	if f.hasBareHand {
 		s, ok := castFromHandAnyAdmitsFilter(f.h, f.spec, id)
@@ -263,7 +266,14 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			}
 		}
 	case zoneFoldPropCreatureType:
-		for _, typ := range o.Face().Types {
+		// The object's current creature types, layer 4 included (CR 205.3m,
+		// 702.73a): a Changeling has every one. Forge reads
+		// card.getType().getCreatureTypes() the same way.
+		types, all := derivedCreatureTypes(o, &specCtx)
+		if all {
+			types = creatureTypeWordList
+		}
+		for _, typ := range types {
 			if creatureSubtypeWords[typ] {
 				f.seenCreatureTypes[typ] = true
 			}
@@ -293,7 +303,9 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			f.seenPlaneswalkerTypes[typ] = true
 		}
 	case zoneFoldPropColors:
-		f.colorsSeen |= ColorMaskOf(o)
+		// CR 105.3, 613.1e: the live layer-5 colours on the battlefield
+		// (Mondo Gecko turned white), the face's colours elsewhere.
+		f.colorsSeen |= ColorMaskFromLetters(LiveColors(f.h, o))
 	default:
 		// The Different* distinct-set properties: each
 		// matching object contributes its value to the seen set. The nil-face

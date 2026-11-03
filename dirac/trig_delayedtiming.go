@@ -78,12 +78,12 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 		}
 		sv := s.objs[d.src].ver
 		if d.n&dpTrack != 0 {
-			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: takePending drops it if the object left
+			sv, amt = d.vers[0], dpTrackAmt // a tracked promise: resolves doing nothing if the object left
 		}
 		s.enqueue(d.src, sv, d.card, d.ab, d.ctrl, ro, d.ctrl, amt)
 		if s.npend > m {
 			s.pend[m].li = s.g.dpLKI[i]
-			s.pend[m].remVer, s.pend[m].remSet = remVer, remSet
+			s.pend[m].remVer, s.pend[m].skw = remVer, s.pend[m].skw&^skwRem|boolBit(remSet, skwRem)
 			if d.n&dpMany != 0 {
 				s.dpManyCarry(&d, &s.pend[m]) // trig_delayedmany.go
 			}

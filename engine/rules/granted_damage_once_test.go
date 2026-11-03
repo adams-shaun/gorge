@@ -101,3 +101,42 @@ func TestDropkickBomberGrantLatchesOneDamageBatch(t *testing.T) {
 		t.Fatalf("granted triggers pushed = %d, want 1", n)
 	}
 }
+
+// "This ability triggers only once each turn" holds on a line a static grants, as
+// on a printed one (CR 603.2c): Hollowmurk Siege's Sultai mode draws one card for
+// two placements in a turn, and draws again on the next turn.
+func TestGrantedLineKeepsItsActivationLimit(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := animateTriggersEngine(t, reg, lookup(t, reg, "Hollowmurk Siege"), lookup(t, reg, "Goblin Piker"))
+	moveByName(t, e, 0, "Hollowmurk Siege", state.ZHand)
+	goblin := moveByName(t, e, 0, "Goblin Piker", state.ZBattlefield)
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	siege := castFromHand(t, e, "Hollowmurk Siege", "BG")
+	resolveStack(t, e)
+	if d := e.Pending(); d != nil && d.Kind == decision.KModes {
+		submitChoices(t, e, 0)
+	}
+	if got := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.ModeChosen && ev.Obj == siege && ev.Text == "Sultai"
+	}); got != 1 {
+		t.Fatalf("Sultai chosen %d times", got)
+	}
+	place := func(n int) {
+		for range n {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: goblin, Counter: "P1P1", Amount: 2})
+		}
+		passOnce(t, e)
+		resolveStack(t, e)
+	}
+	place(2)
+	if n := grantPushes(e, siege); n != 1 {
+		t.Fatalf("after two placements in a turn the grant triggered %d times, want 1", n)
+	}
+	passUntilTurn(t, e, 4)
+	place(1)
+	if n := grantPushes(e, siege); n != 2 {
+		t.Fatalf("a placement on a later turn left %d triggers, want 2", n)
+	}
+	replayCheck(t, e, cfg)
+}

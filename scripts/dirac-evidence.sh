@@ -3,7 +3,7 @@
 # coverage and reach file per run under <out>. Exit 0 when every run passes
 # kfuzz -absolute, then scripts/dirac-first-refusals.py evidence <out> writes the lists.
 #
-#   the corpus  fdn and blb real decks, one synthetic pool per Standard list; 1500 pairs
+#   the corpus  fdn, blb and pauper real decks, one synthetic pool per Standard list; 1500 pairs
 #               each, seed 1, the random policy
 #   the forms   surfaces autopay and full, mulligans 0 and 1
 #
@@ -27,7 +27,7 @@ go build -trimpath -o "$out/kgen" ./dirac/cmd/kgen || exit 2
 if [ -n "${POOLS:-}" ]; then
 	pools=$POOLS
 else
-	pools="fdn blb $("$out/kfuzz" -list-synth | grep '^std-' | tr '\n' ' ')"
+	pools="fdn blb pauper $("$out/kfuzz" -list-synth | grep '^std-' | tr '\n' ' ')"
 fi
 surfaces=${SURFACES:-autopay full}
 mulligans=${MULLIGANS:-0 1}

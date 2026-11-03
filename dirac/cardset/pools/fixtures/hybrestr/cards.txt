@@ -1,0 +1,12 @@
+# a hybrid cost paid from floating restricted mana: Flamebraider's two mana
+# of any colours, spendable on Elementals, beside the Incarnation whose
+# evoke cost is two hybrid pips and an Elemental whose cost has two more
+# (dirac/oracle/hybrestr_test.go)
+Catharsis
+Flamebraider
+Flaring Cinder
+Grizzly Bears
+Hill Giant
+Plains
+Island
+Mountain

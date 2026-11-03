@@ -217,7 +217,7 @@ func TestReducegatesLockstep(t *testing.T) {
 // TestReducegatesMutation stops the kernel hiding the in-flight spell's own
 // push while its cost is composed: the first covered spell then sees itself
 // in the ledger and pays full price, where gorge's onlyFirstSpellUsed skips
-// ev.Obj == id. The games must diverge.
+// the push being priced. The games must diverge.
 func TestReducegatesMutation(t *testing.T) {
 	games, divs, _, _ := runReducegates(t, 128, true)
 	if divs == 0 {
@@ -265,4 +265,30 @@ func TestReducegatesValidSpellMutation(t *testing.T) {
 	}
 	t.Fatal("no seed diverged with the in-flight cast counted as its own prior cast: " +
 		"the Melek deck did not reach a first instant/sorcery")
+}
+
+// The recast deck (both sides, 40 cards): Radagast's first creature spell each
+// turn costs {2} less. Unsummon returns a creature spent on that discount, so
+// its recast is a second creature cast of the same object (an earlier cast is
+// a real spell); Rimrock Knight's Boulder Rush is an instant, so casting it as the
+// Adventure spends nothing and the Knight cast from exile is still the first
+// creature spell.
+var krecastDeck = []cardset.Entry{
+	{Name: "Radagast of Rhosgobel", Count: 4},
+	{Name: "Rimrock Knight", Count: 6},
+	{Name: "Unsummon", Count: 6},
+	{Name: "Grizzly Bears", Count: 4},
+	{Name: "Forest", Count: 7},
+	{Name: "Mountain", Count: 7},
+	{Name: "Island", Count: 6},
+}
+var krecastDecks = [2][]cardset.Entry{krecastDeck, krecastDeck}
+
+// TestReducegatesRecastLockstep plays the recast deck over the generic
+// cast-first policy: gorge counts an earlier cast of the object being priced
+// and reads an Adventure cast as its instant half; the kernel must agree on
+// every field.
+func TestReducegatesRecastLockstep(t *testing.T) {
+	t.Parallel()
+	lockstepSet(t, "reducegates", krecastDecks, 300, "KRECAST_SEEDS")
 }

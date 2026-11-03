@@ -302,6 +302,11 @@ var predicates = map[string]predFn{
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
+	// nonToken is the CR 111 test the scripts that spell it mean ("nontoken
+	// permanent": Spock, Voice of Reason; The Guardian of Forever). Forge reads
+	// it as a type word no object carries, which is true of every permanent
+	// tokens included, so it follows the rule here and not that reading.
+	"nonToken": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
@@ -2463,8 +2468,9 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// itself be in the set (Forge's non-LKI contains check), so a creature
 		// not controlled by the named players never matches even if its power
 		// is the greatest on the battlefield. Bound callers supply layer-derived
-		// power for the entire comparison set; direct calls retain objectPower's
-		// printed-plus-counter fallback.
+		// power and layer-derived types (a crewed Vehicle is a creature) for the
+		// entire comparison set; direct calls retain objectPower's
+		// printed-plus-counter fallback and the printed type line.
 		var players []state.PlayerID
 		if ref, is := strings.CutPrefix(rest, "ControlledBy"); is {
 			var ok bool
@@ -2476,7 +2482,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 				return false, true
 			}
 		}
-		if o.Zone != state.ZBattlefield || !hasType(o, "Creature") {
+		if o.Zone != state.ZBattlefield || !hasTypeCtx(o, "Creature", sc) {
 			return false, true
 		}
 		inSet := len(players) == 0
@@ -2491,7 +2497,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		mine := objectPowerInContext(o, sc)
 		for i := range g.Objs {
 			other := &g.Objs[i]
-			if other.Zone != state.ZBattlefield || !hasType(other, "Creature") || other.ID == o.ID {
+			if other.Zone != state.ZBattlefield || other.ID == o.ID || !hasTypeCtx(other, "Creature", sc) {
 				continue
 			}
 			if len(players) > 0 {
@@ -2878,6 +2884,13 @@ type SpecContext struct {
 	// Rules' pre-cast reads of that spell set it; zero everywhere else, so
 	// every other read of exile keeps not seeing the copy.
 	PreparedSpell state.ObjID
+	// DamageSource names the object a damage replacement's ValidSource$ reads as
+	// the source it last was (copyCeased).
+	DamageSource state.ObjID
+	// DamageSourceLeft says that source has left the battlefield this turn, and
+	// DamageSourceEntered whether it had entered it this turn: ThisTurnEntered reads
+	// the object it last was (CR 608.2h), not its entry into the zone it left for.
+	DamageSourceLeft, DamageSourceEntered bool
 	// FrozenChosenName and ChosenNameBound are an Effect-registered static
 	// or delayed trigger's snapshot of the source's chosen card name at
 	// REGISTRATION time (state.ContinuousEffect.ChosenName /
@@ -3163,9 +3176,10 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 // copyCeased reports CR 707.10h's rejection: a copy that is neither on the
 // stack nor on the battlefield matches nothing. A prepared exile copy (CR
 // 722.3c) is only the engine's representation of a cast the permanent permits,
-// so it stays unmatched too, unless sc is reading it as the spell being cast.
+// so it stays unmatched too, unless sc is reading it as the spell being cast. A damage
+// source that has left is read as it last existed (CR 608.2h), a token copy among them.
 func copyCeased(o *state.Object, sc *SpecContext) bool {
-	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell
+	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell && o.ID != sc.DamageSource
 }
 
 // matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
@@ -3362,6 +3376,15 @@ func MatchesSpecCtxPtr(g *state.Game, spec string, id state.ObjID, sc *SpecConte
 	return matchesObjectPtr(g, spec, o, sc)
 }
 
+// MatchesSpecAsFace matches spec against o read with face faceIdx showing, the
+// characteristics a spell had when it was cast (an Adventure half) after the
+// object has since been rewritten to another face. o is not modified.
+func MatchesSpecAsFace(g *state.Game, spec string, o *state.Object, faceIdx uint8, sc *SpecContext) bool {
+	c := *o
+	c.SetFaceIdx(faceIdx)
+	return matchesObjectPtr(g, spec, &c, sc)
+}
+
 // matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
 // base names a permanent card when a count already scoped the candidates to a
 // non-battlefield zone; it must not re-check the object's current zone and
@@ -3433,6 +3456,15 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // that was exiled). A departure's controller is the one it left under: the
 // object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
+	if e.To == state.ZBattlefield && e.From != state.ZBattlefield {
+		// A permanent that entered and has since left (an Aura returned to hand,
+		// a creature that died) still entered this turn (CR 700.14, 603.10a):
+		// match the card where it now lies, as a card, since the battlefield
+		// matcher rejects an object that is no longer a permanent.
+		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+			return matchesZoneSpecCtx(g, spec, e.Obj, sc, o.Zone)
+		}
+	}
 	if e.From != state.ZBattlefield {
 		return matchesZoneSpecCtx(g, spec, e.Obj, sc, e.To)
 	}
@@ -3795,15 +3827,23 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 	if o.FaceDownHidden() {
 		return true
 	}
-	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
-		return false
-	}
 	for _, c := range o.Counters {
 		if c.N > 0 {
 			if _, ok := cards.CounterKeyword(c.Kind); ok {
 				return false
 			}
 		}
+	}
+	return FaceHasNoAbilities(f, hasType(o, "Land"))
+}
+
+// FaceHasNoAbilities reports whether a printed face has no ability for
+// noAbilitiesPermanent's purposes: no keyword, static, replacement or
+// trigger, and no activated ability or spell ability beyond a land's mana
+// ability (land says whether the object is one) and the card's own plain cast.
+func FaceHasNoAbilities(f *cards.Face, land bool) bool {
+	if len(f.Keywords) > 0 || len(f.Statics) > 0 || len(f.Repls) > 0 || len(f.Triggers) > 0 {
+		return false
 	}
 	for _, a := range f.Abilities {
 		if a == nil {
@@ -3813,7 +3853,7 @@ func noAbilitiesPermanent(_ *state.Game, o *state.Object, _ state.PlayerID, _ st
 		case cards.SAKindActivated:
 			// A land's mana ability is not an ability for this
 			// predicate (Forge's isLandAbility).
-			if hasType(o, "Land") && a.APIKind() == cards.APIMana {
+			if land && a.APIKind() == cards.APIMana {
 				continue
 			}
 			return false

@@ -1,0 +1,17 @@
+# a cost increase beside a free cast: Thalia, the Survivor's tax on the
+# opponent's Omnipresence casts, Dragon's Prey's targeted raise on Shiko's
+# free copy (dirac/oracle/raisefree_test.go)
+Thalia, the Survivor
+Omnipresence
+Dragon's Prey
+Shiko, Paragon of the Way
+Shivan Dragon
+Shock
+Opt
+Lightning Strike
+Llanowar Elves
+Grizzly Bears
+Plains
+Mountain
+Forest
+Helm of Awakening

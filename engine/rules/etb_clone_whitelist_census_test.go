@@ -21,12 +21,12 @@ import (
 // deliberate re-measure, so the supported boundary cannot widen (a new
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
-	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Echoing Deeps", "Flesh Duplicate", "Glasspool Mimic",
+	"Activated Sleeper", "Altered Ego", "Auton Soldier", "Body Double", "Callidus Assassin", "Chameleon, Master of Disguise", "Clever Impersonator", "Clone", "Colossal Clone Master", "Copy Artifact", "Copy Enchantment", "Copy Land",
+	"Copycrook", "Dack's Duplicate", "Deceptive Frostkite", "Echoing Deeps", "Ezri Dax, Newly Joined", "Flesh Duplicate", "Glasspool Mimic",
 	"Jwari Shapeshifter", "Lazotep Convert", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image", "Mirrorhall Mimic",
 	"Mirrormade", "Mocking Doppelganger", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phantasmal Image", "Phyrexian Metamorph", "Pirated Copy", "Progenitor Mimic", "Quicksilver Gargantuan", "Sakashima of a Thousand Faces", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
-	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Waxen Shapethief",
+	"Stunt Double", "Superior Spider-Man", "Surgical Metamorph", "Synth Infiltrator", "The Master, Formed Anew", "Vesuva", "Vesuvan Doppelganger", "Visage Bandit", "Voq, Torchbearer", "Waxen Shapethief",
 }
 
 // TestETBCloneWhitelistCensus walks every ETBReplacement:Copy Repl in the

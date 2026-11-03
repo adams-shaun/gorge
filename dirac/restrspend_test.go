@@ -114,3 +114,79 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 		t.Fatalf("after the Valkyrie: poolR %#x pool %v, want both empty", s.pl[0].poolR, s.pl[0].pool)
 	}
 }
+
+// TestHybridWitnessFloatsRestrictedMana: a hybrid creature spell's witness taps
+// a Village for its restricted {G} beside a Forest's, and the hybrid faces then
+// resolve to {W}: the mana the witness tapped and the payment left floats in the
+// pool, and the Village's {G} floats as restricted mana, which a creature spell
+// alone may spend (CR 106.6, 601.2g), not as ordinary {G}.
+func TestHybridWitnessFloatsRestrictedMana(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Oakhollow Village", Count: 1}, {Name: "Gallant Citizen", Count: 1},
+		{Name: "Forest", Count: 1}, {Name: "Plains", Count: 12}}
+	set := cardsettest.Set(t, "restrictedsource")
+	for _, e := range deck {
+		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
+			t.Skipf("%s not in the restrictedsource table", e.Name)
+		}
+	}
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true, GorgeLowering: true})
+	sc.perm(id["Oakhollow Village"], 0)
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Plains"], 0)
+	sc.perm(id["Plains"], 0)
+	cit := sc.hand(id["Gallant Citizen"], 0)
+	sc.do(t, AkCast, uint8(cit), 0xff)
+	for d := sc.s.Step(); d.Kind == DkChoose; d = sc.s.Step() {
+		sc.s.Apply(d.Options[0])
+	}
+	sc.s.Step()
+	pl := &sc.s.pl[0]
+	if pl.pool[kop.G] != 1 || pl.poolR != 1|uint16(kop.G)<<poolRShift {
+		t.Fatalf("after the cast: pool %v poolR %#x, want one ordinary {G} (the Forest's) and one restricted {G} (the Village's)", pl.pool, pl.poolR)
+	}
+}
+
+// TestHybridWitnessKeepsPlainTapPlain: a hybrid spell no restricted mana may
+// pay for is witnessed with the Lair's plain {C} and two Islands' {U}, and
+// nothing of what the plan tapped floats as restricted mana: the Lair made its
+// unrestricted {C}, so the Islands' {U} is no Lair mana and the hybrid pip asks
+// the {U} the pool holds as gorge does (CR 106.6, 601.2g).
+func TestHybridWitnessKeepsPlainTapPlain(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Turtle Lair", Count: 1}, {Name: "Slithering Cryptid", Count: 1},
+		{Name: "Island", Count: 13}}
+	set := cardsettest.Set(t, "restrictedsource")
+	for _, e := range deck {
+		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
+			t.Skipf("%s not in the restrictedsource table", e.Name)
+		}
+	}
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true, GorgeLowering: true})
+	sc.perm(id["Turtle Lair"], 0)
+	sc.perm(id["Island"], 0)
+	sc.perm(id["Island"], 0)
+	cry := sc.hand(id["Slithering Cryptid"], 0)
+	sc.do(t, AkCast, uint8(cry), 0xff)
+	for d := sc.s.Step(); d.Kind == DkChoose; d = sc.s.Step() {
+		sc.s.Apply(d.Options[0])
+	}
+	sc.s.Step()
+	if pl := &sc.s.pl[0]; pl.poolR != 0 {
+		t.Fatalf("after the cast: poolR %#x, want no restricted mana (the Lair tapped for its plain {C})", pl.poolR)
+	}
+}

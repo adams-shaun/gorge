@@ -31,7 +31,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 903.4c | follows | `engine/cards/face.go#oracleColours` | `TestDeriveColourIdentityFromScriptFields` | parenthesised reminder text skipped |
 | 903.4d | follows | `engine/cards/ir.go#Card.ColourIdentity` | `TestCardIdentityUnionsFaces` | union over faces |
 | 903.4e | follows | `engine/cards/ir.go#Card.ColourIdentity` | `TestCardIdentityUnionsFaces` | adventure faces included in union |
-| 903.4f | follows | `engine/rules/pay/planner.go#CommanderIdentityColours` | `TestCommandTowerNonCommanderGameStaysFailClosed` | no commander: fails closed |
+| 903.4f | follows | `engine/rules/pay/planner.go#CommanderIdentityColours` `engine/rules/payment_window_yield.go#Engine.manaAbilityYieldsNothing` | `TestCommandTowerNonCommanderGameStaysFailClosed` `TestColourIdentitySourceWithNoCommanderLeavesPaymentWindows` | no commander: fails closed, and no payment window offers the tap |
 | 903.5 | follows | `engine/deck/deck.go#File.ValidateCommander` | `TestValidateCommanderAcceptsLegalDeck` | - |
 | 903.5a | follows | `engine/deck/deck.go#File.ValidateCommander` | `TestValidateCommanderRejectsWrongCount` | exactly 100 |
 | 903.5b | partial | `engine/deck/deck.go#File.ValidateCommander` `engine/deck/deck.go#Parse` | `TestValidateCommanderRejectsNonSingleton` | per-entry count; duplicate entries not merged |

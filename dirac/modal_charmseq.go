@@ -42,6 +42,20 @@ func charmSeqSlots(a *kop.Ability, mode uint8) bool {
 	return false
 }
 
+// charmSeqSlot reports whether root slot ti of the build is asked
+// sequentially.
+func (s *State) charmSeqSlot(k *prep, ti int) bool {
+	if k.gen == nil || !k.gen.anyCharmNum {
+		return false
+	}
+	a := s.buildAbility(k)
+	if a == nil || !charmSeqSlots(a, s.bld().e.mode) {
+		return false
+	}
+	roots, _ := charmRootSlots(a, s.bld().e.mode)
+	return roots&(1<<ti) != 0
+}
+
 // charmSeqPrime readies root slot ti of a sequential charm ask (called by
 // bsTargets under anyCharmNum before the slot is posed): it runs the
 // pre-target gate ahead of the first ask and starts a plural slot with its Max

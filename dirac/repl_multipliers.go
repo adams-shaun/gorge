@@ -41,6 +41,9 @@ func prepReplMult(t *kop.Table, g *genPrep) {
 				if r.Filter != 0 || r.C != 0 || r.Cond != 0 {
 					g.anyFiltRepl = true
 				}
+				if t.Filters[r.Filter].Flags2&kop.F2EnteredThisTurn != 0 {
+					g.enteredNeed = true // a source that left reads its entry (srcEnteredThisTurn)
+				}
 			case kop.ReplDoubleTokens:
 				if r.Filter != 0 || r.A > 2 {
 					g.anyFiltRepl = true
@@ -54,9 +57,8 @@ func prepReplMult(t *kop.Table, g *genPrep) {
 // b applies to damage a source (srcSl, or the card srcCard when it is not a
 // permanent: srcObj its object when known, NoObj else) controlled by srcCtrl
 // would deal to the recipient (the permanent at sl controlled by rcp, or
-// player rcp when sl is NoSlot). A combat source gone at the ask is matched
-// in its new zone (gorge re-collects the matches against the object as it
-// is: a creature that died this turn entered the graveyard this turn).
+// player rcp when sl is NoSlot). A source gone from the battlefield is read as
+// the permanent it last was (CR 608.2h; srcEnteredThisTurn).
 func (s *State) dblDmgMatch(k *prep, b Slot, srcCtrl uint8, srcSl Slot, srcCard CardID, srcObj Obj, rcp uint8, sl Slot, combat bool) bool {
 	lc := s.perms[b].ctrl
 	if lc != srcCtrl {
@@ -102,10 +104,31 @@ func (s *State) dblDmgMatch(k *prep, b Slot, srcCtrl uint8, srcSl Slot, srcCard 
 			if !s.matchPermGen(k, r.Filter, srcSl, lc, b, layerFull) {
 				continue
 			}
+		} else if fl := k.t.Filters[r.Filter]; fl.Flags2&kop.F2EnteredThisTurn != 0 {
+			fl.Flags2 &^= kop.F2EnteredThisTurn
+			if !s.srcEnteredThisTurn(k, srcCard) || !s.matchCardOne(k, &fl, srcCard, srcCtrl, lc, NoObj) {
+				continue
+			}
 		} else if !s.matchCardGen(k, r.Filter, srcCard, srcCtrl, lc, srcObj) {
 			continue
 		}
 		return true
+	}
+	return false
+}
+
+// srcEnteredThisTurn: the resolving entry's source, a card that has left the
+// battlefield, had entered it this turn. The ledger keeps an entry past the object's
+// next move; zoneTurn would read its arrival where it is now.
+func (s *State) srcEnteredThisTurn(k *prep, srcCard CardID) bool {
+	if s.res.e.card != srcCard {
+		return false
+	}
+	o := s.res.e.obj
+	for i := uint8(0); i < s.g.enteredN; i++ {
+		if e := &s.cold.entered[i]; e.o == o && e.to == uint8(kop.ZoneBattlefield) {
+			return true
+		}
 	}
 	return false
 }

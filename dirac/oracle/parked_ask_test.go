@@ -13,8 +13,10 @@ import (
 
 // Two Leylines of the Void compete for what their controller's opponent loses. A
 // casualty of the same state-based check that does not compete leaves at once, and
-// the passes that run on under the first order ask unattach its Equipment, while an
-// opposing Aura on it stays attached until its own contested move is answered.
+// the check returns at each order ask: its Equipment keeps the host while the asks of
+// that pass are answered, and unattaches in the next pass, before that pass's own ask,
+// while an opposing Aura on it stays until its own contested move is answered
+// (CR 704.3, 616.1).
 func TestAttachmentsUnderAParkedOrderAskLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)

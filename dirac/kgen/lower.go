@@ -131,6 +131,8 @@ type lowerCtx struct {
 	head        bool      // the node being lowered heads its chain
 	inGroup     bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
 	czForgetSet bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
+	chains      int       // chain entries so far (every-blocker census: did a node's body get read?)
+	guardNode   string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
 	curNode     *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
 	condDefined bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own         ownTgt    // the slot curNode declared itself (lower_owntarget.go)
@@ -146,6 +148,9 @@ type lowerCtx struct {
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
+	// grantAttached while the trigger an Equipment's or Aura's static grants
+	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
+	grantAttached bool
 	// repeatPl > 0 while a RepeatEach-over-players body is lowered: its
 	// Defined$ Player.IsRemembered is the repeated player (lower_repeatplayers.go)
 	repeatPl int
@@ -279,7 +284,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			continue
 		}
 		n := len(out.Abilities)
-		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error { return lc.lowerAbility(a) })
+		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
+			entered := lc.chains
+			err := lc.lowerAbility(a)
+			if err != nil {
+				lc.probeBody(a, entered)
+			}
+			return err
+		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = i, true
 		}
@@ -287,7 +299,18 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 	for i, t := range lc.face.Triggers {
 		t := t
 		n := len(out.Abilities)
-		lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.lowerTriggered(t, "") })
+		if t.Mode == "TapsForMana" {
+			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
+			continue
+		}
+		lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error {
+			entered := lc.chains
+			err := lc.lowerTriggered(t, "")
+			if err != nil {
+				lc.probeBody(t.Effect, entered)
+			}
+			return err
+		})
 		if len(out.Abilities) > n && origin {
 			out.Abilities[n].Origin, out.Abilities[n].OriginOK = 0x80|i, true
 		}
@@ -327,6 +350,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseMayhemCombos()
+	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseWebSlingCombos()
 	lc.refuseEvokeCombos()
@@ -461,7 +485,9 @@ func (lc *lowerCtx) refuseNode(node, format string, a ...any) {
 
 // guard runs one top-level node's lowering, recording a refusal on error.
 func (lc *lowerCtx) guard(node string, fn func() error) {
-	saved := lc.ab
+	saved, savedNode := lc.ab, lc.guardNode
+	lc.guardNode = node
+	defer func() { lc.guardNode = savedNode }()
 	lc.excess = ""
 	if err := fn(); err != nil {
 		lc.refuseNode(node, "%s", err.Error())
@@ -489,6 +515,7 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 		out.Subtypes = append(out.Subtypes, t)
 	}
+	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.Colors = colorsOf(f)
 	if faceHasKeyword(f, "Devoid") {
 		// CR 702.114a: gorge effects.faceColorMask / cards.printedColourMask
@@ -496,14 +523,14 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Colors = ""
 	}
 	if f.PT != "" {
-		pw, tg, ok := strings.Cut(f.PT, "/")
+		_, _, ok := strings.Cut(f.PT, "/")
 		if !ok {
 			lc.refuseNode("PT", "PT %q", f.PT)
 		} else {
-			// A star reads 0, and the other number stands once the CDA is lost.
-			out.PTStar = pw == "*" || tg == "*"
-			out.P, _ = strconv.Atoi(pw)
-			out.T, _ = strconv.Atoi(tg)
+			// A star reads 0 and the fixed term stands once the CDA is lost (CR 208.2a): a
+			// "1+*" toughness is 1, as gorge reads the face (Cosmogoyf with no abilities is 0/1).
+			out.PTStar = f.CharacteristicDefining()
+			out.P, out.T = f.Power(), f.Toughness()
 		}
 	}
 	if f.Loyalty != "" {
@@ -579,8 +606,13 @@ func parseManaCostSyms(s string, twobrid, phyrexian bool) (manaCost, error) {
 			continue
 		}
 		if t == "X" {
+			if m.XXX {
+				return m, fmt.Errorf("XXXX cost")
+			}
 			if m.XX {
-				return m, fmt.Errorf("XXX cost")
+				// {X}{X}{X}: X announced once, paid three times
+				m.XXX = true
+				continue
 			}
 			if m.X {
 				// {X}{X}: X announced once, paid twice (the kernel's
@@ -1012,6 +1044,8 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.Harmonize = &mc
+		case head == "Beam me up":
+			lc.beamMeUp(node, param) // lower_beammeup.go
 		case head == "Mayhem":
 			// CR 702.187a: a graveyard cast for the colon parameter, an
 			// alternative mana cost, if the card was discarded this turn
@@ -1515,6 +1549,15 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				c.SacSelf = true
 				continue
 			}
+			if parts[1] == "OriginalHost" {
+				// the granting Equipment or Aura (gorge bindGrantedCostReferents:
+				// the one candidate is the grantor, settled unasked)
+				if n != 1 || c.SacHost {
+					return c, refuse("cost token %q", t)
+				}
+				c.SacHost = true
+				continue
+			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {
@@ -1530,7 +1573,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("exile cost %q", t)
 			}
 			if head == "ExileCtrlOrGrave" {
-				if n != 1 || parts[1] == "CARDNAME" {
+				if parts[1] == "CARDNAME" {
 					return c, refuse("exile cost %q", t)
 				}
 				c.ExileGBf = true
@@ -2052,7 +2095,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("mana ability with a return cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 || cost.ReturnSelf {
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 || cost.ReturnSelf {
 				return refuse("return cost beside another non-mana part")
 			}
 		}
@@ -2063,7 +2106,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// gorge pays returns before the sacrifices: refuse beside any
 			// other non-mana part but {T} (the kernel orders only these)
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 {
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 {
 				return refuse("return-self cost beside another non-mana part")
 			}
 		}
@@ -2072,7 +2115,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("mana ability with an exile-self cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.Forage != nil || cost.ExileG != nil && !cost.ExileGBf || cost.Energy != 0 ||
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil && !cost.ExileGBf || cost.Energy != 0 ||
 				cost.ReturnSelf || cost.Return != nil {
 				// (Craft's ExileCtrlOrGrave material beside its Exile<1/CARDNAME>:
 				// the material picks are paid first, then the source, gorge
@@ -2096,7 +2139,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("waterbend cost with an {X} in the mana cost")
 			}
 			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
-				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.TapPowN != 0 || cost.Forage != nil || cost.ExileG != nil ||
+				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.TapPowN != 0 || cost.Forage != nil || cost.ExileG != nil ||
 				cost.Energy != 0 || cost.ReturnSelf || cost.ExileSelf || cost.Untap || cost.Return != nil || cost.DrawN > 0 {
 				return refuse("waterbend cost beside another non-mana part")
 			}
@@ -2448,6 +2491,7 @@ func (lc *lowerCtx) lowerChapters(param string) {
 // chain lowers an SA and its Sub chain into the current ability's program.
 // ps carries the head node's params (already partly read by the caller).
 func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
+	lc.chains++
 	lc.depth++
 	prevHead, prevRoot := lc.head, lc.chainRoot
 	if lc.depth == 1 {
@@ -2455,6 +2499,7 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 	}
 	defer func() { lc.depth--; lc.head, lc.chainRoot = prevHead, prevRoot }()
 	usBase := len(lc.unlessSubs)
+	var blockers []error // every-blocker census only: this chain's refusals, in order
 	for node := sa; node != nil; node = node.Sub {
 		lc.head = node == sa
 		lc.curNode = node
@@ -2472,7 +2517,15 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			err = lc.checkTriggerAttackers(at) // lower_triggerattackers.go
 		}
 		if err != nil {
-			return fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
+			err = fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
+			if lc.p != nil && lc.p.allBlockers {
+				// every-blocker census: keep reading the Sub chain, noting
+				// what the failed node left unread
+				lc.noteUnreadable(p, node)
+				blockers = append(blockers, err)
+				continue
+			}
+			return err
 		}
 		for i := nt; i < len(lc.ab.Targets); i++ {
 			if t := &lc.ab.Targets[i]; t.SubDecl && t.Divided > 0 {
@@ -2496,11 +2549,24 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 			lc.ab.Prog[pos] = lInstr{Op: "ChooseTargets", C: i}
 		}
 		if left := p.unread(); len(left) > 0 {
-			return refuse("%s$ %s: unread params %v", node.Kind, node.API, left)
+			err := refuse("%s$ %s: unread params %v", node.Kind, node.API, left)
+			if lc.p != nil && lc.p.allBlockers {
+				blockers = append(blockers, err)
+				continue
+			}
+			return err
 		}
 		if err := lc.unionUses(at); err != nil {
 			return fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
 		}
+	}
+	if len(blockers) > 0 {
+		// the first is the node's refusal (as without the mode); the rest
+		// are recorded beside it
+		for _, e := range blockers[1:] {
+			lc.refuseNode(lc.blockerNode(), "%s", e.Error())
+		}
+		return blockers[0]
 	}
 	if err := lc.applyUnlessSubs(usBase); err != nil {
 		return err
@@ -2622,4 +2688,74 @@ func (lc *lowerCtx) impendingTick() error {
 		return fmt.Errorf("tick lowering")
 	}
 	return nil
+}
+
+// blockerNode names the top-level node an extra every-blocker refusal
+// belongs to.
+func (lc *lowerCtx) blockerNode() string {
+	if lc.guardNode == "" {
+		return "card"
+	}
+	return lc.guardNode
+}
+
+// noteUnreadable records, in the every-blocker census, that a refused node
+// stopped before reading some of its params, so further blockers may sit
+// among them.
+func (lc *lowerCtx) noteUnreadable(p *params, sa *cards.SA) {
+	var left []string
+	for _, k := range p.unread() {
+		if err := lc.probeParam(k, p.m[k]); err != nil {
+			lc.refuseNode(lc.blockerNode(), "%s$ %s: %s", sa.Kind, sa.API, err.Error())
+			p.used[k] = true
+			continue
+		}
+		left = append(left, k)
+	}
+	if len(left) > 0 {
+		lc.out.Unreadable = append(lc.out.Unreadable, refusal{Card: lc.name, Node: lc.blockerNode(), Reason: fmt.Sprintf("unread after refusal %v", left)})
+	}
+}
+
+// probeAmountKeys are the amount params a refused node's stopped reading
+// can hide; probeParam reads one on its own, as the node would have.
+var probeAmountKeys = map[string]bool{"NumDmg": true, "NumCards": true, "NumAtt": true, "NumDef": true, "LifeAmount": true, "CounterNum": true,
+	"TokenAmount": true, "Amount": true, "ChangeNum": true, "DigNum": true, "NumTurns": true}
+
+// probeFilterKeys are the filter params probeParam reads on their own, with
+// every Valid* key.
+var probeFilterKeys = map[string]bool{"ChangeType": true, "ChangeValid": true, "SacValid": true, "Choices": true, "IsPresent": true, "ConditionPresent": true, "Affected": true}
+
+func (lc *lowerCtx) probeParam(k, v string) error {
+	v = strings.TrimSpace(v)
+	switch {
+	case v == "":
+		return nil
+	case probeAmountKeys[k]:
+		switch v {
+		case "All", "Any", "Double", "Triple", "Half":
+			return nil
+		}
+		_, err := lc.value(v)
+		return err
+	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
+		_, err := lc.filter(v)
+		return err
+	}
+	return nil
+}
+
+// probeBody lowers a refused ability's or trigger's body on its own when the
+// refusal came before the body was read, so its blockers are listed too.
+func (lc *lowerCtx) probeBody(sa *cards.SA, entered int) {
+	if lc.p == nil || !lc.p.allBlockers || sa == nil || lc.chains != entered {
+		return
+	}
+	saved := lc.guardNode
+	lc.guardNode = saved + " body"
+	err := lc.withAbility(lc.newLatent("Probe"), func() error { return lc.chain(sa, nil) })
+	if err != nil {
+		lc.refuseNode(lc.guardNode, "%s", err.Error())
+	}
+	lc.guardNode = saved
 }

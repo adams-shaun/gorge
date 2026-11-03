@@ -42,6 +42,15 @@ func NewCompiledCost(text string) *CompiledCost {
 	return &CompiledCost{Cost: c, BareTap: costIsBareTap(&c), BeyondTap: costvocab.ManaCostBeyondTap(c)}
 }
 
+// CompiledCostFromCost is the compiled cost of an already-built cost: the
+// price a cost modifier composed for one activation. The result is fresh and
+// owned by the caller; it carries the same derived facts NewCompiledCost
+// computes for a parsed text.
+func CompiledCostFromCost(c Cost) *CompiledCost {
+	c = FreezeCost(c)
+	return &CompiledCost{Cost: c, BareTap: costIsBareTap(&c), BeyondTap: costvocab.ManaCostBeyondTap(c)}
+}
+
 // costIsBareTap reports whether c is exactly {T}. Any component it cannot
 // prove zero (a non-nil empty slice included) answers false, the direction
 // that only ever keeps the full walk.

@@ -993,14 +993,8 @@ func (e *Engine) castModeAsk() bool {
 	ctx.Num.OptionalCostElected = castModeCodes.Code(pc.mode) == castModeOptionalcost
 	effects.SetSVars(ctx, f.SVars)
 	if effects.CharmRandomChosen(e, ctx, sa) {
-		// param:api:Charm.Random: a random Charm's mode announcement is not
-		// asked (measured corpus-unreachable -- every Random$ Charm carrier,
-		// 5 files, is a trigger body -- so this site is latent). Resolution's
-		// effCharm picks the mode with the engine's rng (Random$ True, or
-		// Random$ Compare while the comparison holds) or poses the ordinary
-		// KModes ask there; modesDone is already set, so the announcement is
-		// simply skipped and the per-mode legality filter above never
-		// narrows the pool the rng would pick from.
+		// param:api:Charm.Random: unreachable at the corpus pin, every Random$
+		// Charm being a trigger body. effCharm draws at resolution or asks.
 		return false
 	}
 	choices := effects.CharmOf(sa).Modes

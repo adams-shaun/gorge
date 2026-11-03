@@ -117,7 +117,7 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 	}
 	s.eachStaticC(k, sclsReduce, func(stc statSrc) bool {
 		a := stc.a
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone != kop.ZoneCommand && stc.ctrl == p {
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone != kop.ZoneCommand && (stc.ctrl == p || a.Static.StFlags&kop.StReduceAny != 0) {
 			apply(a, s.ctxStatic(stc), stc.emb)
 		}
 		return true
@@ -363,7 +363,14 @@ func (s *State) preventCombatGen(k *prep, r *dmgRec) {
 // them when the full cost is affordable, else those the reduction needs.
 func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	e := &s.bld().e
-	if e.kind != seSpell || e.flags&sfFree != 0 {
+	if e.kind != seSpell {
+		return n
+	}
+	if e.flags&sfFree != 0 {
+		// a free cast: only a target-dependent raise prices it
+		if k.gen.anyRaise {
+			n = s.freeDropTargets(k, buf, n)
+		}
 		return n
 	}
 	if k.gen.anyRaise {
@@ -379,6 +386,15 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	}
 	if f == 0 {
 		return n
+	}
+	for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
+		if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
+			// an earlier slot's target already satisfies the reduction, so the
+			// cost is reduced whatever this slot picks (Run Over's second
+			// target, the creature an opponent controls, once its first is a
+			// Vehicle; gorge asks a later chain link's target unfiltered)
+			return n
+		}
 	}
 	s.g.noTgtRed = true
 	full := s.adjustCostGen(k, e.ctrl, e.card, e.obj, cd.Cost)

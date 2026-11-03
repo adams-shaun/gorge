@@ -50,6 +50,29 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// lifePainLandAb: a is the paid-life ability of a life-pain land of c: its
+// two mana abilities are a plain {T}: Add {C} and a, {T} and N life for a
+// colour (Starting Town). gorge's planner prices that cost as a last-resort
+// choice (pay.PlanLastResortCostOK), not a census gap.
+func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
+	if _, ok := manaLifePain(a); !ok {
+		return false
+	}
+	n := 0
+	first := true
+	for j := range c.Abilities {
+		b := &c.Abilities[j]
+		if b.Kind != kop.AbMana || b.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		n++
+		if n == 1 {
+			first = b.ManaColors == kop.ColC && len(b.Prog) == 0 && b.Cost.Flags == kop.CostTap
+		}
+	}
+	return n == 2 && first
+}
+
 // prepPainMana sets pc's pain alternative for a painland: the card's mana
 // abilities are a plain {T}: Add {C} and a painful {T} ability of one or two
 // colours (kgen refuseMultiMana's painland shape). It reports whether it did.
@@ -165,10 +188,28 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	cr := s.isCreature(k, sl)
 	pm := uint8(pc.painCol) & 0x1f
-	fl := uint8(bits.OnesCount8(pm))
-	if !pc.painOnly {
-		fl++ // FlexAll: {C} and the colours
+	// the tap's extra: the {C} ability's carriers' on its type, the painful
+	// one's non-{C}-only carriers' on the painful type (srcExtraPain)
+	xc, xp, ok := s.srcExtraPain(k, sl, pc)
+	if !ok {
+		return true
 	}
+	var xmc, xmp, xtc, xtp uint8
+	for c := range xc {
+		if xc[c] > 0 {
+			xmc |= 1 << c
+			xtc += xc[c]
+		}
+		if xp[c] > 0 {
+			xmp |= 1 << c
+			xtp += xp[c]
+		}
+	}
+	all := pm | xmc | xmp
+	if !pc.painOnly {
+		all |= 1 << kop.C
+	}
+	fl := uint8(bits.OnesCount8(all)) // FlexAll: {C} and the colours, and the extra's
 	add := func(mask, pain uint8, alt bool) int {
 		if pk.nt == len(pk.types) {
 			return -1
@@ -176,8 +217,16 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		t := pk.nt
 		pk.nt++
 		pk.types[t] = utype{mask: mask, dmask: mask, n: 1, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0}
-		if pk.maxN < 1 {
-			pk.maxN = 1
+		if pain != 0 {
+			pk.types[t].xv, pk.types[t].xmask, pk.types[t].xt = xp, xmp, xtp
+		} else {
+			pk.types[t].xv, pk.types[t].xmask, pk.types[t].xt = xc, xmc, xtc
+		}
+		if pk.types[t].xt != 0 {
+			pk.maxXt = true
+		}
+		if m := 1 + int(pk.types[t].xt); pk.maxN < m {
+			pk.maxN = m
 		}
 		return t
 	}
@@ -186,7 +235,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
 			ty := &pk.types[t]
-			if ty.pain != 0 && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly {
+			if ty.pain != 0 && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp {
 				return t
 			}
 		}
@@ -198,7 +247,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	if !pc.painOnly {
 		for t := 0; t < pk.nt && tc < 0; t++ {
 			ty := &pk.types[t]
-			if ty.pair != 0 && !ty.alt && ty.creat == cr && pk.types[ty.pair-1].mask == pm {
+			if ty.pair != 0 && !ty.alt && ty.creat == cr && pk.types[ty.pair-1].mask == pm && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
 				tc = t
 			}
 		}
@@ -249,6 +298,7 @@ type painAvail struct {
 	budget uint8    // painful activations a plan may take: life - 1
 	mask   [6]uint8 // the group's painful colours
 	cnt    [6]uint8
+	ec     [6]uint8 // the extra {C} the group's {C} ability brings (a modal source)
 }
 
 // painTight rebuilds a's painful units as a painAvail when every painful
@@ -267,6 +317,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen != nil && k.gen.anyContGrant {
 		return // at 1 life availFor already withheld every painful colour
 	}
+	modal := a.nModal != 0 // a source with a {C}-only extra: its groups split even when the budget does not bind
 	var pa painAvail
 	sum := 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
@@ -276,6 +327,7 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if pc.painN != 1 {
+			s.painTightBail(modal)
 			return // a heavier rider: keep the per-unit count
 		}
 		sum++
@@ -284,23 +336,29 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		if pc.painOnly {
 			ob = 1
 		}
+		var ec uint8
+		if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
+			ec = s.painExtraC(k, sl, pc)
+		}
 		g := uint8(0)
 		for ; g < pa.n; g++ {
-			if pa.mask[g] == pm && pa.only>>g&1 == ob {
+			if pa.mask[g] == pm && pa.only>>g&1 == ob && pa.ec[g] == ec {
 				break
 			}
 		}
 		if g == pa.n {
 			if int(pa.n) == len(pa.mask) {
+				s.painTightBail(modal)
 				return // an exotic board: keep the per-unit count
 			}
 			pa.mask[g] = pm
 			pa.only |= ob << g
+			pa.ec[g] = ec
 			pa.n++
 		}
 		pa.cnt[g]++
 	}
-	if sum < life {
+	if sum < life && !modal {
 		return
 	}
 	pa.budget = uint8(min(life-1, 255))
@@ -315,10 +373,21 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		a.remove(full, pa.cnt[g])
 		if !only {
 			a.addUnits(1<<kop.C, pa.cnt[g])
+			if pa.ec[g] != 0 {
+				a.addUnits(1<<kop.C, pa.ec[g]*pa.cnt[g]) // the {C} ability's own extra
+			}
 		}
 	}
 	pa.on = true
 	a.pain = pa
+}
+
+// painTightBail: painTight leaves the units as availFor built them; a modal
+// source cannot be left that way.
+func (s *State) painTightBail(modal bool) {
+	if modal {
+		s.capFull(StallTapExtra)
+	}
 }
 
 // painAffords is affordsPlain under a painful budget: some split of the
@@ -346,7 +415,7 @@ func (a *avail) painAffords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 				if pa.only>>g&1 != 0 {
 					t.addUnits(pa.mask[g], x[g])
 				} else {
-					t.remove(1<<kop.C, x[g])
+					t.remove(1<<kop.C, x[g]*(1+pa.ec[g]))
 					t.addUnits(pa.mask[g]|1<<kop.C, x[g])
 				}
 			}
@@ -417,6 +486,12 @@ func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
 //go:noinline
 func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
 	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	if ok && s.winPaused() {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return true // the pick is posed; the cast pays when the window ends (mana_window.go)
+	}
 	if !ok {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]

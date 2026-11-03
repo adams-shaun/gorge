@@ -65,12 +65,12 @@ func TestWardPaysInBattlefieldOrder(t *testing.T) {
 	}
 }
 
-// TestPayWindowTapsOwedColour: a window payment (ward, unless) taps a gain
-// land for a colour the cost still owes, as the oracle's window answer
-// picks the owed colour first (payWindowAnswer), and otherwise for its
-// lowest colour: Wind-Scarred Crag pays {R} with R. Before, it always took
-// the lowest colour (W) and the {R} stayed unpaid.
-func TestPayWindowTapsOwedColour(t *testing.T) {
+// TestPayWindowTapsLowestColour: a window payment (ward, unless) taps a
+// two-colour source for its lowest colour whatever the cost still owes. The
+// window's decisions carry no ManaPayment, so the oracle's window answer
+// (payWindowAnswer) has no owed colour to prefer: Wind-Scarred Crag pays {R}
+// with W, the pool keeps the W, and the payment is short.
+func TestPayWindowTapsLowestColour(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Wind-Scarred Crag", Count: 1}, {Name: "Mountain", Count: 5}}
 	fdnSet := cardsettest.Set(t, "fdn")
 	for _, e := range deck {
@@ -93,9 +93,11 @@ func TestPayWindowTapsOwedColour(t *testing.T) {
 	crag := sc.perm(id["Wind-Scarred Crag"], 0)
 	sc.s.perms[sc.slot(crag)].flags &^= pfTapped // it entered long ago
 	c := cost(0, kop.R)
-	sc.s.payWindow(sc.k, 0, &c)
-	if !sc.tapped(crag) || sc.s.pl[0].pool != [kop.NumManaKinds]uint8{} {
-		t.Fatalf("Crag tapped %v, pool left %v: want R made and spent", sc.tapped(crag), sc.s.pl[0].pool)
+	_, short := sc.s.payWindow(sc.k, 0, &c)
+	var want [kop.NumManaKinds]uint8
+	want[kop.W] = 1
+	if !sc.tapped(crag) || !short || sc.s.pl[0].pool != want {
+		t.Fatalf("Crag tapped %v, short %v, pool left %v: want W made and floating, the {R} unpaid", sc.tapped(crag), short, sc.s.pl[0].pool)
 	}
 }
 

@@ -271,12 +271,23 @@ func (s *State) waterbendTapsNeeded(k *prep, e *stackEntry, a *kop.Ability) int 
 	return 0
 }
 
+// windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
+// at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
+// census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature
+// spell). An amount read off the board is priced only when it is positive.
+func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
+	if !restrSrcAb(a) {
+		return false
+	}
+	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0
+}
+
 // windowCensusComplete reports whether gorge's window census prices every source of
 // the payer: a permanent that can tap for a restricted mana ability this payment may
-// spend understates what the window can produce (CR 106.6). Gorge:
-// castWindowCensusComplete.
+// spend, and the window probe does not price, understates what the window can produce
+// (CR 106.6). Gorge: castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
-	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR {
+	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra {
 		return true
 	}
 	d := s.payDescNow(NoObj)
@@ -290,7 +301,15 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for j := range cd.Abilities {
 			a := &cd.Abilities[j]
-			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) {
+			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
+				!s.windowPricesRestr(k, sl, a) {
+				return false
+			}
+		}
+		// A tap trigger that adds mana to this source's production is one the
+		// window census doesn't price (gorge manaProductionAltered, CR 605.1b).
+		if k.gen.anyTapExtra {
+			if _, hit := s.srcExtraHit(k, sl, s.manaPCAt(k, sl)); hit {
 				return false
 			}
 		}
@@ -373,8 +392,46 @@ func (s *State) waterbendManualPay(k *prep, e *stackEntry, saved *[len(build{}.p
 	if !s.abilityPlanSettles(k, e, full, credited, cost, saved) {
 		return true
 	}
+	if s.waterbendWitnessStands(k, e, full, credited, cost, saved) {
+		return false
+	}
 	s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
 	return false
+}
+
+// waterbendWitnessStands taps the witness the offer armed when gorge's payment keeps
+// it. The plan was ranked as the activation began, with every pick still untapped
+// and so still a source (a Bender's Waterskin is one), for the offer credit's price
+// because the sources could not fund the printed cost. When the picks bring the
+// cost to exactly that price and the witness taps none of them, the check finds
+// it unchanged (paymentPlanCheckUnits) and it runs as armed; otherwise gorge plans
+// again without the picks, which tapFor does. It reports whether the armed witness
+// was tapped.
+func (s *State) waterbendWitnessStands(k *prep, e *stackEntry, full, credited, cost kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if credited != cost || credited.X != 0 || full.X != 0 {
+		return false
+	}
+	s.releaseCostTaps(k, saved)
+	var chk planner
+	chk.dry, chk.noGrant = true, true
+	s.tapForPK(k, e.ctrl, &full, 0, NoObj, false, false, &chk)
+	if chk.needT == 0 || chk.found {
+		s.retakeCostTaps(saved) // armed for the printed cost, which the picks changed
+		return false
+	}
+	probe := s.fork()
+	s.tapFor(k, e.ctrl, &credited, 0, NoObj)
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().pickKs[i] == pkWaterbend && s.perms[s.objs[s.bld().picks[i]].slot].flags&pfTapped != 0 {
+			s.CopyFrom(probe) // the witness names a pick: gorge plans again
+			s.unfork()
+			s.retakeCostTaps(saved)
+			return false
+		}
+	}
+	s.unfork()
+	s.retakeCostTaps(saved)
+	return true
 }
 
 // waterbendTargetAbort reports whether the pending waterbend activation can
@@ -396,10 +453,6 @@ func (s *State) waterbendTargetAbort(k *prep) bool {
 	if a.Cost.Flags&kop.CostWaterbend == 0 {
 		return false
 	}
-	// an incomplete census keeps the offer (gorge affordableTargetCandidates)
-	if !s.windowCensusComplete(k, e) {
-		return false
-	}
 	// buildCost already subtracts the announced picks (gorge's
 	// affordableTargetCandidates folds them through applyConvoke before the
 	// affordability probe), so the probe prices the cost the payment will
@@ -414,6 +467,13 @@ func (s *State) waterbendTargetAbort(k *prep) bool {
 		}
 	}
 	s.occ = s.occ.andNot(hide)
+	// an incomplete census keeps the offer (gorge affordableTargetCandidates);
+	// the census is of the sources the window still has, a committed pick being
+	// no unit of it (castWindowCensusComplete skips convokeCommitted)
+	if !s.windowCensusComplete(k, e) {
+		s.CopyFrom(saved)
+		return false
+	}
 	ok, _ := s.windowTapRider(k, e.ctrl, &cost, false, s.bld().bfl&bflAnyColor != 0)
 	s.CopyFrom(saved)
 	return !ok

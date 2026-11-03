@@ -48,7 +48,7 @@ func TestChangeZoneAllRemembers(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		sc.perm(id["Savannah Lions"], uint8(i&1))
 	}
-	sc.s.execChangeZoneAll(sc.k, &in)
+	sc.s.execChangeZoneAll(sc.k, &in, false)
 	if got := remCount(sc); got != 3 {
 		t.Fatalf("ExRememberedCount %d after exiling 3 creatures, want 3", got)
 	}
@@ -64,7 +64,7 @@ func TestChangeZoneAllRemembers(t *testing.T) {
 	for i := 0; i < 13; i++ {
 		sc.perm(id["Savannah Lions"], uint8(i&1))
 	}
-	sc.s.execChangeZoneAll(sc.k, &in)
+	sc.s.execChangeZoneAll(sc.k, &in, false)
 	if sc.s.g.stalled != StallRemember {
 		t.Fatalf("13 swept creatures: stall %d, want StallRemember", sc.s.g.stalled)
 	}

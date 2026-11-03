@@ -37,6 +37,9 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	if s.g.on && s.k().gen.graveDrawn {
 		s.cfgx |= cfgxGraveDrawn
 	}
+	if s.g.on && s.k().gen.anyRepl&rbDrawMore != 0 {
+		s.cfgx |= cfgxDrawMore
+	}
 	if s.g.on && s.k().gen.anyCantDraw {
 		s.cfgx |= cfgxCantDraw
 	}
@@ -137,6 +140,14 @@ func (s *State) Step() Decision {
 func (s *State) StepInto(d *Decision) {
 	for {
 		s.stepRaw(d)
+		if s.over || s.g.stalled != 0 {
+			// a capacity stall while the options were built: nothing to answer.
+			// A generated table latches the stall (capFull) rather than ending
+			// the game inside the build, so options built past it are not posed.
+			s.stallLatched()
+			d.Kind, d.N = DkNone, 0
+			return
+		}
 		if d.N > 1 {
 			s.sortCanonical(d)
 		}
@@ -161,6 +172,11 @@ func (s *State) StepInto(d *Decision) {
 // without changing anything. StepInto itself (the hot loop's) is unchanged.
 func (s *State) StepOne(d *Decision) {
 	s.stepRaw(d)
+	if s.over || s.g.stalled != 0 {
+		s.stallLatched()
+		d.Kind, d.N = DkNone, 0
+		return
+	}
 	if d.N > 1 {
 		s.sortCanonical(d)
 	}
@@ -282,6 +298,12 @@ func (s *State) stepRaw(d *Decision) {
 				return
 			}
 		case ctlResolve:
+			if k.gen != nil && k.gen.ctrlSBA {
+				// gorge settles control after every event: a Destroy that
+				// ended an Aura's steal is seen by the ask the resolution
+				// poses next, not at the state-based check after it
+				s.ctrlSBA(k)
+			}
 			if s.resolveOptions(k, d) {
 				return
 			}

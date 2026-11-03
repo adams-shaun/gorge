@@ -69,7 +69,7 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 		}
 		var free []*cards.SA
 		for _, ma := range e.availableManaAbilities(p, id) {
-			cost := e.abilityCompiledCost(ma).Cost
+			cost := e.manaAbilityCC(p, id, ma).Cost
 			if pay.ManaFreeCost(cost) && !pay.ActivationTapCostUnavailable(o, &cost) {
 				free = append(free, ma)
 			}
@@ -178,7 +178,7 @@ func (e *Engine) windowManaUnitsWith(p state.PlayerID, only []state.ObjID, pre [
 		for _, ma := range mas {
 			// The ability's own text reads come from its configured facts
 			// (manaStaticOf).
-			mf := e.manaStaticOf(ma)
+			mf := e.manaStaticFor(p, id, ma)
 			if mf.RestrictValid {
 				continue
 			}

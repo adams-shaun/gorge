@@ -90,7 +90,7 @@ func run() int {
 			set, err = cardset.RawByName(*dealt)
 		}
 		if err == nil {
-			set = cardset.AllowUnverified(set) // a pair holding a refused card is turned away
+			set = cardset.AllowUnverified(set) // decks are dealt without the refused cards
 			var files map[string]deck.File
 			if pool, files, err = oracle.SynthPool(c.Reg, set, 1, oracle.SynthDecks); err == nil {
 				c.AddDecks(files)

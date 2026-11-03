@@ -1355,3 +1355,47 @@ func TestCardflowAPIsGuardOutOfRangePlayerID(t *testing.T) {
 		})
 	}
 }
+
+// TestRevealWithNoDefinedIsTheAbilitysController: with no Defined$ the reveal is
+// over "your" library, the ability's controller's, after its source has changed hands.
+func TestRevealWithNoDefinedIsTheAbilitysController(t *testing.T) {
+	h := newHost(t, 2)
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	src := h.g.AddObject(mkCard(t, "Name:Fixture\nTypes:Enchantment\nOracle:x\n"), 1).ID
+	toBattlefield(h, src)
+	mine := fillLibrary(h.g, 0, bear, 2)
+	fillLibrary(h.g, 1, bear, 2)
+	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "SP$ PeekAndReveal | PeekAmount$ 1"))
+	var saw bool
+	for _, e := range h.log {
+		if e.Kind == events.Note && len(e.IDs) == 1 {
+			if e.IDs[0] != mine[0] {
+				t.Fatalf("revealed %d, want the top of the ability's controller's library %d", e.IDs[0], mine[0])
+			}
+			saw = true
+		}
+	}
+	if !saw {
+		t.Fatal("no Note recorded the peeked card")
+	}
+}
+
+// TestTargetedControllerAfterTheTargetLeft: CR 608.2h. A target that has left the
+// battlefield is "its controller"'s by what it last had there, not by its owner.
+func TestTargetedControllerAfterTheTargetLeft(t *testing.T) {
+	h := newHost(t, 2)
+	land := h.g.AddObject(mkCard(t, "Name:Land\nTypes:Land\nOracle:x\n"), 1)
+	h.g.Obj(land.ID).Zone = state.ZGraveyard
+	ctx := &Ctx{Controller: 0, Targets: []state.Target{{Obj: land.ID}}}
+	ctx.Snap.TargetController = map[state.ObjID]state.PlayerID{land.ID: 0}
+	got := DefinedSpec(h, ctx, "TargetedController")
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
+		t.Fatalf("TargetedController = %+v, want seat 0, who last controlled it", got)
+	}
+	h.g.Obj(land.ID).Zone = state.ZBattlefield
+	h.g.Obj(land.ID).Controller = 1
+	got = DefinedSpec(h, ctx, "TargetedController")
+	if len(got) != 1 || got[0].Player != 1 {
+		t.Fatalf("still on the battlefield: TargetedController = %+v, want seat 1, its controller now", got)
+	}
+}

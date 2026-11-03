@@ -184,6 +184,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ = CastModeCode("mayhem") // CR 702.187a: CastModeOther, as "harmonize"
 		case mode&2 != 0 && r.S.FeatHarmonizeCard(dirac.Obj(src)):
 			cm, _ = CastModeCode("harmonize") // CR 702.180a: CastModeOther, as "bargained"
+		case mode&2 != 0 && tgt != 0:
+			cm, _ = CastModeCode("beam_me_up") // CastModeOther, as "harmonize"
+			if tgt == dirac.FeatBeamGrantTgt && r.S.FeatBeamPrinted(dirac.Obj(src)) {
+				cm |= 1 << 4 // a card's second beam me up permission, the grant (BeamAlt)
+			}
 		case mode&2 != 0:
 			cm, _ = CastModeCode("flashback")
 		case mode&0x18 == 0x18 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:
@@ -279,7 +284,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("sacrifice", src, 0)
 		case dirac.ChCostTap:
 			return ch("tapcost", src, 0)
-		case dirac.ChGenPayTap:
+		case dirac.ChGenPayTap, dirac.ChWindowTap:
 			return ch("tapcost", src, 0)
 		case dirac.ChStation:
 			return ch("station", src, 0)
@@ -735,6 +740,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's beholdCostAsk KChoose over the battlefield then hand
 		// candidates
 		return Pack(kind("beholdcost"), src, RefNone, 0), true
+	case dirac.ChCostReveal:
+		// gorge's AdvanceUnless "revealcost" pick over the payer's hand
+		return Pack(kind("revealcost"), src, RefNone, 0), true
 	case dirac.ChCostEvidence:
 		// gorge's evidence KChoose over the payer's graveyard
 		return Pack(kind("evidence"), src, RefNone, 0), true

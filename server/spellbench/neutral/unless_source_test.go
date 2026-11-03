@@ -107,3 +107,47 @@ func TestNeutralUnlessCostUsesSourcePermanent(t *testing.T) {
 		t.Fatalf("neutral answer %v does not pick the pay option (%d)", got.Choices, p.Decision.Options[0].Index)
 	}
 }
+
+// TestNeutralUnlessCostOfAGrantedTrigger: the upkeep trigger The Tabernacle at Pendrell Vale
+// gives every creature is not printed on the creature, so the ask reads its unless cost off
+// the granting permanent. Without it the translated decision was a plain yes/no, and the
+// bot paid where the native bot, facing lethal, declines.
+func TestNeutralUnlessCostOfAGrantedTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	wall, tab := "Living Wall", "The Tabernacle at Pendrell Vale"
+	perm := protocol.ObjectRef{ObjectID: "o-wall-perm", CardName: &wall, OwnerSeat: "p1", ControllerSeat: "p1", Zone: "battlefield"}
+	trig := protocol.ObjectRef{ObjectID: "o-wall-trig", CardName: &wall, OwnerSeat: "p1", ControllerSeat: "p1", Zone: "stack"}
+	land := protocol.ObjectRef{ObjectID: "o-tab", CardName: &tab, OwnerSeat: "p0", ControllerSeat: "p0", Zone: "battlefield"}
+	power, toughness := int32(0), int32(6)
+	chars := &protocol.Characteristics{Types: []string{"artifact", "creature"}, Subtypes: []string{"wall"}, ManaValue: 4, Power: &power, Toughness: &toughness}
+	p1 := "p1"
+	sd := protocol.SeatDecision{
+		ActingSeat: "p1",
+		Group:      protocol.Group{SubstepIndex: 0, SubstepCount: 1},
+		Context:    protocol.Context{Kind: "choice", Source: &trig},
+		Observation: protocol.Observation{Viewer: "p1", Turn: 5, PhaseStep: "upkeep", ActiveSeat: &p1, PrioritySeat: &p1,
+			Players: [2]protocol.PlayerObs{
+				{Seat: "p0", Life: 20, Battlefield: []protocol.ObjectRecord{{ObjectRef: land, Permanent: &protocol.Permanent{}}}},
+				{Seat: p1, Life: 11, Battlefield: []protocol.ObjectRecord{{ObjectRef: perm, Permanent: &protocol.Permanent{}, Characteristics: chars}}},
+			},
+			Stack: []protocol.StackEntry{{ObjectRef: trig, StackKind: "triggered_ability", Source: &perm}}},
+		Candidates: []protocol.Candidate{
+			{CandidateID: 0, Semantic: protocol.Semantic{Kind: "optional_cost", Fields: map[string]any{"cost": "other", "pay": true, "source": trig}}},
+			{CandidateID: 1, Semantic: protocol.Semantic{Kind: "optional_cost", Fields: map[string]any{"cost": "other", "pay": false, "source": trig}}},
+		},
+	}
+	raw, err := json.Marshal(sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &sd); err != nil {
+		t.Fatal(err)
+	}
+	p, err := NewSession(reg).Payload(&sd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Decision.ResumeKind != "unless_pay" || p.Decision.ResumeSA == nil || p.Decision.ResumeSA.Params["UnlessCost"] != "1" {
+		t.Fatalf("translated decision = %+v, want the unless_pay ask with the granted trigger's {1}", p.Decision)
+	}
+}

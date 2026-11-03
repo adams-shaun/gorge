@@ -453,6 +453,35 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 			amt, any, combo, ok := labelProduction(o.Label)
 			return single && ok && !any && combo == nil && total(amt) == 1 && amt[col] == 1
 		},
+		// A tap that also adds mana through a static TapsForMana trigger
+		// records that mana in the witness beside the colour the player picks,
+		// so the witness is no single colour: take an option naming any
+		// colour it holds. The pool check after the tap catches a wrong guess.
+		func(o *decision.Option) bool {
+			if single {
+				return false
+			}
+			if o.ManaSymbol != "" {
+				c := symIndex(o.ManaSymbol)
+				return c >= 0 && want[c] > 0
+			}
+			_, any, combo, ok := labelProduction(o.Label)
+			if ok && any {
+				// an any-colour pick (Turtle Lair's restricted {T}: Add any
+				// color beside a Groundchuck & Dirtbag): its colour ask
+				// follows and takes the first colour the witness holds
+				return anyLabelFits(o.Label, want)
+			}
+			if !ok {
+				return false
+			}
+			for _, c := range combo {
+				if want[c] > 0 {
+					return true
+				}
+			}
+			return false
+		},
 	}
 	costly := act.Consequence != nil
 	for _, cls := range classes {
@@ -591,6 +620,29 @@ func containsInt(s []int, v int) bool {
 		}
 	}
 	return false
+}
+
+// WindowChoices is WindowAnswer as a whole answer: a colour ask for several mana
+// ("add two mana in any combination of colours") lists its colours once per mana, and
+// each mana takes one, what it pays coming off the owed amount.
+func WindowChoices(d *decision.Decision, owed decision.ManaAmount) []int {
+	if d.Min <= 1 || len(d.Options)%d.Min != 0 {
+		return []int{WindowAnswer(d, owed)}
+	}
+	if d.ManaPayment != nil {
+		owed = d.ManaPayment.Owed.Mana
+	}
+	n := len(d.Options) / d.Min
+	out := make([]int, 0, d.Min)
+	for slot := 0; slot < d.Min; slot++ {
+		one := decision.Decision{Options: d.Options[slot*n : (slot+1)*n]}
+		i := WindowAnswer(&one, owed)
+		out = append(out, i)
+		if c := strings.Index(syms, d.Options[i].ManaSymbol); c >= 0 && len(d.Options[i].ManaSymbol) == 1 && owed[c] > 0 {
+			owed[c]--
+		}
+	}
+	return out
 }
 
 // WindowAnswer is the deterministic answer to a payment window or colour

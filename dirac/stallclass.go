@@ -71,7 +71,7 @@ var stallCapacityReasons = [...]uint8{
 	StallCounters, StallLKI, StallTapPick, StallRegen, StallLook, StallGrants, StallActs, StallLinger, StallSac,
 	StallEntered, StallConvoke, StallCastRing, StallPT, StallActRing, StallCharmOpts, StallRefLatch, StallZone,
 	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
-	StallObsSrc, StallDynMana, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
+	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
@@ -79,8 +79,8 @@ var stallCapacityReasons = [...]uint8{
 }
 
 var stallUnmodelledReasons = [...]uint8{
-	StallTapsMana, StallInfect, StallReplPlus, StallRaiseFree, StallLifeRepl, StallProlif, StallCtrOrder,
-	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallTwobridMod, StallRoleMulti, StallDefenderPW,
+	StallInfect, StallReplPlus, StallLifeRepl, StallDrawRepl, StallProlif, StallCtrOrder,
+	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
@@ -95,14 +95,8 @@ var stallUnmodelledReasons = [...]uint8{
 // matchup with it, so the two cannot disagree.
 func (g *genPrep) initStall() uint8 {
 	switch {
-	case g.tapsMana:
-		return StallTapsMana // TrigTaps is not fired for a mana tap
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
-	case g.twobridMod:
-		return StallTwobridMod // mana_twobrid.go
-	case g.raiseFree:
-		return StallRaiseFree // a free cast is not priced with the raise gorge charges
 	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
 		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
@@ -138,10 +132,6 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 	var a, b func(c *kop.CardDef, i int) bool
 	var text string
 	switch why {
-	case StallTapsMana:
-		text = "a Taps trigger beside a granted mana ability: the kernel fires no Taps trigger for a mana tap"
-		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigTaps })
-		b = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbMana && x.AFlags&kop.AfLatent != 0 })
 	case StallInfect:
 		text = "infect, toxic, wither or poison beside a damage replacement order ask, a counter-added trigger or proliferate: gorge orders the conversion differently"
 		a = func(c *kop.CardDef, i int) bool {
@@ -156,22 +146,9 @@ func pairRefusal(t *kop.Table) (r *kop.PairRefusal) {
 		b = func(c *kop.CardDef, i int) bool {
 			return g.replBits[i]&(rbDblDmg|rbPrevNC|rbPlusDmg|rbPrevCol|rbPlProt) != 0 || abilityOn(func(x *kop.Ability) bool {
 				return x.Kind == kop.AbTriggered && x.Trig.Event == kop.TrigCounterAddedOnce ||
-					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor })
-			})(c, i)
-		}
-	case StallTwobridMod:
-		text = "a twobrid cost beside a cost reduction or increase: gorge composes it on the unresolved cost at the offer and on the resolved faces at the charge"
-		a = func(c *kop.CardDef, _ int) bool { return c.Cost.Tb != 0 }
-		b = abilityOn(func(x *kop.Ability) bool {
-			return x.Kind == kop.AbStatic && (x.Static.Kind == kop.StatReduceCost || x.Static.Kind == kop.StatIncreaseCost)
-		})
-	case StallRaiseFree:
-		text = "a cost increase beside a free cast: gorge charges the raise on the empty cost, the kernel prices nothing"
-		a = abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatIncreaseCost })
-		b = func(c *kop.CardDef, i int) bool {
-			return c.HasPlot || c.Types&kop.TBattle != 0 || abilityOn(func(x *kop.Ability) bool {
-				return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatMayPlayFrom && x.Static.StFlags&kop.StWithoutManaCost != 0 ||
-					progHas(x, func(in *kop.Instr) bool { return in.Op == kop.OpCastFree || in.Ext() == kop.ExtPlotGrant })
+					progHas(x, func(in *kop.Instr) bool {
+						return in.Op == kop.OpProliferate || in.Ext() == kop.ExtPreventColor || in.Ext() == kop.ExtPreventDamageScope
+					})
 			})(c, i)
 		}
 	case StallLifeRepl:

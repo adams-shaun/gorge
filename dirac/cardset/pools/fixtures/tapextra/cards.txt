@@ -1,0 +1,14 @@
+# Mode$ TapsForMana | Static$ True extra-mana carriers beside sources they add to
+# (dirac/oracle/tapextra_test.go)
+Groundchuck & Dirtbag
+Badgermole Cub
+Forsaken Monument
+Llanowar Elves
+Sol Ring
+Mind Stone
+Hill Giant
+Grizzly Bears
+Shock
+Forest
+Plains
+Mountain

@@ -55,8 +55,13 @@ func (s *State) stackTgtIdx(c, sid uint8) int {
 }
 
 // stackTgtSelf is the stack index of the entry being built or resolving
-// (CR 115.5: it is not a legal target for itself), -1 for none.
+// (CR 115.5: it is not a legal target for itself), -1 for none. A spell the
+// resolving entry offers is not that entry: while the offer probes its targets
+// the resolving ability is still on the stack (CR 608.2m) and it can be chosen.
 func (s *State) stackTgtSelf() int {
+	if s.g.probe.kind == probeSpell {
+		return -1
+	}
 	if s.ctl == ctlBuild && s.bld().bfl&bflPushed != 0 || s.res.active {
 		return int(s.sp) - 1
 	}

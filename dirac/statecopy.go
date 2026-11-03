@@ -107,7 +107,7 @@ func (l *coldLayout) place(c *coldArrays, b []uint64) int {
 	c.castRing = coldView[castPush](b, &at, l.castRing)
 	c.discHeld = coldView[uint8](b, &at, l.discHeld)
 	c.copyHeld = coldView[copyHold](b, &at, l.copyHeld)
-	return at
+	return (at + 7) / 8
 }
 
 // size fills l.words from the lengths.
@@ -115,12 +115,14 @@ func (l *coldLayout) size() { l.words = l.place(new(coldArrays), nil) }
 
 func coldView[T any](b []uint64, at *int, n int) []T {
 	var v T
-	p := *at
-	*at += (n*int(unsafe.Sizeof(v)) + 7) / 8
+	// at counts bytes: each view starts at its element's alignment, and only
+	// the whole buffer rounds up to a word (place)
+	p := (*at + int(unsafe.Alignof(v)) - 1) &^ (int(unsafe.Alignof(v)) - 1)
+	*at = p + n*int(unsafe.Sizeof(v))
 	if b == nil || n == 0 {
 		return nil
 	}
-	return unsafe.Slice((*T)(unsafe.Pointer(&b[p])), n)
+	return unsafe.Slice((*T)(unsafe.Add(unsafe.Pointer(&b[0]), p)), n)
 }
 
 var noCold coldLayout

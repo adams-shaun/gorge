@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -115,7 +116,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 	s, k = sc.s, sc.k
 	o = sc.hand(id["Plot 1"], 0)
 	pf := k.t.Cards[id["Powerstone Token"]].Abilities[0].ManaRestrict
-	if pf == 0 || k.gen.restrF[0] != pf && k.gen.restrF[1] != pf {
+	if pf == 0 || !slices.Contains(k.gen.restrF[:], pf) {
 		t.Fatalf("(d) the Powerstone's restriction %d is not a registered one %v", pf, k.gen.restrF)
 	}
 	if !s.pl[0].addRestr(k, &s.poolRx[0], pf, int(kop.C), 1) {

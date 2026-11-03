@@ -82,6 +82,7 @@ var (
 	chooseKinds       = canon.ChooseKinds
 	faceCastCode      = canon.FaceCastCode
 	castOptCanon      = canon.CastOptCanon
+	beamAlt           = canon.BeamAlt
 	followedFaceRoute = canon.FollowedFaceRoute
 	faceDownCastCanon = canon.FaceDownCastCanon
 	maxSpeedCode      = canon.MaxSpeedCode

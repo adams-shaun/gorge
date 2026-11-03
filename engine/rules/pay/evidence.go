@@ -33,6 +33,22 @@ func EvidenceGraveCandidates(g *state.Game, player state.PlayerID, reserved map[
 	return out
 }
 
+// EvidencePayable reports whether the payer's graveyard can pay the literal
+// CollectEvidence<N> parts of cost (CR 701.59a, 601.2b, 602.2b: a cost that
+// cannot be paid cannot be activated; Forge CostCollectEvidence.canPay reads
+// the same total). The parts exile from one graveyard, so their amounts add.
+// A named amount (CollectEvidence<X>) resolves only once the targets exist and
+// contributes nothing here: the evidence stage settles it.
+func EvidencePayable(g *state.Game, p state.PlayerID, cost *costvocab.Cost) bool {
+	var need int32
+	for _, part := range cost.Evidence {
+		if part.Dyn == "" {
+			need = costvocab.AddClampedGeneric(need, int64(part.N))
+		}
+	}
+	return need <= 0 || EvidenceManaValue(g, p, EvidenceGraveCandidates(g, p, nil)) >= need
+}
+
 // EvidenceOrder copies ids and orders them by mana value DESCENDING, ties by
 // object id ascending. The order is the option order the ask poses: the FIRST
 // minimum-count options then always reach the threshold, so the deterministic

@@ -52,6 +52,10 @@ type Point struct {
 	// a stored point without producing it again, counts them exactly as a
 	// re-walk would have.
 	cut, fell bool
+	// lines, set only under Options.Line, describes each key for the
+	// principal line: its label and whether it hides information the
+	// searching seat cannot see (lineInfo).
+	lines []lineInfo
 	// ranked and before are, likewise, the PriorTopK counters producing it
 	// counted: ranked one PriorTopKPoints, before > 0 one PriorTopKCuts and
 	// before PriorTopKBefore.
@@ -155,6 +159,9 @@ type TreeResult struct {
 	Q         []float64 // mean backed-up value per root key; 0 when unvisited
 	Avail     []int     // simulations in which each root key was available
 	RootValue float64   // the root's mean value, its own evaluation included; 0.5 before any
+	// top is the root node, kept for the principal line (Options.Line); nil
+	// otherwise.
+	top *node
 }
 
 type node struct {
@@ -184,6 +191,34 @@ type edge struct {
 	end *Leaf
 	// endClk is the engine clock where that walk ended.
 	endClk pathClock
+	// label, hidden and opp describe the edge for the principal line
+	// (Options.Line); zero otherwise.
+	label  string
+	hidden bool
+	opp    bool
+}
+
+// lineInfo describes one candidate of a Point for the principal line.
+type lineInfo struct {
+	key    Key
+	label  string
+	hidden bool
+}
+
+// annotate copies pt's description of kid's key onto kid. A point built
+// without Options.Line has none, so the call costs one nil check.
+func (pt *Point) annotate(kid *edge) {
+	if pt.lines == nil {
+		return
+	}
+	kid.opp = pt.Opp
+	for _, li := range pt.lines {
+		if li.key == kid.key {
+			kid.label, kid.hidden = li.label, li.hidden
+			return
+		}
+	}
+	kid.hidden = true
 }
 
 func newNode(pt *Point) *node {
@@ -191,6 +226,7 @@ func newNode(pt *Point) *node {
 	nd := &node{kids: make([]*edge, len(pt.Keys))}
 	for i, k := range pt.Keys {
 		nd.kids[i] = &edge{key: k, prior: pt.Prior[i]}
+		pt.annotate(nd.kids[i])
 	}
 	return nd
 }
@@ -344,6 +380,9 @@ func RunTree(ctx context.Context, root *Point, src EnvSource, opts Options, st *
 		Visits: make([]int, len(root.Keys)), Q: make([]float64, len(root.Keys)),
 		Avail: make([]int, len(root.Keys)), RootValue: top.q(),
 	}
+	if opts.Line > 0 {
+		res.top = top
+	}
 	for i := range root.Keys {
 		k := top.kids[i]
 		res.Visits[i], res.Avail[i] = k.n, k.avail
@@ -409,6 +448,7 @@ func simulate(top *node, env Env, opts Options, st *Stats) error {
 		for j, k := range pt.Keys {
 			if nd.child(k) == nil {
 				kid := &edge{key: k, prior: pt.Prior[j]}
+				pt.annotate(kid)
 				nd.kids = append(nd.kids, kid)
 				marks = append(marks, kid)
 			}

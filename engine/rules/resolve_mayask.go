@@ -36,12 +36,13 @@ var tapeCheckpointAll, tapeExemptAll bool
 
 // SAFacts.MayAsk cache states: 0 is unknown; a known state carries
 // mayAskKnown, plus mayAskText when the text may ask, plus the chain's board
-// gates (cards.SAChainBoardGates) shifted by mayAskGateShift.
+// gates (cards.SAChainBoardGates) shifted by mayAskGateShift. ReplEvent 0 is no
+// event and has no gate, so mayAskText sits in its position.
 const (
 	mayAskUnknown   uint32 = 0
 	mayAskKnown     uint32 = 1
 	mayAskText      uint32 = 2
-	mayAskGateShift        = 2
+	mayAskGateShift        = 1
 	// Keep the conditional reasons above every replacement-event gate bit:
 	// adding a new ReplEvent must not masquerade as a target-entry reason.
 	mayAskCondShift = mayAskGateShift + cards.ReplEventCount

@@ -286,19 +286,44 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// that payCast will charge, activation fees included.  This is an offer-side
 	// read only; the chosen face still reaches the ordinary mana window and is
 	// paid there.
-	charged := pc.mods.Apply(c)
-	charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
-	charged.Generic -= delve
-	if charged.Generic < 0 {
-		charged.Generic = 0
-	}
-	if !hasRemainingManaComponent(charged) {
-		return false
-	}
+	// The modifiers compose on the faces the later pips resolve to when that
+	// changes the total (FaceSensitiveP: a reduction takes its generic off the
+	// {2} a generic face adds), so the window probe walks them as FeasibleAny
+	// does, and any completion the source window reaches offers the face.
 	av := pay.AvailableFor(asPayer(e), pc.player, payment)
-	return e.castWindowReachable(pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
-		av.Typed, e.G.Players[pc.player].Life,
-		asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), rider, e.castWindowUnits(pc))
+	var reach func(c Cost) bool
+	reach = func(c Cost) bool {
+		if c.AnnPipCount() != 0 && pc.mods.FaceSensitiveP(&c) {
+			for _, alt := range pay.AnnouncePip(c, 0) {
+				r := c
+				switch {
+				case alt.Color != 0:
+					r.Colored[state.ManaIndex(alt.Color)]++
+				case alt.Generic > 0:
+					r.Generic = addClampedGeneric(r.Generic, int64(alt.Generic))
+				case alt.Life > 0:
+					r.Life = addClampedGeneric(r.Life, int64(alt.Life))
+				}
+				if reach(r.DropAnnouncePrefix(1)) {
+					return true
+				}
+			}
+			return false
+		}
+		charged := pc.mods.Apply(c)
+		charged.Generic = addClampedGeneric(charged.Generic, int64(pc.taxGeneric))
+		charged.Generic -= delve
+		if charged.Generic < 0 {
+			charged.Generic = 0
+		}
+		if !hasRemainingManaComponent(charged) {
+			return false
+		}
+		return e.castWindowReachable(pc.player, charged, av.Pool, e.G.Players[pc.player].Snow,
+			av.Typed, e.G.Players[pc.player].Life,
+			asEval(e).Conv(pc.player, payment.ID, payment.Class == paymentActivated), rider, e.castWindowUnits(pc))
+	}
+	return reach(c)
 }
 
 // hasRemainingManaComponent reports whether c still demands a mana payment

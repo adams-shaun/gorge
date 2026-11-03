@@ -35,6 +35,21 @@ func raysOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state
 	return rays
 }
 
+// levyOn attaches an invented aura that taxes only its bearer's blocking ({3},
+// CantBlockUnless) to bearer with a logged events.Attach. Unlike Oppressive
+// Rays it leaves the bearer's activated abilities alone, so a bearer that is
+// itself a mana source stays one: the premise these tests need.
+func levyOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state.ObjID {
+	t.Helper()
+	levy := onBoard(t, e, p, "Name:Gatewarden's Levy\nManaCost:W\nTypes:Enchantment Aura\nK:Enchant:Creature\n"+
+		"S:Mode$ CantBlockUnless | Cost$ 3 | ValidCard$ Creature.AttachedBy | Description$ A toll stands between the bearer and any block.\nOracle:Enchant creature\\nEnchanted creature can't block unless its controller pays {3}.\n")
+	e.emit(events.Event{Kind: events.Attach, Obj: levy, IDs: []state.ObjID{bearer}})
+	if got := e.G.Obj(levy).AttachedTo; got != bearer {
+		t.Fatalf("precondition: Gatewarden's Levy %d not attached to %d (AttachedTo %d)", levy, bearer, got)
+	}
+	return levy
+}
+
 // llanowarOn places the real corpus Llanowar Elves ({T}: Add {G}) able to
 // block (summoning sickness never bars blocking, CR 509.1) and able to use
 // its mana ability (a summoning-sick creature cannot tap for {T}, so the
@@ -46,8 +61,10 @@ func llanowarOn(t *testing.T, e *Engine, p state.PlayerID) state.ObjID {
 	return id
 }
 
-// TestBlockTaxBlockerOwnManaIsARealSource pins the fix end to end on the
-// filing card: Oppressive Rays ({3} CantBlockUnless) on a lone Llanowar Elves
+// TestBlockTaxBlockerOwnManaIsARealSource pins the fix end to end: a {3}
+// CantBlockUnless aura (the filing card was Oppressive Rays, which also taxes
+// the bearer's mana ability; see TestOppressiveRaysTaxesTheBearersManaAbility)
+// on a lone Llanowar Elves
 // that is the defender's only mana source, with {2} floating. The pair is
 // offered, the bot's own answer is accepted, and the charge settles by
 // tapping the blocker itself.
@@ -58,7 +75,7 @@ func TestBlockTaxBlockerOwnManaIsARealSource(t *testing.T) {
 	// defender's only creature. (An aura's controller controls the aura; the
 	// static scopes by AttachedBy, so the bearer's controller pays.)
 	elves := llanowarOn(t, e, 0)
-	raysOn(t, e, 0, elves)
+	levyOn(t, e, 0, elves)
 	wurm := onBoardReady(t, e, 1, "Name:Craw Wurm\nManaCost:4 G G\nTypes:Creature Wurm\nPT:6/4\nOracle:x\n")
 	floatMana(t, e, 0, "RR")
 	attackSeat0(t, e, wurm)
@@ -162,7 +179,7 @@ func TestBlockTaxBlockerOwnManaIsARealSource(t *testing.T) {
 	t.Run("bot answer accepted", func(t *testing.T) {
 		e := threeSeatEngine(t)
 		elves := llanowarOn(t, e, 0)
-		raysOn(t, e, 0, elves)
+		levyOn(t, e, 0, elves)
 		wurm := onBoardReady(t, e, 1, "Name:Craw Wurm\nManaCost:4 G G\nTypes:Creature Wurm\nPT:6/4\nOracle:x\n")
 		floatMana(t, e, 0, "RR")
 		e.G.Players[0].Life = 1
@@ -191,6 +208,21 @@ func TestBlockTaxBlockerOwnManaIsARealSource(t *testing.T) {
 			t.Fatal("the bot never chose the block on the lethal board, so the no-rejection arm is vacuous")
 		}
 	})
+}
+
+// TestOppressiveRaysTaxesTheBearersManaAbility records why the tests above use
+// an aura that taxes only blocking: Oppressive Rays makes every activated
+// ability of its bearer cost {3} more (CR 602.2b; it has no mana-ability
+// exemption), so a Llanowar Elves it enchants taps for {G} only after paying
+// {3} and is not a free mana source.
+func TestOppressiveRaysTaxesTheBearersManaAbility(t *testing.T) {
+	t.Parallel()
+	e := threeSeatEngine(t)
+	elves := llanowarOn(t, e, 0)
+	raysOn(t, e, 0, elves)
+	if srcs := e.attackManaSources(0); len(srcs) != 0 {
+		t.Fatalf("mana sources = %+v, want none: the Elves' ability costs {3} more under Rays", srcs)
+	}
 }
 
 // TestBlockTaxTwoBlockersOnePaysTheOthersTax pins the whole-declaration half:

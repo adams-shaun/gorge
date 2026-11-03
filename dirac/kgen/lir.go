@@ -161,6 +161,9 @@ const (
 	vAttackedTurn        // the objects declared as attackers this turn that match F where each now is (Count$CreaturesAttackedThisTurn <spec>)
 	vPhaseCount          // N 0: the combats begun this turn; N 1: the finished end steps (Count$FinishedEndOfTurnsThisTurn)
 	vAdamant             // Sub[0] if at least n mana of a colour was spent to cast the source, else Sub[1]; N packs colour | n<<3 (CastSA>Count$Adamant_<n>.<Colour>.<yes>.<no>, a self-ETB trigger's CheckSVar$ only)
+	vDilemmasFaced       // the times the controller chose modes this turn (Count$YouFaceDilemmaThisTurn)
+	vChromaOf            // the symbols of colour N in the printed cost of object Ref (TriggeredCard$ChromaSource.<Colour> in a SpellCast trigger)
+	vOppsAttacked        // opponents the controller attacked this turn (PlayerCountPropertyYou$OpponentsAttackedThisTurn)
 	vCount_
 )
 
@@ -168,7 +171,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -220,7 +223,7 @@ func (v lValue) String() string {
 			args = append(args, fmt.Sprintf("agg=%d", v.N))
 		case vCompare:
 			args = append(args, fmt.Sprintf("op=%d,n=%d", v.Op, v.N))
-		case vSacrificedThisTurn, vScriedThisTurn, vRemLKIPT, vPhaseCount, vAdamant:
+		case vSacrificedThisTurn, vScriedThisTurn, vDilemmasFaced, vRemLKIPT, vPhaseCount, vAdamant:
 			args = append(args, fmt.Sprintf("n=%d", v.N))
 		case vOppsLostLife:
 			if v.N != 0 {
@@ -462,6 +465,7 @@ type lCost struct {
 	TapN         int  // tap N untapped creatures you control matching TapF
 	TapF         *lFilter
 	TapHost      bool // tap the granting host (tapXType<1/OriginalHost>)
+	SacHost      bool // sacrifice the granting host (Sac<1/OriginalHost>)
 	TapPowN      int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF      *lFilter
 	TapPowCrew   bool     // the tap-power cost is Crew (graveexile: candidates' TapPowerCrew applies)
@@ -490,7 +494,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardSelf && c.DiscardF == nil && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && c.TapPowN == 0 &&
+		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
 		c.Forage == nil && c.ExileG == nil && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.ExileTrigNew &&
 		c.BeholdN == 0 && c.BeholdF == nil
@@ -507,6 +511,7 @@ type manaCost struct {
 	Phyrexian []byte
 	X         bool
 	XX        bool // a second {X} symbol (X set too)
+	XXX       bool // a third {X} symbol (X and XX set too)
 	None      bool // "no cost": cannot be cast
 	C         int  // colorless-specific pips
 }
@@ -535,6 +540,9 @@ func (m manaCost) String() string {
 		s += "X"
 	}
 	if m.XX {
+		s += "X"
+	}
+	if m.XXX {
 		s += "X"
 	}
 	return s + "}"
@@ -737,6 +745,8 @@ type lStatic struct {
 	// PwVsSrc: CantBlockBy ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower
 	// (kop.Static.PwVsSrc)
 	PwVsSrc int8
+	// TapCol, TapAmt: a TapExtra static's mana index and amount (kop.StatTapExtra)
+	TapCol, TapAmt uint8
 	// RaiseAb: a MayPlayFrom static's RaiseCost$ (flag "MayRaise"): 1 + the
 	// latent ability whose Cost is the raise (lower_mayraise.go)
 	RaiseAb int
@@ -793,7 +803,7 @@ type lRepl struct {
 	// puts on the permanent (ValidSource$ You; Doc Samson)
 	Putter bool
 	Prog   []lInstr
-	Bits   int // DamagePlus: the recipients (kop.ReplDmg* bits)
+	Bits   int // DamagePlus: the recipients (kop.ReplDmg* bits); DrawMore: kop.ReplDraw* flags
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool
@@ -829,6 +839,7 @@ type lCard struct {
 	FbCost         *lCost    // the flashback cost's non-mana part (Sac<N/Spec> or tapXType<N/Spec>)
 	Madness        *manaCost // K:Madness:<cost> (CR 702.35a): the exile-cast cost
 	Warp           *manaCost // K:Warp:<cost> (CR 702.185a): the hand's alternate cost and the end-step exile marker
+	NoAbilities    bool      // the printed face has no ability (effects.FaceHasNoAbilities): CardDef.NoAbilities, the NoAbilities filter word's card read
 	Impending      *manaCost // K:Impending:<N>:<cost> (CR 702.176a): the hand's alternate cost; ImpendingN time counters
 	ImpendingN     int
 	Plot           *manaCost // K:Plot:<cost> (CR 702.170a): the sorcery-speed special action's cost
@@ -841,6 +852,7 @@ type lCard struct {
 	Convoke        bool      // K:Convoke (CR 702.51a): the cast may tap creatures for its mana cost
 	Improvise      bool      // K:Improvise (CR 702.126a): the cast may tap artifacts for the generic part of its mana cost
 	Mayhem         *manaCost // K:Mayhem:<cost> (CR 702.187): a graveyard cast for this cost if the card was discarded this turn (dirac/kw_mayhem.go)
+	BeamMeUp       *manaCost // K:Beam me up:<cost>: a graveyard cast for this cost that also returns a creature you control (FbCost)
 	Harmonize      *manaCost // K:Harmonize:<cost> (CR 702.180a): a graveyard cast for this cost, one creature tapped for its power off the generic part
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
@@ -897,9 +909,10 @@ type lCard struct {
 	FaceMode uint8
 	// RoomSplit is a Room state def's count of leading Abilities lowered
 	// from door Face (lower_rooms.go); the rest are the other door's.
-	RoomSplit int
-	Emblems   []lEmblem
-	Refusals  []refusal
+	RoomSplit  int
+	Emblems    []lEmblem
+	Refusals   []refusal
+	Unreadable []refusal // every-blocker census only: params a refused node left unread
 
 	overrides []*lOverride // override records the Override ops index
 }

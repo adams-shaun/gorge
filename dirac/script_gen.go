@@ -17,12 +17,12 @@ import (
 // under the autopay surface the oracle drops a scripted plain cast from the
 // hand (Config.GorgeAutopaySurface). The kernel mirrors it: the plays
 // listed with any mana available but not with the sources available are the
-// insufficient ones, in priority-walk order; the first four are searched; a
+// insufficient ones, in priority-walk order; the first potentialScriptPlays are searched; a
 // searched play the sources plus the gaps' mana pay is offered, and at the
 // play the gaps are tapped into the pool in battlefield order until the
 // plain walk lists it.
 
-const potentialScriptPlays = 4 // gorge rules/potential_script.go
+const potentialScriptPlays = 16 // gorge rules/potential_script.go
 
 // availFor modes (genState.availX): the gaps' mana added, any mana, or the
 // plain walk without the script hook.
@@ -63,29 +63,8 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 	return s.gapMask(k, p, gfRestr)
 }
 
-// scriptSac: p's tapped sacrifice-only sources a scripted prefix can
-// activate, a slot mask. A tapped one is invisible to the planner's census
-// (gorge's paymentPlanManaUnitsOnlyCompute skips a tapped source), but
-// gorge's potential pool admits it (availableManaAbilities gates only tap
-// costs), so the play is a potential play whose prefix search activates it;
-// an untapped one is already in availFor's census and is no gap.
-func (s *State) scriptSac(k *prep, p uint8) slotMask {
-	var m slotMask
-	if !k.sacOnlyMana {
-		return m
-	}
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
-		sl := b.first()
-		if s.perms[sl].flags&pfTapped != 0 && s.canSacOnlyNow(k, sl, s.manaPCAt(k, sl)) {
-			m = m.with(sl)
-		}
-	}
-	return m
-}
-
 // scriptAny reports whether a scripted prefix is possible: an each-colour,
-// restricted or any-colour gap, a filter-only gap, or a tapped
-// sacrifice-only source (mana_sacsource.go).
+// restricted or any-colour gap, a filter-only gap, or a counter-cost source.
 func (s *State) scriptAny(k *prep) bool {
 	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana)
 }
@@ -146,13 +125,6 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
-	// a tapped sacrifice-only source: the prefix activates it (the untapped
-	// ones are already in availFor's census)
-	for b := s.scriptSac(k, p); b.any(); b = b.rest() {
-		sl := b.first()
-		pc := s.manaPCAt(k, sl)
-		a.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
-	}
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)
 	}
@@ -191,23 +163,23 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapMask(k, p, gfGapOther).any()) { // (filtOnly)
+		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).any()) { // (filtOnly)
 			filt = f
 		}
 	}
-	tx := s.scriptTapXModelled(k, p)
-	if !s.scriptGaps(k, p).or(s.scriptSac(k, p)).or(restr).or(anyR).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
+	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
+	if !s.scriptGaps(k, p).or(restr).or(anyR).or(filt).or(s.scriptCtr(k, p)).or(tx).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
 	// relaxable (each has a fixed relaxed alternative; a Tender's has
 	// none): a play the relaxed proof cannot pay, the gaps walk's, is
-	// insufficient and no search, so it takes none of the four
+	// insufficient and no search, so it takes none of the searches
 	// (potential_plan.go paymentPlanRelaxProof), and the candidates are
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
-	// A fourth filter makes it unrelaxable too (mana_filter.go relaxedPaidLimit).
-	relax := !s.scriptGaps(k, p).any() && !twoLive && filt.count() <= relaxedPaidLimit
+	// A fourth filter, or a dynamic one out of bounds, makes it unrelaxable too (mana_filter.go filtRelaxable).
+	relax := !s.scriptGaps(k, p).any() && !twoLive && s.filtRelaxable(k, filt)
 	var any, gaps Decision
 	s.plainOptions(k, &gaps, availGaps)
 	src := &gaps
@@ -224,6 +196,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	nc := 0
 	wide := !mix && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play)
 	mixWide := mix && s.scriptWide(k, p).any()
+	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
+	if s.cfg&cfgGorgeAutopay != 0 {
+		s.plainOptions(k, &real, availWalk)
+	}
 	var noWide Decision
 	if mixWide {
 		s.plainOptions(k, &noWide, availGaps|availNoWide) // (gorge's potential walk counts a wide source only for what its restriction admits)
@@ -234,8 +210,14 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
 		}
+		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
+			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
+		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost) {
 			continue // gorge searches no prefix for a target-priced or modal cost
+		}
+		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
+			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)
 		}
 		kk := s.walkKey(a, p, i)
 		j := nc
@@ -246,7 +228,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		nc++
 	}
 	searched := 0
-	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first four: searched
+	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !hasOption(&gaps, a) && !twoLive {
 			if !relax {
@@ -272,12 +254,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 			}
 		} else if anyR.any() && s.scriptDeadEndAny(k, a, p, restr, anyR) || !anyR.any() && restr.any() && s.scriptDeadEnd(k, a, p, restr) {
 			continue
-		}
-		if s.sacPrefixTriggers(k, a, p) {
-			continue // a trigger the prefix leaves on the stack bars a sorcery-speed cast
-		}
-		if !anyR.any() && s.sacPrefixDeadEnd(k, a, p, restr) {
-			continue // the prefix's sacrifice leaves the play unlisted (its only target)
 		}
 		d.add(a)
 	}
@@ -387,13 +363,12 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	if k.tapMana && s.tapXPrefix(k, a, p) {
+	if (k.tapMana || k.ctrMana) && s.tapXPrefix(k, a, p) {
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
-	sac := s.scriptSac(k, p)
 	ctr := s.scriptCtr(k, p)
-	if !gaps.or(restr).or(anyR).or(sac).or(ctr).any() {
+	if !gaps.or(restr).or(anyR).or(ctr).any() {
 		if k.gen.anyFilt && s.filtOnly(k, p) {
 			var d Decision
 			s.plainOptions(k, &d, 0)
@@ -418,13 +393,12 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	var d Decision
 	s.plainOptions(k, &d, 0)
 	var order [MaxPerm]Slot
-	n := s.battlefieldOrder(p, gaps.or(restr).or(sac).or(ctr), order[:], 0) // gorge's option order (two Tenders)
+	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr), order[:], 0) // gorge's option order (two Tenders)
 	var held [kop.NumManaKinds]uint8
 	for i := 0; i < n && !hasOption(&d, a); i++ {
 		if ctr.has(order[i]) {
 			s.ctrGap(k, p, order[i]) // a Wall of Roots: its counter, its mana (mana_countercost.go)
-		} else if sac.has(order[i]) {
-			s.sacGap(k, p, order[i], a) // a tapped Spawn: sacrifice it, then re-price
+			s.sba(k)                 // the script returns to priority after the step
 		} else {
 			s.tapGap(k, p, order[i], restr, &held)
 		}
@@ -432,52 +406,12 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	}
 }
 
-// sacGap activates a tapped sacrifice-only gap's ability: the source is
-// sacrificed and its mana floats, exactly as the planner's tap loop pays
-// with one (mana.go plan). A multi-colour source's colour is the play's
-// first needed pip in gorge's preference order (the activation's colour
-// ask), else the first it can make.
-func (s *State) sacGap(k *prep, p uint8, sl Slot, a Action) {
-	pc := s.manaPCAt(k, sl)
-	m := s.srcMaskAt(pc, sl)
-	if m == 0 {
-		return
-	}
-	col := bits.TrailingZeros8(m)
-	if m&(m-1) != 0 {
-		col = s.sacGapColour(k, p, a, m)
-	}
-	o := s.perms[sl].obj
-	s.pl[p].pool[col] += pc.manaN
-	s.artTag(k, p, sl, col)
-	s.fireSac(k, sl)
-	s.leave(k, sl, kop.ZoneGraveyard, false)
-	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
-		s.detach(o) // a token sacrificed for mana ceases at once, as gorge pays
-	}
-}
-
-// sacGapColour picks the colour a multi-colour sacrifice-only source makes
-// for play a: the first pip the play needs, in the planner's preference
-// order; a generic-only cost takes the first colour the source makes.
-func (s *State) sacGapColour(k *prep, p uint8, a Action, m uint8) int {
-	cost, _, ok := s.grantPlayCost(k, p, a, true)
-	if ok {
-		for _, c := range [6]int{kop.C, kop.G, kop.R, kop.B, kop.U, kop.W} {
-			if m&(1<<c) != 0 && cost.Pips[c] > 0 {
-				return c
-			}
-		}
-	}
-	return bits.TrailingZeros8(m)
-}
-
 // FeatScripted reports whether p's priority option a is a scripted play:
 // one only a gap's prefix pays, which gorge's net list (the planned
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptSac(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
+	if !s.scriptAny(k) || !isCastKind(a.Kind()) && a.Kind() != AkActivate && a.Kind() != AkPlot || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) {
 		return false
 	}
 	var d Decision
@@ -490,7 +424,7 @@ func (s *State) FeatScripted(p uint8, a Action) bool {
 // prefix for the first potentialScriptPlays plays of its potential walk
 // that its printed sources cannot pay (rules PotentialPaymentPlans'
 // scripts counter), so a later one is never offered even when the granted
-// source would pay it (Squad Rallier's {2}{W} after four such casts, pair
+// source would pay it (Squad Rallier's {2}{W} after potentialScriptPlays such casts, pair
 // 5618). gorge's potential walk lists the plays p's potential mana pays,
 // granted sources included, before any offer surface (availWalk).
 func (s *State) grantCap(k *prep, d *Decision, p uint8) {
@@ -532,8 +466,8 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if !ok {
 			continue
 		}
-		if s.affordsUngranted(k, p, &cost, ex) {
-			continue // priced by the printed sources
+		if s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+			continue // priced by the printed sources, restricted ones the play may spend included
 		}
 		if n++; n > potentialScriptPlays {
 			d.remove(a) // never searched: unpriced
@@ -555,7 +489,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 // prefix before the play itself (prScript). The kernel taps them the same
 // way at the play, so the mana floats from the announcement on.
 func (s *State) grantPrefix(k *prep, a Action, p uint8) {
-	cost, ex, ok := s.grantPlayCost(k, p, a, false)
+	cost, ex, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
 		return
 	}

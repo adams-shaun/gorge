@@ -396,20 +396,6 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		if src == nil {
 			return
 		}
-		if registration != nil && registration.TrackSource {
-			// A creator-distinct registration (the AtEOT$ rider) records the
-			// affected object on Source and the creating permanent on
-			// Creator; the incarnation the stale-promise check must compare
-			// is the affected object's, not the creator's (the creator may
-			// leave and return without cancelling the promise, CR 603.7).
-			tracked := src
-			if registration.Creator != 0 {
-				tracked = g.Obj(registration.Source)
-			}
-			if tracked == nil || tracked.Incarnation != registration.SourceIncarnation {
-				return
-			}
-		}
 		if src.Face() == nil {
 			return
 		}
@@ -454,13 +440,6 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// cross-object grant.
 		countActivation(g, e.Obj)
 	}
-	// StackCopy's discipline: snapshot every src field the post-mint
-	// code reads (Incarnation here) before AddObject may reallocate
-	// g.Objs and orphan the src pointer.
-	var incarnation uint32
-	if src != nil {
-		incarnation = src.Incarnation
-	}
 	o := g.AddObject(nil, e.Player)
 	Move(g, o.ID, state.ZLibrary, state.ZStack)
 	o.Ability = sa
@@ -476,13 +455,11 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		// the promise is tied to is the AFFECTED object's (CR 400.7); stamp
 		// that one so resolveTop's source-incarnation guard drops the ability
 		// when the token left and returned, never when the creator did.
-		if registration.Creator != 0 {
-			if tracked := g.Obj(registration.Source); tracked != nil {
-				o.SourceIncarnation = tracked.Incarnation
-			}
-		} else {
-			o.SourceIncarnation = incarnation
-		}
+		// A promise whose object has since left (a token that died, a card
+		// that returned as a new object) still triggers (CR 603.7): the stamp
+		// stays the registered incarnation, so it differs from the object's
+		// current one and the ability resolves doing nothing (CR 400.7).
+		o.SourceIncarnation = registration.SourceIncarnation
 	}
 	o.Remembered = rememberedFrom(e.IDs)
 	if monarchSteal {
@@ -521,9 +498,11 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		return
 	}
 	resolver := src
+	var grantedBy state.ObjID
 	if e.Amount > 0 {
 		if grantor := g.Obj(state.ObjID(e.Amount)); grantor != nil && grantor.Face() != nil {
 			resolver = grantor
+			grantedBy = grantor.ID
 		} else {
 			return
 		}
@@ -552,6 +531,9 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 	o.Source = e.Obj
+	// Forge's OriginalHost: the granting static's host, which a cost or body
+	// of the granted trigger names apart from the recipient (CR 613.1f).
+	o.GrantedBy = grantedBy
 	o.Remembered = rememberedFrom(e.IDs)
 }
 

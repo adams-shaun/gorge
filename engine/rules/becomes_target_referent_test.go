@@ -49,7 +49,7 @@ func TestBecomesTargetReferentIsTheTargetedObject(t *testing.T) {
 // whose TriggerTarget role must be the targeted object (becomesTargetReferent).
 // A new such card must be exercised by the referent; the count only moves
 // with a corpus refresh, and a move should be inspected, not just re-pinned.
-const nonSelfBecomesTargetLines = 47
+const nonSelfBecomesTargetLines = 48
 
 func TestBecomesTargetNonSelfCarriersCensus(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

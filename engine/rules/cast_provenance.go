@@ -459,6 +459,13 @@ func (e *Engine) castSpendWindow(obj state.ObjID) castSpendFacts {
 		switch ev.Kind {
 		case events.TurnChange, events.PlayerLost:
 			return castSpendFacts{}
+		case events.Priority:
+			// A cast is paid before anyone receives priority with it on the
+			// stack (CR 601.2h, 601.2i), so mana spent after a priority grant
+			// is the payment of something cast or activated later (a spell
+			// cast in response to this one, an ability activated for its
+			// cost), never this cast's.
+			acc = [8]castSpendFacts{}
 		case events.PutOnStack:
 			if ev.Obj == obj && int(ev.Player) < len(acc) {
 				f := acc[ev.Player]

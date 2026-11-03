@@ -236,10 +236,10 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 // and castTrigGen pass the source here.
 
 // filterChosenType reports whether some alternative of filter f reads the
-// chosen type.
+// source's chosen type or colour.
 func filterChosenType(t *kop.Table, f kop.FilterID) bool {
 	for n := 0; f != 0 && int(f) < len(t.Filters) && n < 64; n++ {
-		if t.Filters[f].Flags2&kop.F2ChosenType != 0 {
+		if t.Filters[f].Flags2&(kop.F2ChosenType|kop.F2ChosenColor) != 0 {
 			return true
 		}
 		f = t.Filters[f].Or
@@ -297,6 +297,22 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 			cp.Flags2 &^= kop.F2ChosenType
 			if has && s.matchCardOne(k, &cp, c, owner, ctrl, o) {
 				return true
+			}
+		} else if fl.Flags2&kop.F2ChosenColor != 0 {
+			// Diamond Mare's "a spell of the chosen colour": the source's choice
+			// is a colour index, read against the card's colours
+			cp := *fl
+			cp.Flags2 &^= kop.F2ChosenColor
+			if ch < 5 {
+				bit := kop.ColW << ch
+				if cp.Colors != 0 {
+					cp.Colors &= bit
+				} else {
+					cp.Colors = bit
+				}
+				if cp.Colors != 0 && s.matchCardOne(k, &cp, c, owner, ctrl, o) {
+					return true
+				}
 			}
 		} else if s.matchCardOne(k, fl, c, owner, ctrl, o) {
 			return true

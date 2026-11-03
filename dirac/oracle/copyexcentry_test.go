@@ -6,5 +6,5 @@ import "testing"
 // Saheeli's artifact copy enters tapped under an opposing Dauntless Dismantler
 // (CR 707.9, 614.12).
 func TestCopyExceptionsBeforeEntryReplacements(t *testing.T) {
-	synthPairs(t, "std-lci", []int{18, 320, 490}, nil)
+	synthPairsReaching(t, "std-lci", Config{GorgeAutopaySurface: true}, []int{8, 26, 56}, onBattlefield("Dauntless Dismantler"))
 }

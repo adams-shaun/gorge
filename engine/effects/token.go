@@ -899,7 +899,7 @@ func runTokenMints(h Host, c *Ctx, sa *cards.SA, tp *TokenParams, job *TokenJob)
 			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "imprint-tokens"})
 		}
 	}
-	scheduleAtEOT(h, c, sa, minted)
+	scheduleAtEOTTokens(h, c, sa, minted)
 }
 
 // applyTokenMintRiders applies one minted token's riders and returns minted

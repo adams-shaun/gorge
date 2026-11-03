@@ -52,6 +52,9 @@ func (s *State) optCostOffer(k *prep, p uint8, c CardID, o Obj) bool {
 	if cd.OptBehold && s.beholdCands(k, p, c, o, nil) < int(cd.BeholdN) {
 		return false
 	}
+	if cd.OptEvidence != 0 && s.graveTotalMV(k, p) < int(cd.OptEvidence) {
+		return false // CollectEvidence<N> needs a graveyard worth N (gorge pay.EvidencePayable)
+	}
 	if cd.OptCost.Flags != 0 && !s.costObjPayable(k, p, &cd.OptCost, NoObj, o) {
 		return false
 	}

@@ -120,13 +120,13 @@ func TestGrantedManaAfterTreasure(t *testing.T) {
 }
 
 // TestGrantedManaScriptCap: gorge searches a granted-source prefix for the
-// first four plays its printed sources cannot pay (rules
-// PotentialPaymentPlans' potentialScriptPlays), in walk order: with four
-// {2}{B} Gutless Plunderers in hand ahead of it, Squad Rallier's {2}{W}
-// that only the imprisoned land pays is not offered; with three it is
-// (pair 5618). Before, the kernel offered it either way.
+// first potentialScriptPlays plays its printed sources cannot pay (rules
+// PotentialPaymentPlans), in walk order: with that many {2}{B} Gutless
+// Plunderers in hand ahead of it, Squad Rallier's {2}{W} that only the
+// imprisoned land pays is not offered; with one fewer it is (pair 5618).
+// Before, the kernel offered it either way.
 func TestGrantedManaScriptCap(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Squad Rallier", Count: 1}, {Name: "Imprisoned in the Moon", Count: 1}, {Name: "Gutless Plunderer", Count: 4}, {Name: "Plains", Count: 4}, {Name: "Swamp", Count: 4}}
+	deck := []cardset.Entry{{Name: "Squad Rallier", Count: 1}, {Name: "Imprisoned in the Moon", Count: 1}, {Name: "Gutless Plunderer", Count: potentialScriptPlays}, {Name: "Plains", Count: 4}, {Name: "Swamp", Count: 4}}
 	set := cardsettest.Set(t, "fdn")
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
@@ -147,7 +147,7 @@ func TestGrantedManaScriptCap(t *testing.T) {
 	for _, tc := range []struct {
 		plunderers int
 		offered    bool
-	}{{3, true}, {4, false}} {
+	}{{potentialScriptPlays - 1, true}, {potentialScriptPlays, false}} {
 		sc := newScenTable(t, tbl, Config{NoElide: true, GorgeAutopaySurface: true})
 		s := sc.s
 		for i := 0; i < tc.plunderers; i++ {

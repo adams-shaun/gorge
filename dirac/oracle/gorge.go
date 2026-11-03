@@ -438,11 +438,11 @@ func (g *GorgeSide) internal(d *decision.Decision) bool {
 	if d.PaymentFallback != nil {
 		g.Stats.Fallbacks++
 	}
-	idx := payexec.WindowAnswer(d, g.windowOwed(d))
+	picks := payexec.WindowChoices(d, g.windowOwed(d))
 	if g.OnInternal != nil {
-		g.OnInternal(d, idx)
+		g.OnInternal(d, picks[0])
 	}
-	if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+	if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: picks}); err != nil {
 		g.fail(fmt.Errorf("oracle: payment window answer refused: %w", err))
 	}
 	return true
@@ -616,6 +616,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 					continue
 				}
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if o.Mode == "beam_me_up" {
+				// the kernel's mode-2 cast of a beam me up card canonicalises to
+				// castModeOther, like "harmonize" (kw_beammeup.go)
+				alt := beamAlt(o.Mode, o.AltCostIndex, o.Cost)
+				if alt > 15 {
+					note("cast/beam_me_up")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(alt)<<4), opt: o.Index})
 				continue
 			}
 			if o.Mode == "mayhem" {
@@ -1065,6 +1076,17 @@ func (g *GorgeSide) admissible(fr *frame, chosen []int, i int) bool {
 	if d.Kind == decision.KBlockers && !o.BlockMust && !o.Required && blockDutyFull(d, o.Obj) {
 		return false
 	}
+	if d.Kind == decision.KBlockers && o.MaxBlockers > 0 {
+		n := 0
+		for _, c := range chosen {
+			if optByIndex(d, c).Attacker == o.Attacker {
+				n++
+			}
+		}
+		if n >= o.MaxBlockers {
+			return false
+		}
+	}
 	if o.Group != "" {
 		n := 0
 		for _, c := range chosen {
@@ -1200,6 +1222,15 @@ func (g *GorgeSide) Apply(a Canon) {
 		return
 	}
 	g.repose(fr)
+	if fr.d.Kind == decision.KChoose && fr.d.ResumeKind == "hand_move" && !fr.restable && len(fr.cur.Options) == 1 && fr.curAt[0] == -1 {
+		// Only Done is left: no candidate remains to pick, and the kernel's
+		// optional hand pick ("put up to N cards from your hand onto the
+		// battlefield") ends there rather than posing a lone Done (CR 107.1c).
+		// A target list and a convoke pick keep their Done: the kernel asks it
+		// after the last candidate.
+		g.commit(fr, fr.chosen)
+		return
+	}
 	if len(fr.cur.Options) == 0 {
 		// No pick and no valid Done: the published constraints cannot
 		// finish this answer; let gorge's repair have it.
@@ -1294,6 +1325,32 @@ func (g *GorgeSide) lowerCompletes(pe prioEntry) bool {
 	}()
 }
 
+// passOthers passes priority for the other players while a trigger the
+// script stacked resolves, as the search assumed (scriptSearch.visit), and
+// returns the decision then pending.
+func (g *GorgeSide) passOthers(p state.PlayerID, pe prioEntry) *decision.Decision {
+	e := g.E
+	d := e.Pending()
+	for guard := 0; d != nil && !e.G.Over && d.Player != p && d.Kind == decision.KPriority && guard < 8; guard++ {
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			break
+		}
+		g.Stats.Internal++
+		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}}); err != nil {
+			g.fail(fmt.Errorf("oracle: script of %v: other player's pass refused: %w", pe.a, err))
+			return nil
+		}
+		d = e.Pending()
+	}
+	return d
+}
+
 // runScript answers the scripted prefix's decisions, then pays the play by
 // the route the vocabulary at the following priority decision prices it
 // (planned cast, lowering or offered option).
@@ -1301,7 +1358,12 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	e := g.E
 	p := e.Pending().Player
 	for i, st := range pe.script {
-		d := e.Pending()
+		// A trigger the script's activation stacked: the search assumed the
+		// other players pass while it resolves (scriptSearch.visit).
+		d := g.passOthers(p, pe)
+		if g.err != nil {
+			return
+		}
 		if d == nil || e.G.Over || d.Player != p || d.Kind != st.Kind {
 			g.Stats.Aborts++
 			return
@@ -1333,8 +1395,8 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 	}
 	// Answer any colour ask the last activation posed, then re-price.
 	for guard := 0; guard < 8; guard++ {
-		d := e.Pending()
-		if d == nil || e.G.Over {
+		d := g.passOthers(p, pe)
+		if g.err != nil || d == nil || e.G.Over {
 			return
 		}
 		if d.Kind == decision.KPriority {
@@ -1372,7 +1434,14 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 	x := payexec.StartPlay(d.Player, pe.play, pe.plan, payexec.PoolOf(e, d.Player))
 	for x.Status() == payexec.InProgress {
 		if e.G.Over {
-			return false
+			// The activations that fund the play can win the game before it
+			// is cast: a Treasure sacrificed beside The Sackville-Bagginses
+			// drains the last life, and its trigger resolves ahead of the
+			// cast the kernel makes from inside its payment window (CR
+			// 601.2g, 603.3b). With every activation made and the lowering
+			// seat the winner the line is complete: nothing a later cast
+			// could change remains.
+			return x.Remaining() == 0 && !e.G.Draw && e.G.Winner == x.Player
 		}
 		d := e.Pending()
 		if d == nil {

@@ -446,11 +446,37 @@ func (s *State) matchCardGenAt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	if f == 0 {
 		return true
 	}
+	// matchTargetLKI reads a departed target as it last was (CR 608.2h), a token copy
+	// bounced to hand included: Brackish Blunder's "if it was tapped".
+	if o != NoObj && s.g.tli&tliOn == 0 && s.objs[o].of&ofCopy != 0 && s.copyCeased(k, o) {
+		return false
+	}
+	return s.matchCardChain(k, f, c, owner, ctrl, o, ctx)
+}
+
+// matchCardChain is matchCardGenAt past its ceased-copy test: f's Or chain
+// against the card, nothing else.
+func (s *State) matchCardChain(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
 	for f != 0 {
 		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, ctx) {
 			return true
 		}
 		f = k.t.Filters[f].Or
+	}
+	return false
+}
+
+// copyCeased: copy o has left the stack and the battlefield, and matches nothing (CR
+// 707.10h, gorge's copyCeased), a linked prepared copy in exile aside (CR 722.3c).
+//
+//go:noinline
+func (s *State) copyCeased(k *prep, o Obj) bool {
+	switch s.objs[o].zone {
+	case kop.ZoneLibrary, kop.ZoneHand, kop.ZoneGraveyard:
+		return true
+	case kop.ZoneExile:
+		_, live := s.preparedCopyLive(k, o)
+		return !live
 	}
 	return false
 }
@@ -461,12 +487,14 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
 	if fl.Flags2&kop.F2BasePermanent != 0 {
-		// the spec's zone is the battlefield, so gorge's Permanent base
-		// reads the live object's zone (matchesBase, not
-		// matchesBaseInZone): an object that has since left does not
-		// match, whatever its card face says. On the battlefield the perm
-		// matcher reads it instead.
-		return false
+		// a ThisTurnEntered battlefield entry whose object has since left
+		// (a live permanent is read by the perm matcher): the Permanent base
+		// reads the card where it now lies, a permanent card, as gorge's
+		// matchesEnteredEntry does (CR 700.14, 603.10a)
+		const permanentTypes = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantment | kop.TPlaneswalker | kop.TBattle
+		if k.cards[c].types&permanentTypes == 0 {
+			return false
+		}
 	}
 	for _, w := range [2]kop.CtrlSel{fl.Ctrl, fl.Owner} {
 		switch w {

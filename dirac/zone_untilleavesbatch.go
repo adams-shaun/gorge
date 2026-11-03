@@ -41,6 +41,12 @@ func (s *State) holdOpen(k *prep) holdRec {
 	if k.gen == nil || !k.gen.anyLinkRet {
 		return holdRec{}
 	}
+	return s.holdEntries()
+}
+
+// holdEntries opens the frame whatever the table holds: its enters checks wait for
+// holdClose (enterMoved).
+func (s *State) holdEntries() holdRec {
 	r := holdRec{h: s.g.batchLatch & batchHeld, on: true, ts: s.ts}
 	if r.h == 0 {
 		s.g.held = 0
@@ -108,6 +114,23 @@ func (s *State) enterLinkRet(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
 		s.countMayPlayLand(k, o, from)
 	}
 	sl := s.enterNF(k, o, ctrl, false, from, 0)
+	s.g.held |= 1 << (s.perms[sl].ts & 7)
+	return sl
+}
+
+// enterMoved is enter for a card a move puts onto the battlefield: inside an open frame
+// its enters check waits for the others moving with it (CR 603.6a).
+func (s *State) enterMoved(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
+	if s.g.batchLatch&batchHeld == 0 {
+		if from == kop.ZoneGraveyard {
+			return s.enterFromGrave(k, o, ctrl, tapped)
+		}
+		return s.enter(k, o, ctrl, tapped, from)
+	}
+	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o)
+	}
 	s.g.held |= 1 << (s.perms[sl].ts & 7)
 	return sl
 }

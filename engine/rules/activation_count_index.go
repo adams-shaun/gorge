@@ -108,7 +108,13 @@ func (e *Engine) gameActivationsUsed(id state.ObjID, ability int, svar string) i
 	if c.pos > n || c.start != start {
 		c.start, c.pos, c.n = start, start, 0
 	}
-	c.n += activationUsedIn(e.L.Events[c.pos:n], id, ability, svar)
+	if cloneNamesIn(e.L.Events[c.pos:n], id) {
+		// A copy basis began or ended: the count belongs to the basis now in
+		// force, which only the stint's whole walk reads.
+		c.n = activationUsedIn(e.L.Events[start:n], id, ability, svar)
+	} else {
+		c.n += activationUsedIn(e.L.Events[c.pos:n], id, ability, svar)
+	}
 	c.pos = n
 	if walkCacheVerify {
 		if want := activationUsedIn(e.L.Events[objectStintStartIn(e.L.Events, id):], id, ability, svar); want != c.n {
@@ -116,6 +122,16 @@ func (e *Engine) gameActivationsUsed(id state.ObjID, ability int, svar string) i
 		}
 	}
 	return c.n
+}
+
+// cloneNamesIn reports whether evs holds a ClonePermanent naming id.
+func cloneNamesIn(evs []events.Event, id state.ObjID) bool {
+	for i := range evs {
+		if evs[i].Kind == events.ClonePermanent && evs[i].Obj == id {
+			return true
+		}
+	}
+	return false
 }
 
 // objectStintStart returns the log index just past the latest event that
@@ -188,28 +204,57 @@ func zoneMovingKind(k events.Kind) bool {
 
 // activationUsedIn is activationUsedCount's per-event test over evs.
 func activationUsedIn(evs []events.Event, id state.ObjID, ability int, svar string) int {
-	used := 0
+	return activationUsedSince(evs, 0, id, ability, svar)
+}
+
+// activationUsedSince is activationUsedIn counting only the events at or after
+// index from. A flat ability index names a different ability under each copy
+// basis (CR 613.1a): a permanent that becomes a copy of another has that card's
+// abilities, new ones that nothing has activated, and when the basis ends the
+// printed ones return with their own count (Forge keys the count by the
+// SpellAbility itself, and a copy state carries its own). So the count is the
+// current basis's: the events since the latest ClonePermanent naming id while a
+// basis holds, and the printed events (those outside any basis) once it is
+// cleared. A basis is never revisited, so one running count per kind is enough.
+func activationUsedSince(evs []events.Event, from int, id state.ObjID, ability int, svar string) int {
+	printed, based, in := 0, 0, false
 	for i := range evs {
 		ev := evs[i]
 		if ev.Obj != id {
 			continue
 		}
+		if ev.Kind == events.ClonePermanent {
+			in, based = ev.Counter == "chosen-name" || (len(ev.IDs) > 0 && ev.IDs[0] != 0), 0
+			continue
+		}
+		if i < from {
+			continue
+		}
 		ev, sign := activationCounted(ev)
+		used := 0
 		switch ev.Kind {
 		case events.AbilityPush, events.ManaActivate:
 			if ev.Kind == events.ManaActivate && len(ev.IDs) > 0 {
 				continue
 			}
 			if ability >= 0 && ev.Amount == int32(ability) {
-				used += sign
+				used = sign
 			}
 		case events.DelayedPush, events.GrantAbilityPush:
 			if svar != "" && ev.Counter == svar {
-				used += sign
+				used = sign
 			}
 		}
+		if in {
+			based += used
+		} else {
+			printed += used
+		}
 	}
-	return used
+	if in {
+		return based
+	}
+	return printed
 }
 
 // turnStart returns the index just past the log's last TurnChange that

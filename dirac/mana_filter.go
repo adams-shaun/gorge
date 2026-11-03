@@ -40,15 +40,14 @@ const potentialScriptNodes = 160 // gorge rules/potential_script.go
 const relaxedPaidLimit = 3
 
 // filterTapMana: a, a mana ability of cd, is a filter the kernel models:
-// {N}, {T} (generic N only), one mana of any colour, no other cost,
-// restriction or dynamic amount, on a card whose first mana ability is a
-// free {T} one. Three Tree City's dynamic {2},{T} is not (it stays
-// unmodelled). A filter that is the card's first mana ability (Three Tree
-// Mascot's untapped {1}, Prophetic Prism) is kop.FilterManaAb's
-// (mana_filterfirst.go).
+// {N}, {T} (generic N only), one mana of any colour or a dynamic amount of
+// one colour (Three Tree City's {2},{T}), no other cost or restriction, on a
+// card whose first mana ability is a free {T} one. A filter that is the card's
+// first mana ability (Three Tree Mascot's untapped {1}, Prophetic Prism) is
+// kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
-	if a.Kind != kop.AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
+	if a.Kind != kop.AbMana || a.AFlags&^kop.AfManaDynamic != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
 		m.Generic == 0 || m.X != 0 || m.Hyb[0] != 0 || m.Pips != ([kop.NumManaKinds]uint8{}) ||
 		a.ManaColors != kop.ColAny || a.ManaN > 1 {
 		return false
@@ -69,13 +68,55 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	if k.gen.anyFiltFirst {
 		return s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
 	}
-	return s.gapMask(k, p, gfFilt)
+	m := s.gapMask(k, p, gfFilt)
+	if k.gen.anyAbReduce {
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); k.gen.has(s.cardAt(sl), gfFiltFee) && s.filtFee(k, sl) == 0 {
+				m = m.without(sl) // free: part of the source's own mana (mana_filterfree.go)
+			}
+		}
+	}
+	return m
 }
 
-// filtFee is the filter's {N} at slot sl.
+// FilterTapMana reports whether a, a mana ability of cd, is a filter the
+// kernel models (filterTapMana).
+func FilterTapMana(cd *kop.CardDef, a *kop.Ability) bool { return filterTapMana(cd, a) }
+
+// filtFee is the filter's {N} at slot sl, after the cost reductions that
+// reach it: a mana ability is an activated ability (CR 605.1a), so an
+// activated-ability reducer lowers it (CR 601.2f, 602.2b; gorge
+// manaAbilityCC).
 func (s *State) filtFee(k *prep, sl Slot) int {
 	c := s.cardAt(sl)
-	return int(k.t.Cards[c].Abilities[k.gen.filt(c)].Cost.Mana.Generic)
+	a := &k.t.Cards[c].Abilities[k.gen.filt(c)]
+	if k.gen.anyAbReduce {
+		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
+	}
+	return int(a.Cost.Mana.Generic)
+}
+
+// filtUnits is the mana the filter at sl makes.
+func (s *State) filtUnits(k *prep, sl Slot) int {
+	if a := s.filtAb(k, sl); a.AFlags&kop.AfManaDynamic != 0 {
+		return s.dynManaN(k, a, sl)
+	}
+	return 1
+}
+
+// filtRelaxable: gorge's relaxed proof can enumerate the filters f: at most
+// relaxedPaidLimit, each dynamic amount at least one and at most six
+// (rules/potential_plan.go paymentPlanRelaxedAlternatives).
+func (s *State) filtRelaxable(k *prep, f slotMask) bool {
+	if f.count() > relaxedPaidLimit {
+		return false
+	}
+	for ; f.any(); f = f.rest() {
+		if n := s.filtUnits(k, f.first()); n < 1 || n > 6 {
+			return false
+		}
+	}
+	return true
 }
 
 // availFilt: in the gaps walk each filter is a free unit of its colours
@@ -86,7 +127,7 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 //go:noinline
 func (s *State) availFilt(k *prep, p uint8, a *avail) {
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), 1)
+		a.addUnits(uint8(s.filtAb(k, b.first()).ManaColors), uint8(s.filtUnits(k, b.first())))
 		a.total -= s.filtFee(k, b.first())
 	}
 }
@@ -99,6 +140,12 @@ func (s *State) availFilt(k *prep, p uint8, a *avail) {
 //go:noinline
 func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extra int) bool {
 	if av.affords(r, pipMaskOf(r), extra) {
+		return true
+	}
+	if k.restrSrc && s.restrFaceAffords(k, p, r, av, extra) {
+		return true
+	}
+	if k.gen != nil && k.gen.anyMultiR && s.wideFaceAffords(k, p, r, av, extra) {
 		return true
 	}
 	if k.gen == nil || !k.gen.anyFilt {
@@ -125,10 +172,16 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 			sl := filt[i]
 			if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
 				pc := s.manaPCGen(k, sl)
-				t.remove(s.srcMaskAt(pc, sl), pc.manaN)
+				s.removeSrc(k, &t, sl, pc)
 			}
-			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), 1)
-			t.total -= s.filtFee(k, sl)
+			// the fee comes first, out of what is made so far (CR 605.3b)
+			fee := s.filtFee(k, sl)
+			if t.total < fee {
+				t.total = -1 << 30
+				break
+			}
+			t.total -= fee
+			t.addUnits(uint8(s.filtAb(k, sl).ManaColors), uint8(s.filtUnits(k, sl)))
 		}
 		if t.affords(r, pipMaskOf(r), extra) {
 			return true
@@ -204,7 +257,26 @@ func censusGapMana(a *kop.Ability) bool {
 // with a mana ability the census misses: a Bloom Tender, Giada, a
 // Courtyard, Lupinflower Village's restricted {W}).
 func (s *State) filtOnly(k *prep, p uint8) bool {
-	return s.scriptFilt(k, p).any() && !s.gapMask(k, p, gfGapOther).any()
+	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
+}
+
+// gapOthers: p's activatable sources with a census gap that is no filter. A tap-another
+// source short of what its cost taps (Baylen with one token) cannot be activated, so
+// gorge's census does not miss it.
+func (s *State) gapOthers(k *prep, p uint8) slotMask {
+	m := s.gapMask(k, p, gfGapOther)
+	if !k.tapMana {
+		return m
+	}
+	live := s.scriptTapX(k, p)
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if ab := k.cards[c].manaAb; ab >= 0 && kop.TapXMana(&k.t.Cards[c].Abilities[ab]) && !live.has(sl) {
+			m = m.without(sl)
+		}
+	}
+	return m
 }
 
 // filtStep is one activation of a filter script: source sl; for a gap
@@ -225,7 +297,7 @@ type filtStep struct {
 
 type filtKey struct {
 	pool  [kop.NumManaKinds]uint8
-	poolR uint8
+	poolR uint16
 	rx    uint16 // poolRx: the other colours of the restricted mana
 	// art: the pool slots holding an artifact's mana (genState.poolArt):
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a
@@ -252,6 +324,10 @@ type filtSearch struct {
 	seen  [potentialScriptNodes]filtKey
 	n     int
 	path  [maxFiltPath]filtStep
+	// spill: a step of the path found floated restricted mana past what
+	// poolR names (a third restriction on the table), unrestricted: the
+	// script the search found is not one gorge's planner would price
+	spill uint8
 }
 
 // filtScript reports whether gorge's prefix search finds a script for play
@@ -265,7 +341,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
-	if fs.gaps.count() <= relaxedPaidLimit && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
+	if s.filtRelaxable(k, fs.gaps) && !(k.tapMana && s.tapXTwoLive(k, p)) { // (unrelaxable: no funding)
 		for b := fs.gaps; b.any(); b = b.rest() {
 			fs.fees += s.filtFee(k, b.first())
 		}
@@ -275,12 +351,19 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	if !fs.visit(k, t, 0, false) {
 		return false
 	}
+	if fs.spill != 0 {
+		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
+	}
 	if !apply && (k.restrSrc || fs.other.any()) && s.filtDeadEnd(k, p, a, &fs) {
 		return false
 	}
 	if apply {
 		for i := 0; i < fs.n; i++ {
-			s.filtDo(k, p, fs.path[i])
+			st := fs.path[i]
+			s.filtDo(k, p, st)
+			if (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
+				s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
+			}
 		}
 	}
 	return true
@@ -323,17 +406,20 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if k.artMana {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
-		pl.pool[st.ans-1]++
+		pl.pool[st.ans-1] += uint8(s.filtUnits(k, st.sl))
+		s.tapExtraStall(k, st.sl)
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
 		pl.pool[c] += max(pc.manaN, 1)
+		s.addExtra(k, p, st.sl, pc)
 		s.artTag(k, p, st.sl, c)
 	case st.restr:
 		s.filtRestrDo(k, p, st)
 	default:
 		pl.pool[st.ans] += max(s.manaPCGen(k, st.sl).manaN, 1)
+		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
 		s.artTag(k, p, st.sl, int(st.ans))
 	}
 }
@@ -357,6 +443,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	fs.path[fs.n] = st
 	fs.n++
 	if fs.visit(k, c, funded, gapUsed) {
+		if c.g.stalled != t.g.stalled {
+			fs.spill = c.g.stalled
+		}
 		return true
 	}
 	fs.n--

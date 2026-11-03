@@ -108,8 +108,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			cost = &credited
 		}
 		var adj kop.ManaCost
+		base := *cost
 		if s.statM.any() || k.gen != nil {
-			adj = s.adjustCost(k, p, c, o, *cost)
+			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
 		if !av.affords(cost, pipMaskOf(cost), 0) && (pl.poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
@@ -126,7 +127,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		} else {
 			tgtOK = s.spellTargetsFeasible(k, c, p)
 		}
-		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, cost, &av) {
+		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, cost, &base, false, &av) {
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -162,7 +163,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
-			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
@@ -201,7 +202,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
 			}
 		}
-		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasible(k, c, p) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
+		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
 		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !granted && !s.pickCostPayable(k, p, fb, o) {
@@ -209,6 +210,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
+		}
+		if !s.flashbackPartsDisjoint(k, p, c, fc) {
+			continue
 		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
 			// gorge's potential planner prices a target-conditional reduction on
@@ -227,6 +231,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
+	}
+	if k.gen != nil && k.gen.anyBeam {
+		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
 	if k.mayhem {
 		s.offerMayhemCasts(k, d, p, sorc, &av) // kw_mayhem.go
@@ -379,7 +386,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, a.Kind == kop.AbMana) {
 		return false // a CantBeActivated lock (cast_cantactivate.go)
 	}
-	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyCostEvid || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
+	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
 		// abort in a row (cast_commit.go abortCast, CR 733.2)
 		return false
@@ -387,6 +394,12 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	f := a.Cost.Flags
 	if f&kop.CostSorcery != 0 && !sorc {
 		return false
+	}
+	if a.Cost.Host != 0 && ab != 255 {
+		return false // a granting host's cost part: only a granted ability has a host (gorge leaves the referent unbound)
+	}
+	if a.Evidence != 0 && s.graveTotalMV(k, p.ctrl) < int(a.Evidence) {
+		return false // CollectEvidence<N> needs a graveyard worth N (gorge pay.EvidencePayable)
 	}
 	if k.anyGate && !s.gateOK(sl, a) {
 		return false
@@ -502,8 +515,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		mk := s.srcMaskAt(pc, sl)
-		av2.remove(mk, pc.manaN)
+		s.removeSrc(k, &av2, sl, pc)
 		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
@@ -515,7 +527,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostSacSelf != 0 && k.sacMana && s.sacSelfMana(k, sl) {
 		return s.abilityAffordsSacSelf(k, sl, a, cost, av) // filter_combatwords.go
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, NoSlot)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
+	// a source that taps for mana only under a spend restriction (Isolinear
+	// Processor) is outside the ordinary walk above, but its own {T} still
+	// takes its mana out of the restricted sources this activation may spend.
+	skip := NoSlot
+	if f&kop.CostTap != 0 {
+		skip = sl
+	}
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -584,6 +603,23 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	return s.cfg&cfgGorgeAutopay == 0 && s.gorgeLowers(p, o)
 }
 
+// flashbackPartsDisjoint: the flashback cast of card c at cost, whose additional cost sacrifices
+// or taps a permanent, is still priced once the permanents that part takes are held
+// back from the mana (gorge planReserving, as gorgeLowers prices the plain cast): a
+// source that sacrifices itself can use up what the part must sacrifice, and a
+// creature tapped for mana is not also the one the part taps (CR 601.2g-h).
+//
+//go:noinline
+func (s *State) flashbackPartsDisjoint(k *prep, p uint8, c CardID, cost kop.ManaCost) bool {
+	ac := spellAddCost(k, c)
+	if ac.Flags&kop.CostTapX == 0 && !(ac.Flags&kop.CostSac != 0 && k.sacMana) {
+		return true
+	}
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.costPartDisjoint(k, p, NoSlot, ac, &cost, &av, pipMaskOf(&cost))
+}
+
 // gorgeOffersKicked: under Config.GorgeAutopaySurface a kicked or Offspring cast
 // is still one of gorge's potential plays (pair 8638: Grow from the Ashes paid
 // only through the imprisoned lands).
@@ -621,9 +657,6 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.handFreeOffered(k, p, o) {
-		return false // the plain cast and the free one share a potential play's identity: "ambiguous", never priced
-	}
 	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
 		return false // gorge's potential planner refuses a convoke cost
 	}
@@ -631,21 +664,21 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		return false // ... and a twobrid one ("cost:twobrid", pay.PlanCostDetail)
 	}
 	if cd.Cost.X != 0 {
-		return true
+		return s.xWitnessOffered(k, p, c, o)
 	}
 	if cd.HasAltAdd {
-		base := k.cards[c].cost
-		if !s.altAddFreePart(k, p, c, o) {
-			base = addCost(base, s.altAddManaPart(k, c))
-		}
-		cost := s.featCost(k, p, c, o, base)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost := s.altAddPlanCost(k, p, c, o)
 		if s.g.availX&availGaps != 0 {
 			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
 		}
-		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+		if s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+			return true
+		}
+		// the planner's census has no granted source, so a cost only a granted ability
+		// pays is a census gap: gorge's prefix search taps it first and the cast is
+		// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
+		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h)
+		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p)) && s.affordsFor(k, p, &cost)
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
@@ -667,17 +700,39 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			if s.g.mayPlayAny {
 				cost = anyType(cost)
 			}
-			if k.gen != nil && len(k.gen.grantPC) != 0 {
-				// the planner's census has no granted source (Imprisoned in the Moon's {C})
-				return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
-			}
-			return s.affordsFor(k, p, &cost)
+			// the planner's census (potentialTargetPricedPlan): no granted source
+			// (Imprisoned in the Moon's {C}), and a painful source makes its
+			// colours while one point of damage is not lethal (Starting Town's W)
+			return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
 		}
 	}
-	if cd.BeholdExile {
+	if cd.BeholdExile || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
 		return s.plannerPaysCast(k, p, c, o) // a shape lowered only on the composed plan's witness
 	}
 	return true
+}
+
+// scriptSourceLive: p has a source the planner's census leaves a gap (an
+// each-colour source, restricted mana, a tap-another or counter source), which
+// gorge's prefix search taps before it prices the play again (Bloom Tender's
+// colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
+func (s *State) scriptSourceLive(k *prep, p uint8) bool {
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any()
+}
+
+// altAddPlanCost is the mana gorge's potential planner prices an either-or additional
+// cost's spell at (potentialAltAddPlan): the spell's own cost when a part with no mana
+// can be paid, and otherwise with the part that has mana.
+func (s *State) altAddPlanCost(k *prep, p uint8, c CardID, o Obj) kop.ManaCost {
+	base := k.cards[c].cost
+	if !s.altAddFreePart(k, p, c, o) {
+		base = addCost(base, s.altAddManaPart(k, c))
+	}
+	cost := s.featCost(k, p, c, o, base)
+	if s.g.mayPlayAny {
+		cost = anyType(cost)
+	}
+	return cost
 }
 
 func manaEmpty(m *kop.ManaCost) bool { return m.MV() == 0 && m.X == 0 }
@@ -693,8 +748,22 @@ func severalTargets(k *prep, c CardID) bool {
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+}
+
+// altAddPartDisjoint: the permanents a part sacrifices or taps are not the
+// sources that pay the spell's own mana, as gorge's planner holds them back
+// (planReserving): one Treasure sacrificed for {B} is gone, so it is not also
+// the artifact Stir Up Trouble's part sacrifices (CR 601.2g-h).
+func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.Cost) bool {
+	if part.Flags&kop.CostTapX == 0 && !(part.Flags&kop.CostSac != 0 && k.sacMana) {
+		return true
+	}
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 
 // altAddManaPart is the mana of card c's either-or additional cost part that has any.
@@ -710,6 +779,16 @@ func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
 // the part's -- unless gorge's shape is asked for (Config.GorgeAltAdd),
 // where a payable pick cost is enough (spellCostsFeasible).
 func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.ManaCost, av *avail) bool {
+	return s.altAddCastableFrom(k, c, p, o, cost, nil, false, av)
+}
+
+// altAddCastableFrom is altAddCastable for a plain cast whose unreduced cost is
+// base: the either-or part's mana joins base before the reductions take their
+// generic off the total (CR 601.2f), as gorge's offer composes it, so Uncle
+// Iroh's {1} off Redirect Lightning's {R} plus {2} leaves {1}{R}, not {2}{R}.
+// gen is the generic-cost statics' form of adjustFit. A nil base adds the part
+// to cost as it stands.
+func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base *kop.ManaCost, gen bool, av *avail) bool {
 	cd := &k.t.Cards[c]
 	if !cd.HasAltAdd {
 		return true
@@ -722,6 +801,9 @@ func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.Mana
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)
+	if base != nil && (s.statM.any() || k.gen != nil) {
+		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+	}
 	return av.affords(&t, pipMaskOf(&t), 0)
 }
 
@@ -770,6 +852,21 @@ func spellAb(k *prep, c CardID) uint8 {
 		return uint8(ab)
 	}
 	return 255
+}
+
+// spellTargetsFeasibleFrom is spellTargetsFeasible for the spell card o, cast
+// from the graveyard: o is on the stack by the time its targets are chosen, so
+// it is no candidate for them (gorge castTargetsAvailable names the cast card).
+// Flashback under The Dawning Archaic with no other instant or sorcery in the
+// graveyard has no target and is not offered.
+func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
+	if s.objs[o].zone != kop.ZoneGraveyard {
+		return s.spellTargetsFeasible(k, c, p)
+	}
+	s.g.tgtSelf = uint8(o) + 1
+	ok := s.spellTargetsFeasible(k, c, p)
+	s.g.tgtSelf = 0
+	return ok
 }
 
 func (s *State) spellTargetsFeasible(k *prep, c CardID, p uint8) bool {
@@ -985,6 +1082,9 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
+				if uint8(o)+1 == s.g.tgtSelf {
+					continue
+				}
 				if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
 					out[n] = uint8(o)
 					n++
@@ -1032,8 +1132,11 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 	if k.gen == nil || k.cards[c].kw&kop.KwFlashback == 0 || !s.fbGranted(k, o) || cd.Cost == cd.AltCost {
 		return false, false, false
 	}
+	// gorge prices each instance for this spell: a source whose restriction
+	// refuses it adds nothing (Secluded Courtyard's any colour for an instant)
+	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 	var pa avail
-	s.availPotential(k, p, &pa)
+	s.availPotentialFor(k, p, &pa, &spell)
 	pf := s.adjustCost(k, p, c, o, cd.AltCost)
 	gf := s.adjustCost(k, p, c, o, cd.Cost)
 	pPot, gPot := pa.affords(&pf, pipMaskOf(&pf), 0), pa.affords(&gf, pipMaskOf(&gf), 0)
@@ -1057,7 +1160,7 @@ func (s *State) fbInstances(k *prep, p uint8, o Obj) (two, ambiguous, granted bo
 // deliberate over-bound: a source adds one unit of every colour it can make, and
 // an open production (any colour, an unread chosen colour) is unlimited.
 func (s *State) availPotential(k *prep, p uint8, a *avail) {
-	s.availPotentialFor(k, p, a, false)
+	s.availPotentialFor(k, p, a, nil)
 }
 
 // potentialOpenUnits stands for gorge's potentialUnbounded in each colour: more
@@ -1071,7 +1174,8 @@ const potentialOpenUnits = 2 * trigXCap
 // pool built from the other sources covers its cost, so the walk runs to a fixpoint.
 //
 //go:noinline
-func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
+func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
+	payment := d != nil
 	var pot [kop.NumManaKinds]int
 	for c := range pot {
 		pot[c] = int(s.pl[p].pool[c])
@@ -1092,7 +1196,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
 		}
-		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl) {
+		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			continue
 		}
 		if pc.manaAb >= 0 {
@@ -1111,7 +1215,25 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 			open = true
 			continue
 		}
-		add(sl, s.srcMaskAt(pc, sl), pc.manaN)
+		mask := s.srcMaskAt(pc, sl)
+		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
+			mask = uint8(k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].ManaColors) // the walk below admits its other abilities, each once
+		}
+		add(sl, mask, pc.manaN)
+		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
+			// a mana ability granted beside the source's own one (an aura's
+			// "{T}: Add two mana of any one color") counts on its own, as
+			// gorge's walk admits each of a source's abilities
+			var gi [maxGrants]int16
+			for i, ng := 0, s.grantIdxs(k, sl, &gi); i < ng; i++ {
+				gv := s.grantView(k.gen, gi[i], sl)
+				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+					open = true
+					continue
+				}
+				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+			}
+		}
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
@@ -1124,7 +1246,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 			}
 			for j := range cd.Abilities {
 				ab := &cd.Abilities[j]
-				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, ab, payment) {
+				if j >= 16 || ab.Kind != kop.AbMana || ab.AFlags&kop.AfLatent != 0 || done[sl]&(1<<j) != 0 || !s.potentialAdmits(k, p, sl, j, ab, d) {
 					continue
 				}
 				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
@@ -1132,7 +1254,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
-				if ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaDynamic != 0 {
+				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
@@ -1152,12 +1274,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, payment bool) {
 }
 
 // potentialAdmits reports whether a further mana ability of the source at sl can
-// count toward p's potential pool: usable now, its non-mana costs a {T} or a
-// sacrifice of the source, and its restriction admitting the payment.
-func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, ab *kop.Ability, payment bool) bool {
+// count toward p's potential pool: usable now, its non-mana costs a {T}, a
+// once-each-turn limit or a sacrifice of the source, and its restriction
+// admitting the payment.
+func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, d *payDesc) bool {
 	pp := &s.perms[sl]
-	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife) != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
+	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 && !s.potentialGapCost(k, p, sl, j, ab) || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
 		return false
+	}
+	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
+		return false // Gravestone Strider, used this turn
 	}
 	if ab.Cost.Flags&kop.CostPayLife != 0 && int(s.pl[p&1].life) < int(ab.Cost.N) {
 		return false
@@ -1171,8 +1297,27 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, ab *kop.Ability, paym
 	if ab.Trig.Cond != 0 && !s.condEval(k, ab.Trig.Cond, evalCtx{src: pp.obj, srcSl: sl, ctrl: pp.ctrl}) {
 		return false
 	}
-	d := payDesc{class: pdOther}
-	return !payment || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, &d)
+	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)
+}
+
+// potentialGapCost reports whether mana ability j of the source at sl, whose cost goes
+// beyond a tap, a self-sacrifice and life, is one gorge's potential-mana walk
+// admits while its cost can be paid: a tap-another-permanent source with a permanent to
+// tap (Springleaf Drum, Baylen's tokens), or a counter cost put on its source once each
+// turn (Wall of Roots). They are the shapes kop.ManaAbilityHonoured lists.
+func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
+	c := s.cardAt(sl)
+	if k.cards[c].manaAb != int8(j) {
+		return false
+	}
+	switch {
+	case kop.CtrManaAb(ab):
+		return true
+	case k.tapMana && kop.TapXMana(ab):
+		var cs [MaxPerm]Slot
+		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
+	}
+	return false
 }
 
 // potentialCovers reports whether the pool others covers cost's pips and total.
@@ -1191,6 +1336,7 @@ func potentialCovers(others *[kop.NumManaKinds]int, cost *kop.ManaCost) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	sp0 := s.sp
 	if s.scriptAny(k) && (isCastKind(a.Kind()) || a.Kind() == AkActivate || a.Kind() == AkPlot) {
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		if s.npend != 0 {
@@ -1202,6 +1348,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
+	}
+	if s.sp > sp0 && s.playNeedsEmptyStack(k, a) {
+		s.resolvePrefixStack(k, sp0)
 	}
 	switch a.Kind() {
 	case AkPass:
@@ -1232,6 +1381,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
 			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
+		}
+		if a.Mode() == 2 && k.gen != nil && k.gen.anyBeam {
+			s.noteBeamCast(k, a) // kw_beammeup.go
 		}
 		s.beginCast(k, Obj(a.Source()), a.Mode())
 		if face {
@@ -1292,7 +1444,7 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 	} else {
 		s.enter(k, o, p, false, from)
 	}
-	if deferCount {
+	if deferCount && !counted {
 		s.shockLandCount(o, p)
 	}
 	s.passes = 0
@@ -1345,7 +1497,7 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 			}
 			switch a.Static.Kind {
 			case kop.StatReduceCost:
-				if sp.ctrl == p && s.matchCard(k, a.Static.Filter, c, p, sp.ctrl) {
+				if (sp.ctrl == p || a.Static.StFlags&kop.StReduceAny != 0) && s.matchCard(k, a.Static.Filter, c, p, sp.ctrl) {
 					g -= int(a.Static.A)
 				}
 			case kop.StatIncreaseCost:

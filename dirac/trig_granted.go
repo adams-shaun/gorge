@@ -13,5 +13,14 @@ func (s *State) grantTrigHosts(k *prep, m slotMask) slotMask {
 			m = m.with(h)
 		}
 	}
+	if k.gen.globTrigGrant {
+		// a grant not limited to the source's host: every permanent is a
+		// possible holder (grantedAbilitiesN checks the static's filter)
+		for g := s.statM; g.any(); g = g.rest() {
+			if k.gen.has(s.cardAt(g.first()), gfGlobGrant) {
+				return m.or(s.occ)
+			}
+		}
+	}
 	return m
 }

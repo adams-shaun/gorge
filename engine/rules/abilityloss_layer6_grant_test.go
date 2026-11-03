@@ -36,3 +36,26 @@ func TestWitnessProtectedColonyGrantsNoTrample(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// A permanent that lost its abilities has no replacement effect (CR 613.1f): Angel
+// of Vitality under Witness Protection adds nothing to a life gain, on the same scan
+// that adds its 1 without the Aura.
+func TestLifeReplacementLostWithTheAbilities(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{lookup(t, reg, "Angel of Vitality"), lookup(t, reg, "Witness Protection")}, nil)
+	angel := moveCorpusCard(t, e, "Angel of Vitality", 0, state.ZBattlefield)
+	gain := func() int32 {
+		before := e.G.Players[0].Life
+		e.emit(events.Event{Kind: events.LifeChange, Player: 0, Amount: 2})
+		return e.G.Players[0].Life - before
+	}
+	if got := gain(); got != 3 {
+		t.Fatalf("with the Angel's ability a gain of 2 came to %d, want 3", got)
+	}
+	lossAttach(t, e, "Witness Protection", 0, angel)
+	if got := gain(); got != 2 {
+		t.Fatalf("with the Angel's abilities gone a gain of 2 came to %d, want 2", got)
+	}
+	replayCheck(t, e, cfg)
+}

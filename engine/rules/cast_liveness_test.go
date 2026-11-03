@@ -513,3 +513,20 @@ func TestTargetlessCastAbortCannotSpinTheWindow(t *testing.T) {
 		t.Fatal("mandatory targetless Shelter was offered after the CR 601.2c census")
 	}
 }
+
+// TestFirstStrikeStepEndReleasesHeldOutOptions: a no-progress hold-out lasts the
+// priority window. The regular damage step opens a new window under the same
+// Step value, with no StepChange and, when nothing deals regular damage, no
+// event at all to clear it (CR 510.4).
+func TestFirstStrikeStepEndReleasesHeldOutOptions(t *testing.T) {
+	t.Parallel()
+	e := layerEngine(t)
+	e.G.Step = state.StepCombatDamage
+	e.combatRound = combatRound{hasFirst: true, firstDone: true}
+	e.suppressedCast = map[state.ObjID]bool{5: true}
+	e.castAborts = map[state.ObjID]int32{5: 2}
+	e.advanceStep()
+	if e.suppressedCast != nil || e.castAborts != nil {
+		t.Fatalf("hold-out survived the first-strike step: %v %v", e.suppressedCast, e.castAborts)
+	}
+}

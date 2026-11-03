@@ -37,6 +37,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/dirac/vanilla"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func main() { os.Exit(run()) }
@@ -82,7 +83,7 @@ func run() int {
 		workers    = flag.Int("workers", 1, "games in parallel")
 		keepGoing  = flag.Bool("keep-going", false, "count every divergence instead of stopping at the first")
 		shrink     = flag.Int("shrink", 200, "shrink reruns for the first divergence (0: none)")
-		out        = flag.String("out", "", "directory for the first divergence's repro.json (default: none written)")
+		out        = flag.String("out", "", "directory for the first divergence's repro.json, and for each capacity stall's game as capacity-<table>-pair<N>.repro.json (default: none written)")
 		reproPath  = flag.String("repro", "", "re-run this repro in lockstep and report")
 		replayPath = flag.String("replay", "", "re-execute this kernel game (koracle-game-1) in gorge and report")
 		jsonOut    = flag.Bool("json", false, "print the summary as JSON")
@@ -109,12 +110,14 @@ func run() int {
 		v2NoChance = flag.Bool("v2-no-chance", false, "-v2 transcript: negative control: the gorge host keeps its secret-stream shuffles instead of dealing the dirac kernel's chance (must diff)")
 		synth      = flag.String("synth", "", "play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks")
 		synthDecks = flag.Int("synth-decks", oracle.SynthDecks, "-synth: decks to deal")
+		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
 	)
 	flag.Parse()
 	verboseFDN = *verbose
+	reproEvents = *eventTail
 	coveragePath = *covPath
 	evidencePath = *evidence
 	implicatesAll = *implAll
@@ -199,8 +202,8 @@ func run() int {
 	var set cardset.Set
 	switch {
 	case *synth != "":
-		// As -evidence: unverified cards play and a pair holding a refused one is turned
-		// away, unless -play-refused asks for the games a settling run needs.
+		// As -evidence: unverified cards play and decks are dealt without the refused
+		// ones, unless -play-refused asks for the games a settling run needs.
 		if set, err = cardset.SynthByName(*synth); err == nil && !*refusedIn {
 			set = cardset.AllowUnverified(set)
 		}
@@ -503,6 +506,9 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	rrc.Config.PassElision = rep.PassElision
 	rrc.MaxTurns = rep.MaxTurns
 	rrc.MaxDecisions = len(rep.Actions) + 200
+	if reproEvents > 0 {
+		rrc.Finish = printEventTail(reproEvents)
+	}
 	mk, err := newSide(rep, rrc)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
@@ -520,6 +526,62 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	}
 	printDiv(res.Div)
 	return 1
+}
+
+// reproEvents is -events.
+var reproEvents int
+
+// printEventTail is a RunConfig.Finish that prints the last n events of gorge's log, each
+// object by name and id.
+func printEventTail(n int) func(*oracle.GorgeSide) {
+	return func(g *oracle.GorgeSide) {
+		name := func(id state.ObjID) string {
+			if o := g.E.G.Obj(id); o != nil && o.Card != nil && len(o.Card.Faces) > 0 {
+				return fmt.Sprintf("%s#%d", o.Card.Faces[0].Name, id)
+			}
+			return fmt.Sprintf("#%d", id)
+		}
+		for pl := state.PlayerID(0); pl < 2; pl++ {
+			for _, id := range g.E.G.Zone(state.ZHand, pl) {
+				fmt.Printf("  hand p%d %s\n", pl, name(id))
+			}
+			for _, id := range g.E.G.Zone(state.ZBattlefield, pl) {
+				o := g.E.G.Obj(id)
+				att := ""
+				if o.AttachedTo != 0 {
+					att = " on " + name(o.AttachedTo)
+				}
+				pt := ""
+				if g.E.IsCreature(id) {
+					pt = fmt.Sprintf(" pt=%d/%d", g.E.Power(id), g.E.Toughness(id))
+				}
+				fmt.Printf("  bf p%d %s tapped=%v sick=%v atk=%v%s%s\n", pl, name(id), o.Tapped, o.SummonSick, o.IsAttacking, pt, att)
+			}
+		}
+		evs := g.E.L.Events
+		for _, e := range evs[max(0, len(evs)-n):] {
+			line := fmt.Sprintf("  ev %d %s p%d", e.Seq, e.Kind, e.Player)
+			if e.Obj != 0 {
+				line += " obj=" + name(e.Obj)
+			}
+			if e.From != 0 || e.To != 0 {
+				line += fmt.Sprintf(" zone %d>%d", e.From, e.To)
+			}
+			if e.Amount != 0 {
+				line += fmt.Sprintf(" n=%d", e.Amount)
+			}
+			if e.Counter != "" {
+				line += " ctr=" + e.Counter
+			}
+			if e.Text != "" {
+				line += fmt.Sprintf(" %q", e.Text)
+			}
+			for _, id := range e.IDs {
+				line += " " + name(id)
+			}
+			fmt.Println(line)
+		}
+	}
 }
 
 // reproEntries turns a Repro deck (card names, one per copy) into the deck
@@ -892,7 +954,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		if o.onGame != nil {
 			o.onGame(&res)
 		}
-		if !verboseFDN && (o.out == "" || res.Div == nil) && (!implicatesAll || res.Clean()) {
+		if !verboseFDN && (o.out == "" || res.Div == nil && !strings.HasPrefix(res.Stall, oracle.KernelStallPrefix)) && (!implicatesAll || res.Clean()) {
 			res.Actions = nil // only the reports of a bad game read them; don't hold every game's
 		}
 		return played{m: m, res: res, cov: cov}
@@ -1013,6 +1075,14 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 		}
 		st.Add(res.Stats)
 		v.Games++
+		if res.Stall == oracle.GorgeTriggerCapStall {
+			v.Capacity++
+			v.CapacityWhy[res.Stall]++
+			if verboseFDN || o.absolute {
+				fmt.Printf("pair %d (%s vs %s, seed %d): %s stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+			}
+			continue
+		}
 		if res.Div == nil && strings.HasPrefix(res.Stall, oracle.KernelStallPrefix) {
 			why := strings.TrimPrefix(res.Stall, oracle.KernelStallPrefix)
 			if res.StallUnmodelled {
@@ -1027,7 +1097,17 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.Capacity++
 			v.CapacityWhy[why]++
 			if verboseFDN {
-				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions)
+				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
+			}
+			if o.out != "" && m != nil {
+				// the game up to the stall, one file a pair: a test that plays it on
+				// fails for as long as the table stalls there
+				if err := os.MkdirAll(o.out, 0o755); err == nil {
+					path := filepath.Join(o.out, fmt.Sprintf("capacity-%s-pair%d.repro.json", why, p.Index))
+					if err := oracle.NewRepro(m, p.Seed, rc, &res).Write(path); err != nil {
+						fmt.Fprintln(os.Stderr, "kfuzz:", err)
+					}
+				}
 			}
 			continue
 		}
@@ -1154,7 +1234,14 @@ func printVerboseDiv(p oracle.Pairing, m *oracle.Matchup, res *oracle.Result, im
 		return "token"
 	}
 	obj := regexp.MustCompile(`(#|Cards\[)(\d+)`)
+	// a stack entry's source and an attachment name an object by its bare index
+	byIndex := regexp.MustCompile(`^(Cards\[\d+\]\.AttachedTo|Stack\[\d+\]\.Source): ref=(\d+) kernel=(\d+)$`)
 	ann := func(x string) string {
+		if sm := byIndex.FindStringSubmatch(x); sm != nil {
+			r, _ := strconv.Atoi(sm[2])
+			k, _ := strconv.Atoi(sm[3])
+			return fmt.Sprintf("%s: ref=%d{%s} kernel=%d{%s}", sm[1], r, name(r), k, name(k))
+		}
 		return obj.ReplaceAllStringFunc(x, func(t string) string {
 			sm := obj.FindStringSubmatch(t)
 			n, _ := strconv.Atoi(sm[2])
@@ -1292,9 +1379,22 @@ func firstLineOf(s string) string {
 
 func printDiv(d *oracle.Divergence) {
 	fmt.Println(d.String())
-	for i, l := range d.Diff {
+	// A position shift is usually the echo of a card that moved, so the lines naming
+	// something else come first.
+	diff := make([]string, 0, len(d.Diff))
+	for _, l := range d.Diff {
+		if !strings.HasSuffix(strings.SplitN(l, ": ", 2)[0], ".Pos") {
+			diff = append(diff, l)
+		}
+	}
+	for _, l := range d.Diff {
+		if strings.HasSuffix(strings.SplitN(l, ": ", 2)[0], ".Pos") {
+			diff = append(diff, l)
+		}
+	}
+	for i, l := range diff {
 		if i >= 20 {
-			fmt.Printf("  ... %d more\n", len(d.Diff)-i)
+			fmt.Printf("  ... %d more\n", len(diff)-i)
 			break
 		}
 		fmt.Println("  " + l)

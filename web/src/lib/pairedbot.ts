@@ -118,6 +118,31 @@ export function adviceRows(d: Decision, search: ExplainSearch): AdviceRow[] {
     .sort((a, b) => b.visits - a.visits);
 }
 
+/** One step of what search expects to happen after the recommended play. */
+export interface ExpectedStep {
+  who: string;
+  label: string;
+  /** How much of the lines that reached this decision went this way, as a percentage. */
+  share: number;
+  /** Where the lines through it end up, as a percentage; the player's perspective. */
+  chance: number;
+}
+
+/**
+ * expectedLine words a search's most-visited continuation after its
+ * recommendation. The server leaves out plies that depend on cards the
+ * player cannot see, so the line may be short; the second value says so.
+ */
+export function expectedLine(search: ExplainSearch): { steps: ExpectedStep[]; cutShort: boolean } {
+  const steps = (search.line ?? []).map((p) => ({
+    who: p.actor === 'you' ? 'You' : 'Opponent',
+    label: promptWords(p.label),
+    share: Math.round(100 * p.share),
+    chance: Math.round((p.q + 1) * 50),
+  }));
+  return { steps, cutShort: search.line_end === 'hidden' };
+}
+
 /** shownRows is the first n rows, the recommendation always among them, and how many that leaves out. */
 export function shownRows(rows: readonly AdviceRow[], n: number, dropped = 0): { rows: AdviceRow[]; more: number } {
   const shown = rows.slice(0, n);

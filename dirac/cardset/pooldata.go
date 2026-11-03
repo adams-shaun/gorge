@@ -2,6 +2,7 @@ package cardset
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -64,7 +65,11 @@ type PoolData struct {
 	RoomCards           []int
 	NameReaders         []int
 	AbReducers          []int
+	AbReducerFloor      []uint8  // AbReducers' MinMana$ floors, 0 none
+	AbReducerTypes      []uint16 // AbReducers' filter card types, 0 any
 	AbManaCosted        []int
+	AbManaCostedMV      []uint8  // AbManaCosted's dearest mana-ability mana cost
+	AbManaCostedTypes   []uint16 // AbManaCosted's card types
 }
 
 // NoSubtype is the matchup filter sentinel for a subtype no object in the
@@ -189,20 +194,24 @@ func (s dataSet) roomNameGuard(pool []int) error {
 	return RoomNameRefusal(rooms, readers)
 }
 
-// abReduceGuard refuses a matchup pool holding both an activated-ability
-// cost reducer and a mana-costed mana ability (AbReduceRefusal).
+// abReduceGuard refuses a matchup pool holding an activated-ability cost
+// reducer and a mana ability whose mana cost the reducer would lower
+// (AbReduceRefusal).
 func (s dataSet) abReduceGuard(pool []int) error {
 	d := s.d
 	var reducers, costed []string
 	for _, i := range pool {
-		for _, r := range d.AbReducers {
-			if i == r {
-				reducers = append(reducers, d.Names[i])
+		for k, r := range d.AbManaCosted {
+			if i != r {
+				continue
 			}
-		}
-		for _, r := range d.AbManaCosted {
-			if i == r {
+			for j, rd := range d.AbReducers {
+				if !slices.Contains(pool, rd) || int(d.AbManaCostedMV[k]) <= int(d.AbReducerFloor[j]) ||
+					d.AbReducerTypes[j] != 0 && d.AbReducerTypes[j]&d.AbManaCostedTypes[k] == 0 {
+					continue
+				}
 				costed = append(costed, d.Names[i])
+				reducers = append(reducers, d.Names[rd])
 			}
 		}
 	}
@@ -342,6 +351,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 					break
 				}
 			}
+		}
+	}
+	for i := range dd.Exprs {
+		if x := &dd.Exprs[i]; x.Kind == kop.ExValidAgg && x.N == kop.AggCreatureTypes {
+			choosesType = true // a count of creature types reads every printed one
 		}
 	}
 	if choosesType {

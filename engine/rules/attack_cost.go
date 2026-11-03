@@ -1208,7 +1208,7 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 			if mp.RestrictValid != "" {
 				continue
 			}
-			if !pay.ManaFreeCost(e.abilityCompiledCost(ma).Cost) {
+			if !pay.ManaFreeCost(e.manaAbilityCC(p, id, ma).Cost) {
 				continue
 			}
 			amt := availableAmountOf(mp)

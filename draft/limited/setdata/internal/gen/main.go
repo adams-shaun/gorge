@@ -3,7 +3,7 @@
 // limited/setdata/mtgjson. It is a build-time tool only: the setdata
 // package itself stays pure and reads nothing but its embedded files.
 //
-//	go run ./internal/gen -sets FDN,BLB
+//	go run ./internal/gen -sets FDN,BLB,TRK
 //
 // (wired as the //go:generate directive in the parent package; run from
 // draft/limited/setdata, where mtgjson/ and sets/ resolve). The output is
@@ -34,7 +34,7 @@ func main() {
 	mtgjson := flag.String("mtgjson", "mtgjson", "directory holding the trimmed MTGJSON inputs (<dir>/<SET>.json)")
 	flag.Parse()
 	if *sets == "" {
-		fmt.Fprintln(os.Stderr, "usage: gen -sets FDN,BLB [-root .] [-mtgjson mtgjson]")
+		fmt.Fprintln(os.Stderr, "usage: gen -sets FDN,BLB,TRK [-root .] [-mtgjson mtgjson]")
 		os.Exit(2)
 	}
 	for _, code := range strings.Split(*sets, ",") {

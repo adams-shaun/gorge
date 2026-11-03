@@ -145,6 +145,14 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// rules' Derived pin holds the line on.
 		// Built once here and passed to visit as a parameter instead.
 		specCtx := c.SpecContext(c.Controller)
+		if specCtx.Layers.DerivedKeywords == nil && specNamesKeyword(spec) {
+			// A with<Keyword> filter reads the layer-6 keyword table, which a
+			// cost or mana-amount context does not bind: ask the host for it,
+			// as Resolve does for a body that mentions a keyword.
+			if lh, ok := h.(layerTablesHost); ok {
+				specCtx.Layers.DerivedKeywords = lh.LayerTables(LayerKeywords).DerivedKeywords
+			}
+		}
 		f := zoneCountFold{h: h, g: g, spec: spec, pricedSpell: c.PricedSpell,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, readsPT: SpecReadsPT(spec),
@@ -246,4 +254,11 @@ func evalCountBodyZone(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		return f.n, true, true
 	}
 	return 0, false, false
+}
+
+// specNamesKeyword reports whether a Count$Valid filter spec reads a keyword
+// predicate (with<Keyword>, without<Keyword>, hasKeyword<Keyword>): the same
+// textual test saMentionsKeywords applies to a resolving body.
+func specNamesKeyword(spec string) bool {
+	return strings.Contains(spec, "with") || strings.Contains(spec, "hasKeyword")
 }

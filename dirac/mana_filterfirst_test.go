@@ -130,3 +130,34 @@ func TestDevoteeNeedsOtherMana(t *testing.T) {
 		t.Fatal("a Devotee with no other mana is a census gap")
 	}
 }
+
+// TestWindowActivatesFilterFirst: a mana window lists a first-only filter once
+// the pool pays its fee: Large Bear's hybrid announced as {G}, with only Giant's
+// Boulder left to make it, spends floating {B} on the fee and pays with {G}.
+func TestWindowActivatesFilterFirst(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Giant's Boulder", Count: 1}, {Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8}}
+	set := cardsettest.Set(t, "manaabmanacost")
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	boulder := sc.perm(id["Giant's Boulder"], 0)
+	s := sc.s
+	s.pl[0].pool[kop.B] = 2
+	cost := kop.ManaCost{Generic: 1, Pips: [kop.NumManaKinds]uint8{kop.G: 1}}
+	ok, _ := s.windowTapRider(sc.k, 0, &cost, true, false)
+	if !ok {
+		t.Fatal("the window did not pay through the filter")
+	}
+	if s.perms[sc.slot(boulder)].flags&pfTapped == 0 {
+		t.Error("the filter's {T} was not paid")
+	}
+	if s.pl[0].pool[kop.B] != 1 || s.pl[0].pool[kop.G] != 1 {
+		t.Errorf("pool B=%d G=%d, want the fee off {B} and {G} made", s.pl[0].pool[kop.B], s.pl[0].pool[kop.G])
+	}
+}

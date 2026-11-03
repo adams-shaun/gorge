@@ -61,8 +61,8 @@ var drawReplCarriers = []string{
 	"Enduring Renewal", "Eruth, Tormented Prophet", "Forbidden Crypt",
 	"Hullbreacher", "Island Sanctuary", "Jace, Wielder of Mysteries",
 	"Laboratory Maniac", "Living Conundrum", "Magus of the Chains",
-	"Notion Thief", "Obstinate Familiar", "Ormos, Archive Keeper",
-	"Out of the Tombs", "Parallel Thoughts", "Phial of Galadriel",
+	"Mr. Spock, Science Officer", "Notion Thief", "Obstinate Familiar", "Ormos, Archive Keeper",
+	"Out of the Tombs", "Parallel Thoughts", "Pavel Chekov, First Posting", "Phial of Galadriel",
 	"Possessed Portal", "Pursuit of Knowledge", "Reed Richards, Smartest Man",
 	"Sages of the Anima", "Sea of Sand", "Shared Fate",
 	"Teferi's Ageless Insight", "Thought Reflection", "Tomorrow, Azami's Familiar",
@@ -111,8 +111,8 @@ func TestReplDrawClassCensus(t *testing.T) {
 			t.Errorf("new R:Event$ %s carrier %q -- add it to the census", ev, n)
 		}
 	}
-	if len(measured) != 39 {
-		t.Errorf("measured %d Draw-class carriers, want 39", len(measured))
+	if len(measured) != 41 {
+		t.Errorf("measured %d Draw-class carriers, want 41", len(measured))
 	}
 }
 

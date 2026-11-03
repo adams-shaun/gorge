@@ -36,21 +36,13 @@ func (s *State) fireLeavesGraveyard(k *prep, o Obj, card CardID, owner uint8) {
 	})
 }
 
-// enterFromGrave is enter for a card that left the graveyard. Gorge checks
-// triggers after folding the move, so a permanent that returns itself from
-// the graveyard (Skeleton Crew) sees its own graveyard-leave trigger from
-// the battlefield; the detach walk above cannot, because the card is still
-// in the graveyard then. The moved card is the only listener that can
-// become active across this one move, so walk just its slot.
+// enterFromGrave is enter for a card that left the graveyard. A card's own
+// "when this leaves your graveyard" line fires from here (the detach walk
+// above skips it); a watcher line on the battlefield does not (CR 603.10a).
 //
 //go:noinline
 func (s *State) enterFromGrave(k *prep, o Obj, ctrl uint8, tapped bool) Slot {
-	sl := s.enterNF(k, o, ctrl, tapped, kop.ZoneGraveyard, 0)
-	s.fireLeavesGraveyardSelf(k, sl, o)
-	if s.anyETB(k) {
-		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
-	}
-	return sl
+	return s.enter(k, o, ctrl, tapped, kop.ZoneGraveyard)
 }
 
 // fireLeavesGraveyardSelf queues the just-entered permanent's own
@@ -65,7 +57,6 @@ func (s *State) fireLeavesGraveyardSelf(k *prep, sl Slot, o Obj) {
 		return
 	}
 	owner := s.objs[o].owner()
-	card := s.objs[o].card
 	s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigLeaves }, func(l trigListener, a *kop.Ability) {
 		t := &a.Trig
 		if t.From != kop.ZoneGraveyard {
@@ -77,9 +68,10 @@ func (s *State) fireLeavesGraveyardSelf(k *prep, sl Slot, o Obj) {
 				return
 			}
 		} else if t.Flags2&kop.Tf2SelfOrFilter == 0 || !self {
-			if t.Filter != 0 && !s.matchCardGen(k, t.Filter, card, owner, l.ctrl, o) {
-				return
-			}
+			// a watcher line (Blastoneuron's "whenever one or more cards leave
+			// your graveyard") looks back to the board before the move, where
+			// this card was in the graveyard: it does not see itself leave (CR 603.10a)
+			return
 		}
 		if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl || t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl {
 			return

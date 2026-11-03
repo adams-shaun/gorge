@@ -24,7 +24,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // refcounts cannot make equal states hash differently. Readers only ever
 // dereference an index, whose content is the snapshot itself.
 
-const maxLKI = 18 // LKI pool records; tliIdx holds up to 31, at 28 B of State each on every pool
+const maxLKI = 18 // LKI pool records; tliIdx holds up to 31, at 32 B of State each on every pool
 
 // lkiRec.bits (the byte that was faceDown): the snapshot's designations.
 const (
@@ -47,10 +47,11 @@ type lkiRec struct {
 	cn     [ctrSlots]uint16
 	ck     [ctrSlots]uint8
 	col    kop.ColorMask
-	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used (lkiRec stays 28 bytes)
+	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used
 	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go). The padding byte before types: lkiRec stays 28 bytes
 	types  kop.TypeMask
 	kw     kop.KwMask
+	mv     uint8 // mana value, the copied card's on a copy (CR 707.2, 608.2h)
 }
 
 var noLKI lkiRec // index 0: no snapshot (read-only)
@@ -102,7 +103,7 @@ func (s *State) snapLKI(o Obj) uint8 {
 	p := &s.perms[sl]
 	pw, t := s.pt(k, sl)
 	r := lkiRec{obj: o, ver: ob.ver, ctrl: p.ctrl, power: int16(pw), tough: int16(t), p1p1: p.p1,
-		col: s.colorsAt(k, sl), types: s.typesAt(k, sl), kw: s.kw(k, sl), chosen: p.chosen}
+		col: s.colorsAt(k, sl), types: s.typesAt(k, sl), kw: s.kw(k, sl), chosen: p.chosen, mv: uint8(s.mvPerm(k, sl))}
 	if s.faceDown(k, sl) {
 		r.bits |= lkiFaceDown
 	}

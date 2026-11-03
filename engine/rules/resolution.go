@@ -133,7 +133,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement):
 	// the announced or fixed value binds exactly like the dyn-tap count.
-	if rp.winPaidX != 0 {
+	if rp.winPaidX != 0 || rp.winXBound {
 		ctx.X = rp.winPaidX
 		ctx.XAnnounced = true
 	}
@@ -222,6 +222,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// resolving ability: enter cleanup just as resolveTop does.
 		if e.endTurnRequested {
 			e.finishEndTurn()
+			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+			return
+		}
+		if e.endCombatRequested {
+			e.finishEndCombatPhase()
 			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 			return
 		}

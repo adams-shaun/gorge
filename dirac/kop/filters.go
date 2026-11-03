@@ -220,6 +220,11 @@ const PredAdventureCard Pred = 253
 // the object's colours (layer 5, CR 613.1e).
 const OvChosenColor = 1
 
+// OvEnterWith, in an OpOverride's B field: the override belongs to the OpReturn
+// just before it and applies as the card enters, ahead of the enters triggers
+// (assimilate, CR 613-layer characteristics seen as it enters).
+const OvEnterWith = 2
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 
@@ -279,6 +284,31 @@ const (
 	W7WithWarp         int16 = 11
 	W7GreatestPowerTgt int16 = 12
 	W7CrewedBySrc      int16 = 13
+	// W7CostBlue is ManaCostPartialBlue: the printed mana cost has a blue
+	// symbol, a hybrid or Phyrexian one included (never face down: CR 708.2).
+	W7CostBlue int16 = 14
+)
+
+// W7NoAbilities (PredWord7 sub-kind 15): the card's printed face has no
+// ability of any kind (CardDef.NoAbilities; gorge noAbilitiesPermanent).
+// Read off the battlefield only: kgen refuses it on a permanent, where a
+// granted or lost ability would change the answer.
+const W7NoAbilities int16 = 15
+
+// W7IsCommander (PredWord7 sub-kind 16): the object is one of a seat's
+// commanders (gorge's IsCommander word, state.Game.CommanderOf, CR 903.3).
+// The kernel plays two-player games with no commander registered, so the
+// answer is false for every object, on the battlefield and off it; the
+// negated word is true for every object and lowers to no predicate.
+const W7IsCommander int16 = 16
+
+// W7BottomLibrary and W7NotBottomLibrary (PredWord7 sub-kinds 17 and 18): the
+// object is, or is not, the last card of its owner's library (gorge
+// wordBottomLibrary; Jace, Reality Sculptor's "all but the bottom card"). A
+// card in any other zone is not the bottom of a library.
+const (
+	W7BottomLibrary    int16 = 17
+	W7NotBottomLibrary int16 = 18
 )
 
 // PredPermMark, four per-permanent marks the filter words

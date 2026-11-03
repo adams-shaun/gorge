@@ -233,6 +233,8 @@ var kindInfo = [NumKinds]KindInfo{
 	HadToAttack:           {Name: "had_to_attack", Trigger: TriggerNone, Describe: "the attackers that had to attack are recorded"},                      // CR 506.7 bookkeeping; no trigger
 	DayNightChange:        {Name: "day_night_change", Trigger: TriggerNone, Describe: "It becomes {text}"},                                               // CR 731; no registered trigger mode reads it
 	SubTargetRemoved:      {Name: "sub_target_removed", Trigger: TriggerNone},
+	DestroyProposal:       {Name: "destroy_proposal", Trigger: TriggerNone, Describe: "{obj} would be destroyed"},
+	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"}, // CR 724.2
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

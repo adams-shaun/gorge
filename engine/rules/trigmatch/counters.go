@@ -54,7 +54,7 @@ import (
 // CounterAmount$ is Forge's plain "whenever a counter is put" -- every put
 // admits it.
 func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Kind != events.CounterChange || ev.Amount <= 0 {
+	if ev.Kind != events.CounterChange || ev.Amount <= 0 || state.InternalCounterMarker(ev.Counter) {
 		return false
 	}
 	o := e.Game().Obj(ev.Obj)
@@ -138,7 +138,7 @@ func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 // which the referent capture in trigger_referents.go supplies. No corpus
 // CounterRemovedOnce line carries CounterAmount$/NewCounterAmount$.
 func counterRemovedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
+	if ev.Kind != events.CounterChange || ev.Amount >= 0 || state.InternalCounterMarker(ev.Counter) {
 		return false
 	}
 	o := e.Game().Obj(ev.Obj)
@@ -179,7 +179,7 @@ func counterRemovedMatches(e Board, t cards.Trigger, source state.ObjID, ev even
 // independent instances, each carrying the batch-of-one Amount below, which is
 // the batch one per-counter occurrence sees.
 func CounterAddedInstances(t *cards.Trigger, ev *events.Event) int32 {
-	if ev.Kind != events.CounterChange || ev.Amount <= 0 {
+	if ev.Kind != events.CounterChange || ev.Amount <= 0 || state.InternalCounterMarker(ev.Counter) {
 		return 0
 	}
 	if t.ModeKind() != cards.TriggerCounterAdded || t.ParamStr(cards.PKCounterAmount) != "" {
@@ -194,7 +194,7 @@ func CounterAddedInstances(t *cards.Trigger, ev *events.Event) int32 {
 // removed; CounterRemovedOnce and the NewCounterAmount$ "when the last <kind>
 // counter is removed" shape fire once.
 func CounterRemovedInstances(t *cards.Trigger, ev *events.Event) int32 {
-	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
+	if ev.Kind != events.CounterChange || ev.Amount >= 0 || state.InternalCounterMarker(ev.Counter) {
 		return 0
 	}
 	if t.ModeKind() != cards.TriggerCounterRemoved || t.ParamStr(cards.PKNewCounterAmount) != "" {
@@ -255,11 +255,14 @@ func CounterRemovedInstances(t *cards.Trigger, ev *events.Event) int32 {
 // earlier census note named it here, in fact uses ValidObject$
 // Card.Self+inRealZoneBattlefield).
 func counterPlayerAddedAllMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if ev.Amount <= 0 {
+	if ev.Amount <= 0 || ev.Kind == events.CounterChange && state.InternalCounterMarker(ev.Counter) {
 		return false
 	}
 	switch ev.Kind {
 	case events.CounterChange:
+		if state.InternalCounterMarker(ev.Counter) {
+			return false
+		}
 	case events.PlayerCounterChange:
 	default:
 		return false
@@ -322,7 +325,7 @@ func gainingPlayerOf(e Board, ev events.Event) state.PlayerID {
 }
 
 func counterAddedAllMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
-	if ev.Kind != events.CounterChange || ev.Amount <= 0 || ev.Obj == 0 || e.Game().Obj(ev.Obj) == nil {
+	if ev.Kind != events.CounterChange || ev.Amount <= 0 || ev.Obj == 0 || e.Game().Obj(ev.Obj) == nil || state.InternalCounterMarker(ev.Counter) {
 		return false
 	}
 	if kind := t.ParamStr(cards.PKCounterType); kind != "" && !strings.EqualFold(kind, ev.Counter) {

@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A filter as a card's first and only mana ability (CR
 // 605.3a, 602.5b): the Devotees' "{1}: Add {W}, {B}, or {G}. Activate only
@@ -34,7 +38,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and the search funds with non-gap activate options only. In the payment
 // window it is no unit (rules windowManaUnitsWith skips a non-free cost), as
 // Grotto's filter is not: canTapForManaPC is false for it (pcard.manaTap
-// needs a mana-free cost), so the plain walk never taps it.
+// needs a mana-free cost), so the plain walk never taps it, though the live
+// window lists it once the pool pays its fee (windowFiltFirst).
 
 // DebugFiltFirstNoLimit is a mutation (TestManaabmanacostMutation): a
 // once-each-turn filter ignores its activation limit.
@@ -70,9 +75,10 @@ func (s *State) filtFirstOnly(k *prep, sl Slot) bool {
 
 // filtUsable: the filter at sl can be activated now, its fee aside: a {T}
 // one untapped and (a creature) unsick, a once-each-turn one unused this
-// turn (gorge's ActivationLimit$ gate).
+// turn (gorge's ActivationLimit$ gate), and not locked by a CantBeActivated
+// static (cast_cantactivate.go), as a plain mana source is not.
 func (s *State) filtUsable(k *prep, sl Slot) bool {
-	if s.genLost(k, sl) {
+	if s.genLost(k, sl) || k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
 	pm := &s.perms[sl]
@@ -126,6 +132,25 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		n += s.scriptCtr(k, p).count()
 	}
 	return n
+}
+
+// windowFiltFirstUsable: the live payment window lists the first-only filter at
+// sl: it is usable and the floating mana pays its fee (gorge's window abilities,
+// manaAbilityPayablePool). It is still no unit of the census above.
+func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
+	c := s.cardAt(sl)
+	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && poolTotal(&s.pl[p&1]) >= s.filtFee(k, sl)
+}
+
+// windowFiltFirst activates that filter in the window, for the first colour it
+// makes that useful still owes (gorge paymentUsefulColours), else its lowest.
+func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
+	mask := uint8(s.filtAb(k, sl).ManaColors)
+	c := bits.TrailingZeros8(mask)
+	if want, decided := s.windowUseful(p, useful); decided && mask&want != 0 {
+		c = bits.TrailingZeros8(mask & want)
+	}
+	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
 }
 
 // filtUse spends the filter at sl: its {T}, or its use this turn.

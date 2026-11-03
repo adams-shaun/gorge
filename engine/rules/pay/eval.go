@@ -31,6 +31,12 @@ type Eval interface {
 	// ManaStatic is the census's reads of ab's own text (its configured
 	// facts, or read now for an ability outside the configured set).
 	ManaStatic(ab *cards.SA) ManaStatic
+	// ManaStaticFor is ManaStatic with the cost-derived facts read from the
+	// cost p pays for ab on source after the cost statics that reach it.
+	ManaStaticFor(p state.PlayerID, source state.ObjID, ab *cards.SA) ManaStatic
+	// ManaAbilityCost is the compiled cost p pays to activate mana ability ab
+	// on source: its printed Cost$ after the cost statics that reach it.
+	ManaAbilityCost(p state.PlayerID, source state.ObjID, ab *cards.SA) *CompiledCost
 	// SourceInterference is the planner's check of the triggers and
 	// replacements that can observe tapping id for ma's mana. With produced
 	// empty it is the whole verdict (extra is zero); with produced set it

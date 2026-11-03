@@ -53,7 +53,7 @@ func (pe *payer) Session() *pay.Session { return &pe.paySession }
 func (v *payEval) ManaShape(ab *cards.SA) (pay.Tier, pay.Consequence, string, bool) {
 	e := (*Engine)(v)
 	f := e.manaFactsOf(ab)
-	if f == nil || !f.shapeKnown {
+	if f == nil || !f.shapeKnown || e.collectCostStatics().anyManaReaching() {
 		return 0, pay.Consequence{}, "", false
 	}
 	if manaSAFactsVerify {
@@ -69,6 +69,16 @@ func (v *payEval) ManaShape(ab *cards.SA) (pay.Tier, pay.Consequence, string, bo
 func (v *payEval) ManaStatic(ab *cards.SA) pay.ManaStatic {
 	e := (*Engine)(v)
 	return e.manaStaticOf(ab)
+}
+
+// ManaStaticFor (pay.Eval) is manaStaticFor.
+func (v *payEval) ManaStaticFor(p state.PlayerID, source state.ObjID, ab *cards.SA) pay.ManaStatic {
+	return (*Engine)(v).manaStaticFor(p, source, ab)
+}
+
+// ManaAbilityCost (pay.Eval) is manaAbilityCC.
+func (v *payEval) ManaAbilityCost(p state.PlayerID, source state.ObjID, ab *cards.SA) *pay.CompiledCost {
+	return (*Engine)(v).manaAbilityCC(p, source, ab)
 }
 
 // SourceInterference (pay.Eval) is the planner's source-interference check

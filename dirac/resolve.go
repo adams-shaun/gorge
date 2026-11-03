@@ -156,14 +156,13 @@ func (s *State) resolveTop(k *prep) {
 			ob := &s.objs[e.obj]
 			if ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
 				s.touch(e.obj)
-				p := &s.perms[ob.slot]
-				p.eotP++
-				p.eotT++
+				op, ot := s.eotPT(ob.slot)
+				s.setEotPT(ob.slot, op+1, ot+1)
 			}
 			s.finishResolve(k, false)
 			return
 		}
-		if e.ab == abCascade {
+		if e.ab == abCascade || e.ab == abStorm {
 			s.runProg(k)
 			return
 		}
@@ -187,6 +186,10 @@ func (s *State) resolveTop(k *prep) {
 				return // casualty's copy elects (copy_gen.go); copyResume finishes it
 			}
 			s.finishResolve(k, false)
+			return
+		}
+		if e.kind == seTrigger && e.trigAmt == dpTrackAmt && s.objs[e.obj].ver != e.srcVer {
+			s.finishResolve(k, false) // a tracked promise whose source is a new object: nothing (CR 400.7)
 			return
 		}
 		if k.gen != nil && !s.trigResolveOK(k) {
@@ -302,7 +305,7 @@ func (s *State) resolveWard(k *prep) {
 		return
 	}
 	// the warded spell/ability: e.trigObj is its object, e.trigPl its controller
-	idx := s.stackIndexOf(e.trigObj)
+	idx := s.wardedIndex(e)
 	if idx < 0 {
 		s.finishResolve(k, false)
 		return
@@ -319,6 +322,31 @@ func (s *State) resolveWard(k *prep) {
 	}
 	s.counterAt(k, idx)
 	s.finishResolve(k, false)
+}
+
+// wardedIndex is the stack entry a ward trigger e answers (-1 = gone): the spell, or
+// the ability of that source that targets the ward's permanent. A source's other
+// ability above it is not the one that targeted (Koth of the Homestead's two
+// landfall triggers).
+func (s *State) wardedIndex(e *stackEntry) int {
+	i := s.stackIndexOf(e.trigObj)
+	if i < 0 || s.stack[i].kind == seSpell {
+		return i
+	}
+	for j := i; j >= 0; j-- {
+		se := &s.stack[j]
+		if se.obj != e.trigObj || se.kind == seSpell {
+			continue
+		}
+		var codes [kop.MaxTargets + maxXTgt]uint8
+		n := s.chainTargets(se, &codes)
+		for _, c := range codes[:n] {
+			if c == uint8(e.obj) {
+				return j
+			}
+		}
+	}
+	return -1
 }
 
 // stackIndexOf is o's stack entry, top down (-1 = none).
@@ -372,6 +400,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 	if e.ab >= abCascade {
 		if e.ab == abCascade {
 			return cascadeProg[:]
+		}
+		if e.ab == abStorm {
+			return stormProg[:]
 		}
 		return nil
 	}
@@ -552,6 +583,33 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 }
 
 // value evaluates a ValueRef.
+// enterCountValue is value for the amount of an enters-with-counters
+// replacement, which counts for the entering permanent (sl, controlled by
+// ctrl): its "other" is that permanent, not the source of the effect that
+// put it onto the battlefield (Rescue Skiff's trigger returning Luxknight
+// Breacher, which counts the Skiff), and its "you" is that permanent's
+// controller, not the effect's (All-Fates Stalker's return of Gigastorm Titan
+// under Bioengineered Future counts lands that entered under the Titan's
+// controller).
+func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
+	if v.K == kop.VExpr {
+		c := s.ctxEntry(&s.res.e)
+		c.ctrl = ctrl
+		c.src, c.srcSl = s.perms[sl].obj, sl
+		return s.expr(k, v.N, c)
+	}
+	if v.K != kop.VCountFilter {
+		return s.value(k, v)
+	}
+	n := 0
+	for m := s.occ; m.any(); m = m.rest() {
+		if s.matchPerm(k, kop.FilterID(v.N), m.first(), ctrl, sl) {
+			n++
+		}
+	}
+	return n
+}
+
 func (s *State) value(k *prep, v kop.ValueRef) int {
 	e := &s.res.e
 	switch v.K {
@@ -636,10 +694,38 @@ func (s *State) srcKw(k *prep) kop.KwMask {
 		return s.kw(k, sl)
 	}
 	kw := k.cards[s.res.e.card].kw
+	if e := &s.res.e; e.kind != seSpell {
+		kw = s.srcLeftKw(kw, e) // kw_srcleft.go: a source that left uses its last known keywords (CR 608.2h)
+	}
 	if k.gen != nil && k.gen.anyStackLife && s.res.e.kind == seSpell {
 		kw |= s.stackLifelinkKw(k) // static_stacklifelink.go
 	}
+	if s.res.e.kind == seSpell {
+		if s.res.e.remVer&spellGainedDeathtouch != 0 {
+			kw |= kop.KwDeathtouch
+		}
+		if s.res.e.remVer&spellGainedLifelink != 0 {
+			kw |= kop.KwLifelink
+		}
+	}
 	return kw
+}
+
+// grantSpellKw gives the spell object o is on the stack as the keywords of kw an
+// entry can carry; its damage reads them as it resolves (srcKw; gorge
+// effects/damage.go HasKeyword on the stack object).
+func (s *State) grantSpellKw(o Obj, kw kop.KwMask) {
+	for i := int(s.sp) - 1; i >= 0; i-- {
+		if e := &s.stack[i]; e.kind == seSpell && e.obj == o {
+			if kw&kop.KwDeathtouch != 0 {
+				e.remVer |= spellGainedDeathtouch
+			}
+			if kw&kop.KwLifelink != 0 {
+				e.remVer |= spellGainedLifelink
+			}
+			return
+		}
+	}
 }
 
 // damage deals n damage from the resolving source to an object or player

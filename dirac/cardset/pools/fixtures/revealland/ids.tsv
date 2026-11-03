@@ -1,0 +1,24 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Changeling Outcast
+1	card	Choked Estuary
+2	card	Foreboding Ruins
+3	card	Forest
+4	card	Fortified Village
+5	card	Frostboil Snarl
+6	card	Furycalm Snarl
+7	card	Gilt-Leaf Palace
+8	card	Grizzly Bears
+9	card	Growth Spiral
+10	card	Island
+11	card	Llanowar Elves
+12	card	Mountain
+13	card	Plains
+14	card	Port Town
+15	card	Shineshadow Snarl
+16	card	Shock
+17	card	Swamp
+18	card	Vineglimmer Snarl
+19	card	Opt
+20	card	Theorist's Sanctum
+21	card	name:Jace Token
+22	token	u_empower_jace

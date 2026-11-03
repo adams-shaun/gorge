@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -69,6 +71,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 		if !s.grantMay(k, sl) {
 			continue
 		}
+		first := int(d.N)
 		s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
 			a := &k.t.Cards[c].Abilities[ab]
 			if a.Kind != kop.AbActivated {
@@ -81,11 +84,22 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if host == NoSlot || a.Cost.Flags&kop.CostTapHost != 0 && s.perms[host].flags&pfTapped != 0 {
 				return
 			}
+			if a.Cost.Host == kop.CostHostSac && s.perms[host].ctrl != p {
+				return // only a permanent the payer controls can be sacrificed (CR 701.21a)
+			}
 			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) {
 				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
 			}
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
-				d.add(MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab))
+				// two copies of one grantor give the same ability: the second is the
+				// first's option (gorge's offer list collapses them the same way)
+				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab)
+				for i := first; i < int(d.N); i++ {
+					if d.Options[i] == act {
+						return
+					}
+				}
+				d.add(act)
 			}
 		})
 	}
@@ -108,7 +122,11 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		return
 	}
 	if mode&castFree == 0 {
-		cost := s.adjustCostGen(k, p, c, o, pc.cost)
+		base := pc.cost
+		if k.gen.anyConvoke && s.tapPays(k, p, c, o, false) {
+			base = s.convokeCredit(k, p, c, o, base) // gorge castOfferBase: a permission cast convokes too
+		}
+		cost := s.adjustFit(k, av, p, c, o, base, true)
 		if anyMana {
 			cost = anyType(cost)
 		}
@@ -119,19 +137,25 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
 			return
 		}
+	} else if s.freeOwes(k) {
+		// a free cast still pays the cost statics' increases (CR 601.2f, 118.9d)
+		cost := s.adjustCostGen(k, p, c, o, kop.ManaCost{})
+		if cost != (kop.ManaCost{}) && (!s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) || !s.windowPoolPays(p, &cost, false)) {
+			return // (a free cast is no potential play: the floating pool pays what it owes)
+		}
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
 	if mode&castFree == 0 {
-		cost := s.adjustCostGen(k, p, c, o, pc.cost)
+		cost := s.adjustFit(k, av, p, c, o, pc.cost, true)
 		if anyMana {
 			cost = anyType(cost)
 		}
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false
-		if !s.altAddCastable(k, c, p, o, &cost, av) || !offers || s.castHeldOut(o) {
+		if !s.altAddCastableFrom(k, c, p, o, &cost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
@@ -167,15 +191,30 @@ func anyTypePips(c kop.ManaCost) kop.ManaCost {
 
 // planUnderRider is the mana gorge's planner funds for a cast under a may-play
 // rider (pay.PlanManaUnderRider): a pip the rider lets any mana pay is generic to
-// the plan, and a hybrid pip stays as printed. An any-colour rider leaves {C}.
+// the plan, a hybrid pip included (it is two colours, never {C}). An any-colour
+// rider leaves {C}.
 func planUnderRider(c kop.ManaCost, anyMana, anyColor bool) kop.ManaCost {
 	if anyMana {
-		return anyTypePips(c)
-	}
-	if anyColor {
+		c = anyTypePips(c)
+	} else if anyColor {
 		for i := 0; i < kop.C; i++ {
 			c.Generic += c.Pips[i]
 			c.Pips[i] = 0
+		}
+	}
+	if anyMana || anyColor {
+		c = hybridGeneric(c)
+	}
+	return c
+}
+
+// hybridGeneric turns each hybrid pip of c into one generic: the pips left
+// after a face was chosen, paid by mana of any type, are payable by any mana.
+func hybridGeneric(c kop.ManaCost) kop.ManaCost {
+	for i := range c.Hyb {
+		if c.Hyb[i] != 0 && c.Hyb[i] != kop.HybTwobrid {
+			c.Generic++
+			c.Hyb[i] = 0
 		}
 	}
 	return c
@@ -225,6 +264,7 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 		}
 		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
 			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+			s.bld().bfl |= bflUsedMark
 		}
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 {
 			s.bld().subCtr = uint8(st.a.Static.A) // Static.A counters (Quilled 6, Dawnhand 3), chosen one counter at a time (subCtrOptions)
@@ -269,9 +309,15 @@ func (s *State) creatureCounters(k *prep, p uint8) int {
 // buildCostGen is the mana cost of the spell being built on a generated
 // table, when it differs from the core's (free, or mana of any type).
 func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
+	c, _, ok := s.buildCostGenPre(k, false)
+	return c, ok
+}
+
+// buildCostGenPre is buildCostGen with buildCostPre's pre and done.
+func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 	e := &s.bld().e
 	if e.kind != seSpell {
-		return kop.ManaCost{}, false
+		return kop.ManaCost{}, false, false
 	}
 	if e.flags&sfFree != 0 {
 		// "without paying its mana cost" skips the mana cost only: the
@@ -285,13 +331,18 @@ func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
-		return c, true
+		// the cost statics apply to what is left (CR 601.2f, 118.9d): a
+		// RaiseCost charges its generic on the empty cost
+		if s.freeOwes(k) {
+			c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
+		}
+		return c, false, true
 	}
 	if e.trigPl == trigPlAirbend {
-		return s.airbendCost(k, e.ctrl, e.card, e.obj), true // act_airbend.go
+		return s.airbendCost(k, e.ctrl, e.card, e.obj), false, true // act_airbend.go
 	}
 	if s.bld().altAdd == buildAltCost {
-		return s.altCostOf(k), true // the card's own alternative mana cost (cast_altfree.go)
+		return s.altCostOf(k), false, true // the card's own alternative mana cost (cast_altfree.go)
 	}
 	if e.flags&sfMayPlay != 0 {
 		cd := &k.t.Cards[e.card]
@@ -305,13 +356,17 @@ func (s *State) buildCostGen(k *prep) (kop.ManaCost, bool) {
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)
 		}
+		done := false
+		if pre {
+			c, done = s.foldTb(k, c)
+		}
 		c = s.adjustCostGen(k, e.ctrl, e.card, e.obj, c)
 		if e.flags&sfAnyMana != 0 {
 			c = anyTypePips(c)
 		}
-		return c, true
+		return c, done, true
 	}
-	return kop.ManaCost{}, false
+	return kop.ManaCost{}, false, false
 }
 
 // activateGen starts a graveyard or granted activation; false lets the core run
@@ -432,11 +487,11 @@ func (s *State) pickKeepsPayable(k *prep, sl Slot) bool {
 		o := s.bld().picks[i]
 		if s.bld().pickKs[i] == pkTapX && s.objs[o].zone == kop.ZoneBattlefield && s.canTapForMana(k, s.objs[o].slot) {
 			pc := s.manaPCGen(k, s.objs[o].slot)
-			av.remove(s.srcMaskAt(pc, s.objs[o].slot), pc.manaN)
+			s.removeSrc(k, &av, s.objs[o].slot, pc)
 		}
 	}
 	pc := s.manaPCGen(k, sl)
-	av.remove(s.srcMaskAt(pc, sl), pc.manaN)
+	s.removeSrc(k, &av, sl, pc)
 	return av.affords(&cost, pipMaskOf(&cost), cost.XGeneric(int(s.bld().e.x)))
 }
 
@@ -623,7 +678,13 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(p, a) {
 				continue // kw_maxspeed.go
 			}
-			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc || !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) {
+			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+				continue
+			}
+			// a restricted source (Heartwood Crafter's {C}) pays an activated
+			// ability from the graveyard as from the hand (CR 106.6)
+			if !av.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0) &&
+				!(k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}, &a.Cost.Mana, av, NoSlot, 0)) {
 				continue
 			}
 			if a.Trig.Cond != 0 && !s.graveActCond(k, a, p, o) {
@@ -680,53 +741,105 @@ func (s *State) affordsFor(k *prep, p uint8, c *kop.ManaCost) bool {
 }
 
 // tapAllForMana taps p's untapped mana sources into the pool (gorge's failed
-// ward payment leaves that mana floating).
+// ward payment leaves that mana floating). A first-only filter takes its turn in
+// the window's battlefield order once the pool pays its fee, for the first colour
+// its ask lists (windowFiltFirst; a net change of colour, no more mana).
 func (s *State) tapAllForMana(k *prep, p uint8) {
+	if k.gen != nil && k.gen.anyFiltFirst {
+		for s.tapAllStep(k, p) {
+		}
+		return
+	}
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		sl := m.first()
-		if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
-			var held [kop.NumManaKinds]uint8 // a restricted source's mana floats too
-			s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &held)
-			continue
+		s.tapOneForMana(k, p, m.first())
+	}
+}
+
+// tapAllStep plays the window's next activation, reporting whether there was one.
+func (s *State) tapAllStep(k *prep, p uint8) bool {
+	var order [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
+	for _, sl := range order[:n] {
+		if s.windowFiltFirstUsable(k, p, sl) {
+			c := bits.TrailingZeros8(uint8(s.filtAb(k, sl).ManaColors))
+			s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
+			return true
 		}
-		pc := s.manaPCGen(k, sl)
-		sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
-		if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
-			continue
+		if s.tapOneForMana(k, p, sl) {
+			return true
 		}
-		mask := s.srcMaskAt(pc, sl)
-		if k.painMana && pc.painCol != 0 && !pc.painOnly {
-			mask |= uint8(pc.painCol) & 0x1f // the window's colour answer (windowSrcMask)
+	}
+	return false
+}
+
+// tapOneForMana taps the source at sl into the pool, reporting whether it could.
+func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
+	if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
+		var held [kop.NumManaKinds]uint8 // a restricted source's mana floats too
+		s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &held)
+		return true
+	}
+	pc := s.manaPCGen(k, sl)
+	sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
+	if !s.canTapForManaPC(k, sl, pc) && !sacOnly {
+		return false
+	}
+	mask := s.srcMaskAt(pc, sl)
+	if k.painMana && pc.painCol != 0 && !pc.painOnly {
+		mask |= uint8(pc.painCol) & 0x1f // the window's colour answer (windowSrcMask)
+	}
+	if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
+		if c0, ok := s.vergeAbility0Col(k, sl); ok {
+			mask = 1 << c0 // a Verge's ability ask answers ability 0 (mana_gate.go)
 		}
-		if pc.manaMulti && k.gen != nil && k.gen.anyVergeOrder {
-			if c0, ok := s.vergeAbility0Col(k, sl); ok {
-				mask = 1 << c0 // a Verge's ability ask answers ability 0 (mana_gate.go)
+	}
+	// gorge's colour ask lists a source's colours in WUBRG order and
+	// the failed payment takes the first (oracle payWindowAnswer)
+	// A granted basic land type lists the land's own ability first (Mountain
+	// under Leyline of the Guildpact: {R}, then the granted colours), and the
+	// failed payment takes that one (windowCol's blgFirst).
+	order := [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C}
+	if pc.blgFirst != 0 && int(pc.blgFirst-1) < len(order) && mask&(1<<(pc.blgFirst-1)) != 0 {
+		order = [6]int{int(pc.blgFirst - 1)} // taken at once: its bit is in mask
+	}
+	for _, c := range order {
+		if mask&(1<<c) != 0 {
+			if !sacOnly {
+				s.perms[sl].flags |= pfTapped
+				s.touchSl(sl)
 			}
-		}
-		// gorge's colour ask lists a source's colours in WUBRG order and
-		// the failed payment takes the first (oracle payWindowAnswer)
-		for _, c := range [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C} {
-			if mask&(1<<c) != 0 {
-				if !sacOnly {
-					s.perms[sl].flags |= pfTapped
-					s.touchSl(sl)
-				}
-				s.pl[p].pool[c] += pc.manaN
-				s.artTag(k, p, sl, c)
-				if k.painMana && pc.painCol != 0 && (pc.painOnly || c != kop.C) {
-					s.painDamage(k, sl, p, int(pc.painN))
-				}
-				break
+			s.pl[p].pool[c] += pc.manaN
+			s.addExtraCol(k, p, sl, pc, c)
+			s.artTag(k, p, sl, c)
+			if k.painMana && pc.painCol != 0 && (pc.painOnly || c != kop.C) {
+				s.painDamage(k, sl, p, int(pc.painN))
 			}
+			break
 		}
-		if pc.manaSac || sacOnly {
-			// a Treasure is sacrificed for its mana too (pair 34385)
-			o := s.perms[sl].obj
-			s.fireSac(k, sl)
-			s.leave(k, sl, kop.ZoneGraveyard, false)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
-				s.detach(o) // it ceases at once, as gorge pays
-			}
+	}
+	if pc.manaSac || sacOnly {
+		// a Treasure is sacrificed for its mana too (pair 34385)
+		o := s.perms[sl].obj
+		s.fireSac(k, sl)
+		s.leave(k, sl, kop.ZoneGraveyard, false)
+		if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+			s.detach(o) // it ceases at once, as gorge pays
 		}
+	}
+	return true
+}
+
+// sacHostCost pays CostHostSac: sacrifice the permanent that granted the
+// ability, the one candidate settled unasked.
+func (s *State) sacHostCost(k *prep, e *stackEntry) {
+	h := e.trigObj
+	if h == NoObj || s.objs[h].zone != kop.ZoneBattlefield {
+		return
+	}
+	sl := s.objs[h].slot
+	s.snapSacPick(h)
+	s.fireSac(k, sl)
+	if !s.parkCost(k, h, parkLeave, 0) {
+		s.leave(k, sl, kop.ZoneGraveyard, false)
 	}
 }

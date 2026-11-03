@@ -188,6 +188,8 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 			return false
 		}
 		return e.replacementConditionHoldsWith(r, source, you, svars)
+	case cards.ReplDestroy:
+		return e.replacementMatchesDestroy(r, source, ev, you, remembered) && e.replacementConditionHoldsWith(r, source, you, svars)
 	case cards.ReplTurnFaceUp:
 		// The "as this is turned face up" class (CR 614.1a with CR 708.6/
 		// CR 702.36e): the turned permanent is the turn-up event's own Obj

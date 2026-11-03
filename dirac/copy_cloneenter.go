@@ -21,7 +21,7 @@ var DebugCloneReturnNoAsk bool
 // caller must suspend without moving the card.
 //
 //go:noinline
-func (s *State) cloneReturnPark(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
+func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 	if DebugCloneReturnNoAsk {
 		return false
 	}
@@ -40,6 +40,7 @@ func (s *State) cloneReturnPark(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool 
 		return false
 	}
 	s.res.ask, s.res.askP = raGenRetChoice, ctrl
+	s.touch(o) // the projection reads ctrl while it waits
 	return true
 }
 
@@ -58,11 +59,7 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 		s.countMayPlayLand(k, o, from)
 	}
 	if kop.Zone(in.C) == kop.ZoneBattlefield {
-		if from == kop.ZoneGraveyard {
-			s.enterFromGrave(k, o, ob.owner(), false)
-		} else {
-			s.enter(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
-		}
+		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {
 		s.placeFromK(k, o, kop.Zone(in.C), false, from, false)
 	}
@@ -85,11 +82,34 @@ func (s *State) rerunReturn(k *prep) {
 	o := s.g.pre.obj
 	s.g.pre.state = 2
 	in := &s.prog(k)[s.res.pc]
-	if in.Op == kop.OpReturnEx {
-		s.execReturn(k, in, NoSlot)
-	} else {
+	switch in.Op {
+	case kop.OpDigUntil, kop.OpDigEx, kop.OpSearchEx, kop.OpChooseMove, kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
+		s.res.ask = raNone
+		if s.rerunMove(k, in) {
+			return // suspended again
+		}
+	case kop.OpReturnEx:
+		// the parked card itself, not the op's reference read afresh: the target the
+		// card was named by is a bad one now that it stands in exile
+		s.execReturnObj(k, in, NoSlot, o)
+	default:
 		s.execReturnSimple(k, in, o)
 	}
 	s.g.pre = preAsk{}
 	s.continueRes(k, 0)
+}
+
+// rerunMove runs a found card's move again after its as-enters answer; true when it
+// suspended at another ask.
+func (s *State) rerunMove(k *prep, in *kop.Instr) bool {
+	switch in.Op {
+	case kop.OpDigUntil:
+		return !s.execDigUntil(k, in, true)
+	case kop.OpDigEx:
+		return s.finishDig(k)
+	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
+		return !s.execChangeZoneAll(k, in, true)
+	}
+	s.finishSearchNow(k)
+	return s.res.ask != raNone
 }

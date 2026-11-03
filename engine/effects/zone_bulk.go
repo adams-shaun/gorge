@@ -89,7 +89,14 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		// engine/cards/link.go auto-links only SubAbility$, not the WinSubAbility$ it
 		// hangs off -- so this is correctness insurance for when that changes,
 		// not a live fix.
-		if sa.ParamStr(cards.PKNoRegen) != "True" && ReplaceDestruction(h, id) {
+		regenerable := sa.ParamStr(cards.PKNoRegen) != "True"
+		if ReplaceDestroyLine(h, id, regenerable) {
+			if alwaysRemember {
+				rememberSpared(id)
+			}
+			continue
+		}
+		if regenerable && ReplaceDestruction(h, id) {
 			if alwaysRemember {
 				rememberSpared(id)
 			}
@@ -266,7 +273,11 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if zone == state.ZBattlefield {
 			// NoRegen$ != "True", not == "": see effDestroy's note above.
-			if sa.ParamStr(cards.PKNoRegen) != "True" && ReplaceDestruction(h, id) {
+			regenerable := sa.ParamStr(cards.PKNoRegen) != "True"
+			if ReplaceDestroyLine(h, id, regenerable) {
+				continue
+			}
+			if regenerable && ReplaceDestruction(h, id) {
 				continue
 			}
 			if ReplaceShieldCounter(h, id) {

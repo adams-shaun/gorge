@@ -40,7 +40,7 @@ func (e *stackEntry) promised() bool {
 // array below fails to compile otherwise.
 const nSubEvents = kop.TrigGiveGift
 
-var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigDiscover]
+var _ = [1]struct{}{}[kop.TrigEventCount-1-kop.TrigFacesDilemma]
 
 // giftOptions poses the gift election (gorge giftAsk: decline first, then
 // one option per opponent).
@@ -166,8 +166,17 @@ func (s *State) giftNoSlot(t *kop.TargetSpec, e *stackEntry) bool {
 // F05-2 / CR 733.2).
 func (s *State) reverseCast(k *prep) {
 	e := &s.bld().e
+	tokenGone := s.bld().bfl&bflTokenGone != 0
 	s.ctl = ctlPriority
 	s.undos++
+	if s.bld().bfl&bflUsedMark != 0 && s.g.nused > 0 {
+		// a cast that never happened leaves its once-per-turn permission
+		// unspent (gorge counts only the plays that were cast)
+		s.g.nused--
+	}
+	if s.bld().bfl&bflDilemma != 0 {
+		s.unfaceDilemma() // trig_dilemma.go
+	}
 	s.g.evSel = 0 // a spell's or activation's evidence picks (CR 733.1: nothing was exiled)
 	if s.bld().bfl&bflCrime != 0 && DebugCrimeStats != nil {
 		if s.npend != 0 {
@@ -229,4 +238,7 @@ func (s *State) reverseCast(k *prep) {
 		s.refreshAirbend(e.obj) // act_airbend.go
 	}
 	s.heldTurn, s.heldStep, s.heldTouch = uint16(s.turn), s.step, s.touchN
+	if tokenGone {
+		s.heldTouch-- // gorge's token ceases after the reversal: progress (bflTokenGone)
+	}
 }

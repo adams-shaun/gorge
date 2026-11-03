@@ -103,12 +103,12 @@ func TestGiadaEatenAliveLockstep(t *testing.T) {
 	}
 }
 
-// An either-or part the board can't pay, beside a restricted source that may pay
-// this spell: The Emperor of Palamecia's mana spends on a noncreature spell, so
-// while she can tap the window census is incomplete and the target menu stays
-// open, and the cast reverses in the window after the target. Tapped or summoning
-// sick she leaves the census complete and the cast reverses at the target ask
-// (CR 106.6, 601.2g, 733.1).
+// An either-or part beside a restricted source that may pay this spell: The Emperor
+// of Palamecia's mana spends on a noncreature spell, and gorge's window prices it
+// like any other source (CR 106.6), so the target menu is judged on what the pool,
+// she and the lands can reach together. A part they cannot reach reverses the cast
+// at the target ask, never in the window; one they can reach (a floating mana beside
+// her and a land) goes on to the target (CR 601.2g, 733.1).
 func TestEitherOrPartBesideAdmittedSourceLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
@@ -129,7 +129,7 @@ func TestEitherOrPartBesideAdmittedSourceLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var atAsk, inWindow int
+	var atAsk, inWindow, kept int
 	for seed := uint64(1); seed <= 200; seed++ {
 		m, err := NewMatchup(reg, [2]string{"emperor-a", "emperor-b"}, [2][]*cards.Card{deck, deck}, 0)
 		if err != nil {
@@ -140,26 +140,28 @@ func TestEitherOrPartBesideAdmittedSourceLockstep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		probe := eitherOrProbe{base: RandomPolicy(seed), atAsk: &atAsk, inWindow: &inWindow}
+		probe := eitherOrProbe{base: RandomPolicy(seed), atAsk: &atAsk, inWindow: &inWindow, kept: &kept}
 		res := Lockstep(m, seed, k, PolicyFunc(probe.pick), RunConfig{Config: cfg, MaxDecisions: 20000, MaxTurns: 100})
 		CloseSide(k)
 		if res.Div != nil {
 			t.Errorf("seed %d: diverged at %d: %s %s %s %v %v", seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
 		}
 	}
-	t.Logf("reversed at the target ask %d, in the window %d", atAsk, inWindow)
-	if atAsk < 3 || inWindow < 3 {
-		t.Errorf("reversed at the target ask %d, in the window %d: want 3 of each", atAsk, inWindow)
+	t.Logf("reversed at the target ask %d, in the window %d, went on to the target %d", atAsk, inWindow, kept)
+	if atAsk < 3 || kept < 3 || inWindow != 0 {
+		t.Errorf("reversed at the target ask %d, in the window %d, went on %d: want 3 and 3, none in the window", atAsk, inWindow, kept)
 	}
 }
 
 // eitherOrProbe answers an either-or ask with its last option, an unpayable part
-// when there is one, and tallies where that cast reversed.
+// when there is one, and tallies where that cast reversed or went on to its target.
 type eitherOrProbe struct {
 	base            Policy
 	src             state.ObjID
 	targeted        bool
+	onStack         bool
 	atAsk, inWindow *int
+	kept            *int
 }
 
 func (p *eitherOrProbe) pick(c *PickCtx) Canon {
@@ -173,11 +175,14 @@ func (p *eitherOrProbe) pick(c *PickCtx) Canon {
 			p.src = 0
 		} else if c.G.E.G.Obj(p.src).Zone != state.ZStack {
 			p.src = 0
+		} else if !p.onStack {
+			p.onStack = true
+			*p.kept++
 		}
 	}
 	d := c.G.E.Pending()
 	if d != nil && len(d.Options) > 1 && d.Options[0].Kind == "altaddcost" {
-		p.src, p.targeted = d.Source, false
+		p.src, p.targeted, p.onStack = d.Source, false, false
 		return c.D.Options[len(c.D.Options)-1]
 	}
 	if p.src != 0 && d != nil && d.Kind == decision.KTarget {

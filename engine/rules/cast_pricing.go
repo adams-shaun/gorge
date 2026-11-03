@@ -650,7 +650,39 @@ func (e *Engine) triggeredCastSpendReaderOut() bool {
 			}
 		}
 	}
+	// A TriggerZones$ naming other zones puts the reader outside the
+	// battlefield (Summitfest Closing Ceremony's Covercast, live in the hand
+	// and the other zones its card names): the trigger scan walks them all,
+	// so the capture gate does too -- but only for a reader whose own trigger
+	// lists such a zone, so a battlefield-only reader (Aberrant Manawurm)
+	// still changes no event while it sits in a library or a hand. The stack is
+	// global.
+	for _, p := range g.AliveFrom(0) {
+		for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZExile, state.ZLibrary} {
+			for _, id := range g.Zone(z, p) {
+				if o := g.Obj(id); o != nil && e.objectReadsTriggeredCastSpendOffBattlefield(o) {
+					return true
+				}
+			}
+		}
+	}
+	for _, id := range g.Stack {
+		if o := g.Obj(id); o != nil && e.objectReadsTriggeredCastSpendOffBattlefield(o) {
+			return true
+		}
+	}
 	return false
+}
+
+// objectReadsTriggeredCastSpendOffBattlefield is objectReadsTriggeredCastSpend
+// for an object outside the battlefield: its face must read the spend and also
+// carry a trigger that names a zone other than the battlefield.
+func (e *Engine) objectReadsTriggeredCastSpendOffBattlefield(o *state.Object) bool {
+	f := o.Face()
+	if f == nil || !e.faceScanHas(f, faceScanCastSpendReader) {
+		return false
+	}
+	return e.faceTriggerZones(f)&^(1<<trigZoneSlot(state.ZBattlefield)) != 0
 }
 
 // objectReadsTriggeredCastSpend reports whether any face the ordinary trigger

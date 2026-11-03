@@ -470,6 +470,11 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// second, or third turns of the game"). Log-derived through the Host
 		// like LifeOppsLostThisTurn, so a replay derives the same number.
 		return h.TurnsTaken(c.Controller), true, true
+	case evalCountBodyPaidYourExtraTurns:
+		// How many extra turns the controller has begun this game (H.M.S.
+		// Bounty's "haven't begun an extra turn this game"): log-derived
+		// through the Host, so a replay derives the same number.
+		return h.ExtraTurnsBegun(c.Controller), true, true
 	case evalCountBodyPaidCardPower:
 		if lki, ok := sacrificedSourceLKI(g, c); ok {
 			return lki.Power, true, true // sacrificed by this ability: LKI
@@ -559,6 +564,7 @@ const (
 	evalCountBodyPaidCountersAddedThisTurn
 	evalCountBodyPaidCountersRemovedThisTurn
 	evalCountBodyPaidYourTurns
+	evalCountBodyPaidYourExtraTurns
 	evalCountBodyPaidCardPower
 	evalCountBodyPaidCardBasePower
 	evalCountBodyPaidCardToughness
@@ -602,6 +608,7 @@ var evalCountBodyPaidCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CountersAddedThisTurn", Val: evalCountBodyPaidCountersAddedThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CountersRemovedThisTurn", Val: evalCountBodyPaidCountersRemovedThisTurn},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "YourTurns", Val: evalCountBodyPaidYourTurns},
+	state.StrEntry[evalCountBodyPaidCode]{Key: "YourExtraTurns", Val: evalCountBodyPaidYourExtraTurns},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CardPower", Val: evalCountBodyPaidCardPower},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CardBasePower", Val: evalCountBodyPaidCardBasePower},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CardToughness", Val: evalCountBodyPaidCardToughness},

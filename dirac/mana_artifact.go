@@ -28,6 +28,16 @@ func typedManaSubtypes(t *kop.Table) kop.SubMask {
 	return m
 }
 
+// poolArtRestr marks, in poolArt, that p's restricted mana (poolR, poolRx) came
+// from a typed source (Interdimensional Web Watch is an artifact): gorge spends
+// the plain units of a colour before such a unit, as it does a tagged one.
+const poolArtRestr = 1 << 6
+
+// DebugRestrTypedFirst spends a typed restricted unit before the plain units
+// of its colour (the restricted-first read the carve alone would suggest),
+// mutation testing only: the lockstep must catch it.
+var DebugRestrTypedFirst bool
+
 // artTag records that the mana source at sl added a unit of colour col to
 // p's pool. It is called after the unit is added.
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {

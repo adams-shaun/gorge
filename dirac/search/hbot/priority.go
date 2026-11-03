@@ -145,7 +145,7 @@ func (bt *Bot) plannedVisible(s *dirac.State, me uint8, a dirac.Action) bool {
 // paymentActionsForPriority builds a plan for (rules payment_plan.go): the
 // plain cast, the primary flashback cast and the untyped may-play cast. A face
 // cast, a warped, free, impended, evoked or alternative-cost cast and a
-// flashback relative (harmonize, mayhem) stay out of its planned list.
+// flashback relative (harmonize, mayhem, beam me up) stay out of its planned list.
 func planShapedCast(s *dirac.State, a dirac.Action) bool {
 	m := a.Mode()
 	if m&^(2|dirac.FeatCastMayPlay) != 0 {
@@ -153,7 +153,7 @@ func planShapedCast(s *dirac.State, a dirac.Action) bool {
 	}
 	o := dirac.Obj(a.Source())
 	if m&2 != 0 {
-		return !s.FeatHarmonizeCard(o) && !s.FeatMayhemCard(o)
+		return !s.FeatHarmonizeCard(o) && !s.FeatMayhemCard(o) && a.Target() == 0
 	}
 	return m != 0 || a.Target() == 0 || s.ObjZone(o) != kop.ZoneHand
 }

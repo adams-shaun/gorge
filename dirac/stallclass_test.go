@@ -21,11 +21,11 @@ var (
 	capacityStalls = []string{"ctradded", "addphase", "board", "pending", "stack", "tables", "loop", "delayed", "remember",
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
-		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana",
+		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
-	unmodelledStalls = []string{"tapsmana", "infect", "replplus", "raisefree", "liferepl", "prolif", "ctrorder",
-		"shield", "replctr", "replleave", "copyface", "twobridmod", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
+	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
+		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
 		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering"}
@@ -70,11 +70,11 @@ func TestUnclassedStallIsNotCapacity(t *testing.T) {
 	if StallIsUnmodelled(StallNone) {
 		t.Error("no stall is an unmodelled stall")
 	}
-	if !StallIsUnmodelled(143) || !StallIsUnmodelled(255) {
+	if !StallIsUnmodelled(NumStall) || !StallIsUnmodelled(255) {
 		t.Error("a reason past the table must not read as capacity")
 	}
-	if StallIsUnmodelled(StallBoard) || !StallIsUnmodelled(StallTapsMana) {
-		t.Error("board is capacity, tapsmana is not")
+	if StallIsUnmodelled(StallBoard) || !StallIsUnmodelled(StallInfect) {
+		t.Error("board is capacity, infect is not")
 	}
 }
 
@@ -170,30 +170,11 @@ func stallFlagCases() []stallFlagCase {
 	vt := func(name string, a ...kop.Ability) kop.CardDef {
 		return kop.CardDef{Name: name, Types: kop.TEnchantment, Abilities: a}
 	}
-	spell := func(in ...kop.Instr) kop.Ability { return kop.Ability{Kind: kop.AbSpell, Prog: in} }
 	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
-	static := func(k kop.StaticKind) kop.Ability {
-		return kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: k}}
-	}
-	sorcery := func(name string, in ...kop.Instr) kop.CardDef {
-		return kop.CardDef{Name: name, Types: kop.TSorcery, Abilities: []kop.Ability{spell(in...)}}
-	}
 	return []stallFlagCase{
-		{StallTapsMana, "Half Tapper", "Half Rite", stallPool("tapsmana", []kop.CardDef{
-			vt("Half Tapper", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigTaps, Flags: kop.TfSelf}}),
-			vt("Half Rite", kop.Ability{Kind: kop.AbMana, AFlags: kop.AfLatent, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColG, ManaN: 1}),
-		}, nil, nil, nil)},
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
-		}, nil, nil, nil)},
-		{StallTwobridMod, "Half Twobrid", "Half Reducer", stallPool("twobrid", []kop.CardDef{
-			{Name: "Half Twobrid", Types: kop.TSorcery, Cost: kop.ManaCost{Tb: 1}, Abilities: []kop.Ability{spell()}},
-			vt("Half Reducer", static(kop.StatReduceCost)),
-		}, nil, nil, nil)},
-		{StallRaiseFree, "Half Raise", "Half Free", stallPool("raisefree", []kop.CardDef{
-			vt("Half Raise", static(kop.StatIncreaseCost)),
-			sorcery("Half Free", kop.Instr{Op: kop.OpCastFree}),
 		}, nil, nil, nil)},
 		{StallLifeRepl, "Half Doubler", "Half Plus", stallPool("liferepl", []kop.CardDef{
 			vt("Half Doubler", repl(kop.ReplLifeDouble)),
@@ -238,11 +219,11 @@ func TestMatchupRefusesEveryInteraction(t *testing.T) {
 }
 
 // The test's named example, on its own.
-func TestMatchupRefusesTapsManaPair(t *testing.T) {
+func TestMatchupRefusesInfectPair(t *testing.T) {
 	c := stallFlagCases()[0]
 	_, _, _, err := c.set.Matchup([]cardset.Entry{{Name: c.a, Count: 1}}, []cardset.Entry{{Name: c.b, Count: 1}})
-	if err == nil || !strings.Contains(err.Error(), c.a) || !strings.Contains(err.Error(), c.b) || !strings.Contains(err.Error(), "tapsmana") {
-		t.Fatalf("error %v, want tapsmana naming %q and %q", err, c.a, c.b)
+	if err == nil || !strings.Contains(err.Error(), c.a) || !strings.Contains(err.Error(), c.b) || !strings.Contains(err.Error(), "infect") {
+		t.Fatalf("error %v, want infect naming %q and %q", err, c.a, c.b)
 	}
 }
 

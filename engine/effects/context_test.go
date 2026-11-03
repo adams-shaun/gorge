@@ -409,8 +409,14 @@ func (h *fakeHost) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 	return h.discarded[p]
 }
 
+// PricedFromGraveyard prices no cast here.
+func (h *fakeHost) PricedFromGraveyard() state.ObjID { return 0 }
+
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
+
+// ExtraTurnsBegun has no event log here; the double reports zero.
+func (h *fakeHost) ExtraTurnsBegun(_ state.PlayerID) int32 { return 0 }
 
 // CardsDrawnThisTurn has no event log here; the double reports the
 // h.drawn map the eval-level PlayerCount condition tests configure (nil reads

@@ -43,16 +43,37 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 			f = fl.Or
 		}
 	}
+	// earthbend makes a land a creature, and a static that makes artifacts
+	// lands (Toph, the First Metalbender) lets that land be an Equipment
+	landOvr := func(o uint16) bool {
+		return int(o) < len(t.Overrides) && (t.Overrides[o].AddTypes|t.Overrides[o].SetTypes)&kop.TLand != 0
+	}
+	bend, landEquip := false, false
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 &&
+				landOvr(a.Static.Override-1) && filterMayEquip(a.Static.Filter) {
+				landEquip = true
+			}
+			for _, in := range a.Prog {
+				bend = bend || in.Op == kop.OpEarthbend
+			}
+			if bend && landEquip {
+				g.equipAnim = true
+				return
+			}
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 &&
 				creatureOvr(a.Static.Override-1) && filterMayEquip(a.Static.Filter) {
 				g.equipAnim = true
 				return
 			}
 			for _, in := range a.Prog {
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtCloneCopy {
+					g.equipAnim = true // a permanent become a copy can stop being an Equipment (Shuri)
+					return
+				}
 				if x := copyExcOf(&in); x > 0 && creatureOvr(uint16(x-1)) {
 					g.equipAnim = true // a copy of an Equipment made a creature (Nexus of Becoming)
 					return

@@ -1,0 +1,9 @@
+# the targeted-investigate pool: Panther Pounce ("target player investigates",
+# then a pump of a second target) beside creatures, burn and basics, for the
+# oracle's constructed lockstep (dirac/oracle/lowinvest_test.go)
+Panther Pounce
+Savannah Lions
+Raging Goblin
+Shock
+Plains
+Mountain

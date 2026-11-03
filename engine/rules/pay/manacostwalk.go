@@ -105,7 +105,7 @@ func ManaCostChoiceStages(e Engine, md *ManaCostActivation) ManaCostStep {
 			reserved[id] = true
 		}
 		var candidates []state.ObjID
-		for _, id := range SacrificeCostCandidates(e, md.Player, md.Source, part, true) {
+		for _, id := range ManaSacrificeCandidates(e, md.Player, md.Source, part) {
 			if !reserved[id] {
 				candidates = append(candidates, id)
 			}
@@ -127,7 +127,7 @@ func ManaCostChoiceStages(e Engine, md *ManaCostActivation) ManaCostStep {
 				if i == md.SacPart {
 					needs[i] -= md.SacPaid
 				}
-				pools[i] = SacrificeCostCandidates(e, md.Player, md.Source, futurePart, true)
+				pools[i] = ManaSacrificeCandidates(e, md.Player, md.Source, futurePart)
 			}
 			candidates = FeasibleSacrificeChoices(candidates, pools, needs, md.Sacs, md.SacPart)
 		}
@@ -217,7 +217,7 @@ func ManaCostChoiceStages(e Engine, md *ManaCostActivation) ManaCostStep {
 		}
 		var candidates []state.ObjID
 		for _, id := range e.Game().Zone(zone, md.Player) {
-			if !reserved[id] && e.MatchesSpecFrom(part.Spec, id, md.Player, md.Source) {
+			if !reserved[id] && !e.CastCommitted(id) && e.MatchesSpecFrom(part.Spec, id, md.Player, md.Source) {
 				candidates = append(candidates, id)
 			}
 		}

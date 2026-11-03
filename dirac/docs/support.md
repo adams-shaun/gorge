@@ -8,40 +8,41 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported |
 |---|---:|---:|---:|---:|---:|
-| BIG | 30 | 23 | 2 | 7 | 14 |
-| BLB | 278 | 253 | 10 | 23 | 220 |
-| DFT | 276 | 242 | 7 | 11 | 224 |
-| DSK | 276 | 230 | 10 | 32 | 188 |
+| BIG | 30 | 23 | 1 | 8 | 14 |
+| BLB | 278 | 256 | 4 | 33 | 219 |
+| DFT | 276 | 246 | 0 | 22 | 224 |
+| DSK | 276 | 231 | 7 | 36 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
-| EOE | 266 | 236 | 3 | 116 | 117 |
-| FDN | 517 | 505 | 9 | 3 | 493 |
-| FIN | 312 | 264 | 10 | 9 | 245 |
-| FRA | 269 | 240 | 8 | 12 | 220 |
-| HOB | 172 | 151 | 6 | 2 | 143 |
-| LCI | 290 | 244 | 7 | 9 | 228 |
-| MKM | 279 | 227 | 6 | 35 | 186 |
-| MSH | 276 | 221 | 8 | 6 | 207 |
-| OTJ | 276 | 235 | 12 | 11 | 212 |
-| SOS | 270 | 246 | 8 | 17 | 221 |
+| EOE | 266 | 236 | 0 | 118 | 118 |
+| FDN | 517 | 505 | 5 | 7 | 493 |
+| FIN | 312 | 266 | 3 | 18 | 245 |
+| FRA | 269 | 244 | 4 | 20 | 220 |
+| HOB | 172 | 152 | 0 | 9 | 143 |
+| LCI | 290 | 249 | 2 | 19 | 228 |
+| MKM | 279 | 227 | 4 | 37 | 186 |
+| MSH | 276 | 223 | 8 | 8 | 207 |
+| OTJ | 276 | 238 | 5 | 21 | 212 |
+| SOS | 270 | 247 | 4 | 22 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
-| TDM | 276 | 242 | 10 | 43 | 189 |
-| TLA | 285 | 242 | 11 | 46 | 185 |
-| TMT | 194 | 167 | 5 | 2 | 160 |
-| TRC | 210 | 167 | 5 | 0 | 162 |
-| TRK | 128 | 98 | 5 | 5 | 88 |
-| WOE | 281 | 250 | 3 | 8 | 239 |
-| ALL | 34132 | 20770 | 160 | 16530 | 4080 |
+| TDM | 276 | 242 | 8 | 45 | 189 |
+| TLA | 285 | 244 | 10 | 49 | 185 |
+| TMT | 194 | 170 | 1 | 9 | 160 |
+| TRC | 337 | 267 | 1 | 104 | 162 |
+| TRK | 311 | 248 | 0 | 160 | 88 |
+| WOE | 281 | 251 | 1 | 11 | 239 |
+| ALL | 34442 | 21189 | 86 | 16937 | 4166 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
 ## What supported covers
 
-Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool skips a pair holding a refused card and a pair the kernel refuses together, so it plays fewer games, and its cards met the floor in these:
+Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:
 
 | pool | games per run |
 |---|---:|
 | blb | 1500 |
 | fdn | 1500 |
+| pauper | 1500 |
 | std-big | 115 |
 | std-blb | 75 |
 | std-dft | 194 |
@@ -69,34 +70,31 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-160 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+86 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| capacity | 1 |
-| decision | 3 |
-| options | 32 |
+| decision | 2 |
+| lockstep | 1 |
+| options | 18 |
 | projection | 1 |
-| projection-Cards.AttachedTo | 1 |
-| projection-Cards.Chars.Colors | 1 |
-| projection-Cards.Chars.Keywords | 2 |
-| projection-Cards.Counters | 2 |
+| projection-Cards.Chars.Colors | 2 |
+| projection-Cards.Chars.Keywords | 1 |
+| projection-Cards.Counters | 3 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 16 |
-| projection-Cards.Pos | 15 |
-| projection-Cards.Power | 10 |
-| projection-Cards.Toughness | 1 |
-| projection-Cards.Zone | 15 |
-| projection-Life | 6 |
-| projection-NInst | 2 |
-| projection-NStack | 28 |
-| projection-Pool | 8 |
+| projection-Cards.Flags | 11 |
+| projection-Cards.Pos | 7 |
+| projection-Cards.Power | 5 |
+| projection-Cards.Zone | 3 |
+| projection-Life | 3 |
+| projection-NInst | 1 |
+| projection-NStack | 10 |
+| projection-Pool | 3 |
 | projection-Stack.Ability | 1 |
-| projection-Stack.Kind | 1 |
 | projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
-| unmodelled-entryorder | 2 |
+| unmodelled-copycast | 2 |
 | unmodelled-gravepower | 1 |
 | unmodelled-handsize | 1 |
 | unmodelled-landgrant | 1 |

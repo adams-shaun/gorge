@@ -383,6 +383,11 @@ func (e *Engine) continuousGateHolds(sv staticView) bool {
 	if !e.continuousConditionHolds(sv) {
 		return false
 	}
+	if ph := sv.ParamStr(cards.PKPhases); ph != "" {
+		if pp := e.parsedPhaseSpec(ph); !pp.valid || !pp.set.Has(e.G.Step) {
+			return false
+		}
+	}
 	return e.checkSVarHolds(sv)
 }
 

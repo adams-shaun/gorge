@@ -197,6 +197,11 @@ func (e *Engine) quietBlocker(p state.PlayerID) quietBlockerID {
 	// The mana ceiling is read before the scan; a restricted unit makes it
 	// unprovable.
 	ceiling, unbounded, restricted := e.quietManaCeiling(p)
+	// A static TapsForMana trigger adds to a source's tap (addPotentialTapExtra),
+	// which the printed-production ceiling doesn't count: fail closed.
+	if e.tapExtraTriggerOnBoard() {
+		unbounded = true
+	}
 	if restricted {
 		return qbRestrictedMana
 	}

@@ -8,11 +8,11 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestHybridStrandedCastReverses: Moonrise Cleric ({1}{W/B}{W/B}) is offered on
-// the Village's restricted {W}, but no hybrid face counts that mana, so the
-// faces fall back to {W}{W}, which nothing pays: the cast is reversed
-// (CR 733.1) rather than failing in the planner.
-func TestHybridStrandedCastReverses(t *testing.T) {
+// TestHybridFaceCountsRestrictedSource: Moonrise Cleric ({1}{W/B}{W/B}) is offered
+// on the Village's restricted {W}, and the hybrid faces count that mana as the
+// cast window does (CR 106.6, 601.2f), so the {W} face is asked and the cast
+// goes through to the stack rather than reversing (CR 733.1).
+func TestHybridFaceCountsRestrictedSource(t *testing.T) {
 	set := cardsettest.Set(t, "blb")
 	var deck []cardset.Entry
 	for _, n := range []string{"Moonrise Cleric", "Swamp", "Hidden Grotto", "Lupinflower Village"} {
@@ -44,7 +44,7 @@ func TestHybridStrandedCastReverses(t *testing.T) {
 	for d = sc.s.Step(); d.Kind == DkChoose; d = sc.s.Step() {
 		sc.s.Apply(d.Options[0])
 	}
-	if z := sc.s.objs[o].zone; z != kop.ZoneHand {
-		t.Fatalf("Moonrise Cleric is in zone %v, want its owner's hand", z)
+	if z := sc.s.objs[o].zone; z != kop.ZoneStack {
+		t.Fatalf("Moonrise Cleric is in zone %v, want the stack", z)
 	}
 }

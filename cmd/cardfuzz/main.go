@@ -1064,7 +1064,7 @@ func playWatched(reg *cards.Registry, decks []genDeck, seed uint64, maxTurns, ma
 			break
 		}
 	}
-	f := &failure{Kind: "hang", Seed: seed, Decks: decks, Explore: explore, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}
+	f := &failure{Kind: "hang", Seed: seed, Decks: decks, Explore: explore, Manabrew: mbCensus != nil, Diag: fmt.Sprintf("game exceeded %s wall clock\n%s", budget, stack), Sig: sig}
 	return f.stamp(apc, apc.seats(seed, len(decks), exploreIndex(seed, explore))), nil, true
 }
 

@@ -334,6 +334,18 @@ type triggerKey struct {
 	// the cast face's same-index trigger. Zero for every ordinary read --
 	// the zero value keeps the field invisible to every existing key build.
 	Face uint8
+	// Grantor is the object whose static gave Source a granted line (Idx -1),
+	// set only on the limit key: two grants of one line are two abilities with
+	// their own once-per-turn memory (grantedLimitKey). Zero everywhere else.
+	Grantor state.ObjID
+}
+
+// grantedLimitKey is the once-per-turn and once-per-game memory of a line a
+// static grants to source, per recipient and per grantor: Forge
+// Card.addTriggerForStaticAbility stores one trigger per static, and counts its
+// activations on the recipient.
+func grantedLimitKey(source, grantor state.ObjID) triggerKey {
+	return triggerKey{Source: source, Idx: -1, Grantor: grantor}
 }
 
 // damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce/DamageAll
@@ -661,10 +673,37 @@ func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKe
 	return int(e.triggerGameFiresNow(key).N) < limit
 }
 
+// triggerStint is the zone stint source's trigger limits count against. A source
+// that left in the window now open looks back as the object it was (CR 603.10a),
+// so its limits are that object's: the first of several simultaneous deaths spends
+// a once-each-turn line's use even when the source dies among them.
+//
+// On a look-back walk whose source has already left (it died alongside the
+// creature it is watching, CR 603.10a) the limits count the stint that ended on
+// the battlefield: the walk is asking about the permanent as it was.
+func (e *Engine) triggerStint(source state.ObjID) int {
+	stint := e.objectStintStart(source)
+	if e.lookBackWalk {
+		if o := e.G.Obj(source); o != nil && o.Zone != state.ZBattlefield {
+			evs := e.L.Events
+			for i := len(evs) - 1; i >= 0; i-- {
+				if ev := &evs[i]; ev.Obj == source && zoneMovingKind(ev.Kind) && ev.From == state.ZBattlefield {
+					return objectStintStartIn(evs[:i], source)
+				}
+			}
+		}
+	}
+	before := e.triggerBefore
+	if before != nil && !before.noLookBack && stint > before.logEnd {
+		return objectStintStartIn(e.L.Events[:before.logEnd], source)
+	}
+	return stint
+}
+
 // triggerGameFiresNow is key's lifetime count for its source's CURRENT
 // object (CR 400.7): an entry from an earlier zone stint reads as zero.
 func (e *Engine) triggerGameFiresNow(key triggerKey) gameFires {
-	stint := e.objectStintStart(key.Source)
+	stint := e.triggerStint(key.Source)
 	f := e.triggerGameFires[key]
 	if f.Stint != stint {
 		f = gameFires{Stint: stint}
@@ -676,7 +715,7 @@ func (e *Engine) triggerGameFiresNow(key triggerKey) gameFires {
 // object: an entry from an earlier turn or an earlier zone stint (CR 400.7)
 // reads as zero.
 func (e *Engine) triggerTurnFiresNow(key triggerKey) turnFires {
-	stint := e.objectStintStart(key.Source)
+	stint := e.triggerStint(key.Source)
 	f := e.triggerTurnFires[key]
 	if f.Turn != e.G.Turn || f.Stint != stint {
 		f = turnFires{Turn: e.G.Turn, Stint: stint}
@@ -724,6 +763,36 @@ func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
 		return 0, true // malformed: present, denies
 	}
 	return limit, true
+}
+
+// triggerLimitSpentBeforeMove reports a line tested against its own source's
+// zone change whose limit that source spent before moving. The new-object
+// reset (CR 400.7) is for what the card does next: a look-back (CR 603.10a)
+// asks about the object as it last existed, and that object has already
+// triggered. Forge reads the same answer off its last-known copy, which keeps
+// the activation tables (CardCopyService.getLKICopy). The two limit gates,
+// which read the current stint, cannot see this.
+func (e *Engine) triggerLimitSpentBeforeMove(t cards.Trigger, key triggerKey, ev *events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.Obj != key.Source || int(ev.Seq) > len(e.L.Events) {
+		return false
+	}
+	turnLimit, onTurn := triggerTurnLimitFor(t)
+	gameLimit, onGame := triggerGameLimitFor(t)
+	if !onTurn && !onGame {
+		return false
+	}
+	before := objectStintStartIn(e.L.Events[:ev.Seq], key.Source)
+	if onTurn {
+		if f := e.triggerTurnFires[key]; f.Turn == e.G.Turn && f.Stint == before && int(f.N) >= turnLimit {
+			return true
+		}
+	}
+	if onGame {
+		if f := e.triggerGameFires[key]; f.Stint == before && int(f.N) >= gameLimit {
+			return true
+		}
+	}
+	return false
 }
 
 // triggerActivationLimitAllows is the READ half of the per-turn
@@ -854,6 +923,19 @@ func (e *Engine) noteTriggerResolved(source state.ObjID) {
 // runs dry instead of running forever.
 const maxTriggerFires = 256
 
+// TriggerCapReached reports whether any trigger has fired maxTriggerFires times, so
+// that checkTriggers has stopped matching it. It reads the counter and changes nothing;
+// a bool does not depend on the order the map is walked. A host that compares this
+// engine with another one asks it only after finding a difference.
+func (e *Engine) TriggerCapReached() bool {
+	for _, n := range e.triggerFireCount {
+		if n >= maxTriggerFires {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	// A board no look-back walk can act on needs no copy (lookBackNoopBoard):
 	// the window's departures take the shared empty snapshot, whose look-back
@@ -863,7 +945,7 @@ func (e *Engine) snapshotTriggerBoard() *triggerSnapshot {
 	if noop && !trigZoneSkipVerify {
 		return noLookBackSnapshot
 	}
-	snap := &triggerSnapshot{game: e.G.CloneInto(e.takeSnapshotObjs()), continuous: append([]ContinuousEffect(nil), e.continuous...), noLookBack: noop}
+	snap := &triggerSnapshot{logEnd: len(e.L.Events), game: e.G.CloneInto(e.takeSnapshotObjs()), continuous: append([]ContinuousEffect(nil), e.continuous...), noLookBack: noop}
 	e.noteLookBackStatic(snap)
 	return snap
 }
@@ -934,7 +1016,9 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		if obj != nil {
 			obj = e.arenaObject(obj)
 		}
+		e.lookBackWalk = true
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
+		e.lookBackWalk = false
 		// Released before the live walk below, whose emits may re-enter
 		// checkTriggers: a nested look-back then reuses the same struct. A
 		// panic skips the release and every later call allocates, exactly as
@@ -1263,33 +1347,23 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		if lki != nil && lki.ID == ev.Obj {
 			objLKI = lki
 		}
-		if e.faceDownPrintedHides(o) {
-			// CR 708.8: a face-down permanent's printed triggers (and any
-			// granted walk keyed to it) do not exist while it is face down --
-			// a manifested Sultai Emissary that dies reveals itself as a card
-			// in the graveyard and fires nothing (the leaves-battlefield
-			// look-back observer reads the pre-move state, where it is still
-			// face down; the live walk matches leaves-triggers only through
-			// that observer or a TriggerZones the departed card no longer
-			// occupies).
-			// A CLOAKED face-down permanent is the one exception: its ward {2}
-			// is part of the cloak status itself (CR 708.5's cloak variant),
-			// not a printed ability -- the synthesized Ward trigger in
-			// checkGrantedWardTriggers (built from the derived keyword list
-			// layers.go appends for Cloaked objects) is what turns targeting
-			// it into the pay-or-counter ask. Only the granted-ward walk
-			// revives; the printed-face walk stays suppressed.
-			if o.Cloaked && ev.Kind == events.TargetsChosen {
-				e.checkGrantedWardTriggers(observer, id, o, f, *ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
-			}
-			return
-		}
+		// CR 708.8: a face-down permanent's printed triggers do not exist while
+		// it is face down -- a manifested Sultai Emissary that dies reveals
+		// itself as a card in the graveyard and fires nothing (the
+		// leaves-battlefield look-back observer reads the pre-move state, where
+		// it is still face down; the live walk matches leaves-triggers only
+		// through that observer or a TriggerZones the departed card no longer
+		// occupies). What an effect gives it does (CR 708.2a): Curious Inquiry on
+		// a face-down creature, and a cloaked permanent's ward {2}, which is part
+		// of the cloak status and lives in the derived keyword list the granted
+		// ward walk reads. It takes the printed-free path below.
+		hidden := e.faceDownPrintedHides(o)
 		// Ordinary cards need no face-walk setup when their printed triggers
 		// cannot observe this event. An unlocked Room may still have an
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.RoomOtherDoorUnlocked() && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
+		if hidden || !o.RoomOtherDoorUnlocked() && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -1480,6 +1554,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				}
 				if !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.
+				}
+				if e.triggerLimitSpentBeforeMove(t, key, ev) {
+					continue // the same limits, looking back at the object that left.
 				}
 				// ResolvedLimit$ ("Do this only once each turn."): scoped to EVERY
 				// trigger mode, not just actionTriggerModes -- ChangesZone and
@@ -1816,7 +1893,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 							break
 						}
 						e.reserveTriggerLimits(t, key)
-						e.queueTrigger(observer, pt, *ev, nil)
+						e.queueTriggerMode(observer, pt, *ev, nil, t.Mode)
 					}
 				}
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a
@@ -1840,14 +1917,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// computed per instance with that attacker as the sole cause.
 				if mk == cards.TriggerAttacks {
 					echoFor := func(attacker state.ObjID) int {
-						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker})
+						return e.panharmoniconEchoes(observer, id, *ev, []state.ObjID{attacker}, t.Mode)
 					}
 					if insts := attacksTriggerInstances(boardOf(observer), &t, id, *ev, pt, echoFor); len(insts) > 0 {
 						e.pendingTriggers = append(e.pendingTriggers, insts...)
 						continue
 					}
 				}
-				e.queueTrigger(observer, pt, *ev, e.echoCauses(t, *ev))
+				e.queueTriggerLimited(observer, pt, *ev, e.echoCauses(t, *ev), t.Mode, &t, key)
 			}
 		}
 		if len(grantedStatics) > 0 {

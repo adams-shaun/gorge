@@ -17,8 +17,12 @@ var DebugNoRedNC bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExOppsAttacked:
+		return s.exOppsAttacked(ctx) // value_oppsattacked.go
 	case kop.ExScriedThisTurn:
 		return int(s.pl[ctx.ctrl&1].scry>>(4*(x.N&1))) & 15
+	case kop.ExDilemmasFaced:
+		return int(s.g.dilemmas[ctx.ctrl&1])
 	case kop.ExCastBattlefield:
 		// Count$LastStateBattlefieldWithFallback: the
 		// count frozen at beginCast into the spell entry's trigMV
@@ -148,7 +152,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return 0 // mutation hook
 		}
 		if x.Ref == kop.RefSacrificed {
-			return s.sacrificedMV(k, ctx)
+			return s.sacrificedMV(ctx)
 		}
 		if x.Ref == kop.RefRemembered {
 			return s.rememberedMV(k)
@@ -157,6 +161,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.targetMV(k, x.Ref, ctx)
 		}
 		if o := s.refObjCtx(x.Ref, ctx); o != NoObj {
+			if mv, ok := s.triggerLKIMV(x.Ref, o, ctx); ok {
+				return mv // value_objectmv.go
+			}
 			if s.faceDownAt(k, o) {
 				return 0 // CR 708.2: a face-down permanent or spell has no mana cost
 			}
@@ -179,7 +186,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return s.evalV(k, x.Sub[1], ctx)
 	case kop.ExResolvedThisTurn:
-		return s.resolvedThisTurn()
+		return s.resolvedThisTurn(k)
 	case kop.ExThisTurnCast:
 		return s.thisTurnCast(k, x, ctx)
 	case kop.ExSelfPrepared:
@@ -239,6 +246,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.exAdamant(k, x, ctx) // kw_evoke.go
 	case kop.ExNumColorsOf:
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
+	case kop.ExChromaOf:
+		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
 	case kop.ExPoisonOf, kop.ExProduct, kop.ExAttackersAll:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}

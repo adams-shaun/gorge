@@ -38,8 +38,10 @@ func (s *State) handAuraEnter(k *prep, o Obj, ctrl uint8, answered Slot) (host S
 }
 
 // handAuraArmed reports whether the running instruction is the one-card hand
-// move marked SrAuraEntry; false when moveFound is driven outside a program
-// (kernel tests).
+// move marked SrAuraEntry, or a library search onto the battlefield, which kgen
+// keeps to one card when its filter may admit an Aura (Guardian Sunmare; the card
+// waits in the library, unshuffled, as gorge's search does); false when moveFound
+// is driven outside a program (kernel tests).
 //
 //go:noinline
 func (s *State) handAuraArmed(k *prep) bool {
@@ -48,5 +50,43 @@ func (s *State) handAuraArmed(k *prep) bool {
 		return false
 	}
 	in := &pr[s.res.pc]
-	return in.Op == kop.OpChooseMove && in.B.N&kop.SrAuraEntry != 0
+	return in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove && in.B.N&kop.SrAuraEntry != 0
+}
+
+// enterOnto arms the next enter to attach its Aura to host before the enters
+// check: an Aura that enters attached (CR 303.4f) is attached when its
+// "whenever an enchantment enters" watchers look (CR 603.6a), so a host it
+// strips of abilities, or whose controller it changes, is seen as it then is
+// (gorge folds the move and the attach before the trigger scan). A host that
+// is gone or NoSlot arms nothing.
+func (s *State) enterOnto(host Slot) {
+	if host != NoSlot && s.occ.has(host) {
+		s.g.entHost = uint8(host) + 1
+	}
+}
+
+// attachEntering attaches the entering Aura at sl to the host enterOnto armed.
+//
+//go:noinline
+func (s *State) attachEntering(k *prep, sl Slot) {
+	host := Slot(s.g.entHost - 1)
+	s.g.entHost = 0
+	if !s.occ.has(host) {
+		return
+	}
+	s.attachTo(k, sl, host)
+	s.touchSl(sl)
+	if k.gen != nil {
+		s.refreshTy(k)
+	}
+}
+
+// attachedTo attaches the Aura that entered at sl to host unless enter already
+// did (enterOnto): the move sites' attach after the enter. It disarms enterOnto
+// too, for an entry that took the held path and never reached enter.
+func (s *State) attachedTo(k *prep, sl, host Slot) {
+	s.g.entHost = 0
+	if host != NoSlot && s.occ.has(host) && s.perms[sl].attached != host {
+		s.attachTo(k, sl, host)
+	}
 }

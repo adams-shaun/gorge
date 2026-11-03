@@ -8,6 +8,7 @@ package rules
 import (
 	"fmt"
 
+	"slices"
 	"strconv"
 	"strings"
 
@@ -47,16 +48,9 @@ import (
 // the same object forever (see the resolveTop guard
 // below for the other half of this fix).
 func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
+	// CR 122.1h: any permanent with a finality counter, a creature or not.
 	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZBattlefield || o.Counter("FINALITY") <= 0 {
-		return false
-	}
-	for _, typ := range e.typeCharacteristics(id, 0) {
-		if typ == "Creature" {
-			return true
-		}
-	}
-	return false
+	return o != nil && o.Zone == state.ZBattlefield && o.Counter("FINALITY") > 0
 }
 
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
@@ -135,10 +129,9 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// CantPutCounter is enforced in Engine.emit before this dispatch, even
 	// while a replacement body is in flight.
 	// FINALITY (CR 122.1) is a replacement at the common move boundary:
-	// a creature with a finality counter that would go from the battlefield to
-	// a graveyard is exiled instead. This covers destruction, toughness-based
-	// SBAs, legend-rule departures and sacrifices alike. The derived type walk
-	// also handles a permanent animated into a creature, while the battlefield
+	// a permanent with a finality counter that would go from the battlefield to
+	// a graveyard is exiled instead (CR 122.1h). This covers destruction, toughness-based
+	// SBAs, legend-rule departures and sacrifices alike. The battlefield
 	// origin guard prevents unrelated graveyard moves from being widened.
 	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
 		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {
@@ -289,34 +282,45 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	})
+	// A surveil's graveyard pile has already left the library's order when it
+	// moves (arrangeAnswerRecord's LibraryOrder comes first, a logged contract),
+	// so the walk cannot meet the card, and "from anywhere" is its own line.
+	// A token's entry has no origin, which reads as the library too; it takes
+	// the token-entrant path below, and a card goes to the graveyard here.
+	if ev.Kind == events.MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && !sawEntrant && event == "Moved" {
+		if o := e.G.Obj(ev.Obj); o != nil && !o.IsToken && objectReplMask(o)&replEventBits[eventKind] != 0 && !slices.Contains(e.G.Zone(state.ZLibrary, o.Owner), ev.Obj) {
+			if f := e.replacementFace(ev.Obj, ev); f != nil {
+				for i := range f.Repls {
+					if r := &f.Repls[i]; replacementEventNameMatches(r.Event, event) && !movedLineRejects(r, ev.Obj, ev) && e.replacementMatches(*r, ev.Obj, ev) {
+						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					}
+				}
+			}
+		}
+	}
 	// A copy token's entry MoveZone moves an object the CopyToken fold minted
 	// outside every zone list (events/apply_copy.go), so the scan above never
-	// visits it and its own copied lines are never read: a token copy of
-	// Diregraf Ghoul entered untapped (CR 707.2, 614.12: the copy has the
-	// "enters tapped" replacement and it applies to its own entry). Read the
-	// entrant's own "enters tapped" line and its recorded "enter as a copy"
-	// election here; its other self-entry lines (counters, other as-enters
-	// choices) are not read on this path.
+	// visits it and never reads its own copied lines. The copy has them, and
+	// they apply to its own entry (CR 707.2, 614.12): a token copy of Diregraf
+	// Ghoul enters tapped, and one of Banner of Kinship chooses a type and takes
+	// its counters. So read them here with the same matcher. The one narrower
+	// case is the as-enters "enter as a copy" body: entryETBChoice recorded the
+	// election on the token, so that Clone body applies only when one is
+	// recorded and the whitelist that offered it passes.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && !sawEntrant && event == "Moved" {
 		if o := e.G.Obj(ev.Obj); o != nil && o.IsToken {
 			if f := e.replacementFace(ev.Obj, ev); f != nil {
 				for i := range f.Repls {
 					r := &f.Repls[i]
-					// The full matcher does not admit the minted object yet
-					// (it is in no zone list, so a Card.Self spec fails), so
-					// the line's own shape is checked: an Updated self-entry
-					// to the battlefield with no other qualifier.
-					if r.Event == "Moved" && r.With != nil && r.With.APIKind() == cards.APITap && selfEntryTapLine(r) {
-						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					if !replacementEventNameMatches(r.Event, event) || movedLineRejects(r, ev.Obj, ev) ||
+						!e.replacementMatches(*r, ev.Obj, ev) {
+						continue
 					}
-					// The as-enters "enter as a copy" body (CR 614.12, 707.2):
-					// entryETBChoice recorded the election on the token, so the
-					// Clone body is applied only when one is recorded and the
-					// same whitelist that offered it passes.
-					if r.Event == "Moved" && r.ParamStr(cards.PKKeyword) == "ETBReplacement" && r.With != nil && r.With.API == "Clone" &&
-						o.ETBCloneChoiceValid && etbCloneWhitelist(r.With, f.SVars) {
-						matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
+					if r.ParamStr(cards.PKKeyword) == "ETBReplacement" && r.With != nil && r.With.API == "Clone" &&
+						(!o.ETBCloneChoiceValid || !etbCloneWhitelist(r.With, f.SVars)) {
+						continue
 					}
+					matches = append(matches, replMatch{id: ev.Obj, face: f, repl: r})
 				}
 			}
 		}
@@ -399,6 +403,8 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		return e.continueCreateTokenReplacements(ev, matches)
 	case events.Explore, events.Connive:
 		return continueActionReplacements(e, ev, matches)
+	case events.DestroyProposal:
+		return e.continueDestroyReplacements(ev, matches)
 	case events.Damage:
 		matches = e.applicableDamageReplacements(ev, matches)
 		if len(matches) == 0 {
@@ -852,6 +858,8 @@ func replacementEventKind(ev events.Event) cards.ReplEvent {
 		return cards.ReplExplore
 	case events.Connive:
 		return cards.ReplConnive
+	case events.DestroyProposal:
+		return cards.ReplDestroy
 	case events.Cascade:
 		// The cascade instruction's replacement boundary (CR 614.4; Averna,
 		// the Chaos Bloom). Only the synthetic PROPOSAL (Engine.
@@ -1164,6 +1172,12 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	// A declined (or no longer legal) as-enters copy election is the optional
 	// replacement NOT applied (CR 614.1c): neither the copy nor its SubAbility$
 	// rider (Altered Ego's X additional counters) runs.
+	// The template's legality reads the board's derived types (an enchantment an
+	// effect made a creature is a creature to copy), and the body's own walk binds
+	// them only once it starts.
+	if ctx != nil && ctx.Layers.DerivedTypes == nil {
+		ctx.Layers = e.boardLayers()
+	}
 	if effects.CloneETBNoCopy(e.G, ctx, with) {
 		return
 	}
@@ -1401,30 +1415,4 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 		return false
 	}
 	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
-}
-
-// selfEntryTapLine reports whether r is the plain "CARDNAME enters tapped"
-// shape: R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield |
-// ReplacementResult$ Updated with no Origin$, condition or other qualifier.
-func selfEntryTapLine(r *cards.Repl) bool {
-	for k, v := range r.Params {
-		switch k {
-		case "Event", "Description", "ReplaceWith":
-		case "ValidCard":
-			if v != "Card.Self" {
-				return false
-			}
-		case "Destination":
-			if v != "Battlefield" {
-				return false
-			}
-		case "ReplacementResult":
-			if v != "Updated" {
-				return false
-			}
-		default:
-			return false
-		}
-	}
-	return true
 }

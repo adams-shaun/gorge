@@ -6,7 +6,7 @@
     "pool": "std-woe",
     "surface": "full",
     "seed": 1,
-    "pair": 190,
+    "pair": 157,
     "policy": "random",
     "mulligans": 0
   }

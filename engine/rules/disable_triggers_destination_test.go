@@ -43,3 +43,27 @@ func TestDisableTriggersDestinationList(t *testing.T) {
 		}
 	}
 }
+
+// TestDisableTriggersEnteringIsNotLeaving: a creature returning from a graveyard
+// under "creatures entering don't cause abilities to trigger" stops the lines
+// that watch it enter, not the ones that watch it leave the graveyard.
+func TestDisableTriggersEnteringIsNotLeaving(t *testing.T) {
+	e := newSeats(t, 2)
+	parkObj(t, e, card(t, "Name:Entry Gate\nTypes:Artifact\n"+
+		"S:Mode$ DisableTriggers | ValidCause$ Creature | ValidMode$ ChangesZone,ChangesZoneAll | Destination$ Battlefield\nOracle:x\n"), 0, state.ZBattlefield)
+	listener := func(name, params string) {
+		parkObj(t, e, card(t, "Name:"+name+"\nTypes:Artifact\nT:Mode$ ChangesZoneAll | ValidCards$ Creature | "+params+
+			" | TriggerZones$ Battlefield | Execute$ TrigDraw\nSVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"), 0, state.ZBattlefield)
+	}
+	listener("Leaves Graveyard", "Origin$ Graveyard | Destination$ Any")
+	bear := parkObj(t, e, card(t, "Name:Bear\nTypes:Creature\nOracle:x\n"), 0, state.ZGraveyard)
+	if n := countQueued(e, bear, state.ZGraveyard, state.ZBattlefield); n != 1 {
+		t.Fatalf("leaving the graveyard for the battlefield queued %d, want 1", n)
+	}
+	listener("Enters", "Origin$ Graveyard | Destination$ Battlefield")
+	e.pendingTriggers = nil
+	bear = parkObj(t, e, card(t, "Name:Bear\nTypes:Creature\nOracle:x\n"), 0, state.ZGraveyard)
+	if n := countQueued(e, bear, state.ZGraveyard, state.ZBattlefield); n != 1 {
+		t.Fatalf("with an entry line beside it, the same move queued %d, want the leaving line's 1", n)
+	}
+}

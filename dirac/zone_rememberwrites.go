@@ -4,7 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// RememberDrawn$ on Draw, RememberMoved$ on Surveil,
+// RememberDrawn$ on Draw, RememberMoved$ and RememberKept$ on Surveil,
 // RememberSacrificed$ on SacrificeAll. Each is the instruction's
 // kop.MvRemember bit; every path here is behind that one guard.
 
@@ -35,6 +35,20 @@ func (s *State) drawRemember(p uint8) {
 func (s *State) surveilRemember(o Obj) {
 	if s.objs[o].zone == kop.ZoneGraveyard && !DebugNoRemWrites3 {
 		s.remember(o)
+	}
+}
+
+// surveilRememberKept remembers the top cards the surveil left on top of the
+// library, in the order they were put there (gorge arrange.go: RememberKept$
+// records pile A).
+//
+//go:noinline
+func (s *State) surveilRememberKept(top int) {
+	if DebugNoRemWrites3 {
+		return
+	}
+	for i := 0; i < top; i++ {
+		s.remember(s.res.arr[i])
 	}
 }
 

@@ -40,6 +40,26 @@ func TestCastWindowGenericFeeConsumesTheRealPool(t *testing.T) {
 	}
 }
 
+// TestCastWindowFeeColourIsThePayersChoice: {G}{W}{W} from a floating {W}{G}{G}
+// and a {1} filter making {W}: the fee takes a {G} and it is payable, though the
+// fee's automatic resolution would take the {W} and strand it (CR 601.2h).
+func TestCastWindowFeeColourIsThePayersChoice(t *testing.T) {
+	t.Parallel()
+	b := equipWindowGame(t, 720, cwFeeGreenSource)
+	e := b.engine
+	source := b.byName["FeeGreen"]
+	addMana(t, e, 0, "W")
+	addMana(t, e, 0, "G")
+	addMana(t, e, 0, "G")
+	units := e.castWindowUnitsForSourceTest(source, "W", 1)
+	if !e.castWindowReachable(0, ParseCost("G W W"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+		t.Fatal("the probe tried one fee colour only")
+	}
+	if e.castWindowReachable(0, ParseCost("G G W W"), e.G.Players[0].Pool, state.Mana{}, [7]state.Mana{}, 20, nil, pipRider{}, units) {
+		t.Fatal("the probe claims four mana from three, the fee spent")
+	}
+}
+
 // TestCastWindowFeeFundingMayExceedSpellPipCount ensures a free mana ability
 // can fund a later {2} activation even when the spell itself has only one pip.
 func TestCastWindowFeeFundingMayExceedSpellPipCount(t *testing.T) {

@@ -54,12 +54,16 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	if err != nil {
 		return err
 	}
+	who, err := lc.investigator(ps)
+	if err != nil {
+		return err
+	}
 	if zeroOne(n) {
 		// one CreateToken of 0 or 1 is the TokenCreate stream of 0 or 1
 		// one-token ops (a 0/1 Num$, e.g. a Compare or the opponents who
 		// lost life)
 		lc.out.Tokens = append(lc.out.Tokens, clueToken)
-		lc.emit(lInstr{Op: "CreateToken", Obj: lRef{Kind: rYou}, A: n, CS: clueToken})
+		lc.emit(lInstr{Op: "CreateToken", Obj: who, A: n, CS: clueToken})
 		return nil
 	}
 	if !n.isConst() || n.N < 1 || n.N > 8 {
@@ -67,9 +71,35 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	}
 	lc.out.Tokens = append(lc.out.Tokens, clueToken)
 	for i := 0; i < n.N; i++ {
-		lc.emit(lInstr{Op: "CreateToken", Obj: lRef{Kind: rYou}, A: cst(1), CS: clueToken})
+		lc.emit(lInstr{Op: "CreateToken", Obj: who, A: cst(1), CS: clueToken})
 	}
 	return nil
+}
+
+// investigator is the investigating player: the resolving controller, or the
+// one player the Investigate's own ValidTgts$ names (gorge effInvestigate
+// resolves actingPlayers: Defined$, else the targeted players, else the
+// controller). Only a plain one-player target slot is read; a count rider
+// would leave the investigator ambiguous here.
+func (lc *lowerCtx) investigator(ps *params) (lRef, error) {
+	vt, ok := ps.get("ValidTgts")
+	if !ok || strings.TrimSpace(vt) == "" {
+		return lRef{Kind: rYou}, nil
+	}
+	for _, k := range []string{"TargetMin", "TargetMax", "TargetUnique", "TgtZone"} {
+		if _, ok := ps.get(k); ok {
+			return lRef{}, refuse("Investigate ValidTgts$ with %s$", k)
+		}
+	}
+	pf, err := lc.filter(vt)
+	if err != nil {
+		return lRef{}, err
+	}
+	if pf.Players == 0 || len(pf.Clauses) != 0 {
+		return lRef{}, refuse("Investigate ValidTgts$ %q", vt)
+	}
+	ps.consume("ValidTgts", "TgtPrompt")
+	return lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf, Zone: zNone})}, nil
 }
 
 // amass lowers api:Amass (gorge effAmass): the controller amasses Num$ of
@@ -179,13 +209,14 @@ func (lc *lowerCtx) debuff(ps *params) error {
 
 // explore lowers api:Explore (gorge effExplore: each Defined$ object --
 // the source by default -- explores Num$ times, one OpExplore per
-// explore). A constant Num$ only; one explorer.
+// explore). A constant Num$ up to 4, or a value (Jadelight Spelunker's X)
+// repeating one explore; one explorer.
 func (lc *lowerCtx) explore(ps *params) error {
 	n, err := lc.amount(ps, "Num", 1)
 	if err != nil {
 		return err
 	}
-	if !n.isConst() || n.N < 1 || n.N > 4 {
+	if n.isConst() && (n.N < 1 || n.N > 4) {
 		return refuse("Explore Num %v", n)
 	}
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
@@ -201,6 +232,16 @@ func (lc *lowerCtx) explore(ps *params) error {
 		}
 	default:
 		return refuse("Explore of %s", obj)
+	}
+	if !n.isConst() {
+		// "explores X times" (gorge exploreOnce per pass): the one explore
+		// repeated by the value, read when the loop starts
+		if obj.Kind == rTarget {
+			return refuse("Explore of a target slot Num %v", n)
+		}
+		lc.emit(lInstr{Op: "Repeat", A: n, Skip: 1})
+		lc.emit(lInstr{Op: "Explore", Obj: obj})
+		return nil
 	}
 	for i := 0; i < n.N; i++ {
 		lc.emit(lInstr{Op: "Explore", Obj: obj})

@@ -226,7 +226,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 	ok := func(text string, ukey string, source state.ObjID, free bool, raise Cost, hasRaise, priced bool) {
 		key := ukey
 		if text != "" {
-			key = mayPlayPermKey(source, text)
+			key = e.mayPlayStaticKey(source, text)
 		} else if ukey == "" {
 			untyped = true
 			return
@@ -246,7 +246,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 		if !applies || !grants {
 			continue
 		}
-		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), mayPlayUntypedKey(id, st.ParamStr(cards.PKMayPlayLimit), st.ParamStr(cards.PKMayPlayText), st.HasParam(cards.PKMayPlayAltManaCost), st.ParamStr(cards.PKDescription), st.ParamStr(cards.PKAffected), st.ParamStr(cards.PKAffectedZone)), id, free, raise, hasRaise, priced)
+		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), e.mayPlayUntypedKey(id, st.ParamStr(cards.PKMayPlayLimit), st.ParamStr(cards.PKMayPlayText), st.HasParam(cards.PKMayPlayAltManaCost), st.ParamStr(cards.PKDescription), st.ParamStr(cards.PKAffected), st.ParamStr(cards.PKAffectedZone)), id, free, raise, hasRaise, priced)
 	}
 	if board {
 		for _, sv := range e.activeStatics("Continuous") {
@@ -257,7 +257,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 			if !applies || !grants {
 				continue
 			}
-			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), mayPlayUntypedKey(sv.Source, sv.ParamStr(cards.PKMayPlayLimit), sv.ParamStr(cards.PKMayPlayText), sv.HasParam(cards.PKMayPlayAltManaCost), sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone)), sv.Source, free, raise, hasRaise, priced)
+			ok(mayPlayPermText(sv.ParamStr(cards.PKMayPlayText), sv.Params), e.mayPlayUntypedKey(sv.Source, sv.ParamStr(cards.PKMayPlayLimit), sv.ParamStr(cards.PKMayPlayText), sv.HasParam(cards.PKMayPlayAltManaCost), sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone)), sv.Source, free, raise, hasRaise, priced)
 		}
 	}
 	if untyped {
@@ -698,9 +698,9 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// unenforced, the same convention activationLimitReached applies to a
 	// non-literal ActivationLimit$.
 	if n := mayPlayLimitN(params["MayPlayLimit"]); n > 0 {
-		key := mayPlayLimitKey(source, params["Description"], params["Affected"], params["AffectedZone"])
+		key := e.mayPlayLimitKey(source, params["Description"], params["Affected"], params["AffectedZone"])
 		if permissionText != "" {
-			key = mayPlayPermKey(source, permissionText)
+			key = e.mayPlayStaticKey(source, permissionText)
 		}
 		if e.mayPlayKeyLimitReached(key, n) {
 			return false, false, false, Cost{}, hasRaise, priced
@@ -721,6 +721,19 @@ func mayPlayPermKey(source state.ObjID, text string) string {
 	return strconv.FormatInt(int64(source), 10) + ":" + text
 }
 
+// mayPlayStaticKey is mayPlayPermKey for a static of a permanent: a source
+// that left the battlefield and came back is a new object (CR 400.7) whose
+// static is a new permission, so its battlefield incarnation joins the
+// identity (Forge counts the use on the static instance, getMayPlayTurn). The
+// first battlefield incarnation, and a source off the battlefield (a card's
+// own graveyard or exile self-grant), keep the bare spelling.
+func (e *Engine) mayPlayStaticKey(source state.ObjID, text string) string {
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield && o.Incarnation > 1 {
+		return mayPlayPermKey(source, mayPlayPermKey(state.ObjID(o.Incarnation), text))
+	}
+	return mayPlayPermKey(source, text)
+}
+
 // mayPlayLimitN is a static's literal MayPlayLimit$ (0 when absent,
 // non-literal or not positive: unenforced).
 func mayPlayLimitN(raw string) int {
@@ -736,10 +749,10 @@ func mayPlayLimitN(raw string) int {
 // statics on one card and two copies of one card never share a count. The
 // "~" keeps it disjoint from any typed label, and the fixed width (nine hex digits) keeps one
 // key from being a prefix of another inside a log token.
-func mayPlayLimitKey(source state.ObjID, desc, affected, zone string) string {
+func (e *Engine) mayPlayLimitKey(source state.ObjID, desc, affected, zone string) string {
 	h := fnv.New32a()
 	h.Write([]byte(desc + "|" + affected + "|" + zone))
-	return mayPlayPermKey(source, "~"+strconv.FormatUint(uint64(h.Sum32())|1<<32, 16))
+	return e.mayPlayStaticKey(source, "~"+strconv.FormatUint(uint64(h.Sum32())|1<<32, 16))
 }
 
 // mayPlayUntypedKey is mayPlayLimitKey for a static whose permission is
@@ -747,11 +760,11 @@ func mayPlayLimitKey(source state.ObjID, desc, affected, zone string) string {
 // static (those are priced through the alternative-cost walks, which carry
 // the key per alternative). "" for every other static, which stays on the
 // collapsed empty-key path.
-func mayPlayUntypedKey(source state.ObjID, limit, text string, alt bool, desc, affected, zone string) string {
+func (e *Engine) mayPlayUntypedKey(source state.ObjID, limit, text string, alt bool, desc, affected, zone string) string {
 	if strings.TrimSpace(text) != "" || alt || mayPlayLimitN(limit) == 0 {
 		return ""
 	}
-	return mayPlayLimitKey(source, desc, affected, zone)
+	return e.mayPlayLimitKey(source, desc, affected, zone)
 }
 
 // mayPlayKeyLimitReached reports whether the permission named by key has
@@ -917,6 +930,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		return nil
 	}
 	var out []mayPlayAltView
+	var unlimitedFree [][2]bool
 	// The two sources the permission grant walks, scanned in one
 	// deterministic order (battlefield statics first, then the card's own
 	// face statics). Each is ranged in place -- neither list is appended to
@@ -1005,7 +1019,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		}
 		key := ""
 		if n := mayPlayLimitN(sv.ParamStr(cards.PKMayPlayLimit)); n > 0 {
-			key = mayPlayLimitKey(sv.Source, sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone))
+			key = e.mayPlayLimitKey(sv.Source, sv.ParamStr(cards.PKDescription), sv.ParamStr(cards.PKAffected), sv.ParamStr(cards.PKAffectedZone))
 			if e.mayPlayKeyLimitReached(key, n) {
 				continue
 			}
@@ -1013,6 +1027,14 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 		grants := !strings.EqualFold(strings.TrimSpace(sv.Params["MayPlayDontGrantZonePermissions"]), "True")
 		flash := strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKMayPlayWithFlash)), "True")
 		if free {
+			// A second unlimited static of the same shape (two Omnipresences)
+			// adds no choice, the way mayPlayPermissions folds unlimited grants.
+			if key == "" && slices.Contains(unlimitedFree, [2]bool{grants, flash}) {
+				continue
+			}
+			if key == "" {
+				unlimitedFree = append(unlimitedFree, [2]bool{grants, flash})
+			}
 			out = append(out, mayPlayAltView{grants: grants, flash: flash, key: key})
 			continue
 		}

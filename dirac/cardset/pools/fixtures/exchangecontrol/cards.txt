@@ -1,0 +1,10 @@
+# exchange control of one slot's two targets, of a parent link's target and a
+# link's own, and the trigger that picks two differently controlled creatures
+# (dirac/oracle/repro_lockstep_test.go)
+Island
+Ornithopter
+Mind Stone
+Wind Drake
+Trade the Helm
+Shifting Grift
+Kitsune, Dragon's Daughter

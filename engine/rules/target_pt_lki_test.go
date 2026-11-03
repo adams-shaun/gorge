@@ -29,3 +29,25 @@ func TestMovedTargetPowerReadsLastKnownInformation(t *testing.T) {
 		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
 	}
 }
+
+// TestMovedTargetControllerReadsLastKnownInformation pins CR 608.2h on the
+// controller half of the same look-back: seat 0 reanimates seat 1's Grizzly
+// Bears and exiles them with Swords to Plowshares, so "its controller gains
+// life" is seat 0, who controlled the Bears on the battlefield, and not seat 1,
+// whose card sits in exile with the controller reset to its owner (Forge reads
+// the change-zone LKI copy, AbilityUtils.getDefinedCards).
+func TestMovedTargetControllerReadsLastKnownInformation(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	raw := `{"name":"stp-stolen","setup":{"p0":{"hand":["Reanimate","Swords to Plowshares"]},"p1":{"graveyard":["Grizzly Bears"]}},
+	 "steps":[{"op":"cast","seat":0,"card":"p0:Reanimate","mana":"B","targets":["p1:Grizzly Bears"]},{"op":"resolve"},
+	  {"op":"cast","seat":0,"card":"p0:Swords to Plowshares","mana":"W","targets":["p1:Grizzly Bears"]},{"op":"resolve"}],
+	 "expect":[{"card":"p1:Grizzly Bears","zone":"exile"},{"life":{"p0":20,"p1":20}}]}`
+	var sc oracleScenario
+	if err := json.Unmarshal([]byte(raw), &sc); err != nil {
+		t.Fatal(err)
+	}
+	if fails, tr, _ := runOracleScenario(reg, sc); len(fails) > 0 {
+		t.Fatalf("%s\n  transcript:\n    %s", strings.Join(fails, "\n"), strings.Join(tr, "\n    "))
+	}
+}

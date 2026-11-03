@@ -177,6 +177,11 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// SurveilRememberKept (OpSurveil C): the cards the surveil leaves on top of the
+// library join the remembered set (RememberKept$), beside MvRemember's cards put
+// into the graveyard.
+const SurveilRememberKept = 1 << 1
+
 // SearchFlags (OpSearchEx / OpChooseMove C>>3).
 const (
 	SrTapped           = 1 << iota // the found cards enter tapped
@@ -351,11 +356,24 @@ const (
 // the object goes on top of its owner's library, which is then shuffled.
 const LibTopShuffle = 4
 
+// LibTopShuffleGrave is LibTopShuffle for a trigger object's Origin$ Graveyard
+// move (Lembas' "its owner shuffles it into their library"): the card moves,
+// and the library is shuffled, only if it is still in the graveyard. Exiled in
+// response, it does neither (gorge's Origin$ precondition on the object path).
+const LibTopShuffleGrave = 8
+
 // LibTopShuffleSelf is OpToLibrary's C for LibTopShuffle with
 // ThisDefinedAndTgts$ Self: the target, then the source, go on top of their
 // owners' libraries (one departure batch); each owner's library is then
 // shuffled once, in that order (Floodpits Drowner).
 const LibTopShuffleSelf = 5
+
+// LibBottomShuffle is OpToLibrary's C for LibTopShuffle with
+// LibraryPosition$ -1: the object goes on the bottom of its owner's library,
+// which is then shuffled (the placement is the shuffle's input, so it is
+// not the top's). Origin$ Battlefield only: an object no longer on the
+// battlefield does not move, but the library is still shuffled.
+const LibBottomShuffle = 7
 
 // Delayed program timings (OpDelayedProgram A; 0 = the next end step).
 const (

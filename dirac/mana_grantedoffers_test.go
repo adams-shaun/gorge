@@ -3,6 +3,7 @@ package dirac
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -185,5 +186,46 @@ func TestGrantManaOverflowStalls(t *testing.T) {
 			t.Errorf("%d grants: read %d, stall %d (%s), want %d read, stalled %v",
 				slivers+2, n, sc.s.StallReason(), StallName(sc.s.StallReason()), maxGrants, over)
 		}
+	}
+}
+
+// TestGrantSearchActivatesAFilterBesideAGrant: Rumble Arena's "{1},{T}: Add one mana of
+// any color" is a census gap beside Great Divide Guide's grant to every land, so the one
+// prefix search activates it as gorge does: its ask lists the printed {C}, then the
+// filter, then the grant, and the filter wins with the pool paying its fee. Fire Nation
+// Palace's {1}{R} is paid by Forest, Forest, Guide and Plains for G G W W, then Arena
+// spends a W to make R; tapping Arena through the free grant (the fifth tap, nothing
+// spent) left a W in the pool (CR 605.3a, 601.2g-h).
+func TestGrantSearchActivatesAFilterBesideAGrant(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Great Divide Guide", Count: 1}, {Name: "Rumble Arena", Count: 1}, {Name: "Forest", Count: 2},
+		{Name: "Plains", Count: 1}, {Name: "Fire Nation Palace", Count: 1}, {Name: "Island", Count: 14}}
+	tbl, _, _, err := cardsettest.Synth(t, "std-tla").Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for c := range tbl.Cards {
+		if _, ok := id[tbl.Cards[c].Name]; !ok {
+			id[tbl.Cards[c].Name] = CardID(c)
+		}
+	}
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	for _, n := range []string{"Forest", "Forest", "Great Divide Guide", "Plains", "Rumble Arena"} {
+		sc.perm(id[n], 0)
+	}
+	palace := sc.perm(id["Fire Nation Palace"], 0)
+	s, k := sc.s, sc.k
+	cost := kop.ManaCost{Generic: 1}
+	cost.Pips[kop.R] = 1
+	var g grantSrch
+	if !s.grantSearch(k, 0, &cost, sc.slot(palace), payDesc{}, &g) || g.np != 5 {
+		t.Fatalf("found steps %d, want 5 (four taps, then the filter)", g.np)
+	}
+	if last := g.path[4]; last.gi != stepFilt || last.col != kop.R {
+		t.Fatalf("the fifth step is gi %d colour %d, want the filter making R", last.gi, last.col)
+	}
+	s.grantApply(k, &g)
+	if p := s.pl[0].pool; p[kop.G] != 2 || p[kop.W] != 1 || p[kop.R] != 1 || poolTotal(&s.pl[0]) != 4 {
+		t.Errorf("pool %v, want G G W R (the fee spent a W)", p)
 	}
 }

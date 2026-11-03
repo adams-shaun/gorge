@@ -1,0 +1,10 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Abrade
+1	card	Charming Scoundrel
+2	card	Island
+3	card	Mountain
+4	card	Seven of Nine
+5	card	Swamp
+6	card	The Caretaker
+7	token	c_a_treasure_sac
+8	token	role_wicked

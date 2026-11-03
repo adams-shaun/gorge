@@ -41,7 +41,7 @@ func TestDigUntilNinthCreatureStopsAtNinth(t *testing.T) {
 		C:   204,             // found -> graveyard; rest -> bottom, random order
 		F:   kop.FilterID(1), // vanilla fCreature
 	}
-	sc.s.execDigUntil(sc.k, &in)
+	sc.s.execDigUntil(sc.k, &in, false)
 	for i, o := range bears {
 		if z := sc.s.objs[o].zone; z != kop.ZoneGraveyard {
 			t.Fatalf("bear %d zone %d, want the graveyard", i, z)

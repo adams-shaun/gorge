@@ -960,7 +960,7 @@ type layerTablesHost interface {
 // layerTablesFor is the tables Resolve binds for body sa: what h publishes,
 // with the on-demand tables asked for only when sa can read them (the zero
 // LayerTables when h publishes none).
-func layerTablesFor(h Host, sa *cards.SA) LayerTables {
+func layerTablesFor(h Host, sa *cards.SA, c *Ctx) LayerTables {
 	lh, ok := h.(layerTablesHost)
 	if !ok {
 		return LayerTables{}
@@ -978,6 +978,26 @@ func layerTablesFor(h Host, sa *cards.SA) LayerTables {
 		}
 		if saMentionsPT(sa) {
 			want |= LayerCDAPT | LayerBattlefieldPT
+		}
+		// A parameter may name an SVar (Cut Propulsion's NumDmg$ X, where X
+		// counts Targeted$Valid Creature.withFlying): the SVar bodies the
+		// source carries are filters too.
+		if c != nil {
+			for _, v := range c.SVars {
+				if strings.Contains(v, "with") || strings.Contains(v, "hasKeyword") {
+					want |= LayerKeywords
+				}
+				if SpecReadsPT(v) {
+					want |= LayerCDAPT | LayerBattlefieldPT
+				}
+				if strings.Contains(v, "IsGoaded") {
+					want |= LayerGoads
+				}
+				if strings.Contains(v, "Color") || strings.Contains(v, "Black") || strings.Contains(v, "White") ||
+					strings.Contains(v, "Blue") || strings.Contains(v, "Red") || strings.Contains(v, "Green") {
+					want |= LayerColors
+				}
+			}
 		}
 	}
 	return lh.LayerTables(want)
@@ -1158,7 +1178,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// cannot make the resolving context read another game's board, and a
 		// Ctx reused with a different Host (or a double that publishes none)
 		// is reset to the printed-face read.
-		c.Layers = layerTablesFor(h, sa)
+		c.Layers = layerTablesFor(h, sa, c)
 		if th, ok := h.(targetableObjectsHost); ok {
 			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
 		} else {
@@ -1243,7 +1263,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// Earlier bodies in this chain may emit events that change the
 		// derived characteristics. Refresh at each body boundary, not only at
 		// Resolve entry, so the next body's filters see the current snapshot.
-		c.Layers = layerTablesFor(h, sa)
+		c.Layers = layerTablesFor(h, sa, c)
 		if th, ok := h.(targetableObjectsHost); ok {
 			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
 		} else {
@@ -1262,7 +1282,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// replay-visible Note records the gap, instead of running the rider
 		// unconditionally and diverging from the oracle.
 		if sa != nil {
-			met, supported := conditionMet(h, c, sa)
+			met, supported := linkConditionMet(h, c, sa)
 			if supported && !met {
 				continue
 			}
