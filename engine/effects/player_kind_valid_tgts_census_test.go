@@ -50,7 +50,7 @@ func TestPlayerKindValidTgtsAPICensus(t *testing.T) {
 	}
 	want := map[string][]string{
 		"ChangeZoneAll": {
-			"agent_of_erebos.txt", "angel_of_finality.txt", "apple_of_eden_isu_relic.txt", "blessed_respite.txt",
+			"agent_of_erebos.txt", "angel_of_finality.txt", "apple_of_eden_isu_relic.txt", "assimilation_assessor.txt", "blessed_respite.txt",
 			"boggart_trawler_boggart_bog.txt", "bojuka_bog.txt", "callous_bloodmage.txt", "canoptek_scarab_swarm.txt",
 			"clear_the_mind.txt", "cranial_archive.txt", "cranial_extraction.txt", "crypt_incursion.txt",
 			"disciple_of_perdition.txt", "elspeths_nightmare.txt", "endurance.txt", "every_last_vestige_shall_rot.txt",
@@ -63,7 +63,7 @@ func TestPlayerKindValidTgtsAPICensus(t *testing.T) {
 			"primal_command.txt", "quest_for_ancient_secrets.txt", "rakdos_charm.txt", "ravenous_trap.txt",
 			"release_to_memory.txt", "reminisce.txt", "remorseful_cleric.txt", "repopulate.txt",
 			"rivers_rebuke.txt", "riveteers_charm.txt", "sentinel_of_lost_lore.txt", "settle_the_wreckage.txt",
-			"shadow_of_the_enemy.txt", "stone_of_erech.txt", "stonespeaker_crystal.txt", "sudden_disappearance.txt",
+			"shadow_of_the_enemy.txt", "sins_of_the_father.txt", "stone_of_erech.txt", "stonespeaker_crystal.txt", "sudden_disappearance.txt",
 			"suppress.txt", "the_death_of_gwen_stacy.txt", "the_heron_moon.txt", "thraben_charm.txt",
 			"thran_foundry.txt", "titanias_command.txt", "tombfire.txt", "tormods_crypt.txt",
 			"tormods_cryptkeeper.txt", "tranquil_frillback.txt", "unite_the_coalition.txt", "urza_academy_headmaster.txt",
