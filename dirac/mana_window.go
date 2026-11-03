@@ -636,13 +636,19 @@ func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pip
 	return kind == kop.PayMana && skip&(pfWard|pfModes) != 0 && s.windowAffordsN(k, p, amt, pips)
 }
 
-// player.poolR's fields: the count, the restriction (genPrep.restrF
-// index) and the colour index.
+// player.poolR's fields: the count (bits 0-3), the restriction (genPrep.restrF
+// index, bits 4-5) and the colour index (bits 6-8).
 const (
-	poolRCnt   uint8 = 15
-	poolRKind  uint8 = 16
-	poolRShift       = 5
+	poolRCnt       uint16 = 15
+	poolRKind      uint16 = 3 << poolRKindShift
+	poolRKindShift        = 4
+	poolRShift            = 6
 )
+
+// restrKinds is how many distinct spend restrictions a table's restricted
+// mana can name (genPrep.restrF): the most a Standard pool's table holds is
+// three; a fourth would stall.
+const restrKinds = 4
 
 // addRestrF registers restriction f (genPrep.restrF).
 func (g *genPrep) addRestrF(f kop.FilterID) {
@@ -657,16 +663,20 @@ func (g *genPrep) addRestrF(f kop.FilterID) {
 	}
 }
 
-// restrKind is restriction f's poolR kind bits; ok is false for a third
-// restriction, which the byte cannot name.
-func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) {
-	switch f {
-	case g.restrF[0]:
-		return 0, true
-	case g.restrF[1]:
-		return poolRKind, true
+// restrKind is restriction f's poolR kind bits; ok is false for a restriction
+// past restrKinds, which poolR cannot name.
+func (g *genPrep) restrKind(f kop.FilterID) (uint16, bool) {
+	for i := range g.restrF {
+		if g.restrF[i] == f && f != 0 {
+			return uint16(i) << poolRKindShift, true
+		}
 	}
 	return 0, false
+}
+
+// restrFOf is the restriction filter that poolR value r names.
+func (g *genPrep) restrFOf(r uint16) kop.FilterID {
+	return g.restrF[(r&poolRKind)>>poolRKindShift]
 }
 
 // addRestr floats n restricted mana of colour col, spendable only as
@@ -681,11 +691,11 @@ func (pl *player) addRestr(k *prep, rx *uint16, f kop.FilterID, col int, n uint8
 	if ok && cnt != 0 && pl.poolR&poolRKind == kind && int(pl.poolR>>poolRShift) != col {
 		return pl.addRestrX(rx, col, n) // a second colour of the same restriction (mana_reflected.go)
 	}
-	if !ok || cnt != 0 && pl.poolR&^poolRCnt != uint8(col)<<poolRShift|kind || int(cnt)+int(n) > int(poolRCnt) {
+	if !ok || cnt != 0 && pl.poolR&^poolRCnt != uint16(col)<<poolRShift|kind || int(cnt)+int(n) > int(poolRCnt) {
 		pl.pool[col] += n
 		return false
 	}
-	pl.poolR = uint8(col)<<poolRShift | kind | (cnt + n)
+	pl.poolR = uint16(col)<<poolRShift | kind | (cnt + uint16(n))
 	return true
 }
 
@@ -694,7 +704,7 @@ func (pl *player) addRestr(k *prep, rx *uint16, f kop.FilterID, col int, n uint8
 func (pl *player) poolProj(rx uint16) [kop.NumManaKinds]uint8 {
 	m := pl.pool
 	if n := pl.poolR & poolRCnt; n != 0 {
-		m[pl.poolR>>poolRShift] += n
+		m[pl.poolR>>poolRShift] += uint8(n)
 	}
 	restrXInto(rx, &m)
 	return m
@@ -761,10 +771,7 @@ func (s *State) restrSpendable(k *prep, p uint8, c CardID, og restrOrigin) bool 
 	if r&poolRCnt == 0 || k.gen == nil {
 		return false
 	}
-	f0 := k.gen.restrF[0]
-	if r&poolRKind != 0 {
-		f0 = k.gen.restrF[1]
-	}
+	f0 := k.gen.restrFOf(r)
 	for f := f0; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
 		fl.Zone = kop.ZoneNone // the spell is matched before it moves to the stack
@@ -879,7 +886,7 @@ func (s *State) restrAvail(k *prep, p uint8, c CardID, og restrOrigin, av *avail
 // restrAvailAdd adds p's restricted mana (poolR and its other colours) to av.
 func (s *State) restrAvailAdd(p uint8, av *avail) {
 	r := s.pl[p&1].poolR
-	av.addUnits(1<<(r>>poolRShift), r&poolRCnt)
+	av.addUnits(1<<(r>>poolRShift), uint8(r&poolRCnt))
 	if rx := s.poolRx[p&1]; rx != 0 {
 		for c := 0; c < 5; c++ {
 			if n := uint8(rx>>(3*c)) & 7; n != 0 {
@@ -905,7 +912,7 @@ func (s *State) restrShort(k *prep, p uint8, c CardID, og restrOrigin, cost kop.
 // restrShortAdm is cost less p's restricted mana, known spendable on it.
 func (s *State) restrShortAdm(p uint8, cost kop.ManaCost) kop.ManaCost {
 	r := s.pl[p&1].poolR
-	col, n := int(r>>poolRShift), r&poolRCnt
+	col, n := int(r>>poolRShift), uint8(r&poolRCnt)
 	d := min(n, cost.Pips[col])
 	cost.Pips[col] -= d
 	n -= d
@@ -963,7 +970,7 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 		return
 	}
 	r := pl.poolR
-	col, n := int(r>>poolRShift), r&poolRCnt
+	col, n := int(r>>poolRShift), uint8(r&poolRCnt)
 	ord := pl.pool[col]
 	pl.pool[col] += n
 	pl.poolR = 0
@@ -981,7 +988,7 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 	}
 	if left := n - min(spent, n); left != 0 {
 		pl.pool[col] -= left
-		pl.poolR = r&^poolRCnt | left
+		pl.poolR = r&^poolRCnt | uint16(left)
 	} else {
 		s.g.poolArt[p&1] &^= poolArtRestr
 	}
@@ -1497,13 +1504,13 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			// {W}{U} and a Treasure's {U} taps no further
 			pl := &s.pl[p&1]
 			r, rx := pl.poolR, s.poolRx[p&1]
-			pl.pool[r>>poolRShift] += r & poolRCnt
+			pl.pool[r>>poolRShift] += uint8(r & poolRCnt)
 			for c := 0; c < 5; c++ {
 				pl.pool[c] += uint8(rx>>(3*c)) & 7
 			}
 			pl.poolR, s.poolRx[p&1] = 0, 0
 			defer func() {
-				pl.pool[r>>poolRShift] -= r & poolRCnt
+				pl.pool[r>>poolRShift] -= uint8(r & poolRCnt)
 				for c := 0; c < 5; c++ {
 					pl.pool[c] -= uint8(rx>>(3*c)) & 7
 				}

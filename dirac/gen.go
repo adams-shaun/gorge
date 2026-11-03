@@ -314,9 +314,10 @@ type genPrep struct {
 	// restrF: the distinct spend restrictions (ManaRestrict filters) of the
 	// table's restricted mana abilities, in table order; the restricted
 	// mana floating beside a pool names its restriction by index
-	// (player.poolR's kind bit), so two are encodable (Giada's Angel
-	// spells, Secluded Courtyard's creature spells of the chosen type)
-	restrF [2]kop.FilterID
+	// (player.poolR's kind bits), so restrKinds are encodable (Giada's Angel
+	// spells, Secluded Courtyard's creature spells of the chosen type, a
+	// Standard table's three restricted lands)
+	restrF [restrKinds]kop.FilterID
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census

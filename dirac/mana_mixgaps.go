@@ -260,7 +260,7 @@ func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
 	if n := min(left, int(pl.poolR&poolRCnt)); n > 0 {
 		left -= n
 		if c := int(pl.poolR&poolRCnt) - n; c > 0 {
-			pl.poolR = pl.poolR&^poolRCnt | uint8(c)
+			pl.poolR = pl.poolR&^poolRCnt | uint16(c)
 		} else {
 			pl.poolR = 0
 		}

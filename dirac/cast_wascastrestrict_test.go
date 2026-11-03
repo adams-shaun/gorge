@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
@@ -36,7 +37,7 @@ func kwrScen(t *testing.T, board ...string) (sc *scen, id map[string]CardID, f k
 			f = a.ManaRestrict
 		}
 	}
-	if f == 0 || sc.k.gen == nil || sc.k.gen.restrF[0] != f && sc.k.gen.restrF[1] != f { // (Interdimensional Web Watch's restriction is registered too)
+	if f == 0 || sc.k.gen == nil || !slices.Contains(sc.k.gen.restrF[:], f) { // (Interdimensional Web Watch's restriction is registered too)
 		t.Fatalf("Mm'menon's granted restriction %d is not the registered one %v", f, sc.k.gen.restrF)
 	}
 	return sc, id, f

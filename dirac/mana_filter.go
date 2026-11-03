@@ -297,7 +297,7 @@ type filtStep struct {
 
 type filtKey struct {
 	pool  [kop.NumManaKinds]uint8
-	poolR uint8
+	poolR uint16
 	rx    uint16 // poolRx: the other colours of the restricted mana
 	// art: the pool slots holding an artifact's mana (genState.poolArt):
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a

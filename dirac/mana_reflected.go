@@ -136,7 +136,7 @@ func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, an
 	pl := &s.pl[p]
 	kind := pl.poolR & poolRKind
 	var rn [kop.NumManaKinds]uint8
-	rn[pl.poolR>>poolRShift] += pl.poolR & poolRCnt
+	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
 	restrXInto(s.poolRx[p&1], &rn)
 	var ord [kop.NumManaKinds]uint8
 	for c := range rn {
@@ -186,7 +186,7 @@ func (s *State) restrLeftover(p uint8, rn, ord, pre *[kop.NumManaKinds]uint8, ki
 		}
 		pl.pool[c] -= left
 		if pl.poolR == 0 {
-			pl.poolR = uint8(c)<<poolRShift | kind | left
+			pl.poolR = uint16(c)<<poolRShift | kind | uint16(left)
 		} else {
 			s.poolRx[p&1] += uint16(left) << (3 * c)
 		}
@@ -219,7 +219,7 @@ type reflStep struct {
 
 type reflKey struct {
 	pool   [kop.NumManaKinds]uint8
-	r      uint8
+	r      uint16
 	rx     uint16
 	tapped slotMask
 }

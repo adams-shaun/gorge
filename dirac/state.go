@@ -390,10 +390,10 @@ type player struct {
 	scry        uint8 // this turn: scry instructions in bits 0-3, surveil instructions in bits 4-7 (one byte: it fills padding)
 	// poolR is restricted mana floating beside pool (Giada's Angel-only
 	// {W}; gorge's Players[p].RestrictedMana): the count in bits 0-3, the
-	// restriction (genPrep.restrF index) in bit 4, the colour index in
-	// bits 5-7. Spent only by a spell the restriction allows (payRestr);
+	// restriction (genPrep.restrF index) in bits 4-5, the colour index in
+	// bits 6-8. Spent only by a spell the restriction allows (payRestr);
 	// projected as pool mana (mana_window.go). It takes the padding byte.
-	poolR uint8
+	poolR uint16
 	sac   [3]uint8 // this turn: [sacAll] every sacrifice, [sacArtifact] artifact cards, [sacFood] Food cards
 	disc  uint8    // cards this player discarded this turn
 }

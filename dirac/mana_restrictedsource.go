@@ -215,10 +215,7 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
 	if r&poolRCnt == 0 || k.gen == nil {
 		return false
 	}
-	f := k.gen.restrF[0]
-	if r&poolRKind != 0 {
-		f = k.gen.restrF[1]
-	}
+	f := k.gen.restrFOf(r)
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -491,14 +488,14 @@ func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclu
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 		return
 	}
-	col, n := int(r>>poolRShift), r&poolRCnt
+	col, n := int(r>>poolRShift), uint8(r&poolRCnt)
 	pl.pool[col] += n
 	pl.poolR = 0
 	pre := pl.pool[col]
 	s.payFromPoolRider(k, p, cost, x, anyColor)
 	if left := n - min(pre-pl.pool[col], n); left != 0 {
 		pl.pool[col] -= left
-		pl.poolR = r&^poolRCnt | left
+		pl.poolR = r&^poolRCnt | uint16(left)
 	}
 }
 

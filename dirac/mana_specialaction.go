@@ -24,10 +24,7 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) bool {
 	if r&poolRCnt == 0 || k.gen == nil {
 		return false
 	}
-	f := k.gen.restrF[0]
-	if r&poolRKind != 0 {
-		f = k.gen.restrF[1]
-	}
+	f := k.gen.restrFOf(r)
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
