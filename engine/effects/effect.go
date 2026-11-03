@@ -1399,6 +1399,46 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			effectContinuous(h, ce)
 			registered = true
+		case cards.StaticPanharmonicon:
+			// An Effect-delivered trigger doubler (Lwaxana Troi, Charming
+			// Guest: "if a triggered ability of that creature triggers, that
+			// ability triggers an additional time", CR 603.2d). It registers
+			// in the continuous registry with the line's own parameters;
+			// rules' panharmoniconStatics reads it beside the printed and
+			// granted statics, so one echo count serves every delivery. A
+			// body carrying a scoping term the echo count does not evaluate
+			// (an "as long as" gate, say) reports unimplemented instead of
+			// doubling blanket.
+			if !PanharmoniconParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			ce := state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller, Name: effectName,
+				UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
+				Restriction:    mode,
+				RestrictParams: params,
+				RestrictSVars:  c.SVars,
+				Remembered:     remembered, Duration: dur,
+				ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
+				ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
+			}
+			if untilUntapsDuration(rawDur) {
+				// CR 611.2b: "for as long as this remains tapped" is the
+				// activating host's tap, which Forge checks before creating
+				// the effect: a host already untapped starts nothing.
+				if host := h.Game().Obj(c.Source); host == nil || host.Zone != state.ZBattlefield || !host.Tapped {
+					registered = true
+					break
+				}
+				ce.Permanent = true
+				ce.UntilEOT = false
+				ce.UntilUntapOf = c.Source
+			}
+			effectContinuous(h, ce)
+			registered = true
 		case cards.StaticCombatDamageToughness:
 			// This assignment static is consumed by rules' existing combat
 			// assignment collector. Keep its body parameters and SVar table on

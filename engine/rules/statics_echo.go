@@ -18,12 +18,36 @@ import (
 func (e *Engine) panharmoniconStatics() []staticView {
 	printed := e.activeStatics("Panharmonicon")
 	granted := e.grantedStatics("Panharmonicon")
-	if len(granted) == 0 {
+	delivered := e.effectPanharmoniconStatics()
+	if len(granted) == 0 && len(delivered) == 0 {
 		return printed
 	}
-	out := make([]staticView, 0, len(printed)+len(granted))
+	out := make([]staticView, 0, len(printed)+len(granted)+len(delivered))
 	out = append(out, printed...)
 	out = append(out, granted...)
+	out = append(out, delivered...)
+	return out
+}
+
+// effectPanharmoniconStatics is every live Effect-delivered Panharmonicon body
+// (Lwaxana Troi's STExtraTrigger), in registry order. The view's Remembered
+// set rides along: a ValidCard$ Card.IsRemembered clause is answered against
+// the cards the delivering Effect captured (panharmoniconEchoes binds it).
+func (e *Engine) effectPanharmoniconStatics() []staticView {
+	var out []staticView
+	active := e.active()
+	for i := range active {
+		ce := &active[i]
+		if cards.StaticModeOf(ce.Restriction) != cards.StaticPanharmonicon ||
+			!effects.PanharmoniconParamsReadable(ce.RestrictParams) {
+			continue
+		}
+		out = append(out, staticView{
+			Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			Remembered: ce.Remembered, effectDelivered: true,
+		})
+	}
 	return out
 }
 
@@ -244,7 +268,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 			}
 			matched := false
 			for _, cause := range candidates {
-				if cause != 0 && observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
+				if cause != 0 && observer.echoSpecMatches(sv, spec, cause) {
 					matched = true
 					break
 				}
@@ -317,7 +341,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		if spec == "" {
 			continue
 		}
-		if observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
+		if observer.echoSpecMatches(sv, spec, src) {
 			n++
 		}
 	}
@@ -446,4 +470,15 @@ func (e *Engine) unspentManaFold(p state.PlayerID, params map[string]string, you
 	for _, l := range letters {
 		keep[state.ManaIndex(l[0])] = true
 	}
+}
+
+// echoSpecMatches is matchesSpecFrom for a Panharmonicon view: an
+// Effect-delivered one binds the cards its Effect captured so a
+// Card.IsRemembered clause names them; a printed or granted static resolves
+// exactly as before.
+func (e *Engine) echoSpecMatches(sv staticView, spec string, id state.ObjID) bool {
+	if sv.effectDelivered {
+		return e.matchesSpec(spec, id, e.assignmentStaticSpecCtx(sv))
+	}
+	return e.matchesSpecFrom(spec, id, sv.Controller, sv.Source)
 }
