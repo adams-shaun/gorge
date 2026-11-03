@@ -1032,6 +1032,13 @@ func (e *Engine) planHybridCost(p state.PlayerID, id state.ObjID, composed Cost,
 			c.Colored[idx]++
 		}
 		got := e.planComposedCost(p, id, c, ability, selfSource)
+		if e.planKeepSources && got.Plan != nil && paymentPlanConsumes(*got.Plan) {
+			// A witness that must keep every source is asked of each
+			// colouring: the first one that pays may need a source the
+			// cast cannot spare (a Treasure) while another pays from
+			// the lands alone.
+			got = PaymentPlanOutcome{Reason: "insufficient"}
+		}
 		if got.Plan != nil && got.Reason == "" {
 			return got
 		}
