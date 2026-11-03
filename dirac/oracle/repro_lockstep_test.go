@@ -150,6 +150,14 @@ func TestTriggerCostCountsAnEachColourSourceLockstep(t *testing.T) {
 	synthReproLockstep(t, "trigger_cost_each_colour_source", "std-ecl", Config{GorgeAutopaySurface: true})
 }
 
+// An Optional$ hand-to-battlefield move that enters attacking asks whether to do it before
+// it asks which player or planeswalker the creature attacks (CR 508.4, as it enters):
+// Kinscaer Sentry's attack trigger against a player who controls Ajani, Outland Chaperone.
+func TestEnteringAttackingAsksTheMayFirstLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "enter_attacking_declined_asks_no_defender", "std-ecl", Config{GorgeAutopaySurface: true})
+}
+
 // A mass move onto the battlefield asks each as-enters choice with that card and the later
 // ones still in their zones, under the controller it will have: Rise of the Dark Realms and
 // Diamond Mare, Lumra and Uncharted Haven.
