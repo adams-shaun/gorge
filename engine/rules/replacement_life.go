@@ -192,9 +192,9 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 		m := replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 			rememberedPlayers: ce.RememberedPlayers,
-			key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-		if lifeReplacementApplied(applied, m) ||
-			!e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			controller:        ce.Controller, frozenController: true,
+			key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+		if lifeReplacementApplied(applied, m) || !e.replMatchEffectCreated(m, ev) {
 			continue
 		}
 		if e.lifeReplacementApplies(ev, ce.Source, r, p, loss) {

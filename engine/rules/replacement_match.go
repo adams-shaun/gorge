@@ -472,7 +472,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// cleanup under two Ghosts of the Innocent, and each answer's
 		// halving re-emitted the removal, forever.
 		if ev.Kind != events.Damage || ev.Amount <= 0 ||
-			!e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers, cc) {
+			!e.damageReplacementMatches(r, source, ev, you, remembered, rememberedPlayers, cc) {
 			return false
 		}
 		if v, ok := r.Param(cards.PKValidCard); ok &&

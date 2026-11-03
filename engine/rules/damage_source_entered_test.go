@@ -31,7 +31,7 @@ func TestDamageSourceThatLeftReadsItsOwnEntry(t *testing.T) {
 			e.pending = nil
 			defer e.SetDamageSource(e.SetDamageSource(src))
 			r := e.G.Obj(neriv).Face().Repls[0]
-			got := e.damageReplacementMatches(r, neriv, events.Event{Kind: events.Damage, Player: 1, Amount: 2}, nil, nil, chosenCapture{})
+			got := e.damageReplacementMatches(r, neriv, events.Event{Kind: events.Damage, Player: 1, Amount: 2}, e.controllerOf(neriv), nil, nil, chosenCapture{})
 			if got != c.enteredToday {
 				t.Fatalf("Neriv matches a departed source: %v, want %v", got, c.enteredToday)
 			}

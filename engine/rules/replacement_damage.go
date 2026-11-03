@@ -40,7 +40,7 @@ func (e *Engine) applicableDamageReplacements(ev events.Event, matches []replMat
 		// DamageDone replacement the scan just admitted (Taii Wakeen).
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
+			matched = e.replMatchEffectCreated(m, ev)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}
@@ -272,9 +272,8 @@ func bindPreventedAmount(v string, prevented int) string {
 // remembered/rememberedPlayers lists are an EFFECT-created match's own capture
 // (nil/nil for every printed line); a shield scopes by them directly, every
 // other filter evaluates as before.
-func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event,
+func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev events.Event, ctrl state.PlayerID,
 	remembered []state.ObjID, rememberedPlayers []state.PlayerID, cc chosenCapture) bool {
-	ctrl := e.controllerOf(source)
 	// A prevention shield (effects' PreventDamage registration, marker
 	// PreventionShield) scopes by ITS OWN captured recipients: membership in
 	// the registration's Remembered (objects) / RememberedPlayers (players)
@@ -526,8 +525,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			m := replMatch{id: ce.Source, repl: r,
 				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
 				chosen: ce.ChosenNumber, chosenCards: ce.Chosen, chosenBound: ce.ChosenBound,
+				controller: ce.Controller, frozenController: true,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, m.chosenCap()) &&
+			if !alreadyUsed(m) && e.replMatchEffectCreated(m, ev) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
@@ -543,8 +543,9 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 			m := replMatch{id: ce.Source, repl: r,
 				remembered: ce.Remembered, rememberedPlayers: ce.RememberedPlayers,
 				chosenCards: ce.Chosen, chosenBound: ce.ChosenBound,
+				controller: ce.Controller, frozenController: true,
 				key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
-			if !alreadyUsed(m) && e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, m.chosenCap()) &&
+			if !alreadyUsed(m) && e.replMatchEffectCreated(m, ev) &&
 				!(damageReplacementPrevents(*r) && e.cantPreventDamage(e.inFlightDamageSource(), ev.Obj)) {
 				out = append(out, m)
 			}
@@ -671,4 +672,15 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 				Player: applied.Player, Counter: "POISON", Amount: int32(rc.toxic)})
 		}
 	}
+}
+
+// replMatchEffectCreated re-matches an Effect-created replacement in the
+// controller frame its Effect resolved in when the match carries one: You in
+// its ValidTarget$ stays the player who resolved the granting ability even
+// when the source card has since changed controllers (CR 109.5).
+func (e *Engine) replMatchEffectCreated(m replMatch, ev events.Event) bool {
+	if m.frozenController {
+		return e.replacementMatchesEffectCreatedByCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.controller, m.chosenCap())
+	}
+	return e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
 }
