@@ -62,7 +62,11 @@ func (s *State) windowTapHeld(k *prep, p uint8, cost *kop.ManaCost) {
 // again -- the plan of the whole cost can leave a different source
 // untapped (kverify-c4: Digsite Conservator's {4} over a Swamp and five
 // Forests). The manual window's decision carries no owed cost, so an
-// any-colour source answers its first colour, W (windowTapNoOwed).
+// any-colour source answers its first colour, W (windowTapNoOwed). The
+// planner's witness has printed abilities only: a granted one (Great Divide
+// Guide's any-colour mana) is a V1 exclusion (pay.PaymentAbility), so a
+// payment only granted sources could fund has no witness and takes the
+// manual window.
 // When the planner has no witness at all -- a pay
 // gorge offered on its potential bound the sources cannot actually fund
 // (respay.go:84, potential.go:324) -- gorge funds through that same manual
@@ -79,14 +83,15 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		c = s.hybResolve(k, p, c, 0)
 	}
 	var dry planner
-	dry.dry = true
+	dry.dry, dry.noGrant = true, true
 	s.tapPlanNeed(k, p, &c, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
 		s.trigWindowTap(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 		return false
 	}
 	for i := 0; i < MaxPerm && !s.poolPays(p, &c); i++ {
-		sl := s.tapForN(k, p, &c, 0, NoObj, true)
+		pk := planner{noGrant: true}
+		sl := s.tapForPK(k, p, &c, 0, NoObj, true, false, &pk)
 		if sl == NoSlot {
 			break
 		}
