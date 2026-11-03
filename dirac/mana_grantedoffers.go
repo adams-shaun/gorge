@@ -795,6 +795,14 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			s.manaTapped(k, sl)
 			continue
 		}
+		sacrifice := false
+		if st.gi < 0 {
+			// the source's own ability sacrifices it (a Treasure beside a grant):
+			// gorge pays that cost at priority, so the token has ceased before
+			// the next activation, not at the play's state-based check
+			pc := s.manaPCGen(k, sl)
+			sacrifice = pc.manaSac || s.canSacOnlyForMana(k, sl, pc)
+		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
@@ -810,6 +818,14 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		if k.gen.anyTapExtra {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
 			s.addXv(g.p&1, &xv)
+		}
+		if sacrifice {
+			o := s.perms[sl].obj
+			s.fireSac(k, sl)
+			s.leave(k, sl, kop.ZoneGraveyard, false)
+			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
+				s.ceaseManaToken(o)
+			}
 		}
 	}
 	if passed {

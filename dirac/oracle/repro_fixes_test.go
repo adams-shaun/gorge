@@ -164,6 +164,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"peek_after_source_changed_hands", true},        // CR 109.5: "your library" after Stiltzkin gave the source away
 		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
 		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
+		{"granted_prefix_sacrifices_own_treasure", true}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
 	})
 }
 
