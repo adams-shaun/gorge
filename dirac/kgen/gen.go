@@ -435,6 +435,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.AddChosen {
 			fmt.Fprintf(w, " addchosen")
 		}
+		if s.OutlivesLoss {
+			fmt.Fprintf(w, " outlivesloss")
+		}
 		if s.PwVsSrc != 0 {
 			fmt.Fprintf(w, " pwvs=%d", s.PwVsSrc)
 		}

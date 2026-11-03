@@ -201,6 +201,9 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 	if subGrantStatic(a) {
 		return true
 	}
+	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.OutlivesLoss {
+		return true
+	}
 	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
 		return ovrKeptOnLoss(&t.Overrides[a.Static.Override-1])
 	}

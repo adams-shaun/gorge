@@ -1439,6 +1439,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.AddChosen = s.AddChosen
+		st.OutlivesLoss = s.OutlivesLoss
 		if len(s.Grant) > 1 {
 			return ka, nil, fmt.Errorf("static grants %d abilities", len(s.Grant))
 		}

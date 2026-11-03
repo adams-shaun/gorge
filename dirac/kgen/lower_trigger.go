@@ -2600,9 +2600,19 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	if havePump {
+		// CR 613.6: an override part before layer 6 keeps the whole effect,
+		// the pump beside it too, applying once its source loses all abilities
+		pump.OutlivesLoss = o.beginsBeforeLayer6()
 		return []lStatic{pump, *st}, nil
 	}
 	return []lStatic{*st}, nil
+}
+
+// beginsBeforeLayer6 reports whether o has a part in layers 1 to 5 (the
+// reading of ovrKeptOnLoss in the kernel, for a lowered override).
+func (o *lOverride) beginsBeforeLayer6() bool {
+	return o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.HasSetSubtypes || len(o.SetSubtypes) > 0 ||
+		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.HasSetColors || o.AddColors != "" || o.Name != ""
 }
 
 // keepSubtypes records what removing o's card types leaves, from the words the

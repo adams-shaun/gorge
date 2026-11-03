@@ -59,6 +59,17 @@ func TestL7LostSourceKeepsEarlierLayers(t *testing.T) {
 				t.Errorf("lost %v: base %d/%d, want %d/%d", lost, p, tt, want[0], want[1])
 			}
 		}},
+		{"all creature types with a pump", func(l *l7scen) {
+			idx := l.override(kop.Override{AllCreatureTypes: true})
+			l.addStatic("Savannah Lions", kop.Static{Kind: kop.StatContinuous, Filter: l.filter(other), A: 2, B: 2, OutlivesLoss: true})
+			l.addStatic("Savannah Lions", kop.Static{Kind: kop.StatOverride, Filter: l.filter(other), Override: uint16(idx + 1)})
+		}, func(t *testing.T, l *l7scen, wolf Obj, lost bool) {
+			p, tt := l.sc.s.ptGen(l.sc.k, l.sc.slot(wolf))
+			bp, bt := l.sc.s.basePTGen(l.sc.k, l.sc.slot(wolf))
+			if p-bp != 2 || tt-bt != 2 {
+				t.Errorf("lost %v: pump %d/%d, want +2/+2 (the all-creature-types part began in layer 4)", lost, p-bp, tt-bt)
+			}
+		}},
 		{"pump alone", func(l *l7scen) {
 			l.addStatic("Savannah Lions", kop.Static{Kind: kop.StatContinuous, Filter: l.filter(other), A: 1, B: 1})
 		}, func(t *testing.T, l *l7scen, wolf Obj, lost bool) {
