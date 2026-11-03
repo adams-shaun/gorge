@@ -1551,7 +1551,7 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 	}
 	cd := &k.t.Cards[e.card]
 	if cd.HasAltAdd && e.flags&sfMayPlay == 0 && s.objs[e.obj].zone == kop.ZoneHand && !s.altAddFreePart(k, p, e.card, e.obj) {
-		*cost = addCost(*cost, s.altAddManaPart(k, e.card))
+		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
 	if cardTgtDepCost(cd) && !severalTargets(k, e.card) && cost.Hyb[0] == 0 {
@@ -1564,6 +1564,29 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 			*cost = s.buildCost(k)
 		}
 	}
+}
+
+// altAddReduced is the total cost of a cast paying its either-or additional
+// cost's mana part: the part joins the spell's cost before the reductions
+// take their generic off the total (CR 601.2f), as gorge's offer cost composes
+// it, so Uncle Iroh's {1} off Redirect Lightning's {R} plus {2} leaves {1}{R}. cost is the
+// spell's own priced cost, kept when the total cannot be composed again (a cost already
+// fixed, or an alternative cost in build).
+func (s *State) altAddReduced(k *prep, cost, part kop.ManaCost) kop.ManaCost {
+	b := s.bld()
+	if b.altAdd != 0 || b.bfl&bflCostFixed != 0 || (!s.statM.any() && k.gen == nil) {
+		return addCost(cost, part)
+	}
+	fl, bf, fg := b.e.flags, b.bfl, b.fixedGen
+	b.e.flags &^= sfAnyMana
+	b.bfl &^= bflAnyColor
+	b.altAdd = 1
+	s.g.noTgtRed = true
+	c := s.buildCost(k)
+	s.g.noTgtRed = false
+	b.altAdd = 0
+	b.e.flags, b.bfl, b.fixedGen = fl, bf, fg
+	return c
 }
 
 // availForBuilt is availFor for the spell being built, with the floating restricted
