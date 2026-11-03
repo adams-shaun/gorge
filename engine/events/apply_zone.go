@@ -1282,10 +1282,16 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// resets here. The pre-clear bearer is preserved as LastBearer so a
 		// trigger that resolves after the sweep can still resolve "objects
 		// that were attached to it" (state.Object.LastBearer's contract).
-		// When AttachedTo is already 0 (an earlier Unattached set it) the
-		// existing LastBearer stands.
+		// A permanent leaving the battlefield unattached (an Equipment whose
+		// bearer stopped being a creature, detached by a state-based action
+		// turns earlier) was attached to nothing as it left, so a bearer an
+		// earlier Unattached recorded is stale and is dropped (CR 608.2h); a
+		// queued bearer-departure detach is the exception, its bearer is the one
+		// the permanent left with.
 		if o.AttachedTo != 0 {
 			o.LastBearer = o.AttachedTo
+		} else if wasBattlefield && !o.UnattachPending {
+			o.LastBearer = 0
 		}
 		// Its own departure spends any queued bearer-departure detach: the
 		// look-back arm of Mode$ Unattached (engine/rules/
