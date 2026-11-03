@@ -14,25 +14,26 @@ import (
 func TestStdMkmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-mkm", []stdRepro{
-		{"deathtouch_wither_hit", true},                // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
-		{"dealt_once_each_damage", true},               // EachDamage lands on one referent twice: one trigger with the batch's total
-		{"wither_from_departed_source", true},          // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
-		{"potential_once_each_turn_mana", true},        // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
-		{"hold_out_ends_with_first_strike_step", true}, // the regular damage step is a new window with no StepChange
-		{"dealt_damage_new_object", true},              // CR 400.7: a returned creature has dealt no damage this turn
-		{"entering_is_not_leaving", true},              // Doorkeeper Thrull leaves "leave your graveyard" lines alone
-		{"spell_gained_deathtouch_lifelink", true},     // Judith's mode on the spell that triggered her
-		{"trigger_limit_look_back", true},              // CR 603.10a: Homicide Investigator's own death reads the limit it spent
-		{"optional_cost_no_prefix_search", false},      // an OptionalCost card's plain cast: no search over a Strider
-		{"optional_cost_granted_source", false},        // nor a witness from a granted source (Insidious Roots)
-		{"fee_colour_hybrid_face", false},              // a filter's fee takes the colour the hybrid face can spare
-		{"first_only_filter_in_window", false},         // a once-each-turn filter is listed once the pool pays its fee
-		{"ward_window_first_only_filter", false},       // ... and a failed ward payment still spends it
-		{"granted_colours_before_printed", false},      // Leyline of the Guildpact: a {C} land makes a granted colour first
-		{"face_down_granted_trigger", false},           // Curious Inquiry on a face-down creature
-		{"granted_source_hybrid_cast", false},          // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
-		{"activation_plan_search_limit", false},        // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
-		{"granted_colours_before_dual_types", false},   // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
+		{"deathtouch_wither_hit", true},                   // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
+		{"dealt_once_each_damage", true},                  // EachDamage lands on one referent twice: one trigger with the batch's total
+		{"wither_from_departed_source", true},             // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
+		{"potential_once_each_turn_mana", true},           // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
+		{"hold_out_ends_with_first_strike_step", true},    // the regular damage step is a new window with no StepChange
+		{"dealt_damage_new_object", true},                 // CR 400.7: a returned creature has dealt no damage this turn
+		{"entering_is_not_leaving", true},                 // Doorkeeper Thrull leaves "leave your graveyard" lines alone
+		{"spell_gained_deathtouch_lifelink", true},        // Judith's mode on the spell that triggered her
+		{"trigger_limit_look_back", true},                 // CR 603.10a: Homicide Investigator's own death reads the limit it spent
+		{"optional_cost_no_prefix_search", false},         // an OptionalCost card's plain cast: no search over a Strider
+		{"optional_cost_granted_source", false},           // nor a witness from a granted source (Insidious Roots)
+		{"fee_colour_hybrid_face", false},                 // a filter's fee takes the colour the hybrid face can spare
+		{"first_only_filter_in_window", false},            // a once-each-turn filter is listed once the pool pays its fee
+		{"ward_window_first_only_filter", false},          // ... and a failed ward payment still spends it
+		{"granted_colours_before_printed", false},         // Leyline of the Guildpact: a {C} land makes a granted colour first
+		{"face_down_granted_trigger", false},              // Curious Inquiry on a face-down creature
+		{"granted_source_hybrid_cast", false},             // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
+		{"activation_plan_search_limit", false},           // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
+		{"granted_colours_before_dual_types", false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
+		{"ward_failed_payment_granted_type_first", false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 	})
 }
 

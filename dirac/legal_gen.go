@@ -768,7 +768,14 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	}
 	// gorge's colour ask lists a source's colours in WUBRG order and
 	// the failed payment takes the first (oracle payWindowAnswer)
-	for _, c := range [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C} {
+	// A granted basic land type lists the land's own ability first (Mountain
+	// under Leyline of the Guildpact: {R}, then the granted colours), and the
+	// failed payment takes that one (windowCol's blgFirst).
+	order := [6]int{kop.W, kop.U, kop.B, kop.R, kop.G, kop.C}
+	if pc.blgFirst != 0 && int(pc.blgFirst-1) < len(order) && mask&(1<<(pc.blgFirst-1)) != 0 {
+		order = [6]int{int(pc.blgFirst - 1)} // taken at once: its bit is in mask
+	}
+	for _, c := range order {
 		if mask&(1<<c) != 0 {
 			if !sacOnly {
 				s.perms[sl].flags |= pfTapped
