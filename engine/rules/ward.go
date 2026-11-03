@@ -78,7 +78,22 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		if len(d.Options) == 0 {
 			return false, false
 		}
-		return e.settleWardPayment("ward_alt", rp.sa, ctx, d.Chosen(tapeServe(e, d))), false
+		chosen := d.Chosen(tapeServe(e, d))
+		if len(chosen) == 1 && chosen[0].Kind == "ward_mana" {
+			// CR 702.21a: the {N} half is paid like any ward mana cost, from
+			// the pool and then through the mana-ability window, not from
+			// floating mana alone
+			if pay.PayMana(asPayer(e), payer, mana) {
+				return true, false
+			}
+			if !mana.HasManaPayment() || !e.hasUntappedManaSource(payer) {
+				return false, false
+			}
+			e.askWardMana(rp, &wardManaPayment{payer: payer, cost: mana, resumeKind: "ward_mana",
+				prompt: "Activate mana abilities to pay Ward"})
+			return false, true
+		}
+		return e.settleWardPayment("ward_alt", rp.sa, ctx, chosen), false
 	}
 
 	if m := wardSpecialCost.FindStringSubmatch(raw); m != nil {
