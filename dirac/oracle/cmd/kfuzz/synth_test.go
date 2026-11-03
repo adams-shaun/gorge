@@ -131,3 +131,26 @@ func TestFuzzCleanupLegendRuleGivesPriority(t *testing.T) {
 		t.Errorf("pair 231 diverged:\n%s", stdout)
 	}
 }
+
+// TestFuzzPlottedCastSpendIsNotAResponseCastsPayment replays the std-otj pair
+// where a plotted Slickshot Lockpicker is cast for no mana and the same
+// player then casts This Town Ain't Big Enough in response, paying with
+// floating mana: no mana was spent to cast the Lockpicker, so Satoru, the
+// Infiltrator's second alternative holds when it enters (CR 601.2h).
+func TestFuzzPlottedCastSpendIsNotAResponseCastsPayment(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-otj")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-otj", "-first-pair", "806", "-pairs", "1", "-seed", "1", "-surface", "full", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 806 diverged:\n%s", stdout)
+	}
+}

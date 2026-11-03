@@ -729,6 +729,9 @@ func ManaSpentForCast(e Board, p state.PlayerID, id state.ObjID) int32 {
 		if ev.Kind == events.PutOnStack && ev.Obj == id && ev.Player == p {
 			return spent
 		}
+		if ev.Kind == events.Priority {
+			spent = 0 // paid before priority (CR 601.2h): later spending is another object's
+		}
 		if ev.Kind == events.ManaAdd && ev.Player == p && ev.Amount < 0 {
 			spent += -ev.Amount
 		}
