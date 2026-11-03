@@ -15,6 +15,11 @@ const (
 	// asmCoin is an artifact that sacrifices itself for one mana of any colour.
 	asmCoin = "Name:Shared Fodder Coin\nTypes:Artifact\n" +
 		"A:AB$ Mana | Cost$ T Sac<1/CARDNAME/this artifact> | Produced$ Any | Amount$ 1 | SpellDescription$ Add one mana of any colour.\nOracle:x\n"
+	// asmEither sacrifices an artifact or creature or pays {2}, the either-or
+	// additional cost with a mana part beside the sacrifice.
+	asmEither = "Name:Shared Fodder Either\nManaCost:W\nTypes:Artifact\n" +
+		"K:AlternateAdditionalCost:Sac<1/Artifact;Creature/an artifact or creature>:2\n" +
+		"Oracle:x\n"
 	asmIsland = "Name:Shared Fodder Island\nManaCost:no cost\nTypes:Basic Land Island\nOracle:x\n"
 )
 
@@ -24,22 +29,24 @@ const (
 // mana (CR 601.2g), the cast cannot be completed and is not offered.
 func TestAltAddSacrificeIsNotTheOnlyManaSource(t *testing.T) {
 	t.Parallel()
-	plans := func(extraCoin bool) bool {
-		e, _, spell := newFixtureDeck(t, 9411, asmSpell)
-		onBoard(t, e, 0, asmCoin)
-		onBoard(t, e, 0, asmIsland)
-		if extraCoin {
+	for _, spellSrc := range []string{asmSpell, asmEither} {
+		plans := func(extraCoin bool) bool {
+			e, _, spell := newFixtureDeck(t, 9411, spellSrc)
 			onBoard(t, e, 0, asmCoin)
+			onBoard(t, e, 0, asmIsland)
+			if extraCoin {
+				onBoard(t, e, 0, asmCoin)
+			}
+			e.G.Step = state.StepMain1
+			ppPriority(t, e)
+			got := e.potentialModeCastPlan(0, decision.Option{Kind: "cast", Obj: spell})
+			return got.Plan != nil && got.Reason == ""
 		}
-		e.G.Step = state.StepMain1
-		ppPriority(t, e)
-		got := e.potentialModeCastPlan(0, decision.Option{Kind: "cast", Obj: spell})
-		return got.Plan != nil && got.Reason == ""
-	}
-	if plans(false) {
-		t.Fatalf("the cast was planned with the coin both its only {W} and its only sacrifice")
-	}
-	if !plans(true) {
-		t.Fatalf("the cast was not planned with a second artifact to sacrifice")
+		if plans(false) {
+			t.Fatalf("%.30s: the cast was planned with the coin both its only {W} and its only sacrifice", spellSrc)
+		}
+		if !plans(true) {
+			t.Fatalf("%.30s: the cast was not planned with a second artifact to sacrifice", spellSrc)
+		}
 	}
 }

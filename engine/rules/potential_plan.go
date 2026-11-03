@@ -559,28 +559,32 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 	return got
 }
 
-// potentialAltAddSacrificePlan prices an either-or additional cost every part of
-// which sacrifices (Dusk Rose Reliquary's artifact or creature) with the
-// sacrifice beside the mana, as an ordinary sacrifice cost is priced: the
-// permanent given up is not also a source of the mana that pays the spell
-// (CR 601.2b, 601.2g, 601.2h). sacrificeOnly is false when some part sacrifices
-// nothing, so the mana witness alone stands for that part.
+// potentialAltAddSacrificePlan prices an either-or additional cost none of
+// whose mana-free parts is free of a sacrifice (Dusk Rose Reliquary's artifact
+// or creature; Stir Up Trouble's, beside its {4}) with the sacrifice beside the
+// spell's mana, as an ordinary sacrifice cost is priced: the permanent given up
+// is not also a source of the mana that pays the spell (CR 601.2b, 601.2g,
+// 601.2h). decided is false when a part that costs neither mana nor a
+// sacrifice exists, so the mana witness alone stands for that part.
 func (e *Engine) potentialAltAddSacrificePlan(p state.PlayerID, o decision.Option, base Cost, parts []string) (PaymentPlanOutcome, bool) {
-	costs := make([]Cost, 0, len(parts))
+	var sacs []Cost
 	for _, part := range parts {
 		c := ParseCost(part)
+		if c.HasManaPayment() {
+			continue
+		}
 		if len(c.Sac) == 0 {
 			return PaymentPlanOutcome{}, false
 		}
-		costs = append(costs, c)
+		sacs = append(sacs, c)
 	}
-	for _, c := range costs {
+	for _, c := range sacs {
 		got := e.planComposedCost(p, o.Obj, e.offerCostFor(p, o.Obj, base.Plus(c), spellScope(o.Mode)), false, false)
 		if got.Plan != nil && got.Reason == "" && e.potentialWitnessOffers(p, o, *got.Plan) {
 			return got, true
 		}
 	}
-	return PaymentPlanOutcome{Reason: "insufficient"}, true
+	return e.potentialAltAddPlan(p, o, base, parts), true
 }
 
 // potentialAltAddPlan is a witness for an either-or additional cost (CR 601.2f)
