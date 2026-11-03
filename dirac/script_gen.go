@@ -458,9 +458,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		}
 		walk.Options[j], key[j] = a, kk
 	}
-	if k.gen.anyTapExtra && s.tapExtraLive(k, p) {
-		s.grantCapOutsideWalk(k, d, p, &walk)
-	}
 	n := 0
 	var g grantSrch
 	for i := 0; i < int(walk.N); i++ {
@@ -478,32 +475,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(a), &g) {
 			d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
-		}
-	}
-}
-
-// grantCapOutsideWalk drops a play the offer counted that gorge's potential walk
-// does not list and the printed sources cannot pay. The offer's availability
-// credits the extra a granted-only source's tap brings (a prefix activation floats
-// it); the walk's relaxed census gives a granted ability its free unit alone
-// (potential_plan.go paymentPlanRelaxedAlternatives), so a play only that extra
-// funds is never searched.
-func (s *State) grantCapOutsideWalk(k *prep, d *Decision, p uint8, walk *Decision) {
-	for i := int(d.N) - 1; i >= 0; i-- {
-		a := d.Options[i]
-		in := false
-		for j := 0; j < int(walk.N); j++ {
-			if walk.Options[j] == a {
-				in = true
-				break
-			}
-		}
-		if in {
-			continue
-		}
-		cost, ex, ok := s.grantPlayCost(k, p, a, true)
-		if ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
-			d.remove(a)
 		}
 	}
 }

@@ -57,3 +57,11 @@ func TestPrefixSearchDoesNotPriceACardItDiscarded(t *testing.T) {
 func TestRelaxedCensusCountsTheTapExtra(t *testing.T) {
 	lockstepClean(t, "testdata/repro/relaxed_census_counts_tap_extra.repro.json")
 }
+
+// TestGrantedTapExtraPaysAFlashback: four Allies tapping for the any-colour
+// grant, each beside a Badgermole Cub's {G}, pay Rockalanche's {5}{G}
+// flashback; the walk's relaxed census counts the tap's extra, so the cast is
+// searched and offered (CR 605.4a).
+func TestGrantedTapExtraPaysAFlashback(t *testing.T) {
+	lockstepClean(t, "testdata/repro/flashback_paid_through_granted_tap_extra.repro.json")
+}
