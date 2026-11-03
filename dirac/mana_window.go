@@ -1919,6 +1919,8 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 //go:noinline
 func (s *State) manaStep(k *prep) bool {
 	e := &s.bld().e
+	planCut := s.bld().bfl&bflPlanCut != 0
+	s.bld().bfl &^= bflPlanCut
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
@@ -1954,6 +1956,8 @@ func (s *State) manaStep(k *prep) bool {
 			}
 			s.windowTapUseful(k, e.ctrl, &cost, &raw, true, anyColor, s.bld().pipN == 0, false)
 			s.occ = occ
+		} else if planCut {
+			s.windowTapRider(k, e.ctrl, &cost, true, anyColor)
 		} else if k.t.Cards[e.card].HasModeCost {
 			// Spree: gorge's planner declines the face ("shape:modal_cost"),
 			// so the cast pays through the manual CR 601.2g window, the
@@ -2015,6 +2019,8 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl |= bflManaStep
 		switch {
+		case planCut:
+			s.windowTapRider(k, e.ctrl, &cost, true, false)
 		case s.paymentStranded(k, e, &cost):
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true

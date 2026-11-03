@@ -76,8 +76,9 @@ func TestStdHobReprosLockstep(t *testing.T) {
 func TestStdBigReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-big", []stdRepro{
-		{"copy_exception_types_count", false},               // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
-		{"discard_replacement_before_damage_removal", true}, // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
+		{"copy_exception_types_count", false},                        // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
+		{"discard_replacement_before_damage_removal", true},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
+		{"replacement_answer_mid_payment_pays_through_window", true}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 	})
 }
 

@@ -1194,6 +1194,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			o := s.perms[sl].obj
 			s.fireSac(k, sl)
 			if s.manaSacParks() && s.park(k, o, parkLeave, parkManaHold(col, ty.n)) {
+				if s.buildLive() && s.bld().bfl&bflManaStep != 0 {
+					s.bld().bfl |= bflPlanCut
+				}
 				s.pl[p].pool[col] -= ty.n // it floats once the move has its answer (CR 605.3b)
 				return                    // and the plan's other sources wait for it too: the mana step runs again after the answer
 			} else {

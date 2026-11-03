@@ -703,6 +703,11 @@ const (
 	bflWinTap  uint16 = 1 << 11
 	bflMsDone  uint16 = 1 << 12
 	bflPayDone uint16 = 1 << 13
+	// bflPlanCut: a Treasure sacrificed by the planner's tap parked behind a
+	// replacement ask. Gorge's payment plan stops at a step that poses a decision
+	// (paymentFallbackChoiceRequired), so the rest of the cost is paid through the
+	// manual window, not a fresh plan: manaStep's re-entry taps through the window.
+	bflPlanCut uint16 = 1 << 14
 )
 
 // resolution ask kinds (resCtx.ask).
