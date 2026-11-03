@@ -186,7 +186,7 @@ func TestCopySubchainLockstep(t *testing.T) {
 // An electing copy shows the chain's inherited targets until its answers arrive, as
 // a copy that elects nothing does (Pigment Wrangler's copied chain).
 func TestElectingCopyKeepsTheChainsTargets(t *testing.T) {
-	synthPairsReaching(t, "std-sos", Config{GorgeAutopaySurface: true}, []int{118, 0}, cardOut("Pigment Wrangler"))
+	synthPairsReaching(t, "std-sos", Config{GorgeAutopaySurface: true}, []int{3, 21}, cardOut("Pigment Wrangler"))
 }
 
 // A copy of a trigger with an announced link asks that link after its root, and
