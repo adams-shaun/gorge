@@ -14,9 +14,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // none of this is reached.
 
 // StallTapExtra: a tap that gets extra mana from a source the planner models
-// as one plain tap (a choice among colours beside {C}, a sacrificed,
-// painful, restricted or evaluated-amount source, a filter's or a gate's
-// tap).
+// as one plain tap (a choice among colours beside {C} under a carrier limited to a
+// {C} tap, a sacrificed, painful, restricted or chosen-colour source, a filter's or a
+// gate's tap).
 const StallTapExtra = 143
 
 func init() { stallNames[StallTapExtra] = "tapextra" }
@@ -109,6 +109,42 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 	return xv, hit
 }
 
+// srcExtraPick is the extra a tap of sl through the ability pc brings when it
+// makes colour col: a carrier limited to a {C} tap reaches only a {C} pick. A
+// source the extra cannot be priced on (not one plain tap) stalls, as srcExtra.
+func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumManaKinds]uint8) {
+	if pc == nil || pc.manaAb < 0 || pc.manaSacOnly {
+		return xv
+	}
+	ctl := s.perms[sl].ctrl
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.ctrl != ctl || st.sl == NoSlot ||
+			!s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+			return true
+		}
+		if a.StFlags&kop.StTapOnC != 0 && col != kop.C {
+			return true
+		}
+		xv[a.A] += uint8(a.B)
+		hit = true
+		return true
+	})
+	if hit && !s.tapExtraPlain(pc) {
+		s.capFull(StallTapExtra)
+		return [kop.NumManaKinds]uint8{}
+	}
+	return xv
+}
+
+// subXv takes a plan type's fixed extra back out of p's pool.
+func (s *State) subXv(p uint8, xv *[kop.NumManaKinds]uint8) {
+	for c := range xv {
+		s.pl[p].pool[c] -= xv[c]
+	}
+}
+
 // tapExtraPlain: the source is one plain {T} ability whose mana is n of one
 // fixed colour or one colour of a choice.
 func (s *State) tapExtraPlain(pc *pcard) bool {
@@ -116,10 +152,12 @@ func (s *State) tapExtraPlain(pc *pcard) bool {
 }
 
 // tapExtraPlainBase is tapExtraPlain without the painful alternative: the
-// planner prices that one itself (srcExtraPain).
+// planner prices that one itself (srcExtraPain). The extra is a fixed vector
+// whatever the amount (an evaluated one, all of it one colour) and whichever of
+// several abilities taps (gorge adds it to each alternative, planalts.go
+// appendUnitAlternatives), so those shapes carry it.
 func (s *State) tapExtraPlainBase(pc *pcard) bool {
-	return pc.manaTap && !pc.manaSac && !pc.manaDyn && !pc.manaOne && !pc.manaMulti && !pc.manaChosen &&
-		pc.restrU == 0 && pc.rankCol == 0
+	return pc.manaTap && !pc.manaSac && !pc.manaChosen && pc.restrU == 0 && pc.rankCol == 0
 }
 
 // tapExtraStall stalls when sl's tap would have brought extra mana through a

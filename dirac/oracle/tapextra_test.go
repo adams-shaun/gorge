@@ -107,3 +107,41 @@ func TestTapExtraPainfulSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "talisman_beside_monument", "std-trc", Config{})
 }
+
+// A source whose own ability a Continuous grant joins (Great Divide Guide's "{T}: Add one
+// mana of any color" on every land and Ally) is one availability unit that carries the
+// extra its tap brings, and the prefix that activates the granted ability floats it:
+// gorge prices the extra on each alternative and a real activation adds it.
+func TestTapExtraGrantedUnitLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_unit", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+func TestTapExtraGrantedPrefixLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_prefix", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// A land that taps for several fixed colours (a basic type added by an effect) and a source
+// whose amount is evaluated (Raucous Audience, an any-colour amount of the Legend of Kyoshi)
+// bring the same extra as a plain tap, whichever ability or amount.
+func TestTapExtraSeveralAbilitiesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_several_abilities", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+func TestTapExtraEvaluatedAmountLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_evaluated_amount", "std-tla", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "tap_extra_evaluated_one_colour", "std-tla", Config{GorgeAutopaySurface: true})
+}
+
+// A granted-only source's extra counts toward the offer's availability only: gorge's
+// potential walk relaxes a granted ability to its own free unit, which brings none, so a
+// play that extra alone funds is not searched (the Rockalanche flashback; Meditation
+// Pools' activation).
+func TestTapExtraGrantedWalkLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "tap_extra_granted_walk_cap", "std-tla", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "tap_extra_granted_walk_activation", "std-tla", Config{GorgeAutopaySurface: true})
+}

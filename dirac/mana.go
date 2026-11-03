@@ -202,7 +202,6 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if dual {
-			s.tapExtraStall(k, sl)
 			s.availGrant(k, sl, pc, a)
 			continue
 		}

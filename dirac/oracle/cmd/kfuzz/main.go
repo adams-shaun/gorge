@@ -83,7 +83,7 @@ func run() int {
 		workers    = flag.Int("workers", 1, "games in parallel")
 		keepGoing  = flag.Bool("keep-going", false, "count every divergence instead of stopping at the first")
 		shrink     = flag.Int("shrink", 200, "shrink reruns for the first divergence (0: none)")
-		out        = flag.String("out", "", "directory for the first divergence's repro.json (default: none written)")
+		out        = flag.String("out", "", "directory for the first divergence's repro.json, and for each capacity stall's game as capacity-<table>-pair<N>.repro.json (default: none written)")
 		reproPath  = flag.String("repro", "", "re-run this repro in lockstep and report")
 		replayPath = flag.String("replay", "", "re-execute this kernel game (koracle-game-1) in gorge and report")
 		jsonOut    = flag.Bool("json", false, "print the summary as JSON")
@@ -954,7 +954,7 @@ func runFDN(c *oracle.Corpus, set cardset.Set, rc oracle.RunConfig, ps []oracle.
 		if o.onGame != nil {
 			o.onGame(&res)
 		}
-		if !verboseFDN && (o.out == "" || res.Div == nil) && (!implicatesAll || res.Clean()) {
+		if !verboseFDN && (o.out == "" || res.Div == nil && !strings.HasPrefix(res.Stall, oracle.KernelStallPrefix)) && (!implicatesAll || res.Clean()) {
 			res.Actions = nil // only the reports of a bad game read them; don't hold every game's
 		}
 		return played{m: m, res: res, cov: cov}
@@ -1098,6 +1098,16 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			v.CapacityWhy[why]++
 			if verboseFDN {
 				fmt.Printf("pair %d (%s vs %s, seed %d): %s capacity stall after %d decisions; latest sources: %s\n", p.Index, p.A, p.B, p.Seed, res.Stall, res.Decisions, strings.Join(res.RecentSources(m, 40), "|"))
+			}
+			if o.out != "" && m != nil {
+				// the game up to the stall, one file a pair: a test that plays it on
+				// fails for as long as the table stalls there
+				if err := os.MkdirAll(o.out, 0o755); err == nil {
+					path := filepath.Join(o.out, fmt.Sprintf("capacity-%s-pair%d.repro.json", why, p.Index))
+					if err := oracle.NewRepro(m, p.Seed, rc, &res).Write(path); err != nil {
+						fmt.Fprintln(os.Stderr, "kfuzz:", err)
+					}
+				}
 			}
 			continue
 		}

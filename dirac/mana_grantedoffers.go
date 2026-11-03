@@ -196,6 +196,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		if ng == 0 && pc.manaOne {
 			s.addOneColour(a, n)
 		}
+		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
 	}
 	if s.g.availX&availWalk != 0 {
@@ -206,6 +207,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			pc := s.grantView(k.gen, gi[i], sl)
 			s.addGrantUnits(a, s.srcMaskAt(pc, sl), pc.manaN)
 		}
+		s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
 		return
 	}
 	if !own {
@@ -217,6 +219,51 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		n = max(n, pc.manaN)
 	}
 	s.addGrantUnits(a, mask, n)
+	s.availGrantExtra(k, sl, pc, &gi, ng, own, a)
+}
+
+// availGrantExtra adds the extra mana a tap of sl brings (mana_tapextra.go) to
+// a: gorge prices it on the printed ability, the planner's alternative, and the
+// ability a prefix search activates floats the same extra, so the unit carries it
+// once. The extra counts only while every ability of the source agrees on it
+// (a carrier limited to a {C} tap reads the pick), and only a source whose own
+// ability is usable carries it: the relaxed alternatives of a granted ability
+// bring none (potential_plan.go paymentPlanRelaxedAlternatives), and a source
+// with nothing but a grant is not priced here, so it stalls.
+func (s *State) availGrantExtra(k *prep, sl Slot, pc *pcard, gi *[maxGrants]int16, ng int, own bool, a *avail) {
+	if !k.gen.anyTapExtra {
+		return
+	}
+	if !own && ng > 0 && s.g.availX&availWalk != 0 {
+		return // the relaxed census: a gap's alternative carries none
+	}
+	var xv [kop.NumManaKinds]uint8
+	hit := false
+	if own || ng == 0 {
+		xv, hit = s.srcExtraHit(k, sl, pc)
+	}
+	for i := 0; i < ng; i++ {
+		if i == 0 && !(own || ng == 0) {
+			xv, hit = s.srcExtraHit(k, sl, s.grantView(k.gen, gi[i], sl))
+			continue
+		}
+		gx, ghit := s.srcExtraHit(k, sl, s.grantView(k.gen, gi[i], sl))
+		if ghit != hit || gx != xv {
+			hit, xv = true, [kop.NumManaKinds]uint8{}
+		}
+	}
+	if !hit {
+		return
+	}
+	if xv == [kop.NumManaKinds]uint8{} || !s.tapExtraPlain(pc) || pc.painCol != 0 {
+		s.capFull(StallTapExtra)
+		return
+	}
+	for c := range xv {
+		if xv[c] > 0 {
+			a.addUnits(1<<c, xv[c])
+		}
+	}
 }
 
 // availUngranted is p's availability over the pool and the printed mana
@@ -436,18 +483,25 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 	if ask && mask&(mask-1) != 0 && !g.node() {
 		return false
 	}
+	var pc *pcard
+	if g.k.gen.anyTapExtra {
+		pc = t.stepView(g.k, sl, gi)
+	}
 	for c := uint8(0); c < kop.NumManaKinds; c++ {
 		if mask&(1<<c) == 0 {
 			continue
 		}
 		t.perms[sl].flags |= pfTapped
 		t.pl[g.p&1].pool[c] += n
+		xv := t.srcExtraPick(g.k, sl, pc, int(c))
+		t.addXv(g.p&1, &xv)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl}
 		g.np++
 		if g.visit(t) {
 			return true
 		}
 		g.np--
+		t.subXv(g.p&1, &xv)
 		t.pl[g.p&1].pool[c] -= n
 		t.perms[sl].flags &^= pfTapped
 	}
@@ -558,7 +612,20 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		} else {
 			s.pl[g.p&1].pool[st.col] += st.n
 		}
+		if k.gen.anyTapExtra {
+			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
+			s.addXv(g.p&1, &xv)
+		}
 	}
+}
+
+// stepView is the mana ability a prefix step taps on sl: the source's own
+// (gi -1) or the granted one.
+func (s *State) stepView(k *prep, sl Slot, gi int16) *pcard {
+	if gi < 0 {
+		return s.manaPCGen(k, sl)
+	}
+	return s.grantView(k.gen, gi, sl)
 }
 
 // restrOfStep is the spend restriction of the granted ability a prefix step
