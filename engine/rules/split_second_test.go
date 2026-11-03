@@ -14,6 +14,7 @@ package rules
 // chain heads and the support ratchet are untouched by construction.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -244,4 +245,52 @@ func TestMoltenDisasterKickedGrantWithholds(t *testing.T) {
 		}
 		replayCheck(t, e, cfg)
 	})
+}
+
+// Crew (CR 702.122a) and Station (CR 702.184a) are activated abilities, so
+// a split-second spell on the stack bars both; turning a creature face up
+// (CR 116.2b) is a special action and stays.
+func TestSplitSecondBarsCrewAndStation(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _ := splitSecondEngine(t, reg, "V.A.T.S.", "Smuggler's Copter")
+	searchMoveByName(t, e, "Smuggler's Copter", state.ZBattlefield)
+	vats := searchMoveByName(t, e, "V.A.T.S.", state.ZHand)
+	addMana(t, e, 0, "BBBRR")
+	e.pending = nil
+	e.priorityRound()
+	crewLabel := func() bool {
+		for _, o := range e.legalActions(0) {
+			if o.Kind == "ability" && strings.Contains(o.Label, "Crew") {
+				return true
+			}
+		}
+		return false
+	}
+	if !crewLabel() {
+		t.Fatalf("control: crew not offered with no split second: %+v", e.legalActions(0))
+	}
+	submitChoices(t, e, castOpt(t, e, vats))
+	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
+		submitChoices(t, e)
+	}
+	if crewLabel() {
+		t.Fatalf("crew offered under split second: %+v", e.legalActions(0))
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestSplitSecondFilterBarsStationKeepsFaceUp(t *testing.T) {
+	t.Parallel()
+	e := &Engine{}
+	got := e.filterSplitSecondActions([]decision.Option{
+		{Kind: "station"}, {Kind: "turn_face_up"}, {Kind: "unlock"}, {Kind: "play_land"}, {Kind: "activate"},
+	})
+	var kinds []string
+	for _, o := range got {
+		kinds = append(kinds, o.Kind)
+	}
+	if strings.Join(kinds, ",") != "turn_face_up,unlock,play_land,activate" {
+		t.Fatalf("kept %v", kinds)
+	}
 }
