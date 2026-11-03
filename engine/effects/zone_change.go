@@ -372,9 +372,11 @@ func tokenCannotChangeZone(o *state.Object) bool {
 // would enter the battlefield stays in its previous zone. A script whose
 // target filter names no permanent type (Julian Bashir's "return target card
 // with mana value X or less", printed "creature card") reaches it. A spell on
-// the stack never enters, and a token has no printed instant type.
-func instantCannotEnter(h Host, o *state.Object, to state.Zone) bool {
-	if to != state.ZBattlefield || o.IsToken || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
+// the stack never enters, and a token has no printed instant type. A card put
+// onto the battlefield face down enters with no characteristics (CR 708.2), so
+// it is no instant (Magar of the Magic Strings returns one as a 3/3 creature).
+func instantCannotEnter(h Host, o *state.Object, to state.Zone, faceDown bool) bool {
+	if faceDown || to != state.ZBattlefield || o.IsToken || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
 		return false
 	}
 	return matchesObjectPtr(h.Game(), "Instant,Sorcery", o, &SpecContext{})
@@ -405,7 +407,7 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	if cz.OriginPresent && !originAll && !cz.OriginMask.Has(o.Zone) {
 		return true
 	}
-	if instantCannotEnter(h, o, to) {
+	if instantCannotEnter(h, o, to, cz.Riders.FaceDownRiders.FaceDown) {
 		return true
 	}
 	return to == state.ZExile && h.ExileBlocked(o.ID, false)
