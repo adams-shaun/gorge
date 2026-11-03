@@ -109,6 +109,13 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		!zoneChangeNoLookBack(t) {
 		zones[1] = ev.From
 		n = 2
+		if leavesOtherZoneTrigger(t) {
+			// CR 603.10a: a "whenever cards leave your graveyard" ability looks
+			// back to the board before the move, where the card moving itself was
+			// still in the graveyard, not in the zone that gives the ability
+			// life: Blastoneuron returned from the graveyard does not see itself leave.
+			zones[0] = ev.From
+		}
 	}
 	for _, zone := range zones[:n] {
 		if zoneSpecContains(spec, zone) {
@@ -166,4 +173,18 @@ func zoneSpecContains(spec string, want state.Zone) bool {
 // this line is not).
 func zoneChangeNoLookBack(t cards.Trigger) bool {
 	return t.Mode == "ChangesZone" && !t.HasParam(cards.PKOrigin) && !t.HasParam(cards.PKDestination)
+}
+
+// leavesOtherZoneTrigger reports a ChangesZone or ChangesZoneAll line that
+// watches cards leave a zone other than the battlefield, whatever the
+// destination: its source counts only from the zone it was in before the move.
+func leavesOtherZoneTrigger(t cards.Trigger) bool {
+	if t.Mode != "ChangesZone" && t.Mode != "ChangesZoneAll" {
+		return false
+	}
+	if d := t.ParamStr(cards.PKDestination); d != "" && d != "Any" {
+		return false
+	}
+	origin := t.ParamStr(cards.PKOrigin)
+	return origin != "" && origin != "Any" && !strings.Contains(origin, "Battlefield")
 }
