@@ -129,7 +129,7 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 				continue // the two-life faces must be payable (CR 119.4)
 			}
 			r := s.buildCostFaces(k, face, m, rem)
-			if !av.affordsPlain(&r, pipMaskOf(&r), r.XGeneric(int(e.x))) {
+			if x := r.XGeneric(int(e.x)); !av.affordsPlain(&r, pipMaskOf(&r), x) && !(k.restrSrc && s.restrFaceAffords(k, e.ctrl, &r, av, x)) {
 				continue
 			}
 			if face == 1 {

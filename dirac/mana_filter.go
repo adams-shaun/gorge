@@ -142,6 +142,9 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 	if av.affords(r, pipMaskOf(r), extra) {
 		return true
 	}
+	if k.restrSrc && s.restrFaceAffords(k, p, r, av, extra) {
+		return true
+	}
 	if k.gen == nil || !k.gen.anyFilt {
 		return false
 	}

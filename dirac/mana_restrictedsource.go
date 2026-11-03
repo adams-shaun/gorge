@@ -548,6 +548,22 @@ func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *k
 	return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdSpell, card: c, src: NoSlot, og: og}, cost, av, NoSlot, 0)
 }
 
+// restrFaceAffords: a hybrid pip's face r (plus extra generic) is payable once
+// the restricted sources the payment being built may spend are counted (CR
+// 106.6): gorge's cast window prices a RestrictValid$ ability its payment
+// admits like any other, so the face's colour can come from it. av does not
+// pay r alone (restrSrcNone's precondition).
+//
+//go:noinline
+func (s *State) restrFaceAffords(k *prep, p uint8, r *kop.ManaCost, av *avail, extra int) bool {
+	d := s.payDescNow(NoObj)
+	skip := NoSlot
+	if d.class == pdAct {
+		skip = d.src
+	}
+	return s.restrSrcAffords(k, p, d, r, av, skip, extra)
+}
+
 // restrSrcMaxX is the largest X the payment being built can announce with
 // p's restricted sources it may spend counted (-1: none) -- the X ask's
 // bound (cast.go bsX), av less the activation's own tapped source.
