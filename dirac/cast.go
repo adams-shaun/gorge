@@ -964,7 +964,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 	for _, c := range [2]int{first, second} {
 		r := cost.Resolve(c)
 		if e.flags&sfAnyMana != 0 && e.kind == seSpell {
-			r = anyTypePips(r)
+			r = hybridGeneric(anyTypePips(r)) // the pips still to announce are payable by any mana too
 		}
 		if s.faceReachable(k, e.ctrl, &av, &r, r.XGeneric(int(e.x))) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))

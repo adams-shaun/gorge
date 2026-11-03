@@ -179,15 +179,30 @@ func anyTypePips(c kop.ManaCost) kop.ManaCost {
 
 // planUnderRider is the mana gorge's planner funds for a cast under a may-play
 // rider (pay.PlanManaUnderRider): a pip the rider lets any mana pay is generic to
-// the plan, and a hybrid pip stays as printed. An any-colour rider leaves {C}.
+// the plan, a hybrid pip included (it is two colours, never {C}). An any-colour
+// rider leaves {C}.
 func planUnderRider(c kop.ManaCost, anyMana, anyColor bool) kop.ManaCost {
 	if anyMana {
-		return anyTypePips(c)
-	}
-	if anyColor {
+		c = anyTypePips(c)
+	} else if anyColor {
 		for i := 0; i < kop.C; i++ {
 			c.Generic += c.Pips[i]
 			c.Pips[i] = 0
+		}
+	}
+	if anyMana || anyColor {
+		c = hybridGeneric(c)
+	}
+	return c
+}
+
+// hybridGeneric turns each hybrid pip of c into one generic: the pips left
+// after a face was chosen, paid by mana of any type, are payable by any mana.
+func hybridGeneric(c kop.ManaCost) kop.ManaCost {
+	for i := range c.Hyb {
+		if c.Hyb[i] != 0 && c.Hyb[i] != kop.HybTwobrid {
+			c.Generic++
+			c.Hyb[i] = 0
 		}
 	}
 	return c
