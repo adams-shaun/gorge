@@ -489,6 +489,9 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 		return NoSlot
 	}
+	if r == kop.RefTriggerObj && s.res.e.kind == seTrigger && s.res.e.li != 0 && ob.ver != s.lk(s.res.e.li).ver {
+		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
+	}
 	return ob.slot
 }
 

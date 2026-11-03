@@ -359,3 +359,11 @@ func TestConniveSourceReturnedGetsNoCounterLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "connive_source_returned_gets_no_counter", "std-msh", Config{})
 }
+
+// Black Widow, Double Agent attacks alone and is killed by Helicarrier Strike with her trigger on the
+// stack; Thunderbolts Conspiracy returns her before it resolves. The returned Black Widow is a new
+// object (CR 400.7), so the trigger's first strike and menace go to no one.
+func TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "attack_trigger_pump_misses_returned_attacker", "std-msh", Config{})
+}
