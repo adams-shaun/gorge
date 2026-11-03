@@ -100,6 +100,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"attached_equipment_becomes_a_copy", "std-msh"},             // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
 		{"unless_evaluated_amount", "std-msh"},                       // Doc Samson's mana can pay an unless cost
 		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"}, // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
+		{"lotus_pair_pays_two_colours", "std-fra"},                   // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)

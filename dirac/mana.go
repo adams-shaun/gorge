@@ -1363,12 +1363,16 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 	if pk.anyColor {
 		return true
 	}
+	// A tap makes one colour, so c-1 units of an any-colour kind cover at
+	// most c-1 of the colours still owed: the units each colour needs add up
+	// (a Lotus token's three {R} or three {G}, for {R}{G}, takes two).
+	owed := 0
 	for col := range pk.need {
-		if ty.mask&(1<<col) != 0 && pk.need[col] > (c-1)*int(ty.n) {
-			return true
+		if ty.mask&(1<<col) != 0 && pk.need[col] > 0 {
+			owed += (pk.need[col] + int(ty.n) - 1) / int(ty.n)
 		}
 	}
-	return false
+	return owed > c-1
 }
 
 // valid: the chosen units can cover the pips (Hall over colour subsets).
