@@ -337,3 +337,6 @@ func (e *Engine) AttackersThisTurn() int {
 	}
 	return n
 }
+
+// PricedFromGraveyard satisfies effects.Host's PricedFromGraveyard.
+func (e *Engine) PricedFromGraveyard() state.ObjID { return e.pricedFromGraveyard }

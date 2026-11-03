@@ -92,6 +92,9 @@ type engineContinuation struct {
 	// after PutOnStack. Stored as event index + 1 (zero means none), so an
 	// earlier cast of the same object remains visible.
 	costCompositionEvent int `clone:"reset"`
+	// pricedFromGraveyard is the graveyard card whose cast is being priced
+	// (Host.PricedFromGraveyard); zero outside such a pricing.
+	pricedFromGraveyard state.ObjID `clone:"reset"`
 	// turnUp holds the CR 708.6 morph-family turn-face-up special action's
 	// payment flow while choosing == chooseTurnUp (engine/rules/morph_turnup.go).
 	// Nil whenever no turn-up is mid-payment. A plain-value struct with no

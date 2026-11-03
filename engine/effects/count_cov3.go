@@ -118,6 +118,13 @@ func evalCov3Head(h Host, c *Ctx, head, arg string, depth int) (int32, bool) {
 				n++
 			}
 		}
+		if id := h.PricedFromGraveyard(); id != 0 && from == state.ZGraveyard && !seen[id] {
+			// the cast being priced has not moved yet, but moves before the
+			// cost is determined (CR 601.2a, 601.2f)
+			if en := (state.ZoneEntry{Obj: id, From: from, To: state.ZStack}); matchesEnteredEntry(g, spec, en, c.SpecContext(c.Controller)) {
+				n++
+			}
+		}
 		return n, true
 	case evalCov3HeadMaxOppDamageThisTurn:
 		// The most damage any one opponent was dealt this turn (Spinerock
