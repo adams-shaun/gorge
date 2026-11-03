@@ -83,3 +83,23 @@ func TestMassReturnTriggersFitPendingAndStack(t *testing.T) {
 		t.Fatalf("30 triggers: stack %d, stall %q", s.sp, StallName(s.StallReason()))
 	}
 }
+
+// TestFourthLifelinkOnABoardCounts: Indelicate Healer gives every creature its
+// controller has lifelink each time a Klingon or Warrior enters; a fourth grant
+// in a turn takes a kwRepX record per creature, so twelve creatures need
+// twelve, past the 8 the table held (std-trc pair 264).
+func TestFourthLifelinkOnABoardCounts(t *testing.T) {
+	sc := newScen(t, Config{NoElide: true})
+	var sls []Slot
+	for i := 0; i < 12; i++ {
+		sls = append(sls, sc.slot(sc.perm(v.GrizzlyBears, 0)))
+	}
+	for g := 0; g < 4; g++ {
+		for _, sl := range sls {
+			sc.s.grantEOT(sl, kop.KwLifelink)
+		}
+	}
+	if sc.s.Stalled() || sc.s.nkwx != 12 {
+		t.Fatalf("a fourth lifelink on 12 creatures: %d records, stall %q", sc.s.nkwx, StallName(sc.s.StallReason()))
+	}
+}

@@ -957,9 +957,11 @@ type kwRepX struct {
 // by a later loss of all abilities.
 const kwSup = 0x40
 
-// maxKwRepX bounds the kwRepX records live at once; a grant past it is
-// not counted (feature lists only, no rules effect).
-const maxKwRepX = 8
+// maxKwRepX bounds the kwRepX records live at once; a grant past it
+// stalls (StallKwRepX). 32 since 2026-11-03 (was 8): Indelicate Healer gives
+// every creature its controller has lifelink once per Klingon or Warrior
+// entering, so a fourth entry in a turn needs a record per creature.
+const maxKwRepX = 32
 
 // ptRepX holds the true until-end-of-turn pump of a permanent whose pump
 // left the int8 range perm.eotP and perm.eotT hold (Jumbo Cactuar's
