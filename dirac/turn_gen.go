@@ -96,6 +96,13 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	if face == 0 && g.has(cid, gfEnterRepl) {
 		cd := &k.t.Cards[cid]
+		// the entering permanent's own X (CR 107.3f): its cast X when it is
+		// the resolving spell, 0 when another effect put it onto the
+		// battlefield, never that effect's X (Mind into Matter's)
+		selfX := s.res.e.x
+		if s.res.active {
+			s.res.e.x = s.spellX(o)
+		}
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
@@ -123,6 +130,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 				}
 			}
 		}
+		s.res.e.x = selfX
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
