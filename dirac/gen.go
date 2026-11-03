@@ -105,7 +105,11 @@ type genPrep struct {
 	// Continuous static grants to the permanent its source is attached to
 	// (AddTrigger$): their listeners include those hosts (kw_protection.go trigSubs)
 	grantTrigEv uint32
-	anyProtF    bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
+	// globTrigGrant: a Continuous static grants a triggered ability beyond its
+	// source's host ("artifact creatures you control have ..."), so any
+	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
+	globTrigGrant bool
+	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -891,6 +895,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if !filterAttachedOnly(t, a.Static.Filter) {
 						if a.Static.Kind == kop.StatContinuous {
 							g.setFlag(CardID(i), gfGlobGrant)
+							if int(a.Static.Grant) <= len(t.Cards[i].Abilities) && t.Cards[i].Abilities[a.Static.Grant-1].Kind == kop.AbTriggered {
+								g.globTrigGrant = true
+							}
 						}
 						if int(a.Static.Grant) <= len(t.Cards[i].Abilities) && t.Cards[i].Abilities[a.Static.Grant-1].Kind != kop.AbMana {
 							g.globGrant = true

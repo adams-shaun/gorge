@@ -2310,21 +2310,17 @@ func creatureOnly(f *lFilter) bool {
 // grantedTrigger lowers a static's AddTrigger$ (gorge layer 6: the
 // affected permanent has the triggered ability; its own controller
 // controls the trigger and Self is that permanent). The kernel's static
-// grant walk (grantedAbilitiesN) reaches only the permanent the static's
-// source is attached to, so the affected filter must be the Equipment's or
-// Aura's host (every clause EquippedBy / EnchantedBy); a global grant
-// (Sliver lords, anthems) needs the M3 layer-6 record and refuses. AddSVar$
+// grant walk (grantedAbilitiesN) reports the grant for an attached host (an
+// Equipment's or Aura's) and, for any other affected filter, for every
+// permanent the filter matches (globalGrantsGen: "artifact creatures you
+// control have ..."), one instance per granting static in timestamp order.
+// AddSVar$
 // names SVars of this face the granted body reads (consumed).
 func (lc *lowerCtx) grantedTrigger(sp *params, st *lStatic, name string) (int, error) {
 	lc.granted++
 	defer func() { lc.granted-- }()
 	if st.F == nil || st.F.Players != 0 || len(st.F.Clauses) == 0 {
 		return 0, refuse("AddTrigger affected %s", st.F)
-	}
-	for _, c := range st.F.Clauses {
-		if c.Flags&(fEquippedBy|fEnchantedBy) == 0 {
-			return 0, refuse("AddTrigger to a non-attached affected %s (layer-6 grant record, M3)", st.F)
-		}
 	}
 	if strings.Contains(name, "&") || strings.Contains(name, ",") {
 		return 0, refuse("AddTrigger %q: more than one trigger", name)
