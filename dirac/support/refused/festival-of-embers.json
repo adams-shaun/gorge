@@ -6,7 +6,7 @@
     "pool": "std-blb",
     "surface": "full",
     "seed": 1,
-    "pair": 320,
+    "pair": 451,
     "policy": "random",
     "mulligans": 0
   }

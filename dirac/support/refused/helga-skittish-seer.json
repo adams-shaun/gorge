@@ -1,0 +1,16 @@
+{
+  "card": "Helga, Skittish Seer",
+  "class": "lockstep",
+  "why": "its {T} mana of an amount equal to its power, spendable only on creature spells of mana value 4 or more or with {X}: paying a hybrid creature spell from it leaves the engines in different payment states (a synth std-blb game at the pay choice for Seedpod Squire)",
+  "repro": {
+    "pool": "std-blb",
+    "surface": "full",
+    "seed": 1,
+    "pair": 673,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "std-blb"
+  ]
+}

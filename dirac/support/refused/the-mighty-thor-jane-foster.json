@@ -6,7 +6,7 @@
     "pool": "std-msh",
     "surface": "full",
     "seed": 1,
-    "pair": 270,
+    "pair": 78,
     "policy": "random",
     "mulligans": 1
   }

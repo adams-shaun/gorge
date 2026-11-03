@@ -6,7 +6,7 @@
     "pool": "std-fra",
     "surface": "full",
     "seed": 1,
-    "pair": 312,
+    "pair": 180,
     "policy": "random",
     "mulligans": 1
   }
