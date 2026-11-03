@@ -180,7 +180,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				continue
 			}
 			if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
-				s.windowFiltFirst(k, p, sl, useful) // mana_filterfirst.go
+				s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
 				continue
 			}
 			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) && !noOwed {
