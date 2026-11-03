@@ -230,7 +230,7 @@ type override struct {
 
 // perm is a battlefield slot.
 type perm struct {
-	// (fields ordered widest first, 56 bytes)
+	// (fields ordered widest first, 60 bytes; eotP/eotT are 16 bits so a +9999 attack pump fits)
 	eotKw kop.KwMask
 	// eotKwRep are the bits granted until end of turn at least twice and
 	// three times (gorge lists a keyword once per granting effect)
@@ -254,8 +254,8 @@ type perm struct {
 	obj      Obj
 	ctrl     uint8
 	damage   uint8
-	eotP     int8
-	eotT     int8
+	eotP     int16
+	eotT     int16
 	attached Slot // what this Aura/Equipment is attached to
 	blocking Slot // blocker: the attacker it blocks
 	nblock   uint8

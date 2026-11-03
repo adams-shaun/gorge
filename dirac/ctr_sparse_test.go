@@ -272,8 +272,8 @@ func TestCtrOverFullStalls(t *testing.T) {
 
 func TestPermSize(t *testing.T) {
 	var p perm
-	if got := unsafeSizeofPerm(&p); got != 56 {
-		t.Fatalf("perm is %d bytes, want 56", got)
+	if got := unsafeSizeofPerm(&p); got != 60 { // 56 until eotP/eotT became 16 bits
+		t.Fatalf("perm is %d bytes, want 60", got)
 	}
 }
 

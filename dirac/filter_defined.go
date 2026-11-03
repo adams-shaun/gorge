@@ -241,7 +241,7 @@ func (s *State) execDefined(k *prep, in *kop.Instr) (ok, done bool) {
 	return true, true
 }
 
-// eotAdd adds an end-of-turn pump to sl; an amount that leaves the int8 range
+// eotAdd adds an end-of-turn pump to sl; an amount that leaves the int16 range
 // stalls loudly (StallPT) and adds nothing, with one exception: a toughness
 // below the range (-0/-9999) is saturated when the creature's toughness is
 // still zero or less, because it is put into the graveyard at the next state-
@@ -249,10 +249,10 @@ func (s *State) execDefined(k *prep, in *kop.Instr) (ok, done bool) {
 func (s *State) eotAdd(k *prep, sl Slot, a, b int) bool {
 	p := &s.perms[sl]
 	np, nt := int(p.eotP)+a, int(p.eotT)+b
-	if np != int(int8(np)) || nt != int(int8(nt)) {
-		if np == int(int8(np)) && nt < math.MinInt8 {
+	if np != int(int16(np)) || nt != int(int16(nt)) {
+		if np == int(int16(np)) && nt < math.MinInt16 {
 			op, ot := p.eotP, p.eotT
-			p.eotP, p.eotT = int8(np), math.MinInt8
+			p.eotP, p.eotT = int16(np), math.MinInt16
 			if _, tough := s.pt(k, sl); tough <= 0 {
 				return true
 			}
@@ -261,13 +261,13 @@ func (s *State) eotAdd(k *prep, sl Slot, a, b int) bool {
 		s.capFull(StallPT)
 		return false
 	}
-	p.eotP, p.eotT = int8(np), int8(nt)
+	p.eotP, p.eotT = int16(np), int16(nt)
 	return true
 }
 
 // pumpAllEach is OpPumpAllEach (gorge effPump over a multi-object Defined$:
 // numForObjectText per object, so Double reads that creature's own derived
-// power / toughness). An amount that leaves the int8 end-of-turn range
+// power / toughness). An amount that leaves the int16 end-of-turn range
 // stalls loudly (StallPT) rather than wrapping.
 func (s *State) pumpAllEach(k *prep, in *kop.Instr) {
 	a, b := s.value(k, in.A), s.value(k, in.B)
@@ -299,12 +299,12 @@ func (s *State) pumpAllEach(k *prep, in *kop.Instr) {
 		}
 		p := &s.perms[sl]
 		np, nt := int(p.eotP)+dp, int(p.eotT)+dt
-		if np != int(int8(np)) || nt != int(int8(nt)) {
+		if np != int(int16(np)) || nt != int(int16(nt)) {
 			s.capFull(StallPT)
 			return
 		}
 		s.touchSl(sl)
-		p.eotP, p.eotT = int8(np), int8(nt)
+		p.eotP, p.eotT = int16(np), int16(nt)
 		s.grantEOT(sl, kop.KwMask(uint16(in.C)))
 		s.promoKw(k, sl, kop.KwMask(uint16(in.C)))
 	}
