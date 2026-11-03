@@ -808,7 +808,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		// (Crew again on a Vehicle under Eaten by Piranhas: artifact again).
 		merge = false
 	}
-	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0) {
+	// A keyword grant or removal is a layer-6 effect ordered by its timestamp
+	// (CR 613.1f, 613.7), like a granted ability: it merges with the newest record only, or
+	// a repeat of The Fire Nation Drill's removal resolved after Enter the Avatar State would
+	// sit before it and leave the hexproof the Avatar gave.
+	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities) {
 		s.stall(StallTables)
 		return
 	}

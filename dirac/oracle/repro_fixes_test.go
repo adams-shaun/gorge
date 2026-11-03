@@ -279,3 +279,13 @@ func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
 }
+
+// A keyword removal that resolves after a grant is the newer effect (CR 613.1f, 613.7):
+// The Fire Nation Drill's second removal is not folded into its first, older one, so the
+// hexproof Enter the Avatar State gave in between is gone.
+func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-tla", []stdRepro{
+		{"keyword_removal_resolved_after_a_grant", true},
+	})
+}
