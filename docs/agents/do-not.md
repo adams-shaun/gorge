@@ -85,11 +85,13 @@ these hurt someone other than you.
 - **Don't pin a synthetic pair by index alone.** A pair in `dirac/oracle` is two
   decks dealt from the lowered card list, so lowering one more card moves what
   every pair holds: a bare `synthPairs(t, pool, []int{...}, nil)` goes silently
-  empty, or red on a game unrelated to the test. Pin through
-  `synthPairsReaching` with a condition on the card or mechanism the test is
-  named for (`cardOut`, `onBattlefield`, `cardSeen`), or record a repro
-  (`stdReproLockstep`); re-pin a stale pair by the condition, or by mutating the
-  fix and keeping the pairs that then diverge.
+  empty, or red on a game unrelated to the test. Record the game instead:
+  `pinnedGames` (`dirac/oracle/pinned_test.go`) plays games stored under
+  `testdata/pins` by card names, seed and actions, and requires each to reach a
+  condition on the card or mechanism the test is named for (`cardOut`,
+  `onBattlefield`, `cardSeen`). When a change moves a card's behaviour so the
+  recorded actions no longer reach it, record again with `PINS_RECORD=1`; or
+  record a repro (`stdReproLockstep`).
 
 ## Running things
 

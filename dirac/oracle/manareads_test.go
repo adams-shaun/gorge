@@ -1,39 +1,17 @@
 package oracle
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/adams-shaun/gorge/engine/state"
-)
-
-// lockstepWithCard plays the pairs of synthetic pool name in lockstep on the
-// surface cfg names and requires card, when one is named, on the stack in each
-// game, so a pool that drifts away from the rule fails here rather than passing
-// without playing it.
+// lockstepWithCard plays games of synthetic pool name in lockstep on the surface cfg
+// names. With a card named, the games are recorded ones in which it reaches the stack,
+// so a deal that drifts cannot move them; with none, they are the pairs given.
 func lockstepWithCard(t *testing.T, name string, cfg Config, card string, pairs ...int) {
 	t.Helper()
-	stacked := 0
-	rc := RunConfig{Config: cfg}
 	if card != "" {
-		rc.Finish = func(g *GorgeSide) {
-			for i := range g.E.L.Events {
-				ev := &g.E.L.Events[i]
-				if ev.To != state.ZStack {
-					continue
-				}
-				if ob := g.E.G.Obj(ev.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == card {
-					stacked++
-					return
-				}
-			}
-		}
+		pinnedGames(t, name, cfg, onStack(card))
+		return
 	}
-	synthPairsRun(t, name, rc, pairs, func(pair int, res *Result) {
-		if card != "" && stacked == 0 {
-			t.Errorf("%s pair %d: %s never reached the stack", name, pair, card)
-		}
-		stacked = 0
-	})
+	synthPairsRun(t, name, RunConfig{Config: cfg}, pairs, nil)
 }
 
 // A may-play over a remembered nonland card reads the card's type once, as the
@@ -41,7 +19,7 @@ func lockstepWithCard(t *testing.T, name string, cfg Config, card string, pairs 
 // Cruelclaw's Heist's exiled card stays castable on a board of lands alone.
 func TestRememberedNonlandPermissionOnAllLands(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-blb", Config{}, "Cruelclaw's Heist", 10, 54, 86)
+	lockstepWithCard(t, "std-blb", Config{}, "Cruelclaw's Heist")
 }
 
 // Floating restricted mana pays an activated ability its restriction admits
@@ -49,8 +27,8 @@ func TestRememberedNonlandPermissionOnAllLands(t *testing.T) {
 // and is spent first by the payment.
 func TestFloatingRestrictedManaPaysAnActivation(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-ecl", Config{GorgeAutopaySurface: true}, "Flamebraider", 118)
-	lockstepWithCard(t, "std-ecl", Config{}, "Flamebraider", 335)
+	lockstepWithCard(t, "std-ecl", Config{GorgeAutopaySurface: true}, "Flamebraider")
+	lockstepWithCard(t, "std-ecl", Config{}, "Flamebraider")
 }
 
 // The prefix search activates every source the planner's census misses before it
@@ -84,8 +62,8 @@ func TestAnyTypeRiderSpendsPipsBeforeGeneric(t *testing.T) {
 func TestAttachedGrantAndCounteredSpellController(t *testing.T) {
 	t.Parallel()
 	for _, cfg := range []Config{{GorgeAutopaySurface: true}, {}} {
-		lockstepWithCard(t, "std-fdn", cfg, "New Horizons", 486)
-		lockstepWithCard(t, "std-fdn", cfg, "An Offer You Can't Refuse", 486)
+		lockstepWithCard(t, "std-fdn", cfg, "New Horizons")
+		lockstepWithCard(t, "std-fdn", cfg, "An Offer You Can't Refuse")
 	}
 }
 

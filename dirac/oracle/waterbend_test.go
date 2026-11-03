@@ -294,5 +294,5 @@ func TestWaterbendMutation(t *testing.T) {
 // to tap taps one Plains over the floating RRR. Before, the kernel's
 // witness priced the whole {5} and found no plan.
 func TestWaterbendWitnessIsPricedOnTheCredit(t *testing.T) {
-	synthPairsReaching(t, "std-tla", Config{}, []int{4, 18}, cardOut("Water Tribe Rallier"))
+	pinnedGames(t, "std-tla", Config{}, cardOut("Water Tribe Rallier"))
 }

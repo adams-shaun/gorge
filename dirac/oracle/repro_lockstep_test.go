@@ -201,8 +201,7 @@ func TestPrintedAbilityBesideAGrantLockstep(t *testing.T) {
 // mana and is asked after the planner's witness is tapped.
 func TestGiftCastIsPlannedOnAutopayLockstep(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{GorgeAutopaySurface: true}, []int{1, 7, 20},
-		anyOf(onStack("Longstalk Brawl"), onStack("Scrapshooter")))
+	pinnedGames(t, "std-blb", Config{GorgeAutopaySurface: true}, anyOf(onStack("Longstalk Brawl"), onStack("Scrapshooter")))
 }
 
 // A land animated the turn it entered is no creature that entered: Mishra's Factory

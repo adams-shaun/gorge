@@ -197,28 +197,5 @@ func (p *eitherOrProbe) pick(c *PickCtx) Canon {
 // chosen (CR 601.2g-h, 733.1). Full surface: the autopay one doesn't offer this cast.
 func TestEitherOrHybridLockstep(t *testing.T) {
 	t.Parallel()
-	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
-	set := cardsettest.Synth(t, "std-spm")
-	pool, files, err := SynthPool(c.Reg, set, 1, SynthDecks)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c.AddDecks(files)
-	var cfg Config
-	for _, i := range []int{16, 32, 44, 96, 119} {
-		p := PairingAt(pool, i, 1)
-		m, tbl, err := SetMatchup(set, c, p.A, p.B, 1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		k, err := SetSide(set, tbl, cfg)(m, p.Seed)
-		if err != nil {
-			t.Fatal(err)
-		}
-		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), RunConfig{Config: cfg, MaxDecisions: 20000, MaxTurns: 100})
-		CloseSide(k)
-		if res.Div != nil {
-			t.Errorf("pair %d diverged at %d: %s %s %s", i, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail)
-		}
-	}
+	pinnedGames(t, "std-spm", Config{}, cardOut("Pumpkin Bombardment"))
 }

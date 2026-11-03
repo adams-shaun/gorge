@@ -471,38 +471,30 @@ func TestEachPlayerDiscardMovesTogether(t *testing.T) {
 // window can't do without (CR 601.2h, 701.67a). The pairs are ones that diverge when
 // the ask offers Done at once, so each carries the case.
 func TestWaterbendAskRequiresTheTapsThePaymentNeeds(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{1, 2, 3, 4})
+	waterbendPairs(t, "std-tla")
 }
 
 // TestWaterbendIncompleteCensusKeepsTheOpenAsk: with a restricted mana source the
 // census doesn't price, the ask requires nothing and the target ask keeps its offer.
 // The pairs are ones that diverge when the census is taken as complete.
 func TestWaterbendIncompleteCensusKeepsTheOpenAsk(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{42, 116, 214, 681})
+	waterbendPairs(t, "std-tla")
 }
 
-// waterbendPairs is synthPairs requiring a waterbend ask in each game: a pair is
-// two decks dealt from the lowered list, so a card lowered later moves what a pair
-// holds, and a pin whose pair no longer waterbends would pass having tested nothing.
-func waterbendPairs(t *testing.T, name string, pairs []int) {
+// waterbendPairs plays recorded games of pool name in each of which a waterbend ask is
+// posed, so a game that no longer waterbends fails rather than passing having tested
+// nothing.
+func waterbendPairs(t *testing.T, name string) {
 	t.Helper()
-	asks := 0
-	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+	pinnedGames(t, name, Config{GorgeAutopaySurface: true}, func(ref *GorgeSide) bool {
 		if d := ref.Pending(); d != nil {
 			for _, o := range d.Options {
 				if strings.HasPrefix(o.Kind, "waterbend") {
-					asks++
-					break
+					return true
 				}
 			}
 		}
-		return nil
-	}}
-	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
-		if asks == 0 {
-			t.Errorf("pair %d of %s poses no waterbend ask: the pin tests nothing", pair, name)
-		}
-		asks = 0
+		return false
 	})
 }
 
@@ -522,39 +514,36 @@ func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
 // TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
 // the library in the order the shuffle reads (CR 701.24).
 func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
-	synthPairsReaching(t, "std-dsk", Config{GorgeAutopaySurface: true}, []int{7, 9, 19}, cardOut("Floodpits Drowner"))
+	pinnedGames(t, "std-dsk", Config{GorgeAutopaySurface: true}, cardOut("Floodpits Drowner"))
 }
 
 // TestOverrideValueKeepsItsCountedSubtype: PuPu UFO's "base power becomes the number
 // of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
 // matchup's table keeps it.
 func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	synthPairsReaching(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 14, 0}, onBattlefield("PuPu UFO"))
+	pinnedGames(t, "std-fin", Config{GorgeAutopaySurface: true}, onBattlefield("PuPu UFO"))
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
 // its source offered in the window whatever is being paid for (CR 106.6, 601.2g).
 func TestRestrictedSourceStaysInTheManualWindow(t *testing.T) {
-	synthPairsReaching(t, "std-ecl", Config{GorgeAutopaySurface: true}, []int{125, 93, 194}, madeRestrictedMana)
+	pinnedGames(t, "std-ecl", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
 }
 
 // TestPowerUpOfferCountsRestrictedSources: the sources a power-up's printed cost is
 // priced against include a restricted one its activation may spend (CR 106.6, 702.193b).
 func TestPowerUpOfferCountsRestrictedSources(t *testing.T) {
-	restrictedPowerUpPairs(t, "std-msh", []int{11, 88, 98, 112})
+	restrictedPowerUpPairs(t, "std-msh")
 }
 
-// restrictedPowerUpPairs is synthPairs requiring that each game activates a power-up
-// after restricted mana has been made: a pair is two decks dealt from the lowered list,
-// so a card lowered later moves what a pair holds, and a pin whose pair no longer
-// has both would pass having tested nothing.
-func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
+// restrictedPowerUpPairs plays recorded games of pool name in each of which a power-up
+// is activated after restricted mana has been made.
+func restrictedPowerUpPairs(t *testing.T, name string) {
 	t.Helper()
-	seen, hits, armed := 0, 0, false
-	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
-		evs := ref.E.L.Events
-		for ; seen < len(evs); seen++ {
-			ev := &evs[seen]
+	pinnedGames(t, name, Config{GorgeAutopaySurface: true}, func(ref *GorgeSide) bool {
+		armed := false
+		for i := range ref.E.L.Events {
+			ev := &ref.E.L.Events[i]
 			switch ev.Kind {
 			case events.ManaAdd:
 				if ev.Amount > 0 && strings.HasPrefix(ev.Text, "mana-restriction:") {
@@ -563,31 +552,25 @@ func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
 			case events.AbilityPush:
 				if o := ref.E.G.Obj(ev.Obj); armed && o != nil && o.Face() != nil && int(ev.Amount) < len(o.Face().Abilities) &&
 					o.Face().Abilities[ev.Amount].Params["PowerUp"] == "True" {
-					hits++
+					return true
 				}
 			}
 		}
-		return nil
-	}}
-	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
-		if hits == 0 {
-			t.Errorf("pair %d of %s activates no power-up beside restricted mana: the pin tests nothing", pair, name)
-		}
-		seen, hits, armed = 0, 0, false
+		return false
 	})
 }
 
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
 // work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
 func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{17, 74}, madeRestrictedMana)
-	synthPairsReaching(t, "std-msh", Config{GorgeAutopaySurface: true}, []int{4, 11, 22}, madeRestrictedMana)
+	pinnedGames(t, "std-dft", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
+	pinnedGames(t, "std-msh", Config{GorgeAutopaySurface: true}, madeRestrictedMana)
 }
 
 // TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
 // power to each of two other targets, not the first alone (CR 120.3, 608.2b).
 func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	synthPairsReaching(t, "std-otj", Config{GorgeAutopaySurface: true}, []int{1, 15, 3}, cardOut("Betrayal at the Vault"))
+	pinnedGames(t, "std-otj", Config{GorgeAutopaySurface: true}, cardOut("Betrayal at the Vault"))
 }
 
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
@@ -609,7 +592,7 @@ func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
 // permanent with its entry counters, not the card that was cast (CR 608.2h; Prime
 // Speaker Zegana).
 func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
-	synthPairsReaching(t, "std-fdn", Config{GorgeAutopaySurface: true}, []int{6, 482}, onBattlefield("Prime Speaker Zegana"))
+	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, onBattlefield("Prime Speaker Zegana"))
 }
 
 // TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an
@@ -619,7 +602,7 @@ func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
 // mana the payment can't spend (60, 100, 116, 760) is counted, and each must pose a
 // waterbend ask.
 func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{42, 66, 109, 503, 60, 100, 116, 760})
+	waterbendPairs(t, "std-tla")
 }
 
 // TestGrantedManaTapFiresTapsTriggers: a creature tapped for a granted mana ability
