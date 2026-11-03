@@ -893,7 +893,14 @@ func (e *Engine) planComposedCost(p state.PlayerID, id state.ObjID, composed Cos
 	desc := pay.DescriptorFor(id, ability, composed)
 	desc.FaceIdx = e.planFaceIdx(id) // an alternate-face route's restriction reads the cast face
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
-		return pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		out := pay.PlanPaymentCostWithout(asPayer(e), p, decision.PlannedCast{}, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
+		if out.Plan != nil && out.Reason == "search_limit" {
+			// The node budget only stops the hunt for the rank-best plan; the
+			// plan it holds pays the cost, so it is a witness like any other
+			// (a cost with hybrid pips and a dozen sources used to lose it).
+			out.Reason = ""
+		}
+		return out
 	})
 }
 
