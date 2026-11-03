@@ -84,8 +84,8 @@ var restrAmountDecks = [][2][]cardset.Entry{{
 }}
 
 const (
-	restrAmountWide    = iota // a two-mana restricted tap funds a spell
-	restrAmountFloat          // a decision is posed while a restricted batch of the source floats
+	restrAmountWide  = iota // a two-mana restricted tap funds a spell
+	restrAmountFloat        // a decision is posed while a restricted batch of the source floats
 	restrAmountN
 )
 
@@ -212,7 +212,6 @@ func TestRestrictedAmountLockstep(t *testing.T) {
 		}
 	}
 }
-
 
 // TestRestrictedAmountMutation: counting the two-mana alternative as one mana
 // (dirac.DebugRestrictedSource = 4), and floating what it makes as ordinary
