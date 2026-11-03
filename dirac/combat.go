@@ -194,9 +194,8 @@ func (s *State) finishAttacks(k *prep) {
 		if p.flags&pfAttacking == 0 {
 			continue
 		}
-		if p.flags&pfDeclared == 0 {
-			p.flags |= pfDeclared
-			s.touch(p.obj)
+		if !s.g.declM.has(sl) {
+			s.g.declM.set(sl)
 			fresh++
 		}
 		kw := s.kw(k, sl)

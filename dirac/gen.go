@@ -1467,7 +1467,11 @@ type genState struct {
 		obj Obj
 		col kop.ColorMask
 	}
-	lingerM  slotMask
+	lingerM slotMask
+	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared
+	// counts each creature once across extra combats). perm.flags has no free bit, so
+	// the mark lives here; it ends with the permanent (removePerm) and with the turn.
+	declM    slotMask
 	replaced Obj // the object an as-enters replacement program is modifying
 
 	// OpCastFree: cards still castable this resolution

@@ -576,6 +576,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.objs[o].of &^= ofSickLeft
 	}
 	s.g.lingerM.clr(sl)
+	s.g.declM.clr(sl)
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
 	if s.g.nlA[0] != 0 {
 		s.netDrop(o) // the lock ends when the permanent leaves (act_lockpermanent.go)

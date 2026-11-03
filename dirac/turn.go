@@ -46,13 +46,14 @@ func (s *State) beginTurn(p uint8) {
 	s.step = kop.StepUntap
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
+	s.g.declM = slotMask{}
 	for m := s.occ; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
-		if pm.actUsed != 0 || pm.flags&(pfLoyaltyUsed|pfDeclared) != 0 {
+		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
 			s.touch(pm.obj)
 		}
 		pm.actUsed = 0
-		pm.flags &^= pfLoyaltyUsed | pfDeclared
+		pm.flags &^= pfLoyaltyUsed
 	}
 	for i := 0; i < int(s.nobj); i++ {
 		if s.objs[i].activations() != 0 {
