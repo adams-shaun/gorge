@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -304,6 +305,12 @@ func TestEveryStationCarrierStationsThroughTheStack(t *testing.T) {
 		moveByName(t, e, 1, "Plains", state.ZBattlefield)
 		ship := moveByName(t, e, 0, name, state.ZBattlefield)
 		stationCensusDrain(t, e, ship)
+		// A ship whose enters trigger phases itself out is not on the table
+		// to station until its controller's untap step (CR 702.26b); the
+		// census skips that wait and phases it back in.
+		if e.G.Obj(ship).PhasedOut {
+			e.emit(events.Event{Kind: events.PhaseOut, Obj: ship, Amount: -1})
+		}
 		bear := moveByName(t, e, 0, "Bear", state.ZBattlefield)
 		stationCensusDrain(t, e, ship)
 		want := e.tapPowerValue(bear, stationSAKind)
@@ -343,6 +350,13 @@ func stationCensusDrain(t *testing.T, e *Engine, avoid state.ObjID) {
 		var picks []int
 		for _, o := range d.Options {
 			if len(picks) < d.Min && (o.Obj != avoid || len(d.Options) <= d.Min) {
+				picks = append(picks, o.Index)
+			}
+		}
+		// A yes/no ask (an optional trigger) tags every option with its source,
+		// so when avoiding the ship leaves too few picks, take the first ones.
+		for _, o := range d.Options {
+			if len(picks) < d.Min && !slices.Contains(picks, o.Index) {
 				picks = append(picks, o.Index)
 			}
 		}
