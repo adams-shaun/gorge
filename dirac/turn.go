@@ -803,10 +803,10 @@ func (s *State) fireDelayed(k *prep) {
 			// gorge drops a generated delayed program whose object left (a
 			// token copy that died). A keyword promise (Warp, Unearth) is not tied to
 			// its source's battlefield incarnation (CR 603.7): it still takes
-			// part in the end step's trigger order, and takePending then
-			// mints no trigger for the stale incarnation (gorge's
-			// foldDelayedPush checks TrackSource at push time). A token's
-			// AtEOT$ Destroy (__kwAtEOTDestroy) is the same:.
+			// part in the end step's trigger order, is put on the stack and
+			// resolves doing nothing for the stale incarnation (CR 603.7;
+			// gorge's DelayedPush stamps the registered incarnation). A
+			// token's AtEOT$ Destroy (__kwAtEOTDestroy) is the same.
 			continue
 		}
 		s.enqueue(dlySource(&d), d.ver, s.objs[d.obj].card, abDelayed, d.ctrl, d.obj, d.ctrl, delayedAmt(d))

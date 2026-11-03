@@ -189,6 +189,10 @@ func (s *State) resolveTop(k *prep) {
 			s.finishResolve(k, false)
 			return
 		}
+		if e.kind == seTrigger && e.trigAmt == dpTrackAmt && s.objs[e.obj].ver != e.srcVer {
+			s.finishResolve(k, false) // a tracked promise whose source is a new object: nothing (CR 400.7)
+			return
+		}
 		if k.gen != nil && !s.trigResolveOK(k) {
 			s.finishResolve(k, false)
 			return

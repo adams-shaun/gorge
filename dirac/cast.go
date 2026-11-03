@@ -1611,16 +1611,10 @@ func (s *State) takePending(k *prep, i int) {
 	pt := s.pend[i]
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
-	if pt.ab == abDelayed && staleOrdered(kop.Op(pt.trigAmt)) && s.objs[dlyRef(pt.obj, pt.trigObj)].ver != pt.srcVer {
-		// a stale warp / unearth promise: gorge's foldDelayedPush consumes the
-		// registration but mints no trigger for a new incarnation
-		return
-	}
-	if pt.trigAmt == dpTrackAmt && s.objs[pt.obj].ver != pt.srcVer {
-		// a stale incarnation-tracked promise (Decayed): it was ordered with
-		// the others, and gorge's foldDelayedPush mints no trigger for it
-		return
-	}
+	// A stale warp / unearth / destroy / exile promise, or an incarnation-tracked
+	// one (Decayed), still triggers and is put on the stack (CR 603.7); it
+	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
+	// resolveTrig check the version), as gorge's resolveTop does.
 	*s.bld() = build{e: stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 		trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ skwRem}}
 	s.bld().e.tgt = noTargets
