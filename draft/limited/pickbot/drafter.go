@@ -72,8 +72,22 @@ func (d *RatingColour) centred(set string, ref limited.CardRef) float64 {
 	if e, ok := RawRating(set, ref.Name); ok {
 		return (e.GihWr - t.RatingCentre) * t.RatingScale
 	}
+	if d.unscripted(ref.Name) {
+		return unscriptedScore
+	}
 	h := Heuristic(d.Lookup(ref.Name), ref.Rarity)
 	return (h - t.HeuristicCentre) * t.HeuristicScale
+}
+
+// unscriptedScore is the centred score of a card the corpus has no script
+// for (a set drafted before its cards are scripted): the engine cannot play
+// it, so every playable card outranks it and it adds nothing to a colour.
+const unscriptedScore = -100.0
+
+// unscripted reports whether the drafter has a Lookup that does not resolve
+// the card, on a set no rating file covers.
+func (d *RatingColour) unscripted(name string) bool {
+	return d.Lookup != nil && d.Lookup(name) == nil
 }
 
 // colourFit is the candidate's colour term: the mean, over the card's own
@@ -124,6 +138,9 @@ func (d *RatingColour) ratingWeight(set string, ref limited.CardRef) float64 {
 	}
 	if e, ok := RawRating(set, ref.Name); ok {
 		return e.GihWr
+	}
+	if d.unscripted(ref.Name) {
+		return 0
 	}
 	return Heuristic(d.Lookup(ref.Name), ref.Rarity)
 }

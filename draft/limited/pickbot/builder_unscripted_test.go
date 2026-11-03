@@ -1,6 +1,7 @@
 package pickbot_test
 
 import (
+	"math/rand/v2"
 	"testing"
 
 	"github.com/adams-shaun/gorge/draft/limited"
@@ -31,5 +32,19 @@ func TestBuilderLeavesUnscriptedCardsOut(t *testing.T) {
 	}
 	if len(d.Main) == 0 {
 		t.Fatal("empty main deck")
+	}
+}
+
+// TestDrafterPassesUnscriptedCards: on a set no rating file covers, a
+// mythic the corpus has no script for loses to a scripted common.
+func TestDrafterPassesUnscriptedCards(t *testing.T) {
+	reg := corpus(t)
+	d := &pb.RatingColour{Lookup: lookupOf(reg)}
+	v := pb.PickView{Set: "ZZZ", Round: 1, PickNo: 1, Pack: []limited.CardRef{
+		ref("g", "Card With No Script", limited.Mythic),
+		ref("h", "Healer's Hawk", limited.Common),
+	}}
+	if got := d.Pick(v, rand.New(rand.NewPCG(1, 2))); got != "h" {
+		t.Fatalf("pick = %q, want the scripted card h", got)
 	}
 }
