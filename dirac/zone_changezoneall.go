@@ -100,8 +100,8 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 	var eb entBatch
 	for i := 0; i < n; i++ {
 		o := snap[i]
-		if s.tokenLeftBattlefield(o) {
-			continue // CR 111.8: gorge's emitMove guard
+		if s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
+			continue // CR 111.8, 304.4, 307.4: gorge's emitMove guard
 		}
 		if z == kop.ZoneBattlefield && s.occ.full() {
 			s.fireEntries(k, &eb)

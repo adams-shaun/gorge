@@ -428,7 +428,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		miss := o == NoObj
 		if o != NoObj {
 			z := s.objs[o].zone
-			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o])
+			miss = z == kop.ZoneBattlefield || z == kop.ZoneStack || z == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, &s.objs[o]) || s.instantStays(k, o, kop.Zone(in.C))
 		}
 		s.g.retMiss = miss
 		if kop.Zone(in.C) != kop.ZoneBattlefield || o == NoObj || k.cards[s.objs[o].card].types&kop.TAura == 0 {
@@ -1380,7 +1380,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		return false
 	}
 	ob := &s.objs[o]
-	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) {
+	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || s.instantStays(k, o, kop.Zone(in.C)) {
 		return false
 	}
 	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
@@ -1599,7 +1599,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 			nl := 0 // library-bound cards, compacted into list[:nl]
 			for i := 0; i < n; i++ {
 				o := list[i]
-				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) {
+				if !s.matchCardGen(k, in.F, s.objs[o].card, p, e.ctrl, o) || s.tokenLeftBattlefield(o) || s.instantStays(k, o, z) {
 					continue
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {

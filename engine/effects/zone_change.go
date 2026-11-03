@@ -368,6 +368,18 @@ func tokenCannotChangeZone(o *state.Object) bool {
 	return o.IsToken && !o.PreparedExileCopy() && o.Zone != state.ZBattlefield && o.Zone != state.ZStack
 }
 
+// instantCannotEnter is CR 304.4 and 307.4: an instant or sorcery card that
+// would enter the battlefield stays in its previous zone. A script whose
+// target filter names no permanent type (Julian Bashir's "return target card
+// with mana value X or less", printed "creature card") reaches it. A spell on
+// the stack never enters, and a token has no printed instant type.
+func instantCannotEnter(h Host, o *state.Object, to state.Zone) bool {
+	if to != state.ZBattlefield || o.IsToken || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
+		return false
+	}
+	return matchesObjectPtr(h.Game(), "Instant,Sorcery", o, &SpecContext{})
+}
+
 // changeZoneMoveSkip repeats the mover loop's per-object skip guards.
 // Origin$, when given, is a precondition: the object must actually be where
 // the script expects, or the movement does not happen. This is also this
@@ -391,6 +403,9 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 		return true
 	}
 	if cz.OriginPresent && !originAll && !cz.OriginMask.Has(o.Zone) {
+		return true
+	}
+	if instantCannotEnter(h, o, to) {
 		return true
 	}
 	return to == state.ZExile && h.ExileBlocked(o.ID, false)
