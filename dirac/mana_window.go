@@ -1396,7 +1396,31 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	s.witnessAtCheapest(k, p, &cost, &av)
 	if s.pl[p&1].poolR != 0 && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
-		cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+		if cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid &&
+			s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)) {
+			// a hybrid pip resolves in gorge's planHybridCost order over that
+			// pool (the first resolution with a witness wins), so the
+			// restricted mana stands in the pool while the plan taps for the
+			// resolved remainder: {R/W}{R/W} evoked with Flamebraider's two
+			// floating {R} taps nothing more, and {1}{U/R}{U/R} cast with its
+			// {W}{U} and a Treasure's {U} taps no further
+			pl := &s.pl[p&1]
+			r, rx := pl.poolR, s.poolRx[p&1]
+			pl.pool[r>>poolRShift] += r & poolRCnt
+			for c := 0; c < 5; c++ {
+				pl.pool[c] += uint8(rx>>(3*c)) & 7
+			}
+			pl.poolR, s.poolRx[p&1] = 0, 0
+			defer func() {
+				pl.pool[r>>poolRShift] -= r & poolRCnt
+				for c := 0; c < 5; c++ {
+					pl.pool[c] -= uint8(rx>>(3*c)) & 7
+				}
+				pl.poolR, s.poolRx[p&1] = r, rx
+			}()
+		} else {
+			cost = s.restrShort(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj), cost)
+		}
 	}
 	cost, _ = s.waterbendBuildCredit(k, p, cost)
 	x := 0
