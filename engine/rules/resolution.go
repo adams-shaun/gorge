@@ -133,7 +133,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement):
 	// the announced or fixed value binds exactly like the dyn-tap count.
-	if rp.winPaidX != 0 {
+	if rp.winPaidX != 0 || rp.winXBound {
 		ctx.X = rp.winPaidX
 		ctx.XAnnounced = true
 	}

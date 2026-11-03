@@ -24,4 +24,7 @@ type resumePoint struct {
 	// paid an X). Zero elsewhere.
 	tapPaidX int32 `clone:"deep"`
 	winPaidX int32 `clone:"deep"`
+	// winXBound marks winPaidX as bound even at zero: a window that announced
+	// X = 0 paid nothing, whatever X the triggering permanent carries.
+	winXBound bool `clone:"deep"`
 }
