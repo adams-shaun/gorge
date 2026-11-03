@@ -111,6 +111,16 @@ func TestTransformedTokenCopyKeepsCopyExceptionsLockstep(t *testing.T) {
 	})
 }
 
+// A Vehicle crewed again after Eaten by Piranhas resolved on it is an artifact creature
+// again (CR 613.7): the second crew is a newer effect than the Aura's type removal, so it
+// is not folded into the first crew's older position.
+func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"crew_again_under_type_removing_aura", true},
+	})
+}
+
 // std-tla's: the first decision of each once diverged.
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()

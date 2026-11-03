@@ -801,3 +801,15 @@ func (s *State) grantSrcLost(k *prep, src Slot) bool {
 	}
 	return false
 }
+
+// ovStaticOn reports an override static attached to sl, one whose timestamp
+// orders against sl's override records.
+func (s *State) ovStaticOn(k *prep, sl Slot) bool {
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		if s.perms[src].attached == sl && src != sl && k.gen.has(s.cardAt(src), gfOvrStat) {
+			return true
+		}
+	}
+	return false
+}

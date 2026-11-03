@@ -766,6 +766,13 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// the object stayed a creature.
 	ov := &k.t.Overrides[idx]
 	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub
+	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
+		// An override static on the host (an Aura that removes card types)
+		// sits between the older application and this one in timestamp
+		// order, so the newer application takes the newest position too
+		// (Crew again on a Vehicle under Eaten by Piranhas: artifact again).
+		merge = false
+	}
 	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0) {
 		s.stall(StallTables)
 		return
