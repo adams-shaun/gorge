@@ -22,8 +22,8 @@ import (
 const (
 	planLimitNodes = 65536 // decision.MaxPaymentPlanSearchNodes
 	planLimitActs  = 64    // decision.MaxPaymentActivations
-	planLimitAlts  = 10 // five own colours and five granted ones: Public Thoroughfare's any-colour ability and the intrinsic ones
-	planLimitAny   = 63 // the mask of all six mana kinds
+	planLimitAlts  = 10    // five own colours and five granted ones: Public Thoroughfare's any-colour ability and the intrinsic ones
+	planLimitAny   = 63    // the mask of all six mana kinds
 )
 
 // lsAlt is one alternative of a unit: the colour it makes and the ability that
