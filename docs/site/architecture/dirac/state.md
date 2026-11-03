@@ -112,8 +112,8 @@ Marks may over-report and cost a recomputation, but never miss.
 
 Every byte of the core is copied on every clone, so its size is a decision rather than a side effect.
 
-- **`State` must stay under 16 KiB.** `TestStateSize` fails above that, and moving the bar is a deliberate
-  decision.
+- **`State` must stay under 24 KiB.** `TestStateSize` fails above `maxStateBytes` (`dirac/kernel_test.go`), and
+  moving the bar is a deliberate decision, measured against the bench cost of the larger copy.
 - **The table holds what's printed and `State` holds what changes.** No field in `State` belongs to one card.
 - **Per-slot bytes are expensive.** One byte on `perm` costs 112 bytes of `State`, one on `object` 192. Rare
   state goes in a pool sized for the worst case seen in play, or in a cold array.

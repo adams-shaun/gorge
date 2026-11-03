@@ -54,16 +54,16 @@ shape is not reachable in any pool. Each is fixed, or its cards are refused. The
   Courtyard's any-colour mana) are not autopay sources. Giada's {W} or
   the Courtyard's colour, tapped by a scripted prefix (gorge's planner
   census misses both) or, Giada's, by a ward / unless window, floats
-  beside the pool as restricted mana (one byte per player, the struct's
-  padding: one colour, one of two restrictions): projected with the
+  beside the pool as restricted mana (up to four batches per player, `State.rb`,
+  each of one restriction and chosen type, `mana_restrbatch.go`): projected with the
   pool, spent first by a spell its restriction allows (an Angel; a
   creature spell of the Courtyard's chosen type), and while it floats
   only plays the pool pays are offered, as gorge's planners refuse such
   a pool. A loyalty ability's resolving restricted mana (Chandra, Chill
   of Compliance's noncreature-only {U}: no mana ability, CR 605.1a, but
   the restriction rides it, CR 106.6; gorge's ManaAdd restriction) floats
-  in the same byte: AddMana's F names the restriction, prepareGen
-  registers it, and a byte that cannot hold it stalls StallRestrSrc
+  in the same batches: AddMana's F names the restriction, prepareGen
+  registers it, and a fifth batch (`maxRB`) stalls StallRestrSrc
   (`TestChandraRestrictedLoyaltyMana`, `TestRememberWritesLockstep`). A dynamic-amount
   one (Elvish Archdruid) is, listed after every fixed and choice-shaped
   source as gorge's evaluated-amount layer. Quilled Greatwurm's six

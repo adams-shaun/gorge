@@ -152,7 +152,7 @@ flowchart LR
 
 | | gorge | dirac |
 |---|---|---|
-| **State** | `state.Game`: an object arena with slices and maps | one `State` of under 16 KiB plus one small table-sized buffer ([State](state.md)) |
+| **State** | `state.Game`: an object arena with slices and maps | one `State` of under 24 KiB plus one small table-sized buffer ([State](state.md)) |
 | **Mutation** | events folded by `events.Apply` into a hash chain | `Apply(action)` writes the value directly, with no log |
 | **Clone** | `Engine.Clone`, [tens of µs and hundreds of KB](../../performance/index.md#transitions-and-copies) | `CopyFrom`, [tens of ns and no allocation](../../performance/index.md#transitions-and-copies) |
 | **Players** | up to 8 | exactly 2 |
