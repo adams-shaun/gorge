@@ -88,7 +88,9 @@ func castWinTapRun(t *testing.T, n uint64, report bool) (div int) {
 	return div
 }
 
-// TestCastWindowTapAnotherSourceLockstep: no seed diverges.
+// TestCastWindowTapAnotherSourceLockstep: no seed diverges. The decks' convoke spells (Eclipsed
+// Boggart's matchup, Merrow Skyswimmer) also pin that a creature announced for convoke is not
+// offered to a Drum as the permanent to tap: gorge excludes it (pay.CastCommitted), dirac must.
 func TestCastWindowTapAnotherSourceLockstep(t *testing.T) {
 	t.Parallel()
 	castWinTapRun(t, 150, true)

@@ -251,6 +251,10 @@ func (pe *payer) MatchesSpellFrom(spec string, id state.ObjID, you state.PlayerI
 func (pe *payer) CastProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
 	return (*Engine)(pe).castProvenanceAdmitsPending(spec, objID, you)
 }
+func (pe *payer) CastCommitted(id state.ObjID) bool {
+	e := (*Engine)(pe)
+	return e.cast != nil && e.convokeCommitted(e.cast, id)
+}
 func (pe *payer) CostBlocked(op pay.CostBlock, id state.ObjID, cause pay.CostCause) bool {
 	if op == pay.BlockExile {
 		return (*Engine)(pe).exileBlockedForCost(id, cause)

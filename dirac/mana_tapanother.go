@@ -105,9 +105,16 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	c := s.cardAt(sl)
 	f := k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Filter
 	var m slotMask
+	// A creature the cast being paid for announced for convoke is tapped when
+	// that payment settles, so it is not untapped to tap again here (CR 601.2g-h;
+	// gorge pay.ManaTapCandidates, CastCommitted).
+	var spoken slotMask
+	if s.buildLive() {
+		spoken = s.convokeHidden()
+	}
 	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || !s.matchPerm(k, f, x, p, sl) {
+		if x == sl && k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
 			continue
 		}
 		m = m.with(x)
