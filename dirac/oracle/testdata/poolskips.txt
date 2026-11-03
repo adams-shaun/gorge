@@ -34,10 +34,12 @@ TestNativeViewMatchesGorgeFDN
 TestNativeViewMatchesGorgeFDNManualMana
 TestPoolFrozen/blb
 TestPoolFrozen/fdn
+TestPoolFrozen/pauper
 TestRecordingStopsAtAConcession
 TestServedFieldsMatchGorge
 TestSliceMatchesPool/blb
 TestSliceMatchesPool/fdn
+TestSliceMatchesPool/pauper
 TestSpectatorSeesNoHand
 TestSubmitRefusalLeavesStateIntact
 TestWindowOwedRestrictedLockstep
