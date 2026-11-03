@@ -1408,7 +1408,7 @@ func (e *Engine) emitBlightCostCounters(blights []state.ObjID, cost *pay.Cost, x
 // finds no flow waiting and is dropped.
 func (e *Engine) endCastFlow() {
 	e.cast = nil
-	if e.pending == nil {
+	if !(e.pending != nil && e.choosing == chooseETBEntry && e.etbMove != nil) {
 		e.choosing = chooseNone
 	}
 }
