@@ -106,6 +106,13 @@ type Options struct {
 	// MaxSteps caps the environment's submits per simulation, the livelock
 	// guard of design §2; a walk that reaches it is evaluated where it stopped.
 	MaxSteps int
+	// DeadlineMinSims keeps the partial tree when Search's ctx is done
+	// between simulations and at least this many have completed: its choice
+	// is played instead of the bot's answer. 0 (the default) keeps the
+	// bail-out as it is, the bot's answer whatever the tree held. A host that
+	// bounds a decision's wall time sets it, and the answer then depends on
+	// how many simulations the clock allowed.
+	DeadlineMinSims int
 	// Kinds are the searched decision kinds.
 	Kinds Kinds
 	// AutoPayment lifts engine-provided automatic payment witnesses into

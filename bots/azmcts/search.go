@@ -314,10 +314,11 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	if err != nil {
 		return res, err
 	}
-	if res.Stats.DeadlineHits > 0 {
+	if res.Stats.DeadlineHits > 0 && (opts.DeadlineMinSims <= 0 || res.Stats.Completed < opts.DeadlineMinSims) {
 		// The armed bail-out fired (ctx done at the call or between
 		// simulations): the tree stopped where it was and the bot's answer
-		// is played -- the partial tree's choice is never taken.
+		// is played -- the partial tree's choice is never taken, unless
+		// DeadlineMinSims simulations completed.
 		return res, nil
 	}
 	res.Visits, res.Q, res.Avail, res.RootValue = tr.Visits, tr.Q, tr.Avail, tr.RootValue

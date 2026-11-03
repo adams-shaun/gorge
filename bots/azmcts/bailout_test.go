@@ -58,3 +58,60 @@ func TestSearchArmedDeadlinePlaysTheBot(t *testing.T) {
 		t.Fatalf("the armed search reported tree results: visits %v q %v root %v", armed.Visits, armed.Q, armed.RootValue)
 	}
 }
+
+// cancelAt is a world source that cancels its context as it hands out
+// simulation n's world, so the search sees a done context after n+1
+// simulations without racing a wall clock.
+type cancelAt struct {
+	WorldSource
+	n      int
+	cancel context.CancelFunc
+}
+
+func (c cancelAt) World(sim int) (World, error) {
+	if sim == c.n {
+		c.cancel()
+	}
+	return c.WorldSource.World(sim)
+}
+
+// TestSearchDeadlineMinSimsKeepsThePartialTree: a bail-out after enough
+// simulations plays the partial tree's choice and reports its visits; with
+// too few, or with the option off, the bot's answer is played as before.
+func TestSearchDeadlineMinSimsKeepsThePartialTree(t *testing.T) {
+	cfg := testConfig(t, "mono-red-prowess", "mono-blue-tempo", testSeed)
+	e, d, bot := botPosition(t, cfg, decision.KPriority, 0, 2000)
+	run := func(min int) Result {
+		opts := DefaultOptions()
+		opts.Sims, opts.Seed, opts.DeadlineMinSims = 30, 7, min
+		obs := searchprobe.NewCollector(d.Player)
+		inner, err := newTestClairvoyant(e, obs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		res, err := Search(ctx, Root{Engine: e, Decision: d, Bot: bot, Observer: obs}, cancelAt{inner, 5, cancel}, nil, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+	kept := run(4)
+	if kept.Stats.DeadlineHits != 1 || kept.Stats.Completed != 6 {
+		t.Fatalf("the bail-out should fire after 6 simulations: %+v", kept.Stats)
+	}
+	total := 0
+	for _, v := range kept.Visits {
+		total += v
+	}
+	if total != 6 {
+		t.Fatalf("the partial tree's visits %v should sum to the 6 completed simulations", kept.Visits)
+	}
+	for _, min := range []int{0, 7} {
+		res := run(min)
+		if res.Stats.DeadlineHits != 1 || len(res.Visits) != 0 || res.Choice != 0 || !reflect.DeepEqual(res.Intent, bot) {
+			t.Fatalf("DeadlineMinSims %d with 6 completed must play the bot's answer: %+v", min, res)
+		}
+	}
+}
