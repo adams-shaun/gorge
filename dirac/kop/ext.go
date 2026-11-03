@@ -513,3 +513,20 @@ func init() {
 }
 
 func init() { extOpNames[ExtTokenPT] = "TokenPT" }
+
+// ExtPreventDamageScope: all damage that would be dealt this turn to the
+// resolving controller (C bit PrevScopePlayer) and/or the creatures they
+// control (PrevScopeCreatures), optionally only by creature sources on the
+// battlefield (PrevScopeSrcCreature), is prevented (gorge effEffect's
+// bodyless DamageDone Prevent$ replacement in the Command zone). No other
+// field. dirac/repl_preventscope.go.
+const ExtPreventDamageScope ExtOp = 246
+
+// The C bits of ExtPreventDamageScope.
+const (
+	PrevScopePlayer = 1 << iota
+	PrevScopeCreatures
+	PrevScopeSrcCreature
+)
+
+func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }

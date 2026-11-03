@@ -3237,6 +3237,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtSacDelayed))
 	case "PreventColor":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPreventColor)) // (Prismatic Strands)
+	case "PreventDamageScope":
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventDamageScope)), int16(in.C)
 	case "Recruit":
 		// OpExt ExtRecruit. The token is a fixed corpus
 		// script (the lowering registered it in lc.out.Tokens); the kernel

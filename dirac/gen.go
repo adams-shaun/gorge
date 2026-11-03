@@ -1468,6 +1468,10 @@ type genState struct {
 	prevCol [3]struct {
 		obj Obj
 		col kop.ColorMask
+		// sc, ctl: a scoped record (Ext PreventDamageScope) prevents the
+		// damage its controller ctl (a player) or the creatures ctl controls
+		// would take; sc holds the kop.PrevScope* bits and col is 0
+		sc, ctl uint8
 	}
 	lingerM slotMask
 	// declM: the slots declared as attackers earlier this turn (Count$AttackersDeclared

@@ -391,6 +391,7 @@ ExtNumTimes	ExtOp	50
 ExtPhases	ExtOp	110
 ExtPlotGrant	ExtOp	31
 ExtPreventColor	ExtOp	1
+ExtPreventDamageScope	ExtOp	246
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
@@ -811,6 +812,9 @@ PropCardManaCost	uint8	3
 PropCardPower	uint8	1
 PropCardToughness	uint8	2
 PropNone	uint8	0
+PrevScopeCreatures	untyped int	2
+PrevScopePlayer	untyped int	1
+PrevScopeSrcCreature	untyped int	4
 PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3

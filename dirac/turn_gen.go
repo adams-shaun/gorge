@@ -476,10 +476,7 @@ func (s *State) newTurnGen() {
 	if s.ndly != 0 {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
-	s.g.prevCol = [3]struct {
-		obj Obj
-		col kop.ColorMask
-	}{}
+	clear(s.g.prevCol[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
