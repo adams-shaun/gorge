@@ -356,3 +356,12 @@ func TestReversedPermissionCastKeepsTheOncePerTurnPermissionLockstep(t *testing.
 	t.Parallel()
 	synthReproLockstep(t, "maralen_reversed_cast_spends_nothing", "std-ecl", Config{})
 }
+
+// Laughing Jasper Flint under a Stop Cold: the enchanted creature loses all
+// abilities in layer 6, but the layer-4 effect that makes the creatures its
+// controller does not own Mercenaries began earlier and keeps applying
+// (CR 613.6), so the Outlaw Stitcher it stole is still a Mercenary.
+func TestSubtypeGrantOutlivesItsSourceLosingAbilitiesLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flint_under_stop_cold_mercenary", "std-otj", Config{})
+}

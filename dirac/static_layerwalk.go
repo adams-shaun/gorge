@@ -111,14 +111,15 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 			continue
 		}
 		sp := &s.perms[src]
-		if sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		lost := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
+		if lost && !sub {
 			continue
 		}
 		if !k.gen.has(cid, gfGlobOvr) && !sub && (sp.attached != sl || src == sl) {
 			continue // an Aura's override reaches only its host (the filter is checked below)
 		}
-		if sub && s.grantSrcLost(k, src) {
-			continue
+		if sub && !lost {
+			lost = s.grantSrcLost(k, src)
 		}
 		cd := &k.t.Cards[cid]
 		ts := s.layerTs(src)
@@ -133,6 +134,8 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 			}
 			var e lfx
 			switch {
+			case lost && !subGrantStatic(a):
+				continue // CR 613.6: only an effect that began in layer 4 outlives the loss
 			case a.Static.Kind == kop.StatOverride && a.Static.Override > 0:
 				if src != sl && selfOnlyFilter(k, a.Static.Filter) {
 					continue // a self static (AffectedDefined$ Self) reaches its source only
@@ -177,6 +180,13 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 		}
 	}
 	return n
+}
+
+// subGrantStatic reports whether a is a static subtype grant: an effect that
+// begins in layer 4, so it keeps applying after its source loses all
+// abilities in layer 6 (CR 613.6).
+func subGrantStatic(a *kop.Ability) bool {
+	return a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (a.Static.AddSub.Any() || a.Static.AddChosen)
 }
 
 // l4part reports whether effect e has a layer-4 part.
