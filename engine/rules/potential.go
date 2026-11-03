@@ -257,21 +257,29 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 // extra per colour over the colours the ability can produce, and an ability
 // that does not tap adds none.
 func (e *Engine) addPotentialTapExtra(m *state.Mana, id state.ObjID, ma *cards.SA) {
-	if !e.abilityCompiledCost(ma).Cost.Tap {
-		return
+	most := e.potentialTapExtra(id, ma)
+	for i, n := range most {
+		if n > 0 {
+			m[i] = saturatingPotentialMana(m[i], n)
+		}
 	}
+}
+
+// potentialTapExtra is the largest extra per colour the static TapsForMana
+// triggers add when id taps for ma, over the colours ma can produce; zero for
+// an ability that does not tap.
+func (e *Engine) potentialTapExtra(id state.ObjID, ma *cards.SA) state.Mana {
 	var most state.Mana
+	if !e.abilityCompiledCost(ma).Cost.Tap {
+		return most
+	}
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		x := e.paymentPlanTapExtraMana(id, produced)
 		for i := range most {
 			most[i] = max(most[i], x[i])
 		}
 	}
-	for i, n := range most {
-		if n > 0 {
-			m[i] = saturatingPotentialMana(m[i], n)
-		}
-	}
+	return most
 }
 
 // potentialPoolFor is the hypothetical bound a payment may be priced against:

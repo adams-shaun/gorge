@@ -260,6 +260,25 @@ func TestPotentialPaymentPlansRelaxedCensusProof(t *testing.T) {
 	}
 }
 
+// TestPotentialPaymentPlansRelaxedCensusCountsTheTapExtra: Saruli Caretaker
+// is outside the planner census, so a {1}{G} spell over Saruli, a Bear and a
+// Badgermole Cub is proven unpayable only if the relaxed run leaves out the
+// {G} the Cub adds when Saruli taps for mana (CR 605.4a): Saruli's tap makes
+// two mana, so the spell is payable and priced with a prefix.
+func TestPotentialPaymentPlansRelaxedCensusCountsTheTapExtra(t *testing.T) {
+	t.Parallel()
+	e, _, spell := newFixtureDeck(t, 9412, "Name:Potential Tap Extra\nManaCost:1 G\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n")
+	onBoardReadyCard(t, e, 0, corpusCard(t, "Saruli Caretaker"))
+	bear := onBoard(t, e, 0, ppBear)
+	e.G.Obj(bear).SummonSick = false
+	onBoardCard(t, e, 0, corpusCard(t, "Badgermole Cub"))
+	ppPriority(t, e)
+	pp := ppFind(t, e.PotentialPaymentPlans(0), "cast", spell)
+	if pp.Reason != "" || len(pp.Script) == 0 {
+		t.Fatalf("verdict %+v, want a scripted prefix", pp)
+	}
+}
+
 // TestPotentialPaymentPlansSacrificesATappedSource: Makeshift Munitions'
 // "{1}, Sacrifice an artifact or creature" beside a lone Great Furnace (an
 // artifact land). The Furnace taps for the {1} and is then sacrificed

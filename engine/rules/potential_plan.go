@@ -1329,8 +1329,15 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	mp := effects.ManaOf(ma)
 	counts, any := mp.Counts, mp.CountsAny
 	creature := e.IsCreature(id)
+	// The tap fires the static TapsForMana triggers whichever colour it takes,
+	// so each relaxed production carries the largest extra they add (CR 605.4a):
+	// a relaxation may only over-produce.
+	extra := e.potentialTapExtra(id, ma)
 	var out []pay.Alt
 	add := func(m state.Mana) {
+		for i := range m {
+			m[i] += extra[i]
+		}
 		out = append(out, pay.Alt{Activation: decision.PaymentActivation{Source: id},
 			Mana: m, Creature: creature, Ma: ma, Tier: pay.TierNormal, Flex: 1, FlexAll: 1})
 	}
