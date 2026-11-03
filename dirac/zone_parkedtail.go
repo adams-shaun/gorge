@@ -46,7 +46,7 @@ func (s *State) parkTail(k *prep, kind uint8) bool {
 // tailOp: the op at pc is one that parks a tail.
 func (s *State) tailOp(k *prep) bool {
 	switch s.prog(k)[s.res.pc].Op {
-	case kop.OpSearchEx, kop.OpChooseMove, kop.OpDigEx, kop.OpDigUntil:
+	case kop.OpSearchEx, kop.OpChooseMove, kop.OpDigEx, kop.OpDigUntil, kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
 		return true
 	}
 	return false

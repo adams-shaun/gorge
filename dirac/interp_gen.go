@@ -1663,6 +1663,16 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
 					}
+					if s.parkTail(k, tailSearchEnter) {
+						// the entered card queued an as-enters ask (a shock land's
+						// pay-life election): gorge suspends the sweep there, the
+						// cards after it stay where they were until it is answered
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
+					}
 				} else if z == kop.ZoneLibrary {
 					list[nl] = o // placed below, in gorge's order
 					listFrom[nl] = from
