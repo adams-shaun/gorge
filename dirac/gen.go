@@ -1269,8 +1269,10 @@ const (
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
-// pool stalls the game (StallTables).
-const maxFx = 32
+// pool stalls the game (StallTables). 64 since 2026-11-03: a gifted Dawn's
+// Truce grants hexproof and then indestructible to every permanent its
+// controller has, a record each (kwGrantFx), so seventeen permanents filled 32.
+const maxFx = 64
 
 // maxXTPool bounds the stack entries with a multi-object target slot or a
 // damage division alive at once.
