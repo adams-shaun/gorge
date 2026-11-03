@@ -2269,6 +2269,12 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		if n > 0 && k.anyCtrAdded {
 			s.ctrNoteBy(k, sl, int(a.Cost.Ctr), e.ctrl) // a cost: gorge pay_engine publishes the payer
 		}
+		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+			// "whenever you put one or more counters on" fires for the cost's
+			// placement too: the [+1] of a loyalty ability (CR 606.4, 122.6)
+			s.g.lastCK = kop.CounterKind(a.Cost.Ctr)
+			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
+		}
 	}
 	if f&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, &a.Cost, e.x)

@@ -44,6 +44,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fin", "target_dependent_cost_starting_town_white"},          // Fate of the Sun-Cryst aimed at a tapped creature costs {2}{W}: the planner's census counts Starting Town's white while a point of life is not lethal
 		{"std-fin", "life_pain_land_beside_filter_pays_double_green"},     // Summon: Titan's GG from Starting Town and Capital City: a paid-life land is no census gap beside the filter
 		{"std-blb", "exile_triggered_source_left_battlefield"},            // Gossip's Talent level 3 with the Colossified Galewind Moose killed by deathtouch as it dealt combat damage: it is in the graveyard, a new object the exile-and-return finds nothing of
+		{"std-fra", "loyalty_cost_counters_trigger_put_counters"},         // Ajani Unrelenting's [+1] beside an Inspired Tethermage: the loyalty counter put as the cost triggers it, with Ajani's own trigger ordered beside it
 		{"std-dft", "run_over_second_target_after_vehicle"},               // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                 // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},               // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there
