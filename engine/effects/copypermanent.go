@@ -765,6 +765,9 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			if x := copyExceptions(g.Obj(want), exc); !x.Empty() {
 				h.Emit(events.Event{Kind: events.CopyExcept, Obj: want, Text: x.Text()})
+				if bx := copyBackExceptions(g.Obj(want), exc); !bx.Empty() {
+					h.Emit(events.Event{Kind: events.CopyExcept, Obj: want, Text: bx.Text()})
+				}
 			}
 			if len(tokenMemory) > 0 {
 				remembered := make([]state.ObjID, 0, len(tokenMemory))

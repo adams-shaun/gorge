@@ -321,6 +321,7 @@ func foldCopyToken(g *state.Game, e *Event) {
 	o.SetFaceIdx(faceIdx)
 	if basis != nil {
 		o.SetCopyFace(basis)
+		o.CopyFaceBack = copyTokenBack(src)
 	}
 	// CR 718.3c/d: a token copy of a prototyped permanent is also
 	// prototyped. A named-card copy has no source, so it is not.
@@ -373,6 +374,16 @@ func copyTokenBasis(src *state.Object) (*cards.Card, uint8, *cards.Face) {
 	}
 	cf := *src.CopyFace
 	return src.Card, src.FaceIdx, &cf
+}
+
+// copyTokenBack is the edited other face a token copy of src carries when src
+// is a double-faced token with exceptions (CR 707.8a): a private value copy.
+func copyTokenBack(src *state.Object) *cards.Face {
+	if src == nil || src.CopyFaceBack == nil || src.CopiesFaceDown() {
+		return nil
+	}
+	bf := *src.CopyFaceBack
+	return &bf
 }
 
 // foldCardToken folds Kind CardToken into state.
@@ -575,6 +586,9 @@ func foldFlipFace(g *state.Game, e *Event) {
 		e.Amount >= 0 && int(e.Amount) < len(o.Card.Faces) {
 		turned := o.FaceIdx != uint8(e.Amount)
 		o.SetFaceIdx(uint8(e.Amount))
+		if turned && o.CopyFaceBack != nil {
+			o.SwapCopyFaces() // a double-faced token copy shows its other edited face (CR 707.8a)
+		}
 		// CR 613.7g: a transforming double-faced permanent that changes face
 		// on the battlefield transformed. A flip card (CR 710) and a face
 		// chosen off the battlefield are not transforms.

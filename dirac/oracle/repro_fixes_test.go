@@ -89,6 +89,16 @@ func TestSorceryActivationWaitsForPrefixTriggerLockstep(t *testing.T) {
 	})
 }
 
+// A token copy of a transforming permanent is double-faced and each face takes the
+// copy effect's exceptions (CR 707.8a, 707.9b): Saheeli's copy of Dowsing Device is
+// an artifact on its front face and an artifact land once it transforms to Geode Grotto.
+func TestTransformedTokenCopyKeepsCopyExceptionsLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-lci", []stdRepro{
+		{"transformed_token_copy_keeps_copy_exceptions", false},
+	})
+}
+
 // std-tla's: the first decision of each once diverged.
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()

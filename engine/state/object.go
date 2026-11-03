@@ -764,8 +764,13 @@ type Object struct {
 	// continuous effects registered by the primitive, so this face stays the
 	// source's PRINTED face and the layer walk applies the exceptions in CR 613
 	// order on top. nil on every object that is not a copy.
-	CopyFace   *cards.Face
-	FaceIdx    uint8
+	CopyFace *cards.Face
+	// CopyFaceBack is the other face of a double-faced token copy whose copy
+	// effect had exceptions (CR 707.8a, 707.9b: each face takes them): the
+	// edited face the token shows when it transforms. foldFlipFace swaps it
+	// with CopyFace. nil unless such a token; SetCopyFace clears it.
+	CopyFaceBack *cards.Face
+	FaceIdx      uint8
 	Owner      PlayerID
 	Controller PlayerID
 	Zone       Zone
@@ -2192,7 +2197,16 @@ func (o *Object) SetFaceIdx(i uint8) {
 // SetCopyFace sets CopyFace and keeps the Face() cache coherent.
 func (o *Object) SetCopyFace(f *cards.Face) {
 	o.CopyFace = f
+	o.CopyFaceBack = nil
 	o.face = o.faceSlow()
+}
+
+// SwapCopyFaces shows a double-faced token copy's other edited face (the
+// token transformed) and keeps the one it leaves as the other.
+func (o *Object) SwapCopyFaces() {
+	front, back := o.CopyFace, o.CopyFaceBack
+	o.SetCopyFace(back)
+	o.CopyFaceBack = front
 }
 
 // SetCard sets Card and FaceIdx together and keeps the Face() cache coherent.

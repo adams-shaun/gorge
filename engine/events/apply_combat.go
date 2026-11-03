@@ -418,6 +418,7 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 		o.SetFaceIdx(faceIdx)
 		if basis != nil {
 			o.SetCopyFace(basis)
+			o.CopyFaceBack = copyTokenBack(src)
 		}
 		// CR 718.3c/d: a Myriad token copy of a prototyped permanent is
 		// prototyped too. The token is put onto the battlefield, never cast,
