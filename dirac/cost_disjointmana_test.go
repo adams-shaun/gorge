@@ -171,3 +171,42 @@ func TestTapXManaDisjoint(t *testing.T) {
 		}
 	}
 }
+
+// TestTapXPickOffersWhatTheManaNeeds: once Volrath's Gardens is offered, its
+// tap election lists every untapped creature, the Llanowar Elves its {2}
+// leans on included (gorge tapPermanentCostAsk offers each candidate; the
+// payment is checked after the pick). Electing the Elves leaves the Forest
+// alone to pay {2}, so the activation is reversed with nothing tapped (CR
+// 733.1) and the Bears pay the cost on the second try.
+func TestTapXPickOffersWhatTheManaNeeds(t *testing.T) {
+	for _, cfg := range ksacCfgs {
+		sc, _, objs := ksacScen(t, cfg, "Volrath's Gardens", "Forest", "Llanowar Elves", "Grizzly Bears")
+		gardens, elves, bears := objs[0], objs[2], objs[3]
+		if !sc.activateAb(gardens, 0) {
+			t.Fatalf("lower %v autopay %v: Gardens not offered", cfg.GorgeLowering, cfg.GorgeAutopaySurface)
+		}
+		d := sc.s.Step()
+		if d.Kind != DkChoose || d.Sub != ChCostTap {
+			t.Fatalf("lower %v autopay %v: decision %d/%d after the activation, want the tap election", cfg.GorgeLowering, cfg.GorgeAutopaySurface, d.Kind, d.Sub)
+		}
+		var pickElves, pickBears Action
+		for i := 0; i < int(d.N); i++ {
+			switch Obj(d.Options[i].Source()) {
+			case elves:
+				pickElves = d.Options[i]
+			case bears:
+				pickBears = d.Options[i]
+			}
+		}
+		if pickElves == 0 || pickBears == 0 {
+			t.Fatalf("lower %v autopay %v: the election offers %d options without both creatures", cfg.GorgeLowering, cfg.GorgeAutopaySurface, d.N)
+		}
+		sc.s.Apply(pickElves)
+		for i := 0; i < 3 && sc.s.Step().Kind != DkPriority; i++ {
+			sc.s.Apply(sc.s.Step().Options[0])
+		}
+		if sc.tapped(elves) || sc.tapped(bears) || sc.tapped(gardens) {
+			t.Errorf("lower %v autopay %v: the reversed activation left a cost paid", cfg.GorgeLowering, cfg.GorgeAutopaySurface)
+		}
+	}
+}

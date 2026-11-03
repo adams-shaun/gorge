@@ -1739,9 +1739,6 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {
 				continue
 			}
-			if k.gen != nil && !s.pickKeepsPayable(k, sl) {
-				continue
-			}
 			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
 		}
 	}
