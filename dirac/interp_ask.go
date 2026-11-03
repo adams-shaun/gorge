@@ -171,7 +171,8 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 }
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
-// a tap source, the untapped sacrifice-only arm, or a gap source with its cost payable.
+// a tap source, the untapped sacrifice-only arm, a gap source with its cost payable,
+// or a restricted mana ability.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
@@ -187,6 +188,16 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
 		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 {
 			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
+				return true
+			}
+		}
+		// gorge untappedManaSource: any available mana ability counts here,
+		// whatever its RestrictValid$ (availPotentialFor prices the
+		// restriction against this payment next), so a source whose only
+		// ability is restricted (Hydraulic Helper) funds a trigger's cost.
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for j := range cd.Abilities {
+			if ab := &cd.Abilities[j]; j < 16 && ab.Kind == kop.AbMana && ab.AFlags&kop.AfLatent == 0 && ab.ManaRestrict != 0 && s.potentialAdmits(k, p, sl, j, ab, nil) {
 				return true
 			}
 		}
