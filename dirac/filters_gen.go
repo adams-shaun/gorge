@@ -451,6 +451,12 @@ func (s *State) matchCardGenAt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 	if o != NoObj && s.g.tli&tliOn == 0 && s.objs[o].of&ofCopy != 0 && s.copyCeased(k, o) {
 		return false
 	}
+	return s.matchCardChain(k, f, c, owner, ctrl, o, ctx)
+}
+
+// matchCardChain is matchCardGenAt past its ceased-copy test: f's Or chain
+// against the card, nothing else.
+func (s *State) matchCardChain(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
 	for f != 0 {
 		if s.matchCardOneAt(k, &k.t.Filters[f], c, owner, ctrl, o, ctx) {
 			return true

@@ -100,7 +100,9 @@ func (s *State) matchRemLKI(k *prep, f kop.FilterID, o Obj, ctx evalCtx) (m int,
 	if l == nil {
 		return 0, false
 	}
-	if s.matchCardGen(k, f, s.objs[o].card, l.ctrl, ctx.ctrl, o) {
+	// a token copy bounced to hand is still the permanent the capture
+	// describes (CR 608.2h, 111.8): it is read, not ceased, until the next check
+	if s.matchCardChain(k, f, s.objs[o].card, l.ctrl, ctx.ctrl, o, nil) {
 		return 1, true
 	}
 	return 0, true
