@@ -1,8 +1,6 @@
 package dirac
 
 import (
-	"math/bits"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -180,8 +178,10 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			if ask && mask&(mask-1) != 0 && !fs.tick() {
 				return false
 			}
-			for m := mask; m != 0; m &= m - 1 {
-				if try(otherStep{kind: otherGrant, ans: uint8(bits.TrailingZeros8(m)), n: n, gi: g}) {
+			var order [kop.NumManaKinds]uint8
+			no := t.stepColours(k, sl, g, mask, &order)
+			for _, c := range order[:no] {
+				if try(otherStep{kind: otherGrant, ans: c, n: n, gi: g}) {
 					return true
 				}
 			}
