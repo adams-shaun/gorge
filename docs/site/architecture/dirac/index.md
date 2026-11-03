@@ -98,9 +98,9 @@ dirac does less than gorge on purpose.
 | Deck size | 60 cards a seat | rejected at setup |
 | Card instances, both decks plus tokens and copies | 192 | the game stalls (`board`) |
 | Battlefield | 112 permanents | stalls (`board`) |
-| Stack | 24 entries | stalls (`stack`) |
-| Triggered abilities waiting | 24 | stalls (`pending`) |
-| Delayed triggers | 16 | stalls (`delayed`) |
+| Stack | 48 entries | stalls (`stack`) |
+| Triggered abilities waiting | 48 | stalls (`pending`) |
+| Delayed triggers | 32 | stalls (`delayed`) |
 | Attack or block options in one declaration | 512 | stalls (`options`) |
 | Triggers resolved in one turn | 2,000 | stalls (`loop`, an endless mandatory loop, CR 104.4b) |
 
