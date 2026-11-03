@@ -524,7 +524,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostSacSelf != 0 && k.sacMana && s.sacSelfMana(k, sl) {
 		return s.abilityAffordsSacSelf(k, sl, a, cost, av) // filter_combatwords.go
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, NoSlot)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
+	// a source that taps for mana only under a spend restriction (Isolinear
+	// Processor) is outside the ordinary walk above, but its own {T} still
+	// takes its mana out of the restricted sources this activation may spend.
+	skip := NoSlot
+	if f&kop.CostTap != 0 {
+		skip = sl
+	}
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
