@@ -863,7 +863,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	29
+ReplCount	ReplKind	30
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -881,6 +881,8 @@ ReplDoubleCountersOn	ReplKind	20
 ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
+ReplDrawMore	ReplKind	29
+ReplDrawNotFirst	untyped int	1
 ReplEntersAsChoice	ReplKind	5
 ReplEntersProgram	ReplKind	6
 ReplEntersTapped	ReplKind	1

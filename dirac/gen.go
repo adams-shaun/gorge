@@ -376,6 +376,7 @@ const (
 	rbPrevCol                         // Ext PreventColor: damage from sources of a chosen colour is prevented this turn (anyRepl only; cast_altfree.go)
 	rbDblLoss                         // ReplLifeLossDouble (repl_lifelossdouble.go)
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
+	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -811,6 +812,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplLifePlus:
 					g.replBits[i] |= rbPlusLife
+					pc.hasStat = true
+				case kop.ReplDrawMore:
+					g.replBits[i] |= rbDrawMore
 					pc.hasStat = true
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
@@ -1319,7 +1323,7 @@ type genState struct {
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
 	energy    [2]uint8            // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
-	_         uint8               // padding (the layout stays)
+	drawFirst bool                // the turn-based draw of the draw step is pending and no card has been drawn in it yet (repl_draw.go; transient, false between decisions)
 	conn      uint8               // OpConnive's nonland hand count before its discard, +1 (0: no connive pending; padding; trig_delayedtiming.go)
 	held      uint8               // entry stamps (mod 8) of until-leaves returns whose enters check a departure frame holds (zone_untilleavesbatch.go; 0 outside a frame; fills the padding after conn)
 

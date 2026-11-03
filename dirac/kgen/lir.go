@@ -802,7 +802,7 @@ type lRepl struct {
 	// puts on the permanent (ValidSource$ You; Doc Samson)
 	Putter bool
 	Prog   []lInstr
-	Bits   int // DamagePlus: the recipients (kop.ReplDmg* bits)
+	Bits   int // DamagePlus: the recipients (kop.ReplDmg* bits); DrawMore: kop.ReplDraw* flags
 	// AnyZone: ExileOnLeave applies to a move to a graveyard from every zone
 	// (Repl.C = 1), not only a permanent dying.
 	AnyZone bool

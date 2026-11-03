@@ -24,11 +24,11 @@ import (
 // The earlier LIR-only pins were higher (ALL 17340 vs 16588 built).
 var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21161, 34442},
+	"ALL": {21167, 34442},
 	"BIG": {23, 30},
 	"BLB": {255, 278},
 	"BRO": {206, 280},
-	"DFT": {245, 276},
+	"DFT": {246, 276},
 	"DMU": {189, 270},
 	"DSK": {231, 276},
 	"ECL": {230, 273},
@@ -36,7 +36,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"FDN": {505, 517},
 	"FIN": {265, 312},
 	"FRA": {242, 269},
-	"HOB": {151, 172},
+	"HOB": {152, 172},
 	"LCI": {247, 290},
 	"MKM": {227, 279},
 	"MOM": {195, 296},
@@ -50,8 +50,8 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {242, 276},
 	"TLA": {244, 285},
 	"TMT": {169, 194},
-	"TRC": {266, 337},
-	"TRK": {246, 311},
+	"TRC": {267, 337},
+	"TRK": {247, 311},
 	"WOE": {250, 281},
 }
 

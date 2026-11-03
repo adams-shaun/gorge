@@ -37,6 +37,9 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 	if s.g.on && s.k().gen.graveDrawn {
 		s.cfgx |= cfgxGraveDrawn
 	}
+	if s.g.on && s.k().gen.anyRepl&rbDrawMore != 0 {
+		s.cfgx |= cfgxDrawMore
+	}
 	if s.g.on && s.k().gen.anyCantDraw {
 		s.cfgx |= cfgxCantDraw
 	}

@@ -35,7 +35,7 @@ func (lc *lowerCtx) maxSpeedGrantedRepl(sp *params, name string, gy bool) error 
 	if err != nil {
 		return err
 	}
-	if len(lc.out.Repls) != idx+1 || lc.out.Repls[idx].Kind != "DamagePlus" || lc.out.Repls[idx].Cond.Kind != cNone {
+	if len(lc.out.Repls) != idx+1 || (lc.out.Repls[idx].Kind != "DamagePlus" && lc.out.Repls[idx].Kind != "DrawMore") || lc.out.Repls[idx].Cond.Kind != cNone {
 		return refuse("MaxSpeed granted replacement %s", name)
 	}
 	lc.out.Repls[idx].Cond = lCond{Kind: cValue, A: lValue{Kind: vYourSpeed}, Op: opGE, B: cst(4)}

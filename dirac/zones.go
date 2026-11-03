@@ -223,6 +223,12 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 // 121.6: gorge replaces the empty-library mark of a player under
 // drawForbidden with a Note, replacement.go).
 func (s *State) draw(p uint8) {
+	s.drawExcl(p, drawChain{})
+}
+
+// drawExcl is draw with the draw replacements already applied to this
+// draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
+func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl := &s.pl[p]
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw) {
 		return // static_cantdraw.go: before the empty-library mark
@@ -233,10 +239,14 @@ func (s *State) draw(p uint8) {
 		pl.drewEmpty = true
 		return
 	}
+	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
+		return // repl_draw.go: the replacement drew in this draw's place
+	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)
 		return
 	}
+	s.g.drawFirst = false
 	o := pl.lib[pl.libLo]
 	pl.libLo++
 	s.touch(o)

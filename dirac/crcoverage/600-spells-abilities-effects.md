@@ -246,7 +246,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 614.2 | follows | `dirac/repl_gen.go#State.replDamage` | - | damage replacements |
 | 614.3 | follows | `dirac/repl_gen.go#State.replDamage` | - | no special restriction modelled |
 | 614.4 | follows | `dirac/repl_gen.go#State.replN` | - | must exist before the event |
-| 614.5 | follows | `dirac/repl_gen.go#State.replDamage` | `TestReplOrderNoncombatTwoTwinflames` | each applies once; x4 not x2/inf |
+| 614.5 | follows | `dirac/repl_gen.go#State.replDamage` `dirac/repl_draw.go#State.drawMore` | `TestReplOrderNoncombatTwoTwinflames` `TestDrawMore` | each applies once; x4 not x2/inf; a draw replacement's own draws skip the ones already applied to the lineage |
 | 614.6 | follows | `dirac/repl_gen.go#State.graveRedirect` | `TestExileInsteadOfDyingOnSacrifice` | modified event replaces the original |
 | 614.7 | follows | `dirac/repl_gen.go#State.replDamage` | - | - |
 | 614.7a | follows | `dirac/repl_gen.go#State.replDamage` | - | 0 damage is no event, never replaced |

@@ -79,7 +79,7 @@ var stallCapacityReasons = [...]uint8{
 }
 
 var stallUnmodelledReasons = [...]uint8{
-	StallInfect, StallReplPlus, StallLifeRepl, StallProlif, StallCtrOrder,
+	StallInfect, StallReplPlus, StallLifeRepl, StallDrawRepl, StallProlif, StallCtrOrder,
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,

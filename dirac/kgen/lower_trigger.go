@@ -2794,6 +2794,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.lifeGainRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
+	case "Draw":
+		if err := lc.drawRepl(rp, r.With, &rl); err != nil { // lower_drawrepl.go
+			return err
+		}
 	case "LifeReduced":
 		if err := lc.lifeLossRepl(rp, r.With, &rl); err != nil {
 			return err

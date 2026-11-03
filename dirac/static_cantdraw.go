@@ -4,7 +4,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // cfgxCantDraw: the table has a StatCantDraw static, so draw() consults
 // playerBanned. Set once at Init (engine.go). Bit 6 is free in State.cfgx
-// (state.go uses bits 0-2 and 7).
+// (state.go uses bits 0-2 and 7; repl_draw.go bit 5).
 const cfgxCantDraw uint8 = 1 << 6
 
 // DebugPlayerBanOff is TestPbanMutation's switch.

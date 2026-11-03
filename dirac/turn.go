@@ -168,7 +168,9 @@ func (s *State) beginStep(k *prep) {
 			s.step = kop.StepMain1
 			return
 		}
+		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
 		s.draw(s.active)
+		s.g.drawFirst = false
 		if s.over {
 			return
 		}

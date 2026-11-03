@@ -1967,6 +1967,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
+	case "DrawMore":
+		rp.Kind = kop.ReplDrawMore // lower_drawrepl.go
+		if !r.N.isConst() || r.N.N < 2 {
+			return ka, fmt.Errorf("draw more %v", r.N)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":
