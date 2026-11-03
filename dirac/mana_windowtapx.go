@@ -13,8 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (raGenWinTap, ChWindowTap), posed from inside the window walk: the walk stops
 // there, and the answer taps, floats the mana and runs the walk on (payWindow).
 //
-// Only the unless and ward windows that wait out a pick are modelled (winPay,
-// winWard); every other window leaves the source out as before. Everything is
+// Only the unless, ward and trigger-cost windows that wait out a pick are modelled (winPay,
+// winWard, winTrig); every other window leaves the source out as before. Everything is
 // behind prep.tapMana.
 
 // ChWindowTap: source = the permanent tapped to pay a window-activated
@@ -29,6 +29,7 @@ const (
 	winNone uint8 = iota
 	winPay        // an unless or ward cost inside a program (raGenPay's PayMana)
 	winWard       // a ward cost asked as the generic ward ask (raGeneric)
+	winTrig       // a trigger's own cost funded through the manual window, which cannot pay it
 )
 
 // payWindowAsk is payWindow for a window that can wait out a tap-another pick;
@@ -45,6 +46,22 @@ func (s *State) payWindowAsk(k *prep, p uint8, cost *kop.ManaCost, mode uint8) (
 	}
 	s.g.winMode = winNone
 	return false, short
+}
+
+// trigWindowTap is windowTapNoOwed for a trigger's own cost funded through the manual
+// window, which can wait out a tap-another pick (paused: the answer runs the window on).
+//
+//go:noinline
+func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool) {
+	if k.tapMana {
+		s.g.winMode = winTrig
+	}
+	s.windowTapNoOwed(k, p, cost)
+	if s.res.ask == raGenWinTap {
+		return true
+	}
+	s.g.winMode = winNone
+	return false
 }
 
 // windowTapXOffer: source o is a tap-another-permanent source the window lists
@@ -124,6 +141,14 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	sl := s.g.winSrc
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: col})
+	if s.g.winMode == winTrig {
+		// the trigger's window taps on; the charge fails, as payReplanned's does
+		if s.trigWindowTap(k, p, &cost) {
+			return true
+		}
+		s.payDone(k, false)
+		return true
+	}
 	paused, short := s.payWindow(k, p, &cost)
 	if paused {
 		return true

@@ -82,7 +82,7 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 	dry.dry = true
 	s.tapPlanNeed(k, p, &c, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
-		s.windowTapNoOwed(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
+		s.trigWindowTap(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 		return false
 	}
 	for i := 0; i < MaxPerm && !s.poolPays(p, &c); i++ {
@@ -95,7 +95,7 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		}
 	}
 	if !s.poolPays(p, &c) {
-		s.windowTapNoOwed(k, p, &c)
+		s.trigWindowTap(k, p, &c)
 		return false
 	}
 	s.payFromPool(p, &c, 0)

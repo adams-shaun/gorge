@@ -171,7 +171,7 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 }
 
 // anyManaSource reports whether p has an untapped source to fund a payment with:
-// a tap source or the untapped sacrifice-only arm.
+// a tap source, the untapped sacrifice-only arm, or a gap source with its cost payable.
 //
 //go:noinline
 func (s *State) anyManaSource(k *prep, p uint8) bool {
@@ -183,6 +183,12 @@ func (s *State) anyManaSource(k *prep, p uint8) bool {
 		pc := s.manaPCGen(k, sl)
 		if s.canTapForManaPC(k, sl, pc) || k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc) {
 			return true
+		}
+		// a tap-another-permanent or counter-cost source: gorge's walk counts it too
+		if c := s.cardAt(sl); k.cards[c].manaAb >= 0 {
+			if j := int(k.cards[c].manaAb); s.potentialAdmits(k, p, sl, j, &k.t.Cards[c].Abilities[j], nil) {
+				return true
+			}
 		}
 	}
 	return false
@@ -580,6 +586,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated
 				// mana stay, the charge fails and the flow declines
+				if s.res.ask == raGenWinTap {
+					return // a tap-another source's pick (mana_windowtapx.go)
+				}
 				s.payDone(k, false)
 				return
 			}

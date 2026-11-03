@@ -1165,7 +1165,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 				}
 				done[sl] |= 1 << j
 				progressed = true
-				if ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaDynamic != 0 {
+				if ab.ManaColors == kop.ColAny || ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor) != 0 { // gorge's walk reads an each-colour production (Bloom Tender) as open
 					open = true
 				} else {
 					add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
@@ -1190,7 +1190,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 // admitting the payment.
 func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, d *payDesc) bool {
 	pp := &s.perms[sl]
-	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
+	if ab.Cost.Flags&^(kop.CostTap|kop.CostSacSelf|kop.CostPayLife|kop.CostOncePerTurn) != 0 && !s.potentialGapCost(k, p, sl, j, ab) || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) {
 		return false
 	}
 	if ab.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pp.actUsed&(1<<j) != 0 {
@@ -1209,6 +1209,26 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 		return false
 	}
 	return d == nil || ab.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, ab, d)
+}
+
+// potentialGapCost reports whether mana ability j of the source at sl, whose cost goes
+// beyond a tap, a self-sacrifice and life, is one gorge's potential-mana walk
+// admits while its cost can be paid: a tap-another-permanent source with a permanent to
+// tap (Springleaf Drum, Baylen's tokens), or a counter cost put on its source once each
+// turn (Wall of Roots). They are the shapes kop.ManaAbilityHonoured lists.
+func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
+	c := s.cardAt(sl)
+	if k.cards[c].manaAb != int8(j) {
+		return false
+	}
+	switch {
+	case kop.CtrManaAb(ab):
+		return true
+	case k.tapMana && kop.TapXMana(ab):
+		var cs [MaxPerm]Slot
+		return s.tapXCands(k, p, sl, &cs) >= int(ab.Cost.N)
+	}
+	return false
 }
 
 // potentialCovers reports whether the pool others covers cost's pips and total.

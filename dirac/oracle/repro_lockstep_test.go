@@ -135,6 +135,21 @@ func TestFaceCastWitnessSacrificeTriggerResolvesFirstLockstep(t *testing.T) {
 	synthReproLockstep(t, "face_cast_witness_sac_trigger", "std-hob", Config{GorgeAutopaySurface: true})
 }
 
+// Trystan's "you may pay {B}" with a Springleaf Drum as the only black the board could make:
+// gorge's potential mana counts a tap-another-permanent source whose creature is there to
+// tap, so the pay is offered beside the decline.
+func TestTriggerCostCountsATapAnotherSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "trigger_cost_tap_another_source", "std-ecl", Config{})
+}
+
+// Trystan's "you may pay {B}" with a Bloom Tender as the only source that could make black:
+// gorge's potential mana reads its each-colour production as open, so the pay is offered.
+func TestTriggerCostCountsAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "trigger_cost_each_colour_source", "std-ecl", Config{GorgeAutopaySurface: true})
+}
+
 // A mass move onto the battlefield asks each as-enters choice with that card and the later
 // ones still in their zones, under the controller it will have: Rise of the Dark Realms and
 // Diamond Mare, Lumra and Uncharted Haven.
