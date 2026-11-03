@@ -318,7 +318,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
 	}
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
-		s.filterSplitSecond(k, d) // split_second.go
+		s.filterSplitSecond(k, d) // kw_splitsecond.go
 	}
 	d.add(MakeAction(AkPass, 0, 0, 0))
 }

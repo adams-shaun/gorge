@@ -36,7 +36,7 @@ import (
 //   - Split second lowers to Kind "StackKw" too: gorge reads the derived
 //     keyword off each spell on the stack at every priority offer
 //     (rules split_second.go), so the kernel reads the grant off the stack
-//     entries (kernel split_second.go). The printed keyword has no form in
+//     entries (kernel kw_splitsecond.go). The printed keyword has no form in
 //     the kernel.
 //   - Every other keyword (Conspire, Delve) has no printed form in the
 //     kernel and refuses by name.

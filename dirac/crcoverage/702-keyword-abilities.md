@@ -109,7 +109,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.58a,b | n/a | - | - | gorge's expansion, lowered: the intervening if is an ordinary Present condition |
 | 702.59a | n/a | - | - | LOUD (7) |
 | 702.60a,b | n/a | - | - | LOUD printed (5); SILENT granted (Thrumming Stone) |
-| 702.61a-c | partial | `dirac/split_second.go#State.splitSecondHolds` `dirac/split_second.go#State.filterSplitSecond` | `TestSplitSecondGrantPlaysInLockstep` `TestSplitSecondGrantMutation` `TestSplitSecondStackGrant` | a StatStackKw split second grant to a controller's instants and sorceries (Samut, Tyrant of Naktamun), read live off each spell on the stack; while one holds it the priority offer drops every cast and non-mana ability, keeping land plays, the Station and face-up special actions and mana abilities (gorge filterSplitSecondActions); a printed Split second keyword has no kernel form and stays refused |
+| 702.61a-c | partial | `dirac/kw_splitsecond.go#State.splitSecondHolds` `dirac/kw_splitsecond.go#State.filterSplitSecond` | `TestSplitSecondGrantPlaysInLockstep` `TestSplitSecondGrantMutation` `TestSplitSecondStackGrant` | a StatStackKw split second grant to a controller's instants and sorceries (Samut, Tyrant of Naktamun), read live off each spell on the stack; while one holds it the priority offer drops every cast and non-mana ability, keeping land plays, the Station and face-up special actions and mana abilities (gorge filterSplitSecondActions); a printed Split second keyword has no kernel form and stays refused |
 | 702.62a-d | n/a | - | - | not audited in depth |
 | 702.63a-c | n/a | - | - | works; kw:Vanishing unregistered gates 21 printed |
 | 702.64a-c | n/a | - | - | SILENT (granted-only in corpus) |
