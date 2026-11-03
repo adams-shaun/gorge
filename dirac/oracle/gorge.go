@@ -1425,7 +1425,14 @@ func (g *GorgeSide) lower(pe prioEntry) (done bool) {
 	x := payexec.StartPlay(d.Player, pe.play, pe.plan, payexec.PoolOf(e, d.Player))
 	for x.Status() == payexec.InProgress {
 		if e.G.Over {
-			return false
+			// The activations that fund the play can win the game before it
+			// is cast: a Treasure sacrificed beside The Sackville-Bagginses
+			// drains the last life, and its trigger resolves ahead of the
+			// cast the kernel makes from inside its payment window (CR
+			// 601.2g, 603.3b). With every activation made and the lowering
+			// seat the winner the line is complete: nothing a later cast
+			// could change remains.
+			return x.Remaining() == 0 && !e.G.Draw && e.G.Winner == x.Player
 		}
 		d := e.Pending()
 		if d == nil {
