@@ -267,3 +267,29 @@ func TestQuietServeWindowCollectorSkipped(t *testing.T) {
 		}
 	})
 }
+
+// TestQuietProofBlocksOnReduceColorOptionalCost: with its only land tapped, one
+// floating colourless mana and a {1}{B} black creature in hand, the printed
+// floor of 2 is out of reach, but Defiler of Flesh's ReduceColor$ OptionalCost
+// static makes the cast {1} for 2 life. The walk offers the cast, so the proof
+// must name the static as its blocker rather than call the seat quiet.
+func TestQuietProofBlocksOnReduceColorOptionalCost(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	corpse := lookup(t, reg, "Walking Corpse")
+	defiler := lookup(t, reg, "Defiler of Flesh")
+	e := quietBaseLandWith(t, reg, "Swamp", []*cards.Card{corpse, defiler})
+	id := addHand(t, e, 0, corpse)
+	for _, land := range e.G.Zone(state.ZBattlefield, 0) {
+		e.emit(events.Event{Kind: events.Tap, Obj: land})
+	}
+	addZone(t, e, 0, defiler, state.ZBattlefield)
+	// One floating colourless: short of the printed {1}{B}, enough for {1}.
+	e.G.Players[0].Pool[state.MC] = 1
+	e.priorityRound()
+	if !hasCastOption(e.legalActions(0), id) {
+		t.Fatalf("precondition: the walk does not offer the black creature: %v", optSummary(e.legalActions(0)))
+	}
+	if got := e.quietBlocker(0); got != qbBoardCostStatic {
+		t.Fatalf("quietBlocker = %s, want %s", quietBlockerNames[got], quietBlockerNames[qbBoardCostStatic])
+	}
+}
