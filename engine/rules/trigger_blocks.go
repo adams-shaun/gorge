@@ -1016,11 +1016,12 @@ func (e *Engine) checkEffectCombatTriggers(ev events.Event, modes ...string) {
 }
 
 // printedTriggersOf is f's printed triggered abilities as o has them: none while
-// a "loses all abilities" effect applies to o (CR 613.1f), the gate the ordinary
-// trigger walk applies (printedAbilitiesLost). The combat-trigger scanners above
-// walk a face directly and read the list through it.
+// o is face down (CR 708.2a, so a manifested Norin never sees a creature become
+// blocked) or while a "loses all abilities" effect applies to o (CR 613.1f), the
+// gates the ordinary trigger walk applies (printedAbilitiesGone). The
+// combat-trigger scanners above walk a face directly and read the list through it.
 func (e *Engine) printedTriggersOf(o *state.Object, f *cards.Face) []cards.Trigger {
-	if e.printedAbilitiesLost(o) {
+	if e.printedAbilitiesGone(o) {
 		return nil
 	}
 	return f.Triggers
