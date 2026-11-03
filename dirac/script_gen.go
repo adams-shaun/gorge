@@ -458,7 +458,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		}
 		walk.Options[j], key[j] = a, kk
 	}
-	if k.gen.anyTapExtra {
+	if k.gen.anyTapExtra && s.tapExtraLive(k, p) {
 		s.grantCapOutsideWalk(k, d, p, &walk)
 	}
 	n := 0

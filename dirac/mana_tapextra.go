@@ -145,6 +145,18 @@ func (s *State) subXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 	}
 }
 
+// tapExtraLive: p controls a permanent whose StatTapExtra is in force.
+func (s *State) tapExtraLive(k *prep, p uint8) (live bool) {
+	s.eachStatic(k, func(st statSrc) bool {
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatTapExtra && st.ctrl == p&1 && st.sl != NoSlot {
+			live = true
+			return false
+		}
+		return true
+	})
+	return live
+}
+
 // tapExtraPlain: the source is one plain {T} ability whose mana is n of one
 // fixed colour or one colour of a choice.
 func (s *State) tapExtraPlain(pc *pcard) bool {

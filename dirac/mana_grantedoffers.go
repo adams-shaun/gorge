@@ -476,6 +476,10 @@ func (g *grantSrch) visit(t *State) bool {
 // branch tries tapping candidate i (slot sl) for each colour of mask in
 // W U B R G C order: a choice of colours is an ask node when ask (gorge's
 // colour ask, one node, every answer branched on).
+//
+// A step floats its tap's extra (mana_tapextra.go) on a table with Continuous
+// grants, the shape gorge's search was checked on; a mana ability granted by another
+// kind of effect floats its colour alone.
 func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, ask bool) bool {
 	if mask == 0 {
 		mask = 1 << kop.C
@@ -484,7 +488,7 @@ func (g *grantSrch) branch(t *State, i int, sl Slot, gi int16, mask, n uint8, as
 		return false
 	}
 	var pc *pcard
-	if g.k.gen.anyTapExtra {
+	if g.k.gen.anyTapExtra && g.k.gen.anyContGrant {
 		pc = t.stepView(g.k, sl, gi)
 	}
 	for c := uint8(0); c < kop.NumManaKinds; c++ {
@@ -612,7 +616,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		} else {
 			s.pl[g.p&1].pool[st.col] += st.n
 		}
-		if k.gen.anyTapExtra {
+		if k.gen.anyTapExtra && k.gen.anyContGrant {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
 			s.addXv(g.p&1, &xv)
 		}
