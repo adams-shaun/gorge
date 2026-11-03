@@ -87,6 +87,11 @@ func ParseKinds(s string) (Kinds, error) {
 
 // Options are one Search's knobs; DefaultOptions holds the spec's values.
 type Options struct {
+	// Line > 0 asks Search for the principal line: up to Line plies of the
+	// most-visited continuation below the chosen root child (Result.Line).
+	// It only reads the tree, so the Result's choice, visits and values are
+	// the same with it on or off; 0 builds no label and keeps no node.
+	Line int
 	// Sims is the simulation budget per searched decision (-az-sims). 0 or
 	// less never builds a tree: the bot's answer is played.
 	Sims int

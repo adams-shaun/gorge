@@ -108,6 +108,7 @@ func ClosedFactory(belief *searchprobe.Belief, sims int) bots.Factory {
 		cfg.World, cfg.Belief = azmcts.WorldRedealClosed, belief
 		cfg.Search.Sims = sims
 		cfg.Search.AutoPayment = o.AutoPayMana
+		cfg.Search.Line = o.ExpectedLine
 		return New(o, cfg)
 	}
 }

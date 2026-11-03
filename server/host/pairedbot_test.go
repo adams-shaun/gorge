@@ -163,7 +163,7 @@ func TestPairedBotAdviceIgnoresHiddenOpponentCards(t *testing.T) {
 	if len(a) != len(b) {
 		t.Fatalf("%d decisions against %d", len(a), len(b))
 	}
-	searched := 0
+	searched, lined := 0, 0
 	for i := range a {
 		x, _ := json.Marshal(a[i])
 		y, _ := json.Marshal(b[i])
@@ -177,13 +177,22 @@ func TestPairedBotAdviceIgnoresHiddenOpponentCards(t *testing.T) {
 			}
 			if n.Search != nil {
 				searched++
+				if len(n.Search.Line) > 0 || n.Search.LineEnd != "" {
+					lined++
+				}
 			}
 		}
 	}
 	if searched == 0 {
 		t.Fatalf("fixture: none of the %d decisions was searched: %+v", len(a), a)
 	}
-	t.Logf("%d decisions, %d searched", len(a), searched)
+	// The expected line is part of the bytes compared above, so it too is
+	// the same whatever the opponent holds. Every searched decision says
+	// what it expects, or why it expects nothing.
+	if lined != searched {
+		t.Fatalf("%d of %d searched decisions carried neither an expected line nor the reason for none", searched-lined, searched)
+	}
+	t.Logf("%d decisions, %d searched, %d with an expected line", len(a), searched, lined)
 }
 
 // One game played with and without advice has the same hash chain.

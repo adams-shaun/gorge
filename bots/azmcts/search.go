@@ -64,6 +64,10 @@ type Result struct {
 	// under Sample, draws the move from. nil with ForcedK 0, or when no
 	// simulation completed.
 	Target []int
+	// Line is the principal line below the chosen root child (Options.Line),
+	// and LineEnd says why it stops short of the requested length.
+	Line    []LineStep
+	LineEnd string
 }
 
 // RootRow is one root child of a Search: its semantic key, a
@@ -278,7 +282,7 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		envSeed: splitmix(opts.Seed ^ 0x656e762d73656564), actor: root.Decision.Player, autoPayment: opts.AutoPayment, skipPass: opts.SkipPass,
 		uniformPrior: opts.UniformPrior, rootPerWorld: opts.RootPerWorld,
 		nameKeys: opts.NameKeys, rootRefs: root.Observer.Introduced(),
-		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats,
+		root: rootPt, rootCands: cands, rootDec: root.Decision, stats: &res.Stats, line: opts.Line,
 		envBoard: &envBoard, enumBoard: &enumBoard, views: views,
 	}
 	if opts.OpponentNodes {
@@ -332,6 +336,9 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 	res.Choice = chooseMove(played, opts, rng)
 	if res.Choice != 0 || !botFound {
 		res.Intent = cands[res.Choice].in
+	}
+	if tr.top != nil && res.Choice < len(tr.top.kids) {
+		res.Line, res.LineEnd = principalLine(tr.top.kids[res.Choice], opts.Line)
 	}
 	return res, nil
 }

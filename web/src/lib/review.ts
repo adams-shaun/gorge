@@ -32,6 +32,17 @@ export interface ExplainRow {
   bot?: boolean;
 }
 
+/** bots/explain.Ply: one step of a search's expected line. */
+export interface ExplainPly {
+  actor: 'you' | 'opponent' | string;
+  label: string;
+  visits: number;
+  /** The fraction of the visits at its decision, 0 to 1. */
+  share: number;
+  /** The deciding seat's value after the ply, -1 to +1. */
+  q: number;
+}
+
 /** bots/explain.Search. */
 export interface ExplainSearch {
   engine: string;
@@ -41,6 +52,10 @@ export interface ExplainSearch {
   ms?: number;
   rows: ExplainRow[];
   dropped?: number;
+  /** The most-visited plies after the chosen row. Only the paired bot asks for them. */
+  line?: ExplainPly[];
+  /** Why the line stops short: 'hidden' (the next ply needs cards the player cannot see) or 'unexplored'. */
+  line_end?: 'hidden' | 'unexplored' | string;
 }
 
 /** bots/explain.Net. */

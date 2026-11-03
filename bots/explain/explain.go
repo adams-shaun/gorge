@@ -116,6 +116,27 @@ type Search struct {
 	Rows []Row `json:"rows"`
 	// Dropped is the number of candidates not listed.
 	Dropped int `json:"dropped,omitempty"`
+	// Line is the principal line below the chosen row: the most-visited
+	// continuation, ply by ply. Empty unless the driver asked for it.
+	Line []Ply `json:"line,omitempty"`
+	// LineEnd says why Line stops short of what was asked: "hidden" (the
+	// next ply depends on information the player cannot see) or
+	// "unexplored" (the search never looked further).
+	LineEnd string `json:"line_end,omitempty"`
+}
+
+// Ply is one step of a Search's principal line.
+type Ply struct {
+	// Actor is "you" (the deciding seat) or "opponent".
+	Actor string `json:"actor"`
+	// Label is the plain-words action.
+	Label string `json:"label"`
+	// Visits is the ply's visit count, summed over every sampled world that
+	// reached it; Share is its fraction of the visits at its decision.
+	Visits int     `json:"visits"`
+	Share  float64 `json:"share"`
+	// Q is the deciding seat's value after the ply, in [-1,1].
+	Q float64 `json:"q"`
 }
 
 // Row is one root candidate.

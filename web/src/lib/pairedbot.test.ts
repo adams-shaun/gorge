@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Decision } from '../protocol';
-import { adviceRows, differedNote, loadDifferedNotes, loadPairedBotOn, loadShowRules, pairedRowLabel, saveDifferedNotes, saveShowRules, savePairedBotOn, shownRows, winChance } from './pairedbot';
+import { adviceRows, differedNote, expectedLine, loadDifferedNotes, loadPairedBotOn, loadShowRules, pairedRowLabel, saveDifferedNotes, saveShowRules, savePairedBotOn, shownRows, winChance } from './pairedbot';
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -201,5 +201,29 @@ describe('differed notes in storage', () => {
     expect(loadDifferedNotes('t1', 1, 1, s)).toEqual([]);
     expect(loadDifferedNotes('t1', 2, 0, s)).toEqual([]);
     expect(loadDifferedNotes('t2', 1, 0, null)).toEqual([]);
+  });
+});
+
+describe('expectedLine', () => {
+  it('words each ply by who acts and reads its numbers as percentages', () => {
+    const line = expectedLine({
+      engine: 'azmcts',
+      root_value: 0,
+      rows: [],
+      line: [
+        { actor: 'you', label: 'Cast Shock', visits: 5, share: 0.667, q: 0.5 },
+        { actor: 'opponent', label: 'Pass', visits: 3, share: 1, q: 0 },
+      ],
+      line_end: 'hidden',
+    });
+    expect(line.steps).toEqual([
+      { who: 'You', label: 'Cast Shock', share: 67, chance: 75 },
+      { who: 'Opponent', label: 'Pass', share: 100, chance: 50 },
+    ]);
+    expect(line.cutShort).toBe(true);
+  });
+
+  it('is empty for a search that reported no line', () => {
+    expect(expectedLine({ engine: 'azmcts', root_value: 0, rows: [] })).toEqual({ steps: [], cutShort: false });
   });
 });

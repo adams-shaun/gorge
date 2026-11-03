@@ -187,7 +187,11 @@ or what to know about a `ready` one, such as a search that ran out of time. A de
 on, or a seat with nothing pending, is a 409 with code `advice_stale`, which is no failure: the game went
 ahead of the request, so ask about the decision you hold now. Row `choices` index the decision's `options`; a row with `payment` names one of its
 `payment_actions` instead. Row `q` and `root_value` run from -1 to +1 for the seat; the client shows
-them as `(q + 1) * 50` percent. A row with no `visits` has no estimate.
+them as `(q + 1) * 50` percent. A row with no `visits` has no estimate. The search may add `line`, its
+expected continuation after the chosen row: up to four plies, each `{actor, label, visits, share, q}`
+for the most-visited step, with `share` its fraction of the visits at that decision. It stops before any
+ply that depends on cards the seat cannot see, and `line_end` says why it stopped short (`hidden` or
+`unexplored`).
 
 A table with more than one human doesn't offer it unless the table allows it
 (`-paired-bot-shared`), and then `paired-bot` tells every seat it is on (`shared`). At most one

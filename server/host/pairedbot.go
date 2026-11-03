@@ -66,6 +66,10 @@ const (
 	adviceFailed        = "The bot could not evaluate this decision."
 )
 
+// adviceLinePlies is how many plies of the expected line a search reports
+// after its recommended play.
+const adviceLinePlies = 4
+
 // PairedBotOff is the TableConfig.PairedBot of a table that wants no paired bot.
 const PairedBotOff = "off"
 
@@ -419,7 +423,7 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	out := protocol.Advice{Table: string(m.table.cfg.ID), Match: m.k, AskSeq: d.Seq, Seat: uint8(p), Policy: entry.Name}
 
 	seatSeed := m.seed ^ uint64(int(p)+1)
-	s, err := entry.New(bots.Options{Seed: seatSeed, AutoPayMana: m.table.cfg.AutoMana, SearchParallelism: 1, Deps: r.opts.BotDeps, DecisionDeadlineMS: hostedDecisionDeadlineMS, Config: r.opts.BotConfig[entry.Name]})
+	s, err := entry.New(bots.Options{Seed: seatSeed, AutoPayMana: m.table.cfg.AutoMana, SearchParallelism: 1, Deps: r.opts.BotDeps, DecisionDeadlineMS: hostedDecisionDeadlineMS, ExpectedLine: adviceLinePlies, Config: r.opts.BotConfig[entry.Name]})
 	if err != nil {
 		return protocol.Advice{}, err
 	}
