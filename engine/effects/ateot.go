@@ -86,6 +86,26 @@ func scheduleAtEOTRider(h Host, controller state.PlayerID, creator state.ObjID, 
 	}
 }
 
+// scheduleAtEOTNone registers the rider's delayed trigger for a resolution that
+// affected nothing (an X = 0 copy spell). The creating ability still creates
+// one (CR 603.7), so it triggers at its step, goes on the stack and resolves
+// doing nothing: its group body acts on the remembered set, which is empty.
+// The registration's object is the creator, never acted on.
+func scheduleAtEOTNone(h Host, controller state.PlayerID, creator state.ObjID, r atEOTRider) {
+	if h.Game().Obj(creator) == nil {
+		return
+	}
+	text := ""
+	if r.thisTurn {
+		text = "|TT=" + strconv.Itoa(int(h.Game().Turn))
+	}
+	if r.yours {
+		text += "|VP=You"
+	}
+	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: creator,
+		Player: controller, Step: r.step, Counter: "__kwEncoreSacrificeGroup", Text: text})
+}
+
 // atEOTRider is the registration one AtEOT$ value schedules: the builtin
 // SVar body, the step it fires at, whether the step is gated to the
 // registering player's own turn (ValidPlayer$ You), and whether the promise

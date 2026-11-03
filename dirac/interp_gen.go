@@ -1792,8 +1792,14 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
-	n := s.replTokens(k, e.ctrl, c, s.value(k, in.A))
-	return s.copyTokens(k, in, c, n)
+	v := s.value(k, in.A)
+	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
+		// created all the same (CR 603.7): it goes on the stack at the end
+		// step and does nothing (gorge scheduleAtEOTNone)
+		s.delayEmpty(e)
+	}
+	return s.copyTokens(k, in, c, s.replTokens(k, e.ctrl, c, v))
 }
 
 // copyTokens creates n token copies of card c for the resolving entry's

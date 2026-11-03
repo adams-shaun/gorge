@@ -373,6 +373,11 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	if n <= 0 {
+		// X = 0 makes no copy, but the resolving spell still creates its
+		// delayed triggered ability (CR 603.7), which then does nothing.
+		if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
+			scheduleAtEOTNone(h, c.Controller, c.Source, r)
+		}
 		return
 	}
 
