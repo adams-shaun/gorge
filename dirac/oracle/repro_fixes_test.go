@@ -127,6 +127,22 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 	}
 }
 
+// The same, for scripts recorded on the full option surface.
+func TestStdPoolReprosLockstepFull(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	for _, c := range []struct {
+		name string
+		pool string
+	}{
+		{"plan_limit_classes_by_alternatives", "std-mkm"}, // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
+		})
+	}
+}
+
 // replayRepro plays a fixture's script in lockstep and 200 decisions past it.
 func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) {
 	t.Helper()

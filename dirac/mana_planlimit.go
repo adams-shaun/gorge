@@ -175,7 +175,7 @@ func (ls *limitSearch) census(k *prep, s *State) {
 		na := s.unitAlts(k, pk, u, &alts)
 		ci := -1
 		for c := 0; c < ls.nc; c++ {
-			if cl := &ls.classes[c]; cl.ty == pk.utyp[u] && cl.alts == alts {
+			if cl := &ls.classes[c]; cl.alts == alts && pk.sameClassType(cl.ty, pk.utyp[u]) {
 				ci = c
 				break
 			}
@@ -196,6 +196,19 @@ func (ls *limitSearch) census(k *prep, s *State) {
 		cl.units[cl.n] = uint8(u)
 		cl.n++
 	}
+}
+
+// sameClassType reports whether unit types a and b read the same in pay.Class:
+// what the rank and the witness see of a source is its alternatives, its
+// creature flag, its amount and its flexibility, not the card's own shape (a
+// Plains Island surveil land and a Plains with the grant list the same
+// alternatives and are one class).
+func (pk *planner) sameClassType(a, b uint8) bool {
+	if a == b {
+		return true
+	}
+	x, y := &pk.types[a], &pk.types[b]
+	return x.mask == y.mask && x.dmask == y.dmask && x.n == y.n && x.creat == y.creat && x.flex == y.flex && x.xv == y.xv
 }
 
 // unitAlts lists unit u's alternatives in gorge's order: its own abilities,
