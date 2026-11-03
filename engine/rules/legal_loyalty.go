@@ -357,35 +357,15 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 		// (activation_count_index.go).
 		return e.gameActivationsUsed(id, ability, svar)
 	}
-	used := 0
 	stint := e.objectStintStart(id)
+	from := stint
 	for i := len(e.L.Events) - 1; i >= stint; i-- {
-		ev := e.L.Events[i]
-		if thisTurn && ev.Kind == events.TurnChange {
+		if e.L.Events[i].Kind == events.TurnChange {
+			from = i + 1
 			break
 		}
-		if ev.Obj != id {
-			continue
-		}
-		ev, sign := activationCounted(ev)
-		switch ev.Kind {
-		case events.AbilityPush, events.ManaActivate:
-			// A ManaActivate carrying IDs is a GAINED mana activation
-			// (gainedManaRef): its Amount indexes the foreign face, not
-			// this object's pile, so it is never a printed activation.
-			if ev.Kind == events.ManaActivate && len(ev.IDs) > 0 {
-				continue
-			}
-			if ability >= 0 && ev.Amount == int32(ability) {
-				used += sign
-			}
-		case events.DelayedPush, events.GrantAbilityPush:
-			if svar != "" && ev.Counter == svar {
-				used += sign
-			}
-		}
 	}
-	return used
+	return activationUsedSince(e.L.Events[stint:], from-stint, id, ability, svar)
 }
 
 // additionalActivationLimit returns the largest finite MinLimit$ supplied by
