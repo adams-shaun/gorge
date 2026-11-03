@@ -286,7 +286,7 @@ func (s *State) tapXPlay(k *prep, p uint8, path []tapXStep) {
 }
 
 // gorgeTargetOrder puts a target ask's options in the order gorge offers
-// them (target_legal.go candidatesFor: the players by seat, then each seat's
+// them (the empty answer of an up-to-one ask first, scriptAnswers; target_legal.go candidatesFor: the players by seat, then each seat's
 // battlefield in entry order, then the rest as listed): the script takes the
 // first answer that works, so the kernel's slot order would pick another
 // creature.
@@ -296,8 +296,10 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 	for i := 0; i < n; i++ {
 		c := d.Options[i].Target()
 		switch {
+		case c == NoTarget:
+			keys[i] = 0 // gorge scriptAnswers tries the empty answer of an up-to-one ask first
 		case isPlayerTarget(c):
-			keys[i] = uint32(c-PlayerTarget0) << 8
+			keys[i] = 1<<8 + uint32(c-PlayerTarget0)
 		case c < MaxObj && t.objs[c].zone == kop.ZoneBattlefield && t.objs[c].slot != NoSlot:
 			pm := &t.perms[t.objs[c].slot]
 			keys[i] = 1<<24 | uint32(pm.ctrl)<<20 | uint32(pm.ts)

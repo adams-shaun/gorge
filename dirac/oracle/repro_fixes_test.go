@@ -209,16 +209,18 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"plan_limit_classes_by_alternatives", "std-mkm"},         // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
-		{"maralen_blinked_regains_its_permission", "std-ecl"},     // CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent
-		{"alt_add_cost_reduced_as_a_total", "std-tla"},            // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
-		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},    // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
-		{"waterbend_armed_witness_stands_after_picks", "std-tla"}, // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
-		{"window_combo_answers_its_own_colour", "std-tla"},        // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
-		{"sweep_damage_is_one_batch_for_dealt_once", "std-fin"},   // Nibelheim Aflame with Cecil, Dark Knight: his damage to three creatures is one batch, so his trigger queues once with the total
-		{"trigger_cost_window_pays_through_converter", "std-tdm"}, // CR 601.2g, 118.3: Descendant of Storms' {1}{W} paid from two Swamps through Mardu Devotee: the window's floated W and B pay the cost and the Endure stacks
-		{"token_bounced_if_you_do", "std-hob"},                    // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
-		{"token_in_graveyard_is_no_card", "std-woe"},              // CR 111.7: a sacrificed Rat token waiting for the next check is no creature card, so Cruel Somnophage counts the graveyards without it
+		{"plan_limit_classes_by_alternatives", "std-mkm"},                // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
+		{"script_trigger_up_to_one_declined_first", "std-ecl"},           // Champions of the Shoal tapped to pay Springleaf Drum's cost before an equip: gorge's script search answers the trigger's "up to one target" ask with no target first, so the kernel's search does too and Sting-Slinger is not stunned
+		{"script_trigger_up_to_one_declined_first_swat_away", "std-ecl"}, // the same search ahead of Swat Away's cast: the same Drum-paid script leaves the stun trigger unaimed on both sides
+		{"maralen_blinked_regains_its_permission", "std-ecl"},            // CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent
+		{"alt_add_cost_reduced_as_a_total", "std-tla"},                   // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
+		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},           // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
+		{"waterbend_armed_witness_stands_after_picks", "std-tla"},        // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
+		{"window_combo_answers_its_own_colour", "std-tla"},               // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
+		{"sweep_damage_is_one_batch_for_dealt_once", "std-fin"},          // Nibelheim Aflame with Cecil, Dark Knight: his damage to three creatures is one batch, so his trigger queues once with the total
+		{"trigger_cost_window_pays_through_converter", "std-tdm"},        // CR 601.2g, 118.3: Descendant of Storms' {1}{W} paid from two Swamps through Mardu Devotee: the window's floated W and B pay the cost and the Endure stacks
+		{"token_bounced_if_you_do", "std-hob"},                           // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
+		{"token_in_graveyard_is_no_card", "std-woe"},                     // CR 111.7: a sacrificed Rat token waiting for the next check is no creature card, so Cruel Somnophage counts the graveyards without it
 
 		{"sacrificed_token_is_no_card_in_graveyard_count", "std-lci"},       // CR 111.1, 704.5d: a Treasure sacrificed for mana waits for the next check, and is no permanent card for Souls of the Lost to count
 		{"equipment_unattached_earlier_names_no_bearer", "std-lci"},         // CR 608.2h: Tarrian's Soulcleaver detached when its bearer stopped being a creature, so its dies trigger names no equipped creature
