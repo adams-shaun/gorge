@@ -1941,7 +1941,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && s.newerOvRec(sl, i) {
+				if p.r.fl&ovReps == ovReps || grants && s.newerLayer6Fx(sl, i) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -1974,10 +1974,22 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	return true
 }
 
-// newerOvRec reports an override record on sl after pool position i.
-func (s *State) newerOvRec(sl Slot, i int) bool {
+// newerLayer6Fx reports an effect record on sl after pool position i that
+// can reorder a layer-6 effect: a keyword or ability grant or removal, a loss
+// of abilities, or any record that is not an override. A layer-6 effect is
+// ordered by timestamp among layer-6 effects only (CR 613.1f, 613.7), so a
+// newer record of another layer (a P/T, colour or type setter) lets a repeat
+// of an older keyword record merge into it.
+func (s *State) newerLayer6Fx(sl Slot, i int) bool {
 	for j := i + 1; j < int(s.g.nfx); j++ {
-		if p := &s.g.fx[j]; p.sl == sl && p.kind == fxOverride {
+		p := &s.g.fx[j]
+		if p.sl != sl {
+			continue
+		}
+		if p.kind != fxOverride {
+			return true
+		}
+		if ov := &s.k().t.Overrides[p.r.idx-1]; ov.Grant[0] != 0 || ov.Grant[1] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.CantAttack {
 			return true
 		}
 	}
