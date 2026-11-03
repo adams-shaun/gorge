@@ -1013,7 +1013,11 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		d.Sub = ChGenEnchant
 		o := s.g.pre.obj
 		var buf [MaxOptions]uint8
-		n := s.enchantCands(k, s.objs[o].card, s.objs[o].owner(), &buf)
+		who := s.objs[o].owner()
+		if s.g.pre.state == preDigEnchant {
+			who = s.res.askP
+		}
+		n := s.enchantCands(k, s.objs[o].card, who, &buf)
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}

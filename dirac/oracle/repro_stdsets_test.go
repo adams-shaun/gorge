@@ -39,6 +39,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tdm", "dragonstorm_return_trigger_source_destroyed"},        // Encroaching Dragonstorm destroyed with its return-to-hand trigger on the stack: the trigger finds a new object in the graveyard and moves nothing
 		{"std-tdm", "dig_rest_stays_in_library_at_taken_cards_enter_ask"}, // United Battlefront takes Hollowmurk Siege and its choose-a-mode ask is pending: the six cards not taken are still in the library
 		{"std-tdm", "dig_aura_enters_attached_to_its_one_host"},           // United Battlefront puts Wingspan Stride onto the battlefield with Host of the Hereafter its only legal host: it enters enchanting it
+		{"std-ecl", "dig_aura_two_hosts_asks_what_it_enchants"},           // Ajani, Outland Chaperone's ultimate takes Evershrike's Gift with two creatures to enchant: the choice is asked before the Aura moves
+		{"std-dsk", "eerie_resolutions_tally_across_trigger_lines"},       // Victor's second Eerie resolution of the turn, one through an entering enchantment and one through a Room fully unlocked, is the opponent's discard, not another surveil
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

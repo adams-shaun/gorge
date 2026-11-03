@@ -2152,6 +2152,14 @@ const preReturn uint8 = 3
 // as-enters choice: the answer runs the op again.
 const preReturnOp uint8 = 4
 
+// preDigEnchant is preAsk.state for an Aura a battlefield dig took, waiting
+// in the library for its controller's choice among two or more hosts;
+// preDigEnchantDone once answered (val is the host's slot).
+const (
+	preDigEnchant     uint8 = 5
+	preDigEnchantDone uint8 = 6
+)
+
 type preAsk struct {
 	obj   Obj
 	kind  uint8

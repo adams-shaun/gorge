@@ -947,6 +947,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.answerCloneReturn(k, a)
 			return
 		}
+		if s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchant {
+			s.res.ask = raNone
+			s.g.pre.val = uint8(s.objs[a.Source()].slot)
+			s.g.pre.state = preDigEnchantDone
+			if s.rerunMove(k, &s.prog(k)[r.pc]) {
+				return // suspended again at another Aura's choice
+			}
+			s.g.pre = preAsk{}
+			s.continueRes(k, 0)
+			return
+		}
 		if s.g.pre.kind == akEnchant {
 			s.g.pre = preAsk{}
 			if s.objs[o].zone == kop.ZoneExile {
@@ -1622,6 +1633,9 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
 				return true
 			}
+			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
+				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
+			}
 			if z == kop.ZoneBattlefield && s.digAuraStays(k, o, p) {
 				s.g.lookSel &^= 1 << i // CR 303.4g: an Aura with nothing to enchant stays in the library with the rest
 				continue
@@ -1678,6 +1692,9 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 // has exactly one legal host (CR 303.4f); NoSlot for any other card, and for
 // two or more hosts, whose controller's choice the dig does not pose yet.
 func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
+	if s.g.pre.obj == o && s.g.pre.kind == akEnchant && s.g.pre.state == preDigEnchantDone {
+		return Slot(s.g.pre.val) // the answered choice among two or more hosts
+	}
 	c := s.objs[o].card
 	if k.gen == nil || k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
 		return NoSlot
@@ -1687,6 +1704,26 @@ func (s *State) digAuraHost(k *prep, o Obj, p uint8) Slot {
 		return NoSlot
 	}
 	return s.objs[buf[0]].slot
+}
+
+// digAuraPark poses the enchant election of a taken Aura with two or more
+// legal hosts (gorge's auraEntryGate asks before the move folds): the card waits
+// in the library with the rest, and the answer runs the dig again from it.
+//
+//go:noinline
+func (s *State) digAuraPark(k *prep, o Obj, p uint8) bool {
+	c := s.objs[o].card
+	if k.gen == nil || !s.res.active || s.g.pre.state != 0 || s.res.ask != raNone ||
+		k.cards[c].types&kop.TAura == 0 || k.t.Cards[c].Enchant.Kind != kop.TgtObject {
+		return false
+	}
+	var buf [MaxOptions]uint8
+	if s.enchantCands(k, c, p, &buf) < 2 {
+		return false
+	}
+	s.g.pre = preAsk{obj: o, kind: akEnchant, state: preDigEnchant}
+	s.res.ask, s.res.askP = raGenRetChoice, p
+	return true
 }
 
 // digAuraStays reports whether taken card o is an Aura with no legal host
