@@ -108,3 +108,48 @@ func TestEnterCountersExprExcludesTheEnteringPermanent(t *testing.T) {
 		t.Fatalf("other creatures beside the entrant: got %d, want 1", got)
 	}
 }
+
+// TestCopyAllEachEntersTogether: the tokens one "for each permanent you
+// control, create a token copy" resolution makes enter together (CR 603.6a),
+// so a copied "whenever another creature you control enters" watcher sees a
+// copy that entered before it (Oko, the Ringleader's ultimate over two
+// Railway Brawlers): three triggers queue, the original's two and the copy's
+// one, not two.
+func TestCopyAllEachEntersTogether(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
+	set := cardsettest.Set(t, "fdn")
+	tbl, _, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tbl.Filters = append(tbl.Filters,
+		kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Zone: kop.ZoneBattlefield, Flags: kop.FOther},
+		kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Zone: kop.ZoneBattlefield})
+	other, all := kop.FilterID(len(tbl.Filters)-2), kop.FilterID(len(tbl.Filters)-1)
+	n := CardID(len(tbl.Cards))
+	bear, watcher, copyAll := n, n+1, n+2
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+		kop.CardDef{Name: "Test Watcher", Types: kop.TCreature, Power: 2, Toughness: 2, Abilities: []kop.Ability{{Kind: kop.AbTriggered,
+			Trig: kop.Trigger{Event: kop.TrigETB, Filter: other},
+			Prog: []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}}}},
+		kop.CardDef{Name: "Test Copy All", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
+			Prog: []kop.Instr{{Op: kop.OpExt, A: kop.Const(int(kop.ExtCopyAllEach)), B: kop.Const(0), F: all}}}}})
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	sc.perm(bear, 0) // first in set order, so its copy enters before the watcher's
+	w := sc.perm(watcher, 0)
+	sc.actProliferateCast(t, copyAll)
+	queued := 0
+	for i := 0; i < int(sc.s.npend); i++ {
+		queued++
+	}
+	for i := 0; i < int(sc.s.sp); i++ {
+		if sc.s.stack[i].kind == seTrigger {
+			queued++
+		}
+	}
+	_ = w
+	if queued != 3 {
+		t.Fatalf("%d watcher triggers queued, want 3 (the original sees both copies, the copy sees the Bear's)", queued)
+	}
+}

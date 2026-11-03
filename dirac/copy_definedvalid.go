@@ -50,6 +50,10 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) {
 	if DebugDefValidFirstOnly && n > 1 {
 		n = 1
 	}
+	// the copies enter together (CR 603.6a): each one's "another creature
+	// enters" sees the others, as gorge's zone batch does
+	var eb entBatch
+	defer s.fireEntries(k, &eb)
 	minted := 0
 	defer func() {
 		if DebugDefValidMulti != nil && minted >= 2 {
@@ -69,7 +73,7 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) {
 			}
 			t := s.newToken(c, ctrl)
 			s.objs[t].of |= ofCopy
-			s.copyTokenEnterFrom(k, in, t, NoSlot, sl, nil)
+			s.copyTokenEnterFrom(k, in, t, NoSlot, sl, &eb)
 			minted++
 		}
 	}
