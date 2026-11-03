@@ -67,6 +67,7 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// beginCast would never charge.
 	originZone := state.ZHand
 	flashback := false
+	targetPaid := false
 	switch planCastPaymentCheckedCodes.Code(string(cast.Origin)) {
 	case planCastPaymentCheckedHand:
 	case planCastPaymentCheckedCommandZone:
@@ -92,9 +93,10 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	if detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, plannedCastScope(o.Zone, flashback)); detail != "" {
-		if detail != "shape:modal_cost" || flashback || mayPlay || !e.modalCostNeedsPlannedPayment(p, cast.Object) {
+		if !targetPaidShape(detail) || flashback || mayPlay || !e.targetPaidNeedsPlannedPayment(p, cast.Object) {
 			return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
 		}
+		targetPaid = true
 	}
 	switch {
 	case flashback:
@@ -137,6 +139,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		base := pay.RawBaseCost(asPayer(e), p, cast.Object)
 		base = pay.WithSpellAbilityExtras(o.Face(), base)
 		cost = e.offerCostForUsing(statics.get(), p, cast.Object, base, spellScope(""))
+	}
+	if targetPaid {
+		cost = pay.PlanTargetPaidManaHalf(cost)
 	}
 	if detail := pay.PlanNonManaAdmissible(cost); detail != "" {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
@@ -1134,7 +1139,21 @@ func plannedCastOption(cast decision.PlannedCast) decision.Option {
 	return decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
 }
 
-// modalCostNeedsPlannedPayment reports whether a Spree or Tiered cast is
+// targetPaidShape reports the declined cast shapes whose plan can still be
+// admitted when the cast needs it (targetPaidNeedsPlannedPayment): each leaves
+// the lowering unable to cast a spell whose only target its payment consumes.
+func targetPaidShape(detail string) bool {
+	switch detail {
+	case "shape:modal_cost", "shape:additional_cost", "shape:optional_cost", "shape:contribution",
+		"shape:mana_spent_reader", "shape:target_dependent_cost":
+		return true
+	}
+	return false
+}
+
+// targetPaidNeedsPlannedPayment reports whether a cast of a shape the planner
+// withholds (Spree or Tiered modes, an additional or optional cost, a
+// convoke-like credit, a mana-spent reader, a target-dependent price) is
 // payable only by paying with a permanent that the cast's own announcements
 // need. Its targets and modes are chosen before any mana ability is
 // activated (CR 601.2b-c), and mana abilities only then (601.2g), so the cast
@@ -1143,10 +1162,15 @@ func plannedCastOption(cast decision.PlannedCast) decision.Option {
 // the cast and so cannot reach it (potentialWitnessReaches); the planned cast
 // pays at 601.2g, and its witness at the printed cost falls back to the
 // ordinary mana window once the chosen modes change the cost.
-func (e *Engine) modalCostNeedsPlannedPayment(p state.PlayerID, id state.ObjID) bool {
+func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID) bool {
 	if e.Pending() == nil {
 		return false
 	}
+	// The plan is at the printed cost; a credit (convoke, improvise, delve,
+	// waterbend) is chosen in the cast itself and reprices it, which the
+	// planned cast answers by falling back to the manual window.
+	e.planIgnoreCredit = true
+	defer func() { e.planIgnoreCredit = false }()
 	o := decision.Option{Kind: "cast", Obj: id}
 	got := e.potentialModeCastPlan(p, o)
 	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.potentialWitnessReaches(p, o, *got.Plan) {

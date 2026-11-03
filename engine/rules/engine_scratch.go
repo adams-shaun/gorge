@@ -54,8 +54,11 @@ type engineScratch struct {
 	planFace *cards.Face `clone:"reset"`
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
-	planKeepSources bool   `clone:"reset"`
-	derivedMemoGen  uint64 `clone:"reset"`
+	planKeepSources bool `clone:"reset"`
+	// planIgnoreCredit makes a potential cast's plan price the printed cost
+	// where a convoke-like credit would decline it (targetPaidNeedsPlannedPayment).
+	planIgnoreCredit bool   `clone:"reset"`
+	derivedMemoGen   uint64 `clone:"reset"`
 	// typesMemo is the derived-types memo (engine/rules/types_memo.go): each
 	// object's layer-4 answer under the Derived memo's cross-walk key, served
 	// to derivedTypesOf and every top-level Derived build. typesMemoLocal*

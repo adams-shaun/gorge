@@ -74,6 +74,20 @@ func PlanNonManaAdmissible(c Cost) string {
 	return PlanCostDetail(rest)
 }
 
+// PlanTargetPaidManaHalf is c without the additional-cost parts that are paid
+// in the cast's own CR 601.2h flow and never touch a permanent or a mana
+// source: life, energy, a reveal, a draw, damage, life gain, a mill and an
+// exile from the top of the library. The planned cast of a spell whose only
+// target its payment consumes funds the mana half; paymentPlanCheck re-reads
+// the cast's real cost once its announcements are made.
+func PlanTargetPaidManaHalf(c Cost) Cost {
+	c.Life, c.LifeX, c.LifeHalfUp = 0, nil, false
+	c.Reveal, c.RevealOrChoose, c.RevealChosen = nil, nil, nil
+	c.Draw, c.Energy, c.DamageYou, c.GainLife = nil, nil, nil, nil
+	c.Mill, c.ExileFromTop = nil, nil
+	return c
+}
+
 // PlanManaHalf is the part of an admitted cast cost the V1 witness funds: c
 // without its Phyrexian pips. A pip's colour face and its two-life face are
 // both answered afterwards by the CR 601.2b pip ask, so the witness neither
