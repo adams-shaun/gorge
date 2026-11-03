@@ -324,6 +324,10 @@ type filtSearch struct {
 	seen  [potentialScriptNodes]filtKey
 	n     int
 	path  [maxFiltPath]filtStep
+	// spill: a step of the path found floated restricted mana past what
+	// poolR names (a third restriction on the table), unrestricted: the
+	// script the search found is not one gorge's planner would price
+	spill uint8
 }
 
 // filtScript reports whether gorge's prefix search finds a script for play
@@ -346,6 +350,9 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	defer s.unfork()
 	if !fs.visit(k, t, 0, false) {
 		return false
+	}
+	if fs.spill != 0 {
+		s.capFull(fs.spill) // (the fork the step ran on latched it; the real state must)
 	}
 	if !apply && (k.restrSrc || fs.other.any()) && s.filtDeadEnd(k, p, a, &fs) {
 		return false
@@ -436,6 +443,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	fs.path[fs.n] = st
 	fs.n++
 	if fs.visit(k, c, funded, gapUsed) {
+		if c.g.stalled != t.g.stalled {
+			fs.spill = c.g.stalled
+		}
 		return true
 	}
 	fs.n--
