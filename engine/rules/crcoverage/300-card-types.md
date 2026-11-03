@@ -47,7 +47,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 304.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | instant timing |
 | 304.2 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | instant resolves to graveyard |
 | 304.3 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
-| 304.4 | not-impl | - | - | SILENT; gorge relies on script filters |
+| 304.4 | follows | `engine/effects/zone_change.go#instantCannotEnter` | - | an instant or sorcery card a move would put onto the battlefield stays in its zone |
 | 304.5 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 305.1 | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | - | - |
 | 305.2-305.2a | follows | `engine/rules/cast_begin.go#Engine.effectLandPlayRefusal` `engine/rules/legal_mayplay.go#Engine.adjustLandPlays` | `TestCR305_2aEffectLandPlayUsesExtraDrop` | effect plays use the 1+AdjustLandPlays allowance and count toward it |
@@ -70,7 +70,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 307.1 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | sorcery timing |
 | 307.2 | follows | `engine/rules/stack.go#Engine.resolveTop` | - | sorcery resolves to graveyard |
 | 307.3 | follows | `engine/rules/chars/types.go#Types` | - | subtype syntax |
-| 307.4 | not-impl | - | - | SILENT; gorge relies on script filters |
+| 307.4 | follows | `engine/effects/zone_change.go#instantCannotEnter` | - | an instant or sorcery card a move would put onto the battlefield stays in its zone |
 | 307.5 | follows | `engine/rules/statics_cast.go#Engine.spellTimingOK` | - | - |
 | 307.5a | follows | `engine/rules/mayflashsac.go#Engine.offSorceryAtCast` | - | - |
 | 308.1 | follows | `engine/rules/chars/types.go#IsCardType` | - | no kindred in pools |

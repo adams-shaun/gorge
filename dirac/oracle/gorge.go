@@ -1222,10 +1222,11 @@ func (g *GorgeSide) Apply(a Canon) {
 		return
 	}
 	g.repose(fr)
-	if !combat && !fr.restable && len(fr.cur.Options) == 1 && fr.curAt[0] == -1 {
+	if fr.d.Kind == decision.KChoose && !fr.restable && len(fr.cur.Options) == 1 && fr.curAt[0] == -1 {
 		// Only Done is left: no candidate remains to pick, and the kernel's
-		// optional multi-pick ends there rather than posing a lone Done
-		// (an "up to N" pick that has used every legal card, CR 107.1c).
+		// optional card pick (a hand or graveyard "up to N") ends there rather
+		// than posing a lone Done (CR 107.1c). A target list keeps its Done:
+		// the kernel asks it after the last candidate (one or two targets).
 		g.commit(fr, fr.chosen)
 		return
 	}
