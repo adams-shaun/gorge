@@ -87,6 +87,9 @@ type parkedMove struct {
 	src  [maxParkSrc]Obj
 	// later: a state-based batch's answer came before this move's ask
 	later bool
+	// next: a state-based pass parked this move while an earlier pass's asks were
+	// still to come, so gorge's check unattaches before it asks for this one
+	next bool
 }
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its
@@ -238,13 +241,6 @@ func (s *State) parkedWaiting() bool {
 	return len(s.cold.parked) != 0 && s.cold.parked[0].kind != parkNone && s.cold.parked[0].kind != parkAnswered
 }
 
-// parkedBeforeFirstAnswer: a state-based check's casualties are parked and its first
-// ask is not answered yet. gorge's passes run on under that ask.
-func (s *State) parkedBeforeFirstAnswer() bool {
-	r := &s.cold.parked[0]
-	return r.kind == parkSBA && !r.later
-}
-
 // exileOrderAsk parks the casualties of a state-based pass with several
 // exile-instead effects before any of the pass moves: a source dying beside
 // them still applies (CR 704.3), and they do not depart with it. It poses gorge's
@@ -256,11 +252,19 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 		n = s.battlefieldOrder(p, die.or(*gy).and(s.ctrlM[p]), order[:], n)
 	}
 	fresh := false
+	busy := s.parkedWaiting()
 	for _, sl := range order[:n] {
 		o := s.perms[sl].obj
 		was := s.parkedWaitingOn(o)
 		if s.park(k, o, parkSBA, 0) {
 			fresh = fresh || !was
+			if !was && busy {
+				for i := range s.cold.parked {
+					if r := &s.cold.parked[i]; r.obj == o && r.kind == parkSBA {
+						r.next = true
+					}
+				}
+			}
 			*die, *gy, *pwz, *aur = die.without(sl), gy.without(sl), pwz.without(sl), aur.without(sl)
 		}
 	}
@@ -327,6 +331,11 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 	if r.kind == parkSBA {
 		for i := range s.cold.parked {
 			s.cold.parked[i].later = true
+		}
+		if h := &s.cold.parked[0]; h.kind == parkSBA && h.next && s.g.lingerM.any() {
+			// the answered pass is over and the next one's check unattaches first
+			h.next = false
+			s.lingerDrain(k)
 		}
 		return
 	}
