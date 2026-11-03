@@ -854,6 +854,9 @@ func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col in
 		return false
 	}
 	s.g.poolRChosen[p&1] = ch
+	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
+		s.g.poolArt[p&1] |= poolArtRestr
+	}
 	return s.pl[p&1].addRestr(k, &s.poolRx[p&1], f, col, n)
 }
 
@@ -961,6 +964,7 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 	}
 	r := pl.poolR
 	col, n := int(r>>poolRShift), r&poolRCnt
+	ord := pl.pool[col]
 	pl.pool[col] += n
 	pl.poolR = 0
 	if cost.Hyb[0] != 0 {
@@ -968,11 +972,18 @@ func (s *State) payRestrSpend(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj
 		cost = &h
 	}
 	s.tapForRider(k, p, cost, x, o, anyColor)
+	ord += pl.pool[col] - ord - n // what the taps added joins the plain units
 	pre := pl.pool[col]
 	s.payFromPoolRider(k, p, cost, x, anyColor)
-	if left := n - min(pre-pl.pool[col], n); left != 0 {
+	spent := pre - pl.pool[col]
+	if s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst {
+		spent -= min(spent, ord) // a typed unit is spent after the plain ones of its colour (pay.takeUnit)
+	}
+	if left := n - min(spent, n); left != 0 {
 		pl.pool[col] -= left
 		pl.poolR = r&^poolRCnt | left
+	} else {
+		s.g.poolArt[p&1] &^= poolArtRestr
 	}
 }
 
