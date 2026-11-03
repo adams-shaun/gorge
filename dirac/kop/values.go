@@ -112,7 +112,7 @@ const (
 	AggSumToughness      = 4  // total derived toughness
 	AggSumMV             = 5  // total mana value
 	AggDistinctPower     = 6  // distinct derived powers
-	AggColors            = 7  // colours among the matches (live layer-5 colours)
+	AggColors            = 7  // colours among the matches (printed, copy-aware)
 	AggDistinctMV        = 8  // distinct mana values (ExGraveAgg only)
 	AggDistinctNames     = 9  // distinct card names among the matches (CR 201.2)
 	AggCardTypes         = 10 // distinct card types on the matches' faces (CR 205.2a)
