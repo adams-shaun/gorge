@@ -43,6 +43,14 @@ func (e *Engine) queueTrigger(observer *Engine, pt pendingTrigger, ev events.Eve
 // An empty trigMode is a keyword's synthetic trigger, which has no line of its
 // own and reads the event's family.
 func (e *Engine) queueTriggerMode(observer *Engine, pt pendingTrigger, ev events.Event, causes []state.ObjID, trigMode string) {
+	if o := e.G.Obj(pt.Source); o != nil && o.Zone != state.ZBattlefield {
+		// A battlefield trigger queued once its source has left (it died with
+		// the permanent it watches, CR 603.10a) refers to that departed
+		// object, whatever stands in its place at the push.
+		if t, ok := e.triggerOf(pt); ok && triggerOnlyFromBattlefield(t) {
+			pt.Ctx.TriggerContext.SourceLeftBeforePush = true
+		}
+	}
 	e.pendingTriggers = append(e.pendingTriggers, pt)
 	if e.effectMatchOverride {
 		return

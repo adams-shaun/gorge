@@ -1142,7 +1142,11 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		if e.triggerContexts == nil {
 			e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 		}
-		e.triggerContexts[id] = pt.Ctx.TriggerContext
+		tc := pt.Ctx.TriggerContext
+		if pt.sourceCharLKIValid {
+			tc.SourceLeftBeforePush = true // it left while the trigger waited (captureSourceCharLKI)
+		}
+		e.triggerContexts[id] = tc
 		e.keepTriggerLKI(id, &pt)
 		if pt.Ctx.Snap.SourceLifelinkValid {
 			if e.sourceLifelinkLKI == nil {

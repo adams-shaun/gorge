@@ -1632,7 +1632,7 @@ func sourceLeftSincePush(h Host, c *Ctx, o *state.Object) bool {
 		return false
 	}
 	if ro.PushSourceOnBattlefield {
-		return o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation
+		return o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation || c.TriggerContext.SourceLeftBeforePush
 	}
 	if dh, ok := h.(interface {
 		SourceLeftBattlefieldSince(stack state.ObjID) bool
