@@ -385,6 +385,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// seenFaceDownExile to the may-look layout, which puts the LOOKER
 			// in Amount and the exiling source in IDs. applyFaceDownMarker
 			// stamps battlefield FaceDown$ entries too.
+			// A card put onto the battlefield tapped enters tapped (CR 614.12),
+			// so its own "enters untapped" trigger is checked after the tap.
+			batchEntry := tapped && dest == state.ZBattlefield
+			if batchEntry {
+				h.BeginZoneBatch()
+			}
 			emitEntryMove(h, c, digGainControl(dp.GainControl), dest, ev)
 			// ExileWithCounters$ (Karn, Scion of Urza; Evelyn, the Covetous):
 			// one counter of that kind on the card the move actually put in
@@ -403,6 +409,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			digRemember(c, dp, id)
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
+			}
+			if batchEntry {
+				h.EndZoneBatch()
 			}
 			rider.apply(h, c, id, p, dest)
 			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
