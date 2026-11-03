@@ -771,9 +771,9 @@ type Object struct {
 	// with CopyFace. nil unless such a token; SetCopyFace clears it.
 	CopyFaceBack *cards.Face
 	FaceIdx      uint8
-	Owner      PlayerID
-	Controller PlayerID
-	Zone       Zone
+	Owner        PlayerID
+	Controller   PlayerID
+	Zone         Zone
 
 	Tapped     bool
 	SummonSick bool
