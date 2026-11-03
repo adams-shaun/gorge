@@ -193,6 +193,7 @@ func (s *State) finishAttacks(k *prep) {
 		}
 		if p.flags&pfDeclared == 0 {
 			p.flags |= pfDeclared
+			s.touch(p.obj)
 			fresh++
 		}
 		kw := s.kw(k, sl)
