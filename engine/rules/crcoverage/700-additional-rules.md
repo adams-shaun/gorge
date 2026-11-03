@@ -414,7 +414,11 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 724.1b | follows | `engine/events/apply_turn.go#foldEndTurn` `engine/effects/endturn.go#effEndTurn` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` `TestCR724_1fTriggerDuringEndTurnResolves` |  |
 | 724.1c | follows | `engine/rules/turn.go#Engine.finishCleanupStep` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` | unobservable with Time Stop |
 | 724.1d-724.1e | follows | `engine/rules/turn.go#Engine.finishEndTurn` `engine/events/apply_turn.go#foldEndTurn` | `TestTimeStopExilesStackSkipsToCleanupAndReplays` |  |
-| 724.2-724.2g | not-impl | - | - |  |
+| 724.2,724.2b,724.2d | follows | `engine/effects/endcombatphase.go#effEndCombatPhase` `engine/events/apply_turn.go#foldEndCombatPhase` `engine/rules/turn.go#Engine.finishEndCombatPhase` | `TestEndCombatPhaseSkipsToPostcombatMain` `TestEndCombatPhaseOptionalDeclineAndAccept` | Mandate of Peace, Merciful Mandate |
+| 724.2a,724.2f | partial | `engine/rules/emit.go#Engine.emit` `engine/rules/turn.go#Engine.checkEndTurnExileTriggers` | - | the drop and the survival share EndTurn's code; no test of its own |
+| 724.2c | partial | `engine/rules/turn.go#Engine.finishEndCombatPhase` | - | the state-based check is the one every step makes before priority, not a separate pass before the step change |
+| 724.2e | follows | `engine/rules/turn.go#Engine.finishEndCombatPhase` | `TestEndCombatPhaseSkipsToPostcombatMain` `TestEndCombatPhaseControlRunsTheEndOfCombatTrigger` | the end of combat step is never entered |
+| 724.2g | follows | `engine/effects/endcombatphase.go#effEndCombatPhase` | `TestEndCombatPhaseOutsideCombatDoesNothing` |  |
 | 725.1 | follows | `engine/state/game.go#Game.IsMonarch` `engine/effects/game.go#effBecomeMonarch` | `TestCustodiLichFirstBecomeMonarchFiresSelfTrigger` |  |
 | 725.2 | follows | `engine/rules/turn.go#Engine.finishEnteredStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/events/apply_delayed.go#foldDelayedPush` | `TestMonarchEndStepDrawUsesTheStack` `TestCombatDamageToMonarchTransfersTheCrown` `TestEachCreatureHittingTheMonarchTriggers` `TestMonarchDrawsOnlyOnTheirOwnEndStep` | source-less stack abilities; the steal's new monarch is the creature's controller when it triggered, as Forge and XMage read it |
 | 725.3 | follows | `engine/events/apply_misc.go#foldMonarchChange` `engine/effects/game.go#effBecomeMonarch` | `TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger` | single holder field |

@@ -225,6 +225,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 			return
 		}
+		if e.endCombatRequested {
+			e.finishEndCombatPhase()
+			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+			return
+		}
 	}
 	e.finishResumption(rp.obj)
 	// CR 117.3b / the counterpart of handlePriority's pass-branch grant: when

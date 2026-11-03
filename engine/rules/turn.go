@@ -692,7 +692,11 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step, start ...int) 
 			}
 		}
 	}
-	if leaving == state.StepEndCombat && entering != leaving {
+	// A step left for a phase outside combat is the combat phase ending: the
+	// end of combat step's own exit, or an effect ending the phase from any
+	// step (CR 724.2d), which skips the steps between.
+	if entering != leaving && (leaving == state.StepEndCombat ||
+		(leaving >= state.StepBeginCombat && leaving < state.StepEndCombat && entering > state.StepEndCombat)) {
 		// CR 702.109a exiles every Myriad token at end of combat before the
 		// combat-state reset. Emit only when one exists, so unrelated combats
 		// retain their established event stream while replay still folds the
@@ -1205,6 +1209,37 @@ func (e *Engine) finishEndTurn() {
 	e.setStep(state.StepCleanup)
 }
 
+// finishEndCombatPhase applies CR 724.2d/e/f after the EndCombatPhase event
+// has exiled the stack and removed every creature from combat: the game skips
+// straight to the phase after combat. The end of combat step is never
+// entered, so its "at end of combat" triggers never trigger (724.2e), while
+// the phase's exit work -- the combat-state reset, "until end of combat"
+// effects and control ending (724.2d) -- runs through finishStepBoundary as
+// for any exit from combat. The state-based action check of 724.2c is the
+// one every step makes before priority: nothing observable falls between
+// it and the step change here, since damage and the expiring effects only
+// matter to the later check. The resolver's caller grants priority in the
+// new phase; abilities that triggered during the process (724.2f) wait in
+// the trigger queue until then. The skipped steps' bookkeeping the engine
+// holds outside the event fold is cleared as finishEndTurn does.
+func (e *Engine) finishEndCombatPhase() {
+	e.combatRound = combatRound{}
+	e.blockerRound = blockerRound{}
+	e.endCombatRequested = false
+	expireCombatControl(e.G, e.emit)
+	next := state.StepEndCombat + 1
+	if s, ok := e.extraPhaseBoundary(state.StepEndCombat); ok {
+		next = s
+	} else {
+		next = skipFirstDrawStep(e.G, next)
+	}
+	e.setStep(next)
+	if e.pending != nil {
+		return
+	}
+	e.finishEnteredStep()
+}
+
 func (e *Engine) advanceStep() {
 	if e.G.Step == state.StepDeclareAttackers && e.declarationMadeThisStep(events.DeclareAttackers) {
 		attacked := false
@@ -1319,7 +1354,7 @@ func (e *Engine) advanceStep() {
 		expireCombatControl(e.G, e.emit)
 	}
 	next := e.G.Step + 1
-	if s, ok := e.extraPhaseBoundary(); ok {
+	if s, ok := e.extraPhaseBoundary(e.G.Step); ok {
 		next = s
 	} else {
 		next = skipFirstDrawStep(e.G, next)
@@ -1358,8 +1393,7 @@ func (e *Engine) advanceStep() {
 // extra combat reached through them still completes at its own RangeEnd
 // (leaving end-of-combat goes through this site). A resume point outside the
 // step range (or invalid) degrades to the natural advance, never a panic.
-func (e *Engine) extraPhaseBoundary() (state.Step, bool) {
-	leaving := e.G.Step
+func (e *Engine) extraPhaseBoundary(leaving state.Step) (state.Step, bool) {
 	// 1. Completing grants: one -2 event per consumed entry whose extra
 	// phase ends here. emit folds synchronously, so the queue shrinks under
 	// the loop -- rescan from the top after every completion. The LAST

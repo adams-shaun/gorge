@@ -63,6 +63,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.pendingTriggers, e.orderedTriggers = nil, 0
 		e.endTurnRequested = true
 	}
+	if ev.Kind == events.EndCombatPhase {
+		// CR 724.2a: the same drop as EndTurn's, before the fold exiles the
+		// stack (724.2b); an ability that triggers during the process
+		// survives into the next phase (724.2f; finishEndCombatPhase).
+		e.pendingTriggers, e.orderedTriggers = nil, 0
+		e.endCombatRequested = true
+	}
 	// CR 702.16d/e: prevent protected Damage and Attach events before
 	// replacement, reporting prevention as a Note. Damage uses the published
 	// source (or e.damaging); zero means no source. This precedes planeswalker
@@ -760,7 +767,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
 			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
 		}
-		if stored.Kind == events.EndTurn {
+		if stored.Kind == events.EndTurn || stored.Kind == events.EndCombatPhase {
 			e.checkEndTurnExileTriggers(&stored)
 		}
 		// A pushed spell proposal's own target choice (CR 601.2c), or a pushed
