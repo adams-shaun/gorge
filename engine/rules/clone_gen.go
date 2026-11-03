@@ -1188,6 +1188,7 @@ func cloneFieldsEngineParked2(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			}
 		}
 	}
+	c.sbaChain = append([]state.ObjID(nil), e.sbaChain...)
 }
 
 func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {

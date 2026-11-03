@@ -135,4 +135,10 @@ type engineParked struct {
 	// competitions. Plain value entries are deep-copied by
 	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice `clone:"deep"`
+	// sbaChain holds the creatures one state-based check destroyed while an
+	// action of it asked which replacement applies (CR 616.1). The answer
+	// re-enters the check, which is still the same CR 704.3 check, so a token
+	// among them that is already in exile does not cease before the rest have
+	// been moved: ceaseDeadTokens skips them until a pass destroys nothing.
+	sbaChain []state.ObjID `clone:"deep"`
 }

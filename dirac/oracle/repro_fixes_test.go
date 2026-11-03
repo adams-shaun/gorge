@@ -79,6 +79,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"copy_exception_types_count", false},                        // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
 		{"discard_replacement_before_damage_removal", true},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
 		{"replacement_answer_mid_payment_pays_through_window", true}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
+		{"sba_batch_asks_before_tokens_cease", true},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
 	})
 }
 
