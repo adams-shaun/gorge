@@ -525,6 +525,16 @@ type planner struct {
 	rdyn   Slot
 	rdynOn bool
 	rF     kop.FilterID
+	// rkind: the restricted record kind (rkWiden, rkExt) of each unit's
+	// source, 0 for a plain one; rtap: the restricted-kind units a tap made,
+	// with the colour each made (witnessManaRestricted)
+	rkind [maxUnits]uint8
+	rtapN int
+	rtap  [maxUnits]struct {
+		sl  Slot
+		col uint8
+		ext bool
+	}
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
 	keepCols bool
@@ -932,6 +942,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// each source's mana facts, read once for the three passes of every phase
 	var pcs [MaxPerm]*pcard
 	var granted [MaxPerm]bool
+	var rv [MaxPerm]uint8
 	var rk, dm [MaxPerm]uint8 // a restricted source's record kind and unadmitted ranking colours (restrViewW)
 	for i := 0; i < no; i++ {
 		sl := order[i]
@@ -941,7 +952,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			granted[i] = s.manaGranted(k, sl)
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
-					pcs[i], rk[i] = v, kd
+					pcs[i], rk[i], rv[i] = v, kd, kd
 					if kd == rkDyn {
 						pk.rdyn, pk.rdynOn, pk.rF = sl, true, ab.ManaRestrict
 					}
@@ -1087,6 +1098,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.uobj[pk.nu] = s.perms[sl].obj
 				}
 				pk.utyp[pk.nu] = uint8(ti)
+				pk.rkind[pk.nu] = rv[i]
 				pk.nu++
 				if sac {
 					// a last-resort source has no normal alternative, so
@@ -1151,6 +1163,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			s.manaTapped(k, sl)
 		}
 		pk.lastSl = sl
+		if r := pk.rkind[u]; (r == rkExt || r == rkWiden) && pk.rtapN < maxUnits {
+			pk.rtap[pk.rtapN] = struct {
+				sl  Slot
+				col uint8
+				ext bool
+			}{sl, uint8(col), r == rkExt}
+			pk.rtapN++
+		}
 		s.pl[p].pool[col] += ty.n
 		if ty.xt != 0 {
 			s.addXv(p, &ty.xv)

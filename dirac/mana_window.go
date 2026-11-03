@@ -1539,7 +1539,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		s.ctrlM[p] = s.ctrlM[p].or(held)
 		return
 	}
-	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd {
+	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 {
 		s.tapForRider(k, p, &cost, x, excl, anyColor)
 		return
 	}
@@ -1550,8 +1550,9 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			untapped = untapped.or(slotBit(sl))
 		}
 	}
-	s.tapForRider(k, p, &cost, x, excl, anyColor)
-	s.witnessManaRestricted(k, p, &pool, untapped)
+	var pk planner
+	s.tapForPK(k, p, &cost, x, excl, false, anyColor, &pk)
+	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
 
 // witnessAtCheapest reprices a witness the printed composition cannot fund (rules
@@ -1615,12 +1616,25 @@ func (s *State) availForBuilt(k *prep, e *stackEntry, av *avail) {
 // witnessManaRestricted floats a witness's restricted mana as restricted: the plan
 // taps a restricted source like any unit, but what it taps floats under its
 // restriction, which a reversal leaves in the pool (CR 106.6, 733.1). pool is p's
-// pool before the witness and untapped the restricted sources it could tap.
-func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]uint8, untapped slotMask) {
+// pool before the witness, untapped the restricted sources it could tap and pk
+// the plan that tapped: only a source the plan tapped as its restricted unit
+// floats restricted, in the colour the plan made (Turtle Lair tapped for its
+// plain {C} floats nothing), and a widened unit, which may have made its own
+// colour, by the mana it added to the pool.
+func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]uint8, untapped slotMask, pk *planner) {
 	for m := untapped; m.any(); m = m.rest() {
 		sl := m.first()
 		c := s.cardAt(sl)
 		if s.perms[sl].flags&pfTapped == 0 {
+			continue
+		}
+		tapped, ext, tcol := false, false, 0
+		for i := 0; i < pk.rtapN; i++ {
+			if pk.rtap[i].sl == sl {
+				tapped, ext, tcol = true, pk.rtap[i].ext, int(pk.rtap[i].col)
+			}
+		}
+		if !tapped {
 			continue
 		}
 		rec := k.gen.restrRecOf(c)
@@ -1630,6 +1644,9 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		ab := &k.t.Cards[c].Abilities[rec.ab]
 		n := max(ab.ManaN, 1)
 		for col := 0; col < 5; col++ {
+			if ext && col != tcol {
+				continue
+			}
 			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 				s.pl[p].pool[col] -= n
 				if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
