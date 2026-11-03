@@ -233,6 +233,7 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
+		s.manaTapped(k, sl)
 		if !s.addRestr(k, p, a.ManaRestrict, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
 			s.capFull(StallRestrSrc)
 		}
@@ -389,6 +390,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	} else {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
 	}
 	switch {
 	case st.gap && st.ans > 0:

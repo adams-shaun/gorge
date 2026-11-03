@@ -1171,6 +1171,36 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("FullyUnlock %s$", k)
 			}
 		}
+	case "TapAll":
+		// gorge tapAllMatches and the action-batch latch (trigger_match.go;
+		// CR 603.2c): "whenever one or more <ValidCards$> you control become
+		// tapped" queues once per tapping action (a Tap or TapAll
+		// resolution, the declare-attackers taps, one cost's tap parts, one
+		// mana ability's tapped costs) and once per tap outside one (a mana
+		// ability's {T}, a cost's own {T}). The kernel's TrigTaps over a
+		// filter of the tapped permanent, latched per tap batch
+		// (dirac/trig_tapall.go). Activator$, ValidPlayer$ and Attacker$
+		// stay unread and refuse; a body reading the batch refuses (the
+		// queued instance carries only its first member).
+		if tr.Zone != zBattlefield {
+			return refuse("TapAll TriggerZones %d", tr.Zone)
+		}
+		vc := tp.str("ValidCards")
+		if tr.F, err = readF("ValidCards"); err != nil {
+			return err
+		}
+		if tr.F == nil || tr.F.Players != 0 || len(tr.F.Clauses) == 0 {
+			return refuse("TapAll ValidCards %q", vc)
+		}
+		for _, c := range tr.F.Clauses {
+			if c.Ctrl != whoYou || c.Flags&fSelf != 0 {
+				return refuse("TapAll ValidCards %q", vc)
+			}
+		}
+		if lc.saReadsBatch(t.Effect) {
+			return refuse("TapAll body reads the batch")
+		}
+		tr.Event, tr.Batch = "Taps", true
 	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err

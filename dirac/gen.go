@@ -114,6 +114,10 @@ type genPrep struct {
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
 	manaTaps bool
+	// anyTapAll: a TrigTaps line with Tf2Batch (Mode$ TapAll,
+	// trig_tapall.go): the tapping actions open tap batches and every mana
+	// tap fires the Taps listeners (manaTaps)
+	anyTapAll bool
 	// tapsWhose: a TrigTaps ability reads the tapper (Trig.Whose, "whenever
 	// you tap ..."; trig_tapsvalid.go)
 	tapsWhose bool
@@ -1074,6 +1078,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			anyTaps = anyTaps || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps
+			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
@@ -1086,7 +1091,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			manaGrant = manaGrant || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0
 		}
 	}
-	g.manaTaps = anyTaps && manaGrant
+	g.manaTaps = anyTaps && (manaGrant || g.anyTapAll)
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
@@ -1415,6 +1420,7 @@ type genState struct {
 	trigTurn   uint16   // triggered abilities resolved this turn (StallLoop)
 	dilemmas   [2]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
 	on         bool     // the State plays a generated table
+	tapBatch   uint8    // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
 	batchLatch uint8    // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
 	tyM        slotMask // slots whose perm.gty holds override-derived types (ovGenTy)
 	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't

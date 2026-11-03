@@ -331,6 +331,7 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
 	s.occ = saved.occ
+	tb := false
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if !isConvokePick(s.bld().pickKs[i]) {
 			continue
@@ -344,9 +345,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
+			tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
 			s.fireTaps(k, sl)
 		}
 	}
+	s.tapBatchClose(tb)
 	return true
 }
 

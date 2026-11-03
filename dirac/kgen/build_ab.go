@@ -1183,7 +1183,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2TargetsFilter2
 	}
 	if t.Batch {
-		if t.Event != "ETB" && t.Event != "Dies" && t.Event != "Leaves" && t.Event != "DamageDone" && t.Event != "Sacrificed" && t.Event != "TokenCreated" {
+		if t.Event != "ETB" && t.Event != "Dies" && t.Event != "Leaves" && t.Event != "DamageDone" && t.Event != "Sacrificed" && t.Event != "TokenCreated" && t.Event != "Taps" {
 			return kt, fmt.Errorf("batch flag on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Batch

@@ -343,6 +343,7 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	mask := uint8(kop.ColAny)
 	if clamp {
 		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
@@ -612,6 +613,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, max(ab.ManaN, 1)) {
 		s.capFull(StallRestrSrc)
 	}
@@ -1119,6 +1121,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {

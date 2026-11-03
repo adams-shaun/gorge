@@ -207,6 +207,7 @@ func (s *State) reflDo(k *prep, p uint8, st reflStep) {
 	pl := &s.pl[p&1]
 	s.perms[st.sl].flags |= pfTapped
 	s.touchSl(st.sl)
+	s.manaTapped(k, st.sl)
 	cd := &k.t.Cards[s.cardAt(st.sl)]
 	switch {
 	case st.ans == 0:

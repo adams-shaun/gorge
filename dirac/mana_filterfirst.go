@@ -161,6 +161,7 @@ func (s *State) filtUse(k *prep, sl Slot) {
 		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
 	} else {
 		s.perms[sl].flags |= pfTapped
+		s.manaTapped(k, sl)
 	}
 	s.touchSl(sl)
 }

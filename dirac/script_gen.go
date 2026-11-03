@@ -331,6 +331,7 @@ func (s *State) scriptCompletes(k *prep, p uint8, a Action) bool {
 func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.NumManaKinds]uint8) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
+	s.manaTapped(k, sl)
 	if restr.has(sl) {
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]

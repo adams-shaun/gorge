@@ -329,6 +329,7 @@ func (s *State) waterbendDone() {
 // battlefield is skipped.
 func (s *State) payWaterbend(k *prep) {
 	picks, manaPicks := 0, 0
+	tb := false
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if s.bld().pickKs[i] != pkWaterbend {
 			continue
@@ -346,9 +347,11 @@ func (s *State) payWaterbend(k *prep) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		if was == 0 && k.gen != nil && s.subs[kop.TrigTaps].any() {
+			tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
 			s.fireTaps(k, sl)
 		}
 	}
+	s.tapBatchClose(tb)
 	if DebugWaterbendPaid != nil && s.bld().e.ab != 255 && k.t.Cards[s.bld().e.card].Abilities[s.bld().e.ab].Cost.Flags&kop.CostWaterbend != 0 {
 		DebugWaterbendPaid(s.bld().e.card, picks, manaPicks)
 	}

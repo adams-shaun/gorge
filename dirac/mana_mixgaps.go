@@ -223,6 +223,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
 		if o.gi >= 0 && k.gen.grantRestr[o.gi] != 0 {
 			if !s.addRestr(k, p&1, k.gen.grantRestr[o.gi], int(o.ans), o.n) {
 				s.capFull(StallRestrSrc)

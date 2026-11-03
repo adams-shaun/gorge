@@ -199,6 +199,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 			return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 		}
 	}
+	tapAll := false
 	if ev == kop.TrigTaps {
 		if k.gen.tapsWhose && !s.tapsWhoseOK(l, a, amt) {
 			return
@@ -206,7 +207,8 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if k.gen.anyTWTap && !twTapOK(a, amt) {
 			return // Teamwork$ True: only a teamwork-cost tap (trig_params.go)
 		}
-		amt = 0 // the tapper (fireTapsBy), not an amount
+		amt = 0                                  // the tapper (fireTapsBy), not an amount
+		tapAll = a.Trig.Flags2&kop.Tf2Batch != 0 // Mode$ TapAll: the tap batch's latch, not the zone batch's (trig_tapall.go)
 	}
 	if a.Trig.Flags2&(kop.Tf2YourTurn|kop.Tf2OppTurn|kop.Tf2Evolve) != 0 && !s.objTrigGate(k, l, a, evSl) {
 		return
@@ -214,7 +216,11 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 	if !s.trigOK(k, l, a) {
 		return
 	}
-	if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a) {
+	if tapAll {
+		if !s.tapBatchOK(l, a) {
+			return
+		}
+	} else if a.Trig.Flags2&(kop.Tf2Batch|kop.Tf2CastFromHand) != 0 && !s.batchOrProvOK(l, a) {
 		return
 	}
 	s.queueTrig(k, l, a, evObj, evCtrl, amt)

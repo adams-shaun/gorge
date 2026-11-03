@@ -151,6 +151,8 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 	}
 	var ord [MaxPerm]Slot
 	cnt := s.sweepHits(k, in.F, &ord)
+	tb := s.tapBatchOpen(k) // one TapAll resolution is one tapping action (trig_tapall.go)
+	defer s.tapBatchClose(tb)
 	for _, sl := range ord[:cnt] {
 		p := &s.perms[sl]
 		if p.flags&pfTapped != 0 || only != 255 && p.ctrl != only {

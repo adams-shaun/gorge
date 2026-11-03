@@ -1804,6 +1804,9 @@ func (s *State) payPicks(k *prep) {
 		if f == pkTapX && k.costObj {
 			s.payExilePicks() // after the discards (gorge payCast)
 		}
+		// the cost's tap parts are one tapping action (gorge paidcost.go's
+		// BatchTap bracket; trig_tapall.go)
+		tb := f == pkTapX && s.tapBatchOpen(k)
 		for i := 0; i < int(s.bld().pickN); i++ {
 			if s.bld().pickKs[i] != f {
 				continue
@@ -1847,6 +1850,7 @@ func (s *State) payPicks(k *prep) {
 				}
 			}
 		}
+		s.tapBatchClose(tb)
 	}
 }
 

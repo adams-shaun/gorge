@@ -29,8 +29,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // are left out entirely (modelled, tapXBoard), so a play only their mana pays is
 // not offered rather than offered and unpayable, and a board that mixes them with
 // a filter or a restricted any-colour source runs the filter search (mixBoard).
-// Everything is behind prep.tapMana. Not modelled: the search's dedup
-// beyond (pool, artifact tag, tapped set), a trigger a tap queues.
+// Everything is behind prep.tapMana. Not modelled: the counters and the
+// battlefield members gorge's dedup key reads beside (pool, tapped set,
+// stack, hand and graveyard sizes).
 
 // DebugNoTapMana hides the tap-another-permanent gaps (the caretaker
 // mutation test proves the pool's plays need them).
@@ -372,6 +373,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.sba(k)              // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
+	tb := s.tapBatchOpen(k) // the ability's elected taps are one tapping action (gorge mana_activation.go; trig_tapall.go)
 	for _, cd := range [2]Slot{st.cand, st.cand2} {
 		if cd == NoSlot {
 			continue
@@ -384,9 +386,11 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 			s.fireTaps(k, cd)
 		}
 	}
+	s.tapBatchClose(tb)
 	if c := s.cardAt(st.sl); k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.Flags&kop.CostTap != 0 {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
 	}
 	pc := &k.cards[s.cardAt(st.sl)]
 	s.pl[p&1].pool[st.col] += max(pc.manaN, 1)
@@ -415,6 +419,22 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		return false
 	}
 	p := rs.p
+	// gorge asks two questions at a node, either side of its dedup: is the
+	// play offered as is (the floating pool alone pays it) before, and does
+	// the planner price it from the pool and the untapped sources after. The
+	// dedup key counts the hand, not its cards, so a Taps listener's
+	// draw-then-discard reaches one key twice: with the play discarded and
+	// with it kept. The kept one is offered when the pool pays it and
+	// otherwise found seen (gorge scriptSearch.visit).
+	offered := false
+	if gapUsed {
+		var d Decision
+		t.restrOptions(k, &d, p)
+		offered = hasOption(&d, rs.a)
+		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && t.FeatPoolPays(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
+			return true
+		}
+	}
 	pl := &t.pl[p&1]
 	key := tapXKey{pool: pl.pool, art: t.g.poolArt[p&1], sp: t.sp, hand: pl.handN, gy: pl.graveN}
 	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
@@ -431,12 +451,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		rs.seen[rs.nseen] = key
 		rs.nseen++
 	}
-	if gapUsed {
-		var d Decision
-		t.restrOptions(k, &d, p)
-		if hasOption(&d, rs.a) {
-			return true
-		}
+	if offered {
+		return true
 	}
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)

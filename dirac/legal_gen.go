@@ -779,6 +779,7 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 			if !sacOnly {
 				s.perms[sl].flags |= pfTapped
 				s.touchSl(sl)
+				s.manaTapped(k, sl)
 			}
 			s.pl[p].pool[c] += pc.manaN
 			s.addExtraCol(k, p, sl, pc, c)

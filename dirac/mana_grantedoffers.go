@@ -624,8 +624,8 @@ func (g *grantSrch) settle(t *State) bool {
 // next continues the search after sl's tap: a tap that fires a trigger runs on a
 // copy whose trigger is stacked.
 func (g *grantSrch) next(t *State, sl Slot) bool {
-	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) {
-		return g.visit(t)
+	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) && !g.k.gen.anyTapAll {
+		return g.visit(t) // (a TapAll listener hears any permanent's tap: trig_tapall.go)
 	}
 	u := t.fork()
 	u.manaTapped(g.k, sl)
