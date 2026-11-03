@@ -437,6 +437,9 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 			}
 			rp, rt := r.r.p, r.r.t
 			if o.LivePT {
+				if s.livePTLost(k, sl, r.r.ts) {
+					continue
+				}
 				rp, rt = s.livePT(k, sl, o, rp) // static_animategrants.go
 			}
 			if !o.KeepP {
