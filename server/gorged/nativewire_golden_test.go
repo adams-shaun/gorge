@@ -17,6 +17,12 @@ package gorged
 // each `id: <session>:<frame>` line. Everything else is the exact JSON/SSE
 // bytes the handler wrote.
 //
+// Three goldens are pinned. 2seat is the original: two decks from
+// testkit/testutil/decks, 40 steps. hob-3 and trk-2 replay games of the same
+// names from engine/rules/testdata/setheads/games.txt (the decks are read from
+// that file, not copied), and run far enough to reach combat and spells on the
+// wire rather than the opening hand and land drops.
+//
 // A diff here means the client contract changed. It needs operator sign-off;
 // do not regenerate until that sign-off exists.
 
@@ -32,11 +38,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
@@ -56,7 +64,56 @@ const (
 	nativeWireDeckA  = "death-n-taxes"
 	nativeWireDeckB  = "mono-red-prowess"
 	nativeWireCanonS = "s0"
+
+	// nativeWireSetGames lists the set-spread games the extra goldens replay.
+	nativeWireSetGames = "../../engine/rules/testdata/setheads/games.txt"
 )
+
+// nativeWireCase is one pinned game. setGame names a game in
+// nativeWireSetGames whose two decks seat the table; empty means the decks
+// are the named files under testkit/testutil/decks.
+type nativeWireCase struct {
+	name        string
+	path        string
+	seed        uint64
+	steps       int
+	setGame     string
+	deckA       string
+	deckB       string
+	description string
+}
+
+var nativeWireCases = []nativeWireCase{
+	{
+		name:        "2seat",
+		path:        nativeWirePath,
+		seed:        nativeWireSeed,
+		steps:       nativeWireSteps,
+		deckA:       nativeWireDeckA,
+		deckB:       nativeWireDeckB,
+		description: "native HTTP/SSE wire, fixed-seed 2-seat human-vs-bot game; canonicalised only the random SSE session id",
+	},
+	{
+		name:        "hob-3",
+		path:        "testdata/nativewire/hob-3.golden.json.gz",
+		seed:        1112,
+		steps:       150,
+		setGame:     "hob-3",
+		deckA:       "hob-3-a",
+		deckB:       "hob-3-b",
+		description: "native HTTP/SSE wire, set-spread game hob-3 (seed 1112), human seat 0 against the default bot; canonicalised only the random SSE session id",
+	},
+	{
+		name:        "trk-2",
+		path:        "testdata/nativewire/trk-2.golden.json.gz",
+		seed:        1261,
+		steps:       150,
+		setGame:     "trk-2",
+		deckA:       "trk-2-a",
+		deckB:       "trk-2-b",
+		description: "native HTTP/SSE wire, set-spread game trk-2 (seed 1261), human seat 0 against the default bot; canonicalised only the random SSE session id",
+	},
+}
 
 // nativeWireGolden is the gzipped golden's JSON shape. Pending, View and
 // Frames hold the exact bytes the handler wrote, as strings so re-marshalling
@@ -78,12 +135,18 @@ type nativeWireStep struct {
 }
 
 func TestNativeWireGolden(t *testing.T) {
+	for _, c := range nativeWireCases {
+		t.Run(c.name, func(t *testing.T) { runNativeWireCase(t, c) })
+	}
+}
+
+func runNativeWireCase(t *testing.T, c nativeWireCase) {
 	reg := testutil.CorpusRegistry(t)
 	cfg := config{
 		cards:     testutil.CorpusDirOrSkip(t),
 		decks:     "../../testkit/testutil/decks",
 		dir:       t.TempDir(),
-		seed:      nativeWireSeed,
+		seed:      c.seed,
 		tables:    1,
 		seats:     2,
 		humans:    []int{nativeWireSeat},
@@ -93,11 +156,15 @@ func TestNativeWireGolden(t *testing.T) {
 		// machine load; a golden must not.
 		botPolicy: host.BotPolicy,
 	}
-	cfgs := cfg.tableConfigs(nil, []string{nativeWireDeckA, nativeWireDeckB}, view.Public)
+	cfgs := cfg.tableConfigs(nil, []string{c.deckA, c.deckB}, view.Public)
 	if len(cfgs) != 1 {
 		t.Fatalf("tableConfigs returned %d tables, want 1", len(cfgs))
 	}
-	r, err := host.New(cfg.hostOptions(reg, deckLoader(reg, cfg.decks)))
+	load := deckLoader(reg, cfg.decks)
+	if c.setGame != "" {
+		load = nativeWireSetLoader(t, reg, c.setGame)
+	}
+	r, err := host.New(cfg.hostOptions(reg, load))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,8 +203,10 @@ func TestNativeWireGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	steps := make([]nativeWireStep, 0, nativeWireSteps)
-	for len(steps) < nativeWireSteps {
+	steps := make([]nativeWireStep, 0, c.steps)
+	var lastTurn int32
+	var lastSeq uint64
+	for len(steps) < c.steps {
 		d, ok := waitNativeWireDecision(t, srv.URL, r)
 		if !ok {
 			break
@@ -166,20 +235,22 @@ func TestNativeWireGolden(t *testing.T) {
 			t.Fatalf("view does not carry the pending decision: view decision %+v, pending seq %d", v.Decision, d.Seq)
 		}
 		steps = append(steps, nativeWireStep{Pending: string(pendingRaw), View: string(viewRaw), Frames: collected})
+		lastTurn, lastSeq = v.Turn, d.Seq
 		answerNativeWire(t, srv.URL, d)
 	}
 
 	g := nativeWireGolden{
-		Description: "native HTTP/SSE wire, fixed-seed 2-seat human-vs-bot game; canonicalised only the random SSE session id",
+		Description: c.description,
 		Table:       nativeWireTable,
 		Match:       nativeWireMatch,
 		Seat:        nativeWireSeat,
-		Seed:        nativeWireSeed,
+		Seed:        c.seed,
 		Hello:       hello,
 		Steps:       steps,
 	}
-	if len(steps) != nativeWireSteps {
-		t.Fatalf("recorded %d decisions, want %d: the script's game ended early", len(steps), nativeWireSteps)
+	t.Logf("%d decisions recorded, last at engine turn %d, event seq %d", len(steps), lastTurn, lastSeq)
+	if len(steps) != c.steps {
+		t.Fatalf("recorded %d decisions, want %d: the script's game ended early", len(steps), c.steps)
 	}
 	got, err := json.MarshalIndent(g, "", "  ")
 	if err != nil {
@@ -188,13 +259,13 @@ func TestNativeWireGolden(t *testing.T) {
 	got = append(got, '\n')
 
 	if os.Getenv("NATIVEWIRE_REGEN") == "1" {
-		writeNativeWireGolden(t, got)
+		writeNativeWireGolden(t, c.path, got)
 		return
 	}
-	want := readNativeWireGolden(t)
+	want := readNativeWireGolden(t, c.path)
 	if !bytes.Equal(got, want) {
-		t.Fatalf("native client wire golden mismatch: a diff here means the client contract changed and needs operator sign-off. Do not regenerate until that sign-off exists; then run NATIVEWIRE_REGEN=1 go test -run TestNativeWireGolden ./server/gorged/.\n%s",
-			nativeWireDiff(want, got))
+		t.Fatalf("native client wire golden mismatch: a diff here means the client contract changed and needs operator sign-off. Do not regenerate until that sign-off exists; then run NATIVEWIRE_REGEN=1 go test -run 'TestNativeWireGolden/%s' ./server/gorged/.\n%s",
+			c.name, nativeWireDiff(want, got))
 	}
 }
 
@@ -441,9 +512,9 @@ func getNativeWire(t *testing.T, endpoint string) []byte {
 	return body
 }
 
-func writeNativeWireGolden(t *testing.T, raw []byte) {
+func writeNativeWireGolden(t *testing.T, path string, raw []byte) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(nativeWirePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	var buf bytes.Buffer
@@ -455,19 +526,19 @@ func writeNativeWireGolden(t *testing.T, raw []byte) {
 		t.Fatal(err)
 	}
 	if buf.Len() > 1<<20 {
-		t.Fatalf("%s is %d bytes, over the 1 MB golden budget", nativeWirePath, buf.Len())
+		t.Fatalf("%s is %d bytes, over the 1 MB golden budget", path, buf.Len())
 	}
-	if err := os.WriteFile(nativeWirePath, buf.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func readNativeWireGolden(t *testing.T) []byte {
+func readNativeWireGolden(t *testing.T, path string) []byte {
 	t.Helper()
-	if fi, err := os.Stat(nativeWirePath); err == nil && fi.Size() > 1<<20 {
-		t.Fatalf("%s is %d bytes, over the 1 MB golden budget", nativeWirePath, fi.Size())
+	if fi, err := os.Stat(path); err == nil && fi.Size() > 1<<20 {
+		t.Fatalf("%s is %d bytes, over the 1 MB golden budget", path, fi.Size())
 	}
-	f, err := os.Open(nativeWirePath)
+	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("%v (generate with NATIVEWIRE_REGEN=1 go test -run TestNativeWireGolden ./server/gorged/)", err)
 	}
@@ -520,4 +591,64 @@ func nativeWireDiff(want, got []byte) string {
 		return b.String()
 	}
 	return fmt.Sprintf("line count changed: want %d lines, got %d", len(wl), len(gl))
+}
+
+// nativeWireSetLoader seats a table from one game of nativeWireSetGames: the
+// loader answers the game's deck labels ("<game>-a", "<game>-b") from the card
+// lists in that file, in listed order, so the wire game plays the same decks
+// the chain-head golden does without a second copy of them. The parser is the
+// one in engine/rules' setheads_test.go; a _test.go file cannot be imported,
+// and the format is three line shapes, so it is restated here.
+func nativeWireSetLoader(t *testing.T, reg *cards.Registry, game string) func(string) (host.Deck, error) {
+	t.Helper()
+	raw, err := os.ReadFile(nativeWireSetGames)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lists := map[string][]*cards.Card{}
+	var inGame bool
+	var label string
+	for n, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		head, rest, _ := strings.Cut(line, " ")
+		switch head {
+		case "game":
+			id, _, _ := strings.Cut(rest, " ")
+			inGame, label = id == game, ""
+		case "deck":
+			label = ""
+			if inGame {
+				label = rest
+				lists[label] = nil
+			}
+		default:
+			if !inGame || label == "" {
+				continue
+			}
+			count, err := strconv.Atoi(head)
+			if err != nil {
+				t.Fatalf("%s:%d: want `<count> <card>`, got %q", nativeWireSetGames, n+1, line)
+			}
+			c, ok := reg.Lookup(rest)
+			if !ok {
+				t.Fatalf("%s:%d: card %q is not in the corpus", nativeWireSetGames, n+1, rest)
+			}
+			for k := 0; k < count; k++ {
+				lists[label] = append(lists[label], c)
+			}
+		}
+	}
+	if len(lists) != 2 {
+		t.Fatalf("game %s in %s has %d decks, want 2", game, nativeWireSetGames, len(lists))
+	}
+	return func(name string) (host.Deck, error) {
+		cs, ok := lists[name]
+		if !ok {
+			return host.Deck{}, fmt.Errorf("game %s has no deck %q", game, name)
+		}
+		return host.Deck{Name: name, Cards: cs}, nil
+	}
 }
