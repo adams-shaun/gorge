@@ -1604,6 +1604,23 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				if mv&kop.MvUnderYourControl != 0 {
 					ctrl = e.ctrl
 				}
+				// CR 303.4f/g, in gorge's move order (Forge's per-card moveTo): an
+				// Aura card enters attached to the one host it can enchant, waits
+				// for its controller's pick among two or more with the cards
+				// before it already entered, and stays where it is with none
+				host := NoSlot
+				if z == kop.ZoneBattlefield && k.gen != nil {
+					if s.digAuraStays(k, o, ctrl) {
+						continue
+					}
+					if host = s.digAuraHost(k, o, ctrl); host == NoSlot && s.digAuraPark(k, o, ctrl) {
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false
+					}
+				}
 				if z == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ctrl) {
 					if !resume {
 						s.g.held, s.g.retTS = 0, stamp
@@ -1625,6 +1642,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					sl := s.enterHeld(k, &eb, o, ctrl, mv&kop.MvTapped != 0, from)
 					if s.g.pre.obj == o {
 						s.g.pre = preAsk{}
+					}
+					if host != NoSlot && s.occ.has(host) {
+						s.attachTo(k, sl, host)
 					}
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0

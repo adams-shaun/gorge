@@ -169,6 +169,14 @@ func TestStdFinReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-fra's, on the same terms.
+func TestStdFraReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-fra", []stdRepro{
+		{"sweep_returns_aura_after_earlier_entrants", true}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
+	})
+}
+
 // The same, on the pools the games came from.
 func TestStdPoolReprosLockstep(t *testing.T) {
 	t.Parallel()
