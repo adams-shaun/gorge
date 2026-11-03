@@ -47,7 +47,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	p.chosen = 255
 	s.g.cast.clr(sl)
 	if s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
-		s.g.cast.set(sl)
+		if s.objs[o].of&(ofCopy|ofToken) == 0 {
+			s.g.cast.set(sl) // a spell's copy is never cast (CR 707.10), and is a token by now (permCopyEnters)
+		}
 		if s.res.e.flags&sfKicked != 0 && !(k.gen.anyOptCost && castCollectedNever(k, &s.res.e)) {
 			s.mSlSet(k, mechKicked, sl)
 		}

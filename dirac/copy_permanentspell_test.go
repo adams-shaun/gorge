@@ -64,6 +64,9 @@ func TestPermcopyEntersAsToken(t *testing.T) {
 			if of&(ofToken|ofCopy) != 0 {
 				t.Fatalf("the original has of %#x", of)
 			}
+			if !sc.s.g.cast.has(s) {
+				t.Fatal("the cast original reads as not cast")
+			}
 			continue
 		}
 		if of&ofToken == 0 || of&ofCopy != 0 {
@@ -71,6 +74,9 @@ func TestPermcopyEntersAsToken(t *testing.T) {
 		}
 		if sc.s.isSpellCopy(o) {
 			t.Fatal("the resolved copy is still a spell copy")
+		}
+		if sc.s.g.cast.has(s) {
+			t.Fatal("the resolved copy reads as cast: a copy is never cast (CR 707.10)")
 		}
 	}
 }
