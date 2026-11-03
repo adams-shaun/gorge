@@ -1107,9 +1107,14 @@ func (e *Engine) verifyLayer4Active(want bool) {
 
 // verifySelfOnlyDerivedTypes is buildDerivedTypes' self-only check under
 // layer4PrecheckVerify: it rebuilds the table with the full walk into fresh
-// storage and panics unless the fast path's table is identical.
+// storage and panics unless the fast path's table is identical. The reference
+// is buildDerivedTypesFull, which answers an empty table while no layer-4
+// effect is live: a face-down permanent's type base alone (CR 708.2) is read
+// from the object, not from this table, so with no LType effect in active()
+// the fast path's empty table is right and the ungated walk's one entry for
+// the face-down permanent is not a disagreement.
 func (e *Engine) verifySelfOnlyDerivedTypes(got []effects.ObjectTypes) {
-	full := e.buildDerivedTypesWalk(nil, nil, false, false)
+	full := e.buildDerivedTypesFull(nil)
 	if len(got) != len(full) || (len(got) > 0 && !objectTypesListEqual(got, full)) {
 		panic(fmt.Sprintf("rules: self-only layer-4 table at log %d disagrees with the full walk (%d vs %d entries)", len(e.L.Events), len(got), len(full)))
 	}
