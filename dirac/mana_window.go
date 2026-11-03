@@ -2156,7 +2156,9 @@ func (s *State) committedPicks() bool {
 // announcements settle the cost, gorge plans again without the permanents committed
 // to it (CR 601.2g-h, 602.2b: one permanent does not pay two costs;
 // rearmAbilityAutoPay, announcedAutoFillPlan). The picks saved names are tapped on
-// entry and on return.
+// entry and on return. The plans hold printed sources only: an ability's planner
+// has no prefix search, so a creature a Honest Work gives {T}: Add {C} is no unit
+// of it and the manual window taps it instead (planComposedCost).
 //
 //go:noinline
 func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, settled kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
@@ -2164,12 +2166,11 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
-	var chk planner
-	chk.dry = true
+	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &offer, 0, NoObj, false, false, &chk)
 	armed := chk.needT != 0
 	if armed && !chk.found {
-		chk = planner{dry: true}
+		chk = planner{dry: true, noGrant: true}
 		s.tapForPK(k, e.ctrl, &fallback, 0, NoObj, false, false, &chk)
 		armed = chk.found
 	}
@@ -2177,7 +2178,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 	if !armed {
 		return false
 	}
-	chk = planner{dry: true}
+	chk = planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
 	return chk.found || chk.needT == 0
 }

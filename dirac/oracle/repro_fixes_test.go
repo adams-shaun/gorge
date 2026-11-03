@@ -143,21 +143,22 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"convoke_colour_no_owed", "std-fra"},                        // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
-		{"convoke_colour_no_picks", "std-fra"},                       // ... with no creature announced, and the cast reversed
-		{"improvise_treasure_census", "std-msh"},                     // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
-		{"excess_of_a_replaced_amount", "std-fra"},                   // CR 120.10: Violent Echoes' excess reads the damage as replaced
-		{"free_cast_two_statics", "std-fra"},                         // two Omnipresences list one free cast
-		{"ward_discard_is_a_discard", "std-fra"},                     // CR 701.9a: Tinybones sees the discard ward was paid with
-		{"cast_trigger_second_target", "std-fra"},                    // Danitha, on the second object of a multi-object slot
-		{"restricted_any_colour_window", "std-fra"},                  // Gideon's Memorial in a window makes the announced pip's colour
-		{"ward_counters_the_targeting_ability", "std-fra"},           // Koth's two triggers: ward counters the one that targeted
-		{"eot_pump_past_int8", "std-fra"},                            // Aerid Konstrari's pump past int8 stalls loudly
-		{"attached_equipment_becomes_a_copy", "std-msh"},             // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
-		{"unless_evaluated_amount", "std-msh"},                       // Doc Samson's mana can pay an unless cost
-		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"}, // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
-		{"lotus_pair_pays_two_colours", "std-fra"},                   // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
-		{"granted_types_any_land_census_position", "std-mkm"},        // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
+		{"convoke_colour_no_owed", "std-fra"},                           // a convoke cast's window owes no colour: Dedicated Commons makes its lowest
+		{"convoke_colour_no_picks", "std-fra"},                          // ... with no creature announced, and the cast reversed
+		{"improvise_treasure_census", "std-msh"},                        // Arc Reactor short with its Treasures counted: reversed, no Treasure spent
+		{"excess_of_a_replaced_amount", "std-fra"},                      // CR 120.10: Violent Echoes' excess reads the damage as replaced
+		{"free_cast_two_statics", "std-fra"},                            // two Omnipresences list one free cast
+		{"ward_discard_is_a_discard", "std-fra"},                        // CR 701.9a: Tinybones sees the discard ward was paid with
+		{"cast_trigger_second_target", "std-fra"},                       // Danitha, on the second object of a multi-object slot
+		{"restricted_any_colour_window", "std-fra"},                     // Gideon's Memorial in a window makes the announced pip's colour
+		{"ward_counters_the_targeting_ability", "std-fra"},              // Koth's two triggers: ward counters the one that targeted
+		{"eot_pump_past_int8", "std-fra"},                               // Aerid Konstrari's pump past int8 stalls loudly
+		{"attached_equipment_becomes_a_copy", "std-msh"},                // CR 704.5p: Shuri makes an attached Equipment a copy of a creature
+		{"unless_evaluated_amount", "std-msh"},                          // Doc Samson's mana can pay an unless cost
+		{"room_alt_granted_prefix_prices_the_other_door", "std-dsk"},    // Unholy Annex showing door 0 cast as Ritual Chamber: the granted-mana prefix is priced at {3}{B}{B}, not the shown door's {2}{B}
+		{"lotus_pair_pays_two_colours", "std-fra"},                      // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
+		{"granted_mana_creature_is_no_ability_planner_unit", "std-tla"}, // Honest Work's Humble Merchant (Katara) is no unit of an ability's planner, so Flexible Waterbender's waterbend {3} falls to the window, which taps her before the Islands
+		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)
@@ -173,10 +174,11 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"plan_limit_classes_by_alternatives", "std-mkm"},      // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
-		{"alt_add_cost_reduced_as_a_total", "std-tla"},         // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
-		{"hybrid_trial_leaves_granted_sources_out", "std-tla"}, // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
-		{"window_combo_answers_its_own_colour", "std-tla"},     // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
+		{"plan_limit_classes_by_alternatives", "std-mkm"},         // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
+		{"alt_add_cost_reduced_as_a_total", "std-tla"},            // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
+		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},    // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
+		{"waterbend_armed_witness_stands_after_picks", "std-tla"}, // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
+		{"window_combo_answers_its_own_colour", "std-tla"},        // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
