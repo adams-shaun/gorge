@@ -385,7 +385,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, a.Kind == kop.AbMana) {
 		return false // a CantBeActivated lock (cast_cantactivate.go)
 	}
-	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyCostEvid || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
+	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
 		// abort in a row (cast_commit.go abortCast, CR 733.2)
 		return false
@@ -393,6 +393,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	f := a.Cost.Flags
 	if f&kop.CostSorcery != 0 && !sorc {
 		return false
+	}
+	if a.Evidence != 0 && s.graveTotalMV(k, p.ctrl) < int(a.Evidence) {
+		return false // CollectEvidence<N> needs a graveyard worth N (gorge pay.EvidencePayable)
 	}
 	if k.anyGate && !s.gateOK(sl, a) {
 		return false

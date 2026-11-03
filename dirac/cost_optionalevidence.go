@@ -29,11 +29,10 @@ func castCollectedNever(k *prep, e *stackEntry) bool {
 // through CostMovesInWindow over the spell's own push: non-empty exactly when
 // the part was paid, since CollectEvidence<N>, N >= 1, exiles a card).
 //
-// The offer is not gated on the graveyard (gorge's postTargetAsks poses the
-// ask after the targets and the division; an unreachable N aborts the cast at
-// that ask, CR 733.1): the seSpell program carries bsEvidence there, the
-// pick is the activation's (cost_collectevidence.go), a short graveyard
-// reverses the cast (unpushSpell), and finishBuild exiles the picked cards
+// The offer needs a graveyard worth N (optCostOffer; gorge pay.EvidencePayable,
+// CR 601.2b): the seSpell program carries bsEvidence after the targets and the
+// division (gorge's postTargetAsks), the pick is the activation's
+// (cost_collectevidence.go), and finishBuild exiles the picked cards
 // with the other cost objects (payOptEvidence). Cold and out of line.
 
 // optEvidenceN is the evidence threshold the spell being built owes, 0 for

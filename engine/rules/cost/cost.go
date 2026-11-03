@@ -400,10 +400,10 @@ type Cost struct {
 	// AllTargeted$CardManaCost over the whole root/sub-ability target union,
 	// so the resolution needs the pre-asked sub-ability targets too. The
 	// payment is the evidenceAsk stage (cast.go), which runs after the
-	// target stages for exactly that reason; at OFFER time the amount is
-	// unknowable, so nonManaCastable deliberately does not gate on this
-	// part (fail-open there) and the payment stage aborts (CR 733.1) when
-	// the graveyard cannot reach the resolved total.
+	// target stages for exactly that reason. At OFFER time a literal N is
+	// gated on the graveyard's total mana value (pay.EvidencePayable); a
+	// named amount is unknowable then, so only the payment stage aborts
+	// (CR 733.1) when the graveyard cannot reach the resolved total.
 	Evidence []CostPart
 	// RollDice carries RollDice<N/Sides/XVar> free cost components. The payment
 	// rolls each die and publishes its canonical effects.DieRollNote; Dyn names

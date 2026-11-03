@@ -243,7 +243,6 @@ type genPrep struct {
 	anyCharmV      bool           // some card has CardDef.ModesPickV: a dynamic charm pick count (modal_charmcmp.go)
 	anyCharmPick   bool           // some charm carries ChoiceRestriction$ (Ability.ModeRestrict; modal_charmpick.go)
 	anyWaterbend   bool           // some ability costs CostWaterbend (act_waterbend.go)
-	anyCostEvid    bool           // some activated ability costs CollectEvidence (Ability.Evidence; cost_collectevidence.go)
 	anyXBoundAb    bool           // some activated ability's target is bounded by its X (xBoundTarget): the announced X can leave it no target, which reverses it
 	anyLure        bool           // some card is a lure (CardDef.Lure; combat_lure.go)
 	anyMustBlock   bool           // some card is printed must-be-blocked or the table gives mechMustBlocked an arena mask (combat_mustbeblocked.go)

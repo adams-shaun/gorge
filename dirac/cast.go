@@ -547,7 +547,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if k.gen != nil && k.gen.anyStation && s.stationPick(k, d) {
 					return true // Station's tap pick precedes the push (ctr_kinds.go)
 				}
-				if (e.kind == seSpell || e.kind == seAbility && k.gen != nil && (k.gen.anyWaterbend || k.gen.anyCostEvid || k.gen.anyXBoundAb)) && s.noProgress() {
+				if (e.kind == seSpell || e.kind == seAbility && k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb)) && s.noProgress() {
 					s.bld().bfl |= bflNoProg
 				}
 				s.pushBuild(k)
@@ -887,12 +887,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			return true
 		case bsEvidence:
 			if n := s.buildEvidenceN(k); n != 0 {
-				switch s.evidenceStageOpts(k, d, int(n)) {
-				case 1:
-					return true
-				case 2:
-					return false
-				}
+				s.evidenceStageOpts(k, d, int(n))
+				return true
 			}
 			s.nextStage(k)
 			continue
