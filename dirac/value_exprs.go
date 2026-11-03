@@ -181,7 +181,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return s.evalV(k, x.Sub[1], ctx)
 	case kop.ExResolvedThisTurn:
-		return s.resolvedThisTurn()
+		return s.resolvedThisTurn(k)
 	case kop.ExThisTurnCast:
 		return s.thisTurnCast(k, x, ctx)
 	case kop.ExSelfPrepared:

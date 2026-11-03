@@ -111,7 +111,7 @@ func TestResolvedThisTurn(t *testing.T) {
 		if !sc.s.trigResolveOK(sc.k) {
 			t.Fatal("the trigger has no intervening-if")
 		}
-		n := sc.s.resolvedThisTurn()
+		n := sc.s.resolvedThisTurn(sc.k)
 		sc.s.res.active = false
 		return n
 	}
@@ -174,5 +174,35 @@ func TestFDNHasNoHistoryReader(t *testing.T) {
 	s.Init(tbl, lib[:], lib[:], 1, Config{NoElide: true})
 	if k := s.k(); k.gen == nil || k.gen.anyHist {
 		t.Fatal("the FDN pool gates the history bank on")
+	}
+}
+
+// TestResolvedThisTurnSharedBody: Victor's one Eerie ability has two trigger
+// lines, an enchantment entering and a Room fully unlocked, that share one
+// body, so a resolution through either line counts into the same tally (gorge
+// keys it by the body, events.ResolvedAbilityKey; the second resolution of the
+// turn is the opponent's discard, not another surveil).
+func TestResolvedThisTurnSharedBody(t *testing.T) {
+	sc, id := newSetScenTweak(t, "gybf", []cardset.Entry{{Name: "Victor, Valgavoth's Seneschal", Count: 2}, {Name: "Plains", Count: 8}}, nil)
+	v := id["Victor, Valgavoth's Seneschal"]
+	etb, unlock := histAb(t, sc, v, kop.TrigETB), histAb(t, sc, v, kop.TrigFullyUnlock)
+	if etb == unlock {
+		t.Fatal("Victor's two Eerie lines are one ability")
+	}
+	o := sc.perm(v, 0)
+	resolve := func(ab uint8) int {
+		sc.s.res.active = true
+		sc.s.res.e = stackEntry{kind: seTrigger, obj: o, srcVer: sc.s.objs[o].ver, card: v, ab: ab, ctrl: 0}
+		if !sc.s.trigResolveOK(sc.k) {
+			t.Fatal("the trigger has no intervening-if")
+		}
+		n := sc.s.resolvedThisTurn(sc.k)
+		sc.s.res.active = false
+		return n
+	}
+	for i, ab := range []uint8{etb, unlock, etb} {
+		if n := resolve(ab); n != i+1 {
+			t.Fatalf("resolution %d of Victor's Eerie reads %d", i+1, n)
+		}
 	}
 }

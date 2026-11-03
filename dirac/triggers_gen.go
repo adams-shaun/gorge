@@ -610,7 +610,7 @@ func (s *State) trigResolveOK(k *prep) bool {
 		return false
 	}
 	if a.AFlags&kop.AfResolveCount != 0 {
-		s.countResolve(e)
+		s.countResolve(k, e)
 	}
 	if a.Trig.Cond == 0 || a.AFlags&kop.AfCheckOnTrigger != 0 {
 		return true
