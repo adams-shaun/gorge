@@ -209,7 +209,7 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 			if pc.manaMulti {
 				// a cast's ability ask lists what the cost owes first (gorge owedAbilitiesFirst)
 				col = s.windowCol(k, p, useful, sl, pc, false, false)
-			} else if want, decided := s.windowUseful(p, useful); decided {
+			} else if want, decided := s.windowUseful(k, p, useful); decided {
 				// the colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
 				if m := s.windowSrcMask(k, sl) & want; m != 0 {
 					col = bits.TrailingZeros8(m)
@@ -250,12 +250,27 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // windowSpellSettled: the pool settles cost, counting the floating restricted mana
 // the spell being built may spend (gorge's window prices AvailableFor's pool, CR 106.6).
 func (s *State) windowSpellSettled(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) bool {
-	if s.pl[p].poolR != 0 && s.buildLive() && s.bld().e.kind == seSpell {
-		e := &s.bld().e
-		c := s.restrShort(k, p, e.card, s.payDescNow(NoObj).og, *cost)
+	if s.pl[p].poolR != 0 && s.restrPoolAdmits(k, p) {
+		c := s.restrShortAdm(p, *cost)
 		return s.windowPoolPays(p, &c, anyColor)
 	}
 	return s.windowPoolPays(p, cost, anyColor)
+}
+
+// restrPoolAdmits: the payment being made (payDescNow) may spend p's floating
+// restricted mana: a spell its restriction matches, an activated ability or a
+// non-spell payment (an unless or ward cost) that the restriction admits (CR 106.6).
+//
+//go:noinline
+func (s *State) restrPoolAdmits(k *prep, p uint8) bool {
+	d := s.payDescNow(NoObj)
+	switch d.class {
+	case pdSpell:
+		return s.restrSpendable(k, p, d.card, d.og)
+	case pdAct:
+		return s.restrPoolAct(k, p, &d)
+	}
+	return s.restrPoolNonSpell(k, p)
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
@@ -264,7 +279,7 @@ func (s *State) windowSpellSettled(k *prep, p uint8, cost *kop.ManaCost, anyColo
 func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost, clamp, anyColor bool) (sl Slot, gap bool) {
 	want, decided := uint8(0), false
 	if clamp && !anyColor {
-		want, decided = s.windowUseful(p, useful)
+		want, decided = s.windowUseful(k, p, useful)
 	}
 	for _, o := range order {
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
@@ -327,7 +342,7 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 	s.touchSl(sl)
 	mask := uint8(kop.ColAny)
 	if clamp {
-		if want, decided := s.windowUseful(p, useful); decided && want&mask != 0 {
+		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
 			mask &= want
 		}
 	}
@@ -399,7 +414,7 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			// Starting Town: the any-colour ability lists no symbol, so the
 			// answer is the {C} ability while the payment can use it, and the
 			// colour the window owes when it can't
-			want, decided := s.windowUseful(p, cost)
+			want, decided := s.windowUseful(k, p, cost)
 			col = kop.C
 			if decided && want&(1<<kop.C) == 0 {
 				col = bits.TrailingZeros8(want)
@@ -488,7 +503,7 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	}
 	mask := uint8(s.filtAb(k, sl).ManaColors)
 	col := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(p, cost); decided && mask&want != 0 {
+	if want, decided := s.windowUseful(k, p, cost); decided && mask&want != 0 {
 		col = bits.TrailingZeros8(mask & want)
 	}
 	pl.pool[col]++
@@ -579,7 +594,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 		return false
 	}
 	if clamp {
-		if want, decided := s.windowUseful(p, useful); decided && mask&want != 0 {
+		if want, decided := s.windowUseful(k, p, useful); decided && mask&want != 0 {
 			mask &= want
 		}
 	}
@@ -1417,11 +1432,19 @@ func (s *State) windowOwnMask(k *prep, sl Slot) uint8 {
 // a pip colour the pool still lacks is offered (want, decided). A hybrid
 // pip or an unsettled generic leaves it undecided: every source stays.
 // An any-type rider (the caller's anyType) fails open the same way.
-func (s *State) windowUseful(p uint8, cost *kop.ManaCost) (want uint8, decided bool) {
+func (s *State) windowUseful(k *prep, p uint8, cost *kop.ManaCost) (want uint8, decided bool) {
 	if cost.Hyb[0] != 0 {
 		return 0, false
 	}
 	pool := &s.pl[p].pool
+	if s.pl[p].poolR != 0 && s.restrPoolAdmits(k, p) {
+		// gorge prices the pool AvailableFor holds: the restricted mana this payment may spend counts (CR 106.6)
+		var t [kop.NumManaKinds]uint8
+		t = *pool
+		t[s.pl[p].poolR>>poolRShift] += uint8(s.pl[p].poolR & poolRCnt)
+		restrXInto(s.poolRx[p&1], &t)
+		pool = &t
+	}
 	surplus := 0
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if cost.Pips[c] > pool[c] {

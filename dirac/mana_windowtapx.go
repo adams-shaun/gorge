@@ -100,7 +100,7 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 	col := s.windowTapXCol(k, p, cost, sl, anyColor, noOwed)
 	if s.g.winMode == winNone && noOwed && clamp && !anyColor {
 		// the cast window's colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
-		if want, decided := s.windowUseful(p, useful); decided {
+		if want, decided := s.windowUseful(k, p, useful); decided {
 			if m := s.windowSrcMask(k, sl) & want; m != 0 {
 				col = uint8(bits.TrailingZeros8(m))
 			}

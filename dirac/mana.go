@@ -724,6 +724,16 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short b
 		}
 		s.g.winHeld = [kop.NumManaKinds]uint8{}
 	}
+	if s.pl[p].poolR != 0 && s.restrPoolNonSpell(k, p) {
+		// the restricted mana its restriction admits here pays first (CR 106.6)
+		if c := s.restrShortAdm(p, *cost); s.poolPays(p, &c) {
+			s.payRestrSpend(k, p, cost, 0, NoObj, false)
+			for c := range held {
+				s.pl[p].pool[c] += held[c]
+			}
+			return false, false
+		}
+	}
 	if !s.poolPays(p, cost) {
 		// the colours the window took leave the cost unpaid (a two-colour
 		// source answered its lowest colour): the taps and the floating

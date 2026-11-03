@@ -330,3 +330,19 @@ func TestSubtypeGrantOutlivesItsSourceLosingAbilitiesLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "flint_under_stop_cold_mercenary", "std-otj", Config{})
 }
+
+// We Say Thee Nay!'s unless cost {2} paid by a player holding Hydraulic Helper, Surveillance Room and
+// plain lands: the Helper's {U} may pay a payment that is no spell, so it counts toward the cost and
+// the window stops with it, as gorge's does; the kernel kept tapping, over-paying with the Room (CR 106.6).
+func TestUnlessWindowCountsRestrictedManaItMaySpendLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "unless_window_counts_restricted_mana", "std-msh", Config{})
+}
+
+// Seedpod Squire cast with Helga's six restricted {W} floating and Lilypad Village untapped: the
+// floating mana pays the generic part, so the blue owed pip makes the window offer the Village's
+// creature-only {U} before its {C}, as gorge's ask does (CR 106.6, 601.2g).
+func TestFloatingRestrictedManaCountsInTheCastWindowClampLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_float_pays_hybrid_beside_village", "std-blb", Config{})
+}

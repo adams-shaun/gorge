@@ -147,7 +147,7 @@ func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
 	mask := uint8(s.filtAb(k, sl).ManaColors)
 	c := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(p, useful); decided && mask&want != 0 {
+	if want, decided := s.windowUseful(k, p, useful); decided && mask&want != 0 {
 		c = bits.TrailingZeros8(mask & want)
 	}
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})
