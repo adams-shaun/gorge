@@ -520,6 +520,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 			}
 		}
 	}
+	if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" && best.Plan != nil && best.Reason == "" {
+		if got, sacrificeOnly := e.potentialAltAddSacrificePlan(p, o, base, parts); sacrificeOnly {
+			return got
+		}
+	}
 	if !e.potentialWitnessOffers(p, o, *best.Plan) {
 		if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" {
 			return e.potentialAltAddPlan(p, o, base, parts)
@@ -552,6 +557,30 @@ func (e *Engine) potentialTargetPricedPlan(statics costStaticViews, p state.Play
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "witness_not_offered"}
 	}
 	return got
+}
+
+// potentialAltAddSacrificePlan prices an either-or additional cost every part of
+// which sacrifices (Dusk Rose Reliquary's artifact or creature) with the
+// sacrifice beside the mana, as an ordinary sacrifice cost is priced: the
+// permanent given up is not also a source of the mana that pays the spell
+// (CR 601.2b, 601.2g, 601.2h). sacrificeOnly is false when some part sacrifices
+// nothing, so the mana witness alone stands for that part.
+func (e *Engine) potentialAltAddSacrificePlan(p state.PlayerID, o decision.Option, base Cost, parts []string) (PaymentPlanOutcome, bool) {
+	costs := make([]Cost, 0, len(parts))
+	for _, part := range parts {
+		c := ParseCost(part)
+		if len(c.Sac) == 0 {
+			return PaymentPlanOutcome{}, false
+		}
+		costs = append(costs, c)
+	}
+	for _, c := range costs {
+		got := e.planComposedCost(p, o.Obj, e.offerCostFor(p, o.Obj, base.Plus(c), spellScope(o.Mode)), false, false)
+		if got.Plan != nil && got.Reason == "" && e.potentialWitnessOffers(p, o, *got.Plan) {
+			return got, true
+		}
+	}
+	return PaymentPlanOutcome{Reason: "insufficient"}, true
 }
 
 // potentialAltAddPlan is a witness for an either-or additional cost (CR 601.2f)
