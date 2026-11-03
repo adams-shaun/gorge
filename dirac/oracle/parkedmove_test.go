@@ -66,6 +66,19 @@ func synthPairsPlayMulligans(t *testing.T, name string, rc RunConfig, mulligans 
 // one of its pairs in lockstep.
 func newSynthPlayer(t *testing.T, name string, rc RunConfig, mulligans int) func(pair int) Result {
 	t.Helper()
+	play := newSynthPlayerOf(t, name, rc, mulligans)
+	return func(i int) Result {
+		_, _, res, err := play(i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+}
+
+// newSynthPlayerOf is newSynthPlayer that also returns the pair's matchup and seed, and the error of a pair the set refuses.
+func newSynthPlayerOf(t *testing.T, name string, rc RunConfig, mulligans int) func(pair int) (*Matchup, uint64, Result, error) {
+	t.Helper()
 	cfg := rc.Config
 	rc.MaxDecisions, rc.MaxTurns = 20000, 100
 	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
@@ -75,11 +88,11 @@ func newSynthPlayer(t *testing.T, name string, rc RunConfig, mulligans int) func
 		t.Fatal(err)
 	}
 	c.AddDecks(files)
-	return func(i int) Result {
+	return func(i int) (*Matchup, uint64, Result, error) {
 		p := PairingAt(pool, i, 1)
 		m, tbl, err := SetMatchup(set, c, p.A, p.B, mulligans)
 		if err != nil {
-			t.Fatal(err)
+			return nil, 0, Result{}, err
 		}
 		k, err := SetSide(set, tbl, cfg)(m, p.Seed)
 		if err != nil {
@@ -87,38 +100,34 @@ func newSynthPlayer(t *testing.T, name string, rc RunConfig, mulligans int) func
 		}
 		res := Lockstep(m, p.Seed, k, RandomPolicy(p.Seed), rc)
 		CloseSide(k)
-		return res
+		return m, p.Seed, res, nil
 	}
 }
 
-// parkedPairs is synthPairs requiring a replacement order ask in each game.
-func parkedPairs(t *testing.T, pairs []int) {
+// parkedPairs plays recorded games with two Rests in Peace out and a replacement
+// order ask posed, and fails any in which a card reaches a graveyard under both.
+func parkedPairs(t *testing.T, also ...func(ref *GorgeSide) bool) {
 	t.Helper()
-	bad, read := "", false
 	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
-		if msg, ok := gravesAfterAnswers(ref); ok {
-			read = true
-			if bad == "" {
-				bad = msg
-			}
+		if msg, ok := gravesAfterAnswers(ref); ok && msg != "" {
+			return &Divergence{What: "parked move", Field: "graveyard", Detail: msg}
 		}
 		return nil
 	}}
-	synthPairsRun(t, "std-big", rc, pairs, func(pair int, res *Result) {
-		if bad != "" {
-			t.Errorf("pair %d: %s", pair, bad)
-		}
-		bad = ""
-		for _, a := range res.Actions {
-			if a.Kind() == ActReplacement {
-				return
+	settled := func(ref *GorgeSide) bool { _, ok := gravesAfterAnswers(ref); return ok }
+	pinnedGamesRun(t, "std-big", rc, 1, append([]func(ref *GorgeSide) bool{settled, replacementAsk}, also...)...)
+}
+
+// replacementAsk is the condition that a replacement order ask is pending.
+func replacementAsk(ref *GorgeSide) bool {
+	if d := ref.Pending(); d != nil {
+		for _, o := range d.Options {
+			if o.Kind == "replacement" {
+				return true
 			}
 		}
-		t.Errorf("pair %d no longer poses a replacement order ask", pair)
-	})
-	if !read {
-		t.Error("no game reached a settled board under two Rests in Peace")
 	}
+	return false
 }
 
 // gravesAfterAnswers reads the board at a priority with the stack empty and two
@@ -155,7 +164,7 @@ func gravesAfterAnswers(ref *GorgeSide) (msg string, ok bool) {
 // already on the stack.
 func TestParkedMoveCostAndSBA(t *testing.T) {
 	t.Parallel()
-	parkedPairs(t, []int{121, 178, 338, 339, 342, 349, 353, 383, 402, 463})
+	parkedPairs(t)
 }
 
 // A casualty's Equipment stays attached to it until the state-based pass ends, and
@@ -163,7 +172,7 @@ func TestParkedMoveCostAndSBA(t *testing.T) {
 // in exile with the Jitte still on it when the ask comes.
 func TestParkedPassKeepsAttachments(t *testing.T) {
 	t.Parallel()
-	parkedPairs(t, []int{31, 160, 185, 257, 281})
+	parkedPairs(t, cardOut("Lost Jitte"))
 }
 
 // A move made while a resolution runs waits too, and the resolution with it: a
@@ -171,7 +180,7 @@ func TestParkedPassKeepsAttachments(t *testing.T) {
 // ability whose effect sacrificed or discarded.
 func TestParkedMoveResolve(t *testing.T) {
 	t.Parallel()
-	parkedPairs(t, []int{30, 49, 52, 170, 177, 273, 275, 290, 310, 315, 329, 344, 405, 441, 495})
+	parkedPairs(t)
 }
 
 // A copy's exceptions are part of it as it enters (CR 707.9b): Nexus of
@@ -179,7 +188,7 @@ func TestParkedMoveResolve(t *testing.T) {
 // Torpor Orb (CR 603.2g), so its entry triggers nothing.
 func TestCopyExceptionsReadByEntryTriggers(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-big", Config{GorgeAutopaySurface: true}, []int{7, 10, 25, 29, 34, 40, 41, 50, 58, 59}, cardOut("Nexus of Becoming"), onBattlefield("Torpor Orb"))
+	pinnedGames(t, "std-big", Config{GorgeAutopaySurface: true}, cardOut("Nexus of Becoming"), onBattlefield("Torpor Orb"))
 }
 
 // A copy of an Equipment that its exception makes a creature can't stay attached
@@ -187,14 +196,14 @@ func TestCopyExceptionsReadByEntryTriggers(t *testing.T) {
 // the state-based pass takes it off again.
 func TestCopiedEquipmentCreatureUnattaches(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-big", Config{GorgeAutopaySurface: true}, []int{2, 20, 78, 141, 204}, cardOut("Nexus of Becoming"))
+	pinnedGames(t, "std-big", Config{GorgeAutopaySurface: true}, cardOut("Nexus of Becoming"))
 }
 
 // Gorge's planner prices no spell with a tap-permanents additional cost, so the
 // autopay surface offers Guardian of the Great Door only when the pool pays it.
 func TestTapAdditionalCostOutsideThePlanner(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-lci", Config{GorgeAutopaySurface: true}, []int{29, 52, 58}, cardSeen("Guardian of the Great Door"))
+	pinnedGames(t, "std-lci", Config{GorgeAutopaySurface: true}, cardSeen("Guardian of the Great Door"))
 }
 
 // Krovod Haunch's "you may pay {1}{W}" is one question: the decider is the
@@ -202,31 +211,31 @@ func TestTapAdditionalCostOutsideThePlanner(t *testing.T) {
 // the yes/no into the pay/decline.
 func TestSelfTriggerDeciderFoldsIntoCost(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-mkm", Config{GorgeAutopaySurface: true}, []int{2, 29, 35, 103, 116}, cardOut("Krovod Haunch"))
+	pinnedGames(t, "std-mkm", Config{GorgeAutopaySurface: true}, cardOut("Krovod Haunch"))
 }
 
 // A Treasure sacrificed while a cost is tapped for poses the order ask with the
 // earlier mana floating and its own not yet made (CR 605.3b).
 func TestManaSacrificeAsksMidPayment(t *testing.T) {
-	parkedPairs(t, []int{114, 190, 244, 328, 429})
+	parkedPairs(t)
 }
 
 // A discard to hand size under two exile-instead replacements poses the order ask,
 // and the last answer finishes the cleanup step.
 func TestCleanupDiscardAsksReplacementOrder(t *testing.T) {
-	parkedPairs(t, []int{36, 175})
+	parkedPairs(t)
 }
 
 // Several discards take all their picks before the first order ask.
 func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
-	parkedPairs(t, []int{341, 666})
+	parkedPairs(t)
 }
 
 // A gift trigger is the keyword's, not one of the card's printed triggers: the two
 // engines name it alike on the stack (CR 702.174c; Starforged Sword, Scrapshooter).
 func TestGiftTriggerOnTheStack(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{}, []int{1, 2, 13}, anyOut("Starforged Sword", "Scrapshooter"))
+	pinnedGames(t, "std-blb", Config{}, anyOut("Starforged Sword", "Scrapshooter"))
 }
 
 // A cast with an either-or additional cost is lowered only on a witness from the
@@ -235,7 +244,7 @@ func TestGiftTriggerOnTheStack(t *testing.T) {
 // Blasting Jelly's {1}.
 func TestEitherOrLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-tla", Config{}, []int{12, 27, 104}, anyOf(cardSeen("Deadly Precision"), cardSeen("Redirect Lightning")), onBattlefield("Barrels of Blasting Jelly"))
+	pinnedGames(t, "std-tla", Config{}, anyOf(cardSeen("Deadly Precision"), cardSeen("Redirect Lightning")), onBattlefield("Barrels of Blasting Jelly"))
 	synthPairsOn(t, "std-lci", Config{}, []int{40, 425}, nil)
 }
 
@@ -244,7 +253,7 @@ func TestEitherOrLoweredOnAWitness(t *testing.T) {
 // card, each going where its answer says.
 func TestParkedMassAndPayment(t *testing.T) {
 	settled := func(ref *GorgeSide) bool { _, ok := gravesAfterAnswers(ref); return ok }
-	synthPairsReachingRun(t, "std-big", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 1, []int{35, 306, 370, 375, 859, 869, 1544, 1938, 2207, 2238, 2287}, nil, settled)
+	pinnedGamesRun(t, "std-big", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 1, settled)
 }
 
 // An Aura whose host dies goes in the next state-based pass, behind that pass's
@@ -252,7 +261,7 @@ func TestParkedMassAndPayment(t *testing.T) {
 // with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
 // whose host dies ahead of one that was already unattached (std-dft 469).
 func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
-	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{31, 37, 59}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
+	pinnedGames(t, "std-hob", Config{GorgeAutopaySurface: true}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
 	synthPairsOn(t, "std-dft", Config{}, []int{469}, nil)
 }
 
@@ -262,7 +271,7 @@ func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
 // 704.5f; std-hob 66, 276).
 func TestLoseAllAbilitiesEndsAnAnimateGrantedStatic(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{66, 276}, onBattlefield("Beorn's Hospitality"), cardOut("Enchanted River's Grasp"))
+	pinnedGames(t, "std-hob", Config{GorgeAutopaySurface: true}, onBattlefield("Beorn's Hospitality"), cardOut("Enchanted River's Grasp"))
 }
 
 // A reduction for targeting your own permanent reads every announced target, a second
@@ -270,7 +279,7 @@ func TestLoseAllAbilitiesEndsAnAnimateGrantedStatic(t *testing.T) {
 // Enough).
 func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-otj", Config{}, []int{6, 9, 0}, cardSeen("This Town Ain't Big Enough"))
+	pinnedGames(t, "std-otj", Config{}, cardSeen("This Town Ain't Big Enough"))
 }
 
 // A Gift spell is lowered only on the witness of its composed cost, which has no source
@@ -278,33 +287,33 @@ func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 // Grotto's {1}.
 func TestGiftLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{}, []int{14, 18, 41}, anyOf(cardSeen("Cruelclaw's Heist"), cardSeen("Dawn's Truce")), onBattlefield("Hidden Grotto"))
+	pinnedGames(t, "std-blb", Config{}, anyOf(cardSeen("Cruelclaw's Heist"), cardSeen("Dawn's Truce")), onBattlefield("Hidden Grotto"))
 }
 
 // Copying each nontoken creature is one batch of tokens entering: Mister Fantastic's
 // "one or more tokens" triggers once (Multiversal Incursion).
 func TestCopyEachEntersAsOneBatch(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-msh", Config{}, []int{305, 9, 11}, cardOut("Multiversal Incursion"))
+	pinnedGames(t, "std-msh", Config{}, cardOut("Multiversal Incursion"))
 }
 
 // A behold cast is lowered on the composed plan's witness too: gorge doesn't offer
 // Champion of the Path when only Springleaf Drum's fee reaches its cost (std-ecl 53).
 func TestBeholdLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-ecl", Config{}, []int{53, 238}, onBattlefield("Springleaf Drum"), cardSeen("Champion of the Path"))
+	pinnedGames(t, "std-ecl", Config{}, onBattlefield("Springleaf Drum"), cardSeen("Champion of the Path"))
 }
 
 // A return during a resolution asks the card's as-enters choice with the card still in
 // its zone, and it enters once answered (CR 614.12): Tune Up on Lifecraft Engine.
 func TestReturnAsksItsChoiceBeforeItMoves(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-dft", Config{}, []int{112, 247, 438}, cardOut("Tune Up"), onBattlefield("Lifecraft Engine"))
+	pinnedGames(t, "std-dft", Config{}, cardOut("Tune Up"), onBattlefield("Lifecraft Engine"))
 }
 
 // A card's own leaves-the-battlefield trigger reads the counters it left with (CR
 // 608.2h): Selfless Police Captain puts its +1/+1 counters on the target.
 func TestLeavesTriggerReadsItsOwnCounters(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-spm", Config{}, []int{20, 99, 219, 358}, cardOut("Selfless Police Captain"))
+	pinnedGames(t, "std-spm", Config{}, cardOut("Selfless Police Captain"))
 }

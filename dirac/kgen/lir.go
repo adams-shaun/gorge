@@ -703,6 +703,7 @@ type lGate struct {
 type lMana struct {
 	Colors     string // the colours one of which is produced ("C", "G", "BR", "WUBRG", "Chosen")
 	Choice     bool   // Colors is a choice among them (Produced$ Combo ...), not simultaneous production
+	Each       bool   // Amount of each of Colors at once (Produced$ "W U": simultaneous production; kop.Ability.ManaEach)
 	Amount     lValue
 	Restrict   *lFilter // spend only on spells matching
 	RestrictAb *lFilter // ... or on activated abilities of objects matching

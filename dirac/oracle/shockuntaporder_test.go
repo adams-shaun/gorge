@@ -68,7 +68,7 @@ func TestShockLandUnderEntersUntappedOrder(t *testing.T) {
 // unknown and drew none, the kernel drew for each.
 func TestNonTokenEnteredThisTurnCount(t *testing.T) {
 	t.Parallel()
-	synthPairsMulligans(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{59, 152, 177}, nil)
+	pinnedGamesRun(t, "std-trc", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, activated("Spock, Voice of Reason"))
 }
 
 // U.S.S. Voyager's "put those land cards onto the battlefield tapped" with The
@@ -77,5 +77,5 @@ func TestNonTokenEnteredThisTurnCount(t *testing.T) {
 // trigger between the move and the tap and posed it.
 func TestDigUntilTappedLandSkipsEntersUntapped(t *testing.T) {
 	t.Parallel()
-	synthPairsMulligans(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{50, 55}, nil)
+	pinnedGamesRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, cardOut("U.S.S. Voyager, Lone Wanderer"), onBattlefield("The Unicomplex"))
 }

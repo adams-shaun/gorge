@@ -33,6 +33,10 @@ type pcard struct {
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
 	restrU    uint8         // a restricted source's planner view: 1 fixed colour, 2 widened {C} unit (mana_restrictedsource.go)
+	// manaXv: the mana an all-at-once ability (kop.Ability.ManaEach) adds
+	// beyond its first colour, which manaCol holds: a fixed vector the planner,
+	// availability and taps read as a tap's extra (mana_tapextra.go srcExtra)
+	manaXv [kop.NumManaKinds]uint8
 	// wideN, wideCol: a widened restricted source's view whose restricted
 	// ability makes wideN mana (of one colour of wideCol) where the census
 	// ability makes manaN: the source's two alternatives differ in amount
@@ -144,6 +148,9 @@ type prep struct {
 	// multiMana: some card has a second own mana ability (prepMultiMana
 	// reads them once the card's loop is done)
 	multiMana bool
+	// manaEach: some card's mana ability adds several colours at once
+	// (pcard.manaXv): its extra rides the tap-extra paths (genPrep.anyTapExtra)
+	manaEach bool
 	// anyUncounter: some card carries ReplSpellsCantBeCountered; OpCounter
 	// scans the battlefield for it (repl_uncounterable.go)
 	anyUncounter bool
@@ -268,6 +275,10 @@ func prepare(t *kop.Table) *prep {
 						pc.manaN = 1
 					}
 					pc.manaOne = manaOneColour(a, pc.manaN)
+					if a.ManaEach {
+						prepEachMana(a, pc)
+						p.manaEach = true
+					}
 					pc.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					pc.manaSac = a.Cost.Flags == kop.CostTap|kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					pc.manaSacOnly = !DebugIgnoreSpawnMana && a.Cost.Flags == kop.CostSacSelf && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0

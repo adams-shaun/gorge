@@ -144,10 +144,12 @@ func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 
 // windowFiltFirst activates that filter in the window, for the first colour it
 // makes that useful still owes (gorge paymentUsefulColours), else its lowest.
-func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost) {
+// A window whose ask carries no cost (a trigger's own cost, noOwed, with no
+// clamp) lists every colour and answers the lowest, W for an any-colour one.
+func (s *State) windowFiltFirst(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwedUnclamped bool) {
 	mask := uint8(s.filtAb(k, sl).ManaColors)
 	c := bits.TrailingZeros8(mask)
-	if want, decided := s.windowUseful(p, useful); decided && mask&want != 0 {
+	if want, decided := s.windowUseful(k, p, useful); decided && mask&want != 0 && !noOwedUnclamped {
 		c = bits.TrailingZeros8(mask & want)
 	}
 	s.filtDo(k, p, filtStep{sl: sl, ans: uint8(1 + c), gap: true})

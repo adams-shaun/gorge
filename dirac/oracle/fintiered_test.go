@@ -231,5 +231,5 @@ func TestFintieredMutation(t *testing.T) {
 // counts a restricted source and a pay-life ability, and Starting Town answers the
 // window with its {C} ability while the payment can use it.
 func TestFintieredPotentialAndWindow(t *testing.T) {
-	synthPairsReaching(t, "std-fin", Config{}, []int{32, 5, 94, 10}, onBattlefield("Starting Town"))
+	pinnedGames(t, "std-fin", Config{}, onBattlefield("Starting Town"))
 }

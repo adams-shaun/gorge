@@ -125,6 +125,11 @@ func effConnive(h Host, c *Ctx, sa *cards.SA) {
 func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, n, done int32) bool {
 	g := h.Game()
 	ctrl := lastKnownController(g, c, conniver)
+	// A conniver that is this ability's own source, returned to the battlefield
+	// since the ability went on the stack, is a new object (CR 400.7): the one
+	// that was instructed to connive is gone, so no counter can go on the new
+	// one (CR 701.50a, 701.50b).
+	gone := c.SourceReturned && conniver == c.Source
 	if h.ActionReplaced(events.Event{Kind: events.Connive, Obj: conniver,
 		Player: ctrl, Amount: -1}) {
 		return false
@@ -185,14 +190,14 @@ func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, 
 		if ans, ok := AskTape(h, d); ok {
 			// Answered in place: the discard, counters and record, then the
 			// walk goes on to the next conniver.
-			applyConniveDiscard(h, conniver, ctrl, counterAnswerObjs(ans))
+			applyConniveDiscard(h, conniver, ctrl, counterAnswerObjs(ans), gone)
 			return false
 		}
-		applyConniveDiscard(h, conniver, ctrl, hand[:n2])
+		applyConniveDiscard(h, conniver, ctrl, hand[:n2], gone)
 		return false
 	}
 	// The whole hand is exactly the discard set: no choice to be made.
-	applyConniveDiscard(h, conniver, ctrl, hand)
+	applyConniveDiscard(h, conniver, ctrl, hand, gone)
 	return false
 }
 
@@ -200,7 +205,7 @@ func conniveOnce(h Host, c *Ctx, sa *cards.SA, conniver state.ObjID, targetIdx, 
 // card still in the conniver's controller's hand is discarded in pick order,
 // then one +1/+1 counter per NONLAND discard if the conniver is still there,
 // then the one events.Connive record both shapes share.
-func applyConniveDiscard(h Host, conniver state.ObjID, ctrl state.PlayerID, picks []state.ObjID) {
+func applyConniveDiscard(h Host, conniver state.ObjID, ctrl state.PlayerID, picks []state.ObjID, gone bool) {
 	g := h.Game()
 	discarded := make([]state.ObjID, 0, len(picks))
 	nonland := int32(0)
@@ -215,7 +220,7 @@ func applyConniveDiscard(h Host, conniver state.ObjID, ctrl state.PlayerID, pick
 			nonland++
 		}
 	}
-	if o := g.Obj(conniver); nonland > 0 && o != nil && o.Zone == state.ZBattlefield {
+	if o := g.Obj(conniver); nonland > 0 && !gone && o != nil && o.Zone == state.ZBattlefield {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: conniver, Counter: "P1P1", Amount: nonland})
 	}
 	emitConniveRecord(h, conniver, ctrl, discarded, nonland)

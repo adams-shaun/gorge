@@ -1,0 +1,238 @@
+package oracle
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/engine/cards"
+)
+
+// A pinned game is a recorded game: the two decklists by card name, the seed and the
+// canonical actions, kept under testdata/pins and played in lockstep. Nothing about
+// it depends on how a synthetic pool deals its pairs, so lowering or refusing a card
+// cannot move it; only a change to a card's behaviour, or to which cards lower, can.
+//
+// Each call plays the games stored for the calling test (a test's n-th call reads
+// testdata/pins/<test name>.<n>.json), requires each to reach every condition in
+// reached at some decision, and requires the lockstep to stay clean. A game that no
+// longer reaches a condition fails: the recorded actions no longer lead where the
+// test is named for, and the games are recorded again with
+//
+//	PINS_RECORD=1 go test -count=1 -run '^TestName$' ./dirac/oracle
+//
+// which searches the synthetic pool for games that reach every condition, plays them
+// clean, and writes the first pinGames of them. A game recorded with no check ends
+// pinTail decisions after its last condition was reached.
+const (
+	pinGames = 3   // games recorded per call
+	pinTail  = 150 // decisions kept after the last condition is reached
+	pinScan  = 6000
+)
+
+var pinCalls = struct {
+	sync.Mutex
+	n map[string]int
+}{n: map[string]int{}}
+
+// pinPath names the file for the calling test's next pinned-game call.
+func pinPath(t *testing.T) string {
+	pinCalls.Lock()
+	defer pinCalls.Unlock()
+	n := pinCalls.n[t.Name()]
+	pinCalls.n[t.Name()] = n + 1
+	return filepath.Join("testdata", "pins", fmt.Sprintf("%s.%d.json", strings.ReplaceAll(t.Name(), "/", "__"), n))
+}
+
+// pinnedGames is the recorded form of a synthetic-pool pin: play the games stored for
+// this call on the surface cfg names, with each player taking up to one mulligan.
+func pinnedGames(t *testing.T, pool string, cfg Config, reached ...func(ref *GorgeSide) bool) {
+	t.Helper()
+	pinnedGamesRun(t, pool, RunConfig{Config: cfg}, 1, reached...)
+}
+
+// pinnedGamesRun is pinnedGames on the run rc with the given mulligan count.
+func pinnedGamesRun(t *testing.T, pool string, rc RunConfig, mulligans int, reached ...func(ref *GorgeSide) bool) {
+	t.Helper()
+	path := pinPath(t)
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, pool)
+	if os.Getenv("PINS_RECORD") == "1" {
+		recordPins(t, path, pool, set, rc, mulligans, reached)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("no recorded games at %s (%v): record them with PINS_RECORD=1", path, err)
+	}
+	var games []*Repro
+	if err := json.Unmarshal(b, &games); err != nil || len(games) == 0 {
+		t.Fatalf("%s: %v", path, err)
+	}
+	for i, r := range games {
+		res, hit, err := playPinned(set, reg, r, rc, reached)
+		if err != nil {
+			t.Fatalf("%s game %d: %v", path, i, err)
+		}
+		reportPinned(t, fmt.Sprintf("%s game %d", path, i), res, hit)
+	}
+}
+
+// reportPinned fails t unless the game ran clean and reached every condition.
+func reportPinned(t *testing.T, what string, res Result, hit []bool) {
+	t.Helper()
+	if res.Div != nil {
+		t.Errorf("%s diverged at %d: %s %s %s %v %v", what, res.Div.At, res.Div.What, res.Div.Field, res.Div.Detail, res.Div.RefOptions, res.Div.KerOptions)
+	}
+	if res.Stall != "" && res.Stall != "decisions" {
+		t.Errorf("%s stalled: %s", what, res.Stall)
+	}
+	for i, h := range hit {
+		if !h {
+			t.Errorf("%s never reaches condition %d of %d: the recorded actions no longer lead there; record the games again (PINS_RECORD=1)", what, i+1, len(hit))
+		}
+	}
+}
+
+// playPinned plays the recorded game r in lockstep, ending with its last action, and
+// reports which of the conditions the gorge side reached.
+func playPinned(set cardset.Set, reg *cards.Registry, r *Repro, rc RunConfig, reached []func(ref *GorgeSide) bool) (Result, []bool, error) {
+	m, err := r.Matchup(reg)
+	if err != nil {
+		return Result{}, nil, err
+	}
+	entries := func(names []string) []cardset.Entry {
+		es := make([]cardset.Entry, len(names))
+		for i, n := range names {
+			es[i] = cardset.Entry{Name: n, Count: 1}
+		}
+		return es
+	}
+	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+	if err != nil {
+		return Result{}, nil, err
+	}
+	hit := make([]bool, len(reached))
+	inner := rc.Check
+	rc.Check = func(ref *GorgeSide, ker Side) *Divergence {
+		for i, f := range reached {
+			if !hit[i] && f(ref) {
+				hit[i] = true
+			}
+		}
+		if inner != nil {
+			return inner(ref, ker)
+		}
+		return nil
+	}
+	rc.MaxTurns = r.MaxTurns
+	rc.MaxDecisions = len(r.Actions) + 1
+	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
+	if err != nil {
+		return Result{}, nil, err
+	}
+	defer CloseSide(k)
+	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	return res, hit, nil
+}
+
+// recordPins writes the games of the synthetic pool that reach every condition and
+// play clean to path.
+func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) {
+	t.Helper()
+	reg := synthReg(t)
+	hit := make([]bool, len(reached))
+	checks := 0
+	allAt := -1
+	inner := rc.Check
+	rec := rc
+	rec.Check = func(ref *GorgeSide, ker Side) *Divergence {
+		checks++
+		all := true
+		for i, f := range reached {
+			if !hit[i] && f(ref) {
+				hit[i] = true
+			}
+			all = all && hit[i]
+		}
+		if all && allAt < 0 {
+			allAt = checks
+		}
+		if inner != nil {
+			return inner(ref, ker)
+		}
+		return nil
+	}
+	// PINS_MUTANT=1 records, from a build with the fix under test removed, the games that
+	// diverge in it: a condition alone cannot tell a game the fix matters in from one it
+	// does not. Record again without it on the restored code to check they run clean.
+	mutant := os.Getenv("PINS_MUTANT") == "1"
+	play := newSynthPlayerOf(t, pool, rec, mulligans)
+	var games []*Repro
+	for pair := 0; pair < pinScan && len(games) < pinGames; pair++ {
+		clear(hit)
+		checks, allAt = 0, -1
+		m, seed, res, err := play(pair)
+		if err != nil { // a pair the set refuses holds no game
+			continue
+		}
+		if mutant && res.Div != nil && allAt >= 0 {
+			// a game the mutated code diverges in: keep the actions up to the divergence, to
+			// be played against the code as it should be
+			r := NewRepro(m, seed, rc, &res)
+			r.Readable, r.MaxTurns, r.Divergence = nil, 0, nil
+			r.Actions = r.Actions[:min(len(r.Actions), res.Div.At+pinTail)]
+			games = append(games, r)
+			continue
+		}
+		if res.Div != nil || res.Stall != "" || allAt < 0 {
+			continue
+		}
+		r := NewRepro(m, seed, rc, &res)
+		r.Readable = nil
+		r.MaxTurns = 0
+		full := append([]Canon(nil), r.Actions...)
+		if rc.Check == nil {
+			r.Actions = r.Actions[:min(len(full), allAt+pinTail)]
+		}
+		for _, acts := range [][]Canon{r.Actions, full} {
+			r.Actions = acts
+			got, h, err := playPinned(set, reg, r, rc, reached)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Div == nil && (got.Stall == "" || got.Stall == "decisions") && !contains(h, false) {
+				games = append(games, r)
+				break
+			}
+		}
+	}
+	if len(games) == 0 {
+		t.Fatalf("no pair of %s within %d reaches every condition and plays clean", pool, pinScan)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(games)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(b, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("recorded %d games to %s", len(games), path)
+}
+
+func contains(v []bool, x bool) bool {
+	for _, e := range v {
+		if e == x {
+			return true
+		}
+	}
+	return false
+}

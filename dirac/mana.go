@@ -100,7 +100,7 @@ const maxOneColour = 4
 // (Kami of Whispered Hopes, "X mana of any one color"), as opposed to a Combo's
 // colour per unit.
 func manaOneColour(a *kop.Ability, n uint8) bool {
-	return n > 1 && a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice == 0
+	return n > 1 && a.ManaColors == kop.ColAny && a.AFlags&kop.AfManaChoice == 0 && !a.ManaEach
 }
 
 //go:noinline
@@ -723,6 +723,16 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost) (paused, short b
 			return true, false // a tap-another source's pick: the answer runs the walk on (mana_windowtapx.go)
 		}
 		s.g.winHeld = [kop.NumManaKinds]uint8{}
+	}
+	if s.pl[p].poolR != 0 && s.restrPoolNonSpell(k, p) {
+		// the restricted mana its restriction admits here pays first (CR 106.6)
+		if c := s.restrShortAdm(p, *cost); s.poolPays(p, &c) {
+			s.payRestrSpend(k, p, cost, 0, NoObj, false)
+			for c := range held {
+				s.pl[p].pool[c] += held[c]
+			}
+			return false, false
+		}
 	}
 	if !s.poolPays(p, cost) {
 		// the colours the window took leave the cost unpaid (a two-colour

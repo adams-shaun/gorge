@@ -273,6 +273,19 @@ func (s *State) availGrantExtra(k *prep, sl Slot, pc *pcard, gi *[maxGrants]int1
 	}
 	var xv [kop.NumManaKinds]uint8
 	hit := false
+	if pc.manaXv != xv {
+		// an all-at-once source (mana_eachcolour.go): its rest comes with its
+		// own ability only, so beside a granted one its units cannot say which
+		if ng > 0 {
+			s.capFull(StallTapExtra)
+			return
+		}
+		for c, n := range pc.manaXv {
+			if n > 0 {
+				a.addUnits(1<<c, n)
+			}
+		}
+	}
 	if own || ng == 0 {
 		xv, hit = s.srcExtraHit(k, sl, pc)
 	}

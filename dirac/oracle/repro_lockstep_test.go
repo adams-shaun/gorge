@@ -201,8 +201,7 @@ func TestPrintedAbilityBesideAGrantLockstep(t *testing.T) {
 // mana and is asked after the planner's witness is tapped.
 func TestGiftCastIsPlannedOnAutopayLockstep(t *testing.T) {
 	t.Parallel()
-	synthPairsReaching(t, "std-blb", Config{GorgeAutopaySurface: true}, []int{1, 7, 20},
-		anyOf(onStack("Longstalk Brawl"), onStack("Scrapshooter")))
+	pinnedGames(t, "std-blb", Config{GorgeAutopaySurface: true}, anyOf(onStack("Longstalk Brawl"), onStack("Scrapshooter")))
 }
 
 // A land animated the turn it entered is no creature that entered: Mishra's Factory
@@ -329,4 +328,34 @@ func TestReversedPermissionCastKeepsTheOncePerTurnPermissionLockstep(t *testing.
 func TestSubtypeGrantOutlivesItsSourceLosingAbilitiesLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "flint_under_stop_cold_mercenary", "std-otj", Config{})
+}
+
+// We Say Thee Nay!'s unless cost {2} paid by a player holding Hydraulic Helper, Surveillance Room and
+// plain lands: the Helper's {U} may pay a payment that is no spell, so it counts toward the cost and
+// the window stops with it, as gorge's does; the kernel kept tapping, over-paying with the Room (CR 106.6).
+func TestUnlessWindowCountsRestrictedManaItMaySpendLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "unless_window_counts_restricted_mana", "std-msh", Config{})
+}
+
+// Seedpod Squire cast with Helga's six restricted {W} floating and Lilypad Village untapped: the
+// floating mana pays the generic part, so the blue owed pip makes the window offer the Village's
+// creature-only {U} before its {C}, as gorge's ask does (CR 106.6, 601.2g).
+func TestFloatingRestrictedManaCountsInTheCastWindowClampLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "restricted_float_pays_hybrid_beside_village", "std-blb", Config{})
+}
+
+// Wilt in the Heat cast through Flashback: the card priced in the graveyard counts as having
+// left it, so the {2} reduction is on its offer (CR 601.2a, 601.2f).
+func TestSpellPricedInGraveyardCountsItsOwnDepartureLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_priced_in_graveyard_counts_its_own_departure", "std-sos", Config{})
+}
+
+// Kang, Temporal Tyrant sacrificed with its connive trigger on the stack and returned by
+// Thunderbolts Conspiracy: the new object takes no counter (CR 701.50b, 400.7).
+func TestConniveSourceReturnedGetsNoCounterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "connive_source_returned_gets_no_counter", "std-msh", Config{})
 }

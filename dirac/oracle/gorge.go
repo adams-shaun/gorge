@@ -1007,6 +1007,9 @@ func (g *GorgeSide) completeFrom(fr *frame, chosen []int, last int, budget *int)
 	if g.validAnswer(fr, chosen) {
 		return true
 	}
+	if !blockFloorsMatchable(fr, chosen) {
+		return false
+	}
 	if len(chosen) >= fr.d.Max {
 		return false
 	}
@@ -1024,6 +1027,88 @@ func (g *GorgeSide) completeFrom(fr *frame, chosen []int, last int, budget *int)
 		}
 	}
 	return false
+}
+
+// blockFloorsMatchable reports whether every attacker a blockers answer has
+// begun to block (CR 509.1a: menace, a MinMaxBlocker floor) can still get its
+// missing blockers: each missing blocker is a distinct creature not yet
+// declared that has a valid pair on that attacker (a bipartite matching, as
+// the kernel's blocksCompletable). It is a necessary condition only, checked
+// before the budgeted completion search, which on a wide board runs out of
+// budget and answers optimistically for a pair that strands a menace
+// attacker's second blocker.
+func blockFloorsMatchable(fr *frame, chosen []int) bool {
+	d := fr.d
+	if d.Kind != decision.KBlockers {
+		return true
+	}
+	var used []state.ObjID
+	var blocked []state.ObjID // attacker, one entry per chosen pair
+	for _, c := range chosen {
+		o := optByIndex(d, c)
+		used = append(used, o.Obj)
+		blocked = append(blocked, o.Attacker)
+	}
+	var missing []state.ObjID // attacker, one entry per blocker still owed
+	var seen []state.ObjID
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.MinBlockers <= 1 || slices.Contains(seen, o.Attacker) {
+			continue
+		}
+		seen = append(seen, o.Attacker)
+		n := 0
+		for _, a := range blocked {
+			if a == o.Attacker {
+				n++
+			}
+		}
+		for ; n > 0 && n < o.MinBlockers; n++ {
+			missing = append(missing, o.Attacker)
+		}
+	}
+	if len(missing) == 0 {
+		return true
+	}
+	var free []state.ObjID
+	for i := range d.Options {
+		o := &d.Options[i]
+		if fr.valid[i] && !slices.Contains(used, o.Obj) && !slices.Contains(free, o.Obj) {
+			free = append(free, o.Obj)
+		}
+	}
+	canBlock := func(b, a state.ObjID) bool {
+		for i := range d.Options {
+			if o := &d.Options[i]; fr.valid[i] && o.Obj == b && o.Attacker == a {
+				return true
+			}
+		}
+		return false
+	}
+	match := make([]int, len(free)) // free blocker -> missing entry, -1 none
+	for i := range match {
+		match[i] = -1
+	}
+	var augment func(m int, seen []bool) bool
+	augment = func(m int, seen []bool) bool {
+		for j, b := range free {
+			if seen[j] || !canBlock(b, missing[m]) {
+				continue
+			}
+			seen[j] = true
+			if match[j] < 0 || augment(match[j], seen) {
+				match[j] = m
+				return true
+			}
+		}
+		return false
+	}
+	for m := range missing {
+		if !augment(m, make([]bool, len(free))) {
+			return false
+		}
+	}
+	return true
 }
 
 // requiredCovered reports whether every creature an attackers decision

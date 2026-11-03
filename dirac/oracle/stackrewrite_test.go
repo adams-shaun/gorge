@@ -342,7 +342,7 @@ func TestStackrewriteMutation(t *testing.T) {
 // Bolt Bend's target is an ability on the stack named by its identity: picked on
 // the multi-target path it keeps that identity, so the stack still shows the target.
 func TestChangeTargetsKeepsStackAbilityTarget(t *testing.T) {
-	synthPairsReaching(t, "std-fdn", Config{GorgeAutopaySurface: true}, []int{201, 268, 281}, cardOut("Bolt Bend"))
+	pinnedGames(t, "std-fdn", Config{GorgeAutopaySurface: true}, cardOut("Bolt Bend"))
 }
 
 // A required redirect leaves its current target out of the offer and asks nothing
@@ -350,5 +350,5 @@ func TestChangeTargetsKeepsStackAbilityTarget(t *testing.T) {
 func TestRedirectMovesOrKeeps(t *testing.T) {
 	synthPairs(t, "std-fdn", []int{325, 386}, nil)
 	synthPairs(t, "std-tla", []int{115}, nil)
-	synthPairsReaching(t, "std-msh", Config{}, []int{201, 1}, cardOut("Speedball, New Warrior"))
+	pinnedGames(t, "std-msh", Config{}, cardOut("Speedball, New Warrior"))
 }

@@ -221,7 +221,7 @@ func (s *State) windowRestrUseful(k *prep, sl Slot, want uint8) bool {
 // colours only, so the mana may be mana this spell can't spend). It taps sl for that
 // mana, floating beside the pool, and reports whether it did.
 func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
-	want, decided := s.windowUseful(p, useful)
+	want, decided := s.windowUseful(k, p, useful)
 	if !decided || s.windowSrcMask(k, sl)&want != 0 {
 		return false
 	}

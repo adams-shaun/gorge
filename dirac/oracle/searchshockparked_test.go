@@ -9,5 +9,5 @@ import "testing"
 // card before it posed the election.
 func TestSearchPutsLandsOntoBattlefieldAroundShockElection(t *testing.T) {
 	t.Parallel()
-	synthPairsMulligans(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, []int{128}, nil)
+	pinnedGamesRun(t, "std-trk", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 0, onBattlefield("Genesis Device"))
 }

@@ -77,6 +77,20 @@ func (s *State) leftZone(k *prep, x *kop.Expr, ctx evalCtx) int {
 		seen[ns] = e.o
 		ns++
 	}
+	// A spell priced in its graveyard has not moved yet but moves before the
+	// cost is determined (CR 601.2a, 601.2f), so a graveyard count includes it
+	// (gorge Host.PricedFromGraveyard); once cast it is in the ring already.
+	if x.N == int16(kop.ZoneGraveyard) && ctx.uncounted != 0 {
+		if o := ctx.uncounted - 1; s.objs[o].zone == kop.ZoneGraveyard {
+			dup := false
+			for j := 0; j < ns; j++ {
+				dup = dup || seen[j] == o
+			}
+			if !dup && s.matchCardEntered(k, x.F, s.objs[o].card, s.objs[o].owner(), ctx.ctrl, o, ctx.src) {
+				ns++
+			}
+		}
+	}
 	return ns
 }
 

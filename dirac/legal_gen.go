@@ -467,34 +467,6 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	return true
 }
 
-// pickKeepsPayable: sacrificing or tapping the permanent at sl to pay a
-// cost still leaves the entry's mana cost payable (an animated land, a
-// mana creature).
-func (s *State) pickKeepsPayable(k *prep, sl Slot) bool {
-	if s.bld().pickK == pkSac || !s.canTapForMana(k, sl) {
-		return true // a sacrifice is paid after the mana (paySacsGen)
-	}
-	cost := s.buildCost(k)
-	if cost.MV() == 0 {
-		return true
-	}
-	var av avail
-	s.availFor(k, s.bld().e.ctrl, &av)
-	if s.bld().e.kind == seAbility {
-		s.excludeTapSource(k, &av)
-	}
-	for i := 0; i < int(s.bld().pickN); i++ {
-		o := s.bld().picks[i]
-		if s.bld().pickKs[i] == pkTapX && s.objs[o].zone == kop.ZoneBattlefield && s.canTapForMana(k, s.objs[o].slot) {
-			pc := s.manaPCGen(k, s.objs[o].slot)
-			s.removeSrc(k, &av, s.objs[o].slot, pc)
-		}
-	}
-	pc := s.manaPCGen(k, sl)
-	s.removeSrc(k, &av, sl, pc)
-	return av.affords(&cost, pipMaskOf(&cost), cost.XGeneric(int(s.bld().e.x)))
-}
-
 // probe records which spell or ability a priority-time feasibility check
 // is for, so targeting restrictions that depend on the source (hexproof
 // from instants, protection from a colour) see it as the build will.
