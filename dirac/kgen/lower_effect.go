@@ -2136,6 +2136,16 @@ func (lc *lowerCtx) damageAll(ps *params) error {
 	if ds, ok := ps.get("DamageSource"); ok {
 		return lc.sweepFrom(ps, ds, n) // lower_sweepfrom.go
 	}
+	if vp := ps.str("ValidPlayers"); vp == "OppNonTriggeredTarget" && ps.m["ValidCards"] == "" {
+		// every opponent but the damaged one (gorge validPlayers): in a
+		// two-player game the damaged player is the one opponent, so no
+		// player is left to hit (CR 102.2)
+		if !lc.damagedPlayerIsTriggerPlayer() {
+			return refuse("ValidPlayers$ OppNonTriggeredTarget outside a damage-to-player trigger")
+		}
+		ps.consume("ValidPlayers")
+		return nil
+	}
 	in := lInstr{Op: "DamageAll", A: n}
 	if vc, ok := ps.get("ValidCards"); ok {
 		if in.F, err = lc.filter(vc); err != nil {
