@@ -129,7 +129,9 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 				continue // the two-life faces must be payable (CR 119.4)
 			}
 			r := s.buildCostFaces(k, face, m, rem)
-			if x := r.XGeneric(int(e.x)); !av.affordsPlain(&r, pipMaskOf(&r), x) && !(k.restrSrc && s.restrFaceAffords(k, e.ctrl, &r, av, x)) {
+			// a face the mana window can reach through a filter or a converting source is
+			// offered as gorge's castWindowReachable offers it (Jeskai Devotee's {1} for {R})
+			if x := r.XGeneric(int(e.x)); !s.faceReachable(k, e.ctrl, av, &r, x) {
 				continue
 			}
 			if face == 1 {

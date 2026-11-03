@@ -216,6 +216,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"sacrificed_token_is_no_card_in_graveyard_count", "std-lci"}, // CR 111.1, 704.5d: a Treasure sacrificed for mana waits for the next check, and is no permanent card for Souls of the Lost to count
 		{"equipment_unattached_earlier_names_no_bearer", "std-lci"},   // CR 608.2h: Tarrian's Soulcleaver detached when its bearer stopped being a creature, so its dies trigger names no equipped creature
 		{"spree_pays_with_its_only_target", "std-otj"},                // Explosive Derailment aimed at the Treasure that pays for it: the cast is planned at {R}, targets chosen first, the window sacrifices the Treasure and the cast stands (CR 601.2c, 601.2g)
+		{"twobrid_face_reached_through_converter", "std-tdm"},         // CR 601.2b: Temur Tawnyback's {2/R} is offered when an Island and Jeskai Devotee's {1} for {R} are the only red
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
