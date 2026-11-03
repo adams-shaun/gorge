@@ -29,8 +29,8 @@ func TestGenerateReproducesCommittedSets(t *testing.T) {
 			codes = append(codes, strings.TrimSuffix(name, ".json"))
 		}
 	}
-	if len(codes) != 2 {
-		t.Fatalf("expected the two committed MTGJSON inputs (FDN, BLB), found %d: %v", len(codes), codes)
+	if len(codes) != 3 {
+		t.Fatalf("expected the three committed MTGJSON inputs (FDN, BLB, TRK), found %d: %v", len(codes), codes)
 	}
 	for _, code := range codes {
 		t.Run(code, func(t *testing.T) {
