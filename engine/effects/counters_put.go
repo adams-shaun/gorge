@@ -1638,7 +1638,14 @@ func sourceLeftSincePush(h Host, c *Ctx, o *state.Object) bool {
 		return false
 	}
 	if ro.PushSourceOnBattlefield {
-		return o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation || c.TriggerContext.SourceLeftBeforePush
+		if o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation {
+			return true
+		}
+		// a source that left and returned before the trigger was pushed is
+		// still a creature the ability may target: the target chosen at the
+		// push is the object on the battlefield then (CR 603.3d), so only a
+		// "this creature" reference reads it as gone
+		return c.TriggerContext.SourceLeftBeforePush && !slices.ContainsFunc(ro.Targets, func(t state.Target) bool { return !t.IsPlayer && t.Obj == o.ID })
 	}
 	if dh, ok := h.(interface {
 		SourceLeftBattlefieldSince(stack state.ObjID) bool

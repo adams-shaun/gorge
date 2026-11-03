@@ -47,6 +47,14 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-blb's, on the same terms.
+func TestStdBlbReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-blb", []stdRepro{
+		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
+	})
+}
+
 // std-fdn's, on the same terms.
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
