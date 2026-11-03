@@ -149,3 +149,38 @@ func madeRestrictedMana(ref *GorgeSide) bool {
 	}
 	return false
 }
+
+// tapTriggerFromManaTap is the condition that a mana tap put a Taps trigger on gorge's
+// stack: a trigger_push for a permanent whose tap, followed by the mana it added, sits
+// just before it (an attack's tap adds no mana). A non-empty listener also requires the
+// trigger to be that card's. It remembers how far into the log it has read, so it serves
+// one game.
+func tapTriggerFromManaTap(listener string) func(ref *GorgeSide) bool {
+	seen := 0
+	return func(ref *GorgeSide) bool {
+		evs := ref.E.L.Events
+		for ; seen < len(evs); seen++ {
+			if evs[seen].Kind != events.TriggerPush {
+				continue
+			}
+			if listener != "" {
+				o := ref.E.G.Obj(evs[seen].Obj)
+				if o == nil || o.Face() == nil || o.Face().Name != listener {
+					continue
+				}
+			}
+			mana := false
+			for j := seen - 1; j >= max(0, seen-8); j-- {
+				switch evs[j].Kind {
+				case events.ManaAdd:
+					mana = true
+				case events.Tap:
+					if mana && evs[j].Obj == evs[seen].Obj {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+}

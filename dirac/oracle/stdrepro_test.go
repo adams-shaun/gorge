@@ -11,6 +11,15 @@ import (
 // autopay surface a random-deck sweep plays, and fails on any divergence or stall.
 func stdReproLockstep(t *testing.T, path, table string) {
 	t.Helper()
+	stdReproLockstepReaching(t, path, table)
+}
+
+// stdReproLockstepReaching is stdReproLockstep that also fails unless the replayed game
+// satisfies each reached predicate at some decision: a recorded repro holds its own deck
+// list, so it cannot drift as a lowering moves the synthetic deals, but a table change can
+// still change what its game does.
+func stdReproLockstepReaching(t *testing.T, path, table string, reached ...func(ref *GorgeSide) bool) {
+	t.Helper()
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, table)
 	r, err := ReadRepro(path)
@@ -40,6 +49,15 @@ func stdReproLockstep(t *testing.T, path, table string) {
 	rc := r.RunConfig()
 	rc.Config = cfg
 	rc.MaxDecisions = len(r.Actions) + 200
+	hit := make([]bool, len(reached))
+	rc.Check = func(ref *GorgeSide, _ Side) *Divergence {
+		for i, f := range reached {
+			if !hit[i] && f(ref) {
+				hit[i] = true
+			}
+		}
+		return nil
+	}
 	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 	CloseSide(k)
 	if res.Div != nil {
@@ -47,5 +65,10 @@ func stdReproLockstep(t *testing.T, path, table string) {
 	}
 	if res.StallUnmodelled {
 		t.Fatalf("dirac stopped at a rule it does not model: %s", res.Stall)
+	}
+	for i := range hit {
+		if !hit[i] {
+			t.Errorf("%s never reaches condition %d of %d: the pin tests nothing", path, i+1, len(hit))
+		}
 	}
 }
