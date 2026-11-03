@@ -263,6 +263,16 @@ func ringTemptsMatches(e Board, t cards.Trigger, source state.ObjID, ev events.E
 	return true
 }
 
+// targetSpecForZone is the trigger's ValidTarget$ spec as it applies to the
+// targeted object id: off the battlefield, an alternative naming a permanent
+// type beside a control word cannot match (cards.Trigger.ValidTargetOffBattlefield).
+func targetSpecForZone(g *state.Game, t cards.Trigger, spec string, id state.ObjID) string {
+	if o := g.Obj(id); o != nil && o.Zone != state.ZBattlefield {
+		return t.ValidTargetOffBattlefield(spec)
+	}
+	return spec
+}
+
 // becomesTargetMatches implements Mode$ BecomesTarget: the trigger fires
 // when one of the chosen targets recorded by a TargetsChosen event
 // (rules.handleTarget -- "the target decision being answered") matches its
@@ -299,7 +309,7 @@ func becomesTargetMatches(e Board, t cards.Trigger, source state.ObjID, ev event
 	}
 	if v, ok := t.Param(cards.PKValidTarget); ok {
 		for _, id := range ev.IDs {
-			if e.MatchesSpec(v, id, source, e.ControllerOf(source), SpecOpts{}) {
+			if sv := targetSpecForZone(e.Game(), t, v, id); sv != "" && e.MatchesSpec(sv, id, source, e.ControllerOf(source), SpecOpts{}) {
 				// CR 702.21a compares the Ward permanent's controller with the
 				// controller of the targeting spell or ability ON THE STACK
 				// (the same ev.Obj ValidSource$ reads above). For an ability,
@@ -580,7 +590,7 @@ func becomesTargetOnceMatches(e Board, t cards.Trigger, source state.ObjID, ev e
 	if v, ok := t.Param(cards.PKValidTarget); ok {
 		matched := false
 		for _, id := range ev.IDs {
-			if e.MatchesSpec(v, id, source, you, SpecOpts{}) {
+			if sv := targetSpecForZone(e.Game(), t, v, id); sv != "" && e.MatchesSpec(sv, id, source, you, SpecOpts{}) {
 				matched = true
 				break
 			}
