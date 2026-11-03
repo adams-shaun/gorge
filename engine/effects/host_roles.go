@@ -675,6 +675,11 @@ type HostTurnLedger interface {
 	// Derived from the event log like LifeLostThisTurn, so a replay derives
 	// the same number; a turn that begins is one TurnChange event naming p.
 	TurnsTaken(p state.PlayerID) int32
+	// ExtraTurnsBegun reports how many extra turns have begun with p as the
+	// active player this game (CR 500.7): each is one consumption of a
+	// pending grant that was not skipped. Derived from the event log, so a
+	// replay derives the same number (Count$YourExtraTurns).
+	ExtraTurnsBegun(p state.PlayerID) int32
 	// AttackersThisTurn counts the attackers declared THIS turn — the sum of
 	// every DeclareAttackers event's attacker list since the last TurnChange,
 	// derived from the event log so a replay derives the same number. This is
