@@ -1,12 +1,12 @@
 {
   "card": "Lifecraft Engine",
-  "class": "projection-Cards.Zone",
-  "why": "the engines' state differs at projection Cards[].Zone; 14 games in the corpus",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool[][]; Lifecraft Engine is among the latest actions and Run Over is the card the divergence implicates",
   "repro": {
     "pool": "std-dft",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 755,
+    "pair": 1197,
     "policy": "random",
     "mulligans": 0
   }

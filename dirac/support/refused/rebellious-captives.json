@@ -1,12 +1,12 @@
 {
   "card": "Rebellious Captives",
-  "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]; 8 games in the corpus",
+  "class": "unmodelled-landgrant",
+  "why": "gorge does something the kernel does not model here (stall landgrant); Rebellious Captives is among the latest actions",
   "repro": {
     "pool": "std-tla",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1333,
+    "pair": 1410,
     "policy": "random",
     "mulligans": 0
   }

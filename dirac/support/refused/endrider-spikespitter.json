@@ -1,12 +1,12 @@
 {
   "card": "Endrider Spikespitter",
-  "class": "projection-Cards.Pos",
-  "why": "the engines' state differs at projection Cards[].Pos; 3 games in the corpus",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; Endrider Spikespitter is among the latest actions and Waxen Shapethief is the card the divergence implicates",
   "repro": {
     "pool": "std-dft",
     "surface": "autopay",
     "seed": 1,
-    "pair": 917,
+    "pair": 2374,
     "policy": "random",
     "mulligans": 0
   }

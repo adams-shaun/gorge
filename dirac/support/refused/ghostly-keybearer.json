@@ -1,12 +1,12 @@
 {
   "card": "Ghostly Keybearer",
   "class": "projection-Life",
-  "why": "the engines' state differs at projection Life[]; 2 games in the corpus",
+  "why": "the engines' state differs at projection Life[]",
   "repro": {
     "pool": "std-dsk",
     "surface": "autopay",
     "seed": 1,
-    "pair": 230,
+    "pair": 2784,
     "policy": "random",
     "mulligans": 1
   }

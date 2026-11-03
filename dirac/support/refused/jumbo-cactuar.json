@@ -1,13 +1,13 @@
 {
   "card": "Jumbo Cactuar",
-  "class": "capacity",
-  "why": "its +9999 end-of-turn pump needs more than the int8 pump field holds",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; Jumbo Cactuar is among the latest actions and Vincent's Limit Break is the card the divergence implicates",
   "repro": {
     "pool": "std-fin",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 170,
+    "pair": 2072,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

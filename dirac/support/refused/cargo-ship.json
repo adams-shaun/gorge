@@ -1,12 +1,12 @@
 {
   "card": "Cargo Ship",
-  "class": "projection-Cards.Power",
-  "why": "the engines' state differs at projection Cards[].Power; 14 games in the corpus",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards[].Flags",
   "repro": {
     "pool": "std-fin",
     "surface": "full",
     "seed": 1,
-    "pair": 1469,
+    "pair": 975,
     "policy": "random",
     "mulligans": 0
   }

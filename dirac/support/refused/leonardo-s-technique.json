@@ -1,13 +1,13 @@
 {
   "card": "Leonardo's Technique",
-  "class": "projection-NStack",
-  "why": "the engines' state differs at projection NStack; 9 games in the corpus",
+  "class": "options",
+  "why": "the engines offer different options; Leonardo's Technique is among the latest actions and Lita, Little Orphan Amphibian is the card the divergence implicates",
   "repro": {
     "pool": "std-tmt",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1306,
+    "pair": 603,
     "policy": "random",
-    "mulligans": 0
+    "mulligans": 1
   }
 }

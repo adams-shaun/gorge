@@ -1,12 +1,12 @@
 {
   "card": "The Theorist, Jace Beleren",
   "class": "projection-NStack",
-  "why": "the engines' state differs at projection NStack; 12 games in the corpus",
+  "why": "the engines' state differs at projection NStack",
   "repro": {
     "pool": "std-fra",
     "surface": "autopay",
     "seed": 1,
-    "pair": 1095,
+    "pair": 1590,
     "policy": "random",
     "mulligans": 0
   }

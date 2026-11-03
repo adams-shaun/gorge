@@ -1,13 +1,13 @@
 {
   "card": "Excalibur II",
-  "class": "projection-Pool",
-  "why": "the engines' state differs at projection Pool[][]; 2 games in the corpus",
+  "class": "unmodelled-entryorder",
+  "why": "gorge does something the kernel does not model here (stall entryorder); Excalibur II is among the latest actions",
   "repro": {
     "pool": "std-fin",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 367,
+    "pair": 2405,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 0
   }
 }

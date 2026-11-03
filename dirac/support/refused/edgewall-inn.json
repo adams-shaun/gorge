@@ -1,13 +1,13 @@
 {
   "card": "Edgewall Inn",
-  "class": "projection-Cards.Pos",
-  "why": "the engines' state differs at projection Cards[].Pos; 6 games in the corpus",
+  "class": "projection-Cards.Power",
+  "why": "the engines' state differs at projection Cards[].Power; Edgewall Inn is among the latest actions and Aquatic Alchemist is the card the divergence implicates",
   "repro": {
     "pool": "std-woe",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 138,
+    "pair": 441,
     "policy": "random",
-    "mulligans": 1
+    "mulligans": 0
   }
 }
