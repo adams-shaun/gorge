@@ -358,3 +358,19 @@ func TestCastSpecAsCastCountsARecast(t *testing.T) {
 		t.Fatalf("pricing a recast misses its earlier cast: %d", n)
 	}
 }
+
+// TestAbortCastDropsPushTriggers: a trigger the cast's own move queued (a
+// card leaving a graveyard) goes with the reversal, which undoes the move
+// (CR 733.1), while one queued before the push stays.
+func TestAbortCastDropsPushTriggers(t *testing.T) {
+	sc, id := kcastScen(t)
+	scour := id("Thought Scour")
+	o := sc.hand(scour, 0)
+	sc.kcastBuild(o, scour, 0)
+	before := sc.s.bld().pushNP
+	sc.s.npend = before + 2 // queued by the move off the origin zone
+	sc.s.unpushSpell(sc.k)
+	if sc.s.npend != before {
+		t.Fatalf("%d pending triggers after the reversal, want the %d from before the push", sc.s.npend, before)
+	}
+}

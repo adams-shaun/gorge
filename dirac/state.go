@@ -654,6 +654,7 @@ type build struct {
 	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
 	pipN      uint8    // hybrid pips announced so far
 	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
+	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
 	fbGrants  uint8    // the card's flashback grants before this cast ended them (the undo restores them)
 	divSlot   uint8    // bsDivide: the divided target slot
 	divLeft   uint8    // bsDivide: points still to place beyond each target's 1

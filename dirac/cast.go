@@ -225,6 +225,7 @@ func (s *State) pushBuild(k *prep) {
 		if k.gen != nil && k.gen.anyPrepare && ob.of&ofCopy != 0 {
 			s.unprepareCast(e.obj) // CR 722.3c (face_prepare.go)
 		}
+		s.bld().pushNP = uint8(s.npend)
 		s.detach(e.obj)
 		s.touch(e.obj)
 		if s.g.on {
@@ -283,6 +284,9 @@ func (s *State) unpushSpell(k *prep) {
 		s.capFull(StallCopyCast) // CR 733.1: gorge leaves a reversed copy in its holding zone
 		ob.zone = kop.ZoneNone
 		return
+	}
+	if s.npend > s.bld().pushNP {
+		s.npend = s.bld().pushNP // CR 733.1: the move off the zone it was cast from never happened, so its triggers (a card leaving a graveyard) are dropped
 	}
 	ob.zone = s.bld().origin
 	ob.slot = NoSlot // off slotFaceDownSpell
