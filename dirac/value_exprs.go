@@ -161,6 +161,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.targetMV(k, x.Ref, ctx)
 		}
 		if o := s.refObjCtx(x.Ref, ctx); o != NoObj {
+			if mv, ok := s.triggerLKIMV(x.Ref, o, ctx); ok {
+				return mv // value_objectmv.go
+			}
 			if s.faceDownAt(k, o) {
 				return 0 // CR 708.2: a face-down permanent or spell has no mana cost
 			}
