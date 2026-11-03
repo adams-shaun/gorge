@@ -59,6 +59,24 @@ func SacrificeCostCandidates(e Engine, p state.PlayerID, source state.ObjID, par
 	return DistinctNameCandidates(e, part.Spec, sacrificeCostScan(e, p, source, matchSpec, cause))
 }
 
+// ManaSacrificeCandidates is SacrificeCostCandidates for a mana ability's own
+// cost. A mana ability inside a payment is activated at CR 601.2g, before the
+// cast's costs are paid at 601.2h, so a permanent that cast already committed
+// to Convoke, Improvise or a tap election is still to be tapped when the
+// payment settles and cannot have been sacrificed first. The offer gate
+// (ManaSacrifices), the election (ManaCostChoiceStages) and the reflected-mana
+// gate all read this one walk.
+func ManaSacrificeCandidates(e Engine, p state.PlayerID, source state.ObjID, part costvocab.CostPart) []state.ObjID {
+	all := SacrificeCostCandidates(e, p, source, part, true)
+	out := all[:0:0]
+	for _, id := range all {
+		if !e.CastCommitted(id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // sacrificeCostScan is sacrificeCostCandidates' full battlefield scan.
 func sacrificeCostScan(e Engine, p state.PlayerID, source state.ObjID, matchSpec string, cause CostCause) []state.ObjID {
 	var out []state.ObjID
@@ -315,7 +333,7 @@ func ManaSacrifices(e Engine, p state.PlayerID, source state.ObjID, cost costvoc
 		if needs[i] <= 0 {
 			return nil, false
 		}
-		candidates[i] = SacrificeCostCandidates(e, p, source, part, true)
+		candidates[i] = ManaSacrificeCandidates(e, p, source, part)
 	}
 	used := make(map[state.ObjID]bool)
 	var chosen []state.ObjID

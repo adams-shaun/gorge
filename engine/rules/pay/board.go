@@ -74,7 +74,7 @@ func ManaExiles(e Engine, p state.PlayerID, source state.ObjID, cost Cost) ([]st
 		}
 		var candidates []state.ObjID
 		for _, id := range e.Game().Zone(zone, p) {
-			if !reserved[id] && e.MatchesSpecFrom(part.Spec, id, p, source) {
+			if !reserved[id] && !e.CastCommitted(id) && e.MatchesSpecFrom(part.Spec, id, p, source) {
 				candidates = append(candidates, id)
 			}
 		}

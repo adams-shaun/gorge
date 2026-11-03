@@ -17,7 +17,7 @@ import (
 // one permanent the cost could sacrifice would reflect a mana.
 func manaReflectedSacrificeLive(h effects.Host, pe pay.Engine, p state.PlayerID, source state.ObjID, cost costvocab.Cost, c *effects.Ctx, ma *cards.SA) bool {
 	for _, part := range cost.Sac {
-		for _, id := range pay.SacrificeCostCandidates(pe, p, source, part, true) {
+		for _, id := range pay.ManaSacrificeCandidates(pe, p, source, part) {
 			c.Remembered = []state.Target{{Obj: id}}
 			if len(effects.ManaReflectedCandidates(h, c, ma)) > 0 {
 				return true
