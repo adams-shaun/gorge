@@ -224,6 +224,24 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
 	}
 	if k.gen != nil && s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
 		at := uint8(0)
+		// One source dealing the whole batch (a creature's sweep) is one
+		// damage batch for its DamageDealtOnce lines: they queue once, at
+		// the first hit, carrying the batch total (gorge trigger_match.go
+		// damageBatchKey), as a combat damage step does.
+		var lt dmgLatch
+		var latch *dmgLatch
+		if s.subs[kop.TrigDamageDealtOnce].any() && rl == nil {
+			latch = &lt
+			for i := range hs {
+				if h := &hs[i]; h.n > 0 {
+					if h.src != hs[0].src {
+						latch = nil
+						break
+					}
+					lt.total += h.n
+				}
+			}
+		}
 		for i := range hs {
 			h := &hs[i]
 			if h.n <= 0 {
@@ -236,7 +254,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) {
 			if rl != nil {
 				rl.at = at
 			}
-			s.fireDamageEvGen(k, h.src, h.n, false, false, nil, uint8(s.perms[h.dst].obj), rl)
+			s.fireDamageEvGen(k, h.src, h.n, false, false, latch, uint8(s.perms[h.dst].obj), rl)
 		}
 	}
 	for i := range hs {
