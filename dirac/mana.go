@@ -1433,10 +1433,19 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 	// A tap makes one colour, so c-1 units of an any-colour kind cover at
 	// most c-1 of the colours still owed: the units each colour needs add up
 	// (a Lotus token's three {R} or three {G}, for {R}{G}, takes two).
+	// A unit also covers the colours of its fixed extra (a bounce land's
+	// {W}{U} takes a {U}{U} cost from two lands though its unit is {W}).
 	owed := 0
 	for col := range pk.need {
-		if ty.mask&(1<<col) != 0 && pk.need[col] > 0 {
-			owed += (pk.need[col] + int(ty.n) - 1) / int(ty.n)
+		if pk.need[col] <= 0 {
+			continue
+		}
+		per := int(ty.xv[col])
+		if ty.mask&(1<<col) != 0 {
+			per += int(ty.n)
+		}
+		if per > 0 {
+			owed += (pk.need[col] + per - 1) / per
 		}
 	}
 	return owed > c-1

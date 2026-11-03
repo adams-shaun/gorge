@@ -1,0 +1,10 @@
+# bounce lands as the only mana beside spells needing two of one colour
+# (dirac/oracle/chancery_test.go)
+Azorius Chancery
+Plated Seastrider
+Mahamoti Djinn
+Phantom Monster
+Air Elemental
+Counterspell
+Island
+Plains
