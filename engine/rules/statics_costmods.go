@@ -301,12 +301,16 @@ func (e *Engine) potentialCostModsUsing(statics costStaticViews, p state.PlayerI
 				assignment = append(assignment, other)
 			}
 		}
-		var mods costMods
-		if x != 0 {
-			mods = e.costModifiersWithTargetsXUsing(statics, p, id, scope, assignment, true, x)
-		} else {
-			mods = e.costModifiersWithTargetsUsing(statics, p, id, scope, assignment, true)
-		}
+		// The in-flight cast's own push is hidden from the ledger counts, as
+		// in every other composition of its price (CR 601.2f prices a spell
+		// not yet cast): xAsk reaches here after the push, and Highspire
+		// Bell-Ringer's "second spell" must read the spells cast before it.
+		mods := e.withCostCompositionEvent(id, func() costMods {
+			if x != 0 {
+				return e.costModifiersWithTargetsXUsing(statics, p, id, scope, assignment, true, x)
+			}
+			return e.costModifiersWithTargetsUsing(statics, p, id, scope, assignment, true)
+		})
 		if accept(mods) {
 			return mods, true
 		}
