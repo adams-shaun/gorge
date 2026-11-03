@@ -6,7 +6,7 @@
     "pool": "std-tdm",
     "surface": "full",
     "seed": 1,
-    "pair": 876,
+    "pair": 135,
     "policy": "random",
     "mulligans": 0
   }
