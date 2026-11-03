@@ -43,14 +43,18 @@ func (s *State) spreeModeAffordable(k *prep, m int) bool {
 	return av.affords(&c, pipMaskOf(&c), 0)
 }
 
-// spreeAffordable: the chosen modes' total cost can be paid.
+// spreeAffordable: the chosen modes' total cost can be paid, by the sources
+// as they stand or with some of the controller's filters activated in the
+// CR 601.2g window (faceReachable): a Conduit Pylons' {1}, {T} any-colour
+// ability makes the second {B} the base cost and a mode's cost owe.
 //
 //go:noinline
 func (s *State) spreeAffordable(k *prep) bool {
 	c := s.buildCost(k)
 	var av avail
-	s.availFor(k, s.bld().e.ctrl, &av)
-	return av.affords(&c, pipMaskOf(&c), 0)
+	ctrl := s.bld().e.ctrl
+	s.availFor(k, ctrl, &av)
+	return s.faceReachable(k, ctrl, &av, &c, 0)
 }
 
 // spreeCastWindowAbort pays the stranded Spree cost through the window and
