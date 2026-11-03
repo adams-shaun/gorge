@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -36,7 +37,11 @@ func poolReproRun(t *testing.T, file, pool string, cfg Config, tail int) (Result
 		t.Fatal(err)
 	}
 	reg := synthReg(t)
-	set, err := cardset.RawByName(pool)
+	load := cardset.RawByName
+	if strings.HasPrefix(pool, "std-") {
+		load = cardset.SynthByName // a Standard evidence pool's generated table
+	}
+	set, err := load(pool)
 	if err != nil {
 		t.Skipf("no %s table (make dirac-tables): %v", pool, err)
 	}

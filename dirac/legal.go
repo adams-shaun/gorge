@@ -646,9 +646,6 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.handFreeOffered(k, p, o) {
-		return false // the plain cast and the free one share a potential play's identity: "ambiguous", never priced
-	}
 	if s.tapPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
 		return false // gorge's potential planner refuses a convoke cost
 	}

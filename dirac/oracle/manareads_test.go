@@ -97,9 +97,11 @@ func TestHybridCastTakesASearchSlotWhenUnrelaxable(t *testing.T) {
 	lockstepWithCard(t, "std-spm", Config{GorgeAutopaySurface: true}, "", 226)
 }
 
-// A plain cast beside a free one shares one potential play's identity, so the
-// planner calls the pair ambiguous and prices neither (Zaffai and the Tempests).
-func TestPlainCastBesideAFreeCastIsNotLowered(t *testing.T) {
+// A plain cast beside a free one is a play of its own: gorge's potential planner
+// prices the printed cost and leaves only the free cast unpriced, so with a
+// mana-spent reader out (the cast planner declines every cast) the plain cast of
+// Prismari Charm is offered beside Zaffai and the Tempests' free one.
+func TestPlainCastBesideAFreeCastIsPricedLockstep(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-sos", Config{}, "Zaffai and the Tempests", 69)
+	poolReproLockstep(t, "plain_cast_beside_free_cast_priced", "std-sos", Config{})
 }
