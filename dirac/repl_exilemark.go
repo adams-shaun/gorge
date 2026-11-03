@@ -83,14 +83,27 @@ type parkedMove struct {
 	obj  Obj
 	kind parkKind
 	x    uint8
-	nsrc uint8
 	src  [maxParkSrc]Obj
-	// later: a state-based batch's answer came before this move's ask
-	later bool
-	// next: a state-based pass parked this move while an earlier pass's asks were
-	// still to come, so gorge's check unattaches before it asks for this one
-	next bool
+	// fl holds the count of src in its low nibble and the flags parkLater and
+	// parkNext above it, one byte to a record
+	fl uint8
 }
+
+// nsrc is the number of sources src holds.
+func (r *parkedMove) nsrc() int { return int(r.fl & parkNsrcMask) }
+
+// setNsrc records n (at most maxParkSrc) sources, keeping the flags.
+func (r *parkedMove) setNsrc(n int) { r.fl = r.fl&^parkNsrcMask | uint8(n) }
+
+const (
+	parkNsrcMask uint8 = 15 // fl's source count
+
+	// parkLater: a state-based batch's answer came before this move's ask
+	parkLater uint8 = 16
+	// parkNext: a state-based pass parked this move while an earlier pass's asks
+	// were still to come, so gorge's check unattaches before it asks for this one
+	parkNext uint8 = 32
+)
 
 // manaSacParks reports whether a source sacrificed for mana now can wait for its
 // order ask, with the payment going on after the answer: the build's mana step, or
@@ -208,7 +221,8 @@ func (s *State) park(k *prep, o Obj, kind parkKind, x uint8) bool {
 	}
 	for i := range s.cold.parked {
 		if r := &s.cold.parked[i]; r.kind == parkNone {
-			*r = parkedMove{obj: o, kind: kind, x: x, nsrc: uint8(n)}
+			*r = parkedMove{obj: o, kind: kind, x: x}
+			r.setNsrc(n)
 			copy(r.src[:], src[:n])
 			return true
 		}
@@ -261,7 +275,7 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 			if !was && busy {
 				for i := range s.cold.parked {
 					if r := &s.cold.parked[i]; r.obj == o && r.kind == parkSBA {
-						r.next = true
+						r.fl |= parkNext
 					}
 				}
 			}
@@ -276,7 +290,7 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask) bool {
 	// died beside the parked casualties and moved in an earlier pass of this check:
 	// it ceases at the next check. Only a pass that parks them now first ceases the
 	// tokens already outside the battlefield, as gorge's pass does before its ask.
-	if fresh && !s.cold.parked[0].later {
+	if fresh && s.cold.parked[0].fl&parkLater == 0 {
 		s.ceaseTokensGen()
 	}
 	s.ctl = ctlExileOrder
@@ -298,7 +312,7 @@ func (s *State) exileOrderOptions(k *prep, d *Decision) {
 		}
 	}
 	r := &s.cold.parked[0]
-	for i, src := range r.src[:r.nsrc] {
+	for i, src := range r.src[:r.nsrc()] {
 		d.add(MakeAction(AkChoose, uint8(src), 0, uint8(maxExMarks+i)))
 	}
 }
@@ -330,11 +344,11 @@ func (s *State) applyExileOrder(k *prep, a Action) {
 	s.takeAnswered(r.obj)
 	if r.kind == parkSBA {
 		for i := range s.cold.parked {
-			s.cold.parked[i].later = true
+			s.cold.parked[i].fl |= parkLater
 		}
-		if h := &s.cold.parked[0]; h.kind == parkSBA && h.next && s.g.lingerM.any() {
+		if h := &s.cold.parked[0]; h.kind == parkSBA && h.fl&parkNext != 0 && s.g.lingerM.any() {
 			// the answered pass is over and the next one's check unattaches first
-			h.next = false
+			h.fl &^= parkNext
 			s.lingerDrain(k)
 		}
 		return
@@ -374,7 +388,7 @@ func (s *State) massMovesGoOn(k *prep) {
 		var src [MaxPerm]Obj
 		n := s.graveMoveSources(k, r.obj, &src)
 		if n > 1 && n <= maxParkSrc {
-			r.nsrc = uint8(n)
+			r.setNsrc(n)
 			copy(r.src[:], src[:n])
 			return
 		}
