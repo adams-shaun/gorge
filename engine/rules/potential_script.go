@@ -42,9 +42,14 @@ type ScriptStep struct {
 
 // potentialScriptPlays bounds the prefix searches one PotentialPaymentPlans
 // query runs, and potentialScriptNodes the clones one search makes: a play
-// beyond either stays unpriced (never a proof).
+// beyond either stays unpriced (never a proof). Both are stated limits, not
+// proofs of completeness: a query with more than sixteen plays the printed
+// sources cannot pay leaves the later ones census_incomplete, and so does a
+// search that needs more than 160 clones. (Four plays left a legal play
+// unoffered on boards with a gap source; sixteen was never reached in 1500
+// Standard games, at about 2% more clones than four.)
 const (
-	potentialScriptPlays = 4
+	potentialScriptPlays = 16
 	potentialScriptNodes = 160
 )
 

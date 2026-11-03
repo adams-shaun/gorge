@@ -746,7 +746,7 @@ func (s *State) scriptWide(k *prep, p uint8) slotMask {
 // cast from, or an activation of a source it matches. gorge's relaxed proof
 // drops the source's alternatives from every other play's payment
 // (potentialRestrictionAdmits), so such a play is proven insufficient and
-// takes none of the four prefix searches.
+// takes none of the prefix searches.
 func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 	if a.Kind() == AkActivate {
 		ob := &s.objs[Obj(a.Source())]

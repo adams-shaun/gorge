@@ -35,7 +35,7 @@ func SetDebugOwnColoursMutate(m uint8) { debugOwnColoursMutate = m }
 // admits API Mana only), so paymentPlanCensusOf.relaxable is false and the
 // unpayability proof is skipped: every play its PotentialMana bound lists
 // (a source counts each colour it can make) that the witness does not pay
-// takes one of the four prefix searches.
+// takes one of the prefix searches.
 func (s *State) selfGrantLive(k *prep, p uint8) bool {
 	if !k.gen.anySelfGrant {
 		return false

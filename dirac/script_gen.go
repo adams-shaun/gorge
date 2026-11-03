@@ -17,12 +17,12 @@ import (
 // under the autopay surface the oracle drops a scripted plain cast from the
 // hand (Config.GorgeAutopaySurface). The kernel mirrors it: the plays
 // listed with any mana available but not with the sources available are the
-// insufficient ones, in priority-walk order; the first four are searched; a
+// insufficient ones, in priority-walk order; the first potentialScriptPlays are searched; a
 // searched play the sources plus the gaps' mana pay is offered, and at the
 // play the gaps are tapped into the pool in battlefield order until the
 // plain walk lists it.
 
-const potentialScriptPlays = 4 // gorge rules/potential_script.go
+const potentialScriptPlays = 16 // gorge rules/potential_script.go
 
 // availFor modes (genState.availX): the gaps' mana added, any mana, or the
 // plain walk without the script hook.
@@ -174,7 +174,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
 	// relaxable (each has a fixed relaxed alternative; a Tender's has
 	// none): a play the relaxed proof cannot pay, the gaps walk's, is
-	// insufficient and no search, so it takes none of the four
+	// insufficient and no search, so it takes none of the searches
 	// (potential_plan.go paymentPlanRelaxProof), and the candidates are
 	// the gaps walk's alone (one walk, not two).
 	twoLive := k.tapMana && s.tapXTwoLive(k, p) // (a live Baylen makes the census unrelaxable: gorge paymentPlanRelaxedAlternatives, no once-only cost; every walk play is searched)
@@ -228,7 +228,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		nc++
 	}
 	searched := 0
-	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first four: searched
+	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !hasOption(&gaps, a) && !twoLive {
 			if !relax {
@@ -424,7 +424,7 @@ func (s *State) FeatScripted(p uint8, a Action) bool {
 // prefix for the first potentialScriptPlays plays of its potential walk
 // that its printed sources cannot pay (rules PotentialPaymentPlans'
 // scripts counter), so a later one is never offered even when the granted
-// source would pay it (Squad Rallier's {2}{W} after four such casts, pair
+// source would pay it (Squad Rallier's {2}{W} after potentialScriptPlays such casts, pair
 // 5618). gorge's potential walk lists the plays p's potential mana pays,
 // granted sources included, before any offer surface (availWalk).
 func (s *State) grantCap(k *prep, d *Decision, p uint8) {

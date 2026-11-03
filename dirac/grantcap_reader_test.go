@@ -11,11 +11,12 @@ import (
 // other player's battlefield makes gorge's cast planner decline every cast
 // ("shape:mana_spent_reader"), but the potential planner prices the cast from
 // its composed cost all the same, so each such cast the printed sources cannot
-// pay takes one of the four prefix searches. With the reader out, five Deadly
-// Embraces that only the granted any-colour mana pays are offered four at a
-// time, as without it; before, the kernel counted none of them.
+// pay takes one of the prefix searches. With the reader out, one Deadly Embrace
+// more than potentialScriptPlays, payable only by the granted any-colour mana, is
+// offered up to the cap, as without it; before, the kernel counted none of them.
+// A hand this large is not a legal deck: the scenario only needs the walk's length.
 func TestGrantedManaScriptCapCountsCastsUnderAReader(t *testing.T) {
-	deck := []cardset.Entry{{Name: "Deadly Embrace", Count: 5}, {Name: "A Realm Reborn", Count: 1}, {Name: "Tellah, Great Sage", Count: 1},
+	deck := []cardset.Entry{{Name: "Deadly Embrace", Count: potentialScriptPlays + 1}, {Name: "A Realm Reborn", Count: 1}, {Name: "Tellah, Great Sage", Count: 1},
 		{Name: "Namazu Trader", Count: 5}, {Name: "Swamp", Count: 4}}
 	set := cardsettest.Synth(t, "std-fin")
 	for _, e := range deck {
@@ -34,9 +35,9 @@ func TestGrantedManaScriptCapCountsCastsUnderAReader(t *testing.T) {
 	for _, tc := range []struct {
 		reader  bool
 		offered int
-	}{{false, 4}, {true, 4}} {
+	}{{false, potentialScriptPlays}, {true, potentialScriptPlays}} {
 		sc := newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
-		for i := 0; i < 5; i++ {
+		for i := 0; i < potentialScriptPlays+1; i++ {
 			sc.hand(id["Deadly Embrace"], 0)
 		}
 		sc.perm(id["Swamp"], 0)

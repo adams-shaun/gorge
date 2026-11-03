@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -430,6 +431,33 @@ func TestPotentialPaymentPlansScriptsAFilter(t *testing.T) {
 		}
 	}
 	ppChoose(t, e, func(o decision.Option) bool { return o.Kind == "cast" && o.Obj == spell })
+}
+
+// A query runs a prefix search for each of potentialScriptPlays plays the
+// planner cannot pay from the printed sources, in walk order; past the cap a
+// legal play stays unpriced (CR 601.2). A hand of more insufficient spells
+// than the cap once left the later ones unoffered although a filter pays each,
+// so every one of ten here gets its scripted prefix.
+func TestPotentialPaymentPlansScriptCapHoldsAFullHand(t *testing.T) {
+	t.Parallel()
+	var extras []string
+	for i := 1; i < 10; i++ {
+		extras = append(extras, fmt.Sprintf("Name:Potential White %d\nManaCost:W\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n", i))
+	}
+	e, _, first := newFixtureDeck(t, 9414, "Name:Potential White\nManaCost:W\nTypes:Instant\nA:SP$ Draw | NumCards$ 1\nOracle:x\n", extras...)
+	spells := []state.ObjID{first}
+	for i := range extras {
+		spells = append(spells, moveByName(t, e, 0, fmt.Sprintf("Potential White %d", i+1), state.ZHand))
+	}
+	onBoardCard(t, e, 0, corpusCard(t, "Heap Gate"))
+	onBoard(t, e, 0, "Name:Potential Wastes\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n")
+	ppPriority(t, e)
+	pps := e.PotentialPaymentPlans(0)
+	for i, sp := range spells {
+		if pp := ppFind(t, pps, "cast", sp); pp.Reason != "" || len(pp.Script) == 0 {
+			t.Errorf("spell %d of %d: verdict %+v, want a scripted prefix", i+1, len(spells), pp)
+		}
+	}
 }
 
 // A spell's sacrifice cost and its mana plan compete like an ability's: the mana

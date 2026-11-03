@@ -77,7 +77,7 @@ var fdnRegressPairs = []struct {
 	{20135, "a sacrificed token copy of a card (a Strix Lookout token) in the graveyard while the next player chooses its Liliana, Dreadhorde General sacrifice is not listed: the kernel's view skips it by the token flag, not the card's type"},
 	{56839, "the same, another token copy (FeatZoneList ofToken)"},
 	{51720, "Soulstone Sanctuary's permanent Animate activated 33 times lists vigilance 33 times: the keyword repeats are per-bit counts (kernel.FeatKwReps), no longer capped at 32 levels"},
-	{45914, "Imprisoned in the Moon's granted {C} is a census gap: gorge searches the first four gap plays in its walk order, the graveyard casts in graveyard order with Think Twice's flashback among Muldrotha's casts (kernel grantCap sorts by walkKey)"},
+	{45914, "Imprisoned in the Moon's granted {C} is a census gap: gorge searches the gap plays in its walk order, up to potentialScriptPlays of them (four when this pair was found), the graveyard casts in graveyard order with Think Twice's flashback among Muldrotha's casts (kernel grantCap sorts by walkKey)"},
 	{76303, "the same, Treetop Snarespinner activations in battlefield entry order"},
 	{22668, "Empyrean Eagle's \"other creatures you control with flying get +1/+1\" and Akroma's Memorial's flying reach no Fiendish Panda in hand (CR 109.2)"},
 	{11658, "Liliana, Dreadhorde General's -9: the opponent's per-type pick is gorge's choose:card over the permanents (kernel.ChGenChooseEach encodes like ChGenChooseCard: okCard, gorge's id-order key)"},
