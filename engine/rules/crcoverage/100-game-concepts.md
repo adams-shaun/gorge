@@ -164,7 +164,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 122.1e | follows | `engine/rules/sba.go#Engine.planeswalkerZeroLoyalty` | `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction` | - |
 | 122.1f | follows | `engine/rules/sba.go#Engine.checkLoseConditions` | - | poison SBA; none in pools |
 | 122.1g | follows | `engine/rules/sba.go#Engine.battleZeroDefense` | `TestBattleEntersWithPrintedDefense` | - |
-| 122.1h | deviates | `engine/rules/replacement.go#Engine.finalityReplacementApplies` | - | finality applies to creatures only |
+| 122.1h | follows | `engine/rules/replacement.go#Engine.finalityReplacementApplies` | `TestFinalityExilesAnyPermanentGoingToGraveyard` | any permanent with a finality counter |
 | 122.1i | follows | `engine/rules/turn.go#Engine.finishEnteredStep` | - | rad counters trigger |
 | 122.1j | follows | `engine/rules/layers.go#Engine.staticEffectsWalk` | `TestCR122_1jHoneCounterPumpsEquippedCreature` | layer 7c; reads attachment, not the Equipment subtype (as Forge) |
 | 122.2 | unknown | - | - | not line-checked |

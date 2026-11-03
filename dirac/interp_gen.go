@@ -1259,12 +1259,12 @@ func (s *State) markExileEx(k *prep, sl Slot) {
 	}
 }
 
-// dieZone is where a creature that dies goes (exile when an effect said so
+// dieZone is where a permanent that goes to the graveyard goes (exile when an effect said so
 // this turn); two or more competing replacements stall (StallReplLeave) unless
 // a parked move's ask has settled them (repl_exilemark.go).
 func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
-	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 && s.isCreature(k, sl) {
-		// CR 122.1: a creature with a finality counter is exiled instead,
+	if k.gen != nil && k.gen.anyFinality && s.perms[sl].ctrN(s, int(kop.CtrFinality)) > 0 {
+		// CR 122.1h: a permanent with a finality counter is exiled instead,
 		// a game rule gorge applies at the move boundary before the
 		// replacements (finalityReplacementApplies)
 		return kop.ZoneExile
