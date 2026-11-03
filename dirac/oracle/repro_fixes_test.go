@@ -215,6 +215,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"waterbend_armed_witness_stands_after_picks", "std-tla"}, // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
 		{"window_combo_answers_its_own_colour", "std-tla"},        // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
 		{"sweep_damage_is_one_batch_for_dealt_once", "std-fin"},   // Nibelheim Aflame with Cecil, Dark Knight: his damage to three creatures is one batch, so his trigger queues once with the total
+		{"trigger_cost_window_pays_through_converter", "std-tdm"}, // CR 601.2g, 118.3: Descendant of Storms' {1}{W} paid from two Swamps through Mardu Devotee: the window's floated W and B pay the cost and the Endure stacks
 		{"token_bounced_if_you_do", "std-hob"},                    // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
 		{"token_in_graveyard_is_no_card", "std-woe"},              // CR 111.7: a sacrificed Rat token waiting for the next check is no creature card, so Cruel Somnophage counts the graveyards without it
 

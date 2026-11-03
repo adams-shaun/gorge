@@ -86,8 +86,7 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 	dry.dry, dry.noGrant = true, true
 	s.tapPlanNeed(k, p, &c, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
-		s.trigWindowTap(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
-		return false
+		return s.trigWindowPays(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 	}
 	for i := 0; i < MaxPerm && !s.poolPays(p, &c); i++ {
 		pk := planner{noGrant: true}
@@ -100,9 +99,24 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		}
 	}
 	if !s.poolPays(p, &c) {
-		s.trigWindowTap(k, p, &c)
-		return false
+		return s.trigWindowPays(k, p, &c)
 	}
 	s.payFromPool(p, &c, 0)
+	return true
+}
+
+// trigWindowPays runs the manual window for a payment the planner has no
+// witness for and charges the cost when what the window floated pays it, as
+// gorge's resolution pay does after the window (Mardu Devotee turning one
+// Swamp's black into the white a {1}{W} cost needs); a window that stops short
+// leaves its taps and the mana floating, and a paused one finishes on its
+// answer.
+//
+//go:noinline
+func (s *State) trigWindowPays(k *prep, p uint8, c *kop.ManaCost) bool {
+	if s.trigWindowTap(k, p, c) || !s.poolPays(p, c) {
+		return false
+	}
+	s.payFromPool(p, c, 0)
 	return true
 }
