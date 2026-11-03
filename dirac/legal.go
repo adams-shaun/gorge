@@ -730,8 +730,22 @@ func severalTargets(k *prep, c CardID) bool {
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj)
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+}
+
+// altAddPartDisjoint: the permanents a part sacrifices or taps are not the
+// sources that pay the spell's own mana, as gorge's planner holds them back
+// (planReserving): one Treasure sacrificed for {B} is gone, so it is not also
+// the artifact Stir Up Trouble's part sacrifices (CR 601.2g-h).
+func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.Cost) bool {
+	if part.Flags&kop.CostTapX == 0 && !(part.Flags&kop.CostSac != 0 && k.sacMana) {
+		return true
+	}
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.costPartDisjoint(k, p, NoSlot, part, &cost, &av, pipMaskOf(&cost))
 }
 
 // altAddManaPart is the mana of card c's either-or additional cost part that has any.

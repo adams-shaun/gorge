@@ -64,6 +64,14 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-hob's, on the same terms.
+func TestStdHobReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-hob", []stdRepro{
+		{"sac_part_and_mana_share_a_treasure", false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+	})
+}
+
 // std-big's, on the same terms.
 func TestStdBigReprosLockstep(t *testing.T) {
 	t.Parallel()
