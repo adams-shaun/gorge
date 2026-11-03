@@ -346,3 +346,17 @@ func TestFloatingRestrictedManaCountsInTheCastWindowClampLockstep(t *testing.T) 
 	t.Parallel()
 	synthReproLockstep(t, "restricted_float_pays_hybrid_beside_village", "std-blb", Config{})
 }
+
+// Wilt in the Heat cast through Flashback: the card priced in the graveyard counts as having
+// left it, so the {2} reduction is on its offer (CR 601.2a, 601.2f).
+func TestSpellPricedInGraveyardCountsItsOwnDepartureLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "flashback_priced_in_graveyard_counts_its_own_departure", "std-sos", Config{})
+}
+
+// Kang, Temporal Tyrant sacrificed with its connive trigger on the stack and returned by
+// Thunderbolts Conspiracy: the new object takes no counter (CR 701.50b, 400.7).
+func TestConniveSourceReturnedGetsNoCounterLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "connive_source_returned_gets_no_counter", "std-msh", Config{})
+}
