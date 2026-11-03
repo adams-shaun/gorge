@@ -9,8 +9,8 @@ import (
 const (
 	// acSpell costs {B} plus {4} or a sacrificed artifact or creature.
 	acSpell = "Name:Cap Spell\nManaCost:B\nTypes:Sorcery\n" +
-		"K:AlternateAdditionalCost:Sac<1/Creature;Artifact/artifact or creature>:4\n" +
-		"A:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Destroy target creature.\nOracle:x\n"
+		"K:AlternateAdditionalCost:Sac<1/Artifact;Creature/a creature or an artifact>:4\n" +
+		"A:SP$ Destroy | ValidTgts$ Creature | SpellDescription$ Kill one creature.\nOracle:x\n"
 	// acGranter gives every land its controller has a tap for one mana of any colour.
 	acGranter = "Name:Cap Granter\nManaCost:1\nTypes:Creature Scout\nPT:1/1\n" +
 		"S:Mode$ Continuous | Affected$ Land.YouCtrl | AddAbility$ CapAny | Description$ Lands tap for any colour.\n" +
