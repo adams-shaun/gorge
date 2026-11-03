@@ -14,8 +14,8 @@ const (
 	MaxDeck    = 60  // cards per seat's deck
 	MaxObj     = 192 // card instances: both decks + tokens
 	MaxPerm    = 112 // battlefield slots (no gate-slice game exceeds 112)
-	MaxStack   = 24  // stack entries
-	MaxPending = 24  // triggered abilities waiting to be put on the stack
+	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
+	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
 	MaxHand    = MaxDeck
 	MaxDelayed = 16
 )

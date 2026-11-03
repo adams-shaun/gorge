@@ -55,3 +55,31 @@ func TestTwentyFourEntriesSnapshotDistinctly(t *testing.T) {
 		}
 	}
 }
+
+// TestMassReturnTriggersFitPendingAndStack: Return to the Light Realms brings a
+// graveyard of creatures back at once beside three enters listeners (two
+// Mabels and Liliana the Faultless); ten creatures queue thirty triggers, which
+// all go on the stack together (CR 603.3b). The queue and the stack held 24
+// each (std-fra pairs 114 and 133).
+func TestMassReturnTriggersFitPendingAndStack(t *testing.T) {
+	sc, id := newRemParamsScen(t)
+	s := sc.s
+	var back []Obj
+	for i := 0; i < 10; i++ {
+		back = append(back, sc.perm(id["Savannah Lions"], 0))
+	}
+	for _, o := range back {
+		for l := 0; l < 3; l++ {
+			s.enqueueLKI(o, s.objs[o].ver, id["Savannah Lions"], 0, 0, o, 0, 0)
+		}
+	}
+	if s.Stalled() || s.npend != 30 {
+		t.Fatalf("30 triggers: %d pending, stall %q", s.npend, StallName(s.StallReason()))
+	}
+	for i := 0; i < 30; i++ {
+		s.push(stackEntry{kind: seTrigger})
+	}
+	if s.Stalled() || s.sp != 30 {
+		t.Fatalf("30 triggers: stack %d, stall %q", s.sp, StallName(s.StallReason()))
+	}
+}
