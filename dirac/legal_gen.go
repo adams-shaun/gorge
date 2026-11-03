@@ -71,6 +71,7 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 		if !s.grantMay(k, sl) {
 			continue
 		}
+		first := int(d.N)
 		s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
 			a := &k.t.Cards[c].Abilities[ab]
 			if a.Kind != kop.AbActivated {
@@ -90,7 +91,15 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				return // gorge offers it only when the pool pays (Config.GorgeUnpriced)
 			}
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
-				d.add(MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab))
+				// two copies of one grantor give the same ability: the second is the
+				// first's option (gorge's offer list collapses them the same way)
+				act := MakeAction(AkActivate, uint8(s.perms[sl].obj), uint8(s.perms[host].obj), 0x80|ab)
+				for i := first; i < int(d.N); i++ {
+					if d.Options[i] == act {
+						return
+					}
+				}
+				d.add(act)
 			}
 		})
 	}
