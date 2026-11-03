@@ -6,7 +6,7 @@
     "pool": "std-trc",
     "surface": "autopay",
     "seed": 1,
-    "pair": 520,
+    "pair": 963,
     "policy": "random",
     "mulligans": 0
   }

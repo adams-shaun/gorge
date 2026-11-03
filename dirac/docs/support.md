@@ -11,7 +11,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 246 | 0 | 22 | 224 |
-| DSK | 276 | 231 | 7 | 36 | 188 |
+| DSK | 276 | 233 | 5 | 40 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 0 | 118 | 118 |
 | FDN | 517 | 505 | 5 | 7 | 493 |
@@ -27,10 +27,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 267 | 1 | 104 | 162 |
-| TRK | 311 | 248 | 0 | 160 | 88 |
+| TRC | 337 | 268 | 1 | 105 | 162 |
+| TRK | 311 | 249 | 0 | 161 | 88 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21221 | 75 | 16979 | 4167 |
+| ALL | 34442 | 21227 | 73 | 16987 | 4167 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-75 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+73 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -82,10 +82,10 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Counters | 1 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 10 |
-| projection-Cards.Pos | 7 |
+| projection-Cards.Pos | 6 |
 | projection-Cards.Power | 3 |
 | projection-Cards.Zone | 2 |
-| projection-Life | 3 |
+| projection-Life | 2 |
 | projection-NInst | 1 |
 | projection-NStack | 10 |
 | projection-Pool | 2 |
