@@ -213,7 +213,13 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			// The witness sacrifices or returns a permanent the play
 			// itself needed (its only target): not a way to pay it, though a
 			// smaller X may pay without that permanent.
+			planned := got
 			got = e.potentialWitnessKeeping(p, o)
+			if got.Plan == nil && e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+				// No colouring keeps every source, but the one that
+				// pays by consuming one ends the game in p's favour.
+				got = planned
+			}
 		}
 		pp.Reason, pp.Detail = got.Reason, got.Detail
 		if witness && got.Plan != nil && got.Reason == "" {

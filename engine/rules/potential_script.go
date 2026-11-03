@@ -461,6 +461,12 @@ func (e *Engine) potentialWitnessReaches(p state.PlayerID, o decision.Option, pl
 // from pool's hypothetical-clone pool (pool is e, or the live engine whose
 // own hypothetical search made e).
 func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	return e.witnessReachesMode(pool, p, o, plan, false)
+}
+
+// witnessReachesMode is witnessReachesFrom, counting a game the witness's
+// own triggers end in p's favour as a reach when winOK.
+func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK bool) bool {
 	if e.Pending() == nil {
 		return false
 	}
@@ -492,6 +498,12 @@ func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.O
 				return false
 			}
 			d = c.Pending()
+		}
+		if winOK && c.G.Over && next == len(steps) && !c.G.Players[p].Lost {
+			// A trigger the paying sacrifice set off ended the game in p's
+			// favour: it waits for the cast to finish (CR 601.2i, 603.3b),
+			// so the play was payable.
+			return true
 		}
 		if d == nil || d.Player != p || c.G.Over || c.G.Turn != turn || c.G.Step != step {
 			return false
