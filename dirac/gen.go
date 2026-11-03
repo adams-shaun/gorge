@@ -1195,7 +1195,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 
 // Capacities of the generated-table state.
 const (
-	maxRem    = 12 // remembered / chosen objects of one resolution
+	maxRem    = 64 // remembered / chosen objects of one resolution (12 before 2026-11-03: Sins of the Father's chapter III remembers a whole graveyard)
 	maxOvr    = 8  // distinct override records on one permanent (identical ones merge: ovRec.n)
 	maxMay    = 16 // play-from-zone permissions (8 before kcaps2x: StallMayPlay was hit, validaggs)
 	maxDProg  = 6  // delayed programs
