@@ -48,6 +48,9 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 				p.casualty = true
 			case kop.StackKwLifelink:
 				g.anyStackLife = true
+			case kop.StackKwStorm:
+				g.anyStorm, g.anyHist = true, true         // the count reads the history bank
+				g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
 			}
 		}
 	}

@@ -1365,10 +1365,10 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
-	if k.selfCast && !e.faceDown() && e.ctrl == 1 {
+	if e.ctrl == 1 && !e.faceDown() {
 		// the spell's own cast trigger: gorge walks the stack after seat
 		// 0's battlefield and before seat 1's (trig_selfcast.go)
-		s.fireSelfCast(k, e)
+		s.castFromStack(k, e)
 	}
 	if lm.or(pm).any() {
 		var ord [MaxPerm]Slot
@@ -1400,8 +1400,8 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 			}
 		}
 	}
-	if k.selfCast && !e.faceDown() && e.ctrl == 0 {
-		s.fireSelfCast(k, e)
+	if e.ctrl == 0 && !e.faceDown() {
+		s.castFromStack(k, e)
 	}
 	if k.gen != nil {
 		s.castTrigGraves(k, e)
@@ -1534,7 +1534,12 @@ const abWard uint8 = 253
 // abCascade marks a kernel-native cascade trigger (CR 702.85a; no CardDef
 // ability): its source is the cascade spell, trigAmt its mana value. Every
 // ab at or above it is kernel-native (no Abilities entry to index).
-const abCascade uint8 = 250
+const abCascade uint8 = 249
+
+// abStorm marks a kernel-native storm trigger (CR 702.40a; no CardDef
+// ability): its source is the spell, trigObj the same spell, trigAmt the
+// number of spells cast before it this turn (kw_storm.go).
+const abStorm uint8 = 250
 
 // abDelayed marks a delayed triggered ability (OpDelayedTrigger).
 const abDelayed uint8 = 252

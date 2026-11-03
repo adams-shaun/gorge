@@ -194,6 +194,7 @@ type genPrep struct {
 	anyHarmonize   bool           // some card has printed harmonize (CardDef.Harmonize; kw_harmonize.go)
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
+	anyStorm       bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)

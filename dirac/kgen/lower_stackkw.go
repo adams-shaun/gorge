@@ -28,8 +28,13 @@ import (
 //     spell object when its damage is dealt (effects/damage.go HasKeyword),
 //     so the kernel reads the grant at damage time (srcKw, stackLifelinkKw).
 //     A cast-from-hand restriction refuses (no cast-time carrier).
-//   - Every other keyword (Storm, Conspire, Split second, Delve) has no
-//     printed form in the kernel and refuses by name.
+//   - Storm lowers to Kind "StackKw" too: the cast trigger is kernel-native
+//     (kw_storm.go), queued when the grant reaches the spell as it is cast.
+//     A spell has the keyword or not, so two granting statics give one
+//     trigger; the Affected$ filter may name the caster (YouCtrl, the Instant
+//     and Sorcery emblem) or the cast (wasCastByYou).
+//   - Every other keyword (Conspire, Split second, Delve) has no printed
+//     form in the kernel and refuses by name.
 func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	kw := sp.str("AddKeyword")
 	if kw == "" || strings.Contains(kw, " & ") {
@@ -43,11 +48,11 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	}
 	head, param, _ := strings.Cut(kw, ":")
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Casualty", "Lifelink":
+	case "Affinity", "Cascade", "Improvise", "Casualty", "Lifelink", "Storm":
 	default:
 		return refuse("AffectedZone Stack grant of %q", kw)
 	}
-	expr, castHand, err := stackAffected(aff, head == "Lifelink")
+	expr, castHand, err := stackAffected(aff, head)
 	if err != nil {
 		return err
 	}
@@ -72,7 +77,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 			return err
 		}
 		return nil
-	case "Cascade", "Improvise", "Lifelink":
+	case "Cascade", "Improvise", "Lifelink", "Storm":
 		if param != "" {
 			return refuse("AffectedZone Stack grant of %q", kw)
 		}
@@ -106,7 +111,8 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 // provenance word refuses. atDamage (a lifelink grant, read when the
 // resolving spell deals damage) inverts the provenance rule: the alternative
 // must name YouCtrl and carry no cast word.
-func stackAffected(aff string, atDamage bool) (string, bool, error) {
+func stackAffected(aff, head string) (string, bool, error) {
+	atDamage, atCast := head == "Lifelink", head == "Storm"
 	var alts []string
 	hand, plain := false, false
 	for _, alt := range strings.Split(aff, ",") {
@@ -139,6 +145,13 @@ func stackAffected(aff string, atDamage bool) (string, bool, error) {
 			// provenance word has no meaning there
 			if cast || !caster {
 				return "", false, refuse("AffectedZone Stack lifelink grant: Affected$ %q is not a plain YouCtrl spell filter", alt)
+			}
+		} else if atCast {
+			// a storm grant is read as the spell is cast, off the spell on
+			// the stack: its controller is its caster, so YouCtrl names
+			// the caster as wasCastByYou does
+			if !caster {
+				return "", false, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)
 			}
 		} else if !cast || !caster {
 			return "", false, refuse("AffectedZone Stack grant: Affected$ %q does not name the caster of a cast spell", alt)

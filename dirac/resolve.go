@@ -163,7 +163,7 @@ func (s *State) resolveTop(k *prep) {
 			s.finishResolve(k, false)
 			return
 		}
-		if e.ab == abCascade {
+		if e.ab == abCascade || e.ab == abStorm {
 			s.runProg(k)
 			return
 		}
@@ -401,6 +401,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 	if e.ab >= abCascade {
 		if e.ab == abCascade {
 			return cascadeProg[:]
+		}
+		if e.ab == abStorm {
+			return stormProg[:]
 		}
 		return nil
 	}
