@@ -568,4 +568,21 @@ func TestMatchManaTapExtra(t *testing.T) {
 	if _, ok := matchMana(ask, decision.PaymentActivation{Source: 5, Produces: gw}); ok {
 		t.Fatal("W and G matched a U or R ask")
 	}
+	// an any-colour wheel option answers a witness of a colour and an extra
+	// mana, and its colour ask then takes the first colour the witness holds
+	wheel := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add C"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Add any color"},
+	}}
+	if c, ok := matchMana(wheel, decision.PaymentActivation{Source: 5, Produces: gw}); !ok || c[0] != 1 {
+		t.Fatalf("W with an extra G on an any-colour wheel: %v %v", c, ok)
+	}
+	colours := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "W", ManaSymbol: "W"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "U", ManaSymbol: "U"},
+		{Index: 2, Kind: "mana", Obj: 5, Label: "G", ManaSymbol: "G"},
+	}}
+	if c, ok := matchMana(colours, decision.PaymentActivation{Source: 5, Produces: gw}); !ok || c[0] != 0 {
+		t.Fatalf("W with an extra G on the colour ask: %v %v", c, ok)
+	}
 }

@@ -45,6 +45,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fin", "life_pain_land_beside_filter_pays_double_green"},     // Summon: Titan's GG from Starting Town and Capital City: a paid-life land is no census gap beside the filter
 		{"std-blb", "exile_triggered_source_left_battlefield"},            // Gossip's Talent level 3 with the Colossified Galewind Moose killed by deathtouch as it dealt combat damage: it is in the graveyard, a new object the exile-and-return finds nothing of
 		{"std-fra", "loyalty_cost_counters_trigger_put_counters"},         // Ajani Unrelenting's [+1] beside an Inspired Tethermage: the loyalty counter put as the cost triggers it, with Ajani's own trigger ordered beside it
+		{"std-tmt", "sneak_restricted_any_colour_beside_tap_extra"},       // Leonardo, Big Brother sneaked for {W} from Turtle Lair's restricted any-colour mana with Groundchuck & Dirtbag adding {G} beside it: the lowered payment takes the wheel's any-colour pick
 		{"std-dft", "run_over_second_target_after_vehicle"},               // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                 // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},               // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there
