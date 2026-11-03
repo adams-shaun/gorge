@@ -463,6 +463,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			d.Options = append(d.Options, decision.Option{Index: i, Obj: t.Obj, Kind: "permanent"})
 		}
 		if len(d.Options) == 0 {
+			// No creature to copy (Calamity, Galloping Inferno with only legendary
+			// saddlers): no copy is made, but the instruction still creates its
+			// delayed triggered ability (CR 603.7), which then does nothing.
+			if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" {
+				scheduleAtEOTNone(h, c.Controller, c.Source, r)
+			}
 			return
 		}
 		{
