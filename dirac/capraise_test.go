@@ -103,3 +103,16 @@ func TestFourthLifelinkOnABoardCounts(t *testing.T) {
 		t.Fatalf("a fourth lifelink on 12 creatures: %d records, stall %q", sc.s.nkwx, StallName(sc.s.StallReason()))
 	}
 }
+
+// TestManyEarthbentLandsKeepTheirReturns: each earthbent land keeps its
+// leave-keyed return record while it lives, so twenty earthbent lands hold
+// twenty, past the 16 the delayed table held (std-tla pair 227).
+func TestManyEarthbentLandsKeepTheirReturns(t *testing.T) {
+	sc, id, in := newEBScen(t)
+	for i := 0; i < 20; i++ {
+		ebCast(sc, id, in, sc.perm(id["Forest"], 0))
+	}
+	if sc.s.Stalled() || sc.s.ndly != 20 {
+		t.Fatalf("20 earthbent lands: %d records, stall %q", sc.s.ndly, StallName(sc.s.StallReason()))
+	}
+}

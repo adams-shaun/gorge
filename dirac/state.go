@@ -17,7 +17,7 @@ const (
 	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
 	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
 	MaxHand    = MaxDeck
-	MaxDelayed = 16
+	MaxDelayed = 32 // 16 before 2026-11-03: each earthbent land keeps its leave-keyed return record while it lives
 )
 
 // ObjWords is the number of 64-bit words an object bitset takes (the change
