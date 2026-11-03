@@ -42,7 +42,7 @@ func raysOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state
 func levyOn(t *testing.T, e *Engine, p state.PlayerID, bearer state.ObjID) state.ObjID {
 	t.Helper()
 	levy := onBoard(t, e, p, "Name:Gatewarden's Levy\nManaCost:W\nTypes:Enchantment Aura\nK:Enchant:Creature\n"+
-		"S:Mode$ CantBlockUnless | ValidCard$ Creature.AttachedBy | Cost$ 3\nOracle:Enchant creature\\nEnchanted creature can't block unless its controller pays {3}.\n")
+		"S:Mode$ CantBlockUnless | Cost$ 3 | ValidCard$ Creature.AttachedBy | Description$ A toll stands between the bearer and any block.\nOracle:Enchant creature\\nEnchanted creature can't block unless its controller pays {3}.\n")
 	e.emit(events.Event{Kind: events.Attach, Obj: levy, IDs: []state.ObjID{bearer}})
 	if got := e.G.Obj(levy).AttachedTo; got != bearer {
 		t.Fatalf("precondition: Gatewarden's Levy %d not attached to %d (AttachedTo %d)", levy, bearer, got)
