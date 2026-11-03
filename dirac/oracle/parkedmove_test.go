@@ -168,7 +168,7 @@ func TestParkedMoveResolve(t *testing.T) {
 // Torpor Orb (CR 603.2g), so its entry triggers nothing.
 func TestCopyExceptionsReadByEntryTriggers(t *testing.T) {
 	t.Parallel()
-	synthPairs(t, "std-big", []int{7, 10, 25, 29, 34, 40, 41, 50, 58, 59}, nil)
+	synthPairsReaching(t, "std-big", Config{GorgeAutopaySurface: true}, []int{7, 10, 25, 29, 34, 40, 41, 50, 58, 59}, cardOut("Nexus of Becoming"), onBattlefield("Torpor Orb"))
 }
 
 // A copy of an Equipment that its exception makes a creature can't stay attached
@@ -176,14 +176,14 @@ func TestCopyExceptionsReadByEntryTriggers(t *testing.T) {
 // the state-based pass takes it off again.
 func TestCopiedEquipmentCreatureUnattaches(t *testing.T) {
 	t.Parallel()
-	synthPairs(t, "std-big", []int{2, 20, 78, 141, 204}, nil)
+	synthPairsReaching(t, "std-big", Config{GorgeAutopaySurface: true}, []int{2, 20, 78, 141, 204}, cardOut("Nexus of Becoming"))
 }
 
 // Gorge's planner prices no spell with a tap-permanents additional cost, so the
 // autopay surface offers Guardian of the Great Door only when the pool pays it.
 func TestTapAdditionalCostOutsideThePlanner(t *testing.T) {
 	t.Parallel()
-	synthPairs(t, "std-lci", []int{31, 42, 62, 69, 98, 114}, nil)
+	synthPairsReaching(t, "std-lci", Config{GorgeAutopaySurface: true}, []int{31, 98, 114}, cardSeen("Guardian of the Great Door"))
 }
 
 // Krovod Haunch's "you may pay {1}{W}" is one question: the decider is the
@@ -191,7 +191,7 @@ func TestTapAdditionalCostOutsideThePlanner(t *testing.T) {
 // the yes/no into the pay/decline.
 func TestSelfTriggerDeciderFoldsIntoCost(t *testing.T) {
 	t.Parallel()
-	synthPairs(t, "std-mkm", []int{2, 29, 35, 103, 116}, nil)
+	synthPairsReaching(t, "std-mkm", Config{GorgeAutopaySurface: true}, []int{2, 29, 35, 103, 116}, cardOut("Krovod Haunch"))
 }
 
 // A Treasure sacrificed while a cost is tapped for poses the order ask with the
@@ -215,7 +215,7 @@ func TestCleanupDiscardPicksBeforeOrderAsks(t *testing.T) {
 // engines name it alike on the stack (CR 702.174c; Starforged Sword, Scrapshooter).
 func TestGiftTriggerOnTheStack(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-blb", Config{}, []int{12, 15, 24}, nil)
+	synthPairsReaching(t, "std-blb", Config{}, []int{6, 11, 14}, anyOut("Starforged Sword", "Scrapshooter"))
 }
 
 // A cast with an either-or additional cost is lowered only on a witness from the
@@ -224,7 +224,7 @@ func TestGiftTriggerOnTheStack(t *testing.T) {
 // Blasting Jelly's {1}.
 func TestEitherOrLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-tla", Config{}, []int{4, 96, 144, 286}, nil)
+	synthPairsReaching(t, "std-tla", Config{}, []int{12, 27, 104}, anyOf(cardSeen("Deadly Precision"), cardSeen("Redirect Lightning")), onBattlefield("Barrels of Blasting Jelly"))
 	synthPairsOn(t, "std-lci", Config{}, []int{40, 425}, nil)
 }
 
@@ -232,11 +232,8 @@ func TestEitherOrLoweredOnAWitness(t *testing.T) {
 // ask, the plan's next source waits for that, and a mass destroy and a mill ask once a
 // card, each going where its answer says.
 func TestParkedMassAndPayment(t *testing.T) {
-	synthPairs(t, "std-big", []int{35, 306, 370, 375, 859, 869, 1544, 1938, 2207, 2238, 2287}, func(pair int, res *Result) {
-		if res.Stall != "" {
-			t.Errorf("pair %d stalled: %s", pair, res.Stall)
-		}
-	})
+	settled := func(ref *GorgeSide) bool { _, ok := gravesAfterAnswers(ref); return ok }
+	synthPairsReachingRun(t, "std-big", RunConfig{Config: Config{GorgeAutopaySurface: true}}, 1, []int{35, 306, 370, 375, 859, 869, 1544, 1938, 2207, 2238, 2287}, nil, settled)
 }
 
 // An Aura whose host dies goes in the next state-based pass, behind that pass's
@@ -244,7 +241,7 @@ func TestParkedMassAndPayment(t *testing.T) {
 // with 3 damage marked, ahead of Enchanted River's Grasp (std-hob 161), and an Aura
 // whose host dies ahead of one that was already unattached (std-dft 469).
 func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
-	synthPairs(t, "std-hob", []int{161}, nil)
+	synthPairsReaching(t, "std-hob", Config{GorgeAutopaySurface: true}, []int{161, 19}, onBattlefield("Bard the Bowman"), cardOut("Enchanted River's Grasp"))
 	synthPairsOn(t, "std-dft", Config{}, []int{469}, nil)
 }
 
@@ -253,7 +250,7 @@ func TestAuraLeavesInThePassAfterItsHostLockstep(t *testing.T) {
 // Enough).
 func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-otj", Config{}, []int{18, 31, 71, 129}, nil)
+	synthPairsReaching(t, "std-otj", Config{}, []int{18, 71, 0}, cardSeen("This Town Ain't Big Enough"))
 }
 
 // A Gift spell is lowered only on the witness of its composed cost, which has no source
@@ -261,33 +258,33 @@ func TestReductionReadsTheAnnouncedTargets(t *testing.T) {
 // Grotto's {1}.
 func TestGiftLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-blb", Config{}, []int{96, 109, 122, 299}, nil)
+	synthPairsReaching(t, "std-blb", Config{}, []int{6, 17, 38}, anyOf(cardSeen("Cruelclaw's Heist"), cardSeen("Dawn's Truce")), onBattlefield("Hidden Grotto"))
 }
 
 // Copying each nontoken creature is one batch of tokens entering: Mister Fantastic's
-// "one or more tokens" triggers once (std-msh 70, Multiversal Incursion).
+// "one or more tokens" triggers once (Multiversal Incursion).
 func TestCopyEachEntersAsOneBatch(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-msh", Config{}, []int{70, 305, 388, 415}, nil)
+	synthPairsReaching(t, "std-msh", Config{}, []int{305, 9, 11}, cardOut("Multiversal Incursion"))
 }
 
 // A behold cast is lowered on the composed plan's witness too: gorge doesn't offer
 // Champion of the Path when only Springleaf Drum's fee reaches its cost (std-ecl 53).
 func TestBeholdLoweredOnAWitness(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-ecl", Config{}, []int{53, 238}, nil)
+	synthPairsReaching(t, "std-ecl", Config{}, []int{53, 238}, onBattlefield("Springleaf Drum"), cardSeen("Champion of the Path"))
 }
 
 // A return during a resolution asks the card's as-enters choice with the card still in
 // its zone, and it enters once answered (CR 614.12): Tune Up on Lifecraft Engine.
 func TestReturnAsksItsChoiceBeforeItMoves(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-dft", Config{}, []int{227, 349, 381}, nil)
+	synthPairsReaching(t, "std-dft", Config{}, []int{165, 178, 206}, cardOut("Tune Up"), onBattlefield("Lifecraft Engine"))
 }
 
 // A card's own leaves-the-battlefield trigger reads the counters it left with (CR
 // 608.2h): Selfless Police Captain puts its +1/+1 counters on the target.
 func TestLeavesTriggerReadsItsOwnCounters(t *testing.T) {
 	t.Parallel()
-	synthPairsOn(t, "std-spm", Config{}, []int{20, 99, 219, 358}, nil)
+	synthPairsReaching(t, "std-spm", Config{}, []int{20, 99, 219, 358}, cardOut("Selfless Police Captain"))
 }

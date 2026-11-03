@@ -184,14 +184,14 @@ func TestCopySubchainLockstep(t *testing.T) {
 }
 
 // An electing copy shows the chain's inherited targets until its answers arrive, as
-// a copy that elects nothing does (std-sos 118, 340: Pigment Wrangler's copied chain).
+// a copy that elects nothing does (Pigment Wrangler's copied chain).
 func TestElectingCopyKeepsTheChainsTargets(t *testing.T) {
-	synthPairs(t, "std-sos", []int{118, 340}, nil)
+	synthPairsReaching(t, "std-sos", Config{GorgeAutopaySurface: true}, []int{118, 0}, cardOut("Pigment Wrangler"))
 }
 
 // A copy of a trigger with an announced link asks that link after its root, and
 // "another target creature" leaves out the trigger's source (std-spm 319: Mechanical
 // Mobster and Starling, each copied by the same ability).
 func TestAbilityCopyAsksEachChainLink(t *testing.T) {
-	synthPairs(t, "std-spm", []int{319}, nil)
+	synthPairsReaching(t, "std-spm", Config{GorgeAutopaySurface: true}, []int{319, 76}, cardOut("Mechanical Mobster"), cardOut("Starling, Aerial Ally"))
 }

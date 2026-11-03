@@ -6,5 +6,5 @@ import "testing"
 // activated more than once on one Goblin: each grant is an instance of the line
 // and all of them trigger on the combat damage (CR 113.2c).
 func TestGrantedOnceLockstep(t *testing.T) {
-	synthPairs(t, "std-fdn", []int{207, 1467}, nil)
+	synthPairsReaching(t, "std-fdn", Config{GorgeAutopaySurface: true}, []int{207, 1467}, onBattlefield("Dropkick Bomber"))
 }

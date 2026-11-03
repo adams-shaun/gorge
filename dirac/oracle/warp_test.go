@@ -290,5 +290,5 @@ func TestWarpLockstep(t *testing.T) {
 // as its witness, which the printed cost has no plan for (std-eoe 102 Memorial Team
 // Leader, 355 Mechanozoa).
 func TestWarpWitnessIsPricedOnTheWarpCost(t *testing.T) {
-	synthPairsOn(t, "std-eoe", Config{}, []int{102, 355}, nil)
+	synthPairsReaching(t, "std-eoe", Config{}, []int{102, 355}, anyOut("Memorial Team Leader", "Mechanozoa"))
 }

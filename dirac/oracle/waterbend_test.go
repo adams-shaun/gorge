@@ -291,8 +291,8 @@ func TestWaterbendMutation(t *testing.T) {
 
 // A pool holding firebending's red lowers a waterbend ability's witness, and gorge
 // prices that witness on the offer's credit: Water Tribe Rallier's {5} with one token
-// to tap taps one Plains over the floating RRR (std-tla 115). Before, the kernel's
+// to tap taps one Plains over the floating RRR. Before, the kernel's
 // witness priced the whole {5} and found no plan.
 func TestWaterbendWitnessIsPricedOnTheCredit(t *testing.T) {
-	synthPairsOn(t, "std-tla", Config{}, []int{115}, nil)
+	synthPairsReaching(t, "std-tla", Config{}, []int{4, 18}, cardOut("Water Tribe Rallier"))
 }

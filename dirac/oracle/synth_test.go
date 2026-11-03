@@ -471,14 +471,14 @@ func TestEachPlayerDiscardMovesTogether(t *testing.T) {
 // window can't do without (CR 601.2h, 701.67a). The pairs are ones that diverge when
 // the ask offers Done at once, so each carries the case.
 func TestWaterbendAskRequiresTheTapsThePaymentNeeds(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{0, 1, 16, 18})
+	waterbendPairs(t, "std-tla", []int{1, 2, 3, 4})
 }
 
 // TestWaterbendIncompleteCensusKeepsTheOpenAsk: with a restricted mana source the
 // census doesn't price, the ask requires nothing and the target ask keeps its offer.
 // The pairs are ones that diverge when the census is taken as complete.
 func TestWaterbendIncompleteCensusKeepsTheOpenAsk(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{66, 105, 108, 116})
+	waterbendPairs(t, "std-tla", []int{42, 116, 214, 681})
 }
 
 // waterbendPairs is synthPairs requiring a waterbend ask in each game: a pair is
@@ -522,20 +522,20 @@ func TestGrantedManaPricesAnImpendedCast(t *testing.T) {
 // TestShuffledPairReachesTheLibraryInOrder: Floodpits Drowner and its target reach
 // the library in the order the shuffle reads (CR 701.24).
 func TestShuffledPairReachesTheLibraryInOrder(t *testing.T) {
-	synthPairs(t, "std-dsk", []int{7, 206, 298}, nil)
+	synthPairsReaching(t, "std-dsk", Config{GorgeAutopaySurface: true}, []int{7, 9, 19}, cardOut("Floodpits Drowner"))
 }
 
 // TestOverrideValueKeepsItsCountedSubtype: PuPu UFO's "base power becomes the number
 // of Towns you control" (CR 613.4b) counts a subtype only that value names, so the
 // matchup's table keeps it.
 func TestOverrideValueKeepsItsCountedSubtype(t *testing.T) {
-	synthPairs(t, "std-fin", []int{0, 2, 6, 14}, nil)
+	synthPairsReaching(t, "std-fin", Config{GorgeAutopaySurface: true}, []int{6, 14, 32}, onBattlefield("PuPu UFO"))
 }
 
 // TestRestrictedSourceStaysInTheManualWindow: a restricted any-colour ability keeps
 // its source offered in the window whatever is being paid for (CR 106.6, 601.2g).
 func TestRestrictedSourceStaysInTheManualWindow(t *testing.T) {
-	synthPairs(t, "std-ecl", []int{40, 111, 125}, nil)
+	synthPairsReaching(t, "std-ecl", Config{GorgeAutopaySurface: true}, []int{125, 93, 194}, madeRestrictedMana)
 }
 
 // TestPowerUpOfferCountsRestrictedSources: the sources a power-up's printed cost is
@@ -580,14 +580,14 @@ func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
 // work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
 func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	synthPairs(t, "std-dft", []int{127, 443}, nil)
-	synthPairs(t, "std-msh", []int{7, 415}, nil)
+	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{7, 19, 25}, madeRestrictedMana)
+	synthPairsReaching(t, "std-msh", Config{GorgeAutopaySurface: true}, []int{4, 11, 22}, madeRestrictedMana)
 }
 
 // TestBiteHitsEachObjectOfItsTargetSlot: Betrayal at the Vault's creature deals its
 // power to each of two other targets, not the first alone (CR 120.3, 608.2b).
 func TestBiteHitsEachObjectOfItsTargetSlot(t *testing.T) {
-	synthPairs(t, "std-otj", []int{11, 32, 61, 226}, nil)
+	synthPairsReaching(t, "std-otj", Config{GorgeAutopaySurface: true}, []int{13, 15, 39}, cardOut("Betrayal at the Vault"))
 }
 
 // TestStrandedPaymentReversesFirst: a helper or tap-cost answer that leaves too little
@@ -609,17 +609,17 @@ func TestStateBasedActionsRepeatAfterTriggerPlacement(t *testing.T) {
 // permanent with its entry counters, not the card that was cast (CR 608.2h; Prime
 // Speaker Zegana).
 func TestEnteringPowerIsTheLivePermanents(t *testing.T) {
-	synthPairs(t, "std-fdn", []int{6, 482}, nil)
+	synthPairsReaching(t, "std-fdn", Config{GorgeAutopaySurface: true}, []int{6, 482}, onBattlefield("Prime Speaker Zegana"))
 }
 
 // TestWindowCensusSkipsWhatThePaymentCannotSpend: a tapped restricted source, or an
 // untapped one whose mana this payment can't spend, leaves the census complete, so a
 // waterbend ask still takes the taps the payment needs (CR 106.6, 601.2g, 701.67a).
-// The pairs diverge when a tapped restricted source (66, 414, 446, 503) or one whose
-// mana the payment can't spend (66, 171, 760, 949) is counted, and each must pose a
+// The pairs diverge when a tapped restricted source (42, 66, 109, 503) or one whose
+// mana the payment can't spend (60, 100, 116, 760) is counted, and each must pose a
 // waterbend ask.
 func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
-	waterbendPairs(t, "std-tla", []int{66, 171, 414, 446, 503, 760, 949})
+	waterbendPairs(t, "std-tla", []int{42, 66, 109, 503, 60, 100, 116, 760})
 }
 
 // manaTapTriggerPairs is synthPairs requiring that a mana tap in each game puts a Taps
