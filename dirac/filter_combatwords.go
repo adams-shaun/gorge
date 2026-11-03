@@ -205,7 +205,11 @@ func (s *State) noteCrew(k *prep, src Obj, crewer Slot) {
 	if src == NoObj || int(src) >= MaxObj {
 		return
 	}
-	if c := s.objs[src].card; int(c) < len(k.gen.crewBy) && k.gen.crewBy[c] {
+	c := s.objs[src].card
+	if o := &s.objs[src]; o.zone == kop.ZoneBattlefield {
+		c = s.cardAt(o.slot) // a vehicle that is a copy counts its crew for the copied card's abilities (CR 707.2)
+	}
+	if int(c) < len(k.gen.crewBy) && k.gen.crewBy[c] {
 		s.markSrc(smCrewed, src, crewer)
 	} else if s.crewerRecorded(k, crewer) { // W7CrewedBySrc (filter_props.go)
 		s.markSrc(smCrewed, src, crewer)

@@ -34,7 +34,15 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"activation_plan_search_limit", false},           // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
 		{"granted_colours_before_dual_types", false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
 		{"ward_failed_payment_granted_type_first", false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
-		{"granted_types_any_land_hybrid_pool", true},     // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"granted_types_any_land_hybrid_pool", true},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+	})
+}
+
+// std-otj's, on the same terms.
+func TestStdOtjReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-otj", []stdRepro{
+		{"copied_vehicle_counts_its_crew", true}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 	})
 }
 
