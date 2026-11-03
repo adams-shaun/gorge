@@ -693,6 +693,17 @@ const bflTokenGone uint16 = 1 << 10
 // bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
 const bflDilemma uint16 = 1 << 15
 
+// bflWinTap: the cast window stopped at a tap-another-permanent source with several
+// permanents to tap, and the build waits on that pick (ChWindowTap, mana_window.go).
+// bflMsDone: manaStep's own steps before the window have run, so the window's re-entry
+// after the pick does not repeat them. bflPayDone: the same for finishBuild's cost
+// payments before the mana.
+const (
+	bflWinTap  uint16 = 1 << 11
+	bflMsDone  uint16 = 1 << 12
+	bflPayDone uint16 = 1 << 13
+)
+
 // resolution ask kinds (resCtx.ask).
 const (
 	raNone uint8 = iota

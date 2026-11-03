@@ -463,6 +463,12 @@ func (s *State) availCastWindowFor(k *prep, p uint8, a *avail) {
 //go:noinline
 func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) bool {
 	ok, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	if ok && s.winPaused() {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return true // the pick is posed; the cast pays when the window ends (mana_window.go)
+	}
 	if !ok {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]

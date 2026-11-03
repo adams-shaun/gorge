@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A tap-another-permanent mana source (Saruli Caretaker: "{T}, Tap an untapped
 // creature you control: Add one mana of any color") in gorge's unless and ward
@@ -85,14 +89,27 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 // true (the window walk stops).
 //
 //go:noinline
-func (s *State) windowTapXGo(k *prep, p uint8, cost *kop.ManaCost, sl Slot, anyColor, noOwed bool) bool {
+func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Slot, clamp, anyColor, noOwed bool) bool {
 	var cs [MaxPerm]Slot
-	if n := s.tapXCands(k, p, sl, &cs); n >= 2 {
+	n := s.tapXCands(k, p, sl, &cs)
+	if n >= 2 && s.g.winMode != winNone {
 		s.g.winSrc = sl
 		s.res.ask, s.res.askP = raGenWinTap, p
 		return true
 	}
-	s.tapXDo(k, p, tapXStep{sl: sl, cand: cs[0], cand2: NoSlot, col: s.windowTapXCol(k, p, cost, sl, anyColor, noOwed)})
+	col := s.windowTapXCol(k, p, cost, sl, anyColor, noOwed)
+	if s.g.winMode == winNone && noOwed && clamp && !anyColor {
+		// the cast window's colour ask lists only what the clamp keeps (gorge paymentUsefulColours)
+		if want, decided := s.windowUseful(p, useful); decided {
+			if m := s.windowSrcMask(k, sl) & want; m != 0 {
+				col = uint8(bits.TrailingZeros8(m))
+			}
+		}
+	}
+	if n >= 2 && s.castWinTapPause(sl, col) {
+		return true
+	}
+	s.tapXDo(k, p, tapXStep{sl: sl, cand: cs[0], cand2: NoSlot, col: col})
 	return false
 }
 

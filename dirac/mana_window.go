@@ -173,9 +173,9 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.ctrGap(k, p, sl) // the counter, the use, the mana (mana_countercost.go)
 				continue
 			}
-			if s.g.winMode != winNone && s.scriptTapX(k, p).has(sl) {
-				if s.windowTapXGo(k, p, cost, sl, anyColor, noOwed) {
-					return false, held // the pick is posed; the answer runs the walk on
+			if (s.g.winMode != winNone || s.castTapX(k)) && s.scriptTapX(k, p).has(sl) {
+				if s.windowTapXGo(k, p, cost, useful, sl, clamp, anyColor, noOwed) {
+					return s.g.winMode == winNone, held // the pick is posed (a cast pauses, not fails); the answer runs the walk on
 				}
 				continue
 			}
@@ -276,7 +276,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, false
 		}
-		if s.g.winMode != winNone && s.windowTapXOffer(k, p, o, decided, want) {
+		if (s.g.winMode != winNone || s.castTapX(k)) && s.windowTapXOffer(k, p, o, decided, want) {
 			return o, true // a tap-another source (mana_windowtapx.go)
 		}
 		if s.windowCtrOffer(k, p, o, decided, want) {
@@ -1333,6 +1333,12 @@ func (s *State) lkiAttached(o Obj) Obj {
 // owed cost, only the pips the caster announced.
 func (s *State) payCastWindow(k *prep, p uint8, cost *kop.ManaCost, anyType, anyColor bool) {
 	_, held := s.windowTapUseful(k, p, cost, cost, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
+	if s.winPaused() {
+		for c := range held {
+			s.pl[p].pool[c] += held[c]
+		}
+		return // the pick is posed; the cast pays when the window ends
+	}
 	s.payFromPoolRider(k, p, cost, 0, anyColor)
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
@@ -1901,8 +1907,8 @@ func (s *State) manaStep(k *prep) bool {
 		s.holdCostTaps(k, &saved)
 		s.bld().bfl |= bflManaStep | bflCostFixed
 		anyColor := s.bld().bfl&bflAnyColor != 0
-		if e.flags&sfAnyMana != 0 || anyColor {
-			s.tapRiderPlan(k, *e)
+		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
+			s.tapRiderPlan(k, *e) // (not again after a tap-another pick: the window runs on)
 		}
 		if k.gen != nil && k.gen.anyConvoke && s.tapPaysEntry(k, e) {
 			// the announced creatures pay their share before the plan runs
@@ -1915,7 +1921,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.occ = s.occ.andNot(s.convokeHidden())
 			raw := cost
 			cost = s.convokeApplyPicks(k, cost)
-			if s.paymentStranded(k, e, &cost) {
+			if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &cost) {
 				s.occ = occ
 				s.releaseCostTaps(k, &saved)
 				s.reverseCast(k)
@@ -1959,6 +1965,9 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl &^= bflManaStep
 		s.releaseCostTaps(k, &saved)
+		if !s.winPaused() {
+			s.bld().bfl &^= bflMsDone
+		}
 	case seAbility:
 		cost := s.buildCost(k)
 		if d := s.payDescNow(NoObj); s.pl[e.ctrl].poolR != 0 && s.restrPoolAct(k, e.ctrl, &d) {
@@ -2255,4 +2264,82 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 			s.leave(k, sl, kop.ZoneGraveyard, false)
 		}
 	}
+}
+
+// A tap-another-permanent mana source (Springleaf Drum, Saruli Caretaker) in gorge's
+// manual cast window (CR 601.2g). The window lists every source in battlefield order and
+// its answer takes the first that helps, so the Drum is activated where it stands and
+// gorge asks which permanent to tap (a "tapcost" choose, only with two or more
+// candidates), as the unless and ward windows do (mana_windowtapx.go). Those windows
+// serve a resolution; this one serves the spell being built, in manaStep (bsMana) or
+// finishBuild (bsPay): the walk stops at the source, the build waits on the pick
+// (bflWinTap, ChWindowTap), and the answer taps, floats the mana and lets the stage run
+// again from its start, the pool already holding what the walk took. Everything is behind
+// prep.tapMana; an activation's own window and a probe on a fork still take the first candidate.
+
+// DebugNoCastWinTap leaves a tap-another source out of the cast window (the mutation test).
+var DebugNoCastWinTap bool
+
+// castTapX: the window being walked pays the spell the build is putting on the stack, so it
+// lists a tap-another-permanent source.
+func (s *State) castTapX(k *prep) bool {
+	if !k.tapMana || DebugNoCastWinTap || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay)
+}
+
+// isFork: s is a probe copy (fork), whose window never waits on an answer.
+func (s *State) isFork() bool {
+	p := s.pool
+	if p == nil {
+		return false
+	}
+	for i := 0; i < p.depth; i++ {
+		if p.forks[i] == s {
+			return true
+		}
+	}
+	return false
+}
+
+// winPaused: the cast window is waiting on its tap-another pick.
+func (s *State) winPaused() bool {
+	return s.buildLive() && s.bld().bfl&bflWinTap != 0
+}
+
+// castWinTapPause poses the pick of the cast window's tap-another source sl, whose mana is
+// colour col; false on a probe, which taps the first candidate instead.
+func (s *State) castWinTapPause(sl Slot, col uint8) bool {
+	if s.isFork() {
+		return false
+	}
+	s.g.winSrc, s.g.winCol = sl, col
+	if s.bld().stage == bsPay {
+		s.bld().bfl |= bflWinTap | bflPayDone
+	} else {
+		s.bld().bfl |= bflWinTap | bflMsDone
+	}
+	return true
+}
+
+// castWinTapOptions builds the pick: the source's candidates in battlefield order.
+func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
+	p := s.bld().e.ctrl
+	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
+	var cs [MaxPerm]Slot
+	n := s.tapXCands(k, p, s.g.winSrc, &cs)
+	for _, sl := range cs[:n] {
+		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+	}
+	return true
+}
+
+// applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
+// stage then runs the window on.
+func (s *State) applyCastWinTap(k *prep, a Action) {
+	b := s.bld()
+	b.bfl &^= bflWinTap
+	s.tapXDo(k, b.e.ctrl, tapXStep{sl: s.g.winSrc, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: s.g.winCol})
 }
