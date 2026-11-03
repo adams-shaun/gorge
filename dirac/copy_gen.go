@@ -129,6 +129,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	}
 	ce.remVer = 0          // nor the keywords the spell gained (CR 707.2)
 	ce.prov, ce.spc = 0, 0 // nor cast from a zone, nor convoked, nor spent colours
+	if ce.kind == seSpell {
+		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
+	}
 	ce.sid = 0             // nor its FINALITY riders: a spell's sid is the rider count (trig_mayplaystatic.go)
 	// nor was it sneaked (CR 707.10: gorge's FlagSneaked is a cast
 	// provenance flag): it enters as an ordinary permanent
