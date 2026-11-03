@@ -73,3 +73,63 @@ func TestCleanupChecksStateBasedActionsAfterEndingEffects(t *testing.T) {
 		t.Fatal("no cleanup-step priority after the state-based action (CR 514.3a)")
 	}
 }
+
+// CR 514.3a, 704.5j: Oko, the Ringleader copies a creature until end of
+// turn; a second Oko arriving after combat is no duplicate until the copy
+// ends at cleanup, where the legend rule asks which to keep. The performed
+// action gives the active player priority in that cleanup step, as any other
+// cleanup state-based action does, even though the keep choice is answered
+// before the step repeats.
+func TestCleanupLegendRuleAnswerGivesActivePlayerPriority(t *testing.T) {
+	e, _ := fdnCensusEngine(t, "Oko, the Ringleader", "Oko, the Ringleader", "Grizzly Bears")
+	first := moveByName(t, e, 0, "Oko, the Ringleader", state.ZBattlefield)
+	bears := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	e.pending = nil
+	e.Advance()
+	second := state.ObjID(0)
+	kept, sawPriority := false, false
+	for i := 0; i < 400 && !e.G.Over && !sawPriority; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision")
+		}
+		switch {
+		case d.Kind == decision.KPriority && kept:
+			if e.G.Step != state.StepCleanup {
+				t.Fatalf("after the legend rule's choice the next priority is in %s, want the cleanup step (CR 514.3a)", e.G.Step)
+			}
+			sawPriority = true
+		case d.Kind == decision.KPriority:
+			if e.G.Step == state.StepMain2 && second == 0 {
+				second = moveByName(t, e, 0, "Oko, the Ringleader", state.ZBattlefield)
+				e.pending = nil
+				e.Advance()
+				continue
+			}
+			submitPass(t, e)
+		case d.Kind == decision.KTarget:
+			picked := false
+			for _, o := range d.Options {
+				if o.Obj == bears {
+					submitChoices(t, e, o.Index)
+					picked = true
+					break
+				}
+			}
+			if !picked {
+				fdnCensusAnswerMin(t, e, d)
+			}
+		case d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "keep":
+			if e.G.Step != state.StepCleanup {
+				t.Fatalf("legend rule asked in %s, want the cleanup step", e.G.Step)
+			}
+			submitChoices(t, e, 0)
+			kept = true
+		default:
+			fdnCensusAnswerMin(t, e, d)
+		}
+	}
+	if !kept || !sawPriority {
+		t.Fatalf("kept=%v sawPriority=%v (first Oko %d, second %d): the scenario did not reach the cleanup legend rule", kept, sawPriority, first, second)
+	}
+}

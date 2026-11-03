@@ -30,6 +30,13 @@ type engineContinuation struct {
 	// succession with the stack empty (handlePriority's empty-stack pass).
 	cleanupWindow bool `clone:"deep"`
 
+	// cleanupSBAHeld is true between a cleanup step's CR 514.3a
+	// state-based-action pass stopping on a decision (the legend rule's
+	// keep choice) and the step's next such pass: the answered action was
+	// performed, so that pass opens the priority window although it finds
+	// nothing new. setStep clears it.
+	cleanupSBAHeld bool `clone:"deep"`
+
 	// oppSel (engine/rules/stack.go) is the TargetingPlayer$ Opponent
 	// controller-selection ask's flow record: set when poseOpponentPick
 	// posts the which-opponent ask at a rules-tier ask site, flipped to done

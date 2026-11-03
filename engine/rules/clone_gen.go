@@ -691,6 +691,7 @@ func cloneFieldsEngineTriggerBatches2(c, e *Engine, sp *Spare, remap *cloneRemap
 func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.choosing = e.choosing
 	c.cleanupWindow = e.cleanupWindow
+	c.cleanupSBAHeld = e.cleanupSBAHeld
 	c.oppSel = e.oppSel
 	if e.oppPicksMid != nil {
 		c.oppPicksMid = make(map[string]state.PlayerID, len(e.oppPicksMid))

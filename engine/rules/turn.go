@@ -640,6 +640,7 @@ func (e *Engine) setStep(s state.Step) {
 	previous, previousSet := e.stepLeaving, e.stepLeavingSet
 	e.stepLeaving, e.stepLeavingSet = leaving, true
 	e.cleanupWindow = false
+	e.cleanupSBAHeld = false
 	if s == state.StepUpkeep && s != leaving {
 		// Before the StepChange emit: a Phase$ Upkeep trigger is queued inside
 		// it and must not see an "until your next upkeep" effect still live.
@@ -1035,9 +1036,15 @@ func (e *Engine) finishCleanupStep() {
 	before := len(e.L.Events)
 	e.checkStateBased()
 	if e.pending != nil || e.G.Over {
+		// A state-based action that asks (the legend rule's keep choice) has
+		// been performed once it is answered, and the repeat of the step
+		// that follows the answer finds nothing left to perform: remember it
+		// so that repeat still gives the active player priority.
+		e.cleanupSBAHeld = e.pending != nil
 		return
 	}
-	performed := len(e.L.Events) > before
+	performed := len(e.L.Events) > before || e.cleanupSBAHeld
+	e.cleanupSBAHeld = false
 	stopped, again := e.drainTriggers()
 	if stopped {
 		return
