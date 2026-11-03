@@ -786,11 +786,18 @@ func (s *State) fireDelayed(k *prep) {
 	n := s.ndly
 	s.ndly = 0
 	var keep uint8
+	var fol [MaxDelayed]delayed
+	var nf uint8
 	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet) {
 		n, keep = s.splitLeaveDelayed(n) // leave-keyed records survive the end step
 	}
 	for i := 0; i < int(n); i++ {
 		d := s.dly[i]
+		if d.when == dlyGrpFollow {
+			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go)
+			nf++
+			continue
+		}
 		if d.when == dlyEndCombat && k.gen != nil && k.gen.anyTokEndCombat {
 			continue // gorge's |TT= expiry: this turn's end of combat has passed
 		}
@@ -814,6 +821,10 @@ func (s *State) fireDelayed(k *prep) {
 	if keep != 0 {
 		copy(s.dly[:keep], s.dly[n:n+keep])
 		s.ndly = keep
+	}
+	if nf != 0 {
+		copy(s.dly[s.ndly:], fol[:nf])
+		s.ndly += nf
 	}
 }
 

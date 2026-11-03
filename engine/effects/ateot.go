@@ -53,6 +53,38 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 	scheduleAtEOTRider(h, c.Controller, c.Source, rider, affected)
 }
 
+// scheduleAtEOTTokens is scheduleAtEOT for a Token effect. One resolution that
+// makes several tokens and says "sacrifice them at the beginning of the next
+// end step" creates one delayed triggered ability naming all of them (CR
+// 603.7), as Forge's TokenEffectBase registers it, so the end step puts one
+// trigger on the stack, not one per token. Another rider, or a single token,
+// is scheduleAtEOT's per-object registration.
+func scheduleAtEOTTokens(h Host, c *Ctx, sa *cards.SA, minted []state.ObjID) {
+	rider, ok := atEOTRiders.Get(strings.TrimSpace(sa.ParamStr(cards.PKAtEOT)))
+	if ok && rider.body == "__kwEncoreSacrifice" && c.Source != 0 {
+		var live []state.ObjID
+		for _, id := range minted {
+			if h.Game().Obj(id) != nil {
+				live = append(live, id)
+			}
+		}
+		if len(live) > 1 {
+			text := ""
+			if rider.thisTurn {
+				text = "|TT=" + strconv.Itoa(int(h.Game().Turn))
+			}
+			if rider.yours {
+				text += "|VP=You"
+			}
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: rider.step, Counter: "__kwEncoreSacrificeGroup",
+				Text: text, IDs: live})
+			return
+		}
+	}
+	scheduleAtEOT(h, c, sa, minted)
+}
+
 // scheduleAtEOTRider registers one one-shot delayed promise per affected
 // object. RememberChanged$'s Ledger of remembered ids is not consulted: the
 // caller owns the moved set. The registration's Obj stays the AFFECTED

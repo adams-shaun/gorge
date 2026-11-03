@@ -49,13 +49,14 @@ func delayedAmt(d delayed) int16 {
 // second incarnation at once (even in response to its own reanimation, at the
 // end step the promise fired in), and the second promise then finds it gone.
 func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
-	ob := &s.objs[dlyRef(e.obj, e.trigObj)]
-	if ob.zone != kop.ZoneBattlefield {
-		return
+	head := dlyRef(e.obj, e.trigObj)
+	ob := &s.objs[head]
+	if ob.zone == kop.ZoneBattlefield {
+		sl := ob.slot
+		s.fireSac(k, sl)
+		s.leaveParked(k, sl)
 	}
-	sl := ob.slot
-	s.fireSac(k, sl)
-	s.leaveParked(k, sl)
+	s.sacAtEndFollowers(k, head)
 }
 
 // staleOrdered: a next-end-step action whose gorge body is incarnation-
