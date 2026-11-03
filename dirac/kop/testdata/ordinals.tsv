@@ -955,6 +955,7 @@ StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
+StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
@@ -1190,6 +1191,7 @@ VX	VKind	1
 W	untyped int	0
 W7AttackingAlone	int16	3
 W7AttackingOpp	int16	7
+W7BottomLibrary	int16	17
 W7CostBlue	int16	14
 W7CrewedBySrc	int16	13
 W7EnchantedByYours	int16	8
@@ -1201,6 +1203,7 @@ W7IsCommander	int16	16
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
+W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesNameLegend	int16	10
 W7WithWarp	int16	11
