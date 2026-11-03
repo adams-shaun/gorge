@@ -188,6 +188,7 @@ type genPrep struct {
 	anyBattle      bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
+	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
@@ -632,6 +633,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasWebSling {
 			g.anyWebSling = true
+		}
+		if c.HasMayFlash {
+			g.anyMayFlash = true
 		}
 		if c.HasBestow {
 			g.anyBestow = true

@@ -614,6 +614,15 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.MayFlash != nil {
+		// CR 702.8: no KwMask bit is free, so the may-flash marker is its
+		// own field; the cost is the extra mana the instant-timing cast adds
+		// to the mana cost (dirac/kw_mayflash.go)
+		d.HasMayFlash = true
+		if d.MayFlashCost, err = manaCostOf(*c.MayFlash); err != nil {
+			return err
+		}
+	}
 	if c.Evoke != nil {
 		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
 		// field; the cost is the hand's alternative cost, and the permanent

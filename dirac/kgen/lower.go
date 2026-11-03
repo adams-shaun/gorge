@@ -353,6 +353,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseBeamCombos()
 	lc.refuseSneakCombos()
 	lc.refuseWebSlingCombos()
+	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
@@ -476,6 +477,29 @@ func (lc *lowerCtx) refuseWebSlingCombos() {
 	}
 	if len(lc.card.Faces) != 1 || lc.card.AlternateMode != "" {
 		lc.refuseNode("K:Web-slinging", "Web-slinging on a multi-face card")
+	}
+}
+
+// refuseMayFlashCombos refuses the may-flash keyword beside any other cast
+// cost route (the kernel's may-flash cast pays the plain mana cost plus the
+// extra and nothing else), on an {X} spell, on a multi-face card, and on a
+// spell with its own timing restriction (gorge's mayflashTimingOK still reads
+// activationPhasesOK), the refuseWebSlingCombos shape.
+func (lc *lowerCtx) refuseMayFlashCombos() {
+	out := lc.out
+	if out.MayFlash == nil {
+		return
+	}
+	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil || out.AltAddCost != nil || out.Convoke || out.Improvise ||
+		out.Offspring != nil || out.Gift || out.MorphCost != nil || out.Sneak != nil || out.Bestow != nil || out.Impending != nil || out.Mayhem != nil ||
+		out.Harmonize != nil || out.Madness != nil || out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree || out.WebSling != nil || out.Evoke != nil {
+		lc.refuseNode("K:MayFlashCost", "MayFlashCost beside an alternative or additional cost")
+	}
+	if out.Cost.X {
+		lc.refuseNode("K:MayFlashCost", "MayFlashCost on an {X} spell")
+	}
+	if len(lc.card.Faces) != 1 || lc.card.AlternateMode != "" {
+		lc.refuseNode("K:MayFlashCost", "MayFlashCost on a multi-face card")
 	}
 }
 
@@ -1170,6 +1194,22 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.WebSling = &mc
+		case head == "MayFlashCost":
+			// CR 702.8 (gorge rules/mayflash.go): "you may cast this as
+			// though it had flash if you pay <cost> more". The instant-timing
+			// cast pays the mana cost plus this (dirac/kw_mayflash.go).
+			// X, hybrid, CardManaCost and any non-mana part (Behold<..>,
+			// tapXType<..>) are refused.
+			mc, err := parseManaCost(param)
+			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 {
+				lc.refuseNode(node, "may-flash cost %q", param)
+				continue
+			}
+			if lc.out.MayFlash != nil {
+				lc.refuseNode(node, "two MayFlashCost keywords")
+				continue
+			}
+			lc.out.MayFlash = &mc
 		case head == "Evoke":
 			// CR 702.74a: an alternative hand cost; the permanent is
 			// sacrificed as it enters (dirac/kw_evoke.go). Hybrid

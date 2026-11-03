@@ -507,6 +507,9 @@ func (s *State) buildCostPre(k *prep, pre bool) (kop.ManaCost, bool) {
 		if e.flags&sfKicked != 0 {
 			c = addCost(c, cd.Kicker)
 		}
+		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
+			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
+		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana)
 		}

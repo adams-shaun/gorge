@@ -1,0 +1,69 @@
+package dirac
+
+// May-flash (CR 702.8, Forge's K:MayFlashCost), cold: reached only when the
+// table has a card with the keyword (genPrep.anyMayFlash).
+//
+// "You may cast this as though it had flash if you pay {2} more to cast
+// it." gorge (rules mayflash.go, legal_walk_hand.go): when the ordinary
+// timing gate refuses the card -- not an instant, no flash, no flash grant,
+// and not sorcery timing -- the hand offers one cast, Mode "mayflash", whose
+// charge is the mana cost plus the keyword's extra (cast_begin.go
+// castModeMayflash: base.Plus(extra), never a substitution), under the plain
+// cast's prohibition, target and cost-modifier gates. At sorcery timing, or
+// with flash from any source, the plain cast is the only one: no may-flash
+// option is offered beside it. The cast is AkMayFlash; its provenance rides
+// the spell entry's trigPl = trigPlMayFlash (0 B), read only by buildCost.
+// gorge records no cast flag for it, so nothing after the cast reads it.
+//
+// gorge's planner prices no "mayflash" cast (payment_plan.go plans only the
+// plain, may-play and flashback casts; potential_plan.go's
+// potentialModeBaseCost has no arm), so under a gorge surface the option
+// exists only when the floating pool pays the adjusted cost, the
+// web-slinging cast's rule (kw_websling.go), and it is never lowered.
+
+// DebugMayFlashFree prices the may-flash cast at the plain mana cost
+// (mutation testing only: the lockstep must catch it).
+var DebugMayFlashFree bool
+
+// mayFlashEntry reports whether e is a spell cast through its may-flash
+// permission.
+func mayFlashEntry(e *stackEntry) bool {
+	return e.kind == seSpell && e.trigPl == trigPlMayFlash
+}
+
+// offerMayFlashHand offers hand card o's may-flash cast (gorge
+// legal_walk_hand.go, inside the failed timing gate). The caller checked
+// that the card's own timing refuses the plain cast and that it has the
+// keyword.
+//
+//go:noinline
+func (s *State) offerMayFlashHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
+		return // gorge castSuppressed / castRestricted
+	}
+	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
+		return // castTargetsAvailable; offerCastable's non-mana census
+	}
+	cd := &k.t.Cards[c]
+	cost := s.adjustCost(k, p, c, o, addCost(cd.Cost, cd.MayFlashCost)) // spellScope("mayflash")
+	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+		return // offerCastable on the composed cost
+	}
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0 && !s.sneakPoolPays(k, p, c, &cost) {
+		// gorge's planner and lowering price no may-flash mode: the cast
+		// is offered only when the floating pool pays (web-slinging's rule)
+		return
+	}
+	d.add(MakeAction(AkMayFlash, uint8(o), 0, 0))
+}
+
+// beginMayFlash casts hand card o through its may-flash permission (gorge
+// cast_begin.go's "mayflash" mode): an ordinary cast, never lowered
+// (castFace keeps it out of beginCast's lowering), marked so buildCost adds
+// the extra.
+//
+//go:noinline
+func (s *State) beginMayFlash(k *prep, o Obj) {
+	s.beginCast(k, o, castFace)
+	s.bld().e.trigPl = trigPlMayFlash
+}

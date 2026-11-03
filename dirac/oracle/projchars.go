@@ -128,6 +128,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Plot":               "CardDef.HasPlot (a hand special action and the exile free cast; compared through the cast options)",
 	"Bestow":             "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":              "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
+	"MayFlashCost":       "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
 	"Web-slinging":       "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"Evoke":              "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines": "CardDef.Engines (CR 702.179a; compared through the speed projection)",
