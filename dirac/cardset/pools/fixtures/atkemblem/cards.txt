@@ -1,0 +1,15 @@
+# Effect-created attack triggers that last a turn or until your next turn (The Last Ronin; Garruk, Curse Breaker;
+# Jace, Reality Sculptor): planeswalkers and a saga beside attackers, blockers and a pump (dirac/oracle/atkemblem_test.go)
+The Last Ronin
+Garruk, Curse Breaker
+Jace, Reality Sculptor
+Grizzly Bears
+Hill Giant
+Wind Drake
+Llanowar Elves
+Giant Growth
+Lightning Bolt
+Forest
+Swamp
+Island
+Mountain

@@ -302,6 +302,15 @@ const W7NoAbilities int16 = 15
 // negated word is true for every object and lowers to no predicate.
 const W7IsCommander int16 = 16
 
+// W7BottomLibrary and W7NotBottomLibrary (PredWord7 sub-kinds 17 and 18): the
+// object is, or is not, the last card of its owner's library (gorge
+// wordBottomLibrary; Jace, Reality Sculptor's "all but the bottom card"). A
+// card in any other zone is not the bottom of a library.
+const (
+	W7BottomLibrary    int16 = 17
+	W7NotBottomLibrary int16 = 18
+)
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

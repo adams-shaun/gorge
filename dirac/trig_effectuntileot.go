@@ -116,9 +116,52 @@ func (s *State) fireEmblemsAttack(k *prep) {
 	}
 	n, before := int(s.nAttackers), s.npend
 	s.fireEmblems(k, kop.TrigAttackersDeclared, s.active, NoObj, func(a *kop.Ability) bool {
+		if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
+			return false // a per-defender line is walked with the declaration's groups (fireEmblemGroup)
+		}
 		return a.Trig.N == 0 || trigCmpOK(n, a.Trig.N, true)
 	})
 	if st := DebugEffEOTTrigStats; st != nil {
 		st.AtkFires += int(s.npend) - int(before)
 	}
 }
+
+// emblemAtkListeners calls f for each emblem trigger on the declaration's
+// combat events, as a listener of the emblem's owner (no source permanent):
+// the creating card's latent command-zone copy, queued with the emblem's own
+// object version after the card left (as fireEmblems does). It reaches the
+// per-attacker Attacks lines and the per-defender AttackersDeclared lines
+// (AttackedTarget$); a line with no defender is fireEmblemsAttack's.
+func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Ability)) {
+	if DebugIgnoreAtkEmblem {
+		return
+	}
+	for pp := uint8(0); pp < 2; pp++ {
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.g.emb[pp][i]-1]
+			for j := range e.Abilities {
+				ea := &e.Abilities[j]
+				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigAttacks && !(ea.Trig.Event == kop.TrigAttackersDeclared && ea.Trig.Flags2&kop.Tf2DefPlayer != 0) {
+					continue
+				}
+				c := s.g.embC[pp][i]
+				cd := &k.t.Cards[c]
+				for ab := range cd.Abilities {
+					la := &cd.Abilities[ab]
+					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ea.Trig.Event && la.Trig.Zone == kop.ZoneCommand {
+						n0 := s.npend
+						f(trigListener{obj: s.g.embO[pp][i], sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la)
+						for x := n0; x < s.npend; x++ {
+							s.pend[x].srcVer++ // the emblem's creator left its zone: the entry carries the version after it
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+}
+
+// DebugIgnoreAtkEmblem makes the per-attacker and per-defender emblem hooks
+// queue nothing (the oracle's mutation test: the lockstep must diverge).
+var DebugIgnoreAtkEmblem bool

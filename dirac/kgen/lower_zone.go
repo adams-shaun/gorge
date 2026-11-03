@@ -2043,7 +2043,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	defer func() { lc.granted-- }()
 	_, hasDur := ps.get("Duration")
 	eot := !hasDur
-	if hasDur && !ps.is("Duration", "Permanent") {
+	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
+	if hasDur && !next && !ps.is("Duration", "Permanent") {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	ps.consume("Name", "Image", "Stackable")
@@ -2062,10 +2063,12 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if !ok {
 		return refuse("emblem trigger %q", tr)
 	}
-	if eot && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" && t.Mode != "AttackersDeclared" {
+	if (eot || next) && t.Mode != "SpellCast" && t.Mode != "ChangesZone" && t.Mode != "Sacrificed" && t.Mode != "DamageDone" &&
+		t.Mode != "AttackersDeclared" && t.Mode != "AttackersDeclaredOneTarget" && t.Mode != "Attacks" {
 		// an until-end-of-turn Effect's trigger (gorge: the effect leaves
-		// the command zone at cleanup) is the kernel's EOT emblem, which
-		// fires only for the events emblems listen to
+		// the command zone at cleanup) is the kernel's EOT emblem, and an
+		// until-your-next-turn one its next-turn emblem; both fire only for
+		// the events emblems listen to
 		return refuse("Effect triggers without a permanent duration")
 	}
 	if t.Effect == nil {
@@ -2079,7 +2082,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return refuse("emblem trigger lowering")
 	}
 	ab := lc.out.Abilities[saved]
-	if eot {
+	if eot || next {
 		if err := emblemFiltersRefuse("Effect trigger", ab.Trigger.F, ab.Trigger.F2); err != nil {
 			return err
 		}
@@ -2089,7 +2092,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot})
+	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next})
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1})
 	return nil
 }

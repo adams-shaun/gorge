@@ -831,6 +831,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			// games the kernel plays (kop.W7IsCommander), so it always holds
 			return nil
 		}
+		if w == "BottomLibrary" {
+			return c.setCmp(cmpWord7, 0, int(kop.W7NotBottomLibrary), "", "") // lower_filterwords.go
+		}
 		if w == "wasDealtDamageThisTurn" {
 			return refuse("!wasDealtDamageThisTurn: gorge keeps the damage record on the destroyed target in the graveyard; the kernel has no per-card record")
 		}
