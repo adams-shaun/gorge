@@ -630,7 +630,7 @@ func (s *State) grantPayDesc(a Action) payDesc {
 		og := restrOrigin{from: s.objs[o].zone}
 		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og, sorc: s.castNeedsEmptyStack(s.k(), a)}
 	case AkActivate:
-		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
+		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot, sorc: s.activateNeedsEmptyStack(s.k(), a)}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 			d.card, d.src = s.cardAt(ob.slot), ob.slot
 		}

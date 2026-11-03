@@ -79,6 +79,16 @@ func TestAttackersDeclaredCountsEachCreatureOnceLockstep(t *testing.T) {
 	})
 }
 
+// A sorcery-speed activation is offered with the stack empty (CR 602.5d), as a cast is
+// (CR 307.1): Ba Sing Se's earthbend, paid after Master Pakku's tap trigger, which
+// Great Divide Guide's mana ability stacked, resolves.
+func TestSorceryActivationWaitsForPrefixTriggerLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-tla", []stdRepro{
+		{"sorcery_activation_waits_for_prefix_trigger", false},
+	})
+}
+
 // std-tla's: the first decision of each once diverged.
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()

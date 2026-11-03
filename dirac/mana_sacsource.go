@@ -410,6 +410,38 @@ func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
 	return !k.cards[c].instant && !s.castFlash(k, s.prio, c)
 }
 
+// activateNeedsEmptyStack reports whether the activation a is sorcery-speed
+// (SorcerySpeed$ True, which gorge's waitsForStack reads: equip, level up,
+// outlast, a Class level, a land's sorcery-speed ability): it is offered only
+// with the stack empty (CR 602.5d), as a cast is.
+func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
+	if a.Kind() != AkActivate || k.gen == nil {
+		return false
+	}
+	ob := &s.objs[Obj(a.Source())]
+	c, ab := ob.card, a.Mode()
+	switch {
+	case ab&0x80 != 0:
+		host := &s.objs[Obj(a.Target())]
+		c, ab = host.card, ab&^0x80
+		if host.zone == kop.ZoneBattlefield {
+			c = s.cardAt(host.slot)
+		}
+	case ob.zone == kop.ZoneBattlefield:
+		c = s.cardAt(ob.slot)
+	}
+	if ab >= abCascade || int(ab) >= len(k.t.Cards[c].Abilities) {
+		return false
+	}
+	return k.t.Cards[c].Abilities[ab].Cost.Flags&kop.CostSorcery != 0
+}
+
+// playNeedsEmptyStack is castNeedsEmptyStack or activateNeedsEmptyStack: the
+// play a is offered only with the stack empty.
+func (s *State) playNeedsEmptyStack(k *prep, a Action) bool {
+	return s.castNeedsEmptyStack(k, a) || s.activateNeedsEmptyStack(k, a)
+}
+
 // resolvePrefixStack resolves what a scripted prefix left on the stack above
 // depth sp0, the other player passing as the search assumed, before a
 // sorcery-speed play is submitted (flushPrefixTriggers stacked it). A trigger

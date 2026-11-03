@@ -1272,7 +1272,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.flushPrefixTriggers(k)
 		}
 	}
-	if s.sp > sp0 && s.castNeedsEmptyStack(k, a) {
+	if s.sp > sp0 && s.playNeedsEmptyStack(k, a) {
 		s.resolvePrefixStack(k, sp0)
 	}
 	switch a.Kind() {
