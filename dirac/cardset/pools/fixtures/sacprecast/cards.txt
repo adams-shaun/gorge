@@ -1,0 +1,7 @@
+# the trigger a payment's sacrifice sets off vs the cast it pays for (sacprecast): Treasure makers
+# and permanents whose sacrifice triggers take no ask, beside a kicker creature to cast
+Giant Fly
+Goblin Bushwhacker
+Mountain
+Prosperous Innkeeper
+Zhao, Ruthless Admiral

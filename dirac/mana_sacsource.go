@@ -173,12 +173,18 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 
 // resolveLowerCounterTriggers resolves the pending triggers a lowered
 // cast's payment created before the cast's own triggers are placed. gorge
-// resolves a payment trigger before it puts the spell's cast triggers on the
-// stack (its lowering pays before the cast), so a trigger whose whole
-// program is one OpPutCounter lands its counter at once, and one that mills a
-// target player (Scavenger's Talent on a Treasure sacrificed for the witness)
-// mills the first player gorge's default answer names. Any other trigger stays
-// pending for the ordinary stack path.
+// lowers a cast by activating each witness source at priority
+// (payexec.Execution), so a sacrifice's trigger goes on the stack before the
+// spell does, and the lowering passes priority until it resolves. A trigger
+// that asks nothing when it is put on the stack or when it resolves therefore
+// lands its whole effect at once: a program with no target, no mode and no
+// "may", that runs through without suspending (runsPreCast, tried on a copy).
+// One that asks is answered by the lowering's default (botpolicy.Clamp on an
+// empty intent: the fewest, first options), and stays pending here for the
+// ordinary stack path; so do a program that adds mana (the lowering's pool
+// check would end the witness) and an optional trigger. A trigger that
+// mills, loses life, gains life or draws for a target player is answered
+// with the first player gorge's default answer names.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 	for i := int(n0); i < int(s.npend); {
 		pt := &s.pend[i]
@@ -201,15 +207,23 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		plTgt := a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer
 		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
 		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
-		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || op != kop.OpPutCounter && !mills && !lifeDraw || op == kop.OpPutCounter && a.NTargets != 0 || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
+		single := len(a.Prog) == 1 && (op == kop.OpPutCounter && a.NTargets == 0 || mills || lifeDraw)
+		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
 			i++
 			continue
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
+		if !single && (a.NTargets != 0 || !s.runsPreCast(k, e, a.Prog)) {
+			i++
+			continue
+		}
 		save := s.res
 		s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-		if mills || lifeDraw {
+		switch {
+		case single && op == kop.OpPutCounter:
+			s.putCounterProg(k, &a.Prog[0])
+		case single:
 			if plTgt {
 				s.res.e.tgt[0] = PlayerTarget0
 				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
@@ -217,13 +231,53 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 				}
 			}
 			s.exec(k, &a.Prog[0])
-		} else {
-			s.putCounterProg(k, &a.Prog[0])
+		default:
+			s.runPreCast(k, a.Prog)
 		}
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
 	}
+}
+
+// runsPreCast reports whether trigger entry e's program runs to its end
+// without suspending on an ask, on a copy of the state, and adds no mana.
+func (s *State) runsPreCast(k *prep, e stackEntry, prog []kop.Instr) bool {
+	if len(prog) == 0 {
+		return false
+	}
+	for i := range prog {
+		if prog[i].Op == kop.OpAddMana {
+			return false
+		}
+	}
+	t := s.fork()
+	defer s.unfork()
+	t.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	return t.runPreCast(k, prog)
+}
+
+// runPreCast executes prog from the top outside a resolution (runProg
+// without the stack entry's cleanup) and reports whether it ran through; false
+// when an op asked, or parked an order or a replacement choice.
+func (s *State) runPreCast(k *prep, prog []kop.Instr) bool {
+	for int(s.res.pc) < len(prog) {
+		if !s.exec(k, &prog[s.res.pc]) {
+			return false
+		}
+		if s.over {
+			return true
+		}
+		if k.gen != nil && (s.g.pre.state == preReturn || s.g.nc.n != 0 || s.entryLatePark()) {
+			return false
+		}
+		if s.g.nask != 0 && s.midResAsk(k) || len(s.cold.parked) != 0 && s.parkedWaiting() {
+			return false
+		}
+		s.res.pc++
+		s.loopBack(k)
+	}
+	return true
 }
 
 // putCounterProg is the OpPutCounter effect of the interpreter (interp.go),
