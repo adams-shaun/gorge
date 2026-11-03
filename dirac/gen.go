@@ -1488,6 +1488,7 @@ type genState struct {
 	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
 	evSel     uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
 	endTurn   bool                    // OpEndTurn: skip to cleanup after this resolution
+	probeWin  bool                    // convokeTargetAbort's probe window: a tap-another source is listed and never waits on a pick (padding)
 	fog       bool                    // OpFog: all combat damage this turn is prevented (padding)
 	beamPick  bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast   bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
