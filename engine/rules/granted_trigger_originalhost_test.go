@@ -34,7 +34,7 @@ func TestGrantedTriggerCostOriginalHostNamesTheGrantor(t *testing.T) {
 				attachFixture(t, e, torch, giant)
 				e.askAttackers()
 				submitAttackersOnly(t, e, giant)
-				var sawPay bool
+				var sawPay, sawTarget bool
 				for i := 0; i < 40 && !e.G.Over; i++ {
 					d := e.Pending()
 					if d == nil {
@@ -61,9 +61,15 @@ func TestGrantedTriggerCostOriginalHostNamesTheGrantor(t *testing.T) {
 						}
 						continue
 					}
-					if len(d.Options) > 0 && d.Options[0].Player == 1 && len(e.G.Stack) > 0 {
-						// the body's "any target" ask: the opponent.
-						submitChoices(t, e, d.Options[0].Index)
+					if d.Kind == decision.KTarget {
+						// the reflexive ability's "any target" ask (CR 603.12): the opponent.
+						sawTarget = true
+						for _, o := range d.Options {
+							if o.Player == 1 {
+								submitChoices(t, e, o.Index)
+								break
+							}
+						}
 						continue
 					}
 					if d.Kind != decision.KPriority || len(e.G.Stack) == 0 {
@@ -88,6 +94,14 @@ func TestGrantedTriggerCostOriginalHostNamesTheGrantor(t *testing.T) {
 				for _, ev := range e.L.Events {
 					if events.IsSacrifice(ev) && ev.Obj == torch {
 						sawSac = true
+					}
+				}
+				if sawTarget != pay {
+					t.Fatalf("reflexive target ask seen = %v, want %v", sawTarget, pay)
+				}
+				if pay {
+					if got := e.G.Players[1].Life; got >= 20 {
+						t.Fatalf("opponent life = %d, want the reflexive damage dealt", got)
 					}
 				}
 				if sawSac != pay {
