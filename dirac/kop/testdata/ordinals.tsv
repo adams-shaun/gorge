@@ -960,6 +960,7 @@ StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwStorm	int16	5
+StackKwSplitSecond	int16	6
 StatAlternativeCost	StaticKind	5
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10

@@ -39,11 +39,12 @@ const (
 
 // The StatStackKw keyword codes (Static.A).
 const (
-	StackKwImprovise int16 = 1
-	StackKwCasualty  int16 = 2
-	StackKwCascade   int16 = 3
-	StackKwLifelink  int16 = 4
-	StackKwStorm     int16 = 5
+	StackKwImprovise   int16 = 1
+	StackKwCasualty    int16 = 2
+	StackKwCascade     int16 = 3
+	StackKwLifelink    int16 = 4
+	StackKwStorm       int16 = 5
+	StackKwSplitSecond int16 = 6 // read off each spell on the stack: while one holds it, no spell is cast and no non-mana ability is activated (CR 702.61a)
 )
 
 // Appended keyword bits.
