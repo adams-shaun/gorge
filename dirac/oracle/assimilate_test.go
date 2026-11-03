@@ -79,24 +79,67 @@ func TestAssimilateLockstep(t *testing.T) {
 
 // Two Borg Queens passing each other back through the legend rule reach gorge's trigger
 // cap (maxTriggerFires), which the kernel does not count. That game is a counted stall,
-// not a divergence, and still Clean: it agreed up to the decision the cap cut. The game is
-// a recorded repro, since a synthetic pair holds whatever the lowered card list deals it;
-// it must still pass the Queen back and forth (a Queen on the battlefield under each seat's
-// control) before the cap cuts it.
+// not a divergence, and still Clean: it agreed up to the decision the cap cut. Seed 524
+// of the assimilate set's decks plays it: the Queen goes back and forth (a Queen on the
+// battlefield under each seat's control at some decision) before the cap cuts it. The game is played on
+// the hand-lowered set, whose table keeps no zone-entry ring: a generated pool whose
+// table reads the ring stalls at its 24th zone add in the same turn, long before the cap.
 func TestAssimilateTriggerCapIsAStall(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	queens := func(ref *GorgeSide) bool {
-		n := 0
-		for p := range ref.E.G.Players {
-			if inZoneNamed(ref.E.G, state.ZBattlefield, state.PlayerID(p), "Borg Queen, Perfection Manifest") {
-				n++
+	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := cardset.RawByName("assimilate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decks [2][]*cards.Card
+	for s, d := range kassimilateDecks {
+		for _, e := range d {
+			c, ok := reg.Lookup(e.Name)
+			if !ok {
+				t.Fatalf("%s not in the corpus", e.Name)
+			}
+			for i := 0; i < e.Count; i++ {
+				decks[s] = append(decks[s], c)
 			}
 		}
-		return n == 2
 	}
-	res := stdReproPlay(t, "testdata/trigger_cap_borg_queens.repro.json", "std-trc", queens)
+	tbl, _, _, err := set.Matchup(kassimilateDecks[0], kassimilateDecks[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	const seed = 524
+	cfg := Config{GorgeAutopaySurface: true}
+	m, err := NewMatchup(reg, [2]string{"kassimilate-a", "kassimilate-b"}, decks, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, err := SetSide(set, tbl, cfg)(m, seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CloseSide(k)
+	g, err := NewGorgeSide(m, seed, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var held [2]bool
+	res := LockstepLed(m, seed, g, k, RandomPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 120,
+		Check: func(ref *GorgeSide, _ Side) *Divergence {
+			for p := range ref.E.G.Players {
+				if inZoneNamed(ref.E.G, state.ZBattlefield, state.PlayerID(p), "Borg Queen, Perfection Manifest") {
+					held[p] = true
+				}
+			}
+			return nil
+		}})
+	if !held[0] || !held[1] {
+		t.Error("a Queen is never under both seats' control: the pin tests nothing")
+	}
 	if res.Div != nil {
 		t.Fatalf("diverged at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 	}
