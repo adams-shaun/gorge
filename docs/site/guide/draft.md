@@ -57,7 +57,7 @@ flowchart LR
   you straight to your own link. The event starts when every human has joined.
 - **Draft.** You pick one card and pass the rest: left in packs 1 and 3, right in
   pack 2. A seat picks whenever a pack is waiting for it, and bots pick
-  immediately. An FDN pod is 42 picks per seat; a BLB pod is 39.
+  immediately. An FDN or TRK pod is 42 picks per seat; a BLB pod is 39.
 - **Build.** A deck is at least 40 cards: any cards from your own pool, plus free
   basic lands in any number. The client offers the bot builder's suggestion and an
   automatic land split. You save a deck, then ready it.
@@ -81,6 +81,14 @@ Boosters (`play`).
 |---|---|---|---|
 | `FDN` | Foundations | 14 | 17Lands games-in-hand win rate |
 | `BLB` | Bloomburrow | 13 | a heuristic from card facts |
+| `TRK` | Star Trek | 14 | a heuristic from card facts |
+
+`TRK` packs follow a booster this repository authors itself: MTGJSON publishes no
+Star Trek configuration yet, so a pack is seven commons, three uncommons, a rare or
+mythic, a basic land, a wildcard and a foil, the same on both collations. It is
+replaced by the published one when there is one. A card the corpus has no script for
+yet is never offered as a bot pick and a bot's deck leaves it out, so a bot drafts
+and builds a deck that plays; the list of such cards only shrinks as scripts land.
 
 **Bot seats** have a game policy, a drafter and a builder. `GET /api/events/personas`
 lists the drafter and builder names, `rating-colour` (the default) and `best23`. Both
