@@ -24,7 +24,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // refcounts cannot make equal states hash differently. Readers only ever
 // dereference an index, whose content is the snapshot itself.
 
-const maxLKI = 18 // LKI pool records; tliIdx holds up to 31, at 32 B of State each on every pool
+// maxLKI is the LKI pool's records, at 32 B of State each on every pool:
+// tliIdx's five bits hold up to 31. 31 since 2026-11-03, past MaxPending's old
+// 24: every trigger of a creature entering snapshots it, so twenty Cat tokens
+// from Ajani, Caller of the Pride beside Mentor of the Meek took twenty.
+const maxLKI = 31
 
 // lkiRec.bits (the byte that was faceDown): the snapshot's designations.
 const (
