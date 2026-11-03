@@ -48,11 +48,11 @@ func (s *State) beginTurn(p uint8) {
 	s.carry = carryNone
 	for m := s.occ; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
-		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
+		if pm.actUsed != 0 || pm.flags&(pfLoyaltyUsed|pfDeclared) != 0 {
 			s.touch(pm.obj)
 		}
 		pm.actUsed = 0
-		pm.flags &^= pfLoyaltyUsed
+		pm.flags &^= pfLoyaltyUsed | pfDeclared
 	}
 	for i := 0; i < int(s.nobj); i++ {
 		if s.objs[i].activations() != 0 {

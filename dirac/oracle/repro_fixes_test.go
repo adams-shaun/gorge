@@ -69,6 +69,16 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	})
 }
 
+// Count$AttackersDeclared counts each creature once however many combats it attacked
+// in: one creature attacking in three combats of a turn is one attacker, so Case of the
+// Gateway Express (three or more) stays unsolved at the end step, as in gorge and Forge.
+func TestAttackersDeclaredCountsEachCreatureOnceLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-mkm", []stdRepro{
+		{"attackers_declared_counts_each_creature_once", false},
+	})
+}
+
 // std-tla's: the first decision of each once diverged.
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
