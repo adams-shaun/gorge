@@ -490,7 +490,7 @@ func (e *Engine) payCast() {
 			// AbilityPush boundary while the spent-source capture is still live.
 			e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 		}
-		e.cast, e.choosing = nil, chooseNone
+		e.endCastFlow()
 		return
 	}
 	mana := e.castPaymentMana(pc)
@@ -1056,7 +1056,7 @@ func (e *Engine) payCast() {
 	// re-derives the spell's granted keywords), so every reader above must
 	// see pre-sweep state.
 	e.effectCastSweep(castEv)
-	e.cast, e.choosing = nil, chooseNone
+	e.endCastFlow()
 }
 
 // abortCast reverses a cast or activation proposal that cannot complete, per
@@ -1399,4 +1399,16 @@ func (e *Engine) emitBlightCostCounters(blights []state.ObjID, cost *pay.Cost, x
 	e.costCounters++
 	pay.EmitBlightCounters(asPayer(e), blights, cost, x)
 	e.costCounters--
+}
+
+// endCastFlow ends a completed cast or activation. A cost part can pose its
+// own as-enters ask before the flow is done (a sacrificed Oblivion Ring-style
+// host sends its exiled Aura back and the Aura's controller picks what it
+// enchants, CR 303.4f, 610.3): that ask's marker must survive, or its answer
+// finds no flow waiting and is dropped.
+func (e *Engine) endCastFlow() {
+	e.cast = nil
+	if e.pending == nil {
+		e.choosing = chooseNone
+	}
 }
