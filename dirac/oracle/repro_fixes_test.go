@@ -40,15 +40,17 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fdn", []stdRepro{
-		{"surveil_own_replacement", true},     // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
-		{"color_gate_made_black", true},       // Knight of Grace counts what Eaten by Piranhas made black
-		{"color_gate_recoloured", true},       // ... and not what Witness Protection made green and white
-		{"exile_instead_planeswalker", true},  // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
-		{"lifelink_plus_per_source", true},    // two lifelink sources are two gains, each with Angel of Vitality's plus one
-		{"lost_ability_no_shuffle", true},     // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
-		{"damage_map_per_recipient", true},    // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
-		{"copies_enter_together", true},       // CR 603.6a: each of Rite of Replication's five sees the other four
-		{"flashback_restricted_source", true}, // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+		{"surveil_own_replacement", true},                // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
+		{"color_gate_made_black", true},                  // Knight of Grace counts what Eaten by Piranhas made black
+		{"color_gate_recoloured", true},                  // ... and not what Witness Protection made green and white
+		{"exile_instead_planeswalker", true},             // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
+		{"lifelink_plus_per_source", true},               // two lifelink sources are two gains, each with Angel of Vitality's plus one
+		{"lost_ability_no_shuffle", true},                // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
+		{"damage_map_per_recipient", true},               // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
+		{"copies_enter_together", true},                  // CR 603.6a: each of Rite of Replication's five sees the other four
+		{"flashback_restricted_source", true},            // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+		{"granted_any_mana_beside_own_trigger_x", false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
+		{"trigger_paid_x_zero_binds", false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
 	})
 }
 

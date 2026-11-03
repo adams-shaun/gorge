@@ -1189,6 +1189,20 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 			mask = uint8(k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb].ManaColors) // the walk below admits its other abilities, each once
 		}
 		add(sl, mask, pc.manaN)
+		if k.gen != nil && len(k.gen.grantPC) != 0 && s.grantMay(k, sl) && s.ownManaUsable(k, sl) {
+			// a mana ability granted beside the source's own one (an aura's
+			// "{T}: Add two mana of any one color") counts on its own, as
+			// gorge's walk admits each of a source's abilities
+			var gi [maxGrants]int16
+			for i, ng := 0, s.grantIdxs(k, sl, &gi); i < ng; i++ {
+				gv := s.grantView(k.gen, gi[i], sl)
+				if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+					open = true
+					continue
+				}
+				add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+			}
+		}
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
