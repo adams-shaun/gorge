@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -60,4 +61,46 @@ func TestYourExtraTurnsCountsOnlyTurnsThatBegan(t *testing.T) {
 		t.Fatalf("a cast after an extra turn began granted another (%d grants, want 2)", got)
 	}
 	replayCheck(t, e, cfg)
+}
+
+const whaleFixtureSrc = "Name:Test Breaching Whale\nManaCost:3 U\nTypes:Creature Whale\nPT:4/4\nOracle:x\n"
+
+// TestBountyExtraTurnRiderReadsBegunTurns plays the real H.M.S. Bounty's
+// extra-turn rider: with a Whale in play and no extra turn begun, it grants one;
+// once the grant has been consumed (the turn began), the same rider grants no
+// second, though the Whale is still there.
+func TestBountyExtraTurnRiderReadsBegunTurns(t *testing.T) {
+	t.Parallel()
+	bounty := corpusCardNamed(t, "H.M.S. Bounty, Unlikely Timeship")
+	rider := svarSA(t, bounty, "DBExtraTurn")
+	e := fixtureEngine(t, 2)
+	src := placeCard(t, e, 0, bounty, state.ZBattlefield)
+	placeCard(t, e, 0, card(t, whaleFixtureSrc), state.ZBattlefield)
+	run := func() int {
+		start := len(e.L.Events)
+		runProbeSA(t, e, rider, func() *effects.Ctx { return &effects.Ctx{Source: src, Controller: 0} }, nil)
+		return countEventKindWhere(eventsSince(e, start), func(ev events.Event) bool {
+			return ev.Kind == events.ExtraTurn && ev.Player == 0 && ev.Amount > 0
+		})
+	}
+	if got := run(); got != 1 {
+		t.Fatalf("no extra turn begun yet: rider granted %d, want 1", got)
+	}
+	e.emit(events.Event{Kind: events.ExtraTurn, Player: 0, Amount: -1})
+	if got := e.ExtraTurnsBegun(0); got != 1 {
+		t.Fatalf("ExtraTurnsBegun after a consumed grant = %d, want 1", got)
+	}
+	if got := run(); got != 0 {
+		t.Fatalf("an extra turn had begun: rider granted %d, want 0", got)
+	}
+}
+
+func countEventKindWhere(evs []events.Event, f func(events.Event) bool) int {
+	n := 0
+	for _, ev := range evs {
+		if f(ev) {
+			n++
+		}
+	}
+	return n
 }
