@@ -207,6 +207,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		pool string
 	}{
 		{"plan_limit_classes_by_alternatives", "std-mkm"},         // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
+		{"maralen_blinked_regains_its_permission", "std-ecl"},     // CR 400.7: Personify cast free through Maralen blinks her, and the returned Maralen is a new object whose once-each-turn permission is unspent
 		{"alt_add_cost_reduced_as_a_total", "std-tla"},            // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
 		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},    // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
 		{"waterbend_armed_witness_stands_after_picks", "std-tla"}, // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
