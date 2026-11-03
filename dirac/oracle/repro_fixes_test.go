@@ -179,6 +179,7 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"hybrid_trial_leaves_granted_sources_out", "std-tla"},    // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
 		{"waterbend_armed_witness_stands_after_picks", "std-tla"}, // Katara's waterbend {6}: the offer armed Island, Island for the credit's {2}, four picks bring the cost to {2}, and gorge runs that witness rather than ranking again without the Waterskin
 		{"window_combo_answers_its_own_colour", "std-tla"},        // Misty Palms Oasis, {W} or {B} printed and any colour granted, owing {R}: the window answers {W}, the granted option has no symbol
+		{"token_bounced_if_you_do", "std-hob"},                    // CR 111.7: a token returned to hand did return, so Mirkwood Nurturer's "if you do" puts its counter
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)

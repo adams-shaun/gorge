@@ -518,6 +518,11 @@ func cmp(op kop.CmpOp, a, b int) bool {
 // countRefMatches counts the objects a ref names that match f (a moved
 // card is matched as a card in its new zone).
 func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx) int {
+	// ceased: the object is read as the card it was moved as even if it is a
+	// copy that has since left the stack and the battlefield (CR 707.10h
+	// ends its existence at the next check, not within the resolution);
+	// gorge's remembered-set condition matches it past that rejection.
+	var ceased bool
 	one := func(o Obj) int {
 		if o == NoObj {
 			return 0
@@ -525,6 +530,12 @@ func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx)
 		ob := &s.objs[o]
 		if ob.zone == kop.ZoneBattlefield {
 			if s.matchPermGen(k, f, ob.slot, ctx.ctrl, ctx.srcSl, layerFull) {
+				return 1
+			}
+			return 0
+		}
+		if ceased && f != 0 && s.g.tli&tliOn == 0 && ob.of&ofCopy != 0 {
+			if s.matchCardChain(k, f, ob.card, ob.owner(), ctx.ctrl, o, nil) {
 				return 1
 			}
 			return 0
@@ -537,6 +548,7 @@ func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx)
 	switch r {
 	case kop.RefRemembered:
 		n := 0
+		ceased = true
 		for i := 0; i < int(s.g.nrem); i++ {
 			if o := s.g.rem[i]; o == ctx.src && o != NoObj && s.objs[o].zone != kop.ZoneBattlefield {
 				n += s.matchRemSource(k, f, o, ctx) // zone_rememberparams.go
