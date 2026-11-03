@@ -56,6 +56,7 @@ type CloneCopyStats struct {
 	Reverted uint32 // until-end-of-turn copies ended at cleanup
 	Multi    uint32 // resolutions that copied onto two or more becomers
 	Asked    uint32 // Optional$ elections posed
+	Moved    uint32 // optional triggers asked although their source had become a copy while they waited
 	Minted   uint32 // token copies of a copy minted on its printed card (cloneTokenBasis)
 	Stacked  uint32 // copies made onto a becomer that already held a copy layer (a copy marker or an enters copy)
 	Rebased  uint32 // cleanup settles that re-based a permanent on the permanent copy layer under the ended one
@@ -375,8 +376,10 @@ func prepCloneCopy(t *kop.Table, g *genPrep) {
 
 // cloneTrigMoved: the trigger on the stack was put by a source whose face is
 // no longer its card's (it became a copy of something else, or stopped being
-// one). gorge reads a resolving trigger's optional flag off the source's
-// CURRENT face, so a trigger it cannot find there is not asked.
+// one), and gorge can no longer find it. The ability keeps its own text (CR 113.7a),
+// so gorge looks for it on the live face and then, while the source is a copy, on
+// its printed card: a trigger found there is asked, one found nowhere (the source
+// stopped being a copy, or was a copy of another card when it triggered) is not.
 //
 //go:noinline
 func (s *State) cloneTrigMoved(e *stackEntry) bool {
@@ -387,6 +390,12 @@ func (s *State) cloneTrigMoved(e *stackEntry) bool {
 	cur := ob.card
 	if ob.zone == kop.ZoneBattlefield {
 		cur = s.cardAt(ob.slot)
+		if cur != e.card && s.perms[ob.slot].ovr.flags&ovCopy != 0 && s.perms[ob.slot].card == e.card {
+			if DebugCloneCopyStats != nil {
+				DebugCloneCopyStats.Moved++
+			}
+			return false
+		}
 	}
 	return cur != e.card
 }
