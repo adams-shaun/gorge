@@ -9,6 +9,7 @@ import (
 // Pins Farsight Ritual's partition in the game that produced the seed-45
 // twin records at decisions 643 (Scroll Thief) and 644 (Island).
 func TestTwinSeed45DigPartitionFixed(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

@@ -20,6 +20,7 @@ import (
 // only the neutral answer is under test. A decision the game no longer
 // reaches is a broken precondition, not a pass.
 func TestNeutralTwinResidueFixed(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {
@@ -50,6 +51,7 @@ func TestNeutralTwinResidueFixed(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			job := jobAt(tc.seed)
 			g := playSBTwin(reg, job.decks, job.seed, sbOptions{
 				mode: "twin", policy: "bot", autopay: tc.autopay,

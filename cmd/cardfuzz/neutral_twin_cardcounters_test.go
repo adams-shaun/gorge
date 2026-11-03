@@ -11,6 +11,7 @@ import (
 // so its DealDamage carried no amount and the bot ranked Meria's Outrider
 // (4/4) over Sneaking Guide (1/1), the only offered creature 3 damage kills.
 func TestNeutralTwinCardCountersTargetFixed(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

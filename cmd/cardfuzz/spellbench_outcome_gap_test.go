@@ -13,6 +13,7 @@ import (
 // server/spellbench/neutral/cast_census_test.go pins the mechanism without
 // depending on the generated decks.
 func TestOutcomeGapCastCensus(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

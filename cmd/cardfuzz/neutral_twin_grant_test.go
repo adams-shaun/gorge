@@ -17,6 +17,7 @@ import (
 // server/spellbench/neutral/pending_grant_test.go pins the mechanism without
 // depending on the generated decks.
 func TestNeutralTwinGlorifierGrant(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

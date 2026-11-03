@@ -13,6 +13,7 @@ import (
 // declaration whose size the host fixes, so the seat planned a different
 // attack.
 func TestTwinAttackBarredByOtherPermanent(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

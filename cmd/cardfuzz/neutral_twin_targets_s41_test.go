@@ -23,6 +23,7 @@ import (
 // The native pick is played, so the seed names the same game at every run; a
 // decision the game no longer reaches is a broken precondition, not a pass.
 func TestTwinSeed41TargetsResidueFixed(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {
@@ -41,6 +42,7 @@ func TestTwinSeed41TargetsResidueFixed(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var job *sbJob
 			for i := range jobs {
 				if jobs[i].seed == tc.seed {

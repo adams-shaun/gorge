@@ -21,6 +21,7 @@ import (
 // agent asks the bot only the actions the wire offers, so the pick is the
 // matching land candidate and the decision agrees.
 func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {
@@ -66,6 +67,7 @@ func TestSpellbenchTwinAutopayMapsNativePick(t *testing.T) {
 // "pass -> cast_spell"; with it they are counted as ChosenColour and the game
 // has no priority disagreement at all.
 func TestSpellbenchTwinArmsChosenColourSkip(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {
@@ -113,6 +115,7 @@ func TestSpellbenchTwinArmsChosenColourSkip(t *testing.T) {
 // native 4U plan is correct; the Moonlight Bargain game is now a ChosenColour
 // skip, not a divergence.
 func TestSpellbenchTwinReportsAutopayDivergence(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

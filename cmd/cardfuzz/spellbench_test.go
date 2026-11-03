@@ -17,23 +17,35 @@ func sbTestOptions(autopay bool) sbOptions {
 
 func sbTestRun(t *testing.T, autopay bool, failPath string) (*sbTwinSummary, string) {
 	t.Helper()
+	sum, out, err := sbTestRunErr(t, autopay, failPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sum, out
+}
+
+// sbTestRunErr is sbTestRun returning the error, so a caller running several
+// at once reports it from its own goroutine's result, not from inside it.
+func sbTestRunErr(t *testing.T, autopay bool, failPath string) (*sbTwinSummary, string, error) {
+	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {
-		t.Fatal(err)
+		return nil, "", err
 	}
 	var out bytes.Buffer
 	sum, err := runSBTwin(reg, p, sbTestOptions(autopay), failPath, &out)
 	if err != nil {
-		t.Fatal(err)
+		return nil, "", err
 	}
-	return sum, out.String()
+	return sum, out.String(), nil
 }
 
 // TestSpellbenchTwinAgreesWithManualPay: with no engine auto-pay the neutral
 // world reproduces the native pick on every compared decision, so the harness
 // itself (deck injection, twin plumbing, tally) is exact.
 func TestSpellbenchTwinAgreesWithManualPay(t *testing.T) {
+	t.Parallel()
 	sum, out := sbTestRun(t, false, filepath.Join(t.TempDir(), "f.jsonl"))
 	total := 0
 	for _, n := range sum.Total {
@@ -73,8 +85,22 @@ func TestSpellbenchSummaryExcludesChosenColourSkips(t *testing.T) {
 // TestSpellbenchFuzzDeterministic: one seed gives a byte-identical summary,
 // whatever the worker interleaving.
 func TestSpellbenchFuzzDeterministic(t *testing.T) {
-	_, a := sbTestRun(t, true, filepath.Join(t.TempDir(), "a.jsonl"))
-	_, b := sbTestRun(t, true, filepath.Join(t.TempDir(), "b.jsonl"))
+	t.Parallel()
+	_ = testutil.CorpusRegistry(t) // skips here, not inside the goroutine
+	// The two runs are independent, so they play at once.
+	pathA, pathB := filepath.Join(t.TempDir(), "a.jsonl"), filepath.Join(t.TempDir(), "b.jsonl")
+	var b string
+	var errB error
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, b, errB = sbTestRunErr(t, true, pathB)
+	}()
+	_, a := sbTestRun(t, true, pathA)
+	<-done
+	if errB != nil {
+		t.Fatal(errB)
+	}
 	if a != b {
 		t.Fatalf("two runs at one seed differ:\n--- a\n%s\n--- b\n%s", a, b)
 	}
