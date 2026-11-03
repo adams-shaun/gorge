@@ -1332,11 +1332,12 @@ func (s *State) auraEntry(k *prep, o Obj, ctrl uint8) (host Slot, ask, stay bool
 	return NoSlot, true, false
 }
 
-// returnAura is the core's OpReturn of an Aura card to the battlefield under the
-// resolving entry's controller (auraEntry); host != NoSlot is the answered
-// enchant ask. It reports whether the ask is posed.
+// returnAura is the core's OpReturn of an Aura card to the battlefield under its
+// owner's control, as execReturnSimple enters any plain return (auraEntry: the
+// owner is who chooses what it enchants, CR 303.4f); host != NoSlot is the
+// answered enchant ask. It reports whether the ask is posed.
 func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
-	ctrl := s.res.e.ctrl
+	ctrl := s.objs[o].owner()
 	if host == NoSlot {
 		var ask, stay bool
 		if host, ask, stay = s.auraEntry(k, o, ctrl); ask || stay {
