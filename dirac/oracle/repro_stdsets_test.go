@@ -47,6 +47,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fra", "loyalty_cost_counters_trigger_put_counters"},         // Ajani Unrelenting's [+1] beside an Inspired Tethermage: the loyalty counter put as the cost triggers it, with Ajani's own trigger ordered beside it
 		{"std-tmt", "sneak_restricted_any_colour_beside_tap_extra"},       // Leonardo, Big Brother sneaked for {W} from Turtle Lair's restricted any-colour mana with Groundchuck & Dirtbag adding {G} beside it: the lowered payment takes the wheel's any-colour pick
 		{"std-tmt", "restricted_any_colour_pick_beside_plain_colour"},     // Mikey & Leo paid {W}{W} from a Plains and a second land, Turtle Lair tapped for green beside the Plains' white: the green it leaves floating is restricted, so Cowabunga is not offered
+		{"std-trc", "arex_up_to_three_lands_ends_when_none_left"},         // Lt. Arex's "up to three" land pick with one land in hand: the pick ends after it, no lone Done posed beside the kernel's priority
+		{"std-trc", "julian_graveyard_instant_stays_put"},                 // Julian Bashir's trigger aimed at an instant in the graveyard: it stays there (CR 304.4), so Vindicate finds no such permanent
 		{"std-dft", "run_over_second_target_after_vehicle"},               // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                 // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},               // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there

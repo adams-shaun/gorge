@@ -1222,6 +1222,13 @@ func (g *GorgeSide) Apply(a Canon) {
 		return
 	}
 	g.repose(fr)
+	if !combat && !fr.restable && len(fr.cur.Options) == 1 && fr.curAt[0] == -1 {
+		// Only Done is left: no candidate remains to pick, and the kernel's
+		// optional multi-pick ends there rather than posing a lone Done
+		// (an "up to N" pick that has used every legal card, CR 107.1c).
+		g.commit(fr, fr.chosen)
+		return
+	}
 	if len(fr.cur.Options) == 0 {
 		// No pick and no valid Done: the published constraints cannot
 		// finish this answer; let gorge's repair have it.
