@@ -303,7 +303,9 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 			f.seenPlaneswalkerTypes[typ] = true
 		}
 	case zoneFoldPropColors:
-		f.colorsSeen |= ColorMaskOf(o)
+		// CR 105.3, 613.1e: the live layer-5 colours on the battlefield
+		// (Mondo Gecko turned white), the face's colours elsewhere.
+		f.colorsSeen |= ColorMaskFromLetters(LiveColors(f.h, o))
 	default:
 		// The Different* distinct-set properties: each
 		// matching object contributes its value to the seen set. The nil-face

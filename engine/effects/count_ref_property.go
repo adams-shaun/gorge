@@ -309,7 +309,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
 			}
 		case prop == "Colors":
-			colorsSeen |= ColorMaskOf(o)
+			colorsSeen |= ColorMaskFromLetters(LiveColors(h, o))
 		case prop == "Amount":
 			// The count of referenced objects themselves (SVar:X:ExiledWith$Amount,
 			// the same "how many" the Remembered$Amount head answers for the
