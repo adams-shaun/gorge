@@ -66,6 +66,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-woe", "trigger_cost_filter_window_lowest_colour"},                    // Icewrought Sentry's {1}{U} paid with a Swamp and Scarecrow Guide's {1}-for-any-colour filter: the trigger cost's window has no cost to read, so the filter answers white
 		{"std-fdn", "joraga_grant_after_witness_protection_loss"},                  // Joraga Invocation cast after Witness Protection took a Helpful Hunter's abilities: the grant is a later layer-6 effect (CR 613.7), so the Hunter must be blocked with the others and the lone Reaver token is offered no other pair
 		{"std-fin", "sacrificed_host_returns_aura_which_asks_what_it_enchants"},    // The Gold Saucer's cost sacrifices White Auracite, which sends Sleep Magic back: its controller's choice of what it enchants is asked inside the cost payment and the answer is kept, not dropped (CR 303.4f, 610.3)
+		{"std-fra", "graveyard_type_count_skips_a_waiting_token"},                  // a Lotus token sacrificed to pay for Hungering Puppetbeast waits in the graveyard for the next check: it is no card, so Tarmogoyf does not count its artifact type (CR 111.7, 704.5d)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

@@ -29,6 +29,9 @@ func (s *State) graveAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		pl := &s.pl[pp]
 		for j := 0; j < int(pl.graveN); j++ {
 			o := pl.grave[j]
+			if s.objs[o].of&ofToken != 0 {
+				continue // a token waiting in a graveyard is no card (CR 111.7, 704.5d)
+			}
 			c := s.objs[o].card
 			if !s.matchCardGenAt(k, x.F, c, pp, ctx.ctrl, o, &ctx) {
 				continue
