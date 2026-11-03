@@ -131,7 +131,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		// and the oracle always lowers it, like the kicked cast; so is an
 		// impended cast ("impended", kw_impending.go)
 		s.bld().bfl |= bflLowered
-		s.lowerWitness(k, p)
+		if !s.poolRPays(k, p, c, o) {
+			s.lowerWitness(k, p)
+		}
 	} else if !(k.gen != nil && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
@@ -2087,4 +2089,23 @@ func (s *State) recordSubCtr(o Obj, c uint8) {
 	s.bld().picks[s.bld().pickN] = o
 	s.bld().pickKs[s.bld().pickN] = pickSubCtr | pickKind(c)
 	s.bld().pickN++
+}
+
+// poolRPays: p's floating pool, with the restricted mana the cast being built
+// may spend, pays its composed cost, so the oracle's lowering of the cast taps
+// nothing: a hybrid pip is then paid by whichever face the pool covers
+// (Flamebraider's {W}{W} floating beside an untapped Mountain pays an evoked
+// Catharsis, where a witness over the pool would take the {W}{R} face first
+// and tap the Mountain).
+func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
+	if s.pl[p&1].poolR == 0 {
+		return false
+	}
+	var av avail
+	s.availPool(p, &av)
+	if !s.restrAvail(k, p, c, s.restrOriginOfObj(o), &av) {
+		return false
+	}
+	cost := s.buildCost(k)
+	return cost.X == 0 && av.affords(&cost, pipMaskOf(&cost), 0)
 }

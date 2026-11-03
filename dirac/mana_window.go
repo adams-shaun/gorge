@@ -183,6 +183,10 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.windowFiltFirst(k, p, sl, useful) // mana_filterfirst.go
 				continue
 			}
+			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) && !noOwed {
+				s.windowWideTap(k, p, sl, cost, useful, clamp, &held)
+				continue
+			}
 			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
 				continue
 			}
@@ -293,8 +297,57 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) {
 			return o, true
 		}
+		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
+			return o, true // a wide any-colour restricted source (windowWideTap)
+		}
 	}
 	return NoSlot, false
+}
+
+// windowWide: sl is p's untapped wide any-colour restricted source (Flamebraider)
+// whose mana the payment being built may spend (CR 106.6): an activate option of
+// gorge's cast window, though its census mana is a gap, not a planner unit.
+func (s *State) windowWide(k *prep, p uint8, sl Slot) bool {
+	if !s.scriptWide(k, p).has(sl) {
+		return false
+	}
+	d := s.payDescNow(NoObj)
+	return s.restrSrcAdmits(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))], &d)
+}
+
+// windowWideTap activates wide source sl in the window and floats its two mana
+// beside the pool (restricted, poolR). The ask lists the colours the clamp keeps
+// (paymentUsefulColours) once per mana, and each mana answers a colour the cost
+// still owes, else the lowest listed (payexec.WindowChoices), the owed amount
+// falling by what the first mana covers. Mana the byte cannot hold as restricted
+// floats plain (held).
+func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp bool, held *[kop.NumManaKinds]uint8) {
+	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	mask := uint8(kop.ColAny)
+	if clamp {
+		if want, decided := s.windowUseful(p, useful); decided && want&mask != 0 {
+			mask &= want
+		}
+	}
+	owed := cost.Pips
+	for c := range owed {
+		owed[c] -= min(owed[c], s.pl[p].pool[c])
+	}
+	for i := 0; i < 2; i++ {
+		col := bits.TrailingZeros8(mask)
+		for c := 0; c < 5; c++ {
+			if mask&(1<<c) != 0 && owed[c] > 0 {
+				col = c
+				owed[c]--
+				break
+			}
+		}
+		if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
+			held[col]++
+		}
+	}
 }
 
 // windowCol is the colour the window's source sl (mana facts pc) makes: a
