@@ -105,3 +105,20 @@ func TestCostChosenType(t *testing.T) {
 		}
 	}
 }
+
+// TestPeekPublicEachPlayer: a public reveal over Defined$ Player (Ambassador
+// K'Ehleyr's parley) reveals the top card of every player's library, the
+// resolving controller first, and remembers both.
+func TestPeekPublicEachPlayer(t *testing.T) {
+	sc, _ := newBLBScen(t, []cardset.Entry{{Name: "Plains", Count: 8}})
+	sc.k.t.Exprs = append(sc.k.t.Exprs, kop.Expr{Kind: kop.ExConst, N: 1})
+	a := kop.ValueRef{K: kop.VExpr, N: int16(len(sc.k.t.Exprs) - 1)}
+	sc.s.res.e.ctrl = 1
+	in := kop.Instr{Op: kop.OpPeek, Obj: kop.RefEachPlayer, A: a, C: kop.PeekPublic | kop.PeekRemember}
+	sc.s.g.nrem = 0
+	sc.s.execGen(sc.k, &in)
+	p0, p1 := &sc.s.pl[0], &sc.s.pl[1]
+	if sc.s.g.nrem != 2 || sc.s.g.rem[0] != p1.lib[int(p1.libLo)] || sc.s.g.rem[1] != p0.lib[int(p0.libLo)] {
+		t.Fatalf("remembered %d %v, want seat 1's top card then seat 0's", sc.s.g.nrem, sc.s.g.rem[:sc.s.g.nrem])
+	}
+}

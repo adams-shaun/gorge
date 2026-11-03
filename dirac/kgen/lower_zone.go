@@ -1217,6 +1217,11 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 		lc.emit(lInstr{Op: "Peek", Obj: who, A: n, CS: cs})
 		return nil
 	}
+	if who.Kind == rEachPlayer && (has("RevealOptional") || has("RevealValid") || has("RememberPeeked")) {
+		// only the public reveal walks every player; the may-reveal and
+		// remembered-look arms read one player's library
+		return refuse("PeekAndReveal over each player outside the public reveal")
+	}
 	if ps.is("NoReveal", "True") && !has("RememberPeeked") && !has("RevealOptional") && !has("RevealValid") {
 		// the bare look that remembers nothing (Mishra's Bauble): gorge's
 		// look_ack when the library holds a card, no other effect

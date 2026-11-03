@@ -466,6 +466,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if in.C&kop.PeekMayReveal != 0 {
 				return s.peekMayReveal(k, in, p), true // act_peekreveal.go
 			}
+			if in.Obj == kop.RefEachPlayer {
+				// Defined$ Player: every player reveals, the resolving
+				// controller first, as gorge's definedPlayers walks AliveFrom.
+				first, second := s.eachPlayers(k, in.Obj)
+				s.peekPublic(k, in, first)
+				s.peekPublic(k, in, second)
+				break
+			}
 			s.peekPublic(k, in, p)
 			break
 		}
