@@ -331,6 +331,12 @@ func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
 func TestMultiTargetAskDropsTheTargetItsCostCannotPayLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "this_town_multi_target_unaffordable", "std-otj", Config{})
+}
+
+// A Springleaf Drum tapping a Bloom Tender is the only white mana on the board: the
+// tap-another search activates the each-colour source as one of its own steps, so
+// both engines offer Clachan Festival and Evershrike's Gift.
 func TestTapAnotherSourceBesideAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
 	synthReproLockstep(t, "tapx_beside_each_colour_source", "std-ecl", Config{})
 }

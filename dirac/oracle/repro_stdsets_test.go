@@ -15,8 +15,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
-	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true}
-	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true}
+	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-tla", "waterbend_min_taps_filter"},                          // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},                      // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
@@ -42,9 +41,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-tdm", "dig_aura_enters_attached_to_its_one_host"},           // United Battlefront puts Wingspan Stride onto the battlefield with Host of the Hereafter its only legal host: it enters enchanting it
 		{"std-ecl", "dig_aura_two_hosts_asks_what_it_enchants"},           // Ajani, Outland Chaperone's ultimate takes Evershrike's Gift with two creatures to enchant: the choice is asked before the Aura moves
 		{"std-dsk", "eerie_resolutions_tally_across_trigger_lines"},       // Victor's second Eerie resolution of the turn, one through an entering enchantment and one through a Room fully unlocked, is the opponent's discard, not another surveil
-	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true}
-		{"std-fin", "target_dependent_cost_starting_town_white"},      // Fate of the Sun-Cryst aimed at a tapped creature costs {2}{W}: the planner's census counts Starting Town's white while a point of life is not lethal
-		{"std-fin", "life_pain_land_beside_filter_pays_double_green"}, // Summon: Titan's GG from Starting Town and Capital City: a paid-life land is no census gap beside the filter
+		{"std-fin", "target_dependent_cost_starting_town_white"},          // Fate of the Sun-Cryst aimed at a tapped creature costs {2}{W}: the planner's census counts Starting Town's white while a point of life is not lethal
+		{"std-fin", "life_pain_land_beside_filter_pays_double_green"},     // Summon: Titan's GG from Starting Town and Capital City: a paid-life land is no census gap beside the filter
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
