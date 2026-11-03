@@ -415,6 +415,15 @@ const (
 // A SpellCast trigger's spell on the stack is the one reader.
 const ExChromaOf ExprKind = 231
 
+// ExOppsAttacked (high expr kind): the number of opponents the controller
+// attacked this turn (gorge Engine.OpponentsAttackedThisTurn,
+// PlayerCountPropertyYou$OpponentsAttackedThisTurn): the distinct players a
+// declared attack named as its defender, so an attacker aimed at a
+// planeswalker or battle does not count its controller. Only the active
+// player attacks, so any other controller reads 0. With one opponent the
+// value is 0 or 1.
+const ExOppsAttacked ExprKind = 229
+
 // ExVoid (high expr kind): Sub[0] if the Void of Edge of
 // Eternities holds, else Sub[1] (gorge Count$Void.<yes>.<no>,
 // cov3BranchHoldsVoid). Void holds when a nonland permanent left the

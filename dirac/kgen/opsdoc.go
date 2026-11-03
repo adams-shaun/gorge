@@ -195,6 +195,7 @@ var opsEntries = []opsDoc{
 	{"ex:PoisonOf", "ExPoisonOf (Ref)", "Poison counters of player Ref (CR 122.1f). Gorge: `TargetedController$Counters.Poison`, evalPlayerRefProperty's Counters.Poison arm over controllersOf(the targets). Anoint with Affliction."},
 	{"ex:Product", "ExProduct (Sub[0], Sub[1])", "Sub[0] * Sub[1]: a /Times.Y modifier naming an SVar (gorge applyCountOpOperand resolves the operand, then applyCountOp's Times arm). Lunar Convocation."},
 	{"ex:AttackersAll", "ExAttackersAll", "Attackers declared this turn by every player, summed per declaration (gorge `PlayerCountPlayers$AttackersDeclared`, Engine.AttackersThisTurn). Witchstalker Frenzy."},
+	{"ex:OppsAttacked", "ExOppsAttacked", "The opponents the controller attacked this turn: the players named as defender by a declaration this turn, 0 for a controller who is not the active player (gorge `PlayerCountPropertyYou$OpponentsAttackedThisTurn`, Engine.OpponentsAttackedThisTurn); 0 or 1 with one opponent. Kurn, Son of Mogh."},
 	// --- conditions ---
 	{"cond:Present", "CondPresent (F, Op, A)", "The number of battlefield objects matching F (relative to the controller) compares Op with A."},
 	{"cond:Value", "CondValue (A, Op, B)", "A compares Op with B."},

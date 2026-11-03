@@ -498,6 +498,11 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vYourTurns, N: 1} // 1 on the controller's turn
 		case "CardsDiscardedThisTurn":
 			v = lValue{Kind: vDiscardedThisTurn}
+		case "OpponentsAttackedThisTurn":
+			// gorge Engine.OpponentsAttackedThisTurn: the distinct players the
+			// controller's declared attacks named (a planeswalker or battle
+			// defender is not its controller); the active player only.
+			v = lValue{Kind: vOppsAttacked}
 		case "HasPropertyMaxSpeed":
 			v = lValue{Kind: vYourSpeed, N: 1} // 1 at max speed (gorge playerMaxSpeedProperty), else 0
 		default:

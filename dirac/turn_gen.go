@@ -483,6 +483,7 @@ func (s *State) newTurnGen() {
 		s.ctrAddedReset() // ctr_addedthisturn.go
 	}
 	s.g.attacked = [2]uint8{}
+	s.g.oppAtt = 0
 	s.g.isCast = [2]uint8{}
 	s.g.hist = [2][3]uint8{}
 	clear(s.cold.castRing)

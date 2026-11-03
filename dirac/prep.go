@@ -112,6 +112,9 @@ type prep struct {
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
+	// anyOppsAtt: some value reads ExOppsAttacked: finishAttacks records that the
+	// declaration named a player defender (value_oppsattacked.go)
+	anyOppsAtt bool
 	// w8: some filter is a PredWord7 sub-kind >= W7FaceUp:
 	// the one guard matchPermOne adds to pass ctrl and src
 	w8 bool

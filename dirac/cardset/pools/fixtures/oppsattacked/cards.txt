@@ -1,0 +1,19 @@
+# the opponents-attacked pool: the Star Trek "Battlefront" cards whose count is
+# the number of opponents the controller attacked this turn
+# (PlayerCountPropertyYou$OpponentsAttackedThisTurn, ExOppsAttacked), a
+# planeswalker for the attacks that name no player, vanilla creatures and
+# basics, for the oracle's constructed lockstep (dirac/oracle/oppsattacked_test.go)
+Korok, Liberated Rage
+Kurn, Son of Mogh
+Martok, Hero of the Empire
+Galvanizing Tenor
+Worf, Defiant Commander
+Rite of Ascension
+Ajani, Caller of the Pride
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Plains
+Mountain
+Swamp
+Island

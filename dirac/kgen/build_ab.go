@@ -473,7 +473,7 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // the same at announcement.
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
 		return true
 	case vSum, vProduct:
 		for _, sv := range v.Sub {

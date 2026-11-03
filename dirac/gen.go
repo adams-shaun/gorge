@@ -425,6 +425,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExYourTurns && t.Exprs[i].N == 0 {
 			p.anyYourTurns = true // value_exprs.go
 		}
+		if t.Exprs[i].Kind == kop.ExOppsAttacked {
+			p.anyOppsAtt = true // value_oppsattacked.go
+		}
 		if t.Exprs[i].Kind == kop.ExRedNCDmg {
 			p.anyRedNC = true // the tally rides replDamage, which anyRepl&rbPlusDmg gates open (value_damagetally.go)
 		}
@@ -1357,6 +1360,7 @@ type genState struct {
 
 	died     uint8    // creatures put into a graveyard from the battlefield this turn
 	attacked [2]uint8 // creatures each player attacked with this turn
+	oppAtt   uint8    // 1 once a declaration this turn named a player as defender (prep.anyOppsAtt only; value_oppsattacked.go)
 	isCast   [2]uint8 // instants and sorceries each player cast this turn (Tf2CastSnapshot)
 	// the turn history bank (value_turnhistory.go): per player, counters kgen's
 	// readers name by slot (histSpells: spells cast), and the mana spent

@@ -1631,6 +1631,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vCountHand:          kop.ExCountHand,
 	vYourTurns:          kop.ExYourTurns,
 	vLowestLife:         kop.ExLowestLife,
+	vOppsAttacked:       kop.ExOppsAttacked,
 	vRedNCDmg:           kop.ExRedNCDmg,
 	vVoid:               kop.ExVoid,
 	vRevolt:             kop.ExRevolt,

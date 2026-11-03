@@ -184,6 +184,9 @@ func (s *State) finishAttacks(k *prep) {
 	var tapped slotMask
 	fresh := 0 // attackers not declared in an earlier combat this turn
 	m := s.ctrlM[s.active]
+	if k.anyOppsAtt {
+		s.noteOppsAttacked(m) // before any Attacks trigger reads it
+	}
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
