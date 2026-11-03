@@ -2921,7 +2921,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			// Toshiro); the kernel prices no restricted last-resort unit
 			return refuse("mana restriction on a PayLife source: gorge plans it last-resort")
 		}
-		if !plainTapCost(ab.Cost) {
+		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) {
 			// the kernel's window prices a restricted mana ability only when
 			// its cost is a plain {T}; gorge's cast-window probe also prices
 			// one that sacrifices, pays mana or taps another permanent
@@ -3379,4 +3379,15 @@ func plainTapCost(c lCost) bool {
 	}
 	c.Tap, c.Mana = false, manaCost{}
 	return reflect.DeepEqual(c, lCost{})
+}
+
+// noCost reports whether c has no part at all (a spell's or a resolving
+// effect's mana, which has no activation cost).
+func noCost(c lCost) bool {
+	return !c.Tap && plainTapCostIgnoringTap(c)
+}
+
+func plainTapCostIgnoringTap(c lCost) bool {
+	c.Tap = true
+	return plainTapCost(c)
 }

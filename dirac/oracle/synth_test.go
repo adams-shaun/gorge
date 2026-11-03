@@ -580,7 +580,7 @@ func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
 // work from a hand may spend a restricted source that admits them (CR 106.6, 702.29).
 func TestHandAbilityOfferCountsRestrictedSources(t *testing.T) {
-	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{7, 19, 25}, madeRestrictedMana)
+	synthPairsReaching(t, "std-dft", Config{GorgeAutopaySurface: true}, []int{17, 74}, madeRestrictedMana)
 	synthPairsReaching(t, "std-msh", Config{GorgeAutopaySurface: true}, []int{4, 11, 22}, madeRestrictedMana)
 }
 

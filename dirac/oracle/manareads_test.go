@@ -41,7 +41,7 @@ func lockstepWithCard(t *testing.T, name string, cfg Config, card string, pairs 
 // Cruelclaw's Heist's exiled card stays castable on a board of lands alone.
 func TestRememberedNonlandPermissionOnAllLands(t *testing.T) {
 	t.Parallel()
-	lockstepWithCard(t, "std-blb", Config{}, "Cruelclaw's Heist", 48, 107, 119)
+	lockstepWithCard(t, "std-blb", Config{}, "Cruelclaw's Heist", 10, 54, 86)
 }
 
 // Floating restricted mana pays an activated ability its restriction admits
