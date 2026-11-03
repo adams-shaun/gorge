@@ -69,11 +69,16 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggCardTypes:
-			// CR 205.2a: the face's printed card types (gorge o.Face().Types
-			// in cardTypeWords), not the layer-derived ones; a face-down
-			// permanent has none (CR 708.2)
+			// CR 205.2a: the face's card types (gorge o.Face().Types in
+			// cardTypeWords), not the layer-derived ones; a copy's face
+			// carries its copy exception's added types (CR 707.9b), so a
+			// token copied "except it's an artifact creature" counts the
+			// creature; a face-down permanent has none (CR 708.2)
 			if !s.faceDown(k, sl) {
 				types |= k.t.Cards[s.cardAt(sl)].Types
+				if k.gen.cpxTy && s.fxM.has(sl) {
+					types |= s.copyExcTypes(k, sl)
+				}
 			}
 			continue
 		case kop.AggCreatureTypes:
