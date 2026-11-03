@@ -92,7 +92,9 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		return PaymentPlanOutcome{Reason: "unsupported"}
 	}
 	if detail := e.paymentPlanCastShapeDetailScoped(statics.get(), p, cast.Object, plannedCastScope(o.Zone, flashback)); detail != "" {
-		return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
+		if detail != "shape:modal_cost" || flashback || mayPlay || !e.modalCostNeedsPlannedPayment(p, cast.Object) {
+			return PaymentPlanOutcome{Reason: "unsupported", Detail: detail}
+		}
 	}
 	switch {
 	case flashback:
@@ -1130,4 +1132,25 @@ func plannedMayPlayOrigin(z state.Zone) string {
 // Mode, exactly as before (decision.PlannedCast.CastMode).
 func plannedCastOption(cast decision.PlannedCast) decision.Option {
 	return decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
+}
+
+// modalCostNeedsPlannedPayment reports whether a Spree or Tiered cast is
+// payable only by paying with a permanent that the cast's own announcements
+// need. Its targets and modes are chosen before any mana ability is
+// activated (CR 601.2b-c), and mana abilities only then (601.2g), so the cast
+// may sacrifice its own target to pay (the spell then resolves with an illegal
+// target, CR 608.2b). The potential walk's lowering floats that mana before
+// the cast and so cannot reach it (potentialWitnessReaches); the planned cast
+// pays at 601.2g, and its witness at the printed cost falls back to the
+// ordinary mana window once the chosen modes change the cost.
+func (e *Engine) modalCostNeedsPlannedPayment(p state.PlayerID, id state.ObjID) bool {
+	if e.Pending() == nil {
+		return false
+	}
+	o := decision.Option{Kind: "cast", Obj: id}
+	got := e.potentialModeCastPlan(p, o)
+	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.potentialWitnessReaches(p, o, *got.Plan) {
+		return false
+	}
+	return e.potentialWitnessKeeping(p, o).Reason != ""
 }
