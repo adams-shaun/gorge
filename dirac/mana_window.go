@@ -368,6 +368,14 @@ func (s *State) windowCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, pc *pca
 			}
 		}
 		all := s.windowSrcMask(k, sl) // a granted ability's colour a pip owes counts too
+		if !pc.manaMulti && !pc.manaChosen && pc.manaCol != kop.ColAny && pc.painCol == 0 && bits.OnesCount8(mask&0x1f) > 1 {
+			// a printed Combo is flattened into one option per colour, each with
+			// its symbol, and the window answers the first such option an owed
+			// colour matches, else the lowest: a granted ability's option has no
+			// symbol and is never taken beside them (Misty Palms Oasis under a
+			// Great Divide Guide owing {R} answers {W})
+			all = mask
+		}
 		for c := 0; c < 5; c++ {
 			if all&(1<<c) != 0 && cost.Pips[c] > s.pl[p].pool[c] {
 				return c // gorge lists what a fixed pip still owes first (owedColoursFirst, owedAbilitiesFirst)
