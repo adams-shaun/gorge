@@ -13,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
+	"github.com/adams-shaun/gorge/engine/events"
 )
 
 // synthReg is the corpus for a synth test, skipping as the tables do when there is none.
@@ -540,7 +541,40 @@ func TestRestrictedSourceStaysInTheManualWindow(t *testing.T) {
 // TestPowerUpOfferCountsRestrictedSources: the sources a power-up's printed cost is
 // priced against include a restricted one its activation may spend (CR 106.6, 702.193b).
 func TestPowerUpOfferCountsRestrictedSources(t *testing.T) {
-	synthPairs(t, "std-msh", []int{79, 109}, nil)
+	restrictedPowerUpPairs(t, "std-msh", []int{11, 88, 98, 112})
+}
+
+// restrictedPowerUpPairs is synthPairs requiring that each game activates a power-up
+// after restricted mana has been made: a pair is two decks dealt from the lowered list,
+// so a card lowered later moves what a pair holds, and a pin whose pair no longer
+// has both would pass having tested nothing.
+func restrictedPowerUpPairs(t *testing.T, name string, pairs []int) {
+	t.Helper()
+	seen, hits, armed := 0, 0, false
+	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, Check: func(ref *GorgeSide, _ Side) *Divergence {
+		evs := ref.E.L.Events
+		for ; seen < len(evs); seen++ {
+			ev := &evs[seen]
+			switch ev.Kind {
+			case events.ManaAdd:
+				if ev.Amount > 0 && strings.HasPrefix(ev.Text, "mana-restriction:") {
+					armed = true
+				}
+			case events.AbilityPush:
+				if o := ref.E.G.Obj(ev.Obj); armed && o != nil && o.Face() != nil && int(ev.Amount) < len(o.Face().Abilities) &&
+					o.Face().Abilities[ev.Amount].Params["PowerUp"] == "True" {
+					hits++
+				}
+			}
+		}
+		return nil
+	}}
+	synthPairsRun(t, name, rc, pairs, func(pair int, _ *Result) {
+		if hits == 0 {
+			t.Errorf("pair %d of %s activates no power-up beside restricted mana: the pin tests nothing", pair, name)
+		}
+		seen, hits, armed = 0, 0, false
+	})
 }
 
 // TestHandAbilityOfferCountsRestrictedSources: cycling and the other abilities that
