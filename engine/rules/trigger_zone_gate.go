@@ -185,6 +185,10 @@ func leavesOtherZoneTrigger(t cards.Trigger) bool {
 	if d := t.ParamStr(cards.PKDestination); d != "" && d != "Any" {
 		return false
 	}
-	origin := t.ParamStr(cards.PKOrigin)
-	return origin != "" && origin != "Any" && !strings.Contains(origin, "Battlefield")
+	code, ok := t.ParamCode(cards.PKOrigin)
+	if !ok {
+		return false
+	}
+	zones := effects.ZoneList(code)
+	return !zones.All() && !zones.Has(state.ZBattlefield)
 }
