@@ -185,10 +185,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 	// a granted ability that spends only on some payments (Mm'menon's blue for
 	// a spell cast from elsewhere than the hand) adds nothing to an ask the
 	// building entry cannot pay with it
-	d := s.payDescNow(NoObj)
-	a.xd = &d
+	a.xd, a.xdOn = s.payDescNow(NoObj), true
 	s.availFor(k, p, a)
-	a.xd = nil
+	a.xdOn = false
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
 		return
 	}

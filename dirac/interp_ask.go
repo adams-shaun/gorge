@@ -32,10 +32,9 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		}
 		c := manaOf(amt, pips)
 		var av avail
-		other := payDesc{class: pdOther} // an unless, ward or trigger cost is no spell's, an ability's or a cast's
-		av.xd = &other
+		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
 		s.availWindowFor(k, p, &av)
-		av.xd = nil
+		av.xdOn = false
 		return av.affords(&c, pipMaskOf(&c), 0)
 	case kop.PayDiscard, kop.PayDiscardRandom:
 		return int(s.pl[p].handN) >= amt

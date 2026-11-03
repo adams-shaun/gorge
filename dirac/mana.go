@@ -85,9 +85,11 @@ type avail struct {
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
-	// xd: the payment an {X} ask is bounded by; a granted ability whose spend
-	// restriction refuses it adds nothing (availGrant)
-	xd *payDesc
+	// xd: the payment an {X} ask is bounded by, when xdOn; a granted ability
+	// whose spend restriction refuses it adds nothing (availGrant). A value, not
+	// a pointer, so an avail on the stack keeps no reference to a local.
+	xd   payDesc
+	xdOn bool
 }
 
 // maxOneColour bounds a player's one-colour sources; one more stalls

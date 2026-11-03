@@ -199,8 +199,8 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
-	if a.xd != nil {
-		if n := s.grantsAdmitted(k, sl, &gi, ng, a.xd); n < ng {
+	if a.xdOn {
+		if n := s.grantsAdmitted(k, sl, &gi, ng, &a.xd); n < ng {
 			if ng = n; ng == 0 && !own {
 				return // the source made mana only by a grant the payment cannot spend
 			}
