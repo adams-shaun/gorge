@@ -1161,7 +1161,9 @@ func targetPaidShape(detail string) bool {
 // target, CR 608.2b). The potential walk's lowering floats that mana before
 // the cast and so cannot reach it (potentialWitnessReaches); the planned cast
 // pays at 601.2g, and its witness at the printed cost falls back to the
-// ordinary mana window once the chosen modes change the cost.
+// ordinary mana window once the chosen modes change the cost. A witness whose
+// sacrifice sets off a trigger that ends the game in p's favour reaches the play
+// (witnessReachesMode), as the potential walk counts it.
 func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID) bool {
 	if e.Pending() == nil {
 		return false
@@ -1173,7 +1175,7 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	defer func() { e.planIgnoreCredit = false }()
 	o := decision.Option{Kind: "cast", Obj: id}
 	got := e.potentialModeCastPlan(p, o)
-	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.potentialWitnessReaches(p, o, *got.Plan) {
+	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true) {
 		return false
 	}
 	return e.potentialWitnessKeeping(p, o).Reason != ""
