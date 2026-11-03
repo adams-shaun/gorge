@@ -51,6 +51,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                 // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},               // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there
 		{"std-hob", "stir_up_trouble_game_ending_treasure_sacrifice"},     // Stir Up Trouble with the one Treasure for its {B} beside The Sackville-Bagginses, whose drain ends the game: one route offers the cast
+		{"std-mkm", "ward_evidence_payment_triggers_collect_evidence"},    // a ward {Collect evidence} paid with Cryptic Coat's graveyard beside an Evidence Examiner: the payment is a collect-evidence action, so the Examiner investigates
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

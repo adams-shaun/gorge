@@ -17,8 +17,8 @@ import (
 // Monitor (you collect evidence) with explorers, evidence payers and burn to
 // fill the graveyards. Both decks hold the carriers, so each side's explores
 // and evidence reach the other side's ValidCard$ Creature.YouCtrl / ValidPlayer$
-// You lines, which must stay silent. No ward-evidence card: gorge's ward
-// payment records no CollectEvidenceAction.
+// You lines, which must stay silent. No ward-evidence card here: the ward
+// payment's CollectEvidenceAction is pinned by TestStdSetReprosLockstep.
 
 var ktrigexplevShell = []cardset.Entry{
 	{Name: "Merfolk Cave-Diver", Count: 2}, {Name: "Nicanzil, Current Conductor", Count: 2},

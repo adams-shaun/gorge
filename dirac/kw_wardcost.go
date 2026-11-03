@@ -215,7 +215,9 @@ func (s *State) settleWardEvidence(k *prep) {
 		s.payDone(k, false)
 		return
 	}
-	s.exileEvidence()
+	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
+		s.fireEvidence(k, s.g.pickP) // the payment is a collect-evidence action (gorge pay.PayEvidence)
+	}
 	s.payDone(k, true)
 }
 
