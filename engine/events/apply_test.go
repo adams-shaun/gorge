@@ -1731,3 +1731,21 @@ func TestSubTargetRemoved(t *testing.T) {
 		t.Fatalf("sub targets = %+v, want %+v", got, want)
 	}
 }
+
+// A creature dealt damage and put into the graveyard keeps its damage record
+// there, but one that returns to the battlefield the same turn is a new object
+// (CR 400.7) that was dealt no damage.
+func TestReturningCreatureWasNotDealtDamageThisTurn(t *testing.T) {
+	g, l := twoPlayer(t)
+	id := g.Zone(state.ZLibrary, 0)[0]
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	Emit(g, l, Event{Kind: Damage, Obj: id, Amount: 4})
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	if !g.Obj(id).WasDealtDamageThisTurn {
+		t.Fatal("the graveyard object lost its damage record")
+	}
+	Emit(g, l, Event{Kind: MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZBattlefield})
+	if g.Obj(id).WasDealtDamageThisTurn {
+		t.Fatal("a creature that re-entered the battlefield is still marked dealt damage this turn")
+	}
+}

@@ -838,6 +838,13 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 	// state even from a malformed caller-supplied From.
 	o.EnteredThisTurn = true
 	o.EnteredFrom = enteredFrom
+	if to == state.ZBattlefield && enteredFrom != state.ZBattlefield {
+		// CR 400.7: a permanent that enters is a new object, so a creature
+		// that was dealt damage and died earlier this turn is not "dealt
+		// damage this turn" once it returns. The graveyard copy keeps its
+		// record until it enters.
+		o.WasDealtDamageThisTurn = false
+	}
 	if to == state.ZBattlefield && enteredFrom != state.ZBattlefield && o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0].IsRoom() {
 		// A stack copy is put onto the stack, not cast (CR 707.10). It
 		// resolves from ZStack too, but does not designate a cast door.
