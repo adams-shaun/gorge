@@ -199,6 +199,13 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
+	if a.xd != nil {
+		if n := s.grantsAdmitted(k, sl, &gi, ng, a.xd); n < ng {
+			if ng = n; ng == 0 && !own {
+				return // the source made mana only by a grant the payment cannot spend
+			}
+		}
+	}
 	if ng == 0 && k.painMana && pc.painCol != 0 {
 		s.addPainAvail(k, sl, pc, s.perms[sl].ctrl, a, nil, false)
 		return
@@ -242,6 +249,21 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 // ability is usable carries it: the relaxed alternatives of a granted ability
 // bring none (potential_plan.go paymentPlanRelaxedAlternatives), and a source
 // with nothing but a grant is not priced here, so it stalls.
+// grantsAdmitted keeps the first ng granted mana abilities of the source at sl
+// that d may spend (a restricted grant refused by d is no unit of the window),
+// returning how many remain.
+func (s *State) grantsAdmitted(k *prep, sl Slot, gi *[maxGrants]int16, ng int, d *payDesc) int {
+	n := 0
+	for i := 0; i < ng; i++ {
+		if r := k.gen.grantOf[gi[i]]; k.gen.grantRestr[gi[i]] != 0 && !s.restrSrcAdmits(k, s.perms[sl].ctrl, sl, &k.t.Cards[r.card].Abilities[r.ab], d) {
+			continue
+		}
+		gi[n] = gi[i]
+		n++
+	}
+	return n
+}
+
 func (s *State) availGrantExtra(k *prep, sl Slot, pc *pcard, gi *[maxGrants]int16, ng int, own bool, a *avail) {
 	if !k.gen.anyTapExtra {
 		return

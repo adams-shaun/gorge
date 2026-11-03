@@ -54,6 +54,15 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-eoe's, on the same terms.
+func TestStdEoeReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-eoe", []stdRepro{
+		{"restricted_grant_no_unit_for_hand_cast_x", false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false}, // ... and Devastating Onslaught's X likewise stops one short
+	})
+}
+
 // std-big's, on the same terms.
 func TestStdBigReprosLockstep(t *testing.T) {
 	t.Parallel()
