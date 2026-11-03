@@ -631,8 +631,8 @@ func TestPairedBotWordsItsReasons(t *testing.T) {
 }
 
 // A storm copy's new target is asked while the trigger resolves, with the real
-// hidden cards held in the resolution's checkpoint. Search refuses it in words.
-func TestPairedBotRefusesAMidResolutionAsk(t *testing.T) {
+// hidden cards held in the resolution's checkpoint. Search cannot look ahead from it, and says so in words beside the bot's rules.
+func TestPairedBotAnswersAMidResolutionAskByRules(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card := func(name string) *cards.Card {
 		c, ok := reg.Lookup(name)
@@ -675,7 +675,10 @@ func TestPairedBotRefusesAMidResolutionAsk(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if a.State != protocol.AdviceRefused || a.Reason != adviceMidResolution {
+			// Search cannot look ahead from here, so the answer is the bot's
+			// rules, with the reason, and carries no search.
+			var n explain.Note
+			if a.State != protocol.AdviceReady || a.Reason != adviceMidResolution || json.Unmarshal(a.Explain, &n) != nil || n.Search != nil || len(n.Bot) == 0 {
 				t.Fatalf("advice on %q: %+v", d.Prompt, a)
 			}
 			return

@@ -15,12 +15,14 @@ import (
 	"github.com/adams-shaun/gorge/bots"
 	"github.com/adams-shaun/gorge/bots/botpolicy"
 	"github.com/adams-shaun/gorge/bots/explain"
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/bots/searchseat"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
@@ -57,8 +59,8 @@ var ErrAdviceStale = errors.New("The decision has moved on.")
 const (
 	adviceNotOffered    = "This server does not offer a paired bot."
 	adviceNotLive       = "A paired bot advises a human in a live game."
-	adviceNotSearched   = "Search weighs priority, attackers, blockers and single targets. This kind of decision is yours alone."
-	adviceMidResolution = "This decision comes in the middle of an effect resolving, and search cannot look ahead from here without seeing hidden cards."
+	adviceNotSearched   = "Search could not weigh this decision."
+	adviceMidResolution = "This decision comes in the middle of an effect resolving, and search cannot look ahead from here without seeing hidden cards. This is what the bot's rules would do."
 	adviceNoRoot        = "Search could not rebuild this position from what you can see."
 	adviceNoLines       = "Search could not finish a single line from this position."
 	adviceNoTime        = "Search ran out of time; these are the lines it finished."
@@ -428,10 +430,7 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		return protocol.Advice{}, err
 	}
 	es := s.(bots.EnvSeat)
-	if !es.WantsEnv(&d) {
-		out.State, out.Reason = protocol.AdviceNone, adviceNotSearched
-		return out, nil
-	}
+	rulesOnly := !es.WantsEnv(&d)
 
 	feed, e, err := searchseat.RebuildFeedEngine(ctx, gorgegame.RulesConfig(m.gc), job.l, job.n, p)
 	if errors.Is(err, searchseat.ErrFeedStopped) {
@@ -442,6 +441,9 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	if err != nil {
 		return protocol.Advice{}, err
 	}
+	if rulesOnly {
+		return r.adviseByRules(ctx, out, s, e, d, rulesReason(&d))
+	}
 	setup := searchseat.SeatSetup(searchprobe.PublicGame{
 		Names: m.gc.Names, Decks: m.gc.Decks, Tokens: m.gc.Tokens, StartingLife: m.gc.StartingLife,
 	}, es, p)
@@ -450,8 +452,7 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 		return protocol.Advice{}, errors.New(adviceFailed)
 	}
 	if closedRootRefusal(m.table.cfg, e) != "" {
-		out.State, out.Reason = protocol.AdviceRefused, adviceMidResolution
-		return out, nil
+		return r.adviseByRules(ctx, out, s, e, d, adviceMidResolution)
 	}
 	root, why := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
 	if root == nil {
@@ -494,6 +495,78 @@ func (r *Registry) advise(ctx context.Context, job adviceJob) (protocol.Advice, 
 	}
 	out.State, out.Explain = protocol.AdviceReady, raw
 	return out, nil
+}
+
+// adviseByRules answers a decision search cannot rank with what the bot's own
+// rules would do from the seat's board, and says in plain words why search did
+// not weigh it. The board is the one the searched path hands the bot: the seat's
+// own cards and what it has seen.
+func (r *Registry) adviseByRules(ctx context.Context, out protocol.Advice, s seat.Seat, e *rules.Engine, d decision.Decision, why string) (protocol.Advice, error) {
+	bs, ok := s.(heuristic.BoardSeat)
+	if !ok {
+		out.State, out.Reason = protocol.AdviceNone, adviceNotSearched
+		return out, nil
+	}
+	var brd botpolicy.Board
+	b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &brd).Detached()
+	var note *explain.Note
+	s.(explain.Emitter).SetExplain(func(n explain.Note) { note = &n })
+	if _, err := bs.DecideBoard(ctx, b, d); err != nil {
+		if ctx.Err() != nil {
+			return protocol.Advice{}, ctx.Err()
+		}
+		return protocol.Advice{}, err
+	}
+	if note == nil || len(note.Bot) == 0 && d.Min > 0 {
+		out.State, out.Reason = protocol.AdviceNone, adviceNotSearched
+		return out, nil
+	}
+	note.Policy = out.Policy
+	note.Reason, note.Search = "", nil
+	raw, err := json.Marshal(note)
+	if err != nil {
+		return protocol.Advice{}, err
+	}
+	out.State, out.Reason, out.Explain = protocol.AdviceReady, why, raw
+	return out, nil
+}
+
+// rulesReason is why search does not weigh decision d, in the words a player
+// reads beside the bot's rules pick.
+func rulesReason(d *decision.Decision) string {
+	const tail = " This is what the bot's rules would do."
+	switch d.Kind {
+	case decision.KMulligan:
+		return "Search cannot weigh a mulligan: it turns on cards still in your library, which it cannot see." + tail
+	case decision.KArrange:
+		return "Search cannot weigh the order of cards going back to a library, because it cannot see what they would draw into." + tail
+	case decision.KTriggerOrder:
+		return "Search does not weigh the order of simultaneous triggers." + tail
+	case decision.KStartingPlayer:
+		return "Search does not weigh who plays first." + tail
+	case decision.KReplacement:
+		return "Search does not weigh which replacement effect applies first." + tail
+	case decision.KCommanderZone:
+		return "Search does not weigh a commander's zone change." + tail
+	case decision.KTriggerOptional:
+		return "Search could not weigh this optional trigger." + tail
+	case decision.KModes:
+		return "Search could not weigh these modes." + tail
+	case decision.KTarget:
+		return "Search could not weigh these targets." + tail
+	case decision.KChoose:
+		if d.ManaPayment != nil {
+			return "Search does not weigh which mana to tap by hand, and cannot weigh the cost being paid." + tail
+		}
+		for _, o := range d.Options {
+			switch o.Kind {
+			case "mana", "activate", "done":
+				return "Search does not weigh which mana to tap by hand." + tail
+			}
+		}
+		return "Search cannot rank this many options, or this kind of choice (a number, a name, a card from a hidden zone)." + tail
+	}
+	return "Search does not weigh this kind of decision." + tail
 }
 
 // wordAdvice sets out's state from the seat's note and replaces the note's
