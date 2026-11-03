@@ -145,6 +145,7 @@ var parentTargetLinkCarriers = []string{
 	"Stolen Uniform",
 	"Stunning Shot",
 	"Survey Mechan",
+	"T'Pring, Never Parted",
 	"Thorin, Mountain-king",
 	"Trygon Prime",
 	"Winterthorn Blessing",

@@ -49,6 +49,7 @@ func rememberRoots(f *cards.Face) []*cards.SA {
 var rememberTargetsCensus = map[string][]string{
 	"AlterAttribute": {"You're in Command"},
 	"Animate":        {"Flourishing Grapple"},
+	"Assimilate":     {"The Best of Both Worlds"},
 	"BecomesBlocked": {"Choking Vines"},
 	"ChangeZone":     {"Acrobatic Maneuver", "Admonition Angel", "Aminatou, the Fateshifter", "Bloodhill Bastion", "Blur", "Brokers' Safeguard", "Cemetery Recruitment", "Cleric Class", "Cloudshift", "Dead Reckoning", "Diabolic Servitude", "Dimir Doppelganger", "Displace", "Eldrazi Displacer", "Emiel the Blessed", "Ephemerate", "Escape Protocol", "Essence Flux", "Extirpate", "Faceless Devourer", "Felidar Guardian", "Flicker", "Flicker of Fate", "Flickering Hound", "Gandalf, Shadow's Foe", "Gravegouger", "Hallowed Respite", "Hawkins National Laboratory", "Housemeld", "Illusionist's Stratagem", "Immersturm", "Journey to Nowhere", "Justiciar's Portal", "Leonin Relic-Warder", "Lie in Wait", "Momentary Blink", "Moratorium Stone", "Nephalia Smuggler", "Pegasus Guardian", "Personify", "Petradon", "Petravark", "Planar Incision", "Pyretic Rebirth", "Quantum Entanglement", "Restoration Angel", "Ruin Ghost", "Scrollshift", "Secret Salvage", "Skycoach Conductor", "Slip On the Ring", "Slithery Stalker", "Splash Portal", "Tamiyo, Inquisitive Student", "Tawnos Endures", "The Grand Tour", "Triad of Fates", "Turn to Mist", "Vengeful Rebirth", "Vindictive Triumph", "Wispweaver Angel", "Word of Undoing"},
 	"ChangeZoneAll":  {"Trial"},

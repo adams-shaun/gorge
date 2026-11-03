@@ -180,6 +180,7 @@ curious_forager.txt|T|TrigImmediateTrig|Forage|window-settled
 curse_of_silence.txt|T|TrigDraw|Sac<1/CARDNAME>|window-settled
 customs_depot.txt|T|TrigLoot|1|window-settled
 cyclops_superconductor.txt|T|DBTrigger|PayEnergy<3>|window-settled
+dahar_master.txt|T|TrigSac|Sac<1/Permanent.Other+nonLand/another nonland permanent>|window-settled
 dalek_intensive_care.txt|T|TrigExile|Mandatory Exile<1/Creature.nonDalek/non-Dalek creature>|window-settled
 dance_of_the_dead.txt|T|TrigUntap|1 B|window-settled
 daretti_rocketeer_engineer.txt|T|TrigReturn|Sac<1/Artifact>|window-settled
@@ -290,6 +291,7 @@ furious_forebear.txt|T|TrigChangeZone|1 W|window-settled
 furnace_celebration.txt|T|TrigDealDamage|2|window-settled
 furnace_scamp.txt|T|TrigDamage|Sac<1/CARDNAME>|window-settled
 furyblade_vampire.txt|T|TrigPump|Discard<1/Card>|window-settled
+gabriel_lorca_mirror_menace.txt|T|TrigChangeZone|B|window-settled
 gamekeeper.txt|T|TrigExile|ExileAnyGrave<1/Card.TriggeredNewCard>|window-settled
 gastal_blockbuster.txt|T|TrigSac|Sac<1/Creature;Vehicle/a creature or Vehicle>|window-settled
 general_traag_heart_of_stone.txt|T|TrigImmediateTrig|Sac<1/Artifact.Other/another artifact>|window-settled
@@ -433,6 +435,7 @@ kinzu_of_the_bleak_coven.txt|T|TrigExile|PayLife<2> ExileAnyGrave<1/Card.Trigger
 kishla_trawlers.txt|T|TrigImmediateTrig|ExileFromGrave<1/Creature/creature card>|window-settled
 kitt_kanto_mayhem_diva.txt|T|TrigImmediateTrig|tapXType<2/Creature>|window-settled
 knowledge_and_power.txt|T|TrigDmg|2|window-settled
+kor_cause_of_vengeance.txt|T|TrigDraw|Sac<1/Creature.Other/another creature>|window-settled
 kozileks_return.txt|T|DBDamageAll|ExileFromGrave<1/CARDNAME>|window-settled
 krenko_baron_of_tin_street.txt|T|TrigToken|R|window-settled
 krovod_haunch.txt|T|TrigToken|1 W|window-settled
@@ -732,6 +735,7 @@ sutina_speaker_of_the_tajuru.txt|T|TrigImmediateTrig|Return<1/Land>|decline-only
 swarm_culler.txt|T|TrigDraw|Sac<1/Creature.Other;Artifact.Other/another creature or artifact>|window-settled
 sygg_wanderwine_wisdom_sygg_wanderbrine_shield.txt|T|TrigTransform|U|window-settled
 sylvan_library.txt|T|TrigDraw|Draw<2/You>|window-settled
+sylvia_tilly_joy_of_discovery.txt|T|TrigImmediateTrig|1 ExileFromGrave<1/card>|window-settled
 symmetry_matrix.txt|T|TrigDraw|1|window-settled
 t45_power_armor.txt|T|TrigUntap|PayEnergy<1>|window-settled
 tablet_of_epityr.txt|T|TrigGainLife|1|window-settled
@@ -797,7 +801,9 @@ trudge_garden.txt|T|TrigToken|2|window-settled
 trystan_callous_cultivator_trystan_penitent_culler.txt|T|TrigTransform|G|window-settled
 ty_lee_artful_acrobat.txt|T|TrigImmediateTrig|1|window-settled
 tymna_the_weaver.txt|T|TrigDraw|PayLife<X>|window-settled
+u_s_s_enterprise_c_time_tossed.txt|T|TrigDiscard|Discard<1/Hand>|window-settled
 ugins_binding.txt|T|TrigImmediateTrig|ExileFromGrave<1/CARDNAME>|window-settled
+uhura_xenolinguist.txt|T|TrigDraw|1|window-settled
 ulalek_fused_atrocity.txt|T|TrigCopySpell|C C|window-settled
 ulamogs_despoiler.txt|T|TrigPutCounters|ExiledMoveToGrave<2/Card.OppOwn/card an opponent owns>|window-settled
 ulamogs_nullifier.txt|T|TrigProcess|ExiledMoveToGrave<2/Card.OppOwn/card an opponent owns>|window-settled
@@ -1038,8 +1044,8 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(added) != 0 || len(removed) != 0 {
 		t.Fatalf("trigger Cost$ inventory drift; unexpected card | record | root SVar | raw cost: %v; missing: %v", added, removed)
 	}
-	if len(got) != 856 {
-		t.Fatalf("unique trigger Cost$ carriers=%d, want 856", len(got))
+	if len(got) != 862 {
+		t.Fatalf("unique trigger Cost$ carriers=%d, want 862", len(got))
 	}
 	families := map[string]int{}
 	routes := map[string]int{}
@@ -1059,7 +1065,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 			families[fam]++
 		}
 	}
-	wantFamilies := map[string]int{"Mana": 384, "Sac": 164, "Discard": 97, "Draw": 38, "PayEnergy": 37, "PayLife": 36, "ExileFromGrave": 22, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 6, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 3, "PutCardToLibFromGrave": 2, "Behold": 1, "ExileCtrlOrGrave": 1, "Mill": 1}
+	wantFamilies := map[string]int{"Mana": 387, "Sac": 166, "Discard": 98, "Draw": 38, "PayEnergy": 37, "PayLife": 36, "ExileFromGrave": 23, "tapXType": 17, "ExileAnyGrave": 16, "SubCounter": 15, "ExiledMoveToGrave": 9, "Blight": 7, "Return": 6, "CollectEvidence": 6, "Forage": 5, "RemoveAnyCounter": 4, "Exile": 2, "ExileFromHand": 3, "PutCardToLibFromGrave": 2, "Behold": 1, "ExileCtrlOrGrave": 1, "Mill": 1}
 	var familyDrift []string
 	for family, want := range wantFamilies {
 		if got := families[family]; got != want {
@@ -1075,7 +1081,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(familyDrift) > 0 {
 		t.Fatalf("Cost$ family occurrence drift: %s", strings.Join(familyDrift, ", "))
 	}
-	wantRoutes := map[string]int{"window-settled": 822, "decline-only": 34}
+	wantRoutes := map[string]int{"window-settled": 828, "decline-only": 34}
 	for route, want := range wantRoutes {
 		if got := routes[route]; got != want {
 			routeDrift = append(routeDrift, fmt.Sprintf("%s=%d (want %d)", route, got, want))
@@ -1090,7 +1096,7 @@ func TestTriggerBodyCostCorpusRatchet(t *testing.T) {
 	if len(routeDrift) != 0 {
 		t.Fatalf("trigger Cost$ route classification drift: %s", strings.Join(routeDrift, ", "))
 	}
-	if len(got) != 856 {
+	if len(got) != 862 {
 		t.Fatalf("Cost$ carrier aggregate changed during family census: %d", len(got))
 	}
 }

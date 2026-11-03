@@ -161,6 +161,9 @@ var triggerChainPreAskCarriers = []string{
 	"Yosei, the Morning Star",
 	"Yoshimaru, Scrappy Stray",
 	"Éomer, King of Rohan",
+	"Jean-Luc Picard, Luminary",
+	"T'Pring, Never Parted",
+	"Vengeance Mission",
 }
 
 // triggerChainPreAskExclusions is every corpus card whose trigger body carries

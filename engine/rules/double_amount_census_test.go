@@ -23,7 +23,7 @@ import (
 // update the constant in the same commit. Measured at FORGE_REF
 // fb4d8091126051b0c579db5f3bfdcb7e03aae63d: 37 card files (36 at 95f04e8).
 func TestDoubleAmountCarrierCensus(t *testing.T) {
-	const doubleCarrierFiles = 37
+	const doubleCarrierFiles = 38
 	reg := testutil.CorpusRegistry(t)
 	var carriers, bad []string
 	for _, c := range reg.AllCards() {
