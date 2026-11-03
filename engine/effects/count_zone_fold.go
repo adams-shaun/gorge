@@ -165,6 +165,9 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 	if id == f.pricedSpell && id != 0 {
 		return
 	}
+	if o := f.g.Obj(id); o != nil && o.Ephemeral() {
+		return // a token off the battlefield is no card while it waits for the next check (CR 111.7, 704.5d)
+	}
 	matchSpec := f.spec
 	if f.hasBareHand {
 		s, ok := castFromHandAnyAdmitsFilter(f.h, f.spec, id)
