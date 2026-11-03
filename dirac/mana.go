@@ -525,6 +525,10 @@ type planner struct {
 	// keepCols: bestCol is the search's witness (limitPlan), not the least
 	// colours the taps would choose
 	keepCols bool
+	// noGrant: a hybrid resolution's trial leaves the granted sources out
+	// of the plan (phase 2): gorge's planHybridCost resolution has a
+	// witness only from printed sources
+	noGrant bool
 	// maxXt: some unit type carries a fixed extra (mana_tapextra.go)
 	maxXt bool
 }
@@ -663,12 +667,12 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 	for m := 0; m < 1<<n; m++ {
 		r := f.resolve(*cost, n, hybWitnessMask(m, n))
 		tp := *pk
-		tp.found, tp.try = false, true
+		tp.found, tp.try, tp.noGrant = false, true, true
 		s.tapPlanNeed(k, p, &r, x, exclude, first, anyColor, &tp)
 		if tp.needT > 0 && !tp.found {
 			continue // this resolution has no source plan; try the next
 		}
-		tp.try = pk.try
+		tp.try, tp.noGrant = pk.try, pk.noGrant
 		*pk = tp
 		return r, true
 	}
@@ -945,7 +949,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 	}
 	for phase := 0; phase < 3; phase++ {
-		if phase == 1 && !hasSac && !hasPain || phase == 2 && !hasGrant {
+		if phase == 1 && !hasSac && !hasPain || phase == 2 && (!hasGrant || pk.noGrant) {
 			continue
 		}
 		if phase > 0 {

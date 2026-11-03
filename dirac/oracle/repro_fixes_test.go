@@ -163,8 +163,9 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		name string
 		pool string
 	}{
-		{"plan_limit_classes_by_alternatives", "std-mkm"}, // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
-		{"alt_add_cost_reduced_as_a_total", "std-tla"},    // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
+		{"plan_limit_classes_by_alternatives", "std-mkm"},      // Leyline of the Guildpact: a surveil land and a Plains list the same alternatives, so the replayed node-limited search sees them as one class
+		{"alt_add_cost_reduced_as_a_total", "std-tla"},         // CR 601.2f: Uncle Iroh's {1} off Redirect Lightning comes off {R} plus the {2} part, so the lowered cast floats two mana, not three
+		{"hybrid_trial_leaves_granted_sources_out", "std-tla"}, // Long Feng's {B/G}{B/G} over Great Divide Guide: gorge's resolution search has no witness for {B}{B} from a granted source, so it pays {G}{B}
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
