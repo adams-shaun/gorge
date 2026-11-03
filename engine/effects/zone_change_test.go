@@ -29,3 +29,20 @@ func TestChangeZoneLeavesAnInstantInTheGraveyard(t *testing.T) {
 		t.Fatalf("an instant card is skipped on its way to hand")
 	}
 }
+
+// A double-faced sorcery put onto the battlefield transformed enters as its
+// back face (CR 711.10a), so the instant-or-sorcery guard leaves it alone;
+// without Transformed$ it stays put.
+func TestChangeZoneLetsATransformedSorceryEnter(t *testing.T) {
+	h, _ := fixtureHost(t)
+	dfc := h.g.AddObject(mkCard(t, "Name:Front Fixture\nTypes:Sorcery\nOracle:x\nAlternateMode:DoubleFaced\n\nALTERNATE\n\nName:Back Fixture\nTypes:Enchantment Creature Saga\nPT:4/4\nOracle:y\n"), 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: dfc.ID, From: dfc.Zone, To: state.ZExile})
+	plain := ChangeZoneOf(&cards.SA{Params: map[string]string{"Origin": "Exile", "Destination": "Battlefield"}})
+	flipped := ChangeZoneOf(&cards.SA{Params: map[string]string{"Origin": "Exile", "Destination": "Battlefield", "Transformed": "True"}})
+	if !changeZoneMoveSkip(h, plain, h.g.Obj(dfc.ID), state.ZBattlefield, false) {
+		t.Fatalf("a sorcery front face entering untransformed is not skipped")
+	}
+	if changeZoneMoveSkip(h, flipped, h.g.Obj(dfc.ID), state.ZBattlefield, false) {
+		t.Fatalf("a double-faced sorcery entering transformed is skipped; it enters as its back face")
+	}
+}

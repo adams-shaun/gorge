@@ -375,8 +375,11 @@ func tokenCannotChangeZone(o *state.Object) bool {
 // the stack never enters, and a token has no printed instant type. A card put
 // onto the battlefield face down enters with no characteristics (CR 708.2), so
 // it is no instant (Magar of the Magic Strings returns one as a 3/3 creature).
-func instantCannotEnter(h Host, o *state.Object, to state.Zone, faceDown bool) bool {
-	if faceDown || to != state.ZBattlefield || o.IsToken || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
+// A double-faced card put onto the battlefield transformed enters as its back
+// face (CR 711.10a), which is no instant or sorcery either (Esper Origins
+// returns itself as Summon: Esper Maduin).
+func instantCannotEnter(h Host, o *state.Object, to state.Zone, faceDown, transformed bool) bool {
+	if faceDown || (transformed && o.Card != nil && len(o.Card.Faces) >= 2) || to != state.ZBattlefield || o.IsToken || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
 		return false
 	}
 	return matchesObjectPtr(h.Game(), "Instant,Sorcery", o, &SpecContext{})
@@ -407,7 +410,7 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	if cz.OriginPresent && !originAll && !cz.OriginMask.Has(o.Zone) {
 		return true
 	}
-	if instantCannotEnter(h, o, to, cz.Riders.FaceDownRiders.FaceDown) {
+	if instantCannotEnter(h, o, to, cz.Riders.FaceDownRiders.FaceDown, cz.Riders.Transformed) {
 		return true
 	}
 	return to == state.ZExile && h.ExileBlocked(o.ID, false)
