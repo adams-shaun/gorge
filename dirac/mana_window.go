@@ -474,15 +474,24 @@ func (s *State) windowPoolPays(p uint8, cost *kop.ManaCost, anyColor bool) bool 
 
 // windowGap reports whether sl is p's usable Bloom Tender or restricted
 // source (Giada): no autopay source, but an activate option of gorge's
-// ward / unless mana window.
+// ward / unless mana window; a restricted one only when the payment may spend its mana.
 func (s *State) windowGap(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
 	if k.gen.flags[c]&(gfEachCol|gfRestr) == 0 {
 		return false
 	}
 	pm := &s.perms[sl]
-	return pm.flags&pfTapped == 0 && !(pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0) &&
-		!s.genLost(k, sl) && pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 ||
+		s.genLost(k, sl) || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		return false
+	}
+	if k.gen.flags[c]&(gfEachCol|gfRestr) == gfRestr {
+		// CR 106.6: a restricted source whose mana the payment cannot spend is
+		// not offered (gorge's window lists only the abilities the payment meets).
+		d := s.payDescNow(NoObj)
+		return s.restrSrcAdmits(k, p, sl, &k.t.Cards[c].Abilities[k.gen.restr(c)], &d)
+	}
+	return true
 }
 
 // tapWindowGap taps window gap sl: a Tender's colours into the pool, a

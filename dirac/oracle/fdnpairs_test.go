@@ -57,7 +57,7 @@ var fdnRegressPairs = []struct {
 	{1107, "a ward {2} paid in gorge's mana window with Llanowar Elves and then Bloom Tender (the window lists every mana ability in battlefield order; Tender is no autopay source)"},
 	{7489, "Secluded Courtyard's restricted any-colour ability is a census alternative a cast its chosen type admits plans with (gorge, 85fddcb68), no prefix-search gap: Healer's Hawk through Tinybones (its permission's any-type mana, which the planner never prices) is priced from its printed {W} (kernel restrPriced, restrCan)"},
 	{66352, "a land played from another player's card (Secluded Courtyard through Tinybones) asks its as-enters type while still in exile: gorge changed its control at the play, so the projection names the player playing it (kernel projObj, preAsk)"},
-	{34253, "Giada's restricted {W} from the ward window floats beside the pool (gorge's RestrictedMana): Hungry Ghoul's {1} cannot spend it"},
+	{34253, "Giada's restricted {W} is not offered in the ward window: a ward cost is no Angel spell, so the payment cannot spend it and the source stays untapped (CR 106.6)"},
 	{35332, "two Twinflame Tyrants, two asked combat hits: the blocked Gorehorn Raider and its blocker, dealt lethal damage before the second ask, stay on the battlefield until it is answered (CR 704.3)"},
 	{36931, "the same, with a Twinflame Tyrant blocker: the replacements re-collected after each pick"},
 	{93841, "the same with two Twinflame Tyrants: the asked hit takes the defending player to 0 and the next attacker's damage is still dealt (CR 704.3)"},
