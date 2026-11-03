@@ -186,6 +186,8 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // mills, loses life, gains life or draws for a target player is answered
 // with the first player gorge's default answer names.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
+	b := s.bld()
+	instant := b.e.kind == seSpell && (k.cards[b.e.card].instant || s.castFlash(k, b.e.ctrl, b.e.card))
 	for i := int(n0); i < int(s.npend); {
 		pt := &s.pend[i]
 		if int(pt.card) >= len(k.t.Cards) {
@@ -214,6 +216,25 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
+		if instant {
+			// the lowering is done as soon as the play is offered, and an
+			// instant-speed cast is offered with the trigger still on the stack
+			// (payexec.priority): the trigger goes on below the spell
+			if pt.ab >= abCascade || a.NTargets != 0 && !(single && plTgt) {
+				i++
+				continue
+			}
+			if plTgt {
+				e.tgt[0], e.nt = PlayerTarget0, 1
+				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+					e.tgt[0] = PlayerTarget0 + 1
+				}
+			}
+			s.pushBelowCast(k, e, pt)
+			copy(s.pend[i:], s.pend[i+1:s.npend])
+			s.npend--
+			continue
+		}
 		if !single && (a.NTargets != 0 || !s.runsPreCast(k, e, a.Prog)) {
 			i++
 			continue
@@ -238,6 +259,20 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
 	}
+}
+
+// pushBelowCast puts trigger entry e on the stack ahead of the cast being built,
+// whose own push (CR 601.2a) comes after the lowering: what takePending does for a
+// trigger that asks nothing, without the build it would otherwise take over.
+func (s *State) pushBelowCast(k *prep, e stackEntry, pt *pendingTrig) {
+	saved := *s.bld()
+	*s.bld() = build{e: e, stage: stageFirst[seTrigger]}
+	if k.gift {
+		s.giftPushed(k, pt)
+	}
+	s.pushBuild(k)
+	s.syncBuild()
+	*s.bld() = saved
 }
 
 // runsPreCast reports whether trigger entry e's program runs to its end
