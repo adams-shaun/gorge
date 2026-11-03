@@ -81,6 +81,13 @@ func lockstepRun(t *testing.T, setName string, decks [2][]cardset.Entry, seeds u
 // lockstepRunSide is lockstepRun with wrap, when set, applied to the kernel side.
 func lockstepRunSide(t *testing.T, setName string, decks [2][]cardset.Entry, seeds uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side) int {
 	t.Helper()
+	return lockstepRunPolicy(t, setName, decks, seeds, report, mutate, wrap, castFirstPolicy)
+}
+
+// lockstepRunPolicy is lockstepRunSide with the policy of each non-random seed
+// chosen by the caller.
+func lockstepRunPolicy(t *testing.T, setName string, decks [2][]cardset.Entry, seeds uint64, report bool, mutate func(*kop.Table), wrap func(Side) Side, policy func(uint64) Policy) int {
+	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -129,7 +136,7 @@ func lockstepRunSide(t *testing.T, setName string, decks [2][]cardset.Entry, see
 		if wrap != nil {
 			k = wrap(k)
 		}
-		pol := castFirstPolicy(seed)
+		pol := policy(seed)
 		if seed%8 == 0 {
 			pol = RandomPolicy(seed)
 		}

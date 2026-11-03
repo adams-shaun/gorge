@@ -1,0 +1,19 @@
+# one pick per listed type: a library search for a card of each of three colours
+# and a hand move of a creature and a land, with multicolour and creature-land
+# cards that match two listed types (dirac/oracle/eachpick_test.go)
+Aang's Journey
+Dimir Guildmage
+Dryad Arbor
+Forest
+Golgari Guildmage
+Grizzly Bears
+Honden of Cleansing Fire
+Island
+Lotuslight Dancers
+Michelangelo, Improviser
+Mountain
+Plains
+Simic Sky Swallower
+Swamp
+Vampire Nighthawk
+Wall of Omens

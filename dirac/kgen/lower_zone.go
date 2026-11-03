@@ -205,8 +205,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
-		lc.exwOK = exwPick // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
-		f, err := lc.filter(ct)
+		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
+		f, err := lc.pickFilter(ct) // lower_each.go
 		lc.exwOK = false
 		if err != nil {
 			return err
@@ -214,6 +214,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		n, err := lc.amount(ps, "ChangeNum", 1)
 		if err != nil {
 			return err
+		}
+		if f.Each {
+			if err := eachPickGate(ps, origin, dest, n); err != nil { // lower_each.go
+				return err
+			}
 		}
 		if ps.is("Mandatory", "True") || origin == zLibrary && !effects.SearchStatesQuality(ct) {
 			// a search that states no quality (Hour of Victory's "a card")

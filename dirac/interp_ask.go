@@ -1235,6 +1235,9 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if s.g.pickF&kop.SrDifferentNames != 0 {
 		s.clampDistinctNames(k, in)
 	}
+	if eachOp(k, in) {
+		s.clampEach(k, in) // zone_each.go
+	}
 	if ask, ok := s.searchConfirmAsk(k, in, p); ok {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
@@ -1331,6 +1334,10 @@ func (s *State) searchCands(k *prep, d *Decision) {
 		s.exwPickCands(k, in, d) // zone_exiledwithpick.go: every seat's exile
 		return
 	default:
+		return
+	}
+	if eachOp(k, in) {
+		s.eachCands(k, in, d, list) // zone_each.go
 		return
 	}
 	if s.g.pickF&kop.SrDifferentNames != 0 {

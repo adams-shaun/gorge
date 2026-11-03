@@ -1022,6 +1022,7 @@ func (cb *cardBuilder) filter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 			return 0, err
 		}
 		kf.Or = next
+		kf.Each = f.Each && i == 0
 		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
 			cb.out.readsName = true
 		}

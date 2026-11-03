@@ -112,6 +112,12 @@ type Filter struct {
 	Flags2 FilterFlags2 // more boolean conditions
 	PredV  ValueRef     // the bound for the *V predicates
 	Or     FilterID     // the next alternative: the object matches if this OR Filters[Or] matches (0 = none)
+	// Each marks the head of an Or chain that is Forge's "EACH A & B" list
+	// (a search or hand pick of one card per listed type): a card belongs to
+	// the group of the FIRST chain element that matches it, and a pick takes
+	// at most one card per group (gorge eachAlternatives / EachTypeGroups).
+	// The match itself is the ordinary Or chain.
+	Each bool
 }
 
 // HybTwobrid marks Hyb[0] when the cost carries twobrid pips (ManaCost.Tb).
