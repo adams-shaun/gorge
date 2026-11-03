@@ -325,6 +325,7 @@ func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
 	synthReproLockstep(t, "archaic_flashback_no_other_target", "std-sos", Config{GorgeAutopaySurface: true})
 }
 
+
 // This Town Ain't Big Enough with two mana in the pool: a permanent the caster does
 // not control leaves the cost at five, which the pool cannot pay, so a multi-target ask
 // offers only the caster's own permanent (CR 601.2b-f), as the single-target ask does.
@@ -339,4 +340,12 @@ func TestMultiTargetAskDropsTheTargetItsCostCannotPayLockstep(t *testing.T) {
 func TestTapAnotherSourceBesideAnEachColourSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "tapx_beside_each_colour_source", "std-ecl", Config{})
+}
+
+// Bogslither's Embrace with a Swamp and a Bloom Tender untapped and a creature to take the
+// blight: its mana part is {1}{B}, which the Swamp and the each-colour source pay, so both
+// engines offer the cast (CR 601.2b, 601.2f).
+func TestEitherOrAdditionalCostBesideAnEachColourSourceLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "bogslither_alt_add_each_colour_source", "std-ecl", Config{})
 }

@@ -668,7 +668,7 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		// pays is a census gap: gorge's prefix search taps it first and the cast is
 		// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
 		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h)
-		return k.gen != nil && len(k.gen.grantPC) != 0 && s.affordsFor(k, p, &cost)
+		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p)) && s.affordsFor(k, p, &cost)
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
@@ -700,6 +700,14 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 		return s.plannerPaysCast(k, p, c, o) // a shape lowered only on the composed plan's witness
 	}
 	return true
+}
+
+// scriptSourceLive: p has a source the planner's census leaves a gap (an
+// each-colour source, restricted mana, a tap-another or counter source), which
+// gorge's prefix search taps before it prices the play again (Bloom Tender's
+// colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
+func (s *State) scriptSourceLive(k *prep, p uint8) bool {
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any()
 }
 
 // altAddPlanCost is the mana gorge's potential planner prices an either-or additional
