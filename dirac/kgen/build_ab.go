@@ -2295,7 +2295,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
-		if in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
+		if (in.Obj.Kind == rSelf || in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredSource) && fl["from"] == "Battlefield" {
+			// a triggering permanent that left before the exile resolved is
+			// a new object this ability cannot find (CR 400.7, 608.2b)
 			ki.C |= kop.MvFromBattlefield
 		}
 		if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
