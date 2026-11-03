@@ -154,6 +154,12 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8) {
 		if s.bld().altAdd != buildBeamGrant && !s.FeatPoolPays(p, o, mode&3) {
 			s.lowerWitness(k, p)
 		}
+	} else if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && mode == 0 && ob.zone == kop.ZoneHand && k.t.Cards[c].Cost.X != 0 {
+		// the autopay surface's plain {X} cast is one the floating pool alone
+		// pays at X = 0 (gorge's planner prices no {X} spell, FeatPlannedCast):
+		// the seat chooses X and gorge pays the rest through the manual window,
+		// the first useful source in battlefield order, not a witness plan
+		s.bld().bfl |= bflLowered
 	}
 	if s.npend > n0 {
 		s.resolveLowerCounterTriggers(k, n0)

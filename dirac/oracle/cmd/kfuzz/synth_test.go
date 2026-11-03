@@ -62,3 +62,26 @@ func TestFuzzSynthFlags(t *testing.T) {
 		t.Errorf("unknown pool: exit %d, stderr %q", code, stderr)
 	}
 }
+
+// TestFuzzAutopayXCastPaysThroughTheWindow replays the std-sos pair whose
+// Traumatic Critique, offered because the floating restricted {U}{R} pays its
+// pips at X = 0, is cast with X = 6. gorge's planner prices no {X} spell, so
+// the seat's cast pays the six through the manual window in battlefield order;
+// dirac used to tap a witness plan (three Mountains, three Islands).
+func TestFuzzAutopayXCastPaysThroughTheWindow(t *testing.T) {
+	corpus, err := cardset.CorpusDir()
+	if err != nil {
+		t.Skipf("gorge corpus: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(corpus, "cardsfolder")); err != nil {
+		t.Skipf("gorge corpus has no cardsfolder: %v", err)
+	}
+	cardsettest.Synth(t, "std-sos")
+	code, stdout, stderr := runKFuzz(t, "-synth", "std-sos", "-first-pair", "1104", "-pairs", "1", "-seed", "1", "-surface", "autopay", "-shrink", "0", "-absolute")
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q\n%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stdout, "1 clean, 0 divergent") {
+		t.Errorf("pair 1104 diverged:\n%s", stdout)
+	}
+}
