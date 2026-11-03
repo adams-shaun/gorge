@@ -192,8 +192,16 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 			continue
 		}
 		a := &cd.Abilities[pt.ab]
-		mills := len(a.Prog) == 1 && a.Prog[0].Op == kop.OpMill && a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer && a.Prog[0].C&kop.MvMayMill == 0
-		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || a.Prog[0].Op != kop.OpPutCounter && !mills || a.NTargets != 0 && !mills || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
+		var op kop.Op
+		if len(a.Prog) == 1 {
+			op = a.Prog[0].Op
+		}
+		// a one-op program with no ask: the counter, the mill and the life or draw of a player
+		// (a target player gorge's default answer names)
+		plTgt := a.NTargets == 1 && a.Targets[0].Kind == kop.TgtPlayer
+		mills := op == kop.OpMill && plTgt && a.Prog[0].C&kop.MvMayMill == 0
+		lifeDraw := (op == kop.OpLoseLife || op == kop.OpGainLife || op == kop.OpDraw) && (a.NTargets == 0 || plTgt)
+		if a.Kind != kop.AbTriggered || len(a.Prog) != 1 || op != kop.OpPutCounter && !mills && !lifeDraw || op == kop.OpPutCounter && a.NTargets != 0 || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 {
 			i++
 			continue
 		}
@@ -201,10 +209,12 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8) {
 			trigObj: pt.trigObj, trigPl: pt.trigPl, trigAmt: pt.trigAmt, tgt: noTargets}
 		save := s.res
 		s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
-		if mills {
-			s.res.e.tgt[0] = PlayerTarget0
-			if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
-				s.res.e.tgt[0] = PlayerTarget0 + 1
+		if mills || lifeDraw {
+			if plTgt {
+				s.res.e.tgt[0] = PlayerTarget0
+				if !s.targetOK(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, PlayerTarget0) {
+					s.res.e.tgt[0] = PlayerTarget0 + 1
+				}
 			}
 			s.exec(k, &a.Prog[0])
 		} else {

@@ -127,6 +127,14 @@ func TestWitnessSacrificeMillsBeforeTheCastLockstep(t *testing.T) {
 	synthReproLockstep(t, "witness_sac_mill_trigger", "std-blb", Config{})
 }
 
+// An Adventure creature's face cast paid with a Treasure under The Sackville-Bagginses: the
+// witness is tapped at priority, so the Treasure's sacrifice trigger (the opponent loses 1
+// life) resolves before the spell is cast, not above it on the stack.
+func TestFaceCastWitnessSacrificeTriggerResolvesFirstLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "face_cast_witness_sac_trigger", "std-hob", Config{GorgeAutopaySurface: true})
+}
+
 // A mass move onto the battlefield asks each as-enters choice with that card and the later
 // ones still in their zones, under the controller it will have: Rise of the Dark Realms and
 // Diamond Mare, Lumra and Uncharted Haven.
