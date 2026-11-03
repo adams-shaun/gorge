@@ -50,6 +50,29 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 	return a.Cost.N, true
 }
 
+// lifePainLandAb: a is the paid-life ability of a life-pain land of c: its
+// two mana abilities are a plain {T}: Add {C} and a, {T} and N life for a
+// colour (Starting Town). gorge's planner prices that cost as a last-resort
+// choice (pay.PlanLastResortCostOK), not a census gap.
+func lifePainLandAb(c *kop.CardDef, a *kop.Ability) bool {
+	if _, ok := manaLifePain(a); !ok {
+		return false
+	}
+	n := 0
+	first := true
+	for j := range c.Abilities {
+		b := &c.Abilities[j]
+		if b.Kind != kop.AbMana || b.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		n++
+		if n == 1 {
+			first = b.ManaColors == kop.ColC && len(b.Prog) == 0 && b.Cost.Flags == kop.CostTap
+		}
+	}
+	return n == 2 && first
+}
+
 // prepPainMana sets pc's pain alternative for a painland: the card's mana
 // abilities are a plain {T}: Add {C} and a painful {T} ability of one or two
 // colours (kgen refuseMultiMana's painland shape). It reports whether it did.

@@ -946,7 +946,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfFilt)
 					g.anyFilt = true
 				}
-				if int(g.filt(CardID(i))) != j && censusGapMana(a) && g.gapOther(CardID(i)) < 0 {
+				if int(g.filt(CardID(i))) != j && censusGapMana(a) && !lifePainLandAb(&t.Cards[i], a) && g.gapOther(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).gapOther = int8(j)
 					g.setFlag(CardID(i), gfGapOther)
 				}
