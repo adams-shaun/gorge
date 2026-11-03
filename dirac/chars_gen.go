@@ -237,13 +237,14 @@ func (s *State) eachOverrideStaticTs(k *prep, sl Slot, f func(o *kop.Override, t
 			continue
 		}
 		sp := &s.perms[src]
-		if sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
-			continue
-		}
+		lost := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
 		cd := &k.t.Cards[s.cardAt(src)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
+				if lost && !keptOnLoss(k.t, a) {
+					continue // CR 613.6: only an override with a part before layer 6 outlives the loss
+				}
 				f(&k.t.Overrides[a.Static.Override-1], s.layerTs(src))
 			}
 		}
@@ -452,13 +453,11 @@ func (s *State) basePTGen(k *prep, sl Slot) (int, int) {
 			if s.perms[src].attached != sl || src == sl || !k.gen.has(s.cardAt(src), gfOvrStat) {
 				continue
 			}
-			if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
-				continue
-			}
+			lost := s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
 			cd := &k.t.Cards[s.cardAt(src)]
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
-				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override <= 0 {
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override <= 0 || lost && !keptOnLoss(k.t, a) {
 					continue
 				}
 				o := &k.t.Overrides[a.Static.Override-1]

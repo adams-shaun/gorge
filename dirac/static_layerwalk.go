@@ -111,16 +111,13 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 			continue
 		}
 		sp := &s.perms[src]
-		lost := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
-		if lost && !sub {
-			continue
-		}
+		oneShot := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
 		if !k.gen.has(cid, gfGlobOvr) && !sub && (sp.attached != sl || src == sl) {
 			continue // an Aura's override reaches only its host (the filter is checked below)
 		}
-		if sub && !lost {
-			lost = s.grantSrcLost(k, src)
-		}
+		// Whether the source has lost all abilities (CR 613.1f), decided at
+		// most once and only for a static that would not outlive the loss.
+		lostKnown, lost := false, false
 		cd := &k.t.Cards[cid]
 		ts := s.layerTs(src)
 		for i := range cd.Abilities {
@@ -132,10 +129,14 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 				s.lfxFull(k, sl, src, a, sub)
 				continue
 			}
+			if !oneShot && !lostKnown && !isRemover(k.t, a) && !keptOnLoss(k.t, a) {
+				lost, lostKnown = s.grantSrcLost(k, src), true
+			}
+			if (oneShot || lost && !isRemover(k.t, a)) && !keptOnLoss(k.t, a) {
+				continue // CR 613.6: only an effect that began before layer 6 outlives the loss
+			}
 			var e lfx
 			switch {
-			case lost && !subGrantStatic(a):
-				continue // CR 613.6: only an effect that began in layer 4 outlives the loss
 			case a.Static.Kind == kop.StatOverride && a.Static.Override > 0:
 				if src != sl && selfOnlyFilter(k, a.Static.Filter) {
 					continue // a self static (AffectedDefined$ Self) reaches its source only
@@ -180,6 +181,36 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 		}
 	}
 	return n
+}
+
+// isRemover reports whether static a takes abilities away itself. Such a
+// static is silenced by a one-shot loss only; its timestamp against the other
+// removers is the layer-6 walk's. Any other static that begins in layer 6 or
+// 7 is gone with whatever removal reaches its source (CR 613.8a).
+func isRemover(t *kop.Table, a *kop.Ability) bool {
+	return a.Static.Kind == kop.StatOverride && a.Static.Override > 0 && t.Overrides[a.Static.Override-1].LoseAbilities
+}
+
+// keptOnLoss reports whether static a, whose source has lost all abilities in
+// layer 6, still applies (CR 613.6: an effect that began in an earlier layer
+// keeps applying, every part of it, though the ability generating it is
+// removed). A subtype grant begins in layer 4, a type, subtype, colour or
+// name setter in layers 3 to 5; a P/T, keyword or removal effect with no such
+// part begins in layer 6 or 7 and ends.
+func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
+	if subGrantStatic(a) {
+		return true
+	}
+	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
+		return ovrKeptOnLoss(&t.Overrides[a.Static.Override-1])
+	}
+	return false
+}
+
+// ovrKeptOnLoss reports whether override o has a part in layers 1 to 5.
+func ovrKeptOnLoss(o *kop.Override) bool {
+	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub ||
+		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
 // subGrantStatic reports whether a is a static subtype grant: an effect that
@@ -598,17 +629,21 @@ func (s *State) globalGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c C
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		cid := s.cardAt(src)
-		if !k.gen.has(cid, gfGlobOvr) || s.genLost(k, src) {
+		if !k.gen.has(cid, gfGlobOvr) {
 			continue
 		}
 		if lost && s.layerTs(src) < lts {
 			continue
 		}
+		srcLost := s.genLost(k, src)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override == 0 {
 				continue
+			}
+			if srcLost && !keptOnLoss(k.t, a) {
+				continue // CR 613.6: the grant of a type-setting static outlives the loss with it
 			}
 			o := &k.t.Overrides[a.Static.Override-1]
 			if o.Grant[0] == 0 && o.Grant[1] == 0 {
