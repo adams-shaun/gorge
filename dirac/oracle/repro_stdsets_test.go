@@ -59,6 +59,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-hob", "stir_up_trouble_game_ending_treasure_sacrifice"},           // Stir Up Trouble with the one Treasure for its {B} beside The Sackville-Bagginses, whose drain ends the game: one route offers the cast
 		{"std-mkm", "ward_evidence_payment_triggers_collect_evidence"},          // a ward {Collect evidence} paid with Cryptic Coat's graveyard beside an Evidence Examiner: the payment is a collect-evidence action, so the Examiner investigates
 		{"std-blb", "clone_of_lord_dies_its_statics_end"},                       // a Mockingbird that entered as Ygra dies in combat with it: Ygra is no Food artifact once the copy's static is gone (CR 613.1d)
+		{"std-blb", "witness_restricted_source_pays_the_printed_pip"},           // Mockingbird cast with an any-type rider and Lilypad Village the only blue source: its creature-only {U} pays the printed pip, so the witness taps it for blue instead of pricing the pip as generic (CR 106.6)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
