@@ -696,6 +696,10 @@ const bflCostFixed uint16 = 1 << 9
 // interval, and dirac's has already gone (reverseCast).
 const bflTokenGone uint16 = 1 << 10
 
+// bflUsedMark: this cast marked a once-per-turn permission static used (legal_gen.go
+// castMayPlay), which a reversed cast gives back (CR 733.1; reverseCast).
+const bflUsedMark uint16 = 1 << 14
+
 // bflDilemma: the build's choice of modes faced a dilemma (trig_dilemma.go).
 const bflDilemma uint16 = 1 << 15
 

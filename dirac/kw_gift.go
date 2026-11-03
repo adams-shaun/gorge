@@ -169,6 +169,11 @@ func (s *State) reverseCast(k *prep) {
 	tokenGone := s.bld().bfl&bflTokenGone != 0
 	s.ctl = ctlPriority
 	s.undos++
+	if s.bld().bfl&bflUsedMark != 0 && s.g.nused > 0 {
+		// a cast that never happened leaves its once-per-turn permission
+		// unspent (gorge counts only the plays that were cast)
+		s.g.nused--
+	}
 	if s.bld().bfl&bflDilemma != 0 {
 		s.unfaceDilemma() // trig_dilemma.go
 	}

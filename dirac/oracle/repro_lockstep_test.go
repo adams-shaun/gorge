@@ -325,7 +325,6 @@ func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
 	synthReproLockstep(t, "archaic_flashback_no_other_target", "std-sos", Config{GorgeAutopaySurface: true})
 }
 
-
 // This Town Ain't Big Enough with two mana in the pool: a permanent the caster does
 // not control leaves the cost at five, which the pool cannot pay, so a multi-target ask
 // offers only the caster's own permanent (CR 601.2b-f), as the single-target ask does.
@@ -348,4 +347,12 @@ func TestTapAnotherSourceBesideAnEachColourSourceLockstep(t *testing.T) {
 func TestEitherOrAdditionalCostBesideAnEachColourSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "bogslither_alt_add_each_colour_source", "std-ecl", Config{})
+}
+
+// Maralen's free cast of Bogslither's Embrace is reversed for want of a target: the
+// once-each-turn permission was never used, so Unforgiving Aim exiled beside it is
+// still offered in both engines (CR 733.1).
+func TestReversedPermissionCastKeepsTheOncePerTurnPermissionLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "maralen_reversed_cast_spends_nothing", "std-ecl", Config{})
 }

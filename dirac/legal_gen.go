@@ -237,6 +237,7 @@ func (s *State) castFlagsGen(k *prep, o Obj, mode uint8) {
 		}
 		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
 			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+			s.bld().bfl |= bflUsedMark
 		}
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 {
 			s.bld().subCtr = uint8(st.a.Static.A) // Static.A counters (Quilled 6, Dawnhand 3), chosen one counter at a time (subCtrOptions)
