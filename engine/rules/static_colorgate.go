@@ -61,7 +61,7 @@ func (e *Engine) rewalkStaticColorGates() {
 		return
 	}
 	e.staticGateColors = table
-	e.staticContinuous = e.staticEffects(e.staticContinuous)
+	e.rescanStatic()
 	e.staticBuildSeq++
 }
 

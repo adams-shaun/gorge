@@ -42,6 +42,7 @@ func cloneEngineFields(c, e *Engine, sp *Spare, remap *cloneRemap) {
 // field adopts it, a deep one is emptied for its copy.
 func cloneSpareFields(c *Engine, sp *Spare) {
 	c.staticContinuous = sp.static[:0]
+	c.staticScanSpare = sp.staticSpare
 	c.staticGates = sp.gates[:0]
 	c.activeBuf = sp.activeBuf
 	c.activeSrc = sp.activeSrc
@@ -1264,6 +1265,8 @@ func cloneFieldsPaySession(c, e *Engine, sp *Spare, remap *cloneRemap) {
 type sparePools struct {
 	// static recycles Engine.staticContinuous.
 	static []state.ContinuousEffect
+	// staticSpare recycles Engine.staticScanSpare.
+	staticSpare []state.ContinuousEffect
 	// gates recycles Engine.staticGates.
 	gates []staticGateRec
 	// activeBuf recycles Engine.activeBuf.
@@ -1302,6 +1305,7 @@ type sparePools struct {
 // from e.
 func releasePools(e *Engine, sp *Spare) {
 	sp.static, e.staticContinuous = recycledSlice(e.staticContinuous), nil
+	sp.staticSpare, e.staticScanSpare = recycledSlice(e.staticScanSpare), nil
 	sp.gates, e.staticGates = recycledSlice(e.staticGates), nil
 	sp.activeBuf, e.activeBuf = recycledSlice(e.activeBuf), nil
 	sp.activeSrc, e.activeSrc = e.activeSrc[:0], nil

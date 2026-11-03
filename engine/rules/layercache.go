@@ -371,7 +371,16 @@ func (e *Engine) refreshStaticContinuous() {
 	e.staticEpoch = n
 	e.staticVersion, e.staticObjs = e.continuousVersion, len(e.G.Objs)
 	e.staticGateColors = nil
-	e.staticContinuous = e.staticEffects(e.staticContinuous)
+	// The scan writes a spare buffer and publishes it once whole. It is not a
+	// closed computation: a GainsAbilitiesOf$ or AddStaticAbility$ spec match
+	// reads Derived, which builds active() with staticEpoch already stamped,
+	// so the nested build takes the memo as it stands. Rewriting
+	// e.staticContinuous in place showed that build the effects scanned so
+	// far and none of the rest, and the unchanged-list shortcut (its key is
+	// still the old staticBuildSeq) kept a list the half-written memo no
+	// longer matched. Held back until the scan ends, the memo is the previous
+	// complete list for every such read, whichever caller entered the scan.
+	e.rescanStatic()
 	// A content change: any activeBuf built from the previous list is stale,
 	// even at an unmoved log head and continuousVersion (staticControlWants
 	// refreshes this memo outside active()).
@@ -392,6 +401,13 @@ func (e *Engine) refreshStaticContinuous() {
 	if e.activeBuildSeq != builds && e.activeDepth == 0 && e.activeEpoch == n {
 		e.activeEpoch = -1
 	}
+}
+
+// rescanStatic runs the full static scan into the spare buffer and swaps it
+// in, so that e.staticContinuous is never seen half-written (refreshStaticContinuous).
+func (e *Engine) rescanStatic() {
+	fresh := e.staticEffects(e.staticScanSpare)
+	e.staticScanSpare, e.staticContinuous = e.staticContinuous, fresh
 }
 
 // restampStatic re-keys the static memo at log head n without rescanning

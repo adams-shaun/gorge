@@ -51,8 +51,10 @@ var emptySVars = map[string]string{}
 // order stays reproducible run to run (determinism requirement 3 of the
 // dispatch).
 //
-// dst is the caller-owned static memo's reusable outer storage, distinct from
-// activeBuf. This scan calls no callbacks and cannot re-enter; each nested
+// dst is the caller-owned scan buffer's reusable outer storage, distinct from
+// activeBuf and from the memo the scan's own reads can see (rescanStatic: a
+// spec match reads Derived, which builds active() from the memo mid-scan, so the
+// scan never writes the memo in place); each nested
 // keyword/type slice is freshly parsed and remains read-only after active()
 // copies the effect values. Only the outer slots are overwritten here.
 func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {

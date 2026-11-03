@@ -122,7 +122,7 @@
 //	                                   copies none
 //	priorityWalk                       the posed decision's own offer walk, re-served to its
 //	                                   potential readers; Clone copies none
-//	staticContinuous/Epoch/Version/    layer/static rebuild caches keyed by log length and
+//	staticContinuous/ScanSpare/Epoch/Version/ layer/static rebuild caches keyed by log length and
 //	Objs/BuildSeq/QueueBuf, activeBuf/   continuousVersion; build sequence counters and
 //	Epoch/Version/Depth/Objs/         their snapshots are local cache keys (Clone rebuilds)
 //	BuildSeq/StaticSeq/KWHeadSet(OK),

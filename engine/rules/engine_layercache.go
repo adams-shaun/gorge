@@ -35,7 +35,11 @@ type engineLayerCaches struct {
 	// keyword/type slices. activeBuf copies the effect values into distinct
 	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect `clone:"deep,if=cloneCarriesStaticMemo,pool=static,release=clear"`
-	staticEpoch      int                `clone:"deep,if=cloneCarriesStaticMemo"`
+	// staticScanSpare is the buffer the next full scan writes while
+	// staticContinuous keeps the previous complete list (rescanStatic); the
+	// two swap. Per-scan scratch, never cloned.
+	staticScanSpare []ContinuousEffect `clone:"reset,pool=staticSpare,release=clear"`
+	staticEpoch     int                `clone:"deep,if=cloneCarriesStaticMemo"`
 	// staticVersion/staticObjs are continuousVersion and len(e.G.Objs) at the
 	// last staticEffects build: layerInertSince's reuse across a run of
 	// layer-inert events (layercache.go) additionally requires both unchanged.
