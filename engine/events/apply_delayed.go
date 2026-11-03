@@ -498,9 +498,11 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 		return
 	}
 	resolver := src
+	var grantedBy state.ObjID
 	if e.Amount > 0 {
 		if grantor := g.Obj(state.ObjID(e.Amount)); grantor != nil && grantor.Face() != nil {
 			resolver = grantor
+			grantedBy = grantor.ID
 		} else {
 			return
 		}
@@ -529,6 +531,9 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 	o.Ability = sa
 	o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 	o.Source = e.Obj
+	// Forge's OriginalHost: the granting static's host, which a cost or body
+	// of the granted trigger names apart from the recipient (CR 613.1f).
+	o.GrantedBy = grantedBy
 	o.Remembered = rememberedFrom(e.IDs)
 }
 

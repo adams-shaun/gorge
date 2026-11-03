@@ -515,6 +515,10 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 	}
 	label := rp.sa.ParamStr(cards.PKCost)
 	amount := e.parseCost(label)
+	// A granted trigger's OriginalHost cost part names the granting static's
+	// host (Sunfire Torch's "you may sacrifice [the Equipment]"), not the
+	// recipient the window's source is (CR 603.5, 701.21a).
+	bindGrantedCostReferents(&amount, o.GrantedBy)
 	// Bind the trigger capture the window's SVar and count reads will see,
 	// once, at creation -- the only encoding of which capture a triggered
 	// cost binds: the parked ability's TriggeredCard capture, else the parked
@@ -2053,7 +2057,10 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 			// so the cause is costCauseTriggered.
 			continue
 		}
-		if wholeZone || e.matchesSpec(spec, id, sc) {
+		// A bound Referent (a granted trigger's OriginalHost) is the one
+		// object the part names; the spec is not a filter then.
+		if wholeZone || (part.Referent != 0 && id == part.Referent) ||
+			(part.Referent == 0 && e.matchesSpec(spec, id, sc)) {
 			out = append(out, id)
 		}
 	}
