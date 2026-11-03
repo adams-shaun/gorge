@@ -51,13 +51,13 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "blastoneuron_does_not_see_itself_leave_the_graveyard"},     // Blastoneuron returned from the graveyard by U.S.S. Reliant: its leave-your-graveyard watcher looks back to a board without it (CR 603.10a), so only the enters trigger is put on the stack
 		{"std-trk", "genesis_device_tapped_land_skips_enters_untapped"},         // Genesis Device puts Quark's Bar and four others onto the battlefield tapped: the land entered tapped, so its enters-untapped charm is not put on the stack (CR 603.6a, 110.5b)
 		{"std-trk", "sweep_stops_at_shock_land_election"},                       // Deep Space 9 puts Breeding Pool, Plains and Orion onto the battlefield: the sweep stops at the pay-life election and the cards after it stay exiled until it is answered (CR 614.1c, 701.23)
+		{"std-trk", "maco_trigger_graveyard_target_is_no_creature_you_control"}, // Test of Courage exiling a Horta from a graveyard: MACO Strike Team watches creatures you control becoming the target, and a creature card in a graveyard is not one (CR 109.4, 110.2), so no Officer token is made
+		{"std-trc", "arex_up_to_three_lands_ends_when_none_left"},               // Lt. Arex's "up to three" land pick with one land in hand: the pick ends after it, no lone Done posed beside the kernel's priority
 		{"std-dft", "run_over_second_target_after_vehicle"},                     // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                       // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},                     // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there
 		{"std-hob", "stir_up_trouble_game_ending_treasure_sacrifice"},           // Stir Up Trouble with the one Treasure for its {B} beside The Sackville-Bagginses, whose drain ends the game: one route offers the cast
 		{"std-mkm", "ward_evidence_payment_triggers_collect_evidence"},          // a ward {Collect evidence} paid with Cryptic Coat's graveyard beside an Evidence Examiner: the payment is a collect-evidence action, so the Examiner investigates
-		{"std-trk", "blastoneuron_does_not_see_itself_leave_the_graveyard"},     // Blastoneuron returned from the graveyard by U.S.S. Reliant: its leave-your-graveyard watcher looks back to a board without it (CR 603.10a), so only the enters trigger is put on the stack
-		{"std-trk", "maco_trigger_graveyard_target_is_no_creature_you_control"}, // Test of Courage exiling a Horta from a graveyard: MACO Strike Team watches creatures you control becoming the target, and a creature card in a graveyard is not one (CR 109.4, 110.2), so no Officer token is made
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
