@@ -191,6 +191,8 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"lotus_pair_pays_two_colours", "std-fra"},                      // two Lotus tokens, three mana of one colour each, pay {R}{G}: the plan search keeps the second unit for the colour the first leaves owed
 		{"granted_mana_creature_is_no_ability_planner_unit", "std-tla"}, // Honest Work's Humble Merchant (Katara) is no unit of an ability's planner, so Flexible Waterbender's waterbend {3} falls to the window, which taps her before the Islands
 		{"granted_types_any_land_census_position", "std-mkm"},           // Leyline of the Guildpact: Public Thoroughfare (Produced$ Any) is listed with the fixed sources, so the plan taps Plains, not the Thoroughfare
+		{"delayed_return_skips_object_blinked_since", "std-fin"},        // CR 400.7: Random Encounter's end-step return finds Y'shtola Rhul already exiled and returned by her own trigger, a new object
+		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)

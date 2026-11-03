@@ -22,6 +22,11 @@ const (
 // make it.
 const skwRem uint8 = 1 << 7
 
+// skwMany marks a pending trigger fired by a many-object delayed program
+// (trig_delayedmany.go): takePending stamps the objects' versions on the
+// entry, nothing being able to change one between firing and stacking.
+const skwMany uint8 = 1 << 6
+
 // boolBit is bit when b, else 0.
 func boolBit(b bool, bit uint8) uint8 {
 	if b {
@@ -58,7 +63,7 @@ func (s *State) settleSrcKw(k *prep, sl Slot, o Obj) {
 	}
 	for i := uint8(0); i < s.npend; i++ {
 		if p := &s.pend[i]; p.obj == o && p.srcVer == ver {
-			p.skw = p.skw&skwRem | read()
+			p.skw = p.skw&(skwRem|skwMany) | read()
 		}
 	}
 	if e := &s.res.e; s.res.active && e.kind != seSpell && e.obj == o && e.srcVer == ver {

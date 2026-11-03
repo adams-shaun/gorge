@@ -514,7 +514,7 @@ type pendingTrig struct {
 	// grp is the AttackersDeclared event's attacker group: State.cold.atkGrp
 	// index + 1 (trig_attackers.go; 0 = none)
 	grp uint8
-	// skw is the source's departure keywords (stackEntry.skw), with skwRem above them
+	// skw is the source's departure keywords (stackEntry.skw), with skwMany and skwRem above them
 	skw uint8
 }
 
