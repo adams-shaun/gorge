@@ -159,11 +159,17 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		}
 	}
 	s.g.replaced = saveRep
+	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
 	switch ovr {
 	case entOvrTap:
-		p.flags |= pfTapped // the last body applied taps it
+		if !shock {
+			p.flags |= pfTapped // the last body applied taps it
+		} // a shock land's own body is that tap: the election's answer applies it
 	case entOvrUntap:
 		p.flags &^= pfTapped // the last body applied untaps it
+		if shock {
+			s.shockUntapWins(sl) // the election is still asked, its tap came first
+		}
 	}
 	s.occ.set(sl)
 	s.ctrlM[p.ctrl].set(sl)

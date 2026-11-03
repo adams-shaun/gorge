@@ -130,6 +130,13 @@ func (b *resolveBoard) StartsResolution(d *decision.Decision, in decision.Intent
 		// (turnup_tape.go).
 		return e.choosing == chooseTurnUp && e.turnUp != nil && tapeTurnUpReplMayAsk(e)
 	}
+	if d.Kind == decision.KReplacement {
+		// The answer to a CR 616.1 order choice runs the chosen body inside
+		// this Submit: a body that asks (a shock land's pay-life election
+		// behind a competing untap) is posed and answered from the tape,
+		// not taken at its no-run default.
+		return tapeReplChoiceMayAsk(e)
+	}
 	if d.Kind != decision.KPriority {
 		return false
 	}
@@ -157,6 +164,9 @@ func (b *resolveBoard) MayAsk(d *decision.Decision, in decision.Intent) bool {
 	e := (*Engine)(b)
 	if d.Kind == decision.KChoose && e.choosing == chooseTurnUp {
 		return true // a turn-up: StartsResolution already proved it may ask
+	}
+	if d.Kind == decision.KReplacement {
+		return true // StartsResolution already proved a body may ask
 	}
 	first := firstChosen(d, in)
 	switch first.Kind {

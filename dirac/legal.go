@@ -1444,7 +1444,7 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 	} else {
 		s.enter(k, o, p, false, from)
 	}
-	if deferCount {
+	if deferCount && !counted {
 		s.shockLandCount(o, p)
 	}
 	s.passes = 0

@@ -219,3 +219,38 @@ func effectReplBodyMayAsk(e *Engine, ce *state.ContinuousEffect) bool {
 	with.Sub = cards.ResolveSVar(svars, with.ParamStr(cards.PKSubAbility))
 	return cards.SAChainMayAsk(with, svars, nil, false)
 }
+
+// tapeReplChoiceMayAsk reports whether answering the parked CR 616.1 order
+// choice may pose a decision: a candidate that elects (Optional$) or an entry
+// (Moved) candidate whose body chain may ask, as a shock land's pay-life
+// election behind a competing untap does. The entries a land play asks for
+// are skipped by the board walk, so the parked candidates are read directly.
+// A candidate for any other event (a counter doubler's AddCounter body) only
+// rewrites the event, so it asks nothing here and the answer stays on the
+// ordinary path; running it under a checkpoint would re-execute a staged
+// token mint and lose the mint sink. true is the safe answer when no choice
+// is parked.
+func tapeReplChoiceMayAsk(e *Engine) bool {
+	if len(e.replChoices) == 0 {
+		return true
+	}
+	for _, m := range e.replChoices[0].cands {
+		if m.repl == nil {
+			continue
+		}
+		if cards.ReplMayElect(m.repl) {
+			return true
+		}
+		if m.repl.With == nil || m.repl.Event != "Moved" {
+			continue
+		}
+		o := e.G.Obj(m.id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if cards.SAChainMayAsk(m.repl.With, o.Face().SVars, nil, false) {
+			return true
+		}
+	}
+	return false
+}
