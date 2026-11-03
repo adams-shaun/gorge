@@ -168,6 +168,11 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 				return false, bfail(cb.node, "ward cost Discard %d", n)
 			}
 			d.WardDiscard = 1 // kernel kw_wardcost.go
+		case "DiscardOrMana":
+			if n < 1 || n > 255 {
+				return false, bfail(cb.node, "ward cost discard or {%d}", n)
+			}
+			d.WardDiscOrN = uint8(n) // kernel kw_wardcost.go
 		case "Sacrifice":
 			if n != 1 {
 				return false, bfail(cb.node, "ward cost Sacrifice %d", n)

@@ -1638,6 +1638,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	if c.WardDiscard != 0 {
 		return wardDiscBit | int16(c.WardDiscard) // kw_wardcost.go
 	}
+	if c.WardDiscOrN != 0 {
+		return wardAltBits | int16(c.WardDiscOrN) // kw_wardcost.go
+	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go
 	}

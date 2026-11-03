@@ -1,12 +1,12 @@
 {
   "card": "Elektra, Daughter of the Hand",
   "class": "options",
-  "why": "the engines offer different options; 10 games in the corpus",
+  "why": "gorge offers a face cast of her at priority where the kernel offers none; 2 games in 300 std-msh pairs on the full surface",
   "repro": {
     "pool": "std-msh",
-    "surface": "autopay",
+    "surface": "full",
     "seed": 1,
-    "pair": 424,
+    "pair": 521,
     "policy": "random",
     "mulligans": 1
   }

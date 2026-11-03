@@ -268,6 +268,10 @@ func (s *State) startWardDiscard(k *prep) {
 		s.startWardSac(k) // kw_wardcost.go
 		return
 	}
+	if s.res.e.trigAmt&wardAltBits == wardAltBits {
+		s.startWardAlt(k)
+		return
+	}
 	if int(s.pl[s.g.pickP&1].handN) < int(s.g.pickLeft) {
 		s.payDone(k, false)
 		return
@@ -276,6 +280,10 @@ func (s *State) startWardDiscard(k *prep) {
 }
 
 func (s *State) askOptionsWardDisc(k *prep, d *Decision) bool {
+	if s.res.ask == raWardAlt {
+		s.askOptionsWardAlt(d)
+		return true
+	}
 	if s.res.ask != raWardDiscard {
 		return s.askOptionsWardSac(k, d) // kw_wardcost.go
 	}
@@ -289,12 +297,100 @@ func (s *State) askOptionsWardDisc(k *prep, d *Decision) bool {
 
 // applyAskWardDisc discards the pick and pays the ward.
 func (s *State) applyAskWardDisc(k *prep, a Action) bool {
+	if s.res.ask == raWardAlt {
+		s.applyAskWardAlt(k, a)
+		return true
+	}
 	if s.res.ask != raWardDiscard {
 		return s.applyAskWardSac(k, a) // kw_wardcost.go
 	}
 	s.discardObj(k, Obj(a.Source()))
 	s.payDone(k, true)
 	return true
+}
+
+// Ward—Discard a card or pay {N} (Titania, Rugged Rumbler; CR 702.21a).
+// Gorge's ward resolution (effects effWard, rules ward.go beginWardPayment's
+// ">:" arm) asks the warded spell's controller pay or don't pay (both offered
+// always); on pay, one KChoose "ward_alt": a "ward_discard" option per hand
+// card in hand order, then "ward_mana" while the pool pays {N} or the payer
+// controls an untapped mana source (hasUntappedManaSource), posed even with
+// one option; with none the ward counters unasked. A discard pays; {N} is
+// paid as the plain {N} ward's is, from the pool and then through the ward
+// mana window, short of it countering (payWardN). Cold: reached only from a
+// ward trigger whose amount carries wardAltBits.
+
+// wardAltBits mark a ward trigger amount (stackEntry.trigAmt) as discard a
+// card or pay {N} (N the low bits). No other form sets both bits.
+const wardAltBits = wardDiscBit | wardEvBit
+
+const raWardAlt uint8 = 239
+
+// ChWardAlt is gorge's "ward_alt" choice: AkChoose of a hand card (mode 0,
+// source = the card) or of {N} (mode 1).
+const ChWardAlt ChoiceKind = 239
+
+// resolveWardAlt poses the pay / don't-pay election.
+//
+//go:noinline
+func (s *State) resolveWardAlt(k *prep) {
+	e := &s.res.e
+	if s.wardedIndex(e) < 0 {
+		s.finishResolve(k, false)
+		return
+	}
+	s.g.pickF = pfWard
+	s.g.pickZ = kop.PayDiscard // startWardDiscard hands a wardAltBits amount to startWardAlt
+	s.g.pickLeft = 1
+	s.g.pickP = e.trigPl
+	s.res.ask, s.res.askP = raGenPay, e.trigPl
+	s.ctl = ctlResolve
+}
+
+// wardAltMana: the choice offers {N} (gorge: the pool pays it, or the payer
+// controls an untapped mana source).
+func (s *State) wardAltMana(k *prep, p uint8) bool {
+	c := kop.ManaCost{Generic: uint8(s.res.e.trigAmt &^ wardAltBits)}
+	return s.poolPays(p, &c) || s.hasUntappedMana(k, p)
+}
+
+// startWardAlt answers "pay": no card in hand and no {N} counters unasked,
+// else the choice, with the {N} offer kept in pickLeft.
+//
+//go:noinline
+func (s *State) startWardAlt(k *prep) {
+	p := s.g.pickP & 1
+	s.g.pickLeft = 0
+	if s.wardAltMana(k, p) {
+		s.g.pickLeft = 1
+	}
+	if s.pl[p].handN == 0 && s.g.pickLeft == 0 {
+		s.payDone(k, false)
+		return
+	}
+	s.res.ask, s.res.askP = raWardAlt, p
+}
+
+func (s *State) askOptionsWardAlt(d *Decision) {
+	d.Sub = ChWardAlt
+	pl := &s.pl[s.g.pickP&1]
+	for i := 0; i < int(pl.handN); i++ {
+		d.add(MakeAction(AkChoose, uint8(pl.hand[i]), 0, 0))
+	}
+	if s.g.pickLeft != 0 {
+		d.add(MakeAction(AkChoose, 0, 0, 1))
+	}
+}
+
+// applyAskWardAlt discards the card picked, or pays {N}.
+func (s *State) applyAskWardAlt(k *prep, a Action) {
+	if a.Mode() == 1 {
+		s.res.ask = raNone
+		s.payWardN(k, uint8(s.res.e.trigAmt&^wardAltBits), true)
+		return
+	}
+	s.discardObj(k, Obj(a.Source()))
+	s.payDone(k, true)
 }
 
 // Ward—Pay life equal to its power (Raubahn, Bull

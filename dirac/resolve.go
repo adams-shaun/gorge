@@ -289,6 +289,10 @@ func (s *State) resolveWard(k *prep) {
 		s.resolveWardPower(k) // kw_wardcost.go
 		return
 	}
+	if e.trigAmt&wardAltBits == wardAltBits {
+		s.resolveWardAlt(k) // kw_wardcost.go
+		return
+	}
 	if e.trigAmt&wardEvBit != 0 {
 		s.resolveWardEvidence(k) // kw_wardcost.go
 		return

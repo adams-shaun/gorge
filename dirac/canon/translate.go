@@ -738,6 +738,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChWardDiscard:
 		// gorge's ward_discard KChoose over the payer's hand
 		return Pack(kind("ward_discard"), src, RefNone, 0), true
+	case dirac.ChWardAlt:
+		// gorge's ward_alt KChoose: a ward_discard per hand card, then
+		// ward_mana for the {N}
+		if mode == 1 {
+			return Pack(kind("ward_mana"), RefNone, RefNone, 0), true
+		}
+		return Pack(kind("ward_discard"), src, RefNone, 0), true
 	case dirac.ChWardSac:
 		// gorge's ward_sac KChoose over the payer's matching permanents
 		return Pack(kind("ward_sac"), src, RefNone, 0), true

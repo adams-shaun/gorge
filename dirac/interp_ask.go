@@ -1089,6 +1089,32 @@ func (s *State) payDone(k *prep, paid bool) {
 	s.continueRes(k, skip)
 }
 
+// payWardN answers a ward's {N}: paid (pay) through the ward mana window,
+// whose shortfall counters the warded entry, else countered; the ward then
+// finishes resolving. The plain {N} ward and the discard-or-{N} ward's mana
+// pick (kw_wardcost.go) share it.
+//
+//go:noinline
+func (s *State) payWardN(k *prep, n uint8, pay bool) {
+	r := &s.res
+	idx := s.wardedIndex(&r.e)
+	if c := (kop.ManaCost{Generic: n}); pay && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c)) {
+		paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
+		if paused {
+			return // a tap-another source's pick (mana_windowtapx.go)
+		}
+		if short && idx >= 0 {
+			s.counterAt(k, idx) // the colours taken left the ward unpaid
+		}
+	} else if idx >= 0 {
+		if pay {
+			s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay
+		}
+		s.counterAt(k, idx)
+	}
+	s.finishResolve(k, false)
+}
+
 // resolveWardLife resolves a ward—pay N life trigger (trigAmt = -N).
 func (s *State) resolveWardLife(k *prep) {
 	e := &s.res.e

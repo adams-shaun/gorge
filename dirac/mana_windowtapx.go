@@ -125,7 +125,7 @@ func (s *State) windowTapXCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, any
 // winTapCost is the cost of the payment the paused window serves.
 func (s *State) winTapCost(k *prep) kop.ManaCost {
 	if s.g.winMode == winWard {
-		return kop.ManaCost{Generic: uint8(s.res.e.trigAmt)}
+		return kop.ManaCost{Generic: uint8(s.res.e.trigAmt &^ wardAltBits)} // a discard-or-{N} ward's N (kw_wardcost.go)
 	}
 	return manaOf(int(s.g.pickLeft), s.numTimesPips(k, s.prog(k)[s.res.pc].B.N))
 }

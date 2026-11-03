@@ -144,6 +144,7 @@ var ChooseKinds = []string{
 	"beholdcost",           // gorge's beholdCostAsk pick
 	"unlock", "lock",       // gorge effUnlockDoor's election
 	"revealcost", // gorge's AdvanceUnless reveal pick
+	"ward_mana",  // gorge ward.go's {N} option of a discard-or-pay ward
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.
