@@ -313,6 +313,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	var lki *state.Object
 	var lkiPower, lkiToughness int32
 	var lkiPTValid bool
+	var lkiTypes lkiTypeList
 	switch ev.Kind {
 	case events.MoveZone, events.Draw, events.PutOnStack, events.ControlChange:
 		if o := e.G.Obj(ev.Obj); o != nil {
@@ -320,6 +321,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			if o.Zone == state.ZBattlefield && o.Face() != nil {
 				lkiPower, lkiToughness = e.Power(o.ID), e.Toughness(o.ID)
 				lkiPTValid = true
+				if e.layer4InPool && ev.Kind == events.MoveZone && ev.To != state.ZBattlefield {
+					lkiTypes = lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
+				}
 			}
 		}
 	case events.DoorUnlock:
@@ -773,7 +777,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			preTurn, preGame = e.limitSnapshot()
 		}
 		if !deferAttackTriggerCheck(stored.Kind, len(e.declaredAttackers) > 0) {
+			outerLKITypes := e.lkiTypes
+			if lkiTypes.set {
+				e.lkiTypes = lkiTypes
+			}
 			e.checkTriggers(&check, lki, lkiPower, lkiToughness, lkiPTValid)
+			e.lkiTypes = outerLKITypes
 		}
 		if stored.Kind == events.EndTurn || stored.Kind == events.EndCombatPhase {
 			e.checkEndTurnExileTriggers(&stored)

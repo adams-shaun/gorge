@@ -104,6 +104,12 @@ func (b *trigBoard) MatchesObject(spec string, obj *state.Object, source state.O
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
 	if obj != nil {
 		sc.ExtraTypesOwner = obj.ID
+		// A permanent that has just left the battlefield is matched by the
+		// types it had there (CR 603.10a, 613.1d), animation included: the live
+		// table no longer carries them.
+		if sc.ExtraTypes == nil && e.lkiTypes.set && e.lkiTypes.id == obj.ID {
+			sc.ExtraTypes = e.lkiTypes.types
+		}
 		// An object last known on the battlefield, on a board that still has
 		// it there (the leaves-the-battlefield look-back observer, CR 603.10a),
 		// matches by its derived characteristics, as matchesSpec binds them.

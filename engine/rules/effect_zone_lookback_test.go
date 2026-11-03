@@ -139,3 +139,25 @@ func TestEffectZoneLookbackSeesCapturedMemory(t *testing.T) {
 		t.Fatalf("remembered object's own departure must fire the seat 0 Effect: %+v", e.pendingTriggers)
 	}
 }
+
+// TestEffectZoneLookbackSeesAnimatedLandTypes pins CR 603.10a with CR 613.1d:
+// "whenever a creature you control dies" matches a land that a permanent
+// animation had made a creature, as it last existed on the battlefield, though
+// the move has already ended the animation.
+func TestEffectZoneLookbackSeesAnimatedLandTypes(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	e.pending = nil
+	e.layer4InPool = true
+	src := onBoard(t, e, 0, corpusZoneTrigger)
+	armZoneEffect(t, e, src, 0)
+	land := onBoard(t, e, 0, "Name:Test Heath\nTypes:Land\nOracle:x\n")
+	e.AddContinuous(state.ContinuousEffect{Source: land, Affects: "Card.Self", Layer: state.LType,
+		AddTypes: []string{"Creature", "Elemental"}, Permanent: true})
+	e.refreshDerivedTypes()
+	e.pendingTriggers = nil
+	e.emit(events.Event{Kind: events.MoveZone, Obj: land, From: state.ZBattlefield, To: state.ZGraveyard})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("an animated land that died must fire the Effect's creature-dies trigger once: %+v", e.pendingTriggers)
+	}
+}

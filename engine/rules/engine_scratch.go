@@ -156,6 +156,12 @@ type engineScratch struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot `clone:"reset"`
+	// lkiTypes is the layer-4 type list a permanent had the moment before it
+	// left the battlefield, held for the one emission whose triggers look back
+	// at it (CR 603.10a). The live type table no longer carries a departed
+	// object's animation, so a leaves-the-battlefield match on the live board
+	// reads this instead.
+	lkiTypes lkiTypeList `clone:"reset"`
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
@@ -313,4 +319,12 @@ type engineScratch struct {
 	// hypSpares recycles the hypothetical clones' storage (hypclone.go).
 	// Owner-guarded like decArena; Clone leaves it nil.
 	hypSpares *hypSparePool `clone:"reset"`
+}
+
+// lkiTypeList is a departing permanent's derived type list (see
+// Engine.lkiTypes).
+type lkiTypeList struct {
+	id    state.ObjID
+	types []string
+	set   bool
 }
