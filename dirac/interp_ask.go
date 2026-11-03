@@ -1643,13 +1643,14 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 		return true
 	}
 	if z == kop.ZoneBattlefield {
-		for i := 0; i < n; i++ {
-			if s.g.lookSel&(1<<i) == 0 {
-				s.touch(s.resArm().look[i])
-				s.objs[s.resArm().look[i]].zone = kop.ZoneNone
-				pl.libLo++
-			}
+		// a taken card's queued as-enters ask suspends the dig with the rest
+		// still in the library, as gorge's parked effect has them
+		if park && s.parkTail(k, tailDig) {
+			return true
 		}
+		s.digRestAside(n)
+		s.finishDigTail(k)
+		return false
 	} else {
 		for i := 0; i < n; i++ {
 			s.touch(s.resArm().look[i])
@@ -1667,6 +1668,19 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	}
 	s.finishDigTail(k)
 	return false
+}
+
+// digRestAside takes the n looked-at cards a battlefield dig did not take
+// out of the library window, ahead of finishDigTail placing them.
+func (s *State) digRestAside(n int) {
+	pl := &s.pl[s.g.pickP]
+	for i := 0; i < n; i++ {
+		if s.g.lookSel&(1<<i) == 0 {
+			s.touch(s.resArm().look[i])
+			s.objs[s.resArm().look[i]].zone = kop.ZoneNone
+			pl.libLo++
+		}
+	}
 }
 
 // --- choose each type (Liliana) ---

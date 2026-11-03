@@ -64,6 +64,9 @@ func (s *State) unparkTail(k *prep) bool {
 	case tailSearch:
 		s.finishSearchTail(k)
 	case tailDig:
+		if kop.Zone(s.prog(k)[s.res.pc].C&7) == kop.ZoneBattlefield {
+			s.digRestAside(int(s.g.nlook))
+		}
 		s.finishDigTail(k)
 	case tailDigArrange:
 		s.res.ask, s.res.askP = raGenDigArrange, s.g.pickP
