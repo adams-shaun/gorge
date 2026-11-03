@@ -258,10 +258,24 @@ func (e *Engine) attachedKindIllegal(o *state.Object) string {
 	if !o.ReconfiguredAttached() && (e.IsCreature(o.ID) || e.hasType(o, "Battle")) {
 		return "attached creature or battle becomes unattached"
 	}
-	if !e.isAura(o) && !e.isEquipment(o) && !e.isFortification(o) && printsAttachmentType(o) {
+	if !e.isAura(o) && !e.isEquipment(o) && !e.isFortification(o) &&
+		(printsAttachmentType(o) || !e.grantedAttachKeyword(o.ID)) {
 		return "non-attachment permanent becomes unattached"
 	}
 	return ""
+}
+
+// grantedAttachKeyword reports whether a layer-6 effect gave id an Equip or
+// Fortify ability, the one route that attaches a permanent that is not itself
+// an attachment type (The Irencrag's Everflame). A permanent without it that
+// is attached has no way to stay so: a copy effect that made it an Equipment
+// ended (S.H.I.E.L.D. Flying Car's copy), and CR 704.5n unattaches it.
+func (e *Engine) grantedAttachKeyword(id state.ObjID) bool {
+	if _, ok := e.derivedKeywordParam(id, "Equip"); ok {
+		return true
+	}
+	_, ok := e.derivedKeywordParam(id, "Fortify")
+	return ok
 }
 
 // printsAttachmentType reports whether o's printed face is an Aura, Equipment
