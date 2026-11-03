@@ -316,3 +316,11 @@ func TestUnlessWindowSkipsATapAnotherSourceLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "unless_window_skips_tap_another_source", "std-eoe", Config{GorgeAutopaySurface: true})
 }
+
+// The Dawning Archaic's attack trigger aimed at Flashback with no other instant or
+// sorcery in the graveyard: the card leaves the graveyard for the stack, so it has no
+// target of its own and is not offered (CR 601.2c); both engines play no card.
+func TestFreeCastGraveyardSpellIsNoTargetOfItselfLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "archaic_flashback_no_other_target", "std-sos", Config{GorgeAutopaySurface: true})
+}

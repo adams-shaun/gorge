@@ -202,7 +202,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				fc = s.adjustCost(k, p, c, o, k.t.Cards[c].Cost)
 			}
 		}
-		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasible(k, c, p) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
+		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
 		if fb := &k.t.Cards[c].FbCost; fb.Flags != 0 && !granted && !s.pickCostPayable(k, p, fb, o) {
@@ -823,6 +823,21 @@ func spellAb(k *prep, c CardID) uint8 {
 	return 255
 }
 
+// spellTargetsFeasibleFrom is spellTargetsFeasible for the spell card o, cast
+// from the graveyard: o is on the stack by the time its targets are chosen, so
+// it is no candidate for them (gorge castTargetsAvailable names the cast card).
+// Flashback under The Dawning Archaic with no other instant or sorcery in the
+// graveyard has no target and is not offered.
+func (s *State) spellTargetsFeasibleFrom(k *prep, c CardID, p uint8, o Obj) bool {
+	if s.objs[o].zone != kop.ZoneGraveyard {
+		return s.spellTargetsFeasible(k, c, p)
+	}
+	s.g.tgtSelf = uint8(o) + 1
+	ok := s.spellTargetsFeasible(k, c, p)
+	s.g.tgtSelf = 0
+	return ok
+}
+
 func (s *State) spellTargetsFeasible(k *prep, c CardID, p uint8) bool {
 	if k.gen != nil && s.g.probe.kind == 0 {
 		return s.probeSpell(k, c, p)
@@ -1036,6 +1051,9 @@ func (s *State) targetCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self 
 			pl := &s.pl[pp]
 			for i := 0; i < int(pl.graveN); i++ {
 				o := pl.grave[i]
+				if uint8(o)+1 == s.g.tgtSelf {
+					continue
+				}
 				if s.targetOK(k, t, p, src, self, uint8(o)) && n < MaxOptions-1 {
 					out[n] = uint8(o)
 					n++

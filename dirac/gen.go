@@ -1398,6 +1398,7 @@ type genState struct {
 	// poolRChosen is, per player, the creature type the source of poolR's mana chose.
 	poolRChosen [2]uint8
 	probe       probe    // the spell / ability a priority feasibility check is for
+	tgtSelf     uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
 	inLoop      bool     // executing one object of a multi-object target slot
 	mt          multiTgt // the multi-object target slot being chosen
 	lastCK      kop.CounterKind
