@@ -487,12 +487,14 @@ func (s *State) matchCardOne(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint
 
 func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl uint8, o Obj, ctx *evalCtx) bool {
 	if fl.Flags2&kop.F2BasePermanent != 0 {
-		// the spec's zone is the battlefield, so gorge's Permanent base
-		// reads the live object's zone (matchesBase, not
-		// matchesBaseInZone): an object that has since left does not
-		// match, whatever its card face says. On the battlefield the perm
-		// matcher reads it instead.
-		return false
+		// a ThisTurnEntered battlefield entry whose object has since left
+		// (a live permanent is read by the perm matcher): the Permanent base
+		// reads the card where it now lies, a permanent card, as gorge's
+		// matchesEnteredEntry does (CR 700.14, 603.10a)
+		const permanentTypes = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantment | kop.TPlaneswalker | kop.TBattle
+		if k.cards[c].types&permanentTypes == 0 {
+			return false
+		}
 	}
 	for _, w := range [2]kop.CtrlSel{fl.Ctrl, fl.Owner} {
 		switch w {
