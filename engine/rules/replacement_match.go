@@ -1168,7 +1168,13 @@ func (e *Engine) MetalcraftHolds(controller state.PlayerID) bool {
 // so the two spellings cannot drift apart. The count is every card in the
 // controller's graveyard zone; an out-of-range controller has no graveyard.
 func (e *Engine) thresholdHolds(controller state.PlayerID) bool {
-	return len(e.G.Zone(state.ZGraveyard, controller)) >= 7
+	n := 0
+	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
+		if o := e.G.Obj(id); o != nil && !o.Ephemeral() { // a token waiting to cease is no card (CR 111.7)
+			n++
+		}
+	}
+	return n >= 7
 }
 
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
@@ -1179,7 +1185,8 @@ func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
 func (e *Engine) graveyardCardTypeCountSkipping(controller state.PlayerID, skip state.ObjID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && id != skip {
+		// a token in the graveyard before state-based actions remove it (CR 704.5d) is not a card (CR 111.7)
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && id != skip && !o.Ephemeral() {
 			for _, typ := range o.Face().Types {
 				switch graveyardCardTypeCountCodes.Code(string(typ)) {
 				case graveyardCardTypeCountCardType:
