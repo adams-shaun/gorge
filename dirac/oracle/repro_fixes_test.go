@@ -32,6 +32,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"face_down_granted_trigger", false},           // Curious Inquiry on a face-down creature
 		{"granted_source_hybrid_cast", false},          // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
 		{"activation_plan_search_limit", false},        // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
+		{"granted_colours_before_dual_types", false},   // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
 	})
 }
 
