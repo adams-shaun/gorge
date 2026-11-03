@@ -13,3 +13,12 @@ func TestGrantedPrefixTapTriggerPassLockstep(t *testing.T) {
 	t.Parallel()
 	synthReproLockstep(t, "granted_prefix_tap_trigger_pass", "std-tla", Config{})
 }
+
+// A sorcery-speed play is not offered while a trigger its prefix caused is on the
+// stack (CR 307.1), so gorge's search passes for the trigger to resolve before it
+// prices the play, and the kernel resolves Gran-Gran's loot before the cast of Invasion
+// Submersible too, instead of casting over it.
+func TestGrantedPrefixSorceryWaitsForTriggerLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "granted_prefix_sorcery_waits_for_trigger", "std-tla", Config{})
+}

@@ -341,7 +341,7 @@ type grantSrch struct {
 	nseen int
 	seen  [potentialScriptNodes]grantKey
 	np    int
-	path  [MaxPerm]grantStep
+	path  [2 * MaxPerm]grantStep
 	// sp0 is the stack at the root: a deeper one is a trigger a prefix step
 	// caused, which gorge's search lets resolve (a pass) once its activations are
 	// spent. tapsLive: a tap can fire such a trigger (Gran-Gran's "whenever this
@@ -368,7 +368,17 @@ type grantStep struct {
 	n   uint8
 	gi  int16 // the grantPC index tapped; -1 the candidate's own printed ability; stepFilt, stepFund
 	sl  Slot
+	// kind: stepAct (a tap), or the pass that lets the trigger a tap caused resolve
+	// and the answer act gives to the ask that trigger poses
+	kind uint8
+	act  Action
 }
+
+const (
+	stepAct uint8 = iota
+	stepPass
+	stepAnswer
+)
 
 // stepFilt is the gi of a prefix step that is a candidate's filter ability (col the
 // colour it makes, its fee paid from the pool).
@@ -437,7 +447,7 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) {
+	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) && !g.waitsForStack(t) {
 		return true
 	}
 	pl := &t.pl[g.p&1]
@@ -492,17 +502,34 @@ func (g *grantSrch) visit(t *State) bool {
 			}
 		}
 	}
-	if t.sp > g.sp0 {
+	if t.sp > g.sp0 && g.np < len(g.path) {
 		// a trigger a step caused: let it resolve, the pool floats (gorge
-		// scriptSearch.visit, the last resort at a node). The found prefix does not
-		// record it: the play's trigger flush resolves the trigger before the play.
+		// scriptSearch.visit, the last resort at a node)
+		pass := MakeAction(AkPass, 0, 0, 0)
 		c := t.fork()
-		c.Apply(MakeAction(AkPass, 0, 0, 0))
+		c.Apply(pass)
+		g.path[g.np] = grantStep{kind: stepPass, act: pass, sl: NoSlot}
+		g.np++
 		ok := g.settle(c)
 		t.unfork()
+		if !ok {
+			g.np--
+		}
 		return ok
 	}
 	return false
+}
+
+// waitsForStack: the play is sorcery-speed and the path left a trigger of its own
+// on the stack, so the play is not offered until it resolves (CR 307.1, 602.5d;
+// gorge scriptSearch.waitsForStack) and the search continues through a pass.
+func (g *grantSrch) waitsForStack(t *State) bool {
+	if t.sp <= g.sp0 || !g.d.hasPlay {
+		return false
+	}
+	var d Decision
+	t.plainOptions(g.k, &d, 0)
+	return !hasOption(&d, g.d.play)
 }
 
 // settle continues the search at t after a pass or a tap whose trigger is
@@ -520,14 +547,17 @@ func (g *grantSrch) settle(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	for i := 0; i < int(d.N); i++ {
+	for i := 0; i < int(d.N) && g.np < len(g.path); i++ {
 		c := t.fork()
 		c.Apply(d.Options[i])
+		g.path[g.np] = grantStep{kind: stepAnswer, act: d.Options[i], sl: NoSlot}
+		g.np++
 		ok := g.settle(c)
 		t.unfork()
 		if ok {
 			return true
 		}
+		g.np--
 	}
 	return false
 }
@@ -666,13 +696,19 @@ func (g *grantSrch) grantAdmits(t *State, sl Slot, gi int16) bool {
 // restriction: a cast is read as paid (cast=true: the spell is on the
 // stack when the prefix's mana is spent), an activation as an ability.
 func (s *State) grantPayDesc(a Action) payDesc {
+	d := s.grantPayDescOf(a)
+	d.play, d.hasPlay = a, true
+	return d
+}
+
+func (s *State) grantPayDescOf(a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
 	case AkCast, AkCastCasualty:
 		og := restrOrigin{from: s.objs[o].zone}
-		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og, sorc: s.castNeedsEmptyStack(s.k(), a)}
+		return payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: og}
 	case AkActivate:
-		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot, sorc: s.activateNeedsEmptyStack(s.k(), a)}
+		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
 			d.card, d.src = s.cardAt(ob.slot), ob.slot
 		}
@@ -702,8 +738,19 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 // announcement: the mana floats from here, as the oracle's prScript
 // activations do).
 func (s *State) grantApply(k *prep, g *grantSrch) {
+	n, passed := s.Decisions, false
+	var d Decision
 	for i := 0; i < g.np; i++ {
 		st := &g.path[i]
+		if st.kind != stepAct {
+			// the pass and the trigger's answers, each as the decision then pending
+			// (the other player passes for the trigger to resolve)
+			passed = true
+			if s.tapXNext(g.p, &d) && hasOption(&d, st.act) {
+				s.Apply(st.act)
+			}
+			continue
+		}
 		sl := st.sl
 		switch st.gi {
 		case stepFilt:
@@ -727,6 +774,10 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			xv := s.srcExtraPick(k, sl, s.stepView(k, sl, st.gi), int(st.col))
 			s.addXv(g.p&1, &xv)
 		}
+	}
+	if passed {
+		s.tapXNext(g.p, &d) // the trigger the last step queued is stacked and asked now
+		s.Decisions = n
 	}
 }
 
