@@ -1,0 +1,10 @@
+# the spawner-target pool: Biting-Palm Ninja, whose ImmediateTrigger body
+# reads the damaged player of the combat-damage trigger that spawned it
+# (Spawner>TriggeredTarget), beside vanilla creatures and basics, for the
+# oracle's constructed lockstep (dirac/oracle/spawnertarget_test.go)
+Biting-Palm Ninja
+Hill Giant
+Raging Goblin
+Plains
+Mountain
+Swamp

@@ -203,6 +203,15 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %q outside an attack trigger of the controller's own attack", v)
 		}
 		return lRef{Kind: rDefending}, nil
+	case "Spawner>TriggeredTarget":
+		// the player the spawning trigger's source dealt combat damage to
+		// (gorge spawnerChain reads TriggeredTarget in the spawner's
+		// roles): two players, the one opponent (CR 506.4; the same
+		// reading as the ControlledBy form, lower_filterwords.go)
+		if !lc.spawnDmg {
+			return lRef{}, refuse("Defined$ %q outside an ImmediateTrigger spawned by Card.Self's combat damage to a player", v)
+		}
+		return lRef{Kind: rEachOpp}, nil
 	case "Promised":
 		// the opponent the gift was promised to (CR 702.174a; gorge
 		// Object.GiftPromisedTo): in a two-player game, the opponent
