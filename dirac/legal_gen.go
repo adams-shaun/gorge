@@ -143,7 +143,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		s.g.mayPlayAny = anyMana
 		offers := s.gorgeOffersMay(p, o)
 		s.g.mayPlayAny = false
-		if !s.altAddCastable(k, c, p, o, &cost, av) || !offers || s.castHeldOut(o) {
+		if !s.altAddCastableFrom(k, c, p, o, &cost, &pc.cost, true, av) || !offers || s.castHeldOut(o) {
 			return
 		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {

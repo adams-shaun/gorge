@@ -108,6 +108,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			cost = &credited
 		}
 		var adj kop.ManaCost
+		base := *cost
 		if s.statM.any() || k.gen != nil {
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
@@ -126,7 +127,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		} else {
 			tgtOK = s.spellTargetsFeasible(k, c, p)
 		}
-		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, cost, &av) {
+		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, cost, &base, false, &av) {
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -747,6 +748,16 @@ func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
 // the part's -- unless gorge's shape is asked for (Config.GorgeAltAdd),
 // where a payable pick cost is enough (spellCostsFeasible).
 func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.ManaCost, av *avail) bool {
+	return s.altAddCastableFrom(k, c, p, o, cost, nil, false, av)
+}
+
+// altAddCastableFrom is altAddCastable for a plain cast whose unreduced cost is
+// base: the either-or part's mana joins base before the reductions take their
+// generic off the total (CR 601.2f), as gorge's offer composes it, so Uncle
+// Iroh's {1} off Redirect Lightning's {R} plus {2} leaves {1}{R}, not {2}{R}.
+// gen is the generic-cost statics' form of adjustFit. A nil base adds the part
+// to cost as it stands.
+func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base *kop.ManaCost, gen bool, av *avail) bool {
 	cd := &k.t.Cards[c]
 	if !cd.HasAltAdd {
 		return true
@@ -759,6 +770,9 @@ func (s *State) altAddCastable(k *prep, c CardID, p uint8, o Obj, cost *kop.Mana
 		return false
 	}
 	t := addCost(*cost, cd.AltAddCost.Mana)
+	if base != nil && (s.statM.any() || k.gen != nil) {
+		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+	}
 	return av.affords(&t, pipMaskOf(&t), 0)
 }
 
