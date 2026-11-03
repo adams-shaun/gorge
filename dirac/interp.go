@@ -719,8 +719,8 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
 	case kop.ZoneNone:
 	default:
-		if r == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
-			return // the activated ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response)
+		if r == kop.RefSelf && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
+			return // the ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response, Encroaching Dragonstorm destroyed with its return trigger on the stack)
 		}
 		if s.tokenLeftBattlefield(o) {
 			return // CR 111.8 (zone_tokenleft.go)
