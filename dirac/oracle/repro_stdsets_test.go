@@ -15,7 +15,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
-	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true}
+	fullSurface := map[string]bool{"calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true, "restricted_any_colour_pick_beside_plain_colour": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-tla", "waterbend_min_taps_filter"},                          // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},                      // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
@@ -46,6 +46,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-blb", "exile_triggered_source_left_battlefield"},            // Gossip's Talent level 3 with the Colossified Galewind Moose killed by deathtouch as it dealt combat damage: it is in the graveyard, a new object the exile-and-return finds nothing of
 		{"std-fra", "loyalty_cost_counters_trigger_put_counters"},         // Ajani Unrelenting's [+1] beside an Inspired Tethermage: the loyalty counter put as the cost triggers it, with Ajani's own trigger ordered beside it
 		{"std-tmt", "sneak_restricted_any_colour_beside_tap_extra"},       // Leonardo, Big Brother sneaked for {W} from Turtle Lair's restricted any-colour mana with Groundchuck & Dirtbag adding {G} beside it: the lowered payment takes the wheel's any-colour pick
+		{"std-tmt", "restricted_any_colour_pick_beside_plain_colour"},     // Mikey & Leo paid {W}{W} from a Plains and a second land, Turtle Lair tapped for green beside the Plains' white: the green it leaves floating is restricted, so Cowabunga is not offered
 		{"std-dft", "run_over_second_target_after_vehicle"},               // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
 		{"std-msh", "returning_aura_chosen_by_its_owner"},                 // Wiccan, Rising Magician returns Super Speed at the end step under its owner's control: the owner chooses what it enchants
 		{"std-tmt", "exile_any_grave_stolen_creature_dies"},               // a stolen Paramecia Coloniex dies into its owner's graveyard: its controller may still exile it from there

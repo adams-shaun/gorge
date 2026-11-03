@@ -1654,8 +1654,18 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 		}
 		ab := &k.t.Cards[c].Abilities[rec.ab]
 		n := max(ab.ManaN, 1)
+		// a widened unit's tap made the colour the plan chose: when that
+		// colour is none the card's own census ability makes (Turtle Lair's
+		// {C}), the mana is the restricted ability's, whichever colour the pool
+		// grew in beside another source's (a Plains' {W} before a green pick)
+		pick := ext
+		if !ext {
+			if ma := k.cards[c].manaAb; ma >= 0 && uint8(k.t.Cards[c].Abilities[ma].ManaColors)&(1<<tcol) == 0 {
+				pick = true
+			}
+		}
 		for col := 0; col < 5; col++ {
-			if ext && col != tcol {
+			if pick && col != tcol {
 				continue
 			}
 			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
