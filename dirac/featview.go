@@ -583,7 +583,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 // searches potentialScriptPlays caps.
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
-	if planNeverPricesOf(k, c, hyb, composed) {
+	if planNeverPricesCore(k, c, hyb, composed, k.t.Cards[c].HasModeCost && mode&3 == 0 && s.modalCostPlanned(k, p, o)) {
 		return kop.ManaCost{}, false
 	}
 	if k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
@@ -636,6 +636,12 @@ func planNeverPrices(k *prep, c CardID) bool { return planNeverPricesOf(k, c, fa
 // planNeverPricesOf is planNeverPrices with a hybrid cost priced when hyb and
 // the card's own mana-spent read left out when composed (plannedCastCostOf).
 func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
+	return planNeverPricesCore(k, c, hyb, composed, false)
+}
+
+// planNeverPricesCore is planNeverPricesOf with a Spree or Tiered face
+// admitted when modal is set (modalCostPlanned).
+func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.Face != 0 {
 		// gorge's cast planner plans face 0 only (rules payment_plan.go
@@ -643,7 +649,7 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 		// a Room back in the hand on door 1 is lowered or pool-paid
 		return true
 	}
-	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() || !composed && (cd.SpendRead || cd.SpentSelf) {
+	if cd.HasAltAdd || cd.BeholdExile || cd.AltAddOne || cd.HasModeCost && !modal || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() || !composed && (cd.SpendRead || cd.SpentSelf) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")
 	}
 	if planDeclinesAddCost(k, c) {

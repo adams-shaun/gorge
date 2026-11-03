@@ -130,3 +130,47 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 	}
 	return false
 }
+
+// modalCostPlanned: gorge's cast planner takes a Spree or Tiered face when
+// the cast is payable only by paying with a permanent its own announcements
+// need (rules payment_plan.go modalCostNeedsPlannedPayment). The witness at
+// the printed cost sacrifices a source, no mode still has a target and a
+// price the pool can pay once it has run (the lowering would float that mana
+// before the cast, potentialWitnessReaches), and no witness that keeps its
+// sources pays the printed cost (potentialWitnessKeeping). The cast is then
+// priced at the printed cost, and the chosen modes' costs, which change it,
+// take the manual CR 601.2g window with the targets already chosen.
+//
+//go:noinline
+func (s *State) modalCostPlanned(k *prep, p uint8, o Obj) bool {
+	if !k.sacMana || !s.anySacSource(k, p) {
+		return false
+	}
+	c := s.objs[o].card
+	cd := &k.t.Cards[c]
+	cost := s.featCost(k, p&1, c, o, k.cards[c].cost)
+	t := s.fork()
+	var pk planner
+	pk.try = true
+	t.tapForPK(k, p, &cost, 0, NoObj, false, false, &pk)
+	consumes := pk.found && plannerConsumesSac(&pk)
+	reaches := false
+	if consumes {
+		ab := spellAb(k, c)
+		for m := 0; ab != 255 && m < int(cd.Abilities[ab].NModes); m++ {
+			if t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 1<<m) {
+				reaches = true
+				break
+			}
+		}
+	}
+	s.unfork()
+	if !consumes || reaches {
+		return false
+	}
+	held := s.sacSourcesHeld(k, p)
+	var av avail
+	s.availFor(k, p, &av)
+	s.ctrlM[p] = s.ctrlM[p].or(held)
+	return !av.affords(&cost, pipMaskOf(&cost), 0)
+}
