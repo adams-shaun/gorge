@@ -43,6 +43,7 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"copied_vehicle_counts_its_crew", true}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
+		{"counters_skip_a_ceased_token", true},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
 	})
 }
 

@@ -1599,6 +1599,12 @@ var putCounterChooserForCodes = state.NewStrCodes(
 //     is the last-known battlefield permanent, when it is no longer on the
 //     battlefield.
 func putCounterReferentLeft(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool {
+	if o.Zone == state.ZCeased {
+		// a token that has ceased to exist (CR 111.7, 704.5d): Railway
+		// Brawler's trigger for a Beau the legend rule just removed has no
+		// object to put the counters on
+		return true
+	}
 	if sourceLeftSincePush(h, c, o) {
 		return true
 	}
