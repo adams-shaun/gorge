@@ -623,8 +623,19 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 		s.ovGrantsBetween(k, sl, 0, 1<<16, false, 0, false, f)
 	}
 	// Imprisoned in the Moon's static override grants its mana ability
-	for m := s.grantM; m.any(); m = m.rest() {
+	// gorge lists these grants in layer-6 timestamp order (an Equipment's
+	// timestamp is restamped when it is attached, CR 613.7e), not in the
+	// order the sources entered: two Equipment on one creature queue their
+	// triggers oldest attachment first, and the controller's trigger-order
+	// choice indexes that queue
+	for m := s.grantM; m.any(); {
 		src := m.first()
+		for r := m.rest(); r.any(); r = r.rest() {
+			if c := r.first(); s.layerTs(c) < s.layerTs(src) {
+				src = c
+			}
+		}
+		m = m.without(src)
 		if s.perms[src].attached != sl || s.genLost(k, src) {
 			continue
 		}
