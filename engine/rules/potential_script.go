@@ -18,11 +18,16 @@ type ScriptPick struct {
 	Obj        state.ObjID
 	Label      string
 	ManaSymbol string
+	// Ability is the option's ability index: a source with several abilities
+	// of one label (Jasmine Dragon Tea Shop's restricted "any color" beside the
+	// one Great Divide Guide grants it) is told apart by it alone, and the
+	// replay must take the ability the search took.
+	Ability int
 }
 
 // Matches reports whether o is the picked option.
 func (k ScriptPick) Matches(o *decision.Option) bool {
-	return o.Kind == k.Kind && o.Obj == k.Obj && o.Label == k.Label && o.ManaSymbol == k.ManaSymbol
+	return o.Kind == k.Kind && o.Obj == k.Obj && o.Label == k.Label && o.ManaSymbol == k.ManaSymbol && o.Ability == k.Ability
 }
 
 // ScriptStep is one of the payer's answers along a PotentialPlan.Script: at
@@ -367,7 +372,7 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 	for _, c := range in.Choices {
 		for i := range d.Options {
 			if o := &d.Options[i]; o.Index == c {
-				st.Picks = append(st.Picks, ScriptPick{Kind: o.Kind, Obj: o.Obj, Label: o.Label, ManaSymbol: o.ManaSymbol})
+				st.Picks = append(st.Picks, ScriptPick{Kind: o.Kind, Obj: o.Obj, Label: o.Label, ManaSymbol: o.ManaSymbol, Ability: o.Ability})
 				break
 			}
 		}
