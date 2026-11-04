@@ -194,6 +194,11 @@ func (e *Engine) Submit(in decision.Intent) error {
 	}
 	if (in.Payment != nil || in.Announce != nil) && d.Kind == decision.KPriority {
 		e.EnsurePaymentActions()
+		if in.Payment != nil && !paymentPlanOffered(d, in.Payment) {
+			// A plan other than the planner's own: the alternatives are
+			// built only when one is named.
+			e.EnsurePaymentPlanAlternatives()
+		}
 	}
 	if err := submitValidate(e, d, in); err != nil {
 		return err

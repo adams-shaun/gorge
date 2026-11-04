@@ -14,7 +14,7 @@ import (
 // is known, so every RestrictValid$ source is refused, PlanPaymentCostWithout).
 func PlanPaymentCost(e Engine, p state.PlayerID, cast decision.PlannedCast, cost costvocab.Cost, desc *Descriptor) PlanOutcome {
 	q := e.Session().PlanQuery
-	if !q.Valid(e.Log()) || e.Session().PaymentPlanRelaxed != nil || e.Session().PaymentPlanRelaxedFee != 0 || !plainManaCost(cost, e.Verify()) {
+	if !q.Valid(e.Log()) || e.Session().PaymentPlanRelaxed != nil || e.Session().PaymentPlanRelaxedFee != 0 || e.Session().PlanAltsWant > 1 || !plainManaCost(cost, e.Verify()) {
 		return PlanPaymentCostWithout(e, p, cast, cost, desc, nil, nil, nil)
 	}
 	// Within one query scope (one state), the planner's outcome for a plain
@@ -231,8 +231,9 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	pool := PlanPool(e, p, desc)
 	phase1 := PhaseChoices(choices, TierNormal)
 	rankCtx := NewRankContext(choices, demand)
+	phaseChoices, phaseClasses := phase1, queryClasses(p, TierNormal, phase1)
 	search := SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-		phase1, queryClasses(p, TierNormal, phase1), PaymentSearchEnv(e.Verify()))
+		phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
 	nodes := search.Nodes
 	// Phase 2 runs only when phase 1 PROVES no plan exists (insufficient,
 	// not search_limit): normal plus last-resort alternatives, ranked by the
@@ -241,13 +242,17 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 	// and 7 read the untapped normal remainder in both phases.
 	if search.Best == nil && !search.Limited {
 		if phase2 := PlanLastResortChoices(choices, life); phase2 != nil {
+			phaseChoices, phaseClasses = phase2, queryClasses(p, TierLastResort, phase2)
 			search = SearchInto(e.SearchScratch(), cost, pool, life, rankCtx,
-				phase2, queryClasses(p, TierLastResort, phase2), PaymentSearchEnv(e.Verify()))
+				phaseChoices, phaseClasses, PaymentSearchEnv(e.Verify()))
 			nodes += search.Nodes
 		}
 	}
 	if search.Best != nil {
 		SacrificesLast(search.Best)
+		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
+			e.Session().PlanAlts = planAlternatives(*search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+		}
 	}
 	switch {
 	case search.Best != nil && search.Limited:
@@ -278,6 +283,25 @@ func planPaymentCostWithDemand(e Engine, p state.PlayerID, demand [5]int, cost c
 		}
 	}
 	return PlanOutcome{Reason: "insufficient", Detail: firstSourceDetail, Nodes: nodes}
+}
+
+// planAlternatives is up to want-1 plans for the same cost whose residuals
+// (ResidualSignature) differ from best's and from each other's, rank-best
+// first, searched over the phase that found best: a plan from normal sources
+// never gives way to a last-resort one (ValidateCastPayment's phase rule).
+func planAlternatives(best decision.PaymentPlan, want int, cost costvocab.Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, verify bool) []decision.PaymentPlan {
+	bestSig := ResidualSignature(classes, choices, best.Activations)
+	s := SearchAlternatives(cost, pool, life, ctx, choices, classes, PaymentSearchEnv(verify), want)
+	var out []decision.PaymentPlan
+	for _, k := range s.Kept {
+		if k.Sig == bestSig || len(out) == want-1 {
+			continue
+		}
+		plan := decision.ClonePaymentPlan(k.Plan)
+		SacrificesLast(&plan)
+		out = append(out, plan)
+	}
+	return out
 }
 
 // PaymentPlanQueryUnits is paymentPlanManaUnits, computed once per query

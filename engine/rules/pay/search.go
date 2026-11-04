@@ -213,6 +213,20 @@ type Search struct {
 	Limited  bool
 	Best     *decision.PaymentPlan
 	BestRank Rank
+
+	// keep > 0 is the alternatives walk (SearchAlternatives): every
+	// complete count vector is materialised, and Kept holds the rank-best
+	// plan of each of the keep best distinct residuals, best first.
+	keep int
+	Kept []KeptPlan
+}
+
+// KeptPlan is one plan of the alternatives walk: its witness, its rank and
+// its residual signature (ResidualSignature).
+type KeptPlan struct {
+	Plan decision.PaymentPlan
+	Rank Rank
+	Sig  string
 }
 
 // Run runs one phase over choices (already filtered to the
@@ -283,13 +297,30 @@ type SearchScratch struct {
 // from sc (nil allocates it). The search reads only slots it wrote first:
 // every array is cleared or fully assigned before the walk.
 func SearchInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env) *Search {
+	return searchInto(sc, cost, pool, life, ctx, choices, classes, env, 0)
+}
+
+// SearchAlternatives is Run keeping, instead of the one best plan, the
+// rank-best plan of each of the keep best distinct residuals
+// (ResidualSignature) in Kept, best first. Two plans whose residuals are
+// equal leave the payer the same untapped sources, by class, and the same
+// consequences, so only the better-ranked of them is kept. The walk is
+// Run's, with the rank bound taken against the worst kept plan once keep
+// residuals are held: a branch whose every completion ranks below keep
+// distinct residuals already found cannot place. It has its own working
+// storage, so the caller's search scratch and best plan are untouched.
+func SearchAlternatives(cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env, keep int) *Search {
+	return searchInto(nil, cost, pool, life, ctx, choices, classes, env, max(keep, 1))
+}
+
+func searchInto(sc *SearchScratch, cost Cost, pool state.Mana, life int32, ctx RankContext, choices [][]Alt, classes []Class, env Env, keep int) *Search {
 	if sc == nil {
 		sc = &SearchScratch{}
 	}
 	// The search struct itself is the scratch's too: the caller reads only
 	// its result fields before the next search starts.
 	s := &sc.search
-	*s = Search{sc: sc, env: env, cost: cost, pool: pool, life: life, ctx: ctx, choices: choices, classes: classes}
+	*s = Search{sc: sc, env: env, cost: cost, pool: pool, life: life, ctx: ctx, choices: choices, classes: classes, keep: keep}
 	s.order(sc)
 	total := 0
 	for k := range s.classes {
@@ -539,7 +570,13 @@ func (s *Search) promising(level int, short state.Mana, total int32) bool {
 	if s.sources+int(need) > decision.MaxPaymentActivations {
 		return false
 	}
-	if s.Best == nil {
+	bound := &s.BestRank
+	switch {
+	case s.keep > 0 && len(s.Kept) < s.keep:
+		return true
+	case s.keep > 0:
+		bound = &s.Kept[len(s.Kept)-1].Rank
+	case s.Best == nil:
 		return true
 	}
 	surplus := s.pool.Total() + s.produced.Total() + need*rest.least - s.cost.Generic - s.cost.Colored.Total()
@@ -555,7 +592,7 @@ func (s *Search) promising(level int, short state.Mana, total int32) bool {
 	// consumes further sources, so neither can rise, and the current values
 	// bound every completion's from above.
 	lb.HandReserve, lb.Remainder = s.reserve()
-	return compareRankKeys(lb, s.BestRank) <= 0
+	return compareRankKeys(lb, *bound) <= 0
 }
 
 // reserve is rank keys 6 and 7 for the current counts, exactly as
@@ -626,6 +663,9 @@ func compareRankKeys(a, b Rank) int {
 // settle a count vector the deficit arithmetic calls paid (never expected);
 // the walk then keeps extending it.
 func (s *Search) complete() bool {
+	if s.keep > 0 {
+		return s.completeKeep()
+	}
 	quick := s.countRank()
 	if !s.env.Verify && s.Best != nil && compareRankKeys(quick, s.BestRank) > 0 {
 		return true
@@ -644,6 +684,118 @@ func (s *Search) complete() bool {
 		s.Best, s.BestRank = &plan, r
 	}
 	return true
+}
+
+// completeKeep is complete for the alternatives walk: the count vector's
+// witness joins Kept when its residual is new and ranks among the keep best,
+// or replaces the kept plan of its residual when it ranks better.
+func (s *Search) completeKeep() bool {
+	if len(s.Kept) == s.keep && compareRankKeys(s.countRank(), s.Kept[len(s.Kept)-1].Rank) > 0 {
+		return true
+	}
+	if s.redundant() {
+		// A plan that pays without one of its units wastes it: not an
+		// alternative anyone would choose.
+		return true
+	}
+	chosen := s.materialize()
+	after, ok := s.env.Settle(s.cost, ManaAdd(s.pool, s.produced), s.life)
+	if !ok {
+		return false
+	}
+	plan := Witness(s.cost, s.pool, s.produced, chosen, after)
+	r := RankPlan(s.ctx, plan, chosen, after)
+	if s.Best == nil || r.Less(s.BestRank) {
+		best := plan
+		s.Best, s.BestRank = &best, r
+	}
+	sig := ResidualSignature(s.classes, s.choices, plan.Activations)
+	if at := slices.IndexFunc(s.Kept, func(k KeptPlan) bool { return k.Sig == sig }); at >= 0 {
+		if !r.Less(s.Kept[at].Rank) {
+			return true
+		}
+		s.Kept = slices.Delete(s.Kept, at, at+1)
+	}
+	at, _ := slices.BinarySearchFunc(s.Kept, r, func(k KeptPlan, r Rank) int {
+		if k.Rank.Less(r) {
+			return -1
+		}
+		return 1
+	})
+	if at < s.keep {
+		s.Kept = slices.Insert(s.Kept, at, KeptPlan{Plan: plan, Rank: r, Sig: sig})
+		if len(s.Kept) > s.keep {
+			s.Kept = s.Kept[:s.keep]
+		}
+	}
+	return true
+}
+
+// redundant reports whether the current count vector still pays without one
+// of its units (the deficit arithmetic the walk itself calls paid).
+func (s *Search) redundant() bool {
+	for k := range s.classes {
+		for a, n := range s.counts[k] {
+			if n == 0 {
+				continue
+			}
+			m := s.classes[k].alts[a].Mana
+			paid := s.cost.Generic+s.cost.Colored.Total() <= s.pool.Total()+s.produced.Total()-m.Total()
+			for i := range m {
+				paid = paid && s.cost.Colored[i] <= s.pool[i]+s.produced[i]-m[i]
+			}
+			if paid {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ResidualSignature names what a plan leaves the payer, independent of
+// which sources of a class it taps: per class of interchangeable source
+// units (Classes, identified by its first member), how many the plan
+// uses, and per alternative with a consequence (life, damage, a sacrifice,
+// a source that stays tapped) how many take it. Two plans with equal
+// signatures leave the same untapped sources by class and cost the payer
+// the same; a mana creature tapped instead of a land is another class, so
+// another residual. An activation naming no unit of the census is spelled
+// by its source, which keeps the two plans apart.
+func ResidualSignature(classes []Class, choices [][]Alt, acts []decision.PaymentActivation) string {
+	type use struct {
+		class, alt int // class: its first member; alt -1 for a consequence-free step
+		source     state.ObjID
+	}
+	uses := make([]use, 0, len(acts))
+	for _, a := range acts {
+		u := use{class: -1, alt: -1, source: a.Source}
+		for k := range classes {
+			for _, m := range classes[k].Members {
+				if len(choices[m]) == 0 || choices[m][0].Activation.Source != a.Source {
+					continue
+				}
+				u.class, u.source = classes[k].Members[0], 0
+				if a.Consequence != nil {
+					for i := range classes[k].alts {
+						x := classes[k].alts[i].Activation
+						if x.Ability == a.Ability && x.Produces == a.Produces {
+							u.alt = i
+							break
+						}
+					}
+				}
+			}
+		}
+		uses = append(uses, u)
+	}
+	slices.SortFunc(uses, func(x, y use) int {
+		return cmp.Or(cmp.Compare(x.class, y.class), cmp.Compare(x.alt, y.alt), cmp.Compare(x.source, y.source))
+	})
+	b := make([]byte, 0, 8*len(uses))
+	for _, u := range uses {
+		b = fmt.Appendf(b, "%d.%d.%d;", u.class, u.alt, u.source)
+	}
+	return string(b)
 }
 
 // materialize turns the current count vector into its key-8-least witness:
