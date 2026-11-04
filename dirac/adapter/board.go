@@ -380,7 +380,7 @@ func (g *Game) boardObject(i uint8) {
 	card := g.card(printed)
 	*o = state.Object{ID: id, Card: card, Owner: state.PlayerID(po.Owner), Controller: state.PlayerID(po.Ctrl),
 		Zone: zoneOf(po.Zone), Tapped: po.Flags&dirac.ProjTapped != 0, SummonSick: po.Flags&dirac.ProjSick != 0,
-		FaceDown: po.Flags&dirac.ProjFaceDown != 0, PhasedOut: po.Zone >= kop.ZonePhased, Damage: int32(po.Damage),
+		FaceDown: po.Flags&dirac.ProjFaceDown != 0, PhasedOut: po.Zone.Phased(), Damage: int32(po.Damage),
 		IsToken: po.Token, IsCopy: po.Flags&dirac.ProjCopy != 0, IsAttacking: po.Flags&dirac.ProjAttacking != 0,
 		Monstrous: po.Flags&dirac.ProjMonstrous != 0, Suspected: po.Flags2&dirac.ProjSuspected != 0,
 		ActivatedThisTurn: int32(g.s.FeatActivations(dirac.Obj(i))), FaceIdx: g.tbl.Cards[printed].Face}

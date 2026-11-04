@@ -101,6 +101,7 @@ type genPrep struct {
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
+	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
@@ -156,6 +157,7 @@ type genPrep struct {
 	globGrant      bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist        bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom    bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
+	anyTokRew      bool           // a ReplRewriteTokens ability (repl_tokrewrite.go)
 	anyFiltRepl    bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
 	untapRepl      bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock  bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
@@ -377,6 +379,9 @@ type genPrep struct {
 	// anyTriggerAttackers: some program reads RefTriggerAttackers
 	// (trig_attackers.go)
 	anyTriggerAttackers bool
+	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
+	// first spell each seat casts (cast_firstcast.go)
+	anyFirstCast bool
 }
 
 // Replacement bits (genPrep.replBits).
@@ -475,6 +480,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExThisTurnActGrave {
 			g.actRingOn = true
+		}
+		if t.Exprs[i].Kind == kop.ExFirstCast {
+			g.anyFirstCast = true // cast_firstcast.go
 		}
 		if t.Exprs[i].Kind == kop.ExDilemmasFaced {
 			g.anyDilemma = true // trig_dilemma.go
@@ -813,7 +821,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplPreventNoncombatToOthers:
 					g.replBits[i] |= rbPrevNC
 					pc.hasStat = true
-				case kop.ReplDoubleTokens:
+				case kop.ReplDoubleTokens, kop.ReplRewriteTokens:
 					g.replBits[i] |= rbDblTok
 					pc.hasStat = true
 				case kop.ReplDoubleCounters:
@@ -1047,6 +1055,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		pc.trigMask = 0
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
+			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent != 0 && a.Trig.Event == kop.TrigDies && a.Trig.Zone != kop.ZoneCommand {
+				g.anyLatentDies = true // a granted dies trigger (trig_diesleaves.go)
+			}
 			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 && a.Trig.Zone != kop.ZoneGraveyard && a.Trig.Zone != kop.ZoneCommand {
 				pc.trigMask |= 1 << a.Trig.Event
 				if a.Trig.Event == kop.TrigDamageDealtOnce {
@@ -1501,6 +1512,7 @@ type genState struct {
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
+	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
@@ -1771,7 +1783,7 @@ const (
 	StallAegis         = 62  // an Assimilation Aegis copy that cannot be kept (a second exiled card, a bearer already a copy; zone_exilethenattach.go)
 	StallSacOther      = 63  // a Mobilize group sacrifice whose member another player controls (gorge checks no controller; kw_mobilize.go)
 	StallObsSrc        = 70  // a second observed mana source (Spell.ManaFromCard.StrictlySelf reader) tapped by one cast (mana_spendtrigger.go)
-	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card, or a copy cast reversed after its push (CR 733.1; cast_copycast.go)
+	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card, or a copy cast reversed after its push (CR 733.1; cast_copycast.go)
 	StallDynMana       = 89  // a dynamic mana ability's amount above maxDynMana, its autopay variants (gen.go manaPCGen; value_gravecounts.go)
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)

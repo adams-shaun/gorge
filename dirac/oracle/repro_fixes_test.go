@@ -36,6 +36,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"granted_colours_before_dual_types", false, false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
 		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"adventure_card_copy_cast", true, false},                // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
 	})
 }
 
@@ -108,9 +109,11 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false, false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false}, // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_trigger_cost", true, false},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},          // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
+		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 	})
 }
 
@@ -260,6 +263,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-dft", []stdRepro{
 		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
 		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false}, // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
 	})
 }
 
@@ -283,7 +287,8 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
-		{"room_shown_face_plain_cast", false, false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"room_shown_face_plain_cast", false, false},            // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"sacrificed_panharmonicon_host_departs", false, false}, // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
 	})
 }
 
@@ -408,5 +413,13 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
 		{"keyword_removal_resolved_after_a_grant", true, false},
+	})
+}
+
+// std-woe's, on the same terms.
+func TestStdWoeReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-woe", []stdRepro{
+		{"filter_fed_by_granted_mana", false, false}, // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 	})
 }

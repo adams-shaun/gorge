@@ -89,6 +89,7 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 			s.pl[p].libBottom(o)
 		}
 	}
+	s.initSideboards(&cfg)
 	if s.g.on {
 		if why := s.k().gen.initStall(); why != StallNone {
 			s.stall(why) // loud; a built matchup refuses first (stallclass.go)

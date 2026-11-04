@@ -3,6 +3,7 @@ package kgen
 import (
 	"fmt"
 	"math/bits"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1779,7 +1780,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
-		if st.Filter, err = filter(s.F, st.Zone); err != nil {
+		fz := st.Zone
+		if slices.Contains(s.Flags, "AlsoSideboard") {
+			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
+		}
+		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
 		}
 		// the count of "RemoveAnyCounter<N/Any/Creature>" (RaiseCostRemove6...)
@@ -1796,6 +1801,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "AlsoSideboard":
+				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -1996,6 +2003,13 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 				return ka, err
 			}
 		}
+	case "RewriteTokens":
+		rp.Kind = kop.ReplRewriteTokens
+		idx, ok := cb.pt.tokenIdx[r.S]
+		if !ok {
+			return ka, fmt.Errorf("token %q", r.S)
+		}
+		rp.C = int16(idx) // a pool token index; the matchup remaps it
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
@@ -3092,6 +3106,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "EnterAttacking":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterAttacking))
 	case "ExchangeControl":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExchangeControl)), int16(in.C)
 	case "EachDamage":
@@ -3563,7 +3579,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("ChooseEach %q", in.CS)
 		}
 	case "CastFree":
-		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6
+		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7
+		// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 		// Obj: RefRemembered (P1), a target slot (P2), or
 		// RefNone with F (P3/P4 filter population).
 		ki.Op = kop.OpCastFree
@@ -3579,6 +3596,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Copy"]; ok {
 			ki.C |= 1 << 6 // Play CopyCard$ True
+		}
+		if _, ok := fl["Repeat"]; ok {
+			ki.C |= 1 << 7 // AllowRepeats$ True with Amount$ X: A copies offered
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err

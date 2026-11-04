@@ -119,13 +119,16 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if p == 255 {
 			p = e.ctrl
 		}
-		n := s.replTokens(k, p, CardID(in.C), s.value(k, in.A))
+		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
+		if !ok {
+			return true // StallTokRewrite
+		}
 		for i := 0; i < n; i++ {
 			if s.nearCapacity() {
 				s.stall(StallBoard)
 				return true
 			}
-			o := s.newToken(CardID(in.C), p)
+			o := s.newToken(tc, p)
 			sl := s.enter(k, o, p, in.B.N&kop.TrTapped != 0, kop.ZoneLibrary)
 			if in.B.N&kop.TrHasteEOT != 0 {
 				s.grantEOT(sl, kop.KwHaste)

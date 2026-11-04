@@ -391,6 +391,14 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 				n, err = int(v), nil
 			}
 		}
+		if err == nil && n < 1 {
+			// "Copy that card X times" with X = 0 (Infinite Diversity, no
+			// creature types among the Federation's creatures): no copy
+			// exists to cast (CR 707.12), so nothing is offered.
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Play found no card to play (Amount$ is " + strconv.Itoa(n) + ")"})
+			return
+		}
 		if err == nil && n > 1 {
 			max = n
 			// AllowRepeats$ (Mnemonic Deluge, Chandra Pyromaster, Infinite
