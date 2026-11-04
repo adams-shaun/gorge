@@ -70,7 +70,10 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # 66757752dc = e5904606 + H.M.S. Bounty (Count$YourExtraTurns, the extra-turn counter and its script).
 # 21f2538a76 = the fork's gorge-trek3: Card-Forge master 6264f0292f (2026-11-03) + the open Star Trek PR heads
 # (Card-Forge/forge#12365 through #12561) + the fork's authored Star Trek scripts, H.M.S. Bounty and four script fixes sent to those PRs.
-FORGE_REF  ?= 21f2538a7621fe82ecb82de25507cbb5043f4609
+# df3c93c8e4 = the fork's gorge-trek4: Card-Forge master e7020aa13c (2026-11-04) + the open Star Trek PR heads of 2026-11-04
+# (Card-Forge/forge#12365 through #12561) + the fork's own Star Trek PRs with their review fixes (Card-Forge/forge#12666 through
+# #12673: the authored scripts, H.M.S. Bounty and EndCombatPhase's Optional$) + Dr. McCoy's ActiveZones$.
+FORGE_REF  ?= df3c93c8e41d28f59a2bf7e57107aabb8cc088a9
 
 .PHONY: help
 help:
