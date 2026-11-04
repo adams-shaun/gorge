@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // realkernel.go adapts package kernel
@@ -73,6 +74,16 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 				decks[s] = append(decks[s], id)
 			}
 		}
+		var sides [2][]kop.CardID
+		for s := 0; s < 2; s++ {
+			for _, c := range m.Sideboards[s] {
+				id, ok := rev[cardName(c)]
+				if !ok {
+					return nil, fmt.Errorf("realkernel: sideboard %q is not in table %s", cardName(c), tbl.Name)
+				}
+				sides[s] = append(sides[s], id)
+			}
+		}
 		r := &realSide{tbl: tbl, m: m}
 		m.chars = newCharVocab(tbl)
 		r.gname = make([]string, len(tbl.Cards))
@@ -98,6 +109,12 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r.kcfg.Mulligans = uint8(m.Mulligans)
 		r.kcfg.RecordChance = cfg.RecordChance
 		r.kcfg.ArrangeRestOrder = cfg.ArrangeRestOrder
+		for s := 0; s < 2; s++ {
+			if len(sides[s]) > dirac.MaxSide {
+				return nil, fmt.Errorf("realkernel: sideboard of %d cards, the kernel holds %d", len(sides[s]), dirac.MaxSide)
+			}
+			r.kcfg.SideN[s] = uint8(copy(r.kcfg.Side[s][:], sides[s]))
+		}
 		r.s.Init(tbl, decks[0], decks[1], seed, r.kcfg)
 		return r, nil
 	}
@@ -256,8 +273,10 @@ func (r *realSide) Project(p *Projection) {
 		switch {
 		case o.Zone == kop.ZoneNone:
 			c.Zone = ZoneCeased
-		case o.Zone >= kop.ZonePhased:
+		case o.Zone.Phased():
 			c.Zone = uint8(kop.ZoneBattlefield) - 1 // a phased-out permanent is still on the battlefield (CR 702.26d)
+		case o.Zone == kop.ZoneSideboard:
+			c.Zone = uint8(state.ZSideboard)
 		default:
 			c.Zone = uint8(o.Zone) - 1
 		}
@@ -288,7 +307,7 @@ func (r *realSide) Project(p *Projection) {
 		if o.Flags2&dirac.ProjSuspected != 0 {
 			f |= FSuspected
 		}
-		if o.Zone >= kop.ZonePhased {
+		if o.Zone.Phased() {
 			f |= FPhasedOut
 		}
 		if o.Flags&dirac.ProjFaceDown != 0 {
@@ -322,7 +341,7 @@ func (r *realSide) Project(p *Projection) {
 		// and so is its regeneration shield ("Shield", the same marker family)
 		c.Counters[CtrOther] += int16(r.s.FeatRegenShields(dirac.Obj(i)))
 		c.AttachedTo, c.Blocks = Ref(o.Attached), Ref(o.Blocks)
-		if o.Zone == kop.ZoneBattlefield || o.Zone >= kop.ZonePhased {
+		if o.Zone == kop.ZoneBattlefield || o.Zone.Phased() {
 			ch := &kp.Chars[i]
 			c.Chars = CharsProj{Types: uint16(ch.Types), Subtypes: ch.Subs, AllTypes: ch.AllSub, Colors: uint8(ch.Colors), Keywords: uint32(ch.Kw &^ kwStaticBits)}
 		}

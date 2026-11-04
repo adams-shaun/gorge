@@ -12,6 +12,7 @@ import (
 // Capacity constants. State is a fixed-size value; these bound it.
 const (
 	MaxDeck    = 60  // cards per seat's deck
+	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
 	MaxObj     = 192 // card instances: both decks + tokens
 	MaxPerm    = 112 // battlefield slots (no gate-slice game exceeds 112)
 	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
@@ -102,6 +103,13 @@ type Config struct {
 	// attacking the defending player before the declaration, which a
 	// search's declaration candidates rely on. The oracle sets it.
 	GorgeMustAttack bool
+	// Side is each seat's sideboard, the cards "outside the game" (CR 400.11):
+	// Side[p][:SideN[p]], at most MaxSide per seat. They are objects of their
+	// own, numbered after both decks, in the zone ZoneSideboard; only a play
+	// permission that names the sideboard (The Holodeck) ever reaches one
+	// (zone_sideboard.go). The zero value is no sideboard.
+	Side  [2][MaxSide]CardID
+	SideN [2]uint8
 }
 
 // object is one card instance.

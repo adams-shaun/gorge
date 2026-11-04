@@ -106,6 +106,7 @@ const (
 	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
+	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -754,11 +755,30 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpCreateToken, kop.OpCreateTokenEx:
+		in := in // a rewriter swaps the card on this copy
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			p = e.ctrl
 		}
-		n := s.replTokens(k, p, CardID(in.C), s.value(k, in.A))
+		if in.Op == kop.OpCreateTokenEx && s.tokenDefenderAsk(k, in, p) {
+			return false, true // the CR 508.4 defender ask (filter_combatwords.go)
+		}
+		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
+		if !ok {
+			return true, true // StallTokRewrite
+		}
+		if tc != CardID(in.C) {
+			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
+				// a Role mint rewritten: gorge mints the rewriter's card as a plain
+				// script mint (not an Aura, so nothing is withheld); the attach path
+				// would look for a host for the non-Aura card (repl_tokrewrite.go)
+				s.capFull(StallTokRewrite)
+				return true, true
+			}
+			rw := *in // a rewriter: the mint makes its card (repl_tokrewrite.go)
+			rw.C = int16(tc)
+			in = &rw
+		}
 		if in.Op == kop.OpCreateTokenEx {
 			s.g.tokMade = 0
 			if in.B.N&kop.TokAttach != 0 {
@@ -771,6 +791,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if s.createTokensHeld(k, in, p, n) {
 				return true, true
 			}
+			s.g.tokDefSet = false
 			break
 		}
 		for i := 0; i < n; i++ {
@@ -792,7 +813,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.tokenAtEOT(in, o)
 			}
 			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-				s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
+				s.tokenAttacks(k, sl, p) // filter_combatwords.go
 			}
 			if k.gen.anyTokCr {
 				s.fireTokenCreated(k, sl)
@@ -804,6 +825,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 			s.res.lastTok = o
 		}
+		s.g.tokDefSet = false
 	case kop.OpEndTurn:
 		s.endTurnExile()
 		e.flags |= sfFlashback // exiled, not put into the graveyard

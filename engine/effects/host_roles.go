@@ -685,6 +685,13 @@ type HostTurnLedger interface {
 	// pending grant that was not skipped. Derived from the event log, so a
 	// replay derives the same number (Count$YourExtraTurns).
 	ExtraTurnsBegun(p state.PlayerID) int32
+	// SpellsCastThisGame reports how many spells p has cast this game
+	// (Count$YouCastThisGame): every PutOnStack naming p that no CR 733.1
+	// reversal undid, so a copy (never cast) and an ability (never a spell)
+	// are not counted and the spell whose cast is in progress counts once
+	// it is on the stack (CR 601.2i). Derived from the event log, so a
+	// replay derives the same number.
+	SpellsCastThisGame(p state.PlayerID) int32
 	// AttackersThisTurn counts the attackers declared THIS turn — the sum of
 	// every DeclareAttackers event's attacker list since the last TurnChange,
 	// derived from the event log so a replay derives the same number. This is

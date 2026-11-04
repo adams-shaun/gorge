@@ -309,6 +309,8 @@ func (s *State) unpushSpell(k *prep) {
 		pl.exileN++
 	case kop.ZoneLibrary:
 		pl.libTop(o)
+	case kop.ZoneSideboard:
+		// outside the game: no list, the object's zone is its place
 	default:
 		panic("kernel: unpushSpell from an unexpected zone")
 	}
@@ -1276,6 +1278,9 @@ func (s *State) finishBuild(k *prep) {
 			s.histCast(k, &e, &cost)
 		}
 		s.checkWard(k, &s.stack[s.sp-1]) // gorge meets the targeting before the cast it is part of
+		if k.gen != nil && k.gen.anyFirstCast {
+			s.noteFirstCast() // cast_firstcast.go
+		}
 		s.onCast(k, &e)
 		s.casualtyTrigger(k, &e)
 		s.passes = 0

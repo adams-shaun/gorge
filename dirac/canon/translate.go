@@ -716,6 +716,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("tap"), src, RefNone, 0), true
 		}
 		return Pack(kind("untap"), src, RefNone, 0), true
+	case dirac.ChGenKeepTapped:
+		// gorge's untap-step election over the permanent: "untap" first,
+		// then "keep_tapped"
+		if mode == 1 {
+			return Pack(kind("keep_tapped"), src, RefNone, 0), true
+		}
+		return Pack(kind("untap"), src, RefNone, 0), true
 	case dirac.ChGenPeekReveal:
 		// gorge's reveal_optional over a PeekAndReveal: yes carries the
 		// top card as its Obj, no names nothing

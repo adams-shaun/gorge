@@ -218,7 +218,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 			}
 		}
 	}
-	if ob.zone == kop.ZoneBattlefield || k.phasing && ob.zone >= kop.ZonePhased {
+	if ob.zone == kop.ZoneBattlefield || k.phasing && ob.zone.Phased() {
 		sl := ob.slot
 		pm := &s.perms[sl]
 		po.Card = s.cardAt(sl)

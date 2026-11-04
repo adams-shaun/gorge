@@ -79,7 +79,7 @@ func (s *State) untapAll(k *prep, in *kop.Instr) {
 			continue
 		}
 		p.flags &^= pfTapped
-		if s.g.nlA[0] != 0 {
+		if s.g.netAny() {
 			s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 		}
 		pre = pre.with(sl)

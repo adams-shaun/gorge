@@ -597,6 +597,9 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		return c, nil
 	}
 	if cs, ok := ps.get("ConditionCheckSVar"); ok {
+		if lc.firstCastSVar != "" && strings.TrimSpace(cs) == lc.firstCastSVar {
+			return lc.firstCastCond(ps) // lower_firstcast.go
+		}
 		v, err := lc.value(cs)
 		if err != nil {
 			return lCond{}, err

@@ -108,10 +108,10 @@ const (
 func (s *State) beginStep(k *prep) {
 	switch s.step {
 	case kop.StepUntap:
-		if k.phasing {
+		if k.phasing && !s.g.untapOn {
 			s.phaseUntap(k) // CR 702.26a/p, before the untap action (kw_phasing.go)
 		}
-		if k.anyDayNight && s.g.dayNight&3 != 0 {
+		if k.anyDayNight && s.g.dayNight&3 != 0 && !s.g.untapOn {
 			s.dnUntap(k) // CR 731.2, before the untap action (kw_daynight.go)
 		}
 		if k.gen != nil && (k.gen.untapRepl || k.gen.anySkipUntap) {
@@ -140,7 +140,7 @@ func (s *State) beginStep(k *prep) {
 			}
 			if p.flags&pfTapped != 0 && !blocked {
 				p.flags &^= pfTapped
-				if s.g.nlA[0] != 0 {
+				if s.g.netAny() {
 					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 				}
 			}

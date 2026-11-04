@@ -41,7 +41,7 @@ func tablePhasing(t *kop.Table) bool {
 // hiddenAt reports whether slot sl holds a phased-out permanent.
 func (s *State) hiddenAt(sl Slot) bool {
 	ob := &s.objs[s.perms[sl].obj]
-	return ob.zone >= kop.ZonePhased && ob.slot == sl
+	return ob.zone.Phased() && ob.slot == sl
 }
 
 // phasedSlots is the set of slots holding phased-out permanents.

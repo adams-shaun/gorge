@@ -591,7 +591,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 		if seen.has(o) {
 			return
 		}
-		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 && (ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) {
+		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 &&
+			(ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) &&
+			(ob.zone != kop.ZoneExile || ob.owner() != p || k.gen.sCls[ob.card]&sclsExMay == 0) {
 			return
 		}
 		s.mayPlayStatics(k, p, o, func(st statSrc) bool {
@@ -633,6 +635,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	}
 	if zones&(1<<kop.ZoneLibrary) != 0 {
 		s.tryLibTop(p, try) // cast_topoflibrary.go
+	}
+	if zones&(1<<kop.ZoneSideboard) != 0 && !DebugHolodeckNoSideboard {
+		s.eachSideboard(p, try) // zone_sideboard.go
 	}
 	for i := 0; i < int(pl.handN); i++ {
 		try(pl.hand[i])
