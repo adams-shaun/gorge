@@ -103,6 +103,11 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "dig_shock_land_election_holds_entrants_checks"},               // Branching Timeline puts Sacred Foundry and Syndicate Liquidators onto the battlefield: the Foundry's pay-life ask suspends the dig, and Liquidators' landfall for it goes on the stack only after the whole dig is done (CR 603.6a)
 		{"std-trk", "dig_shock_land_election_trigger_order"},                       // the same dig with Hallowed Fountain asked before three more entrants: all their enters triggers are ordered together once the dig is done
 		{"std-trk", "prefix_surveil_trigger_mills_the_card"},                       // Deep Space 9 cast after tapping Jett Reno for Rok-Tahk's granted {G}{G}: gorge's prefix lets Jett's surveil resolve first and answers it with the empty top pile, so Adversary by Algorithm goes to the graveyard (CR 701.25a)
+		{"std-trk", "beam_cost_returns_leave_graveyard_watcher_stalker"},           // Final Frontier cast by beam me up returning Hologram Stalker: the spell leaves the graveyard before the cost is paid (CR 601.2a), so Stalker's "whenever a card leaves your graveyard" triggers and goes on the stack though Stalker left (CR 603.3, 113.7a)
+		{"std-trk", "beam_cost_returns_leave_graveyard_watcher_vash"},              // the same with Vash, Freelance Archaeologist returned by the beam me up cost: its draw trigger is put on the stack
+		{"std-trk", "charm_mode_sub_target_keeps_make_it_so"},                      // Make It So targeting a Treasure it then sacrifices for mana: the target player is still legal, so the spell resolves and that player draws two cards (CR 608.2b)
+		{"std-trk", "late_entry_order_unicomplex_condition_fails"},                 // The Unicomplex played under two Warp Speeds with two other lands: its own enters-tapped body applied last at the re-ask taps nothing, so it stays untapped and its enters-untapped trigger is put on the stack (CR 616.1f)
+		{"std-trk", "filter_search_funds_with_restricted_colourless"},              // Starfleet Academy's {5} with Isolinear Processor untapped: gorge's prefix search tries the artifact-only {C} as funding and runs out of nodes, so Artificial Anomaly's sacrifice ability is not offered (CR 605.3a)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
