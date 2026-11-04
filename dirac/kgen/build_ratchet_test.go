@@ -127,7 +127,7 @@ import (
 // +1 (Melek, Reforged Researcher: OnlyFirstSpell$ with ValidSpell$; 19927 -> 19928; ratchet MKM 204 -> 205).
 // +1 (The City on the Edge of Forever: Phases AllValid$ and S:Mode$ CantPhaseIn; 21443 -> 21444; ratchet TRK 276 -> 277).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21444, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21445, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
