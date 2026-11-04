@@ -228,7 +228,12 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		}
 		var mode int
 		switch o.Kind {
-		case "type", "creature_type", "land_type", "name":
+		case "name":
+			// a card name: the label's canonical value, which does not
+			// consult the creature-type vocabulary (canon.NameValue)
+			h := canon.NameValue(o.Label)
+			return Pack(k, src, Ref(h>>8), uint8(h)), true
+		case "type", "creature_type", "land_type":
 			// A label-valued choice: the option order is state-dependent
 			// (rules.creatureTypeOptions puts the chooser's own types first),
 			// so the value is the label's index in gorge's creature-type

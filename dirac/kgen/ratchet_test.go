@@ -34,8 +34,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; TRK 291 -> 292, ALL 21460 -> 21462).
 	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 292 -> 293, ALL 21462 -> 21463).
 	// +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; TRK 293 -> 294, ALL 21463 -> 21464).
+	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; TRK 294 -> 295, ALL 21464 -> 21465).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21464, 34442},
+	"ALL": {21465, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -62,7 +63,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {294, 311},
+	"TRK": {295, 311},
 	"WOE": {252, 281},
 }
 

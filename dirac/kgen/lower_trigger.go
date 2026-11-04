@@ -1019,6 +1019,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		default:
 			return refuse("AbilityCast ValidSA$ %q", vs)
 		}
+	case "SpellAbilityCast":
+		if err := lc.namedCastTrigger(tp, tr, zone); err != nil { // lower_choosename.go
+			return err
+		}
 	case "CommitCrime":
 		// CR 700.13 (gorge trigmatch commitCrimeMatches): ValidPlayer$ is
 		// matched against the criminal. The kernel scans the battlefield
@@ -3494,6 +3498,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 		case "ChooseNumber":
 			if err := lc.etbChooseNumber(ps, node, sa, other, cond); err != nil { // lower_choosenumber.go
+				return err
+			}
+		case "NameCard":
+			if err := lc.etbChooseName(ps, node, sa, other, cond); err != nil { // lower_choosename.go
 				return err
 			}
 		case "ChooseType":

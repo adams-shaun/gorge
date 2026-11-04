@@ -334,6 +334,10 @@ func (s *State) cloneCleanup(k *prep) {
 			break
 		}
 		sl := s.g.fx[i].sl
+		if s.aegisSettle(k, sl) {
+			any = true
+			continue
+		}
 		old := s.copyExcKw(k, sl)
 		s.dropFx(func(i int) bool {
 			x := &s.g.fx[i]
