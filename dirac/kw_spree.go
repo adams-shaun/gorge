@@ -14,6 +14,33 @@ import (
 // (CR 733.1, finishBuild). gorge's payment planner declines the face
 // ("shape:modal_cost", featview.go plannedCastCost).
 
+// modalFloorZero reports a Spree or Tiered card with a mode that adds
+// nothing, so a cast's cheapest legal total is its printed cost (CR
+// 702.172a/702.183a). Only then may a granted-source prefix search fund the cast: a
+// cast whose cheapest mode still costs mana needs more than the printed cost,
+// and a prefix that floats only the printed total would offer a cast no mode
+// can pay.
+func modalFloorZero(k *prep, c CardID) bool {
+	cd := &k.t.Cards[c]
+	if !cd.HasModeCost {
+		return false
+	}
+	ab := spellAb(k, c)
+	if ab == 255 {
+		return false
+	}
+	n := int(cd.Abilities[ab].NModes)
+	if n > len(cd.ModeCost) {
+		n = len(cd.ModeCost)
+	}
+	for _, mc := range cd.ModeCost[:n] {
+		if mc.MV() == 0 && mc.X == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // spreeCost adds the chosen modes' costs to c.
 func spreeCost(cd *kop.CardDef, mode uint8, c kop.ManaCost) kop.ManaCost {
 	if DebugTieredNoModeCost {

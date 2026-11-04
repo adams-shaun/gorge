@@ -888,10 +888,14 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					continue
 				}
 				limitKey := grantedLimitKey(id, gf.Obj)
+				if grantedAttackersBatchFired(e, t, limitKey) {
+					continue
+				}
 				if !e.triggerGameActivationLimitAllows(t, limitKey) || !e.triggerActivationLimitAllows(t, limitKey) {
 					continue
 				}
 				e.reserveTriggerLimits(t, limitKey)
+				latchGrantedAttackersBatch(e, t, limitKey)
 				key := triggerKey{Source: id, Idx: -1}
 				tc := observer.triggerReferents(t, id, ev, objLKI)
 				pt := pendingTrigger{
@@ -986,10 +990,14 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 		// (Hollowmurk Siege, Well Rested): the same two gates a printed line
 		// passes, read after every other gate so a rejected match spends no use.
 		limitKey := grantedLimitKey(id, grantorID)
+		if grantedAttackersBatchFired(e, t, limitKey) {
+			continue
+		}
 		if !e.triggerGameActivationLimitAllows(t, limitKey) || !e.triggerActivationLimitAllows(t, limitKey) {
 			continue
 		}
 		e.reserveTriggerLimits(t, limitKey)
+		latchGrantedAttackersBatch(e, t, limitKey)
 		tc := observer.triggerReferents(t, id, ev, objLKI)
 		pt := pendingTrigger{
 			Source:       id,

@@ -156,6 +156,19 @@ type replChoice struct {
 	// emitted (the composition's preamble ran); a re-parked continuation
 	// skips the emit and resolves only the remaining bodies.
 	emitted bool
+	// stored is kind == replChoiceUpdated's folded entry event, captured when the
+	// composition's preamble emits the move: the original event with the
+	// entry-counter grants folded into its Pairs (foldEntryMove), against which
+	// the entry's own triggers are matched. The bodies run against the UNFOLDED
+	// ev (exactly as the synchronous composition does), and the check waits for
+	// the bodies: a body is how the permanent ENTERS (CR 614.1c/614.12 -- "as a
+	// copy of ...", "enters tapped"), so a leaves/enters trigger's ValidCard$
+	// must see the permanent as it entered. Matched before the bodies, a copy
+	// body's ClonePermanent (TriggerNone) had not yet landed, and the copied
+	// card's enters trigger never matched. The check itself happens at the
+	// composition's terminal arm, once, under the same parked triggerBefore
+	// snapshot (rc.before) as the synchronous path's own check.
+	stored events.Event
 	// absorbed is kind == replChoiceUpdated's set of Updated PutCounter|
 	// ETB$ True bodies (replIdentity) whose placement the entry move's Pairs
 	// payload already carries (engine/rules/entry_counters.go). It is captured from

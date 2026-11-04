@@ -1970,6 +1970,20 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
+	case "Panharmonicon":
+		// (Lwaxana Troi, Charming Guest) "for as long as this remains tapped,
+		// if a triggered ability of that creature triggers, that ability
+		// triggers an additional time". Only the exact shape gorge's effEffect
+		// registers (kernel ExtGrantPanharm): the single remembered target,
+		// no scoping term beyond ValidCard$ Card.IsRemembered, a host-tap
+		// lifetime and the target leaving the battlefield ending it.
+		if obj.Kind != rTarget || ps.str("RememberObjects") != "Targeted" || ps.str("Duration") != "UntilUntaps" ||
+			ps.str("ExileOnMoved") != "Battlefield" || sp.str("ValidCard") != "Card.IsRemembered" {
+			return refuse("Effect Panharmonicon shape")
+		}
+		ps.consume("Duration", "ExileOnMoved")
+		sp.consume("ValidCard")
+		lc.emit(lInstr{Op: "GrantPanharm", Obj: obj, Note: "the target's triggers trigger an additional time while the source stays tapped"})
 	case "Continuous":
 		if !sp.is("MayPlay", "True") {
 			return refuse("Effect continuous shape")

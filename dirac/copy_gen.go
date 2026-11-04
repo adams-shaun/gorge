@@ -130,8 +130,8 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}
-	ce.remVer = 0          // nor the keywords the spell gained (CR 707.2)
-	ce.prov, ce.spc = 0, 0 // nor cast from a zone, nor convoked, nor spent colours
+	ce.remVer &= spellFirstCast // nor the keywords the spell gained (CR 707.2); the first-cast stamp stays (cast_firstcast.go)
+	ce.prov, ce.spc = 0, 0      // nor cast from a zone, nor convoked, nor spent colours
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}

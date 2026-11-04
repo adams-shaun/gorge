@@ -565,6 +565,19 @@ const ExtCounterPlusEOT ExtOp = 247
 
 func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 
+// ExtGrantPanharm (Lwaxana Troi, Charming Guest): the object in Obj (a target
+// slot) gains "if a triggered ability of this permanent triggers, that
+// ability triggers an additional time" for as long as the resolving ability's
+// source stays tapped on the battlefield and the object stays on the
+// battlefield (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered,
+// Duration$ UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Nothing
+// is granted when the source is not a tapped permanent as this resolves. One
+// record per grant in genState.pgT / pgH, counted by the echo walk beside the
+// printed StatPanharmonicon statics. dirac/act_grantpanharm.go.
+const ExtGrantPanharm ExtOp = 248
+
+func init() { extOpNames[ExtGrantPanharm] = "GrantPanharm" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a

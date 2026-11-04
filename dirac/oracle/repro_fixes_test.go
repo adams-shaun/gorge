@@ -65,6 +65,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
+		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
+		// is payable, but no mode is, so neither engine offers the cast (CR
+		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
+		{"explosive_derailment_needs_a_mode_cost", false, false},
 	})
 }
 
@@ -109,9 +114,11 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false, false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false}, // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_trigger_cost", true, false},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},          // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
+		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 	})
 }
 
@@ -224,6 +231,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_cast_targets_resolving_ability", true, false},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true, false}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
 		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
 	})
 }
 
@@ -261,6 +269,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-dft", []stdRepro{
 		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
 		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false}, // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
 	})
 }
 
