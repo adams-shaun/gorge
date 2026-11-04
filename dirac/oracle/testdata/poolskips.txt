@@ -21,6 +21,7 @@ TestFeatBLBTapOtherManaOption
 TestFeatEntityX
 TestForkIsIndependent
 TestGiadaEatenAliveLockstep
+TestHBotParityFDNPairs
 TestHandHiddenFromOpponent
 TestLockstepRecordingAgrees
 TestLockstepRecordingNamesADivergence
