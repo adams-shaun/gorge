@@ -28,8 +28,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     live attachment with the latest layer timestamp (CR 613.7e;
 //     lstamp), else it is its own card again.
 //
-// A bearer that is already a copy by other means (a Clone) stalls
-// (StallAegis): the original copy is not saved.
+// A bearer that is already a copy by other means (a Clone, Fleeting
+// Reflection) keeps that copy aside (fxAegisBase, copy_aegisunder.go): the
+// Aegis copy is the newest, so it wins (CR 613.7e), and the older copy shows
+// again once the last Aegis copy ends.
 
 // DebugAegisNoUnlink (test only) keeps a copy after its attachment is unattached.
 var DebugAegisNoUnlink bool
@@ -127,9 +129,8 @@ func (s *State) aegisApply(k *prep, a Action) {
 			if l.src != e.obj || l.sver != e.srcVer || l.obj != Obj(a.Source()) {
 				continue
 			}
-			if s.aegisLive(host) == 0 && s.perms[host].ovr.flags&ovCopy != 0 {
-				s.capFull(StallAegis) // the bearer is a copy already; it is not saved
-				break
+			if s.aegisLive(host) == 0 && s.perms[host].ovr.flags&ovCopy != 0 && !s.aegisUnderPush(host) {
+				break // the effect pool is full
 			}
 			s.g.linkAeg |= 1 << uint(i)
 			s.aegisRefresh(k, host, NoSlot)
@@ -174,17 +175,18 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 	p := &s.perms[host]
 	cur := s.cardAt(host)
 	var want CardID
+	under := false
 	if best >= 0 {
 		want = s.objs[s.g.links[best].obj].card
-	} else {
+	} else if want, under = s.aegisUnderTake(host); !under {
 		want = p.card
 	}
-	if cur == want {
+	if cur == want && !under {
 		return
 	}
 	s.touchSl(host)
 	s.subscribe(host, &k.cards[cur], false)
-	if best >= 0 {
+	if best >= 0 || under {
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = want
 	} else {

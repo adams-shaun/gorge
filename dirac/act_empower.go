@@ -89,7 +89,7 @@ func (s *State) empower(k *prep, in *kop.Instr) bool {
 		}
 		t := s.replTokens(k, p, CardID(in.C), 1)
 		for i := 0; i < t; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true
 			}

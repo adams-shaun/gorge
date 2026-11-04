@@ -1362,6 +1362,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
+	if t.NamedCast {
+		if t.Event != "SpellCast" {
+			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4NamedCast
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
@@ -2031,6 +2037,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+	case "DestroyHeal":
+		rp.Kind = kop.ReplDestroyHeal
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+			return ka, err
+		}
 	case "ExileOnLeave":
 		rp.Kind = kop.ReplExileOnLeave
 		// the filter has no zone gate either way (ZoneBattlefield compiles to
@@ -2251,7 +2262,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileGraveChain": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2270,6 +2281,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "ExileTrigNew" {
 			ki.B = kop.Const(kop.PayBSubTrigNew) // ExileAnyGrave<1/Card.TriggeredNewCard>, not a filter exile
+		}
+		if in.CS == "ExileGraveChain" {
+			ki.B = kop.Const(kop.PayBSubChain) // the exile half of a mana-and-exile cost (cost_exilepool.go)
 		}
 		if in.CS == "Reveal" {
 			ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
@@ -3902,6 +3916,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseColor, int16(in.C) // in.C: the Exclude$ colours (W U B R G = bits 0..4)
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	case "ChooseName":
+		buildChooseName(&ki) // an as-enters nonland card name (lower_choosename.go)
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

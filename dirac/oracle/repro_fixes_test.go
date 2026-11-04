@@ -71,6 +71,8 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// is payable, but no mode is, so neither engine offers the cast (CR
 		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
 		{"explosive_derailment_needs_a_mode_cost", false, false},
+		{"aegis_on_temporary_copy_bearer", true, false},     // CR 613.7e, 707.2: Assimilation Aegis attached to a creature Fleeting Reflection made a copy until end of turn copies over it (the later copy wins), and gives it back to that copy when unattached
+		{"resolved_spell_copy_rests_in_exile", true, false}, // CR 707.10a: a copy of a spell is exiled as it leaves the stack (gorge's spellRestZone), not put in a graveyard and ceased later
 	})
 }
 
@@ -120,6 +122,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
 		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
 		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
+		{"return_defender_asked_before_move", true, false},                  // CR 508.4: Chorale of the Void's attacking return asks its defender while the card is still in the graveyard, as gorge does, not after it entered
 	})
 }
 
@@ -244,6 +247,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-sos", []stdRepro{
 		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
 		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},      // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
 	})
 }
 
@@ -430,6 +434,7 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 func TestStdWoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-woe", []stdRepro{
-		{"filter_fed_by_granted_mana", false, false}, // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"filter_fed_by_granted_mana", false, false},   // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
+		{"act_paid_filter_second_colour", true, false}, // CR 601.2g, 602.2b: Restless Fortress's {1}{W}{B} animation is offered when a free filter (Crystal Grotto) makes one pip and Rootrider Faun's paid filter the other
 	})
 }

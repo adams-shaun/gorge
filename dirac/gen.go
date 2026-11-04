@@ -307,6 +307,7 @@ type genPrep struct {
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
 	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
@@ -408,6 +409,7 @@ const (
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
+	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -866,6 +868,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplDestroyHeal:
+					g.replBits[i] |= rbDestroyHeal
+					pc.hasStat = true
+					if g.destroyHeal == nil {
+						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
+					}
+					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplMayNotUntap:
@@ -1323,6 +1332,7 @@ const (
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
 	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
+	fxAegisBase              // the copy a bearer wore (r.src its card) when an Assimilation Aegis copy took over, which shows again when the last Aegis copy ends (copy_aegisunder.go)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1730,9 +1740,17 @@ func wardAmt(c *kop.CardDef) int16 {
 
 // nearCapacity reports whether the battlefield or the object table is
 // about to overflow the kernel's fixed capacity (gorge stops such a game at
-// its object cap as a "bigboard" stall).
-func (s *State) nearCapacity() bool {
-	return s.occ.count() >= MaxPerm-4 || int(s.nobj) >= MaxObj
+// its object cap as a "bigboard" stall). A phased-out permanent keeps its
+// slot off every mask (kw_phasing.go), so a phasing table measures the slots
+// an entrant can actually take: enterNF's freeSlots branch.
+func (s *State) nearCapacity(k *prep) bool {
+	if int(s.nobj) >= MaxObj {
+		return true
+	}
+	if k != nil && k.phasing {
+		return s.freeSlots().count() <= 4
+	}
+	return s.occ.count() >= MaxPerm-4
 }
 
 // Stall reasons (StallReason). Most are a capacity; StallClassOf says which are
@@ -2346,7 +2364,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 }
 
 // enterChoiceKind is the as-enters choice card c's enters replacement
-// opens with (akColor, akType, akNumber, akPayLife), or 0.
+// opens with (akColor, akType, akNumber, akName, akPayLife), or 0.
 func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	if k.gen == nil || !k.gen.has(c, gfEnterRepl) {
 		return 0
@@ -2370,8 +2388,11 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 		case kop.OpChooseType:
 			return akType
 		case kop.OpExt:
-			if a.Prog[0].Ext() == kop.ExtChooseNumber {
+			switch a.Prog[0].Ext() {
+			case kop.ExtChooseNumber:
 				return akNumber
+			case kop.ExtChooseName:
+				return akName
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election

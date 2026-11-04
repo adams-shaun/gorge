@@ -220,8 +220,20 @@ func (s *State) resolveTop(k *prep) {
 	s.runProg(k)
 }
 
+// spellRestExiles reports whether a spell that resolved or fizzled rests in
+// exile rather than its owner's graveyard: a copy of a spell ceases to exist
+// as it leaves the stack (CR 707.10a), which gorge's spellRestZone and
+// spellFizzleZone spell with an exile move, and the flashback family does the
+// same (exilesOnLeave). A COUNTERED copy does not use this: gorge's Counter
+// sends it to the zone its card would go to, and the state-based check ceases
+// it there (counterAt).
+func (s *State) spellRestExiles(e *stackEntry) bool {
+	return e.exilesOnLeave() || s.objs[e.obj].of&ofCopy != 0
+}
+
 // finishResolve completes a resolution: a resolving instant/sorcery goes
-// to its owner's graveyard (exile when flashed back).
+// to its owner's graveyard (exile when flashed back, and a copy always
+// leaves the stack for exile: spellRestExiles).
 func (s *State) finishResolve(k *prep, fizzled bool) {
 	if len(s.cold.parked) != 0 {
 		if s.parkedWaiting() {
@@ -252,7 +264,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			s.touch(e.obj)
 			ob.zone = kop.ZoneNone
 			z := kop.ZoneGraveyard
-			if e.exilesOnLeave() {
+			if s.spellRestExiles(e) {
 				z = kop.ZoneExile
 			}
 			if k.gen != nil && k.gen.anyFaces {

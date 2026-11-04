@@ -7,9 +7,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (events/apply_copy.go): a copy is a new card object on the stack (gorge
 // AddObject, IsCopy) controlled by the copier, with the copied spell's
 // targets, modes, X and kicked status. It is not cast (no cast triggers, no
-// cast count). It resolves like the spell; leaving the stack it ceases to
-// exist (CR 704.5e: it is put where the spell would go, then ceases with
-// the tokens in ceaseTokensGen, as gorge's state-based check ceases it).
+// cast count). It resolves like the spell; leaving the stack it rests in
+// exile and ceases to exist there (CR 707.10a: gorge's spellRestZone, then
+// the state-based check in ceaseTokensGen).
 //
 // A copy made with "you may choose new targets" (MayChooseTarget$) elects them
 // inside the resolution that made it, before anyone receives priority (CR
@@ -99,7 +99,7 @@ func (s *State) copySpell(k *prep, src Obj, n int, mayRetarget bool) bool {
 // the copied spell's targets, modes, X and kicked status). It stalls and
 // returns false at capacity.
 func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
-	if s.nearCapacity() {
+	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return false
 	}

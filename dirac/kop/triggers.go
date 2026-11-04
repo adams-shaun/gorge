@@ -46,8 +46,9 @@ const (
 	// Tf4OptTrigPlayer: with TfOptional, the "may" belongs to the trigger's
 	// player (OptionalDecider$ TriggeredPlayer on a Phase trigger: the active
 	// player, Peace in Our Time), not the controller; the resolution ask is
-	// posed to that seat (gorge deciderFromSpec).
-	Tf4OptTrigPlayer TrigFlags4 = 1 << 4
+	// posed to that seat (gorge deciderFromSpec). Bit 4 is Tf4NamedCast
+	// (Kai Winn), so this family's next free bit is 5.
+	Tf4OptTrigPlayer TrigFlags4 = 1 << 5
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens
@@ -344,6 +345,15 @@ const Tf4CounterCell TrigFlags4 = 1 << 2
 // every spell they cast this turn. Filter names no zone: an earlier push may have
 // left the stack.
 const Tf4NthFiltered TrigFlags4 = 1 << 3
+
+// Tf4NamedCast (Trigger.Flags4): a SpellCast line lowered from Mode$
+// SpellAbilityCast over the source's chosen card name (ValidCard$
+// Card.NamedCard, ValidSA$ Spell,Activated, ValidActivatingPlayer$
+// Opponent; Kai Winn, Faithless Leader). It fires when a spell with the
+// source's chosen name is cast (the SpellCast arm, castNamedOK) and when an
+// ability of a source with that name is activated (the AbilityCast arm,
+// fireAbilityCast); the chosen name is the permanent's chosen byte, a CardID.
+const Tf4NamedCast TrigFlags4 = 1 << 4
 
 // the packed constants of the Increment keyword's ops.
 
