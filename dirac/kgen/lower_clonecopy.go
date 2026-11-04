@@ -13,6 +13,7 @@ import (
 //	Choices$ template (Optional$), the source becomes    Deepfathom Echo
 //	own ValidTgts$ template, the source becomes          Oko the Ringleader, Silent Hallcreeper
 //	Defined$ Targeted template, CloneTarget$ Valid ...+NotDefinedTargeted   Naga Fleshcrafter
+//	Defined$ Targeted template, CloneTarget$ Valid ..., until end of turn   Gwyndala, the Progeny
 //
 // Duration$ absent or Permanent (until the becomer leaves) or UntilEndOfTurn;
 // the template a creature or artifact (the kernel copies those only); the
@@ -58,6 +59,7 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	// the becomer, read before the node's own target slot is declared
 	var becomer lRef
 	var valid *lFilter
+	selfCopy := false
 	_, hasVT := ps.m["ValidTgts"]
 	_, hasCh := ps.m["Choices"]
 	d, hasD := ps.get("Defined")
@@ -87,13 +89,24 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		spec := strings.TrimSpace(strings.TrimPrefix(ct, "Valid "))
 		spec, cut := cutNotDefinedTargeted(spec)
 		if !cut {
-			return refuse("Clone CloneTarget$ Valid %q without NotDefinedTargeted", spec)
+			// the template may be one of the becomers: a copy of itself
+			// with no exception changes nothing (CR 707.2), and its
+			// until-end-of-turn marker ends with the others, so the kernel
+			// skips it (Gwyndala, the Progeny). A permanent self-copy stays
+			// in gorge's layer-1 markers, and a template that left (Absorb
+			// Identity's ParentTarget) is copied from its new zone: refused.
+			if ps.str("Duration") != "UntilEndOfTurn" || d != "Targeted" {
+				return refuse("Clone CloneTarget$ Valid %q without NotDefinedTargeted", spec)
+			}
+			selfCopy = true
 		}
 		var err error
 		if valid, err = lc.filter(spec); err != nil {
 			return err
 		}
-		flags |= kop.CloneExclTmpl
+		if cut {
+			flags |= kop.CloneExclTmpl
+		}
 	default:
 		return refuse("Clone CloneTarget$ %q", ct)
 	}
@@ -108,6 +121,16 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		if err != nil {
 			return err
 		}
+		if err := lc.cloneTemplate(tr, &flags); err != nil {
+			return err
+		}
+	case selfCopy && hasVT && !hasCh:
+		// Defined$ Targeted names the node's own ValidTgts$ target
+		tr, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield)
+		if err != nil {
+			return err
+		}
+		ps.consume("ValidTgts", "Defined")
 		if err := lc.cloneTemplate(tr, &flags); err != nil {
 			return err
 		}
@@ -151,6 +174,9 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	exc, hasExc, err := lc.copyExceptions(ps)
 	if err != nil {
 		return err
+	}
+	if selfCopy && hasExc {
+		return refuse("Clone CloneTarget$ Valid without NotDefinedTargeted beside copy exceptions")
 	}
 	in := lInstr{Op: "CloneCopy", Obj: becomer, F: valid, B: cst(flags)}
 	if hasExc {

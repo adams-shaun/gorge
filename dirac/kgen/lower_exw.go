@@ -63,8 +63,12 @@ func (lc *lowerCtx) exwCheck() {
 			switch in.Op {
 			case "ChooseMove":
 				// a pick out of exile writes no link (the card is already
-				// linked); a pick into exile is Wormfang's unproven shape
-				if in.C != zExile {
+				// linked); a pick out of the hand into exile links it when
+				// the card's SVars read the set (gorge zone_hand.go
+				// svarsReadExiledWith, Forge's handleExiledWith: All Good
+				// Things . . .); any other pick into exile is Wormfang's
+				// unproven shape
+				if in.C != zExile || strings.Contains(in.CS, "from=Hand") && lc.svarsReadExiledWith() {
 					continue
 				}
 			case "Search":
@@ -102,6 +106,17 @@ func (lc *lowerCtx) exwCheck() {
 			return
 		}
 	}
+}
+
+// svarsReadExiledWith is gorge's svarsReadExiledWith over the face's SVar
+// table: some SVar body names ExiledWith.
+func (lc *lowerCtx) svarsReadExiledWith() bool {
+	for _, body := range lc.face.SVars {
+		if strings.Contains(body, "ExiledWith") {
+			return true
+		}
+	}
+	return false
 }
 
 // exilePick lowers `ChangeZone | Hidden$ True | Origin$ Exile | Destination$

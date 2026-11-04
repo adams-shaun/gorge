@@ -287,6 +287,9 @@ func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 // spend, and the window probe does not price, understates what the window can produce
 // (CR 106.6). Gorge: castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
+	if s.windowTapXLive(k, e.ctrl).any() {
+		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
+	}
 	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra {
 		return true
 	}
@@ -315,6 +318,16 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		}
 	}
 	return true
+}
+
+// windowTapXLive: p's tap-another-permanent mana sources that can be activated
+// now (Supportive Parents, Springleaf Drum). The window census prices no
+// tapXType cost, so each leaves it incomplete.
+func (s *State) windowTapXLive(k *prep, p uint8) slotMask {
+	if !k.tapMana {
+		return slotMask{}
+	}
+	return s.scriptTapX(k, p)
 }
 
 // waterbendDone closes the waterbend pick; the next buildStep advances past

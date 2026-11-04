@@ -48,7 +48,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 205.1a | partial | `engine/rules/chars/types.go#bestowedTypeSwitch` `engine/rules/chars/types.go#applyTypeEffect` `engine/effects/card_type_loss.go#SubtypesKeptBy` | `TestCardTypeLossKeepsSubtypesOfRemainingTypes` `TestCardTypeRemovalAllCreatureMarker` `TestCopyExceptionCardTypeLossKeepsCorrelatedSubtypes` `TestBludgeonBrawlReplacesArtifactSubtypes` `TestTakklemaggotAnimationStripsAura` | gorge: RemoveTypes keeps orphan subtypes; no instant/sorcery retention |
 | 205.1b | follows | `engine/rules/chars/types.go#appendTypeOnce` | - | - |
 | 205.2 | definition | - | - | heading |
-| 205.2a | follows | `engine/effects/creature_types.go#cardTypeWords` `engine/rules/chars/types.go#cardTypeWords` | `TestEvalCountCardTypesCountsKindred` `TestKindredIsACardType` | Kindred and the retired Tribal both count as card types |
+| 205.2a | follows | `engine/effects/creature_types.go#cardTypeWords` `engine/rules/chars/types.go#cardTypeWords` `engine/effects/count_ref_property.go#evalRefProperty` | `TestEvalCountCardTypesCountsKindred` `TestKindredIsACardType` `TestRefSharesCardTypes` | Kindred and the retired Tribal both count as card types; SharesCardTypes is the most referenced cards with one card type in common |
 | 205.2b | follows | `engine/effects/filter_type.go#hasType` | - | - |
 | 205.2c | follows | `engine/state/object.go#Object.faceSlow` | - | tokens/copies carry card types |
 | 205.3 | definition | - | - | heading |

@@ -420,6 +420,13 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 			forgot = true
 		}
 		settleChangeZoneMoveAs(h, c, sa, cz, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer, &rider)
+		if to == state.ZExile && svarsReadExiledWith(c) {
+			// Forge's changeHiddenOriginResolve records the exile with
+			// its source too (handleExiledWith): All Good Things . . .'s
+			// "cards exiled with this Saga" counts the hand cards its
+			// chapters exiled
+			exiledWithAssociation(h, c, id, to)
+		}
 		if cz.RememberChanged {
 			eventRemember(h, c, id)
 		}

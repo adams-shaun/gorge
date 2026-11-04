@@ -586,3 +586,33 @@ func TestMatchManaTapExtra(t *testing.T) {
 		t.Fatalf("W with an extra G on the colour ask: %v %v", c, ok)
 	}
 }
+
+// A {C} tap that a static TapsForMana trigger doubles (Forsaken Monument's
+// extra {C}) puts CC in the witness, a single colourless want. An any-colour
+// ability never makes colourless mana (CR 105.1, 106.1b), so the wheel's plain
+// {C} option answers it, not the any-colour one beside it; a {C} tap with an
+// extra coloured mana takes the {C} option too unless the step discloses the
+// any-colour ability's life payment.
+func TestMatchManaTapExtraColourless(t *testing.T) {
+	wheel := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add C"},
+		{Index: 1, Kind: "mana", Obj: 5, Label: "Pay 1 life: Add any color"},
+	}}
+	cc := decision.ManaAmount{0, 0, 0, 0, 0, 2}
+	if c, ok := matchMana(wheel, decision.PaymentActivation{Source: 5, Produces: cc}); !ok || c[0] != 0 {
+		t.Fatalf("CC from a doubled colourless tap: %v %v", c, ok)
+	}
+	gc := decision.ManaAmount{0, 0, 0, 0, 1, 1}
+	if c, ok := matchMana(wheel, decision.PaymentActivation{Source: 5, Produces: gc}); !ok || c[0] != 0 {
+		t.Fatalf("C with an extra G, no life paid: %v %v", c, ok)
+	}
+	if c, ok := matchMana(wheel, decision.PaymentActivation{Source: 5, Produces: gc, Consequence: &decision.PaymentConsequence{Life: 1}}); !ok || c[0] != 1 {
+		t.Fatalf("G with an extra C, life paid: %v %v", c, ok)
+	}
+	anyOnly := &decision.Decision{Kind: decision.KChoose, Min: 1, Max: 1, Options: []decision.Option{
+		{Index: 0, Kind: "mana", Obj: 5, Label: "Add any color"},
+	}}
+	if _, ok := matchMana(anyOnly, decision.PaymentActivation{Source: 5, Produces: cc}); ok {
+		t.Fatal("CC matched an any-colour ability")
+	}
+}

@@ -445,7 +445,9 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 				return false
 			}
 			if any {
-				return anyLabelFits(o.Label, want)
+				// colourless is no colour (CR 105.1): an any-colour
+				// ability never makes {C}
+				return col != colourless && anyLabelFits(o.Label, want)
 			}
 			return want[col] == 1 && containsInt(combo, col)
 		},
@@ -465,15 +467,23 @@ func matchMana(d *decision.Decision, act decision.PaymentActivation) ([]int, boo
 				c := symIndex(o.ManaSymbol)
 				return c >= 0 && want[c] > 0
 			}
-			_, any, combo, ok := labelProduction(o.Label)
+			amt, any, combo, ok := labelProduction(o.Label)
 			if ok && any {
 				// an any-colour pick (Turtle Lair's restricted {T}: Add any
 				// color beside a Groundchuck & Dirtbag): its colour ask
-				// follows and takes the first colour the witness holds
-				return anyLabelFits(o.Label, want)
+				// follows and takes the first colour the witness holds,
+				// so the witness must hold a colour, not only {C}
+				return hasColour(want) && anyLabelFits(o.Label, want)
 			}
 			if !ok {
 				return false
+			}
+			if combo == nil {
+				// an exact production the witness holds beside the
+				// trigger's extra mana: Spire of Industry's {C} with
+				// Forsaken Monument's additional {C} or another source's
+				// coloured extra
+				return total(amt) > 0 && within(amt, want)
 			}
 			for _, c := range combo {
 				if want[c] > 0 {
@@ -611,6 +621,29 @@ func anyLabelFits(label string, want decision.ManaAmount) bool {
 	}
 	n, ok := labeledAnyCount(strings.TrimSpace(label[i+len("Add "):]))
 	return !ok || n == total(want)
+}
+
+// colourless is the {C} slot of a ManaAmount (syms).
+const colourless = 5
+
+// hasColour reports whether m holds any coloured mana.
+func hasColour(m decision.ManaAmount) bool {
+	for c := 0; c < colourless; c++ {
+		if m[c] > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// within reports whether every count of a is at most m's.
+func within(a, m decision.ManaAmount) bool {
+	for c := range a {
+		if a[c] > m[c] {
+			return false
+		}
+	}
+	return true
 }
 
 func containsInt(s []int, v int) bool {

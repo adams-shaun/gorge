@@ -964,6 +964,14 @@ func isolatePreviewScratch(p *Engine) {
 // caller to extract (everything from the length the caller snapshotted).
 func (e *Engine) settleEntryGrants(entrant state.ObjID, grants []entryGrant) ([]events.EntryCounterGrant, int) {
 	var placed []events.EntryCounterGrant
+	// CR 122.6a: the counters an object enters with are put by its controller
+	// unless the effect names another player, so the AddCounter matcher's
+	// ValidSource$ reads the entrant's controller, not the resolving ability's:
+	// a creature card an opponent's effect returns under its owner's control
+	// gets its owner's Dr. Joseph M'Benga doubling. foldEntryWithPlaced's
+	// notification names the same adder.
+	savedAdder := e.SetCounterAdder(e.controllerOf(entrant))
+	defer e.SetCounterAdder(savedAdder)
 	for i, g := range grants {
 		if g.amount <= 0 || e.PutCounterBlocked(g.kind, entrant, 0, false) {
 			continue

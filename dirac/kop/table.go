@@ -233,6 +233,10 @@ type CardDef struct {
 	// Wither is printed wither (CR 702.80): its damage to a creature is
 	// dealt as -1/-1 counters (infect's creature half).
 	Wither bool
+	// AloneAtk is printed "CARDNAME can't attack alone." (CR 506.5): it is
+	// declared as an attacker only beside another attacker; not when it has
+	// lost its abilities (dirac/combat_alone.go).
+	AloneAtk bool
 	// Evasion holds printed blocking-restriction keywords without a KwMask
 	// bit (Ev* bits): not when the creature has lost its abilities.
 	Evasion uint8
@@ -436,6 +440,10 @@ type CardDef struct {
 	// spell was cast, frozen at beginCast into the spell entry's trigMV
 	// (dirac/value_castbattlefield.go); 0 = the card does not read the head.
 	CastBF FilterID
+	// NoPT: the card prints no power or toughness, so a power or toughness
+	// compare never matches it as a card (CR 208.3; gorge's P/T-less object,
+	// dirac/filter_ptvalue.go).
+	NoPT bool
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

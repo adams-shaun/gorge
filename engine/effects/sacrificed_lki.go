@@ -34,6 +34,7 @@ func SacrificedLKI(h Host, id state.ObjID) state.SacrificedInfo {
 		s.Power, s.Toughness = h.Power(id), h.Toughness(id)
 		if ch := h.Chars(id); ch != nil {
 			s.Types = append([]string(nil), ch.Types...)
+			s.LayerTypes, s.AllCreatureTypes = true, ch.AllCreatureTypes
 		}
 		return s
 	}

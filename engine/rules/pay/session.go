@@ -2,6 +2,7 @@ package pay
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -42,6 +43,14 @@ type Session struct {
 	// PaymentPlanRelaxedFee is the generic the relaxed proof charges on top
 	// of every planned cost for the paid relaxed abilities it admits.
 	PaymentPlanRelaxedFee int32 `clone:"reset"`
+
+	// PlanAltsWant > 1 asks the planner for alternative plans
+	// (EnsurePaymentPlanAlternatives): a plain-cost plan then also writes,
+	// in PlanAlts, up to PlanAltsWant-1 plans whose residuals differ from
+	// its own. Zero everywhere else, so the ordinary planner does no more
+	// work. Pure per-query scratch: Clone copies none of it.
+	PlanAltsWant int                    `clone:"reset"`
+	PlanAlts     []decision.PaymentPlan `clone:"reset"`
 
 	// WalkRecDemand: the payment offer builder has run on this engine, so
 	// its potential walk follows priority walks and they record

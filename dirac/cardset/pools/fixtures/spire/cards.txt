@@ -1,0 +1,12 @@
+# Spire of Industry ({T}: Add {C}, and {T}, Pay 1 life: any colour,
+# activated only while its controller controls an artifact)
+# (dirac/oracle/spire_test.go)
+Spire of Industry
+Ornithopter
+Grizzly Bears
+Savannah Lions
+Wind Drake
+Shock
+Forest
+Island
+Mountain

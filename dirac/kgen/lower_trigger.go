@@ -499,8 +499,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			tr.Static = true
 		}
 		lc.spellProvOK = true // the cast-provenance words read the spell cast
+		// a "Chosen" bound reads the number the source chose as it entered (lower_choosenumber.go)
+		lc.chosenNumOK = lc.granted == 0 && tp.str("TriggerZones") == "Battlefield" && entersChoosingNumber(lc.face)
 		tr.F, err = readF("ValidCard")
-		lc.spellProvOK = false
+		lc.spellProvOK, lc.chosenNumOK = false, false
 		if err != nil {
 			return err
 		}
@@ -1670,6 +1672,8 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	switch s.Mode {
 	case "Continuous":
 		lc.grantInner = nil
+		goad := sp.is("Goad", "True")
+		sp.consume("Goad")
 		sts, err := lc.continuous(sp, &st)
 		if err != nil {
 			return nil, err
@@ -1678,6 +1682,18 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err // lower_selfcondition.go
 		}
 		extra = sts
+		if goad {
+			// Goad$ True: the affected creatures are goaded while the
+			// static applies (gorge's static goad route; kop.StatGoad), a
+			// second static over the same filter and condition
+			if st.Kind != "Continuous" || st.F == nil || st.F.Players != 0 {
+				return nil, refuse("Goad$ on a %s static", st.Kind)
+			}
+			if extra == nil {
+				extra = []lStatic{st} // extra replaces the static itself
+			}
+			extra = append(extra, lStatic{Kind: "Goad", F: st.F, Cond: st.Cond})
+		}
 	case "ReduceCost":
 		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (sp.str("ValidSpell") == "Activated.Exhaust" || sp.str("ValidSpell") == "Static.Unlock") {
 			if err := lc.reduceAbility(sp, &st, readF); err != nil {
@@ -1746,6 +1762,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	case "CantBeActivated":
 		if err := lc.cantActivate(sp, &st); err != nil {
 			return nil, err // lower_cantact.go
+		}
+	case "CantTarget":
+		if err := lc.cantTarget(sp, &st); err != nil {
+			return nil, err // lower_canttarget.go
 		}
 	case "CantBlock":
 		if st.F, err = readF("ValidCard"); err != nil {
@@ -1858,6 +1878,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		// family: ValidMode$ ChangesZone,ChangesZoneAll
 		// with Destination$ Battlefield and a ValidCause$ filter, which also
 		// needs the cause (the entering permanent or token) to match F2.
+		// A ValidMode$ of one player-event mode alone (LifeGained, Drawn),
+		// with an optional ValidPlayer$ You, echoes only that mode's triggers
+		// of that player (flags "LifeGained" / "Drawn" and "You").
 		// Every other gate (Origin$, Condition$, ...) is unread, so the shared
 		// unread check refuses it by name.
 		v, ok := sp.get("ValidCard")
@@ -1875,6 +1898,15 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		dest, hasDest := sp.get("Destination")
 		switch {
 		case !hasMode && !hasCause && !hasDest:
+		case hasMode && !hasCause && !hasDest && (vm == "LifeGained" || vm == "Drawn"):
+			st.Flags = append(st.Flags, vm)
+			switch vp, ok := sp.get("ValidPlayer"); {
+			case !ok:
+			case strings.TrimSpace(vp) == "You":
+				st.Flags = append(st.Flags, "You")
+			default:
+				return nil, refuse("Panharmonicon ValidPlayer$ %s", vp)
+			}
 		case hasMode && hasCause && hasDest:
 			if vm != "ChangesZone,ChangesZoneAll" {
 				return nil, refuse("Panharmonicon ValidMode$ %s", vm)
@@ -3374,6 +3406,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return refuse("ETB replacement api AlterAttribute")
 			}
 			if err := lc.alterPrepared(ps, lRef{Kind: rReplaced}); err != nil {
+				return err
+			}
+		case "ChooseNumber":
+			if err := lc.etbChooseNumber(ps, node, sa, other, cond); err != nil { // lower_choosenumber.go
 				return err
 			}
 		case "ChooseType":

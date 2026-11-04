@@ -146,6 +146,13 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtUnlockDoor:
 		return s.extUnlockDoor(k, in), true // face_unlockdoor.go
+	case kop.ExtChooseNumber:
+		// inside an as-enters program: asked before the next priority
+		// (the OpChooseColor arm of execGen)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			s.queueAsk(s.objs[o].slot, akNumber)
+		}
+		return true, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }

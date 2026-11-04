@@ -395,7 +395,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyNetLock && s.netLocked(p.obj) {
 		return false // Braided Net's lock: no ability of a tapped, locked permanent (act_lockpermanent.go)
 	}
-	if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, a.Kind == kop.AbMana) {
+	if k.gen != nil && k.gen.anyCantAct && s.actForbiddenAb(k, sl, a.Kind == kop.AbMana, a.Cost.Flags&kop.CostLoyalty != 0) {
 		return false // a CantBeActivated lock (cast_cantactivate.go)
 	}
 	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {

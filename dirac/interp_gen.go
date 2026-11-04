@@ -103,6 +103,7 @@ const (
 	ChGenTeamwork                             // source = an untapped creature tapped for Teamwork (gorge's KChoose "teamwork", Min 1 / AllowNone / MinSum N, CR 702.194a); AkDone closes the pick, none picked declines; kw_teamwork.go
 	ChRoomDoorHalf                            // mode 0 = unlock a door / 1 = lock a door (gorge effUnlockDoor's "Lock or unlock a door?", option 0 = unlock)
 	ChRoomDoor                                // source = the Room; target = the canonical ordinal of the door among the candidates; mode = the door face (gorge effUnlockDoor's "Choose a Room door")
+	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1855,6 +1856,11 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
+	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
+		was := e.ctrl
+		e.ctrl = s.copyCtrl(in)
+		defer func() { e.ctrl = was }()
+	}
 	v := s.value(k, in.A)
 	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
@@ -1954,7 +1960,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if early {
 		s.g.entExc = entExcOn | uint32(tmpl)<<8 | uint32(uint8(in.C))
 	}
-	sl := s.enterNF(k, t, e.ctrl, false, kop.ZoneLibrary, face)
+	sl := s.enterNF(k, t, e.ctrl, fl&kop.CpTapped != 0, kop.ZoneLibrary, face)
 	if face != 0 {
 		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
 	}
@@ -1985,7 +1991,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	} else if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
 	}
-	if in.B.N>>kop.CopyPumpShift != 0 {
+	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
 	}
 	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 {
@@ -2080,12 +2086,11 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 			}
 			s.touch(Obj(code))
 			p := &s.perms[ob.slot]
-			if s.typesAt(k, ob.slot)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, ob.slot) {
-				s.dmgCounters(k, ob.slot, p, n)
-			} else if (inf || wit) && s.isCreature(k, ob.slot) {
+			if (inf || wit) && s.isCreature(k, ob.slot) {
+				s.dmgCountersIf(k, ob.slot, n)
 				s.infectCounters(k, ob.slot, n) // CR 702.90b
 			} else {
-				p.damage = uint8(min(int(p.damage)+n, 255))
+				s.dmgPerm(k, ob.slot, p, n)
 			}
 			if kw&kop.KwDeathtouch != 0 {
 				p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)

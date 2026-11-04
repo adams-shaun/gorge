@@ -767,15 +767,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		sl := ob.slot
 		s.touch(Obj(code))
 		p := &s.perms[sl]
-		if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-			s.dmgCounters(k, sl, p, n)
-		} else {
-			d := int(p.damage) + n
-			if d > 255 {
-				d = 255
-			}
-			p.damage = uint8(d)
-		}
+		s.dmgPerm(k, sl, p, n)
 		if kw&kop.KwDeathtouch != 0 {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}

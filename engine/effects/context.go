@@ -2608,6 +2608,23 @@ func exileProvenanceNeeded(c *Ctx) bool {
 	return c.Host != nil && faceNamesExiledWithSource(c.Host, c.Source)
 }
 
+// svarsReadExiledWith reports whether the source's SVar table reads the
+// cards exiled with it (an ExiledWith$ count or a Defined$ ExiledWith). The
+// hidden-hand mover writes the exiled-with association only for such a
+// source, so an ordinary hand exile's event log is unchanged; the SVar table
+// is immutable, so the answer is stable through replay.
+func svarsReadExiledWith(c *Ctx) bool {
+	if c == nil || c.Source == 0 {
+		return false
+	}
+	for _, body := range c.SVars {
+		if strings.Contains(body, "ExiledWith") {
+			return true
+		}
+	}
+	return false
+}
+
 // faceAbilitiesNameExiledWithSource reports whether the source CARD's own
 // A: ability lines name ExiledWithSource in any param value -- the ability
 // spelling of the provenance need exileProvenanceNeeded's SVar scan and

@@ -688,6 +688,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if fl.Pred == kop.PredWord7 {
 			return s.wordCard(k, fl, c, o, fd, ctrl) // filter_props.go
 		}
+		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
+			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
+		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}
 	return true

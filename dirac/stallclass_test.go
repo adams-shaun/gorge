@@ -23,7 +23,7 @@ var (
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
 		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
-		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm"}
+		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",

@@ -429,6 +429,7 @@ func (cb *cardBuilder) record() error {
 	}
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
+	d.NoPT = c.NoPT
 	d.Defense = int8(c.Defense)
 	switch {
 	case c.Types&tLand != 0:
@@ -743,6 +744,7 @@ func (cb *cardBuilder) record() error {
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
+	d.AloneAtk = c.AloneAtk
 	d.Engines = c.Engines
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
@@ -1196,6 +1198,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	switch c.CmpStat {
 	case cmpNone:
 	case cmpPower:
+		if c.CmpV != nil && c.CmpOp == opEQ && zone == kop.ZoneStack {
+			// a spell's power == a value (Talion's powerEQChosen; kernel
+			// filter_ptvalue.go): PredPowerGEV with PredN 1
+			v, err := cb.value(*c.CmpV)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 1, v
+			break
+		}
 		op, n := c.CmpOp, c.CmpN
 		if c.CmpV == nil {
 			op, n = intCmpGELE(op, n) // powers are integers: LT n is LE n-1
@@ -1223,6 +1235,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.PredN = int16(n)
 	case cmpToughness:
+		if c.CmpV != nil && c.CmpOp == opEQ && zone == kop.ZoneStack {
+			// a spell's toughness == a value (Talion's toughnessEQChosen;
+			// kernel filter_ptvalue.go): PredToughnessLEV with PredN 1
+			v, err := cb.value(*c.CmpV)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredToughnessLEV, 1, v
+			break
+		}
 		if c.CmpV != nil && (c.CmpOp == opLE || c.CmpOp == opLT) && zone == kop.ZoneBattlefield {
 			// a battlefield toughness <= a value (Zero Point Ballad's
 			// toughnessLEX; kernel predPermCold, the PredPowerGEV twin)
@@ -1319,6 +1341,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpPowerGTBase:
 		kf.Pred = kop.PredPowerGTBase // current power > base power (kernel powerGTBase)
 	case cmpWord7:
+		if c.CmpN == cmpNoNameGrave {
+			return kf, refuse("doesNotShareNameWith YourGraveyard without OtherYourBattlefield")
+		}
 		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
 			// a permanent's granted or lost abilities change the answer
 			return kf, refuse("NoAbilities on the battlefield")

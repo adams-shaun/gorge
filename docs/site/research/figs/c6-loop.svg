@@ -1,0 +1,95 @@
+<svg class="mzc" viewBox="0 0 760 360" role="img" aria-label="Gate scores of the census-on c-series and the az-c6 loop by generation" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">The FDN self-play loop by generation</text>
+<line class="s1 ln" x1="16" y1="42" x2="34" y2="42"/>
+<text x="40.0" y="46.0" text-anchor="start">census-on c-series vs sb-tactical (600 games)</text>
+<line class="s2 ln" x1="361" y1="42" x2="379" y2="42"/>
+<text x="385.0" y="46.0" text-anchor="start">az-c6 vs sb-tactical (300 games)</text>
+<line class="s3 dash ln" x1="16" y1="62" x2="34" y2="62"/>
+<text x="40.0" y="66.0" text-anchor="start">az-c6 vs the previous generation (300 games)</text>
+<line class="mz-grid" x1="60" y1="320.0" x2="730" y2="320.0"/>
+<text x="52.0" y="324.0" class="mz-muted" text-anchor="end">0.40</text>
+<line class="mz-grid" x1="60" y1="291.2" x2="730" y2="291.2"/>
+<text x="52.0" y="295.2" class="mz-muted" text-anchor="end">0.45</text>
+<line class="mz-ref" x1="60" y1="262.5" x2="730" y2="262.5"/>
+<text x="52.0" y="266.5" class="mz-muted" text-anchor="end">0.50</text>
+<line class="mz-grid" x1="60" y1="233.8" x2="730" y2="233.8"/>
+<text x="52.0" y="237.8" class="mz-muted" text-anchor="end">0.55</text>
+<line class="mz-grid" x1="60" y1="205.0" x2="730" y2="205.0"/>
+<text x="52.0" y="209.0" class="mz-muted" text-anchor="end">0.60</text>
+<line class="mz-grid" x1="60" y1="176.2" x2="730" y2="176.2"/>
+<text x="52.0" y="180.2" class="mz-muted" text-anchor="end">0.65</text>
+<line class="mz-grid" x1="60" y1="147.5" x2="730" y2="147.5"/>
+<text x="52.0" y="151.5" class="mz-muted" text-anchor="end">0.70</text>
+<line class="mz-grid" x1="60" y1="118.7" x2="730" y2="118.7"/>
+<text x="52.0" y="122.7" class="mz-muted" text-anchor="end">0.75</text>
+<line class="mz-grid" x1="60" y1="90.0" x2="730" y2="90.0"/>
+<text x="52.0" y="94.0" class="mz-muted" text-anchor="end">0.80</text>
+<text x="60.0" y="336.0" class="mz-muted" text-anchor="middle">g1</text>
+<text x="171.7" y="336.0" class="mz-muted" text-anchor="middle">g2</text>
+<text x="283.3" y="336.0" class="mz-muted" text-anchor="middle">g3</text>
+<text x="395.0" y="336.0" class="mz-muted" text-anchor="middle">g4</text>
+<text x="506.7" y="336.0" class="mz-muted" text-anchor="middle">g5</text>
+<text x="618.3" y="336.0" class="mz-muted" text-anchor="middle">g6</text>
+<text x="730.0" y="336.0" class="mz-muted" text-anchor="middle">g7</text>
+<text x="395.0" y="356.0" class="mz-muted" text-anchor="middle">generation</text>
+<polyline class="s1 ln" points="60.0,206.2 171.7,183.2 283.3,171.7 395.0,160.1 506.7,161.9 618.3,166.5"/>
+<line class="s1 ci" x1="60.0" y1="228.7" x2="60.0" y2="183.6"/>
+<g><title>C1 vs sb-tactical: 0.598 [0.559, 0.637], 600 games</title><circle cx="60.0" cy="206.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="60.0" cy="206.2" r="4"/></g>
+<line class="s1 ci" x1="171.7" y1="205.3" x2="171.7" y2="161.0"/>
+<g><title>C2 vs sb-tactical: 0.638 [0.600, 0.676], 600 games</title><circle cx="171.7" cy="183.2" r="11" fill="transparent"/>
+<circle class="dot s1" cx="171.7" cy="183.2" r="4"/></g>
+<line class="s1 ci" x1="283.3" y1="193.5" x2="283.3" y2="149.8"/>
+<g><title>C3 vs sb-tactical: 0.658 [0.620, 0.696], 600 games</title><circle cx="283.3" cy="171.7" r="11" fill="transparent"/>
+<circle class="dot s1" cx="283.3" cy="171.7" r="4"/></g>
+<line class="s1 ci" x1="395.0" y1="181.6" x2="395.0" y2="138.7"/>
+<g><title>C4 vs sb-tactical: 0.678 [0.641, 0.715], 600 games</title><circle cx="395.0" cy="160.1" r="11" fill="transparent"/>
+<circle class="dot s1" cx="395.0" cy="160.1" r="4"/></g>
+<line class="s1 ci" x1="506.7" y1="183.4" x2="506.7" y2="140.3"/>
+<g><title>C5 vs sb-tactical: 0.675 [0.638, 0.712], 600 games</title><circle cx="506.7" cy="161.9" r="11" fill="transparent"/>
+<circle class="dot s1" cx="506.7" cy="161.9" r="4"/></g>
+<line class="s1 ci" x1="618.3" y1="188.2" x2="618.3" y2="144.8"/>
+<g><title>C6 vs sb-tactical: 0.667 [0.629, 0.705], 600 games</title><circle cx="618.3" cy="166.5" r="11" fill="transparent"/>
+<circle class="dot s1" cx="618.3" cy="166.5" r="4"/></g>
+<polyline class="s2 ln" points="60.0,205.0 171.7,172.2 283.3,159.0 395.0,163.0 506.7,155.0 618.3,132.0 730.0,136.0"/>
+<line class="s2 ci" x1="60.0" y1="236.9" x2="60.0" y2="173.1"/>
+<g><title>az-c6 g1 vs sb-tactical: 0.600 [0.545, 0.655], 300 games</title><circle cx="60.0" cy="205.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="60.0" cy="205.0" r="4"/></g>
+<line class="s2 ci" x1="171.7" y1="203.1" x2="171.7" y2="141.3"/>
+<g><title>az-c6 g2 vs sb-tactical: 0.657 [0.603, 0.711], 300 games</title><circle cx="171.7" cy="172.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="171.7" cy="172.2" r="4"/></g>
+<line class="s2 ci" x1="283.3" y1="189.4" x2="283.3" y2="128.6"/>
+<g><title>az-c6 g3 vs sb-tactical: 0.680 [0.627, 0.733], 300 games</title><circle cx="283.3" cy="159.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="283.3" cy="159.0" r="4"/></g>
+<line class="s2 ci" x1="395.0" y1="193.5" x2="395.0" y2="132.5"/>
+<g><title>az-c6 g4 vs sb-tactical: 0.673 [0.620, 0.726], 300 games</title><circle cx="395.0" cy="163.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="395.0" cy="163.0" r="4"/></g>
+<line class="s2 ci" x1="506.7" y1="185.1" x2="506.7" y2="124.8"/>
+<g><title>az-c6 g5 vs sb-tactical: 0.687 [0.635, 0.739], 300 games</title><circle cx="506.7" cy="155.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="506.7" cy="155.0" r="4"/></g>
+<line class="s2 ci" x1="618.3" y1="161.0" x2="618.3" y2="103.0"/>
+<g><title>az-c6 g6 vs sb-tactical: 0.727 [0.677, 0.777], 300 games</title><circle cx="618.3" cy="132.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="618.3" cy="132.0" r="4"/></g>
+<line class="s2 ci" x1="730.0" y1="165.2" x2="730.0" y2="106.8"/>
+<g><title>az-c6 g7 vs sb-tactical: 0.720 [0.669, 0.771], 300 games</title><circle cx="730.0" cy="136.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="730.0" cy="136.0" r="4"/></g>
+<polyline class="s3 ln dash" points="171.7,228.0 283.3,251.0 395.0,256.8 506.7,247.0 618.3,268.2 730.0,262.5"/>
+<line class="s3 ci" x1="171.7" y1="260.3" x2="171.7" y2="195.7"/>
+<g><title>az-c6 g2 vs g1: 0.560 [0.504, 0.616], 300 games</title><circle cx="171.7" cy="228.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="171.7" cy="228.0" r="4"/></g>
+<line class="s3 ci" x1="283.3" y1="283.5" x2="283.3" y2="218.5"/>
+<g><title>az-c6 g3 vs g2: 0.520 [0.463, 0.577], 300 games</title><circle cx="283.3" cy="251.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="283.3" cy="251.0" r="4"/></g>
+<line class="s3 ci" x1="395.0" y1="289.3" x2="395.0" y2="224.2"/>
+<g><title>az-c6 g4 vs g3: 0.510 [0.453, 0.567], 300 games</title><circle cx="395.0" cy="256.8" r="11" fill="transparent"/>
+<circle class="dot s3" cx="395.0" cy="256.8" r="4"/></g>
+<line class="s3 ci" x1="506.7" y1="279.5" x2="506.7" y2="214.5"/>
+<g><title>az-c6 g5 vs g4: 0.527 [0.471, 0.583], 300 games</title><circle cx="506.7" cy="247.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="506.7" cy="247.0" r="4"/></g>
+<line class="s3 ci" x1="618.3" y1="300.8" x2="618.3" y2="235.7"/>
+<g><title>az-c6 g6 vs g5: 0.490 [0.433, 0.547], 300 games</title><circle cx="618.3" cy="268.2" r="11" fill="transparent"/>
+<circle class="dot s3" cx="618.3" cy="268.2" r="4"/></g>
+<line class="s3 ci" x1="730.0" y1="295.0" x2="730.0" y2="230.0"/>
+<g><title>az-c6 g7 vs g6: 0.500 [0.443, 0.557], 300 games</title><circle cx="730.0" cy="262.5" r="11" fill="transparent"/>
+<circle class="dot s3" cx="730.0" cy="262.5" r="4"/></g>
+</svg>

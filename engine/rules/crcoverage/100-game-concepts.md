@@ -93,7 +93,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 115.1a-115.1e | follows | `engine/rules/cast_targets.go#Engine.targetAsk` `engine/rules/aura_entry.go#auraEnchantSpec` | - | targeted spells/Auras/abilities/keywords |
 | 115.2 | follows | `engine/rules/target_legal.go#Engine.candidatesForLimitInto` | - | - |
 | 115.3 | follows | `engine/decision/decision.go#Decision.Validate` | - | no duplicate per "target" word |
-| 115.4 | follows | `engine/rules/target_legal.go#Engine.legalTargetCandidates` | - | any target |
+| 115.4 | follows | `engine/rules/target_legal.go#Engine.legalTargetCandidates` `engine/rules/canttarget_static.go#Engine.cantTargetBlocks` | `TestCantTargetArtifactSourceAbilities` | any target; a CantTarget static withholds a permanent by the targeting source, its kind and its controller |
 | 115.5 | follows | `engine/rules/target_legal.go#Engine.candidatesForLimitInto` `engine/rules/cast_targets.go#Engine.targetAsk` | - | spell not its own target |
 | 115.6 | follows | `engine/rules/target_legal.go#Engine.resolvedTargetMin` | - | TargetMin$ 0 |
 | 115.7-115.7f | partial | `engine/effects/choose_control.go#effChangeTargets` `engine/rules/target_sub_offer.go#Engine.RetargetLink` `engine/rules/target_legal.go#Engine.stackKindAdmits` | `TestTargetTypeQualifiersReadAllNamedQualifiers` `TestRedirectChainLink` `TestChangeTheTargetOffersAnotherTarget` `TestChooseNewTargetsMayLeaveTheTarget` | "a single target" counts the whole chain; a redirect changes the root and then each chain link; a script without Optional$ reads as "change the targets", so a mandatory "choose new targets" (Emissary of Grudges) and a "may change" (Goblin Flectomancer) are all-or-none and asked; copies root-only |
@@ -172,5 +172,6 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 122.4 | not-impl | - | - | stat:MaxCounter unregistered; LOUD (coverage report) |
 | 122.5 | partial | `engine/effects/counters.go#effMoveCounter` | - | exotic shapes Noted (LOUD) |
 | 122.6 | follows | `engine/rules/entry_counters.go#Engine.entryCounterGrants` | - | counters put on |
-| 122.6a-122.9 | unknown | - | - | not reached |
+| 122.6a | follows | `engine/rules/entry_counters.go#Engine.settleEntryGrants` `engine/rules/entry_counters.go#Engine.foldEntryWithPlaced` | `TestEntryCountersArePutByTheEnteringObjectsController` | the counters an object enters with are put by its controller: an AddCounter replacement's ValidSource$ and a CounterAdded trigger read the entrant's controller, not the resolving ability's |
+| 122.7-122.9 | unknown | - | - | not reached |
 | 123.1-123.9 | n/a | - | - | no sticker mechanic |

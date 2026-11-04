@@ -33,13 +33,22 @@ func prepCantAct(t *kop.Table, g *genPrep) {
 // ability) -- gorge abilityRestrictionApplies: the activator relation
 // (Activator$: StRaiseYou the static's controller, StRaiseOpp its
 // opponents), the condition (Cond2, read as the static's), ValidSA$ (A = 1:
-// Activated.!ManaAbility spares mana abilities) and the card filter (read
+// Activated.!ManaAbility spares mana abilities; A = 2: Activated.Loyalty
+// reaches loyalty abilities only) and the card filter (read
 // with the static's controller as "you" and its source as the
 // EnchantedBy anchor) all hold. eachStatic skips a source that lost its
 // abilities, as gorge's activeStatics does.
 //
 //go:noinline
 func (s *State) actForbidden(k *prep, sl Slot, mana bool) bool {
+	return s.actForbiddenAb(k, sl, mana, false)
+}
+
+// actForbiddenAb is actForbidden for one activated ability: loyal says it is
+// a planeswalker loyalty ability, the only kind an A = 2 static (ValidSA$
+// Activated.Loyalty, The Immortal Sun; gorge activatedMatchesValidSA)
+// forbids.
+func (s *State) actForbiddenAb(k *prep, sl Slot, mana, loyal bool) bool {
 	if mana && DebugCantActMana {
 		return false
 	}
@@ -54,7 +63,7 @@ func (s *State) actForbidden(k *prep, sl Slot, mana bool) bool {
 		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
 			return true
 		}
-		if mana && st.A == 1 {
+		if mana && st.A == 1 || st.A == 2 && !loyal {
 			return true
 		}
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, s.ctxStatic(stc)) {

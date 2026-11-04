@@ -43,6 +43,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// its back face's Origin$ Hand Permanent.YouOwn move
 		// (CR 303.4f/g)
 		"Invasion of Shandalar": true,
+		// its back face's upkeep damage gated on the opponent's hand size
+		// and on its not being your turn (Prickle Faeries)
+		"Invasion of Eldraine": true,
 	}
 	var battles []string
 	for _, n := range names {

@@ -1588,8 +1588,34 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "SpareMana":
 				st.A = 1
+			case "LoyaltyOnly":
+				st.A = 2
 			default:
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
+			}
+		}
+	case "CantTarget":
+		st.Kind = kop.StatCantTarget // lower_canttarget.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "ActivatorYou":
+				st.StFlags |= kop.StRaiseYou
+			case "ActivatorOpp":
+				st.StFlags |= kop.StRaiseOpp
+			case "SASpell":
+				st.A |= kop.CantTgtSpell
+			case "SAActivated":
+				st.A |= kop.CantTgtActivated
+			case "SATriggered":
+				st.A |= kop.CantTgtTriggered
+			default:
+				return ka, nil, fmt.Errorf("cant target flag %q", fl)
 			}
 		}
 	case "RaiseCost":
@@ -1672,6 +1698,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "MustAttack":
 		st.Kind = kop.StatMustAttack
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "Goad":
+		st.Kind = kop.StatGoad // lower_trigger.go's Continuous Goad$ True
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -1760,6 +1791,18 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatPanharmonicon
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "LifeGained":
+				st.A = kop.PanhModeLifeGained
+			case "Drawn":
+				st.A = kop.PanhModeDrawn
+			case "You":
+				st.B = int16(kop.WhoseYou)
+			default:
+				return ka, nil, fmt.Errorf("Panharmonicon flag %s", fl)
+			}
 		}
 		if s.F2 != nil {
 			// ValidCause$ (the entering permanent): kop.StPanhETB
@@ -2267,6 +2310,22 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				}
 			}
 			ki.B = kop.ValueRef{N: b}
+		case in.F != nil && in.F.Players == plBoth && len(in.F.Clauses) > 0:
+			// "each creature and each player" (Encounter the Unknown): the
+			// creatures, then each player, the controller first (B.N bit 1)
+			for _, c := range in.F.Clauses {
+				if c.Types != tCreature {
+					return ki, fmt.Errorf("DamageAll filter %s: each player beside a non-creature clause", in.F)
+				}
+			}
+			f := *in.F
+			f.Players = 0
+			in.F = &f
+			ki.Op = kop.OpDamageAll
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+			ki.B = kop.ValueRef{N: 1}
 		default:
 			return ki, fmt.Errorf("DamageAll filter %s", in.F)
 		}
@@ -3582,15 +3641,29 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["Remember"]; ok {
 			cf |= kop.CpRemember
 		}
-		if pk, ok := fl["Pump"]; ok {
-			// PumpKeywords$: a non-copy permanent keyword grant;
-			// the kernel finds the keyword-only override record by its mask
+		if _, ok := fl["Tapped"]; ok {
+			cf |= kop.CpTapped
+		}
+		if _, ok := fl["NonRemCtrl"]; ok {
+			cf |= kop.CopyNonRemCtrl
+		}
+		pk, ok := fl["Pump"]
+		pe, eot := fl["PumpEOT"]
+		if eot {
+			pk, ok = pe, true
+			cf |= kop.CopyPumpEOT
+		}
+		if ok {
+			// PumpKeywords$: a non-copy keyword grant; the kernel finds a
+			// permanent one's keyword-only override record by its mask
 			m, err := kwMask([]string{pk})
 			if err != nil {
 				return ki, err
 			}
-			if _, err := cb.override(&lOverride{AddKw: []string{pk}, Dedup: true}); err != nil {
-				return ki, err
+			if !eot {
+				if _, err := cb.override(&lOverride{AddKw: []string{pk}, Dedup: true}); err != nil {
+					return ki, err
+				}
 			}
 			cf |= (bits.TrailingZeros32(uint32(m)) + 1) << kop.CopyPumpShift
 		}
@@ -3752,6 +3825,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseColor, int16(in.C) // in.C: the Exclude$ colours (W U B R G = bits 0..4)
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	case "ChooseNumber":
+		// an as-enters number from B to C (lower_choosenumber.go)
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)
 	default:
 		return ki, fmt.Errorf("op %s has no kop form", in.Op)
 	}

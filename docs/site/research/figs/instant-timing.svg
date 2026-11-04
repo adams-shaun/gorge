@@ -1,0 +1,67 @@
+<svg class="mzc" viewBox="0 0 760 334" role="img" aria-label="Share of instant-speed casts made on the opponent's turn, control C6 against react R6, with the human reference" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">Casts on the opponent's turn: control C6 → react R6</text>
+<circle class="mz-grey" cx="22" cy="44" r="4.5"/>
+<text x="40.0" y="48.0" text-anchor="start">C6 (control)</text>
+<circle class="dot s3" cx="136" cy="44" r="5"/>
+<text x="154.0" y="48.0" text-anchor="start">R6 (react + held)</text>
+<line class="mz-grid" x1="190.0" y1="64" x2="190.0" y2="294"/>
+<text x="190.0" y="310.0" class="mz-muted" text-anchor="middle">0%</text>
+<line class="mz-grid" x1="244.6" y1="64" x2="244.6" y2="294"/>
+<text x="244.6" y="310.0" class="mz-muted" text-anchor="middle">10%</text>
+<line class="mz-grid" x1="299.2" y1="64" x2="299.2" y2="294"/>
+<text x="299.2" y="310.0" class="mz-muted" text-anchor="middle">20%</text>
+<line class="mz-grid" x1="353.8" y1="64" x2="353.8" y2="294"/>
+<text x="353.8" y="310.0" class="mz-muted" text-anchor="middle">30%</text>
+<line class="mz-grid" x1="408.4" y1="64" x2="408.4" y2="294"/>
+<text x="408.4" y="310.0" class="mz-muted" text-anchor="middle">40%</text>
+<line class="mz-grid" x1="463.0" y1="64" x2="463.0" y2="294"/>
+<text x="463.0" y="310.0" class="mz-muted" text-anchor="middle">50%</text>
+<line class="mz-grid" x1="517.6" y1="64" x2="517.6" y2="294"/>
+<text x="517.6" y="310.0" class="mz-muted" text-anchor="middle">60%</text>
+<line class="mz-grid" x1="572.2" y1="64" x2="572.2" y2="294"/>
+<text x="572.2" y="310.0" class="mz-muted" text-anchor="middle">70%</text>
+<line class="mz-grid" x1="626.8" y1="64" x2="626.8" y2="294"/>
+<text x="626.8" y="310.0" class="mz-muted" text-anchor="middle">80%</text>
+<line class="mz-grid" x1="681.4" y1="64" x2="681.4" y2="294"/>
+<text x="681.4" y="310.0" class="mz-muted" text-anchor="middle">90%</text>
+<line class="mz-grid" x1="736.0" y1="64" x2="736.0" y2="294"/>
+<text x="736.0" y="310.0" class="mz-muted" text-anchor="middle">100%</text>
+<g><title>17Lands FDN humans: 49.6% of instant-speed casts on the opponent's turn</title><line class="mz-ref" x1="460.8" y1="64" x2="460.8" y2="294"/></g>
+<text x="466.8" y="60.0" class="mz-muted" text-anchor="start">humans 49.6%</text>
+<text x="178.0" y="90.0" class="mz-title" text-anchor="end">all instant-speed casts</text>
+<line class="mz-faint" x1="304.1" y1="86.0" x2="382.2" y2="86.0"/>
+<g><title>all instant-speed casts, C6: 20.9%</title><circle class="mz-grey" cx="304.1" cy="86.0" r="4.5"/></g>
+<g><title>all instant-speed casts, R6: 35.2%</title><circle cx="382.2" cy="86.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="382.2" cy="86.0" r="5"/></g>
+<text x="178.0" y="122.0" text-anchor="end">Stab</text>
+<line class="mz-faint" x1="354.3" y1="118.0" x2="382.2" y2="118.0"/>
+<g><title>Stab, C6: 30.1%</title><circle class="mz-grey" cx="354.3" cy="118.0" r="4.5"/></g>
+<g><title>Stab, R6: 35.2%</title><circle cx="382.2" cy="118.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="382.2" cy="118.0" r="5"/></g>
+<text x="178.0" y="154.0" text-anchor="end">Luminous Rebuke</text>
+<line class="mz-faint" x1="275.7" y1="150.0" x2="381.1" y2="150.0"/>
+<g><title>Luminous Rebuke, C6: 15.7%</title><circle class="mz-grey" cx="275.7" cy="150.0" r="4.5"/></g>
+<g><title>Luminous Rebuke, R6: 35.0%</title><circle cx="381.1" cy="150.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="381.1" cy="150.0" r="5"/></g>
+<text x="178.0" y="186.0" text-anchor="end">Faebloom Trick</text>
+<line class="mz-faint" x1="217.8" y1="182.0" x2="350.5" y2="182.0"/>
+<g><title>Faebloom Trick, C6: 5.1%</title><circle class="mz-grey" cx="217.8" cy="182.0" r="4.5"/></g>
+<g><title>Faebloom Trick, R6: 29.4%</title><circle cx="350.5" cy="182.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="350.5" cy="182.0" r="5"/></g>
+<text x="178.0" y="218.0" text-anchor="end">Goblin Surprise</text>
+<line class="mz-faint" x1="228.8" y1="214.0" x2="310.1" y2="214.0"/>
+<g><title>Goblin Surprise, C6: 7.1%</title><circle class="mz-grey" cx="228.8" cy="214.0" r="4.5"/></g>
+<g><title>Goblin Surprise, R6: 22.0%</title><circle cx="310.1" cy="214.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="310.1" cy="214.0" r="5"/></g>
+<text x="178.0" y="250.0" text-anchor="end">Giant Growth</text>
+<line class="mz-faint" x1="329.8" y1="246.0" x2="367.5" y2="246.0"/>
+<g><title>Giant Growth, C6: 25.6%</title><circle class="mz-grey" cx="329.8" cy="246.0" r="4.5"/></g>
+<g><title>Giant Growth, R6: 32.5%</title><circle cx="367.5" cy="246.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="367.5" cy="246.0" r="5"/></g>
+<text x="178.0" y="282.0" text-anchor="end">Refute</text>
+<line class="mz-faint" x1="717.4" y1="278.0" x2="677.0" y2="278.0"/>
+<g><title>Refute, C6: 96.6%</title><circle class="mz-grey" cx="717.4" cy="278.0" r="4.5"/></g>
+<g><title>Refute, R6: 89.2%</title><circle cx="677.0" cy="278.0" r="11" fill="transparent"/>
+<circle class="dot s3" cx="677.0" cy="278.0" r="5"/></g>
+<text x="463.0" y="330.0" class="mz-muted" text-anchor="middle">share of the card's instant-speed casts made on the opponent's turn</text>
+</svg>

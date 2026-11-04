@@ -132,13 +132,11 @@ func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 		sl := ob.slot
 		s.touch(Obj(code))
 		p := &s.perms[sl]
-		switch {
-		case s.isCreature(k, sl):
+		if s.isCreature(k, sl) {
+			s.dmgCountersIf(k, sl, n)
 			s.infectCounters(k, sl, n)
-		case s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0:
-			s.dmgCounters(k, sl, p, n)
-		default:
-			p.damage = uint8(min(int(p.damage)+n, 255))
+		} else {
+			s.dmgPerm(k, sl, p, n)
 		}
 		if kw&kop.KwDeathtouch != 0 {
 			p.markDT(1)
@@ -165,6 +163,7 @@ func (s *State) infectDamageTo(k *prep, code uint8, n int, kw kop.KwMask) {
 //
 //go:noinline
 func (s *State) infectBetween(k *prep, a, b Slot, n int, akw kop.KwMask) {
+	s.dmgCountersIf(k, b, n)
 	s.infectCounters(k, b, n)
 	if akw&kop.KwDeathtouch != 0 {
 		s.perms[b].markDT(1)
@@ -205,6 +204,7 @@ func (s *State) infectCombat(k *prep, r *dmgRec) {
 			continue
 		}
 		r.toPerm[ev.dst] -= ev.n
+		s.dmgCountersIf(k, ev.dst, int(ev.n))
 		s.infectCounters(k, ev.dst, int(ev.n))
 		if r.toPerm[ev.dst] <= 0 && r.dtPerm.has(ev.dst) {
 			s.perms[ev.dst].markDT(s.dtEvents(k, r, ev.dst))

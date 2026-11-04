@@ -298,11 +298,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 		s.infectBetween(k, a, b, n, akw)
 		return n
 	}
-	if !s.isCreature(k, b) && s.typesAt(k, b)&(kop.TPlaneswalker|kop.TBattle) != 0 {
-		s.dmgCounters(k, b, p, n) // damage to a planeswalker removes loyalty, to a battle defense
-	} else {
-		p.damage = uint8(min(int(p.damage)+n, 255))
-	}
+	s.dmgPerm(k, b, p, n) // a planeswalker loses loyalty, a battle defense, a creature marks it
 	if akw&kop.KwDeathtouch != 0 {
 		p.markDT(1) // gorge marks any permanent deathtouch damages (effects/damage.go)
 	}

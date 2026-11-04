@@ -397,6 +397,85 @@ func TestTempleOfTheFalseGodGatesOnLandCount(t *testing.T) {
 	}
 }
 
+// TestGatedLifeManaAbilityBesideColourless pins Spire of Industry's shape: a
+// plain {T} colourless ability beside a {T}, Pay 1 life any-colour ability
+// gated on controlling an artifact (CR 602.5b). Without an artifact only the
+// colourless ability is available; with one, both are, and the gated one
+// costs a life and adds the chosen colour.
+func TestGatedLifeManaAbilityBesideColourless(t *testing.T) {
+	t.Parallel()
+	const spire = "Name:Gated Spire\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Colourless.\n" +
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | IsPresent$ Artifact.YouCtrl | SpellDescription$ A colour for a life.\nOracle:x\n"
+	const trinket = "Name:Plain Trinket\nTypes:Artifact\nOracle:x\n"
+
+	e := layerEngine(t)
+	spireID := onBoard(t, e, 0, spire)
+	if n := len(e.availableManaAbilities(0, spireID)); n != 1 {
+		t.Fatalf("no artifact: %d mana abilities available, want the colourless one alone", n)
+	}
+
+	e = layerEngine(t)
+	spireID = onBoard(t, e, 0, spire)
+	onBoard(t, e, 0, trinket)
+	if n := len(e.availableManaAbilities(0, spireID)); n != 2 {
+		t.Fatalf("with an artifact: %d mana abilities available, want both", n)
+	}
+	life := e.G.Players[0].Life
+	e.askPriority(0)
+	activateMana(t, e, spireID)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Source != spireID {
+		t.Fatalf("with an artifact: activation decision = %+v, want a choice on the Spire", d)
+	}
+	if len(d.Options) != 2 || d.Options[1].Ability != 1 {
+		t.Fatalf("with an artifact: ability choice = %+v, want both abilities", d.Options)
+	}
+	submitChoices(t, e, 1)
+	submitChoices(t, e, manaOption(t, e.Pending(), "G"))
+	if pool := e.G.Players[0].Pool; pool.Total() != 1 || pool[state.MG] != 1 || e.G.Players[0].Life != life-1 {
+		t.Fatalf("gated ability: pool=%+v life %d (was %d), want one green for a life", pool, e.G.Players[0].Life, life)
+	}
+}
+
+// TestManaAmountOfOpponentsAttackedOrCommanders pins two dynamic amounts of
+// any one colour beside a fixed ability (The Beacon of Kahless, Command
+// Chair): the opponents the controller attacked this turn adds nothing
+// before an attack and one after it in a two-player game; the greatest mana
+// value among commanders the controller controls adds nothing when it
+// controls none. The colour is still chosen (CR 106.5).
+func TestManaAmountOfOpponentsAttackedOrCommanders(t *testing.T) {
+	t.Parallel()
+	const beacon = "Name:Attack Beacon\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ One of a colour.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ Raided | SpellDescription$ One per opponent attacked.\n" +
+		"SVar:Raided:PlayerCountPropertyYou$OpponentsAttackedThisTurn\nOracle:x\n"
+	const chair = "Name:Captain Seat\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 3 | SpellDescription$ Three of a colour.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ Leader | SpellDescription$ Commander's value.\n" +
+		"SVar:Leader:Count$Valid Permanent.IsCommander+YouCtrl$GreatestCardManaCost\nOracle:x\n"
+	cases := []struct {
+		src      string
+		attacked bool
+		want     int32
+	}{{beacon, false, 0}, {beacon, true, 1}, {chair, false, 0}, {chair, true, 0}}
+	for _, c := range cases {
+		e := layerEngine(t)
+		id := onBoard(t, e, 0, c.src)
+		if c.attacked {
+			bear := onBoard(t, e, 0, "Name:Plain Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{bear}})
+		}
+		e.askPriority(0)
+		activateMana(t, e, id)
+		submitChoices(t, e, 1)
+		submitChoices(t, e, manaOption(t, e.Pending(), "R"))
+		if pool := e.G.Players[0].Pool; pool.Total() != c.want || pool[state.MR] != c.want || !e.G.Obj(id).Tapped {
+			t.Errorf("%s attacked=%t: pool=%+v tapped=%t, want %d red", e.G.Obj(id).Face().Name, c.attacked, pool, e.G.Obj(id).Tapped, c.want)
+		}
+	}
+}
+
 // TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor is the real card shape
 // (Produced$ Any | Amount$ 3, oracle "Add three mana of any one color."): one
 // colour ask whose prompt names the three, five colour options, and exactly

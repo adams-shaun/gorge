@@ -113,8 +113,33 @@ func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 	}
 }
 
-// dmgCounters applies n damage to the non-creature walker or battle at sl
-// as counters (CR 306.8 loyalty, CR 310.6/120.3 defense).
+// dmgPerm deals n ordinary damage to the permanent at sl. Each result of
+// CR 120.3 that its types call for applies: a planeswalker loses that many
+// loyalty counters (120.3c), a battle that many defense counters (120.3h),
+// and a creature, or a permanent that is none of these, marks it (120.3e).
+// A planeswalker or battle that is also a creature takes both (gorge
+// events.foldDamage).
+func (s *State) dmgPerm(k *prep, sl Slot, p *perm, n int) {
+	if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 {
+		s.dmgCounters(k, sl, p, n)
+		if !s.isCreature(k, sl) {
+			return
+		}
+	}
+	p.damage = uint8(min(int(p.damage)+n, 255))
+}
+
+// dmgCountersIf removes the loyalty or defense counters n infect or wither
+// damage costs the creature at sl when it is also a planeswalker or a
+// battle (CR 120.3c, 120.3h); the -1/-1 counters are its creature half.
+func (s *State) dmgCountersIf(k *prep, sl Slot, n int) {
+	if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 {
+		s.dmgCounters(k, sl, &s.perms[sl], n)
+	}
+}
+
+// dmgCounters applies n damage to the walker or battle at sl as counters
+// (CR 306.8 loyalty, CR 310.6/120.3 defense).
 func (s *State) dmgCounters(k *prep, sl Slot, p *perm, n int) {
 	p.seeCtr(s)
 	if s.typesAt(k, sl)&kop.TBattle != 0 {

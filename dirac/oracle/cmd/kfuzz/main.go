@@ -63,6 +63,57 @@ func resolveKernel(kernel, setName, decks string, explicit map[string]bool) (str
 	return "fdn", kernel, decks, nil
 }
 
+// runKernel is the side this run plays against, as a Repro records it.
+var runKernel string
+
+// kernelLabel names the side a run plays against: the synthetic pool, the
+// card set the fdn path plays, or the kernel flag itself.
+func kernelLabel(synth, kernel, setName string) string {
+	switch {
+	case synth != "":
+		return "synth " + synth
+	case kernel == "fdn":
+		return "set " + setName
+	}
+	return kernel
+}
+
+// kernelFlags is the command line that plays against the side label names.
+func kernelFlags(label string) string {
+	if pool, ok := strings.CutPrefix(label, "synth "); ok {
+		return "-synth " + pool
+	}
+	if set, ok := strings.CutPrefix(label, "set "); ok {
+		return "-kernel fdn -set " + set
+	}
+	return "-kernel " + label
+}
+
+// reproRun checks rep, read from path, against this run: a repro replayed
+// against another side, or on the other surface, is another game, so it fails
+// rather than report "no divergence". The repro's surface replaces the default
+// one; one given on the command line must agree with it. A repro that records
+// neither (written before they were) runs as the command line says.
+func reproRun(rep *oracle.Repro, path, surface string, surfaceGiven bool) (string, error) {
+	if rep.Kernel != "" && rep.Kernel != runKernel {
+		return "", fmt.Errorf("%s was played against %s, not %s: replay it with %s", path, rep.Kernel, runKernel, kernelFlags(rep.Kernel))
+	}
+	if rep.Surface != "" && rep.Surface != surface {
+		if surfaceGiven {
+			return "", fmt.Errorf("%s was played on the %s surface, not -surface %s", path, rep.Surface, surface)
+		}
+		surface = rep.Surface
+	}
+	return surface, nil
+}
+
+// newRepro is oracle.NewRepro with the side this run plays against.
+func newRepro(m *oracle.Matchup, seed uint64, rc oracle.RunConfig, res *oracle.Result) *oracle.Repro {
+	r := oracle.NewRepro(m, seed, rc, res)
+	r.Kernel = runKernel
+	return r
+}
+
 func run() int {
 	var (
 		cardsDir   = flag.String("cards", "", "gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory)")
@@ -168,6 +219,18 @@ func run() int {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 2
+	}
+	runKernel = kernelLabel(*synth, *kernel, *setName)
+	if *reproPath != "" {
+		rep, err := oracle.ReadRepro(*reproPath)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 1
+		}
+		if surfaceName, err = reproRun(rep, *reproPath, surfaceName, explicit["surface"] || explicit["autopay-surface"]); err != nil {
+			fmt.Fprintln(os.Stderr, "kfuzz:", err)
+			return 2
+		}
 	}
 	if *decksDir == "" {
 		*decksDir = oracle.PoolDecks("fdn")
@@ -447,6 +510,7 @@ func run() int {
 		if *out != "" {
 			if err := os.MkdirAll(*out, 0o755); err == nil {
 				path := filepath.Join(*out, "repro.json")
+				sum.First.Kernel = runKernel
 				if err := sum.First.Write(path); err == nil {
 					fmt.Printf("repro (%d actions", len(sum.First.Actions))
 					if sum.First.Shrunk != nil {
@@ -488,8 +552,8 @@ func lockstepDir(m *oracle.Matchup, seed uint64, lead string, mk oracle.SideFact
 }
 
 // runRepro re-runs the repro at path under lead against the side newSide
-// builds. The current command-line rc supplies the surface a Repro does not
-// record (GorgeAutopaySurface); the repro supplies its own elision and turn cap. It does not call Repro.Rerun, which
+// builds. rc carries the surface (the repro's own, reproRun); the repro supplies
+// its own elision and turn cap. It does not call Repro.Rerun, which
 // hardcodes gorge-led Lockstep and would ignore -lead kernel.
 func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide func(*oracle.Repro, oracle.RunConfig) (oracle.SideFactory, error)) int {
 	rep, err := oracle.ReadRepro(path)
@@ -736,7 +800,7 @@ func vanillaSweep(first, games, n int, seed uint64, timeout time.Duration, rc or
 			}, cls)
 			if err := os.MkdirAll(out, 0o755); err == nil {
 				path := filepath.Join(out, fmt.Sprintf("%s-g%d.json", slug, g))
-				if err := oracle.NewRepro(m, s, rc, &res).Write(path); err != nil {
+				if err := newRepro(m, s, rc, &res).Write(path); err != nil {
 					fmt.Fprintln(os.Stderr, "kfuzz:", err)
 				}
 			}
@@ -1104,7 +1168,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 				// fails for as long as the table stalls there
 				if err := os.MkdirAll(o.out, 0o755); err == nil {
 					path := filepath.Join(o.out, fmt.Sprintf("capacity-%s-pair%d.repro.json", why, p.Index))
-					if err := oracle.NewRepro(m, p.Seed, rc, &res).Write(path); err != nil {
+					if err := newRepro(m, p.Seed, rc, &res).Write(path); err != nil {
 						fmt.Fprintln(os.Stderr, "kfuzz:", err)
 					}
 				}
@@ -1195,7 +1259,7 @@ func report(name string, ps []oracle.Pairing, out []played, rc oracle.RunConfig,
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		} else {
 			path := filepath.Join(o.out, "repro.json")
-			if err := oracle.NewRepro(out[first].m, ps[first].Seed, rc, &out[first].res).Write(path); err != nil {
+			if err := newRepro(out[first].m, ps[first].Seed, rc, &out[first].res).Write(path); err != nil {
 				fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			} else {
 				fmt.Printf("repro (%d actions): %s\n", len(out[first].res.Actions), path)

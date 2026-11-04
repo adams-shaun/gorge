@@ -666,15 +666,19 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.restrSrc {
 				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
 			}
-			if s.bld().bfl&bflAnyColor != 0 {
+			anyColor := s.bld().bfl&bflAnyColor != 0
+			if anyColor {
 				mx = av.maxXAnyColor(&cost)
+			}
+			if k.gen != nil && k.gen.anyFilt {
+				mx = max(mx, s.filtMaxX(k, e.ctrl, &cost, &av, anyColor)) // CR 605.3b: a filter's fee paid in the window
 			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
 				// + 1 + what the window's sources make (it raises the bound for
 				// a reduction only in the named-count case): a CR 601.2f
 				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life

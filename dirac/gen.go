@@ -55,6 +55,7 @@ type genPrep struct {
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
 	anyAddChosen    bool  // some static is AddType$ ChosenType (kop.Static.AddChosen; act_choosetype.go)
 	chosenCardTgt   bool  // some card target's or spell-cast trigger's filter reads the source permanent's chosen type (act_choosetype.go)
+	castBoundSrc    bool  // some spell-cast trigger's filter reads a value, with the trigger's source as the source (trig_castbound.go)
 	anyLoseRec      bool  // some override record removes abilities
 	tyCombat        bool  // some override sets types or makes a creature: a combatant can stop being one (CR 506.4 removeNoncreatureCombatants; kperf2)
 	l6RecOnly       bool  // fxNeedL6 comes only from an effect's keyword removal (Debuff): a slot without an fx record keeps the fixed-order layer 6 (l6On; kperf2)
@@ -88,6 +89,8 @@ type genPrep struct {
 	anyVergeOrder   bool // a gated Verge whose first ability is not its lowest colour: the window activates ability 0 (mana_gate.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
+	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
+	anyStatGoad     bool // a card has a StatGoad static (act_goad.go)
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
@@ -179,6 +182,7 @@ type genPrep struct {
 	anyRaise       bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyCantCast    bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden)
+	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
@@ -565,6 +569,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantAct(t, g)   // cast_cantactivate.go
+	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
 	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
@@ -674,6 +679,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Evasion != 0 {
 			g.anyEvasion = true
+		}
+		if c.AloneAtk {
+			g.anyAloneAtk = true
 		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true
@@ -1180,6 +1188,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go
+	prepCastBound(t, g)  // trig_castbound.go
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
@@ -1538,6 +1547,7 @@ type genState struct {
 	winSrc    Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
 	winMode   uint8                   // the payment that window serves (winNone: none)
 	winCol    uint8                   // the colour a cast window's paused tap-another source makes once the pick is answered (mana_window.go)
+	winFirst  uint8                   // a two-permanent tap-another source's first window pick, slot+1 (0: none yet; mana_windowtapx.go)
 	winHeld   [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
 	nlook     uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
 	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
@@ -2280,7 +2290,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 }
 
 // enterChoiceKind is the as-enters choice card c's enters replacement
-// opens with (akColor, akType, akPayLife), or 0.
+// opens with (akColor, akType, akNumber, akPayLife), or 0.
 func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	if k.gen == nil || !k.gen.has(c, gfEnterRepl) {
 		return 0
@@ -2303,6 +2313,10 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			return akColor
 		case kop.OpChooseType:
 			return akType
+		case kop.OpExt:
+			if a.Prog[0].Ext() == kop.ExtChooseNumber {
+				return akNumber
+			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election
 			if s.shockAmount(k, a.Prog) > 0 {

@@ -1,0 +1,23 @@
+# printed "can't be the target of" statics (CR 115.4): Species 8472 against
+# artifact and non-artifact abilities, Thrun, Breaker of Silence against
+# nongreen sources, Fiendslayer Paladin against black and red spells,
+# Shanna, Sisay's Legacy against abilities and Dense Foliage against spells
+# (dirac/oracle/canttarget_test.go)
+Species 8472
+Thrun, Breaker of Silence
+Fiendslayer Paladin
+Shanna, Sisay's Legacy
+Dense Foliage
+Rod of Ruin
+Fireforger's Puzzleknot
+Pyrite Spellbomb
+Walking Ballista
+Prodigal Sorcerer
+Shock
+Doom Blade
+Giant Growth
+Grizzly Bears
+Forest
+Plains
+Mountain
+Swamp

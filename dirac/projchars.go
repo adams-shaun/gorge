@@ -32,6 +32,15 @@ func (s *State) ProjectChars(p *Projection) {
 			continue
 		}
 		c := &p.Chars[o]
+		if k.phasing && s.hiddenAt(sl) {
+			// no continuous effect applies to a phased-out permanent
+			// (CR 702.26b; gorge matchesWithCharsPT): its printed
+			// characteristics
+			cd := &k.t.Cards[s.cardAt(sl)]
+			c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
+			c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
+			continue
+		}
 		c.Types = s.typesAt(k, sl) &^ kop.TToken
 		c.Colors = s.colorsAt(k, sl) &^ kop.ColC
 		c.Kw = s.kw(k, sl)

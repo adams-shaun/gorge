@@ -35,6 +35,11 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// An inline expression (ImmediateTrigger's TriggerAmount$).
 		return lc.svarValue(raw, 0)
 	}
+	if raw == "Chosen" && lc.chosenNumOK && !neg {
+		// gorge specCtx's Resolve: a "Chosen" bound is the source's
+		// ChosenNumber, ahead of any SVar (lower_choosenumber.go)
+		return lValue{Kind: vChosenNumber}, nil
+	}
 	if lc.grantedLoyaltyCross {
 		if _, ok := lc.face.SVars[raw]; ok {
 			// A cross-object granted ability resolves its SVars off the
@@ -290,7 +295,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		if ref.Kind == rTarget && ref.N < 0 {
 			return lValue{}, fmt.Errorf("%s$ with no target slot", head)
 		}
-		if spec, ok := strings.CutPrefix(rest, "Valid "); ok && (head == "Targeted" || head == "Sacrificed") {
+		if spec, ok := strings.CutPrefix(rest, "Valid "); ok && (head == "Targeted" || head == "Sacrificed" || head == "TriggeredCard") {
 			v, err = lc.refValidCount(head, spec, ref) // value_compareheads.go
 			break
 		}
@@ -563,6 +568,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "CardManaCost":
 			lc.out.ExiledWith = true
 			v = lValue{Kind: vExiledWithN, N: 1}
+		case "SharesCardTypes":
+			// the most cards of the set with one card type in common,
+			// at least 1 (gorge count_ref_property.go; kernel
+			// ExExiledWithN N 2)
+			lc.out.ExiledWith = true
+			v = lValue{Kind: vExiledWithN, N: 2}
 		default:
 			err = fmt.Errorf("ExiledWith$%s", rest)
 		}
@@ -997,6 +1008,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	case "ValidHand Card":
 		// gorge's zone count over every hand: both players' hand sizes
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}}}, nil
+	case "ValidHand Card.ActivePlayerCtrl":
+		// gorge's zone count over every hand, each card controlled by its
+		// owner: the active player's hand size, yours on your turn and the
+		// opponent's otherwise
+		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: r}} }
+		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a
 		// general spec counts each hand's matching cards
@@ -1179,6 +1196,21 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
+	}
+	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
+		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
+		parts := strings.Split(arms, ".")
+		if len(parts) != 2 {
+			return lValue{}, refuse("Count$Hellbent.%s", arms)
+		}
+		var br [2]lValue
+		for i, t := range parts {
+			var err error
+			if br[i], err = lc.headArm("Hellbent", t, depth); err != nil {
+				return lValue{}, err
+			}
+		}
+		return lValue{Kind: vCompare, N: 0, Op: opLE, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vBranches, Sub: br[:]}}}, nil
 	}
 	if rest == "TimesKicked" {
 		// the count of kicker payments: a card with one Kicker keyword is

@@ -20,6 +20,13 @@ type Repro struct {
 	Mulligans   int         `json:"mulligans"`
 	PassElision bool        `json:"pass_elision"`
 	MaxTurns    int32       `json:"max_turns,omitempty"`
+	// Surface is the option surface both sides offered ("autopay" or "full"):
+	// the same actions on the other surface are another game. Kernel is the side
+	// the game was played against, as kfuzz names it ("synth std-trk", "set
+	// blb", "vanilla", "gorge"). Repros written before either was recorded
+	// leave it empty.
+	Surface string `json:"surface,omitempty"`
+	Kernel  string `json:"kernel,omitempty"`
 	// Actions is the canonical prefix; Readable is the same, rendered.
 	Actions  []Canon  `json:"actions"`
 	Readable []string `json:"readable,omitempty"`
@@ -44,7 +51,7 @@ const reproFormat = "koracle-repro-1"
 // NewRepro records res (a lockstep game of m on seed) as a repro.
 func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 	r := &Repro{Format: reproFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans,
-		PassElision: rc.PassElision, MaxTurns: rc.MaxTurns, Divergence: res.Div}
+		PassElision: rc.PassElision, MaxTurns: rc.MaxTurns, Surface: SurfaceName(rc.Config), Divergence: res.Div}
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			r.Cards[s] = append(r.Cards[s], cardName(c))
@@ -59,9 +66,17 @@ func (r *Repro) setActions(as []Canon) {
 	r.Readable = actionStrings(r.Actions)
 }
 
-// RunConfig is the repro's run knobs.
+// SurfaceName is the option surface cfg offers: "autopay" or "full".
+func SurfaceName(cfg Config) string {
+	if cfg.GorgeAutopaySurface {
+		return "autopay"
+	}
+	return "full"
+}
+
+// RunConfig is the repro's run knobs, its surface among them.
 func (r *Repro) RunConfig() RunConfig {
-	return RunConfig{Config: Config{PassElision: r.PassElision}, MaxTurns: r.MaxTurns}
+	return RunConfig{Config: Config{PassElision: r.PassElision, GorgeAutopaySurface: r.Surface == "autopay"}, MaxTurns: r.MaxTurns}
 }
 
 // Matchup rebuilds the repro's matchup from its card names (Lookup against

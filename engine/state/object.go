@@ -101,6 +101,13 @@ type SacrificedInfo struct {
 	// objects). Printed face types here; effects.SacrificedLKI overwrites
 	// them with the layer-derived set for a battlefield permanent.
 	Types []string
+	// LayerTypes records that Types was read from the layer system as the
+	// permanent stood on the battlefield, and AllCreatureTypes is that read's
+	// every-creature-type marker: a Sacrificed$Valid filter then matches the
+	// types the object had as it was sacrificed (CR 608.2h), not the card's
+	// printed ones in the graveyard.
+	LayerTypes       bool
+	AllCreatureTypes bool
 	// Suspected is the CR 702.157 designation at the instant of the sacrifice
 	// (Sacrificed$Valid Card.IsSuspected, Agency Coroner). The designation
 	// ends when the permanent leaves the battlefield (CR 702.157b), so the

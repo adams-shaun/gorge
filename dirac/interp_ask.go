@@ -1006,10 +1006,14 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.g.pre.state = 2
 		t := r.lastTok
 		s.objs[t].of &^= ofPending
+		was := r.e.ctrl
+		r.e.ctrl = s.copyCtrl(in)
 		s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
 		s.g.pre = preAsk{}
 		r.ask = raNone
-		if s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft)) {
+		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		r.e.ctrl = was
+		if parked {
 			return
 		}
 		s.continueRes(k, 0)
@@ -1042,9 +1046,13 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		t := r.lastTok
 		s.objs[t].of &^= ofPending
+		was := r.e.ctrl
+		r.e.ctrl = s.copyCtrl(in)
 		s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
 		r.ask = raNone
-		if s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft)) {
+		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		r.e.ctrl = was
+		if parked {
 			return
 		}
 		s.continueRes(k, 0)

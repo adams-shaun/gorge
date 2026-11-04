@@ -606,6 +606,14 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			}
 			c.Op, c.B = op, b
 		}
+		if t, ok := ps.get("ConditionOpponentTurn"); ok {
+			// gorge conditions.go: ConditionOpponentTurn$ True is
+			// ConditionPlayerTurn$ False, ANDed with the SVar compare
+			if !strings.EqualFold(strings.TrimSpace(t), "True") {
+				return lCond{}, refuse("ConditionOpponentTurn$ %q", t)
+			}
+			c = lCond{Kind: cAnd, Sub: []lCond{{Kind: cYourTurn, Neg: true}, c}}
+		}
 		return c, nil
 	}
 	return lCond{}, nil
@@ -1350,6 +1358,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "MultiplyCounter":
+		if m := ps.str("Multiplier"); m != "" && m != "2" { // gorge effMultiplyCounter's default is 2
+			return refuse("MultiplyCounter Multiplier$ %q", m)
+		}
 		if done, err := lc.definedValid(sa, ps); done || err != nil {
 			return err
 		}
@@ -3299,6 +3310,11 @@ func (lc *lowerCtx) charm(ps *params) error {
 		return err
 	} else if ok {
 		plainPick = dyn // CharmNum$ over Count$Compare (lower_charmcmp.go)
+	} else if lc.ab.Kind == akTriggered {
+		if lc.out.ModesPickV.Kind != vNone {
+			return refuse("a fixed triggered charm count beside a dynamic one")
+		}
+		lc.out.TrigCharmFixed = true
 	}
 	pick, minPick, err := charmCounts(ps, len(choices), plainPick)
 	if err != nil {

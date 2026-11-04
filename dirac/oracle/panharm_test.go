@@ -73,6 +73,18 @@ var kpanharmDecks = [][2][]cardset.Entry{{
 		{Name: "Hill Giant", Count: 8}, {Name: "Shock", Count: 8}, {Name: "Burglar Rat", Count: 4},
 		{Name: "Mountain", Count: 12}, {Name: "Swamp", Count: 8},
 	},
+}, {
+	// Dr. Beverly Crusher: her controller's life gain doubles the life-gain
+	// triggers of their permanents (her own, Ajani's Pridemate's); the
+	// opponent's Pridemate triggers once on its own controller's gain
+	{
+		{Name: "Dr. Beverly Crusher", Count: 4}, {Name: "Ajani's Pridemate", Count: 4}, {Name: "Healer's Hawk", Count: 4},
+		{Name: "Lone Missionary", Count: 4}, {Name: "Charming Prince", Count: 4}, {Name: "Plains", Count: 20},
+	},
+	{
+		{Name: "Ajani's Pridemate", Count: 4}, {Name: "Healer's Hawk", Count: 4}, {Name: "Lone Missionary", Count: 4},
+		{Name: "Hill Giant", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Plains", Count: 10}, {Name: "Mountain", Count: 10},
+	},
 }}
 
 // runPanharm plays the matchups for seeds 1..seeds and returns the games,
@@ -170,7 +182,8 @@ func TestPanharmLockstep(t *testing.T) {
 		t.Fatalf("%d divergences, %d stalls", divs, stalls)
 	}
 	t.Logf("echoed placements by matchup: %v", byMatchup)
-	// the ETB-family statics (Starfield Vocalist, Traveling Chocobo)
+	// the ETB-family statics (Starfield Vocalist, Traveling Chocobo), the
+	// keyword triggers and Dr. Beverly Crusher's life-gain triggers
 	for mi := 2; mi < len(byMatchup); mi++ {
 		if byMatchup[mi] < 20 {
 			t.Errorf("matchup %d: only %d echoed placements (want at least 20)", mi, byMatchup[mi])
