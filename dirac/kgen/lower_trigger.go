@@ -1977,6 +1977,14 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 				st.Ctr = int16(ck)
 			}
 		}
+	case "CantPhaseIn":
+		// gorge phaseBlocked (rules/cantphase.go): only the blanket form,
+		// every phased-out permanent (The City on the Edge of Forever's
+		// token); a narrower ValidCard$ (Teferi's remembered set) needs the
+		// kernel's remembered-set filter and is refused.
+		if v := strings.TrimSpace(sp.str("ValidCard")); v != "Card.phasedOutPermanent" {
+			return nil, refuse("CantPhaseIn ValidCard$ %q", v)
+		}
 	case "CantSacrifice":
 		// gorge sacrificeBlocked (rules/layers_restrict.go): ValidCard$ the
 		// permanents, ActiveZones$ Battlefield the only zone it reads. The

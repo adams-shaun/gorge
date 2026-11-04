@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // api Phases (CR 702.26, Spectral Adversary). gorge effPhases phases
 // out each affected permanent (the targets of ValidTgts$, or the source by
 // default), and every permanent attached to it indirectly with it (702.26g).
@@ -11,15 +13,36 @@ package kgen
 // ValidTgts$ (U.S.S. Defiant, Mirror Migrant: "it and up to one target
 // creature you control phase out") is gorge's Defined list, the source then
 // the targets: the source phases out first, then each target; one that has
-// already phased out (the source chosen as its own target) is skipped. The toggle (PhaseInOrOut$),
-// AllValid$ sweeps, the phase-in override Phaseout$, RememberAffected$,
-// WontPhaseInNormal$ and Tapped$ are refused, as is K:Phasing (the keyword
-// toggle) elsewhere.
+// already phased out (the source chosen as its own target) is skipped.
+//
+// AllValid$ <filter> with none of ValidTgts$, Defined$ or the refused keys
+// (The City on the Edge of Forever) is the sweep: every battlefield permanent
+// the filter admits phases out, in gorge's object order (effPhases' arena
+// walk), one at a time, an attached permanent that the sweep has not reached
+// yet going out indirectly with its host. The toggle (PhaseInOrOut$), the
+// phase-in override Phaseout$, RememberAffected$, WontPhaseInNormal$ and
+// Tapped$ are refused, as is K:Phasing (the keyword toggle) elsewhere.
 func (lc *lowerCtx) phases(ps *params) error {
-	for _, k := range []string{"PhaseInOrOut", "AllValid", "Phaseout", "RememberAffected", "WontPhaseInNormal", "Tapped"} {
+	for _, k := range []string{"PhaseInOrOut", "Phaseout", "RememberAffected", "WontPhaseInNormal", "Tapped"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Phases %s$", k)
 		}
+	}
+	if spec, ok := ps.get("AllValid"); ok {
+		for _, k := range []string{"ValidTgts", "Defined"} {
+			if _, bad := ps.get(k); bad {
+				return refuse("Phases AllValid$ beside %s$", k)
+			}
+		}
+		f, err := lc.filter(strings.TrimSpace(spec))
+		if err != nil {
+			return err
+		}
+		if f == nil || f.Players != 0 {
+			return refuse("Phases AllValid$ %q with a player scope", spec)
+		}
+		lc.emit(lInstr{Op: "Phases", Obj: lRef{Kind: rNone}, F: f})
+		return nil
 	}
 	_, tgts := ps.get("ValidTgts")
 	if d, ok := ps.get("Defined"); ok {

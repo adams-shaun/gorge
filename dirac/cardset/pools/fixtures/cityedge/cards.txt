@@ -1,0 +1,14 @@
+# The City on the Edge of Forever's chapter I (every artifact and creature
+# phases out, then a Human token that stops every phase-in) and chapter III's
+# token sacrifice, beside creatures, an Equipment and an Aura to phase out
+# directly and indirectly (dirac/oracle/cityedge_test.go)
+The City on the Edge of Forever
+Savannah Lions
+Grizzly Bears
+Bonesplitter
+Pacifism
+Shock
+Plains
+Swamp
+Mountain
+Forest
