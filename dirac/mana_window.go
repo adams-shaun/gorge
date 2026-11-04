@@ -103,20 +103,21 @@ func (s *State) altAddTargetAbort(k *prep) bool {
 
 // loweredPipWindow pays a lowered hybrid cast's pips through the window before its
 // cost objects are chosen (CR 601.2g-h): the witness priced the pips its own way,
-// so an answer it didn't cover opens the window. It reports false after reversing.
-func (s *State) loweredPipWindow(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+// so an answer it didn't cover opens the window. A window that runs out of useful
+// sources first does not reverse the cast there: gorge's window closes with nothing
+// left to offer (manaWindowAsk), the cost objects are still asked (a discard), and
+// the payment then finds the mana short and reverses the cast before paying any of
+// them (CR 601.2h, 733.1), the taps standing. finishBuild reads pipShort.
+func (s *State) loweredPipWindow(k *prep, e *stackEntry, cost *kop.ManaCost) {
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	if cost.X != 0 || s.loweredPoolPays(k, e, *cost, anyColor) {
-		return true
+		return
 	}
 	ok, held := s.windowTapUseful(k, e.ctrl, cost, cost, e.flags&sfAnyMana == 0 && !anyColor, anyColor, false, false)
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
-	if !ok {
-		s.reverseCast(k)
-	}
-	return ok
+	s.bld().pipShort = !ok
 }
 
 // requiredTarget: the entry being built has a target slot it must fill at
@@ -1991,8 +1992,8 @@ func (s *State) manaStep(k *prep) bool {
 	switch e.kind {
 	case seSpell:
 		cost := s.buildCost(k)
-		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 && !s.loweredPipWindow(k, e, &cost) {
-			return true
+		if s.bld().bfl&bflLowered != 0 && s.bld().pipN != 0 {
+			s.loweredPipWindow(k, e, &cost)
 		}
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || s.rbAny(e.ctrl) || e.trigPl == trigPlMadness && debugMadnessMutate == 0 {
 			return false

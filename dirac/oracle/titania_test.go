@@ -13,11 +13,14 @@ import (
 // her ward is a discard or {2}: after "Pay", gorge poses one ward_alt choice of
 // a hand card or the {2}. The other side's burn and bounce target her, so the
 // ward resolves with a full hand, an empty one, untapped lands and none.
-// Gorge's answer at every decision is the expected one.
+// Crystal Grotto's filter is at times the only way to the {B} face: the
+// window taps it for {C}, runs dry, and gorge still asks the discard before
+// the payment reverses the cast. Gorge's answer at every decision is the
+// expected one.
 var ktitaniaDecks = [2][]cardset.Entry{
-	{ // A: B/G, Titania and the creatures and lands to cast her
+	{ // A: B/G, Titania and the creatures and lands to cast her, a filter land among them
 		{Name: "Titania, Rugged Rumbler", Count: 12}, {Name: "Grizzly Bears", Count: 4}, {Name: "Llanowar Elves", Count: 4},
-		{Name: "Forest", Count: 10}, {Name: "Swamp", Count: 10},
+		{Name: "Forest", Count: 8}, {Name: "Swamp", Count: 8}, {Name: "Crystal Grotto", Count: 4},
 	},
 	{ // B: U/R, the targeting side, which pays the ward
 		{Name: "Shock", Count: 8}, {Name: "Lightning Bolt", Count: 6}, {Name: "Unsummon", Count: 6},

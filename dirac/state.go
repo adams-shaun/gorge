@@ -663,6 +663,7 @@ type build struct {
 	raiseSl   Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
 	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
 	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
+	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,

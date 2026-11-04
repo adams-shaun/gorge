@@ -1209,6 +1209,10 @@ func (s *State) finishBuild(k *prep) {
 	}
 	switch e.kind {
 	case seSpell:
+		if s.bld().pipShort {
+			s.reverseCast(k) // the pip window ran dry: nothing of the cost is paid (loweredPipWindow)
+			return
+		}
 		if k.t.Cards[e.card].HasModeCost && !s.spreeAffordable(k) {
 			s.spreeCastWindowAbort(k) // kw_spree.go
 			return
