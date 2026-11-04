@@ -476,6 +476,7 @@ type lCost struct {
 	ExileG       *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN      int
 	ExileHandN   int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	ExileHand    bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf     bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	Energy       int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
 	Waterbend    int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)

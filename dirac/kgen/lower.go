@@ -154,6 +154,10 @@ type lowerCtx struct {
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
+	// grantExile while the activated ability an Animate Abilities$ grants an
+	// exiled card is lowered (lower_exilegrant.go): the one place an
+	// ExileFromHand<1/Card> cost and a paid Play of Card.Self lower
+	grantExile bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -1716,13 +1720,30 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			c.ExileG, c.ExileGN = f, n
 		case "ExileFromHand":
-			// <N/Card[/description]>: N cards of the payer's hand exiled as
-			// a printed trigger's own cost (costParts gates the place); a
-			// filtered spec, ExileFromHand<1/All> and CARDNAME stay refused
-			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" || c.ExileHandN != 0 || c.ExileG != nil {
+			// ExileFromHand<1/Card[/description]> in the two shapes gorge
+			// lowers: the exile-granted ability's cost (lc.grantExile;
+			// lower_exilegrant.go) exiles the ExileG cards from the payer's
+			// hand, and a printed trigger's own cost (costParts gates the
+			// place; cost_exilefromhand.go) keeps its own count. A filtered
+			// spec, ExileFromHand<1/All> and CARDNAME stay refused.
+			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" {
 				return c, refuse("exile cost %q", t)
 			}
-			c.ExileHandN = n
+			if lc.grantExile {
+				if n != 1 || c.ExileG != nil || c.ExileHandN != 0 {
+					return c, refuse("cost token %q", t)
+				}
+				f, err := lc.filter("Card")
+				if err != nil {
+					return c, err
+				}
+				c.ExileG, c.ExileGN, c.ExileHand = f, n, true
+			} else {
+				if c.ExileHandN != 0 || c.ExileG != nil {
+					return c, refuse("exile cost %q", t)
+				}
+				c.ExileHandN = n
+			}
 		case "PutCardToLibFromGrave":
 			if err := putLibSelfCost(&c, parts, n, t); err != nil {
 				return c, err

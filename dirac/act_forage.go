@@ -190,8 +190,8 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 			return false
 		}
 		d.N = 0
-		if pc.Flags&kop.CostExileCtrlOrGrave != 0 {
-			s.exileCands(k, e.ctrl, pc, e.obj, exclude, d) // battlefield, then graveyard (cost_exilecands.go)
+		if pc.Flags&kop.CostExileCtrlOrGrave != 0 || pc.ExileHand {
+			s.exileCands(k, e.ctrl, pc, e.obj, exclude, d) // battlefield, then graveyard, or the hand (cost_exilecands.go)
 		} else {
 			s.graveCands(k, e.ctrl, f, e.obj, exclude, d)
 		}
@@ -273,8 +273,8 @@ func (s *State) payExilePicks() {
 		if s.bld().pickKs[i] != pkExile {
 			continue
 		}
-		if o := s.bld().picks[i]; s.objs[o].zone == kop.ZoneGraveyard {
-			from := s.detach(o)
+		if o := s.bld().picks[i]; s.objs[o].zone == kop.ZoneGraveyard || s.objs[o].zone == kop.ZoneHand {
+			from := s.detach(o) // a hand card is an ExileFromHand cost's (cost_exilecands.go)
 			s.placeFrom(o, kop.ZoneExile, false, from, false)
 			s.exwCostExilePick(o)
 		} else if s.objs[o].zone == kop.ZoneBattlefield {

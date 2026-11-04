@@ -39,7 +39,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged TRK 297 -> 298, ALL 21470 -> 21471).
 	// +2 (The Wrath of Khan: a next-combat delayed gain-control and an exile-from-hand cost; merged TRK 298 -> 299, ALL 21471 -> 21473).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21473, 34442},
+	"ALL": {21474, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -66,7 +66,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {299, 311},
+	"TRK": {300, 311},
 	"WOE": {252, 281},
 }
 

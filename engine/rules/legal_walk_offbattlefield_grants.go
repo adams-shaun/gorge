@@ -26,6 +26,7 @@ func maxSpeedBoastHolds(w *legalWalk, id state.ObjID, ab *cards.SA, svar string)
 // collected from non-battlefield EffectZone$ memberships. Battlefield carriers
 // stay with the existing layer/max-speed offer loops, avoiding duplicates.
 func offBattlefieldGrantedWalk(w *legalWalk) {
+	exileGrantedWalk(w)
 	e, p := w.e, w.p
 	out := &w.out
 	for _, carrier := range w.actionStatics.addAbilityContinuous() {
@@ -61,5 +62,59 @@ func offBattlefieldGrantedWalk(w *legalWalk) {
 		*out = append(*out, decision.Option{Index: len(*out), Kind: "granted",
 			Label: o.Face().Name + ": " + ab.ParamStr(cards.PKSpellDescription),
 			Obj:   carrier.Source, SVar: sv})
+	}
+}
+
+// exileGrantedWalk offers the activated abilities a layer-6 grant gives the
+// cards in p's exile (CR 613.1f, 602.2): Q, Stacking the Deck's Animate gives
+// the card it exiles "Exile a card from your hand: Create a copy of this card.
+// You may cast the copy. Activate only during your turn and only if this card
+// is exiled", a body whose ActivationZone$ names Exile. The battlefield's
+// granted loop never reaches these cards, and the printed exile walk reads
+// the printed face only, so without this walk the ability was granted and
+// never offered. The gates are the battlefield granted loop's, minus the ones
+// that read a permanent (phasing, {T}, loyalty): the body must name the
+// carrier's zone (grantedAnchorZoneOK), and a mana ability or a gained
+// foreign-face ability stays with its own walk.
+func exileGrantedWalk(w *legalWalk) {
+	e, p := w.e, w.p
+	if !e.activeSummaryOf(e.active()).hasGrants {
+		return
+	}
+	out := &w.out
+	for _, id := range e.G.Zone(state.ZExile, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || o.FaceDown {
+			continue
+		}
+		for _, ga := range e.grantedAbilities(p, id) {
+			ab := ga.SA
+			if ga.Gained || !grantedAnchorZoneOK(o, ab) || cards.IsManaAbilitySA(ab) {
+				continue
+			}
+			if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !w.sorcery {
+				continue
+			}
+			if !e.activatorAllows(p, id, ab) || !e.activationPhasesOK(p, ab) {
+				continue
+			}
+			if w.abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
+				continue
+			}
+			cost := e.abilityCompiledCost(ab).Cost
+			bindGrantedCostReferents(&cost, ga.Source)
+			if !w.offerCastable(p, id, cost, abilityScope(ab), true) ||
+				!e.abilityTargetsAvailable(p, id, ab) ||
+				!e.abilityPresentHolds(p, id, ab) || !e.adaptGateOK(id, ab) {
+				continue
+			}
+			if !maxSpeedBoastHolds(w, id, ab, ga.SVar) ||
+				e.activationLimitBlocked(p, id, ab, -1, ga.SVar, 0) || e.grantedSAFrom(ga.Source, id, ga.SVar) == nil {
+				continue
+			}
+			*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
+				Label: o.Face().Name + ": " + ab.ParamStr(cards.PKSpellDescription), Obj: id, SVar: ga.SVar,
+				GrantSource: ga.Source, Attach: ab.API == "Attach"})
+		}
 	}
 }
