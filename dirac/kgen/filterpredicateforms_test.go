@@ -30,7 +30,7 @@ var filterpredicateformsForms = []formCase{
 	{card: "Ensoul Artifact", form: "override static without RemoveCardTypes$ (AddType$ adds)", lir: "override{pt=5/5 addtypes=2}"},
 	{card: "In Bolas's Clutches", form: "override static AddType$ Legendary (a supertype adds, not a subtype)", lir: "override{addtypes=256}"},
 	{card: "Leyline of Singularity", form: "global override static AddType$ Legendary (a supertype adds)", lir: "override{addtypes=256}"},
-	{card: "On Serra's Wings", form: "override static AddType$ Legendary beside an additive P/T pump (two statics: layer 7c + layer 4)", lir: "  static Continuous F={types=0x0 EnchantedBy} F2=nil cond=true P=1 T=1 kw=[] addsub=[] amount=- zone=0 cost={0}\n  static Override F={types=0x0 EnchantedBy} F2=nil cond=true P=- T=- kw=[] addsub=[] amount=- zone=0 override{addtypes=256 kw=Flying&Vigilance&Lifelink} cost={0}"},
+	{card: "On Serra's Wings", form: "override static AddType$ Legendary beside an additive P/T pump (two statics: layer 7c + layer 4; the pump outlives an ability loss, CR 613.6)", lir: "  static Continuous F={types=0x0 EnchantedBy} F2=nil cond=true P=1 T=1 kw=[] addsub=[] amount=- zone=0 outlivesloss cost={0}\n  static Override F={types=0x0 EnchantedBy} F2=nil cond=true P=- T=- kw=[] addsub=[] amount=- zone=0 override{addtypes=256 kw=Flying&Vigilance&Lifelink} cost={0}"},
 	{card: "Mesa Lynx", form: "a printed static's EffectZone$ Battlefield (the default)"},
 	{card: "Glistener Seer", form: "SubCounter<1/OIL/CARDNAME> (the source, gorge SubCounterTargetsSource)"},
 	{card: "Catalyst Elemental", form: "mana Produced$ G G (one colour twice = two of it)"},
