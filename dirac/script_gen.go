@@ -474,6 +474,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if k.gen.anyTapExtra {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
+		if k.multiMana && s.filterSource(k, p) {
+			continue // a controlled filter (Rumble Arena's {1},{T}: any colour) is no unit of the census here, yet it funds Ba Sing Se's {G} (CR 605.1a, 106.1)
+		}
 		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
 		}

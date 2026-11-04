@@ -1034,3 +1034,29 @@ func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 	}
 	return false
 }
+
+// filterSource: p controls a permanent with a second mana ability that costs
+// mana (a filter: {1}, {T}: add one mana of any color). affordsUngrantedFor
+// counts a source's first mana ability only, so its verdict on a play such a
+// source funds is not gorge's.
+func (s *State) filterSource(k *prep, p uint8) bool {
+	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+		c := s.cardAt(m.first())
+		if k.cards[c].manaAb < 0 {
+			continue
+		}
+		cd := &k.t.Cards[c]
+		seen := false
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+				continue
+			}
+			if seen && a.Cost.Mana.MV() > 0 {
+				return true
+			}
+			seen = true
+		}
+	}
+	return false
+}
