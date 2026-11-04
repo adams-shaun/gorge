@@ -128,7 +128,7 @@ Two further points.
   `bots/azredeal/azredeal.go:100-105`, `ClosedFactory`). Such a seat declares `ClosedLists` and may sit against a person; the host
   checks the declaration at match start (`server/host/closedlist.go:23-38`). gorge ships no trained network and no belief corpus, so
   no registered bot uses it. A binary links one with `gorged.RegisterNetBot` (`server/gorged/netbots.go:76`). Net runtime details are
-  on [Search and bots on dirac](../architecture/dirac/search.md).
+  on [Search and nets](../engines/search-and-nets.md#the-net-runtime).
 
 ## Cost and engines
 

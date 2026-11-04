@@ -1,43 +1,8 @@
-# API reference
+# Versions and schema files
 
-This section is the reference for gorge's public interfaces: watch and play games over **HTTP** with a live **event stream**, plug in
-agents and harnesses over **SpellBench v2**, play a seat from a **ManaBrew** client, answer draft and game batches over
-**gorge-agent/1**, or import gorge as a **Go library**. For a walkthrough, start with [Bots](../bots/index.md) or the
-[User's guide](../guide/index.md).
-
-## Which API for which job
-
-```mermaid
-flowchart LR
-  subgraph you["what you are building"]
-    A["a viewer, dashboard<br/>or replay tool"]
-    B["a bot in Python, Java, JS…<br/>playing one seat"]
-    C["a SpellBench agent<br/>or benchmark harness"]
-    D["a Go program: custom bot,<br/>own server, test harness"]
-    E["a drafter, builder or player<br/>answering batches"]
-  end
-  subgraph gorge["gorge"]
-    H["gorged HTTP API<br/>JSON + SSE"]
-    S["SpellBench v2<br/>NDJSON over stdio"]
-    G["Go packages<br/>engine/*, bots, server/*, draft/*"]
-    W["gorge-agent/1<br/>JSON lines, stdio or Unix socket"]
-  end
-  A -- "GET views, events;<br/>GET /api/stream" --> H
-  B -- "GET pending /<br/>POST intent" --> H
-  C -- "spawns spellbench-gorge-env,<br/>or gorged -sb-agent spawns it" --> S
-  D -- "import" --> G
-  W -- "labdemo and draftlab<br/>call out to it" --> E
-```
-
-| You want to… | Use | Reference |
-|---|---|---|
-| Show tables, boards and transcripts live | HTTP and the SSE stream | [HTTP API](http.md), [Event stream](sse.md) |
-| Decode stream frames or view JSON in another language | The wire types | [Wire protocol](protocol.md), [`gorge-protocol.schema.json`](schemas/gorge-protocol.schema.json) |
-| Play a seat from any language | `pending` / `intent` over HTTP | [HTTP API: the decision loop](http.md#the-decision-loop), walkthrough in [Playing a seat over HTTP](../bots/http.md) |
-| Run gorge as the engine behind a SpellBench host, or seat a SpellBench agent at a gorge table | SpellBench v2 | [SpellBench v2](spellbench-v2.md) |
-| Play a seat from a ManaBrew client | The ManaBrew wire (`-manabrew`) | [ManaBrew](manabrew.md) |
-| Answer draft picks, deck builds and game decisions in batches from another language | `gorge-agent/1` | [gorge-agent/1](gorge-agent.md) |
-| Write a bot in Go, embed the engine, or run your own server | The Go packages | [Go embedding API](go.md) |
+Which wire to use, and what each one supports, is on [Interfaces](../interfaces/index.md)
+and its [support matrix](../interfaces/support.md). This page is the reference behind them:
+how each surface is versioned, and the machine-readable files published with the site.
 
 All of them sit on one engine contract. The engine asks a **decision** that lists every legal
 option, and the player answers with an **intent** naming option indices. No rules knowledge

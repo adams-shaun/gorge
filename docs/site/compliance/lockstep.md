@@ -38,10 +38,14 @@ the oracle's adapter translates), and a declared capacity limit.
 `kfuzz` (`dirac/oracle/cmd/kfuzz`) plays seeded pairs of decks. The surface
 chooses which options both sides offer.
 
-| Surface | Offers | Used for |
-|---|---|---|
-| `autopay` | No plain cast that gorge's payment planner never prices; no mana-ability options | the surface a hosted bot casts through |
-| `full` (default) | Those casts too | the stricter surface |
+=== "autopay"
+
+    Offers no plain cast that gorge's payment planner never prices, and no
+    mana-ability options. It is the surface a hosted bot casts through.
+
+=== "full (default)"
+
+    Offers those casts too. It is the stricter surface.
 
 `make dirac-slices` plays the first 1,500 pairs of the `fdn` and `blb` pools at
 seed 1 on both surfaces with `-absolute`. The slices are committed under

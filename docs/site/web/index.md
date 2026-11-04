@@ -2,7 +2,8 @@
 
 <div class="gg-area" markdown>
 
-`gorged` serves the browser client, the tables and the bots from one process. The client holds no rules; it shows what the server sends. { .gg-lede }
+`gorged` serves the browser client, the tables and the bots from one process. The client holds no rules; it shows what the server sends.
+{ .gg-lede }
 
 ```mermaid
 flowchart LR

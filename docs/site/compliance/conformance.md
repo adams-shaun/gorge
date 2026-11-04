@@ -90,12 +90,10 @@ failing test skeleton. See
 
 ## What runs where
 
-| When | What |
-|---|---|
-| While you work | Focused tests with `-run`, capped, with the corpus linked |
-| Before a PR | `TestHeads`, `make sim`, the guards for the files you touched |
-| After merge and in CI | The full suite, with the per-test budget (4 GB, 4 vCPU, 1 minute) |
-| Nightly in gorge-compliance | Verdict, ratchet and drift reports |
+1. **While you work:** focused tests with `-run`, capped, with the corpus linked.
+2. **Before a PR:** `TestHeads`, `make sim`, and the guards for the files you touched.
+3. **After merge and in CI:** the full suite, with the per-test budget (4 GB, 4 vCPU, 1 minute).
+4. **Nightly in gorge-compliance:** verdict, ratchet and drift reports.
 
 Never run `go test ./...` as an inner loop. Missing `.cards` makes corpus tests
 skip and the package still prints `ok`, so check with `-v`.

@@ -2,7 +2,8 @@
 
 <div class="gg-area" markdown>
 
-Every way in to a game is an adapter in front of one engine seam. Pick the wire that fits your client. { .gg-lede }
+Every way in to a game is an adapter in front of one engine seam. Pick the wire that fits your client.
+{ .gg-lede }
 
 ```mermaid
 flowchart LR

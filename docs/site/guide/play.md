@@ -390,18 +390,10 @@ Beyond a trusted LAN, keep `gorged` on loopback and put it behind something that
 such as an SSH tunnel or a reverse proxy with a login. `-pprof` (runtime profiles) is refused unless the
 listener is loopback, and a proxy in front of it would expose it anyway.
 
-## Other flags
+## Every flag
 
-`go run ./cmd/gorged -h` prints every flag with its default. Those not covered above:
-
-| Flag | Meaning |
-|---|---|
-| `-events`, `-max-events` | host [draft events](draft.md) |
-| `-manabrew`, `-manabrew-addr`, `-manabrew-think` | serve the ManaBrew wire, on the main listener or a separate address, with an optional human-seat think timeout |
-| `-sbv2` | serve SpellBench v2 seats over HTTP ([SpellBench v2](../api/spellbench-v2.md)) |
-| `-engine`, `-dirac-sets` | the engine tables run on, `gorge` or `dirac`, and dirac's card sets ([Serving dirac](dirac.md)) |
-| `-prewarm-art-only`, `-prewarm-art-budget`, `-prewarm-art-max-consecutive-failures` | fill the art cache and exit, with optional limits |
-| `-allow-decklist-bots` | lets a binary that links a trained-network bot run one that reads opponents' deck lists, on its bot-only table. A plain `gorged` links none |
+Every startup flag, with its default and meaning, is on [gorged flags](../web/flags.md), generated from
+the flag definitions. `go run ./cmd/gorged -h` prints the same list.
 
 Everything the browser does goes through the [HTTP API](../api/http.md), so you can drive or inspect a server
 with `curl`.

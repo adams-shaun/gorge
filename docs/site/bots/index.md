@@ -2,7 +2,8 @@
 
 # Bots
 
-A bot is a program that plays a seat. It sees its own hand and the public board, and answers each decision with a legal choice. { .gg-lede }
+A bot is a program that plays a seat. It sees its own hand and the public board, and answers each decision with a legal choice.
+{ .gg-lede }
 
 ```mermaid
 flowchart LR

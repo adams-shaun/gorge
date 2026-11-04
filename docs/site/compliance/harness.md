@@ -27,6 +27,14 @@ flowchart LR
   xe -.->|"XENGINE_DIRAC=1"| d["dirac"]
 ```
 
+## What agreement means
+
+Two engines agreeing is evidence, not proof. gorge compiles Forge's card
+scripts, so gorge and Forge can share a script bug. dirac lowers gorge's own
+compiled IR, so it shares gorge's reading of the rules. XMage is written
+by hand and shares neither. A ruling that gorge is wrong rests on the printed
+card or the Comprehensive Rules, never on a vote of engines.
+
 ## The checks
 
 | Check | Compares gorge with | Blocks CI? |
@@ -95,15 +103,20 @@ interactions between cards go untested.
 ### Disagreement classes
 
 Letters name the engines: **G** gorge, **F** Forge, **X** XMage. A bar
-separates groups that disagree.
+separates groups that disagree. Below, a filled dot sides with at least one
+other engine and a ring stands alone.
 
-| Pattern | Reads as | Label | Usual meaning |
-|---|---|---|---|
-| `AGREE3` | all three agree | | nothing to do |
-| `FX\|G` | Forge and XMage agree, gorge differs | `gorge_suspect` | a likely gorge bug |
-| `GF\|X` | gorge and Forge agree, XMage differs | `xmage_suspect` | an XMage bug, or a script bug gorge and Forge share |
-| `GX\|F` | gorge and XMage agree, Forge differs | `forge_suspect` | a Forge bug |
-| `G\|F\|X` | all three differ | `three_way` | read the rules by hand |
+<div class="gg-matrix" markdown>
+
+| Pattern | gorge | Forge | XMage | Label | Usual meaning |
+|---|:---:|:---:|:---:|---|---|
+| `AGREE3` | <span class="gg-dot gg-dot--full" title="gorge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--full" title="Forge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--full" title="XMage sides with another engine"></span><span class="gg-sr">agrees</span> |  | nothing to do |
+| `FX\|G` | <span class="gg-dot gg-dot--none" title="gorge stands alone"></span><span class="gg-sr">alone</span> | <span class="gg-dot gg-dot--full" title="Forge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--full" title="XMage sides with another engine"></span><span class="gg-sr">agrees</span> | `gorge_suspect` | a likely gorge bug |
+| `GF\|X` | <span class="gg-dot gg-dot--full" title="gorge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--full" title="Forge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--none" title="XMage stands alone"></span><span class="gg-sr">alone</span> | `xmage_suspect` | an XMage bug, or a script bug gorge and Forge share |
+| `GX\|F` | <span class="gg-dot gg-dot--full" title="gorge sides with another engine"></span><span class="gg-sr">agrees</span> | <span class="gg-dot gg-dot--none" title="Forge stands alone"></span><span class="gg-sr">alone</span> | <span class="gg-dot gg-dot--full" title="XMage sides with another engine"></span><span class="gg-sr">agrees</span> | `forge_suspect` | a Forge bug |
+| `G\|F\|X` | <span class="gg-dot gg-dot--none" title="gorge stands alone"></span><span class="gg-sr">alone</span> | <span class="gg-dot gg-dot--none" title="Forge stands alone"></span><span class="gg-sr">alone</span> | <span class="gg-dot gg-dot--none" title="XMage stands alone"></span><span class="gg-sr">alone</span> | `three_way` | read the rules by hand |
+
+</div>
 
 Combined with dirac: `AGREE3 D!=G` points at dirac. `FX|G D=G` is a gorge suspect
 that dirac shares.

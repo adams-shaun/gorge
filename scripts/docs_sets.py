@@ -433,11 +433,15 @@ def bars(rows, names=("supported", "unverified", "refused")):
     out = ['<div class="gg-bars">']
     for label, ok, unv, ref, total in rows:
         w = lambda n: "%.1f%%" % (100.0 * n / total if total else 0)
-        out.append('<div class="gg-bar" title="%s: %d %s, %d %s, %d %s"><span class="gg-bar__label">%s</span>'
+        desc = "%s: %d %s, %d %s, %d %s" % (label, ok, names[0], unv, names[1], ref, names[2])
+        out.append('<div class="gg-bar" role="img" title="%s" aria-label="%s"><span class="gg-bar__label" aria-hidden="true">%s</span>'
                    '<span class="gg-seg gg-seg--ok" style="--w:%s"></span><span class="gg-seg gg-seg--unv" style="--w:%s"></span>'
                    '<span class="gg-seg gg-seg--ref" style="--w:%s"></span></div>' % (
-                       label, ok, names[0], unv, names[1], ref, names[2], label, w(ok), w(unv), w(ref)))
+                       desc, desc, label, w(ok), w(unv), w(ref)))
     out.append("</div>")
+    # The key: each swatch is a segment of the bar it names.
+    out.append('<ul class="gg-legend gg-bars__key">%s</ul>' % "".join(
+        '<li><i class="gg-seg gg-seg--%s"></i>%s</li>' % (k, n) for k, n in zip(("ok", "unv", "ref"), names)))
     return "\n".join(out) + "\n"
 
 
