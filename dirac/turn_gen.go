@@ -193,7 +193,7 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
 	for ; m.any(); m = m.rest() {
 		src := m.first()
-		if src == sl || s.genLost(k, src) {
+		if s.genLost(k, src) {
 			continue
 		}
 		scid := s.cardAt(src)
@@ -210,6 +210,11 @@ func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask)
 			s.occ.set(sl) // the filter reads the entering object
 			ok := s.matchPermGen(k, a.Repl.Filter, sl, sp.ctrl, src, layerFull)
 			s.occ.clr(sl)
+			if ok && a.Repl.Cond != 0 && DebugKiraMutate != 2 {
+				// IsPresent$ (Kira Nerys): the entering object is not yet among
+				// the permanents it counts (cleared from occ above)
+				ok = s.condEval(k, a.Repl.Cond, evalCtx{src: sp.obj, srcSl: src, ctrl: sp.ctrl})
+			}
 			if ok {
 				s.runReplProgAs(k, sl, scid, uint8(i), 0, src)
 			}

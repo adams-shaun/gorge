@@ -297,7 +297,7 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || a.Static.Zone != ob.zone {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) != 0 {

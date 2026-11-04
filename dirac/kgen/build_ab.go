@@ -3,6 +3,7 @@ package kgen
 import (
 	"fmt"
 	"math/bits"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1779,7 +1780,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
-		if st.Filter, err = filter(s.F, st.Zone); err != nil {
+		fz := st.Zone
+		if slices.Contains(s.Flags, "AlsoSideboard") {
+			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
+		}
+		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
 		}
 		// the count of "RemoveAnyCounter<N/Any/Creature>" (RaiseCostRemove6...)
@@ -1798,6 +1803,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFunctionsInGraveyard
 			case "FunctionsInExile":
 				st.StFlags |= kop.StFunctionsInExile
+			case "AlsoSideboard":
+				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -3101,6 +3108,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "EnterAttacking":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterAttacking))
 	case "ExchangeControl":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExchangeControl)), int16(in.C)
 	case "EachDamage":

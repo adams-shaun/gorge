@@ -28,7 +28,7 @@ func (s *State) ProjectChars(p *Projection) {
 	for m := pm; m.any(); m = m.rest() {
 		sl := m.first()
 		o := s.perms[sl].obj
-		if int(o) >= len(p.Chars) || s.objs[o].zone != kop.ZoneBattlefield && (!k.phasing || s.objs[o].zone < kop.ZonePhased) {
+		if int(o) >= len(p.Chars) || s.objs[o].zone != kop.ZoneBattlefield && (!k.phasing || !s.objs[o].zone.Phased()) {
 			continue
 		}
 		c := &p.Chars[o]

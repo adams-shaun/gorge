@@ -96,7 +96,7 @@ func init() {
 	enum[kop.Zone]("kop.ZoneNone", kop.ZoneNone, "kop.ZoneLibrary", kop.ZoneLibrary, "kop.ZoneHand", kop.ZoneHand,
 		"kop.ZoneBattlefield", kop.ZoneBattlefield, "kop.ZoneGraveyard", kop.ZoneGraveyard, "kop.ZoneExile", kop.ZoneExile,
 		"kop.ZoneStack", kop.ZoneStack, "kop.ZoneCommand", kop.ZoneCommand,
-		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd)
+		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd, "kop.ZoneSideboard", kop.ZoneSideboard)
 	enum[kop.Timing]("kop.TimingSorcery", kop.TimingSorcery, "kop.TimingInstant", kop.TimingInstant, "kop.TimingLand", kop.TimingLand)
 	enum[kop.TargetKind]("kop.TgtNone", kop.TgtNone, "kop.TgtObject", kop.TgtObject, "kop.TgtPlayer", kop.TgtPlayer,
 		"kop.TgtAny", kop.TgtAny, "kop.TgtSpell", kop.TgtSpell, "kop.TgtCard", kop.TgtCard, "kop.TgtStackObj", kop.TgtStackObj, "kop.TgtStackAb", kop.TgtStackAb,
@@ -221,7 +221,7 @@ func init() {
 	mask[kop.StaticFlags]("kop.StDynamic", kop.StDynamic, "kop.StOncePerTurn", kop.StOncePerTurn, "kop.StAnyManaType", kop.StAnyManaType,
 		"kop.StWithoutManaCost", kop.StWithoutManaCost, "kop.StFunctionsInGraveyard", kop.StFunctionsInGraveyard,
 		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof,
-		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB)
+		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB, "kop.StAlsoSideboard", kop.StAlsoSideboard)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,
 		"kop.AfManaChoice", kop.AfManaChoice, "kop.AfGift", kop.AfGift, "kop.AfResolveCount", kop.AfResolveCount, "kop.AfStation", kop.AfStation, "kop.AfManaReflect", kop.AfManaReflect, "kop.AfManaNonSpell", kop.AfManaNonSpell)
