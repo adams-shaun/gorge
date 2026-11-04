@@ -1316,10 +1316,26 @@ const (
 	// DestroyProposal so every earlier ordinal, hash chain and golden replay
 	// is unchanged.
 	EndCombatPhase
+	// ManaAbilityActivation records the activation of a mana ability for the
+	// triggers that watch activations (Mode$ AbilityCast / SpellAbilityCast;
+	// CR 605.1a: a mana ability is an activated ability, CR 605.3b: it never
+	// uses the stack). It is a MARKER, not a mint -- no stack object exists --
+	// so IsActivationMint does not admit it; trigmatch's abilityCastMatches
+	// accepts it by name and resolves the activated body the way the mint
+	// kinds do. Obj is the source permanent, Player the activator. Amount is
+	// the ability's flat pile index (the AbilityPush shape), or -1 when the
+	// ability is not one of the source's pile abilities; an event carrying
+	// IDs is a GAINED mana activation (the GainedAbilityPush shape): IDs[0]
+	// names the foreign card and Amount indexes that card's face Abilities.
+	// Rules emits it only while a watching trigger is in play, so every game
+	// without such a carrier logs exactly what it logged before. Appended
+	// after EndCombatPhase so every earlier ordinal, hash chain and golden
+	// replay is unchanged.
+	ManaAbilityActivation
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(EndCombatPhase) + 1
+	NumKinds = int(ManaAbilityActivation) + 1
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

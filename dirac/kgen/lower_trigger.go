@@ -2967,6 +2967,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.turnUpRepl(rp, r.With, &rl); err != nil { // lower_turnfaceuprepl.go
 			return err
 		}
+	case "Destroy":
+		if err := lc.destroyHealRepl(rp, r.With, &rl); err != nil {
+			return err
+		}
 	default:
 		return refuse("repl-hard: %s replacement", r.Event)
 	}
@@ -3010,6 +3014,39 @@ func withIs(w *cards.SA, api string, want map[string]string) bool {
 		n++
 	}
 	return n == len(want)
+}
+
+// destroyHealRepl lowers Dr. McCoy, Surly Surgeon's destroy replacement: an
+// other creature its controller controls with a +1/+1 counter would be
+// destroyed; instead remove all +1/+1 counters from it and heal all damage
+// on it. The body is a chain, so withIs cannot read it.
+func (lc *lowerCtx) destroyHealRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if rp.str("ActiveZones") != "Battlefield" || rp.str("ValidCard") != "Creature.Other+YouCtrl+counters_GE1_P1P1" {
+		return refuse("repl-hard: Destroy replacement shape")
+	}
+	if w == nil || w.API != "RemoveCounter" || w.Sub == nil {
+		return refuse("repl-hard: Destroy replacement body")
+	}
+	bp := newParams(w.Params)
+	bp.consume("Defined", "CounterType", "CounterNum", "SubAbility")
+	if bp.str("Defined") != "ReplacedCard" || bp.str("CounterType") != "P1P1" || bp.str("CounterNum") != "All" || len(bp.unread()) != 0 {
+		return refuse("repl-hard: Destroy replacement body")
+	}
+	hp := w.Sub
+	if hp.API != "HealDamage" || hp.Sub != nil {
+		return refuse("repl-hard: Destroy replacement heal body")
+	}
+	subp := newParams(hp.Params)
+	subp.consume("Defined")
+	if subp.str("Defined") != "ReplacedCard" || len(subp.unread()) != 0 {
+		return refuse("repl-hard: Destroy replacement heal body")
+	}
+	f, err := lc.filter(rp.str("ValidCard"))
+	if err != nil {
+		return err
+	}
+	rl.Kind, rl.F = "DestroyHeal", f
+	return nil
 }
 
 // damageRepl lowers the DamageDone replacements that are not plus-N:

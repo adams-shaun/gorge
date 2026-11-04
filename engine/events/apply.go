@@ -205,10 +205,12 @@ func applyKind(g *state.Game, e *Event) {
 				g.Players[e.Player].DilemmasFacedThisTurn--
 			}
 		}
-	case GameStart, DecisionAsk, DecisionMade, ManaActivate, RollDice:
+	case GameStart, DecisionAsk, DecisionMade, ManaActivate, ManaAbilityActivation, RollDice:
 		// Markers.
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
+		// ManaAbilityActivation is the AbilityCast/SpellAbilityCast observation
+		// marker for a mana ability (no stack object, no state of its own).
 	case SetupEntered:
 		// The oracle harness stages battlefield cards before the initial
 		// TurnChange. Restore their first-turn entry history after that reset

@@ -1509,6 +1509,10 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
+	// CR 605.1a: the activation is visible to Mode$ AbilityCast /
+	// SpellAbilityCast, which a mana ability's lack of a stack object would
+	// otherwise hide from. Gated on a watcher being in play.
+	e.emitManaAbilityActivation(p, source, original, gained.From, gained.Idx, gained.Face != nil)
 	cc := e.manaAbilityCC(p, source, ma)
 	cost := cc.Cost
 	sacs, _ := pay.ManaSacrifices(asPayer(e), p, source, cost)

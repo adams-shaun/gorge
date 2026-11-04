@@ -12,9 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // holding zone that becomes the cast's From (so the copy is cast "from the
 // library", prov and the cast ledger read it). Nothing else about the cast
 // differs from an ordinary free cast: cast triggers fire (CR 707.12), the
-// spell counts as cast. Leaving the stack the copy is put where its card
-// would go and ceases to exist (CR 704.5d), as every ofCopy spell does
-// (ceaseTokensGen).
+// spell counts as cast. Leaving the stack the copy rests in exile and ceases
+// to exist there (CR 707.10a), as every ofCopy spell does (spellRestExiles,
+// then ceaseTokensGen).
 //
 // The kernel mints the same ofCopy object (newToken, owner = the caster) at
 // the freeQ drain, in zone ZoneNone; pushBuild reads "ofCopy in ZoneNone" as

@@ -944,6 +944,10 @@ const (
 	// cfgxShieldPass is transient, never a Config bit: a state-based pass spent a
 	// shield counter, so the check runs again (State.sba).
 	cfgxShieldPass uint8 = 1 << 7
+	// cfgxDestroyHealPass is transient, never a Config bit: a state-based pass
+	// applied a ReplDestroyHeal replacement, so the check runs again (a
+	// toughness-0 creature still dies after the counters leave).
+	cfgxDestroyHealPass uint8 = 1 << 3
 )
 
 func (s *State) k() *prep { return prepChunks[s.tbl/tableChunk].Load()[s.tbl%tableChunk] }

@@ -123,6 +123,9 @@ func (s *State) destroyNoRegen(k *prep, sl Slot) {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
 		return
 	}
+	if s.destroyHeal(k, sl) {
+		return
+	}
 	if k.gen != nil && k.gen.anyRepl&rbShield != 0 && s.shieldDestroy(sl) {
 		return // CR 122.1c: NoRegen$ suppresses regeneration, not the shield counter (gorge effDestroy)
 	}
