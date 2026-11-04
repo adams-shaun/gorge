@@ -123,6 +123,7 @@ func phasesAffectedObjects(h Host, c *Ctx, sa *cards.SA, includePhasedOut bool) 
 	if spec := strings.TrimSpace(sa.ParamStr(cards.PKAllValid)); spec != "" {
 		g := h.Game()
 		sc := c.SpecContext(c.Controller)
+		sc.WithPhasedOut = includePhasedOut
 		var out []state.ObjID
 		for i := range g.Objs {
 			o := &g.Objs[i]

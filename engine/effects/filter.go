@@ -2866,6 +2866,12 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// WithPhasedOut lets a battlefield filter match a phased-out permanent:
+	// only the phasing toggle's AllValid$ pool sets it (Forge's
+	// getCardsIncludePhasingIn), so a permanent that phased out can phase
+	// back in. Every other read treats a phased-out permanent as though it
+	// doesn't exist (CR 702.26b; matchesObjectPtr).
+	WithPhasedOut bool
 	// AsSpellHalf is the same class of DERIVED-CHARACTERISTICS override:
 	// rules' spellSpecCtx sets it while a cast restriction or cost modifier
 	// reads a card still in its origin zone as the spell its current face
@@ -3187,6 +3193,13 @@ func copyCeased(o *state.Object, sc *SpecContext) bool {
 // every call level.
 func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecContext) bool {
 	if o == nil {
+		return false
+	}
+	if o.PhasedOut && o.Zone == state.ZBattlefield && !sc.WithPhasedOut && !strings.Contains(spec, "phasedOut") {
+		// CR 702.26b: a phased-out permanent is treated as though it
+		// doesn't exist, so no sweep, count or choice finds it (Forge's
+		// getCardsIn(Battlefield) leaves it out); the phasedOut words read
+		// it on purpose
 		return false
 	}
 	// A renamed or layer-4-altered object must be answered by the textual

@@ -152,6 +152,22 @@ func TestStationNegativeGates(t *testing.T) {
 		t.Fatalf("station offered with no untapped creature to pay: %+v", d.Options)
 	}
 
+	// Gate 1b: a phased-out creature doesn't exist (CR 702.26b), so it is
+	// no payer and the option is not offered.
+	e1 := corpusEngine(t, reg,
+		[]*cards.Card{lookup(t, reg, "Hearthhull, the Worldseed"), card(t, bearSrc)},
+		[]*cards.Card{})
+	hearth1 := moveByName(t, e1, 0, "Hearthhull, the Worldseed", state.ZBattlefield)
+	bear1 := moveByName(t, e1, 0, "Bear", state.ZBattlefield)
+	e1.emit(events.Event{Kind: events.PhaseOut, Obj: bear1, Amount: 1})
+	if cands := e1.stationCandidates(0, hearth1); len(cands) != 0 {
+		t.Fatalf("a phased-out creature offered as a Station payer: %v", cands)
+	}
+	e1.priorityRound()
+	if d := e1.Pending(); d != nil && findStationOption(d, hearth1) >= 0 {
+		t.Fatalf("station offered with only a phased-out creature to pay: %+v", d.Options)
+	}
+
 	// Gate 2: not sorcery speed. The Bear is cast from hand so the stack is
 	// nonempty; the pending priority decision must not offer Station while
 	// the spell resolves, and must offer it again once the stack drains.
