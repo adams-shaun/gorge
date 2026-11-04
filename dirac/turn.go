@@ -869,7 +869,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	ref := dlyRef(e.obj, e.trigObj) // the affected object, not a creator source
 	ob := &s.objs[ref]
-	if ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield {
+	// A delayed promise names its object directly, so it still acts on a
+	// permanent that has phased out (CR 702.26b; gorge's end-step exile
+	// moves a phased-out token). Only a real zone change makes it stale.
+	if ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield && ob.zone < kop.ZonePhased {
 		return
 	}
 	sl := ob.slot
