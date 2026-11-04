@@ -20,6 +20,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectEtbCounters(ps); ok || err != nil { // lower_effetbctr.go
 		return err
 	}
+	if ok, err := lc.effectCounterPlusEOT(ps); ok || err != nil { // lower_ctrpluseot.go
+		return err
+	}
 	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
 		return lc.skipUntapEffect(ps)
 	}

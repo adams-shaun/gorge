@@ -105,6 +105,7 @@ const (
 	ChRoomDoor                                // source = the Room; target = the canonical ordinal of the door among the candidates; mode = the door face (gorge effUnlockDoor's "Choose a Room door")
 	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
+	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

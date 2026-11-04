@@ -129,8 +129,10 @@ import (
 // +1 (The City on the Edge of Forever: Phases AllValid$ and S:Mode$ CantPhaseIn; 21444 -> 21445; ratchet TRK 277 -> 278).
 // +1 (Brazen Bluff: a Pump carries the spell target, the optional exile and the free noncreature cast; 21445 -> 21446; ratchet TRK 278 -> 279).
 // +1 (Ensign Pavel Chekov: RepeatEach Opponent over ChooseCard in exile with ImprintChosen$, then MayPlay over the chosen; 21446 -> 21447; ratchet TRK 279 -> 280).
+// +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; 21447 -> 21448; ratchet TRK 280 -> 281).
+// +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21447, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21449, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

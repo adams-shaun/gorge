@@ -143,8 +143,9 @@ var ChooseKinds = []string{
 	"permanent",            // gorge's clone_choice pick
 	"beholdcost",           // gorge's beholdCostAsk pick
 	"unlock", "lock",       // gorge effUnlockDoor's election
-	"revealcost", // gorge's AdvanceUnless reveal pick
-	"ward_mana",  // gorge ward.go's {N} option of a discard-or-pay ward
+	"revealcost",   // gorge's AdvanceUnless reveal pick
+	"ward_mana",    // gorge ward.go's {N} option of a discard-or-pay ward
+	"puttolibcost", // gorge putToLibAsk's PutCardToLibFrom<Zone> pick
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

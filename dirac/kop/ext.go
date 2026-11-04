@@ -543,6 +543,16 @@ const (
 
 func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }
 
+// ExtCounterPlusEOT: until end of turn, if one or more counters would be put
+// on a permanent the resolving controller controls, that many plus one of
+// each of those kinds are put on it instead (Brad Boimler, Eager Ensign's
+// tap-triggered Effect; gorge effEffect's AddCounter replacement with no
+// ValidCounterType$). A per-player count in genState.plusCtr, cleared at
+// cleanup. No other field. dirac/ctr_pluseot.go.
+const ExtCounterPlusEOT ExtOp = 247
+
+func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a

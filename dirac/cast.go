@@ -2087,6 +2087,12 @@ const (
 	// pkBlight marks a Blight cost pick (kop.CostBlight is above 16 bits).
 	// It carries pkExile's bit so the answer routes to answerCostObj.
 	pkBlight pickKind = pickKind(kop.CostAddCtr) | pkExile
+	// pkPutLib marks the PutCardToLibFromGrave<1/-1/CARDNAME> self cost
+	// pick (kop.Cost.PutLibSelf; a Cost byte, not a flag). It carries
+	// pkExile's bit so the answer routes to answerCostObj. It shares bit 13
+	// with pkWaterbend: the two cost shapes cannot coexist (PutLibSelf is a
+	// graveyard ability's, waterbend is refused outside a battlefield one).
+	pkPutLib pickKind = 0x2000 | pkExile
 	// pickSubCtr marks a pick (pickKs) that removes one counter, of the
 	// kind in its low byte, from the picked creature.
 	pickSubCtr pickKind = 0x8000

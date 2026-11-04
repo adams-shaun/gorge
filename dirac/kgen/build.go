@@ -967,6 +967,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.ExileSelf {
 		out.Flags |= kop.CostExileSelf
 	}
+	if c.PutLibSelf {
+		out.PutLibSelf = true
+	}
 	if c.Untap {
 		out.Flags |= kop.CostUntapSelf
 	}

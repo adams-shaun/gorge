@@ -2469,6 +2469,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.discardSelfCost(k, e)
 	}
 	s.payPicks(k)
+	s.payPutLibPicks(k) // cost_putlibself.go
 	if a.Cost.Host == kop.CostHostSac {
 		s.sacHostCost(k, e)
 	}

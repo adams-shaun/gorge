@@ -401,6 +401,7 @@ const (
 	rbDblLoss                         // ReplLifeLossDouble (repl_lifelossdouble.go)
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
+	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -520,6 +521,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepConverge(t, g)   // mana_converge.go
 	prepEvoke(t, g)      // kw_evoke.go
 	prepEffEtbCtr(t, g)  // ctr_effectentry.go
+	prepCtrPlusEOT(t, g) // ctr_pluseot.go
 	prepStaticTrig(t, g) // trig_mayplaystatic.go
 	prepCrewSaddle(t, g)
 	prepManaSrc(t, g, p) // mana_spendtrigger.go
@@ -1498,6 +1500,7 @@ type genState struct {
 	poolArt  [2]uint8 // per player, the pool slots holding mana an artifact produced (mana_artifact.go; padding)
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
+	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card

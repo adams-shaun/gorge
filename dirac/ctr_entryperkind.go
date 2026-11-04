@@ -43,7 +43,7 @@ var EntryMergeStats struct{ Merged, Modified atomic.Int64 }
 // replacement and some source of entry counters besides an entrant's own
 // body (an Effect-borne body, a foreign program, a requested count).
 func prepEntryMerge(t *kop.Table, g *genPrep) {
-	if g.anyRepl&(rbDblCtr|rbCtrOn|rbDblCtrYou) == 0 {
+	if g.anyRepl&(rbDblCtr|rbCtrOn|rbDblCtrYou|rbPlusCtrEOT) == 0 {
 		return
 	}
 	src := g.anyEffEtbCtr
