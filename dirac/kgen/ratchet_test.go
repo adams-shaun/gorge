@@ -33,7 +33,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; TRK 290 -> 291, ALL 21459 -> 21461).
 	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 291 -> 292, ALL 21461 -> 21462).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21462, 34442},
+	"ALL": {21463, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -60,7 +60,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {292, 311},
+	"TRK": {293, 311},
 	"WOE": {252, 281},
 }
 
