@@ -199,6 +199,14 @@ func TestStdFinReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-sos's, on the same terms.
+func TestStdSosReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-sos", []stdRepro{
+		{"printed_flashback_beside_granted", false}, // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+	})
+}
+
 // std-ecl's, on the same terms.
 func TestStdEclReprosLockstep(t *testing.T) {
 	t.Parallel()
