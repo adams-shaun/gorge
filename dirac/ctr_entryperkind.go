@@ -58,7 +58,9 @@ func prepEntryMerge(t *kop.Table, g *genPrep) {
 				case kop.OpReturnEx, kop.OpChangeZoneAllEx, kop.OpChooseMove, kop.OpDigCounters, kop.OpIncubate:
 					src = true
 				case kop.OpExt:
-					if in.Ext() == kop.ExtSearchCounters && entryMergeKind(int(in.C)) {
+					// Only the arm (a positive amount) is a source; the
+					// trailing clear is B=0 and must not enable the window.
+					if in.Ext() == kop.ExtSearchCounters && in.B.K == kop.VConst && in.B.N > 0 && entryMergeKind(int(in.C)) {
 						src = true // a library search's +1/+1 or -1/-1 rider
 					}
 				case kop.OpEnterWithCounters:
