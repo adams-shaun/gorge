@@ -417,7 +417,7 @@ func faceModalFloorZero(f *cards.Face) bool {
 		return false
 	}
 	for _, name := range effects.CharmOf(sa).Modes {
-		c, present, ok := modeCost(f, strings.TrimSpace(name))
+		c, present, ok := modeCost(f, name)
 		if present && !ok {
 			continue
 		}
