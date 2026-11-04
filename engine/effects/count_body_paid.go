@@ -464,23 +464,9 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 			}
 			return n, true, true
 		}
-	case evalCountBodyPaidYourTurns:
-		// How many of the game's turns have begun with the controller as the
-		// active player, current turn included (Serra Avenger's "your first,
-		// second, or third turns of the game"). Log-derived through the Host
-		// like LifeOppsLostThisTurn, so a replay derives the same number.
-		return h.TurnsTaken(c.Controller), true, true
-	case evalCountBodyPaidYourExtraTurns:
-		// How many extra turns the controller has begun this game (H.M.S.
-		// Bounty's "haven't begun an extra turn this game"): log-derived
-		// through the Host, so a replay derives the same number.
-		return h.ExtraTurnsBegun(c.Controller), true, true
-	case evalCountBodyPaidYouCastThisGame:
-		// Spells the controller has cast this game (CR 601.2i: a spell is cast
-		// once it is paid for; copies and abilities are never cast), counting
-		// the resolving spell itself once its cast has happened. Log-derived
-		// through the Host, so a replay derives the same number.
-		return h.SpellsCastThisGame(c.Controller), true, true
+	case evalCountBodyPaidYourTurns, evalCountBodyPaidYourExtraTurns, evalCountBodyPaidYouCastThisGame:
+		// The controller's game-long ledger counts, log-derived (count_game_ledger.go).
+		return countGameLedger(h, c, evalCountBodyPaidCodes.Code(head)), true, true
 	case evalCountBodyPaidCardPower:
 		if lki, ok := sacrificedSourceLKI(g, c); ok {
 			return lki.Power, true, true // sacrificed by this ability: LKI

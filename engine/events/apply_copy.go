@@ -128,7 +128,9 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// A copy of a spell copies the card as it stands, and with it the runtime
 	// SVars its cast wrote (Forge copies the host card's SVars): First
 	// Contact's cast-time Count$YouCastThisGame store is read by the copy as
-	// the original's. Deep-copied so the two stay independent.
+	// the original's. Deep-copied so the two stay independent. This is a
+	// deliberate choice of Forge's reading over the CR-literal one (CR 707.10: a
+	// copy is never cast, so it would never be "the first spell you've cast").
 	runtimeSVars := maps.Clone(src.RuntimeSVars)
 	copyLoyalty, copyLoyaltySet := src.CopyLoyalty, src.CopyLoyaltySet
 	// The copy inherits the original's CastFlags -- a copy of a fused,
