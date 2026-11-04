@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -27,8 +28,8 @@ import (
 //
 //	PINS_RECORD=1 go test -count=1 -run '^TestName$' ./dirac/oracle
 //
-// which searches the synthetic pool for games that reach every condition, plays them
-// clean, and writes the first pinGames of them. A game recorded with no check ends
+// which keeps the recorded games that still reach every condition and play clean, then
+// searches the synthetic pool for others that do, up to pinGames. A game recorded with no check ends
 // pinTail decisions after its last condition was reached.
 const (
 	pinGames = 3   // games recorded per call
@@ -187,6 +188,10 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 	mutant := os.Getenv("PINS_MUTANT") == "1"
 	play := newSynthPlayerOf(t, pool, rec, mulligans)
 	var games []*Repro
+	if !mutant {
+		games = keptPins(t, path, set, reg, rc, reached)
+	}
+	kept := len(games)
 	for pair := 0; pair < pinScan && len(games) < pinGames; pair++ {
 		clear(hit)
 		checks, allAt = 0, -1
@@ -205,6 +210,9 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 		}
 		if res.Div != nil || res.Stall != "" || allAt < 0 {
 			continue
+		}
+		if slices.ContainsFunc(games[:kept], func(g *Repro) bool { return g.Seed == seed && g.Decks == m.Names }) {
+			continue // a kept game, already in the file
 		}
 		r := NewRepro(m, seed, rc, &res)
 		r.Readable = nil
@@ -238,7 +246,30 @@ func recordPins(t *testing.T, path, pool string, set cardset.Set, rc RunConfig, 
 	if err := os.WriteFile(path, append(b, '\n'), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("recorded %d games to %s", len(games), path)
+	t.Logf("recorded %d games to %s, %d of them kept", len(games), path, kept)
+}
+
+// keptPins is the games already at path that still reach every condition and play clean.
+// Recording again replaces only the games a change broke, so an unbroken game keeps its
+// decks, seed and actions, and the file's diff names what moved.
+func keptPins(t *testing.T, path string, set cardset.Set, reg *cards.Registry, rc RunConfig, reached []func(ref *GorgeSide) bool) []*Repro {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var old []*Repro
+	if json.Unmarshal(b, &old) != nil {
+		return nil
+	}
+	var keep []*Repro
+	for _, r := range old {
+		got, h, err := playPinned(set, reg, r, rc, reached)
+		if err == nil && got.Div == nil && (got.Stall == "" || got.Stall == "decisions") && !contains(h, false) {
+			keep = append(keep, r)
+		}
+	}
+	return keep[:min(len(keep), pinGames)]
 }
 
 func contains(v []bool, x bool) bool {
