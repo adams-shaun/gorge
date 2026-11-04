@@ -3191,7 +3191,7 @@ func playRememberedEmptyKey(ps *params, k string) bool {
 			return false
 		}
 	}
-	return ps.str("ConditionDefined") == "Remembered" && ps.str("ConditionPresent") == "Card" && ps.str("ConditionCompare") == "EQ0"
+	return ps.peek("ConditionDefined") == "Remembered" && ps.peek("ConditionPresent") == "Card" && ps.peek("ConditionCompare") == "EQ0"
 }
 
 func playLoneCondition(ps *params) bool {

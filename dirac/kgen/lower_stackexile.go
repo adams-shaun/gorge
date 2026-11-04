@@ -1,6 +1,14 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// peek reads a parameter without marking it read: the hook runs on every
+// ChangeZone, and only the Brazen Bluff shape may consume anything.
+func (p *params) peek(k string) string { return strings.TrimSpace(p.m[k]) }
 
 // pumpSpellTarget lowers a Pump that only carries a spell target: TargetType$
 // Spell with TgtZone$ Stack and a ValidTgts$ spell filter and no pump
@@ -32,12 +40,12 @@ func (lc *lowerCtx) pumpSpellTarget(ps *params) error {
 // be countered, and CtrRemember adds the moved spell to the resolution's
 // remembered set. Exactly one spell target slot is read.
 func (lc *lowerCtx) stackExileOptional(ps *params) (bool, error) {
-	if ps.str("Origin") != "Stack" || ps.str("Destination") != "Exile" || ps.str("Defined") != "Targeted" {
+	if ps.peek("Origin") != "Stack" || ps.peek("Destination") != "Exile" || ps.peek("Defined") != "Targeted" {
 		return false, nil
 	}
-	for k, want := range map[string]string{"Optional": "True", "Chooser": "TargetedController", "DefinedPlayer": "TargetedController", "RememberChanged": "True"} {
-		if ps.str(k) != want {
-			return true, refuse("ChangeZone Origin$ Stack Destination$ Exile with %s$ %q", k, ps.str(k))
+	for _, kv := range [][2]string{{"Optional", "True"}, {"Chooser", "TargetedController"}, {"DefinedPlayer", "TargetedController"}, {"RememberChanged", "True"}} {
+		if k := kv[0]; ps.peek(k) != kv[1] {
+			return true, refuse("ChangeZone Origin$ Stack Destination$ Exile with %s$ %q", k, ps.peek(k))
 		}
 	}
 	t := lc.lastTarget()
