@@ -108,10 +108,8 @@ func exileGrantedWalk(w *legalWalk) {
 				!e.abilityPresentHolds(p, id, ab) || !e.adaptGateOK(id, ab) {
 				continue
 			}
-			if strings.EqualFold(strings.TrimSpace(ab.ParamStr(cards.PKBoast)), "True") && !e.boastGateOK(id, -1, ga.SVar) {
-				continue
-			}
-			if e.activationLimitBlocked(p, id, ab, -1, ga.SVar, 0) || e.grantedSAFrom(ga.Source, id, ga.SVar) == nil {
+			if !maxSpeedBoastHolds(w, id, ab, ga.SVar) ||
+				e.activationLimitBlocked(p, id, ab, -1, ga.SVar, 0) || e.grantedSAFrom(ga.Source, id, ga.SVar) == nil {
 				continue
 			}
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",

@@ -32,7 +32,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged TRK 289 -> 290, ALL 21458 -> 21459).
 	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 290 -> 291, ALL 21459 -> 21460).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21460, 34442},
+	"ALL": {21461, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -59,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {291, 311},
+	"TRK": {292, 311},
 	"WOE": {252, 281},
 }
 
