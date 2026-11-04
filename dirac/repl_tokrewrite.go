@@ -18,7 +18,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // kernel poses no such ask mid-resolution: the game stalls
 // (StallTokRewrite). A mint site that makes the card it was given (amass,
 // incubate, empower, endure, recruit, the copy sites) stalls the same way
-// when a rewriter applies; the CreateToken ops read the rewritten card.
+// when a rewriter applies; the CreateToken ops read the rewritten card. A Role
+// mint (TokAttach) stalls the same way: gorge's applyTokenReplacementToPlan
+// turns it into a plain script mint of the rewriter's card (the Illusion is no
+// Aura, so auraTokenWithheld withholds nothing), which the kernel's attach path
+// (createAttachedToken, a host for the card) does not follow.
 
 // replTokensCard is replTokens for the CreateToken ops: the card the tokens
 // are (tok, or the rewriter's) and how many. ok is false when the game
