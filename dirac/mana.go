@@ -530,6 +530,7 @@ type planner struct {
 	rdyn   Slot
 	rdynOn bool
 	rF     kop.FilterID
+	rV     uint8 // rF's activated-half variant (genPrep.restrVarOf)
 	// rbOn: the plan tapped a restricted pair unit's larger alternative,
 	// whose mana floats restricted (restrPairUnit)
 	rbOn bool
@@ -972,7 +973,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if v, kd, ab, dmask := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
 					pcs[i], rk[i], rv[i] = v, kd, kd
 					if kd == rkDyn {
-						pk.rdyn, pk.rdynOn, pk.rF = sl, true, ab.ManaRestrict
+						pk.rdyn, pk.rdynOn, pk.rF, pk.rV = sl, true, ab.ManaRestrict, k.gen.restrVarOf(ab)
 					}
 				} else if dmask != 0 {
 					rk[i], dm[i] = rkWiden, dmask
@@ -1197,7 +1198,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			// a restricted source's larger alternative: its mana floats
 			// restricted (restrPairUnit)
 			s.pl[p].pool[col] -= ty.n
-			if !s.addRestrSrc(k, p, sl, k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab].ManaRestrict, col, ty.n) {
+			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab], col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 			pk.rbOn = true
@@ -1211,7 +1212,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			// the pool: the payment spends it first and what it leaves stays
 			// (payRestrRider); a State.rb that cannot hold it stalls loud
 			s.pl[p].pool[col] -= ty.n
-			if !s.addRestrSrc(k, p, sl, pk.rF, col, ty.n) {
+			if !s.addRestrSrcV(k, p, sl, pk.rF, pk.rV, col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 		}

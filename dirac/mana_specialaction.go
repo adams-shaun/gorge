@@ -29,20 +29,20 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 		if b.kind == 0 {
 			break
 		}
-		if b.units() != 0 && s.restrNonSpellF(k, k.gen.restrFOf(b.kind)) {
+		if b.units() != 0 && s.restrNonSpellKind(k, b.kind) {
 			m |= 1 << i
 		}
 	}
 	return m
 }
 
-// restrNonSpellF: a source of the table with spend restriction f admits a
+// restrNonSpellKind: a source of the table with the spend restriction batch kind kind names admits a
 // non-spell payment.
-func (s *State) restrNonSpellF(k *prep, f kop.FilterID) bool {
+func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.AFlags&kop.AfManaNonSpell != 0 {
+			if a := &abs[j]; a.Kind == kop.AbMana && k.gen.restrIsKind(kind, a) && a.AFlags&kop.AfManaNonSpell != 0 {
 				return true
 			}
 		}

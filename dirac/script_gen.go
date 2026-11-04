@@ -336,7 +336,7 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		col := bits.TrailingZeros8(uint8(ab.ManaColors))
-		if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, max(ab.ManaN, 1)) {
+		if !s.floatRestrAb(k, p, sl, ab, col, max(ab.ManaN, 1)) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 		held[col] += max(ab.ManaN, 1)

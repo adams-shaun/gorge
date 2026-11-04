@@ -324,6 +324,16 @@ type genPrep struct {
 	// spells, Secluded Courtyard's creature spells of the chosen type, a
 	// Standard table's three restricted lands)
 	restrF [restrKinds]kop.FilterID
+	// restrV: restrF's activated-half variants (restrVarOf), and restrVar the
+	// distinct activated halves of the table's restricted abilities: two
+	// sources of one spell half with different activated halves are two
+	// restrictions (Castle Doom's bare artifact-spell mana against Guidelight
+	// Optimizer's, which also activates abilities)
+	restrV   [restrKinds]uint8
+	restrVar [restrVars]struct {
+		ab kop.FilterID
+		ns bool
+	}
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census
@@ -942,7 +952,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyEachCol, g.anyWindowGap = true, true
 				}
 				if a.ManaRestrict != 0 {
-					g.addRestrF(a.ManaRestrict)
+					g.regRestrVar(a)
+					g.addRestrFV(a.ManaRestrict, g.restrVarOf(a))
 				}
 				if firstMana && a.AFlags&kop.AfLatent == 0 {
 					firstMana = false
@@ -1269,13 +1280,14 @@ type fxRec struct {
 }
 
 const (
-	fxOverride uint8 = iota // a Table.Overrides record (applyOverride)
-	fxLoseAll               // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
-	fxKwGrant               // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
-	fxCopyExc               // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
-	fxControl               // a layer-2 control record (CR 613.1b; static_control.go)
-	fxCopyEOT               // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
-	fxCopyPerm              // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxOverride  uint8 = iota // a Table.Overrides record (applyOverride)
+	fxLoseAll                // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
+	fxKwGrant                // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
+	fxCopyExc                // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
+	fxControl                // a layer-2 control record (CR 613.1b; static_control.go)
+	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
+	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full

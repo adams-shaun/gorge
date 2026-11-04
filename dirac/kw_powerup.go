@@ -12,7 +12,8 @@ func (s *State) powerUpManaObj(k *prep, o Obj, a *kop.Ability) kop.ManaCost {
 	if ob.zone != kop.ZoneBattlefield || !s.g.zoneTurn.has(o) {
 		return a.Cost.Mana
 	}
-	return powerUpReduce(a.Cost.Mana, k.t.Cards[ob.card].Cost)
+	// the mana cost is the characteristic now in force: a copy's is the copied card's (CR 707.2)
+	return powerUpReduce(a.Cost.Mana, k.t.Cards[s.cardAt(ob.slot)].Cost)
 }
 
 // powerUpReduce is gorge's powerUpReduceCost: generic reduces generic

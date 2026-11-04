@@ -376,7 +376,7 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 				break
 			}
 		}
-		if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
+		if !s.floatRestrAb(k, p, sl, ab, col, 1) {
 			held[col]++
 		}
 	}
@@ -627,7 +627,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, max(ab.ManaN, 1)) {
+	if !s.floatRestrAb(k, p, sl, ab, col, max(ab.ManaN, 1)) {
 		s.capFull(StallRestrSrc)
 	}
 	return true
@@ -670,18 +670,60 @@ func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pip
 }
 
 // restrKinds is how many distinct spend restrictions a table's restricted
-// mana can name (genPrep.restrF): the most a Standard pool's table holds is
-// three; a fourth would stall.
-const restrKinds = 4
+// mana can name (genPrep.restrF with its variant): a Standard pool's table
+// holds up to six; a ninth would stall.
+const restrKinds = 8
+
+// restrVars is how many distinct activated halves (ManaRestrictAb with the
+// non-spell flag) a table's restrictions can carry beside the spell half.
+const restrVars = 6
+
+// restrVarOf is the variant of mana ability a's spend restriction: 0 for a
+// spell-only one, else one plus the index of its activated half, a
+// restriction of Forge's "Spell.Artifact,Activated" shape being a different
+// restriction from the bare "Spell.Artifact" of another source (CR 106.6).
+// Read-only; a half past restrVars, or one never registered, reads as 0.
+func (g *genPrep) restrVarOf(a *kop.Ability) uint8 {
+	ab, ns := a.ManaRestrictAb, a.AFlags&kop.AfManaNonSpell != 0
+	if ab == 0 && !ns {
+		return 0
+	}
+	for i := range g.restrVar {
+		if g.restrVar[i].ab == ab && g.restrVar[i].ns == ns && (ab != 0 || ns) {
+			return uint8(i) + 1
+		}
+	}
+	return 0
+}
+
+// regRestrVar registers the activated half of mana ability a.
+func (g *genPrep) regRestrVar(a *kop.Ability) {
+	ab, ns := a.ManaRestrictAb, a.AFlags&kop.AfManaNonSpell != 0
+	if ab == 0 && !ns {
+		return
+	}
+	for i := range g.restrVar {
+		if g.restrVar[i].ab == ab && g.restrVar[i].ns == ns && (ab != 0 || ns) {
+			return
+		}
+		if g.restrVar[i].ab == 0 && !g.restrVar[i].ns {
+			g.restrVar[i].ab, g.restrVar[i].ns = ab, ns
+			return
+		}
+	}
+}
 
 // addRestrF registers restriction f (genPrep.restrF).
-func (g *genPrep) addRestrF(f kop.FilterID) {
+func (g *genPrep) addRestrF(f kop.FilterID) { g.addRestrFV(f, 0) }
+
+// addRestrFV registers restriction f with activated-half variant v.
+func (g *genPrep) addRestrFV(f kop.FilterID, v uint8) {
 	for i := range g.restrF {
-		if g.restrF[i] == f {
+		if g.restrF[i] == f && g.restrV[i] == v {
 			return
 		}
 		if g.restrF[i] == 0 {
-			g.restrF[i] = f
+			g.restrF[i], g.restrV[i] = f, v
 			return
 		}
 	}
@@ -689,10 +731,22 @@ func (g *genPrep) addRestrF(f kop.FilterID) {
 
 // restrKind is restriction f's batch kind (its restrF index plus one); ok
 // is false for a restriction past restrKinds, which a batch cannot name.
-func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) {
+func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) { return g.restrKindV(f, 0) }
+
+// restrKindV is restrKind for variant v; a restriction named by its spell
+// half alone (an effect's, a granted ability's) takes the first kind of that
+// half when no spell-only one is registered.
+func (g *genPrep) restrKindV(f kop.FilterID, v uint8) (uint8, bool) {
 	for i := range g.restrF {
-		if g.restrF[i] == f && f != 0 {
+		if g.restrF[i] == f && g.restrV[i] == v && f != 0 {
 			return uint8(i) + 1, true
+		}
+	}
+	if v == 0 {
+		for i := range g.restrF {
+			if g.restrF[i] == f && f != 0 {
+				return uint8(i) + 1, true
+			}
 		}
 	}
 	return 0, false
@@ -701,6 +755,13 @@ func (g *genPrep) restrKind(f kop.FilterID) (uint8, bool) {
 // restrFOf is the restriction filter that batch kind kind names.
 func (g *genPrep) restrFOf(kind uint8) kop.FilterID {
 	return g.restrF[(kind-1)%restrKinds]
+}
+
+// restrIsKind: mana ability a is a source of the restriction batch kind
+// kind names: its spell half and its activated half are the batch's.
+func (g *genPrep) restrIsKind(kind uint8, a *kop.Ability) bool {
+	i := (kind - 1) % restrKinds
+	return a.ManaRestrict == g.restrF[i] && g.restrVarOf(a) == g.restrV[i]
 }
 
 // addRestr floats n restricted mana of colour col, spendable only as
@@ -713,10 +774,16 @@ func (s *State) addRestr(k *prep, p uint8, f kop.FilterID, col int, n uint8) boo
 
 // addRestrCh is addRestr from a source that chose creature type ch.
 func (s *State) addRestrCh(k *prep, p uint8, f kop.FilterID, ch uint8, col int, n uint8) bool {
+	return s.addRestrChV(k, p, f, 0, ch, col, n)
+}
+
+// addRestrChV is addRestrCh from a source whose restriction has activated-half
+// variant v (restrVarOf).
+func (s *State) addRestrChV(k *prep, p uint8, f kop.FilterID, v, ch uint8, col int, n uint8) bool {
 	if col >= kop.NumManaKinds {
 		return false
 	}
-	kind, ok := k.gen.restrKind(f)
+	kind, ok := k.gen.restrKindV(f, v)
 	if !ok || !s.rbPut(p, kind, ch, col, n) {
 		s.pl[p&1].pool[col] += n
 		return false
@@ -891,22 +958,37 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 // source's as it was made (CR 106.6), so mana of another source's choice floats in a
 // batch of its own.
 func (s *State) floatRestrFrom(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
+	return s.floatRestrV(k, p, sl, f, 0, col, n)
+}
+
+// floatRestrAb is floatRestrFrom for mana ability ab, whose activated half
+// names the batch with its spell half.
+func (s *State) floatRestrAb(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
+	return s.floatRestrV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
+}
+
+func (s *State) floatRestrV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
 		s.g.poolArt[p&1] |= poolArtRestr
 	}
-	return s.addRestrSrc(k, p, sl, f, col, n)
+	return s.addRestrSrcV(k, p, sl, f, v, col, n)
 }
 
 // addRestrSrc is addRestr for mana source sl, whose chosen creature type the
 // batch keeps when restriction f reads one.
 func (s *State) addRestrSrc(k *prep, p uint8, sl Slot, f kop.FilterID, col int, n uint8) bool {
+	return s.addRestrSrcV(k, p, sl, f, 0, col, n)
+}
+
+// addRestrSrcV is addRestrSrc for restriction variant v.
+func (s *State) addRestrSrcV(k *prep, p uint8, sl Slot, f kop.FilterID, v uint8, col int, n uint8) bool {
 	var ch uint8
 	for g := f; g != 0; g = k.t.Filters[g].Or {
 		if k.t.Filters[g].Flags2&kop.F2ChosenType != 0 {
 			ch = s.perms[sl].chosen
 		}
 	}
-	return s.addRestrCh(k, p, f, ch, col, n)
+	return s.addRestrChV(k, p, f, v, ch, col, n)
 }
 
 // restrAvail adds to av the restricted mana of p's that the cast of card c
@@ -1138,7 +1220,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
-			if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, 1) {
+			if !s.floatRestrAb(k, p, sl, ab, col, 1) {
 				spill[col]++
 			}
 		}
@@ -1149,7 +1231,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR slotMask, c 
 		s.pl[p].pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
 		return
 	}
-	if !s.floatRestrFrom(k, p, sl, cd.Abilities[k.gen.anyR(s.cardAt(sl))].ManaRestrict, c-1, 1) {
+	if !s.floatRestrAb(k, p, sl, &cd.Abilities[k.gen.anyR(s.cardAt(sl))], c-1, 1) {
 		spill[c-1]++
 	}
 }
@@ -1717,7 +1799,7 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 			}
 			if uint8(ab.ManaColors)&(1<<col) != 0 && s.pl[p].pool[col] >= pool[col]+n {
 				s.pl[p].pool[col] -= n
-				if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
+				if !s.floatRestrAb(k, p, sl, ab, col, n) {
 					s.capFull(StallRestrSrc)
 				}
 				break
@@ -2462,4 +2544,10 @@ func (s *State) applyCastWinTap(k *prep, a Action) {
 	b := s.bld()
 	b.bfl &^= bflWinTap
 	s.tapXDo(k, b.e.ctrl, tapXStep{sl: s.g.winSrc, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: s.g.winCol})
+}
+
+// floatRestrOnly floats n of colour col from source sl's restricted ability ab
+// (a larger alternative of a pair unit).
+func (s *State) floatRestrOnly(k *prep, p uint8, sl Slot, ab *kop.Ability, col int, n uint8) bool {
+	return s.addRestrSrcV(k, p, sl, ab.ManaRestrict, k.gen.restrVarOf(ab), col, n)
 }
