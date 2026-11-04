@@ -529,6 +529,14 @@ func cmp(op kop.CmpOp, a, b int) bool {
 // countRefMatches counts the objects a ref names that match f (a moved
 // card is matched as a card in its new zone).
 func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx) int {
+	return s.countRefMatchesN(k, r, f, ctx, false)
+}
+
+// countRefMatchesN is countRefMatches with lkiType: a Sacrificed$Valid
+// Card/creature-type read (kgen marks its Expr.N 1), which takes the
+// sacrifice-time type snapshot instead of the live moved card a
+// ConditionDefined$ Sacrificed filter reads.
+func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx, lkiType bool) int {
 	// ceased: the object is read as the card it was moved as even if it is a
 	// copy that has since left the stack and the battlefield (CR 707.10h
 	// ends its existence at the next check, not within the resolution);
@@ -589,10 +597,10 @@ func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx)
 		return one(ctx.src)
 	case kop.RefSacrificed:
 		o := s.sacrificedObj(ctx)
-		// Sacrificed$Valid Card.IsSuspected reads the sacrifice-time LKI
-		// designation (gorge sacrificedValidCount).
+		// Sacrificed$Valid Card.IsSuspected and Card/creature-type reads
+		// take the sacrifice-time LKI snapshot (gorge sacrificedValidCount).
 		if o != NoObj && ctx.e != nil && ctx.e.li != 0 {
-			if n, ok := s.sacrificedSuspectedCount(k, f, ctx.e.li); ok {
+			if n, ok := s.sacrificedLKICount(k, f, ctx.e.li, lkiType); ok {
 				s.kdefHit(ctx, o, n)
 				return n
 			}
