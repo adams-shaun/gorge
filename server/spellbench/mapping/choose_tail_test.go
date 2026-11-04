@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // The remaining named `choose` asks that the

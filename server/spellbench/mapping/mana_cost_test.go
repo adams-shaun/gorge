@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // Live-engine tests for expandActivate's cost fold (mana.go's costKinds

@@ -125,10 +125,11 @@ jobs:
           if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1; fi
           pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS")
           echo "$pkgs" | wc -l | xargs echo "packages:"
-          count=
-          if [ "${{ github.event_name }}" = schedule ]; then count=-count=1; fi
+          count= tags=
+          # The SpellBench and ManaBrew interface tests (build tags) run nightly only.
+          if [ "${{ github.event_name }}" = schedule ]; then count=-count=1; tags="-tags=spellbench,manabrew"; fi
           if [ -z "$pkgs" ]; then echo "shard ${{ matrix.shard }} is empty"; exit 0; fi
-          go test $count -timeout 20m -skip '^(TestHeads)$' $pkgs
+          go test $count $tags -timeout 20m -skip '^(TestHeads)$' $pkgs
       - name: Golden chain heads
         if: matrix.shard == 0
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules

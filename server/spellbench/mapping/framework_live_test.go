@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // Live-engine tests for the framework pieces:

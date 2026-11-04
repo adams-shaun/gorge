@@ -100,6 +100,7 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
+	@echo "  make test-wires     — the SpellBench and ManaBrew interface tests (build tags spellbench, manabrew; not part of make test)"
 	@echo "  make seat-check     — fast structural gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
 	@echo "  make wire-matrix    — run every engine / wire / consumer cell of the commit tier (docs/site/architecture/wires.md)"
@@ -278,6 +279,14 @@ gc-gate:
 .PHONY: fuzz
 fuzz:
 	go test $(GO_TEST_FLAGS) -tags fuzz -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
+
+# test-wires runs the SpellBench and ManaBrew interface tests, which sit behind
+# the build tags `spellbench` and `manabrew` so they do not gate a merge. The
+# nightly CI run takes them too.
+WIRE_PKGS = ./server/spellbench/... ./server/host/sbv2http ./dirac/cmd/sbv2dirac/... ./cmd/spellbench-gorge-env ./server/manabrew/... ./server/host/manabrewhttp ./server/protocol/manabrew/...
+.PHONY: test-wires
+test-wires:
+	go test $(GO_TEST_FLAGS) -tags 'spellbench manabrew' $(WIRE_PKGS)
 
 # Engine-speed benchmarking (cmd/enginebench; scripts in scripts/enginebench-*.sh,
 # workload decks committed in cmd/enginebench/testdata/decks). Every run is

@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // The v2 mapping must express the Dig spellings

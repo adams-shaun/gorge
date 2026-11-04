@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2http
 
 // TestSBV2ParityLegacyDecks proves the opt-in /api/sbv2 wire is lossless for

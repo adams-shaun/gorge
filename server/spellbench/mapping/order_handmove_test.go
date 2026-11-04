@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // Live chain test for the order and hand-move linkage: a real CawGates game is

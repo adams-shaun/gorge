@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package neutral_test
 
 // TestObservationDegradationCensus measures what a v2 client loses by rendering

@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package agent_test
 
 // A dig to a non-library primary destination (Matter

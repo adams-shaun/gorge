@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // The v2 mapping classes that could fall back to

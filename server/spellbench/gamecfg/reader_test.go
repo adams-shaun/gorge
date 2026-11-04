@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package gamecfg_test
 
 import (

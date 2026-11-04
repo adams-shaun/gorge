@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2http
 
 // Shared corpus driver for TestSBV2ParityLegacyDecks and

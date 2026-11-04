@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrewhttp
 
 // A real 2-seat game (Goblin Guide's mandatory

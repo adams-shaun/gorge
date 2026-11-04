@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrew
 
 // The x_gorge_own_deck_v1 extension: the translator-level contract for how the seat's native
