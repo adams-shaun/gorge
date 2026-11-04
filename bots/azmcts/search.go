@@ -206,6 +206,9 @@ func Search(ctx context.Context, root Root, src WorldSource, net *policynet.Mode
 		return res, errors.New("azmcts: Search needs the root engine, decision and observer")
 	}
 	var envBoard, enumBoard boardScratch
+	if opts.AutoPayment {
+		enumBoard.payPlans = opts.PaymentPlans
+	}
 	views := searchViews.Get().(*viewScratch)
 	defer searchViews.Put(views)
 	// Under PriorTopK the network, not the enumeration order, chooses the

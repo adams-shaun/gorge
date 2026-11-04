@@ -1,8 +1,11 @@
 package azmcts
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 
@@ -43,6 +46,9 @@ type cand struct {
 	// of options: its key encodes its choices in decision order (keyIntent),
 	// whatever order c.in lists them in.
 	set bool
+	// plan is an alternative payment plan's key suffix (planKeySuffix):
+	// empty for every other candidate, the planner's own plan included.
+	plan string
 }
 
 // keyIntent is the intent c's key encodes: c.in, with a set's choices
@@ -118,6 +124,9 @@ type boardScratch struct {
 	// read only to rebuild the key, never stored), so a per-search scratch
 	// costs one action allocation per call instead of one per candidate.
 	actBuf []searchprobe.Action
+	// payPlans > 1 also searches each planned cast's alternative payment
+	// plans, up to payPlans plans per cast (Options.PaymentPlans).
+	payPlans int
 }
 
 // board is the scratch Board, allocated on first use.
@@ -503,7 +512,7 @@ func nameKeys(obs *searchprobe.Collector, e *rules.Engine, d *decision.Decision,
 		if changed {
 			k := actionsKey(acts)
 			if c.in.Payment != nil {
-				k = Key(payKeyPrefix + string(k))
+				k = Key(payKeyPrefix + string(k) + c.plan)
 			}
 			c.key = k
 		}
@@ -564,8 +573,17 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 	if _, err := obs.ObserveDecision(e, d); err != nil {
 		return paymentVocab{}, SkipTranslate, false
 	}
-	payments := e.EnsurePaymentActions()
-	var pays, rest []cand
+	plans := 1
+	if scratch != nil && scratch.payPlans > 1 {
+		plans = scratch.payPlans
+	}
+	var payments []decision.PaymentAction
+	if plans > 1 {
+		payments = e.EnsurePaymentPlanAlternatives()
+	} else {
+		payments = e.EnsurePaymentActions()
+	}
+	var pays, rest, alts []cand
 	var pass cand
 	havePass := false
 	covered := make(map[state.ObjID]bool, len(payments)) // membership only -- never ranged.
@@ -595,6 +613,11 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 		}
 		payAt[a.Cast.Object] = len(pays)
 		pays = append(pays, c)
+		for i := 1; i < len(a.Plans) && i < plans; i++ {
+			suffix := planKeySuffix(e, a.Plans[i])
+			alts = append(alts, cand{acts: acts, key: Key(string(c.key) + suffix), scoreSet: true, score: c.score, plan: suffix,
+				in: decision.Intent{Seq: d.Seq, Player: d.Player, Payment: &decision.PaymentSelection{ActionID: a.ID, Plan: decision.ClonePaymentPlan(a.Plans[i])}}})
+		}
 	}
 	var b botpolicy.Board
 	built := false
@@ -632,7 +655,7 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 	}
 	sortByJSON(rest)
 	v := paymentVocab{payAt: payAt, hasPass: havePass}
-	n := len(pays) + len(rest)
+	n := len(pays) + len(rest) + len(alts)
 	if havePass {
 		n++
 	}
@@ -642,7 +665,45 @@ func paymentVocabulary(obs *searchprobe.Collector, e *rules.Engine, d *decision.
 	}
 	v.all = append(v.all, pays...)
 	v.all = append(v.all, rest...)
+	// The alternative plans come last, in engine order, so the candidate
+	// cap cuts them before any candidate the vocabulary had without them.
+	v.all = append(v.all, alts...)
 	return v, 0, true
+}
+
+// planKeySuffix is an alternative payment plan's key suffix: the sources it
+// activates, each by card name, production and consequence (binary-packed),
+// sorted. On one
+// board it names the plan's residual (pay.ResidualSignature) without object
+// IDs, so the same plan has the same key in every redealt world; the
+// planner's own plan keeps the plain payment key.
+func planKeySuffix(e *rules.Engine, plan decision.PaymentPlan) string {
+	steps := make([][]byte, 0, len(plan.Activations))
+	for _, a := range plan.Activations {
+		name := "?"
+		if o := e.G.Obj(a.Source); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		step := append([]byte(name), 0)
+		for _, n := range a.Produces {
+			step = binary.LittleEndian.AppendUint32(step, n)
+		}
+		if c := a.Consequence; c != nil {
+			step = append(step, 1, b2byte(c.Sacrifice), b2byte(c.NoUntap), b2byte(c.ReturnToHand))
+			step = binary.LittleEndian.AppendUint32(step, c.Life)
+			step = binary.LittleEndian.AppendUint32(step, c.Damage)
+		}
+		steps = append(steps, step)
+	}
+	slices.SortFunc(steps, bytes.Compare)
+	out := []byte("|plan=")
+	for i, step := range steps {
+		if i > 0 {
+			out = append(out, ',')
+		}
+		out = append(out, step...)
+	}
+	return string(out)
 }
 
 // sortByJSON orders cands by the JSON encoding of their semantic actions,
@@ -1154,4 +1215,11 @@ func softmax(logits []float64) ([]float64, bool) {
 		out[i] /= sum
 	}
 	return out, true
+}
+
+func b2byte(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
 }
