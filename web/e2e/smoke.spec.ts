@@ -1665,6 +1665,11 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
         } else {
           // The client may already have passed priority after the land, so it can take a second undo.
           await expect.poll(async () => {
+            // An ask that opened since the land (a late mulligan round) hides the hand until answered.
+            if (await visible(asked)) {
+              await answerOpenAsk(page);
+              return -1;
+            }
             await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).catch(() => {});
             await page.waitForTimeout(500);
             return hand.count();
