@@ -388,6 +388,18 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		}
 		ts.TFlags |= kop.TgfKickedRange
 		ts.MinKicked, ts.MaxKicked = 0, 255
+	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && t.Divided == 0 && t.Mode < 0 && t.ParentPlus1 == 0 &&
+		plainX(t.Min) && plainX(t.Max):
+		// "X target creatures": exactly the announced X (CR 601.2b, 601.2c).
+		// gorge offers only an X the target ask can answer
+		// (targetsAnnounceableAt), so the slot is never short; the kernel's
+		// X ask filters the same way (addXOptions, xAnswerable)
+		var err error
+		if ts.MinV, err = cb.value(t.Min); err != nil {
+			return ts, fmt.Errorf("target count %s..%s: %w", t.Min, t.Max, err)
+		}
+		ts.MaxV = ts.MinV
+		ts.TFlags |= kop.TgfBoundsV
 	case !t.AtRes && !t.Unique && !t.SameCtrl && !t.DiffCtrl && !t.SharedCrType && !t.DistinctName && (t.Divided == 0 || t.Divided == kop.DivMaxV) && t.Mode < 0 && t.ParentPlus1 == 0 &&
 		tgtBoundV(t.Min, true) && tgtBoundV(t.Max, false):
 		// "up to" a value (TargetMax$ X over a count, X paid or
@@ -476,6 +488,11 @@ func tgtBoundV(v lValue, isMin bool) bool {
 // products of those. Anything reading a chain's earlier result (the remembered
 // set, a roll, excess damage), a target or the cast's payment is not evaluated
 // the same at announcement.
+// plainX reports whether v is the announced X itself.
+func plainX(v lValue) bool {
+	return v.Kind == vX && v.Mul == 0 && v.Div == 0 && v.Add == 0 && !v.Neg && len(v.Sub) == 0
+}
+
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
 	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked:
@@ -629,6 +646,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		}
 		if ka.Targets[i], err = cb.target(t); err != nil {
 			return ka, err
+		}
+		if xt := &ka.Targets[i]; xt.TFlags&kop.TgfBoundsV != 0 && !xt.UpTo && ka.Kind != kop.AbSpell {
+			return ka, fmt.Errorf("target count X..X outside a spell")
 		}
 		if t.Mode >= 0 {
 			ka.TgtModes[i] = 1 << t.Mode
@@ -1644,6 +1664,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "CantBlock":
 		st.Kind = kop.StatCantBlock
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "CantSacrifice":
+		st.Kind = kop.StatCantSacrifice // static_cantsacrifice.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}

@@ -990,6 +990,7 @@ StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
 StatCantPutCounter	StaticKind	252
+StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245
@@ -1230,6 +1231,7 @@ W7NoNameTwin	int16	9
 W7NoNameTwinGrave	int16	20
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
+W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7WithWarp	int16	11
 WhoseAny	Whose	0

@@ -181,6 +181,12 @@ type Report struct {
 	// their mana (an Ancient Tomb-shaped producer): the witness names only
 	// the tap and the mana, so this is life the plan spent unannounced.
 	ASideEffects []string `json:"a_side_effects,omitempty"`
+	// ARearm is the witness the engine planned again after the seat's own
+	// answer changed the mana left to pay before any planned step ran (a
+	// convoke-family tap for a keyword the spell gains only once cast, CR
+	// 702.51a, or a Phyrexian pip's answer, CR 107.4f). Run A paid by it, so
+	// the witness and pool checks read it in place of Plan.
+	ARearm *decision.PaymentPlan `json:"a_rearm,omitempty"`
 	// AEvents is run A's full event stream since the fork (Options.Trace).
 	AEvents []string      `json:"a_events,omitempty"`
 	Control *RouteResult  `json:"control,omitempty"`
@@ -330,16 +336,27 @@ func check(base, a *rules.Engine, in decision.Intent, answer Answerer, opt Optio
 		ctrl = base.Clone()
 	}
 
+	// A sink on run A alone sees whether the engine planned the cast again
+	// (rules' rearmAutoPay): the seat's own announcement changed the cost
+	// before any step ran, and the new witness is the one run A pays by.
+	held, sink := a.PaymentPlanStats(), &rules.PaymentPlanStats{}
+	a.SetPaymentPlanStats(sink)
 	runA(a, in, answer, opt.MaxFollowUps, rep)
+	a.SetPaymentPlanStats(held)
+	held.Merge(sink)
 	if rep.AError != "" {
 		return rep
 	}
+	paid := plan
+	if sink.Rearm != nil {
+		rep.ARearm, paid = sink.Rearm, *sink.Rearm
+	}
 	rep.AInvariant = atRestViolation(a)
-	rep.ASideEffects = sideEffects(a, fork, plan, rep.Player)
+	rep.ASideEffects = sideEffects(a, fork, paid, rep.Player)
 	if rep.AFallback == "" {
 		// A plan that fell back to the manual window was abandoned by design;
 		// what it tapped afterwards is the answerer's choice, not the witness.
-		rep.AWitness = witnessViolation(a, fork, plan, rep.Player)
+		rep.AWitness = witnessViolation(a, fork, paid, rep.Player)
 		if rep.AWitness == "" && rep.AInvariant == "" && rep.AOutcome == "stack" {
 			// The witness also promises the pool left after payment.
 			var got decision.ManaAmount
@@ -348,8 +365,8 @@ func check(base, a *rules.Engine, in decision.Intent, answer Answerer, opt Optio
 					got[i] = uint32(n)
 				}
 			}
-			if got != plan.PoolAfter {
-				rep.AWitness = fmt.Sprintf("pool_after: planned %s got %s", manaString(plan.PoolAfter), manaString(got))
+			if got != paid.PoolAfter {
+				rep.AWitness = fmt.Sprintf("pool_after: planned %s got %s", manaString(paid.PoolAfter), manaString(got))
 			}
 		}
 	}

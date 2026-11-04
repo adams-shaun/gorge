@@ -402,8 +402,10 @@ type filtStep struct {
 	// ability beside the census one, and the search reads no restriction
 	// (mana_restrictedsource.go)
 	restr bool
-	// other: a census gap that is no filter (mixed gaps, zmixgaps file)
+	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
+	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
+	act   Action
 }
 
 type filtKey struct {
@@ -414,6 +416,9 @@ type filtKey struct {
 	// Three Tree Mascot's {W} over a Plains' {W} is a new state
 	art    uint8
 	tapped slotMask
+	sp     uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
+	hand   uint8
+	gy     uint8
 }
 
 const maxFiltPath = 16
@@ -429,6 +434,7 @@ type filtSearch struct {
 	other slotMask // its gaps that are no filter (otherGap)
 	fees  int      // the funding the search may activate
 	own   Slot     // the source whose {T} is the play's own cost (NoSlot: none)
+	sp0   uint8    // the stack at the root: only a deeper one is the path's to resolve
 	nodes int
 	nseen int
 	seen  [potentialScriptNodes]filtKey
@@ -446,7 +452,7 @@ type filtSearch struct {
 //go:noinline
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	var fs filtSearch
-	fs.a, fs.p, fs.gaps, fs.own = a, p, s.scriptFilt(k, p), NoSlot
+	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.other = s.otherGaps(k, p)
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -468,15 +474,31 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		return false
 	}
 	if apply {
-		for i := 0; i < fs.n; i++ {
-			st := fs.path[i]
-			s.filtDo(k, p, st)
-			if (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
-				s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
-			}
-		}
+		s.filtPlay(k, p, fs.path[:fs.n], true)
 	}
 	return true
+}
+
+// filtPlay plays a found path on s: each activation as the search made it,
+// each answer and pass as the decision then pending (the other player passes
+// while the trigger resolves, tapXPlay). With apply the taps also fire the
+// Taps triggers of a granted mana ability's source.
+func (s *State) filtPlay(k *prep, p uint8, path []filtStep, apply bool) {
+	n := s.Decisions
+	var d Decision
+	for _, st := range path {
+		if st.other.kind == otherAnswer || st.other.kind == otherPass {
+			if s.tapXNext(p, &d) && hasOption(&d, st.act) {
+				s.Apply(st.act)
+			}
+			continue
+		}
+		s.filtDo(k, p, st)
+		if apply && (st.other.kind == otherNone || st.other.kind == otherGrant) && !(st.gap && st.ans > 0 && s.filtNoTap(k, st.sl)) {
+			s.manaTapped(k, st.sl) // (a once-each-turn filter taps nothing)
+		}
+	}
+	s.Decisions = n
 }
 
 // tick counts one visited node; false once the budget is spent.
@@ -550,10 +572,17 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	}
 	c := t.fork()
 	defer t.unfork()
+	q := c.npend
 	c.filtDo(k, fs.p, st)
 	fs.path[fs.n] = st
 	fs.n++
-	if fs.visit(k, c, funded, gapUsed) {
+	var ok bool
+	if c.npend > q && !DebugFiltNoTrigSettle {
+		ok = fs.settle(k, c, funded, gapUsed) // a tapped permanent's Taps trigger (Spider-Gwen's loot) is stacked and asked first
+	} else {
+		ok = fs.visit(k, c, funded, gapUsed)
+	}
+	if ok {
 		if c.g.stalled != t.g.stalled {
 			fs.spill = c.g.stalled
 		}
@@ -569,7 +598,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return false
 	}
 	p := fs.p
-	key := filtKey{pool: t.pl[p&1].pool, rb: t.rb[p&1]}
+	key := filtKey{pool: t.pl[p&1].pool, rb: t.rb[p&1], sp: t.sp, hand: t.pl[p&1].handN, gy: t.pl[p&1].graveN}
 	if k.artMana {
 		t.artSync(p)
 		key.art = t.g.poolArt[p&1]
@@ -681,6 +710,62 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 			}
 		}
+	}
+	if t.sp > fs.sp0 && fs.n < maxFiltPath {
+		// a trigger a step caused: let it resolve, the pool floats (gorge
+		// scriptSearch.visit, the last resort at a node; a sorcery-speed play
+		// waits for it, waitsForStack)
+		pass := MakeAction(AkPass, 0, 0, 0)
+		c := t.fork()
+		c.Apply(pass)
+		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherPass}, act: pass}
+		fs.n++
+		ok := fs.settle(k, c, funded, true)
+		t.unfork()
+		if ok {
+			return true
+		}
+		fs.n--
+	}
+	return false
+}
+
+// DebugFiltNoTrigSettle leaves a Taps trigger a filter-search step caused
+// unstacked (mutation testing only: the lockstep must catch it).
+var DebugFiltNoTrigSettle bool
+
+// settle continues the search at t after a step that queued a trigger, or a
+// pass: t runs to p's next decision, a priority being a node (visit) and an
+// ask a node branching on its answers (gorge scriptSearch.visit's
+// scriptAnswers; tapXSearch.settle).
+func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
+	var d Decision
+	if !t.tapXNext(fs.p, &d) {
+		return false
+	}
+	if d.Kind == DkPriority {
+		return fs.visit(k, t, funded, gapUsed)
+	}
+	if !fs.tick() { // the ask
+		return false
+	}
+	if d.Kind == DkTarget {
+		t.gorgeTargetOrder(&d)
+	}
+	if !gorgeAskOrder(&d) {
+		return false
+	}
+	for i := 0; i < int(d.N) && fs.n < maxFiltPath; i++ {
+		c := t.fork()
+		c.Apply(d.Options[i])
+		fs.path[fs.n] = filtStep{sl: NoSlot, other: otherStep{kind: otherAnswer}, act: d.Options[i]}
+		fs.n++
+		ok := fs.settle(k, c, funded, gapUsed)
+		t.unfork()
+		if ok {
+			return true
+		}
+		fs.n--
 	}
 	return false
 }

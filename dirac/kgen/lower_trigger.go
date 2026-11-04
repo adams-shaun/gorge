@@ -1977,6 +1977,24 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 				st.Ctr = int16(ck)
 			}
 		}
+	case "CantSacrifice":
+		// gorge sacrificeBlocked (rules/layers_restrict.go): ValidCard$ the
+		// permanents, ActiveZones$ Battlefield the only zone it reads. The
+		// cause-scoped lines (ValidCause$, ForCost$: Sigarda, Host of Herons)
+		// need the sacrifice's cause and cost-or-effect provenance at every
+		// choke point, which the kernel does not carry.
+		for _, key := range []string{"ValidCause", "ForCost"} {
+			if v, ok := sp.get(key); ok {
+				return nil, refuse("CantSacrifice %s$ %q", key, v)
+			}
+		}
+		if z, ok := sp.get("ActiveZones"); ok && strings.TrimSpace(z) != "Battlefield" {
+			return nil, refuse("CantSacrifice ActiveZones$ %q", z)
+		}
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
 	case "DisableTriggers":
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go
@@ -2108,7 +2126,6 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	st.F = f
-	cross := !filterSelfOnly(f)
 	if gc, ok := sp.get("GainControl"); ok {
 		// layer 2 (CR 613.1b): "You control enchanted creature";
 		// the kernel settles it on the source's attached object, so the
@@ -2293,7 +2310,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 	}
 	if ab, ok := sp.get("AddAbility"); ok {
-		idx, err := lc.grantedAbility(ab, cross)
+		idx, err := lc.grantedAbility(ab)
 		if err != nil {
 			return nil, err
 		}
@@ -2697,7 +2714,7 @@ func (lc *lowerCtx) finishOverrideStatic(sp *params, st *lStatic, o *lOverride) 
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if ab, ok := sp.get("AddAbility"); ok {
-		idx, err := lc.grantedAbility(ab, !filterSelfOnly(st.F))
+		idx, err := lc.grantedAbility(ab)
 		if err != nil {
 			return err
 		}

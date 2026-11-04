@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -28,8 +29,11 @@ import (
 // delayed trigger's body is the GRANTOR's SVar-named line, so the table
 // pushTrigger recorded with that line (Engine.triggerLineSVars) wins: the
 // recipient's face does not define the body's SVars, and the grant may have
-// ended before the ability resolves. A source that has left the battlefield
-// degrades to a nil table.
+// ended before the ability resolves. A cross-object granted ACTIVATED ability
+// (AddAbility$, events.GrantAbilityPush) reads the same way: its body is the
+// grantor's SVar-named line, so the grantor's table comes first and the
+// recipient's fills only the names the grantor does not define. A source that has left the battlefield degrades to a
+// nil table.
 func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[string]string {
 	if isStationAbility(o.Ability) {
 		// The Station body (cards.KeywordPushAbility) reads only its bound X
@@ -51,6 +55,23 @@ func (e *Engine) abilityResolutionSVars(id state.ObjID, o *state.Object) map[str
 	}
 	if owned, ok := e.triggerLineSVars[id]; ok {
 		svars = owned
+	} else if o.GrantedBy != 0 && o.GrantedBy != o.Source {
+		// Forge builds the granted ability with the granting static as its
+		// SVar holder. Food Fight's granted damage names an X only Food Fight
+		// defines: read off the artifact it dealt 0, and an X the recipient
+		// happens to define must not stand in for it either. The grantor
+		// keeps its id after it leaves the battlefield, and the ability
+		// exists apart from it (CR 113.7a), so a gone grantor still names
+		// its table.
+		if g := e.G.Obj(o.GrantedBy); g != nil && g.Face() != nil && len(g.Face().SVars) > 0 {
+			grantor := g.Face().SVars
+			if len(svars) > 0 {
+				merged := maps.Clone(svars)
+				maps.Copy(merged, grantor)
+				grantor = merged
+			}
+			svars = grantor
+		}
 	}
 	return svars
 }

@@ -273,9 +273,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		if s.g.on && s.mObj(k, mechStash, i) {
 			po.Counters[kop.CtrStash]++ // gorge keeps the stash counter on a card played from exile
 		}
-		if s.isCreature(k, sl) {
+		if hid := k.phasing && s.hiddenAt(sl); s.isCreature(k, sl) || hid && s.faceDown(k, sl) {
 			pw, tg := s.pt(k, sl)
-			if k.phasing && s.hiddenAt(sl) {
+			if hid {
 				pw, tg = s.phasedPT(k, sl) // kw_phasing.go
 			}
 			po.Power, po.Tough = int16(pw), int16(tg)

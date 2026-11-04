@@ -181,7 +181,8 @@ type genPrep struct {
 	anyDelaySpell  bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise       bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyCantCast    bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
-	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden)
+	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
+	anyCantSac     bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
@@ -568,6 +569,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
+	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
@@ -1299,6 +1301,8 @@ const (
 	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
 	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
 	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
+	fxCopyHeld               // a token copy's own copy exception (r.idx), held aside while an until-end-of-turn copy overrides it (copy_clone.go cloneHold)
+	fxCopyMint               // a token copy's own copy (r.src the card it was minted as), held aside likewise (copy_clone.go cloneHold)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1452,6 +1456,7 @@ type genState struct {
 	probe      probe    // the spell / ability a priority feasibility check is for
 	tgtSelf    uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
 	inLoop     bool     // executing one object of a multi-object target slot
+	each       eachSusp // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
 	mt         multiTgt // the multi-object target slot being chosen
 	lastCK     kop.CounterKind
 	disc       Obj      // the card being discarded (TrigDiscarded)

@@ -57,7 +57,7 @@ func delayedAmt(d delayed) int16 {
 func (s *State) resolveSacUntracked(k *prep, e *stackEntry) {
 	head := dlyRef(e.obj, e.trigObj)
 	ob := &s.objs[head]
-	if ob.zone == kop.ZoneBattlefield {
+	if ob.zone == kop.ZoneBattlefield && !s.sacBlocked(k, ob.slot) {
 		sl := ob.slot
 		s.fireSac(k, sl)
 		s.leaveParked(k, sl)

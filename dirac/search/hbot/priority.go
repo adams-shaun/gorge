@@ -987,6 +987,10 @@ func (bt *Bot) tapWould(s *dirac.State, d *dirac.Decision) bool {
 // card gorge's planner never prices is potential whenever its timing
 // allows (the planner reports it unsupported, not unpayable). A face cast
 // says nothing: the plain cast it stands beside can still be proven unpayable.
+// Under auto-pay gorge's census is the planned casts and the plain casts in
+// hand its planner declines for their cost's shape
+// (decision.PotentialShapeCasts); the kernel offers a planned cast, and a
+// shape cast is one the planner never prices.
 func (bt *Bot) tapTarget(d *dirac.Decision, c *cardF) bool {
 	b := &bt.b
 	for i := 0; i < int(d.N); i++ {
@@ -994,7 +998,49 @@ func (bt *Bot) tapTarget(d *dirac.Decision, c *cardF) bool {
 			return true
 		}
 	}
-	return b.s.FeatPlanNeverPrices(b.s.ObjCard(c.obj)) && (c.instant || b.myTur && b.isMain && b.nStack == 0)
+	if b.s.ObjZone(c.obj) != kop.ZoneHand || !b.s.FeatPlanNeverPrices(b.s.ObjCard(c.obj)) || !(c.instant || b.myTur && b.isMain && b.nStack == 0) {
+		return false
+	}
+	return bt.potential(c)
+}
+
+// potential is tap.go's census reading of a shape cast (decision.PotentialCasts):
+// gorge's potential walk prices the card against PotentialMana, each untapped
+// source counted once for every colour it makes (a source of any colour, no
+// colour listed, for each), so a coloured pip the sources cannot make (Eaten
+// Alive's {B} beside a Forest and Thornwood Falls, Goblin Negotiation's {R}{R}
+// on one Swiftwater Cliffs) or a mana value beyond their sum keeps it out
+// however much is floated.
+func (bt *Bot) potential(c *cardF) bool {
+	b := &bt.b
+	var avail [6]int32
+	for k := 0; k < 6; k++ {
+		avail[k] = b.pool[k]
+	}
+	for i := 0; i < b.nCard; i++ {
+		x := &b.card[i]
+		if !x.own || !x.onBF || x.tapped || !b.s.FeatManaActivatable(x.obj) {
+			continue
+		}
+		pf := x.f
+		anyCol := pf.ProdReflected || pf.ProdAny && pf.Produces[0] <= 0 && pf.Produces[1] <= 0 && pf.Produces[2] <= 0 && pf.Produces[3] <= 0 && pf.Produces[4] <= 0
+		for k := 0; k < 6; k++ {
+			switch {
+			case pf.Produces[k] > 0:
+				avail[k] += int32(pf.Produces[k])
+			case anyCol && k < 5:
+				avail[k]++
+			}
+		}
+	}
+	var total int32
+	for k := 0; k < 6; k++ {
+		total += avail[k]
+		if k < 5 && int32(c.f.Pips[k]) > avail[k] {
+			return false
+		}
+	}
+	return c.cmc <= total
 }
 
 // poolPaysCard is tap.go's poolPays.

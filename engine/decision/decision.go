@@ -697,6 +697,19 @@ type Decision struct {
 	// data like PotentialUnpayableCasts: not wire, clone-copied by CloneInto.
 	PotentialCasts      []state.ObjID `json:"-"`
 	PotentialCastsKnown bool          `json:"-"`
+	// PotentialShapeCasts is the same build's census of the plain casts
+	// (hand, command zone) the payment planner declines for the shape of
+	// their cost, not for want of mana: a verdict "unsupported" whose Detail
+	// names a cost or shape the planned cast cannot announce -- {X}, a hybrid
+	// or twobrid face, an optional or additional cost, a price that depends on
+	// the target (CR 601.2b, 601.2f). They are the one kind of legal cast no
+	// payment action offers. ShapeCastsKnown says the build filled it; a
+	// decision built elsewhere (a projection, another engine's adapter)
+	// leaves it false. The auto-pay bot's tap gate reads it
+	// (botpolicy tapTarget): with it known, the bot taps by hand only toward
+	// such a cast. Engine cache data: not wire, clone-copied by CloneInto.
+	PotentialShapeCasts []state.ObjID `json:"-"`
+	ShapeCastsKnown     bool          `json:"-"`
 	// Redirected marks a decision whose answering seat (Player) was moved
 	// off the seat it is asked OF by a CR 722 control redirect: a controlled
 	// player's turn (api:ControlPlayer -- Mindslaver) or an opponent's

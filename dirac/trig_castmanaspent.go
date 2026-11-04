@@ -15,9 +15,6 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // "shape:mana_spent_reader"): spendReaderOut is that board test, read by
 // plannedCastCost beside the convoke decline.
 
-// gfSpendRd marks a card with a Tf2CastSpent trigger.
-const gfSpendRd uint32 = 1 << 17
-
 // prepOpus sets genPrep.anyCastSpent and the per-card flag.
 func prepOpus(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {

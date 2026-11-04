@@ -155,6 +155,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
 			return events.Event{}
 		}
+		// A phased-out permanent is treated as though it does not exist and
+		// can't be affected by anything (CR 702.26b): a station ability that
+		// resolves after its Spacecraft phased out puts no counter on it.
+		if ev.Kind == events.CounterChange {
+			if o := e.G.Obj(ev.Obj); o != nil && o.PhasedOut {
+				return events.Event{}
+			}
+		}
 	}
 	if ev.Kind == events.Tap && ev.Text == "entered tapped" && e.entersUntappedApplies(ev.Obj) {
 		return events.Event{}

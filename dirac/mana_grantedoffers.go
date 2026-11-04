@@ -606,7 +606,7 @@ func (g *grantSrch) settle(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if !gorgeArrangeOrder(&d) {
+	if !gorgeAskOrder(&d) {
 		return false // (Jett Reno's surveil: the card to the graveyard first)
 	}
 	for i := 0; i < int(d.N) && g.np < len(g.path); i++ {

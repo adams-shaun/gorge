@@ -68,7 +68,7 @@ func (s *State) sacDelayed(k *prep) {
 		} else {
 			break
 		}
-		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield {
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield || s.sacBlocked(k, s.objs[o].slot) {
 			continue
 		}
 		sl := s.objs[o].slot

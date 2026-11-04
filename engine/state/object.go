@@ -777,10 +777,18 @@ type Object struct {
 	// edited face the token shows when it transforms. foldFlipFace swaps it
 	// with CopyFace. nil unless such a token; SetCopyFace clears it.
 	CopyFaceBack *cards.Face
-	FaceIdx      uint8
-	Owner        PlayerID
-	Controller   PlayerID
-	Zone         Zone
+	// TokenBasis and TokenBasisBack are a token copy's own copy basis
+	// (CopyFace and CopyFaceBack as it was created, its copy exceptions
+	// included), saved by the first copy effect that lands on it
+	// (TokenBasisSaved). They are its copiable values (CR 707.2, 707.9b), so
+	// when that copy effect ends the token goes back to them, not to the
+	// printed card it was minted on. Written only inside events.Apply.
+	TokenBasis, TokenBasisBack *cards.Face
+	TokenBasisSaved            bool
+	FaceIdx                    uint8
+	Owner                      PlayerID
+	Controller                 PlayerID
+	Zone                       Zone
 
 	Tapped     bool
 	SummonSick bool
@@ -1985,7 +1993,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [36]byte
+	_ [20]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

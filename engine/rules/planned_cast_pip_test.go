@@ -83,6 +83,8 @@ func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZHand, To: state.ZExile})
 	d := ppPriority(t, e)
 	e.EnsurePaymentActions()
+	sink := &PaymentPlanStats{}
+	e.SetPaymentPlanStats(sink)
 	ppSubmitPlan(t, e, d, ppAction(t, e.Pending(), spell))
 	ask := e.Pending()
 	if ask == nil || ask.Kind != decision.KChoose || ask.Source != spell {
@@ -109,5 +111,11 @@ func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	}
 	if tapped != 2 || !e.G.Obj(helper).Tapped || len(e.G.Stack) != 1 {
 		t.Errorf("%d lands tapped, helper tapped %v, stack %v; want 2, true and the spell", tapped, e.G.Obj(helper).Tapped, e.G.Stack)
+	}
+	// The cast paid by a new witness, not the one the seat selected, and the
+	// stats sink names it, so a harness checking the payment against its
+	// witness reads that one: {1}{R}, the helper's {1} taken off.
+	if sink.Rearms != 1 || sink.Rearm == nil || sink.Rearm.Cost.Generic != 1 || len(sink.Rearm.Activations) != 2 {
+		t.Errorf("rearms %d, last %+v; want one witness for {1}{R} over two lands", sink.Rearms, sink.Rearm)
 	}
 }

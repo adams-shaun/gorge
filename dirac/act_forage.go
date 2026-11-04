@@ -122,7 +122,7 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		src := s.srcSlot()
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPerm(k, pc.Filter, sl, e.ctrl, src) {
+			if s.sacMatch(k, pc.Filter, sl, e.ctrl, src) {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 1)) // forage_food
 			}
 		}
@@ -318,7 +318,7 @@ func (s *State) forageRes(k *prep) {
 		s.payDone(k, true)
 	case foods == 1 && !grave:
 		for m := s.ctrlM[p]; m.any(); m = m.rest() {
-			if sl := m.first(); s.matchPermGen(k, f, sl, p, NoSlot, layerFull) {
+			if sl := m.first(); s.sacMatchGen(k, f, sl, p, NoSlot) {
 				s.forageSacFood(k, sl)
 				break
 			}
@@ -342,7 +342,7 @@ func (s *State) forageResOptions(k *prep, d *Decision) {
 	}
 	f := s.genPickFilter(k)
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
-		if sl := m.first(); s.matchPermGen(k, f, sl, p, NoSlot, layerFull) {
+		if sl := m.first(); s.sacMatchGen(k, f, sl, p, NoSlot) {
 			d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 1))
 		}
 	}

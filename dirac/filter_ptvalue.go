@@ -32,3 +32,32 @@ func (s *State) cardPTEqV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj,
 	}
 	return t == v
 }
+
+// cardPowerGEV is PredPowerGEV with PredN 0 on a card off the battlefield:
+// its power is at least the value PredV, the printed power (a face-down card
+// a 2/2), or the last known power while matchTrigLKI reads a departed
+// trigger object (CR 608.2h). A card that prints no power never matches.
+//
+//go:noinline
+func (s *State) cardPowerGEV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool, ctx *evalCtx) bool {
+	if s.xBoundPending(fl) {
+		return true
+	}
+	if k.t.Cards[c].NoPT && !fd {
+		return false
+	}
+	pw := int(k.cards[c].power)
+	if fd {
+		pw = 2
+	} else if k.cda && k.gen.has(c, gfCDAPT) {
+		pw, _ = s.cardCDAPT(k, c, owner, o)
+	}
+	if s.g.tli&tliOn != 0 {
+		pw, _ = s.lkiPT()
+	}
+	cx := s.ctxCur()
+	if ctx != nil {
+		cx = *ctx
+	}
+	return pw >= s.evalV(k, fl.PredV, cx)
+}

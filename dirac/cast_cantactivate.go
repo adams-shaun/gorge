@@ -25,7 +25,7 @@ var (
 
 // prepCantAct arms genPrep.anyCantAct when some card has a StatCantActivate.
 func prepCantAct(t *kop.Table, g *genPrep) {
-	g.anyCantAct = tableHasStatic(t, kop.StatCantActivate)
+	g.anyCantAct = tableHasStatic(t, kop.StatCantActivate) || g.anyCantSac
 }
 
 // actForbidden reports whether a StatCantActivate forbids the controller of
@@ -41,6 +41,9 @@ func prepCantAct(t *kop.Table, g *genPrep) {
 //
 //go:noinline
 func (s *State) actForbidden(k *prep, sl Slot, mana bool) bool {
+	if mana && k.gen.anyCantSac && s.manaSacBlocked(k, sl) {
+		return true // a sacrificing mana ability whose source can't be sacrificed (static_cantsacrifice.go)
+	}
 	return s.actForbiddenAb(k, sl, mana, false)
 }
 

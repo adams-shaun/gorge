@@ -212,6 +212,12 @@ type CardDef struct {
 	// AllCreatureTypes is printed changeling (CR 702.73a): every creature
 	// type, also one outside the matchup's subtypes (a chosen type).
 	AllCreatureTypes bool
+	// PrintedSubtypes is a changeling's printed subtypes, before kgen adds
+	// every matchup creature type to Subtypes; zero for any other card, whose
+	// Subtypes are its printed ones. gorge lists a creature-type choice's
+	// options with the printed types its chooser owns first
+	// (rules.creatureTypeOptions), which the heuristic bot reads.
+	PrintedSubtypes SubMask
 	// Faces is a multi-face card's faces (CR 712b): each face's
 	// CardID, Faces[0] the front; every face's def carries the same list
 	// and Face is its own index (gorge's Object.FaceIdx). FaceMode is the

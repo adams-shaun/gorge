@@ -289,6 +289,15 @@ const (
 // lowered.
 const StatCantPutCounter StaticKind = 252
 
+// StatCantSacrifice (an explicit ordinal clear of the iota tail): no
+// battlefield permanent matching Filter (read with the static's controller
+// as "you") can be sacrificed, for a cost or by an effect (S:Mode$
+// CantSacrifice without ValidCause$ or ForCost$; CR 701.21a; gorge
+// rules/layers_restrict.go sacrificeBlocked). A cost that would sacrifice
+// one can't be paid, so a Treasure under Quark, Humble Proprietor is no
+// mana source.
+const StatCantSacrifice StaticKind = 237
+
 // StatReduceAbility: activated abilities of
 // battlefield permanents matching Filter (controlled by the static's
 // controller) cost A (or VA when StDynamic) generic less, floored at zero;

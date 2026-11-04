@@ -745,6 +745,31 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Text: "continuous replacement unimplemented (" + name + ")"})
 		}
 	}
+	// The players a look or may-play grant belongs to. Forge makes the
+	// Effect card itself the EffectOwner$ player's (EffectEffect), so its
+	// statics' "you" is that player: Vulcan Mind-Meld's target opponent may
+	// play the card it exiled, Aerial Extortionist's owner may cast its card
+	// (CR 611.2). Without EffectOwner$ it is the resolving controller. An
+	// owner this build cannot resolve fails closed with a loud Note.
+	grantees, granteesResolved := []state.PlayerID(nil), false
+	grantOwners := func() []state.PlayerID {
+		if granteesResolved {
+			return grantees
+		}
+		granteesResolved = true
+		if ownerSel == "" {
+			grantees = []state.PlayerID{c.Controller}
+			return grantees
+		}
+		ps, ok := EffectOwnerPlayers(h, c, ownerSel)
+		if !ok || len(ps) == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unresolvable EffectOwner$ " + ownerSel + " (play grant not registered)"})
+			return nil
+		}
+		grantees = ps
+		return grantees
+	}
 	for _, name := range strings.FieldsFunc(ep.StaticAbilities, func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
@@ -768,7 +793,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				look.ForgetCounter = forgetCounter
 				look.ImprintOnHost = imprintOnHost
 				look.Chosen, look.ChosenBound = effectChosenSnapshot(h, c, look.Affects)
-				effectContinuous(h, look)
+				for _, p := range grantOwners() {
+					look.Controller = p
+					effectContinuous(h, look)
+				}
 				registered = true
 				if !rest {
 					continue
@@ -825,7 +853,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					// wrote it.
 					grant.SVars = c.SVars
 				}
-				effectContinuous(h, grant)
+				for _, p := range grantOwners() {
+					grant.Controller = p
+					effectContinuous(h, grant)
+				}
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
 				// The FREE-cast may-play grant delivered by an Effect SA (Dauthi
@@ -856,7 +887,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					// the RESOLVING face's SVar table.
 					grant.SVars = c.SVars
 				}
-				effectContinuous(h, grant)
+				for _, p := range grantOwners() {
+					grant.Controller = p
+					effectContinuous(h, grant)
+				}
 				registered = true
 			} else if _, ok := untapDenialGrantFromLine(params); ok {
 				// CR 611.2b: the permanents Affected$ names, under the

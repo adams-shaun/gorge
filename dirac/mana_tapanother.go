@@ -214,6 +214,7 @@ type tapXKey struct {
 type tapXSearch struct {
 	a     Action
 	p     uint8
+	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	nodes int
@@ -221,6 +222,24 @@ type tapXSearch struct {
 	seen  [potentialScriptNodes]tapXKey
 	n     int
 	path  [maxTapXPath]tapXStep
+}
+
+// DebugNoTapXOwnSkip keeps the answers that tap the play's own {T} source in
+// both prefix searches (mutation testing only: the lockstep must catch it).
+var DebugNoTapXOwnSkip bool
+
+// tapXOwnAnswer: a tap-another cost's answer that taps a or b, one of them the
+// source whose {T} the searched play's own cost needs, is no answer the search
+// tries. gorge's scriptSearch skips it (tapsOwnSource): the play could not be
+// paid after it (CR 602.2b), though the node pricing, which reads no tapped
+// state, would call it payable. Only an asked answer is skipped: with exactly
+// the cost's count of candidates nothing is asked and both are tapped.
+func (rs *tapXSearch) tapXOwnAnswer(a, b Slot) bool {
+	return tapXOwnAnswer(rs.own, a, b)
+}
+
+func tapXOwnAnswer(own, a, b Slot) bool {
+	return !DebugNoTapXOwnSkip && own != NoSlot && (a == own || b == own)
 }
 
 // tapXScript runs gorge's prefix search (rules scriptSearch.visit under
@@ -231,6 +250,10 @@ type tapXSearch struct {
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.own = NoSlot
+	if a.Kind() == AkActivate {
+		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
+	}
 	t := s.fork()
 	defer s.unfork()
 	if !rs.settle(k, t, false) || rs.n == 0 {
@@ -319,14 +342,41 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 	}
 }
 
-// gorgeArrangeOrder puts a scry or surveil ask's answers in the order gorge's
-// prefix search tries them (rules scriptAnswers): a one-card look is an up-to-one
-// ask, so the empty top pile (the kernel's Done: the card to the graveyard or the
-// bottom) is tried before keeping the card on top. A look at two or more cards is
-// an up-to-n ask scriptAnswers enumerates no answer for, so that line is a dead
-// end there; ok is false then. Any other ask is left as it is.
-func gorgeArrangeOrder(d *Decision) (ok bool) {
-	if d.Kind != DkChoose || d.Sub != ChArrange {
+// gorgeAskOrder puts a trigger's ask's answers in the order gorge's prefix
+// search tries them (rules scriptAnswers: gorge's option order). A yes-or-no
+// election (a "you may", an if-you-do cost, an unless, top or bottom) lists its
+// yes first (trigger_queue.go optionalAtResolutionDecision), so Spider-Gwen,
+// Free Spirit's loot discards before it declines. An up-to-one pick tries its
+// empty answer (the kernel's Done) first, so Erica Ortegas's accepted trigger
+// puts no card from hand onto the battlefield. A scry or surveil look at one
+// card is an up-to-one ask, so the empty top pile (the kernel's Done: the card
+// to the graveyard or the bottom) is tried before keeping the card on top. A
+// look at two or more cards is an up-to-n ask scriptAnswers enumerates no answer
+// for, so that line is a dead end there; ok is false then.
+func gorgeAskOrder(d *Decision) (ok bool) {
+	if d.Kind != DkChoose {
+		return true
+	}
+	if yesFirstAsk(d.Sub) && !DebugAskNoYesFirst {
+		for i := 1; i < int(d.N); i++ { // stable: mode 1 (yes, pay, top) before mode 0
+			a := d.Options[i]
+			j := i
+			for j > 0 && d.Options[j-1].Mode()&1 < a.Mode()&1 {
+				d.Options[j] = d.Options[j-1]
+				j--
+			}
+			d.Options[j] = a
+		}
+		return true
+	}
+	if d.Sub != ChArrange {
+		for i := 1; i < int(d.N) && !DebugAskNoYesFirst; i++ {
+			if a := d.Options[i]; a.Kind() == AkDone {
+				copy(d.Options[1:i+1], d.Options[:i])
+				d.Options[0] = a
+				break
+			}
+		}
 		return true
 	}
 	if d.N != 2 || d.Options[1].Kind() != AkDone {
@@ -334,6 +384,20 @@ func gorgeArrangeOrder(d *Decision) (ok bool) {
 	}
 	d.Options[0], d.Options[1] = d.Options[1], d.Options[0]
 	return true
+}
+
+// DebugAskNoYesFirst leaves a yes-or-no election and an up-to-one pick in the
+// kernel's order in the prefix searches (mutation testing only: the lockstep must catch it).
+var DebugAskNoYesFirst bool
+
+// yesFirstAsk: sub is a two-answer election whose mode 1 answer gorge lists
+// first (the oracle's chooseKey reads the same set).
+func yesFirstAsk(sub ChoiceKind) bool {
+	switch sub {
+	case ChOptional, ChWardPay, ChOptDiscMay, ChGenPay, ChGenPayMode, ChGenTopBottom, ChGenLeyline, ChGenDiscUnless:
+		return true
+	}
+	return false
 }
 
 // settle continues the search at t after a step: t runs to p's next
@@ -353,7 +417,7 @@ func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	if d.Kind == DkTarget {
 		t.gorgeTargetOrder(&d)
 	}
-	if !gorgeArrangeOrder(&d) {
+	if !gorgeAskOrder(&d) {
 		return false
 	}
 	for i := 0; i < int(d.N) && rs.n < maxTapXPath; i++ {
@@ -481,8 +545,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		if !rs.gaps.has(sl) {
-			continue
+		if !rs.gaps.has(sl) || sl == rs.own {
+			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for
@@ -526,6 +590,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 						if debugTapXMutate == 2 {
 							a, b = cs[per-1-i], cs[nc-1-j] // the last pair first (mutation)
 						}
+						if rs.tapXOwnAnswer(a, b) {
+							continue
+						}
 					}
 					if !rs.tick() { // the colour ask
 						return false
@@ -550,6 +617,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			cand := cs[ci]
 			if debugTapXMutate == 2 {
 				cand = cs[nc-1-ci]
+			}
+			if nc > 1 && rs.tapXOwnAnswer(cand, NoSlot) {
+				continue
 			}
 			if !rs.tick() { // the colour ask
 				return false

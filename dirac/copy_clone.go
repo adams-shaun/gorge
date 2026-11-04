@@ -34,10 +34,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // card, its copied characteristics a layer-1 override (cloneTokenBasis), so it
 // projects with the printed card's name.
 //
-// An Aegis bearer, a permanent copying itself, or such a minted token becoming
-// an until-end-of-turn copy (gorge's settle would put it back on the printed
-// card it was minted on, not on the copy it is: see the report) stalls
-// StallCloneLayer.
+// A token copy keeps its own copiable values (CR 707.2, 707.9b): the first
+// until-end-of-turn copy onto it holds the copy it was minted as and its own
+// copy exceptions aside (cloneHold), and the cleanup step puts them back, as
+// gorge restores state.Object.TokenBasis.
+//
+// An Aegis bearer or a permanent copying itself stalls StallCloneLayer.
 
 // DebugCloneCopyNoRevert is the mutation switch of TestClonecopyMutation: the
 // cleanup step never ends an until-end-of-turn copy.
@@ -60,14 +62,20 @@ type CloneCopyStats struct {
 	Minted   uint32 // token copies of a copy minted on its printed card (cloneTokenBasis)
 	Stacked  uint32 // copies made onto a becomer that already held a copy layer (a copy marker or an enters copy)
 	Rebased  uint32 // cleanup settles that re-based a permanent on the permanent copy layer under the ended one
+	Held     uint32 // until-end-of-turn copies onto a token copy that held its own copy aside (cloneHold)
+	Restored uint32 // cleanup settles that put a token copy back on a held copy of another card than its printed one
 }
+
+// DebugCloneCopyNoHold is the mutation switch of TestCloneTokenBasisMutation:
+// a token copy's own copy is never held aside, so the cleanup step puts it
+// back on the printed card it was minted on.
+var DebugCloneCopyNoHold bool
 
 // DebugCloneCopyStats, when set, receives the counts.
 var DebugCloneCopyStats *CloneCopyStats
 
-// StallCloneLayer: a copy onto an Aegis bearer (its own layer-1 bookkeeping),
-// a permanent copying itself, or an until-end-of-turn copy onto a token minted
-// as a copy of a copy (cloneMinted).
+// StallCloneLayer: a copy onto an Aegis bearer (its own layer-1 bookkeeping)
+// or a permanent copying itself.
 const StallCloneLayer = 141
 
 func init() { stallNames[StallCloneLayer] = "clonelayer" }
@@ -213,7 +221,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		if sl == tmpl && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
 			continue // a Valid set holding its template: a copy of itself changes nothing (CR 707.2)
 		}
-		if sl == tmpl || s.cloneLayered(k, sl) || eot && s.cloneMinted(sl) {
+		if sl == tmpl || s.cloneLayered(k, sl) {
 			s.capFull(StallCloneLayer)
 			continue
 		}
@@ -223,10 +231,18 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		s.touchSl(sl)
 		s.onceBasisBegin(sl)
+		held, ok := kop.KwMask(0), true
+		if eot {
+			held, ok = s.cloneHold(k, sl)
+		}
+		if !ok {
+			return
+		}
 		old, ok := s.cloneLayerPrep(k, sl, eot)
 		if !ok {
 			return
 		}
+		old |= held
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		p.ovr.flags |= ovCopy
 		p.ovr.copyOf = c
@@ -329,6 +345,7 @@ func (s *State) cloneCleanup(k *prep) {
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
 		s.onceBasisEnd(sl)
+		s.cloneRestore(sl)
 		for j := 0; j < int(s.g.nfx); j++ {
 			x := &s.g.fx[j]
 			if x.sl != sl || x.kind != fxCopyPerm || DebugCloneCopyNoRebase {
@@ -433,19 +450,74 @@ func (s *State) cloneTokenBasis(sl Slot, t Obj, tmpl Slot) {
 	}
 }
 
-// cloneMinted: slot sl is a copy token whose copy is still its minted basis
-// (cloneTokenBasis): no CloneCopy marker on it.
-func (s *State) cloneMinted(sl Slot) bool {
-	ob := &s.objs[s.perms[sl].obj]
-	if ob.of&ofToken == 0 || ob.of&ofCopy == 0 || s.perms[sl].ovr.flags&ovCopy == 0 {
-		return false
+// cloneHold holds a token copy's own copy aside as the first copy layer
+// lands on it (no copy marker on it yet): the copy it was minted as (an
+// fxCopyMint record) and its copy exceptions (fxCopyExc records become
+// fxCopyHeld). It returns the keywords the held exceptions granted; false
+// when the effect pool is full. gorge saves state.Object.TokenBasis.
+//
+//go:noinline
+func (s *State) cloneHold(k *prep, sl Slot) (kw kop.KwMask, ok bool) {
+	p := &s.perms[sl]
+	ob := &s.objs[p.obj]
+	if DebugCloneCopyNoHold || ob.of&(ofToken|ofCopy) != ofToken|ofCopy || s.cloneBased(sl) {
+		return 0, true
+	}
+	if p.ovr.flags&ovCopy != 0 {
+		if int(s.g.nfx) >= maxFx {
+			s.stall(StallTables)
+			return 0, false
+		}
+		s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyMint, r: ovRec{src: p.ovr.copyOf}}
+		s.g.nfx++
+		s.fxM.set(sl)
 	}
 	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == sl && (r.kind == fxCopyPerm || r.kind == fxCopyEOT) {
-			return false
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			kw |= k.t.Overrides[r.r.idx-1].AddKw
+			r.kind = fxCopyHeld
 		}
 	}
-	return true
+	if DebugCloneCopyStats != nil {
+		DebugCloneCopyStats.Held++
+	}
+	return kw, true
+}
+
+// cloneRestore puts a settling token copy back on the copy cloneHold held
+// aside, its exceptions live again; with a permanent copy marker left, the
+// re-base replaces them and the held records go.
+//
+//go:noinline
+func (s *State) cloneRestore(sl Slot) {
+	if !s.fxM.has(sl) {
+		return
+	}
+	perm := false
+	for i := 0; i < int(s.g.nfx); i++ {
+		perm = perm || s.g.fx[i].sl == sl && s.g.fx[i].kind == fxCopyPerm
+	}
+	p := &s.perms[sl]
+	for i := 0; i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl || perm {
+			continue
+		}
+		switch r.kind {
+		case fxCopyHeld:
+			r.kind = fxCopyExc
+		case fxCopyMint:
+			p.ovr.flags |= ovCopy
+			p.ovr.copyOf = r.r.src
+			if DebugCloneCopyStats != nil && r.r.src != p.card {
+				DebugCloneCopyStats.Restored++
+			}
+		}
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		return r.sl == sl && (r.kind == fxCopyMint || r.kind == fxCopyHeld)
+	})
 }
 
 // cloneBased: slot sl holds a copy marker (an until-end-of-turn or permanent

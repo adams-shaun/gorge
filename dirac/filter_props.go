@@ -96,6 +96,9 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 	if fl.PredN&0xff == kop.W7AttachedTo {
 		return s.attachedToWord(k, fl.PredN>>8, sl, ctrl, src)
 	}
+	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
+		return s.sharesCrTrigObj(k, s.perms[sl].obj)
+	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordPerm3(k, fl, sl, src) // filter_props.go
 	}
@@ -179,6 +182,9 @@ func (s *State) nameInGrave(nm CardID, p uint8) bool {
 func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
 	if n := fl.PredN & 0xff; n == kop.W7BottomLibrary || n == kop.W7NotBottomLibrary {
 		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
+	}
+	if fl.PredN&0xff == kop.W7SharesCrTrigObj {
+		return o != NoObj && s.sharesCrTrigObj(k, o)
 	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
@@ -403,6 +409,25 @@ func (s *State) bottomLibrary(o Obj) bool {
 	pl := &s.pl[s.objs[o].owner()]
 	return pl.libLo < pl.libHi && pl.lib[pl.libHi-1] == o
 }
+
+// sharesCrTrigObj is kop.W7SharesCrTrigObj for object o: o shares a creature
+// type with the current entry's triggering object, each side read where it
+// now is (gorge sharesCreatureTypeWith over sharesTypeReferents' TriggerCard:
+// the battlefield's current types, else the printed card). No entry or no
+// triggering object fails closed.
+func (s *State) sharesCrTrigObj(k *prep, o Obj) bool {
+	e := s.curEntry()
+	if e == nil || e.trigObj == NoObj {
+		return false
+	}
+	rm, ra := s.crTypesOf(k, e.trigObj)
+	om, oa := s.crTypesOf(k, o)
+	return s.sharesCr(om, oa, rm, ra) != DebugSharesCrTrigObjFlip
+}
+
+// DebugSharesCrTrigObjFlip is the mutation switch: every
+// kop.W7SharesCrTrigObj answer flips. Test-only and cold.
+var DebugSharesCrTrigObjFlip bool
 
 // attachedToWord is kop.W7AttachedTo on the battlefield permanent at sl:
 // it is attached to a battlefield permanent of the class bits names (a

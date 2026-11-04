@@ -412,7 +412,12 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 				ts = append(ts, t)
 			}
 		}
-	case sharesTypeReferentsTriggeredCard, sharesTypeReferentsTriggeredCardLKICopy:
+	case sharesTypeReferentsTriggeredCard, sharesTypeReferentsTriggeredCardLKICopy,
+		sharesTypeReferentsTriggeredAttacker, sharesTypeReferentsTriggeredAttackerLKICopy:
+		// TriggeredAttacker is the creature an Attacks trigger fired for, the
+		// same fire-time TriggerCard role matchTriggeredAttacker reads (CR
+		// 603.2c): Shared Animosity's "each other attacking creature that
+		// shares a creature type with it".
 		if sc.TriggerCard != 0 {
 			ts = append(ts, state.Target{Obj: sc.TriggerCard})
 		}
@@ -1031,6 +1036,8 @@ var sharesTypeArgCodes = state.NewStrCodes(
 	state.StrEntry[sharesTypeArgCode]{Key: "RememberedLKI", Val: sharesTypeArgRememberedCard},
 	state.StrEntry[sharesTypeArgCode]{Key: "TriggeredCard", Val: sharesTypeArgTriggeredCard},
 	state.StrEntry[sharesTypeArgCode]{Key: "TriggeredCardLKICopy", Val: sharesTypeArgRememberedCard},
+	state.StrEntry[sharesTypeArgCode]{Key: "TriggeredAttacker", Val: sharesTypeArgTriggeredCard},
+	state.StrEntry[sharesTypeArgCode]{Key: "TriggeredAttackerLKICopy", Val: sharesTypeArgTriggeredCard},
 	state.StrEntry[sharesTypeArgCode]{Key: "Targeted", Val: sharesTypeArgTargeted},
 	state.StrEntry[sharesTypeArgCode]{Key: "Self", Val: sharesTypeArgRememberedCard},
 	state.StrEntry[sharesTypeArgCode]{Key: "Commander", Val: sharesTypeArgRememberedCard},
@@ -1051,6 +1058,8 @@ const (
 	sharesTypeReferentsTargeted
 	sharesTypeReferentsSelf
 	sharesTypeReferentsImprinted
+	sharesTypeReferentsTriggeredAttacker
+	sharesTypeReferentsTriggeredAttackerLKICopy
 )
 
 var sharesTypeReferentsCodes = state.NewStrCodes(
@@ -1064,6 +1073,8 @@ var sharesTypeReferentsCodes = state.NewStrCodes(
 	state.StrEntry[sharesTypeReferentsCode]{Key: "Targeted", Val: sharesTypeReferentsTargeted},
 	state.StrEntry[sharesTypeReferentsCode]{Key: "Self", Val: sharesTypeReferentsSelf},
 	state.StrEntry[sharesTypeReferentsCode]{Key: "Imprinted", Val: sharesTypeReferentsImprinted},
+	state.StrEntry[sharesTypeReferentsCode]{Key: "TriggeredAttacker", Val: sharesTypeReferentsTriggeredAttacker},
+	state.StrEntry[sharesTypeReferentsCode]{Key: "TriggeredAttackerLKICopy", Val: sharesTypeReferentsTriggeredAttackerLKICopy},
 )
 
 type attachedToReferentCode uint16

@@ -362,7 +362,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			for m := s.ctrlM[p]; m.any(); {
 				sl := m.first()
 				m = m.rest()
-				if s.matchPerm(k, in.F, sl, p, src) {
+				if s.sacMatch(k, in.F, sl, p, src) {
 					s.fireSac(k, sl)
 					s.leaveParked(k, sl)
 					break // the one match counted above: a later slot is matched against the battlefield as it now is (greatestPower...ByTargeted would pick the next-greatest)
@@ -819,7 +819,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChSacrifice
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPerm(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
+			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 			}
 		}
@@ -844,7 +844,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		in := &s.prog(k)[r.pc]
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if !s.optaskPicked(s.perms[sl].obj) && s.matchPerm(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
+			if !s.optaskPicked(s.perms[sl].obj) && s.sacMatch(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 			}
 		}

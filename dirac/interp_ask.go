@@ -42,7 +42,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return true // gorge unlessflow: the whole hand; empty pays with nothing
 	case kop.PaySac:
 		if pips == kop.PayBSubBlight {
-			return s.countSac(k, p, f, s.resSrcSlot(k)) >= 1 // a Blight: one creature, source included
+			return s.countPermMatch(k, p, f, s.resSrcSlot(k), false) >= 1 // a Blight: one creature, source included
 		}
 		return s.countSac(k, p, f, s.resSrcSlot(k)) >= amt // "another": not the source
 	case kop.PayLife:
@@ -55,7 +55,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.foragePayableRes(k, p, f)
 	case kop.PaySacSelf:
 		sl := s.resSrcSlot(k)
-		return sl != NoSlot && s.perms[sl].ctrl == p
+		return sl != NoSlot && s.perms[sl].ctrl == p && !s.sacBlocked(k, sl)
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
@@ -329,9 +329,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 				d.Sub = ChGenPayTap
 			}
 		}
+		sac := r.ask == raGenSac || s.g.pickZ == kop.PaySac
 		for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPermGen(k, f, sl, p, src, layerFull) {
+			if s.matchPermGen(k, f, sl, p, src, layerFull) && !(sac && s.sacBlocked(k, sl)) {
 				d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
 			}
 		}
@@ -1013,7 +1014,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		r.ask = raNone
 		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 		r.e.ctrl = was
-		if parked {
+		if parked || s.eachResume(k, in) { // copy_eachtarget.go: the targets after it
 			return
 		}
 		s.continueRes(k, 0)
@@ -1157,7 +1158,7 @@ func (s *State) countSacLeft(k *prep, p uint8, f kop.FilterID) int {
 	src := s.resSrcSlot(k)
 	n := 0
 	for m := s.ctrlM[p].andNot(s.g.sacM); m.any(); m = m.rest() {
-		if s.matchPermGen(k, f, m.first(), p, src, layerFull) {
+		if s.sacMatchGen(k, f, m.first(), p, src) {
 			n++
 		}
 	}
@@ -1185,7 +1186,7 @@ func (s *State) startSac(k *prep, in *kop.Instr, p uint8) bool {
 		var ord [MaxPerm]Slot
 		no := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:no] {
-			if s.matchPermGen(k, in.F, sl, p, src, layerFull) {
+			if s.sacMatchGen(k, in.F, sl, p, src) {
 				s.addSac(sl)
 			}
 		}

@@ -11,14 +11,13 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Saga remembered lockstep: The Measure of a Man's chapter III returns
+// The Saga exiled-with lockstep: The Measure of a Man's chapter III returns
 // the card its chapter I exiled (linked abilities, CR 607.2a, 714.2b). gorge
-// reads the Saga's persistent remembered list from the chapter (effects
-// chapterLinkedRemembered); the kernel keeps chapter I's set on the exile
-// links and seeds chapter III with it (CardDef.RemSeed/RemKeep,
-// zone_rememberpersist.go). Naturalize destroys the Saga, sometimes between
-// its chapters, so the exiled card stays exiled. Counters from gorge's event
-// log:
+// reads the cards exiled with the Saga (Defined$ ExiledWith, the exiled
+// card's ExiledWith link); the kernel reads its exiled-with links
+// (zone_exiledwith.go). Naturalize destroys the Saga, sometimes between its
+// chapters, so the exiled card stays exiled, and a later Saga's chapter III
+// must not return it. Counters from gorge's event log:
 //
 //  1. a chapter I exiles a creature,
 //  2. a chapter III returns it,
@@ -173,12 +172,13 @@ func TestSagaRememberedLockstep(t *testing.T) {
 	}
 }
 
-// TestSagaRememberedMutation: with chapter I's set not kept, chapter III
-// returns nothing, which gorge's Saga-held set still returns.
+// TestSagaRememberedMutation: with every card in exile read as exiled with
+// the reading Saga, a chapter III also returns the cards another Saga exiled,
+// which gorge's ExiledWith link does not.
 func TestSagaRememberedMutation(t *testing.T) {
-	dirac.DebugRemPersistNoKeep = true
-	defer func() { dirac.DebugRemPersistNoKeep = false }()
+	dirac.DebugExwAnySource = true
+	defer func() { dirac.DebugExwAnySource = false }()
 	if _, _, diverged := sagaremRun(t, 64, true); !diverged {
-		t.Fatal("no divergence in 64 seeds with chapter I's remembered set not kept")
+		t.Fatal("no divergence in 64 seeds with any exiled card read as exiled with the Saga")
 	}
 }

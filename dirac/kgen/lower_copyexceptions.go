@@ -30,16 +30,30 @@ func (lc *lowerCtx) copyExceptions(ps *params) (*lOverride, bool, error) {
 		return nil, false, refuse("CopyPermanent Controller %q", c)
 	}
 	if k, ok := ps.get("AddKeywords"); ok {
-		ks, err := pumpKeywords(k)
-		if err != nil {
-			return nil, false, err
-		}
-		for _, w := range ks {
-			if _, ok := kwBits[w]; !ok {
-				return nil, false, refuse("CopyPermanent AddKeywords %q", k)
+		// "except it has changeling" (CR 707.9b, 702.73a): gorge folds the
+		// keyword into the token's basis face, where it is the printed
+		// changeling's every-creature-type CDA; an all-creature-types copy
+		// exception, seeded where the printed one is (copy_exceptions.go)
+		var rest []string
+		for _, w := range strings.Split(k, "&") {
+			if w = strings.TrimSpace(w); w == "Changeling" {
+				exc.AllCreatureTypes, hasExc = true, true
+			} else {
+				rest = append(rest, w)
 			}
 		}
-		exc.AddKw, hasExc = ks, true
+		if len(rest) > 0 {
+			ks, err := pumpKeywords(strings.Join(rest, " & "))
+			if err != nil {
+				return nil, false, err
+			}
+			for _, w := range ks {
+				if _, ok := kwBits[w]; !ok {
+					return nil, false, refuse("CopyPermanent AddKeywords %q", k)
+				}
+			}
+			exc.AddKw, hasExc = ks, true
+		}
 	}
 	if t, ok := ps.get("AddTypes"); ok {
 		// gorge copyTypeList: split on "," and " & "; each word is a card

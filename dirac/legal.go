@@ -398,6 +398,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyCantAct && s.actForbiddenAb(k, sl, a.Kind == kop.AbMana, a.Cost.Flags&kop.CostLoyalty != 0) {
 		return false // a CantBeActivated lock (cast_cantactivate.go)
 	}
+	if a.Cost.Flags&kop.CostSacSelf != 0 && s.sacBlocked(k, sl) {
+		return false // a self-sacrifice its source can't pay (static_cantsacrifice.go)
+	}
 	if k.gen != nil && (k.gen.anyWaterbend || k.gen.anyXBoundAb) && s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
 		// abort in a row (cast_commit.go abortCast, CR 733.2)
@@ -840,12 +843,18 @@ func (s *State) inHandN(o Obj) int {
 }
 
 func (s *State) countSac(k *prep, p uint8, f kop.FilterID, src Slot) int {
+	return s.countPermMatch(k, p, f, src, true)
+}
+
+// countPermMatch counts p's permanents matching f; sac leaves out those a
+// CantSacrifice static forbids sacrificing (static_cantsacrifice.go).
+func (s *State) countPermMatch(k *prep, p uint8, f kop.FilterID, src Slot, sac bool) int {
 	n := 0
 	m := s.ctrlM[p]
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if s.matchPerm(k, f, sl, p, src) {
+		if s.matchPerm(k, f, sl, p, src) && !(sac && s.sacBlocked(k, sl)) {
 			n++
 		}
 	}
@@ -949,6 +958,13 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 			return s.giftTargetsFeasible(k, a, p, src)
 		}
 		if tm := a.TgtModes[i]; tm != 0 && tm&modes == 0 {
+			continue
+		}
+		if t.TFlags&kop.TgfBoundsV != 0 {
+			// "X target creatures": X candidates (tgt_variablemax.go)
+			if !s.tgtBoundsFeasible(k, t, p, src) {
+				return false
+			}
 			continue
 		}
 		if excl != NoObj {

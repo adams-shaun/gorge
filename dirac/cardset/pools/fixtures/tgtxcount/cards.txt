@@ -1,0 +1,16 @@
+# the "X target" pool: spells whose target count is exactly the announced X
+# (TargetMin$ X, TargetMax$ X), on the battlefield, among any targets and in
+# a graveyard (dirac/oracle/tgtxcount_test.go)
+Death Denied
+Distorting Wake
+Forest
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Icy Blast
+Island
+Meteor Blast
+Mountain
+Scathe Zombies
+Swamp

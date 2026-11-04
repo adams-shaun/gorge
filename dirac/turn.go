@@ -877,6 +877,9 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	case kop.OpDestroy:
 		s.destroyDelayed(k, sl) // trig_tokenateot.go
 	case kop.OpSacrifice:
+		if s.sacBlocked(k, sl) {
+			return // gorge effSacrifice skips a permanent that can't be sacrificed (static_cantsacrifice.go)
+		}
 		s.fireSac(k, sl)
 		s.leave(k, sl, kop.ZoneGraveyard, false)
 	case kop.OpExile, kop.OpUnearth:

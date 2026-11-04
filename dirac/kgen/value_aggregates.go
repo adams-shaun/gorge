@@ -36,11 +36,17 @@ var validAggs = map[string]int{
 }
 
 // ptAggIn reports whether v reads a derived P/T aggregate (a CDA reading
-// one would recurse through the kernel's layer walk; refused).
+// one would recurse through the kernel's layer walk, or through FeatCDAPT
+// for a graveyard card's power; refused).
 func ptAggIn(v lValue) bool {
-	if v.Kind == vValidAgg {
+	switch v.Kind {
+	case vValidAgg:
 		switch v.N {
 		case kop.AggGreatestPower, kop.AggGreatestToughness, kop.AggSumToughness, kop.AggDistinctPower:
+			return true
+		}
+	case vGraveAgg:
+		if v.N == kop.AggGreatestPower {
 			return true
 		}
 	}

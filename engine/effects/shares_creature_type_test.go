@@ -27,11 +27,12 @@ func sharesCreatureTypeFixture(t *testing.T) (*state.Game, state.ObjID, state.Ob
 	return g, dead.ID, cub.ID, giant.ID
 }
 
-// TestSharesCreatureTypeWithClassified keeps the seven recognised referents
+// TestSharesCreatureTypeWithClassified keeps the recognised referents
 // silent to UnknownPredicates and everything else fail-closed-loud.
 func TestSharesCreatureTypeWithClassified(t *testing.T) {
 	for _, ref := range []string{"RememberedCard", "Remembered", "RememberedLKI",
-		"TriggeredCard", "TriggeredCardLKICopy", "Targeted", "Self", "Commander"} {
+		"TriggeredCard", "TriggeredCardLKICopy", "TriggeredAttacker", "TriggeredAttackerLKICopy",
+		"Targeted", "Self", "Commander"} {
 		spec := "Creature.sharesCreatureTypeWith " + ref
 		if got := UnknownPredicates(spec); len(got) != 0 {
 			t.Errorf("UnknownPredicates(%q) = %v, want []", spec, got)
@@ -40,7 +41,7 @@ func TestSharesCreatureTypeWithClassified(t *testing.T) {
 	// The exotic referents stay unknown (fail closed).
 	for _, spec := range []string{
 		"Creature.sharesCreatureTypeWith Sacrificed",
-		"Creature.sharesCreatureTypeWith TriggeredAttacker",
+		"Creature.sharesCreatureTypeWith Equipped",
 		"Creature.sharesCreatureTypeWithAll Tapped",
 	} {
 		if got := UnknownPredicates(spec); len(got) == 0 {

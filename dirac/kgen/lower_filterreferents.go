@@ -78,12 +78,15 @@ func ownerRoleWord(w uint8) string {
 //     notDefinedTriggerReferent). The kernel's Attacks trigger carries the
 //     attacker as trigObj (combat.go objTrigGen over the declared attacker's
 //     obj), which F2NotTriggerObj reads; outside an Attacks trigger's body
-//     that object is some other event's.
+//     that object is some other event's. sharesCreatureTypeWith
+//     TriggeredAttacker (kop.W7SharesCrTrigObj) reads the same object
+//     under the same gate.
 //   - AttachedTo Targeted is gorge's attachedToReferentTargeted, the same
 //     referent as ParentTarget: target 0 of the entry. chooseCard sets
 //     attachedTgtOK only when the node declares no target slot of its own.
 func (lc *lowerCtx) referentGate(expr string) error {
-	if strings.Contains(expr, "NotDefinedTriggeredAttacker") || strings.Contains(expr, "!TriggeredAttacker") {
+	if strings.Contains(expr, "NotDefinedTriggeredAttacker") || strings.Contains(expr, "!TriggeredAttacker") ||
+		strings.Contains(expr, "sharesCreatureTypeWith TriggeredAttacker") {
 		tr := (*lTrigger)(nil)
 		if lc.ab != nil {
 			tr = lc.ab.Trigger

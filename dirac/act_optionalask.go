@@ -191,7 +191,7 @@ func (s *State) optaskLeft(k *prep) bool {
 		in := &s.prog(k)[r.pc]
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if !s.optaskPicked(s.perms[sl].obj) && s.matchPerm(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
+			if !s.optaskPicked(s.perms[sl].obj) && s.sacMatch(k, in.F, sl, r.askP, s.resSrcSlot(k)) {
 				return true
 			}
 		}

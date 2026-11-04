@@ -70,9 +70,10 @@ func (e *Engine) EnsurePaymentActions() []decision.PaymentAction {
 		// instead of re-deriving the whole board. A dead tail opens a fresh
 		// generation exactly as the build's own scope always did.
 		e.BeginDerivedReads()
-		actions, unpayable, potential, known := e.paymentActionsForPriority(d.Acting(), d.Player, d.Seq, d.Options, d.PotentialCasts)
+		actions, unpayable, potential, shapes, known := e.paymentActionsForPriority(d.Acting(), d.Player, d.Seq, d.Options, d.PotentialCasts, d.PotentialShapeCasts)
 		d.PotentialUnpayableCasts = unpayable
 		d.PotentialCasts, d.PotentialCastsKnown = potential, known
+		d.PotentialShapeCasts, d.ShapeCastsKnown = shapes, known
 		e.EndDerivedReads()
 		// The builder's actions are this decision's own: every Plans,
 		// Activations, Consequence and BaseOptionIndex it returns is built

@@ -544,9 +544,7 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	}
 	t := s.fork()
 	defer s.unfork()
-	for i := 0; i < fs.n; i++ {
-		t.filtDo(k, p, fs.path[i])
-	}
+	t.filtPlay(k, p, fs.path[:fs.n], false)
 	var d Decision
 	if !restr {
 		t.restrOptions(k, &d, p)

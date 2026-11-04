@@ -45,7 +45,7 @@ func (s *State) wardSacCands(k *prep, each func(Slot)) int {
 	f, src, n := s.wardSacFilter(k), s.resSrcSlot(k), 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
-		if DebugWardSacAnyPerm || s.matchPermGen(k, f, sl, p, src, layerFull) {
+		if DebugWardSacAnyPerm || s.sacMatchGen(k, f, sl, p, src) {
 			if each != nil {
 				each(sl)
 			}

@@ -2,13 +2,12 @@ package kgen
 
 import "testing"
 
-// TestEmpowerGrantedLoyaltySVars pins the cross-object granted LOYALTY
-// ability's SVar degradation (Avatar of Burgeoning Echoes). Gorge resolves a
-// granted activated ability's SVar references off the RECIPIENT's face
-// (engine/rules/resolution_ability_ctx.go abilityResolutionSVars), and the
-// Jace token has no SVar table, so CounterNum$ X degrades to zero. A
-// non-loyalty cross-grant keeps its build-time body: Food Fight's DealDamage
-// still counts the named-source permanents.
+// TestEmpowerGrantedLoyaltySVars pins where a cross-object granted ability
+// reads its SVars: off the GRANTOR's face, as gorge does
+// (engine/rules/resolution_ability_ctx.go grantedAbilitySVars). Avatar of
+// Burgeoning Echoes' granted [-10] counts the lands you control on the Jace
+// token that has no SVar table of its own, and Food Fight's DealDamage counts
+// the named-source permanents on whichever artifact activates it.
 func TestEmpowerGrantedLoyaltySVars(t *testing.T) {
 	cards := lowerNamed(t, []string{"Avatar of Burgeoning Echoes", "Food Fight"})
 	seen := 0
@@ -27,8 +26,8 @@ func TestEmpowerGrantedLoyaltySVars(t *testing.T) {
 			if len(ab.Prog) != 1 || ab.Prog[0].Op != "PutCounter" {
 				t.Fatalf("%s: program %v", c.Name, ab.Prog)
 			}
-			if v := ab.Prog[0].A; v.Kind != vConst || v.N != 0 {
-				t.Errorf("%s: CounterNum$ X = %v, want 0", c.Name, v)
+			if v := ab.Prog[0].A; v.Kind != vCount {
+				t.Errorf("%s: CounterNum$ X = %v, want the grantor's Count body", c.Name, v)
 			}
 		case "Food Fight":
 			seen++

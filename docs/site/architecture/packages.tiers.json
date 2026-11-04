@@ -514,6 +514,10 @@
       "tier": "tooling",
       "status": "TOOL"
     },
+    "testkit/testutil/feedback/diracfb": {
+      "tier": "tooling",
+      "status": "TOOL"
+    },
     "cmd/draftsim": {
       "tier": "cmd",
       "status": "TOOL"

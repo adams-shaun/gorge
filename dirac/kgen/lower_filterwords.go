@@ -101,6 +101,10 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7IsCommander), true
 	case "BottomLibrary":
 		return int(kop.W7BottomLibrary), true
+	case "sharesCreatureTypeWith TriggeredAttacker", "sharesCreatureTypeWith TriggeredAttackerLKICopy":
+		// the Attacks trigger's attacker (lowerCtx.referentGate holds it to
+		// an Attacks trigger's body, where trigObj is that attacker)
+		return int(kop.W7SharesCrTrigObj), true
 	}
 	return attachedToWord(p)
 }

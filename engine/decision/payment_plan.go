@@ -335,6 +335,7 @@ func (d *Decision) CloneInto(dst *Decision) {
 	unpayable := dst.PotentialUnpayableCasts[:0]
 	unpayablePlays := dst.PotentialUnpayablePlays[:0]
 	potential := dst.PotentialCasts[:0]
+	shapes := dst.PotentialShapeCasts[:0]
 	fb, mp := dst.PaymentFallback, dst.ManaPayment
 	*dst = *d
 	dst.Options, dst.WindowReasons = nil, nil
@@ -354,6 +355,7 @@ func (d *Decision) CloneInto(dst *Decision) {
 	dst.PotentialUnpayableCasts = append(unpayable, d.PotentialUnpayableCasts...)
 	dst.PotentialUnpayablePlays = append(unpayablePlays, d.PotentialUnpayablePlays...)
 	dst.PotentialCasts = append(potential, d.PotentialCasts...)
+	dst.PotentialShapeCasts = append(shapes, d.PotentialShapeCasts...)
 	if d.PaymentFallback != nil {
 		if fb == nil {
 			fb = new(PaymentFallback)

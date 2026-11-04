@@ -169,5 +169,6 @@ func (e *Engine) rearmAutoPay(pc *pendingCast) bool {
 		return false
 	}
 	pc.Payment = &plannedCastPayment{ActionID: pc.Payment.ActionID, Plan: *plan}
+	e.PaymentStats.RecordRearm(*plan)
 	return true
 }

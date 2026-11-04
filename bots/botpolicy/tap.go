@@ -307,11 +307,35 @@ func (b Board) bestUnpayable(d *decision.Decision, offered [5]bool) (state.ObjID
 // the tap gate's intent in roughly two of every three manual tap runs the
 // auto-pay bot made while it held payment plans or none. A linear scan over
 // the census (one hand's casts) keeps the hot path map-free.
+//
+// With the shape census (decision.ShapeCastsKnown, an auto-pay seat's own
+// engine build) a third fact narrows it to the casts the auto-pay surface
+// prices: a payment action's planned cast, or a plain cast the planner
+// declines for its cost's shape (decision.PotentialShapeCasts: {X}, hybrid,
+// an optional or additional cost, a target-dependent price), the one legal
+// cast no payment action offers. A card the planner finds no mana for is
+// neither, and a hand tap would only float mana toward it: the auto-pay
+// bot plays what the auto-pay surface offers, and taps by hand only toward
+// a shape cast (heuristic.Bot's wantsManual).
 func tapTarget(d *decision.Decision, id state.ObjID) bool {
 	if d == nil || !d.PotentialCastsKnown {
 		return true
 	}
+	if d.ShapeCastsKnown && !slices.Contains(d.PotentialShapeCasts, id) && !planned(d, id) {
+		return false
+	}
 	return slices.Contains(d.PotentialCasts, id) && !slices.Contains(d.PotentialUnpayableCasts, id)
+}
+
+// planned reports whether d offers a payment action with a plan for a cast of
+// object id.
+func planned(d *decision.Decision, id state.ObjID) bool {
+	for i := range d.PaymentActions {
+		if a := &d.PaymentActions[i]; a.Cast.Object == id && len(a.Plans) != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // offeredClosesPips is the satisfiability filter bestUnpayable and

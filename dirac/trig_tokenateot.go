@@ -74,7 +74,7 @@ func (s *State) sacAtEndFollowers(k *prep, head Obj) {
 	s.ndly = w
 	for i := 0; i < nf; i++ {
 		ob := &s.objs[fol[i]]
-		if ob.zone != kop.ZoneBattlefield {
+		if ob.zone != kop.ZoneBattlefield || s.sacBlocked(k, ob.slot) {
 			continue
 		}
 		sl := ob.slot

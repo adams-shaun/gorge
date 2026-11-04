@@ -511,6 +511,45 @@ func TestEngineTierImportsNeitherDraftNorDirac(t *testing.T) {
 	}
 }
 
+// TestEngineTestBinariesLinkNoDirac holds dirac out of every engine package's
+// test binary, the internal and the external test package alike. Tests may
+// import anything (packages' doc comment), but a dirac edge here makes every
+// dirac-only change rebuild and rerun the engine's tests: the landing gate
+// selects packages by what their test binaries link. A test helper that needs
+// dirac lives apart from the one engine tests import (feedback/diracfb).
+func TestEngineTestBinariesLinkNoDirac(t *testing.T) {
+	packages(t) // opens every package directory, so a source change reruns this test
+	out, err := exec.Command("go", "list", "-test", "-f", `{{.ImportPath}}|{{join .Deps ";"}}`, module+"/engine/...").Output()
+	if err != nil {
+		t.Fatalf("go list -test: %v", err)
+	}
+	tests := 0
+	var bad []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		ip, deps, ok := strings.Cut(line, "|")
+		if !ok {
+			t.Fatalf("unexpected go list line %q", line)
+		}
+		if !strings.HasSuffix(ip, ".test]") {
+			continue // a non-test variant: TestEngineTierImportsNeitherDraftNorDirac holds those
+		}
+		tests++
+		for _, dep := range strings.Split(deps, ";") {
+			if dep == module+"/dirac" || strings.HasPrefix(dep, module+"/dirac/") {
+				bad = append(bad, ip+" -> "+dep)
+				break
+			}
+		}
+	}
+	if tests < 10 {
+		t.Fatalf("go list found only %d engine test variants: the test would run vacuously", tests)
+	}
+	if len(bad) > 0 {
+		sort.Strings(bad)
+		t.Errorf("engine test binaries that link dirac (first dirac dependency each):\n\t%s", strings.Join(bad, "\n\t"))
+	}
+}
+
 // TestPublicBoundaryDetection holds a positive and a clean case for every rule,
 // so deleting a rule or narrowing its scope fails here.
 func TestPublicBoundaryDetection(t *testing.T) {

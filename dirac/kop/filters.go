@@ -343,6 +343,15 @@ const (
 // graveyard shares a name with itself.
 const W7NoNameTwinGrave int16 = 20
 
+// W7SharesCrTrigObj (PredWord7 sub-kind 21): the object shares a creature type
+// with the triggering object of the ability being resolved or put on the
+// stack (gorge's "sharesCreatureTypeWith TriggeredAttacker": the creature an
+// Attacks trigger fired for, CR 603.2c). Both sides read their current
+// creature types (CR 613.1d); one with every creature type shares with any
+// object that has a creature type (CR 702.73a). An unbound referent matches
+// nothing.
+const W7SharesCrTrigObj int16 = 21
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
