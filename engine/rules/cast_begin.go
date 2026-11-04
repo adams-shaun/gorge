@@ -598,7 +598,12 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback" || opt.Mode == beamMeUpMode) {
+		opt.Mode == "flashback" || opt.Mode == beamMeUpMode ||
+		// CR 701.34d, 118.9: the plotted free cast waives only the mana
+		// cost; the spell's own additional cost (Corrupted Conviction's
+		// sacrifice) is still paid. The offer (legal_walk_alt.go) folds the
+		// same extras.
+		castModeCodes.Code(opt.Mode) == castModePlotCast) {
 		cost = pay.WithSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
