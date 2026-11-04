@@ -2313,7 +2313,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 }
 
 // enterChoiceKind is the as-enters choice card c's enters replacement
-// opens with (akColor, akType, akNumber, akPayLife), or 0.
+// opens with (akColor, akType, akNumber, akName, akPayLife), or 0.
 func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	if k.gen == nil || !k.gen.has(c, gfEnterRepl) {
 		return 0
@@ -2337,8 +2337,11 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 		case kop.OpChooseType:
 			return akType
 		case kop.OpExt:
-			if a.Prog[0].Ext() == kop.ExtChooseNumber {
+			switch a.Prog[0].Ext() {
+			case kop.ExtChooseNumber:
 				return akNumber
+			case kop.ExtChooseName:
+				return akName
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election

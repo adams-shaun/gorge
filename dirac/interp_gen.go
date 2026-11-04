@@ -106,6 +106,7 @@ const (
 	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
+	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

@@ -377,6 +377,7 @@ ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
+ExtChooseName	ExtOp	248
 ExtChooseNumber	ExtOp	230
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
@@ -1093,6 +1094,7 @@ Tf3MayPlaySrc	TrigFlags3	32
 Tf3OrTargets	TrigFlags3	8
 Tf3Static	TrigFlags3	16
 Tf4CounterCell	TrigFlags4	4
+Tf4NamedCast	TrigFlags4	16
 Tf4NthFiltered	TrigFlags4	8
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1

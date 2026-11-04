@@ -527,6 +527,9 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		if err := s.interactionGuard(t, pool); err != nil {
 			return nil, nil, nil, err
 		}
+		if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
+			return nil, nil, nil, err
+		}
 	}
 	deck := func(d []Entry) []kop.CardID {
 		var out []kop.CardID

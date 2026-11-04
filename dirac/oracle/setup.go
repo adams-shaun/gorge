@@ -31,6 +31,11 @@ type Matchup struct {
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
+	// NameUniverse, when set, replaces the registry's name universe in the
+	// gorge game's Config: a name ask (a card choosing a card name as it
+	// enters) offers only these cards' names, which a lockstep over a kernel
+	// that lists the matchup's own nonland cards needs (kaiwinn_test.go).
+	NameUniverse *cards.Universe
 
 	reg *cards.Registry
 	// chars is the kernel vocabulary the gorge side maps derived
@@ -187,6 +192,9 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 			panic("oracle: Matchup.Config on an OpenKernelCorpus registry (a gorge game needs OpenCorpus's full name universe)")
 		}
 		cfg.Tokens, cfg.NameUniverse = m.reg.Tokens, m.reg.Universe()
+	}
+	if m.NameUniverse != nil {
+		cfg.NameUniverse = m.NameUniverse
 	}
 	cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
 	return cfg

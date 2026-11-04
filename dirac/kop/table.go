@@ -529,6 +529,11 @@ type Table struct {
 	// option list of OpChooseType, in vocabulary order) to the matchup's
 	// subtype index, 255 when no object in the matchup can have it.
 	TypeVocab []uint8
+	// NameCards are the CardIDs of the matchup's real nonland cards, ascending
+	// (the order of gorge's sorted name list over the same cards): the options
+	// of an as-enters ExtChooseName. Set only when a card of the matchup
+	// chooses a name; dirac/repl_choosename.go.
+	NameCards []CardID
 }
 
 // Filter returns the filter with id f.

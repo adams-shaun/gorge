@@ -807,6 +807,15 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 	case dirac.ChGenType:
 		// the vocabulary index in (target, mode), as gorge's labelValue
 		return Pack(kind("type"), RefNone, Ref(a.Target()), mode), true
+	case dirac.ChGenName:
+		// the chosen card's name as gorge's "name" option carries it: the
+		// label's canonical 16-bit value in (target, mode). The kernel's mode
+		// is the CardID (repl_choosename.go); GName names it.
+		if int(mode) >= len(r.GName) {
+			return 0, false
+		}
+		v := NameValue(r.GName[mode])
+		return Pack(kind("name"), RefNone, Ref(v>>8), uint8(v)), true
 	case dirac.ChGenReplOrder:
 		// gorge's KReplacement order ask: one option per replacement, its source
 		// and occurrence among that source's options (the kernel mode is the
@@ -850,4 +859,16 @@ func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 		return DReplacement, true
 	}
 	return 0, false
+}
+
+// NameValue is a card name's 16-bit canonical choice value: 0x8000 with the
+// low 15 bits of the name's FNV-1a hash. gorge's "name" option and the
+// kernel's ChGenName option both carry it in (target, mode).
+func NameValue(name string) uint16 {
+	h := uint32(2166136261)
+	for i := 0; i < len(name); i++ {
+		h ^= uint32(name[i])
+		h *= 16777619
+	}
+	return 0x8000 | uint16(h&0x7FFF)
 }

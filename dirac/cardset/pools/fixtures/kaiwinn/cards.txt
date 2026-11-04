@@ -1,0 +1,19 @@
+# the Kai Winn, Faithless Leader pool: the as-enters nonland card name and the
+# SpellAbilityCast trigger that reads it, beside spells and permanents with
+# activated abilities on both sides (Millstone, Prodigal Sorcerer, Vampire
+# Neonate), a spell copier and removal for the lockstep
+# (dirac/oracle/kaiwinn_test.go)
+Kai Winn, Faithless Leader
+Coral Merfolk
+Divination
+Doom Blade
+Grizzly Bears
+Hill Giant
+Island
+Millstone
+Mountain
+Prodigal Sorcerer
+Reverberate
+Shock
+Swamp
+Vampire Neonate

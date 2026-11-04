@@ -340,6 +340,15 @@ const Tf4CounterCell TrigFlags4 = 1 << 2
 // left the stack.
 const Tf4NthFiltered TrigFlags4 = 1 << 3
 
+// Tf4NamedCast (Trigger.Flags4): a SpellCast line lowered from Mode$
+// SpellAbilityCast over the source's chosen card name (ValidCard$
+// Card.NamedCard, ValidSA$ Spell,Activated, ValidActivatingPlayer$
+// Opponent; Kai Winn, Faithless Leader). It fires when a spell with the
+// source's chosen name is cast (the SpellCast arm, castNamedOK) and when an
+// ability of a source with that name is activated (the AbilityCast arm,
+// fireAbilityCast); the chosen name is the permanent's chosen byte, a CardID.
+const Tf4NamedCast TrigFlags4 = 1 << 4
+
 // the packed constants of the Increment keyword's ops.
 
 // Tf2Increment (Trigger.Flags2): SpellCast -- "whenever
