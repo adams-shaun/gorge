@@ -25,7 +25,14 @@ type EffEOTTrigStats struct {
 	AtkFires        int // AttackersDeclared emblem triggers queued
 	DmgWithListener int // DamageDone emblem triggers queued by an event with a battlefield DamageDone listener (the hook after the listener walk)
 	DmgBeside       int // DamageDone emblem triggers queued beside another pending trigger of the owner's (the trigger_order ask)
+	DmgMulti        int // DamageDone emblem triggers queued with more than 1 damage dealt
+	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object
 }
+
+// DebugInnerLightNoAmount is a mutation switch (TestTheInnerLightMutation):
+// the DamageDone emblem trigger is queued with amount 0 again, so a body
+// reading the damage amount (The Inner Light's draw) draws nothing.
+var DebugInnerLightNoAmount bool
 
 // DebugEffEOTTrigStats is the test hook; nil in normal play.
 var DebugEffEOTTrigStats *EffEOTTrigStats
@@ -35,11 +42,14 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 // damage when combat; rcp the recipient code), after the battlefield
 // listeners: each emblem trigger whose flags and source filter match for
 // the emblem's owner, queued as the creating card's latent command-zone
-// copy with the source as its trigger object (amount 0: kgen refuses a
-// body reading it).
+// copy with the source as its trigger object and amt the damage dealt
+// (TriggerCount$DamageAmount, gorge's delayed trigger context). An emblem
+// that remembers a target (kop.Emblem.Capture; State.g.embN holds the object
+// + 1) fires only for that object as the source (Creature.IsRemembered over
+// the registration's Remembered set; gorge matches the object, not a version).
 //
 //go:noinline
-func (s *State) fireEmblemsDmg(k *prep, src Slot, toPlayer, combat bool, rcp uint8, listeners bool) {
+func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp uint8, listeners bool) {
 	srcObj := s.perms[src].obj
 	srcCtrl := s.perms[src].ctrl
 	dpl := 1 - srcCtrl
@@ -51,6 +61,12 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, toPlayer, combat bool, rcp uin
 			e := &k.t.Emblems[s.g.emb[pp][i]-1]
 			if !e.UntilEOT {
 				continue // a permanent emblem's combat damage trigger is not this code's (unverified against gorge)
+			}
+			if e.Capture != kop.RefNone && int(s.g.embN[pp][i]) != int(srcObj)+1 {
+				if st := DebugEffEOTTrigStats; st != nil {
+					st.DmgCapSkips++
+				}
+				continue
 			}
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
@@ -85,6 +101,9 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, toPlayer, combat bool, rcp uin
 						o := s.g.embO[pp][i]
 						if st := DebugEffEOTTrigStats; st != nil {
 							st.DmgFires++
+							if amt > 1 {
+								st.DmgMulti++
+							}
 							if listeners {
 								st.DmgWithListener++
 							}
@@ -95,7 +114,10 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, toPlayer, combat bool, rcp uin
 								}
 							}
 						}
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, 1-srcCtrl, 0)
+						if DebugInnerLightNoAmount {
+							amt = 0
+						}
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, srcObj, 1-srcCtrl, amt)
 						break
 					}
 				}
