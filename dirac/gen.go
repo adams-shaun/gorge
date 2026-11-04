@@ -2258,6 +2258,12 @@ type preAsk struct {
 	state uint8
 	val   uint8
 	land  bool // a land being played (asked while it is still in the hand)
+	// ord is the first replacement source of an answered CR 616.1 entry
+	// order ask; ordSet marks that the ask was posed (ord is NoObj until
+	// answered). The as-enters copy and another source compete over the
+	// entry (repl_entryclone.go)
+	ord    Obj
+	ordSet bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

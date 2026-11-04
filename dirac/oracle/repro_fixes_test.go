@@ -44,6 +44,18 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"copied_vehicle_counts_its_crew", true}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 		{"counters_skip_a_ceased_token", true},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
+		// with a wide Stablemaster tap and a Mountain: the rider plan's
+		// restricted mana floats, the payment admits and spends it first
+		// (gorge pay.PlanPool, pay/plancost.go), so the plan taps only for
+		// what the restricted mana leaves.
+		{"rider_plan_wide_restricted_float", true},
+		{"rider_plan_wide_restricted_float_full", false},
+		// Bristly Bill, Spine Sower's doubling places 81920 +1/+1 counters:
+		// past the kernel's 16-bit storage bound no value can agree with
+		// gorge, so the game stops as the declared StallCounters capacity
+		// (the divergence this replaces was the silent clamp).
+		{"bristly_bill_counter_overflow_stalls", false},
 	})
 }
 
@@ -164,9 +176,11 @@ func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
-		{"sorcery_play_waits_for_prefix_trigger", false}, // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
-		{"airbent_card_with_self_flash", true},           // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
-		{"granted_mana_once_beside_another_grant", true}, // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"sorcery_play_waits_for_prefix_trigger", false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
+		{"airbent_card_with_self_flash", true},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
+		{"granted_mana_once_beside_another_grant", true},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"waterbend_no_picks_falls_to_manual_window", false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
+		{"waterbend_no_picks_falls_to_manual_window_autopay", true}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
 	})
 }
 
@@ -196,6 +210,15 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
 		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
+		{"sacrifice_cost_granted_prefix", true},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+	})
+}
+
+// std-sos's, on the same terms.
+func TestStdSosReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-sos", []stdRepro{
+		{"printed_flashback_beside_granted", false}, // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
 	})
 }
 
@@ -214,6 +237,14 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
 		{"sacrificed_mana_source_moves_its_aura", false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+	})
+}
+
+// std-dft's, on the same terms.
+func TestStdDftReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-dft", []stdRepro{
+		{"clone_entry_order_beside_counter", false}, // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
 	})
 }
 

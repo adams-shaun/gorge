@@ -211,6 +211,11 @@ func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 		return 2 + c, 2 + c // it stays face down (CR 110.5, 708.2)
 	}
 	bp, bt := s.phasedBasePT(k, sl)
+	if s.fxM.has(sl) {
+		if ep, et, ok := s.copyExcPT(k, sl); ok {
+			bp, bt = ep, et // a copy exception's P/T is copiable (CR 707.9b)
+		}
+	}
 	return bp + c, bt + c
 }
 

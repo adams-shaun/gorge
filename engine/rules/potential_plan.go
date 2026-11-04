@@ -122,8 +122,10 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	hyp, opts := e.potentialWalkOf(p, true)
 	// ambiguous[i]: another potential play shares opts[i]'s (kind, object,
-	// ability, mode) identity (a plain cast is not ambiguous with the card's
-	// own alternative-cost cast, only that cast with it). A granted or gained ability's Ability is 0 too,
+	// ability, mode) identity (the default cast is not ambiguous with the
+	// card's own alternative-cost cast, only that cast with it; nor is the
+	// printed flashback instance with one granted beside it, which names its
+	// cost). A granted or gained ability's Ability is 0 too,
 	// and its SVar or gained source tells it from the printed ability it would
 	// otherwise take off the surface. A pairwise scan over the walk's few plays
 	// spares the per-query map.
@@ -151,6 +153,14 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 				if a.AltCostIndex == 0 && b.AltCostIndex > 0 {
 					ambiguous[j] = true
 				} else if a.AltCostIndex > 0 && b.AltCostIndex == 0 {
+					ambiguous[i] = true
+				} else if a.Cost == "" && b.Cost != "" {
+					// The printed flashback instance is the default cast the
+					// seat's option matcher selects; a further instance granted
+					// beside it (CR 702.34a) names its own cost and stays
+					// unpriced, exactly as an alternative cost does above.
+					ambiguous[j] = true
+				} else if a.Cost != "" && b.Cost == "" {
 					ambiguous[i] = true
 				} else {
 					ambiguous[i], ambiguous[j] = true, true
