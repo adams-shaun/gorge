@@ -13,7 +13,7 @@ import (
 // when the card prints no ability that predicate accepts.
 type staticClassCase struct {
 	name string
-	cls  uint8
+	cls  uint16
 	pred func(*kop.Ability) bool
 }
 
@@ -36,13 +36,16 @@ func staticClassCases() []staticClassCase {
 		{"sub", sclsSub, func(a *kop.Ability) bool { return cont(a) && a.Static.AddSub != (kop.SubMask{}) }},
 		{"cont", sclsCont, cont},
 		{"mayplay", sclsMayPlay, func(a *kop.Ability) bool {
-			return mayPlay(a) && a.Static.StFlags&kop.StFunctionsInGraveyard == 0
+			return mayPlay(a) && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0
 		}},
 		{"reduce", sclsReduce, func(a *kop.Ability) bool {
 			return a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone != kop.ZoneCommand
 		}},
 		{"gymay", sclsGyMay, func(a *kop.Ability) bool {
 			return mayPlay(a) && a.Static.StFlags&kop.StFunctionsInGraveyard != 0
+		}},
+		{"exmay", sclsExMay, func(a *kop.Ability) bool {
+			return mayPlay(a) && a.Static.StFlags&kop.StFunctionsInExile != 0
 		}},
 	}
 }
@@ -81,8 +84,8 @@ func checkStaticClasses(t *testing.T, s *State, k *prep, dec int) {
 }
 
 // checkMayPlayZones: every card mayPlayStatics offers in a graveyard, exile
-// or hand lies in a zone mayPlayZones reports, unless its own graveyard
-// permission is the offer.
+// or hand lies in a zone mayPlayZones reports, unless its own graveyard or
+// exile permission is the offer.
 func checkMayPlayZones(t *testing.T, s *State, k *prep, dec int) {
 	t.Helper()
 	for p := uint8(0); p < 2; p++ {
@@ -104,6 +107,9 @@ func checkMayPlayZones(t *testing.T, s *State, k *prep, dec int) {
 				continue
 			}
 			if ob.zone == kop.ZoneGraveyard && ob.owner() == p && k.gen.sCls[ob.card]&sclsGyMay != 0 {
+				continue
+			}
+			if ob.zone == kop.ZoneExile && ob.owner() == p && k.gen.sCls[ob.card]&sclsExMay != 0 {
 				continue
 			}
 			t.Fatalf("decision %d: mayPlayStatics offers %s (obj %d, zone %d, owner %d) to p %d, but mayPlayZones is %#x",

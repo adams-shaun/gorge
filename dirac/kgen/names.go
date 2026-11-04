@@ -220,7 +220,8 @@ func init() {
 		"kop.Tf3Static", kop.Tf3Static, "kop.Tf3MayPlaySrc", kop.Tf3MayPlaySrc, "kop.Tf3GameOnce", kop.Tf3GameOnce, "kop.Tf3FirstAttack", kop.Tf3FirstAttack)
 	mask[kop.StaticFlags]("kop.StDynamic", kop.StDynamic, "kop.StOncePerTurn", kop.StOncePerTurn, "kop.StAnyManaType", kop.StAnyManaType,
 		"kop.StWithoutManaCost", kop.StWithoutManaCost, "kop.StFunctionsInGraveyard", kop.StFunctionsInGraveyard,
-		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof, "kop.StPanhETB", kop.StPanhETB)
+		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof,
+		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,
 		"kop.AfManaChoice", kop.AfManaChoice, "kop.AfGift", kop.AfGift, "kop.AfResolveCount", kop.AfResolveCount, "kop.AfStation", kop.AfStation, "kop.AfManaReflect", kop.AfManaReflect, "kop.AfManaNonSpell", kop.AfManaNonSpell)

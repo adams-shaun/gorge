@@ -81,7 +81,7 @@ const (
 	StRaiseYou                                     // IncreaseCost (kgen): only spells the static's controller casts (Activator$ You)
 	StRaiseOpp                                     // IncreaseCost (kgen): only spells the controller's opponents cast (Activator$ Opponent); on a ReduceCost, StReduceAny: every caster's spells (no Activator$)
 	StYouHexproof                                  // Continuous (kgen, shield): the static's controller has hexproof too (Affected$ You,...; read by playerHexproof under Cond2)
-	_                                              // unused: the flags after it keep their values, which card tables pin
+	StFunctionsInExile                             // the static works while the source is in exile
 	StPanhETB                                      // Panharmonicon (kgen): echoes only a trigger caused by a permanent entering the battlefield that matches Filter2 (ValidMode$ ChangesZone,ChangesZoneAll | ValidCause$ | Destination$ Battlefield)
 )
 
