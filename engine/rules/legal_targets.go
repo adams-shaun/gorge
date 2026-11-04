@@ -51,7 +51,7 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 // link that are each feasible only under DIFFERENT elections (Long River's
 // Pull: "counter target creature spell" unpromised, "instead counter target
 // spell" promised) are not offered on a board where neither election works.
-func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool, gift *bool) (res bool) {
+func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool, gift *bool) bool {
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return true
 	}
@@ -115,8 +115,7 @@ func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.Ob
 		// (candidatesForLimit stops at min only when no post-filter can drop
 		// a candidate) without matching the rest of the population -- an
 		// any-target spell stops at the player seats.
-		n := e.candidatesCountForLimit(p, id, excludeSelf, sa, true, min)
-		ok := n >= min
+		ok := e.candidatesCountForLimit(p, id, excludeSelf, sa, true, min) >= min
 		if walkCacheVerify && ok != e.targetChoiceFeasible(sa, e.legalTargetCandidates(p, id, excludeSelf, sa), min) {
 			panic("rules: limited target census disagrees with the full census")
 		}

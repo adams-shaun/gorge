@@ -553,8 +553,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 				want[i] += int32(n)
 			}
 			child := pool.hypClone(c)
-			err := child.Submit(decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}})
-			ok := err == nil && visit(child, next+1, want, waits)
+			ok := child.Submit(decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}) == nil && visit(child, next+1, want, waits)
 			pool.hypRelease(child)
 			if ok {
 				return true

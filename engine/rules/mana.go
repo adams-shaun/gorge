@@ -337,8 +337,7 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// shared tail preserves every Sac/Discard/counter/tap legality check.
 	var composed Cost
 	e.composedOfferCostInto(&composed, p, id, base, &mods, scope)
-	okTail := pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
-	return okTail
+	return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
 }
 
 // offerSacXMods is the offer gate's announced-sacrifice-count affordability
