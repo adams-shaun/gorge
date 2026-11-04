@@ -96,7 +96,7 @@ type Note struct {
 
 // Search is one search's root table and cost.
 type Search struct {
-	// Engine is "azmcts" or "searchseat".
+	// Engine is "azmcts", "searchseat" or "sbsearch".
 	Engine string `json:"engine"`
 	// Sims is the number of simulations that completed (azmcts) or the
 	// rollouts run (searchseat).
