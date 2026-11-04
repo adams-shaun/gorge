@@ -111,6 +111,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if !ok {
 			return nil, nil
 		}
+		if k == "ValidCard" && t.Mode == "SpellCast" && tr.Zone == zStack && strings.TrimSpace(v) == "Card" {
+			// a stack-zone SpellCast trigger's bare Card is this card's own
+			// cast (gorge trigmatch stackOnlyBareCardCast: Storied Veteran,
+			// Hundred-Battle Veteran), the Card.Self carrier the kernel
+			// fires from the cast spell itself
+			v = "Card.Self"
+		}
 		if k == "ValidCard" && (t.Mode == "ChangesZone" || t.Mode == "SpellCast") && !strings.Contains(v, ",") {
 			// "if you cast it from your hand" / "a spell from your hand"
 			// (Soulhunter Rakshasa, Jodah): read on the cast's stack entry

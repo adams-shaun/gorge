@@ -6,7 +6,9 @@
 # changelings, self-mill, removal and basics, for the oracle's
 # constructed lockstep (dirac/oracle/mayplaystatic_test.go); Overflow
 # Submatrix and its artifact creatures, with Counterspell and Unsummon for
-# the countered-then-recast and bounced-then-recast spells
+# the countered-then-recast and bounced-then-recast spells; Storied Veteran
+# beside Leonardo's graveyard-cast flash creatures, cast while it waits on
+# the stack
 Intrepid Paleontologist
 Leonardo, Sewer Samurai
 Osteomancer Adept
@@ -39,3 +41,6 @@ Bronze Sable
 Phyrexian Walker
 Yotian Soldier
 Counterspell
+Storied Veteran
+Spectral Sailor
+Plains

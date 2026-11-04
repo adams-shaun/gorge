@@ -11,7 +11,8 @@ import (
 
 // The lockstep: the "if you cast a spell this way, it enters with a
 // counter" carriers — Intrepid Paleontologist, Leonardo Sewer Samurai,
-// Osteomancer Adept and Overflow Submatrix (a FINALITY counter), Undead
+// Osteomancer Adept, Overflow Submatrix and Storied Veteran (a FINALITY
+// counter; the Veteran's stack-zone trigger sees only its own cast), Undead
 // Sprinter and Mikey & Don, Party Planners (an extra +1/+1 counter) — whose
 // Static$ True SpellCast triggers resolve off the stack, before the
 // CR 603.3b ordering ask, and whose bodies only stamp the cast spell's
@@ -22,7 +23,7 @@ import (
 // stack in both engines (CR 400.7), so a countered spell recast from the
 // graveyard gets only its new cast's counter and a bounced permanent recast
 // from hand gets none.
-var mayPlayDecks = [4][]cardset.Entry{
+var mayPlayDecks = [5][]cardset.Entry{
 	{ // B/G: the three FINALITY carriers, Undead Sprinter, dinosaur and
 		// 1-power fodder, self-mill, removal and basics
 		{Name: "Intrepid Paleontologist", Count: 3}, {Name: "Leonardo, Sewer Samurai", Count: 3}, {Name: "Osteomancer Adept", Count: 4},
@@ -58,6 +59,15 @@ var mayPlayDecks = [4][]cardset.Entry{
 		{Name: "Stitcher's Supplier", Count: 3}, {Name: "Undead Sprinter", Count: 2}, {Name: "Counterspell", Count: 3},
 		{Name: "Unsummon", Count: 2}, {Name: "Murder", Count: 2}, {Name: "Island", Count: 5}, {Name: "Swamp", Count: 6},
 	},
+	{ // W/U/B: Storied Veteran cast from the graveyard while Leonardo's
+		// graveyard casts of Spectral Sailor (flash, 1/1) join it on the
+		// stack (its trigger sees only its own cast), self-mill,
+		// Counterspell and Unsummon for the recasts
+		{Name: "Storied Veteran", Count: 4}, {Name: "Leonardo, Sewer Samurai", Count: 4}, {Name: "Spectral Sailor", Count: 4},
+		{Name: "Stitcher's Supplier", Count: 3}, {Name: "Typhoid Rats", Count: 3}, {Name: "Counterspell", Count: 2},
+		{Name: "Unsummon", Count: 2}, {Name: "Murder", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 6}, {Name: "Swamp", Count: 5},
+	},
 }
 
 // mayPlayMatchups: A vs B (both players' casts carry the other's riders;
@@ -66,8 +76,9 @@ var mayPlayDecks = [4][]cardset.Entry{
 // active Osteomancer effect), B vs B (the P1P1 top-library casts), and the
 // Overflow Submatrix deck against B (countered and bounced artifact
 // creatures recast) and against A (each side's graveyard casts beside an
-// Overflow Submatrix).
-var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}}
+// Overflow Submatrix), and the Storied Veteran deck against itself and
+// against B.
+var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}, {4, 4}, {4, 1}}
 
 func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls int) {
 	t.Helper()
