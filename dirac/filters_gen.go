@@ -199,9 +199,6 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 	if f&kop.F2EnteredThisTurn != 0 && !s.g.zoneTurn.has(o) {
 		return false
 	}
-	if f&kop.F2WasDamaged != 0 && p.damage == 0 {
-		return false
-	}
 	if f&kop.F2Saddled != 0 && p.cseen&cseenSaddled == 0 {
 		return false
 	}
@@ -252,13 +249,16 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 }
 
 // flags2Obj checks the object-identity flags (remembered, chosen,
-// attached to target 0, targeted).
+// attached to target 0, targeted) and the per-turn damage record.
 func (s *State) flags2Obj(f kop.FilterFlags2, o Obj) bool {
 	if f&kop.F2Remembered != 0 && !s.inSet(&s.g.rem, s.g.nrem, o) {
 		return false
 	}
 	if f&kop.F2NotRemembered != 0 && s.inSet(&s.g.rem, s.g.nrem, o) {
 		return false
+	}
+	if f&kop.F2WasDamaged != 0 && !s.g.dmgTurn.has(o) {
+		return false // WasDealtDamageThisTurn survives a zone change (gorge events.foldDamage)
 	}
 	if f&kop.F2ChosenCard != 0 && !s.inSet(&s.g.chosen, s.g.nchosen, o) {
 		return false
@@ -582,7 +582,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			}
 			f2 &^= kop.F2ChosenType
 		}
-		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2WasDamaged|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
+		if f2&(kop.F2Emblem|kop.F2Kicked|kop.F2CastByYou|kop.F2ChosenColor|kop.F2Saddled|kop.F2Sneaked|kop.F2Unblocked|kop.F2BlockedBySrc|kop.F2DamagedBy|kop.F2CrewedSrc|kop.F2Warped) != 0 {
 			return false
 		}
 		if f2&(kop.F2TgtPlayerCtrl|kop.F2DefendingCtrl) != 0 && !s.cardRoleF2(f2, owner) {
@@ -595,7 +595,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 			return false
 		}
 		if o == NoObj {
-			if f2&(kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj) != 0 {
+			if f2&(kop.F2EnteredThisTurn|kop.F2Remembered|kop.F2ChosenCard|kop.F2AttachedToT0|kop.F2TargetedBy|kop.F2SharesColorRem|kop.F2NotTriggerObj|kop.F2WasDamaged) != 0 {
 				return false
 			}
 		} else {

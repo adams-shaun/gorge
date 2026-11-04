@@ -120,6 +120,9 @@ func (s *State) addBattleOffers(k *prep, d *Decision, o uint8) {
 // A planeswalker or battle that is also a creature takes both (gorge
 // events.foldDamage).
 func (s *State) dmgPerm(k *prep, sl Slot, p *perm, n int) {
+	if n > 0 {
+		s.g.dmgTurn.set(p.obj) // WasDealtDamageThisTurn survives every result below (gorge events.foldDamage)
+	}
 	if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 {
 		s.dmgCounters(k, sl, p, n)
 		if !s.isCreature(k, sl) {
@@ -141,6 +144,9 @@ func (s *State) dmgCountersIf(k *prep, sl Slot, n int) {
 // dmgCounters applies n damage to the walker or battle at sl as counters
 // (CR 306.8 loyalty, CR 310.6/120.3 defense).
 func (s *State) dmgCounters(k *prep, sl Slot, p *perm, n int) {
+	if n > 0 {
+		s.g.dmgTurn.set(p.obj) // a walker/battle was dealt damage too (gorge events.foldDamage)
+	}
 	p.seeCtr(s)
 	if s.typesAt(k, sl)&kop.TBattle != 0 {
 		if DebugBattleMarkDamage {

@@ -181,6 +181,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"granted_mana_once_beside_another_grant", true},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
 		{"waterbend_no_picks_falls_to_manual_window", false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
+		{"exiled_target_keeps_was_damaged", false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 	})
 }
 
@@ -228,6 +229,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-ecl", []stdRepro{
 		{"each_color_among_valid_printed_read", false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
 		{"each_color_among_valid_printed_read_autopay", true}, // ... and the tap's mana is floated with the B in the pool itself
+		{"convoke_tap_another_source_keeps_target", true},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
 	})
 }
 

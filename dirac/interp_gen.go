@@ -104,6 +104,7 @@ const (
 	ChRoomDoorHalf                            // mode 0 = unlock a door / 1 = lock a door (gorge effUnlockDoor's "Lock or unlock a door?", option 0 = unlock)
 	ChRoomDoor                                // source = the Room; target = the canonical ordinal of the door among the candidates; mode = the door face (gorge effUnlockDoor's "Choose a Room door")
 	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
+	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -1478,8 +1479,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	s.g.enterCtr.n = 0
 	s.g.retMiss = false
-	if fl&kop.MvAttacking != 0 {
-		s.enterAttacking(k, sl, ctrl)
+	if fl&kop.MvAttacking != 0 && s.enterAttacking(k, sl, ctrl) {
+		return true // the CR 508.4 defender ask (zone_changezoneparams.go)
 	}
 	if host != NoSlot && s.occ.has(host) {
 		s.attachedTo(k, sl, host)
@@ -1786,6 +1787,9 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 					s.g.pre = preAsk{}
 				}
 				s.g.pickLeft--
+				if s.parkEnterDefender(tailDigUntil) {
+					return false // the entry posed the CR 508.4 defender ask (zone_changezoneparams.go)
+				}
 				if s.entryLateTail(k, tailDigUntil) {
 					return false // the re-ask that follows the entry (repl_entryorder.go)
 				}

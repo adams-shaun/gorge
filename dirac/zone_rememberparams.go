@@ -48,7 +48,7 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 		o := objs[i]
 		if in.Op == kop.OpReturnEx {
 			if s.execReturnObj(k, in, NoSlot, o) {
-				return true
+				return true // known: a CR 508.4 defender ask here drops the later remembered objects (nrem is zeroed)
 			}
 			continue
 		}
