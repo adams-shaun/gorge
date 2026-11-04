@@ -7,7 +7,7 @@ import "testing"
 func TestStdTrcReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-trc", []stdRepro{
-		{"phased_out_cda_keeps_its_pt", true},                  // CR 604.3: a phased-out Lt. Arex's characteristic-defining P/T still sets its base, as gorge's CDASetPT reads it in every zone
-		{"reg_barclay_phased_out_copy_keeps_exceptions", true}, // CR 702.26b: a phased-out copy keeps its layer-1 copy exceptions
+		{"phased_out_cda_keeps_its_pt", true, false},                  // CR 604.3: a phased-out Lt. Arex's characteristic-defining P/T still sets its base, as gorge's CDASetPT reads it in every zone
+		{"reg_barclay_phased_out_copy_keeps_exceptions", true, false}, // CR 702.26b: a phased-out copy keeps its layer-1 copy exceptions
 	})
 }

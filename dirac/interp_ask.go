@@ -1009,12 +1009,23 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.objs[t].of &^= ofPending
 		was := r.e.ctrl
 		r.e.ctrl = s.copyCtrl(in)
-		s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
-		s.g.pre = preAsk{}
-		r.ask = raNone
-		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		var parked bool
+		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
+			s.copyTokenEnterFrom(k, in, t, NoSlot, s.sweepTmpl(), nil) // the enters program reads the choice
+			s.g.pre = preAsk{}
+			r.ask = raNone
+			parked = s.sweepResume(k, in)
+		} else {
+			s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
+			s.g.pre = preAsk{}
+			r.ask = raNone
+			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+			if !parked {
+				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
+			}
+		}
 		r.e.ctrl = was
-		if parked || s.eachResume(k, in) { // copy_eachtarget.go: the targets after it
+		if parked {
 			return
 		}
 		s.continueRes(k, 0)
@@ -1049,9 +1060,16 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.objs[t].of &^= ofPending
 		was := r.e.ctrl
 		r.e.ctrl = s.copyCtrl(in)
-		s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
-		r.ask = raNone
-		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		var parked bool
+		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
+			s.copyTokenEnterFrom(k, in, t, s.objs[a.Source()].slot, s.sweepTmpl(), nil)
+			r.ask = raNone
+			parked = s.sweepResume(k, in)
+		} else {
+			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
+			r.ask = raNone
+			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
+		}
 		r.e.ctrl = was
 		if parked {
 			return

@@ -110,8 +110,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.suspectExt(k, in) // act_suspect.go
 		return true, true
 	case kop.ExtCopyAllEach:
-		s.copyAllEach(k, in) // copy_definedvalid.go
-		return true, true
+		// the sweep's park halts the program at the OpExt (a copy's
+		// as-enters ask, copy_allpark.go); the answer arm resumes it
+		return !s.copyAllEach(k, in), true // copy_definedvalid.go
 	case kop.ExtCopyAbility:
 		return s.copyAbility(k, in), true // copy_ability.go
 	case kop.ExtEffEtbCtr:

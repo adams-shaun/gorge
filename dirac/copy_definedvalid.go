@@ -1,6 +1,8 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // CopyPermanent and Animate over Defined$ Valid <filter>
 // (Multiversal Incursion; Sita Varma, Masked Racer).
@@ -17,9 +19,11 @@ var DebugDefValidNoAnimateAsk bool
 // minted two or more copies (TestDefvalidLockstep's minimum).
 var DebugDefValidMulti *uint32
 
-// StallCopyAllAsk: a copy-all sweep over an Aura with an object Enchant or a
-// permanent with an as-enters choice; its mint would park an ask
-// (copyTokens) the sweep cannot resume without State bytes.
+// StallCopyAllAsk: a copy of a copy that itself carries the as-enters clone
+// line would be minted on the copied permanent's printed card while it waits
+// for the answer (copyTokenBasis; the sweep checks its source's slot,
+// copy_allpark.go). A rider that would drop counters across an ask stalls
+// with it too (copyTokenCtr).
 const StallCopyAllAsk = 124
 
 func init() { stallNames[StallCopyAllAsk] = "copyallask" }
@@ -28,20 +32,17 @@ func init() { stallNames[StallCopyAllAsk] = "copyallask" }
 // (copypermanent.go): the set read once (copies entering during the sweep
 // are never visited), every source's copy count sized through the
 // CreateToken replacements first, then the copies minted source by source
-// in set order, each with the op's copy exceptions (in.C).
-func (s *State) copyAllEach(k *prep, in *kop.Instr) {
+// in set order, each with the op's copy exceptions (in.C). A copy with an
+// as-enters ask parks the sweep (copy_allpark.go); gorge's zone batch closes
+// at the park, so the copies before the answer entered under their own batch
+// and the rest mint under a fresh one. True when a copy's as-enters ask
+// parked the sweep (the interpreter halts at the OpExt, execExt).
+func (s *State) copyAllEach(k *prep, in *kop.Instr) bool {
 	if k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // gorge: one zone batch for all the tokens
+		defer s.batchClose(s.batchOpen()) // gorge: one zone batch for the copies of each run
 	}
 	var ord [MaxPerm]Slot
 	n := s.sweepHits(k, in.F, &ord)
-	for i := 0; i < n; i++ {
-		c := s.cardAt(ord[i])
-		if k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject || s.enterChoiceKind(k, c) != 0 || k.gen.anyBecomeCopy && s.cloneTokenAsk(k, nil, c) != 0 {
-			s.capFull(StallCopyAllAsk)
-			return
-		}
-	}
 	ctrl := s.res.e.ctrl
 	var cnt [MaxPerm]int16
 	for i := 0; i < n; i++ {
@@ -50,33 +51,20 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) {
 	if DebugDefValidFirstOnly && n > 1 {
 		n = 1
 	}
-	// the copies enter together (CR 603.6a): each one's "another creature
-	// enters" sees the others, as gorge's zone batch does
+	// the copies of a run enter together (CR 603.6a): each one's "another
+	// creature enters" sees the others, as gorge's zone batch does
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
-	minted := 0
-	defer func() {
-		if DebugDefValidMulti != nil && minted >= 2 {
-			*DebugDefValidMulti++
-		}
-	}()
-	for i := 0; i < n; i++ {
-		sl := ord[i]
-		if !s.occ.has(sl) {
-			continue
-		}
-		c := s.cardAt(sl)
-		for j := int16(0); j < cnt[i]; j++ {
-			if s.nearCapacity() {
-				s.stall(StallBoard)
-				return
-			}
-			t := s.newToken(c, ctrl)
-			s.objs[t].of |= ofCopy
-			s.copyTokenEnterFrom(k, in, t, NoSlot, sl, &eb)
-			minted++
-		}
+	w := &s.g.sweep
+	w.n = uint8(n)
+	seg := 0
+	parked := s.sweepRun(k, in, w, &eb, &seg, &ord, &cnt, 0, 0)
+	if !parked || s.g.stalled != 0 {
+		s.defValidMulti(seg)
+		return false
 	}
+	w.ord, w.cnt, w.minted = ord, cnt, int16(seg)
+	return true
 }
 
 // animateAllAsks is the MayGuardAnimateAll guard: the next op is an
