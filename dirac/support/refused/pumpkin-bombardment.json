@@ -6,7 +6,7 @@
     "pool": "std-spm",
     "surface": "full",
     "seed": 1,
-    "pair": 506,
+    "pair": 110,
     "policy": "random",
     "mulligans": 0
   }
