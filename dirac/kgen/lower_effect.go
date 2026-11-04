@@ -1350,6 +1350,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(in)
 	case "MultiplyCounter":
+		if m := ps.str("Multiplier"); m != "" && m != "2" { // gorge effMultiplyCounter's default is 2
+			return refuse("MultiplyCounter Multiplier$ %q", m)
+		}
 		if done, err := lc.definedValid(sa, ps); done || err != nil {
 			return err
 		}
