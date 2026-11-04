@@ -521,6 +521,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	}
 	p := &s.perms[sl]
 	n0 := s.npend
+	merged := false
 	if k.gen != nil && z == kop.ZoneGraveyard && !s.genLost(k, sl) {
 		z = s.graveRedirect(k, p.card, z) // Progenitus does not die, while it has that ability
 	}
@@ -529,14 +530,17 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 		if k.gen != nil && cr {
 			s.g.died++
 		}
-		if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.subs[kop.TrigDies].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
+		if cr && diesLeavesMerged(k) {
+			merged = true // the Leaves walk below covers the Dies lines (trig_diesleaves.go)
+			s.fireDiesLeaves(k, sl, p.obj, p.ctrl, czAmt(k, z))
+		} else if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.subs[kop.TrigDies].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
 			s.fireObj(k, kop.TrigDies, sl, p.obj, p.ctrl, 0)
 		}
 		if k.gen != nil && k.gen.graveDies && cr {
 			s.fireGraveDies(k, sl)
 		}
 	}
-	if s.subs[kop.TrigLeaves].any() {
+	if !merged && s.subs[kop.TrigLeaves].any() {
 		if k.gen != nil && k.gen.anyBatch {
 			s.fireLeavesBatched(k, sl, z)
 		} else {
