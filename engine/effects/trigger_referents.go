@@ -50,7 +50,17 @@ type TriggerContext struct {
 	// rechecked). Meaningful only with SourceLKIValid and a departed source.
 	SourceManaColorSpent state.Mana
 	TriggerTarget        state.Target
-	TriggerSource        state.ObjID
+	// TriggerTargetLKIValid marks TriggerTargetAttacking as the attacking
+	// status TriggerTarget had on the battlefield when the trigger fired
+	// (CR 608.2h). A condition gate reading the target after a zone change
+	// (The Incredible Hulk's "if he's attacking" rider on a lethal combat
+	// damage trigger) must see that status, not the cleared live field.
+	// DamageDone-family captures set it; every other mode leaves it false.
+	TriggerTargetLKIValid bool
+	// TriggerTargetAttacking is the captured status, meaningful only with
+	// TriggerTargetLKIValid.
+	TriggerTargetAttacking bool
+	TriggerSource          state.ObjID
 	// TriggerStack is the actual spell/ability object that caused a targeting
 	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
 	// because Ward must counter that stack object itself.

@@ -670,6 +670,16 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 			}
 			o = targetedPermanentLKI(c, present, o)
 		}
+		if defined == "TriggeredTargetLKICopy" && c.TriggerTargetLKIValid && o.Zone != state.ZBattlefield {
+			// CR 608.2h: the damaged target has left the battlefield since
+			// the trigger fired (lethal damage), so "if he's attacking" reads
+			// the captured status. The live zone stays authoritative for
+			// conditions that ask about it explicitly ("still on the
+			// battlefield").
+			oc := *o
+			oc.IsAttacking = c.TriggerTargetAttacking
+			o = &oc
+		}
 		// CR 608.2h: a remembered object that RememberLKI$ moved off the
 		// battlefield is read with the controller it had there (Unyielding
 		// Gatekeeper's `ConditionPresent$ Card.YouCtrl`: the exile reset the

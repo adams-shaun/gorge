@@ -290,7 +290,7 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	if s.windowTapXLive(k, e.ctrl).any() {
 		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
 	}
-	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra {
+	if !k.gen.anyRestr && !k.gen.anyRestrSrc && !k.gen.anyAnyR && !k.gen.anyTapExtra && !k.gen.anyEachCol {
 		return true
 	}
 	d := s.payDescNow(NoObj)
@@ -306,6 +306,17 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 			a := &cd.Abilities[j]
 			if a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, e.ctrl, sl, a, &d) &&
 				!s.windowPricesRestr(k, sl, a) {
+				return false
+			}
+			// An unpriced each-colour source (Bloom Tender): the probe admits its
+			// ability and prices none of its production (gorge's census leaves no
+			// unit for a Produced$ Special EachColorAmong), so the census
+			// understates what the window can offer (gorge castWindowSourceExcluded,
+			// CR 601.2g). A slot the census does price carries no such gap (gorge
+			// skips priced sources); a CantBeActivated lock keeps the ability off
+			// gorge's probe (availableManaAbilitiesForWindow).
+			if k.gen.anyEachCol && k.gen.has(s.cardAt(sl), gfEachCol) && int(s.manaPCAt(k, sl).manaAb) < 0 &&
+				!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
 				return false
 			}
 		}

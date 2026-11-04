@@ -72,6 +72,14 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerTarget = state.Target{Obj: ev.Obj}
 		if ev.Obj == 0 {
 			c.TriggerTarget = player(ev.Player)
+		} else if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+			// CR 608.2h: a creature dealt lethal damage leaves the battlefield
+			// before the trigger resolves, and the Move clears IsAttacking.
+			// Capture the status the damaged object had here, so a
+			// ConditionDefined$ TriggeredTargetLKICopy gate can still answer
+			// "if he's attacking".
+			c.TriggerTargetLKIValid = true
+			c.TriggerTargetAttacking = o.IsAttacking
 		}
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)

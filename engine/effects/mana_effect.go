@@ -544,7 +544,15 @@ func eachColorAmongValid(h Host, c *Ctx, spec string) string {
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
 			if c.MatchSpec(g, spec, id, c.Controller) {
-				mask |= ColorMaskOf(g.Obj(id))
+				// CR 613.1e: the batch reads each matching permanent's LIVE
+				// layer-5 colours -- a permanent whose colour set a
+				// continuous effect rewrote (Puca's Eye's ETB
+				// Colors$ ChosenColor animate, a manland's own) contributes
+				// its derived colour, exactly as every other colour read in
+				// this tier does through h.ObjectColors. The printed read
+				// here made the batch blind to that grant (Bloom Tender
+				// never saw Puca's Eye's chosen colour).
+				mask |= ColorMaskFromLetters(h.ObjectColors(g.Obj(id)))
 			}
 		}
 	}

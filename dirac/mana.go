@@ -1239,6 +1239,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
 					s.ceaseManaToken(o) // a token sacrificed to pay a cast ceases at once, as gorge pays (a Treasure); one sacrificed to pay mid-resolution waits for the state-based check
 				}
+				s.sbaAfterManaSacrifice(k)
 			}
 		}
 		if pk.anyColor && col != kop.C {
@@ -1246,6 +1247,26 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		} else if rem[col] > 0 {
 			rem[col] = max(rem[col]-int(ty.n), 0)
 		}
+	}
+}
+
+// sbaAfterManaSacrifice runs the state-based check gorge reaches after a mana
+// ability's own sacrifice while a cast is being paid. Gorge poses the
+// window's activation as a decision (a Treasure or Lotus also asks its
+// colour), and that answer's boundary runs the check, so by the cast's next
+// choice an Aura whose host it sacrificed has already gone to the graveyard
+// (CR 704.3, 704.5m). The kernel pays the window in one step, so it runs the
+// same check at each sacrifice or the Aura would linger on the battlefield
+// until the cast settles, moving the graveyard order.
+func (s *State) sbaAfterManaSacrifice(k *prep) {
+	// Only a manually paid spell cast. A planned activation (bflManaStep) is
+	// one internal step of the payment plan, and gorge leaves its sacrificed
+	// token and its attachments to the next state-based check (state.go
+	// bflManaStep); an activated ability's own resolution follows its payment
+	// in the same action, so its check also waits for the next priority
+	// boundary, where a graveyard count in the effect still sees the token.
+	if s.buildLive() && s.bld().e.kind == seSpell && s.bld().bfl&bflManaStep == 0 {
+		s.sba(k)
 	}
 }
 

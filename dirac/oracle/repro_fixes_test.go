@@ -199,11 +199,21 @@ func TestStdFinReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-ecl's, on the same terms.
+func TestStdEclReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-ecl", []stdRepro{
+		{"each_color_among_valid_printed_read", false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
+		{"each_color_among_valid_printed_read_autopay", true}, // ... and the tap's mana is floated with the B in the pool itself
+	})
+}
+
 // std-fra's, on the same terms.
 func TestStdFraReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fra", []stdRepro{
 		{"sweep_returns_aura_after_earlier_entrants", true}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
+		{"sacrificed_mana_source_moves_its_aura", false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
 	})
 }
 
