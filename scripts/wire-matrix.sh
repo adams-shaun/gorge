@@ -67,6 +67,13 @@ tests() {
 	done
 }
 
+# wiretests runs tests() on the SpellBench and ManaBrew interface packages, whose
+# tests sit behind the build tags spellbench and manabrew; those rows run nightly
+# only, so they do not gate a merge.
+wiretests() {
+	GOFLAGS="${GOFLAGS:+$GOFLAGS }-tags=spellbench,manabrew" tests "$@"
+}
+
 # The hosted-bots cell is several commands.
 hosted_bots() {
 	tests ./engine/rules TestHeads &&
@@ -85,16 +92,16 @@ row gorge/native/harness 'commit nightly pr' tests ./testkit/conformance TestNat
 row gorge/native/hosted-bots 'commit nightly pr' hosted_bots
 row gorge/native/http-agent 'commit nightly pr' scripts/examples-smoke.sh "$port"
 row gorge/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewConformanceGorgeSelf TestManaBrewNormaliserLines TestManaBrewCatchesAWrongLife TestManaBrewCatchesAMissingAction
-row gorge/manabrew/bot 'commit nightly pr' go test -v -timeout 10m ./server/manabrew/mbtest ./server/host/manabrewhttp
+row gorge/manabrew/bot 'nightly' go test -v -tags spellbench,manabrew -timeout 10m ./server/manabrew/mbtest ./server/host/manabrewhttp
 row gorge/manabrew/fuzz 'nightly' fuzz
-row gorge/v2/harness 'commit nightly pr' go test -v -timeout 15m ./server/spellbench/... ./server/host/sbv2http
-row gorge/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
+row gorge/v2/harness 'nightly' go test -v -tags spellbench,manabrew -timeout 15m ./server/spellbench/... ./server/host/sbv2http
+row gorge/v2/stdio-agent 'nightly' wiretests ./server/spellbench/seat TestV2AgentSeatPlaysGorgeAgent TestSpellbenchSeatAppliesAgentPick TestSpellbenchSeatAnswersUnposableDecisionWithFallback
 row dirac/native/harness 'commit nightly pr' tests ./testkit/conformance TestNativeWireMatchesGorge
 row dirac/native/hosted-bots 'commit nightly pr' tests ./server/gorged TestBotsPlayDiracGames
 row dirac/native/http-agent 'commit nightly pr' tests ./server/gorged TestServesADiracGame
 row dirac/manabrew/harness 'commit nightly pr' tests ./testkit/conformance TestManaBrewServesADiracGame
 row dirac/manabrew/bot 'commit nightly pr' tests ./testkit/conformance TestBotThroughManaBrewOnDirac
-row dirac/v2/harness 'commit nightly pr' tests ./server/host/sbv2http TestSBV2ServesADiracGame
-row dirac/v2/stdio-agent 'commit nightly pr' tests ./server/spellbench/seat TestV2AgentSeatPlaysDiracGame
+row dirac/v2/harness 'nightly' wiretests ./server/host/sbv2http TestSBV2ServesADiracGame
+row dirac/v2/stdio-agent 'nightly' wiretests ./server/spellbench/seat TestV2AgentSeatPlaysDiracGame
 
 exit "$failed"
