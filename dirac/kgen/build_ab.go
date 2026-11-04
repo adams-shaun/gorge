@@ -2286,6 +2286,22 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				}
 			}
 			ki.B = kop.ValueRef{N: b}
+		case in.F != nil && in.F.Players == plBoth && len(in.F.Clauses) > 0:
+			// "each creature and each player" (Encounter the Unknown): the
+			// creatures, then each player, the controller first (B.N bit 1)
+			for _, c := range in.F.Clauses {
+				if c.Types != tCreature {
+					return ki, fmt.Errorf("DamageAll filter %s: each player beside a non-creature clause", in.F)
+				}
+			}
+			f := *in.F
+			f.Players = 0
+			in.F = &f
+			ki.Op = kop.OpDamageAll
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+			ki.B = kop.ValueRef{N: 1}
 		default:
 			return ki, fmt.Errorf("DamageAll filter %s", in.F)
 		}

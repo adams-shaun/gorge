@@ -732,6 +732,14 @@ func (s *State) damageSeqStart(k *prep, hit slotMask, players bool) {
 	}
 }
 
+// dmgSeqCtrlFirst orders the sequence's two players controller first, as
+// gorge's ValidPlayers$ Player lists them (AliveFrom the controller).
+func (s *State) dmgSeqCtrlFirst(ctrl uint8) {
+	if ctrl != s.active {
+		s.g.dmgSeqPl |= 4
+	}
+}
+
 // damageSeqNext deals a multi-event damage op's remaining events in the op's
 // order (the recipients frozen when it started, then the players). An event
 // two replacements match is parked by damageTo (parkNC): the op stops there
@@ -748,23 +756,25 @@ func (s *State) damageSeqNext(k *prep, n int) {
 			}
 			continue
 		}
-		if s.g.dmgSeqPl&1 != 0 {
-			s.g.dmgSeqPl &^= 1
-			s.damageTo(k, PlayerTarget0+s.active, n)
+		if pl := s.g.dmgSeqPl & 3; pl != 0 {
+			// bit 0 the active player, bit 1 the other; bit 2 deals the
+			// other first (the controller first off its turn: dmgSeqCtrlFirst)
+			b := uint8(1)
+			if pl&1 == 0 || pl&2 != 0 && s.g.dmgSeqPl&4 != 0 {
+				b = 2
+			}
+			s.g.dmgSeqPl &^= b
+			p := s.active
+			if b == 2 {
+				p = 1 - s.active
+			}
+			s.damageTo(k, PlayerTarget0+p, n)
 			if s.g.nc.n != 0 {
 				return
 			}
 			continue
 		}
-		if s.g.dmgSeqPl&2 != 0 {
-			s.g.dmgSeqPl &^= 2
-			s.damageTo(k, PlayerTarget0+1-s.active, n)
-			if s.g.nc.n != 0 {
-				return
-			}
-			continue
-		}
-		s.g.dmgSeqOn = false
+		s.g.dmgSeqOn, s.g.dmgSeqPl = false, 0
 		return
 	}
 }
