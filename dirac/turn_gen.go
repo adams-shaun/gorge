@@ -419,27 +419,34 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			}
 			continue
 		}
-		if x.zone == kop.ZoneExile && s.res.active && s.res.ask == raNone && s.g.pre.state == 0 && s.auraWithHosts(k, l.obj) > 1 {
+		if x.zone == kop.ZoneExile && s.auraWithHosts(k, l.obj) > 1 {
 			// a returning Aura (Witness Protection under Banishing Light):
-			// during a resolution gorge asks its host with the card still
-			// in exile (CR 303.4f); it enters attached once answered
-			// (raGenRetChoice; pair 5605)
-			s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
-			if k.gen.anyLinkCtr {
-				s.linkRetStall(k, srcCtrl, o, l.obj)
+			// gorge asks its host with the card still in exile (CR 303.4f).
+			// During a resolution the kernel parks the choice (preReturn)
+			// and enters the card once answered (raGenRetChoice; pair 5605).
+			// A cost's pick still being answered when the host leaves -- the
+			// sacrificed host is what exiled it -- parks it too: the pending
+			// answer continues the resolution, and runProg poses the host ask
+			// before it ends (pair 1265). Outside a resolution (its source
+			// died to a state-based action) the ask is queued before the next
+			// priority (queueAskRet) instead of entering the Aura unattached
+			// to fall to CR 704.5m.
+			parked, queued := false, false
+			if s.res.active && s.g.pre.state == 0 {
+				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
+				parked = true
+			} else if !s.res.active && s.g.nask == 0 {
+				s.queueAskRet(l.obj)
+				queued = true
 			}
-			continue
-		}
-		if x.zone == kop.ZoneExile && !s.res.active && s.g.nask == 0 && s.auraWithHosts(k, l.obj) > 1 {
-			// outside a resolution (its source died to a state-based
-			// action) gorge parks the entry with the card still in exile
-			// and asks its owner the host (CR 303.4f): queued before the
-			// next priority (queueAskRet)
-			s.queueAskRet(l.obj)
-			if k.gen.anyLinkCtr {
-				s.linkRetStall(k, srcCtrl, o, l.obj)
+			// an ask is already queued: gorge parks no second entry; the
+			// later one enters attached to its first candidate below
+			if parked || queued {
+				if k.gen.anyLinkCtr {
+					s.linkRetStall(k, srcCtrl, o, l.obj)
+				}
+				continue
 			}
-			continue
 		}
 		if n := s.auraWithHosts(k, l.obj); x.zone == kop.ZoneExile && (n == 1 || n > 1 && !s.res.active) {
 			// a returning Aura with one permanent it can enchant enters
