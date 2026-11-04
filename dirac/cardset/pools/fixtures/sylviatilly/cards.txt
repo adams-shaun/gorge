@@ -1,0 +1,12 @@
+# the Sylvia Tilly pool: a beginning-of-combat "pay {1} and exile a card from
+# your graveyard" cost beside a reflexive counter trigger, with Sol Ring and a
+# flash creature to leave mana floating, for the oracle's constructed lockstep
+# (dirac/oracle/sylviatilly_test.go)
+Ambush Viper
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Shock
+Sol Ring
+Sylvia Tilly, Joy of Discovery

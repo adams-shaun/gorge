@@ -99,7 +99,7 @@ func (s *State) copySpell(k *prep, src Obj, n int, mayRetarget bool) bool {
 // the copied spell's targets, modes, X and kicked status). It stalls and
 // returns false at capacity.
 func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
-	if s.nearCapacity() {
+	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return false
 	}

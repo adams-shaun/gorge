@@ -124,7 +124,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			return true // StallTokRewrite
 		}
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true
 			}

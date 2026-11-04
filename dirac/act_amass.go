@@ -45,7 +45,7 @@ func (s *State) amass(k *prep, in *kop.Instr) {
 	}
 	t := s.replTokens(k, p, CardID(in.C), 1)
 	for i := 0; i < t; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return
 		}

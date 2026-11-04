@@ -1740,9 +1740,17 @@ func wardAmt(c *kop.CardDef) int16 {
 
 // nearCapacity reports whether the battlefield or the object table is
 // about to overflow the kernel's fixed capacity (gorge stops such a game at
-// its object cap as a "bigboard" stall).
-func (s *State) nearCapacity() bool {
-	return s.occ.count() >= MaxPerm-4 || int(s.nobj) >= MaxObj
+// its object cap as a "bigboard" stall). A phased-out permanent keeps its
+// slot off every mask (kw_phasing.go), so a phasing table measures the slots
+// an entrant can actually take: enterNF's freeSlots branch.
+func (s *State) nearCapacity(k *prep) bool {
+	if int(s.nobj) >= MaxObj {
+		return true
+	}
+	if k != nil && k.phasing {
+		return s.freeSlots().count() <= 4
+	}
+	return s.occ.count() >= MaxPerm-4
 }
 
 // Stall reasons (StallReason). Most are a capacity; StallClassOf says which are
