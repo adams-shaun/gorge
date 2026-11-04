@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -471,9 +470,6 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 	if e.Pending() == nil {
 		return false
 	}
-	if ep := e.Pending(); ep != nil {
-		fmt.Fprintf(os.Stderr, "ZZROOT g=%p winOK=%v e.pendingSeq=%d epool=%v ehand=%v z60=%v\n", e.G, winOK, ep.Seq, e.G.Players[p].Pool, e.G.Zone(state.ZHand, p), e.G.Obj(60).Zone)
-	}
 	var steps []decision.PaymentActivation
 	for _, last := range []bool{false, true} {
 		for _, a := range plan.Activations {
@@ -527,22 +523,6 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return false
 		}
 		if next == len(steps) {
-			reach := false
-			for i := range d.Options {
-				opt := &d.Options[i]
-				if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
-					reach = true
-					break
-				}
-			}
-			if !reach {
-				kinds := make([]string, 0, len(d.Options))
-				for i := range d.Options {
-					k := &d.Options[i]
-					kinds = append(kinds, fmt.Sprintf("%s(#%d)", k.Kind, k.Obj))
-				}
-				fmt.Fprintf(os.Stderr, "ZZREACH steps=%d wait=%d nstack=%d pool=%v opts=%v seq=%d over=%v hand=%v bf=%v z60=%v z47=%v z46=%v\n", len(steps), waits, len(c.G.Stack), c.G.Players[p].Pool, kinds, d.Seq, c.G.Over, c.G.Zone(state.ZHand, p), c.G.Zone(state.ZBattlefield, p), c.G.Obj(60).Zone, c.G.Obj(47).Zone, c.G.Obj(46).Zone)
-			}
 			for i := range d.Options {
 				opt := &d.Options[i]
 				if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
@@ -573,10 +553,8 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 				want[i] += int32(n)
 			}
 			child := pool.hypClone(c)
-			fmt.Fprintf(os.Stderr, "ZZSUB act=%+v opt.Index=%d optObj=%d seq=%d cSeq=%d handpre=%v\n", act, opt.Index, opt.Obj, d.Seq, c.Pending().Seq, c.G.Zone(state.ZHand, p))
 			err := child.Submit(decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}})
 			ok := err == nil && visit(child, next+1, want, waits)
-			fmt.Fprintf(os.Stderr, "ZZSUB ok=%v err=%v z60=%v handpost=%v\n", ok, err, child.G.Obj(60).Zone, child.G.Zone(state.ZHand, p))
 			pool.hypRelease(child)
 			if ok {
 				return true

@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -392,17 +390,6 @@ func (w *legalWalk) handWalk() {
 			redOK := offerOK || w.reducedOptionalCastable(p, id, plain)
 			ta := targetsAvailable()
 			xb := redOK && ta && e.xBoundTargetPayable(p, id, id, f.SpellAbility(), plain, spellScope(""), false)
-			var seq uint64
-			if ep := e.Pending(); ep != nil {
-				seq = ep.Seq
-			}
-			if seq != 0 {
-				nm := ""
-				if o := e.G.Obj(id); o != nil && o.Face() != nil {
-					nm = o.Face().Name
-				}
-				fmt.Printf("ZZPLAIN g=%p seq=%d id=%d name=%s offer=%v redOK=%v ta=%v xb=%v pool=%v plain={C:%v G:%d X:%d}\n", e.G, seq, id, nm, offerOK, redOK, ta, xb, e.G.Players[p].Pool, plain.Colored, plain.Generic, plain.X)
-			}
 			return redOK && ta && xb
 		}() {
 			w.add("cast", w.castLabel(f), id)

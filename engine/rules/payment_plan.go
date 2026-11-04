@@ -634,9 +634,6 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		}
 		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
-		if opt.Obj == 41 || opt.Obj == 46 || opt.Obj == 47 {
-			fmt.Printf("ZZPLAN g=%p seq=%d id=%d reason=%s detail=%s planNil=%v nodes=%d\n", e.G, seq, opt.Obj, got.Reason, got.Detail, got.Plan == nil, got.Nodes)
-		}
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
 			// The unpayable census names plain casts only

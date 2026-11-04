@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
@@ -53,13 +52,6 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 // Pull: "counter target creature spell" unpromised, "instead counter target
 // spell" promised) are not offered on a board where neither election works.
 func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool, gift *bool) (res bool) {
-	zzIsFTCG := sa != nil && sa.API == "CopyPermanent" && e.objNameForZZ(id) == "For the Common Good"
-	var zzMin, zzDyn, zzAnyX = -1, false, sa != nil && effects.TargetsOf(sa).AnyX != nil
-	defer func() {
-		if zzIsFTCG {
-			fmt.Printf("ZZTGT id=%d min=%d dynamic=%v xPending=%v x=%d anyX=%v res=%v\n", id, zzMin, zzDyn, xPending, x, zzAnyX, res)
-		}
-	}()
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return true
 	}
@@ -69,9 +61,6 @@ func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.Ob
 		sa = anyX
 	}
 	min, dynamic := targetOfferMin(e, p, id, sa, x, xPending, gift)
-	if zzIsFTCG {
-		zzMin, zzDyn = min, dynamic
-	}
 	// The census is a pure read; the two answers that never look at the
 	// population return before walking it.
 	if dynamic || min <= 0 {
@@ -127,38 +116,6 @@ func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.Ob
 		// a candidate) without matching the rest of the population -- an
 		// any-target spell stops at the player seats.
 		n := e.candidatesCountForLimit(p, id, excludeSelf, sa, true, min)
-		if zzIsFTCG {
-			zzWatchObjs[92], zzWatchObjs[97] = true, true
-			z92, z97 := "nil", "nil"
-			if o := e.G.Obj(92); o != nil {
-				z92 = fmt.Sprintf("z%d tok=%v", o.Zone, o.IsToken)
-			}
-			if o := e.G.Obj(97); o != nil {
-				z97 = fmt.Sprintf("z%d tok=%v", o.Zone, o.IsToken)
-			}
-			var zseq uint64
-			if ep := e.Pending(); ep != nil {
-				zseq = ep.Seq
-			}
-			fmt.Printf("ZZTGT g=%p seq=%d branch=limited n=%d o92=[%s] o97=[%s]\n", e.G, zseq, n, z92, z97)
-			for _, cand := range e.legalTargetCandidates(p, id, excludeSelf, sa) {
-				fmt.Printf("ZZCAND kind=%s obj=%d\n", cand.kind, cand.obj)
-			}
-		}
-		if zzIsFTCG && n == 0 {
-			for z := state.ZLibrary; z <= state.ZCommand; z++ {
-				for _, oid := range e.G.Zone(z, p) {
-					o := e.G.Obj(oid)
-					if o.IsToken || o.IsCopy {
-						fmt.Printf("ZZTOK zone=%d id=%d name=%s token=%v copy=%v ctrl=%d\n", z, oid, o.Face().Name, o.IsToken, o.IsCopy)
-					}
-				}
-			}
-			for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-				o := e.G.Obj(oid)
-				fmt.Printf("ZZBF id=%d name=%s token=%v copy=%v ctrl=%d owner=%d\n", oid, o.Face().Name, o.IsToken, o.IsCopy, o.Controller, o.Owner)
-			}
-		}
 		ok := n >= min
 		if walkCacheVerify && ok != e.targetChoiceFeasible(sa, e.legalTargetCandidates(p, id, excludeSelf, sa), min) {
 			panic("rules: limited target census disagrees with the full census")
@@ -166,9 +123,6 @@ func targetSAAvailableGift(e *Engine, p state.PlayerID, id, excludeSelf state.Ob
 		return ok
 	}
 	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
-	if zzIsFTCG {
-		fmt.Printf("ZZTGT branch=full n=%d\n", len(candidates))
-	}
 	return e.targetChoiceFeasible(sa, candidates, min)
 }
 

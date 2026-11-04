@@ -1,8 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -55,14 +53,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
 	anySac := s.anySacSource(k, p)
-	zz := p == 1 && cost.X != 0
-	if zz {
-		fmt.Printf("ZZXE dec=%d x=%d anySac=%v targeted=%v stacked=%v\n", s.SeqNo(), x, anySac, targeted, stacked)
-	}
 	if !anySac || !targeted && !stacked {
-		if zz {
-			fmt.Printf("ZZXE dec=%d gate-return false\n", s.SeqNo())
-		}
 		return false
 	}
 	t := s.fork()
@@ -72,13 +63,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	pk.try = true
 	t.tapForPK(k, p, cost, x, excl, false, false, &pk)
 	if !pk.found {
-		if zz {
-			fmt.Printf("ZZXE dec=%d notfound-return false\n", s.SeqNo())
-		}
 		return false
-	}
-	if zz {
-		fmt.Printf("ZZXE dec=%d found npendDelta=%d\n", s.SeqNo(), int(t.npend)-int(n0))
 	}
 	if bestowed {
 		var buf [MaxOptions]uint8
@@ -86,11 +71,7 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 			return true
 		}
 	} else if targeted {
-		feas := t.spellTargetsFeasible(k, c, p)
-		if zz {
-			fmt.Printf("ZZXE dec=%d feas=%v\n", s.SeqNo(), feas)
-		}
-		if !feas {
+		if !t.spellTargetsFeasible(k, c, p) {
 			return true
 		}
 	}
@@ -116,22 +97,36 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
 	s.availFor(k, p, &av)
-	zz := p == 1 && cost.X != 0
 	mx := max(0, av.maxX(&cost, pipMaskOf(&cost)))
-	if zz {
-		fmt.Printf("ZZXW dec=%d enter x=%d\n", s.SeqNo(), mx)
-	}
 	if !s.xWitnessEats(k, p, c, &cost, mx, o) {
 		return true
+	}
+	// gorge's potentialWitnessSmallerX: the max X's payment consumes the last
+	// permanent the spell could target (or stacks past the wait budget), so
+	// gorge prices a smaller X whose payment keeps one (For the Common Good
+	// paid with one of two Treasures; the other stays a target).
+	stacked := s.subs[kop.TrigSacrificed].any()
+	targeted := tspec(k, c, spellAb(k, c), 0) != nil
+	for x := mx - 1; x >= 0; x-- {
+		t := s.fork()
+		n0 := t.npend
+		var pk planner
+		pk.try = true
+		t.tapForPK(k, p, &cost, x, o, false, false, &pk)
+		found := pk.found
+		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
+		if ok && targeted {
+			ok = t.spellTargetsFeasible(k, c, p)
+		}
+		s.unfork()
+		if ok {
+			return true
+		}
 	}
 	held := s.sacSourcesHeld(k, p)
 	s.availFor(k, p, &av)
 	s.ctrlM[p] = s.ctrlM[p].or(held)
-	aff := av.affords(&cost, pipMaskOf(&cost), 0)
-	if zz {
-		fmt.Printf("ZZXW dec=%d heldX0=%v\n", s.SeqNo(), aff)
-	}
-	return aff
+	return av.affords(&cost, pipMaskOf(&cost), 0)
 }
 
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast

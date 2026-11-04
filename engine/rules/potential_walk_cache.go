@@ -393,7 +393,6 @@ func (e *Engine) planCastPaymentMemo(p state.PlayerID, cast decision.PlannedCast
 		}
 	}
 	out := e.planCastPaymentChecked(p, cast, statics, candidates)
-	fmt.Printf("ZZMEMO p=%d cast=%+v -> reason=%q detail=%q plan=%v\n", p, cast, out.Reason, out.Detail, out.Plan != nil)
 	if e.potentialWalkHit(p, false) {
 		c.plans = append(c.plans, castPlanMemo{cast: cast, out: out})
 	}

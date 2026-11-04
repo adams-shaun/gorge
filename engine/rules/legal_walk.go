@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"runtime/debug"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -197,20 +196,6 @@ func (w *legalWalk) offerFloorRefuses(statics *costStaticViews, p state.PlayerID
 		var zero costMods
 		return int64(pl.Pool.Total()) < composedPoolFloor(&zero, base, 0, int32(len(w.e.G.Zone(state.ZGraveyard, p))))
 	})()
-	var nm string
-	if id != 0 && w.e.G.Obj(id) != nil && w.e.G.Obj(id).Face() != nil {
-		nm = w.e.G.Obj(id).Face().Name
-	}
-	if nm == "Bakersbane Duo" || nm == "Flowerfoot Swordmaster" || nm == "For the Common Good" {
-		var zseq uint64
-		if ep := w.e.Pending(); ep != nil {
-			zseq = ep.Seq
-		}
-		fmt.Printf("ZZFLOOR g=%p seq=%d id=%d nm=%s base={C:%v G:%d X:%d XMin:%d} hyp=%v pool=%v (%d) refuse=%v\n", w.e.G, zseq, id, nm, base.Colored, base.Generic, base.X, base.XMin, w.hyp != nil, w.e.G.Players[p].Pool, w.e.G.Players[p].Pool.Total(), ref)
-	}
-	if ref && (nm == "Bakersbane Duo" || nm == "Flowerfoot Swordmaster" || nm == "For the Common Good") {
-		fmt.Printf("ZZFLOORREF id=%d nm=%s\n%s", id, nm, debug.Stack())
-	}
 	return ref
 }
 

@@ -1,85 +1,12 @@
 package rules
 
 import (
-	"fmt"
-	"runtime"
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-var zzWatchObjs = map[state.ObjID]bool{}
-
-var zzRing [50]string
-var zzRingN int
-
-func ZZRingDump() string {
-	var b strings.Builder
-	lo := 0
-	if zzRingN > 50 {
-		lo = zzRingN - 50
-	}
-	for i := lo; i < zzRingN; i++ {
-		fmt.Fprintf(&b, "ZZRING %s\n", zzRing[i%50])
-	}
-	return b.String()
-}
-
-func zzTraceWatch(e *Engine, ev *events.Event) {
-	zzRing[zzRingN%50] = fmt.Sprintf("k=%d seq=%d p=%d obj=%d from=%d to=%d amt=%d txt=%q",
-		ev.Kind, ev.Seq, ev.Player, ev.Obj, ev.From, ev.To, ev.Amount, ev.Text)
-	zzRingN++
-	if len(zzWatchObjs) == 0 {
-		return
-	}
-	hit := ev.Obj != 0 && zzWatchObjs[ev.Obj]
-	if !hit {
-		for _, id := range ev.IDs {
-			if zzWatchObjs[id] {
-				hit = true
-				break
-			}
-		}
-	}
-	if !hit {
-		return
-	}
-	var b strings.Builder
-	for _, id := range ev.IDs {
-		if zzWatchObjs[id] {
-			if o := e.G.Obj(id); o != nil {
-				fmt.Fprintf(&b, " id%d=z%d", id, o.Zone)
-			} else {
-				fmt.Fprintf(&b, " id%d=absent", id)
-			}
-		}
-	}
-	fmt.Printf("ZZEV k=%d seq=%d p=%d obj=%d from=%d to=%d amt=%d g=%p txt=%q%s\n",
-		ev.Kind, ev.Seq, ev.Player, ev.Obj, ev.From, ev.To, ev.Amount, e.G, ev.Text, b.String())
-	pc := make([]uintptr, 24)
-	n := runtime.Callers(3, pc)
-	fr := runtime.CallersFrames(pc[:n])
-	depth := 0
-	for {
-		f, more := fr.Next()
-		name := f.Function
-		if strings.Contains(name, "runtime.") {
-			if !more {
-				break
-			}
-			continue
-		}
-		fmt.Printf("ZZEV   at %s\n", name)
-		depth++
-		if depth >= 8 || !more {
-			break
-		}
-	}
-}
 
 // emit is the engine's single mutation entry point. It inserts
 // replacement effects ahead of logging and trigger discovery behind it:
@@ -117,7 +44,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// Objects minted during this event are compared
 	// against this count to raise the pool gates (the mint scan below).
 	objsBefore := len(e.G.Objs)
-	zzTraceWatch(e, &ev)
 	if suppressSuspectedEvent(e, ev) {
 		return ev
 	} // CR 702.157
@@ -1060,7 +986,6 @@ func bookkeepingKind(k events.Kind) bool {
 // Pairs detached), with no by-value copy of the 120-byte event on the way.
 // ev must point at the caller's own event, never into the log.
 func (e *Engine) emitBookkeeping(ev *events.Event) {
-	zzTraceWatch(e, ev)
 	events.EmitPtr(e.G, e.L, ev)
 	e.noteTurnsTaken(ev)
 	e.loop.observeFrom(ev, e.damaging, len(e.G.Objs))

@@ -144,17 +144,6 @@ func (e *Engine) creatureManaOfferCredit(p state.PlayerID, id state.ObjID, base 
 	return credit
 }
 
-func (e *Engine) objNameForZZ(id state.ObjID) string {
-	if id == 0 {
-		return ""
-	}
-	o := e.G.Obj(id)
-	if o == nil || o.Face() == nil {
-		return ""
-	}
-	return o.Face().Name
-}
-
 // offerCastable is THE offer-side gate every cast/activation option is gated
 // on. base is the RAW (pre-modifier) cost beginCast stores in pendingCast
 // for this exact option and scope the costScope its modifiers are collected
@@ -245,9 +234,6 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// needs to know of this pass (offerRetryFutile).
 	mayApply := false
 	mods := e.costModifiersCompose(statics, p, id, scope, nil, false, 0, &mayApply)
-	if nm := e.objNameForZZ(id); nm == "For the Common Good" {
-		fmt.Printf("ZZCAST id=%d stage=compose mods=%+v mayApply=%v statics r%d/re%d/s%d/o%d inert=%v\n", id, mods, mayApply, len(statics.raise), len(statics.reduce), len(statics.set), len(statics.optional), costStaticsInertFor(&statics, id))
-	}
 	provenance := e.CostProvenanceSeen
 	if len(extra) > 0 {
 		mods.Reduces = append(slices.Clone(mods.Reduces), extra...)
@@ -288,9 +274,6 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		delve = int32(len(e.G.Zone(state.ZGraveyard, p)))
 	}
 	if !e.manaFeasiblePricedP(p, offerPayment(id, ability, scope), base, &mods, tax, delve, hyp) {
-		if nm := e.objNameForZZ(id); nm == "For the Common Good" {
-			fmt.Printf("ZZCAST id=%d stage=manaFAIL mods=%+v tax=%d delve=%d hyp=%v base={C:%v G:%d X:%d XMin:%d}\n", id, mods, tax, delve, hyp != nil, base.Colored, base.Generic, base.X, base.XMin)
-		}
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors
@@ -355,9 +338,6 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	var composed Cost
 	e.composedOfferCostInto(&composed, p, id, base, &mods, scope)
 	okTail := pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
-	if nm := e.objNameForZZ(id); nm == "For the Common Good" {
-		fmt.Printf("ZZCAST id=%d stage=tail composed={C:%v G:%d X:%d XMin:%d Life:%d Sac:%v} hyp=%v pool=%v ok=%v\n", id, composed.Colored, composed.Generic, composed.X, composed.XMin, composed.Life, composed.Sac, hyp != nil, e.G.Players[p].Pool, okTail)
-	}
 	return okTail
 }
 
