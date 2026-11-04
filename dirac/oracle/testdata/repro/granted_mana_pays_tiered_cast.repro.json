@@ -569,7 +569,10 @@
   16776960,
   16776960,
   16776960,
-  37224192
+  37224192,
+  16776960,
+  16776960,
+  37158656
  ],
  "readable": [
   "mulligan(-,-,0)",
@@ -1044,21 +1047,21 @@
   "pass(-,-,0)",
   "pass(-,-,0)",
   "pass(-,-,0)",
-  "cast(#55,-,0)"
+  "cast(#55,-,0)",
+  "pass(-,-,0)",
+  "pass(-,-,0)",
+  "cast(#54,-,0)"
  ],
  "divergence": {
-  "at": 473,
-  "what": "options",
-  "field": "options",
-  "ref_options": [
-   "pass(-,-,0)"
+  "at": 476,
+  "what": "projection",
+  "field": "Cards[76].Flags",
+  "diff": [
+   "Cards[76].Flags: ref=1 kernel=0",
+   "Pool[1][0]: ref=2 kernel=0",
+   "Pool[1][4]: ref=0 kernel=1"
   ],
-  "ker_options": [
-   "pass(-,-,0)",
-   "cast(#54,-,0)"
-  ],
-  "detail": "priority decision for p1",
   "lead": "gorge",
-  "last_sourced": "cast(#55,-,0)"
+  "last_sourced": "cast(#54,-,0)"
  }
 }

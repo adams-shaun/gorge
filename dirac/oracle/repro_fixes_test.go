@@ -64,6 +64,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
+		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
+		// is payable, but no mode is, so neither engine offers the cast (CR
+		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
+		{"explosive_derailment_needs_a_mode_cost", false, false},
 	})
 }
 
