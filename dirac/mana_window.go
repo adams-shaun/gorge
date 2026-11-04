@@ -2524,17 +2524,11 @@ func (s *State) castTapX(k *prep) bool {
 		return false
 	}
 	b := s.bld()
-	if s.g.probeWin {
-		return b.e.kind == seSpell
-	}
 	return b.e.kind == seSpell && (b.stage == bsMana || b.stage == bsPay)
 }
 
 // isFork: s is a probe copy (fork), whose window never waits on an answer.
 func (s *State) isFork() bool {
-	if s.g.probeWin {
-		return true
-	}
 	p := s.pool
 	if p == nil {
 		return false
