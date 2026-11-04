@@ -134,7 +134,7 @@ import (
 // +3 (Khan, Vengeful Heart; Misthollow Griffin; Eternal Scourge: MayPlay from exile; 21449 -> 21452; ratchet TRK 282 -> 283).
 // +1 (Infinite Diversity: X free copies of an exiled instant or sorcery; 21452 -> 21453; ratchet TRK 283 -> 284).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21453, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21454, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
