@@ -248,6 +248,14 @@ func TestStdDftReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-dsk's, on the same terms (this one recorded on the full surface).
+func TestStdDskReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-dsk", []stdRepro{
+		{"room_shown_face_plain_cast", false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+	})
+}
+
 // The same, on the pools the games came from.
 func TestStdPoolReprosLockstep(t *testing.T) {
 	t.Parallel()
