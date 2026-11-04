@@ -142,6 +142,9 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 					a, b := cs[i], cs[1]
 					if nc > 2 {
 						b = cs[per+j]
+						if tapXOwnAnswer(fs.own, a, b) {
+							continue
+						}
 					}
 					if colours(a, b) {
 						return true
@@ -154,6 +157,9 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			return false
 		}
 		for i := 0; i < nc; i++ {
+			if nc > 1 && tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+				continue
+			}
 			if colours(cs[i], NoSlot) {
 				return true
 			}

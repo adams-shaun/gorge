@@ -4,8 +4,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Games from the Standard sets' synthetic pools that once diverged at the end of
@@ -15,7 +17,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := synthReg(t)
 	// the games recorded on the full surface (gorge's own payment asks): the others ran on autopay
-	fullSurface := map[string]bool{"station_trigger_lists_with_static_grants": true, "restricted_mana_spell_only_batch_does_not_pay_equip": true, "power_up_copy_mana_cost_reduces": true, "calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true, "restricted_any_colour_pick_beside_plain_colour": true, "maco_trigger_graveyard_target_is_no_creature_you_control": true, "clone_of_lord_dies_its_statics_end": true, "saddled_copy_fires_the_copied_triggers": true, "dying_copy_mana_value_is_the_copied_cards": true, "trigger_cost_filter_window_lowest_colour": true, "land_made_an_island_asks_its_own_colour_first": true, "graveyard_creature_count_skips_a_waiting_token": true, "x_spell_cast_from_hand_counts_x_for_cost_reduction": true, "lowered_discard_cast_window_restricted_mana": true, "granted_mana_one_tap_cannot_fund_two_pips": true, "exile_cost_cast_priced_on_printed_sources": true, "face_down_creature_loses_granted_mana": true, "dfc_back_face_trigger_asks_optional_after_dying": true, "ward_alt_pays_with_restricted_nonspell_mana": true, "exile_cast_discard_alt_cost_keeps_whole_hand": true, "prefix_surveil_trigger_mills_the_card": true, "doubled_colourless_tap_takes_the_plain_ability": true, "unrelaxable_census_searches_play_wide_source_cannot_fund": true, "target_menu_keeps_candidates_a_tap_two_source_may_fund": true, "cast_window_taps_two_creatures_for_supportive_parents": true, "station_counters_skip_a_phased_out_spacecraft": true, "granted_ability_counts_on_its_grantor": true}
+	fullSurface := map[string]bool{"station_trigger_lists_with_static_grants": true, "restricted_mana_spell_only_batch_does_not_pay_equip": true, "power_up_copy_mana_cost_reduces": true, "calamitous_tide_leave_together": true, "treasure_mana_token_ceases_quietly": true, "cast_window_restricted_mana_short": true, "convoke_target_window_bloom_tender": true, "clone_returned_card_spent_zero_mockingbird": true, "clone_returned_card_spent_zero_two_birds": true, "hybrid_face_restricted_source": true, "target_dependent_cost_starting_town_white": true, "life_pain_land_beside_filter_pays_double_green": true, "run_over_second_target_after_vehicle": true, "restricted_any_colour_pick_beside_plain_colour": true, "maco_trigger_graveyard_target_is_no_creature_you_control": true, "clone_of_lord_dies_its_statics_end": true, "saddled_copy_fires_the_copied_triggers": true, "dying_copy_mana_value_is_the_copied_cards": true, "trigger_cost_filter_window_lowest_colour": true, "land_made_an_island_asks_its_own_colour_first": true, "graveyard_creature_count_skips_a_waiting_token": true, "x_spell_cast_from_hand_counts_x_for_cost_reduction": true, "lowered_discard_cast_window_restricted_mana": true, "granted_mana_one_tap_cannot_fund_two_pips": true, "exile_cost_cast_priced_on_printed_sources": true, "face_down_creature_loses_granted_mana": true, "dfc_back_face_trigger_asks_optional_after_dying": true, "ward_alt_pays_with_restricted_nonspell_mana": true, "exile_cast_discard_alt_cost_keeps_whole_hand": true, "prefix_surveil_trigger_mills_the_card": true, "doubled_colourless_tap_takes_the_plain_ability": true, "unrelaxable_census_searches_play_wide_source_cannot_fund": true, "target_menu_keeps_candidates_a_tap_two_source_may_fund": true, "cast_window_taps_two_creatures_for_supportive_parents": true, "station_counters_skip_a_phased_out_spacecraft": true, "granted_ability_counts_on_its_grantor": true, "tap_two_answer_skips_the_plays_own_tap_source": true}
 	for _, c := range []struct{ pool, name string }{
 		{"std-tla", "waterbend_min_taps_filter"},                                   // Barrels of Blasting Jelly adds nothing to what the window can pay
 		{"std-tla", "granted_cap_restricted_source"},                               // Honest Work beside Jasmine Dragon Tea Shop: the printed sources price Sokka
@@ -63,6 +65,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trc", "phased_out_face_down_permanent_stays_a_2_2"},                  // U.S.S. Defiant phases out a face-down Lightning Greaves: it stays face down (CR 110.5, 708.2), a nameless 2/2 creature, not its printed Equipment
 		{"std-trc", "station_counters_skip_a_phased_out_spacecraft"},               // Queen's Diamond's station ability resolves after U.S.S. Defiant phased it out: it can't be affected (CR 702.26b), so it gets no charge counters
 		{"std-spm", "unrelaxable_census_searches_play_wide_source_cannot_fund"},    // Doc Ock's Tentacles' equip {5} from three lands and two Supportive Parents activations, Interdimensional Web Watch untapped: Parents' cost is no once-only one, so gorge's census is unrelaxable, no relaxed proof drops the play the Web Watch's exile-cast mana cannot fund, and the prefix search pays it
+		{"std-spm", "tap_two_answer_skips_the_plays_own_tap_source"},               // Guy in the Chair's Web Support, {2}{G},{T}, from an Island, a Forest and Supportive Parents' white: the Parents' "choose 2" answers that tap Guy are skipped, as gorge skips them (CR 602.2b), so the search reaches Lurking Lizards and Mechanical Mobster within its budget
 		{"std-spm", "target_menu_keeps_candidates_a_tap_two_source_may_fund"},      // Grow Extra Arms short of its unreduced {1}{G} with Supportive Parents live: the window census prices no tapXType cost, so the menu keeps every creature, not only the Spider the reduction needs (CR 601.2c, 601.2g)
 		{"std-spm", "cast_window_taps_two_creatures_for_supportive_parents"},       // Grow Extra Arms aimed at a non-Spider, its {1} from Supportive Parents in the cast window: gorge asks for the two creatures to tap, a pick at a time, and the cast is made
 		{"std-dft", "run_over_second_target_after_vehicle"},                        // Run Over aimed first at a crewed Vehicle costs {G}: its second target, an opponent's creature, is still asked
@@ -119,38 +122,56 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "static_cast_trigger_keeps_caster_priority"},                   // Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			m, err := r.Matchup(reg)
-			if err != nil {
-				t.Fatal(err)
-			}
-			entries := func(names []string) []cardset.Entry {
-				es := make([]cardset.Entry, len(names))
-				for i, n := range names {
-					es[i] = cardset.Entry{Name: n, Count: 1}
-				}
-				return es
-			}
-			set := cardsettest.Synth(t, c.pool)
-			tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
-			if err != nil {
-				t.Fatal(err)
-			}
-			rc := r.RunConfig()
-			rc.Config.GorgeAutopaySurface = !fullSurface[c.name]
-			rc.MaxDecisions = len(r.Actions) + 200
-			k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer CloseSide(k)
-			res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
-			if res.Div != nil {
-				t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+			if div := replayStdRepro(t, reg, c.pool, c.name, fullSurface[c.name]); div != nil {
+				t.Fatalf("divergence at %d: %s %s %v", div.At, div.What, div.Field, div.Diff)
 			}
 		})
+	}
+}
+
+// replayStdRepro replays std pool's repro name on the full surface or on
+// autopay, and 200 decisions past its script: the divergence, or nil.
+func replayStdRepro(t *testing.T, reg *cards.Registry, pool, name string, full bool) *Divergence {
+	t.Helper()
+	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := r.Matchup(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := func(names []string) []cardset.Entry {
+		es := make([]cardset.Entry, len(names))
+		for i, n := range names {
+			es[i] = cardset.Entry{Name: n, Count: 1}
+		}
+		return es
+	}
+	set := cardsettest.Synth(t, pool)
+	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := r.RunConfig()
+	rc.Config.GorgeAutopaySurface = !full
+	rc.MaxDecisions = len(r.Actions) + 200
+	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer CloseSide(k)
+	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc).Div
+}
+
+// TestTapXOwnAnswerMutation: with the answers that tap the play's own {T}
+// source kept, the Supportive Parents search spends its nodes on them and
+// Guy in the Chair's Web Support is not offered where gorge offers it.
+func TestTapXOwnAnswerMutation(t *testing.T) {
+	reg := synthReg(t)
+	dirac.DebugNoTapXOwnSkip = true
+	defer func() { dirac.DebugNoTapXOwnSkip = false }()
+	if div := replayStdRepro(t, reg, "std-spm", "tap_two_answer_skips_the_plays_own_tap_source", true); div == nil {
+		t.Fatal("the mutation did not diverge")
 	}
 }

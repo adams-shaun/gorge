@@ -214,6 +214,7 @@ type tapXKey struct {
 type tapXSearch struct {
 	a     Action
 	p     uint8
+	own   Slot  // the source whose {T} is the play's own cost (NoSlot: none)
 	sp0   uint8 // the stack at the root: only a deeper one is the path's to resolve
 	gaps  slotMask
 	nodes int
@@ -221,6 +222,24 @@ type tapXSearch struct {
 	seen  [potentialScriptNodes]tapXKey
 	n     int
 	path  [maxTapXPath]tapXStep
+}
+
+// DebugNoTapXOwnSkip keeps the answers that tap the play's own {T} source in
+// both prefix searches (mutation testing only: the lockstep must catch it).
+var DebugNoTapXOwnSkip bool
+
+// tapXOwnAnswer: a tap-another cost's answer that taps a or b, one of them the
+// source whose {T} the searched play's own cost needs, is no answer the search
+// tries. gorge's scriptSearch skips it (tapsOwnSource): the play could not be
+// paid after it (CR 602.2b), though the node pricing, which reads no tapped
+// state, would call it payable. Only an asked answer is skipped: with exactly
+// the cost's count of candidates nothing is asked and both are tapped.
+func (rs *tapXSearch) tapXOwnAnswer(a, b Slot) bool {
+	return tapXOwnAnswer(rs.own, a, b)
+}
+
+func tapXOwnAnswer(own, a, b Slot) bool {
+	return !DebugNoTapXOwnSkip && own != NoSlot && (a == own || b == own)
 }
 
 // tapXScript runs gorge's prefix search (rules scriptSearch.visit under
@@ -231,6 +250,10 @@ type tapXSearch struct {
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) bool {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p))
+	rs.own = NoSlot
+	if a.Kind() == AkActivate {
+		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
+	}
 	t := s.fork()
 	defer s.unfork()
 	if !rs.settle(k, t, false) || rs.n == 0 {
@@ -481,8 +504,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	n := t.battlefieldOrder(p, t.ctrlM[p&1].and(t.occ), order[:], 0)
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		if !rs.gaps.has(sl) {
-			continue
+		if !rs.gaps.has(sl) || sl == rs.own {
+			continue // (tapped for mana, the play's source could not pay its own {T}: CR 602.2b)
 		}
 		if each.has(sl) {
 			// an each-colour gap has one answer and asks nothing; tapped for
@@ -526,6 +549,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 						if debugTapXMutate == 2 {
 							a, b = cs[per-1-i], cs[nc-1-j] // the last pair first (mutation)
 						}
+						if rs.tapXOwnAnswer(a, b) {
+							continue
+						}
 					}
 					if !rs.tick() { // the colour ask
 						return false
@@ -550,6 +576,9 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			cand := cs[ci]
 			if debugTapXMutate == 2 {
 				cand = cs[nc-1-ci]
+			}
+			if nc > 1 && rs.tapXOwnAnswer(cand, NoSlot) {
+				continue
 			}
 			if !rs.tick() { // the colour ask
 				return false
