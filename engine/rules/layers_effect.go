@@ -896,10 +896,8 @@ func stackBoundReplacementLeft(ce *state.ContinuousEffect, ev events.Event) bool
 		len(ce.Remembered) != 1 || ce.Remembered[0] != ev.Obj {
 		return false
 	}
-	if strings.TrimSpace(ce.ReplacementParams[cards.PKOrigin.String()]) != "Stack" {
-		return false
-	}
-	return strings.Contains(ce.ReplacementParams[cards.PKValidCard.String()], "IsRemembered")
+	return ce.ReplacementParams[cards.PKOrigin.String()] == "Stack" &&
+		ce.ReplacementParams[cards.PKValidCard.String()] == "Card.IsRemembered"
 }
 
 // mayPlayChosenLeftZone is mayPlayRememberedLeftZone for the chosen-card
