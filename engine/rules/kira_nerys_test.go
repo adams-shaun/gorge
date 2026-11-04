@@ -37,8 +37,8 @@ func kiraBoard(t *testing.T, attackers int) (*Engine, Config, state.ObjID) {
 	reg := testutil.CorpusRegistry(t)
 	bear := "Name:Test Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 	watcher := "Name:Test Watcher\nManaCost:1 G\nTypes:Creature Spirit\nPT:1/1\n" +
-		"T:Mode$ Attacks | ValidCard$ Creature.YouCtrl | Execute$ TrigGain | TriggerZones$ Battlefield | TriggerDescription$ x\n" +
-		"SVar:TrigGain:DB$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+		"T:Mode$ Attacks | TriggerZones$ Battlefield | ValidCard$ Creature.YouCtrl | Execute$ TrigGain | TriggerDescription$ watcher gains on attack\n" +
+		"SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\nOracle:x\n"
 	entrant := "Name:Test Entrant\nManaCost:1 G\nTypes:Creature Elf\nPT:3/3\nOracle:x\n"
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{
 		lookup(t, reg, "Kira Nerys, Firebrand"), card(t, bear), card(t, watcher), card(t, entrant),
