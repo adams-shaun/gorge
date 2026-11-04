@@ -635,6 +635,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.embC[p][s.g.nemb[p]] = e.card
 			s.g.embO[p][s.g.nemb[p]] = e.obj
 			s.g.embN[p][s.g.nemb[p]] = s.freezeEmbNum(k, in.A, s.ctxEntry(e))
+			if cr := k.t.Emblems[in.C].Capture; cr != kop.RefNone {
+				// the Effect's RememberObjects$ Targeted: the chain's target object + 1
+				// (0 none; an emblem with a capture has no frozen number)
+				s.g.embN[p][s.g.nemb[p]] = 0
+				if o := s.objRefObj(cr); o != NoObj {
+					s.g.embN[p][s.g.nemb[p]] = uint8(o) + 1
+				}
+			}
 			s.g.nemb[p]++
 		} else {
 			s.capFull(StallEmblem)

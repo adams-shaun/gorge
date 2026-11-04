@@ -159,6 +159,14 @@ type Emblem struct {
 	// UntilHostLeavesPlayOrEOT), and its statics read the host as their
 	// source (an EffectSource filter is FSelf).
 	WhileHost bool
+	// Capture: the target slot (a Ref) whose object the emblem remembers
+	// (the Effect's RememberObjects$ Targeted); RefNone when it remembers
+	// none. OpCreateEmblem stores the object in State.g.embN (object+1;
+	// 0 = none), and a DamageDone trigger of an EOT emblem with Capture set
+	// fires only for that object as the damage source (gorge's
+	// Creature.IsRemembered over the registration's Remembered set; The Inner
+	// Light). The trigger's filter carries no Remembered flag.
+	Capture Ref
 }
 
 // Panharmonicon's Static.A: the one trigger mode a ValidMode$ names without
