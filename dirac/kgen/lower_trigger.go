@@ -2190,6 +2190,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, melee := splitMeleeGrant(rest)
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err
@@ -2202,6 +2203,15 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// CR 702.189a granted: one latent Attacks trigger per grant
 			// (lower_firegrant.go; gorge trigger_granted.go)
 			idx, err := lc.firebendGrantTrigger(n)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for ; melee > 0; melee-- {
+			// CR 702.121a/b granted: one latent Attacks trigger, listed
+			// once per instance (lower_meleegrant.go; gorge rules/melee.go)
+			idx, err := lc.meleeGrantTrigger()
 			if err != nil {
 				return nil, err
 			}

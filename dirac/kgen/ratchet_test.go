@@ -50,7 +50,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TDM": {243, 276},
 	"TLA": {245, 285},
 	"TMT": {171, 194},
-	"TRC": {270, 337},
+	"TRC": {271, 337},
 	"TRK": {258, 311},
 	"WOE": {251, 281},
 }

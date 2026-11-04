@@ -138,6 +138,7 @@ type genPrep struct {
 	embObjEv       uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
 	embCombatEv    uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant       bool           // some override or static grants an ability
+	meleeGrant     bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
 	anyWardGrant   bool           // some Continuous static grants ward {N} (kop.Static.Ward; kw_ward.go)
 	btWatch        bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
 	btSpell        bool           // ... and one counts a creature spell on the stack (kop.Tf2SpellToo: Surrak)
@@ -1048,6 +1049,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					// the source subscribes for its host (trigSubs adds the host)
 					pc.trigMask |= 1 << ga.Trig.Event
 					g.grantTrigEv |= 1 << ga.Trig.Event
+					g.meleeGrant = g.meleeGrant || ga.MeleeGrant
 				}
 			}
 		}

@@ -81,6 +81,12 @@ type Ability struct {
 	// static or an effect grants by AddTrigger$ is listed with its own kind
 	// (grantedAbilitiesN). A table byte: AbilityFlags has no free bit.
 	GrantedKw bool
+	// MeleeGrant: the trigger a granted Melee gives its holder (CR
+	// 702.121a; a static's AddKeyword$ Melee). gorge queues it in its own
+	// keyword walk (rules/melee.go checkGrantedMeleeTriggers), not among the
+	// AddTrigger$ grants: CardDef.AtkFace places it (kw_melee.go). A table
+	// byte: AbilityFlags has no free bit.
+	MeleeGrant bool
 	// ManaEach: the mana ability adds ManaN mana of EACH colour in ManaColors
 	// at once (Produced$ "W U", Timeless Lotus's {W}{U}{B}{R}{G}; CR 106.1),
 	// not one of them. A table byte: AbilityFlags has no free bit.

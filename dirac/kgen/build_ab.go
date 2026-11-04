@@ -510,6 +510,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	var err error
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent
+		ka.MeleeGrant = a.Name == "GrantedMelee" // lower_meleegrant.go
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost

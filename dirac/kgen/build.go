@@ -744,6 +744,7 @@ func (cb *cardBuilder) record() error {
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
 	d.Engines = c.Engines
+	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
 	d.TapPowerSaddle = int8(c.TapPowerSaddle)

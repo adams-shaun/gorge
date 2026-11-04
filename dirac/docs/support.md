@@ -27,7 +27,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 270 | 1 | 8 | 261 |
+| TRC | 337 | 271 | 1 | 9 | 261 |
 | TRK | 311 | 258 | 0 | 5 | 253 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
 | ALL | 34442 | 21246 | 60 | 16755 | 4431 |

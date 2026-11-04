@@ -138,6 +138,7 @@ type lowerCtx struct {
 	own         ownTgt    // the slot curNode declared itself (lower_owntarget.go)
 	chainRoot   *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
 	fbGranted   bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
+	mlGranted   bool      // lowering a granted Melee trigger (lower_meleegrant.go): its pump reads cards.MeleePumpCount
 	fbMarker    *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
 	// digImprinted: this chain's DigUntil imprinted its found card and
 	// remembered every revealed card, Jodah's shape (lower_digimprint.go): the
@@ -532,6 +533,7 @@ func (lc *lowerCtx) lowerRecord() {
 	}
 	out.Cost = mc
 	out.CostEmpty = strings.TrimSpace(f.ManaCost) == ""
+	out.AtkFace = faceObservesAttack(f) // lower_meleegrant.go
 	for _, t := range f.Types {
 		if b, ok := typeBits[t]; ok && t != "Card" && t != "Permanent" {
 			out.Types |= b
@@ -946,6 +948,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go)
 			lc.station = param
+		case head == "Melee":
+			// CR 702.121: only a granted Melee is lowered
+			// (lower_meleegrant.go). gorge counts a printed line against
+			// the holder's derived instances even while the face is down
+			// or its abilities are lost (rules/melee.go
+			// checkGrantedMeleeTriggers), where CR 708.2 and 613.7 leave a
+			// later grant in force, so the grant would not trigger there.
+			lc.refuseNode(node, "printed melee: gorge discounts the printed line on a face-down or ability-less holder (rules/melee.go)")
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":

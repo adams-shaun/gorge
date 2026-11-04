@@ -243,6 +243,15 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// AtkFace: the printed face has a triggered ability gorge's trigger
+	// prefilter lets observe an attack declaration (its compiled trigger
+	// interests: a mode of the attack-declaration class, a Phase$ line or a
+	// mode with no class). gorge then walks the face before its granted
+	// keyword triggers, so a granted Melee instance (Ability.MeleeGrant)
+	// lists after the triggers statics and effects grant by AddTrigger$;
+	// without one, before them (rules/trigger_match.go, the printed-free
+	// path). Read only where the table has a Melee grant (kw_melee.go).
+	AtkFace bool
 	// SagaN is the final chapter number of a Saga (CR 714.1, K:Chapter's
 	// count; 0 = not a Saga). The chapter abilities themselves are printed
 	// battlefield triggers on CtrLore, each gated at its chapter number.

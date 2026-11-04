@@ -179,6 +179,18 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			break
 		}
 		v = lValue{Kind: vTriggerAmount}
+	case "TriggeredCapturedPlayers":
+		// cards.MeleePumpCount: gorge captures one player per distinct
+		// opponent attacked in the declaration (rules/melee.go
+		// meleeRemembered). In a two-player game every attack is at the
+		// one opponent (gorge counts a planeswalker's or battle's attack
+		// as its controller's or protector's, combat.go finishAttackers),
+		// so the capture is one.
+		if rest != "Amount" || !lc.mlGranted || !lc.trigBody {
+			err = fmt.Errorf("value head TriggeredCapturedPlayers$%s outside a granted Melee trigger", rest)
+			break
+		}
+		v = cst(1)
 	case "PlayerCountOpponents":
 		// Two players: the highest among the opponents is the opponent's.
 		switch {

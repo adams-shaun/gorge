@@ -68,6 +68,12 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}
 	}
+	// a granted Melee is listed apart from the other grants (kw_melee.go)
+	melee := k.gen.meleeGrant && ev(&meleeProbe)
+	meleeFirst := melee && s.meleeGrantsFirst(k, sl)
+	if meleeFirst {
+		s.meleeGrantTriggers(k, sl, ev, f)
+	}
 	if nown != 0 {
 		// gorge lists a Station threshold's trigger with the other statics'
 		// granted triggers, at its permanent's timestamp: an older static's
@@ -79,22 +85,25 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}, func(c CardID, ab uint8, n int) {
 			a := &k.t.Cards[c].Abilities[ab]
-			if a.Kind == kop.AbTriggered && ev(a) {
+			if a.Kind == kop.AbTriggered && ev(a) && !(melee && a.MeleeGrant) {
 				for ; n > 0; n-- {
 					f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
 				}
 			}
 		})
-		return
-	}
-	s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
-		a := &k.t.Cards[c].Abilities[ab]
-		if a.Kind == kop.AbTriggered && ev(a) {
-			for ; n > 0; n-- {
-				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
+	} else {
+		s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
+			a := &k.t.Cards[c].Abilities[ab]
+			if a.Kind == kop.AbTriggered && ev(a) && !(melee && a.MeleeGrant) {
+				for ; n > 0; n-- {
+					f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
+				}
 			}
-		}
-	})
+		})
+	}
+	if melee && !meleeFirst {
+		s.meleeGrantTriggers(k, sl, ev, f)
+	}
 }
 
 // trigOK checks a listener's once-per-turn limit and intervening-if
