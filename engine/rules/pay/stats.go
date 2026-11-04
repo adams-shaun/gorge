@@ -73,6 +73,11 @@ const (
 //     one plan per action, so the two are equal today).
 //   - PlannedSubmissions counts accepted Submits that carried a payment
 //     selection; Fallbacks counts the cast flow's plan fallback by its spec §6 reason (the Fallback* vocabulary).
+//   - Rearms counts witnesses replaced before any step ran, because an answer the
+//     seat gave after selecting its plan (a convoke-family tap for a keyword the
+//     spell gains only once cast, CR 702.51a, or a Phyrexian pip, CR 107.4f)
+//     changed the mana left to pay; Rearm is the last such witness, the one the
+//     cast then paid by.
 type PlanStats struct {
 	DecisionsBuilt     int
 	Candidates         int
@@ -85,6 +90,8 @@ type PlanStats struct {
 	SearchLimitHits    int
 	PlannedSubmissions int
 	Fallbacks          map[string]int
+	Rearms             int
+	Rearm              *decision.PaymentPlan
 }
 
 func bumpPaymentStat(m *map[string]int, key string, n int) {
@@ -131,6 +138,17 @@ func (s *PlanStats) RecordOffered(plans int) {
 	s.PlansOffered += plans
 }
 
+// RecordRearm notes the witness a cast's announcements made the engine plan
+// again, keeping a copy of it.
+func (s *PlanStats) RecordRearm(plan decision.PaymentPlan) {
+	if s == nil {
+		return
+	}
+	s.Rearms++
+	c := decision.ClonePaymentPlan(plan)
+	s.Rearm = &c
+}
+
 func (s *PlanStats) RecordPlannedSubmission() {
 	if s == nil {
 		return
@@ -161,6 +179,7 @@ func (s *PlanStats) Merge(o *PlanStats) {
 	}
 	s.SearchLimitHits += o.SearchLimitHits
 	s.PlannedSubmissions += o.PlannedSubmissions
+	s.Rearms += o.Rearms
 	for _, h := range []struct{ dst, src *map[string]int }{
 		{&s.ByReason, &o.ByReason}, {&s.ByDetail, &o.ByDetail}, {&s.Fallbacks, &o.Fallbacks},
 	} {
