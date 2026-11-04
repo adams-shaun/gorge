@@ -51,15 +51,41 @@ func (s *State) listenerOrder(m slotMask, ord *[MaxPerm]Slot) int {
 // then the granted walk).
 func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f func(l trigListener, a *kop.Ability)) {
 	p := &s.perms[sl]
+	var own [4]uint8 // a Station threshold's triggers: its own static's grants
+	nown := 0
 	if !s.genLost(k, sl) { // genLost covers a face-down permanent (CR 708.2)
 		cid := s.cardAt(sl)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbTriggered && ev(a) && a.AFlags&kop.AfLatent == 0 && (a.Trig.Zone == kop.ZoneNone || a.Trig.Zone == kop.ZoneBattlefield) && (!k.anyGate || s.gateOK(sl, a)) {
+				if a.Gate.Ctr == kop.CtrCharge && k.gen.anyGrant && nown < len(own) {
+					own[nown] = uint8(i)
+					nown++
+					continue
+				}
 				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: cid, ab: uint8(i)}, a)
 			}
 		}
+	}
+	if nown != 0 {
+		// gorge lists a Station threshold's trigger with the other statics'
+		// granted triggers, at its permanent's timestamp: an older static's
+		// grant (Supplementation Node's) comes first (CR 613.7)
+		cid := s.cardAt(sl)
+		s.grantedAbilitiesOwn(k, sl, func() {
+			for _, i := range own[:nown] {
+				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: cid, ab: i}, &k.t.Cards[cid].Abilities[i])
+			}
+		}, func(c CardID, ab uint8, n int) {
+			a := &k.t.Cards[c].Abilities[ab]
+			if a.Kind == kop.AbTriggered && ev(a) {
+				for ; n > 0; n-- {
+					f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
+				}
+			}
+		})
+		return
 	}
 	s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
 		a := &k.t.Cards[c].Abilities[ab]
