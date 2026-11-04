@@ -19,9 +19,9 @@ func (s *State) notF2Perm(k *prep, fl *kop.Filter, sl Slot) bool {
 // notF2Card is PredNotF2 on a card off the battlefield (mirrors the F2 reads
 // of matchCardOneAt): EnteredThisTurn is the zone-change stamp, TargetedBy
 // reads the resolving entry; no object (o == NoObj) holds none of them. kgen
-// lowers no other bit: gorge keeps WasDealtDamageThisTurn on a graveyard
-// object, which the kernel has no record of (!wasDealtDamageThisTurn is
-// refused).
+// lowers no other bit: the negated !wasDealtDamageThisTurn stays refused
+// (kgen lower_selfcondition.go); the positive form reads s.g.dmgTurn, which
+// survives a zone change like gorge's WasDealtDamageThisTurn.
 //
 //go:noinline
 func (s *State) notF2Card(fl *kop.Filter, o Obj) bool {

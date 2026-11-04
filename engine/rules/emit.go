@@ -780,7 +780,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// already logged and must stay byte-identical for replay.
 		check := triggerCheckEvent(stored, tokenMintWant)
 		proposalEv := e.cast != nil && e.cast.pushed && stored.Obj == e.cast.stackObj &&
-			(stored.Kind == events.TargetsChosen && !e.cast.isAbility() ||
+			(stored.Kind == events.TargetsChosen ||
 				stored.Kind == events.ModeChosen && stored.Counter == events.DilemmaFaced)
 		var preTurn map[triggerKey]turnFires
 		var preGame map[triggerKey]gameFires
@@ -798,9 +798,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if stored.Kind == events.EndTurn || stored.Kind == events.EndCombatPhase {
 			e.checkEndTurnExileTriggers(&stored)
 		}
-		// A pushed spell proposal's own target choice (CR 601.2c), or a pushed
-		// proposal's dilemma: remember which queue entries it produced so
-		// abortCast can drop them if the cast is reversed (CR 733.1 -- see
+		// A pushed proposal's own target choice (CR 601.2c / 602.2b), or a
+		// pushed proposal's dilemma: remember which queue entries it produced
+		// so abortCast can drop them if the cast is reversed (CR 733.1 -- see
 		// pendingCast.proposalTriggers).
 		if proposalEv && len(e.pendingTriggers) > before {
 			e.cast.proposalLimits = append(e.cast.proposalLimits, e.limitChanges(preTurn, preGame)...)

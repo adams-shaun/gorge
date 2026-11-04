@@ -58,6 +58,13 @@ func (s *State) askOptionsCzParams(k *prep, d *Decision) bool {
 		d.Sub = ChGenConfirm // gorge's mill_optional options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 1))
 		d.add(MakeAction(AkChoose, 0, 0, 0))
+	case raGenEnterDefender:
+		d.Sub = ChGenEnterDefender
+		var buf [MaxOptions]uint8
+		n := s.enteringDefenderCands(k, s.res.askP, &buf)
+		for i := 0; i < n; i++ {
+			d.add(MakeAction(AkChoose, buf[i], 0, 0))
+		}
 	default:
 		return false
 	}
@@ -82,37 +89,120 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 			return true
 		}
 		s.continueRes(k, 0)
+	case raGenEnterDefender:
+		s.res.ask = raNone
+		sl := Slot(s.res.chosen)
+		if s.occ.has(sl) {
+			s.setEnterAttacker(k, sl, a.Source())
+		}
+		if s.unparkTail(k) {
+			return true
+		}
+		s.continueRes(k, 0) // the ask was posed after the move: the instruction is done
 	default:
 		return false
 	}
 	return true
 }
 
+// raGenEnterDefender is an Attacking$ True entry's CR 508.4 defender pick
+// (gorge resolveEnteringDefender's entering_defender, chooseEnteringDefender):
+// res.chosen is the entered permanent's slot, and the options are the
+// defenders in gorge's order (enteringDefenders, the fallback -- the opponent
+// player -- first).
+const raGenEnterDefender = raGenManifestDread + 75
+
 // enterAttacking is Attacking$ True on a card just put onto the battlefield
-// at sl under ctrl: it enters attacking the opponent (gorge TokenAttacks
-// fold: IsAttacking, Attacking = the defender; nothing is declared, so no
-// Attacks trigger fires, CR 508.4) when the step is declare attackers
-// through end of combat and ctrl is the active player (gorge
-// enteringDefenderFallback; every lowered carrier is an attack trigger, whose
-// captured defender is the same opponent). Outside that window it enters and
-// does not attack. With a planeswalker or battle in play gorge asks the
-// CR 508.4 defender (entering_defender): the game stalls instead.
+// at sl under ctrl: it enters attacking (gorge TokenAttacks fold: IsAttacking,
+// Attacking = the defender; nothing is declared, so no Attacks trigger fires,
+// CR 508.4) when the step is declare attackers through end of combat and ctrl
+// is the active player (gorge enteringDefenderFallback). Outside that window
+// it enters and does not attack. With one CR 508.4 defender that is the
+// opponent player; with two or more gorge asks which (CR 508.4), so the ask is
+// posed and true returned -- the caller must suspend, parking its remaining
+// work behind it. Every lowered carrier is an attack trigger whose captured
+// defender is the same opponent, so the fallback is the list's first entry.
 //
 //go:noinline
-func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) {
+func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 	if sl == NoSlot || !s.occ.has(sl) || ctrl != s.active ||
 		s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
-		return
+		return false
 	}
-	if s.enteringCandidates(k, ctrl) {
-		s.capFull(StallEnterDefender)
+	var buf [MaxOptions]uint8
+	n := s.enteringDefenderCands(k, ctrl, &buf)
+	if n == 0 {
+		return false // no CR 508.4 defender: it enters but does not attack
 	}
+	if n > 1 {
+		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(sl)
+		return true
+	}
+	s.setEnterAttacker(k, sl, buf[0])
+	return false
+}
+
+// setEnterAttacker applies the attacking entry to the permanent at sl, the
+// fold for Attacking$ True (CR 508.4).
+func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 	pp := &s.perms[sl]
 	pp.flags |= pfAttacking
-	pp.atk = PlayerTarget0 + (1 - ctrl&1)
+	pp.atk = atk
 	pp.bord = s.nAttackers
 	s.nAttackers++
 	s.touchSl(sl)
+}
+
+// enteringDefenderCands lists the CR 508.4 defenders a creature entering
+// attacking under ctrl may attack, in gorge enteringDefenders order: the
+// opponent player first (the fallback chooseEnteringDefender moves to the
+// front), then each face-up planeswalker the opponent controls, then every
+// battle it protects (gorge battleDefenders, CR 310.7), each seat's
+// battlefield in entry order.
+func (s *State) enteringDefenderCands(k *prep, ctrl uint8, buf *[MaxOptions]uint8) int {
+	opp := 1 - ctrl&1
+	if s.pl[opp].lost {
+		return 0
+	}
+	buf[0] = PlayerTarget0 + opp
+	n := 1
+	var order [MaxPerm]Slot
+	var m slotMask
+	for q := s.ctrlM[opp]; q.any(); q = q.rest() {
+		if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	c := s.battlefieldOrder(opp, m, order[:], 0)
+	for _, sl := range order[:c] {
+		buf[n] = uint8(s.perms[sl].obj)
+		n++
+	}
+	for p := uint8(0); p < 2; p++ {
+		var bm slotMask
+		for q := s.ctrlM[p]; q.any(); q = q.rest() {
+			if sl := q.first(); s.battleAttackable(k, sl, ctrl) {
+				bm = bm.with(sl)
+			}
+		}
+		c = s.battlefieldOrder(p, bm, order[:], 0)
+		for _, sl := range order[:c] {
+			buf[n] = uint8(s.perms[sl].obj)
+			n++
+		}
+	}
+	return n
+}
+
+// parkEnterDefender parks a search's or dig's remaining work (res.left = kind)
+// when the entry just made posed the CR 508.4 defender ask; the answer runs it
+// (unparkTail), exactly as a queued as-enters ask parks it. false: no ask.
+func (s *State) parkEnterDefender(kind uint8) bool {
+	if s.res.ask != raGenEnterDefender {
+		return false
+	}
+	s.res.left = kind
+	return true
 }
 
 // differentNameCands is searchCands' library walk under DifferentNames$ True:

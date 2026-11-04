@@ -30,8 +30,15 @@ func (t *priorityTx) addPayments(p *Pose, casts map[castKey]*castGroup, groups [
 		if len(a.Plans) == 0 {
 			continue
 		}
+		// The planner names the face the object shows (CR 709.3): a Room
+		// bounced as its back door keeps that door, so its plain cast is the
+		// shown half. The plan and cast mode ignore Face, so map it as the
+		// normal cast; any other face fails closed.
 		if a.Cast.Face != 0 {
-			return nil, fmt.Errorf("%w:unsupported_planned_cast", ErrUnmapped)
+			obj := t.env.G.R.Board().Obj(a.Cast.Object)
+			if obj == nil || int(obj.FaceIdx) != a.Cast.Face {
+				return nil, fmt.Errorf("%w:unsupported_planned_cast", ErrUnmapped)
+			}
 		}
 		// The planner plans the plain hand/command-zone cast, the untyped
 		// may-play cast of an exile/graveyard card, and flashback. The first

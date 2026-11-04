@@ -590,12 +590,6 @@ func planNeverPricesOf(k *prep, c CardID, hyb, composed bool) bool {
 // life/energy additional cost, a mana-spent read, a target-dependent price.
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
-	if cd.Face != 0 {
-		// gorge's cast planner plans face 0 only (rules payment_plan.go
-		// planCastPaymentChecked: FaceIdx != cast.Face is "unsupported"):
-		// a Room back in the hand on door 1 is lowered or pool-paid
-		return true
-	}
 	if cd.BeholdExile || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && !hyb && !cd.Cost.Phyrexian() ||
 		!modal && (cd.HasAltAdd || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
 		return true // (a hybrid cost: the planner's "cost:hybrid"; a Phyrexian one is priced by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold")

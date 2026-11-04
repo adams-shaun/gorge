@@ -276,7 +276,9 @@ func (e *Engine) charmSeqAnswer(d *decision.Decision, in decision.Intent, chosen
 		stageBase := len(pc.targets)
 		pc.targets = append(pc.targets, thisGroup...)
 		e.repriceForTargets(pc)
-		if pc.stackObj != 0 && (!pc.isAbility() || pc.activationPaid) {
+		// CR 601.2c: each mode's targets are recorded as they are chosen,
+		// before the ability's costs are paid.
+		if pc.stackObj != 0 {
 			e.recordChosenTargets(pc.stackObj, chosen, stageBase > 0)
 		}
 	} else {

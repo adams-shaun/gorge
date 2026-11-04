@@ -1467,10 +1467,14 @@ type genState struct {
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
-	grantSrc    uint8
-	cast        slotMask // slots whose permanent was cast by its controller
-	zoneTurn    objBits  // objects put into their current zone this turn
-	enteredN    uint8    // the live prefix of State.cold.entered
+	grantSrc uint8
+	cast     slotMask // slots whose permanent was cast by its controller
+	zoneTurn objBits  // objects put into their current zone this turn
+	// dmgTurn is gorge Object.WasDealtDamageThisTurn (CR 120.3a): it survives a
+	// zone change and a regeneration (zones.go enterNF clears it only on a real
+	// battlefield entry), the marked damage does not.
+	dmgTurn     objBits // objects dealt positive damage this turn
+	enteredN    uint8   // the live prefix of State.cold.entered
 	enteredFull bool
 	enteredOn   bool // the table has an ExThisTurnEntered expression
 	// (act_initiative.go; the padding before mo)
@@ -1559,7 +1563,6 @@ type genState struct {
 	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
 	evSel     uint64                  // ward evidence picks (bit per graveyard index; MaxDeck 60; kw_wardcost.go)
 	endTurn   bool                    // OpEndTurn: skip to cleanup after this resolution
-	probeWin  bool                    // convokeTargetAbort's probe window: a tap-another source is listed and never waits on a pick (padding)
 	fog       bool                    // OpFog: all combat damage this turn is prevented (padding)
 	beamPick  bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast   bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
@@ -1755,7 +1758,7 @@ const (
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
-	StallEnterDefender = 55  // an Attacking$ True move onto the battlefield while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (zone_changezoneparams.go)
+	StallEnterDefender = 55  // no longer raised: an Attacking$ True entry with two or more CR 508.4 defenders asks raGenEnterDefender (zone_changezoneparams.go)
 	StallPrevCol       = 56  // a fourth Ext PreventColor record in one turn (genState.prevCol; cast_altfree.go)
 	StallColGrant      = 57  // more than maxColG Ext ColorGrant records in one turn (genState.colG; static_colourgrant.go)
 	StallRestrX        = 58  // a reflected search's restricted mana past the batches State.rb holds (mana_reflected.go)
@@ -2259,6 +2262,17 @@ type preAsk struct {
 	state uint8
 	val   uint8
 	land  bool // a land being played (asked while it is still in the hand)
+	// ordPick[:ordN] are the replacement sources the player named, in answer
+	// order, to a CR 616.1 entry order ask; ordSet marks that the ask was
+	// posed. The as-enters copy and the other sources compete over the entry
+	// and the ask repeats until the unnamed rest commutes (repl_entryclone.go)
+	ordPick [7]Obj
+	ordN    uint8
+	ordSet  bool
+	// ordMid: gorge moved the permanent in after the first answer, with every
+	// counter body folded into the move, and asks the rest with it on the
+	// battlefield; the entrant's own line (the copy) is still to apply
+	ordMid bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

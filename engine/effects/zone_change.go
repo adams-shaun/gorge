@@ -407,6 +407,13 @@ func changeZoneMoveSkip(h Host, cz *ChangeZoneParams, o *state.Object, to state.
 	if tokenCannotChangeZone(o) {
 		return true
 	}
+	// CR 702.26b: a phased-out permanent can't be affected by anything, so a
+	// ChangeZone aimed at it does nothing. The battlefield filters already
+	// exclude it from a targeted or swept move; a Defined$ referent (a delayed
+	// rider naming the object it promised to exile) reaches the mover directly.
+	if o.PhasedOut {
+		return true
+	}
 	if cz.OriginPresent && !originAll && !cz.OriginMask.Has(o.Zone) {
 		return true
 	}

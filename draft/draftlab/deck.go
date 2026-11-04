@@ -176,16 +176,17 @@ func (l *Lab) CatalogDecks(id string) ([]Deck, error) {
 }
 
 // refsSet derives the one set a pool's CardRefs belong to: the distinct
-// Set value ignoring the bonus sheet ("SPG" rides inside another set's
-// Play Booster packs by design; see draft.go's packSet). An empty pool or
-// a CardRef without a set is an error.
+// Set value ignoring the rider codes (a rider code from the embedded
+// specs' source_set_codes — SPG in FDN/BLB Play Boosters, SDS in TRK's —
+// rides inside another set's packs by design; see draft.go's packSet). An
+// empty pool or a CardRef without a set is an error.
 func refsSet(refs []limited.CardRef) (string, error) {
 	set := ""
 	for _, c := range refs {
 		if c.Set == "" {
 			return "", fmt.Errorf("pool card %s (%s) carries no set", c.ID, c.Name)
 		}
-		if c.Set == bonusSheetSet {
+		if isRider(c.Set) {
 			continue
 		}
 		if set == "" {

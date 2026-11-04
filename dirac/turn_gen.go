@@ -24,6 +24,10 @@ const (
 	akReveal  uint8 = 7 // a reveal land's as-enters "reveal or enter tapped" (repl_revealland.go)
 	akRevPick uint8 = 8 // the card a reveal land's paid election reveals
 	akNumber  uint8 = 9 // an as-enters number (OpExt ExtChooseNumber; repl_choosenumber.go)
+	// akEntryOrder is the CR 616.1 order between an as-enters copy and the
+	// other replacements over the same entry, asked with the spell still on
+	// the stack (s.g.pre only; repl_entryclone.go)
+	akEntryOrder uint8 = 10
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -105,67 +109,15 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if g.anyEntUntap && face == 0 {
 		ovr = s.entryOrderEnter(k, sl, o) // the CR 616.1 order ask's result, or a stall (repl_entryorder.go)
 	}
-	if face == 0 && g.has(cid, gfEnterRepl) {
-		cd := &k.t.Cards[cid]
-		// the entering permanent's own X (CR 107.3f): its cast X when it is
-		// the resolving spell, 0 when another effect put it onto the
-		// battlefield, never that effect's X (Mind into Matter's)
-		selfX := s.res.e.x
-		if s.res.active {
-			s.res.e.x = s.spellX(o)
-		}
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
-				ctx := evalCtx{src: o, srcSl: sl, ctrl: p.ctrl}
-				if s.res.active {
-					ctx.e = &s.res.e
-				}
-				ok := a.Repl.Cond == 0 || s.condEval(k, a.Repl.Cond, ctx)
-				if debugEntersTappedMutate != 0 && a.Repl.Cond != 0 {
-					if debugEntersTappedMutate == 1 {
-						ok = true
-					} else if !ok {
-						// mutation: evaluate with the entering object on the
-						// battlefield (gorge excludes it; the kernel cleared it
-						// from occ/ctrlM above)
-						s.occ.set(sl)
-						s.ctrlM[p.ctrl].set(sl)
-						ok = s.condEval(k, a.Repl.Cond, ctx)
-						s.occ.clr(sl)
-						s.ctrlM[p.ctrl].clr(sl)
-					}
-				}
-				if ok {
-					s.runReplProg(k, sl, cid, uint8(i), 0)
-				}
-			}
-		}
-		s.res.e.x = selfX
-	}
-	for m := s.statM; m.any(); m = m.rest() {
-		src := m.first()
-		if src == sl || s.genLost(k, src) {
-			continue
-		}
-		scid := s.cardAt(src)
-		if !g.has(scid, gfOthersRep) {
-			continue
-		}
-		sp := &s.perms[src]
-		cd := &k.t.Cards[scid]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplOthersEnterProgram {
-				continue
-			}
-			s.occ.set(sl) // the filter reads the entering object
-			ok := s.matchPermGen(k, a.Repl.Filter, sl, sp.ctrl, src, layerFull)
-			s.occ.clr(sl)
-			if ok {
-				s.runReplProgAs(k, sl, scid, uint8(i), 0, src)
-			}
-		}
+	// The entrant's own enters programs and the other permanents' enter
+	// replacements apply in the order the answered CR 616.1 asks named, when
+	// any were posed (repl_entryclone.go); otherwise the own line comes
+	// first, as before.
+	if s.g.pre.ordN > 0 && s.g.pre.obj == o {
+		s.runEntryOrdered(k, sl, o, cid, p.ctrl, face, g)
+	} else {
+		s.runOwnEnterPrograms(k, sl, o, cid, p.ctrl, face)
+		s.runOthersEnterPrograms(k, sl, g, s.statM)
 	}
 	s.g.replaced = saveRep
 	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
@@ -189,6 +141,80 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.entryWinClose(k, sl, p)
 	}
 	s.refreshTy(k)
+}
+
+// runOwnEnterPrograms applies the entering card's own enters programs (its
+// as-enters copy, its enters-with bodies), with the permanent at sl as the
+// source.
+func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, face uint8) {
+	if face != 0 || !k.gen.has(cid, gfEnterRepl) {
+		return
+	}
+	cd := &k.t.Cards[cid]
+	// the entering permanent's own X (CR 107.3f): its cast X when it is
+	// the resolving spell, 0 when another effect put it onto the
+	// battlefield, never that effect's X (Mind into Matter's)
+	selfX := s.res.e.x
+	if s.res.active {
+		s.res.e.x = s.spellX(o)
+	}
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
+			ctx := evalCtx{src: o, srcSl: sl, ctrl: ctrl}
+			if s.res.active {
+				ctx.e = &s.res.e
+			}
+			ok := a.Repl.Cond == 0 || s.condEval(k, a.Repl.Cond, ctx)
+			if debugEntersTappedMutate != 0 && a.Repl.Cond != 0 {
+				if debugEntersTappedMutate == 1 {
+					ok = true
+				} else if !ok {
+					// mutation: evaluate with the entering object on the
+					// battlefield (gorge excludes it; the kernel cleared it
+					// from occ/ctrlM above)
+					s.occ.set(sl)
+					s.ctrlM[ctrl].set(sl)
+					ok = s.condEval(k, a.Repl.Cond, ctx)
+					s.occ.clr(sl)
+					s.ctrlM[ctrl].clr(sl)
+				}
+			}
+			if ok {
+				s.runReplProg(k, sl, cid, uint8(i), 0)
+			}
+		}
+	}
+	s.res.e.x = selfX
+}
+
+// runOthersEnterPrograms applies the "as this enters" replacement of each
+// permanent in m that matches the entrant at sl.
+func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
+	for ; m.any(); m = m.rest() {
+		src := m.first()
+		if src == sl || s.genLost(k, src) {
+			continue
+		}
+		scid := s.cardAt(src)
+		if !g.has(scid, gfOthersRep) {
+			continue
+		}
+		sp := &s.perms[src]
+		cd := &k.t.Cards[scid]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplOthersEnterProgram {
+				continue
+			}
+			s.occ.set(sl) // the filter reads the entering object
+			ok := s.matchPermGen(k, a.Repl.Filter, sl, sp.ctrl, src, layerFull)
+			s.occ.clr(sl)
+			if ok {
+				s.runReplProgAs(k, sl, scid, uint8(i), 0, src)
+			}
+		}
+	}
 }
 
 // runReplProg runs ability ab of card c (a replacement program) from pc
@@ -519,6 +545,7 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
+	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
@@ -795,6 +822,12 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	}
 	if s.g.pre.state == 1 {
 		d.Kind = DkChoose
+		if s.g.pre.kind == akEntryOrder {
+			d.Player = s.cloneEntryCtrl()
+			d.Sub = ChGenReplOrder // gorge's KReplacement order ask (repl_entryclone.go)
+			s.cloneEntryOrderOptions(k, d)
+			return true
+		}
 		if s.g.pre.land {
 			d.Player = s.prio // the land's player still holds priority
 		} else {
@@ -860,6 +893,10 @@ func (s *State) applyGen(k *prep, a Action) {
 		return
 	}
 	if s.g.pre.state == 1 {
+		if s.g.pre.kind == akEntryOrder {
+			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
+			return
+		}
 		s.g.pre.val = a.Mode()
 		if s.g.pre.kind == akClone {
 			s.g.pre.val = cloneAnswer(a)
@@ -874,7 +911,11 @@ func (s *State) applyGen(k *prep, a Action) {
 		} else {
 			s.resolveTop(k) // the permanent enters with the choice made
 		}
-		s.g.pre = preAsk{}
+		// a second pre-ask posed by the resolution (the entry order) stays
+		// posed; otherwise the answered choice is done
+		if s.g.pre.state != 1 {
+			s.g.pre = preAsk{}
+		}
 		return
 	}
 	if s.g.leyOn {

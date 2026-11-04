@@ -125,11 +125,11 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// to the captured frames moves it, because the frames' bytes seed the worlds;
 		// attribute such a move by hiding the field (json:"-"), which must restore the
 		// old digest. Measured: frames 126, attempts 64, accepted 13, worlds 8.
-		{"pre-optimisation sampler", true, "402f31816c56e38e252fc9ae9b0694b30171d91ba10dcf15f8016972a5aac349"},
+		{"pre-optimisation sampler", true, "0a8a0ed57f81d1c54d9e0b8adc5113e54520b79497726de5171e4e313bd29f49"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Measured: accepted 31, ESS 31.
-		{"land exclusion", false, "e9b70c702411030b14878712449d56c6c0d32f5e8bfeaa8b78b020a271debd39"},
+		{"land exclusion", false, "be1b093615ab21404ab4bfec17bf735377e55cf62642bc612e017084ac5be487"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -264,7 +264,7 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// includes WinsOverBaseline/LossesToBaseline, the paired terminal outcomes
 	// against candidate 0. Measured: Rollouts 32, Submits 5458, Terminal 32,
 	// Capped 0.
-	const want = "3d031979c9fce0452030f51fc03a9b0fe99cc0d9ce7a53be3f629e6e57ec9491"
+	const want = "c6078ba0d54ec8d3fdc094dee87ed1fe3453c31e32754868de748484c4e83647"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

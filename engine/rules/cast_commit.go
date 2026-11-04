@@ -468,18 +468,8 @@ func (e *Engine) payCast() {
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
-		// A target answer can suspend payment in the 601.2g mana window.
-		// The ability object was already minted by pushActivation (CR 602.2a);
-		// record the answer on either the immediate pay path or a resumed
-		// payCast, before finishTargetedCast's dispatch.
-		if pc.stackObj != 0 && pc.rootOpts != nil {
-			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
-		}
 		// CR 601.2d / 602.2b: the announced division, after the root targets.
 		e.recordCastDivision(pc)
-		// The chain links' announced targets (CR 601.2c / 602.2b), after the
-		// root's: the chain targets are recorded only now.
-		e.recordCastSubTargets(pc)
 		// CR 601.2h: payment can now complete on a later cost answer (the
 		// cost-object asks are posed from here), so the dispatch fires on
 		// every payCast outside a target answer's continuation -- the

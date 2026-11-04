@@ -17,6 +17,13 @@ type ctrClearCards struct{ pupil, bear, destroy, watcher CardID }
 
 func ctrClearScen(t *testing.T) (*scen, ctrClearCards) {
 	t.Helper()
+	return ctrClearScenHears(t, int16(kop.CtrP1P1))
+}
+
+// ctrClearScenHears is ctrClearScen with the watcher listening for counter
+// kind hears (kop.TrigNAnyCounter: every kind).
+func ctrClearScenHears(t *testing.T, hears int16) (*scen, ctrClearCards) {
+	t.Helper()
 	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
 	set := cardsettest.Set(t, "fdn")
 	tbl, _, _, err := set.Matchup(deck, deck)
@@ -37,7 +44,7 @@ func ctrClearScen(t *testing.T) (*scen, ctrClearCards) {
 			Targets: [kop.MaxTargets]kop.TargetSpec{{Kind: kop.TgtObject, Filter: any}}, NTargets: 1,
 			Prog: []kop.Instr{{Op: kop.OpDestroy, Obj: kop.RefTarget0}}}}},
 		kop.CardDef{Name: "Test Watcher", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbTriggered,
-			Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce},
+			Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce, N: hears},
 			Prog: []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}}}})
 	return newScenTable(t, tbl, Config{NoElide: true}), c
 }

@@ -232,11 +232,11 @@ func TestRoomFaceSurvivesCounterAndBounce(t *testing.T) {
 	}
 }
 
-// TestRoomFace1NotPlanned: gorge's cast planner plans face 0 only
-// (rules payment_plan.go planCastPaymentChecked), so a Room back in the
-// hand showing door 1 has no planned plain cast even when untapped Islands
-// and an empty pool could pay it.
-func TestRoomFace1NotPlanned(t *testing.T) {
+// TestRoomFace1Planned: gorge's cast planner prices the face the object
+// shows (rules payment_plan.go planCastPaymentChecked, CR 709.3), so a Room
+// back in the hand showing door 1 has a planned plain cast when untapped
+// Islands and an empty pool can pay it.
+func TestRoomFace1Planned(t *testing.T) {
 	sc, id := roomsScen(t, "Bottomless Pool", "Island")
 	cd := &sc.k.t.Cards[id["Bottomless Pool"]]
 	for i := 0; i < 6; i++ {
@@ -252,8 +252,8 @@ func TestRoomFace1NotPlanned(t *testing.T) {
 	if sc.s.rbAny(0) || sc.s.pl[0].pool != [kop.NumManaKinds]uint8{} {
 		t.Fatal("the pool is not empty")
 	}
-	if sc.s.FeatPlannedCast(0, b, 0) {
-		t.Fatal("gorge's cast planner planned a face-1 Room's plain cast")
+	if !sc.s.FeatPlannedCast(0, b, 0) {
+		t.Fatal("gorge's cast planner did not plan a face-1 Room's plain cast")
 	}
 }
 

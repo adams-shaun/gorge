@@ -132,7 +132,8 @@ func TestGraveChooseMoveConfirm(t *testing.T) {
 // creature onto the battlefield attacking the opponent during the
 // controller's declare-attackers step (gorge TokenAttacks fold), declared
 // nothing; outside combat it just enters; with an opposing planeswalker the
-// game stalls (gorge asks entering_defender).
+// CR 508.4 defender is asked (gorge entering_defender), the opponent player
+// listed first.
 func TestEnterAttackingMarksAttacker(t *testing.T) {
 	var bear, walker CardID
 	build := func() (*scen, []kop.Instr, Obj) {
@@ -176,10 +177,23 @@ func TestEnterAttackingMarksAttacker(t *testing.T) {
 	}
 	sc, prog, o = build()
 	sc.s.step = kop.StepAttackers
-	sc.perm(walker, 1)
-	sc.s.exec(sc.k, &prog[0])
-	if sc.s.StallReason() != StallEnterDefender {
-		t.Fatalf("stall %q, want enterdefender", StallName(sc.s.StallReason()))
+	sc.s.nAttackers = 0
+	walk := sc.perm(walker, 1)
+	if sc.s.exec(sc.k, &prog[0]) {
+		t.Fatal("the entry should suspend at the CR 508.4 defender ask")
+	}
+	var d Decision
+	if sc.s.res.ask != raGenEnterDefender || sc.s.res.chosen != uint8(sc.slot(o)) {
+		t.Fatalf("ask %d slot %d, want the CR 508.4 defender ask for slot %d", sc.s.res.ask, sc.s.res.chosen, sc.slot(o))
+	}
+	if !sc.s.resolveOptionsGen(sc.k, &d) || d.N != 2 || d.Sub != ChGenEnterDefender ||
+		d.Options[0].Source() != PlayerTarget0+1 || d.Options[1].Source() != uint8(walk) {
+		t.Fatalf("options %+v, want the opponent player then the walker", d.Options[:d.N])
+	}
+	sc.s.applyAskCold1(sc.k, d.Options[1]) // answer: the walker
+	p = &sc.s.perms[sc.slot(o)]
+	if p.flags&pfAttacking == 0 || p.atk != uint8(walk) || p.bord != 0 || sc.s.nAttackers != 1 {
+		t.Fatalf("attacking %v atk %d bord %d nAttackers %d, want attacking the walker", p.flags&pfAttacking != 0, p.atk, p.bord, sc.s.nAttackers)
 	}
 }
 

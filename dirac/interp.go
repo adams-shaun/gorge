@@ -1055,6 +1055,58 @@ func (s *State) finishPeek(k *prep) {
 		s.objs[r.peek[i]].zone = kop.ZoneNone
 	}
 	pl.libLo += uint8(n) // the peeked cards are the top n, in order
+	var rest [8]Obj      // res.peek's window
+	nr := 0
+	for i := top; i < int(r.peekI); i++ { // the rest phase's picks
+		rest[nr] = r.arr[i]
+		nr++
+	}
+	for i := 0; i < n; i++ {
+		if (r.peekSel|r.restSel)&(1<<i) == 0 {
+			rest[nr] = r.peek[i]
+			nr++
+		}
+	}
+	remember := s.prog(k)[r.pc].C&kop.MvRemember != 0
+	parked := -1
+	if r.ask != raScryTop {
+		// the move has not happened yet: gorge's replacement predicate reads
+		// these cards in the library, where a competing order ask leaves them
+		for i := 0; i < nr; i++ {
+			s.objs[rest[i]].zone = kop.ZoneLibrary
+		}
+		parked = s.parkRests(k, rest[:nr], remember)
+	}
+	if parked >= 0 {
+		for i := 0; i < parked; i++ { // earlier rest cards move at once
+			s.putRest(k, rest[i])
+		}
+		// the asked ones wait in the library but off its list, as gorge's
+		// look leaves them (zone 0, no position), on top of which the
+		// kept cards go
+		s.returnKept(k, p, top)
+		return // the CR 616.1 ask is posed before those moves
+	}
+	if r.ask != raScryTop {
+		for i := 0; i < nr; i++ {
+			s.objs[rest[i]].zone = kop.ZoneNone
+		}
+	}
+	s.returnKept(k, p, top)
+	for _, o := range rest[:nr] {
+		s.putRest(k, o)
+	}
+	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
+		s.scryAnswered(k, p) // value_scrytally.go
+	}
+}
+
+// returnKept puts the cards the arrange kept back on top of the library in
+// pick order (the first pick on top) and records a surveil's kept ones when the
+// move asks for it.
+func (s *State) returnKept(k *prep, p uint8, top int) {
+	pl := &s.pl[p]
+	r := &s.res
 	for i := top - 1; i >= 0; i-- {
 		o := r.arr[i]
 		s.objs[o].zone = kop.ZoneLibrary
@@ -1062,17 +1114,6 @@ func (s *State) finishPeek(k *prep) {
 	}
 	if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
 		s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
-	}
-	for i := top; i < int(r.peekI); i++ { // the rest phase's picks
-		s.putRest(k, r.arr[i])
-	}
-	for i := 0; i < n; i++ {
-		if (r.peekSel|r.restSel)&(1<<i) == 0 {
-			s.putRest(k, r.peek[i])
-		}
-	}
-	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
-		s.scryAnswered(k, p) // value_scrytally.go
 	}
 }
 

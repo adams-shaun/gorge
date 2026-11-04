@@ -660,16 +660,17 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			stageBase := len(pc.targets)
 			pc.targets = append(pc.targets, targetOptions(ordered)...)
 			e.repriceForTargets(pc)
+			// CR 601.2c: the chosen objects are targets now, before the
+			// ability's costs are paid.
+			if pc.stackObj != 0 {
+				e.recordChosenTargets(pc.stackObj, ordered, stageBase > 0)
+			}
 			if !pc.isAbility() {
-				if pc.stackObj != 0 {
-					e.recordChosenTargets(pc.stackObj, ordered, stageBase > 0)
-				}
 				if e.postTargetAsks(pc) {
 					return
 				}
 				e.payCast()
 			} else {
-				pc.rootOpts = append([]decision.Option(nil), ordered...)
 				// This arm dispatches itself after payCast (below), so
 				// payment that completes here -- including on a later cost
 				// answer's resumed payCast (CR 601.2h) -- must not dispatch
@@ -678,10 +679,6 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				e.payCast()
 				pc.targetedFinish = false
 				if pc.activationPaid {
-					// The targets were recorded once by cast_commit's
-					// activationPaid tail (recordChosenTargets on
-					// pc.stackObj); recording them here as well would emit a
-					// second TargetsChosen set for one activation.
 					e.cast = pc
 					e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 					e.cast = nil
@@ -757,10 +754,15 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			pc.stageTargets[pc.targetStage] = append(pc.stageTargets[pc.targetStage], targetOptions(chosen)...)
 		}
 		e.repriceForTargets(pc)
+		// CR 601.2c: the chosen objects are targets of the spell or ability
+		// from this answer, before any cost is paid (601.2h). Both objects
+		// already exist -- pushCast's spell, pushActivation's ability (CR
+		// 602.2a) -- so the record lands on the object the cost window and
+		// its replacements can already see.
+		if pc.stackObj != 0 {
+			e.recordChosenTargets(pc.stackObj, chosen, stageBase > 0)
+		}
 		if !pc.isAbility() {
-			if pc.stackObj != 0 {
-				e.recordChosenTargets(pc.stackObj, chosen, stageBase > 0)
-			}
 			// CR 702.101b: after the front half's targets, ask the alternate
 			// half's before payment. targetAsk skips a targetless half and the
 			// cast pays once every target stage is settled.
@@ -770,12 +772,6 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 					return
 				}
 			}
-		} else {
-			// The ability object is already pushed (CR 602.2a), but the root
-			// answer's options ride pc.rootOpts for the payment tail's
-			// recordChosenTargets; the post-target stages (alltargeted1's sub
-			// pre-asks, the CollectEvidence ask) run BEFORE payment (CR 601.2c).
-			pc.rootOpts = append([]decision.Option(nil), chosen...)
 		}
 		// alltargeted1: the post-target announcement stages -- the chain sub
 		// pre-asks first, then the CollectEvidence ask whose amount reads the

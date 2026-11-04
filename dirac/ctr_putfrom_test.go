@@ -27,9 +27,8 @@ func TestPutCountersFrom(t *testing.T) {
 }
 
 // TestPutCountersFromOrderStall: with a counter-added trigger in the
-// table a two-kind source stalls (StallCtrOrder: gorge's per-kind event
-// order is the source's insertion order), while a one-kind source copies
-// and fires the trigger once.
+// table a one-kind source copies and fires the trigger once. (Two kinds that
+// the trigger hears stall: TestPutCountersFromHeardOrder.)
 func TestPutCountersFromOrderStall(t *testing.T) {
 	sc, c := ctrClearScen(t)
 	sc.perm(c.watcher, 0)
@@ -39,15 +38,6 @@ func TestPutCountersFromOrderStall(t *testing.T) {
 	sc.ctrClearKill(t, c, pupil, bear)
 	if p := &sc.s.perms[sc.slot(bear)]; p.ctrLow(int(kop.CtrP1P1)) != 1 || sc.s.pl[0].life != life+1 {
 		t.Fatalf("one kind: bear +1/+1 %d (want 1), life %d -> %d (want +1 from the counter-added trigger)", p.ctrLow(int(kop.CtrP1P1)), life, sc.s.pl[0].life)
-	}
-	sc2, c2 := ctrClearScen(t)
-	sc2.perm(c2.watcher, 0)
-	pupil2, bear2 := sc2.perm(c2.pupil, 0), sc2.perm(c2.bear, 0)
-	sc2.s.perms[sc2.slot(pupil2)].addCtrN(sc2.s, int(kop.CtrP1P1), 1)
-	sc2.s.perms[sc2.slot(pupil2)].addCtrN(sc2.s, int(kop.CtrStun), 1)
-	sc2.ctrClearKill(t, c2, pupil2, bear2)
-	if sc2.s.StallReason() != StallCtrOrder {
-		t.Fatalf("two kinds beside a counter-added trigger: stall %d, want StallCtrOrder", sc2.s.StallReason())
 	}
 }
 
