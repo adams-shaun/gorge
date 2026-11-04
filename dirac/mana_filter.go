@@ -68,6 +68,17 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	if k.gen.anyFiltFirst {
 		return s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
 	}
+	return s.filtCandidates(k, p)
+}
+
+// filtCandidates is p's untapped filter sources regardless of whether the
+// live pool can pay their fee: the prefix search prices the fee at each node,
+// so a first-only filter still warrants a candidate (Barrels of Blasting
+// Jelly becomes payable after an earlier gap floats its {1}).
+func (s *State) filtCandidates(k *prep, p uint8) slotMask {
+	if !k.gen.anyFilt {
+		return slotMask{}
+	}
 	m := s.gapMask(k, p, gfFilt)
 	if k.gen.anyAbReduce {
 		for b := m; b.any(); b = b.rest() {
