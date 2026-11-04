@@ -32,7 +32,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 103.8b | n/a | - | - | no 2HG |
 | 103.8c | n/a | - | - | - |
 | 104.1 | follows | `dirac/zones.go#State.checkOver` | - | - |
-| 104.2-104.2a | follows | `dirac/zones.go#State.checkOver` | - | sole survivor's own "can't win" blocks game end (test-verified); |
+| 104.2-104.2a | follows | `dirac/zones.go#State.checkOver` | `TestStdSetReprosLockstep` | sole survivor's own "can't win" blocks game end (test-verified); a survivor kept alive at 0 life only by a departed player's card (a stolen Georgiou, Terran Emperor) wins at once, as gorge ends the check at the last player left; |
 | 104.2b | follows | `dirac/act_gameover.go#State.winGame` `dirac/interp.go#State.exec` | `TestGameoverLockstep` | DB$ WinsGame (Maze's End): OpLoseGame with C 1; blocked only by an opponent's ReplOppsCantWinGame (gorge gameWinPrevented), ignores the loser's can't-lose; the win arm itself has no lockstep pin (ten different Gates unreached) |
 | 104.2c-104.2d | n/a | - | - | teams/Emperor absent |
 | 104.3-104.3a | not-impl | - | - | gorge: concede only at priority; dirac: no concede, LOUD (dirac/doc.go) |
