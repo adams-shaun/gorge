@@ -36,6 +36,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"granted_colours_before_dual_types", false, false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
 		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"adventure_card_copy_cast", true, false},                // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
 	})
 }
 
