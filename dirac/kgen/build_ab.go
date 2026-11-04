@@ -1950,6 +1950,9 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 		rp.C = k
+		if r.Putter && r.Ctr != "" {
+			rp.A = 1 // one kind, only the controller's own placements (kop.ReplDoubleCountersOn)
+		}
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
