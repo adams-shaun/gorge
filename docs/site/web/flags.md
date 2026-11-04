@@ -53,7 +53,7 @@ for it. `make deploy-demo` serves the demo (`deploy/demo.env.example`). The guid
 | `-max-search-tables` | `8` | maximum live on-demand tables whose policy is a search entry (0 = unlimited) |
 | `-mulligans` | `7` | London mulligans per player before turn 1; 0 disables the pre-game round |
 | `-pace` | `50ms` | sleep after every decision; 0 = as fast as possible |
-| `-paired-bot` | none | let a human player ask a bot to evaluate the decision in front of them: az-closed, or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty |
+| `-paired-bot` | none | let a human player ask a bot to evaluate the decision in front of them: az-closed, or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty or off |
 | `-paired-bot-decks` | none | with -paired-bot az-closed: directory of the decks the bot guesses an opponent's list from (default -decks) |
 | `-paired-bot-searches` | `2` | with -paired-bot: maximum paired-bot searches at once across the server; further requests wait (>= 1) |
 | `-paired-bot-shared` | `false` | with -paired-bot: also offer it at a table with more than one human (t1 under -humans), where every seat is told it is on |
