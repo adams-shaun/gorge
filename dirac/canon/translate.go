@@ -355,6 +355,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("exilecost", src, 0)
 		case dirac.ChCostReturn:
 			return ch("returncost", src, 0)
+		case dirac.ChCostPutToLib:
+			return ch("puttolibcost", src, 0)
 		case dirac.ChGenCasualty:
 			return ch("casualty", src, 0) // gorge optionalSacrificeAsk: Option.Kind "casualty"
 		case dirac.ChGenBargain:

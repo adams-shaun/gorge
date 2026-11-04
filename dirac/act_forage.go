@@ -107,12 +107,30 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 		return true // a spell's behold part (act_behold.go)
 	}
 	pc := s.buildPickCost(k)
-	if pc == nil || pc.Flags&costObjFlags == 0 {
+	if pc == nil || pc.Flags&costObjFlags == 0 && !pc.PutLibSelf {
 		return false
 	}
 	exclude := NoObj
 	if e.kind == seSpell {
 		exclude = e.obj
+	}
+	if pc.PutLibSelf {
+		// PutCardToLibFromGrave<1/-1/CARDNAME> (gorge putToLibAsk): the
+		// source card in its owner's graveyard is the only candidate, and
+		// gorge still asks, so the kernel poses the one-option pick.
+		if s.bld().donePicks&pkPutLib != 0 {
+			return false
+		}
+		d.N = 0
+		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneGraveyard {
+			d.add(MakeAction(AkChoose, uint8(e.obj), 0, 0))
+		}
+		if d.N == 0 {
+			panic("kernel: put-to-library cost no longer payable") // unreachable after the offer gate
+		}
+		s.bld().pickK = pkPutLib
+		d.Kind, d.Sub, d.Player = DkChoose, ChCostPutToLib, e.ctrl
+		return true
 	}
 	if pc.Flags&kop.CostForage != 0 && s.bld().donePicks&pkForage == 0 {
 		d.N = 0
@@ -210,6 +228,12 @@ func (s *State) answerCostObj(a Action) {
 	}
 	if s.bld().pickK == pkBlight {
 		s.bld().donePicks |= pkBlight
+		s.recordPick(Obj(a.Source()))
+		s.bld().pickK = 0
+		return
+	}
+	if s.bld().pickK == pkPutLib {
+		s.bld().donePicks |= pkPutLib
 		s.recordPick(Obj(a.Source()))
 		s.bld().pickK = 0
 		return
