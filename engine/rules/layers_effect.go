@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -779,6 +780,10 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 			changed = true
 			continue // the effect ends: not kept
 		}
+		if stackBoundReplacementLeft(&ce, ev) {
+			changed = true
+			continue // the effect ends: not kept
+		}
 		if ce.ChosenBound && mayPlayChosenLeftZone(&ce, ev) {
 			ce.Chosen = objIDWithout(ce.Chosen, ev.Obj)
 			changed = true
@@ -873,6 +878,28 @@ func mayPlayRememberedLeftZone(ce *state.ContinuousEffect, ev events.Event) bool
 		}
 	}
 	return false
+}
+
+// stackBoundReplacementLeft reports whether ev ends ce, an Effect-created
+// Event$ Moved replacement with Origin$ Stack whose IsRemembered ValidCard$
+// names its one remembered card -- the spell its trigger captured
+// (Storied Veteran's and Overflow Submatrix's "it enters with a finality
+// counter", the Mikey & Don / Osteomancer Adept riders, River Song's Diary's
+// "exile it instead"). The replacement is about that spell, and once the
+// spell leaves the stack, whether it resolved into the replaced entry or was
+// countered, the card is a new object (CR 400.7) that the effect no longer
+// names. Left registered, the effect would re-apply to the same card's next
+// cast from any zone. Spellings that carry their own ExileOnMoved$ end
+// the same way through the sweep's exile arm.
+func stackBoundReplacementLeft(ce *state.ContinuousEffect, ev events.Event) bool {
+	if ev.From != state.ZStack || ev.To == state.ZStack || ce.ReplacementEvent != "Moved" ||
+		len(ce.Remembered) != 1 || ce.Remembered[0] != ev.Obj {
+		return false
+	}
+	if strings.TrimSpace(ce.ReplacementParams[cards.PKOrigin.String()]) != "Stack" {
+		return false
+	}
+	return strings.Contains(ce.ReplacementParams[cards.PKValidCard.String()], "IsRemembered")
 }
 
 // mayPlayChosenLeftZone is mayPlayRememberedLeftZone for the chosen-card
