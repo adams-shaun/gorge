@@ -67,6 +67,10 @@ func (s *State) mayAsk(k *prep, in *kop.Instr) bool {
 		if !s.animateAllAsks(k, next) { // copy_definedvalid.go
 			return true
 		}
+	case kop.MayGuardStackSpell:
+		if !s.stackSpellAsks(k, in, next) { // zone_stackexile.go
+			return true
+		}
 	case kop.MayGuardCloneCopy:
 		if !s.cloneAsks(k, next) { // copy_clone.go
 			return true

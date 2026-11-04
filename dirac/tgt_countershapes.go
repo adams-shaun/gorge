@@ -93,6 +93,9 @@ func (s *State) counterRiders(k *prep, i int, bits int) {
 	if e.kind != seSpell {
 		return
 	}
+	if bits&kop.CtrRemember != 0 && !DebugBluffNoRemember {
+		s.remember(e.obj)
+	}
 	if bits&kop.CtrRemMV != 0 && !s.faceDownAt(k, e.obj) {
 		v := int(s.res.remLK) + s.objMV(k, s.objs[e.obj].card, e.obj)
 		if v > 32767 {

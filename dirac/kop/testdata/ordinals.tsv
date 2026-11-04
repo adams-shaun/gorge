@@ -204,6 +204,7 @@ CtrPromotion	CounterKind	62
 CtrQuest	CounterKind	18
 CtrReach	CounterKind	31
 CtrRemMV	untyped int	1
+CtrRemember	untyped int	2
 CtrRev	CounterKind	49
 CtrRevival	CounterKind	11
 CtrShadow	CounterKind	32
@@ -525,6 +526,7 @@ MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
 MayGuardMove	untyped int	2
+MayGuardStackSpell	untyped int	9
 MayGuardSuspect	untyped int	3
 MayPlayAdvKind	untyped int	1
 MayPlayAdventure	untyped int	256
