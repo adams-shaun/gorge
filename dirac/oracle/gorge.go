@@ -250,6 +250,7 @@ type prioEntry struct {
 // engine's random outcomes (rules.NewHypothetical; Replay's forced outcomes).
 func NewGorgeSide(m *Matchup, seed uint64, cfg Config, chance []rules.ChanceDraw) (*GorgeSide, error) {
 	g := &GorgeSide{M: m, Cfg: cfg}
+	g.id.setLayout(m)
 	rc := m.Config(seed)
 	if len(chance) > 0 {
 		e, err := rules.NewHypothetical(rc, chance)
@@ -1391,7 +1392,7 @@ func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 // play was then paid (the script reached a priority decision that prices it).
 func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: false}
-	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned}
+	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard}
 	if g.hyp {
 		// A hypothetical engine's chance state does not survive Clone's
 		// plain submit path; run the probe through SubmitHypothetical too.
@@ -1414,7 +1415,7 @@ func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 // only passed until the game ended.
 func (g *GorgeSide) lowerCompletes(pe prioEntry) bool {
 	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp}
-	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned}
+	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard}
 	return func() (ok bool) {
 		defer func() {
 			if recover() != nil {

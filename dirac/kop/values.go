@@ -439,3 +439,12 @@ const ExOppsAttacked ExprKind = 229
 // (any player's; CR 702.185). It has no filter: gorge strips the
 // "CastSa Spell.Warp" token per cast from that cast's own pay-time flags.
 const ExVoid ExprKind = 254
+
+// ExFirstCast (high expr kind): Sub[0] if the resolving spell was the first
+// spell its controller cast this game, else Sub[1]. Forge's static SpellCast
+// trigger writes Count$YouCastThisGame into an SVar the moment the spell is
+// cast (before a response can add casts), and the chain compares it with
+// EQ1; the flag is stamped at cast (dirac/cast_firstcast.go), never counted
+// at resolution. A stack copy keeps the original's stamp, as gorge's copy
+// reads the original object's stored SVar.
+const ExFirstCast ExprKind = 255

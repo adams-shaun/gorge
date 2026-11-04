@@ -288,6 +288,7 @@ func verifyLog(m *Matchup, seed uint64, chance []rules.ChanceDraw, l *events.Log
 func RecordChance(cfg Config) SideFactory {
 	return func(m *Matchup, seed uint64) (Side, error) {
 		g := &GorgeSide{M: m, Cfg: cfg}
+		g.id.setLayout(m)
 		e, err := rules.NewHypothetical(m.Config(seed), nil)
 		if err != nil {
 			return nil, err

@@ -28,6 +28,11 @@ type Matchup struct {
 	Table []string
 	// Deck[s][i] is the table index of deck s's i-th card.
 	Deck [2][]uint8
+	// Sideboards are the cards outside the game (CR 400.11), gorge's
+	// Config.Sideboards; Side[s][i] is the table index of seat s's i-th. A
+	// sideboard card is a card instance after both decks' (InstanceCard).
+	Sideboards [2][]*cards.Card
+	Side       [2][]uint8
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
@@ -146,14 +151,21 @@ func (c *Corpus) Matchup(a, b string, mulligans int) (*Matchup, error) {
 
 // NewMatchup builds a matchup from resolved decks.
 func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mulligans int) (*Matchup, error) {
-	m := &Matchup{Names: names, Decks: decks, Mulligans: mulligans, reg: reg}
+	return NewMatchupSide(reg, names, decks, [2][]*cards.Card{}, mulligans)
+}
+
+// NewMatchupSide is NewMatchup with each seat's sideboard.
+func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][]*cards.Card, mulligans int) (*Matchup, error) {
+	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, reg: reg}
 	seen := map[string]bool{}
-	for _, d := range decks {
-		for _, c := range d {
-			n := cardName(c)
-			if !seen[n] {
-				seen[n] = true
-				m.Table = append(m.Table, n)
+	for _, ds := range [...][2][]*cards.Card{decks, sideboards} {
+		for _, d := range ds {
+			for _, c := range d {
+				n := cardName(c)
+				if !seen[n] {
+					seen[n] = true
+					m.Table = append(m.Table, n)
+				}
 			}
 		}
 	}
@@ -161,12 +173,17 @@ func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mu
 	if len(m.Table) >= int(NoCardIndex) {
 		return nil, fmt.Errorf("matchup %v: %d distinct cards, the table holds %d", names, len(m.Table), NoCardIndex)
 	}
-	if n := len(decks[0]) + len(decks[1]); n >= MaxInst {
+	if n := len(decks[0]) + len(decks[1]) + len(sideboards[0]) + len(sideboards[1]); n >= MaxInst {
 		return nil, fmt.Errorf("matchup %v: %d deck cards, a projection holds %d instances", names, n, MaxInst)
 	}
 	for s, d := range decks {
 		for _, c := range d {
 			m.Deck[s] = append(m.Deck[s], uint8(sort.SearchStrings(m.Table, cardName(c))))
+		}
+	}
+	for s, d := range sideboards {
+		for _, c := range d {
+			m.Side[s] = append(m.Side[s], uint8(sort.SearchStrings(m.Table, cardName(c))))
 		}
 	}
 	return m, nil
@@ -180,6 +197,9 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	cfg := rules.Config{
 		Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]},
 		Mulligans: m.Mulligans,
+	}
+	if len(m.Sideboards[0])+len(m.Sideboards[1]) > 0 {
+		cfg.Sideboards = [][]*cards.Card{m.Sideboards[0], m.Sideboards[1]}
 	}
 	if m.reg != nil {
 		if m.reg.IsSubset() {

@@ -119,13 +119,16 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if p == 255 {
 			p = e.ctrl
 		}
-		n := s.replTokens(k, p, CardID(in.C), s.value(k, in.A))
+		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
+		if !ok {
+			return true // StallTokRewrite
+		}
 		for i := 0; i < n; i++ {
 			if s.nearCapacity() {
 				s.stall(StallBoard)
 				return true
 			}
-			o := s.newToken(CardID(in.C), p)
+			o := s.newToken(tc, p)
 			sl := s.enter(k, o, p, in.B.N&kop.TrTapped != 0, kop.ZoneLibrary)
 			if in.B.N&kop.TrHasteEOT != 0 {
 				s.grantEOT(sl, kop.KwHaste)
@@ -332,7 +335,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				break
 			}
 			s.perms[sl].flags &^= pfTapped
-			if s.g.nlA[0] != 0 {
+			if s.g.netAny() {
 				s.netDrop(s.perms[sl].obj) // the lock ends at the first untap (act_lockpermanent.go)
 			}
 			s.touchSl(sl)
@@ -613,7 +616,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				p.flags &^= pfTapped
-				if s.g.nlA[0] != 0 {
+				if s.g.netAny() {
 					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 				}
 			}
@@ -903,10 +906,12 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if chained {
 			s.flushHeldDiscard(k, r.chosen^1)
 		}
-		for i := 0; i < int(r.peekI); i++ {
-			if chained || !s.park(k, r.arr[i], parkDiscard, 0) {
+		if chained && !s.parkedDiscardWaiting() {
+			for i := 0; i < int(r.peekI); i++ {
 				s.discardObj(k, r.arr[i])
 			}
+		} else { // behind a held pick's ask the chained picks wait too
+			s.discardPicks(k, r.arr[:r.peekI], 0)
 		}
 		r.peekI = 0
 	case raScryTop, raSurveil:

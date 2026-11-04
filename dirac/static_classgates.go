@@ -119,7 +119,7 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StFunctionsInGraveyard == 0 {
-				z |= 1 << a.Static.Zone
+				z |= mayPlayZoneBits(&a.Static)
 			}
 		}
 	}
@@ -128,7 +128,7 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 		for j := range e.Abilities {
 			a := &e.Abilities[j]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StFunctionsInGraveyard == 0 {
-				z |= 1 << a.Static.Zone
+				z |= mayPlayZoneBits(&a.Static)
 			}
 		}
 	}

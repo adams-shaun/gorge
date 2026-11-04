@@ -71,7 +71,7 @@ var stallCapacityReasons = [...]uint8{
 	StallCounters, StallLKI, StallTapPick, StallRegen, StallLook, StallGrants, StallActs, StallLinger, StallSac,
 	StallEntered, StallConvoke, StallCastRing, StallPT, StallActRing, StallCharmOpts, StallRefLatch, StallZone,
 	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
-	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
+	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallPanharmGrant, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
 	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
@@ -83,7 +83,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallShield, StallReplCtr, StallReplLeave, StallCopyFace, StallRoleMulti, StallDefenderPW,
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
-	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
+	StallEntryOrder, StallCopyAllAsk, StallCloneLayer, StallTokRewrite,
 	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,

@@ -153,7 +153,7 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 		return 0, 0
 	}
 	ob := &s.objs[o]
-	if k.phasing && ob.zone >= kop.ZonePhased && ob.slot != NoSlot {
+	if k.phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return s.phasedPT(k, ob.slot)
 	}
 	pc := &k.cards[ob.card]
@@ -236,6 +236,12 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		}
 	case kop.ExCastFromGrave:
 		if s.castFromGrave(e) {
+			v = s.evalV(k, x.Sub[0], ctx)
+		} else {
+			v = s.evalV(k, x.Sub[1], ctx)
+		}
+	case kop.ExFirstCast:
+		if s.firstCast(e) { // cast_firstcast.go
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)

@@ -340,6 +340,14 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
+				// A Spree or Tiered face's mode costs only add to the printed
+				// cost (CR 702.172a/702.183a), so the composition's "insufficient" at
+				// the printed cost is a proof only when some mode adds
+				// nothing: otherwise the cast's cheapest legal total is higher
+				// and a prefix that pays only the printed cost would offer a
+				// cast no mode can pay. With a free mode the census and prefix
+				// search reach a source the planner cannot price (a granted
+				// any-colour mana ability, CR 601.2g).
 				return alt, true
 			}
 		}
@@ -397,6 +405,30 @@ func (e *Engine) manaSpentReaderComposed(id state.ObjID, detail string) bool {
 	_, escalate := o.Face().KeywordParam("Escalate")
 	_, strive := o.Face().KeywordParam("Strive")
 	return !escalate && !strive
+}
+
+// faceModalFloorZero reports a Spree or Tiered face with a mode that adds
+// nothing, so the cast's cheapest legal total is its printed cost (CR
+// 702.172a/702.183a). A mode whose ModeCost$ is printed but unparseable is withheld by
+// the mode gate, so it is no free mode here.
+func faceModalFloorZero(f *cards.Face) bool {
+	if f == nil || !faceHasModeCost(f) {
+		return false
+	}
+	sa := f.SpellAbility()
+	if sa == nil {
+		return false
+	}
+	for _, name := range effects.CharmOf(sa).Modes {
+		c, present, ok := modeCost(f, name)
+		if present && !ok {
+			continue
+		}
+		if !present || c.CMC() == 0 && !c.HasNonMana() {
+			return true
+		}
+	}
+	return false
 }
 
 // relaxedPaid is a missed paid ability's relaxed alternatives and fee.

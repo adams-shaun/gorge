@@ -634,6 +634,9 @@ func (s *State) priorityMayPlay(k *prep, d *Decision, p uint8, sorc, landOK bool
 	if zones&(1<<kop.ZoneLibrary) != 0 {
 		s.tryLibTop(p, try) // cast_topoflibrary.go
 	}
+	if zones&(1<<kop.ZoneSideboard) != 0 && !DebugHolodeckNoSideboard {
+		s.eachSideboard(p, try) // zone_sideboard.go
+	}
 	for i := 0; i < int(pl.handN); i++ {
 		try(pl.hand[i])
 	}
