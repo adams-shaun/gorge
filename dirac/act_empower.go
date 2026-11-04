@@ -191,6 +191,13 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 				filterAttachedOnly(k.t, a.Static.Filter) || srcLost && !keptOnLoss(k.t, a) {
 				continue
 			}
+			if cd.Abilities[a.Static.Grant-1].Kind == kop.AbMana {
+				// a granted mana ability is contGrants' (gfContGrant): listed
+				// here too, a board with any other global grant gave every
+				// grantee the ability twice, and the prefix search asked
+				// which of the two to activate
+				continue
+			}
 			ab := a.Static.Grant - 1
 			dup := false
 			for j := 0; j < nseen; j++ {
