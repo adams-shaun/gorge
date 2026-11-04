@@ -36,6 +36,15 @@ func (s *State) ProjectChars(p *Projection) {
 			// no continuous effect applies to a phased-out permanent
 			// (CR 702.26b; gorge matchesWithCharsPT): its printed
 			// characteristics
+			if s.faceDown(k, sl) {
+				// a face-down permanent stays face down while phased out
+				// (CR 110.5, 708.2): a nameless, colourless 2/2 creature
+				c.Types = kop.TCreature
+				if s.faceDownWard(k, sl) {
+					c.Kw = kop.KwWard
+				}
+				continue
+			}
 			cd := &k.t.Cards[s.cardAt(sl)]
 			c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
 			c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
