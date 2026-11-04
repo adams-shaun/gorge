@@ -267,6 +267,9 @@ func kdbmanactxRun(t *testing.T, n uint64, report, mutate bool, tal *kdbmanactxT
 }
 
 func TestDbmanactxLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	tal := &kdbmanactxTally{resolved: map[string]int{}}
 	kdbmanactxRun(t, 256, true, false, tal)
 	t.Logf("%d games: Hulking Raptor main-phase mana spent %d; activated DB$ Mana resolved %d (%v, Quintorius left red %d)",

@@ -391,6 +391,9 @@ func kdrRun(t *testing.T, seeds uint64, mutate bool) (games, divs, stalls int, s
 }
 
 func TestDskroomsLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, stalls, st := kdrRun(t, 192, false) // 192 seeds x 2 seatings = 384 games
 	t.Logf("games %d counts: %+v", games, st)
 	if divs != 0 {

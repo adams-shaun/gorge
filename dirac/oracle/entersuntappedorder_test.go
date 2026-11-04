@@ -202,6 +202,9 @@ func TestEntersUntappedReplOrderLockstep(t *testing.T) {
 // TestEntersUntappedReplOrderMutation skips the ask and taps last: the lockstep must
 // diverge where gorge poses the order.
 func TestEntersUntappedReplOrderMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runRepletb(t, 32, true)
 	if divs[0]+divs[1] == 0 {
 		t.Error("the mutation skipped the entry-order ask with no divergence")

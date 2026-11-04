@@ -25,6 +25,9 @@ var splitsecondDecks = [2][]cardset.Entry{
 }
 
 func TestSplitSecondGrantPlaysInLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	if n := lockstepRun(t, "splitsecond", splitsecondDecks, 200, true, nil); n != 0 {
 		t.Fatalf("%d divergent games", n)
 	}

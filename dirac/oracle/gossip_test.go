@@ -71,6 +71,9 @@ func kgossipCheck(tal *kgossipTally) func(*GorgeSide, Side) *Divergence {
 }
 
 func TestGossipLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var tal kgossipTally
 	_, stalled := sonRunStalls(t, "gossip", kgossipMatchups, 300, true, nil, kgossipCheck(&tal))
 	t.Logf("%d games: %d Gossip's Talent level-2 triggers resolved with a legal target; %d stalled loud", tal.games, tal.resolved, stalled)

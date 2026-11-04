@@ -150,6 +150,9 @@ func TestCounteraddedLockstep(t *testing.T) {
 // plan card re-fires, so the games must diverge. A green mutation (no
 // divergence) means the lockstep never reaches a counter put past the Nth.
 func TestCounteraddedMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _ := runCounteradded(t, 256, true)
 	if divs == 0 {
 		t.Fatalf("mutation re-fired the plan card in %d games with no divergence", games)

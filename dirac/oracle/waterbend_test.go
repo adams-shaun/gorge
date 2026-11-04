@@ -271,6 +271,9 @@ func TestWaterbendLockstep(t *testing.T) {
 
 // An equipped Equipment can pay: it is still an untapped artifact (CR 701.67a).
 func TestWaterbendTapsAttachedEquipment(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := wbDeck(
 		cardset.Entry{Name: "Foggy Swamp Vinebender", Count: 8}, cardset.Entry{Name: "Bonesplitter", Count: 8},
 		cardset.Entry{Name: "Grizzly Bears", Count: 8}, cardset.Entry{Name: "Forest", Count: 16},

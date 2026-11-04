@@ -10,6 +10,9 @@ import (
 // a creature" then does not fire, even with Necrosquito's noncreature dies line on
 // the table (CR 700.4).
 func TestDiesIfItWasACreature(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Tom, Bert, and William", Count: 8}, {Name: "Deadly Dispute", Count: 8}, {Name: "Doom Blade", Count: 6},
 		{Name: "Necrosquito", Count: 4}, {Name: "Swamp", Count: 8}, {Name: "Forest", Count: 6},

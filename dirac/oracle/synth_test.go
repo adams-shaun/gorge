@@ -611,6 +611,9 @@ func TestWindowCensusSkipsWhatThePaymentCannotSpend(t *testing.T) {
 // whether the tap is in the script before the play or in the payment (CR 603.2,
 // 605.1b). The pairs diverge when a mana tap fires nothing.
 func TestGrantedManaTapFiresTapsTriggers(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	stdReproLockstepReaching(t, "testdata/granted_mana_tap_fires_taps.repro.json", "std-tla", tapTriggerFromManaTap(""))
 }
 
@@ -620,5 +623,8 @@ func TestGrantedManaTapFiresTapsTriggers(t *testing.T) {
 // activation as its own decision (CR 603.3). The pairs diverge when it is left to be
 // placed above the play.
 func TestScriptTriggerWithATargetIsPlacedBeforeThePlay(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	stdReproLockstepReaching(t, "testdata/granted_mana_tap_fires_taps.repro.json", "std-tla", tapTriggerFromManaTap("Master Pakku"))
 }

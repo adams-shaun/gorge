@@ -147,6 +147,9 @@ func TestAbilitycastLockstep(t *testing.T) {
 // ability: an exhaust watcher then sees loyalty activations (and the reverse),
 // so the games must diverge.
 func TestAbilitycastMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runAbilitycast(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("class-ignoring mutation in %d games with no divergence", games)

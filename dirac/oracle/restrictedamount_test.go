@@ -218,6 +218,9 @@ func TestRestrictedAmountLockstep(t *testing.T) {
 // mana (5), must each diverge from gorge, so the pools exercise the amount and
 // the restricted leftover.
 func TestRestrictedAmountMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mut := range []uint8{4, 5} {
 		old := dirac.DebugRestrictedSource
 		dirac.DebugRestrictedSource = mut

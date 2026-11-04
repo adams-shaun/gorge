@@ -149,6 +149,9 @@ func runExilefd(t *testing.T, seeds uint64, mutate bool) (games, divs int, branc
 }
 
 func TestExilefdLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, branch, stalls, by := runExilefd(t, 256, false)
 	t.Logf("%d games, %d divergences; gorge exiled face down %d, played from there %d; kernel exiled %v; kernel stalls %v",
 		games, divs, branch["exiled"], branch["played"], by, stalls)

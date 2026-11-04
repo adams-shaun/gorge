@@ -187,6 +187,9 @@ func TestPanharmLockstep(t *testing.T) {
 // TestPanharmMutation switches the echo off: the games must diverge. A
 // green mutation (no divergence) means the lockstep never reaches an echo.
 func TestPanharmMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _, _, _ := runPanharm(t, 32, true)
 	if divs == 0 {
 		t.Fatalf("mutation dropped every echo in %d games with no divergence", games)

@@ -135,6 +135,9 @@ func kpeekrevealPolicy(seed uint64, yes, no *int, bySource map[string][2]int) Po
 }
 
 func TestPeekrevealLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

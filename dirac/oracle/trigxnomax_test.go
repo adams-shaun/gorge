@@ -117,6 +117,9 @@ func TestTrigxnomaxMutation(t *testing.T) {
 
 // The announcement's bound counts each colour of a dual land.
 func TestTrigXBoundCountsDualColours(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Tester of the Tangential", Count: 12}, {Name: "Hill Giant", Count: 8},
 		{Name: "Stormcarved Coast", Count: 12}, {Name: "Mountain", Count: 4}, {Name: "Island", Count: 4},

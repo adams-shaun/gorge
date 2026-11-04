@@ -295,6 +295,9 @@ func TestEmbnumLockstep(t *testing.T) {
 // the live state at read time. The two reads must disagree somewhere within
 // 64 seeds; firstDiv is the seed.
 func TestEmbnumMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runEmbnum(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("live re-read ran %d games with no divergence", st.games)

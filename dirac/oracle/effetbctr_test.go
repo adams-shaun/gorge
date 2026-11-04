@@ -116,6 +116,9 @@ func etbCtrSeeds(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *dirac.
 }
 
 func TestEffetbctrLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.EffEtbStats.Applied.Store(0)
 	dirac.EffEtbStats.Big.Store(0)
 	// Two effects upgrading one entry stall the kernel loudly (not modelled).

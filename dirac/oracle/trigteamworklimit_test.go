@@ -299,6 +299,9 @@ func ktrigp3Sweep(t *testing.T, n uint64) (*ktrigp3Tally, int, int) {
 }
 
 func TestTeamworkActivationLimitLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	c, divs, stalls := ktrigp3Sweep(t, 256)
 	t.Logf("256 games: %d divergences, %d stalls; Maria teamwork taps %d, other taps %d, triggers %d; Cheerleader triggers %d, suppressed second main-2 stints %d; Titanbones discard triggers %d",
 		divs, stalls, c.twTaps, c.plainTaps, c.mariaTrig, c.cheerTrig, c.cheerSupp, c.titanTrig)

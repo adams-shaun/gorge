@@ -191,6 +191,9 @@ func ketbnodecondRun(t *testing.T, n uint64, report bool, tal *ketbnodecondTally
 }
 
 func TestEtbnodecondLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var tal ketbnodecondTally
 	ketbnodecondRun(t, 200, true, &tal, nil)
 	t.Logf("%+v", tal)

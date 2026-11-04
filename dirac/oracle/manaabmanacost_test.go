@@ -174,6 +174,9 @@ func kmanaabmanacostRunDecks(t *testing.T, md [2][]cardset.Entry, n uint64, repo
 // TestManaabmanacostLockstep: 256 seeds, no divergence, no kernel stall,
 // and the first-only filters paid for plays on gorge's side.
 func TestManaabmanacostLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var tal kmanaabmanacostTally
 	kmanaabmanacostRun(t, 256, true, &tal)
 	t.Logf("%d games: scripts activating a first-only filter %d, two or more %d", tal.games, tal.one, tal.two)
@@ -199,6 +202,9 @@ func TestManaabmanacostMutation(t *testing.T) {
 // TestManaabmanacostComboLockstep: 256 seeds over the Combo-order Devotees,
 // no divergence, no kernel stall, and each Devotee activated on gorge's side.
 func TestManaabmanacostComboLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var tal kmanaabmanacostTally
 	kmanaabmanacostRunDecks(t, kmanaabmanacostComboDecks, 256, true, &tal)
 	t.Logf("%d games: scripts activating a first-only filter %d, two or more %d", tal.games, tal.one, tal.two)

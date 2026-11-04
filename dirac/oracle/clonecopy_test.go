@@ -196,6 +196,9 @@ func kclonecopyRun(t *testing.T, decks [2][]cardset.Entry, n uint64, report bool
 // TestClonecopyLockstep: 256 games per deck pair, 0 divergences, 0 stalls,
 // with real until-end-of-turn and permanent copies.
 func TestClonecopyLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	// not parallel: it sets dirac.DebugCloneCopyStats
 	var tot kclonecopyCounts
 	for v, d := range kclonecopyDecks {

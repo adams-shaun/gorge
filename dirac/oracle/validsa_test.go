@@ -140,6 +140,9 @@ func TestValidsaLockstep(t *testing.T) {
 // (the target arm never matches) must diverge; mode 2 (the gate never holds)
 // is logged only, a Treasure-paid cast with Smaug out being rare.
 func TestValidsaMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	defer dirac.SetDebugValidSAMutate(0)
 	for _, m := range []uint8{1, 2, 3} {
 		dirac.SetDebugValidSAMutate(m)

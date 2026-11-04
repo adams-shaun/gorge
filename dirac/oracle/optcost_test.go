@@ -208,6 +208,9 @@ func TestOptcostLockstep(t *testing.T) {
 // as unpaid (Cinder Strike's 2 damage, Requiting Hex's missing life, ...),
 // so the lockstep must diverge.
 func TestOptcostMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runOptcost(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("DebugOptCostNeverPaid: no divergence in %d games", games)

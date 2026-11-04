@@ -12,6 +12,9 @@ import (
 // pools whose cards reach a rule the FDN decks barely touch. Each row names the
 // botpolicy behaviour that keeps its kind above the floor.
 func TestHBotParitySynth(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	// serial: AddDecks writes the corpus the parallel tests share
 
 	c, _ := testCorpus(t)

@@ -223,6 +223,9 @@ func TestActgraveLockstep(t *testing.T) {
 // activation condition: it offers an activation gorge withholds, so the
 // games must diverge.
 func TestActgraveMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runActgrave(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation ignored the graveyard activation condition in %d games with no divergence", games)

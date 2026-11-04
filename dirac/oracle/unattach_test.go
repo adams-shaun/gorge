@@ -134,6 +134,9 @@ func kunattachRun(t *testing.T, seeds uint64, report bool, finish func(*GorgeSid
 }
 
 func TestUnattachLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var c kunattachCounts
 	div, stalls := kunattachRun(t, 192, true, kunattachFinish(&c))
 	t.Logf("192 seeds, %d divergences, %d stalls; unattached %d (Ensouled Scimitar %d, other Equipment %d, Equipment animated by an Aura %d), Attach of an already-unattached-as-creature Equipment %d",

@@ -30,6 +30,9 @@ var kcostevidenceDecks = [2][]cardset.Entry{
 }
 
 func TestCostevidenceLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var st dirac.CostEvidenceStats
 	dirac.DebugCostEvidenceStats = &st
 	defer func() { dirac.DebugCostEvidenceStats = nil }()

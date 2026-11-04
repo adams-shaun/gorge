@@ -273,6 +273,9 @@ func TestAnyKindCounterReplLockstep(t *testing.T) {
 // doubles nothing, Doc Samson's putter gate reads the wrong player): each
 // matchup must diverge.
 func TestAnyKindCounterReplMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runAnykindcounters(t, 32, true)
 	for mi, d := range divs {
 		if d == 0 {

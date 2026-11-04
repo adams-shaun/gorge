@@ -205,6 +205,9 @@ func TestMayraiseLockstep(t *testing.T) {
 // diverge. A green mutation means the lockstep never reaches a cast the
 // raise shapes.
 func TestMayraiseMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runMayraise(t, 32, true)
 	if divs == 0 {
 		t.Fatalf("mutation skipped the raise in %d games with no divergence", games)

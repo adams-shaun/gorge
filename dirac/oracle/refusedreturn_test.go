@@ -6,6 +6,9 @@ import "testing"
 // difference whose cause was fixed: the cards are no longer refused by name,
 // so each pair runs clean on its own surface.
 func TestReturnedCardsLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	autopay, full := Config{GorgeAutopaySurface: true}, Config{}
 	for _, tc := range []struct {
 		name string

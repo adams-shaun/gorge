@@ -137,6 +137,9 @@ func kequipshufRun(t *testing.T, reg *cards.Registry, set cardset.Set, seeds uin
 }
 
 func TestEquipshufLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kequipshufSetup(t)
 	defer func() {
 		dirac.DebugEquipShuf.On = false

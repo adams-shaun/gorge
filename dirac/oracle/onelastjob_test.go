@@ -163,6 +163,9 @@ func oneLastJobRun(t *testing.T, n uint64, st *oneLastJobStats, stopAtDiv, quiet
 }
 
 func TestOneLastJobLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var st oneLastJobStats
 	divs := oneLastJobRun(t, 64, &st, false, false)
 	t.Logf("256 games, %d divergences, %+v", divs, st)

@@ -203,6 +203,9 @@ func TestAdventurecardLockstep(t *testing.T) {
 // must diverge. A green mutation means the lockstep never reaches a decision
 // the word shapes.
 func TestAdventurecardMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runAdventurecard(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation answered false in %d games with no divergence", games)

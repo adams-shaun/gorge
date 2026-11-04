@@ -161,6 +161,9 @@ func TestMaydeciderLockstep(t *testing.T) {
 // OptionalDecider$ election (the named decider ignored): gorge asks the
 // target's controller, so the decision streams must differ.
 func TestMaydeciderMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _ := runMaydecider(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation asked the controller in %d games with no divergence", games)

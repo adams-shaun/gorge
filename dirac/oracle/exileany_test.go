@@ -157,6 +157,9 @@ func TestExileanyLockstep(t *testing.T) {
 // means the lockstep never reaches a non-battlefield move under an any-zone
 // source.
 func TestExileanyMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runExileany(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation skipped the non-battlefield check in %d games with no divergence", games)

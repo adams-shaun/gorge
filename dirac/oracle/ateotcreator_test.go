@@ -11,6 +11,9 @@ import (
 // gorge sources it on the creating permanent (CR 603.7d-e), so the
 // projected Stack[].Source must diverge.
 func TestAteotCreatorSourceMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	old := dirac.DebugAteotSourceAffected
 	dirac.DebugAteotSourceAffected = true
 	defer func() { dirac.DebugAteotSourceAffected = old }()

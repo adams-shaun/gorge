@@ -387,6 +387,9 @@ func TestTrigqualsLockstep(t *testing.T) {
 // each matchup must diverge. A green mutation means the lockstep never
 // reaches a decision the qualifiers shape.
 func TestTrigqualsMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runTrigquals(t, 64, true)
 	for mi, d := range divs {
 		if d == 0 {

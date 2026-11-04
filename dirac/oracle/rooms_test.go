@@ -344,6 +344,9 @@ func roomsRun(t *testing.T, seeds uint64) int {
 
 // TestRoomsMutation: each mutation of a gorge Room rule diverges.
 func TestRoomsMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mu := range []struct {
 		name string
 		flag *bool

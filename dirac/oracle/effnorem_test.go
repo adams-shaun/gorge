@@ -300,6 +300,9 @@ func TestEffnoremLockstep(t *testing.T) {
 // starts applying the discount turns the lockstep red instead of silently
 // disagreeing with the kernel.
 func TestEffnoremMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runEffnorem(t, 64, 1)
 	if st.divs == 0 {
 		t.Errorf("CanAttackDefender statics dropped: no divergence in %d games", st.games)

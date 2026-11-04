@@ -99,6 +99,9 @@ func entryCtrRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls
 }
 
 func TestEntryctrLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.EntryMergeStats.Merged.Store(0)
 	dirac.EntryMergeStats.Modified.Store(0)
 	div, stalls := entryCtrRun(t, 256, true)
@@ -116,6 +119,9 @@ func TestEntryctrLockstep(t *testing.T) {
 // TestEntryctrMutation: separate puts (the pre-5700d1e8e kernel) must make
 // the lockstep diverge.
 func TestEntryctrMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugEntryCtrSplit = true
 	defer func() { dirac.DebugEntryCtrSplit = false }()
 	if diverged, _ := entryCtrRun(t, 128, false); !diverged {

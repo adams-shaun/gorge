@@ -189,6 +189,9 @@ func TestPhasLockstep(t *testing.T) {
 // TestPhasMutation reads CmpGT as >= in the kernel: Wojek's "more cards
 // than you" then fires on equal hands, so the games must diverge.
 func TestPhasMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runPhas(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left %d games with no divergence", st.games)

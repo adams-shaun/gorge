@@ -26,6 +26,9 @@ var gatheringStoneDecks = [2][]cardset.Entry{
 }
 
 func TestGatheringStoneLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

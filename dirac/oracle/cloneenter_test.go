@@ -98,6 +98,9 @@ func kcloneenterRun(t *testing.T, n uint64, report bool) (div, entries int) {
 
 // TestCloneenterLockstep: 200 games, 0 divergences, with Clone reanimated.
 func TestCloneenterLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	// not parallel: TestCloneenterMutation flips dirac.DebugCloneReturnNoAsk
 	div, entries := kcloneenterRun(t, 200, true)
 	t.Logf("200 games: %d divergences, %d Clone graveyard->battlefield entries", div, entries)
@@ -236,6 +239,9 @@ func kcloneenterExcRun(t *testing.T, n uint64, mutate func(*kop.Table), report b
 // TestCloneenterExcLockstep: 256 games, 0 divergences, 0 kernel stalls,
 // with the exceptions exercised.
 func TestCloneenterExcLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, cnt := kcloneenterExcRun(t, 256, nil, true)
 	t.Logf("256 games: first divergence seed %d, %d kernel stalls; clones: Visage/Glasspool %d, Metamorph of a non-artifact %d, Gargantuan %d", div, stalls, cnt[0], cnt[1], cnt[2])
 	if stalls != 0 {

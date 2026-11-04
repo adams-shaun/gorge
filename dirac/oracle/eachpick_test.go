@@ -72,6 +72,9 @@ func eachpickKickedPolicy(seed uint64) Policy {
 }
 
 func TestEachPickPlaysInLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, c := range eachpickCases {
 		d := eachpickDecks[c.deck]
 		if n := lockstepRunPolicy(t, "eachpick", [2][]cardset.Entry{d, d}, 150, true, nil, nil, eachpickKickedPolicy); n != 0 {

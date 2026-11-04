@@ -107,6 +107,9 @@ func ktoplibPolicy(seed uint64, st *ktoplibStats) Policy {
 }
 
 func TestToplibLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

@@ -219,6 +219,9 @@ func TestCopyridersLockstep(t *testing.T) {
 // (dirac.DebugCopyRidersPumpCopiable): a copy of a hasty token then has
 // haste in the kernel only, so the games must diverge.
 func TestCopyridersMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _, _ := runCopyriders(t, 256,
 		func() { dirac.DebugCopyRidersPumpCopiable = true },
 		func() { dirac.DebugCopyRidersPumpCopiable = false })
@@ -233,6 +236,9 @@ func TestCopyridersMutation(t *testing.T) {
 // Etherium's count and the copies of the copies differ and the games must
 // diverge.
 func TestCopyridersMutationNoTypes(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _, _ := runCopyriders(t, 256,
 		func() { dirac.DebugCopyRidersNoTypes = true },
 		func() { dirac.DebugCopyRidersNoTypes = false })

@@ -169,6 +169,9 @@ func TestLandSearchForageDiscoverTriggersLockstep(t *testing.T) {
 // TestLandSearchForageDiscoverTriggersMutation fires no LandPlayed / SearchedLibrary / Forage /
 // Discover line: gorge's still fire, so the games must diverge.
 func TestLandSearchForageDiscoverTriggersMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runTrigmodes(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("no-fire mutation in %d games with no divergence", games)

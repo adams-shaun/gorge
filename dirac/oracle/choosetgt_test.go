@@ -227,6 +227,9 @@ func kctMatchup(t *testing.T, reg *cards.Registry, set cardset.Set) ([2][]*cards
 }
 
 func TestChoosetgtLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kctSetup(t)
 	decks, tbl := kctMatchup(t, reg, set)
 	tally := &kctTally{}

@@ -219,6 +219,9 @@ func TestCantactLockstep(t *testing.T) {
 // diverge. A green mutation (no divergence) means the lockstep never pays
 // with, or never counts, a locked mana creature or rock.
 func TestCantactMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runCantact(t, 128, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation kept locked mana sources live in %d games with no divergence", st.games)

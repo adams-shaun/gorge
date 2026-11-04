@@ -58,6 +58,9 @@ func fixtureLockstep(t *testing.T, setName string, decks [2][]cardset.Entry, see
 // more artifacts (CR 207.2c); the deck holds artifacts to reach the threshold
 // and creatures to target.
 func TestMetalcraftConditionLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	a := []cardset.Entry{{Name: "Dispatch", Count: 10}, {Name: "Mind Stone", Count: 5}, {Name: "Howling Mine", Count: 3}, {Name: "Plains", Count: 22}}
 	b := []cardset.Entry{{Name: "Exocomp", Count: 10}, {Name: "Gorn Captain", Count: 6}, {Name: "Ceti Eel", Count: 4}, {Name: "Mind Stone", Count: 4}, {Name: "Island", Count: 16}}
 	fixtureLockstep(t, "std-trc", [2][]cardset.Entry{a, b}, 300)
@@ -67,6 +70,9 @@ func TestMetalcraftConditionLockstep(t *testing.T) {
 // shuffles when a Food is sacrificed (LibraryPosition$ -1 with Shuffle$ True);
 // the Food tokens it makes pay for themselves from the lands.
 func TestBottomShuffleLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	a := []cardset.Entry{{Name: "Unlucky Cabbage Merchant", Count: 14}, {Name: "Forest", Count: 26}}
 	b := []cardset.Entry{{Name: "Unlucky Cabbage Merchant", Count: 6}, {Name: "Forest", Count: 20}, {Name: "Mountain", Count: 14}}
 	fixtureLockstep(t, "std-tla", [2][]cardset.Entry{a, b}, 300)

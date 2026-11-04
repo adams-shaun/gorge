@@ -43,6 +43,9 @@ func kuncounterDecks(source string) [2][]cardset.Entry {
 var kuncounterSources = []string{"Chimil, the Inner Sun", "Sphinx of the Final Word"}
 
 func TestUncounterLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugUncounterStats = true
 	defer func() { dirac.DebugUncounterStats = false }()
 	dirac.UncounterHeld, dirac.UncounterPassed, dirac.UncounterStalls = 0, 0, 0

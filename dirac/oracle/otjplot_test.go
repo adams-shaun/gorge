@@ -190,6 +190,9 @@ func kotjPolicy(seed uint64) Policy {
 }
 
 func TestOtjPlotGrantLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbl := kotjSetup(t)
 	var p kotjTally
 	p.reset()

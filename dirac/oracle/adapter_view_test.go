@@ -321,6 +321,7 @@ var servedFields = []struct {
 // TestServedFieldsMatchGorge reads the fields over one shared run of FDN and BLB games,
 // so the whole table costs a game pool once.
 func TestServedFieldsMatchGorge(t *testing.T) {
+	t.Parallel()
 	d := newViewDiffs()
 	positions, seen := 0, 0
 	check := viewCheck(d, &positions)

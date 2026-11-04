@@ -233,6 +233,9 @@ func kpumpntRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls 
 }
 
 func TestPumpntLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, st := kpumpntRun(t, 256, true)
 	t.Logf("256 games, %+v, %d divergences, %d stalls", st, b2i(div), stalls)
 	if div {

@@ -203,6 +203,9 @@ func TestAttachchoicesLockstep(t *testing.T) {
 // TestAttachchoicesMutation: a kernel that asks even a mandatory pick's
 // single candidate (gorge takes it unasked) must diverge.
 func TestAttachchoicesMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set := kattachchoicesSetup(t)
 	dirac.DebugAttachPickAlwaysAsk = true
 	defer func() { dirac.DebugAttachPickAlwaysAsk = false }()

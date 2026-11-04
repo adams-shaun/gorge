@@ -269,6 +269,9 @@ func TestTokenateotLockstep(t *testing.T) {
 // TestTokenateotMutation makes a delayed destroy a plain move to the
 // graveyard: the indestructible Mutant dies in the kernel only.
 func TestTokenateotMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _ := runTokenateot(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation (delayed destroy ignores indestructible) ran %d games with no divergence", games)

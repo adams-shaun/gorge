@@ -223,6 +223,9 @@ func TestEffeottrigLockstep(t *testing.T) {
 // owner's opponent (dirac.DebugEffEOTTrigOppOwner): the owner's creatures
 // then never fire the Mistway emblem, so the games must diverge.
 func TestEffeottrigMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _, _ := runEffeottrig(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation matched the emblem filter for the owner's opponent in %d games with no divergence", games)

@@ -277,6 +277,9 @@ func TestOptevidLockstep(t *testing.T) {
 // as unpaid (the basic land search, the 4/3 animation), so the lockstep must
 // diverge.
 func TestOptevidMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runOptevid(t, 32, true)
 	if divs == 0 {
 		t.Fatalf("DebugOptCostNeverPaid: no divergence in %d games", games)
