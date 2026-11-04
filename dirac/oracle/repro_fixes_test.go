@@ -55,6 +55,14 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-trk's, on the same terms.
+func TestStdTrkReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-trk", []stdRepro{
+		{"granted_mana_taps_stack_one_at_a_time", false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
+	})
+}
+
 // std-fdn's, on the same terms.
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
