@@ -28,11 +28,12 @@ func (lc *lowerCtx) proliferateTrigger(tp *params, tr *lTrigger) error {
 }
 
 // facesDilemmaTrigger lowers Mode$ FacesDilemma (gorge facesDilemmaMatches): a
-// player chose one or more modes. Random$ True narrows it to modes chosen at
+// player chose one or more modes, from the battlefield or (TriggerZones$
+// Graveyard, Gabriel Lorca) the graveyard. Random$ True narrows it to modes chosen at
 // random, which no lowered charm does, and stays unread.
 func (lc *lowerCtx) facesDilemmaTrigger(tp *params, tr *lTrigger) error {
-	if tr.Zone != zNone && tr.Zone != zBattlefield {
-		return refuse("FacesDilemma trigger outside the battlefield")
+	if tr.Zone != zNone && tr.Zone != zBattlefield && tr.Zone != zGraveyard {
+		return refuse("FacesDilemma trigger outside the battlefield and graveyard")
 	}
 	w, ok := whoOfPlayer(tp.str("ValidPlayer"))
 	if !ok {

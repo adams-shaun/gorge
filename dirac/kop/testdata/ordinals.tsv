@@ -315,6 +315,7 @@ ExDistinctCMC	ExprKind	6
 ExDrawnThisTurn	ExprKind	40
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
+ExFirstCast	ExprKind	255
 ExGraveAgg	ExprKind	43
 ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26
@@ -390,12 +391,14 @@ ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
+ExtEnterAttacking	ExtOp	250
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
+ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -889,7 +892,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	30
+ReplCount	ReplKind	32
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -918,12 +921,14 @@ ReplGraveToLibrary	ReplKind	14
 ReplLifeDouble	ReplKind	17
 ReplLifeLossDouble	ReplKind	24
 ReplLifePlus	ReplKind	18
+ReplMayNotUntap	ReplKind	31
 ReplNone	ReplKind	0
 ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
 ReplPreventNoncombatToOthers	ReplKind	11
+ReplRewriteTokens	ReplKind	30
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8
@@ -956,12 +961,14 @@ SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
+StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
@@ -993,8 +1000,8 @@ StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
-StatCantPutCounter	StaticKind	252
 StatCantPhaseIn	StaticKind	238
+StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6
@@ -1253,4 +1260,5 @@ ZoneLibrary	Zone	1
 ZoneNone	Zone	0
 ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
+ZoneSideboard	Zone	10
 ZoneStack	Zone	6

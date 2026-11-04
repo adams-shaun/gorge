@@ -52,7 +52,16 @@ const (
 	// battlefield walk sees it; the oracle projects both as the battlefield.
 	ZonePhased
 	ZonePhasedInd
+	// ZoneSideboard is the zone of a card outside the game (CR 400.11): a
+	// seat's sideboard, which only a play permission naming it (MayPlayFrom
+	// with StAlsoSideboard, The Holodeck) reads. It follows ZonePhasedInd
+	// because the card tables pin the earlier values; see Phased.
+	ZoneSideboard
 )
+
+// Phased reports whether z is a phased-out permanent's zone (ZonePhased or
+// ZonePhasedInd).
+func (z Zone) Phased() bool { return z == ZonePhased || z == ZonePhasedInd }
 
 // CardDef is one card's static record.
 type CardDef struct {

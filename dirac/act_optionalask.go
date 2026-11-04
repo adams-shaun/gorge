@@ -242,7 +242,7 @@ func (s *State) optaskFireDiscard(k *prep) {
 		if s.park(k, o, parkDiscard, 0) {
 			continue
 		}
-		if !s.parkDiscardQuiet(o) {
+		if !s.parkDiscardQuiet(o, 0) {
 			s.capFull(StallReplCands)
 			break
 		}

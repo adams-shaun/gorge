@@ -170,7 +170,9 @@ func (s *State) mayRaiseSeen(k *prep, p uint8, zones uint16, seen *objBits) {
 		if seen.has(o) {
 			return
 		}
-		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 && (ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) {
+		if ob := &s.objs[o]; zones&(1<<ob.zone) == 0 &&
+			(ob.zone != kop.ZoneGraveyard || ob.owner() != p || k.gen.sCls[ob.card]&sclsGyMay == 0) &&
+			(ob.zone != kop.ZoneExile || ob.owner() != p || k.gen.sCls[ob.card]&sclsExMay == 0) {
 			return
 		}
 		if s.mayRaiseLandHeld(k, p, o) || !s.mayRaiseOK(k, p, o) {

@@ -127,7 +127,10 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 	// owner: walk every seat with the controller test off; mayPlayStatic's
 	// ExiledBy gate is the real filter.
 	walk := func(q state.PlayerID, ownOnly bool) {
-		for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
+		for _, z := range []state.Zone{state.ZGraveyard, state.ZExile, state.ZSideboard} {
+			if z == state.ZSideboard && q != p {
+				continue
+			}
 			for _, id := range e.G.Zone(z, q) {
 				o := e.G.Obj(id)
 				if o == nil || o.Face() == nil || !o.Face().IsLand() {
@@ -380,8 +383,13 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 	if useCls {
 		e.walkClassesCatchUp()
 	}
-	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile} {
+	// The sideboard (CR 400.11 "outside the game", The Holodeck) is walked for
+	// p's own slice only: it is hidden, so no other seat's card is ever named.
+	for _, z := range []state.Zone{state.ZGraveyard, state.ZExile, state.ZSideboard} {
 		for _, q := range e.G.AliveFrom(0) {
+			if z == state.ZSideboard && q != p {
+				continue
+			}
 			for _, id := range e.G.Zone(z, q) {
 				if useCls && !e.walkClassOf(id).mayPlayHot {
 					if !derivedMemoVerify {
@@ -475,7 +483,7 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 	if mayPlayExilerGrantOpen(e.activeStatics("Continuous")) {
 		return true
 	}
-	for _, z := range [...]state.Zone{state.ZGraveyard, state.ZExile} {
+	for _, z := range [...]state.Zone{state.ZGraveyard, state.ZExile, state.ZSideboard} {
 		for _, id := range e.G.Zone(z, p) {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil || !o.Face().IsLand() || o.Controller != p {

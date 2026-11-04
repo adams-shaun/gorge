@@ -1,0 +1,17 @@
+# the First Contact pool: the mill-four spell that gains 2 life when it is the
+# first spell its controller cast this game (a static SpellCast trigger stores
+# Count$YouCastThisGame at cast), beside other spells to cast before it, a
+# copy spell (Twincast) and counterspells to cast in response, for the
+# oracle's constructed lockstep (dirac/oracle/firstcontact_test.go)
+Counterspell
+Divination
+First Contact
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Lightning Bolt
+Llanowar Elves
+Mountain
+Shock
+Twincast

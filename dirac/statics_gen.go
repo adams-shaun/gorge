@@ -297,11 +297,11 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || a.Static.Zone != ob.zone {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
-		if a.Static.StFlags&kop.StFunctionsInGraveyard != 0 {
-			return true // the card's own permission from the graveyard (below), not a permanent's
+		if a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) != 0 {
+			return true // the card's own permission from a non-battlefield zone (below), not a permanent's
 		}
 		sctx := s.ctxStatic(st)
 		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {
@@ -323,23 +323,35 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 		// graveyard under Leonardo, Sewer Samurai: gorge lists one cast)
 		return
 	}
-	// a card's own "may cast this from the graveyard" (Quilled Greatwurm,
-	// Undead Sprinter's CheckSVar$ gate): the same condition and filter
-	// gates as a permanent's static, so a self-grant whose condition does
-	// not hold offers nothing (gorge mayPlayConditionGateHolds)
-	if ob.zone == kop.ZoneGraveyard && ob.owner() == p && k.gen.sCls[ob.card]&sclsGyMay != 0 {
-		cd := &k.t.Cards[ob.card]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StFunctionsInGraveyard != 0 {
-				st := statSrc{a: a, sl: NoSlot, ctrl: p, obj: o}
-				sctx := s.ctxStatic(st)
-				if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {
-					continue
-				}
-				if !f(st) {
-					return
-				}
+	// a card's own "may cast this from the graveyard or exile" (Quilled
+	// Greatwurm, Undead Sprinter's CheckSVar$ gate; Khan, Vengeful Heart):
+	// the same condition and filter gates as a permanent's static, so a
+	// self-grant whose condition does not hold offers nothing (gorge
+	// mayPlayConditionGateHolds)
+	var selfCls uint16
+	var selfFlag kop.StaticFlags
+	switch ob.zone {
+	case kop.ZoneGraveyard:
+		selfCls, selfFlag = sclsGyMay, kop.StFunctionsInGraveyard
+	case kop.ZoneExile:
+		selfCls, selfFlag = sclsExMay, kop.StFunctionsInExile
+	default:
+		return
+	}
+	if ob.owner() != p || k.gen.sCls[ob.card]&selfCls == 0 {
+		return
+	}
+	cd := &k.t.Cards[ob.card]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&selfFlag != 0 {
+			st := statSrc{a: a, sl: NoSlot, ctrl: p, obj: o}
+			sctx := s.ctxStatic(st)
+			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {
+				continue
+			}
+			if !f(st) {
+				return
 			}
 		}
 	}

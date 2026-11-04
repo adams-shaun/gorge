@@ -269,11 +269,11 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		stored := rc.ev
 		absorbed := e.foldEntryMove(&stored, false)
 		rc.absorbed = absorbed
+		rc.stored = stored
 		e.loop.observeFrom(&stored, e.damaging, len(e.G.Objs))
 		// The move-driven Effect lifetimes, replayed inline exactly as the
 		// synchronous composition does (see applyReplacement's Updated arm).
 		e.effectMoveSweep(rc.ev)
-		e.checkTriggers(&stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(rc.ev, departing, link, controller)
 		rc.emitted = true
 	}
@@ -305,6 +305,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		}
 		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
 	}
+	e.checkTriggers(&rc.stored, nil, 0, 0, false)
 	if e.pending == nil && rc.ev.Kind == events.MoveZone && rc.ev.To == state.ZBattlefield {
 		e.finishLandPlay(rc.ev.Obj)
 	}

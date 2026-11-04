@@ -3,6 +3,7 @@ package kgen
 import (
 	"fmt"
 	"math/bits"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1779,7 +1780,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
-		if st.Filter, err = filter(s.F, st.Zone); err != nil {
+		fz := st.Zone
+		if slices.Contains(s.Flags, "AlsoSideboard") {
+			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
+		}
+		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
 		}
 		// the count of "RemoveAnyCounter<N/Any/Creature>" (RaiseCostRemove6...)
@@ -1796,6 +1801,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "FunctionsInExile":
+				st.StFlags |= kop.StFunctionsInExile
+			case "AlsoSideboard":
+				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -1941,6 +1950,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplCantBeCountered
 	case "DoesntUntap":
 		rp.Kind = kop.ReplDoesntUntap
+	case "MayNotUntap":
+		rp.Kind = kop.ReplMayNotUntap
 	case "OthersDoesntUntap":
 		rp.Kind = kop.ReplOthersDoesntUntap
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
@@ -1996,6 +2007,13 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 				return ka, err
 			}
 		}
+	case "RewriteTokens":
+		rp.Kind = kop.ReplRewriteTokens
+		idx, ok := cb.pt.tokenIdx[r.S]
+		if !ok {
+			return ka, fmt.Errorf("token %q", r.S)
+		}
+		rp.C = int16(idx) // a pool token index; the matchup remaps it
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
@@ -3092,6 +3110,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "EnterAttacking":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterAttacking))
 	case "ExchangeControl":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExchangeControl)), int16(in.C)
 	case "EachDamage":
@@ -3312,6 +3332,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+	case "GrantPanharm":
+		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))

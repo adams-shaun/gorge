@@ -57,23 +57,24 @@ type pcard struct {
 	// ({T}, Pay 1 life: Starting Town) instead of dealing damage (gorge's
 	// Consequence{Life}: the same last-resort cost and lethal guard;
 	// mana_pain.go)
-	painLife  bool
-	trigMask  uint32 // bit per kop.TrigEvent the card's triggers listen to
-	hasStat   bool
-	grantStat bool  // an override static or a continuous static with a Grant
-	nAct      uint8 // number of AbActivated abilities
-	needsTgt  bool  // the spell ability has a mandatory target
-	enterTap  bool  // ReplEntersTapped
-	enterCtr  int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
-	enterCK   kop.CounterKind
-	noCtr     bool // ReplCantBeCountered
-	noUntap   bool // ReplDoesntUntap
-	land      bool
-	altCost   bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
-	plotTrig  bool // a "when this card becomes plotted" trigger (TrigBecomesPlotted; kw_plot.go)
-	creature  bool
-	instant   bool  // castable at instant speed (instant type or flash)
-	sagaN     uint8 // final chapter number of a Saga (0 = not a Saga; kw_saga.go)
+	painLife    bool
+	trigMask    uint32 // bit per kop.TrigEvent the card's triggers listen to
+	hasStat     bool
+	grantStat   bool  // an override static or a continuous static with a Grant
+	nAct        uint8 // number of AbActivated abilities
+	needsTgt    bool  // the spell ability has a mandatory target
+	enterTap    bool  // ReplEntersTapped
+	enterCtr    int8  // ReplEntersWithCounters count (+1/+1 kind assumed when C=0)
+	enterCK     kop.CounterKind
+	noCtr       bool // ReplCantBeCountered
+	noUntap     bool // ReplDoesntUntap
+	mayNotUntap bool // ReplMayNotUntap: a tapped one asks "untap or keep tapped" at its controller's untap step (repl_untapchoice.go)
+	land        bool
+	altCost     bool // the card has its own mana alternative cost (genPrep.altFree; cast_altfree.go) or Impending: the hand walk's one-byte gate (offerAltHand)
+	plotTrig    bool // a "when this card becomes plotted" trigger (TrigBecomesPlotted; kw_plot.go)
+	creature    bool
+	instant     bool  // castable at instant speed (instant type or flash)
+	sagaN       uint8 // final chapter number of a Saga (0 = not a Saga; kw_saga.go)
 	// ctrMana: the card's first mana ability costs only a counter put on
 	// itself, once each turn (Wall of Roots; mana_countercost.go)
 	ctrMana bool
@@ -332,6 +333,8 @@ func prepare(t *kop.Table) *prep {
 					p.anyUncounter = true
 				case kop.ReplDoesntUntap:
 					pc.noUntap = true
+				case kop.ReplMayNotUntap:
+					pc.mayNotUntap = true
 				}
 			}
 		}

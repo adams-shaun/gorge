@@ -100,6 +100,16 @@ func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
 	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
 		return n
 	}
+	if k.gen.anyTokRew {
+		// a mint site that makes the token it was given: a rewritten card
+		// is not read there (repl_tokrewrite.go)
+		tc, m, ok := s.replTokensRew(k, p, tok, n)
+		if !ok || tc != tok {
+			s.capFull(StallTokRewrite)
+			return 0
+		}
+		return m
+	}
 	if k.gen.anyFiltRepl {
 		return s.replTokensMult(k, p, tok, n)
 	}
