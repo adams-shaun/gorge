@@ -26,7 +26,8 @@
 #      pair newly divergent fails.
 #
 # Steps 2-3 and 5-7 and step 8's package tests run only when a non-test file under dirac/ changed. A
-# merge base without dirac/ has nothing to compare, so the base rows print a note.
+# merge base without dirac/ has nothing to compare, so the base rows print a note. The steps run
+# cheapest first (0-3, 6-8, then 4, 5 and 9), and the first failure ends the run.
 #
 # A commit's measurements (State size, the FDN bench line, instructions per bench, each synthetic
 # pool's divergent pairs) are cached under $DIRAC_GATE_CACHE, keyed by the commit, the corpus digest
@@ -49,7 +50,9 @@ cd "$top" || exit 2
 mb=$(git merge-base "$base" HEAD) || exit 2
 changed=$(git diff --name-only "$mb" HEAD)
 fail=0
-bad() { echo "dirac gate: FAIL -- $*"; fail=1; }
+# The first failure ends the run (operator, 2026-11-04): a red step decides the landing, and only the
+# develop->main gates run to completion.
+bad() { echo "dirac gate: FAIL -- $*"; exit 1; }
 
 echo "== 0 protected"
 # maxStateBytes lives in a test file and an evidence list in no package, so this runs before the
@@ -163,7 +166,32 @@ if [ -n "$dirac_changed" ]; then
 		echo "head/base wall time $r"
 		awk -v m="$r" -v x="$PERF_MAX" 'BEGIN{exit !(m > x)}' && echo "dirac gate: WARN (advisory) -- wall time ${r}x the base"
 	fi
+	echo "== 6 inlining"
+	inl=$(go build -gcflags=-m=2 ./dirac 2>&1)
+	hot='\(\*State\)\.(typesAt|basePT)\b|\(\*?slotMask\)\.|slotMask\.[a-zA-Z]+\b|slotBit\b'
+	lost=$(grep -E "cannot inline ($hot)" <<<"$inl" | sed -E 's/^[^ ]+ //' | sort -u)
+	seen=$(grep -cE 'can inline \(\*State\)\.(typesAt|basePT)\b' <<<"$inl")
+	if [ -n "$lost" ]; then bad "a hot accessor stopped inlining: $lost"
+	elif [ "$seen" -lt 2 ]; then bad "could not find (*State).typesAt and (*State).basePT in the -m=2 output"
+	else echo ok; fi
+
+	echo "== 7 escapes"
+	# A local whose address reaches a heap-leaking call allocates on every visit: with GOGC off that
+	# is unbounded growth during training.
+	heap=$(grep -E '^[^ ]+\.go:[0-9]+:[0-9]+: moved to heap: ' <<<"$inl" | sort -u)
+	if [ -n "$heap" ]; then bad "dirac locals moved to the heap: $heap"; else echo ok; fi
+
+	echo "== 8 tests"
+	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
+	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
+
+# The whole refused list, whatever changed: a gorge fix leaves a refusal stale as easily as a dirac
+# one, and a stale refusal otherwise first fails in the hourly train.
+[ -n "$dirac_changed" ] || echo "== 8 tests (refused entries)"
+out=$(go test -v -timeout 5m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
+skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
+[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
 
 echo "== 4 lockstep, absolute"
 lockstep() {
@@ -229,32 +257,7 @@ if [ -n "$dirac_changed" ]; then
 		done
 	fi
 
-	echo "== 6 inlining"
-	inl=$(go build -gcflags=-m=2 ./dirac 2>&1)
-	hot='\(\*State\)\.(typesAt|basePT)\b|\(\*?slotMask\)\.|slotMask\.[a-zA-Z]+\b|slotBit\b'
-	lost=$(grep -E "cannot inline ($hot)" <<<"$inl" | sed -E 's/^[^ ]+ //' | sort -u)
-	seen=$(grep -cE 'can inline \(\*State\)\.(typesAt|basePT)\b' <<<"$inl")
-	if [ -n "$lost" ]; then bad "a hot accessor stopped inlining: $lost"
-	elif [ "$seen" -lt 2 ]; then bad "could not find (*State).typesAt and (*State).basePT in the -m=2 output"
-	else echo ok; fi
-
-	echo "== 7 escapes"
-	# A local whose address reaches a heap-leaking call allocates on every visit: with GOGC off that
-	# is unbounded growth during training.
-	heap=$(grep -E '^[^ ]+\.go:[0-9]+:[0-9]+: moved to heap: ' <<<"$inl" | sort -u)
-	if [ -n "$heap" ]; then bad "dirac locals moved to the heap: $heap"; else echo ok; fi
-
-	echo "== 8 tests"
-	out=$(cd "$top/dirac" && "$S/head.test" -test.timeout 2m 2>&1) && echo ok || bad "./dirac tests failed: $(tail -20 <<<"$out")"
-	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
-
-# The whole refused list, whatever changed: a gorge fix leaves a refusal stale as easily as a dirac
-# one, and a stale refusal otherwise first fails in the hourly train.
-[ -n "$dirac_changed" ] || echo "== 8 tests (refused entries)"
-out=$(go test -v -timeout 5m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
-skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
-[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
 
 echo "== 9 synthetic pools, against the merge base"
 # synth_divergent prints one line per divergent pair, then an end marker, so a pool with no
