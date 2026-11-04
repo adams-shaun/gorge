@@ -253,7 +253,7 @@ func prepare(t *kop.Table) *prep {
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			p.anyGate = p.anyGate || a.Gate.Ctr != 0
-			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0
+			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf
 			p.subAmong = p.subAmong || a.Cost.Flags&kop.CostSubAmong != 0
 			p.bargainRed = p.bargainRed || a.Kind == kop.AbStatic && a.Static.StFlags&kop.StBargained != 0
 			switch a.Kind {
