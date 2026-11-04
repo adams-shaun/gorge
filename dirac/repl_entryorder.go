@@ -276,7 +276,7 @@ const (
 // untap; otherwise it applies them in scan order, so the last body applied
 // (the last of the rest, or the pick itself when none is left) decides the
 // tapped bit.
-func (s *State) entryOrderPick(a Action) int {
+func (s *State) entryOrderPick(k *prep, a Action) int {
 	ro := &s.g.ro
 	i := a.Mode()
 	if i >= ro.n || ro.used&(1<<i) != 0 {
@@ -291,14 +291,16 @@ func (s *State) entryOrderPick(a Action) int {
 	left := (uint8(1)<<ro.n - 1) &^ ro.used
 	if left&ro.prev != 0 && left&ro.shld != 0 {
 		if late {
-			s.entryLateSet(cls)
+			s.entryLateSet(k, i, cls)
 			return entAsk
 		}
 		ro.pcol = ro.pcol&(entMode|entEarly) | entDone | entMore | cls<<entOvrSh
 		return entGo
 	}
+	last := i
 	for j := uint8(0); j < ro.n; j++ {
 		if left&(1<<j) != 0 {
+			last = j
 			cls = entOvrUntap
 			if ro.prev&(1<<j) != 0 {
 				cls = entOvrTap
@@ -306,7 +308,7 @@ func (s *State) entryOrderPick(a Action) int {
 		}
 	}
 	if late {
-		s.entryLateSet(cls)
+		s.entryLateSet(k, last, cls)
 		s.g.ro.replHdr = replHdr{}
 		return entFin
 	}
@@ -315,25 +317,52 @@ func (s *State) entryOrderPick(a Action) int {
 	return entGo
 }
 
-// entryLateSet applies body class cls to the entered permanent.
-func (s *State) entryLateSet(cls uint8) {
+// entryLateSet applies body class cls, the body at scan index idx, to the
+// entered permanent. The entrant's own conditional enters-tapped body (The
+// Unicomplex's "unless you control two or more other lands") reads its
+// condition as it applies, as entryOrderEnter's first answer does, and taps
+// nothing when it fails.
+func (s *State) entryLateSet(k *prep, idx, cls uint8) {
 	o := s.g.ro.entObj()
 	if s.objs[o].zone != kop.ZoneBattlefield {
 		return
 	}
+	sl := s.objs[o].slot
+	if cls == entOvrTap && s.entrantCondTapFails(k, o, sl, idx) {
+		return
+	}
 	s.touch(o)
-	if p := &s.perms[s.objs[o].slot]; cls == entOvrTap {
+	if p := &s.perms[sl]; cls == entOvrTap {
 		p.flags |= pfTapped
 	} else {
 		p.flags &^= pfTapped
 	}
 }
 
+// entrantCondTapFails: the body at scan index idx of the late ask is the
+// entered permanent's own conditional enters-tapped body and its condition
+// fails, so applying it taps nothing.
+//
+//go:noinline
+func (s *State) entrantCondTapFails(k *prep, o Obj, sl Slot, idx uint8) bool {
+	cid := s.objs[o].card
+	a := s.condEnterTapped(k, cid)
+	if a == nil || k.cards[cid].enterTap {
+		return false
+	}
+	ro := &s.g.ro
+	c, _ := s.entryComp(k, o, ro.p, sl, ro.pcol&entEarly != 0)
+	if idx >= c.n || c.cand[idx] != o {
+		return false
+	}
+	return !s.condEval(k, a.Repl.Cond, evalCtx{src: o, srcSl: sl, ctrl: s.perms[sl].ctrl})
+}
+
 // applyEntryLand answers the land play's order ask: once the first pick (or
 // the last) is in, the play runs again with the order's result; a re-ask
 // follows the entry.
 func (s *State) applyEntryLand(k *prep, a Action) {
-	switch s.entryOrderPick(a) {
+	switch s.entryOrderPick(k, a) {
 	case entAsk:
 		return
 	case entFin:
@@ -351,7 +380,7 @@ func (s *State) applyEntryLand(k *prep, a Action) {
 
 // applyEntryResolve answers a resolving program's order ask.
 func (s *State) applyEntryResolve(k *prep, a Action) {
-	switch s.entryOrderPick(a) {
+	switch s.entryOrderPick(k, a) {
 	case entAsk:
 		return
 	case entFin:
