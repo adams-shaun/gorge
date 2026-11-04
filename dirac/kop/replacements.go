@@ -50,6 +50,7 @@ const (
 	ReplSpellsCantBeCountered    // a spell its controller (this source's controller) casts that matches Repl.Filter can't be countered while this source is on the battlefield (gorge counterReplacementMatchesAll, Layer$ CantHappen with ValidSA$ Spell[.types]+YouCtrl; Chimil, the Inner Sun, Sphinx of the Final Word)
 	ReplAnyUntap                 // a permanent matching Repl.Filter (read in this source's frame) can't become untapped at any time: every Untap event is replaced, in any untap step and by an effect or cost (gorge cards.ReplUntap with no ValidStepTurnToController$, rules/replacement_match.go:338; CR 614.17; Frozen in Ice, Blossombind). The untap step's ReplOthersDoesntUntap gates do not cover it
 	ReplDrawMore                 // the controller would draw a card: Repl.A cards instead, each a new draw this replacement does not meet again (CR 614.5); Repl.C&ReplDrawNotFirst exempts the first card the controller draws in their draw step (gorge applyReplacements, a ReplaceWith$ DB$ Draw body)
+	ReplDestroyHeal              // a creature matching Repl.Filter would be destroyed: remove all +1/+1 counters from it and heal all damage on it instead (Dr. McCoy, Surly Surgeon; gorge's Destroy ReplaceWith$ RemoveCounter body)
 	ReplCount
 )
 

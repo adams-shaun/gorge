@@ -304,6 +304,7 @@ type genPrep struct {
 	anyRepl      uint32
 	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
 	exileAnyC    []bool         // per card: its ReplExileOnLeave is the any-zone reading (Repl.C 1; nil when none; repl_exileonleave.go)
+	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
@@ -402,6 +403,7 @@ const (
 	rbPlProt                          // StatPlayerHexproof with Static.A == 1: protection from each opponent, its damage is prevented (static_playerstats.go)
 	rbDrawMore                        // ReplDrawMore (repl_draw.go)
 	rbPlusCtrEOT                      // Ext CounterPlusEOT: the table can put one more of each kind for a player until end of turn (anyRepl only; ctr_pluseot.go)
+	rbDestroyHeal                     // ReplDestroyHeal (repl_destroyheal.go)
 )
 
 // rbCtrOn is either filtered counter replacement.
@@ -853,6 +855,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplDestroyHeal:
+					g.replBits[i] |= rbDestroyHeal
+					pc.hasStat = true
+					if g.destroyHeal == nil {
+						g.destroyHeal = make([]kop.FilterID, len(t.Cards))
+					}
+					g.destroyHeal[i] = a.Repl.Filter
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
 				case kop.ReplOthersDoesntUntap:

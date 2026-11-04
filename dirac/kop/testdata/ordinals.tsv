@@ -889,10 +889,11 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	30
+ReplCount	ReplKind	31
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
+ReplDestroyHeal	ReplKind	30
 ReplDmgCtrHost	untyped int	128
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
@@ -993,8 +994,8 @@ StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
-StatCantPutCounter	StaticKind	252
 StatCantPhaseIn	StaticKind	238
+StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6

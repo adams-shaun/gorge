@@ -2000,6 +2000,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+	case "DestroyHeal":
+		rp.Kind = kop.ReplDestroyHeal
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+			return ka, err
+		}
 	case "ExileOnLeave":
 		rp.Kind = kop.ReplExileOnLeave
 		// the filter has no zone gate either way (ZoneBattlefield compiles to
