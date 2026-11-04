@@ -445,6 +445,10 @@ func (s *State) runProg(k *prep) {
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return
 		}
+		if s.res.ask == raGenEnterDefender {
+			s.ctl = ctlResolve // the entry's CR 508.4 defender ask (zone_changezoneparams.go)
+			return
+		}
 		if len(s.cold.parked) != 0 && s.parkedWaiting() {
 			s.ctl = ctlExileOrder
 			return
