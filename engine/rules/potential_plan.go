@@ -332,10 +332,15 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
+				got.Detail == "shape:target_dependent_cost" || got.Detail == "shape:modal_cost" || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
+				// A Spree or Tiered face's mode costs only add to the printed
+				// cost (CR 702.172a), so the composition's "insufficient" at
+				// the printed cost is a proof, and its census and prefix search
+				// reach a source the planner cannot price (a granted
+				// any-colour mana ability, CR 601.2g).
 				return alt, true
 			}
 		}
