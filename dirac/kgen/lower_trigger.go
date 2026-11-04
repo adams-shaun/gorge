@@ -52,7 +52,7 @@ func allYouCtrl(f *lFilter) bool {
 // graveTriggerModes are the trigger modes whose kernel walk reads the graveyards.
 var graveTriggerModes = map[string]bool{
 	"Phase": true, "SpellCast": true, "AbilityCast": true, "CommitCrime": true, "AttackersDeclared": true,
-	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true,
+	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true, "FacesDilemma": true,
 }
 
 func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
