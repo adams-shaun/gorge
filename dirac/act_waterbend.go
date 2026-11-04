@@ -55,9 +55,85 @@ func (s *State) waterbendCandidate(k *prep, sl Slot) bool {
 // untapped permanent with a usable mana ability (untappedManaSource ->
 // availableManaAbilities), so a summoning-sick creature whose mana ability
 // needs its {T} is NOT a source this turn and does earn the credit
-// (canTapForMana carries the same tap-sick gate).
+// (featManaActivatable carries the same tap-sick gate).
+//
+// availableManaAbilities also prices the ability's own mana: a paid ability
+// (a filter's {1}: add any colour, a granted one) is a source only while the
+// live pool can pay its fee. Barrels of Blasting Jelly is a waterbend pick at
+// the start of a payment (the pool is empty) and a mana source once an earlier
+// tap has floated its fee; the prefix search prices the credit again at every
+// node for exactly that reason (grantSearch's dynamic cost).
 func (s *State) waterbendManaSource(k *prep, sl Slot) bool {
-	return s.canTapForMana(k, sl)
+	pm := &s.perms[sl]
+	if pm.flags&pfTapped != 0 ||
+		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) || !s.featManaActivatable(k, sl) {
+		return false
+	}
+	p := pm.ctrl
+	if k.gen != nil && s.manaGranted(k, sl) {
+		gi := s.grantIdx(k, sl)
+		if gi < 0 {
+			return false
+		}
+		r := k.gen.grantOf[gi]
+		return s.poolPays(p, &k.t.Cards[r.card].Abilities[r.ab].Cost.Mana)
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	sick := pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		if a.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pm.actUsed&(1<<j) != 0 {
+			continue
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && sick {
+			continue // a summoning-sick creature's {T} ability is no source (gorge gates each ability)
+		}
+		if s.poolPays(p, &a.Cost.Mana) {
+			return true
+		}
+	}
+	return false
+}
+
+// grantWaterbendFull is a waterbend activation's cost before the offer
+// credit, for the prefix search to price again at every node (grantSrch.dyn).
+func (s *State) grantWaterbendFull(k *prep, a Action) (kop.ManaCost, bool) {
+	if a.Kind() != AkActivate {
+		return kop.ManaCost{}, false
+	}
+	obj := Obj(a.Source())
+	ob := &s.objs[obj]
+	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return kop.ManaCost{}, false
+	}
+	ab := int(a.Mode())
+	cd := &k.t.Cards[s.cardAt(ob.slot)]
+	if ab < 0 || ab >= len(cd.Abilities) || cd.Abilities[ab].Cost.Flags&kop.CostWaterbend == 0 {
+		return kop.ManaCost{}, false
+	}
+	cost, _, ok := s.activationMana(k, obj, a.Mode())
+	return cost, ok
+}
+
+// grantDynamicCost is grantWaterbendFull's cost with the offer credit
+// recomputed on this search node: the live pool decides whether a paid mana
+// ability (Barrels of Blasting Jelly) or a spent once-a-turn one is a source,
+// exactly as gorge's potentialPlayVerdict reprices each node.
+func (s *State) grantDynamicCost(k *prep, p uint8, a Action, full kop.ManaCost) kop.ManaCost {
+	obj := Obj(a.Source())
+	ob := &s.objs[obj]
+	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return full
+	}
+	ab := int(a.Mode())
+	cd := &k.t.Cards[s.cardAt(ob.slot)]
+	if ab < 0 || ab >= len(cd.Abilities) {
+		return full
+	}
+	return s.waterbendCredit(k, p, ob.slot, &cd.Abilities[ab], full)
 }
 
 // waterbendCredit returns cost less the greedy waterbend offer credit for
