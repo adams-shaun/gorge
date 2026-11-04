@@ -143,7 +143,8 @@ func (s *State) slotIfSame(o Obj, ver uint8) Slot {
 }
 
 // objPT is an object's power/toughness: derived on the battlefield, else
-// its card's printed values.
+// its card's printed values (a phased-out permanent keeps its
+// characteristic-defining P/T: kw_phasing.go).
 func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if sl != NoSlot {
 		return s.ptGen(k, sl)
@@ -151,7 +152,11 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	if o == NoObj {
 		return 0, 0
 	}
-	pc := &k.cards[s.objs[o].card]
+	ob := &s.objs[o]
+	if k.phasing && ob.zone >= kop.ZonePhased && ob.slot != NoSlot {
+		return s.phasedPT(k, ob.slot)
+	}
+	pc := &k.cards[ob.card]
 	return int(pc.power), int(pc.tough)
 }
 

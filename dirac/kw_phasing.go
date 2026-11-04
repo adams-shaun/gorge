@@ -200,16 +200,42 @@ func (s *State) phasedCtrl(p uint8) slotMask {
 
 // phasedPT is the P/T gorge projects for a phased-out creature: no
 // continuous effect applies to it (CR 702.26b; gorge matchesWithCharsPT), so
-// its printed P/T plus its +1/+1 and -1/-1 counters. The projection alone
-// reads it; nothing in play sees a phased-out permanent.
+// its base P/T plus its +1/+1 and -1/-1 counters. The projection alone reads
+// it; nothing in play sees a phased-out permanent.
 //
 //go:noinline
 func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
 	p := &s.perms[sl]
-	cd := &k.t.Cards[s.cardAt(sl)]
 	c := p.ctrLow(int(kop.CtrP1P1)) - p.ctrLow(int(kop.CtrM1M1))
 	if s.faceDown(k, sl) {
 		return 2 + c, 2 + c // it stays face down (CR 110.5, 708.2)
 	}
-	return int(cd.Power) + c, int(cd.Toughness) + c
+	bp, bt := s.phasedBasePT(k, sl)
+	return bp + c, bt + c
+}
+
+// phasedBasePT is a phased-out permanent's printed P/T, or its own
+// characteristic-defining P/T. A CDA is not one of the continuous effects
+// CR 702.26b excludes: it defines the object's characteristics in every zone
+// (CR 604.3), and gorge's CDASetPT reads it whatever the PhasedOut status, so
+// the projection follows it. Every other override and layer is skipped.
+//
+//go:noinline
+func (s *State) phasedBasePT(k *prep, sl Slot) (int, int) {
+	p := &s.perms[sl]
+	cid := s.cardAt(sl)
+	pc := &k.cards[cid]
+	bp, bt := int(pc.power), int(pc.tough)
+	if k.gen == nil || !k.gen.has(cid, gfCDAPT) || s.genLost(k, sl) {
+		return bp, bt
+	}
+	cd := &k.t.Cards[cid]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCDAPT {
+			ctx := evalCtx{src: p.obj, srcSl: sl, ctrl: p.ctrl}
+			bp, bt = s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx)
+		}
+	}
+	return bp, bt
 }
