@@ -51,6 +51,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// what the restricted mana leaves.
 		{"rider_plan_wide_restricted_float", true},
 		{"rider_plan_wide_restricted_float_full", false},
+		// Bristly Bill, Spine Sower's doubling places 81920 +1/+1 counters:
+		// past the kernel's 16-bit storage bound no value can agree with
+		// gorge, so the game stops as the declared StallCounters capacity
+		// (the divergence this replaces was the silent clamp).
+		{"bristly_bill_counter_overflow_stalls", false},
 	})
 }
 

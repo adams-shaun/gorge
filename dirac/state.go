@@ -318,7 +318,11 @@ func (p *perm) ctrLow(c int) int {
 }
 
 // setCtrN sets p's count of counter kind c, saturating at the 16-bit
-// storage bound (65535 is far past any FDN game; gorge's int is unbounded).
+// storage bound. gorge's count is unbounded (Bristly Bill, Spine Sower's
+// doubling reached 81920), so a placement past 0xffff is declared, not
+// clamped away silently: the kernel reports its counter capacity
+// (StallCounters) and stores the value it would hold, and the game stops at
+// the next step boundary (capFull's latch).
 // It reports false, setting nothing, when c needs an entry and the overflow
 // table is full: the caller stalls (StallCounters).
 func (p *perm) setCtrN(s *State, c, n int) bool {
@@ -326,6 +330,7 @@ func (p *perm) setCtrN(s *State, c, n int) bool {
 		n = 0
 	}
 	if n > 0xffff {
+		s.ctrStall()
 		n = 0xffff
 	}
 	if DebugCtrXDropDivinity && c == int(kop.CtrDivinity) && n > p.ctrN(s, c) {

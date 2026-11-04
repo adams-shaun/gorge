@@ -53,10 +53,34 @@ func TestDoubleCountersPast255(t *testing.T) {
 }
 
 // TestDoubleCountersTwoSeasons: every Doubling Season doubles, even when
-// the current count is already large. With two seasons a count of 20000
-// adds 80000 (20000 -> 40000 -> 80000) and setCtrN clamps the total to
-// 0xffff; stopping after the first double would add only 40000.
+// the current count is already large. With two seasons a count of 8000
+// adds 32000 (8000 -> 16000 -> 32000), for 40000 total; stopping after the
+// first double would add only 16000. A placement whose result passes the
+// 16-bit storage bound is pair 163's stall (TestCounterOverflowStalls).
 func TestDoubleCountersTwoSeasons(t *testing.T) {
+	sc, id := newObjScen(t, []cardset.Entry{{Name: "Healer's Hawk", Count: 1}, {Name: "Doubling Season", Count: 2}})
+	o := sc.perm(id["Healer's Hawk"], 0)
+	sc.perm(id["Doubling Season"], 0)
+	sc.perm(id["Doubling Season"], 0)
+	sl := sc.slot(o)
+	p := &sc.s.perms[sl]
+	p.addCtrN(sc.s, int(kop.CtrP1P1), 8000)
+	if got := sc.s.replCounters(sc.k, sl, int(kop.CtrP1P1), 8000); got != 32000 {
+		t.Fatalf("replCounters(8000) = %d, want 32000 (two Doubling Seasons)", got)
+	}
+	p.addCtrN(sc.s, int(kop.CtrP1P1), sc.s.replCounters(sc.k, sl, int(kop.CtrP1P1), 8000))
+	if n := p.ctrLow(int(kop.CtrP1P1)); n != 40000 {
+		t.Fatalf("doubled +1/+1 count %d, want 40000", n)
+	}
+}
+
+// TestCounterOverflowStalls: a placement past the 16-bit storage bound is a
+// declared capacity stall (StallCounters), not a silent clamp: gorge's count
+// is unbounded (Bristly Bill, Spine Sower's doubling reached 81920, pair
+// 163), so past 0xffff no stored value can agree with gorge and the game
+// stops at the next step boundary. The stored count still saturates, so the
+// state stays self-consistent until the stall surfaces.
+func TestCounterOverflowStalls(t *testing.T) {
 	sc, id := newObjScen(t, []cardset.Entry{{Name: "Healer's Hawk", Count: 1}, {Name: "Doubling Season", Count: 2}})
 	o := sc.perm(id["Healer's Hawk"], 0)
 	sc.perm(id["Doubling Season"], 0)
@@ -69,7 +93,10 @@ func TestDoubleCountersTwoSeasons(t *testing.T) {
 	}
 	p.addCtrN(sc.s, int(kop.CtrP1P1), sc.s.replCounters(sc.k, sl, int(kop.CtrP1P1), 20000))
 	if n := p.ctrLow(int(kop.CtrP1P1)); n != 0xffff {
-		t.Fatalf("doubled +1/+1 count %d, want 65535 (saturated)", n)
+		t.Fatalf("stored +1/+1 count %d, want 65535 (saturating store)", n)
+	}
+	if r := sc.s.StallReason(); r != StallCounters {
+		t.Fatalf("stall reason %d, want StallCounters (%d)", r, StallCounters)
 	}
 }
 

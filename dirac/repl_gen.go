@@ -117,10 +117,12 @@ func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
 // sweep or replacement (engine/effects/counters_put.go). The clamp is on the
 // amount, not the resulting count, so a negative CounterNum$ never removes
 // existing counters; replacements run only on a positive amount. Costs do not
-// call it. +1/+1 is the widest count (16 bits; setCtrN clamps at 0xffff), so
-// the loop keeps doubling past 255. A doubling may overshoot the clamp:
-// setCtrN saturates the total, so every doubler still applies even when the
-// current count is already large.
+// call it. +1/+1 is the widest count (16 bits; a placement past 0xffff is
+// the declared StallCounters capacity, setCtrN), so the loop keeps doubling
+// past 255. A doubling may overshoot the bound: setCtrN saturates the total,
+// so every doubler still applies even when the current count is already
+// large, and a result gorge stores past 0xffff stops the game as the
+// declared counter capacity.
 func (s *State) replCounters(k *prep, sl Slot, kind, n int) int {
 	if n <= 0 {
 		return 0
