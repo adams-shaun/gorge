@@ -167,6 +167,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 			s.queueAsk(s.objs[o].slot, akNumber)
 		}
 		return true, true
+	case kop.ExtChooseName:
+		// the same, for the as-enters nonland card name (repl_choosename.go)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			s.queueAsk(s.objs[o].slot, akName)
+		}
+		return true, true
 	}
 	panic("kernel: ext op not implemented: " + kop.ExtOp(in.A.N).String())
 }
