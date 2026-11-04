@@ -96,6 +96,8 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "exile_cast_discard_alt_cost_keeps_whole_hand"},                // Titania cast from exile through Moonstone's permission discards the one card in hand: the spell is not in the hand, so it does not count against it (CR 601.2b)
 		{"std-msh", "resolved_limit_new_object_after_returning"},                   // Baron Strucker, whose "once each turn" connive trigger resolved before he died, comes back under Thunderbolts Conspiracy as a new object (CR 400.7): the Swordsman returning after him triggers it again
 		{"std-msh", "modal_token_copy_exceptions_both_faces"},                      // Multiversal Incursion's token copy of Tony Stark, "except it isn't legendary", transforms: the token shows the other face with the same exception (CR 707.8a, 701.28)
+		{"std-trk", "dig_shock_land_election_holds_entrants_checks"},               // Branching Timeline puts Sacred Foundry and Syndicate Liquidators onto the battlefield: the Foundry's pay-life ask suspends the dig, and Liquidators' landfall for it goes on the stack only after the whole dig is done (CR 603.6a)
+		{"std-trk", "dig_shock_land_election_trigger_order"},                       // the same dig with Hallowed Fountain asked before three more entrants: all their enters triggers are ordered together once the dig is done
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
