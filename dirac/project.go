@@ -174,10 +174,11 @@ func (s *State) ProjectSince(p *Projection, since uint32, all bool) {
 	s.projRest(p, false)
 }
 
-// projObj writes object i's projection (ZoneIdx left 0: projRest sets it).
+// projObj writes object i's projection (ZoneIdx left 255, elsewhere: projRest
+// sets it for an object an ordered zone lists).
 func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	ob := &s.objs[i]
-	*po = ProjObj{}
+	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
 	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, NoTarget
 	if po.Token && k.anyInit && ob.card == k.gen.dungeon {

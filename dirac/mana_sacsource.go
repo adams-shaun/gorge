@@ -50,7 +50,8 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	bestowed := s.buildLive() && s.bld().e.bestowedEntry() // its one target is the enchant creature
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
-	if !s.anySacSource(k, p) || !targeted && !stacked {
+	anySac := s.anySacSource(k, p)
+	if !anySac || !targeted && !stacked {
 		return false
 	}
 	t := s.fork()
@@ -67,8 +68,10 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 		if t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) == 0 {
 			return true
 		}
-	} else if targeted && !t.spellTargetsFeasible(k, c, p) {
-		return true
+	} else if targeted {
+		if !t.spellTargetsFeasible(k, c, p) {
+			return true
+		}
 	}
 	return stacked && int(t.npend)-int(n0) > witnessWaits
 }
@@ -92,8 +95,35 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
 	s.availFor(k, p, &av)
-	if !s.xWitnessEats(k, p, c, &cost, max(0, av.maxX(&cost, pipMaskOf(&cost))), o) {
+	mx := max(0, av.maxX(&cost, pipMaskOf(&cost)))
+	if !s.xWitnessEats(k, p, c, &cost, mx, o) {
 		return true
+	}
+	// gorge's potentialWitnessSmallerX: the max X's payment consumes the last
+	// permanent the spell could target (or stacks past the wait budget), so
+	// gorge prices a smaller X whose payment keeps one (For the Common Good
+	// paid with one of two Treasures; the other stays a target).
+	stacked := s.subs[kop.TrigSacrificed].any()
+	bestowed := s.buildLive() && s.bld().e.bestowedEntry()
+	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
+	for x := mx - 1; x >= 0; x-- {
+		t := s.fork()
+		n0 := t.npend
+		var pk planner
+		pk.try = true
+		t.tapForPK(k, p, &cost, x, o, false, false, &pk)
+		found := pk.found
+		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
+		if ok && bestowed {
+			var buf [MaxOptions]uint8
+			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
+		} else if ok && targeted {
+			ok = t.spellTargetsFeasible(k, c, p)
+		}
+		s.unfork()
+		if ok {
+			return true
+		}
 	}
 	held := s.sacSourcesHeld(k, p)
 	s.availFor(k, p, &av)

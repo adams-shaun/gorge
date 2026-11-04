@@ -289,6 +289,13 @@ const (
 // lowered.
 const StatCantPutCounter StaticKind = 252
 
+// StatCantPhaseIn (an explicit ordinal clear of the iota tail): while the
+// static's source is on the battlefield no permanent can phase in (S:Mode$
+// CantPhaseIn | ValidCard$ Card.phasedOutPermanent, "Permanents can't phase
+// in"; CR 702.26; gorge rules/cantphase.go phaseBlocked). Only that
+// blanket ValidCard$ is lowered. dirac/kw_phasing.go.
+const StatCantPhaseIn StaticKind = 238
+
 // StatCantSacrifice (an explicit ordinal clear of the iota tail): no
 // battlefield permanent matching Filter (read with the static's controller
 // as "you") can be sacrificed, for a cost or by an effect (S:Mode$

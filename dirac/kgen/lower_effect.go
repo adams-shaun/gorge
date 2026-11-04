@@ -1286,6 +1286,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	case "Pump":
+		if _, ok := ps.m["TargetType"]; ok {
+			return lc.pumpSpellTarget(ps) // lower_stackexile.go
+		}
 		if _, ok := ps.get("DefinedKW"); ok {
 			return lc.colorGrantPump(ps) // (Skrelv)
 		}
@@ -1665,6 +1668,10 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		if lc.breachStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") {
 			ps.consume("ClearImprinted") // Breach the Multiverse: the chosen set is the imprint (lower_repeatgravechoice.go)
 			lc.breachStage = 0
+		}
+		if lc.exileLandStage == 2 && ps.is("ClearImprinted", "True") && ps.is("ClearChosenCard", "True") && ps.is("ClearRemembered", "True") {
+			ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
+			lc.exileLandStage = 0
 		}
 		if lc.digImprinted && ps.is("ClearImprinted", "True") {
 			// the imprinted card is the kernel's remembered set

@@ -93,54 +93,56 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
-	animAll     bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
-	speedRepl   bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
-	replEnter   bool      // inside an ETB replacement's ReplaceWith chain
-	breachStage int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
-	grantInner  []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
-	station     string    // K:Station's parameter (lower_station.go)
-	beholdOK    bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)
-	unblockedOK bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
-	exwSynth    bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
-	wasCastOK   bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
-	spellProvOK bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
-	chosenNumOK bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
-	exwOK       bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
-	exwStatic   bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
-	spellBaseOK bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
-	trigOwnCost bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
-	trigXMax    *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
-	trigXPaid   bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
-	unlessCost  bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
-	wardCost    bool      // payInstr: the cost is a Ward keyword's UnlessCost$
-	unlessSubs  []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
-	reflexMulti bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
-	numTimesK   int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
-	remLKN      int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
-	p           *pool
-	name        string
-	card        *cards.Card
-	face        *cards.Face
-	out         *lCard
-	ab          *lAbility // the ability being lowered
-	mode        int       // the charm mode being lowered (-1 none)
-	chainT      []int     // target slots declared by the current SA chain, in order
-	remTgt      int       // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
-	condDone    bool      // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
-	atRes       bool      // the node being lowered declares its targets mid-resolution
-	depth       int       // chain nesting (1: the ability's own chain)
-	head        bool      // the node being lowered heads its chain
-	inGroup     bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
-	czForgetSet bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
-	chains      int       // chain entries so far (every-blocker census: did a node's body get read?)
-	guardNode   string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
-	curNode     *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
-	condDefined bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
-	own         ownTgt    // the slot curNode declared itself (lower_owntarget.go)
-	chainRoot   *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
-	fbGranted   bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
-	mlTrigger   bool      // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
-	fbMarker    *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
+	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
+	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
+	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
+	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
+	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
+	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
+	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
+	station        string    // K:Station's parameter (lower_station.go)
+	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Behold<N/Type> may lower (kernel act_behold.go)
+	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
+	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
+	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
+	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
+	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
+	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
+	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
+	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
+	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
+	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
+	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
+	unlessCost     bool      // payInstr: the cost is an UnlessCost$ of a non-delayed body
+	wardCost       bool      // payInstr: the cost is a Ward keyword's UnlessCost$
+	unlessSubs     []usGate  // UnlessResolveSubs$ gates awaiting their chain level's end (lower_unlesssubs.go)
+	reflexMulti    bool      // lowering a NumTimes reflexive latent: a multi-pick charm may lower on it (lower_numtimes.go)
+	numTimesK      int       // lowering a NumTimes latent for the announced count k: Count$TriggerRememberAmount is k (lower_numtimes.go)
+	remLKN         int       // RememberedLKI$ P/T reads lc.value produced: refuseRemLKIPT refuses unless each one sits in an ability program (value_remlki.go)
+	p              *pool
+	name           string
+	card           *cards.Card
+	face           *cards.Face
+	out            *lCard
+	ab             *lAbility // the ability being lowered
+	mode           int       // the charm mode being lowered (-1 none)
+	chainT         []int     // target slots declared by the current SA chain, in order
+	remTgt         int       // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
+	condDone       bool      // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
+	atRes          bool      // the node being lowered declares its targets mid-resolution
+	depth          int       // chain nesting (1: the ability's own chain)
+	head           bool      // the node being lowered heads its chain
+	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
+	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
+	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
+	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
+	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
+	chainRoot      *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
+	fbGranted      bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
+	mlTrigger      bool      // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
+	fbMarker       *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
 	// digImprinted: this chain's DigUntil imprinted its found card and
 	// remembered every revealed card, Jodah's shape (lower_digimprint.go): the
 	// Play of the Imprinted card and the random-order bottom of the

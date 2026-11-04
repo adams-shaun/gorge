@@ -163,6 +163,15 @@ const (
 	// ChangeZone Defined$ Imprinted GainControl$ True Origin$ Graveyard
 	// Destination$ Battlefield). dirac/act_millthenreturn.go.
 	ExtBreachReturn ExtOp = 161
+	// ExtExileLandChoose (Ensign Pavel Chekov): the resolving controller
+	// chooses a land card the other player (the one opponent of a two-seat
+	// game) owns among the remembered cards in exile (a mandatory
+	// ChGenChooseCard ask, posed with one candidate too, none when there is
+	// no candidate) and imprints it: the chosen set (RefChosen, OpClearChosen
+	// clears it) (gorge RepeatEach Opponent over ChooseCard Defined$ You
+	// Choices$ Land.IsRemembered+RememberedPlayerOwn ChoiceZone$ Exile
+	// ImprintChosen$ True). No other field. dirac/act_exilelandchoose.go.
+	ExtExileLandChoose ExtOp = 162
 	// ExtRecruit (The Hobbit's Recruit action; CR 701.xx,
 	// 701.9, 111.1): the resolving controller draws a card, then discards a
 	// card (gorge effRecruit: one KChoose Min 1 Max 1 in hand order, no ask
@@ -175,9 +184,11 @@ const (
 	// permanent named by Ref Obj (RefSelf, or a target slot RefTarget0..2,
 	// run once per object of a multi-object slot) phases out, and with it
 	// every permanent attached to it, indirectly (CR 702.26g). A phased-out
-	// permanent is on no battlefield walk (dirac.ZonePhased); the toggle
-	// form (PhaseInOrOut$), AllValid$ sweeps, Phaseout$ False, RememberAffected$
-	// and WontPhaseInNormal$ are refused by kgen. dirac/kw_phasing.go.
+	// permanent is on no battlefield walk (dirac.ZonePhased). With Obj RefNone
+	// and F set (AllValid$ <filter>; The City on the Edge of Forever) every
+	// battlefield permanent matching F phases out, in object order. The toggle
+	// form (PhaseInOrOut$), Phaseout$ False, RememberAffected$ and
+	// WontPhaseInNormal$ are refused by kgen. dirac/kw_phasing.go.
 	ExtPhases ExtOp = 110
 	// ExtLockActs (Braided Net): the permanent in Obj (a target),
 	// when it is tapped as this resolves, loses the ability to have its
@@ -479,6 +490,7 @@ func init() {
 func init() {
 	extOpNames[ExtBreachChoose] = "BreachChoose"
 	extOpNames[ExtBreachReturn] = "BreachReturn"
+	extOpNames[ExtExileLandChoose] = "ExileLandChoose"
 }
 
 // Braided Net's sub-op name (dirac/act_lockpermanent.go).

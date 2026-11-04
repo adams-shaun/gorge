@@ -48,6 +48,11 @@ const PutCtrRemAmount = 5
 // leaves the stack, the number Count$RememberedNumber (ExRemLKIPT) then reads.
 const CtrRemMV = 1
 
+// CtrRemember is OpCounter's B bit 1: RememberChanged$ True on a stack move
+// (Brazen Bluff's optional exile): the moved spell joins the resolution's
+// remembered set just before it leaves the stack.
+const CtrRemember = 2
+
 // DivMaxV is TargetSpec.Divide's sentinel for a slot (TgfBoundsV, 0..X targets)
 // whose divided total is the slot's own evaluated maximum: "distribute X
 // +1/+1 counters among any number of target creatures" with X the spell's

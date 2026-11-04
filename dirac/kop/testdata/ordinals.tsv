@@ -204,6 +204,7 @@ CtrPromotion	CounterKind	62
 CtrQuest	CounterKind	18
 CtrReach	CounterKind	31
 CtrRemMV	untyped int	1
+CtrRemember	untyped int	2
 CtrRev	CounterKind	49
 CtrRevival	CounterKind	11
 CtrShadow	CounterKind	32
@@ -392,6 +393,7 @@ ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
+ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
@@ -524,6 +526,7 @@ MayGuardDraw	untyped int	5
 MayGuardLibraryTop	untyped int	4
 MayGuardMill	untyped int	0
 MayGuardMove	untyped int	2
+MayGuardStackSpell	untyped int	9
 MayGuardSuspect	untyped int	3
 MayPlayAdvKind	untyped int	1
 MayPlayAdventure	untyped int	256
@@ -990,6 +993,7 @@ StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
 StatCantPutCounter	StaticKind	252
+StatCantPhaseIn	StaticKind	238
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6

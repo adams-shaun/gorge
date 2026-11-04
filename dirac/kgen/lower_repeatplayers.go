@@ -46,6 +46,9 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	if ok, err := lc.repeatChooseGreatest(who, body); ok || err != nil {
 		return err // lower_modecost.go
 	}
+	if ok, err := lc.repeatExileLand(who, ps, body); ok || err != nil {
+		return err // lower_repeatexilechoice.go
+	}
 	if ok, err := lc.repeatBreach(who, ps, body); ok || err != nil {
 		return err // lower_repeatgravechoice.go
 	}
