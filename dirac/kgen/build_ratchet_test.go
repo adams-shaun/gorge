@@ -138,7 +138,7 @@ import (
 // +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged 21458 -> 21459; ratchet TRK 289 -> 290).
 // +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; 21459 -> 21460; ratchet TRK 290 -> 291).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21460, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21464, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
