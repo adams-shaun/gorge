@@ -223,7 +223,7 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	bound := false
 	if k.gen != nil && a != nil {
 		for i := 0; i < int(a.NTargets); i++ {
-			bound = bound || xBoundTarget(k.t, &a.Targets[i])
+			bound = bound || xBoundTarget(k.t, &a.Targets[i]) || xCountTarget(&a.Targets[i])
 		}
 	}
 	n0 := d.N

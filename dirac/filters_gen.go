@@ -337,12 +337,15 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	return ok
 }
 
-// xBoundTarget: slot t's filter, or its mandatory count ("X target
-// creatures"), is bounded by an X.
+// xCountTarget: slot t takes exactly the announced X ("X target
+// creatures"). X = 0 always answers it, so only the X ask reads it
+// (addXOptions), not the offer's sweep (xBoundPayable).
+func xCountTarget(t *kop.TargetSpec) bool {
+	return t.TFlags&kop.TgfBoundsV != 0 && !t.UpTo
+}
+
+// xBoundTarget: slot t's filter is bounded by an X.
 func xBoundTarget(tb *kop.Table, t *kop.TargetSpec) bool {
-	if t.TFlags&kop.TgfBoundsV != 0 && !t.UpTo {
-		return true
-	}
 	for f := t.Filter; f != 0; f = tb.Filters[f].Or {
 		if tb.Filters[f].PredV.K == kop.VX {
 			return true
