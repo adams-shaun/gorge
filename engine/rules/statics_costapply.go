@@ -473,15 +473,24 @@ func (e *Engine) checkSVarHoldsRaw(sv staticView, raw, cmp string, sub costSubje
 // affectedZoneOK reports whether zone z is named in an AffectedZone$ list
 // (Forge's comma-separated zone words; an unrecognised word denies, the same
 // direction effectZoneOK takes).
+//
+// The sideboard (CR 400.11 "outside the game") is never covered by an empty
+// list or "All": only a script that names Sideboard reaches it (The Holodeck).
 func affectedZoneOK(v string, z state.Zone) bool {
 	v = strings.TrimSpace(v)
 	if v == "" {
-		return true
+		return z != state.ZSideboard
 	}
 	for name := range strings.SplitSeq(v, ",") {
 		switch affectedZoneOKCodes.Code(string(strings.TrimSpace(name))) {
 		case affectedZoneOKAll:
-			return true
+			if z != state.ZSideboard {
+				return true
+			}
+		case affectedZoneOKSideboard:
+			if z == state.ZSideboard {
+				return true
+			}
 		case affectedZoneOKBattlefield:
 			if z == state.ZBattlefield {
 				return true
@@ -831,6 +840,7 @@ const (
 	affectedZoneOKStack
 	affectedZoneOKLibrary
 	affectedZoneOKCommand
+	affectedZoneOKSideboard
 )
 
 var affectedZoneOKCodes = state.NewStrCodes(
@@ -842,6 +852,7 @@ var affectedZoneOKCodes = state.NewStrCodes(
 	state.StrEntry[affectedZoneOKCode]{Key: "Stack", Val: affectedZoneOKStack},
 	state.StrEntry[affectedZoneOKCode]{Key: "Library", Val: affectedZoneOKLibrary},
 	state.StrEntry[affectedZoneOKCode]{Key: "Command", Val: affectedZoneOKCommand},
+	state.StrEntry[affectedZoneOKCode]{Key: "Sideboard", Val: affectedZoneOKSideboard},
 )
 
 type validSpellMatchesCode uint16

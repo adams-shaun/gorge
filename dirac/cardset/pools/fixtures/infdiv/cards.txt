@@ -1,0 +1,14 @@
+# Infinite Diversity's Play CopyCard$ AllowRepeats$ cast of X copies of an exiled instant or sorcery (dirac/oracle/infdiv_test.go)
+Infinite Diversity
+Shock
+Lightning Bolt
+Brute Strength
+Pyroclasm
+Merfolk of the Pearl Trident
+Coral Merfolk
+Giant Tortoise
+Grizzly Bears
+Mountain
+Forest
+Island
+Llanowar Elves

@@ -445,6 +445,9 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenCastFree:
 		d.Sub = ChGenCastFree
 		for i := 0; i < int(s.g.nfree); i++ {
+			if s.freeRepeated(i) {
+				continue // an AllowRepeats$ card is offered once, at its first place left (cast_freerepeat.go)
+			}
 			d.add(MakeAction(AkChoose, uint8(s.g.free[i]), 0, 0))
 		}
 		d.add(MakeAction(AkDone, 0, 0, 0))
@@ -900,6 +903,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		in := &s.prog(k)[s.res.pc]
 		if in.C&16 != 0 {
 			s.forgetRemGen(o)
+		}
+		if DebugRepeatNoOptional && in.C&128 != 0 {
+			s.freeRepeatForce() // mutation only: every copy queued at the first pick
 		}
 		if in.C&8 != 0 && s.g.nfq != 0 && !DebugM11IgnoreOne {
 			// Amount$ 1: stop offering once one card is queued
