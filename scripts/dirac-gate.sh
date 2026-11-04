@@ -18,9 +18,9 @@
 #      and BLB above INSTR_PB_MAX times the accepted program base below.
 #   6. inlining: the hot accessors stay inlinable.
 #   7. escapes: no dirac local moves to the heap.
-#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and every refused entry still diverges
-#      (about 12 s for the whole list), whatever the change touched: a gorge fix can make a refusal
-#      stale as easily as a dirac one.
+#   8. tests: ./dirac, ./dirac/crcoverage, internal/archtest; and, whatever the change touched,
+#      every refused entry still diverges and every committed repro table (TestStd*ReprosLockstep)
+#      plays in lockstep, about 35 s together: a gorge fix can break either as easily as a dirac one.
 #   9. synthetic pools: a short kfuzz -synth on the cards the slices of step 4 don't reach. A pair
 #      divergent on the merge base and the head is an open divergence, counted and not failed; a
 #      pair newly divergent fails.
@@ -186,12 +186,13 @@ if [ -n "$dirac_changed" ]; then
 	out=$(go test -timeout 2m ./dirac/crcoverage ./internal/archtest 2>&1) || bad "./dirac/crcoverage or ./internal/archtest failed: $(tail -20 <<<"$out")"
 fi
 
-# The whole refused list, whatever changed: a gorge fix leaves a refusal stale as easily as a dirac
-# one, and a stale refusal otherwise first fails in the hourly train.
-[ -n "$dirac_changed" ] || echo "== 8 tests (refused entries)"
-out=$(go test -v -timeout 5m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges: $(tail -20 <<<"$out")"
-skip=$(grep -F -- '--- SKIP: TestRefusedEntriesStillDiverge' <<<"$out")
-[ -z "$skip" ] || bad "nothing shows a refused entry diverges, since its pool is not on this machine (set GORGE_POOLS): $skip"
+# The whole refused list and the committed repro tables, whatever changed: a gorge fix leaves a
+# refusal stale, or moves a fixed repro off lockstep, as easily as a dirac one, and either otherwise
+# first fails in the hourly train. A skip here is a pool or table missing on this machine, not a pass.
+[ -n "$dirac_changed" ] || echo "== 8 tests (refused entries, repro tables)"
+out=$(go test -v -timeout 5m -run '^TestRefusedEntriesStillDiverge$|^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle 2>&1) || bad "a refused entry no longer diverges, or a committed repro left lockstep: $(grep -E -- '--- FAIL|divergen' <<<"$out" | head -20)"
+skip=$(grep -F -- '--- SKIP' <<<"$out")
+[ -z "$skip" ] || bad "a refused entry or repro was not played, since its pool or tables are not on this machine (set GORGE_POOLS, make dirac-tables): $skip"
 
 echo "== 4 lockstep, absolute"
 lockstep() {
