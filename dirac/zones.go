@@ -117,6 +117,8 @@ func (s *State) detach(o Obj) kop.Zone {
 		}
 	case kop.ZoneBattlefield:
 		panic("kernel: detach of a permanent (use leave)")
+	case kop.ZoneSideboard:
+		// outside the game: no list to leave (zone_sideboard.go)
 	}
 	ob.zone = kop.ZoneNone
 	return from

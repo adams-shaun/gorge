@@ -967,6 +967,7 @@ StEmbNum	StaticFlags	16384
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
+StAlsoSideboard	StaticFlags	1024
 StPanhETB	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
@@ -1255,4 +1256,5 @@ ZoneLibrary	Zone	1
 ZoneNone	Zone	0
 ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
+ZoneSideboard	Zone	10
 ZoneStack	Zone	6

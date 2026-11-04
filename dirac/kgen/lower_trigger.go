@@ -2491,6 +2491,14 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	st.Kind = "MayPlayFrom"
 	st.F = f
 	z := sp.str("AffectedZone")
+	// "from outside the game" (The Holodeck's AffectedZone$ Sideboard,Graveyard,
+	// CR 400.11): the sideboard rides beside the one real zone as a flag, so a
+	// two-zone permission stays ONE static with one once-per-turn count
+	// (gorge keys the limit on the static, not the zone)
+	if base, ok := strings.CutPrefix(z, "Sideboard,"); ok && !strings.Contains(base, ",") {
+		z = base
+		st.Flags = append(st.Flags, "AlsoSideboard")
+	}
 	st.Zone = zoneNames[z]
 	if st.Zone != zGraveyard && st.Zone != zExile && st.Zone != zHand && st.Zone != zLibrary {
 		return refuse("MayPlay zone %q", z)

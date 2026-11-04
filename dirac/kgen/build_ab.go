@@ -3,6 +3,7 @@ package kgen
 import (
 	"fmt"
 	"math/bits"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -1779,7 +1780,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	case "MayPlayFrom":
 		st.Kind = kop.StatMayPlayFrom
 		st.Zone = zoneMap[s.Zone]
-		if st.Filter, err = filter(s.F, st.Zone); err != nil {
+		fz := st.Zone
+		if slices.Contains(s.Flags, "AlsoSideboard") {
+			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
+		}
+		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
 		}
 		// the count of "RemoveAnyCounter<N/Any/Creature>" (RaiseCostRemove6...)
@@ -1796,6 +1801,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "AlsoSideboard":
+				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":

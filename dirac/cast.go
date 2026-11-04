@@ -309,6 +309,8 @@ func (s *State) unpushSpell(k *prep) {
 		pl.exileN++
 	case kop.ZoneLibrary:
 		pl.libTop(o)
+	case kop.ZoneSideboard:
+		// outside the game: no list, the object's zone is its place
 	default:
 		panic("kernel: unpushSpell from an unexpected zone")
 	}

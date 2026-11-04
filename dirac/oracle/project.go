@@ -137,6 +137,37 @@ type identity struct {
 	obj     []state.ObjID // by instance
 	scanned int           // objects scanned so far (len(G.Objs) at the last sync)
 	err     string        // first overflow, if any
+	// lay is the genesis card objects' sizes (deck 0, sideboard 0, deck 1,
+	// sideboard 1) when a seat has a sideboard, and ncard the genesis card
+	// objects bound so far: gorge deals each seat's deck then its sideboard,
+	// where the kernel numbers both decks, then both sideboards (sync).
+	lay   [4]int
+	ncard int
+}
+
+// setLayout records m's genesis order for sync; a matchup with no sideboard
+// leaves the plain deck order.
+func (id *identity) setLayout(m *Matchup) {
+	if m == nil || len(m.Side[0])+len(m.Side[1]) == 0 {
+		return
+	}
+	id.lay = [4]int{len(m.Deck[0]), len(m.Side[0]), len(m.Deck[1]), len(m.Side[1])}
+}
+
+// genesisInst is the instance of the n-th genesis card object (gorge's deal
+// order: deck 0, sideboard 0, deck 1, sideboard 1) in the kernel's numbering
+// (deck 0, deck 1, sideboard 0, sideboard 1).
+func (id *identity) genesisInst(n int) int {
+	d0, s0, d1 := id.lay[0], id.lay[1], id.lay[2]
+	switch {
+	case n < d0:
+		return n
+	case n < d0+s0:
+		return d0 + d1 + (n - d0)
+	case n < d0+s0+d1:
+		return d0 + (n - d0 - s0)
+	}
+	return d0 + d1 + s0 + (n - d0 - s0 - d1)
 }
 
 // sync binds every object created since the last call. Genesis creates the
@@ -157,6 +188,16 @@ func (id *identity) sync(g *state.Game) {
 			if id.err == "" {
 				id.err = "more than MaxInst card instances"
 			}
+			continue
+		}
+		if n := id.lay[0] + id.lay[1] + id.lay[2] + id.lay[3]; id.ncard < n {
+			inst := id.genesisInst(id.ncard)
+			id.ncard++
+			for len(id.obj) <= inst {
+				id.obj = append(id.obj, 0)
+			}
+			id.inst[o.ID] = Ref(inst)
+			id.obj[inst] = o.ID
 			continue
 		}
 		id.inst[o.ID] = Ref(len(id.obj))
@@ -212,7 +253,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 	}
 	nDeck := 0
 	if m != nil {
-		nDeck = len(m.Deck[0]) + len(m.Deck[1])
+		nDeck = len(m.Deck[0]) + len(m.Deck[1]) + len(m.Side[0]) + len(m.Side[1])
 	}
 	for inst, oid := range id.obj {
 		o := g.Obj(oid)
@@ -223,11 +264,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		c.NameHash = nameHash(cardName(o.Card))
 		c.Face = o.FaceIdx
 		if inst < nDeck && !o.IsToken && !o.IsCopy {
-			if inst < len(m.Deck[0]) {
-				c.Card = m.Deck[0][inst]
-			} else {
-				c.Card = m.Deck[1][inst-len(m.Deck[0])]
-			}
+			c.Card = uint8(m.instanceTable(inst))
 		}
 		c.Zone = uint8(o.Zone)
 		if o.Zone == state.ZCeased {
