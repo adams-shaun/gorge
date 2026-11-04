@@ -181,6 +181,7 @@ type genPrep struct {
 	anyRaise       bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyCantCast    bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
 	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden)
+	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyEvoke       bool           // some card has evoke (CardDef.HasEvoke) or some expression is ExAdamant (kw_evoke.go)
@@ -567,6 +568,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
 	prepCantAct(t, g)   // cast_cantactivate.go
+	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
 	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)

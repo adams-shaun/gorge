@@ -1594,6 +1594,30 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}
 		}
+	case "CantTarget":
+		st.Kind = kop.StatCantTarget // lower_canttarget.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "ActivatorYou":
+				st.StFlags |= kop.StRaiseYou
+			case "ActivatorOpp":
+				st.StFlags |= kop.StRaiseOpp
+			case "SASpell":
+				st.A |= kop.CantTgtSpell
+			case "SAActivated":
+				st.A |= kop.CantTgtActivated
+			case "SATriggered":
+				st.A |= kop.CantTgtTriggered
+			default:
+				return ka, nil, fmt.Errorf("cant target flag %q", fl)
+			}
+		}
 	case "RaiseCost":
 		st.Kind = kop.StatIncreaseCost
 		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {

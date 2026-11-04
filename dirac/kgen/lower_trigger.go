@@ -1761,6 +1761,10 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		if err := lc.cantActivate(sp, &st); err != nil {
 			return nil, err // lower_cantact.go
 		}
+	case "CantTarget":
+		if err := lc.cantTarget(sp, &st); err != nil {
+			return nil, err // lower_canttarget.go
+		}
 	case "CantBlock":
 		if st.F, err = readF("ValidCard"); err != nil {
 			return nil, err

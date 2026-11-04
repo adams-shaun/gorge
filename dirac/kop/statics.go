@@ -191,6 +191,27 @@ const StatCanAttackDefender StaticKind = 250
 // the kernel reads it as goaded by anyone (act_goad.go goadedAt).
 const StatGoad StaticKind = 249
 
+// StatCantTarget (an explicit high ordinal clear of the iota tail in
+// ops.go): a printed S:Mode$ CantTarget. A battlefield permanent matching
+// Filter (read with the static's controller as "you" and its source as
+// Self) can't be the target of a spell or ability whose source matches
+// Filter2 (0 = any source; the spell card, or the permanent that has the
+// ability, read from the static controller), whose kind is in A (a mask of
+// CantTgtSpell, CantTgtActivated, CantTgtTriggered; 0 = every kind) and
+// whose controller StFlags names (StRaiseOpp: the static controller's
+// opponents; StRaiseYou: the controller; neither: anyone), while Cond2 holds
+// (CR 115.4; gorge cantTargetBlocks). Species 8472, Thrun, Breaker of
+// Silence.
+const StatCantTarget StaticKind = 235
+
+// StatCantTarget's Static.A bits: the targeting spell or ability kinds a
+// ValidSA$ names.
+const (
+	CantTgtSpell     = 1
+	CantTgtActivated = 2
+	CantTgtTriggered = 4
+)
+
 // StatCantActivate (an explicit high ordinal clear of
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
