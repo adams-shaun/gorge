@@ -48,9 +48,9 @@ flowchart LR
 
     nginx and gorged in containers, one command.
 
-- [:material-robot-outline: **Paired bot (planned)**](paired-play.md)
+- [:material-robot-outline: **Play with a bot beside you**](paired-play.md)
 
-    A live advisor beside you.
+    A fair bot weighs each of your decisions and marks its pick.
 
 </div>
 

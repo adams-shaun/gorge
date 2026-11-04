@@ -279,13 +279,17 @@ with it armed.
 
 ## A paired bot
 
-A server can let you ask a bot what it makes of the decision in front of you. It is off by default: start
-the server with `-paired-bot az-closed`, then turn on **Paired bot** at the top of the rail. Your browser
-remembers the switch, and it starts off. When you start a game against a bot, the **Paired bot** picker chooses
-for that game: the server's default, another bot the server offers, or none, which takes the panel away. A
-restart keeps the choice.
+A server can seat a bot beside you that weighs each of your decisions as it arrives
+([Play with a bot beside you](../web/paired-play.md)). It is off by default: start the server with
+`-paired-bot az-closed`, and the **Paired bot** panel appears at the top of the rail. Its switch starts on
+when you play alone against bots and off at a table with another human; your browser remembers what you
+choose for each. When you start a game against a bot, the **Paired bot** picker chooses for that game: the
+server's default, another bot the server offers, or none, which takes the panel away. A restart keeps the
+choice.
 
-For each of your decisions the panel lists the options the search weighed, each with the share of its lines
+The bot's pick is marked on the decision itself: a dashed gold ring on what it would press (a card, a
+prompt row, a target, the pass button or **No attack**), and its estimate, *Bot's pick, 62%*, on the
+prompt's controls. A setting in the panel turns the marks off. For each of your decisions the panel lists the options the search weighed, each with the share of its lines
 that looked at it and its estimated chance of winning, and marks the one it recommends. Below the recommendation it lists the line the search expects to follow: up to four of the most-visited plies after that play, who makes each, how much of the search went that way and where those lines end up. The line stops before any ply that depends on cards you can't see, and the panel says when it was cut short. It also marks what the
 bot's own rules would do without searching, and says when search overrules them; a setting in the panel turns
 that off, and your browser remembers it. It only advises.
@@ -298,13 +302,15 @@ see, until the game ends or the search stops and scores the position by life, ca
 ended up. It's a guide to how the options compare, not a measured win rate.
 
 If the game moves on while the bot is thinking, the panel says the advice is out of date and offers to ask again.
-The next decision asks by itself.
+The next decision asks by itself, and a decision your auto-pass answers never asks. When the server is busy
+with other searches, the panel says so and the advice arrives late.
 
 **What the bot can't see.** It sees what you can see: your deck list and everything you've seen in this game.
 It can't see your opponent's hand, the order of any library or your opponent's deck list. It guesses those
 cards from a set of decks, so when it's wrong about what your opponent holds, its advice is wrong too. It
-weighs priority, attackers, blockers and single targets. For any other decision it says so, and it refuses a
-decision in the middle of an effect resolving.
+weighs priority, attackers, blockers, targets, modes, optional triggers and small choices. For any other
+decision it says so and shows what its rules would do, as it does for a decision in the middle of an effect
+resolving.
 
 | Flag | Default | Meaning |
 |---|---|---|

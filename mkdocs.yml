@@ -170,7 +170,7 @@ nav:
       - Troubleshooting: guide/troubleshooting.md
       - gorged flags: web/flags.md
       - Run the demo in Docker: web/docker.md
-      - Paired bot (planned): web/paired-play.md
+      - Play with a bot beside you: web/paired-play.md
       - The server tier: architecture/gorge/server.md
   - Compliance and validation:
       - compliance/index.md
