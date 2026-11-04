@@ -21,7 +21,8 @@ func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 	}
 	rowName := regexp.MustCompile("^\\| `([a-z0-9-]+)` \\|")
 	rows := map[string]string{}
-	for _, line := range strings.Split(string(raw), "\n") {
+	main, _, _ := strings.Cut(string(raw), "\n## Formats")
+	for _, line := range strings.Split(main, "\n") {
 		if m := rowName.FindStringSubmatch(line); m != nil {
 			rows[m[1]] = line
 		}
