@@ -49,6 +49,8 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	if ok, err := lc.repeatBreach(who, ps, body); ok || err != nil {
 		return err // lower_repeatgravechoice.go
 	}
+	defer func(o bool) { lc.repeatOpp = o }(lc.repeatOpp)
+	lc.repeatOpp = who.Kind == rEachOpp
 	for n := body; n != nil; n = n.Sub {
 		var bad []string
 		for k, v := range n.Params {
@@ -73,8 +75,6 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
 	lc.repeatPl++
-	defer func(o bool) { lc.repeatOpp = o }(lc.repeatOpp)
-	lc.repeatOpp = who.Kind == rEachOpp
 	err := lc.chain(body, nil)
 	lc.repeatPl--
 	if err != nil {
@@ -162,6 +162,13 @@ func (lc *lowerCtx) playerCountRemembered(rest string, depth int) (lValue, error
 		return lValue{Kind: vLifeOf, Ref: each}, nil
 	case "CardsInHand":
 		return lValue{Kind: vHandSizeOf, Ref: each}, nil
+	case "LifeLostThisTurn":
+		// gorge LifeLostThisTurn of the repeated player; over the opponents
+		// that player is the one opponent (Gul Dukat, Colonial Prefect)
+		if !lc.repeatOpp {
+			return lValue{}, fmt.Errorf("PlayerCountRemembered$%s over every player", rest)
+		}
+		return lValue{Kind: vOppLifeLostThisTurn}, nil
 	}
 	spec, ok := strings.CutPrefix(rest, "Valid ")
 	if !ok || strings.Contains(spec, "$") {
