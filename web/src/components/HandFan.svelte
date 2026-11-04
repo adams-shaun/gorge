@@ -8,6 +8,7 @@
   import CardDetail from './CardDetail.svelte';
   import { HoverCard, type AnchorRect } from '../lib/carddetail.svelte';
   import { pointerRelease } from '../lib/pointer';
+  import { botPick } from '../lib/botpick.svelte';
 
   /**
    * HandFan is the SEATED PLAYER'S OWN hand, drawn as real card faces along
@@ -219,10 +220,13 @@
       {@const late = !payment && opt ? (opt.later ?? []) : []}
       {@const actionCount = legacyActions.length + late.length}
       {@const showAffordance = !!opt && actionCount > 0 && !(actionCount === 1 && landPlay)}
+      <!-- The paired bot's pick names this card: what it would cast or play. -->
+      {@const advised = opt || payment ? botPick.obj(c.id) : null}
       <div class="card" class:marked={!!opt} data-obj={c.id} style:left="{i * layout.step}px">
         <div
           class="face"
           data-tone={opt?.tone ?? ''}
+          data-bot-pick={advised !== null || undefined}
           data-options={opt ? opt.list.length : undefined}
           data-selected={opt && opt.pickedOrder.length > 0 ? opt.pickedOrder.join(',') : undefined}
           tabindex="0"
@@ -436,6 +440,12 @@
   .card:hover .face,
   .card:has(:focus-visible) .face {
     filter: brightness(1);
+  }
+  /* The paired bot's pick: a dashed ring outside the offer ring, so it never
+     reads as an offer or as the player's own selection. Focus overrides it. */
+  .face[data-bot-pick] {
+    outline: 2px dashed var(--gilt);
+    outline-offset: 3px;
   }
   .face:focus-visible {
     outline: 2px solid var(--initiative);

@@ -4,6 +4,8 @@
   import {
     attackLines, attackOptionText, blockLines, blockOptionText, damageText, noAttackAllowed, noBlocksAllowed, unblockedDamage,
   } from '../../lib/prompts/combat';
+  import { botPick } from '../../lib/botpick.svelte';
+  import { declines } from '../../lib/pairedbot';
   import ListPrompt from './ListPrompt.svelte';
   import type { FooterButton } from './PromptFooter.svelte';
 
@@ -28,13 +30,18 @@
     const head = `${blocks.length} ${blocks.length === 1 ? 'attacker' : 'attackers'}`;
     return damage ? `${head} · ${damage}` : head;
   });
+  // The paired bot's pick when it would declare nothing; its other picks mark the pairing rows.
+  const decline = $derived.by(() => {
+    const p = botPick.of(decision.seq);
+    return declines(p, decision) ? p : null;
+  });
   const extra = $derived.by((): FooterButton[] => attackers
     ? [
         { label: 'Attack with all', onclick: () => logic.attackWithAll(), disabled: logic.busy, data: { 'data-attack-all': true } },
-        ...(noAttackAllowed(decision) ? [{ label: 'No attack', onclick: () => logic.declareNone(), disabled: logic.busy, data: { 'data-no-attack': true } }] : []),
+        ...(noAttackAllowed(decision) ? [{ label: 'No attack', onclick: () => logic.declareNone(), disabled: logic.busy, data: { 'data-no-attack': true }, advised: decline }] : []),
       ]
     : noBlocksAllowed(decision)
-    ? [{ label: 'No blocks', onclick: () => logic.declareNone(), disabled: logic.busy, data: { 'data-no-blocks': true } }]
+    ? [{ label: 'No blocks', onclick: () => logic.declareNone(), disabled: logic.busy, data: { 'data-no-blocks': true }, advised: decline }]
     : []);
 </script>
 

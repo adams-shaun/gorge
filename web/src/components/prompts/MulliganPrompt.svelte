@@ -11,6 +11,8 @@
   import CardImage from '../CardImage.svelte';
   import CardTile from '../CardTile.svelte';
   import Digit from './Digit.svelte';
+  import BotPickTag from './BotPickTag.svelte';
+  import { botPick } from '../../lib/botpick.svelte';
 
   /**
    * MulliganPrompt is the London round's renderer: the keep/mulligan half
@@ -66,9 +68,11 @@
   </div>
   <div class="choices" data-options>
     {#each mull.choices as opt (opt.index)}
-      <button class="choice" class:keep={opt.kind === 'keep'} type="button" data-option={opt.index} use:pointerRelease onclick={() => logic.click(opt.index)} disabled={logic.busy}>
+      {@const advised = botPick.option(decision.seq, opt.index)}
+      <button class="choice" class:keep={opt.kind === 'keep'} class:advised={advised !== null} type="button" data-option={opt.index} data-bot-pick={advised !== null || undefined} use:pointerRelease onclick={() => logic.click(opt.index)} disabled={logic.busy}>
         <Digit n={digits.get(opt.index)} />{choiceLabel(opt)}
       </button>
+      {#if advised}<BotPickTag pick={advised} />{/if}
     {/each}
   </div>
 {:else if mull !== null && mull.phase === 'bottom'}
@@ -179,4 +183,6 @@
   .choice:hover:not(:disabled) { border-color: var(--ink-dim); }
   .choice.keep:hover:not(:disabled) { border-color: var(--gilt, #d4ad62); }
   .choice:disabled { opacity: 0.5; cursor: default; }
+  /* The paired bot's pick: dashed, so it never reads as the player's own pick. */
+  .choice.advised { outline: 1px dashed var(--gilt, #d4ad62); outline-offset: 2px; }
 </style>

@@ -608,6 +608,49 @@ describe('the discard-pick card-face row', () => {
   });
 });
 
+describe('the paired bot\'s pick on the decision', () => {
+  const at = (which: string, pick: object) => `${url}src/components/PromptSurface.fixture.html?case=${which}&botpick=${encodeURIComponent(JSON.stringify(pick))}`;
+  const posted = (page: Page) => page.evaluate(() => (window as unknown as { __posted?: string }).__posted ?? null);
+
+  it('marks the row the bot would choose, with its estimate, and answers nothing', async () => {
+    const page = await browser.newPage();
+    await page.goto(at('charm', { seq: 13, options: [1], payment: null, objs: [], chance: 62 }));
+    const rows = page.locator('[data-answer-surface] [data-list-prompt] [data-option]');
+    await rows.first().waitFor({ state: 'visible' });
+    const marked = page.locator('[data-answer-surface] [data-option][data-bot-pick]');
+    expect(await marked.count()).toBe(1);
+    expect(await marked.getAttribute('data-option')).toBe('1');
+    expect(await marked.textContent()).toContain("Bot's pick, 62%");
+    await page.waitForTimeout(100);
+    expect(await posted(page)).toBeNull();
+    await page.close();
+  });
+
+  it('marks nothing for another decision', async () => {
+    const page = await browser.newPage();
+    await page.goto(at('charm', { seq: 99, options: [1], payment: null, objs: [], chance: 62 }));
+    await page.locator('[data-answer-surface] [data-list-prompt] [data-option]').first().waitFor({ state: 'visible' });
+    expect(await page.locator('[data-bot-pick]').count()).toBe(0);
+    await page.close();
+  });
+
+  it('marks each attacker it would send, or No attack', async () => {
+    const page = await browser.newPage();
+    await page.goto(at('attackers', { seq: 14, options: [1], payment: null, objs: [22], chance: 55 }));
+    await page.locator('[data-option="1"]').waitFor({ state: 'visible' });
+    expect(await page.locator('[data-option="1"][data-bot-pick]').count()).toBe(1);
+    expect(await page.locator('[data-option="0"][data-bot-pick]').count()).toBe(0);
+    expect(await page.locator('[data-no-attack][data-bot-pick]').count()).toBe(0);
+    await page.goto(at('attackers', { seq: 14, options: [], payment: null, objs: [], chance: 58 }));
+    await page.locator('[data-no-attack]').waitFor({ state: 'visible' });
+    expect(await page.locator('[data-no-attack][data-bot-pick]').count()).toBe(1);
+    expect(await page.locator('[data-prompt-footer]').textContent()).toContain("Bot's pick, 58%");
+    expect(await page.locator('[data-option][data-bot-pick]').count()).toBe(0);
+    expect(await posted(page)).toBeNull();
+    await page.close();
+  });
+});
+
 /**
  * The empty-answer safety net (the Squadron Hawk fail-to-find soft-lock's
  * client half): a pending decision for this seat that carries NO options is

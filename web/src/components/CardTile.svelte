@@ -7,6 +7,7 @@
   import { ACTION_GLYPHS, tileOptions as tileOptionsOf, type CardOptions } from '../lib/cardoptions';
   import { SICK_TAP_REASON, sickUntappableManaSource } from '../lib/sicktap';
   import { pointerRelease } from '../lib/pointer';
+  import { botPick } from '../lib/botpick.svelte';
 
   /**
    * CardTile is the battlefield/stack/strip face of one object. It has no
@@ -196,6 +197,10 @@
     hover.superviseRendering(card.id);
   });
 
+  // The paired bot's pick names this card (to cast, activate, attack or block
+  // with, or target), and the pending decision offers it something.
+  const advised = $derived(tileOptions ? botPick.obj(card.id) : null);
+
   function capture(): void {
     const r = root?.getBoundingClientRect();
     anchor = r ? { left: r.left, top: r.top, right: r.right } : null;
@@ -207,6 +212,7 @@
   class="card-tile card-tile--{size}"
   data-tone={tileOptions?.tone ?? ''}
   data-options={tileOptions ? tileOptions.list.length : undefined}
+  data-bot-pick={advised !== null || undefined}
   data-selected={tileOptions && tileOptions.pickedOrder.length > 0 ? tileOptions.pickedOrder.join(',') : undefined}
   class:tapped={faceTapped ?? card.tapped}
   class:sick={isCreature && card.summon_sick}
@@ -325,6 +331,12 @@
   }
   .card-tile[data-tone=''] {
     box-shadow: none;
+  }
+  /* The paired bot's pick: a dashed ring outside the offer ring, so it never
+     reads as an offer or as the player's own selection. */
+  .card-tile[data-bot-pick] {
+    outline: 2px dashed var(--gilt);
+    outline-offset: 3px;
   }
   /* A tile with something already picked gets the strong edge as well as the
      ordinal chip, so a half-chosen board is readable in one pass. */
