@@ -29,7 +29,7 @@ func splitMeleeGrant(kw string) (string, int) {
 // per card. gorge's granted body is the printed expansion's
 // (cards.kwMelee): DB$ Pump Defined$ Self with NumAtt$ and NumDef$ both
 // cards.MeleePumpCount, the declaration's distinct attacked opponents
-// captured as the trigger fires (mlGranted: value.go reads it). The
+// captured as the trigger fires (mlTrigger: value.go reads it). The
 // kernel lists it where gorge's keyword walk does (CardDef.AtkFace,
 // dirac/kw_melee.go).
 func (lc *lowerCtx) meleeGrantTrigger() (int, error) {
@@ -46,8 +46,6 @@ func (lc *lowerCtx) meleeGrantTrigger() (int, error) {
 			"Defined": "Self", "NumAtt": cards.MeleePumpCount, "NumDef": cards.MeleePumpCount,
 		}},
 	}
-	lc.mlGranted = true
-	defer func() { lc.mlGranted = false }()
 	idx := len(lc.out.Abilities)
 	if err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") }); err != nil {
 		return 0, err
@@ -75,4 +73,30 @@ func faceObservesAttack(f *cards.Face) bool {
 		return true
 	}
 	return in&(cards.TriggerInterestAny|cards.TriggerInterestAttackDeclaration) != 0
+}
+
+// isMeleeTrigger reports whether t is the trigger gorge's kwMelee expansion
+// gives a printed Melee, or the one meleeGrantTrigger builds for a granted
+// one: Attacks Self, its body the cards.MeleePumpCount pump.
+func isMeleeTrigger(t cards.Trigger, svars map[string]string) bool {
+	if t.Mode != "Attacks" || t.Params["ValidCard"] != "Card.Self" {
+		return false
+	}
+	body := t.Effect
+	if body == nil {
+		body = cards.ResolveSVar(svars, t.Params["Execute"])
+	}
+	return body != nil && body.API == "Pump" && body.Params["NumAtt"] == cards.MeleePumpCount &&
+		body.Params["NumDef"] == cards.MeleePumpCount
+}
+
+// faceHasMeleeTrigger reports whether f carries the printed Melee
+// expansion's trigger (Keyword$ Melee).
+func faceHasMeleeTrigger(f *cards.Face) bool {
+	for _, t := range f.Triggers {
+		if t.Params["Keyword"] == "Melee" && isMeleeTrigger(t, f.SVars) {
+			return true
+		}
+	}
+	return false
 }

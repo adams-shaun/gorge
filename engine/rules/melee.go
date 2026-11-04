@@ -27,7 +27,7 @@ func (e *Engine) meleeRemembered(ev events.Event) []state.Target {
 }
 
 // checkGrantedMeleeTriggers synthesizes only the keyword instances not already
-// represented by a printed Melee trigger. Derived preserves duplicates: two
+// represented by a live printed Melee trigger. Derived preserves duplicates: two
 // Titanias grant two instances to another creature, and a printed Melee plus
 // a layer-6 grant likewise triggers twice (CR 702.121a). Every instance gets
 // its own stack object with the same declaration-wide opponent snapshot.
@@ -41,9 +41,16 @@ func (e *Engine) checkGrantedMeleeTriggers(observer *Engine, id state.ObjID, o *
 			instances++
 		}
 	}
-	for _, t := range f.Triggers {
-		if t.Mode == "Attacks" && t.ParamStr(cards.PKKeyword) == "Melee" {
-			instances-- // this printed marker is queued by the ordinary trigger walk
+	// A printed Melee line is queued by the ordinary trigger walk only while
+	// the printed face's abilities exist: not while it is face down (CR
+	// 708.2) or has lost its abilities (CR 613.1f), where the derived list
+	// holds only the grants a layer-6 walk left in force (CR 613.7), and every
+	// one of them is an instance this walk queues.
+	if !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o) {
+		for _, t := range f.Triggers {
+			if t.Mode == "Attacks" && t.ParamStr(cards.PKKeyword) == "Melee" {
+				instances-- // this printed marker is queued by the ordinary trigger walk
+			}
 		}
 	}
 	if instances <= 0 {

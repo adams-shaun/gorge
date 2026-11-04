@@ -186,8 +186,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// one opponent (gorge counts a planeswalker's or battle's attack
 		// as its controller's or protector's, combat.go finishAttackers),
 		// so the capture is one.
-		if rest != "Amount" || !lc.mlGranted || !lc.trigBody {
-			err = fmt.Errorf("value head TriggeredCapturedPlayers$%s outside a granted Melee trigger", rest)
+		if rest != "Amount" || !lc.mlTrigger || !lc.trigBody {
+			err = fmt.Errorf("value head TriggeredCapturedPlayers$%s outside a Melee trigger", rest)
 			break
 		}
 		v = cst(1)

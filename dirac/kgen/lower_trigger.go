@@ -60,6 +60,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
+	// a Melee trigger's pump reads the declaration's capture (value.go)
+	defer func(b bool) { lc.mlTrigger = b }(lc.mlTrigger)
+	var svars map[string]string
+	if lc.face != nil {
+		svars = lc.face.SVars
+	}
+	lc.mlTrigger = isMeleeTrigger(t, svars)
 	lc.out.Abilities = append(lc.out.Abilities, ab)
 	lc.ab, lc.chainT, lc.mode = ab, nil, -1
 	tp := newParams(t.Params)

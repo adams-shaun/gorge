@@ -194,3 +194,55 @@ func TestTitaniaAndAdrianaGrantTwoMeleeInstances(t *testing.T) {
 		t.Fatalf("two Melee instances: Bear is %d/%d, want 6/6", got.Power, got.Toughness)
 	}
 }
+
+// TestGrantedMeleeTriggersOnHolderWithoutItsPrintedMelee pins the printed
+// line's discount: Ferocious Colonist prints Melee, and Glory to the Empire!
+// grants its controller's creatures melee. Face up, the printed line and the
+// grant are two instances (CR 702.121b): two triggers, +2/+2. Face down, the
+// printed line does not exist (CR 708.2), and with its abilities lost before
+// the grant began, the printed line is gone while the later grant applies on
+// top (CR 613.1f, 613.7): either way the grant is the one instance, +1/+1, and
+// the printed line must not cancel it.
+func TestGrantedMeleeTriggersOnHolderWithoutItsPrintedMelee(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	colonist := mustCorpusCard(t, reg, "Ferocious Colonist")
+	glory := mustCorpusCard(t, reg, "Glory to the Empire!")
+	if !colonist.Faces[0].HasKeyword("Melee") {
+		t.Fatal("real Ferocious Colonist has no printed Melee")
+	}
+	const muzzle = "Name:Muzzle\nManaCost:1\nTypes:Enchantment\n" +
+		"S:Mode$ Continuous | Affected$ Creature | RemoveAllAbilities$ True | Description$ Creatures lose all abilities.\nOracle:x\n"
+	for _, tc := range []struct {
+		name      string
+		setup     func(e *Engine, id state.ObjID)
+		base, pmp int32
+	}{
+		{"face up", func(*Engine, state.ObjID) {}, 0, 2},
+		{"face down", func(e *Engine, id state.ObjID) { e.G.Obj(id).FaceDown = true }, 2, 1},
+		{"abilities lost before the grant", func(e *Engine, id state.ObjID) { onBoard(t, e, 1, muzzle) }, 0, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := threeSeatEngine(t)
+			id := onBoardCard(t, e, 0, colonist)
+			e.G.Obj(id).SummonSick = false
+			tc.setup(e, id)
+			onBoardCard(t, e, 0, glory)
+			instances := 0
+			for _, k := range e.Derived(id).Keywords {
+				if cards.KeywordHead(k) == "Melee" {
+					instances++
+				}
+			}
+			if want := int(tc.pmp); instances != want || e.Derived(id).Power != tc.base {
+				t.Fatalf("Colonist before attack: %d Melee instances, power %d; want %d and %d",
+					instances, e.Derived(id).Power, want, tc.base)
+			}
+			meleeAttack(t, e, map[state.ObjID]state.PlayerID{id: 1})
+			if got := e.Derived(id).Power; got != tc.base+tc.pmp {
+				t.Fatalf("Colonist after attacking one opponent: power %d, want %d (%d Melee trigger(s))",
+					got, tc.base+tc.pmp, tc.pmp)
+			}
+		})
+	}
+}

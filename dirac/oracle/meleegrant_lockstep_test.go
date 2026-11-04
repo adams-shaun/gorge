@@ -34,3 +34,23 @@ func TestMeleeGrantLockstep(t *testing.T) {
 	}
 	fixtureLockstep(t, "std-trc", [2][]cardset.Entry{a, b}, 300)
 }
+
+// Ferocious Colonist prints Melee. Beside Glory to the Empire!'s grant it
+// has two instances, the printed one listed with its face's lines and the
+// granted one after (CR 702.121b). Reality Shift manifests a Colonist off the
+// top of its owner's library: face down the printed line does not exist (CR
+// 708.2), so Glory's grant is its one Melee trigger, which gorge no longer
+// cancels against the hidden printed line.
+func TestPrintedMeleeLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	a := []cardset.Entry{
+		{Name: "Ferocious Colonist", Count: 12}, {Name: "Glory to the Empire!", Count: 8},
+		{Name: "Mountain", Count: 20},
+	}
+	b := []cardset.Entry{
+		{Name: "Reality Shift", Count: 12}, {Name: "Island", Count: 28},
+	}
+	fixtureLockstep(t, "std-trc", [2][]cardset.Entry{a, b}, 300)
+}

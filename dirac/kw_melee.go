@@ -7,6 +7,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // trigger marked kop.Ability.MeleeGrant, whose pump is +1/+1 (the one
 // opponent a two-player declaration attacks). Each instance triggers
 // separately (CR 702.121b): grantedAbilitiesN lists one per granting static.
+// A printed Melee (Ferocious Colonist) is an ordinary printed Attacks Self
+// trigger beside them, absent while the face is down, so a grant on top of
+// it is its own instance and on a face-down holder the only one: gorge
+// discounts the printed line only while it exists.
 //
 // gorge queues a granted Melee in its own keyword walk (rules/melee.go
 // checkGrantedMeleeTriggers), not among the triggers statics and effects

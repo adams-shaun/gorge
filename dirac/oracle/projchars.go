@@ -145,7 +145,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Unearth":                           "a graveyard activated ability (Return of itself then OpUnearth: haste, the end-step exile and the exile-instead promise; gorge kwUnearth's expansion), no battlefield characteristic",
 	"Training":                          "an Attacks trigger with Trigger.N TrigNTraining (gorge kwTraining's expansion), no battlefield characteristic",
 	"Firebending":                       "an Attacks trigger whose AddMana has B = 1 (State.fbR; gorge kwFirebending's expansion, CR 702.189a), no battlefield characteristic",
-	"Melee":                             "a static's granted Attacks trigger pumping its holder (kop.Ability.MeleeGrant, kw_melee.go; CR 702.121a; a printed Melee is refused), no battlefield characteristic",
+	"Melee":                             "an Attacks Self trigger pumping its holder: a printed one from gorge kwMelee's expansion, a static's granted one kop.Ability.MeleeGrant (kw_melee.go; CR 702.121a), no battlefield characteristic",
 	"Increment":                         "a SpellCast trigger with Tf2Increment (gorge kwIncrement's expansion), no battlefield characteristic",
 	"Craft":                             "a battlefield activated ability (the ExileCtrlOrGrave material and Exile<1/CARDNAME> costs, then the transformed Return; gorge kwCraft's expansion), no battlefield characteristic",
 	"Embalm":                            "a graveyard activated ability (CostExileGrave of itself, OpCopyAsTokenEx with a white / Zombie / no-mana-cost exception; gorge kwEmbalm's expansion), no battlefield characteristic",
