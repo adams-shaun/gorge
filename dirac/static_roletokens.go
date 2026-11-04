@@ -51,7 +51,7 @@ func (s *State) createAttachedToken(k *prep, in *kop.Instr, p uint8, n int) (ok,
 	if s.enchantCands(k, CardID(in.C), p, &buf) == 0 {
 		return true, true
 	}
-	if s.nearCapacity() {
+	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return true, true
 	}

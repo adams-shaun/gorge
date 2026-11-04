@@ -62,12 +62,15 @@ func cityedgePolicy(seed uint64) Policy {
 
 // kcityedgeTally counts, on gorge's side, what the games reach.
 type kcityedgeTally struct {
-	games, direct, indirect, in, held, sacGames int
+	games, direct, indirect, in, held, simul, sacGames int
 }
 
 // kcityedgeCheck tallies phase changes, and the phased-out permanents that
 // are still out at the first decision of their controller's turn (the untap
-// step's phase-in did not happen, the token holds it).
+// step's phase-in did not happen, the token holds it), and the untap steps
+// whose phase-in set holds a phased-out Human token together with a sibling
+// (the token's CantPhaseIn is inert while it is out, CR 502.1/702.26a: the
+// set phases in at once).
 func kcityedgeCheck(tal *kcityedgeTally) func(*GorgeSide, Side) *Divergence {
 	var cur *GorgeSide
 	type st struct{ out, ind bool }
@@ -81,6 +84,7 @@ func kcityedgeCheck(tal *kcityedgeTally) func(*GorgeSide, Side) *Divergence {
 		}
 		newTurn := int32(g.Turn) != turn
 		turn = int32(g.Turn)
+		ins, tokenIn := 0, false
 		for i := range g.Objs {
 			o := &g.Objs[i]
 			now := st{o.PhasedOut && o.Zone == state.ZBattlefield, o.PhasedOutIndirect}
@@ -92,11 +96,16 @@ func kcityedgeCheck(tal *kcityedgeTally) func(*GorgeSide, Side) *Divergence {
 				tal.direct++
 			case !now.out && was.out:
 				tal.in++
+				ins++
+				tokenIn = tokenIn || o.IsToken
 			}
 			if newTurn && now.out && was.out && !now.ind && o.Controller == g.Active {
 				tal.held++
 			}
 			prev[o.ID] = now
+		}
+		if tokenIn && ins > 1 {
+			tal.simul++
 		}
 		return nil
 	}
@@ -175,12 +184,12 @@ func TestCityOnTheEdgeLockstep(t *testing.T) {
 	}
 	var tal kcityedgeTally
 	divs := runCityedge(t, 200, false, &tal)
-	t.Logf("%d games, %d divergences: %d direct phase-outs, %d indirect, %d phase-ins, %d held out through their controller's untap", tal.games, divs, tal.direct, tal.indirect, tal.in, tal.held)
+	t.Logf("%d games, %d divergences: %d direct phase-outs, %d indirect, %d phase-ins, %d held out through their controller's untap, %d untap steps phasing a token in with siblings", tal.games, divs, tal.direct, tal.indirect, tal.in, tal.held, tal.simul)
 	if divs != 0 {
 		t.Fatalf("%d divergences", divs)
 	}
-	if tal.direct < 100 || tal.indirect < 10 || tal.held < 20 || tal.in < 10 {
-		t.Errorf("direct %d (want >= 100), indirect %d (>= 10), held out %d (>= 20), phase-ins %d (>= 10)", tal.direct, tal.indirect, tal.held, tal.in)
+	if tal.direct < 100 || tal.indirect < 10 || tal.held < 20 || tal.in < 10 || tal.simul < 100 {
+		t.Errorf("direct %d (want >= 100), indirect %d (>= 10), held out %d (>= 20), phase-ins %d (>= 10), token-with-siblings phase-ins %d (>= 100)", tal.direct, tal.indirect, tal.held, tal.in, tal.simul)
 	}
 }
 

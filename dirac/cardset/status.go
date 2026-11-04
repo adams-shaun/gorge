@@ -66,7 +66,7 @@ func viewOf(d *PoolData, plays playable) Set {
 	for i, st := range d.Status {
 		sup[i] = plays(st)
 	}
-	return &dataSet{d, sup}
+	return &dataSet{d: d, plays: sup, nameInert: nameInertCards(d)}
 }
 
 // RawByName returns the set named name with every lowered card playable, refused

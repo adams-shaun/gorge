@@ -36,6 +36,12 @@ type Matchup struct {
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
+	// NameUniverse, when set, replaces the registry's name universe in the
+	// gorge game's Config: a name ask (a card choosing a card name as it
+	// enters) offers only these cards' names. NewMatchup sets it to the
+	// matchup's own cards when one of them chooses a card name as it enters
+	// (NameUniverseFor), which is what the kernel lists (Table.NameCards).
+	NameUniverse *cards.Universe
 
 	reg *cards.Registry
 	// chars is the kernel vocabulary the gorge side maps derived
@@ -157,6 +163,9 @@ func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mu
 // NewMatchupSide is NewMatchup with each seat's sideboard.
 func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][]*cards.Card, mulligans int) (*Matchup, error) {
 	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, reg: reg}
+	if holdsNameChooser(decks) {
+		m.NameUniverse = NameUniverseFor(reg, decks)
+	}
 	seen := map[string]bool{}
 	for _, ds := range [...][2][]*cards.Card{decks, sideboards} {
 		for _, d := range ds {
@@ -189,6 +198,53 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 	return m, nil
 }
 
+// holdsNameChooser reports whether a deck card chooses a card name as it
+// enters (an ETB replacement whose effect is NameCard: Kai Winn, Faithless
+// Leader).
+func holdsNameChooser(decks [2][]*cards.Card) bool {
+	for _, d := range decks {
+		for _, c := range d {
+			if c == nil {
+				continue
+			}
+			for _, f := range c.Faces {
+				if f == nil {
+					continue
+				}
+				for _, r := range f.Repls {
+					for a := r.With; a != nil; a = a.Sub {
+						if a.API == "NameCard" {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+// NameUniverseFor is the name universe a gorge game over decks is dealt: the
+// registry's whole universe, except that a matchup holding a card that
+// chooses a card name as it enters names only its own cards, the set the
+// kernel lists (Table.NameCards), so both sides offer the same choices.
+func NameUniverseFor(reg *cards.Registry, decks [2][]*cards.Card) *cards.Universe {
+	if !holdsNameChooser(decks) {
+		return reg.Universe()
+	}
+	seen := map[string]bool{}
+	var cs []*cards.Card
+	for _, d := range decks {
+		for _, c := range d {
+			if n := cardName(c); !seen[n] {
+				seen[n] = true
+				cs = append(cs, c)
+			}
+		}
+	}
+	return cards.UniverseOf(cs)
+}
+
 // Config is the rules.Config a gorge self-play game builds for this
 // matchup and seed: the same Names, Decks, Tokens, NameUniverse and
 // Mulligans, and bench.PlayGame's default object cap. (-mull-heuristic is a
@@ -207,6 +263,9 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 			panic("oracle: Matchup.Config on an OpenKernelCorpus registry (a gorge game needs OpenCorpus's full name universe)")
 		}
 		cfg.Tokens, cfg.NameUniverse = m.reg.Tokens, m.reg.Universe()
+	}
+	if m.NameUniverse != nil {
+		cfg.NameUniverse = m.NameUniverse
 	}
 	cfg.LoopGuard = rules.WithDefaultObjectCap(cfg.LoopGuard)
 	return cfg

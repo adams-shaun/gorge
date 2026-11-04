@@ -1,0 +1,11 @@
+# the Stray from History pool: a charm whose second mode targets an
+# opponent and exiles a nonland card from their hand, beside creatures that
+# fill the graveyard for its first mode, for the oracle's constructed
+# lockstep (dirac/oracle/strayhistory_test.go)
+Grizzly Bears
+Hill Giant
+Mountain
+Ornithopter
+Shock
+Stray from History
+Swamp

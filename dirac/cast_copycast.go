@@ -62,7 +62,7 @@ func (s *State) beginCopyCast(k *prep, o Obj, ctrl uint8) bool {
 		s.capFull(StallCopyCast)
 		return false
 	}
-	if s.nearCapacity() {
+	if s.nearCapacity(k) {
 		s.capFull(StallBoard)
 		return false
 	}
