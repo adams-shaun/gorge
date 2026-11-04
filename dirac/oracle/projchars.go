@@ -115,6 +115,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Equip":                    "CardDef.EquipCost (an activated ability)",
 	"Enchant":                  "CardDef.Enchant (the Aura's target spec)",
 	"etbCounter":               "an enters-with-counters replacement (ability)",
+	"Sunburst":                 "an enters-with-counters replacement (ability; gorge kwSunburst's Count$Converge counters)",
 	"ETBReplacement":           "an as-enters replacement (ability)",
 	"MayEffectFromOpeningHand": "CardDef.Leyline",
 	"Crew":                     "an activated ability with a CostTapPower cost (gorge kwCrew's expansion; C6)",

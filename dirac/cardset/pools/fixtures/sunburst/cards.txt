@@ -1,0 +1,16 @@
+# sunburst (CR 702.47): Engineered Explosives' X cast enters with a charge
+# counter per colour spent and sweeps the nonland permanents of that mana
+# value; Etched Oracle and Suntouched Myr enter with +1/+1 counters
+# (dirac/oracle/sunburst_test.go)
+Engineered Explosives
+Etched Oracle
+Suntouched Myr
+Grizzly Bears
+Memnite
+Llanowar Elves
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -200,3 +200,46 @@ func TestSunburstAnimateGrantOnSolarArray(t *testing.T) {
 }
 
 // answerManaAutomatically is no longer needed.
+
+// TestSunburstEngineeredExplosivesXChargeAndSweep pins the X-cost sunburst
+// carrier: Engineered Explosives cast for X = 2 paid with one red and one
+// green enters with two charge counters (CR 702.47a, the colours spent, not
+// X), and its sacrifice ability destroys each nonland permanent with mana
+// value 2 (Grizzly Bears), sparing a mana value 0 permanent (Memnite).
+func TestSunburstEngineeredExplosivesXChargeAndSweep(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _, id := sunburstEngine(t, reg, seedTossSeat0(167), "Engineered Explosives", "Grizzly Bears", "Memnite")
+	bears := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	memnite := moveByName(t, e, 0, "Memnite", state.ZBattlefield)
+	addMana(t, e, 0, "RG")
+	castFirst(t, e, "cast")
+	announceXCast(t, e, id, 2)
+	passUntilStackEmpty(t, e, 20)
+	o := e.G.Obj(id)
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Explosives zone=%s, want battlefield", o.Zone)
+	}
+	if got := o.Counter("CHARGE"); got != 2 {
+		t.Fatalf("Explosives CHARGE=%d, want 2 (two colours spent)", got)
+	}
+	addMana(t, e, 0, "RR")
+	d := e.Pending()
+	idx := -1
+	for _, op := range d.Options {
+		if op.Kind == "ability" && op.Obj == id {
+			idx = op.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("precondition: the sacrifice ability was not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	passUntilStackEmpty(t, e, 20)
+	if z := e.G.Obj(bears).Zone; z != state.ZGraveyard {
+		t.Fatalf("Grizzly Bears (mana value 2) zone=%s, want graveyard", z)
+	}
+	if z := e.G.Obj(memnite).Zone; z != state.ZBattlefield {
+		t.Fatalf("Memnite (mana value 0) zone=%s, want battlefield", z)
+	}
+}

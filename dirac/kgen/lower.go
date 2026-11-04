@@ -268,6 +268,13 @@ func (lc *lowerCtx) lowerFace() {
 			lc.out.SpendRead = true
 		}
 	}
+	for _, k := range lc.face.Keywords {
+		if cards.KeywordHead(k) == "Sunburst" {
+			// gorge faceWantsConverge reads the printed keyword too: the
+			// planner declines the cast as for a Count$Converge body
+			lc.out.SpendRead = true
+		}
+	}
 	lc.lowerRecord()
 	lc.lowerKeywords()
 	lc.lowerLines(true, false)
@@ -688,6 +695,10 @@ var simpleKeywords = map[string]bool{
 var expandedKeywords = map[string]bool{
 	"Equip": true, "Ward": true, "Exalted": true, "Prowess": true, "Affinity": true, "Enchant": true,
 	"etbCounter": true, "ETBReplacement": true,
+	// Sunburst (CR 702.47): gorge kwSunburst expands it to a Moved
+	// replacement putting Count$Converge P1P1 (a creature) or CHARGE
+	// counters on the entering permanent
+	"Sunburst": true,
 	// Class (CR 716): gorge kwClass appends each level's activator
 	// (AB$ ClassLevelUp) and its granted ability (ClassBand$ N) to the face
 	"Class": true,
