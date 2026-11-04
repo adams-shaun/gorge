@@ -173,7 +173,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 				if len(calls) >= 3 || time.Now().After(deadline) {
 					break
 				}
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(pollEvery)
 			}
 			if len(calls) != 3 || calls[0][0] != "fill" || calls[1][0] != "serve" || calls[2][0] != "serve" {
 				t.Fatalf("stub calls = %q, want the fill, then both servers", calls)
@@ -213,7 +213,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 			// script passes, not which policy the demo's owner picked.
 			wantPolicy := deployScriptDefault(t, "BOT_POLICY")
 			spectator, vsbotSpectator, botPolicy, pace := flagValue(t, fs, "spectator"), flagValue(t, fs, "vsbot-spectator"), flagValue(t, fs, "bot-policy"), flagValue(t, fs, "pace")
-			if spectator != "omniscient" || vsbotSpectator != "public" || botPolicy != wantPolicy || pace != (50*time.Millisecond).String() {
+			if spectator != "omniscient" || vsbotSpectator != "public" || botPolicy != wantPolicy || pace != "50ms" {
 				t.Errorf("demo server: spectator %q vsbot-spectator %q bot-policy %q pace %v, want omniscient/public/%s/50ms",
 					spectator, vsbotSpectator, botPolicy, pace, wantPolicy)
 			}
@@ -379,7 +379,7 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 			b, _ := os.ReadFile(log.Name())
 			t.Fatalf("probe gorged on [::1]:%d never became ready: %s", port, b)
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(pollEvery)
 	}
 	// Prove the probe really is the shape that used to be swept: a listening
 	// socket rendered exactly as [::1]:port in ss -lptn — matched by the old
@@ -396,7 +396,7 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 		if time.Now().After(deadline) {
 			t.Fatalf("the probe gorged's socket never showed in ss -lptn as [::1]:%d; the probe does not have the swept shape", port)
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(pollEvery)
 	}
 	probe := &gorgedProbe{cmd: cmd, port: port, done: done}
 	assertGorgedProbeListening(t, probe)
@@ -662,3 +662,7 @@ func TestDemoSweepCoversRetiredPorts(t *testing.T) {
 		t.Errorf("an empty history: sweep %q, want only the bound port", got)
 	}
 }
+
+// pollEvery is how often a wait loop re-checks; every wait has a multi-second
+// deadline, so the result never depends on this interval.
+const pollEvery = time.Second / 100
