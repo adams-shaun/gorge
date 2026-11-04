@@ -764,6 +764,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return true, true // StallTokRewrite
 		}
 		if tc != CardID(in.C) {
+			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
+				// a Role mint rewritten: gorge mints the rewriter's card as a plain
+				// script mint (not an Aura, so nothing is withheld); the attach path
+				// would look for a host for the non-Aura card (repl_tokrewrite.go)
+				s.capFull(StallTokRewrite)
+				return true, true
+			}
 			rw := *in // a rewriter: the mint makes its card (repl_tokrewrite.go)
 			rw.C = int16(tc)
 			in = &rw
