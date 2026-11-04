@@ -944,6 +944,11 @@ type lEmblem struct {
 	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
 	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
 	WhileHost     bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
+	// Capture: RememberObjects$ Targeted over the chain's target slot
+	// (CaptureSet); the trigger's ValidSource$ ...IsRemembered is then the
+	// emblem's own capture, lowered without the Remembered flag
+	Capture    lRef
+	CaptureSet bool
 }
 
 type refusal struct {

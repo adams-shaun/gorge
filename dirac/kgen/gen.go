@@ -477,6 +477,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		} else if e.UntilNextTurn {
 			eot = " until=next"
 		}
+		if e.CaptureSet {
+			eot += " remembers=" + e.Capture.String()
+		}
 		fmt.Fprintf(w, "  emblem[%d] trigger=%d statics=%d%s\n", i, e.Trigger, len(e.Statics), eot)
 	}
 	for _, r := range c.Refusals {
