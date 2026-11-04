@@ -119,7 +119,7 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int) bool {
 	var eb entBatch
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.fireEntries(k, &eb)
 			s.stall(StallBoard)
 			return true

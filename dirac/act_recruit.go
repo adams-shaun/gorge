@@ -105,7 +105,7 @@ func (s *State) recruitToken(k *prep, p uint8) {
 	card := recruitTokenCard(k)
 	n := s.replTokens(k, p, card, 1)
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return
 		}
