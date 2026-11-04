@@ -59,8 +59,8 @@ type resPay struct {
 // with (Priceable), the pool alone does not pay it -- with the payer's
 // PayLifeInsteadOf grant suspended, exactly as the window's own gate does --
 // an untapped source that yields mana exists, and the seat's potential mana
-// (the pool plus every source's upper bound, counting only the mana
-// abilities whose RestrictValid$ admits this payment) can cover it. False means the
+// (the pool plus every source's upper bound, counting only the pool batches
+// and mana abilities whose RestrictValid$ admits this payment) can cover it. False means the
 // election is settled by the pool alone, as it always was: a cost no source
 // can reach keeps that path's decline-only ask, never a pay that can only
 // float mana and then fail at the charge.
@@ -81,7 +81,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 		}
 	}
 	return sources && pay.CostPayablePool(asPayer(e), player, source, false, amount,
-		e.potentialManaFor(player, &desc), e.G.Players[player].ManaUnits())
+		e.potentialManaFor(player, &desc), pay.AvailableFor(asPayer(e), player, desc).Typed)
 }
 
 // resPayPlan is the planner's witness for amount's mana from the current
