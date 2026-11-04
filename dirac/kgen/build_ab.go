@@ -3099,6 +3099,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op = kop.OpUnearth
 	case "EnterUntapped":
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterUntapped))
+	case "EnterAttacking":
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtEnterAttacking))
 	case "ExchangeControl":
 		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExchangeControl)), int16(in.C)
 	case "EachDamage":

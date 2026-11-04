@@ -390,6 +390,7 @@ ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
+ExtEnterAttacking	ExtOp	250
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244

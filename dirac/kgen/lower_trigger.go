@@ -3397,6 +3397,18 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return refuse("conditional/chained/self ETB untap shape")
 			}
 			lc.emit(lInstr{Op: "EnterUntapped", Obj: lRef{Kind: rReplaced}})
+		case "ChangeZone":
+			// "creatures you control enter tapped and attacking" (Kira Nerys,
+			// Firebrand): the replaced card moves from Origin$ All to the
+			// battlefield with Tapped$ True and Attacking$ True, nothing else
+			// (gorge effects.EntryStateBody). Only the unchained other-enter shape.
+			if !other || node != sa || sa.Sub != nil || ncond.Kind != cNone ||
+				!ps.is("Origin", "All") || !ps.is("Destination", "Battlefield") || ps.str("Defined") != want ||
+				!ps.is("Tapped", "True") || !ps.is("Attacking", "True") {
+				return refuse("ETB replacement ChangeZone shape")
+			}
+			lc.emit(lInstr{Op: "EnterTapped", Obj: lRef{Kind: rReplaced}})
+			lc.emit(lInstr{Op: "EnterAttacking", Obj: lRef{Kind: rReplaced}})
 		case "PutCounter":
 			if d, hasD := ps.get("Defined"); !ps.is("ETB", "True") || hasD && strings.TrimSpace(d) != want {
 				return refuse("ETB counter shape")
