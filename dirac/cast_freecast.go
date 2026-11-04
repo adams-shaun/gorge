@@ -25,6 +25,7 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 3: Amount$ 1 (close the ask after one pick).
 //   - C bit 4: ForgetPlayed$ True (drop the begun card from s.g.rem).
 //   - C bit 5: ReplaceGraveyard$ Exile (exile when it leaves the stack).
+//   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - Obj: RefRemembered (P1), a target slot (P2), or RefNone with F (P3/P4
 //     filter population over the zone).
 //
@@ -120,6 +121,9 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 				}
 			}
 		}
+	}
+	if in.C&128 != 0 {
+		s.castFreeRepeat(k, in) // cast_freerepeat.go: AllowRepeats$ with Amount$ X
 	}
 }
 

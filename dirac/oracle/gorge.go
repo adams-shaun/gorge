@@ -907,11 +907,15 @@ func (g *GorgeSide) repose(fr *frame) {
 		return
 	}
 	budget := completeBudget
+	playSeen := map[state.ObjID]bool{} // playRepeatDup's cards already offered
 	for i := range d.Options {
 		if !fr.valid[i] {
 			continue
 		}
 		if fr.multi {
+			if playRepeatDup(d, playSeen, i) {
+				continue
+			}
 			if !g.admissible(fr, fr.chosen, i) {
 				continue
 			}
@@ -930,6 +934,7 @@ func (g *GorgeSide) repose(fr *frame) {
 			}
 		}
 		es = append(es, ent{fr.acts[i], d.Options[i].Index})
+		playSeen[d.Options[i].Obj] = true
 	}
 	if fr.multi && g.validAnswer(fr, fr.chosen) {
 		es = append(es, ent{Pack(ActDone, RefNone, RefNone, 0), -1})
