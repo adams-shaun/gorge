@@ -90,12 +90,34 @@ func (s *State) windowUnpricedOpen(k *prep, e *stackEntry) bool {
 	}
 	tapX := s.windowTapXLive(k, e.ctrl)
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
-		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) || tapX.has(sl) {
+		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) || tapX.has(sl) || s.restrManaUntapped(k, sl) {
 			return true
 		}
 	}
 	return false
 }
+
+// restrManaUntapped: sl is an untapped permanent with a restricted mana ability.
+// gorge's untapped-source gate (untappedManaSource) reads every available mana
+// ability, its restriction unread, so Interdimensional Web Watch's exile-cast
+// mana keeps a pool-short candidate on the menu once the census is incomplete.
+func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
+	pm := &s.perms[sl]
+	if pm.flags&pfTapped != 0 || pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0 || s.genLost(k, sl) || DebugNoRestrManaOpen {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// DebugNoRestrManaOpen leaves a restricted mana source out of the window's
+// untapped-source gate (mutation testing only: the lockstep must catch it).
+var DebugNoRestrManaOpen bool
 
 // altAddTargetAbort: the pips of a hybrid spell are announced and its chosen part
 // still can't be paid, so the target menu withholds every candidate
@@ -201,8 +223,8 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 				s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
 				continue
 			}
-			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) && !noOwed {
-				s.windowWideTap(k, p, sl, cost, useful, clamp, &held)
+			if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
+				s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, &held)
 				continue
 			}
 			if s.windowGapAnyColour(k, p, sl, cost, useful, clamp, noOwed) {
@@ -355,9 +377,10 @@ func (s *State) windowWide(k *prep, p uint8, sl Slot) bool {
 // beside the pool (restricted, State.rb). The ask lists the colours the clamp keeps
 // (paymentUsefulColours) once per mana, and each mana answers a colour the cost
 // still owes, else the lowest listed (payexec.WindowChoices), the owed amount
-// falling by what the first mana covers. Mana the byte cannot hold as restricted
-// floats plain (held).
-func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp bool, held *[kop.NumManaKinds]uint8) {
+// falling by what the first mana covers; a window whose ask carries no cost
+// (noOwed, windowCol) owes nothing, so each mana is the lowest listed. Mana the
+// byte cannot hold as restricted floats plain (held).
+func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool, held *[kop.NumManaKinds]uint8) {
 	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.anyR(s.cardAt(sl))]
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
@@ -368,9 +391,12 @@ func (s *State) windowWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaC
 			mask &= want
 		}
 	}
-	owed := cost.Pips
-	for c := range owed {
-		owed[c] -= min(owed[c], s.pl[p].pool[c])
+	var owed [len(cost.Pips)]uint8
+	if !noOwed {
+		owed = cost.Pips
+		for c := range owed {
+			owed[c] -= min(owed[c], s.pl[p].pool[c])
+		}
 	}
 	for i := 0; i < 2; i++ {
 		col := bits.TrailingZeros8(mask)
