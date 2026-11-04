@@ -1,0 +1,150 @@
+/* Layout wireframes: the schematic figures on the Web client pages.
+ * Each frame is one table; all colours come from the strata theme
+ * variables, so a frame follows the light/dark toggle. */
+
+.gg-wire-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.gg-wire { margin: 0; }
+.gg-wire figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--md-default-fg-color--light);
+}
+
+.gg-wire__frame {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 6px;
+  background: var(--md-code-bg-color);
+}
+.gg-wire__frame--left { flex-direction: row-reverse; }
+
+.gg-wire__board {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gg-wire__opp {
+  display: grid;
+  gap: 3px;
+  min-height: 0;
+}
+.gg-wire__seat {
+  border: 1px dashed var(--md-default-fg-color--light);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--gg-slate, #4c6e91) 14%, transparent);
+}
+.gg-wire__seat--strip { background: color-mix(in srgb, var(--gg-slate, #4c6e91) 30%, transparent); }
+.gg-wire__seat--big { background: color-mix(in srgb, var(--gg-slate, #4c6e91) 22%, transparent); border-style: solid; }
+
+.gg-wire__bar {
+  flex: 0 0 4px;
+  border-radius: 2px;
+  background: var(--md-accent-fg-color);
+}
+
+.gg-wire__me {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+}
+.gg-wire__row { flex: 1; display: flex; gap: 2px; min-height: 0; }
+.gg-wire__reg {
+  flex: var(--w, 1) 1 0%;
+  border-radius: 2px;
+  border: 1px solid transparent;
+}
+.gg-wire__reg--c { background: color-mix(in srgb, var(--gg-verdigris, #1f6f68) 40%, transparent); border-color: var(--gg-verdigris, #1f6f68); }
+.gg-wire__reg--l { background: color-mix(in srgb, var(--gg-ochre, #b98a2e) 40%, transparent); border-color: var(--gg-ochre, #b98a2e); }
+.gg-wire__reg--o { background: color-mix(in srgb, var(--gg-slate, #4c6e91) 40%, transparent); border-color: var(--gg-slate, #4c6e91); }
+
+.gg-wire__hand {
+  flex: 0 0 15%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+.gg-wire__hand i {
+  width: 11%;
+  height: 100%;
+  margin-left: -3%;
+  border: 1px solid var(--md-default-fg-color--light);
+  border-radius: 2px;
+  background: var(--md-default-bg-color);
+}
+
+.gg-wire__rail {
+  flex: 0 0 22%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.gg-wire__box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: 3px;
+  background: var(--md-default-bg-color);
+}
+.gg-wire__box b {
+  font-size: 0.5rem;
+  font-weight: 500;
+  font-style: normal;
+  color: var(--md-default-fg-color--light);
+}
+.gg-wire__box--stack { flex: 2; }
+.gg-wire__box--prompt {
+  border-color: var(--gg-ochre, #b98a2e);
+  background: color-mix(in srgb, var(--gg-ochre, #b98a2e) 25%, var(--md-default-bg-color));
+}
+.gg-wire__box--inline { flex: 0 0 12%; }
+.gg-wire__box--float {
+  position: absolute;
+  top: 28%;
+  left: 38%;
+  width: 34%;
+  height: 22%;
+  flex: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.gg-wire-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light);
+}
+.gg-wire-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.35em;
+  vertical-align: -0.1em;
+  border: 1px solid var(--md-default-fg-color--light);
+  border-radius: 2px;
+  background: var(--sw, transparent);
+}
+.gg-wire-legend .sw-opp { --sw: color-mix(in srgb, var(--gg-slate, #4c6e91) 20%, transparent); }
+.gg-wire-legend .sw-c { --sw: color-mix(in srgb, var(--gg-verdigris, #1f6f68) 40%, transparent); }
+.gg-wire-legend .sw-l { --sw: color-mix(in srgb, var(--gg-ochre, #b98a2e) 40%, transparent); }
+.gg-wire-legend .sw-o { --sw: color-mix(in srgb, var(--gg-slate, #4c6e91) 40%, transparent); }
+.gg-wire-legend .sw-p { --sw: color-mix(in srgb, var(--gg-ochre, #b98a2e) 25%, var(--md-default-bg-color)); }
