@@ -197,3 +197,16 @@ func (s *State) phasedCtrl(p uint8) slotMask {
 	}
 	return m
 }
+
+// phasedPT is the P/T gorge projects for a phased-out creature: no
+// continuous effect applies to it (CR 702.26b; gorge matchesWithCharsPT), so
+// its printed P/T plus its +1/+1 and -1/-1 counters. The projection alone
+// reads it; nothing in play sees a phased-out permanent.
+//
+//go:noinline
+func (s *State) phasedPT(k *prep, sl Slot) (int, int) {
+	p := &s.perms[sl]
+	cd := &k.t.Cards[s.cardAt(sl)]
+	c := p.ctrLow(int(kop.CtrP1P1)) - p.ctrLow(int(kop.CtrM1M1))
+	return int(cd.Power) + c, int(cd.Toughness) + c
+}
