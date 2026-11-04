@@ -224,11 +224,12 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			// itself needed (its only target): not a way to pay it, though a
 			// smaller X may pay without that permanent.
 			planned := got
-			if alt, ok := e.potentialWitnessSmallerX(p, o, e.planLastX); ok {
-				got = alt
-			} else {
-				got = e.potentialWitnessKeeping(p, o)
-				if got.Plan == nil && e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+			rejectedX := e.planLastX
+			got = e.potentialWitnessKeeping(p, o)
+			if got.Plan == nil {
+				if alt, ok := e.potentialWitnessSmallerX(p, o, rejectedX); ok {
+					got = alt
+				} else if e.witnessReachesMode(e, p, o, *planned.Plan, true) {
 					// No colouring keeps every source, but the one that
 					// pays by consuming one ends the game in p's favour.
 					got = planned
