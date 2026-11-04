@@ -1472,7 +1472,7 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 			switch {
 			case p == "cmcLEX":
 				clause = andClause(clause, "cmcLEX")
-			case spellHead && playNonCreatureYouOwn(p):
+			case spellHead && lc.bluffPlay && playNonCreatureYouOwn(p):
 				// Spell.nonCreature+YouOwn (Brazen Bluff's free cast from hand)
 				clause = andClause(clause, p)
 			case strings.HasPrefix(p, "cmcLE"), strings.HasPrefix(p, "cmcLT"), strings.HasPrefix(p, "cmcEQ"):
@@ -1647,7 +1647,9 @@ func (lc *lowerCtx) play(ps *params) error {
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
 	}
+	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined")
 	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	lc.bluffPlay = false
 	if err != nil {
 		return err
 	}
@@ -1750,7 +1752,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && strings.Contains(ps.str("ValidSA"), "+YouOwn")) {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && playRememberedEmptyKey(ps, "ConditionDefined") && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {
