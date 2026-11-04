@@ -439,7 +439,14 @@ func (lc *lowerCtx) pumpRememberTargeted(ps *params, t0 int) error {
 	if !ok {
 		return nil
 	}
-	if v = strings.TrimSpace(v); v != "ThisTargetedCard" {
+	if v = strings.TrimSpace(v); v == "TargetedController" {
+		if err := lc.pumpRememberOppController(t0); err != nil {
+			return err
+		}
+		ps.consume("RememberObjects")
+		return nil
+	}
+	if v != "ThisTargetedCard" {
 		return refuse("Pump RememberObjects$ %q", v)
 	}
 	if lc.depth != 1 || lc.mode >= 0 {
@@ -458,6 +465,92 @@ func (lc *lowerCtx) pumpRememberTargeted(ps *params, t0 int) error {
 	lc.ab.RemTgt = true
 	ps.consume("RememberObjects")
 	return nil
+}
+
+// pumpRememberOppController lowers a Pump's RememberObjects$
+// TargetedController over the link's own opponent-controlled target slot
+// (Rules of Acquisition's third rule: the permanent's controller as the
+// Pump resolves draws after you have gained control of it). gorge's Pump
+// adds the target's controller, a player, to the remembered list
+// (effects/pump.go rememberDefinedObjects), and a later link's Defined$
+// Remembered names that player. The kernel's remembered set holds objects
+// only, but here the player is fixed: the slot's filter makes the target
+// opponent-controlled, a target that no longer is is illegal when the
+// spell resolves (CR 608.2b), so in two players the remembered player is
+// the opponent, captured before any later link changes control. It lowers
+// only when the rest of the chain reads the set solely as a Draw's
+// Defined$ Remembered and ends with Cleanup ClearRemembered$ True, so no
+// other reader sees the player; on those links defined lowers Defined$
+// Remembered as the opponent (remOppLink).
+func (lc *lowerCtx) pumpRememberOppController(t0 int) error {
+	t := lc.lastTarget()
+	if t < 0 || t == t0 {
+		return refuse("Pump RememberObjects$ TargetedController without its own target")
+	}
+	f := lc.ab.Targets[t].F
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return refuse("Pump RememberObjects$ TargetedController over a slot that may name a player")
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl != whoOpp {
+			return refuse("Pump RememberObjects$ TargetedController over a slot not limited to opponents' objects")
+		}
+	}
+	var links []*cards.SA
+	cleared := false
+	for n := lc.curNode.Sub; n != nil; n = n.Sub {
+		if cleared {
+			return refuse("Pump RememberObjects$ TargetedController: a link after the Cleanup")
+		}
+		for k, v := range n.Params {
+			if !strings.Contains(v, "Remember") && !strings.Contains(k, "Remember") {
+				continue
+			}
+			switch {
+			case n.API == "Draw" && k == "Defined" && strings.TrimSpace(v) == "Remembered":
+			case n.API == "Cleanup" && k == "ClearRemembered" && strings.TrimSpace(v) == "True":
+				cleared = true
+			default:
+				return refuse("Pump RememberObjects$ TargetedController read other than as a Draw's Defined$")
+			}
+		}
+		if lc.chainReadsRememberedSVar(n) {
+			return refuse("Pump RememberObjects$ TargetedController beside an SVar naming a remembered set")
+		}
+		links = append(links, n)
+	}
+	if !cleared {
+		return refuse("Pump RememberObjects$ TargetedController without a closing Cleanup ClearRemembered$")
+	}
+	lc.remOppLinks = links
+	return nil
+}
+
+// chainReadsRememberedSVar reports whether a card SVar the link's line names
+// mentions a remembered set.
+func (lc *lowerCtx) chainReadsRememberedSVar(n *cards.SA) bool {
+	for _, tok := range strings.FieldsFunc(n.Line, func(r rune) bool {
+		return !(r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_')
+	}) {
+		if tok == n.Params["SubAbility"] {
+			continue // the next link, walked on its own
+		}
+		if v, ok := lc.face.SVars[tok]; ok && strings.Contains(v, "Remember") {
+			return true
+		}
+	}
+	return false
+}
+
+// remOppLink reports whether the link being lowered follows a Pump
+// RememberObjects$ TargetedController (pumpRememberOppController).
+func (lc *lowerCtx) remOppLink() bool {
+	for _, n := range lc.remOppLinks {
+		if n == lc.curNode {
+			return true
+		}
+	}
+	return false
 }
 
 // eachDamageRemembered is EachDamage DefinedDamagers$ Remembered's damager

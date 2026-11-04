@@ -216,6 +216,10 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
+	// remOppLinks are the chain links after a Pump RememberObjects$
+	// TargetedController whose Defined$ Remembered reads the one opponent
+	// (lower_remembered.go pumpRememberOppController).
+	remOppLinks []*cards.SA
 }
 
 // lowerCard lowers a card; a refusal is recorded in out.Refusals (the card
