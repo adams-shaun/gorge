@@ -164,6 +164,9 @@ func kmaywhilesrcRunDeck(t *testing.T, deck []cardset.Entry, skipSeed, seeds uin
 }
 
 func TestMaywhilesrcLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var c kmaywhilesrcCounts
 	div, stalls := kmaywhilesrcRun(t, 192, true, &c)
 	t.Logf("192 seeds (seed %d skipped: gorge finding), %d divergences, %d stalls; grants %d, plays from exile %d, grants ended by the source leaving %d, revived on a later turn %d", kmaywhilesrcGorgeSeed, b2i(div), stalls, c.grants, c.exilePlays, c.ended, c.revived)
@@ -267,6 +270,9 @@ func kmaywhilesrcStealFinish(c *kmaywhilesrcStealCounts) func(*GorgeSide) {
 }
 
 func TestMaywhilesrcStealLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var c kmaywhilesrcStealCounts
 	div, stalls := kmaywhilesrcRunDeck(t, kmaywhilesrcStealDeck, 0, 192, true, kmaywhilesrcStealFinish(&c))
 	t.Logf("192 seeds, %d divergences, %d stalls; grants %d, plays from exile %d, carriers stolen with a card exiled %d, returned with a card still exiled %d", b2i(div), stalls, c.grants, c.exilePlays, c.stolen, c.afterReturn)

@@ -1,41 +1,69 @@
 Abrade
 Academy Ruins
+Alhammarret's Archive
+Amanda Grayson, Logic's Link
+Ambassador K'Ehleyr
 Ancient Greenwarden
 Anguished Unmaking
 Arcane Sanctum
+Astral Cornucopia
 Augur of Autumn
 Austere Command
 Badgey, Malicious Glitch
+Balance of Terror
+Battle of Wolf 359
 Battlefield Forge
 Beast Within
 Benjamin Sisko, Besieged
+Beverly Crusher, Ship's Doctor
+Bio-Asset Allocator
 Bitter Triumph
+Blood-Sport Champion
 Borg Queen, One Who Is Many
+Borg Queen, Perfection Manifest
+Borg Scout Sphere
 Brainstorm
 Canopy Vista
 Canyon Slough
+Captain Janeway, Endgame
 Captain Kirk, Boldly Going
 Ceti Eel
 Chain Reaction
+Chancellor Gorkon
+Chekov and McCoy
+Chief Kyle, Transporter Tech
+Choked Estuary
 Christine Chapel, Combat Medic
+Class-4 Tactical Cube
 Clifftop Retreat
+Co-Option Adjutant
 Coastal Peak
+Collective Override
+Command Beacon
+Commander William Riker
 Contaminated Landscape
 Cryogenic Stasis
 Cryptic Command
 Cultivate
+Curzon Dax, Bound by Blood
 Darksteel Plate
+Data, Exploring Humanity
+Data, Professor of Humanities
 Defense Force Aggressor
+Deliver from Chaos
 Desolate Lighthouse
 Direct Hit
 Disallow
+Dispatch
 Disrupt Decorum
 Disruptor Pistol
 Door of Destinies
+Dr. Pulaski, Cynical Clinician
 Dragonskull Summit
 Drowned Catacomb
 Duelist's Heritage
 Eclipsed Steppe
+Emergency Regeneration
 Evasive Maneuvers
 Evolving Wilds
 Exocomp
@@ -44,13 +72,25 @@ Fabled Passage
 Faithful Mending
 Farseek
 Fetid Pools
+Fleet Captain Christopher Pike
+Foreboding Ruins
 Forest
+Forsaken Monument
+Fortified Village
 Frantic Search
+Frostboil Snarl
+Furycalm Snarl
+Gagh Slinger
+Galvanizing Tenor
+Geordi La Forge, Innovator
+Giant Space Amoeba
 Gin'tak Charge
 Glacial Fortress
 Glittering Massif
+Gnarling Targ
 Gorn Captain
 Grand Crescendo
+Grilka, Widowed Warrior
 Growth Spiral
 Gumato
 Harmonize
@@ -59,18 +99,38 @@ Hedron Archive
 Heroic Intervention
 Hinterland Harbor
 Howling Mine
+I.K.S. Negh'Var, Imperial Flagship
+Indelicate Healer
 Irrigated Farmland
 Island
 Isolated Chapel
+Jean-Luc, Mon Capitaine
+Jefferies Tube
+Julian Bashir, Frontier Doctor
+Jurati, Cordial Queen
+K'Vort-Class Raider
+K't'inga-Class Battle Cruiser
+Kes, Evolving Telepath
 Kirk, Enterprising Captain
+Kirk, Man of Action
 Klingon Strike Force
 Kolinahr Priest
+Kor, Cause of Vengeance
+Korok, Liberated Rage
 Kruge, Genesis Seeker
+Kurn, Son of Mogh
 La Forge, Perceptive Engineer
 Last Gasp
+Lieutenant Hikaru Sulu
 Lightning Greaves
+Locutus of Borg
 Loran of the Third Path
 Lotus Cobra
+Lt. Arex, Ever-Adapting
+M'Ress, Crew Coordinator
+Martok, Hero of the Empire
+Maturation Chamber
+McCoy, Not a Bricklayer
 Mek'leth Berserker
 Mind Stone
 Morphic Pool
@@ -82,7 +142,10 @@ Nature's Lore
 Negate
 Night's Whisper
 Nomad Outpost
+On the Shoulders of Giants
+One, Borg Evolved
 Operations Officer
+Optimization Annex
 Painful Truths
 Path to Exile
 Pelia, Immortal Innovator
@@ -90,40 +153,60 @@ Perilous Landscape
 Pest Control
 Picard, Steadfast Captain
 Plains
+Planet Killer
 Ponder
 Pongify
+Port Town
 Prairie Stream
 Professional Face-Breaker
+Qo'noS Quartermaster
 Radiant Summit
 Rain-Slicked Copse
 Rampant Growth
 Reality Shift
+Reclamation Specialist
+Reconnaissance Partition
 Refute
+Reg Barclay, Fidgety Fantasist
 Reliquary Tower
+Rite of Ascension
 Rite of Oblivion
+Ro Laren, Double Agent
 Rogue's Passage
+Rom and Leeta, Unlikely Pair
 Ruinous Ultimatum
 Run Amok
+Sam Kirk, Xenoanthropologist
 Satyr Wayfinder
 Scattered Groves
 Scorched Geyser
+Scotty, Chief Engineer
 Scute Swarm
 Sea of Clouds
 Seaside Citadel
+Seven of Nine, Tertiary Adjunct
 Shattered Landscape
+Shineshadow Snarl
 Shuttle Crew
+Shuttlecraft Galileo
 Sickbay Orderly
+Sins of the Father
 Skullclamp
 Smoldering Marsh
 Sodden Verdure
 Sol Ring
 Spock, Logical Choice
+Spock, Voice of Reason
 Spot, Felis catus
 Starfleet Crew
+Starship Enterprise
 Stonespeaker Crystal
+Stratagem Emulator
 Sulfur Falls
 Sun Titan
 Sunken Hollow
+Sunpetal Grove
+Supplementation Node
 Supreme Verdict
 Swamp
 Swiftfoot Boots
@@ -144,24 +227,40 @@ Temple of Plenty
 Tenacious Tosk
 Terminate
 Terramorphic Expanse
+The Promise of Kahless
+The Sword of Kahless
 Thirst for Knowledge
 Thought Vessel
 Thoughtcast
 Thrill of Possibility
 Tireless Tracker
+Tom Paris, Risk-Taker
 Toxic Deluge
 Training Center
 Tranquil Landscape
+Transwarp Hub
 Trelane, Squire of Gothos
+Tribble Cluster
+Troi, Winging It
+Type-03 Borg Vessel
+U.S.S. Defiant, Tough Little Ship
+U.S.S. Enterprise-E, Sovereign
+U.S.S. Prometheus, Prototype
+Uhura, Xenolinguist
 Umbral Expanse
 Underground River
 Valorous Stance
 Vanquish the Horde
 Vault of Champions
+Vic Fontaine, One Night Only
 Vindicate
+Vineglimmer Snarl
 Warleader's Call
 Warship Flight Crew
 Wayfarer's Bauble
 Will Riker, Assuming Command
 Worf, Chief Tactical Officer
+Worf, Defiant Commander
+Worf, Son of Mogh
+Worf, Still Not Merry
 Wrath of God

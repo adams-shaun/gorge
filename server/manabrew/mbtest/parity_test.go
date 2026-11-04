@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package mbtest
 
 // The in-process leg of bot parity: the ManaBrew wire is a lossless transport for a

@@ -215,7 +215,7 @@ func (s *State) reflDo(k *prep, p uint8, st reflStep) {
 		pl.pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
 	case st.ans <= 5:
 		c := int(st.ans) - 1
-		if !s.floatRestrFrom(k, p, st.sl, cd.Abilities[k.gen.anyR(s.cardAt(st.sl))].ManaRestrict, c, 1) {
+		if !s.floatRestrAb(k, p, st.sl, &cd.Abilities[k.gen.anyR(s.cardAt(st.sl))], c, 1) {
 			s.capFull(StallRestrX) // past the batches the pool holds: never a silent spill
 		}
 	default:

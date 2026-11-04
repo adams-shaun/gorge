@@ -1,32 +1,59 @@
-import type { Decision } from '../protocol';
+import type { Advice, Decision } from '../protocol';
 import { isManualManaOption } from './manualmana';
 import { promptWords } from './prompts/words';
-import type { ExplainRow, ExplainSearch } from './review';
+import type { ExplainNote, ExplainRow, ExplainSearch } from './review';
 import { safeStorage } from './storage';
 
 /**
  * The paired bot's client side: the player's on/off preference, the words of
- * its search rows, and the note for a player who answers differently. The
- * preference is a player's, like the play settings, so one global key rather
- * than one per table. Off until the player turns it on.
+ * its search rows, the pick it marks on the decision, and the note for a
+ * player who answers differently. The preference is a player's, like the play
+ * settings, so global keys rather than one per table.
  */
 const KEY = 'gorge.pairedbot.v1';
+/** The switch at a table with another human, remembered apart from the one for games alone with bots. */
+const SHARED_KEY = 'gorge.pairedbot.shared.v1';
 /** Whether the panel marks what the bot's rules would do. Stored only when turned off. */
 const RULES_KEY = 'gorge.pairedbot.rules.v1';
+/** Whether the bot's pick is marked on the decision itself. Stored only when turned off. */
+const MARK_KEY = 'gorge.pairedbot.mark.v1';
 
-export function loadPairedBotOn(storage: Storage | null = safeStorage()): boolean {
+/**
+ * loadPairedBotOn is the player's switch. Alone with bots it starts on, so the
+ * bot advises from the first decision; at a table with another human it starts
+ * off. Each remembers the player's own answer.
+ */
+export function loadPairedBotOn(shared: boolean, storage: Storage | null = safeStorage()): boolean {
   try {
-    return storage?.getItem(KEY) === 'on';
+    const v = storage?.getItem(shared ? SHARED_KEY : KEY);
+    return v === 'on' ? true : v === 'off' ? false : !shared;
   } catch {
-    return false;
+    return !shared;
   }
 }
 
-export function savePairedBotOn(on: boolean, storage: Storage | null = safeStorage()): void {
+export function savePairedBotOn(on: boolean, shared: boolean, storage: Storage | null = safeStorage()): void {
   try {
-    storage?.setItem(KEY, on ? 'on' : 'off');
+    storage?.setItem(shared ? SHARED_KEY : KEY, on ? 'on' : 'off');
   } catch {
     // A refused write leaves the toggle working for this page.
+  }
+}
+
+export function loadMarkPick(storage: Storage | null = safeStorage()): boolean {
+  try {
+    return storage?.getItem(MARK_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function saveMarkPick(show: boolean, storage: Storage | null = safeStorage()): void {
+  try {
+    if (show) storage?.removeItem(MARK_KEY);
+    else storage?.setItem(MARK_KEY, 'off');
+  } catch {
+    // A refused write leaves the setting for this page.
   }
 }
 
@@ -149,6 +176,68 @@ export function shownRows(rows: readonly AdviceRow[], n: number, dropped = 0): {
   const best = rows.find((r) => r.recommended);
   if (best && !shown.includes(best)) shown[shown.length - 1] = best;
   return { rows: shown, more: rows.length - shown.length + dropped };
+}
+
+/**
+ * BotPick is the answer the paired bot would give one decision, as the
+ * decision's own controls name it, so each can mark itself. It is display
+ * only: nothing posts it.
+ */
+export interface BotPick {
+  seq: number;
+  /** The option indices of its answer; a planned cast's legacy option. Empty when it would decline: no attack, no blocks. */
+  options: number[];
+  /** The payment action of the planned cast it would make. */
+  payment: string | null;
+  /** The cards its answer names: what it would cast, activate, attack or block with, or target. */
+  objs: number[];
+  /** Its estimate as a percentage; null when search did not weigh it and the bot's rules picked. */
+  chance: number | null;
+}
+
+/**
+ * botPickOf is the pick advice a recommends for decision d, null when the
+ * advice is for another decision or recommends nothing. Search's
+ * recommendation comes first; a decision search does not weigh shows the bot's
+ * rules pick, with no estimate.
+ */
+export function botPickOf(d: Decision, a: Advice): BotPick | null {
+  if (a.state !== 'ready' || a.ask_seq !== d.seq || a.explain === null || typeof a.explain !== 'object') return null;
+  const n = a.explain as ExplainNote;
+  const chosen = n.search?.rows?.find((r) => r.chosen === true);
+  let options: number[];
+  let payment: string | null = null;
+  let chance: number | null = null;
+  if (n.search && chosen) {
+    payment = chosen.payment ?? null;
+    const base = payment === null ? undefined : d.payment_actions?.find((x) => x.id === payment)?.base_option_index;
+    options = payment === null ? [...(chosen.choices ?? [])] : base === undefined || base === null ? [] : [base];
+    chance = adviceRows(d, n.search).find((r) => r.recommended)?.chance ?? null;
+  } else if (n.bot) {
+    options = [...n.bot];
+  } else {
+    return null;
+  }
+  const objs = new Set<number>();
+  for (const i of options) {
+    const obj = d.options.find((o) => o.index === i)?.obj;
+    if (obj) objs.add(obj);
+  }
+  if (payment !== null) {
+    const obj = d.payment_actions?.find((x) => x.id === payment)?.cast.object;
+    if (obj) objs.add(obj);
+  }
+  return { seq: d.seq, options, payment, objs: [...objs], chance };
+}
+
+/** declines reports whether pick p, for decision d, answers with nothing: no attack, no blocks. */
+export function declines(p: BotPick | null, d: Decision): boolean {
+  return p !== null && p.seq === d.seq && p.payment === null && p.options.length === 0;
+}
+
+/** pickTag is the words on a control the bot would press. */
+export function pickTag(p: BotPick): string {
+  return p.chance === null ? "Bot's pick" : `Bot's pick, ${p.chance}%`;
 }
 
 /** What the player answered a decision with: option indices, or the payment action of a planned cast. */

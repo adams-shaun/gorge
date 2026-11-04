@@ -222,24 +222,44 @@ func viewCheck(d *viewDiffs, positions *int) func(ref *GorgeSide, a *adapter.Gam
 	}
 }
 
-// The view comparison is one test per set and surface, each inside the time budget.
-func TestNativeViewMatchesGorgeFDN(t *testing.T)           { viewCompare(t, "fdn", envPairs(100), true) }
-func TestNativeViewMatchesGorgeFDNManualMana(t *testing.T) { viewCompareLong(t, "fdn", false) }
-func TestNativeViewMatchesGorgeBLB(t *testing.T)           { viewCompareLong(t, "blb", true) }
-func TestNativeViewMatchesGorgeBLBManualMana(t *testing.T) { viewCompareLong(t, "blb", false) }
+// The view comparison is one test per set and surface, each inside the time budget:
+// its pairs are cut into viewChunks ranges that run side by side.
+func TestNativeViewMatchesGorgeFDN(t *testing.T)           { viewCompareChunked(t, "fdn", true) }
+func TestNativeViewMatchesGorgeFDNManualMana(t *testing.T) { viewCompareChunked(t, "fdn", false) }
+func TestNativeViewMatchesGorgeBLB(t *testing.T)           { viewCompareChunked(t, "blb", true) }
+func TestNativeViewMatchesGorgeBLBManualMana(t *testing.T) { viewCompareChunked(t, "blb", false) }
 
-func viewCompareLong(t *testing.T, name string, autopay bool) {
-	if testing.Short() {
+// viewChunks is how many pair ranges one view test plays side by side.
+const viewChunks = 4
+
+func viewCompareChunked(t *testing.T, name string, autopay bool) {
+	if testing.Short() && (name != "fdn" || !autopay) {
 		t.Skip("short")
 	}
-	viewCompare(t, name, envPairs(100), autopay)
+	t.Parallel()
+	pairChunks(t, envPairs(100), viewChunks, func(t *testing.T, first, n int) {
+		viewCompare(t, name, first, n, autopay)
+	})
 }
 
-func viewCompare(t *testing.T, name string, pairs int, autopay bool) {
+// pairChunks runs pairs [0, total) as k contiguous ranges, each a parallel subtest;
+// the ranges are disjoint and cover every pair exactly once.
+func pairChunks(t *testing.T, total, k int, run func(t *testing.T, first, n int)) {
+	k = max(1, min(k, total))
+	for i := 0; i < k; i++ {
+		first, end := i*total/k, (i+1)*total/k
+		t.Run(fmt.Sprintf("pairs%d-%d", first, end), func(t *testing.T) {
+			t.Parallel()
+			run(t, first, end-first)
+		})
+	}
+}
+
+func viewCompare(t *testing.T, name string, first, pairs int, autopay bool) {
 	d := newViewDiffs()
 	n, seen := 0, 0
 	check := viewCheck(d, &n)
-	clean, total := adapterRun(t, name, 0, pairs, 1, Config{GorgeAutopaySurface: autopay}, func(ref *GorgeSide, a *adapter.Game) {
+	clean, total := adapterRun(t, name, first, pairs, 1, Config{GorgeAutopaySurface: autopay}, func(ref *GorgeSide, a *adapter.Game) {
 		seen++
 		if gp, sp := ref.E.G.Priority, a.Board().Priority; gp != sp {
 			d.add("priority at every position", "", gp, sp)
@@ -260,7 +280,7 @@ func viewCompare(t *testing.T, name string, pairs int, autopay bool) {
 		t.Errorf("view differs at %s (%d): %s", k, d.n[k], d.sample[k])
 	}
 	if p := os.Getenv("ADAPTER_OUT"); p != "" {
-		os.WriteFile(p+"."+name+fmt.Sprint(autopay), []byte(b.String()), 0o644)
+		os.WriteFile(p+"."+name+fmt.Sprint(autopay)+"."+fmt.Sprint(first), []byte(b.String()), 0o644)
 	}
 	t.Log(b.String())
 }
@@ -301,6 +321,7 @@ var servedFields = []struct {
 // TestServedFieldsMatchGorge reads the fields over one shared run of FDN and BLB games,
 // so the whole table costs a game pool once.
 func TestServedFieldsMatchGorge(t *testing.T) {
+	t.Parallel()
 	d := newViewDiffs()
 	positions, seen := 0, 0
 	check := viewCheck(d, &positions)

@@ -234,7 +234,7 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
-		if !s.addRestr(k, p, a.ManaRestrict, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+		if !s.addRestrChV(k, p, a.ManaRestrict, k.gen.restrVarOf(a), 0, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
 			s.capFull(StallRestrSrc)
 		}
 		return true

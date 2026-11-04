@@ -1695,13 +1695,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			lc.emit(lInstr{Op: "Ward", CS: "CollectEvidence", A: cst(n), Obj: lRef{Kind: rTriggered}})
 			break
 		}
-		if wardDiscManaRe.MatchString(uc) {
-			// Ward—discard a card or pay {N} (Titania, Rugged Rumbler). Its
-			// own additional cost, "discard a card or pay {2}", diverges in
-			// lockstep: gorge continues the cast on the "pay {2}" part with
-			// one source fewer than the cast then costs, so the card stays
-			// unlowered rather than half-played
-			return refuse("ward discard-or-pay cost %q: the card's discard-or-pay additional cost diverges from gorge", uc)
+		if m := wardDiscManaRe.FindStringSubmatch(uc); m != nil {
+			// Ward—discard a card or pay {N} (Titania, Rugged Rumbler; gorge
+			// rules ward.go beginWardPayment's ">:" arm: after "Pay", one
+			// KChoose of a hand card to discard or {N}, the {N} paid through
+			// the ward mana window)
+			n, _ := strconv.Atoi(m[1])
+			lc.emit(lInstr{Op: "Ward", CS: "DiscardOrMana", A: cst(n), Obj: lRef{Kind: rTriggered}})
+			break
 		}
 		if strings.HasPrefix(uc, "PayLife<X/") {
 			// Ward—pay life equal to its power (Raubahn; gorge kw_ward.go

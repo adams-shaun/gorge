@@ -12,6 +12,9 @@ import (
 // triggers never fire, Queen's Diamond's mana is unspendable and Command
 // Beacon's activation sacrifices the land and moves nothing.
 func TestCommanderWordLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	a := []cardset.Entry{
 		{Name: "Collective Override", Count: 5}, {Name: "Janice Rand, Essential Aide", Count: 4},
 		{Name: "Queen's Diamond", Count: 4}, {Name: "Command Beacon", Count: 5},

@@ -1020,22 +1020,7 @@ func (s *State) applyResolve(k *prep, a Action) {
 			s.applyWardManaLife(k, a) // cost_unlesstapward.go
 			return
 		}
-		idx := s.wardedIndex(&r.e)
-		if c := (kop.ManaCost{Generic: uint8(r.e.trigAmt)}); a.Mode() == 1 && (k.gen == nil || s.affordsFor(k, r.e.trigPl, &c) || s.windowAffords(k, r.e.trigPl, &c)) {
-			paused, short := s.payWindowAsk(k, r.e.trigPl, &c, winWard)
-			if paused {
-				return // a tap-another source's pick (mana_windowtapx.go)
-			}
-			if short && idx >= 0 {
-				s.counterAt(k, idx) // the colours taken left the ward unpaid
-			}
-		} else if idx >= 0 {
-			if a.Mode() == 1 {
-				s.tapAllForMana(k, r.e.trigPl) // gorge taps what it has, then can't pay
-			}
-			s.counterAt(k, idx)
-		}
-		s.finishResolve(k, false)
+		s.payWardN(k, uint8(r.e.trigAmt), a.Mode() == 1)
 		return
 	}
 	if len(s.cold.parked) != 0 && s.parkedWaiting() {

@@ -680,7 +680,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
-			s.addXOptions(k, d, e, mx)
+			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true
 		case bsCosts:
@@ -765,6 +766,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsPips:
 			if e.kind != seTrigger && s.pipOptions(k, d) {
 				return true
+			}
+			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && s.bld().altAdd <= 1 && !s.altAddPayable(k, s.bld().altAdd) {
+				// the pips are answered and the part chosen cannot be paid:
+				// gorge's payment window reverses the cast (CR 733.1)
+				s.altAddWindowTap(k)
+				s.reverseCast(k)
+				return false
 			}
 			s.nextStage(k)
 			continue
@@ -1055,7 +1063,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 		if s.bld().stage == bsAltAdd {
 			s.bld().altAdd = a.Target()
 			s.nextStage(k)
-			if !s.altAddPayable(k, a.Target()) && !s.altAddOpenTargets(k) {
+			if !s.altAddPayable(k, a.Target()) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				// gorge offers an unpayable part too (Config.GorgeAltAdd);
 				// choosing it undoes the cast and returns to priority;
 				// gorge reverses the cast (CR 733.1), the card moving back
@@ -1168,10 +1176,11 @@ func (s *State) applyBuild(k *prep, a Action) {
 // discard comes first, the cost picks, life.
 func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	e := *ep
-	if s.discardPicked() {
+	if s.discardPicked() && s.bld().bfl&bflLowered == 0 {
 		// gorge's planner picks the sources at priority, before the
 		// discard is chosen: the cards discarded for the cost still
-		// count toward the hand demand (HandReserve, rank key 6)
+		// count toward the hand demand (HandReserve, rank key 6). A
+		// lowered cast has no plan: its window pays (finishBuild)
 		cost := s.buildCost(k)
 		if e.flags&sfAnyMana != 0 || anyColor {
 			s.tapRiderPlan(k, e)
@@ -1200,6 +1209,10 @@ func (s *State) finishBuild(k *prep) {
 	}
 	switch e.kind {
 	case seSpell:
+		if s.bld().pipShort {
+			s.reverseCast(k) // the pip window ran dry: nothing of the cost is paid (loweredPipWindow)
+			return
+		}
 		if k.t.Cards[e.card].HasModeCost && !s.spreeAffordable(k) {
 			s.spreeCastWindowAbort(k) // kw_spree.go
 			return

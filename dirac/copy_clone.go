@@ -219,6 +219,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			DebugCloneCopyStats.Stacked++
 		}
 		s.touchSl(sl)
+		s.onceBasisBegin(sl)
 		old, ok := s.cloneLayerPrep(k, sl, eot)
 		if !ok {
 			return
@@ -324,6 +325,7 @@ func (s *State) cloneCleanup(k *prep) {
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0
+		s.onceBasisEnd(sl)
 		for j := 0; j < int(s.g.nfx); j++ {
 			x := &s.g.fx[j]
 			if x.sl != sl || x.kind != fxCopyPerm || DebugCloneCopyNoRebase {
@@ -382,7 +384,7 @@ func prepCloneCopy(t *kop.Table, g *genPrep) {
 // stopped being a copy, or was a copy of another card when it triggered) is not.
 //
 //go:noinline
-func (s *State) cloneTrigMoved(e *stackEntry) bool {
+func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
 	if e.obj == NoObj {
 		return false
 	}
@@ -394,6 +396,17 @@ func (s *State) cloneTrigMoved(e *stackEntry) bool {
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Moved++
 			}
+			return false
+		}
+	}
+	if cur != e.card {
+		// a two-faced card whose line is printed on its other face (a back-face
+		// "when this dies" that triggered from the look-back board): gorge's
+		// owning-line scan finds it there, off the battlefield as on it
+		// (trigger_inactive_face.go, CR 712.8a)
+		cd := &k.t.Cards[ob.card]
+		if (cd.FaceMode == kop.FaceTransform || cd.FaceMode == kop.FaceModal) && len(cd.Faces) == 2 &&
+			(cd.Faces[0] == e.card || cd.Faces[1] == e.card) {
 			return false
 		}
 	}
@@ -430,4 +443,60 @@ func (s *State) cloneMinted(sl Slot) bool {
 		}
 	}
 	return true
+}
+
+// cloneBased: slot sl holds a copy marker (an until-end-of-turn or permanent
+// one), so its abilities are a copy layer's.
+func (s *State) cloneBased(sl Slot) bool {
+	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && (r.kind == fxCopyPerm || r.kind == fxCopyEOT) {
+			return true
+		}
+	}
+	return false
+}
+
+// onceBasisBegin: a new copy makes the permanent's abilities new ones that
+// nothing has activated (CR 613.1a; gorge activationUsedSince counts the
+// events since the newest ClonePermanent), so its "activate only once"
+// mark (Power-up, CR 702.193a) is clear. The first copy layer keeps the
+// printed abilities' mark aside, which returns once the layer ends.
+func (s *State) onceBasisBegin(sl Slot) {
+	p := &s.perms[sl]
+	if p.flags&pfOnceGame == 0 {
+		return
+	}
+	p.flags &^= pfOnceGame
+	if s.cloneBased(sl) {
+		return
+	}
+	if int(s.g.nfx) >= maxFx {
+		s.stall(StallTables)
+		return
+	}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxOnceStash}
+	s.g.nfx++
+	s.fxM.set(sl)
+}
+
+// onceBasisEnd is the settle of an ended until-end-of-turn copy: onto a
+// permanent copy marker it still holds the permanent is re-based (new
+// abilities again, the printed mark stays aside); with none the printed
+// abilities and their mark come back.
+func (s *State) onceBasisEnd(sl Slot) {
+	p := &s.perms[sl]
+	p.flags &^= pfOnceGame
+	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyPerm {
+			return
+		}
+	}
+	stashed := false
+	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
+		stashed = stashed || s.g.fx[i].sl == sl && s.g.fx[i].kind == fxOnceStash
+	}
+	if stashed {
+		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.sl == sl && r.kind == fxOnceStash })
+		p.flags |= pfOnceGame
+	}
 }

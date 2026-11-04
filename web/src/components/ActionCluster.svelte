@@ -9,6 +9,8 @@
   import { keymapStore } from '../lib/keymap.svelte';
   import { passLabel } from '../lib/passlabel';
   import { blurAfterPointer } from '../lib/pointer';
+  import { botPick } from '../lib/botpick.svelte';
+  import BotPickTag from './prompts/BotPickTag.svelte';
 
   /**
    * ActionCluster is the ONE action button: gilt, in the
@@ -49,6 +51,8 @@
   const label = $derived(passLabel({ view, passAvailable, prompt, waitingOn }));
   const passKey = $derived(keymapStore.current.pass[0] ? bindingLabel(keymapStore.current.pass[0]) : null);
   const skipLabel = $derived(view.players.length > 2 ? 'Skip their turn' : 'Until my turn');
+  // The paired bot's pick when it would pass here; marked, never pressed.
+  const passPick = $derived(logic.passOption !== null && label.passes ? botPick.option(logic.active?.seq, logic.passOption.index) : null);
 
   async function undo(): Promise<void> {
     if (!undoAllowed) return;
@@ -67,6 +71,7 @@
 
 <div class="cluster" data-action-cluster>
   <div class="secondary">
+    {#if passPick}<span class="pass-pick"><BotPickTag pick={passPick} /></span>{/if}
     <button type="button" data-cluster-undo disabled={!undoAllowed} title={undoAllowed ? 'Undo my last action' : 'Undo is available only when you are the table’s sole human player'} onclick={(e) => { void undo(); blurAfterPointer(e); }}>Undo</button>
     {#if resolveAllAvailable}
       <button type="button" data-cluster-resolve-all class:on={logic.resolveAll} onclick={(e) => { logic.startResolveAll(view); logic.considerAuto(view); blurAfterPointer(e); }}>Resolve all</button>
@@ -81,6 +86,8 @@
     type="button"
     class="go"
     class:waiting={!label.passes}
+    class:advised={passPick !== null}
+    data-bot-pick={passPick !== null || undefined}
     data-pass-action
     data-action-button
     disabled={!label.passes}
@@ -147,6 +154,16 @@
   }
   .go:hover:not(:disabled) {
     filter: brightness(1.06);
+  }
+  /* The paired bot would pass: dashed, outside the gilt, never the player's own press. */
+  .go.advised {
+    outline: 2px dashed var(--gilt);
+    outline-offset: 3px;
+  }
+  .pass-pick {
+    display: flex;
+    align-items: center;
+    margin-right: auto;
   }
   .go.waiting {
     border-color: var(--edge-inst);

@@ -26,6 +26,10 @@ func TestPairedBotFlags(t *testing.T) {
 	if e, err := cfg.pairedBotEntry(reg, load, pool); err != nil || e != nil {
 		t.Fatalf("off: %+v, %v", e, err)
 	}
+	cfg.pairedBot = host.PairedBotOff
+	if e, err := cfg.pairedBotEntry(reg, load, pool); err != nil || e != nil {
+		t.Fatalf("-paired-bot off: %+v, %v", e, err)
+	}
 	cfg.pairedBot = pairedBotBuiltin
 	e, err := cfg.pairedBotEntry(reg, load, pool)
 	if err != nil || e == nil || !e.ClosedLists {

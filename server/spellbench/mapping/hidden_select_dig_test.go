@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // mixedSelect must carry the Section 7.1 hidden order, hidden_pick's

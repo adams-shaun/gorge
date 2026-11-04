@@ -1118,7 +1118,7 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == zone && e.matchesSpecFrom(spec, id, you, source) {
+		if o != nil && o.Zone == zone && !o.Ephemeral() && e.matchesSpecFrom(spec, id, you, source) {
 			n++
 		}
 	})
@@ -1168,13 +1168,7 @@ func (e *Engine) MetalcraftHolds(controller state.PlayerID) bool {
 // so the two spellings cannot drift apart. The count is every card in the
 // controller's graveyard zone; an out-of-range controller has no graveyard.
 func (e *Engine) thresholdHolds(controller state.PlayerID) bool {
-	n := 0
-	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
-		if o := e.G.Obj(id); o != nil && !o.Ephemeral() { // a token waiting to cease is no card (CR 111.7)
-			n++
-		}
-	}
-	return n >= 7
+	return e.G.CardCount(state.ZGraveyard, controller) >= 7 // a token waiting to cease is no card (CR 111.7)
 }
 
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {

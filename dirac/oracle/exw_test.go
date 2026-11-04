@@ -317,6 +317,9 @@ func kexwRunPairs(t *testing.T, pairs []kexwPair, seeds uint64, report bool) (di
 }
 
 func TestExwLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, tot := kexwRun(t, 256, true)
 	st := tot.ExwStats
 	t.Logf("%d games per pair, exw {Recorded:%d Reads:%d Matched:%d Rejected:%d AfterLeft:%d FwdCleared:%d RevCleared:%d CountPos:%d}, %d divergences, %d stalls",
@@ -370,6 +373,9 @@ var kexwReaders = []string{
 // stack-entry rebind and the forward-versus-reverse recording split were tried
 // and do not diverge in this pool, so that code is not in the kernel.)
 func TestExwMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, m := range []struct {
 		name string
 		flag *bool
@@ -476,6 +482,9 @@ var kexwStaticPairs = []kexwPair{
 var kexwStaticReaders = []string{"Keen-Eyed Curator", "Dawnhand Dissident", "Maralen, Fae Ascendant", "Pick Up the Pace", "Hedonist's Trove", "Rona, Disciple of Gix"}
 
 func TestExwStaticsLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	const seeds = 192
 	div, stalls, tot := kexwRunPairs(t, kexwStaticPairs, seeds, true)
 	st := tot.ExwStats

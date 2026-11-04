@@ -17,16 +17,52 @@ const state = () => page.getAttribute(panel, 'data-state');
 const probe = () => page.evaluate(() => (window as unknown as { __probe: { asked: number[]; posts: number } }).__probe);
 const setSeq = (s: number) => page.evaluate((v) => (window as unknown as { __setSeq: (s: number) => void }).__setSeq(v), s);
 
-const open = async () => {
+const pick = () => page.evaluate(() => (window as unknown as { __pick: () => unknown }).__pick());
+
+const open = async (query = '') => {
   page ??= await browser.newPage();
-  await page.goto(`${browserURL}src/components/PairedBotPanel.fixture.html`);
+  await page.goto(`${browserURL}src/components/PairedBotPanel.fixture.html${query}`);
   await page.waitForSelector(panel, { timeout: 60_000 });
 };
 
 describe('PairedBotPanel', () => {
-  it('stays off until asked, shows only the decision in front of the player, notes a different answer, and answers nothing', async () => {
+  it('advises a player alone with bots from the first decision, and marks its pick on the decision', async () => {
     await open();
+    await page.evaluate(() => (window as unknown as { __releaseFirst: () => void }).__releaseFirst());
+    await page.waitForSelector(`${panel} table.advice`);
+    expect(await page.locator(`${panel} .switch`).getAttribute('aria-checked')).toBe('true');
+    expect((await probe()).asked).toEqual([1]);
+    expect(await pick()).toEqual({ seq: 1, options: [1], payment: null, objs: [], chance: 65 });
+    expect(await page.locator('[data-paired-marked]').textContent()).toContain("Bot's pick, 65%");
+
+    // Turning the mark off clears it from the decision and keeps the panel.
+    await page.click('[data-paired-mark-setting]');
+    expect(await pick()).toBeNull();
+    expect(await page.locator(`${panel} table.advice`).count()).toBe(1);
+    await page.click('[data-paired-mark-setting]');
+    expect(await pick()).not.toBeNull();
+
+    // The next decision clears the old pick before its own advice arrives.
+    await setSeq(6);
+    await page.waitForSelector(`${panel}[data-state="working"]`);
+    expect(await pick()).toBeNull();
+    // A server busy with other searches answers later; the panel says so calmly.
+    await page.waitForSelector('[data-paired-slow]', { timeout: 10_000 });
+    expect(await page.locator(panel).textContent()).toContain('Play on whenever you like');
+
+    // Off is remembered, and clears the mark.
+    await setSeq(2);
+    await page.waitForSelector(`${panel} table.advice`);
+    await page.click(`${panel} .switch`);
     expect(await state()).toBe('off');
+    expect(await pick()).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('gorge.pairedbot.v1'))).toBe('off');
+  });
+
+  it('at a table with another human, stays off until asked, shows only the decision in front of the player, notes a different answer, and answers nothing', async () => {
+    await open('?shared=1');
+    await page.waitForSelector(`${panel}[data-state="off"]`);
+    expect(await page.locator(panel).textContent()).toContain('Any player at this table may be asking');
     await page.waitForTimeout(400);
     expect((await probe()).asked).toEqual([]);
 
@@ -52,10 +88,10 @@ describe('PairedBotPanel', () => {
     // What the bot's rules would do is marked, and overruled, until the player turns that off.
     expect(await second.textContent()).toContain("The bot's rules");
     expect(await page.locator('[data-paired-overruled]').count()).toBe(1);
-    await page.click(`${panel} .setting input`);
+    await page.click('[data-paired-rules-setting]');
     expect(await second.textContent()).not.toContain("The bot's rules");
     expect(await page.locator('[data-paired-overruled]').count()).toBe(0);
-    await page.click(`${panel} .setting input`);
+    await page.click('[data-paired-rules-setting]');
     expect(await page.locator('[data-paired-summary]').textContent()).toContain('Search looked at 100 lines');
     expect(await page.locator(`${panel}`).textContent()).toContain('from what you can see');
 
@@ -83,7 +119,6 @@ describe('PairedBotPanel', () => {
 
   it('calls a request the game overtook out of date and offers it again, and never shows a server error', async () => {
     await open();
-    await page.click(`${panel} .switch`);
     await setSeq(4);
     await page.waitForSelector(`${panel}[data-state="stale"]`);
     expect(await page.locator(panel).textContent()).toContain('This advice is out of date.');

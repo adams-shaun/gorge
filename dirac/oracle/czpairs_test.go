@@ -280,6 +280,9 @@ func TestCzpairsLockstep(t *testing.T) {
 // TestCzpairsMutation ignores a Leaves line's destination mask: Justice
 // fires on a death, gorge's does not, so the games must diverge.
 func TestCzpairsMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runCzpairs(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("no-destination mutation in %d games with no divergence", games)

@@ -153,6 +153,9 @@ func kclonetokRunDeck(t *testing.T, deck []cardset.Entry, seeds uint64, report b
 }
 
 func TestClonetokLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var c kclonetokCounts
 	div, stalls := kclonetokRun(t, 192, true, &c)
 	t.Logf("192 seeds, %d divergences, %d stalls; cast clones that copied %d, token elections %d, token declines %d",
@@ -198,6 +201,9 @@ var kclonetokShepherdDeck = []cardset.Entry{
 }
 
 func TestClonetokShepherd(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	if div, stalls := kclonetokRunDeck(t, kclonetokShepherdDeck, 192, true, nil); div || stalls != 0 {
 		t.Errorf("divergence %v, %d stalls", div, stalls)
 	}

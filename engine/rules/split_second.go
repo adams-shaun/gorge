@@ -38,9 +38,11 @@ func (e *Engine) splitSecondHolds() bool {
 // identity invariant, engine/rules/engine.go's ask): every "cast" option (the hand,
 // command-zone, may-play, flashback/aftermath/harmonize/warp/escape and
 // exile-recast sources all append through the one walk) and every non-mana
-// ability option. What survives: playing a land (not a spell cast), mana
-// abilities (the "activate" Kind -- explicitly permitted by the rule), the
-// Station/Room-unlock special actions, pass and concede. The two offers that
+// ability option, Crew and Station included (both are activated abilities,
+// CR 702.122a, 702.184a). What survives: playing a land (not a spell cast),
+// mana abilities (the "activate" Kind -- explicitly permitted by the rule),
+// the face-up turn and Room unlock special actions (CR 116.2b, 116.2m), pass
+// and concede. The two offers that
 // ride the "cast" Kind but are special actions rather than spell casts --
 // Suspend (CR 702.88a: exiling the card with time counters) and the Foretell
 // {2} hand action (CR 702.126a) -- are kept: neither is casting a spell. A
@@ -78,4 +80,6 @@ var filterSplitSecondActionsCodes = state.NewStrCodes(
 	state.StrEntry[filterSplitSecondActionsCode]{Key: "cast", Val: filterSplitSecondActionsCast},
 	state.StrEntry[filterSplitSecondActionsCode]{Key: "ability", Val: filterSplitSecondActionsAbility},
 	state.StrEntry[filterSplitSecondActionsCode]{Key: "granted", Val: filterSplitSecondActionsAbility},
+	// Station is an activated ability (CR 702.184a), not a special action.
+	state.StrEntry[filterSplitSecondActionsCode]{Key: "station", Val: filterSplitSecondActionsAbility},
 )

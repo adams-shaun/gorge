@@ -11,7 +11,8 @@ representation. `TestWireMatrixPageMatchesScript` holds this table to the script
 `scripts/wire-matrix.sh commit|nightly|pr` runs the cells of a tier, one line per
 cell, and exits non-zero if any fails. A skipped test counts as a failure, so it needs
 the corpus. `make wire-matrix` is the `commit` tier, and CI runs that as the job
-`wire-matrix`.
+`wire-matrix`. The cells over the SpellBench and ManaBrew packages, whose tests sit behind
+the build tags `spellbench` and `manabrew`, run nightly only, so they do not gate a merge.
 
 `scripts/wire-nightly.sh` is the nightly run, on a seed that moves each day. It
 plays chunks of games on each wire (`TestConformanceChunk`), fuzzed decks through
@@ -26,17 +27,17 @@ replays in `TestFoundPairs` for good.
 | gorge / native / hosted-bots | Chain heads hold, games replay, registered bots consume payment plans | `TestHeads`, `make sim`, `TestRegisteredBotsConsumePaymentPlans` | commit nightly pr |
 | gorge / native / http-agent | The Python and Java agents each play a complete game | `scripts/examples-smoke.sh` | commit nightly pr |
 | gorge / manabrew / harness | Two sessions agree through `/state` and `/send`; a moved life total and a missing action are caught; the normaliser removes only its documented fields | `TestManaBrewConformanceGorgeSelf`, `TestManaBrewNormaliserLines`, `TestManaBrewCatchesAWrongLife`, `TestManaBrewCatchesAMissingAction` | commit nightly pr |
-| gorge / manabrew / bot | A bot through the wire reaches the native chain head, in process and over HTTP; state parity; no leak; every option reachable; nothing unmapped | `server/manabrew/mbtest`, `server/host/manabrewhttp` | commit nightly pr |
+| gorge / manabrew / bot | A bot through the wire reaches the native chain head, in process and over HTTP; state parity; no leak; every option reachable; nothing unmapped | `server/manabrew/mbtest`, `server/host/manabrewhttp` | nightly |
 | gorge / manabrew / fuzz | No failure over 2,000 fuzzed-deck games on a rolling seed | `cardfuzz -manabrew` | nightly |
-| gorge / v2 / harness | Goldens, chain heads over `/api/sbv2`, an empty native-only census, privacy | `server/spellbench/...`, `server/host/sbv2http` | commit nightly pr |
-| gorge / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysGorgeAgent`, `TestSpellbenchSeatAppliesAgentPick`, `TestSpellbenchSeatAnswersUnposableDecisionWithFallback` | commit nightly pr |
+| gorge / v2 / harness | Goldens, chain heads over `/api/sbv2`, an empty native-only census, privacy | `server/spellbench/...`, `server/host/sbv2http` | nightly |
+| gorge / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysGorgeAgent`, `TestSpellbenchSeatAppliesAgentPick`, `TestSpellbenchSeatAnswersUnposableDecisionWithFallback` | nightly |
 | dirac / native / harness | Gorge and dirac agree frame by frame on one game, same seed and answers, less what the test names | `TestNativeWireMatchesGorge` | commit nightly pr |
 | dirac / native / hosted-bots | Each policy dirac seats finishes 40 pairs without the refusal ladder | `TestBotsPlayDiracGames` | commit nightly pr |
 | dirac / native / http-agent | A scripted client plays a complete game over HTTP, undo included | `TestServesADiracGame` | commit nightly pr |
 | dirac / manabrew / harness | Every seat a seeded client, a complete game through `/state` and `/send` | `TestManaBrewServesADiracGame` | commit nightly pr |
 | dirac / manabrew / bot | A bot through the translator plays the game it plays with no wire | `TestBotThroughManaBrewOnDirac` | commit nightly pr |
-| dirac / v2 / harness | A complete game over `/api/sbv2` with no rules engine built and no decision left to the native wire | `TestSBV2ServesADiracGame` | commit nightly pr |
-| dirac / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysDiracGame` | commit nightly pr |
+| dirac / v2 / harness | A complete game over `/api/sbv2` with no rules engine built and no decision left to the native wire | `TestSBV2ServesADiracGame` | nightly |
+| dirac / v2 / stdio-agent | An agent plays to the end over the frozen wire | `TestV2AgentSeatPlaysDiracGame` | nightly |
 
 Not every combination is a cell:
 

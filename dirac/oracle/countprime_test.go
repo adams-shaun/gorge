@@ -273,6 +273,9 @@ func TestCountHeadsDeliriumPrimeLockstep(t *testing.T) {
 // TestCountHeadsDeliriumPrimeMutation reads "prime" as "odd": Zimone's end-step trigger then
 // fires on odd non-primes (1, 9) and misses 2, so the games must diverge.
 func TestCountHeadsDeliriumPrimeMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runCountprime(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left no divergence in %d games", st.games)

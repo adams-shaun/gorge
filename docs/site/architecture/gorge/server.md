@@ -7,7 +7,7 @@ append-only log, and fans events out to connected clients. This page
 describes that architecture: how a table drives its engine, where locks and
 goroutines are, what is written to disk and how clients are fed. To run a
 server, see [Getting started](../../getting-started.md); the
-[API reference](../../api/index.md) and the [bots section](../../bots/index.md) have the interfaces.
+[Interfaces](../../interfaces/index.md) and [Bots](../../bots/index.md) cover the ways in.
 
 ## Packages
 

@@ -87,7 +87,7 @@ func (s *State) windowRestrDyn(k *prep, p uint8, cost *kop.ManaCost, sl Slot) bo
 	n := v.manaN
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
-	if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, n) {
+	if !s.floatRestrAb(k, p, sl, ab, col, n) {
 		s.capFull(StallRestrSrc)
 	}
 	return true
@@ -218,7 +218,7 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 // and a filter bounded by X (Rydia's Saga card with mana value X) has its candidates
 // only at some values. When no value has one, the whole range stands and the target
 // ask reverses the cast (gorge xAsk).
-func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx int) {
+func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av *avail) {
 	a := s.buildAbility(k)
 	bound := false
 	if k.gen != nil && a != nil {
@@ -228,15 +228,17 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx int) {
 	}
 	n0 := d.N
 	if bound {
-		for x := 0; x <= mx; x++ {
-			if s.xAnswerable(k, a, e, x) {
+		for x := 0; x <= hi; x++ {
+			if s.xAnswerable(k, a, e, x) && (x <= mx || s.xReducedPays(k, av, x)) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
 			}
 		}
 	}
 	if d.N == n0 {
-		for x := 0; x <= mx; x++ {
-			d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+		for x := 0; x <= hi; x++ {
+			if x <= mx || s.xReducedPays(k, av, x) {
+				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+			}
 		}
 	}
 }

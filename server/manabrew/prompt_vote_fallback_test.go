@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrew
 
 // The api:Vote asks must be answerable on the ManaBrew wire, and any

@@ -318,6 +318,9 @@ func TestEarthbendLockstepShard4(t *testing.T) {
 // TestEarthbendMutation: with the return registration skipped the lockstep
 // must diverge.
 func TestEarthbendMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	old := dirac.DebugEarthbendNoReturn
 	dirac.DebugEarthbendNoReturn = true
 	defer func() { dirac.DebugEarthbendNoReturn = old }()

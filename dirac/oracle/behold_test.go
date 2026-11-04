@@ -304,6 +304,9 @@ func TestBeholdLockstep(t *testing.T) {
 // canonical options are sorted.) A green mutation means no game ever posed
 // such an ask.
 func TestBeholdMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _ := runBehold(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation dropped battlefield behold candidates in %d games with no divergence", games)

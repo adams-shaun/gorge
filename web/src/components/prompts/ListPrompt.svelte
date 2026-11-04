@@ -13,6 +13,8 @@
   import { manaOptionPips } from '../../lib/announcepay';
   import { startingPlayerLabel } from '../../lib/prompts/startingplayer';
   import PromptFooter, { type FooterButton } from './PromptFooter.svelte';
+  import BotPickTag from './BotPickTag.svelte';
+  import { botPick } from '../../lib/botpick.svelte';
 
   /**
    * ListPrompt is the numbered-rows renderer: modes (multi-select with a
@@ -94,12 +96,15 @@
       {@const count = decision.repeatable ? logic.picked.filter((i) => i === opt.index).length : 0}
       {@const link = hoverLinkOf(opt)}
       {@const pips = rowText === null && opt.kind === 'mana' ? manaOptionPips(opt.label) : null}
+      {@const advised = botPick.option(decision.seq, opt.index)}
       <button
         class="row"
         class:picked={at >= 0}
         class:dim={full && at < 0}
+        class:advised={advised !== null}
         type="button"
         data-option={opt.index}
+        data-bot-pick={advised !== null || undefined}
         aria-pressed={multi ? at >= 0 : undefined}
         use:pointerRelease
         onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })}
@@ -109,6 +114,7 @@
       >
         <Digit n={digits.get(opt.index)} on={at >= 0} />
         <span class="label">{#if pips !== null}Add <ManaSymbols cost={pips} />{:else}{rowText ? rowText(opt) : (startingPlayerLabel(decision, opt) ?? promptWords(opt.label))}{/if}</span>
+        {#if advised}<BotPickTag pick={advised} />{/if}
         {#if at >= 0 && multi}<span class="order" data-pick-order>{decision.repeatable ? `×${count}` : at + 1}</span>{/if}
       </button>
     {/each}
@@ -159,6 +165,8 @@
     color: var(--ink);
   }
   .row.dim { opacity: 0.4; }
+  /* The paired bot's pick: dashed, so it never reads as the player's own (solid) pick. */
+  .row.advised { outline: 1px dashed var(--gilt, #d4ad62); outline-offset: -4px; }
   .row:disabled { cursor: default; }
   .label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .order {

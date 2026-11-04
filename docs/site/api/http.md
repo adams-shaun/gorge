@@ -201,7 +201,12 @@ ply that depends on cards the seat cannot see, and `line_end` says why it stoppe
 A table with more than one human doesn't offer it unless the table allows it
 (`-paired-bot-shared`), and then `paired-bot` tells every seat it is on (`shared`). At most one
 search runs per table and `-paired-bot-searches` across the server, at a fixed
-`-paired-bot-sims`. A server run without `-paired-bot` lets no game choose one.
+`-paired-bot-sims`; a request past that limit waits its turn rather than failing. A server run
+without `-paired-bot` lets no game choose one.
+
+The browser client asks once per decision as it reaches the seat, and only while the player's switch
+is on; it hangs up when the decision moves on. Asking per decision rather than having the server push
+advice keeps the cost where someone is looking: a seat that is not asking never starts a search.
 
 ### The stream
 

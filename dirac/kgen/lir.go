@@ -730,14 +730,17 @@ type lStatic struct {
 	// AddChosen: AddType$ ChosenType, the static's host's chosen creature
 	// type (kop.Static.AddChosen)
 	AddChosen bool
-	Amount    lValue
-	Cost      lCost
-	Zone      int
-	Override  *lOverride
-	Grant     []int    // latent abilities the affected objects gain
-	Flags     []string // kind-specific flags
-	Note      string
-	Ward      int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
+	// OutlivesLoss: the pump beside an override static with a part in layers
+	// 1 to 5 (kop.Static.OutlivesLoss)
+	OutlivesLoss bool
+	Amount       lValue
+	Cost         lCost
+	Zone         int
+	Override     *lOverride
+	Grant        []int    // latent abilities the affected objects gain
+	Flags        []string // kind-specific flags
+	Note         string
+	Ward         int // a Continuous grant's "Ward:N" (Kw then holds "Ward")
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only (kop.StatReduceAbility)
 	AbilityRed uint8

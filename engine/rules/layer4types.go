@@ -127,6 +127,21 @@ func poolHasLayer4Static(cfg Config) bool {
 // and panics on any disagreement, so the whole rules suite doubles as the
 // empirical check of the argument above.
 func (e *Engine) refreshDerivedTypes() {
+	scans := e.staticBuildSeq
+	e.refreshDerivedTypesTable()
+	if e.staticBuildSeq != scans && !e.typesBuilding {
+		// The table's own build asked active(), whose static scan evaluated its
+		// gates against the table of the previous log head, the one this
+		// build was replacing: a graveyard count that moved with the event
+		// (a crewed Vehicle that died is no creature card, CR 400.7) was read
+		// stale and its outcome stamped as the memo of this head. The table
+		// is published now, so the scan is taken again against it.
+		e.staticEpoch = -1
+		e.activeEpoch = -1
+	}
+}
+
+func (e *Engine) refreshDerivedTypesTable() {
 	if e.typesBuilding {
 		// Re-entry: a Derived/typeCharacteristics call below reached something
 		// that re-emitted. The half-built table must never be published; the

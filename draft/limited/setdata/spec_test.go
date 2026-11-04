@@ -238,23 +238,68 @@ func TestSetdataValidateAcceptsAndRejects(t *testing.T) {
 	}
 }
 
-// TestTRKPlayBoosterShape pins the authored Star Trek play booster: 14
-// cards (7 common, 3 uncommon, a rare or mythic, a basic land, a wildcard,
-// a foil), the same on both collations, every sheet populated.
+// TestTRKPlayBoosterShape pins the Star Trek play booster as the edition's
+// slots lay it out: 14 cards (5 common, 1 common with a Stardates
+// replacement, 1 common with a Klingon replacement, 3 uncommon, a rare or
+// mythic, a wildcard, a foil wildcard, a land), the land slot split into a
+// nonfoil and a foil variant, the same on both collations.
 func TestTRKPlayBoosterShape(t *testing.T) {
 	for _, c := range []setdata.Collation{setdata.Play, setdata.Arena} {
 		spec := mustLoadCollation(t, "TRK", c)
-		if spec.PackSize != 14 || len(spec.Config.Variants) != 1 {
-			t.Fatalf("TRK %s = pack %d with %d variants, want 14 and 1", c, spec.PackSize, len(spec.Config.Variants))
+		if spec.PackSize != 14 || len(spec.Config.Variants) != 2 {
+			t.Fatalf("TRK %s = pack %d with %d variants, want 14 and 2", c, spec.PackSize, len(spec.Config.Variants))
 		}
-		want := map[string]int{"common": 7, "uncommon": 3, "rareMythicWithShowcase": 1, "land": 1, "wildcard": 1, "foil": 1}
-		for sheet, n := range want {
-			if got := spec.Config.Variants[0].Contents[sheet]; got != n {
-				t.Errorf("TRK %s draws %d from %s, want %d", c, got, sheet, n)
+		base := map[string]int{"common": 5, "commonStardates": 1, "commonKlingon": 1, "uncommon": 3,
+			"rareMythic": 1, "wildcard": 1, "foil": 1}
+		for i, land := range []string{"land", "foilLand"} {
+			v := spec.Config.Variants[i]
+			for sheet, n := range base {
+				if v.Contents[sheet] != n {
+					t.Errorf("TRK %s variant %d draws %d from %s, want %d", c, i, v.Contents[sheet], sheet, n)
+				}
 			}
-			if len(spec.Config.Sheets[sheet].Cards) == 0 {
-				t.Errorf("TRK %s sheet %s is empty", c, sheet)
+			if v.Contents[land] != 1 || len(v.Contents) != len(base)+1 {
+				t.Errorf("TRK %s variant %d contents %v, want one %s and the base slots", c, i, v.Contents, land)
 			}
+		}
+		if w := spec.Config.Variants; w[0].Weight != 800 || w[1].Weight != 200 {
+			t.Errorf("TRK %s land variants weigh %d/%d, want 800/200", c, w[0].Weight, w[1].Weight)
+		}
+		for name, sh := range spec.Config.Sheets {
+			if len(sh.Cards) == 0 {
+				t.Errorf("TRK %s sheet %s is empty", c, name)
+			}
+			if wantFoil := name == "foil" || name == "foilLand"; sh.Foil != wantFoil {
+				t.Errorf("TRK %s sheet %s foil = %v, want %v", c, name, sh.Foil, wantFoil)
+			}
+		}
+		// The replacement sheets carry their share: Stardates cards are
+		// about 4% of the Common-Stardates slot, all mythic and set SDS.
+		sds := spec.Config.Sheets["commonStardates"]
+		var sdsW int
+		for _, sc := range sds.Cards {
+			if sc.Set == "SDS" {
+				sdsW += sc.Weight
+				if sc.Rarity != limited.Mythic {
+					t.Errorf("TRK %s Stardates card %q has rarity %c, want mythic", c, sc.Name, sc.Rarity)
+				}
+			}
+		}
+		if share := float64(sdsW) / float64(sds.TotalWeight); share < 0.039 || share > 0.041 {
+			t.Errorf("TRK %s Stardates share = %.4f, want about 0.04", c, share)
+		}
+		// Rares and mythics only in the rare slot's base, mythic about 12.4%.
+		var mythic int
+		for _, sc := range spec.Config.Sheets["rareMythic"].Cards {
+			if sc.Rarity != limited.Rare && sc.Rarity != limited.Mythic {
+				t.Errorf("TRK %s rareMythic sheet holds %q of rarity %c", c, sc.Name, sc.Rarity)
+			}
+			if sc.Rarity == limited.Mythic {
+				mythic += sc.Weight
+			}
+		}
+		if share := float64(mythic) / float64(spec.Config.Sheets["rareMythic"].TotalWeight); share < 0.12 || share > 0.15 {
+			t.Errorf("TRK %s mythic share of the rare slot = %.4f, want about 0.13", c, share)
 		}
 	}
 }

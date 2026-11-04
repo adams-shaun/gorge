@@ -61,7 +61,7 @@ func PoolHas(pool, policy string) bool {
 
 // decks serves GET /api/decks: every deck, so a client that knows nothing of
 // reserved pools offers them all (a deck reserved for a bot policy is dealt
-// against that policy: see server/gorged/azc3.go). ?policy=NAME narrows the list
+// against that policy). ?policy=NAME narrows the list
 // to what a game against that policy may use: the decks reserved for it when
 // it has a pool, the unreserved decks otherwise.
 func (h *handler) decks(w http.ResponseWriter, r *http.Request) {

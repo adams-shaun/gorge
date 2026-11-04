@@ -319,6 +319,23 @@ func (t *State) gorgeTargetOrder(d *Decision) {
 	}
 }
 
+// gorgeArrangeOrder puts a scry or surveil ask's answers in the order gorge's
+// prefix search tries them (rules scriptAnswers): a one-card look is an up-to-one
+// ask, so the empty top pile (the kernel's Done: the card to the graveyard or the
+// bottom) is tried before keeping the card on top. A look at two or more cards is
+// an up-to-n ask scriptAnswers enumerates no answer for, so that line is a dead
+// end there; ok is false then. Any other ask is left as it is.
+func gorgeArrangeOrder(d *Decision) (ok bool) {
+	if d.Kind != DkChoose || d.Sub != ChArrange {
+		return true
+	}
+	if d.N != 2 || d.Options[1].Kind() != AkDone {
+		return false
+	}
+	d.Options[0], d.Options[1] = d.Options[1], d.Options[0]
+	return true
+}
+
 // settle continues the search at t after a step: t runs to p's next
 // decision, a priority being a node (visit) and an ask a branch over its
 // answers (gorge scriptSearch.visit's scriptAnswers).
@@ -335,6 +352,9 @@ func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	}
 	if d.Kind == DkTarget {
 		t.gorgeTargetOrder(&d)
+	}
+	if !gorgeArrangeOrder(&d) {
+		return false
 	}
 	for i := 0; i < int(d.N) && rs.n < maxTapXPath; i++ {
 		c := t.fork()

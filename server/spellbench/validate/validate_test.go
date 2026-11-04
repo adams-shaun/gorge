@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package validate_test
 
 import (

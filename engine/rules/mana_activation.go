@@ -457,11 +457,10 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// CR 613.1f: a permanent that lost all abilities has no printed mana
 	// ability; one another effect grants it survives only when the grant is
 	// not older than the removal (abilityloss.go).
-	var lossStamp uint32
-	lost := false
-	if !faceDown {
-		lossStamp, lost = e.abilityLoss(o)
-	}
+	// A face-down permanent has no printed abilities, but a "loses all
+	// abilities" effect still takes the ones granted before it (a manifested
+	// creature under Enduring Vitality's grant and then Unable to Scream).
+	lossStamp, lost := e.abilityLoss(o)
 	var manaAbilities []*cards.SA
 	switch {
 	case lost:

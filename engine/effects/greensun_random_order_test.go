@@ -17,10 +17,10 @@ func TestGreenSunsTwilightRestBottomRandomizesOnlyImprintedRemainder(t *testing.
 	rest := cards.ResolveSVar(vars, "RestBottom")
 	if rest == nil || rest.API != "ChangeZone" || rest.Params["Defined"] != "Imprinted" ||
 		rest.Params["Origin"] != "Library" || rest.Params["Destination"] != "Library" ||
-		rest.Params["LibraryPosition"] != "-1" || rest.Params["RandomOrder"] != "True" || rest.Params["NoShuffle"] != "True" {
+		rest.Params["LibraryPosition"] != "-1" || rest.Params["RandomOrder"] != "True" || rest.Params["Shuffle"] == "True" {
 		t.Fatalf("precondition: Green Sun rest-bottom chain = %+v", rest)
 	}
-	if cz := ChangeZoneOf(rest); !cz.RandomOrder || !cz.NoShuffle || cz.Defined != "Imprinted" {
+	if cz := ChangeZoneOf(rest); !cz.RandomOrder || cz.ShuffleTrue || cz.Defined != "Imprinted" {
 		t.Fatalf("precondition: compiled RestBottom params = %+v", cz)
 	}
 	chosen := cards.ResolveSVar(vars, "DBChangeZone")
@@ -97,7 +97,7 @@ func TestGreenSunsTwilightEmptyRemainderKeepsUntouchedTail(t *testing.T) {
 	rest := cards.ResolveSVar(vars, "RestBottom")
 	if ability == nil || ability.API != "DigMultiple" || ability.Params["ChangeLater"] != "True" ||
 		ability.Params["ImprintRest"] != "True" || chosen == nil || chosen.Params["SubAbility"] != "RestBottom" ||
-		rest == nil || rest.Params["RandomOrder"] != "True" || rest.Params["NoShuffle"] != "True" {
+		rest == nil || rest.Params["RandomOrder"] != "True" || rest.Params["Shuffle"] == "True" {
 		t.Fatalf("precondition: corpus deferred pair = %+v / %+v / %+v", ability, chosen, rest)
 	}
 	h, ids := digMultipleBoard(t)

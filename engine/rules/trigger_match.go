@@ -899,9 +899,10 @@ func (e *Engine) noteTriggerResolved(source state.ObjID) {
 	if e.triggerTurnResolved == nil {
 		e.triggerTurnResolved = map[state.ObjID]turnFires{}
 	}
+	stint := e.triggerStint(source)
 	f := e.triggerTurnResolved[source]
-	if f.Turn != e.G.Turn {
-		f = turnFires{Turn: e.G.Turn}
+	if f.Turn != e.G.Turn || f.Stint != stint {
+		f = turnFires{Turn: e.G.Turn, Stint: stint}
 	}
 	f.N++
 	e.triggerTurnResolved[source] = f
@@ -1565,8 +1566,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 				// share one limit; a malformed value denies (fail closed).
 				if limit, present := resolvedLimitValue(t); present {
 					f := e.triggerTurnResolved[id]
-					if f.Turn != e.G.Turn {
-						f = turnFires{Turn: e.G.Turn}
+					if f.Turn != e.G.Turn || f.Stint != e.triggerStint(id) {
+						f = turnFires{Turn: e.G.Turn} // a new turn, or a source that changed zones (CR 400.7)
 					}
 					if int(f.N) >= limit {
 						continue // ResolvedLimit$: already resolved enough this turn.

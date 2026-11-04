@@ -221,6 +221,9 @@ func TestGravecountsLockstep(t *testing.T) {
 // card type: instants and sorceries open Matzalantli's transform gate
 // early, so the games must diverge.
 func TestGravecountsMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runGravecounts(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation counted every card type as a permanent type in %d games with no divergence", games)

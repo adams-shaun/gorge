@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // Tests for v2 mapping gaps:

@@ -92,7 +92,11 @@ type CardDef struct {
 	// 0; gorge kw_ward.go's ward_sac pick; kernel kw_wardcost.go;
 	// Vein Ripper, Ygra).
 	WardSac FilterID
-	Leyline bool // may begin the game on the battlefield from the opening hand
+	// WardDiscOrN: ward—discard a card or pay {N}, N here (KwWard with
+	// WardN 0; gorge ward.go's ward_alt choice; kernel kw_wardcost.go;
+	// Titania, Rugged Rumbler).
+	WardDiscOrN uint8
+	Leyline     bool // may begin the game on the battlefield from the opening hand
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the

@@ -230,12 +230,11 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) uint8 {
 // read from a source of p's with that restriction and the batch's choice, and
 // a restriction with none admits as printed even if its source has left.
 func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
-	f := k.gen.restrFOf(b.kind)
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
 			a := &abs[j]
-			if a.Kind != kop.AbMana || a.ManaRestrict != f {
+			if a.Kind != kop.AbMana || !k.gen.restrIsKind(b.kind, a) {
 				continue
 			}
 			if a.AFlags&kop.AfManaNonSpell != 0 {
@@ -250,7 +249,7 @@ func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
 		sl := m.first()
 		abs := k.t.Cards[s.cardAt(sl)].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.perms[sl].chosen == b.chosen && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
+			if a := &abs[j]; a.Kind == kop.AbMana && k.gen.restrIsKind(b.kind, a) && a.ManaRestrictAb != 0 && s.perms[sl].chosen == b.chosen && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
 				return true
 			}
 		}
@@ -529,7 +528,7 @@ func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 	c := s.cardAt(st.sl)
 	rec := k.gen.restrRecOf(c)
 	ab := &k.t.Cards[c].Abilities[rec.ab]
-	if !s.floatRestrFrom(k, p, st.sl, ab.ManaRestrict, int(st.ans), max(ab.ManaN, 1)) {
+	if !s.floatRestrAb(k, p, st.sl, ab, int(st.ans), max(ab.ManaN, 1)) {
 		s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
 	}
 }

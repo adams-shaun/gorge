@@ -86,8 +86,8 @@ func TestDigMultipleGreenSunSelectionAndBottoming(t *testing.T) {
 	}
 	restBottom := cards.ResolveSVar(vars, "RestBottom")
 	bottomParams := ChangeZoneOf(restBottom)
-	if !bottomParams.NoShuffle || !strings.HasPrefix(bottomParams.LibraryPositionText, "-") {
-		t.Fatalf("precondition: RestBottom params noShuffle=%t position=%q", bottomParams.NoShuffle, bottomParams.LibraryPositionText)
+	if bottomParams.ShuffleTrue || !strings.HasPrefix(bottomParams.LibraryPositionText, "-") {
+		t.Fatalf("precondition: RestBottom params shuffle=%t position=%q", bottomParams.ShuffleTrue, bottomParams.LibraryPositionText)
 	}
 	base, firstFour := digMultipleBoard(t)
 	fifth := base.g.AddObject(mkCard(t, "Name:UntouchedTop\nTypes:Artifact\nOracle:x\n"), 0).ID
@@ -131,7 +131,7 @@ func TestDigMultipleGreenSunSelectionAndBottoming(t *testing.T) {
 	}
 	for _, e := range h.log {
 		if e.Kind == events.Shuffle {
-			t.Fatal("RandomOrder$ NoShuffle$ True shuffled the whole library")
+			t.Fatal("a Defined$ RandomOrder$ bottom move shuffled the whole library")
 		}
 		if e.Kind == events.Note && strings.Contains(e.Text, "ChangeZone ignores unread parameter(s) RandomOrder$") {
 			t.Fatalf("RandomOrder parameter was not consumed: %q", e.Text)

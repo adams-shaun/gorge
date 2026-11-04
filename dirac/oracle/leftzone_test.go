@@ -303,6 +303,9 @@ func TestLeftzoneLockstep(t *testing.T) {
 // leave a graveyard twice in one turn; kernel TestLeftzoneRing pins both
 // against a hand-built ring.
 func TestLeftzoneMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mu := range []struct {
 		name   string
 		flag   *bool

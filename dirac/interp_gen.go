@@ -1640,6 +1640,14 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					s.holdBatch(&eb)
 					return false
 				}
+				if z == kop.ZoneBattlefield && s.entryParkDig(k, o, ctrl) {
+					// the CR 616.1 entry-order ask, the card still in its zone (repl_entryorder.go)
+					if !resume {
+						s.g.held, s.g.retTS = 0, stamp
+					}
+					s.holdBatch(&eb)
+					return false
+				}
 				from := s.detach(o)
 				if mv&kop.MvRemember != 0 {
 					s.remember(o) // RememberChanged$, in move order (gorge emitMove)
@@ -1661,7 +1669,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
 						s.entryOverride(k, &rid, sl)
-						s.entryAtEOT(&rid, o, eb.n > 1)
+						s.entryAtEOT(&rid, o, eb.n > 1 || resume)
 					}
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
@@ -1762,6 +1770,9 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 				s.g.pickP, s.g.nlook, s.g.pickLeft = p, uint8(nr), uint8(nf-i)
 				if s.cloneReturnPark(k, fnd[i], p) {
 					return false
+				}
+				if s.entryParkDig(k, fnd[i], p) {
+					return false // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
 				}
 				if !s.digEnter(k, p, fnd[i], fl&kop.DuFoundTapped != 0, fl&kop.DuFoundAttacking != 0) {
 					return true

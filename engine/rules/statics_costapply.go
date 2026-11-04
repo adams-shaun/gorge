@@ -117,6 +117,13 @@ func (e *Engine) costStaticGateFull(sv staticView, mode string, p state.PlayerID
 		sc := e.costStaticSpecCtx(sv, id)
 		if scope.Kind == "Spell" {
 			sc = e.spellSpecCtx(sc, id)
+			if scope.X != 0 && scope.Mode != "prototype" {
+				// CR 601.2b announces X before CR 601.2f determines the cost,
+				// and the spell on the stack counts it (CR 202.3e): "spells
+				// with mana value 4 or greater" sees {X}{R}{R} cast for X = 3
+				// as 5.
+				sc.HasManaValue, sc.ManaValue = true, state.SpellManaValueAt(e.G, e.G.Obj(id), scope.X)
+			}
 			if scope.Mode == "prototype" {
 				// CR 718.3a: a cost modifier gated on the card's mana value,
 				// colours or P/T reads the K:Prototype inset for this cast.

@@ -49,7 +49,7 @@ func (e *Engine) activationConditionOK(p state.PlayerID, src state.ObjID, ab *ca
 	case activationConditionOKHellbent:
 		return len(e.G.Zone(state.ZHand, p)) == 0
 	case activationConditionOKThreshold:
-		return len(e.G.Zone(state.ZGraveyard, p)) >= 7
+		return e.G.CardCount(state.ZGraveyard, p) >= 7 // CR 111.7
 	case activationConditionOKMetalcraft:
 		n := 0
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {

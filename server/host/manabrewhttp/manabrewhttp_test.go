@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrewhttp
 
 // Fixtures: a tiny 4-seat table (bots fill every non-human

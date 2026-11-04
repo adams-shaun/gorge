@@ -1,5 +1,7 @@
 # Architecture
 
+Part of [Engines](../engines/index.md).
+
 This section explains how gorge works inside: how a match is represented, how
 card text becomes behaviour, how the rules core applies the Comprehensive
 Rules (CR), and how the server drives all of it for players and bots. It is

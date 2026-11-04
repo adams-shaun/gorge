@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package humanseat_test
 
 import (

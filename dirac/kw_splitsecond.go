@@ -6,7 +6,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // can't cast spells or activate abilities that aren't mana abilities. gorge
 // enforces it by withholding those options from the priority offer
 // (rules split_second.go filterSplitSecondActions), keeping the land play, the
-// mana abilities, the Station and Room special actions and the face-up turn.
+// mana abilities and the face-up turn (Station and Crew are activated abilities,
+// CR 702.184a, 702.122a, and are withheld).
 // The keyword exists in the kernel as a StatStackKw grant (Samut, Tyrant of
 // Naktamun's instants and sorceries), read live off each spell on the stack.
 // Cold: behind genPrep.anySplitSecond.
@@ -34,8 +35,7 @@ func (s *State) splitSecondHolds(k *prep) bool {
 }
 
 // filterSplitSecond drops every cast and every non-mana ability option from d
-// (order kept). A Station ability is a special action, not an activation
-// gorge withholds.
+// (order kept).
 //
 //go:noinline
 func (s *State) filterSplitSecond(k *prep, d *Decision) {
@@ -53,15 +53,8 @@ func (s *State) filterSplitSecond(k *prep, d *Decision) {
 
 func (s *State) splitSecondBars(k *prep, a Action) bool {
 	switch a.Kind() {
-	case AkCast, AkCastCasualty, AkPlot, AkSneak, AkWebSling, AkBestow:
+	case AkCast, AkCastCasualty, AkPlot, AkSneak, AkWebSling, AkBestow, AkActivate:
 		return true
-	case AkActivate:
-		if a.Mode()&0x80 != 0 {
-			return true // a granted ability
-		}
-		o := Obj(a.Source())
-		abs := k.t.Cards[s.objs[o].card].Abilities
-		return int(a.Mode()) >= len(abs) || abs[a.Mode()].AFlags&kop.AfStation == 0
 	}
 	return false
 }

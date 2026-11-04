@@ -81,3 +81,10 @@ docs/site/architecture/_generated_packages.md
 # command package can drop one next to the sources. Never
 # committed (the cache itself lives under the gitignored .cards/).
 ir-*.gob.gz.lock
+
+# The demo deploy's local configuration (scripts/deploy-demo.sh): the box's
+# ports, directories and network paths. deploy/demo.env.example documents it.
+/deploy/demo.env
+
+# The Docker demo's local configuration (deploy/docker/.env.example).
+/deploy/docker/.env

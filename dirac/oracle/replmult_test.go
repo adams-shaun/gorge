@@ -305,6 +305,9 @@ func TestReplmultLockstep(t *testing.T) {
 // non-creature sources and Neriv's earlier creatures are doubled, so the
 // games must diverge.
 func TestReplmultMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runReplmult(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation ignored the doubler filters in %d games with no divergence", games)

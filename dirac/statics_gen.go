@@ -76,13 +76,19 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 	if s.g.raiseO|s.g.raiseB != 0 {
 		g += s.partitionRaise(o) // a may-play surcharge, before the cost statics (cast_whileexiled.go)
 	}
+	// the spell being priced on the stack counts its announced X in the mana
+	// value a cost static tests (CR 202.3e, 601.2f); off the stack it has none
+	mo := o
+	if mo == NoObj && priced != NoObj && s.objs[priced].zone == kop.ZoneStack {
+		mo = priced
+	}
 	apply := func(a *kop.Ability, ctx evalCtx, emb uint8) {
 		ctx.uncounted = priced + 1
 		st := &a.Static
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) {
 			return
 		}
-		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, o, ctx.srcSl) {
+		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, mo, ctx.srcSl) {
 			return
 		}
 		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c)) {

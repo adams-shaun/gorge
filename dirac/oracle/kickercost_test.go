@@ -215,6 +215,9 @@ func TestNonManaKickerLockstep(t *testing.T) {
 // TestNonManaKickerMutation: DebugKickerCostFree pays no kicker cost, so the
 // kicked Vayne's Treachery keeps its creature and the lockstep must diverge.
 func TestNonManaKickerMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runKickercost(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("DebugKickerCostFree: no divergence in %d games", games)

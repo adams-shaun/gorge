@@ -59,6 +59,9 @@ func (c *mandatoryCounter) check(ref *GorgeSide, _ Side) *Divergence {
 }
 
 func TestMandatoryLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

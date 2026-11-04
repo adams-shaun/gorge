@@ -846,6 +846,19 @@ func (g *Game) Zone(z Zone, p PlayerID) []ObjID {
 	return g.zones[g.zoneIndex(z, p)]
 }
 
+// CardCount is the number of cards in a zone: its objects less any token (or
+// copy) that has reached the zone but waits for state-based actions to remove
+// it (CR 704.5d), which is no card (CR 111.7).
+func (g *Game) CardCount(z Zone, p PlayerID) int {
+	n := 0
+	for _, id := range g.Zone(z, p) {
+		if o := g.Obj(id); o != nil && !o.Ephemeral() {
+			n++
+		}
+	}
+	return n
+}
+
 func (g *Game) SetZone(z Zone, p PlayerID, ids []ObjID) {
 	if z == ZCeased {
 		return

@@ -174,6 +174,9 @@ func TestMaxblkLockstep(t *testing.T) {
 // blocker on a max-1 attacker that gorge does not, so the games must
 // diverge. A green mutation means the lockstep never reaches a double block.
 func TestMaxblkMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	st := runMaxblk(t, 64, true)
 	if st.divs == 0 {
 		t.Fatalf("mutation left the cap off in %d games with no divergence", st.games)

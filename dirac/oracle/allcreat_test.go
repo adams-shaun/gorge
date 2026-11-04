@@ -186,6 +186,9 @@ func TestAllcreatLockstep(t *testing.T) {
 // that is not naturally an Elf stops counting as one, so the lord's pump
 // disappears and the lockstep must diverge.
 func TestAllcreatMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	old := dirac.DebugAllCreatNoOverride
 	dirac.DebugAllCreatNoOverride = true
 	defer func() { dirac.DebugAllCreatNoOverride = old }()

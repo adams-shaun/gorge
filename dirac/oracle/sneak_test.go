@@ -631,6 +631,9 @@ func TestSneakLockstep(t *testing.T) {
 
 // TestSneakMutation: each mutation must diverge on some seed.
 func TestSneakMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbls := sneakSetup(t)
 	// each mutation scans the policy class that exercises it (seed/4%4:
 	// 0 the declare-blockers window, 1 the later step, 3 the blocked

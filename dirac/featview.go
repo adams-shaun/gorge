@@ -395,7 +395,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-1 >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
+		if s.pickCostPayable(k, p&1, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p&1, c, o) {
 			if t := addCost(cost, ac.Mana); a.affords(&t, pipMaskOf(&t), 0) {
 				return true
 			}

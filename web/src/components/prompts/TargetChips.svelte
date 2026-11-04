@@ -10,6 +10,8 @@
   import ArtCrop from './ArtCrop.svelte';
   import Digit from './Digit.svelte';
   import PromptFooter, { type FooterButton } from './PromptFooter.svelte';
+  import BotPickTag from './BotPickTag.svelte';
+  import { botPick } from '../../lib/botpick.svelte';
 
   /**
    * TargetChips is the `target` renderer: one chip per
@@ -52,11 +54,14 @@
       {@const chip = chipOf(opt)}
       {@const at = logic.picked.indexOf(opt.index)}
       {@const link = hoverLinkOf(opt)}
+      {@const advised = botPick.option(decision.seq, opt.index)}
       <button
         class="chip"
         class:picked={at >= 0}
+        class:advised={advised !== null}
         type="button"
         data-option={opt.index}
+        data-bot-pick={advised !== null || undefined}
         title={opt.label}
         aria-label={opt.label}
         aria-pressed={decision.max > 1 ? at >= 0 : undefined}
@@ -76,6 +81,7 @@
         {/if}
         <span class="name">{chip.name}</span>
         {#if chip.detail}<small class="detail">{chip.detail}</small>{/if}
+        {#if advised}<BotPickTag pick={advised} />{/if}
       </button>
     {/each}
   </div>
@@ -112,6 +118,9 @@
     border-color: var(--gilt, #d4ad62);
     background: color-mix(in srgb, var(--gilt, #d4ad62) 10%, var(--instrument-raised));
   }
+  /* The paired bot's pick: dashed, so it never reads as the player's own pick. */
+  .chip.advised { border-style: dashed; border-color: var(--gilt, #d4ad62); }
+  .chip.advised.picked { border-style: solid; }
   .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .detail { color: var(--ink-dim); font-size: var(--t-11); white-space: nowrap; }
   .seat-dot {

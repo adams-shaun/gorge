@@ -230,6 +230,9 @@ func kturnuprepRun(t *testing.T, seeds uint64, firstDiv bool) kturnuprepResult {
 }
 
 func TestTurnupreplLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugTurnUpReplStats = true
 	dirac.TurnUpBlockedHeld, dirac.TurnUpHeldCond, dirac.TurnUpHeldPlain, dirac.TurnUpReplCtrs = 0, 0, 0, 0
 	defer func() { dirac.DebugTurnUpReplStats = false }()

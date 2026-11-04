@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // TestGrantedAbilityIndexStableAcrossDecisions pins the v2 ability_index of a

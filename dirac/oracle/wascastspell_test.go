@@ -113,6 +113,9 @@ func kwascastspellRun(t *testing.T, seeds uint64, report bool) (diverged bool, s
 }
 
 func TestWascastspellLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, st := kwascastspellRun(t, 256, true)
 	t.Logf("256 games, wascastspell %+v, %d divergences, %d stalls", st, b2i(div), stalls)
 	if stalls != 0 {

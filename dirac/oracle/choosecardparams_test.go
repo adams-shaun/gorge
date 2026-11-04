@@ -146,6 +146,9 @@ func kccpPolicy(seed uint64) Policy {
 }
 
 func TestChoosecardparamsLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

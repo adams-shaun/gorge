@@ -18,12 +18,13 @@ import (
 // policy, because no table may seat it.
 const pairedBotBuiltin = "az-closed"
 
-// pairedBotEntry resolves -paired-bot: nil when it is off, the built-in search
-// over a belief, or a registered policy. The host checks the entry's seats.
-// conPool is what the built-in search believes opponents play when
-// -paired-bot-decks is not given: the constructed decks this server deals.
+// pairedBotEntry resolves -paired-bot: nil when it is off (empty, or "off",
+// which a deploy's environment can spell), the built-in search over a belief,
+// or a registered policy. The host checks the entry's seats. conPool is what
+// the built-in search believes opponents play when -paired-bot-decks is not
+// given: the constructed decks this server deals.
 func (c config) pairedBotEntry(reg *cards.Registry, load func(string) (host.Deck, error), conPool []string) (*bots.Entry, error) {
-	if c.pairedBot == "" {
+	if c.pairedBot == "" || c.pairedBot == host.PairedBotOff {
 		return nil, nil
 	}
 	if c.engine != gorgegame.Name {

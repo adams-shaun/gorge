@@ -360,6 +360,9 @@ func TestEmpowerMutation(t *testing.T) {
 // Two grantors give one planeswalker two different abilities, and each is its own
 // option, told apart by its grantor.
 func TestGrantedAbilitiesToldApart(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Way of the Warlord", Count: 10}, {Name: "Way of the Healer", Count: 10},
 		{Name: "Mountain", Count: 10}, {Name: "Plains", Count: 10},

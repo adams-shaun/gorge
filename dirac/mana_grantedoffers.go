@@ -606,6 +606,9 @@ func (g *grantSrch) settle(t *State) bool {
 	if !g.node() {
 		return false
 	}
+	if !gorgeArrangeOrder(&d) {
+		return false // (Jett Reno's surveil: the card to the graveyard first)
+	}
 	for i := 0; i < int(d.N) && g.np < len(g.path); i++ {
 		c := t.fork()
 		c.Apply(d.Options[i])
@@ -1018,4 +1021,45 @@ func (s *State) FeatGrantAvail(o Obj) (w int32, ok bool) {
 		}
 	}
 	return w, true
+}
+
+// grantsFixedMana reports whether an effect grants sl a mana ability of fixed
+// production (a plain tap for a set colour): gorge's shared census lists such a
+// source at its battlefield position whatever shape its own ability has.
+func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	for _, i := range gi[:n] {
+		gp := &k.gen.grantPC[i]
+		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// filterSource: p controls a permanent with a second mana ability that costs
+// mana (a filter: {1}, {T}: add one mana of any color). affordsUngrantedFor
+// counts a source's first mana ability only, so its verdict on a play such a
+// source funds is not gorge's.
+func (s *State) filterSource(k *prep, p uint8) bool {
+	for m := s.ctrlM[p&1]; m.any(); m = m.rest() {
+		c := s.cardAt(m.first())
+		if k.cards[c].manaAb < 0 {
+			continue
+		}
+		cd := &k.t.Cards[c]
+		seen := false
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+				continue
+			}
+			if seen && a.Cost.Mana.MV() > 0 {
+				return true
+			}
+			seen = true
+		}
+	}
+	return false
 }

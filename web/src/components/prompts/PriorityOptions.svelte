@@ -6,6 +6,8 @@
   import { manualManaHidden } from '../../lib/manualmana';
   import { announceActions } from '../../lib/announcepay';
   import { pointerRelease } from '../../lib/pointer';
+  import { botPick } from '../../lib/botpick.svelte';
+  import BotPickTag from './BotPickTag.svelte';
 
   /**
    * PriorityOptions is the priority window's action list under the ACTIONS
@@ -32,6 +34,8 @@
   const paymentBases = $derived(new Set(paymentActions.flatMap((action) => action.base_option_index === undefined || action.base_option_index === null ? [] : [action.base_option_index])));
   const hideManualMana = $derived(manualManaHidden(decision, view, seat, logic.hidesManualMana));
   const announceCasts = $derived(announceActions(decision, logic.autoManaAvailable, logic.autoPayMana));
+  // The paired bot's pick, marked on the control that would make it; none posts it.
+  const primaryPick = $derived(primary ? botPick.option(decision.seq, primary.index) : null);
 
   // holdPriority is the Ctrl modifier, exactly as on every other option
   // button: a Ctrl-held planned cast skips the pass-after-acting arming.
@@ -45,8 +49,9 @@
   {#if paymentActions.length > 0}
     <div class="payment-actions" data-payment-actions>
       {#each paymentActions as action (action.id)}
-        <div class="payment-action" data-payment-action={action.id}>
-          <strong class="payment-title">{action.label}</strong>
+        {@const advised = botPick.action(decision.seq, action.id)}
+        <div class="payment-action" class:advised={advised !== null} data-payment-action={action.id} data-bot-pick={advised !== null || undefined}>
+          <strong class="payment-title">{action.label}{#if advised} <BotPickTag pick={advised} />{/if}</strong>
           {#if action.plans.length > 0}
             {#each action.plans as plan, i (plan.id)}
               <p class="payment-summary">{paymentPlanSummary(plan)}</p>
@@ -75,19 +80,23 @@
     </div>
   {/if}
   {#if primary && !((placement === 'flyout' || placement === 'strip') && primary.kind === 'pass')}
-    <button class="primary" type="button" data-primary use:pointerRelease onclick={(e) => logic.primaryClick(e.ctrlKey)} disabled={logic.busy}>
+    {#if primaryPick}<BotPickTag pick={primaryPick} />{/if}
+    <button class="primary" class:advised={primaryPick !== null} type="button" data-primary data-bot-pick={primaryPick !== null || undefined} use:pointerRelease onclick={(e) => logic.primaryClick(e.ctrlKey)} disabled={logic.busy}>
       {primary.label}
     </button>
   {/if}
   <div class="list">
     {#each announceCasts as action (action.id)}
-      <button class="option" type="button" data-announce={action.id} use:pointerRelease title="Cast, then choose the mana to pay with" onclick={(e) => logic.submitAnnounce(action, e.ctrlKey)} disabled={logic.busy}><span class="label">{action.label}</span></button>
+      {@const advised = botPick.action(decision.seq, action.id)}
+      <button class="option" class:advised={advised !== null} type="button" data-announce={action.id} data-bot-pick={advised !== null || undefined} use:pointerRelease title="Cast, then choose the mana to pay with" onclick={(e) => logic.submitAnnounce(action, e.ctrlKey)} disabled={logic.busy}><span class="label">{action.label}</span>{#if advised}<BotPickTag pick={advised} />{/if}</button>
     {/each}
     {#each genericListOptions(decision, primary, paymentBases, hideManualMana) as opt (opt.index)}
       {@const pickedAt = logic.picked.indexOf(opt.index)}
-      <button class="option" class:picked={pickedAt >= 0} type="button" data-option={opt.index} use:pointerRelease onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })} disabled={logic.busy}>
+      {@const advised = botPick.option(decision.seq, opt.index)}
+      <button class="option" class:picked={pickedAt >= 0} class:advised={advised !== null} type="button" data-option={opt.index} data-bot-pick={advised !== null || undefined} use:pointerRelease onclick={(e) => logic.click(opt.index, { holdPriority: e.ctrlKey })} disabled={logic.busy}>
         {#if pickedAt >= 0 && decision.max > 1}<span class="order">{pickedAt + 1}</span>{/if}
         <span class="label">{opt.label}</span>
+        {#if advised}<BotPickTag pick={advised} />{/if}
       </button>
     {/each}
   </div>
@@ -161,6 +170,9 @@
     color: var(--ink);
   }
   .option.picked { border-left-color: var(--initiative); color: var(--ink); }
+  /* The paired bot's pick: dashed, so it never reads as the player's own pick. */
+  .option.advised { outline: 1px dashed var(--gilt, #d4ad62); outline-offset: -2px; }
+  .primary.advised, .payment-action.advised { outline: 1px dashed var(--gilt, #d4ad62); outline-offset: 2px; }
   .order {
     flex: none;
     font: 0.6875rem/1 var(--font-data);

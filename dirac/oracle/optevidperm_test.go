@@ -314,6 +314,9 @@ func TestOptevidpermLockstep(t *testing.T) {
 // permanent as not collected (no stun counter, no Inspector counter or life),
 // so the lockstep must diverge.
 func TestOptevidpermMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runOptevidperm(t, 32, true)
 	if divs == 0 {
 		t.Fatalf("DebugCastCollectedNever: no divergence in %d games", games)

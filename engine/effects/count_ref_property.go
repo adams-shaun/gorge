@@ -602,7 +602,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		case prop == "CardsInLibrary":
 			n += int32(len(g.Zone(state.ZLibrary, p)))
 		case prop == "CardsInGraveyard":
-			n += int32(len(g.Zone(state.ZGraveyard, p)))
+			n += int32(g.CardCount(state.ZGraveyard, p)) // CR 111.7
 		case prop == "LifeLostThisTurn":
 			n += h.LifeLostThisTurn(p)
 		case prop == "DamageThisTurn":

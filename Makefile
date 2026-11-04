@@ -68,7 +68,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # 07d4f918d = Card-Forge master 2026-11-02, which holds those fixes and scripts Star Trek (TRK, TRC).
 # e5904606 = 07d4f918d + the fork's Star Trek scripts (16 upstream PRs, 55 authored against the printed cards, a Romulan Bird-of-Prey fix).
 # 66757752dc = e5904606 + H.M.S. Bounty (Count$YourExtraTurns, the extra-turn counter and its script).
-FORGE_REF  ?= 66757752dc1de6febab47cd3ccfb3ddfc66db54d
+# 21f2538a76 = the fork's gorge-trek3: Card-Forge master 6264f0292f (2026-11-03) + the open Star Trek PR heads
+# (Card-Forge/forge#12365 through #12561) + the fork's authored Star Trek scripts, H.M.S. Bounty and four script fixes sent to those PRs.
+FORGE_REF  ?= 21f2538a7621fe82ecb82de25507cbb5043f4609
 
 .PHONY: help
 help:
@@ -87,6 +89,12 @@ help:
 	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the table server (browser client at the addr)"
+	@echo "  make deploy-demo    — build the client and gorged, then (re)serve the demo (scripts/deploy-demo.sh; deploy/demo.env)"
+	@echo "  make stop-demo      — stop the demo's servers, start nothing"
+	@echo "  make demo-image     — build the demo's container images (deploy/docker; no card scripts inside)"
+	@echo "  make demo-up        — build and start the demo in containers: nginx in front of gorged (deploy/docker/.env)"
+	@echo "  make demo-down      — stop the demo's containers (volumes kept)"
+	@echo "  make prewarm-art    — fill the demo's card-art cache from its decks"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"
@@ -94,6 +102,7 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
+	@echo "  make test-wires     — the SpellBench and ManaBrew interface tests (build tags spellbench, manabrew; not part of make test)"
 	@echo "  make seat-check     — fast structural gate: gofmt, gentypes -check, archtest, codeshape"
 	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
 	@echo "  make wire-matrix    — run every engine / wire / consumer cell of the commit tier (docs/site/architecture/wires.md)"
@@ -121,6 +130,48 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 # the server is spectator-only, exactly as before the feature existed.
 gorged: $(BIN_DIR)/gorged
 	$(BIN_DIR)/gorged -decks testkit/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed -vsbot
+
+# deploy-demo refreshes the demo: it builds the web client and gorged from
+# GORGE_ROOT (this checkout unless set), stops the demo's running servers by
+# their listening sockets and serves the demo again: bot-only tables spectated
+# omniscient, play-vs-bot tables public. Stopping the servers aborts every
+# in-flight vs-bot game, so whoever owns the demo runs it by hand and nothing
+# runs it automatically. Ports, directories, the art cache and the az
+# policies' network paths come from the environment or the untracked
+# deploy/demo.env (deploy/demo.env.example); scripts/deploy-demo.sh has every
+# variable and its rationale, and `scripts/deploy-demo.sh --dry-run` prints
+# the resolved configuration and the commands without running them.
+#
+# stop-demo takes the demo down without starting it again, by the same socket
+# lookup (never pkill -f). prewarm-art fills the durable card-art cache the
+# deploy otherwise fills before it starts any server: a no-op when the cache
+# is complete, non-zero if any name failed; by hand it is strict and
+# unbounded, where the deploy bounds it and starts its servers whatever the
+# fill's exit.
+.PHONY: deploy-demo stop-demo prewarm-art
+deploy-demo:
+	scripts/deploy-demo.sh --build
+
+stop-demo:
+	scripts/deploy-demo.sh --stop-only
+
+prewarm-art:
+	scripts/deploy-demo.sh --prewarm-only
+
+# The container demo (deploy/docker, docs/site/web/docker.md). The images carry
+# no Forge card scripts: gorged fetches them at FORGE_REF into a volume on
+# first start. There is no push target; tag and push the image by hand.
+DEMO_COMPOSE = FORGE_REF=$(FORGE_REF) docker compose -f deploy/docker/compose.yaml
+
+.PHONY: demo-image demo-up demo-down
+demo-image:
+	$(DEMO_COMPOSE) build
+
+demo-up:
+	$(DEMO_COMPOSE) up -d --build
+
+demo-down:
+	$(DEMO_COMPOSE) down
 
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
@@ -230,6 +281,14 @@ gc-gate:
 .PHONY: fuzz
 fuzz:
 	go test $(GO_TEST_FLAGS) -tags fuzz -count=1 -run 'Fuzz' ./engine/rules ./server/protocol/manabrew ./server/manabrew
+
+# test-wires runs the SpellBench and ManaBrew interface tests, which sit behind
+# the build tags `spellbench` and `manabrew` so they do not gate a merge. The
+# nightly CI run takes them too.
+WIRE_PKGS = ./server/spellbench/... ./server/host/sbv2http ./dirac/cmd/sbv2dirac/... ./cmd/spellbench-gorge-env ./server/manabrew/... ./server/host/manabrewhttp ./server/protocol/manabrew/...
+.PHONY: test-wires
+test-wires:
+	go test $(GO_TEST_FLAGS) -tags 'spellbench manabrew' $(WIRE_PKGS)
 
 # Engine-speed benchmarking (cmd/enginebench; scripts in scripts/enginebench-*.sh,
 # workload decks committed in cmd/enginebench/testdata/decks). Every run is

@@ -10,6 +10,9 @@ import (
 // the last player's: a card a sacrificed Bat exiled stays in exile while the next
 // player chooses.
 func TestSacrificedHostReturnsAfterTheWholeBatch(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Deep-Cavern Bat", Count: 10}, {Name: "Walking Corpse", Count: 8},
 		{Name: "Barter in Blood", Count: 6}, {Name: "Swamp", Count: 16},

@@ -220,6 +220,9 @@ func TestFintieredLockstep(t *testing.T) {
 // TestFintieredMutation: without the chosen mode's ModeCost$ the Tiered
 // lockstep must diverge.
 func TestFintieredMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.DebugTieredNoModeCost = true
 	defer func() { dirac.DebugTieredNoModeCost = false }()
 	if st := kfintieredRun(t, 64); st.divergences == 0 {

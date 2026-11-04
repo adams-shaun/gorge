@@ -9,6 +9,9 @@ import (
 // The end-step copy of a sacrificed artifact reads last known information, so it
 // is still made after the artifact is exiled from the graveyard (CR 608.2h).
 func TestDelayedCopyOfAnObjectThatMovedOn(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Esoteric Duplicator", Count: 8}, {Name: "Tormod's Crypt", Count: 10},
 		{Name: "Mind Stone", Count: 6}, {Name: "Island", Count: 16},

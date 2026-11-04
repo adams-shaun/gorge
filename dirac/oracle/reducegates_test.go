@@ -219,6 +219,9 @@ func TestReducegatesLockstep(t *testing.T) {
 // in the ledger and pays full price, where gorge's onlyFirstSpellUsed skips
 // the push being priced. The games must diverge.
 func TestReducegatesMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runReducegates(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation ran %d games with no divergence", games)

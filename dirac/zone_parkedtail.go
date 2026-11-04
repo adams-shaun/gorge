@@ -29,6 +29,8 @@ const (
 	tailDigUntil                     // a reveal-until's later found cards and the rest
 	tailDigEnter                     // a dig's later taken cards, then its tail
 	tailSearchEnter                  // a search's later found cards, then its shuffle
+	tailDigEnterH                    // tailDigEnter with the entrants' enters checks held to the end
+	tailDigH                         // tailDig with the entrants' enters checks held to the end
 )
 
 // parkTail parks the tail kind when the resolution will suspend at the
@@ -69,6 +71,13 @@ func (s *State) unparkTail(k *prep) bool {
 			s.digRestAside(int(s.g.nlook))
 		}
 		s.finishDigTail(k)
+	case tailDigH:
+		s.digRestAside(int(s.g.nlook))
+		s.finishDigTail(k)
+		s.holdClose(k, holdRec{on: true, ts: s.g.retTS})
+	case tailDigEnterH:
+		s.res.ask = raNone
+		return s.finishDigAt(k, true, true)
 	case tailDigArrange:
 		s.res.ask, s.res.askP = raGenDigArrange, s.g.pickP
 		return true

@@ -10,6 +10,9 @@ import (
 // colour a gated land made shows in the pool: gorge's plan takes the land's first
 // ability, not the smallest colour vector of the pair.
 func TestGatedLandFirstAbilityLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Ripchain Razorkin", Count: 14}, {Name: "Thornspire Verge", Count: 16},
 		{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 5},

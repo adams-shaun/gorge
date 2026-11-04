@@ -1,0 +1,17 @@
+# the discard-or-pay ward pool: Titania, Rugged Rumbler (a hybrid spell whose
+# additional cost is a discard or {2}, and whose ward is a discard or {2}),
+# creatures to pay with, Crystal Grotto (whose {1},{T} any-colour filter can
+# be the only way to a {B} pip), and burn and bounce that target her from the
+# other side, for the oracle's constructed lockstep (dirac/oracle/titania_test.go)
+Titania, Rugged Rumbler
+Grizzly Bears
+Llanowar Elves
+Shock
+Lightning Bolt
+Unsummon
+Hill Giant
+Forest
+Swamp
+Mountain
+Island
+Crystal Grotto

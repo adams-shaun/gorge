@@ -62,6 +62,10 @@
       "tier": "bots",
       "status": "CORE"
     },
+    "bots/castprofile": {
+      "tier": "bots",
+      "status": "EXT"
+    },
     "bots/explain": {
       "tier": "bots",
       "status": "SUPP",
@@ -75,6 +79,11 @@
     "bots/gonet": {
       "tier": "bots",
       "status": "EXT"
+    },
+    "bots/hosttest": {
+      "tier": "bots",
+      "status": "TOOL",
+      "purpose": "Host-level gates of the policies cmd/gorged links on top of bots/all; tests only."
     },
     "bots/netsimd": {
       "tier": "bots",
@@ -108,7 +117,19 @@
       "status": "EXT",
       "purpose": "Opt-in common-sense guard decorator over engine target hints (default off)."
     },
+    "bots/sbbuiltin": {
+      "tier": "bots",
+      "status": "EXT"
+    },
+    "bots/sbsearch": {
+      "tier": "bots",
+      "status": "EXT"
+    },
     "bots/sbtactical": {
+      "tier": "bots",
+      "status": "EXT"
+    },
+    "bots/search": {
       "tier": "bots",
       "status": "EXT"
     },
@@ -129,6 +150,10 @@
       "status": "EXT"
     },
     "bots/spellbench/payexec": {
+      "tier": "bots",
+      "status": "EXT"
+    },
+    "bots/spellbench/sbsearch": {
       "tier": "bots",
       "status": "EXT"
     },

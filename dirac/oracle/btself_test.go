@@ -311,6 +311,9 @@ func kbtselfRun(t *testing.T, seeds uint64, report bool) (div, stalls int, st kb
 }
 
 func TestBtselfLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, st := kbtselfRun(t, 256, true)
 	t.Logf("256 games, btself %+v, %d divergences, %d stalls", st, div, stalls)
 	if div != 0 {

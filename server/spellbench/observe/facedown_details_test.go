@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package observe_test
 
 import (

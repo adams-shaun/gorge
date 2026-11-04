@@ -206,7 +206,7 @@ func (w *legalWalk) postWalkTail(out []decision.Option, walkHW int, tail optTail
 	// aftermath/harmonize/warp/escape, exile recasts) and both ability loops
 	// flow through -- rather than at each of the ~30 append sites, so the next
 	// cast source added to this walk is covered by construction. Playing a
-	// land, mana abilities, Station and Room unlock stay legal; the Suspend
+	// land, mana abilities, the face-up turn and Room unlock stay legal; the Suspend
 	// and Foretell offers ride the "cast" Kind but are special actions, not
 	// spell casts, so they stay too.
 	// CR 118.6: a no-mana-cost card is never cast by paying its mana cost

@@ -78,6 +78,14 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if k.gen.anyFinality && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.finalityEnter(k, sl, p) // trig_mayplaystatic.go: the FINALITY rider, beside the P1P1 one
 	}
+	if s.g.tokPT.on && s.objs[o].of&ofToken != 0 {
+		// TokenPower$/TokenToughness$: the token enters with that P/T, so its
+		// enters checks (a watcher's power limit) read it (act_tokenpt.go)
+		s.g.tokPT.on = false
+		if !DebugTokenXPTSkip {
+			s.applyOverridePT(k, sl, int(s.g.tokPT.idx), s.res.e.card, 0, s.g.tokPT.p, s.g.tokPT.t)
+		}
+	}
 	cid := s.cardAt(sl)
 	g := k.gen
 	if !g.has(cid, gfEnterRepl) && !s.statM.any() {
@@ -160,6 +168,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.g.replaced = saveRep
 	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
+	if shock {
+		s.shockEntryOrdered(sl)
+	}
 	switch ovr {
 	case entOvrTap:
 		if !shock {

@@ -172,7 +172,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if s.statM.any() || k.gen != nil {
 				kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 			}
-			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
+			if s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &kc, &av) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) {
 				d.add(MakeAction(AkCast, uint8(o), 0, 1))
 			}
 		}
@@ -703,6 +703,17 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			return false
 		}
 	}
+	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 {
+		// an exile / forage / return / blight part: the cast planner declines the
+		// shape, and the potential planner prices it only when the printed sources
+		// pay the mana (potentialPlayVerdictShared), with no prefix search for a
+		// granted source beside it (Abhorrent Oculus' exile)
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if tgtDepCost(a) {
@@ -760,7 +771,7 @@ func severalTargets(k *prep, c CardID) bool {
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
 		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
@@ -806,7 +817,7 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-1 >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, NoObj) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	if !s.pickCostPayable(k, p, &cd.AltAddCost, NoObj) {
@@ -817,6 +828,15 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
 	}
 	return av.affords(&t, pipMaskOf(&t), 0)
+}
+
+// inHandN is 1 when spell object o is itself in a hand (it cannot be discarded
+// to pay for its own cast), else 0: a card cast from exile leaves the hand whole.
+func (s *State) inHandN(o Obj) int {
+	if o != NoObj && s.objs[o].zone == kop.ZoneHand {
+		return 1
+	}
+	return 0
 }
 
 func (s *State) countSac(k *prep, p uint8, f kop.FilterID, src Slot) int {

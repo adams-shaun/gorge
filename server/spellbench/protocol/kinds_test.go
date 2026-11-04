@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package protocol_test
 
 import (

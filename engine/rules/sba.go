@@ -385,6 +385,14 @@ func (e *Engine) checkStateBased() {
 		if e.sweepDepartedPlayers(tried) {
 			changed = true
 		}
+		if e.G.AliveCount() == 1 && !e.G.Over && e.lastPlayerBelowZero() {
+			// CR 104.2a: the last player left wins at once, so the survivor's
+			// own loss, which only the departed player's permanents were
+			// preventing (a stolen Georgiou, Terran Emperor), is never reached
+			// by a further pass (CR 800.4a).
+			stable = true
+			break
+		}
 		if asked && len(b.dead) != 0 {
 			// The ask is outstanding: the next pass is the answer's, not this call's.
 			e.sbaUnquiet = true
@@ -408,6 +416,15 @@ func (e *Engine) checkStateBased() {
 	}
 	e.checkGameOver()
 	e.releasePendingDecisionOfDepartedPlayer()
+}
+
+// lastPlayerBelowZero reports whether the one player left has 0 or less life:
+// a loss only an effect of a departed player's permanents was preventing.
+func (e *Engine) lastPlayerBelowZero() bool {
+	for _, p := range e.G.AliveFrom(0) {
+		return e.G.Players[p].Life <= 0
+	}
+	return false
 }
 
 // unpairNoncreatures ends the Soulbond pairing of a permanent that has stopped

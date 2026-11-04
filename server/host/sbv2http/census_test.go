@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2http
 
 // TestSBV2NativeOnlyCensus ratchets the decisions the v2 wire cannot pose:

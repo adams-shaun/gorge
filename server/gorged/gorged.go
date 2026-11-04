@@ -456,7 +456,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 		c.nets[i].registerFlags(fs)
 	}
 	fs.BoolVar(&c.allowDecklistBots, "allow-decklist-bots", false, "let the server's own bot-only tables run a bot policy that reads every seat's real decklist; such a policy never seats against a human")
-	fs.StringVar(&c.pairedBot, "paired-bot", "", "let a human player ask a bot to evaluate the decision in front of them: "+pairedBotBuiltin+", or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty")
+	fs.StringVar(&c.pairedBot, "paired-bot", "", "let a human player ask a bot to evaluate the decision in front of them: "+pairedBotBuiltin+", or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty or off")
 	fs.IntVar(&c.pairedBotSims, "paired-bot-sims", 100, "with -paired-bot "+pairedBotBuiltin+": simulations per request")
 	fs.StringVar(&c.pairedBotDecks, "paired-bot-decks", "", "with -paired-bot "+pairedBotBuiltin+": directory of the decks the bot guesses an opponent's list from (default -decks)")
 	fs.IntVar(&c.pairedBotSearches, "paired-bot-searches", 2, "with -paired-bot: maximum paired-bot searches at once across the server; further requests wait (>= 1)")

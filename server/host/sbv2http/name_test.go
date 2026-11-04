@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2http
 
 // TestSBV2NameDecisionPastTheCap plays seed 2011 (tron's Pithing Needle asks

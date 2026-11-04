@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrewhttp
 
 // TestGoldenTranscript is the end-to-end golden:

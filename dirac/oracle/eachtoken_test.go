@@ -9,6 +9,9 @@ import (
 // "Each player creates a token" mints for both seats, seat 0 first whoever
 // controls the effect. Both decks hold the cards so both seats play them.
 func TestEachPlayerTokenLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	deck := []cardset.Entry{
 		{Name: "Party Dude", Count: 6}, {Name: "Edge Rover", Count: 6}, {Name: "Marching Duodrone", Count: 6},
 		{Name: "Grizzly Bears", Count: 4}, {Name: "Forest", Count: 18},

@@ -194,7 +194,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 			before := out
 			admittedAny := false
 			for k := sp.start; k < sp.end; k++ {
-				if ma := flat[k]; !admitted[k] && potentialRestrictionAdmits(e, p, id, ma, payment) &&
+				if ma := flat[k]; !admitted[k] && potentialRestrictionAdmits(e, p, id, ma, payment) && !potentialIdentityEmpty(e, p, ma) &&
 					(e.manaAbilityPayablePool(p, id, ma, &others) ||
 						payment != nil && e.potentialFeeSpareCovers(p, payment, id, ma, zone, spans, flat, &others)) {
 					admitted[k] = true
@@ -360,6 +360,14 @@ func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp sta
 // potentialRestrictionAdmits reports whether mana ability ma of source id
 // may count toward payment (potentialManaFor): always without a payment or
 // without a RestrictValid$, else when the restriction admits it.
+// potentialIdentityEmpty reports a "mana of any color in your commander's
+// color identity" ability whose payer has no such colour (no commander, or a
+// colourless one): it makes nothing (CR 903.4f), so no payment counts it, as
+// the activation itself adds none (effMana) and windowSourceYields skips it.
+func potentialIdentityEmpty(e *Engine, p state.PlayerID, ma *cards.SA) bool {
+	return pay.IsColourIdentityProduced(effects.ManaOf(ma).Produced) && len(pay.CommanderIdentityColours(asPayer(e), p)) == 0
+}
+
 func potentialRestrictionAdmits(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, payment *paymentDescriptor) bool {
 	if payment == nil {
 		return true

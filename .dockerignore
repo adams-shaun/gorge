@@ -1,0 +1,19 @@
+# Keep the build context small and keep the Forge corpus out of every image.
+.git
+.worktrees
+.cards
+.ds4
+.superpowers
+bin
+gorged-data
+feedback
+node_modules
+web/node_modules
+web/dist
+web/test-results
+web/playwright-report
+server/gorged/webdist/*
+!server/gorged/webdist/.keep
+deploy/docker/.env
+deploy/demo.env
+site

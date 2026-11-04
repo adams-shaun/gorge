@@ -1,18 +1,22 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import type { Advice, Decision, PairedBotStatus } from '../protocol';
   import { ApiError, fetchAdvice, fetchPairedBotStatus } from '../lib/api';
-  import { adviceRows, differedNote, expectedLine, loadPairedBotOn, loadShowRules, pairedRowLabel, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
+  import { botPick } from '../lib/botpick.svelte';
+  import { adviceRows, botPickOf, differedNote, expectedLine, loadMarkPick, loadPairedBotOn, loadShowRules, pairedRowLabel, pickTag, saveMarkPick, savePairedBotOn, saveShowRules, shownRows, winChance, type PlayerAnswer } from '../lib/pairedbot';
   import type { ExplainNote, ExplainSearch } from '../lib/review';
   import { signed, sourceBadge } from '../lib/review';
   import type { SeatCtx } from '../lib/seat';
 
   /**
-   * PairedBotPanel shows a seated player what a bot's search makes of the
-   * decision in front of them, and says so when they answer differently. The
-   * server computes it from what the seat can see; nothing here can answer the
-   * decision. It renders nothing on a server without the option, and asks only
-   * while the player's toggle is on.
+   * PairedBotPanel is the bot beside a seated player: while its switch is on
+   * it asks about each decision as it reaches the player, marks the bot's pick
+   * on the decision itself (through botPick), shows the search's candidates
+   * here, and says so when the player answers differently. The server computes
+   * it from what the seat can see; nothing here can answer the decision. It
+   * renders nothing on a server without the option. The switch starts on for a
+   * player alone with bots and off at a table with another human; the browser
+   * remembers the player's own answer for each.
    */
   let {
     table,
@@ -38,10 +42,17 @@
   const ROWS = 5;
   /** Searches kept for comparing an answer: the answer's acknowledgement can arrive after the next decision. */
   const KEPT = 4;
+  /** How long a search may run before the panel says the server may be busy: it runs a few at a time and queues the rest. */
+  const SLOW_MS = 6000;
 
   let status = $state<PairedBotStatus | null>(null);
-  let on = $state(loadPairedBotOn());
+  /** The player's flip of the switch on this page; null keeps the remembered or default setting. */
+  let flipped = $state<boolean | null>(null);
+  const shared = $derived(status?.shared === true);
+  const on = $derived(status?.offered === true && (flipped ?? loadPairedBotOn(shared)));
   let showRules = $state(loadShowRules());
+  let markPick = $state(loadMarkPick());
+  let slow = $state(false);
   let advice = $state<Advice | null>(null);
   /** Why the last request brought no advice: the game went ahead of it, or anything else, whose words are not a player's. */
   let missed = $state<'stale' | 'failed' | null>(null);
@@ -72,9 +83,11 @@
     void attempt;
     advice = null;
     missed = null;
-    if (!on || !status?.offered || s === null) return;
+    slow = false;
+    if (!on || s === null) return;
     const asked = untrack(() => decision);
     const hangup = new AbortController();
+    const patience = setTimeout(() => (slow = true), SETTLE_MS + SLOW_MS);
     const timer = setTimeout(() => {
       fetchAdvice(table, match, s, ctx, hangup.signal)
         .then((a) => {
@@ -91,6 +104,7 @@
     }, SETTLE_MS);
     return () => {
       clearTimeout(timer);
+      clearTimeout(patience);
       hangup.abort();
     };
   });
@@ -109,8 +123,13 @@
   });
 
   function toggle() {
-    on = !on;
-    savePairedBotOn(on);
+    flipped = !on;
+    savePairedBotOn(flipped, shared);
+  }
+
+  function toggleMark() {
+    markPick = !markPick;
+    saveMarkPick(markPick);
   }
 
   function toggleRules() {
@@ -127,6 +146,14 @@
   const expected = $derived(note?.search ? expectedLine(note.search) : null);
   const overruled = $derived(rows.some((r) => r.rules && !r.recommended) && rows.some((r) => r.recommended));
   const standing = $derived(note?.search ? winChance({ visits: note.search.sims ?? 0, q: note.search.root_value }) : null);
+  const marked = $derived(on && markPick && shown !== null && decision !== null ? botPickOf(decision, shown) : null);
+
+  // The decision's own controls read the pick from here; only advice for the
+  // decision on screen is ever in it.
+  $effect(() => {
+    botPick.set(marked);
+  });
+  onDestroy(() => botPick.set(null));
 </script>
 
 {#if status?.offered || status?.reason}
@@ -134,7 +161,7 @@
     <header>
       <h3>Paired bot</h3>
       {#if status.offered}
-        <button type="button" class="switch" role="switch" aria-checked={on} onclick={toggle}>{on ? 'On' : 'Off'}</button>
+        <button type="button" class="switch" role="switch" aria-checked={on} aria-label="Play with a bot beside you" title="Play with a bot beside you" onclick={toggle}>{on ? 'On' : 'Off'}</button>
       {/if}
     </header>
     {#if !status.offered}
@@ -144,7 +171,7 @@
         <p class="shared">Any player at this table may be asking a paired bot.</p>
       {/if}
       {#if !on}
-        <p class="quiet">Turn it on to see gorge's search look ahead on each of your decisions.</p>
+        <p class="quiet">Play with a bot beside you: turn it on, and as each decision reaches you, gorge's search looks ahead and marks the play it would make.</p>
       {:else}
         {#if seq === null}
           <p class="quiet">Nothing to weigh until your next decision.</p>
@@ -152,7 +179,7 @@
           <p class="refused">{missed === 'stale' ? 'This advice is out of date.' : 'The bot did not answer.'}</p>
           <button type="button" class="again" onclick={() => attempt++}>Ask again</button>
         {:else if !shown}
-          <p class="quiet" role="status">Search is looking ahead…</p>
+          <p class="quiet" role="status" data-paired-slow={slow || undefined}>{slow ? 'Still looking ahead. The server runs a few searches at a time, so advice can take longer when it is busy. Play on whenever you like.' : 'Search is looking ahead…'}</p>
         {:else if shown.state !== 'ready'}
           <p class="refused">{shown.reason}</p>
         {:else if note && decision}
@@ -193,9 +220,11 @@
           {#if note.net}<p class="quiet">Net value {signed(note.net.value)}</p>{/if}
           {#if shown.reason}<p class="quiet">{shown.reason}</p>{/if}
         {/if}
+        {#if marked}<p class="quiet fine" data-paired-marked>Look for <span class="pickmark">{pickTag(marked)}</span> on your decision.</p>{/if}
         {#if differed}<p class="differed" data-paired-differed>{differed}</p>{/if}
         <p class="quiet fine">Advice only, from what you can see. It guesses your opponent's cards from a set of decks, and you still answer.</p>
-        <label class="quiet fine setting"><input type="checkbox" checked={showRules} onchange={toggleRules} /> Mark what the bot's rules would do</label>
+        <label class="quiet fine setting"><input type="checkbox" checked={markPick} onchange={toggleMark} data-paired-mark-setting /> Mark the bot's pick on your decision</label>
+        <label class="quiet fine setting"><input type="checkbox" checked={showRules} onchange={toggleRules} data-paired-rules-setting /> Mark what the bot's rules would do</label>
       {/if}
     {/if}
   </section>
@@ -265,4 +294,5 @@
   .expected li { margin: 1px 0; overflow-wrap: anywhere; }
   .expected .who { color: var(--ink); }
   .pick b { font-weight: 600; color: var(--ink); }
+  .pickmark { color: var(--gilt); white-space: nowrap; }
 </style>

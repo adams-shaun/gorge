@@ -47,6 +47,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 func (s *State) resolveTop(k *prep) {
 	e := s.stack[s.sp-1]
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
@@ -200,7 +201,7 @@ func (s *State) resolveTop(k *prep) {
 		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && a.Trig.Flags&kop.TfOptional == 0 {
 			s.countRL(&e) // a mandatory limited line counts as it resolves (act_support.go)
 		}
-		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(&e)) {
+		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(k, &e)) {
 			s.res.ask = raOptional
 			s.res.askP = e.ctrl
 			s.ctl = ctlResolve
@@ -286,6 +287,10 @@ func (s *State) resolveWard(k *prep) {
 	}
 	if e.trigAmt&wardPowBit != 0 {
 		s.resolveWardPower(k) // kw_wardcost.go
+		return
+	}
+	if e.trigAmt&wardAltBits == wardAltBits {
+		s.resolveWardAlt(k) // kw_wardcost.go
 		return
 	}
 	if e.trigAmt&wardEvBit != 0 {
@@ -488,6 +493,9 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	}
 	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 		return NoSlot
+	}
+	if r == kop.RefTriggerObj && s.res.trigGone {
+		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
 	return ob.slot
 }

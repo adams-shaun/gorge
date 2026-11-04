@@ -11,26 +11,26 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 23 | 1 | 8 | 14 |
 | BLB | 278 | 256 | 3 | 33 | 220 |
 | DFT | 276 | 246 | 0 | 22 | 224 |
-| DSK | 276 | 233 | 5 | 40 | 188 |
+| DSK | 276 | 233 | 4 | 41 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
-| EOE | 266 | 236 | 0 | 118 | 118 |
+| EOE | 266 | 236 | 0 | 115 | 121 |
 | FDN | 517 | 506 | 1 | 12 | 493 |
-| FIN | 312 | 266 | 3 | 18 | 245 |
+| FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 250 | 2 | 20 | 228 |
 | MKM | 279 | 227 | 3 | 38 | 186 |
-| MSH | 276 | 224 | 5 | 12 | 207 |
-| OTJ | 276 | 239 | 4 | 23 | 212 |
+| MSH | 276 | 225 | 4 | 14 | 207 |
+| OTJ | 276 | 239 | 2 | 25 | 212 |
 | SOS | 270 | 247 | 4 | 22 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 268 | 1 | 105 | 162 |
-| TRK | 311 | 249 | 0 | 161 | 88 |
+| TRC | 337 | 268 | 1 | 6 | 261 |
+| TRK | 311 | 254 | 0 | 1 | 253 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21234 | 65 | 17002 | 4167 |
+| ALL | 34442 | 21240 | 60 | 16749 | 4431 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -62,22 +62,22 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-tdm | 43 |
 | std-tla | 42 |
 | std-tmt | 295 |
-| std-trc | 340 |
-| std-trk | 111 |
+| std-trc | 1500 |
+| std-trk | 1500 |
 | std-woe | 146 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
 
 ## Refused by name
 
-65 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+60 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
 | options | 16 |
 | projection | 1 |
-| projection-Cards.Chars.Colors | 2 |
+| projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Chars.Keywords | 1 |
 | projection-Cards.Counters | 1 |
 | projection-Cards.Damage | 1 |
@@ -85,12 +85,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Pos | 4 |
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 2 |
-| projection-Life | 2 |
+| projection-Life | 1 |
 | projection-NInst | 1 |
-| projection-NStack | 7 |
+| projection-NStack | 5 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |
-| projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
 | unmodelled-copycast | 2 |

@@ -360,6 +360,9 @@ func TestFacedownpredLockstep(t *testing.T) {
 // diverge. A green mutation means the lockstep never reaches a decision the
 // word shapes.
 func TestFacedownpredMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, _ := runFacedownpred(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation answered face up in %d games with no divergence", games)

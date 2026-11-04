@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // Named-option choose asks route to the v2

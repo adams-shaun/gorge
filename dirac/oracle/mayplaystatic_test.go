@@ -130,6 +130,9 @@ func mayPlaySeeds(t *testing.T, reg *cards.Registry, set cardset.Set, tbl *dirac
 }
 
 func TestMayplaystaticLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	dirac.MayPlayStats.StaticResolved.Store(0)
 	dirac.MayPlayStats.FinalityEnter.Store(0)
 	dirac.MayPlayStats.OrdinaryCasts.Store(0)

@@ -349,6 +349,9 @@ func TestValueHeadsTrackedObjectLockstep(t *testing.T) {
 // the exiled-with mana-value sum, the trigger-cost sacrifice accumulator and
 // the attacker's live counter read): the games must diverge.
 func TestValueHeadsTrackedObjectMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, st := runCounttracked(t, 64, true)
 	if divs == 0 {
 		t.Fatalf("mutation zeroed the new heads in %d games with no divergence", games)

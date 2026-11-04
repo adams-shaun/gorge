@@ -35,14 +35,13 @@ func (s *State) copyAbOK(k *prep, t *kop.TargetSpec, p uint8, i int) bool {
 
 // abSrcTypes is the card types of ability entry e's source as gorge reads
 // them: the permanent's current types while it is on the battlefield, else its
-// card's printed types (a token that has left has none).
+// card's printed types, a token's included: a Clue sacrificed to pay for its
+// ability was an artifact when it left, and the ability on the stack is still
+// from an artifact source (CR 113.7a).
 func (s *State) abSrcTypes(k *prep, e *stackEntry) kop.TypeMask {
 	ob := &s.objs[e.obj]
 	if ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
 		return s.typesAt(k, ob.slot)
-	}
-	if ob.of&ofToken != 0 {
-		return 0
 	}
 	return k.cards[e.card].types
 }

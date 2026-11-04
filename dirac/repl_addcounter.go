@@ -17,7 +17,9 @@ var DebugReplShapes3Flip bool
 func (s *State) ctrKindMatch(a *kop.Ability, kind int, ctrl uint8) bool {
 	c := a.Repl.C
 	if c >= 0 {
-		return int(c) == kind
+		// a doubler of one kind with Repl.A 1 is the putter's own (ValidSource$
+		// You, Lt. Cmdr. Geordi La Forge); AddCountersOn keeps its amount in Repl.A
+		return int(c) == kind && (a.Repl.Kind != kop.ReplDoubleCountersOn || a.Repl.A == 0 || s.counterAdder() == ctrl)
 	}
 	return s.ctrWild(c, ctrl)
 }
@@ -36,7 +38,7 @@ func (s *State) ctrWild(c int16, ctrl uint8) bool {
 // putter-gated one needs the counter adder published at every site
 // (replCountersBy tests rbDblCtrYou).
 func ctrWildBits(a *kop.Ability) uint32 {
-	if a.Repl.C == kop.ReplCtrAnyYou {
+	if a.Repl.C == kop.ReplCtrAnyYou || a.Repl.Kind == kop.ReplDoubleCountersOn && a.Repl.A != 0 {
 		return rbDblCtrYou
 	}
 	return 0

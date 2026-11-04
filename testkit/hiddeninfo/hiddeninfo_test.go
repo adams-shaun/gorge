@@ -1,6 +1,8 @@
 package hiddeninfo
 
 import (
+	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
@@ -29,9 +31,35 @@ func TestNoSeatReadsAHiddenName(t *testing.T) {
 	for _, other := range []string{"death-n-taxes", "cavalry-charge", "mono-red-goblins", "uw-control", "dimir-tempo"} {
 		pairs = append(pairs, [2]string{"deadly-disguise", other})
 	}
-	var decisions, faceDown, monarch, looks int
+	// The pairs play in hiddenChunks parallel ranges; each game keeps its seed, the
+	// index of its pair, and the totals are checked once every range is done.
+	var decisions, faceDown, monarch, looks atomic.Int64
+	t.Run("games", func(t *testing.T) {
+		for c := 0; c < hiddenChunks; c++ {
+			lo, hi := c*len(pairs)/hiddenChunks, (c+1)*len(pairs)/hiddenChunks
+			t.Run(fmt.Sprintf("pairs%d-%d", lo, hi), func(t *testing.T) {
+				t.Parallel()
+				d, f, m, l := playHiddenPairs(t, reg, pairs, lo, hi)
+				decisions.Add(int64(d))
+				faceDown.Add(int64(f))
+				monarch.Add(int64(m))
+				looks.Add(int64(l))
+			})
+		}
+	})
+	t.Logf("%d games, %d decisions: %d with a face-down card, %d monarch draws, %d looks", len(pairs), decisions.Load(), faceDown.Load(), monarch.Load(), looks.Load())
+	if faceDown.Load() == 0 || monarch.Load() == 0 || looks.Load() == 0 {
+		t.Errorf("the games stopped reaching what this test is for: %d with a face-down card, %d monarch draws, %d looks", faceDown.Load(), monarch.Load(), looks.Load())
+	}
+}
+
+// hiddenChunks is how many pair ranges TestNoSeatReadsAHiddenName plays side by side.
+const hiddenChunks = 4
+
+func playHiddenPairs(t *testing.T, reg *cards.Registry, pairs [][2]string, lo, hi int) (decisions, faceDown, monarch, looks int) {
 	var leaks []Leak
-	for i, p := range pairs {
+	for i := lo; i < hi; i++ {
+		p := pairs[i]
 		cfg := rules.Config{Seed: uint64(i + 1), Names: []string{p[0], p[1]},
 			Decks:  [][]*cards.Card{testutil.RepoDeck(t, reg, p[0]), testutil.RepoDeck(t, reg, p[1])},
 			Tokens: reg.Tokens, NameUniverse: reg.Universe(), Mulligans: 1}
@@ -82,8 +110,5 @@ func TestNoSeatReadsAHiddenName(t *testing.T) {
 		}
 		leaks = leaks[:0]
 	}
-	t.Logf("%d games, %d decisions: %d with a face-down card, %d monarch draws, %d looks", len(pairs), decisions, faceDown, monarch, looks)
-	if faceDown == 0 || monarch == 0 || looks == 0 {
-		t.Errorf("the games stopped reaching what this test is for: %d with a face-down card, %d monarch draws, %d looks", faceDown, monarch, looks)
-	}
+	return
 }

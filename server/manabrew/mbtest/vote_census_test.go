@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package mbtest
 
 // A live vote card played through TranslatingSeat with the

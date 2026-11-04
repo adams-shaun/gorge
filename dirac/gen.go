@@ -324,6 +324,16 @@ type genPrep struct {
 	// spells, Secluded Courtyard's creature spells of the chosen type, a
 	// Standard table's three restricted lands)
 	restrF [restrKinds]kop.FilterID
+	// restrV: restrF's activated-half variants (restrVarOf), and restrVar the
+	// distinct activated halves of the table's restricted abilities: two
+	// sources of one spell half with different activated halves are two
+	// restrictions (Castle Doom's bare artifact-spell mana against Guidelight
+	// Optimizer's, which also activates abilities)
+	restrV   [restrKinds]uint8
+	restrVar [restrVars]struct {
+		ab kop.FilterID
+		ns bool
+	}
 	// anyR: card i's restricted any-colour tap mana ability (Secluded
 	// Courtyard's "{T}: Add one mana of any color. Spend this mana only to
 	// cast a creature spell of the chosen type ..."), -1 none: a census
@@ -810,7 +820,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.exileAnyC[i], g.anyExileAny = true, true
 					}
 				case kop.ReplDoubleCountersOn:
-					g.replBits[i] |= rbDblCtrOn
+					g.replBits[i] |= rbDblCtrOn | ctrWildBits(a)
 					pc.hasStat = true
 				case kop.ReplAddCountersOn:
 					g.replBits[i] |= rbPlusCtrOn | ctrWildBits(a)
@@ -942,7 +952,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyEachCol, g.anyWindowGap = true, true
 				}
 				if a.ManaRestrict != 0 {
-					g.addRestrF(a.ManaRestrict)
+					g.regRestrVar(a)
+					g.addRestrFV(a.ManaRestrict, g.restrVarOf(a))
 				}
 				if firstMana && a.AFlags&kop.AfLatent == 0 {
 					firstMana = false
@@ -1269,13 +1280,14 @@ type fxRec struct {
 }
 
 const (
-	fxOverride uint8 = iota // a Table.Overrides record (applyOverride)
-	fxLoseAll               // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
-	fxKwGrant               // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
-	fxCopyExc               // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
-	fxControl               // a layer-2 control record (CR 613.1b; static_control.go)
-	fxCopyEOT               // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
-	fxCopyPerm              // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxOverride  uint8 = iota // a Table.Overrides record (applyOverride)
+	fxLoseAll                // OpLoseAbilities' one-shot "loses all abilities" (layer 6)
+	fxKwGrant                // a promoted until-end-of-turn keyword grant's timestamp (static_layer6.go kwGrantFx)
+	fxCopyExc                // a copy's exception override (layer 1, CR 707.9b; copy_exceptions.go)
+	fxControl                // a layer-2 control record (CR 613.1b; static_control.go)
+	fxCopyEOT                // a permanent holding until-end-of-turn copies, settled at cleanup (copy_clone.go)
+	fxCopyPerm               // a permanent's newest permanent copy marker: r.p the source object, r.idx the exception override (copy_clone.go)
+	fxOnceStash              // the permanent's printed abilities were activated once-only before a copy layer began, which the layer's end returns (copy_clone.go onceBasisBegin)
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
@@ -1565,6 +1577,13 @@ type genState struct {
 		tap  bool
 		ctrl bool
 	} // counters/tapped for the next enter (OpReturnEx)
+	// tokPT: the P/T set the token entering next takes with its entry
+	// (act_tokenpt.go): on, the override index, the evaluated P/T
+	tokPT struct {
+		on   bool
+		idx  uint16
+		p, t int16
+	}
 	lookSel uint32  // picked looked-at cards (bit per index; 32 bits hold look's 24; fills the pad before ro)
 	ro      replOrd // a combat damage pass paused on gorge's replacement-order ask: the header (repl_gen.go); the body is scr's armCombat
 	// scr: the mutually exclusive decision scratch, one region read through
@@ -1637,6 +1656,9 @@ func wardAmt(c *kop.CardDef) int16 {
 	}
 	if c.WardDiscard != 0 {
 		return wardDiscBit | int16(c.WardDiscard) // kw_wardcost.go
+	}
+	if c.WardDiscOrN != 0 {
+		return wardAltBits | int16(c.WardDiscOrN) // kw_wardcost.go
 	}
 	if c.WardEvidence != 0 {
 		return wardEvBit | int16(c.WardEvidence) // kw_wardcost.go

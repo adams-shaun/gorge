@@ -201,6 +201,9 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 	if subGrantStatic(a) {
 		return true
 	}
+	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.OutlivesLoss {
+		return true
+	}
 	if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 {
 		return ovrKeptOnLoss(&t.Overrides[a.Static.Override-1])
 	}
@@ -292,7 +295,10 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 	} else {
 		c.types = k.cards[cid].types
 	}
-	if !fd && k.gen.cpxTy && s.fxM.has(sl) {
+	// a token copy of a face-down permanent copies the face-down values, and
+	// its exceptions still apply over them (CR 707.2, 707.9b)
+	exc := !fd || s.blankCopy(sl)
+	if exc && k.gen.cpxTy && s.fxM.has(sl) {
 		c.types |= s.copyExcTypes(k, sl) // layer 1: a copy's added types
 		if k.gen.cpxNoLeg && s.copyExcNoLegendary(k, sl) {
 			c.types &^= kop.TLegendary // NonLegendary$ (copy_nonlegendary.go)
@@ -308,7 +314,7 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 	if s.fxM.has(sl) && k.gen.cpxSub {
 		c.subs = c.subs.Or(s.copyExcSubs(k, sl)) // layer 1: a copy's added subtype
 	}
-	if !fd && s.fxM.has(sl) && k.gen.cpxCol {
+	if exc && s.fxM.has(sl) && k.gen.cpxCol {
 		c.cols = s.copyExcCol(k, sl, c.cols) // layer 1: a copy's colour exceptions
 	}
 	// layer 4: the changeling CDA first (CR 613.3), then the effects in

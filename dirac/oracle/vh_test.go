@@ -53,6 +53,9 @@ var kvhHitMin = map[int]int{
 // TestValueHeadLockstep sets dirac.DebugValueHeadHits (a package global), so it does not
 // run in parallel.
 func TestValueHeadLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {

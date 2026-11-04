@@ -1,3 +1,5 @@
+//go:build manabrew
+
 package manabrewhttp
 
 // The HTTP leg of bot parity: the ManaBrew wire is a lossless transport for a real bot

@@ -43,6 +43,9 @@ var sharedBugsDecks = []struct {
 
 // TestSharedBugsLockstep plays the boards against gorge on both surfaces.
 func TestSharedBugsLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, _ := kopusSetup(t)
 	set, err := cardset.RawByName("sharedbugs")
 	if err != nil {
@@ -95,6 +98,9 @@ func TestSharedBugsLockstep(t *testing.T) {
 // TestPanharmonicBlockLines: gorge doubles a block line like any other trigger, and
 // so does the kernel's echo (CR 603.2d). The boards must reach the echo.
 func TestPanharmonicBlockLines(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, _ := kopusSetup(t)
 	set, err := cardset.RawByName("sharedbugs")
 	if err != nil {

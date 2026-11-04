@@ -31,6 +31,9 @@ func mutateProjection(edit func(*Projection)) func(Side) Side {
 // The kernel's stack entries carry the same modes and X as gorge's, and a
 // kernel that recorded either wrongly would be caught.
 func TestStackProjComparesModesAndX(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	const seeds = 64
 	for _, c := range []struct {
 		name, set string
@@ -65,6 +68,9 @@ func TestStackProjComparesModesAndX(t *testing.T) {
 // Both sides agree on each owner's exile order, and a kernel with two exiled
 // cards in the wrong order would be caught.
 func TestProjectionComparesExileOrder(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	const seeds = 64
 	lockstepRun(t, "exilefd", kefdDecks, seeds, true, nil)
 	edit := mutateProjection(func(p *Projection) {
@@ -89,6 +95,9 @@ func TestProjectionComparesExileOrder(t *testing.T) {
 // Every choose kind either side poses is in chooseKinds: a kind outside it
 // shares the one choose:other code, which kfuzz -absolute fails as unknown.
 func TestChoosesHaveNoOther(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	files, err := filepath.Glob("*.go")
 	if err != nil {
 		t.Fatal(err)

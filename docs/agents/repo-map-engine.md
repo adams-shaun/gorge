@@ -49,12 +49,13 @@ The layering design for `engine/rules` is
 | `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots are linked through `server/gorged.RegisterNetBot`, which gives each its `-<policy>-net` and related flags. |
 | `bots/sanity` | Opt-in common-sense guard decorator over engine target hints (default off). |
 | `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are adapters of the hosted-bot-packages design) over the inference runtime below. |
+| `bots/search`, `bots/sbsearch`, `bots/sbbuiltin`, `bots/castprofile` | The experimental hosted policies `cmd/gorged` links on top of `bots/all`: the search teacher, sb-search-lite-atk, the three SpellBench builtins and cast-profile. Kept out of `bots/all` so `server/host`'s registry-wide gates stay the built-in set's size; `bots/hosttest` gates them through the real host. |
 | `bots/azmcts` | AlphaZero-style PUCT search ([`docs/design/2026-09-27-alphazero-mcts-design.md`](../design/2026-09-27-alphazero-mcts-design.md)). |
 | `bots/gonet` (+`gonettest`) | The `.dzgw` network forward pass the az bots evaluate. |
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |
 | `bots/searchprobe` | Hidden-information world sampler (`Collector`, `Sample`, `Redealer`, known-card tracking). |
 | `bots/searchseat` | The PIMC search decision function (`Choose`) shared by the teacher corpus generator and `SearchBot`. |
-| `bots/spellbench` (+`builtins`, `payexec`) | The SpellBench benchmark deck catalogs (generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, and the payment-plan lowering. |
+| `bots/spellbench` (+`builtins`, `payexec`, `sbsearch`) | The SpellBench benchmark deck catalogs (generator `bots/spellbench/fdn-catalog.py`), the builtin and tactical policies, the payment-plan lowering, and sb-search, the determinized search over sb-tactical. |
 | `bots/traceboard` | The redacted, map-free decision-trace board schema (written by bench tools' decision traces). |
 
 ## `server/`

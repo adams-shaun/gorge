@@ -32,7 +32,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 103.8b | n/a | - | - | no 2HG |
 | 103.8c | follows | `engine/rules/turn.go#skipFirstDrawStep` | `TestCR800StartingPlayerDrawsInMultiplayer` | - |
 | 104.1 | follows | `engine/rules/sba.go#Engine.checkGameOver` | - | - |
-| 104.2-104.2a | follows | `engine/rules/sba.go#Engine.checkGameOver` `engine/rules/sba.go#Engine.gameEndsNow` | `TestCR104_2aLastPlayerWinsDespiteCantWin` `TestHeraldOfEternalDawnDoesNotPreventConcede` | - |
+| 104.2-104.2a | follows | `engine/rules/sba.go#Engine.checkGameOver` `engine/rules/sba.go#Engine.gameEndsNow` | `TestCR104_2aLastPlayerWinsDespiteCantWin` `TestHeraldOfEternalDawnDoesNotPreventConcede` | a survivor at 0 life whose only protection left with the departed player's card wins at once, not by a further pass (`last_player_wins_before_cant_lose_source_departs` in the dirac lockstep repros) |
 | 104.2b | follows | `engine/rules/cantlose.go#Engine.playerWins` | `TestHeraldOfEternalDawnPreventsOpponentWin` | - |
 | 104.2c-104.2d | n/a | - | - | teams/Emperor absent |
 | 104.3-104.3a | partial | `engine/rules/legal_priority.go#Engine.handlePriority` | `TestConcedeAtPriorityEndsTheGameForTheOtherSeat` `TestConcedeIsNotOfferedOnANonPriorityDecision` | gorge: concede only at priority |

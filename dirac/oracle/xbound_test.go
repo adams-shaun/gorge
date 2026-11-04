@@ -10,6 +10,9 @@ import (
 // offered while some object fits the rest of the target's description (CR 601.2c,
 // 602.2b), and an announced X that leaves no target reverses it (CR 733.1).
 func TestXBoundTargetOffer(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	summoner := []cardset.Entry{
 		{Name: "Rydia, Summoner of Mist", Count: 12}, {Name: "Summon: Titan", Count: 10},
 		{Name: "Mountain", Count: 9}, {Name: "Forest", Count: 9},
@@ -26,6 +29,9 @@ func TestXBoundTargetOffer(t *testing.T) {
 // a target only an X out of reach could name withholds the offer: lands kept short
 // against a Saga in the graveyard and against a dear permanent to bounce.
 func TestXBoundOfferNeedsPayableX(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	summoner := []cardset.Entry{
 		{Name: "Rydia, Summoner of Mist", Count: 14}, {Name: "Summon: Titan", Count: 14},
 		{Name: "Mountain", Count: 6}, {Name: "Forest", Count: 6},
@@ -40,6 +46,9 @@ func TestXBoundOfferNeedsPayableX(t *testing.T) {
 // An offer reads a target's bound for whoever would cast it: Squirming Emergence
 // counts the permanent cards in its caster's graveyard, not the first player's.
 func TestOfferReadsItsCaster(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	descent := []cardset.Entry{
 		{Name: "Squirming Emergence", Count: 12}, {Name: "Hill Giant", Count: 8},
 		{Name: "Swamp", Count: 10}, {Name: "Forest", Count: 10},

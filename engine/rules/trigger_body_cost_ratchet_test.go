@@ -735,7 +735,7 @@ sutina_speaker_of_the_tajuru.txt|T|TrigImmediateTrig|Return<1/Land>|decline-only
 swarm_culler.txt|T|TrigDraw|Sac<1/Creature.Other;Artifact.Other/another creature or artifact>|window-settled
 sygg_wanderwine_wisdom_sygg_wanderbrine_shield.txt|T|TrigTransform|U|window-settled
 sylvan_library.txt|T|TrigDraw|Draw<2/You>|window-settled
-sylvia_tilly_joy_of_discovery.txt|T|TrigImmediateTrig|1 ExileFromGrave<1/card>|window-settled
+sylvia_tilly_joy_of_discovery.txt|T|TrigImmediateTrig|1 ExileFromGrave<1/Card>|window-settled
 symmetry_matrix.txt|T|TrigDraw|1|window-settled
 t45_power_armor.txt|T|TrigUntap|PayEnergy<1>|window-settled
 tablet_of_epityr.txt|T|TrigGainLife|1|window-settled

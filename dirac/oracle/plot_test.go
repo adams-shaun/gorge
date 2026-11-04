@@ -353,6 +353,9 @@ func plotSetup(t *testing.T) (*cards.Registry, cardset.Set, [][2][]*cards.Card, 
 }
 
 func TestPlotLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	reg, set, decks, tbls := plotSetup(t)
 	var p plotTally
 	p.plotTurn = map[state.ObjID]int32{}

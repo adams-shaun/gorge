@@ -41,6 +41,18 @@
   --gg-sed: #c3cbc5;
   --gg-stack: var(--gg-verdigris);
   --gg-mana: var(--gg-slate);
+  /* Meaning, not decoration: what a bar segment, a dot or a badge says.
+   * Each text or mark colour holds 4.5:1 (text) or 3:1 (mark) on shale. */
+  --gg-bed: #2b3d47;            /* a stratum line under a destination */
+  --gg-core: #e4e8e3;           /* the panel a diagram sits on */
+  --gg-ok: var(--gg-verdigris); /* supported, full */
+  --gg-unv: #8a6516;            /* unverified: ochre deep enough to read */
+  --gg-ref: var(--gg-oxide);    /* refused */
+  --gg-track: #d5dbd5;          /* the rest of a bar */
+  --gg-ring: #6e7c80;           /* none */
+  --gg-fair-fg: #185a54;
+  --gg-seer-fg: #7a5712;
+  --gg-hatch: rgba(238, 240, 236, 0.32);
 }
 
 /* ---------- palette, dark ---------- */
@@ -65,6 +77,16 @@
   --gg-sed: #33434b;
   --gg-stack: var(--gg-verdigris-lit);
   --gg-mana: #7f9fc2;
+  --gg-bed: #a9b6b4;
+  --gg-core: #1d2a31;
+  --gg-ok: var(--gg-verdigris-lit);
+  --gg-unv: #d9ae52;
+  --gg-ref: #e0826c;
+  --gg-track: #26353d;
+  --gg-ring: #7f8f90;
+  --gg-fair-fg: var(--gg-verdigris-lit);
+  --gg-seer-fg: #e3bd68;
+  --gg-hatch: rgba(22, 32, 38, 0.32);
 }
 
 /* The diagrams draw their accent from --md-primary-fg-color, which is now
@@ -147,7 +169,6 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-  font-variant-numeric: tabular-nums;
   background: transparent;
 }
 .md-typeset table:not([class]) th {
@@ -183,26 +204,64 @@
   border-radius: 4px;
 }
 
-/* ---------- grid cards: flat, hairline, no shadow lift ---------- */
+/* ---------- grid cards: bedding planes ----------
+ * A destination is an open column under a stratum line, not a boxed card:
+ * the 2px rule is the layer boundary, and it takes the accent when the
+ * reader points at or focuses the column. */
+.md-typeset .grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 1.6rem 1.4rem;
+  margin: 2rem 0 1rem;
+}
 .md-typeset .grid.cards > ul > li,
 .md-typeset .grid > .card {
-  border: 1px solid var(--gg-rule);
-  border-radius: 6px;
+  border: 0;
+  border-top: 2px solid var(--gg-bed);
+  border-radius: 0;
   box-shadow: none;
   background: transparent;
+  padding: 0.75rem 0.1rem 0;
   transition: border-color 120ms ease;
 }
 .md-typeset .grid.cards > ul > li:hover,
-.md-typeset .grid > .card:hover {
+.md-typeset .grid.cards > ul > li:focus-within,
+.md-typeset .grid > .card:hover,
+.md-typeset .grid > .card:focus-within {
   border-color: var(--md-accent-fg-color);
   box-shadow: none;
 }
 .md-typeset .grid.cards > ul > li > hr {
   display: none;
 }
+.md-typeset .grid.cards > ul > li > p {
+  margin: 0;
+}
 .md-typeset .grid.cards > ul > li > p:first-child {
-  font-size: 1.05em;
-  margin-bottom: 0.3em;
+  font-size: 1.02em;
+  line-height: 1.35;
+  margin-bottom: 0.35em;
+}
+.md-typeset .grid.cards > ul > li > p:first-child strong { font-weight: 750; }
+.md-typeset .grid.cards > ul > li > p:not(:first-child) {
+  color: var(--md-default-fg-color--light);
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+.md-typeset .grid.cards > ul > li > p + p { margin-top: 0.35em; }
+.md-typeset .grid.cards small { color: var(--md-default-fg-color--light); }
+/* The card's icon names its area; it sits in the accent, aligned to the
+ * title's cap height. */
+.md-typeset .grid.cards > ul > li > p:first-child .twemoji {
+  color: var(--md-accent-fg-color);
+  margin-right: 0.25em;
+}
+/* A title link reads as a heading until pointed at. */
+.md-typeset .grid.cards > ul > li > p:first-child a {
+  color: var(--md-default-fg-color);
+}
+.md-typeset .grid.cards > ul > li > p:first-child a:hover,
+.md-typeset .grid.cards > ul > li > p:first-child a:focus-visible {
+  color: var(--md-accent-fg-color);
 }
 
 /* ---------- the strata (home hero) ---------- */
@@ -406,3 +465,298 @@
   .md-typeset .gg-panel figure { position: static; max-width: 20rem; }
 }
 .gg-tr-bg { fill: var(--md-code-bg-color); }
+
+/* ======================================================================
+ * Components for the area pages. The palette's earth tones encode meaning
+ * here exactly as they do in the strata: verdigris holds, ochre is not yet
+ * shown, oxide is refused. Shape carries the same meaning for readers who
+ * cannot tell the hues apart (hatching, half-filled dots, text badges).
+ * ====================================================================== */
+
+/* ---------- area landing ----------
+ * The page title, one lede, one figure, a row of destinations. The title
+ * takes the hero's weight and tracking at a smaller scale; it may sit
+ * inside the area or just before it. */
+.md-typeset .gg-area h1,
+.md-typeset h1:has(+ .gg-area) {
+  font-size: clamp(2.3rem, 5.5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin: 0.2rem 0 0.45em;
+}
+.md-typeset .gg-area > .gg-lede,
+.md-typeset .gg-area > p.gg-lede {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  max-width: 38rem;
+  color: var(--md-default-fg-color--light);
+  margin: 0 0 1.8rem;
+}
+.md-typeset .gg-area > .gg-lede code { font-size: 0.82em; }
+/* An area page has no section breaks of its own. */
+.md-typeset .gg-area h2 { border-top: 0; padding-top: 0; margin-top: 2rem; }
+
+/* ---------- diagrams: Mermaid on a core-sample panel ----------
+ * Material draws Mermaid inside a closed shadow root from these custom
+ * properties, which inherit through it. Nodes are cut from the page's own
+ * ground, edges are drawn in the secondary ink, and the accent is left for
+ * links. Clusters read --md-default-fg-color--lightest, so it is reset
+ * here, inside the diagram only. */
+.md-typeset .mermaid {
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: var(--md-default-bg-color);
+  --md-mermaid-node-fg-color: var(--md-default-fg-color--light);
+  --md-mermaid-label-fg-color: var(--md-default-fg-color);
+  --md-mermaid-label-bg-color: var(--gg-core);
+  --md-mermaid-edge-color: var(--md-default-fg-color--light);
+  --md-mermaid-sequence-number-fg-color: var(--md-default-bg-color);
+  --md-default-fg-color--lightest: color-mix(in srgb, var(--md-default-fg-color) 5%, var(--gg-core));
+  background: var(--gg-core);
+  border-radius: 4px;
+  padding: 1.4rem 1rem;
+  margin: 1.2rem 0 1.6rem;
+  text-align: center;
+  overflow-x: auto;
+}
+.md-typeset .gg-area .mermaid { margin: 0 0 0.4rem; padding: 1.8rem 1rem; }
+
+/* ---------- coverage bars ----------
+ * <div class="gg-bars"> rows of <div class="gg-bar" title="…"> with a
+ * label span and three segment spans whose widths come from --w. The row
+ * pads its label column, so each segment's percentage resolves against
+ * the track alone. A thin inset of ground between segments keeps adjacent
+ * hues apart without changing their widths. */
+.md-typeset .gg-bars {
+  --gg-bar-label: 4.2rem;
+  --gg-bar-h: 0.8rem;
+  display: grid;
+  gap: 0.35rem;
+  max-width: 44rem;
+  margin: 1rem 0 0.6rem;
+}
+.md-typeset .gg-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 1.4rem;
+  padding-left: var(--gg-bar-label);
+  overflow: hidden;
+  background: linear-gradient(var(--gg-track), var(--gg-track)) no-repeat;
+  background-origin: content-box;
+  background-size: 100% var(--gg-bar-h);
+  background-position: 0 50%;
+  border-radius: 2px;
+}
+.md-typeset .gg-bar__label {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(var(--gg-bar-label) - 0.6rem);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--md-default-fg-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.md-typeset .gg-seg {
+  flex: none;
+  display: block;
+  width: var(--w, 0%);
+  height: var(--gg-bar-h);
+  box-shadow: inset -2px 0 0 var(--md-default-bg-color);
+}
+.md-typeset .gg-bar:hover { --gg-track: color-mix(in srgb, var(--md-default-fg-color) 18%, var(--md-default-bg-color)); }
+.md-typeset .gg-seg--ok  { background: var(--gg-ok); }
+.md-typeset .gg-seg--ref { background: var(--gg-ref); }
+/* Unverified is provisional ground: hatched, so it reads without its hue. */
+.md-typeset .gg-seg--unv {
+  background-color: var(--gg-unv);
+  background-image: linear-gradient(135deg,
+    var(--gg-hatch) 25%, transparent 25%, transparent 50%,
+    var(--gg-hatch) 50%, var(--gg-hatch) 75%, transparent 75%, transparent);
+  background-size: 6px 6px;
+}
+/* The key under a chart reuses the segments as swatches:
+ * <ul class="gg-legend"><li><i class="gg-seg gg-seg--ok"></i>supported</li>… */
+.md-typeset .gg-legend i.gg-seg { width: 0.9rem; height: 0.7rem; box-shadow: none; }
+.md-typeset ul.gg-bars__key {
+  margin: 0.5rem 0 1.4rem;
+  font-size: 0.7rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---------- support dots ----------
+ * Shape carries the claim: filled is full, half is partial, a ring is none.
+ * Each dot has a title and a .gg-sr twin for screen readers. */
+.md-typeset .gg-dot {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  border: 0.13em solid var(--gg-ok);
+  vertical-align: -0.06em;
+  box-sizing: border-box;
+}
+.md-typeset .gg-dot--full { background: var(--gg-ok); }
+.md-typeset .gg-dot--part { background: linear-gradient(90deg, var(--gg-ok) 50%, transparent 50%); }
+.md-typeset .gg-dot--none { border-color: var(--gg-ring); background: transparent; }
+
+/* A support matrix: the table as a quiet grid of dots. */
+.md-typeset .gg-matrix table:not([class]) { font-size: 0.78rem; }
+.md-typeset .gg-matrix table:not([class]) td,
+.md-typeset .gg-matrix table:not([class]) th { padding: 0.7em 1.4em 0.7em 0; }
+.md-typeset .gg-matrix table:not([class]) th:not(:first-child),
+.md-typeset .gg-matrix table:not([class]) td:not(:first-child) { text-align: center; padding-right: 0.7em; padding-left: 0.7em; }
+.md-typeset .gg-matrix .gg-dot { width: 0.95em; height: 0.95em; }
+/* A wide matrix tightens its columns before it scrolls. */
+.md-typeset .gg-matrix table:not([class]) thead th:not(:first-child),
+.md-typeset .gg-matrix table:not([class]) tbody td:not(:first-child) { padding: 0.65em 0.45em; }
+.md-typeset .gg-matrix table:not([class]) thead th:not(:first-child) { min-width: 0; }
+/* When a matrix scrolls on a narrow screen, its row labels stay put. */
+.md-typeset .gg-matrix table:not([class]) tbody th,
+.md-typeset .gg-matrix table:not([class]) thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--md-default-bg-color);
+}
+@media (max-width: 40em) {
+  .md-typeset .gg-matrix table:not([class]) tbody th { min-width: 7rem; }
+}
+
+/* The key above a matrix: one line per mark, in the secondary ink.
+ * Its source lines are kept as lines. */
+.md-typeset .gg-key {
+  margin: 1rem 0 0.6rem;
+  font-size: 0.74rem;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .gg-key > p {
+  white-space: pre-line;
+  line-height: 1.9;
+  margin: 0;
+}
+.md-typeset .gg-key .gg-dot { margin-right: 0.35em; }
+/* A raw-HTML matrix: row headers read as labels, not bold column heads. */
+.md-typeset .gg-matrix table:not([class]) tbody th {
+  font-weight: 500;
+  text-align: left;
+  border-bottom: 0;
+  border-top: 1px solid var(--gg-rule);
+  min-width: 8.5rem;
+}
+.md-typeset .gg-matrix table:not([class]) thead th {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  vertical-align: bottom;
+}
+
+/* Visually hidden, still read aloud. */
+.gg-sr {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- bot badges: fair or clairvoyant ---------- */
+.md-typeset .gg-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1;
+  padding: 0.28em 0.6em 0.32em;
+  border-radius: 999px;
+  vertical-align: 0.12em;
+  margin-left: 0.3em;
+  white-space: nowrap;
+}
+.md-typeset .gg-badge--fair {
+  color: var(--gg-fair-fg);
+  background: color-mix(in srgb, var(--gg-ok) 12%, var(--md-default-bg-color));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-ok) 35%, transparent);
+}
+.md-typeset .gg-badge--seer {
+  color: var(--gg-seer-fg);
+  background: color-mix(in srgb, var(--gg-unv) 16%, var(--md-default-bg-color));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gg-unv) 45%, transparent);
+}
+.md-typeset .gg-badge .twemoji { vertical-align: -0.1em; }
+
+/* ---------- facts strip ----------
+ * <ul class="gg-facts"><li><strong>figure unit</strong> context</li>…
+ * Three readings laid side by side on the same stratum line as the cards. */
+.md-typeset ul.gg-facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 1rem 1.4rem;
+  margin: 1.6rem 0;
+  padding: 0;
+  max-width: none;
+}
+.md-typeset ul.gg-facts > li {
+  margin: 0;
+  padding: 0.55rem 0 0;
+  border-top: 1px solid var(--gg-rule);
+  color: var(--md-default-fg-color--light);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+.md-typeset ul.gg-facts > li > strong:first-child {
+  display: block;
+  color: var(--md-default-fg-color);
+  font-size: 1.55rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 0.15rem;
+}
+
+/* ---------- home: the areas, laid under the strata ----------
+ * Five destinations sit directly beneath the hero figure, like the
+ * surface the strata were cut from. */
+.md-typeset .gg-hero .grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  margin: 1.6rem 0 0;
+  gap: 1.2rem 1.2rem;
+}
+.md-typeset .gg-hero .grid.cards > ul > li > p:first-child { font-size: 0.95em; }
+.md-typeset .gg-hero .grid.cards > ul > li > p:not(:first-child) { font-size: 0.86em; }
+.md-typeset .gg-hero .gg-small {
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--light);
+  margin: 1.8rem 0 0;
+  max-width: 44rem;
+}
+
+/* ---------- focus: always visible, in the accent ---------- */
+.md-typeset a:focus-visible,
+.md-typeset .md-button:focus-visible,
+.md-typeset summary:focus-visible,
+.md-typeset .tabbed-labels > label:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (max-width: 40em) {
+  .md-typeset .gg-bars { --gg-bar-label: 3.2rem; }
+  .md-typeset .gg-area > .gg-lede { font-size: 1rem; }
+  .md-typeset .mermaid { padding: 1rem 0.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .grid.cards > ul > li,
+  .md-typeset .grid > .card { transition: none; }
+}

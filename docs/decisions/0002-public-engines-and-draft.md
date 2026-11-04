@@ -97,3 +97,22 @@ nothing. `dirac/oracle` plays it against `engine/rules` decision by decision.
 ## Not in scope
 
 Any other part of the private module. Any change to gorge-compliance.
+
+## Amendment (2026-11-03): the demo moves in whole
+
+Everything the public demo serves now builds from this repository alone, so
+the demo binary is `cmd/gorged` and nothing demo-related stays private.
+
+- **Moved in.** The search teacher (`bots/search`), sb-search
+  (`bots/spellbench/sbsearch` and its hosted adapter `bots/sbsearch`), the
+  SpellBench builtins' hosted adapter (`bots/sbbuiltin`), cast-profile
+  (`bots/castprofile`), their host-level gates (`bots/hosttest`), and the demo
+  deploy (`scripts/deploy-demo.sh`, `make deploy-demo`, `stop-demo`,
+  `prewarm-art`). Decision 2's "the az bots" and "deploy scripts" no longer
+  name anything private; the rest of its list stands.
+- **Linked by the binary, not by `bots/all`.** `cmd/gorged` links the moved
+  policies beside `bots/all`, so `server/host`'s registry-wide gates keep the built-in
+  set's size and cost.
+- **The deploy's settings stay out of git.** The deploy reads its ports and
+  directories from the untracked `deploy/demo.env` (`deploy/demo.env.example`
+  documents every variable).

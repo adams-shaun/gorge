@@ -2600,9 +2600,19 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	if havePump {
+		// CR 613.6: an override part before layer 6 keeps the whole effect,
+		// the pump beside it too, applying once its source loses all abilities
+		pump.OutlivesLoss = o.beginsBeforeLayer6()
 		return []lStatic{pump, *st}, nil
 	}
 	return []lStatic{*st}, nil
+}
+
+// beginsBeforeLayer6 reports whether o has a part in layers 1 to 5 (the
+// reading of ovrKeptOnLoss in the kernel, for a lowered override).
+func (o *lOverride) beginsBeforeLayer6() bool {
+	return o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.HasSetSubtypes || len(o.SetSubtypes) > 0 ||
+		len(o.AddSubtypes) > 0 || o.AllCreatureTypes || o.RemoveCreatureSub || o.HasSetColors || o.AddColors != "" || o.Name != ""
 }
 
 // keepSubtypes records what removing o's card types leaves, from the words the
@@ -3061,7 +3071,10 @@ func (lc *lowerCtx) addCounterRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		if rp.str("ValidObject") == youPlusObject {
 			return lc.youPlusCountersRepl(rp, w, rl) // lower_counterrepl.go
 		}
-		return lc.youDoubleCountersRepl(rp, w, rl) // lower_delayed.go
+		if rp.str("ValidObject") == "Permanent.inZoneBattlefield,Player" {
+			return lc.youDoubleCountersRepl(rp, w, rl) // lower_delayed.go
+		}
+		return lc.putterDoubleCountersRepl(rp, w, rl) // lower_counterrepl.go
 	}
 	vc := rp.str("ValidCard")
 	if vc == "" {

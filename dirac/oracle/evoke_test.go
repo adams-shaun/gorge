@@ -168,6 +168,9 @@ func evokeRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls in
 }
 
 func TestEvokeLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	div, stalls, st, lkiGames := evokeRun(t, 256, true)
 	t.Logf("256 games, %+v, %d games with a held sacrifice-first recheck, %d divergences, %d stalls", st, lkiGames, b2i(div), stalls)
 	if stalls != 0 {

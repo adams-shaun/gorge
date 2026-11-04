@@ -168,6 +168,11 @@ func (cb *cardBuilder) fold(a *lAbility) (bool, error) {
 				return false, bfail(cb.node, "ward cost Discard %d", n)
 			}
 			d.WardDiscard = 1 // kernel kw_wardcost.go
+		case "DiscardOrMana":
+			if n < 1 || n > 255 {
+				return false, bfail(cb.node, "ward cost discard or {%d}", n)
+			}
+			d.WardDiscOrN = uint8(n) // kernel kw_wardcost.go
 		case "Sacrifice":
 			if n != 1 {
 				return false, bfail(cb.node, "ward cost Sacrifice %d", n)
@@ -1439,6 +1444,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.AddChosen = s.AddChosen
+		st.OutlivesLoss = s.OutlivesLoss
 		if len(s.Grant) > 1 {
 			return ka, nil, fmt.Errorf("static grants %d abilities", len(s.Grant))
 		}
@@ -1944,6 +1950,9 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, err
 		}
 		rp.C = k
+		if r.Putter && r.Ctr != "" {
+			rp.A = 1 // one kind, only the controller's own placements (kop.ReplDoubleCountersOn)
+		}
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}

@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package seat
 
 import (

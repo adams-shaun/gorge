@@ -257,6 +257,9 @@ func TestDivctranyLockstep(t *testing.T) {
 // TestDivctranyMutation: one counter per target (the announced shares lost),
 // and a DivMaxV total of X-1, must each diverge.
 func TestDivctranyMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	for _, mu := range []struct {
 		name string
 		set  func()

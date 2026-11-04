@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2
 
 import (

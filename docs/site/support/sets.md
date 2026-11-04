@@ -144,6 +144,14 @@ Forge is where gorge's card scripts come from, so Forge's corpus is gorge's
 denominator. XMage supplies the set manifests (589 sets, built from its set
 classes) and the second opinion behind every verdict.
 
+## Charts by engine
+
+One chart per engine over the Standard sets (the sets on dirac's support
+page). The card-by-card detail is in the tables below and in
+[`dirac/docs/support.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/support.md).
+
+--8<-- "support/_generated_sets.md:charts"
+
 ## Per-set support
 
 The table has one row for every set that gorge-compliance audits against a

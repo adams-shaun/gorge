@@ -275,6 +275,9 @@ func kdbmanaRun(t *testing.T, n uint64, report bool, tal *kdbmanaTally) int {
 }
 
 func TestDbmanaLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	tal := newKdbmanaTally()
 	kdbmanaRun(t, 256, true, tal)
 	t.Logf("%d games: Rapturous Moment %d, Narset's Rebuke %d, Konstrari Charm %d (mana mode %d), same-step follow-ups %d",

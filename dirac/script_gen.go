@@ -336,7 +336,7 @@ func (s *State) tapGap(k *prep, p uint8, sl Slot, restr slotMask, held *[kop.Num
 		c := s.cardAt(sl)
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		col := bits.TrailingZeros8(uint8(ab.ManaColors))
-		if !s.floatRestrFrom(k, p, sl, ab.ManaRestrict, col, max(ab.ManaN, 1)) {
+		if !s.floatRestrAb(k, p, sl, ab, col, max(ab.ManaN, 1)) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
 		held[col] += max(ab.ManaN, 1)
@@ -461,6 +461,26 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 	}
 	n := 0
 	var g grantSrch
+	// A play the offer lists on the join of a source's own and granted
+	// abilities (one unit of the larger amount, availGrant) that the walk's
+	// relaxed census does not list pays only through a mana the source cannot
+	// make in one tap (Xenobotanist's one mana of any colour beside a granted
+	// {G}{G} cannot fund {U}{U}): gorge's potential walk never lists it.
+	for i := int(d.N) - 1; i >= 0; i-- {
+		a := d.Options[i]
+		if ak := a.Kind(); ak != AkActivate && !isCastKind(ak) || hasOption(&walk, a) {
+			continue
+		}
+		if k.gen.anyTapExtra {
+			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
+		}
+		if k.multiMana && s.filterSource(k, p) {
+			continue // a controlled filter (Rumble Arena's {1},{T}: any colour) is no unit of the census here, yet it funds Ba Sing Se's {G} (CR 605.1a, 106.1)
+		}
+		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+			d.remove(a)
+		}
+	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
 		cost, ex, ok := s.grantPlayCost(k, p, a, true)

@@ -53,6 +53,11 @@ type Static struct {
 	// chosen creature type (perm.chosen); no choice grants nothing (gorge
 	// resolveChosenTypes). kernel act_choosetype.go.
 	AddChosen bool
+	// OutlivesLoss: a StatContinuous pump that rides beside a StatOverride
+	// with a part in layers 1 to 5 (Undercover Skrull's +2/+2 beside its
+	// all creature types): the whole effect began before layer 6, so it keeps
+	// applying after its source loses all abilities (CR 613.6).
+	OutlivesLoss bool
 	// PwVsSrc: StatCantBlockBy only: the blocker must also have power
 	// less than (1) or greater than (2) the static's host's power (the
 	// ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower; kernel

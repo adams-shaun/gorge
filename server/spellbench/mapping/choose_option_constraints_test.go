@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package mapping_test
 
 // The named-option catch-alls must not

@@ -1,3 +1,5 @@
+//go:build spellbench
+
 package sbv2http
 
 // TestSBV2Golden pins the opt-in /api/sbv2 wire for one fixed-seed 2-seat

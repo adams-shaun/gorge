@@ -29,20 +29,20 @@ func (s *State) restrPoolNonSpell(k *prep, p uint8) uint8 {
 		if b.kind == 0 {
 			break
 		}
-		if b.units() != 0 && s.restrNonSpellF(k, k.gen.restrFOf(b.kind)) {
+		if b.units() != 0 && s.restrNonSpellKind(k, b.kind) {
 			m |= 1 << i
 		}
 	}
 	return m
 }
 
-// restrNonSpellF: a source of the table with spend restriction f admits a
+// restrNonSpellKind: a source of the table with the spend restriction batch kind kind names admits a
 // non-spell payment.
-func (s *State) restrNonSpellF(k *prep, f kop.FilterID) bool {
+func (s *State) restrNonSpellKind(k *prep, kind uint8) bool {
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.AFlags&kop.AfManaNonSpell != 0 {
+			if a := &abs[j]; a.Kind == kop.AbMana && k.gen.restrIsKind(kind, a) && a.AFlags&kop.AfManaNonSpell != 0 {
 				return true
 			}
 		}
@@ -84,4 +84,19 @@ func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
 		return
 	}
 	s.payFromPool(p, cost, 0)
+}
+
+// nonSpellRestrAffords: p pays cost, a payment that is no spell's (a ward's {N}),
+// counting the restricted mana its restriction admits there (CR 106.6): the
+// floating batches and the restricted sources, Hydraulic Helper's mana "can't be
+// spent to cast a nonartifact spell" paying a ward.
+//
+//go:noinline
+func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.restrSrc && !s.rbAny(p&1) {
+		return false
+	}
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.plotRestrFallback(k, p, cost, &av)
 }

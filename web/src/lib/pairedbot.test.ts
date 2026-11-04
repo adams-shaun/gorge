@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Decision } from '../protocol';
-import { adviceRows, differedNote, expectedLine, loadDifferedNotes, loadPairedBotOn, loadShowRules, pairedRowLabel, saveDifferedNotes, saveShowRules, savePairedBotOn, shownRows, winChance } from './pairedbot';
+import type { Advice, Decision } from '../protocol';
+import { adviceRows, botPickOf, declines, differedNote, expectedLine, loadDifferedNotes, loadMarkPick, loadPairedBotOn, loadShowRules, pairedRowLabel, pickTag, saveDifferedNotes, saveMarkPick, saveShowRules, savePairedBotOn, shownRows, winChance } from './pairedbot';
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -15,14 +15,84 @@ function memoryStorage(): Storage {
 }
 
 describe('paired bot preference', () => {
-  it('is off until the player turns it on, and remembers', () => {
+  it('starts on for a player alone with bots, and remembers the player turning it off', () => {
     const s = memoryStorage();
-    expect(loadPairedBotOn(s)).toBe(false);
-    expect(loadPairedBotOn(null)).toBe(false);
-    savePairedBotOn(true, s);
-    expect(loadPairedBotOn(s)).toBe(true);
-    savePairedBotOn(false, s);
-    expect(loadPairedBotOn(s)).toBe(false);
+    expect(loadPairedBotOn(false, s)).toBe(true);
+    expect(loadPairedBotOn(false, null)).toBe(true);
+    savePairedBotOn(false, false, s);
+    expect(loadPairedBotOn(false, s)).toBe(false);
+    savePairedBotOn(true, false, s);
+    expect(loadPairedBotOn(false, s)).toBe(true);
+  });
+  it('starts off at a table with another human, remembered apart', () => {
+    const s = memoryStorage();
+    expect(loadPairedBotOn(true, s)).toBe(false);
+    expect(loadPairedBotOn(true, null)).toBe(false);
+    savePairedBotOn(true, true, s);
+    expect(loadPairedBotOn(true, s)).toBe(true);
+    savePairedBotOn(false, false, s);
+    expect(loadPairedBotOn(true, s)).toBe(true);
+    expect(loadPairedBotOn(false, s)).toBe(false);
+  });
+});
+
+describe('the mark on the decision', () => {
+  it('is on until the player turns it off, and remembers', () => {
+    const s = memoryStorage();
+    expect(loadMarkPick(s)).toBe(true);
+    expect(loadMarkPick(null)).toBe(true);
+    saveMarkPick(false, s);
+    expect(loadMarkPick(s)).toBe(false);
+    saveMarkPick(true, s);
+    expect(loadMarkPick(s)).toBe(true);
+  });
+});
+
+describe('botPickOf', () => {
+  const d = {
+    seq: 7,
+    kind: 'priority',
+    options: [
+      { index: 0, label: 'Pass priority', kind: 'pass', player: 0 },
+      { index: 1, label: 'Cast Shock', kind: 'cast', obj: 41, player: 0 },
+      { index: 2, label: 'Activate Hellrider', kind: 'activate', obj: 42, player: 0 },
+    ],
+    payment_actions: [{ id: 'pay-shock', label: 'Cast Shock', base_option_index: 1, cast: { object: 41, face: 0, origin: 'hand' }, plans: [] }],
+  } as unknown as Decision;
+  const advice = (explain: unknown, over: Partial<Advice> = {}): Advice => ({ table: 't1', match: 1, ask_seq: 7, seat: 0, policy: 'az-closed', state: 'ready', explain, ...over });
+  const search = (rows: object[]) => ({ seat: 0, source: 'policy', bot: [0], search: { engine: 'azmcts', sims: 100, root_value: 0, rows } });
+
+  it('marks search\'s recommendation with its estimate and the card it names', () => {
+    const p = botPickOf(d, advice(search([
+      { choices: [0], visits: 40, prior: 0, q: -0.2, bot: true },
+      { choices: [2], visits: 60, prior: 0, q: 0.3, chosen: true },
+    ])));
+    expect(p).toEqual({ seq: 7, options: [2], payment: null, objs: [42], chance: 65 });
+    expect(pickTag(p!)).toBe("Bot's pick, 65%");
+  });
+  it('marks a planned cast by its payment action, its legacy option and its card', () => {
+    const p = botPickOf(d, advice(search([{ choices: null, payment: 'pay-shock', visits: 10, prior: 0, q: 0, chosen: true }])));
+    expect(p).toEqual({ seq: 7, options: [1], payment: 'pay-shock', objs: [41], chance: 50 });
+  });
+  it('falls back to the bot\'s rules, with no estimate', () => {
+    const p = botPickOf(d, advice({ seat: 0, source: 'policy', bot: [0] }));
+    expect(p).toEqual({ seq: 7, options: [0], payment: null, objs: [], chance: null });
+    expect(pickTag(p!)).toBe("Bot's pick");
+  });
+  it('marks nothing for another decision, a refusal or a note with no pick', () => {
+    expect(botPickOf(d, advice(search([{ choices: [0], visits: 1, prior: 0, q: 0, chosen: true }]), { ask_seq: 6 }))).toBeNull();
+    expect(botPickOf(d, advice(undefined, { state: 'refused', reason: 'No.' }))).toBeNull();
+    expect(botPickOf(d, advice({ seat: 0, source: 'policy' }))).toBeNull();
+  });
+  it('declines when it would declare no attackers', () => {
+    const a = { seq: 3, kind: 'attackers', options: [{ index: 0, label: 'Attack with A', kind: 'attacker', obj: 5, player: 1 }] } as unknown as Decision;
+    const p = botPickOf(a, advice(search([{ choices: [], visits: 9, prior: 0, q: 0.1, chosen: true }]), { ask_seq: 3 }));
+    expect(p?.options).toEqual([]);
+    expect(declines(p, a)).toBe(true);
+    expect(declines(p, { ...a, seq: 4 })).toBe(false);
+    const attack = botPickOf(a, advice(search([{ choices: [0], visits: 9, prior: 0, q: 0.1, chosen: true }]), { ask_seq: 3 }));
+    expect(attack?.objs).toEqual([5]);
+    expect(declines(attack, a)).toBe(false);
   });
 });
 

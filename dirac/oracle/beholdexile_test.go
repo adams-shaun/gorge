@@ -257,6 +257,9 @@ func TestBeholdexileLockstep(t *testing.T) {
 // TestBeholdexileMutation drops the cost exile's link: the Champion's leaves
 // trigger finds nothing to return in the kernel, which gorge returns.
 func TestBeholdexileMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	games, divs, _, first := runBeholdexile(t, 128, true)
 	if divs == 0 {
 		t.Fatalf("mutation wrote no link in %d games with no divergence", games)

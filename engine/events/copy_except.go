@@ -123,7 +123,7 @@ func foldCopyExcept(g *state.Game, e *Event) {
 		// would show, the earlier edit of it when a copy of a token copied one.
 		base := o.CopyFaceBack
 		if base == nil {
-			if !o.Card.IsTransformingDFC() {
+			if !o.Card.BackFaceIsBattlefieldOnly() {
 				return
 			}
 			base = o.Card.Faces[1-o.FaceIdx]

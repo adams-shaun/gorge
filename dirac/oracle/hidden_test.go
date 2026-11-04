@@ -137,6 +137,9 @@ func khiddenRun(t *testing.T, seeds uint64, mutate func(*kop.Table), check func(
 }
 
 func TestHiddenLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	var tal khiddenTally
 	divs, stalls := khiddenRun(t, 300, nil, khiddenCheck(&tal), false)
 	t.Logf("%d games: %d Corpses of the Lost returned to hand, %d Zuko exile->battlefield under the opponent; %d divergences, %d kernel stalls", tal.games, tal.corpses, tal.zuko, divs, stalls)

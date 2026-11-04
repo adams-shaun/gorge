@@ -78,6 +78,9 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       base_path: [docs/site]
       check_paths: false
@@ -85,71 +88,104 @@ markdown_extensions:
 extra_css:
   - stylesheets/diagrams.css
   - stylesheets/theme.css
+  - stylesheets/wire.css
 
+# Top-level areas become the header tabs. The server tier, wire tests and
+# draft internals each sit in the area a reader comes to them from.
 nav:
   - Home:
       - index.md
       - Getting started: getting-started.md
-      - The three repositories: repos/index.md
-  - Architecture:
-      - architecture/index.md
-      - gorge engine:
+      - Install and build: guide/install.md
+  - Engines:
+      - engines/index.md
+      - Coverage: support/sets.md
+      - Use the engines:
+          - engines/using.md
+          - Play and fuzz on gorge: engines/tools-gorge.md
+          - Build, play and check dirac: engines/tools-dirac.md
+          - Every flag: engines/flags.md
+          - Serve dirac: guide/dirac.md
+      - Search and nets:
+          - engines/search-and-nets.md
+          - Training data and nets: engines/training-data.md
+      - How gorge works:
+          - architecture/index.md
           - Events and replay: architecture/gorge/events.md
           - Game loop and decisions: architecture/gorge/game-loop.md
-          - Cards and primitives: architecture/gorge/cards.md
           - The rules core: architecture/gorge/rules.md
+          - Cards and primitives: architecture/gorge/cards.md
           - Views and hidden information: architecture/gorge/views.md
-          - The server tier: architecture/gorge/server.md
-      - dirac:
+      - How dirac works:
           - architecture/dirac/index.md
           - State: architecture/dirac/state.md
           - Step and Apply: architecture/dirac/step-apply.md
           - Cards: architecture/dirac/cards.md
           - Verification: architecture/dirac/oracle.md
           - Search: architecture/dirac/search.md
-      - Draft events: architecture/draft.md
-      - Invariants: architecture/invariants.md
-      - Wires: architecture/wires.md
-      - Packages: architecture/packages.md
-  - Contributing:
-      - contributing/index.md
-      - Repository layout: contributing/repo-layout.md
-      - Your first card fix: contributing/first-card-fix.md
-      - Testing: contributing/testing.md
-      - The card pipeline: contributing/card-pipeline.md
-      - Glossary: contributing/glossary.md
-  - User's guide:
-      - guide/index.md
-      - Install and build: guide/install.md
-      - Play in the browser: guide/play.md
-      - Serving dirac: guide/dirac.md
-      - Draft events: guide/draft.md
-      - Bot-vs-bot games: guide/bot-games.md
-      - Replays: guide/replays.md
-      - Troubleshooting: guide/troubleshooting.md
+      - Design invariants: architecture/invariants.md
+      - Performance:
+          - performance/index.md
+          - "gorge's speed": performance/engine.md
+          - How it is measured: performance/methodology.md
   - Bots:
       - bots/index.md
+      - Using and plugging in bots: bots/using.md
+      - Each bot in detail: bots/catalogue.md
+      - Bot comparison: bots/compare.md
       - Writing a native Go bot: bots/native-go.md
       - Playing a seat over HTTP: bots/http.md
       - Python and Java examples: bots/examples.md
       - SpellBench v2 agents: bots/spellbench.md
       - Training and adoption: bots/training-and-adoption.md
-  - API reference:
-      - api/index.md
+      - Bot speed: performance/bots.md
+      - Bot-vs-bot games: guide/bot-games.md
+  - Interfaces:
+      - interfaces/index.md
+      - Support matrix: interfaces/support.md
+      - Paying for spells:
+          - interfaces/payment.md
+          - Surfaces by wire: interfaces/payment-detail.md
+          - Compare the wires: interfaces/payment-matrix.md
+          - Other engines: interfaces/payment-engines.md
       - HTTP API: api/http.md
       - Event stream (SSE): api/sse.md
       - Wire protocol: api/protocol.md
-      - SpellBench v2: api/spellbench-v2.md
       - ManaBrew: api/manabrew.md
+      - SpellBench v2: api/spellbench-v2.md
       - gorge-agent/1: api/gorge-agent.md
-      - Go embedding API: api/go.md
-  - Performance:
-      - performance/index.md
-      - How it is measured: performance/methodology.md
-      - "gorge's speed": performance/engine.md
-      - Bot speed: performance/bots.md
+      - Go embedding: api/go.md
+      - Versions and schema files: api/index.md
+      - Wire tests: architecture/wires.md
+  - Web client and server:
+      - web/index.md
+      - Run a server: guide/index.md
+      - Play in the browser: guide/play.md
+      - Table layouts: web/layouts.md
+      - Gameplay options: web/gameplay.md
+      - How replays work: web/replays.md
+      - Replays in the browser: guide/replays.md
+      - Draft simulator: guide/draft.md
+      - Draft internals: architecture/draft.md
+      - Troubleshooting: guide/troubleshooting.md
+      - gorged flags: web/flags.md
+      - Run the demo in Docker: web/docker.md
+      - Play with a bot beside you: web/paired-play.md
+      - The server tier: architecture/gorge/server.md
+  - Compliance and validation:
+      - compliance/index.md
+      - Engine comparison: compliance/harness.md
+      - gorge and dirac lockstep: compliance/lockstep.md
+      - Rules guards: compliance/conformance.md
+  - Contributing:
+      - contributing/index.md
+      - Repository layout: contributing/repo-layout.md
+      - Packages: architecture/packages.md
+      - The three repositories: repos/index.md
+      - Your first card fix: contributing/first-card-fix.md
+      - Testing: contributing/testing.md
+      - The card pipeline: contributing/card-pipeline.md
+      - Regenerating the support tables: support/regenerating.md
+      - Glossary: contributing/glossary.md
   - Research:
       - MageZero replication: bots/magezero-replication.md
-  - Card support:
-      - Support by set: support/sets.md
-      - Regenerating the tables: support/regenerating.md
