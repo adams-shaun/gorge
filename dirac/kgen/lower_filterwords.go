@@ -102,7 +102,42 @@ func filterWordPred3(p string) (n int, ok bool) {
 	case "BottomLibrary":
 		return int(kop.W7BottomLibrary), true
 	}
-	return 0, false
+	return attachedToWord(p)
+}
+
+// attachedToWord maps gorge's two-token "AttachedTo <class>[.<qual>]"
+// (effects/filter_attachment.go attachedToArg: the object is attached to a
+// battlefield permanent of that class meeting the qualifier, read against
+// the bearer) to kop.W7AttachedTo. The classes lowered are Card and
+// Permanent (any permanent), Creature and Land; the qualifiers Other (not
+// the filter's source) and YouCtrl. A referent (Targeted, ParentTarget, a
+// trigger's card) or any other class or qualifier stays unknown.
+func attachedToWord(p string) (n int, ok bool) {
+	arg, found := strings.CutPrefix(p, "AttachedTo ")
+	if !found {
+		return 0, false
+	}
+	class, qual, _ := strings.Cut(arg, ".")
+	var bits int
+	switch class {
+	case "Card", "Permanent":
+	case "Creature":
+		bits = kop.AttToCreature
+	case "Land":
+		bits = kop.AttToLand
+	default:
+		return 0, false
+	}
+	switch qual {
+	case "":
+	case "Other":
+		bits |= kop.AttToOther
+	case "YouCtrl":
+		bits |= kop.AttToYouCtrl
+	default:
+		return 0, false
+	}
+	return int(kop.W7AttachedTo) | bits<<8, true
 }
 
 // spawnerTargetCtrl rewrites the filter word "ControlledBy

@@ -37,6 +37,10 @@ AggPermTypes	untyped int	12
 AggSumCounters	untyped int	11
 AggSumMV	untyped int	5
 AggSumToughness	untyped int	4
+AttToCreature	untyped int	1
+AttToLand	untyped int	2
+AttToOther	untyped int	4
+AttToYouCtrl	untyped int	8
 B	untyped int	2
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
@@ -1206,6 +1210,7 @@ VTargetToughness	VKind	11
 VTriggerAmount	VKind	8
 VX	VKind	1
 W	untyped int	0
+W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
 W7AttackingOpp	int16	7
 W7BottomLibrary	int16	17

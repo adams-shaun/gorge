@@ -89,6 +89,9 @@ func tableWord8(t *kop.Table) bool {
 //
 //go:noinline
 func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot) bool {
+	if fl.PredN&0xff == kop.W7AttachedTo {
+		return s.attachedToWord(k, fl.PredN>>8, sl, ctrl, src)
+	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordPerm3(k, fl, sl, src) // filter_props.go
 	}
@@ -366,4 +369,24 @@ func (s *State) bottomLibrary(o Obj) bool {
 	}
 	pl := &s.pl[s.objs[o].owner()]
 	return pl.libLo < pl.libHi && pl.lib[pl.libHi-1] == o
+}
+
+// attachedToWord is kop.W7AttachedTo on the battlefield permanent at sl:
+// it is attached to a battlefield permanent of the class bits names (a
+// creature, a land, else any) that meets the qualifier: AttToOther, not the
+// source slot src (no source excludes nothing, as gorge's Other with no
+// source); AttToYouCtrl, controlled by ctrl (gorge attachedToArg, the
+// qualifier read against the bearer).
+func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slot) bool {
+	h := s.perms[sl].attached
+	if h == NoSlot || !s.occ.has(h) {
+		return false
+	}
+	if bits&kop.AttToCreature != 0 && !s.isCreature(k, h) || bits&kop.AttToLand != 0 && s.typesGen(k, h)&kop.TLand == 0 {
+		return false
+	}
+	if bits&kop.AttToOther != 0 && h == src || bits&kop.AttToYouCtrl != 0 && s.perms[h].ctrl != ctrl {
+		return false
+	}
+	return true
 }

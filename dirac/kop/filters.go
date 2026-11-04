@@ -317,6 +317,23 @@ const (
 	W7NotBottomLibrary int16 = 18
 )
 
+// W7AttachedTo (PredWord7 sub-kind 19): the object is attached to a
+// battlefield permanent (gorge's two-token "AttachedTo <class>[.<qual>]",
+// effects/filter_attachment.go attachedToArg) of the class PredN's high byte
+// names (AttToCreature, AttToLand; neither: any permanent, the Card and
+// Permanent classes) and that meets its qualifier: AttToOther, not the
+// filter's source; AttToYouCtrl, controlled by the evaluating controller.
+// Nothing off the battlefield is attached.
+const W7AttachedTo int16 = 19
+
+// W7AttachedTo's PredN high-byte bits (PredN>>8).
+const (
+	AttToCreature = 1
+	AttToLand     = 2
+	AttToOther    = 4
+	AttToYouCtrl  = 8
+)
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

@@ -1,0 +1,19 @@
+# "attached to a <class>" filters (gorge's AttachedTo <class>[.<qual>]):
+# Combadge's attack trigger while another creature wears a Communicator,
+# Summoning Materia's play-from-the-top while it is attached, End
+# Hostilities' sweep of permanents attached to creatures, Miracle Worker's
+# Aura target and Sage's Reverie's count (dirac/oracle/attachedto_test.go)
+Combadge
+Summoning Materia
+End Hostilities
+Miracle Worker
+Sage's Reverie
+Cartouche of Solidarity
+Bonesplitter
+Grizzly Bears
+Hill Giant
+Shock
+Plains
+Mountain
+Forest
+Island
