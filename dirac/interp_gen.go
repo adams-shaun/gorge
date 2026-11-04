@@ -551,7 +551,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 	case kop.OpCastFree:
 		s.g.nfree, s.g.nfreeAll = 0, 0
-		if in.Obj != kop.RefRemembered || in.C&0x78 != 0 || in.F != 0 {
+		if in.Obj != kop.RefRemembered || in.C&0xF8 != 0 || in.F != 0 {
 			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits
 		} else {
 			for i := 0; i < int(s.g.nrem); i++ {
@@ -754,11 +754,27 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpCreateToken, kop.OpCreateTokenEx:
+		in := in // a rewriter swaps the card on this copy
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			p = e.ctrl
 		}
-		n := s.replTokens(k, p, CardID(in.C), s.value(k, in.A))
+		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
+		if !ok {
+			return true, true // StallTokRewrite
+		}
+		if tc != CardID(in.C) {
+			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttach != 0 {
+				// a Role mint rewritten: gorge mints the rewriter's card as a plain
+				// script mint (not an Aura, so nothing is withheld); the attach path
+				// would look for a host for the non-Aura card (repl_tokrewrite.go)
+				s.capFull(StallTokRewrite)
+				return true, true
+			}
+			rw := *in // a rewriter: the mint makes its card (repl_tokrewrite.go)
+			rw.C = int16(tc)
+			in = &rw
+		}
 		if in.Op == kop.OpCreateTokenEx {
 			s.g.tokMade = 0
 			if in.B.N&kop.TokAttach != 0 {

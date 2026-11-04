@@ -153,7 +153,7 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 		return 0, 0
 	}
 	ob := &s.objs[o]
-	if k.phasing && ob.zone >= kop.ZonePhased && ob.slot != NoSlot {
+	if k.phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return s.phasedPT(k, ob.slot)
 	}
 	pc := &k.cards[ob.card]

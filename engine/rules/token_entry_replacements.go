@@ -102,6 +102,12 @@ func (e *Engine) applyTokenEntryUpdates(id state.ObjID, absorbed []string) {
 			// other entry counters as one event.
 			continue
 		}
+		if effects.EntryStateBody(m.repl.With) {
+			// The riders land on the token in place (no move to redirect);
+			// the later replacements still apply.
+			effects.ApplyEntryStateBody(e, e.replCtx(m, ev), m.repl.With, id)
+			continue
+		}
 		if m.repl.ParamStr(cards.PKReplacementResult) != "Updated" {
 			e.runReplaceWith(e.replCtx(m, ev), id, m.repl.With, &ev)
 			return
@@ -121,6 +127,9 @@ func tokenEntryBody(result, destination string, with *cards.SA) bool {
 	if result != "Updated" {
 		if with.APIKind() != cards.APIChangeZone {
 			return false
+		}
+		if effects.EntryStateBody(with) {
+			return true // Kira Nerys, Firebrand's "tapped and attacking"
 		}
 		cz := effects.ChangeZoneOf(with)
 		return cz.DestinationKnown && cz.Destination != state.ZBattlefield &&

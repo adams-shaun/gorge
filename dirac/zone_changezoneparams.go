@@ -146,6 +146,11 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 // fold for Attacking$ True (CR 508.4).
 func (s *State) setEnterAttacker(k *prep, sl Slot, atk uint8) {
 	pp := &s.perms[sl]
+	if pp.flags&pfAttacking != 0 {
+		pp.atk = atk // already attacking (Kira's entry beside a token's own): no second slot
+		s.touchSl(sl)
+		return
+	}
 	pp.flags |= pfAttacking
 	pp.atk = atk
 	pp.bord = s.nAttackers

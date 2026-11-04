@@ -133,7 +133,7 @@ import (
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
 // +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21449 -> 21450; ratchet TRK 282 -> 283).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21450, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21455, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

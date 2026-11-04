@@ -1,10 +1,14 @@
 # the dilemma pool: the trigger and the count, with what faces one: a charm on a
-# spell and on a triggered ability
-# (dirac/oracle/dilemma_test.go)
+# spell and on a triggered ability, and a graveyard trigger that works from the
+# graveyard (Gabriel Lorca) with the mill and discard that put it there
+# (dirac/oracle/dilemma_test.go, lorca_test.go)
 Abrade
 Charming Scoundrel
+Gabriel Lorca, Mirror Menace
 Island
 Mountain
 Seven of Nine
 Swamp
 The Caretaker
+Thought Scour
+Tome Scour
