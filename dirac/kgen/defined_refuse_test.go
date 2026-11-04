@@ -148,7 +148,7 @@ func TestDefinedValidRefusals(t *testing.T) {
 		{"counters zero", "DB$ PutCounter | Defined$ Valid Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 0", "not a constant of at least one"},
 		{"counters kind list", "DB$ PutCounter | Defined$ Valid Creature.YouCtrl | CounterType$ P1P1,M1M1 | CounterNum$ 1", "CounterType$"},
 		{"counters optional", "DB$ PutCounter | Defined$ Valid Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 1 | Optional$ True", "unread params [Optional]"},
-		{"multiply unread multiplier", "DB$ MultiplyCounter | Defined$ Valid Creature.YouCtrl | CounterType$ P1P1 | Multiplier$ 3", "unread params [Multiplier]"},
+		{"multiply multiplier other than two", "DB$ MultiplyCounter | Defined$ Valid Creature.YouCtrl | CounterType$ P1P1 | Multiplier$ 3", `MultiplyCounter Multiplier$ "3"`},
 		{"animate without P/T", "DB$ Animate | Defined$ Valid Creature.YouCtrl | Types$ Artifact | Optional$ True", "Power$ and Toughness$ not both set"},
 		{"animate optional not true", "DB$ Animate | Defined$ Valid Creature.YouCtrl | Power$ 1 | Toughness$ 1 | Optional$ False", `Optional$ "False"`},
 		{"animate unread param", "DB$ Animate | Defined$ Valid Creature.YouCtrl | Power$ 1 | Toughness$ 1 | AtEOT$ Sacrifice", "unread params [AtEOT]"},
