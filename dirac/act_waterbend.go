@@ -79,6 +79,7 @@ func (s *State) waterbendManaSource(k *prep, sl Slot) bool {
 		return s.poolPays(p, &k.t.Cards[r.card].Abilities[r.ab].Cost.Mana)
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
+	sick := pm.flags&pfSick != 0 && s.isCreature(k, sl) && s.kw(k, sl)&kop.KwHaste == 0
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
@@ -86,6 +87,9 @@ func (s *State) waterbendManaSource(k *prep, sl Slot) bool {
 		}
 		if a.Cost.Flags&kop.CostOncePerTurn != 0 && j < 8 && pm.actUsed&(1<<j) != 0 {
 			continue
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && sick {
+			continue // a summoning-sick creature's {T} ability is no source (gorge gates each ability)
 		}
 		if s.poolPays(p, &a.Cost.Mana) {
 			return true

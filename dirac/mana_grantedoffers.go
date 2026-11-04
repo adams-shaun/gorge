@@ -436,9 +436,7 @@ func (g *grantSrch) candidates(s *State) {
 	n := s.battlefieldOrder(g.p, s.ctrlM[g.p&1].and(s.occ), order[:], 0)
 	var fm slotMask
 	if k := g.k; k.gen.anyFilt {
-		// every untapped filter, payable now or after an earlier prefix tap:
-		// visit prices the fee at each node (filtCandidates)
-		fm = s.filtCandidates(k, g.p)
+		fm = s.scriptFilt(k, g.p)
 	}
 	g.n = 0
 	holders := 0
