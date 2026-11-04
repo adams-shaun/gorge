@@ -355,6 +355,9 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 	case entAsk:
 		return
 	case entFin:
+		if s.res.left != 0 && s.unparkTail(k) {
+			return // a dig's or search's later cards, parked behind the late ask
+		}
 		s.continueRes(k, 0) // the move was made: the program goes on
 		return
 	}
@@ -423,10 +426,6 @@ func (s *State) entryParkDig(k *prep, o Obj, ctrl uint8) bool {
 	if !s.entryOrderPark(k, o, ctrl, entOp) {
 		return false
 	}
-	if s.g.ro.n != 2 {
-		s.g.ro.replHdr = replHdr{}
-		return false
-	}
 	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
 	return true
 }
@@ -441,11 +440,18 @@ func (s *State) entryParkFound(k *prep, o Obj, ctrl uint8) bool {
 	if !s.entryOrderPark(k, o, ctrl, entSearch) {
 		return false
 	}
-	if s.g.ro.n != 2 {
-		s.g.ro.replHdr = replHdr{}
+	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	return true
+}
+
+// entryLateTail parks the dig or search behind the re-ask (CR 616.1f) that follows the
+// entry of the card it just moved, when a tap and an untap are still left; its later
+// cards move once the order is applied (unparkTail runs the tail kind). false: no re-ask.
+func (s *State) entryLateTail(k *prep, kind uint8) bool {
+	if k.gen == nil || !k.gen.anyEntUntap || s.g.nask != 0 || !s.res.active || !s.entryLatePark() {
 		return false
 	}
-	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	s.res.left = kind
 	return true
 }
 

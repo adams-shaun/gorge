@@ -9,19 +9,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// The lockstep: the five "if you cast a spell this way,
-// it enters with a counter" carriers — Intrepid Paleontologist, Leonardo
-// Sewer Samurai and Osteomancer Adept (a FINALITY counter), Undead Sprinter
-// and Mikey & Don, Party Planners (an extra +1/+1 counter) — whose
+// The lockstep: the "if you cast a spell this way, it enters with a
+// counter" carriers — Intrepid Paleontologist, Leonardo Sewer Samurai,
+// Osteomancer Adept and Overflow Submatrix (a FINALITY counter), Undead
+// Sprinter and Mikey & Don, Party Planners (an extra +1/+1 counter) — whose
 // Static$ True SpellCast triggers resolve off the stack, before the
 // CR 603.3b ordering ask, and whose bodies only stamp the cast spell's
 // stack entry. The may-play-source provenance reads the cast's flag, so an
 // ordinary cast of the same cards triggers nothing (the OrdinaryCasts
-// count). No counterspells and no reanimation in either deck: the
-// persistent-shape effects (no ExileOnMoved$ Stack) remember their card in
-// gorge, so a countered-then-recast carrier would get a second counter
-// there and not in the kernel (an unmodelled gorge edge, out of pool).
-var mayPlayDecks = [3][]cardset.Entry{
+// count). Counterspell and Unsummon put carriers' spells back where they
+// can be cast again: the rider's Effect ends once its spell leaves the
+// stack in both engines (CR 400.7), so a countered spell recast from the
+// graveyard gets only its new cast's counter and a bounced permanent recast
+// from hand gets none.
+var mayPlayDecks = [4][]cardset.Entry{
 	{ // B/G: the three FINALITY carriers, Undead Sprinter, dinosaur and
 		// 1-power fodder, self-mill, removal and basics
 		{Name: "Intrepid Paleontologist", Count: 3}, {Name: "Leonardo, Sewer Samurai", Count: 3}, {Name: "Osteomancer Adept", Count: 4},
@@ -36,7 +37,7 @@ var mayPlayDecks = [3][]cardset.Entry{
 		{Name: "Game-Trail Changeling", Count: 2}, {Name: "Horned Turtle", Count: 2},
 		{Name: "Ninja of the Deep Hours", Count: 2}, {Name: "Mothdust Changeling", Count: 2},
 		{Name: "Unsummon", Count: 3}, {Name: "Naturalize", Count: 2}, {Name: "Llanowar Elves", Count: 2},
-		{Name: "Giant Growth", Count: 2}, {Name: "Forest", Count: 7}, {Name: "Island", Count: 8},
+		{Name: "Counterspell", Count: 2}, {Name: "Forest", Count: 7}, {Name: "Island", Count: 8},
 	},
 	{ // the green-blue deck's mirror is the {1, 1} matchup; the dense
 		// carrier deck is deck 0 against itself (Leonardo beside an active
@@ -48,13 +49,25 @@ var mayPlayDecks = [3][]cardset.Entry{
 		{Name: "Colossal Dreadmaw", Count: 4}, {Name: "Typhoid Rats", Count: 6},
 		{Name: "Murder", Count: 2}, {Name: "Forest", Count: 3}, {Name: "Swamp", Count: 3},
 	},
+	{ // U/B: Overflow Submatrix and the artifact creatures it casts from the
+		// graveyard, self-mill, Undead Sprinter (Overflow's flag-only
+		// may-play read covers its graveyard cast too), Counterspell and
+		// Unsummon for the recasts, removal and basics
+		{Name: "Overflow Submatrix", Count: 4}, {Name: "Ornithopter", Count: 3}, {Name: "Memnite", Count: 3},
+		{Name: "Bronze Sable", Count: 3}, {Name: "Phyrexian Walker", Count: 2}, {Name: "Yotian Soldier", Count: 2},
+		{Name: "Stitcher's Supplier", Count: 3}, {Name: "Undead Sprinter", Count: 2}, {Name: "Counterspell", Count: 3},
+		{Name: "Unsummon", Count: 2}, {Name: "Murder", Count: 2}, {Name: "Island", Count: 5}, {Name: "Swamp", Count: 6},
+	},
 }
 
-// mayPlayMatchups: A vs B (both players' casts carry the other's riders),
-// the dense carrier mirror (two FINALITY grants on one cast: Leonardo
-// beside an active Osteomancer effect) and B vs B (the P1P1 top-library
-// casts).
-var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}}
+// mayPlayMatchups: A vs B (both players' casts carry the other's riders;
+// B's Counterspell and Unsummon send A's carriers back to be recast), the
+// dense carrier mirror (two FINALITY grants on one cast: Leonardo beside an
+// active Osteomancer effect), B vs B (the P1P1 top-library casts), and the
+// Overflow Submatrix deck against B (countered and bounced artifact
+// creatures recast) and against A (each side's graveyard casts beside an
+// Overflow Submatrix).
+var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}}
 
 func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls int) {
 	t.Helper()

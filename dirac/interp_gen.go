@@ -1674,6 +1674,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
 					}
+					if s.entryLateTail(k, tailSearchEnter) {
+						if !resume {
+							s.g.held, s.g.retTS = 0, stamp
+						}
+						s.holdBatch(&eb)
+						return false // the re-ask that follows the entry (repl_entryorder.go)
+					}
 					if s.parkTail(k, tailSearchEnter) {
 						// the entered card queued an as-enters ask (a shock land's
 						// pay-life election): gorge suspends the sweep there, the
@@ -1781,6 +1788,9 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 					s.g.pre = preAsk{}
 				}
 				s.g.pickLeft--
+				if s.entryLateTail(k, tailDigUntil) {
+					return false // the re-ask that follows the entry (repl_entryorder.go)
+				}
 				if s.parkTail(k, tailDigUntil) {
 					return false
 				}

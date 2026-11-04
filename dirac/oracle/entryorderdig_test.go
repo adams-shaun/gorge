@@ -56,3 +56,21 @@ func TestEntryOrderMassMoveLockstep(t *testing.T) {
 	pinnedGames(t, "std-trk", Config{GorgeAutopaySurface: true},
 		onBattlefield("Warp Speed"), onBattlefield("Deep Space 9"), orderAskWhileResolving)
 }
+
+// threeWayAskWhileResolving: the order ask has three options with an object on the
+// stack: two untap bodies against a tap, whose later picks are asked again after the
+// land has entered (CR 616.1f).
+func threeWayAskWhileResolving(ref *GorgeSide) bool {
+	d := ref.Pending()
+	return d != nil && d.Kind == decision.KReplacement && len(d.Options) == 3 && len(ref.E.G.Stack) > 0
+}
+
+// Two Warp Speeds and a tapped land under U.S.S. Voyager's dig: the re-ask follows the
+// first found land's entry and the second land moves after it is answered.
+func TestEntryOrderDigUntilReaskLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	pinnedGames(t, "std-trk", Config{GorgeAutopaySurface: true},
+		onBattlefield("U.S.S. Voyager, Lone Wanderer"), threeWayAskWhileResolving)
+}
