@@ -1377,11 +1377,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 		}
 		valid = nil
 	}
-	// Cards a search puts onto the battlefield enter together (CR 603.6a): the
-	// zone batch holds each entry's trigger check until the last has entered
-	// and its tapped entry state is set, so an "enters untapped" trigger
+	// Cards a search puts onto the battlefield enter together (CR 603.6a), one card
+	// as much as several: the zone batch holds each entry's trigger check until
+	// the last has entered and its tapped entry state is set, so an "enters untapped" trigger
 	// (Quark's Bar) reads the land as it stands, tapped by the effect.
-	if to == state.ZBattlefield && len(valid) > 1 {
+	if to == state.ZBattlefield && len(valid) > 0 {
 		h.BeginZoneBatch()
 	}
 	for _, id := range valid {
@@ -1496,7 +1496,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
 	}
-	if to == state.ZBattlefield && len(valid) > 1 {
+	if to == state.ZBattlefield && len(valid) > 0 {
 		h.EndZoneBatch()
 	}
 	// The Imprint$ association, one batched event after the whole mover loop
