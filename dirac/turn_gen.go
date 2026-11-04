@@ -524,6 +524,7 @@ func (s *State) newTurnGen() {
 	s.g.died = 0
 	s.g.fog = false
 	s.g.noPoison = 0
+	s.g.plusCtr[0], s.g.plusCtr[1] = 0, 0
 	if s.ndly != 0 {
 		s.dropTurnLeave() // trig_leavereturn.go: "this turn" leave records end
 	}
@@ -588,6 +589,7 @@ func (s *State) touchBits(b *objBits) {
 // cleanupGen ends "until end of turn" generated effects (the core's
 // finishCleanup).
 func (s *State) cleanupGen(k *prep) {
+	s.g.plusCtr[0], s.g.plusCtr[1] = 0, 0 // Brad Boimler's until-end-of-turn counters-plus-one expires
 	// A granted flashback is part of a graveyard card's view although no
 	// object field names it: mark every card whose grant this clear ends
 	// before dropping the bitsets.

@@ -147,9 +147,19 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 			}
 		}
 	}
+	eotPlus := 0
+	if !DebugCtrPlusEOTOff && g.anyRepl&rbPlusCtrEOT != 0 {
+		eotPlus = int(s.g.plusCtr[ctrl])
+		plus += eotPlus
+		plusN += eotPlus
+		plusPos += eotPlus
+	}
 	if (dbl > 0 && plusN > 0) || (plusPos > 0 && plusNeg > 0) {
 		s.capFull(StallReplCtr)
 		return n
+	}
+	if eotPlus > 0 {
+		CtrPlusEOTStats.Applied.Add(int64(eotPlus))
 	}
 	if plus != 0 {
 		n += plus

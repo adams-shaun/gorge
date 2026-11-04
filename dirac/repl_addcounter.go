@@ -53,7 +53,7 @@ func ctrWildBits(a *kop.Ability) uint32 {
 // applied, the CR 614.16 second pass lets the EffectOnly$ doubler (Doubling
 // Season) in too (Pir turns a loyalty cost's 1 into 2).
 func (s *State) replCostCtr(k *prep, sl Slot, kind, n int, payer uint8) int {
-	if k.gen == nil || n <= 0 || k.gen.anyRepl&(rbCtrOn|rbDblCtrYou) == 0 {
+	if k.gen == nil || n <= 0 || k.gen.anyRepl&(rbCtrOn|rbDblCtrYou|rbPlusCtrEOT) == 0 {
 		return n
 	}
 	saved := s.g.ctrAdder

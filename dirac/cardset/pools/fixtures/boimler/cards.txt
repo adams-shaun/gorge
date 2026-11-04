@@ -1,0 +1,20 @@
+# the Brad Boimler, Eager Ensign pool: the tap-triggered until-end-of-turn
+# "counters plus one" AddCounter replacement beside tap effects, counter
+# makers on both sides (so an opponent's permanents are a control), a
+# proliferate spell and cheap creatures, for the oracle's constructed
+# lockstep (dirac/oracle/boimler_test.go)
+Brad Boimler, Eager Ensign
+Battlegrowth
+Contentious Plan
+Doom Blade
+Forest
+Grizzly Bears
+Island
+Llanowar Elves
+Mountain
+Plains
+Savannah Lions
+Servant of the Scale
+Shock
+Swamp
+Twiddle

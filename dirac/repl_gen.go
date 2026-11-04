@@ -127,7 +127,7 @@ func (s *State) replCounters(k *prep, sl Slot, kind, n int) int {
 	if n <= 0 {
 		return 0
 	}
-	if k.gen == nil || k.gen.anyRepl&(rbDblCtr|rbCtrOn|rbDblCtrYou) == 0 {
+	if k.gen == nil || k.gen.anyRepl&(rbDblCtr|rbCtrOn|rbDblCtrYou|rbPlusCtrEOT) == 0 {
 		return n
 	}
 	return s.replCtrOn(k, sl, kind, n)
