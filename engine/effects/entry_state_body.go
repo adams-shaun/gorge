@@ -23,7 +23,7 @@ func EntryStateBody(sa *cards.SA) bool {
 	return cz.DestinationKnown && cz.Destination == state.ZBattlefield &&
 		DefinedRefOf(sa).Text == "ReplacedCard" &&
 		(cz.OriginAll || !cz.OriginPresent) &&
-		(cz.Tapped || strings.EqualFold(cz.Attacking, "True"))
+		(cz.Tapped || strings.EqualFold(cz.Riders.Attacking, "True"))
 }
 
 // ApplyEntryStateBody applies an EntryStateBody's riders to id, a permanent
@@ -40,6 +40,6 @@ func ApplyEntryStateBody(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	if cz.Tapped {
 		h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: o.Controller, Text: "entered tapped"})
 	}
-	rider := classifyAttackingEntryText(h, c, cz.Attacking, state.ZBattlefield, o.Controller)
+	rider := classifyAttackingEntryText(h, c, cz.Riders.Attacking, state.ZBattlefield, o.Controller)
 	rider.apply(h, c, id, o.Controller, state.ZBattlefield)
 }

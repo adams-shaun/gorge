@@ -31,9 +31,7 @@ func kiraDrain(t *testing.T, e *Engine) {
 // attack-trigger watcher (Test Watcher: gain 1 life whenever a creature its
 // controller controls attacks), then declares `attackers` Test Bears attacking
 // seat 1 (0 = no combat, the step stays main phase 1). It returns the engine,
-// its config and the cards still in seat 0's hand to be put onto the
-// battlefield: a Test Entrant creature and a Kira second copy are not needed,
-// so only the entrant is seeded.
+// its config and the top library card (the Test Entrant seed).
 func kiraBoard(t *testing.T, attackers int) (*Engine, Config, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -144,7 +142,7 @@ func TestKiraGorge(t *testing.T) {
 			card(t, "Name:Test Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
 			card(t, "Name:Test Elder\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"),
 		}, nil)
-		moveByName(t, e, 0, "Test Elder", state.ZBattlefield) // a second Kira-less board is irrelevant
+		moveByName(t, e, 0, "Test Elder", state.ZBattlefield) // filler creature
 		b := moveByName(t, e, 0, "Test Bear", state.ZBattlefield)
 		e.G.Obj(b).SummonSick = false
 		e.G.Active = 0
@@ -153,7 +151,9 @@ func TestKiraGorge(t *testing.T) {
 		k := moveByName(t, e, 0, "Kira Nerys, Firebrand", state.ZBattlefield)
 		kiraDrain(t, e)
 		o := e.G.Obj(k)
-		t.Logf("Kira herself: tapped=%v attacking=%v", o.Tapped, o.IsAttacking)
+		if !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
+			t.Fatalf("Kira herself tapped=%v attacking=%v defender=%d, want tapped and attacking seat 1 (CR 614.12: her own entry sees her replacement)", o.Tapped, o.IsAttacking, o.Attacking)
+		}
 	})
 
 	t.Run("an opponent's creature is not replaced", func(t *testing.T) {
