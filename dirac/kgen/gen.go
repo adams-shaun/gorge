@@ -447,6 +447,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 		if s.PwVsSrc != 0 {
 			fmt.Fprintf(w, " pwvs=%d", s.PwVsSrc)
 		}
+		if s.OvGate != 0 {
+			fmt.Fprintf(w, " ovgate=%d", s.OvGate)
+		}
 		if s.Kind == "CantPutCounter" {
 			fmt.Fprintf(w, " ctr=%d", s.Ctr)
 		}

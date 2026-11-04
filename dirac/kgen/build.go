@@ -1897,6 +1897,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
+	ko.GrantStatics = o.GrantStatics
 	ko.AddColors = colorMask(o.AddColors)
 	if ko.AddKw, err = kwMask(o.AddKw); err != nil {
 		return 0, err
