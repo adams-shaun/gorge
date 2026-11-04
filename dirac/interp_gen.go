@@ -760,6 +760,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if p == 255 {
 			p = e.ctrl
 		}
+		if in.Op == kop.OpCreateTokenEx && s.tokenDefenderAsk(k, in, p) {
+			return false, true // the CR 508.4 defender ask (filter_combatwords.go)
+		}
 		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
 		if !ok {
 			return true, true // StallTokRewrite
@@ -788,6 +791,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			if s.createTokensHeld(k, in, p, n) {
 				return true, true
 			}
+			s.g.tokDefSet = false
 			break
 		}
 		for i := 0; i < n; i++ {
@@ -809,7 +813,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 				s.tokenAtEOT(in, o)
 			}
 			if in.Op == kop.OpCreateTokenEx && in.B.N&kop.TokAttacking != 0 {
-				s.tokenAttacks(k, in, sl, p) // filter_combatwords.go
+				s.tokenAttacks(k, sl, p) // filter_combatwords.go
 			}
 			if k.gen.anyTokCr {
 				s.fireTokenCreated(k, sl)
@@ -821,6 +825,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			}
 			s.res.lastTok = o
 		}
+		s.g.tokDefSet = false
 	case kop.OpEndTurn:
 		s.endTurnExile()
 		e.flags |= sfFlashback // exiled, not put into the graveyard
