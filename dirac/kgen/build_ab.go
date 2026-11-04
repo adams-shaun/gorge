@@ -1667,6 +1667,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantPhaseIn":
+		st.Kind = kop.StatCantPhaseIn // kw_phasing.go phaseBlocked
 	case "CantSacrifice":
 		st.Kind = kop.StatCantSacrifice // static_cantsacrifice.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -3305,6 +3307,11 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "Phases":
 		// (Spectral Adversary) OpExt ExtPhases, Obj the permanent or target slot
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtPhases))
+		if in.F != nil { // AllValid$: Obj RefNone, every battlefield permanent matching F
+			if err := objFilter(kop.ZoneBattlefield); err != nil {
+				return ki, err
+			}
+		}
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))

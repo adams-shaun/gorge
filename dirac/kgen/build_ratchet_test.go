@@ -125,8 +125,10 @@ import (
 // +3 (printed K:Hexproof:<Colour>: Knight of Grace, Knight of Malice and one more carrier; 19524 -> 19527).
 // +7 (RememberedLKI$CardPower / $CardToughness over a Sacrifice RememberSacrificed$ set: Tribute to Hunger, Twisted Justice, Xathrid Demon and kin; 19864 -> 19871. Reign of the Pit and Soul Separator stay refused: their read is a token override).
 // +1 (Melek, Reforged Researcher: OnlyFirstSpell$ with ValidSpell$; 19927 -> 19928; ratchet MKM 204 -> 205).
+// +1 (The City on the Edge of Forever: Phases AllValid$ and S:Mode$ CantPhaseIn; 21443 -> 21444; ratchet TRK 276 -> 277).
+// +1 (Ensign Pavel Chekov: RepeatEach Opponent over ChooseCard in exile with ImprintChosen$, then MayPlay over the chosen; 21444 -> 21445; ratchet TRK 277 -> 278).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21444, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21445, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -184,9 +184,11 @@ const (
 	// permanent named by Ref Obj (RefSelf, or a target slot RefTarget0..2,
 	// run once per object of a multi-object slot) phases out, and with it
 	// every permanent attached to it, indirectly (CR 702.26g). A phased-out
-	// permanent is on no battlefield walk (dirac.ZonePhased); the toggle
-	// form (PhaseInOrOut$), AllValid$ sweeps, Phaseout$ False, RememberAffected$
-	// and WontPhaseInNormal$ are refused by kgen. dirac/kw_phasing.go.
+	// permanent is on no battlefield walk (dirac.ZonePhased). With Obj RefNone
+	// and F set (AllValid$ <filter>; The City on the Edge of Forever) every
+	// battlefield permanent matching F phases out, in object order. The toggle
+	// form (PhaseInOrOut$), Phaseout$ False, RememberAffected$ and
+	// WontPhaseInNormal$ are refused by kgen. dirac/kw_phasing.go.
 	ExtPhases ExtOp = 110
 	// ExtLockActs (Braided Net): the permanent in Obj (a target),
 	// when it is tapped as this resolves, loses the ability to have its

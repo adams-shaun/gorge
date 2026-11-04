@@ -290,7 +290,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 	ids := e.G.Zone(state.ZBattlefield, e.G.Active)
 	for i := next; i < len(ids); i++ {
 		o := e.G.Obj(ids[i])
-		if o == nil {
+		if o == nil || o.PhasedOut {
+			// CR 702.26b, 502.3: a phased-out permanent is treated as though
+			// it does not exist, so the untap action leaves it alone (one a
+			// CantPhaseIn kept out of the phase-in just above stays tapped).
 			continue
 		}
 		if o.ExertSkipUntap {
@@ -373,7 +376,7 @@ func (e *Engine) finishUntapStep(next int) bool {
 		}
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			o := e.G.Obj(id)
-			if o != nil && o.Tapped && e.untapOtherStaticsMatch(id) {
+			if o != nil && !o.PhasedOut && o.Tapped && e.untapOtherStaticsMatch(id) {
 				e.untapTurnPermanent(id)
 			}
 		}
