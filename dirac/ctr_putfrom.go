@@ -17,8 +17,9 @@ import (
 // (bolsterPut: the counter replacements, CounterAddedOnce). A Class level
 // (CtrLevel) is not a counter. gorge emits one CounterChange per kind in
 // the source's insertion order while the kernel puts +1/+1 first then the
-// general slots ascending: two or more kinds in a table with a
-// counter-added trigger stall (StallCtrOrder). The recipient must be on the
+// general slots ascending: two or more kinds that a counter-added trigger
+// hears stall (StallCtrOrder; the order of puts no trigger hears, a stun
+// beside +1/+1 counters under a +1/+1 trigger, reaches no stack or state). The recipient must be on the
 // battlefield (gorge counters a non-battlefield object target too: an
 // off-battlefield recipient is not representable here).
 func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
@@ -62,24 +63,33 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 		p1, ck, cn = int(r.p1p1), r.ck, r.cn
 		nover = copy(over[:], s.ctrOverOf(src, e.li))
 	}
-	kinds := 0
+	kinds, heard := 0, 0
 	if p1 > 0 {
 		kinds++
+		if s.ctrAddedHeard(k, kop.CtrP1P1) {
+			heard++
+		}
 	}
 	for i := range ck {
 		if cn[i] > 0 && kop.CounterKind(ck[i]) != kop.CtrLevel {
 			kinds++
+			if s.ctrAddedHeard(k, kop.CounterKind(ck[i])) {
+				heard++
+			}
 		}
 	}
 	for _, x := range over[:nover] {
 		if x.n > 0 && kop.CounterKind(x.kind) != kop.CtrLevel {
 			kinds++
+			if s.ctrAddedHeard(k, kop.CounterKind(x.kind)) {
+				heard++
+			}
 		}
 	}
 	if kinds == 0 {
 		return
 	}
-	if kinds > 1 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if heard > 1 {
 		s.capFull(StallCtrOrder)
 		return
 	}
@@ -96,4 +106,38 @@ func (s *State) putCountersFrom(k *prep, in *kop.Instr) {
 			s.bolsterPut(k, sl, int(x.kind), int(x.n)*mult)
 		}
 	}
+}
+
+// ctrAddedHeard reports whether a counter-added trigger on the battlefield
+// (or an emblem) could fire for a put of counter kind c: the order of the
+// puts is observable (the stack order of their triggers) only between kinds
+// that are heard (CR 603.3b). The check is a superset of the real match: the
+// trigger's recipient filter is not read.
+func (s *State) ctrAddedHeard(k *prep, c kop.CounterKind) bool {
+	const ev = kop.TrigCounterAddedOnce
+	if !s.subs[ev].any() && (k.gen == nil || (k.gen.embObjEv|k.gen.grantTrigEv)&(1<<ev) == 0) {
+		return false
+	}
+	if k.gen != nil && k.gen.embObjEv&(1<<ev) != 0 {
+		return true
+	}
+	heard := func(a *kop.Ability) bool {
+		return a.Trig.N == kop.TrigNAnyCounter || kop.CounterKind(a.Trig.N) == c
+	}
+	if k.gen != nil {
+		found := false
+		s.eachTrigger(k, ev, func(_ trigListener, a *kop.Ability) { found = found || heard(a) })
+		return found
+	}
+	for m := s.subs[ev].and(s.occ); m.any(); {
+		sl := m.first()
+		m = m.without(sl)
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for i := range cd.Abilities {
+			if a := &cd.Abilities[i]; a.Kind == kop.AbTriggered && a.Trig.Event == ev && heard(a) {
+				return true
+			}
+		}
+	}
+	return false
 }

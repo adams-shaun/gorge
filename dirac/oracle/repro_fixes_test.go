@@ -240,6 +240,22 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-tmt's: each of these once ended in a kernel stall, which replayRepro alone does not see.
+func TestStdTmtReprosLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, "std-tmt")
+	for _, c := range []stdRepro{
+		{"put_counters_from_unheard_kind_order", false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {
+				t.Fatalf("the game stalled: %s", res.Stall)
+			}
+		})
+	}
+}
+
 // The same, on the pools the games came from.
 func TestStdPoolReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -310,6 +326,13 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 // replayRepro plays a fixture's script in lockstep and 200 decisions past it.
 func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) {
 	t.Helper()
+	replayReproRes(t, reg, set, name, autopay)
+}
+
+// replayReproRes is replayRepro returning the game's result, for a fixture whose
+// failure is a stall the game used to end on.
+func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) Result {
+	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -341,6 +364,7 @@ func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
+	return res
 }
 
 // A keyword removal that resolves after a grant is the newer effect (CR 613.1f, 613.7):
