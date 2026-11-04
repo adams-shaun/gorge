@@ -26,14 +26,14 @@ var kzeroraiseDecks = [2][]cardset.Entry{
 	},
 }
 
-func TestZeroraiseLockstep(t *testing.T) {
+func TestZeroIncorporealSensateLockstep(t *testing.T) {
 	t.Parallel()
 	lockstepSet(t, "zeroraise", kzeroraiseDecks, 800, "KZERORAISE_SEEDS")
 }
 
-// TestZeroraiseMutation proves the pool casts an exiled card with the
-// surcharge: without it, some seed diverges.
-func TestZeroraiseMutation(t *testing.T) {
+// TestZeroIncorporealSensateMutation proves the pool casts an exiled card
+// with the surcharge: without it, some seed diverges.
+func TestZeroIncorporealSensateMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
