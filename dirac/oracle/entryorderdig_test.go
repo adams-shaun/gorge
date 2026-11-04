@@ -46,3 +46,13 @@ func TestEntryOrderSearchLockstep(t *testing.T) {
 	pinnedGames(t, "std-trk", Config{GorgeAutopaySurface: false},
 		onBattlefield("Warp Speed"), onBattlefield("Genesis Device"), orderAskWhileResolving)
 }
+
+// A mass move onto the battlefield (Deep Space 9 returns the exiled lands) asks each
+// competing land in turn.
+func TestEntryOrderMassMoveLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	pinnedGames(t, "std-trk", Config{GorgeAutopaySurface: true},
+		onBattlefield("Warp Speed"), onBattlefield("Deep Space 9"), orderAskWhileResolving)
+}

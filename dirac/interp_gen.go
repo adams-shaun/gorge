@@ -1640,6 +1640,14 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					s.holdBatch(&eb)
 					return false
 				}
+				if z == kop.ZoneBattlefield && s.entryParkDig(k, o, ctrl) {
+					// the CR 616.1 entry-order ask, the card still in its zone (repl_entryorder.go)
+					if !resume {
+						s.g.held, s.g.retTS = 0, stamp
+					}
+					s.holdBatch(&eb)
+					return false
+				}
 				from := s.detach(o)
 				if mv&kop.MvRemember != 0 {
 					s.remember(o) // RememberChanged$, in move order (gorge emitMove)

@@ -359,7 +359,7 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 		return
 	}
 	s.res.ask = raNone
-	if op := s.prog(k)[s.res.pc].Op; s.g.ro.pcol&entMode == entOp && (op == kop.OpDigUntil || op == kop.OpDigEx) {
+	if s.g.ro.pcol&entMode == entOp && entryRerunOp(s.prog(k)[s.res.pc].Op) {
 		if s.entryDigRerun(k) {
 			s.entryOrderClear()
 			s.continueRes(k, 0)
@@ -407,8 +407,8 @@ func (s *State) entryParkOp(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
 	return true
 }
 
-// entryParkDig parks the move of o onto the battlefield that a dig makes (a
-// DigUntil's found card, or a Dig's taken card), o still in the library with
+// entryParkDig parks the move of o onto the battlefield that a dig or a mass move makes (a
+// DigUntil's found card, a Dig's taken card, a ChangeZoneAll's card), o still in the library with
 // the rest of the look. Only the two-body competition is ordered here, one tap
 // against one untap: the first pick decides it, so no re-ask follows the entry
 // (CR 616.1e) and the dig runs again from the answer. A longer competition
@@ -417,7 +417,7 @@ func (s *State) entryParkDig(k *prep, o Obj, ctrl uint8) bool {
 	if k.gen == nil || !k.gen.anyEntUntap || !s.res.active || s.res.ask != raNone {
 		return false
 	}
-	if op := s.prog(k)[s.res.pc].Op; op != kop.OpDigUntil && op != kop.OpDigEx {
+	if !entryRerunOp(s.prog(k)[s.res.pc].Op) {
 		return false
 	}
 	if !s.entryOrderPark(k, o, ctrl, entOp) {
@@ -447,6 +447,16 @@ func (s *State) entryParkFound(k *prep, o Obj, ctrl uint8) bool {
 	}
 	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
 	return true
+}
+
+// entryRerunOp: the instruction rerunMove runs again from an order answer, a dig's or
+// a mass move's.
+func entryRerunOp(op kop.Op) bool {
+	switch op {
+	case kop.OpDigUntil, kop.OpDigEx, kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:
+		return true
+	}
+	return false
 }
 
 // entryDigRerun runs the parked dig again from the order answer; false when
