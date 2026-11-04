@@ -1396,7 +1396,9 @@ func (s *State) execReturn(k *prep, in *kop.Instr, host Slot) bool {
 		return true
 	}
 	ask := s.execReturnObj(k, in, host, s.returningObj(in))
-	s.g.tokDefSet = false
+	if !ask {
+		s.g.tokDefSet = false // a parked card (clone election) keeps the answer for its re-run (rerunReturn)
+	}
 	return ask
 }
 
