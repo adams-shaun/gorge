@@ -1,0 +1,19 @@
+# the Saga remembered pool: The Measure of a Man, whose chapter III returns
+# what its chapter I exiled (kgen lower_rempersist.go remPersistSaga),
+# creatures to exile, removal and a bounce to make the Saga leave between its
+# chapters, and basics, for the oracle's constructed lockstep
+# (dirac/oracle/sagarem_test.go)
+The Measure of a Man
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Walking Corpse
+Shock
+Disenchant
+Naturalize
+Unsummon
+Plains
+Island
+Forest
+Mountain
+Swamp

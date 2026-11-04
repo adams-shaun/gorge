@@ -835,7 +835,9 @@ type lCard struct {
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	Flashback      *manaCost
-	RemPersist     bool      // the enters/leaves remembered pair (lower_rempersist.go)
+	RemPersist     bool      // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
+	RemSeed        uint32    // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
+	RemKeep        uint32    // RemPersist: the abilities whose finished set is kept (CardDef.RemKeep)
 	ExwWord        bool      // the card's text names ExiledWithSource: gorge records the reverse ExiledWith scalar for what it exiles (CardDef.ExiledWithRev)
 	ExiledWith     bool      // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
 	CombatHitRec   bool      // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)

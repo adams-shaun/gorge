@@ -51,7 +51,7 @@ func (s *State) resolveTop(k *prep) {
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
-		if k.gen.anyRemPersist && remPersist(k, &e) {
+		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
 		// a damage sequence belongs to the resolution that started it: a new
@@ -234,7 +234,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		s.wakeDefeat()
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRemPersist && remPersist(k, e) {
+	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
 	}
 	if e.kind == seSpell {

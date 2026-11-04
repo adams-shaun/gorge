@@ -250,6 +250,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.RemPersist {
 		fmt.Fprintf(w, " rempersist")
+		if c.RemSeed != ^uint32(0) || c.RemKeep != ^uint32(0) {
+			fmt.Fprintf(w, " seed=%#x keep=%#x", c.RemSeed, c.RemKeep)
+		}
 	}
 	if c.ExiledWith {
 		fmt.Fprintf(w, " exiledwith")

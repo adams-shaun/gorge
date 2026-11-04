@@ -542,7 +542,7 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
-	d.RemPersist = c.RemPersist
+	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
 	d.ExiledWith = c.ExiledWith
 	d.CombatHitRec = c.CombatHitRec
 	d.ExiledWithRev = c.ExwWord

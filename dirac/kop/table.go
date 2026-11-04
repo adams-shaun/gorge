@@ -365,6 +365,12 @@ type CardDef struct {
 	// trigger reads (gorge's Remembered persisting on the source: Journey
 	// to Nowhere, Mesmeric Fiend; dirac/zone_rememberpersist.go).
 	RemPersist bool
+	// RemSeed / RemKeep: with RemPersist, the abilities (bit i = Abilities[i])
+	// whose resolution starts with its source incarnation's kept set, and
+	// those whose finished set is kept. The enters/leaves pair sets both to
+	// every ability; a Saga sets its reading and its writing chapters (The
+	// Measure of a Man: chapter III returns what chapter I exiled).
+	RemSeed, RemKeep uint32
 	// ExiledWith: the card reads the exiled-with source link (PredExiledWith
 	// or ExExiledWithN): its resolutions record the cards they exile
 	// (dirac/zone_exiledwith.go, genPrep.exwRec).
