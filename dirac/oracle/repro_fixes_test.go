@@ -176,9 +176,11 @@ func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
-		{"sorcery_play_waits_for_prefix_trigger", false}, // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
-		{"airbent_card_with_self_flash", true},           // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
-		{"granted_mana_once_beside_another_grant", true}, // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"sorcery_play_waits_for_prefix_trigger", false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
+		{"airbent_card_with_self_flash", true},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
+		{"granted_mana_once_beside_another_grant", true},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"waterbend_no_picks_falls_to_manual_window", false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
+		{"waterbend_no_picks_falls_to_manual_window_autopay", true}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
 	})
 }
 

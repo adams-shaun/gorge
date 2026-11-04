@@ -402,10 +402,13 @@ func (s *State) waterbendManualPay(k *prep, e *stackEntry, saved *[len(build{}.p
 	if s.waterbendPickCount() == 0 {
 		// every credited pick declined: the offer gate priced the reduced
 		// cost, so the printed cost may be unpayable and gorge's window then
-		// aborts the activation (CR 733.1) after tapping as it walked
+		// aborts the activation (CR 733.1) after tapping as it walked. The
+		// probe is gorge's planner, which holds printed sources only: a
+		// granted source is no unit, so a cost only it pays takes the window
+		// (pay.PaymentAbility; mana_grantedoffers.go)
 		cost := s.buildCost(k)
 		var chk planner
-		chk.dry = true
+		chk.dry, chk.noGrant = true, true
 		s.tapForPK(k, e.ctrl, &cost, int(e.x), NoObj, false, false, &chk)
 		return chk.needT > 0 && !chk.found
 	}
