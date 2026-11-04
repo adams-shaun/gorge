@@ -3365,7 +3365,10 @@ func (lc *lowerCtx) animateGraveMayPlay(ps *params, spec string) error {
 // Duration$ Permanent, RememberObjects$ Remembered, ForgetOnMoved$ Exile and
 // two statics -- MayPlay over Card.IsRemembered in exile for the card's
 // owner (MayPlayPlayer$ CardOwner) and an optional RaiseCost$ of a literal
-// {N} on a spell cast that way by an opponent of the effect's controller.
+// {N} on a spell cast that way: by an opponent of the effect's controller
+// (Activator$ Opponent) or, with the Activator$ left out, by whoever casts
+// it (Zero, Incorporeal Sensate -- the permission admits only the owner, so
+// the owner pays).
 // It emits one MayPlay over the remembered exiled card with the WhileExiled
 // duration, kop.MayPlayOwner and the surcharge (B >> kop.MayPlayRaiseShift).
 // It reports whether the shape was this one.
@@ -3430,8 +3433,19 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
-			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" || rc.str("Activator") != "Opponent" {
+			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
 			return true, refuse("Effect MayPlay beside a RaiseCost shape")
+		}
+		// the surcharge's actor: Soul Partition names the opponent of the
+		// effect's controller (Activator$ Opponent); Zero, Incorporeal
+		// Sensate names none, so gorge's costActorMatches lets every
+		// actor pay it -- and the paired MayPlayPlayer$ CardOwner
+		// permission is the only way to cast the remembered card, so the
+		// owner pays it.
+		switch act := rc.str("Activator"); act {
+		case "", "Opponent":
+		default:
+			return true, refuse("Effect RaiseCost Activator$ %q", act)
 		}
 		n, err := strconv.Atoi(rc.str("Amount"))
 		if err != nil || n < 1 || n > 7 {

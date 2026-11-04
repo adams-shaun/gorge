@@ -238,7 +238,9 @@ func prepBecomeCopy(t *kop.Table, g *genPrep) {
 // minted by in carries the as-enters copy line, else 0. A token copy of a
 // permanent that is itself a copy would be minted on that permanent's printed
 // card while it waits for the answer (copyTokenBasis): not modelled, it
-// stalls (StallCopyAllAsk).
+// stalls (StallCopyAllAsk). A copy-all sweep asks its source's slot itself
+// (sweepRun, copy_allpark.go), so a source that is not a copy poses the
+// election instead of stalling.
 //
 //go:noinline
 func (s *State) cloneTokenAsk(k *prep, in *kop.Instr, c CardID) uint8 {

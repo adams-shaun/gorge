@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -14,27 +15,27 @@ import (
 func TestStdMkmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-mkm", []stdRepro{
-		{"deathtouch_wither_hit", true},                   // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
-		{"dealt_once_each_damage", true},                  // EachDamage lands on one referent twice: one trigger with the batch's total
-		{"wither_from_departed_source", true},             // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
-		{"potential_once_each_turn_mana", true},           // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
-		{"hold_out_ends_with_first_strike_step", true},    // the regular damage step is a new window with no StepChange
-		{"dealt_damage_new_object", true},                 // CR 400.7: a returned creature has dealt no damage this turn
-		{"entering_is_not_leaving", true},                 // Doorkeeper Thrull leaves "leave your graveyard" lines alone
-		{"spell_gained_deathtouch_lifelink", true},        // Judith's mode on the spell that triggered her
-		{"trigger_limit_look_back", true},                 // CR 603.10a: Homicide Investigator's own death reads the limit it spent
-		{"optional_cost_no_prefix_search", false},         // an OptionalCost card's plain cast: no search over a Strider
-		{"optional_cost_granted_source", false},           // nor a witness from a granted source (Insidious Roots)
-		{"fee_colour_hybrid_face", false},                 // a filter's fee takes the colour the hybrid face can spare
-		{"first_only_filter_in_window", false},            // a once-each-turn filter is listed once the pool pays its fee
-		{"ward_window_first_only_filter", false},          // ... and a failed ward payment still spends it
-		{"granted_colours_before_printed", false},         // Leyline of the Guildpact: a {C} land makes a granted colour first
-		{"face_down_granted_trigger", false},              // Curious Inquiry on a face-down creature
-		{"granted_source_hybrid_cast", false},             // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
-		{"activation_plan_search_limit", false},           // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
-		{"granted_colours_before_dual_types", false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
-		{"ward_failed_payment_granted_type_first", false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
-		{"granted_types_any_land_hybrid_pool", true},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"deathtouch_wither_hit", true, false},                   // CR 704.5h: a counter-form hit marks no damage, and the mark alone is lethal
+		{"dealt_once_each_damage", true, false},                  // EachDamage lands on one referent twice: one trigger with the batch's total
+		{"wither_from_departed_source", true, false},             // a dying Shady Informant's trigger keeps the wither Massacre Girl gave it
+		{"potential_once_each_turn_mana", true, false},           // Gravestone Strider's {1} mana ability counts toward a trigger's own cost
+		{"hold_out_ends_with_first_strike_step", true, false},    // the regular damage step is a new window with no StepChange
+		{"dealt_damage_new_object", true, false},                 // CR 400.7: a returned creature has dealt no damage this turn
+		{"entering_is_not_leaving", true, false},                 // Doorkeeper Thrull leaves "leave your graveyard" lines alone
+		{"spell_gained_deathtouch_lifelink", true, false},        // Judith's mode on the spell that triggered her
+		{"trigger_limit_look_back", true, false},                 // CR 603.10a: Homicide Investigator's own death reads the limit it spent
+		{"optional_cost_no_prefix_search", false, false},         // an OptionalCost card's plain cast: no search over a Strider
+		{"optional_cost_granted_source", false, false},           // nor a witness from a granted source (Insidious Roots)
+		{"fee_colour_hybrid_face", false, false},                 // a filter's fee takes the colour the hybrid face can spare
+		{"first_only_filter_in_window", false, false},            // a once-each-turn filter is listed once the pool pays its fee
+		{"ward_window_first_only_filter", false, false},          // ... and a failed ward payment still spends it
+		{"granted_colours_before_printed", false, false},         // Leyline of the Guildpact: a {C} land makes a granted colour first
+		{"face_down_granted_trigger", false, false},              // Curious Inquiry on a face-down creature
+		{"granted_source_hybrid_cast", false, false},             // Leyline of the Guildpact's {G/W}{G/U}{B/G}{R/G}: a hybrid cast is a potential play, and a granted source's prefix is searched on its pips as printed
+		{"activation_plan_search_limit", false, false},           // Wispdrinker Vampire's {5}{W}{B} under Leyline of the Guildpact: the planner's node limit still arms its best plan
+		{"granted_colours_before_dual_types", false, false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
+		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
+		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
 	})
 }
 
@@ -42,20 +43,27 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 func TestStdOtjReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-otj", []stdRepro{
-		{"copied_vehicle_counts_its_crew", true}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
-		{"counters_skip_a_ceased_token", true},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		{"copied_vehicle_counts_its_crew", true, false}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
+		{"counters_skip_a_ceased_token", true, false},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
 		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
 		// with a wide Stablemaster tap and a Mountain: the rider plan's
 		// restricted mana floats, the payment admits and spends it first
 		// (gorge pay.PlanPool, pay/plancost.go), so the plan taps only for
 		// what the restricted mana leaves.
-		{"rider_plan_wide_restricted_float", true},
-		{"rider_plan_wide_restricted_float_full", false},
+		{"rider_plan_wide_restricted_float", true, false},
+		{"rider_plan_wide_restricted_float_full", false, false},
 		// Bristly Bill, Spine Sower's doubling places 81920 +1/+1 counters:
 		// past the kernel's 16-bit storage bound no value can agree with
 		// gorge, so the game stops as the declared StallCounters capacity
 		// (the divergence this replaces was the silent clamp).
-		{"bristly_bill_counter_overflow_stalls", false},
+		{"bristly_bill_counter_overflow_stalls", false, true},
+		// Oko, the Ringleader's -5 copies each other permanent you control and
+		// a copy's as-enters ask parks the sweep; the parked answer leaves
+		// the sweep's zone batch to fire once, in entry order, when the sweep
+		// ends (CR 603.6a): the Railway Brawler copies' "another creature
+		// enters" see the Duelist and the later copies enter before the copy
+		// the answer was made on
+		{"copy_all_sweep_batch_spans_parked_ask", false, false},
 	})
 }
 
@@ -63,8 +71,8 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 func TestStdBlbReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-blb", []stdRepro{
-		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
-		{"x_cast_leaves_a_target", false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
+		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true, false}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
+		{"x_cast_leaves_a_target", false, false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
 	})
 }
 
@@ -72,8 +80,8 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 func TestStdTrkReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-trk", []stdRepro{
-		{"granted_mana_taps_stack_one_at_a_time", false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
-		{"entry_counter_put_by_returned_owner", false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+		{"granted_mana_taps_stack_one_at_a_time", false, false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
+		{"entry_counter_put_by_returned_owner", false, false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
 	})
 }
 
@@ -81,18 +89,18 @@ func TestStdTrkReprosLockstep(t *testing.T) {
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fdn", []stdRepro{
-		{"surveil_own_replacement", true},                // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
-		{"color_gate_made_black", true},                  // Knight of Grace counts what Eaten by Piranhas made black
-		{"color_gate_recoloured", true},                  // ... and not what Witness Protection made green and white
-		{"exile_instead_planeswalker", true},             // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
-		{"lifelink_plus_per_source", true},               // two lifelink sources are two gains, each with Angel of Vitality's plus one
-		{"lost_ability_no_shuffle", true},                // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
-		{"damage_map_per_recipient", true},               // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
-		{"copies_enter_together", true},                  // CR 603.6a: each of Rite of Replication's five sees the other four
-		{"flashback_restricted_source", true},            // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
-		{"granted_any_mana_beside_own_trigger_x", false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
-		{"trigger_paid_x_zero_binds", false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
-		{"dies_trigger_reads_attacking_lki", true},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
+		{"surveil_own_replacement", true, false},                // a surveil's graveyard pile meets Darksteel Colossus's "from anywhere"
+		{"color_gate_made_black", true, false},                  // Knight of Grace counts what Eaten by Piranhas made black
+		{"color_gate_recoloured", true, false},                  // ... and not what Witness Protection made green and white
+		{"exile_instead_planeswalker", true, false},             // CR 700.4: a planeswalker with no loyalty dies, so Obliterating Bolt exiles it
+		{"lifelink_plus_per_source", true, false},               // two lifelink sources are two gains, each with Angel of Vitality's plus one
+		{"lost_ability_no_shuffle", true, false},                // CR 613.1f: Witness Protection on Darksteel Colossus: it dies
+		{"damage_map_per_recipient", true, false},               // Niv-Mizzet draws for the 3 to the opponent, not Drakuseth's whole 10
+		{"copies_enter_together", true, false},                  // CR 603.6a: each of Rite of Replication's five sees the other four
+		{"flashback_restricted_source", true, false},            // Secluded Courtyard's any colour cannot pay Mystical Teachings' printed flashback
+		{"granted_any_mana_beside_own_trigger_x", false, false}, // New Horizons on a Forest adds an any-colour ability beside its own, so Wildborn Preserver's "you may pay {X}" counts it in the potential pool as gorge's walk does
+		{"trigger_paid_x_zero_binds", false, false},             // CR 107.3: Wildborn Preserver paid X = 0 puts no counters, whatever X the creature that triggered it was cast with
+		{"dies_trigger_reads_attacking_lki", true, false},       // CR 603.10a: Garna, Bloodfist of Keld draws for a Perforating Artist that died attacking, its last known status
 	})
 }
 
@@ -100,9 +108,9 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false}, // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_trigger_cost", true},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false}, // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
 	})
 }
 
@@ -110,7 +118,7 @@ func TestStdEoeReprosLockstep(t *testing.T) {
 func TestStdHobReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-hob", []stdRepro{
-		{"sac_part_and_mana_share_a_treasure", false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
+		{"sac_part_and_mana_share_a_treasure", false, false}, // CR 601.2g-h: the one Treasure that pays Stir Up Trouble's {B} is gone, so it is not also the artifact its either-or part sacrifices; the cast is not offered
 	})
 }
 
@@ -118,11 +126,11 @@ func TestStdHobReprosLockstep(t *testing.T) {
 func TestStdBigReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-big", []stdRepro{
-		{"copy_exception_types_count", false},                        // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
-		{"discard_replacement_before_damage_removal", true},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
-		{"replacement_answer_mid_payment_pays_through_window", true}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
-		{"sba_batch_asks_before_tokens_cease", true},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
-		{"ability_target_before_cost_replacement", true},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
+		{"copy_exception_types_count", false, false},                        // Loot counts the card types among permanents, and a token copied "except it's an artifact creature" has the creature type
+		{"discard_replacement_before_damage_removal", true, false},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
+		{"replacement_answer_mid_payment_pays_through_window", true, false}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
+		{"sba_batch_asks_before_tokens_cease", true, false},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
+		{"ability_target_before_cost_replacement", true, false},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
 	})
 }
 
@@ -130,7 +138,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 func TestStdTdmReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tdm", []stdRepro{
-		{"shuffle_target_already_returned", false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
+		{"shuffle_target_already_returned", false, false}, // CR 608.2b: Rite of Renewal's shuffled cards are in the graveyard still; one already returned to hand stays there
 	})
 }
 
@@ -140,7 +148,7 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 func TestAttackersDeclaredCountsEachCreatureOnceLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-mkm", []stdRepro{
-		{"attackers_declared_counts_each_creature_once", false},
+		{"attackers_declared_counts_each_creature_once", false, false},
 	})
 }
 
@@ -150,7 +158,7 @@ func TestAttackersDeclaredCountsEachCreatureOnceLockstep(t *testing.T) {
 func TestSorceryActivationWaitsForPrefixTriggerLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
-		{"sorcery_activation_waits_for_prefix_trigger", false},
+		{"sorcery_activation_waits_for_prefix_trigger", false, false},
 	})
 }
 
@@ -160,7 +168,7 @@ func TestSorceryActivationWaitsForPrefixTriggerLockstep(t *testing.T) {
 func TestTransformedTokenCopyKeepsCopyExceptionsLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
-		{"transformed_token_copy_keeps_copy_exceptions", false},
+		{"transformed_token_copy_keeps_copy_exceptions", false, false},
 	})
 }
 
@@ -170,7 +178,7 @@ func TestTransformedTokenCopyKeepsCopyExceptionsLockstep(t *testing.T) {
 func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-lci", []stdRepro{
-		{"crew_again_under_type_removing_aura", true},
+		{"crew_again_under_type_removing_aura", true, false},
 	})
 }
 
@@ -178,18 +186,19 @@ func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
-		{"sorcery_play_waits_for_prefix_trigger", false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
-		{"airbent_card_with_self_flash", true},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
-		{"granted_mana_once_beside_another_grant", true},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
-		{"waterbend_no_picks_falls_to_manual_window", false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
-		{"waterbend_no_picks_falls_to_manual_window_autopay", true}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
-		{"exiled_target_keeps_was_damaged", false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
+		{"sorcery_play_waits_for_prefix_trigger", false, false},            // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
+		{"airbent_card_with_self_flash", true, false},                      // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
+		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
+		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
+		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
+		{"exiled_target_keeps_was_damaged", false, false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 	})
 }
 
 type stdRepro struct {
 	name    string
 	autopay bool
+	stall   bool // the replay is expected to end in the declared kernel stall
 }
 
 func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
@@ -198,7 +207,7 @@ func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
 	set := cardsettest.Synth(t, pool)
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			replayRepro(t, reg, set, c.name, c.autopay)
+			replayRepro(t, reg, set, c.name, c.autopay, c.stall)
 		})
 	}
 }
@@ -207,13 +216,13 @@ func stdReprosLockstep(t *testing.T, pool string, cases []stdRepro) {
 func TestStdFinReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fin", []stdRepro{
-		{"clash_chain_link_target_order", true},          // a mode's chain link is listed after the later modes' roots
-		{"granted_death_trigger_last_known_power", true}, // CR 608.2h: Galuf's Final Act reads the pumped power
-		{"peek_after_source_changed_hands", true},        // CR 109.5: "your library" after Stiltzkin gave the source away
-		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
-		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
-		{"granted_prefix_sacrifices_own_treasure", true}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
-		{"sacrifice_cost_granted_prefix", true},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+		{"clash_chain_link_target_order", true, false},          // a mode's chain link is listed after the later modes' roots
+		{"granted_death_trigger_last_known_power", true, false}, // CR 608.2h: Galuf's Final Act reads the pumped power
+		{"peek_after_source_changed_hands", true, false},        // CR 109.5: "your library" after Stiltzkin gave the source away
+		{"search_by_departed_targets_controller", true, false},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
+		{"free_cast_targets_resolving_ability", true, false},    // CR 608.2m: Buster Sword's offer may target the trigger itself
+		{"granted_prefix_sacrifices_own_treasure", true, false}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
+		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
 	})
 }
 
@@ -221,8 +230,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
-		{"granted_and_printed_flashback_ambiguous", false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
 	})
 }
 
@@ -230,9 +239,9 @@ func TestStdSosReprosLockstep(t *testing.T) {
 func TestStdEclReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-ecl", []stdRepro{
-		{"each_color_among_valid_printed_read", false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
-		{"each_color_among_valid_printed_read_autopay", true}, // ... and the tap's mana is floated with the B in the pool itself
-		{"convoke_tap_another_source_keeps_target", true},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
+		{"each_color_among_valid_printed_read", false, false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
+		{"each_color_among_valid_printed_read_autopay", true, false}, // ... and the tap's mana is floated with the B in the pool itself
+		{"convoke_tap_another_source_keeps_target", true, false},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
 	})
 }
 
@@ -240,8 +249,8 @@ func TestStdEclReprosLockstep(t *testing.T) {
 func TestStdFraReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-fra", []stdRepro{
-		{"sweep_returns_aura_after_earlier_entrants", true}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
-		{"sacrificed_mana_source_moves_its_aura", false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
+		{"sweep_returns_aura_after_earlier_entrants", true, false}, // CR 303.4f: Return to the Light Realms asks for Infinite Coursework's host with the cards before it entered and the ones after still in the graveyard
+		{"sacrificed_mana_source_moves_its_aura", false, false},    // CR 704.3, 704.5m: the check after a mana source's sacrifice while paying a cast takes its Aura before the cast's next choice
 	})
 }
 
@@ -249,8 +258,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
-		{"clone_entry_order_three_candidates", false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
 	})
 }
 
@@ -260,7 +269,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 	reg := synthReg(t)
 	set := cardsettest.Synth(t, "std-tmt")
 	for _, c := range []stdRepro{
-		{"put_counters_from_unheard_kind_order", false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+		{"put_counters_from_unheard_kind_order", false, false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {
@@ -274,7 +283,7 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
-		{"room_shown_face_plain_cast", false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"room_shown_face_plain_cast", false, false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 	})
 }
 
@@ -306,7 +315,7 @@ func TestStdPoolReprosLockstep(t *testing.T) {
 		{"returned_creature_was_not_dealt_damage", "std-fin"},           // CR 400.7: Qutrub Forayer raised after combat damage killed it is dealt no damage this turn, so its destroy mode has no target
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true)
+			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, true, false)
 		})
 	}
 }
@@ -340,15 +349,18 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 		{"static_trigger_grants_list_before_effect_grants", "std-fin"},      // Summon: Primal Odin under Thief's Knife and Zantetsuken: the Knife's static grant lists its draw before the Animate grant's lose-game, so the one order ask means the same order on both sides (CR 603.3b)
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false)
+			replayRepro(t, reg, cardsettest.Synth(t, c.pool), c.name, false, false)
 		})
 	}
 }
 
 // replayRepro plays a fixture's script in lockstep and 200 decisions past it.
-func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) {
+func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay, stall bool) {
 	t.Helper()
-	replayReproRes(t, reg, set, name, autopay)
+	res := replayReproRes(t, reg, set, name, autopay)
+	if !stall && strings.HasPrefix(res.Stall, KernelStallPrefix) {
+		t.Fatalf("kernel stalled: %s", res.Stall)
+	}
 }
 
 // replayReproRes is replayRepro returning the game's result, for a fixture whose
@@ -395,6 +407,6 @@ func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, name str
 func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
-		{"keyword_removal_resolved_after_a_grant", true},
+		{"keyword_removal_resolved_after_a_grant", true, false},
 	})
 }

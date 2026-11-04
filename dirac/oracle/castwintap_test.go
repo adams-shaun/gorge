@@ -119,7 +119,7 @@ func TestCastWindowTapAnotherSourceRowsLockstep(t *testing.T) {
 		"cast_window_tap_another_wild_unraveling", "cast_window_tap_another_wild_unraveling_either_or",
 	} {
 		t.Run(name, func(t *testing.T) {
-			replayRepro(t, reg, cardsettest.Synth(t, "std-ecl"), name, false)
+			replayRepro(t, reg, cardsettest.Synth(t, "std-ecl"), name, false, false)
 		})
 	}
 }
