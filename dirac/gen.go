@@ -1466,10 +1466,14 @@ type genState struct {
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
 	// walk (grantedAbilitiesN) reports one ability to its callback; it fills
 	// the pad after redNC.
-	grantSrc    uint8
-	cast        slotMask // slots whose permanent was cast by its controller
-	zoneTurn    objBits  // objects put into their current zone this turn
-	enteredN    uint8    // the live prefix of State.cold.entered
+	grantSrc uint8
+	cast     slotMask // slots whose permanent was cast by its controller
+	zoneTurn objBits  // objects put into their current zone this turn
+	// dmgTurn is gorge Object.WasDealtDamageThisTurn (CR 120.3a): it survives a
+	// zone change and a regeneration (zones.go enterNF clears it only on a real
+	// battlefield entry), the marked damage does not.
+	dmgTurn     objBits // objects dealt positive damage this turn
+	enteredN    uint8   // the live prefix of State.cold.entered
 	enteredFull bool
 	enteredOn   bool // the table has an ExThisTurnEntered expression
 	// (act_initiative.go; the padding before mo)

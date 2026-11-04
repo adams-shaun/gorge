@@ -149,6 +149,7 @@ func TestWasDamagedFilter(t *testing.T) {
 		t.Fatal("an undamaged creature matched")
 	}
 	sc.s.perms[sl].damage = 1
+	sc.s.g.dmgTurn.set(sc.s.perms[sl].obj)
 	if !sc.s.matchPerm(sc.k, f, sl, 0, NoSlot) {
 		t.Fatal("a damaged opposing creature did not match")
 	}

@@ -547,6 +547,7 @@ func (s *State) newTurnGen() {
 		s.g.nused = 0
 	}
 	s.g.zoneTurn = objBits{}
+	s.g.dmgTurn = objBits{} // WasDealtDamageThisTurn clears with the marked damage (gorge TurnChange)
 	s.g.enteredN = 0
 	s.g.enteredFull = false
 	s.mSlZero(s.k(), mechExileEx)
