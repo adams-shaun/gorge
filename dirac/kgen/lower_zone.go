@@ -1446,7 +1446,8 @@ func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter) error {
 
 // playSAExpr translates ValidSA$ to a filter expression, ANDed with the
 // population filter by the caller. The accepted spellings:
-// Spell, Spell.cmcLE<n>, Spell.cmcLEX, and Instant[.cmc...],Sorcery[.cmc...].
+// Spell, Spell.cmcLE<n>, Spell.cmcLE<letter> (the bound is the ability's SVar
+// of that letter, lowered by lc.filter like X), and Instant[.cmc...],Sorcery[.cmc...].
 // A plain Spell is the land skip OpCastFree already applies, so it adds
 // nothing; a Spell cmc bound adds just the bound (lands are still skipped).
 // Gorge tests the printed face; kgen refuses a multi-face card before here.
@@ -1473,8 +1474,8 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 		}
 		for _, p := range parts[1:] {
 			switch {
-			case p == "cmcLEX":
-				clause = andClause(clause, "cmcLEX")
+			case isCmcLEVar(p):
+				clause = andClause(clause, p)
 			case spellHead && lc.bluffPlay && playNonCreatureYouOwn(p):
 				// Spell.nonCreature+YouOwn (Brazen Bluff's free cast from hand)
 				clause = andClause(clause, p)
@@ -1495,6 +1496,14 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 		}
 	}
 	return strings.Join(alts, ","), nil
+}
+
+// isCmcLEVar reports a mana-value bound named by a one-letter SVar: cmcLEX,
+// cmcLEY (Captain Benjamin Sisko's Officer count). gorge reads any one
+// capital letter from the resolving ability's SVar table
+// (effects/play.go validSAOK).
+func isCmcLEVar(p string) bool {
+	return len(p) == 6 && strings.HasPrefix(p, "cmcLE") && p[5] >= 'A' && p[5] <= 'Z'
 }
 
 // playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
@@ -1539,7 +1548,7 @@ func andFilterExpr(a, b string) (string, error) {
 }
 
 // playRememberedClause reads the P1 Valid$ shapes:
-// Card.IsRemembered[+nonLand][+cmcLEX]. IsRemembered is the population and
+// Card.IsRemembered[+nonLand][+YouOwn][+cmcLE<letter>]. IsRemembered is the population and
 // nonLand is the kernel's land skip, so only the cmc bound reaches the filter.
 func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
 	if strings.Contains(valid, ",") {
@@ -1549,8 +1558,12 @@ func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
 	for _, part := range strings.Split(valid, "+") {
 		switch {
 		case part == "Card.IsRemembered", part == "IsRemembered", part == "nonLand", part == "Card.nonLand":
-		case part == "cmcLEX":
-			cmc = andClause(cmc, "cmcLEX")
+		case part == "YouOwn":
+			// owned by the controller: kept as a filter clause (a library can
+			// hold a card another player owns), not assumed from the Dig
+			cmc = andClause(cmc, part)
+		case isCmcLEVar(part):
+			cmc = andClause(cmc, part)
 		case strings.HasPrefix(part, "cmcLE"), strings.HasPrefix(part, "cmcLT"), strings.HasPrefix(part, "cmcEQ"):
 			if _, err := strconv.Atoi(part[5:]); err != nil {
 				return "", refuse("Play Valid$ %q", valid)
