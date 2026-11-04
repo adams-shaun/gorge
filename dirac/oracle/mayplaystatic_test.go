@@ -76,11 +76,18 @@ var mayPlayDecks = [5][]cardset.Entry{
 // active Osteomancer effect), B vs B (the P1P1 top-library casts), and the
 // Overflow Submatrix deck against B (countered and bounced artifact
 // creatures recast) and against A (each side's graveyard casts beside an
-// Overflow Submatrix), and the Storied Veteran deck against itself and
-// against B.
-var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}, {4, 4}, {4, 1}}
+// Overflow Submatrix). mayPlayVeteranMatchups, a test of their own for the
+// time budget: the Storied Veteran deck against itself and against B.
+var (
+	mayPlayMatchups        = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}}
+	mayPlayVeteranMatchups = [][2]int{{4, 4}, {4, 1}}
+)
 
 func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls int) {
+	return mayPlayRunOn(t, mayPlayMatchups, seeds, report)
+}
+
+func mayPlayRunOn(t *testing.T, matchups [][2]int, seeds uint64, report bool) (diverged bool, stalls int) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -91,7 +98,7 @@ func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls 
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mu := range mayPlayMatchups {
+	for _, mu := range matchups {
 		var decks [2][]*cards.Card
 		for s, di := range mu {
 			for _, e := range mayPlayDecks[di] {
@@ -179,6 +186,28 @@ func TestMayplaystaticLockstep(t *testing.T) {
 		if c.got < c.min {
 			t.Errorf("%s: %d, want at least %d", c.s, c.got, c.min)
 		}
+	}
+}
+
+// TestMayplaystaticVeteranLockstep: Storied Veteran cast from the graveyard
+// beside Leonardo's graveyard casts of Spectral Sailor, whose flash puts it
+// on the stack above the Veteran: only the Veteran's own cast gets its
+// finality counter, and the Veteran under Leonardo is offered one may-play
+// cast.
+func TestMayplaystaticVeteranLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.MayPlayStats.StaticResolved.Store(0)
+	dirac.MayPlayStats.FinalityEnter.Store(0)
+	div, stalls := mayPlayRunOn(t, mayPlayVeteranMatchups, 256, true)
+	static, finality := dirac.MayPlayStats.StaticResolved.Load(), dirac.MayPlayStats.FinalityEnter.Load()
+	t.Logf("256 seeds, %d divergences, %d stalls; static resolutions %d, FINALITY entries %d", b2i(div), stalls, static, finality)
+	if div {
+		return
+	}
+	if static < 30 || finality < 20 {
+		t.Errorf("static resolutions %d (want 30+), FINALITY entries %d (want 20+)", static, finality)
 	}
 }
 
