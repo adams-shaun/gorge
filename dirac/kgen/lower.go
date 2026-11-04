@@ -93,6 +93,8 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
+	firstCastSVar  string    // the SVar a static SpellCast StoreSVar of Count$YouCastThisGame writes (lower_firstcast.go)
+	firstCastTrig  int       // that trigger's index + 1: it lowers to nothing
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff)
 	animAll        bool      // lowering an AnimateAll: animateRemoveKeywords accepts a bare RemoveKeywords$ (gorge effAnimateAll reads it)
 	speedRepl      bool      // lowering a max-speed static's granted replacement: damagePlus reads ValidTarget$ Player.Opponent (lower_maxspeedrepl.go)
@@ -281,6 +283,7 @@ func (lc *lowerCtx) lowerFace() {
 // spell lines (a Room state def is a battlefield-only def).
 func (lc *lowerCtx) lowerLines(origin, perm bool) {
 	out := lc.out
+	lc.scanFirstCast() // lower_firstcast.go
 	for i, a := range lc.face.Abilities {
 		if perm && a.Kind == "SP" {
 			continue
@@ -301,6 +304,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 	for i, t := range lc.face.Triggers {
 		t := t
 		n := len(out.Abilities)
+		if lc.firstCastTrig == i+1 {
+			continue // the stamp: dirac marks the spell when it is cast (lower_firstcast.go)
+		}
 		if t.Mode == "TapsForMana" {
 			lc.guard(fmt.Sprintf("T[%d] Mode=%s", i, t.Mode), func() error { return lc.tapExtraStatic(t) })
 			continue
