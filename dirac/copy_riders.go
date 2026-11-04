@@ -82,11 +82,17 @@ func (s *State) copyExcTySlots(k *prep) (m slotMask) {
 // copyPumpEnter grants token slot sl the PumpKeywords$ keyword named by the
 // copy op in (B.N >> kop.CopyPumpShift: its KwMask bit + 1): a permanent
 // keyword override record (the table's AddKw-only record for that keyword),
-// not a copy exception.
+// not a copy exception; with kop.CopyPumpEOT an until-end-of-turn grant.
 //
 //go:noinline
 func (s *State) copyPumpEnter(k *prep, sl Slot, in *kop.Instr) {
-	kw := kop.KwMask(1) << (uint16(in.B.N)>>kop.CopyPumpShift - 1)
+	kw := kop.KwMask(1) << (uint16(in.B.N)>>kop.CopyPumpShift&0x3f - 1)
+	if in.B.N&kop.CopyPumpEOT != 0 {
+		s.grantEOT(sl, kw)
+		s.promoKw(k, sl, kw)
+		s.touchSl(sl)
+		return
+	}
 	for i := range k.t.Overrides {
 		o := k.t.Overrides[i]
 		if o.AddKw != kw {

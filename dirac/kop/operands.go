@@ -315,6 +315,7 @@ const (
 	// Reflection of Kiki-Jiki). CpSacAtEnd is AtEOTTrig$, a
 	// trigger the token itself carries.
 	CpSacAtEndDly
+	CpTapped // the token enters tapped (TokenTapped$ True; gorge copypermanent.go CopyTokenTapped)
 )
 
 // CopyPumpShift: OpCopyAsTokenEx B.N >> 8 (as uint16) names the keyword of
@@ -323,6 +324,10 @@ const (
 // (a Table.Overrides record holding only that AddKw, which kgen interns),
 // never as a copy exception, so a copy of the token lacks it.
 const CopyPumpShift = 8
+
+// CopyPumpEOT: OpCopyAsTokenEx B.N bit 14, beside a PumpKeywords$ keyword:
+// the grant lasts until end of turn (PumpDuration$ EOT), not permanently.
+const CopyPumpEOT = 1 << 14
 
 // TokenFlags (OpCreateTokenEx B.N).
 const (

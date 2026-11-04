@@ -1954,7 +1954,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if early {
 		s.g.entExc = entExcOn | uint32(tmpl)<<8 | uint32(uint8(in.C))
 	}
-	sl := s.enterNF(k, t, e.ctrl, false, kop.ZoneLibrary, face)
+	sl := s.enterNF(k, t, e.ctrl, fl&kop.CpTapped != 0, kop.ZoneLibrary, face)
 	if face != 0 {
 		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
 	}

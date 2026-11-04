@@ -2491,10 +2491,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 	}
 	if k, ok := ps.get("PumpKeywords"); ok {
-		// not copiable (gorge :287, :308-327): a permanent keyword grant on
-		// each token after it enters, so a copy of the copy lacks it
+		// not copiable (gorge :287, :308-327): a keyword grant on each token
+		// after it enters, so a copy of the copy lacks it; permanent, or
+		// until end of turn under PumpDuration$ EOT
+		pumpFlag := "Pump="
 		if d, ok := ps.get("PumpDuration"); ok {
-			return refuse("CopyPermanent PumpDuration %q", d)
+			if d != "EOT" {
+				return refuse("CopyPermanent PumpDuration %q", d)
+			}
+			pumpFlag = "PumpEOT="
 		}
 		ks, err := pumpKeywords(k)
 		if err != nil {
@@ -2506,10 +2511,17 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		if _, ok := kwBits[ks[0]]; !ok {
 			return refuse("CopyPermanent PumpKeywords %q", k)
 		}
-		flags = append(flags, "Pump="+ks[0])
+		flags = append(flags, pumpFlag+ks[0])
 	}
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
+	}
+	if v, ok := ps.get("TokenTapped"); ok {
+		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)
+		if v != "True" {
+			return refuse("CopyPermanent TokenTapped %q", v)
+		}
+		flags = append(flags, "Tapped")
 	}
 	if ct, ok := ps.get("WithCountersType"); ok {
 		// the token enters with the counters (gorge copypermanent.go folds

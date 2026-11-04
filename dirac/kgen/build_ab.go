@@ -3601,15 +3601,26 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["Remember"]; ok {
 			cf |= kop.CpRemember
 		}
-		if pk, ok := fl["Pump"]; ok {
-			// PumpKeywords$: a non-copy permanent keyword grant;
-			// the kernel finds the keyword-only override record by its mask
+		if _, ok := fl["Tapped"]; ok {
+			cf |= kop.CpTapped
+		}
+		pk, ok := fl["Pump"]
+		pe, eot := fl["PumpEOT"]
+		if eot {
+			pk, ok = pe, true
+			cf |= kop.CopyPumpEOT
+		}
+		if ok {
+			// PumpKeywords$: a non-copy keyword grant; the kernel finds a
+			// permanent one's keyword-only override record by its mask
 			m, err := kwMask([]string{pk})
 			if err != nil {
 				return ki, err
 			}
-			if _, err := cb.override(&lOverride{AddKw: []string{pk}, Dedup: true}); err != nil {
-				return ki, err
+			if !eot {
+				if _, err := cb.override(&lOverride{AddKw: []string{pk}, Dedup: true}); err != nil {
+					return ki, err
+				}
 			}
 			cf |= (bits.TrailingZeros32(uint32(m)) + 1) << kop.CopyPumpShift
 		}
