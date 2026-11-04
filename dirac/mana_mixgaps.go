@@ -21,6 +21,8 @@ const (
 	otherAnyR
 	otherTapX
 	otherGrant
+	otherAnswer // filtStep.act answers the ask a step's Taps trigger posed
+	otherPass   // p passes with a trigger of the path on the stack
 )
 
 // otherStep is one activation of a gap that is no filter.
