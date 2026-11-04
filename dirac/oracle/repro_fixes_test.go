@@ -245,6 +245,7 @@ func TestStdSosReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-sos", []stdRepro{
 		{"printed_flashback_beside_granted", false, false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
 		{"granted_and_printed_flashback_ambiguous", false, false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
+		{"graveyard_ability_source_new_object", true, false},      // CR 400.7: a second Postmortem Professor return ability resolves after the card came back and died again, and finds a new object
 	})
 }
 
