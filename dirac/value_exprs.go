@@ -78,8 +78,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExRemLKIPT:
 		return s.remLKIPT() // zone_rememberlki.go
 	case kop.ExExiledWithN:
-		if x.N == 1 {
+		switch x.N {
+		case 1:
 			return s.exwMVSum(k, ctx) // value_countheads.go
+		case 2:
+			return s.exwSharedTypes(k, ctx) // value_countheads.go
 		}
 		return s.exwCount(ctx) // zone_exiledwith.go
 	case kop.ExCountHand:

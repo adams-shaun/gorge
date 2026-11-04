@@ -290,7 +290,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		if ref.Kind == rTarget && ref.N < 0 {
 			return lValue{}, fmt.Errorf("%s$ with no target slot", head)
 		}
-		if spec, ok := strings.CutPrefix(rest, "Valid "); ok && (head == "Targeted" || head == "Sacrificed") {
+		if spec, ok := strings.CutPrefix(rest, "Valid "); ok && (head == "Targeted" || head == "Sacrificed" || head == "TriggeredCard") {
 			v, err = lc.refValidCount(head, spec, ref) // value_compareheads.go
 			break
 		}
@@ -563,6 +563,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "CardManaCost":
 			lc.out.ExiledWith = true
 			v = lValue{Kind: vExiledWithN, N: 1}
+		case "SharesCardTypes":
+			// the most cards of the set with one card type in common,
+			// at least 1 (gorge count_ref_property.go; kernel
+			// ExExiledWithN N 2)
+			lc.out.ExiledWith = true
+			v = lValue{Kind: vExiledWithN, N: 2}
 		default:
 			err = fmt.Errorf("ExiledWith$%s", rest)
 		}

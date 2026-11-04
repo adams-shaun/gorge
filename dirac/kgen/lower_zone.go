@@ -199,6 +199,19 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if handled, err := lc.handPutBack(ps, origin, dest, pos, flags, counterKind, override); handled || err != nil { // lower_handmove.go
 		return err
 	}
+	if origin == zHand && dest == zExile && ps.m["ChangeType"] == "" && ps.m["Defined"] == "" &&
+		ps.m["ValidTgts"] == "" && ps.m["DefinedPlayer"] == "" {
+		// gorge changezone_params: an absent ChangeType$ is "Card", so a
+		// bare hand-to-exile move is a pick from the controller's hand (All
+		// Good Things . . .'s "exile a card from your hand"), never the
+		// source
+		m := make(map[string]string, len(ps.m)+1)
+		for k, v := range ps.m {
+			m[k] = v
+		}
+		m["ChangeType"] = "Card"
+		ps = &params{m: m, used: ps.used}
+	}
 	if ct, ok := ps.get("ChangeType"); ok {
 		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True")) {
