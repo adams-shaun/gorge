@@ -180,6 +180,9 @@ func (e *Engine) resolveStaticTrigger(pt pendingTrigger, svars map[string]string
 	if svars != nil {
 		effects.SetSVars(&pt.Ctx, svars)
 	}
+	if e.StaticTriggerHook != nil {
+		e.StaticTriggerHook(pt.Controller, pt.Source, pt.SA)
+	}
 	damaging := e.damaging
 	e.damaging = pt.Source
 	effects.Resolve(e, &pt.Ctx, pt.SA)

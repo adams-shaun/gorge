@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/deck"
 )
 
 var updateCoverageGolden = flag.Bool("update-coverage-golden", false, "rewrite testdata/coverage_keys.golden")
@@ -129,5 +132,36 @@ func TestCoverageOffIsFree(t *testing.T) {
 		if !reflect.DeepEqual(a.Actions, b.Actions) || !reflect.DeepEqual(a.Div, b.Div) || a.Decisions != b.Decisions || a.Winner != b.Winner {
 			t.Fatalf("pair %d: coverage hooks changed the game (%d vs %d actions, div %v vs %v)", j, len(a.Actions), len(b.Actions), a.Div, b.Div)
 		}
+	}
+}
+
+// TestCoverageCreditsStaticTriggers: a Static$ True trigger with a
+// TriggerDescription$ is an ability key, yet it resolves off the stack and
+// leaves no ability object. The static-trigger probe credits it: Storied
+// Veteran's graveyard-cast rider (f0/t0) is used in a gorge mirror of the
+// may-play lockstep's Storied Veteran deck.
+func TestCoverageCreditsStaticTriggers(t *testing.T) {
+	c, _ := testCorpus(t)
+	var es []deck.Entry
+	for _, e := range mayPlayDecks[4] {
+		es = append(es, deck.Entry{Name: e.Name, Count: e.Count})
+	}
+	cc := &Corpus{Reg: c.Reg, decks: map[string][]*cards.Card{}}
+	cc.AddDecks(map[string]deck.File{"sv-a": {Name: "sv-a", Cards: es}, "sv-b": {Name: "sv-b", Cards: es}})
+	var pairs []Pairing
+	for i := 0; i < 8; i++ {
+		pairs = append(pairs, Pairing{Index: i, A: "sv-a", B: "sv-b", Seed: uint64(i + 1)})
+	}
+	s := Fuzz(cc, pairs, GorgeKernel(Config{}), FuzzConfig{Policy: RandomPolicy, Coverage: true}, nil)
+	if s.Diverged != 0 || s.Errors != 0 || s.Coverage == nil {
+		t.Fatalf("gorge mirror: %d diverged, %d errors (%v)", s.Diverged, s.Errors, s.ByClass)
+	}
+	sv := s.Coverage.Cards["Storied Veteran"]
+	if sv == nil {
+		t.Fatal("no Storied Veteran row")
+	}
+	t.Logf("Storied Veteran keys %v used %v", sv.Keys, sv.Used)
+	if sv.Used["f0/t0"] == 0 {
+		t.Fatalf("Storied Veteran's static rider f0/t0 was never credited: %v", sv.Used)
 	}
 }

@@ -132,7 +132,7 @@ func (e *Engine) resetForRestart() {
 	*e = Engine{}
 	e.G, e.L, e.rng = keep.G, keep.L, keep.rng
 	e.deckManifests, e.compiledText, e.landTypeWords = keep.deckManifests, keep.compiledText, keep.landTypeWords
-	e.ManaAbilityHook = keep.ManaAbilityHook
+	e.ManaAbilityHook, e.StaticTriggerHook = keep.ManaAbilityHook, keep.StaticTriggerHook
 	e.format = keep.format
 	e.mulligans, e.windowDiagnostics, e.paidManaCensus = keep.mulligans, keep.windowDiagnostics, keep.paidManaCensus
 	e.startingLife = keep.startingLife
@@ -140,6 +140,7 @@ func (e *Engine) resetForRestart() {
 	e.skipPass = keep.skipPass
 	e.loop = keep.loop
 	e.tapeHeldHook, e.tapeHeldStats = keep.tapeHeldHook, keep.tapeHeldStats
+	e.tapeHeldStaticHook = keep.tapeHeldStaticHook
 	e.PaymentStats = keep.PaymentStats
 	e.decArena = keep.decArena
 	// newEngineShell's per-seat ledgers and proof flags. The event log is

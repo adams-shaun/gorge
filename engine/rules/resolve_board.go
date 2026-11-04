@@ -32,6 +32,8 @@ type engineResolveKernel struct {
 	// was already observed once. resolveBoard.Observe re-attaches them.
 	tapeHeldHook  func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
 	tapeHeldStats *PaymentPlanStats                                        `clone:"hook"`
+	// tapeHeldStaticHook is StaticTriggerHook parked the same way.
+	tapeHeldStaticHook func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
 	// tapeGranted is set when a converted engine-posed ask (the CR 603.5
 	// optional-trigger yes/no) completed its resolution in line through the
 	// legacy answer's continuation, whose tail already logged the CR 117.3b
@@ -272,6 +274,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	if hook == nil && stats == nil {
 		hook, stats = e.tapeHeldHook, e.tapeHeldStats // already parked
 	}
+	staticHook := e.StaticTriggerHook
+	if staticHook == nil {
+		staticHook = e.tapeHeldStaticHook // already parked
+	}
 	evs, ints := l.Events, l.Intents
 	l.Events, l.Intents = nil, nil
 	// The decision arena stays out of the release: Release clears its
@@ -337,6 +343,7 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	}
 	e.arenaHeapAsks = heapAsks
 	e.tapeHeldHook, e.tapeHeldStats = hook, stats
+	e.tapeHeldStaticHook = staticHook
 	tapeRebindOwner(e, sc, arenaOn)
 }
 
@@ -383,6 +390,9 @@ func (b *resolveBoard) Observe() {
 	if b.tapeHeldHook != nil || b.tapeHeldStats != nil {
 		b.ManaAbilityHook, b.PaymentStats = b.tapeHeldHook, b.tapeHeldStats
 		b.tapeHeldHook, b.tapeHeldStats = nil, nil
+	}
+	if b.tapeHeldStaticHook != nil {
+		b.StaticTriggerHook, b.tapeHeldStaticHook = b.tapeHeldStaticHook, nil
 	}
 }
 

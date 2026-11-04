@@ -105,8 +105,9 @@ type manaUse struct {
 // ArmCoverage installs the mana-ability probe on g's engine (chaining any
 // hook already there): mana abilities never use the stack and ManaAdd
 // carries no source, so CoverageOf credits them from this record, as
-// cardfuzz's useProbe does. Idempotent. The hook emits nothing, so the
-// game is unchanged.
+// cardfuzz's useProbe does. The static-trigger probe credits a Static$ True
+// trigger the same way: it resolves off the stack, leaving no ability
+// object. Idempotent. The hooks emit nothing, so the game is unchanged.
 func (g *GorgeSide) ArmCoverage() {
 	if g.manaArmed {
 		return
@@ -117,6 +118,15 @@ func (g *GorgeSide) ArmCoverage() {
 		g.manaUses = append(g.manaUses, manaUse{src: src, sa: sa})
 		if prev != nil {
 			prev(p, src, sa)
+		}
+	}
+	// a Static$ True trigger resolves off the stack and leaves no ability
+	// object: credited from the same record (Storied Veteran's rider)
+	prevStatic := g.E.StaticTriggerHook
+	g.E.StaticTriggerHook = func(p state.PlayerID, src state.ObjID, sa *cards.SA) {
+		g.manaUses = append(g.manaUses, manaUse{src: src, sa: sa})
+		if prevStatic != nil {
+			prevStatic(p, src, sa)
 		}
 	}
 }
