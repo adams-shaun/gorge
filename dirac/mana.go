@@ -1039,6 +1039,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// abilities only): it is appended with the choice-shaped ones,
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
+				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl) {
+					// a grant of fixed production (Rok-Tahk's {G}{G} to a creature) makes the
+					// source's census unit in the shared census, at its battlefield position;
+					// its own choice-shaped ability joins that unit
+					choice = false
+				}
 				if rk[i] != 0 {
 					choice = rk[i] == rkExt || DebugRestrictedSource == 3 && rk[i] == rkWiden // a widened unit keeps its census position
 				}

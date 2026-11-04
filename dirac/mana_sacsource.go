@@ -107,8 +107,9 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 // (the kicked cast is no planned cast, targetPaidPlanned), and it lets at
 // most four stacked triggers resolve before it gives up (potential_script.go's
 // wait budget), so a plan whose sacrifices trigger more than four abilities
-// is not offered. The plan is executed on a copy of the state.
-func (s *State) kickWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool {
+// is not offered. The plan is executed on a copy of the state, and a kicker that
+// sacrifices is payable there or not offered.
+func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
 	if !s.anySacSource(k, p) {
 		return true // no source the plan could sacrifice
 	}
@@ -122,6 +123,11 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, cost *kop.ManaCost) bool
 		return true
 	}
 	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
+		return false
+	}
+	// the plan's mana abilities are activated before the kicker's cost is paid (CR 601.2g-h): a
+	// Treasure the plan sacrificed is no longer there for a kicker that sacrifices an artifact
+	if kc := &k.t.Cards[c].KickerCost; kc.Flags&kop.CostSac != 0 && plannerConsumesSac(&pk) && !tmp.pickCostPayable(k, p, kc, o) {
 		return false
 	}
 	return !s.subs[kop.TrigSacrificed].any() || int(tmp.npend)-int(n0) <= witnessWaits

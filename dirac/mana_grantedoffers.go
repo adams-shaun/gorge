@@ -1019,3 +1019,18 @@ func (s *State) FeatGrantAvail(o Obj) (w int32, ok bool) {
 	}
 	return w, true
 }
+
+// grantsFixedMana reports whether an effect grants sl a mana ability of fixed
+// production (a plain tap for a set colour): gorge's shared census lists such a
+// source at its battlefield position whatever shape its own ability has.
+func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	for _, i := range gi[:n] {
+		gp := &k.gen.grantPC[i]
+		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 {
+			return true
+		}
+	}
+	return false
+}
