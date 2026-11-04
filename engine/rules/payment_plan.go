@@ -492,7 +492,7 @@ func (e *Engine) PaymentActionsForPriority(p state.PlayerID, seq uint64) []decis
 	// The builder's plans may be shared with the decision's cast-plan memo
 	// (planCastPaymentMemo); hand the caller its own copy, as
 	// EnsurePaymentActions does.
-	Out, _, _, _ := e.paymentActionsForPriority(p, p, seq, nil, nil)
+	Out, _, _, _, _ := e.paymentActionsForPriority(p, p, seq, nil, nil, nil)
 	if Out == nil {
 		return nil
 	}
@@ -523,10 +523,11 @@ func (e *Engine) PaymentActionsForPriority(p state.PlayerID, seq uint64) []decis
 // potential is the caller's buffer for the build's cast census
 // (decision.PotentialCasts): it is truncated and refilled with every object
 // the walk offers a cast of, and known reports that the walk ran.
-func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64, options []decision.Option, potential []state.ObjID) (out []decision.PaymentAction, unpayable []state.ObjID, potentialCasts []state.ObjID, known bool) {
+func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64, options []decision.Option, potential, shapes []state.ObjID) (out []decision.PaymentAction, unpayable []state.ObjID, potentialCasts []state.ObjID, shapeCasts []state.ObjID, known bool) {
 	potential = potential[:0]
+	shapes = shapes[:0]
 	if e.G.Over {
-		return nil, nil, potential, false
+		return nil, nil, potential, shapes, false
 	}
 	e.PaymentStats.RecordBuild()
 	// The builder's potential walk is what the priority walk's block record
@@ -637,6 +638,11 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 			if !flashback && got.Reason == pay.ReasonInsufficient && provesUnpayable(cast) {
 				unpayable = append(unpayable, opt.Obj)
 			}
+			// The plain casts declined for their cost's shape
+			// (decision.PotentialShapeCasts).
+			if !flashback && !mayPlay && announcedShape(got) && !slices.Contains(shapes, opt.Obj) {
+				shapes = append(shapes, opt.Obj)
+			}
 			continue
 		}
 		// The candidate walk's target census ran with the card in hand; the
@@ -678,7 +684,18 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		out = append(out, a)
 		e.PaymentStats.RecordOffered(len(a.Plans))
 	}
-	return out, unpayable, potential, true
+	return out, unpayable, potential, shapes, true
+}
+
+// announcedShape reports whether a cast verdict declines the cast for its
+// cost's shape -- a choice made as the spell is announced or a price its
+// target sets (CR 601.2b, 601.2f: {X}, a hybrid face, an optional or
+// additional cost, a target-dependent reduction), a Detail "cost:..." or
+// "shape:..." -- rather than for its mana sources ("source:...") or its
+// candidacy (no Detail).
+func announcedShape(got PaymentPlanOutcome) bool {
+	d := got.Detail
+	return got.Reason == "unsupported" && (len(d) > 5 && d[:5] == "cost:" || len(d) > 6 && d[:6] == "shape:")
 }
 
 // ValidateCastPayment independently re-derives the eligible sources and cost
