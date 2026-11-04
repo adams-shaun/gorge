@@ -606,6 +606,14 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 			}
 			c.Op, c.B = op, b
 		}
+		if t, ok := ps.get("ConditionOpponentTurn"); ok {
+			// gorge conditions.go: ConditionOpponentTurn$ True is
+			// ConditionPlayerTurn$ False, ANDed with the SVar compare
+			if !strings.EqualFold(strings.TrimSpace(t), "True") {
+				return lCond{}, refuse("ConditionOpponentTurn$ %q", t)
+			}
+			c = lCond{Kind: cAnd, Sub: []lCond{{Kind: cYourTurn, Neg: true}, c}}
+		}
 		return c, nil
 	}
 	return lCond{}, nil

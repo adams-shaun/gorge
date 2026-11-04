@@ -997,6 +997,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	case "ValidHand Card":
 		// gorge's zone count over every hand: both players' hand sizes
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, Ref: lRef{Kind: rEachOpp}}}}, nil
+	case "ValidHand Card.ActivePlayerCtrl":
+		// gorge's zone count over every hand, each card controlled by its
+		// owner: the active player's hand size, yours on your turn and the
+		// opponent's otherwise
+		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, Ref: lRef{Kind: r}} }
+		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a
 		// general spec counts each hand's matching cards
