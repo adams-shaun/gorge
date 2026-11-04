@@ -60,6 +60,7 @@ func (s *State) netLocked(o Obj) bool {
 //
 //go:noinline
 func (s *State) netDrop(o Obj) {
+	s.pgDropHost(o) // the Panharmonicon grants o hosts end with its untap or departure (act_grantpanharm.go)
 	if debugNetMutate == 2 {
 		return // test only: the lock survives the untap
 	}

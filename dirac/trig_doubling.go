@@ -105,7 +105,7 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 			}
 		}
 	}
-	return n
+	return n + s.panharmGrants(l.obj)
 }
 
 // panharmModeOK reports whether a trigger of event ev about player who is of
@@ -144,6 +144,15 @@ func (s *State) panharmCause(k *prep, a *kop.Ability, ev kop.TrigEvent, tobj Obj
 // removes the batch only after firing every member, so the departures so far
 // are the marks.
 func (s *State) panharmDepart(k *prep, sl Slot) {
+	if s.g.pgT[0] != 0 {
+		// gorge's MoveZone fold has ended the Effect-delivered grants the
+		// permanent hosts or holds (expireUntilUntaps, effectMoveSweep) before
+		// any trigger of the move is checked: its own dies trigger is not
+		// echoed by the grant it carried (act_grantpanharm.go)
+		o := s.perms[sl].obj
+		s.pgDropHost(o)
+		s.pgDropTarget(o)
+	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	for i := range cd.Abilities {
 		if a := &cd.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatPanharmonicon {

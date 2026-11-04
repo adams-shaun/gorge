@@ -398,6 +398,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
+ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -891,7 +892,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	31
+ReplCount	ReplKind	32
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -920,6 +921,7 @@ ReplGraveToLibrary	ReplKind	14
 ReplLifeDouble	ReplKind	17
 ReplLifeLossDouble	ReplKind	24
 ReplLifePlus	ReplKind	18
+ReplMayNotUntap	ReplKind	31
 ReplNone	ReplKind	0
 ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9

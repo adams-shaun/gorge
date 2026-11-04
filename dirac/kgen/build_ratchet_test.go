@@ -135,8 +135,9 @@ import (
 // +1 (Infinite Diversity: X free copies of an exiled instant or sorcery; 21452 -> 21453; ratchet TRK 283 -> 284).
 // +3 (Kira Nerys; The Holodeck; Gabriel Lorca: land's TRK cards, Holo-Engineer already counted; 21454 -> 21457; ratchet TRK 285 -> 288).
 // +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21457 -> 21458; ratchet TRK 288 -> 289).
+// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged 21458 -> 21459; ratchet TRK 289 -> 290).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21458, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21459, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
