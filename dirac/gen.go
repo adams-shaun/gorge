@@ -1757,7 +1757,7 @@ const (
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
-	StallEnterDefender = 55  // an Attacking$ True move onto the battlefield while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (zone_changezoneparams.go)
+	StallEnterDefender = 55  // no longer raised: an Attacking$ True entry with two or more CR 508.4 defenders asks raGenEnterDefender (zone_changezoneparams.go)
 	StallPrevCol       = 56  // a fourth Ext PreventColor record in one turn (genState.prevCol; cast_altfree.go)
 	StallColGrant      = 57  // more than maxColG Ext ColorGrant records in one turn (genState.colG; static_colourgrant.go)
 	StallRestrX        = 58  // a reflected search's restricted mana past the batches State.rb holds (mana_reflected.go)

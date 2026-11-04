@@ -121,3 +121,70 @@ func TestEnteringDefenderAnswers(t *testing.T) {
 		}
 	}
 }
+
+// TestEnteringDefenderCloneReturn: a Clone-like card returned attacking waits in
+// its graveyard for the clone election (cloneReturnPark); the CR 508.4 defender
+// ask follows that answer when the opponent has a planeswalker, and its answer
+// sets the defender of the entered copy.
+func TestEnteringDefenderCloneReturn(t *testing.T) {
+	var ids [3]CardID
+	sc, prog := czScenWith(t, func(tbl *kop.Table) []kop.Instr {
+		tbl.TypeVocab = []uint8{1, 2, 3}
+		tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TCreature})
+		f := kop.FilterID(len(tbl.Filters) - 1)
+		n := len(tbl.Cards)
+		ids = [3]CardID{CardID(n), CardID(n + 1), CardID(n + 2)}
+		tbl.Cards = append(tbl.Cards,
+			kop.CardDef{Name: "Test Clone", Types: kop.TCreature,
+				Abilities: []kop.Ability{{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersProgram},
+					Prog: []kop.Instr{{Op: kop.OpBecomeCopy, Obj: kop.RefReplaced, C: 1, F: f}}}}},
+			kop.CardDef{Name: "Test Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+			kop.CardDef{Name: "Test Walker A", Types: kop.TPlaneswalker, Loyalty: 3})
+		return []kop.Instr{{Op: kop.OpReturnEx, Obj: kop.RefSelf, C: int16(int(kop.ZoneBattlefield) | kop.MvAttacking<<3)}}
+	})
+	s := sc.s
+	o := sc.grave(ids[0], 0, 1)[0]
+	bear := sc.perm(ids[1], 0)
+	walk := sc.perm(ids[2], 1)
+	s.res.e.obj = o
+	s.res.active = true
+	s.step = kop.StepAttackers
+	s.active, s.prio = 0, 0
+
+	s.exec(sc.k, &prog[0])
+	if s.res.ask != raGenRetChoice || s.g.pre.kind != akClone {
+		t.Fatalf("ask %d pre kind %d, want the clone election with the card in its graveyard", s.res.ask, s.g.pre.kind)
+	}
+	var d Decision
+	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenClone {
+		t.Fatalf("options sub %d, want the clone election", d.Sub)
+	}
+	var pick Action
+	for i := 0; i < int(d.N); i++ {
+		if d.Options[i].Source() == uint8(bear) {
+			pick = d.Options[i]
+		}
+	}
+	if pick == 0 {
+		t.Fatal("the bear is not a clone option")
+	}
+	s.applyResolveGen(sc.k, pick)
+	if s.res.ask != raGenEnterDefender {
+		t.Fatalf("ask %d after the clone answer, want the CR 508.4 defender ask", s.res.ask)
+	}
+	sl := Slot(s.res.chosen)
+	if !s.occ.has(sl) || s.perms[sl].obj != o {
+		t.Fatalf("the defender ask is for slot %d, not the entered clone", sl)
+	}
+	if s.perms[sl].flags&pfAttacking != 0 {
+		t.Fatal("the clone attacked before the defender was chosen")
+	}
+	d = Decision{}
+	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 2 {
+		t.Fatalf("options sub %d n %d, want the defender ask with two options", d.Sub, d.N)
+	}
+	s.applyResolveGen(sc.k, d.Options[1])
+	if p := &s.perms[sl]; p.flags&pfAttacking == 0 || p.atk != uint8(walk) {
+		t.Fatalf("atk %d attacking %v, want attacking the planeswalker %d", p.atk, p.flags&pfAttacking != 0, walk)
+	}
+}
