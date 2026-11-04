@@ -2439,6 +2439,25 @@ func (lc *lowerCtx) latentTrigger(name string) (int, error) {
 
 func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "Valid ") {
+		if _, ok := ps.m["ValidTgts"]; ok {
+			// a player target whose permanents the Valid set names
+			// (Mirror Universe Intrusion's kicked "each creature target
+			// opponent controls": Creature.TargetedPlayerCtrl)
+			tp := map[string]string{"ValidTgts": ps.str("ValidTgts")}
+			for _, k := range []string{"TargetMin", "TargetMax"} {
+				if v, ok := ps.get(k); ok {
+					tp[k] = v
+				}
+			}
+			r, err := lc.objOrTarget(newParams(tp), "", zBattlefield)
+			if err != nil {
+				return err
+			}
+			if t := lc.ab.Targets[r.N].F; t == nil || t.Players == 0 || len(t.Clauses) != 0 || !strings.Contains(d, "TargetedPlayerCtrl") {
+				return refuse("CopyPermanent Defined$ %q beside a target that is not the player it names", d)
+			}
+			ps.consume("ValidTgts", "TgtPrompt", "ValidTgtsDesc")
+		}
 		_, err := lc.definedValid(&cards.SA{API: "CopyPermanent"}, ps)
 		return err
 	}
