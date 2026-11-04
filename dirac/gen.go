@@ -417,7 +417,8 @@ var noManaPC = pcard{manaAb: -1}
 
 // prepareGen precomputes a generated table (nil for a hand-written one).
 func prepareGen(t *kop.Table, p *prep) *genPrep {
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil {
+	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) {
 		return nil
 	}
 	enteredNeed := false
@@ -449,7 +450,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	g.cpxPT, g.cpxSub, g.cpxCol, g.cpxNoCost, g.cpxTy, g.cpxNoLeg = copyExcFlags(t)
-	p.phasing = tablePhasing(t) // kw_phasing.go
 	for i := range t.Exprs {
 		if t.Exprs[i].Kind == kop.ExYourTurns && t.Exprs[i].N == 0 {
 			p.anyYourTurns = true // value_exprs.go

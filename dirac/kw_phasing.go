@@ -69,9 +69,82 @@ func (s *State) freeSlots() slotMask { return s.occ.or(s.phasedSlots()).not() }
 //
 //go:noinline
 func (s *State) phasesExt(k *prep, in *kop.Instr) {
+	if DebugPhasesNone {
+		return
+	}
+	if in.Obj == kop.RefNone {
+		s.phasesAll(k, in.F)
+		return
+	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot && s.occ.has(sl) {
 		s.phaseOut(k, sl, false)
 	}
+}
+
+// DebugPhasesNone (test only, TestCityOnTheEdgeMutation): ExtPhases phases
+// nothing out, so the permanents gorge phases out stay in play here and the
+// lockstep diverges.
+var DebugPhasesNone bool
+
+// phasesAll is ExtPhases with Obj RefNone (AllValid$ <filter>; gorge
+// effPhases' arena walk): every battlefield permanent f admits, in object
+// (ObjID) order, phases out one at a time. The set is read before the first
+// phases out, as gorge reads it, but a permanent an earlier host's
+// attachment sweep already phased out indirectly is skipped (gorge's
+// !PhasedOut guard), so an Equipment the sweep reaches before the creature
+// it is attached to goes out directly and one reached after goes out with
+// it.
+//
+//go:noinline
+func (s *State) phasesAll(k *prep, f kop.FilterID) {
+	var hit slotMask
+	src := s.objRef(k, kop.RefSelf)
+	ctrl := s.res.e.ctrl
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.matchPermGen(k, f, sl, ctrl, src, layerFull) {
+			hit = hit.with(sl)
+		}
+	}
+	var ord [MaxPerm]Slot
+	n := 0
+	for m := hit; m.any(); m = m.rest() {
+		sl := m.first()
+		j := n
+		for j > 0 && s.perms[ord[j-1]].obj > s.perms[sl].obj {
+			ord[j] = ord[j-1]
+			j--
+		}
+		ord[j] = sl
+		n++
+	}
+	for i := 0; i < n; i++ {
+		if sl := ord[i]; s.occ.has(sl) {
+			s.phaseOut(k, sl, false)
+		}
+	}
+}
+
+// phaseInBlocked reports whether a StatCantPhaseIn on the battlefield forbids
+// every phase-in (gorge phaseBlocked, rules/cantphase.go; the static's
+// ValidCard$ is the blanket Card.phasedOutPermanent). A source that lost its
+// abilities does not apply (eachStatic).
+//
+//go:noinline
+func (s *State) phaseInBlocked(k *prep) bool {
+	if k.gen == nil {
+		return false
+	}
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatCantPhaseIn {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
 }
 
 // phaseOut phases the permanent at sl out, and every permanent attached to
@@ -160,8 +233,15 @@ func (s *State) phaseUntap(k *prep) {
 		order[j] = q
 		n++
 	}
+	// Each phase-in is consulted alone (gorge's emit choke point): a permanent
+	// phasing in earlier in the step can be the source of a CantPhaseIn that
+	// holds back every later one (a Human token of The City on the Edge of
+	// Forever that was itself phased out).
 	for i := 0; i < n; i++ {
 		if q := order[i]; s.objs[s.perms[q].obj].zone == kop.ZonePhased {
+			if s.phaseInBlocked(k) {
+				break // nothing here lifts it: a phase-in only adds statics
+			}
 			s.phaseIn(k, q)
 		}
 	}
