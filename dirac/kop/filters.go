@@ -334,6 +334,14 @@ const (
 	AttToYouCtrl  = 8
 )
 
+// W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith
+// YourGraveyard+doesNotShareNameWith OtherYourBattlefield" read as one word
+// (Guardian Project): no other permanent the object's controller controls
+// shares its name, and no card in the evaluating controller's graveyard does
+// (gorge doesNotShareNameWithMatches, both keys; CR 201.2). A card in that
+// graveyard shares a name with itself.
+const W7NoNameTwinGrave int16 = 20
+
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
 // dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go

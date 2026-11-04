@@ -1320,6 +1320,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpPowerGTBase:
 		kf.Pred = kop.PredPowerGTBase // current power > base power (kernel powerGTBase)
 	case cmpWord7:
+		if c.CmpN == cmpNoNameGrave {
+			return kf, refuse("doesNotShareNameWith YourGraveyard without OtherYourBattlefield")
+		}
 		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
 			// a permanent's granted or lost abilities change the answer
 			return kf, refuse("NoAbilities on the battlefield")

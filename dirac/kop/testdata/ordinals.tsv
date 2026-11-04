@@ -1225,6 +1225,7 @@ W7IsCommander	int16	16
 W7NoAbilities	int16	15
 W7NoName	int16	1
 W7NoNameTwin	int16	9
+W7NoNameTwinGrave	int16	20
 W7NotBottomLibrary	int16	18
 W7NotChosenType	int16	6
 W7SharesNameLegend	int16	10

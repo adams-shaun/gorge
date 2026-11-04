@@ -914,6 +914,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 	}
+	if ok, err := c.noNameTwinGrave(p); ok {
+		return err // lower_filterwords.go
+	}
 	if n, ok := filterWordPred(p); ok {
 		return c.setCmp(cmpWord7, 0, n, "", "") // lower_filterwords.go
 	}

@@ -89,6 +89,10 @@ func tableWord8(t *kop.Table) bool {
 //
 //go:noinline
 func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot) bool {
+	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
+		nm := s.nameCardAt(sl)
+		return (nm == NoCard || !s.nameTwinPerm(nm, sl, s.perms[sl].ctrl) && !s.nameInGrave(nm, ctrl)) != DebugWord7Flip
+	}
 	if fl.PredN&0xff == kop.W7AttachedTo {
 		return s.attachedToWord(k, fl.PredN>>8, sl, ctrl, src)
 	}
@@ -144,6 +148,30 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 	return ans != DebugWord7Flip
 }
 
+// nameTwinPerm reports whether a battlefield permanent other than skip that
+// player p controls has the name of card nm (gorge doesNotShareNameWith
+// OtherYourBattlefield; a phased-out permanent is off occ).
+func (s *State) nameTwinPerm(nm CardID, skip Slot, p uint8) bool {
+	for m := s.occ; m.any(); m = m.rest() {
+		if q := m.first(); q != skip && s.perms[q].ctrl == p && s.nameCardAt(q) == nm {
+			return true
+		}
+	}
+	return false
+}
+
+// nameInGrave reports whether a card in player p's graveyard has the name of
+// card nm (gorge doesNotShareNameWith YourGraveyard).
+func (s *State) nameInGrave(nm CardID, p uint8) bool {
+	pl := &s.pl[p]
+	for i := 0; i < int(pl.graveN); i++ {
+		if s.objs[pl.grave[i]].card == nm {
+			return true
+		}
+	}
+	return false
+}
+
 // wordCard2 is the sub-kinds on a card off the battlefield (o may be NoObj);
 // c is the card, ctrl the evaluating controller.
 //
@@ -151,6 +179,11 @@ func (s *State) wordPerm2(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot
 func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctrl uint8) bool {
 	if n := fl.PredN & 0xff; n == kop.W7BottomLibrary || n == kop.W7NotBottomLibrary {
 		return s.bottomLibrary(o) == (n == kop.W7BottomLibrary)
+	}
+	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
+		// off the battlefield the card has no other self to skip; in the
+		// evaluating controller's graveyard it shares a name with itself
+		return (fd || !s.nameTwinPerm(c, NoSlot, ctrl) && !s.nameInGrave(c, ctrl)) != DebugWord7Flip
 	}
 	if fl.PredN&0xff >= kop.W7WithWarp {
 		return s.wordCard3(k, fl, c, fd) // filter_props.go

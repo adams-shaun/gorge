@@ -140,6 +140,36 @@ func attachedToWord(p string) (n int, ok bool) {
 	return int(kop.W7AttachedTo) | bits<<8, true
 }
 
+// cmpNoNameGrave is the CmpN placeholder of a clause's lone
+// "doesNotShareNameWith YourGraveyard": the word lowers only beside
+// "doesNotShareNameWith OtherYourBattlefield" in the same clause, as
+// kop.W7NoNameTwinGrave. build refuses the placeholder left alone.
+const cmpNoNameGrave = -int(kop.W7NoNameTwinGrave)
+
+// noNameTwinGrave reads the two doesNotShareNameWith halves Guardian Project
+// writes in one clause (gorge doesNotShareNameWithKey's YourGraveyard and
+// OtherYourBattlefield keys) into the one PredWord7 sub-kind they make
+// together; either order. handled is false for any other property.
+func (c *lClause) noNameTwinGrave(p string) (handled bool, err error) {
+	var other int
+	switch p {
+	case "doesNotShareNameWith YourGraveyard":
+		other = int(kop.W7NoNameTwin)
+	case "doesNotShareNameWith OtherYourBattlefield":
+		other = cmpNoNameGrave
+	default:
+		return false, nil
+	}
+	if c.CmpStat == cmpWord7 && c.CmpN == other {
+		c.CmpN = int(kop.W7NoNameTwinGrave)
+		return true, nil
+	}
+	if p == "doesNotShareNameWith YourGraveyard" {
+		return true, c.setCmp(cmpWord7, 0, cmpNoNameGrave, "", "")
+	}
+	return false, nil
+}
+
 // spawnerTargetCtrl rewrites the filter word "ControlledBy
 // Spawner>TriggeredTarget" (gorge controlReferentPlayers spawnerChain: the
 // spawning trigger's target player) to OppCtrl inside an ImmediateTrigger
