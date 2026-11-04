@@ -73,7 +73,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # df3c93c8e4 = the fork's gorge-trek4: Card-Forge master e7020aa13c (2026-11-04) + the open Star Trek PR heads of 2026-11-04
 # (Card-Forge/forge#12365 through #12561) + the fork's own Star Trek PRs with their review fixes (Card-Forge/forge#12666 through
 # #12673: the authored scripts, H.M.S. Bounty and EndCombatPhase's Optional$) + Dr. McCoy's ActiveZones$.
-FORGE_REF  ?= df3c93c8e41d28f59a2bf7e57107aabb8cc088a9
+# 64afbdf3a6 = the fork's gorge-trek5: df3c93c8e4 + Card-Forge master da66fb1ac4 (2026-11-04), whose one card change
+# is The Duras Sisters' printed 3/2 (it was 1/1).
+FORGE_REF  ?= 64afbdf3a6b566bc780779714e067f85f678a2c2
 
 .PHONY: help
 help:
