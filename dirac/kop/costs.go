@@ -168,6 +168,12 @@ type Cost struct {
 	// (an Equipment's or Aura's static): CostHostSac. The CostFlags words are
 	// full, so the part rides its own byte. Only a granted ability reads it.
 	Host uint8
+	// PutLibSelf: PutCardToLibFromGrave<1/-1/CARDNAME>, the source card in
+	// its owner's graveyard moves to the bottom of that library as the
+	// ability's cost (CR 118.3, 602.2b; Daniels, Temporal Agent). A table
+	// byte, not a CostFlags bit (the words are full); only a graveyard
+	// activated ability's own cost reads it.
+	PutLibSelf bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

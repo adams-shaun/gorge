@@ -485,6 +485,7 @@ type lCost struct {
 	DrawN        int      // Draw<N/You>: draw N cards (a trigger's own cost only)
 	EvidenceN    int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
 	ExileTrigNew bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
+	PutLibSelf   bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN      int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's AlternateAdditionalCost part only)
 	BeholdF      *lFilter // the Behold<N/Type> candidates' filter
 }
@@ -498,7 +499,7 @@ func (c lCost) pureMana() bool {
 		c.SubCtr == 0 && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.TapN == 0 && !c.TapHost && !c.SacHost && c.TapPowN == 0 &&
 		c.Forage == nil && c.ExileG == nil && c.Energy == 0 && !c.ReturnSelf &&
 		!c.ExileSelf && c.Return == nil && c.DrawN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.ExileTrigNew &&
-		c.BeholdN == 0 && c.BeholdF == nil
+		!c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil
 }
 
 // manaCost is a printed mana cost.

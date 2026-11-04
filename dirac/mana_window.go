@@ -2486,6 +2486,10 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.exileSelfCost(k, sl)
 		return
 	}
+	if a.Cost.PutLibSelf {
+		s.putLibSelfCost(k, e) // cost_putlibself.go
+		return
+	}
 	if f&kop.CostBlight != 0 && f&kop.CostSacSelf != 0 {
 		s.payBlightPicks(k) // before the source is sacrificed
 	}

@@ -1439,6 +1439,9 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.ExileSelf {
 		return refuse("exile-self cost outside an activated ability")
 	}
+	if c.PutLibSelf {
+		return refuse("put-this-card-on-bottom cost outside a graveyard activated ability")
+	}
 	if c.Untap {
 		return refuse("untap-self cost outside an activated ability")
 	}
@@ -1661,6 +1664,16 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				}
 			}
 			c.ExileG, c.ExileGN = f, n
+		case "PutCardToLibFromGrave":
+			// PutCardToLibFromGrave<1/-1/CARDNAME[/description]>: put the
+			// source card from its owner's graveyard on the bottom of that
+			// library as the cost (CR 118.3, 602.2b; Daniels, Temporal
+			// Agent). Only the self spec at -1; other positions, other specs
+			// and the Hand/Battlefield heads stay refused by name.
+			if len(parts) < 3 || len(parts) > 4 || n != 1 || parts[1] != "-1" || parts[2] != "CARDNAME" || c.PutLibSelf {
+				return c, refuse("put-card-to-library cost %q", t)
+			}
+			c.PutLibSelf = true
 		case "ExileAnyGrave":
 			// ExileAnyGrave<N/Spec> (gorge cost.parse): exile N cards from
 			// any graveyard. Only <1/Card.TriggeredNewCard>, optionally with
@@ -2232,6 +2245,13 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			ab.Zone = zoneNames[z]
 			if ab.Zone == 0 {
 				return refuse("activation zone %q", z)
+			}
+		}
+		if cost.PutLibSelf {
+			rest := cost
+			rest.PutLibSelf = false
+			if ab.Kind != akActivated || ab.Zone != zGraveyard || !rest.pureMana() {
+				return refuse("put-this-card-on-bottom cost outside a graveyard activated ability's own cost")
 			}
 		}
 		if cost.DiscardSelf && (ab.Zone != zHand || ab.Kind != akActivated || cost.DiscardN > 0) {
