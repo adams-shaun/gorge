@@ -174,7 +174,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 610.4-610.4d | unknown | - | - | phase out "until" |
 | 610.5 | unknown | - | - | - |
 | 611.1 | definition | - | - | - |
-| 611.2 | follows | `engine/rules/layers_effect.go#Engine.AddContinuous` | - | resolution-generated continuous effects |
+| 611.2 | follows | `engine/rules/layers_effect.go#Engine.AddContinuous` `engine/effects/effect.go#effEffect` | `TestEffectOwnerHoldsTheMayPlayGrant` | resolution-generated continuous effects; an Effect's look and may-play grants belong to its EffectOwner$ player, as Forge makes the Effect card that player's |
 | 611.2a | follows | `engine/state/continuous.go#ContinuousEffect` | `TestCR611IndefinitePumpSurvivesCleanup` | no duration = game |
 | 611.2b | follows | `engine/effects/choose_control.go#effGainControl` | - |  |
 | 611.2c | follows | `engine/effects/combatfx.go#effPumpAll` `engine/effects/effect.go#effEffect` `engine/effects/parent_targets.go#notePlayerLink` | `TestEffectGoesOnForTheOtherTarget` `TestQuickDrawSweepsTheTargetOpponentsCreatures` `TestInvokeJusticeDistributesAmongTheTargetPlayersCreatures` | set locked at resolution; d per-perm EOT deltas |
