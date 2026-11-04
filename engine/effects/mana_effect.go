@@ -539,16 +539,40 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 // iteration reaches the result: the union is a bitmask and the output order
 // is the fixed WUBRG table.
 func eachColorAmongValid(h Host, c *Ctx, spec string) string {
+	return EachColorAmongValidMask(h, c, spec, nil).String()
+}
+
+// EachColorAmongValidProduction is the colours an each-colour ability ma of
+// source (controlled by p) would add now, read through
+// EachColorAmongValidMask with skip: ok is false unless produced is a
+// Special EachColorAmong_Valid selector. The payment planner prices the
+// ability from it.
+func EachColorAmongValidProduction(h Host, source state.ObjID, p state.PlayerID, ma *cards.SA, produced string, skip func(state.ObjID) bool) (ColorMask, bool) {
+	sel, ok := strings.CutPrefix(produced, "Special EachColorAmong_Valid ")
+	if !ok || ma == nil {
+		return 0, false
+	}
+	var svars map[string]string
+	if o := h.Game().Obj(source); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	return EachColorAmongValidMask(h, NewCtxPtr(source, p, CtxInit{SVars: svars}), strings.TrimSpace(sel), skip), true
+}
+
+// EachColorAmongValidMask is eachColorAmongValid's colour union as a mask,
+// over the same scan; a permanent skip reports true for adds nothing (the
+// payment planner's read of the permanents no planned step can remove).
+func EachColorAmongValidMask(h Host, c *Ctx, spec string, skip func(state.ObjID) bool) ColorMask {
 	g := h.Game()
 	var mask ColorMask
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if c.MatchSpec(g, spec, id, c.Controller) {
+			if (skip == nil || !skip(id)) && c.MatchSpec(g, spec, id, c.Controller) {
 				mask |= ColorMaskOf(g.Obj(id))
 			}
 		}
 	}
-	return mask.String()
+	return mask
 }
 
 // eachColorAmongExiledWith resolves a Produced$ Special

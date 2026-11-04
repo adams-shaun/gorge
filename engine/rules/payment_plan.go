@@ -935,6 +935,11 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 				units, idx = setPaymentPlanUnitAlt(units, idx, id, alt)
 				continue
 			}
+			if alt, ok := paymentPlanEachColourAlt(e, p, id, ma, raw, amt); ok {
+				// Not a choice but a batch: a fixed production, priced as one.
+				units, idx = setPaymentPlanUnitAlt(units, idx, id, alt)
+				continue
+			}
 			if raw != "Any" && !pay.PaymentPlanChoiceShape(raw) {
 				continue
 			}
