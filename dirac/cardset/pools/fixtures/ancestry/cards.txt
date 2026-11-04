@@ -1,0 +1,11 @@
+# Path of Ancestry (enters tapped; its mana ability adds a colour of its
+# controller's commander's colour identity, so nothing in a game without
+# commanders, CR 903.4f) (dirac/oracle/ancestry_test.go)
+Path of Ancestry
+Command Tower
+Grizzly Bears
+Savannah Lions
+Shock
+Forest
+Plains
+Mountain
