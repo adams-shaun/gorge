@@ -3,6 +3,8 @@ package kgen
 import (
 	"fmt"
 	"strings"
+
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // two Count$Compare operand heads.
@@ -22,20 +24,52 @@ func (lc *lowerCtx) refValidCount(head, spec string, ref lRef) (lValue, error) {
 		}
 		return lValue{Kind: vRefCount, Ref: ref, F: f}, nil
 	case "Sacrificed":
-		// only the exact Card.IsSuspected spec is
-		// read -- the sacrifice-time LKI designation (gorge
-		// sacrificedValidCount, effects/count_ref.go). Every other spec
-		// keeps the refusal.
-		if strings.TrimSpace(spec) != "Card.IsSuspected" {
-			return lValue{}, refuse("Sacrificed$Valid %q: only Card.IsSuspected reads the LKI designation", spec)
+		// Card.IsSuspected reads the sacrifice-time LKI designation;
+		// Card.<creature type> / Creature.<creature type> read the
+		// sacrifice-time derived type line (gorge sacrificedValidCount,
+		// effects/count_ref.go). Every other spec keeps the refusal.
+		if strings.TrimSpace(spec) == "Card.IsSuspected" {
+			f, err := lc.filter(spec)
+			if err != nil {
+				return lValue{}, err
+			}
+			return lValue{Kind: vRefCount, Ref: ref, F: f}, nil
 		}
-		f, err := lc.filter(spec)
-		if err != nil {
-			return lValue{}, err
+		if f, ok := lc.sacrificedTypeFilter(spec); ok {
+			// N 1 marks the sacrifice-time type read, so the kernel can tell
+			// it from a ConditionDefined$ Sacrificed filter (RefMatches) over
+			// the live moved card (dirac/gen.go anySacSub, value_countheads.go).
+			return lValue{Kind: vRefCount, Ref: ref, F: f, N: 1}, nil
 		}
-		return lValue{Kind: vRefCount, Ref: ref, F: f}, nil
+		return lValue{}, refuse("Sacrificed$Valid %q: only Card.<creature type>, Creature.<creature type> or Card.IsSuspected read the sacrifice-time snapshot", spec)
 	}
 	return lValue{}, fmt.Errorf("%s$Valid %s", head, spec)
+}
+
+// sacrificedTypeFilter parses exactly Card.<creature type> or
+// Creature.<creature type>: one clause, no other property, the word a creature
+// type of gorge's vocabulary. The kernel reads the LKI snapshot's derived
+// creature-type mask (value_countheads.go sacrificedLKICount).
+func (lc *lowerCtx) sacrificedTypeFilter(spec string) (*lFilter, bool) {
+	head, _, _ := strings.Cut(strings.TrimSpace(spec), ".")
+	if head != "Card" && head != "Creature" {
+		return nil, false // a bare subtype head ("Human") is not one of the two forms
+	}
+	f, err := parseFilter(spec, lc.known, lc.p.isTypeWord)
+	if err != nil || f.Players != 0 || f.Each || len(f.Clauses) != 1 {
+		return nil, false
+	}
+	c := f.Clauses[0]
+	if (c.Types != 0 && c.Types != tCreature) || c.Subtype == "" || !effects.CreatureTypeWords(c.Subtype) {
+		return nil, false
+	}
+	if c.TypesAll != 0 || c.NotTypes != 0 || c.Name != "" || c.NotSubtype != "" ||
+		c.Ctrl != whoAny || c.Owner != whoAny || c.Flags != 0 || c.CmpStat != cmpNone ||
+		c.CmpOp != 0 || c.CmpN != 0 || c.CmpX != "" || c.CmpV != nil || c.CmpCounter != "" ||
+		c.Colors != "" || c.NotColors != "" || c.BasePermanent || c.SpellBase || c.Unblocked {
+		return nil, false
+	}
+	return f, true
 }
 
 // replacedCardValue lowers ReplacedCard$<rest>: gorge knownDefinedTargets

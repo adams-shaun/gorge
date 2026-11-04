@@ -20,27 +20,63 @@ import (
 // zeroed at its F2CrewedSrc mark test (mcombatF2, filter_combatwords.go).
 var DebugCountHeads10Off bool
 
-// sacrificedSuspectedCount answers RefSacrificed + the exact filter
-// Card.IsSuspected from the sacrifice-time LKI snapshot (gorge
-// sacrificedValidCount, effects/count_ref.go: the graveyard card with the
-// suspected designation it had at the sacrifice laid over it, CR 701.60b).
-// ok=false means the filter is not that one read, so the caller keeps its
-// ordinary card match (kgen refuses every other Sacrificed$Valid spec).
-func (s *State) sacrificedSuspectedCount(k *prep, f kop.FilterID, li uint8) (int, bool) {
+// sacrificedLKICount answers RefSacrificed + the exact filter
+// Card.IsSuspected, or a Card.<creature type> / Creature.<creature type>
+// filter, from the sacrifice-time LKI snapshot (gorge sacrificedValidCount,
+// effects/count_ref.go): the designation and the derived type line the
+// sacrificed object had before the zone change laid the card over it
+// (CR 608.2h, CR 701.60b). ok=false means the filter is not one of those
+// reads, so the caller keeps its ordinary card match (kgen refuses every
+// other Sacrificed$Valid spec).
+func (s *State) sacrificedLKICount(k *prep, f kop.FilterID, li uint8, typeRead bool) (int, bool) {
 	fl := &k.t.Filters[f]
-	if fl.Types != 0 || fl.NotTypes != 0 || fl.Ctrl != kop.CtrlAny || fl.Colors != 0 || fl.NotColors != 0 ||
-		fl.Pred != kop.PredSuspected || fl.Flags != 0 || fl.Zone != kop.ZoneNone || fl.Owner != 0 ||
-		fl.Sub != 0 || fl.NotSub != 0 || fl.Flags2 != 0 || fl.PredV != (kop.ValueRef{}) || fl.Or != 0 {
-		return 0, false
-	}
-	if DebugCountHeads10Off {
+	if !typeRead {
+		if fl.Types != 0 || fl.NotTypes != 0 || fl.Ctrl != kop.CtrlAny || fl.Colors != 0 || fl.NotColors != 0 ||
+			fl.Flags != 0 || fl.Zone != kop.ZoneNone || fl.Owner != 0 ||
+			fl.Sub != 0 || fl.NotSub != 0 || fl.Flags2 != 0 || fl.PredV != (kop.ValueRef{}) || fl.Or != 0 {
+			return 0, false
+		}
+		if DebugCountHeads10Off {
+			return 0, true
+		}
+		if (s.lk(li).bits&lkiSuspected != 0) == (fl.PredN == 1) {
+			return 1, true
+		}
 		return 0, true
 	}
-	if (s.lk(li).bits&lkiSuspected != 0) == (fl.PredN == 1) {
-		return 1, true
+	if !sacrificedTypeFilter(fl) {
+		return 0, false
 	}
-	return 0, true
+	if DebugCountHeads10Off || DebugGowronPostSac {
+		return 0, true
+	}
+	l := s.lk(li)
+	if fl.Types != 0 && l.types&fl.Types == 0 {
+		return 0, true
+	}
+	if int(fl.Sub-1) >= len(k.t.Subtypes) || !l.subs.Has(int(fl.Sub-1)) {
+		return 0, true
+	}
+	return 1, true
 }
+
+// sacrificedTypeFilter reports whether fl is one of the exact type reads
+// kgen lowers for Sacrificed$Valid: a single subtype requirement, optionally
+// also the Creature card type (Card.<creature type> / Creature.<creature
+// type>), and nothing else.
+func sacrificedTypeFilter(fl *kop.Filter) bool {
+	return fl.Sub != 0 && (fl.Types == 0 || fl.Types == kop.TCreature) &&
+		fl.NotTypes == 0 && fl.NotSub == 0 && fl.Ctrl == kop.CtrlAny && fl.Owner == 0 &&
+		fl.Colors == 0 && fl.NotColors == 0 && fl.Pred == kop.PredNone && fl.PredN == 0 &&
+		fl.Flags == 0 && fl.Flags2 == 0 && fl.Zone == kop.ZoneNone &&
+		fl.PredV == (kop.ValueRef{}) && fl.Or == 0
+}
+
+// DebugGowronPostSac reads a sacrificed creature's type from the live object
+// after the zone change instead of the sacrifice-time snapshot: the mutation
+// test flips it and requires a divergence (a Klingon De-evolved into a
+// Salamander is printed Klingon again in the graveyard).
+var DebugGowronPostSac bool
 
 // castRingCountHeadsMatch is thisTurnCastSpec's cold arm for the
 // bits. It matches the pushed object where it now

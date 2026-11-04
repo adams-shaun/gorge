@@ -244,6 +244,7 @@ type genPrep struct {
 	anyAddPhase    bool           // some program is ExtAddPhase, some trigger is Tf3FirstAttack or some expression is ExPhaseCount (act_addphase.go)
 	anyAttackedObj bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect     bool           // the table gives mechSuspected an arena mask (act_suspect.go)
+	anySacSub      bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix             [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
 	anyInit        bool           // some program is OpTakeInitiative (act_initiative.go)
 	dungeon        CardID         // anyInit: the dungeon card it ventures into
@@ -465,6 +466,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExRedNCDmg {
 			p.anyRedNC = true // the tally rides replDamage, which anyRepl&rbPlusDmg gates open (value_damagetally.go)
+		}
+		if t.Exprs[i].Kind == kop.ExRefCount && t.Exprs[i].N == 1 {
+			g.anySacSub = true // Sacrificed$Valid Card/creature-type: snapLKI keeps the subtype set
 		}
 	}
 	prepParadigm(t, g) // kw_paradigm.go: before the ring's Treasure scan
