@@ -546,6 +546,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if s.g.tli&tliOn != 0 && !s.lkiStatusOK(fl) {
 		return false
 	}
+	if fl.Flags&(kop.FAttacking|kop.FAttackingOrBlocking) != 0 && s.g.tli&tliOn == 0 {
+		return false // a card off the battlefield is attacking nothing (gorge's IsAttacking clears with the move)
+	}
 	if f2 := fl.Flags2; f2 != 0 {
 		if f2&kop.F2ChosenType != 0 {
 			// a card filter reads the resolution's mid-resolution

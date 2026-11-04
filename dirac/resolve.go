@@ -201,7 +201,7 @@ func (s *State) resolveTop(k *prep) {
 		if a.Trig.Flags2&kop.Tf2ResolvedLimit != 0 && e.kind == seTrigger && a.Trig.Flags&kop.TfOptional == 0 {
 			s.countRL(&e) // a mandatory limited line counts as it resolves (act_support.go)
 		}
-		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(&e)) {
+		if a.Trig.Flags&kop.TfOptional != 0 && e.kind == seTrigger && (k.gen == nil || !k.gen.anyCloneCopy || !s.cloneTrigMoved(k, &e)) {
 			s.res.ask = raOptional
 			s.res.askP = e.ctrl
 			s.ctl = ctlResolve

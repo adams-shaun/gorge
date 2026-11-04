@@ -56,7 +56,7 @@ func copyExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
 // them to every state it copies), marked Back; the zero value when o has no
 // other face.
 func copyBackExceptions(o *state.Object, s copyExceptSpec) events.CopyExceptions {
-	if o.Card == nil || !o.Card.IsTransformingDFC() {
+	if o.Card == nil || !o.Card.BackFaceIsBattlefieldOnly() {
 		return events.CopyExceptions{}
 	}
 	back := o.CopyFaceBack

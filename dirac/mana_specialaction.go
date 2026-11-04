@@ -85,3 +85,18 @@ func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
 	}
 	s.payFromPool(p, cost, 0)
 }
+
+// nonSpellRestrAffords: p pays cost, a payment that is no spell's (a ward's {N}),
+// counting the restricted mana its restriction admits there (CR 106.6): the
+// floating batches and the restricted sources, Hydraulic Helper's mana "can't be
+// spent to cast a nonartifact spell" paying a ward.
+//
+//go:noinline
+func (s *State) nonSpellRestrAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if k.gen == nil || !k.restrSrc && !s.rbAny(p&1) {
+		return false
+	}
+	var av avail
+	s.availWindowFor(k, p, &av)
+	return s.plotRestrFallback(k, p, cost, &av)
+}

@@ -384,7 +384,7 @@ func prepCloneCopy(t *kop.Table, g *genPrep) {
 // stopped being a copy, or was a copy of another card when it triggered) is not.
 //
 //go:noinline
-func (s *State) cloneTrigMoved(e *stackEntry) bool {
+func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
 	if e.obj == NoObj {
 		return false
 	}
@@ -396,6 +396,17 @@ func (s *State) cloneTrigMoved(e *stackEntry) bool {
 			if DebugCloneCopyStats != nil {
 				DebugCloneCopyStats.Moved++
 			}
+			return false
+		}
+	}
+	if cur != e.card {
+		// a two-faced card whose line is printed on its other face (a back-face
+		// "when this dies" that triggered from the look-back board): gorge's
+		// owning-line scan finds it there, off the battlefield as on it
+		// (trigger_inactive_face.go, CR 712.8a)
+		cd := &k.t.Cards[ob.card]
+		if (cd.FaceMode == kop.FaceTransform || cd.FaceMode == kop.FaceModal) && len(cd.Faces) == 2 &&
+			(cd.Faces[0] == e.card || cd.Faces[1] == e.card) {
 			return false
 		}
 	}
