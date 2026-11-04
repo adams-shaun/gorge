@@ -17,8 +17,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // replacements matching one token make gorge ask the CR 616.1 order. The
 // kernel poses no such ask mid-resolution: the game stalls
 // (StallTokRewrite). A mint site that makes the card it was given (amass,
-// incubate, empower, endure, recruit, the copy sites) stalls the same way
-// when a rewriter applies; the CreateToken ops read the rewritten card. A Role
+// incubate, empower, endure, recruit, the other copy sites) stalls the same way
+// when a rewriter applies; the CreateToken ops read the rewritten card, and
+// execCopyToken (Replicator's copy) mints it as a plain untapped token
+// (copyTokenRewrite). A Role
 // mint (TokAttach) stalls the same way: gorge's applyTokenReplacementToPlan
 // turns it into a plain script mint of the rewriter's card (the Illusion is no
 // Aura, so auraTokenWithheld withholds nothing), which the kernel's attach path
@@ -50,9 +52,17 @@ func init() { stallNames[StallTokRewrite] = "tokrewrite" }
 // creates. ok is false when the game stalled on the order ask (the other
 // results are then tok and 0).
 func (s *State) replTokensRew(k *prep, p uint8, tok CardID, n int) (CardID, int, bool) {
+	card, m, _, ok := s.replTokensRewApplied(k, p, tok, n)
+	return card, m, ok
+}
+
+// replTokensRewApplied is replTokensRew that also reports whether a rewriter
+// applied: a copy of the rewriter's own card (an Illusion token) keeps its
+// card but is still rewritten to a plain, untapped, non-copy mint.
+func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int) (CardID, int, bool, bool) {
 	g := k.gen
 	if n <= 0 || p > 1 {
-		return tok, n, true
+		return tok, n, false, true
 	}
 	card, cands, rew := tok, 0, 0
 	mult := n
@@ -92,10 +102,51 @@ func (s *State) replTokensRew(k *prep, p uint8, tok CardID, n int) (CardID, int,
 	}
 	if rew > 0 && cands > 1 {
 		s.capFull(StallTokRewrite)
-		return tok, 0, false
+		return tok, 0, false, false
 	}
 	if rew > 0 {
-		return card, n, true
+		return card, n, true, true
 	}
-	return tok, mult, true
+	return tok, mult, false, true
+}
+
+// copyTokenRewrite is the copy sites' read of the rewriter (execCopyToken):
+// the number of copies and, when a CreateToken rewriter applies, the card
+// that replaces them (gorge continueCopyTokenProposal: each copy mint becomes
+// a plain script mint of the rewriter's card, untapped and no copy; the
+// effect's rider flags then have no copy to act on, so a copy instruction
+// carrying one stalls). ok is false when the game stalled.
+func (s *State) copyTokenRewrite(k *prep, in *kop.Instr, p uint8, tok CardID, n int) (card CardID, cnt int, rewritten, ok bool) {
+	if k.gen == nil || !k.gen.anyTokRew || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p > 1 {
+		return tok, s.replTokens(k, p, tok, n), false, true
+	}
+	card, cnt, rewritten, ok = s.replTokensRewApplied(k, p, tok, n)
+	if ok && rewritten && uint16(in.B.N)&^(kop.CpTapped|kop.CopyNonRemCtrl) != 0 {
+		s.capFull(StallTokRewrite)
+		return tok, 0, false, false
+	}
+	return card, cnt, rewritten, ok
+}
+
+// mintRewritten creates n plain untapped non-copy tokens of the rewriter's
+// card tc under p (a copy mint a CreateToken rewriter replaced), as the
+// CreateToken op does. True when the board is full (a stall).
+func (s *State) mintRewritten(k *prep, p uint8, tc CardID, n int) bool {
+	in := kop.Instr{Op: kop.OpCreateToken, C: int16(tc)}
+	if n > 1 {
+		return s.createTokensHeld(k, &in, p, n)
+	}
+	for i := 0; i < n; i++ {
+		if s.nearCapacity() {
+			s.stall(StallBoard)
+			return true
+		}
+		o := s.newToken(tc, p)
+		sl := s.enter(k, o, p, false, kop.ZoneLibrary)
+		if k.gen.anyTokCr {
+			s.fireTokenCreated(k, sl)
+		}
+		s.res.lastTok = o
+	}
+	return false
 }
