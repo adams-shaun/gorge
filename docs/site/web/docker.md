@@ -14,9 +14,21 @@ flowchart LR
 
 gorged serves the web client itself, because the build embeds it in the binary. nginx forwards every path to it and adds compression, long timeouts and unbuffered event streams. Only nginx publishes a port.
 
-## Start it
+## Run the published image
 
-You need Docker with the Compose plugin and `make`. The first start downloads about 140 MB of card scripts and compiles them, so give it a few minutes.
+Every merge to `main` that touches the server, the client or `deploy/docker` publishes the gorged image to Docker Hub as `damadama22/gorged-demo`. Its tags are `latest` and the commit SHA. You need only Docker for this, with no clone, Go or Node:
+
+```sh
+docker run -d --name gorge -p 127.0.0.1:8090:8080 \
+  -v gorge-cards:/cards -v gorge-art:/art -v gorge-data:/data -v gorge-feedback:/feedback \
+  damadama22/gorged-demo:latest
+```
+
+Open <http://127.0.0.1:8090>. Like the compose setup, the first start fetches the card scripts into the `gorge-cards` volume, so follow it with `docker logs -f gorge`. This one container runs gorged with the image's default flags and no nginx in front, which is fine on your own machine. A command after the image name replaces the default one, so it starts with `gorged -cards /cards -decks /app/decks -dir /data -art-dir /art -feedback /feedback` and adds your flags ([gorged flags](flags.md)). To upgrade, run `docker pull damadama22/gorged-demo:latest`, remove the container with `docker rm -f gorge`, and run it again. The volumes stay.
+
+## Build and start it from source
+
+Build from source for nginx in front, the settings below, or a change of your own. You need Docker with the Compose plugin and `make`. The first start downloads about 140 MB of card scripts and compiles them, so give it a few minutes.
 
 1. Clone the repository and enter it.
 

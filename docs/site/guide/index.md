@@ -17,7 +17,8 @@ go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
 ```
 
 [Install and build](install.md) lists the prerequisites and explains
-each step. For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
+each step. With Docker alone, `docker run -p 127.0.0.1:8090:8080 damadama22/gorged-demo` runs the
+same server with nothing to build ([Run the demo in Docker](../web/docker.md)). For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
 it plays 20 verified bot games in a few seconds.
 
 ## What runs where
