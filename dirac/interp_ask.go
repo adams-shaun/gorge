@@ -1274,7 +1274,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
 // its host (handAuraEnter), a card entering for its as-enters choice (rerunMove).
 func (s *State) moveAsked() bool {
-	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice
+	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1510,6 +1510,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.g.nlook = uint8(n)
 				return
 			}
+			if host == NoSlot && s.entryParkFound(k, o, ep) {
+				// the CR 616.1 entry-order ask, the card still in its zone; the
+				// answer moves the cards from this one on (repl_entryorder.go)
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
 		}
 		from := s.detach(o)
 		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
@@ -1614,7 +1621,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice) {
+			if s.finishDigAt(k, second == 255, false) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder) {
 				return false // a taken card's as-enters ask, the tail parked
 			}
 			continue
@@ -1651,14 +1658,18 @@ func (s *State) digHasPick(k *prep) bool {
 
 // finishDig moves the picked looked-at cards to the dig's zone and the rest
 // to its rest zone.
-func (s *State) finishDig(k *prep) bool { return s.finishDigAt(k, true) }
+func (s *State) finishDig(k *prep) bool { return s.finishDigAt(k, true, false) }
 
 // finishDigAt is finishDig; park: a taken card's queued as-enters ask
 // suspends the dig, its tail (the rest's ordering and placement, or the
 // arrange pose) running when the ask is answered (parkTail). It reports
 // whether an ask is posed (raGenDigArrange, or the parked tail's
 // raGenEnterAsk).
-func (s *State) finishDigAt(k *prep, park bool) bool {
+//
+// resume: the run again from a parked tail that kept the entrants' enters
+// checks held (tailDigEnterH), so they fire with the cards entering after the
+// answer, once the whole dig is done, as gorge's one zone batch does.
+func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 	in := &s.prog(k)[s.res.pc]
 	p := s.g.pickP
 	pl := &s.pl[p]
@@ -1669,9 +1680,20 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 	if k.gen != nil && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen()) // gorge effDig: one zone batch (trig_oneormore.go)
 	}
+	var hr holdRec
+	deferred := false // a parked tail keeps the entrants' checks held for the answer
 	if z == kop.ZoneBattlefield {
 		// gorge effDig's zone batch: the taken cards enter together (CR 603.6a)
-		defer s.holdClose(k, s.holdEntries())
+		if resume {
+			hr = holdRec{on: true, ts: s.g.retTS}
+		} else {
+			hr = s.holdEntries()
+		}
+		defer func() {
+			if !deferred {
+				s.holdClose(k, hr)
+			}
+		}()
 	}
 	arranges := digArranges(n, s.g.lookSel, rz, fl)
 	if arranges || z == kop.ZoneBattlefield {
@@ -1686,6 +1708,9 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
 				return true
 			}
+			if z == kop.ZoneBattlefield && park && s.entryParkDig(k, o, p) {
+				return true // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
+			}
 			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
 				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants
 			}
@@ -1699,6 +1724,9 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 				s.g.pre = preAsk{}
 			}
 			if z == kop.ZoneBattlefield && park && i+1 < n && s.g.lookSel>>(i+1) != 0 && s.parkTail(k, tailDigEnter) {
+				if hr.h == 0 {
+					s.res.left, s.g.retTS, deferred = tailDigEnterH, hr.ts, true
+				}
 				return true
 			}
 		}
@@ -1717,6 +1745,9 @@ func (s *State) finishDigAt(k *prep, park bool) bool {
 		// a taken card's queued as-enters ask suspends the dig with the rest
 		// still in the library, as gorge's parked effect has them
 		if park && s.parkTail(k, tailDig) {
+			if hr.h == 0 {
+				s.res.left, s.g.retTS, deferred = tailDigH, hr.ts, true
+			}
 			return true
 		}
 		s.digRestAside(n)

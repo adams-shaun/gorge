@@ -128,8 +128,10 @@ func TestMidResDigEnterAskOrder(t *testing.T) {
 	if s.objs[m.banner].zone != kop.ZoneBattlefield {
 		t.Fatalf("the taken Banner is in zone %d, want the battlefield", s.objs[m.banner].zone)
 	}
-	if s.g.nask != 1 || s.res.ask != raGenEnterAsk || s.res.left != tailDig {
-		t.Fatalf("nask %d ask %d left %d, want the election posed with the dig's tail parked", s.g.nask, s.res.ask, s.res.left)
+	// The dig opened the enters hold, so its parked tail keeps the Banner's
+	// enters checks held until the rest is placed (tailDigH).
+	if s.g.nask != 1 || s.res.ask != raGenEnterAsk || s.res.left != tailDigH {
+		t.Fatalf("nask %d ask %d left %d, want the election posed with the dig's tail parked, checks held", s.g.nask, s.res.ask, s.res.left)
 	}
 	if s.rng.Draws != draws || s.pl[0].graveN != 0 {
 		t.Fatalf("the rest was ordered/placed before the election: draws %d -> %d, graveyard %d", draws, s.rng.Draws, s.pl[0].graveN)

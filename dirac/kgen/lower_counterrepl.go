@@ -76,6 +76,64 @@ func (lc *lowerCtx) youDoubleCountersRepl(rp *params, w *cards.SA, rl *lRepl) er
 // held amount, so "each of those kinds" is one rewrite per kind placed. The
 // kernel reads Repl.C = kop.ReplCtrAny / ReplCtrAnyYou in place of a kind.
 
+// putterDoubleCountersRepl lowers "If you would put one or more counters on a
+// <recipient> you control, put twice that many of each of those kinds of
+// counters on it instead" (Dr. Joseph M'Benga: ValidObject$ names the
+// recipient, no counter type) and the one-kind form (Lt. Cmdr. Geordi La
+// Forge: ValidCard$ names the recipient, ValidCounterType$ CHARGE). Both read
+// the putter, ValidSource$ You, from gorge's in-flight counter adder, which the
+// kernel publishes as it does for Doc Samson's plus one (Repl.C ReplCtrAnyYou
+// for every kind; Repl.A 1 for a single kind).
+func (lc *lowerCtx) putterDoubleCountersRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if rp.str("ValidSource") != "You" {
+		return refuse("repl-hard: AddCounter putter shape")
+	}
+	for _, k := range []string{"EffectOnly", "ValidCause", "ValidPlayer"} {
+		if _, ok := rp.m[k]; ok {
+			return refuse("repl-hard: AddCounter putter with %s$", k)
+		}
+	}
+	vc, vo := rp.str("ValidCard"), rp.str("ValidObject")
+	if (vc == "") == (vo == "") {
+		return refuse("repl-hard: AddCounter putter recipient")
+	}
+	spec := vc + vo
+	ck := rp.str("ValidCounterType")
+	if w == nil || w.API != "ReplaceCounter" || w.Sub != nil {
+		return refuse("repl-hard: AddCounter body")
+	}
+	bp := newParams(w.Params)
+	if ck != "" {
+		if _, err := counterKind(ck); err != nil {
+			return refuse("repl-hard: AddCounter counter type %q", ck)
+		}
+		if bp.str("ValidCounterType") != ck {
+			return refuse("repl-hard: AddCounter body counter type")
+		}
+	}
+	if s, ok := bp.get("ValidSource"); ok && s != "You" {
+		return refuse("repl-hard: AddCounter body ValidSource %q", s)
+	}
+	amt := bp.str("Amount")
+	if cc, ok := bp.get("ChooseCounter"); ok && cc != "True" {
+		return refuse("repl-hard: AddCounter ChooseCounter %q", cc)
+	}
+	bp.consume("Amount", "ChooseCounter", "ValidSource", "ValidCounterType")
+	if left := bp.unread(); len(left) > 0 {
+		return refuse("repl-hard: AddCounter body params %v", left)
+	}
+	if lc.face.SVars[amt] != "ReplaceCount$CounterNum/Twice" {
+		return refuse("repl-hard: AddCounter amount %q", lc.face.SVars[amt])
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	rp.consume("ValidSource", "ValidCard", "ValidObject", "ValidCounterType")
+	rl.Kind, rl.F, rl.Ctr, rl.Putter = "DoubleCountersOn", f, ck, true
+	return nil
+}
+
 // youPlusObject is Doc Samson's ValidObject$: a permanent its controller
 // controls (the recipient filter; the putter is ValidSource$ You).
 const youPlusObject = "Permanent.YouCtrl+inZoneBattlefield"

@@ -820,7 +820,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 						g.exileAnyC[i], g.anyExileAny = true, true
 					}
 				case kop.ReplDoubleCountersOn:
-					g.replBits[i] |= rbDblCtrOn
+					g.replBits[i] |= rbDblCtrOn | ctrWildBits(a)
 					pc.hasStat = true
 				case kop.ReplAddCountersOn:
 					g.replBits[i] |= rbPlusCtrOn | ctrWildBits(a)

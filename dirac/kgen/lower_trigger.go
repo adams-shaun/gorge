@@ -3071,7 +3071,10 @@ func (lc *lowerCtx) addCounterRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		if rp.str("ValidObject") == youPlusObject {
 			return lc.youPlusCountersRepl(rp, w, rl) // lower_counterrepl.go
 		}
-		return lc.youDoubleCountersRepl(rp, w, rl) // lower_delayed.go
+		if rp.str("ValidObject") == "Permanent.inZoneBattlefield,Player" {
+			return lc.youDoubleCountersRepl(rp, w, rl) // lower_delayed.go
+		}
+		return lc.putterDoubleCountersRepl(rp, w, rl) // lower_counterrepl.go
 	}
 	vc := rp.str("ValidCard")
 	if vc == "" {

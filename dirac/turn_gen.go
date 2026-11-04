@@ -168,6 +168,9 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.g.replaced = saveRep
 	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
+	if shock {
+		s.shockEntryOrdered(sl)
+	}
 	switch ovr {
 	case entOvrTap:
 		if !shock {

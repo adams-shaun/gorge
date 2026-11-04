@@ -592,9 +592,21 @@ func (s *State) grantedAbilities(k *prep, sl Slot, f func(c CardID, ab uint8)) {
 // Your Own Deaths on one creature), and each is its own instance of the
 // granted ability (two dies triggers, as gorge lists them).
 func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n int)) {
+	s.grantedAbilitiesOwn(k, sl, nil, f)
+}
+
+// grantedAbilitiesOwn is grantedAbilitiesN with own, when not nil, called
+// once at sl's own timestamp among the statics' grants: the triggers sl's
+// own static grants it (a Station threshold's), listed as gorge lists a
+// static's grant (slotTriggers).
+func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardID, ab uint8, n int)) {
 	if !k.gen.anyGrant {
+		if own != nil {
+			own()
+		}
 		return
 	}
+	ots := uint32(s.layerTs(sl))
 	// a grant older than a "loses all abilities" effect on sl is removed
 	// with the rest (gorge grantLostTo); the loss is read only once a
 	// grant is found (this walk runs per trigger listener)
@@ -617,12 +629,25 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 		lts, lost = s.lossAt(k, sl)
 		read = true
 		g := func(c CardID, ab uint8, n int, ts uint16) {
+			if own != nil && uint32(ts) > ots {
+				lts, lost, read = s.grantsBetween(k, sl, wm, ots, kinds, lts, lost, read, f)
+				wm = ots
+				own()
+				own = nil
+			}
 			lts, lost, read = s.grantsBetween(k, sl, wm, uint32(ts), kinds, lts, lost, read, f)
 			wm = uint32(ts)
 			f(c, ab, n)
 		}
 		s.globalGrants(k, sl, lost, lts, g)
 		s.globalGrantsGen(k, sl, lost, lts, g)
+	}
+	if own != nil {
+		if ots >= wm {
+			lts, lost, read = s.grantsBetween(k, sl, wm, ots, kinds, lts, lost, read, f)
+			wm = ots
+		}
+		own()
 	}
 	lts, lost, read = s.grantsBetween(k, sl, wm, 1<<16, kinds, lts, lost, read, f)
 	if kinds == grantKw && s.fxM.has(sl) {
