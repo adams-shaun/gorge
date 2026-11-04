@@ -72,6 +72,9 @@ func (s *State) breachStart(k *prep) bool {
 //
 //go:noinline
 func (s *State) askOptionsBreach(k *prep, d *Decision) bool {
+	if s.res.ask == raExileLand {
+		return s.askOptionsExileLand(k, d) // act_exilelandchoose.go
+	}
 	if s.res.ask != raBreach {
 		return s.askOptionsUnlockDoor(k, d) // face_unlockdoor.go
 	}
@@ -90,6 +93,9 @@ func (s *State) askOptionsBreach(k *prep, d *Decision) bool {
 //
 //go:noinline
 func (s *State) applyAskBreach(k *prep, a Action) bool {
+	if s.res.ask == raExileLand {
+		return s.applyAskExileLand(k, a) // act_exilelandchoose.go
+	}
 	if s.res.ask != raBreach {
 		return s.applyAskUnlockDoor(k, a) // face_unlockdoor.go
 	}

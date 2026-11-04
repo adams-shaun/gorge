@@ -97,6 +97,8 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtBreachReturn:
 		s.breachReturn(k)
 		return true, true
+	case kop.ExtExileLandChoose:
+		return s.exileLandStart(k), true // act_exilelandchoose.go
 	case kop.ExtPhases:
 		s.phasesExt(k, in) // kw_phasing.go
 		return true, true
