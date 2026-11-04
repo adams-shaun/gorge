@@ -2,9 +2,10 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// A spell charm whose CharmNum$ is a Count$Compare with constant arms
-// (Molten Collapse "if you descended this turn, choose both instead"; Wail
-// of the Forgotten at eight permanent cards in your graveyard). gorge
+// A spell or triggered charm whose CharmNum$ is a Count$Compare or a branch
+// head with constant arms (Molten Collapse "if you descended this turn,
+// choose both instead"; Wail of the Forgotten at eight permanent cards in
+// your graveyard; Captain James T. Kirk with no cards in hand). gorge
 // effects.CharmModeBounds evaluates CharmNum$ at each ask with the caster's
 // ctx, floors it at 1 and clamps it to the number of modes; the offer gate
 // reads only the minimum (MinCharmNum$, Ability.ModesPick-ModesFew), so
@@ -26,13 +27,16 @@ func prepCharmCmp(t *kop.Table, g *genPrep) {
 	}
 }
 
-// charmCap is the pick count of the spell being built, clamped to
-// 1..NModes (0: the card has no dynamic count).
+// charmCap is the pick count of the spell or trigger being built, clamped
+// to 1..NModes (0: the card has no dynamic count). A trigger's modes are
+// chosen as it is put on the stack (CR 603.3c), with its controller's ctx;
+// kgen sets ModesPickV on a card only when every triggered charm of it
+// shares that count (Captain James T. Kirk's Count$Hellbent.3.1).
 //
 //go:noinline
 func (s *State) charmCap(k *prep) uint8 {
 	e := &s.bld().e
-	if e.kind != seSpell {
+	if e.kind != seSpell && e.kind != seTrigger {
 		return 0
 	}
 	cd := &k.t.Cards[e.card]

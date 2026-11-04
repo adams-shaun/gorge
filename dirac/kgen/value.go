@@ -1186,6 +1186,21 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
+		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
+		parts := strings.Split(arms, ".")
+		if len(parts) != 2 {
+			return lValue{}, refuse("Count$Hellbent.%s", arms)
+		}
+		var br [2]lValue
+		for i, t := range parts {
+			var err error
+			if br[i], err = lc.headArm("Hellbent", t, depth); err != nil {
+				return lValue{}, err
+			}
+		}
+		return lValue{Kind: vCompare, N: 0, Op: opLE, Sub: []lValue{{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, {Kind: vBranches, Sub: br[:]}}}, nil
+	}
 	if rest == "TimesKicked" {
 		// the count of kicker payments: a card with one Kicker keyword is
 		// kicked once or not at all, so it reads as the kicked bit (gorge

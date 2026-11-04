@@ -5,9 +5,11 @@ import (
 )
 
 // charmDynNum reads a spell charm's CharmNum$ written inline as
-// Count$Compare <Y> <op><n>.<a>.<b> with constant arms ("choose one -- if you
+// Count$Compare <Y> <op><n>.<a>.<b>, Count$Delirium.<a>.<b> or
+// Count$Hellbent.<a>.<b> with constant arms ("choose one -- if you
 // descended this turn, choose both instead": Molten Collapse's
-// CharmNum$ Count$Compare Y GE1.2.1; Wail of the Forgotten's GE8.3.1).
+// CharmNum$ Count$Compare Y GE1.2.1; Wail of the Forgotten's GE8.3.1;
+// Captain James T. Kirk's triggers' Count$Hellbent.3.1).
 // gorge CharmModeBounds (effects/charm.go) evaluates CharmNum$ at each ask
 // with the caster's ctx and clamps the maximum to the number of modes; the
 // offer gate reads only the minimum. MinCharmNum$ must be the literal
@@ -21,18 +23,23 @@ func (lc *lowerCtx) charmDynNum(ps *params, nModes int) (pick int, ok bool, err 
 		return 0, false, nil
 	}
 	body := strings.TrimSpace(v)
-	if !strings.HasPrefix(body, "Count$Compare ") && !strings.HasPrefix(body, "Count$Delirium.") {
+	if !strings.HasPrefix(body, "Count$Compare ") && !strings.HasPrefix(body, "Count$Delirium.") && !strings.HasPrefix(body, "Count$Hellbent.") {
 		return 0, false, nil
 	}
-	if lc.ab.Kind != akSpell {
+	if lc.ab.Kind != akSpell && (lc.ab.Kind != akTriggered || lc.ab.Latent) {
 		return 0, false, refuse("dynamic charm count on a %s ability", abilityKindNames[lc.ab.Kind])
-	}
-	if lc.out.ModesPickV.Kind != vNone {
-		return 0, false, refuse("two dynamic charm counts")
 	}
 	val, err := lc.svarValue(body, 0)
 	if err != nil {
 		return 0, false, err
+	}
+	if lc.out.ModesPickV.Kind != vNone && lc.out.ModesPickV.String() != val.String() {
+		// one card-wide count: Captain James T. Kirk's two triggers share
+		// their charm, so they share its count
+		return 0, false, refuse("two dynamic charm counts")
+	}
+	if lc.out.TrigCharmFixed {
+		return 0, false, refuse("a dynamic triggered charm count beside a fixed one")
 	}
 	arms := val.Sub
 	switch val.Kind {

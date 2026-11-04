@@ -1,0 +1,24 @@
+# the Star Trek value pool: Captain James T. Kirk's charm takes one or more
+# modes with an empty hand (a triggered CharmNum$ over Count$Hellbent),
+# Encounter the Unknown deals 2 to each creature and each player, Fevered
+# Visions reads the active player's hand, Gul Dukat, Colonial Prefect repeats
+# over the opponent's life lost this turn, Jean-Luc Picard, Luminary draws for
+# a historic permanent of mana value 3 or more, and Chief Miles O'Brien
+# doubles counters on the second draw, for the oracle's constructed lockstep
+# (dirac/oracle/trekvalue_test.go)
+Captain James T. Kirk
+Encounter the Unknown
+Fevered Visions
+Gul Dukat, Colonial Prefect
+Jean-Luc Picard, Luminary
+Chief Miles O'Brien
+Divination
+Savannah Lions
+Raging Goblin
+Memnite
+Hill Giant
+Shock
+Mountain
+Island
+Plains
+Swamp

@@ -3310,6 +3310,11 @@ func (lc *lowerCtx) charm(ps *params) error {
 		return err
 	} else if ok {
 		plainPick = dyn // CharmNum$ over Count$Compare (lower_charmcmp.go)
+	} else if lc.ab.Kind == akTriggered {
+		if lc.out.ModesPickV.Kind != vNone {
+			return refuse("a fixed triggered charm count beside a dynamic one")
+		}
+		lc.out.TrigCharmFixed = true
 	}
 	pick, minPick, err := charmCounts(ps, len(choices), plainPick)
 	if err != nil {

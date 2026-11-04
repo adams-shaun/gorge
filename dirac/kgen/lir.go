@@ -876,7 +876,8 @@ type lCard struct {
 	OptCost        *lCost   // S:Mode$ OptionalCost's Blight<N> or Behold<1/Type> part (CR 601.2b), CardDef.OptCost/OptBehold (lower_optcost.go)
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
-	ModesPickV     lValue   // a spell charm's CharmNum$ over Count$Compare (constant arms): the pick count, evaluated at the cast (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen (CardDef.ModesPickV; lower_charmcmp.go)
+	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
