@@ -129,6 +129,17 @@ func TestKFuzzFDNReproFlags(t *testing.T) {
 	if len(rep.Actions) == 0 {
 		t.Fatal("-out: repro carries no action prefix")
 	}
+	if rep.Kernel != "set fdn" || rep.Surface != "autopay" {
+		t.Fatalf("-out: repro records kernel %q surface %q, want \"set fdn\" and \"autopay\"", rep.Kernel, rep.Surface)
+	}
+	// replayed against the default gorge self-check, or on the full surface, it
+	// is another game: an error, not "no divergence"
+	for _, args := range [][]string{{"-repro", reproPath}, {"-kernel", "fdn", "-repro", reproPath, "-surface", "full"}} {
+		code, stdout, stderr = runKFuzz(t, args...)
+		if code != 2 || strings.Contains(stdout, "no divergence") {
+			t.Fatalf("%v: exit %d, want 2 (stdout %q stderr %q)", args, code, stdout, stderr)
+		}
+	}
 
 	mutateKernel(false)
 	cleanOut := filepath.Join(t.TempDir(), "clean-out")
@@ -176,6 +187,49 @@ func TestKFuzzFDNReproFlags(t *testing.T) {
 		if strings.Contains(stdout, "replay:") || strings.Contains(stdout, "fdn:") || strings.Contains(stdout, "vanilla:") {
 			t.Fatalf("%s -replay missing: started work (stdout %q)", k, stdout)
 		}
+	}
+}
+
+// TestReproRunChecksSideAndSurface: a repro replays against the side and on the
+// surface it was found on. A repro found on a synthetic pool and replayed with no
+// -synth plays gorge against itself, so it read "no divergence" for a game that
+// diverges; now that is an error naming the flags, and the recorded surface
+// replaces the default one.
+func TestReproRunChecksSideAndSurface(t *testing.T) {
+	path := "found.repro.json"
+	rep := &oracle.Repro{Kernel: "synth std-trk", Surface: "autopay"}
+	defer func(k string) { runKernel = k }(runKernel)
+	for _, c := range []struct {
+		run, surface string
+		given        bool
+		want         string // the surface the replay plays, "" for an error
+		wantErr      string
+	}{
+		{"gorge", "full", false, "", "replay it with -synth std-trk"},
+		{"synth std-trc", "full", false, "", "replay it with -synth std-trk"},
+		{"synth std-trk", "full", false, "autopay", ""},
+		{"synth std-trk", "full", true, "", "played on the autopay surface"},
+		{"synth std-trk", "autopay", true, "autopay", ""},
+	} {
+		runKernel = c.run
+		got, err := reproRun(rep, path, c.surface, c.given)
+		if c.wantErr != "" {
+			if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+				t.Errorf("%s -surface %s (given %v): err %v, want one saying %q", c.run, c.surface, c.given, err, c.wantErr)
+			}
+			continue
+		}
+		if err != nil || got != c.want {
+			t.Errorf("%s -surface %s (given %v): %q, %v; want %q", c.run, c.surface, c.given, got, err, c.want)
+		}
+	}
+	// a repro written before either was recorded runs as the command line says
+	runKernel = "gorge"
+	if got, err := reproRun(&oracle.Repro{}, path, "full", false); err != nil || got != "full" {
+		t.Errorf("unrecorded repro: %q, %v; want full", got, err)
+	}
+	if got := kernelFlags("set blb"); got != "-kernel fdn -set blb" {
+		t.Errorf("kernelFlags(set blb) = %q", got)
 	}
 }
 

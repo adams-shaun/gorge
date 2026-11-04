@@ -1,0 +1,9 @@
+# Temple of the False God (a lone {T} ability adding {C}{C}, activated
+# only while its controller has five or more lands) (dirac/oracle/templefg_test.go)
+Temple of the False God
+Forest
+Mountain
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Shock

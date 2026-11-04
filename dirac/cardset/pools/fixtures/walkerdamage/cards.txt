@@ -1,0 +1,11 @@
+# planeswalkers that are creatures too, taking combat and spell damage, for
+# the oracle's constructed lockstep (dirac/oracle/walkerdamage_test.go)
+Hill Giant
+Island
+Kaito, Bane of Nightmares
+Mountain
+Raging Goblin
+Shock
+Swamp
+Unable to Scream
+Wind Drake

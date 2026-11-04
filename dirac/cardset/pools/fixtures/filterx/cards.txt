@@ -1,0 +1,15 @@
+# the filter X pool: {X} spells beside paid mana abilities, a dynamic amount and a
+# fixed one, for the oracle's constructed lockstep (dirac/oracle/filterx_test.go)
+Blaze
+Crackle with Power
+Engineered Explosives
+Forest
+Grizzly Bears
+Hidden Grotto
+House Cartographer
+Island
+Llanowar Elves
+Mind Spring
+Saurian Explorer
+Starfleet Academy
+Stroke of Genius

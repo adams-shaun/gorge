@@ -1,0 +1,14 @@
+# the PutCounterAll RememberAmount pool: Guinan, Ancient Advisor counts the
+# +1/+1 counters its sweep landed, Hardened Scales makes one creature land
+# two, creatures and tokens that entered this turn, and burn, for the
+# oracle's constructed lockstep (dirac/oracle/trekrem_test.go)
+Guinan, Ancient Advisor
+Hardened Scales
+Grizzly Bears
+Savannah Lions
+Llanowar Elves
+Raise the Alarm
+Shock
+Plains
+Forest
+Mountain

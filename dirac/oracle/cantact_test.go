@@ -13,7 +13,8 @@ import (
 // S:Mode$ CantBeActivated carriers (Clarion Conqueror: every artifact,
 // creature and planeswalker; Grand Abolisher: the opponents' artifacts,
 // creatures and enchantments on its controller's turn; the Auras Petrify
-// and Stuck in Summoner's Sanctum: the enchanted permanent) against mana
+// and Stuck in Summoner's Sanctum: the enchanted permanent; The Immortal Sun:
+// loyalty abilities only) against mana
 // creatures, Mind Stone, a pinger, pumps, an Equipment, an enchantment and
 // a planeswalker with activated abilities, so the kernel withholds the same
 // activation offers and the same mana sources as gorge's abilityRestricted.
@@ -22,9 +23,9 @@ var kcantactDecks = [2][]cardset.Entry{
 	// W/G: Clarion Conqueror, Grand Abolisher, Petrify, mana creatures, pumps
 	{
 		{Name: "Clarion Conqueror", Count: 3}, {Name: "Grand Abolisher", Count: 3}, {Name: "Petrify", Count: 2},
-		{Name: "Llanowar Elves", Count: 4}, {Name: "Elvish Mystic", Count: 4}, {Name: "Twinblade Slasher", Count: 3},
-		{Name: "Bonesplitter", Count: 2}, {Name: "Mind Stone", Count: 2}, {Name: "Ajani, Caller of the Pride", Count: 1},
-		{Name: "Plains", Count: 8}, {Name: "Forest", Count: 8},
+		{Name: "Llanowar Elves", Count: 4}, {Name: "Elvish Mystic", Count: 4}, {Name: "Twinblade Slasher", Count: 2},
+		{Name: "Bonesplitter", Count: 2}, {Name: "Mind Stone", Count: 2}, {Name: "Ajani, Caller of the Pride", Count: 2},
+		{Name: "The Immortal Sun", Count: 2}, {Name: "Plains", Count: 7}, {Name: "Forest", Count: 7},
 	},
 	// U/G/w: Stuck in Summoner's Sanctum, Clarion Conqueror, the pinger, Omen
 	{
@@ -46,6 +47,7 @@ type kcantactStats struct {
 	manaHeld            int // ... a mana source out of the planner (manaPCGen's noManaPC through actForbidden)
 	abolHeld            int // ... Grand Abolisher's conditional lock, on its controller's turn
 	abolFree            int // decisions on the Abolisher's opponent's own turn offering that player's covered permanent's ability
+	sunWalker           int // decisions with The Immortal Sun and a planeswalker both on the battlefield
 	activations         int
 }
 
@@ -75,6 +77,7 @@ func kcantactPolicy(seed uint64, st *kcantactStats) Policy {
 		}
 		if c.G != nil {
 			st.abolFree += kcantactAbolFree(c)
+			st.sunWalker += kcantactSunWalker(c)
 		}
 		a := Canon(0)
 		if len(buf) == 0 {
@@ -118,6 +121,25 @@ func kcantactAbolFree(c *PickCtx) int {
 				return 1
 			}
 		}
+	}
+	return 0
+}
+
+// kcantactSunWalker is 1 when The Immortal Sun and a planeswalker are both
+// on the battlefield, so the loyalty-only lock is live at the decision.
+func kcantactSunWalker(c *PickCtx) int {
+	gg := c.G.E.G
+	sun, walker := false, false
+	for p := state.PlayerID(0); p < 2; p++ {
+		for _, id := range gg.Zone(state.ZBattlefield, p) {
+			if ob := gg.Obj(id); ob != nil && ob.Face() != nil {
+				sun = sun || ob.Face().Name == "The Immortal Sun"
+				walker = walker || ob.Face().Name == "Ajani, Caller of the Pride"
+			}
+		}
+	}
+	if sun && walker {
+		return 1
 	}
 	return 0
 }
@@ -196,8 +218,8 @@ func TestCantactLockstep(t *testing.T) {
 		return
 	}
 	st := runCantact(t, 256, false)
-	t.Logf("%d games, %d divergences, %d stalls, %d activations; held-out decisions %d (mana %d, Abolisher on its turn %d), Abolisher's opponent's own-turn activations %d",
-		st.games, st.divs, st.stalls, st.activations, st.held, st.manaHeld, st.abolHeld, st.abolFree)
+	t.Logf("%d games, %d divergences, %d stalls, %d activations; held-out decisions %d (mana %d, Abolisher on its turn %d), Abolisher's opponent's own-turn activations %d, decisions beside The Immortal Sun and a planeswalker %d",
+		st.games, st.divs, st.stalls, st.activations, st.held, st.manaHeld, st.abolHeld, st.abolFree, st.sunWalker)
 	if st.divs != 0 || st.stalls != 0 {
 		t.Fatalf("%d divergences, %d stalls", st.divs, st.stalls)
 	}
@@ -212,6 +234,9 @@ func TestCantactLockstep(t *testing.T) {
 	}
 	if st.abolFree < 10 {
 		t.Errorf("only %d own-turn activations beside an opposing Grand Abolisher", st.abolFree)
+	}
+	if st.sunWalker < 10 {
+		t.Errorf("only %d decisions beside The Immortal Sun and a planeswalker", st.sunWalker)
 	}
 }
 

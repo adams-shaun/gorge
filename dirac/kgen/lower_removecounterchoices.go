@@ -83,5 +83,5 @@ func (lc *lowerCtx) rmctrChoices(ps *params) error {
 // isRememberAmountWriter: a PutCounter or a remove-form Support whose
 // RememberAmount$ adds only the count (remCnt) to the remembered set.
 func isRememberAmountWriter(in lInstr) bool {
-	return (in.Op == "PutCounter" || in.Op == "Support") && in.Note == notePutRememberAmount
+	return (in.Op == "PutCounter" || in.Op == "Support" || in.Op == "PutCounterAll") && in.Note == notePutRememberAmount
 }

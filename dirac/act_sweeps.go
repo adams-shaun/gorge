@@ -46,7 +46,10 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 		if m > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(in.C))
 		}
-		if in.B.N >= kop.PutCtrCellFirst {
+		if in.B.N == kop.PutCtrRemAmount {
+			s.putCounterRemAmount(k, in, m) // RememberAmount$ (act_remember.go)
+		}
+		if in.B.N == kop.PutCtrCellFirst || in.B.N == kop.PutCtrCellNext {
 			s.fireCounterCell(k, sl, m) // trig_countercell.go
 		} else if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))

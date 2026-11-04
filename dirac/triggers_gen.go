@@ -68,6 +68,12 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}
 	}
+	// a granted Melee is listed apart from the other grants (kw_melee.go)
+	melee := k.gen.meleeGrant && ev(&meleeProbe)
+	meleeFirst := melee && s.meleeGrantsFirst(k, sl)
+	if meleeFirst {
+		s.meleeGrantTriggers(k, sl, ev, f)
+	}
 	if nown != 0 {
 		// gorge lists a Station threshold's trigger with the other statics'
 		// granted triggers, at its permanent's timestamp: an older static's
@@ -79,22 +85,25 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}, func(c CardID, ab uint8, n int) {
 			a := &k.t.Cards[c].Abilities[ab]
-			if a.Kind == kop.AbTriggered && ev(a) {
+			if a.Kind == kop.AbTriggered && ev(a) && !(melee && a.MeleeGrant) {
 				for ; n > 0; n-- {
 					f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
 				}
 			}
 		})
-		return
-	}
-	s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
-		a := &k.t.Cards[c].Abilities[ab]
-		if a.Kind == kop.AbTriggered && ev(a) {
-			for ; n > 0; n-- {
-				f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
+	} else {
+		s.grantedAbilitiesN(k, sl, func(c CardID, ab uint8, n int) {
+			a := &k.t.Cards[c].Abilities[ab]
+			if a.Kind == kop.AbTriggered && ev(a) && !(melee && a.MeleeGrant) {
+				for ; n > 0; n-- {
+					f(trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: c, ab: ab, host: s.g.grantSrc}, a)
+				}
 			}
-		}
-	})
+		})
+	}
+	if melee && !meleeFirst {
+		s.meleeGrantTriggers(k, sl, ev, f)
+	}
 }
 
 // trigOK checks a listener's once-per-turn limit and intervening-if
@@ -137,7 +146,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		// a line limited to once per turn or per game has spent its one trigger
 		// on the original: an additional time would pass the limit again (gorge
 		// queueTriggerLimited, CR 603.2d)
-		s.panharmEcho(k, l, a.Trig.Event, tobj, n) // trig_doubling.go
+		s.panharmEcho(k, l, a.Trig.Event, tobj, tpl, n) // trig_doubling.go
 	}
 }
 
@@ -579,7 +588,7 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 		return
 	}
-	if !(s.matchCardTgt(k, t.Filter, e.card, e.ctrl, l.ctrl, e.obj, l.sl, l.obj) || t.Flags3&kop.Tf3OrTargets != 0 && s.castTargetsAny(k, t.Filter2, e, l)) || !s.trigOK(k, l, a) {
+	if !(s.castFilterOK(k, t.Filter, e, l) || t.Flags3&kop.Tf3OrTargets != 0 && s.castTargetsAny(k, t.Filter2, e, l)) || !s.trigOK(k, l, a) {
 		return
 	}
 	if t.Flags2&(kop.Tf2CastFromHand|kop.Tf2ManaFromSelf) != 0 && !s.castProvOK(t, l, e) {

@@ -1,0 +1,34 @@
+package dirac
+
+import "github.com/adams-shaun/gorge/dirac/kop"
+
+// cardPTEqV is PredPowerGEV / PredToughnessLEV with PredN 1 on a spell: its
+// power (toughness) equals the value PredV (gorge powerEQ<X> /
+// toughnessEQ<X> through specCtx's Resolve: Talion, the Kindly Lord's
+// powerEQChosen). A card that prints no power or toughness never matches,
+// even a 0 (CR 208.3; gorge binds a P/T-less object's compare to false); a
+// face-down spell is a 2/2 (CR 708.2a). ctx is the bound's source context,
+// nil for the entry's own (ctxCur).
+//
+//go:noinline
+func (s *State) cardPTEqV(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool, ctx *evalCtx) bool {
+	if k.t.Cards[c].NoPT && !fd {
+		return false
+	}
+	pc := &k.cards[c]
+	pw, t := int(pc.power), int(pc.tough)
+	if fd {
+		pw, t = 2, 2
+	} else if k.cda && k.gen.has(c, gfCDAPT) {
+		pw, t = s.cardCDAPT(k, c, owner, o)
+	}
+	cx := s.ctxCur()
+	if ctx != nil {
+		cx = *ctx
+	}
+	v := s.evalV(k, fl.PredV, cx)
+	if fl.Pred == kop.PredPowerGEV {
+		return pw == v
+	}
+	return t == v
+}

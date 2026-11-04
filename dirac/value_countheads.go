@@ -212,6 +212,42 @@ func (s *State) exwMVSum(k *prep, ctx evalCtx) int {
 	return n
 }
 
+// exwSharedTypes is kop.ExExiledWithN with N 2: the most cards exiled with
+// the reading source that have one card type in common, at least 1 (gorge
+// count_ref_property.go's SharesCardTypes over exiledWithSet; CR 205.2a).
+// Every card type is counted off the printed face, as gorge reads an exiled
+// card.
+//
+//go:noinline
+func (s *State) exwSharedTypes(k *prep, ctx evalCtx) int {
+	if ctx.src == NoObj {
+		return 0
+	}
+	trig, fire := false, uint8(0)
+	if ctx.e != nil {
+		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
+	}
+	const cardTypes = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantment | kop.TPlaneswalker |
+		kop.TInstant | kop.TSorcery | kop.TBattle | kop.TKindred
+	best := 1
+	for b := kop.TypeMask(1); b != 0 && b <= cardTypes; b <<= 1 {
+		if b&cardTypes == 0 {
+			continue
+		}
+		n := 0
+		for p := 0; p < 2; p++ {
+			pl := &s.pl[p]
+			for j := 0; j < int(pl.exileN); j++ {
+				if o := pl.exile[j]; s.exwHas(o, ctx.src, trig, fire) && k.t.Cards[s.objs[o].card].Types&b != 0 {
+					n++
+				}
+			}
+		}
+		best = max(best, n)
+	}
+	return best
+}
+
 // tableRemembersIfPaidSac reports whether some program of t has a printed
 // trigger's own IfPaid Sacrifice cost whose characteristic feeds
 // resCtx.remLK (B.N the remember bit plus a SacSum* bit).

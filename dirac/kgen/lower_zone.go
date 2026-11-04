@@ -199,6 +199,19 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if handled, err := lc.handPutBack(ps, origin, dest, pos, flags, counterKind, override); handled || err != nil { // lower_handmove.go
 		return err
 	}
+	if origin == zHand && dest == zExile && ps.m["ChangeType"] == "" && ps.m["Defined"] == "" &&
+		ps.m["ValidTgts"] == "" && ps.m["DefinedPlayer"] == "" {
+		// gorge changezone_params: an absent ChangeType$ is "Card", so a
+		// bare hand-to-exile move is a pick from the controller's hand (All
+		// Good Things . . .'s "exile a card from your hand"), never the
+		// source
+		m := make(map[string]string, len(ps.m)+1)
+		for k, v := range ps.m {
+			m[k] = v
+		}
+		m["ChangeType"] = "Card"
+		ps = &params{m: m, used: ps.used}
+	}
 	if ct, ok := ps.get("ChangeType"); ok {
 		if _, has := ps.m["ValidTgts"]; has && !(origin == zHand && (dest == zExile || dest == zBattlefield || dest == zLibrary) ||
 			(origin == zBattlefield || origin == zGraveyard) && (dest == zExile || dest == zHand) && ps.is("Hidden", "True")) {
@@ -1309,13 +1322,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		return err
 	}
 	_, ownTgt := ps.get("ValidTgts")
-	lc.attachedTgtOK = !ownTgt && lc.ab != nil && len(lc.ab.Targets) > 0 // lower_filterreferents.go
-	f, err := lc.filter(ps.str("Choices"))
-	lc.attachedTgtOK = false
+	zone, err := zoneOf(ps, "ChoiceZone", zBattlefield)
 	if err != nil {
 		return err
 	}
-	zone, err := zoneOf(ps, "ChoiceZone", zBattlefield)
+	lc.attachedTgtOK = !ownTgt && lc.ab != nil && len(lc.ab.Targets) > 0 // lower_filterreferents.go
+	// a choice among the exile cards is made as the ability resolves, so
+	// ExiledWithSource reads the resolving source (gorge cardChoices'
+	// filter context, exiledBySourceAt with the trigger's fire incarnation;
+	// kernel exwFlag): Borg Cube's and Assimilation Assessor's "a creature
+	// card exiled with it" (CR 607.2a)
+	lc.exwOK = zone == zExile
+	f, err := lc.filter(ps.str("Choices"))
+	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
 	}
@@ -2433,6 +2452,25 @@ func (lc *lowerCtx) latentTrigger(name string) (int, error) {
 
 func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "Valid ") {
+		if _, ok := ps.m["ValidTgts"]; ok {
+			// a player target whose permanents the Valid set names
+			// (Mirror Universe Intrusion's kicked "each creature target
+			// opponent controls": Creature.TargetedPlayerCtrl)
+			tp := map[string]string{"ValidTgts": ps.str("ValidTgts")}
+			for _, k := range []string{"TargetMin", "TargetMax"} {
+				if v, ok := ps.get(k); ok {
+					tp[k] = v
+				}
+			}
+			r, err := lc.objOrTarget(newParams(tp), "", zBattlefield)
+			if err != nil {
+				return err
+			}
+			if t := lc.ab.Targets[r.N].F; t == nil || t.Players == 0 || len(t.Clauses) != 0 || !strings.Contains(d, "TargetedPlayerCtrl") {
+				return refuse("CopyPermanent Defined$ %q beside a target that is not the player it names", d)
+			}
+			ps.consume("ValidTgts", "TgtPrompt", "ValidTgtsDesc")
+		}
 		_, err := lc.definedValid(&cards.SA{API: "CopyPermanent"}, ps)
 		return err
 	}
@@ -2442,6 +2480,17 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
 	var flags []string
+	if ps.str("Controller") == "NonRememberedController" {
+		// each player other than the remembered permanent's controller
+		// (its last-known controller once it left; gorge
+		// copyPermanentController's NonRememberedController): two-player,
+		// that controller's opponent (Fractured Identity)
+		if obj.Kind != rRemembered {
+			return refuse("CopyPermanent Controller$ NonRememberedController over %v", obj)
+		}
+		delete(ps.m, "Controller") // read here, not as a copy exception
+		flags = append(flags, "NonRemCtrl")
+	}
 	if n, ok := ps.get("NumCopies"); ok {
 		// gorge copyPermanentNumCopies: CalculateAmount (For the Common
 		// Good's X, Offspring's Count$OffspringPaid)
@@ -2485,10 +2534,15 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 	}
 	if k, ok := ps.get("PumpKeywords"); ok {
-		// not copiable (gorge :287, :308-327): a permanent keyword grant on
-		// each token after it enters, so a copy of the copy lacks it
+		// not copiable (gorge :287, :308-327): a keyword grant on each token
+		// after it enters, so a copy of the copy lacks it; permanent, or
+		// until end of turn under PumpDuration$ EOT
+		pumpFlag := "Pump="
 		if d, ok := ps.get("PumpDuration"); ok {
-			return refuse("CopyPermanent PumpDuration %q", d)
+			if d != "EOT" {
+				return refuse("CopyPermanent PumpDuration %q", d)
+			}
+			pumpFlag = "PumpEOT="
 		}
 		ks, err := pumpKeywords(k)
 		if err != nil {
@@ -2500,10 +2554,17 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		if _, ok := kwBits[ks[0]]; !ok {
 			return refuse("CopyPermanent PumpKeywords %q", k)
 		}
-		flags = append(flags, "Pump="+ks[0])
+		flags = append(flags, pumpFlag+ks[0])
 	}
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
+	}
+	if v, ok := ps.get("TokenTapped"); ok {
+		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)
+		if v != "True" {
+			return refuse("CopyPermanent TokenTapped %q", v)
+		}
+		flags = append(flags, "Tapped")
 	}
 	if ct, ok := ps.get("WithCountersType"); ok {
 		// the token enters with the counters (gorge copypermanent.go folds
@@ -2802,7 +2863,10 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 	case prod == "ColorIdentity" || prod == "Combo ColorIdentity":
 		// "any color in your commander's color identity" (CR 903.4): dirac plays
 		// no commander games, and gorge adds nothing for an empty identity, so the
-		// ability is a source of no colour, which the kernel leaves out of payment
+		// ability is a source of no colour, which the kernel leaves out of payment;
+		// a TriggersWhenSpent$ rider (Path of Ancestry's scry) waits on that
+		// mana being spent, so it never triggers
+		ps.str("TriggersWhenSpent")
 		m.Colors = ""
 		m.Amount = cst(1)
 		return lc.finishMana(sa, ps, ab, m)

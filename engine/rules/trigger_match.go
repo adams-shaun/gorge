@@ -2850,7 +2850,7 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, ownedSVars map[string]string) bool {
 	// The scanner has already run its diagnostic/batch gates. Reject an
 	// impossible event before consulting dynamic zone and phase predicates.
-	if !triggerLineEvents(&t).allows(ev.Kind) {
+	if !triggerLineEvents(&t).allows(ev.Kind) || e.pushZoneExcludes(&t, &ev) {
 		return false
 	}
 	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {

@@ -172,7 +172,7 @@ const (
 	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
 	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
 	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
-	PredPowerGEV                                            // reserved
+	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV (dirac/filter_ptvalue.go)
 	PredToughnessGE                                         // toughness >= PredN
 	PredHasXCost                                            // the printed mana cost contains {X}
 	PredPowerLTToughness                                    // power < toughness
@@ -202,8 +202,9 @@ const (
 	PredCountersLT
 	// PredToughnessLEV: a battlefield permanent whose current toughness
 	// is <= the value PredV (gorge toughnessLE<X>: Zero Point Ballad's
-	// "creatures with toughness X or less"; battlefield only, kgen lowers
-	// no other zone)
+	// "creatures with toughness X or less"; battlefield only). PredN 1: a
+	// spell's toughness == PredV (Talion's toughnessEQChosen;
+	// dirac/filter_ptvalue.go)
 	PredToughnessLEV
 )
 
@@ -316,6 +317,31 @@ const (
 	W7BottomLibrary    int16 = 17
 	W7NotBottomLibrary int16 = 18
 )
+
+// W7AttachedTo (PredWord7 sub-kind 19): the object is attached to a
+// battlefield permanent (gorge's two-token "AttachedTo <class>[.<qual>]",
+// effects/filter_attachment.go attachedToArg) of the class PredN's high byte
+// names (AttToCreature, AttToLand; neither: any permanent, the Card and
+// Permanent classes) and that meets its qualifier: AttToOther, not the
+// filter's source; AttToYouCtrl, controlled by the evaluating controller.
+// Nothing off the battlefield is attached.
+const W7AttachedTo int16 = 19
+
+// W7AttachedTo's PredN high-byte bits (PredN>>8).
+const (
+	AttToCreature = 1
+	AttToLand     = 2
+	AttToOther    = 4
+	AttToYouCtrl  = 8
+)
+
+// W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith
+// YourGraveyard+doesNotShareNameWith OtherYourBattlefield" read as one word
+// (Guardian Project): no other permanent the object's controller controls
+// shares its name, and no card in the evaluating controller's graveyard does
+// (gorge doesNotShareNameWithMatches, both keys; CR 201.2). A card in that
+// graveyard shares a name with itself.
+const W7NoNameTwinGrave int16 = 20
 
 // PredPermMark, four per-permanent marks the filter words
 // attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and

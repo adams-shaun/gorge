@@ -59,6 +59,10 @@ func (lc *lowerCtx) putCounterAll(ps *params) error {
 		note = sweepTgtPlayerNote
 	}
 	first := lInstr{Op: "PutCounterAll", F: f, A: n, CS: ct, Note: note}
+	remAmount, err := rememberParam(ps, "RememberAmount")
+	if err != nil {
+		return err
+	}
 
 	vc2, _ := ps.get("ValidCards2")
 	ct2, _ := ps.get("CounterType2")
@@ -69,8 +73,23 @@ func (lc *lowerCtx) putCounterAll(ps *params) error {
 		if _, ok := ps.get("CounterNum2"); ok {
 			return refuse("PutCounterAll CounterNum2$ without ValidCards2$/CounterType2$")
 		}
+		if remAmount {
+			// RememberAmount$ True: gorge appends each recipient once per
+			// counter that landed, so Count$RememberedNumber reads the
+			// sweep's landed total (Guinan, Ancient Advisor's "two or more
+			// +1/+1 counters"); the kernel adds it to the remembered count,
+			// and refuseRememberAmountObjects refuses an object read
+			if note != "" {
+				// the note marks the targeted-player sweep (lower_sweeptargetplayer.go)
+				return refuse("PutCounterAll RememberAmount$ with ValidTgts$ Player")
+			}
+			first.B, first.Note = cst(kop.PutCtrRemAmount), notePutRememberAmount
+		}
 		lc.emit(first)
 		return nil
+	}
+	if remAmount {
+		return refuse("PutCounterAll RememberAmount$ with a second batch")
 	}
 	// one action across both sweeps: one CounterPlayerAddedAll trigger per
 	// recipient (gorge's counterBatch latch; kop.PutCtrCellFirst)

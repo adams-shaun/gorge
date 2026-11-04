@@ -1,0 +1,16 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Disenchant
+1	card	Forest
+2	card	Grizzly Bears
+3	card	Hill Giant
+4	card	Island
+5	card	Mountain
+6	card	Naturalize
+7	card	Plains
+8	card	Savannah Lions
+9	card	Shock
+10	card	Swamp
+11	card	The Measure of a Man
+12	card	Unsummon
+13	card	Walking Corpse
+14	token	c_a_clue_draw

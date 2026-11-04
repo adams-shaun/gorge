@@ -780,8 +780,9 @@ func (e *Engine) abilityRestrictionApplies(sv staticView, p state.PlayerID, id s
 // matches everything but a mana ability (ab.API == "Mana"); "ManaAbility"
 // matches only a mana ability, and "ManaAbility<Produce:C>" the subset that
 // produces colour C (test-only grammar -- see the case below);
+// "Loyalty" matches only a planeswalker's loyalty ability (CR 606);
 // and a constraint this build cannot evaluate --
-// Loyalty, Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
+// Equip, Crew+Vehicle, hasTapCost, ... -- DENIES, per the "a
 // restriction that cannot be evaluated must deny, not silently allow" rule:
 // erring toward applying a CantBeActivated is the safe direction, because the
 // consequence of wrongly allowing an activation a static forbids is an illegal
@@ -818,6 +819,15 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 			// restriction to an ability carrying PowerUp$ True. A non-power-up
 			// ability is spared and the next alternative is tried.
 			if powerUpTrueCodes.Code(ab.ParamStr(cards.PKPowerUp)) == powerUpTrue {
+				return true
+			}
+		case activatedValidSACodes.Code(constraint) == activatedValidSALoyalty:
+			// Forge's Activated.Loyalty (SpellAbility.isPwAbility): scopes the
+			// restriction to a planeswalker's loyalty abilities (CR 606), so
+			// The Immortal Sun leaves a planeswalker's other activated
+			// abilities, mana abilities among them, activatable. Another
+			// ability is spared and the next alternative is tried.
+			if isLoyaltyAbility(ab) {
 				return true
 			}
 		case constraint == "ManaAbility" || strings.HasPrefix(constraint, "ManaAbility<"):
@@ -867,10 +877,12 @@ type activatedValidSACode uint16
 
 const (
 	activatedValidSAPowerUp activatedValidSACode = iota + 1
+	activatedValidSALoyalty
 )
 
 var activatedValidSACodes = state.NewStrCodes(
 	state.StrEntry[activatedValidSACode]{Key: "PowerUp", Val: activatedValidSAPowerUp},
+	state.StrEntry[activatedValidSACode]{Key: "Loyalty", Val: activatedValidSALoyalty},
 )
 
 // powerUpTrueCode indexes the PowerUp$ parameter's one corpus value.

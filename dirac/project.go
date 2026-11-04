@@ -275,6 +275,9 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 		if s.isCreature(k, sl) {
 			pw, tg := s.pt(k, sl)
+			if k.phasing && s.hiddenAt(sl) {
+				pw, tg = s.phasedPT(k, sl) // kw_phasing.go
+			}
 			po.Power, po.Tough = int16(pw), int16(tg)
 		}
 		if pm.attached != NoSlot {

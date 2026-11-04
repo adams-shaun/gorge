@@ -19,8 +19,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // lockstep mutation test flips it and requires a divergence.
 var DebugIgnoreGoad bool
 
-// prepGoad sets anyGoad: some program goads.
+// prepGoad sets anyGoad: some program goads, or a static goads
+// (kop.StatGoad, anyStatGoad).
 func prepGoad(t *kop.Table, g *genPrep) {
+	g.anyStatGoad = tableHasStatic(t, kop.StatGoad)
+	g.anyGoad = g.anyStatGoad
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
@@ -38,7 +41,8 @@ func (s *State) goadedAt(k *prep, sl Slot) bool {
 	if DebugIgnoreGoad {
 		return false
 	}
-	return s.mSl(k, mechGoad0, sl) || s.mSl(k, mechGoad1, sl)
+	return s.mSl(k, mechGoad0, sl) || s.mSl(k, mechGoad1, sl) ||
+		k.gen.anyStatGoad && s.staticFlagGen(k, kop.StatGoad, sl) // a static's Goad$ True (kop.StatGoad)
 }
 
 // goad is OpGoad: the resolving controller goads Obj, or every battlefield

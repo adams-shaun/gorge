@@ -47,6 +47,17 @@ type Engine struct {
 	// leaves the event stream and every chain head byte-identical.
 	ManaAbilityHook func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
 
+	// StaticTriggerHook, when non-nil, is called once per Static$ True
+	// trigger the drain resolves off the stack (resolveStaticTrigger: Storied
+	// Veteran's and Overflow Submatrix's "it enters with a finality counter"
+	// riders), with the trigger's controller, source and compiled body. Such
+	// a trigger leaves no ability object in the arena, so the harness's
+	// ability coverage credits it from this record. Like ManaAbilityHook it is
+	// a harness-only OBSERVER: it emits nothing, mutates nothing, is not
+	// copied by Clone, and a nil hook leaves the event stream and every chain
+	// head byte-identical.
+	StaticTriggerHook func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
+
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
 	// 903.9, commander damage) check -- "in a non-Commander game none of

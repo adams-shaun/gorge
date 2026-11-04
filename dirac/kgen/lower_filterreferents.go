@@ -72,7 +72,8 @@ func ownerRoleWord(w uint8) string {
 // is bound exactly as the existing twin's is; it reads the raw filter
 // text, so every spelling and alternative is covered.
 //
-//   - NotDefinedTriggeredAttacker is the negation of TriggeredAttacker, the
+//   - NotDefinedTriggeredAttacker (and its !TriggeredAttacker spelling) is
+//     the negation of TriggeredAttacker, the
 //     attacking creature an Attacks trigger captured (gorge
 //     notDefinedTriggerReferent). The kernel's Attacks trigger carries the
 //     attacker as trigObj (combat.go objTrigGen over the declared attacker's
@@ -82,7 +83,7 @@ func ownerRoleWord(w uint8) string {
 //     referent as ParentTarget: target 0 of the entry. chooseCard sets
 //     attachedTgtOK only when the node declares no target slot of its own.
 func (lc *lowerCtx) referentGate(expr string) error {
-	if strings.Contains(expr, "NotDefinedTriggeredAttacker") {
+	if strings.Contains(expr, "NotDefinedTriggeredAttacker") || strings.Contains(expr, "!TriggeredAttacker") {
 		tr := (*lTrigger)(nil)
 		if lc.ab != nil {
 			tr = lc.ab.Trigger

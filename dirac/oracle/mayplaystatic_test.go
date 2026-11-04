@@ -9,19 +9,21 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// The lockstep: the five "if you cast a spell this way,
-// it enters with a counter" carriers — Intrepid Paleontologist, Leonardo
-// Sewer Samurai and Osteomancer Adept (a FINALITY counter), Undead Sprinter
-// and Mikey & Don, Party Planners (an extra +1/+1 counter) — whose
+// The lockstep: the "if you cast a spell this way, it enters with a
+// counter" carriers — Intrepid Paleontologist, Leonardo Sewer Samurai,
+// Osteomancer Adept, Overflow Submatrix and Storied Veteran (a FINALITY
+// counter; the Veteran's stack-zone trigger sees only its own cast), Undead
+// Sprinter and Mikey & Don, Party Planners (an extra +1/+1 counter) — whose
 // Static$ True SpellCast triggers resolve off the stack, before the
 // CR 603.3b ordering ask, and whose bodies only stamp the cast spell's
 // stack entry. The may-play-source provenance reads the cast's flag, so an
 // ordinary cast of the same cards triggers nothing (the OrdinaryCasts
-// count). No counterspells and no reanimation in either deck: the
-// persistent-shape effects (no ExileOnMoved$ Stack) remember their card in
-// gorge, so a countered-then-recast carrier would get a second counter
-// there and not in the kernel (an unmodelled gorge edge, out of pool).
-var mayPlayDecks = [3][]cardset.Entry{
+// count). Counterspell and Unsummon put carriers' spells back where they
+// can be cast again: the rider's Effect ends once its spell leaves the
+// stack in both engines (CR 400.7), so a countered spell recast from the
+// graveyard gets only its new cast's counter and a bounced permanent recast
+// from hand gets none.
+var mayPlayDecks = [5][]cardset.Entry{
 	{ // B/G: the three FINALITY carriers, Undead Sprinter, dinosaur and
 		// 1-power fodder, self-mill, removal and basics
 		{Name: "Intrepid Paleontologist", Count: 3}, {Name: "Leonardo, Sewer Samurai", Count: 3}, {Name: "Osteomancer Adept", Count: 4},
@@ -36,7 +38,7 @@ var mayPlayDecks = [3][]cardset.Entry{
 		{Name: "Game-Trail Changeling", Count: 2}, {Name: "Horned Turtle", Count: 2},
 		{Name: "Ninja of the Deep Hours", Count: 2}, {Name: "Mothdust Changeling", Count: 2},
 		{Name: "Unsummon", Count: 3}, {Name: "Naturalize", Count: 2}, {Name: "Llanowar Elves", Count: 2},
-		{Name: "Giant Growth", Count: 2}, {Name: "Forest", Count: 7}, {Name: "Island", Count: 8},
+		{Name: "Counterspell", Count: 2}, {Name: "Forest", Count: 7}, {Name: "Island", Count: 8},
 	},
 	{ // the green-blue deck's mirror is the {1, 1} matchup; the dense
 		// carrier deck is deck 0 against itself (Leonardo beside an active
@@ -48,15 +50,44 @@ var mayPlayDecks = [3][]cardset.Entry{
 		{Name: "Colossal Dreadmaw", Count: 4}, {Name: "Typhoid Rats", Count: 6},
 		{Name: "Murder", Count: 2}, {Name: "Forest", Count: 3}, {Name: "Swamp", Count: 3},
 	},
+	{ // U/B: Overflow Submatrix and the artifact creatures it casts from the
+		// graveyard, self-mill, Undead Sprinter (Overflow's flag-only
+		// may-play read covers its graveyard cast too), Counterspell and
+		// Unsummon for the recasts, removal and basics
+		{Name: "Overflow Submatrix", Count: 4}, {Name: "Ornithopter", Count: 3}, {Name: "Memnite", Count: 3},
+		{Name: "Bronze Sable", Count: 3}, {Name: "Phyrexian Walker", Count: 2}, {Name: "Yotian Soldier", Count: 2},
+		{Name: "Stitcher's Supplier", Count: 3}, {Name: "Undead Sprinter", Count: 2}, {Name: "Counterspell", Count: 3},
+		{Name: "Unsummon", Count: 2}, {Name: "Murder", Count: 2}, {Name: "Island", Count: 5}, {Name: "Swamp", Count: 6},
+	},
+	{ // W/U/B: Storied Veteran cast from the graveyard while Leonardo's
+		// graveyard casts of Spectral Sailor (flash, 1/1) join it on the
+		// stack (its trigger sees only its own cast), self-mill,
+		// Counterspell and Unsummon for the recasts
+		{Name: "Storied Veteran", Count: 4}, {Name: "Leonardo, Sewer Samurai", Count: 4}, {Name: "Spectral Sailor", Count: 4},
+		{Name: "Stitcher's Supplier", Count: 3}, {Name: "Typhoid Rats", Count: 3}, {Name: "Counterspell", Count: 2},
+		{Name: "Unsummon", Count: 2}, {Name: "Murder", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 6}, {Name: "Swamp", Count: 5},
+	},
 }
 
-// mayPlayMatchups: A vs B (both players' casts carry the other's riders),
-// the dense carrier mirror (two FINALITY grants on one cast: Leonardo
-// beside an active Osteomancer effect) and B vs B (the P1P1 top-library
-// casts).
-var mayPlayMatchups = [][2]int{{0, 1}, {2, 2}, {1, 1}}
+// mayPlayMatchups: A vs B (both players' casts carry the other's riders;
+// B's Counterspell and Unsummon send A's carriers back to be recast), the
+// dense carrier mirror (two FINALITY grants on one cast: Leonardo beside an
+// active Osteomancer effect), B vs B (the P1P1 top-library casts), and the
+// Overflow Submatrix deck against B (countered and bounced artifact
+// creatures recast) and against A (each side's graveyard casts beside an
+// Overflow Submatrix). mayPlayVeteranMatchups, a test of their own for the
+// time budget: the Storied Veteran deck against itself and against B.
+var (
+	mayPlayMatchups        = [][2]int{{0, 1}, {2, 2}, {1, 1}, {3, 1}, {3, 0}}
+	mayPlayVeteranMatchups = [][2]int{{4, 4}, {4, 1}}
+)
 
 func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls int) {
+	return mayPlayRunOn(t, mayPlayMatchups, seeds, report)
+}
+
+func mayPlayRunOn(t *testing.T, matchups [][2]int, seeds uint64, report bool) (diverged bool, stalls int) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -67,7 +98,7 @@ func mayPlayRun(t *testing.T, seeds uint64, report bool) (diverged bool, stalls 
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mu := range mayPlayMatchups {
+	for _, mu := range matchups {
 		var decks [2][]*cards.Card
 		for s, di := range mu {
 			for _, e := range mayPlayDecks[di] {
@@ -155,6 +186,28 @@ func TestMayplaystaticLockstep(t *testing.T) {
 		if c.got < c.min {
 			t.Errorf("%s: %d, want at least %d", c.s, c.got, c.min)
 		}
+	}
+}
+
+// TestMayplaystaticVeteranLockstep: Storied Veteran cast from the graveyard
+// beside Leonardo's graveyard casts of Spectral Sailor, whose flash puts it
+// on the stack above the Veteran: only the Veteran's own cast gets its
+// finality counter, and the Veteran under Leonardo is offered one may-play
+// cast.
+func TestMayplaystaticVeteranLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.MayPlayStats.StaticResolved.Store(0)
+	dirac.MayPlayStats.FinalityEnter.Store(0)
+	div, stalls := mayPlayRunOn(t, mayPlayVeteranMatchups, 256, true)
+	static, finality := dirac.MayPlayStats.StaticResolved.Load(), dirac.MayPlayStats.FinalityEnter.Load()
+	t.Logf("256 seeds, %d divergences, %d stalls; static resolutions %d, FINALITY entries %d", b2i(div), stalls, static, finality)
+	if div {
+		return
+	}
+	if static < 30 || finality < 20 {
+		t.Errorf("static resolutions %d (want 30+), FINALITY entries %d (want 20+)", static, finality)
 	}
 }
 

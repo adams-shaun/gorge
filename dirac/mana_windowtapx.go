@@ -77,11 +77,45 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 	if !k.tapMana || !s.scriptTapX(k, p).has(o) {
 		return false
 	}
-	c := s.cardAt(o)
-	if k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N != 1 {
-		return false
-	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
+}
+
+// winTapN is how many permanents source sl's cost taps: one (Saruli Caretaker)
+// or two (Supportive Parents, whose window pick is gorge's one "choose 2", asked
+// a permanent at a time).
+func (s *State) winTapN(k *prep, sl Slot) int {
+	c := s.cardAt(sl)
+	return int(k.t.Cards[c].Abilities[k.cards[c].manaAb].Cost.N)
+}
+
+// winTapPick records pick a of the window's tap-another source; true when the
+// source still owes its second permanent (the ask stays posed), else cand and
+// cand2 are the permanents to tap, in pick order.
+func (s *State) winTapPick(k *prep, a Action) (more bool, cand, cand2 Slot) {
+	sl := s.objs[Obj(a.Source())].slot
+	if s.winTapN(k, s.g.winSrc) == 2 {
+		if s.g.winFirst == 0 {
+			s.g.winFirst = uint8(sl) + 1
+			return true, NoSlot, NoSlot
+		}
+		first := Slot(s.g.winFirst - 1)
+		s.g.winFirst = 0
+		return false, first, sl
+	}
+	return false, sl, NoSlot
+}
+
+// winTapOptions adds the window pick's options: the source's candidates in
+// battlefield order, less a two-permanent source's first pick.
+func (s *State) winTapOptions(k *prep, p uint8, d *Decision) {
+	var cs [MaxPerm]Slot
+	n := s.tapXCands(k, p, s.g.winSrc, &cs)
+	for _, sl := range cs[:n] {
+		if s.g.winFirst != 0 && sl == Slot(s.g.winFirst-1) {
+			continue
+		}
+		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
+	}
 }
 
 // windowTapXGo activates the window's tap-another source sl: with one candidate
@@ -92,7 +126,8 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Slot, clamp, anyColor, noOwed bool) bool {
 	var cs [MaxPerm]Slot
 	n := s.tapXCands(k, p, sl, &cs)
-	if n >= 2 && s.g.winMode != winNone {
+	need := s.winTapN(k, sl) // with exactly that many candidates gorge taps them unasked
+	if n > need && s.g.winMode != winNone {
 		s.g.winSrc = sl
 		s.res.ask, s.res.askP = raGenWinTap, p
 		return true
@@ -106,10 +141,14 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 			}
 		}
 	}
-	if n >= 2 && s.castWinTapPause(sl, col) {
+	if n > need && s.castWinTapPause(sl, col) {
 		return true
 	}
-	s.tapXDo(k, p, tapXStep{sl: sl, cand: cs[0], cand2: NoSlot, col: col})
+	cand2 := NoSlot
+	if need == 2 {
+		cand2 = cs[1] // a probe takes the first candidates
+	}
+	s.tapXDo(k, p, tapXStep{sl: sl, cand: cs[0], cand2: cand2, col: col})
 	return false
 }
 
@@ -137,11 +176,7 @@ func (s *State) askOptionsWinTap(k *prep, d *Decision) bool {
 		return false
 	}
 	d.Sub = ChWindowTap
-	var cs [MaxPerm]Slot
-	n := s.tapXCands(k, s.res.askP, s.g.winSrc, &cs)
-	for _, sl := range cs[:n] {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
-	}
+	s.winTapOptions(k, s.res.askP, d)
 	return true
 }
 
@@ -151,13 +186,17 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	if s.res.ask != raGenWinTap {
 		return false
 	}
+	more, cand, cand2 := s.winTapPick(k, a)
+	if more {
+		return true // the second permanent is asked next
+	}
 	r := &s.res
 	p := r.askP
 	r.ask = raNone
 	cost := s.winTapCost(k)
 	sl := s.g.winSrc
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)
-	s.tapXDo(k, p, tapXStep{sl: sl, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: col})
+	s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
 	if s.g.winMode == winTrig {
 		// the trigger's window taps on; the charge fails, as payReplanned's does
 		if s.trigWindowTap(k, p, &cost) {

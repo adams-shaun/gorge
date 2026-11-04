@@ -1,0 +1,73 @@
+<svg class="mzc" viewBox="0 0 760 484" role="img" aria-label="Mean simulated percentile minus 17Lands percentile, by card group, for the three FDN lists" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">Where simulation disagrees with 17Lands (FDN, percentile points)</text>
+<circle class="dot s1" cx="22" cy="44" r="5"/>
+<text x="40.0" y="48.0" text-anchor="start">fdn-bot-80k</text>
+<circle class="dot s2" cx="129" cy="44" r="5"/>
+<text x="147.0" y="48.0" text-anchor="start">fdn-azc6g3-20k</text>
+<circle class="dot s3" cx="257" cy="44" r="5"/>
+<text x="275.0" y="48.0" text-anchor="start">fdn-nonet-3k</text>
+<line class="mz-grid" x1="200.0" y1="64" x2="200.0" y2="444"/>
+<text x="200.0" y="460.0" class="mz-muted" text-anchor="middle">-25</text>
+<line class="mz-grid" x1="267.0" y1="64" x2="267.0" y2="444"/>
+<text x="267.0" y="460.0" class="mz-muted" text-anchor="middle">-20</text>
+<line class="mz-grid" x1="334.0" y1="64" x2="334.0" y2="444"/>
+<text x="334.0" y="460.0" class="mz-muted" text-anchor="middle">-15</text>
+<line class="mz-grid" x1="401.0" y1="64" x2="401.0" y2="444"/>
+<text x="401.0" y="460.0" class="mz-muted" text-anchor="middle">-10</text>
+<line class="mz-grid" x1="468.0" y1="64" x2="468.0" y2="444"/>
+<text x="468.0" y="460.0" class="mz-muted" text-anchor="middle">-5</text>
+<line class="mz-grid" x1="535.0" y1="64" x2="535.0" y2="444"/>
+<text x="535.0" y="460.0" class="mz-muted" text-anchor="middle">0</text>
+<line class="mz-grid" x1="602.0" y1="64" x2="602.0" y2="444"/>
+<text x="602.0" y="460.0" class="mz-muted" text-anchor="middle">+5</text>
+<line class="mz-grid" x1="669.0" y1="64" x2="669.0" y2="444"/>
+<text x="669.0" y="460.0" class="mz-muted" text-anchor="middle">+10</text>
+<line class="mz-grid" x1="736.0" y1="64" x2="736.0" y2="444"/>
+<text x="736.0" y="460.0" class="mz-muted" text-anchor="middle">+15</text>
+<line class="mz-axis" x1="535.0" y1="64" x2="535.0" y2="444"/>
+<text x="188.0" y="90.0" text-anchor="end">Text mentions sacrifice (25)</text>
+<g><title>Text mentions sacrifice, fdn-bot-80k: -20.3</title><rect class="s1" x="263.0" y="76" width="272.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Text mentions sacrifice, fdn-azc6g3-20k: -12.2</title><rect class="s2" x="371.5" y="85" width="163.5" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Text mentions sacrifice, fdn-nonet-3k: -15.7</title><rect class="s3" x="324.6" y="94" width="210.4" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="124.0" text-anchor="end">Mana value 1-2 (90)</text>
+<g><title>Mana value 1-2, fdn-bot-80k: -8.9</title><rect class="s1" x="415.7" y="110" width="119.3" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 1-2, fdn-azc6g3-20k: -4.8</title><rect class="s2" x="470.7" y="119" width="64.3" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 1-2, fdn-nonet-3k: -5.8</title><rect class="s3" x="457.3" y="128" width="77.7" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="158.0" text-anchor="end">Mana value 3 (70)</text>
+<g><title>Mana value 3, fdn-bot-80k: +2.3</title><rect class="s1" x="535.0" y="144" width="30.8" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 3, fdn-azc6g3-20k: +4.6</title><rect class="s2" x="535.0" y="153" width="61.6" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 3, fdn-nonet-3k: +3.1</title><rect class="s3" x="535.0" y="162" width="41.5" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="192.0" text-anchor="end">Mana value 4 (44)</text>
+<g><title>Mana value 4, fdn-bot-80k: +4.6</title><rect class="s1" x="535.0" y="178" width="61.6" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 4, fdn-azc6g3-20k: +4.3</title><rect class="s2" x="535.0" y="187" width="57.6" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 4, fdn-nonet-3k: +6.3</title><rect class="s3" x="535.0" y="196" width="84.4" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="226.0" text-anchor="end">Mana value 5 (28)</text>
+<g><title>Mana value 5, fdn-bot-80k: +5.0</title><rect class="s1" x="535.0" y="212" width="67.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 5, fdn-azc6g3-20k: +1.3</title><rect class="s2" x="535.0" y="221" width="17.4" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 5, fdn-nonet-3k: +1.1</title><rect class="s3" x="535.0" y="230" width="14.7" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="260.0" text-anchor="end">Mana value 6+ (30)</text>
+<g><title>Mana value 6+, fdn-bot-80k: +10.0</title><rect class="s1" x="535.0" y="246" width="134.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 6+, fdn-azc6g3-20k: -3.9</title><rect class="s2" x="482.7" y="255" width="52.3" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Mana value 6+, fdn-nonet-3k: +0.0</title><rect class="s3" x="535.0" y="264" width="1.5" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="294.0" text-anchor="end">Enchantments (18)</text>
+<g><title>Enchantments, fdn-bot-80k: +9.1</title><rect class="s1" x="535.0" y="280" width="121.9" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Enchantments, fdn-azc6g3-20k: +4.7</title><rect class="s2" x="535.0" y="289" width="63.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Enchantments, fdn-nonet-3k: +10.3</title><rect class="s3" x="535.0" y="298" width="138.0" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="328.0" text-anchor="end">Creatures (162)</text>
+<g><title>Creatures, fdn-bot-80k: +6.2</title><rect class="s1" x="535.0" y="314" width="83.1" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Creatures, fdn-azc6g3-20k: +4.0</title><rect class="s2" x="535.0" y="323" width="53.6" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Creatures, fdn-nonet-3k: +4.5</title><rect class="s3" x="535.0" y="332" width="60.3" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="362.0" text-anchor="end">Instants (36)</text>
+<g><title>Instants, fdn-bot-80k: -19.4</title><rect class="s1" x="275.0" y="348" width="260.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Instants, fdn-azc6g3-20k: -13.3</title><rect class="s2" x="356.8" y="357" width="178.2" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Instants, fdn-nonet-3k: -14.7</title><rect class="s3" x="338.0" y="366" width="197.0" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="396.0" text-anchor="end">Sorceries (29)</text>
+<g><title>Sorceries, fdn-bot-80k: -10.3</title><rect class="s1" x="397.0" y="382" width="138.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Sorceries, fdn-azc6g3-20k: -5.6</title><rect class="s2" x="460.0" y="391" width="75.0" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Sorceries, fdn-nonet-3k: -1.7</title><rect class="s3" x="512.2" y="400" width="22.8" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="188.0" y="430.0" text-anchor="end">Artifacts (12)</text>
+<g><title>Artifacts, fdn-bot-80k: -2.7</title><rect class="s1" x="498.8" y="416" width="36.2" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Artifacts, fdn-azc6g3-20k: -2.7</title><rect class="s2" x="498.8" y="425" width="36.2" height="7" rx="1.5" style="stroke:none"/></g>
+<g><title>Artifacts, fdn-nonet-3k: -17.6</title><rect class="s3" x="299.2" y="434" width="235.8" height="7" rx="1.5" style="stroke:none"/></g>
+<text x="468.0" y="480.0" class="mz-muted" text-anchor="middle">simulation rates the group lower ← 0 → higher than human play</text>
+</svg>

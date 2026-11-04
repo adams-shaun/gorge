@@ -6,6 +6,7 @@ Ambassador K'Ehleyr
 Ancient Greenwarden
 Anguished Unmaking
 Arcane Sanctum
+Assimilation Assessor
 Astral Cornucopia
 Augur of Autumn
 Austere Command
@@ -71,6 +72,7 @@ Exploration
 Fabled Passage
 Faithful Mending
 Farseek
+Ferocious Colonist
 Fetid Pools
 Fleet Captain Christopher Pike
 Foreboding Ruins
@@ -87,11 +89,13 @@ Giant Space Amoeba
 Gin'tak Charge
 Glacial Fortress
 Glittering Massif
+Glory to the Empire!
 Gnarling Targ
 Gorn Captain
 Grand Crescendo
 Grilka, Widowed Warrior
 Growth Spiral
+Guinan, Ancient Advisor
 Gumato
 Harmonize
 Head of Security
@@ -159,6 +163,7 @@ Pongify
 Port Town
 Prairie Stream
 Professional Face-Breaker
+Q, Your Illustrious Host
 Qo'noS Quartermaster
 Radiant Summit
 Rain-Slicked Copse

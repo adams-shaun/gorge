@@ -51,7 +51,7 @@ func (s *State) resolveTop(k *prep) {
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
-		if k.gen.anyRemPersist && remPersist(k, &e) {
+		if k.gen.anyRemPersist && remPersistSeeds(k, &e) {
 			s.remPersistSeed(k) // its source's kept set (zone_rememberpersist.go)
 		}
 		// a damage sequence belongs to the resolution that started it: a new
@@ -234,7 +234,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		s.wakeDefeat()
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRemPersist && remPersist(k, e) {
+	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
 	}
 	if e.kind == seSpell {
@@ -767,15 +767,7 @@ func (s *State) damageTo(k *prep, code uint8, n int) int {
 		sl := ob.slot
 		s.touch(Obj(code))
 		p := &s.perms[sl]
-		if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-			s.dmgCounters(k, sl, p, n)
-		} else {
-			d := int(p.damage) + n
-			if d > 255 {
-				d = 255
-			}
-			p.damage = uint8(d)
-		}
+		s.dmgPerm(k, sl, p, n)
 		if kw&kop.KwDeathtouch != 0 {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}

@@ -164,6 +164,7 @@ const (
 	vDilemmasFaced       // the times the controller chose modes this turn (Count$YouFaceDilemmaThisTurn)
 	vChromaOf            // the symbols of colour N in the printed cost of object Ref (TriggeredCard$ChromaSource.<Colour> in a SpellCast trigger)
 	vOppsAttacked        // opponents the controller attacked this turn (PlayerCountPropertyYou$OpponentsAttackedThisTurn)
+	vChosenNumber        // the number the source permanent chose as it entered, 0 when none (a filter bound "Chosen": cmcEQChosen)
 	vCount_
 )
 
@@ -171,7 +172,7 @@ var valNames = [...]string{"None", "Const", "X", "Count", "CountGraveyard", "Sum
 	"Morbid", "AttackedThisTurn", "PowerOf", "ToughnessOf", "LifeOf", "LibrarySizeOf", "StartingLife",
 	"TriggerAmount", "LifeGainedThisTurn", "OppLifeLostThisTurn", "CountersOn", "CreaturesDied",
 	"RememberedCount", "ExcessDamage", "LastLifeLost", "TokensCreated", "CountCast", "LifeLostThisTurn", "Sum",
-	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked"}
+	"HandSizeOf", "CountExile", "OppsLostLife", "MVOf", "CountAtLeast", "PromisedGift", "ResolvedThisTurn", "ThisTurnCast", "RollResult", "CastManaSpent", "Compare", "Branches", "Devotion", "Party", "DrawnThisTurn", "GraveTypes", "ValidAgg", "GraveAgg", "YourSpeed", "HighestOppPoison", "ThisTurnEntered", "ThisTurnCastSpec", "CommittedCrime", "ThisTurnActGrave", "SelfPrepared", "Sneaked", "TriggerSpellMVLKI", "PoisonOf", "Product", "AttackersAll", "RefCount", "CountHand", "YourTurns", "LowestLife", "RedNCDmg", "Void", "Revolt", "LeftZone", "CastFromGrave", "CtrAdded", "ExiledWithN", "Converge", "ExileTypes", "SacrificedThisTurn", "DiscardedThisTurn", "NumColorsOf", "ScriedThisTurn", "RemLKIPT", "CastBattlefield", "UnlockedDoors", "ChosenMode", "Mod", "Pow", "AttackedTurn", "PhaseCount", "Adamant", "DilemmasFaced", "ChromaOf", "OppsAttacked", "ChosenNumber"}
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
 // that order, then negated when Neg.
@@ -824,6 +825,7 @@ type lCard struct {
 	Colors         string
 	P, T           int
 	PTStar         bool
+	NoPT           bool // the face prints no power or toughness (CardDef.NoPT)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string
@@ -835,7 +837,9 @@ type lCard struct {
 	MorphCost      *manaCost   // K:Morph / K:Megamorph / K:Disguise turn-face-up cost
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	Flashback      *manaCost
-	RemPersist     bool      // the enters/leaves remembered pair (lower_rempersist.go)
+	RemPersist     bool      // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
+	RemSeed        uint32    // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
+	RemKeep        uint32    // RemPersist: the abilities whose finished set is kept (CardDef.RemKeep)
 	ExwWord        bool      // the card's text names ExiledWithSource: gorge records the reverse ExiledWith scalar for what it exiles (CardDef.ExiledWithRev)
 	ExiledWith     bool      // a resolution reads the exiled-with source link: the card records what it exiles (CardDef.ExiledWith)
 	CombatHitRec   bool      // a filter reads wasDealtCombatDamageThisTurnBySource against the card itself: its objects' combat hits on players are recorded (CardDef.CombatHitRec)
@@ -874,7 +878,8 @@ type lCard struct {
 	OptCost        *lCost   // S:Mode$ OptionalCost's Blight<N> or Behold<1/Type> part (CR 601.2b), CardDef.OptCost/OptBehold (lower_optcost.go)
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
-	ModesPickV     lValue   // a spell charm's CharmNum$ over Count$Compare (constant arms): the pick count, evaluated at the cast (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen (CardDef.ModesPickV; lower_charmcmp.go)
+	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
@@ -889,7 +894,9 @@ type lCard struct {
 	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
+	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
+	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
 	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
 	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)

@@ -119,7 +119,7 @@ func TestCR727KarnRestartsTheGame(t *testing.T) {
 // walked, must be its zero value right after the reset.
 var restartKeptFields = map[string]bool{
 	"G": true, "L": true, "rng": true, "deckManifests": true, "compiledText": true, "landTypeWords": true,
-	"ManaAbilityHook": true, "format": true, "mulligans": true, "windowDiagnostics": true, "paidManaCensus": true,
+	"ManaAbilityHook": true, "StaticTriggerHook": true, "tapeHeldStaticHook": true, "format": true, "mulligans": true, "windowDiagnostics": true, "paidManaCensus": true,
 	"startingLife": true, "setNameInPool": true, "layer4InPool": true, "controlStaticInPool": true,
 	"skipPass": true, "loop": true, "tapeHeldHook": true, "tapeHeldStats": true, "PaymentStats": true,
 	"decArena": true, "turnsTaken": true, "manaExpended": true, "manaExpendedTurn": true, "trigGrant": true,

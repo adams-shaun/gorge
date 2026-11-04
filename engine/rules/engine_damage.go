@@ -191,6 +191,7 @@ func (e *Engine) BatchDepartures(ids []state.ObjID) {
 // that survivor's pre-batch LKI could be consumed by an unrelated later move.
 func (e *Engine) EndBatchDepartures() {
 	e.batchDamageKeywords = nil
+	e.batchDeparted = nil
 	e.closeBatchWindow()
 	e.endReplBatch()
 	e.closeZoneBatch()
@@ -226,6 +227,9 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, damageKeywordL
 		kw = e.damageKeywordsOf(ev.Obj)
 	}
 	controller := e.G.Obj(ev.Obj).Controller
+	if e.batchDamageKeywords != nil {
+		e.batchDeparted = append(e.batchDeparted, batchDeparture{id: ev.Obj, kw: kw, controller: controller})
+	}
 	e.captureSourceCharLKI(ev.Obj)
 	for _, id := range e.G.Stack {
 		if o := e.G.Obj(id); o != nil && o.Ability != nil && o.Source == ev.Obj {
@@ -252,10 +256,28 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, damageKeywordL
 	return true, kw, controller
 }
 
+// batchDeparture is one destruction-batch member that has left the
+// battlefield, with the damage-keyword and controller LKI its departure
+// captured (Engine.batchDeparted).
+type batchDeparture struct {
+	id         state.ObjID
+	kw         damageKeywordLKI
+	controller state.PlayerID
+}
+
 // finishSourceLifelinkLKI attaches the same pre-departure snapshot to a
 // dies/leaves trigger that the event itself just queued. Such a trigger did not
 // exist during captureSourceLifelinkLKI's pre-event walk.
+//
+// Inside a destruction batch it also attaches each departed member's snapshot
+// to that member's own battlefield trigger queued after its departure: the
+// members leave one by one, but every trigger matches the shared pre-batch
+// board (CR 603.10a), so Curzon Dax, Bound by Blood destroyed with two other
+// Warriors triggers twice, and both triggers -- not only the one queued
+// before Curzon's own move -- deal damage with its lifelink LKI (CR 113.7a,
+// 702.15b).
 func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw damageKeywordLKI, controller state.PlayerID) {
+	e.attachBatchDepartedLKI()
 	if !departing {
 		return
 	}
@@ -267,6 +289,45 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw dam
 			e.pendingTriggers[i].Ctx.Snap.SourceControllerValid = true
 		}
 		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, kw, controller)
+	}
+}
+
+// attachBatchDepartedLKI gives each pending trigger of a departed batch
+// member that has no departure snapshot yet the one that member's departure
+// took (finishSourceLifelinkLKI). Only a line that can trigger solely from
+// the battlefield takes it: such a trigger queued after the departure came
+// from the pre-batch board, where its source still had those
+// characteristics.
+func (e *Engine) attachBatchDepartedLKI() {
+	if len(e.batchDeparted) == 0 {
+		return
+	}
+	for i := range e.pendingTriggers {
+		pt := &e.pendingTriggers[i]
+		if pt.Ctx.Snap.SourceLifelinkValid {
+			continue
+		}
+		for _, d := range e.batchDeparted {
+			if pt.Source != d.id {
+				continue
+			}
+			t := pt.Trigger
+			if t.Mode == "" {
+				var ok bool
+				if t, ok = e.triggerOf(*pt); !ok {
+					break
+				}
+			}
+			if !triggerOnlyFromBattlefield(t) {
+				break
+			}
+			pt.Ctx.Snap.SourceLifelink = d.kw.lifelink
+			pt.Ctx.Snap.SourceLifelinkValid = true
+			pt.Ctx.Snap.SourceController = d.controller
+			pt.Ctx.Snap.SourceControllerValid = true
+			e.capturePendingNamedDamageSourceLKI(&pt.Ctx, d.id, d.kw, d.controller)
+			break
+		}
 	}
 }
 

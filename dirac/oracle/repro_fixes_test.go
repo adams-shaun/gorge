@@ -55,6 +55,15 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-trk's, on the same terms.
+func TestStdTrkReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-trk", []stdRepro{
+		{"granted_mana_taps_stack_one_at_a_time", false}, // CR 603.3b: Deep Space 9 paid by Rok-Tahk's {G}{G} from Beckett Mariner and Erica Ortegas: each tap's trigger is stacked before the next activation, and both resolve before the sorcery-speed cast
+		{"entry_counter_put_by_returned_owner", false},   // CR 122.6a: Dr. Leonard "Bones" McCoy returns the opponent's Moopsy under its owner's control, so its owner puts the +1/+1 counter and the owner's Dr. Joseph M'Benga doubles it
+	})
+}
+
 // std-fdn's, on the same terms.
 func TestStdFdnReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -156,6 +165,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-tla", []stdRepro{
 		{"sorcery_play_waits_for_prefix_trigger", false}, // CR 307.1: Guru Pathik is cast after Master Pakku's tap trigger resolves, and every granted source is tapped before the pass
 		{"airbent_card_with_self_flash", true},           // CR 601.3b: Serpent of the Pass airbent to exile is cast at instant speed with three Lessons in the graveyard
+		{"granted_mana_once_beside_another_grant", true}, // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
 	})
 }
 

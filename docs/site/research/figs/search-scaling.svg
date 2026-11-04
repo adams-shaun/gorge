@@ -1,0 +1,58 @@
+<svg class="mzc" viewBox="0 0 760 360" role="img" aria-label="The g7 net against sb-tactical on the dirac kernel, by simulations per decision" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">g7 against sb-tactical on the dirac kernel, by simulations</text>
+<line class="s1 ln" x1="16" y1="42" x2="34" y2="42"/>
+<text x="40.0" y="46.0" text-anchor="start">sb-tactical's stand-in fallback (10-18)</text>
+<line class="s2 ln" x1="319" y1="42" x2="337" y2="42"/>
+<text x="343.0" y="46.0" text-anchor="start">gorge's heuristic bot ported (xp)</text>
+<circle class="dot s3" cx="22" cy="62" r="5"/>
+<text x="40.0" y="66.0" text-anchor="start">sims 400, cpuct 0.5 + root LCB</text>
+<line class="mz-ref" x1="60" y1="320.0" x2="730" y2="320.0"/>
+<text x="52.0" y="324.0" class="mz-muted" text-anchor="end">0.50</text>
+<line class="mz-grid" x1="60" y1="287.1" x2="730" y2="287.1"/>
+<text x="52.0" y="291.1" class="mz-muted" text-anchor="end">0.55</text>
+<line class="mz-grid" x1="60" y1="254.3" x2="730" y2="254.3"/>
+<text x="52.0" y="258.3" class="mz-muted" text-anchor="end">0.60</text>
+<line class="mz-grid" x1="60" y1="221.4" x2="730" y2="221.4"/>
+<text x="52.0" y="225.4" class="mz-muted" text-anchor="end">0.65</text>
+<line class="mz-grid" x1="60" y1="188.6" x2="730" y2="188.6"/>
+<text x="52.0" y="192.6" class="mz-muted" text-anchor="end">0.70</text>
+<line class="mz-grid" x1="60" y1="155.7" x2="730" y2="155.7"/>
+<text x="52.0" y="159.7" class="mz-muted" text-anchor="end">0.75</text>
+<line class="mz-grid" x1="60" y1="122.9" x2="730" y2="122.9"/>
+<text x="52.0" y="126.9" class="mz-muted" text-anchor="end">0.80</text>
+<line class="mz-grid" x1="60" y1="90.0" x2="730" y2="90.0"/>
+<text x="52.0" y="94.0" class="mz-muted" text-anchor="end">0.85</text>
+<text x="60.0" y="336.0" class="mz-muted" text-anchor="middle">25</text>
+<text x="283.3" y="336.0" class="mz-muted" text-anchor="middle">100</text>
+<text x="506.7" y="336.0" class="mz-muted" text-anchor="middle">400</text>
+<text x="730.0" y="336.0" class="mz-muted" text-anchor="middle">1600</text>
+<text x="395.0" y="356.0" class="mz-muted" text-anchor="middle">simulations per searched decision (log scale)</text>
+<polyline class="s1 ln" points="60.0,277.9 283.3,242.5 506.7,201.1 730.0,187.3"/>
+<line class="s1 ci" x1="60.0" y1="289.8" x2="60.0" y2="266.1"/>
+<g><title>stand-in fallback, sims 25: 0.564 ±0.018, 3,000 games</title><circle cx="60.0" cy="277.9" r="11" fill="transparent"/>
+<circle class="dot s1" cx="60.0" cy="277.9" r="4.5"/></g>
+<line class="s1 ci" x1="283.3" y1="253.6" x2="283.3" y2="231.3"/>
+<g><title>stand-in fallback, sims 100: 0.618 ±0.017, 3,000 games</title><circle cx="283.3" cy="242.5" r="11" fill="transparent"/>
+<circle class="dot s1" cx="283.3" cy="242.5" r="4.5"/></g>
+<line class="s1 ci" x1="506.7" y1="212.2" x2="506.7" y2="189.9"/>
+<g><title>stand-in fallback, sims 400: 0.681 ±0.017, 3,000 games</title><circle cx="506.7" cy="201.1" r="11" fill="transparent"/>
+<circle class="dot s1" cx="506.7" cy="201.1" r="4.5"/></g>
+<line class="s1 ci" x1="730.0" y1="205.7" x2="730.0" y2="168.9"/>
+<g><title>stand-in fallback, sims 1600: 0.702 ±0.028, 1,000 games</title><circle cx="730.0" cy="187.3" r="11" fill="transparent"/>
+<circle class="dot s1" cx="730.0" cy="187.3" r="4.5"/></g>
+<polyline class="s2 ln" points="60.0,216.2 283.3,183.3 506.7,153.1 730.0,127.5"/>
+<line class="s2 ci" x1="60.0" y1="227.3" x2="60.0" y2="205.0"/>
+<g><title>heuristic bot ported, sims 25: 0.658 [0.641, 0.675], 3,000 games</title><circle cx="60.0" cy="216.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="60.0" cy="216.2" r="4.5"/></g>
+<line class="s2 ci" x1="283.3" y1="194.0" x2="283.3" y2="172.6"/>
+<g><title>heuristic bot ported, sims 100: 0.708 [0.692, 0.724], 3,000 games</title><circle cx="283.3" cy="183.3" r="11" fill="transparent"/>
+<circle class="dot s2" cx="283.3" cy="183.3" r="4.5"/></g>
+<line class="s2 ci" x1="506.7" y1="163.2" x2="506.7" y2="143.0"/>
+<g><title>heuristic bot ported, sims 400: 0.754 [0.739, 0.769], 3,000 games</title><circle cx="506.7" cy="153.1" r="11" fill="transparent"/>
+<circle class="dot s2" cx="506.7" cy="153.1" r="4.5"/></g>
+<line class="s2 ci" x1="730.0" y1="137.0" x2="730.0" y2="117.9"/>
+<g><title>heuristic bot ported, sims 1600: 0.793 [0.779, 0.807], 3,000 games</title><circle cx="730.0" cy="127.5" r="11" fill="transparent"/>
+<circle class="dot s2" cx="730.0" cy="127.5" r="4.5"/></g>
+<g><title>sims 400 with cpuct 0.5 and root LCB: 0.784 ±0.015</title><circle cx="516.7" cy="133.4" r="11" fill="transparent"/>
+<circle class="dot s3" cx="516.7" cy="133.4" r="5"/></g>
+</svg>

@@ -10,11 +10,12 @@ import (
 // refValidCount lowers <head>$Valid <spec> over the arm's object ref: gorge
 // evalRefProperty Valid (count_ref_property.go) counts the referenced
 // objects matching the spec where they now are (kernel countRefMatches over
-// RefTarget0..4; a moved target reads its LKI). Only Targeted lowers;
+// RefTarget0..4; a moved target reads its LKI). Targeted and TriggeredCard
+// (the triggering object where it now is, gorge's refTargets read) lower;
 // Sacrificed is a gorge finding, the rest keep the head$rest error.
 func (lc *lowerCtx) refValidCount(head, spec string, ref lRef) (lValue, error) {
 	switch head {
-	case "Targeted":
+	case "Targeted", "TriggeredCard":
 		f, err := lc.filter(spec)
 		if err != nil {
 			return lValue{}, err

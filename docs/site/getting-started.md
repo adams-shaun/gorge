@@ -77,6 +77,14 @@ without it the web root answers `503 web build missing`, and the API still works
 curl localhost:8080/api/tables
 ```
 
+To skip the build, run the published image instead. It needs only Docker and serves on
+`http://127.0.0.1:8090/` ([Run the demo in Docker](web/docker.md#run-the-published-image)):
+
+```sh
+docker run -d --name gorge -p 127.0.0.1:8090:8080 -v gorge-cards:/cards -v gorge-data:/data \
+  damadama22/gorged-demo:latest
+```
+
 To run the same server on dirac, see [Serving dirac](guide/dirac.md). `bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
 must never share one `-dir`, because they silently corrupt each other's matches. At startup the
 server fetches card art for the dealt decks into `<dir>/art`; pass `-prewarm=false` to skip that

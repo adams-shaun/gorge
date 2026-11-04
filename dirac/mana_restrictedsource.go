@@ -519,7 +519,7 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 	if rec == nil || rec.kind == rkDyn || !s.restrUsable(k, sl) {
 		return 0
 	}
-	return uint8(k.t.Cards[c].Abilities[rec.ab].ManaColors) & 0x1f
+	return uint8(k.t.Cards[c].Abilities[rec.ab].ManaColors) & 0x3f
 }
 
 // filtRestrDo plays the restricted answer st: the source's restricted mana

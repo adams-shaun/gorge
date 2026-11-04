@@ -73,7 +73,7 @@ var stallCapacityReasons = [...]uint8{
 	StallOptions, StallSrcMark, StallDmgLatch, StallReplCands, StallPrevCol, StallColGrant, StallRestrX,
 	StallObsSrc, StallDynMana, StallTapExtra, StallExiledWith, StallBreach, StallNetLock, StallCharmPick,
 	StallCombatHit, StallFinality, StallPersistMana, StallOptMoves, StallMustBlock, StallRestrSrc, StallFirebend,
-	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm,
+	StallExHaste, StallEffEtbCtr, StallAtkGrp, StallParadigm, StallFiltX,
 	StallCtrAdded, // a fifth record of genState.ctrAdd; its two non-capacity sites moved to StallLowering
 	StallAddPhase, // a fifth genState.xph entry or a 256th grant; its one non-capacity site moved to StallLowering
 }

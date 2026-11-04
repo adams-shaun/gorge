@@ -1,0 +1,15 @@
+# the can't-attack-alone pool: the printed "CARDNAME can't attack alone."
+# carriers (Pet Sehlat, Bonded Construct, Trusty Companion, Raging Kronch,
+# Militia Rallier) beside plain creatures and burn that kills partners, for
+# the oracle's constructed lockstep (dirac/oracle/atkalone_test.go)
+Bonded Construct
+Forest
+Grizzly Bears
+Hill Giant
+Militia Rallier
+Mountain
+Pet Sehlat
+Plains
+Raging Kronch
+Shock
+Trusty Companion

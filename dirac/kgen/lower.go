@@ -104,6 +104,7 @@ type lowerCtx struct {
 	exwSynth    bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
 	wasCastOK   bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	spellProvOK bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
+	chosenNumOK bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK       bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic   bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	spellBaseOK bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -138,6 +139,7 @@ type lowerCtx struct {
 	own         ownTgt    // the slot curNode declared itself (lower_owntarget.go)
 	chainRoot   *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
 	fbGranted   bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
+	mlTrigger   bool      // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
 	fbMarker    *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
 	// digImprinted: this chain's DigUntil imprinted its found card and
 	// remembered every revealed card, Jodah's shape (lower_digimprint.go): the
@@ -264,6 +266,13 @@ func (lc *lowerCtx) lowerFace() {
 		if strings.Contains(body, "Count$CastTotalManaSpent") {
 			// gorge faceWantsCastSpend: the cast planner declines the
 			// face ("shape:mana_spent_reader")
+			lc.out.SpendRead = true
+		}
+	}
+	for _, k := range lc.face.Keywords {
+		if cards.KeywordHead(k) == "Sunburst" {
+			// gorge faceWantsConverge reads the printed keyword too: the
+			// planner declines the cast as for a Count$Converge body
 			lc.out.SpendRead = true
 		}
 	}
@@ -532,6 +541,7 @@ func (lc *lowerCtx) lowerRecord() {
 	}
 	out.Cost = mc
 	out.CostEmpty = strings.TrimSpace(f.ManaCost) == ""
+	out.AtkFace = faceObservesAttack(f) // lower_meleegrant.go
 	for _, t := range f.Types {
 		if b, ok := typeBits[t]; ok && t != "Card" && t != "Permanent" {
 			out.Types |= b
@@ -546,6 +556,7 @@ func (lc *lowerCtx) lowerRecord() {
 		// read a Devoid face as colourless in every zone
 		out.Colors = ""
 	}
+	out.NoPT = f.PT == ""
 	if f.PT != "" {
 		_, _, ok := strings.Cut(f.PT, "/")
 		if !ok {
@@ -686,6 +697,10 @@ var simpleKeywords = map[string]bool{
 var expandedKeywords = map[string]bool{
 	"Equip": true, "Ward": true, "Exalted": true, "Prowess": true, "Affinity": true, "Enchant": true,
 	"etbCounter": true, "ETBReplacement": true,
+	// Sunburst (CR 702.47): gorge kwSunburst expands it to a Moved
+	// replacement putting Count$Converge P1P1 (a creature) or CHARGE
+	// counters on the entering permanent
+	"Sunburst": true,
 	// Class (CR 716): gorge kwClass appends each level's activator
 	// (AB$ ClassLevelUp) and its granted ability (ClassBand$ N) to the face
 	"Class": true,
@@ -833,6 +848,10 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone && param == "":
+			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
+			// keywords (Option.AloneRestricted); kernel combat_alone.go
+			lc.out.AloneAtk = true
 		case (head == "Horsemanship" || head == "Intimidate" || head == "Skulk") && param == "":
 			// gorge rules/combat/block.go CanBlock: attacker-keyed blocking
 			// restrictions over the derived keywords (printed only)
@@ -946,6 +965,18 @@ func (lc *lowerCtx) lowerKeywords() {
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go)
 			lc.station = param
+		case head == "Melee":
+			// CR 702.121a: gorge kwMelee expands it into an Attacks Self
+			// trigger (Keyword$ Melee) pumping Self by cards.MeleePumpCount,
+			// lowered from that line (mlTrigger). gorge's granted walk
+			// (rules/melee.go checkGrantedMeleeTriggers) discounts the
+			// printed line only while it exists, so a grant on top of it
+			// is its own instance (CR 702.121b), as the kernel lists it
+			// (lower_meleegrant.go), and the only one on a face-down or
+			// ability-less holder (CR 708.2, 613.7).
+			if !faceHasMeleeTrigger(lc.face) {
+				lc.refuseNode(node, "keyword %q without its trigger", head)
+			}
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
@@ -2012,7 +2043,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
 			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
-		if c.CmpX != "" {
+		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {
 			if _, ok := lc.face.SVars[c.CmpX]; !ok {
 				return nil, refuse("filter %q: bound %s names no SVar", expr, c.CmpX)
 			}

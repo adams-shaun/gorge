@@ -168,6 +168,10 @@ type engineScratch struct {
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
+	// pushZoneWalk narrows the trigger walks of a spell's up-front PutOnStack
+	// (pushZoneOnly, at the push) or its deferred re-walk (pushZoneDone, after
+	// payment) to the zone-change modes or to the rest (cast_push_zone.go).
+	pushZoneWalk uint8 `clone:"reset"`
 	// snapPool recycles the object arenas of trigger-window snapshots no
 	// record retained (trigger_snapshot_pool.go). Owned by exactly one
 	// engine (snapshotPool.owner): a by-value Engine copy (entryPreview's

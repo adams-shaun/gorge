@@ -28,9 +28,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mutation: the leaves trigger then finds an empty remembered set).
 var DebugRemPersistNoKeep bool
 
-// remPersist reports whether entry e is a RemPersist card's trigger.
-func remPersist(k *prep, e *stackEntry) bool {
-	return e.kind == seTrigger && k.t.Cards[e.card].RemPersist
+// remPersistSeeds / remPersistKeeps report whether entry e is a RemPersist
+// card's trigger whose resolution starts with the kept set (CardDef.RemSeed)
+// or whose finished set is kept (CardDef.RemKeep). A Saga's chapters split
+// the two (kgen lower_rempersist.go remPersistSaga): only its reading chapter
+// takes the kept set, so a chapter between them leaves it alone.
+func remPersistSeeds(k *prep, e *stackEntry) bool {
+	c := &k.t.Cards[e.card]
+	return e.kind == seTrigger && c.RemPersist && e.ab < 32 && c.RemSeed>>e.ab&1 != 0
+}
+
+func remPersistKeeps(k *prep, e *stackEntry) bool {
+	c := &k.t.Cards[e.card]
+	return e.kind == seTrigger && c.RemPersist && e.ab < 32 && c.RemKeep>>e.ab&1 != 0
 }
 
 // remPersistSeed starts the resolving entry's remembered set with the

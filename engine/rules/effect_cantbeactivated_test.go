@@ -362,3 +362,53 @@ func TestEffectCantBeActivatedBraidedNetOutlivesTurnAndSource(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// cbaWalkerSrc is a planeswalker with a loyalty ability, an ordinary activated
+// ability and a mana ability, the three shapes a ValidSA$ Activated.Loyalty
+// lock must separate.
+const cbaWalkerSrc = "Name:CBA Test Walker\nManaCost:0\nTypes:Legendary Planeswalker Testwalker\nLoyalty:3\n" +
+	"A:AB$ Draw | Cost$ AddCounter<1/LOYALTY> | Planeswalker$ True | NumCards$ 1 | Defined$ You | SpellDescription$ Draw a card.\n" +
+	"A:AB$ GainLife | Cost$ 2 | LifeAmount$ 1 | Defined$ You | SpellDescription$ You gain 1 life.\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n"
+
+// TestCantBeActivatedValidSALoyaltyImmortalSun: The Immortal Sun's "players
+// can't activate planeswalkers' loyalty abilities" (ValidSA$ Activated.Loyalty)
+// forbids a loyalty ability to either player and leaves the same
+// planeswalker's other activated abilities, its mana ability among them,
+// activatable (CR 606.3, 602.5).
+func TestCantBeActivatedValidSALoyaltyImmortalSun(t *testing.T) {
+	t.Parallel()
+	sun := corpusAlternativeCard(t, "The Immortal Sun")
+	walkerCard := card(t, cbaWalkerSrc)
+	e, cfg := cbaEngine(t, 16, []*cards.Card{sun}, []*cards.Card{walkerCard})
+	moveByName(t, e, 0, "The Immortal Sun", state.ZBattlefield)
+	walker := moveByName(t, e, 1, "CBA Test Walker", state.ZBattlefield)
+	e.pending = nil
+	e.Advance()
+	var loyalty, ordinary, mana *cards.SA
+	for _, sa := range e.G.Obj(walker).Face().Abilities {
+		switch {
+		case isLoyaltyAbility(sa):
+			loyalty = sa
+		case cards.IsManaAbilitySA(sa):
+			mana = sa
+		default:
+			ordinary = sa
+		}
+	}
+	if loyalty == nil || ordinary == nil || mana == nil {
+		t.Fatalf("precondition: fixture lacks three distinct ability shapes")
+	}
+	for _, p := range []state.PlayerID{0, 1} {
+		if !e.abilityRestricted(p, walker, loyalty) {
+			t.Errorf("player %d: loyalty ability not restricted by Activated.Loyalty", p)
+		}
+	}
+	if e.abilityRestricted(1, walker, ordinary) {
+		t.Error("Activated.Loyalty restricted a planeswalker's non-loyalty ability")
+	}
+	if e.abilityRestricted(1, walker, mana) {
+		t.Error("Activated.Loyalty restricted a planeswalker's mana ability")
+	}
+	replayCheck(t, e, cfg)
+}

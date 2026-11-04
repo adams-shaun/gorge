@@ -1,0 +1,25 @@
+# the exiled-with assimilate pool: Borg Cube and Assimilation Assessor
+# assimilate a creature card exiled with them (a ChooseCard among the exile
+# cards reading the source link, then an assimilate of the chosen card),
+# cheap artifact creatures for the Cube's affinity and its station, mana
+# rocks, creatures, removal to fill the graveyards and a bounce to make a
+# source a new object, for the oracle's constructed lockstep
+# (dirac/oracle/trekrem_test.go)
+Borg Cube
+Assimilation Assessor
+Ornithopter
+Memnite
+Phyrexian Walker
+Sol Ring
+Mind Stone
+Grizzly Bears
+Hill Giant
+Savannah Lions
+Shock
+Murder
+Unsummon
+Plains
+Swamp
+Mountain
+Island
+Forest

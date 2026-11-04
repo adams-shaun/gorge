@@ -69,7 +69,8 @@ func hasCreatureType(types []string) bool {
 // disqualify a creature: sickness (CR 302.6) bars a creature from ATTACKING
 // and from activating its OWN tap-cost abilities -- tapping it to pay
 // another permanent's activation cost is neither, exactly as crewing a
-// Vehicle (CR 702.121b) is. The CR-correct shape is also the simpler one.
+// Vehicle (CR 702.121b) is. The CR-correct shape is also the simpler one. A
+// phased-out creature is treated as though it doesn't exist (CR 702.26b).
 func (e *Engine) stationCandidates(p state.PlayerID, station state.ObjID) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -77,7 +78,7 @@ func (e *Engine) stationCandidates(p state.PlayerID, station state.ObjID) []stat
 			continue
 		}
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || !hasCreatureType(e.derivedTypesOf(id)) {
+		if o == nil || o.Tapped || o.PhasedOut || !hasCreatureType(e.derivedTypesOf(id)) {
 			continue
 		}
 		out = append(out, id)

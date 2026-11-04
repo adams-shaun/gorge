@@ -666,15 +666,19 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.restrSrc {
 				mx = max(mx, s.restrSrcMaxX(k, e.ctrl, &cost, &av)) // the restricted sources the payment may spend
 			}
-			if s.bld().bfl&bflAnyColor != 0 {
+			anyColor := s.bld().bfl&bflAnyColor != 0
+			if anyColor {
 				mx = av.maxXAnyColor(&cost)
+			}
+			if k.gen != nil && k.gen.anyFilt {
+				mx = max(mx, s.filtMaxX(k, e.ctrl, &cost, &av, anyColor)) // CR 605.3b: a filter's fee paid in the window
 			}
 			if cost.XRed > 0 && gorgeSurface {
 				// gorge's xAsk loop stops at pool + graveyard + convoke credit
 				// + 1 + what the window's sources make (it raises the bound for
 				// a reduction only in the named-count case): a CR 601.2f
 				// reduction past it is not offered (GORGE-FINDINGS.md "X ceiling")
-				mx = min(mx, av.total+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
+				mx = min(mx, av.total+s.filtBoundExtra(k, e.ctrl)+int(s.pl[e.ctrl&1].graveN)+s.convokePickN()+1)
 			}
 			if k.gen != nil && k.gen.anyLifeX {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
@@ -1992,14 +1996,13 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 // mana from the pool or from what the window can still activate (gorge
 // altAddPartPayable, CR 601.2g).
 func (s *State) altAddPayable(k *prep, part uint8) bool {
-	e := &s.bld().e
-	cd := &k.t.Cards[e.card]
-	if part == 0 {
-		return s.pickCostPayable(k, e.ctrl, spellAddCost(k, e.card), e.obj) && s.beholdPayable(k, e.ctrl, e.card, e.obj)
-	}
-	if !s.pickCostPayable(k, e.ctrl, &cd.AltAddCost, e.obj) {
+	if !s.altAddPickPayable(k, part) {
 		return false
 	}
+	if part == 0 {
+		return true
+	}
+	e := &s.bld().e
 	var av avail
 	s.availForBuilt(k, e, &av)
 	if k.tapMana {
@@ -2011,6 +2014,18 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
 	return av.affords(&c, pipMaskOf(&c), 0) || k.restrSrc && s.restrSrcAffords(k, e.ctrl, s.payDescNow(NoObj), &c, &av, NoSlot, 0)
+}
+
+// altAddPickPayable: the part's costs that are no mana (a discard, a sacrifice,
+// life, a behold) are payable. No mana ability can pay them, so gorge's target
+// menu withholds every candidate when they are not (cast_pricing.go
+// affordableTargetCandidates, pay.NonManaCastable), whatever the window holds.
+func (s *State) altAddPickPayable(k *prep, part uint8) bool {
+	e := &s.bld().e
+	if part == 0 {
+		return s.pickCostPayable(k, e.ctrl, spellAddCost(k, e.card), e.obj) && s.beholdPayable(k, e.ctrl, e.card, e.obj)
+	}
+	return s.pickCostPayable(k, e.ctrl, &k.t.Cards[e.card].AltAddCost, e.obj)
 }
 
 // altAddOptions poses gorge's either-or additional cost ask (cast_asks.go

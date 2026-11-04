@@ -119,6 +119,12 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	c.Remembered = []state.Target{{Obj: found}}
+	// The found card left its zone for exile, so it is a new object (CR
+	// 400.7), never the triggering object a capture names, even when the
+	// card itself triggered this ability (Data, Exploring Humanity's second
+	// draw, put back on top by Brainstorm): the Play's capture exclusion
+	// must not drop it from the population.
+	c.Captured = withoutCaptured(c.Captured, found)
 	play := discoverPlaySA(value, strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberDiscovered)), "True"), defined)
 	effPlay(h, c, play)
 	if !h.Suspended() {
@@ -155,4 +161,21 @@ func effDiscoverBottom(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	emitDiscover(h, c, p, Num(h, c, sa, "Amount", 0))
+}
+
+// withoutCaptured is capture without the entries naming id, a fresh slice
+// when one is dropped (the trigger's own capture list is never written).
+func withoutCaptured(capture []state.Target, id state.ObjID) []state.Target {
+	for i, t := range capture {
+		if t.Obj == id && !t.IsPlayer {
+			out := append([]state.Target(nil), capture[:i]...)
+			for _, u := range capture[i+1:] {
+				if u.Obj != id || u.IsPlayer {
+					out = append(out, u)
+				}
+			}
+			return out
+		}
+	}
+	return capture
 }

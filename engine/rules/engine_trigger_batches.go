@@ -324,6 +324,13 @@ type engineTriggerBatches struct {
 	triggerTurnDiceTurn int32                            `clone:"deep"`
 	dmgSrcOverride      state.ObjID                      `clone:"reset"`
 	batchDamageKeywords map[state.ObjID]damageKeywordLKI `clone:"reset"`
+	// batchDeparted lists, in departure order, the members of the open
+	// destruction batch that have already left the battlefield, with the
+	// damage-keyword and controller LKI each departure captured. A trigger of
+	// such a member queued later in the batch looks back to the shared
+	// pre-batch board (CR 603.10a) and takes the same snapshot
+	// (finishSourceLifelinkLKI). Nil outside a batch.
+	batchDeparted []batchDeparture `clone:"reset"`
 	// batchWindow is the pre-departure board BatchDepartures parked in
 	// triggerBefore for an effect's simultaneous departure batch, and
 	// batchWindowDepth the open BatchDepartures calls (nested batches share

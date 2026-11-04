@@ -107,6 +107,11 @@ func (s *State) placeStaticTriggers(k *prep, d *Decision) bool {
 		if !s.staticPend(k, &pt) {
 			continue
 		}
+		// the resolution keeps the priority holder and the pass count:
+		// gorge runs the body inline in its trigger drain, so the caster of
+		// a may-play spell on another player's turn keeps priority (CR
+		// 117.3c), where afterResolve would hand it to the active player
+		prio, passes := s.prio, s.passes
 		s.takePending(k, i)
 		for s.ctl == ctlBuild {
 			if s.buildStep(k, d) {
@@ -119,6 +124,7 @@ func (s *State) placeStaticTriggers(k *prep, d *Decision) bool {
 			s.capFull(StallStaticAsk)
 			return true
 		}
+		s.prio, s.passes = prio, passes
 		MayPlayStats.StaticResolved.Add(1)
 		return true
 	}

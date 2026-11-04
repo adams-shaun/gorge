@@ -190,6 +190,116 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 	return false
 }
 
+// StallFiltX: an {X} announcement on a board with more activatable filters than
+// filtMaxX tries in combination (maxFaceFilters).
+const StallFiltX = 68
+
+func init() { stallNames[StallFiltX] = "filtx" }
+
+// filtMaxX is the largest X p's mana window can pay for cost once some of p's
+// filters are activated in it, -1 when none pays X = 0. X is announced before
+// the window opens and bounded by what it can make (CR 601.2b, 601.2g): gorge's
+// xAsk prices each X through castWindowPays, whose search funds a filter's fee
+// from mana made earlier in the window (CR 605.3b), so Starfleet Academy's
+// {5},{T} turns five lands into as many mana as p has creature types. Each set
+// of filters is tried, as in faceReachable; a filter making several mana makes
+// them in one colour.
+//
+//go:noinline
+func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyColor bool) int {
+	var filt [maxFaceFilters]Slot
+	n := 0
+	own := NoSlot
+	if e := &s.bld().e; e.kind == seAbility && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostTap != 0 {
+		own = s.srcSlot() // tapped for its own cost, it makes no mana
+	}
+	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if sl == own {
+			continue
+		}
+		if n == len(filt) {
+			s.capFull(StallFiltX)
+			break
+		}
+		filt[n] = sl
+		n++
+	}
+	best := -1
+	for set := 1; set < 1<<n; set++ {
+		t := *av
+		if !s.filtActivate(k, &t, &filt, set) {
+			continue
+		}
+		if anyColor {
+			best = max(best, t.maxXAnyColor(cost))
+		} else {
+			best = max(best, t.maxX(cost, pipMaskOf(cost)))
+		}
+	}
+	return best
+}
+
+// filtBoundExtra is what p's filters add to gorge's X ceiling past their free
+// taps: xAsk's bound sums each source's largest production, a filter's fee aside.
+func (s *State) filtBoundExtra(k *prep, p uint8) int {
+	if k.gen == nil || !k.gen.anyFilt {
+		return 0
+	}
+	n := 0
+	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		own := 0
+		if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
+			own = int(s.manaPCGen(k, sl).manaN)
+		}
+		n += max(0, s.filtUnits(k, sl)-own)
+	}
+	return n
+}
+
+// filtActivate activates the filters of set (bits of filt) on t: each gives up
+// its free ability's mana, pays its fee out of the mana made so far and adds
+// its own. The fees are paid in an order that funds them, the filters that
+// add at least what they cost first; false when some fee cannot be paid.
+func (s *State) filtActivate(k *prep, t *avail, filt *[maxFaceFilters]Slot, set int) bool {
+	for pass := 0; pass < 2; pass++ {
+		for progress := true; progress && set != 0; {
+			progress = false
+			for i := range filt {
+				if set&(1<<i) == 0 {
+					continue
+				}
+				sl := filt[i]
+				var pc *pcard
+				if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
+					pc = s.manaPCGen(k, sl)
+				}
+				ownN := 0
+				if pc != nil {
+					ownN = int(pc.manaN)
+				}
+				fee, units := s.filtFee(k, sl), s.filtUnits(k, sl)
+				if pass == 0 && units < ownN+fee || t.total-ownN < fee {
+					continue
+				}
+				if pc != nil {
+					s.removeSrc(k, t, sl, pc)
+				}
+				t.total -= fee
+				a := s.filtAb(k, sl)
+				t.addUnits(uint8(a.ManaColors), uint8(units))
+				if manaOneColour(a, uint8(units)) {
+					s.addOneColour(t, uint8(units))
+				}
+				set &^= 1 << i
+				progress = true
+			}
+		}
+	}
+	return set == 0
+}
+
 // windowFiltUseful: sl's filter can make a colour in want now, its fee
 // covered by p's floating mana (gorge's paymentSourceUseful reads the window
 // abilities, and a filter's is listed only once the pool pays it).

@@ -345,7 +345,13 @@ func remHandMoveWrites(in lInstr) bool {
 // remembered set (Mesmeric Fiend's leave return reads what its ETB took).
 func (lc *lowerCtx) refuseCrossAbilityRemembered() {
 	if lc.remPersistShape() {
-		lc.out.RemPersist = true // the leaves trigger reads the enters trigger's set (lower_rempersist.go)
+		// the leaves trigger reads the enters trigger's set (lower_rempersist.go)
+		lc.out.RemPersist, lc.out.RemSeed, lc.out.RemKeep = true, ^uint32(0), ^uint32(0)
+		return
+	}
+	if seed, keep, ok := lc.remPersistSaga(); ok {
+		// a later chapter reads what an earlier one remembered (lower_rempersist.go)
+		lc.out.RemPersist, lc.out.RemSeed, lc.out.RemKeep = true, seed, keep
 		return
 	}
 	c3c := false

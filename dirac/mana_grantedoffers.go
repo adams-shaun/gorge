@@ -627,14 +627,21 @@ func (g *grantSrch) settle(t *State) bool {
 // next continues the search after sl's tap: a tap that fires a trigger runs on a
 // copy whose trigger is stacked.
 func (g *grantSrch) next(t *State, sl Slot) bool {
-	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) && !g.k.gen.anyTapAll {
-		return g.visit(t) // (a TapAll listener hears any permanent's tap: trig_tapall.go)
+	if !g.tapTriggers(t, sl) {
+		return g.visit(t)
 	}
 	u := t.fork()
 	u.manaTapped(g.k, sl)
 	ok := g.settle(u)
 	t.unfork()
 	return ok
+}
+
+// tapTriggers reports whether tapping sl may fire a trigger the search stacks
+// before the next activation (a TapAll listener hears any permanent's tap:
+// trig_tapall.go).
+func (g *grantSrch) tapTriggers(t *State, sl Slot) bool {
+	return g.tapsLive && (t.subs[kop.TrigTaps].has(sl) || g.k.gen.anyTapAll)
 }
 
 // branch tries tapping candidate i (slot sl) for each colour of mask in
@@ -868,6 +875,15 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard {
 				s.ceaseManaToken(o)
 			}
+		}
+		if g.tapTriggers(s, sl) {
+			// the tap's trigger is stacked before the next activation, as the
+			// search's settle stacked it: gorge answers each activation as its own
+			// decision, so two Taps triggers of one prefix (Beckett Mariner and
+			// Erica Ortegas tapped for Rok-Tahk's {G}{G}) go on the stack one at a
+			// time and never wait together for an order ask (CR 603.3b)
+			passed = true
+			s.tapXNext(g.p, &d)
 		}
 	}
 	if passed {

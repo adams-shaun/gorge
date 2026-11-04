@@ -18,8 +18,12 @@ import (
 //
 // RememberObjects$ TriggeredCard and no
 //
-//	ExileOnMoved$ (Mikey & Don; the FINALITY trio), or ExileOnMoved$
-//	Stack with ValidCard$ Card.EffectSource (Undead Sprinter).
+//		ExileOnMoved$ (Mikey & Don; the FINALITY trio), or ExileOnMoved$
+//		Stack with ValidCard$ Card.EffectSource (Undead Sprinter).
+//
+//	  - the FINALITY body with no self-exile sub (Storied Veteran, Overflow
+//	    Submatrix): gorge ends that Effect when its remembered spell leaves the
+//	    stack (rules stackBoundReplacementLeft, CR 400.7).
 //
 // gorge effects/effect.go registers a live Moved replacement carrying the
 // spell (ExileOnMoved where given; the persistent shape ends by its body's
@@ -103,6 +107,14 @@ func (lc *lowerCtx) effectEtbCounters(ps *params) (bool, error) {
 	case setN != "":
 		// the chosen-number shape: exactly the Torgal body, P1P1 only
 		if ct != "P1P1" || body["CounterNum"] != "Count$ChosenNumber" || body["Sub"] != "" || body["SubAbility"] != "" || len(body) != 5 {
+			return false, refuse("Effect ETB-counters replacement body")
+		}
+	case ct == "FINALITY" && ro == "TriggeredCard" && eom == "" && body["SubAbility"] == "" && len(body) == 5:
+		// the sub-less FINALITY body (Storied Veteran, Overflow Submatrix):
+		// no self-exile, yet gorge ends the Effect once the remembered spell
+		// leaves the stack (rules stackBoundReplacementLeft, CR 400.7), so it
+		// is the same one-cast rider as the self-exiling spelling
+		if body["CounterNum"] != "1" || body["Sub"] != "" {
 			return false, refuse("Effect ETB-counters replacement body")
 		}
 	default:

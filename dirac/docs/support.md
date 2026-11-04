@@ -14,7 +14,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DSK | 276 | 233 | 4 | 41 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
 | EOE | 266 | 236 | 0 | 115 | 121 |
-| FDN | 517 | 506 | 1 | 12 | 493 |
+| FDN | 517 | 507 | 1 | 13 | 493 |
 | FIN | 312 | 266 | 2 | 19 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
 | HOB | 172 | 152 | 0 | 9 | 143 |
@@ -23,14 +23,14 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MSH | 276 | 225 | 4 | 14 | 207 |
 | OTJ | 276 | 239 | 2 | 25 | 212 |
 | SOS | 270 | 247 | 4 | 22 | 221 |
-| SPM | 192 | 158 | 4 | 18 | 136 |
+| SPM | 192 | 159 | 2 | 21 | 136 |
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 268 | 1 | 6 | 261 |
-| TRK | 311 | 254 | 0 | 1 | 253 |
-| WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21240 | 60 | 16749 | 4431 |
+| TRC | 337 | 285 | 0 | 19 | 266 |
+| TRK | 311 | 272 | 0 | 14 | 258 |
+| WOE | 281 | 252 | 1 | 12 | 239 |
+| ALL | 34442 | 21411 | 57 | 16913 | 4441 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,12 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-60 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+57 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 16 |
+| options | 14 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Chars.Keywords | 1 |
@@ -86,7 +86,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 2 |
 | projection-Life | 1 |
-| projection-NInst | 1 |
 | projection-NStack | 5 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |

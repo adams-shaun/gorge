@@ -432,6 +432,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// (effDamageAll: seat 0's battlefield in entry order, then seat
 			// 1's, then the players).
 			s.damageSeqStart(k, hit, in.B.N&1 != 0)
+			s.dmgSeqCtrlFirst(e.ctrl)
 			s.damageSeqNext(k, n)
 			break
 		}
@@ -439,8 +440,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.damageTo(k, uint8(s.perms[m.first()].obj), n)
 		}
 		if in.B.N&1 != 0 {
-			s.damageTo(k, PlayerTarget0+s.active, n)
-			s.damageTo(k, PlayerTarget0+1-s.active, n)
+			// then each player, the controller first (gorge validPlayers:
+			// AliveFrom the controller)
+			s.damageTo(k, PlayerTarget0+e.ctrl, n)
+			s.damageTo(k, PlayerTarget0+1-e.ctrl, n)
 		}
 	case kop.OpDestroyAll:
 		if in.C != 0 {

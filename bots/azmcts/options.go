@@ -119,6 +119,13 @@ type Options struct {
 	// priority candidates. It is off by default so ordinary seats retain the
 	// established manual-payment candidate vocabulary.
 	AutoPayment bool
+	// PaymentPlans, with AutoPayment, is how many payment plans per planned
+	// cast the priority vocabulary searches: above 1, a cast's alternative
+	// plans whose residuals differ (rules.EnsurePaymentPlanAlternatives, at
+	// most rules.MaxPaymentPlans in all) join it as their own candidates,
+	// after every other candidate. 0 or 1 searches the planner's own plan
+	// only, as before.
+	PaymentPlans int
 	// Seed is the per-decision seed (DecisionSeed): it seeds the root noise,
 	// the move sampling, and -- identically for every simulation -- the
 	// environment bots' streams.

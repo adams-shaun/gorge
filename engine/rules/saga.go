@@ -174,7 +174,7 @@ func (e *Engine) checkChapterTriggers(ev events.Event) {
 			DelayedID:  ^uint32(0),
 			Execute:    name,
 			SA:         sa,
-			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{}),
+			Ctx:        effects.NewCtx(ev.Obj, o.Controller, effects.CtxInit{TriggerContext: effects.TriggerContext{Chapter: true}}),
 		}, ev, nil)
 	}
 }

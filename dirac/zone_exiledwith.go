@@ -64,6 +64,11 @@ var DebugExwIgnoreVer bool
 // (TestExwMutation): a leaves trigger no longer finds its cards.
 var DebugExwNoFire bool
 
+// DebugExwAnySource makes every card in exile read as exiled with the reading
+// source (TestBorgExileMutation): Assimilation Assessor's choice then offers
+// the cards another source exiled.
+var DebugExwAnySource bool
+
 // ExwStats counts the link's lockstep coverage (TestExwLockstep).
 type ExwStats struct {
 	Recorded   int // links written (a card exiled by a reading source)
@@ -245,6 +250,9 @@ func (s *State) exwEnter(o Obj, from kop.Zone) {
 func (s *State) exwHas(o, src Obj, trig bool, fire uint8) bool {
 	if o == NoObj || src == NoObj {
 		return false
+	}
+	if DebugExwAnySource && s.objs[o].zone == kop.ZoneExile {
+		return true
 	}
 	ver := s.objs[src].ver
 	for i := 0; i < int(s.g.nexw); i++ {

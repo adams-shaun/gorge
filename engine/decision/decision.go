@@ -667,6 +667,10 @@ type Decision struct {
 	// PaymentActionsBuilt distinguishes an unrequested extension from a built
 	// empty extension. It is engine cache state, never part of the wire.
 	PaymentActionsBuilt bool `json:"-"`
+	// PaymentPlanAlternativesBuilt marks a built extension whose actions
+	// also carry their alternative plans (rules.EnsurePaymentPlanAlternatives).
+	// Engine cache state, never part of the wire.
+	PaymentPlanAlternativesBuilt bool `json:"-"`
 	// PotentialUnpayableCasts is the offer builder's planner result for plain
 	// hand/command-zone casts: the objects the planner PROVED unpayable (an
 	// "insufficient" verdict whose source census is complete, or whose missed

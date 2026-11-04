@@ -294,6 +294,7 @@ func (s *State) cantLoseFor(k *prep, p uint8, reason int16) bool {
 // that lets p play card object o (with the static's flags).
 func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool) {
 	ob := &s.objs[o]
+	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || st.ctrl != p || a.Static.Zone != ob.zone {
@@ -309,9 +310,19 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 		if a.Static.StFlags&kop.StOncePerTurn != 0 && s.usedThisTurn(st.obj, uint8(abIndex(k, s.cardAt(st.sl), a))) {
 			return true
 		}
-		return f(st)
+		if !f(st) {
+			stopped = true
+			return false
+		}
+		return true
 	}
 	s.eachStaticC(k, sclsMayPlay, check)
+	if stopped {
+		// f stopped the walk at a permanent's permission: the card's own
+		// graveyard permission is not offered again (Storied Veteran in the
+		// graveyard under Leonardo, Sewer Samurai: gorge lists one cast)
+		return
+	}
 	// a card's own "may cast this from the graveyard" (Quilled Greatwurm,
 	// Undead Sprinter's CheckSVar$ gate): the same condition and filter
 	// gates as a permanent's static, so a self-grant whose condition does
@@ -432,6 +443,9 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]uint8, n int) int {
 	s.availFor(k, e.ctrl, &av)
 	if av.affords(&full, pipMaskOf(&full), 0) {
 		return n
+	}
+	if s.windowUnpricedOpen(k, e) {
+		return n // a source the window census cannot price may close the gap: gorge keeps every candidate
 	}
 	m := 0
 	for i := 0; i < n; i++ {

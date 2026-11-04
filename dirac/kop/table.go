@@ -233,6 +233,10 @@ type CardDef struct {
 	// Wither is printed wither (CR 702.80): its damage to a creature is
 	// dealt as -1/-1 counters (infect's creature half).
 	Wither bool
+	// AloneAtk is printed "CARDNAME can't attack alone." (CR 506.5): it is
+	// declared as an attacker only beside another attacker; not when it has
+	// lost its abilities (dirac/combat_alone.go).
+	AloneAtk bool
 	// Evasion holds printed blocking-restriction keywords without a KwMask
 	// bit (Ev* bits): not when the creature has lost its abilities.
 	Evasion uint8
@@ -243,6 +247,15 @@ type CardDef struct {
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
+	// AtkFace: the printed face has a triggered ability gorge's trigger
+	// prefilter lets observe an attack declaration (its compiled trigger
+	// interests: a mode of the attack-declaration class, a Phase$ line or a
+	// mode with no class). gorge then walks the face before its granted
+	// keyword triggers, so a granted Melee instance (Ability.MeleeGrant)
+	// lists after the triggers statics and effects grant by AddTrigger$;
+	// without one, before them (rules/trigger_match.go, the printed-free
+	// path). Read only where the table has a Melee grant (kw_melee.go).
+	AtkFace bool
 	// SagaN is the final chapter number of a Saga (CR 714.1, K:Chapter's
 	// count; 0 = not a Saga). The chapter abilities themselves are printed
 	// battlefield triggers on CtrLore, each gated at its chapter number.
@@ -365,6 +378,12 @@ type CardDef struct {
 	// trigger reads (gorge's Remembered persisting on the source: Journey
 	// to Nowhere, Mesmeric Fiend; dirac/zone_rememberpersist.go).
 	RemPersist bool
+	// RemSeed / RemKeep: with RemPersist, the abilities (bit i = Abilities[i])
+	// whose resolution starts with its source incarnation's kept set, and
+	// those whose finished set is kept. The enters/leaves pair sets both to
+	// every ability; a Saga sets its reading and its writing chapters (The
+	// Measure of a Man: chapter III returns what chapter I exiled).
+	RemSeed, RemKeep uint32
 	// ExiledWith: the card reads the exiled-with source link (PredExiledWith
 	// or ExExiledWithN): its resolutions record the cards they exile
 	// (dirac/zone_exiledwith.go, genPrep.exwRec).
@@ -421,6 +440,10 @@ type CardDef struct {
 	// spell was cast, frozen at beginCast into the spell entry's trigMV
 	// (dirac/value_castbattlefield.go); 0 = the card does not read the head.
 	CastBF FilterID
+	// NoPT: the card prints no power or toughness, so a power or toughness
+	// compare never matches it as a card (CR 208.3; gorge's P/T-less object,
+	// dirac/filter_ptvalue.go).
+	NoPT bool
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

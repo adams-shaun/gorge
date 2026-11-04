@@ -22,6 +22,7 @@ exclude_docs: |
   architecture/packages.tiers.json
   requirements.txt
   bots/magezero/*.svg
+  research/figs/*.svg
 
 theme:
   name: material
@@ -188,4 +189,23 @@ nav:
       - Regenerating the support tables: support/regenerating.md
       - Glossary: contributing/glossary.md
   - Research:
+      - research/index.md
+      - How the bot works: research/architecture.md
+      - Programs:
+          - Search and its scaling: research/search.md
+          - The AZ loop: research/az-loop.md
+          - An LLM decision policy: research/llm-decision-policy.md
+          - Cold-start card valuation: research/card-valuation.md
+          - Draft RL: research/draft-rl.md
+          - Instant timing: research/instant-timing.md
+          - Net width and the encoding: research/net-width.md
+          - A GNN against the MLP: research/gnn.md
+          - Policy target and react: research/policy-target-and-react.md
+          - UWTempo curve: research/uwtempo.md
+          - SpellBench Pauper score: research/spellbench-score.md
+          - Pauper retrain: research/pauper-retrain.md
+      - Card strength:
+          - research/card-strength/index.md
+          - TRK: research/card-strength/TRK.md
+          - FDN: research/card-strength/FDN.md
       - MageZero replication: bots/magezero-replication.md

@@ -151,6 +151,14 @@ type Emblem struct {
 	WhileHost bool
 }
 
+// Panharmonicon's Static.A: the one trigger mode a ValidMode$ names without
+// a cause (0: every mode). Static.B is then the Whose of the event's player
+// (ValidPlayer$), read against the static's controller.
+const (
+	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
+	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
+)
+
 // StaticFlags (Static.StFlags).
 type StaticFlags uint16
 
@@ -175,11 +183,41 @@ type Gate struct {
 // combat.AttackAllowedThroughDefender), while Cond holds.
 const StatCanAttackDefender StaticKind = 250
 
+// StatGoad (an explicit high ordinal clear of the iota
+// tail in ops.go): creatures matching Filter are goaded by the static's
+// controller while it applies (a Continuous static's Goad$ True: Koloth,
+// Tribble Hunter; CR 701.15b; gorge's static goad route, IsGoaded). With
+// two players the goader never changes what a goaded creature must do, so
+// the kernel reads it as goaded by anyone (act_goad.go goadedAt).
+const StatGoad StaticKind = 249
+
+// StatCantTarget (an explicit high ordinal clear of the iota tail in
+// ops.go): a printed S:Mode$ CantTarget. A battlefield permanent matching
+// Filter (read with the static's controller as "you" and its source as
+// Self) can't be the target of a spell or ability whose source matches
+// Filter2 (0 = any source; the spell card, or the permanent that has the
+// ability, read from the static controller), whose kind is in A (a mask of
+// CantTgtSpell, CantTgtActivated, CantTgtTriggered; 0 = every kind) and
+// whose controller StFlags names (StRaiseOpp: the static controller's
+// opponents; StRaiseYou: the controller; neither: anyone), while Cond2 holds
+// (CR 115.4; gorge cantTargetBlocks). Species 8472, Thrun, Breaker of
+// Silence.
+const StatCantTarget StaticKind = 235
+
+// StatCantTarget's Static.A bits: the targeting spell or ability kinds a
+// ValidSA$ names.
+const (
+	CantTgtSpell     = 1
+	CantTgtActivated = 2
+	CantTgtTriggered = 4
+)
+
 // StatCantActivate (an explicit high ordinal clear of
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
 // controller's opponents only; StRaiseYou: by its controller only; under
-// Cond2; A = 1 spares mana abilities) (CR 602.5; gorge abilityRestricted).
+// Cond2; A = 1 spares mana abilities; A = 2 reaches loyalty abilities only)
+// (CR 602.5; gorge abilityRestricted).
 const StatCantActivate StaticKind = 236
 
 // StCasterActive: on a StatCantBeCast only, the

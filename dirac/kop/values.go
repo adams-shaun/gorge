@@ -372,6 +372,13 @@ const ExDilemmasFaced ExprKind = 239
 // answered no mode. Explicit ordinal, the iota tail stays untouched.
 const ExChosenMode ExprKind = 233
 
+// ExChosenNumber: the number the evaluating source permanent chose as it
+// entered (gorge "Chosen" in a filter bound, Object.ChosenNumber through
+// specCtx's Resolve; Nyota Uhura, Communications' cmcEQChosen), 0 when it
+// chose none or is off the battlefield (gorge's zero value). Explicit
+// ordinal, the iota tail stays untouched.
+const ExChosenNumber ExprKind = 228
+
 // ExCountHand (high expr kind): the cards in every hand matching
 // F (gorge Count$ValidHand <spec>, a zone count over each seat's hand; YouOwn
 // narrows it to the controller's). Land Grant's "no land cards in hand".

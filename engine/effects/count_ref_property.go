@@ -88,6 +88,17 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// overwrite arm ColorMaskOf already routes, so an exiled card whose
 	// printed face carries a SetColor$ CDA contributes that colour.
 	var colorsSeen ColorMask
+	// SharesCardTypes over a reference's objects (All Good Things . . .'s
+	// "if all cards exiled with this Saga share a card type", Rowdy Crew's
+	// "two cards that share a card type"): the most referenced objects that
+	// have one card type in common, at least 1, as Forge's count floors it.
+	// Compared with the reference's Amount it reads "they all share a card
+	// type" (CR 205.2a). Each type's tally is read only through a max, so no
+	// map order reaches an event.
+	var sharedTypeCounts map[string]int32
+	if prop == "SharesCardTypes" {
+		sharedTypeCounts = map[string]int32{}
+	}
 	// The Different* distinct-set property family over a reference's objects
 	// `Remembered$DifferentCardManaCost` (Azor's Gateway,
 	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
@@ -164,6 +175,14 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				for _, typ := range f.Types {
 					if cardTypeWords[typ] {
 						triggerObjectTypes[typ] = true
+					}
+				}
+			}
+		case prop == "SharesCardTypes":
+			if f != nil {
+				for _, typ := range f.Types {
+					if cardTypeWords[typ] {
+						sharedTypeCounts[typ]++
 					}
 				}
 			}
@@ -319,8 +338,15 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			spec := strings.TrimSpace(strings.TrimPrefix(prop, "Valid"))
 			sc := c.SpecContext(c.Controller)
 			sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, spec, h)...)
+			// A copy the resolution itself remembered (a destroy-all's token
+			// copy, now in the graveyard) still exists until the next
+			// state-based check (CR 111.7, 707.10a), so the plain Remembered
+			// read matches it past the ceased-copy rejection, as the
+			// remembered-set condition reader does (conditions.go).
+			remembered := ref == "Remembered" && !lki
 			if (lki && MatchesObjectCtx(g, spec, o, sc)) ||
-				(!lki && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
+				(remembered && matchesZoneSpecObj(g, spec, o, sc, o.Zone)) ||
+				(!lki && !remembered && matchesZoneSpecCtx(g, spec, t.Obj, sc, o.Zone)) {
 				n++
 			}
 		case prop == "Converge":
@@ -411,6 +437,12 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	}
 	if prop == "Colors" {
 		n = int32(bits.OnesCount8(uint8(colorsSeen)))
+	}
+	if sharedTypeCounts != nil {
+		n = 1
+		for _, k := range sharedTypeCounts {
+			n = max(n, k)
+		}
 	}
 	if diffKind != diffNone {
 		if seenDiffNames != nil {
