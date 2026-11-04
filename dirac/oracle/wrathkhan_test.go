@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The Wrath of Khan lockstep: chapter I deals 4 damage to an opposing creature
@@ -42,7 +43,7 @@ type kwrathkhanTally struct {
 	fired      int
 	expired    int // removed unfired
 	gained     int // control changes at a beginning of combat after a fire
-	exiled     int // cards exiled from hand as chapter II's cost
+	exiled     int // cards exiled from hand (chapter II's cost; no other card here exiles from hand)
 	maxNdp     int
 }
 
@@ -70,6 +71,10 @@ func (p *kwrathkhanTally) check(ref *GorgeSide, _ Side) *Divergence {
 			}
 		case events.ControlChange:
 			p.gained++
+		case events.MoveZone:
+			if e.From == state.ZHand && e.To == state.ZExile {
+				p.exiled++
+			}
 		}
 	}
 	p.evAt = len(evs)
@@ -183,13 +188,16 @@ func TestTheWrathOfKhanLockstep(t *testing.T) {
 			t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 		}
 	}
-	t.Logf("%d games: %d divergences, %d kernel stalls, %d registered, %d fired, %d expired unfired, %d control changes, max ndp %d",
-		kwrathkhanSeeds, divs, stalls, p.registered, p.fired, p.expired, p.gained, p.maxNdp)
+	t.Logf("%d games: %d divergences, %d kernel stalls, %d registered, %d fired, %d expired unfired, %d control changes, %d hand cards exiled, max ndp %d",
+		kwrathkhanSeeds, divs, stalls, p.registered, p.fired, p.expired, p.gained, p.exiled, p.maxNdp)
 	if p.registered < 40 {
 		t.Errorf("chapter I registrations: %d, want at least 40", p.registered)
 	}
 	if p.gained < 20 {
 		t.Errorf("control changes: %d, want at least 20", p.gained)
+	}
+	if p.exiled < 20 {
+		t.Errorf("cards exiled from hand: %d, want at least 20", p.exiled)
 	}
 }
 
