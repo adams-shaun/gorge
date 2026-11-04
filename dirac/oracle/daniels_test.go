@@ -41,9 +41,9 @@ var danielsDecks = [2][]cardset.Entry{
 
 // danielsObs counts the graveyard windows the policy saw from gorge's side.
 type danielsObs struct {
-	acts        int // a Daniels graveyard activation was chosen
-	windows     int // priority with Daniels in its owner's graveyard
-	withheld    int // such a window offered no Daniels activation
+	acts     int // a Daniels graveyard activation was chosen
+	windows  int // priority with Daniels in its owner's graveyard
+	withheld int // such a window offered no Daniels activation
 }
 
 func danielsInGrave(g *state.Game, p state.PlayerID) bool {
