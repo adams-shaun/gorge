@@ -248,9 +248,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// began, before the first phase-in is emitted: a phased-out source
 		// of the restriction (the Human token of The City on the Edge of
 		// Forever) is inert until it phases in and must not hold back its
-		// siblings. The allowed phase-ins carry untapStepPhaseInText, which
-		// the emit choke point honours instead of re-consulting the moved
-		// board. A blocked candidate emits nothing.
+		// siblings. The allowed phase-ins are emitted under
+		// untapPhaseInDecided, which the emit choke point honours instead of
+		// re-consulting the moved board (no marker rides the log, so the
+		// event stream is byte-identical). A blocked candidate emits nothing.
 		//
 		// The same scan serves CR 702.26a's keyword half (task phasing-kw):
 		// a permanent with the Phasing keyword "phases in or out before [the
@@ -281,7 +282,9 @@ func (e *Engine) finishUntapStep(next int) bool {
 				}
 				if o.PhasedOut {
 					if !o.WontPhaseInNormal && !o.PhasedOutIndirect && !slices.Contains(phaseInBlockedIDs, id) {
-						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1, Text: untapStepPhaseInText})
+						e.untapPhaseInDecided = true
+						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
+						e.untapPhaseInDecided = false
 					}
 				} else if e.hasKeywordH(id, kwhPhasing) {
 					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: 1})
