@@ -138,8 +138,9 @@ import (
 // +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged 21458 -> 21459; ratchet TRK 289 -> 290).
 // +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; 21459 -> 21461; ratchet TRK 290 -> 291).
 // +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; 21461 -> 21462; ratchet TRK 291 -> 292).
+// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; merged 21462 -> 21463; ratchet TRK 292 -> 293).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21463, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21465, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -34,9 +34,19 @@ func prepAbilityCast(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			g.anyAbilityCast = g.anyAbilityCast || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigAbilityCast
+			g.anyAbilityCast = g.anyAbilityCast || abilityCastLine(a)
 		}
 	}
+}
+
+// abilityCastLine reports whether ability a listens for activations: an
+// AbilityCast trigger, or a SpellCast one that also watches the activations
+// of the sources with its chosen name (Tf4NamedCast, repl_choosename.go).
+func abilityCastLine(a *kop.Ability) bool {
+	if a.Kind != kop.AbTriggered {
+		return false
+	}
+	return a.Trig.Event == kop.TrigAbilityCast || a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags4&kop.Tf4NamedCast != 0
 }
 
 // abilityCastClass reports whether the activated ability ab of card c is of
@@ -87,7 +97,18 @@ func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(s.occ, &ord)
 	for _, sl := range ord[:n] {
-		s.slotTriggers(k, sl, func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigAbilityCast }, func(l trigListener, a *kop.Ability) {
+		s.slotTriggers(k, sl, abilityCastLine, func(l trigListener, a *kop.Ability) {
+			if a.Trig.Event == kop.TrigSpellCast {
+				// a Tf4NamedCast line: the source of the activation has the chosen name
+				if s.namedActivation(k, e, l, a) {
+					b := s.npend
+					s.playerTrigGen(k, kop.TrigAbilityCast, l, a, e.ctrl, 0)
+					if s.npend > b {
+						noteNamedCast(false)
+					}
+				}
+				return
+			}
 			if !abilityCastMatch(k, e, l, a) {
 				return
 			}

@@ -1282,7 +1282,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if in.Op == kop.OpChooseMove && in.B.N == 1 && s.handExileHostGone() {
 		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go)
 	}
-	p := s.playerRef(k, in.Obj)
+	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
 		if in.Op == kop.OpChooseMove && in.Obj != kop.RefController {
 			return true // the target player whose hand it is is gone: nothing moves

@@ -588,6 +588,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 		return
 	}
+	if t.Flags4&kop.Tf4NamedCast != 0 && !s.castNamedOK(l, e) {
+		return // repl_choosename.go: a spell with the source's chosen name
+	}
 	if !(s.castFilterOK(k, t.Filter, e, l) || t.Flags3&kop.Tf3OrTargets != 0 && s.castTargetsAny(k, t.Filter2, e, l)) || !s.trigOK(k, l, a) {
 		return
 	}
@@ -613,7 +616,7 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags2&kop.Tf2TargetsFilter2 != 0 && !s.castTargetsAll(k, t.Filter2, e, l) {
 		return
 	}
-	if t.Flags4&^kop.Tf4NthFiltered != 0 && !s.singleTargetOK(k, e) {
+	if t.Flags4&^(kop.Tf4NthFiltered|kop.Tf4NamedCast) != 0 && !s.singleTargetOK(k, e) {
 		return // IsSingleTarget$ (trig_params.go)
 	}
 	if t.Flags3&kop.Tf3MayPlaySrc != 0 && !s.mayPlaySpell(e) {
@@ -626,6 +629,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	}
 	if t.Flags2&kop.Tf2CastSpent != 0 {
 		amt = s.castSpentAmt(k, e) // gorge TriggerManaSpent: the spend as the trigger fires (opus)
+	}
+	if t.Flags4&kop.Tf4NamedCast != 0 {
+		noteNamedCast(true)
 	}
 	s.queueTrig(k, l, a, e.obj, e.ctrl, amt)
 }
