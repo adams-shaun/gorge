@@ -22,13 +22,13 @@ var (
 		"mayplay", "dprog", "emblem", "dmgmap", "xtgt", "used", "kwrepx", "links", "free", "ask", "counters", "lki", "tappick",
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "replcands", "prevcol", "colgrant", "restrx", "obssrc", "dynmana", "tapextra",
-		"exiledwith", "breach", "netlock", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
+		"exiledwith", "breach", "netlock", "panharmgrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
 		"restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "numtimes", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.

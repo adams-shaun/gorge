@@ -375,6 +375,18 @@ const ExtEnterUntapped ExtOp = 228
 
 func init() { extOpNames[ExtEnterUntapped] = "EnterUntapped" }
 
+// ExtEnterAttacking (CR 508.4, 614.12): the second half of "creatures you
+// control enter tapped and attacking" (Kira Nerys, Firebrand; gorge R:Event$
+// Moved ... ReplaceWith$ DB$ ChangeZone | Defined$ ReplacedCard | Tapped$ True
+// | Attacking$ True), after OpEnterTapped. Run on the entering permanent (the
+// replaced object) it marks it attacking the controller's opponent (the one
+// CR 508.4 defender; two or more stall), declared nothing, so no Attacks
+// trigger fires. Only in declare attackers..end of combat of the controller's
+// own turn. No other field. dirac/repl_enterattacking.go.
+const ExtEnterAttacking ExtOp = 250
+
+func init() { extOpNames[ExtEnterAttacking] = "EnterAttacking" }
+
 // ExtExchangeControl (CR 701.12; gorge effects/exchange_control.go
 // effExchangeControl): C is a bit set of the resolving entry's target slots.
 // The battlefield objects they name that are still legal, in slot then pick
@@ -553,6 +565,19 @@ const ExtCounterPlusEOT ExtOp = 247
 
 func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 
+// ExtGrantPanharm (Lwaxana Troi, Charming Guest): the object in Obj (a target
+// slot) gains "if a triggered ability of this permanent triggers, that
+// ability triggers an additional time" for as long as the resolving ability's
+// source stays tapped on the battlefield and the object stays on the
+// battlefield (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered,
+// Duration$ UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Nothing
+// is granted when the source is not a tapped permanent as this resolves. One
+// record per grant in genState.pgT / pgH, counted by the echo walk beside the
+// printed StatPanharmonicon statics. dirac/act_grantpanharm.go.
+const ExtGrantPanharm ExtOp = 248
+
+func init() { extOpNames[ExtGrantPanharm] = "GrantPanharm" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a
@@ -569,6 +594,8 @@ func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
 // of the matchup (a ChGenName decision, mode = the card's CardID), kept in
 // the permanent's chosen byte as that CardID (Kai Winn, Faithless Leader).
 // Only the first instruction of an enters program. dirac/repl_choosename.go.
-const ExtChooseName ExtOp = 248
+// 248 and 250 were taken by ExtGrantPanharm and ExtEnterAttacking on land
+// after this branch cut, so the Kai Winn sub-op takes the next free ordinal.
+const ExtChooseName ExtOp = 251
 
 func init() { extOpNames[ExtChooseName] = "ChooseName" }

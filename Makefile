@@ -75,7 +75,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # #12673: the authored scripts, H.M.S. Bounty and EndCombatPhase's Optional$) + Dr. McCoy's ActiveZones$.
 # 64afbdf3a6 = the fork's gorge-trek5: df3c93c8e4 + Card-Forge master da66fb1ac4 (2026-11-04), whose one card change
 # is The Duras Sisters' printed 3/2 (it was 1/1).
-FORGE_REF  ?= 64afbdf3a6b566bc780779714e067f85f678a2c2
+# 84ce1603d9 = the fork's gorge-trek6: 64afbdf3a6 + two Oracle fixes XMage's TRK pass found (2026-11-04): 70,000
+# Light-Years from Home puts the basic land into its controller's hand, and Captain Michael Burnham is a Human Officer.
+FORGE_REF  ?= 84ce1603d9d663992a06b7ea05ebdba7d4fe7e3f
 
 .PHONY: help
 help:

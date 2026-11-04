@@ -1261,6 +1261,9 @@ func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 // populations are not object-id sorted, and a rank-by-id index picked the
 // wrong card there.)
 func (s *State) CastFreeIndex(o Obj) uint8 {
+	if i, ok := s.freeRepeatIndex(o); ok {
+		return i // AllowRepeats$: the lowest place of o not yet picked (cast_freerepeat.go)
+	}
 	for i := 0; i < int(s.g.nfreeAll); i++ {
 		if s.g.freeAll[i] == o {
 			return uint8(i)

@@ -1,0 +1,22 @@
+# the Holo-Engineer pool: the token rewriter (Holo-Engineer) beside the
+# token multipliers (Exalted Sunborn, Ojer Taq, Doubling Season), creature
+# and non-creature token makers, Role makers (the TokAttach mint a rewriter
+# stalls on) and cheap creatures, for the oracle's
+# constructed lockstep (dirac/oracle/holoengineer_test.go)
+Doubling Season
+Dragon Fodder
+Elite Vanguard
+Embereth Veteran
+Exalted Sunborn
+Forest
+Goblin Instigator
+Holo-Engineer
+Monstrous Rage
+Mountain
+Ojer Taq, Deepest Foundation
+Plains
+Raging Goblin
+Raise the Alarm
+Savannah Lions
+Strike It Rich
+Thraben Inspector

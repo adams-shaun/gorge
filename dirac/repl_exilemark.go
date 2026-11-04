@@ -432,10 +432,10 @@ func (s *State) parkMills(k *prep, p uint8, n int, remember bool) bool {
 
 // parkDiscardQuiet queues a discarded card with one exile-instead effect or
 // none, whose turn comes in the queue all the same; false when the queue is full.
-func (s *State) parkDiscardQuiet(o Obj) bool {
+func (s *State) parkDiscardQuiet(o Obj, x uint8) bool {
 	for i := range s.cold.parked {
 		if r := &s.cold.parked[i]; r.kind == parkNone {
-			*r = parkedMove{obj: o, kind: parkDiscard}
+			*r = parkedMove{obj: o, kind: parkDiscard, x: x}
 			return true
 		}
 	}

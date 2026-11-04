@@ -931,6 +931,9 @@ func overrideString(o *lOverride) string {
 	if o.RemoveLegendary {
 		p = append(p, "nonlegendary")
 	}
+	if o.GrantStatics != 0 {
+		p = append(p, "grantstatics="+strconv.Itoa(int(o.GrantStatics)))
+	}
 	if o.LoseAbilities {
 		p = append(p, "loseabilities")
 	}
@@ -1617,7 +1620,17 @@ func (lc *lowerCtx) play(ps *params) error {
 		return refuse("Play Controller %q", c)
 	}
 	amount := ps.str("Amount")
-	if amount != "" && amount != "1" && amount != "All" {
+	// Amount$ X with AllowRepeats$ True (CR 707.12: "copy that card X times, you
+	// may cast the copies", Infinite Diversity): the one remembered card is
+	// offered X times, each pick one copy cast. Read only for the copy-cast
+	// shape the kernel proves in lockstep (CopyCard$ above).
+	repeat := false
+	if v, ok := ps.get("AllowRepeats"); ok {
+		if v != "True" || !copyCard || amount == "" || amount == "1" || amount == "All" {
+			return refuse("Play AllowRepeats %q", v)
+		}
+		repeat = true
+	} else if amount != "" && amount != "1" && amount != "All" {
 		return refuse("Play Amount %q", amount)
 	}
 	forget := false
@@ -1672,6 +1685,13 @@ func (lc *lowerCtx) play(ps *params) error {
 	if copyCard {
 		cs += "|Copy"
 	}
+	var repeatN lValue
+	if repeat {
+		if repeatN, err = lc.value(amount); err != nil {
+			return err
+		}
+		cs += "|Repeat"
+	}
 	if forget {
 		cs += "|Forget"
 	}
@@ -1690,7 +1710,7 @@ func (lc *lowerCtx) play(ps *params) error {
 				return err
 			}
 		}
-		lc.emit(lInstr{Op: "CastFree", Obj: obj, F: f, C: zone, CS: cs})
+		lc.emit(lInstr{Op: "CastFree", Obj: obj, A: repeatN, F: f, C: zone, CS: cs})
 		return nil
 	}
 
@@ -1950,6 +1970,20 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		ps.consume("Duration", "ForgetOnMoved")
 		sp.consume("ValidCard", "ValidSA")
 		lc.emit(lInstr{Op: "LockActs", Obj: obj, Note: "its activated abilities can't be activated while it stays tapped"})
+	case "Panharmonicon":
+		// (Lwaxana Troi, Charming Guest) "for as long as this remains tapped,
+		// if a triggered ability of that creature triggers, that ability
+		// triggers an additional time". Only the exact shape gorge's effEffect
+		// registers (kernel ExtGrantPanharm): the single remembered target,
+		// no scoping term beyond ValidCard$ Card.IsRemembered, a host-tap
+		// lifetime and the target leaving the battlefield ending it.
+		if obj.Kind != rTarget || ps.str("RememberObjects") != "Targeted" || ps.str("Duration") != "UntilUntaps" ||
+			ps.str("ExileOnMoved") != "Battlefield" || sp.str("ValidCard") != "Card.IsRemembered" {
+			return refuse("Effect Panharmonicon shape")
+		}
+		ps.consume("Duration", "ExileOnMoved")
+		sp.consume("ValidCard")
+		lc.emit(lInstr{Op: "GrantPanharm", Obj: obj, Note: "the target's triggers trigger an additional time while the source stays tapped"})
 	case "Continuous":
 		if !sp.is("MayPlay", "True") {
 			return refuse("Effect continuous shape")
@@ -3280,6 +3314,9 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return nil
 	}
 	name := strings.TrimSpace(v)
+	if strings.Contains(name, ",") {
+		return lc.animateGrantStatics(ps, name, o)
+	}
 	ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
 	if ok && len(ss) == 1 && ss[0].Mode == "Continuous" {
 		return lc.animateLivePT(name, ss[0], o, obj)
@@ -3299,6 +3336,54 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 		return refuse("Animate staticAbilities$ with a host-bound duration")
 	}
 	o.AddKw = append(o.AddKw, "Unblockable")
+	return nil
+}
+
+// animateGrantStatics lowers an Animate's staticAbilities$ list of
+// permission and land-play statics (Nog, Ambitious Cadet's "You may play
+// lands from your graveyard" and "You may play an additional land on each of
+// your turns"; gorge registerAnimateStaticAbilities registers each body as a
+// continuous effect of the animated object for the animation's lifetime). Each
+// body lowers as the printed static it reads as (a may-play permission, an
+// extra land play) on the source card, switched on by a bit of the override
+// record the Animate applies (kop.Static.OvGate, kop.Override.GrantStatics),
+// so the grant is source-scoped and lasts as long as the record. Only a
+// permanent grant on Self reaches the source.
+func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride) error {
+	if ps.str("Duration") != "Permanent" || ps.str("Defined") != "Self" {
+		return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
+	}
+	for _, name := range strings.Split(names, ",") {
+		name = strings.TrimSpace(name)
+		ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
+		if !ok || len(ss) != 1 || ss[0].Mode != "Continuous" {
+			return refuse("Animate staticAbilities$ %q", name)
+		}
+		_, may := ss[0].Params["MayPlay"]
+		_, land := ss[0].Params["AdjustLandPlays"]
+		if may == land {
+			return refuse("Animate staticAbilities$ %q shape", name)
+		}
+		gated := 0
+		for _, st := range lc.out.Statics {
+			if st.OvGate != 0 {
+				gated++
+			}
+		}
+		if gated >= 8 {
+			return refuse("Animate staticAbilities$ grants more than 8 statics")
+		}
+		before := len(lc.out.Statics)
+		if err := lc.lowerStatic(ss[0]); err != nil {
+			return err
+		}
+		if len(lc.out.Statics) != before+1 {
+			return refuse("Animate staticAbilities$ %q lowered to %d statics", name, len(lc.out.Statics)-before)
+		}
+		bit := uint8(1) << gated
+		lc.out.Statics[before].OvGate = bit
+		o.GrantStatics |= bit
+	}
 	return nil
 }
 

@@ -36,6 +36,7 @@ func TestStdMkmReprosLockstep(t *testing.T) {
 		{"granted_colours_before_dual_types", false, false},      // Leyline of the Guildpact: a dual land's type-derived {R} and {G} are intrinsic like the granted {B}, so Fuss's generic mana comes from its {G}, not a granted {B}
 		{"ward_failed_payment_granted_type_first", false, false}, // Leyline of the Guildpact: a ward payment too small to pay floats the Mountain's own {R}, the first of its abilities, not a granted {W}
 		{"granted_types_any_land_hybrid_pool", true, false},      // Leyline of the Guildpact: Fuss after three {W} floated by hand pays its generic from the same lands in both engines
+		{"adventure_card_copy_cast", true, false},                // CR 707.12, 715.3: Reenact the Crime's copy of Kellan, Inquisitive Prodigy is cast as its front face (gorge never offers the Adventure)
 	})
 }
 
@@ -64,6 +65,12 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// enters" see the Duelist and the later copies enter before the copy
 		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
+		{"plot_cast_pays_additional_sacrifice", false, false}, // CR 118.9, 701.34d: a plotted Corrupted Conviction is cast free of its mana cost but still sacrifices a creature
+		// Explosive Derailment ({R}, Spree, every mode {2}) on a board whose
+		// only red source is Conduit Pylons' {1},{T} filter: the printed cost
+		// is payable, but no mode is, so neither engine offers the cast (CR
+		// 702.172a/702.183a: the mode cost is part of the cheapest legal total).
+		{"explosive_derailment_needs_a_mode_cost", false, false},
 	})
 }
 
@@ -108,9 +115,11 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false, false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false}, // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_trigger_cost", true, false},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},          // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
+		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 	})
 }
 
@@ -191,6 +200,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"granted_mana_once_beside_another_grant", true, false},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
 		{"waterbend_no_picks_falls_to_manual_window", false, false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true, false}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
+		{"waterbend_credit_paid_source_live_pool", true, false},            // CR 701.67a: a paid mana ability earns the waterbend credit only while its fee is unpayable, so the prefix taps it once a grant floats the fee
 		{"exiled_target_keeps_was_damaged", false, false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 	})
 }
@@ -223,6 +233,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_cast_targets_resolving_ability", true, false},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true, false}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
 		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
+		{"granted_mana_pays_tiered_cast", false, false},         // CR 601.2g: A Realm Reborn's granted any-colour mana from two untapped artifacts pays Ice Magic's {1}{U}, so the Tiered cast is offered
 	})
 }
 
@@ -260,6 +272,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-dft", []stdRepro{
 		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
 		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false}, // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
 	})
 }
 
@@ -283,7 +296,9 @@ func TestStdTmtReprosLockstep(t *testing.T) {
 func TestStdDskReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dsk", []stdRepro{
-		{"room_shown_face_plain_cast", false, false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"room_shown_face_plain_cast", false, false},            // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
+		{"sacrificed_panharmonicon_host_departs", false, false}, // CR 603.2d: a sacrificed Panharmonicon host is gone when Popular Egotist's "whenever you sacrifice" trigger is checked, so it echoes nothing
+		{"returning_aura_during_paid_cost", false, false},       // CR 303.4f: a sacrificed "until this leaves" host returns its exiled Aura while the sacrifice cost's payment is still resolving: the Aura waits in exile and its owner chooses what it enchants
 	})
 }
 
@@ -408,5 +423,13 @@ func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-tla", []stdRepro{
 		{"keyword_removal_resolved_after_a_grant", true, false},
+	})
+}
+
+// std-woe's, on the same terms.
+func TestStdWoeReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-woe", []stdRepro{
+		{"filter_fed_by_granted_mana", false, false}, // CR 605.3b, 601.2g: Prophetic Prism's {1} is paid by the Food Night of the Sweets' Revenge lets tap for {G}, so Embereth Veteran is castable
 	})
 }

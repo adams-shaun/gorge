@@ -1,0 +1,22 @@
+# the Kira Nerys, Firebrand pool: her Moved replacement (creatures you control
+# enter tapped and attacking while you control an attacker) beside token
+# makers, a flicker, instant-speed creature entry, burn, vanilla creatures and
+# basics (dirac/oracle/kira_test.go)
+Kira Nerys, Firebrand
+Raise the Alarm
+Ambush Viper
+Cloudshift
+Leonin Warleader
+Savannah Lions
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Walking Corpse
+Coral Merfolk
+Giant Spider
+Shock
+Plains
+Island
+Swamp
+Mountain
+Forest

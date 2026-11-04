@@ -1481,6 +1481,9 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 	if z := s.objs[o].zone; z == kop.ZoneExile || z == kop.ZoneGraveyard {
 		s.spendMayRecord(k, o, p) // a land played through a permission record spends it, as a cast does (CR 701.18b)
 	}
+	if z := s.objs[o].zone; k.gen != nil && k.gen.anyMayPlay && (z == kop.ZoneExile || z == kop.ZoneGraveyard || z == kop.ZoneSideboard) {
+		s.spendLandStatic(k, o, p) // a once-per-turn static's land play uses its turn (zone_sideboard.go)
+	}
 	from := s.detach(o)
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from) // a may-play land from a graveyard or exile
