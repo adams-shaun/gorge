@@ -1187,7 +1187,7 @@ deck trc-1-b
 8 Plains
 7 Forest
 
-game trk-2 1261
+game trk-2 1263
 deck trk-2-a
 2 Blood Crypt
 1 Brad Boimler, Eager Ensign
