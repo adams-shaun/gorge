@@ -1,8 +1,6 @@
 package dirac
 
-import (
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // A sacrifice-only mana source (an Eldrazi Spawn token's "Sacrifice this
 // creature: Add {C}", CR 605.1a): the ability's cost has no {T}, so a tapped
@@ -106,7 +104,8 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	// gorge prices a smaller X whose payment keeps one (For the Common Good
 	// paid with one of two Treasures; the other stays a target).
 	stacked := s.subs[kop.TrigSacrificed].any()
-	targeted := tspec(k, c, spellAb(k, c), 0) != nil
+	bestowed := s.buildLive() && s.bld().e.bestowedEntry()
+	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	for x := mx - 1; x >= 0; x-- {
 		t := s.fork()
 		n0 := t.npend
@@ -115,7 +114,10 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 		t.tapForPK(k, p, &cost, x, o, false, false, &pk)
 		found := pk.found
 		ok := found && (!stacked || int(t.npend)-int(n0) <= witnessWaits)
-		if ok && targeted {
+		if ok && bestowed {
+			var buf [MaxOptions]uint8
+			ok = t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) != 0
+		} else if ok && targeted {
 			ok = t.spellTargetsFeasible(k, c, p)
 		}
 		s.unfork()

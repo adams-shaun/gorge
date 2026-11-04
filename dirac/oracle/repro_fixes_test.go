@@ -64,7 +64,7 @@ func TestStdBlbReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-blb", []stdRepro{
 		{"blinked_creature_is_a_target_of_its_own_leave_trigger", true}, // CR 603.3d: Three Tree Scribe blinked and back is a legal target of its own trigger
-		{"x_cast_leaves_a_target", true},                                // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
+		{"x_cast_leaves_a_target", false},                               // For the Common Good from one land and two Treasures: the largest-X plan consumes both copies targets, so the witness prices a smaller X whose payment keeps one Treasure as a target
 	})
 }
 
