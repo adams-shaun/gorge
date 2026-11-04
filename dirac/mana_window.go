@@ -78,16 +78,19 @@ func (s *State) altAddOpenTargets(k *prep) bool {
 	if k.t.Cards[e.card].Cost.Hyb[0] != 0 {
 		return true // the pip ask comes first, then the menu (altAddTargetAbort)
 	}
-	return s.altAddPickPayable(k, s.bld().altAdd) && s.altAddWindowOpen(k, e)
+	return s.altAddPickPayable(k, s.bld().altAdd) && s.windowUnpricedOpen(k, e)
 }
 
-// altAddWindowOpen: the window census is incomplete and a source is left to tap.
-func (s *State) altAddWindowOpen(k *prep, e *stackEntry) bool {
+// windowUnpricedOpen: the window census is incomplete and a source is left to
+// tap, so gorge keeps the pool-short candidates of a target menu or an either-or
+// part on offer (affordableTargetCandidates' census fallback, CR 601.2g).
+func (s *State) windowUnpricedOpen(k *prep, e *stackEntry) bool {
 	if s.windowCensusComplete(k, e) {
 		return false
 	}
+	tapX := s.windowTapXLive(k, e.ctrl)
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
-		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) {
+		if sl := m.first(); s.canTapForMana(k, sl) || s.windowGap(k, e.ctrl, sl) || tapX.has(sl) {
 			return true
 		}
 	}
@@ -100,7 +103,7 @@ func (s *State) altAddWindowOpen(k *prep, e *stackEntry) bool {
 func (s *State) altAddTargetAbort(k *prep) bool {
 	b := s.bld()
 	return b.altAdd == 1 && b.pipN != 0 && b.e.kind == seSpell && k.gen != nil && k.t.Cards[b.e.card].HasAltAdd &&
-		!s.altAddPayable(k, 1) && (!s.altAddPickPayable(k, 1) || !s.altAddWindowOpen(k, &b.e))
+		!s.altAddPayable(k, 1) && (!s.altAddPickPayable(k, 1) || !s.windowUnpricedOpen(k, &b.e))
 }
 
 // loweredPipWindow pays a lowered hybrid cast's pips through the window before its
@@ -2532,20 +2535,20 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
-	var cs [MaxPerm]Slot
-	n := s.tapXCands(k, p, s.g.winSrc, &cs)
-	for _, sl := range cs[:n] {
-		d.add(MakeAction(AkChoose, uint8(s.perms[sl].obj), 0, 0))
-	}
+	s.winTapOptions(k, p, d)
 	return true
 }
 
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
+	more, cand, cand2 := s.winTapPick(k, a)
+	if more {
+		return // the second permanent is asked next
+	}
 	b := s.bld()
 	b.bfl &^= bflWinTap
-	s.tapXDo(k, b.e.ctrl, tapXStep{sl: s.g.winSrc, cand: s.objs[Obj(a.Source())].slot, cand2: NoSlot, col: s.g.winCol})
+	s.tapXDo(k, b.e.ctrl, tapXStep{sl: s.g.winSrc, cand: cand, cand2: cand2, col: s.g.winCol})
 }
 
 // floatRestrOnly floats n of colour col from source sl's restricted ability ab

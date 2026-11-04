@@ -1547,6 +1547,7 @@ type genState struct {
 	winSrc    Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
 	winMode   uint8                   // the payment that window serves (winNone: none)
 	winCol    uint8                   // the colour a cast window's paused tap-another source makes once the pick is answered (mana_window.go)
+	winFirst  uint8                   // a two-permanent tap-another source's first window pick, slot+1 (0: none yet; mana_windowtapx.go)
 	winHeld   [kop.NumManaKinds]uint8 // the restricted mana that walk kept out of the pool so far
 	nlook     uint8                   // cards looked at (dig / peek / reveal): the live prefix of armRes.look (scratch.go)
 	attLKI    [2]attLKIRec            // the last departed attachments' hosts (CR 608.2h; fills the pad before evSel)
