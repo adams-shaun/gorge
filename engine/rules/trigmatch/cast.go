@@ -58,6 +58,22 @@ func spellCopyMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Ev
 	return SpellCastEval(e, t, source, ev)
 }
 
+// stackOnlyBareCardCast reports a SpellCast trigger that functions only
+// while its card is a spell on the stack (TriggerZones$ Stack) and names the
+// cast with the bare ValidCard$ Card: Storied Veteran's and Hundred-Battle
+// Veteran's "You may cast this card from your graveyard. If you do, it enters
+// with a finality counter on it". The ability speaks of this card's own cast
+// (its Oracle text; XMage reads the cast from the source's graveyard), so it
+// matches that cast only. Read as any spell, another may-play spell cast
+// while the card waits on the stack would get its finality counter.
+func stackOnlyBareCardCast(t cards.Trigger) bool {
+	if strings.TrimSpace(t.ParamStr(cards.PKTriggerZones)) != "Stack" {
+		return false
+	}
+	v, ok := t.Param(cards.PKValidCard)
+	return ok && strings.TrimSpace(v) == "Card"
+}
+
 // SpellCastEval is the spell evaluation spellCastMatches and
 // spellCopyMatches share, minus the entering-the-stack guard each mode owns:
 // ValidCard$ (through the trigger-side cast alternatives and the
@@ -77,6 +93,9 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 	// path might reach here.
 	obj := e.Game().Obj(ev.Obj)
 	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	if stackOnlyBareCardCast(t) && ev.Obj != source {
 		return false
 	}
 	ctrl := e.ControllerOf(source)

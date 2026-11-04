@@ -63,3 +63,39 @@ func TestStackBoundEntryRiderEndsWithTheSpell(t *testing.T) {
 		})
 	}
 }
+
+// TestStackZoneCastTriggerSeesOnlyItsOwnCast pins Storied Veteran's "You may
+// cast this card from your graveyard. If you do, it enters with a finality
+// counter on it" to its own cast. Its SpellCast trigger functions on the
+// stack (TriggerZones$ Stack) and names the cast as the bare ValidCard$ Card;
+// read as any spell, a Spectral Sailor cast from the top of the library
+// through Future Sight while the Veteran waits on the stack got the Veteran's
+// finality counter too.
+func TestStackZoneCastTriggerSeesOnlyItsOwnCast(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	sc := `{"name":"x","cr":["603.2","614.12"],"why":"x","setup":{"p0":{"battlefield":["Future Sight"],"library_top":["Spectral Sailor","Spectral Sailor"],"graveyard":["Storied Veteran"]},"p1":{"battlefield":["Grizzly Bears"]}},"steps":[
+		{"op":"pass_to","seat":0,"step":"main1","decision":"priority"},
+		{"op":"cast","seat":0,"card":"p0:Storied Veteran","mana":"B"},
+		{"op":"cast","seat":0,"card":"p0:Spectral Sailor","mana":"U"},
+		{"op":"resolve","seat":0},{"op":"resolve","seat":0}]}`
+	res, err := RunOracleScenarioJSON(reg, []byte(sc))
+	if err != nil || len(res.Fails) != 0 {
+		t.Fatalf("scenario: err=%v fails=%v", err, res.Fails)
+	}
+	last := res.Snapshots[len(res.Snapshots)-1]
+	got := map[string]int32{}
+	seen := map[string]bool{}
+	for _, p := range last.Permanents {
+		if p.Name == "Storied Veteran" || p.Name == "Spectral Sailor" {
+			got[p.Name] += p.Counters["FINALITY"]
+			seen[p.Name] = true
+		}
+	}
+	if !seen["Storied Veteran"] || !seen["Spectral Sailor"] {
+		t.Fatalf("both should be on the battlefield: %+v", last.Permanents)
+	}
+	if got["Storied Veteran"] != 1 || got["Spectral Sailor"] != 0 {
+		t.Fatalf("FINALITY counters %v, want Storied Veteran 1 and Spectral Sailor 0", got)
+	}
+}
