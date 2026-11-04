@@ -139,6 +139,10 @@ func (s *State) enterAttacking(k *prep, sl Slot, ctrl uint8) bool {
 	if n == 0 {
 		return false // no CR 508.4 defender: it enters but does not attack
 	}
+	if s.g.tokDefSet { // asked before the move (returnDefenderAsk)
+		s.setEnterAttacker(k, sl, s.g.tokDef)
+		return false
+	}
 	if n > 1 {
 		s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, uint8(sl)
 		return true
@@ -290,10 +294,10 @@ func (s *State) returnWithSelf(k *prep, in *kop.Instr, host Slot) bool {
 		z1 = s.objs[o1].zone
 	}
 	old := s.batchOpen()
-	ask := s.execReturn(k, &in2, host)
+	ask := s.execReturnObj(k, &in2, host, s.returningObj(&in2))
 	if !ask && (z1 == kop.ZoneNone || o2 != NoObj && s.objs[o2].zone == z1) {
 		in2.Obj = kop.RefSelf
-		ask = s.execReturn(k, &in2, host)
+		ask = s.execReturnObj(k, &in2, host, s.returningObj(&in2))
 	}
 	s.batchClose(old)
 	return ask
