@@ -234,7 +234,8 @@ var kindInfo = [NumKinds]KindInfo{
 	DayNightChange:        {Name: "day_night_change", Trigger: TriggerNone, Describe: "It becomes {text}"},                                               // CR 731; no registered trigger mode reads it
 	SubTargetRemoved:      {Name: "sub_target_removed", Trigger: TriggerNone},
 	DestroyProposal:       {Name: "destroy_proposal", Trigger: TriggerNone, Describe: "{obj} would be destroyed"},
-	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"}, // CR 724.2
+	EndCombatPhase:        {Name: "end_combat_phase", Trigger: TriggerNone, Describe: "The combat phase ends"},                                    // CR 724.2
+	ManaAbilityActivation: {Name: "mana_ability_activation", Trigger: TriggerAbilityPush, Describe: "{player} activates a mana ability of {obj}"}, // CR 605.1a marker: AbilityCast/SpellAbilityCast observe it, no stack object
 }
 
 // Info returns k's descriptor; ok is false for a value past the enum.

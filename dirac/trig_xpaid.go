@@ -111,7 +111,8 @@ func (s *State) spellHeld(e *stackEntry) bool {
 
 // spellHoldLeaves moves the held spell's card off the stack, as
 // finishResolve would have: to its owner's graveyard, exile when flashed
-// back (and a face's own exit, face_castface.go).
+// back or a copy (spellRestExiles), and a face's own exit
+// (face_castface.go).
 //
 //go:noinline
 func (s *State) spellHoldLeaves(k *prep) {
@@ -129,8 +130,9 @@ func (s *State) spellHoldLeaves(k *prep) {
 	ob.zone = kop.ZoneNone
 	z := kop.ZoneGraveyard
 	// spellRestZone: the flashback family and the Play rider's
-	// ReplaceGraveyard$ both exile a held spell's card.
-	if e.exilesOnLeave() {
+	// ReplaceGraveyard$ both exile a held spell's card, and a copy of a
+	// spell is exiled as it leaves the stack (CR 707.10a).
+	if s.spellRestExiles(e) {
 		z = kop.ZoneExile
 	}
 	if k.gen != nil && k.gen.anyFaces {
