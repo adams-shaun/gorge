@@ -69,6 +69,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fra", "graveyard_type_count_skips_a_waiting_token"},                  // a Lotus token sacrificed to pay for Hungering Puppetbeast waits in the graveyard for the next check: it is no card, so Tarmogoyf does not count its artifact type (CR 111.7, 704.5d)
 		{"std-otj", "saddled_copy_fires_the_copied_triggers"},                      // a Peerless Ropemaster made a copy of Stubborn Burrowfiend by Assimilation Aegis, saddled: it has the copied card's become-saddled trigger (CR 707.2)
 		{"std-msh", "negative_power_dig_looks_at_nothing"},                         // Jessica Jones with a negative power activates: the top X cards are none, not 254 (gorge effDig clamps DigNum to 0)
+		{"std-mkm", "presumed_dead_returned_creature_is_suspected"},                // Presumed Dead on Exit Specialist, which dies and is returned by the trigger: the suspect step still finds the creature its own resolution returned (menace and cannot block), unlike a trigger whose object came back before it resolved
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))

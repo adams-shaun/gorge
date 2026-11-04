@@ -47,6 +47,7 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 func (s *State) resolveTop(k *prep) {
 	e := s.stack[s.sp-1]
 	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	s.res.trigGone = e.kind == seTrigger && e.li != 0 && e.trigObj != NoObj && s.objs[e.trigObj].ver > s.lk(e.li).ver+1
 	if k.gen != nil {
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
 		s.g.stkCt = 0                           // tgt_stackability.go
@@ -489,7 +490,7 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 		return NoSlot
 	}
-	if r == kop.RefTriggerObj && s.res.e.kind == seTrigger && s.res.e.li != 0 && ob.ver != s.lk(s.res.e.li).ver {
+	if r == kop.RefTriggerObj && s.res.trigGone {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
 	return ob.slot

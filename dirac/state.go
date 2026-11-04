@@ -760,9 +760,13 @@ type resCtx struct {
 	peekN   uint8
 	peekI   uint8
 	active  bool
-	bad     uint8 // targets illegal at resolution (bit per slot)
-	xbad    uint8 // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
-	remLK   int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// trigGone: the entry is a trigger whose triggering permanent had left and come back (two moves
+	// past its last known information) before the resolution began: a new object (CR 400.7). The one
+	// move a death trigger records, or a move this resolution makes itself, is no such change.
+	trigGone bool
+	bad      uint8 // targets illegal at resolution (bit per slot)
+	xbad     uint8 // multi-object extras illegal at resolution (bit per xTargets index; only with genPrep.anyEachTgt)
+	remLK    int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet
