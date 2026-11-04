@@ -16,7 +16,7 @@ import (
 // seat 0 while seat 1 controls the watcher.
 
 const manaWatchRockSrc = "Name:Test Rock\nManaCost:1\nTypes:Artifact\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | SpellDescription$ Add {C}{C}.\nOracle:x\n"
+	"A:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | SpellDescription$ Rock mana.\nOracle:x\n"
 
 // manaWatchCarrier is an opposing creature watching opponents' activations,
 // narrowed by validSA ("" = the un-narrowed carrier).
