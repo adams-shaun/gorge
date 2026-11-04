@@ -70,6 +70,13 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilEOT = e.UntilEOT
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
+		if e.CaptureSet {
+			r, err := cb.ref(e.Capture)
+			if err != nil {
+				return bfail(cb.node, "%v", err)
+			}
+			ke.Capture = r
+		}
 		for _, s := range e.Statics {
 			ka, add, err := cb.static(s)
 			if err != nil {
