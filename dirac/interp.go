@@ -1084,14 +1084,7 @@ func (s *State) finishPeek(k *prep) {
 		// the asked ones wait in the library but off its list, as gorge's
 		// look leaves them (zone 0, no position), on top of which the
 		// kept cards go
-		for i := top - 1; i >= 0; i-- {
-			o := r.arr[i]
-			s.objs[o].zone = kop.ZoneLibrary
-			pl.libTop(o)
-		}
-		if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
-			s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
-		}
+		s.returnKept(k, p, top)
 		return // the CR 616.1 ask is posed before those moves
 	}
 	if r.ask != raScryTop {
@@ -1099,6 +1092,21 @@ func (s *State) finishPeek(k *prep) {
 			s.objs[rest[i]].zone = kop.ZoneNone
 		}
 	}
+	s.returnKept(k, p, top)
+	for _, o := range rest[:nr] {
+		s.putRest(k, o)
+	}
+	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
+		s.scryAnswered(k, p) // value_scrytally.go
+	}
+}
+
+// returnKept puts the cards the arrange kept back on top of the library in
+// pick order (the first pick on top) and records a surveil's kept ones when the
+// move asks for it.
+func (s *State) returnKept(k *prep, p uint8, top int) {
+	pl := &s.pl[p]
+	r := &s.res
 	for i := top - 1; i >= 0; i-- {
 		o := r.arr[i]
 		s.objs[o].zone = kop.ZoneLibrary
@@ -1106,12 +1114,6 @@ func (s *State) finishPeek(k *prep) {
 	}
 	if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
 		s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
-	}
-	for _, o := range rest[:nr] {
-		s.putRest(k, o)
-	}
-	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
-		s.scryAnswered(k, p) // value_scrytally.go
 	}
 }
 
