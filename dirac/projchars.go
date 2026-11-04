@@ -39,16 +39,18 @@ func (s *State) ProjectChars(p *Projection) {
 			// stay even while it is phased out
 			if s.faceDown(k, sl) {
 				// a face-down permanent stays face down while phased out
-				// (CR 110.5, 708.2): a nameless, colourless 2/2 creature
+				// (CR 110.5, 708.2): a nameless, colourless 2/2 creature.
+				// A copy of it still keeps its layer-1 copiable exceptions
+				// below (CR 707.9b).
 				c.Types = kop.TCreature
 				if s.faceDownWard(k, sl) {
 					c.Kw = kop.KwWard
 				}
-				continue
+			} else {
+				cd := &k.t.Cards[s.cardAt(sl)]
+				c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
+				c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
 			}
-			cd := &k.t.Cards[s.cardAt(sl)]
-			c.Types, c.Colors, c.Kw = cd.Types&^kop.TToken, cd.Colors&^kop.ColC, cd.Keywords
-			c.Subs, c.AllSub = cd.Subtypes, cd.AllCreatureTypes
 			if s.fxM.has(sl) {
 				c.Types |= s.copyExcTypes(k, sl)
 				if s.copyExcNoLegendary(k, sl) {
