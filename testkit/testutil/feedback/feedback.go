@@ -37,11 +37,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
-	"github.com/adams-shaun/gorge/engine/game"
-	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -446,45 +443,6 @@ func EngineAt(t testing.TB, dir string, n int) *rules.Engine {
 		t.Fatalf("feedback: %s: replay to intent %d: %v", dir, n, err)
 	}
 	return e
-}
-
-// GameAt is EngineAt for a capture on any engine.
-func GameAt(t testing.TB, dir string, n int) game.Game {
-	t.Helper()
-	l, cfg, meta, err := Load(dir)
-	if err != nil {
-		t.Fatalf("feedback: %v", err)
-	}
-	if meta.Engine != adapter.Name {
-		return gorgegame.Game{E: EngineAt(t, dir, n)}
-	}
-	e, c, err := Dirac(cfg, meta)
-	if err != nil {
-		t.Fatalf("feedback: %s: %v", dir, err)
-	}
-	if n < 0 {
-		n = len(l.Intents)
-	}
-	g, err := e.ReplayTo(l, c, n)
-	if err != nil {
-		t.Fatalf("feedback: %s: replay to intent %d: %v", dir, n, err)
-	}
-	return g
-}
-
-// Dirac is the engine a capture dirac played replays on, and its config.
-func Dirac(cfg rules.Config, meta Meta) (*adapter.Engine, game.Config, error) {
-	reg, err := openCorpus()
-	if err != nil {
-		return nil, game.Config{}, err
-	}
-	e, err := adapter.ForKey(meta.EngineKey, reg)
-	if err != nil {
-		return nil, game.Config{}, err
-	}
-	c := gorgegame.GameConfig(cfg)
-	c.Key = meta.EngineKey
-	return e, c, nil
 }
 
 // Corpus opens the repo's .cards corpus the way Load does: the registry a
