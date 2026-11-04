@@ -63,6 +63,11 @@ type Static struct {
 	// ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower; kernel
 	// static_powercompare.go). 0 = no such compare.
 	PwVsSrc int8
+	// OvGate: the static applies only while a live override record on its
+	// source grants it, i.e. Override.GrantStatics has this one bit (an
+	// Animate staticAbilities$ grant of a permission or an extra land play:
+	// Nog, Ambitious Cadet's Officer step). 0 = a printed static.
+	OvGate uint8
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -132,6 +137,11 @@ type Override struct {
 	// a Forest). KeepTypes holds the subtypes TypeMask carries as bits.
 	KeepSub   SubMask
 	KeepTypes TypeMask
+	// GrantStatics: the source card's statics whose OvGate bit is set here
+	// are in force on the object while this record lasts (an Animate
+	// staticAbilities$ grant that no layer reads: a may-play permission, an
+	// extra land play).
+	GrantStatics uint8
 }
 
 // Emblem is a command-zone object with abilities (triggered or static).

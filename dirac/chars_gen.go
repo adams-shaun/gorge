@@ -76,6 +76,9 @@ func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
 
 // statCond reports whether a static's condition holds.
 func (s *State) statCond(k *prep, st statSrc) bool {
+	if g := st.a.Static.OvGate; g != 0 && !s.ovGranted(k, st.sl, g) {
+		return false
+	}
 	c := st.a.Static.Cond2
 	if st.a.Kind == kop.AbReplacement {
 		c = st.a.Repl.Cond
