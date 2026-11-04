@@ -1205,7 +1205,10 @@ func (e *Engine) fireDeferredCastTrigger() {
 	e.deferredPushLKI = nil
 	e.sweepEffectDelayedCast(*ev)
 	push := *ev
+	// The push already walked its zone-change triggers (cast_push_zone.go).
+	e.pushZoneWalk = pushZoneDone
 	e.checkTriggers(&push, lki, 0, 0, false)
+	e.pushZoneWalk = 0
 }
 
 // fireDeferredActivationTrigger re-walks the mint event pushActivation held

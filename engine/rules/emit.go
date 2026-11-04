@@ -756,6 +756,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// first pass skipped it entirely, and exactly one later pass fires it.
 		cp, lp := stored, lki
 		e.deferredPush, e.deferredPushLKI = &cp, lp
+		// The move off the card's zone is not held: its zone-change
+		// triggers see the board of CR 601.2a (cast_push_zone.go).
+		e.checkPushZoneTriggers(stored, lki)
 	} else {
 		if _, _, loss := lifeLoss(stored); loss && e.lifeLossBatchDepth > 0 {
 			e.lifeLossBatch = append(e.lifeLossBatch, stored)
