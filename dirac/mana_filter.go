@@ -353,14 +353,15 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 }
 
 // censusGapMana: mana ability a is one gorge's planner census misses: a
-// spend restriction, each-colour production, or a cost beyond {T} (and
+// spend restriction, each-colour production it does not price
+// (eachAmongPriced; a priced one with no colour is scriptGaps'), or a cost beyond {T} (and
 // {T} plus sacrificing itself, a Treasure's last-resort tier).
 func censusGapMana(a *kop.Ability) bool {
 	if a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
 	f := a.Cost.Flags
-	return a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
+	return a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 && !eachAmongPriced(a) || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -376,6 +377,9 @@ func (s *State) filtOnly(k *prep, p uint8) bool {
 // gorge's census does not miss it.
 func (s *State) gapOthers(k *prep, p uint8) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
+	if k.gen.anyEachAmong {
+		m = m.or(s.scriptGaps(k, p)) // a priced each-colour source with no colour (mana_eachamong.go)
+	}
 	if !k.tapMana {
 		return m
 	}

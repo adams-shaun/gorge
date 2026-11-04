@@ -1247,6 +1247,9 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 && s.perms[sl].ovr.flags&ovCopy == 0 || payment && k.gen != nil && s.openManaRefused(k, p, sl, d) {
 			continue
 		}
+		if k.gen != nil && k.gen.anyEachAmong && k.gen.has(s.cardAt(sl), gfEachAmong) {
+			continue // a priced each-colour source: the walk below reads it as open, as gorge's PotentialMana does
+		}
 		if pc.manaAb >= 0 {
 			done[sl] = 1 << pc.manaAb
 		}

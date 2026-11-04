@@ -328,6 +328,14 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
+		if k.gen != nil && k.gen.anyEachAmong && k.gen.has(s.cardAt(o), gfEachAmong) {
+			// a priced each-colour source is a window gap all the same
+			// (gorge's windowManaUnits does not read the planner layer)
+			if s.windowGap(k, p, o) {
+				return o, true
+			}
+			continue
+		}
 		if s.canTapForMana(k, o) || k.sacOnlyMana && s.canSacOnlyNowAt(k, o) {
 			if decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) && !s.windowRestrUseful(k, o, want) {
 				continue
@@ -667,7 +675,7 @@ func (s *State) windowGapAnyColour(k *prep, p uint8, sl Slot, cost, useful *kop.
 // windowAffords: gorge's mana window pays cost from p's sources counting
 // the Tenders' mana (availFor does not), simulated on a copy.
 func (s *State) windowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.gen.anyEachCol || !s.scriptGaps(k, p).any() {
+	if k.gen == nil || !k.gen.anyEachCol || !s.windowEachGaps(k, p).any() {
 		return false
 	}
 	t := s.fork()

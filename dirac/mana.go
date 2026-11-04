@@ -1039,6 +1039,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				// abilities only): it is appended with the choice-shaped ones,
 				// in battlefield order (paymentPlanManaUnitsOnlyCompute)
 				choice = choice || sac
+				if k.gen != nil && k.gen.anyEachAmong && k.gen.has(s.cardAt(sl), gfEachAmong) {
+					// so is an each-colour source, its production fixed but
+					// outside the shared census (mana_eachamong.go)
+					choice = true
+				}
 				if choice && !sac && k.gen != nil && len(k.gen.grantPC) > 0 && s.grantMay(k, sl) && s.grantsFixedMana(k, sl) {
 					// a grant of fixed production (Rok-Tahk's {G}{G} to a creature) makes the
 					// source's census unit in the shared census, at its battlefield position;

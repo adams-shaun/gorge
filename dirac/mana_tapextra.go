@@ -83,8 +83,8 @@ func (s *State) srcExtraColour(k *prep, sl Slot, pc *pcard) (xv [kop.NumManaKind
 // srcExtraAlt is srcExtraHit for the normal ability (colour false) or for a
 // coloured pick (colour true: a StTapOnC carrier does not reach it).
 func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
-	if pc.manaAb < 0 || pc.manaSacOnly {
-		return xv, false // no tap: the trigger does not fire
+	if pc.manaAb < 0 || pc.manaSacOnly || !k.gen.tapExtraStat {
+		return xv, false // no tap, or no static to bring an extra (an each-colour source's own extra alone sets anyTapExtra)
 	}
 	ctl := s.perms[sl].ctrl
 	s.eachStatic(k, func(st statSrc) bool {

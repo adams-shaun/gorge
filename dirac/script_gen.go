@@ -6,8 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// Scripted plays (Bloom Tender). gorge's payment-planner census cannot
-// price a "one mana of each colour among permanents you control" ability,
+// Scripted plays. gorge's payment-planner census cannot price every mana
+// ability (a filter, a tap-another source, a counter cost; an each-colour
+// one only when it is no bare {T} or shows no colour: mana_eachamong.go),
 // so with one untapped the census is incomplete: a potential play the
 // planner proves insufficient gets a prefix search (rules
 // PotentialPaymentPlans -> potentialPrefixScript) that activates those
@@ -34,12 +35,22 @@ const (
 	availHyp   uint8 = 128 // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
 )
 
-// scriptGaps: p's activatable each-colour sources, a slot mask.
+// scriptGaps: p's activatable each-colour sources gorge's planner census
+// does not price, a slot mask: one whose ability is not a bare {T}, or a
+// priced one whose matching permanents show no colour (mana_eachamong.go).
 func (s *State) scriptGaps(k *prep, p uint8) slotMask {
 	if !k.gen.anyEachCol {
 		return slotMask{}
 	}
-	return s.gapMask(k, p, gfEachCol)
+	m := s.gapMask(k, p, gfEachCol)
+	if k.gen.anyEachAmong {
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); k.gen.has(s.cardAt(sl), gfEachAmong) && s.manaPCGen(k, sl).manaAb >= 0 {
+				m = m.without(sl)
+			}
+		}
+	}
+	return m
 }
 
 // scriptRestr: p's activatable restricted-mana sources (Giada) that are
@@ -92,15 +103,8 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 // eachColorOut is the mana gap sl adds: one of each colour among p's
 // permanents matching its filter (effects eachColorAmongValid).
 func (s *State) eachColorOut(k *prep, p uint8, sl Slot) kop.ColorMask {
-	a := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.eachCol(s.cardAt(sl))]
-	var m kop.ColorMask
-	for b := s.ctrlM[p&1]; b.any(); b = b.rest() {
-		o := b.first()
-		if s.matchPerm(k, a.ManaAmong, o, p, sl) {
-			m |= s.colorsAt(k, o)
-		}
-	}
-	return m & kop.ColAny
+	m, _ := s.eachColorMasks(k, p, sl)
+	return m
 }
 
 // availScript adds the availFor mode's extra mana.

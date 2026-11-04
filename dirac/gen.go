@@ -94,9 +94,12 @@ type genPrep struct {
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
-	anyMinBlk                bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
-	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
-	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
+	anyMinBlk     bool // a card has a printed MinMaxBlocker floor (CardDef.MinBlockers; combat.go)
+	anyUntapOther bool // a card has a StatUntapOther static (static_untapother.go)
+	anyTapExtra   bool // a card has a StatTapExtra static (mana_tapextra.go)
+	// tapExtraStat: the table has a StatTapExtra static; without one no
+	// source's tap brings a static's extra and srcExtraAlt walks nothing
+	tapExtraStat             bool
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
@@ -307,10 +310,14 @@ type genPrep struct {
 	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
-	// Tender), -1 none: a source gorge's planner census misses, reached by
-	// a potential play's scripted prefix (script_gen.go)
+	// Tender), -1 none: a ward / unless window gap, and a scripted-prefix
+	// gap where gorge's planner census does not price it (script_gen.go,
+	// mana_eachamong.go)
 	anyEachCol bool
-	anyRestr   bool // some card has restr (kperf-blb: the ward / unless window's gate)
+	// anyEachAmong: some card's each-colour ability is priced by gorge's
+	// planner census (gfEachAmong; mana_eachamong.go)
+	anyEachAmong bool
+	anyRestr     bool // some card has restr (kperf-blb: the ward / unless window's gate)
 	// anyRestrScript: some card has a restricted source gorge's census still
 	// misses (a reflected one: Plaza of Heroes), a scripted-prefix gap
 	// (gfRestrScript); anyRestrSrc: some card has a restricted source the
@@ -574,7 +581,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
-	g.anyTapExtra = tableHasStatic(t, kop.StatTapExtra) || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
+	g.tapExtraStat = tableHasStatic(t, kop.StatTapExtra)
+	g.anyTapExtra = g.tapExtraStat || p.manaEach // an all-at-once source's own extra (mana_eachcolour.go)
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
 	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
@@ -1040,6 +1048,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
+		prepEachAmong(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
@@ -1864,6 +1873,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 		if k.gen.flags[c]&gfManaRefl != 0 {
 			return s.manaReflView(k, sl, c, vi)
+		}
+		if k.gen.flags[c]&gfEachAmong != 0 {
+			return s.eachAmongView(k, sl, vi)
 		}
 		cd := &k.t.Cards[c]
 		for j := range cd.Abilities {
