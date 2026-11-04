@@ -52,9 +52,13 @@ func (e *Engine) CastPaymentCost(p state.PlayerID, id state.ObjID) (cost decisio
 // answers every check exactly as a fresh collection and walk would. The
 // check order, and therefore every Reason and Detail, is PlanCastPayment's.
 func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedCast, statics *costStaticSource, candidates *paymentCastCandidates) PaymentPlanOutcome {
-	if cast.Face != 0 {
-		return PaymentPlanOutcome{Reason: "unsupported"}
-	}
+	// cast.Face names the face the cast begins as: a plain cast's is the face
+	// the card shows. Every ordinary card shows face 0, but a Room that left
+	// the battlefield as its other door keeps that door in every zone
+	// (rooms.go), so its plain cast is the shown half's (CR 709.3: the caster
+	// chooses which half they are casting). The object check below requires
+	// cast.Face to be the object's current face, so a bogus value still fails
+	// closed.
 	// V1 plans four ordinary-cast origins: the hand (the original shape),
 	// the command zone (the CR 903.8 plain taxed cast; alternate
 	// command-zone casts -- dash, evoke, bestow, ... -- carry a Mode and are
@@ -628,7 +632,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		default:
 			continue
 		}
-		cast := decision.PlannedCast{Object: opt.Obj, Face: 0, Origin: origin}
+		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
@@ -1154,6 +1158,18 @@ func plannedMayPlayOrigin(z state.Zone) string {
 // Mode, exactly as before (decision.PlannedCast.CastMode).
 func plannedCastOption(cast decision.PlannedCast) decision.Option {
 	return decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
+}
+
+// plannedCastFace is the Face of a planned plain cast of o: the face the
+// object shows (CR 709.3). It is 0 for every ordinary card; a Room that left
+// the battlefield as its other door keeps that door, so its plain cast is the
+// shown half's and hard-coding 0 withheld it from the planner's offers (the
+// autopay surface and the potential walk) while the manual walk offered it.
+func plannedCastFace(o *state.Object) int {
+	if o != nil {
+		return int(o.FaceIdx)
+	}
+	return 0
 }
 
 // targetPaidShape reports the declined cast shapes whose plan can still be

@@ -67,7 +67,7 @@ func paymentActionsReference(e *Engine, p state.PlayerID, seq uint64) []decision
 		default:
 			continue
 		}
-		cast := decision.PlannedCast{Object: opt.Obj, Face: 0, Origin: origin}
+		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
 		got := e.PlanCastPayment(p, cast)
 		if got.Plan == nil {
 			continue
