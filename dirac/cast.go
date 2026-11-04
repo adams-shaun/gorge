@@ -1276,6 +1276,9 @@ func (s *State) finishBuild(k *prep) {
 			s.histCast(k, &e, &cost)
 		}
 		s.checkWard(k, &s.stack[s.sp-1]) // gorge meets the targeting before the cast it is part of
+		if k.gen != nil && k.gen.anyFirstCast {
+			s.noteFirstCast() // cast_firstcast.go
+		}
 		s.onCast(k, &e)
 		s.casualtyTrigger(k, &e)
 		s.passes = 0
