@@ -414,6 +414,7 @@ ExtPreventDamageScope	ExtOp	246
 ExtRecruit	ExtOp	94
 ExtRemoveCounterAny	ExtOp	3
 ExtSacDelayed	ExtOp	32
+ExtSearchCounters	ExtOp	249
 ExtSuspect	ExtOp	190
 ExtSweepFrom	ExtOp	97
 ExtToGraveyard	ExtOp	192
