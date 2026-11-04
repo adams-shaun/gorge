@@ -11,8 +11,8 @@ import (
 // graveyard (TriggerZones$) with an optional {B} ChangeZone body (Cost$ B,
 // Origin$ Graveyard, Destination$ Hand).
 const lorcaCard = "Name:Lorca Probe\nManaCost:4 B\nTypes:Legendary Creature Human\nPT:5/4\n" +
-	"T:Mode$ FacesDilemma | ValidPlayer$ You | TriggerZones$ Graveyard | Execute$ TrigChangeZone | TriggerDescription$ x\n" +
-	"SVar:TrigChangeZone:AB$ ChangeZone | Cost$ B | Defined$ Self | Origin$ Graveyard | Destination$ Hand\nOracle:x\n"
+	"T:Mode$ FacesDilemma | ValidPlayer$ You | TriggerZones$ Graveyard | Execute$ BackToHand | TriggerDescription$ x\n" +
+	"SVar:BackToHand:AB$ ChangeZone | Defined$ Self | Destination$ Hand | Origin$ Graveyard | Cost$ B | StackDescription$ x\nOracle:x\n"
 
 // lorcaInstantCharm is dilemmaCharm at instant speed, so the opponent can face
 // a dilemma while seat 0 holds the graveyard card.
