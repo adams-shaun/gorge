@@ -44,6 +44,13 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-otj", []stdRepro{
 		{"copied_vehicle_counts_its_crew", true}, // CR 707.2: Loan Shark copying Luxurious Locomotive makes a Treasure per creature that crewed it
 		{"counters_skip_a_ceased_token", true},   // CR 111.7: Railway Brawler's counters for a Beau the legend rule removed land on nothing
+		// Ornery Tumblewagg is cast through Jasper Flint's mayplay and paid
+		// with a wide Stablemaster tap and a Mountain: the rider plan's
+		// restricted mana floats, the payment admits and spends it first
+		// (gorge pay.PlanPool, pay/plancost.go), so the plan taps only for
+		// what the restricted mana leaves.
+		{"rider_plan_wide_restricted_float", true},
+		{"rider_plan_wide_restricted_float_full", false},
 	})
 }
 

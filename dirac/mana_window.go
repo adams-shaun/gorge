@@ -2176,6 +2176,16 @@ func (s *State) manaStep(k *prep) bool {
 				return true // stranded: the cast was reversed (static_landtype.go)
 			}
 		} else {
+			if s.rbAny(e.ctrl) {
+				// a rider plan that tapped a wide restricted source floated its
+				// mana (State.rb): the payment spends the batches this cast admits
+				// first (payRestrSpend), so the plan taps only for what the
+				// restricted mana leaves (gorge pay.PlanPool, pay/plancost.go)
+				og := restrOrigin{from: kop.Zone(s.objs[e.obj].zone), cast: true, byYou: true}
+				if m := s.restrSpendable(k, e.ctrl, e.card, og); m != 0 {
+					cost = s.restrShortAdm(e.ctrl, m, cost)
+				}
+			}
 			s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 		}
 		s.bld().bfl &^= bflManaStep
