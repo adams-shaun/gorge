@@ -653,6 +653,9 @@ func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source sta
 			continue
 		}
 		for _, id := range e.G.Zone(zone, p) {
+			if o := e.G.Obj(id); o != nil && o.Ephemeral() {
+				continue // a token waiting to cease is no card (CR 111.7, 704.5d)
+			}
 			if e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
 				n++
 			}

@@ -270,7 +270,7 @@ func playerScalarProperty(h Host, g *state.Game, p state.PlayerID, prop string) 
 	case playerScalarPropertyCardsInHand:
 		return int32(len(g.Zone(state.ZHand, p))), true
 	case playerScalarPropertyCardsInGraveyard:
-		return int32(len(g.Zone(state.ZGraveyard, p))), true
+		return int32(g.CardCount(state.ZGraveyard, p)), true // CR 111.7
 	case playerScalarPropertyCardsInLibrary:
 		return int32(len(g.Zone(state.ZLibrary, p))), true
 	case playerScalarPropertyCardsDrawn:

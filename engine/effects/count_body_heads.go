@@ -526,7 +526,7 @@ func evalCountBodyDotted(h Host, c *Ctx, g *state.Game, head, arg string, depth 
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
 			inGrave := false
 			if int(c.Controller) >= 0 && int(c.Controller) < len(g.Players) {
-				inGrave = len(g.Zone(state.ZGraveyard, c.Controller)) >= 7
+				inGrave = g.CardCount(state.ZGraveyard, c.Controller) >= 7 // CR 111.7
 			}
 			return countBranchOperand(h, c, inGrave, yesTok, noTok, depth), true, true
 		case evalCountBodyDottedDevotion:

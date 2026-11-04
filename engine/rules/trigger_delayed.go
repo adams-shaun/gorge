@@ -371,7 +371,7 @@ func (e *Engine) delayedPresentGateHolds(dt *state.DelayedTrigger) bool {
 	for _, zone := range zones {
 		e.forEachObject(func(id state.ObjID) {
 			o := e.G.Obj(id)
-			if o == nil || o.Zone != zone {
+			if o == nil || o.Zone != zone || o.Ephemeral() { // a token waiting to cease is no card (CR 111.7)
 				return
 			}
 			if e.matchesSpec(dt.PresentSpec, id, sc) {

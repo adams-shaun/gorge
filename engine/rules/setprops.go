@@ -326,7 +326,7 @@ func (e *Engine) targetControllerPropertyAdmits(kind string, obj state.ObjID) bo
 		return false
 	}
 	seat := o.Controller
-	n := len(e.G.Zone(state.ZGraveyard, seat))
+	n := e.G.CardCount(state.ZGraveyard, seat) // CR 111.7
 	if strings.HasPrefix(kind, "cmc") {
 		if o.Face() == nil {
 			return false

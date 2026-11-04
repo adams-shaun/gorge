@@ -1159,7 +1159,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string, skip state.ObjID
 		}
 		e.forEachObject(func(id state.ObjID) {
 			o := e.G.Obj(id)
-			if o != nil && o.Zone == zone && id != skip && e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
+			if o != nil && o.Zone == zone && !o.Ephemeral() && id != skip && e.matchesSpec(presentSpecForZone(spec, zone), id, sc) {
 				n++
 			}
 		})
