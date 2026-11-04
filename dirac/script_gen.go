@@ -195,7 +195,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 	var key [MaxOptions]uint64
 	nc := 0
 	wide := !mix && s.wideGapsOnly(k, p, restr, anyR) // (gorge's relaxed proof reads a wide source against each play)
-	mixWide := mix && s.scriptWide(k, p).any()
+	// The drop of a play no wide source may fund is the relaxed proof's
+	// (potentialRestrictionAdmits): an unrelaxable census (a live
+	// two-permanent source, Supportive Parents) runs no proof, so gorge
+	// searches every play the walk lists, a wide source's mana counted.
+	mixWide := mix && relax && s.scriptWide(k, p).any()
 	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
 	if s.cfg&cfgGorgeAutopay != 0 {
 		s.plainOptions(k, &real, availWalk)
