@@ -78,7 +78,12 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 				break
 			}
 		}
-		if u, ok := gatedChoiceUnion(c, gj, off); ok && !on.manaMulti && debugEntersTappedMutate != 6 { // 6: TestMirrexLockstepMutation
+		if pc.painCol != 0 {
+			// Spire of Industry: {C}, then a gated {T}, Pay 1 life: any
+			// colour; the gate-on view is Starting Town's (mana_pain.go),
+			// the gate-off view {C} with no painful alternative
+			off.painCol, off.painN, off.painLife = 0, 0, false
+		} else if u, ok := gatedChoiceUnion(c, gj, off); ok && !on.manaMulti && debugEntersTappedMutate != 6 { // 6: TestMirrexLockstepMutation
 			// Mirrex and the MSH basic-land cycle:
 			// {C}, then a gated choice of colours; gorge's census unit is
 			// the {C} alternative then one per colour, the kernel's union

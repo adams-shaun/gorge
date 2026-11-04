@@ -196,6 +196,19 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 		}
 		return plainTapMana(&c, false) && unrestrictedOne(&c)
 	}
+	if len(ms) == 2 && ms[0].ActCond.Kind == cNone && plain(ms[0]) && ms[0].Mana.Colors == "C" && ms[1].ActCond.Kind == cPresent {
+		c := *ms[1]
+		c.ActCond = lCond{}
+		if lifeTapMana(&c) {
+			// {T}: Add {C}, then a gated {T}, Pay N life: Add one mana of
+			// any colour (Spire of Industry): gorge's census lists the
+			// {C} alternative alone while the gate is off, and Starting
+			// Town's last-resort life alternative beside it while it holds;
+			// the kernel's gate-off view drops the painful alternative
+			// (prepManaGate)
+			return true
+		}
+	}
 	for _, a := range ms {
 		if !plain(a) {
 			lc.refuseNode("card", "gated mana ability beside a mana ability or cost not modelled (plain {T}, amount 1, unrestricted only)")

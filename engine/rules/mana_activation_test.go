@@ -397,6 +397,47 @@ func TestTempleOfTheFalseGodGatesOnLandCount(t *testing.T) {
 	}
 }
 
+// TestGatedLifeManaAbilityBesideColourless pins Spire of Industry's shape: a
+// plain {T} colourless ability beside a {T}, Pay 1 life any-colour ability
+// gated on controlling an artifact (CR 602.5b). Without an artifact only the
+// colourless ability is available; with one, both are, and the gated one
+// costs a life and adds the chosen colour.
+func TestGatedLifeManaAbilityBesideColourless(t *testing.T) {
+	t.Parallel()
+	const spire = "Name:Gated Spire\nTypes:Land\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Colourless.\n" +
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | IsPresent$ Artifact.YouCtrl | SpellDescription$ A colour for a life.\nOracle:x\n"
+	const trinket = "Name:Plain Trinket\nTypes:Artifact\nOracle:x\n"
+
+	e := layerEngine(t)
+	spireID := onBoard(t, e, 0, spire)
+	if n := len(e.availableManaAbilities(0, spireID)); n != 1 {
+		t.Fatalf("no artifact: %d mana abilities available, want the colourless one alone", n)
+	}
+
+	e = layerEngine(t)
+	spireID = onBoard(t, e, 0, spire)
+	onBoard(t, e, 0, trinket)
+	if n := len(e.availableManaAbilities(0, spireID)); n != 2 {
+		t.Fatalf("with an artifact: %d mana abilities available, want both", n)
+	}
+	life := e.G.Players[0].Life
+	e.askPriority(0)
+	activateMana(t, e, spireID)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Source != spireID {
+		t.Fatalf("with an artifact: activation decision = %+v, want a choice on the Spire", d)
+	}
+	if len(d.Options) != 2 || d.Options[1].Ability != 1 {
+		t.Fatalf("with an artifact: ability choice = %+v, want both abilities", d.Options)
+	}
+	submitChoices(t, e, 1)
+	submitChoices(t, e, manaOption(t, e.Pending(), "G"))
+	if pool := e.G.Players[0].Pool; pool.Total() != 1 || pool[state.MG] != 1 || e.G.Players[0].Life != life-1 {
+		t.Fatalf("gated ability: pool=%+v life %d (was %d), want one green for a life", pool, e.G.Players[0].Life, life)
+	}
+}
+
 // TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor is the real card shape
 // (Produced$ Any | Amount$ 3, oracle "Add three mana of any one color."): one
 // colour ask whose prompt names the three, five colour options, and exactly
