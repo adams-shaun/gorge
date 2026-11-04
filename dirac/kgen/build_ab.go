@@ -1354,6 +1354,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		if !t.Optional || t.Event != "Phase" {
 			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
 		}
+		if t.Whose != whoAny {
+			// only the every-player's-turn shape is played against gorge
+			// (Peace in Our Time); Apathy's ValidPlayer$ enchanted-controller
+			// line has no lockstep yet
+			return kt, fmt.Errorf("optional trigger player under ValidPlayer$")
+		}
 		kt.Flags4 |= kop.Tf4OptTrigPlayer
 	}
 	if t.CastSnap {
