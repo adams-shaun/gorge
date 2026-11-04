@@ -20,6 +20,7 @@ type sweepSusp struct {
 	i, n   uint8 // the source whose copy asked; the sweep's source count
 	j      int16 // the next copy of source i to mint
 	minted int16 // the copies entered in earlier segments
+	host   Slot  // the host an Aura copy waiting for its as-enters choice enters on (NoSlot: none)
 	ord    [MaxPerm]Slot
 	cnt    [MaxPerm]int16
 }
@@ -66,22 +67,20 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 				s.stall(StallBoard)
 				return true
 			}
-			host := NoSlot
-			if aura {
-				var buf [MaxOptions]uint8
-				switch s.enchantCands(k, c, e.ctrl, &buf) {
-				case 0:
-					continue // CR 303.4g: the Aura copy isn't created
-				case 1:
-					host = s.objs[buf[0]].slot
-				default:
-					t := s.newToken(c, e.ctrl)
-					s.objs[t].of |= ofCopy | ofPending
-					s.res.lastTok = t
-					w.on, w.i, w.j = true, uint8(i), int16(j+1)
-					s.res.ask, s.res.askP = raGenEnchant, e.ctrl
+			host, st := s.auraHostFor(k, c, e.ctrl, aura)
+			switch st {
+			case hostNone:
+				continue // CR 303.4g: the Aura copy isn't created
+			case hostAsk:
+				if s.enterChoiceKind(k, c) != 0 {
+					// the host answer would enter the copy with no
+					// as-enters ask after it: not modelled
+					s.capFull(StallCopyAllAsk)
 					return true
 				}
+				s.parkCopy(c, e.ctrl, raGenEnchant)
+				w.on, w.i, w.j, w.host = true, uint8(i), int16(j+1), NoSlot
+				return true
 			}
 			kind := s.enterChoiceKind(k, c)
 			if kind == 0 && k.gen.anyBecomeCopy {
@@ -97,13 +96,11 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 			if kind != 0 {
 				// an as-enters choice: the copy waits outside every zone
 				// (zone 0) for it, as a permanent spell does on the stack
-				// (preEnterAsk)
-				t := s.newToken(c, e.ctrl)
-				s.objs[t].of |= ofCopy | ofPending
-				s.res.lastTok = t
-				w.on, w.i, w.j = true, uint8(i), int16(j+1)
+				// (preEnterAsk); an Aura copy keeps its sole host for the
+				// answer
+				t := s.parkCopy(c, e.ctrl, raGenTokChoice)
+				w.on, w.i, w.j, w.host = true, uint8(i), int16(j+1), host
 				s.g.pre = preAsk{obj: t, kind: kind}
-				s.res.ask, s.res.askP = raGenTokChoice, e.ctrl
 				return true
 			}
 			t := s.newToken(c, e.ctrl)
@@ -113,6 +110,53 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 		}
 	}
 	return false
+}
+
+// Where an Aura copy of card c enters (auraHostFor): on host, nowhere (no
+// legal host, CR 303.4g), or after the host ask it poses.
+const (
+	hostOK = iota
+	hostNone
+	hostAsk
+)
+
+// auraHostFor resolves the host of a copy of card c made for ctrl. A card that
+// is not an object-enchanting Aura has none (hostOK, NoSlot); one legal host
+// is taken; two or more pose the host ask (CR 303.4f), which the caller parks.
+func (s *State) auraHostFor(k *prep, c CardID, ctrl uint8, aura bool) (Slot, uint8) {
+	if !aura {
+		return NoSlot, hostOK
+	}
+	var buf [MaxOptions]uint8
+	switch s.enchantCands(k, c, ctrl, &buf) {
+	case 0:
+		return NoSlot, hostNone
+	case 1:
+		return s.objs[buf[0]].slot, hostOK
+	}
+	return NoSlot, hostAsk
+}
+
+// parkCopy mints the token copy of card c a copy ask is waiting on: outside
+// every zone and pending, posed as ask to ctrl.
+func (s *State) parkCopy(c CardID, ctrl uint8, ask uint8) Obj {
+	t := s.newToken(c, ctrl)
+	s.objs[t].of |= ofCopy | ofPending
+	s.res.lastTok = t
+	s.res.ask, s.res.askP = ask, ctrl
+	return t
+}
+
+// sweepAnswer enters the answered copy t of a parked copy-all sweep on host
+// (CR 303.4f; its enters check waits for the sweep's end) and resumes the
+// sweep. True when the sweep parked again or stopped at a stall.
+func (s *State) sweepAnswer(k *prep, in *kop.Instr, t Obj, host Slot) bool {
+	var eb entBatch
+	s.copyTokenEnterFrom(k, in, t, host, s.sweepTmpl(), &eb)
+	s.holdBatch(&eb)
+	s.g.pre = preAsk{}
+	s.res.ask = raNone
+	return s.sweepResume(k, in)
 }
 
 // sweepResume finishes a copy-all sweep parked on the answered ask: the

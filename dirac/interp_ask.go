@@ -1011,14 +1011,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		r.e.ctrl = s.copyCtrl(in)
 		var parked bool
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
-			var eb entBatch
-			// the enters program reads the choice; the copy's enters check
-			// waits for the sweep's end (copy_allpark.go)
-			s.copyTokenEnterFrom(k, in, t, NoSlot, s.sweepTmpl(), &eb)
-			s.holdBatch(&eb)
-			s.g.pre = preAsk{}
-			r.ask = raNone
-			parked = s.sweepResume(k, in)
+			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
 		} else {
 			s.copyTokenEnter(k, in, t, NoSlot, nil) // the enters program reads the choice
 			s.g.pre = preAsk{}
@@ -1066,13 +1059,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		r.e.ctrl = s.copyCtrl(in)
 		var parked bool
 		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
-			var eb entBatch
-			// the copy's enters check waits for the sweep's end
-			// (copy_allpark.go); it enters attached (CR 303.4f)
-			s.copyTokenEnterFrom(k, in, t, s.objs[a.Source()].slot, s.sweepTmpl(), &eb)
-			s.holdBatch(&eb)
-			r.ask = raNone
-			parked = s.sweepResume(k, in)
+			parked = s.sweepAnswer(k, in, t, s.objs[a.Source()].slot)
 		} else {
 			s.copyTokenEnter(k, in, t, s.objs[a.Source()].slot, nil)
 			r.ask = raNone

@@ -57,15 +57,12 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// gorge, so the game stops as the declared StallCounters capacity
 		// (the divergence this replaces was the silent clamp).
 		{"bristly_bill_counter_overflow_stalls", false, true},
-		// Oko, the Ringleader's -5 copies each other permanent you control;
-		// Stop Cold's copy asks what it enchants (CR 303.4f) mid-sweep, the
-		// sweep's zone batch spans the answer, and the copies after it enter
-		// once it is made.
-		{"copy_all_sweep_parks_on_aura_host_ask", false, false},
-		// and the parked answer leaves the sweep's zone batch to fire once,
-		// in entry order, when the sweep ends (CR 603.6a): the Railway
-		// Brawler copies' "another creature enters" see the Duelist and the
-		// later copies enter before the copy the answer was made on
+		// Oko, the Ringleader's -5 copies each other permanent you control and
+		// a copy's as-enters ask parks the sweep; the parked answer leaves
+		// the sweep's zone batch to fire once, in entry order, when the sweep
+		// ends (CR 603.6a): the Railway Brawler copies' "another creature
+		// enters" see the Duelist and the later copies enter before the copy
+		// the answer was made on
 		{"copy_all_sweep_batch_spans_parked_ask", false, false},
 	})
 }
