@@ -125,3 +125,37 @@ func TestTargetedControllerRememberedBeforeControlChanges(t *testing.T) {
 		},
 	})
 }
+
+// Wesley Crusher, Starfleet Cadet's trigger may aim two modes at one
+// creature. When the bounce mode resolves first, the creature in hand is a
+// new object (CR 400.7), so the can't-be-blocked mode's Effect remembers
+// nothing: the same card cast again that turn (Raging Goblin has haste) can
+// be blocked.
+func TestEffectDoesNotRememberATargetThatChangedZones(t *testing.T) {
+	t.Parallel()
+	runScenarioOrFail(t, oracleScenario{
+		Name: "wesley-bounce-then-unblockable",
+		Setup: map[string]oracleSeat{
+			"p0": {
+				Hand:        []string{"Wesley Crusher, Starfleet Cadet"},
+				Battlefield: []string{"Raging Goblin", "Island", "Island", "Mountain", "Mountain", "Mountain"},
+				Library:     []string{"Island", "Island", "Island", "Island"},
+			},
+			"p1": {Battlefield: []string{"Grizzly Bears"}, Library: []string{"Island", "Island", "Island", "Island"}},
+		},
+		Steps: []oracleStep{
+			{Op: "cast", Seat: 0, Card: "p0:Wesley Crusher, Starfleet Cadet", Mana: "UUCC"},
+			{Op: "resolve", Answers: []oracleAnswer{
+				{Kind: "modes", Pick: []string{"Return target creature", "Target creature can't be blocked"}},
+				{Kind: "any", Pick: []string{"p0:Raging Goblin", "p0:Raging Goblin"}},
+			}},
+			{Op: "resolve", Expect: []oracleExpect{{Card: "p0:Raging Goblin", Zone: "hand"}}},
+			{Op: "cast", Seat: 0, Card: "p0:Raging Goblin", Mana: "R"},
+			{Op: "resolve"},
+			{Op: "attack", Seat: 0, Attackers: []string{"p0:Raging Goblin"}, Defender: "p1"},
+			{Op: "block", Seat: 1, Blocks: [][2]string{{"p1:Grizzly Bears", "p0:Raging Goblin"}}},
+			{Op: "pass_to", Step: "main2"},
+		},
+		Expect: []oracleExpect{{Card: "p0:Raging Goblin", Zone: "graveyard"}},
+	})
+}
