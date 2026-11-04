@@ -197,9 +197,11 @@ func finishSacrificed(n int32, op string, hasOp bool) int32 {
 
 // sacrificedValidCount counts the sacrificed objects matching spec, read off
 // last known information (CR 608.2h): the object the sacrifice moved, with the
-// designation the capture took before the zone change laid over it, because
-// CR 702.157b ends "suspected" the moment the permanent leaves the battlefield
-// (Agency Coroner's Sacrificed$Valid Card.IsSuspected).
+// designation and the types the capture took before the zone change laid over
+// it, because CR 702.157b ends "suspected" the moment the permanent leaves the
+// battlefield (Agency Coroner's Sacrificed$Valid Card.IsSuspected) and an
+// artifact an effect made a creature is a creature only there (Emrakul's
+// Evangel's Sacrificed$Valid Creature).
 func sacrificedValidCount(h Host, c *Ctx, spec string) int32 {
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
@@ -211,7 +213,17 @@ func sacrificedValidCount(h Host, c *Ctx, spec string) int32 {
 		}
 		oc := *o
 		oc.Suspected = s.Suspected
-		if MatchesObjectCtx(g, spec, &oc, sc) {
+		// The captured types stand alone as the derived set: every
+		// Sacrificed$Valid spec reads the sacrificed card's own types, and
+		// copying the board's derived set into a new slice would carry c to
+		// the heap on every count scan.
+		lsc := sc
+		var lki [1]ObjectTypes
+		if s.LayerTypes {
+			lki[0] = ObjectTypes{ID: s.Obj, Types: s.Types, AllCreatureTypes: s.AllCreatureTypes}
+			lsc.Layers.DerivedTypes = lki[:]
+		}
+		if MatchesObjectCtx(g, spec, &oc, lsc) {
 			n++
 		}
 	}
