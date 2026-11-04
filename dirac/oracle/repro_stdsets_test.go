@@ -78,6 +78,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "power_up_used_then_becomes_copy_is_new_ability"},              // a token Aerial Doombot that used its Power-up and is made a copy of the other Doombot by Shuri until end of turn: the copy's abilities are new, so it may power up again, and the used one returns at cleanup (CR 613.1a, 702.193a)
 		{"std-msh", "power_up_copy_mana_cost_reduces"},                             // a Super Suit made a copy of Aerial Doombot by Shuri on the turn it entered powers up for {5}{U} less the copy's {U}, not Super Suit's printed {1}{U} (CR 702.193b, 707.2)
 		{"std-msh", "restricted_mana_spell_only_batch_does_not_pay_equip"},         // Castle Doom's artifact-spell-only mana floating beside a Guidelight Optimizer, whose mana also activates abilities, does not pay Falcon's Wing Harness's equip: the two are different restrictions (CR 106.6)
+		{"std-msh", "crewed_vehicle_that_died_is_no_creature_card"},                // a Dependable Quinjet crewed by Undercover Skrull dies beside one creature card: it is an artifact card in the graveyard, so Skrull's two-creature-cards bonus stays off in the move's own event (CR 400.7, 613.1d)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
