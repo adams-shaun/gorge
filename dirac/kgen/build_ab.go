@@ -593,12 +593,13 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			// the once-each-turn record (actUsed) is a battlefield permanent's
 			return ka, fmt.Errorf("once-each-turn limit on a granted or non-battlefield ability")
 		}
-		if a.ActCond.Kind != cNone && (a.Latent || a.Zone != 0 && a.Zone != zBattlefield && a.Zone != zGraveyard) {
+		exileGrant := a.Latent && a.Name == "GrantedExile" && a.Zone == zExile
+		if a.ActCond.Kind != cNone && !exileGrant && (a.Latent || a.Zone != 0 && a.Zone != zBattlefield && a.Zone != zGraveyard) {
 			// read by canActivate for a printed battlefield ability, and by
 			// priorityGraveAct for a printed graveyard one
 			return ka, fmt.Errorf("activation limit/condition on a granted or non-battlefield ability")
 		}
-		if a.ActCond.Kind != cNone && a.Zone == zGraveyard && !graveActCondOK(a.ActCond) {
+		if a.ActCond.Kind != cNone && (a.Zone == zGraveyard || exileGrant) && !graveActCondOK(a.ActCond) {
 			return ka, fmt.Errorf("activation condition %s on a graveyard ability", a.ActCond)
 		}
 		if a.Reduce != nil {
@@ -3366,6 +3367,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+	case "GrantExile":
+		// (Q, Stacking the Deck) OpExt ExtGrantExile: every remembered exiled
+		// card gains the latent activated ability C (table index)
+		j, ok := cb.abMap[in.C]
+		if !ok {
+			return ki, fmt.Errorf("granted exile ability %d not emitted", in.C)
+		}
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtGrantExile)), int16(j)
 	case "GrantPanharm":
 		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
@@ -3640,6 +3649,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Repeat"]; ok {
 			ki.C |= 1 << 7 // AllowRepeats$ True with Amount$ X: A copies offered
+		}
+		if _, ok := fl["Paid"]; ok {
+			ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err

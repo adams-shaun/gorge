@@ -8,6 +8,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (gorge exAsk over exilePartZones' battlefield, graveyard order; Craft's
 // material); else the graveyard alone (graveCands).
 func (s *State) exileCands(k *prep, p uint8, c *kop.Cost, src, exclude Obj, d *Decision) int {
+	if c.ExileHand {
+		return s.handExileCands(k, p, c.Filter, exclude, d)
+	}
 	n := 0
 	if c.Flags&kop.CostExileCtrlOrGrave != 0 {
 		var fl kop.FilterFlags
@@ -30,4 +33,27 @@ func (s *State) exileCands(k *prep, p uint8, c *kop.Cost, src, exclude Obj, d *D
 		}
 	}
 	return n + s.graveCands(k, p, c.Filter, src, exclude, d)
+}
+
+// handExileCands counts (and, with d, offers) p's hand cards matching f not
+// already picked, in hand order (gorge exAsk over the hand zone: an
+// ExileFromHand<N/Spec> cost; exclude, a card being cast, is never its own
+// fodder).
+func (s *State) handExileCands(k *prep, p uint8, f kop.FilterID, exclude Obj, d *Decision) int {
+	pl := &s.pl[p]
+	n := 0
+	for i := 0; i < int(pl.handN); i++ {
+		o := pl.hand[i]
+		if o == exclude || s.picked(o) {
+			continue
+		}
+		if f != 0 && !s.matchCardGen(k, f, s.objs[o].card, s.objs[o].owner(), p, o) {
+			continue
+		}
+		n++
+		if d != nil {
+			d.add(MakeAction(AkChoose, uint8(o), 0, 0))
+		}
+	}
+	return n
 }

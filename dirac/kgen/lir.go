@@ -475,6 +475,7 @@ type lCost struct {
 	Forage       *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG       *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN      int
+	ExileHand    bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf     bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	Energy       int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
 	Waterbend    int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)

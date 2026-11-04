@@ -101,6 +101,8 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 				return
 			}
 		}
+	case in.Obj == kop.RefSelf:
+		add(e.obj) // the source card in exile (an exile-granted ability's Play; cast_exilegrant.go)
 	case tgtSlotOf(in.Obj) >= 0:
 		if slot := tgtSlotOf(in.Obj); slot < int(e.nt) {
 			if o := Obj(e.tgt[slot]); isObjTarget(uint8(o)) {
