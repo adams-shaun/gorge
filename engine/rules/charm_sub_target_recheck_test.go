@@ -11,10 +11,10 @@ import (
 // Make It So's first mode: "Untap target permanent you control. Target player
 // draws two cards." The second target is the mode's sub-ability's own.
 const charmSubTargetSpell = "Name:Order Given\nManaCost:U\nTypes:Sorcery\n" +
-	"A:SP$ Charm | Choices$ DBUntap,DBGain\n" +
-	"SVar:DBUntap:DB$ Untap | ValidTgts$ Permanent.YouCtrl | SubAbility$ DBDraw | SpellDescription$ x\n" +
-	"SVar:DBDraw:DB$ Draw | NumCards$ 2 | ValidTgts$ Player | SpellDescription$ x\n" +
-	"SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 1 | SpellDescription$ x\nOracle:x\n"
+	"A:SP$ Charm | Choices$ DBUntap,DBOneLife\n" +
+	"SVar:DBUntap:DB$ Untap | ValidTgts$ Permanent.YouCtrl | SubAbility$ DBTwoCards | SpellDescription$ x\n" +
+	"SVar:DBTwoCards:DB$ Draw | ValidTgts$ Player | NumCards$ 2 | SpellDescription$ x\n" +
+	"SVar:DBOneLife:DB$ GainLife | LifeAmount$ 1 | Defined$ You | SpellDescription$ x\nOracle:x\n"
 
 // TestCharmModeSubTargetKeepsTheSpellAlive: the chosen mode's permanent target
 // leaves before the spell resolves, but its sub-ability's player target is
