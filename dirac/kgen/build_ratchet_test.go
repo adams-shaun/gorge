@@ -132,7 +132,7 @@ import (
 // +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; 21447 -> 21448; ratchet TRK 280 -> 281).
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21449, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21450, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

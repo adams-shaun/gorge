@@ -1,0 +1,12 @@
+# Dominion Saboteur's as-enters copy with the remembered origin's counters
+# (dirac/oracle/dominionsaboteur_test.go): a creature that enters with a
+# +1/+1 counter, an artifact that enters with charge counters, a legendary
+# creature for the NonLegendary$ exception, and a plain creature to decline.
+Dominion Saboteur
+Kalonian Hydra
+Surge Node
+Isamaru, Hound of Konda
+Grizzly Bears
+Island
+Forest
+Plains

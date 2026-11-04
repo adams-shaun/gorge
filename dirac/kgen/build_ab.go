@@ -3727,6 +3727,12 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if err := objFilter(kop.ZoneBattlefield); err != nil {
 			return ki, err
 		}
+		if in.B.Kind != vNone {
+			if !isConstN(in.B, int(kop.BecomeCopyCtr)) {
+				return ki, fmt.Errorf("BecomeCopy B %v", in.B)
+			}
+			ki.B = kop.Const(int(kop.BecomeCopyCtr))
+		}
 		ki.C = int16(in.C & 1)
 		if x := in.C >> 1; x > 0 {
 			i, err := cb.override(cb.c.overrides[x-1])

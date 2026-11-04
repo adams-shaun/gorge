@@ -148,8 +148,19 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	if pc.enterTap {
 		p.flags |= pfTapped
 	}
-	if pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
-		s.placeCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl, ctrPutBy)
+	// The template's printed enters-with-counters body (K:etbCounter) is NOT
+	// applied here: the entry's replacement set was collected from the card
+	// that is entering (the clone), and gorge's entry plan likewise reads the
+	// entering face, not the chosen template. A template's intrinsic entry
+	// grants (a Saga's lore, a planeswalker's loyalty) are the entry plan's
+	// own; the counter body is a face replacement the clone never had when the
+	// Moved event was matched. Cloning a K:etbCounter carrier therefore enters
+	// with no such counters, matching gorge and Forge's CloneEffect.
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyCtr != 0 {
+		// RememberCloneOrigin$ True + EachFromSource$ Remembered (Dominion
+		// Saboteur): the copy carries the origin's counters as it enters,
+		// before any enters trigger matches.
+		s.copyEnteredCounters(k, sl, src, p.ctrl)
 	}
 	if k.gen.has(c, gfEnterRepl) {
 		cd := &k.t.Cards[c]
