@@ -46,6 +46,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.emit(lInstr{Op: "Unearth", Note: "haste until end of turn; exiled at the next end step or instead of leaving"})
 		return nil
 	}
+	if done, err := lc.stackExileOptional(ps); done || err != nil {
+		return err // lower_stackexile.go
+	}
 	if _, tt := ps.m["TargetType"]; (tt || ps.str("ValidTgts") == "Card.inZoneStack") && ps.str("Origin") == "Stack" {
 		return lc.stackToZone(ps) // lower_modecost.go
 	}
@@ -1469,6 +1472,9 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 			switch {
 			case p == "cmcLEX":
 				clause = andClause(clause, "cmcLEX")
+			case spellHead && lc.bluffPlay && playNonCreatureYouOwn(p):
+				// Spell.nonCreature+YouOwn (Brazen Bluff's free cast from hand)
+				clause = andClause(clause, p)
 			case strings.HasPrefix(p, "cmcLE"), strings.HasPrefix(p, "cmcLT"), strings.HasPrefix(p, "cmcEQ"):
 				if _, err := strconv.Atoi(p[5:]); err != nil {
 					return "", refuse("ValidSA %q", v)
@@ -1488,10 +1494,13 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 	return strings.Join(alts, ","), nil
 }
 
+// playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
+func playNonCreatureYouOwn(p string) bool { return p == "nonCreature+YouOwn" }
+
 // andClause joins two filter clauses with + (AND within one alternative).
 func andClause(a, b string) string {
-	if a == "" {
-		return b
+	if a == "" || a == "Card" {
+		return b // a bare Card head adds nothing to the other side
 	}
 	if b == "" {
 		return a
@@ -1589,6 +1598,9 @@ func (lc *lowerCtx) play(ps *params) error {
 		if hideDef && (k == "ConditionCheckSVar" || k == "ConditionSVarCompare") {
 			continue
 		}
+		if playRememberedEmptyKey(ps, k) {
+			continue // nodeCondition's SkipIf guard (Brazen Bluff's nothing-was-exiled gate)
+		}
 		if strings.HasPrefix(k, "Condition") && !(k == "ConditionPresent" && playLoneCondition(ps)) {
 			ps.consume(k)
 			return refuse("Play %s", k)
@@ -1635,7 +1647,9 @@ func (lc *lowerCtx) play(ps *params) error {
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
 	}
+	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined")
 	saExpr, err := lc.playSAExpr(ps.str("ValidSA"))
+	lc.bluffPlay = false
 	if err != nil {
 		return err
 	}
@@ -1738,7 +1752,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Hand", "Graveyard":
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && playRememberedEmptyKey(ps, "ConditionDefined") && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {
@@ -3168,6 +3182,20 @@ func (lc *lowerCtx) restReadsRemembered() bool {
 
 // playLoneCondition reports whether a Play node's only condition parameter
 // is ConditionPresent$ (no ConditionDefined$ / ConditionCompare$ beside it).
+func playRememberedEmptyKey(ps *params, k string) bool {
+	switch k {
+	case "ConditionDefined", "ConditionPresent", "ConditionCompare":
+	default:
+		return false
+	}
+	for _, other := range sortedParamKeys(ps.m) {
+		if strings.HasPrefix(other, "Condition") && other != "ConditionDefined" && other != "ConditionPresent" && other != "ConditionCompare" {
+			return false
+		}
+	}
+	return ps.peek("ConditionDefined") == "Remembered" && ps.peek("ConditionPresent") == "Card" && ps.peek("ConditionCompare") == "EQ0"
+}
+
 func playLoneCondition(ps *params) bool {
 	for k := range ps.m {
 		if strings.HasPrefix(k, "Condition") && k != "ConditionPresent" {
@@ -3337,12 +3365,24 @@ func (lc *lowerCtx) animateGraveMayPlay(ps *params, spec string) error {
 // Duration$ Permanent, RememberObjects$ Remembered, ForgetOnMoved$ Exile and
 // two statics -- MayPlay over Card.IsRemembered in exile for the card's
 // owner (MayPlayPlayer$ CardOwner) and an optional RaiseCost$ of a literal
-// {N} on a spell cast that way by an opponent of the effect's controller.
+// {N} on a spell cast that way: by an opponent of the effect's controller
+// (Activator$ Opponent) or, with the Activator$ left out, by whoever casts
+// it (Zero, Incorporeal Sensate -- the permission admits only the owner, so
+// the owner pays).
 // It emits one MayPlay over the remembered exiled card with the WhileExiled
 // duration, kop.MayPlayOwner and the surcharge (B >> kop.MayPlayRaiseShift).
 // It reports whether the shape was this one.
 func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error) {
-	if ps.str("RememberObjects") != "Remembered" || ps.str("ForgetOnMoved") != "Exile" || len(ss) < 1 || len(ss) > 2 {
+	obj := lRef{Kind: rRemembered}
+	if lc.exileLandStage == 1 && ps.str("RememberObjects") == "Imprinted" && len(ss) == 1 {
+		// Ensign Pavel Chekov: the permission is over the imprint, the
+		// chosen set (lower_repeatexilechoice.go)
+		obj = lRef{Kind: rChosen}
+		lc.exileLandStage = 2
+	} else if ps.str("RememberObjects") != "Remembered" {
+		return false, nil
+	}
+	if ps.str("ForgetOnMoved") != "Exile" || len(ss) < 1 || len(ss) > 2 {
 		return false, nil
 	}
 	may := newParams(ss[0].Params)
@@ -3393,8 +3433,19 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
-			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" || rc.str("Activator") != "Opponent" {
+			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
 			return true, refuse("Effect MayPlay beside a RaiseCost shape")
+		}
+		// the surcharge's actor: Soul Partition names the opponent of the
+		// effect's controller (Activator$ Opponent); Zero, Incorporeal
+		// Sensate names none, so gorge's costActorMatches lets every
+		// actor pay it -- and the paired MayPlayPlayer$ CardOwner
+		// permission is the only way to cast the remembered card, so the
+		// owner pays it.
+		switch act := rc.str("Activator"); act {
+		case "", "Opponent":
+		default:
+			return true, refuse("Effect RaiseCost Activator$ %q", act)
 		}
 		n, err := strconv.Atoi(rc.str("Amount"))
 		if err != nil || n < 1 || n > 7 {
@@ -3407,7 +3458,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: lRef{Kind: rRemembered}, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	}

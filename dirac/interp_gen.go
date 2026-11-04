@@ -591,7 +591,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
-		if in.Obj == kop.RefRemembered {
+		if in.Obj == kop.RefRemembered || in.Obj == kop.RefChosen {
 			n0 := s.g.nmay
 			s.mayPlayRemembered(k, in, e.ctrl) // every remembered card
 			if k.gen.anyMayWhileSrc {

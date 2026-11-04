@@ -1,0 +1,18 @@
+# the zeroraise pool: Zero, Incorporeal Sensate's while-exiled owner
+# permission whose {2} surcharge the OWNER pays, beside creatures, an Aura,
+# an artifact and burn (dirac/oracle/zeroraise_test.go)
+Zero, Incorporeal Sensate
+Grizzly Bears
+Hill Giant
+Wind Drake
+Serra Angel
+Savannah Lions
+Pacifism
+Mind Stone
+Shock
+Divination
+Plains
+Island
+Forest
+Mountain
+Swamp
