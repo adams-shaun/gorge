@@ -18,11 +18,11 @@ import (
 // The fixtures are authored here with the carrier's parameter shape.
 
 const infDivSpell = "Name:Federation fixture\nManaCost:7 R R\nTypes:Sorcery\n" +
-	"A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Exile | ValidTgts$ Instant.YouOwn,Sorcery.YouOwn | RememberChanged$ True | SubAbility$ DBPlay\n" +
-	"SVar:DBPlay:DB$ Play | Valid$ Card.IsRemembered | ValidSA$ Spell | ValidZone$ Exile | Amount$ X | AllowRepeats$ True | WithoutManaCost$ True | Optional$ True | CopyCard$ True | SubAbility$ DBExile\n" +
-	"SVar:DBExile:DB$ ChangeZone | Defined$ Self | Origin$ Stack | Destination$ Exile | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
-	"SVar:X:Count$Valid Creature.nonBorg+YouCtrl$CreatureType\n" +
+	"A:SP$ ChangeZone | ValidTgts$ Instant.YouOwn,Sorcery.YouOwn | Origin$ Graveyard | Destination$ Exile | RememberChanged$ True | SubAbility$ Copies\n" +
+	"SVar:Copies:DB$ Play | Amount$ X | AllowRepeats$ True | CopyCard$ True | Optional$ True | WithoutManaCost$ True | Valid$ Card.IsRemembered | ValidZone$ Exile | ValidSA$ Spell | SubAbility$ Vanish\n" +
+	"SVar:Vanish:DB$ ChangeZone | Defined$ Self | Origin$ Stack | Destination$ Exile | SubAbility$ Wipe\n" +
+	"SVar:Wipe:DB$ Cleanup | ClearRemembered$ True\n" +
+	"SVar:X:Count$Valid Permanent.Creature+nonBorg+YouCtrl$CreatureType\n" +
 	"Oracle:Exile target instant or sorcery card from your graveyard. Copy it X times.\n"
 
 const (
