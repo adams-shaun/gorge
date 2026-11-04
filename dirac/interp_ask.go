@@ -1553,6 +1553,9 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 	take := int(in.B.N)
 	if in.B.K != kop.VConst {
 		take = s.value(k, in.B)
+		if take < 0 {
+			take = 0 // gorge effDig: a negative ChangeNum takes nothing, not the -1 "all" sentinel
+		}
 	}
 	for _, p := range [2]uint8{first, second} {
 		if p == 255 {
@@ -1560,6 +1563,9 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		}
 		pl := &s.pl[p]
 		n := s.value(k, in.A)
+		if n < 0 {
+			n = 0 // gorge effDig: a negative DigNum looks at nothing (Jessica Jones with a negative power)
+		}
 		if n > pl.libLen() {
 			n = pl.libLen()
 		}

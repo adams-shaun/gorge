@@ -68,6 +68,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-fin", "sacrificed_host_returns_aura_which_asks_what_it_enchants"},    // The Gold Saucer's cost sacrifices White Auracite, which sends Sleep Magic back: its controller's choice of what it enchants is asked inside the cost payment and the answer is kept, not dropped (CR 303.4f, 610.3)
 		{"std-fra", "graveyard_type_count_skips_a_waiting_token"},                  // a Lotus token sacrificed to pay for Hungering Puppetbeast waits in the graveyard for the next check: it is no card, so Tarmogoyf does not count its artifact type (CR 111.7, 704.5d)
 		{"std-otj", "saddled_copy_fires_the_copied_triggers"},                      // a Peerless Ropemaster made a copy of Stubborn Burrowfiend by Assimilation Aegis, saddled: it has the copied card's become-saddled trigger (CR 707.2)
+		{"std-msh", "negative_power_dig_looks_at_nothing"},                         // Jessica Jones with a negative power activates: the top X cards are none, not 254 (gorge effDig clamps DigNum to 0)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
