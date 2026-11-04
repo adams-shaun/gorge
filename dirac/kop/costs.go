@@ -215,6 +215,13 @@ const PayBSubTrigNew = 3
 // grants the trigger is sacrificed, not the creature carrying it (CR 701.21a).
 const PayBSubSacHost = 7
 
+// PayBSubChain: a PayExileGrave whose B.N carries this sentinel is the second
+// half of a trigger's own "{N} and ExileFromGrave<1/Spec>" cost. It follows the
+// PayMana instruction that holds the pay or decline election and never poses an
+// election of its own: the mana half is charged from the pool once its card is
+// exiled (gorge's triggered-cost window settles the exile pick, then the charge).
+const PayBSubChain = 8
+
 // ReduceAbUnlock (bit 1 of a StatReduceAbility static's B): the reduction
 // reaches Room unlock special actions rather than activated abilities
 // (Inquisitive Glimmer's ValidSpell$ Static.Unlock).
