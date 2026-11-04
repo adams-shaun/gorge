@@ -945,14 +945,18 @@ func (e *Engine) recheckCastSubTargets(id state.ObjID, root *cards.SA, controlle
 	chains := append(modeBuf[:0], root)
 	if isCharmWithChoices(root) && o != nil {
 		chains = chains[:0]
-		svars := map[string]string(nil)
-		if f := o.Face(); f != nil && o.Ability == nil {
-			svars = f.SVars
-		} else if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
-			svars = src.Face().SVars
+		f := o.Face()
+		if o.Ability != nil {
+			f = nil
+			if src := e.G.Obj(o.Source); src != nil {
+				f = src.Face()
+			}
 		}
 		for _, name := range o.ChosenModes {
-			if mode := cards.ResolveSVar(svars, name); mode != nil {
+			if f == nil {
+				break
+			}
+			if mode := cards.ResolveSVar(f.SVars, name); mode != nil {
 				chains = append(chains, mode)
 			}
 		}
