@@ -1,6 +1,6 @@
 # the goad pool (CR 701.15): attack-trigger, ETB and mass
 # goads, and the static goads of Koloth, Tribble Hunter and Bloodthirsty
-# Blade, against creatures, a must-attack Juggernaut, a defender and a
+# Blade and Martial Impetus, against creatures, a must-attack Juggernaut, a defender and a
 # planeswalker the goaded creatures may not attack (dirac/oracle/goad_test.go)
 Taunting Kobold
 Goblin Racketeer
@@ -20,3 +20,5 @@ Forest
 Swamp
 Koloth, Tribble Hunter
 Bloodthirsty Blade
+Martial Impetus
+Plains

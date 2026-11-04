@@ -30,7 +30,8 @@ var kgoadDecks = [2][]cardset.Entry{
 // kgoadStaticDecks: only static goads. Koloth, Tribble Hunter makes Tribbles
 // for both players and goads every Tribble while it stays (both sides'
 // Tribbles must attack, never the Kaito), Bloodthirsty Blade goads the
-// creature it equips.
+// creature it equips, Martial Impetus the creature it enchants, whose attack
+// pumps every other creature attacking an opponent (!TriggeredAttacker).
 var kgoadStaticDecks = [2][]cardset.Entry{
 	{
 		{Name: "Koloth, Tribble Hunter", Count: 4}, {Name: "Bloodthirsty Blade", Count: 3}, {Name: "Kaito, Cunning Infiltrator", Count: 3},
@@ -39,8 +40,8 @@ var kgoadStaticDecks = [2][]cardset.Entry{
 	},
 	{
 		{Name: "Bloodthirsty Blade", Count: 2}, {Name: "Kaito, Cunning Infiltrator", Count: 2}, {Name: "Grizzly Bears", Count: 5},
-		{Name: "Hill Giant", Count: 4}, {Name: "Walking Corpse", Count: 4}, {Name: "Juggernaut", Count: 2}, {Name: "Wall of Wood", Count: 1},
-		{Name: "Forest", Count: 10}, {Name: "Swamp", Count: 5}, {Name: "Island", Count: 5},
+		{Name: "Hill Giant", Count: 4}, {Name: "Walking Corpse", Count: 4}, {Name: "Martial Impetus", Count: 3},
+		{Name: "Forest", Count: 5}, {Name: "Swamp", Count: 5}, {Name: "Island", Count: 5}, {Name: "Plains", Count: 5},
 	},
 }
 

@@ -334,6 +334,10 @@ var propWords = map[string]uint64{
 	// negation of TriggeredAttacker (gorge notDefinedTriggerReferent), gated
 	// to an Attacks trigger's body by lc.referentGate (lower_filterreferents.go)
 	"NotDefinedTriggeredAttacker": fNotTriggerObj,
+	// gorge's '!' of TriggeredAttacker (matchTriggeredAttacker negated by
+	// matchPositive, an unbound referent failing closed as the NotDefined
+	// spelling does), under the same gate
+	"!TriggeredAttacker": fNotTriggerObj,
 	// gorge attachedToReferentCodes: Targeted and ParentTarget are one
 	// referent; lc.referentGate admits it only where the node has no target
 	// slot of its own
