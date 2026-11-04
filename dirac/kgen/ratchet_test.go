@@ -34,8 +34,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 291 -> 292, ALL 21461 -> 21462).
 	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; merged TRK 292 -> 293, ALL 21462 -> 21463).
 	// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; merged TRK 294 -> 295, ALL 21464 -> 21468).
+	// +2 (Those Old Scientists, Turn the Earth: a multi-target graveyard shuffle's per-owner move lowers to OpMayShuffleMove; TRK 295 -> 296, ALL 21468 -> 21470).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21468, 34442},
+	"ALL": {21470, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -62,7 +63,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {295, 311},
+	"TRK": {296, 311},
 	"WOE": {252, 281},
 }
 

@@ -12,11 +12,13 @@ import (
 // target.
 // LibraryPosition$ other than 0 refuses. A multi-object graveyard slot (TargetMin$ 0 with
 // TargetMax$ N, gorge's "up to N target cards from a graveyard") lowers to
-// OpMayShuffleMove: the chosen cards move on top in pick order, then the
-// owner's library shuffles once, or, with ShuffleNonMandatory$ True, the
-// controller may decline (then nothing moves). The slot must name one owner:
-// TargetsWithDefinedController$ ParentTarget (the parent player target) or a
-// filter whose every clause is YouOwn/YouCtrl.
+// OpMayShuffleMove: the chosen cards move on top in pick order, then each
+// distinct owner's library shuffles once in referent order (gorge
+// objectPathShuffleOwners), or, with ShuffleNonMandatory$ True, the controller
+// may decline (then nothing moves). The slot may name any graveyard card
+// (ValidTgts$ Card: each chosen card goes to its own owner's library) or
+// restrict the candidates to one owner with TargetsWithDefinedController$
+// ParentTarget or a filter whose every clause is YouOwn/YouCtrl.
 func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	if origin != zBattlefield && origin != zGraveyard {
 		return refuse("shuffled move from %s", zoneLabel[origin])
@@ -98,15 +100,8 @@ func (lc *lowerCtx) shuffleIntoMulti(ps *params, origin int, obj lRef, t *lTarge
 	if t.AtRes || t.Unique || t.SameCtrl || t.DiffCtrl || t.SharedCrType || t.DistinctName || t.MaxMV != 0 || t.Divided != 0 || t.Spell {
 		return refuse("shuffled move of several targets with target modifiers")
 	}
-	if t.ParentPlus1 == 0 {
-		if t.F == nil || len(t.F.Clauses) == 0 {
-			return refuse("shuffled move of several owners")
-		}
-		for _, c := range t.F.Clauses {
-			if c.Owner != whoYou && c.Ctrl != whoYou {
-				return refuse("shuffled move of several owners")
-			}
-		}
+	if t.ParentPlus1 == 0 && (t.F == nil || len(t.F.Clauses) == 0) {
+		return refuse("shuffled move of several owners")
 	}
 	may := 0
 	if ps.is("ShuffleNonMandatory", "True") {

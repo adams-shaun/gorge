@@ -1,0 +1,7 @@
+# the Those Old Scientists pool: the Chapter III "choose up to two target
+# cards in graveyards; the owners of those cards shuffle them into their
+# libraries" multi-owner shuffle, in a deck of its own copies (so both
+# graveyards fill from the Chapter I discards) and lands, for the oracle's
+# constructed lockstep (dirac/oracle/oldscientists_test.go)
+Island
+Those Old Scientists
