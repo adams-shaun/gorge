@@ -1,6 +1,11 @@
 package kgen
 
-import "strings"
+import (
+	"slices"
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A card with two or more mana abilities (kmana2). The kernel's mana
 // source model is one unit per permanent, read from the card's first mana
@@ -43,6 +48,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+	ms = slices.DeleteFunc(ms, func(a *lAbility) bool { return a != ms[0] && redundantMana(ms[0], a) })
 	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) {
 		return
 	}
@@ -75,6 +81,53 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+}
+
+// redundantMana reports whether a, a mana ability after the card's first,
+// never offers what first does not, in the kernel's two-player games: a
+// plain {T} ability of any one colour, unrestricted, whose amount is
+//
+//   - a read over commanders (Command Chair's greatest mana value among
+//     commanders you control): no permanent is a commander, so it adds
+//     nothing and gorge's planner lists no alternative for it;
+//   - the opponents its controller attacked this turn (The Beacon of
+//     Kahless), at most one, beside a first ability adding one mana of any
+//     colour: nothing, or what the first adds.
+//
+// gorge's payment window asks which ability to activate and the oracle
+// answers the first (refuseMultiMana), so the card plays as its first
+// ability alone.
+func redundantMana(first, a *lAbility) bool {
+	if !plainTapMana(a, false) || a.Mana.Colors != "WUBRG" || a.Mana.Choice || a.Mana.Each ||
+		a.Mana.Restrict != nil || a.Mana.RestrictAb != nil || a.Mana.NonSpell {
+		return false
+	}
+	v := a.Mana.Amount
+	if v.Add != 0 || v.Neg {
+		return false
+	}
+	switch v.Kind {
+	case vCount, vValidAgg:
+		return commanderFilter(v.F)
+	case vOppsAttacked:
+		return v.Mul == 0 && v.Div == 0 && plainTapMana(first, false) && unrestrictedOne(first) &&
+			first.Mana.Colors == "WUBRG" && !first.Mana.Choice && !first.Mana.Each
+	}
+	return false
+}
+
+// commanderFilter reports whether every clause of f requires a commander
+// (IsCommander, kop.W7IsCommander): nothing matches it in the kernel's games.
+func commanderFilter(f *lFilter) bool {
+	if f == nil || len(f.Clauses) == 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat != cmpWord7 || c.CmpN != int(kop.W7IsCommander) {
+			return false
+		}
+	}
+	return true
 }
 
 // multiFixedMana: every ability of ms is a plain {T} ability of one fixed

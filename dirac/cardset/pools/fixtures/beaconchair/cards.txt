@@ -1,0 +1,13 @@
+# The Beacon of Kahless and Command Chair (a first mana ability beside one
+# whose amount is the opponents attacked this turn, or a read over
+# commanders) (dirac/oracle/beaconchair_test.go)
+The Beacon of Kahless
+Command Chair
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Shock
+Plains
+Forest
+Mountain

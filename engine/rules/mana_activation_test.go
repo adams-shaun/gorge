@@ -438,6 +438,44 @@ func TestGatedLifeManaAbilityBesideColourless(t *testing.T) {
 	}
 }
 
+// TestManaAmountOfOpponentsAttackedOrCommanders pins two dynamic amounts of
+// any one colour beside a fixed ability (The Beacon of Kahless, Command
+// Chair): the opponents the controller attacked this turn adds nothing
+// before an attack and one after it in a two-player game; the greatest mana
+// value among commanders the controller controls adds nothing when it
+// controls none. The colour is still chosen (CR 106.5).
+func TestManaAmountOfOpponentsAttackedOrCommanders(t *testing.T) {
+	t.Parallel()
+	const beacon = "Name:Attack Beacon\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ One of a colour.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ Raided | SpellDescription$ One per opponent attacked.\n" +
+		"SVar:Raided:PlayerCountPropertyYou$OpponentsAttackedThisTurn\nOracle:x\n"
+	const chair = "Name:Captain Seat\nTypes:Artifact\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ 3 | SpellDescription$ Three of a colour.\n" +
+		"A:AB$ Mana | Cost$ T | Produced$ Any | Amount$ Leader | SpellDescription$ Commander's value.\n" +
+		"SVar:Leader:Count$Valid Permanent.IsCommander+YouCtrl$GreatestCardManaCost\nOracle:x\n"
+	cases := []struct {
+		src      string
+		attacked bool
+		want     int32
+	}{{beacon, false, 0}, {beacon, true, 1}, {chair, false, 0}, {chair, true, 0}}
+	for _, c := range cases {
+		e := layerEngine(t)
+		id := onBoard(t, e, 0, c.src)
+		if c.attacked {
+			bear := onBoard(t, e, 0, "Name:Plain Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{bear}})
+		}
+		e.askPriority(0)
+		activateMana(t, e, id)
+		submitChoices(t, e, 1)
+		submitChoices(t, e, manaOption(t, e.Pending(), "R"))
+		if pool := e.G.Players[0].Pool; pool.Total() != c.want || pool[state.MR] != c.want || !e.G.Obj(id).Tapped {
+			t.Errorf("%s attacked=%t: pool=%+v tapped=%t, want %d red", e.G.Obj(id).Face().Name, c.attacked, pool, e.G.Obj(id).Tapped, c.want)
+		}
+	}
+}
+
 // TestLionsEyeDiamondAnyAddsThreeOfOneChosenColor is the real card shape
 // (Produced$ Any | Amount$ 3, oracle "Add three mana of any one color."): one
 // colour ask whose prompt names the three, five colour options, and exactly
