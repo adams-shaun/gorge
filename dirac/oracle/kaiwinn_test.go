@@ -7,7 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // The Kai Winn, Faithless Leader lockstep: "as Kai Winn enters, choose a
@@ -19,8 +18,9 @@ import (
 // chosen name come from Shock, Doom Blade, Divination, Reverberate and the
 // creatures; abilities of a named source from Millstone, Prodigal Sorcerer
 // and Vampire Neonate. Reverberate copies a named instant, and a copy is
-// not cast. gorge's name ask is limited to the matchup's own cards
-// (Matchup.NameUniverse), the list the kernel offers.
+// not cast. gorge's name ask is limited to the matchup's own cards, the list
+// the kernel offers: NewMatchup sets Matchup.NameUniverse for a matchup holding
+// a name chooser, so Matchup.Config and kfuzz's gorge host agree by default.
 
 var kkaiwinnDecks = [2][]cardset.Entry{
 	// B/R: Kai Winn, burn and removal, the spell copier, Millstone
@@ -86,25 +86,17 @@ func runKaiwinn(t *testing.T, seeds int, st *dirac.NamedCastStats) kkaiwinnRun {
 	if len(tbl.NameCards) == 0 {
 		t.Fatal("precondition: the matchup table lists no nameable cards")
 	}
-	// gorge offers the names of exactly the matchup's cards
-	seen := map[string]bool{}
-	var uni []*cards.Card
 	var oppNames [2]map[uint16]bool
 	for s := range decks {
 		oppNames[s] = map[uint16]bool{}
 	}
 	for s := range decks {
 		for _, c := range decks[s] {
-			if !seen[cardName(c)] {
-				seen[cardName(c)] = true
-				uni = append(uni, c)
-			}
 			if !c.Faces[0].IsLand() {
 				oppNames[1-s][canon.NameValue(cardName(c))] = true
 			}
 		}
 	}
-	universe := cards.UniverseOf(uni)
 	old := dirac.DebugNamedCastStats
 	dirac.DebugNamedCastStats = st
 	defer func() { dirac.DebugNamedCastStats = old }()
@@ -115,7 +107,9 @@ func runKaiwinn(t *testing.T, seeds int, st *dirac.NamedCastStats) kkaiwinnRun {
 		if err != nil {
 			t.Fatal(err)
 		}
-		m.NameUniverse = universe
+		if m.NameUniverse == nil { // the harness default: the matchup's own cards
+			t.Fatal("precondition: NewMatchup left a name chooser's matchup on the registry universe")
+		}
 		k, err := SetSide(set, tbl, cfg)(m, seed)
 		if err != nil {
 			t.Fatal(err)

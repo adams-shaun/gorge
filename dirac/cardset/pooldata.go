@@ -81,6 +81,11 @@ const NoSubtype = 255
 type dataSet struct {
 	d     *PoolData
 	plays []bool
+	// nameInert marks the pool-table cards that choose a card name when the
+	// pool's table cannot hold the choice (pooldata_names.go poolNamesFit):
+	// Pool holds them as inert fallbacks and Inert says so. A matchup table
+	// is unaffected (it compacts its CardIDs). nil when none.
+	nameInert []bool
 }
 
 var _ Set = (*dataSet)(nil)
@@ -126,7 +131,9 @@ func (s dataSet) Pool() (*kop.Table, error) {
 	return t, err
 }
 
-func (s dataSet) Inert(i int) bool { return i < s.d.NumCards && !s.plays[i] }
+func (s dataSet) Inert(i int) bool {
+	return i < s.d.NumCards && (!s.plays[i] || s.nameInert != nil && s.nameInert[i])
+}
 
 func (s dataSet) PoolID(i int) kop.CardID { return kop.CardID(s.d.PoolID[i]) }
 
@@ -513,7 +520,7 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 			}
 			d.Faces = fs
 		}
-		if s.Inert(i) {
+		if inert && s.Inert(i) {
 			d = inertDef(d)
 		}
 		for _, as := range dd.StaticSubs[i] {
@@ -527,9 +534,9 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 		if err := s.interactionGuard(t, pool); err != nil {
 			return nil, nil, nil, err
 		}
-		if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
-			return nil, nil, nil, err
-		}
+	}
+	if err := s.nameChoices(t, pool, id); err != nil { // pooldata_names.go
+		return nil, nil, nil, err
 	}
 	deck := func(d []Entry) []kop.CardID {
 		var out []kop.CardID

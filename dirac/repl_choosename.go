@@ -23,7 +23,11 @@ import (
 // namedActivation (an activation of an ability of a source with that name,
 // from fireAbilityCast). Names are CardIDs: a table card has one name, and a
 // multi-face card beside a name chooser is refused when the matchup is built
-// (cardset pooldata_names.go).
+// (cardset pooldata_names.go; the pool table plays the chooser inert when it
+// cannot fit). The activation half compares the source's printed CardID, so a
+// source whose name changed (a copy of a named card, a face-down permanent) is
+// told apart from the card it copies only by gorge, which reads the current
+// name: no such card is in the pools.
 
 // NamedCastStats counts what the Tf4NamedCast lines queued; oracle tests only.
 type NamedCastStats struct {
