@@ -101,6 +101,7 @@ type genPrep struct {
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
+	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
@@ -1057,6 +1058,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		pc.trigMask = 0
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
+			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent != 0 && a.Trig.Event == kop.TrigDies && a.Trig.Zone != kop.ZoneCommand {
+				g.anyLatentDies = true // a granted dies trigger (trig_diesleaves.go)
+			}
 			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 && a.Trig.Zone != kop.ZoneGraveyard && a.Trig.Zone != kop.ZoneCommand {
 				pc.trigMask |= 1 << a.Trig.Event
 				if a.Trig.Event == kop.TrigDamageDealtOnce {
