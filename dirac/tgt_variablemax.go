@@ -35,10 +35,24 @@ func (s *State) tgtBoundsEval(k *prep, t *kop.TargetSpec, e *stackEntry) (lo, hi
 	return lo, hi
 }
 
+// tgtBoundsFeasible reports whether mandatory TgfBoundsV slot t (a spell's
+// "X target creatures", MinV the announced X) has as many candidates as its
+// minimum, X read from the probe (gorge targetsAnnounceableAt: an X the
+// target ask could not answer is not offered, CR 601.2c). A minimum of 0
+// needs none.
+func (s *State) tgtBoundsFeasible(k *prep, t *kop.TargetSpec, p uint8, src Slot) bool {
+	lo := s.evalV(k, t.MinV, evalCtx{src: NoObj, srcSl: src, ctrl: p})
+	if lo <= 0 {
+		return true
+	}
+	var buf [MaxOptions]uint8
+	return s.targetCands(k, t, p, src, NoObj, &buf) >= lo
+}
+
 // tgtBoundsV sets mt's bounds for a TgfBoundsV slot of the entry being built.
-// kgen lowers only a literal 0 minimum (a mandatory minimum above the
-// candidates would be gorge's "cast aborted: no legal target"), so the slot
-// can always be left unchosen.
+// kgen lowers a literal 0 minimum, or (on a spell) exactly the announced X,
+// whose X ask offered only an X with that many candidates
+// (tgtBoundsFeasible), so the slot is never short.
 func (s *State) tgtBoundsV(k *prep, t *kop.TargetSpec, e *stackEntry, mt *multiTgt) {
 	lo, hi := s.tgtBoundsEval(k, t, e)
 	if hi > 254 {
