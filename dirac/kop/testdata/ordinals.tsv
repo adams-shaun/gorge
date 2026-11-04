@@ -961,13 +961,14 @@ SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
-StAlsoSideboard	StaticFlags	1024
+StAlsoSideboard	StaticFlags	512
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
 StCasterActive	StaticFlags	64
 StDynamic	StaticFlags	1
 StEmbNum	StaticFlags	16384
+StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2

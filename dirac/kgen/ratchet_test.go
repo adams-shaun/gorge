@@ -25,11 +25,14 @@ import (
 var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; TRK 280 -> 281).
 	// +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; TRK 281 -> 282).
-	// +1 (First Contact: the first-spell-cast rider; TRK 282 -> 283).
-	// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; TRK 283 -> 284).
-	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 287 -> 288).
+	// +3 (Khan, Vengeful Heart; Misthollow Griffin; Eternal Scourge: MayPlay from exile; TRK 282 -> 283, ALL 21449 -> 21452).
+	// +1 (Infinite Diversity: X free copies of an exiled instant or sorcery; TRK 283 -> 284, ALL 21452 -> 21453).
+	// +3 (Kira Nerys; The Holodeck; Gabriel Lorca: land's TRK cards, Holo-Engineer being the same change already counted; TRK 285 -> 288, ALL 21454 -> 21457).
+	// +1 (First Contact: the first-spell-cast rider; TRK 288 -> 289, ALL 21457 -> 21458).
+	// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged TRK 289 -> 290, ALL 21458 -> 21459).
+	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 290 -> 291, ALL 21459 -> 21460).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21457, 34442},
+	"ALL": {21460, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -56,7 +59,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {290, 311},
+	"TRK": {291, 311},
 	"WOE": {252, 281},
 }
 
