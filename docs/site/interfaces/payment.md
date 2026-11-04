@@ -30,7 +30,7 @@ flowchart LR
 
     How Forge, XMage and MTG Arena present payment, for context.
 
--   :material-api: **[Wire specs](../api/index.md)**
+-   :material-api: **[Wire specs](index.md)**
 
     The native, ManaBrew, SpellBench v2 and gorge-agent/1 references.
 

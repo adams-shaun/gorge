@@ -612,6 +612,48 @@
 .md-typeset .gg-matrix table:not([class]) th:not(:first-child),
 .md-typeset .gg-matrix table:not([class]) td:not(:first-child) { text-align: center; padding-right: 0.7em; padding-left: 0.7em; }
 .md-typeset .gg-matrix .gg-dot { width: 0.95em; height: 0.95em; }
+/* A wide matrix tightens its columns before it scrolls. */
+.md-typeset .gg-matrix table:not([class]) thead th:not(:first-child),
+.md-typeset .gg-matrix table:not([class]) tbody td:not(:first-child) { padding: 0.65em 0.45em; }
+.md-typeset .gg-matrix table:not([class]) thead th:not(:first-child) { min-width: 0; }
+/* When a matrix scrolls on a narrow screen, its row labels stay put. */
+.md-typeset .gg-matrix table:not([class]) tbody th,
+.md-typeset .gg-matrix table:not([class]) thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--md-default-bg-color);
+}
+@media (max-width: 40em) {
+  .md-typeset .gg-matrix table:not([class]) tbody th { min-width: 7rem; }
+}
+
+/* The key above a matrix: one line per mark, in the secondary ink.
+ * Its source lines are kept as lines. */
+.md-typeset .gg-key {
+  margin: 1rem 0 0.6rem;
+  font-size: 0.74rem;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .gg-key > p {
+  white-space: pre-line;
+  line-height: 1.9;
+  margin: 0;
+}
+.md-typeset .gg-key .gg-dot { margin-right: 0.35em; }
+/* A raw-HTML matrix: row headers read as labels, not bold column heads. */
+.md-typeset .gg-matrix table:not([class]) tbody th {
+  font-weight: 500;
+  text-align: left;
+  border-bottom: 0;
+  border-top: 1px solid var(--gg-rule);
+  min-width: 8.5rem;
+}
+.md-typeset .gg-matrix table:not([class]) thead th {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  vertical-align: bottom;
+}
 
 /* Visually hidden, still read aloud. */
 .gg-sr {

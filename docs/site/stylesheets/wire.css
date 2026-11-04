@@ -5,17 +5,24 @@
 .gg-wire-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: 1rem;
-  margin: 1rem 0;
+  gap: 1.6rem 1.2rem;
+  margin: 1.2rem 0 1.6rem;
 }
 
-.gg-wire { margin: 0; }
-.gg-wire figcaption {
-  margin-top: 0.4rem;
+/* Material centres a figure with a 2em margin and italicises its caption;
+ * a frame in the grid is a tile, captioned like a label beneath it. */
+.md-typeset figure.gg-wire { margin: 0; width: auto; max-width: none; display: block; }
+.md-typeset .gg-wire figcaption {
+  margin: 0.5rem 0 0;
+  max-width: none;
   font-size: 0.7rem;
-  line-height: 1.4;
+  font-style: normal;
+  text-align: left;
+  line-height: 1.45;
   color: var(--md-default-fg-color--light);
 }
+.md-typeset .gg-wire figcaption strong,
+.md-typeset .gg-wire figcaption b { color: var(--md-default-fg-color); }
 
 .gg-wire__frame {
   position: relative;

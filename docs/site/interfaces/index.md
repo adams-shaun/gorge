@@ -25,6 +25,10 @@ flowchart LR
 
     Which wire drives which engine, and how far.
 
+- [:material-credit-card-outline: **Paying for spells**](payment.md)
+
+    How each wire lets a seat pay: the engine pays, or the seat taps and chooses.
+
 - [:material-api: **HTTP API and stream**](../api/http.md)
 
     The native wire, with its event stream.

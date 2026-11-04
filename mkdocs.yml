@@ -88,6 +88,7 @@ markdown_extensions:
 extra_css:
   - stylesheets/diagrams.css
   - stylesheets/theme.css
+  - stylesheets/wire.css
 
 # Top-level areas become the header tabs. The server tier, wire tests and
 # draft internals each sit in the area a reader comes to them from.
@@ -142,6 +143,11 @@ nav:
   - Interfaces:
       - interfaces/index.md
       - Support matrix: interfaces/support.md
+      - Paying for spells:
+          - interfaces/payment.md
+          - Surfaces by wire: interfaces/payment-detail.md
+          - Compare the wires: interfaces/payment-matrix.md
+          - Other engines: interfaces/payment-engines.md
       - HTTP API: api/http.md
       - Event stream (SSE): api/sse.md
       - Wire protocol: api/protocol.md
@@ -155,6 +161,8 @@ nav:
       - web/index.md
       - Run a server: guide/index.md
       - Play in the browser: guide/play.md
+      - Table layouts: web/layouts.md
+      - Gameplay options: web/gameplay.md
       - How replays work: web/replays.md
       - Replays in the browser: guide/replays.md
       - Draft simulator: guide/draft.md

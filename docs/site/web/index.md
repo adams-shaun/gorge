@@ -20,6 +20,14 @@ flowchart LR
 
     Start a game, tables, bots and undo.
 
+- [:material-view-dashboard: **Table layouts**](layouts.md)
+
+    Five presets, opponent arrangements, rows, hand and panels, drawn as wireframes.
+
+- [:material-gamepad-variant: **Gameplay options**](gameplay.md)
+
+    Auto-pass presets, stops, mana payment, prompts, the paired bot and replay controls.
+
 - [:material-history: **How replays work**](replays.md)
 
     Events, the hash chain and divergence.

@@ -1,6 +1,6 @@
 # Gameplay options
 
-Gorge asks for your input only where you can act. Auto-pass handles the rest, and you decide how much it skips. This page walks a turn from your seat, then covers each control and prompt in the client.
+gorge asks for your input only where you can act. Auto-pass handles the rest, and you decide how much it skips. This page walks a turn from your seat, then covers each control and prompt in the client.
 
 ```mermaid
 flowchart LR

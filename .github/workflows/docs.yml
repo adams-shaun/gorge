@@ -16,6 +16,9 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_web_test.py
+      - web/src/lib/layoutprofile.ts
+      - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
@@ -27,6 +30,9 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_web_test.py
+      - web/src/lib/layoutprofile.ts
+      - web/src/components/PlaySettingsPanel.svelte
       - dirac/docs/support.md
       - cmd/pkgmap/**
       - .github/workflows/docs.yml
@@ -77,6 +83,11 @@ jobs:
       # to its orphan docs-data branch; dirac's per-set acceptance is
       # the committed snapshot. Without docs-data the tables still render,
       # with the gorge columns marked as not available.
+      # The Web client pages (web/layouts.md, web/gameplay.md) name the
+      # client's layout presets and play settings; fail if the source moved.
+      - name: Check the web client pages against the client source
+        run: python3 scripts/docs_web_test.py
+
       - name: Render the per-set support tables
         run: |
           python3 -m unittest discover -s scripts -p 'docs_sets_test.py'
