@@ -1,0 +1,69 @@
+# The gorge demo in containers: nginx in front of gorged.
+#
+#   cp deploy/docker/.env.example deploy/docker/.env
+#   make demo-up            (docker compose -f deploy/docker/compose.yaml up -d)
+#
+# Every variable read below, with its default, is documented in .env.example.
+name: gorge-demo
+
+services:
+  gorged:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: gorged
+      args:
+        FORGE_REF: ${FORGE_REF:?run through make demo-up, or set FORGE_REF in .env}
+    image: ${GORGED_IMAGE:-gorge/gorged-demo}:${GORGED_TAG:-latest}
+    restart: unless-stopped
+    user: "${GORGE_UID:-10001}:${GORGE_GID:-10001}"
+    environment:
+      GOMEMLIMIT: ${GOMEMLIMIT:-6GiB}
+    volumes:
+      # The card scripts, fetched on first start (GPL-3.0; never in the image).
+      - ${CARDS_DIR:-gorge-cards}:/cards
+      - ${ART_DIR:-gorge-art}:/art
+      - ${DATA_DIR:-gorge-data}:/data
+      - ${FEEDBACK_DIR:-gorge-feedback}:/feedback
+    command:
+      - gorged
+      - -addr=:8080
+      - -cards=/cards
+      - -decks=/app/decks
+      - -dir=/data
+      - -art-dir=/art
+      - -feedback=/feedback
+      - -tables=${TABLES:-2}
+      - -seats=${SEATS:-2}
+      - -commander-seats=${COMMANDER_SEATS:-4}
+      - -format=${FORMATS:-constructed,commander}
+      - -pace=${PACE:-50ms}
+      - -seed=${SEED:-1}
+      - -spectator=${SPECTATOR:-omniscient}
+      - -vsbot-spectator=${VSBOT_SPECTATOR:-public}
+      - -bot-policy=${BOT_POLICY:-bot}
+      - -bot-common-sense=${COMMON_SENSE:-false}
+      - -prewarm=${PREWARM:-true}
+      - -vsbot
+      - -events
+      - -manabrew
+    expose:
+      - "8080"
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: proxy
+    image: ${PROXY_IMAGE:-gorge/gorged-demo-proxy}:${GORGED_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - gorged
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${HTTP_PORT:-8090}:8080"
+
+volumes:
+  gorge-cards:
+  gorge-art:
+  gorge-data:
+  gorge-feedback:

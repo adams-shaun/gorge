@@ -44,6 +44,10 @@ flowchart LR
 
     Every startup flag, generated from the code.
 
+- [:material-docker: **Run the demo in Docker**](docker.md)
+
+    nginx and gorged in containers, one command.
+
 - [:material-robot-outline: **Paired bot (planned)**](paired-play.md)
 
     A live advisor beside you.

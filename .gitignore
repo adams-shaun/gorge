@@ -85,3 +85,6 @@ ir-*.gob.gz.lock
 # The demo deploy's local configuration (scripts/deploy-demo.sh): the box's
 # ports, directories and network paths. deploy/demo.env.example documents it.
 /deploy/demo.env
+
+# The Docker demo's local configuration (deploy/docker/.env.example).
+/deploy/docker/.env

@@ -89,6 +89,9 @@ help:
 	@echo "  make gorged         — run the table server (browser client at the addr)"
 	@echo "  make deploy-demo    — build the client and gorged, then (re)serve the demo (scripts/deploy-demo.sh; deploy/demo.env)"
 	@echo "  make stop-demo      — stop the demo's servers, start nothing"
+	@echo "  make demo-image     — build the demo's container images (deploy/docker; no card scripts inside)"
+	@echo "  make demo-up        — build and start the demo in containers: nginx in front of gorged (deploy/docker/.env)"
+	@echo "  make demo-down      — stop the demo's containers (volumes kept)"
 	@echo "  make prewarm-art    — fill the demo's card-art cache from its decks"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
@@ -151,6 +154,21 @@ stop-demo:
 
 prewarm-art:
 	scripts/deploy-demo.sh --prewarm-only
+
+# The container demo (deploy/docker, docs/site/web/docker.md). The images carry
+# no Forge card scripts: gorged fetches them at FORGE_REF into a volume on
+# first start. There is no push target; tag and push the image by hand.
+DEMO_COMPOSE = FORGE_REF=$(FORGE_REF) docker compose -f deploy/docker/compose.yaml
+
+.PHONY: demo-image demo-up demo-down
+demo-image:
+	$(DEMO_COMPOSE) build
+
+demo-up:
+	$(DEMO_COMPOSE) up -d --build
+
+demo-down:
+	$(DEMO_COMPOSE) down
 
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
