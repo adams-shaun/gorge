@@ -62,7 +62,8 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	var victims []state.ObjID
 	for _, t := range definedDelayRememberedTargets(h, c, sa) {
 		o := h.Game().Obj(t.Obj)
-		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield {
+		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
+			// CR 702.26b: a phased-out permanent can't be affected by anything.
 			continue
 		}
 		if h.HasKeyword(o.ID, "Indestructible") {
@@ -331,7 +332,9 @@ func sacTargetCardReferent(spec string, c *Ctx) (state.ObjID, bool) {
 // stops it. sacrificeObjectVictims (the departure-batch pre-pass) shares
 // this predicate so its victim list cannot drift from the sacrifices.
 func sacrificeObjectEligible(h Host, o *state.Object) bool {
-	return o != nil && o.Zone == state.ZBattlefield && !h.SacrificeBlocked(o.ID, false)
+	// A phased-out permanent can't be affected by anything (CR 702.26b), so
+	// it is neither sacrificed nor offered to a sacrifice's chooser.
+	return o != nil && o.Zone == state.ZBattlefield && !o.PhasedOut && !h.SacrificeBlocked(o.ID, false)
 }
 
 // sacrificeObjectVictims lists one effSacrifice call's plain object targets
@@ -532,6 +535,9 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				sc.DerivedPTs = append(sc.DerivedPTs, GreatestPowerDerivedPTs(g, validCard, h)...)
 			}
 			for _, id := range ids {
+				if o := g.Obj(id); o == nil || o.PhasedOut {
+					continue // CR 702.26b: a phased-out permanent is not a candidate
+				}
 				if h.SacrificeBlocked(id, false) {
 					// A CantSacrifice restriction (Call for Aid) or face static:
 					// the permanent is not a sacrifice candidate at all — not

@@ -151,6 +151,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak {
 				s.sneakEnter(k, sl, &e) // CR 702.190b (kw_sneak.go)
 			}
+			if k.gen != nil && s.cloneEntryLatePark(sl) {
+				return // gorge's second CR 616.1 ask, with the permanent in and the copy still to apply (repl_entryclone.go)
+			}
 			s.res.active = false
 			s.afterResolve()
 			return
@@ -443,6 +446,10 @@ func (s *State) runProg(k *prep) {
 			return // the order ask that follows a land's entry (repl_entryorder.go)
 		}
 		if s.g.nask != 0 && s.midResAsk(k) {
+			return
+		}
+		if s.res.ask == raGenEnterDefender {
+			s.ctl = ctlResolve // the entry's CR 508.4 defender ask (zone_changezoneparams.go)
 			return
 		}
 		if len(s.cold.parked) != 0 && s.parkedWaiting() {

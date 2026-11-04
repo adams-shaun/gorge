@@ -613,6 +613,13 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
 		}
 		return Pack(kind("card"), src, RefNone, 0), true
+	case dirac.ChGenEnterDefender:
+		// gorge's CR 508.4 entering_defender ask: a "player" option for a
+		// player, a "card" option for a planeswalker or battle (optionAction)
+		if src >= dirac.PlayerTarget0 {
+			return Pack(kind("player"), RefNone, RefPlayer+Ref(src-dirac.PlayerTarget0), 0), true
+		}
+		return Pack(kind("card"), src, RefNone, 0), true
 	case dirac.ChKsrTarget:
 		// gorge's effChangeTargets "Choose new target" KChoose: a "player"
 		// option for a player, a "card" option for an object or a stack

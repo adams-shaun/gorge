@@ -380,10 +380,15 @@ func (s *State) convokeTargetAbort(k *prep) bool {
 		}
 	}
 	s.occ = s.occ.andNot(hide)
-	// gorge's affordableTargetCandidates probes every production the window
-	// offers, a tap-another source (Springleaf Drum) included; the probe
-	// takes its first candidate and never waits on the pick.
-	s.g.probeWin = true
+	// gorge's affordableTargetCandidates prices the window from its census,
+	// which leaves a tap-another source (Springleaf Drum) unpriced: the census
+	// is incomplete, so the menu keeps its candidates however short the
+	// window is (CR 601.2g; castWindowCensusComplete). A tap-another source
+	// with a creature left to tap is such a source.
+	if s.scriptTapX(k, e.ctrl).any() {
+		s.CopyFrom(saved)
+		return false
+	}
 	if k.gen.anyWindowGap {
 		// a window-gap source (Bloom Tender) is one gorge's census cannot
 		// price, so the menu keeps its candidates (the census-incomplete arm).

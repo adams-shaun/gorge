@@ -1281,9 +1281,11 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 }
 
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
-// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove).
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), or
+// an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
-	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder
+	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
+		s.res.ask == raGenEnterDefender
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1567,6 +1569,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 		}
 		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		if z == kop.ZoneBattlefield && s.parkEnterDefender(tailSearchEnter) {
+			// the entry posed the CR 508.4 defender ask: the cards after it
+			// stay where they are until it is answered, as they do behind an
+			// as-enters ask
+			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
+			return
+		}
 		if z == kop.ZoneBattlefield && s.entryLateTail(k, tailSearchEnter) {
 			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
 			return // the re-ask that follows the entry (repl_entryorder.go)

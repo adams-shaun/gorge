@@ -121,6 +121,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"discard_replacement_before_damage_removal", true},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
 		{"replacement_answer_mid_payment_pays_through_window", true}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 		{"sba_batch_asks_before_tokens_cease", true},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
+		{"ability_target_before_cost_replacement", true},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
 	})
 }
 
@@ -181,6 +182,7 @@ func TestStdTlaReprosLockstep(t *testing.T) {
 		{"granted_mana_once_beside_another_grant", true},            // Great Divide Guide's granted mana is one ability of each grantee on a board with another global grant, so the prefix search finds Earthen Ally's {2}{W}{U}{B}{R}{G} within its budget
 		{"waterbend_no_picks_falls_to_manual_window", false},        // CR 602.2b, 605.3a: a waterbend cost no printed source pays falls to the manual window, which taps Great Divide Guide's granted sources in battlefield order
 		{"waterbend_no_picks_falls_to_manual_window_autopay", true}, // CR 602.2b, 605.3a: ... on the autopay surface too, where the planner's granted unit would otherwise pick a different source
+		{"exiled_target_keeps_was_damaged", false},                  // CR 120.3a: Sold Out exiles its combat-damaged target, and the exile leaves WasDealtDamageThisTurn standing, so the "if that creature was dealt damage this turn" Clue is still made (gorge events.foldDamage)
 	})
 }
 
@@ -218,7 +220,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false}, // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"printed_flashback_beside_granted", false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
 	})
 }
 
@@ -228,6 +231,7 @@ func TestStdEclReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-ecl", []stdRepro{
 		{"each_color_among_valid_printed_read", false},        // CR 613.1e: Bloom Tender's batch reads Puca's Eye's layer-5 chosen colour, not its printed colourless face
 		{"each_color_among_valid_printed_read_autopay", true}, // ... and the tap's mana is floated with the B in the pool itself
+		{"convoke_tap_another_source_keeps_target", true},     // CR 601.2c, 601.2g: a Springleaf Drum left beside a convoke cast's picks keeps its target on gorge's menu, however short the window is
 	})
 }
 
@@ -244,7 +248,32 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false}, // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_beside_counter", false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+	})
+}
+
+// std-tmt's: each of these once ended in a kernel stall, which replayRepro alone does not see.
+func TestStdTmtReprosLockstep(t *testing.T) {
+	t.Parallel()
+	reg := synthReg(t)
+	set := cardsettest.Synth(t, "std-tmt")
+	for _, c := range []stdRepro{
+		{"put_counters_from_unheard_kind_order", false}, // CR 603.3b: Donatello, Mutant Mechanic copies a dead artifact's +1/+1 and stun counters while a +1/+1 trigger listens: the stun is heard by none, so gorge's insertion order is unobservable
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if res := replayReproRes(t, reg, set, c.name, c.autopay); res.Stall != "" {
+				t.Fatalf("the game stalled: %s", res.Stall)
+			}
+		})
+	}
+}
+
+// std-dsk's, on the same terms (this one recorded on the full surface).
+func TestStdDskReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-dsk", []stdRepro{
+		{"room_shown_face_plain_cast", false}, // CR 709.3: a Room back on the battlefield as Slimy Aquarium keeps that door, so its plain hand cast is the shown half's {3}{U}, which the planner must price
 	})
 }
 
@@ -318,6 +347,13 @@ func TestStdPoolReprosLockstepFull(t *testing.T) {
 // replayRepro plays a fixture's script in lockstep and 200 decisions past it.
 func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) {
 	t.Helper()
+	replayReproRes(t, reg, set, name, autopay)
+}
+
+// replayReproRes is replayRepro returning the game's result, for a fixture whose
+// failure is a stall the game used to end on.
+func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay bool) Result {
+	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -349,6 +385,7 @@ func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
+	return res
 }
 
 // A keyword removal that resolves after a grant is the newer effect (CR 613.1f, 613.7):

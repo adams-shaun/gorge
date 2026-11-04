@@ -314,19 +314,14 @@ func (s *State) unpushSpell(k *prep) {
 	}
 }
 
-// syncBuild copies the entry being built onto its stack slot.
-// An activated ability's stack object shows no targets until it is paid:
-// gorge records the answered targets onto it only after payment
-// (cast_commit.go payCast's ability arm, recordChosenTargets), while a
-// spell's are recorded as they are chosen.
+// syncBuild copies the entry being built onto its stack slot. A target
+// answer is recorded as it is chosen, for a spell and an activated ability
+// alike (CR 601.2c, before the 601.2h costs), so the slot shows it from the
+// answer on.
 func (s *State) syncBuild() {
 	if s.bld().bfl&bflPushed != 0 {
 		st := &s.stack[s.sp-1]
 		*st = s.bld().e
-		if st.kind == seAbility && s.bld().stage != bsPay {
-			st.nt, st.xi = 0, 0
-			st.tgt = noTargets
-		}
 	}
 }
 

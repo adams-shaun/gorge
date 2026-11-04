@@ -508,15 +508,11 @@ type pendingCast struct {
 	// resolution instead of being re-asked mid-resolution. subAsks holds the
 	// collected targeting subs in chain order (collected once, lazily, by
 	// subTargetAsk); subAns the answers, indexed like subAsks; subStage the
-	// next unsettled index. rootOpts keeps the ROOT target answer's options
-	// so the ability arm's post-payment recordChosenTargets can run from the
-	// sub-answer tail (the ability object does not exist until payCast's
-	// AbilityPush). Plain data, so a Clone copies them.
-	subAsks      []*cards.SA       `clone:"deep"`
-	subAns       [][]state.Target  `clone:"deep"`
-	subStage     int               `clone:"deep"`
-	subCollected bool              `clone:"deep"`
-	rootOpts     []decision.Option `clone:"deep"`
+	// next unsettled index. Plain data, so a Clone copies them.
+	subAsks      []*cards.SA      `clone:"deep"`
+	subAns       [][]state.Target `clone:"deep"`
+	subStage     int              `clone:"deep"`
+	subCollected bool             `clone:"deep"`
 	// targetedFinish is set for the duration of finishTargetedCast's payCast
 	// call (see there): the caller, not payCast, dispatches the ability's
 	// mana-spent rider.
@@ -587,9 +583,10 @@ type pendingCast struct {
 	preAborts map[state.ObjID]int32 `clone:"deep"`
 
 	// proposalTriggers are the [start, end) pendingTriggers index ranges a
-	// pushed SPELL proposal's own TargetsChosen events queued (Ward, "becomes
-	// the target" and every other matcher of a CR 601.2c target choice). They
-	// are recorded by emit and removed by abortCast: CR 733.1 "no abilities
+	// pushed proposal's own TargetsChosen events queued (Ward, "becomes
+	// the target" and every other matcher of a CR 601.2c target choice, for
+	// a spell or an activated ability alike). They are recorded by emit and
+	// removed by abortCast: CR 733.1 "no abilities
 	// trigger ... as a result of an undone action", so a reversed cast must
 	// leave nothing on the queue. Without it a bot re-attempting the same
 	// unpayable Strive cast queued a fresh Ward/Silverfur Partisan trigger per

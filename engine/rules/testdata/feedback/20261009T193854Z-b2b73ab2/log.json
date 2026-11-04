@@ -6881,24 +6881,24 @@
     },
     {
       "seq": 1256,
-      "kind": 6,
-      "obj": 45
-    },
-    {
-      "seq": 1257,
-      "kind": 2,
-      "obj": 45,
-      "from": 2,
-      "to": 3,
-      "text": "sacrificed"
-    },
-    {
-      "seq": 1258,
       "kind": 24,
       "obj": 84,
       "ids": [
         2
       ]
+    },
+    {
+      "seq": 1257,
+      "kind": 6,
+      "obj": 45
+    },
+    {
+      "seq": 1258,
+      "kind": 2,
+      "obj": 45,
+      "from": 2,
+      "to": 3,
+      "text": "sacrificed"
     },
     {
       "seq": 1259,
@@ -13839,17 +13839,17 @@
     },
     {
       "seq": 2539,
-      "kind": 13,
-      "amount": -1,
-      "counter": "W"
-    },
-    {
-      "seq": 2540,
       "kind": 24,
       "obj": 95,
       "ids": [
         15
       ]
+    },
+    {
+      "seq": 2540,
+      "kind": 13,
+      "amount": -1,
+      "counter": "W"
     },
     {
       "seq": 2541,
@@ -18629,7 +18629,7 @@
       ]
     }
   ],
-  "head": "386beb65252e5006",
+  "head": "bc4892d6d7ab9556",
   "intent_count": 515,
   "turn": 20,
   "step": "main1",

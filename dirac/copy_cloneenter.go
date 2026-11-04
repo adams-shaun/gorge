@@ -92,6 +92,13 @@ func (s *State) rerunReturn(k *prep) {
 		// the parked card itself, not the op's reference read afresh: the target the
 		// card was named by is a bad one now that it stands in exile
 		s.execReturnObj(k, in, NoSlot, o)
+		if s.res.ask == raGenEnterDefender {
+			// the entry's CR 508.4 defender ask (zone_changezoneparams.go): its answer
+			// finishes the instruction, as runProg's suspension does
+			s.g.pre = preAsk{}
+			s.ctl = ctlResolve
+			return
+		}
 	default:
 		s.execReturnSimple(k, in, o)
 	}
