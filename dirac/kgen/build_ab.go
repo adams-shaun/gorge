@@ -1588,6 +1588,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StRaiseOpp
 			case "SpareMana":
 				st.A = 1
+			case "LoyaltyOnly":
+				st.A = 2
 			default:
 				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
 			}

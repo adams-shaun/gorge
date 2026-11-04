@@ -35,15 +35,21 @@ func (lc *lowerCtx) cantActivate(sp *params, st *lStatic) error {
 			return refuse("CantBeActivated %s$", k)
 		}
 	}
+	// ValidSA$ Activated.Loyalty reaches only planeswalker loyalty
+	// abilities, which exist only on the battlefield (CR 606.3), so it needs
+	// no AffectedZone$ to stay there (The Immortal Sun)
+	loyal := sp.str("ValidSA") == "Activated.Loyalty"
 	if az, ok := sp.get("AffectedZone"); ok {
 		if az != "Battlefield" {
 			return refuse("CantBeActivated off the battlefield (AffectedZone %q)", az)
 		}
-	} else if !attachedOnly(f) {
+	} else if !attachedOnly(f) && !loyal {
 		return refuse("CantBeActivated off the battlefield")
 	}
 	switch a := sp.str("Activator"); a {
-	case "":
+	case "", "Player":
+		// Activator$ Player: every player, as an absent Activator$ (gorge
+		// actorMatches over the Player spec)
 	case "You":
 		st.Flags = append(st.Flags, "ActivatorYou")
 	case "Opponent":
@@ -55,6 +61,10 @@ func (lc *lowerCtx) cantActivate(sp *params, st *lStatic) error {
 	case "", "Activated":
 	case "Activated.!ManaAbility":
 		st.Flags = append(st.Flags, "SpareMana")
+	case "Activated.Loyalty":
+		// gorge activatedMatchesValidSA's Loyalty constraint: loyalty
+		// abilities only (kop A = 2), a mana ability spared
+		st.Flags = append(st.Flags, "LoyaltyOnly")
 	default:
 		return refuse("CantBeActivated ValidSA %q", v)
 	}

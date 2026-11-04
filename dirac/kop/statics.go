@@ -187,7 +187,8 @@ const StatCanAttackDefender StaticKind = 250
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
 // controller's opponents only; StRaiseYou: by its controller only; under
-// Cond2; A = 1 spares mana abilities) (CR 602.5; gorge abilityRestricted).
+// Cond2; A = 1 spares mana abilities; A = 2 reaches loyalty abilities only)
+// (CR 602.5; gorge abilityRestricted).
 const StatCantActivate StaticKind = 236
 
 // StCasterActive: on a StatCantBeCast only, the
