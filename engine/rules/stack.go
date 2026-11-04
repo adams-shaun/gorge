@@ -109,10 +109,10 @@ func (e *Engine) resolveTop() {
 		// task ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
 		// alltargeted1 and the per-mode charm groups compose rather than
-		// compete: collectSubTargetPreAsks excludes a modal (Charm) root
-		// whole, so a charm-handled object has NO pre-asked sub answers and
-		// recheckCastSubTargets returns (0, 0) for it; conversely a
-		// non-modal chain never reaches recheckCharmTargets' groups.
+		// compete: a charm's pre-asked sub answers are its chosen modes'
+		// chains, which recheckCastSubTargets walks, while the mode roots'
+		// own targets are recheckCharmTargets' groups; a non-modal chain
+		// never reaches those groups.
 		subChosen, subLegal := e.recheckCastSubTargets(id, o.Ability, o.Controller, o.Source)
 		charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
 		if charmHandled {
@@ -633,8 +633,7 @@ func (e *Engine) resolveTop() {
 		}
 	}
 	// The spell branch's twin of the ability branch's composition: a modal
-	// root carries no pre-asked sub answers, so this returns (0, 0) exactly
-	// where charmHandled owns the recheck instead.
+	// root's sub answers are its chosen modes' chains.
 	subChosen, subLegal := e.recheckCastSubTargets(id, sa, o.Controller, id)
 	if sa != nil && !overloaded && !charmHandled {
 		// A modal spell's target declaration lives on its announced mode SVar,
@@ -933,23 +932,47 @@ func (e *Engine) recheckCastSubTargets(id state.ObjID, root *cards.SA, controlle
 	savedParent, savedBound := e.subOfferParent, e.subOfferBound
 	defer func() { e.subOfferParent, e.subOfferBound = savedParent, savedBound }()
 	var rootTargets []state.Target
-	if o := e.G.Obj(id); o != nil {
+	o := e.G.Obj(id)
+	if o != nil {
 		rootTargets = o.Targets
 	}
-	e.subOfferParent, e.subOfferBound = rootTargets, true
-	for sa := root.Sub; sa != nil; sa = sa.Sub {
-		ts, ok := answers[sa.Line]
-		if !ok {
-			continue
+	// A modal root's chains are its chosen modes' (Make It So's "Untap target
+	// permanent you control. Target player draws two cards."): the cast
+	// announced each mode's sub targets (castSubPreAsks), so each is
+	// rechecked here too, and a mode whose own target left keeps the spell
+	// alive through a sub target that is still legal (CR 608.2b).
+	var modeBuf [2]*cards.SA
+	chains := append(modeBuf[:0], root)
+	if isCharmWithChoices(root) && o != nil {
+		chains = chains[:0]
+		svars := map[string]string(nil)
+		if f := o.Face(); f != nil && o.Ability == nil {
+			svars = f.SVars
+		} else if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
+			svars = src.Face().SVars
 		}
-		chosen += len(ts)
-		kept := e.legalTargets(ts, sa, targetZones(sa), controller, source, id)
-		e.subOfferParent = ts
-		legal += len(kept)
-		if kept == nil {
-			kept = []state.Target{}
+		for _, name := range o.ChosenModes {
+			if mode := cards.ResolveSVar(svars, name); mode != nil {
+				chains = append(chains, mode)
+			}
 		}
-		answers[sa.Line] = kept
+	}
+	for _, head := range chains {
+		e.subOfferParent, e.subOfferBound = rootTargets, true
+		for sa := head.Sub; sa != nil; sa = sa.Sub {
+			ts, ok := answers[sa.Line]
+			if !ok {
+				continue
+			}
+			chosen += len(ts)
+			kept := e.legalTargets(ts, sa, targetZones(sa), controller, source, id)
+			e.subOfferParent = ts
+			legal += len(kept)
+			if kept == nil {
+				kept = []state.Target{}
+			}
+			answers[sa.Line] = kept
+		}
 	}
 	return chosen, legal
 }
