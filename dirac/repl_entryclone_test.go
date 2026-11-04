@@ -6,55 +6,76 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
-	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// cloneEntryFix is std-dft's Waxen Shapethief cast beside two Thunderous
-// Velocipedes (each other creature or Vehicle enters with a +1/+1 counter, three
-// when its mana value is above four) with a Hulldrifter (a Vehicle of mana
-// value five) and a Starting Column (an artifact that is neither a creature nor
-// a Vehicle) to copy.
+// cloneEntryFix is a table with a Shape-like creature that may enter as a
+// copy of an artifact or creature you control, two Velocipede-like artifacts
+// (each other creature you control enters with a +1/+1 counter), a Bear and a
+// Rock (an artifact that is no creature, so no Velocipede matches a copy of it).
 type cloneEntryFix struct {
-	sc            *scen
-	v1, v2        Obj
-	hull, col, sp Obj
-	shape         CardID
+	sc         *scen
+	v1, v2     Obj
+	bear, rock Obj
+	sp         Obj
+	shape      CardID
 }
 
 func newCloneEntryFix(t *testing.T) *cloneEntryFix {
 	t.Helper()
-	set := cardsettest.Synth(t, "std-dft")
-	var deck []cardset.Entry
-	for _, n := range []string{"Waxen Shapethief", "Thunderous Velocipede", "Hulldrifter", "Starting Column", "Island"} {
-		if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
-			t.Skipf("%s not in the std-dft table", n)
-		}
-		deck = append(deck, cardset.Entry{Name: n, Count: 1})
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
+	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
+	set := cardsettest.Set(t, "fdn")
+	tbl, _, _, err := set.Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(v.Plains) >= len(tbl.Cards) {
-		t.Skip("table too small for the scenario library")
+	var pl CardID = 255
+	for i := range tbl.Cards {
+		if tbl.Cards[i].Name == "Plains" {
+			pl = CardID(i)
+		}
 	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
+	tbl.Filters = append(tbl.Filters,
+		kop.Filter{Types: kop.TCreature, Ctrl: kop.CtrlYou, Flags: kop.FOther, Zone: kop.ZoneBattlefield},
+		kop.Filter{Types: kop.TArtifact | kop.TCreature, Ctrl: kop.CtrlYou, Flags: kop.FOther, Zone: kop.ZoneBattlefield})
+	creatureF := kop.FilterID(len(tbl.Filters) - 2)
+	copyF := kop.FilterID(len(tbl.Filters) - 1)
+	base := CardID(len(tbl.Cards))
+	shapeCost := kop.ManaCost{Generic: 3}
+	shapeCost.Pips[kop.U] = 1
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Shape", Types: kop.TCreature, Cost: shapeCost, Abilities: []kop.Ability{
+			{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplEntersProgram}, Prog: []kop.Instr{
+				{Op: kop.OpBecomeCopy, Obj: kop.RefReplaced, C: 1, F: copyF}}}}},
+		kop.CardDef{Name: "Counter Source", Types: kop.TArtifact, Abilities: []kop.Ability{
+			{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplOthersEnterProgram, Filter: creatureF}, Prog: []kop.Instr{
+				{Op: kop.OpEnterWithCounters, Obj: kop.RefReplaced, A: kop.Const(1), C: int16(kop.CtrP1P1)}}}}},
+		kop.CardDef{Name: "Bear", Types: kop.TCreature, Power: 2, Toughness: 2},
+		kop.CardDef{Name: "Rock", Types: kop.TArtifact},
+	)
+	sc := newScenTableLib(t, tbl, pl, Config{NoElide: true})
+	if sc.k.gen == nil {
+		t.Fatal("the fixture table has no generated tables")
 	}
-	sc := newScenTable(t, tbl, Config{NoElide: true})
-	f := &cloneEntryFix{sc: sc, shape: id["Waxen Shapethief"]}
-	f.v1 = sc.perm(id["Thunderous Velocipede"], 0)
-	f.v2 = sc.perm(id["Thunderous Velocipede"], 0)
-	f.hull = sc.perm(id["Hulldrifter"], 0)
-	f.col = sc.perm(id["Starting Column"], 0)
-	f.sp = sc.hand(f.shape, 0)
+	sc.s.g.on = true
+	f := &cloneEntryFix{sc: sc, shape: base}
+	f.v1 = sc.perm(base+1, 0)
+	f.v2 = sc.perm(base+1, 0)
+	f.bear = sc.perm(base+2, 0)
+	f.rock = sc.perm(base+3, 0)
+	f.sp = sc.hand(base, 0)
 	sc.s.pl[0].pool[kop.U] = 4
 	return f
 }
 
-// toAsk casts the Shapethief, copies target and returns the order ask.
+// toAsk casts the Shape, copies target and returns the order ask.
 func (f *cloneEntryFix) toAsk(t *testing.T, target Obj) Decision {
+	t.Helper()
+	f.elect(t, target)
+	return f.ask(t)
+}
+
+// elect casts the Shape and answers its copy election with target.
+func (f *cloneEntryFix) elect(t *testing.T, target Obj) {
 	t.Helper()
 	sc, s := f.sc, f.sc.s
 	sc.castCard(t, f.sp)
@@ -65,7 +86,7 @@ func (f *cloneEntryFix) toAsk(t *testing.T, target Obj) Decision {
 			for j := 0; j < int(d.N); j++ {
 				if Obj(d.Options[j].Source()) == target && d.Options[j].Mode() == 0 {
 					s.Apply(d.Options[j])
-					return f.ask(t)
+					return
 				}
 			}
 			t.Fatalf("%d is not among the clone options %v", target, d.Options[:d.N])
@@ -76,7 +97,6 @@ func (f *cloneEntryFix) toAsk(t *testing.T, target Obj) Decision {
 		}
 	}
 	t.Fatal("no clone election")
-	return Decision{}
 }
 
 func (f *cloneEntryFix) ask(t *testing.T) Decision {
@@ -124,20 +144,20 @@ func equalObjs(a, b []Obj) bool {
 // folded, and the two left (a counter source and the copy, which commute with
 // nothing) are asked with it on the battlefield, the copy not yet applied; the
 // copy named first changes nothing the permanent shows: gorge has folded the
-// counter bodies into the move, matched against the Shapethief as cast, so a
-// copy of a Hulldrifter (mana value five) or of an artifact no Velocipede
-// matches still gets one counter from each, and nothing is asked again.
+// counter bodies into the move, matched against the Shape as cast, so a
+// copy of an artifact no Velocipede matches still gets one counter from each,
+// and nothing is asked again.
 func TestCloneEntryOrderThreeCandidates(t *testing.T) {
 	ctrs := func(f *cloneEntryFix, o Obj) int {
 		return f.sc.s.perms[f.sc.slot(o)].ctrN(f.sc.s, int(kop.CtrP1P1))
 	}
 	t.Run("the_copy_first", func(t *testing.T) {
-		for _, name := range []string{"hulldrifter", "starting_column"} {
+		for _, name := range []string{"bear", "rock"} {
 			f := newCloneEntryFix(t)
 			sc := f.sc
-			target := f.hull
-			if name == "starting_column" {
-				target = f.col
+			target := f.bear
+			if name == "rock" {
+				target = f.rock
 			}
 			d := f.toAsk(t, target)
 			if got, want := srcList(d), []Obj{f.v1, f.v2, f.sp}; !equalObjs(got, want) {
@@ -158,7 +178,7 @@ func TestCloneEntryOrderThreeCandidates(t *testing.T) {
 				t.Fatalf("%s: the permanent is not a copy", name)
 			}
 			if n := ctrs(f, f.sp); n != 2 {
-				t.Fatalf("%s: %d counters, want 2 (one from each Velocipede, matched against the Shapethief as cast)", name, n)
+				t.Fatalf("%s: %d counters, want 2 (one from each source, matched against the Shape as cast)", name, n)
 			}
 		}
 	})
@@ -166,7 +186,7 @@ func TestCloneEntryOrderThreeCandidates(t *testing.T) {
 		for _, second := range []string{"the_other_counter_source", "the_copy"} {
 			f := newCloneEntryFix(t)
 			sc := f.sc
-			d := f.toAsk(t, f.hull)
+			d := f.toAsk(t, f.bear)
 			sc.s.Apply(pick(d, f.v1))
 			if !sc.onBF(f.sp) {
 				t.Fatal("the permanent is not on the battlefield for the second ask")
@@ -204,4 +224,22 @@ func TestCloneEntryOrderThreeCandidates(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestCloneEntryOrderNineCandidatesStall: gorge asks whatever the number of
+// competing sources (measured up to 17 options), and the kernel holds eight, so
+// a ninth candidate is a declared capacity stall, never a silent no-ask.
+func TestCloneEntryOrderNineCandidatesStall(t *testing.T) {
+	f := newCloneEntryFix(t)
+	sc := f.sc
+	for i := 0; i < 6; i++ {
+		sc.perm(f.shape+1, 0) // eight counter sources and the Shape's own line: nine
+	}
+	f.elect(t, f.bear)
+	if sc.s.g.stalled != StallReplCands || !sc.s.over {
+		t.Fatalf("stalled %d over %v, want StallReplCands and the game stopped", sc.s.g.stalled, sc.s.over)
+	}
+	if sc.onBF(f.sp) {
+		t.Fatal("the permanent entered under a competition the kernel cannot ask")
+	}
 }
