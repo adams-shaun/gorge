@@ -186,8 +186,10 @@ func TestCounterAdderPublishesAtCostSite(t *testing.T) {
 	vori := tokenReplCorpusCard(t, "Vorinclex, Monstrous Raider")
 	walker2 := card(t, walkerSrc)
 	e2, cfg2 := tokenReplGame(t, 223, vori, walker2)
-	moveSeededCard(t, e2, 0, vori, state.ZBattlefield)
+	// The walker is seeded before Vorinclex: its entry's loyalty is put by its
+	// controller (CR 122.6a) and would double too.
 	walker2ID := moveSeededCard(t, e2, 0, walker2, state.ZBattlefield)
+	moveSeededCard(t, e2, 0, vori, state.ZBattlefield)
 	addMana(t, e2, 0, "")
 	submitChoices(t, e2, abilityOption(t, e2, walker2ID, 0).Index)
 	passUntilStackEmpty(t, e2, 20)

@@ -172,5 +172,6 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 122.4 | not-impl | - | - | stat:MaxCounter unregistered; LOUD (coverage report) |
 | 122.5 | partial | `engine/effects/counters.go#effMoveCounter` | - | exotic shapes Noted (LOUD) |
 | 122.6 | follows | `engine/rules/entry_counters.go#Engine.entryCounterGrants` | - | counters put on |
-| 122.6a-122.9 | unknown | - | - | not reached |
+| 122.6a | follows | `engine/rules/entry_counters.go#Engine.settleEntryGrants` `engine/rules/entry_counters.go#Engine.foldEntryWithPlaced` | `TestEntryCountersArePutByTheEnteringObjectsController` | the counters an object enters with are put by its controller: an AddCounter replacement's ValidSource$ and a CounterAdded trigger read the entrant's controller, not the resolving ability's |
+| 122.7-122.9 | unknown | - | - | not reached |
 | 123.1-123.9 | n/a | - | - | no sticker mechanic |
