@@ -39,9 +39,9 @@ func TestBoimlerLockstep(t *testing.T) {
 	}
 }
 
-// TestBoimlerLockstepMutation proves the pool exercises the flag: with it
+// TestBoimlerMutation proves the pool exercises the flag: with it
 // ignored, a game that puts counters after Boimler taps diverges from gorge.
-func TestBoimlerLockstepMutation(t *testing.T) {
+func TestBoimlerMutation(t *testing.T) {
 	reg, set, decks, tbl := p3Setup(t, "boimler", kboimlerDecks)
 	old := dirac.DebugCtrPlusEOTOff
 	dirac.DebugCtrPlusEOTOff = true
