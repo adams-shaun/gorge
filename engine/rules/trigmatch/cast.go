@@ -67,11 +67,11 @@ func spellCopyMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Ev
 // matches that cast only. Read as any spell, another may-play spell cast
 // while the card waits on the stack would get its finality counter.
 func stackOnlyBareCardCast(t cards.Trigger) bool {
-	if strings.TrimSpace(t.ParamStr(cards.PKTriggerZones)) != "Stack" {
+	if t.ParamStr(cards.PKTriggerZones) != "Stack" {
 		return false
 	}
 	v, ok := t.Param(cards.PKValidCard)
-	return ok && strings.TrimSpace(v) == "Card"
+	return ok && v == "Card"
 }
 
 // SpellCastEval is the spell evaluation spellCastMatches and
