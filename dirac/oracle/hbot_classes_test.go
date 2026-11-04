@@ -62,3 +62,11 @@ func TestHBotListsAChangelingsPrintedTypesFirst(t *testing.T) {
 func TestHBotReadsAHandCardsDefinedPower(t *testing.T) {
 	hbotPairs(t, "std-trk", []int{34, 87}, "cast(")
 }
+
+// TestHBotTakesTheDiscardUnlessAlternative: "discard two cards unless you discard
+// a creature card" offers the unless alternative first in gorge (effects
+// discard_unless), and the bot takes the first offer (CR 701.9b); the kernel's
+// canonical order lists it second (Winternight Stories).
+func TestHBotTakesTheDiscardUnlessAlternative(t *testing.T) {
+	hbotPairs(t, "std-tdm", []int{5, 9}, "choose:unless")
+}

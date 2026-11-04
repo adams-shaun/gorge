@@ -203,8 +203,10 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 			return i
 		}
 		return 0
-	case dirac.ChOptional, dirac.ChOptDiscMay, dirac.ChGenPay, dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenMayShuffle, dirac.ChGenConfirm, dirac.ChGenPeekReveal:
-		// yes / pay / top first
+	case dirac.ChOptional, dirac.ChOptDiscMay, dirac.ChGenPay, dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenMayShuffle, dirac.ChGenConfirm, dirac.ChGenPeekReveal,
+		dirac.ChGenDiscUnless:
+		// yes / pay / top / unless first: gorge's first offer, which the
+		// kernel's canonical order puts second (mode 0 sorts first)
 		if i := modeIndex(d, 1); i >= 0 {
 			return i
 		}
