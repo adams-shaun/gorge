@@ -20,6 +20,7 @@ Beckett Mariner, Impetuous Ensign
 Blastoneuron
 Blood Crypt
 Boarding Action
+Borg Cube
 Branching Timeline
 Breeding Pool
 Cantankerous Captain
@@ -143,6 +144,7 @@ Obsidian Order Operative
 Open Communications
 Organic Avulsion Unit
 Orion
+Overflow Submatrix
 Overgrown Tomb
 Pah-Wraith
 Pattern Buffer Preservation
@@ -182,6 +184,7 @@ Scotty, Miracle Worker
 Sela, Tal Shiar Paradox
 Set Phasers to . . .
 Seven of Nine
+Seven of Nine, Unassimilated
 Shields Up!
 Shuttle Ace
 Sickbay
@@ -194,6 +197,7 @@ Starfleet Security
 Starfleet Spanner Jockey
 Steam Vents
 Stomping Ground
+Storied Veteran
 Subcommander T'Pol
 Subspace Anomaly
 Sulu, Space Swashbuckler
@@ -221,6 +225,7 @@ The Caretaker
 The Destruction of Praxis
 The Doctor, EMH
 The Duras Sisters
+The Measure of a Man
 The Needs of the Many
 The Traveler
 The Unicomplex
