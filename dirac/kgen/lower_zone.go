@@ -2467,6 +2467,17 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	}
 	in := lInstr{Op: "CopyAsToken", Obj: obj, A: cst(1)}
 	var flags []string
+	if ps.str("Controller") == "NonRememberedController" {
+		// each player other than the remembered permanent's controller
+		// (its last-known controller once it left; gorge
+		// copyPermanentController's NonRememberedController): two-player,
+		// that controller's opponent (Fractured Identity)
+		if obj.Kind != rRemembered {
+			return refuse("CopyPermanent Controller$ NonRememberedController over %v", obj)
+		}
+		delete(ps.m, "Controller") // read here, not as a copy exception
+		flags = append(flags, "NonRemCtrl")
+	}
 	if n, ok := ps.get("NumCopies"); ok {
 		// gorge copyPermanentNumCopies: CalculateAmount (For the Common
 		// Good's X, Offspring's Count$OffspringPaid)

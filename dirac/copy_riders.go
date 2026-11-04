@@ -79,6 +79,33 @@ func (s *State) copyExcTySlots(k *prep) (m slotMask) {
 	return
 }
 
+// copyCtrl is the controller of copy op in's tokens: the resolving entry's
+// controller, or under kop.CopyNonRemCtrl (Fractured Identity's "each player
+// other than its controller") the opponent of the copied remembered
+// object's controller, its RememberLKI$ capture once it left the battlefield.
+// The mint reads the entry's controller as the tokens' controller, so the
+// callers set it for the op and put it back after; an ask the mint parks (an
+// Aura copy's host, an as-enters choice) is that player's, and its resume
+// sets it again.
+//
+//go:noinline
+func (s *State) copyCtrl(in *kop.Instr) uint8 {
+	if in.Op != kop.OpCopyAsTokenEx || uint16(in.B.N)&kop.CopyNonRemCtrl == 0 {
+		return s.res.e.ctrl
+	}
+	o := s.objRefObj(in.Obj)
+	if o == NoObj {
+		return s.res.e.ctrl
+	}
+	ctrl := s.objs[o].owner()
+	if s.objs[o].zone == kop.ZoneBattlefield {
+		ctrl = s.perms[s.objs[o].slot].ctrl
+	} else if l := s.remLKIRec(o); l != nil {
+		ctrl = l.ctrl
+	}
+	return 1 - ctrl
+}
+
 // copyPumpEnter grants token slot sl the PumpKeywords$ keyword named by the
 // copy op in (B.N >> kop.CopyPumpShift: its KwMask bit + 1): a permanent
 // keyword override record (the table's AddKw-only record for that keyword),

@@ -329,6 +329,12 @@ const CopyPumpShift = 8
 // the grant lasts until end of turn (PumpDuration$ EOT), not permanently.
 const CopyPumpEOT = 1 << 14
 
+// CopyNonRemCtrl: OpCopyAsTokenEx B.N bit 15, as a uint16 image (the int16
+// sign bit): the tokens are created for the opponent of the copied
+// remembered permanent's controller, its last-known controller once it left
+// the battlefield (Controller$ NonRememberedController, two-player).
+const CopyNonRemCtrl = 1 << 15
+
 // TokenFlags (OpCreateTokenEx B.N).
 const (
 	TokTapped      = 1 << iota // created tapped

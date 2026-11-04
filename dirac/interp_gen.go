@@ -1855,6 +1855,11 @@ func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		c = s.cardAt(s.objs[o].slot)
 	}
+	if uint16(in.B.N)&kop.CopyNonRemCtrl != 0 {
+		was := e.ctrl
+		e.ctrl = s.copyCtrl(in)
+		defer func() { e.ctrl = was }()
+	}
 	v := s.value(k, in.A)
 	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
@@ -1985,7 +1990,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	} else if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
 	}
-	if in.B.N>>kop.CopyPumpShift != 0 {
+	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
 	}
 	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 {

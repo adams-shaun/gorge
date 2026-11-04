@@ -3604,6 +3604,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		if _, ok := fl["Tapped"]; ok {
 			cf |= kop.CpTapped
 		}
+		if _, ok := fl["NonRemCtrl"]; ok {
+			cf |= kop.CopyNonRemCtrl
+		}
 		pk, ok := fl["Pump"]
 		pe, eot := fl["PumpEOT"]
 		if eot {
