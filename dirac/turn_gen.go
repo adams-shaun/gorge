@@ -28,6 +28,7 @@ const (
 	// other replacements over the same entry, asked with the spell still on
 	// the stack (s.g.pre only; repl_entryclone.go)
 	akEntryOrder uint8 = 10
+	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -251,11 +252,15 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			case in.Op == kop.OpChooseType:
 				kind = akType
 			case in.Op == kop.OpExt:
-				if in.Ext() != kop.ExtChooseNumber {
+				switch in.Ext() {
+				case kop.ExtChooseNumber:
+					kind = akNumber
+				case kop.ExtChooseName:
+					kind = akName
+				default:
 					s.execGen(k, in)
 					continue
 				}
-				kind = akNumber
 			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
@@ -419,27 +424,34 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			}
 			continue
 		}
-		if x.zone == kop.ZoneExile && s.res.active && s.res.ask == raNone && s.g.pre.state == 0 && s.auraWithHosts(k, l.obj) > 1 {
+		if x.zone == kop.ZoneExile && s.auraWithHosts(k, l.obj) > 1 {
 			// a returning Aura (Witness Protection under Banishing Light):
-			// during a resolution gorge asks its host with the card still
-			// in exile (CR 303.4f); it enters attached once answered
-			// (raGenRetChoice; pair 5605)
-			s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
-			if k.gen.anyLinkCtr {
-				s.linkRetStall(k, srcCtrl, o, l.obj)
+			// gorge asks its host with the card still in exile (CR 303.4f).
+			// During a resolution the kernel parks the choice (preReturn)
+			// and enters the card once answered (raGenRetChoice; pair 5605).
+			// A cost's pick still being answered when the host leaves -- the
+			// sacrificed host is what exiled it -- parks it too: the pending
+			// answer continues the resolution, and runProg poses the host ask
+			// before it ends (pair 1265). Outside a resolution (its source
+			// died to a state-based action) the ask is queued before the next
+			// priority (queueAskRet) instead of entering the Aura unattached
+			// to fall to CR 704.5m.
+			parked, queued := false, false
+			if s.res.active && s.g.pre.state == 0 {
+				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
+				parked = true
+			} else if !s.res.active && s.g.nask == 0 {
+				s.queueAskRet(l.obj)
+				queued = true
 			}
-			continue
-		}
-		if x.zone == kop.ZoneExile && !s.res.active && s.g.nask == 0 && s.auraWithHosts(k, l.obj) > 1 {
-			// outside a resolution (its source died to a state-based
-			// action) gorge parks the entry with the card still in exile
-			// and asks its owner the host (CR 303.4f): queued before the
-			// next priority (queueAskRet)
-			s.queueAskRet(l.obj)
-			if k.gen.anyLinkCtr {
-				s.linkRetStall(k, srcCtrl, o, l.obj)
+			// an ask is already queued: gorge parks no second entry; the
+			// later one enters attached to its first candidate below
+			if parked || queued {
+				if k.gen.anyLinkCtr {
+					s.linkRetStall(k, srcCtrl, o, l.obj)
+				}
+				continue
 			}
-			continue
 		}
 		if n := s.auraWithHosts(k, l.obj); x.zone == kop.ZoneExile && (n == 1 || n > 1 && !s.res.active) {
 			// a returning Aura with one permanent it can enchant enters
@@ -816,6 +828,10 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 }
 
 func (s *State) genAskOptions(k *prep, d *Decision) bool {
+	if s.g.untapOn && s.g.untapAns == 0 {
+		s.untapAskOptions(d)
+		return true
+	}
 	if k.gen.anyBattle && s.g.nmay > 0 && s.defeatPosedOptions(d) {
 		return true
 	}
@@ -888,6 +904,10 @@ func (s *State) popAsk() {
 }
 
 func (s *State) applyGen(k *prep, a Action) {
+	if s.g.untapOn && s.g.untapAns == 0 {
+		s.untapAnswer(a)
+		return
+	}
 	if k.gen.anyBattle && s.g.nmay > 0 && s.applyDefeat(k, a) {
 		return
 	}
@@ -979,7 +999,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber {
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akName {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1097,6 +1117,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akNumber {
 		s.numberOptions(k, d) // repl_choosenumber.go
+		return
+	}
+	if kind == akName {
+		s.nameOptions(k, d) // repl_choosename.go
 		return
 	}
 	if kind == akColor {

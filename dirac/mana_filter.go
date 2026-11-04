@@ -65,10 +65,18 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	if !k.gen.anyFilt {
 		return slotMask{}
 	}
+	var m slotMask
 	if k.gen.anyFiltFirst {
-		return s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
+		m = s.filtFirstMask(k, p) // a filter first and only (mana_filterfirst.go)
+	} else {
+		m = s.gapMask(k, p, gfFilt)
 	}
-	m := s.gapMask(k, p, gfFilt)
+	// A filter whose fee an activated-ability reducer takes to nothing is the
+	// source's own mana (mana_filterfree.go's gate-on view): it stays out of
+	// the gap set on both paths. Otherwise a table holding any first-ability
+	// filter (anyFiltFirst) would leave a later free filter in it, and the
+	// prefix search spends its 160-node budget on the extra branch instead of
+	// funding the paid filters beside it.
 	if k.gen.anyAbReduce {
 		for b := m; b.any(); b = b.rest() {
 			if sl := b.first(); k.gen.has(s.cardAt(sl), gfFiltFee) && s.filtFee(k, sl) == 0 {

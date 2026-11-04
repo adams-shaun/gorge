@@ -217,8 +217,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, p uint8) {
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
-		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost) {
-			continue // gorge searches no prefix for a target-priced or modal cost
+		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (cardTgtDepCost(cd) || cd.HasModeCost && !modalFloorZero(k, s.objs[Obj(a.Source())].card)) {
+			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana
 		}
 		if isCastKind(a.Kind()) && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go)

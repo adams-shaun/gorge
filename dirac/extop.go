@@ -25,6 +25,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterPlusEOT:
 		s.ctrPlusEOT(k) // ctr_pluseot.go
 		return true, true
+	case kop.ExtGrantPanharm:
+		s.grantPanharm(k, in) // act_grantpanharm.go
+		return true, true
 	case kop.ExtEachDamage:
 		s.eachDamage(k, in)
 		return true, true
@@ -162,6 +165,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		// (the OpChooseColor arm of execGen)
 		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, akNumber)
+		}
+		return true, true
+	case kop.ExtChooseName:
+		// the same, for the as-enters nonland card name (repl_choosename.go)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			s.queueAsk(s.objs[o].slot, akName)
 		}
 		return true, true
 	}

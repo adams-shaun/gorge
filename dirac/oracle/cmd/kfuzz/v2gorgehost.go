@@ -24,6 +24,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -192,7 +193,7 @@ func v2ChanceFollowingGame(reg *cards.Registry, sec *secrets.Game, decks [2][]*c
 		Names:        []string{"p0", "p1"},
 		Decks:        [][]*cards.Card{decks[0], decks[1]},
 		Tokens:       reg.Tokens,
-		NameUniverse: reg.Universe(),
+		NameUniverse: oracle.NameUniverseFor(reg, decks),
 	}
 	if mulligan == "london" {
 		cfg.Mulligans = 7

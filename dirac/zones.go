@@ -591,8 +591,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	s.g.lingerM.clr(sl)
 	s.g.declM.clr(sl)
 	s.objs[o].acts &^= objActsMask // CR 400.7: the count ends with the permanent
-	if s.g.nlA[0] != 0 {
-		s.netDrop(o) // the lock ends when the permanent leaves (act_lockpermanent.go)
+	if s.g.netAny() {
+		s.netDrop(o)      // the lock ends when the permanent leaves (act_lockpermanent.go)
+		s.pgDropTarget(o) // so do the Panharmonicon grants it was given (act_grantpanharm.go)
 	}
 	if k.gen != nil && k.gen.anyMonstrosity {
 		s.mSlClr(k, mechMonstrous, sl) // act_monstrosity.go

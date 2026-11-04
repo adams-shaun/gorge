@@ -565,6 +565,19 @@ const ExtCounterPlusEOT ExtOp = 247
 
 func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 
+// ExtGrantPanharm (Lwaxana Troi, Charming Guest): the object in Obj (a target
+// slot) gains "if a triggered ability of this permanent triggers, that
+// ability triggers an additional time" for as long as the resolving ability's
+// source stays tapped on the battlefield and the object stays on the
+// battlefield (gorge Effect Mode$ Panharmonicon | ValidCard$ Card.IsRemembered,
+// Duration$ UntilUntaps, ExileOnMoved$ Battlefield; CR 603.2d, 611.2b). Nothing
+// is granted when the source is not a tapped permanent as this resolves. One
+// record per grant in genState.pgT / pgH, counted by the echo walk beside the
+// printed StatPanharmonicon statics. dirac/act_grantpanharm.go.
+const ExtGrantPanharm ExtOp = 248
+
+func init() { extOpNames[ExtGrantPanharm] = "GrantPanharm" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a
@@ -574,3 +587,15 @@ func init() { extOpNames[ExtCounterPlusEOT] = "CounterPlusEOT" }
 const ExtChooseNumber ExtOp = 230
 
 func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
+
+// ExtChooseName: an as-enters nonland card-name choice (CR 614.12, 201.4;
+// gorge's ETB NameCard replacement, ValidCards$ Card.nonLand, Defined$ You):
+// the entering permanent's controller chooses the name of one nonland card
+// of the matchup (a ChGenName decision, mode = the card's CardID), kept in
+// the permanent's chosen byte as that CardID (Kai Winn, Faithless Leader).
+// Only the first instruction of an enters program. dirac/repl_choosename.go.
+// 248 and 250 were taken by ExtGrantPanharm and ExtEnterAttacking on land
+// after this branch cut, so the Kai Winn sub-op takes the next free ordinal.
+const ExtChooseName ExtOp = 251
+
+func init() { extOpNames[ExtChooseName] = "ChooseName" }

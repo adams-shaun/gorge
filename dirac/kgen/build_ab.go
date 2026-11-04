@@ -1350,6 +1350,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.CounterCell {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
+	if t.NamedCast {
+		if t.Event != "SpellCast" {
+			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4NamedCast
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
@@ -1391,6 +1397,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	if st.Cond2, err = cb.cond(s.Cond); err != nil {
 		return ka, nil, err
 	}
+	st.OvGate = s.OvGate
 	filter := func(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 		if f == nil {
 			return 0, nil
@@ -1801,6 +1808,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "FunctionsInExile":
+				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":
@@ -1948,6 +1957,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplCantBeCountered
 	case "DoesntUntap":
 		rp.Kind = kop.ReplDoesntUntap
+	case "MayNotUntap":
+		rp.Kind = kop.ReplMayNotUntap
 	case "OthersDoesntUntap":
 		rp.Kind = kop.ReplOthersDoesntUntap
 		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
@@ -3328,6 +3339,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+	case "GrantPanharm":
+		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))
@@ -3882,6 +3896,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseColor, int16(in.C) // in.C: the Exclude$ colours (W U B R G = bits 0..4)
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	case "ChooseName":
+		buildChooseName(&ki) // an as-enters nonland card name (lower_choosename.go)
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

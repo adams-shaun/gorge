@@ -177,8 +177,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return 0
 	case kop.ExRefCount:
 		// gorge evalRefProperty Valid: the live object (MatchesSpecCtx), a
-		// battlefield permanent or the card in its new zone
-		return s.countRefMatches(k, x.Ref, x.F, ctx)
+		// battlefield permanent or the card in its new zone. N 1 is the
+		// Sacrificed$Valid type read's sacrifice-time snapshot.
+		return s.countRefMatchesN(k, x.Ref, x.F, ctx, x.N == 1)
 	case kop.ExTriggerSpellMVLKI:
 		if e := ctx.e; e != nil && e.trigObj != NoObj {
 			return int(e.trigMV) // snapshotted at trigger queue time

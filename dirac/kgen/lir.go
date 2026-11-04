@@ -604,6 +604,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	NamedCast     bool  // SpellCast lowered from Mode$ SpellAbilityCast over the source's chosen card name: also fires on an activation of a source with that name (kop.Tf4NamedCast; lower_choosename.go)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);
@@ -763,6 +764,9 @@ type lStatic struct {
 	// Ctr: a CantPutCounter's CounterType$ kind, -1 for every kind
 	// (kop.Static.A; Blossombind, Blightbeetle)
 	Ctr int16
+	// OvGate: the bit of lOverride.GrantStatics that switches this static on
+	// (kop.Static.OvGate); 0 = a printed static
+	OvGate uint8
 }
 
 // lOverride is the override record a hard static/effect applies.
@@ -796,11 +800,12 @@ type lOverride struct {
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 }
 
 // Replacement-lite kinds.
 type lRepl struct {
-	Kind string // EntersTapped, EntersWithCounters, CantBeCountered, DoesntUntap, EntersAsChoice, CantLoseGame, OthersEnterTapped, OthersEnterWithCounters
+	Kind string // EntersTapped, EntersWithCounters, CantBeCountered, DoesntUntap, MayNotUntap, EntersAsChoice, CantLoseGame, OthersEnterTapped, OthersEnterWithCounters
 	F    *lFilter
 	Cond lCond
 	N    lValue

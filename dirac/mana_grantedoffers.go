@@ -359,6 +359,12 @@ type grantSrch struct {
 	k    *prep
 	p    uint8
 	cost kop.ManaCost
+	// full is the play's cost before a waterbend offer credit and dyn marks
+	// that the credit depends on this node's pool (a paid filter's fee, a
+	// once-a-turn ability already used): visit prices full again at every
+	// node (gorge's potentialPlayVerdict -> withWaterbendOfferCredit).
+	full kop.ManaCost
+	dyn  bool
 	ex   Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
@@ -482,7 +488,11 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &g.cost, g.ex, g.d) && !g.waitsForStack(t) {
+	cost := g.cost
+	if g.dyn {
+		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
 		return true
 	}
 	pl := &t.pl[g.p&1]
@@ -809,6 +819,11 @@ func (s *State) grantPayDescOf(a Action) payDesc {
 //go:noinline
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, g *grantSrch) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps}
+	if d.hasPlay {
+		if full, ok := s.grantWaterbendFull(k, d.play); ok {
+			g.full, g.dyn = full, true
+		}
+	}
 	g.candidates(s)
 	if g.n == 0 {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)
@@ -974,6 +989,18 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 			// an either-or additional cost: the planner prices the spell with the part
 			// gorgeLowers prices, so the search funds that (Deadly Precision's {B})
 			return s.altAddPlanCost(k, p, c, Obj(a.Source())), ex, true
+		}
+		if c := s.objs[a.Source()].card; a.Mode()&3 == 0 && a.Target() == 0 && modalFloorZero(k, c) {
+			// a Spree or Tiered face: the cast planner declines the shape
+			// ("shape:modal_cost"), so gorge's potential planner prices the printed
+			// cost from its census and the prefix search taps a granted source the
+			// census misses (CR 601.2g); the mode costs are added at the cast
+			// (CR 702.172a)
+			cost := s.featCost(k, p&1, c, Obj(a.Source()), k.cards[c].cost)
+			if s.g.mayPlayAny {
+				cost = anyType(cost)
+			}
+			return cost, ex, true
 		}
 		cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&(3|castMayPlay), true, true)
 		return cost, ex, ok

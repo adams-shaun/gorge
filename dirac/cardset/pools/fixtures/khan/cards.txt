@@ -1,0 +1,10 @@
+# the own-exile may-play pool: Khan, Vengeful Heart ("you may cast this card
+# from exile") beside white removal that exiles it, creatures and basics, for
+# the oracle's constructed lockstep (dirac/oracle/khan_test.go)
+Khan, Vengeful Heart
+Swords to Plowshares
+Grizzly Bears
+Walking Corpse
+Swamp
+Plains
+Forest

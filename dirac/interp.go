@@ -335,7 +335,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				break
 			}
 			s.perms[sl].flags &^= pfTapped
-			if s.g.nlA[0] != 0 {
+			if s.g.netAny() {
 				s.netDrop(s.perms[sl].obj) // the lock ends at the first untap (act_lockpermanent.go)
 			}
 			s.touchSl(sl)
@@ -543,6 +543,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) || s.instantStays(k, o, kop.Zone(in.C)) {
 			break
 		}
+		if in.Obj == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
+			break // the activated ability's source returned and left again: a new object (CR 400.7; Postmortem Professor)
+		}
 		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
 			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)
 		}
@@ -616,7 +619,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				p.flags &^= pfTapped
-				if s.g.nlA[0] != 0 {
+				if s.g.netAny() {
 					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 				}
 			}
@@ -906,10 +909,12 @@ func (s *State) applyResolve(k *prep, a Action) {
 		if chained {
 			s.flushHeldDiscard(k, r.chosen^1)
 		}
-		for i := 0; i < int(r.peekI); i++ {
-			if chained || !s.park(k, r.arr[i], parkDiscard, 0) {
+		if chained && !s.parkedDiscardWaiting() {
+			for i := 0; i < int(r.peekI); i++ {
 				s.discardObj(k, r.arr[i])
 			}
+		} else { // behind a held pick's ask the chained picks wait too
+			s.discardPicks(k, r.arr[:r.peekI], 0)
 		}
 		r.peekI = 0
 	case raScryTop, raSurveil:
