@@ -463,7 +463,10 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		return
 	}
 	if e.Counter != "chosen-name" && (len(e.IDs) == 0 || e.IDs[0] == 0) {
-		o.SetCopyFace(nil)
+		// a token copy goes back to the copy it was created as, its own
+		// copiable values (CR 707.2), not to the printed card it was minted on
+		o.SetCopyFace(o.TokenBasis)
+		o.CopyFaceBack = o.TokenBasisBack
 		o.CastFlags &^= state.FlagPrototype
 		o.CopyGainThisAbility = false
 		return
@@ -570,6 +573,11 @@ func foldClonePermanent(g *state.Game, e *Event) {
 		// binding so the synthetic face takes the computed paths a token
 		// face takes.
 		sf.ForgetCompiled()
+	}
+	if o.IsToken && o.IsCopy && !o.TokenBasisSaved {
+		// the token copy's own copiable values, which this copy effect
+		// overrides only while it lasts (CR 707.2, 707.9b)
+		o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = o.CopyFace, o.CopyFaceBack, true
 	}
 	o.SetCopyFace(&sf)
 	// CR 718.3c/d: a permanent that becomes a copy of a prototyped permanent
