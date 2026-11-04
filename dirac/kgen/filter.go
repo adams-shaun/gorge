@@ -246,7 +246,7 @@ const (
 // permanent (Card.Self). A static granting an ability over such a filter is a
 // self-grant: the recipient is the grantor, so its SVar references resolve
 // against the grantor's face in gorge too. Anything else may affect another
-// permanent (see lowerCtx.grantedLoyaltyCross).
+// permanent.
 func filterSelfOnly(f *lFilter) bool {
 	if f == nil || len(f.Clauses) == 0 {
 		return false

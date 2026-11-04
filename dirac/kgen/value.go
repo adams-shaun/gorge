@@ -40,14 +40,6 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// ChosenNumber, ahead of any SVar (lower_choosenumber.go)
 		return lValue{Kind: vChosenNumber}, nil
 	}
-	if lc.grantedLoyaltyCross {
-		if _, ok := lc.face.SVars[raw]; ok {
-			// A cross-object granted ability resolves its SVars off the
-			// recipient (gorge abilityResolutionSVars), so a name the
-			// grantor defines is not found there and Num degrades to zero.
-			return cst(0), nil
-		}
-	}
 	body, ok := lc.face.SVars[raw]
 	if !ok && raw == lc.rollName && lc.rollAb == lc.ab && lc.ab != nil {
 		// gorge Num: a RollDice ResultSVar$ publication, read after the

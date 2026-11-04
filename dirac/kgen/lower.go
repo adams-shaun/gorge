@@ -216,19 +216,6 @@ type lowerCtx struct {
 	// chosenOppAb is the ability whose one-opponent ChoosePlayer is lowered
 	// ChosenPlayer reads the opponent in that ability only.
 	chosenOppAb *lAbility
-	// grantedLoyaltyCross while a static's AddAbility body is lowered for a
-	// cross-object grant of a LOYALTY ability. Gorge resolves such an
-	// ability's SVar references off the RECIPIENT planeswalker's face at
-	// resolution (engine/rules/resolution_ability_ctx.go
-	// abilityResolutionSVars), not the grantor's, so a bare SVar name the
-	// recipient lacks degrades to zero (engine/effects/count.go
-	// numResolvedText). Avatar of Burgeoning Echoes' granted [-10] is the
-	// carrier: its CounterNum$ X is 0, not the grantor's land count. The
-	// other cross-object grants keep their existing lowering: a loyalty
-	// activation is the one shape whose recipient is a token with no SVar
-	// table of its own, and narrowing here leaves the corpus's untested
-	// non-loyalty grants byte-identical.
-	grantedLoyaltyCross bool
 }
 
 // lowerCard lowers a card; a refusal is recorded in out.Refusals (the card
@@ -2705,7 +2692,9 @@ func (lc *lowerCtx) newLatent(name string) *lAbility {
 
 // grantedAbility lowers an SVar-held activated ability another permanent
 // is granted (an equipment's or aura's AddAbility$) and returns its index.
-func (lc *lowerCtx) grantedAbility(name string, cross bool) (int, error) {
+// A cross-object grant's SVar names resolve off the grantor's face, the face
+// lowered here, as gorge's grantedAbilitySVars reads them.
+func (lc *lowerCtx) grantedAbility(name string) (int, error) {
 	lc.granted++
 	defer func() { lc.granted-- }()
 	sa := cards.ResolveSVar(lc.face.SVars, name)
@@ -2713,10 +2702,7 @@ func (lc *lowerCtx) grantedAbility(name string, cross bool) (int, error) {
 		return 0, refuse("granted ability %q", name)
 	}
 	idx := len(lc.out.Abilities)
-	savedCross := lc.grantedLoyaltyCross
-	lc.grantedLoyaltyCross = cross && strings.TrimSpace(sa.Params["Planeswalker"]) == "True"
 	err := lc.withAbility(lc.ab, func() error { return lc.lowerAbility(sa) })
-	lc.grantedLoyaltyCross = savedCross
 	if err != nil {
 		return 0, err
 	}

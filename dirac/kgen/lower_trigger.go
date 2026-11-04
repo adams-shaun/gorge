@@ -2126,7 +2126,6 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	st.F = f
-	cross := !filterSelfOnly(f)
 	if gc, ok := sp.get("GainControl"); ok {
 		// layer 2 (CR 613.1b): "You control enchanted creature";
 		// the kernel settles it on the source's attached object, so the
@@ -2311,7 +2310,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 	}
 	if ab, ok := sp.get("AddAbility"); ok {
-		idx, err := lc.grantedAbility(ab, cross)
+		idx, err := lc.grantedAbility(ab)
 		if err != nil {
 			return nil, err
 		}
@@ -2715,7 +2714,7 @@ func (lc *lowerCtx) finishOverrideStatic(sp *params, st *lStatic, o *lOverride) 
 		lc.out.Tokens = append(lc.out.Tokens, nameCardKey+n)
 	}
 	if ab, ok := sp.get("AddAbility"); ok {
-		idx, err := lc.grantedAbility(ab, !filterSelfOnly(st.F))
+		idx, err := lc.grantedAbility(ab)
 		if err != nil {
 			return err
 		}
