@@ -609,6 +609,14 @@ func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx)
 		}
 		return one(Obj(t))
 	}
+	if r == kop.RefTriggerObj && ctx.e != nil && ctx.e.li != 0 {
+		if m, ok := s.matchTrigLKI(k, f, ctx.e.trigObj, ctx); ok { // trig_enteredlki.go
+			if m {
+				return 1
+			}
+			return 0
+		}
+	}
 	return one(s.refObjCtx(r, ctx))
 }
 

@@ -16,6 +16,25 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // creature); off the battlefield the printed types (prep.cards[c].types,
 // as every other card-path type read).
 
+// powerGEVFrom is PredPowerGEV for a filter read with a source permanent:
+// the value is read in that source's context when it is not the resolving
+// entry's source, as gorge evaluates a trigger's ValidCard$ with the
+// trigger's host as the source (Ensign Harry Kim, Operations' "greater
+// power than Ensign Kim" while another creature's spell resolves).
+//
+//go:noinline
+func (s *State) powerGEVFrom(k *prep, fl *kop.Filter, sl, src Slot) bool {
+	if s.xBoundPending(fl) {
+		return true
+	}
+	ctx := s.ctxCur()
+	if ctx.srcSl != src {
+		ctx = evalCtx{src: s.perms[src].obj, srcSl: src, ctrl: s.perms[src].ctrl}
+	}
+	pw, _ := s.ptGen(k, sl)
+	return pw >= s.evalV(k, fl.PredV, ctx)
+}
+
 // predPermCold is the predicate switch's default arm for a battlefield
 // permanent: the later kinds, dispatched here so the hot
 // switch table stays as it was.
@@ -116,7 +135,7 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		return fl.PredN == 0 // off the battlefield nothing is solved (gorge clears Solved on the move)
 	}
 	if fl.Pred == kop.PredMonstrous || fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV || fl.Pred == kop.PredTotalPT || fl.Pred == kop.PredBlocked {
-		return false // only a battlefield permanent is monstrous; PredPowerGEV and PredToughnessLEV are lowered for the battlefield only
+		return false // only a battlefield permanent is monstrous; PredToughnessLEV is lowered for the battlefield only (PredPowerGEV off it: cardPowerGEV)
 	}
 	if fl.Pred >= kop.PredNoCounters && fl.Pred <= kop.PredMonoColor {
 		return predCardKvf(k, fl, c, fd) // filter_valueheads.go
