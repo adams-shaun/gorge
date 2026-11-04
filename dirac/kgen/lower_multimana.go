@@ -183,10 +183,17 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
-	// the gate may be the only thing off the plain shape
+	// the gate may be the only thing off the plain shape; a card's only mana
+	// ability may also make a literal amount above one of one fixed colour
+	// (Temple of the False God's {C}{C}): its gate-on view is the plain
+	// source's, manaN of it (prepManaGate)
 	plain := func(a *lAbility) bool {
 		c := *a
 		c.ActCond = lCond{}
+		if m := *c.Mana; len(ms) == 1 && len(m.Colors) == 1 && !m.Choice && !m.Each && m.Amount.Kind == vConst && m.Amount.N > 1 && m.Amount.N <= maxEachMana {
+			m.Amount.N = 1
+			c.Mana = &m
+		}
 		return plainTapMana(&c, false) && unrestrictedOne(&c)
 	}
 	for _, a := range ms {

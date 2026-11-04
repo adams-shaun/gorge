@@ -48,7 +48,9 @@ func TestGatedManaRefusals(t *testing.T) {
 		{"any colour beside a colour", []*cards.SA{gatedmanaRefuseMana("B", nil), gatedmanaRefuseMana("Any", gate)}, "gated mana ability beside a choice ability"},
 		{"choice beside fixed", []*cards.SA{gatedmanaRefuseMana("B", nil), gatedmanaRefuseMana("Combo W U", gate)}, "gated mana ability beside a choice ability"},
 		{"same colour", []*cards.SA{gatedmanaRefuseMana("B", nil), gatedmanaRefuseMana("B", gate)}, "gated mana ability of the same colour as the first"},
-		{"amount 2", []*cards.SA{gatedmanaRefuseMana("C", map[string]string{"IsPresent": "Land.YouCtrl", "PresentCompare": "GE5", "Amount": "2"})}, "gated mana ability beside a mana ability or cost not modelled"},
+		{"single gated amount 2", []*cards.SA{gatedmanaRefuseMana("C", map[string]string{"IsPresent": "Land.YouCtrl", "PresentCompare": "GE5", "Amount": "2"})}, ""},
+		{"gated amount 2 beside another", []*cards.SA{gatedmanaRefuseMana("B", nil), gatedmanaRefuseMana("R", map[string]string{"IsPresent": "Land.YouCtrl", "Amount": "2"})}, "gated mana ability beside a mana ability or cost not modelled"},
+		{"gated amount 2 of any colour", []*cards.SA{gatedmanaRefuseMana("Any", map[string]string{"IsPresent": "Land.YouCtrl", "Amount": "2"})}, "gated mana ability beside a mana ability or cost not modelled"},
 		{"extra cost", []*cards.SA{gatedmanaRefuseMana("C", map[string]string{"IsPresent": "Land.YouCtrl", "Cost": "T PayLife<1>"})}, "gated mana ability beside a mana ability or cost not modelled"},
 	}
 	for _, c := range cases {
