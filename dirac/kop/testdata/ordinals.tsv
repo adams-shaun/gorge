@@ -390,6 +390,7 @@ ExtDividedCounters	ExtOp	30
 ExtEachDamage	ExtOp	2
 ExtEffEtbCtr	ExtOp	197
 ExtEndure	ExtOp	9
+ExtEnterAttacking	ExtOp	250
 ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
@@ -889,7 +890,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	30
+ReplCount	ReplKind	31
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -924,6 +925,7 @@ ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
 ReplPreventNoncombatToOthers	ReplKind	11
+ReplRewriteTokens	ReplKind	30
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
 RetAttachShift	untyped int	8
@@ -965,6 +967,7 @@ StEmbNum	StaticFlags	16384
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
+StAlsoSideboard	StaticFlags	1024
 StPanhETB	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
@@ -993,8 +996,8 @@ StatCantBlock	StaticKind	3
 StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
-StatCantPutCounter	StaticKind	252
 StatCantPhaseIn	StaticKind	238
+StatCantPutCounter	StaticKind	252
 StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6
@@ -1253,4 +1256,5 @@ ZoneLibrary	Zone	1
 ZoneNone	Zone	0
 ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
+ZoneSideboard	Zone	10
 ZoneStack	Zone	6

@@ -89,14 +89,14 @@ func init() {
 		"kop.ReplDoubleCountersOn", kop.ReplDoubleCountersOn, "kop.ReplAddCountersOn", kop.ReplAddCountersOn, "kop.ReplOnePoison", kop.ReplOnePoison, "kop.ReplDoubleCountersYou", kop.ReplDoubleCountersYou,
 		"kop.ReplOthersDoesntUntap", kop.ReplOthersDoesntUntap, "kop.ReplLifeDouble", kop.ReplLifeDouble, "kop.ReplLifeLossDouble", kop.ReplLifeLossDouble,
 		"kop.ReplLifePlus", kop.ReplLifePlus, "kop.ReplTurnUpProgram", kop.ReplTurnUpProgram, "kop.ReplCantTurnUp", kop.ReplCantTurnUp,
-		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore)
+		"kop.ReplSpellsCantBeCountered", kop.ReplSpellsCantBeCountered, "kop.ReplAnyUntap", kop.ReplAnyUntap, "kop.ReplDrawMore", kop.ReplDrawMore, "kop.ReplRewriteTokens", kop.ReplRewriteTokens)
 	enum[kop.AbilityKind]("kop.AbSpell", kop.AbSpell, "kop.AbActivated", kop.AbActivated, "kop.AbMana", kop.AbMana,
 		"kop.AbTriggered", kop.AbTriggered, "kop.AbStatic", kop.AbStatic, "kop.AbReplacement", kop.AbReplacement,
 		"kop.AbAltCost", kop.AbAltCost)
 	enum[kop.Zone]("kop.ZoneNone", kop.ZoneNone, "kop.ZoneLibrary", kop.ZoneLibrary, "kop.ZoneHand", kop.ZoneHand,
 		"kop.ZoneBattlefield", kop.ZoneBattlefield, "kop.ZoneGraveyard", kop.ZoneGraveyard, "kop.ZoneExile", kop.ZoneExile,
 		"kop.ZoneStack", kop.ZoneStack, "kop.ZoneCommand", kop.ZoneCommand,
-		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd)
+		"kop.ZonePhased", kop.ZonePhased, "kop.ZonePhasedInd", kop.ZonePhasedInd, "kop.ZoneSideboard", kop.ZoneSideboard)
 	enum[kop.Timing]("kop.TimingSorcery", kop.TimingSorcery, "kop.TimingInstant", kop.TimingInstant, "kop.TimingLand", kop.TimingLand)
 	enum[kop.TargetKind]("kop.TgtNone", kop.TgtNone, "kop.TgtObject", kop.TgtObject, "kop.TgtPlayer", kop.TgtPlayer,
 		"kop.TgtAny", kop.TgtAny, "kop.TgtSpell", kop.TgtSpell, "kop.TgtCard", kop.TgtCard, "kop.TgtStackObj", kop.TgtStackObj, "kop.TgtStackAb", kop.TgtStackAb,
@@ -220,7 +220,7 @@ func init() {
 		"kop.Tf3Static", kop.Tf3Static, "kop.Tf3MayPlaySrc", kop.Tf3MayPlaySrc, "kop.Tf3GameOnce", kop.Tf3GameOnce, "kop.Tf3FirstAttack", kop.Tf3FirstAttack)
 	mask[kop.StaticFlags]("kop.StDynamic", kop.StDynamic, "kop.StOncePerTurn", kop.StOncePerTurn, "kop.StAnyManaType", kop.StAnyManaType,
 		"kop.StWithoutManaCost", kop.StWithoutManaCost, "kop.StFunctionsInGraveyard", kop.StFunctionsInGraveyard,
-		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof, "kop.StPanhETB", kop.StPanhETB)
+		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof, "kop.StPanhETB", kop.StPanhETB, "kop.StAlsoSideboard", kop.StAlsoSideboard)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,
 		"kop.AfManaChoice", kop.AfManaChoice, "kop.AfGift", kop.AfGift, "kop.AfResolveCount", kop.AfResolveCount, "kop.AfStation", kop.AfStation, "kop.AfManaReflect", kop.AfManaReflect, "kop.AfManaNonSpell", kop.AfManaNonSpell)

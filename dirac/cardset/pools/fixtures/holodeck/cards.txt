@@ -1,0 +1,16 @@
+# the The Holodeck pool: the once-per-turn "play a permanent card you own from
+# outside the game or from your graveyard" static (AffectedZone$
+# Sideboard,Graveyard) beside permanents to put in the sideboard (a creature,
+# a land, a mana artifact) and removal that fills the graveyards, for the
+# oracle's constructed lockstep (dirac/oracle/holodeck_test.go)
+Doom Blade
+Forest
+Grizzly Bears
+Llanowar Elves
+Mountain
+Plains
+Savannah Lions
+Shock
+Sol Ring
+Swamp
+The Holodeck

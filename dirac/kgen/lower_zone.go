@@ -1617,7 +1617,17 @@ func (lc *lowerCtx) play(ps *params) error {
 		return refuse("Play Controller %q", c)
 	}
 	amount := ps.str("Amount")
-	if amount != "" && amount != "1" && amount != "All" {
+	// Amount$ X with AllowRepeats$ True (CR 707.12: "copy that card X times, you
+	// may cast the copies", Infinite Diversity): the one remembered card is
+	// offered X times, each pick one copy cast. Read only for the copy-cast
+	// shape the kernel proves in lockstep (CopyCard$ above).
+	repeat := false
+	if v, ok := ps.get("AllowRepeats"); ok {
+		if v != "True" || !copyCard || amount == "" || amount == "1" || amount == "All" {
+			return refuse("Play AllowRepeats %q", v)
+		}
+		repeat = true
+	} else if amount != "" && amount != "1" && amount != "All" {
 		return refuse("Play Amount %q", amount)
 	}
 	forget := false
@@ -1672,6 +1682,13 @@ func (lc *lowerCtx) play(ps *params) error {
 	if copyCard {
 		cs += "|Copy"
 	}
+	var repeatN lValue
+	if repeat {
+		if repeatN, err = lc.value(amount); err != nil {
+			return err
+		}
+		cs += "|Repeat"
+	}
 	if forget {
 		cs += "|Forget"
 	}
@@ -1690,7 +1707,7 @@ func (lc *lowerCtx) play(ps *params) error {
 				return err
 			}
 		}
-		lc.emit(lInstr{Op: "CastFree", Obj: obj, F: f, C: zone, CS: cs})
+		lc.emit(lInstr{Op: "CastFree", Obj: obj, A: repeatN, F: f, C: zone, CS: cs})
 		return nil
 	}
 
