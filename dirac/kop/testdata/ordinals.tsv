@@ -315,6 +315,7 @@ ExDistinctCMC	ExprKind	6
 ExDrawnThisTurn	ExprKind	40
 ExExcessDamage	ExprKind	21
 ExExiledWithN	ExprKind	246
+ExFirstCast	ExprKind	255
 ExGraveAgg	ExprKind	43
 ExGraveTypes	ExprKind	41
 ExHandSizeOf	ExprKind	26

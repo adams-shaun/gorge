@@ -378,6 +378,9 @@ type genPrep struct {
 	// anyTriggerAttackers: some program reads RefTriggerAttackers
 	// (trig_attackers.go)
 	anyTriggerAttackers bool
+	// anyFirstCast: some expression is ExFirstCast, so the cast path stamps the
+	// first spell each seat casts (cast_firstcast.go)
+	anyFirstCast bool
 }
 
 // Replacement bits (genPrep.replBits).
@@ -476,6 +479,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if t.Exprs[i].Kind == kop.ExThisTurnActGrave {
 			g.actRingOn = true
+		}
+		if t.Exprs[i].Kind == kop.ExFirstCast {
+			g.anyFirstCast = true // cast_firstcast.go
 		}
 		if t.Exprs[i].Kind == kop.ExDilemmasFaced {
 			g.anyDilemma = true // trig_dilemma.go
@@ -1502,6 +1508,7 @@ type genState struct {
 	speed    uint8    // both seats' speed (3 bits each) and the once-per-turn speed trigger latch (bit 6; kw_speed.go; padding)
 	noPoison uint8    // bit p: player p can't get additional poison counters this turn (Melira's replacement; trig_leavereturn.go; padding)
 	plusCtr  [2]uint8 // per player, how many Brad Boimler counter-plus-one effects are active this turn (ctr_pluseot.go; padding)
+	cast1    uint8    // bit p: seat p has cast a spell this game, recorded only for a table reading ExFirstCast (cast_firstcast.go; padding)
 	ctrAdder uint8    // transient: the player putting the counters being placed, +1 (0: the resolving / building controller; trig_leavereturn.go; padding)
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card

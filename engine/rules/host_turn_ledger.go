@@ -224,6 +224,24 @@ func (e *Engine) ExtraTurnsBegun(p state.PlayerID) int32 {
 	return n
 }
 
+// SpellsCastThisGame satisfies effects.Host's SpellsCastThisGame: p's casts
+// since the game began (a restart counts from its own base), newest first so a
+// CR 733.1 reversal meets the cast it undid.
+func (e *Engine) SpellsCastThisGame(p state.PlayerID) int32 {
+	var n int32
+	var rev events.CastReversals
+	for i := len(e.L.Events) - 1; i >= e.turnLedgerBase; i-- {
+		ev := e.L.Events[i]
+		if rev.Undone(&ev) {
+			continue
+		}
+		if ev.Kind == events.PutOnStack && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
 // AttackersThisTurn satisfies effects.Host's AttackersThisTurn for
 // Count$AttackersDeclared (the Raid family's "attacked this turn" read): the
 // number of attackers declared this turn, summed from every DeclareAttackers
