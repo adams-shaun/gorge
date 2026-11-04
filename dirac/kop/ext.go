@@ -578,6 +578,17 @@ const ExtGrantPanharm ExtOp = 248
 
 func init() { extOpNames[ExtGrantPanharm] = "GrantPanharm" }
 
+// ExtSearchCounters (Captain Jean-Luc Picard): the WithCountersType$ /
+// WithCountersAmount$ rider of a library search onto the battlefield. B is
+// the amount (a positive constant) and C the counter kind: the found card
+// that enters the battlefield consumes genState.enterCtr and enters with
+// that many counters (CR 122.6), exactly as a graveyard pick's rider does.
+// B <= 0 clears the pending entry counters, so kgen emits the op again
+// right after the OpSearchEx. dirac/ctr_search.go.
+const ExtSearchCounters ExtOp = 249
+
+func init() { extOpNames[ExtSearchCounters] = "SearchCounters" }
+
 // ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
 // ChooseNumber replacement, etbOptions' "number" arm through
 // effects.ETBNumberChoices): the entering permanent's controller chooses a

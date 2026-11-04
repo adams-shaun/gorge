@@ -2026,6 +2026,10 @@ func putsTimeCounters(d *kop.CardDef) bool {
 				if in.B.K == kop.VConst && kop.CounterKind(in.B.N) == kop.CtrTime {
 					return true
 				}
+			case kop.OpExt:
+				if in.Ext() == kop.ExtSearchCounters && kop.CounterKind(in.C) == kop.CtrTime {
+					return true
+				}
 			}
 		}
 	}

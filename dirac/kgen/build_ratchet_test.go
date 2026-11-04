@@ -133,8 +133,9 @@ import (
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
 // +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21449 -> 21450; ratchet TRK 282 -> 283).
 // +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; 21450 -> 21451; ratchet TRK 283 -> 284).
+// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; 21456 -> 21460; ratchet TDM 243 -> 244, TRK 289 -> 290).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21456, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21460, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

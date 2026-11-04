@@ -27,8 +27,9 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; TRK 281 -> 282).
 	// +1 (First Contact: the first-spell-cast rider; TRK 282 -> 283).
 	// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; TRK 283 -> 284).
+	// +4 (a library search's WithCountersType$ entry rider: Captain Jean-Luc Picard, Magmatic Hellkite, Neoform and Wakanda Forever!; ALL 21456 -> 21460; TDM 243 -> 244, TRK 289 -> 290).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21456, 34442},
+	"ALL": {21460, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -51,11 +52,11 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"SNC": {185, 266},
 	"SOS": {247, 270},
 	"SPM": {159, 192},
-	"TDM": {243, 276},
+	"TDM": {244, 276},
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {289, 311},
+	"TRK": {290, 311},
 	"WOE": {252, 281},
 }
 

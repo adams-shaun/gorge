@@ -304,8 +304,34 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					flags = append(flags, "ThenTop")
 				}
 			}
-			if counterKind != "" || override != nil {
-				return refuse("search with counters/override")
+			if override != nil {
+				return refuse("search with override")
+			}
+			var searchKind kop.CounterKind
+			if counterKind != "" {
+				if dest != zBattlefield {
+					// gorge ignores the rider on a destination that cannot
+					// carry counters (counterDestination,
+					// zone_change.go:578-585), so the search drops it.
+					counterKind = ""
+				} else {
+					k, ok := counterKinds[counterKind]
+					if !ok {
+						return refuse("WithCountersType$ %q", counterKind)
+					}
+					if !counters.isConst() || counters.N < 1 || counters.N > 255 {
+						return refuse("WithCountersAmount$ %v on a library search", counters)
+					}
+					if !isConstN(n, 1) {
+						return refuse("search onto the battlefield for %v cards with counters", n)
+					}
+					if f.Each {
+						// The arm covers one entrant; an EACH pick would
+						// leave the later cards bare.
+						return refuse("EACH library search onto the battlefield with counters")
+					}
+					searchKind = k
+				}
 			}
 			// DefinedPlayer$: whose library is searched. Gorge reads it for
 			// this ChangeZone shape (params.DefinedPlayerRef); absent or
@@ -360,6 +386,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					return refuse("OriginAlternative$ with DifferentNames$")
 				case obj.Kind != rYou:
 					return refuse("OriginAlternative$ with DefinedPlayer$")
+				case counterKind != "":
+					return refuse("OriginAlternative$ with WithCountersType$")
 				case !isConstN(n, 1):
 					return refuse("OriginAlternative$ with ChangeNum$ %v", n)
 				}
@@ -373,7 +401,16 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 					}
 				}
 			}
+			if counterKind != "" {
+				// The found card enters with the rider's counters: arm the
+				// entry, search, then clear (a failed or declined search
+				// leaves nothing behind). dirac/ctr_search.go.
+				lc.emit(lInstr{Op: "SearchCounters", B: counters, C: int(searchKind)})
+			}
 			lc.emit(lInstr{Op: "Search", Obj: obj, A: n, F: f, C: dest, CS: strings.Join(flags, "|")})
+			if counterKind != "" {
+				lc.emit(lInstr{Op: "SearchCounters", B: cst(0)})
+			}
 			return nil
 		}
 		// A WithCountersType$ rider lowers for the battlefield arm: the kind
