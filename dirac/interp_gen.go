@@ -796,7 +796,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true, true
 			}
@@ -1902,7 +1902,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	e := &s.res.e
 	if src := s.objRefObj(in.Obj); src != NoObj && s.faceDownAt(k, src) {
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return false
 			}
@@ -1918,7 +1918,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return false
 		}
