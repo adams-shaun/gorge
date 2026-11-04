@@ -754,11 +754,20 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpCreateToken, kop.OpCreateTokenEx:
+		in := in // a rewriter swaps the card on this copy
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			p = e.ctrl
 		}
-		n := s.replTokens(k, p, CardID(in.C), s.value(k, in.A))
+		tc, n, ok := s.replTokensCard(k, p, CardID(in.C), s.value(k, in.A))
+		if !ok {
+			return true, true // StallTokRewrite
+		}
+		if tc != CardID(in.C) {
+			rw := *in // a rewriter: the mint makes its card (repl_tokrewrite.go)
+			rw.C = int16(tc)
+			in = &rw
+		}
 		if in.Op == kop.OpCreateTokenEx {
 			s.g.tokMade = 0
 			if in.B.N&kop.TokAttach != 0 {

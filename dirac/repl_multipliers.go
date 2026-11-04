@@ -48,6 +48,8 @@ func prepReplMult(t *kop.Table, g *genPrep) {
 				if r.Filter != 0 || r.A > 2 {
 					g.anyFiltRepl = true
 				}
+			case kop.ReplRewriteTokens:
+				g.anyTokRew = true // repl_tokrewrite.go
 			}
 		}
 	}
