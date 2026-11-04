@@ -332,7 +332,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				break
 			}
 			s.perms[sl].flags &^= pfTapped
-			if s.g.nlA[0] != 0 {
+			if s.g.netAny() {
 				s.netDrop(s.perms[sl].obj) // the lock ends at the first untap (act_lockpermanent.go)
 			}
 			s.touchSl(sl)
@@ -613,7 +613,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				p.subCtrN(s, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d; gorge TryUntap)
 			} else if !blocked {
 				p.flags &^= pfTapped
-				if s.g.nlA[0] != 0 {
+				if s.g.netAny() {
 					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 				}
 			}

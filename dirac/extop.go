@@ -25,6 +25,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtCounterPlusEOT:
 		s.ctrPlusEOT(k) // ctr_pluseot.go
 		return true, true
+	case kop.ExtGrantPanharm:
+		s.grantPanharm(k, in) // act_grantpanharm.go
+		return true, true
 	case kop.ExtEachDamage:
 		s.eachDamage(k, in)
 		return true, true

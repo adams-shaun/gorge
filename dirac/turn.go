@@ -140,7 +140,7 @@ func (s *State) beginStep(k *prep) {
 			}
 			if p.flags&pfTapped != 0 && !blocked {
 				p.flags &^= pfTapped
-				if s.g.nlA[0] != 0 {
+				if s.g.netAny() {
 					s.netDrop(p.obj) // the lock ends at the first untap (act_lockpermanent.go)
 				}
 			}

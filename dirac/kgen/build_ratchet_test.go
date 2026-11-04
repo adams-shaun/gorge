@@ -131,8 +131,9 @@ import (
 // +1 (Ensign Pavel Chekov: RepeatEach Opponent over ChooseCard in exile with ImprintChosen$, then MayPlay over the chosen; 21446 -> 21447; ratchet TRK 279 -> 280).
 // +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; 21447 -> 21448; ratchet TRK 280 -> 281).
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
+// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; 21450 -> 21451; ratchet TRK 283 -> 284).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21450, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21451, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

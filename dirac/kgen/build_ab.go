@@ -3314,6 +3314,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+	case "GrantPanharm":
+		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
 	case "LockActs":
 		// (Braided Net) OpExt ExtLockActs on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLockActs))
