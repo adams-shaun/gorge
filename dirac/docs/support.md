@@ -29,8 +29,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TMT | 194 | 171 | 1 | 10 | 160 |
 | TRC | 337 | 286 | 0 | 20 | 266 |
 | TRK | 311 | 273 | 0 | 15 | 258 |
-| WOE | 281 | 252 | 1 | 12 | 239 |
-| ALL | 34442 | 21414 | 57 | 16916 | 4441 |
+| WOE | 281 | 252 | 0 | 13 | 239 |
+| ALL | 34442 | 21414 | 56 | 16917 | 4441 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,12 +70,12 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-57 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+56 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | decision | 2 |
-| options | 14 |
+| options | 13 |
 | projection | 1 |
 | projection-Cards.Chars.Colors | 1 |
 | projection-Cards.Chars.Keywords | 1 |
