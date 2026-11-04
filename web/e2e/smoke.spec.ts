@@ -1600,15 +1600,34 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
 }
 
 /**
+ * The controls that answer a mana-payment window, in the order a player would want them: fill the
+ * rest with the suggested sources, pay once nothing is owed, else give up the cast. Never a source
+ * row, whose first tap strands part of the cost and leaves only Done, Undo last tap and Cancel.
+ */
+const PAYMENT_ANSWERS = '[data-mana-payment] :is([data-mp-autofill], [data-mp-pay], [data-mp-cancel]):enabled';
+
+/**
+ * Rows a list prompt offers that answering may click: not a row of the priority window's action
+ * list, not a source tap inside a payment window, and not a multi-select row that is already
+ * picked, which a second click would take back.
+ */
+const PICKABLE = '[data-option]:enabled:not([aria-pressed="true"]):not([data-mana-payment] *):not(.options > .list > .option)';
+
+/** The footer buttons of a prompt, which commit a pick or answer outside the list. */
+const FOOTER = '[data-prompt-footer] button:enabled';
+
+/**
  * answerOpenAsk gives whatever the seat is asked the first thing offered, and passes priority.
- * A submit comes before a pick, or a second pick of the same row would take back the first. A
- * finished ask leaves a control behind for a moment, so a click that misses is not a failure.
+ * A payment window is answered by its own controls. A submit comes before a pick, and a picked row
+ * is never clicked again, or a multi-select would toggle forever. A finished ask leaves a control
+ * behind for a moment, so a click that misses is not a failure.
  */
 async function answerOpenAsk(page: Page): Promise<void> {
   for (const offered of [
+    page.locator(PAYMENT_ANSWERS),
     page.locator('[data-prompt-footer] button.primary:enabled'),
-    page.locator('[data-option]'),
-    page.locator('[data-prompt-footer] button:enabled'),
+    page.locator(PICKABLE),
+    page.locator(FOOTER),
     page.locator('[data-done-action]:enabled'),
     page.locator('[data-pass-action]:enabled'),
   ]) {
@@ -1626,7 +1645,7 @@ async function answerOpenAsk(page: Page): Promise<void> {
 async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
   const deadline = Date.now() + WIRE_GAME_MS;
   const hand = page.locator('.handfan [data-obj]');
-  const asked = page.locator('[data-option], [data-prompt-footer] button:enabled');
+  const asked = page.locator(`${PAYMENT_ANSWERS}, ${PICKABLE}, ${FOOTER}`);
   let undone = false;
   let land = false;
   let spell = false;
@@ -1637,7 +1656,7 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
     if (await visible(asked)) {
       did.push('ask');
       await answerOpenAsk(page);
-    } else if (!spell && (await visible(landCard))) {
+    } else if (!land && (await visible(landCard))) {
       did.push('land');
       const before = await hand.count();
       if (await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'))) {
@@ -1653,12 +1672,20 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
           undone = true;
         }
       }
-    } else if (land && !spell && (await visible(spellCard))) {
-      did.push('spell');
-      spell = await playFromHand(page, hand, spellCard, async () => {
-        const shortcut = spellCard.locator('[data-payment-card], [data-single-action]').first();
-        return (await shortcut.count()) > 0 ? shortcut : spellCard.locator('button[aria-haspopup="menu"]');
-      });
+    } else if (land && !spell && ((await visible(spellCard)) || (await visible(landCard)))) {
+      // The spell comes first: a land control that stays drawn when no land can be played must not
+      // starve it. A land is played only while the spell is out of reach, to pay for a dearer one.
+      if (await visible(spellCard)) {
+        did.push('spell');
+        spell = await playFromHand(page, hand, spellCard, async () => {
+          const shortcut = spellCard.locator('[data-payment-card], [data-single-action]').first();
+          return (await shortcut.count()) > 0 ? shortcut : spellCard.locator('button[aria-haspopup="menu"]');
+        });
+      }
+      if (!spell && (await visible(landCard))) {
+        did.push('land');
+        await playFromHand(page, hand, landCard, async () => landCard.locator('[data-play-land]'));
+      }
     } else {
       did.push('pass');
       await answerOpenAsk(page);
@@ -1717,7 +1744,7 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
           await page.locator('section.transcript .line[data-seq]').first().waitFor({ state: 'attached', timeout: WAIT_MS });
 
           // Concede is offered with an open ask, and the spell may have left the seat without one.
-          const concede = page.locator('[data-concede-control]');
+          const concede = page.locator('[data-concede-control]:enabled');
           await expect.poll(async () => {
             if (await visible(concede)) return true;
             await answerOpenAsk(page);
