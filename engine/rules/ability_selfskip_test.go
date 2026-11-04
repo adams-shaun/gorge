@@ -17,6 +17,7 @@ import (
 // names it here; Ral Zarek's SkipTurn names its target, not the activator,
 // so it reads 0 and stays out.
 func TestAbilitySelfSkipTurnsCensus(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	want := []string{
 		"Chronatog Avatar=1",

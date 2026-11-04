@@ -16,90 +16,105 @@ import (
 // key it stops reading must leave it (else the Note goes silent on a real
 // gap).
 func TestChangeZoneKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "ChangeZone", effects.ChangeZoneKnownKeys())
 }
 
 // TestChangeZoneAllKnownKeysMatchTheCensus is the same check for
 // api:ChangeZoneAll (effects.changeZoneAllKnownKeys).
 func TestChangeZoneAllKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "ChangeZoneAll", effects.ChangeZoneAllKnownKeys())
 }
 
 // TestAttachKnownKeysMatchTheCensus is the same check for api:Attach
 // (effects.attachKnownKeys).
 func TestAttachKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Attach", effects.AttachKnownKeys())
 }
 
 // TestDealDamageKnownKeysMatchTheCensus is the same check for
 // api:DealDamage (effects.dealDamageKnownKeys).
 func TestDealDamageKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "DealDamage", effects.DealDamageKnownKeys())
 }
 
 // TestPutCounterKnownKeysMatchTheCensus is the same check for
 // api:PutCounter (effects.putCounterKnownKeys).
 func TestPutCounterKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "PutCounter", effects.PutCounterKnownKeys())
 }
 
 // TestEffectKnownKeysMatchTheCensus is the same check for api:Effect
 // (effects.effectKnownKeys).
 func TestEffectKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Effect", effects.EffectKnownKeys())
 }
 
 // TestDelayedTriggerKnownKeysMatchTheCensus is the same check for
 // api:DelayedTrigger (effects.delayedTriggerKnownKeys).
 func TestDelayedTriggerKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "DelayedTrigger", effects.DelayedTriggerKnownKeys())
 }
 
 // TestCopyPermanentKnownKeysMatchTheCensus is the same check for
 // api:CopyPermanent (effects.copyPermanentKnownKeys).
 func TestCopyPermanentKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "CopyPermanent", effects.CopyPermanentKnownKeys())
 }
 
 // TestCloneKnownKeysMatchTheCensus is the same check for api:Clone
 // (effects.cloneKnownKeys).
 func TestCloneKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Clone", effects.CloneKnownKeys())
 }
 
 // TestDigKnownKeysMatchTheCensus is the same check for api:Dig
 // (effects.digKnownKeys).
 func TestDigKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Dig", effects.DigKnownKeys())
 }
 
 // TestDigUntilKnownKeysMatchTheCensus is the same check for api:DigUntil
 // (effects.digUntilKnownKeys).
 func TestDigUntilKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "DigUntil", effects.DigUntilKnownKeys())
 }
 
 // TestRemoveCounterKnownKeysMatchTheCensus is the same check for api:RemoveCounter
 // (effects.removeCounterKnownKeys).
 func TestRemoveCounterKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "RemoveCounter", effects.RemoveCounterKnownKeys())
 }
 
 // TestTokenKnownKeysMatchTheCensus is the same check for api:Token
 // (effects.tokenKnownKeys).
 func TestTokenKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Token", effects.TokenKnownKeys())
 }
 
 // TestVoteKnownKeysMatchTheCensus is the same check for api:Vote
 // (effects.voteKnownKeys).
 func TestVoteKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "Vote", effects.VoteKnownKeys())
 }
 
 // TestRepeatEachKnownKeysMatchTheCensus is the same check for api:RepeatEach
 // (effects.repeatEachKnownKeys).
 func TestRepeatEachKnownKeysMatchTheCensus(t *testing.T) {
+	t.Parallel()
 	checkKnownKeysMatchTheCensus(t, "RepeatEach", effects.RepeatEachKnownKeys())
 }
 

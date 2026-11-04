@@ -17,6 +17,7 @@ import (
 // corpus. A runtime path that reaches AllCards() or walks the universe's
 // cards fails here loudly.
 func TestAcceptanceGameMaterializesOnlyItsCards(t *testing.T) {
+	t.Parallel()
 	testutil.CorpusRegistry(t) // Skips when there is no corpus
 	cmd := exec.Command("git", "-C", ".", "rev-parse", "--show-toplevel")
 	cmd.Env = cards.GitEnv()

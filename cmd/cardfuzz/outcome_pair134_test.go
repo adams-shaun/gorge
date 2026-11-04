@@ -11,6 +11,7 @@ import (
 // graveyard card, which the mapping asked for a look id and the seat forfeited
 // as agent_error. The pair must reach its result with both lanes finished.
 func TestOutcomePair134NoForfeit(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

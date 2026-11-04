@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -20,35 +22,44 @@ func TestWalkBlockReuseInGames(t *testing.T) {
 	}
 	reg := testutil.CorpusRegistry(t)
 	all := testutil.LegacyDeckNames()
+	var mu sync.Mutex
 	var served, members uint64
 	for _, seed := range []uint64{3, 8} {
-		names := make([]string, 2)
-		decks := make([][]*cards.Card, 2)
-		for i := range names {
-			names[i] = all[(int(seed)+i*5)%len(all)]
-			decks[i] = testutil.RepoDeck(t, reg, names[i])
-		}
-		e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()})
-		b := newTestBot(seed)
-		e.Advance()
-		for n := 0; !e.G.Over && e.Pending() != nil && n < 6000; n++ {
-			if d := e.Pending(); d.Kind == decision.KPriority {
-				e.PotentialPaymentPlans(d.Player)
-				e.EnsurePaymentActions()
-				e.PotentialActions(d.Player)
+		seed := seed
+		t.Run(fmt.Sprintf("seed%d", seed), func(t *testing.T) {
+			t.Parallel()
+			names := make([]string, 2)
+			decks := make([][]*cards.Card, 2)
+			for i := range names {
+				names[i] = all[(int(seed)+i*5)%len(all)]
+				decks[i] = testutil.RepoDeck(t, reg, names[i])
 			}
-			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
-				t.Fatalf("seed %d intent %d: %v", seed, n, err)
+			e := New(Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe()})
+			b := newTestBot(seed)
+			e.Advance()
+			for n := 0; !e.G.Over && e.Pending() != nil && n < 6000; n++ {
+				if d := e.Pending(); d.Kind == decision.KPriority {
+					e.PotentialPaymentPlans(d.Player)
+					e.EnsurePaymentActions()
+					e.PotentialActions(d.Player)
+				}
+				if err := e.Submit(b.answer(e, e.Pending())); err != nil {
+					t.Fatalf("seed %d intent %d: %v", seed, n, err)
+				}
 			}
+			mu.Lock()
+			served += e.walkBlocksServed
+			members += e.walkMembersServed
+			mu.Unlock()
+		})
+	}
+	t.Cleanup(func() {
+		if served == 0 {
+			t.Fatal("no potential walk served a recorded block: the reuse path went unexercised")
 		}
-		served += e.walkBlocksServed
-		members += e.walkMembersServed
-	}
-	if served == 0 {
-		t.Fatal("no potential walk served a recorded block: the reuse path went unexercised")
-	}
-	if members == 0 {
-		t.Fatal("no PotentialMana membership list was served from the record")
-	}
-	t.Logf("%d blocks and %d membership lists served", served, members)
+		if members == 0 {
+			t.Fatal("no PotentialMana membership list was served from the record")
+		}
+		t.Logf("%d blocks and %d membership lists served", served, members)
+	})
 }

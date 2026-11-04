@@ -120,6 +120,7 @@ func ccIsCostMode(m string) bool {
 }
 
 func TestCostStaticCensus(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	supported := effects.Supported()
 	L := &ccLocator{}

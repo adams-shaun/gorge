@@ -171,26 +171,30 @@ func TestRepoDecksPlayAtEverySeatCount(t *testing.T) {
 	}
 	reg := testutil.CorpusRegistry(t)
 	for _, seats := range []int{2, 4, 6, 8} {
-		seenStart := false
-		playAcceptance(t, reg, seats, func(e *Engine, n int) {
-			label := fmt.Sprintf("%d-seat mid", seats)
-			switch {
-			case !seenStart:
-				label = fmt.Sprintf("%d-seat start", seats)
-				seenStart = true
-			case e.G.Over:
-				label = fmt.Sprintf("%d-seat end", seats)
-				// Draw before Winner -- Winner's zero value is
-				// seat 0, a real seat, so reading it unconditionally would
-				// misreport a drawn game as "seat 0 won".
-				result := "draw"
-				if !e.G.Draw {
-					result = e.G.Players[e.G.Winner].Name
+		seats := seats
+		t.Run(fmt.Sprintf("%dseats", seats), func(t *testing.T) {
+			t.Parallel()
+			seenStart := false
+			playAcceptance(t, reg, seats, func(e *Engine, n int) {
+				label := fmt.Sprintf("%d-seat mid", seats)
+				switch {
+				case !seenStart:
+					label = fmt.Sprintf("%d-seat start", seats)
+					seenStart = true
+				case e.G.Over:
+					label = fmt.Sprintf("%d-seat end", seats)
+					// Draw before Winner -- Winner's zero value is
+					// seat 0, a real seat, so reading it unconditionally would
+					// misreport a drawn game as "seat 0 won".
+					result := "draw"
+					if !e.G.Draw {
+						result = e.G.Players[e.G.Winner].Name
+					}
+					t.Logf("%d seats: %6d intents, %6d events, %3d turns, winner=%s, chain=%s",
+						seats, n, len(e.L.Events), e.G.Turn, result, e.L.Head())
 				}
-				t.Logf("%d seats: %6d intents, %6d events, %3d turns, winner=%s, chain=%s",
-					seats, n, len(e.L.Events), e.G.Turn, result, e.L.Head())
-			}
-			testutil.CheckInvariants(t, e.G, e.Pending(), label)
+				testutil.CheckInvariants(t, e.G, e.Pending(), label)
+			})
 		})
 	}
 }
@@ -208,38 +212,42 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	all := testutil.LegacyDeckNames()
 	for seed := uint64(0); seed < 5; seed++ {
-		names := make([]string, 4)
-		decks := make([][]*cards.Card, 4)
-		for i := 0; i < 4; i++ {
-			names[i] = all[(int(seed)+i)%len(all)]
-			decks[i] = testutil.RepoDeck(t, reg, names[i])
-		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe(),
-			// Mulligans must travel in the same Config replay is handed;
-			// this replay-exactness test exercises the round so a concession of
-			// mutating it silently would be caught here.
-			Mulligans: 1}
-		e := New(cfg)
-		b := newTestBot(seed)
-		e.Advance()
-		n := 0
-		for !e.G.Over && e.Pending() != nil && n < 400000 {
-			if err := e.Submit(b.answer(e, e.Pending())); err != nil {
-				t.Fatalf("seed %d, intent %d: %v", seed, n, err)
+		seed := seed
+		t.Run(fmt.Sprintf("seed%d", seed), func(t *testing.T) {
+			t.Parallel()
+			names := make([]string, 4)
+			decks := make([][]*cards.Card, 4)
+			for i := 0; i < 4; i++ {
+				names[i] = all[(int(seed)+i)%len(all)]
+				decks[i] = testutil.RepoDeck(t, reg, names[i])
 			}
-			n++
-		}
-		if !e.G.Over {
-			t.Fatalf("seed %d did not terminate after %d intents (turn %d)", seed, n, e.G.Turn)
-		}
-		re, err := replayFor(cfg, e.L)
-		if err != nil {
-			t.Fatalf("seed %d: %v", seed, err)
-		}
-		if re.L.Head() != e.L.Head() {
-			t.Fatalf("seed %d chain %s, replay %s", seed, e.L.Head(), re.L.Head())
-		}
-		t.Logf("seed %d: %d intents, chain %s, replay OK", seed, n, e.L.Head())
+			cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Universe(),
+				// Mulligans must travel in the same Config replay is handed;
+				// this replay-exactness test exercises the round so a concession of
+				// mutating it silently would be caught here.
+				Mulligans: 1}
+			e := New(cfg)
+			b := newTestBot(seed)
+			e.Advance()
+			n := 0
+			for !e.G.Over && e.Pending() != nil && n < 400000 {
+				if err := e.Submit(b.answer(e, e.Pending())); err != nil {
+					t.Fatalf("seed %d, intent %d: %v", seed, n, err)
+				}
+				n++
+			}
+			if !e.G.Over {
+				t.Fatalf("seed %d did not terminate after %d intents (turn %d)", seed, n, e.G.Turn)
+			}
+			re, err := replayFor(cfg, e.L)
+			if err != nil {
+				t.Fatalf("seed %d: %v", seed, err)
+			}
+			if re.L.Head() != e.L.Head() {
+				t.Fatalf("seed %d chain %s, replay %s", seed, e.L.Head(), re.L.Head())
+			}
+			t.Logf("seed %d: %d intents, chain %s, replay OK", seed, n, e.L.Head())
+		})
 	}
 }
 

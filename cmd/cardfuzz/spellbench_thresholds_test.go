@@ -14,6 +14,7 @@ import (
 // summary; a kind with fewer than 50 samples is never gated, and threshold 0
 // disables the check.
 func TestSpellbenchMinAgreeFailsBelowThreshold(t *testing.T) {
+	t.Parallel()
 	sum := newSBTwinSummary()
 	sum.Total["priority"], sum.Agree["priority"] = 100, 98
 	// 49 samples is below the floor: 0% agreement must not be gated.
@@ -60,6 +61,7 @@ func TestSpellbenchMinAgreeFailsBelowThreshold(t *testing.T) {
 // TestOutcomeParityPaired reads the gap and its interval from the discordant
 // pairs alone, and gates on the interval and the bar together.
 func TestOutcomeParityPaired(t *testing.T) {
+	t.Parallel()
 	even := sbOutcomeParityOf(12, 12, 200, 0, 0)
 	if !even.ok || even.gapPP != 0 {
 		t.Fatalf("12/12 of 200: ok=%v gap %+.1f, want gap 0", even.ok, even.gapPP)
@@ -100,6 +102,7 @@ func TestOutcomeParityPaired(t *testing.T) {
 // TestOutcomeParityFailsOnForfeit: one forfeit fails at any bar, even with no
 // gap and with the gap check off.
 func TestOutcomeParityFailsOnForfeit(t *testing.T) {
+	t.Parallel()
 	p := sbOutcomeParityOf(12, 12, 200, 0, 1)
 	if !p.fails(2) || !p.fails(0) {
 		t.Fatalf("a forfeit passes: fails(2)=%v fails(0)=%v", p.fails(2), p.fails(0))

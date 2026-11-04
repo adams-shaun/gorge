@@ -80,8 +80,18 @@ func loopProfileDisableVerify() func() {
 }
 
 func TestLoopPrototypeMiner(t *testing.T) {
+	// GORGE_LOOP_NO_VERIFY=1 flips package-level verify flags for the profile,
+	// so only the default (no-op) path may run games at once.
+	parallel := os.Getenv("GORGE_LOOP_NO_VERIFY") != "1"
+	if parallel {
+		t.Parallel()
+	}
 	for _, n := range loopProfileN() {
+		n := n
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
+			if parallel {
+				t.Parallel()
+			}
 			t.Cleanup(loopProfileDisableVerify())
 			var previous *events.Log
 			for run := 0; run < 2; run++ {

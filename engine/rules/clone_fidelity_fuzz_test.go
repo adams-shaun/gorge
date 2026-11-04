@@ -50,6 +50,10 @@ type cloneFuzzOpts struct {
 	lockstep   int // K: intents a lockstep clone shadows the original for
 	diverge    int // M: random intents the divergent clone takes after its first
 	randomPct  int // share (percent) of main-game intents drawn uniformly at random
+	// worldHook (the resolution kernel's world probe) runs at every decision
+	// when set. It is per-game state, not a package global, so games can run
+	// in parallel.
+	worldHook func(t *testing.T, e *Engine, r *rand.Rand)
 }
 
 // cloneFuzzStats aggregates across parallel games.
@@ -206,8 +210,8 @@ func playCloneFuzzGame(t *testing.T, cfg Config, label string, o cloneFuzzOpts, 
 	n := 0
 	for ; !e.G.Over && e.Pending() != nil && (o.maxIntents == 0 || n < o.maxIntents); n++ {
 		d := e.Pending()
-		if cloneFuzzTapeWorldHook != nil {
-			cloneFuzzTapeWorldHook(t, e, r)
+		if o.worldHook != nil {
+			o.worldHook(t, e, r)
 		}
 		if o.every <= 1 || r.IntN(o.every) == 0 {
 			st.clones.Add(1)
@@ -282,10 +286,6 @@ func playCloneFuzzGame(t *testing.T, cfg Config, label string, o cloneFuzzOpts, 
 	st.games.Add(1)
 	st.intents.Add(int64(n))
 }
-
-// cloneFuzzTapeWorldHook (the resolution kernel's world probe,
-// resolve_kernel_test.go) runs at every decision of a fuzz game when set.
-var cloneFuzzTapeWorldHook func(t *testing.T, e *Engine, r *rand.Rand)
 
 // cloneFuzzDiverge clones e, drives the clone down a different path (a
 // random accepted intent, then up to m more) and reports how e changed.
