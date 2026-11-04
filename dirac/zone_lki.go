@@ -52,10 +52,15 @@ type lkiRec struct {
 	ck     [ctrSlots]uint8
 	col    kop.ColorMask
 	bits   uint8 // lkiFaceDown / lkiSuspected; the byte faceDown used
-	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go). The padding byte before types: lkiRec stays 28 bytes
+	chosen uint8 // perm.chosen (gorge SpecContext.SourceChosenType: a sacrificed source's choice; act_choosetype.go). The padding byte before types
 	types  kop.TypeMask
-	kw     kop.KwMask
-	mv     uint8 // mana value, the copied card's on a copy (CR 707.2, 608.2h)
+	// subs is the derived subtype set at the snapshot, for the
+	// Sacrificed$Valid Card/creature-type reads (anySacSub): the 128-bit
+	// mask does not fit the 16-bit types snapshot, so it is a field of its
+	// own. Zero unless the table lowers one of those reads.
+	subs kop.SubMask
+	kw   kop.KwMask
+	mv   uint8 // mana value, the copied card's on a copy (CR 707.2, 608.2h)
 }
 
 var noLKI lkiRec // index 0: no snapshot (read-only)
@@ -111,6 +116,9 @@ func (s *State) snapLKI(o Obj) uint8 {
 	if s.faceDown(k, sl) {
 		r.bits |= lkiFaceDown
 	}
+	if k.gen != nil && k.gen.anySacSub {
+		r.subs = s.lkiSubs(k, sl) // Sacrificed$Valid Card/creature-type reads
+	}
 	if k.gen != nil && k.gen.anySuspect && s.suspected(k, sl) {
 		r.bits |= lkiSuspected
 	}
@@ -151,10 +159,40 @@ func (s *State) snapLKI(o Obj) uint8 {
 	return uint8(free + 1)
 }
 
+// lkiSubs is sl's derived subtype set as the snapshot takes it: the view's
+// layer-aware type line, a printed changeling's every table creature type,
+// and no subtype at all for a face-down permanent (CR 708.2). Only called
+// when the table lowers a Sacrificed$Valid type read (genPrep.anySacSub).
+func (s *State) lkiSubs(k *prep, sl Slot) kop.SubMask {
+	if s.faceDown(k, sl) {
+		return kop.SubMask{}
+	}
+	c := s.cardAt(sl)
+	if _, subs, all, _, ok := s.FeatViewTypes(s.perms[sl].obj); ok {
+		if all && k.gen != nil {
+			subs = subs.Or(k.gen.creatSub)
+		}
+		return subs
+	}
+	subs := k.t.Cards[c].Subtypes
+	all := k.t.Cards[c].AllCreatureTypes
+	if k.gen != nil && k.gen.cpxSub && s.fxM.has(sl) {
+		// A copy exception's changeling is a copiable all-creature-types
+		// mark, not a printed CDA (Dominion Infiltration's token); the view
+		// line is unchanged, so FeatViewTypes does not report it.
+		subs = subs.Or(s.copyExcSubs(k, sl))
+		all = all || s.copyExcAll(k, sl)
+	}
+	if all && k.gen != nil {
+		subs = subs.Or(k.gen.creatSub)
+	}
+	return subs
+}
+
 // same: q holds r's snapshot (ref aside).
 func (r *lkiRec) same(q *lkiRec) bool {
 	return r.ctrl == q.ctrl && r.power == q.power && r.tough == q.tough && r.p1p1 == q.p1p1 &&
-		r.cn == q.cn && r.ck == q.ck && r.col == q.col && r.types == q.types && r.kw == q.kw &&
+		r.cn == q.cn && r.ck == q.ck && r.col == q.col && r.types == q.types && r.subs == q.subs && r.kw == q.kw &&
 		r.bits == q.bits && r.chosen == q.chosen
 }
 
