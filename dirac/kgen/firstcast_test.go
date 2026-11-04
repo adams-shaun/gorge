@@ -12,7 +12,7 @@ const kfcStamp = "T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigStore 
 
 // kfcBody is a spell whose second node is gated on the stamped SVar.
 func kfcBody(gate string) string {
-	return "A:SP$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ DBGain\nSVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 2 | " + gate
+	return "A:SP$ GainLife | Defined$ You | LifeAmount$ 1 | SubAbility$ DBBonus\nSVar:DBBonus:DB$ GainLife | Defined$ You | LifeAmount$ 4 | " + gate
 }
 
 // TestFirstCastLowering: the static SpellCast StoreSVar of Count$YouCastThisGame
@@ -31,7 +31,7 @@ func TestFirstCastLowering(t *testing.T) {
 		"no stamp":       {kfcBody("ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1"), "names no SVar"},
 		"non-Self cast":  {strings.Replace(kfcStamp, "Card.Self", "Card.YouCtrl", 1) + kfcBody("ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1"), "api StoreSVar"},
 		"another count":  {strings.Replace(kfcStamp, "Count$YouCastThisGame", "Count$YouCastThisTurn", 1) + kfcBody("ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1"), "api StoreSVar"},
-		"permanent read": {kfcStamp + "T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ Probe\nSVar:Probe:DB$ GainLife | LifeAmount$ 2 | ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1", "SVar"},
+		"permanent read": {kfcStamp + "T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ Probe\nSVar:Probe:DB$ GainLife | LifeAmount$ 4 | ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1", "SVar"},
 	} {
 		refs, _ := kwascastLowerHead(t, kfcHead, c.lines)
 		if len(refs) == 0 {

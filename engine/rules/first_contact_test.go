@@ -15,7 +15,7 @@ import (
 const firstContactFillerSrc = `Name:Test Filler Instant
 ManaCost:R
 Types:Instant
-A:SP$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.
+A:SP$ Draw | NumCards$ 1 | SpellDescription$ The caster draws one card.
 Oracle:x
 `
 
