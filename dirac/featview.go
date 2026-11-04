@@ -694,6 +694,21 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc) bool {
 	var av avail
 	var ms modalSet
+	s.ungrAvail(k, p, ex, &av, &ms)
+	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
+	for c := 0; c < 1<<ms.n; c++ {
+		b := ms.modes(av, c)
+		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// ungrAvail fills av (and ms) with p's pool and untapped printed mana sources
+// other than ex: the planner's census, without the mana abilities effects
+// grant.
+func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet) {
 	pl := &s.pl[p&1]
 	for i := 0; i < kop.NumManaKinds; i++ {
 		if pl.pool[i] > 0 {
@@ -711,12 +726,12 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			continue
 		}
 		if k.painMana && pc.painCol != 0 {
-			s.addPainAvail(k, sl, pc, p&1, &av, &ms, false) // the planner's census has a pain ability (mana_pain.go)
+			s.addPainAvail(k, sl, pc, p&1, av, ms, false) // the planner's census has a pain ability (mana_pain.go)
 			continue
 		}
 		av.addUnits(s.srcMaskAt(pc, sl), pc.manaN)
 		if pc.manaOne {
-			s.addOneColour(&av, pc.manaN)
+			s.addOneColour(av, pc.manaN)
 		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
@@ -727,10 +742,43 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 			}
 		}
 	}
-	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
+}
+
+// affordsUngrantedPlay is affordsUngrantedFor for play a: an activated
+// ability whose cost also sacrifices or taps permanents is priced only when
+// the printed plan leaves those parts payable (gorge planComposedCost's
+// planLeavesCostPayable). A plan that spends the ability's own sacrifice
+// candidates is no plan: the granted mana is a prefix activated first (CR
+// 601.2g-h), and the printed plan then pays with the candidates still there.
+func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc) bool {
+	if a.Kind() != AkActivate || k.t == nil {
+		return s.affordsUngrantedFor(k, p, cost, ex, d)
+	}
+	o := Obj(a.Source())
+	card := s.objs[o].card
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
+		card = s.cardAt(ob.slot)
+	}
+	ab := int(a.Mode())
+	if ab < 0 || ab >= len(k.t.Cards[card].Abilities) {
+		return s.affordsUngrantedFor(k, p, cost, ex, d)
+	}
+	ca := &k.t.Cards[card].Abilities[ab]
+	f := ca.Cost.Flags
+	if f&(kop.CostTapX|kop.CostSac) == 0 || f&kop.CostSac != 0 && !k.sacMana {
+		return s.affordsUngrantedFor(k, p, cost, ex, d)
+	}
+	var av avail
+	var ms modalSet
+	s.ungrAvail(k, p, ex, &av, &ms)
+	pm := pipMaskOf(cost)
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(av, c)
-		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, ex, &ca.Cost, cost, &b, pm) {
+			return true
+		}
+		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, p&1, d, cost, &b, ex, 0) {
+			// restricted mana the plain avail cannot show: keep the old answer
 			return true
 		}
 	}

@@ -482,7 +482,7 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngrantedFor(g.k, g.p, &g.cost, g.ex, g.d) && !g.waitsForStack(t) {
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &g.cost, g.ex, g.d) && !g.waitsForStack(t) {
 		return true
 	}
 	pl := &t.pl[g.p&1]

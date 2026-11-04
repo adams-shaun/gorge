@@ -208,6 +208,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"search_by_departed_targets_controller", true},  // CR 608.2h: Sandworm's "its controller" of a borrowed land
 		{"free_cast_targets_resolving_ability", true},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
+		{"sacrifice_cost_granted_prefix", true},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
 	})
 }
 

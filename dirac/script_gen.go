@@ -491,7 +491,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if !ok {
 			continue
 		}
-		if s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
+		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(a)) {
 			continue // priced by the printed sources, restricted ones the play may spend included
 		}
 		if n++; n > potentialScriptPlays {
