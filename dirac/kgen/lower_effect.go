@@ -1047,6 +1047,18 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileTrigNew = false
 		n++
 	}
+	if c.ExileHandN > 0 {
+		// ExileFromHand<N/Card> as a printed trigger's own cost (gorge's
+		// triggered-cost window: the pay/decline ask, then the "exile_cost"
+		// pick over the hand, unasked with exactly N cards): PayExileGrave
+		// with the hand sentinel. Alone, and only there.
+		if !lc.trigOwnCost || lc.unlessCost || n != 0 {
+			return in, refuse("resolution exile-from-hand cost shape")
+		}
+		in.CS, in.A = "ExileHand", cst(c.ExileHandN)
+		c.ExileHandN = 0
+		n++
+	}
 	if n != 1 || c.Tap || c.SacSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.SubAmongN != 0 || c.TapN != 0 || c.TapHost || c.SacHost || c.BlightN != 0 || c.EvidenceN != 0 {
 		return in, refuse("resolution cost shape")
 	}

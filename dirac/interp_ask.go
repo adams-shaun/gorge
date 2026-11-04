@@ -67,6 +67,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.countUntapped(k, p, f, s.resSrcSlot(k)) >= amt
 	case kop.PayExileGrave:
 		return s.countGraveExile(k, p, f) >= amt
+	case payKindExileHand:
+		return int(s.pl[p&1].handN) >= amt // cost_exilefromhand.go
 	case kop.PayManaX:
 		return true // X = 0 is always payable
 	case payKindEvidence:
@@ -97,6 +99,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNew {
 		kind = payKindTrigNew // a trigger's own ExileAnyGrave<1/Card.TriggeredNewCard> cost rides PayExileGrave (trig_mayexile.go)
+	}
+	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
+		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
 	skip := uint16(in.C >> 4)
 	amt := s.value(k, in.A)
@@ -309,6 +314,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 		if s.g.pickZ == kop.PayExileGrave {
 			s.graveExileOptions(k, d, p)
+			break
+		}
+		if s.g.pickZ == payKindExileHand {
+			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
 		if s.g.pickZ == kop.PayDiscard {
@@ -531,12 +540,12 @@ func (s *State) autoPayPick(k *prep) bool {
 			objs[j-1], objs[j] = objs[j], objs[j-1]
 		}
 	}
-	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave {
+	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices (unlessflow): one sacrifice batch
 	}
 	for _, a := range objs {
 		o := Obj(a.Source())
-		if s.g.pickZ == kop.PayExileGrave {
+		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardObj(k, o)
@@ -703,8 +712,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.payDone(k, true)
 			break
 		}
-		if s.g.pickZ == kop.PayExileGrave {
-			s.exileFromGrave(o)
+		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
+			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardObj(k, o)
 		} else if s.g.pickZ == kop.PayReturn {

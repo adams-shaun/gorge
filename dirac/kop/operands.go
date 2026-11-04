@@ -405,6 +405,9 @@ const (
 	// the battlefield this turn (gorge ChangesZone + IsTriggerRemembered +
 	// ThisTurn$; one-shot)
 	DelayDiesThisTurn = 5
+	// DelayBeginCombat: the next beginning of combat step this turn (gorge
+	// Phase$ BeginCombat, ThisTurn$ True; one-shot, dropped at the turn change)
+	DelayBeginCombat = 6
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

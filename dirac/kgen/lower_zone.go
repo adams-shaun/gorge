@@ -2753,6 +2753,9 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	if ps.str("Mode") == "Phase" && ps.str("Phase") == "EndCombat" {
 		return lc.delayedEndCombat(ps)
 	}
+	if ps.str("Mode") == "Phase" && ps.str("Phase") == "BeginCombat" {
+		return lc.delayedBeginCombat(ps) // lower_delayed.go
+	}
 	if ps.str("Mode") == "ChangesZone" {
 		return lc.delayedLeaveReturn(ps) // lower_delayed.go
 	}

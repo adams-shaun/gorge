@@ -586,8 +586,9 @@ func (s *State) newTurnGen() {
 	}
 	s.g.crime = crimeKeep(s.g.crime)
 	if s.g.ndp != 0 {
-		s.dropDelayedSpell() // ThisTurn$ SpellCast registrations (trig_delayedspell.go)
-		s.dropDelayedDies()  // ThisTurn$ dies registrations (trig_delayeddies.go)
+		s.dropDelayedSpell()       // ThisTurn$ SpellCast registrations (trig_delayedspell.go)
+		s.dropDelayedDies()        // ThisTurn$ dies registrations (trig_delayeddies.go)
+		s.dropDelayedBeginCombat() // ThisTurn$ beginning-of-combat registrations (trig_delaybegincombat.go)
 	}
 }
 

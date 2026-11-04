@@ -700,10 +700,11 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.delayEmptyGen(e, uint8(in.C))
 			if in.A.N != 0 {
 				s.g.dp[s.g.ndp-1].n |= dpWhen(in)
+				s.g.dp[s.g.ndp-1].ext = dpExt(in)
 			}
 			break
 		}
-		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpWhen(in)}
+		d := dprog{card: e.card, ab: uint8(in.C), ctrl: e.ctrl, src: e.obj, n: 1 | dpWhen(in), ext: dpExt(in)}
 		d.objs[0], d.vers[0] = o, s.objs[o].ver
 		if in.Obj == kop.RefTriggerObj && o == e.obj && s.objs[o].ver != e.srcVer+1 && !delayCopies(k, e.card, uint8(in.C)) {
 			// the card that died has moved on again (exiled from the

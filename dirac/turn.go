@@ -185,6 +185,9 @@ func (s *State) beginStep(k *prep) {
 		s.openPriority()
 	case kop.StepBeginCombat:
 		s.firePhase(k, kop.StepBeginCombat)
+		if k.gen != nil && k.gen.anyDelayUp {
+			s.fireDelayedBeginCombat(k) // trig_delaybegincombat.go
+		}
 		s.openPriority()
 	case kop.StepAttackers:
 		s.nAttackers = 0

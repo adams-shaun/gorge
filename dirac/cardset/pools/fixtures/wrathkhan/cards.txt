@@ -1,0 +1,13 @@
+# the Wrath of Khan pool: a Saga whose chapter I damages a creature and
+# gains control of it at the next combat, chapter II exiles a card from hand
+# to draw, chapter III makes the opponent sacrifice, beside a large creature
+# that survives chapter I's damage, creatures it kills and burn, for the
+# oracle's constructed lockstep (dirac/oracle/wrathkhan_test.go)
+Colossal Dreadmaw
+Forest
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Mountain
+Shock
+The Wrath of Khan

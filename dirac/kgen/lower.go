@@ -1467,6 +1467,14 @@ func (lc *lowerCtx) costParts(c lCost) error {
 	if c.Waterbend != 0 {
 		return refuse("waterbend cost outside an activated ability's own cost")
 	}
+	if c.ExileHandN != 0 {
+		// ExileFromHand<N/Card> is a printed trigger's own optional cost only
+		// (The Wrath of Khan's chapter II; gorge's triggered-cost window). A
+		// spell, activated or unless cost keeps refusing it.
+		if lc.ab == nil || lc.ab.Kind != akTriggered || len(lc.ab.Prog) != 0 {
+			return refuse("ExileFromHand cost outside a trigger's own cost")
+		}
+	}
 	if c.ExileTrigNew {
 		// ExileAnyGrave<1/Card.TriggeredNewCard> is a printed dies
 		// trigger's own optional cost only (Sandbender Scavengers; gorge's
@@ -1707,6 +1715,14 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				}
 			}
 			c.ExileG, c.ExileGN = f, n
+		case "ExileFromHand":
+			// <N/Card[/description]>: N cards of the payer's hand exiled as
+			// a printed trigger's own cost (costParts gates the place); a
+			// filtered spec, ExileFromHand<1/All> and CARDNAME stay refused
+			if len(parts) < 2 || len(parts) > 3 || n <= 0 || parts[1] != "Card" || c.ExileHandN != 0 || c.ExileG != nil {
+				return c, refuse("exile cost %q", t)
+			}
+			c.ExileHandN = n
 		case "PutCardToLibFromGrave":
 			if err := putLibSelfCost(&c, parts, n, t); err != nil {
 				return c, err
