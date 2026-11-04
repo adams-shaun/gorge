@@ -1014,7 +1014,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		r.ask = raNone
 		parked := s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
 		r.e.ctrl = was
-		if parked {
+		if parked || s.eachResume(k, in) { // copy_eachtarget.go: the targets after it
 			return
 		}
 		s.continueRes(k, 0)
