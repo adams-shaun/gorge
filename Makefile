@@ -225,6 +225,13 @@ dirac-slices: dirac-tables
 fresh-clone-check:
 	bash scripts/fresh-clone-check.sh
 
+# precheck runs, on the committed HEAD, what a landing gate most often fails on: gofmt and vet, the
+# census and coverage tests, and BASE's own dirac gate. BASE is the branch the change lands on.
+BASE ?= origin/main
+.PHONY: precheck
+precheck:
+	bash scripts/precheck.sh $(BASE)
+
 .PHONY: report
 report: $(BIN_DIR)/forgec
 	$(BIN_DIR)/forgec report -dir $(CARDS_DIR)
