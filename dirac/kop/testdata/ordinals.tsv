@@ -809,17 +809,18 @@ PredWasCastEnter	Pred	248
 PredWasCastSpell	Pred	247
 PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
+PrevScopeCreatures	untyped int	2
+PrevScopePlayer	untyped int	1
+PrevScopeSrcCreature	untyped int	4
 PropCardManaCost	uint8	3
 PropCardPower	uint8	1
 PropCardToughness	uint8	2
 PropNone	uint8	0
-PrevScopeCreatures	untyped int	2
-PrevScopePlayer	untyped int	1
-PrevScopeSrcCreature	untyped int	4
 PumpEachPower	untyped int	1
 PumpEachTough	untyped int	2
 PutCtrCellFirst	untyped int	3
 PutCtrCellNext	untyped int	4
+PutCtrRemAmount	untyped int	5
 R	untyped int	3
 ReduceAbMinShift	untyped int	4
 ReduceAbUnlock	untyped int	2
@@ -960,8 +961,8 @@ StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
-StackKwStorm	int16	5
 StackKwSplitSecond	int16	6
+StackKwStorm	int16	5
 StatAlternativeCost	StaticKind	5
 StatBeamGrant	StaticKind	253
 StatCDAPT	StaticKind	10
