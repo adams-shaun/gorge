@@ -124,6 +124,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Horsemanship":       "CardDef.Evasion (compared through the block options)",
 	"Intimidate":         "CardDef.Evasion (compared through the block options)",
 	"Wither":             "CardDef.Wither (compared through the -1/-1 counters)",
+	"CantAttackAlone":    "CardDef.AloneAtk (CR 506.5; compared through the attack options and Done, combat_alone.go)",
 	"Warp":               "CardDef.HasWarp (a hand alt cost and the exile recast; compared through the cast options)",
 	"Plot":               "CardDef.HasPlot (a hand special action and the exile free cast; compared through the cast options)",
 	"Bestow":             "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",

@@ -835,6 +835,10 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Wither" && param == "":
 			// CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
 			lc.out.Wither = true
+		case cards.AloneKeywordOf(head) == cards.AloneKeywordCantAttackAlone && param == "":
+			// CR 506.5: gorge combat.DeclaresAlone over the derived hidden
+			// keywords (Option.AloneRestricted); kernel combat_alone.go
+			lc.out.AloneAtk = true
 		case (head == "Horsemanship" || head == "Intimidate" || head == "Skulk") && param == "":
 			// gorge rules/combat/block.go CanBlock: attacker-keyed blocking
 			// restrictions over the derived keywords (printed only)

@@ -743,6 +743,7 @@ func (cb *cardBuilder) record() error {
 	d.AllCreatureTypes = c.Changeling
 	d.Evasion = c.Evasion
 	d.Wither = c.Wither
+	d.AloneAtk = c.AloneAtk
 	d.Engines = c.Engines
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)

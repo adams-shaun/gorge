@@ -88,6 +88,7 @@ type genPrep struct {
 	anyVergeOrder   bool // a gated Verge whose first ability is not its lowest colour: the window activates ability 0 (mana_gate.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
+	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
 	anyTokEndCombat bool // some CreateTokenEx carries the AtEOT$ SacrificeCombat rider (trig_tokenateot.go)
 	anyProwessGrant bool // some Continuous static grants prowess: onCast counts one trigger per static (kw_prowess.go)
 
@@ -674,6 +675,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.Evasion != 0 {
 			g.anyEvasion = true
+		}
+		if c.AloneAtk {
+			g.anyAloneAtk = true
 		}
 		if c.MinBlockers != 0 {
 			g.anyMinBlk = true

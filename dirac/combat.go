@@ -68,6 +68,9 @@ func (s *State) declareMustAttack(k *prep) {
 		sl := m.first()
 		m = m.rest()
 		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.mustAttackGoad(k, sl)) {
+			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
+				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
+			}
 			s.perms[sl].flags |= pfAttacking
 			s.perms[sl].atk = PlayerTarget0 + 1 - s.active
 			s.perms[sl].bord = s.nAttackers // declaration order (fireAttacksGen)
@@ -100,8 +103,8 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		if !s.canAttack(k, sl) {
-			continue
+		if !s.canAttack(k, sl) || s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
+			continue // CR 506.5: no partner can join it (combat_alone.go)
 		}
 		if int(d.N) > room {
 			return s.optionsFull(d)
@@ -123,7 +126,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 			s.addBattleOffers(k, d, o) // CR 310.7
 		}
 	}
-	if s.cfg&cfgGorgeMustAttack == 0 || !s.mustAttackLeft(k) {
+	if (s.cfg&cfgGorgeMustAttack == 0 || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
@@ -137,7 +140,8 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.mustAttackGoad(k, sl)) {
+		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.mustAttackGoad(k, sl)) &&
+			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) {
 			return true
 		}
 	}

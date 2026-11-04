@@ -233,6 +233,10 @@ type CardDef struct {
 	// Wither is printed wither (CR 702.80): its damage to a creature is
 	// dealt as -1/-1 counters (infect's creature half).
 	Wither bool
+	// AloneAtk is printed "CARDNAME can't attack alone." (CR 506.5): it is
+	// declared as an attacker only beside another attacker; not when it has
+	// lost its abilities (dirac/combat_alone.go).
+	AloneAtk bool
 	// Evasion holds printed blocking-restriction keywords without a KwMask
 	// bit (Ev* bits): not when the creature has lost its abilities.
 	Evasion uint8

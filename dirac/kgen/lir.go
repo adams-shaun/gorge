@@ -891,6 +891,7 @@ type lCard struct {
 	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
 	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
 	Wither         bool     // printed K:Wither (CR 702.80)
+	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
 	Engines        bool     // printed K:Start your engines (CR 702.179a)
 	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
 	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
