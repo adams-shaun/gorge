@@ -359,6 +359,12 @@ type grantSrch struct {
 	k    *prep
 	p    uint8
 	cost kop.ManaCost
+	// full is the play's cost before a waterbend offer credit and dyn marks
+	// that the credit depends on this node's pool (a paid filter's fee, a
+	// once-a-turn ability already used): visit prices full again at every
+	// node (gorge's potentialPlayVerdict -> withWaterbendOfferCredit).
+	full kop.ManaCost
+	dyn  bool
 	ex   Slot // the play's own {T} source (an activation's), never tapped
 	// d is the payment the play makes, read by a granted source's spend
 	// restriction (Mm'menon's Spell.!wasCastFromYourHand): the payment read,
@@ -482,7 +488,11 @@ func (g *grantSrch) visit(t *State) bool {
 	if !g.node() {
 		return false
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &g.cost, g.ex, g.d) && !g.waitsForStack(t) {
+	cost := g.cost
+	if g.dyn {
+		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, &cost, g.ex, g.d) && !g.waitsForStack(t) {
 		return true
 	}
 	pl := &t.pl[g.p&1]
@@ -809,6 +819,11 @@ func (s *State) grantPayDescOf(a Action) payDesc {
 //go:noinline
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, g *grantSrch) bool {
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps}
+	if d.hasPlay {
+		if full, ok := s.grantWaterbendFull(k, d.play); ok {
+			g.full, g.dyn = full, true
+		}
+	}
 	g.candidates(s)
 	if g.n == 0 {
 		return s.affordsUngrantedFor(k, p, cost, ex, d)

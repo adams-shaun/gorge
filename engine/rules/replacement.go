@@ -923,6 +923,11 @@ func (e *Engine) replacementFace(id state.ObjID, ev events.Event) *cards.Face {
 	if replacementFaceHidden(o, id, ev) {
 		return nil
 	}
+	if o.PhasedOut && o.Zone == state.ZBattlefield {
+		// CR 702.26b: a phased-out permanent is treated as though it does
+		// not exist, so its replacement effects do not apply.
+		return nil
+	}
 	if e.printedAbilitiesLost(o) {
 		// CR 613.1f: a battlefield permanent that lost all abilities has no
 		// printed replacement ability. (An entering permanent is not on the
