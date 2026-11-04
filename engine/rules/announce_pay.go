@@ -69,7 +69,7 @@ func (e *Engine) announcedAutoFillPlan(pc *pendingCast, mana Cost) *decision.Pay
 	if plannedMayPlayZone(pc.from) {
 		origin = plannedMayPlayOrigin(pc.from)
 	}
-	cast := decision.PlannedCast{Object: pc.card, Face: 0, Origin: origin}
+	cast := decision.PlannedCast{Object: pc.card, Face: plannedCastFace(e.G.Obj(pc.card)), Origin: origin}
 	desc := paymentForCast(pc, mana)
 	// A permanent committed to a tap cost or Convoke can't also tap for mana
 	// (CR 601.2g-h, 602.2b).

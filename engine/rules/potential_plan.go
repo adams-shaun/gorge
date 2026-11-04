@@ -847,7 +847,7 @@ func (e *Engine) potentialCastVerdict(p state.PlayerID, id state.ObjID, sh *cast
 	default:
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "origin"}
 	}
-	cast := decision.PlannedCast{Object: id, Face: plannedCastFace(e, id), Origin: origin}
+	cast := decision.PlannedCast{Object: id, Face: plannedCastFace(o), Origin: origin}
 	var got PaymentPlanOutcome
 	if sh != nil {
 		got = e.planCastPaymentMemo(p, cast, &sh.statics, &sh.candidates)

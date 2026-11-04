@@ -632,7 +632,7 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		default:
 			continue
 		}
-		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(e, opt.Obj), Origin: origin}
+		cast := decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(originObj), Origin: origin}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
@@ -1160,13 +1160,13 @@ func plannedCastOption(cast decision.PlannedCast) decision.Option {
 	return decision.Option{Kind: "cast", Obj: cast.Object, Mode: cast.CastMode()}
 }
 
-// plannedCastFace is the Face of a planned plain cast of id: the face the
+// plannedCastFace is the Face of a planned plain cast of o: the face the
 // object shows (CR 709.3). It is 0 for every ordinary card; a Room that left
 // the battlefield as its other door keeps that door, so its plain cast is the
 // shown half's and hard-coding 0 withheld it from the planner's offers (the
 // autopay surface and the potential walk) while the manual walk offered it.
-func plannedCastFace(e *Engine, id state.ObjID) int {
-	if o := e.G.Obj(id); o != nil {
+func plannedCastFace(o *state.Object) int {
+	if o != nil {
 		return int(o.FaceIdx)
 	}
 	return 0
