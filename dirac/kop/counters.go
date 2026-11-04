@@ -37,6 +37,12 @@ const (
 	PutCtrCellNext  = 4
 )
 
+// PutCtrRemAmount is OpPutCounterAll's B for RememberAmount$ True on a
+// single sweep: the counters that landed across the sweep join the
+// resolution's remembered count (gorge effPutCounterAll appends each
+// recipient once per landed counter; Guinan, Ancient Advisor).
+const PutCtrRemAmount = 5
+
 // CtrRemMV is OpCounter's B bit 0: RememberCounteredCMC$ True. The countered
 // spell's mana value (announced X included) joins resCtx.remLK when the spell
 // leaves the stack, the number Count$RememberedNumber (ExRemLKIPT) then reads.

@@ -1309,13 +1309,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		return err
 	}
 	_, ownTgt := ps.get("ValidTgts")
-	lc.attachedTgtOK = !ownTgt && lc.ab != nil && len(lc.ab.Targets) > 0 // lower_filterreferents.go
-	f, err := lc.filter(ps.str("Choices"))
-	lc.attachedTgtOK = false
+	zone, err := zoneOf(ps, "ChoiceZone", zBattlefield)
 	if err != nil {
 		return err
 	}
-	zone, err := zoneOf(ps, "ChoiceZone", zBattlefield)
+	lc.attachedTgtOK = !ownTgt && lc.ab != nil && len(lc.ab.Targets) > 0 // lower_filterreferents.go
+	// a choice among the exile cards is made as the ability resolves, so
+	// ExiledWithSource reads the resolving source (gorge cardChoices'
+	// filter context, exiledBySourceAt with the trigger's fire incarnation;
+	// kernel exwFlag): Borg Cube's and Assimilation Assessor's "a creature
+	// card exiled with it" (CR 607.2a)
+	lc.exwOK = zone == zExile
+	f, err := lc.filter(ps.str("Choices"))
+	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
 	}
