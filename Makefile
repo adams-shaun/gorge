@@ -87,6 +87,9 @@ help:
 	@echo "  make draftsim       — build draftsim and play 2 verified FDN draft events"
 	@echo "  make pr [PR_BASE=main] [DRY=1] — open/refresh a GitHub PR with a generated change overview"
 	@echo "  make gorged         — run the table server (browser client at the addr)"
+	@echo "  make deploy-demo    — build the client and gorged, then (re)serve the demo (scripts/deploy-demo.sh; deploy/demo.env)"
+	@echo "  make stop-demo      — stop the demo's servers, start nothing"
+	@echo "  make prewarm-art    — fill the demo's card-art cache from its decks"
 	@echo "  make gentypes       — regenerate web/src/protocol.ts from package protocol"
 	@echo "  make web            — npm ci and build the spectator client into server/gorged/webdist"
 	@echo "  make web-dev        — run the Vite dev server for web/"
@@ -121,6 +124,33 @@ $(BIN_DIR)/gorged: $(GO_SRC)
 # the server is spectator-only, exactly as before the feature existed.
 gorged: $(BIN_DIR)/gorged
 	$(BIN_DIR)/gorged -decks testkit/testutil/decks -tables 4 -seats 4 -pace 1.5s -format commander,constructed -vsbot
+
+# deploy-demo refreshes the demo: it builds the web client and gorged from
+# GORGE_ROOT (this checkout unless set), stops the demo's running servers by
+# their listening sockets and serves the demo again: bot-only tables spectated
+# omniscient, play-vs-bot tables public. Stopping the servers aborts every
+# in-flight vs-bot game, so whoever owns the demo runs it by hand and nothing
+# runs it automatically. Ports, directories, the art cache and the az
+# policies' network paths come from the environment or the untracked
+# deploy/demo.env (deploy/demo.env.example); scripts/deploy-demo.sh has every
+# variable and its rationale, and `scripts/deploy-demo.sh --dry-run` prints
+# the resolved configuration and the commands without running them.
+#
+# stop-demo takes the demo down without starting it again, by the same socket
+# lookup (never pkill -f). prewarm-art fills the durable card-art cache the
+# deploy otherwise fills before it starts any server: a no-op when the cache
+# is complete, non-zero if any name failed; by hand it is strict and
+# unbounded, where the deploy bounds it and starts its servers whatever the
+# fill's exit.
+.PHONY: deploy-demo stop-demo prewarm-art
+deploy-demo:
+	scripts/deploy-demo.sh --build
+
+stop-demo:
+	scripts/deploy-demo.sh --stop-only
+
+prewarm-art:
+	scripts/deploy-demo.sh --prewarm-only
 
 .PHONY: sim
 sim: $(BIN_DIR)/mtgsim
