@@ -784,9 +784,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 			if ab.Cost.Flags&kop.CostExileSelf != 0 {
 				add("cost:ExileSelf", name)
 			}
-			if ab.Cost.PutLibSelf {
-				add("cost:PutLibSelf", name)
-			}
+			usagePutLib(ab.Cost, name, add)
 			if ab.Cost.Flags&kop.CostOncePerTurn != 0 {
 				add("cost:OncePerTurn", name)
 			}
@@ -1332,4 +1330,12 @@ func ctrDocKey(c kop.CounterKind) string {
 		return "ctr:New"
 	}
 	return ""
+}
+
+// usagePutLib records the PutCardToLibFromGrave self cost (a Cost byte, not a
+// CostFlags bit).
+func usagePutLib(c kop.Cost, name string, add func(label, card string)) {
+	if c.PutLibSelf {
+		add("cost:PutLibSelf", name)
+	}
 }

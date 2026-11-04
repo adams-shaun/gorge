@@ -24,13 +24,13 @@ func TestDanielsSelfBottomCostAndGraveyardActivation(t *testing.T) {
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{daniels, daniels, daniels, daniels, bears}, nil)
 	id := moveByName(t, e, 0, "Daniels, Temporal Agent", state.ZBattlefield)
 	idx := putToLibAbilityIndex(t, e, id)
-	addMana(t, e, 0, "") // a fresh priority decision after the move
+	addMana(t, e, 0, "11BG") // {2} floating: only the zone can withhold the offer
 	if opt, ok := findAbilityOption(e, id, idx); ok {
 		t.Fatalf("the graveyard ability is offered from the battlefield: %+v", opt)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 	before := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
-	addMana(t, e, 0, "11BG")
+	addMana(t, e, 0, "") // a fresh priority decision after the move; the {2} floated above persists
 	opt, ok := findAbilityOption(e, id, idx)
 	if !ok {
 		t.Fatalf("the graveyard ability is not offered with {2}{B}{G} floating: %+v", e.Pending())
