@@ -26,7 +26,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.12a-c | follows | `engine/rules/sba.go#Engine.destroyLethalDamage` `engine/effects/zone_bulk.go#effDestroy` `engine/effects/zone_bulk.go#effDestroyAll` | - |  |
 | 702.13a-c | partial | `engine/rules/combat/block.go#CanBlock` | - | artifact test reads printed face (bf.IsArtifact), colour derived |
 | 702.14a-e | follows | `engine/rules/combat/block.go#CanBlock` `engine/rules/combat/block.go#LandwalkSpec` | - | layer-4 land types; nonbasic/snow forms |
-| 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` | - |  |
+| 702.15a-d,f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/engine_damage.go#Engine.damageKeywordsOf` `engine/rules/engine_damage.go#Engine.attachBatchDepartedLKI` | `TestBatchLookBackTriggerUsesSourceLifelinkLKI` | a departed source's lifelink is its LKI, also for a trigger of it queued later in the same destruction batch (Curzon Dax, Bound by Blood) |
 | 702.15e | follows | `engine/rules/combat.go#Engine.runCombatAssignments` `engine/rules/lifelink_batch.go#Engine.flushLifelinkBatch` | `TestLifelinkTrampleOverIsOneLifeGainEvent` `TestTwoLifelinkSourcesAreTwoLifeGainEvents` |  |
 | 702.16a-j,m | follows | `engine/rules/protection.go#Engine.protectedFrom` `engine/rules/protection.go#Engine.sourceHasQuality` `engine/rules/combat/block.go#CanBlock` | `TestProtectionFromATypeReadsTheSourceNow` |  |
 | 702.16k | unknown | - | - | protection from a player not located |
