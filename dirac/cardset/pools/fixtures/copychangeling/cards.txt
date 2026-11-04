@@ -1,0 +1,13 @@
+# the copy exception "except it has changeling" pool: Dominion
+# Infiltration's token copies of an opponent's creatures, and a creature-type
+# lord that reads them (dirac/oracle/copychangeling_test.go)
+Dominion Infiltration
+Forest
+Giant Spider
+Goblin Chieftain
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Mountain
+Raging Goblin

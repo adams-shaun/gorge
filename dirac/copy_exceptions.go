@@ -124,6 +124,28 @@ func (s *State) copyExcSubs(k *prep, sl Slot) (m kop.SubMask) {
 	return
 }
 
+// DebugCopyChangelingOff is the mutation switch: a copy's changeling
+// exception is ignored, so the token keeps only the copied creature's types.
+var DebugCopyChangelingOff bool
+
+// copyExcAll reports whether slot sl's copy exceptions give it changeling
+// (Dominion Infiltration's "except it has changeling", CR 707.9b): every
+// creature type, a copiable value read where a printed changeling's
+// kop.CardDef.AllCreatureTypes is (the layer-4 CDA seed, CR 613.3).
+//
+//go:noinline
+func (s *State) copyExcAll(k *prep, sl Slot) bool {
+	if DebugCopyChangelingOff {
+		return false
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && k.t.Overrides[r.r.idx-1].AllCreatureTypes {
+			return true
+		}
+	}
+	return false
+}
+
 // copyExcCol is base (the card's colours) through slot sl's colour copy
 // exceptions in order: a set replaces (embalm's white), an
 // AddColors adds (gorge applies the set, then the add).
@@ -199,7 +221,7 @@ func copyExcFlags(t *kop.Table) (pt, sub, col, nocost, ty, rmLeg bool) {
 		}
 		o := &t.Overrides[x-1]
 		pt = pt || o.HasPT
-		sub = sub || o.AddSub != (kop.SubMask{})
+		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes
 		col = col || o.HasColors || o.AddColors != 0
 		ty = ty || o.AddTypes != 0 || o.RemoveLegendary
 		rmLeg = rmLeg || o.RemoveLegendary

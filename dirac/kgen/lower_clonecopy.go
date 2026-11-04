@@ -175,6 +175,11 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if exc.AllCreatureTypes {
+		// gorge's Clone keeps a changeling grant a continuous effect with
+		// the copy's duration (clone.go), not a copiable value
+		return refuse("Clone AddKeywords Changeling")
+	}
 	if selfCopy && hasExc {
 		return refuse("Clone CloneTarget$ Valid without NotDefinedTargeted beside copy exceptions")
 	}
