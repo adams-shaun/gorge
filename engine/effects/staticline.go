@@ -763,11 +763,13 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				targets := c.Targets
 				if c.PickedTargets != nil {
 					targets = c.PickedTargets
-				} else if len(targets) == 0 {
+				} else if len(targets) == 0 || !TargetsOf(sa).Targeted() {
 					// Forge's Targeted is the union of every target choice down
 					// the chain (Skrelv's DBEffect after the targeting DBPump:
 					// the root ChooseColor targets nothing), the same read
-					// Defined$ Targeted makes.
+					// Defined$ Targeted makes. An Effect link with no target of
+					// its own remembers that whole union: T'Pring, Never
+					// Parted's fighters were chosen by two links.
 					targets = refTargetUnion(c)
 				}
 				out = appendEffectRememberedObjects(h, out, targets)
