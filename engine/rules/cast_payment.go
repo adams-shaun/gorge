@@ -209,7 +209,7 @@ func (e *Engine) manaToPayX(pc *pendingCast, x int32) Cost {
 // was bound to X=0. xAsk reads it so the convoke-absorption check and the
 // potential-target retry compose the SAME modifiers the payable check used.
 func (e *Engine) manaToPayXMods(pc *pendingCast, x int32) costMods {
-	if costAnnouncesPaidX(pc.cost) {
+	if e.costRepricesOnX(pc) {
 		if scope, ok := e.pendingCastScope(pc); ok {
 			return pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, pc.allTargets(), x))
 		}

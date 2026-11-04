@@ -315,6 +315,11 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			target = state.Target{Player: candidate.player, IsPlayer: true}
 		}
 		mods := pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target}))
+		if e.costRepricesOnX(pc) {
+			// the announced X is known by now (CR 601.2b): a static reading
+			// the spell's mana value prices this target at it
+			mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, []state.Target{target}, pc.x))
+		}
 		cost := mods.Apply(pc.resolvedMana())
 		if pc.ownReduce > 0 {
 			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), []state.Target{target}, nil, pc.abilityMerged); n < pc.ownReduce {
@@ -451,7 +456,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 // caller's concern (targetAsk/payCast subtract pc.delve from Generic).
 func (e *Engine) manaToPay(pc *pendingCast) Cost {
 	m := pc.mods.Apply(pc.resolvedMana())
-	if costAnnouncesPaidX(pc.cost) {
+	if e.costRepricesOnX(pc) {
 		// The announced sacrifice count re-prices the ReduceCost statics that
 		// read the paid X (Dargo's {2}-less-per-sacrifice): the offer-time
 		// pc.mods snapshot was bound to X=0.
@@ -461,6 +466,34 @@ func (e *Engine) manaToPay(pc *pendingCast) Cost {
 	}
 	m.Generic += pc.taxGeneric
 	return m
+}
+
+// costRepricesOnX reports whether pc's cost modifiers must be composed again
+// at the announced X: the cost announces a count a static reads
+// (costAnnouncesPaidX), or it is a spell with {X} and some cost static tests
+// the spell's mana value, which counts X on the stack (CR 202.3e).
+func (e *Engine) costRepricesOnX(pc *pendingCast) bool {
+	if costAnnouncesPaidX(pc.cost) {
+		return true
+	}
+	if pc.cost.X <= 0 || pc.isAbility() {
+		return false
+	}
+	st := e.collectCostStatics()
+	return costReadsManaValue(st.raise) || costReadsManaValue(st.reduce) || costReadsManaValue(st.set)
+}
+
+// costReadsManaValue reports whether a cost static's ValidCard$ tests mana value.
+func costReadsManaValue(views []staticView) bool {
+	for _, sv := range views {
+		spec := sv.ParamStr(cards.PKValidCard)
+		for i := 0; i+3 <= len(spec); i++ {
+			if spec[i] == 'c' && spec[i+1] == 'm' && spec[i+2] == 'c' {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // costAnnouncesPaidX reports whether the cost carries ANY announced-count

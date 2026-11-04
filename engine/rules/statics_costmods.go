@@ -366,6 +366,7 @@ func (e *Engine) costModifiersCompose0(statics costStaticViews, p state.PlayerID
 	// Each pass owns the provenance capture: cleared here, set by
 	// costStaticApplies when a ValidCard$ carries a cast-provenance token.
 	e.CostProvenanceSeen = false
+	scope.X = x
 	// The potential pass hands the whole candidate census to the gate chain
 	// (so ValidTarget$/ValidSpell$ can match ANY candidate) but a
 	// target-relative Amount$ reads only a complete legal assignment

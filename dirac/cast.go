@@ -680,7 +680,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				mx = s.lifeXClamp(k, &cost, mx) // PayLife<X> bounds the ask by life
 			}
 			d.Kind, d.Sub, d.Player = DkChoose, ChX, e.ctrl
-			s.addXOptions(k, d, e, mx)
+			hi := s.xReducedCeiling(k, e, &cost, &av, mx)
+			s.addXOptions(k, d, e, mx, hi, &av)
 			s.bld().stage = bsX | 0x80 // awaiting X
 			return true
 		case bsCosts:

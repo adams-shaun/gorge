@@ -25,6 +25,10 @@ type CostScope struct {
 	Kind string
 	Mode string
 	Ab   *cards.SA
+	// X is the cast's announced {X}, bound by the announced-X composition so
+	// a ValidCard$ mana-value test reads the spell as it is on the stack (CR
+	// 202.3e); zero is the offer-time read.
+	X int32
 }
 
 // CostMod is ONE evaluated ReduceCost static's contribution to a total cost.

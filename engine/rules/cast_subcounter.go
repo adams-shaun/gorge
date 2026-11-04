@@ -379,7 +379,7 @@ func (e *Engine) xAsk() bool {
 	// announcement and wedge the fetched cast. Every other announced-X
 	// cost keeps the early break (generic only grows with x, so nothing
 	// past the first unpayable x can be payable).
-	nonMonotonic := costAnnouncesPaidX(pc.cost)
+	nonMonotonic := e.costRepricesOnX(pc)
 	// The target-dependent retry's statics are collected lazily, on the first
 	// candidate X the ordinary nil-target price cannot settle, and reused for
 	// the rest of the loop.

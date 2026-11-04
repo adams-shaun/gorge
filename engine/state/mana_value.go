@@ -56,6 +56,16 @@ func SpellManaValue(g *Game, o *Object) int32 {
 	return manaValueAs(g, o, ZStack, 0)
 }
 
+// SpellManaValueAt is SpellManaValue with the announced X bound (CR 202.3e,
+// 601.2b): the mana value the spell has on the stack once X is chosen, which
+// the total cost (CR 601.2f) is determined against.
+func SpellManaValueAt(g *Game, o *Object, x int32) int32 {
+	if o == nil {
+		return 0
+	}
+	return manaValueAs(g, o, ZStack, x)
+}
+
 // manaValueAs is ManaValue for o read as if it were in zone with announced
 // X; the two exported reads differ only in those two inputs.
 func manaValueAs(g *Game, o *Object, zone Zone, x int32) int32 {
