@@ -220,8 +220,10 @@ func (s *State) featCtrl(o Obj) uint8 {
 }
 
 // FeatCDAPT is object o's characteristic-defining P/T off the battlefield
-// (gorge's CDASetPT applies a CDA in every zone): the card's StatCDAPT
-// amounts, when the expression is one this reader evaluates.
+// (gorge's CDASetPT applies a CDA in every zone, CR 604.3): the card's
+// StatCDAPT amounts, evaluated as the layer walk evaluates them on the
+// battlefield (evalV), with o as the source and no battlefield slot; ok is
+// false only when the card has no such ability.
 func (s *State) FeatCDAPT(o Obj) (p, t int, ok bool) {
 	ob := &s.objs[o]
 	k := s.k()
@@ -231,61 +233,10 @@ func (s *State) FeatCDAPT(o Obj) (p, t int, ok bool) {
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCDAPT {
 			continue
 		}
-		c := s.featCtrl(o)
-		p, okp := s.featValue(k, a.Static.VA, c)
-		t, okt := s.featValue(k, a.Static.VB, c)
-		return p, t, okp && okt
+		ctx := evalCtx{src: o, srcSl: NoSlot, ctrl: s.featCtrl(o)}
+		return s.evalV(k, a.Static.VA, ctx), s.evalV(k, a.Static.VB, ctx), true
 	}
 	return 0, 0, false
-}
-
-// featValue evaluates a static amount for a card whose controller is ctrl:
-// constants and the counting expressions a CDA uses.
-func (s *State) featValue(k *prep, v kop.ValueRef, ctrl uint8) (int, bool) {
-	switch v.K {
-	case kop.VConst:
-		return int(v.N), true
-	case kop.VCountFilter:
-		return s.countPerm(k, kop.FilterID(v.N), evalCtx{src: NoObj, srcSl: NoSlot, ctrl: ctrl}), true
-	case kop.VExpr:
-	default:
-		return 0, false
-	}
-	if int(v.N) >= len(k.t.Exprs) {
-		return 0, false
-	}
-	x := &k.t.Exprs[v.N]
-	var n int
-	switch x.Kind {
-	case kop.ExConst:
-		n = int(x.N)
-	case kop.ExCount:
-		for m := s.occ; m.any(); m = m.rest() {
-			if s.matchPerm(k, x.F, m.first(), ctrl, NoSlot) {
-				n++
-			}
-		}
-	case kop.ExCountGraveyard:
-		for i := 0; i < int(s.nobj); i++ {
-			ob := &s.objs[i]
-			if ob.zone == kop.ZoneGraveyard && s.featCardMatch(k, x.F, ob, ctrl, NoCard, NoSlot) {
-				n++
-			}
-		}
-	default:
-		return 0, false
-	}
-	if x.Mul != 0 {
-		n *= int(x.Mul)
-	}
-	if x.Div != 0 {
-		n /= int(x.Div)
-	}
-	n += int(x.Add)
-	if x.Neg {
-		n = -n
-	}
-	return n, true
 }
 
 // FeatPT is battlefield object o's power and toughness as gorge's view shows it. A

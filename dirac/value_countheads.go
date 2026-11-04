@@ -402,8 +402,9 @@ func isPrimeN(n int) bool {
 // Count$ValidGraveyard <spec>$GreatestCardPower and the
 // /Mod.N value modifier. Cold code, out of line.
 
-// StallGravePower: a graveyard card's characteristic-defining power the
-// reader cannot evaluate (featValue's vocabulary) -- loud, never a silent 0.
+// StallGravePower was a graveyard card's characteristic-defining power the
+// off-battlefield reader could not evaluate. It is no longer raised:
+// FeatCDAPT evaluates every lowered CDA amount as the layer walk does.
 const StallGravePower = 127
 
 func init() { stallNames[StallGravePower] = "gravepower" }
@@ -445,11 +446,7 @@ func (s *State) graveGreatestPower(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			v := int(k.cards[c].power)
 			if k.cda && k.gen != nil && k.gen.has(c, gfCDAPT) {
-				p, _, ok := s.FeatCDAPT(o)
-				if !ok {
-					s.capFull(StallGravePower)
-				}
-				v = p
+				v, _, _ = s.FeatCDAPT(o)
 			}
 			if v > best {
 				best = v

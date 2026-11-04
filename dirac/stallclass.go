@@ -84,7 +84,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallTokAtkAsk, StallEnterDefender, StallEndureN, StallLinkCtr, StallNumTimes, StallAegis, StallSacOther,
 	StallCopyCast, StallNetMana, StallTokenPT, StallStaticAsk, StallHandSize, StallMayRaise, StallUncounterOrder,
 	StallEntryOrder, StallCopyAllAsk, StallCloneLayer,
-	StallGravePower, // a characteristic-defining power featValue cannot evaluate, where gorge reads it (value_countheads.go:50)
+	StallGravePower, // no longer raised: FeatCDAPT evaluates every lowered CDA amount
 	StallLandGrant,  // gorge offers both productions of a land with a granted basic type; pcard holds one (static_landtype.go:148,161)
 	StallOutsideType, StallExileOnMoved, StallMultiRetarget, StallL6Walk, StallLowering,
 }

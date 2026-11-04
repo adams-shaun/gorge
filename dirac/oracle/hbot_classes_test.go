@@ -54,3 +54,11 @@ func TestHBotPicksTheManaColourTheCardNeeds(t *testing.T) {
 func TestHBotListsAChangelingsPrintedTypesFirst(t *testing.T) {
 	hbotPairs(t, "std-blb", []int{53}, "choose:type")
 }
+
+// TestHBotReadsAHandCardsDefinedPower: the bot values a creature card in hand
+// at its characteristic-defining power, which applies in every zone (CR 604.3)
+// and which gorge's cardWorth reads, whatever amount the CDA counts (The
+// Traveler and Captain Pike count differently named lands you control).
+func TestHBotReadsAHandCardsDefinedPower(t *testing.T) {
+	hbotPairs(t, "std-trk", []int{34, 87}, "cast(")
+}
