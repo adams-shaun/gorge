@@ -1286,6 +1286,9 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 		}
 		lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	case "Pump":
+		if _, ok := ps.m["TargetType"]; ok {
+			return lc.pumpSpellTarget(ps) // lower_stackexile.go
+		}
 		if _, ok := ps.get("DefinedKW"); ok {
 			return lc.colorGrantPump(ps) // (Skrelv)
 		}

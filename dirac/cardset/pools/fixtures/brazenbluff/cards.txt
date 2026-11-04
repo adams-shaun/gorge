@@ -1,0 +1,14 @@
+# Brazen Bluff (a Pump that only carries a noncreature spell target, the
+# spell controller's optional exile, and the caster's conditional free cast
+# of a noncreature spell from hand), cheap instants and sorceries for the
+# free cast and as targets, creature spells as illegal targets, and basics,
+# for the oracle's constructed lockstep (dirac/oracle/brazenbluff_test.go)
+Brazen Bluff
+Shock
+Lightning Bolt
+Opt
+Divination
+Grizzly Bears
+Hill Giant
+Mountain
+Island

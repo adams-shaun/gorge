@@ -306,6 +306,9 @@ func kremWrites(in lInstr) bool {
 		fmt.Sscan(m[1], &n)
 		return n&4 != 0 // kop.TokRememberObj
 	}
+	if in.Op == "Counter" && in.B.isConst() && in.B.N&kop.CtrRemember != 0 { // RememberChanged$ on a stack move (lower_stackexile.go)
+		return true
+	}
 	if in.Op == "Amass" && in.B.N != 0 { // RememberAmass$ (B.N bit 15; gorge effects/amass.go PKRememberAmass)
 		return true
 	}
