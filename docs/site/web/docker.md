@@ -57,6 +57,7 @@ You need Docker with the Compose plugin and `make`. The first start downloads ab
 | `PACE`, `SEED` | `50ms`, `1` | the delay after each bot decision; the first table's seed |
 | `SPECTATOR`, `VSBOT_SPECTATOR` | `omniscient`, `public` | what spectators see of bot tables and of your games |
 | `BOT_POLICY`, `COMMON_SENSE` | `bot`, `false` | the default bot and its guard |
+| `PAIRED_BOT`, `PAIRED_BOT_SIMS`, `PAIRED_BOT_SEARCHES` | `az-closed`, `100`, `2` | the [bot beside you](paired-play.md) when you play bots alone (`off` turns it off), its simulations per decision and how many run at once |
 | `PREWARM` | `true` | fill the art cache at start |
 | `GOMEMLIMIT` | `6GiB` | gorged's Go memory limit |
 | `GORGED_IMAGE`, `PROXY_IMAGE`, `GORGED_TAG` | `gorge/gorged-demo`, `gorge/gorged-demo-proxy`, `latest` | the image names compose builds |

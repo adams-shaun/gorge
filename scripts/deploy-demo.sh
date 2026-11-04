@@ -41,6 +41,7 @@ DEMO_VARS=(
 	PUB_DIR OMNI_DIR PUB_LOG OMNI_LOG
 	TABLES SEATS COMMANDER_SEATS FORMATS PACE SEED
 	SPECTATOR VSBOT_SPECTATOR BOT_POLICY COMMON_SENSE
+	PAIRED_BOT PAIRED_BOT_SIMS PAIRED_BOT_SEARCHES
 	DEMO_GOMEMLIMIT PPROF
 	ART_DIR ART_FILL_BUDGET ART_FILL_MAX_FAILURES ART_FILL_CEILING
 )
@@ -98,6 +99,15 @@ BOT_POLICY=${BOT_POLICY:-bot}
 # true wraps the bot and sb-tactical seats in the bots/sanity common-sense
 # guard. Off until it is measured on Commander games.
 COMMON_SENSE=${COMMON_SENSE:-false}
+# The paired bot (gorged -paired-bot): a person playing alone against bots
+# gets a bot beside them that weighs each of their decisions and marks its
+# pick, from what that seat can see. az-closed is the search that needs no
+# trained network; off turns it off. PAIRED_BOT_SIMS is its simulations per
+# decision, PAIRED_BOT_SEARCHES how many run at once across the server (the
+# rest wait), so advice never takes more than that many cores.
+PAIRED_BOT=${PAIRED_BOT:-az-closed}
+PAIRED_BOT_SIMS=${PAIRED_BOT_SIMS:-100}
+PAIRED_BOT_SEARCHES=${PAIRED_BOT_SEARCHES:-2}
 # GOMEMLIMIT for the servers only, under its own name so a test-oriented
 # GOMEMLIMIT in the caller's environment never reaches a long-running server
 # (one sized for test binaries kept its GC running continuously).
@@ -240,6 +250,9 @@ start_one() {
 		-vsbot-spectator "$vsbot_spectator"
 		-bot-policy "$BOT_POLICY"
 		-bot-common-sense="$COMMON_SENSE"
+		-paired-bot "$PAIRED_BOT"
+		-paired-bot-sims "$PAIRED_BOT_SIMS"
+		-paired-bot-searches "$PAIRED_BOT_SEARCHES"
 		-dir "$dir"
 		-cards "$CARDS"
 		-feedback "$FEEDBACK"
@@ -387,4 +400,4 @@ wait_ready "$PUB_PORT"
 say "$(curl -fsS "http://127.0.0.1:$PUB_PORT/api/tables" |
 	tr ',' '\n' | grep '"format"' | cut -d'"' -f4 | sort | uniq -c |
 	tr '\n' ' ')on :$PUB_PORT"
-say "ready — spectator ($SPECTATOR, bots $BOT_POLICY, seats $SEATS/commander $COMMANDER_SEATS, pace $PACE) http://localhost:$PUB_PORT/${OMNI_PORT:+  ·  omniscient http://localhost:$OMNI_PORT/}"
+say "ready — spectator ($SPECTATOR, bots $BOT_POLICY, paired bot $PAIRED_BOT, seats $SEATS/commander $COMMANDER_SEATS, pace $PACE) http://localhost:$PUB_PORT/${OMNI_PORT:+  ·  omniscient http://localhost:$OMNI_PORT/}"

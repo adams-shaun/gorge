@@ -43,6 +43,9 @@ services:
       - -vsbot-spectator=${VSBOT_SPECTATOR:-public}
       - -bot-policy=${BOT_POLICY:-bot}
       - -bot-common-sense=${COMMON_SENSE:-false}
+      - -paired-bot=${PAIRED_BOT:-az-closed}
+      - -paired-bot-sims=${PAIRED_BOT_SIMS:-100}
+      - -paired-bot-searches=${PAIRED_BOT_SEARCHES:-2}
       - -prewarm=${PREWARM:-true}
       - -vsbot
       - -events

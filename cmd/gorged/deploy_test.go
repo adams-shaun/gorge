@@ -497,6 +497,43 @@ func TestDeployScriptPassesBotCommonSense(t *testing.T) {
 	}
 }
 
+// TestDeployScriptTurnsOnThePairedBot pins the demo's paired bot: on by
+// default with the search that needs no trained network, passed to the
+// servers as flags the real binary accepts, and off when PAIRED_BOT=off.
+func TestDeployScriptTurnsOnThePairedBot(t *testing.T) {
+	for name, want := range map[string]string{"PAIRED_BOT": "az-closed", "PAIRED_BOT_SIMS": "100", "PAIRED_BOT_SEARCHES": "2"} {
+		if got := deployScriptDefault(t, name); got != want {
+			t.Errorf("deploy-demo.sh %s default %q, want %q", name, got, want)
+		}
+	}
+	served := func(env ...string) *flag.FlagSet {
+		t.Helper()
+		out, err := dryRun(t, env...)
+		if err != nil {
+			t.Fatalf("dry run: %v\n%s", err, out)
+		}
+		m := regexp.MustCompile(`(?m)^\+ env GOMEMLIMIT=\S+ \S+ (.*)$`).FindStringSubmatch(out)
+		if m == nil {
+			t.Fatalf("the dry run starts no server:\n%s", out)
+		}
+		fs := gorged.ServeFlagSetFor(extensions())
+		// The dry run prints each argument shell-quoted; these need only the comma unescaped.
+		if err := fs.Parse(strings.Fields(strings.ReplaceAll(m[1], `\,`, ","))); err != nil {
+			t.Fatalf("real gorged rejects the deploy's server arguments %q: %v", m[1], err)
+		}
+		return fs
+	}
+	fs := served()
+	for name, want := range map[string]string{"paired-bot": "az-closed", "paired-bot-sims": "100", "paired-bot-searches": "2"} {
+		if got := flagValue(t, fs, name); got != want {
+			t.Errorf("the demo server's -%s = %q, want %q", name, got, want)
+		}
+	}
+	if got := flagValue(t, served("PAIRED_BOT=off"), "paired-bot"); got != "off" {
+		t.Errorf("PAIRED_BOT=off serves -paired-bot %q", got)
+	}
+}
+
 // dryRun runs scripts/deploy-demo.sh --dry-run with env on top of an empty
 // DEMO_ENV and returns its combined output and error. A dry run builds, stops
 // and starts nothing.
