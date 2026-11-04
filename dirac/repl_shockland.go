@@ -180,3 +180,16 @@ func (s *State) shockUntapWins(sl Slot) {
 		}
 	}
 }
+
+// shockEntryOrdered: the permanent at sl entered under an order ask (CR 616.1)
+// with a Tapped$ move: the move's tapped bit is set before the bodies, so a
+// body the order puts first (an untap) clears it, and a tap applies it again
+// through the election's own Tap body. The election no longer taps after its
+// answer.
+func (s *State) shockEntryOrdered(sl Slot) {
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
+			a.ts &^= askEntryTapped
+		}
+	}
+}

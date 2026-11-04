@@ -1274,7 +1274,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
 // its host (handAuraEnter), a card entering for its as-enters choice (rerunMove).
 func (s *State) moveAsked() bool {
-	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice
+	return s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1510,6 +1510,13 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.g.nlook = uint8(n)
 				return
 			}
+			if host == NoSlot && s.entryParkFound(k, o, ep) {
+				// the CR 616.1 entry-order ask, the card still in its zone; the
+				// answer moves the cards from this one on (repl_entryorder.go)
+				n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+				s.g.nlook = uint8(n)
+				return
+			}
 		}
 		from := s.detach(o)
 		if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
@@ -1614,7 +1621,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 					s.g.lookSel |= 1 << i
 				}
 			}
-			if s.finishDigAt(k, second == 255, false) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice) {
+			if s.finishDigAt(k, second == 255, false) && (s.res.ask == raGenEnterAsk || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder) {
 				return false // a taken card's as-enters ask, the tail parked
 			}
 			continue
@@ -1700,6 +1707,9 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			}
 			if z == kop.ZoneBattlefield && park && s.cloneReturnPark(k, o, s.objs[o].owner()) {
 				return true
+			}
+			if z == kop.ZoneBattlefield && park && s.entryParkDig(k, o, p) {
+				return true // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
 			}
 			if z == kop.ZoneBattlefield && park && s.digAuraPark(k, o, p) {
 				return true // CR 303.4f: the Aura waits in the library for its controller's choice of what it enchants

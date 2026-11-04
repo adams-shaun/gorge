@@ -1763,6 +1763,9 @@ func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
 				if s.cloneReturnPark(k, fnd[i], p) {
 					return false
 				}
+				if s.entryParkDig(k, fnd[i], p) {
+					return false // the CR 616.1 entry-order ask, the card still in the library (repl_entryorder.go)
+				}
 				if !s.digEnter(k, p, fnd[i], fl&kop.DuFoundTapped != 0, fl&kop.DuFoundAttacking != 0) {
 					return true
 				}

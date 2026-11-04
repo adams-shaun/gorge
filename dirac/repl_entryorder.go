@@ -13,9 +13,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // order. The kernel poses the same ask with the object still in its zone, on
 // the two routes that carry a land onto the battlefield in the lockstep
 // pools (a land play; a resolving program's hand or ChangeZone move), as
-// DkChoose + ChGenReplOrder over s.g.ro, and stalls (StallEntryOrder) on
-// every other route that meets a pair, so nothing ever applies a fixed order
-// (GORGE-FINDINGS.md, D-entry-order).
+// DkChoose + ChGenReplOrder over s.g.ro. A dig's or a search's found land (a
+// DigUntil, a Dig, a library search) is asked the same way with the card still
+// in its zone when exactly one tap and one untap compete (entryParkDig,
+// entryParkFound); a longer competition there, and every other route that
+// meets a pair, stalls (StallEntryOrder), so nothing ever applies a fixed
+// order (GORGE-FINDINGS.md, D-entry-order).
 
 // DebugEntryOrderTapLast skips the ask and always applies the tap last (the
 // mutation test: gorge poses the order, so the lockstep must diverge).
@@ -356,6 +359,13 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 		return
 	}
 	s.res.ask = raNone
+	if op := s.prog(k)[s.res.pc].Op; s.g.ro.pcol&entMode == entOp && (op == kop.OpDigUntil || op == kop.OpDigEx) {
+		if s.entryDigRerun(k) {
+			s.entryOrderClear()
+			s.continueRes(k, 0)
+		}
+		return
+	}
 	if s.g.ro.pcol&entMode == entSearch {
 		s.finishSearch(k) // the one-card hand move again, from its first step
 	} else {
@@ -395,6 +405,54 @@ func (s *State) entryParkOp(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
 	}
 	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
 	return true
+}
+
+// entryParkDig parks the move of o onto the battlefield that a dig makes (a
+// DigUntil's found card, or a Dig's taken card), o still in the library with
+// the rest of the look. Only the two-body competition is ordered here, one tap
+// against one untap: the first pick decides it, so no re-ask follows the entry
+// (CR 616.1e) and the dig runs again from the answer. A longer competition
+// stalls in enterGen (StallEntryOrder).
+func (s *State) entryParkDig(k *prep, o Obj, ctrl uint8) bool {
+	if k.gen == nil || !k.gen.anyEntUntap || !s.res.active || s.res.ask != raNone {
+		return false
+	}
+	if op := s.prog(k)[s.res.pc].Op; op != kop.OpDigUntil && op != kop.OpDigEx {
+		return false
+	}
+	if !s.entryOrderPark(k, o, ctrl, entOp) {
+		return false
+	}
+	if s.g.ro.n != 2 {
+		s.g.ro.replHdr = replHdr{}
+		return false
+	}
+	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	return true
+}
+
+// entryParkFound parks the move of a searched-for card o onto the battlefield
+// under ctrl (moveFoundAns), o still in its zone: the same two-body ask as a
+// dig's, answered by running the search's move again from o.
+func (s *State) entryParkFound(k *prep, o Obj, ctrl uint8) bool {
+	if k.gen == nil || !k.gen.anyEntUntap || !s.res.active || s.res.ask != raNone {
+		return false
+	}
+	if !s.entryOrderPark(k, o, ctrl, entSearch) {
+		return false
+	}
+	if s.g.ro.n != 2 {
+		s.g.ro.replHdr = replHdr{}
+		return false
+	}
+	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	return true
+}
+
+// entryDigRerun runs the parked dig again from the order answer; false when
+// it suspended at another ask.
+func (s *State) entryDigRerun(k *prep) bool {
+	return !s.rerunMove(k, &s.prog(k)[s.res.pc])
 }
 
 // entryParkSearch parks a one-card hand move to the battlefield that a search
