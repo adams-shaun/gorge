@@ -6,20 +6,55 @@ fair-or-clairvoyant verdict was reached, with the code that decides it. To selec
 
 ## The six registered bots
 
+<div class="grid cards" markdown>
+
+- **`bot`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    The default. Rules, a combat simulation, Forge's mulligan.
+
+    <small>gorge, dirac. Browser, HTTP, SpellBench agent. 29.7 µs a decision.</small>
+
+- **`forge-heuristic`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    `bot` plus rules re-expressed from Forge's AI.
+
+    <small>gorge, dirac. Browser, HTTP, SpellBench agent.</small>
+
+- **`forge-heuristic-hold`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    `forge-heuristic` that keeps instants back.
+
+    <small>gorge, dirac. Browser, HTTP, SpellBench agent.</small>
+
+- **`lethal-pressure`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    The older heuristic with an attack-into-lethal rule.
+
+    <small>gorge, dirac. Browser, HTTP, SpellBench agent.</small>
+
+- **`sb-tactical`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    SpellBench's scored tactical heuristic.
+
+    <small>gorge, dirac, bot-only. Reads decklists. Not for people.</small>
+
+- **`az-redeal`** <span class="gg-badge gg-badge--fair">fair</span>
+
+    AlphaZero-style search, 100 simulations, no network.
+
+    <small>gorge only, bot-only. Reads decklists. About 106 ms a searched decision.</small>
+
+</div>
+
+All six are fair about hidden cards. The two search bots read every seat's decklist, so they play only against other bots. The side-by-side table is on [Bot comparison](compare.md).
+
+### What each does
+
 Six policies register themselves in the bot registry
 ([`bots/registry.go`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go)) from the
 packages [`bots/all`](https://github.com/adams-shaun/gorge/blob/main/bots/all/all.go) links, so every
 binary that imports `bots/all` has them. Each entry's `bots.Info` carries its label, tier, formats, seat
 limit, description and cost. [Bot speed](../performance/bots.md) measures them.
-
-| Name | Formats, seats | Offered by `gorged` | Package |
-|---|---|---|---|
-| `bot` | constructed and Commander, any | yes | [`bots/bot`](https://github.com/adams-shaun/gorge/blob/main/bots/bot/bot.go) |
-| `forge-heuristic` | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
-| `forge-heuristic-hold` | constructed and Commander, any | yes | [`bots/forgeheuristic`](https://github.com/adams-shaun/gorge/blob/main/bots/forgeheuristic/forgeheuristic.go) |
-| `lethal-pressure` | constructed and Commander, any | yes; `gorged`'s default `-bot-policy` | [`bots/lethalpressure`](https://github.com/adams-shaun/gorge/blob/main/bots/lethalpressure/lethalpressure.go) |
-| `sb-tactical` | constructed, 2 | no: reads every seat's decklist | [`bots/sbtactical`](https://github.com/adams-shaun/gorge/blob/main/bots/sbtactical/sbtactical.go) |
-| `az-redeal` | constructed, 2 | no: reads every seat's decklist | [`bots/azredeal`](https://github.com/adams-shaun/gorge/blob/main/bots/azredeal/azredeal.go) |
 
 **`bot`** is the production heuristic: hand-written rules
 ([`bots/botpolicy`](https://github.com/adams-shaun/gorge/blob/main/bots/botpolicy), driven by
@@ -72,11 +107,13 @@ A **fair** bot uses only what its seat may see. A **clairvoyant** bot reads hidd
 library order, or a clone of the real engine. **No registered bot is clairvoyant.** The two search bots are fair about hidden
 cards but read every seat's decklist, so they never seat against a person. Verdicts, with where the code decides them:
 
-| Bot | Verdict | Why | Code |
-|---|---|---|---|
-| `bot`, `forge-heuristic`, `forge-heuristic-hold`, `lethal-pressure` | fair | `Decide` takes the seat's redacted `view.View`. `DecideBoard` takes a `Board` of public facts (the engine's derived power, toughness and keywords for visible permanents, life, zone sizes). No search, no determinisation, no engine handle. They register without `Env`. | `bots/heuristic/bot.go:616` (`Decide`), `:627` (`DecideBoard`), `:642` (`BoardFromView`, what the `Board` carries); `bots/bot/bot.go:12` (no `Env`) |
-| `sb-tactical` | fair on hidden cards, reads decklists | Its planner is a root the host redeals from the seat's own observation feed, so which hidden card is where never reaches it. The redeal draws from every seat's real decklist, so it knows the opponent's list. It is not offered against a person. Search is off: the root only prices payments, at priority. | `bots/sbtactical/sbtactical.go:50` (`Env: true, Search: false`); `bots/searchseat/honestroot.go:30-53` (`HonestRoot`); `bots/registry.go:205` (`ReadsDecklists`); `server/gorged/botpolicies.go:53` (refused in `-bot-policies`) |
-| `az-redeal` | fair on hidden cards, reads decklists. Determinised search | 100 simulations, each over a freshly redealt world (`WorldRedeal`), so no belief model and no clone of the real engine. Like `sb-tactical`, it deals from the real decklists. | `bots/azredeal/azredeal.go:52` (`Env: true, Search: true`), `:66-70` (`Hosted`, `WorldRedeal`); `bots/azmcts/redeal.go:19-21` (`WorldRedeal`) |
+- **The four heuristics are fair.** `Decide` takes the seat's redacted `view.View`, and `DecideBoard` takes a `Board` of public
+  facts (`bots/heuristic/bot.go:616`, `:627`, `BoardFromView` at `:642`). They register without `Env` (`bots/bot/bot.go:12`).
+- **`sb-tactical` is fair on hidden cards and reads decklists.** `Env: true, Search: false` (`bots/sbtactical/sbtactical.go:50`).
+  Its planner root is redealt from the seat's own feed (`bots/searchseat/honestroot.go:30-53`), but the redeal draws from every seat's
+  real decklist (`bots/registry.go:205`), so `-bot-policies` refuses it (`server/gorged/botpolicies.go:53`).
+- **`az-redeal` is fair on hidden cards, determinised, with no belief model, and reads decklists.** `Env: true, Search: true`
+  (`bots/azredeal/azredeal.go:52`); `Hosted` sets `WorldRedeal` (`azredeal.go:66-70`, `bots/azmcts/redeal.go:19-21`).
 
 Two further points.
 

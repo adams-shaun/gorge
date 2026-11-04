@@ -11,11 +11,11 @@ import (
 )
 
 // TestBotsDocsTableListsEveryRegisteredBot keeps the overview table on
-// docs/site/bots/index.md in step with the registry: each registered bot has a
+// docs/site/bots/compare.md in step with the registry: each registered bot has a
 // row, with a verdict in the fair-or-clairvoyant column, and no row names a bot
 // that is not registered. An Env policy's row must say it reads decklists.
 func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
-	raw, err := os.ReadFile("../docs/site/bots/index.md")
+	raw, err := os.ReadFile("../docs/site/bots/compare.md")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 	for _, e := range bots.Entries() {
 		row, ok := rows[e.Name]
 		if !ok {
-			t.Errorf("registered bot %q has no row in docs/site/bots/index.md", e.Name)
+			t.Errorf("registered bot %q has no row in docs/site/bots/compare.md", e.Name)
 			continue
 		}
 		cells := strings.Split(strings.Trim(row, "| "), " | ")
@@ -50,7 +50,7 @@ func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 	}
 	for name := range rows {
 		if _, ok := bots.Lookup(name); !ok {
-			t.Errorf("docs/site/bots/index.md has a row for %q, which is not registered", name)
+			t.Errorf("docs/site/bots/compare.md has a row for %q, which is not registered", name)
 		}
 	}
 }
