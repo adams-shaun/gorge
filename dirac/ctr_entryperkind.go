@@ -58,8 +58,8 @@ func prepEntryMerge(t *kop.Table, g *genPrep) {
 				case kop.OpReturnEx, kop.OpChangeZoneAllEx, kop.OpChooseMove, kop.OpDigCounters, kop.OpIncubate:
 					src = true
 				case kop.OpExt:
-					if in.Ext() == kop.ExtSearchCounters {
-						src = true // a library search's WithCountersType$ rider
+					if in.Ext() == kop.ExtSearchCounters && entryMergeKind(int(in.C)) {
+						src = true // a library search's +1/+1 or -1/-1 rider
 					}
 				case kop.OpEnterWithCounters:
 					if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplOthersEnterProgram {
