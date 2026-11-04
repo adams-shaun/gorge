@@ -224,6 +224,7 @@ func TestStdFinReprosLockstep(t *testing.T) {
 		{"free_cast_targets_resolving_ability", true, false},    // CR 608.2m: Buster Sword's offer may target the trigger itself
 		{"granted_prefix_sacrifices_own_treasure", true, false}, // CR 704.5d: Gysahl Greens flashback, paid by Plains, a Treasure and The Earth Crystal activated at priority, so the sacrificed Treasure has ceased before the cast
 		{"sacrifice_cost_granted_prefix", true, false},          // CR 601.2g-h: the granted mana is the prefix, so the printed plan leaves the Treasure to sacrifice
+		{"modal_cost_granted_mana_prefix", false, false},        // CR 601.2b, 601.2g-h: Tifa's Limit Break's cheapest Tiered mode costs only its printed {G}, which the granted any-colour source (A Realm Reborn) pays through the prefix
 	})
 }
 

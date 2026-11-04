@@ -331,8 +331,12 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 			// sacrifice, a target-dependent price -- planned from its
 			// composed cost and confirmed by the offer gate.
 			alt := e.potentialModeCastPlan(p, o)
+			// A modal cast is planned at its printed cost, which is the
+			// exact total only when a legal mode is free; a costlier
+			// cheapest mode would be over-offered (potentialModalCastFreeMode).
+			modalFree := got.Detail == "shape:modal_cost" && e.potentialModalCastFreeMode(p, o.Obj)
 			if alt.Reason == "" || got.Detail == "cost:x" || got.Detail == "cost:hybrid" || e.manaSpentReaderComposed(o.Obj, got.Detail) ||
-				got.Detail == "shape:target_dependent_cost" || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
+				got.Detail == "shape:target_dependent_cost" || modalFree || e.G.Obj(o.Obj) != nil && (len(altAddCostParts(e.G.Obj(o.Obj).Face())) != 0 || spellExtrasAreFixedTaps(e.G.Obj(o.Obj).Face())) {
 				// A witness always; a proof only for the shapes the
 				// composition models exactly (the planner declined the
 				// others for a reason the composition may not see).
@@ -671,6 +675,50 @@ func (e *Engine) paymentPlanCensusTotal(p state.PlayerID) int32 {
 		total += best
 	}
 	return total
+}
+
+// potentialModalCastFreeMode reports whether a plain Spree/Tiered cast of id
+// has a legal mode whose ModeCost$ is zero. Only then is the printed-cost
+// plan an exact witness for a cast the shape gate declines: the cheapest
+// mode adds nothing, so the plan's total is the cast's minimum total. A
+// modal cast whose cheapest legal mode costs extra must stay unpriced -- a
+// plan at the printed cost alone would price a cast no mode can pay (the OTJ
+// Explosive Derailment divergence, where both modes cost {2}).
+//
+// The target check mirrors castModeAsk's first filter (modeTargetsAvailable
+// with X pending, since X is announced after the modes), so a mode the cast
+// could never select does not count. The first free legal mode wins; mode
+// order is deterministic.
+func (e *Engine) potentialModalCastFreeMode(p state.PlayerID, id state.ObjID) bool {
+	obj := e.G.Obj(id)
+	if obj == nil {
+		return false
+	}
+	f := obj.Face()
+	if f == nil || !e.faceScanHas(f, faceScanModalCost) {
+		return false
+	}
+	sa := f.SpellAbility()
+	cp := effects.CharmOf(sa)
+	if !cp.HasChoices {
+		return false
+	}
+	for _, name := range cp.Modes {
+		if name == "" {
+			continue
+		}
+		if sub := cards.ResolveSVar(f.SVars, name); sub == nil || !modeTargetsAvailable(e, p, id, id, sub, 0, true) {
+			continue
+		}
+		mc, present, ok := modeCost(f, name)
+		if present && !ok {
+			continue // an unparseable mandatory cost is never free
+		}
+		if !present || mc.CMC() == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // potentialModeBaseCost is the raw (pre-modifier) cost beginCast charges a
