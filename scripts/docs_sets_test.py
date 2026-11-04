@@ -72,7 +72,7 @@ class RenderTest(unittest.TestCase):
         self.out = docs_sets.render(A_ROWS, META, B_ROWS, DD)
 
     def test_sections(self):
-        for name in ("headline", "sets", "rollup"):
+        for name in ("headline", "sets", "rollup", "charts"):
             section(self.out, name)
 
     def test_join_by_set_code(self):
@@ -94,6 +94,26 @@ class RenderTest(unittest.TestCase):
         # an unaudited set dirac lacks stays out of the by-engine table
         self.assertIsNone(row(sets, "LEA"))
         self.assertIn("BIG: 1 harness", sets)
+
+    def test_charts(self):
+        charts = section(self.out, "charts")
+        self.assertEqual(charts.count('<div class="gg-bars">'), 2)
+        # dirac: FDN 300 supported of 517, 171 unverified, none refused
+        self.assertIn('title="FDN: 300 supported, 171 unverified, 0 refused"', charts)
+        self.assertIn('gg-seg--ok" style="--w:58.0%"', charts)
+        # gorge: only the sets dirac also lists, BRO and FDN; BRO has 21 unsupported of 280
+        self.assertIn('title="BRO: 259 playable, 0 not in corpus, 21 unsupported"', charts)
+        self.assertNotIn('title="ZZZ: 1 playable', charts)
+
+    def test_charts_without_gorge_status(self):
+        charts = section(docs_sets.render([], {}, {}, DD), "charts")
+        self.assertEqual(charts.count('<div class="gg-bars">'), 1)
+        self.assertIn("no gorge chart", charts)
+
+    def test_charts_without_dirac(self):
+        charts = section(docs_sets.render(A_ROWS, META, B_ROWS, None), "charts")
+        self.assertNotIn("gg-bars", charts)
+        self.assertIn("no dirac chart", charts)
 
     def test_rollup_carries_dirac(self):
         rollup = section(self.out, "rollup")

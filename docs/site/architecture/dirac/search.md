@@ -1,5 +1,7 @@
 # Search and bots
 
+Which searches and nets ship, and where they run: [Search and nets](../../engines/search-and-nets.md).
+
 dirac exists so that searches and self-play can step games cheaply. This page says what it offers a search, for bot authors
 and for readers comparing engines. It reports no playing strength. Speed per simulation is on
 [Bot speed](../../performance/bots.md).

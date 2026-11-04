@@ -1,5 +1,7 @@
 # Performance
 
+Part of [Engines](../engines/index.md).
+
 How fast gorge and dirac play Magic, and how they compare with XMage, Forge and mtg-kernel on one machine, the same
 decks and one CPU core each. This page is for anyone choosing an engine to host games or generate self-play data.
 [How it is measured](methodology.md) has the method and the commands, [gorge's speed](engine.md) has its benchmark rows

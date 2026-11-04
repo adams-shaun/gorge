@@ -34,6 +34,9 @@ includes its sections through pymdownx.snippets:
     headline  one row per engine and measure
     sets      the by-engine table for every set either source audits
     rollup    gorge-compliance's roll-up by set type, then every set
+    charts    HTML bars (gg-bars) per engine over the sets on dirac's support
+              page (the Standard sets): dirac supported / unverified / refused,
+              and gorge playable / unsupported / not in corpus
 
 Per set:
   playable %   = 1 - (unsupported + not in corpus) / cards
@@ -425,6 +428,50 @@ def render_rollup(rows, level_b, meta, dd):
     return "\n".join(out) + "\n"
 
 
+def bars(rows, names=("supported", "unverified", "refused")):
+    """Generated coverage bars. rows: [(label, ok, unv, ref, total)]; widths are percentages of total."""
+    out = ['<div class="gg-bars">']
+    for label, ok, unv, ref, total in rows:
+        w = lambda n: "%.1f%%" % (100.0 * n / total if total else 0)
+        out.append('<div class="gg-bar" title="%s: %d %s, %d %s, %d %s"><span class="gg-bar__label">%s</span>'
+                   '<span class="gg-seg gg-seg--ok" style="--w:%s"></span><span class="gg-seg gg-seg--unv" style="--w:%s"></span>'
+                   '<span class="gg-seg gg-seg--ref" style="--w:%s"></span></div>' % (
+                       label, ok, names[0], unv, names[1], ref, names[2], label, w(ok), w(unv), w(ref)))
+    out.append("</div>")
+    return "\n".join(out) + "\n"
+
+
+def render_charts(rows, level_b, meta, dd):
+    out = []
+    w = out.append
+    sets = (dd or {}).get("sets", {})
+    if dd:
+        w("**dirac.** Each bar is a set's cards: supported, then unverified (lowered, not yet evidenced), then refused.")
+        w("")
+        w(bars([(c, sets[c]["supported"], sets[c]["unverified"], sets[c]["refused"], sets[c]["cards"]) for c in sorted(sets)]))
+        w("*From " + dd_stamp(dd) + ".*")
+        w("")
+    else:
+        w("*dirac's snapshot was not available to this build, so there is no dirac chart.*")
+        w("")
+    by = {r["set"]: r for r in rows}
+    codes = [c for c in sorted(sets) if c in by]
+    if codes:
+        w("**gorge.** Each bar is a set's entries: playable, then not in the corpus, then unsupported.")
+        w("")
+        w(bars([(c, measure(by[c])["playable"], measure(by[c])["missing"], measure(by[c])["unsupported"], measure(by[c])["cards"])
+                for c in codes], ("playable", "not in corpus", "unsupported")))
+        if data_caption(meta):
+            w(data_caption(meta))
+            w("")
+    else:
+        w("*gorge's per-set figures come from gorge-compliance's published status, "
+          "which this build did not have, so there is no gorge chart. The figures are "
+          "in the by-set table below.*")
+        w("")
+    return "\n".join(out) + "\n"
+
+
 def render(rows, meta=None, level_b=None, dd=None):
     level_b = level_b or {}
     return "".join([
@@ -432,6 +479,7 @@ def render(rows, meta=None, level_b=None, dd=None):
         section("headline", render_headline(rows, level_b, meta, dd)),
         section("sets", render_sets(rows, level_b, meta, dd)),
         section("rollup", render_rollup(rows, level_b, meta, dd)),
+        section("charts", render_charts(rows, level_b, meta, dd)),
     ])
 
 
