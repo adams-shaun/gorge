@@ -392,6 +392,7 @@ ExtEnterUntapped	ExtOp	228
 ExtExHaste	ExtOp	171
 ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
+ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
