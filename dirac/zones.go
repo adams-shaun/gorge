@@ -338,7 +338,7 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if s.g.entHost != 0 {
 		s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
-	if s.anyETB(k) {
+	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go)
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
 	if k.anyRoom && from == kop.ZoneStack {

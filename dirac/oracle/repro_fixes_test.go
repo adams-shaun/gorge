@@ -248,7 +248,8 @@ func TestStdFraReprosLockstep(t *testing.T) {
 func TestStdDftReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-dft", []stdRepro{
-		{"clone_entry_order_beside_counter", false}, // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_beside_counter", false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+		{"clone_entry_order_three_candidates", false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
 	})
 }
 

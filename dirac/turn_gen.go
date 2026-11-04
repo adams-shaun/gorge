@@ -24,8 +24,8 @@ const (
 	akReveal  uint8 = 7 // a reveal land's as-enters "reveal or enter tapped" (repl_revealland.go)
 	akRevPick uint8 = 8 // the card a reveal land's paid election reveals
 	akNumber  uint8 = 9 // an as-enters number (OpExt ExtChooseNumber; repl_choosenumber.go)
-	// akEntryOrder is the CR 616.1 order between an as-enters copy and one
-	// other replacement over the same entry, asked with the spell still on
+	// akEntryOrder is the CR 616.1 order between an as-enters copy and the
+	// other replacements over the same entry, asked with the spell still on
 	// the stack (s.g.pre only; repl_entryclone.go)
 	akEntryOrder uint8 = 10
 )
@@ -110,16 +110,14 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		ovr = s.entryOrderEnter(k, sl, o) // the CR 616.1 order ask's result, or a stall (repl_entryorder.go)
 	}
 	// The entrant's own enters programs and the other permanents' enter
-	// replacements apply in the order an answered CR 616.1 ask named, when
-	// one was posed (repl_entryclone.go); otherwise the own line comes
+	// replacements apply in the order the answered CR 616.1 asks named, when
+	// any were posed (repl_entryclone.go); otherwise the own line comes
 	// first, as before.
-	othersFirst := s.g.pre.ordSet && s.g.pre.ord != o
-	if othersFirst {
-		s.runOthersEnterPrograms(k, sl, g)
-	}
-	s.runOwnEnterPrograms(k, sl, o, cid, p.ctrl, face)
-	if !othersFirst {
-		s.runOthersEnterPrograms(k, sl, g)
+	if s.g.pre.ordN > 0 && s.g.pre.obj == o {
+		s.runEntryOrdered(k, sl, o, cid, p.ctrl, face, g)
+	} else {
+		s.runOwnEnterPrograms(k, sl, o, cid, p.ctrl, face)
+		s.runOthersEnterPrograms(k, sl, g, s.statM)
 	}
 	s.g.replaced = saveRep
 	shock := ovr != 0 && face == 0 && g.has(cid, gfEnterRepl) && s.shockCardAmount(k, cid) > 0
@@ -190,10 +188,10 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 	s.res.e.x = selfX
 }
 
-// runOthersEnterPrograms applies every other permanent's "as this enters"
-// replacement that matches the entrant at sl.
-func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep) {
-	for m := s.statM; m.any(); m = m.rest() {
+// runOthersEnterPrograms applies the "as this enters" replacement of each
+// permanent in m that matches the entrant at sl.
+func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
+	for ; m.any(); m = m.rest() {
 		src := m.first()
 		if src == sl || s.genLost(k, src) {
 			continue
@@ -824,15 +822,16 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 	}
 	if s.g.pre.state == 1 {
 		d.Kind = DkChoose
+		if s.g.pre.kind == akEntryOrder {
+			d.Player = s.cloneEntryCtrl()
+			d.Sub = ChGenReplOrder // gorge's KReplacement order ask (repl_entryclone.go)
+			s.cloneEntryOrderOptions(k, d)
+			return true
+		}
 		if s.g.pre.land {
 			d.Player = s.prio // the land's player still holds priority
 		} else {
 			d.Player = s.stack[s.sp-1].ctrl
-		}
-		if s.g.pre.kind == akEntryOrder {
-			d.Sub = ChGenReplOrder // gorge's KReplacement order ask (repl_entryclone.go)
-			s.cloneEntryOrderOptions(k, d)
-			return true
 		}
 		s.askOptions(k, d, s.g.pre.kind)
 		return true
@@ -895,17 +894,7 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.g.pre.state == 1 {
 		if s.g.pre.kind == akEntryOrder {
-			// the order answer: the as-enters copy stays answered (kind
-			// akClone), and ord names the source that applies first as the
-			// permanent enters (repl_entryclone.go)
-			s.g.pre.ord = Obj(a.Source())
-			s.g.pre.kind = akClone
-			s.g.pre.state = 2
-			s.ctl = ctlPriority
-			s.resolveTop(k)
-			if s.g.pre.state != 1 {
-				s.g.pre = preAsk{}
-			}
+			s.cloneEntryOrderAnswer(k, a) // the order answer (repl_entryclone.go)
 			return
 		}
 		s.g.pre.val = a.Mode()

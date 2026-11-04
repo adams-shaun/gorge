@@ -2261,12 +2261,17 @@ type preAsk struct {
 	state uint8
 	val   uint8
 	land  bool // a land being played (asked while it is still in the hand)
-	// ord is the first replacement source of an answered CR 616.1 entry
-	// order ask; ordSet marks that the ask was posed (ord is NoObj until
-	// answered). The as-enters copy and another source compete over the
-	// entry (repl_entryclone.go)
-	ord    Obj
-	ordSet bool
+	// ordPick[:ordN] are the replacement sources the player named, in answer
+	// order, to a CR 616.1 entry order ask; ordSet marks that the ask was
+	// posed. The as-enters copy and the other sources compete over the entry
+	// and the ask repeats until the unnamed rest commutes (repl_entryclone.go)
+	ordPick [7]Obj
+	ordN    uint8
+	ordSet  bool
+	// ordMid: gorge moved the permanent in after the first answer, with every
+	// counter body folded into the move, and asks the rest with it on the
+	// battlefield; the entrant's own line (the copy) is still to apply
+	ordMid bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell

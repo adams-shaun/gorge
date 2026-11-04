@@ -151,6 +151,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak {
 				s.sneakEnter(k, sl, &e) // CR 702.190b (kw_sneak.go)
 			}
+			if k.gen != nil && s.cloneEntryLatePark(sl) {
+				return // gorge's second CR 616.1 ask, with the permanent in and the copy still to apply (repl_entryclone.go)
+			}
 			s.res.active = false
 			s.afterResolve()
 			return

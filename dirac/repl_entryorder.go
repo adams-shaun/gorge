@@ -103,6 +103,18 @@ func entBodyClass(prog []kop.Instr) uint8 {
 	return entClsOther
 }
 
+// entBodyInert reports whether a replacement program only adds counters to the
+// entrant: gorge classes such a body "counter" (replacement_updated.go,
+// updatedBodyClass), which composes with any other in either order.
+func entBodyInert(prog []kop.Instr) bool {
+	for i := range prog {
+		if prog[i].Op != kop.OpEnterWithCounters {
+			return false
+		}
+	}
+	return len(prog) > 0
+}
+
 // prepEntUntap sets anyEntUntap: some card has an other-enter program that
 // untaps the entrant (ExtEnterUntapped).
 func prepEntUntap(t *kop.Table, g *genPrep) {
@@ -123,6 +135,7 @@ type entComp struct {
 	n          uint8
 	cand       [8]Obj
 	tap, untap uint8 // bit per candidate
+	inert      uint8 // bit per candidate whose body only adds counters (it commutes with every other such body)
 	early      bool  // the entrant's own line was scanned before its owner's battlefield
 	anyTap     bool  // some body taps / untaps, kept when the candidate list is full
 	anyUntap   bool
@@ -207,7 +220,11 @@ func (s *State) entryComp(k *prep, o Obj, ctrl uint8, skip Slot, fixEarly bool) 
 				if !s.matchCardGen(k, a.Repl.Filter, cid, ctrl, s.perms[b].ctrl, NoObj) { // NoObj: the filter's zone is the battlefield, the entrant is not there yet
 					continue
 				}
+				n0 := c.n
 				c.add(s.perms[b].obj, entBodyClass(a.Prog))
+				if c.n > n0 && entBodyInert(a.Prog) {
+					c.inert |= 1 << n0
+				}
 			}
 		}
 		if own == pp && !early {
