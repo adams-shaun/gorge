@@ -1842,7 +1842,11 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		if obj, err = lc.objOrTarget(ps, "", zone); err != nil {
 			return err
 		}
-		if ro := ps.str("RememberObjects"); ro != "Targeted" {
+		// On a link with its own target, Targeted and ThisTargetedCard name
+		// the same object: gorge effectRememberedCodes maps both to the
+		// link's own answer (staticline.go), as Forge's getSATargetingCard
+		// stops at the link itself (lower_damageprevent.go reads both too).
+		if ro := ps.str("RememberObjects"); ro != "Targeted" && ro != "ThisTargetedCard" {
 			return refuse("Effect RememberObjects %q", ro)
 		}
 	} else {
