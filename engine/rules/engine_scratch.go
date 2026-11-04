@@ -55,6 +55,14 @@ type engineScratch struct {
 	// planKeepSources makes a potential cast's plan refuse a step that
 	// sacrifices or returns its source (potentialWitnessKeeping).
 	planKeepSources bool `clone:"reset"`
+	// planXCap bounds a potential cast's composed X search from above
+	// (potential_plan.go's smaller-X witness); planXCapOn says it applies,
+	// and is cleared on entry so a nested plan composes uncapped.
+	// planLastX is the X the last potentialModeCastPlan witness paid, read
+	// by the smaller-X witness search after its producing call.
+	planXCap   int32 `clone:"reset"`
+	planXCapOn bool  `clone:"reset"`
+	planLastX  int32 `clone:"reset"`
 	// planIgnoreCredit makes a potential cast's plan price the printed cost
 	// where a convoke-like credit would decline it (targetPaidNeedsPlannedPayment).
 	planIgnoreCredit bool   `clone:"reset"`

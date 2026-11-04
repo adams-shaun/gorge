@@ -492,6 +492,25 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 		}
 	}
 	if d.Kind == decision.KPriority {
+		for i := range d.Options {
+			if d.Options[i].Obj == 47 && d.Options[i].Kind == "cast" {
+				p := d.Player
+				fmt.Printf("ZZMENU seq=%d p=%d pool=%v\n", d.Seq, p, g.E.G.Players[p].Pool)
+				for _, id := range g.E.G.Zone(state.ZBattlefield, p) {
+					o := g.E.G.Obj(id)
+					nm := ""
+					if o.Face() != nil {
+						nm = o.Face().Name
+					}
+					fmt.Printf("ZZMENU   id=%d %q tapped=%v counters=%v\n", id, nm, o.Tapped, o.Counters)
+				}
+			}
+		}
+		for i := range d.Options {
+			if d.Seq == 1674 || d.Seq == 1450 {
+				fmt.Printf("ZZOPTS seq=%d i=%d kind=%s obj=%d mode=%q alt=%d\n", d.Seq, i, d.Options[i].Kind, d.Options[i].Obj, d.Options[i].Mode, d.Options[i].AltCostIndex)
+			}
+		}
 		g.priorityVocabulary(fr)
 		fr.reposeSingle()
 		return fr
@@ -551,6 +570,9 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	d := fr.d
 	e := g.E
+	if d.Kind == decision.KPriority && d.Seq == 1755 {
+		fmt.Print(rules.ZZRingDump())
+	}
 	ref := func(id state.ObjID) Ref { return g.id.ref(e.G, id) }
 	add := func(pe prioEntry) {
 		for _, x := range fr.prio {
@@ -803,6 +825,19 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		for _, x := range fr.prio {
 			if x.a == a {
 				have = true
+			}
+		}
+		if pa.Obj == 47 && pa.Kind == "cast" {
+			p := d.Player
+			fmt.Printf("ZZMENU pp seq=%d p=%d pool=%v reason=%q\n", d.Seq, p, e.G.Players[p].Pool, pp.Reason)
+			fmt.Print(rules.ZZRingDump())
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				o := e.G.Obj(id)
+				nm := ""
+				if o.Face() != nil {
+					nm = o.Face().Name
+				}
+				fmt.Printf("ZZMENU   id=%d %q tapped=%v counters=%v\n", id, nm, o.Tapped, o.Counters)
 			}
 		}
 		if have {

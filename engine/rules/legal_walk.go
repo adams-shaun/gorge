@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -174,26 +175,43 @@ func (w *legalWalk) offerCastable(p state.PlayerID, id state.ObjID, base Cost, s
 //
 // walkSkipVerify runs offerCastableUsing on every refusal.
 func (w *legalWalk) offerFloorRefuses(statics *costStaticViews, p state.PlayerID, id state.ObjID, base *Cost, scope costScope) bool {
-	if w.hyp != nil || !costStaticsInertFor(statics, id) ||
-		len(base.LifeX) != 0 || base.Waterbend != 0 || base.WaterbendX || base.XMin != 0 || base.Life < 0 || base.Snow < 0 {
-		return false
-	}
-	if ab := scope.Ab; ab != nil {
-		if own := ab.HasParam(cards.PKReduceCost); own || costAnnouncesX(*base) || pay.TapCreaturesForMana(ab) {
+	ref := (func() bool {
+		if w.hyp != nil || !costStaticsInertFor(statics, id) ||
+			len(base.LifeX) != 0 || base.Waterbend != 0 || base.WaterbendX || base.XMin != 0 || base.Life < 0 || base.Snow < 0 {
 			return false
 		}
-	}
-	for i := range base.Sac {
-		if base.Sac[i].Announced {
+		if ab := scope.Ab; ab != nil {
+			if own := ab.HasParam(cards.PKReduceCost); own || costAnnouncesX(*base) || pay.TapCreaturesForMana(ab) {
+				return false
+			}
+		}
+		for i := range base.Sac {
+			if base.Sac[i].Announced {
+				return false
+			}
+		}
+		pl := &w.e.G.Players[p]
+		if len(pl.RestrictedMana) != 0 {
 			return false
 		}
+		var zero costMods
+		return int64(pl.Pool.Total()) < composedPoolFloor(&zero, base, 0, int32(len(w.e.G.Zone(state.ZGraveyard, p))))
+	})()
+	var nm string
+	if id != 0 && w.e.G.Obj(id) != nil && w.e.G.Obj(id).Face() != nil {
+		nm = w.e.G.Obj(id).Face().Name
 	}
-	pl := &w.e.G.Players[p]
-	if len(pl.RestrictedMana) != 0 {
-		return false
+	if nm == "Bakersbane Duo" || nm == "Flowerfoot Swordmaster" || nm == "For the Common Good" {
+		var zseq uint64
+		if ep := w.e.Pending(); ep != nil {
+			zseq = ep.Seq
+		}
+		fmt.Printf("ZZFLOOR g=%p seq=%d id=%d nm=%s base={C:%v G:%d X:%d XMin:%d} hyp=%v pool=%v (%d) refuse=%v\n", w.e.G, zseq, id, nm, base.Colored, base.Generic, base.X, base.XMin, w.hyp != nil, w.e.G.Players[p].Pool, w.e.G.Players[p].Pool.Total(), ref)
 	}
-	var zero costMods
-	return int64(pl.Pool.Total()) < composedPoolFloor(&zero, base, 0, int32(len(w.e.G.Zone(state.ZGraveyard, p))))
+	if ref && (nm == "Bakersbane Duo" || nm == "Flowerfoot Swordmaster" || nm == "For the Common Good") {
+		fmt.Printf("ZZFLOORREF id=%d nm=%s\n%s", id, nm, debug.Stack())
+	}
+	return ref
 }
 
 // offerCastableAsFace is offerCastable for an alternate-face cast route

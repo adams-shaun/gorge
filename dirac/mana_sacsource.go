@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A sacrifice-only mana source (an Eldrazi Spawn token's "Sacrifice this
 // creature: Add {C}", CR 605.1a): the ability's cost has no {T}, so a tapped
@@ -50,7 +54,15 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	bestowed := s.buildLive() && s.bld().e.bestowedEntry() // its one target is the enchant creature
 	targeted := bestowed || tspec(k, c, spellAb(k, c), 0) != nil
 	stacked := s.subs[kop.TrigSacrificed].any()
-	if !s.anySacSource(k, p) || !targeted && !stacked {
+	anySac := s.anySacSource(k, p)
+	zz := p == 1 && cost.X != 0
+	if zz {
+		fmt.Printf("ZZXE dec=%d x=%d anySac=%v targeted=%v stacked=%v\n", s.SeqNo(), x, anySac, targeted, stacked)
+	}
+	if !anySac || !targeted && !stacked {
+		if zz {
+			fmt.Printf("ZZXE dec=%d gate-return false\n", s.SeqNo())
+		}
 		return false
 	}
 	t := s.fork()
@@ -60,15 +72,27 @@ func (s *State) xWitnessEats(k *prep, p uint8, c CardID, cost *kop.ManaCost, x i
 	pk.try = true
 	t.tapForPK(k, p, cost, x, excl, false, false, &pk)
 	if !pk.found {
+		if zz {
+			fmt.Printf("ZZXE dec=%d notfound-return false\n", s.SeqNo())
+		}
 		return false
+	}
+	if zz {
+		fmt.Printf("ZZXE dec=%d found npendDelta=%d\n", s.SeqNo(), int(t.npend)-int(n0))
 	}
 	if bestowed {
 		var buf [MaxOptions]uint8
 		if t.targetCands(k, &k.t.Cards[c].BestowTgt, p, NoSlot, t.bld().e.obj, &buf) == 0 {
 			return true
 		}
-	} else if targeted && !t.spellTargetsFeasible(k, c, p) {
-		return true
+	} else if targeted {
+		feas := t.spellTargetsFeasible(k, c, p)
+		if zz {
+			fmt.Printf("ZZXE dec=%d feas=%v\n", s.SeqNo(), feas)
+		}
+		if !feas {
+			return true
+		}
 	}
 	return stacked && int(t.npend)-int(n0) > witnessWaits
 }
@@ -92,13 +116,22 @@ func (s *State) xWitnessOffered(k *prep, p uint8, c CardID, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	var av avail
 	s.availFor(k, p, &av)
-	if !s.xWitnessEats(k, p, c, &cost, max(0, av.maxX(&cost, pipMaskOf(&cost))), o) {
+	zz := p == 1 && cost.X != 0
+	mx := max(0, av.maxX(&cost, pipMaskOf(&cost)))
+	if zz {
+		fmt.Printf("ZZXW dec=%d enter x=%d\n", s.SeqNo(), mx)
+	}
+	if !s.xWitnessEats(k, p, c, &cost, mx, o) {
 		return true
 	}
 	held := s.sacSourcesHeld(k, p)
 	s.availFor(k, p, &av)
 	s.ctrlM[p] = s.ctrlM[p].or(held)
-	return av.affords(&cost, pipMaskOf(&cost), 0)
+	aff := av.affords(&cost, pipMaskOf(&cost), 0)
+	if zz {
+		fmt.Printf("ZZXW dec=%d heldX0=%v\n", s.SeqNo(), aff)
+	}
+	return aff
 }
 
 // kickWitness mirrors gorge's potentialWitnessReaches for a kicked cast

@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -121,6 +123,11 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 	defer e.endDerivedMemo()
 	defer pay.PaymentPlanQueryEnd(asPayer(e), e.paymentPlanQueryResumeBegin(p))
 	hyp, opts := e.potentialWalkOf(p, true)
+	fmt.Printf("ZZPLANS p=%d pendingSeq=%d bound=%v nopts=%d", p, e.Pending().Seq, hyp, len(opts))
+	for _, o := range opts {
+		fmt.Printf(" |%s/%d/m=%s/alt=%d", o.Kind, o.Obj, o.Mode, o.AltCostIndex)
+	}
+	fmt.Println()
 	// ambiguous[i]: another potential play shares opts[i]'s (kind, object,
 	// ability, mode) identity (the default cast is not ambiguous with the
 	// card's own alternative-cost cast, only that cast with it; nor is the
@@ -220,15 +227,21 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			}
 		}
 		if witness && got.Plan != nil && got.Reason == "" && paymentPlanConsumes(*got.Plan) && !e.potentialWitnessReaches(p, o, *got.Plan) {
+			fmt.Fprintf(os.Stderr, "ZZPROBE consumes label=%q kind=%s obj=%d mode=%s pool=%v acts=%+v\n", o.Label, o.Kind, o.Obj, o.Mode, e.G.Players[p].Pool, got.Plan.Activations)
 			// The witness sacrifices or returns a permanent the play
 			// itself needed (its only target): not a way to pay it, though a
 			// smaller X may pay without that permanent.
 			planned := got
-			got = e.potentialWitnessKeeping(p, o)
-			if got.Plan == nil && e.witnessReachesMode(e, p, o, *planned.Plan, true) {
-				// No colouring keeps every source, but the one that
-				// pays by consuming one ends the game in p's favour.
-				got = planned
+			if alt, ok := e.potentialWitnessSmallerX(p, o, e.planLastX); ok {
+				got = alt
+			} else {
+				got = e.potentialWitnessKeeping(p, o)
+				fmt.Fprintf(os.Stderr, "ZZPROBE keeping label=%q -> %+v\n", o.Label, got)
+				if got.Plan == nil && e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+					// No colouring keeps every source, but the one that
+					// pays by consuming one ends the game in p's favour.
+					got = planned
+				}
 			}
 		}
 		pp.Reason, pp.Detail = got.Reason, got.Detail
@@ -239,6 +252,30 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 		out = append(out, pp)
 	}
 	return out
+}
+
+// potentialWitnessSmallerX is the witness for a plain {X} cast whose
+// largest-X plan consumed a permanent the play itself needed (potentialPlans'
+// guard): the next smaller X's plan, largest first, whose witness the offer
+// walk still admits. x is the X the rejected witness paid; the X
+// announcement offers every value up to a witness, so a smaller X loses
+// nothing the witness's own payment does not consume.
+func (e *Engine) potentialWitnessSmallerX(p state.PlayerID, o decision.Option, x int32) (PaymentPlanOutcome, bool) {
+	if o.Kind != "cast" || o.Mode != "" || o.AltCostIndex != 0 || x <= 0 {
+		return PaymentPlanOutcome{}, false
+	}
+	for c := x - 1; c >= 0; c-- {
+		e.planXCap, e.planXCapOn = c, true
+		got := e.potentialModeCastPlan(p, o)
+		e.planXCapOn = false
+		if got.Plan == nil || got.Reason != "" {
+			continue
+		}
+		if !paymentPlanConsumes(*got.Plan) || e.potentialWitnessReaches(p, o, *got.Plan) {
+			return got, true
+		}
+	}
+	return PaymentPlanOutcome{}, false
 }
 
 // potentialWitnessKeeping is the witness for a cast whose planned witness ate
@@ -295,6 +332,7 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 	switch {
 	case o.Kind == "cast" && o.Mode == "" && o.AltCostIndex == 0:
 		got := e.potentialCastVerdict(p, o.Obj, sh)
+		fmt.Printf("ZZCAST obj=%d prealt reason=%q detail=%q plan=%v\n", o.Obj, got.Reason, got.Detail, got.Plan != nil)
 		if got.Reason == "unsupported" {
 			// A shape the cast planner does not witness -- an {X} spell
 			// (the largest X the sources pay), a hybrid one (each pip
@@ -424,6 +462,9 @@ func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() Payme
 // pool plus the witness's production. A composition that disagreed with the
 // engine's gate is therefore "unsupported", never a wrong witness.
 func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) PaymentPlanOutcome {
+	xCap, xCapOn := e.planXCap, e.planXCapOn
+	e.planXCapOn = false
+	e.planLastX = 0
 	id := o.Obj
 	obj := e.G.Obj(id)
 	if obj == nil || obj.Face() == nil {
@@ -521,13 +562,29 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) Paym
 		// could fund (the census bounds a witness; PotentialMana's bound may
 		// be unbounded).
 		hi := e.paymentPlanCensusTotal(p) / int32(base.X)
+		if xCapOn {
+			if xCap < lo {
+				return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:x"}
+			}
+			if xCap < hi {
+				hi = xCap
+			}
+		}
+		bestX := lo
+		fmt.Printf("ZZX base.X=%d base.XMin=%d census=%d lo=%d hi=%d\n", base.X, base.XMin, e.paymentPlanCensusTotal(p), lo, hi)
 		for lo < hi {
 			mid := lo + (hi-lo+1)/2
-			if got := plan(mid); got.Plan != nil && got.Reason == "" {
-				best, lo = got, mid
+			got := plan(mid)
+			fmt.Printf("ZZX try mid=%d reason=%q detail=%q plan=%v\n", mid, got.Reason, got.Detail, got.Plan != nil)
+			if got.Plan != nil && got.Reason == "" {
+				best, lo, bestX = got, mid, mid
+				fmt.Printf("ZZX upgrade best=%d\n", mid)
 			} else {
 				hi = mid - 1
 			}
+		}
+		if best.Plan != nil && best.Reason == "" {
+			e.planLastX = bestX
 		}
 	}
 	if parts := altAddCostParts(f); len(parts) != 0 && o.Mode == "" && best.Plan != nil && best.Reason == "" {
