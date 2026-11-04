@@ -227,7 +227,7 @@ func (e *Engine) entryBodyCandidates(ev *events.Event) bool {
 		return true
 	}
 	if ev.Kind == events.MoveZone {
-		if tf := e.entryCloneTemplateFace(entrant.ID, f, *ev); tf != nil {
+		if tf := entryCloneTemplateFace(e, entrant.ID, f, *ev); tf != nil {
 			for i := range tf.Repls {
 				if entryCounterBody(&tf.Repls[i]) {
 					return true
@@ -480,7 +480,7 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 	// CR 707.5: an as-enters clone's chosen template contributes its own
 	// printed enters-with-counters lines (they are not on the entering face).
 	if ev.Kind == events.MoveZone {
-		if tf := e.entryCloneTemplateFace(entrant, f, matchEv); tf != nil {
+		if tf := entryCloneTemplateFace(e, entrant, f, matchEv); tf != nil {
 			for i := range tf.Repls {
 				if entryCounterBody(&tf.Repls[i]) {
 					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i]})

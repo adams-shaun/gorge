@@ -7,6 +7,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// cloneTemplateBoard is the slice of the Engine entryCloneTemplateFace reads.
+type cloneTemplateBoard interface {
+	cloneRiderTemplate(entrant state.ObjID) *state.Object
+	replacementMatches(r cards.Repl, source state.ObjID, ev events.Event) bool
+}
+
 // entryCloneTemplateFace is the copiable face of the permanent an entering
 // as-enters clone (f carries the DB$ Clone | Keyword$ ETBReplacement line,
 // matched against the entry ev) answered its election with, or nil: no
@@ -16,7 +22,7 @@ import (
 // takes effect, so the entry plan reads the template's counter bodies next to
 // the entering face's own (Clone copying Kalonian Hydra enters with its four
 // +1/+1 counters).
-func (e *Engine) entryCloneTemplateFace(entrant state.ObjID, f *cards.Face, ev events.Event) *cards.Face {
+func entryCloneTemplateFace(e cloneTemplateBoard, entrant state.ObjID, f *cards.Face, ev events.Event) *cards.Face {
 	tpl := e.cloneRiderTemplate(entrant)
 	if tpl == nil {
 		return nil
