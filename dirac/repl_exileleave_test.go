@@ -167,3 +167,78 @@ func newSurveilRestScen(t *testing.T, rests int) surveilRestScen {
 	s.applyResolve(k, MakeAction(AkDone, 0, 0, 0))
 	return surveilRestScen{s: s, k: k, kept: peek[0], rest: peek[1:], leys: leys, lo: lo}
 }
+
+// An optional discard of two cards, one of whose moves competes for two
+// exile-instead replacements and one does not: gorge asks the order inside the
+// competing card's move, so every later answered card is still in hand at the
+// ask and moves on the answer. Parking only the competing picks moved a later
+// one early.
+func TestOptDiscardParksLaterPicksExileOrder(t *testing.T) {
+	run := func(t *testing.T, competingFirst bool) {
+		sc, id := newSetScenTweak(t, "exileany", []cardset.Entry{
+			{Name: "Dryad Militant", Count: 1},
+			{Name: "Leyline of the Void", Count: 1},
+			{Name: "Burst Lightning", Count: 1},
+			{Name: "Grizzly Bears", Count: 1},
+			{Name: "Plains", Count: 8},
+		}, nil)
+		s, k := sc.s, sc.k
+		sc.perm(id["Dryad Militant"], 0)
+		sc.perm(id["Leyline of the Void"], 0)
+		instant := sc.hand(id["Burst Lightning"], 1)
+		creature := sc.hand(id["Grizzly Bears"], 1)
+		if !s.graveMoveCompetes(k, instant) {
+			t.Fatal("the instant's move does not compete: it is not the competing pick")
+		}
+		if s.graveMoveCompetes(k, creature) {
+			t.Fatal("the creature's move competes: it is not the non-competing pick")
+		}
+		s.ctl = ctlResolve
+		s.res = resCtx{
+			e:      stackEntry{card: id["Seeker's Folly"], ab: 0, ctrl: 0},
+			ask:    raOptDisc,
+			askP:   1,
+			chosen: 1,
+		}
+		if competingFirst {
+			s.res.arr[0], s.res.arr[1] = instant, creature
+		} else {
+			s.res.arr[0], s.res.arr[1] = creature, instant
+		}
+		s.res.peekI = 2
+		s.applyResolve(k, MakeAction(AkDone, 0, 0, 0))
+		if s.Stalled() {
+			t.Fatalf("the optional discard stalled: %s", StallName(s.StallReason()))
+		}
+		if s.ctl != ctlExileOrder || !s.parkedWaiting() || s.cold.parked[0].kind != parkDiscard || s.cold.parked[0].obj != instant {
+			t.Fatalf("ctl %d parkedWaiting %v head %d/%d, want the instant's parked discard ask", s.ctl, s.parkedWaiting(), s.cold.parked[0].kind, s.cold.parked[0].obj)
+		}
+		if z := s.objs[instant].zone; z != kop.ZoneHand {
+			t.Fatalf("the asked instant is in zone %d, want the hand", z)
+		}
+		wantCreature := kop.ZoneExile // the earlier non-competing pick moved before the ask
+		if competingFirst {
+			wantCreature = kop.ZoneHand // the later pick waits for the ask
+		}
+		if z := s.objs[creature].zone; z != wantCreature {
+			t.Fatalf("the creature is in zone %d at the ask, want %d", z, wantCreature)
+		}
+		var d Decision
+		s.exileOrderOptions(k, &d)
+		if d.Kind != DkChoose || d.Sub != ChGenReplOrder || d.Player != 1 || d.N != 2 {
+			t.Fatalf("decision kind %d sub %d player %d n %d, want DkChoose/ChGenReplOrder for its owner over two sources", d.Kind, d.Sub, d.Player, d.N)
+		}
+		s.applyExileOrder(k, d.Options[0])
+		if z := s.objs[instant].zone; z != kop.ZoneExile {
+			t.Fatalf("the answered instant is in zone %d, want exile", z)
+		}
+		if z := s.objs[creature].zone; z != kop.ZoneExile {
+			t.Fatalf("the creature is in zone %d after the answer, want exile", z)
+		}
+		if s.parkedWaiting() || s.Stalled() {
+			t.Fatalf("after the answer: parkedWaiting %v stalled %v", s.parkedWaiting(), s.Stalled())
+		}
+	}
+	t.Run("competing pick first", func(t *testing.T) { run(t, true) })
+	t.Run("competing pick second", func(t *testing.T) { run(t, false) })
+}

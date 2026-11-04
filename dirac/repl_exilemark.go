@@ -390,7 +390,7 @@ func parkManaHold(c int, n uint8) uint8 {
 // has left with one exile-instead effect or none, and gives the next one its ask
 // over the sources still there. Gorge makes these moves one at a time.
 func (s *State) massMovesGoOn(k *prep) {
-	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill || s.cold.parked[0].kind == parkRest) {
+	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill || s.cold.parked[0].kind == parkRest || s.cold.parked[0].kind == parkDiscard) {
 		r := &s.cold.parked[0]
 		var src [MaxPerm]Obj
 		n := s.graveMoveSources(k, r.obj, &src)
@@ -428,6 +428,18 @@ func (s *State) parkMills(k *prep, p uint8, n int, remember bool) bool {
 		}
 	}
 	return true
+}
+
+// parkDiscardQuiet queues a discarded card with one exile-instead effect or
+// none, whose turn comes in the queue all the same; false when the queue is full.
+func (s *State) parkDiscardQuiet(o Obj) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: parkDiscard}
+			return true
+		}
+	}
+	return false
 }
 
 // parkMillQuiet queues a milled card with one exile-instead effect or none, whose

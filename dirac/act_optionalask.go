@@ -216,20 +216,46 @@ func (s *State) optaskPicked(o Obj) bool {
 	return false
 }
 
-// optaskFireDiscard discards the picks recorded so far, in pick order.
+// optaskFireDiscard discards the picks recorded so far, in pick order. Gorge
+// moves the answered discards in answer order and asks the CR 616.1 order
+// inside the first card's move, so the first pick whose own move competes and
+// every later pick wait in the queue, competing or not: at the ask a later
+// answered card is still in hand.
 func (s *State) optaskFireDiscard(k *prep) {
 	r := &s.res
-	for i := 0; i < int(r.peekI); i++ {
-		if !s.park(k, r.arr[i], parkDiscard, 0) {
-			s.discardObj(k, r.arr[i])
+	n := int(r.peekI) + int(r.peekN)
+	first := -1
+	for i := 0; i < n; i++ {
+		if s.graveMoveCompetes(k, s.optaskPickAt(r, i)) {
+			first = i
+			break
 		}
 	}
-	for i := 0; i < int(r.peekN); i++ {
-		if !s.park(k, r.peek[i], parkDiscard, 0) {
-			s.discardObj(k, r.peek[i])
+	if first < 0 {
+		first = n // none competes: every pick moves now
+	}
+	for i := 0; i < first; i++ {
+		s.discardObj(k, s.optaskPickAt(r, i))
+	}
+	for i := first; i < n; i++ {
+		o := s.optaskPickAt(r, i)
+		if s.park(k, o, parkDiscard, 0) {
+			continue
+		}
+		if !s.parkDiscardQuiet(o) {
+			s.capFull(StallReplCands)
+			break
 		}
 	}
 	r.peekI, r.peekN = 0, 0
+}
+
+// optaskPickAt is the i-th recorded pick, arr first and then peek.
+func (s *State) optaskPickAt(r *resCtx, i int) Obj {
+	if i < int(r.peekI) {
+		return r.arr[i]
+	}
+	return r.peek[i-int(r.peekI)]
 }
 
 // optaskFireSac sacrifices the picks recorded so far together, in pick order
