@@ -337,13 +337,19 @@ func (p *hbotParityPol) kernelAnswer() []Canon {
 		return out
 	}
 	p.ts.CopyFrom(&r.s)
-	kind, pl := d.Kind, d.Player
+	kind, pl, left := d.Kind, d.Player, d.N
 	for n := 0; n < 64 && a.Kind() != dirac.AkDone; n++ {
 		p.ts.Apply(a)
 		p.ts.StepInto(&p.td)
 		if p.td.Kind != kind || p.td.Player != pl || p.td.N == 0 {
 			break
 		}
+		// A trigger order's picks each leave one trigger fewer; any other
+		// count is the next batch's order (its last pick elided between).
+		if kind == dirac.DkTriggerOrder && p.td.N != left-1 {
+			break
+		}
+		left = p.td.N
 		j := p.bot.Pick(&p.ts, &p.td)
 		if j < 0 || j >= int(p.td.N) {
 			break

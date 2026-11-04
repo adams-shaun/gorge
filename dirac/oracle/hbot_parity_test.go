@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,10 +14,9 @@ import (
 
 // TestHBotParity plays FDN pairings in lockstep with gorge's heuristic
 // autopay bot choosing and asks the native port (dirac/search/hbot) every
-// decision in shadow (HBotParityGame): >= 99% at priority and >= 98% at
-// every other kind with >= 20 decisions (khbot over 300 eval pairs:
-// priority 99.91%, target 100%, attackers 99.89%, blockers 100%, choose
-// 100%, modes 99.63%, arrange 99.57%, trigger order 98.47%).
+// decision in shadow (HBotParityGame): every compared decision agrees. A
+// decision gorge answers off the canonical surface (a cast whose cost's
+// shape the planner declines, cast by hand) is not compared.
 func TestHBotParity(t *testing.T) {
 	t.Parallel()
 
@@ -56,14 +56,43 @@ func TestHBotParity(t *testing.T) {
 		}
 	}
 	for k, x := range kinds {
-		rate := float64(x.agree) / float64(x.n)
-		t.Logf("%-16s %5d %.4f", k, x.n, rate)
-		want := 0.98
-		if k == "priority" {
-			want = 0.99
+		t.Logf("%-16s %5d %.4f", k, x.n, float64(x.agree)/float64(x.n))
+		if x.agree != x.n {
+			t.Errorf("%s: %d of %d decisions disagree", k, x.n-x.agree, x.n)
 		}
-		if x.n >= 20 && rate < want {
-			t.Errorf("%s: agreement %.4f < %.2f over %d decisions", k, rate, want, x.n)
+	}
+}
+
+// TestHBotParityFDNPairs replays FDN pairings that once disagreed: the
+// harness reading a trigger order past its batch into the next one (pair
+// 24, two Clinquant Skymage draw triggers), and the port's hand taps toward
+// a shape cast gorge's potential walk leaves out (Eaten Alive's {B} beside a
+// Forest and Thornwood Falls floated a land pick, pair 71; Goblin
+// Negotiation's {R}{R} on one Swiftwater Cliffs held Burst Lightning, pair
+// 75); khbot's pairings of the FDN pool's eval split. Every compared
+// decision agrees.
+func TestHBotParityFDNPairs(t *testing.T) {
+	t.Parallel()
+
+	c, _ := testCorpus(t)
+	pool, err := ReadPool(filepath.Join(PoolInputs("fdn"), "pool.tsv"), "eval")
+	if err != nil {
+		t.Skipf("no FDN deck pool (khbot's eval split): %v", err)
+	}
+	mk := func(tbl *kop.Table) KernelBot { return hbot.New(HBotFacts(c.Reg, tbl, nil)) }
+	for _, i := range []int{24, 71, 75} {
+		p := PairingsFrom(pool, i, 1, 78)[0]
+		res, err := HBotParityGame(c, p.A, p.B, p.Seed, Config{GorgeAutopaySurface: true, PassElision: true}, 20000, mk)
+		if err != nil {
+			t.Fatalf("pair %d: %v", i, err)
+		}
+		if res.Res.Div != nil {
+			t.Fatalf("pair %d diverged: %s", i, res.Res.Div)
+		}
+		for _, r := range res.Recs {
+			if !r.Unoffered && !r.Agree {
+				t.Errorf("pair %d: %s", i, r.Where)
+			}
 		}
 	}
 }
