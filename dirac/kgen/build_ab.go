@@ -1403,6 +1403,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	if st.Cond2, err = cb.cond(s.Cond); err != nil {
 		return ka, nil, err
 	}
+	st.OvGate = s.OvGate
 	filter := func(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 		if f == nil {
 			return 0, nil
@@ -1813,6 +1814,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "FunctionsInExile":
+				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":

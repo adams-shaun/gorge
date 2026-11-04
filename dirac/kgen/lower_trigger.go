@@ -2511,6 +2511,8 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		case "Battlefield":
 		case "Graveyard":
 			st.Flags = append(st.Flags, "FunctionsInGraveyard")
+		case "Exile":
+			st.Flags = append(st.Flags, "FunctionsInExile")
 		default:
 			return refuse("MayPlay EffectZone %q", ez)
 		}

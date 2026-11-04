@@ -1,0 +1,12 @@
+# the Nog, Ambitious Cadet pool: the Officer step's Animate staticAbilities$
+# grant (play lands from your graveyard, one extra land per turn) beside
+# land destruction and discard that fill the graveyard, for the oracle's
+# constructed lockstep (dirac/oracle/nog_test.go)
+Forest
+Grizzly Bears
+Hill Giant
+Mind Rot
+Mountain
+Nog, Ambitious Cadet
+Stone Rain
+Swamp

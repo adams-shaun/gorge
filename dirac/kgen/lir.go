@@ -764,6 +764,9 @@ type lStatic struct {
 	// Ctr: a CantPutCounter's CounterType$ kind, -1 for every kind
 	// (kop.Static.A; Blossombind, Blightbeetle)
 	Ctr int16
+	// OvGate: the bit of lOverride.GrantStatics that switches this static on
+	// (kop.Static.OvGate); 0 = a printed static
+	OvGate uint8
 }
 
 // lOverride is the override record a hard static/effect applies.
@@ -797,6 +800,7 @@ type lOverride struct {
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
 	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 }
 
 // Replacement-lite kinds.
