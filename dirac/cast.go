@@ -1753,7 +1753,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 			sl := m.first()
 			o := s.perms[sl].obj
-			if s.picked(o) || !s.matchPerm(k, c.Filter, sl, e.ctrl, src) {
+			if s.picked(o) || !s.matchPerm(k, c.Filter, sl, e.ctrl, src) || s.bld().pickK == pkSac && s.sacBlocked(k, sl) {
 				continue
 			}
 			if s.bld().pickK == pkTapX && (s.perms[sl].flags&pfTapped != 0 || (sl == src && c.Flags&kop.CostTap != 0)) {

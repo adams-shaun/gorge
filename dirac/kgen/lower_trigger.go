@@ -1977,6 +1977,24 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 				st.Ctr = int16(ck)
 			}
 		}
+	case "CantSacrifice":
+		// gorge sacrificeBlocked (rules/layers_restrict.go): ValidCard$ the
+		// permanents, ActiveZones$ Battlefield the only zone it reads. The
+		// cause-scoped lines (ValidCause$, ForCost$: Sigarda, Host of Herons)
+		// need the sacrifice's cause and cost-or-effect provenance at every
+		// choke point, which the kernel does not carry.
+		for _, key := range []string{"ValidCause", "ForCost"} {
+			if v, ok := sp.get(key); ok {
+				return nil, refuse("CantSacrifice %s$ %q", key, v)
+			}
+		}
+		if z, ok := sp.get("ActiveZones"); ok && strings.TrimSpace(z) != "Battlefield" {
+			return nil, refuse("CantSacrifice ActiveZones$ %q", z)
+		}
+		sp.consume("Secondary")
+		if st.F, err = readF("ValidCard"); err != nil {
+			return nil, err
+		}
 	case "DisableTriggers":
 		if err := lc.disableTriggersStatic(sp, &st); err != nil {
 			return nil, err // lower_disabletriggers.go

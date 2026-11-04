@@ -1647,6 +1647,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "CantSacrifice":
+		st.Kind = kop.StatCantSacrifice // static_cantsacrifice.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CantPutCounter":
 		st.Kind = kop.StatCantPutCounter
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

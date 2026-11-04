@@ -30,7 +30,7 @@ func (s *State) sacForcedBatch(k *prep, f kop.FilterID, p uint8, src Slot) {
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 	for _, sl := range ord[:n] {
-		if s.matchPerm(k, f, sl, p, src) {
+		if s.sacMatch(k, f, sl, p, src) {
 			s.addSac(sl)
 		}
 	}

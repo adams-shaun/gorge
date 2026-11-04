@@ -538,7 +538,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		src := s.objRef(k, kop.RefSelf)
 		for m := s.occ; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.matchPermGen(k, in.F, sl, e.ctrl, src, layerFull) {
+			if s.sacMatchGen(k, in.F, sl, e.ctrl, src) {
 				hit = hit.with(sl)
 			}
 		}

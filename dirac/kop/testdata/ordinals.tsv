@@ -990,6 +990,7 @@ StatCantBlockBy	StaticKind	4
 StatCantDraw	StaticKind	248
 StatCantGainLife	StaticKind	247
 StatCantPutCounter	StaticKind	252
+StatCantSacrifice	StaticKind	237
 StatCantTarget	StaticKind	235
 StatCastWithFlash	StaticKind	6
 StatCombatDmgToughness	StaticKind	245

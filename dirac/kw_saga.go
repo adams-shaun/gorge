@@ -139,7 +139,7 @@ func (s *State) sagaSBA(k *prep) bool {
 		n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
 		for _, sl := range ord[:n] {
 			final := k.cards[s.cardAt(sl)].sagaN
-			if final == 0 || s.perms[sl].ctrN(s, int(kop.CtrLore)) < int(final) || s.genLost(k, sl) || s.sagaBusy(k, sl) {
+			if final == 0 || s.perms[sl].ctrN(s, int(kop.CtrLore)) < int(final) || s.genLost(k, sl) || s.sagaBusy(k, sl) || s.sacBlocked(k, sl) {
 				continue
 			}
 			s.fireSac(k, sl)

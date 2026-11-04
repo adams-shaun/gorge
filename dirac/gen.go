@@ -181,7 +181,8 @@ type genPrep struct {
 	anyDelaySpell  bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise       bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
 	anyCantCast    bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
-	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden)
+	anyCantAct     bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
+	anyCantSac     bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt     bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyFaces       bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp        bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
@@ -568,6 +569,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	g.anyCantCast = tableHasStatic(t, kop.StatCantBeCast) || prepSpellCond(t, g)
 	prepCastLimit(t, g) // static_castlimit.go
+	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, g)   // cast_cantactivate.go
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
