@@ -1222,8 +1222,9 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 
 // FeatTypeKey orders creature-type option v (gorge's vocabulary index, as
 // the ChGenType option carries it) the way gorge lists them
-// (rules/cast_etbchoice.go creatureTypeOptions): the types of the creature
-// cards player p owns first, by name, then the rest in vocabulary order.
+// (rules/cast_etbchoice.go creatureTypeOptions): the printed types of the
+// creature cards player p owns first, by name (a changeling's printed ones,
+// not every type it has), then the rest in vocabulary order.
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	k := s.k()
 	t := k.t
@@ -1234,7 +1235,11 @@ func (s *State) FeatTypeKey(p uint8, v int) uint32 {
 	for i := 0; i < int(s.nobj); i++ {
 		if ob := &s.objs[i]; ob.owner() == p {
 			if cd := &t.Cards[ob.card]; cd.Types&kop.TCreature != 0 {
-				own = own.Or(cd.Subtypes)
+				if cd.AllCreatureTypes {
+					own = own.Or(cd.PrintedSubtypes) // the printed types, as gorge's Face().Types
+				} else {
+					own = own.Or(cd.Subtypes)
+				}
 			}
 		}
 	}

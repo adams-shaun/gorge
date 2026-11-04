@@ -47,3 +47,10 @@ func TestHBotPicksTheManaColourTheCardNeeds(t *testing.T) {
 	hbotPairs(t, "std-blb", []int{0, 57}, "choose:mana")
 }
 
+// TestHBotListsAChangelingsPrintedTypesFirst: a creature-type choice lists first
+// the creature types printed on the cards its chooser owns (rules.creatureTypeOptions
+// reads the face), so a changeling there adds only its printed types, not every
+// type it has (CR 702.73a); the bot takes the first option (Patchwork Banner).
+func TestHBotListsAChangelingsPrintedTypesFirst(t *testing.T) {
+	hbotPairs(t, "std-blb", []int{53}, "choose:type")
+}

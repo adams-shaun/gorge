@@ -422,6 +422,9 @@ func (cb *cardBuilder) record() error {
 		return err
 	}
 	if c.Changeling {
+		for _, i := range cb.out.subs {
+			d.PrintedSubtypes = d.PrintedSubtypes.With(int(i))
+		}
 		cb.out.subs = changelingSubs(cb.pt, cb.out.subs)
 	}
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
