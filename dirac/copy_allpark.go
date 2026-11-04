@@ -63,7 +63,7 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 		c := s.cardAt(sl)
 		aura := k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject
 		for j := js; j < int(cnt[i]); j++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true
 			}
