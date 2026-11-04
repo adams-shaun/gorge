@@ -522,6 +522,10 @@ func (s *State) sba(k *prep) bool {
 				// infect hit marks no damage (gorge destroyLethalDamage).
 				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
 					s.kw(k, sl)&kop.KwIndestructible == 0 {
+					if s.destroyHeal(k, sl) {
+						s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
+						continue
+					}
 					if p.flags&pfRegen != 0 {
 						s.regenerate(sl)
 						continue
@@ -592,6 +596,10 @@ func (s *State) sba(k *prep) bool {
 		if !all.any() {
 			if s.cfgx&cfgxShieldPass != 0 {
 				s.cfgx &^= cfgxShieldPass
+				continue
+			}
+			if s.cfgx&cfgxDestroyHealPass != 0 {
+				s.cfgx &^= cfgxDestroyHealPass
 				continue
 			}
 			if k.gen != nil && k.gen.tyPost && s.tyPostRefresh(k) {
