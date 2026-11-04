@@ -113,19 +113,41 @@ func kdominionSaboteurRun(t *testing.T, n uint64, mutate func(*kop.Table), repor
 						continue
 					}
 					switch src.Face().Name {
-					case "Kalonian Hydra":
-						// The copy's own printed enters-with body is not a
-						// replacement the clone had (gorge's entry plan reads
-						// the entering face), so a positive count here is the
-						// remembered origin's counter. The origin may have
-						// spent its own since; the lockstep projection is the
-						// exact comparison.
-						if dst.Counter("P1P1") > 0 {
-							cnt.p1p1++
+					case "Kalonian Hydra", "Surge Node":
+						// CR 707.5: the template's printed enters-with
+						// counters (four +1/+1, six charge) are on the copy
+						// before the clone event; CR 707.9b: the remembered
+						// origin's counters follow as the rider. The origin
+						// may have spent its own since, so the rider is only
+						// required to be positive (the lockstep projection is
+						// the exact comparison).
+						kind, printed := "P1P1", 4
+						if src.Face().Name == "Surge Node" {
+							kind, printed = "CHARGE", 6
 						}
-					case "Surge Node":
-						if dst.Counter("CHARGE") > 0 {
-							cnt.charge++
+						// before: the counters placed on the copy ahead of the
+						// clone event; after: the first placement behind it.
+						before, after := 0, 0
+						for x := range evs[:seen] {
+							if e := &evs[x]; e.Kind == events.CounterChange && e.Obj == dst.ID && e.Counter == kind {
+								before += int(e.Amount)
+							}
+						}
+						for x := seen + 1; x < len(evs); x++ {
+							if e := &evs[x]; e.Kind == events.CounterChange && e.Obj == dst.ID && e.Counter == kind {
+								after = int(e.Amount)
+								break
+							}
+						}
+						if before != printed && report {
+							t.Errorf("seed %d: %s copy entered with %d printed %s counters, want %d", seed, src.Face().Name, before, kind, printed)
+						}
+						if before == printed && after > 0 {
+							if kind == "P1P1" {
+								cnt.p1p1++
+							} else {
+								cnt.charge++
+							}
 						}
 					case "Isamaru, Hound of Konda":
 						if !slices.Contains(ref.E.Derived(dst.ID).Types, "Legendary") {

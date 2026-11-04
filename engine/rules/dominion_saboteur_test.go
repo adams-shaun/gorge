@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -115,6 +116,51 @@ func TestDominionSaboteurGorge(t *testing.T) {
 			if got := o.Counter(k); got != 0 {
 				t.Fatalf("declined entry gained %d %s counters", got, k)
 			}
+		}
+	})
+
+	// CR 707.5: the copied text's "enters with" replacement takes effect, so a
+	// template with printed counters adds them to the rider's copy of the
+	// origin's. Kalonian Hydra enters with four +1/+1 counters (one more is
+	// set up on it: it holds five), Surge Node with six charge counters.
+	t.Run("template printed counters add to the origin's", func(t *testing.T) {
+		for _, c := range []struct {
+			card, kind string
+			printed    int
+			extra      int
+		}{{"Kalonian Hydra", "P1P1", 4, 1}, {"Surge Node", "CHARGE", 6, 2}} {
+			raw := `{"name":"dominion-saboteur-printed","cr":["707.5","707.9b"],"why":"printed plus copied","setup":{` +
+				`"p0":{"hand":["Dominion Saboteur"]},` +
+				`"p1":{"battlefield":["` + c.card + `"],"counters":{"` + c.card + `":{"` + c.kind + `":` + strconv.Itoa(c.extra) + `}}}},` +
+				`"steps":[{"op":"cast","seat":0,"card":"p0:Dominion Saboteur","mana":"CCCCU"},` +
+				`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:` + c.card + `"]}]}],` +
+				`"expect":[]}`
+			run := runETBCloneScenario(t, raw)
+			origin := findOn(t, run.e, state.ZBattlefield, 1, c.card)
+			copyID := findOn(t, run.e, state.ZBattlefield, 0, c.card)
+			have := int(run.e.G.Obj(origin).Counter(c.kind))
+			if have < c.printed+c.extra {
+				t.Fatalf("%s: precondition: origin holds %d %s, want at least %d", c.card, have, c.kind, c.printed+c.extra)
+			}
+			if got, want := int(run.e.G.Obj(copyID).Counter(c.kind)), c.printed+have; got != want {
+				t.Fatalf("%s copy %s counters = %d, want %d (printed %d + origin's %d)", c.card, c.kind, got, want, c.printed, have)
+			}
+		}
+	})
+
+	// The same rule without the rider: a plain Clone copying Kalonian Hydra
+	// enters with the Hydra's four +1/+1 counters, a 4/4, not a 0/0 that dies.
+	t.Run("plain clone applies the template's enters-with counters", func(t *testing.T) {
+		raw := `{"name":"clone-printed","cr":["707.5"],"why":"Clone of Kalonian Hydra","setup":{` +
+			`"p0":{"hand":["Clone"]},` +
+			`"p1":{"battlefield":["Kalonian Hydra"]}},` +
+			`"steps":[{"op":"cast","seat":0,"card":"p0:Clone","mana":"CCCU"},` +
+			`{"op":"resolve","seat":0,"answers":[{"kind":"choose","pick":["p1:Kalonian Hydra"]}]}],` +
+			`"expect":[{"card":"p0:Kalonian Hydra","pt":"4/4","counters":{"P1P1":4}}]}`
+		run := runETBCloneScenario(t, raw)
+		copyID := findOn(t, run.e, state.ZBattlefield, 0, "Kalonian Hydra")
+		if got := run.e.G.Obj(copyID).Counter("P1P1"); got != 4 {
+			t.Fatalf("Clone of Kalonian Hydra holds %d +1/+1 counters, want 4", got)
 		}
 	})
 }

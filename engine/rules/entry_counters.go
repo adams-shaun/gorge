@@ -226,6 +226,15 @@ func (e *Engine) entryBodyCandidates(ev *events.Event) bool {
 	if len(e.foreignEntryBodies(entrant.ID, *ev)) > 0 {
 		return true
 	}
+	if ev.Kind == events.MoveZone {
+		if tf := e.entryCloneTemplateFace(entrant.ID, f, *ev); tf != nil {
+			for i := range tf.Repls {
+				if entryCounterBody(&tf.Repls[i]) {
+					return true
+				}
+			}
+		}
+	}
 	// kw:Bloodthirst and kw:Sunburst are synthesised by the replacement
 	// dispatch rather than expanded onto the face (engine/rules/replacement.go), so
 	// a granted or printed keyword carries no face Repl to scan.
@@ -467,6 +476,17 @@ func (e *Engine) entryBodyCounterGrants(ev events.Event, entrant state.ObjID) ([
 			continue
 		}
 		absorb(replMatch{id: entrant, face: f, repl: r})
+	}
+	// CR 707.5: an as-enters clone's chosen template contributes its own
+	// printed enters-with-counters lines (they are not on the entering face).
+	if ev.Kind == events.MoveZone {
+		if tf := e.entryCloneTemplateFace(entrant, f, matchEv); tf != nil {
+			for i := range tf.Repls {
+				if entryCounterBody(&tf.Repls[i]) {
+					absorb(replMatch{id: entrant, face: tf, repl: &tf.Repls[i]})
+				}
+			}
+		}
 	}
 	// The ETB clone's conditional-keyword riders (effects CloneParams.IfNew;
 	// Flesh Duplicate's `AddKeywords$ IfNew Vanishing:3` -- "vanishing 3 if
