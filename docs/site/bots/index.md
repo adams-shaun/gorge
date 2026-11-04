@@ -18,7 +18,7 @@ flowchart LR
 
 - :material-robot: **[Pick a bot](catalogue.md)**
 
-    Six bots, each fair or clairvoyant.
+    Six built-in bots and the experimental ones `gorged` adds, each fair or clairvoyant.
 
 - :material-play-circle: **[Use a bot](using.md)**
 

@@ -1,7 +1,8 @@
 # Each bot in detail
 
 The one-screen table is on [Bots](index.md). This page says what each registered bot does, then how its
-fair-or-clairvoyant verdict was reached, with the code that decides it. To select or connect a bot, see
+fair-or-clairvoyant verdict was reached, with the code that decides it. The six below are `bots/all`'s, in every binary that links it;
+[the policies `gorged` adds](#the-policies-gorged-adds) follow. To select or connect a bot, see
 [Using and plugging in bots](using.md).
 
 ## The six registered bots
@@ -101,6 +102,28 @@ freshly redealt world built from its own observations, and `bot` answers every o
 `sb-tactical`. A hosted search seat has a 2-second budget per decision (`hostedDecisionDeadlineMS`); a search that runs
 out plays `bot`'s answer.
 
+## The policies `gorged` adds
+
+`cmd/gorged`, the server and the demo's binary, links further experimental policies beside `bots/all`
+([`cmd/gorged/main.go`](https://github.com/adams-shaun/gorge/blob/main/cmd/gorged/main.go)). They stay out of `bots/all` so
+`server/host`'s registry-wide gates keep the built-in set's cost; `bots/hosttest` runs their host-level gates instead.
+
+- **`cast-profile`** is `bot` playing from a cast profile. The embedded default profile is intent-identical to `bot`, so the entry
+  exists to serve a fitted profile beside it.
+- **`sb-first`, `sb-uniform`, `sb-heuristic`** are SpellBench's three builtin policies behind one hosted adapter. Each answers from
+  its seat's view; at priority it uses the honest root, when the host built one, as its payment planner.
+- **`sb-search-lite-atk`** is sb-search ([`bots/spellbench/sbsearch`](https://github.com/adams-shaun/gorge/blob/main/bots/spellbench/sbsearch)):
+  at priority it prices `sb-tactical`'s pick and its next best plays over four worlds redealt from its own observations, rolled two
+  turns forward with `sb-tactical` on both sides, and plays an alternative only when it beats the pick by the margin. It searches an
+  attack declaration the same way and answers everything else as plain `sb-tactical`.
+- **`search`** is the search teacher ([`bots/searchseat`](https://github.com/adams-shaun/gorge/blob/main/bots/searchseat)): it
+  replans the decisions it covers over sampled worlds rebuilt from its own observations and plays `bot` everywhere else.
+- **`az-c3`, `az-c4`, `az-c5`** are `az-redeal`'s search with a small trained network ranking the candidates and scoring the
+  leaves. Each registers only when a server names its `.dzgw` network (`-az-c3-net` and friends); gorge ships no network. `az-c3`
+  deals from every seat's real decklist; `az-c4` and `az-c5` guess the opponent's list from a belief corpus, so they may play people.
+  All three were trained on 17lands FDN decks and play only those
+  ([the hosted az policies](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-11-03-hosted-az-policies.md)).
+
 ## Fair or clairvoyant
 
 A **fair** bot uses only what its seat may see. A **clairvoyant** bot reads hidden information: the opponent's hand, the
@@ -114,6 +137,19 @@ cards but read every seat's decklist, so they never seat against a person. Verdi
   real decklist (`bots/registry.go:205`), so `-bot-policies` refuses it (`server/gorged/botpolicies.go:53`).
 - **`az-redeal` is fair on hidden cards, determinised, with no belief model, and reads decklists.** `Env: true, Search: true`
   (`bots/azredeal/azredeal.go:52`); `Hosted` sets `WorldRedeal` (`azredeal.go:66-70`, `bots/azmcts/redeal.go:19-21`).
+- **`cast-profile` is fair.** It is a `heuristic.Bot` registered without `Env` (`bots/castprofile/castprofile.go:15`).
+- **The three SpellBench builtins are fair on hidden cards and read decklists.** `Env: true` (`bots/sbbuiltin/sbbuiltin.go:40`);
+  they answer from `env.View` and take the honest root only as a payment planner (`sbbuiltin.go:75-81`).
+- **`sb-search-lite-atk` and `search` are fair on hidden cards, determinised, and read decklists.** `Env: true, Search: true`
+  (`bots/sbsearch/sbsearch.go:60`, `bots/search/search.go:44`). sb-search deals its worlds from the seat's own feed
+  (`bots/spellbench/sbsearch/sbsearch.go:709`); the teacher's hosted config is not clairvoyant (`searchseat.Defaults`,
+  pinned by `TestHostedSearchConfigIsHonest`).
+- **`az-c3` is fair on hidden cards and reads decklists**, like `az-redeal`: `Env: true, Search: true` (`bots/azc3/azc3.go:67`).
+- **`az-c4` and `az-c5` are fair, decklists included.** `ClosedLists: true` (`bots/azc4/azc4.go:72`, `bots/azc5/azc5.go:64`); their
+  config closes the opponents' lists (`azmcts.WorldRedealClosed`, `bots/azc3/azc3.go:97`) and the factory refuses a seat without a
+  belief (`bots/azc3/hosted.go:117`). The host checks the seats it builds, not the declaration (`server/host/closedlist.go`), and
+  `TestAZC4NeverSeesTheHumansHiddenCards` and `TestAZC5NeverSeesTheHumansHiddenCards` (`bots/hosttest`) walk everything handed to
+  the seat for a card the human has not revealed.
 
 Two further points.
 
@@ -126,9 +162,10 @@ Two further points.
 - **A belief model exists, and the browser can use it.** `azmcts.WorldRedealClosed` closes the opponents' lists: their unknown
   cards are dealt from a list drawn from a belief corpus (`bots/azmcts/redeal.go:22-28`;
   `bots/azredeal/azredeal.go:100-105`, `ClosedFactory`). Such a seat declares `ClosedLists` and may sit against a person; the host
-  checks the declaration at match start (`server/host/closedlist.go:23-38`). gorge ships no trained network and no belief corpus, so
-  no registered bot uses it. A binary links one with `gorged.RegisterNetBot` (`server/gorged/netbots.go:76`). Net runtime details are
-  on [Search and nets](../engines/search-and-nets.md#the-net-runtime).
+  checks the declaration at match start (`server/host/closedlist.go:23-38`). gorge ships no trained network and no belief corpus;
+  `az-c4` and `az-c5` use the model when a server names both. A binary links such a policy with `gorged.RegisterNetBot`
+  (`server/gorged/netbots.go:76`), as `cmd/gorged` does. Net runtime details are on
+  [Search and nets](../engines/search-and-nets.md#the-net-runtime).
 
 ## Cost and engines
 
@@ -141,7 +178,7 @@ table, `sb-tactical` take a seat. Searching policies are refused because dirac d
 
 ## Not registered
 
-`bots/searchseat` (a determinized rollout seat), `bots/searchprobe` (the sampler, redealer and belief) and the learned-policy
-runtime in `bots/policynet` are building blocks for benches, not registered policies. `bots/explain` is the per-decision note a match record
+`bots/searchseat` (a determinized rollout seat, which `search` hosts), `bots/searchprobe` (the sampler, redealer and belief) and the
+learned-policy runtime in `bots/policynet` are building blocks, not registered policies. `bots/explain` is the per-decision note a match record
 carries, and `bots/sanity` is the guard `-bot-common-sense` wraps around a policy.
 

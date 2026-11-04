@@ -1,4 +1,4 @@
-package bots_test
+package main
 
 import (
 	"os"
@@ -7,15 +7,29 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
-	_ "github.com/adams-shaun/gorge/bots/all"
+	"github.com/adams-shaun/gorge/bots/azc3"
+	"github.com/adams-shaun/gorge/bots/azc4"
+	"github.com/adams-shaun/gorge/bots/azc5"
 )
 
 // TestBotsDocsTableListsEveryRegisteredBot keeps the overview table on
-// docs/site/bots/compare.md in step with the registry: each registered bot has a
-// row, with a verdict in the fair-or-clairvoyant column, and no row names a bot
-// that is not registered. An Env policy's row must say it reads decklists.
+// docs/site/bots/compare.md in step with the registry this binary serves,
+// counting the network policies it links as registered (each registers only
+// once a server names its network): each such bot has a row, with a verdict in
+// the fair-or-clairvoyant column, and no row names any other bot. An Env
+// policy's row must say it reads decklists.
 func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
-	raw, err := os.ReadFile("../docs/site/bots/compare.md")
+	entries := bots.Entries()
+	for _, info := range []bots.Info{azc3.Info(), azc4.Info(), azc5.Info()} {
+		if _, ok := bots.Lookup(info.Name); !ok {
+			entries = append(entries, bots.Entry{Info: info})
+		}
+	}
+	known := map[string]bool{}
+	for _, e := range entries {
+		known[e.Name] = true
+	}
+	raw, err := os.ReadFile("../../docs/site/bots/compare.md")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +41,7 @@ func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 			rows[m[1]] = line
 		}
 	}
-	for _, e := range bots.Entries() {
+	for _, e := range entries {
 		row, ok := rows[e.Name]
 		if !ok {
 			t.Errorf("registered bot %q has no row in docs/site/bots/compare.md", e.Name)
@@ -50,7 +64,7 @@ func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 		}
 	}
 	for name := range rows {
-		if _, ok := bots.Lookup(name); !ok {
+		if !known[name] {
 			t.Errorf("docs/site/bots/compare.md has a row for %q, which is not registered", name)
 		}
 	}
