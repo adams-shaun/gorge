@@ -121,7 +121,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 607.1 | partial | `engine/state/object.go#Object.Imprinted` `engine/state/object.go#Object.ExiledWith` | - | g links per object, not per ability pair |
 | 607.1a-607.1d | unknown | - | - | not audited |
 | 607.2 | definition | - | - | kinds of linked abilities |
-| 607.2a | follows | `engine/effects/context.go#definedSpec` `engine/state/object.go#Object.ExiledWith` | `TestOblivionRingExiledWithResolvesOpponentOwnedTarget` | d link pool of 4: fifth exile never returns, silent |
+| 607.2a | follows | `engine/effects/context.go#definedSpec` `engine/state/object.go#Object.ExiledWith` `engine/effects/context.go#chapterLinkedRemembered` | `TestOblivionRingExiledWithResolvesOpponentOwnedTarget` `TestMeasureOfAManChapterIIIReturnsChapterIExile` `TestBestOfBothWorldsChapterIIIReturnsTheAssimilated` | d link pool of 4: fifth exile never returns, silent; a Saga chapter that has remembered nothing reads the Saga's list, what its earlier chapters remembered (The Measure of a Man, The Best of Both Worlds) |
 | 607.2b-607.2c | unknown | - | - | not audited |
 | 607.2d,e,f,g,m,p | partial | `engine/state/object.go#Object.ChosenName` | - | g one chosen value per object |
 | 607.2h | unknown | - | - | not audited |

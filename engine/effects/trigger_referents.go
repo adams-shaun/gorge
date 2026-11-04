@@ -161,6 +161,15 @@ type TriggerContext struct {
 	// ability remembered, and an empty list is the empty set. rules sets it
 	// in triggerReferents; resolvedRemembered reads it.
 	SelfLeaves bool
+	// Chapter marks a Saga's chapter ability (rules' checkChapterTriggers).
+	// It has no capture and its resolution starts with an empty remembered
+	// set, but its linked chapters (CR 607.2a, 714.2b) remember on the Saga
+	// itself: The Measure of a Man's chapter III returns the card chapter I
+	// exiled. So a Defined$ Remembered read the resolution has written
+	// nothing for answers with the Saga's persistent list, as Forge's host
+	// card list does. rules sets it; resolvedRemembered and hostRemembered
+	// read it.
+	Chapter bool
 	// RememberWriterAbove marks a chain walk past a link that remembers objects
 	// (RememberChanged$ and its family). The capture is then no fallback for
 	// Defined$ Remembered: the body named its memory, and a link that wrote

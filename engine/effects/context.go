@@ -2420,6 +2420,9 @@ func resolvedRemembered(h Host, c *Ctx) []state.Target {
 	// TriggerContext.RememberWriterAbove). A RepeatEach iteration (Giant
 	// Albatross) binds its own subject, kept as is.
 	noFallback := (c.SelfLeaves || c.RememberWriterAbove) && c.RepeatSubject == (state.Target{})
+	if ts, ok := chapterLinkedRemembered(h, c); ok {
+		return ts
+	}
 	return selectRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c), noFallback)
 }
 
@@ -2465,7 +2468,23 @@ func hostRemembered(h Host, c *Ctx) []state.Target {
 	if c.RepeatSubject != (state.Target{}) {
 		return copyTargets(c.Remembered)
 	}
+	if ts, ok := chapterLinkedRemembered(h, c); ok {
+		return ts
+	}
 	return filterCapturedRemembered(c.Remembered, c.Captured, c.DelayedRemembered, sourceRemembered(h, c))
+}
+
+// chapterLinkedRemembered is a Saga chapter's Defined$ Remembered read when
+// its resolution has remembered nothing of its own: the Saga's persistent
+// list, what its earlier chapters remembered (TriggerContext.Chapter; CR
+// 607.2a). A chapter that has written its own set, a RepeatEach iteration,
+// and every other ability answer !ok and keep their selection rule.
+func chapterLinkedRemembered(h Host, c *Ctx) ([]state.Target, bool) {
+	if !c.Chapter || len(c.Remembered) > 0 || len(c.Captured) > 0 || len(c.DelayedRemembered) > 0 ||
+		c.RepeatSubject != (state.Target{}) {
+		return nil, false
+	}
+	return copyTargets(sourceRemembered(h, c)), true
 }
 
 // filterCapturedRemembered is the shared tail of selectRemembered and

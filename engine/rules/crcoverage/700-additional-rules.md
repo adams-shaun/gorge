@@ -352,7 +352,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.21e | unknown | - | - | not located |
 | 713.1-713.5 | n/a | - | - | physical substitute cards |
 | 714.1-714.1a | follows | `engine/rules/saga.go#Engine.sagaChapters` `engine/cards/saga.go#SagaChapters` | `TestUrzasSagaChaptersAndLoreCounters` |  |
-| 714.2-714.2c | follows | `engine/rules/saga.go#Engine.checkChapterTriggers` | `TestDoublingSeasonSagaEntryAndProgressionCounts` `TestUrzasSagaChaptersAndLoreCounters` | every crossed chapter queued |
+| 714.2-714.2c | follows | `engine/rules/saga.go#Engine.checkChapterTriggers` | `TestDoublingSeasonSagaEntryAndProgressionCounts` `TestUrzasSagaChaptersAndLoreCounters` `TestMeasureOfAManChapterIIIReturnsChapterIExile` | every crossed chapter queued; a chapter reads its Saga's remembered list (CR 607.2a) |
 | 714.2d-714.2e | follows | `engine/rules/saga.go#Engine.sagaChapters` | `TestSagaThatLostItsAbilitiesHasNoChapters` `TestBloodMoonUrzasSagaKeepsSagaSubtype` | REVISED: cr-g07 landed; chapters read current abilities, ability loss gives 0 |
 | 714.3-714.3a | follows | `engine/events/entry_counters.go#EntryCounterGrants` | `TestEntryCounterSagaLoreOrderIsDecidedBeforeEntry` `TestSagaEntryLoreReplacementChaptersExactlyOnce` | entry lore counter as replacement |
 | 714.3b | not-impl | `engine/cards/mayask.go#entryAskKeywords` | - | LOUD: kw Read ahead unregistered (10 corpus cards) |
