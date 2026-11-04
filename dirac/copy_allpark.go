@@ -6,11 +6,13 @@ import (
 
 // A copy-all sweep (CR 303.4f, gorge CopyPermanent's Defined arm) parks on a
 // copy's as-enters ask: the sweep's record lives in genState.sweep and the
-// raGenTokChoice / raGenEnchant answer arms resume it here. The copies minted
-// before the ask entered under their own batch (gorge's zone batch closes at
-// the park, effCopyPermanent's defer running at the AskTape's park-return);
-// the answered copy enters alone, and the sweep's remaining copies enter
-// under a fresh one (sweepResume).
+// raGenTokChoice / raGenEnchant answer arms resume it here. Gorge's zone
+// batch is carried across the parked ask (its Ctx clone, clone_gen.go), so
+// the copies before and after the answer share one batch: the kernel holds
+// the sweep's enters checks across the answer (genState.held, the holdBatch
+// of execChangeZoneAll, interp_gen.go) and fires them once, in entry order,
+// when the sweep ends (fireHeld) -- the answered copy's check waits there
+// too (its entry, interp_ask.go).
 
 // sweepSusp is a copy-all sweep parked on a copy's as-enters ask.
 type sweepSusp struct {
@@ -114,8 +116,11 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 }
 
 // sweepResume finishes a copy-all sweep parked on the answered ask: the
-// answered copy has just entered, the copies after it mint now. True when the
-// sweep parked again or stopped at a stall.
+// answered copy has just entered, the copies after it mint now. The sweep's
+// enters checks (the earlier segments' and this one's, genState.held) fire
+// once, in entry order, at the sweep's end -- gorge's zone batch spans the
+// parked ask (copy_allpark.go). True when the sweep parked again or stopped
+// at a stall.
 func (s *State) sweepResume(k *prep, in *kop.Instr) bool {
 	w := &s.g.sweep
 	if !w.on {
@@ -124,17 +129,20 @@ func (s *State) sweepResume(k *prep, in *kop.Instr) bool {
 	i, j, entered := int(w.i), int(w.j), int(w.minted)
 	w.on = false
 	w.minted++ // the answered copy entered
-	if k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // the remaining copies enter under a fresh batch
-	}
 	var eb entBatch
-	defer s.fireEntries(k, &eb)
 	seg := 0
 	parked := s.sweepRun(k, in, w, &eb, &seg, &w.ord, &w.cnt, i, j)
-	if !parked || s.g.stalled != 0 {
-		s.defValidMulti(entered + 1 + seg)
-		return parked
+	if parked && s.g.stalled == 0 {
+		w.minted = int16(entered + 1 + seg)
+		s.holdBatch(&eb) // this segment's checks join the held ones
+		return true
 	}
-	w.minted = int16(entered + 1 + seg)
-	return true
+	s.defValidMulti(entered + 1 + seg)
+	s.holdBatch(&eb)
+	if s.g.held != 0 {
+		s.fireHeld(k, s.g.retTS) // the whole sweep's checks, in entry order
+	} else {
+		s.fireEntries(k, &eb)
+	}
+	return parked
 }

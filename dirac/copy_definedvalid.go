@@ -33,14 +33,13 @@ func init() { stallNames[StallCopyAllAsk] = "copyallask" }
 // are never visited), every source's copy count sized through the
 // CreateToken replacements first, then the copies minted source by source
 // in set order, each with the op's copy exceptions (in.C). A copy with an
-// as-enters ask parks the sweep (copy_allpark.go); gorge's zone batch closes
-// at the park, so the copies before the answer entered under their own batch
-// and the rest mint under a fresh one. True when a copy's as-enters ask
-// parked the sweep (the interpreter halts at the OpExt, execExt).
+// as-enters ask parks the sweep (copy_allpark.go); gorge's zone batch is
+// carried across the parked ask (its Ctx clone), so the copies before and
+// after the answer share one batch: their enters checks are held across the
+// answer (genState.held, copy_allpark.go) and fire, in entry order, when
+// the sweep ends (fireHeld). True when a copy's as-enters ask parked the
+// sweep (the interpreter halts at the OpExt, execExt).
 func (s *State) copyAllEach(k *prep, in *kop.Instr) bool {
-	if k.gen.anyBatch {
-		defer s.batchClose(s.batchOpen()) // gorge: one zone batch for the copies of each run
-	}
 	var ord [MaxPerm]Slot
 	n := s.sweepHits(k, in.F, &ord)
 	ctrl := s.res.e.ctrl
@@ -54,17 +53,23 @@ func (s *State) copyAllEach(k *prep, in *kop.Instr) bool {
 	// the copies of a run enter together (CR 603.6a): each one's "another
 	// creature enters" sees the others, as gorge's zone batch does
 	var eb entBatch
-	defer s.fireEntries(k, &eb)
+	stamp := s.ts
 	w := &s.g.sweep
 	w.n = uint8(n)
 	seg := 0
 	parked := s.sweepRun(k, in, w, &eb, &seg, &ord, &cnt, 0, 0)
-	if !parked || s.g.stalled != 0 {
-		s.defValidMulti(seg)
-		return false
+	if parked && s.g.stalled == 0 {
+		w.ord, w.cnt, w.minted = ord, cnt, int16(seg)
+		// the sweep's enters checks wait for its end (fireHeld in
+		// sweepResume, copy_allpark.go): a later copy's "another creature
+		// enters" matches the earlier entries too (CR 603.6a)
+		s.g.held, s.g.retTS = 0, stamp
+		s.holdBatch(&eb)
+		return true
 	}
-	w.ord, w.cnt, w.minted = ord, cnt, int16(seg)
-	return true
+	s.defValidMulti(seg)
+	s.fireEntries(k, &eb)
+	return false
 }
 
 // animateAllAsks is the MayGuardAnimateAll guard: the next op is an

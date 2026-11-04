@@ -62,6 +62,11 @@ func TestStdOtjReprosLockstep(t *testing.T) {
 		// sweep's zone batch spans the answer, and the copies after it enter
 		// once it is made.
 		{"copy_all_sweep_parks_on_aura_host_ask", false, false},
+		// and the parked answer leaves the sweep's zone batch to fire once,
+		// in entry order, when the sweep ends (CR 603.6a): the Railway
+		// Brawler copies' "another creature enters" see the Duelist and the
+		// later copies enter before the copy the answer was made on
+		{"copy_all_sweep_batch_spans_parked_ask", false, false},
 	})
 }
 
