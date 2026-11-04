@@ -40,6 +40,12 @@ const (
 // effClone's pairs, computed before the may-copy election).
 const MayGuardCloneCopy = 8
 
+// MayGuardStackSpell: the OpMayAsk guard of an optional move of a targeted
+// spell off the stack (a ChangeZone Origin$ Stack Optional$ True; gorge
+// changeZoneOptionalConfirm): the next op is an OpCounter whose Obj is still a
+// spell on the stack, else nothing is asked and the move is skipped.
+const MayGuardStackSpell = 9
+
 // MayGuardAnimateAll: the OpMayAsk guard of Animate over Defined$ Valid: the
 // next op is an OpOverrideAll whose F has at least one battlefield hit (gorge
 // animateWouldChange), else nothing is asked.
