@@ -67,10 +67,12 @@ func adapterRun(t *testing.T, name string, first, n int, mulligans int, cfg Conf
 // TestAdapterIsALockstepSide plays a served game against gorge: every answer goes
 // through Submit as a whole Intent, and the position is compared at each decision.
 func TestAdapterIsALockstepSide(t *testing.T) {
+	t.Parallel()
 	pairs := envPairs(100)
 	for _, name := range []string{"fdn", "blb"} {
 		for _, autopay := range []bool{true, false} {
 			t.Run(fmt.Sprintf("%s/autopay=%v", name, autopay), func(t *testing.T) {
+				t.Parallel()
 				if testing.Short() && (name != "fdn" || !autopay) {
 					t.Skip("short")
 				}
@@ -87,10 +89,12 @@ func TestAdapterIsALockstepSide(t *testing.T) {
 // TestNativeDecisionMatchesGorge compares each non-priority decision a client sees
 // with gorge's: its kind, bounds, source and options in order.
 func TestNativeDecisionMatchesGorge(t *testing.T) {
+	t.Parallel()
 	pairs := envPairs(40)
 	for _, name := range []string{"fdn", "blb"} {
 		for _, autopay := range []bool{true, false} {
 			t.Run(fmt.Sprintf("%s/autopay=%v", name, autopay), func(t *testing.T) {
+				t.Parallel()
 				if testing.Short() && (name != "fdn" || !autopay) {
 					t.Skip("short")
 				}
