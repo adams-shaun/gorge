@@ -726,7 +726,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(src))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
-		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage:
+		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
 		return uint32(mode)
 	case dirac.ChGenType:
 		return g.s.FeatTypeKey(g.d.Player, int(x.Target())<<8|int(mode))

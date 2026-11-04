@@ -264,7 +264,7 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	switch d.Sub {
 	case dirac.ChGenPip:
 		return firstPip(d)
-	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage:
+	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
 		return firstMode(d)
 	}
 	if bt.fetchNeed && d.Sub == dirac.ChGenSearch {

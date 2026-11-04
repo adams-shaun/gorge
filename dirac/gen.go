@@ -101,6 +101,7 @@ type genPrep struct {
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
+	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
 	anyMadness               bool // a card has printed madness (CardDef.HasMadness; kw_madness.go)
 	anyHexCol                bool // a card has printed hexproof from a colour (CardDef.HexColors; kw_hexproofcolor.go)
 	anyProtCol               bool // a card has printed protection from a colour (CardDef.ProtColors; kw_protection.go)
@@ -525,11 +526,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	prepSkipUntap(t, g)
 	prepOpus(t, g)
-	prepConverge(t, g)   // mana_converge.go
-	prepEvoke(t, g)      // kw_evoke.go
-	prepEffEtbCtr(t, g)  // ctr_effectentry.go
-	prepCtrPlusEOT(t, g) // ctr_pluseot.go
-	prepStaticTrig(t, g) // trig_mayplaystatic.go
+	prepConverge(t, g)     // mana_converge.go
+	prepEvoke(t, g)        // kw_evoke.go
+	prepEffEtbCtr(t, g)    // ctr_effectentry.go
+	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
+	prepGrantPanharm(t, g) // act_grantpanharm.go
+	prepStaticTrig(t, g)   // trig_mayplaystatic.go
 	prepCrewSaddle(t, g)
 	prepManaSrc(t, g, p) // mana_spendtrigger.go
 	prepRoles(t, g)
@@ -862,6 +864,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true
 				case kop.ReplGraveToLibrary:
 					g.replBits[i] |= rbGraveLib
+				case kop.ReplMayNotUntap:
+					g.untapRepl = true // the untap step runs untapStepGen, which asks (repl_untapchoice.go)
 				case kop.ReplOthersDoesntUntap:
 					g.untapRepl = true
 					pc.hasStat = true // scanned through statM
@@ -1054,6 +1058,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		pc.trigMask = 0
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
+			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent != 0 && a.Trig.Event == kop.TrigDies && a.Trig.Zone != kop.ZoneCommand {
+				g.anyLatentDies = true // a granted dies trigger (trig_diesleaves.go)
+			}
 			if a.Kind == kop.AbTriggered && a.AFlags&kop.AfLatent == 0 && a.Trig.Zone != kop.ZoneGraveyard && a.Trig.Zone != kop.ZoneCommand {
 				pc.trigMask |= 1 << a.Trig.Event
 				if a.Trig.Event == kop.TrigDamageDealtOnce {
@@ -1413,7 +1420,18 @@ type genState struct {
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	nemb [2]uint8
-	nlA  [2]uint8 // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	pgT  [pgN]uint8 // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
+	pgH  [pgN]uint8 // each grant's host (the tapped source) object+1
+	nlA  [2]uint8   // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
+	// the untap step suspended on a keep-tapped ask (repl_untapchoice.go):
+	// untapUp the slots untapped so far, untapNext the scan index of the
+	// asked permanent, untapSl its slot, untapAns its answer (0 unanswered,
+	// 1 untap, 2 keep tapped), untapOn the step being in progress
+	untapUp   slotMask
+	untapNext uint8
+	untapSl   Slot
+	untapAns  uint8
+	untapOn   bool
 
 	lki [maxLKI]lkiRec // the shared LKI pool (zone_lki.go)
 
@@ -1784,6 +1802,7 @@ const (
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
+	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)
 	NumStall           = 144 // capacity of the reason tables (StallName); a reason registers its name in its own file

@@ -398,6 +398,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
+ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -891,7 +892,7 @@ ReplAnyUntap	ReplKind	28
 ReplCantBeCountered	ReplKind	3
 ReplCantLoseGame	ReplKind	8
 ReplCantTurnUp	ReplKind	26
-ReplCount	ReplKind	31
+ReplCount	ReplKind	32
 ReplCtrAny	int16	-1
 ReplCtrAnyYou	int16	-2
 ReplDamagePlus	ReplKind	16
@@ -920,6 +921,7 @@ ReplGraveToLibrary	ReplKind	14
 ReplLifeDouble	ReplKind	17
 ReplLifeLossDouble	ReplKind	24
 ReplLifePlus	ReplKind	18
+ReplMayNotUntap	ReplKind	31
 ReplNone	ReplKind	0
 ReplOnePoison	ReplKind	22
 ReplOppsCantWinGame	ReplKind	9
@@ -959,6 +961,7 @@ SrShuffleOptional	untyped int	8
 SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
+StAlsoSideboard	StaticFlags	1024
 StAnyManaType	StaticFlags	4
 StBargained	StaticFlags	4096
 StBeamGranted	StaticFlags	1
@@ -968,7 +971,6 @@ StEmbNum	StaticFlags	16384
 StFunctionsInGraveyard	StaticFlags	16
 StMayRaise	StaticFlags	32768
 StOncePerTurn	StaticFlags	2
-StAlsoSideboard	StaticFlags	1024
 StPanhETB	StaticFlags	2048
 StRaiseOpp	StaticFlags	256
 StRaiseYou	StaticFlags	128
