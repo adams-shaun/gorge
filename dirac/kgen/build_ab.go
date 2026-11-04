@@ -3283,6 +3283,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 	case "BreachReturn":
 		// (Breach the Multiverse) OpExt ExtBreachReturn
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtBreachReturn))
+	case "ExileLandChoose":
+		// (Ensign Pavel Chekov) OpExt ExtExileLandChoose
+		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtExileLandChoose))
 	case "Airbend":
 		// OpExt ExtAirbend over Obj, or F (Obj RefNone) less
 		// target slot C-1

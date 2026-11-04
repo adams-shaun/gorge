@@ -1,0 +1,19 @@
+# Ensign Pavel Chekov's opponent exile, per-opponent land choice and play permission (dirac/oracle/chekov_test.go)
+Ensign Pavel Chekov
+Llanowar Elves
+Grizzly Bears
+Wall of Omens
+Elvish Visionary
+Prodigal Sorcerer
+Counterspell
+Lightning Bolt
+Savannah Lions
+Phyrexian Rager
+Mind Stone
+Murder
+Unsummon
+Island
+Forest
+Mountain
+Plains
+Swamp

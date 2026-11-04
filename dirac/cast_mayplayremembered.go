@@ -12,15 +12,19 @@ import (
 //
 //go:noinline
 func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
-	if in.B.N&kop.MayPlayExileOnMoved != 0 && s.g.nrem > 1 {
+	set, n := &s.g.rem, int(s.g.nrem)
+	if in.Obj == kop.RefChosen {
+		set, n = &s.g.chosen, int(s.g.nchosen) // the imprint (act_exilelandchoose.go)
+	}
+	if in.B.N&kop.MayPlayExileOnMoved != 0 && n > 1 {
 		// ExileOnMoved$: gorge ends the whole effect when one remembered
 		// card leaves; per-card permissions cannot follow that
 		s.capFull(StallExileOnMoved)
 		return
 	}
 	headed := false // the first limited record heads the grant (cast_mayplaylimit.go)
-	for i := 0; i < int(s.g.nrem); i++ {
-		o := s.g.rem[i]
+	for i := 0; i < n; i++ {
+		o := set[i]
 		if s.objs[o].zone != kop.Zone(in.C) {
 			continue
 		}
