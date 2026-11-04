@@ -499,8 +499,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			tr.Static = true
 		}
 		lc.spellProvOK = true // the cast-provenance words read the spell cast
+		// a "Chosen" bound reads the number the source chose as it entered (lower_choosenumber.go)
+		lc.chosenNumOK = lc.granted == 0 && tp.str("TriggerZones") == "Battlefield" && entersChoosingNumber(lc.face)
 		tr.F, err = readF("ValidCard")
-		lc.spellProvOK = false
+		lc.spellProvOK, lc.chosenNumOK = false, false
 		if err != nil {
 			return err
 		}
@@ -3404,6 +3406,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return refuse("ETB replacement api AlterAttribute")
 			}
 			if err := lc.alterPrepared(ps, lRef{Kind: rReplaced}); err != nil {
+				return err
+			}
+		case "ChooseNumber":
+			if err := lc.etbChooseNumber(ps, node, sa, other, cond); err != nil { // lower_choosenumber.go
 				return err
 			}
 		case "ChooseType":

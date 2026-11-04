@@ -429,6 +429,7 @@ func (cb *cardBuilder) record() error {
 	}
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)
+	d.NoPT = c.NoPT
 	d.Defense = int8(c.Defense)
 	switch {
 	case c.Types&tLand != 0:
@@ -1197,6 +1198,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	switch c.CmpStat {
 	case cmpNone:
 	case cmpPower:
+		if c.CmpV != nil && c.CmpOp == opEQ && zone == kop.ZoneStack {
+			// a spell's power == a value (Talion's powerEQChosen; kernel
+			// filter_ptvalue.go): PredPowerGEV with PredN 1
+			v, err := cb.value(*c.CmpV)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 1, v
+			break
+		}
 		op, n := c.CmpOp, c.CmpN
 		if c.CmpV == nil {
 			op, n = intCmpGELE(op, n) // powers are integers: LT n is LE n-1
@@ -1224,6 +1235,16 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.PredN = int16(n)
 	case cmpToughness:
+		if c.CmpV != nil && c.CmpOp == opEQ && zone == kop.ZoneStack {
+			// a spell's toughness == a value (Talion's toughnessEQChosen;
+			// kernel filter_ptvalue.go): PredToughnessLEV with PredN 1
+			v, err := cb.value(*c.CmpV)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredN, kf.PredV = kop.PredToughnessLEV, 1, v
+			break
+		}
 		if c.CmpV != nil && (c.CmpOp == opLE || c.CmpOp == opLT) && zone == kop.ZoneBattlefield {
 			// a battlefield toughness <= a value (Zero Point Ballad's
 			// toughnessLEX; kernel predPermCold, the PredPowerGEV twin)

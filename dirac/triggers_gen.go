@@ -588,7 +588,7 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl || t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl {
 		return
 	}
-	if !(s.matchCardTgt(k, t.Filter, e.card, e.ctrl, l.ctrl, e.obj, l.sl, l.obj) || t.Flags3&kop.Tf3OrTargets != 0 && s.castTargetsAny(k, t.Filter2, e, l)) || !s.trigOK(k, l, a) {
+	if !(s.castFilterOK(k, t.Filter, e, l) || t.Flags3&kop.Tf3OrTargets != 0 && s.castTargetsAny(k, t.Filter2, e, l)) || !s.trigOK(k, l, a) {
 		return
 	}
 	if t.Flags2&(kop.Tf2CastFromHand|kop.Tf2ManaFromSelf) != 0 && !s.castProvOK(t, l, e) {

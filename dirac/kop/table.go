@@ -440,6 +440,10 @@ type CardDef struct {
 	// spell was cast, frozen at beginCast into the spell entry's trigMV
 	// (dirac/value_castbattlefield.go); 0 = the card does not read the head.
 	CastBF FilterID
+	// NoPT: the card prints no power or toughness, so a power or toughness
+	// compare never matches it as a card (CR 208.3; gorge's P/T-less object,
+	// dirac/filter_ptvalue.go).
+	NoPT bool
 }
 
 // CardDef.MorphFamily values: the face-down keyword the card was printed with.

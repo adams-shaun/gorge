@@ -292,6 +292,7 @@ ExCastBattlefield	ExprKind	237
 ExCastFromGrave	ExprKind	247
 ExCastManaSpent	ExprKind	35
 ExChosenMode	ExprKind	233
+ExChosenNumber	ExprKind	228
 ExChromaOf	ExprKind	231
 ExCommittedCrime	ExprKind	48
 ExCompare	ExprKind	36
@@ -375,6 +376,7 @@ ExtBreachChoose	ExtOp	160
 ExtBreachReturn	ExtOp	161
 ExtChangeTargets	ExtOp	225
 ExtChooseColorRes	ExtOp	5
+ExtChooseNumber	ExtOp	230
 ExtCloneCopy	ExtOp	81
 ExtColorGrant	ExtOp	6
 ExtCopyAbility	ExtOp	191

@@ -104,6 +104,7 @@ type lowerCtx struct {
 	exwSynth    bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
 	wasCastOK   bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	spellProvOK bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
+	chosenNumOK bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK       bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwStatic   bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	spellBaseOK bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -555,6 +556,7 @@ func (lc *lowerCtx) lowerRecord() {
 		// read a Devoid face as colourless in every zone
 		out.Colors = ""
 	}
+	out.NoPT = f.PT == ""
 	if f.PT != "" {
 		_, _, ok := strings.Cut(f.PT, "/")
 		if !ok {
@@ -2041,7 +2043,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		if (c.Ctrl == whoDefending || c.Owner == whoDefending) && !lc.atkPresent && (!lc.trigBody || lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
 			return nil, refuse("ControlledBy TriggeredDefendingPlayer outside an Attacks trigger's battlefield filter")
 		}
-		if c.CmpX != "" {
+		if c.CmpX != "" && (c.CmpV == nil || c.CmpV.Kind != vChosenNumber) {
 			if _, ok := lc.face.SVars[c.CmpX]; !ok {
 				return nil, refuse("filter %q: bound %s names no SVar", expr, c.CmpX)
 			}

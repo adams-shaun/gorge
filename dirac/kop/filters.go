@@ -172,7 +172,7 @@ const (
 	PredCMCEQ            Pred = PredWithPowerLEX + 1 + iota // mana value == PredN
 	PredCMCLEV                                              // mana value <= the value PredV (== when PredN is 1)
 	PredCountersGE                                          // at least PredN>>8 counters of kind PredN&0xff
-	PredPowerGEV                                            // reserved
+	PredPowerGEV                                            // a battlefield permanent's power >= the value PredV; PredN 1: a spell's power == PredV (dirac/filter_ptvalue.go)
 	PredToughnessGE                                         // toughness >= PredN
 	PredHasXCost                                            // the printed mana cost contains {X}
 	PredPowerLTToughness                                    // power < toughness
@@ -202,8 +202,9 @@ const (
 	PredCountersLT
 	// PredToughnessLEV: a battlefield permanent whose current toughness
 	// is <= the value PredV (gorge toughnessLE<X>: Zero Point Ballad's
-	// "creatures with toughness X or less"; battlefield only, kgen lowers
-	// no other zone)
+	// "creatures with toughness X or less"; battlefield only). PredN 1: a
+	// spell's toughness == PredV (Talion's toughnessEQChosen;
+	// dirac/filter_ptvalue.go)
 	PredToughnessLEV
 )
 

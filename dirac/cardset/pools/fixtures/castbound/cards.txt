@@ -1,0 +1,23 @@
+# the spell-cast bound pool: SpellCast triggers whose ValidCard$ bound reads a
+# value of the trigger's source -- Nyota Uhura's and Talion's number chosen as
+# it entered (Talion's also against a spell's power or toughness),
+# Chalice of the Void's charge counters, Obscura Ascendancy's quest counters --
+# and spells of several mana values to cast (dirac/oracle/castbound_test.go)
+Chalice of the Void
+Divination
+Earth Elemental
+Forest
+Goblin Piker
+Grizzly Bears
+Hill Giant
+Island
+Lightning Bolt
+Mountain
+Nyota Uhura, Communications
+Obscura Ascendancy
+Ornithopter
+Plains
+Shock
+Swamp
+Talion, the Kindly Lord
+Wall of Stone

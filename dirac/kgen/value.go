@@ -35,6 +35,11 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// An inline expression (ImmediateTrigger's TriggerAmount$).
 		return lc.svarValue(raw, 0)
 	}
+	if raw == "Chosen" && lc.chosenNumOK && !neg {
+		// gorge specCtx's Resolve: a "Chosen" bound is the source's
+		// ChosenNumber, ahead of any SVar (lower_choosenumber.go)
+		return lValue{Kind: vChosenNumber}, nil
+	}
 	if lc.grantedLoyaltyCross {
 		if _, ok := lc.face.SVars[raw]; ok {
 			// A cross-object granted ability resolves its SVars off the

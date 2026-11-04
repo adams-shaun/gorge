@@ -55,6 +55,7 @@ type genPrep struct {
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
 	anyAddChosen    bool  // some static is AddType$ ChosenType (kop.Static.AddChosen; act_choosetype.go)
 	chosenCardTgt   bool  // some card target's or spell-cast trigger's filter reads the source permanent's chosen type (act_choosetype.go)
+	castBoundSrc    bool  // some spell-cast trigger's filter reads a value, with the trigger's source as the source (trig_castbound.go)
 	anyLoseRec      bool  // some override record removes abilities
 	tyCombat        bool  // some override sets types or makes a creature: a combatant can stop being one (CR 506.4 removeNoncreatureCombatants; kperf2)
 	l6RecOnly       bool  // fxNeedL6 comes only from an effect's keyword removal (Debuff): a slot without an fx record keeps the fixed-order layer 6 (l6On; kperf2)
@@ -1187,6 +1188,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepPoison(t, g)
 	prepLayerWalk(t, g)
 	prepChooseType(t, g) // act_choosetype.go
+	prepCastBound(t, g)  // trig_castbound.go
 	prepL6(t, g)
 	prepCtrl(t, g)
 	prepTokMana(t, g)
@@ -2287,7 +2289,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 }
 
 // enterChoiceKind is the as-enters choice card c's enters replacement
-// opens with (akColor, akType, akPayLife), or 0.
+// opens with (akColor, akType, akNumber, akPayLife), or 0.
 func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 	if k.gen == nil || !k.gen.has(c, gfEnterRepl) {
 		return 0
@@ -2310,6 +2312,10 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			return akColor
 		case kop.OpChooseType:
 			return akType
+		case kop.OpExt:
+			if a.Prog[0].Ext() == kop.ExtChooseNumber {
+				return akNumber
+			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election
 			if s.shockAmount(k, a.Prog) > 0 {

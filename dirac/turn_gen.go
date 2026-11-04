@@ -23,6 +23,7 @@ const (
 	akMode    uint8 = 6 // a Siege's as-enters mode (face_siegemode.go)
 	akReveal  uint8 = 7 // a reveal land's as-enters "reveal or enter tapped" (repl_revealland.go)
 	akRevPick uint8 = 8 // the card a reveal land's paid election reveals
+	akNumber  uint8 = 9 // an as-enters number (OpExt ExtChooseNumber; repl_choosenumber.go)
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -213,16 +214,23 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		switch in.Op {
 		case kop.OpBecomeCopy:
 			s.becomeCopyEnter(k, sl, in)
-		case kop.OpChooseColor, kop.OpChooseType:
+		case kop.OpChooseColor, kop.OpChooseType, kop.OpExt:
+			kind := akColor
+			switch {
+			case in.Op == kop.OpChooseType:
+				kind = akType
+			case in.Op == kop.OpExt:
+				if in.Ext() != kop.ExtChooseNumber {
+					s.execGen(k, in)
+					continue
+				}
+				kind = akNumber
+			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
 				s.touchSl(sl)
 				s.g.pre.state = 0
 				continue
-			}
-			kind := akColor
-			if in.Op == kop.OpChooseType {
-				kind = akType
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
 			if !saved.active {
@@ -923,7 +931,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor {
+	} else if ask.kind == akColor || ask.kind == akNumber {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1037,6 +1045,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		for i := 0; i < n; i++ {
 			d.add(MakeAction(AkChoose, buf[i], 0, 0))
 		}
+		return
+	}
+	if kind == akNumber {
+		s.numberOptions(k, d) // repl_choosenumber.go
 		return
 	}
 	if kind == akColor {

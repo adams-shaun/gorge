@@ -103,6 +103,7 @@ const (
 	ChGenTeamwork                             // source = an untapped creature tapped for Teamwork (gorge's KChoose "teamwork", Min 1 / AllowNone / MinSum N, CR 702.194a); AkDone closes the pick, none picked declines; kw_teamwork.go
 	ChRoomDoorHalf                            // mode 0 = unlock a door / 1 = lock a door (gorge effUnlockDoor's "Lock or unlock a door?", option 0 = unlock)
 	ChRoomDoor                                // source = the Room; target = the canonical ordinal of the door among the candidates; mode = the door face (gorge effUnlockDoor's "Choose a Room door")
+	ChGenNumber                               // mode = the number chosen as a permanent enters (gorge's ETB "number" option, its value on Amount)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

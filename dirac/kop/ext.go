@@ -530,3 +530,13 @@ const (
 )
 
 func init() { extOpNames[ExtPreventDamageScope] = "PreventDamageScope" }
+
+// ExtChooseNumber: an as-enters number choice (CR 614.12; gorge's ETB
+// ChooseNumber replacement, etbOptions' "number" arm through
+// effects.ETBNumberChoices): the entering permanent's controller chooses a
+// number from B.N to C inclusive (a ChGenNumber decision, mode = the number),
+// kept in the permanent's chosen byte and read by ExChosenNumber. Only the
+// first instruction of an enters program. dirac/turn_gen.go.
+const ExtChooseNumber ExtOp = 230
+
+func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
