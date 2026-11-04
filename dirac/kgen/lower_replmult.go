@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -94,7 +95,9 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if w == nil || w.API != "ReplaceToken" {
 		return refuse("repl-hard: CreateToken replacement shape")
 	}
-	if t := strings.TrimSpace(w.Params["Type"]); t != "Amount" {
+	if t := strings.TrimSpace(w.Params["Type"]); t == "ReplaceToken" {
+		return lc.tokenRewrite(rp, w, rl)
+	} else if t != "Amount" {
 		return refuse("repl-hard: CreateToken Type %q", t)
 	}
 	want := map[string]string{"Type": "Amount"}
@@ -132,5 +135,35 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if n != 2 {
 		rl.N = cst(n)
 	}
+	return nil
+}
+
+// tokenRewrite lowers a CreateToken rewriter: DB$ ReplaceToken | Type$
+// ReplaceToken with one fixed TokenScript$ (the token every token its
+// controller would create is instead; the count stays), ValidToken$
+// Permanent.YouCtrl or Card.YouCtrl (every token the controller creates: a
+// token is always a permanent). Holo-Engineer. The script rides the card's
+// token list so the matchup holds it; gorge replacement_token.go
+// applyTokenReplacementToPlan rewrites each matching mint, a copy mint too,
+// and a second matching replacement poses the CR 616.1 order ask, which the
+// kernel stalls on (dirac/repl_tokrewrite.go).
+func (lc *lowerCtx) tokenRewrite(rp *params, w *cards.SA, rl *lRepl) error {
+	script := strings.TrimSpace(w.Params["TokenScript"])
+	if script == "" || strings.Contains(script, ",") || strings.EqualFold(script, "Chosen") {
+		return refuse("repl-hard: CreateToken rewriter TokenScript %q", script)
+	}
+	if !withIs(w, "ReplaceToken", map[string]string{"Type": "ReplaceToken", "TokenScript": w.Params["TokenScript"]}) {
+		return refuse("repl-hard: CreateToken replacement shape")
+	}
+	if vt := rp.str("ValidToken"); vt != "Permanent.YouCtrl" && vt != "Card.YouCtrl" {
+		return refuse("repl-hard: CreateToken rewriter ValidToken %q", vt)
+	}
+	if _, ok := lc.p.reg.Token(script); !ok {
+		return refuse("token script %q not in the corpus", script)
+	}
+	if !slices.Contains(lc.out.Tokens, script) {
+		lc.out.Tokens = append(lc.out.Tokens, script)
+	}
+	rl.Kind, rl.S = "RewriteTokens", script
 	return nil
 }
