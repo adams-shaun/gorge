@@ -212,7 +212,7 @@ func TestGrantedMeleeTriggersOnHolderWithoutItsPrintedMelee(t *testing.T) {
 		t.Fatal("real Ferocious Colonist has no printed Melee")
 	}
 	const muzzle = "Name:Muzzle\nManaCost:1\nTypes:Enchantment\n" +
-		"S:Mode$ Continuous | Affected$ Creature | RemoveAllAbilities$ True | Description$ Creatures lose all abilities.\nOracle:x\n"
+		"S:Mode$ Continuous | RemoveAllAbilities$ True | Affected$ Creature | Description$ x\nOracle:x\n"
 	for _, tc := range []struct {
 		name      string
 		setup     func(e *Engine, id state.ObjID)
