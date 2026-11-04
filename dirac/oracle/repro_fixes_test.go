@@ -240,6 +240,14 @@ func TestStdFraReprosLockstep(t *testing.T) {
 	})
 }
 
+// std-dft's, on the same terms.
+func TestStdDftReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReprosLockstep(t, "std-dft", []stdRepro{
+		{"clone_entry_order_beside_counter", false}, // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
+	})
+}
+
 // std-tmt's: each of these once ended in a kernel stall, which replayRepro alone does not see.
 func TestStdTmtReprosLockstep(t *testing.T) {
 	t.Parallel()
