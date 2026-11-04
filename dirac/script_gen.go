@@ -471,6 +471,9 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8) {
 		if ak := a.Kind(); ak != AkActivate && !isCastKind(ak) || hasOption(&walk, a) {
 			continue
 		}
+		if k.gen.anyTapExtra {
+			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
+		}
 		if cost, ex, ok := s.grantPlayCost(k, p, a, true); ok && !s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(a)) {
 			d.remove(a)
 		}
