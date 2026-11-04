@@ -137,7 +137,7 @@ func (s *State) mintRewritten(k *prep, p uint8, tc CardID, n int) bool {
 		return s.createTokensHeld(k, &in, p, n)
 	}
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return true
 		}
