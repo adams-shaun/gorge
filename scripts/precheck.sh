@@ -6,7 +6,8 @@
 #   1. gofmt on the Go files changed since the merge base, and go vet on their packages.
 #   2. The census and coverage tests (a struct's every field compared or encoded, stall classes, flag
 #      blocks, cache-line padding, card censuses, kgen's acceptance pins, TestHeads and TestSetHeads, the
-#      file-name rule) in every package that holds one, plus ./internal/archtest. About 30 s on 8 cores,
+#      file-name rule, the committed repro tables every set replays in lockstep) in every package that
+#      holds one, plus ./internal/archtest. About 40 s on 8 cores,
 #      answered from the test cache on a rerun.
 #   3. base's own scripts/dirac-gate.sh, as a landing runs it: State size, allocs, instructions against
 #      the merge base, lockstep, refused entries, synthetic pools. It needs the deck pools (GORGE_POOLS)
@@ -35,7 +36,7 @@ if [ -n "$files" ]; then
 fi
 
 echo "== 2 census and coverage tests"
-C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|^TestHeads$|^TestSetHeads$'
+C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|^TestHeads$|^TestSetHeads$'
 cpkgs=$(git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go' | xargs -n1 dirname | sort -u | sed 's|^|./|')
 out=$(go test -timeout 10m -run "$C" $cpkgs ./internal/archtest 2>&1) || bad "census tests: $(grep -E -A8 -- '^--- FAIL|^FAIL|panic' <<<"$out" | head -40)"
 
