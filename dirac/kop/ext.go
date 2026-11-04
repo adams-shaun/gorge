@@ -163,6 +163,15 @@ const (
 	// ChangeZone Defined$ Imprinted GainControl$ True Origin$ Graveyard
 	// Destination$ Battlefield). dirac/act_millthenreturn.go.
 	ExtBreachReturn ExtOp = 161
+	// ExtExileLandChoose (Ensign Pavel Chekov): the resolving controller
+	// chooses a land card the other player (the one opponent of a two-seat
+	// game) owns among the remembered cards in exile (a mandatory
+	// ChGenChooseCard ask, posed with one candidate too, none when there is
+	// no candidate) and imprints it: the chosen set (RefChosen, OpClearChosen
+	// clears it) (gorge RepeatEach Opponent over ChooseCard Defined$ You
+	// Choices$ Land.IsRemembered+RememberedPlayerOwn ChoiceZone$ Exile
+	// ImprintChosen$ True). No other field. dirac/act_exilelandchoose.go.
+	ExtExileLandChoose ExtOp = 162
 	// ExtRecruit (The Hobbit's Recruit action; CR 701.xx,
 	// 701.9, 111.1): the resolving controller draws a card, then discards a
 	// card (gorge effRecruit: one KChoose Min 1 Max 1 in hand order, no ask
@@ -481,6 +490,7 @@ func init() {
 func init() {
 	extOpNames[ExtBreachChoose] = "BreachChoose"
 	extOpNames[ExtBreachReturn] = "BreachReturn"
+	extOpNames[ExtExileLandChoose] = "ExileLandChoose"
 }
 
 // Braided Net's sub-op name (dirac/act_lockpermanent.go).

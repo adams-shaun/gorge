@@ -786,6 +786,15 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 							out = append(out, id)
 						}
 					}
+					// ChooseCard's ImprintChosen$ (Ensign Pavel Chekov's chosen
+					// exiled lands) and Seek's ImprintFound$ record into
+					// SeekFound, the pile Defined$ Imprinted also reads
+					// (imprintPileTargets): the Effect remembers it too.
+					for _, id := range o.SeekFound {
+						if h.Game().Obj(id) != nil {
+							out = append(out, id)
+						}
+					}
 				}
 			case effectRememberedReplacedCard:
 				// The card the enclosing replacement acted on (Opposition Agent's

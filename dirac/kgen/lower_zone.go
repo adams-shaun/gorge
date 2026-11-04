@@ -3373,7 +3373,16 @@ func (lc *lowerCtx) animateGraveMayPlay(ps *params, spec string) error {
 // duration, kop.MayPlayOwner and the surcharge (B >> kop.MayPlayRaiseShift).
 // It reports whether the shape was this one.
 func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error) {
-	if ps.str("RememberObjects") != "Remembered" || ps.str("ForgetOnMoved") != "Exile" || len(ss) < 1 || len(ss) > 2 {
+	obj := lRef{Kind: rRemembered}
+	if lc.exileLandStage == 1 && ps.str("RememberObjects") == "Imprinted" && len(ss) == 1 {
+		// Ensign Pavel Chekov: the permission is over the imprint, the
+		// chosen set (lower_repeatexilechoice.go)
+		obj = lRef{Kind: rChosen}
+		lc.exileLandStage = 2
+	} else if ps.str("RememberObjects") != "Remembered" {
+		return false, nil
+	}
+	if ps.str("ForgetOnMoved") != "Exile" || len(ss) < 1 || len(ss) > 2 {
 		return false, nil
 	}
 	may := newParams(ss[0].Params)
@@ -3449,7 +3458,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: lRef{Kind: rRemembered}, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	}
