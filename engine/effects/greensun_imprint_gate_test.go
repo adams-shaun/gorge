@@ -17,7 +17,7 @@ func TestUnpairedImprintedLibraryFetchKeepsExileGate(t *testing.T) {
 	returnSA := cards.ResolveSVar(vars, "RestBottom")
 	if ability == nil || ability.API != "DigMultiple" || returnSA == nil ||
 		returnSA.Params["Defined"] != "Imprinted" || returnSA.Params["Origin"] != "Library" ||
-		returnSA.Params["RandomOrder"] != "True" || returnSA.Params["NoShuffle"] != "True" {
+		returnSA.Params["RandomOrder"] != "True" || returnSA.Params["Shuffle"] == "True" {
 		t.Fatalf("precondition: corpus paired return = %+v / %+v", ability, returnSA)
 	}
 	h := newHost(t, 2)

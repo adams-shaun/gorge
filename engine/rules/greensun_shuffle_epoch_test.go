@@ -25,7 +25,7 @@ func TestGreenSunSubsetRandomOrderDoesNotAdvancePlannedShuffleEpoch(t *testing.T
 	chosen := cards.ResolveSVar(vars, "DBChangeZone")
 	rest := cards.ResolveSVar(vars, "RestBottom")
 	if chosen == nil || chosen.Params["SubAbility"] != "RestBottom" ||
-		rest == nil || rest.Params["RandomOrder"] != "True" || rest.Params["NoShuffle"] != "True" {
+		rest == nil || rest.Params["RandomOrder"] != "True" || rest.Params["Shuffle"] == "True" {
 		t.Fatalf("precondition: paired corpus chain = %+v / %+v", chosen, rest)
 	}
 	deck := []*cards.Card{green}

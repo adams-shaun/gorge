@@ -68,7 +68,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # 07d4f918d = Card-Forge master 2026-11-02, which holds those fixes and scripts Star Trek (TRK, TRC).
 # e5904606 = 07d4f918d + the fork's Star Trek scripts (16 upstream PRs, 55 authored against the printed cards, a Romulan Bird-of-Prey fix).
 # 66757752dc = e5904606 + H.M.S. Bounty (Count$YourExtraTurns, the extra-turn counter and its script).
-FORGE_REF  ?= 66757752dc1de6febab47cd3ccfb3ddfc66db54d
+# 21f2538a76 = the fork's gorge-trek3: Card-Forge master 6264f0292f (2026-11-03) + the open Star Trek PR heads
+# (Card-Forge/forge#12365 through #12561) + the fork's authored Star Trek scripts, H.M.S. Bounty and four script fixes sent to those PRs.
+FORGE_REF  ?= 21f2538a7621fe82ecb82de25507cbb5043f4609
 
 .PHONY: help
 help:

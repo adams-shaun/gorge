@@ -597,7 +597,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 	// the source while they remain in the library. They are not ordinary
 	// CR 607.2a Imprinted cards (which must be exiled), but its immediate
 	// RestBottom ChangeZone must still be able to randomize just that pile.
-	// The narrow NoShuffle + bottom shape avoids widening the ordinary
+	// The narrow RandomOrder + bottom shape avoids widening the ordinary
 	// Defined$ Imprinted rules contract; corpus census finds this exact
 	// ChangeZone shape only on Green Sun's Twilight.
 	if deferredDigImprintReturn(g, c, sa, cz) &&
@@ -763,12 +763,17 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		// one. A Defined$ fetch is not a search (Forge's `defined` flag keeps
 		// the post-move shuffle from firing), so a plain reveal-and-take
 		// (Traveling Botanist, Gathering Stone, Bucolic Ranch) shuffles
-		// nothing. The implicit shuffle survives only where the script owes
-		// one: a library destination, the NoLooking$ placement leg of a
-		// search, or a search that deferred its shuffle to this leg
-		// (Ctx.Search.DeferredShuffle -- Nissa's Pilgrimage).
+		// nothing. A library destination owes none either: Forge's `defined`
+		// flag clears shuffleMandatory, so a Defined$ move from the library
+		// back into it (Hurkyl's and Kenessos's rest on the bottom in a random
+		// order, Loyal Inventor's card back on top) places the cards and
+		// leaves the rest of the library in its order unless the script says
+		// Shuffle$ True. The implicit shuffle survives only where the script
+		// owes one: the NoLooking$ placement leg of a search, or a search
+		// that deferred its shuffle to this leg (Ctx.Search.DeferredShuffle --
+		// Nissa's Pilgrimage).
 		implicitShuffle := !cz.DefinedLibraryPosition && len(moved) > 0 &&
-			(to == state.ZLibrary || cz.NoLooking || (c != nil && c.Search.DeferredShuffle))
+			(cz.NoLooking || (c != nil && c.Search.DeferredShuffle))
 		if !preserveDeferredRest && (cz.ShuffleTrue || implicitShuffle) {
 			shuffleLibrary(h, cz, f.owner)
 		}
@@ -792,7 +797,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 func deferredDigImprintReturn(g *state.Game, c *Ctx, sa *cards.SA, cz *ChangeZoneParams) bool {
 	if c == nil || cz.Defined != "Imprinted" || !cz.OriginExactly(state.ZLibrary) ||
 		!cz.DestinationIs(state.ZLibrary) || cz.LibraryPosition.Text != "-1" ||
-		!cz.RandomOrder || !cz.NoShuffle || cz.ShuffleTrue {
+		!cz.RandomOrder || cz.ShuffleTrue {
 		return false
 	}
 	fetch := cards.ResolveSVar(c.SVars, "DBChangeZone")
@@ -825,7 +830,7 @@ func deferredDigLibraryFetch(g *state.Game, c *Ctx, cz *ChangeZoneParams) bool {
 	}
 	rest := ChangeZoneOf(remainder)
 	if rest.Defined != "Imprinted" || !rest.OriginExactly(state.ZLibrary) ||
-		!rest.DestinationIs(state.ZLibrary) || !rest.RandomOrder || !rest.NoShuffle ||
+		!rest.DestinationIs(state.ZLibrary) || !rest.RandomOrder || rest.ShuffleTrue ||
 		rest.LibraryPosition.Text != "-1" {
 		return false
 	}
