@@ -1350,6 +1350,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.CounterCell {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
+	if t.OptTrigPlayer {
+		if !t.Optional || t.Event != "Phase" {
+			return kt, fmt.Errorf("optional trigger player on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4OptTrigPlayer
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)

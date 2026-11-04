@@ -629,6 +629,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if k.gen.anyWhileHost && k.t.Emblems[in.C].WhileHost && s.hostEmblemDone(e, p, uint8(in.C)+1) {
 			break // filter_combatwords.go
 		}
+		if k.embComb && s.idemEmblemHeld(k, p, uint8(in.C)+1) {
+			break // static_emblemcombat.go
+		}
 		if s.g.nemb[p] < maxEmb {
 			s.g.emb[p][s.g.nemb[p]] = uint8(in.C) + 1
 			s.g.embC[p][s.g.nemb[p]] = e.card

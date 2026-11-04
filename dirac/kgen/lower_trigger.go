@@ -93,12 +93,15 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		tr.Zone = zoneNames[zone]
 	}
 	if od, ok := tp.get("OptionalDecider"); ok {
-		if od != "You" && od != "TriggeredCardController" {
+		if od != "You" && od != "TriggeredCardController" && !(od == "TriggeredPlayer" && t.Mode == "Phase") {
 			return refuse("OptionalDecider %q", od)
 		}
 		// gorge's one read: a "may" that is only a duration-bounded
 		// play permission (Strongbox Raider) is no CR 603.5 election
 		tr.Optional = scriptfacts.TriggerOptionalSpec(t) != ""
+		// the Phase trigger's player is the active player: it answers
+		// (gorge deciderFromSpecTriggeredPlayer; Peace in Our Time)
+		tr.OptTrigPlayer = tr.Optional && od == "TriggeredPlayer"
 		// gorge folds the yes/no into the body's own pay/decline when the
 		// controller decides and the body has a non-mandatory cost
 		// (rules/trigger_queue.go optionalFoldsIntoCost): one question; a

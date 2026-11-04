@@ -353,6 +353,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"BLOODSTAIN": kop.CtrBloodstain, // Blood Spatter Analysis's named counter (CR 122.1)
 	"POSSESSION": kop.CtrPossession, // Unwilling Vessel's named counter (CR 122.1)
 	"PROMOTION":  kop.CtrPromotion,  // Beckett Mariner's named counter (CR 122.1)
+	"PEACE":      kop.CtrPeace,      // Peace in Our Time's named counter (CR 122.1)
 }
 
 func counterKind(s string) (kop.CounterKind, error) {

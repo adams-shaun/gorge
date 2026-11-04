@@ -604,6 +604,7 @@ type lTrigger struct {
 	GameOnce      bool  // GameActivationLimit$ 1: once per source object (kop.Tf3GameOnce)
 	SingleTarget  bool  // SpellCast: the cast spell's root target list has exactly one target (kop.Tf4SingleTarget)
 	CounterCell   bool  // CounterAddedOnce from Mode$ CounterPlayerAddedAll: one fire per put action per recipient (kop.Tf4CounterCell)
+	OptTrigPlayer bool  // Optional: the trigger's player (the Phase trigger's active player) answers, not the controller (kop.Tf4OptTrigPlayer)
 	CauseTarget   bool  // DamageDone: ValidCause$ Spell.numTargets EQ1 + TargetRelativeToCause$ Creature.targetedBy (kop.Tf4SingleCauseTarget)
 	// Watch: BecomesTarget watching ValidTarget$ objects (F) targeted by an
 	// opponent's spell or ability (ValidSource$ SpellAbility.OppCtrl);

@@ -100,6 +100,10 @@ func (e *Engine) restrictionApplies(ce *ContinuousEffect, id state.ObjID) bool {
 	for _, r := range ce.Remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
+	// the registration's captured players, as untapDenied binds them: a
+	// ValidCard$ Creature.RememberedPlayerCtrl restriction (Peace in Our
+	// Time's CantAttack) selects only that player's creatures
+	sc.RememberedPlayers = ce.RememberedPlayers
 	return e.matchesSpec(spec, id, sc)
 }
 

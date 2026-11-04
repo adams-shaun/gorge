@@ -43,6 +43,11 @@ const (
 	// ability, or from a spell with any other target count it does not
 	// match. Imodane, the Pyrohammer.
 	Tf4SingleCauseTarget TrigFlags4 = 1 << 1
+	// Tf4OptTrigPlayer: with TfOptional, the "may" belongs to the trigger's
+	// player (OptionalDecider$ TriggeredPlayer on a Phase trigger: the active
+	// player, Peace in Our Time), not the controller; the resolution ask is
+	// posed to that seat (gorge deciderFromSpec).
+	Tf4OptTrigPlayer TrigFlags4 = 1 << 4
 )
 
 // TrigEvent is a triggered ability's subscription: the event kind it listens
