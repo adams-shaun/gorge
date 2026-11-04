@@ -13,7 +13,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DFT | 276 | 246 | 0 | 22 | 224 |
 | DSK | 276 | 233 | 5 | 40 | 188 |
 | ECL | 273 | 230 | 9 | 31 | 190 |
-| EOE | 266 | 236 | 0 | 118 | 118 |
+| EOE | 266 | 236 | 0 | 115 | 121 |
 | FDN | 517 | 506 | 1 | 12 | 493 |
 | FIN | 312 | 266 | 3 | 18 | 245 |
 | FRA | 269 | 245 | 1 | 24 | 220 |
@@ -27,10 +27,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 268 | 1 | 105 | 162 |
-| TRK | 311 | 254 | 0 | 166 | 88 |
+| TRC | 337 | 268 | 1 | 6 | 261 |
+| TRK | 311 | 254 | 0 | 1 | 253 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21240 | 62 | 17011 | 4167 |
+| ALL | 34442 | 21240 | 62 | 16747 | 4431 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -62,8 +62,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | std-tdm | 43 |
 | std-tla | 42 |
 | std-tmt | 295 |
-| std-trc | 340 |
-| std-trk | 111 |
+| std-trc | 1500 |
+| std-trk | 1500 |
 | std-woe | 146 |
 
 Nothing else is covered. A card none of these runs reaches is unverified, whatever it does. A supported card has played clean in these games, not in every game: the standing sweep and census are separate runs, last measured at 164 and 244 divergent pairs, and are outside this claim.
