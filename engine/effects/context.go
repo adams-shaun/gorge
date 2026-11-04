@@ -1116,7 +1116,10 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if c.TriggerStack != 0 && (c.TriggerTarget.Obj != 0 || c.TriggerTarget.IsPlayer) {
 			return []state.Target{c.TriggerTarget}, true
 		}
-		return objectsOf(c.Remembered), true
+		// An object that changed zones since the trigger fired is a new object
+		// the ability does not refer to (CR 400.7): Sporogenic Infection's "destroy
+		// it" finds nothing once the creature it enchanted died and came back.
+		return dropTriggerRememberedMoved(c, objectsOf(c.Remembered)), true
 	case definedSpecTriggeredObject:
 		if c.DelayedObject != 0 {
 			return []state.Target{{Obj: c.DelayedObject}}, true
