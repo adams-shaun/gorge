@@ -459,7 +459,7 @@ var registerLeaveExileCodes = state.NewStrCodes(
 // each with only the riders the Effect route reads (mayPlayGrantFromLine,
 // adjustLandPlaysGrantFromLine) and EffectZone$ Battlefield, the printed
 // default. The caller owns the source, controller and lifetime fields.
-func animatePlayGrant(params map[string]string) (state.ContinuousEffect, bool) {
+func animatePlayGrant(params staticLineParams) (state.ContinuousEffect, bool) {
 	if z, ok := params["EffectZone"]; ok && !strings.EqualFold(strings.TrimSpace(z), "Battlefield") {
 		return state.ContinuousEffect{}, false
 	}
