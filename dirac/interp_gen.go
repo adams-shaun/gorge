@@ -2085,12 +2085,11 @@ func (s *State) damageBatch(k *prep, codes []uint8, amts []int) {
 			}
 			s.touch(Obj(code))
 			p := &s.perms[ob.slot]
-			if s.typesAt(k, ob.slot)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, ob.slot) {
-				s.dmgCounters(k, ob.slot, p, n)
-			} else if (inf || wit) && s.isCreature(k, ob.slot) {
+			if (inf || wit) && s.isCreature(k, ob.slot) {
+				s.dmgCountersIf(k, ob.slot, n)
 				s.infectCounters(k, ob.slot, n) // CR 702.90b
 			} else {
-				p.damage = uint8(min(int(p.damage)+n, 255))
+				s.dmgPerm(k, ob.slot, p, n)
 			}
 			if kw&kop.KwDeathtouch != 0 {
 				p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)

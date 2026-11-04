@@ -601,11 +601,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
 		s.touchSl(sl)
-		if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-			s.dmgCounters(k, sl, p, n)
-		} else {
-			p.damage = uint8(min(int(p.damage)+n, 255))
-		}
+		s.dmgPerm(k, sl, p, n)
 		if ro.adt {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}
@@ -639,11 +635,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		sl := ev.dst
 		p := &s.perms[sl]
 		s.touchSl(sl)
-		if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-			s.dmgCounters(k, sl, p, n)
-		} else {
-			p.damage = uint8(min(int(p.damage)+n, 255))
-		}
+		s.dmgPerm(k, sl, p, n)
 		if skw&kop.KwDeathtouch != 0 {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}
@@ -907,11 +899,7 @@ func (s *State) dealNC(k *prep) {
 		sl := ob.slot
 		s.touch(Obj(code))
 		p := &s.perms[sl]
-		if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-			s.dmgCounters(k, sl, p, n)
-		} else {
-			p.damage = uint8(min(int(p.damage)+n, 255))
-		}
+		s.dmgPerm(k, sl, p, n)
 		if nc.dt {
 			p.markDT(1) // a planeswalker too (gorge effects/damage.go, combat.go: any damaged permanent)
 		}

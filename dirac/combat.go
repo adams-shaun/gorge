@@ -949,15 +949,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		p := &s.perms[sl]
 		if n := r.toPerm[sl]; n > 0 {
 			s.touchSl(sl)
-			if s.typesAt(k, sl)&(kop.TPlaneswalker|kop.TBattle) != 0 && !s.isCreature(k, sl) {
-				s.dmgCounters(k, sl, p, int(n))
-			} else {
-				d := int(p.damage) + int(n)
-				if d > 255 {
-					d = 255
-				}
-				p.damage = uint8(d)
-			}
+			s.dmgPerm(k, sl, p, int(n))
 			if r.dtPerm.has(sl) {
 				// a planeswalker too (gorge effects/damage.go, combat.go: any
 				// damaged permanent), one mark per deathtouch source's event
