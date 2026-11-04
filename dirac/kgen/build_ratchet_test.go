@@ -141,8 +141,9 @@ import (
 // +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; 21462 -> 21463; ratchet TRK 292 -> 293).
 // +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; 21463 -> 21464; ratchet TRK 293 -> 294).
 // +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; 21464 -> 21465; ratchet TRK 294 -> 295).
+// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; land; merged 21465 -> 21469; ratchet TRK 295 -> 296).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21465, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21469, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -1,0 +1,17 @@
+# Captain Benjamin Sisko (a five-colour activated Dig into exile whose free
+# casts are bounded by the Officer count, an SVar named Y rather than X),
+# Starfleet Crew (a vanilla Officer, to raise the count), spells of mana
+# value one to four for the bound to cut between, and one basic of each
+# colour, for the oracle's constructed lockstep (dirac/oracle/sisko_test.go)
+Captain Benjamin Sisko
+Starfleet Crew
+Shock
+Opt
+Grizzly Bears
+Divination
+Hill Giant
+Plains
+Island
+Swamp
+Mountain
+Forest
