@@ -71,6 +71,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-msh", "negative_power_dig_looks_at_nothing"},                         // Jessica Jones with a negative power activates: the top X cards are none, not 254 (gorge effDig clamps DigNum to 0)
 		{"std-mkm", "presumed_dead_returned_creature_is_suspected"},                // Presumed Dead on Exit Specialist, which dies and is returned by the trigger: the suspect step still finds the creature its own resolution returned (menace and cannot block), unlike a trigger whose object came back before it resolved
 		{"std-msh", "graveyard_creature_count_skips_a_waiting_token"},              // a Villain token that died waits in the graveyard for the next check: it is no card, so Killmonger, Scourge of Wakanda's two-creature-cards bonus stays off (CR 111.7, 704.5d)
+		{"std-msh", "copy_ability_sacrificed_clue_is_still_an_artifact"},           // Scientist Supreme of A.I.M. copies the ability of a Clue sacrificed to pay for it: the token has ceased to exist but was an artifact when it left (CR 113.7a), so the ability is a target
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
