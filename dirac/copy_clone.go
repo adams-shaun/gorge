@@ -210,6 +210,9 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 	made := 0
 	for i := 0; i < n; i++ {
 		sl := ord[i]
+		if sl == tmpl && eot && in.C == 0 && in.Obj == kop.RefNone && in.B.N&kop.CloneExclTmpl == 0 {
+			continue // a Valid set holding its template: a copy of itself changes nothing (CR 707.2)
+		}
 		if sl == tmpl || s.cloneLayered(k, sl) || eot && s.cloneMinted(sl) {
 			s.capFull(StallCloneLayer)
 			continue
