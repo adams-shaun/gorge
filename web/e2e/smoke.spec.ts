@@ -1649,10 +1649,13 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
   let undone = false;
   let land = false;
   let spell = false;
+  let spellTries = 0;
   const did: string[] = [];
   while (Date.now() < deadline && !(land && spell)) {
     const landCard = hand.filter({ has: page.locator('[data-play-land]') }).first();
-    const spellCard = hand.filter({ has: page.locator('[data-payment-card], [data-single-action], button[aria-haspopup="menu"]') }).first();
+    // Every card with a cast control, tried in turn: the first one may be offered but unpayable.
+    const spellCards = hand.filter({ has: page.locator('[data-payment-card], [data-single-action], button[aria-haspopup="menu"]') });
+    const spellCard = spellCards.nth(spellTries % Math.max(1, await spellCards.count()));
     if (await visible(asked)) {
       did.push('ask');
       await answerOpenAsk(page);
@@ -1682,6 +1685,7 @@ async function playLandUndoAndSpell(page: Page, label: string): Promise<void> {
       // starve it. A land is played only while the spell is out of reach, to pay for a dearer one.
       if (await visible(spellCard)) {
         did.push('spell');
+        spellTries++;
         spell = await playFromHand(page, hand, spellCard, async () => {
           const shortcut = spellCard.locator('[data-payment-card], [data-single-action]').first();
           return (await shortcut.count()) > 0 ? shortcut : spellCard.locator('button[aria-haspopup="menu"]');
