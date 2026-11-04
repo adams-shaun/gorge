@@ -869,9 +869,7 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	ref := dlyRef(e.obj, e.trigObj) // the affected object, not a creator source
 	ob := &s.objs[ref]
-	// a phased-out permanent is still a battlefield object (CR 702.26d): a
-	// delayed rider that names it, not targets it, still acts on it
-	if ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield && ob.zone < kop.ZonePhased {
+	if ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield {
 		return
 	}
 	sl := ob.slot
