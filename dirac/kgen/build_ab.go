@@ -1677,6 +1677,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "Goad":
+		st.Kind = kop.StatGoad // lower_trigger.go's Continuous Goad$ True
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "CastWithFlash":
 		st.Kind = kop.StatCastWithFlash
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {

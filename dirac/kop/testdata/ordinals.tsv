@@ -985,6 +985,7 @@ StatControl	StaticKind	17
 StatCount	StaticKind	19
 StatDisableETB	StaticKind	234
 StatExtraLandPlay	StaticKind	12
+StatGoad	StaticKind	249
 StatIncreaseCost	StaticKind	9
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13

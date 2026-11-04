@@ -1670,6 +1670,8 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	switch s.Mode {
 	case "Continuous":
 		lc.grantInner = nil
+		goad := sp.is("Goad", "True")
+		sp.consume("Goad")
 		sts, err := lc.continuous(sp, &st)
 		if err != nil {
 			return nil, err
@@ -1678,6 +1680,18 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 			return nil, err // lower_selfcondition.go
 		}
 		extra = sts
+		if goad {
+			// Goad$ True: the affected creatures are goaded while the
+			// static applies (gorge's static goad route; kop.StatGoad), a
+			// second static over the same filter and condition
+			if st.Kind != "Continuous" || st.F == nil || st.F.Players != 0 {
+				return nil, refuse("Goad$ on a %s static", st.Kind)
+			}
+			if extra == nil {
+				extra = []lStatic{st} // extra replaces the static itself
+			}
+			extra = append(extra, lStatic{Kind: "Goad", F: st.F, Cond: st.Cond})
+		}
 	case "ReduceCost":
 		if sp.str("Type") == "Ability" || sp.str("Type") == "" && (sp.str("ValidSpell") == "Activated.Exhaust" || sp.str("ValidSpell") == "Static.Unlock") {
 			if err := lc.reduceAbility(sp, &st, readF); err != nil {

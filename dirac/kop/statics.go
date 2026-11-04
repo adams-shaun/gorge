@@ -183,6 +183,14 @@ type Gate struct {
 // combat.AttackAllowedThroughDefender), while Cond holds.
 const StatCanAttackDefender StaticKind = 250
 
+// StatGoad (an explicit high ordinal clear of the iota
+// tail in ops.go): creatures matching Filter are goaded by the static's
+// controller while it applies (a Continuous static's Goad$ True: Koloth,
+// Tribble Hunter; CR 701.15b; gorge's static goad route, IsGoaded). With
+// two players the goader never changes what a goaded creature must do, so
+// the kernel reads it as goaded by anyone (act_goad.go goadedAt).
+const StatGoad StaticKind = 249
+
 // StatCantActivate (an explicit high ordinal clear of
 // the iota tail in ops.go): activated abilities of battlefield permanents
 // matching Filter can't be activated (StRaiseOpp: by the static
