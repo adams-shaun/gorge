@@ -27,10 +27,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 243 | 8 | 46 | 189 |
 | TLA | 285 | 245 | 4 | 56 | 185 |
 | TMT | 194 | 171 | 1 | 10 | 160 |
-| TRC | 337 | 272 | 1 | 5 | 266 |
+| TRC | 337 | 272 | 0 | 6 | 266 |
 | TRK | 311 | 258 | 0 | 0 | 258 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21255 | 60 | 16754 | 4441 |
+| ALL | 34442 | 21255 | 59 | 16755 | 4441 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-60 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+59 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -86,7 +86,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-Cards.Power | 2 |
 | projection-Cards.Zone | 2 |
 | projection-Life | 1 |
-| projection-NInst | 1 |
 | projection-NStack | 5 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |
