@@ -358,6 +358,11 @@ func (s dataSet) matchup(a, b []Entry, inert bool) (*kop.Table, []kop.CardID, []
 			choosesType = true // a count of creature types reads every printed one
 		}
 	}
+	for i := range dd.Filters {
+		if f := &dd.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff == kop.W7SharesCrTrigObj {
+			choosesType = true // sharing a creature type with the attacker reads every printed one
+		}
+	}
 	if choosesType {
 		for _, i := range pool {
 			subSet[0] |= dd.CardSubs[i][0]

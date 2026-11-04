@@ -1,0 +1,13 @@
+# "shares a creature type with the attacker" filters (gorge's
+# sharesCreatureTypeWith TriggeredAttacker): Shared Animosity's per-attacker
+# pump and Conjurer's Mantle's library search beside Bears, Giants and
+# changelings (dirac/oracle/sharescrtrig_test.go)
+Shared Animosity
+Conjurer's Mantle
+Grizzly Bears
+Woodland Changeling
+Hill Giant
+Shock
+Plains
+Mountain
+Forest
