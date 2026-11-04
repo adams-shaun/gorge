@@ -483,6 +483,12 @@ func (e *Engine) auraStillMatchesEnchant(o, bearer *state.Object) bool {
 	if !ok || strings.TrimSpace(param) == "" {
 		return true
 	}
+	if bearer.PhasedOut {
+		// an Aura that phased in on a bearer still phased out stays as
+		// attached as it was: no filter finds a phased-out permanent (CR
+		// 702.26b), so the bearer is judged again once it phases in
+		return true
+	}
 	spec, _, _ := strings.Cut(param, ":")
 	return e.matchesSpecFrom(strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
 }
