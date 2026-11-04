@@ -1998,6 +1998,13 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 				return ka, err
 			}
 		}
+	case "RewriteTokens":
+		rp.Kind = kop.ReplRewriteTokens
+		idx, ok := cb.pt.tokenIdx[r.S]
+		if !ok {
+			return ka, fmt.Errorf("token %q", r.S)
+		}
+		rp.C = int16(idx) // a pool token index; the matchup remaps it
 	case "DoubleCounters":
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
