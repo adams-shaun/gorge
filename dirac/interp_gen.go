@@ -1400,7 +1400,14 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 // host, its chosen permanent); with none it stays where it is (CR
 // 303.4g).
 func (s *State) execReturn(k *prep, in *kop.Instr, host Slot) bool {
-	return s.execReturnObj(k, in, host, s.returningObj(in))
+	if s.returnDefenderAsk(k, in, host) { // the CR 508.4 defender ask, before the move (zone_returndefender.go)
+		return true
+	}
+	ask := s.execReturnObj(k, in, host, s.returningObj(in))
+	if !ask {
+		s.g.tokDefSet = false // a parked card (clone election) keeps the answer for its re-run (rerunReturn)
+	}
+	return ask
 }
 
 // execReturnObj is execReturn for object o (named by in.Obj).

@@ -461,6 +461,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
+		hit = s.destroyHealAll(k, hit)
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
@@ -688,6 +689,9 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 
 func (s *State) destroy(k *prep, sl Slot) {
 	if s.kw(k, sl)&kop.KwIndestructible != 0 {
+		return
+	}
+	if s.destroyHeal(k, sl) {
 		return
 	}
 	if s.perms[sl].flags&pfRegen != 0 {

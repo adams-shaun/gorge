@@ -30,13 +30,15 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +3 (Kira Nerys; The Holodeck; Gabriel Lorca: land's TRK cards, Holo-Engineer being the same change already counted; TRK 285 -> 288, ALL 21454 -> 21457).
 	// +1 (First Contact: the first-spell-cast rider; TRK 288 -> 289, ALL 21457 -> 21458).
 	// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged TRK 289 -> 290, ALL 21458 -> 21459).
-	// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; TRK 290 -> 291, ALL 21459 -> 21461).
-	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 291 -> 292, ALL 21461 -> 21462).
-	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; merged TRK 292 -> 293, ALL 21462 -> 21463).
-	// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; merged TRK 294 -> 295, ALL 21464 -> 21468).
-	// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged TRK 295 -> 296, ALL 21468 -> 21469).
+	// +1 (Dr. McCoy, Surly Surgeon: Destroy replacement removes +1/+1 counters and heals damage; TRK 290 -> 291, ALL 21459 -> 21460).
+	// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; TRK 291 -> 292, ALL 21460 -> 21462).
+	// +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; TRK 292 -> 293, ALL 21462 -> 21463).
+	// +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; TRK 293 -> 294, ALL 21463 -> 21464).
+	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; TRK 294 -> 295, ALL 21464 -> 21465).
+	// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; land; merged TRK 295 -> 296, ALL 21465 -> 21469).
+	// +1 (The Inner Light: an Effect's remembered target and the damage amount reach its DamageDone emblem trigger; merged TRK 297 -> 298, ALL 21470 -> 21471).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21469, 34442},
+	"ALL": {21471, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -63,7 +65,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {296, 311},
+	"TRK": {298, 311},
 	"WOE": {252, 281},
 }
 
