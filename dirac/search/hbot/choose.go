@@ -209,6 +209,12 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 			return i
 		}
 		return 0
+	case dirac.ChGenManaChoice:
+		b.fill(s, bt.f, d.Player)
+		if i := bt.manaColour(d); i >= 0 {
+			return i
+		}
+		return 0
 	case dirac.ChGenType:
 		return bt.firstBy(s, d, func(a dirac.Action) uint32 {
 			return s.FeatTypeKey(d.Player, int(a.Target())<<8|int(a.Mode()))
@@ -482,4 +488,28 @@ func (bt *Bot) castHelperSet(s *dirac.State, out *[dirac.MaxPerm]dirac.Obj, pip 
 		m++
 	}
 	return m
+}
+
+// manaColour is tap.go's chooseManaColour on a resolving mana effect's colour
+// pick: the first offered colour the card the tap gate would aim at still needs,
+// or -1. The ask carries no list of potential casts, so every castable card in
+// hand is a candidate.
+func (bt *Bot) manaColour(d *dirac.Decision) int {
+	b := &bt.b
+	var off [5]bool
+	for i := 0; i < int(d.N); i++ {
+		if m := d.Options[i].Mode(); m < 5 {
+			off[m] = true
+		}
+	}
+	c := bt.bestUnpayableOf(d, off, false)
+	if c == nil {
+		return -1
+	}
+	for i := 0; i < int(d.N); i++ {
+		if m := d.Options[i].Mode(); m < 5 && int32(c.f.Pips[m]) > b.pool[m] {
+			return i
+		}
+	}
+	return -1
 }
