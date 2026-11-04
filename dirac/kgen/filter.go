@@ -3,6 +3,7 @@ package kgen
 import (
 	"fmt"
 	"math/bits"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -448,39 +449,96 @@ func parseFilter(expr string, knownSub, isType func(string) bool) (*lFilter, err
 			f.Clauses = append(f.Clauses, lClause{Types: tCreature | tPlaneswalker})
 			continue
 		}
-		head, props, _ := strings.Cut(alt, ".")
-		var c lClause
-		if bits, ok := typeBits[head]; ok {
-			c.Types = bits
-			if head == "Card" {
-				c.Types = 0
+		c, err := parseClause(alt, knownSub)
+		if err != nil {
+			hc, ok := historicClauses(alt, knownSub, err)
+			if !ok {
+				return nil, err
 			}
-			if head == "Permanent" {
-				c.BasePermanent = true
-			}
-		} else if head == "Spell" {
-			c.SpellBase = true
-		} else if head == "Outlaw" {
-			// gorge matchesBaseOutlaw: any object with an outlaw type through
-			// the layer-aware type read, the Card.Outlaw spelling
-			if err := c.setCmp(cmpOutlaw, 0, 0, "", ""); err != nil {
-				return nil, fmt.Errorf("%q: %w", alt, err)
-			}
-		} else if knownSub(head) {
-			c.Subtype = head
-		} else {
-			return nil, fmt.Errorf("unknown filter head %q", head)
-		}
-		if props != "" {
-			for _, p := range strings.Split(props, "+") {
-				if err := c.prop(p, knownSub); err != nil {
-					return nil, fmt.Errorf("%q: %w", alt, err)
-				}
-			}
+			f.Clauses = append(f.Clauses, hc...)
+			continue
 		}
 		f.Clauses = append(f.Clauses, c)
 	}
 	return f, nil
+}
+
+// historicClauses splits a clause whose Historic sits beside another
+// comparison ("Permanent.Historic+cmcGE3", two Pred reads in one kernel
+// filter) into its three alternatives, an artifact, a legendary and a Saga,
+// each keeping the rest: gorge historicMatches is exactly that union.
+func historicClauses(alt string, knownSub func(string) bool, err error) ([]lClause, bool) {
+	if !strings.Contains(err.Error(), "two comparisons in one clause") {
+		return nil, false
+	}
+	head, props, _ := strings.Cut(alt, ".")
+	ps := strings.Split(props, "+")
+	at := slices.Index(ps, "Historic")
+	if at < 0 {
+		return nil, false
+	}
+	var out []lClause
+	for _, w := range [...]string{"Artifact", "Legendary", "Saga"} {
+		rest := slices.Clone(ps)
+		if w == "Saga" {
+			rest = slices.Delete(rest, at, at+1)
+		} else {
+			rest[at] = w
+		}
+		alt := head
+		if len(rest) > 0 {
+			alt += "." + strings.Join(rest, "+")
+		}
+		c, err := parseClause(alt, knownSub)
+		if err != nil {
+			return nil, false
+		}
+		if w == "Saga" {
+			// the subtype by name, as PredHistoric reads it, whether or
+			// not the pool's vocabulary lists it yet
+			if c.Subtype != "" {
+				return nil, false
+			}
+			c.Subtype = "Saga"
+		}
+		out = append(out, c)
+	}
+	return out, true
+}
+
+// parseClause parses one alternative of a Valid expression.
+func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
+	head, props, _ := strings.Cut(alt, ".")
+	var c lClause
+	if bits, ok := typeBits[head]; ok {
+		c.Types = bits
+		if head == "Card" {
+			c.Types = 0
+		}
+		if head == "Permanent" {
+			c.BasePermanent = true
+		}
+	} else if head == "Spell" {
+		c.SpellBase = true
+	} else if head == "Outlaw" {
+		// gorge matchesBaseOutlaw: any object with an outlaw type through
+		// the layer-aware type read, the Card.Outlaw spelling
+		if err := c.setCmp(cmpOutlaw, 0, 0, "", ""); err != nil {
+			return c, fmt.Errorf("%q: %w", alt, err)
+		}
+	} else if knownSub(head) {
+		c.Subtype = head
+	} else {
+		return c, fmt.Errorf("unknown filter head %q", head)
+	}
+	if props != "" {
+		for _, p := range strings.Split(props, "+") {
+			if err := c.prop(p, knownSub); err != nil {
+				return c, fmt.Errorf("%q: %w", alt, err)
+			}
+		}
+	}
+	return c, nil
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
