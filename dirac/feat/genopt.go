@@ -72,6 +72,11 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 1 {
 			o.kind = okTop
 		}
+	case dirac.ChGenKeepTapped:
+		o.kind = okUntap // gorge's untap-step election: "untap" / "keep_tapped" (tap stands for keep)
+		if mode == 1 {
+			o.kind = okTap
+		}
 	case dirac.ChGenTapOrUntap:
 		o.kind = okUntap // gorge's taporuntap "tap" / "untap" over the permanent
 		if mode == 1 {

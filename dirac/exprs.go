@@ -240,6 +240,12 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)
 		}
+	case kop.ExFirstCast:
+		if s.firstCast(e) { // cast_firstcast.go
+			v = s.evalV(k, x.Sub[0], ctx)
+		} else {
+			v = s.evalV(k, x.Sub[1], ctx)
+		}
 	case kop.ExPromisedGift:
 		if s.promisedCtx(ctx) {
 			v = s.evalV(k, x.Sub[0], ctx)

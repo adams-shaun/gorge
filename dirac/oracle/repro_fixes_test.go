@@ -114,9 +114,11 @@ func TestStdFdnReprosLockstep(t *testing.T) {
 func TestStdEoeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-eoe", []stdRepro{
-		{"restricted_grant_no_unit_for_hand_cast_x", false, false},     // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
-		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false}, // ... and Devastating Onslaught's X likewise stops one short
-		{"restricted_grant_no_unit_for_trigger_cost", true, false},     // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"restricted_grant_no_unit_for_hand_cast_x", false, false},          // Mm'menon grants an untapped Specimen Freighter blue for spells not cast from hand, so Zero Point Ballad from hand has no extra mana to announce X with
+		{"restricted_grant_no_unit_for_hand_cast_x_two", false, false},      // ... and Devastating Onslaught's X likewise stops one short
+		{"restricted_grant_no_unit_for_trigger_cost", true, false},          // ... and Oreplate Pangolin's "you may pay {1}" is no spell, so an artifact holding Mm'menon's blue pays nothing: only decline is asked
+		{"granted_batch_attack_trigger_once_per_declaration", false, false}, // CR 508.1, 603.2: a granted "whenever you attack" trigger fires once for a declaration split across two defenders, not once per defender
+		{"dies_trigger_power_threshold_lki", true, false},                   // CR 603.3b: Syr Vondam's own dies trigger queues before the dies trigger Perigee Beckoner granted it
 	})
 }
 
@@ -267,6 +269,7 @@ func TestStdDftReprosLockstep(t *testing.T) {
 	stdReprosLockstep(t, "std-dft", []stdRepro{
 		{"clone_entry_order_beside_counter", false, false},   // CR 616.1: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first, with the card still on the stack
 		{"clone_entry_order_three_candidates", false, false}, // CR 616.1, 616.1f: ... beside two Velocipedes the ask has three options, and a counter source named first moves the card in and asks the two left with it on the battlefield
+		{"copy_entry_trigger_after_order_ask", false, false}, // CR 614.12/603.6a: Waxen Shapethief's as-enters copy and Thunderous Velocipede's counter replacement ask which applies first; the copy's Hulldrifter enters trigger queues after the bodies
 	})
 }
 

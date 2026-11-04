@@ -1,0 +1,13 @@
+# the Lwaxana Troi, Charming Guest pool: the keep-tapped untap election
+# and the tap-bound Effect-delivered "triggers an additional time" grant,
+# beside enters, dies and blocked triggers of the creatures it can
+# double, for the oracle's constructed lockstep
+# (dirac/oracle/lwaxana_test.go)
+Ashmouth Hound
+Burglar Rat
+Crow of Dark Tidings
+Hill Giant
+Lwaxana Troi, Charming Guest
+Mountain
+Shock
+Swamp

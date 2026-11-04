@@ -209,6 +209,7 @@ var modelledValueHeads = []string{
 	"ValidSelf",
 	"ValidStack",
 	"Void",
+	"YouCastThisGame",
 	"YouDescendedThisTurn",
 	"YouDrewThisTurn",
 	"YouFaceDilemmaThisTurn",
