@@ -20,7 +20,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | HOB | 172 | 152 | 0 | 9 | 143 |
 | LCI | 290 | 250 | 2 | 20 | 228 |
 | MKM | 279 | 227 | 3 | 38 | 186 |
-| MSH | 276 | 225 | 5 | 13 | 207 |
+| MSH | 276 | 225 | 4 | 14 | 207 |
 | OTJ | 276 | 239 | 2 | 25 | 212 |
 | SOS | 270 | 247 | 4 | 22 | 221 |
 | SPM | 192 | 158 | 4 | 18 | 136 |
@@ -30,7 +30,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 268 | 1 | 105 | 162 |
 | TRK | 311 | 252 | 0 | 164 | 88 |
 | WOE | 281 | 251 | 1 | 11 | 239 |
-| ALL | 34442 | 21238 | 63 | 17008 | 4167 |
+| ALL | 34442 | 21238 | 62 | 17009 | 4167 |
 
 `ALL` is the whole corpus; the rest are the Standard sets.
 
@@ -70,7 +70,7 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-63 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+62 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
@@ -90,7 +90,6 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 | projection-NStack | 5 |
 | projection-Pool | 2 |
 | projection-Stack.Ability | 1 |
-| projection-Step | 1 |
 | unmodelled | 2 |
 | unmodelled-clonelayer | 1 |
 | unmodelled-copycast | 2 |
