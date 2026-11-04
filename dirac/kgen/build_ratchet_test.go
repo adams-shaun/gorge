@@ -139,8 +139,9 @@ import (
 // +1 (Dr. McCoy, Surly Surgeon: Destroy replacement removes +1/+1 counters and heals damage; 21459 -> 21460; ratchet TRK 290 -> 291).
 // +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; 21460 -> 21462; ratchet TRK 291 -> 292).
 // +1 (Nog, Ambitious Cadet: the Officer Animate grants a graveyard land permission and an extra land play; 21462 -> 21463; ratchet TRK 292 -> 293).
+// +1 (Stray from History: a charm mode's hand move reads the owner from that mode's own player slot; 21463 -> 21464; ratchet TRK 293 -> 294).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21463, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21464, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)
