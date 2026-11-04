@@ -752,7 +752,7 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 	if d.Kind == DkTarget {
 		t.gorgeTargetOrder(&d)
 	}
-	if !gorgeArrangeOrder(&d) {
+	if !gorgeAskOrder(&d) {
 		return false
 	}
 	for i := 0; i < int(d.N) && fs.n < maxFiltPath; i++ {
