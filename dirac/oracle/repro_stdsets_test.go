@@ -108,6 +108,7 @@ func TestStdSetReprosLockstep(t *testing.T) {
 		{"std-trk", "charm_mode_sub_target_keeps_make_it_so"},                      // Make It So targeting a Treasure it then sacrifices for mana: the target player is still legal, so the spell resolves and that player draws two cards (CR 608.2b)
 		{"std-trk", "late_entry_order_unicomplex_condition_fails"},                 // The Unicomplex played under two Warp Speeds with two other lands: its own enters-tapped body applied last at the re-ask taps nothing, so it stays untapped and its enters-untapped trigger is put on the stack (CR 616.1f)
 		{"std-trk", "filter_search_funds_with_restricted_colourless"},              // Starfleet Academy's {5} with Isolinear Processor untapped: gorge's prefix search tries the artifact-only {C} as funding and runs out of nodes, so Artificial Anomaly's sacrifice ability is not offered (CR 605.3a)
+		{"std-trk", "static_cast_trigger_keeps_caster_priority"},                   // Test of Identity cast from Tasha Yar's exile on the opponent's turn with Overflow Submatrix out: its Static$ True cast trigger resolves off the stack and the caster keeps priority (CR 117.3c)
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
