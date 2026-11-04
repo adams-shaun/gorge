@@ -75,7 +75,7 @@ func (e *Engine) resPayNeedsMana(player state.PlayerID, source state.ObjID, amou
 	}
 	sources := false
 	for _, id := range e.G.Zone(state.ZBattlefield, player) {
-		if e.untappedManaSource(player, id) && e.windowSourceYields(player, id) {
+		if e.untappedManaSourceFor(player, id, desc) && e.windowSourceYields(player, id) {
 			sources = true
 			break
 		}
