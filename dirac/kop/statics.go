@@ -151,6 +151,14 @@ type Emblem struct {
 	WhileHost bool
 }
 
+// Panharmonicon's Static.A: the one trigger mode a ValidMode$ names without
+// a cause (0: every mode). Static.B is then the Whose of the event's player
+// (ValidPlayer$), read against the static's controller.
+const (
+	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
+	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
+)
+
 // StaticFlags (Static.StFlags).
 type StaticFlags uint16
 

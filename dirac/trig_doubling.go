@@ -22,8 +22,10 @@ type PanharmRec struct {
 // queueTrigger: every triggered ability of an object, the original followed by
 // its copies; a copy is not an event and is not echoed again). ev is the event
 // that caused the trigger; the Saga chapter's is its lore counter, no entry.
-func (s *State) panharmEcho(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj, n uint8) {
-	for e := s.panharmEchoes(k, l, ev, tobj); e > 0; e-- {
+// who is the player a player event is about (tpl: an object event's
+// controller, which no mode-gated static reads).
+func (s *State) panharmEcho(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj, who uint8, n uint8) {
+	for e := s.panharmEchoes(k, l, ev, tobj, who); e > 0; e-- {
 		if int(s.npend) >= MaxPending {
 			s.capFull(StallPending)
 			return
@@ -41,7 +43,7 @@ func (s *State) panharmEcho(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj,
 func (s *State) panharmKeyword(k *prep, sl Slot, ev kop.TrigEvent, tobj Obj, n uint8) {
 	if k.gen != nil && k.gen.anyPanharm && s.npend > n {
 		p := &s.perms[sl]
-		s.panharmEcho(k, trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: s.cardAt(sl)}, ev, tobj, n)
+		s.panharmEcho(k, trigListener{obj: p.obj, sl: sl, ctrl: p.ctrl, card: s.cardAt(sl)}, ev, tobj, p.ctrl, n)
 	}
 }
 
@@ -63,7 +65,13 @@ func (s *State) panharmKeyword(k *prep, sl Slot, ev kop.TrigEvent, tobj Obj, n u
 // (TrigTokenCreated) is not a ChangesZone trigger, and Forge's ValidMode$ names
 // the doubled trigger's own mode, so it is never echoed. The cause must match
 // Filter2 relative to the static's controller.
-func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj) int {
+//
+// A static lowered from a ValidMode$ that names one player-event mode alone
+// (Static.A, kop.PanhModeLifeGained / PanhModeDrawn) echoes only a trigger of
+// that event whose player who matches ValidPlayer$ (Static.B) relative to the
+// static's controller: gorge reads the trigger's own mode against ValidMode$
+// and the event's player against ValidPlayer$.
+func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj, who uint8) int {
 	if DebugPanharmNoEcho || l.sl == NoSlot || !s.occ.has(l.sl) || s.perms[l.sl].obj != l.obj {
 		return 0
 	}
@@ -89,12 +97,26 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 			if a.Static.StFlags&kop.StPanhETB != 0 && !s.panharmCause(k, a, ev, tobj, p.ctrl, sl) {
 				continue
 			}
+			if a.Static.A != 0 && !panharmModeOK(a.Static.A, kop.Whose(a.Static.B), ev, p.ctrl, who) {
+				continue
+			}
 			if s.matchPermGen(k, a.Static.Filter, l.sl, p.ctrl, sl, layerFull) {
 				n++
 			}
 		}
 	}
 	return n
+}
+
+// panharmModeOK reports whether a trigger of event ev about player who is of
+// the one mode m a Panharmonicon static names, with who matching w relative to
+// the static's controller ctrl.
+func panharmModeOK(m int16, w kop.Whose, ev kop.TrigEvent, ctrl, who uint8) bool {
+	switch {
+	case m == kop.PanhModeLifeGained && ev == kop.TrigLifeGained, m == kop.PanhModeDrawn && ev == kop.TrigDrawn:
+		return whoseOK(w, ctrl, who)
+	}
+	return false
 }
 
 // panharmCause reports whether a trigger caused by event ev on triggering

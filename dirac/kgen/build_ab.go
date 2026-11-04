@@ -1761,6 +1761,18 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		for _, fl := range s.Flags {
+			switch fl {
+			case "LifeGained":
+				st.A = kop.PanhModeLifeGained
+			case "Drawn":
+				st.A = kop.PanhModeDrawn
+			case "You":
+				st.B = int16(kop.WhoseYou)
+			default:
+				return ka, nil, fmt.Errorf("Panharmonicon flag %s", fl)
+			}
+		}
 		if s.F2 != nil {
 			// ValidCause$ (the entering permanent): kop.StPanhETB
 			st.StFlags |= kop.StPanhETB

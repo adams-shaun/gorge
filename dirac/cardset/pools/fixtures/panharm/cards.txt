@@ -1,8 +1,10 @@
 # the Panharmonicon pool: the ValidCard$-only
 # "triggers an additional time" statics (Delney, Twinflame Travelers,
 # Katara) beside enters, dies and blocked triggers of the creatures
-# they double, for the oracle's constructed lockstep
+# they double, and Dr. Beverly Crusher's life-gain-only static beside
+# life-gain triggers, for the oracle's constructed lockstep
 # (dirac/oracle/panharm_test.go)
+Ajani's Pridemate
 Armored Armadillo
 Ashmouth Hound
 Bogardan Firefiend
@@ -11,10 +13,13 @@ Charming Prince
 Cloudblazer
 Crow of Dark Tidings
 Delney, Streetwise Lookout
+Dr. Beverly Crusher
 Forest
+Healer's Hawk
 Hill Giant
 Island
 Katara, the Fearless
+Lone Missionary
 Monastery Swiftspear
 Mountain
 Plains

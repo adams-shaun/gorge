@@ -1858,6 +1858,9 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		// family: ValidMode$ ChangesZone,ChangesZoneAll
 		// with Destination$ Battlefield and a ValidCause$ filter, which also
 		// needs the cause (the entering permanent or token) to match F2.
+		// A ValidMode$ of one player-event mode alone (LifeGained, Drawn),
+		// with an optional ValidPlayer$ You, echoes only that mode's triggers
+		// of that player (flags "LifeGained" / "Drawn" and "You").
 		// Every other gate (Origin$, Condition$, ...) is unread, so the shared
 		// unread check refuses it by name.
 		v, ok := sp.get("ValidCard")
@@ -1875,6 +1878,15 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		dest, hasDest := sp.get("Destination")
 		switch {
 		case !hasMode && !hasCause && !hasDest:
+		case hasMode && !hasCause && !hasDest && (vm == "LifeGained" || vm == "Drawn"):
+			st.Flags = append(st.Flags, vm)
+			switch vp, ok := sp.get("ValidPlayer"); {
+			case !ok:
+			case strings.TrimSpace(vp) == "You":
+				st.Flags = append(st.Flags, "You")
+			default:
+				return nil, refuse("Panharmonicon ValidPlayer$ %s", vp)
+			}
 		case hasMode && hasCause && hasDest:
 			if vm != "ChangesZone,ChangesZoneAll" {
 				return nil, refuse("Panharmonicon ValidMode$ %s", vm)
