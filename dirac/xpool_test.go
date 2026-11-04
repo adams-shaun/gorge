@@ -138,17 +138,13 @@ func TestGreatwurmOwnPermissionUnpayableNotAmbiguous(t *testing.T) {
 	t.Fatalf("the Greatwurm's cast through Muldrotha is not offered: %v", d.Options[:d.N])
 }
 
-// TestScriptSearchCountsXCast: gorge searches a scripted prefix for the
-// first potentialScriptPlays insufficient potential plays in walk order only;
-// an {X} cast (Goblin Negotiation) is one of them although the autopay surface
-// never offers it. Here the hand's casts take every search, so Goldvein Pick's
-// equip is left "census_incomplete" and not offered (pair 16186). Before, the
-// kernel's walk skipped the {X} cast and searched the equip.
-//
-// The planner now prices Bloom Tender (mana_eachamong.go), so the census is
-// complete and the equip is offered either way; FDN has no other scripted
-// source, so the search is reached with the Tender's view dropped
-// (debugEachAmongMutate 1, the Tender a gap as before).
+// TestScriptSearchCountsXCast: gorge searches a scripted prefix (Bloom
+// Tender's mana) for the first potentialScriptPlays insufficient potential
+// plays in walk order only; an {X} cast (Goblin Negotiation) is one of them
+// although the autopay surface never offers it. Here the hand's casts take
+// every search, so Goldvein Pick's equip is left "census_incomplete" and
+// not offered (pair 16186). Before, the kernel's walk skipped the {X} cast
+// and searched the equip.
 func TestScriptSearchCountsXCast(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Bloom Tender", Count: 1}, {Name: "Goldvein Pick", Count: 1}, {Name: "Tatyova, Benthic Druid", Count: 1}, {Name: "Gorehorn Raider", Count: 1},
 		{Name: "Goblin Negotiation", Count: 1}, {Name: "Axgard Cavalry", Count: 1}, {Name: "Mountain", Count: 4}}
@@ -166,34 +162,27 @@ func TestScriptSearchCountsXCast(t *testing.T) {
 	for _, c := range da {
 		id[tbl.Cards[c].Name] = c
 	}
-	defer func() { debugEachAmongMutate = 0 }()
-	for _, scripted := range []bool{true, false} {
-		debugEachAmongMutate = 0
-		if scripted {
-			debugEachAmongMutate = 1
+	for _, withX := range []bool{false, true} {
+		sc := newScenTable(t, tbl, Config{NoElide: true, GorgeAutopaySurface: true, GorgeUnpriced: true})
+		s := sc.s
+		sc.perm(id["Bloom Tender"], 0)
+		pick := sc.perm(id["Goldvein Pick"], 0)
+		plain := []string{"Tatyova, Benthic Druid", "Gorehorn Raider", "Axgard Cavalry"}
+		for i := 0; i < potentialScriptPlays-1; i++ {
+			sc.hand(id[plain[i%len(plain)]], 0)
 		}
-		for _, withX := range []bool{false, true} {
-			sc := newScenTable(t, tbl, Config{NoElide: true, GorgeAutopaySurface: true, GorgeUnpriced: true})
-			s := sc.s
-			sc.perm(id["Bloom Tender"], 0)
-			pick := sc.perm(id["Goldvein Pick"], 0)
-			plain := []string{"Tatyova, Benthic Druid", "Gorehorn Raider", "Axgard Cavalry"}
-			for i := 0; i < potentialScriptPlays-1; i++ {
-				sc.hand(id[plain[i%len(plain)]], 0)
+		if withX {
+			sc.hand(id["Goblin Negotiation"], 0)
+		}
+		d := s.Step()
+		got := false
+		for _, a := range d.Options[:d.N] {
+			if a.Kind() == AkActivate && a.Source() == uint8(pick) {
+				got = true
 			}
-			if withX {
-				sc.hand(id["Goblin Negotiation"], 0)
-			}
-			d := s.Step()
-			got := false
-			for _, a := range d.Options[:d.N] {
-				if a.Kind() == AkActivate && a.Source() == uint8(pick) {
-					got = true
-				}
-			}
-			if want := !scripted || !withX; got != want {
-				t.Fatalf("Tender scripted %v, with the {X} cast in hand %v: equip offered %v, want %v", scripted, withX, got, want)
-			}
+		}
+		if got == withX {
+			t.Fatalf("with the {X} cast in hand %v: equip offered %v, want %v", withX, got, !withX)
 		}
 	}
 }

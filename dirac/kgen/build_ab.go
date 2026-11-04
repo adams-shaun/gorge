@@ -784,9 +784,8 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	if m.Special == "EachColorAmong" && m.Restrict == nil && m.RestrictAb == nil && m.Amount.isConst() && m.Amount.N == 1 {
 		// one mana of each colour among the matching permanents: gorge's
-		// planner census prices a bare-{T} one as a fixed production of
-		// the colours now (dirac mana_eachamong.go); any other cost is a
-		// gap its potential plays reach by a scripted activation
+		// planner census cannot price it (a gap its potential plays reach
+		// by a scripted activation), so it is no autopay source
 		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
 		if err != nil {
 			return err
