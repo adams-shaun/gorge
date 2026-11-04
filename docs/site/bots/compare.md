@@ -19,17 +19,11 @@ a server names their network. A test keeps this table in step with it (`cmd/gorg
 | `sb-heuristic` | SpellBench's heuristic builtin | gorge | bot-only, 2 seats | negligible (declared) | fair on hidden cards, but reads every seat's decklist |
 | `sb-search-lite-atk` | `sb-tactical` plus a determinised search of its top plays and its attack over four redealt worlds, two turns deep | gorge only | bot-only, 2 seats | 219 ms mean per searched decision (declared) | fair on hidden cards (determinised redeal), but reads every seat's decklist |
 | `search` | The search teacher: replans the covered decisions over sampled worlds, `bot` elsewhere | gorge only | bot-only, 2 seats | 664 ms mean per searched decision (declared) | fair on hidden cards (determinised redeal), but reads every seat's decklist |
-| `az-c3` | `az-redeal` with a trained network ranking candidates and scoring leaves; open lists | gorge only | bot-only, 2 seats | 185 ms mean per bot turn (hosted smoke) | fair on hidden cards (determinised redeal), but reads every seat's decklist |
-| `az-c4` | `az-c3`'s search with the C4 network, guessing the opponent's list from a belief corpus | gorge only | 2 seats, human or bot | 91 ms mean per bot turn (hosted smoke) | fair: never reads the opponent's decklist; guesses it from a belief corpus |
-| `az-c5` | `az-c4` with the C5 network, trained after the payment-plan fixes | gorge only | 2 seats, human or bot | 97 ms mean per bot turn (hosted smoke) | fair: never reads the opponent's decklist; guesses it from a belief corpus |
-
 
 **Fair** means the bot uses only what its seat can see. **Clairvoyant** means it reads the opponent's hand, the library order or a
 clone of the real engine. No registered bot is clairvoyant. The search bots redeal the hidden cards from their own observations;
-all but `az-c4` and `az-c5` deal from each seat's real decklist, so a server never seats them against a person. `az-c4` and
-`az-c5` deal the opponent's unseen cards from a list guessed from a belief corpus, and the host checks every seat it builds before
-seating one against a person. Clairvoyant search exists only as a bench ceiling. The network policies are trained on 17lands FDN
-decks and play only those ([the hosted az policies](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-11-03-hosted-az-policies.md)).
+they deal from each seat's real decklist, so a server never seats them against a person. Clairvoyant search exists only as a
+bench ceiling.
 
 The four heuristic bots answer on every wire: in process, over HTTP, and as a SpellBench v2 agent
 (`spellbench-gorge-agent -policy <name>`). The search bots need an engine root, which `gorged` and `testkit/bench` supply and
@@ -51,6 +45,3 @@ packages offer them.
 | `sb-first`, `sb-uniform`, `sb-heuristic` | constructed, 2 | no: reads every seat's decklist | [`bots/sbbuiltin`](https://github.com/adams-shaun/gorge/blob/main/bots/sbbuiltin/sbbuiltin.go) |
 | `sb-search-lite-atk` | constructed, 2 | no: reads every seat's decklist | [`bots/sbsearch`](https://github.com/adams-shaun/gorge/blob/main/bots/sbsearch/sbsearch.go) |
 | `search` | constructed, 2 | no: reads every seat's decklist | [`bots/search`](https://github.com/adams-shaun/gorge/blob/main/bots/search/search.go) |
-| `az-c3` | constructed (FDN decks only), 2 | no: with `-az-c3-net` and `-allow-decklist-bots`, on its bot-only demo table only | [`bots/azc3`](https://github.com/adams-shaun/gorge/blob/main/bots/azc3/azc3.go) |
-| `az-c4` | constructed (FDN decks only), 2 | with `-az-c4-net` and `-az-c4-belief`; offered against people | [`bots/azc4`](https://github.com/adams-shaun/gorge/blob/main/bots/azc4/azc4.go) |
-| `az-c5` | constructed (FDN decks only), 2 | with `-az-c5-net` and `-az-c5-belief`; offered against people | [`bots/azc5`](https://github.com/adams-shaun/gorge/blob/main/bots/azc5/azc5.go) |

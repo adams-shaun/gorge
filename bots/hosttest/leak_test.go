@@ -11,9 +11,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
-	"github.com/adams-shaun/gorge/bots/azc3"
-	"github.com/adams-shaun/gorge/bots/azc4"
-	"github.com/adams-shaun/gorge/bots/azc5"
 	"github.com/adams-shaun/gorge/bots/sbbuiltin"
 	"github.com/adams-shaun/gorge/bots/sbsearch"
 	"github.com/adams-shaun/gorge/bots/search"
@@ -75,28 +72,5 @@ func TestHostedEnvSeatsIgnoreTheRealHiddenCardsSBSearch(t *testing.T) {
 		},
 		ViewPath: true,
 		Probe:    probe,
-	})
-}
-
-// The az-c3/c4/c5 rows: the swap at a decision the az seat actually
-// SEARCHED (azmcts.Watch), re-verified in both matches. They share the
-// package-level azmcts.Watch hook, so they run one at a time.
-func TestHostedEnvSeatsIgnoreTheRealHiddenCardsAZC3(t *testing.T) { azLeakRow(t, azc3.Policy) }
-func TestHostedEnvSeatsIgnoreTheRealHiddenCardsAZC4(t *testing.T) { azLeakRow(t, azc4.Policy) }
-func TestHostedEnvSeatsIgnoreTheRealHiddenCardsAZC5(t *testing.T) { azLeakRow(t, azc5.Policy) }
-
-func azLeakRow(t *testing.T, policy string) {
-	enableAZ(t, policy)
-	watchMu.Lock()
-	defer watchMu.Unlock()
-	probe, restore := azWatchProbe()
-	defer restore()
-	host.RunEnvLeakContract(t, host.EnvLeakContract{
-		Options: testOptions(t),
-		Policy:  policy,
-		NewSeat: func(actor uint64) seat.Seat {
-			return newSeat(t, policy, bots.Options{Seed: actor, AutoPayMana: true})
-		},
-		Probe: probe,
 	})
 }

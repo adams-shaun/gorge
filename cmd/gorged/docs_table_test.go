@@ -7,24 +7,15 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
-	"github.com/adams-shaun/gorge/bots/azc3"
-	"github.com/adams-shaun/gorge/bots/azc4"
-	"github.com/adams-shaun/gorge/bots/azc5"
 )
 
 // TestBotsDocsTableListsEveryRegisteredBot keeps the overview table on
-// docs/site/bots/compare.md in step with the registry this binary serves,
-// counting the network policies it links as registered (each registers only
-// once a server names its network): each such bot has a row, with a verdict in
+// docs/site/bots/compare.md in step with the registry this binary serves:
+// each such bot has a row, with a verdict in
 // the fair-or-clairvoyant column, and no row names any other bot. An Env
 // policy's row must say it reads decklists.
 func TestBotsDocsTableListsEveryRegisteredBot(t *testing.T) {
 	entries := bots.Entries()
-	for _, info := range []bots.Info{azc3.Info(), azc4.Info(), azc5.Info()} {
-		if _, ok := bots.Lookup(info.Name); !ok {
-			entries = append(entries, bots.Entry{Info: info})
-		}
-	}
 	known := map[string]bool{}
 	for _, e := range entries {
 		known[e.Name] = true

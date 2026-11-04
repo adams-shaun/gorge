@@ -1,6 +1,6 @@
 // Package hosttest holds the host-level gates of the hosted bot policies
 // cmd/gorged links on top of bots/all (search, sb-search-lite-atk,
-// sb-heuristic, sb-uniform, sb-first, cast-profile, az-c3, az-c4, az-c5), run
+// sb-heuristic, sb-uniform, sb-first, cast-profile), run
 // through the REAL host.
 //
 // It has no code of its own. Each property that needs host internals is

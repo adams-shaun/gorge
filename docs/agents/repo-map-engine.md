@@ -50,7 +50,6 @@ The layering design for `engine/rules` is
 | `bots/sanity` | Opt-in common-sense guard decorator over engine target hints (default off). |
 | `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are adapters of the hosted-bot-packages design) over the inference runtime below. |
 | `bots/search`, `bots/sbsearch`, `bots/sbbuiltin`, `bots/castprofile` | The experimental hosted policies `cmd/gorged` links on top of `bots/all`: the search teacher, sb-search-lite-atk, the three SpellBench builtins and cast-profile. Kept out of `bots/all` so `server/host`'s registry-wide gates stay the built-in set's size; `bots/hosttest` gates them through the real host. |
-| `bots/azc3`, `bots/azc4`, `bots/azc5` | The network-backed az policies ([`docs/design/2026-11-03-hosted-az-policies.md`](../design/2026-11-03-hosted-az-policies.md)), registered by `cmd/gorged` through `RegisterNetBot`; each enables only over a `.dzgw` file its `-<policy>-net` flag names. |
 | `bots/azmcts` | AlphaZero-style PUCT search ([`docs/design/2026-09-27-alphazero-mcts-design.md`](../design/2026-09-27-alphazero-mcts-design.md)). |
 | `bots/gonet` (+`gonettest`) | The `.dzgw` network forward pass the az bots evaluate. |
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |

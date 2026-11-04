@@ -43,9 +43,6 @@ DEMO_VARS=(
 	SPECTATOR VSBOT_SPECTATOR BOT_POLICY COMMON_SENSE
 	DEMO_GOMEMLIMIT PPROF
 	ART_DIR ART_FILL_BUDGET ART_FILL_MAX_FAILURES ART_FILL_CEILING
-	AZ_C3_NET AZ_C3_DECKS
-	AZ_C4_NET AZ_C4_DECKS AZ_C4_BELIEF AZ_C4_BELIEF_POOL
-	AZ_C5_NET AZ_C5_DECKS AZ_C5_BELIEF AZ_C5_BELIEF_POOL
 )
 DEMO_ENV=${DEMO_ENV:-$SCRIPT_ROOT/deploy/demo.env}
 if [ -f "$DEMO_ENV" ]; then
@@ -110,28 +107,6 @@ DEMO_GOMEMLIMIT=${DEMO_GOMEMLIMIT:-8GiB}
 # /debug/pprof/ with it: set it for one deploy, then redeploy without.
 PPROF=${PPROF:-false}
 
-# The network-backed az policies (docs/design/2026-11-03-hosted-az-policies.md),
-# each off unless its variables are set. AZ_C3_NET and AZ_C3_DECKS (both or
-# neither): az-c3's .dzgw network and the decks it may play. az-c3 reads every
-# seat's real decklist, so setting it opts in to -allow-decklist-bots: it plays
-# only its bot-only demo table, never a person.
-AZ_C3_NET=${AZ_C3_NET-}
-AZ_C3_DECKS=${AZ_C3_DECKS-}
-# AZ_C4_NET, AZ_C4_DECKS and AZ_C4_BELIEF (all three or none), and optionally
-# AZ_C4_BELIEF_POOL, a pool.tsv whose train split is the belief: az-c4 guesses
-# its opponent's list from the belief corpus and never reads it, so it is
-# offered against people and needs no opt-in. A decks directory may be shared
-# between policies; a shared deck is reserved for each. AZ_C5_* serve az-c5
-# the same way.
-AZ_C4_NET=${AZ_C4_NET-}
-AZ_C4_DECKS=${AZ_C4_DECKS-}
-AZ_C4_BELIEF=${AZ_C4_BELIEF-}
-AZ_C4_BELIEF_POOL=${AZ_C4_BELIEF_POOL-}
-AZ_C5_NET=${AZ_C5_NET-}
-AZ_C5_DECKS=${AZ_C5_DECKS-}
-AZ_C5_BELIEF=${AZ_C5_BELIEF-}
-AZ_C5_BELIEF_POOL=${AZ_C5_BELIEF_POOL-}
-
 # PUB_PORT defaults to gorged's own -addr port. OMNI_PORT empty runs no second
 # server. RETIRED_PORTS adds one-off ports to the sweep; DEMO_PORT_HISTORY
 # (scripts/demo-ports.sh) is the box's append-only history of demo ports.
@@ -194,29 +169,6 @@ show() {
 	printf ' %q' "$@"
 	printf '\n'
 }
-
-AZ_ARGS=()
-if [ -n "$AZ_C3_NET$AZ_C3_DECKS" ]; then
-	[ -n "$AZ_C3_NET" ] && [ -n "$AZ_C3_DECKS" ] || { echo "deploy-demo: AZ_C3_NET and AZ_C3_DECKS go together" >&2; exit 1; }
-	[ -r "$AZ_C3_NET" ] && [ -d "$AZ_C3_DECKS" ] || { echo "deploy-demo: AZ_C3_NET is not a file or AZ_C3_DECKS is not a directory" >&2; exit 1; }
-	AZ_ARGS=(-az-c3-net "$AZ_C3_NET" -az-c3-decks "$AZ_C3_DECKS" -allow-decklist-bots)
-fi
-# closed_az C4 adds the az-c4 flags from the AZ_C4_* variables (C5: az-c5).
-# No -allow-decklist-bots: the closed-list policies never read a decklist.
-closed_az() {
-	local v=AZ_$1 p
-	p=az-$(printf %s "$1" | tr '[:upper:]' '[:lower:]')
-	local net_v=${v}_NET decks_v=${v}_DECKS belief_v=${v}_BELIEF pool_v=${v}_BELIEF_POOL
-	local net=${!net_v} decks=${!decks_v} belief=${!belief_v} pool=${!pool_v}
-	[ -n "$net$decks$belief$pool" ] || return 0
-	[ -n "$net" ] && [ -n "$decks" ] && [ -n "$belief" ] || { echo "deploy-demo: ${v}_NET, ${v}_DECKS and ${v}_BELIEF go together" >&2; exit 1; }
-	[ -r "$net" ] && [ -d "$decks" ] && [ -d "$belief" ] || { echo "deploy-demo: ${v}_NET is not a file, or ${v}_DECKS or ${v}_BELIEF is not a directory" >&2; exit 1; }
-	[ -z "$pool" ] || [ -r "$pool" ] || { echo "deploy-demo: ${v}_BELIEF_POOL is not a file" >&2; exit 1; }
-	AZ_ARGS+=("-$p-net" "$net" "-$p-decks" "$decks" "-$p-belief" "$belief")
-	[ -z "$pool" ] || AZ_ARGS+=("-$p-belief-pool" "$pool")
-}
-closed_az C4
-closed_az C5
 
 # gorged_pids lists the pids of the LISTENING gorged this deploy should stop.
 #
@@ -418,22 +370,11 @@ fill_art "$DECKS" || art_rc=$?
 if [ "$art_rc" -ne 0 ]; then
 	say "!!! art fill INCOMPLETE (exit $art_rc; 124/137 = the $ART_FILL_CEILING hard ceiling under GNU timeout; 125 = uutils timeout gave up after TERM and cannot force-kill a wedged fill) — see the summary above; starting the servers anyway, their background prewarm finishes the cache"
 fi
-# Each az policy's deck directory, once: a directory two policies share is
-# filled for the first.
-filled=" $DECKS "
-for d in "$AZ_C3_DECKS" "$AZ_C4_DECKS" "$AZ_C5_DECKS"; do
-	[ -n "$d" ] || continue
-	case "$filled" in *" $d "*) continue ;; esac
-	filled+="$d "
-	say "filling card-art cache for the az decks in $d"
-	fill_art "$d" || say "!!! art fill for $d incomplete (exit $?); the demo still starts"
-done
-
 stop_all
 # No -manabrew-think: it sets the think timeout of every human seat on the
 # server, native ones included.
-start_one "$PUB_PORT" "$SPECTATOR" "$PUB_DIR" "$PUB_LOG" "$VSBOT_SPECTATOR" -manabrew ${AZ_ARGS[@]+"${AZ_ARGS[@]}"}
-if [ -n "$OMNI_PORT" ]; then start_one "$OMNI_PORT" omniscient "$OMNI_DIR" "$OMNI_LOG" public ${AZ_ARGS[@]+"${AZ_ARGS[@]}"}; fi
+start_one "$PUB_PORT" "$SPECTATOR" "$PUB_DIR" "$PUB_LOG" "$VSBOT_SPECTATOR" -manabrew
+if [ -n "$OMNI_PORT" ]; then start_one "$OMNI_PORT" omniscient "$OMNI_DIR" "$OMNI_LOG" public; fi
 if [ "$MODE" = dry ]; then
 	say "dry run: nothing was built, stopped or started"
 	exit 0

@@ -3,30 +3,18 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
-	"os"
-	"os/exec"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
-	"github.com/adams-shaun/gorge/bots/azc3"
-	"github.com/adams-shaun/gorge/bots/azc4"
-	"github.com/adams-shaun/gorge/bots/azc5"
-	"github.com/adams-shaun/gorge/bots/gonet/gonettest"
-	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/server/gorged"
 	"github.com/adams-shaun/gorge/server/protocol"
-	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // linkedPolicies are exactly the always-registered entries this binary links:
 // bots/all's built-ins and the experimental search and SpellBench policies.
-// az-c3, az-c4 and az-c5 register only when a -<policy>-net flag (or a test)
-// enables them, so the registry check below leaves them out.
 var linkedPolicies = []string{
 	"bot", "lethal-pressure", "az-redeal", "sb-tactical", "forge-heuristic", "forge-heuristic-hold",
 	"cast-profile", "search", "sb-search-lite-atk", "sb-heuristic", "sb-uniform", "sb-first",
@@ -41,9 +29,7 @@ func TestLinkedPoliciesRegister(t *testing.T) {
 	}
 	var names []string
 	for _, e := range bots.Entries() {
-		if !strings.HasPrefix(e.Name, "az-c") {
-			names = append(names, e.Name)
-		}
+		names = append(names, e.Name)
 	}
 	want := slices.Clone(linkedPolicies)
 	slices.Sort(want)
@@ -79,82 +65,10 @@ func TestSearchEntryShapes(t *testing.T) {
 	}
 }
 
-// netBotChildEnv marks the child process TestRealNetBotsEnable runs its
-// checks in. Enabling registers a policy for the life of the process, and the
-// parent's other tests (the flags reference among them) must see the registry a
-// server sees before any -<policy>-net flag is read.
-const netBotChildEnv = "GORGED_TEST_NETBOT_CHILD"
-
-// TestRealNetBotsEnable is the real-network half of server/gorged's stub
-// net-bot tests, run in a child process: the closed-list az-c4 refuses to
-// enable without a belief, and the NetBot.Enable functions this binary
-// registers load a .dzgw network and register az-c3, az-c4 and az-c5, exactly
-// as gorged's flag checks assume.
-func TestRealNetBotsEnable(t *testing.T) {
-	if os.Getenv(netBotChildEnv) == "" {
-		exe, err := os.Executable()
-		if err != nil {
-			t.Fatal(err)
-		}
-		cmd := exec.Command(exe, "-test.run", "^TestRealNetBotsEnable$", "-test.count", "1")
-		cmd.Env = append(os.Environ(), netBotChildEnv+"=1")
-		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("child: %v\n%s", err, out)
-		}
-		return
-	}
-	path, err := gonettest.Write(t.TempDir(), "net.dzgw")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := azc4.Enable(path, nil); err == nil {
-		t.Fatal("az-c4 enabled without a closed-list belief")
-	}
-	_, decks := testutil.SampleDecks(t, 2)
-	belief, err := searchprobe.NewBelief(decks)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fs := gorged.ServeFlagSet()
-	for _, nb := range []struct {
-		policy string
-		belief *searchprobe.Belief
-	}{{azc3.Policy, nil}, {azc4.Policy, belief}, {azc5.Policy, belief}} {
-		if fs.Lookup(nb.policy+"-net") == nil {
-			t.Fatalf("-%s-net is not a flag of this binary", nb.policy)
-		}
-		if err := netBotEnable(nb.policy)(path, nb.belief); err != nil {
-			t.Fatalf("%s: Enable: %v", nb.policy, err)
-		}
-		if _, ok := bots.Lookup(nb.policy); !ok {
-			t.Errorf("%s is not registered after Enable", nb.policy)
-		}
-	}
-}
-
-// netBotEnable is the Enable this binary registers for policy.
-func netBotEnable(policy string) func(string, *searchprobe.Belief) error {
-	for _, nb := range netBots {
-		if nb.policy == policy {
-			return nb.bot.Enable
-		}
-	}
-	return func(string, *searchprobe.Belief) error {
-		return errors.New(policy + " is not a network policy of this binary")
-	}
-}
-
-// TestNetBotFlags pins the flags the demo deploy passes (scripts/deploy-demo.sh).
+// TestNetBotFlags pins the flag the demo deploy passes (scripts/deploy-demo.sh).
 func TestNetBotFlags(t *testing.T) {
-	fs := gorged.ServeFlagSet()
-	for _, f := range []string{
-		"az-c3-net", "az-c3-decks", "allow-decklist-bots",
-		"az-c4-net", "az-c4-decks", "az-c4-belief", "az-c4-belief-pool",
-		"az-c5-net", "az-c5-decks", "az-c5-belief", "az-c5-belief-pool",
-	} {
-		if fs.Lookup(f) == nil {
-			t.Errorf("-%s is not a flag of this binary", f)
-		}
+	if gorged.ServeFlagSet().Lookup("allow-decklist-bots") == nil {
+		t.Error("-allow-decklist-bots is not a flag of this binary")
 	}
 }
 

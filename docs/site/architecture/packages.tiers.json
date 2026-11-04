@@ -45,18 +45,6 @@
       "tier": "bots",
       "status": "SUPP"
     },
-    "bots/azc3": {
-      "tier": "bots",
-      "status": "EXT"
-    },
-    "bots/azc4": {
-      "tier": "bots",
-      "status": "EXT"
-    },
-    "bots/azc5": {
-      "tier": "bots",
-      "status": "EXT"
-    },
     "bots/azmcts": {
       "tier": "bots",
       "status": "EXT"

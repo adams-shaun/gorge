@@ -556,41 +556,6 @@ func TestDeployEnvFileYieldsToTheEnvironment(t *testing.T) {
 	}
 }
 
-// TestDeployPassesTheAZPolicies: the az variables become gorged's flags, the
-// open-list az-c3 with -allow-decklist-bots and the closed-list az-c4 without,
-// and a partial set is refused before anything runs.
-func TestDeployPassesTheAZPolicies(t *testing.T) {
-	dir := t.TempDir()
-	net := filepath.Join(dir, "net.dzgw")
-	pool := filepath.Join(dir, "pool.tsv")
-	for _, f := range []string{net, pool} {
-		if err := os.WriteFile(f, nil, 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	decks, belief := t.TempDir(), t.TempDir()
-	out, err := dryRun(t, "AZ_C4_NET="+net, "AZ_C4_DECKS="+decks, "AZ_C4_BELIEF="+belief, "AZ_C4_BELIEF_POOL="+pool)
-	if err != nil {
-		t.Fatalf("dry run: %v\n%s", err, out)
-	}
-	for _, want := range []string{"-az-c4-net " + net, "-az-c4-decks " + decks, "-az-c4-belief " + belief, "-az-c4-belief-pool " + pool, "-decks " + decks + " -art-dir"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("az-c4 dry run lacks %q:\n%s", want, out)
-		}
-	}
-	if strings.Contains(out, "-allow-decklist-bots") {
-		t.Errorf("az-c4 alone opted in to -allow-decklist-bots:\n%s", out)
-	}
-	out, err = dryRun(t, "AZ_C3_NET="+net, "AZ_C3_DECKS="+decks)
-	if err != nil || !strings.Contains(out, "-az-c3-net "+net+" -az-c3-decks "+decks+" -allow-decklist-bots") {
-		t.Errorf("az-c3 dry run: %v\n%s", err, out)
-	}
-	out, err = dryRun(t, "AZ_C5_NET="+net, "AZ_C5_DECKS="+decks)
-	if err == nil || !strings.Contains(out, "AZ_C5_NET, AZ_C5_DECKS and AZ_C5_BELIEF go together") || strings.Contains(out, "+ ") {
-		t.Errorf("a partial az-c5 set was not refused before anything ran: %v\n%s", err, out)
-	}
-}
-
 // TestDemoEnvExampleDocumentsEveryVariable keeps deploy/demo.env.example and
 // the script's DEMO_VARS, the variables a demo.env may set, in step.
 func TestDemoEnvExampleDocumentsEveryVariable(t *testing.T) {
