@@ -12,7 +12,8 @@
 #      the merge base, lockstep, refused entries, synthetic pools. It needs the deck pools (GORGE_POOLS)
 #      for the refused entries.
 #
-# It changes nothing and checks a commit, so the tree must be clean. Exit 0 means ready.
+# The first failing step ends the run. It changes nothing and checks a commit, so the tree must be
+# clean. Exit 0 means ready.
 set -uo pipefail
 base=${1:-origin/main}
 top=$(git rev-parse --show-toplevel) || exit 2
@@ -21,8 +22,8 @@ cd "$top" || exit 2
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "precheck: commit first; it checks a commit, not a dirty tree"; exit 2; }
 mb=$(git merge-base "$base" HEAD) || exit 2
 [ "$mb" = "$(git rev-parse "$base")" ] || echo "precheck: note: not rebased onto $base, so a conflict with it is not covered"
-fail=0
-bad() { echo "precheck: FAIL -- $*"; fail=1; }
+# The steps run cheapest first and the first failure ends the run: the rest cannot change the answer.
+bad() { echo "precheck: FAIL -- $*"; echo "precheck: FAIL $(git rev-parse --short HEAD)"; exit 1; }
 
 echo "== 1 gofmt, vet"
 files=$(git diff --name-only --diff-filter=d "$mb" HEAD -- '*.go')
@@ -47,6 +48,4 @@ rc=$?
 grep -E '^(==|dirac gate|State|Benchmark|fdn:|blb:|std-|  )' <<<"$out" | head -60
 [ "$rc" -eq 0 ] || bad "dirac gate rc=$rc"
 
-if [ "$fail" = 0 ]; then echo "precheck: ok $(git rev-parse --short HEAD)"; exit 0; fi
-echo "precheck: FAIL $(git rev-parse --short HEAD)"
-exit 1
+echo "precheck: ok $(git rev-parse --short HEAD)"
