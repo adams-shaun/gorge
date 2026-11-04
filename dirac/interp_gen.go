@@ -590,6 +590,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&64 != 0 {
 			s.g.freeP |= 32 // Play CopyCard$ True: the cast is of a copy (cast_copycast.go)
 		}
+		if in.C&256 != 0 {
+			s.g.freeP |= 64 // the copy pays its mana cost (cast_exilegrant.go)
+		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:

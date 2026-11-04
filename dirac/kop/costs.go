@@ -174,6 +174,12 @@ type Cost struct {
 	// byte, not a CostFlags bit (the words are full); only a graveyard
 	// activated ability's own cost reads it.
 	PutLibSelf bool
+	// ExileHand: the CostExileGrave part (N cards matching Filter) is exiled
+	// from the payer's hand, not their graveyard (ExileFromHand<1/Card>, CR
+	// 118.3, 602.2b; gorge exAsk over the hand zone). A table byte, not a
+	// CostFlags bit (the words are full). Read only for an exile-granted
+	// ability (ExtGrantExile): its own cost beside nothing else.
+	ExileHand bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

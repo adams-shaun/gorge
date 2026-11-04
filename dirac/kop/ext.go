@@ -587,3 +587,14 @@ func init() { extOpNames[ExtGrantPanharm] = "GrantPanharm" }
 const ExtChooseNumber ExtOp = 230
 
 func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
+
+// ExtGrantExile (Q, Stacking the Deck): every remembered object that is in
+// exile gains the activated ability C of the resolving ability's card, an
+// ability whose ActZone is Exile (gorge Animate Abilities$ with Duration$
+// Permanent: a layer-6 AddAbilities effect that ends when the object leaves
+// exile). The grant is a record (host = the resolving ability's source, the
+// object and its version) in genState.qgO / qgV / qgH; the object is offered
+// the ability while the record is live (dirac/cast_exilegrant.go).
+const ExtGrantExile ExtOp = 249
+
+func init() { extOpNames[ExtGrantExile] = "GrantExile" }

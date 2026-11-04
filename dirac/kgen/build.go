@@ -954,7 +954,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}
-		if out.Filter, err = cb.filter(c.ExileG, kop.ZoneGraveyard); err != nil {
+		zone := kop.ZoneGraveyard
+		if c.ExileHand {
+			out.ExileHand, zone = true, kop.ZoneHand
+		}
+		if out.Filter, err = cb.filter(c.ExileG, zone); err != nil {
 			return out, err
 		}
 	}

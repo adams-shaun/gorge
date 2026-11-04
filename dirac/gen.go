@@ -274,6 +274,7 @@ type genPrep struct {
 	anyLoyaltyX    bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX       bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anyCopyCast    bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyExileGrant  bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes    bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste     bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant    bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
@@ -543,6 +544,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
 	prepLure(t, g)
@@ -1422,6 +1424,9 @@ type genState struct {
 	embO [2][maxEmb]Obj    // that card's object (the source of the emblem's triggers)
 	embN [2][maxEmb]uint8  // the Effect's frozen SetChosenNumber$
 	nemb [2]uint8
+	qgO  [qgN]uint8 // exile grants (Q, Stacking the Deck): the granted exiled object+1, 0 = free (cast_exilegrant.go)
+	qgV  [qgN]uint8 // each grant's object version: stale once the card left exile
+	qgH  [qgN]uint8 // each grant's host (the card whose ability was granted) object+1
 	pgT  [pgN]uint8 // Panharmonicon grants: the granted object+1, compacted (act_grantpanharm.go)
 	pgH  [pgN]uint8 // each grant's host (the tapped source) object+1
 	nlA  [2]uint8   // locked permanents, object+1, compacted (act_lockpermanent.go; fills the padding before lki)
@@ -1804,6 +1809,7 @@ const (
 	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
+	StallExileGrant    = 143 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
 	StallPanharmGrant  = 142 // a fifth Panharmonicon grant (Lwaxana Troi) live at once (genState.pgT; act_grantpanharm.go)
 	StallNetMana       = 86  // a Braided Net lock on a card with a mana ability that does not tap it (act_lockpermanent.go)
 	StallCharmPick     = 99  // a seventh restricted charm source holds a pick log at once (ChoiceRestriction$; modal_charmpick.go)

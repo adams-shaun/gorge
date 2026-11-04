@@ -1587,7 +1587,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		if v != "True" {
 			return refuse("Play CopyCard %q", v)
 		}
-		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") ||
+		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !(strings.Contains(ps.m["Valid"], "IsRemembered") || lc.grantExile && ps.m["Valid"] == "Card.Self") ||
 			ps.m["Defined"] != "" || ps.m["ValidTgts"] != "" || ps.m["ForgetPlayed"] != "" || ps.m["ReplaceGraveyard"] != "" {
 			return refuse("Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile, ValidSA$ Spell")
 		}
@@ -1610,7 +1610,10 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 	}
 	ps.consume("DefinedDesc", "IfDesc")
-	if !ps.is("WithoutManaCost", "True") {
+	// the exile-granted ability's copy is cast paying its mana cost (gorge
+	// beginPlay: the printed cost, mana window and all; lower_exilegrant.go)
+	paid := lc.grantExile && copyCard && ps.m["Valid"] == "Card.Self" && ps.m["WithoutManaCost"] == ""
+	if !paid && !ps.is("WithoutManaCost", "True") {
 		return refuse("Play without WithoutManaCost")
 	}
 	if !ps.is("Optional", "True") {
@@ -1685,6 +1688,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if copyCard {
 		cs += "|Copy"
 	}
+	if paid {
+		cs += "|Paid"
+	}
 	var repeatN lValue
 	if repeat {
 		if repeatN, err = lc.value(amount); err != nil {
@@ -1753,6 +1759,14 @@ func (lc *lowerCtx) play(ps *params) error {
 	}
 	if !hasValid {
 		return refuse("Play shape")
+	}
+	if paid {
+		// the source card itself, in exile (lower_exilegrant.go): Valid$
+		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
+		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
+			return refuse("Play Card.Self outside Amount$ All, ValidZone$ Exile, ValidSA$ Spell")
+		}
+		return emit(lRef{Kind: rSelf}, zExile, "")
 	}
 	switch vzone {
 	case "Exile":
@@ -2204,6 +2218,9 @@ func (lc *lowerCtx) emblemUnimplementedMayPlay(list string) error {
 }
 
 func (lc *lowerCtx) animate(ps *params) error {
+	if _, ok := ps.get("Abilities"); ok {
+		return lc.animateGrantExile(ps) // lower_exilegrant.go
+	}
 	if d, ok := ps.get("Defined"); ok && strings.HasPrefix(d, "ValidGraveyard ") {
 		return lc.animateGraveMayPlay(ps, strings.TrimPrefix(d, "ValidGraveyard "))
 	}

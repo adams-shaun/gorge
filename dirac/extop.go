@@ -28,6 +28,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtGrantPanharm:
 		s.grantPanharm(k, in) // act_grantpanharm.go
 		return true, true
+	case kop.ExtGrantExile:
+		s.grantExile(k, in) // cast_exilegrant.go
+		return true, true
 	case kop.ExtEachDamage:
 		s.eachDamage(k, in)
 		return true, true
