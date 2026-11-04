@@ -47,7 +47,20 @@ func pinPath(t *testing.T) string {
 	defer pinCalls.Unlock()
 	n := pinCalls.n[t.Name()]
 	pinCalls.n[t.Name()] = n + 1
-	return filepath.Join("testdata", "pins", fmt.Sprintf("%s.%d.json", strings.ReplaceAll(t.Name(), "/", "__"), n))
+	return filepath.Join("testdata", "pins", fmt.Sprintf("%s.%d.json", pinFileStem(t.Name()), n))
+}
+
+// pinFileStem turns a test name into a file name a Go module zip accepts: a subtest's
+// "/" becomes "__", and anything outside letters, digits, '.', '_' and '-' (a card
+// name's apostrophe, say) is dropped, so gorge stays importable as a module.
+func pinFileStem(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ReplaceAll(name, "/", "__") {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '.' || r == '_' || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // pinnedGames is the recorded form of a synthetic-pool pin: play the games stored for
