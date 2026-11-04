@@ -1558,6 +1558,10 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			}
 		}
 		s.forgetFound(k, o) // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		if z == kop.ZoneBattlefield && s.entryLateTail(k, tailSearchEnter) {
+			s.g.nlook = uint8(copy(s.resArm().look[:], s.resArm().look[i+1:s.g.nlook]))
+			return // the re-ask that follows the entry (repl_entryorder.go)
+		}
 		if z == kop.ZoneBattlefield && i+1 < int(s.g.nlook) && s.parkTail(k, tailSearchEnter) {
 			// the entered card queued an as-enters ask (a shock land's pay-life
 			// election): gorge suspends the search there, so the cards after it
@@ -1722,6 +1726,9 @@ func (s *State) finishDigAt(k *prep, park, resume bool) bool {
 			s.digTake(k, o, z, fl)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
+			}
+			if z == kop.ZoneBattlefield && park && s.entryLateTail(k, tailDigEnter) {
+				return true // the re-ask that follows the entry (repl_entryorder.go)
 			}
 			if z == kop.ZoneBattlefield && park && i+1 < n && s.g.lookSel>>(i+1) != 0 && s.parkTail(k, tailDigEnter) {
 				if hr.h == 0 {
