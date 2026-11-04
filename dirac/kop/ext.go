@@ -598,3 +598,16 @@ func init() { extOpNames[ExtChooseNumber] = "ChooseNumber" }
 const ExtGrantExile ExtOp = 249
 
 func init() { extOpNames[ExtGrantExile] = "GrantExile" }
+
+// ExtChooseName: an as-enters nonland card-name choice (CR 614.12, 201.4;
+// gorge's ETB NameCard replacement, ValidCards$ Card.nonLand, Defined$ You):
+// the entering permanent's controller chooses the name of one nonland card
+// of the matchup (a ChGenName decision, mode = the card's CardID), kept in
+// the permanent's chosen byte as that CardID (Kai Winn, Faithless Leader).
+// Only the first instruction of an enters program. dirac/repl_choosename.go.
+// 248, 249 and 250 were taken by ExtGrantPanharm, ExtGrantExile and
+// ExtEnterAttacking on land after this branch cut, so the Kai Winn sub-op
+// takes the next free ordinal.
+const ExtChooseName ExtOp = 251
+
+func init() { extOpNames[ExtChooseName] = "ChooseName" }

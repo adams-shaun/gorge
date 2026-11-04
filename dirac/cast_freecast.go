@@ -57,6 +57,10 @@ var (
 	// DebugM11NoReplaceGY keeps a ReplaceGraveyard spell's normal
 	// graveyard destination (mutation).
 	DebugM11NoReplaceGY bool
+	// DebugFreeFilterIgnored skips the free-cast population's Valid$/ValidSA$
+	// filter, so a cmc bound (Captain Benjamin Sisko's Officer count) cuts
+	// nothing (mutation).
+	DebugFreeFilterIgnored bool
 )
 
 // castFreeFillGen fills s.g.free for the target and filter populations. The
@@ -71,7 +75,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if ob.zone != zone || k.cards[ob.card].land {
 			return true
 		}
-		if in.F != 0 && !s.matchCardGen(k, in.F, ob.card, ob.owner(), e.ctrl, o) {
+		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGen(k, in.F, ob.card, ob.owner(), e.ctrl, o) {
 			return true
 		}
 		// CR 601.2c: a spell whose mandatory targets cannot all be chosen is

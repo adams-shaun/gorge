@@ -28,6 +28,7 @@ const (
 	// other replacements over the same entry, asked with the spell still on
 	// the stack (s.g.pre only; repl_entryclone.go)
 	akEntryOrder uint8 = 10
+	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 )
 
 // enterGen runs after the core's enter placed o at sl, before its ETB triggers:
@@ -251,11 +252,15 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			case in.Op == kop.OpChooseType:
 				kind = akType
 			case in.Op == kop.OpExt:
-				if in.Ext() != kop.ExtChooseNumber {
+				switch in.Ext() {
+				case kop.ExtChooseNumber:
+					kind = akNumber
+				case kop.ExtChooseName:
+					kind = akName
+				default:
 					s.execGen(k, in)
 					continue
 				}
-				kind = akNumber
 			}
 			if s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
@@ -1004,7 +1009,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	}
 	if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
-	} else if ask.kind == akColor || ask.kind == akNumber {
+	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akName {
 		p.chosen = a.Mode()
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
@@ -1122,6 +1127,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akNumber {
 		s.numberOptions(k, d) // repl_choosenumber.go
+		return
+	}
+	if kind == akName {
+		s.nameOptions(k, d) // repl_choosename.go
 		return
 	}
 	if kind == akColor {

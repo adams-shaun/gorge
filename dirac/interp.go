@@ -124,7 +124,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			return true // StallTokRewrite
 		}
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true
 			}
@@ -542,6 +542,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		ob := &s.objs[o]
 		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) || returnLeftOrigin(in, ob) || s.instantStays(k, o, kop.Zone(in.C)) {
 			break
+		}
+		if in.Obj == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
+			break // the activated ability's source returned and left again: a new object (CR 400.7; Postmortem Professor)
 		}
 		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
 			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)

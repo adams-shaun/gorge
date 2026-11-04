@@ -107,6 +107,7 @@ const (
 	ChGenEnterDefender                        // source = the CR 508.4 defender an Attacking$ True entry attacks: PlayerTarget0+p a player, else the planeswalker/battle Obj (gorge's entering_defender, chooseEnteringDefender)
 	ChCostPutToLib                            // source = the card put from a graveyard on the bottom of its owner's library to pay a cost (gorge's puttolibcost; one pick per part, asked even with one candidate)
 	ChGenKeepTapped                           // source = a tapped permanent whose controller may keep it tapped; mode 0 = untap it, 1 = keep it tapped (gorge's untap-step KChoose "untap" / "keep_tapped", CR 502.3; repl_untapchoice.go)
+	ChGenName                                 // mode = the CardID of the nonland card whose name a permanent chooses as it enters (gorge's ETB "name" option; repl_choosename.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -798,7 +799,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return true, true
 			}
@@ -1904,7 +1905,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	e := &s.res.e
 	if src := s.objRefObj(in.Obj); src != NoObj && s.faceDownAt(k, src) {
 		for i := 0; i < n; i++ {
-			if s.nearCapacity() {
+			if s.nearCapacity(k) {
 				s.stall(StallBoard)
 				return false
 			}
@@ -1920,7 +1921,7 @@ func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return false
 		}

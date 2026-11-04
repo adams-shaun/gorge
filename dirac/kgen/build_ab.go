@@ -1351,6 +1351,12 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.CounterCell {
 		kt.Flags4 |= kop.Tf4CounterCell
 	}
+	if t.NamedCast {
+		if t.Event != "SpellCast" {
+			return kt, fmt.Errorf("named-cast flag on a %s trigger", t.Event)
+		}
+		kt.Flags4 |= kop.Tf4NamedCast
+	}
 	if t.CastSnap {
 		if t.Event != "SpellCast" {
 			return kt, fmt.Errorf("cast-count snapshot on a %s trigger", t.Event)
@@ -3902,6 +3908,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		ki.Op, ki.C = kop.OpChooseColor, int16(in.C) // in.C: the Exclude$ colours (W U B R G = bits 0..4)
 	case "ChooseType":
 		ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	case "ChooseName":
+		buildChooseName(&ki) // an as-enters nonland card name (lower_choosename.go)
 	case "ChooseNumber":
 		// an as-enters number from B to C (lower_choosenumber.go)
 		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumber)), kop.Const(in.B.N), int16(in.C)

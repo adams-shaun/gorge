@@ -37,7 +37,7 @@ func (s *State) copyTokenCtr(k *prep, in *kop.Instr) {
 		return
 	}
 	for i := 0; i < n; i++ {
-		if s.nearCapacity() {
+		if s.nearCapacity(k) {
 			s.stall(StallBoard)
 			return
 		}
