@@ -3563,7 +3563,8 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 			return ki, fmt.Errorf("ChooseEach %q", in.CS)
 		}
 	case "CastFree":
-		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6
+		// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7
+		// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 		// Obj: RefRemembered (P1), a target slot (P2), or
 		// RefNone with F (P3/P4 filter population).
 		ki.Op = kop.OpCastFree
@@ -3579,6 +3580,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Copy"]; ok {
 			ki.C |= 1 << 6 // Play CopyCard$ True
+		}
+		if _, ok := fl["Repeat"]; ok {
+			ki.C |= 1 << 7 // AllowRepeats$ True with Amount$ X: A copies offered
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err

@@ -25,9 +25,9 @@ import (
 var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; TRK 280 -> 281).
 	// +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; TRK 281 -> 282).
-	// +2 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; ALL 21449 -> 21451, TRK 282 -> 283).
+	// +3 (Gowron, Eager for Battle: Sacrificed$Valid Card.Klingon; Shilgengar, Sire of Famine: Card.Angel; Infinite Diversity: X free copies of an exiled instant or sorcery; ALL 21449 -> 21452, TRK 282 -> 284).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21451, 34442},
+	"ALL": {21452, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -54,7 +54,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {283, 311},
+	"TRK": {284, 311},
 	"WOE": {252, 281},
 }
 
