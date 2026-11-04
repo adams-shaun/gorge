@@ -357,8 +357,8 @@
 //     first and its mana prices the play, and the oracle then completes the
 //     script only when the unrestricted pool pays the play alone.
 //     Restricted mana floats beside the pool, restricted
-//     (player.poolR, gorge's RestrictedMana: one colour and one of two
-//     restrictions, in the projected pool), and while it floats gorge's
+//     (State.rb, gorge's RestrictedMana: up to four batches, each of one
+//     restriction, in the projected pool), and while it floats gorge's
 //     planners price nothing (FeatPlannedCast, FeatPlannedActivation,
 //     gorgeLowers; no scripted play either: every potential play is
 //     "unsupported: pool"), so a cast is offered when its pool pays it. A
@@ -378,9 +378,9 @@
 //     gorge's ward / unless mana window lists every mana ability, so it
 //     activates a Tender or Giada in battlefield order with the autopay
 //     sources (mana.go windowTap); Giada's {W} is kept off the cost and
-//     floats afterwards, restricted (poolR). A loyalty ability's resolving
+//     floats afterwards, restricted (State.rb). A loyalty ability's resolving
 //     restricted mana (Chandra, Chill of Compliance's noncreature-only {U};
-//     CR 605.1a, 106.6) floats in poolR too: AddMana's F names the
+//     CR 605.1a, 106.6) floats in State.rb too: AddMana's F names the
 //     restriction (mana_resolverestriction.go).
 //   - A tap mana ability with a spending restriction (CR 106.6; gorge
 //     ) is a planner unit for exactly the payments its RestrictValid$
@@ -397,8 +397,8 @@
 //     census ability (a BLB Village, Secluded Courtyard) widens that unit at
 //     its census position and, when withheld, still ranks (keys 5 and 7) by
 //     every colour it makes; Helga's Amount$ X joins the evaluated-amount
-//     layer, its surplus floating restricted (poolR; StallRestrSrc past
-//     what poolR holds). The offer gates count the admitted units too. The
+//     layer, its surplus floating restricted (State.rb; StallRestrSrc past
+//     the batches it holds). The offer gates count the admitted units too. The
 //     ward / unless window keeps activating restricted sources in
 //     battlefield order. A mana ability with a dynamic amount (Elvish
 //     Archdruid) and no restriction is not an autopay source; a chosen-colour

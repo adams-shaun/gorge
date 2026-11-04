@@ -26,7 +26,7 @@ func TestRestrPoolActivation(t *testing.T) {
 		if d := sc.s.Step(); !actOffered(&d, whelp) {
 			t.Fatalf("%s: Whelp's {R} activation not offered with no restricted mana floating", c.name)
 		}
-		sc.s.pl[0].poolR = 1 | uint16(kop.W)<<poolRShift
+		sc.s.setRestr(0, 1, kop.W, 1)
 		if d := sc.s.Step(); !actOffered(&d, whelp) {
 			t.Fatalf("%s: Whelp's {R} activation not offered from the Mountain with restricted mana floating", c.name)
 		}

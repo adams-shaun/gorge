@@ -368,7 +368,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	pl := &s.pl[p&1]
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
-	if pl.poolR != 0 {
+	if s.rbAny(p) {
 		s.restrAvail(k, p&1, c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
 	}
 	cost := k.cards[c].cost
@@ -1151,7 +1151,7 @@ func (s *State) FeatProjGlobals(p *Projection) {
 		pl := &s.pl[pi]
 		p.Life[pi] = pl.life
 		p.Lands[pi] = pl.landsPlayed
-		p.Pool[pi] = pl.poolProj(s.poolRx[pi&1])
+		p.Pool[pi] = s.poolProj(uint8(pi & 1))
 		p.LibN[pi] = uint8(pl.libLen())
 		p.HandN[pi] = pl.handN
 		p.GraveN[pi] = pl.graveN

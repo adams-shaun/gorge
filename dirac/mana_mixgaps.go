@@ -1,8 +1,6 @@
 package dirac
 
 import (
-	"math/bits"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -180,8 +178,10 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			if ask && mask&(mask-1) != 0 && !fs.tick() {
 				return false
 			}
-			for m := mask; m != 0; m &= m - 1 {
-				if try(otherStep{kind: otherGrant, ans: uint8(bits.TrailingZeros8(m)), n: n, gi: g}) {
+			var order [kop.NumManaKinds]uint8
+			no := t.stepColours(k, sl, g, mask, &order)
+			for _, c := range order[:no] {
+				if try(otherStep{kind: otherGrant, ans: c, n: n, gi: g}) {
 					return true
 				}
 			}
@@ -223,8 +223,9 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
 		if o.gi >= 0 && k.gen.grantRestr[o.gi] != 0 {
-			if !s.pl[p&1].addRestr(k, &s.poolRx[p&1], k.gen.grantRestr[o.gi], int(o.ans), o.n) {
+			if !s.addRestr(k, p&1, k.gen.grantRestr[o.gi], int(o.ans), o.n) {
 				s.capFull(StallRestrSrc)
 			}
 			return
@@ -239,36 +240,21 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 // spend: the fee is an activated ability's payment (Hydraulic Helper's mana
 // "can't be spent to cast a nonartifact spell", so it can pay it).
 func (s *State) filtFeeRestrN(k *prep, p uint8, sl Slot) int {
-	if s.pl[p&1].poolR == 0 {
+	return s.rbTotal(p, s.filtFeeRestrM(k, p, sl))
+}
+
+// filtFeeRestrM is the mask of p's restricted batches filter sl's fee may spend.
+func (s *State) filtFeeRestrM(k *prep, p uint8, sl Slot) uint8 {
+	if !s.rbAny(p) {
 		return 0
 	}
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
-	if !s.restrPoolAct(k, p, &d) {
-		return 0
-	}
-	var t avail
-	s.restrAvailAdd(p, &t)
-	return t.total
+	return s.restrPoolAct(k, p, &d)
 }
 
 // filtFeeRestr spends up to fee of that mana and returns how much it spent:
 // gorge carves the batches the payment may spend before ordinary mana.
 func (s *State) filtFeeRestr(k *prep, p uint8, sl Slot, fee int) int {
-	left := min(fee, s.filtFeeRestrN(k, p, sl))
-	spent := left
-	pl := &s.pl[p&1]
-	if n := min(left, int(pl.poolR&poolRCnt)); n > 0 {
-		left -= n
-		if c := int(pl.poolR&poolRCnt) - n; c > 0 {
-			pl.poolR = pl.poolR&^poolRCnt | uint16(c)
-		} else {
-			pl.poolR = 0
-		}
-	}
-	for c := 0; left > 0 && c < 5; c++ {
-		n := min(left, int(s.poolRx[p&1]>>(3*c))&7)
-		s.poolRx[p&1] -= uint16(n) << (3 * c)
-		left -= n
-	}
-	return spent
+	m := s.filtFeeRestrM(k, p, sl)
+	return s.rbSpendN(p, m, min(fee, s.rbTotal(p, m)))
 }

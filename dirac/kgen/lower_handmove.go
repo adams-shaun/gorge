@@ -53,7 +53,7 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 			return refuse("hand move flag %s", fl)
 		}
 	}
-	if f.Players != 0 || len(f.Clauses) == 0 || strings.Contains(ps.str("ChangeType"), "EACH") {
+	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("hand move filter %s", f)
 	}
 	if v, ok := ps.get("Attacking"); ok {
@@ -77,7 +77,7 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 				// controller chooses as it enters, or stays in the hand when
 				// nothing is legal (gorge auraEntryGate); the kernel's parked
 				// move is one card
-				if counted || !n.isConst() || n.N != 1 {
+				if counted || !n.isConst() || n.N != 1 || f.Each {
 					return refuse("hand move filter %s may admit an Aura", f)
 				}
 				flags = append(flags, "AuraEntry")
@@ -128,6 +128,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		default:
 			return refuse("hand move Optional$ %q", o)
 		}
+	}
+	if f.Each && !optional {
+		// gorge takes a required EACH move whole when every group fits
+		// (zone_hand.go); only the may-form asks per type
+		return refuse("required hand move of one card per type")
 	}
 	if !mandatory && !optional {
 		verb := "put"

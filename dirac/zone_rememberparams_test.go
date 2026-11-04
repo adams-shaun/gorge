@@ -58,15 +58,28 @@ func TestChangeZoneAllRemembers(t *testing.T) {
 		}
 	}
 
+	// a whole graveyard's worth (Sins of the Father's chapter III, std-trc
+	// pair 35, stalled at 13 before the set held 64)
 	sc, id = newRemParamsScen(t)
 	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: kop.TCreature})
 	sc.s.g.on = true
-	for i := 0; i < 13; i++ {
+	for i := 0; i < 40; i++ {
+		sc.perm(id["Savannah Lions"], uint8(i&1))
+	}
+	sc.s.execChangeZoneAll(sc.k, &in, false)
+	if got := remCount(sc); got != 40 || sc.s.g.stalled != 0 {
+		t.Fatalf("40 swept creatures: %d remembered, stall %d", got, sc.s.g.stalled)
+	}
+
+	sc, id = newRemParamsScen(t)
+	sc.k.t.Filters = append(sc.k.t.Filters, kop.Filter{Types: kop.TCreature})
+	sc.s.g.on = true
+	for i := 0; i < maxRem+1; i++ {
 		sc.perm(id["Savannah Lions"], uint8(i&1))
 	}
 	sc.s.execChangeZoneAll(sc.k, &in, false)
 	if sc.s.g.stalled != StallRemember {
-		t.Fatalf("13 swept creatures: stall %d, want StallRemember", sc.s.g.stalled)
+		t.Fatalf("%d swept creatures: stall %d, want StallRemember", maxRem+1, sc.s.g.stalled)
 	}
 }
 

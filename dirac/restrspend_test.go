@@ -11,7 +11,7 @@ import (
 // restrScen: Giada, two Plains and a Forest on p0's battlefield, Youthful
 // Valkyrie (an Angel, {1}{W}) and Healer's Hawk (a Bird, {W}) in hand,
 // and Giada tapped as a script / window gap: her Angel-only {W} floats
-// beside the pool (poolR).
+// beside the pool (State.rb).
 func restrScen(t *testing.T, cfg Config) (sc *scen, valk, hawk Obj, plains []Obj) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Giada, Font of Hope", Count: 1}, {Name: "Youthful Valkyrie", Count: 1},
@@ -41,8 +41,8 @@ func restrScen(t *testing.T, cfg Config) (sc *scen, valk, hawk Obj, plains []Obj
 		t.Fatal("Giada is not a window restricted source")
 	}
 	sc.s.tapGap(sc.k, 0, sl, slotBit(sl), &held)
-	if sc.s.pl[0].poolR&poolRCnt != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("after Giada: poolR %#x pool %v, want one restricted {W} and an empty pool", sc.s.pl[0].poolR, sc.s.pl[0].pool)
+	if sc.s.restrN(0) != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("after Giada: restricted %v pool %v, want one restricted {W} and an empty pool", sc.s.rb[0], sc.s.pl[0].pool)
 	}
 	return sc, valk, hawk, plains
 }
@@ -66,8 +66,8 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	s := sc.s
 	sc.do(t, AkCast, uint8(valk), 0xff)
 	s.Step() // the build pays
-	if s.pl[0].poolR != 0 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("after the Valkyrie: poolR %#x pool %v, want both empty", s.pl[0].poolR, s.pl[0].pool)
+	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("after the Valkyrie: restricted %v pool %v, want both empty", s.rb[0], s.pl[0].pool)
 	}
 	if n := tappedN(sc, plains); n != 1 {
 		t.Fatalf("%d Plains tapped, want 1 (Giada's {W} paid the pip)", n)
@@ -85,8 +85,8 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	}
 	s.Apply(MakeAction(AkCast, uint8(valk), 0, 0))
 	s.Step()
-	if s.pl[0].poolR != 0 || s.pl[0].pool[kop.W] != 1 {
-		t.Fatalf("after the Valkyrie: poolR %#x pool {W} %d, want the restricted {W} spent first, one ordinary {W} left", s.pl[0].poolR, s.pl[0].pool[kop.W])
+	if s.rbAny(0) || s.pl[0].pool[kop.W] != 1 {
+		t.Fatalf("after the Valkyrie: restricted %v pool {W} %d, want the restricted {W} spent first, one ordinary {W} left", s.rb[0], s.pl[0].pool[kop.W])
 	}
 
 	// an inadmissible batch leaves the cast to its other sources: the Hawk's
@@ -110,8 +110,8 @@ func TestRestrictedManaPaysAngel(t *testing.T) {
 	}
 	s.Apply(MakeAction(AkCast, uint8(valk), 0, 0))
 	s.Step()
-	if s.pl[0].poolR != 0 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("after the Valkyrie: poolR %#x pool %v, want both empty", s.pl[0].poolR, s.pl[0].pool)
+	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("after the Valkyrie: restricted %v pool %v, want both empty", s.rb[0], s.pl[0].pool)
 	}
 }
 
@@ -149,8 +149,8 @@ func TestHybridWitnessFloatsRestrictedMana(t *testing.T) {
 	}
 	sc.s.Step()
 	pl := &sc.s.pl[0]
-	if pl.pool[kop.G] != 1 || pl.poolR != 1|uint16(kop.G)<<poolRShift {
-		t.Fatalf("after the cast: pool %v poolR %#x, want one ordinary {G} (the Forest's) and one restricted {G} (the Village's)", pl.pool, pl.poolR)
+	if pl.pool[kop.G] != 1 || sc.s.restrN(0) != 1 || sc.s.restrOf(0, kop.G) != 1 {
+		t.Fatalf("after the cast: pool %v restricted %v, want one ordinary {G} (the Forest's) and one restricted {G} (the Village's)", pl.pool, sc.s.rb[0])
 	}
 }
 
@@ -186,7 +186,7 @@ func TestHybridWitnessKeepsPlainTapPlain(t *testing.T) {
 		sc.s.Apply(d.Options[0])
 	}
 	sc.s.Step()
-	if pl := &sc.s.pl[0]; pl.poolR != 0 {
-		t.Fatalf("after the cast: poolR %#x, want no restricted mana (the Lair tapped for its plain {C})", pl.poolR)
+	if sc.s.rbAny(0) {
+		t.Fatalf("after the cast: restricted %v, want no restricted mana (the Lair tapped for its plain {C})", sc.s.rb[0])
 	}
 }

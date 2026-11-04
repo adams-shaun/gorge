@@ -14,6 +14,7 @@ import (
 // twin now puts both agents on manual mana, so both worlds ask the policy the
 // same question and the decision agrees.
 func TestSpellbenchTwinManualPayGollumAdventure(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

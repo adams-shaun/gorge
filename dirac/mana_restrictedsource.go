@@ -7,7 +7,7 @@ import (
 )
 
 // StallRestrSrc: restricted mana a planner-tapped source leaves floating past
-// what poolR holds (a second colour or restriction, or more than 15).
+// the batches State.rb holds (more than maxRB of them, or 255 of one colour).
 const StallRestrSrc = 64
 
 func init() { stallNames[StallRestrSrc] = "restrsrc" }
@@ -33,7 +33,7 @@ func init() { stallNames[StallRestrSrc] = "restrsrc" }
 // other (echo, cumulative upkeep, a triggered cost). The ward / unless
 // mana window is unchanged: it activates every restricted source in
 // battlefield order (windowRestr), and a pool holding restricted mana
-// stays refused by the planner (poolR). A reflected restricted ability
+// stays refused by the planner (State.rb). A reflected restricted ability
 // (Plaza of Heroes) is still a census gap (planreflected.go refuses it).
 
 // restrSrc record kinds.
@@ -203,19 +203,34 @@ func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *pay
 	return a.AFlags&kop.AfManaNonSpell != 0
 }
 
-// restrPoolAct reports whether p's floating restricted mana (poolR) may pay
+// restrPoolAct is the mask of p's restricted batches (State.rb) that may pay
 // activated-ability payment d (gorge AvailableFor's RestrictValidMatches, CR
-// 106.6). The byte names the restriction by genPrep.restrF index, not the
-// source, so a chosen type is read from a source of p's with that restriction,
-// and a restriction with none admits as printed even if its source has left.
+// 106.6).
 //
 //go:noinline
-func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
-	r := s.pl[p&1].poolR
-	if r&poolRCnt == 0 || k.gen == nil {
-		return false
+func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) uint8 {
+	if k.gen == nil {
+		return 0
 	}
-	f := k.gen.restrFOf(r)
+	var m uint8
+	for i := range s.rb[p&1] {
+		b := &s.rb[p&1][i]
+		if b.kind == 0 {
+			break
+		}
+		if b.units() != 0 && s.restrActB(k, p, b, d) {
+			m |= 1 << i
+		}
+	}
+	return m
+}
+
+// restrActB: batch b may pay activated-ability payment d. A batch names its
+// restriction by genPrep.restrF index, not the source, so a chosen type is
+// read from a source of p's with that restriction and the batch's choice, and
+// a restriction with none admits as printed even if its source has left.
+func (s *State) restrActB(k *prep, p uint8, b *rbatch, d *payDesc) bool {
+	f := k.gen.restrFOf(b.kind)
 	for i := range k.t.Cards {
 		abs := k.t.Cards[i].Abilities
 		for j := range abs {
@@ -235,7 +250,7 @@ func (s *State) restrPoolAct(k *prep, p uint8, d *payDesc) bool {
 		sl := m.first()
 		abs := k.t.Cards[s.cardAt(sl)].Abilities
 		for j := range abs {
-			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.perms[sl].chosen == s.g.poolRChosen[p&1] && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
+			if a := &abs[j]; a.Kind == kop.AbMana && a.ManaRestrict == f && a.ManaRestrictAb != 0 && s.perms[sl].chosen == b.chosen && s.restrActMatch(k, p, sl, a.ManaRestrictAb, d) {
 				return true
 			}
 		}
@@ -449,12 +464,12 @@ func (a avail) affordsMulti(cost *kop.ManaCost, extra int, ns []uint8) bool {
 }
 
 // restrFallback: the hand cast of card c for p, which av does not pay,
-// still pays through p's restricted mana (poolR) or the restricted sources
+// still pays through p's restricted mana (State.rb) or the restricted sources
 // its spell payment may spend.
 //
 //go:noinline
 func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
-	if s.pl[p].poolR != 0 {
+	if s.rbAny(p) {
 		// the pool beside the restricted sources (gorge AvailableFor holds both)
 		t := *av
 		if s.restrAvail(k, p, c, og, &t) {
@@ -470,56 +485,26 @@ func (s *State) restrFallback(k *prep, p uint8, c CardID, og restrOrigin, cost *
 
 // payRiderRestr is payRider on a table with restricted planner sources: a
 // restricted evaluated amount (Helga) the plan taps floats restricted
-// (poolR), the payment spends it before the ordinary mana of its colour
+// (State.rb), the payment spends it before the ordinary mana of its colour
 // (gorge emitRestrictedManaSpend carves the matching batches first) and
 // what it leaves stays restricted (gorge's RestrictedMana).
 //
 //go:noinline
 func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
+	sv := s.rb[p&1]
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
-	pl := &s.pl[p]
-	if pk.rbOn {
-		s.payRestrFloated(k, p, cost, x, anyColor)
-		return
-	}
-	r := pl.poolR
-	if !pk.rdynOn || r&poolRCnt == 0 || s.poolRx[p&1] != 0 {
+	if !pk.rbOn && !pk.rdynOn {
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 		return
 	}
-	col, n := int(r>>poolRShift), uint8(r&poolRCnt)
-	pl.pool[col] += n
-	pl.poolR = 0
-	pre := pl.pool[col]
-	s.payFromPoolRider(k, p, cost, x, anyColor)
-	if left := n - min(pre-pl.pool[col], n); left != 0 {
-		pl.pool[col] -= left
-		pl.poolR = r&^poolRCnt | uint16(left)
-	}
-}
-
-// payRestrFloated pays cost from p's pool once the plan's taps have floated
-// their restricted mana (a restricted pair unit's larger alternative): all of
-// the restricted mana joins the pool, per colour it is spent before the
-// ordinary mana of its colour (gorge emitRestrictedManaSpend), and what is
-// left floats restricted again.
-//
-//go:noinline
-func (s *State) payRestrFloated(k *prep, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
 	pl := &s.pl[p]
-	kind := pl.poolR & poolRKind
-	var rn, ord [kop.NumManaKinds]uint8
-	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
-	restrXInto(s.poolRx[p&1], &rn)
-	for c := range rn {
-		ord[c] = pl.pool[c]
-		pl.pool[c] += rn[c]
-	}
-	pl.poolR, s.poolRx[p&1] = 0, 0
+	var tk [maxRB][kop.NumManaKinds]uint8
+	ord := pl.pool
+	s.rbTakeNew(p, &sv, &tk)
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
-	s.restrLeftover(p, &rn, &ord, &pre, kind)
+	s.rbSettle(p, &tk, &ord, &pre, pk.rbOn && s.rbTyped(p))
 }
 
 // filtRestrMask: the colours of the restricted ability of the source at sl
@@ -539,13 +524,13 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 }
 
 // filtRestrDo plays the restricted answer st: the source's restricted mana
-// floats (poolR).
+// floats (State.rb).
 func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {
 	c := s.cardAt(st.sl)
 	rec := k.gen.restrRecOf(c)
 	ab := &k.t.Cards[c].Abilities[rec.ab]
 	if !s.floatRestrFrom(k, p, st.sl, ab.ManaRestrict, int(st.ans), max(ab.ManaN, 1)) {
-		s.capFull(StallRestrSrc) // poolR holds another colour or restriction, or is full: never a silent spill
+		s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
 	}
 }
 
@@ -581,13 +566,13 @@ func slotNoneUnkicked(t *kop.TargetSpec) bool {
 }
 
 // castAffordsR: av pays the cast of card c at cost, or p's restricted
-// mana floating (poolR, a spell it admits sees it in its pool: restrAffords)
+// mana floating (State.rb, a spell it admits sees it in its pool: restrAffords)
 // or the restricted sources the cast may spend make it payable.
 func (s *State) castAffordsR(k *prep, p uint8, c CardID, og restrOrigin, cost *kop.ManaCost, av *avail) bool {
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
-	if s.pl[p&1].poolR != 0 {
+	if s.rbAny(p & 1) {
 		t := *av
 		if s.restrAvail(k, p, c, og, &t) {
 			if t.affords(cost, pipMaskOf(cost), 0) {
@@ -684,11 +669,11 @@ func (a avail) maxXMulti(cost *kop.ManaCost, pipMask uint8, ns []uint8) int {
 func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail, skip Slot) bool {
 	p := s.perms[sl].ctrl
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
-	if s.pl[p&1].poolR != 0 && s.restrPoolAct(k, p, &d) {
+	if m := s.restrPoolAct(k, p, &d); m != 0 {
 		// the floating restricted mana beside the restricted sources
 		// (gorge AvailableFor holds both)
 		t := *av
-		s.restrAvailAdd(p, &t)
+		s.restrAvailAdd(p, m, &t)
 		if t.affords(cost, pipMaskOf(cost), 0) {
 			return true
 		}
@@ -704,11 +689,12 @@ func (s *State) actRestrAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail,
 func (s *State) actPoolAffords(k *prep, sl Slot, cost *kop.ManaCost, av *avail) bool {
 	p := s.perms[sl].ctrl
 	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
-	if !s.restrPoolAct(k, p, &d) {
+	m := s.restrPoolAct(k, p, &d)
+	if m == 0 {
 		return false
 	}
 	t := *av
-	s.restrAvailAdd(p, &t)
+	s.restrAvailAdd(p, m, &t)
 	return t.affords(cost, pipMaskOf(cost), 0)
 }
 

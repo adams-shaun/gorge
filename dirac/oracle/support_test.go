@@ -22,7 +22,7 @@ const (
 	moduleRootFromOracle = "../.."
 
 	refusedPairsMax = 200              // pairs with the card dealt in, once its repro plays clean
-	refusedEntryCap = 20 * time.Second // per entry
+	refusedEntryCap = 90 * time.Second // per entry: 200 pairs fit on a box at load 60
 	refusedGameCap  = 10 * time.Second // a game past this is a hang, which proves nothing
 	// refusedRecentSources is kfuzz's bad-game line: the sources the refusal loop may blame.
 	refusedRecentSources = 8

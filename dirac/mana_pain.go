@@ -499,7 +499,7 @@ func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, a
 		s.reverseCast(k)
 		return false
 	}
-	if s.pl[p].poolR != 0 {
+	if s.rbAny(p) {
 		s.payRestrRider(k, p, cost, 0, s.bld().e.obj, anyColor)
 	} else {
 		s.payFromPoolRider(k, p, cost, 0, anyColor)

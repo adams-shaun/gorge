@@ -324,6 +324,15 @@ type CardDef struct {
 	HasWebSling bool
 	// WebSlingCost is the printed web-slinging cost (HasWebSling).
 	WebSlingCost ManaCost
+	// HasMayFlash is printed K:MayFlashCost with a mana parameter (CR
+	// 702.8's "as though it had flash" permission bought for an extra cost:
+	// "you may cast this as though it had flash if you pay {2} more"; no
+	// KwMask bit is free): when the card's own timing does not allow the
+	// cast, the hand offers the may-flash cast (AkMayFlash) at Cost plus
+	// MayFlashCost (dirac/kw_mayflash.go).
+	HasMayFlash bool
+	// MayFlashCost is the extra mana the may-flash cast adds (HasMayFlash).
+	MayFlashCost ManaCost
 	// HasEvoke is printed evoke (CR 702.74a; no KwMask bit is free): the
 	// hand offers the evoked cast at EvokeCost (gorge's "evoked" option,
 	// FlagEvoked), and a permanent cast that way queues a mandatory

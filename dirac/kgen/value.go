@@ -1168,6 +1168,15 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Metalcraft."); ok {
 		return lc.metalcraftValue(arms, depth) // value_filterheads.go
 	}
+	if rest == "TimesKicked" {
+		// the count of kicker payments: a card with one Kicker keyword is
+		// kicked once or not at all, so it reads as the kicked bit (gorge
+		// count_body_paid.go's TimesKicked)
+		if lc.out.Kicker == nil {
+			return lValue{}, refuse("Count$TimesKicked without a Kicker keyword")
+		}
+		return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
+	}
 	for _, cv := range []struct {
 		pre     string
 		kind    valKind

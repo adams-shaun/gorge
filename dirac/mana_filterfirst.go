@@ -121,7 +121,7 @@ func (s *State) filtFirstMask(k *prep, p uint8) slotMask {
 // counter-cost sources.
 func (s *State) filtOtherMana(k *prep, p uint8) int {
 	pl := &s.pl[p&1]
-	n := poolTotal(pl) + int(pl.poolR)
+	n := poolTotal(pl) + s.rbTotal(p, s.rbAll(p))
 	for b := s.ctrlM[p&1].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
@@ -161,6 +161,7 @@ func (s *State) filtUse(k *prep, sl Slot) {
 		s.perms[sl].actUsed |= 1 << uint(k.gen.filt(s.cardAt(sl)))
 	} else {
 		s.perms[sl].flags |= pfTapped
+		s.manaTapped(k, sl)
 	}
 	s.touchSl(sl)
 }

@@ -5,7 +5,7 @@ package kgen
 // CR 106.6, 605.1a). gorge's effMana adds the units as ManaAdd events carrying
 // the restriction, one restriction for every unit of a colour choice
 // (askManaChoice picks first); the kernel floats them as restricted mana
-// (poolR) through AddMana F and ExtManaChoice F.
+// (State.rb) through AddMana F and ExtManaChoice F.
 
 // dbManaRestrict reads a resolving DB$ Mana's RestrictValid$ (nil: none). Only
 // Spell.<spec> alternatives lower; an Activated, Static or non-spell one keeps

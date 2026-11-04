@@ -1599,6 +1599,12 @@ var putCounterChooserForCodes = state.NewStrCodes(
 //     is the last-known battlefield permanent, when it is no longer on the
 //     battlefield.
 func putCounterReferentLeft(h Host, c *Ctx, sa *cards.SA, o *state.Object) bool {
+	if o.Zone == state.ZCeased {
+		// a token that has ceased to exist (CR 111.7, 704.5d): Railway
+		// Brawler's trigger for a Beau the legend rule just removed has no
+		// object to put the counters on
+		return true
+	}
 	if sourceLeftSincePush(h, c, o) {
 		return true
 	}
@@ -1632,7 +1638,14 @@ func sourceLeftSincePush(h Host, c *Ctx, o *state.Object) bool {
 		return false
 	}
 	if ro.PushSourceOnBattlefield {
-		return o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation || c.TriggerContext.SourceLeftBeforePush
+		if o.Zone != state.ZBattlefield || o.Incarnation != ro.PushSourceIncarnation {
+			return true
+		}
+		// a source that left and returned before the trigger was pushed is
+		// still a creature the ability may target: the target chosen at the
+		// push is the object on the battlefield then (CR 603.3d), so only a
+		// "this creature" reference reads it as gone
+		return c.TriggerContext.SourceLeftBeforePush && !slices.ContainsFunc(ro.Targets, func(t state.Target) bool { return !t.IsPlayer && t.Obj == o.ID })
 	}
 	if dh, ok := h.(interface {
 		SourceLeftBattlefieldSince(stack state.ObjID) bool

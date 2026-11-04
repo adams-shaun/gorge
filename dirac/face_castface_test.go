@@ -208,7 +208,7 @@ func TestFaceCastCensusOffSurface(t *testing.T) {
 	}
 	sc.s.pl[0].pool[kop.W] = 0
 	sc.s.g.poolArt[0] = 0
-	sc.s.pl[0].poolR = 1 | uint16(kop.W)<<poolRShift
+	sc.s.setRestr(0, 1, kop.W, 1)
 	if d := sc.s.Step(); len(faceCasts(&d, mr)) != 1 {
 		t.Fatal("on the oracle surface: adventure not offered from 3 Swamps with restricted mana floating")
 	}
@@ -235,7 +235,7 @@ func TestFaceCastScriptWalk(t *testing.T) {
 	if d := sc.s.Step(); len(faceCasts(&d, mr)) != 1 {
 		t.Fatal("adventure dropped by a scripted-prefix walk with no restricted source")
 	}
-	sc.s.pl[0].poolR = 1 | uint16(kop.W)<<poolRShift
+	sc.s.setRestr(0, 1, kop.W, 1)
 	if d := sc.s.Step(); len(faceCasts(&d, mr)) != 1 {
 		t.Fatal("adventure not offered from 3 Swamps with restricted mana floating")
 	}

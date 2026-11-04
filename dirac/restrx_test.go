@@ -45,8 +45,8 @@ func TestRestrictedManaPaysXSpell(t *testing.T) {
 	}
 	s.Apply(d.Options[0])
 	s.Step()
-	if s.pl[0].poolR != 0 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 {
-		t.Fatalf("after the Scourge: poolR %#x pool %v stack %d, want the restricted {G} spent and the Scourge on the stack", s.pl[0].poolR, s.pl[0].pool, s.sp)
+	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 {
+		t.Fatalf("after the Scourge: restricted %v pool %v stack %d, want the restricted {G} spent and the Scourge on the stack", s.rb[0], s.pl[0].pool, s.sp)
 	}
 	if !sc.tapped(court) {
 		t.Fatal("the Courtyard is not tapped by the plan")
@@ -99,8 +99,8 @@ func TestRestrictedManaPaysKickedCast(t *testing.T) {
 		}
 		s.Apply(d.Options[0])
 	}
-	if s.pl[0].poolR != 0 || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 || s.stack[0].flags&sfKicked == 0 {
-		t.Fatalf("after the Bushwhacker: poolR %#x pool %v stack %d, want the restricted {R}{R} spent and the kicked Bushwhacker on the stack", s.pl[0].poolR, s.pl[0].pool, s.sp)
+	if s.rbAny(0) || s.pl[0].pool != ([kop.NumManaKinds]uint8{}) || s.sp != 1 || s.stack[0].flags&sfKicked == 0 {
+		t.Fatalf("after the Bushwhacker: restricted %v pool %v stack %d, want the restricted {R}{R} spent and the kicked Bushwhacker on the stack", s.rb[0], s.pl[0].pool, s.sp)
 	}
 	for _, c := range courts {
 		if !sc.tapped(c) {

@@ -61,7 +61,7 @@ func plotOffered(d *Decision, o Obj) bool {
 
 // TestPlotRestrictedManaClass (gorge; CR 116.2, 106.6):
 // the plot special action is not a spell payment. A Spell.Creature
-// restricted source (a Village) or restricted mana floating (poolR) neither
+// restricted source (a Village) or restricted mana floating (State.rb) neither
 // offers it nor is spent by it; a Powerstone (a non-spell restriction) does
 // both.
 func TestPlotRestrictedManaClass(t *testing.T) {
@@ -89,7 +89,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 	for sl := s.ctrlM[0]; sl.any(); sl = sl.rest() {
 		s.perms[sl.first()].flags |= pfTapped // the Village is spent: only the floating mana remains
 	}
-	if !s.pl[0].addRestr(k, &s.poolRx[0], rf, int(kop.W), 1) {
+	if !s.addRestr(k, 0, rf, int(kop.W), 1) {
 		t.Fatal("(b) restricted mana did not float")
 	}
 	d = s.Step()
@@ -119,7 +119,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 	if pf == 0 || !slices.Contains(k.gen.restrF[:], pf) {
 		t.Fatalf("(d) the Powerstone's restriction %d is not a registered one %v", pf, k.gen.restrF)
 	}
-	if !s.pl[0].addRestr(k, &s.poolRx[0], pf, int(kop.C), 1) {
+	if !s.addRestr(k, 0, pf, int(kop.C), 1) {
 		t.Fatal("(d) restricted mana did not float")
 	}
 	d = s.Step()
@@ -127,7 +127,7 @@ func TestPlotRestrictedManaClass(t *testing.T) {
 		t.Fatalf("(d) Powerstone mana floating: plot not offered: %v", d.Options[:d.N])
 	}
 	sc.do(t, AkPlot, uint8(o), 0xff)
-	if s.objs[o].zone != kop.ZoneExile || s.pl[0].poolR&poolRCnt != 0 {
-		t.Fatalf("(d) zone %d, poolR %#x; want exile and the restricted mana spent", s.objs[o].zone, s.pl[0].poolR)
+	if s.objs[o].zone != kop.ZoneExile || s.restrN(0) != 0 {
+		t.Fatalf("(d) zone %d, restricted %v; want exile and the restricted mana spent", s.objs[o].zone, s.rb[0])
 	}
 }

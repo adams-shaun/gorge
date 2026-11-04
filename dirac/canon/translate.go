@@ -120,6 +120,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		// table has room, so it canonicalises to CastModeOther, like
 		// "harmonize"
 		return Pack(ActCast, src, RefNone, CastModeOther)
+	case dirac.AkMayFlash:
+		// gorge's "mayflash" cast option (CR 702.8; kw_mayflash.go): the
+		// cast-mode table is full, so it canonicalises to CastModeOther,
+		// like "web-slinging"
+		return Pack(ActCast, src, RefNone, CastModeOther)
 	case dirac.AkBestow:
 		cm, _ := CastModeCode("bestowed") // gorge's "bestowed" cast option (CR 702.103a; kw_bestow.go)
 		return Pack(ActCast, src, RefNone, cm)

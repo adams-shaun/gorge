@@ -113,7 +113,7 @@ func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, cost *kop.ManaCost) bo
 			a.addUnits(1<<i, pl.pool[i])
 		}
 	}
-	if pl.poolR != 0 {
+	if s.rbAny(p) {
 		s.restrAvail(k, p&1, c, restrOrigin{from: kop.ZoneHand}, &a)
 	}
 	return a.affords(cost, pipMaskOf(cost), 0)
@@ -130,10 +130,10 @@ func (s *State) offerSneakHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		return // castTargetsAvailable; offerCastable's Return census
 	}
 	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].SneakCost) // spellScope("sneak")
-	if !av.affords(&cost, pipMaskOf(&cost), 0) && (s.pl[p].poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, restrOrigin{from: kop.ZoneHand}, &cost, av)) {
+	if !av.affords(&cost, pipMaskOf(&cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, restrOrigin{from: kop.ZoneHand}, &cost, av)) {
 		// The restrAffords fallback matches the plot/warp hand offers (a
 		// restricted mana source can pay); it is dead in the sneak pool,
-		// which has no poolR source. Keeping it makes the priced offer the
+		// which has no State.rb source. Keeping it makes the priced offer the
 		// same shape as those two rather than faceCastable's narrower one.
 		return
 	}

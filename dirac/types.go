@@ -78,6 +78,7 @@ const (
 	AkSneak                          // source = a hand card; cast it for its sneak cost (CR 702.190a; kw_sneak.go)
 	AkBestow                         // source = a hand card; cast it bestowed, for its bestow cost (CR 702.103a; kw_bestow.go)
 	AkWebSling                       // source = a hand card; cast it for its web-slinging cost (CR 702.188a; kw_websling.go)
+	AkMayFlash                       // source = a hand card; cast it as though it had flash for its mana cost plus the extra (CR 702.8; kw_mayflash.go)
 	AkCount
 )
 

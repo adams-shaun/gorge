@@ -250,8 +250,10 @@ func (s *State) endStep(next kop.Step) {
 		s.firebendEnd(next) // firebending red survives the combat steps, PersistentMana$ units every step (kw_firebend.go, mana_persistent.go)
 		return
 	}
-	s.pl[0].pool, s.pl[0].poolR, s.poolRx[0] = [kop.NumManaKinds]uint8{}, 0, 0
-	s.pl[1].pool, s.pl[1].poolR, s.poolRx[1] = [kop.NumManaKinds]uint8{}, 0, 0
+	s.pl[0].pool = [kop.NumManaKinds]uint8{}
+	s.rbClear(uint8(0))
+	s.pl[1].pool = [kop.NumManaKinds]uint8{}
+	s.rbClear(uint8(1))
 	s.g.poolArt = [2]uint8{}
 	s.step = next
 	s.ctl = ctlStepBegin
@@ -376,8 +378,10 @@ func (s *State) finishCleanup(k *prep) {
 		// 514.3a priority in it can still spend them (mana_persistent.go)
 		s.persistEmpty(true)
 	} else {
-		s.pl[0].pool, s.pl[0].poolR, s.poolRx[0] = [kop.NumManaKinds]uint8{}, 0, 0
-		s.pl[1].pool, s.pl[1].poolR, s.poolRx[1] = [kop.NumManaKinds]uint8{}, 0, 0
+		s.pl[0].pool = [kop.NumManaKinds]uint8{}
+		s.rbClear(uint8(0))
+		s.pl[1].pool = [kop.NumManaKinds]uint8{}
+		s.rbClear(uint8(1))
 		s.fbR = [2]uint8{} // already 0 (end of combat dropped it); explicit
 		s.g.poolArt = [2]uint8{}
 	}
@@ -461,7 +465,7 @@ func (s *State) sba(k *prep) bool {
 			s.lingerDrain(k)
 		}
 		for p := uint8(0); p < 2; p++ {
-			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLose(k, p) {
+			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
 				s.pl[p].lost = true
 			}
 			if s.pl[p].drewEmpty {

@@ -1045,11 +1045,16 @@ func (e *Engine) finishCleanupStep() {
 	}
 	performed := len(e.L.Events) > before || e.cleanupSBAHeld
 	e.cleanupSBAHeld = false
+	// A trigger waiting to be put on the stack gives the active player
+	// priority even when it is removed at once (a modal trigger with no
+	// mode left to choose, CR 603.3c): CR 514.3a keys on the trigger being
+	// waiting, not on its still being on the stack.
+	waiting := len(e.pendingTriggers) > 0
 	stopped, again := e.drainTriggers()
 	if stopped {
 		return
 	}
-	if len(e.G.Stack) > 0 || performed || again {
+	if len(e.G.Stack) > 0 || performed || again || waiting {
 		e.grantPriority()
 		return
 	}

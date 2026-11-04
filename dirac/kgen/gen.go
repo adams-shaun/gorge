@@ -284,6 +284,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.WebSling != nil {
 		fmt.Fprintf(w, " webslinging=%s", c.WebSling)
 	}
+	if c.MayFlash != nil {
+		fmt.Fprintf(w, " mayflash=%s", c.MayFlash)
+	}
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)
 	}

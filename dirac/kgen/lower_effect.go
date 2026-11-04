@@ -820,6 +820,10 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 // wardEvidenceRe is a ward cost of collect evidence N.
 var wardEvidenceRe = regexp.MustCompile(`^CollectEvidence<([0-9]+)>$`)
 
+// wardDiscManaRe is a ward cost of discarding a card or paying {N}
+// (Forge's "Discard<1/Card>:N"; gorge beginWardPayment's ">:" arm).
+var wardDiscManaRe = regexp.MustCompile(`^Discard<1/Card>:([0-9]+)$`)
+
 func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error) {
 	in := lInstr{Obj: payer}
 	if c.Forage != nil {
@@ -1690,6 +1694,14 @@ func (lc *lowerCtx) api(sa *cards.SA, ps *params) error {
 			n, _ := strconv.Atoi(m[1])
 			lc.emit(lInstr{Op: "Ward", CS: "CollectEvidence", A: cst(n), Obj: lRef{Kind: rTriggered}})
 			break
+		}
+		if wardDiscManaRe.MatchString(uc) {
+			// Ward—discard a card or pay {N} (Titania, Rugged Rumbler). Its
+			// own additional cost, "discard a card or pay {2}", diverges in
+			// lockstep: gorge continues the cast on the "pay {2}" part with
+			// one source fewer than the cast then costs, so the card stays
+			// unlowered rather than half-played
+			return refuse("ward discard-or-pay cost %q: the card's discard-or-pay additional cost diverges from gorge", uc)
 		}
 		if strings.HasPrefix(uc, "PayLife<X/") {
 			// Ward—pay life equal to its power (Raubahn; gorge kw_ward.go

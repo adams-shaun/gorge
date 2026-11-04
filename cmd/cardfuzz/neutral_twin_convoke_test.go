@@ -12,6 +12,7 @@ import (
 // creatures: the native bot and the seat rebuilding the ask from a plain observation
 // tap the same ones.
 func TestTwinConvokeAnnouncementsAgree(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	var list []string
 	for _, n := range []struct {

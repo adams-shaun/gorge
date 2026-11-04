@@ -95,105 +95,34 @@ func (s *State) manaReflView(k *prep, sl Slot, c CardID, vi int16) *pcard {
 	return &k.gen.varPC[int(vi)+int(m)]
 }
 
-// Restricted mana in several colours (State.poolRx). gorge's
-// Players[p].RestrictedMana holds one batch per activation: Plaza's
-// restricted any colour tapped twice by a prefix script for {W} and {R}
-// (a legendary RW spell) floats two batches of one restriction. poolR keeps
-// the first colour; poolRx the others, 3 bits each.
-
-// addRestrX floats n restricted mana of colour col beside poolR's other
-// colour (same restriction); past 7 it floats unrestricted, as addRestr's
-// spill (the prefix search refuses that loudly first: reflDo).
-func (pl *player) addRestrX(rx *uint16, col int, n uint8) bool {
-	cur := uint8(*rx>>(3*col)) & 7
-	if col >= 5 || int(cur)+int(n) > 7 {
-		pl.pool[col] += n
-		return false
-	}
-	*rx += uint16(n) << (3 * col)
-	return true
-}
-
-// restrXInto adds poolRx's mana rx to m; restrXOut takes it out again.
-func restrXInto(rx uint16, m *[kop.NumManaKinds]uint8) {
-	for c := 0; rx != 0 && c < 5; c++ {
-		m[c] += uint8(rx>>(3*c)) & 7
-	}
-}
-
-func restrXOut(rx uint16, m *[kop.NumManaKinds]uint8) {
-	for c := 0; rx != 0 && c < 5; c++ {
-		m[c] -= uint8(rx>>(3*c)) & 7
-	}
-}
-
 // payRestrX is payRestrRider with restricted mana of several colours: all
-// of it joins the pool, the cast taps for the rest and pays, and per colour
-// the restricted mana is spent first (gorge emitRestrictedManaSpend carves
-// the matching batches before ordinary mana of their colour); what is left
-// of it floats restricted again.
-func (s *State) payRestrX(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
+// of p's restricted mana in the batches of mask m joins the pool, the cast
+// taps for the rest and pays, and per colour the restricted mana is spent
+// first (gorge emitRestrictedManaSpend carves the matching batches before
+// ordinary mana of their colour); what is left of it floats restricted again.
+// gorge's Players[p].RestrictedMana holds one batch per activation: Plaza's
+// restricted any colour tapped twice by a prefix script for {W} and {R} (a
+// legendary RW spell) floats two batches of one restriction.
+func (s *State) payRestrX(k *prep, p, m uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	pl := &s.pl[p]
-	kind := pl.poolR & poolRKind
-	var rn [kop.NumManaKinds]uint8
-	rn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
-	restrXInto(s.poolRx[p&1], &rn)
-	var ord [kop.NumManaKinds]uint8
-	for c := range rn {
-		ord[c] = pl.pool[c]
-		pl.pool[c] += rn[c]
-	}
-	pl.poolR, s.poolRx[p&1] = 0, 0
+	var tk [maxRB][kop.NumManaKinds]uint8
+	ord := pl.pool
+	s.rbTake(p, m, &tk)
 	if cost.Hyb[0] != 0 {
 		h := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &h
 	}
+	sv := s.rb[p&1]
 	var pk planner
 	s.tapForPK(k, p, cost, x, o, false, anyColor, &pk)
 	if pk.rbOn {
-		// the plan's own restricted taps join the restricted mana spent first
-		// (restrPairUnit): they float in poolR, poolRx
-		kind = pl.poolR & poolRKind
-		var tn [kop.NumManaKinds]uint8
-		tn[pl.poolR>>poolRShift] += uint8(pl.poolR & poolRCnt)
-		restrXInto(s.poolRx[p&1], &tn)
-		for c := range tn {
-			rn[c] += tn[c]
-			pl.pool[c] += tn[c]
-		}
-		pl.poolR, s.poolRx[p&1] = 0, 0
+		// the plan's own restricted taps join the restricted mana spent
+		// first (restrPairUnit)
+		s.rbTakeNew(p, &sv, &tk)
 	}
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
-	s.restrLeftover(p, &rn, &ord, &pre, kind)
-}
-
-// restrLeftover floats again what is left of the restricted mana rn that
-// the payment (pool before it: pre) did not spend: per colour the restricted
-// mana is spent before the ordinary mana of its colour, ord of which was
-// there before.
-func (s *State) restrLeftover(p uint8, rn, ord, pre *[kop.NumManaKinds]uint8, kind uint16) {
-	pl := &s.pl[p]
-	typed := s.g.poolArt[p&1]&poolArtRestr != 0 && !DebugRestrTypedFirst
-	for c := range rn {
-		spent := pre[c] - pl.pool[c]
-		if typed {
-			spent -= min(spent, ord[c]) // a typed unit is spent after the plain ones of its colour (pay.takeUnit)
-		}
-		left := rn[c] - min(spent, rn[c])
-		if left == 0 {
-			continue
-		}
-		pl.pool[c] -= left
-		if pl.poolR == 0 {
-			pl.poolR = uint16(c)<<poolRShift | kind | uint16(left)
-		} else {
-			s.poolRx[p&1] += uint16(left) << (3 * c)
-		}
-	}
-	if pl.poolR == 0 {
-		s.g.poolArt[p&1] &^= poolArtRestr
-	}
+	s.rbSettle(p, &tk, &ord, &pre, s.rbTyped(p))
 }
 
 // The exact prefix search for an anyR-only board on a table with a
@@ -219,8 +148,7 @@ type reflStep struct {
 
 type reflKey struct {
 	pool   [kop.NumManaKinds]uint8
-	r      uint16
-	rx     uint16
+	rb     [maxRB]rbatch
 	tapped slotMask
 }
 
@@ -279,6 +207,7 @@ func (s *State) reflDo(k *prep, p uint8, st reflStep) {
 	pl := &s.pl[p&1]
 	s.perms[st.sl].flags |= pfTapped
 	s.touchSl(st.sl)
+	s.manaTapped(k, st.sl)
 	cd := &k.t.Cards[s.cardAt(st.sl)]
 	switch {
 	case st.ans == 0:
@@ -286,12 +215,8 @@ func (s *State) reflDo(k *prep, p uint8, st reflStep) {
 		pl.pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
 	case st.ans <= 5:
 		c := int(st.ans) - 1
-		if pl.poolR&poolRCnt != 0 && int(pl.poolR>>poolRShift) != c && uint8(s.poolRx[p&1]>>(3*c))&7 == 7 {
-			s.capFull(StallRestrX) // loud: never float it unrestricted
-			return
-		}
 		if !s.floatRestrFrom(k, p, st.sl, cd.Abilities[k.gen.anyR(s.cardAt(st.sl))].ManaRestrict, c, 1) {
-			s.capFull(StallRestrX) // another restriction or past 15: never a silent spill
+			s.capFull(StallRestrX) // past the batches the pool holds: never a silent spill
 		}
 	default:
 		pl.pool[st.ans-6]++
@@ -320,7 +245,7 @@ func (rs *reflSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	}
 	p := rs.p
 	pl := &t.pl[p&1]
-	key := reflKey{pool: pl.pool, r: pl.poolR, rx: t.poolRx[p&1]}
+	key := reflKey{pool: pl.pool, rb: t.rb[p&1]}
 	for b := t.ctrlM[p&1].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
@@ -340,7 +265,7 @@ func (rs *reflSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		t.restrOptions(k, &d, p)
 		if hasOption(&d, rs.a) {
 			rs.dead = false
-			if pl.poolR != 0 {
+			if t.rbAny(p) {
 				rs.dead = !t.scriptCompletes(k, p, rs.a)
 			}
 			return true

@@ -12,4 +12,5 @@ const (
 	trigPlMayhem                       // kw_mayhem.go
 	trigPlAirbend                      // act_airbend.go
 	trigPlWebSling                     // kw_websling.go
+	trigPlMayFlash                     // kw_mayflash.go
 )

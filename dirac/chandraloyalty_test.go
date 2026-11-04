@@ -11,7 +11,7 @@ import (
 // TestChandraRestrictedLoyaltyMana: Chandra, Chill of Compliance's mana +1
 // (a loyalty ability, no mana ability: CR 605.1a) adds its {U} on
 // resolution as restricted mana (CR 106.6; gorge's ManaAdd restriction):
-// it floats in poolR, not the pool, so it pays a noncreature spell
+// it floats in State.rb, not the pool, so it pays a noncreature spell
 // (Unsummon) and withholds a creature (Healer's Hawk) -- the
 // probe's seed 6 decision 130, where the kernel offered
 // two casts gorge withheld.
@@ -56,8 +56,8 @@ func TestChandraRestrictedLoyaltyMana(t *testing.T) {
 			s.Apply(MakeAction(AkPass, 0, 0, 0))
 		}
 		pl := &s.pl[0]
-		if pl.poolR&poolRCnt != 1 || int(pl.poolR>>poolRShift) != kop.U || pl.pool != ([kop.NumManaKinds]uint8{}) {
-			t.Fatalf("surface %v: after the +1: poolR %#x pool %v, want one restricted {U} and an empty pool", surf, pl.poolR, pl.pool)
+		if sc.s.restrN(0) != 1 || sc.s.restrOf(0, kop.U) != 1 || pl.pool != ([kop.NumManaKinds]uint8{}) {
+			t.Fatalf("surface %v: after the +1: restricted %v pool %v, want one restricted {U} and an empty pool", surf, sc.s.rb[0], pl.pool)
 		}
 		d = s.Step()
 		if d.Kind != DkPriority || d.Player != 0 {

@@ -429,7 +429,7 @@ func (g *grantSrch) candidates(s *State) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(g.p, s.ctrlM[g.p&1].and(s.occ), order[:], 0)
 	var fm slotMask
-	if k := g.k; k.gen.anyFilt && !k.gen.anyFiltFirst {
+	if k := g.k; k.gen.anyFilt {
 		fm = s.scriptFilt(k, g.p)
 	}
 	g.n = 0
@@ -498,6 +498,14 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	for i := 0; i < g.n; i++ {
 		sl := g.cand[i]
+		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
+			// a filter that is its source's only mana ability: no printed
+			// ability to ask beside, one colour ask once its fee is in the pool
+			if t.filtUsable(g.k, sl) && poolTotal(&t.pl[g.p&1])+t.filtFeeRestrN(g.k, g.p, sl) >= t.filtFee(g.k, sl) && g.filtBranch(t, i, sl) {
+				return true
+			}
+			continue
+		}
 		if !t.canTapForMana(g.k, sl) {
 			continue
 		}
@@ -616,8 +624,8 @@ func (g *grantSrch) settle(t *State) bool {
 // next continues the search after sl's tap: a tap that fires a trigger runs on a
 // copy whose trigger is stacked.
 func (g *grantSrch) next(t *State, sl Slot) bool {
-	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) {
-		return g.visit(t)
+	if !g.tapsLive || !t.subs[kop.TrigTaps].has(sl) && !g.k.gen.anyTapAll {
+		return g.visit(t) // (a TapAll listener hears any permanent's tap: trig_tapall.go)
 	}
 	u := t.fork()
 	u.manaTapped(g.k, sl)
@@ -677,6 +685,22 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 		ab = &k.t.Cards[r.card].Abilities[r.ab]
 	}
 	var seen uint8
+	if gi < 0 {
+		// a land with a granted basic type: gorge lists the face's own abilities
+		// before the intrinsic ones the type adds (appendAvailableManaAbilities),
+		// so a Forest made an Island asks G then U, not U then G
+		if pc := s.manaPCGen(k, sl); pc.blgFirst != 0 {
+			if own := &k.cards[s.cardAt(sl)]; own.manaAb >= 0 {
+				for c := uint8(0); c < 5; c++ {
+					if uint8(own.manaCol)&mask&(1<<c) != 0 {
+						out[n] = c
+						n++
+						seen |= 1 << c
+					}
+				}
+			}
+		}
+	}
 	if ab != nil && ab.ManaColOrd != 0 && uint8(ab.ManaColors)&0x1f == mask&0x1f {
 		var ord [5]uint8
 		for _, c := range ord[:manaColourOrder(ab, &ord)] {
@@ -805,7 +829,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepFilt:
 			s.filtDo(k, g.p, filtStep{sl: sl, gap: true, ans: 1 + st.col})
-			s.manaTapped(k, sl)
+			if !s.filtNoTap(k, sl) {
+				s.manaTapped(k, sl) // (a once-each-turn filter taps nothing)
+			}
 			continue
 		}
 		sacrifice := false
@@ -820,9 +846,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
 		if r := restrOfStep(k, st); r != 0 {
-			// a restricted grant floats beside the pool (poolR), spendable only
+			// a restricted grant floats beside the pool (State.rb), spendable only
 			// as its restriction allows; never a silent spill into the pool
-			if !s.pl[g.p&1].addRestr(k, &s.poolRx[g.p&1], r, int(st.col), st.n) {
+			if !s.addRestr(k, g.p&1, r, int(st.col), st.n) {
 				s.capFull(StallRestrSrc)
 			}
 		} else {

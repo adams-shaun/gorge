@@ -73,7 +73,7 @@ func (s *State) offerBestowHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	}
 	cd := &k.t.Cards[c]
 	bc := s.adjustCost(k, p, c, o, cd.BestowCost) // the reduction applies to an alternative cost too (CR 601.2f)
-	if !av.affords(&bc, pipMaskOf(&bc), 0) && (s.pl[p].poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &bc, av)) {
+	if !av.affords(&bc, pipMaskOf(&bc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), &bc, av)) {
 		return
 	}
 	if s.castHeldOut(o) {

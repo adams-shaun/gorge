@@ -205,8 +205,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return refuse("ChangeType$ with ValidTgts$")
 		}
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
-		lc.exwOK = exwPick // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
-		f, err := lc.filter(ct)
+		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
+		f, err := lc.pickFilter(ct) // lower_each.go
 		lc.exwOK = false
 		if err != nil {
 			return err
@@ -214,6 +214,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		n, err := lc.amount(ps, "ChangeNum", 1)
 		if err != nil {
 			return err
+		}
+		if f.Each {
+			if err := eachPickGate(ps, origin, dest, n); err != nil { // lower_each.go
+				return err
+			}
 		}
 		if ps.is("Mandatory", "True") || origin == zLibrary && !effects.SearchStatesQuality(ct) {
 			// a search that states no quality (Hour of Victory's "a card")
@@ -2954,14 +2959,14 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 		// +2 adds its mana on resolution.
 		if m.RestrictAb != nil || m.NonSpell {
 			// the resolution's AddMana floats a spell restriction only
-			// (poolR): an activated-ability or non-spell one has no carrier
+			// (State.rb): an activated-ability or non-spell one has no carrier
 			return refuse("loyalty mana ability with an activated-ability or non-spell restriction")
 		}
 		ab.Kind = akActivated
 		ab.Mana = nil
 		if m.Each {
 			// Lukka's +1 {R}{G}: the resolution's AddMana floats one colour
-			// of a restriction (poolR); several at once have no carrier
+			// of a restriction (State.rb); several at once have no carrier
 			return refuse("loyalty ability adding several colours at once")
 		}
 		if m.Choice || len(m.Colors) > 1 {
@@ -2981,7 +2986,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			lc.emit(lInstr{Op: "ManaChoice", A: amt, C: mode, CS: m.Colors})
 		} else {
 			// F: a spell restriction (CR 106.6), floated as restricted
-			// mana (poolR) like gorge's ManaAdd restriction (Chandra, Chill
+			// mana (State.rb) like gorge's ManaAdd restriction (Chandra, Chill
 			// of Compliance's noncreature-only {U})
 			lc.emit(lInstr{Op: "AddMana", Obj: lRef{Kind: rYou}, A: amt, CS: m.Colors, F: m.Restrict})
 		}

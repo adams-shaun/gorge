@@ -3,7 +3,7 @@
 A dirac game is one Go value, `dirac.State`, plus one small buffer it owns. This page shows what is inside
 it and why, for readers who want to know what a cheap clone costs and what it rules out.
 
-Sizes were read on 2026-11-01 at gorge `5917ab1ae`, with Go 1.26.3 on linux/amd64, by a scratch test printing
+Sizes were read on 2026-11-03, with Go 1.26.3 on linux/amd64, by a scratch test printing
 `unsafe.Sizeof` of each part. dirac's own `TestStateSize` logs the total.
 
 ## Three parts
@@ -19,10 +19,10 @@ type State struct {
 
 | Part | Bytes | What it holds |
 |---|--:|---|
-| `stateCore` | 8,240 | the rules state, below |
+| `stateCore` | 10,776 | the rules state, below |
 | `perms` | 6,272 | 112 battlefield slots at 56 bytes each |
 | `cold` headers and `pool` | 304 | slice headers and a pointer; the arrays themselves are in one buffer |
-| **`State`, total** | **14,816** | |
+| **`State`, total** | **17,352** | |
 
 The core and `perms` hold no pointers, maps, slices, strings or interfaces. Every collection is a fixed array
 and a count, so three things follow:
@@ -47,13 +47,13 @@ What's variable-length about the cards (definitions, filters, op programs) is in
 |---|--:|---|
 | header | about 16 | turn, step, active player, priority holder, passes, control state, config bits, result |
 | RNG | 168 | the PCG state, draw count, chance record ([RNG](step-apply.md#rng)) |
-| players | 556 | two records: life, zones, mana pools |
+| players | 552 | two records: life, zones, mana pools |
 | objects | 1,536 | 192 card instances at 8 bytes: card, zone, slot, version, flags |
 | layer stamps | 224 | a layer timestamp per battlefield slot |
 | slot masks | about 480 | occupied, by controller, per event kind, static sources |
-| stack | 864 | 24 entries at 36 bytes |
-| pending triggers | 384 | 24 records, then the trigger-order round's picks |
-| delayed triggers | 96 | 16 records |
+| stack | 1,728 | 48 entries at 36 bytes (`MaxStack`) |
+| pending triggers | 768 | 48 records (`MaxPending`), then the trigger-order round's picks |
+| delayed triggers | 192 | 32 records (`MaxDelayed`) |
 | resolution in progress | 80 | the suspended program and its position |
 | change marks | 24 + 192 | one bit per object, one stamp per object ([below](#change-marks)) |
 | generated-table extension | the rest | continuous effects, last known information, per-turn history and other pools |
@@ -112,8 +112,8 @@ Marks may over-report and cost a recomputation, but never miss.
 
 Every byte of the core is copied on every clone, so its size is a decision rather than a side effect.
 
-- **`State` must stay under 16 KiB.** `TestStateSize` fails above that, and moving the bar is a deliberate
-  decision.
+- **`State` must stay under 24 KiB.** `TestStateSize` fails above `maxStateBytes` (`dirac/kernel_test.go`), and
+  moving the bar is a deliberate decision, measured against the bench cost of the larger copy.
 - **The table holds what's printed and `State` holds what changes.** No field in `State` belongs to one card.
 - **Per-slot bytes are expensive.** One byte on `perm` costs 112 bytes of `State`, one on `object` 192. Rare
   state goes in a pool sized for the worst case seen in play, or in a cold array.
@@ -122,7 +122,7 @@ Every byte of the core is copied on every clone, so its size is a decision rathe
 
 ## The Projection
 
-`Project` writes a `dirac.Projection` of 33,744 bytes: a comparable view of a whole position, for tools and tests.
+`Project` writes a `dirac.Projection` of 34,800 bytes: a comparable view of a whole position, for tools and tests.
 
 | Part | Contents |
 |---|---|

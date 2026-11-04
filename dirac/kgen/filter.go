@@ -230,6 +230,9 @@ type lClause struct {
 type lFilter struct {
 	Clauses []lClause
 	Players uint8 // bit 1 = you, bit 2 = opponent
+	// Each: Forge's "EACH A & B" list (lowerCtx.pickFilter). Every clause is
+	// one listed type, in order, and a pick takes one card per clause.
+	Each bool
 }
 
 const (

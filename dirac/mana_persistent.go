@@ -96,7 +96,8 @@ func (s *State) persistKeep(p uint8, ec bool) [kop.NumManaKinds]uint8 {
 func (s *State) persistEmpty(ec bool) {
 	for p := range s.pl {
 		keep := s.persistKeep(uint8(p), ec)
-		s.pl[p].pool, s.pl[p].poolR, s.poolRx[p] = keep, 0, 0
+		s.pl[p].pool = keep
+		s.rbClear(uint8(p))
 	}
 	s.g.poolArt = [2]uint8{}
 }
@@ -109,7 +110,8 @@ func (s *State) persistTurn() {
 	s.pm = [2][kop.NumManaKinds]uint8{}
 	s.pmOn = 0
 	for p := range s.pl {
-		s.pl[p].pool, s.pl[p].poolR, s.poolRx[p] = [kop.NumManaKinds]uint8{}, 0, 0
+		s.pl[p].pool = [kop.NumManaKinds]uint8{}
+		s.rbClear(uint8(p))
 	}
 	s.g.poolArt = [2]uint8{}
 }

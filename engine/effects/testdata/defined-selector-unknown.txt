@@ -5,9 +5,6 @@ Defined$ Card.Self	1
 Defined$ ChoosingPlayer	2
 Defined$ ChosenMap	2
 Defined$ DefendingPlayer	1
-Defined$ DiscardedCards	1
-Defined$ OppNonParentTarget	4
-Defined$ OppNonRememberedOwner	2
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ ShieldEffectTarget	5

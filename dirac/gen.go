@@ -114,6 +114,10 @@ type genPrep struct {
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
 	manaTaps bool
+	// anyTapAll: a TrigTaps line with Tf2Batch (Mode$ TapAll,
+	// trig_tapall.go): the tapping actions open tap batches and every mana
+	// tap fires the Taps listeners (manaTaps)
+	anyTapAll bool
 	// tapsWhose: a TrigTaps ability reads the tapper (Trig.Whose, "whenever
 	// you tap ..."; trig_tapsvalid.go)
 	tapsWhose bool
@@ -188,6 +192,7 @@ type genPrep struct {
 	anyBattle      bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anySneak       bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
 	anyWebSling    bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
+	anyMayFlash    bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
 	anyConvoke     bool           // some card has printed or granted convoke/improvise or harmonize (CardDef.Convoke/Improvise/Harmonize, StatStackKw Improvise; kw_convoke.go)
 	anyBeam        bool           // some card has printed beam me up (CardDef.BeamMeUp; kw_beammeup.go)
 	anyBeamBar     bool           // some card has a StatCantBeBeamedUp static
@@ -195,6 +200,7 @@ type genPrep struct {
 	anyCascade     bool           // some card has printed cascade (CardDef.Cascade; kw_cascade.go)
 	anyStackKw     bool           // some card has a StatStackKw: AffectedZone$ Stack keyword grant (static_stackkeyword.go)
 	anyStorm       bool           // some card has a StatStackKw Storm grant (kw_storm.go)
+	anySplitSecond bool           // some card has a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife   bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anySplit       bool           // some card is a split card (kop.FaceSplit: its mana value off the stack; face_castface.go)
 	anyTwobrid     bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
@@ -314,7 +320,7 @@ type genPrep struct {
 	// restrF: the distinct spend restrictions (ManaRestrict filters) of the
 	// table's restricted mana abilities, in table order; the restricted
 	// mana floating beside a pool names its restriction by index
-	// (player.poolR's kind bits), so restrKinds are encodable (Giada's Angel
+	// (a State.rb batch's kind), so restrKinds are encodable (Giada's Angel
 	// spells, Secluded Courtyard's creature spells of the chosen type, a
 	// Standard table's three restricted lands)
 	restrF [restrKinds]kop.FilterID
@@ -631,6 +637,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasWebSling {
 			g.anyWebSling = true
+		}
+		if c.HasMayFlash {
+			g.anyMayFlash = true
 		}
 		if c.HasBestow {
 			g.anyBestow = true
@@ -1069,6 +1078,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			anyTaps = anyTaps || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps
+			g.anyTapAll = g.anyTapAll || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Flags2&kop.Tf2Batch != 0
 			g.tapsWhose = g.tapsWhose || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.Whose != kop.WhoseAny
 			g.anySelfDisc = g.anySelfDisc || a.Kind == kop.AbTriggered && selfDiscLine(a)
 			g.anyTWTap = g.anyTWTap || a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigTaps && a.Trig.N == kop.TrigNTeamworkTap
@@ -1081,7 +1091,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			manaGrant = manaGrant || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0
 		}
 	}
-	g.manaTaps = anyTaps && manaGrant
+	g.manaTaps = anyTaps && (manaGrant || g.anyTapAll)
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatNoMaxHandSize {
@@ -1195,7 +1205,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 
 // Capacities of the generated-table state.
 const (
-	maxRem    = 12 // remembered / chosen objects of one resolution
+	maxRem    = 64 // remembered / chosen objects of one resolution (12 before 2026-11-03: Sins of the Father's chapter III remembers a whole graveyard)
 	maxOvr    = 8  // distinct override records on one permanent (identical ones merge: ovRec.n)
 	maxMay    = 16 // play-from-zone permissions (8 before kcaps2x: StallMayPlay was hit, validaggs)
 	maxDProg  = 6  // delayed programs
@@ -1269,8 +1279,10 @@ const (
 )
 
 // maxFx bounds the effect records live at once (all permanents); a full
-// pool stalls the game (StallTables).
-const maxFx = 32
+// pool stalls the game (StallTables). 64 since 2026-11-03: a gifted Dawn's
+// Truce grants hexproof and then indestructible to every permanent its
+// controller has, a record each (kwGrantFx), so seventeen permanents filled 32.
+const maxFx = 64
 
 // maxXTPool bounds the stack entries with a multi-object target slot or a
 // damage division alive at once.
@@ -1408,20 +1420,19 @@ type genState struct {
 	trigTurn   uint16   // triggered abilities resolved this turn (StallLoop)
 	dilemmas   [2]uint8 // the dilemmas each player faced this turn (trig_dilemma.go)
 	on         bool     // the State plays a generated table
+	tapBatch   uint8    // trig_tapall.go: the open tap batch's first pending index + 1 (0 = none)
 	batchLatch uint8    // trig_oneormore.go: bit 7 a leave to a graveyard is being checked; bits 0-4 the open batch's first pending index + 1 (0 = none). Was pendOver (unused), so State is unchanged
 	tyM        slotMask // slots whose perm.gty holds override-derived types (ovGenTy)
 	stalled    uint8    // why the game was stopped at the kernel's capacity (a draw); 0 = it wasn't
 	noTgtRed   bool     // cost computation without target-dependent reductions
 	mayPlayAny bool     // the may-play cast being priced is under the any-type rider
-	// poolRChosen is, per player, the creature type the source of poolR's mana chose.
-	poolRChosen [2]uint8
-	probe       probe    // the spell / ability a priority feasibility check is for
-	tgtSelf     uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
-	inLoop      bool     // executing one object of a multi-object target slot
-	mt          multiTgt // the multi-object target slot being chosen
-	lastCK      kop.CounterKind
-	disc        Obj      // the card being discarded (TrigDiscarded)
-	nlB         [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
+	probe      probe    // the spell / ability a priority feasibility check is for
+	tgtSelf    uint8    // the graveyard card a feasibility check is for, plus one (0: none): it leaves the graveyard for the stack when cast, so it is no target of its own cast
+	inLoop     bool     // executing one object of a multi-object target slot
+	mt         multiTgt // the multi-object target slot being chosen
+	lastCK     kop.CounterKind
+	disc       Obj      // the card being discarded (TrigDiscarded)
+	nlB        [2]uint8 // locked permanents 3 and 4 (nlA; fills the padding before kicked)
 
 	redNC [2]uint8 // ExRedNCDmg: the noncombat damage each player's red sources dealt this turn, saturating (prep.anyRedNC only; value_damagetally.go; fills the pad before kicked)
 	// grantSrc is the granting permanent plus one (0 = none) while a grant
@@ -1707,7 +1718,7 @@ const (
 	StallEnterDefender = 55  // an Attacking$ True move onto the battlefield while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (zone_changezoneparams.go)
 	StallPrevCol       = 56  // a fourth Ext PreventColor record in one turn (genState.prevCol; cast_altfree.go)
 	StallColGrant      = 57  // more than maxColG Ext ColorGrant records in one turn (genState.colG; static_colourgrant.go)
-	StallRestrX        = 58  // a restricted colour past 7 mana beside another (State.poolRx; mana_reflected.go)
+	StallRestrX        = 58  // a reflected search's restricted mana past the batches State.rb holds (mana_reflected.go)
 	StallEndureN       = 59  // an Endure Spirit mint a CreateToken replacement multiplies (act_endure.go)
 	StallLinkCtr       = 60  // an until-leaves return rider's counters on a card that does not enter inline (a returning Aura asked its host, an as-enters choice asked first; zone_untilleaves.go)
 	StallNumTimes      = 61  // an open Announce$ NumTimes (no AnnounceMax$) whose eighth repetition is still payable (cast_announcetimes.go)

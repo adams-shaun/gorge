@@ -50,39 +50,56 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 			Text: "AtEOT$ " + value + " is not implemented; the affected object stays on the battlefield (one Note per call)"})
 		return
 	}
+	if scheduleAtEOTGroup(h, c, value, rider, affected) {
+		return
+	}
 	scheduleAtEOTRider(h, c.Controller, c.Source, rider, affected)
 }
 
-// scheduleAtEOTTokens is scheduleAtEOT for a Token effect. One resolution that
-// makes several tokens and says "sacrifice them at the beginning of the next
-// end step" creates one delayed triggered ability naming all of them (CR
-// 603.7), as Forge's TokenEffectBase registers it, so the end step puts one
-// trigger on the stack, not one per token. Another rider, or a single token,
-// is scheduleAtEOT's per-object registration.
-func scheduleAtEOTTokens(h Host, c *Ctx, sa *cards.SA, minted []state.ObjID) {
-	rider, ok := atEOTRiders.Get(strings.TrimSpace(sa.ParamStr(cards.PKAtEOT)))
-	if ok && rider.body == "__kwEncoreSacrifice" && c.Source != 0 {
-		var live []state.ObjID
-		for _, id := range minted {
-			if h.Game().Obj(id) != nil {
-				live = append(live, id)
-			}
-		}
-		if len(live) > 1 {
-			text := ""
-			if rider.thisTurn {
-				text = "|TT=" + strconv.Itoa(int(h.Game().Turn))
-			}
-			if rider.yours {
-				text += "|VP=You"
-			}
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: rider.step, Counter: "__kwEncoreSacrificeGroup",
-				Text: text, IDs: live})
-			return
+// scheduleAtEOTGroup is scheduleAtEOT's registration for one resolution that
+// affects several objects with a sacrifice rider ("sacrifice them at the
+// beginning of the next end step"): one delayed triggered ability naming all of
+// them (CR 603.7), as Forge's registerDelayedTrigger creates it, so the end
+// step puts one trigger on the stack, not one per object. It reports whether it
+// registered. Any other rider, or fewer than two live objects, is the
+// per-object registration.
+func scheduleAtEOTGroup(h Host, c *Ctx, value string, rider atEOTRider, affected []state.ObjID) bool {
+	if c.Source == 0 || !groupedSacrifice(value, rider) {
+		return false
+	}
+	var live []state.ObjID
+	for _, id := range affected {
+		if h.Game().Obj(id) != nil {
+			live = append(live, id)
 		}
 	}
-	scheduleAtEOT(h, c, sa, minted)
+	if len(live) < 2 {
+		return false
+	}
+	h.Emit(groupRegistration(h, c.Controller, c.Source, rider, live))
+	return true
+}
+
+// groupedSacrifice reports whether the rider is a plain sacrifice, the one
+// whose delayed trigger can name a group of objects (SacrificeCtrl has each
+// object's controller sacrifice it, so it stays per-object).
+func groupedSacrifice(value string, r atEOTRider) bool {
+	return r.body == "__kwEncoreSacrifice" && value != "SacrificeCtrl"
+}
+
+// groupRegistration is the DelayedRegister event of a group sacrifice over ids
+// (empty ids: the delayed trigger that does nothing, scheduleAtEOTNone).
+func groupRegistration(h Host, controller state.PlayerID, creator state.ObjID, r atEOTRider, ids []state.ObjID) events.Event {
+	text := ""
+	if r.thisTurn {
+		text = "|TT=" + strconv.Itoa(int(h.Game().Turn))
+	}
+	if r.yours {
+		text += "|VP=You"
+	}
+	return events.Event{Kind: events.DelayedRegister, Obj: creator,
+		Player: controller, Step: r.step, Counter: "__kwEncoreSacrificeGroup",
+		Text: text, IDs: ids}
 }
 
 // scheduleAtEOTRider registers one one-shot delayed promise per affected
@@ -127,15 +144,7 @@ func scheduleAtEOTNone(h Host, controller state.PlayerID, creator state.ObjID, r
 	if h.Game().Obj(creator) == nil {
 		return
 	}
-	text := ""
-	if r.thisTurn {
-		text = "|TT=" + strconv.Itoa(int(h.Game().Turn))
-	}
-	if r.yours {
-		text += "|VP=You"
-	}
-	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: creator,
-		Player: controller, Step: r.step, Counter: "__kwEncoreSacrificeGroup", Text: text})
+	h.Emit(groupRegistration(h, controller, creator, r, nil))
 }
 
 // atEOTRider is the registration one AtEOT$ value schedules: the builtin

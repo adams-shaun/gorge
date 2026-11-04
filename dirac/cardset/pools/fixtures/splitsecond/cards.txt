@@ -1,0 +1,12 @@
+# instants and sorceries granted split second by a battlefield static, with
+# responses and activated abilities the grant must shut out
+# (dirac/oracle/splitsecond_test.go)
+Essence Scatter
+Grizzly Bears
+Island
+Lightning Bolt
+Mountain
+Prodigal Sorcerer
+Samut, Tyrant of Naktamun
+Shock
+Unsummon

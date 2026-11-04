@@ -1,0 +1,22 @@
+# the may-flash pool (CR 702.8, K:MayFlashCost): the lowered carriers
+# beside Savage Ventmaw (its attack trigger floats six mana through
+# combat, so the pool pays a may-flash cast at instant timing), mana
+# elves, vanilla creatures and basics
+# (dirac/oracle/mayflash_test.go)
+Harbinger of the Tides
+Mystical Tether
+Saproling Symbiosis
+Rout
+Savage Ventmaw
+Llanowar Elves
+Elvish Mystic
+Grizzly Bears
+Giant Growth
+Savannah Lions
+Air Elemental
+Serra Angel
+Wind Drake
+Forest
+Mountain
+Island
+Plains

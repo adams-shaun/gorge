@@ -86,8 +86,8 @@ func TestRestrictedSourceAdmission(t *testing.T) {
 	}
 	sc.s.Apply(MakeAction(AkCast, uint8(lions), 0, 0))
 	sc.s.Step()
-	if sc.s.sp != 1 || sc.s.pl[0].poolR != 0 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("(a) after the Lions: stack %d poolR %#x pool %v, want the Lions on the stack and nothing floating", sc.s.sp, sc.s.pl[0].poolR, sc.s.pl[0].pool)
+	if sc.s.sp != 1 || sc.s.rbAny(0) || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("(a) after the Lions: stack %d restricted %v pool %v, want the Lions on the stack and nothing floating", sc.s.sp, sc.s.rb[0], sc.s.pl[0].pool)
 	}
 
 	// (b) Giada's {W}: an Angel spell, not a non-Angel
@@ -178,8 +178,8 @@ func TestRestrictedSourceAdmission(t *testing.T) {
 	}
 	sc.s.Apply(x1)
 	sc.s.Step()
-	if sc.s.sp != 1 || sc.s.pl[0].poolR&poolRCnt != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("(e) after the Ballista (X = 1): stack %d poolR %#x pool %v, want one restricted mana floating", sc.s.sp, sc.s.pl[0].poolR, sc.s.pl[0].pool)
+	if sc.s.sp != 1 || sc.s.restrN(0) != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("(e) after the Ballista (X = 1): stack %d restricted %v pool %v, want one restricted mana floating", sc.s.sp, sc.s.rb[0], sc.s.pl[0].pool)
 	}
 }
 

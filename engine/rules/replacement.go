@@ -242,10 +242,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			// line's would be.
 			r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
 			cc := chosenCapture{ids: ce.Chosen, bound: ce.ChosenBound}
-			if e.replacementMatchesEffectCreatedCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, cc) {
+			if e.replacementMatchesEffectCreatedByCap(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers, ce.Controller, cc) {
 				matches = append(matches, replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
 					rememberedPlayers: ce.RememberedPlayers,
 					chosenCards:       ce.Chosen, chosenBound: ce.ChosenBound,
+					controller: ce.Controller, frozenController: true,
 					key: "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))})
 			}
 		}
@@ -509,7 +510,7 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		// re-gated on ActiveZones$.
 		matched := false
 		if m.key != "" {
-			matched = e.replacementMatchesEffectCreatedCap(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers, m.chosenCap())
+			matched = e.replMatchEffectCreated(m, ev)
 		} else {
 			matched = e.replacementMatches(*m.repl, m.id, ev)
 		}

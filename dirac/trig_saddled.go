@@ -21,7 +21,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) fireBecomesSaddled(k *prep, sl Slot, was bool) {
 	o := s.perms[sl].obj
 	ob := &s.objs[o]
-	cd := &k.t.Cards[ob.card]
+	card := s.cardAt(sl) // a Mount that is a copy fires the copied card's triggers (CR 707.2)
+	cd := &k.t.Cards[card]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind != kop.AbTriggered || a.Trig.Event != kop.TrigBecomesSaddled {
@@ -31,7 +32,7 @@ func (s *State) fireBecomesSaddled(k *prep, sl Slot, was bool) {
 			continue
 		}
 		np := s.npend
-		s.enqueue(o, ob.ver, ob.card, uint8(i), s.ctrlOfObj(o), o, s.ctrlOfObj(o), 0)
+		s.enqueue(o, ob.ver, card, uint8(i), s.ctrlOfObj(o), o, s.ctrlOfObj(o), 0)
 		s.panharmKeyword(k, ob.slot, kop.TrigBecomesSaddled, o, np)
 	}
 }

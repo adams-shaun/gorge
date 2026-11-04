@@ -1171,6 +1171,36 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("FullyUnlock %s$", k)
 			}
 		}
+	case "TapAll":
+		// gorge tapAllMatches and the action-batch latch (trigger_match.go;
+		// CR 603.2c): "whenever one or more <ValidCards$> you control become
+		// tapped" queues once per tapping action (a Tap or TapAll
+		// resolution, the declare-attackers taps, one cost's tap parts, one
+		// mana ability's tapped costs) and once per tap outside one (a mana
+		// ability's {T}, a cost's own {T}). The kernel's TrigTaps over a
+		// filter of the tapped permanent, latched per tap batch
+		// (dirac/trig_tapall.go). Activator$, ValidPlayer$ and Attacker$
+		// stay unread and refuse; a body reading the batch refuses (the
+		// queued instance carries only its first member).
+		if tr.Zone != zBattlefield {
+			return refuse("TapAll TriggerZones %d", tr.Zone)
+		}
+		vc := tp.str("ValidCards")
+		if tr.F, err = readF("ValidCards"); err != nil {
+			return err
+		}
+		if tr.F == nil || tr.F.Players != 0 || len(tr.F.Clauses) == 0 {
+			return refuse("TapAll ValidCards %q", vc)
+		}
+		for _, c := range tr.F.Clauses {
+			if c.Ctrl != whoYou || c.Flags&fSelf != 0 {
+				return refuse("TapAll ValidCards %q", vc)
+			}
+		}
+		if lc.saReadsBatch(t.Effect) {
+			return refuse("TapAll body reads the batch")
+		}
+		tr.Event, tr.Batch = "Taps", true
 	case "LandPlayed", "SearchedLibrary", "Forage", "Discover":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err
@@ -2776,6 +2806,17 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		switch {
 		case r.Event == "GameLoss" && vp == "You":
 			rl.Kind = "YouCantLose"
+			// ValidLoseReason$ LifeReachedZero narrows the replacement to the
+			// loss for 0 or less life (CR 704.5a): poison, a drawn-from-empty
+			// library and "loses the game" effects still lose (gorge
+			// replacement_match.go compares the reason to the loss event's).
+			// Any other reason refuses.
+			if reason, ok := rp.get("ValidLoseReason"); ok {
+				if strings.TrimSpace(reason) != "LifeReachedZero" {
+					return refuse("GameLoss ValidLoseReason %q", reason)
+				}
+				rl.Bits = kop.CantLoseLife
+			}
 		case r.Event == "GameWin" && vp == "Opponent":
 			rl.Kind = "OppsCantWin"
 		default:

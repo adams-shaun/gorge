@@ -33,8 +33,13 @@ import (
 //     A spell has the keyword or not, so two granting statics give one
 //     trigger; the Affected$ filter may name the caster (YouCtrl, the Instant
 //     and Sorcery emblem) or the cast (wasCastByYou).
-//   - Every other keyword (Conspire, Split second, Delve) has no printed
-//     form in the kernel and refuses by name.
+//   - Split second lowers to Kind "StackKw" too: gorge reads the derived
+//     keyword off each spell on the stack at every priority offer
+//     (rules split_second.go), so the kernel reads the grant off the stack
+//     entries (kernel kw_splitsecond.go). The printed keyword has no form in
+//     the kernel.
+//   - Every other keyword (Conspire, Delve) has no printed form in the
+//     kernel and refuses by name.
 func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	kw := sp.str("AddKeyword")
 	if kw == "" || strings.Contains(kw, " & ") {
@@ -48,7 +53,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 	}
 	head, param, _ := strings.Cut(kw, ":")
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Casualty", "Lifelink", "Storm":
+	case "Affinity", "Cascade", "Improvise", "Casualty", "Lifelink", "Storm", "Split second":
 	default:
 		return refuse("AffectedZone Stack grant of %q", kw)
 	}
@@ -77,12 +82,12 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 			return err
 		}
 		return nil
-	case "Cascade", "Improvise", "Lifelink", "Storm":
+	case "Cascade", "Improvise", "Lifelink", "Storm", "Split second":
 		if param != "" {
 			return refuse("AffectedZone Stack grant of %q", kw)
 		}
-		if head == "Lifelink" && castHand {
-			return refuse("AffectedZone Stack lifelink grant restricted to spells cast from hand")
+		if (head == "Lifelink" || head == "Split second") && castHand {
+			return refuse("AffectedZone Stack %s grant restricted to spells cast from hand", strings.ToLower(head))
 		}
 	case "Casualty":
 		if n, err := strconv.Atoi(param); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != param {
@@ -112,7 +117,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) error {
 // resolving spell deals damage) inverts the provenance rule: the alternative
 // must name YouCtrl and carry no cast word.
 func stackAffected(aff, head string) (string, bool, error) {
-	atDamage, atCast := head == "Lifelink", head == "Storm"
+	atDamage, atCast := head == "Lifelink" || head == "Split second", head == "Storm"
 	var alts []string
 	hand, plain := false, false
 	for _, alt := range strings.Split(aff, ",") {

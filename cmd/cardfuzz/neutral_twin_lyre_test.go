@@ -11,6 +11,7 @@ import (
 // instead of passing. The native pick is played, so the seed names the same
 // game; only the neutral answer is under test.
 func TestNeutralTwinEntrancingLyre(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

@@ -1023,6 +1023,9 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
+	if in.Op == kop.OpTap && k.gen.anyTapAll {
+		defer s.tapBatchClose(s.tapBatchOpen(k)) // one Tap resolution is one tapping action (trig_tapall.go)
+	}
 	var hr holdRec
 	if in.Op == kop.OpReturn && kop.Zone(in.C) == kop.ZoneBattlefield || in.Op == kop.OpReturnEx && kop.Zone(in.C&7) == kop.ZoneBattlefield {
 		hr = s.holdEntries() // gorge's zone batch: the targets enter together (CR 603.6a)
@@ -1658,7 +1661,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
 						s.entryOverride(k, &rid, sl)
-						s.entryAtEOT(&rid, o)
+						s.entryAtEOT(&rid, o, eb.n > 1)
 					}
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)
@@ -1982,7 +1985,12 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		}
 	}
 	if fl&kop.CpSacAtEndDly != 0 {
-		s.sacAtEndUntracked(t, e.ctrl) // trig_leavereturn.go
+		// one resolution's copies share one delayed triggered ability (CR 603.7;
+		// gorge effCopyPermanent registers one group): a later copy joins the
+		// first one's trigger
+		if eb == nil || eb.n < 2 || !s.sacAtEndJoin(t) {
+			s.sacAtEndUntracked(t, e.ctrl) // trig_tokenateot.go
+		}
 	}
 	if fl&kop.CpRemember != 0 {
 		s.remember(t)

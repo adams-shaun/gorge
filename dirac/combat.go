@@ -228,7 +228,9 @@ func (s *State) finishAttacks(k *prep) {
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
 		}
 		if s.subs[kop.TrigTaps].any() {
+			tb := s.tapBatchOpen(k)   // the declaration's taps are one tapping action (CR 508.1f; trig_tapall.go)
 			s.fireTapsMask(k, tapped) // gorge taps the attackers after the declaration's triggers
+			s.tapBatchClose(tb)
 		}
 	} else if s.nAttackers > 0 && s.subs[kop.TrigAttackersDeclared].any() {
 		s.firePlayer(k, kop.TrigAttackersDeclared, s.active, int16(s.nAttackers))

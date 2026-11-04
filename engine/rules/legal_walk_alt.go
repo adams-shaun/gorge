@@ -816,7 +816,9 @@ func (w *legalWalk) exileCastsWalk() {
 		// sits BEFORE the warp gate's continue: a non-warp card (every airbent
 		// card) would otherwise never reach it.
 		if airbendAvailable(id) && !w.castRestrictedCost(p, id, Cost{Generic: 2}) && !e.castSuppressed(p, id) {
-			instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash)
+			// as though it had flash (CR 601.3b): Serpent of the Pass's own
+			// CastWithFlash static reads from exile as it does from hand
+			instantSpeed := f.IsInstant() || e.hasKeywordH(id, kwhFlash) || w.castWithFlashAsFace(p, id, f)
 			if (instantSpeed || sorcery) && w.spellTimingOK(p, id, f, sorcery) &&
 				e.castTargetsAvailable(p, id, f.SpellAbility()) {
 				if w.offerCastable(p, id, Cost{Generic: 2}, spellScope("airbend_cast"), false) {

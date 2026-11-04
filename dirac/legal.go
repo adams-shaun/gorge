@@ -79,6 +79,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
 		}
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
+			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
+				// the timing gate refused the plain cast: the may-flash
+				// cast is the one option it adds (kw_mayflash.go)
+				if !haveAv {
+					s.availFor(k, p, &av)
+					haveAv = true
+				}
+				s.offerMayFlashHand(k, d, p, o, c, &av)
+			}
 			continue
 		}
 		if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
@@ -113,7 +122,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			adj = s.adjustFit(k, &av, p, c, o, *cost, false)
 			cost = &adj
 		}
-		if !av.affords(cost, pipMaskOf(cost), 0) && (pl.poolR == 0 && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
+		if !av.affords(cost, pipMaskOf(cost), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, &av)) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 			}
@@ -317,6 +326,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// after the may-play walks: one land play per object (CR 715.3d)
 		s.offerAdventureLandPlays(k, d, p, sorc) // cast_adventureland.go
 	}
+	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
+		s.filterSplitSecond(k, d) // kw_splitsecond.go
+	}
 	d.add(MakeAction(AkPass, 0, 0, 0))
 }
 
@@ -516,7 +528,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 			pc = s.manaPCGen(k, sl)
 		}
 		s.removeSrc(k, &av2, sl, pc)
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, &av2)) {
+		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, &av2, sl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -534,7 +546,7 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (s.pl[s.perms[sl].ctrl].poolR == 0 || !s.actPoolAffords(k, sl, cost, av)) {
+	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, cost, av, skip)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
@@ -1411,6 +1423,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 		s.beginBestow(k, Obj(a.Source())) // CR 702.103a; kw_bestow.go
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
+	case AkMayFlash:
+		s.beginMayFlash(k, Obj(a.Source())) // CR 702.8; kw_mayflash.go
 	default:
 		panic("kernel: bad priority action")
 	}

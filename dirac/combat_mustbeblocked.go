@@ -49,12 +49,15 @@ func prepMustBlock(t *kop.Table, g *genPrep) {
 // mustBlockUses reports the ExtMustBeBlocked mask need (arenaUses).
 func mustBlockUses(in *kop.Instr, u *[numMech]bool) {
 	if in.Op == kop.OpExt && in.Ext() == kop.ExtMustBeBlocked {
-		u[mechMustBlocked] = true
+		u[mechMustBlocked], u[mechMustBlockedPost] = true, true
 	}
 }
 
 // mustBlockNewTurn ends the grants as the turn begins.
-func (s *State) mustBlockNewTurn(k *prep) { s.mSlZero(k, mechMustBlocked) }
+func (s *State) mustBlockNewTurn(k *prep) {
+	s.mSlZero(k, mechMustBlocked)
+	s.mSlZero(k, mechMustBlockedPost)
+}
 
 // mustBlockExt is ExtMustBeBlocked: Obj, or every battlefield permanent
 // matching F with Obj RefNone (the suspectExt shape), is marked.
@@ -77,12 +80,20 @@ func (s *State) mustBlockMark(k *prep, sl Slot) {
 		s.mSlSet(k, mechMustBlocked, sl)
 		s.touchSl(sl)
 	}
+	// a grant made after the permanent lost its abilities is a later layer-6
+	// effect than the loss and survives it (CR 613.7; gorge's layer-6 walk)
+	if !s.mSl(k, mechMustBlockedPost, sl) && s.genLost(k, sl) {
+		s.mSlSet(k, mechMustBlockedPost, sl)
+		s.touchSl(sl)
+	}
 }
 
 // mustBeBlocked reports whether the attacker at a must be blocked if able:
-// printed, or marked, and its abilities not lost.
+// printed, or marked, and its abilities not lost; a mark made after the loss
+// holds through it.
 func (s *State) mustBeBlocked(k *prep, a Slot) bool {
-	return (k.t.Cards[s.cardAt(a)].MustBeBlocked || s.mSl(k, mechMustBlocked, a)) && !s.genLost(k, a)
+	return (k.t.Cards[s.cardAt(a)].MustBeBlocked || s.mSl(k, mechMustBlocked, a)) && !s.genLost(k, a) ||
+		s.mSl(k, mechMustBlockedPost, a)
 }
 
 // mustBlockAttackers is the attacking creatures that must be blocked if able.

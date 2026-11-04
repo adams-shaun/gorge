@@ -29,8 +29,8 @@ func helperFloatScen(t *testing.T, names ...string) (*scen, map[string]CardID) {
 	sl := sc.slot(sc.perm(id["Hydraulic Helper"], 0))
 	var held [kop.NumManaKinds]uint8
 	sc.s.tapGap(sc.k, 0, sl, slotBit(sl), &held)
-	if sc.s.pl[0].poolR&poolRCnt != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Fatalf("after the Helper: poolR %#x pool %v, want one restricted {U} and an empty pool", sc.s.pl[0].poolR, sc.s.pl[0].pool)
+	if sc.s.restrN(0) != 1 || sc.s.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
+		t.Fatalf("after the Helper: restricted %v pool %v, want one restricted {U} and an empty pool", sc.s.rb[0], sc.s.pl[0].pool)
 	}
 	return sc, id
 }
@@ -62,8 +62,8 @@ func TestFilterFeeSpendsRestrictedManaFirst(t *testing.T) {
 	}
 	s.pl[0].pool[kop.R] = 1
 	s.filtDo(sc.k, 0, filtStep{sl: room, gap: true, ans: 1 + uint8(kop.G)})
-	if s.pl[0].poolR != 0 {
-		t.Fatalf("poolR %#x, want the restricted {U} spent on the fee", s.pl[0].poolR)
+	if s.rbAny(0) {
+		t.Fatalf("restricted %v, want the restricted {U} spent on the fee", s.rb[0])
 	}
 	if s.pl[0].pool[kop.R] != 1 || s.pl[0].pool[kop.G] != 1 {
 		t.Fatalf("pool %v, want the {R} kept and the filter's {G} added", s.pl[0].pool)

@@ -8,7 +8,7 @@ import (
 // ability is no mana ability (CR 605.1a), so its mana is added on
 // resolution, and gorge's ManaAdd keeps the restriction on it
 // (Player.RestrictedMana). Chandra, Chill of Compliance's +1 adds a {U}
-// spendable only on a noncreature spell. The units float in poolR, the
+// spendable only on a noncreature spell. The units float in State.rb, the
 // restricted-mana byte the payment and offer machinery already reads
 // (mana_window.go restrSpendable / restrAvail / payRestr).
 
@@ -17,8 +17,8 @@ import (
 var DebugPlainLoyaltyMana bool
 
 // addManaRestr floats n units of colour col for p, spendable only as
-// filter f allows. n <= 0 adds nothing; a poolR that cannot hold them
-// (a second restriction or colour, or a count past 15) stalls loud,
+// filter f allows. n <= 0 adds nothing; a pool whose batches cannot hold
+// them (State.rb: every batch taken, or past 255) stalls loud,
 // never a silent spill.
 //
 //go:noinline
@@ -30,7 +30,7 @@ func (s *State) addManaRestr(k *prep, p uint8, col, n int, f kop.FilterID) {
 		s.pl[p].pool[col] += uint8(n)
 		return
 	}
-	if k.gen == nil || n > int(poolRCnt) || !s.pl[p].addRestr(k, &s.poolRx[p&1], f, col, uint8(n)) {
+	if k.gen == nil || n > 255 || !s.addRestr(k, p, f, col, uint8(n)) {
 		s.capFull(StallRestrSrc)
 	}
 }
@@ -52,7 +52,7 @@ func (g *genPrep) prepAddManaRestr(a *kop.Ability) {
 // (Abstract Paintmage's "{U}{R}, instant or sorcery only", Desolation of
 // Smaug's four restricted mana of any colours; CR 106.6, 605.1a). A fixed colour is OpAddMana F, a
 // colour choice is ExtManaChoice F; both float the units as restricted mana
-// (poolR, poolRx) through addManaRestr, one restriction for every unit
+// (State.rb) through addManaRestr, one restriction for every unit
 // (gorge effMana's ManaAdd restriction, askManaChoice picking first).
 
 // DebugDBManaRestrPlain: a test-only mutation that adds a resolving colour

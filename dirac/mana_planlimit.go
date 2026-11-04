@@ -22,8 +22,8 @@ import (
 const (
 	planLimitNodes = 65536 // decision.MaxPaymentPlanSearchNodes
 	planLimitActs  = 64    // decision.MaxPaymentActivations
-	planLimitAlts  = 6
-	planLimitAny   = 63 // the mask of all six mana kinds
+	planLimitAlts  = 10    // five own colours and five granted ones: Public Thoroughfare's any-colour ability and the intrinsic ones
+	planLimitAny   = 63    // the mask of all six mana kinds
 )
 
 // lsAlt is one alternative of a unit: the colour it makes and the ability that
@@ -217,6 +217,21 @@ func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt)
 	left := pk.types[pk.utyp[u]].mask
 	cd := &k.t.Cards[s.cardAt(pk.units[u])]
 	n := 0
+	// a granted type's intrinsic ability is appended unless an ability of the
+	// card produces exactly that colour (gorge ManaAbilitiesProduce keys on
+	// the Produced$ text): an any-colour ability does not
+	var printed kop.ColorMask
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 && a.AFlags&kop.AfManaChoice == 0 {
+			printed |= a.ManaColors
+		}
+	}
+	for c, i := range k.gen.blgSub {
+		if i != subOutside && cd.Subtypes.Has(int(i)) {
+			printed |= 1 << c // the card's own basic land type: its ability is listed above
+		}
+	}
+	more := s.blgMask(k, pk.units[u]) &^ printed & kop.ColorMask(pk.types[pk.utyp[u]].mask)
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
@@ -233,7 +248,7 @@ func (s *State) unitAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsAlt)
 			left &^= 1 << c
 		}
 	}
-	for ; left != 0; left &= left - 1 {
+	for left |= uint8(more); left != 0; left &= left - 1 {
 		out[n] = lsAlt{uint8(bits.TrailingZeros8(left)), -1}
 		n++
 	}

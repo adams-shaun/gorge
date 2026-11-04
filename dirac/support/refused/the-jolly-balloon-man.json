@@ -6,7 +6,7 @@
     "pool": "std-dsk",
     "surface": "autopay",
     "seed": 1,
-    "pair": 125,
+    "pair": 69,
     "policy": "random",
     "mulligans": 0
   }

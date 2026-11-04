@@ -75,7 +75,7 @@ func TestPayLifeSpellUnplanned(t *testing.T) {
 func TestPayLifeSpellLowered(t *testing.T) {
 	sc, fum, giant, swamp := kpaylifeScen(t, Config{GorgeLowering: true, NoElide: true})
 	sc.do(t, AkCast, uint8(fum), 0xff)
-	pool, _, _ := sc.s.PoolOf(0)
+	pool, _ := sc.s.PoolOf(0)
 	n := 0
 	for _, u := range pool {
 		n += int(u)
@@ -105,7 +105,7 @@ func TestPayLifeSpellLowered(t *testing.T) {
 	if sc.s.LifeOf(0) != 17 {
 		t.Fatalf("life %d after payment, want 17", sc.s.LifeOf(0))
 	}
-	pool, _, _ = sc.s.PoolOf(0)
+	pool, _ = sc.s.PoolOf(0)
 	if pool != ([kop.NumManaKinds]uint8{}) {
 		t.Fatalf("pool %v after payment, want empty", pool)
 	}

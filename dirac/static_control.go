@@ -47,10 +47,10 @@ const (
 	fcArmed    = 1 << 7 // DurYourNextTurn: the controller's next turn is the current one or has begun
 )
 
-// the pool's ended set is a uint32 bitmask. maxFx 16 -> 32: a declared
+// the pool's ended set is a uint64 bitmask. maxFx 16 -> 32: a declared
 // capacity since 2026-10-27 (every Storm of Souls
-// entrant takes its own override record).
-var _ = [1]struct{}{}[maxFx-32]
+// entrant takes its own override record); 32 -> 64 since 2026-11-03.
+var _ = [1]struct{}{}[maxFx-64]
 
 func (r *fxRec) cTo() uint8   { return r.r.idx & fcTo }
 func (r *fxRec) cPrev() uint8 { return r.r.idx & fcPrev >> 1 }
@@ -248,7 +248,7 @@ func (s *State) ctrlStaticWants(k *prep, src, sl Slot) bool {
 //go:noinline
 func (s *State) ctrlExpire(k *prep, cleanup bool) {
 	for pass := 0; pass <= maxFx+1; pass++ {
-		var ended uint32
+		var ended uint64
 		for i := 0; i < int(s.g.nfx); i++ {
 			if r := &s.g.fx[i]; r.kind == fxControl && s.ctrlEnded(k, r, cleanup) {
 				ended |= 1 << uint(i)

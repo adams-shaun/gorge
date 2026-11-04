@@ -25,6 +25,7 @@ import (
 // pin, so a future protocol addition that closes the gap fails here and should
 // invert the last assertion to demand the neutral 4U plan.
 func TestBenthicGiantCostGrantIsInherent(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	p, err := pinnedPool(reg)
 	if err != nil {

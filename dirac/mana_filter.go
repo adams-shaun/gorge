@@ -233,7 +233,8 @@ func (s *State) windowRestrOwedTap(k *prep, p uint8, sl Slot, useful *kop.ManaCo
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
-		if !s.pl[p].addRestr(k, &s.poolRx[p&1], a.ManaRestrict, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
+		s.manaTapped(k, sl)
+		if !s.addRestr(k, p, a.ManaRestrict, bits.TrailingZeros8(uint8(a.ManaColors)&want), max(a.ManaN, 1)) {
 			s.capFull(StallRestrSrc)
 		}
 		return true
@@ -296,9 +297,8 @@ type filtStep struct {
 }
 
 type filtKey struct {
-	pool  [kop.NumManaKinds]uint8
-	poolR uint16
-	rx    uint16 // poolRx: the other colours of the restricted mana
+	pool [kop.NumManaKinds]uint8
+	rb   [maxRB]rbatch // the restricted mana (State.rb)
 	// art: the pool slots holding an artifact's mana (genState.poolArt):
 	// gorge's key reads the typed units apart (Player.ManaUnits), so a
 	// Three Tree Mascot's {W} over a Plains' {W} is a new state
@@ -325,7 +325,7 @@ type filtSearch struct {
 	n     int
 	path  [maxFiltPath]filtStep
 	// spill: a step of the path found floated restricted mana past what
-	// poolR names (a third restriction on the table), unrestricted: the
+	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
 	spill uint8
 }
@@ -390,6 +390,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	} else {
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
 	}
 	switch {
 	case st.gap && st.ans > 0:
@@ -458,7 +459,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return false
 	}
 	p := fs.p
-	key := filtKey{pool: t.pl[p&1].pool, poolR: t.pl[p&1].poolR, rx: t.poolRx[p&1]}
+	key := filtKey{pool: t.pl[p&1].pool, rb: t.rb[p&1]}
 	if k.artMana {
 		t.artSync(p)
 		key.art = t.g.poolArt[p&1]

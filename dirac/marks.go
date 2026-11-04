@@ -245,10 +245,9 @@ func (s *State) ViewHashCached(seat uint8, base *[MaxObj]uint64, c *ObjHashCache
 		for i, n := range pl.pool {
 			m |= uint64(n) << (8 * i)
 		}
-		m |= uint64(pl.poolR) << 48
 		h = hmix(h, m)
-		if s.poolRx[p] != 0 {
-			h = hmix(h, uint64(s.poolRx[p])) // (mana_reflected.go)
+		if rh, ok := s.rbHash(uint8(p)); ok {
+			h = hmix(h, rh) // restricted mana (mana_restrbatch.go)
 		}
 		if s.fbR[p] != 0 {
 			h = hmix(h, uint64(s.fbR[p])<<8|0xfb) // firebending red (kw_firebend.go)

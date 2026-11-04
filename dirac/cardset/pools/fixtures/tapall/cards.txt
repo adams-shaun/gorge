@@ -1,0 +1,21 @@
+# the TapAll pool (CR 603.2c, Mode$ TapAll): the two lowered carriers
+# beside the tapping actions gorge brackets as one (attacks, a Sleep, a
+# two-target Frost Breath, convoke, crew, Springleaf Drum's tapped
+# creature) and the taps it does not (creature mana, a single tap), with
+# vanilla Merfolk and basics (dirac/oracle/tapall_test.go)
+Deeproot Pilgrimage
+Rewrite History
+Merfolk of the Pearl Trident
+Coral Merfolk
+Llanowar Elves
+Springleaf Drum
+Sleek Schooner
+Smuggler's Copter
+Frost Breath
+Sleep
+Stoke the Flames
+Hill Giant
+Raging Goblin
+Island
+Forest
+Mountain
