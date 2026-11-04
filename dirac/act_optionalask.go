@@ -220,10 +220,14 @@ func (s *State) optaskPicked(o Obj) bool {
 func (s *State) optaskFireDiscard(k *prep) {
 	r := &s.res
 	for i := 0; i < int(r.peekI); i++ {
-		s.discardObj(k, r.arr[i])
+		if !s.park(k, r.arr[i], parkDiscard, 0) {
+			s.discardObj(k, r.arr[i])
+		}
 	}
 	for i := 0; i < int(r.peekN); i++ {
-		s.discardObj(k, r.peek[i])
+		if !s.park(k, r.peek[i], parkDiscard, 0) {
+			s.discardObj(k, r.peek[i])
+		}
 	}
 	r.peekI, r.peekN = 0, 0
 }

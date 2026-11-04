@@ -73,6 +73,7 @@ const (
 	parkAnswered          // asked: its move no longer competes
 	parkMass              // a mass move in a resolution, one at a time: what an earlier move took away no longer competes for it
 	parkMill              // a milled card, off the library's top when asked; x is 1 for RememberMilled$
+	parkRest              // a surveil or look rest card already off the library, moved one at a time; x is 1 for RememberMoved$
 )
 
 // parkedMove is one parked move, oldest first in s.cold.parked; x is a cycled
@@ -389,7 +390,7 @@ func parkManaHold(c int, n uint8) uint8 {
 // has left with one exile-instead effect or none, and gives the next one its ask
 // over the sources still there. Gorge makes these moves one at a time.
 func (s *State) massMovesGoOn(k *prep) {
-	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill) {
+	for len(s.cold.parked) != 0 && (s.cold.parked[0].kind == parkMass || s.cold.parked[0].kind == parkMill || s.cold.parked[0].kind == parkRest) {
 		r := &s.cold.parked[0]
 		var src [MaxPerm]Obj
 		n := s.graveMoveSources(k, r.obj, &src)
@@ -439,6 +440,64 @@ func (s *State) parkMillQuiet(o Obj, x uint8) bool {
 		}
 	}
 	return false
+}
+
+// parkRests parks the rest of a surveil or look from the first card whose
+// graveyard move competes (CR 616.1): gorge asks the order one card at a time
+// and moves them in that order, so that card and every later one wait in the
+// queue, competing or not. It returns the first parked index, or -1 when the
+// caller moves them all now.
+func (s *State) parkRests(k *prep, rest []Obj, remember bool) int {
+	first := -1
+	for i, o := range rest {
+		if s.graveMoveCompetes(k, o) {
+			first = i
+			break
+		}
+	}
+	if first < 0 {
+		return -1
+	}
+	x := uint8(0)
+	if remember {
+		x = 1
+	}
+	for _, o := range rest[first:] {
+		if s.park(k, o, parkRest, x) {
+			continue
+		}
+		if !s.parkRestQuiet(o, x) {
+			s.capFull(StallReplCands)
+			break
+		}
+	}
+	return first
+}
+
+// parkRestQuiet queues a rest card with one exile-instead effect or none, whose
+// turn comes in the queue all the same; false when the queue is full.
+func (s *State) parkRestQuiet(o Obj, x uint8) bool {
+	for i := range s.cold.parked {
+		if r := &s.cold.parked[i]; r.kind == parkNone {
+			*r = parkedMove{obj: o, kind: parkRest, x: x}
+			return true
+		}
+	}
+	return false
+}
+
+// runParkedRest takes a rest card off its owner's library and sends it to the
+// graveyard zone, whose exile-instead effects its answer has settled.
+func (s *State) runParkedRest(k *prep, o Obj, remember bool) {
+	if s.objs[o].zone != kop.ZoneLibrary {
+		return // the card left the look while it waited
+	}
+	s.touch(o)
+	s.objs[o].zone = kop.ZoneNone
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	if remember {
+		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
+	}
 }
 
 // runParkedMill takes o off its owner's library top and sends it to the graveyard
@@ -505,5 +564,7 @@ func (s *State) runParked(k *prep, r parkedMove) {
 		s.finishResolve(k, r.x != 0)
 	case parkMill:
 		s.runParkedMill(k, r.obj, r.x != 0)
+	case parkRest:
+		s.runParkedRest(k, r.obj, r.x != 0)
 	}
 }
