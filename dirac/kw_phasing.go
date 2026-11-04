@@ -211,9 +211,11 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 // phaseUntap is the untap step's phasing action (gorge finishUntapStep, CR
 // 702.26a/p): each phased-out permanent of the active player, in their
 // battlefield list's order (entry order, perm.ts), phases in unless it phased
-// out indirectly. The turn change also ended the summoning sickness of every
-// permanent the new active player controls, phased out or not (gorge
-// TurnChange); the untap loop that follows clears it on the phased-in ones.
+// out indirectly, unless a CantPhaseIn on the board as the step began forbids
+// the set (read once: the phase-ins are simultaneous). The turn change also
+// ended the summoning sickness of every permanent the new active player
+// controls, phased out or not (gorge TurnChange); the untap loop that follows
+// clears it on the phased-in ones.
 //
 //go:noinline
 func (s *State) phaseUntap(k *prep) {
@@ -233,15 +235,13 @@ func (s *State) phaseUntap(k *prep) {
 		order[j] = q
 		n++
 	}
-	// Each phase-in is consulted alone (gorge's emit choke point): a permanent
-	// phasing in earlier in the step can be the source of a CantPhaseIn that
-	// holds back every later one (a Human token of The City on the Edge of
-	// Forever that was itself phased out).
+	// The phase-ins are one simultaneous action (CR 502.1, 702.26a): the
+	// CantPhaseIn block is read once, off the board before any of them, so a
+	// phased-out source (a Human token of The City on the Edge of Forever)
+	// does not hold back its siblings when it phases in earlier in the step.
+	blocked := s.phaseInBlocked(k)
 	for i := 0; i < n; i++ {
-		if q := order[i]; s.objs[s.perms[q].obj].zone == kop.ZonePhased {
-			if s.phaseInBlocked(k) {
-				break // nothing here lifts it: a phase-in only adds statics
-			}
+		if q := order[i]; !blocked && s.objs[s.perms[q].obj].zone == kop.ZonePhased {
 			s.phaseIn(k, q)
 		}
 	}

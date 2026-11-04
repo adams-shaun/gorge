@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -242,6 +243,16 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// choice parked this scan at untapResume) never re-emits the
 		// phase-ins.
 		//
+		// CR 502.1 / 702.26a: the phase-ins are ONE simultaneous action, so
+		// every CantPhaseIn block is decided against the board as the step
+		// began, before the first phase-in is emitted: a phased-out source
+		// of the restriction (the Human token of The City on the Edge of
+		// Forever) is inert until it phases in and must not hold back its
+		// siblings. The allowed phase-ins are emitted under
+		// untapPhaseInDecided, which the emit choke point honours instead of
+		// re-consulting the moved board (no marker rides the log, so the
+		// event stream is byte-identical). A blocked candidate emits nothing.
+		//
 		// The same scan serves CR 702.26a's keyword half (task phasing-kw):
 		// a permanent with the Phasing keyword "phases in or out before [the
 		// active player] untaps during each of [his or her] untap steps", so
@@ -253,6 +264,13 @@ func (e *Engine) finishUntapStep(next int) bool {
 		// WontPhaseInNormal carrier (phased out indirectly, CR 702.25f's
 		// Teferi's Protection shape) keeps the existing skip in both halves:
 		// it is phased out, so the keyword arm never reaches it.
+		var phaseInBlockedIDs []state.ObjID
+		for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
+			if o := e.G.Obj(id); o != nil && o.PhasedOut && !o.WontPhaseInNormal &&
+				!o.PhasedOutIndirect && phaseBlocked(e, id, true) {
+				phaseInBlockedIDs = append(phaseInBlockedIDs, id)
+			}
+		}
 		for _, p := range e.G.AliveFrom(0) {
 			if p != e.G.Active {
 				continue
@@ -263,8 +281,10 @@ func (e *Engine) finishUntapStep(next int) bool {
 					continue
 				}
 				if o.PhasedOut {
-					if !o.WontPhaseInNormal && !o.PhasedOutIndirect {
+					if !o.WontPhaseInNormal && !o.PhasedOutIndirect && !slices.Contains(phaseInBlockedIDs, id) {
+						e.untapPhaseInDecided = true
 						e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: -1})
+						e.untapPhaseInDecided = false
 					}
 				} else if e.hasKeywordH(id, kwhPhasing) {
 					e.emit(events.Event{Kind: events.PhaseOut, Obj: id, Amount: 1})

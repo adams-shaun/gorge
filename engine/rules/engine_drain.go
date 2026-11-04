@@ -36,4 +36,10 @@ type engineDrain struct {
 	// counterReplacementFold marks the already-rewritten event's final emit;
 	// new counter events from a replacement body still take their own pass.
 	counterReplacementFold bool `clone:"reset"`
+	// untapPhaseInDecided is true only around one emit of finishUntapStep's
+	// phase-in scan: the CantPhaseIn block for the whole simultaneous set was
+	// decided before the first emission (CR 502.1 / 702.26a), so the emit
+	// choke point must not re-consult the moved board. It is set and cleared
+	// around a single emit and never spans a decision.
+	untapPhaseInDecided bool `clone:"reset"`
 }
