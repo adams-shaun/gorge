@@ -219,7 +219,8 @@ func TestStdFinReprosLockstep(t *testing.T) {
 func TestStdSosReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReprosLockstep(t, "std-sos", []stdRepro{
-		{"printed_flashback_beside_granted", false}, // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"printed_flashback_beside_granted", false},        // CR 702.34a: a flashback instance granted beside the printed one leaves the printed cast priced
+		{"granted_and_printed_flashback_ambiguous", false}, // CR 613.1c: the printed Flashback and the granted one (Flashback's pump) price as separate potential casts, so the ambiguity scan never drops both
 	})
 }
 
