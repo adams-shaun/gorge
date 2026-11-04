@@ -1058,12 +1058,10 @@ func (e *Engine) answerCastSubTarget(pc *pendingCast, chosen []decision.Option) 
 	pc.subAns[pc.subStage] = targetOptions(chosen)
 	pc.subStage++
 	e.repriceForTargets(pc)
-	// A spell is already on the stack (pushCast), so the chain target is
-	// recorded now, before payment (601.2c before 601.2h) -- exactly when the
-	// root's is. An activated ability's object is pushed by pushActivation
-	// (CR 602.2a), but its chain targets are still recorded at the end of
-	// payment by recordCastSubTargets, exactly as before.
-	if !pc.isAbility() && pc.stackObj != 0 {
+	// A spell is already on the stack (pushCast) and an activated ability is
+	// pushed by pushActivation (CR 602.2a), so the chain target is recorded
+	// now, before payment (601.2c before 601.2h), exactly when the root's is.
+	if pc.stackObj != 0 {
 		e.recordSubTargets(pc.stackObj, pc.subAns[pc.subStage-1])
 	}
 }
@@ -1088,17 +1086,6 @@ func (e *Engine) recordSubTargets(obj state.ObjID, ts []state.Target) {
 			ev.IDs = []state.ObjID{t.Obj}
 		}
 		e.emit(ev)
-	}
-}
-
-// recordCastSubTargets records every answered chain link's targets onto an
-// activated ability's freshly minted stack object, in chain order.
-func (e *Engine) recordCastSubTargets(pc *pendingCast) {
-	if pc.stackObj == 0 {
-		return
-	}
-	for _, ts := range pc.subAns {
-		e.recordSubTargets(pc.stackObj, ts)
 	}
 }
 
@@ -1311,20 +1298,20 @@ func (e *Engine) activationIsNinjutsu(pc *pendingCast) bool {
 func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// targetedFinish tells payCast's ability arm that THIS function owns the
 	// mana-spent dispatch below. An ability whose root declares no target but
-	// whose chain link was asked reaches here with rootOpts nil, and payCast's
-	// own "no target-recording continuation" dispatch would fire the rider a
+	// whose chain link was asked still reaches here, and payCast's own
+	// "no target-recording continuation" dispatch would fire the rider a
 	// second time. Cleared on return so a payment parked in the 601.2g window
 	// (no stack object yet, nothing dispatched here) dispatches from the
 	// resumed payCast instead.
 	pc.targetedFinish = true
 	e.payCast()
 	pc.targetedFinish = false
-	// payCast closes the proposal after creating the stack object (and has
-	// already recorded an ability's root targets, on either the immediate pay
-	// path or a resumed payCast). Keep its completed target bindings available
-	// while the deferred spend rider matches, then close it again before
-	// control returns to the host. A proposal still parked in the 601.2g mana
-	// window has not yet paid, so the guard also keeps the
+	// payCast closes the proposal after creating the stack object; the root
+	// targets were recorded at their answer (CR 601.2c), on either the
+	// immediate pay path or a resumed payCast. Keep its completed target
+	// bindings available while the deferred spend rider matches, then close it
+	// again before control returns to the host. A proposal still parked in the
+	// 601.2g mana window has not yet paid, so the guard also keeps the
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.activationPaid {
 		e.cast = pc

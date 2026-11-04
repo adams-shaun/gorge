@@ -121,6 +121,7 @@ func TestStdBigReprosLockstep(t *testing.T) {
 		{"discard_replacement_before_damage_removal", true},          // CR 514.1 then 514.2: two Rest in Peace ask which applies to a cleanup discard before damage wears off
 		{"replacement_answer_mid_payment_pays_through_window", true}, // gorge's payment plan stops at a step that poses a decision, so Legion Extruder's second Treasure, behind Rest in Peace's order ask, is activated by the manual window, which asks its colour
 		{"sba_batch_asks_before_tokens_cease", true},                 // CR 704.3: three Golems destroyed at once under Rest in Peace are each asked which replacement applies, and the two already in exile cease at the next check, not between the asks
+		{"ability_target_before_cost_replacement", true},             // CR 601.2c: Harvester of Misery's target is a target of the ability before Rest in Peace asks where its discarded source goes
 	})
 }
 

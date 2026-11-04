@@ -780,7 +780,6 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 				p0.subAns[i1] = append([]state.Target(nil), e.cast.subAns[i1]...)
 			}
 		}
-		p0.rootOpts = append([]decision.Option(nil), e.cast.rootOpts...)
 		p0.evidence = append([]state.ObjID(nil), e.cast.evidence...)
 		p0.division = append([]int32(nil), e.cast.division...)
 		if e.cast.preSuppress != nil {
