@@ -69,3 +69,46 @@ func TestFilterFeeSpendsRestrictedManaFirst(t *testing.T) {
 		t.Fatalf("pool %v, want the {R} kept and the filter's {G} added", s.pl[0].pool)
 	}
 }
+
+// CR 305.6, 605.1a: a land with a granted basic land type has the intrinsic
+// ability beside its own. Rumble Arena ({T}: Add {C}; {1},{T}: any colour) and
+// Jasmine Dragon Tea Shop ({T}: Add {C}; a restricted any-colour {T} ability)
+// each have a plain first ability and a later one the planner census misses or
+// counts per payment, so a granted Island is the union view C|U of the first
+// ability with the intrinsic {U} (one tap), not a landgrant stall.
+func TestLandGrantViewIgnoresLaterGapAbility(t *testing.T) {
+	deck := []cardset.Entry{{Name: "The Legend of Kyoshi", Count: 4}, {Name: "Rumble Arena", Count: 8},
+		{Name: "Jasmine Dragon Tea Shop", Count: 8}, {Name: "Mountain", Count: 20}}
+	set := cardsettest.Synth(t, "std-tla")
+	for _, e := range deck {
+		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
+			t.Skipf("%s not in the std-tla table", e.Name)
+		}
+	}
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Mountain"], Config{})
+	g := sc.k.gen
+	if !g.blgOn {
+		t.Fatal("blgOn unset: nothing in the matchup grants a basic land type")
+	}
+	island := kop.ColorMask(1) << kop.U
+	for _, name := range []string{"Rumble Arena", "Jasmine Dragon Tea Shop"} {
+		c := id[name]
+		if g.blgIdx[c] < 0 {
+			t.Errorf("%s has no granted-type views (it would stall landgrant)", name)
+			continue
+		}
+		v := &g.blgPC[int(g.blgIdx[c])*32+int(island)]
+		want := kop.ColorMask(1)<<kop.C | island
+		if v.manaCol != want || !v.manaMulti || v.blgFirst != uint8(kop.C)+1 {
+			t.Errorf("%s under a granted Island: manaCol %b multi %v first %d; want %b, true, %d", name, v.manaCol, v.manaMulti, v.blgFirst, want, kop.C+1)
+		}
+	}
+}
