@@ -1,0 +1,18 @@
+# The Inner Light pool: chapter II's Effect remembers a target creature and
+# draws as many cards as the combat damage it deals to a player this turn,
+# beside green and white creatures for chapter I's return, a double striker
+# (two damage events), a flier and blockers that stop the target from
+# connecting, for the oracle's constructed lockstep
+# (dirac/oracle/innerlight_test.go)
+Fencing Ace
+Forest
+Giant Spider
+Gray Ogre
+Grizzly Bears
+Hill Giant
+Mountain
+Plains
+Swamp
+The Inner Light
+Walking Corpse
+Wind Drake

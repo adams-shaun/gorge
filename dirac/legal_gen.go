@@ -65,6 +65,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
+	if k.gen.anyExileGrant {
+		s.priorityExileGrant(k, d, p) // cast_exilegrant.go
+	}
 	// granted activated abilities
 	for m := s.ctrlM[p]; m.any() && s.grantsLive(k); m = m.rest() {
 		sl := m.first()

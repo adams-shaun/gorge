@@ -70,6 +70,13 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilEOT = e.UntilEOT
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
+		if e.CaptureSet {
+			r, err := cb.ref(e.Capture)
+			if err != nil {
+				return bfail(cb.node, "%v", err)
+			}
+			ke.Capture = r
+		}
 		for _, s := range e.Statics {
 			ka, add, err := cb.static(s)
 			if err != nil {
@@ -586,12 +593,13 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			// the once-each-turn record (actUsed) is a battlefield permanent's
 			return ka, fmt.Errorf("once-each-turn limit on a granted or non-battlefield ability")
 		}
-		if a.ActCond.Kind != cNone && (a.Latent || a.Zone != 0 && a.Zone != zBattlefield && a.Zone != zGraveyard) {
+		exileGrant := a.Latent && a.Name == "GrantedExile" && a.Zone == zExile
+		if a.ActCond.Kind != cNone && !exileGrant && (a.Latent || a.Zone != 0 && a.Zone != zBattlefield && a.Zone != zGraveyard) {
 			// read by canActivate for a printed battlefield ability, and by
 			// priorityGraveAct for a printed graveyard one
 			return ka, fmt.Errorf("activation limit/condition on a granted or non-battlefield ability")
 		}
-		if a.ActCond.Kind != cNone && a.Zone == zGraveyard && !graveActCondOK(a.ActCond) {
+		if a.ActCond.Kind != cNone && (a.Zone == zGraveyard || exileGrant) && !graveActCondOK(a.ActCond) {
 			return ka, fmt.Errorf("activation condition %s on a graveyard ability", a.ActCond)
 		}
 		if a.Reduce != nil {
@@ -2025,6 +2033,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDoubleCounters
 	case "GraveToLibrary":
 		rp.Kind = kop.ReplGraveToLibrary
+	case "DestroyHeal":
+		rp.Kind = kop.ReplDestroyHeal
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+			return ka, err
+		}
 	case "ExileOnLeave":
 		rp.Kind = kop.ReplExileOnLeave
 		// the filter has no zone gate either way (ZoneBattlefield compiles to
@@ -2245,7 +2258,7 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		} else if in.Op == "UnlessSwitched" {
 			ki.Op = kop.OpUnlessSwitched
 		}
-		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+		pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileGraveChain": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 		if pk == 0 {
 			return ki, fmt.Errorf("pay kind %q", in.CS)
 		}
@@ -2264,6 +2277,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if in.CS == "ExileTrigNew" {
 			ki.B = kop.Const(kop.PayBSubTrigNew) // ExileAnyGrave<1/Card.TriggeredNewCard>, not a filter exile
+		}
+		if in.CS == "ExileGraveChain" {
+			ki.B = kop.Const(kop.PayBSubChain) // the exile half of a mana-and-exile cost (cost_exilepool.go)
 		}
 		if in.CS == "Reveal" {
 			ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
@@ -3339,6 +3355,14 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 				return ki, err
 			}
 		}
+	case "GrantExile":
+		// (Q, Stacking the Deck) OpExt ExtGrantExile: every remembered exiled
+		// card gains the latent activated ability C (table index)
+		j, ok := cb.abMap[in.C]
+		if !ok {
+			return ki, fmt.Errorf("granted exile ability %d not emitted", in.C)
+		}
+		ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtGrantExile)), int16(j)
 	case "GrantPanharm":
 		// (Lwaxana Troi) OpExt ExtGrantPanharm on the target
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtGrantPanharm))
@@ -3613,6 +3637,9 @@ func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
 		}
 		if _, ok := fl["Repeat"]; ok {
 			ki.C |= 1 << 7 // AllowRepeats$ True with Amount$ X: A copies offered
+		}
+		if _, ok := fl["Paid"]; ok {
+			ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
 		}
 		if err := objFilter(zoneMap[in.C]); err != nil {
 			return ki, err

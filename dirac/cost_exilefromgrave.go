@@ -40,8 +40,15 @@ func (s *State) graveExileOptions(k *prep, d *Decision, p uint8) {
 	}
 }
 
+// DebugSylviaNoExile drops the graveyard exile of an ExileFromGrave cost (the
+// sylviatilly mutation test: the games must diverge).
+var DebugSylviaNoExile bool
+
 // exileFromGrave exiles graveyard card o (a cost: no replacement reads it).
 func (s *State) exileFromGrave(o Obj) {
+	if DebugSylviaNoExile {
+		return
+	}
 	from := s.detach(o)
 	s.placeFrom(o, kop.ZoneExile, false, from, false)
 }

@@ -63,8 +63,8 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 		t.Fatal("the battle has no protector")
 	}
 	s.exec(sc.k, &prog[0])
-	if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(sc.slot(o)) {
-		t.Fatalf("ask %d slot %d, want the CR 508.4 defender ask for slot %d", s.res.ask, s.res.chosen, sc.slot(o))
+	if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(NoSlot) || s.objs[o].zone != kop.ZoneGraveyard {
+		t.Fatalf("ask %d slot %d zone %d, want the CR 508.4 defender ask posed before the card leaves its graveyard", s.res.ask, s.res.chosen, s.objs[o].zone)
 	}
 	var d Decision
 	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 4 {
@@ -76,8 +76,8 @@ func TestEnteringDefenderCandidates(t *testing.T) {
 			t.Fatalf("option %d = %d, want %d (%v)", i, d.Options[i].Source(), w, want)
 		}
 	}
-	if s.perms[sc.slot(o)].flags&pfAttacking != 0 {
-		t.Fatal("the creature attacked before the ask was answered")
+	if s.objs[o].zone != kop.ZoneGraveyard {
+		t.Fatal("the creature entered before the ask was answered")
 	}
 
 	// a battle the entrant's own controller protects is not a candidate
@@ -152,10 +152,18 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 	s.active, s.prio = 0, 0
 
 	s.exec(sc.k, &prog[0])
+	if s.res.ask != raGenEnterDefender || s.res.chosen != uint8(NoSlot) || s.objs[o].zone != kop.ZoneGraveyard {
+		t.Fatalf("ask %d slot %d zone %d, want the CR 508.4 defender ask first, with the card in its graveyard", s.res.ask, s.res.chosen, s.objs[o].zone)
+	}
+	var d Decision
+	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 2 {
+		t.Fatalf("options sub %d n %d, want the defender ask with two options", d.Sub, d.N)
+	}
+	s.applyResolveGen(sc.k, d.Options[1])
 	if s.res.ask != raGenRetChoice || s.g.pre.kind != akClone {
 		t.Fatalf("ask %d pre kind %d, want the clone election with the card in its graveyard", s.res.ask, s.g.pre.kind)
 	}
-	var d Decision
+	d = Decision{}
 	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenClone {
 		t.Fatalf("options sub %d, want the clone election", d.Sub)
 	}
@@ -169,22 +177,11 @@ func TestEnteringDefenderCloneReturn(t *testing.T) {
 		t.Fatal("the bear is not a clone option")
 	}
 	s.applyResolveGen(sc.k, pick)
-	if s.res.ask != raGenEnterDefender {
-		t.Fatalf("ask %d after the clone answer, want the CR 508.4 defender ask", s.res.ask)
+	if s.res.ask == raGenEnterDefender {
+		t.Fatal("the defender was asked a second time after the clone answer")
 	}
-	sl := Slot(s.res.chosen)
-	if !s.occ.has(sl) || s.perms[sl].obj != o {
-		t.Fatalf("the defender ask is for slot %d, not the entered clone", sl)
-	}
-	if s.perms[sl].flags&pfAttacking != 0 {
-		t.Fatal("the clone attacked before the defender was chosen")
-	}
-	d = Decision{}
-	if !s.resolveOptionsGen(sc.k, &d) || d.Sub != ChGenEnterDefender || d.N != 2 {
-		t.Fatalf("options sub %d n %d, want the defender ask with two options", d.Sub, d.N)
-	}
-	s.applyResolveGen(sc.k, d.Options[1])
-	if p := &s.perms[sl]; p.flags&pfAttacking == 0 || p.atk != uint8(walk) {
-		t.Fatalf("atk %d attacking %v, want attacking the planeswalker %d", p.atk, p.flags&pfAttacking != 0, walk)
+	sl := s.objs[o].slot
+	if p := &s.perms[sl]; !s.occ.has(sl) || p.obj != o || p.flags&pfAttacking == 0 || p.atk != uint8(walk) {
+		t.Fatalf("atk %d attacking %v, want the entered clone attacking the planeswalker %d", s.perms[sl].atk, s.perms[sl].flags&pfAttacking != 0, walk)
 	}
 }
