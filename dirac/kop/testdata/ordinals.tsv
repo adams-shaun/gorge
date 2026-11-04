@@ -400,6 +400,7 @@ ExtExchangeControl	ExtOp	244
 ExtExileExMark	ExtOp	51
 ExtExileLandChoose	ExtOp	162
 ExtFinalityCtr	ExtOp	198
+ExtGrantExile	ExtOp	249
 ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtLibSweep	ExtOp	101
