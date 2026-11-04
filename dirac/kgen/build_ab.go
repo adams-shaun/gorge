@@ -1801,6 +1801,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StWithoutManaCost
 			case "FunctionsInGraveyard":
 				st.StFlags |= kop.StFunctionsInGraveyard
+			case "FunctionsInExile":
+				st.StFlags |= kop.StFunctionsInExile
 			case "AlsoSideboard":
 				st.StFlags |= kop.StAlsoSideboard
 			case "RaiseCostRemove6CountersFromCreatures":

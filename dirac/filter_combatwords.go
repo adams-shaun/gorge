@@ -274,44 +274,45 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 }
 
 // tokenAttacks is TokAttacking: the token just minted at sl, controlled by
-// p, enters attacking p's opponent (gorge foldTokenAttacks: IsAttacking,
-// Attacking = the defender; nothing is declared, so no attack trigger
-// fires, CR 508.4). TokAttackAsk is TokenAttacking$ True, whose defender
-// gorge asks among the opponent and its planeswalkers and battles
-// (resolveEnteringDefender): with two or more candidates the game stalls
-// (StallTokAtkAsk). gorge's fallback with no trigger context and no combat
-// enters the token without attacking; every lowered carrier is an attack
-// trigger, so the defender is always the controller's opponent.
+// p, enters attacking (gorge foldTokenAttacks: IsAttacking, Attacking = the
+// defender; nothing is declared, so no attack trigger fires, CR 508.4). The
+// defender is p's opponent, or, for TokenAttacking$ True with two or more
+// CR 508.4 candidates, the one p named to tokenDefenderAsk (gorge
+// resolveEnteringDefender). gorge's fallback with no trigger context and no
+// combat enters the token without attacking; every lowered carrier is an
+// attack trigger, so the unasked defender is always the controller's
+// opponent.
 //
 //go:noinline
-func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
+func (s *State) tokenAttacks(k *prep, sl Slot, p uint8) {
 	if !s.occ.has(sl) {
 		return
 	}
-	if in.B.N&kop.TokAttackAsk != 0 && s.enteringCandidates(k, p) {
-		s.capFull(StallTokAtkAsk)
+	atk := PlayerTarget0 + (1 - p&1)
+	if s.g.tokDefSet {
+		atk = s.g.tokDef
 	}
-	pp := &s.perms[sl]
-	pp.flags |= pfAttacking
-	pp.atk = PlayerTarget0 + (1 - p&1)
-	pp.bord = s.nAttackers
-	s.nAttackers++
-	s.touchSl(sl)
+	s.setEnterAttacker(k, sl, atk)
 }
 
-// enteringCandidates reports whether a creature entering attacking under p
-// has a CR 508.4 defender besides p's opponent: a face-up planeswalker the
-// opponent controls, or a battle on the battlefield (gorge
-// enteringDefenders).
-func (s *State) enteringCandidates(k *prep, p uint8) bool {
-	for m := s.occ; m.any(); m = m.rest() {
-		sl := m.first()
-		t := s.typesGen(k, sl)
-		if t&kop.TBattle != 0 || t&kop.TPlaneswalker != 0 && s.perms[sl].ctrl != p&1 && !s.faceDown(k, sl) {
-			return true
-		}
+// tokenDefenderAsk poses TokenAttacking$ True's CR 508.4 defender pick before
+// the mint (gorge effToken freezes it in resolveAttack ahead of runTokenMints,
+// once per call, whatever the amount): with two or more candidates (the
+// opponent, its planeswalkers, the battles it protects) it suspends the
+// resolution on raGenEnterDefender with res.chosen = NoSlot, whose answer
+// stores the defender and re-runs this instruction. true: the ask was posed.
+//
+//go:noinline
+func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
+	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet {
+		return false
 	}
-	return false
+	var buf [MaxOptions]uint8
+	if s.enteringDefenderCands(k, p, &buf) < 2 {
+		return false
+	}
+	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, p, uint8(NoSlot)
+	return true
 }
 
 // sacSelfMana reports whether the permanent at sl is a mana source whose

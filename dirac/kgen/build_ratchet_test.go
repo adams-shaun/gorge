@@ -131,11 +131,14 @@ import (
 // +1 (Ensign Pavel Chekov: RepeatEach Opponent over ChooseCard in exile with ImprintChosen$, then MayPlay over the chosen; 21446 -> 21447; ratchet TRK 279 -> 280).
 // +1 (Brad Boimler, Eager Ensign: the tap-triggered until-end-of-turn AddCounter replacement; 21447 -> 21448; ratchet TRK 280 -> 281).
 // +1 (Daniels, Temporal Agent: PutCardToLibFromGrave<1/-1/CARDNAME> self cost; 21448 -> 21449; ratchet TRK 281 -> 282).
-// +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21449 -> 21450; ratchet TRK 282 -> 283).
-// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; 21450 -> 21451; ratchet TRK 283 -> 284).
-// +1 (Dominion Saboteur: the remembered-origin counter rider of an ETB copy; 21456 -> 21457; ratchet TRK 289 -> 290).
+// +3 (Khan, Vengeful Heart; Misthollow Griffin; Eternal Scourge: MayPlay from exile; 21449 -> 21452; ratchet TRK 282 -> 283).
+// +1 (Infinite Diversity: X free copies of an exiled instant or sorcery; 21452 -> 21453; ratchet TRK 283 -> 284).
+// +3 (Kira Nerys; The Holodeck; Gabriel Lorca: land's TRK cards, Holo-Engineer already counted; 21454 -> 21457; ratchet TRK 285 -> 288).
+// +1 (First Contact: the static SpellCast StoreSVar of Count$YouCastThisGame read by an EQ1 ConditionCheckSVar; 21457 -> 21458; ratchet TRK 288 -> 289).
+// +1 (Lwaxana Troi, Charming Guest: the keep-tapped untap election and the tap-bound Effect-delivered Panharmonicon; land; merged 21458 -> 21459; ratchet TRK 289 -> 290).
+// +1 (Dominion Saboteur: the remembered-origin counter rider of an ETB copy; merged 21459 -> 21460; ratchet TRK 290 -> 291).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21457, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21460, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

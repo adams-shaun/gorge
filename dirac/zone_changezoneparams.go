@@ -92,6 +92,11 @@ func (s *State) applyAskCzParams(k *prep, a Action) bool {
 	case raGenEnterDefender:
 		s.res.ask = raNone
 		sl := Slot(s.res.chosen)
+		if sl == NoSlot { // a TokenAttacking$ True mint's pick, asked before it (filter_combatwords.go)
+			s.g.tokDef, s.g.tokDefSet = a.Source(), true
+			s.runProg(k) // re-run the mint instruction with the answer
+			return true
+		}
 		if s.occ.has(sl) {
 			s.setEnterAttacker(k, sl, a.Source())
 		}
