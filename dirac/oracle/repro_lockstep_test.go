@@ -313,6 +313,15 @@ func TestEitherOrAdditionalCostBesideAnEachColourSourceLockstep(t *testing.T) {
 	synthReproLockstep(t, "bogslither_alt_add_each_colour_source", "std-ecl", Config{})
 }
 
+// Bogslither's Embrace, its {3} part unpayable today but its window census incomplete: the
+// untapped Bloom Tender is production the census prices no unit of, so an unpayable mana
+// part is not reversed at the choice -- both engines go on to the target menu, and the
+// window pays in the payment (CR 601.2g, 733.1).
+func TestUnpayableAltAddPartAnEachColourSourceMayFundLockstep(t *testing.T) {
+	t.Parallel()
+	synthReproLockstep(t, "alt_add_unpayable_part_an_each_colour_source_may_fund", "std-ecl", Config{})
+}
+
 // Maralen's free cast of Bogslither's Embrace is reversed for want of a target: the
 // once-each-turn permission was never used, so Unforgiving Aim exiled beside it is
 // still offered in both engines (CR 733.1).
