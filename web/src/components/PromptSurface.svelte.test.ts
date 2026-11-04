@@ -644,7 +644,7 @@ describe('the paired bot\'s pick on the decision', () => {
     await page.goto(at('attackers', { seq: 14, options: [], payment: null, objs: [], chance: 58 }));
     await page.locator('[data-no-attack]').waitFor({ state: 'visible' });
     expect(await page.locator('[data-no-attack][data-bot-pick]').count()).toBe(1);
-    expect(await page.locator('[data-prompt-footer]').textContent()).toContain("Bot's pick, 58%");
+    expect(await page.locator('[data-prompt-footer]:has([data-no-attack])').textContent()).toContain("Bot's pick, 58%");
     expect(await page.locator('[data-option][data-bot-pick]').count()).toBe(0);
     expect(await posted(page)).toBeNull();
     await page.close();

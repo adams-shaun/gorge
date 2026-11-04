@@ -16,7 +16,7 @@ const first = new Promise<void>((resolve) => (releaseFirst = resolve));
 const w = window as unknown as { __probe: typeof probe; __releaseFirst: () => void; __pick: () => unknown };
 w.__probe = probe;
 w.__releaseFirst = () => releaseFirst();
-w.__pick = () => (botPick.current === null ? null : { ...botPick.current });
+w.__pick = () => JSON.parse(JSON.stringify(botPick.current)) as unknown;
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 const problem = (code: string, message: string) => new Response(JSON.stringify({ code, message }), { status: 409, headers: { 'Content-Type': 'application/json' } });
