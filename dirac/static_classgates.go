@@ -10,22 +10,23 @@ import (
 // abilities. The walk visits the same statics in the same order; only
 // permanents whose every ability the caller would ignore are skipped.
 const (
-	sclsPT      uint8 = 1 << iota // StatContinuous with a P/T delta (ptGen)
-	sclsKw                        // StatContinuous granting keywords (kwGen)
-	sclsSub                       // StatContinuous granting subtypes
-	sclsCont                      // any StatContinuous
-	sclsMayPlay                   // StatMayPlayFrom off the battlefield's permanents
-	sclsReduce                    // StatReduceCost from a permanent (Zone != ZoneCommand)
-	sclsGyMay                     // the card's own StatMayPlayFrom that works from its graveyard
-	sclsPTRel                     // a static basePTGen/ptGen can read: P/T delta, CDA P/T, override, subtype grant (kprio2 sbaPTQuiet)
+	sclsPT      uint16 = 1 << iota // StatContinuous with a P/T delta (ptGen)
+	sclsKw                         // StatContinuous granting keywords (kwGen)
+	sclsSub                        // StatContinuous granting subtypes
+	sclsCont                       // any StatContinuous
+	sclsMayPlay                    // StatMayPlayFrom off the battlefield's permanents
+	sclsReduce                     // StatReduceCost from a permanent (Zone != ZoneCommand)
+	sclsGyMay                      // the card's own StatMayPlayFrom that works from its graveyard
+	sclsPTRel                      // a static basePTGen/ptGen can read: P/T delta, CDA P/T, override, subtype grant (kprio2 sbaPTQuiet)
+	sclsExMay                      // the card's own StatMayPlayFrom that works from exile
 )
 
 // prepStaticClasses fills g.sCls.
 func prepStaticClasses(t *kop.Table, g *genPrep) {
-	g.sCls = make([]uint8, len(t.Cards))
+	g.sCls = make([]uint16, len(t.Cards))
 	for i := range t.Cards {
 		c := &t.Cards[i]
-		m := uint8(0)
+		m := uint16(0)
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			if a.Kind != kop.AbStatic {
@@ -47,9 +48,12 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 			case kop.StatCDAPT, kop.StatOverride:
 				m |= sclsPTRel
 			case kop.StatMayPlayFrom:
-				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
+				switch {
+				case sa.StFlags&kop.StFunctionsInGraveyard != 0:
 					m |= sclsGyMay
-				} else {
+				case sa.StFlags&kop.StFunctionsInExile != 0:
+					m |= sclsExMay
+				default:
 					m |= sclsMayPlay
 				}
 			case kop.StatReduceCost:
@@ -67,7 +71,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 // eachStaticC is eachStatic over the permanents whose card prints a static
 // of a class in cls (emblems all walked): f sees exactly the statics of
 // those classes eachStatic would show it, in the same order.
-func (s *State) eachStaticC(k *prep, cls uint8, f func(st statSrc) bool) {
+func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
@@ -118,7 +122,7 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StFunctionsInGraveyard == 0 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {
 				z |= mayPlayZoneBits(&a.Static)
 			}
 		}
@@ -127,7 +131,7 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 		e := &k.t.Emblems[s.g.emb[p][i]-1]
 		for j := range e.Abilities {
 			a := &e.Abilities[j]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&kop.StFunctionsInGraveyard == 0 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {
 				z |= mayPlayZoneBits(&a.Static)
 			}
 		}

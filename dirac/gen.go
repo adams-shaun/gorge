@@ -64,10 +64,10 @@ type genPrep struct {
 	anyNTOv         bool  // an OpOverride / OpOverrideAll lasts until its controller's next turn
 	legendGrant     bool  // some Override adds or sets the Legendary supertype (legendRule reads derived types)
 	anyMayPlay      bool
-	anyMayRaise     bool    // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
-	anyMayKind      bool    // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
-	anyMayLimit     bool    // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
-	sCls            []uint8 // per card: its static classes (static_classgates.go scls*)
+	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
+	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
+	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
+	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
 	anyHandAct      bool // an activated ability works from the hand (cycling; repl_regenerate.go)
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)

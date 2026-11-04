@@ -201,7 +201,9 @@ func finishSacrificed(n int32, op string, hasOp bool) int32 {
 // it, because CR 702.157b ends "suspected" the moment the permanent leaves the
 // battlefield (Agency Coroner's Sacrificed$Valid Card.IsSuspected) and an
 // artifact an effect made a creature is a creature only there (Emrakul's
-// Evangel's Sacrificed$Valid Creature).
+// Evangel's Sacrificed$Valid Creature). A token copy is read the same way: the
+// capture is its whole last-known existence, so the copy's ceased-to-exist
+// rejection (CR 707.10h) does not apply to the overlay.
 func sacrificedValidCount(h Host, c *Ctx, spec string) int32 {
 	g := h.Game()
 	sc := c.SpecContext(c.Controller)
@@ -212,6 +214,7 @@ func sacrificedValidCount(h Host, c *Ctx, spec string) int32 {
 			continue
 		}
 		oc := *o
+		oc.IsCopy = false
 		oc.Suspected = s.Suspected
 		// The captured types stand alone as the derived set: every
 		// Sacrificed$Valid spec reads the sacrificed card's own types, and

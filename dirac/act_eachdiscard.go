@@ -99,9 +99,11 @@ func (s *State) flushHeldDiscard(k *prep, first uint8) {
 		}
 		return
 	}
-	for _, o := range held[1 : 1+int(n)] {
-		s.discardObj(k, Obj(o))
+	var picks [maxDiscHeld]Obj
+	for i, o := range held[1 : 1+int(n)] {
+		picks[i] = Obj(o)
 	}
+	s.discardPicks(k, picks[:n], 0)
 }
 
 // discardChained: the discard instruction in resumes a chain after each answer

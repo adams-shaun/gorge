@@ -375,9 +375,7 @@ func (s *State) Apply(a Action) {
 	case ctlCleanupDiscard:
 		o := Obj(a.Source())
 		s.discardLeft--
-		if !s.park(k, o, parkDiscard, parkCleanup) {
-			s.discardObj(k, o)
-		}
+		s.discardPicks(k, []Obj{o}, parkCleanup)
 		if s.discardLeft == 0 {
 			// gorge takes all the picks at once and orders the replacements after
 			if s.parkedWaiting() {
