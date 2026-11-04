@@ -116,3 +116,12 @@ the demo binary is `cmd/gorged` and nothing demo-related stays private.
 - **The deploy's settings stay out of git.** The deploy reads its ports and
   directories from the untracked `deploy/demo.env` (`deploy/demo.env.example`
   documents every variable).
+
+## Amendment (2026-11-04): the research record is public
+
+Decision 2 keeps machine learning private. The record of it is not: its results,
+findings, architecture drawings and per-set card strength lists are published in
+`docs/site/research/`. The trainers, networks and weights, and the experiment
+code and data stay in the companion module, so the pages describe that code in
+words and name no private path. `TestPublicBoundary` holds them to the same
+boundary as every other file.

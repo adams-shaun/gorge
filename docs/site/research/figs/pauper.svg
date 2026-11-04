@@ -1,0 +1,85 @@
+<svg class="mzc" viewBox="0 0 760 360" role="img" aria-label="Pauper retrain gate scores by generation, against the champion and against sb-tactical" xmlns="http://www.w3.org/2000/svg">
+<text x="16.0" y="20.0" class="mz-title" text-anchor="start">Pauper retrain: every generation's gates</text>
+<line class="s1 ln" x1="16" y1="42" x2="34" y2="42"/>
+<text x="40.0" y="46.0" text-anchor="start">vs the champion (2,000 games)</text>
+<line class="s2 ln" x1="249" y1="42" x2="267" y2="42"/>
+<text x="273.0" y="46.0" text-anchor="start">vs sb-tactical (500 games)</text>
+<line class="mz-grid" x1="60" y1="320.0" x2="730" y2="320.0"/>
+<text x="52.0" y="324.0" class="mz-muted" text-anchor="end">0.45</text>
+<line class="mz-ref" x1="60" y1="288.8" x2="730" y2="288.8"/>
+<text x="52.0" y="292.8" class="mz-muted" text-anchor="end">0.50</text>
+<line class="mz-grid" x1="60" y1="257.5" x2="730" y2="257.5"/>
+<text x="52.0" y="261.5" class="mz-muted" text-anchor="end">0.55</text>
+<line class="mz-grid" x1="60" y1="226.2" x2="730" y2="226.2"/>
+<text x="52.0" y="230.2" class="mz-muted" text-anchor="end">0.60</text>
+<line class="mz-grid" x1="60" y1="195.0" x2="730" y2="195.0"/>
+<text x="52.0" y="199.0" class="mz-muted" text-anchor="end">0.65</text>
+<line class="mz-grid" x1="60" y1="163.7" x2="730" y2="163.7"/>
+<text x="52.0" y="167.7" class="mz-muted" text-anchor="end">0.70</text>
+<line class="mz-grid" x1="60" y1="132.5" x2="730" y2="132.5"/>
+<text x="52.0" y="136.5" class="mz-muted" text-anchor="end">0.75</text>
+<line class="mz-grid" x1="60" y1="101.2" x2="730" y2="101.2"/>
+<text x="52.0" y="105.2" class="mz-muted" text-anchor="end">0.80</text>
+<line class="mz-grid" x1="60" y1="70.0" x2="730" y2="70.0"/>
+<text x="52.0" y="74.0" class="mz-muted" text-anchor="end">0.85</text>
+<text x="60.0" y="336.0" class="mz-muted" text-anchor="middle">g1</text>
+<text x="155.7" y="336.0" class="mz-muted" text-anchor="middle">g2</text>
+<text x="251.4" y="336.0" class="mz-muted" text-anchor="middle">g3</text>
+<text x="347.1" y="336.0" class="mz-muted" text-anchor="middle">g4</text>
+<text x="442.9" y="336.0" class="mz-muted" text-anchor="middle">g5</text>
+<text x="538.6" y="336.0" class="mz-muted" text-anchor="middle">g6</text>
+<text x="634.3" y="336.0" class="mz-muted" text-anchor="middle">g7</text>
+<text x="730.0" y="336.0" class="mz-muted" text-anchor="middle">g8</text>
+<g><title>M_CTLX vs sb-tactical: 0.5807 [0.5590, 0.6022], 2,000 games</title><line class="mz-faint dash" x1="60" y1="238.3" x2="730" y2="238.3"/></g>
+<text x="395.0" y="356.0" class="mz-muted" text-anchor="middle">generation (g1–g6 run 1, g7–g8 run 2; the pooled retrain is left out)</text>
+<polyline class="s1 ln" points="60.0,249.4 155.7,255.6 251.4,262.8 347.1,256.4 442.9,259.6 538.6,266.1 634.3,275.8 730.0,270.5"/>
+<line class="s1 ci" x1="60.0" y1="263.0" x2="60.0" y2="235.9"/>
+<g><title>g1 vs M_CTLX: 0.5630 [0.5412, 0.5846], 2,000 games</title><circle cx="60.0" cy="249.4" r="11" fill="transparent"/>
+<circle class="dot s1" cx="60.0" cy="249.4" r="4"/></g>
+<line class="s1 ci" x1="155.7" y1="269.3" x2="155.7" y2="242.1"/>
+<g><title>g2 vs g1: 0.5530 [0.5311, 0.5747], 2,000 games</title><circle cx="155.7" cy="255.6" r="11" fill="transparent"/>
+<circle class="dot s1" cx="155.7" cy="255.6" r="4"/></g>
+<line class="s1 ci" x1="251.4" y1="276.5" x2="251.4" y2="249.2"/>
+<g><title>g3 vs g2: 0.5415 [0.5196, 0.5632], 2,000 games</title><circle cx="251.4" cy="262.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="251.4" cy="262.8" r="4"/></g>
+<line class="s1 ci" x1="347.1" y1="270.1" x2="347.1" y2="242.9"/>
+<g><title>g4 vs g3: 0.5517 [0.5299, 0.5734], 2,000 games</title><circle cx="347.1" cy="256.4" r="11" fill="transparent"/>
+<circle class="dot s1" cx="347.1" cy="256.4" r="4"/></g>
+<line class="s1 ci" x1="442.9" y1="273.2" x2="442.9" y2="245.9"/>
+<g><title>g5 vs g4: 0.5467 [0.5249, 0.5685], 2,000 games</title><circle cx="442.9" cy="259.6" r="11" fill="transparent"/>
+<circle class="dot s1" cx="442.9" cy="259.6" r="4"/></g>
+<line class="s1 ci" x1="538.6" y1="279.8" x2="538.6" y2="252.5"/>
+<g><title>g6 vs g5: 0.5363 [0.5143, 0.5580], 2,000 games</title><circle cx="538.6" cy="266.1" r="11" fill="transparent"/>
+<circle class="dot s1" cx="538.6" cy="266.1" r="4"/></g>
+<line class="s1 ci" x1="634.3" y1="289.5" x2="634.3" y2="262.1"/>
+<g><title>g7 vs g6: 0.5208 [0.4988, 0.5426], 2,000 games</title><circle cx="634.3" cy="275.8" r="11" fill="transparent"/>
+<circle class="dot s1" cx="634.3" cy="275.8" r="4"/></g>
+<line class="s1 ci" x1="730.0" y1="284.2" x2="730.0" y2="256.9"/>
+<g><title>g8 vs g6: 0.5292 [0.5073, 0.5510], 2,000 games</title><circle cx="730.0" cy="270.5" r="11" fill="transparent"/>
+<circle class="dot s1" cx="730.0" cy="270.5" r="4"/></g>
+<polyline class="s2 ln" points="60.0,223.8 155.7,186.2 251.4,166.3 347.1,142.5 442.9,125.0 538.6,100.0 634.3,96.2 730.0,97.5"/>
+<line class="s2 ci" x1="60.0" y1="250.5" x2="60.0" y2="197.0"/>
+<g><title>g1 vs sb-tactical: 0.604 [0.561, 0.647], 500 games</title><circle cx="60.0" cy="223.8" r="11" fill="transparent"/>
+<circle class="dot s2" cx="60.0" cy="223.8" r="4"/></g>
+<line class="s2 ci" x1="155.7" y1="212.1" x2="155.7" y2="160.4"/>
+<g><title>g2 vs sb-tactical: 0.664 [0.623, 0.705], 500 games</title><circle cx="155.7" cy="186.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="155.7" cy="186.2" r="4"/></g>
+<line class="s2 ci" x1="251.4" y1="191.4" x2="251.4" y2="141.1"/>
+<g><title>g3 vs sb-tactical: 0.696 [0.656, 0.736], 500 games</title><circle cx="251.4" cy="166.3" r="11" fill="transparent"/>
+<circle class="dot s2" cx="251.4" cy="166.3" r="4"/></g>
+<line class="s2 ci" x1="347.1" y1="166.7" x2="347.1" y2="118.3"/>
+<g><title>g4 vs sb-tactical: 0.734 [0.695, 0.773], 500 games</title><circle cx="347.1" cy="142.5" r="11" fill="transparent"/>
+<circle class="dot s2" cx="347.1" cy="142.5" r="4"/></g>
+<line class="s2 ci" x1="442.9" y1="148.3" x2="442.9" y2="101.7"/>
+<g><title>g5 vs sb-tactical: 0.762 [0.725, 0.799], 500 games</title><circle cx="442.9" cy="125.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="442.9" cy="125.0" r="4"/></g>
+<line class="s2 ci" x1="538.6" y1="121.8" x2="538.6" y2="78.2"/>
+<g><title>g6 vs sb-tactical: 0.802 [0.767, 0.837], 500 games</title><circle cx="538.6" cy="100.0" r="11" fill="transparent"/>
+<circle class="dot s2" cx="538.6" cy="100.0" r="4"/></g>
+<line class="s2 ci" x1="634.3" y1="117.8" x2="634.3" y2="74.7"/>
+<g><title>g7 vs sb-tactical: 0.808 [0.773, 0.843], 500 games</title><circle cx="634.3" cy="96.2" r="11" fill="transparent"/>
+<circle class="dot s2" cx="634.3" cy="96.2" r="4"/></g>
+<line class="s2 ci" x1="730.0" y1="119.2" x2="730.0" y2="75.8"/>
+<g><title>g8 vs sb-tactical: 0.806 [0.771, 0.841], 500 games</title><circle cx="730.0" cy="97.5" r="11" fill="transparent"/>
+<circle class="dot s2" cx="730.0" cy="97.5" r="4"/></g>
+</svg>
