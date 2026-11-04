@@ -4,9 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"sort"
+	"strings"
+	"sync"
 
 	"github.com/adams-shaun/gorge/draft/event"
 	"github.com/adams-shaun/gorge/draft/limited"
+	"github.com/adams-shaun/gorge/draft/limited/setdata"
 )
 
 // pickSaltBase tags the per-seat pick-rng streams so they never collide
@@ -110,22 +114,24 @@ func (l *Lab) Draft(packs [][][]limited.CardRef, drafters []NamedDrafter, seed u
 }
 
 // packSet derives the one set the packs' CardRefs belong to: the distinct
-// Set value ignoring the bonus sheet. "SPG" (Special Guests) is the Play
-// Boosters bonus sheet and rides inside another set's packs by design —
-// an Arena FDN pod legitimately mixes FDN and SPG printings — so a pod's
-// set is the base set of its cards. A second base set (two pods
-// concatenated) is an error, as is a CardRef without a set and an
-// SPG-only pod: an event names exactly one set, and its EventCreated Set
-// field comes from here.
+// Set value ignoring the rider codes. A rider code (SPG in FDN/BLB Play
+// Boosters, SDS in TRK's) is a bonus sheet that rides inside another set's
+// packs by design — an Arena FDN pod legitimately mixes FDN and SPG
+// printings, a TRK pod mixes TRK and SDS — so a pod's set is the base set
+// of its cards. A second base set (two pods concatenated) is an error, as
+// is a CardRef without a set and a rider-only pod: an event names exactly
+// one set, and its EventCreated Set field comes from here.
 func packSet(packs [][][]limited.CardRef) (string, error) {
 	set := ""
+	riders := map[string]bool{}
 	for s := range packs {
 		for r := range packs[s] {
 			for _, c := range packs[s][r] {
 				if c.Set == "" {
 					return "", fmt.Errorf("draftlab: draft: pack card %s (%s) carries no set", c.ID, c.Name)
 				}
-				if c.Set == bonusSheetSet {
+				if isRider(c.Set) {
+					riders[c.Set] = true
 					continue
 				}
 				if set == "" {
@@ -139,16 +145,54 @@ func packSet(packs [][][]limited.CardRef) (string, error) {
 	}
 	if set == "" {
 		if bonusOnly(packs) {
-			return "", fmt.Errorf("draftlab: draft: packs carry only %s bonus-sheet cards, no base set", bonusSheetSet)
+			return "", fmt.Errorf("draftlab: draft: packs carry only bonus-sheet cards (%s), no base set", riderJoin(riders))
 		}
 		return "", errors.New("draftlab: draft: packs carry no cards")
 	}
 	return set, nil
 }
 
-// bonusSheetSet is the Special Guests bonus sheet code, a designed rider
-// inside another set's Play Booster packs (see packSet).
-const bonusSheetSet = "SPG"
+// riderSets derives the rider codes from the embedded booster specs: a
+// code is a rider when some embedded collation lists it in
+// source_set_codes and it is not itself one of setdata.Codes(). The next
+// set with a rider sheet needs no edit here. A collation that fails to
+// load is skipped (setdata's own tests validate the embedded files).
+var riderSets = sync.OnceValue(func() map[string]bool {
+	codes := setdata.Codes()
+	own := map[string]bool{}
+	for _, code := range codes {
+		own[code] = true
+	}
+	riders := map[string]bool{}
+	for _, code := range codes {
+		for _, c := range setdata.Collations(code) {
+			spec, err := setdata.LoadCollation(code, c)
+			if err != nil {
+				continue
+			}
+			for _, src := range spec.Config.SourceSetCodes {
+				if !own[src] {
+					riders[src] = true
+				}
+			}
+		}
+	}
+	return riders
+})
+
+// isRider reports whether the code is a rider bonus-sheet code (SPG, SDS).
+func isRider(code string) bool { return riderSets()[code] }
+
+// riderJoin renders the distinct rider codes seen, sorted and
+// comma-joined, for the rider-only error.
+func riderJoin(riders map[string]bool) string {
+	codes := make([]string, 0, len(riders))
+	for c := range riders {
+		codes = append(codes, c)
+	}
+	sort.Strings(codes)
+	return strings.Join(codes, ", ")
+}
 
 // bonusOnly reports whether the packs carry cards at all.
 func bonusOnly(packs [][][]limited.CardRef) bool {
