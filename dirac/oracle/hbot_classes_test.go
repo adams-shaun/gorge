@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/search/hbot"
@@ -12,11 +13,13 @@ import (
 
 // hbotPairs plays each listed pairing (seed 78, the auto-pay surface, as khbot
 // does) of a synthetic pool in lockstep with gorge's heuristic bot and fails on
-// any compared disagreement whose description contains want.
+// any compared disagreement whose description contains want. The decks are dealt
+// as khbot deals them, with only the refused cards left out, so pair N here is
+// khbot's -first-pair N.
 func hbotPairs(t *testing.T, poolName string, pairs []int, want string) {
 	t.Helper()
 	c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
-	set := cardsettest.Synth(t, poolName)
+	set := cardset.AllowUnverified(cardsettest.Synth(t, poolName))
 	pool, files, err := SynthPool(c.Reg, set, 1, SynthDecks)
 	if err != nil {
 		t.Fatal(err)
@@ -41,5 +44,6 @@ func hbotPairs(t *testing.T, poolName string, pairs []int, want string) {
 // of colours" pick takes first the colour the card the tap gate would aim at still
 // needs (policy.go's chooseManaColour, CR 106.3), and the rest in offered order.
 func TestHBotPicksTheManaColourTheCardNeeds(t *testing.T) {
-	hbotPairs(t, "std-trk", []int{57}, "choose:mana")
+	hbotPairs(t, "std-blb", []int{0, 57}, "choose:mana")
 }
+
