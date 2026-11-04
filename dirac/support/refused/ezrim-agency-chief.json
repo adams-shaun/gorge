@@ -6,7 +6,7 @@
     "pool": "std-mkm",
     "surface": "autopay",
     "seed": 1,
-    "pair": 2465,
+    "pair": 267,
     "policy": "random",
     "mulligans": 0
   }

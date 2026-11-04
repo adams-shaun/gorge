@@ -564,6 +564,22 @@ func attachedByDefinedSelector(h Host, c *Ctx, spec string) ([]state.Target, boo
 	return out, true
 }
 
+// triggeredCardGroup is the object group the Triggered card spellings name.
+// A trigger's Remembered seeds it with the event's object, except in the body
+// of a trigger an Effect owns (an Effect's Triggers$ line, fired from the
+// command zone): there Remembered is the Effect's own remembered list, which
+// Defined$ Remembered reads (Out of Time phases the creatures its Effect
+// remembered), and the card that triggered it is the event's object, the
+// fire-time TriggerCard role (CR 603.2; Forge's TriggeredCard is the run
+// parameter, never the Effect's list). The Naked Time and First Day of Class
+// put their counter on the creature that entered, not on nothing.
+func triggeredCardGroup(c *Ctx) []state.Target {
+	if c.EffectFrame.Carrier && c.TriggerCard != 0 && c.TriggerCard == c.DelayedObject {
+		return []state.Target{{Obj: c.TriggerCard}}
+	}
+	return objectsOf(c.Remembered)
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
@@ -1146,7 +1162,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// The TriggeredBlocker spellings moved OUT of this case (trig:Blocks):
 		// a Blocks trigger's Remembered carries the pair's ATTACKER, so the
 		// blocker role is the only exact referent -- see the case below.
-		return objectsOf(c.Remembered), true
+		return triggeredCardGroup(c), true
 	case definedSpecRememberedLKI:
 		// The LKI spelling of the Remembered$ group names the SAME object set
 		// the RememberedLKI ref group (engine/effects/count.go rememberedLKIGroup)

@@ -763,14 +763,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 				targets := c.Targets
 				if c.PickedTargets != nil {
 					targets = c.PickedTargets
-				} else if len(targets) == 0 {
+				} else if len(targets) == 0 || !TargetsOf(sa).Targeted() {
 					// Forge's Targeted is the union of every target choice down
 					// the chain (Skrelv's DBEffect after the targeting DBPump:
 					// the root ChooseColor targets nothing), the same read
-					// Defined$ Targeted makes.
+					// Defined$ Targeted makes. An Effect link with no target of
+					// its own remembers that whole union: T'Pring, Never
+					// Parted's fighters were chosen by two links.
 					targets = refTargetUnion(c)
 				}
-				out = appendEffectRememberedObjects(h, out, targets)
+				out = appendEffectRememberedObjects(h, out, targetsStillChosen(h.Game(), c, targets))
 			case effectRememberedParentTarget:
 				out = appendEffectRememberedObjects(h, out, parentLinkTargets(c))
 			case effectRememberedRemembered:
@@ -868,6 +870,44 @@ func appendEffectRememberedObjects(h Host, out []state.ObjID, ts []state.Target)
 		out = append(out, t.Obj)
 	}
 	return out
+}
+
+// targetsStillChosen drops each object target that has changed zones since
+// the resolving stack object chose it (its TargetStamps): it is a new object
+// with no memory of its previous existence (CR 400.7), so an Effect that
+// remembers the target does not follow it. Wesley Crusher, Starfleet Cadet's
+// two modes may target one creature: when the first returns it to hand, the
+// second's "can't be blocked this turn" applies to nothing, not to the card
+// cast again later that turn. An unstamped target is kept.
+func targetsStillChosen(g *state.Game, c *Ctx, ts []state.Target) []state.Target {
+	so := g.Obj(c.ResolvingObj)
+	if so == nil || len(so.TargetStamps) == 0 {
+		return ts
+	}
+	out := ts[:0:0]
+	for _, t := range ts {
+		if !t.IsPlayer && targetStampMoved(g, so, t.Obj) {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// targetStampMoved reports whether so stamped id as a target and id's zone
+// generation has moved since (the effects-side twin of the rules engine's
+// targetBecameNewObject).
+func targetStampMoved(g *state.Game, so *state.Object, id state.ObjID) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	for i := len(so.TargetStamps) - 1; i >= 0; i-- {
+		if so.TargetStamps[i].Obj == id {
+			return so.TargetStamps[i].ZoneGen != o.ZoneGen
+		}
+	}
+	return false
 }
 
 // effectRememberedPlayers resolves RememberObjects$ into the concrete PLAYER

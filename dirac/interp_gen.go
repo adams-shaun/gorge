@@ -146,8 +146,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 					return ok, true
 				}
 			}
-			s.execEachTarget(k, in, slot)
-			return true, true
+			return !s.execEachTarget(k, in, slot), true
 		}
 	}
 	switch in.Op {
@@ -1017,8 +1016,9 @@ func (s *State) xtLegalBase(k *prep, e *stackEntry, j int) bool {
 	return s.targetOK(k, t, e.ctrl, src, e.obj, c)
 }
 
-// execEachTarget runs in once per object of target slot i.
-func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
+// execEachTarget runs in once per object of target slot i. It returns true
+// when a copy token's as-enters ask parked the loop (copy_eachtarget.go).
+func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	e := &s.res.e
 	saveT, saveV, saveBad := e.tgt[i], e.tver[i], s.res.bad
 	if k.gen.anyBatch {
@@ -1035,20 +1035,17 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) {
 	}
 	defer s.holdClose(k, hr)
 	if s.leaveTogether(k, in, i) {
-		return
+		return false
 	}
 	s.g.inLoop = true
-	s.exec(k, in)
-	for j := 0; j < int(s.xtOf(e).n); j++ {
-		if s.xtOf(e).slot[j] != i || !s.xtLegalRes(k, e, j, i) {
-			continue
-		}
-		e.tgt[i], e.tver[i] = s.xtOf(e).code[j], s.xtOf(e).ver[j]
-		s.res.bad &^= 1 << i
-		s.exec(k, in)
+	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad}
+	if !s.exec(k, in) && s.eachParks(in) {
+		w.j = 1 // copy_eachtarget.go: the extra targets wait for the answer
+		s.g.each = w
+		s.g.inLoop = false
+		return true
 	}
-	e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
-	s.g.inLoop = false
+	return s.eachRun(k, in, i, 0, w)
 }
 
 // eachPlayersSac handles an OpSacrifice whose target slot holds several

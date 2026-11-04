@@ -339,7 +339,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	if i == subOutside {
 		// a printed changeling has every creature type (CR 702.73a; gorge
 		// sets AllCreatureTypes), until a subtype-setting effect
-		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes
+		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes || s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub || o.RemoveCreatureSub {
 				all = false
@@ -357,10 +357,11 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	// subtype-setting effect replaces it (Abyssal Harvester's Nightmare
 	// copy of Mild-Mannered Librarian become a Werewolf)
 	m := k.t.Cards[s.cardAt(sl)].Subtypes
+	all := false
 	if s.fxM.has(sl) && k.gen.cpxSub {
 		m = m.Or(s.copyExcSubs(k, sl))
+		all = s.copyExcAll(k, sl) // a copy's changeling: every creature type, until a later set
 	}
-	all := false
 	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 		if o.HasSub {
 			m = m.And(o.KeepSub).Or(o.SetSub)

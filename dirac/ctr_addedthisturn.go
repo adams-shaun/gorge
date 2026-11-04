@@ -29,9 +29,6 @@ const StallCtrAdded = 91
 
 func init() { stallNames[StallCtrAdded] = "ctradded" }
 
-// gfCtrAdd marks a card with an ExCtrAdded Self reader.
-const gfCtrAdd uint32 = 1 << 23
-
 // DebugCtrAddedNoTurnReset is the mutation switch of TestCtraddedMutation:
 // the record survives the turn boundary.
 var DebugCtrAddedNoTurnReset bool

@@ -1,0 +1,12 @@
+# the own-target Effect pool: Wesley Crusher, Starfleet Cadet's choose-two
+# trigger, whose "can't be blocked" mode is an Effect remembering the link's
+# own target, beside creatures, burn and basics, for the oracle's
+# constructed lockstep (dirac/oracle/thistgt_test.go)
+Wesley Crusher, Starfleet Cadet
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Shock
+Island
+Forest
+Mountain

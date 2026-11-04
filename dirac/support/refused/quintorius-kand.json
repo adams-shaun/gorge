@@ -6,7 +6,7 @@
     "pool": "std-lci",
     "surface": "autopay",
     "seed": 1,
-    "pair": 118,
+    "pair": 147,
     "policy": "random",
     "mulligans": 1
   }

@@ -960,6 +960,13 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 		if tm := a.TgtModes[i]; tm != 0 && tm&modes == 0 {
 			continue
 		}
+		if t.TFlags&kop.TgfBoundsV != 0 {
+			// "X target creatures": X candidates (tgt_variablemax.go)
+			if !s.tgtBoundsFeasible(k, t, p, src) {
+				return false
+			}
+			continue
+		}
 		if excl != NoObj {
 			if !s.hasTargetBut(k, t, p, src, excl) {
 				return false

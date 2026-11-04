@@ -149,6 +149,9 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if fl.Pred == kop.PredAttached {
 			return s.predAttached(sl, src)
 		}
+		if fl.Pred == kop.PredPowerGEV && src != NoSlot {
+			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
+		}
 		return s.predPermGen(k, fl, sl, layer)
 	}
 	return true
@@ -335,6 +338,13 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	}
 	s.g.probe = probe{}
 	return ok
+}
+
+// xCountTarget: slot t takes exactly the announced X ("X target
+// creatures"). X = 0 always answers it, so only the X ask reads it
+// (addXOptions), not the offer's sweep (xBoundPayable).
+func xCountTarget(t *kop.TargetSpec) bool {
+	return t.TFlags&kop.TgfBoundsV != 0 && !t.UpTo
 }
 
 // xBoundTarget: slot t's filter is bounded by an X.
@@ -690,6 +700,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
+		}
+		if fl.Pred == kop.PredPowerGEV {
+			return s.cardPowerGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}

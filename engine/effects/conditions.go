@@ -796,6 +796,14 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 			!targetedAskCovered(c, sa) {
 			return nil, false
 		}
+		// A link with no target of its own reads Forge's Targeted as the
+		// Defined$ Targeted resolver does: every target chosen down the
+		// chain (getAllTargetChoices). T'Pring, Never Parted's Effect is made
+		// only while both fighters, chosen by two links, are still legal
+		// targets (CR 608.2b); its root's list alone holds one of them.
+		if defined == "Targeted" && sa != nil && !TargetsOf(sa).Targeted() && c.PickedTargets == nil {
+			group = copyTargets(refTargetUnion(c))
+		}
 	}
 	if defined == "Discarded" {
 		// ConditionDefined$ Discarded (Moria Scavenger's

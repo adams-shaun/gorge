@@ -276,7 +276,13 @@ func evalRememberedOK(h Host, c *Ctx, body string, depth int) (int32, bool) {
 // authored memory (also seeded into Captured as the referent for the other
 // readers), and it is separated into TriggerContext.DelayedRemembered, so a
 // registration whose Captured is exactly that set is returned unchanged --
-// the same shape test filterCapturedRemembered already applies.
+// the same shape test filterCapturedRemembered already applies. That holds
+// until the body writes memory of its own (TriggerContext.RememberWriterAbove):
+// past a RememberChanged$ link the saved set is no longer what the body
+// remembers, so a link that moved nothing leaves the list empty. U.S.S.
+// Farragut's end-step trigger puts the creature on the bottom and "when you
+// do" draws; a creature that already died is not moved, and nothing draws
+// (CR 603.12, 400.7).
 // The exclusion lives in ONE helper every plain-Remembered reader goes through:
 // effImmediateTrigger (which builds each "when you do" instance's ctx from
 // it, so its exclusion and the TriggerRemembered count head's cannot drift),
@@ -297,7 +303,7 @@ func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
 	if len(c.Captured) == 0 || c.Reflexive {
 		return c.Remembered
 	}
-	if len(c.DelayedRemembered) > 0 && sameTargets(c.Captured, c.DelayedRemembered) {
+	if len(c.DelayedRemembered) > 0 && sameTargets(c.Captured, c.DelayedRemembered) && !c.RememberWriterAbove {
 		return c.Remembered
 	}
 	return excludeCaptureOccurrences(c.Remembered, c.Captured)
@@ -438,6 +444,9 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		}
 		return c.Targets, true
 	case refTargetsTriggeredCard:
+		if c.EffectFrame.Carrier && c.TriggerCard != 0 && c.TriggerCard == c.DelayedObject {
+			return triggeredCardGroup(c), true
+		}
 		return c.Remembered, true
 	case refTargetsTriggeredAttacker:
 		// The singular attacker spellings (trig:Attacks and the

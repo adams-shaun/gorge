@@ -319,7 +319,7 @@ func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) 
 	}
 	// layer 4: the changeling CDA first (CR 613.3), then the effects in
 	// dependency order
-	c.all = !fd && cd.AllCreatureTypes
+	c.all = !fd && cd.AllCreatureTypes || exc && s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
 	var done [maxLfx]bool
 	for left := n; left > 0; left-- {
 		pick := -1

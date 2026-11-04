@@ -1,0 +1,13 @@
+# the remembered-controller pool: Rules of Acquisition (gain control of an
+# opponent's permanent, then its controller as the spell resolved draws; or
+# give one of yours away and draw) beside creatures, burn and basics, for the
+# oracle's constructed lockstep (dirac/oracle/remctl_test.go)
+Rules of Acquisition
+Savannah Lions
+Grizzly Bears
+Hill Giant
+Shock
+Island
+Plains
+Forest
+Mountain

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/adams-shaun/gorge/server/protocol"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 	"github.com/adams-shaun/gorge/testkit/testutil/feedback"
+	"github.com/adams-shaun/gorge/testkit/testutil/feedback/diracfb"
 )
 
 // diracCapture plays two bench decks on dirac, bot against bot, and captures the
@@ -130,7 +132,7 @@ func TestDiracCaptureReplays(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("-omniscient: exit %d:\n%s", code, out)
 	}
-	if g := feedback.GameAt(t, dir, 10); g.Pending() == nil {
+	if g := diracfb.GameAt(t, dir, 10); g.Pending() == nil {
 		t.Fatal("GameAt: no decision pending at intent 10")
 	}
 }
@@ -187,5 +189,37 @@ func TestLockstepRefusesAGorgeCapture(t *testing.T) {
 	dir := filepath.Join("testdata", "feedback", fixtureID)
 	if code := run([]string{dir, "-lockstep"}, &out, &errs); code != 2 || !strings.Contains(errs.String(), "dirac capture") {
 		t.Fatalf("exit %d: %s%s", code, out.String(), errs.String())
+	}
+}
+
+// TestReproEmitDiracCaptureReplaysThroughDiracfb: the skeleton a dirac capture
+// emits replays through diracfb, the one feedback helper that links dirac, and
+// it type-checks.
+func TestReproEmitDiracCaptureReplaysThroughDiracfb(t *testing.T) {
+	dir := diracCapture(t)
+	root, err := feedback.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scratch, rel := emitScratch(t, root, "zzrepro-emitdirac", "emitdirac")
+	if code, out := reproRun(t, "-emit-test", rel, dir); code != 0 {
+		t.Fatalf("emit exit %d:\n%s", code, out)
+	}
+	gen, err := filepath.Glob(filepath.Join(scratch, "repro_feedback_*_test.go"))
+	if err != nil || len(gen) != 1 {
+		t.Fatalf("generated skeletons: %v %v", gen, err)
+	}
+	raw, err := os.ReadFile(gen[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(raw)
+	if !strings.Contains(src, `"github.com/adams-shaun/gorge/testkit/testutil/feedback/diracfb"`) || !strings.Contains(src, "e := diracfb.GameAt(") {
+		t.Fatalf("a dirac capture's skeleton does not replay through diracfb:\n%s", src)
+	}
+	cmd := exec.Command("go", "vet", "./"+rel)
+	cmd.Dir = root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("generated skeleton does not type-check: %v\n%s", err, out)
 	}
 }

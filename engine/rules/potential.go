@@ -82,9 +82,10 @@ func (e *Engine) PotentialMana(p state.PlayerID) state.Mana {
 // potentialManaFor is PotentialMana with an optional payment: when for is
 // non-nil, a mana ability whose RestrictValid$ cannot spend on that payment
 // (pay.RestrictValidMatches against the producing source) contributes
-// nothing. Secluded Courtyard's "one mana of any color, spend only to cast a
-// creature spell of the chosen type or activate an ability of a creature of
-// the chosen type" cannot fund Frenzied Goblin's triggered "you may pay
+// nothing, and the floating pool it starts from holds only the restricted
+// batches that payment may spend (pay.AvailableFor). Secluded Courtyard's
+// "one mana of any color, spend only to cast a creature spell of the chosen
+// type or activate an ability of a creature of the chosen type" cannot fund Frenzied Goblin's triggered "you may pay
 // {R}", so the resolution-time pay ask (resPayNeedsMana) must not count it
 // (CR 106.6: the restriction limits what that mana is spent on).
 func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) state.Mana {
@@ -96,6 +97,14 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 	rec := e.potentialManaRec
 	e.potentialManaRec = nil
 	out := e.G.Players[p].Pool
+	if payment != nil {
+		// The floating pool counts only the mana this payment may spend: a
+		// restricted batch already in the pool is as unspendable here as the
+		// restricted ability that would make it (CR 106.6). Chandra, Chill of
+		// Compliance's noncreature-spell {U} floating beside one untapped
+		// Swamp does not pay Lich's Relic's triggered {2}.
+		out = pay.AvailableFor(asPayer(e), p, *payment).Pool
+	}
 	// A source's abilities are admitted independently: one whose paid
 	// activation the pool could not cover yet (Heap Gate's "{1}, {T}: Add
 	// one mana of any color" before any other source floated mana) is

@@ -343,6 +343,14 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			// state-based check (CR 111.7, 707.10a), so the plain Remembered
 			// read matches it past the ceased-copy rejection, as the
 			// remembered-set condition reader does (conditions.go).
+			if lki && c.Snap.PTValid {
+				// The zone-change snapshot's power and toughness are its last
+				// known ones, every continuous effect applied (CR 608.2h): Ensign
+				// Harry Kim, Operations' "if it has greater power" over an
+				// entrant that died in response reads it as it last existed on
+				// the battlefield (CR 603.4, 603.10), not its printed card.
+				sc.DerivedPower, sc.DerivedToughness, sc.HasDerivedPT = c.Snap.Power, c.Snap.Toughness, true
+			}
 			remembered := ref == "Remembered" && !lki
 			if (lki && MatchesObjectCtx(g, spec, o, sc)) ||
 				(remembered && matchesZoneSpecObj(g, spec, o, sc, o.Zone)) ||

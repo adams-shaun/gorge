@@ -3,10 +3,10 @@
   "class": "projection",
   "why": "gorge puts the +1/+1 counter when the sacrificed creature was a token; the kernel does not",
   "repro": {
-    "pool": "tail-46",
+    "pool": "tail-47",
     "surface": "autopay",
     "seed": 1,
-    "pair": 86,
+    "pair": 239,
     "policy": "random",
     "mulligans": 1
   }

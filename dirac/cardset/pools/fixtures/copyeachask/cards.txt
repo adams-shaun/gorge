@@ -1,0 +1,14 @@
+# token copies of several targets, one of them with an as-enters choice:
+# Dominion Infiltration copies X creatures, the choice of a copied Diamond
+# Mare or Nyota Uhura made before the later targets' copies
+# (dirac/oracle/copyeachask_test.go)
+Diamond Mare
+Dominion Infiltration
+Forest
+Grizzly Bears
+Hill Giant
+Island
+Lightning Bolt
+Mountain
+Nyota Uhura, Communications
+Raging Goblin

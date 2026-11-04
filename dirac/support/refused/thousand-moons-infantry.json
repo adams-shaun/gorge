@@ -6,7 +6,7 @@
     "pool": "std-lci",
     "surface": "full",
     "seed": 1,
-    "pair": 490,
+    "pair": 22,
     "policy": "random",
     "mulligans": 0
   }

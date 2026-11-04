@@ -1211,10 +1211,30 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			kf.Pred, kf.PredN, kf.PredV = kop.PredPowerGEV, 1, v
 			break
 		}
-		op, n := c.CmpOp, c.CmpN
-		if c.CmpV == nil {
-			op, n = intCmpGELE(op, n) // powers are integers: LT n is LE n-1
+		if c.CmpV != nil {
+			bound := *c.CmpV
+			if c.CmpOp == opGT && !bound.Neg {
+				// power is an integer: > X is >= X+1 (Ensign Harry Kim,
+				// Operations' powerGTY over his own power)
+				bound.Add++
+			} else if c.CmpOp != opGE {
+				return kf, fmt.Errorf("power compare against a value")
+			}
+			if zone != kop.ZoneBattlefield && zone != kop.ZoneNone {
+				return kf, fmt.Errorf("power compare against a value")
+			}
+			// a power >= a value: a permanent's (Gix's Command's greatest
+			// power; kernel predPermCold, or powerGEVFrom in the filter's
+			// source context), or an object's where it now is, a departed
+			// trigger object's last known power (kernel cardPowerGEV)
+			v, err := cb.value(bound)
+			if err != nil {
+				return kf, err
+			}
+			kf.Pred, kf.PredV = kop.PredPowerGEV, v
+			break
 		}
+		op, n := intCmpGELE(c.CmpOp, c.CmpN) // powers are integers: LT n is LE n-1
 		switch op {
 		case opGE:
 			kf.Pred = kop.PredPowerGE
@@ -1222,19 +1242,6 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			kf.Pred = kop.PredPowerLE
 		default:
 			return kf, fmt.Errorf("power compare %d", c.CmpOp)
-		}
-		if c.CmpV != nil {
-			if c.CmpOp != opGE || zone != kop.ZoneBattlefield {
-				return kf, fmt.Errorf("power compare against a value")
-			}
-			// a battlefield power >= a value (Gix's Command's greatest
-			// power; kernel predPermCold)
-			v, err := cb.value(*c.CmpV)
-			if err != nil {
-				return kf, err
-			}
-			kf.Pred, kf.PredV = kop.PredPowerGEV, v
-			break
 		}
 		kf.PredN = int16(n)
 	case cmpToughness:
