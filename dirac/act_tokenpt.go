@@ -30,7 +30,11 @@ func (s *State) tokenPT(k *prep, in *kop.Instr) {
 	p, t := s.overridePT(k, int(in.C)) // before the mint (gorge resolves once)
 	s.res.pc++                         // the CreateToken; runProg steps past it
 	next := &s.prog(k)[s.res.pc]
-	if next.Op != kop.OpCreateTokenEx || !s.exec(k, next) {
+	s.g.tokPT.on, s.g.tokPT.idx, s.g.tokPT.p, s.g.tokPT.t = true, uint16(in.C), p, t
+	ok := next.Op == kop.OpCreateTokenEx && s.exec(k, next)
+	applied := !s.g.tokPT.on // the mint's entry took it (enterGen)
+	s.g.tokPT.on = false
+	if !ok {
 		s.capFull(StallTokenPT) // kgen emits the pair and refuses an asking rider
 		return
 	}
@@ -44,7 +48,7 @@ func (s *State) tokenPT(k *prep, in *kop.Instr) {
 		s.capFull(StallTokenPT)
 		return
 	}
-	if DebugTokenXPTSkip {
+	if DebugTokenXPTSkip || applied {
 		return
 	}
 	o := s.res.lastTok

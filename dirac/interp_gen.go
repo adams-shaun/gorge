@@ -1661,7 +1661,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					if mv&kop.MvEntryRiders != 0 {
 						s.g.enterCtr.n = 0
 						s.entryOverride(k, &rid, sl)
-						s.entryAtEOT(&rid, o, eb.n > 1)
+						s.entryAtEOT(&rid, o, eb.n > 1 || resume)
 					}
 					if from == kop.ZoneGraveyard {
 						s.fireLeavesGraveyardSelf(k, sl, o)

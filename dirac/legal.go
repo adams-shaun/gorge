@@ -703,6 +703,17 @@ func (s *State) gorgeLowers(p uint8, o Obj) bool {
 			return false
 		}
 	}
+	if ac := spellAddCost(k, c); ac.Flags&costObjFlags != 0 {
+		// an exile / forage / return / blight part: the cast planner declines the
+		// shape, and the potential planner prices it only when the printed sources
+		// pay the mana (potentialPlayVerdictShared), with no prefix search for a
+		// granted source beside it (Abhorrent Oculus' exile)
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		return s.affordsUngrantedFor(k, p, &cost, NoSlot, payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)})
+	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if tgtDepCost(a) {

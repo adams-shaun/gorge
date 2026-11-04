@@ -1577,6 +1577,13 @@ type genState struct {
 		tap  bool
 		ctrl bool
 	} // counters/tapped for the next enter (OpReturnEx)
+	// tokPT: the P/T set the token entering next takes with its entry
+	// (act_tokenpt.go): on, the override index, the evaluated P/T
+	tokPT struct {
+		on   bool
+		idx  uint16
+		p, t int16
+	}
 	lookSel uint32  // picked looked-at cards (bit per index; 32 bits hold look's 24; fills the pad before ro)
 	ro      replOrd // a combat damage pass paused on gorge's replacement-order ask: the header (repl_gen.go); the body is scr's armCombat
 	// scr: the mutually exclusive decision scratch, one region read through

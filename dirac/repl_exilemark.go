@@ -164,6 +164,12 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 	if g.anyRepl&rbGraveLib != 0 && s.graveRedirect(k, s.objs[o].card, kop.ZoneGraveyard) == kop.ZoneLibrary {
 		return false
 	}
+	if ob := &s.objs[o]; g.anyFinality && ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].ctrN(s, int(kop.CtrFinality)) > 0 {
+		// a finality counter exiles the permanent at the move boundary,
+		// before the replacements are collected (dieZone; gorge
+		// finalityReplacementApplies): nothing is left to order
+		return false
+	}
 	n := 0
 	if g.anyRepl&rbExileOnLeave != 0 {
 		var src [MaxPerm]Obj
