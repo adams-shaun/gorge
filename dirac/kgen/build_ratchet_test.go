@@ -141,7 +141,7 @@ import (
 // +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; merged 21462 -> 21463; ratchet TRK 292 -> 293).
 // +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; merged 21464 -> 21468; ratchet TRK 294 -> 295).
 // Pin history: git log -p dirac/kgen/build_ratchet_test.go; KGEN_REPIN=1 rewrites it.
-var buildAcceptancePin = [2]int{21468, 34442} // {built, cards}
+var buildAcceptancePin = [2]int{21470, 34442} // {built, cards}
 
 func TestCorpusBuildAcceptance(t *testing.T) {
 	cardsDir := ratchetCards(t)

@@ -35,7 +35,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	// +1 (Kai Winn, Faithless Leader: the as-enters nonland card name and the opponent cast/activation trigger over it; merged TRK 292 -> 293, ALL 21462 -> 21463).
 	// +4 (Captain Benjamin Sisko: a Play's mana-value bound names any one-letter SVar and Valid$ carries YouOwn; merged TRK 294 -> 295, ALL 21464 -> 21468).
 	// Pin history: git log -p dirac/kgen/ratchet_test.go; a commit lists the cards it moves.
-	"ALL": {21468, 34442},
+	"ALL": {21470, 34442},
 	"BIG": {23, 30},
 	"BLB": {256, 278},
 	"BRO": {206, 280},
@@ -62,7 +62,7 @@ var acceptancePins = map[string][2]int{ // list -> {accepted, cards}
 	"TLA": {245, 285},
 	"TMT": {171, 194},
 	"TRC": {287, 337},
-	"TRK": {295, 311},
+	"TRK": {296, 311},
 	"WOE": {252, 281},
 }
 
