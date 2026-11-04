@@ -1,0 +1,14 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Fencing Ace
+1	card	Forest
+2	card	Giant Spider
+3	card	Gray Ogre
+4	card	Grizzly Bears
+5	card	Hill Giant
+6	card	Mountain
+7	card	Plains
+8	card	Swamp
+9	card	The Inner Light
+10	card	Walking Corpse
+11	card	Wind Drake
+12	token	c_a_treasure_sac

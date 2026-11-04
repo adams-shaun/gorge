@@ -928,6 +928,19 @@ func restrOfStep(k *prep, st *grantStep) kop.FilterID {
 // grantPlayCost is the mana cost gorge's prefix search prices for p's
 // play a (grantPrefix / grantCap), ok false for a play it never searches.
 func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, ok bool) {
+	if s.g.raiseO == 0 {
+		// the cast owes its permission's surcharge (Zero's {2}) once it is
+		// built; the search prices what the cast will pay (CR 601.2f, 118.8)
+		if r := s.mayRaiseOwed(k, p, a); r != 0 {
+			s.g.raiseO = r
+			defer func() { s.g.raiseO = 0 }()
+		}
+	}
+	return s.grantPlayCostRaise(k, p, a, kicked)
+}
+
+// grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
+func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, ok bool) {
 	ex = NoSlot
 	switch a.Kind() {
 	case AkActivate:
